@@ -56,7 +56,8 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   return (
     <div
       ref={dropdownRef}
-      onClick={(e) => e.stopPropagation()}
+      role="menu"
+      aria-label="Menu tài khoản"
       className="absolute top-[calc(100%+12px)] right-0 w-[320px] bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-50 animate-fade-up select-none pointer-events-auto"
     >
       {/* Top Section (Current Real User) */}
@@ -68,6 +69,10 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
               src={currentUser.avatar}
               alt={currentUser.name}
               onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+              loading="lazy"
+              decoding="async"
+              width={44}
+              height={44}
               className="w-11 h-11 rounded-xl object-cover ring-2 ring-amber-400/50 shadow-md"
             />
             <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0c1218] shadow-[0_0_6px_#34d399]" />

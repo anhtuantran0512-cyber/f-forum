@@ -1,23 +1,31 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { useForumStore } from './store/forumStore';
 import { Navbar } from './components/Navbar';
 import { HomeView } from './components/views/HomeView';
-import { ClubsView } from './components/views/ClubsView';
-import { QAForumView } from './components/views/QAForumView';
-import { ChatView } from './components/views/ChatView';
-import { KhuVinhDanhView } from './components/views/KhuVinhDanhView';
-import { ComingSoonView } from './components/views/ComingSoonView';
-import { MemoryRealm } from './components/MemoryRealm';
-import { ChatDock } from './components/ChatDock';
-import { ProfileModal } from './components/ProfileModal';
-import { FocusSanctuary } from './components/FocusSanctuary';
-import { AuthModal } from './components/AuthModal';
 import { GlobalCursor } from './components/GlobalCursor';
-import { LandingPage } from './components/landing/LandingPage';
-import { XPSandboxDock } from './components/XPSandboxDock';
 import { Sparkles, Trophy, CheckCircle, Info } from 'lucide-react';
 import type { DimensionView } from './types';
 import { AuthProvider } from './context/AuthContext';
+
+// Dynamic code-splitting for non-critical routes and heavy interactive dialogs
+const LandingPage = lazy(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
+const ClubsView = lazy(() => import('./components/views/ClubsView').then(m => ({ default: m.ClubsView })));
+const QAForumView = lazy(() => import('./components/views/QAForumView').then(m => ({ default: m.QAForumView })));
+const ChatView = lazy(() => import('./components/views/ChatView').then(m => ({ default: m.ChatView })));
+const KhuVinhDanhView = lazy(() => import('./components/views/KhuVinhDanhView').then(m => ({ default: m.KhuVinhDanhView })));
+const ComingSoonView = lazy(() => import('./components/views/ComingSoonView').then(m => ({ default: m.ComingSoonView })));
+const MemoryRealm = lazy(() => import('./components/MemoryRealm').then(m => ({ default: m.MemoryRealm })));
+const ChatDock = lazy(() => import('./components/ChatDock').then(m => ({ default: m.ChatDock })));
+const ProfileModal = lazy(() => import('./components/ProfileModal').then(m => ({ default: m.ProfileModal })));
+const FocusSanctuary = lazy(() => import('./components/FocusSanctuary').then(m => ({ default: m.FocusSanctuary })));
+const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
+const XPSandboxDock = lazy(() => import('./components/XPSandboxDock').then(m => ({ default: m.XPSandboxDock })));
+
+const ViewLoadingFallback = () => (
+  <div className="w-full h-full min-h-[50vh] flex items-center justify-center" aria-busy="true" aria-label="Đang tải giao diện">
+    <div className="w-8 h-8 rounded-full border-2 border-amber-400/20 border-t-amber-400 animate-spin" />
+  </div>
+);
 
 const CORE_SCROLL_VIEWS: DimensionView[] = ['home', 'clubs', 'qa', 'coming-soon'];
 const SCROLL_COOLDOWN_MS = 650;
@@ -248,148 +256,152 @@ export const App: React.FC = () => {
 
       {/* Main Dimension View Routing (Single-Viewport Multi-View Architecture) */}
       <main className={`w-full ${currentView === 'memory' || currentView === 'chronicles' ? 'min-h-[116vh]' : 'h-full'}`}>
-        {currentView === 'landing' && (
-          <LandingPage
-            currentUser={currentUser}
-            onOpenAuth={() => handleOpenAuth('register')}
-            onEnterApp={() => handleViewChange('home')}
-            onlineCount={Math.max(1, onlineUsers.length > 0 ? onlineUsers.length : Object.keys(users).length)}
-            totalQuestions={questions.length}
-            solvedQuestions={solvedQuestionsCount}
-            totalClubs={clubs.filter(c => c.status === 'APPROVED').length}
-          />
-        )}
-
-        {currentView === 'home' && (
-          <div className="relative w-full h-full">
-            <HomeView
-              onNavigate={handleNavigate}
-              onOpenLanding={() => handleViewChange('landing')}
-              totalClubs={clubs.filter(c => c.status === 'APPROVED').length}
-              totalQuestions={questions.length}
-              solvedQuestionsCount={solvedQuestionsCount}
+        <Suspense fallback={<ViewLoadingFallback />}>
+          {currentView === 'landing' && (
+            <LandingPage
+              currentUser={currentUser}
+              onOpenAuth={() => handleOpenAuth('register')}
+              onEnterApp={() => handleViewChange('home')}
               onlineCount={Math.max(1, onlineUsers.length > 0 ? onlineUsers.length : Object.keys(users).length)}
-              onlineUsersCount={Math.max(1, onlineUsers.length > 0 ? onlineUsers.length : Object.keys(users).length)}
-              resolvedQuestionsCount={solvedQuestionsCount}
-              totalClubsCount={clubs.filter(c => c.status === 'APPROVED').length}
-              chatMessagesTodayCount={chatMessages.length}
+              totalQuestions={questions.length}
+              solvedQuestions={solvedQuestionsCount}
+              totalClubs={clubs.filter(c => c.status === 'APPROVED').length}
             />
-          </div>
-        )}
+          )}
 
-        {currentView === 'clubs' && (
-          <ClubsView
-            currentUser={currentUser}
-            clubs={clubs}
-            clubPosts={clubPosts}
-            onCreateClub={createClub}
-            onApproveClub={approveClub}
-            onRejectClub={rejectClub}
-            onCreateClubPost={createClubPost}
-            chatMessages={chatMessages}
-            onOpenLoginModal={() => handleOpenAuth('login')}
-          />
-        )}
+          {currentView === 'home' && (
+            <div className="relative w-full h-full">
+              <HomeView
+                onNavigate={handleNavigate}
+                onOpenLanding={() => handleViewChange('landing')}
+                totalClubs={clubs.filter(c => c.status === 'APPROVED').length}
+                totalQuestions={questions.length}
+                solvedQuestionsCount={solvedQuestionsCount}
+                onlineCount={Math.max(1, onlineUsers.length > 0 ? onlineUsers.length : Object.keys(users).length)}
+                onlineUsersCount={Math.max(1, onlineUsers.length > 0 ? onlineUsers.length : Object.keys(users).length)}
+                resolvedQuestionsCount={solvedQuestionsCount}
+                totalClubsCount={clubs.filter(c => c.status === 'APPROVED').length}
+                chatMessagesTodayCount={chatMessages.length}
+              />
+            </div>
+          )}
 
-        {currentView === 'qa' && (
-          <QAForumView
-            currentUser={currentUser}
-            questions={questions}
-            solutions={solutions}
-            onCreateQuestion={createQuestion}
-            onAddSolution={addSolution}
-            onMarkBestSolution={markBestSolution}
-            onDeleteQuestion={adminDeleteQuestion}
-            onEditQuestion={adminEditQuestion}
-            onDeleteSolution={adminDeleteSolution}
-            onOpenLoginModal={() => handleOpenAuth('login')}
-          />
-        )}
+          {currentView === 'clubs' && (
+            <ClubsView
+              currentUser={currentUser}
+              clubs={clubs}
+              clubPosts={clubPosts}
+              onCreateClub={createClub}
+              onApproveClub={approveClub}
+              onRejectClub={rejectClub}
+              onCreateClubPost={createClubPost}
+              chatMessages={chatMessages}
+              onOpenLoginModal={() => handleOpenAuth('login')}
+            />
+          )}
 
-        {currentView === 'chat' && (
-          <ChatView
+          {currentView === 'qa' && (
+            <QAForumView
+              currentUser={currentUser}
+              questions={questions}
+              solutions={solutions}
+              onCreateQuestion={createQuestion}
+              onAddSolution={addSolution}
+              onMarkBestSolution={markBestSolution}
+              onDeleteQuestion={adminDeleteQuestion}
+              onEditQuestion={adminEditQuestion}
+              onDeleteSolution={adminDeleteSolution}
+              onOpenLoginModal={() => handleOpenAuth('login')}
+            />
+          )}
+
+          {currentView === 'chat' && (
+            <ChatView
+              currentUser={currentUser}
+              messages={chatMessages}
+              onSendMessage={sendChatMessage}
+              onDeleteMessage={adminDeleteChatMessage}
+              onlineUsers={onlineUsers}
+              onlineCount={Math.max(1, onlineUsers.length)}
+              onOpenLoginModal={() => handleOpenAuth('login')}
+            />
+          )}
+
+          {currentView === 'memory' && (
+            <div className="w-full min-h-screen bg-black">
+              <MemoryRealm
+                onNavigateSection={(sectionId) => {
+                  if (sectionId === 'clubs' || sectionId === 'qa' || sectionId === 'chronicles') {
+                    handleViewChange(sectionId as DimensionView);
+                  } else {
+                    const el = document.getElementById(sectionId);
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {currentView === 'chronicles' && (
+            <KhuVinhDanhView
+              onExit={() => setCurrentView('home')}
+              onNavigate={(v) => setCurrentView(v)}
+              currentUser={currentUser}
+            />
+          )}
+
+          {currentView === 'coming-soon' && (
+            <ComingSoonView onReturnHome={handleViewChange} />
+          )}
+        </Suspense>
+      </main>
+
+      <Suspense fallback={null}>
+        {/* Slide-over Chat Dock (For quick chatting when browsing Home, Clubs, QA, Chronicles) */}
+        {currentView !== 'chat' && (
+          currentView === 'landing' ? null : (
+          <ChatDock
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
             currentUser={currentUser}
             messages={chatMessages}
             onSendMessage={sendChatMessage}
             onDeleteMessage={adminDeleteChatMessage}
-            onlineUsers={onlineUsers}
-            onlineCount={Math.max(1, onlineUsers.length)}
             onOpenLoginModal={() => handleOpenAuth('login')}
           />
+          )
         )}
 
-        {currentView === 'memory' && (
-          <div className="w-full min-h-screen bg-black">
-            <MemoryRealm
-              onNavigateSection={(sectionId) => {
-                if (sectionId === 'clubs' || sectionId === 'qa' || sectionId === 'chronicles') {
-                  handleViewChange(sectionId as DimensionView);
-                } else {
-                  const el = document.getElementById(sectionId);
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }
-              }}
-            />
-          </div>
-        )}
-
-        {currentView === 'chronicles' && (
-          <KhuVinhDanhView
-            onExit={() => setCurrentView('home')}
-            onNavigate={(v) => setCurrentView(v)}
+        {/* User Profile (F-ID Settings Modal) */}
+        {currentUser && (
+          <ProfileModal
+            isOpen={isProfileModalOpen}
+            onClose={() => setIsProfileModalOpen(false)}
             currentUser={currentUser}
+            onSaveProfile={updateProfile}
+            initialTab={profileInitialTab}
           />
         )}
 
-        {currentView === 'coming-soon' && (
-          <ComingSoonView onReturnHome={handleViewChange} />
-        )}
-      </main>
-
-      {/* Slide-over Chat Dock (For quick chatting when browsing Home, Clubs, QA, Chronicles) */}
-      {currentView !== 'chat' && (
-        currentView === 'landing' ? null : (
-        <ChatDock
-          isOpen={isChatOpen}
-          onClose={() => setIsChatOpen(false)}
-          currentUser={currentUser}
-          messages={chatMessages}
-          onSendMessage={sendChatMessage}
-          onDeleteMessage={adminDeleteChatMessage}
-          onOpenLoginModal={() => handleOpenAuth('login')}
+        {/* Authentication Modal */}
+        <AuthModal
+          key={authInitialTab}
+          initialTab={authInitialTab}
+          isOpen={isLoginModalOpen}
+          onClose={() => setIsLoginModalOpen(false)}
+          onLogin={login}
+          onLoginSocial={loginSocial}
+          onLoginWithPassword={loginWithPassword}
+          onRegister={registerWithPassword}
         />
-        )
-      )}
 
-      {/* User Profile (F-ID Settings Modal) */}
-      {currentUser && (
-        <ProfileModal
-          isOpen={isProfileModalOpen}
-          onClose={() => setIsProfileModalOpen(false)}
-          currentUser={currentUser}
-          onSaveProfile={updateProfile}
-          initialTab={profileInitialTab}
+        {/* Focus Sanctuary & Pomodoro HUD Mode */}
+        <FocusSanctuary
+          isOpen={isFocusModeOpen}
+          onClose={() => setIsFocusModeOpen(false)}
+          onRewardXP={addXP}
         />
-      )}
-
-      {/* Authentication Modal */}
-      <AuthModal
-        key={authInitialTab}
-        initialTab={authInitialTab}
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        onLogin={login}
-        onLoginSocial={loginSocial}
-        onLoginWithPassword={loginWithPassword}
-        onRegister={registerWithPassword}
-      />
-
-      {/* Focus Sanctuary & Pomodoro HUD Mode */}
-      <FocusSanctuary
-        isOpen={isFocusModeOpen}
-        onClose={() => setIsFocusModeOpen(false)}
-        onRewardXP={addXP}
-      />
+      </Suspense>
 
       {/* Toast Notification Banner */}
       {toastMessage && (

@@ -271,6 +271,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             loop
             muted
             playsInline
+            preload="metadata"
             onError={handleVideoError}
             className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[1200ms] ease-in-out ${
               activeVideoIdx === idx ? 'opacity-100' : 'opacity-0'
@@ -422,7 +423,19 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               return (
                 <div
                   key={q.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setSelectedQuestion(q)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      const target = e.target as HTMLElement;
+                      if (!target.closest('button')) {
+                        e.preventDefault();
+                        setSelectedQuestion(q);
+                      }
+                    }
+                  }}
+                  aria-label={`Xem chi tiết câu hỏi: ${q.title}`}
                   className={`cursor-pointer rounded-2xl liquid-glass p-4 border transition-all duration-200 group hover:scale-[1.008] ${
                     q.isSolved
                       ? 'bg-neutral-950/70 border-amber-500/40 hover:border-amber-400 shadow-[0_4px_20px_rgba(245,158,11,0.1)]'
@@ -474,12 +487,16 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
                         {/* Super Admin 3-dots Menu Button */}
                         {isSuperAdmin && (
-                          <div className="relative ml-1" onClick={e => e.stopPropagation()}>
+                          <div className="relative ml-1">
                             <button
                               type="button"
-                              onClick={() => setOpenMenuQuestionId(prev => (prev === q.id ? null : q.id))}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuQuestionId(prev => (prev === q.id ? null : q.id));
+                              }}
                               className="p-1 rounded-md bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white border border-white/10 transition-colors cursor-pointer"
                               title="Tùy chọn quản trị bài viết"
+                              aria-label="Tùy chọn quản trị bài viết"
                             >
                               <MoreVertical size={13} />
                             </button>
@@ -488,7 +505,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               <div className="absolute right-0 top-full mt-1.5 w-44 rounded-xl obsidian-glass bg-[#0c1218] border border-cyan-500/30 shadow-2xl p-1.5 z-30 space-y-1 animate-fade-up">
                                 <button
                                   type="button"
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     setOpenMenuQuestionId(null);
                                     handleAdminEditPost(q.id);
                                   }}
@@ -499,7 +517,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     setOpenMenuQuestionId(null);
                                     handleAdminDeletePost(q.id);
                                   }}
@@ -519,6 +538,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           src={q.authorAvatar}
                           alt={q.authorName}
                           onError={e => handleImageError(e, DEFAULT_AVATAR)}
+                          loading="lazy"
+                          decoding="async"
+                          width={20}
+                          height={20}
                           className={`w-5 h-5 rounded-full object-cover border ${
                             q.isAnonymous
                               ? 'border-purple-400 p-0.5 shadow-[0_0_8px_rgba(168,85,247,0.5)]'
@@ -670,6 +693,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         src={previewMask}
                         alt="Ghibli Wizard Mask"
                         onError={e => handleImageError(e, DEFAULT_AVATAR)}
+                        loading="lazy"
+                        decoding="async"
+                        width={40}
+                        height={40}
                         className="w-10 h-10 rounded-full border border-purple-400/50 p-0.5 shadow-[0_0_12px_rgba(168,85,247,0.4)]"
                       />
                     )}
@@ -757,6 +784,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   src={selectedQuestion.authorAvatar}
                   alt={selectedQuestion.authorName}
                   onError={e => handleImageError(e, DEFAULT_AVATAR)}
+                  loading="lazy"
+                  decoding="async"
+                  width={24}
+                  height={24}
                   className={`w-6 h-6 rounded-full object-cover border ${
                     selectedQuestion.isAnonymous
                       ? 'border-purple-400 p-0.5 shadow-[0_0_8px_rgba(168,85,247,0.5)]'
@@ -833,6 +864,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                 src={solverAvatar}
                                 alt={solverName}
                                 onError={e => handleImageError(e, DEFAULT_AVATAR)}
+                                loading="lazy"
+                                decoding="async"
+                                width={28}
+                                height={28}
                                 className={`w-7 h-7 rounded-full object-cover ${
                                   isSuperAdminSolver ? 'border border-amber-400' : ''
                                 }`}

@@ -384,7 +384,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
   };
 
   // Lightbox Inspection Trigger with FLIP Source Coordinates
-  const handleCardClick = (ms: MilestoneItem, index: number, e: React.MouseEvent<HTMLDivElement>) => {
+  const handleCardClick = (ms: MilestoneItem, index: number, e: React.MouseEvent<HTMLElement>) => {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
     setLightboxSourceRect(rect);
@@ -405,7 +405,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
   };
 
   // 3D Card Hover Tilt for Grid Mode
-  const handleGridCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleGridCardMouseMove = (e: React.MouseEvent<HTMLElement>) => {
     const card = e.currentTarget;
     const rect = card.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -417,7 +417,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
   };
 
-  const handleGridCardMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleGridCardMouseLeave = (e: React.MouseEvent<HTMLElement>) => {
     e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
   };
 
@@ -717,6 +717,10 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 src={aboutData.founder.avatarUrl}
                 alt={aboutData.founder.name}
                 onError={e => handleImageError(e, DEFAULT_AVATAR)}
+                loading="lazy"
+                decoding="async"
+                width={56}
+                height={56}
                 className="bio-avatar w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border border-cyan-400/50 shadow-lg"
               />
               {isSuperAdmin && (
@@ -868,6 +872,9 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                       onError={e => handleImageError(e, DEFAULT_AVATAR)}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                       loading="lazy"
+                      decoding="async"
+                      width={280}
+                      height={200}
                     />
 
                     {/* Milestone Index Pill */}
@@ -924,12 +931,13 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
           <div className="bento-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {aboutData.milestones.map((ms, idx) => (
-              <div
+              <button
+                type="button"
                 key={ms.id}
                 onClick={e => handleCardClick(ms, idx, e)}
                 onMouseMove={handleGridCardMouseMove}
                 onMouseLeave={handleGridCardMouseLeave}
-                className="group cursor-pointer rounded-2xl obsidian-glass border border-white/10 p-3.5 transition-all duration-300 hover:border-cyan-400/50 hover:shadow-[0_15px_40px_rgba(6,182,212,0.15)] flex flex-col justify-between"
+                className="text-left w-full group cursor-pointer rounded-2xl obsidian-glass border border-white/10 p-3.5 transition-all duration-300 hover:border-cyan-400/50 hover:shadow-[0_15px_40px_rgba(6,182,212,0.15)] flex flex-col justify-between"
               >
                 <div className="space-y-2.5">
                   <div className={`relative w-full ${ms.isTall ? 'aspect-[3/4]' : 'aspect-video'} rounded-xl overflow-hidden bg-neutral-900 border border-white/10`}>
@@ -939,6 +947,9 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                       onError={e => handleImageError(e, DEFAULT_AVATAR)}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       loading="lazy"
+                      decoding="async"
+                      width={360}
+                      height={200}
                     />
                     <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-mono bg-black/75 text-cyan-300 border border-cyan-400/30 backdrop-blur-md">
                       {String(idx + 1).padStart(2, '0')}
@@ -969,7 +980,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                   <span>Chi tiết</span>
                   <span className="text-cyan-400 group-hover:translate-x-1 transition-transform">→</span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -995,15 +1006,24 @@ export const AboutUs: React.FC<AboutUsProps> = ({
       {/* 4. FLIP LIGHTBOX MODAL PLATE INSPECTION */}
       {activeLightboxMilestone && (
         <div
-          onClick={() => {
-            setActiveLightboxMilestone(null);
-            setIsEditingInLightbox(false);
-          }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Chi tiết dấu mốc lịch sử"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-up"
         >
+          {/* Backdrop dismiss button */}
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-label="Đóng xem chi tiết"
+            className="fixed inset-0 bg-transparent border-none outline-none cursor-default"
+            onClick={() => {
+              setActiveLightboxMilestone(null);
+              setIsEditingInLightbox(false);
+            }}
+          />
           <div
-            onClick={e => e.stopPropagation()}
-            className="plate lightbox-dialog relative w-full max-w-3xl rounded-3xl obsidian-glass border border-cyan-400/40 p-6 sm:p-8 shadow-[0_30px_90px_rgba(0,0,0,0.95)] max-h-[92vh] overflow-y-auto"
+            className="plate lightbox-dialog relative z-10 w-full max-w-3xl rounded-3xl obsidian-glass border border-cyan-400/40 p-6 sm:p-8 shadow-[0_30px_90px_rgba(0,0,0,0.95)] max-h-[92vh] overflow-y-auto"
             style={{
               // First-Last-Invert-Play (FLIP) transition timing
               transition: isLightboxEntering
@@ -1039,6 +1059,10 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                     src={activeLightboxMilestone.imageUrl}
                     alt={activeLightboxMilestone.title}
                     onError={e => handleImageError(e, DEFAULT_AVATAR)}
+                    loading="lazy"
+                    decoding="async"
+                    width={800}
+                    height={450}
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent pointer-events-none" />
@@ -1637,6 +1661,10 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                     src={avatarInputUrl}
                     alt="Preview"
                     onError={e => handleImageError(e, DEFAULT_AVATAR)}
+                    loading="lazy"
+                    decoding="async"
+                    width={48}
+                    height={48}
                     className="w-12 h-12 rounded-full object-cover border border-cyan-400/40"
                   />
                   <span className="text-[11px] text-neutral-300 truncate">Ảnh xem trước</span>

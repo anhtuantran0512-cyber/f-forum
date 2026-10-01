@@ -23,7 +23,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({ user }
   const fPoints = user.fPoints ?? user.xp;
 
   // Calculate 3D Cursor Tilt & Specular Glare Coordinates using unrotated container
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
     const el = containerRef.current || cardRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
@@ -55,12 +55,14 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({ user }
   return (
     <div className="w-full flex flex-col items-center">
       {/* 3D Hologram Card Container */}
-      <div
-        ref={containerRef}
-        className="hologram-card w-full max-w-[420px] aspect-[1.586/1] cursor-pointer relative py-2"
+      <button
+        type="button"
+        ref={containerRef as unknown as React.RefObject<HTMLButtonElement>}
+        className="hologram-card w-full max-w-[420px] aspect-[1.586/1] cursor-pointer relative py-2 block text-left border-none bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onClick={() => setIsFlipped(prev => !prev)}
+        aria-label="Thẻ sinh viên 3D (Bấm để lật thẻ)"
         title="Di chuột để tương tác 3D tilt • Nhấp chuột để lật thẻ"
       >
         <div
@@ -135,6 +137,10 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({ user }
                     src={user.avatar}
                     alt={user.name}
                     onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                    loading="lazy"
+                    decoding="async"
+                    width={64}
+                    height={64}
                     className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-white/80 shadow-2xl"
                   />
                   <div className="absolute -bottom-1 -right-1 z-10">
@@ -268,7 +274,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({ user }
             </div>
           )}
         </div>
-      </div>
+      </button>
 
       <div className="mt-2 text-[11px] text-neutral-400 flex items-center gap-2 font-mono">
         <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />

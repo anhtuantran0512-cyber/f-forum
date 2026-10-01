@@ -56,8 +56,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   return (
     <>
       {/* Transparent Click-Outside Backdrop */}
-      <div
-        className="fixed inset-0 z-40 bg-transparent cursor-default"
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label="Đóng cài đặt"
+        className="fixed inset-0 z-40 bg-transparent cursor-default border-none outline-none"
         onClick={(e) => {
           e.stopPropagation();
           onClose();
@@ -70,7 +73,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label="Cài đặt hệ thống"
-        onClick={(e) => e.stopPropagation()}
         className="absolute top-[calc(100%+12px)] right-0 z-50 w-[350px] max-w-[calc(100vw-32px)] liquid-glass rounded-3xl p-5 shadow-[0_25px_60px_rgba(0,0,0,0.9)] animate-fade-up pointer-events-auto border border-white/15 select-none"
       >
         {/* Header */}

@@ -145,8 +145,12 @@ export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin
               <span className="ff-chip px-3 py-1.5">
                 <img
                   src={currentUser.avatar}
-                  alt=""
+                  alt={currentUser.name || 'User Avatar'}
                   onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                  loading="lazy"
+                  decoding="async"
+                  width={20}
+                  height={20}
                   className="h-5 w-5 rounded-full object-cover ring-1 ring-amber-400/60"
                 />
                 <span className="max-w-[110px] truncate font-medium text-[var(--ff-text)]">
@@ -192,10 +196,12 @@ export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin
         hidden={!menuOpen}
         className={`lg:hidden ${menuOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}
       >
-        <div
-          className="ff-fade-in fixed inset-0 -z-10 bg-black/60 backdrop-blur-sm"
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label="Đóng menu di động"
+          className="ff-fade-in fixed inset-0 -z-10 bg-black/60 backdrop-blur-sm border-none outline-none cursor-default"
           onClick={() => setMenuOpen(false)}
-          aria-hidden="true"
         />
         <div className="ff-drawer-in mx-4 mt-2 max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl border border-[var(--ff-border)] bg-[var(--ff-bg-soft)]/95 p-5 shadow-2xl backdrop-blur-2xl">
           <nav aria-label="Điều hướng di động" className="grid gap-1">
