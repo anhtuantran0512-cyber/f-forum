@@ -256,6 +256,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const navItems: { id: DimensionView; label: string }[] = [
+    { id: 'landing', label: 'GIỚI THIỆU' },
     { id: 'home', label: 'TRANG CHỦ' },
     { id: 'clubs', label: 'CÂU LẠC BỘ' },
     { id: 'qa', label: 'HỎI ĐÁP' },
@@ -758,7 +759,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             setIsMobileMenuOpen((prev) => !prev);
           }}
           className={`flex flex-col items-center justify-center min-w-[48px] min-h-[44px] px-2 py-1 rounded-xl transition-all cursor-pointer ${
-            isMobileMenuOpen || currentView === 'memory' || currentView === 'chronicles' || currentView === 'coming-soon'
+            isMobileMenuOpen || currentView === 'landing' || currentView === 'memory' || currentView === 'chronicles' || currentView === 'coming-soon'
               ? 'text-amber-400 font-semibold'
               : 'text-white/60 hover:text-white'
           }`}
@@ -803,6 +804,25 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             <div className="grid grid-cols-1 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onViewChange('landing');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full p-3 rounded-2xl border transition-all text-left flex items-center gap-3 cursor-pointer ${
+                  currentView === 'landing'
+                    ? 'bg-amber-500/20 border-amber-400/40 text-amber-300'
+                    : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                }`}
+              >
+                <Sparkles className="w-5 h-5 text-amber-400 shrink-0" />
+                <div>
+                  <div className="text-xs font-bold">Giới thiệu F-Forum</div>
+                  <div className="text-[10px] text-neutral-400">Trang giới thiệu, tính năng &amp; bảng giá</div>
+                </div>
+              </button>
+
               <button
                 type="button"
                 onClick={() => {

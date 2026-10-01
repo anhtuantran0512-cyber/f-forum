@@ -13,6 +13,7 @@ import { ProfileModal } from './components/ProfileModal';
 import { FocusSanctuary } from './components/FocusSanctuary';
 import { AuthModal } from './components/AuthModal';
 import { GlobalCursor } from './components/GlobalCursor';
+import { LandingPage } from './components/landing/LandingPage';
 import { XPSandboxDock } from './components/XPSandboxDock';
 import { Sparkles, Trophy, CheckCircle, Info } from 'lucide-react';
 import type { DimensionView } from './types';
@@ -66,6 +67,7 @@ export const App: React.FC = () => {
   const [isFocusModeOpen, setIsFocusModeOpen] = useState(false);
   const [profileInitialTab, setProfileInitialTab] = useState<'card' | 'edit'>('card');
   const [scrollInsideCinema, setScrollInsideCinema] = useState(false);
+  const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>('login');
 
   const isInsideCinema = currentView === 'memory' && scrollInsideCinema;
 
@@ -100,9 +102,17 @@ export const App: React.FC = () => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [currentView]);
 
+  const handleOpenAuth = useCallback(
+    (tab: 'login' | 'register' = 'login') => {
+      setAuthInitialTab(tab);
+      setIsLoginModalOpen(true);
+    },
+    [setIsLoginModalOpen],
+  );
+
   const handleOpenProfile = (tab: 'card' | 'edit' = 'card') => {
     if (!currentUser) {
-      setIsLoginModalOpen(true);
+      handleOpenAuth('login');
       return;
     }
     setProfileInitialTab(tab);
@@ -138,6 +148,12 @@ export const App: React.FC = () => {
     const handleWheel = (e: WheelEvent) => {
       // Exclusions: chat, memory, chronicles retain their own scroll mechanics
       if (currentView === 'chat' || currentView === 'memory' || currentView === 'chronicles') {
+        return;
+      }
+
+      // The landing page is a freely scrolling marketing surface: the wheel
+      // engine must never hijack it (scroll-to-explore sections handle their own motion).
+      if (currentView === 'landing') {
         return;
       }
 
@@ -197,21 +213,28 @@ export const App: React.FC = () => {
   }, [currentView, isLoginModalOpen, isProfileModalOpen, isFocusModeOpen, isChatOpen, handleViewChange]);
 
   const solvedQuestionsCount = questions.filter(q => q.isSolved).length;
+  const isScrollableView =
+    currentView === 'memory' || currentView === 'chronicles' || currentView === 'landing';
 
   return (
     <AuthProvider currentUser={currentUser}>
       {/* Global Radiant Cursor (Active across entire app on pointer devices) */}
       <GlobalCursor />
 
-      <div className={`relative w-full ${currentView === 'memory' || currentView === 'chronicles' ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} bg-black text-white font-sans`}>
+      <div
+        className={`relative w-full ${
+          isScrollableView ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'
+        } ${currentView === 'landing' ? 'bg-[var(--ff-bg)]' : 'bg-black'} text-white font-sans`}
+      >
       
       {/* Floating Global Navbar Dock (Viewport fixed wrapper with graceful transitions) */}
       {currentView !== 'chronicles' && (
+        currentView === 'landing' ? null : (
         <Navbar
           currentView={currentView}
           onViewChange={handleViewChange}
           currentUser={currentUser}
-          onOpenLoginModal={() => setIsLoginModalOpen(true)}
+          onOpenLoginModal={() => handleOpenAuth('login')}
           onLogout={logout}
           isChatOpen={isChatOpen}
           onToggleChat={handleToggleChat}
@@ -220,14 +243,28 @@ export const App: React.FC = () => {
           onOpenFocusMode={() => setIsFocusModeOpen(true)}
           isInsideCinema={isInsideCinema}
         />
+        )
       )}
 
       {/* Main Dimension View Routing (Single-Viewport Multi-View Architecture) */}
       <main className={`w-full ${currentView === 'memory' || currentView === 'chronicles' ? 'min-h-[116vh]' : 'h-full'}`}>
+        {currentView === 'landing' && (
+          <LandingPage
+            currentUser={currentUser}
+            onOpenAuth={() => handleOpenAuth('register')}
+            onEnterApp={() => handleViewChange('home')}
+            onlineCount={Math.max(1, onlineUsers.length > 0 ? onlineUsers.length : Object.keys(users).length)}
+            totalQuestions={questions.length}
+            solvedQuestions={solvedQuestionsCount}
+            totalClubs={clubs.filter(c => c.status === 'APPROVED').length}
+          />
+        )}
+
         {currentView === 'home' && (
           <div className="relative w-full h-full">
             <HomeView
               onNavigate={handleNavigate}
+              onOpenLanding={() => handleViewChange('landing')}
               totalClubs={clubs.filter(c => c.status === 'APPROVED').length}
               totalQuestions={questions.length}
               solvedQuestionsCount={solvedQuestionsCount}
@@ -250,7 +287,7 @@ export const App: React.FC = () => {
             onRejectClub={rejectClub}
             onCreateClubPost={createClubPost}
             chatMessages={chatMessages}
-            onOpenLoginModal={() => setIsLoginModalOpen(true)}
+            onOpenLoginModal={() => handleOpenAuth('login')}
           />
         )}
 
@@ -265,7 +302,7 @@ export const App: React.FC = () => {
             onDeleteQuestion={adminDeleteQuestion}
             onEditQuestion={adminEditQuestion}
             onDeleteSolution={adminDeleteSolution}
-            onOpenLoginModal={() => setIsLoginModalOpen(true)}
+            onOpenLoginModal={() => handleOpenAuth('login')}
           />
         )}
 
@@ -277,7 +314,7 @@ export const App: React.FC = () => {
             onDeleteMessage={adminDeleteChatMessage}
             onlineUsers={onlineUsers}
             onlineCount={Math.max(1, onlineUsers.length)}
-            onOpenLoginModal={() => setIsLoginModalOpen(true)}
+            onOpenLoginModal={() => handleOpenAuth('login')}
           />
         )}
 
@@ -311,6 +348,7 @@ export const App: React.FC = () => {
 
       {/* Slide-over Chat Dock (For quick chatting when browsing Home, Clubs, QA, Chronicles) */}
       {currentView !== 'chat' && (
+        currentView === 'landing' ? null : (
         <ChatDock
           isOpen={isChatOpen}
           onClose={() => setIsChatOpen(false)}
@@ -318,8 +356,9 @@ export const App: React.FC = () => {
           messages={chatMessages}
           onSendMessage={sendChatMessage}
           onDeleteMessage={adminDeleteChatMessage}
-          onOpenLoginModal={() => setIsLoginModalOpen(true)}
+          onOpenLoginModal={() => handleOpenAuth('login')}
         />
+        )
       )}
 
       {/* User Profile (F-ID Settings Modal) */}
@@ -335,6 +374,8 @@ export const App: React.FC = () => {
 
       {/* Authentication Modal */}
       <AuthModal
+        key={authInitialTab}
+        initialTab={authInitialTab}
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         onLogin={login}

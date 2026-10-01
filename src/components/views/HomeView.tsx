@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Compass, HelpCircle } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, ChevronDown, Compass, HelpCircle, MousePointerClick } from 'lucide-react';
 import type { DimensionView } from '../../types';
 import { BoomerangVideoBg } from '../BoomerangVideoBg';
 
 interface HomeViewProps {
   onNavigate: (view: DimensionView) => void;
+  /** Opens the marketing landing page (optional: falls back to hidden). */
+  onOpenLanding?: () => void;
   totalClubs: number;
   totalQuestions?: number;
   solvedQuestionsCount: number;
@@ -17,6 +19,7 @@ interface HomeViewProps {
 
 export const HomeView: React.FC<HomeViewProps> = ({
   onNavigate,
+  onOpenLanding,
   totalClubs,
   solvedQuestionsCount,
   onlineCount = 1,
@@ -117,6 +120,35 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <HelpCircle className="w-4 h-4 text-amber-400" />
             <span>Sàn Hỏi Đáp Tri Thức</span>
           </button>
+        </div>
+
+        {/* Tertiary: marketing landing page */}
+        {onOpenLanding && (
+          <button
+            type="button"
+            onClick={onOpenLanding}
+            className="animate-fade-up delay-5 group mt-6 inline-flex items-center gap-1.5 text-xs font-medium text-neutral-400 hover:text-amber-300 transition-colors cursor-pointer"
+          >
+            <span>Tìm hiểu về F-Forum</span>
+            <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Scroll-to-Explore cue: the wheel engine walks through the 4 core dimensions */}
+      <div className="pointer-events-none absolute bottom-24 left-1/2 z-20 -translate-x-1/2 md:bottom-8">
+        <div className="flex flex-col items-center gap-1.5 text-neutral-400/80">
+          <span className="hidden sm:flex h-7 w-4 items-start justify-center rounded-full border border-white/25 pt-1.5">
+            <span className="ff-scroll-dot h-1.5 w-1 rounded-full bg-amber-400" />
+          </span>
+          <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.22em]">
+            <MousePointerClick className="w-3 h-3 text-amber-400/80" />
+            Cuộn để khám phá
+            <ChevronDown className="w-3 h-3 ff-chevron-1" />
+          </span>
+          <span className="text-[9.5px] font-mono tracking-wider text-neutral-500">
+            TRANG CHỦ → CÂU LẠC BỘ → HỎI ĐÁP → UPDATE
+          </span>
         </div>
       </div>
 
