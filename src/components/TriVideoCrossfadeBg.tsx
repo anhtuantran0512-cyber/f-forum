@@ -39,6 +39,7 @@ export const TriVideoCrossfadeBg: React.FC<TriVideoCrossfadeBgProps> = ({
           loop
           muted
           playsInline
+          preload="metadata"
           onError={handleVideoError}
           className={`absolute inset-0 w-full h-full object-cover scale-[1.04] transition-opacity duration-[1400ms] ease-in-out ${
             currentIdx === idx ? 'opacity-100' : 'opacity-0'

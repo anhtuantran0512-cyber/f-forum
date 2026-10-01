@@ -247,6 +247,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
           loop
           muted
           playsInline
+          preload="metadata"
           onError={handleVideoError}
           className="w-full h-full object-cover scale-[1.05]"
         />
@@ -508,6 +509,10 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                       src={club.coverImage}
                       alt={club.name}
                       onError={e => handleImageError(e, DEFAULT_CLUB_COVER)}
+                      loading="lazy"
+                      decoding="async"
+                      width={480}
+                      height={128}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
@@ -726,6 +731,10 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                 src={selectedClub.coverImage}
                 alt={selectedClub.name}
                 onError={e => handleImageError(e, DEFAULT_CLUB_COVER)}
+                loading="lazy"
+                decoding="async"
+                width={640}
+                height={176}
                 className="w-full h-full object-cover"
               />
             </div>

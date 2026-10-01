@@ -77,6 +77,26 @@ export const Navbar: React.FC<NavbarProps> = ({
     opacity: 0,
   });
 
+  // Liquid navbar sliding pill indicator calculation
+  useEffect(() => {
+    const updatePill = () => {
+      const activeEl = tabRefs.current[currentView];
+      if (activeEl) {
+        setPillStyle({
+          left: activeEl.offsetLeft,
+          width: activeEl.offsetWidth,
+          opacity: 1,
+        });
+      } else {
+        setPillStyle((prev) => ({ ...prev, opacity: 0 }));
+      }
+    };
+
+    updatePill();
+    window.addEventListener('resize', updatePill);
+    return () => window.removeEventListener('resize', updatePill);
+  }, [currentView]);
+
   // Synchronize theme & motion classes on DOM
   useEffect(() => {
     if (theme === 'light') {
@@ -302,10 +322,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           {/* Center Tabs: Strictly 1 Single Line, NO wrapping into 2 rows */}
-          <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-1">
-            {/* Soft sliding pill indicator */}
+          <div className="relative flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-1">
+            {/* Liquid sliding pill indicator */}
             <div
-              className="absolute top-1 bottom-1 rounded-full bg-white/10 backdrop-blur-lg border border-white/20 shadow-sm transition-all duration-300 ease-out pointer-events-none hidden lg:block"
+              className="absolute top-1 bottom-1 rounded-full bg-gradient-to-r from-amber-500/25 via-amber-400/20 to-yellow-500/25 backdrop-blur-xl border border-amber-400/40 shadow-[0_0_20px_rgba(245,158,11,0.25)] transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] pointer-events-none hidden lg:block"
               style={{
                 left: `${pillStyle.left}px`,
                 width: `${pillStyle.width}px`,
@@ -322,9 +342,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                     tabRefs.current[item.id] = el;
                   }}
                   onClick={() => onViewChange(item.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold tracking-wider whitespace-nowrap flex-shrink-0 select-none transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold tracking-wider whitespace-nowrap flex-shrink-0 select-none transition-all cursor-pointer flex items-center gap-1.5 z-10 ${
                     isActive
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
+                      ? 'bg-amber-500/20 lg:bg-transparent text-amber-300 border border-amber-500/30 lg:border-transparent shadow-[0_0_15px_rgba(245,158,11,0.25)] lg:shadow-none'
                       : 'text-white/70 hover:text-white hover:bg-white/5 border border-transparent'
                   }`}
                 >
@@ -469,6 +489,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                       src={currentUser.avatar}
                       alt={currentUser.name}
                       onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                      loading="lazy"
+                      decoding="async"
+                      width={28}
+                      height={28}
                       className="w-7 h-7 rounded-full object-cover ring-2 ring-amber-400/60 shadow-sm"
                     />
                     <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-[#0a0f14] shadow-[0_0_6px_#34d399]" />
@@ -637,6 +661,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                   src={currentUser.avatar}
                   alt={currentUser.name}
                   onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                  loading="lazy"
+                  decoding="async"
+                  width={24}
+                  height={24}
                   className="w-6 h-6 rounded-full object-cover ring-1 ring-amber-400/60"
                 />
                 <span className="text-xs font-medium text-white max-w-[70px] truncate whitespace-nowrap">
@@ -779,12 +807,16 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* ======================================================== */}
       {isMobileMenuOpen && (
         <>
-          <div
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-label="Đóng menu khám phá"
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden border-none outline-none cursor-default"
             onClick={() => setIsMobileMenuOpen(false)}
           />
           <div
             role="dialog"
+            aria-modal="true"
             aria-label="Menu khám phá"
             className="fixed bottom-[calc(56px+var(--safe-bottom)+8px)] inset-x-3 z-50 rounded-3xl bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 p-4 shadow-2xl animate-fade-up md:hidden pointer-events-auto"
           >

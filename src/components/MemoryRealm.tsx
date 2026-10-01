@@ -365,7 +365,11 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
           <img
             className="scene-img sky-img"
             src={SKY_IMG}
-            alt=""
+            alt="Sky layer"
+            loading="lazy"
+            decoding="async"
+            width={1920}
+            height={1080}
             onError={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0'; }}
           />
 
@@ -405,7 +409,11 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
             <img
               className="scene-img back-img back-four"
               src={BACK_FOUR_IMG}
-              alt=""
+              alt="Back layer four"
+              loading="lazy"
+              decoding="async"
+              width={1920}
+              height={1080}
               onError={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0'; }}
             />
             <section className="sights-slider" aria-label="Mostar sights slider">
@@ -422,7 +430,11 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
                     <img
                       className="sight-pin"
                       src={card.pin}
-                      alt=""
+                      alt={language === 'VIE' ? card.h3.vie : card.h3.eng}
+                      loading="lazy"
+                      decoding="async"
+                      width={320}
+                      height={420}
                       onError={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0'; }}
                     />
                     <h3>{language === 'VIE' ? card.h3.vie : card.h3.eng}</h3>
@@ -434,7 +446,11 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
             <img
               className="scene-img back-img back-bazaar"
               src={BAZAAR_IMG}
-              alt=""
+              alt="Bazaar layer"
+              loading="lazy"
+              decoding="async"
+              width={1920}
+              height={1080}
               onError={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0'; }}
             />
           </div>
@@ -461,25 +477,41 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
           <img
             className="scene-img splitframe-img splitframe-left"
             src={SPLIT_LEFT_IMG}
-            alt=""
+            alt="Split frame left"
+            loading="lazy"
+            decoding="async"
+            width={960}
+            height={1080}
             onError={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0'; }}
           />
           <img
             className="scene-img splitframe-img splitframe-right"
             src={SPLIT_RIGHT_IMG}
-            alt=""
+            alt="Split frame right"
+            loading="lazy"
+            decoding="async"
+            width={960}
+            height={1080}
             onError={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0'; }}
           />
           <img
             className="scene-img bridge-img"
             src={BRIDGE_IMG}
-            alt=""
+            alt="Bridge layer"
+            loading="lazy"
+            decoding="async"
+            width={1920}
+            height={1080}
             onError={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0'; }}
           />
           <img
             className="scene-img frame-two-img"
             src={FRAME_TWO_IMG}
-            alt=""
+            alt="Frame two layer"
+            loading="lazy"
+            decoding="async"
+            width={1920}
+            height={1080}
             onError={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0'; }}
           />
 

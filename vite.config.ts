@@ -17,4 +17,19 @@ export default defineConfig({
     allowedHosts: true, // Allow any incoming tunnel hostname (localtunnel, cloudflare)
     cors: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'vendor-lucide';
+          }
+        },
+      },
+    },
+    chunkSizeWarningLimit: 600,
+  },
 })

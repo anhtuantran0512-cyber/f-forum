@@ -872,7 +872,16 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                   key={rec.id}
                   ref={(el) => setCardRef(el, i)}
                   data-idx={i}
+                  role="button"
+                  tabIndex={0}
                   onClick={(e) => openLightbox(rec, e)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openLightbox(rec, e as any);
+                    }
+                  }}
+                  aria-label={`Xem ảnh vinh danh: ${rec.title}`}
                   className={`card absolute top-0 left-0 cursor-pointer transform-style-3d transition-transform duration-300 hover:scale-105 ${
                     rec.isTall ? 'tall' : ''
                   }`}
@@ -887,6 +896,9 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                       onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
                       className="w-full h-full object-cover transition-opacity duration-700"
                       loading="eager"
+                      decoding="async"
+                      width={280}
+                      height={180}
                     />
                   </figure>
                 </div>
@@ -935,20 +947,29 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             return (
               <figure
                 key={rec.id}
-                onClick={(e) => openLightbox(rec, e)}
-                className="group relative aspect-[3/2] rounded-[3px] overflow-hidden bg-[#0b0b0b] cursor-pointer"
+                className="group relative aspect-[3/2] rounded-[3px] overflow-hidden bg-[#0b0b0b]"
               >
-                <img
-                  src={thumbUrl}
-                  alt={rec.title}
-                  onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
-                  className="w-full h-full object-cover opacity-85 group-hover:scale-105 group-hover:opacity-100 transition-all duration-700"
-                  loading="lazy"
-                />
-                <figcaption className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 to-transparent flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <span className="font-['Playfair_Display'] text-sm text-white">{rec.title}</span>
-                  <span className="text-[11px] text-[#8c8783] font-mono">{rec.place}</span>
-                </figcaption>
+                <button
+                  type="button"
+                  onClick={(e) => openLightbox(rec, e)}
+                  aria-label={`Xem ảnh: ${rec.title} - ${rec.place}`}
+                  className="w-full h-full text-left p-0 border-0 bg-transparent block relative cursor-pointer"
+                >
+                  <img
+                    src={thumbUrl}
+                    alt={rec.title}
+                    onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
+                    className="w-full h-full object-cover opacity-85 group-hover:scale-105 group-hover:opacity-100 transition-all duration-700"
+                    loading="lazy"
+                    decoding="async"
+                    width={360}
+                    height={240}
+                  />
+                  <figcaption className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 to-transparent flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                    <span className="font-['Playfair_Display'] text-sm text-white">{rec.title}</span>
+                    <span className="text-[11px] text-[#8c8783] font-mono">{rec.place}</span>
+                  </figcaption>
+                </button>
               </figure>
             );
           })}
@@ -1003,6 +1024,10 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
               src={founderProfile.avatarUrl}
               alt={founderProfile.name}
               onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+              loading="lazy"
+              decoding="async"
+              width={52}
+              height={52}
               className="bio-avatar w-[52px] h-[52px] rounded-[3px] object-cover grayscale-[0.15] border border-white/20"
             />
             {isSuperAdmin && (
@@ -1155,12 +1180,21 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       {activeLitRecord && (
         <div
           id="lit"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Chi tiết vinh danh"
           className="fixed inset-0 z-90 grid place-items-center p-4 sm:p-8 animate-fade-in bg-black/85 backdrop-blur-md"
-          onClick={closeLightbox}
         >
+          {/* Backdrop button */}
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-label="Đóng xem chi tiết"
+            className="fixed inset-0 bg-transparent border-none outline-none cursor-default"
+            onClick={closeLightbox}
+          />
           <div
-            className="lit-dialog relative w-full max-w-[min(72vw,860px)] rounded-2xl bg-[#0c1218] border border-white/20 p-5 sm:p-6 shadow-[0_30px_90px_rgba(0,0,0,0.95)]"
-            onClick={(e) => e.stopPropagation()}
+            className="lit-dialog relative z-10 w-full max-w-[min(72vw,860px)] rounded-2xl bg-[#0c1218] border border-white/20 p-5 sm:p-6 shadow-[0_30px_90px_rgba(0,0,0,0.95)]"
           >
             {/* Close Button */}
             <button
@@ -1182,6 +1216,10 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 }
                 alt={activeLitRecord.title}
                 onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
+                loading="lazy"
+                decoding="async"
+                width={960}
+                height={640}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -1244,6 +1282,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
           <video
             ref={filmVideoRef}
             src={INTRO_FILM_URL}
+            preload="auto"
             onError={finishIntroFilm}
             onEnded={finishIntroFilm}
             onLoadedMetadata={handleSetVideoSpeed}

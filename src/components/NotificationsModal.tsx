@@ -207,8 +207,11 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
   return (
     <>
       {/* Invisible backdrop to catch outside clicks */}
-      <div 
-        className="fixed inset-0 z-40 bg-transparent cursor-default" 
+      <button 
+        type="button"
+        tabIndex={-1}
+        aria-label="Đóng bảng thông báo"
+        className="fixed inset-0 z-40 bg-transparent cursor-default border-none outline-none" 
         onClick={(e) => {
           e.stopPropagation();
           onClose();
@@ -221,7 +224,6 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label="Thông Báo"
-        onClick={(e) => e.stopPropagation()}
         className="absolute top-[calc(100%+12px)] right-0 z-50 w-[380px] max-w-[calc(100vw-32px)] liquid-glass rounded-3xl p-4 shadow-[0_25px_60px_rgba(0,0,0,0.9)] animate-fade-up pointer-events-auto border border-white/15"
       >
         {/* Header */}
@@ -278,10 +280,11 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
             </div>
           ) : (
             filtered.map((n) => (
-              <div
+              <button
                 key={n.id}
+                type="button"
                 onClick={() => handleItemClick(n)}
-                className={`p-3 rounded-2xl border transition-all cursor-pointer ${
+                className={`w-full text-left p-3 rounded-2xl border transition-all cursor-pointer block ${
                   n.isRead
                     ? 'bg-white/[0.02] border-white/5 opacity-60'
                     : 'bg-white/[0.06] border-white/15 hover:bg-white/10'
@@ -299,7 +302,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
                     <span className="text-[9px] text-white/30 mt-1 block">{n.time}</span>
                   </div>
                 </div>
-              </div>
+              </button>
             ))
           )}
         </div>

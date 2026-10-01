@@ -313,7 +313,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
             </div>
 
             {/* Message Stream */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4" role="log" aria-live="polite" aria-relevant="additions" aria-label="Tin nhắn cuộc trò chuyện">
               {currentMessages.length === 0 ? (
                 /* Clean High-Design Empty State with MessageSquareDashed */
                 <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-3.5 text-neutral-400 my-auto">
@@ -351,6 +351,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
                           src={authorDisplayAvatar}
                           alt={authorDisplayName}
                           onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                          loading="lazy"
+                          decoding="async"
+                          width={32}
+                          height={32}
                           className={`w-8 h-8 rounded-full object-cover shadow-md ${
                             isSuperAdminMsg
                               ? 'border-2 border-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.4)]'
@@ -512,6 +516,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       src={MASTER_ADMIN_CONFIG.avatar}
                       alt={MASTER_ADMIN_CONFIG.name}
                       onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                      loading="lazy"
+                      decoding="async"
+                      width={40}
+                      height={40}
                       className="w-10 h-10 rounded-full object-cover border-2 border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
                     />
                     <span
@@ -562,6 +570,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
                             src={user.avatar || DEFAULT_AVATAR}
                             alt={user.name}
                             onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                            loading="lazy"
+                            decoding="async"
+                            width={32}
+                            height={32}
                             className="w-8 h-8 rounded-full object-cover border border-white/15"
                           />
                           <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 border border-black shadow-[0_0_6px_#34d399] animate-pulse" />
@@ -615,8 +627,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
       {/* Mobile Channel Selector Drawer (< 768px) */}
       {isChannelDrawerOpen && (
         <>
-          <div
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden"
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-label="Đóng danh sách kênh"
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden border-none outline-none cursor-default"
             onClick={() => setIsChannelDrawerOpen(false)}
           />
           <div
@@ -696,8 +711,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
       {/* Mobile Active Members Drawer (< 768px) */}
       {isMembersDrawerOpen && (
         <>
-          <div
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden"
+          <button
+            type="button"
+            aria-label="Đóng danh sách thành viên"
+            tabIndex={-1}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden border-none p-0 cursor-default"
             onClick={() => setIsMembersDrawerOpen(false)}
           />
           <div
@@ -734,6 +752,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       src={MASTER_ADMIN_CONFIG.avatar}
                       alt={MASTER_ADMIN_CONFIG.name}
                       onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                      loading="lazy"
+                      decoding="async"
+                      width={40}
+                      height={40}
                       className="w-10 h-10 rounded-full object-cover border-2 border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
                     />
                     <span
@@ -783,6 +805,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
                             src={user.avatar || DEFAULT_AVATAR}
                             alt={user.name}
                             onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                            loading="lazy"
+                            decoding="async"
+                            width={32}
+                            height={32}
                             className="w-8 h-8 rounded-full object-cover border border-white/15"
                           />
                           <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 border border-black shadow-[0_0_6px_#34d399]" />

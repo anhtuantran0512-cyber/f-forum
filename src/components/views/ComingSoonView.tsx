@@ -18,6 +18,7 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
         loop
         muted
         playsInline
+        preload="metadata"
         aria-hidden="true"
         onError={handleVideoError}
         className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"

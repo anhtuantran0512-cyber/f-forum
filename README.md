@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![F-Forum Banner](https://img.shields.io/badge/F--Forum-v2.0_Production_Master-amber?style=for-the-badge&logo=react&logoColor=black)
+![F-Forum Banner](https://img.shields.io/badge/F--Forum-Production_Master-amber?style=for-the-badge&logo=react&logoColor=black)
 ![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript_5-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite_6-646CFF?style=for-the-badge&logo=vite&logoColor=white)
@@ -39,7 +39,7 @@ Dự án được xây dựng với phương châm **Zero-Defect Logic, Pixel-Pe
 - **Định tuyến thông minh**: khách truy cập mới gặp landing trước, người đã có phiên đăng nhập (hoặc đã ghé thăm) vào thẳng sản phẩm; vẫn có mục **GIỚI THIỆU** trong navbar để quay lại landing.
 
 ### 💎 1. Ngôn ngữ Thiết kế Kính Crystalline Liquid Glass 2026 & Dual Themes
-- **Liquid Glass Original (Light Mode)**: Lớp kính thủy tinh pha lê trong suốt quang học cao cấp với độ mờ vi mô (`backdrop-blur-md`), viền sáng khúc xạ ngọc bích, và độ bão hòa ánh sáng rực rỡ chuẩn thiết kế iOS thế hệ mới.
+- **Liquid Glass Original (Light Mode)**: Lớp kính thủy tinh pha lê trong suốt quang học cao cấp với độ mờ vi mô (`backdrop-blur-md`), viền sáng khúc xạ ngọc bích, và độ bão hòa ánh sáng rực rỡ.
 - **Obsidian Liquid Glass (Dark Mode)**: Chế độ nền tối đá vỏ chai sâu thẳm (`#0a0f14`), tăng cường độ tập trung ban đêm, chống mỏi mắt và bảo vệ pin OLED.
 - **Playful Cartoon Theme Switcher**: Nút chuyển đổi phong cách hoạt hình với hoạt ảnh chuyển động mềm mại, đàn hồi (spring physics) và âm thanh click xúc giác.
 
@@ -75,7 +75,7 @@ Dự án được xây dựng với phương châm **Zero-Defect Logic, Pixel-Pe
 
 ### 📱 8. Kiến trúc Đa Nền tảng (Desktop Pill & Native Mobile Dock)
 - **Desktop (>= 768px)**: Thanh định hướng kính nổi dạng viên thuốc (Floating Glass Pill) nằm ngang nghiêm ngặt không bị rớt dòng (`whitespace-nowrap`).
-- **Mobile (< 768px)**: Tách biệt hoàn hảo giữa Thanh tiêu đề trên (Top Bar) và Thanh phím tắt dưới đáy (Bottom Tab Dock) chuẩn trải nghiệm ứng dụng bản địa (Native App UX).
+- **Mobile (< 768px)**: Tách biệt mượt mà giữa Thanh tiêu đề trên (Top Bar) và Thanh phím tắt dưới đáy (Bottom Tab Dock) tối ưu cho màn hình cảm ứng di động.
 
 ### 🛡️ 9. Xác thực Google OAuth & Quyền Quản trị Admin
 - Hỗ trợ đăng nhập một chạm qua Google Identity Services.

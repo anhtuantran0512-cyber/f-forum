@@ -155,7 +155,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
         </div>
 
         {/* Messages Feed Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3.5" role="log" aria-live="polite" aria-relevant="additions" aria-label="Danh sách tin nhắn">
           {currentMessages.length === 0 ? (
             /* Authentic Empty State with MessageSquareDashed */
             <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3 text-neutral-400">
@@ -188,6 +188,10 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                       src={authorDisplayAvatar}
                       alt={authorDisplayName}
                       onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                      loading="lazy"
+                      decoding="async"
+                      width={32}
+                      height={32}
                       className={`w-8 h-8 rounded-full object-cover shadow-md ${
                         isSuperAdminMsg ? 'border-2 border-amber-400' : 'border border-white/20'
                       }`}

@@ -93,6 +93,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
           loop
           muted
           playsInline
+          preload="metadata"
           onError={handleVideoError}
           className="w-full h-full object-cover scale-[1.05] opacity-45"
         />
