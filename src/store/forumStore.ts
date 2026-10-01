@@ -88,7 +88,13 @@ const INITIAL_CLUBS: Club[] = [];
 const INITIAL_CLUB_POSTS: ClubPost[] = [];
 
 export function useForumStore() {
-  const [currentView, setCurrentView] = useState<DimensionView>('home');
+  // First-time visitors are welcomed by the marketing landing page; returning
+  // students (or anyone with an active session) go straight into the product.
+  const [currentView, setCurrentView] = useState<DimensionView>(() => {
+    const hasSession = Boolean(safeStorage.getItem('fforum_current_user_email'));
+    const hasSeenLanding = safeStorage.getItem('fforum_landing_seen') === 'true';
+    return hasSession || hasSeenLanding ? 'home' : 'landing';
+  });
 
   // Persistent User Registry across real accounts
   const [users, setUsers] = useState<Record<string, User>>(() => {

@@ -1,4 +1,12 @@
-export type DimensionView = 'home' | 'clubs' | 'qa' | 'chat' | 'memory' | 'chronicles' | 'coming-soon';
+export type DimensionView =
+  | 'landing'
+  | 'home'
+  | 'clubs'
+  | 'qa'
+  | 'chat'
+  | 'memory'
+  | 'chronicles'
+  | 'coming-soon';
 
 export type UserRole = 'SUPER_ADMIN' | 'CLUB_LEADER' | 'STUDENT';
 

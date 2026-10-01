@@ -1,0 +1,603 @@
+/* ==========================================================================
+   F-FORUM LANDING EXPERIENCE — Design tokens, ambient motion & microinteractions
+   Theme-aware (Obsidian dark / Crystalline light) via scoped CSS variables.
+   Layered under @layer components so Tailwind utilities can still override
+   individual properties directly at the call site.
+   ========================================================================== */
+
+@layer components {
+
+/* ==========================================================================
+   F-FORUM LANDING EXPERIENCE — Design tokens, ambient motion & microinteractions
+   Theme-aware (Obsidian dark / Crystalline light) via scoped CSS variables.
+   ========================================================================== */
+
+.ff-landing {
+  /* ---- Dark (Obsidian) tokens ---- */
+  --ff-bg: #05070c;
+  --ff-bg-soft: #080c14;
+  --ff-surface: rgba(255, 255, 255, 0.04);
+  --ff-surface-2: rgba(255, 255, 255, 0.07);
+  --ff-border: rgba(255, 255, 255, 0.1);
+  --ff-border-strong: rgba(255, 255, 255, 0.18);
+  --ff-text: #eef2f9;
+  --ff-text-soft: #aab6cc;
+  --ff-text-dim: #7f8ca4;
+  --ff-amber: #fbbf24;
+  --ff-amber-soft: rgba(251, 191, 36, 0.14);
+  --ff-cyan: #22d3ee;
+  --ff-violet: #a78bfa;
+  --ff-emerald: #34d399;
+  --ff-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+  --ff-glow: 0 0 60px rgba(251, 191, 36, 0.18);
+  --ff-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ff-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ff-radius: 26px;
+
+  position: relative;
+  width: 100%;
+  background-color: var(--ff-bg);
+  color: var(--ff-text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+}
+
+html.light .ff-landing {
+  --ff-bg: #f6f7fb;
+  --ff-bg-soft: #ffffff;
+  --ff-surface: rgba(255, 255, 255, 0.78);
+  --ff-surface-2: rgba(255, 255, 255, 0.92);
+  --ff-border: rgba(15, 23, 42, 0.09);
+  --ff-border-strong: rgba(15, 23, 42, 0.16);
+  --ff-text: #0a1020;
+  --ff-text-soft: #4a5670;
+  --ff-text-dim: #5a6678;
+  --ff-amber: #b45309;
+  --ff-amber-soft: rgba(245, 158, 11, 0.16);
+  --ff-cyan: #0e7490;
+  --ff-violet: #6d28d9;
+  --ff-emerald: #047857;
+  --ff-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+  --ff-glow: 0 0 50px rgba(245, 158, 11, 0.14);
+}
+
+/* --------------------------------------------------------------------------
+   Typography helpers
+   -------------------------------------------------------------------------- */
+.ff-eyebrow {
+  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, 'Geist Mono:SemiBold', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ff-amber);
+}
+
+.ff-brand-serif {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-weight: 700;
+}
+
+.ff-display {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.ff-balance {
+  text-wrap: balance;
+}
+
+.ff-gradient-text {
+  background: linear-gradient(100deg, #fde68a 0%, var(--ff-amber) 42%, #fb923c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.ff-gradient-text-cool {
+  background: linear-gradient(100deg, #67e8f9 0%, #a78bfa 55%, #f0abfc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   Surfaces: refined glassmorphism
+   -------------------------------------------------------------------------- */
+.ff-glass {
+  position: relative;
+  background: var(--ff-surface);
+  border: 1px solid var(--ff-border);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), var(--ff-shadow);
+}
+
+.ff-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.42) 0%,
+    rgba(255, 255, 255, 0) 34%,
+    rgba(255, 255, 255, 0) 66%,
+    rgba(255, 255, 255, 0.14) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+html.light .ff-glass::before {
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(15, 23, 42, 0.06) 100%
+  );
+}
+
+.ff-card {
+  border-radius: var(--ff-radius);
+  transition: transform 0.5s var(--ff-ease), border-color 0.5s var(--ff-ease),
+    box-shadow 0.5s var(--ff-ease), background 0.5s var(--ff-ease);
+}
+
+.ff-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--ff-border-strong);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 34px 70px rgba(0, 0, 0, 0.45), var(--ff-glow);
+}
+
+html.light .ff-card:hover {
+  box-shadow: 0 26px 60px rgba(15, 23, 42, 0.14), var(--ff-glow);
+}
+
+/* Cursor spotlight used by feature cards */
+.ff-spotlight {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.ff-spotlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    340px circle at var(--ff-mx, 50%) var(--ff-my, 0%),
+    rgba(251, 191, 36, 0.16),
+    rgba(251, 191, 36, 0.05) 40%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.45s var(--ff-ease);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ff-spotlight:hover::after {
+  opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   Buttons & chips
+   -------------------------------------------------------------------------- */
+.ff-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.35s var(--ff-ease-spring), box-shadow 0.4s var(--ff-ease),
+    background 0.4s var(--ff-ease), border-color 0.4s var(--ff-ease), color 0.3s ease;
+  will-change: transform;
+}
+
+.ff-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.ff-btn:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.ff-btn-primary {
+  color: #1b1204;
+  background: linear-gradient(120deg, #fde68a 0%, #fbbf24 46%, #f59e0b 100%);
+  box-shadow: 0 14px 40px rgba(245, 158, 11, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  overflow: hidden;
+}
+
+.ff-btn-primary:hover {
+  box-shadow: 0 20px 54px rgba(245, 158, 11, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.ff-btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.75s var(--ff-ease);
+}
+
+.ff-btn-primary:hover::after {
+  left: 130%;
+}
+
+.ff-btn-ghost {
+  color: var(--ff-text);
+  background: var(--ff-surface);
+  border: 1px solid var(--ff-border-strong);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.ff-btn-ghost:hover {
+  border-color: rgba(251, 191, 36, 0.5);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+.ff-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid var(--ff-border);
+  background: var(--ff-surface);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  font-size: 12px;
+  color: var(--ff-text-soft);
+}
+
+/* --------------------------------------------------------------------------
+   Ambient motion
+   -------------------------------------------------------------------------- */
+.ff-aurora {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  opacity: 0.55;
+  pointer-events: none;
+  will-change: transform;
+}
+
+@keyframes ffAuroraDrift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  33% { transform: translate3d(4%, -6%, 0) scale(1.12); }
+  66% { transform: translate3d(-5%, 4%, 0) scale(0.95); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+.ff-aurora-anim {
+  animation: ffAuroraDrift 22s ease-in-out infinite;
+}
+
+.ff-aurora-anim-slow {
+  animation: ffAuroraDrift 34s ease-in-out infinite reverse;
+}
+
+@keyframes ffFloat {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -14px, 0); }
+}
+
+.ff-float {
+  animation: ffFloat 7s ease-in-out infinite;
+  will-change: transform;
+}
+
+.ff-float-delayed {
+  animation: ffFloat 9s ease-in-out infinite;
+  animation-delay: -3s;
+  will-change: transform;
+}
+
+.ff-float-slow {
+  animation: ffFloat 12s ease-in-out infinite;
+  animation-delay: -6s;
+  will-change: transform;
+}
+
+@keyframes ffSpinSlow {
+  to { transform: rotate(360deg); }
+}
+
+.ff-spin-slow {
+  animation: ffSpinSlow 34s linear infinite;
+}
+
+@keyframes ffGridPan {
+  0% { background-position: 0 0; }
+  100% { background-position: 56px 56px; }
+}
+
+.ff-grid {
+  background-image: linear-gradient(to right, var(--ff-border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--ff-border) 1px, transparent 1px);
+  background-size: 56px 56px;
+  animation: ffGridPan 24s linear infinite;
+  -webkit-mask-image: radial-gradient(ellipse 75% 60% at 50% 40%, #000 20%, transparent 78%);
+  mask-image: radial-gradient(ellipse 75% 60% at 50% 40%, #000 20%, transparent 78%);
+  opacity: 0.7;
+}
+
+@keyframes ffShimmerLine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.ff-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.28) 50%, transparent 80%);
+  animation: ffShimmerLine 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes ffPingRing {
+  0% { transform: scale(0.85); opacity: 0.7; }
+  70% { transform: scale(2.1); opacity: 0; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+
+.ff-ping-ring {
+  animation: ffPingRing 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ffGradientPan {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.ff-gradient-pan {
+  background-size: 220% 220%;
+  animation: ffGradientPan 12s ease infinite;
+}
+
+/* Scroll-to-explore indicator */
+@keyframes ffScrollDot {
+  0% { transform: translateY(0); opacity: 0; }
+  18% { opacity: 1; }
+  70% { transform: translateY(16px); opacity: 0; }
+  100% { transform: translateY(16px); opacity: 0; }
+}
+
+.ff-scroll-dot {
+  animation: ffScrollDot 2.1s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes ffChevronFall {
+  0% { transform: translateY(-5px); opacity: 0; }
+  35% { opacity: 1; }
+  100% { transform: translateY(7px); opacity: 0; }
+}
+
+.ff-chevron-1 { animation: ffChevronFall 2.1s ease-in-out infinite; }
+.ff-chevron-2 { animation: ffChevronFall 2.1s ease-in-out 0.26s infinite; }
+
+/* --------------------------------------------------------------------------
+   Scroll reveal engine (IntersectionObserver driven)
+   -------------------------------------------------------------------------- */
+.ff-reveal {
+  opacity: 0;
+  transform: translate3d(0, var(--ff-reveal-y, 30px), 0) scale(var(--ff-reveal-scale, 1));
+  transition: opacity 0.95s var(--ff-ease), transform 1.05s var(--ff-ease);
+  transition-delay: var(--ff-reveal-delay, 0ms);
+}
+
+.ff-reveal:not(.is-visible) {
+  will-change: opacity, transform;
+}
+
+.ff-reveal.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+.ff-reveal-left {
+  --ff-reveal-y: 0px;
+  transform: translate3d(-38px, 0, 0);
+}
+
+.ff-reveal-right {
+  --ff-reveal-y: 0px;
+  transform: translate3d(38px, 0, 0);
+}
+
+.ff-reveal-scale {
+  --ff-reveal-y: 14px;
+  --ff-reveal-scale: 0.96;
+}
+
+/* --------------------------------------------------------------------------
+   Marquee (testimonials, logo strip)
+   -------------------------------------------------------------------------- */
+.ff-marquee {
+  display: flex;
+  width: 100%;
+}
+
+/*
+ * Each half fills at least the viewport width and overflows when the content is
+ * wider. Both halves translate by exactly their own width, so the loop stays
+ * seamless on any screen size (no empty gap on ultra-wide displays).
+ */
+.ff-marquee-half {
+  display: flex;
+  flex: 0 0 auto;
+  min-width: 100%;
+  align-items: stretch;
+  padding-right: 1rem;
+  animation: ffMarqueeHalf var(--ff-marquee-duration, 46s) linear infinite;
+  will-change: transform;
+}
+
+.ff-marquee-reverse .ff-marquee-half {
+  animation-direction: reverse;
+}
+
+.ff-marquee-host:hover .ff-marquee-half {
+  animation-play-state: paused;
+}
+
+@keyframes ffMarqueeHalf {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-100%, 0, 0); }
+}
+
+.ff-fade-x {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 9%, #000 91%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 9%, #000 91%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+   Accordion
+   -------------------------------------------------------------------------- */
+.ff-accordion-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.45s var(--ff-ease), opacity 0.4s var(--ff-ease);
+  opacity: 0;
+}
+
+.ff-accordion-panel[data-open='true'] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.ff-accordion-panel > div {
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   Focus rings (accessibility)
+   -------------------------------------------------------------------------- */
+.ff-landing :where(a, button, input, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--ff-amber);
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+
+.ff-skip-link {
+  position: fixed;
+  left: 50%;
+  top: -80px;
+  transform: translateX(-50%);
+  z-index: 100;
+  padding: 12px 22px;
+  border-radius: 9999px;
+  background: #fbbf24;
+  color: #1b1204;
+  font-weight: 700;
+  font-size: 13px;
+  transition: top 0.3s var(--ff-ease);
+}
+
+.ff-skip-link:focus {
+  top: 16px;
+}
+
+/* --------------------------------------------------------------------------
+   Reduced motion: keep the design, drop the movement
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .ff-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .ff-aurora-anim,
+  .ff-aurora-anim-slow,
+  .ff-float,
+  .ff-float-delayed,
+  .ff-float-slow,
+  .ff-spin-slow,
+  .ff-grid,
+  .ff-gradient-pan,
+  .ff-shimmer::after,
+  .ff-scroll-dot,
+  .ff-chevron-1,
+  .ff-chevron-2,
+  .ff-marquee-half,
+  .ff-ping-ring {
+    animation: none !important;
+  }
+  .ff-btn:hover,
+  .ff-card:hover {
+    transform: none;
+  }
+}
+
+html.reduce-motion .ff-reveal {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+html.reduce-motion .ff-aurora-anim,
+html.reduce-motion .ff-aurora-anim-slow,
+html.reduce-motion .ff-float,
+html.reduce-motion .ff-float-delayed,
+html.reduce-motion .ff-float-slow,
+html.reduce-motion .ff-spin-slow,
+html.reduce-motion .ff-grid,
+html.reduce-motion .ff-gradient-pan,
+html.reduce-motion .ff-marquee-half,
+html.reduce-motion .ff-scroll-dot,
+html.reduce-motion .ff-chevron-1,
+html.reduce-motion .ff-chevron-2 {
+  animation: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Overlay & drawer entrances
+   -------------------------------------------------------------------------- */
+@keyframes ffFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ffDrawerIn {
+  from { opacity: 0; transform: translate3d(0, -14px, 0) scale(0.985); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+.ff-fade-in {
+  animation: ffFadeIn 0.3s var(--ff-ease) both;
+}
+
+.ff-drawer-in {
+  animation: ffDrawerIn 0.4s var(--ff-ease) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-fade-in,
+  .ff-drawer-in {
+    animation: none;
+  }
+}
+}

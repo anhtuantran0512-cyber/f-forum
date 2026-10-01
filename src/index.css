@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./components/landing/landing.css";
 
 @font-face {
   font-family: "Geist Mono:SemiBold";

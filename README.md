@@ -30,6 +30,14 @@ Dự án được xây dựng với phương châm **Zero-Defect Logic, Pixel-Pe
 
 ## ✨ Tính năng Cốt lõi (Core Features)
 
+### 🎯 0. Landing Page Tuyển sinh Cao cấp (Conversion-Focused Marketing Surface)
+- **Cấu trúc 11 phân đoạn chuẩn thương hiệu công nghệ**: Sticky Navbar có thanh tiến trình đọc + scrollspy → Hero → Social Proof → Features (Bento) → Product Showcase → Benefits → Testimonials → Pricing → FAQ → CTA → Footer.
+- **Xu hướng "Scroll to Explore"**: chỉ dấu cuộn chuột ở hero, và **Product Showcase ghim 3 bước** (320vh sticky track) nơi thao tác cuộn điều khiển trực tiếp việc chuyển giữa ba mặt phẳng sản phẩm Hỏi đáp → Câu lạc bộ → Đấu trường tri thức.
+- **Hệ chuyển động nhiều tầng**: scroll reveal dùng **một IntersectionObserver dùng chung** cho toàn trang, staggered entrance theo `--ff-reveal-delay`, parallax ghi trực tiếp vào DOM (không re-render), spotlight theo con trỏ, magnetic button, marquee vô hạn (chia 2 nửa cuộn liền mạch trên mọi kích thước màn hình), aurora nền trôi chậm.
+- **Accessibility & SEO**: skip-link, thứ tự heading chuẩn, `aria-expanded`/`aria-controls` cho accordion và drawer, focus ring qua `:focus-visible`, tôn trọng `prefers-reduced-motion` **và** tuỳ chọn "giảm chuyển động" trong ứng dụng, thẻ `description`/OpenGraph/Twitter trong `index.html`.
+- **Dual-theme theo token**: toàn bộ landing dùng biến `--ff-*`, tự chuyển sắc thái Crystalline Light / Obsidian Dark theo nút chỉnh giao diện của ứng dụng.
+- **Định tuyến thông minh**: khách truy cập mới gặp landing trước, người đã có phiên đăng nhập (hoặc đã ghé thăm) vào thẳng sản phẩm; vẫn có mục **GIỚI THIỆU** trong navbar để quay lại landing.
+
 ### 💎 1. Ngôn ngữ Thiết kế Kính Crystalline Liquid Glass 2026 & Dual Themes
 - **Liquid Glass Original (Light Mode)**: Lớp kính thủy tinh pha lê trong suốt quang học cao cấp với độ mờ vi mô (`backdrop-blur-md`), viền sáng khúc xạ ngọc bích, và độ bão hòa ánh sáng rực rỡ chuẩn thiết kế iOS thế hệ mới.
 - **Obsidian Liquid Glass (Dark Mode)**: Chế độ nền tối đá vỏ chai sâu thẳm (`#0a0f14`), tăng cường độ tập trung ban đêm, chống mỏi mắt và bảo vệ pin OLED.
@@ -94,26 +102,32 @@ Dự án được xây dựng với phương châm **Zero-Defect Logic, Pixel-Pe
 
 ```bash
 f-forum/
-├── public/                 # Tài nguyên tĩnh (ảnh khuôn viên, logo, video nền)
+├── public/                    # Tài nguyên tĩnh (favicon, sprite biểu tượng)
 ├── src/
-│   ├── components/         # Các thành phần giao diện hạt nhân
-│   │   ├── Navbar.tsx      # Thanh định hướng Kính mờ Single-line + Popups
-│   │   ├── SettingsModal.tsx # Bảng điều khiển cài đặt giao diện hoạt hình
-│   │   ├── EthanValeSphere.tsx # Quả cầu ảnh 3D Fibonacci Canvas
-│   │   ├── MostarParallax.tsx  # Tuyến cuộn 3700px Miền Ký Ức
-│   │   ├── CampusHUD.tsx   # Glass Telemetry HUD giám sát hệ thống
-│   │   ├── ChatRoom.tsx    # Phòng chat thời gian thực khử trùng lặp
-│   │   ├── ClubDirectory.tsx # Danh bạ các CLB trường ĐH FPT
-│   │   └── QAFourm.tsx     # Phân hệ Hỏi - Đáp và Diễn đàn sinh viên
-│   ├── contexts/           # Quản lý trạng thái toàn cục (Theme, Auth, Audio)
-│   ├── hooks/              # Custom hooks (useAudio, usePresence, useWheelScroll)
-│   ├── types/              # Định nghĩa kiểu dữ liệu TypeScript chặt chẽ
-│   ├── App.tsx             # Điều phối luồng trang và chuyển đổi thiết bị
-│   ├── index.css           # Cấu hình Tailwind v4 & Liquid Glass Filters
-│   └── main.tsx            # Điểm khởi chạy ứng dụng
-├── tests/                  # Bộ kiểm thử tự động (Navbar, Themes, Logic)
-├── vite.config.ts          # Cấu hình biên dịch Vite
-└── package.json            # Danh mục gói phụ thuộc & scripts
+│   ├── components/            # Các thành phần giao diện hạt nhân
+│   │   ├── landing/           # 🎯 Landing page tuyển sinh (mới)
+│   │   │   ├── LandingPage.tsx        # Lắp ghép 11 phân đoạn + skip-link
+│   │   │   ├── LandingNav.tsx         # Sticky navbar, progress bar, scrollspy, drawer mobile
+│   │   │   ├── LandingPrimitives.tsx  # Reveal, Counter, SpotlightCard, MagneticButton, Marquee…
+│   │   │   ├── LandingMocks.tsx       # Mock UI sản phẩm (không phụ thuộc ảnh nặng)
+│   │   │   ├── landingContent.ts      # Toàn bộ copy (features, pricing, FAQ, testimonials)
+│   │   │   ├── useLandingMotion.ts    # Hook cuộn/parallax/observer dùng chung
+│   │   │   ├── landing.css            # Token --ff-*, keyframes, reveal engine (@layer components)
+│   │   │   └── sections/              # Hero, Proof, Features, Showcase, Benefits, Testimonials,
+│   │   │                              # Pricing, FAQ, CTA, Footer
+│   │   ├── Navbar.tsx         # Thanh định hướng Kính mờ Single-line + Popups
+│   │   ├── MemoryRealm.tsx    # Tuyến cuộn 3700px Miền Ký Ức (sticky parallax)
+│   │   ├── ChatDock.tsx       # Slide-over phòng chat thời gian thực
+│   │   ├── FocusSanctuary.tsx # Pomodoro + Web Audio 432Hz
+│   │   └── views/             # HomeView, ClubsView, QAForumView, ChatView, KhuVinhDanhView…
+│   ├── store/                 # forumStore (state + BroadcastChannel fforum_sync)
+│   ├── types/                 # Định nghĩa kiểu dữ liệu TypeScript chặt chẽ
+│   ├── App.tsx                # Điều phối luồng trang và chuyển đổi thiết bị
+│   ├── index.css              # Tailwind v4 + Liquid Glass + import landing.css
+│   └── main.tsx               # Điểm khởi chạy ứng dụng
+├── tests/                     # 51 bài kiểm thử tự động (8 tệp, gồm landing-page)
+├── vite.config.ts             # Cấu hình biên dịch Vite
+└── package.json               # Danh mục gói phụ thuộc & scripts
 ```
 
 ---
@@ -151,9 +165,9 @@ Mở trình duyệt và truy cập `http://localhost:5173` để trải nghiệm
 # Kiểm tra tĩnh siêu tốc với Oxlint
 npx oxlint
 
-# Chạy toàn bộ 45 bài test tự động (Navbar, Wheel-Scroll, Theme Engine)
+# Chạy toàn bộ 51 bài test tự động (Landing, Navbar, Wheel-Scroll, Theme, OAuth, Sync)
 npm test
-node --test tests/navbar-wheel-navigation.test.mjs tests/settings-theme.test.mjs
+node --test tests/landing-page.test.mjs
 
 # Biên dịch gói sản phẩm hoàn thiện (Production Build)
 npm run build
@@ -172,6 +186,10 @@ npm run build
 | Tuyến cuộn Ký ức Mostar 3700px | Campus Telemetry Glass HUD |
 | :---: | :---: |
 | *Thị sai đa tầng tái hiện dấu ấn thanh xuân qua từng bước cuộn* | *Theo dõi thông số CPU, FPS, sinh viên trực tuyến trực quan* |
+
+| Landing Page — Hero & Scroll to Explore | Product Showcase ghim 3 bước |
+| :---: | :---: |
+| *Aurora nền, spotlight theo con trỏ, chỉ dấu cuộn và CTA chuyển đổi* | *Cuộn điều khiển việc chuyển mặt phẳng sản phẩm theo từng bước* |
 
 </div>
 

@@ -15,6 +15,8 @@ export interface AuthModalProps {
   onLoginSocial?: (provider: 'google' | 'facebook', data: { name: string; email: string; avatar?: string }) => Promise<User>;
   onLoginWithPassword?: (email: string, password: string) => Promise<User>;
   onRegister?: (name: string, email: string, password: string) => Promise<User>;
+  /** Tab shown when the dialog opens (marketing CTAs open the register tab). */
+  initialTab?: 'login' | 'register';
 }
 
 export type LoginModalProps = AuthModalProps;
@@ -26,8 +28,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onLoginSocial,
   onLoginWithPassword,
   onRegister,
+  initialTab = 'login',
 }) => {
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>(initialTab);
 
   // Form states
   const [loginEmail, setLoginEmail] = useState('');
