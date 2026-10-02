@@ -1,0 +1,1 @@
+bash /home/user/f-forum-export/push-f-forum.sh
