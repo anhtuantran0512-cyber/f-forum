@@ -78,7 +78,7 @@ interface CounterProps {
   className?: string;
 }
 
-/** Animated number that counts up the first time it is scrolled into view. */
+/** Animated number that counts up with digit scramble animation before settling. */
 export const Counter: React.FC<CounterProps> = ({
   value,
   duration = 1600,
@@ -90,31 +90,64 @@ export const Counter: React.FC<CounterProps> = ({
   const { ref, inView } = useInView<HTMLSpanElement>({ threshold: 0.4 });
   const reduced = usePrefersReducedMotion();
   const [display, setDisplay] = useState(0);
+  const [scrambleText, setScrambleText] = useState<string | null>(null);
 
   useEffect(() => {
     if (!inView) return;
-    // Reduced motion jumps straight to the final value on the first frame.
-    const total = reduced ? 0 : duration;
+    if (reduced) {
+      const id = requestAnimationFrame(() => {
+        setDisplay(value);
+        setScrambleText(null);
+      });
+      return () => cancelAnimationFrame(id);
+    }
     let raf = 0;
     const start = performance.now();
     const tick = (now: number) => {
-      const t = total === 0 ? 1 : Math.min(1, (now - start) / total);
+      const elapsed = now - start;
+      const t = Math.min(1, elapsed / duration);
       const eased = 1 - Math.pow(2, -10 * t); // easeOutExpo
-      setDisplay(value * (t === 1 ? 1 : eased));
-      if (t < 1) raf = requestAnimationFrame(tick);
+      const currentVal = value * (t === 1 ? 1 : eased);
+      setDisplay(currentVal);
+
+      if (t < 0.88) {
+        const finalStr = Math.round(value).toString();
+        const scrambled = finalStr
+          .split('')
+          .map((ch, idx) => {
+            const lockProgress = (idx + 1) / finalStr.length;
+            if (t > lockProgress * 0.88) return ch;
+            if (/\d/.test(ch)) {
+              return Math.floor(Math.random() * 10).toString();
+            }
+            return ch;
+          })
+          .join('');
+        setScrambleText(scrambled);
+      } else {
+        setScrambleText(null);
+      }
+
+      if (t < 1) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        setDisplay(value);
+        setScrambleText(null);
+      }
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [inView, value, duration, reduced]);
 
-  const formatted = useMemo(
-    () =>
-      display.toLocaleString('vi-VN', {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals,
-      }),
-    [display, decimals],
-  );
+  const formatted = useMemo(() => {
+    if (scrambleText !== null) {
+      return scrambleText;
+    }
+    return display.toLocaleString('vi-VN', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  }, [display, decimals, scrambleText]);
 
   return (
     <span ref={ref} className={className}>
@@ -339,3 +372,63 @@ export const BackToTop: React.FC = () => {
     </button>
   );
 };
+
+/** Animated scrambled text heading effect that decodes character-by-character */
+export const ScrambleText: React.FC<{
+  text: string;
+  className?: string;
+  delay?: number;
+}> = ({ text, className = '', delay = 0 }) => {
+  const { ref, inView } = useInView<HTMLSpanElement>({ threshold: 0.3 });
+  const reduced = usePrefersReducedMotion();
+  const [displayText, setDisplayText] = useState(text);
+
+  useEffect(() => {
+    if (!inView || reduced) {
+      const id = requestAnimationFrame(() => {
+        setDisplayText(text);
+      });
+      return () => cancelAnimationFrame(id);
+    }
+    const glyphs = 'ABCDEFGHJKLNOPQRSTUVWXYZ0123456789#%&*+~';
+    let frame = 0;
+    const startTime = performance.now() + delay;
+    const duration = 1200;
+
+    const tick = (now: number) => {
+      if (now < startTime) {
+        frame = requestAnimationFrame(tick);
+        return;
+      }
+      const progress = Math.min(1, (now - startTime) / duration);
+      const lockedLength = Math.floor(progress * text.length);
+
+      const result = text
+        .split('')
+        .map((char, i) => {
+          if (char === ' ') return ' ';
+          if (i < lockedLength) return text[i];
+          return glyphs[Math.floor(Math.random() * glyphs.length)];
+        })
+        .join('');
+
+      setDisplayText(result);
+
+      if (progress < 1) {
+        frame = requestAnimationFrame(tick);
+      } else {
+        setDisplayText(text);
+      }
+    };
+
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [inView, text, delay, reduced]);
+
+  return (
+    <span ref={ref} className={className}>
+      {displayText}
+    </span>
+  );
+};
+

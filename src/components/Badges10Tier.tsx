@@ -1,476 +1,327 @@
 import React from 'react';
 import { getTierForLevel } from '../utils/tier';
 
-// 1. Bronze Antique Aegis shield (32px aura, earthy bronze gradients)
-const Tier1Aegis = ({ size = 28 }: { size?: number }) => (
+// 1. HỌC SINH (Level 1-5): Mầm non 1 lá xanh tươi
+export const Tier1HocSinh = ({ size = 28 }: { size?: number }) => (
   <svg
     width={size}
     height={size}
     viewBox="0 0 100 100"
     fill="none"
-    className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_16px_rgba(217,119,6,0.6)]"
+    className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_12px_rgba(34,197,94,0.6)]"
   >
     <defs>
-      <radialGradient id="aegisGlow" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#d97706" stopOpacity="0.8" />
+      <radialGradient id="rank1Glow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stopColor="#22c55e" stopOpacity="0.4" />
+        <stop offset="100%" stopColor="#15803d" stopOpacity="0" />
+      </radialGradient>
+      <linearGradient id="leafGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#86efac" />
+        <stop offset="100%" stopColor="#16a34a" />
+      </linearGradient>
+    </defs>
+    <circle cx="50" cy="50" r="44" fill="url(#rank1Glow)" stroke="#22c55e" strokeWidth="2.5" strokeDasharray="4 2" />
+    <circle cx="50" cy="50" r="34" fill="#0f172a" fillOpacity="0.8" stroke="#4ade80" strokeWidth="1.5" />
+    {/* Stem */}
+    <path d="M50 72 C50 56 49 46 50 36" stroke="#22c55e" strokeWidth="3.5" strokeLinecap="round" />
+    {/* Single sprouting leaf */}
+    <path
+      d="M50 46 C52 32 68 28 72 38 C72 48 58 56 50 46 Z"
+      fill="url(#leafGrad1)"
+      stroke="#bbf7d0"
+      strokeWidth="1.5"
+    />
+    <circle cx="50" cy="34" r="2.5" fill="#fef08a" />
+  </svg>
+);
+
+// 2. HỌC SINH GIỎI (Level 6-15): Cặp lá kép đối xứng
+export const Tier2HocSinhGioi = ({ size = 28 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 100 100"
+    fill="none"
+    className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_15px_rgba(16,185,129,0.7)]"
+  >
+    <defs>
+      <radialGradient id="rank2Glow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stopColor="#10b981" stopOpacity="0.45" />
+        <stop offset="100%" stopColor="#047857" stopOpacity="0" />
+      </radialGradient>
+      <linearGradient id="leafGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#6ee7b7" />
+        <stop offset="100%" stopColor="#059669" />
+      </linearGradient>
+    </defs>
+    <circle cx="50" cy="50" r="44" fill="url(#rank2Glow)" stroke="#10b981" strokeWidth="2.5" />
+    <circle cx="50" cy="50" r="35" fill="#062e24" fillOpacity="0.85" stroke="#34d399" strokeWidth="1.8" />
+    {/* Central Stem */}
+    <path d="M50 75 L50 32" stroke="#34d399" strokeWidth="3.5" strokeLinecap="round" />
+    {/* Left Leaf */}
+    <path
+      d="M50 54 C36 48 30 36 38 28 C48 30 50 44 50 54 Z"
+      fill="url(#leafGrad2)"
+      stroke="#a7f3d0"
+      strokeWidth="1.5"
+    />
+    {/* Right Leaf */}
+    <path
+      d="M50 54 C64 48 70 36 62 28 C52 30 50 44 50 54 Z"
+      fill="url(#leafGrad2)"
+      stroke="#a7f3d0"
+      strokeWidth="1.5"
+    />
+    {/* Top Sprout Tip */}
+    <circle cx="50" cy="28" r="3" fill="#fde047" />
+  </svg>
+);
+
+// 3. HỌC SINH XUẤT SẮC (Level 16-30): Nhánh 3 lá xòe nở hoa
+export const Tier3HocSinhXuatSac = ({ size = 28 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 100 100"
+    fill="none"
+    className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_18px_rgba(20,184,166,0.75)]"
+  >
+    <defs>
+      <radialGradient id="rank3Glow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.5" />
+        <stop offset="100%" stopColor="#0f766e" stopOpacity="0" />
+      </radialGradient>
+      <linearGradient id="leafGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#5eead4" />
+        <stop offset="100%" stopColor="#0d9488" />
+      </linearGradient>
+    </defs>
+    <circle cx="50" cy="50" r="45" fill="url(#rank3Glow)" stroke="#14b8a6" strokeWidth="2.5" />
+    <polygon points="50,12 85,32 85,68 50,88 15,68 15,32" fill="#042f2e" fillOpacity="0.85" stroke="#2dd4bf" strokeWidth="2" strokeLinejoin="round" />
+    {/* Left Leaf */}
+    <path d="M50 58 C32 54 26 40 35 32 C45 35 48 50 50 58 Z" fill="url(#leafGrad3)" stroke="#99f6e4" strokeWidth="1.5" />
+    {/* Right Leaf */}
+    <path d="M50 58 C68 54 74 40 65 32 C55 35 52 50 50 58 Z" fill="url(#leafGrad3)" stroke="#99f6e4" strokeWidth="1.5" />
+    {/* Center High Leaf */}
+    <path d="M50 62 C44 44 44 26 50 18 C56 26 56 44 50 62 Z" fill="url(#leafGrad3)" stroke="#99f6e4" strokeWidth="1.5" />
+    <circle cx="50" cy="48" r="4.5" fill="#fef08a" stroke="#0d9488" strokeWidth="1.5" />
+  </svg>
+);
+
+// 4. THÔNG THÁI (Level 31-50): Lăng kính 4 lá tinh hoa phát sáng Cyan
+export const Tier4ThongThai = ({ size = 28 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 100 100"
+    fill="none"
+    className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_20px_rgba(6,182,212,0.8)]"
+  >
+    <defs>
+      <radialGradient id="rank4Glow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.6" />
+        <stop offset="100%" stopColor="#0e7490" stopOpacity="0" />
+      </radialGradient>
+      <linearGradient id="cyanGrad4" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#a5f3fc" />
+        <stop offset="100%" stopColor="#0891b2" />
+      </linearGradient>
+    </defs>
+    <circle cx="50" cy="50" r="46" fill="url(#rank4Glow)" stroke="#06b6d4" strokeWidth="2.5" />
+    {/* Diamond outer frame */}
+    <polygon points="50,10 90,50 50,90 10,50" fill="#082f49" fillOpacity="0.9" stroke="#38bdf8" strokeWidth="2.5" />
+    {/* 4 Petals/Foliage */}
+    <path d="M50 50 C50 30 40 20 50 16 C60 20 50 30 50 50 Z" fill="url(#cyanGrad4)" />
+    <path d="M50 50 C50 70 60 80 50 84 C40 80 50 70 50 50 Z" fill="url(#cyanGrad4)" />
+    <path d="M50 50 C30 50 20 60 16 50 C20 40 30 50 50 50 Z" fill="url(#cyanGrad4)" />
+    <path d="M50 50 C70 50 80 40 84 50 C80 60 70 50 50 50 Z" fill="url(#cyanGrad4)" />
+    {/* Center Prismatic Core */}
+    <polygon points="50,38 62,50 50,62 38,50" fill="#e0f2fe" stroke="#0284c7" strokeWidth="2" />
+    <circle cx="50" cy="50" r="3" fill="#38bdf8" />
+  </svg>
+);
+
+// 5. TÀI NĂNG (Level 51-75): Ngôi sao tri thức 5 cánh lam saphir rực rỡ
+export const Tier5TaiNang = ({ size = 28 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 100 100"
+    fill="none"
+    className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_22px_rgba(59,130,246,0.85)]"
+  >
+    <defs>
+      <radialGradient id="rank5Glow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.7" />
+        <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0" />
+      </radialGradient>
+      <linearGradient id="blueStarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#93c5fd" />
+        <stop offset="50%" stopColor="#3b82f6" />
+        <stop offset="100%" stopColor="#1d4ed8" />
+      </linearGradient>
+    </defs>
+    <circle cx="50" cy="50" r="46" fill="url(#rank5Glow)" stroke="#3b82f6" strokeWidth="3" />
+    <circle cx="50" cy="50" r="38" fill="#0f172a" stroke="#60a5fa" strokeWidth="1.5" strokeDasharray="3 3" />
+    {/* 5-pointed Sapphire Star */}
+    <polygon
+      points="50,14 61,38 86,38 66,54 74,78 50,62 26,78 34,54 14,38 39,38"
+      fill="url(#blueStarGrad)"
+      stroke="#bfdbfe"
+      strokeWidth="2"
+      strokeLinejoin="round"
+    />
+    <circle cx="50" cy="50" r="7" fill="#dbeafe" stroke="#1d4ed8" strokeWidth="2" />
+    <circle cx="50" cy="50" r="3" fill="#1e40af" />
+  </svg>
+);
+
+// 6. THIÊN TÀI (Level 76-105): Bông lúa mì vàng trĩu hạt kết hợp mặt trời
+export const Tier6ThienTai = ({ size = 28 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 100 100"
+    fill="none"
+    className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_24px_rgba(245,158,11,0.9)]"
+  >
+    <defs>
+      <radialGradient id="rank6Glow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.8" />
         <stop offset="100%" stopColor="#78350f" stopOpacity="0" />
       </radialGradient>
-      <linearGradient id="bronzeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#f59e0b" />
-        <stop offset="50%" stopColor="#b45309" />
-        <stop offset="100%" stopColor="#451a03" />
-      </linearGradient>
-    </defs>
-    <circle cx="50" cy="50" r="46" fill="url(#aegisGlow)" />
-    <polygon
-      points="50,14 85,26 78,72 50,88 22,72 15,26"
-      fill="url(#bronzeGrad)"
-      stroke="#fcd34d"
-      strokeWidth="3"
-      strokeLinejoin="round"
-    />
-    <polygon
-      points="50,24 74,34 68,66 50,78 32,66 26,34"
-      fill="#78350f"
-      opacity="0.85"
-      stroke="#f59e0b"
-      strokeWidth="1.5"
-    />
-    <circle cx="50" cy="50" r="10" fill="#fef3c7" stroke="#b45309" strokeWidth="2" />
-    <path
-      d="M50 44 L50 56 M44 50 L56 50"
-      stroke="#78350f"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
-// 2. Silver Steel Hexagon with neon orange spikes (38px aura)
-const Tier2Hexagon = ({ size = 28 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 100 100"
-    fill="none"
-    className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_18px_rgba(249,115,22,0.7)]"
-  >
-    <defs>
-      <radialGradient id="hexOrangeAura" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#f97316" stopOpacity="0.85" />
-        <stop offset="100%" stopColor="#ea580c" stopOpacity="0" />
-      </radialGradient>
-      <linearGradient id="steelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#ffffff" />
-        <stop offset="40%" stopColor="#94a3b8" />
-        <stop offset="100%" stopColor="#334155" />
-      </linearGradient>
-    </defs>
-    <circle cx="50" cy="50" r="46" fill="url(#hexOrangeAura)" />
-    <polygon points="50,4 56,22 44,22" fill="#ea580c" />
-    <polygon points="50,96 56,78 44,78" fill="#ea580c" />
-    <polygon points="96,50 78,56 78,44" fill="#ea580c" />
-    <polygon points="4,50 22,56 22,44" fill="#ea580c" />
-    <polygon
-      points="50,18 82,34 82,66 50,82 18,66 18,34"
-      fill="url(#steelGrad)"
-      stroke="#fdba74"
-      strokeWidth="3"
-      strokeLinejoin="round"
-    />
-    <polygon
-      points="50,26 74,38 74,62 50,74 26,62 26,38"
-      fill="#1e293b"
-      opacity="0.9"
-      stroke="#f97316"
-      strokeWidth="1.5"
-    />
-    <circle cx="50" cy="50" r="7" fill="#fb923c" />
-  </svg>
-);
-
-// 3. Decagram Solar Star (10 points, 48px radiant gold aura)
-const Tier3SolarStar = ({ size = 28 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 100 100"
-    fill="none"
-    className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_22px_rgba(234,179,8,0.8)]"
-  >
-    <defs>
-      <radialGradient id="solarAura" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#fde047" stopOpacity="0.95" />
-        <stop offset="50%" stopColor="#ca8a04" stopOpacity="0.5" />
-        <stop offset="100%" stopColor="#854d0e" stopOpacity="0" />
-      </radialGradient>
-      <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <linearGradient id="wheatGrad" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stopColor="#fef08a" />
-        <stop offset="50%" stopColor="#eab308" />
-        <stop offset="100%" stopColor="#a16207" />
+        <stop offset="50%" stopColor="#f59e0b" />
+        <stop offset="100%" stopColor="#d97706" />
       </linearGradient>
     </defs>
-    <circle cx="50" cy="50" r="48" fill="url(#solarAura)" />
-    <polygon
-      points="50,8 59,26 78,16 75,37 94,44 81,59 90,78 70,78 64,96 50,82 36,96 30,78 10,78 19,59 6,44 25,37 22,16 41,26"
-      fill="url(#goldGrad)"
-      stroke="#fef9c3"
-      strokeWidth="2"
-      strokeLinejoin="round"
+    <circle cx="50" cy="50" r="46" fill="url(#rank6Glow)" stroke="#f59e0b" strokeWidth="3" />
+    {/* Solar Rays Ring */}
+    <circle cx="50" cy="50" r="37" fill="#451a03" fillOpacity="0.85" stroke="#fbbf24" strokeWidth="2" />
+    {/* Wheat Stem arching upwards */}
+    <path d="M50 78 C50 60 52 42 50 20" stroke="#fcd34d" strokeWidth="3" strokeLinecap="round" />
+    {/* Wheat Grains */}
+    <ellipse cx="43" cy="28" rx="6" ry="3.5" transform="rotate(-30 43 28)" fill="url(#wheatGrad)" stroke="#fef08a" strokeWidth="1.2" />
+    <ellipse cx="57" cy="28" rx="6" ry="3.5" transform="rotate(30 57 28)" fill="url(#wheatGrad)" stroke="#fef08a" strokeWidth="1.2" />
+    <ellipse cx="42" cy="38" rx="7" ry="4" transform="rotate(-35 42 38)" fill="url(#wheatGrad)" stroke="#fef08a" strokeWidth="1.2" />
+    <ellipse cx="58" cy="38" rx="7" ry="4" transform="rotate(35 58 38)" fill="url(#wheatGrad)" stroke="#fef08a" strokeWidth="1.2" />
+    <ellipse cx="43" cy="48" rx="7" ry="4" transform="rotate(-40 43 48)" fill="url(#wheatGrad)" stroke="#fef08a" strokeWidth="1.2" />
+    <ellipse cx="57" cy="48" rx="7" ry="4" transform="rotate(40 57 48)" fill="url(#wheatGrad)" stroke="#fef08a" strokeWidth="1.2" />
+    <ellipse cx="45" cy="58" rx="6" ry="3.5" transform="rotate(-35 45 58)" fill="url(#wheatGrad)" stroke="#fef08a" strokeWidth="1.2" />
+    <ellipse cx="55" cy="58" rx="6" ry="3.5" transform="rotate(35 55 58)" fill="url(#wheatGrad)" stroke="#fef08a" strokeWidth="1.2" />
+    {/* Top crowning grain */}
+    <ellipse cx="50" cy="18" rx="4" ry="7" fill="#fef08a" stroke="#d97706" strokeWidth="1.2" />
+  </svg>
+);
+
+// 7. BẬC THẦY (Level 106-130): Ngọn đuốc trí tuệ & Vương miện hồng ngọc
+export const Tier7BacThay = ({ size = 28 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 100 100"
+    fill="none"
+    className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_26px_rgba(239,68,68,0.95)]"
+  >
+    <defs>
+      <radialGradient id="rank7Glow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stopColor="#ef4444" stopOpacity="0.85" />
+        <stop offset="100%" stopColor="#7f1d1d" stopOpacity="0" />
+      </radialGradient>
+      <linearGradient id="rubyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#fca5a5" />
+        <stop offset="50%" stopColor="#ef4444" />
+        <stop offset="100%" stopColor="#991b1b" />
+      </linearGradient>
+    </defs>
+    <circle cx="50" cy="50" r="46" fill="url(#rank7Glow)" stroke="#ef4444" strokeWidth="3" />
+    {/* Octagon crest */}
+    <polygon points="50,10 78,22 90,50 78,78 50,90 22,78 10,50 22,22" fill="#450a0a" fillOpacity="0.9" stroke="#f87171" strokeWidth="2.5" />
+    {/* Torch / Flame */}
+    <path
+      d="M50 18 C58 26 64 36 56 46 C52 50 48 50 44 46 C36 36 42 26 50 18 Z"
+      fill="url(#rubyGrad)"
+      stroke="#fee2e2"
+      strokeWidth="1.5"
     />
-    <circle cx="50" cy="50" r="16" fill="#713f12" stroke="#fef08a" strokeWidth="2" />
-    <polygon
-      points="50,38 54,46 62,50 54,54 50,62 46,54 38,50 46,46"
+    <path
+      d="M50 26 C54 32 56 38 52 42 C50 44 48 44 46 42 C44 38 46 32 50 26 Z"
       fill="#fef08a"
     />
+    {/* Torch handle */}
+    <polygon points="46,50 54,50 52,74 48,74" fill="#78350f" stroke="#f59e0b" strokeWidth="1.5" />
+    {/* Ruby gems */}
+    <circle cx="50" cy="50" r="3.5" fill="#fca5a5" stroke="#ef4444" strokeWidth="1" />
   </svg>
 );
 
-// 4. Cyberpunk Cyan Sapphire Diamond (52px neon cyan aura)
-const Tier4CyanDiamond = ({ size = 28 }: { size?: number }) => (
+// 8. CHUYÊN GIA (Level 131-150): Tinh thể vũ trụ tím huyền bí & Vầng hào quang
+export const Tier8ChuyenGia = ({ size = 28 }: { size?: number }) => (
   <svg
     width={size}
     height={size}
     viewBox="0 0 100 100"
     fill="none"
-    className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_24px_rgba(6,182,212,0.85)]"
+    className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_28px_rgba(168,85,247,1)]"
   >
     <defs>
-      <radialGradient id="cyanAura" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.95" />
-        <stop offset="60%" stopColor="#0891b2" stopOpacity="0.5" />
-        <stop offset="100%" stopColor="#164e63" stopOpacity="0" />
+      <radialGradient id="rank8Glow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stopColor="#a855f7" stopOpacity="0.9" />
+        <stop offset="100%" stopColor="#4c1d95" stopOpacity="0" />
       </radialGradient>
-      <linearGradient id="diamondGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#cffafe" />
-        <stop offset="50%" stopColor="#06b6d4" />
-        <stop offset="100%" stopColor="#0e7490" />
+      <linearGradient id="purpleGrad8" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#e9d5ff" />
+        <stop offset="40%" stopColor="#a855f7" />
+        <stop offset="100%" stopColor="#6b21a8" />
       </linearGradient>
     </defs>
-    <circle cx="50" cy="50" r="48" fill="url(#cyanAura)" />
-    <polygon
-      points="50,10 88,50 50,90 12,50"
-      fill="url(#diamondGrad)"
-      stroke="#a5f3fc"
-      strokeWidth="3"
-    />
-    <polygon points="50,10 50,50 12,50" fill="#67e8f9" opacity="0.6" />
-    <polygon points="50,50 88,50 50,90" fill="#0891b2" opacity="0.8" />
-    <polygon
-      points="50,26 74,50 50,74 26,50"
-      stroke="#ecfeff"
-      strokeWidth="1.8"
-      fill="none"
-    />
-    <circle cx="50" cy="50" r="5" fill="#ffffff" />
+    <circle cx="50" cy="50" r="46" fill="url(#rank8Glow)" stroke="#c084fc" strokeWidth="3" />
+    {/* Outer 12-point starburst ring */}
+    <circle cx="50" cy="50" r="38" fill="#1e1b4b" fillOpacity="0.95" stroke="#d8b4fe" strokeWidth="2" strokeDasharray="5 2" />
+    {/* Supreme Cosmic Faceted Crystal */}
+    <polygon points="50,14 74,32 74,68 50,86 26,68 26,32" fill="url(#purpleGrad8)" stroke="#f3e8ff" strokeWidth="2.5" strokeLinejoin="round" />
+    <polygon points="50,24 64,38 64,62 50,76 36,62 36,38" fill="#3b0764" fillOpacity="0.8" stroke="#c084fc" strokeWidth="1.5" />
+    <circle cx="50" cy="50" r="8" fill="#fdf4ff" stroke="#a855f7" strokeWidth="2" />
+    <circle cx="50" cy="50" r="4" fill="#7e22ce" />
+    {/* Four Orbit Points */}
+    <circle cx="50" cy="14" r="2.5" fill="#fbcfe8" />
+    <circle cx="86" cy="50" r="2.5" fill="#fbcfe8" />
+    <circle cx="50" cy="86" r="2.5" fill="#fbcfe8" />
+    <circle cx="14" cy="50" r="2.5" fill="#fbcfe8" />
   </svg>
 );
 
-// 5. Dragon-eye Amethyst Pentagon (58px royal purple aura)
-const Tier5AmethystPentagon = ({ size = 28 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 100 100"
-    fill="none"
-    className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_26px_rgba(168,85,247,0.85)]"
-  >
-    <defs>
-      <radialGradient id="amethystAura" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#c084fc" stopOpacity="0.95" />
-        <stop offset="55%" stopColor="#7e22ce" stopOpacity="0.5" />
-        <stop offset="100%" stopColor="#3b0764" stopOpacity="0" />
-      </radialGradient>
-      <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#f3e8ff" />
-        <stop offset="50%" stopColor="#9333ea" />
-        <stop offset="100%" stopColor="#581c87" />
-      </linearGradient>
-    </defs>
-    <circle cx="50" cy="50" r="48" fill="url(#amethystAura)" />
-    <polygon
-      points="50,12 88,40 73,86 27,86 12,40"
-      fill="url(#purpleGrad)"
-      stroke="#e9d5ff"
-      strokeWidth="3"
-      strokeLinejoin="round"
-    />
-    <polygon
-      points="50,24 78,44 67,78 33,78 22,44"
-      fill="#3b0764"
-      opacity="0.8"
-      stroke="#a855f7"
-      strokeWidth="1.5"
-    />
-    <ellipse
-      cx="50"
-      cy="50"
-      rx="14"
-      ry="18"
-      fill="#facc15"
-      stroke="#713f12"
-      strokeWidth="1.5"
-    />
-    <path
-      d="M50 36 C47 43 47 57 50 64 C53 57 53 43 50 36 Z"
-      fill="#000000"
-    />
-  </svg>
-);
-
-// 6. Amber Emerald Crest (60px emerald amber aura)
-const Tier6EmeraldCrest = ({ size = 28 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 100 100"
-    fill="none"
-    className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_28px_rgba(16,185,129,0.85)]"
-  >
-    <defs>
-      <radialGradient id="emeraldAura" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#34d399" stopOpacity="0.95" />
-        <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.45" />
-        <stop offset="100%" stopColor="#064e3b" stopOpacity="0" />
-      </radialGradient>
-      <linearGradient id="crestGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#a7f3d0" />
-        <stop offset="45%" stopColor="#10b981" />
-        <stop offset="100%" stopColor="#047857" />
-      </linearGradient>
-    </defs>
-    <circle cx="50" cy="50" r="48" fill="url(#emeraldAura)" />
-    <polygon
-      points="50,6 74,20 90,46 72,80 50,92 28,80 10,46 26,20"
-      fill="url(#crestGrad)"
-      stroke="#fef08a"
-      strokeWidth="2.5"
-    />
-    <polygon
-      points="50,18 68,28 78,48 66,72 50,82 34,72 22,48 32,28"
-      fill="#064e3b"
-      opacity="0.85"
-      stroke="#34d399"
-      strokeWidth="1.5"
-    />
-    <circle cx="50" cy="50" r="10" fill="#f59e0b" stroke="#fef3c7" strokeWidth="2" />
-    <polygon
-      points="50,43 53,49 59,50 55,54 56,60 50,57 44,60 45,54 41,50 47,49"
-      fill="#ffffff"
-    />
-  </svg>
-);
-
-// 7. Royal Quartz Octagon (68px deep magenta quartz aura)
-const Tier7MagentaOctagon = ({ size = 28 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 100 100"
-    fill="none"
-    className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_30px_rgba(236,72,153,0.9)]"
-  >
-    <defs>
-      <radialGradient id="quartzAura" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.95" />
-        <stop offset="50%" stopColor="#be123c" stopOpacity="0.5" />
-        <stop offset="100%" stopColor="#4c0519" stopOpacity="0" />
-      </radialGradient>
-      <linearGradient id="quartzGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#fecdd3" />
-        <stop offset="45%" stopColor="#e11d48" />
-        <stop offset="100%" stopColor="#881337" />
-      </linearGradient>
-    </defs>
-    <circle cx="50" cy="50" r="48" fill="url(#quartzAura)" />
-    <polygon
-      points="32,10 68,10 90,32 90,68 68,90 32,90 10,68 10,32"
-      fill="url(#quartzGrad)"
-      stroke="#ffe4e6"
-      strokeWidth="3"
-    />
-    <polygon
-      points="36,22 64,22 78,36 78,64 64,78 36,78 22,64 22,36"
-      fill="#4c0519"
-      opacity="0.85"
-      stroke="#fb7185"
-      strokeWidth="2"
-    />
-    <polygon
-      points="50,26 56,44 74,50 56,56 50,74 44,56 26,50 44,44"
-      fill="#ffffff"
-      opacity="0.9"
-    />
-  </svg>
-);
-
-// 8. Prismatic Optical Sigil (75px shifting rainbow prism aura)
-const Tier8PrismaticSigil = ({ size = 28 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 100 100"
-    fill="none"
-    className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_34px_rgba(99,102,241,0.95)]"
-  >
-    <defs>
-      <radialGradient id="prismAura" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#818cf8" stopOpacity="1" />
-        <stop offset="35%" stopColor="#ec4899" stopOpacity="0.5" />
-        <stop offset="70%" stopColor="#06b6d4" stopOpacity="0.3" />
-        <stop offset="100%" stopColor="#000000" stopOpacity="0" />
-      </radialGradient>
-      <linearGradient id="prismGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#38bdf8" />
-        <stop offset="25%" stopColor="#818cf8" />
-        <stop offset="50%" stopColor="#c084fc" />
-        <stop offset="75%" stopColor="#f43f5e" />
-        <stop offset="100%" stopColor="#fbbf24" />
-      </linearGradient>
-    </defs>
-    <circle cx="50" cy="50" r="48" fill="url(#prismAura)" />
-    <polygon
-      points="50,8 88,74 12,74"
-      fill="url(#prismGrad)"
-      stroke="#ffffff"
-      strokeWidth="2"
-      opacity="0.9"
-    />
-    <polygon
-      points="50,92 12,26 88,26"
-      fill="#0f172a"
-      stroke="url(#prismGrad)"
-      strokeWidth="2.5"
-      opacity="0.8"
-    />
-    <circle cx="50" cy="50" r="14" fill="#ffffff" opacity="0.85" />
-    <circle cx="50" cy="50" r="8" fill="#4f46e5" />
-  </svg>
-);
-
-// 9. Void Astral Wing (85px starlight nebula deep aura)
-const Tier9AstralWing = ({ size = 28 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 100 100"
-    fill="none"
-    className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_38px_rgba(56,189,248,1)]"
-  >
-    <defs>
-      <radialGradient id="astralAura" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#38bdf8" stopOpacity="1" />
-        <stop offset="40%" stopColor="#6366f1" stopOpacity="0.6" />
-        <stop offset="75%" stopColor="#a855f7" stopOpacity="0.3" />
-        <stop offset="100%" stopColor="#030712" stopOpacity="0" />
-      </radialGradient>
-      <linearGradient id="astralGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#e0f2fe" />
-        <stop offset="35%" stopColor="#38bdf8" />
-        <stop offset="70%" stopColor="#4f46e5" />
-        <stop offset="100%" stopColor="#1e1b4b" />
-      </linearGradient>
-    </defs>
-    <circle cx="50" cy="50" r="48" fill="url(#astralAura)" />
-    <path
-      d="M50 12 L65 32 L88 38 L72 56 L82 82 L50 68 L18 82 L28 56 L12 38 L35 32 Z"
-      fill="url(#astralGrad)"
-      stroke="#bae6fd"
-      strokeWidth="2.5"
-    />
-    <path
-      d="M50 24 L59 38 L74 42 L63 54 L69 70 L50 60 L31 70 L37 54 L26 42 L41 38 Z"
-      fill="#090d16"
-      stroke="#38bdf8"
-      strokeWidth="1.5"
-    />
-    <circle cx="50" cy="48" r="6" fill="#ffffff" />
-    <polygon
-      points="50,42 52,48 58,50 52,52 50,58 48,52 42,50 48,48"
-      fill="#38bdf8"
-    />
-  </svg>
-);
-
-// 10. Supreme Taiji 16-apex Celestial Nexus (100px cosmic super-aura)
-const Tier10CelestialNexus = ({ size = 28 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 100 100"
-    fill="none"
-    className="transition-transform duration-300 hover:scale-115 drop-shadow-[0_0_45px_rgba(251,191,36,1)]"
-  >
-    <defs>
-      <radialGradient id="taiJiAura" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#fef08a" stopOpacity="1" />
-        <stop offset="30%" stopColor="#fbbf24" stopOpacity="0.85" />
-        <stop offset="60%" stopColor="#d97706" stopOpacity="0.5" />
-        <stop offset="100%" stopColor="#000000" stopOpacity="0" />
-      </radialGradient>
-      <linearGradient id="celestialGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#ffffff" />
-        <stop offset="30%" stopColor="#fde047" />
-        <stop offset="70%" stopColor="#d97706" />
-        <stop offset="100%" stopColor="#78350f" />
-      </linearGradient>
-    </defs>
-    <circle cx="50" cy="50" r="49" fill="url(#taiJiAura)" />
-    <circle
-      cx="50"
-      cy="50"
-      r="42"
-      stroke="url(#celestialGrad)"
-      strokeWidth="3"
-      strokeDasharray="6 3"
-    />
-    <polygon
-      points="50,6 59,20 74,12 76,28 92,28 88,43 98,54 86,63 88,78 72,80 66,94 50,88 34,94 28,80 12,78 14,63 2,54 12,43 8,28 24,28 26,12 41,20"
-      fill="url(#celestialGrad)"
-      stroke="#ffffff"
-      strokeWidth="1.5"
-    />
-    <circle cx="50" cy="50" r="22" fill="#ffffff" stroke="#f59e0b" strokeWidth="2" />
-    <path
-      d="M50 28 A11 11 0 0 1 50 50 A11 11 0 0 0 50 72 A22 22 0 0 1 50 28 Z"
-      fill="#0f172a"
-    />
-    <circle cx="50" cy="39" r="4" fill="#0f172a" />
-    <circle cx="50" cy="61" r="4" fill="#ffffff" />
-  </svg>
-);
-
-export const TierSvg: React.FC<{ tierNumber: number; size?: number }> = ({
+export const TierSvg = ({
   tierNumber,
   size = 28,
+}: {
+  tierNumber: number;
+  size?: number;
 }) => {
   switch (tierNumber) {
     case 1:
-      return <Tier1Aegis size={size} />;
+      return <Tier1HocSinh size={size} />;
     case 2:
-      return <Tier2Hexagon size={size} />;
+      return <Tier2HocSinhGioi size={size} />;
     case 3:
-      return <Tier3SolarStar size={size} />;
+      return <Tier3HocSinhXuatSac size={size} />;
     case 4:
-      return <Tier4CyanDiamond size={size} />;
+      return <Tier4ThongThai size={size} />;
     case 5:
-      return <Tier5AmethystPentagon size={size} />;
+      return <Tier5TaiNang size={size} />;
     case 6:
-      return <Tier6EmeraldCrest size={size} />;
+      return <Tier6ThienTai size={size} />;
     case 7:
-      return <Tier7MagentaOctagon size={size} />;
+      return <Tier7BacThay size={size} />;
     case 8:
-      return <Tier8PrismaticSigil size={size} />;
-    case 9:
-      return <Tier9AstralWing size={size} />;
-    case 10:
-      return <Tier10CelestialNexus size={size} />;
+      return <Tier8ChuyenGia size={size} />;
     default:
-      return <Tier1Aegis size={size} />;
+      return <Tier1HocSinh size={size} />;
   }
 };
 
-// Tier Badge Component with Tooltip matching exact prompt spec: "Thành viên hăng hái, level [N] - Tier [ROMAN]"
+// Tier Badge Component with Tooltip
 interface TierBadgeProps {
   level: number;
   size?: number;
@@ -501,7 +352,7 @@ export const TierBadge: React.FC<TierBadgeProps> = ({
               : 'bottom-full mb-2'
           }`}
         >
-          Thành viên hăng hái, level {level} - Tier {tier.roman}
+          {tier.name} • Cấp {level} ({tier.description})
           <div
             className={`absolute left-1/2 -translate-x-1/2 border-4 border-transparent ${
               tooltipPosition === 'bottom'
@@ -515,7 +366,7 @@ export const TierBadge: React.FC<TierBadgeProps> = ({
   );
 };
 
-// Super Admin Facebook Blue Verified Tick with Sweep reflection + cyan pulse
+// Super Admin Verified Tick
 export const AdminVerifiedBadge: React.FC<{
   size?: number;
   tooltipPosition?: 'top' | 'bottom';
@@ -547,7 +398,7 @@ export const AdminVerifiedBadge: React.FC<{
             : 'bottom-full mb-2'
         }`}
       >
-        Đây là 1 chuyên gia của server
+        Super Admin F-Forum
         <div
           className={`absolute left-1/2 -translate-x-1/2 border-4 border-transparent ${
             tooltipPosition === 'bottom'

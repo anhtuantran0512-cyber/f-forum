@@ -88,7 +88,7 @@ const INITIAL_VINHDANH_RECORDS: VinhDanhRecord[] = [
   {
     id: 'vd-7',
     imgId: 'hf_20260922_194417_2c031e22-2fad-4c81-a544-83cd6bba1c33',
-    title: 'Hệ Thống 10 Bậc Rank',
+    title: 'Hệ Thống 8 Bậc Danh Hiệu',
     place: 'Thánh Địa Ghibli',
     note: 'Vinh danh nỗ lực học tập của thành viên bằng huy hiệu vector kỳ ảo.',
   },
