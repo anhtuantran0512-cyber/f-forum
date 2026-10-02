@@ -79,6 +79,7 @@ interface NotificationsModalProps {
   onClose: () => void;
   onNavigate: (view: DimensionView) => void;
   onUnreadCountChange?: (count: number) => void;
+  dockPosition?: 'top' | 'bottom' | 'left' | 'right';
 }
 
 export const NotificationsModal: React.FC<NotificationsModalProps> = ({
@@ -86,6 +87,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
   onClose,
   onNavigate,
   onUnreadCountChange,
+  dockPosition = 'top',
 }) => {
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
     const saved = safeStorage.getItem('fforum_notifications');
@@ -252,14 +254,23 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         }}
       />
 
-      {/* Popover anchored directly below Bell button with Dynamic Island / Hyperland spring scale */}
+      {/* Popover anchored directly to Bell button with position-aware Dynamic Island spring scale */}
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-label="Trung tâm thông báo"
-        className="absolute top-[calc(100%+12px)] right-0 z-50 w-[400px] max-w-[calc(100vw-28px)] liquid-glass rounded-3xl p-4 shadow-[0_25px_60px_rgba(0,0,0,0.92)] border border-white/20 pointer-events-auto select-none origin-top-right transition-all duration-300 transform scale-100 opacity-100"
+        className={`absolute z-50 w-[400px] max-w-[calc(100vw-28px)] liquid-glass rounded-3xl p-4 shadow-[0_25px_60px_rgba(0,0,0,0.92)] border border-white/20 pointer-events-auto select-none transition-all duration-300 transform scale-100 opacity-100 ${
+          dockPosition === 'bottom'
+            ? 'bottom-[calc(100%+14px)] top-auto right-0 origin-bottom-right'
+            : dockPosition === 'left'
+            ? 'left-[calc(100%+16px)] bottom-0 top-auto origin-bottom-left'
+            : dockPosition === 'right'
+            ? 'right-[calc(100%+16px)] bottom-0 top-auto origin-bottom-right'
+            : 'top-[calc(100%+12px)] right-0 origin-top-right'
+        }`}
         style={{
+          maxHeight: 'min(82vh, 650px)',
           transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
         }}
         onClick={(e) => {
@@ -267,6 +278,18 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
           e.stopPropagation();
         }}
       >
+        {/* Directional Anchor Caret */}
+        <div
+          className={`absolute pointer-events-none transition-all ${
+            dockPosition === 'bottom'
+              ? '-bottom-1.5 right-4 w-3 h-3 bg-[#0a0f14] border-b border-r border-amber-400/50 rotate-45 shadow-[0_4px_10px_rgba(0,0,0,0.8)]'
+              : dockPosition === 'left'
+              ? '-left-1.5 bottom-4 w-3 h-3 bg-[#0a0f14] border-b border-l border-amber-400/50 rotate-45 shadow-[-4px_0_10px_rgba(0,0,0,0.8)]'
+              : dockPosition === 'right'
+              ? '-right-1.5 bottom-4 w-3 h-3 bg-[#0a0f14] border-t border-r border-amber-400/50 rotate-45 shadow-[4px_0_10px_rgba(0,0,0,0.8)]'
+              : '-top-1.5 right-4 w-3 h-3 bg-[#0a0f14] border-t border-l border-amber-400/50 rotate-45 shadow-[0_-4px_10px_rgba(0,0,0,0.8)]'
+          }`}
+        />
         {/* Header: Brand Hoidap/F-Forum Icon & Actions */}
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
           <div className="flex items-center gap-2.5">
