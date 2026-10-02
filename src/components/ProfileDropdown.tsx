@@ -12,6 +12,7 @@ export interface ProfileDropdownProps {
   onClose: () => void;
   onOpenProfile: (tab?: 'card' | 'edit') => void;
   onLogout: () => void;
+  dockPosition?: 'top' | 'bottom' | 'left' | 'right';
 }
 
 export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
@@ -20,6 +21,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   onClose,
   onOpenProfile,
   onLogout,
+  dockPosition = 'top',
 }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -58,7 +60,15 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       ref={dropdownRef}
       role="menu"
       aria-label="Menu tài khoản"
-      className="absolute top-[calc(100%+12px)] right-0 w-[320px] bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-50 animate-fade-up select-none pointer-events-auto"
+      className={`absolute z-50 w-[320px] bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] animate-fade-up select-none pointer-events-auto transition-all ${
+        dockPosition === 'bottom'
+          ? 'bottom-[calc(100%+14px)] top-auto right-0 origin-bottom-right'
+          : dockPosition === 'left'
+          ? 'left-[calc(100%+16px)] bottom-0 top-auto origin-bottom-left'
+          : dockPosition === 'right'
+          ? 'right-[calc(100%+16px)] bottom-0 top-auto origin-bottom-right'
+          : 'top-[calc(100%+12px)] right-0 origin-top-right'
+      }`}
     >
       {/* Top Section (Current Real User) */}
       <div className="flex flex-col">

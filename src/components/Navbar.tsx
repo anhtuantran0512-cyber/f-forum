@@ -12,10 +12,11 @@ import {
   Sparkles,
   Award,
   Settings,
+  Move,
 } from 'lucide-react';
 import type { DimensionView, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
-import { toggleAmbientAudio, isAmbientActive } from '../utils/audio';
+import { toggleAmbientAudio, isAmbientActive, playChime } from '../utils/audio';
 import { ProfileDropdown } from './ProfileDropdown';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { NotificationsModal } from './NotificationsModal';
@@ -72,9 +73,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   const mobileNotifMenuRef = useRef<HTMLDivElement>(null);
   const mobileSettingsMenuRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const [pillStyle, setPillStyle] = useState<{ left: number; width: number; opacity: number }>({
+  const [pillStyle, setPillStyle] = useState<{ left: number; width: number; top: number; height: number; opacity: number }>({
     left: 0,
     width: 0,
+    top: 0,
+    height: 0,
     opacity: 0,
   });
   const [isDailyModalOpen, setIsDailyModalOpen] = useState(false);
@@ -138,12 +141,19 @@ export const Navbar: React.FC<NavbarProps> = ({
     });
   };
 
+  const handleSelectNavbarPosition = (pos: 'top' | 'bottom' | 'left' | 'right') => {
+    setNavbarPosition(pos);
+    safeStorage.setItem('fforum_navbar_pos', pos);
+    if (soundEffects) {
+      playChime('success');
+    }
+  };
+
   const handleSwapNavbarPosition = () => {
     const list: ('top' | 'bottom' | 'left' | 'right')[] = ['top', 'bottom', 'left', 'right'];
     const nextIdx = (list.indexOf(navbarPosition) + 1) % list.length;
     const next = list[nextIdx];
-    setNavbarPosition(next);
-    safeStorage.setItem('fforum_navbar_pos', next);
+    handleSelectNavbarPosition(next);
   };
 
   const handleMouseEnterNav = () => {
@@ -162,7 +172,9 @@ export const Navbar: React.FC<NavbarProps> = ({
     }, 1000);
   };
 
-  // Liquid navbar sliding pill indicator calculation
+  const isVertical = navbarPosition === 'left' || navbarPosition === 'right';
+
+  // Liquid navbar sliding pill indicator calculation (Horizontal X-axis & Vertical Y-axis)
   useEffect(() => {
     const updatePill = () => {
       const activeEl = tabRefs.current[currentView];
@@ -170,6 +182,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         setPillStyle({
           left: activeEl.offsetLeft,
           width: activeEl.offsetWidth,
+          top: activeEl.offsetTop,
+          height: activeEl.offsetHeight,
           opacity: 1,
         });
       } else {
@@ -180,7 +194,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     updatePill();
     window.addEventListener('resize', updatePill);
     return () => window.removeEventListener('resize', updatePill);
-  }, [currentView]);
+  }, [currentView, isVertical]);
 
   useEffect(() => {
     const handleOpenDaily = () => setIsDailyModalOpen(true);
@@ -346,6 +360,32 @@ export const Navbar: React.FC<NavbarProps> = ({
     setIsAudioPlaying(active || isAmbientActive());
   };
 
+  const NAV_ITEM_ICONS: Record<DimensionView, React.ReactNode> = {
+    landing: <Sparkles size={16} className="text-amber-300" />,
+    home: <Home size={16} className="text-amber-400" />,
+    clubs: <Users size={16} className="text-emerald-400" />,
+    qa: <HelpCircle size={16} className="text-cyan-400" />,
+    chat: <MessageSquare size={16} className="text-orange-400" />,
+    memory: (
+      <svg width={17} height={17} viewBox="0 0 24 24" fill="none">
+        <polygon points="12,2 20,8 17,20 7,20 4,8" fill="url(#crystalGradNav)" stroke="#38bdf8" strokeWidth="1.5" strokeLinejoin="round" />
+        <polygon points="12,2 17,10 12,18 7,10" fill="#0284c7" fillOpacity="0.4" stroke="#e0f2fe" strokeWidth="0.8" />
+        <circle cx="12" cy="10" r="1.5" fill="#ffffff" />
+      </svg>
+    ),
+    chronicles: (
+      <svg width={17} height={17} viewBox="0 0 24 24" fill="none">
+        <path d="M7 4 H17 V10 C17 13.5 14.5 15.5 12 15.5 C9.5 15.5 7 13.5 7 10 Z" fill="url(#trophyGradNav)" stroke="#fbbf24" strokeWidth="1.2" strokeLinejoin="round" />
+        <path d="M7 6 C4.5 6 4.5 9.5 7 10" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M17 6 C19.5 6 19.5 9.5 17 10" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="12" y1="15.5" x2="12" y2="19" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
+        <line x1="8" y1="19" x2="16" y2="19" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx="12" cy="9.5" r="1.2" fill="#ffffff" />
+      </svg>
+    ),
+    'coming-soon': <Timer size={16} className="text-yellow-400" />,
+  };
+
   const navItems: { id: DimensionView; label: string }[] = [
     { id: 'landing', label: 'GIỚI THIỆU' },
     { id: 'home', label: 'TRANG CHỦ' },
@@ -359,10 +399,18 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      {/* Auto-Hide Hover Trigger Zone */}
+      {/* Auto-Hide Hover Trigger Zone (Synchronized across all 4 edges) */}
       {navbarAutoHide && (
         <div
-          className="hidden md:block fixed top-0 inset-x-0 h-4 z-[51] pointer-events-auto"
+          className={`hidden md:block fixed z-[51] pointer-events-auto transition-all ${
+            navbarPosition === 'bottom'
+              ? 'bottom-0 inset-x-0 h-4'
+              : navbarPosition === 'left'
+              ? 'left-0 inset-y-0 w-4'
+              : navbarPosition === 'right'
+              ? 'right-0 inset-y-0 w-4'
+              : 'top-0 inset-x-0 h-4'
+          }`}
           onMouseEnter={handleMouseEnterNav}
         />
       )}
@@ -373,20 +421,18 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div
         onMouseEnter={handleMouseEnterNav}
         onMouseLeave={handleMouseLeaveNav}
-        className="hidden md:block fixed inset-0 z-50 pointer-events-none transition-all duration-500"
+        className={`hidden md:block fixed inset-0 z-50 pointer-events-none transition-all duration-500 dock-container dock-pos-${navbarPosition}`}
         style={{
           transform:
             isInsideCinema || (navbarAutoHide && !isNavbarHovered)
               ? navbarPosition === 'bottom'
                 ? 'translateY(120px)'
+                : navbarPosition === 'left'
+                ? 'translateX(-120px)'
+                : navbarPosition === 'right'
+                ? 'translateX(120px)'
                 : 'translateY(-120px)'
-              : navbarPosition === 'bottom'
-              ? 'translateY(calc(100vh - 84px))'
-              : navbarPosition === 'left'
-              ? 'translate(-35%, 40vh) rotate(-90deg)'
-              : navbarPosition === 'right'
-              ? 'translate(35%, 40vh) rotate(90deg)'
-              : 'translateY(0)',
+              : 'translate(0, 0)',
           opacity: isInsideCinema || (navbarAutoHide && !isNavbarHovered) ? 0 : 1,
         }}
       >
@@ -404,19 +450,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             aria-label="Trang chủ F-Forum"
           >
             <div className="flex items-center gap-2.5 flex-shrink-0 whitespace-nowrap select-none mr-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-200 p-[1px] flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-200 p-[1px] flex-shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.3)]">
                 <div className="w-full h-full bg-[#0a0f14] rounded-full flex items-center justify-center text-amber-400 font-bold text-sm">
                   F
                 </div>
               </div>
-              <span className="font-['Playfair_Display'] italic font-bold text-xl tracking-wide bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent flex-shrink-0 whitespace-nowrap drop-shadow-[0_2px_12px_rgba(245,158,11,0.3)]">
+              <span className="nav-brand-text font-['Playfair_Display'] italic font-bold text-xl tracking-wide bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent flex-shrink-0 whitespace-nowrap drop-shadow-[0_2px_12px_rgba(245,158,11,0.3)]">
                 F-Forum
               </span>
             </div>
           </button>
 
           {/* Center Tabs: Strictly 1 Single Line, NO wrapping into 2 rows */}
-          <div className="relative flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-1">
+          <div className="relative flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-1 nav-center-tabs">
             {/* SVG Defs for Navbar Icons */}
             <svg width="0" height="0" className="absolute pointer-events-none">
               <defs>
@@ -433,25 +479,41 @@ export const Navbar: React.FC<NavbarProps> = ({
               </defs>
             </svg>
 
-            {/* Liquid sliding pill indicator */}
-            <div
-              className="absolute top-1 bottom-1 rounded-full bg-gradient-to-r from-amber-500/25 via-amber-400/20 to-yellow-500/25 backdrop-blur-xl border border-amber-400/40 shadow-[0_0_20px_rgba(245,158,11,0.25)] transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] pointer-events-none hidden lg:block"
-              style={{
-                left: `${pillStyle.left}px`,
-                width: `${pillStyle.width}px`,
-                opacity: pillStyle.opacity,
-              }}
-            />
+            {!isVertical && (
+              <>
+                {/* Liquid sliding pill indicator */}
+                <div
+                  className="absolute top-1 bottom-1 rounded-full bg-gradient-to-r from-amber-500/25 via-amber-400/20 to-yellow-500/25 backdrop-blur-xl border border-amber-400/40 shadow-[0_0_20px_rgba(245,158,11,0.25)] transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] pointer-events-none hidden lg:block"
+                  style={{
+                    left: `${pillStyle.left}px`,
+                    width: `${pillStyle.width}px`,
+                    opacity: pillStyle.opacity,
+                  }}
+                />
 
-            {/* Organic liquid droplet bead */}
-            <div
-              className="absolute -bottom-0.5 h-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 shadow-[0_0_8px_#f59e0b] transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] pointer-events-none hidden lg:block"
-              style={{
-                left: `${pillStyle.left + pillStyle.width / 2 - 8}px`,
-                width: '16px',
-                opacity: pillStyle.opacity,
-              }}
-            />
+                {/* Organic liquid droplet bead */}
+                <div
+                  className={`absolute ${navbarPosition === 'bottom' ? '-top-0.5' : '-bottom-0.5'} h-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 shadow-[0_0_8px_#f59e0b] transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] pointer-events-none hidden lg:block`}
+                  style={{
+                    left: `${pillStyle.left + pillStyle.width / 2 - 8}px`,
+                    width: '16px',
+                    opacity: pillStyle.opacity,
+                  }}
+                />
+              </>
+            )}
+
+            {/* Vertical organic liquid droplet bead */}
+            {isVertical && (
+              <div
+                className={`absolute ${navbarPosition === 'left' ? '-left-1' : '-right-1'} w-1.5 rounded-full bg-gradient-to-b from-amber-400 to-yellow-300 shadow-[0_0_10px_#f59e0b] transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] pointer-events-none`}
+                style={{
+                  top: `${pillStyle.top + (pillStyle.height ? pillStyle.height / 2 - 10 : 10)}px`,
+                  height: '20px',
+                  opacity: pillStyle.opacity,
+                }}
+              />
+            )}
 
             {navItems.map((item) => {
               const isActive = currentView === item.id;
@@ -467,36 +529,52 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClick={() => onViewChange(item.id)}
                   title={item.label}
                   aria-label={item.label}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold tracking-wider whitespace-nowrap flex-shrink-0 select-none transition-all cursor-pointer flex items-center gap-1.5 z-10 ${
+                  className={`nav-tab-btn px-3 py-1.5 rounded-full text-xs font-semibold tracking-wider whitespace-nowrap flex-shrink-0 select-none transition-all cursor-pointer flex items-center justify-center gap-1.5 z-10 group/tab relative ${
                     isActive
                       ? 'bg-amber-500/20 lg:bg-transparent text-amber-300 border border-amber-500/30 lg:border-transparent shadow-[0_0_15px_rgba(245,158,11,0.25)] lg:shadow-none'
                       : 'text-white/70 hover:text-white hover:bg-white/5 border border-transparent'
                   }`}
                 >
-                  {isMemory ? (
-                    <span className="flex items-center gap-1.5" title="Miền Ký Ức">
-                      <svg width={18} height={18} viewBox="0 0 24 24" fill="none" className="transition-transform hover:scale-110 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]">
-                        <polygon points="12,2 20,8 17,20 7,20 4,8" fill="url(#crystalGradNav)" stroke={isActive ? "#38bdf8" : "#a5f3fc"} strokeWidth="1.5" strokeLinejoin="round" />
-                        <polygon points="12,2 17,10 12,18 7,10" fill="#0284c7" fillOpacity="0.4" stroke="#e0f2fe" strokeWidth="0.8" />
-                        <circle cx="12" cy="10" r="1.5" fill="#ffffff" />
-                      </svg>
-                      <span className="sr-only">{item.label}</span>
-                    </span>
-                  ) : isChronicles ? (
-                    <span className="flex items-center gap-1.5" title="Khu Vinh Danh">
-                      <svg width={18} height={18} viewBox="0 0 24 24" fill="none" className="transition-transform hover:scale-110 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]">
-                        <path d="M7 4 H17 V10 C17 13.5 14.5 15.5 12 15.5 C9.5 15.5 7 13.5 7 10 Z" fill="url(#trophyGradNav)" stroke={isActive ? "#fbbf24" : "#fef08a"} strokeWidth="1.2" strokeLinejoin="round" />
-                        <path d="M7 6 C4.5 6 4.5 9.5 7 10" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
-                        <path d="M17 6 C19.5 6 19.5 9.5 17 10" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
-                        <line x1="12" y1="15.5" x2="12" y2="19" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
-                        <line x1="8" y1="19" x2="16" y2="19" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" />
-                        <circle cx="12" cy="9.5" r="1.2" fill="#ffffff" />
-                      </svg>
-                      <span className="sr-only">{item.label}</span>
-                    </span>
-                  ) : (
-                    <span className="whitespace-nowrap flex-shrink-0 select-none">{item.label}</span>
-                  )}
+                  {/* Icon for Vertical Mode */}
+                  <span className="hidden dock-vertical-icon items-center justify-center">
+                    {NAV_ITEM_ICONS[item.id]}
+                  </span>
+
+                  {/* Horizontal Content */}
+                  <span className="dock-horizontal-content flex items-center gap-1.5">
+                    {isMemory ? (
+                      <span className="flex items-center gap-1.5" title="Miền Ký Ức">
+                        <svg width={18} height={18} viewBox="0 0 24 24" fill="none" className="transition-transform hover:scale-110 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]">
+                          <polygon points="12,2 20,8 17,20 7,20 4,8" fill="url(#crystalGradNav)" stroke={isActive ? "#38bdf8" : "#a5f3fc"} strokeWidth="1.5" strokeLinejoin="round" />
+                          <polygon points="12,2 17,10 12,18 7,10" fill="#0284c7" fillOpacity="0.4" stroke="#e0f2fe" strokeWidth="0.8" />
+                          <circle cx="12" cy="10" r="1.5" fill="#ffffff" />
+                        </svg>
+                        <span className="sr-only">{item.label}</span>
+                      </span>
+                    ) : isChronicles ? (
+                      <span className="flex items-center gap-1.5" title="Khu Vinh Danh">
+                        <svg width={18} height={18} viewBox="0 0 24 24" fill="none" className="transition-transform hover:scale-110 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]">
+                          <path d="M7 4 H17 V10 C17 13.5 14.5 15.5 12 15.5 C9.5 15.5 7 13.5 7 10 Z" fill="url(#trophyGradNav)" stroke={isActive ? "#fbbf24" : "#fef08a"} strokeWidth="1.2" strokeLinejoin="round" />
+                          <path d="M7 6 C4.5 6 4.5 9.5 7 10" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
+                          <path d="M17 6 C19.5 6 19.5 9.5 17 10" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
+                          <line x1="12" y1="15.5" x2="12" y2="19" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
+                          <line x1="8" y1="19" x2="16" y2="19" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" />
+                          <circle cx="12" cy="9.5" r="1.2" fill="#ffffff" />
+                        </svg>
+                        <span className="sr-only">{item.label}</span>
+                      </span>
+                    ) : (
+                      <span className="nav-tab-label whitespace-nowrap flex-shrink-0 select-none">{item.label}</span>
+                    )}
+                  </span>
+
+                  {/* Hover Tooltip in Vertical Mode */}
+                  <span className={`pointer-events-none opacity-0 group-hover/tab:opacity-100 transition-all duration-200 fixed ${
+                    navbarPosition === 'left' ? 'left-24' : 'right-24'
+                  } px-2.5 py-1 rounded-xl bg-[#0a0f14]/95 backdrop-blur-xl border border-white/20 text-[11px] font-bold text-amber-300 shadow-[0_10px_25px_rgba(0,0,0,0.8)] z-50 whitespace-nowrap hidden dock-vertical-tooltip`}>
+                    {item.label}
+                  </span>
+
                   {item.id === 'chat' && unreadChatCount > 0 && (
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
                   )}
@@ -506,7 +584,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Right Side: Quick Dock */}
-          <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0 nav-actions-dock">
             {/* Streak Flame Widget with Fire & Aura */}
             <StreakFlameWidget
               streakCount={currentUser?.streakCount || 1}
@@ -568,8 +646,32 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onToggleNavbarAutoHide={handleToggleNavbarAutoHide}
                 navbarPosition={navbarPosition}
                 onSwapNavbarPosition={handleSwapNavbarPosition}
+                onSelectNavbarPosition={handleSelectNavbarPosition}
+                dockPosition={navbarPosition}
               />
             </div>
+
+            {/* Quick Swap Navbar Position Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSwapNavbarPosition();
+              }}
+              className="relative w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/30 flex items-center justify-center text-white/70 hover:text-white transition-all cursor-pointer pointer-events-auto"
+              title={`Đổi vị trí thanh: ${
+                navbarPosition === 'top'
+                  ? 'Trên'
+                  : navbarPosition === 'bottom'
+                  ? 'Dưới'
+                  : navbarPosition === 'left'
+                  ? 'Trái'
+                  : 'Phải'
+              } (Bấm để dời góc)`}
+              aria-label="Đổi vị trí Navbar"
+            >
+              <Move className="w-3.5 h-3.5 text-amber-400/80 hover:text-amber-300" />
+            </button>
 
             {/* Chat Toggle Button */}
             <button
@@ -620,7 +722,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setIsNotificationsOpen(false);
                   onViewChange(view);
                 }}
-                onUnreadCountChange={setUnreadNotifCount}
+                dockPosition={navbarPosition}
               />
             </div>
 
@@ -671,7 +773,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </div>
 
                   {/* Name & Verified Tick */}
-                  <div className="hidden sm:flex items-center gap-1.5 leading-none">
+                  <div className="hidden sm:flex items-center gap-1.5 leading-none nav-user-text">
                     <span
                       className={`text-xs font-medium ${
                         isSuperAdmin ? 'discord-admin-name' : 'text-white'
@@ -698,6 +800,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClose={() => setIsFlyoutOpen(false)}
                   onOpenProfile={onOpenProfile}
                   onLogout={onLogout}
+                  dockPosition={navbarPosition}
                 />
               </div>
             )}
