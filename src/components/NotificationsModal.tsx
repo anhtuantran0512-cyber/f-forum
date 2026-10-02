@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Bell,
   X,
   MessageSquare,
   HelpCircle,
   Sparkles,
   Compass,
+  ShoppingBag,
+  ShieldAlert,
+  Cake,
+  CheckCheck,
+  Coins,
 } from 'lucide-react';
 import type { DimensionView } from '../types';
 import { safeStorage } from '../utils/storage';
@@ -15,52 +19,58 @@ export interface NotificationItem {
   title: string;
   body: string;
   content?: string;
-  time: string;
-  type: 'system' | 'qa' | 'chat' | 'club' | 'achievement' | 'interactive';
+  time?: string;
+  type: 'system' | 'qa' | 'chat' | 'club' | 'achievement' | 'interactive' | 'shop' | 'report' | 'coin';
+  category?: string;
   targetView?: DimensionView;
   isRead: boolean;
+  actorName?: string;
+  systemName?: string;
 }
 
 const DEFAULT_NOTIFICATIONS: NotificationItem[] = [
   {
-    id: 'notif-1',
-    title: 'Chào mừng gia nhập F-Forum!',
-    body: 'Hệ thống diễn đàn học sinh chính thức hoạt động với dữ liệu thực và công nghệ kết nối đa thiết bị.',
-    content: 'Hệ thống diễn đàn học sinh chính thức hoạt động với dữ liệu thực và công nghệ kết nối đa thiết bị.',
+    id: 'notif-sys-1',
+    title: 'Hệ thống F-Forum chúc mừng bạn',
+    body: 'Hôm nay là một ngày tuyệt vời để khám phá tri thức và kết nối bạn bè, F-Forum xin gửi đến bạn những lời chúc tốt đẹp nhất ❤️',
     time: 'Vừa xong',
     type: 'system',
     targetView: 'home',
     isRead: false,
+    actorName: 'Bạn học',
+    systemName: 'F-Forum',
   },
   {
-    id: 'notif-2',
-    title: 'Sàn Q&A Tri Thức sôi nổi',
-    body: 'Nhiều bài tập khó đang chờ các cao thủ chia sẻ lời giải chuẩn để nhận huy hiệu và +100 XP.',
-    content: 'Nhiều bài tập khó đang chờ các cao thủ chia sẻ lời giải chuẩn để nhận huy hiệu và +100 XP.',
+    id: 'notif-qa-2',
+    title: 'Sàn Q&A Tri Thức có câu trả lời mới',
+    body: 'Thành viên vừa gửi lời giải chi tiết cho câu hỏi bạn quan tâm. Bấm để xem và xác nhận Đáp Án Chuẩn nhận 50% tiền cược!',
     time: '5 phút trước',
     type: 'qa',
     targetView: 'qa',
     isRead: false,
+    actorName: 'Cao thủ Toán',
+    systemName: 'Q&A Hub',
   },
   {
-    id: 'notif-3',
-    title: 'Phòng Chat thời gian thực',
-    body: 'Kết bạn bốn phương và trao đổi bài học nhanh chóng cùng học sinh khắp các cơ sở.',
-    content: 'Kết bạn bốn phương và trao đổi bài học nhanh chóng cùng học sinh khắp các cơ sở.',
+    id: 'notif-chat-3',
+    title: 'Phòng Chat thời gian thực sôi động',
+    body: 'Các học sinh đang trao đổi bài học sôi nổi tại sảnh Kết bạn bốn phương. Hãy cùng tham gia thảo luận ngay.',
     time: '15 phút trước',
     type: 'chat',
     targetView: 'chat',
     isRead: false,
+    actorName: 'Cộng đồng FPT',
+    systemName: 'Live Chat',
   },
   {
-    id: 'notif-4',
-    title: 'Khám phá Quả Cầu 3D Vinh Danh',
-    body: 'Khu Vinh Danh 3D Fibonacci tôn vinh nhà sáng lập và ghi lại những cột mốc đáng nhớ của F-Forum.',
-    content: 'Khu Vinh Danh 3D Fibonacci tôn vinh nhà sáng lập và ghi lại những cột mốc đáng nhớ của F-Forum.',
+    id: 'notif-ach-4',
+    title: 'Cột mốc vinh danh ghi dấu',
+    body: 'Khu Vinh Danh 3D Fibonacci đã ghi nhận những thành tích nổi bật của bạn trên hành trình học tập.',
     time: '1 giờ trước',
     type: 'achievement',
     targetView: 'chronicles',
     isRead: true,
+    systemName: 'F-Chronicles',
   },
 ];
 
@@ -99,6 +109,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
     safeStorage.setItem('fforum_notifications', JSON.stringify(notifications));
   }, [notifications, unreadCount, onUnreadCountChange]);
 
+  // Synchronize when other components trigger new notifications
   useEffect(() => {
     const handleSync = () => {
       const saved = safeStorage.getItem('fforum_notifications');
@@ -124,12 +135,13 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
     }
   }, []);
 
+  // Keyboard shortcut & mousedown protection
   useEffect(() => {
     if (!isOpen) return;
 
     const handleMouseDown = (e: MouseEvent | TouchEvent) => {
       const target = e.target as HTMLElement | null;
-      if (target && target.closest('[data-notif-trigger]')) {
+      if (target && (target.closest('[data-notif-trigger]') || target.closest('[role="dialog"]'))) {
         return;
       }
       if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
@@ -145,11 +157,11 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
 
     document.addEventListener('mousedown', handleMouseDown);
     document.addEventListener('touchstart', handleMouseDown);
-    document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handleMouseDown);
       document.removeEventListener('touchstart', handleMouseDown);
-      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
 
@@ -182,73 +194,117 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
   };
 
   const filtered = notifications.filter((n) => {
-    if (notifTab === 'system') return n.type === 'system' || n.type === 'achievement';
-    if (notifTab === 'interactive') return n.type === 'qa' || n.type === 'chat' || n.type === 'club' || n.type === 'interactive';
+    if (notifTab === 'system') {
+      return (
+        n.type === 'system' ||
+        n.type === 'achievement' ||
+        n.type === 'shop' ||
+        n.type === 'report' ||
+        n.type === 'coin'
+      );
+    }
+    if (notifTab === 'interactive') {
+      return (
+        n.type === 'qa' ||
+        n.type === 'chat' ||
+        n.type === 'club' ||
+        n.type === 'interactive'
+      );
+    }
     return true;
   });
 
   const getIcon = (type: NotificationItem['type']) => {
     switch (type) {
       case 'qa':
-        return <HelpCircle size={15} />;
+        return <HelpCircle size={16} className="text-cyan-400" />;
       case 'chat':
-        return <MessageSquare size={15} />;
+        return <MessageSquare size={16} className="text-orange-400" />;
       case 'achievement':
-        return <Sparkles size={15} />;
+        return <Sparkles size={16} className="text-amber-400" />;
       case 'club':
-        return <Compass size={15} />;
+        return <Compass size={16} className="text-emerald-400" />;
+      case 'shop':
+        return <ShoppingBag size={16} className="text-purple-400" />;
+      case 'report':
+        return <ShieldAlert size={16} className="text-rose-400" />;
+      case 'coin':
+        return <Coins size={16} className="text-amber-400" />;
       case 'interactive':
-        return <MessageSquare size={15} />;
+        return <MessageSquare size={16} className="text-amber-400" />;
+      case 'system':
       default:
-        return <Bell size={15} />;
+        return <Cake size={16} className="text-amber-400" />;
     }
   };
 
   return (
     <>
-      {/* Invisible backdrop to catch outside clicks */}
-      <button 
+      {/* Invisible backdrop to catch outside clicks without closing from within modal */}
+      <button
         type="button"
         tabIndex={-1}
         aria-label="Đóng bảng thông báo"
-        className="fixed inset-0 z-40 bg-transparent cursor-default border-none outline-none" 
+        className="fixed inset-0 z-40 bg-transparent cursor-default border-none outline-none"
         onClick={(e) => {
           e.stopPropagation();
           onClose();
-        }} 
+        }}
       />
 
-      {/* Popover anchored directly below Bell button */}
+      {/* Popover anchored directly below Bell button with Dynamic Island / Hyperland spring scale */}
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Thông Báo"
-        className="absolute top-[calc(100%+12px)] right-0 z-50 w-[380px] max-w-[calc(100vw-32px)] liquid-glass rounded-3xl p-4 shadow-[0_25px_60px_rgba(0,0,0,0.9)] animate-fade-up pointer-events-auto border border-white/15"
+        aria-label="Trung tâm thông báo"
+        className="absolute top-[calc(100%+12px)] right-0 z-50 w-[400px] max-w-[calc(100vw-28px)] liquid-glass rounded-3xl p-4 shadow-[0_25px_60px_rgba(0,0,0,0.92)] border border-white/20 pointer-events-auto select-none origin-top-right transition-all duration-300 transform scale-100 opacity-100"
+        style={{
+          transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
+        onClick={(e) => {
+          // Stop propagation so clicking tabs/items inside does not close dialog
+          e.stopPropagation();
+        }}
       >
-        {/* Header */}
+        {/* Header: Brand Hoidap/F-Forum Icon & Actions */}
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <Bell className="text-amber-400" size={16} />
-            <span className="font-semibold text-xs tracking-wider uppercase text-white">Thông Báo</span>
-            {unreadCount > 0 && (
-              <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30">
-                {unreadCount} mới
-              </span>
-            )}
+          <div className="flex items-center gap-2.5">
+            {/* Stylized Brand H/F Icon */}
+            <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-500 to-cyan-400 p-[1.5px] shadow-[0_0_12px_rgba(245,158,11,0.4)]">
+              <div className="w-full h-full bg-[#0a0f14] rounded-[9px] flex items-center justify-center font-black text-xs text-amber-300 font-mono">
+                F
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-xs tracking-wider uppercase text-white font-mono">
+                  THÔNG BÁO
+                </span>
+                {unreadCount > 0 && (
+                  <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30 font-semibold font-mono">
+                    {unreadCount} mới
+                  </span>
+                )}
+              </div>
+              <span className="text-[9.5px] text-white/50 block">Trung tâm sự kiện thời gian thực</span>
+            </div>
           </div>
+
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={markAllAsRead}
-              className="text-[11px] text-white/40 hover:text-amber-300 transition-colors cursor-pointer"
+              className="text-[11px] text-white/50 hover:text-amber-300 transition-colors cursor-pointer flex items-center gap-1"
+              title="Đánh dấu tất cả là đã đọc"
             >
-              Đã đọc tất cả
+              <CheckCheck className="w-3.5 h-3.5" />
+              <span>Đã đọc</span>
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="p-1 rounded-lg text-white/40 hover:text-white transition-colors cursor-pointer"
+              className="p-1 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               aria-label="Đóng thông báo"
             >
               <X size={15} />
@@ -256,27 +312,36 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
           </div>
         </div>
 
-        {/* Tab Filters */}
-        <div className="grid grid-cols-3 gap-1 p-1 bg-black/40 rounded-xl mb-3">
-          {(['all', 'system', 'interactive'] as const).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setNotifTab(tab)}
-              className={`py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                notifTab === tab ? 'bg-white/15 text-white shadow-sm' : 'text-white/40 hover:text-white'
-              }`}
-            >
-              {tab === 'all' ? 'Tất cả' : tab === 'system' ? 'Hệ thống' : 'Tương tác'}
-            </button>
-          ))}
+        {/* Tab Filters: Tất cả | Hệ thống | Tương tác */}
+        <div className="grid grid-cols-3 gap-1 p-1 bg-black/50 rounded-2xl mb-3 border border-white/10">
+          {(['all', 'system', 'interactive'] as const).map((tab) => {
+            const isActive = notifTab === tab;
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setNotifTab(tab);
+                }}
+                className={`py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+                    : 'text-white/60 hover:text-white border border-transparent'
+                }`}
+              >
+                {tab === 'all' ? 'Tất cả' : tab === 'system' ? 'Hệ thống' : 'Tương tác'}
+              </button>
+            );
+          })}
         </div>
 
         {/* Notification Feed */}
-        <div className="max-h-[320px] overflow-y-auto space-y-2 pr-1 no-scrollbar">
+        <div className="max-h-[340px] overflow-y-auto space-y-2.5 pr-1 no-scrollbar">
           {filtered.length === 0 ? (
-            <div className="py-8 text-center text-xs text-neutral-400 space-y-1">
+            <div className="py-10 text-center text-xs text-neutral-400 space-y-1">
               <p>Chưa có thông báo nào trong mục này.</p>
+              <p className="text-[10px] text-neutral-500">Các cập nhật bài giải, coin và hệ thống sẽ xuất hiện tại đây.</p>
             </div>
           ) : (
             filtered.map((n) => (
@@ -284,27 +349,66 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
                 key={n.id}
                 type="button"
                 onClick={() => handleItemClick(n)}
-                className={`w-full text-left p-3 rounded-2xl border transition-all cursor-pointer block ${
+                className={`w-full text-left p-3 rounded-2xl border transition-all cursor-pointer block group ${
                   n.isRead
-                    ? 'bg-white/[0.02] border-white/5 opacity-60'
-                    : 'bg-white/[0.06] border-white/15 hover:bg-white/10'
+                    ? 'bg-white/[0.02] border-white/5 opacity-70 hover:opacity-100 hover:bg-white/[0.05]'
+                    : 'bg-white/[0.06] border-white/15 hover:bg-white/10 shadow-sm'
                 }`}
               >
-                <div className="flex items-start gap-2.5">
-                  <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-300 mt-0.5 shrink-0">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-white/5 border border-white/10 mt-0.5 shrink-0 group-hover:scale-105 transition-transform">
                     {getIcon(n.type)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-white truncate">{n.title}</p>
-                    <p className="text-[11px] text-white/60 line-clamp-2 mt-0.5 leading-relaxed">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-xs font-bold text-white truncate">
+                        {n.actorName && (
+                          <strong className="text-white font-extrabold mr-1">
+                            {n.actorName}
+                          </strong>
+                        )}
+                        {n.systemName && (
+                          <span className="text-cyan-400 font-bold mr-1">
+                            [{n.systemName}]
+                          </span>
+                        )}
+                        {n.title}
+                      </p>
+                      {!n.isRead && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_#f59e0b] shrink-0" />
+                      )}
+                    </div>
+                    <p className="text-[11.5px] text-white/70 line-clamp-2 mt-1 leading-relaxed">
                       {n.body || n.content}
                     </p>
-                    <span className="text-[9px] text-white/30 mt-1 block">{n.time}</span>
+                    <div className="flex items-center justify-between mt-1.5 text-[9.5px] text-white/40 font-mono">
+                      <span>{n.time}</span>
+                      {n.targetView && (
+                        <span className="text-amber-300 group-hover:underline">
+                          Xem chi tiết →
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </button>
             ))
           )}
+        </div>
+
+        {/* Footer Action: "Xem tất cả" button as in design specification */}
+        <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => {
+              onNavigate('home');
+              onClose();
+            }}
+            className="text-xs text-sky-400 hover:text-sky-300 font-medium transition-colors cursor-pointer"
+          >
+            Xem tất cả thông báo
+          </button>
+          <span className="text-[10px] text-white/30 font-mono">F-Forum Live Engine</span>
         </div>
       </div>
     </>

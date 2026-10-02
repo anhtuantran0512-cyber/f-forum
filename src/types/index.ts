@@ -10,6 +10,17 @@ export type DimensionView =
 
 export type UserRole = 'SUPER_ADMIN' | 'CLUB_LEADER' | 'STUDENT';
 
+export interface UserStats {
+  thanksCount: number;
+  bestCount: number;
+  fiveStarCount: number;
+  verifiedCount: number;
+  helpedCount: number;
+  answersCount: number;
+  questionsCount: number;
+  subjectDistribution?: Record<string, number>;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -18,6 +29,7 @@ export interface User {
   role: UserRole;
   level: number;
   xp: number;
+  coin?: number;
   fPoints?: number;
   streakCount?: number;
   bio: string;
@@ -25,6 +37,11 @@ export interface User {
   city?: string;
   className?: string;
   scopedClubIds: string[];
+  equippedBadge?: string;
+  inventory?: string[];
+  reportedUsers?: string[];
+  joinedAt?: string;
+  stats?: UserStats;
 }
 
 export type ClubCategory = 'Công nghệ' | 'Nghệ thuật' | 'Thể thao' | 'Học thuật';
@@ -89,6 +106,8 @@ export interface Question {
   isSolved: boolean;
   bestSolutionId?: string;
   views: number;
+  bountyCoin?: number;
+  imageUrl?: string;
 }
 
 export interface Solution {
@@ -103,6 +122,8 @@ export interface Solution {
   createdAt: string;
   isBest: boolean;
   upvotes: number;
+  rewardCoin?: number;
+  imageUrl?: string;
 }
 
 export type ChatChannelId = 'hallway' | 'quick-qa' | 'confessions' | 'club-hub';
@@ -147,3 +168,26 @@ export interface FeedbackSubmission {
   createdAt: string;
 }
 
+export type ShopTierColor = 'green' | 'blue' | 'red' | 'purple';
+
+export interface ShopItem {
+  id: string;
+  name: string;
+  price: number;
+  tierColor: ShopTierColor;
+  description: string;
+  iconType: string;
+}
+
+export interface ReportSubmission {
+  id: string;
+  reporterId: string;
+  reporterName: string;
+  reporterEmail?: string;
+  reportedUserId: string;
+  reportedUserName: string;
+  reason: string;
+  details: string;
+  targetEmail: string;
+  createdAt: string;
+}

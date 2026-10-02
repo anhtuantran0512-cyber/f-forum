@@ -28,6 +28,7 @@ import {
 } from './adminStore';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../config/admin';
 import { getTierForLevel } from '../utils/tier';
+import { pushNotification } from '../utils/notifications';
 
 // Global Tab/Session Identifier for cross-tab echo elimination
 const CURRENT_TAB_ID =
@@ -102,7 +103,14 @@ export function useForumStore() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') return parsed;
+        if (parsed && typeof parsed === 'object') {
+          for (const key of Object.keys(parsed)) {
+            if (parsed[key] && parsed[key].coin === undefined) {
+              parsed[key].coin = parsed[key].email === 'anhtuantran0512@gmail.com' ? 99999 : 100;
+            }
+          }
+          return parsed;
+        }
       } catch {
         /* ignore */
       }
@@ -118,7 +126,11 @@ export function useForumStore() {
       if (savedRegistry) {
         try {
           const registry: Record<string, User> = JSON.parse(savedRegistry);
-          return registry[savedEmail.toLowerCase()] || null;
+          const u = registry[savedEmail.toLowerCase()] || null;
+          if (u && u.coin === undefined) {
+            u.coin = u.email === 'anhtuantran0512@gmail.com' ? 99999 : 100;
+          }
+          return u;
         } catch {
           /* ignore */
         }
@@ -1116,6 +1128,7 @@ export function useForumStore() {
       if (!targetUser) return prev;
 
       const newXp = targetUser.xp + amount;
+      const newCoin = (targetUser.coin ?? 100) + amount;
       const newFPoints = (targetUser.fPoints ?? targetUser.xp) + amount;
       const calculatedLevel = getLevelForXP(newXp);
       const leveledUp = calculatedLevel > targetUser.level;
@@ -1123,6 +1136,7 @@ export function useForumStore() {
       const updated = {
         ...targetUser,
         xp: newXp,
+        coin: newCoin,
         fPoints: newFPoints,
         level: calculatedLevel,
       };
@@ -1134,8 +1148,15 @@ export function useForumStore() {
           playChime('level-up');
           setToastMessage({
             title: `Chúc mừng thăng cấp! LEVEL ${calculatedLevel}`,
-            subtitle: `+${amount} XP nhận được. Bạn đã tiến gần hơn tới đỉnh cao danh dự!`,
+            subtitle: `+${amount} Coin nhận được. Bạn đã tiến gần hơn tới đỉnh cao danh dự!`,
             type: 'level',
+          });
+          pushNotification({
+            type: 'system',
+            category: 'system',
+            title: `Thăng cấp! Cấp độ ${calculatedLevel}`,
+            body: `Bạn đã đạt Cấp độ ${calculatedLevel} và nhận thêm Coin. Hãy tiếp tục cống hiến tri thức!`,
+            targetView: 'home',
           });
         } else {
           playChime('xp');
@@ -1430,14 +1451,22 @@ export function useForumStore() {
     return true;
   };
 
-  // Create Question (+50 XP)
+  // Create Question (+50 XP, bounty bet 10-100 Coin)
   const createQuestion = (data: {
     title: string;
     subject: SubjectTag;
     content: string;
     isAnonymous: boolean;
+    bountyCoin?: number;
+    imageUrl?: string;
   }) => {
     if (!currentUser) return;
+
+    const bountyCoin = data.bountyCoin ? Math.max(10, Math.min(100, data.bountyCoin)) : 20;
+    if (currentUser.email !== 'anhtuantran0512@gmail.com' && (currentUser.coin ?? 100) < bountyCoin) {
+      alert(`Bạn cần tối thiểu ${bountyCoin} Coin để đặt câu hỏi kèm cược phần thưởng. Số dư hiện tại: ${currentUser.coin ?? 100} Coin.`);
+      return;
+    }
 
     const ghibliAlias = data.isAnonymous
       ? generateGhibliAlias(data.subject)
@@ -1460,9 +1489,17 @@ export function useForumStore() {
       createdAt: 'Vừa xong',
       isSolved: false,
       views: 1,
+      bountyCoin,
+      imageUrl: data.imageUrl,
     };
 
     setQuestions(prev => [newQuestion, ...prev]);
+
+    // Deduct bountyCoin from author
+    const updatedAuthorCoin = Math.max(0, (currentUser.coin ?? 100) - bountyCoin);
+    const updatedAuthor = { ...currentUser, coin: updatedAuthorCoin };
+    setCurrentUser(updatedAuthor);
+    setUsers(prev => ({ ...prev, [currentUser.email.toLowerCase()]: updatedAuthor }));
 
     // Dispatch to server
     fetch('/api/questions', {
@@ -1484,7 +1521,7 @@ export function useForumStore() {
   };
 
   // Add Solution (+25 XP)
-  const addSolution = (questionId: string, content: string) => {
+  const addSolution = (questionId: string, content: string, imageUrl?: string) => {
     if (!currentUser) return;
 
     const newSolution: Solution = {
@@ -1499,6 +1536,7 @@ export function useForumStore() {
       createdAt: 'Vừa xong',
       isBest: false,
       upvotes: 1,
+      imageUrl,
     };
 
     setSolutions(prev => [...prev, newSolution]);
@@ -1519,10 +1557,21 @@ export function useForumStore() {
       /* ignore */
     }
 
+    const targetQ = questions.find(q => q.id === questionId);
+    if (targetQ && targetQ.authorId !== currentUser.id) {
+      pushNotification({
+        type: 'interactive',
+        category: 'interactive',
+        title: 'Lời Giải Mới Cho Câu Hỏi Của Bạn!',
+        body: `${currentUser.name} vừa gửi lời giải cho "${targetQ.title.slice(0, 35)}...". Nhấp để kiểm tra và xác nhận Đáp Án Chuẩn!`,
+        targetView: 'qa',
+      });
+    }
+
     addXP(25);
   };
 
-  // Mark Best Solution (+100 XP to solver)
+  // Mark Best Solution (+50% bounty + 100 Coin to solver)
   const markBestSolution = (questionId: string, solutionId: string) => {
     if (!currentUser) return;
     const question = questions.find(q => q.id === questionId);
@@ -1556,9 +1605,18 @@ export function useForumStore() {
       })
     );
 
-    // Award +100 XP to solver
+    // Award 50% bounty + 100 honorary Coin to solver
+    const bounty = question.bountyCoin || 20;
+    const solverCoinAward = Math.floor(bounty * 0.5) + 100;
     if (targetSolution && targetSolution.authorEmail) {
-      addXP(100, targetSolution.authorEmail);
+      addXP(solverCoinAward, targetSolution.authorEmail);
+      pushNotification({
+        type: 'interactive',
+        category: 'interactive',
+        title: 'Chúc mừng Đáp Án Chuẩn!',
+        body: `Lời giải của bạn đã được xác nhận là Đáp Án Chuẩn. Bạn nhận được +${solverCoinAward} Coin (+50% bounty + 100 Coin danh dự).`,
+        targetView: 'qa',
+      });
     }
 
     // Dispatch to server
@@ -1585,7 +1643,7 @@ export function useForumStore() {
     playChime('level-up');
     setToastMessage({
       title: '✓ Đã xác nhận Đáp Án Chuẩn!',
-      subtitle: `Người giải bài (${targetSolution?.authorName || 'Bạn học'}) đã nhận thưởng +100 XP danh dự.`,
+      subtitle: `Người giải bài (${targetSolution?.authorName || 'Bạn học'}) đã nhận thưởng +${solverCoinAward} Coin danh dự.`,
       type: 'level',
     });
   };

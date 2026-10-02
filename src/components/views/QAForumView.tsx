@@ -18,9 +18,17 @@ import {
   Edit3,
   MoreVertical,
   AlertTriangle,
+  Image as ImageIcon,
+  Flag,
+  User as UserIcon,
+  Coins,
+  Shield,
+  Waves,
+  Grid3X3,
 } from 'lucide-react';
 import type { Question, Solution, SubjectTag, User } from '../../types';
 import { TierBadge, AdminVerifiedBadge } from '../Badges10Tier';
+import { getTierForLevel } from '../../utils/tier';
 import { ForumPostModeration } from '../ForumPost';
 import {
   generateGhibliAlias,
@@ -28,6 +36,38 @@ import {
 } from '../../utils/ghibliMasks';
 import { DEFAULT_AVATAR, handleImageError, handleVideoError } from '../../utils/mediaFallback';
 import { MASTER_ADMIN_CONFIG } from '../../config/admin';
+import { pushNotification } from '../../utils/notifications';
+
+const MATH_SYMBOLS = [
+  '√', 'π', '∑', '∫', '≤', '≥', 'α', 'β', '∞', '∆',
+  'θ', 'λ', 'µ', '±', '×', '÷', '≠', '≈', '≡', '∈',
+  '∉', '⊂', '⊃', '∪', '∩', '⊥', '∠', '°', '‰', '∂',
+  '∇', '∛', '∜', '²', '³', '½', '¼', '¾',
+];
+
+const MathSymbolsBar: React.FC<{ onInsert: (symbol: string) => void }> = ({ onInsert }) => (
+  <div className="flex flex-col gap-1 p-2 rounded-xl bg-white/5 border border-white/10 my-1.5">
+    <div className="flex items-center justify-between">
+      <span className="text-[10px] font-mono font-semibold text-cyan-300 uppercase tracking-wider">
+        ∑ Ký Hiệu Toán Học & Khoa Học (38 ký tự)
+      </span>
+      <span className="text-[9px] text-neutral-400 font-mono">Click để chèn</span>
+    </div>
+    <div className="flex items-center gap-1 flex-wrap max-h-20 overflow-y-auto pr-1">
+      {MATH_SYMBOLS.map(sym => (
+        <button
+          key={sym}
+          type="button"
+          onClick={() => onInsert(sym)}
+          className="w-6 h-6 rounded-md bg-neutral-900 hover:bg-cyan-500/20 text-neutral-200 hover:text-cyan-300 border border-white/10 hover:border-cyan-400/40 text-xs font-mono font-bold flex items-center justify-center transition-all cursor-pointer active:scale-90"
+          title={`Chèn ${sym}`}
+        >
+          {sym}
+        </button>
+      ))}
+    </div>
+  </div>
+);
 
 interface QAForumViewProps {
   currentUser: User | null;
@@ -38,13 +78,16 @@ interface QAForumViewProps {
     subject: SubjectTag;
     content: string;
     isAnonymous: boolean;
+    bountyCoin?: number;
+    imageUrl?: string;
   }) => void;
-  onAddSolution: (questionId: string, content: string) => void;
+  onAddSolution: (questionId: string, content: string, imageUrl?: string) => void;
   onMarkBestSolution: (questionId: string, solutionId: string) => void;
   onDeleteQuestion?: (questionId: string) => void;
   onEditQuestion?: (questionId: string, updates: { title?: string; content?: string; subject?: SubjectTag }) => void;
   onDeleteSolution?: (solutionId: string) => void;
   onOpenLoginModal?: () => void;
+  onOpenProfile?: (user?: { id: string; name: string; avatar: string; email?: string; level?: number }) => void;
   isEmbedded?: boolean;
 }
 
@@ -83,6 +126,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   onEditQuestion,
   onDeleteSolution,
   onOpenLoginModal,
+  onOpenProfile,
   isEmbedded = false,
 }) => {
   const [activeVideoIdx, setActiveVideoIdx] = useState(0);
@@ -186,6 +230,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [newSubject, setNewSubject] = useState<SubjectTag>('toan');
   const [newContent, setNewContent] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [bountyCoin, setBountyCoin] = useState<number>(20);
+  const [askImage, setAskImage] = useState<string | null>(null);
+  const [askImageError, setAskImageError] = useState<string | null>(null);
 
   // Ghibli disguise preview when anonymous toggled
   const previewAlias = useMemo(
@@ -199,9 +246,93 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
   // New Solution Form inside detail view
   const [solutionText, setSolutionText] = useState('');
+  const [solImage, setSolImage] = useState<string | null>(null);
+  const [solImageError, setSolImageError] = useState<string | null>(null);
+
+  // Author mini-profile popover
+  const [activeAuthorPopover, setActiveAuthorPopover] = useState<{
+    id: string;
+    name: string;
+    avatar: string;
+    email?: string;
+    level: number;
+    coin?: number;
+  } | null>(null);
+
+  // Report Account Modal
+  const [reportModalUser, setReportModalUser] = useState<{ id: string; name: string } | null>(null);
+  const [reportReason, setReportReason] = useState<string>('Toxic / Gây war / Xúc phạm bạn học');
+  const [reportDetails, setReportDetails] = useState<string>('');
+  const [isSubmittingReport, setIsSubmittingReport] = useState<boolean>(false);
+  const [reportSuccessMsg, setReportSuccessMsg] = useState<string | null>(null);
+
+  const handleImageUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setImage: (img: string | null) => void,
+    setError: (err: string | null) => void
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Vui lòng chỉ tải lên tệp hình ảnh (PNG, JPG, WebP)!');
+      e.target.value = '';
+      return;
+    }
+    const maxSize = 20 * 1024 * 1024; // 20MB
+    if (file.size > maxSize) {
+      setError(`Kích thước ảnh (${(file.size / (1024 * 1024)).toFixed(1)}MB) vượt quá giới hạn cho phép 20MB!`);
+      e.target.value = '';
+      return;
+    }
+    setError(null);
+    const reader = new FileReader();
+    reader.onload = ev => {
+      if (typeof ev.target?.result === 'string') {
+        setImage(ev.target.result);
+      }
+    };
+    reader.onerror = () => {
+      setError('Lỗi khi đọc file ảnh. Vui lòng thử lại!');
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleReportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reportModalUser || isSubmittingReport) return;
+    setIsSubmittingReport(true);
+    try {
+      const res = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reporterId: currentUser?.id || 'guest',
+          reporterName: currentUser?.name || 'Ẩn danh',
+          reporterEmail: currentUser?.email || '',
+          reportedUserId: reportModalUser.id,
+          reportedUserName: reportModalUser.name,
+          reason: reportReason,
+          details: reportDetails.trim(),
+        }),
+      });
+      const data = await res.json();
+      setReportSuccessMsg(data.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị (anhtuantran0512@gmail.com).');
+      pushNotification({
+        type: 'system',
+        category: 'system',
+        title: 'Đã Tiếp Nhận Báo Cáo',
+        body: `Tố cáo đối với "${reportModalUser.name}" đã được chuyển tới Ban Giám Hiệu và Super Admin.`,
+        targetView: 'qa',
+      });
+    } catch {
+      setReportSuccessMsg('Đã ghi nhận tố cáo của bạn và chuyển tới anhtuantran0512@gmail.com.');
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
 
   // Filter questions
-
   const filteredQuestions = questions.filter(q => {
     const matchesTag = selectedTag === 'all' || q.subject === selectedTag;
     const matchesSearch =
@@ -232,10 +363,14 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       subject: newSubject,
       content: newContent.trim().slice(0, 1500),
       isAnonymous,
+      bountyCoin,
+      imageUrl: askImage || undefined,
     });
 
     setNewTitle('');
     setNewContent('');
+    setAskImage(null);
+    setAskImageError(null);
     setIsAnonymous(false);
     setIsAskModalOpen(false);
     setIsSubmittingAsk(false);
@@ -252,8 +387,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     }
 
     setIsSubmittingSol(true);
-    onAddSolution(questionId, solutionText.trim().slice(0, 1500));
+    onAddSolution(questionId, solutionText.trim().slice(0, 1500), solImage || undefined);
     setSolutionText('');
+    setSolImage(null);
+    setSolImageError(null);
     setIsSubmittingSol(false);
     setSolCooldown(3); // 3-second anti-spam cooldown lock
   };
@@ -303,20 +440,24 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           <div className="flex items-center gap-2.5">
             {/* Ambient Video Switcher Pills */}
             <div className="hidden sm:flex items-center gap-1 bg-black/50 p-1 rounded-full border border-white/10">
-              {FORUM_VIDEOS.map(v => (
-                <button
-                  key={v.id}
-                  onClick={() => setActiveVideoIdx(v.id)}
-                  className={`px-2.5 py-1 text-[10px] font-mono font-semibold rounded-full transition-all ${
-                    activeVideoIdx === v.id
-                      ? 'bg-cyan-500 text-black shadow-[0_0_10px_rgba(6,182,212,0.8)]'
-                      : 'text-neutral-400 hover:text-white'
-                  }`}
-                  title={`Chuyển phông nền: ${v.label}`}
-                >
-                  {v.label}
-                </button>
-              ))}
+              {FORUM_VIDEOS.map(v => {
+                const VideoIcon = v.id === 0 ? Waves : v.id === 1 ? Grid3X3 : Sparkles;
+                return (
+                  <button
+                    key={v.id}
+                    onClick={() => setActiveVideoIdx(v.id)}
+                    className={`p-1.5 rounded-full transition-all cursor-pointer flex items-center justify-center ${
+                      activeVideoIdx === v.id
+                        ? 'bg-cyan-500 text-black shadow-[0_0_10px_rgba(6,182,212,0.8)]'
+                        : 'text-neutral-400 hover:text-white hover:bg-white/10'
+                    }`}
+                    title={`Chuyển phông nền: ${v.label}`}
+                    aria-label={`Chuyển phông nền: ${v.label}`}
+                  >
+                    <VideoIcon className="w-3.5 h-3.5" />
+                  </button>
+                );
+              })}
               <button
                 onClick={() => setIsAutoCycle(prev => !prev)}
                 className={`px-2 py-1 text-[9px] font-mono rounded-full border transition-all ${
@@ -461,6 +602,13 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           #{q.subject}
                         </span>
 
+                        {q.bountyCoin && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-[10px] font-mono font-bold text-amber-300">
+                            <Coins className="w-3 h-3 text-amber-400" />
+                            +{q.bountyCoin} Coin
+                          </span>
+                        )}
+
                         <span className="text-[10px] text-neutral-500 font-mono">{q.createdAt}</span>
                       </div>
 
@@ -471,6 +619,13 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       <p className="text-xs text-neutral-300 line-clamp-2 leading-relaxed">
                         {q.content}
                       </p>
+
+                      {q.imageUrl && (
+                        <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-cyan-300 font-mono">
+                          <ImageIcon className="w-3 h-3 text-cyan-400" />
+                          <span>Đính kèm hình ảnh</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center sm:flex-col sm:items-end gap-2 shrink-0">
@@ -533,7 +688,22 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1.5 mt-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!q.isAnonymous) {
+                            setActiveAuthorPopover({
+                              id: q.authorId,
+                              name: q.authorName,
+                              avatar: q.authorAvatar,
+                              level: 1,
+                            });
+                          }
+                        }}
+                        className="flex items-center gap-1.5 mt-1 hover:opacity-80 transition-opacity cursor-pointer text-left"
+                        title={q.isAnonymous ? 'Tác giả ẩn danh' : 'Xem thông tin tác giả'}
+                      >
                         <img
                           src={q.authorAvatar}
                           alt={q.authorName}
@@ -552,12 +722,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           className={`text-xs truncate max-w-[140px] ${
                             q.isAnonymous
                               ? 'text-purple-300 font-medium'
-                              : 'text-neutral-400'
+                              : 'text-neutral-400 hover:text-white'
                           }`}
                         >
                           {q.authorName}
                         </span>
-                      </div>
+                      </button>
                     </div>
                   </div>
 
@@ -653,6 +823,73 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   placeholder="Ghi rõ đề bài, dữ kiện đã cho và phần em đang vướng mắc để các bạn trợ giúp nhanh nhất..."
                   className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 resize-none"
                 />
+                <MathSymbolsBar onInsert={sym => setNewContent(prev => prev + sym)} />
+              </div>
+
+              {/* 20MB Image Upload */}
+              <div>
+                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                  Đính kèm hình ảnh (Tối đa 20MB):
+                </label>
+                {askImage ? (
+                  <div className="relative rounded-xl overflow-hidden border border-white/20 bg-black/40 p-2 max-w-xs">
+                    <img src={askImage} alt="Đính kèm câu hỏi" className="max-h-36 rounded-lg object-contain mx-auto" />
+                    <button
+                      type="button"
+                      onClick={() => setAskImage(null)}
+                      className="absolute top-3 right-3 p-1 rounded-full bg-red-600/80 hover:bg-red-600 text-white cursor-pointer shadow-lg"
+                      title="Gỡ ảnh"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
+                    <ImageIcon className="w-4 h-4 text-cyan-400" />
+                    <span>Tải ảnh câu hỏi / đề bài / sơ đồ (Tối đa 20MB)</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={e => handleImageUpload(e, setAskImage, setAskImageError)}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+                {askImageError && (
+                  <p className="text-[11px] text-red-400 mt-1">{askImageError}</p>
+                )}
+              </div>
+
+              {/* Bounty Coin Selector (10 - 100 Coin) */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-neutral-300">
+                    Cược Coin Phần Thưởng (Bounty Bet) (*):
+                  </label>
+                  <span className="text-[11px] font-mono text-amber-300">
+                    Số dư: {(currentUser?.coin ?? 100).toLocaleString()} Coin
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {[10, 20, 50, 100].map(amt => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setBountyCoin(amt)}
+                      className={`py-1.5 px-2 rounded-xl border text-xs font-mono font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                        bountyCoin === amt
+                          ? 'bg-amber-500/25 border-amber-400 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
+                          : 'bg-white/5 border-white/10 text-neutral-400 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <Coins className="w-3 h-3 text-amber-400" />
+                      <span>{amt} Coin</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-neutral-400 mt-1">
+                  Người giải bài được trao Đáp Án Chuẩn sẽ nhận 50% tiền cược + 100 Coin danh dự.
+                </p>
               </div>
 
               {/* Incognito / Anonymous Toggle Switch with Ghibli Wizard Disguise */}
@@ -754,10 +991,16 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             {/* Header */}
             <div className="flex items-start justify-between pb-3 border-b border-white/10 mb-4">
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                     #{selectedQuestion.subject}
                   </span>
+                  {selectedQuestion.bountyCoin && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 font-bold">
+                      <Coins className="w-3 h-3 text-amber-400" />
+                      +{selectedQuestion.bountyCoin} Coin Phần Thưởng
+                    </span>
+                  )}
                   {selectedQuestion.isSolved && (
                     <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
                       <Check className="w-3 h-3" /> Đã Giải Quyết
@@ -779,40 +1022,66 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
             {/* Author bar & Question Content */}
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10 mb-5">
-              <div className="flex items-center gap-2 mb-2 text-xs text-neutral-400">
-                <img
-                  src={selectedQuestion.authorAvatar}
-                  alt={selectedQuestion.authorName}
-                  onError={e => handleImageError(e, DEFAULT_AVATAR)}
-                  loading="lazy"
-                  decoding="async"
-                  width={24}
-                  height={24}
-                  className={`w-6 h-6 rounded-full object-cover border ${
-                    selectedQuestion.isAnonymous
-                      ? 'border-purple-400 p-0.5 shadow-[0_0_8px_rgba(168,85,247,0.5)]'
-                      : 'border-white/20'
-                  }`}
-                />
-                <span
-                  className={`font-semibold ${
-                    selectedQuestion.isAnonymous ? 'text-purple-300' : 'text-white'
-                  }`}
+              <div className="flex items-center justify-between mb-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedQuestion.isAnonymous) {
+                      setActiveAuthorPopover({
+                        id: selectedQuestion.authorId,
+                        name: selectedQuestion.authorName,
+                        avatar: selectedQuestion.authorAvatar,
+                        level: 1,
+                      });
+                    }
+                  }}
+                  className="flex items-center gap-2 text-xs text-neutral-400 hover:opacity-80 transition-opacity cursor-pointer text-left"
+                  title={selectedQuestion.isAnonymous ? 'Tác giả ẩn danh' : 'Xem thông tin tác giả'}
                 >
-                  {selectedQuestion.authorName}
-                </span>
-                {selectedQuestion.isAnonymous && (
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-purple-500/20 text-purple-200 border border-purple-400/30 flex items-center gap-1">
-                    <Wand2 className="w-3 h-3 text-purple-400" />
-                    Pháp sư Ghibli
+                  <img
+                    src={selectedQuestion.authorAvatar}
+                    alt={selectedQuestion.authorName}
+                    onError={e => handleImageError(e, DEFAULT_AVATAR)}
+                    loading="lazy"
+                    decoding="async"
+                    width={24}
+                    height={24}
+                    className={`w-6 h-6 rounded-full object-cover border ${
+                      selectedQuestion.isAnonymous
+                        ? 'border-purple-400 p-0.5 shadow-[0_0_8px_rgba(168,85,247,0.5)]'
+                        : 'border-white/20'
+                    }`}
+                  />
+                  <span
+                    className={`font-semibold ${
+                      selectedQuestion.isAnonymous ? 'text-purple-300' : 'text-white'
+                    }`}
+                  >
+                    {selectedQuestion.authorName}
                   </span>
-                )}
-                <span>•</span>
-                <span>{selectedQuestion.createdAt}</span>
+                  {selectedQuestion.isAnonymous && (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-purple-500/20 text-purple-200 border border-purple-400/30 flex items-center gap-1">
+                      <Wand2 className="w-3 h-3 text-purple-400" />
+                      Pháp sư Ghibli
+                    </span>
+                  )}
+                  <span>•</span>
+                  <span>{selectedQuestion.createdAt}</span>
+                </button>
               </div>
               <p className="text-xs sm:text-sm text-neutral-200 leading-relaxed whitespace-pre-line">
                 {selectedQuestion.content}
               </p>
+
+              {selectedQuestion.imageUrl && (
+                <div className="mt-3 rounded-xl overflow-hidden border border-white/15 max-w-md bg-black/40 p-1">
+                  <img
+                    src={selectedQuestion.imageUrl}
+                    alt="Đính kèm câu hỏi"
+                    className="max-h-72 rounded-lg object-contain mx-auto"
+                  />
+                </div>
+              )}
 
               <ForumPostModeration
                 postId={selectedQuestion.id}
@@ -821,7 +1090,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 isSuperAdmin={isSuperAdmin}
               />
             </div>
-
 
             {/* Solutions Section */}
             <div className="space-y-3 mb-5">
@@ -858,7 +1126,20 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         }`}
                       >
                         <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveAuthorPopover({
+                                id: sol.authorId,
+                                name: solverName,
+                                avatar: solverAvatar,
+                                email: sol.authorEmail,
+                                level: isSuperAdminSolver ? 150 : sol.authorLevel,
+                              });
+                            }}
+                            className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer text-left"
+                            title="Xem hồ sơ người giải bài"
+                          >
                             <div className="relative">
                               <img
                                 src={solverAvatar}
@@ -889,12 +1170,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                 • Lv.{sol.authorLevel}
                               </span>
                             </div>
-                          </div>
+                          </button>
 
                           {sol.isBest && (
                             <span className="px-2.5 py-1 rounded-full bg-amber-500 text-black text-[10px] font-extrabold flex items-center gap-1 shadow-md">
                               <Award className="w-3 h-3" />
-                              ĐÁP ÁN CHUẨN (+100 XP)
+                              ĐÁP ÁN CHUẨN (+{Math.floor((selectedQuestion.bountyCoin || 20) * 0.5) + 100} COIN)
                             </span>
                           )}
                         </div>
@@ -902,6 +1183,16 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         <p className="text-xs text-neutral-200 leading-relaxed whitespace-pre-line">
                           {sol.content}
                         </p>
+
+                        {sol.imageUrl && (
+                          <div className="mt-2.5 rounded-xl overflow-hidden border border-white/10 max-w-sm bg-black/40 p-1">
+                            <img
+                              src={sol.imageUrl}
+                              alt="Hình ảnh lời giải"
+                              className="max-h-56 rounded-lg object-contain mx-auto"
+                            />
+                          </div>
+                        )}
 
                         <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-xs text-neutral-400">
                           <span className="text-[10px] font-mono">{sol.createdAt}</span>
@@ -924,10 +1215,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               <button
                                 onClick={() => onMarkBestSolution(selectedQuestion.id, sol.id)}
                                 className="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black font-bold text-[11px] border border-amber-400/40 transition-all flex items-center gap-1 cursor-pointer"
-                                title="Xác nhận đáp án chính xác nhất để ghim lên đầu và thưởng +100 XP"
+                                title={`Xác nhận đáp án chính xác nhất để thưởng +${Math.floor((selectedQuestion.bountyCoin || 20) * 0.5) + 100} Coin`}
                               >
                                 <Check className="w-3.5 h-3.5" />
-                                ✓ Xác nhận Đáp Án Chuẩn (+100 XP)
+                                ✓ Xác nhận Đáp Án Chuẩn (+{Math.floor((selectedQuestion.bountyCoin || 20) * 0.5) + 100} Coin)
                               </button>
                             )}
                           </div>
@@ -951,14 +1242,47 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 value={solutionText}
                 onChange={e => setSolutionText(e.target.value)}
                 placeholder="Nhập chi tiết từng bước giải bài, định lý hoặc lời khuyên học tập..."
-                className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 resize-none mb-2"
+                className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 resize-none mb-1.5"
               />
 
-              <div className="flex justify-end">
+              <MathSymbolsBar onInsert={sym => setSolutionText(prev => prev + sym)} />
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-2">
+                <div>
+                  {solImage ? (
+                    <div className="relative inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white/10 border border-white/20 text-xs text-cyan-300">
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      <span>Đã đính kèm ảnh</span>
+                      <button
+                        type="button"
+                        onClick={() => setSolImage(null)}
+                        className="p-0.5 rounded-full hover:bg-red-500/30 text-red-400 cursor-pointer"
+                        title="Gỡ ảnh"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
+                      <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Đính kèm ảnh lời giải (&le; 20MB)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={e => handleImageUpload(e, setSolImage, setSolImageError)}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                  {solImageError && (
+                    <p className="text-[11px] text-red-400 mt-1">{solImageError}</p>
+                  )}
+                </div>
+
                 <button
                   onClick={() => handleSolutionSubmit(selectedQuestion.id)}
                   disabled={!solutionText.trim() || solCooldown > 0 || isSubmittingSol}
-                  className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-neutral-950 font-bold text-xs flex items-center gap-1.5 shadow-md disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-neutral-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>{solCooldown > 0 ? `Chờ ${solCooldown}s...` : isSubmittingSol ? 'Đang gửi...' : '+ Trợ Giúp Giải Bài (+25 XP)'}</span>
@@ -1092,6 +1416,196 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Author Mini-Profile Popover */}
+      {activeAuthorPopover && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Thông tin người dùng"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-up"
+        >
+          <div className="liquid-glass w-full max-w-sm rounded-3xl bg-[#0c1218]/95 border border-white/20 shadow-2xl p-5 relative">
+            <button
+              type="button"
+              onClick={() => setActiveAuthorPopover(null)}
+              className="absolute top-4 right-4 p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex flex-col items-center text-center space-y-3">
+              <div className="relative">
+                <img
+                  src={activeAuthorPopover.avatar}
+                  alt={activeAuthorPopover.name}
+                  onError={e => handleImageError(e, DEFAULT_AVATAR)}
+                  width={64}
+                  height={64}
+                  className="w-16 h-16 rounded-full object-cover border-2 border-amber-400/60 shadow-lg"
+                />
+                <span className="absolute -bottom-1 -right-1">
+                  <TierBadge level={activeAuthorPopover.level} size={22} showTooltip={false} />
+                </span>
+              </div>
+
+              <div>
+                <h4 className="text-base font-bold text-white flex items-center justify-center gap-1.5">
+                  <span>{activeAuthorPopover.name}</span>
+                  {activeAuthorPopover.email === 'anhtuantran0512@gmail.com' && <AdminVerifiedBadge size={14} />}
+                </h4>
+                <div className="flex items-center justify-center gap-2 mt-1">
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[10px] font-mono font-bold">
+                    Danh hiệu: {getTierForLevel(activeAuthorPopover.level).name}
+                  </span>
+                  <span className="text-xs text-neutral-400 font-mono">
+                    Lv.{activeAuthorPopover.level}
+                  </span>
+                </div>
+              </div>
+
+              <div className="w-full pt-3 border-t border-white/10 flex flex-col gap-2">
+                {onOpenProfile && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const user = activeAuthorPopover;
+                      setActiveAuthorPopover(null);
+                      onOpenProfile(user);
+                    }}
+                    className="w-full py-2 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-300 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <UserIcon className="w-3.5 h-3.5" />
+                    <span>Xem Hồ Sơ Chi Tiết</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const user = activeAuthorPopover;
+                    setActiveAuthorPopover(null);
+                    setReportModalUser({ id: user.id, name: user.name });
+                  }}
+                  className="w-full py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Flag className="w-3.5 h-3.5 text-red-400" />
+                  <span>Tố Cáo Tài Khoản Này</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Tố cáo tài khoản */}
+      {reportModalUser && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Tố cáo tài khoản vi phạm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
+        >
+          <div className="liquid-glass w-full max-w-md rounded-3xl bg-neutral-950/95 border border-red-500/40 shadow-2xl p-6 relative">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+              <div className="flex items-center gap-2 text-red-400">
+                <Flag className="w-5 h-5 text-red-400" />
+                <h3 className="font-bold text-sm sm:text-base text-white">Tố Cáo Tài Khoản Vi Phạm</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setReportModalUser(null);
+                  setReportSuccessMsg(null);
+                }}
+                className="p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {reportSuccessMsg ? (
+              <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-center space-y-2">
+                <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
+                <p className="text-xs text-emerald-200">{reportSuccessMsg}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReportModalUser(null);
+                    setReportSuccessMsg(null);
+                  }}
+                  className="px-4 py-1.5 rounded-xl bg-emerald-500 text-black text-xs font-bold cursor-pointer"
+                >
+                  Đóng
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleReportSubmit} className="space-y-3.5">
+                <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-neutral-300">
+                  Đối tượng tố cáo: <strong className="text-white">{reportModalUser.name}</strong>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                    Lý do vi phạm (*):
+                  </label>
+                  <select
+                    value={reportReason}
+                    onChange={e => setReportReason(e.target.value)}
+                    className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-400"
+                  >
+                    <option value="Toxic / Gây war / Xúc phạm bạn học">Toxic / Gây war / Xúc phạm bạn học</option>
+                    <option value="Spam / Quảng cáo / Lừa đảo">Spam / Quảng cáo / Lừa đảo</option>
+                    <option value="Nội dung phản cảm / Đồi trụy">Nội dung phản cảm / Đồi trụy</option>
+                    <option value="Gian lận điểm / Hack Coin">Gian lận điểm / Hack Coin</option>
+                    <option value="Khác">Lý do khác</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                    Chi tiết vi phạm:
+                  </label>
+                  <textarea
+                    value={reportDetails}
+                    onChange={e => setReportDetails(e.target.value)}
+                    maxLength={500}
+                    rows={3}
+                    placeholder="Mô tả cụ thể hành vi hoặc bằng chứng vi phạm..."
+                    className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-400 resize-none"
+                  />
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-red-950/30 border border-red-500/20 text-[10px] text-red-300 space-y-1">
+                  <span className="font-bold flex items-center gap-1">
+                    <Shield className="w-3.5 h-3.5 text-red-400" />
+                    Kỷ luật trường học nghiêm ngặt:
+                  </span>
+                  <p>
+                    Báo cáo vi phạm sẽ được gửi trực tiếp tới Ban Quản Trị (anhtuantran0512@gmail.com) và Ban Giám Hiệu nhà trường.
+                  </p>
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setReportModalUser(null)}
+                    className="px-4 py-2 rounded-xl text-xs text-neutral-400 hover:text-white cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingReport}
+                    className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSubmittingReport ? 'Đang gửi...' : 'Gửi Tố Cáo'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

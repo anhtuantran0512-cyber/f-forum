@@ -63,7 +63,7 @@ export const XPSandboxDock: React.FC<XPSandboxDockProps> = ({
               <TierBadge level={level} size={20} showTooltip={false} />
               <div>
                 <div className="text-xs font-bold text-white font-mono flex items-center gap-1.5">
-                  <span>TIER {tier.roman}</span>
+                  <span>{tier.name}</span>
                   <span className="text-amber-400">Lv.{level}</span>
                 </div>
                 <div className="text-[10px] text-white/50 font-mono truncate max-w-[150px]">
@@ -73,7 +73,7 @@ export const XPSandboxDock: React.FC<XPSandboxDockProps> = ({
             </div>
 
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/25 font-bold">
-              {xp.toLocaleString()} XP
+              {xp.toLocaleString()} Coin
             </span>
           </div>
 
@@ -95,10 +95,10 @@ export const XPSandboxDock: React.FC<XPSandboxDockProps> = ({
             </div>
           </div>
 
-          {/* 5 XP Testing Buttons */}
+          {/* 5 Coin Testing Buttons */}
           <div className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wider flex items-center gap-1.5 pt-1">
             <Zap className="w-3.5 h-3.5 text-amber-400" />
-            <span>Nạp XP Thử Nghiệm:</span>
+            <span>Nạp Coin Thử Nghiệm:</span>
           </div>
 
           <div className="grid grid-cols-3 gap-1.5">
@@ -106,19 +106,19 @@ export const XPSandboxDock: React.FC<XPSandboxDockProps> = ({
               onClick={() => onAddXP(25)}
               className="py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-[10px] font-mono font-semibold text-white/90 transition-all border border-white/10 cursor-pointer text-center"
             >
-              +25 XP
+              +25 Coin
             </button>
             <button
               onClick={() => onAddXP(50)}
               className="py-1.5 px-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 active:scale-95 text-[10px] font-mono font-semibold text-amber-300 transition-all border border-amber-500/30 cursor-pointer text-center"
             >
-              +50 XP
+              +50 Coin
             </button>
             <button
               onClick={() => onAddXP(100)}
               className="py-1.5 px-2 rounded-xl bg-amber-500/25 hover:bg-amber-500/35 active:scale-95 text-[10px] font-mono font-semibold text-amber-200 transition-all border border-amber-400/40 cursor-pointer text-center"
             >
-              +100 XP
+              +100 Coin
             </button>
           </div>
 
@@ -128,14 +128,14 @@ export const XPSandboxDock: React.FC<XPSandboxDockProps> = ({
               className="py-1.5 px-2 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 active:scale-95 text-[10px] font-mono font-semibold text-amber-300 transition-all border border-amber-400/30 flex items-center justify-center gap-1 cursor-pointer"
             >
               <Sparkles className="w-3 h-3 text-amber-400" />
-              <span>+250 XP</span>
+              <span>+250 Coin</span>
             </button>
             <button
               onClick={() => onAddXP(1200)}
               className="py-1.5 px-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 hover:opacity-90 active:scale-95 text-[10px] font-mono font-bold text-black transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer"
             >
               <Sparkles className="w-3 h-3 text-black" />
-              <span>+1200 XP</span>
+              <span>+1200 Coin</span>
             </button>
           </div>
         </div>
@@ -145,23 +145,23 @@ export const XPSandboxDock: React.FC<XPSandboxDockProps> = ({
       <button
         onClick={() => setIsExpanded(prev => !prev)}
         className="rounded-full bg-black/40 backdrop-blur-lg border border-white/10 px-4 py-2 hover:scale-105 transition-transform cursor-pointer flex items-center gap-3 text-xs shadow-[0_10px_30px_rgba(0,0,0,0.5)] focus:outline-none"
-        title="Bảng Nạp Thử Nghiệm XP & Xem Cấp Độ"
+        title="Bảng Nạp Thử Nghiệm Coin & Xem Cấp Độ"
       >
         <div className="flex items-center gap-2">
           <TierBadge level={level} size={18} showTooltip={false} />
           <div className="flex flex-col text-left leading-none">
             <span className="font-bold text-white flex items-center gap-1 font-mono text-[11px]">
-              XP SANDBOX <span className="text-amber-400">Lv.{level}</span>
+              COIN SANDBOX <span className="text-amber-400">Lv.{level}</span>
             </span>
             <span className="text-[9px] text-white/50 font-mono">
-              Tier {tier.roman} ({tier.name.slice(0, 14)}...)
+              {tier.name}
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5 pl-1 text-white/60">
           <span className="text-[10px] font-mono text-amber-300 font-semibold">
-            {xp.toLocaleString()} XP
+            {xp.toLocaleString()} Coin
           </span>
           <ChevronUp
             className={`w-3.5 h-3.5 transition-transform duration-300 ${

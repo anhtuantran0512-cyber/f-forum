@@ -14,6 +14,11 @@ import {
   MessageSquareDashed,
   X,
   ChevronDown,
+  Waves,
+  Grid,
+  Flag,
+  User as UserIcon,
+  CheckCircle2,
 } from 'lucide-react';
 import type { ChatChannelId, ChatMessage, User, OnlinePresenceUser } from '../../types';
 import { TierBadge, AdminVerifiedBadge } from '../Badges10Tier';
@@ -22,6 +27,7 @@ import { TriVideoCrossfadeBg } from '../TriVideoCrossfadeBg';
 import { TRI_CHAT_VIDEOS } from '../../utils/chatVideos';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
 import { getTierForLevel } from '../../utils/tier';
+import { pushNotification } from '../../utils/notifications';
 
 interface ChatViewProps {
   currentUser: User | null;
@@ -31,6 +37,7 @@ interface ChatViewProps {
   onlineUsers?: OnlinePresenceUser[];
   onlineCount?: number;
   onOpenLoginModal?: () => void;
+  onOpenProfile?: (user?: { id: string; name: string; avatar: string; email?: string; level?: number }) => void;
 }
 
 const CHANNELS: {
@@ -80,6 +87,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   onlineUsers,
   onlineCount = 1,
   onOpenLoginModal,
+  onOpenProfile,
 }) => {
   const [activeChannel, setActiveChannel] = useState<ChatChannelId>('hallway');
   const [isChannelDrawerOpen, setIsChannelDrawerOpen] = useState(false);
@@ -88,6 +96,57 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const [activeVideoIdx, setActiveVideoIdx] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Author mini-profile popup state
+  const [activeAuthorCard, setActiveAuthorCard] = useState<{
+    id: string;
+    name: string;
+    avatar: string;
+    email?: string;
+    level: number;
+    coin?: number;
+  } | null>(null);
+
+  // Report Account Modal state
+  const [reportUser, setReportUser] = useState<{ id: string; name: string } | null>(null);
+  const [reportReason, setReportReason] = useState<string>('Toxic / Gây war / Xúc phạm bạn học');
+  const [reportDetails, setReportDetails] = useState<string>('');
+  const [isSubmittingReport, setIsSubmittingReport] = useState<boolean>(false);
+  const [reportSuccessMsg, setReportSuccessMsg] = useState<string | null>(null);
+
+  const handleReportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reportUser || isSubmittingReport) return;
+    setIsSubmittingReport(true);
+    try {
+      const res = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reporterId: currentUser?.id || 'guest',
+          reporterName: currentUser?.name || 'Ẩn danh',
+          reporterEmail: currentUser?.email || '',
+          reportedUserId: reportUser.id,
+          reportedUserName: reportUser.name,
+          reason: reportReason,
+          details: reportDetails.trim(),
+        }),
+      });
+      const data = await res.json();
+      setReportSuccessMsg(data.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị (anhtuantran0512@gmail.com).');
+      pushNotification({
+        type: 'system',
+        category: 'system',
+        title: 'Đã Tiếp Nhận Báo Cáo',
+        body: `Tố cáo đối với "${reportUser.name}" đã được chuyển tới Ban Giám Hiệu và Super Admin.`,
+        targetView: 'chat',
+      });
+    } catch {
+      setReportSuccessMsg('Đã ghi nhận tố cáo của bạn và chuyển tới anhtuantran0512@gmail.com.');
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
 
   // Dynamic user presence calculations
   const dynamicOnlineCount =
@@ -158,25 +217,25 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </span>
             </h1>
             <p className="text-xs text-neutral-300 mt-0.5">
-              Không gian giao lưu học sinh - sinh viên FPT theo chuẩn Discord & Messenger hybrid.
+              Các hành vi toxic, kháy, khiêu khích, cô lập, cố ý gây war sẽ bị vô hiệu hóa tài khoản vĩnh viễn, thông tin sẽ được đưa thẳng về ban giám hiệu nhà trường.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Ambient Video Switcher Pills */}
+            {/* Ambient Video Switcher Pills: Clean Icons (Waves, Grid, Sparkles) */}
             <div className="hidden sm:flex items-center gap-1 bg-black/50 p-1 rounded-full border border-white/10">
-              {TRI_CHAT_VIDEOS.map(v => (
+              {TRI_CHAT_VIDEOS.map((v, i) => (
                 <button
                   key={v.id}
                   onClick={() => setActiveVideoIdx(v.id)}
-                  className={`px-2.5 py-1 text-[10px] font-mono font-semibold rounded-full transition-all cursor-pointer ${
+                  className={`p-2 rounded-full transition-all cursor-pointer flex items-center justify-center ${
                     activeVideoIdx === v.id
                       ? 'bg-orange-500 text-black shadow-[0_0_10px_rgba(249,115,22,0.8)]'
                       : 'text-neutral-400 hover:text-white'
                   }`}
                   title={`Chuyển phông nền: ${v.label}`}
                 >
-                  {v.label}
+                  {i === 0 ? <Waves className="w-3.5 h-3.5" /> : i === 1 ? <Grid className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
                 </button>
               ))}
             </div>
@@ -285,7 +344,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 VĂN HOÁ NÓI CHUYỆN FPT
               </span>
               <p className="text-[10px] leading-relaxed text-neutral-400">
-                Tôn trọng bạn học, không spam từ ngữ thô tục, hỗ trợ giải đáp nhiệt tình để nhận điểm XP danh dự.
+                Tuyệt đối không toxic, kháy đểu, khiêu khích hay gây war. Mọi vi phạm bị khóa tài khoản vĩnh viễn và báo cáo thẳng Ban Giám Hiệu.
               </p>
             </div>
           </div>
@@ -346,7 +405,20 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       }`}
                     >
                       {/* Avatar & Rank badge */}
-                      <div className="relative shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveAuthorCard({
+                            id: msg.authorId,
+                            name: authorDisplayName,
+                            avatar: authorDisplayAvatar,
+                            email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
+                            level: isSuperAdminMsg ? 150 : (msg.authorLevel || 1),
+                          });
+                        }}
+                        className="relative shrink-0 cursor-pointer focus:outline-none transition-transform hover:scale-105"
+                        title={`Xem thông tin ${authorDisplayName}`}
+                      >
                         <img
                           src={authorDisplayAvatar}
                           alt={authorDisplayName}
@@ -368,7 +440,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                             showTooltip={false}
                           />
                         </span>
-                      </div>
+                      </button>
 
                       {/* Message Content */}
                       <div
@@ -377,15 +449,25 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         }`}
                       >
                         <div className="flex items-center gap-1.5 mb-1 text-[11px] text-neutral-400">
-                          <span
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveAuthorCard({
+                                id: msg.authorId,
+                                name: authorDisplayName,
+                                avatar: authorDisplayAvatar,
+                                email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
+                                level: isSuperAdminMsg ? 150 : (msg.authorLevel || 1),
+                              });
+                            }}
                             className={
                               isSuperAdminMsg
-                                ? 'discord-admin-name text-xs'
-                                : 'font-semibold text-neutral-200'
+                                ? 'discord-admin-name text-xs hover:underline cursor-pointer'
+                                : 'font-semibold text-neutral-200 hover:text-white hover:underline cursor-pointer'
                             }
                           >
                             {authorDisplayName}
-                          </span>
+                          </button>
                           {isSuperAdminMsg && <AdminVerifiedBadge size={12} />}
                           <span className="text-[10px] text-neutral-500 font-mono">
                             • {msg.timestamp}
@@ -561,9 +643,19 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   activeStudents.map(user => {
                     const tier = getTierForLevel(user.level || 1);
                     return (
-                      <div
+                      <button
                         key={user.id}
-                        className="p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 hover:border-white/15 transition-all flex items-center gap-2.5"
+                        type="button"
+                        onClick={() => {
+                          setActiveAuthorCard({
+                            id: user.id,
+                            name: user.name,
+                            avatar: user.avatar,
+                            email: user.email,
+                            level: user.level || 1,
+                          });
+                        }}
+                        className="p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 hover:border-white/15 transition-all flex items-center gap-2.5 w-full text-left cursor-pointer"
                       >
                         <div className="relative shrink-0">
                           <img
@@ -583,11 +675,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
                             {user.name}
                           </div>
                           <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 font-mono">
-                            <span className="text-amber-400 font-semibold">Tier {user.rank || tier.roman}</span>
+                            <span className="text-amber-400 font-semibold">{tier.name}</span>
                             <span>• Lv.{user.level || 1}</span>
                           </div>
                         </div>
-                      </div>
+                      </button>
                     );
                   })
                 )}
@@ -701,7 +793,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 VĂN HOÁ NÓI CHUYỆN FPT
               </span>
               <p className="text-[10px] leading-relaxed text-neutral-400">
-                Tôn trọng bạn học, không spam từ ngữ thô tục, hỗ trợ giải đáp nhiệt tình để nhận điểm XP danh dự.
+                Tuyệt đối không toxic, kháy đểu, khiêu khích hay gây war. Mọi vi phạm bị khóa tài khoản vĩnh viễn và báo cáo thẳng Ban Giám Hiệu.
               </p>
             </div>
           </div>
@@ -796,9 +888,20 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   activeStudents.map((user) => {
                     const tier = getTierForLevel(user.level || 1);
                     return (
-                      <div
+                      <button
                         key={user.id}
-                        className="p-2 rounded-xl bg-white/[0.03] border border-white/5 flex items-center gap-2.5"
+                        type="button"
+                        onClick={() => {
+                          setIsMembersDrawerOpen(false);
+                          setActiveAuthorCard({
+                            id: user.id,
+                            name: user.name,
+                            avatar: user.avatar,
+                            email: user.email,
+                            level: user.level || 1,
+                          });
+                        }}
+                        className="p-2 rounded-xl bg-white/[0.03] border border-white/5 flex items-center gap-2.5 w-full text-left cursor-pointer"
                       >
                         <div className="relative shrink-0">
                           <img
@@ -816,11 +919,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         <div className="min-w-0 flex-1">
                           <div className="text-xs font-medium text-neutral-200 truncate">{user.name}</div>
                           <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 font-mono">
-                            <span className="text-amber-400 font-semibold">Tier {user.rank || tier.roman}</span>
+                            <span className="text-amber-400 font-semibold">{tier.name}</span>
                             <span>• Lv.{user.level || 1}</span>
                           </div>
                         </div>
-                      </div>
+                      </button>
                     );
                   })
                 )}
@@ -828,6 +931,197 @@ export const ChatView: React.FC<ChatViewProps> = ({
             </div>
           </div>
         </>
+      )}
+
+      {/* Author Mini-Profile Popover */}
+      {activeAuthorCard && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Thông tin người dùng"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-up"
+        >
+          <div className="liquid-glass w-full max-w-sm rounded-3xl bg-[#0c1218]/95 border border-white/20 shadow-2xl p-5 relative">
+            <button
+              type="button"
+              onClick={() => setActiveAuthorCard(null)}
+              className="absolute top-4 right-4 p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex flex-col items-center text-center space-y-3">
+              <div className="relative">
+                <img
+                  src={activeAuthorCard.avatar}
+                  alt={activeAuthorCard.name}
+                  onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                  width={64}
+                  height={64}
+                  className="w-16 h-16 rounded-full object-cover border-2 border-amber-400/60 shadow-lg"
+                />
+                <span className="absolute -bottom-1 -right-1">
+                  <TierBadge level={activeAuthorCard.level} size={22} showTooltip={false} />
+                </span>
+              </div>
+
+              <div>
+                <h4 className="text-base font-bold text-white flex items-center justify-center gap-1.5">
+                  <span>{activeAuthorCard.name}</span>
+                  {activeAuthorCard.email === 'anhtuantran0512@gmail.com' && <AdminVerifiedBadge size={14} />}
+                </h4>
+                <div className="flex items-center justify-center gap-2 mt-1">
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[10px] font-mono font-bold">
+                    Danh hiệu: {getTierForLevel(activeAuthorCard.level).name}
+                  </span>
+                  <span className="text-xs text-neutral-400 font-mono">
+                    Lv.{activeAuthorCard.level}
+                  </span>
+                </div>
+              </div>
+
+              <div className="w-full pt-3 border-t border-white/10 flex flex-col gap-2">
+                {onOpenProfile && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const user = activeAuthorCard;
+                      setActiveAuthorCard(null);
+                      onOpenProfile(user);
+                    }}
+                    className="w-full py-2 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-300 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <UserIcon className="w-3.5 h-3.5" />
+                    <span>Xem Hồ Sơ Chi Tiết</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const user = activeAuthorCard;
+                    setActiveAuthorCard(null);
+                    setReportUser({ id: user.id, name: user.name });
+                  }}
+                  className="w-full py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Flag className="w-3.5 h-3.5 text-red-400" />
+                  <span>Tố Cáo Tài Khoản Này</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Tố cáo tài khoản */}
+      {reportUser && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Tố cáo tài khoản vi phạm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
+        >
+          <div className="liquid-glass w-full max-w-md rounded-3xl bg-neutral-950/95 border border-red-500/40 shadow-2xl p-6 relative">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+              <div className="flex items-center gap-2 text-red-400">
+                <Flag className="w-5 h-5 text-red-400" />
+                <h3 className="font-bold text-sm sm:text-base text-white">Tố Cáo Tài Khoản Vi Phạm</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setReportUser(null);
+                  setReportSuccessMsg(null);
+                }}
+                className="p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {reportSuccessMsg ? (
+              <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-center space-y-2">
+                <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
+                <p className="text-xs text-emerald-200">{reportSuccessMsg}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReportUser(null);
+                    setReportSuccessMsg(null);
+                  }}
+                  className="px-4 py-1.5 rounded-xl bg-emerald-500 text-black text-xs font-bold cursor-pointer"
+                >
+                  Đóng
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleReportSubmit} className="space-y-3.5">
+                <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-neutral-300">
+                  Đối tượng tố cáo: <strong className="text-white">{reportUser.name}</strong>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                    Lý do vi phạm (*):
+                  </label>
+                  <select
+                    value={reportReason}
+                    onChange={e => setReportReason(e.target.value)}
+                    className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-400 cursor-pointer"
+                  >
+                    <option value="Toxic / Gây war / Xúc phạm bạn học">Toxic / Gây war / Xúc phạm bạn học</option>
+                    <option value="Spam / Quảng cáo / Lừa đảo">Spam / Quảng cáo / Lừa đảo</option>
+                    <option value="Nội dung phản cảm / Đồi trụy">Nội dung phản cảm / Đồi trụy</option>
+                    <option value="Gian lận điểm / Hack Coin">Gian lận điểm / Hack Coin</option>
+                    <option value="Khác">Lý do khác</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                    Chi tiết vi phạm:
+                  </label>
+                  <textarea
+                    value={reportDetails}
+                    onChange={e => setReportDetails(e.target.value)}
+                    maxLength={500}
+                    rows={3}
+                    placeholder="Mô tả cụ thể hành vi hoặc bằng chứng vi phạm..."
+                    className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-400 resize-none"
+                  />
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-red-950/30 border border-red-500/20 text-[10px] text-red-300 space-y-1">
+                  <span className="font-bold flex items-center gap-1">
+                    <Shield className="w-3.5 h-3.5 text-red-400" />
+                    Kỷ luật trường học nghiêm ngặt:
+                  </span>
+                  <p>
+                    Báo cáo vi phạm sẽ được gửi trực tiếp tới Ban Quản Trị (anhtuantran0512@gmail.com) và Ban Giám Hiệu nhà trường.
+                  </p>
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setReportUser(null)}
+                    className="px-4 py-2 rounded-xl text-xs text-neutral-400 hover:text-white cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingReport}
+                    className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer"
+                  >
+                    {isSubmittingReport ? 'Đang gửi...' : 'Gửi Tố Cáo'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
       )}
     </section>
   );

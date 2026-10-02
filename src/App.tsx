@@ -4,8 +4,10 @@ import { Navbar } from './components/Navbar';
 import { HomeView } from './components/views/HomeView';
 import { GlobalCursor } from './components/GlobalCursor';
 import { Sparkles, Trophy, CheckCircle, Info } from 'lucide-react';
-import type { DimensionView } from './types';
+import type { DimensionView, User } from './types';
 import { AuthProvider } from './context/AuthContext';
+import { GODRAY_PRESETS } from './utils/godrays';
+import { safeStorage } from './utils/storage';
 
 // Dynamic code-splitting for non-critical routes and heavy interactive dialogs
 const LandingPage = lazy(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
@@ -73,11 +75,31 @@ export const App: React.FC = () => {
   } = useForumStore();
 
   const [isFocusModeOpen, setIsFocusModeOpen] = useState(false);
-  const [profileInitialTab, setProfileInitialTab] = useState<'card' | 'edit'>('card');
+  const [profileInitialTab, setProfileInitialTab] = useState<'card' | 'stats' | 'shop' | 'activity' | 'edit'>('card');
+  const [targetProfileUser, setTargetProfileUser] = useState<User | null>(null);
   const [scrollInsideCinema, setScrollInsideCinema] = useState(false);
   const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>('login');
 
   const isInsideCinema = currentView === 'memory' && scrollInsideCinema;
+
+  const [godrayPreset, setGodrayPreset] = useState<string>(() => {
+    return safeStorage.getItem('fforum_godray_preset') || 'godray-gold';
+  });
+  const [godrayIntensity, setGodrayIntensity] = useState<number>(() => {
+    const val = safeStorage.getItem('fforum_godray_intensity');
+    return val ? parseInt(val, 10) : 70;
+  });
+
+  useEffect(() => {
+    const handleSyncGodray = () => {
+      const p = safeStorage.getItem('fforum_godray_preset') || 'godray-gold';
+      const i = safeStorage.getItem('fforum_godray_intensity');
+      setGodrayPreset(p);
+      if (i) setGodrayIntensity(parseInt(i, 10));
+    };
+    window.addEventListener('fforum_theme_sync', handleSyncGodray);
+    return () => window.removeEventListener('fforum_theme_sync', handleSyncGodray);
+  }, []);
 
   // Monitor scroll position for sticky cinema inside dedicated MemoryRealm view
   useEffect(() => {
@@ -118,13 +140,45 @@ export const App: React.FC = () => {
     [setIsLoginModalOpen],
   );
 
-  const handleOpenProfile = (tab: 'card' | 'edit' = 'card') => {
+  const handleOpenProfile = (
+    tab: 'card' | 'stats' | 'shop' | 'activity' | 'edit' = 'card',
+    userToView?: { id: string; name: string; avatar: string; email?: string; level?: number }
+  ) => {
+    if (userToView) {
+      const emailKey = userToView.email ? userToView.email.toLowerCase() : '';
+      const existing = (emailKey && users[emailKey]) || Object.values(users).find(u => u.id === userToView.id);
+      if (existing) {
+        setTargetProfileUser(existing);
+      } else {
+        setTargetProfileUser({
+          id: userToView.id,
+          name: userToView.name,
+          email: userToView.email || '',
+          avatar: userToView.avatar,
+          role: userToView.email === 'anhtuantran0512@gmail.com' ? 'SUPER_ADMIN' : 'STUDENT',
+          level: userToView.level || 1,
+          xp: 0,
+          coin: 100,
+          bio: '',
+          scopedClubIds: [],
+        });
+      }
+      setProfileInitialTab(tab);
+      setIsProfileModalOpen(true);
+      return;
+    }
+
     if (!currentUser) {
       handleOpenAuth('login');
       return;
     }
+    setTargetProfileUser(null);
     setProfileInitialTab(tab);
     setIsProfileModalOpen(true);
+  };
+
+  const handleOpenUserProfile = (userToView?: { id: string; name: string; avatar: string; email?: string; level?: number }) => {
+    handleOpenProfile('card', userToView);
   };
 
   const handleToggleChat = () => {
@@ -234,6 +288,21 @@ export const App: React.FC = () => {
           isScrollableView ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'
         } ${currentView === 'landing' ? 'bg-[var(--ff-bg)]' : 'bg-black'} text-white font-sans`}
       >
+        {/* Ambient Godray Gradient Lighting Overlay */}
+        {(() => {
+          const preset = GODRAY_PRESETS.find(p => p.id === godrayPreset) || GODRAY_PRESETS[0];
+          const opacity = (godrayIntensity / 100) * 0.75;
+          return (
+            <div
+              className="fixed inset-0 pointer-events-none z-[1] overflow-hidden transition-all duration-700"
+              style={{
+                background: preset.gradient,
+                opacity,
+              }}
+              aria-hidden="true"
+            />
+          );
+        })()}
       
       {/* Floating Global Navbar Dock (Viewport fixed wrapper with graceful transitions) */}
       {currentView !== 'chronicles' && (
@@ -282,6 +351,8 @@ export const App: React.FC = () => {
                 resolvedQuestionsCount={solvedQuestionsCount}
                 totalClubsCount={clubs.filter(c => c.status === 'APPROVED').length}
                 chatMessagesTodayCount={chatMessages.length}
+                streakCount={currentUser?.streakCount || 1}
+                onOpenDaily={() => window.dispatchEvent(new CustomEvent('fforum_open_daily'))}
               />
             </div>
           )}
@@ -312,6 +383,7 @@ export const App: React.FC = () => {
               onEditQuestion={adminEditQuestion}
               onDeleteSolution={adminDeleteSolution}
               onOpenLoginModal={() => handleOpenAuth('login')}
+              onOpenProfile={handleOpenUserProfile}
             />
           )}
 
@@ -324,6 +396,7 @@ export const App: React.FC = () => {
               onlineUsers={onlineUsers}
               onlineCount={Math.max(1, onlineUsers.length)}
               onOpenLoginModal={() => handleOpenAuth('login')}
+              onOpenProfile={handleOpenUserProfile}
             />
           )}
 
@@ -368,18 +441,25 @@ export const App: React.FC = () => {
             onSendMessage={sendChatMessage}
             onDeleteMessage={adminDeleteChatMessage}
             onOpenLoginModal={() => handleOpenAuth('login')}
+            onOpenProfile={handleOpenUserProfile}
           />
           )
         )}
 
         {/* User Profile (F-ID Settings Modal) */}
-        {currentUser && (
+        {(targetProfileUser || currentUser) && (
           <ProfileModal
             isOpen={isProfileModalOpen}
-            onClose={() => setIsProfileModalOpen(false)}
-            currentUser={currentUser}
+            onClose={() => {
+              setIsProfileModalOpen(false);
+              setTargetProfileUser(null);
+            }}
+            currentUser={targetProfileUser || currentUser!}
+            viewerUser={currentUser}
             onSaveProfile={updateProfile}
             initialTab={profileInitialTab}
+            questions={questions}
+            solutions={solutions}
           />
         )}
 

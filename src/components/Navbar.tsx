@@ -21,6 +21,7 @@ import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { NotificationsModal } from './NotificationsModal';
 import { SettingsModal } from './SettingsModal';
 import { safeStorage } from '../utils/storage';
+import { StreakFlameWidget, DailyEngagementModal } from './DailyEngagementModal';
 
 export interface NavbarProps {
   currentView: DimensionView;
@@ -76,6 +77,90 @@ export const Navbar: React.FC<NavbarProps> = ({
     width: 0,
     opacity: 0,
   });
+  const [isDailyModalOpen, setIsDailyModalOpen] = useState(false);
+  const [godrayPreset, setGodrayPreset] = useState(() => {
+    return safeStorage.getItem('fforum_godray_preset') || 'godray-gold';
+  });
+  const [godrayIntensity, setGodrayIntensity] = useState(() => {
+    const val = safeStorage.getItem('fforum_godray_intensity');
+    return val ? parseInt(val, 10) : 70;
+  });
+  const [glassBlur, setGlassBlur] = useState(() => {
+    const val = safeStorage.getItem('fforum_glass_blur');
+    return val ? parseInt(val, 10) : 14;
+  });
+  const [fontSize, setFontSize] = useState<'sm' | 'md' | 'lg'>(() => {
+    return (safeStorage.getItem('fforum_font_size') as 'sm' | 'md' | 'lg') || 'md';
+  });
+  const [navbarAutoHide, setNavbarAutoHide] = useState<boolean>(() => {
+    return safeStorage.getItem('fforum_navbar_autohide') === 'true';
+  });
+  const [navbarPosition, setNavbarPosition] = useState<'top' | 'bottom' | 'left' | 'right'>(() => {
+    return (safeStorage.getItem('fforum_navbar_pos') as 'top' | 'bottom' | 'left' | 'right') || 'top';
+  });
+  const [isNavbarHovered, setIsNavbarHovered] = useState<boolean>(false);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSelectGodray = (preset: string) => {
+    setGodrayPreset(preset);
+    safeStorage.setItem('fforum_godray_preset', preset);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fforum_theme_sync'));
+    }
+  };
+
+  const handleChangeGodrayIntensity = (val: number) => {
+    setGodrayIntensity(val);
+    safeStorage.setItem('fforum_godray_intensity', String(val));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fforum_theme_sync'));
+    }
+  };
+
+  const handleChangeGlassBlur = (val: number) => {
+    setGlassBlur(val);
+    safeStorage.setItem('fforum_glass_blur', String(val));
+    document.documentElement.style.setProperty('--glass-blur', `${val}px`);
+  };
+
+  const handleChangeFontSize = (sz: 'sm' | 'md' | 'lg') => {
+    setFontSize(sz);
+    safeStorage.setItem('fforum_font_size', sz);
+    document.documentElement.classList.remove('text-size-sm', 'text-size-md', 'text-size-lg');
+    document.documentElement.classList.add(`text-size-${sz}`);
+  };
+
+  const handleToggleNavbarAutoHide = () => {
+    setNavbarAutoHide((prev) => {
+      const next = !prev;
+      safeStorage.setItem('fforum_navbar_autohide', String(next));
+      return next;
+    });
+  };
+
+  const handleSwapNavbarPosition = () => {
+    const list: ('top' | 'bottom' | 'left' | 'right')[] = ['top', 'bottom', 'left', 'right'];
+    const nextIdx = (list.indexOf(navbarPosition) + 1) % list.length;
+    const next = list[nextIdx];
+    setNavbarPosition(next);
+    safeStorage.setItem('fforum_navbar_pos', next);
+  };
+
+  const handleMouseEnterNav = () => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+    setIsNavbarHovered(true);
+  };
+
+  const handleMouseLeaveNav = () => {
+    if (!navbarAutoHide) return;
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => {
+      setIsNavbarHovered(false);
+    }, 1000);
+  };
 
   // Liquid navbar sliding pill indicator calculation
   useEffect(() => {
@@ -96,6 +181,12 @@ export const Navbar: React.FC<NavbarProps> = ({
     window.addEventListener('resize', updatePill);
     return () => window.removeEventListener('resize', updatePill);
   }, [currentView]);
+
+  useEffect(() => {
+    const handleOpenDaily = () => setIsDailyModalOpen(true);
+    window.addEventListener('fforum_open_daily', handleOpenDaily);
+    return () => window.removeEventListener('fforum_open_daily', handleOpenDaily);
+  }, []);
 
   // Synchronize theme & motion classes on DOM
   useEffect(() => {
@@ -149,26 +240,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const isSuperAdmin = currentUser?.email === 'anhtuantran0512@gmail.com';
-
-  // Soft sliding pill calculation
-  useEffect(() => {
-    const updatePill = () => {
-      const activeEl = tabRefs.current[currentView];
-      if (activeEl) {
-        setPillStyle({
-          left: activeEl.offsetLeft,
-          width: activeEl.offsetWidth,
-          opacity: 1,
-        });
-      } else {
-        setPillStyle(prev => ({ ...prev, opacity: 0 }));
-      }
-    };
-
-    updatePill();
-    window.addEventListener('resize', updatePill);
-    return () => window.removeEventListener('resize', updatePill);
-  }, [currentView]);
 
   useEffect(() => {
     if (!isFlyoutOpen) return;
@@ -288,13 +359,36 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
+      {/* Auto-Hide Hover Trigger Zone */}
+      {navbarAutoHide && (
+        <div
+          className="hidden md:block fixed top-0 inset-x-0 h-4 z-[51] pointer-events-auto"
+          onMouseEnter={handleMouseEnterNav}
+        />
+      )}
+
       {/* ======================================================== */}
       {/* 1. DESKTOP FLOATING PILL NAVBAR (Viewports >= 768px)      */}
       {/* ======================================================== */}
       <div
-        className={`hidden md:block fixed top-0 inset-x-0 z-50 pointer-events-none transition-all duration-500 ${
-          isInsideCinema ? 'opacity-0 -translate-y-12' : 'opacity-100 translate-y-0'
-        }`}
+        onMouseEnter={handleMouseEnterNav}
+        onMouseLeave={handleMouseLeaveNav}
+        className="hidden md:block fixed inset-0 z-50 pointer-events-none transition-all duration-500"
+        style={{
+          transform:
+            isInsideCinema || (navbarAutoHide && !isNavbarHovered)
+              ? navbarPosition === 'bottom'
+                ? 'translateY(120px)'
+                : 'translateY(-120px)'
+              : navbarPosition === 'bottom'
+              ? 'translateY(calc(100vh - 84px))'
+              : navbarPosition === 'left'
+              ? 'translate(-35%, 40vh) rotate(-90deg)'
+              : navbarPosition === 'right'
+              ? 'translate(35%, 40vh) rotate(90deg)'
+              : 'translateY(0)',
+          opacity: isInsideCinema || (navbarAutoHide && !isNavbarHovered) ? 0 : 1,
+        }}
       >
         <nav className="fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full px-5 flex items-center justify-between shadow-2xl">
           
@@ -323,6 +417,22 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Center Tabs: Strictly 1 Single Line, NO wrapping into 2 rows */}
           <div className="relative flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-1">
+            {/* SVG Defs for Navbar Icons */}
+            <svg width="0" height="0" className="absolute pointer-events-none">
+              <defs>
+                <linearGradient id="crystalGradNav" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#a5f3fc" />
+                  <stop offset="50%" stopColor="#38bdf8" />
+                  <stop offset="100%" stopColor="#818cf8" />
+                </linearGradient>
+                <linearGradient id="trophyGradNav" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#fef08a" />
+                  <stop offset="50%" stopColor="#f59e0b" />
+                  <stop offset="100%" stopColor="#b45309" />
+                </linearGradient>
+              </defs>
+            </svg>
+
             {/* Liquid sliding pill indicator */}
             <div
               className="absolute top-1 bottom-1 rounded-full bg-gradient-to-r from-amber-500/25 via-amber-400/20 to-yellow-500/25 backdrop-blur-xl border border-amber-400/40 shadow-[0_0_20px_rgba(245,158,11,0.25)] transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] pointer-events-none hidden lg:block"
@@ -333,8 +443,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               }}
             />
 
+            {/* Organic liquid droplet bead */}
+            <div
+              className="absolute -bottom-0.5 h-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 shadow-[0_0_8px_#f59e0b] transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] pointer-events-none hidden lg:block"
+              style={{
+                left: `${pillStyle.left + pillStyle.width / 2 - 8}px`,
+                width: '16px',
+                opacity: pillStyle.opacity,
+              }}
+            />
+
             {navItems.map((item) => {
               const isActive = currentView === item.id;
+              const isMemory = item.id === 'memory';
+              const isChronicles = item.id === 'chronicles';
+
               return (
                 <button
                   key={item.id}
@@ -342,13 +465,38 @@ export const Navbar: React.FC<NavbarProps> = ({
                     tabRefs.current[item.id] = el;
                   }}
                   onClick={() => onViewChange(item.id)}
+                  title={item.label}
+                  aria-label={item.label}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold tracking-wider whitespace-nowrap flex-shrink-0 select-none transition-all cursor-pointer flex items-center gap-1.5 z-10 ${
                     isActive
                       ? 'bg-amber-500/20 lg:bg-transparent text-amber-300 border border-amber-500/30 lg:border-transparent shadow-[0_0_15px_rgba(245,158,11,0.25)] lg:shadow-none'
                       : 'text-white/70 hover:text-white hover:bg-white/5 border border-transparent'
                   }`}
                 >
-                  <span className="whitespace-nowrap flex-shrink-0 select-none">{item.label}</span>
+                  {isMemory ? (
+                    <span className="flex items-center gap-1.5" title="Miền Ký Ức">
+                      <svg width={18} height={18} viewBox="0 0 24 24" fill="none" className="transition-transform hover:scale-110 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]">
+                        <polygon points="12,2 20,8 17,20 7,20 4,8" fill="url(#crystalGradNav)" stroke={isActive ? "#38bdf8" : "#a5f3fc"} strokeWidth="1.5" strokeLinejoin="round" />
+                        <polygon points="12,2 17,10 12,18 7,10" fill="#0284c7" fillOpacity="0.4" stroke="#e0f2fe" strokeWidth="0.8" />
+                        <circle cx="12" cy="10" r="1.5" fill="#ffffff" />
+                      </svg>
+                      <span className="sr-only">{item.label}</span>
+                    </span>
+                  ) : isChronicles ? (
+                    <span className="flex items-center gap-1.5" title="Khu Vinh Danh">
+                      <svg width={18} height={18} viewBox="0 0 24 24" fill="none" className="transition-transform hover:scale-110 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]">
+                        <path d="M7 4 H17 V10 C17 13.5 14.5 15.5 12 15.5 C9.5 15.5 7 13.5 7 10 Z" fill="url(#trophyGradNav)" stroke={isActive ? "#fbbf24" : "#fef08a"} strokeWidth="1.2" strokeLinejoin="round" />
+                        <path d="M7 6 C4.5 6 4.5 9.5 7 10" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
+                        <path d="M17 6 C19.5 6 19.5 9.5 17 10" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
+                        <line x1="12" y1="15.5" x2="12" y2="19" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
+                        <line x1="8" y1="19" x2="16" y2="19" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" />
+                        <circle cx="12" cy="9.5" r="1.2" fill="#ffffff" />
+                      </svg>
+                      <span className="sr-only">{item.label}</span>
+                    </span>
+                  ) : (
+                    <span className="whitespace-nowrap flex-shrink-0 select-none">{item.label}</span>
+                  )}
                   {item.id === 'chat' && unreadChatCount > 0 && (
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
                   )}
@@ -359,6 +507,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Side: Quick Dock */}
           <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
+            {/* Streak Flame Widget with Fire & Aura */}
+            <StreakFlameWidget
+              streakCount={currentUser?.streakCount || 1}
+              onClick={() => setIsDailyModalOpen(true)}
+              className="pointer-events-auto mr-0.5"
+            />
+
             {/* Sleek Settings button with iOS Liquid Glass flyout */}
             <div ref={settingsMenuRef} className="relative inline-flex items-center flex-shrink-0">
               <button
@@ -401,6 +556,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onToggleSoundEffects={handleToggleSoundEffects}
                 reducedMotion={reducedMotion}
                 onToggleReducedMotion={handleToggleReducedMotion}
+                godrayPreset={godrayPreset}
+                onSelectGodray={handleSelectGodray}
+                godrayIntensity={godrayIntensity}
+                onChangeGodrayIntensity={handleChangeGodrayIntensity}
+                glassBlur={glassBlur}
+                onChangeGlassBlur={handleChangeGlassBlur}
+                fontSize={fontSize}
+                onChangeFontSize={handleChangeFontSize}
+                navbarAutoHide={navbarAutoHide}
+                onToggleNavbarAutoHide={handleToggleNavbarAutoHide}
+                navbarPosition={navbarPosition}
+                onSwapNavbarPosition={handleSwapNavbarPosition}
               />
             </div>
 
@@ -600,6 +767,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               onToggleSoundEffects={handleToggleSoundEffects}
               reducedMotion={reducedMotion}
               onToggleReducedMotion={handleToggleReducedMotion}
+              godrayPreset={godrayPreset}
+              onSelectGodray={handleSelectGodray}
+              godrayIntensity={godrayIntensity}
+              onChangeGodrayIntensity={handleChangeGodrayIntensity}
+              glassBlur={glassBlur}
+              onChangeGlassBlur={handleChangeGlassBlur}
+              fontSize={fontSize}
+              onChangeFontSize={handleChangeFontSize}
+              navbarAutoHide={navbarAutoHide}
+              onToggleNavbarAutoHide={handleToggleNavbarAutoHide}
+              navbarPosition={navbarPosition}
+              onSwapNavbarPosition={handleSwapNavbarPosition}
             />
           </div>
 
@@ -915,6 +1094,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </>
       )}
+
+      {/* Daily Engagement Hub Modal (Attendance, Mystery Boxes, Daily Quiz) */}
+      <DailyEngagementModal
+        isOpen={isDailyModalOpen}
+        onClose={() => setIsDailyModalOpen(false)}
+        currentUserCoin={currentUser?.coin || currentUser?.xp || 100}
+        onRewardCoin={(amount, reason) => {
+          safeStorage.setItem('fforum_coin_reward', JSON.stringify({ amount, reason, date: Date.now() }));
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('fforum_coin_sync'));
+          }
+        }}
+      />
     </>
   );
 };

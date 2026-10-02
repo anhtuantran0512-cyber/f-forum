@@ -13,6 +13,8 @@ export interface UserRecord {
   xp: number;
   fPoints?: number;
   streakCount?: number;
+  coin?: number;
+  inventory?: string[];
   bio: string;
   gender?: string;
   city?: string;
@@ -29,6 +31,7 @@ export interface ForumDataStore {
   solutions: any[];
   chatMessages: any[];
   feedbacks: any[];
+  reports?: any[];
   about?: any;
 }
 
@@ -594,6 +597,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/questions') {
       try {
         const body = await parseJsonBody(req);
+        const bountyCoin = body.bountyCoin ? Math.max(10, Math.min(100, Number(body.bountyCoin) || 20)) : 20;
         const newQuestion = {
           id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           title: body.title,
@@ -608,13 +612,16 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           createdAt: 'Vừa xong',
           isSolved: false,
           views: 1,
+          bountyCoin,
+          imageUrl: body.imageUrl || undefined,
         };
 
         store.questions.unshift(newQuestion);
 
-        // Credit +50 XP
+        // Deduct bountyCoin & credit +50 XP
         if (body.authorEmail && store.users[body.authorEmail.toLowerCase()]) {
           const user = store.users[body.authorEmail.toLowerCase()];
+          user.coin = Math.max(0, (user.coin ?? 100) - bountyCoin);
           user.xp += 50;
           user.fPoints = (user.fPoints ?? user.xp) + 50;
           user.level = calculateLevelFromXP(user.xp);
@@ -646,6 +653,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           createdAt: 'Vừa xong',
           isBest: false,
           upvotes: 1,
+          imageUrl: body.imageUrl || undefined,
         };
 
         store.solutions.push(newSolution);
@@ -703,8 +711,11 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const sol = store.solutions.find(s => s.id === solutionId);
         if (sol && sol.authorEmail && store.users[sol.authorEmail.toLowerCase()]) {
           const solver = store.users[sol.authorEmail.toLowerCase()];
-          solver.xp += 100;
-          solver.fPoints = (solver.fPoints ?? solver.xp) + 100;
+          const bounty = (targetQ && (targetQ as any).bountyCoin) ? (targetQ as any).bountyCoin : 20;
+          const solverAward = Math.floor(bounty * 0.5) + 100;
+          solver.coin = (solver.coin ?? 100) + solverAward;
+          solver.xp += solverAward;
+          solver.fPoints = (solver.fPoints ?? solver.xp) + solverAward;
           solver.level = calculateLevelFromXP(solver.xp);
           broadcastServerEvent('SYNC_USER', solver);
         }
@@ -754,6 +765,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               role: 'SUPER_ADMIN',
               level: 150,
               xp: 45000,
+              coin: 99999,
               fPoints: 45000,
               streakCount: 36,
               bio: 'F-Forum Architect & Core Administrator. Xây dựng tương lai tri thức học đường.',
@@ -770,6 +782,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               role: 'STUDENT',
               level: 1,
               xp: 0,
+              coin: 100,
               fPoints: 0,
               streakCount: 1,
               bio: 'Học sinh F-Forum',
@@ -855,6 +868,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 role: 'SUPER_ADMIN',
                 level: 150,
                 xp: 45000,
+                coin: 99999,
                 fPoints: 45000,
                 streakCount: 36,
                 bio: 'F-Forum Architect & Core Administrator. Xây dựng tương lai tri thức học đường.',
@@ -871,6 +885,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 role: 'STUDENT',
                 level: 1,
                 xp: 0,
+                coin: 100,
                 fPoints: 0,
                 streakCount: 1,
                 bio: 'Học sinh F-Forum',
@@ -960,6 +975,53 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         sendJson(res, 200, {
           success: true,
           message: 'Cảm ơn bạn! Ý kiến đóng góp đã được chuyển tới Ban Quản Trị.',
+        });
+      } catch (err: any) {
+        sendJson(res, 500, { success: false, message: err.message });
+      }
+      return;
+    }
+
+    // Reports endpoint (Report Account forwarded to Super Admin)
+    if (method === 'POST' && url === '/api/reports') {
+      try {
+        const body = await parseJsonBody(req);
+        const reporterId = (body.reporterId || '').trim();
+        const reporterName = (body.reporterName || '').trim();
+        const reporterEmail = (body.reporterEmail || '').trim();
+        const reportedUserId = (body.reportedUserId || '').trim();
+        const reportedUserName = (body.reportedUserName || '').trim();
+        const reason = (body.reason || '').trim();
+        const details = (body.details || '').trim();
+
+        if (!reportedUserId || !reason) {
+          sendJson(res, 400, { success: false, message: 'Vui lòng cung cấp lý do tố cáo!' });
+          return;
+        }
+
+        const reportSubmission = {
+          id: `rep-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          reporterId,
+          reporterName,
+          reporterEmail,
+          reportedUserId,
+          reportedUserName,
+          reason,
+          details,
+          targetEmail: 'anhtuantran0512@gmail.com',
+          createdAt: new Date().toISOString(),
+        };
+
+        if (!store.reports) {
+          store.reports = [];
+        }
+        store.reports.push(reportSubmission);
+        persistStoreToDisk();
+        broadcastServerEvent('NEW_REPORT', reportSubmission);
+        sendJson(res, 200, {
+          success: true,
+          message: 'Báo cáo vi phạm đã được gửi trực tiếp tới Ban Quản Trị (anhtuantran0512@gmail.com) và Ban Giám Hiệu nhà trường.',
+          reportId: reportSubmission.id,
         });
       } catch (err: any) {
         sendJson(res, 500, { success: false, message: err.message });

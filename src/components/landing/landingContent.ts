@@ -77,9 +77,9 @@ export const FEATURES: {
   },
   {
     id: 'xp',
-    title: 'XP, chuỗi ngày & 10 bậc huy hiệu',
+    title: 'Coin, chuỗi ngày & 8 danh hiệu học sinh',
     description:
-      'Mỗi câu trả lời hữu ích, mỗi buổi học tập trung đều được ghi nhận. Hệ thống 150 cấp độ và 10 bậc huy hiệu Roman biến việc học thành hành trình có thưởng.',
+      'Mỗi câu trả lời hữu ích, mỗi buổi học tập trung đều được ghi nhận. Hệ thống cấp độ và 8 danh hiệu vinh danh biến việc học thành hành trình có thưởng.',
     icon: Trophy,
     accent: 'amber',
     span: 'md',
@@ -136,9 +136,9 @@ export const SHOWCASE_STEPS: {
     eyebrow: 'Bước 03',
     title: 'Học tập trung, ghi dấu thành tích',
     description:
-      'Bật Focus Sanctuary để học sâu, tích XP mỗi ngày và leo bảng vinh danh. Hồ sơ năng lực của bạn được xây dựng theo cách tự nhiên nhất.',
+      'Bật Focus Sanctuary để học sâu, tích Coin mỗi ngày và leo bảng vinh danh. Hồ sơ năng lực của bạn được xây dựng theo cách tự nhiên nhất.',
     icon: Target,
-    points: ['Pomodoro + âm thanh tập trung', 'Chuỗi ngày & phần thưởng XP', 'Huy hiệu 10 bậc Roman'],
+    points: ['Pomodoro + âm thanh tập trung', 'Chuỗi ngày & phần thưởng Coin', '8 danh hiệu học sinh vinh danh'],
   },
 ];
 
@@ -290,7 +290,7 @@ export const PRICING_PLANS: {
       'Tham gia tất cả câu lạc bộ công khai',
       '4 kênh chat thời gian thực',
       'Focus Sanctuary & âm thanh 432Hz',
-      'Hệ thống XP, chuỗi ngày, 10 bậc huy hiệu',
+      'Hệ thống Coin, chuỗi ngày, 8 danh hiệu',
       'Miền Ký Ức & Khu Vinh Danh',
     ],
     footnote: 'Không quảng cáo, không phí ẩn.',
@@ -337,7 +337,7 @@ export const FAQ_ITEMS: { id: string; question: string; answer: string }[] = [
     id: 'f1',
     question: 'F-Forum có thật sự miễn phí không?',
     answer:
-      'Có. Toàn bộ tính năng học tập cốt lõi — hỏi đáp, câu lạc bộ, phòng chat, XP và Focus Sanctuary — miễn phí trọn đời cho sinh viên. Gói Pro chỉ là lớp tiện ích bổ sung đang trong giai đoạn thử nghiệm và bạn không cần dùng nó để học tốt hơn.',
+      'Có. Toàn bộ tính năng học tập cốt lõi — hỏi đáp, câu lạc bộ, phòng chat, Coin và Focus Sanctuary — miễn phí trọn đời cho sinh viên. Gói Pro chỉ là lớp tiện ích bổ sung đang trong giai đoạn thử nghiệm và bạn không cần dùng nó để học tốt hơn.',
   },
   {
     id: 'f2',
@@ -353,9 +353,9 @@ export const FAQ_ITEMS: { id: string; question: string; answer: string }[] = [
   },
   {
     id: 'f4',
-    question: 'Hệ thống điểm XP và huy hiệu hoạt động thế nào?',
+    question: 'Hệ thống điểm Coin và danh hiệu hoạt động thế nào?',
     answer:
-      'Mỗi hoạt động có ích — trả lời được bình chọn, hoàn thành phiên học tập trung, duy trì chuỗi ngày — đều cộng XP. XP tích luỹ lên tối đa 150 cấp độ và 10 bậc huy hiệu Roman hiển thị trên hồ sơ của bạn.',
+      'Mỗi hoạt động có ích — trả lời được bình chọn, hoàn thành phiên học tập trung, duy trì chuỗi ngày — đều cộng Coin. Coin tích luỹ giúp nâng hạng và mở khoá 8 danh hiệu vinh danh hiển thị trên hồ sơ của bạn.',
   },
   {
     id: 'f5',
@@ -367,7 +367,7 @@ export const FAQ_ITEMS: { id: string; question: string; answer: string }[] = [
     id: 'f6',
     question: 'Dữ liệu của tôi được xử lý ra sao?',
     answer:
-      'Nền tảng chỉ lưu những dữ liệu cần cho hoạt động học tập như tên hiển thị, email, XP và nội dung bạn đăng. Bạn có thể đăng xuất, xoá bài viết hoặc yêu cầu xoá dữ liệu bất cứ lúc nào từ phần cài đặt hồ sơ.',
+      'Nền tảng chỉ lưu những dữ liệu cần cho hoạt động học tập như tên hiển thị, email, Coin và nội dung bạn đăng. Bạn có thể đăng xuất, xoá bài viết hoặc yêu cầu xoá dữ liệu bất cứ lúc nào từ phần cài đặt hồ sơ.',
   },
 ];
 

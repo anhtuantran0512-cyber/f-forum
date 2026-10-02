@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowRight, Check, ChevronDown, MousePointerClick, Play, Sparkles, Star } from 'lucide-react';
 import { AppWindowMock } from '../LandingMocks';
-import { AuroraBackdrop, MagneticButton, Reveal } from '../LandingPrimitives';
+import { AuroraBackdrop, MagneticButton, Reveal, ScrambleText } from '../LandingPrimitives';
 import { scrollToSection, usePrefersReducedMotion } from '../useLandingMotion';
 import { HERO_TRUST } from '../landingContent';
 
@@ -147,7 +147,9 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
         <Reveal y={26} delay={80}>
           <h1 className="ff-display mt-7 text-[2.35rem] leading-[1.06] sm:text-6xl lg:text-[4.25rem]">
             <span className="block text-[var(--ff-text)]">Nơi tri thức sinh viên</span>
-            <span className="ff-gradient-text ff-gradient-pan mt-1 block">tỏa sáng cùng nhau.</span>
+            <span className="ff-gradient-text ff-gradient-pan mt-1 block">
+              <ScrambleText text="tỏa sáng cùng nhau." delay={300} />
+            </span>
           </h1>
         </Reveal>
 

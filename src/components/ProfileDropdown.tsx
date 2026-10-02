@@ -105,7 +105,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             <TierBadge level={currentUser.level} size={20} showTooltip={false} />
             <div className="flex flex-col">
               <span className="text-xs font-mono font-bold text-amber-300">
-                {`Tier ${tier.roman} • Level ${currentUser.level}`}
+                {`Danh hiệu: ${tier.name} • Level ${currentUser.level}`}
               </span>
               <span className="text-[10px] text-white/40 font-mono">
                 {tier.name}
@@ -122,14 +122,14 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
           </span>
         </div>
 
-        {/* Mini XP Progress Bar */}
+        {/* Mini Coin Progress Bar */}
         <div className="mt-3 space-y-1">
           <div className="flex items-center justify-between text-[11px] font-mono">
-            <span className="text-white/60">Kinh nghiệm (XP)</span>
+            <span className="text-white/60">Coin tích lũy</span>
             <span className="text-amber-300 font-semibold">
               {currentUser.level >= 150
                 ? `${currentUser.xp.toLocaleString()} / MAX`
-                : `${currentUser.xp.toLocaleString()} / ${nextLevelBaseXP.toLocaleString()} XP`}
+                : `${currentUser.xp.toLocaleString()} / ${nextLevelBaseXP.toLocaleString()} Coin`}
             </span>
           </div>
           <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden relative">

@@ -7,6 +7,7 @@ import {
   Timer,
   Sparkles,
   Zap,
+  Move,
 } from 'lucide-react';
 
 export interface SettingsModalProps {
@@ -21,7 +22,21 @@ export interface SettingsModalProps {
   onToggleSoundEffects: () => void;
   reducedMotion: boolean;
   onToggleReducedMotion: () => void;
+  godrayPreset?: string;
+  onSelectGodray?: (preset: string) => void;
+  godrayIntensity?: number;
+  onChangeGodrayIntensity?: (val: number) => void;
+  glassBlur?: number;
+  onChangeGlassBlur?: (val: number) => void;
+  fontSize?: 'sm' | 'md' | 'lg';
+  onChangeFontSize?: (size: 'sm' | 'md' | 'lg') => void;
+  navbarAutoHide?: boolean;
+  onToggleNavbarAutoHide?: () => void;
+  navbarPosition?: 'top' | 'bottom' | 'left' | 'right';
+  onSwapNavbarPosition?: () => void;
 }
+
+import { GODRAY_PRESETS } from '../utils/godrays';
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
@@ -35,6 +50,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onToggleSoundEffects,
   reducedMotion,
   onToggleReducedMotion,
+  godrayPreset = 'godray-gold',
+  onSelectGodray,
+  godrayIntensity = 70,
+  onChangeGodrayIntensity,
+  glassBlur = 14,
+  onChangeGlassBlur,
+  fontSize = 'md',
+  onChangeFontSize,
+  navbarAutoHide = false,
+  onToggleNavbarAutoHide,
+  navbarPosition = 'top',
+  onSwapNavbarPosition,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -67,16 +94,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         }}
       />
 
-      {/* iOS Liquid Glass Settings Popover Flyout */}
+      {/* iOS Liquid Glass Settings Popover Flyout with Dynamic Island / Hyperland spring scale */}
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-label="Cài đặt hệ thống"
-        className="absolute top-[calc(100%+12px)] right-0 z-50 w-[350px] max-w-[calc(100vw-32px)] liquid-glass rounded-3xl p-5 shadow-[0_25px_60px_rgba(0,0,0,0.9)] animate-fade-up pointer-events-auto border border-white/15 select-none"
+        className="absolute top-[calc(100%+12px)] right-0 z-50 w-[380px] max-w-[calc(100vw-28px)] liquid-glass rounded-3xl p-4 sm:p-5 shadow-[0_25px_60px_rgba(0,0,0,0.92)] pointer-events-auto border border-white/20 select-none max-h-[85vh] overflow-y-auto no-scrollbar origin-top-right transition-all duration-300 transform scale-100 opacity-100"
+        style={{
+          transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 mb-4 border-b border-white/10">
+        <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-white/10">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center">
               <Settings className="w-3.5 h-3.5 text-amber-400 animate-[spin_12s_linear_infinite]" />
@@ -97,11 +128,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Setting Groups */}
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {/* ======================================================== */}
           {/* 1. CREATIVE CARTOON LIGHT / DARK THEME SWITCH CARD       */}
           {/* ======================================================== */}
-          <div className="rounded-2xl p-3.5 bg-black/25 border border-white/10 flex items-center justify-between gap-3 group transition-colors">
+          <div className="rounded-2xl p-3 bg-black/30 border border-white/10 flex items-center justify-between gap-3 group transition-colors">
             <div className="flex-1 min-w-0 pr-1">
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-semibold text-white tracking-wide">
@@ -111,10 +142,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   {theme === 'light' ? 'Sáng' : 'Tối'}
                 </span>
               </div>
-              <p className="text-[11px] text-white/60 leading-tight mt-1 truncate">
+              <p className="text-[10.5px] text-white/60 leading-tight mt-0.5 truncate">
                 {theme === 'light'
-                  ? '☀️ Pha lê iOS Liquid Glass (Nguyên bản)'
-                  : '🌙 Huyền bí Obsidian Liquid Glass (Tối)'}
+                  ? '☀️ Chế độ Pha Lê Sáng'
+                  : '🌙 Chế độ Huyền Bí Tối'}
               </p>
             </div>
 
@@ -132,7 +163,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               }`}
             >
               {/* Animated Track Sky Background: Midnight vs Morning Sun (Pill Masked) */}
-              <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
+              <div className="rounded-full overflow-hidden pointer-events-none absolute inset-0">
                 <div
                   className={`absolute inset-0 transition-opacity duration-500 ${
                     theme === 'dark' ? 'opacity-100' : 'opacity-0'
@@ -140,7 +171,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 >
                   {/* Midnight starry indigo gradient */}
                   <div className="absolute inset-0 bg-gradient-to-r from-[#0a0f1d] via-[#141b33] to-[#1e1b4b]" />
-                  
+
                   {/* Twinkling Cartoon Stars */}
                   <svg
                     className="absolute top-2 right-3 w-3 h-3 text-amber-200 animate-pulse"
@@ -157,7 +188,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z" />
                   </svg>
                   <div className="absolute top-3.5 right-8 w-1 h-1 rounded-full bg-white opacity-80 shadow-[0_0_4px_#fff]" />
-                  
+
                   {/* Sleeping Night Cloud silhouette */}
                   <svg
                     className="absolute -bottom-1.5 right-0.5 w-8 h-5 text-indigo-400/35"
@@ -175,7 +206,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 >
                   {/* Bright Azure Morning Sky gradient */}
                   <div className="absolute inset-0 bg-gradient-to-r from-[#38bdf8] via-[#60a5fa] to-[#93c5fd]" />
-                  
+
                   {/* Floating Fluffy Cartoon Clouds */}
                   <svg
                     className="absolute top-1 left-2 w-7 h-4 text-white/95 drop-shadow-sm"
@@ -279,10 +310,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <svg className="w-6 h-6 relative z-10" viewBox="0 0 32 32" fill="none">
                     <ellipse cx="10.5" cy="13" rx="1.6" ry="2.2" fill="#78350f" />
                     <circle cx="10" cy="12.2" r="0.6" fill="#ffffff" />
-
                     <ellipse cx="21.5" cy="13" rx="1.6" ry="2.2" fill="#78350f" />
                     <circle cx="21" cy="12.2" r="0.6" fill="#ffffff" />
-
                     <path
                       d="M 11 18 Q 16 25 21 18"
                       stroke="#78350f"
@@ -297,61 +326,228 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
 
           {/* ======================================================== */}
-          {/* 2. AMBIENT AUDIO SANCTUARY OPTION                         */}
+          {/* 2. GODRAYS GRADIENTS PRESETS (Grainient Collection)      */}
           {/* ======================================================== */}
-          <div className="rounded-2xl p-3.5 bg-black/25 border border-white/10 space-y-2.5 transition-colors">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 min-w-0">
+          <div className="rounded-2xl p-3 bg-black/30 border border-white/10 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-white tracking-wide">
+                Hào Quang Godrays (Grainient)
+              </span>
+              <span className="text-[10px] text-amber-300 font-mono">
+                {godrayIntensity}% Độ rực
+              </span>
+            </div>
+
+            {/* Presets Grid */}
+            <div className="grid grid-cols-3 gap-1.5">
+              {GODRAY_PRESETS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => onSelectGodray?.(p.id)}
+                  className={`p-1.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-1.5 ${
+                    godrayPreset === p.id
+                      ? 'border-amber-400 bg-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
+                      : 'border-white/10 bg-white/5 hover:bg-white/10'
+                  }`}
+                >
+                  <span className={`w-3.5 h-3.5 rounded-full bg-gradient-to-tr ${p.color} shrink-0 border border-white/30`} />
+                  <span className="text-[10px] font-medium text-white truncate">{p.name}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Intensity slider */}
+            <div className="pt-1 flex items-center gap-2">
+              <span className="text-[10px] text-neutral-400 shrink-0">Độ rực:</span>
+              <input
+                type="range"
+                min={20}
+                max={100}
+                value={godrayIntensity}
+                onChange={(e) => onChangeGodrayIntensity?.(parseInt(e.target.value, 10))}
+                className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-400"
+              />
+            </div>
+          </div>
+
+          {/* ======================================================== */}
+          {/* 3. COMBINED COMPACT GLASS BLUR & FONT SIZE               */}
+          {/* ======================================================== */}
+          <div className="rounded-2xl p-3 bg-black/30 border border-white/10 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-white">Độ mờ kính & Cỡ chữ</span>
+              <div className="flex items-center gap-1 bg-black/50 p-0.5 rounded-lg border border-white/10">
+                {(['sm', 'md', 'lg'] as const).map((sz) => (
+                  <button
+                    key={sz}
+                    type="button"
+                    onClick={() => onChangeFontSize?.(sz)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-mono cursor-pointer transition-colors ${
+                      fontSize === sz
+                        ? 'bg-amber-500 text-black font-bold'
+                        : 'text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    {sz === 'sm' ? 'A-' : sz === 'md' ? 'A' : 'A+'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-0.5">
+              <span className="text-[10px] text-neutral-400 shrink-0">Độ mờ kính:</span>
+              <input
+                type="range"
+                min={6}
+                max={28}
+                value={glassBlur}
+                onChange={(e) => onChangeGlassBlur?.(parseInt(e.target.value, 10))}
+                className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-400"
+              />
+              <span className="text-[10px] font-mono text-amber-300 shrink-0">{glassBlur}px</span>
+            </div>
+          </div>
+
+          {/* ======================================================== */}
+          {/* 4. NAVBAR POSITION SWAP & AUTO-HIDE CONTROLS             */}
+          {/* ======================================================== */}
+          <div className="rounded-2xl p-3 bg-black/30 border border-white/10 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onSwapNavbarPosition}
+                className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                title="Bấm để dời vị trí Navbar: Trên -> Dưới -> Trái -> Phải"
+              >
+                <Move className="w-3.5 h-3.5 text-amber-400" />
+                <span>Vị trí: {navbarPosition === 'top' ? 'Trên' : navbarPosition === 'bottom' ? 'Dưới' : navbarPosition === 'left' ? 'Trái' : 'Phải'} (Swap)</span>
+              </button>
+            </div>
+
+            {/* Auto-hide Navbar */}
+            <div className="flex items-center gap-2">
+              <span className="text-[10.5px] text-white/70">Tự ẩn 1s:</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={navbarAutoHide}
+                onClick={onToggleNavbarAutoHide}
+                className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer flex items-center ${
+                  navbarAutoHide ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-white/20'
+                }`}
+                title="Tự động ẩn Navbar khi rời chuột 1s"
+              >
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                  className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform ${
+                    navbarAutoHide ? 'translate-x-4' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* ======================================================== */}
+          {/* 5. SINGLE-ROW SFX & REDUCED MOTION (TIA SÉT)             */}
+          {/* ======================================================== */}
+          <div className="rounded-2xl p-2.5 bg-black/30 border border-white/10 grid grid-cols-2 gap-2">
+            {/* Left: SFX */}
+            <div className="flex items-center justify-between p-1.5 rounded-xl bg-white/5 border border-white/5">
+              <div className="flex items-center gap-1.5 min-w-0 pr-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="text-[11px] font-semibold text-white truncate">
+                  Hiệu ứng âm thanh (SFX)
+                </span>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={soundEffects}
+                onClick={onToggleSoundEffects}
+                className={`w-8 h-4.5 rounded-full p-0.5 transition-colors cursor-pointer flex items-center shrink-0 ${
+                  soundEffects ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-white/20'
+                }`}
+              >
+                <div
+                  className={`w-3.5 h-3.5 rounded-full bg-white shadow-md transform transition-transform ${
+                    soundEffects ? 'translate-x-3.5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Right: Reduced Motion with Zap Tia sét */}
+            <div className="flex items-center justify-between p-1.5 rounded-xl bg-white/5 border border-white/5">
+              <div className="flex items-center gap-1.5 min-w-0 pr-1">
+                <Zap className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span className="text-[11px] font-semibold text-white truncate">
+                  Giảm chuyển động
+                </span>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={reducedMotion}
+                onClick={onToggleReducedMotion}
+                className={`w-8 h-4.5 rounded-full p-0.5 transition-colors cursor-pointer flex items-center shrink-0 ${
+                  reducedMotion ? 'bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]' : 'bg-white/20'
+                }`}
+              >
+                <div
+                  className={`w-3.5 h-3.5 rounded-full bg-white shadow-md transform transition-transform ${
+                    reducedMotion ? 'translate-x-3.5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* ======================================================== */}
+          {/* 6. AMBIENT AUDIO SANCTUARY OPTION                         */}
+          {/* ======================================================== */}
+          <div className="rounded-2xl p-3 bg-black/30 border border-white/10 space-y-2 transition-colors">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
                     isAudioPlaying
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
                       : 'bg-white/5 text-white/60 border border-white/10'
                   }`}
                 >
                   {isAudioPlaying ? (
-                    <Volume2 className="w-4 h-4 text-amber-400 animate-pulse" />
+                    <Volume2 className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
                   ) : (
-                    <VolumeX className="w-4 h-4" />
+                    <VolumeX className="w-3.5 h-3.5" />
                   )}
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-semibold text-white tracking-wide">
+                  <div className="text-xs font-semibold text-white">
                     Âm thanh Ambient (432Hz)
                   </div>
-                  <div className="text-[11px] text-white/60 truncate">
-                    {isAudioPlaying ? 'Binaural 432Hz đang hoạt động' : 'Tập trung sâu & thư giãn'}
+                  <div className="text-[10px] text-white/60 truncate">
+                    {isAudioPlaying ? 'Binaural 432Hz đang chạy' : 'Tập trung sâu & thư giãn'}
                   </div>
                 </div>
               </div>
 
               {/* Play / Pause Toggle Button */}
-              <div className="flex items-center gap-2 shrink-0">
-                {isAudioPlaying && (
-                  <div className="flex items-end gap-[2px] h-3 w-3.5 justify-center">
-                    <span className="w-[2px] rounded-full bg-amber-400 eq-bar-1" />
-                    <span className="w-[2px] rounded-full bg-amber-400 eq-bar-2" />
-                    <span className="w-[2px] rounded-full bg-amber-400 eq-bar-3" />
-                    <span className="w-[2px] rounded-full bg-amber-400 eq-bar-4" />
-                  </div>
-                )}
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={isAudioPlaying}
-                  onClick={onToggleAudio}
-                  className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 cursor-pointer flex items-center ${
-                    isAudioPlaying ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-white/20'
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isAudioPlaying}
+                onClick={onToggleAudio}
+                className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer flex items-center shrink-0 ${
+                  isAudioPlaying ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-white/20'
+                }`}
+                aria-label="Bật/Tắt âm thanh binaural ambient"
+              >
+                <div
+                  className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform ${
+                    isAudioPlaying ? 'translate-x-4' : 'translate-x-0'
                   }`}
-                  aria-label="Bật/Tắt âm thanh binaural ambient"
-                >
-                  <div
-                    className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
-                      isAudioPlaying ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
+                />
+              </button>
             </div>
 
             {/* Quick Focus Mode sanctuary shortcut button */}
@@ -361,93 +557,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               className="w-full px-3 py-1.5 rounded-xl text-xs font-semibold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <Timer className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-              <span>Mở Focus Mode (Không gian tập trung)</span>
+              <span>Mở Focus Mode</span>
             </button>
           </div>
-
-          {/* ======================================================== */}
-          {/* 3. SOUND EFFECTS (SFX) TOGGLE                            */}
-          {/* ======================================================== */}
-          <div className="rounded-2xl p-3 bg-black/25 border border-white/10 flex items-center justify-between gap-3 transition-colors">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-                  soundEffects
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40'
-                    : 'bg-white/5 text-white/50 border border-white/10'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs font-semibold text-white">Hiệu ứng âm thanh (SFX)</div>
-                <div className="text-[10px] text-white/60 truncate">Âm thanh click & thông báo</div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              role="switch"
-              aria-checked={soundEffects}
-              onClick={onToggleSoundEffects}
-              className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 cursor-pointer flex items-center ${
-                soundEffects ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-white/20'
-              }`}
-              aria-label="Bật/Tắt hiệu ứng âm thanh"
-            >
-              <div
-                className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
-                  soundEffects ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
-
-          {/* ======================================================== */}
-          {/* 4. REDUCED MOTION TOGGLE                                 */}
-          {/* ======================================================== */}
-          <div className="rounded-2xl p-3 bg-black/25 border border-white/10 flex items-center justify-between gap-3 transition-colors">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-                  reducedMotion
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40'
-                    : 'bg-white/5 text-white/50 border border-white/10'
-                }`}
-              >
-                <Zap className="w-3.5 h-3.5 text-cyan-400" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs font-semibold text-white">Giảm chuyển động</div>
-                <div className="text-[10px] text-white/60 truncate">Tối ưu hóa hiệu năng & độ mượt</div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              role="switch"
-              aria-checked={reducedMotion}
-              onClick={onToggleReducedMotion}
-              className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 cursor-pointer flex items-center ${
-                reducedMotion ? 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]' : 'bg-white/20'
-              }`}
-              aria-label="Bật/Tắt giảm chuyển động"
-            >
-              <div
-                className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
-                  reducedMotion ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
-        </div>
-
-        {/* Footer Brand Tag */}
-        <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-[10px] text-white/40 font-mono">
-          <span>F-Forum v2.5</span>
-          <span className="text-amber-400/70">Apple iOS Liquid Glass</span>
         </div>
       </div>
     </>
   );
 };
+
+export default SettingsModal;

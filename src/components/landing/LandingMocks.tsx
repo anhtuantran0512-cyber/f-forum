@@ -308,14 +308,14 @@ export const ArenaMock: React.FC = () => (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-500/15 px-2.5 py-1 text-[10px] font-semibold text-violet-300 ring-1 ring-violet-400/25">
         <Trophy className="h-3 w-3" /> Đấu trường tri thức
       </span>
-      <span className="font-mono text-[10px] text-[var(--ff-text-dim)]">10 bậc · 150 cấp độ</span>
+      <span className="font-mono text-[10px] text-[var(--ff-text-dim)]">8 danh hiệu · 150 cấp độ</span>
     </div>
 
     <div className="mt-3 space-y-1.5">
       {[
-        { rank: '01', name: 'Trần Văn Anh Tuấn', xp: '18.420 XP', badge: 'Bậc Roman V', from: '#fbbf24', to: '#f97316', label: 'TA' },
-        { rank: '02', name: 'Nguyễn Khánh Linh', xp: '16.980 XP', badge: 'Bậc Roman IV', from: '#38bdf8', to: '#818cf8', label: 'KL' },
-        { rank: '03', name: 'Lê Minh Quân', xp: '15.310 XP', badge: 'Bậc Roman IV', from: '#34d399', to: '#22d3ee', label: 'MQ' },
+        { rank: '01', name: 'Trần Văn Anh Tuấn', xp: '18.420 Coin', badge: 'Chuyên Gia', from: '#fbbf24', to: '#f97316', label: 'TA' },
+        { rank: '02', name: 'Nguyễn Khánh Linh', xp: '16.980 Coin', badge: 'Bậc Thầy', from: '#38bdf8', to: '#818cf8', label: 'KL' },
+        { rank: '03', name: 'Lê Minh Quân', xp: '15.310 Coin', badge: 'Thiên Tài', from: '#34d399', to: '#22d3ee', label: 'MQ' },
       ].map((row) => (
         <div
           key={row.rank}
