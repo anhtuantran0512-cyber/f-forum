@@ -1145,8 +1145,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         </nav>
 
         <div className="addr absolute bottom-[var(--pad)] inset-x-[var(--pad)] text-center text-[12.5px] text-[#8c8783] leading-[1.7] font-mono">
-          Da Nang · Hanoi · Ho Chi Minh City<br />
-          anhtuantran0512@gmail.com
+          Da Nang · Hanoi · Ho Chi Minh City
         </div>
       </div>
 

@@ -29,6 +29,7 @@ import { TRI_CHAT_VIDEOS } from '../../utils/chatVideos';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
 import { getTierForLevel } from '../../utils/tier';
 import { pushNotification } from '../../utils/notifications';
+import { CommentSkeletonList } from '../Skeletons';
 
 interface ChatViewProps {
   currentUser: User | null;
@@ -39,6 +40,8 @@ interface ChatViewProps {
   onlineCount?: number;
   onOpenLoginModal?: () => void;
   onOpenProfile?: (user?: { id: string; name: string; avatar: string; email?: string; level?: number }) => void;
+  /** False while the first server sync is in flight → show shimmer skeletons. */
+  isSynced?: boolean;
 }
 
 const CHANNELS: {
@@ -89,6 +92,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   onlineCount = 1,
   onOpenLoginModal,
   onOpenProfile,
+  isSynced = true,
 }) => {
   const [activeChannel, setActiveChannel] = useState<ChatChannelId>('hallway');
   const [isChannelDrawerOpen, setIsChannelDrawerOpen] = useState(false);
@@ -132,7 +136,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
         }),
       });
       const data = await res.json();
-      setReportSuccessMsg(data.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị (anhtuantran0512@gmail.com).');
+      setReportSuccessMsg(data.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị.');
       pushNotification({
         type: 'system',
         category: 'system',
@@ -141,7 +145,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
         targetView: 'chat',
       });
     } catch {
-      setReportSuccessMsg('Đã ghi nhận tố cáo của bạn và chuyển tới anhtuantran0512@gmail.com.');
+      setReportSuccessMsg('Đã ghi nhận tố cáo của bạn và chuyển tới Ban Quản Trị.');
     } finally {
       setIsSubmittingReport(false);
     }
@@ -367,7 +371,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
             {/* Message Stream */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4" role="log" aria-live="polite" aria-relevant="additions" aria-label="Tin nhắn cuộc trò chuyện">
-              {currentMessages.length === 0 ? (
+              {!isSynced && currentMessages.length === 0 ? (
+                <div className="max-w-xl mx-auto rounded-2xl bg-white/[0.03] border border-white/5 overflow-hidden">
+                  <CommentSkeletonList rows={4} />
+                </div>
+              ) : currentMessages.length === 0 ? (
                 /* Clean High-Design Empty State with MessageSquareDashed */
                 <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-3.5 text-neutral-400 my-auto">
                   <div className="relative">
@@ -991,7 +999,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               <div>
                 <h4 className="text-base font-bold text-white flex items-center justify-center gap-1.5">
                   <span>{activeAuthorCard.name}</span>
-                  {activeAuthorCard.email === 'anhtuantran0512@gmail.com' && <AdminVerifiedBadge size={14} />}
+                  {isMasterAdmin(activeAuthorCard.email) && <AdminVerifiedBadge size={14} />}
                 </h4>
                 <div className="flex items-center justify-center gap-2 mt-1">
                   <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[10px] font-mono font-bold">
@@ -1015,7 +1023,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     className="w-full py-2.5 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-98"
                   >
                     <UserIcon className="w-4 h-4 text-cyan-400" />
-                    <span>Trang Cá Nhân (Xem đầy đủ thông tin & tất cả huy hiệu)</span>
+                    <span>Trang cá nhân</span>
                   </button>
                 )}
 
@@ -1029,7 +1037,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   className="w-full py-2.5 px-3 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-98"
                 >
                   <Flag className="w-4 h-4 text-red-400" />
-                  <span>Tố Cáo Tài Khoản Vi Phạm (Gửi Gmail anhtuantran0512@gmail.com)</span>
+                  <span>Tố cáo</span>
                 </button>
               </div>
             </div>
@@ -1127,7 +1135,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     Kỷ luật trường học nghiêm ngặt:
                   </span>
                   <p>
-                    Báo cáo vi phạm sẽ được gửi trực tiếp tới Ban Quản Trị (anhtuantran0512@gmail.com) và Ban Giám Hiệu nhà trường.
+                    Báo cáo vi phạm sẽ được chuyển tới Ban Quản Trị để xử lý theo nội quy.
                   </p>
                 </div>
 

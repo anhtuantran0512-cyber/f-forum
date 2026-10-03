@@ -88,7 +88,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
         }),
       });
       const data = await res.json();
-      setReportSuccessMsg(data.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị (anhtuantran0512@gmail.com).');
+      setReportSuccessMsg(data.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị.');
       pushNotification({
         type: 'system',
         category: 'system',
@@ -97,7 +97,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
         targetView: 'chat',
       });
     } catch {
-      setReportSuccessMsg('Đã ghi nhận tố cáo của bạn và chuyển tới anhtuantran0512@gmail.com.');
+      setReportSuccessMsg('Đã ghi nhận tố cáo của bạn và chuyển tới Ban Quản Trị.');
     } finally {
       setIsSubmittingReport(false);
     }
@@ -415,7 +415,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               <div>
                 <h4 className="text-base font-bold text-white flex items-center justify-center gap-1.5">
                   <span>{activeAuthorCard.name}</span>
-                  {activeAuthorCard.email === 'anhtuantran0512@gmail.com' && <AdminVerifiedBadge size={14} />}
+                  {isMasterAdmin(activeAuthorCard.email) && <AdminVerifiedBadge size={14} />}
                 </h4>
                 <div className="flex items-center justify-center gap-2 mt-1">
                   <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[10px] font-mono font-bold">
@@ -439,7 +439,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                     className="w-full py-2.5 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-98"
                   >
                     <UserIcon className="w-4 h-4 text-cyan-400" />
-                    <span>Trang Cá Nhân (Xem đầy đủ thông tin & tất cả huy hiệu)</span>
+                    <span>Trang cá nhân</span>
                   </button>
                 )}
 
@@ -453,7 +453,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   className="w-full py-2.5 px-3 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-98"
                 >
                   <Flag className="w-4 h-4 text-red-400" />
-                  <span>Tố Cáo Tài Khoản Vi Phạm (Gửi Gmail anhtuantran0512@gmail.com)</span>
+                  <span>Tố cáo</span>
                 </button>
               </div>
             </div>
@@ -551,7 +551,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                     Kỷ luật trường học nghiêm ngặt:
                   </span>
                   <p>
-                    Báo cáo vi phạm sẽ được gửi trực tiếp tới Ban Quản Trị (anhtuantran0512@gmail.com) và Ban Giám Hiệu nhà trường.
+                    Báo cáo vi phạm sẽ được chuyển tới Ban Quản Trị để xử lý theo nội quy.
                   </p>
                 </div>
 

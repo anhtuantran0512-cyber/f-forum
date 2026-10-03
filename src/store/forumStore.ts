@@ -207,6 +207,7 @@ export function useForumStore() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isSynced, setIsSynced] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [toastMessage, setToastMessage] = useState<{
     title: string;
@@ -384,6 +385,7 @@ export function useForumStore() {
     async function fetchServerState() {
       try {
         const res = await fetch('/api/sync');
+        if (isMounted) setIsSynced(true);
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.data && isMounted) {
@@ -996,12 +998,14 @@ export function useForumStore() {
             level: 1,
             xp: 0,
             fPoints: 0,
-            streakCount: 1,
-            bio: 'Học sinh F-Forum',
+            streakCount: 0,
+            bio: '',
             gender: 'Chưa cập nhật',
-            city: 'FPT Campus',
-            className: 'Học sinh',
+            city: 'Chưa cập nhật',
+            className: 'Chưa cập nhật',
+            joinedAt: new Date().toISOString(),
             scopedClubIds: [],
+            inventory: [],
           });
 
       result = {
@@ -1252,7 +1256,7 @@ export function useForumStore() {
     playChime('success');
     setToastMessage({
       title: 'Hồ sơ thành lập CLB đã gửi!',
-      subtitle: 'Đang chờ phê duyệt từ Super Admin (anhtuantran0512@gmail.com).',
+      subtitle: 'Đang chờ phê duyệt từ Ban Quản Trị.',
       type: 'success',
     });
   };
@@ -1433,6 +1437,7 @@ export function useForumStore() {
       anonymousAlias: data.isAnonymous ? ghibliAlias : undefined,
       anonymousMask: data.isAnonymous ? ghibliMask : undefined,
       createdAt: 'Vừa xong',
+      createdAtMs: Date.now(),
       isSolved: false,
       views: 1,
       bountyCoin,
@@ -1477,6 +1482,7 @@ export function useForumStore() {
       authorLevel: currentUser.level,
       content,
       createdAt: 'Vừa xong',
+      createdAtMs: Date.now(),
       isBest: false,
       upvotes: 1,
       imageUrl,
@@ -1609,6 +1615,7 @@ export function useForumStore() {
         hour: '2-digit',
         minute: '2-digit',
       }),
+      timestampMs: Date.now(),
     };
 
     setChatMessages(prev => {
@@ -1661,8 +1668,8 @@ export function useForumStore() {
 
     playChime('success');
     setToastMessage({
-      title: 'Đã gửi ý kiến đóng góp thành công tới Admin!',
-      subtitle: `Chuyển tiếp trực tiếp đến anhtuantran0512@gmail.com. Cảm ơn bạn!`,
+      title: 'Đã gửi ý kiến đóng góp thành công!',
+      subtitle: 'Ý kiến của bạn đã được chuyển tới Ban Quản Trị. Cảm ơn bạn!',
       type: 'success',
     });
   };
@@ -1889,6 +1896,7 @@ export function useForumStore() {
     setIsProfileModalOpen,
     isLoginModalOpen,
     setIsLoginModalOpen,
+    isSynced,
     toastMessage,
     setToastMessage,
     submitFeedback,
