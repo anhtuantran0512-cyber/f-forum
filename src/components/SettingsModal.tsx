@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useRef, useEffect } from 'react';
 import {
   Settings,

@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, ChevronUp, Zap } from 'lucide-react';
 import { TierBadge } from './Badges10Tier';
@@ -19,7 +20,6 @@ export const XPSandboxDock: React.FC<XPSandboxDockProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const tier = getTierForLevel(level);
 
-  // Close when clicking outside or pressing Escape
   useEffect(() => {
     if (!isExpanded) return;
 
@@ -43,7 +43,6 @@ export const XPSandboxDock: React.FC<XPSandboxDockProps> = ({
     };
   }, [isExpanded]);
 
-  // Compute accurate progress to next level using the mathematically verified curve
   const currentLevelBaseXP = getXPForLevel(level);
   const nextLevelBaseXP = getXPForLevel(Math.min(150, level + 1));
   const range = Math.max(1, nextLevelBaseXP - currentLevelBaseXP);

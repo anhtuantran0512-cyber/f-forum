@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
@@ -55,7 +56,6 @@ export function initFacebookSdk(): Promise<void> {
       fjs.parentNode?.insertBefore(js, fjs);
     })(document, 'script', 'facebook-jssdk');
 
-    // Fallback safety timeout if SDK script is unreachable
     setTimeout(() => resolve(), 5000);
   });
 
@@ -112,7 +112,6 @@ export function initGoogleSdk(): Promise<void> {
   return promise;
 }
 
-// Background startup initialization of real OAuth SDKs
 if (typeof window !== 'undefined') {
   initFacebookSdk().catch(() => {});
   initGoogleSdk().catch(() => {});

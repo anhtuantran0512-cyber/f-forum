@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { safeStorage } from './storage';
 import type { NotificationItem } from '../components/NotificationsModal';
 
@@ -19,7 +20,6 @@ export const pushNotification = (item: Omit<NotificationItem, 'id' | 'isRead'>) 
     }
   }
 
-  // Prepend new notification, keep up to 30
   list = [newNotif, ...list].slice(0, 30);
   safeStorage.setItem('fforum_notifications', JSON.stringify(list));
 

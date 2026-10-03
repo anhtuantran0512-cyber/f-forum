@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowRight, LogIn, Menu, Sparkles, X } from 'lucide-react';
 import type { User } from '../../types';
@@ -33,7 +34,6 @@ export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin
     scrollToSection(id);
   }, []);
 
-  // Close the mobile drawer with Escape and freeze background scroll while open.
   useEffect(() => {
     if (!menuOpen) return;
     const onKey = (event: KeyboardEvent) => {
@@ -48,7 +48,6 @@ export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin
     };
   }, [menuOpen]);
 
-  // Scrollspy: highlight the section currently in the middle of the viewport.
   useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') return;
     const observer = new IntersectionObserver(

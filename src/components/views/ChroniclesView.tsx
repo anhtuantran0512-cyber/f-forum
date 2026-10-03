@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect } from 'react';
 import {
   BookOpen,
@@ -79,7 +80,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
       });
       setContent('');
       setIsSubmitting(false);
-      setCooldown(5); // 5-second anti-spam lock
+      setCooldown(5);
     }, 400);
   };
 

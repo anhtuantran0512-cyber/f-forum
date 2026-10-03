@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import type { Plugin } from 'vite';
 import { setupForumServer } from './forumServer.ts';
 

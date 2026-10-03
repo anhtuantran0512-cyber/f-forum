@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { useForumStore } from './store/forumStore';
 import { Navbar } from './components/Navbar';
@@ -9,7 +10,6 @@ import { AuthProvider } from './context/AuthContext';
 import { GODRAY_PRESETS } from './utils/godrays';
 import { safeStorage } from './utils/storage';
 
-// Dynamic code-splitting for non-critical routes and heavy interactive dialogs
 const LandingPage = lazy(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
 const ClubsView = lazy(() => import('./components/views/ClubsView').then(m => ({ default: m.ClubsView })));
 const QAForumView = lazy(() => import('./components/views/QAForumView').then(m => ({ default: m.QAForumView })));
@@ -101,7 +101,6 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('fforum_theme_sync', handleSyncGodray);
   }, []);
 
-  // Monitor scroll position for sticky cinema inside dedicated MemoryRealm view
   useEffect(() => {
     if (currentView !== 'memory') return;
 
@@ -127,7 +126,6 @@ export const App: React.FC = () => {
     };
   }, [currentView]);
 
-  // Reset scroll to top when switching views
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [currentView]);
@@ -204,27 +202,20 @@ export const App: React.FC = () => {
   const lastScrollTimeRef = useRef<number>(0);
   const lastWheelTimeRef = useRef<number>(0);
 
-  // Wheel-Scroll Transition Controller between core views:
-  // [TRANG CHỦ] (0) -> [CÂU LẠC BỘ] (1) -> [HỎI ĐÁP] (2) -> [UPDATE] (3)
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
-      // Exclusions: chat, memory, chronicles retain their own scroll mechanics
       if (currentView === 'chat' || currentView === 'memory' || currentView === 'chronicles') {
         return;
       }
 
-      // The landing page is a freely scrolling marketing surface: the wheel
-      // engine must never hijack it (scroll-to-explore sections handle their own motion).
       if (currentView === 'landing') {
         return;
       }
 
-      // If user is currently in a modal or slide-over dock, do not intercept
       if (isLoginModalOpen || isProfileModalOpen || isFocusModeOpen || isChatOpen) {
         return;
       }
 
-      // If user is focusing on an input, textarea, select, or inside an active dialog/modal
       const target = e.target as HTMLElement | null;
       if (target && target.closest('input, textarea, select, [role="dialog"]')) {
         return;
@@ -243,9 +234,6 @@ export const App: React.FC = () => {
         return;
       }
 
-      // Guard against continuous trackpad momentum inertia ticks firing across page boundaries.
-      // If wheel events have been streaming continuously without any rest/pause (< 80ms)
-      // since the last page transition, ignore residual deceleration of the same physical gesture.
       const timeSinceLastWheel = now - lastWheelTimeRef.current;
       if (lastWheelTimeRef.current > 0 && timeSinceLastScroll < 1200 && timeSinceLastWheel < 80) {
         lastWheelTimeRef.current = now;
@@ -254,13 +242,11 @@ export const App: React.FC = () => {
       lastWheelTimeRef.current = now;
 
       if (deltaY > 30) {
-        // Scrolling down advances strictly by 1 page
         if (currentIndex < CORE_SCROLL_VIEWS.length - 1) {
           lastScrollTimeRef.current = now;
           handleViewChange(CORE_SCROLL_VIEWS[currentIndex + 1]);
         }
       } else if (deltaY < -30) {
-        // Scrolling up returns strictly by 1 page
         if (currentIndex > 0) {
           lastScrollTimeRef.current = now;
           handleViewChange(CORE_SCROLL_VIEWS[currentIndex - 1]);

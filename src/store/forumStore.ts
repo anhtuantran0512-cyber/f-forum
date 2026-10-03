@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type {
   DimensionView,
@@ -30,7 +31,6 @@ import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../config/admin';
 import { getTierForLevel } from '../utils/tier';
 import { pushNotification } from '../utils/notifications';
 
-// Global Tab/Session Identifier for cross-tab echo elimination
 const CURRENT_TAB_ID =
   typeof window !== 'undefined'
     ? ((window as any).__FFORUM_TAB_ID__ ||
@@ -41,19 +41,16 @@ const CURRENT_TAB_ID =
     : 'tab-node';
 
 
-// Precomputed cumulative XP thresholds for levels 1 to 150
 const XP_THRESHOLDS: number[] = Array.from({ length: 151 }, (_, lvl) =>
   lvl <= 1 ? 0 : Math.floor(140 * (lvl - 1) + 1.08 * Math.pow(lvl - 1, 2))
 );
 
-// Cumulative XP needed for a given level (1 to 150)
 export function getXPForLevel(level: number): number {
   if (level <= 1) return 0;
   if (level >= 150) return XP_THRESHOLDS[150];
   return XP_THRESHOLDS[level];
 }
 
-// Calculate level (1 to 150) from cumulative XP via binary search (0 floating-point rounding errors)
 export function getLevelForXP(xp: number): number {
   if (xp <= 0) return 1;
   let low = 1;
@@ -71,7 +68,6 @@ export function getLevelForXP(xp: number): number {
   return ans;
 }
 
-// BroadcastChannel for cross-tab real-time synchronization ('fforum_sync')
 let syncBroadcastChannel: BroadcastChannel | null = null;
 try {
   if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -81,7 +77,6 @@ try {
   syncBroadcastChannel = null;
 }
 
-// Canonical empty seed arrays — production starts from zero real data
 const INITIAL_CHATS: ChatMessage[] = [];
 const INITIAL_QUESTIONS: Question[] = [];
 const INITIAL_SOLUTIONS: Solution[] = [];
@@ -89,15 +84,12 @@ const INITIAL_CLUBS: Club[] = [];
 const INITIAL_CLUB_POSTS: ClubPost[] = [];
 
 export function useForumStore() {
-  // First-time visitors are welcomed by the marketing landing page; returning
-  // students (or anyone with an active session) go straight into the product.
   const [currentView, setCurrentView] = useState<DimensionView>(() => {
     const hasSession = Boolean(safeStorage.getItem('fforum_current_user_email'));
     const hasSeenLanding = safeStorage.getItem('fforum_landing_seen') === 'true';
     return hasSession || hasSeenLanding ? 'home' : 'landing';
   });
 
-  // Persistent User Registry across real accounts
   const [users, setUsers] = useState<Record<string, User>>(() => {
     const saved = safeStorage.getItem('fforum_users_registry');
     if (saved) {
@@ -118,7 +110,6 @@ export function useForumStore() {
     return {};
   });
 
-  // Real Active User (Guest by default if no saved session)
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const savedEmail = safeStorage.getItem('fforum_current_user_email');
     if (savedEmail) {
@@ -139,7 +130,6 @@ export function useForumStore() {
     return null;
   });
 
-  // Real Clubs list (100% real, no hardcoded dummy bots)
   const [clubs, setClubs] = useState<Club[]>(() => {
     const saved = safeStorage.getItem('fforum_clubs');
     if (saved) {
@@ -153,7 +143,6 @@ export function useForumStore() {
     return INITIAL_CLUBS;
   });
 
-  // Real Club Posts
   const [clubPosts, setClubPosts] = useState<ClubPost[]>(() => {
     const saved = safeStorage.getItem('fforum_club_posts');
     if (saved) {
@@ -167,7 +156,6 @@ export function useForumStore() {
     return INITIAL_CLUB_POSTS;
   });
 
-  // Real Q&A Questions
   const [questions, setQuestions] = useState<Question[]>(() => {
     const saved = safeStorage.getItem('fforum_questions');
     if (saved) {
@@ -181,7 +169,6 @@ export function useForumStore() {
     return INITIAL_QUESTIONS;
   });
 
-  // Real Q&A Solutions
   const [solutions, setSolutions] = useState<Solution[]>(() => {
     const saved = safeStorage.getItem('fforum_solutions');
     if (saved) {
@@ -195,7 +182,6 @@ export function useForumStore() {
     return INITIAL_SOLUTIONS;
   });
 
-  // Real Chat Messages (starts empty [] on clean install)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
     const saved = safeStorage.getItem('fforum_chat_messages');
     if (saved) {
@@ -228,7 +214,6 @@ export function useForumStore() {
     type?: 'xp' | 'success' | 'level';
   } | null>(null);
 
-  // Dynamic Real Presence Subsystem
   const [onlineUsers, setOnlineUsers] = useState<OnlinePresenceUser[]>([]);
   const presenceMapRef = useRef<Map<string, { user: OnlinePresenceUser; lastSeen: number }>>(new Map());
   const activeWsRef = useRef<WebSocket | null>(null);
@@ -287,14 +272,12 @@ export function useForumStore() {
       }
     });
 
-    // Always guarantee self is present
     const self = getSelfPresenceRef.current();
     if (!active.some(u => u.id === self.id)) {
       active.unshift(self);
       presenceMapRef.current.set(self.id, { user: self, lastSeen: now });
     }
 
-    // Deduplicate by ID
     const unique = Array.from(new Map(active.map(u => [u.id, u])).values());
     setOnlineUsers(unique);
   }, []);
@@ -314,14 +297,12 @@ export function useForumStore() {
   const handleIncomingPresencePingRef = useRef(handleIncomingPresencePing);
   handleIncomingPresencePingRef.current = handleIncomingPresencePing;
 
-  // 15s Heartbeat Ping & 5s Pruning Engine
   useEffect(() => {
     const ping = () => {
       const payload = getSelfPresence();
       presenceMapRef.current.set(payload.id, { user: payload, lastSeen: Date.now() });
       recomputeOnlineUsers();
 
-      // 1. Cross-tab sync via BroadcastChannel
       try {
         syncBroadcastChannel?.postMessage({
           type: 'PRESENCE_PING',
@@ -331,7 +312,6 @@ export function useForumStore() {
         /* ignore */
       }
 
-      // 2. WebSocket / Server sync
       if (activeWsRef.current && activeWsRef.current.readyState === WebSocket.OPEN) {
         try {
           activeWsRef.current.send(JSON.stringify({ type: 'PRESENCE_PING', payload }));
@@ -355,10 +335,8 @@ export function useForumStore() {
       clearInterval(timer);
       clearInterval(pruneTimer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
-  // Sync to safeStorage
   useEffect(() => {
     if (currentUser) {
       safeStorage.setItem('fforum_current_user_email', currentUser.email.toLowerCase());
@@ -391,7 +369,6 @@ export function useForumStore() {
     safeStorage.setItem('fforum_chat_messages', JSON.stringify(chatMessages));
   }, [chatMessages]);
 
-  // Real About & Founder Spotlight Data
   const [aboutData, setAboutData] = useState<AboutData>(() => {
     return getSavedAboutData();
   });
@@ -401,7 +378,6 @@ export function useForumStore() {
   }, [aboutData]);
 
 
-  // Initial Server Sync & Polling Fallback across multiple devices
   useEffect(() => {
     let isMounted = true;
 
@@ -436,7 +412,6 @@ export function useForumStore() {
             }
 
 
-            // Rehydrate currentUser if session email exists
             const savedEmail = safeStorage.getItem('fforum_current_user_email');
             if (savedEmail && data.users && data.users[savedEmail.toLowerCase()]) {
               setCurrentUser(data.users[savedEmail.toLowerCase()]);
@@ -454,7 +429,6 @@ export function useForumStore() {
     };
   }, []);
 
-  // Multi-Device Real-Time Sync (WebSocket + SSE Fallback)
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -667,10 +641,8 @@ export function useForumStore() {
       }
       if (sse) sse.close();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // LocalStorage + BroadcastChannel Sync for Real-Time Cross-Tab synchronization
   useEffect(() => {
     if (!syncBroadcastChannel) return;
 
@@ -768,7 +740,6 @@ export function useForumStore() {
           break;
         }
         case 'USER_LOGOUT': {
-          // If another tab logged out the same user
           break;
         }
         case 'DELETE_QUESTION': {
@@ -806,10 +777,8 @@ export function useForumStore() {
     return () => {
       syncBroadcastChannel.removeEventListener('message', handleBroadcast);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Window StorageEvent Listener Fallback for cross-tab sync
   useEffect(() => {
     const handleStorageEvent = (e: StorageEvent) => {
       if (e.key === 'fforum_chat_messages' && e.newValue) {
@@ -864,7 +833,6 @@ export function useForumStore() {
     };
   }, []);
 
-  // Toast auto-clear
   useEffect(() => {
     if (toastMessage) {
       const timer = setTimeout(() => setToastMessage(null), 3500);
@@ -872,7 +840,6 @@ export function useForumStore() {
     }
   }, [toastMessage]);
 
-  // Register with Email and Password
   const registerWithPassword = async (name: string, email: string, password: string): Promise<User> => {
     const trimmedName = name.trim();
     const normalizedEmail = email.trim().toLowerCase();
@@ -917,7 +884,6 @@ export function useForumStore() {
     return user;
   };
 
-  // Login with Email and Password
   const loginWithPassword = async (email: string, password: string): Promise<User> => {
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -961,7 +927,6 @@ export function useForumStore() {
     return user;
   };
 
-  // Social Login / Auto-Register (Google or Facebook)
   const loginSocial = async (
     provider: 'google' | 'facebook',
     data: { name: string; email: string; avatar?: string }
@@ -989,7 +954,6 @@ export function useForumStore() {
       }
       result = json;
     } catch (err: any) {
-      // If network failure or server is offline, synthesize a compliant user object
       const errMsg = String(err?.message || '').toLowerCase();
       const isNetworkError =
         err?.name === 'TypeError' ||
@@ -1076,7 +1040,6 @@ export function useForumStore() {
     return user;
   };
 
-  // Legacy login adapter for compatibility
   const login = (
     provider: 'google' | 'facebook',
     data: { name: string; email: string; avatar?: string }
@@ -1090,7 +1053,6 @@ export function useForumStore() {
     });
   };
 
-  // Logout action
   const logout = () => {
     setCurrentUser(null);
     safeStorage.removeItem('f_forum_auth_token');
@@ -1110,12 +1072,9 @@ export function useForumStore() {
     });
   };
 
-  // Add XP and recalculate level (1..150)
   const addXP = (amount: number, targetUserEmail?: string) => {
     if (!currentUser && !targetUserEmail) return;
 
-    // Security & Anti-cheat: Regular users cannot manually grant XP.
-    // Only system-awarded targetUserEmail or Super Admin (anhtuantran0512@gmail.com) is authorized.
     if (!targetUserEmail && currentUser?.email !== 'anhtuantran0512@gmail.com') {
       return;
     }
@@ -1168,7 +1127,6 @@ export function useForumStore() {
         }
       }
 
-      // Sync to backend server
       fetch('/api/users/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1191,7 +1149,6 @@ export function useForumStore() {
     });
   };
 
-  // Update profile
   const updateProfile = (updates: Partial<User>) => {
     if (!currentUser) return;
     const emailKey = currentUser.email.toLowerCase();
@@ -1207,7 +1164,6 @@ export function useForumStore() {
       [emailKey]: updated,
     }));
 
-    // Cascade name & avatar update across existing authored content
     setQuestions(qList =>
       qList.map(q =>
         q.authorId === updated.id && !q.isAnonymous
@@ -1247,7 +1203,6 @@ export function useForumStore() {
     });
   };
 
-  // Create pending club
   const createClub = (clubData: {
     name: string;
     slogan: string;
@@ -1279,7 +1234,6 @@ export function useForumStore() {
 
     setClubs(prev => [newClub, ...prev]);
 
-    // Dispatch to server
     fetch('/api/clubs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1303,7 +1257,6 @@ export function useForumStore() {
     });
   };
 
-  // Approve Club (Admin only)
   const approveClub = (clubId: string) => {
     const club = clubs.find(c => c.id === clubId);
     if (!club) return;
@@ -1312,7 +1265,6 @@ export function useForumStore() {
       prev.map(c => (c.id === clubId ? { ...c, status: 'APPROVED' } : c))
     );
 
-    // Grant user scoped CLUB_LEADER role and award +250 XP
     setUsers(prev => {
       const nextUsers = { ...prev };
       const creatorKey = Object.keys(nextUsers).find(
@@ -1340,7 +1292,6 @@ export function useForumStore() {
       return nextUsers;
     });
 
-    // Dispatch to server
     fetch('/api/clubs/approve', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1364,7 +1315,6 @@ export function useForumStore() {
     });
   };
 
-  // Reject Club (Admin only)
   const rejectClub = (clubId: string, reason: string) => {
     setClubs(prev =>
       prev.map(c =>
@@ -1372,7 +1322,6 @@ export function useForumStore() {
       )
     );
 
-    // Dispatch to server
     fetch('/api/clubs/reject', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1396,7 +1345,6 @@ export function useForumStore() {
     });
   };
 
-  // Create Club Post
   const createClubPost = (clubId: string, title: string, content: string): boolean => {
     if (!currentUser) return false;
 
@@ -1426,7 +1374,6 @@ export function useForumStore() {
 
     setClubPosts(prev => [newPost, ...prev]);
 
-    // Dispatch to server
     fetch('/api/clubs/posts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1451,7 +1398,6 @@ export function useForumStore() {
     return true;
   };
 
-  // Create Question (+50 XP, bounty bet 10-100 Coin)
   const createQuestion = (data: {
     title: string;
     subject: SubjectTag;
@@ -1495,13 +1441,11 @@ export function useForumStore() {
 
     setQuestions(prev => [newQuestion, ...prev]);
 
-    // Deduct bountyCoin from author
     const updatedAuthorCoin = Math.max(0, (currentUser.coin ?? 100) - bountyCoin);
     const updatedAuthor = { ...currentUser, coin: updatedAuthorCoin };
     setCurrentUser(updatedAuthor);
     setUsers(prev => ({ ...prev, [currentUser.email.toLowerCase()]: updatedAuthor }));
 
-    // Dispatch to server
     fetch('/api/questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1520,7 +1464,6 @@ export function useForumStore() {
     addXP(50);
   };
 
-  // Add Solution (+25 XP)
   const addSolution = (questionId: string, content: string, imageUrl?: string) => {
     if (!currentUser) return;
 
@@ -1541,7 +1484,6 @@ export function useForumStore() {
 
     setSolutions(prev => [...prev, newSolution]);
 
-    // Dispatch to server
     fetch('/api/solutions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1571,7 +1513,6 @@ export function useForumStore() {
     addXP(25);
   };
 
-  // Mark Best Solution (+50% bounty + 100 Coin to solver)
   const markBestSolution = (questionId: string, solutionId: string) => {
     if (!currentUser) return;
     const question = questions.find(q => q.id === questionId);
@@ -1605,7 +1546,6 @@ export function useForumStore() {
       })
     );
 
-    // Award 50% bounty + 100 honorary Coin to solver
     const bounty = question.bountyCoin || 20;
     const solverCoinAward = Math.floor(bounty * 0.5) + 100;
     if (targetSolution && targetSolution.authorEmail) {
@@ -1619,7 +1559,6 @@ export function useForumStore() {
       });
     }
 
-    // Dispatch to server
     fetch('/api/solutions/best', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1648,7 +1587,6 @@ export function useForumStore() {
     });
   };
 
-  // Send Chat message with WebSocket and Server dispatch
   const sendChatMessage = (channelId: ChatChannelId, content: string) => {
     if (!currentUser) return;
 
@@ -1678,7 +1616,6 @@ export function useForumStore() {
       return [...prev, newMsg];
     });
 
-    // Dispatch to server
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1697,7 +1634,6 @@ export function useForumStore() {
     playChime('send');
   };
 
-  // Submit Feedback to Admin
   const submitFeedback = (data: {
     name: string;
     email: string;
@@ -1717,7 +1653,6 @@ export function useForumStore() {
     list.push(submission);
     safeStorage.setItem('fforum_feedbacks', JSON.stringify(list));
 
-    // Dispatch to server
     fetch('/api/feedback', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1732,7 +1667,6 @@ export function useForumStore() {
     });
   };
 
-  // Admin Delete Question
   const adminDeleteQuestion = async (questionId: string): Promise<boolean> => {
     if (!currentUser || currentUser.email !== 'anhtuantran0512@gmail.com') {
       alert('Chỉ Super Admin mới có quyền xóa bài viết!');
@@ -1770,7 +1704,6 @@ export function useForumStore() {
     return true;
   };
 
-  // Admin Edit Question
   const adminEditQuestion = async (
     questionId: string,
     updates: { title?: string; content?: string; subject?: SubjectTag }
@@ -1812,7 +1745,6 @@ export function useForumStore() {
     return true;
   };
 
-  // Admin Delete Solution
   const adminDeleteSolution = async (solutionId: string): Promise<boolean> => {
     if (!currentUser || currentUser.email !== 'anhtuantran0512@gmail.com') {
       alert('Chỉ Super Admin mới có quyền xóa phản hồi!');
@@ -1854,7 +1786,6 @@ export function useForumStore() {
     return true;
   };
 
-  // Admin Delete Chat Message
   const adminDeleteChatMessage = async (messageId: string): Promise<boolean> => {
     if (!currentUser || currentUser.email !== 'anhtuantran0512@gmail.com') {
       alert('Chỉ Super Admin mới có quyền thu hồi tin nhắn!');
@@ -1891,7 +1822,6 @@ export function useForumStore() {
     return true;
   };
 
-  // Admin Update About Data
   const adminUpdateAbout = async (newAboutData: AboutData): Promise<AboutData> => {
     if (!currentUser || currentUser.email !== 'anhtuantran0512@gmail.com') {
       alert('Chỉ Super Admin mới có quyền cập nhật Khu Vinh Danh!');

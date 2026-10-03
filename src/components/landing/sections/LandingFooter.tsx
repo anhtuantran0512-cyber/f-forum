@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 import { ArrowUpRight, Heart, Mail, ShieldCheck } from 'lucide-react';
 import { scrollToSection } from '../useLandingMotion';

@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState } from 'react';
 import { ArrowRight, HelpCircle, Minus, Plus } from 'lucide-react';
 import { Reveal, SectionHeading } from '../LandingPrimitives';

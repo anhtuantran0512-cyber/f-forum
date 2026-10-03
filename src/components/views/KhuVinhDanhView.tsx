@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   X,
@@ -233,7 +234,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 }) => {
   const isSuperAdmin = currentUser?.email?.toLowerCase() === 'anhtuantran0512@gmail.com';
 
-  // Founder Profile
   const [founderProfile, setFounderProfile] = useState<FounderProfileState>(() => {
     const saved = safeStorage.getItem('fforum_vinhdanh_founder');
     if (saved) {
@@ -252,7 +252,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     };
   });
 
-  // 21 Records
   const [records, setRecords] = useState<VinhDanhRecord[]>(() => {
     const saved = safeStorage.getItem('fforum_vinhdanh_records');
     if (saved) {
@@ -285,7 +284,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     cardsRef.current[idx] = el;
   };
 
-  // Splash loading screen timer (starts with Splash -> then reveals Intro Film)
   useEffect(() => {
     const splashTimer = setTimeout(() => {
       setIsSplashDone(true);
@@ -294,7 +292,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     return () => clearTimeout(splashTimer);
   }, []);
 
-  // Preload and decode all 21 stills verbatim
   useEffect(() => {
     INITIAL_VINHDANH_RECORDS.forEach((rec) => {
       const thumb = new Image();
@@ -305,7 +302,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     });
   }, []);
 
-  // Ensure intro film starts at frame 0 and plays at playbackRate = 2 once revealed
   useEffect(() => {
     if (isIntroFilmPlaying && filmVideoRef.current) {
       filmVideoRef.current.currentTime = 0;
@@ -314,7 +310,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     }
   }, [isIntroFilmPlaying]);
 
-  // Listen for real-time about updates via BroadcastChannel
   useEffect(() => {
     let bc: BroadcastChannel | null = null;
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -343,7 +338,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     };
   }, []);
 
-  // Admin Modals
   const [isEditRecordModalOpen, setIsEditRecordModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<VinhDanhRecord | null>(null);
   const [isEditBioModalOpen, setIsEditBioModalOpen] = useState(false);
@@ -351,7 +345,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
   const [adminModalTab, setAdminModalTab] = useState<'bio' | 'milestones'>('bio');
   const [adminSelectedMilestoneIdx, setAdminSelectedMilestoneIdx] = useState(0);
 
-  // DOM Refs
   const stageRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const headlineRef = useRef<HTMLHeadingElement>(null);
@@ -360,7 +353,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
   const filmVideoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 3D Camera Loop State
   const engineState = useRef({
     spin: 0,
     tilt: -4,
@@ -380,7 +372,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     hasFinePointer: true,
   });
 
-  // Reveal sequence: Fades out through #intro .veil and smoothly reveals 3D Fibonacci stage
   const finishIntroFilm = useCallback(() => {
     setIsIntroFading(true);
     setTimeout(() => {
@@ -393,7 +384,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     e.currentTarget.playbackRate = 2;
   }, []);
 
-  // Direct DOM style applier (does not trigger setState)
   const applyCardLayout = useCallback((R: number, cw: number) => {
     engineState.current.R = R;
     engineState.current.cw = cw;
@@ -417,7 +407,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     });
   }, [records]);
 
-  // RequestAnimationFrame Mathematical Camera Loop
   useEffect(() => {
     let animId: number;
 
@@ -441,7 +430,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       const state = engineState.current;
       const { R } = state;
 
-      // Momentum friction damping 0.94
       if (!state.isDragging && !activeLitRecord) {
         if (Math.abs(state.velX) > 0.002 || Math.abs(state.velY) > 0.002) {
           state.spin += state.velX;
@@ -449,12 +437,10 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
           state.velX *= 0.94;
           state.velY *= 0.94;
         } else {
-          // Slow ambient idle drift
           state.spin += 0.06;
         }
       }
 
-      // Scroll progress p = clamp(scrollY / (innerHeight * 0.16), 0, 1)
       const p = Math.max(0, Math.min(1, window.scrollY / (Math.max(1, window.innerHeight) * 0.16)));
       const camZTarget = p * Math.min(64, R * 0.12);
       state.camZ += (camZTarget + state.wheelCamZ - state.camZ) * 0.075;
@@ -463,19 +449,15 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       const sy = state.spin;
       const camZ = state.camZ;
 
-      // 1. World Transform: translateZ(camZ px) rotateY(sy deg) rotateX(sx deg) (NO translateX/Y)
       if (worldRef.current) {
         worldRef.current.style.transform = `translateZ(${camZ}px) rotateY(${sy}deg) rotateX(${sx}deg)`;
       }
 
-      // 2. Headline Transform: Strictly rotateX(-sx deg) rotateY(-sy deg) translateZ((R * 0.62) px)
-      // Keeps text square to camera and optically locked at sphere center
       if (headlineRef.current) {
         headlineRef.current.style.transform = `rotateX(${-sx}deg) rotateY(${-sy}deg) translateZ(${R * 0.62}px)`;
         headlineRef.current.style.opacity = Math.max(0, 1 - p * 0.55).toString();
       }
 
-      // 3. Per-card Unit Vector Depth Shading
       const sxRad = (sx * Math.PI) / 180;
       const syRad = (sy * Math.PI) / 180;
       const cosX = Math.cos(sxRad);
@@ -504,7 +486,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         cardEl.style.pointerEvents = zf < -0.2 ? 'none' : 'auto';
       });
 
-      // 4. Custom cursor #dot lerp
       if (dotRef.current && state.hasFinePointer) {
         const { mousePos, dotPos } = state;
         dotPos.x += (mousePos.x - dotPos.x) * 0.2;
@@ -523,7 +504,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     };
   }, [applyCardLayout, activeLitRecord]);
 
-  // Pointer drag controls (0.13 deg/pixel, pitch clamped within ±32°)
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (activeLitRecord) return;
     if (e.button !== 0) return;
@@ -553,7 +533,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     state.lastPointerX = e.clientX;
     state.lastPointerY = e.clientY;
 
-    // 0.13 deg/pixel
     state.velX = dx * 0.13;
     state.velY = -dy * 0.13;
 
@@ -576,17 +555,15 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     state.wheelCamZ = Math.max(-R * 0.35, Math.min(R * 0.5, state.wheelCamZ - e.deltaY * 0.2));
   };
 
-  // FLIP Lightbox Click
   const openLightbox = (record: VinhDanhRecord, e: React.MouseEvent<HTMLElement>) => {
     const state = engineState.current;
     const slop = Math.hypot(e.clientX - state.pointerStartX, e.clientY - state.pointerStartY);
-    if (slop > 10) return; // Ignore drag clicks
+    if (slop > 10) return;
 
     e.stopPropagation();
     setActiveLitRecord(record);
     setFullImgLoaded(false);
 
-    // Preload & decode full PNG still
     const fullImg = new Image();
     fullImg.src = record.customImgUrl || `${CDN_BASE}${record.imgId}.png`;
     fullImg.onload = () => setFullImgLoaded(true);
@@ -604,7 +581,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     setActiveLitRecord(null);
   };
 
-  // Admin In-Place Edit Record
   const handleOpenEditRecord = (rec: VinhDanhRecord) => {
     setEditingRecord({ ...rec });
     setIsEditRecordModalOpen(true);
@@ -650,7 +626,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     setIsEditRecordModalOpen(false);
   };
 
-  // Admin Edit Bio
   const handleSaveBio = (e: React.FormEvent) => {
     e.preventDefault();
     setFounderProfile(editBioForm);
@@ -659,7 +634,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     setIsEditBioModalOpen(false);
   };
 
-  // File Upload Helper
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isAvatar = false) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith('image/')) return;

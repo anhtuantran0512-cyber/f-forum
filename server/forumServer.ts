@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import fs from 'node:fs';
 import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -36,7 +37,6 @@ export interface ForumDataStore {
 }
 
 
-// XP thresholds matching forumStore.ts (Levels 1 to 150)
 const XP_THRESHOLDS: number[] = Array.from({ length: 151 }, (_, lvl) =>
   lvl <= 1 ? 0 : Math.floor(140 * (lvl - 1) + 1.08 * Math.pow(lvl - 1, 2))
 );
@@ -63,7 +63,6 @@ const DEFAULT_AVATAR = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/20
 const dataDir = path.resolve(process.cwd(), 'data');
 const dataFilePath = path.join(dataDir, 'forum-data.json');
 
-// In-memory store
 let store: ForumDataStore = {
   users: {
     'anhtuantran0512@gmail.com': {
@@ -131,7 +130,6 @@ let store: ForumDataStore = {
   },
 };
 
-// Load saved data from disk if present
 function loadStoreFromDisk() {
   try {
     if (fs.existsSync(dataFilePath)) {
@@ -156,7 +154,6 @@ function loadStoreFromDisk() {
   }
 }
 
-// Debounced save to disk
 let saveTimeout: NodeJS.Timeout | null = null;
 function persistStoreToDisk() {
   if (saveTimeout) clearTimeout(saveTimeout);
@@ -173,15 +170,12 @@ function persistStoreToDisk() {
   saveTimeout.unref();
 }
 
-// Connected clients
 const wsClients = new Set<WebSocket>();
 const sseClients = new Set<ServerResponse>();
 
-// Broadcast helper: sends event to all active WS and SSE clients
 export function broadcastServerEvent(type: string, payload: any) {
   const eventMessage = JSON.stringify({ type, payload, timestamp: Date.now() });
 
-  // 1. WebSocket Broadcast
   for (const client of wsClients) {
     if (client.readyState === WebSocket.OPEN) {
       try {
@@ -192,7 +186,6 @@ export function broadcastServerEvent(type: string, payload: any) {
     }
   }
 
-  // 2. Server-Sent Events Broadcast
   for (const res of sseClients) {
     try {
       res.write(`data: ${eventMessage}\n\n`);
@@ -202,13 +195,11 @@ export function broadcastServerEvent(type: string, payload: any) {
   }
 }
 
-// Helper to parse JSON body from incoming HTTP request
 function parseJsonBody(req: IncomingMessage): Promise<any> {
   return new Promise((resolve, reject) => {
     let body = '';
     req.on('data', chunk => {
       body += chunk;
-      // Safeguard against oversized payloads (>2MB)
       if (body.length > 2 * 1024 * 1024) {
         req.destroy();
         reject(new Error('Payload too large'));
@@ -225,7 +216,6 @@ function parseJsonBody(req: IncomingMessage): Promise<any> {
   });
 }
 
-// Send JSON response helper
 function sendJson(res: ServerResponse, statusCode: number, data: any) {
   res.statusCode = statusCode;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -238,11 +228,9 @@ function sendJson(res: ServerResponse, statusCode: number, data: any) {
 export function setupForumServer(httpServer: any, middlewares: any) {
   loadStoreFromDisk();
 
-  // Reset transient test student credentials for idempotent test suite execution
   delete store.users['hocsinhmoi@fpt.edu.vn'];
   delete store.passwords['hocsinhmoi@fpt.edu.vn'];
 
-  // 1. Setup WebSocket server if httpServer is available
   if (httpServer) {
     const wss = new WebSocketServer({ noServer: true });
 
@@ -258,7 +246,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     wss.on('connection', (ws) => {
       wsClients.add(ws);
 
-      // Send initial heartbeat acknowledgment
       ws.send(JSON.stringify({ type: 'WS_CONNECTED', payload: { clientCount: wsClients.size } }));
 
       ws.on('message', (messageRaw) => {
@@ -290,7 +277,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
             case 'NEW_QUESTION': {
               if (payload && payload.id) {
                 store.questions.unshift(payload);
-                // Credit +50 XP if user exists
                 const user = Object.values(store.users).find(u => u.id === payload.authorId);
                 if (user) {
                   user.xp += 50;
@@ -306,7 +292,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
             case 'NEW_SOLUTION': {
               if (payload && payload.id) {
                 store.solutions.push(payload);
-                // Credit +25 XP
                 const user = Object.values(store.users).find(u => u.id === payload.authorId);
                 if (user) {
                   user.xp += 25;
@@ -457,7 +442,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       });
     });
 
-    // Periodic WS ping to prevent timeout behind proxies
     const wsPingTimer = setInterval(() => {
       for (const client of wsClients) {
         if (client.readyState === WebSocket.OPEN) {
@@ -481,12 +465,10 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     });
   }
 
-  // 2. Setup HTTP API and SSE Middlewares
   middlewares.use(async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     const url = req.url || '';
     const method = req.method || 'GET';
 
-    // Handle CORS preflight
     if (method === 'OPTIONS' && url.startsWith('/api/')) {
       res.statusCode = 204;
       res.setHeader('Access-Control-Allow-Origin', '*');
@@ -496,7 +478,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // Server-Sent Events stream
     if (method === 'GET' && url.startsWith('/api/events')) {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
@@ -511,7 +492,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         sseClients.delete(res);
       });
 
-      // Keep-alive heartbeat comment every 20 seconds
       const heartbeat = setInterval(() => {
         try {
           res.write(':keepalive\n\n');
@@ -524,7 +504,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // Full Forum Sync endpoint
     if (method === 'GET' && url.startsWith('/api/sync')) {
       sendJson(res, 200, {
         success: true,
@@ -542,7 +521,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // Chat Message endpoint
     if (method === 'POST' && url === '/api/chat') {
       try {
         const body = await parseJsonBody(req);
@@ -579,7 +557,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // Dynamic Presence Ping endpoint
     if (method === 'POST' && url === '/api/presence') {
       try {
         const body = await parseJsonBody(req);
@@ -593,7 +570,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // Questions endpoint
     if (method === 'POST' && url === '/api/questions') {
       try {
         const body = await parseJsonBody(req);
@@ -618,7 +594,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
         store.questions.unshift(newQuestion);
 
-        // Deduct bountyCoin & credit +50 XP
         if (body.authorEmail && store.users[body.authorEmail.toLowerCase()]) {
           const user = store.users[body.authorEmail.toLowerCase()];
           user.coin = Math.max(0, (user.coin ?? 100) - bountyCoin);
@@ -637,7 +612,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // Solutions endpoint
     if (method === 'POST' && url === '/api/solutions') {
       try {
         const body = await parseJsonBody(req);
@@ -658,7 +632,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
         store.solutions.push(newSolution);
 
-        // Credit +25 XP
         if (body.authorEmail && store.users[body.authorEmail.toLowerCase()]) {
           const user = store.users[body.authorEmail.toLowerCase()];
           user.xp += 25;
@@ -676,7 +649,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // Mark Best Solution endpoint
     if (method === 'POST' && url === '/api/solutions/best') {
       try {
         const body = await parseJsonBody(req);
@@ -729,7 +701,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // Register User endpoint
     if (method === 'POST' && url === '/api/auth/register') {
       try {
         const body = await parseJsonBody(req);
@@ -806,7 +777,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // Login User endpoint
     if (method === 'POST' && url === '/api/auth/login') {
       try {
         const body = await parseJsonBody(req);
@@ -841,7 +811,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // Social Login / Auto-Register endpoint (Google / Facebook)
     if (method === 'POST' && url === '/api/auth/social') {
       try {
         const body = await parseJsonBody(req);
@@ -857,7 +826,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
         let user = store.users[email];
         if (!user) {
-          // Auto register new account
           const isSuperAdmin = email === 'anhtuantran0512@gmail.com';
           user = isSuperAdmin
             ? {
@@ -938,7 +906,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // Feedback endpoint
     if (method === 'POST' && url === '/api/feedback') {
       try {
         const body = await parseJsonBody(req);
@@ -982,7 +949,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // Reports endpoint (Report Account forwarded to Super Admin)
     if (method === 'POST' && url === '/api/reports') {
       try {
         const body = await parseJsonBody(req);
@@ -1029,7 +995,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // User updates endpoint
     if (method === 'POST' && url === '/api/users/update') {
       try {
         const body = await parseJsonBody(req);
@@ -1048,7 +1013,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // GET About data endpoint
     if (method === 'GET' && url.startsWith('/api/admin/about')) {
       sendJson(res, 200, {
         success: true,
@@ -1058,7 +1022,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // POST About data endpoint (Admin only)
     if (method === 'POST' && url === '/api/admin/about') {
       try {
         const body = await parseJsonBody(req);
@@ -1082,7 +1045,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // POST Delete Question (Admin only)
     if (method === 'POST' && url === '/api/questions/delete') {
       try {
         const body = await parseJsonBody(req);
@@ -1107,7 +1069,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // POST Edit Question (Admin only)
     if (method === 'POST' && url === '/api/questions/edit') {
       try {
         const body = await parseJsonBody(req);
@@ -1134,7 +1095,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // POST Delete Solution (Admin only)
     if (method === 'POST' && url === '/api/solutions/delete') {
       try {
         const body = await parseJsonBody(req);
@@ -1161,7 +1121,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
-    // POST Delete Chat Message (Admin only)
     if (method === 'POST' && url === '/api/chat/delete') {
       try {
         const body = await parseJsonBody(req);

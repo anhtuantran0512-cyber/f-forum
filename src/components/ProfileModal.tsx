@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useMemo } from 'react';
 import {
   X,
@@ -62,7 +63,6 @@ const ProfileModalInner: React.FC<{
   const [shopFilter, setShopFilter] = useState<'all' | ShopTierColor>('all');
   const [activitySubTab, setActivitySubTab] = useState<'questions' | 'solutions'>('questions');
 
-  // Edit form states
   const [name, setName] = useState(currentUser.name);
   const [avatar, setAvatar] = useState(currentUser.avatar);
   const [bio, setBio] = useState(currentUser.bio || '');
@@ -76,7 +76,6 @@ const ProfileModalInner: React.FC<{
   const isOwnProfile = !viewerUser || viewerUser.id === currentUser.id;
   const tier = getTierForLevel(currentUser.level);
 
-  // User Coin & Inventory
   const userCoin =
     currentUser.coin ?? (isSuperAdmin ? 99999 : 100);
   const userInventory = useMemo(
@@ -84,7 +83,6 @@ const ProfileModalInner: React.FC<{
     [currentUser.inventory]
   );
 
-  // User questions & solutions
   const userQuestions = useMemo(
     () => questions.filter((q) => q.authorId === currentUser.id),
     [questions, currentUser.id]
@@ -94,7 +92,6 @@ const ProfileModalInner: React.FC<{
     [solutions, currentUser.id]
   );
 
-  // 6 Metrics calculation
   const statsMetrics = useMemo(() => {
     const thanks =
       currentUser.stats?.thanksCount ??
@@ -122,7 +119,6 @@ const ProfileModalInner: React.FC<{
     };
   }, [currentUser, userSolutions, userCoin, isSuperAdmin]);
 
-  // 6-Axis Radar Spider Chart setup
   const radarAxes = useMemo(() => {
     const disciplines = [
       { name: 'KHTN', full: 'Tự Nhiên', tags: ['toan', 'ly', 'hoa', 'sinh'] },
@@ -187,7 +183,6 @@ const ProfileModalInner: React.FC<{
     return { level, points };
   });
 
-  // Shop actions
   const handleBuyItem = (item: ShopItem) => {
     if (userCoin < item.price) return;
     const newCoin = userCoin - item.price;
@@ -223,7 +218,6 @@ const ProfileModalInner: React.FC<{
     });
   };
 
-  // Avatar upload with size verification (< 5MB)
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;

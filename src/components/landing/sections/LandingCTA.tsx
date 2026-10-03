@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState } from 'react';
 import { ArrowRight, CheckCircle2, Loader2, Mail, Sparkles } from 'lucide-react';
 import { AuroraBackdrop, MagneticButton, Reveal } from '../LandingPrimitives';
@@ -22,7 +23,6 @@ export const LandingCTA: React.FC<LandingCTAProps> = ({ onOpenAuth }) => {
     }
     setStatus('loading');
     setMessage('');
-    // Front-end only demo: simulate the waitlist handshake.
     window.setTimeout(() => {
       setStatus('done');
       setMessage('Đã ghi danh! Ban Quản Trị sẽ gửi lời mời tham gia sớm nhất có thể.');

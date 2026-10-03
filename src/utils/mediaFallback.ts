@@ -1,6 +1,6 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 
-// Elegant SVG fallback avatar encoded as vector data URI (works completely offline)
 export const DEFAULT_AVATAR =
   'data:image/svg+xml;utf8,' +
   encodeURIComponent(
@@ -11,7 +11,6 @@ export const DEFAULT_AVATAR =
     </svg>`
   );
 
-// Elegant SVG fallback cover image for clubs encoded as vector data URI
 export const DEFAULT_CLUB_COVER =
   'data:image/svg+xml;utf8,' +
   encodeURIComponent(
@@ -29,19 +28,17 @@ export const DEFAULT_CLUB_COVER =
     </svg>`
   );
 
-// Safe image error handler preventing infinite loops
 export function handleImageError(
   e: React.SyntheticEvent<HTMLImageElement>,
   fallbackSrc: string = DEFAULT_AVATAR
 ) {
   const target = e.currentTarget;
   if (target.src !== fallbackSrc) {
-    target.onerror = null; // Prevent infinite error loops
+    target.onerror = null;
     target.src = fallbackSrc;
   }
 }
 
-// Safe video error handler
 export function handleVideoError(e: React.SyntheticEvent<HTMLVideoElement>) {
   const target = e.currentTarget;
   target.onerror = null;

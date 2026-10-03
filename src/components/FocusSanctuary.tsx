@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
@@ -34,7 +35,7 @@ const FocusSanctuaryInner: React.FC<{
   onRewardXP?: (amount: number) => void;
 }> = ({ onClose, onRewardXP }) => {
   const [timerMode, setTimerMode] = useState<'work' | 'break'>('work');
-  const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 min default
+  const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [completedSessions, setCompletedSessions] = useState(0);
 
@@ -50,7 +51,6 @@ const FocusSanctuaryInner: React.FC<{
   });
   const [copied, setCopied] = useState(false);
 
-  // Audio start on mount and stop on unmount
   useEffect(() => {
     startFocusLofiAmbient();
     return () => {
@@ -58,24 +58,21 @@ const FocusSanctuaryInner: React.FC<{
     };
   }, []);
 
-  // Persist notes
   useEffect(() => {
     safeStorage.setItem('fforum_focus_scratchpad', notes);
   }, [notes]);
 
-  // Timer interval countdown
   useEffect(() => {
     if (!isRunning) return;
 
     const interval = setInterval(() => {
       const current = timeLeftRef.current;
       if (current <= 1) {
-        // Session finished
         playChime('level-up');
         if (timerMode === 'work') {
           setCompletedSessions(s => s + 1);
           if (onRewardXP) {
-            onRewardXP(25); // +25 XP upon completed Pomodoro study
+            onRewardXP(25);
           }
           setTimerMode('break');
           const nextDuration = 5 * 60;
@@ -127,7 +124,6 @@ const FocusSanctuaryInner: React.FC<{
         await audioCtxRef.current.resume();
       }
     } catch {
-      // AudioContext resume catch
     }
     if (isAudioPlaying) {
       stopFocusLofiAmbient();
@@ -148,7 +144,6 @@ const FocusSanctuaryInner: React.FC<{
           setTimeout(() => setCopied(false), 2000);
         })
         .catch(() => {
-          // Gracefully handle clipboard write restrictions
         });
     }
   };

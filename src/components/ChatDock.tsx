@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
@@ -102,17 +103,14 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     }
   };
 
-  // Filter messages for active channel
   const currentMessages = messages.filter(m => m.channelId === activeChannel);
 
-  // Auto scroll to bottom on new message
   useEffect(() => {
     if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, activeChannel, isOpen]);
 
-  // Cooldown countdown timer (2.0s anti-spam)
   useEffect(() => {
     if (cooldownRemaining > 0) {
       const interval = setInterval(() => {
@@ -126,7 +124,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     if (!inputText.trim() || cooldownRemaining > 0 || !currentUser) return;
     onSendMessage(activeChannel, inputText.trim());
     setInputText('');
-    setCooldownRemaining(2000); // 2.0s anti-spam
+    setCooldownRemaining(2000);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

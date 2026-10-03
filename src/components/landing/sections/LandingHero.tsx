@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowRight, Check, ChevronDown, MousePointerClick, Play, Sparkles, Star } from 'lucide-react';
 import { AppWindowMock } from '../LandingMocks';
@@ -66,7 +67,6 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
     }
   }, [reduced]);
 
-  // Parallax is written straight to the DOM so scrolling never re-renders the mock.
   useEffect(() => {
     let frame = 0;
     const update = () => {
@@ -95,7 +95,6 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
     };
   }, []);
 
-  // Cursor-tracked spotlight for the hero backdrop.
   const handlePointer = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
       const node = sectionRef.current;

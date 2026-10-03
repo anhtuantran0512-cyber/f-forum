@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import type { ShopItem, ShopTierColor } from '../types';
 
 export const SHOP_ITEMS: ShopItem[] = [

@@ -1,4 +1,4 @@
-// Web Audio API generator for offline ambient binaural drone and interactive chimes
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 
 let audioCtx: AudioContext | null = null;
 let ambientGain: GainNode | null = null;
@@ -22,7 +22,6 @@ export function getAudioContext(preferredCtx?: AudioContext | null): AudioContex
     }
     if (audioCtx && audioCtx.state === 'suspended') {
       audioCtx.resume().catch(() => {
-        // Gracefully ignore gesture policy restrictions
       });
     }
     return audioCtx;
@@ -42,7 +41,6 @@ export function toggleAmbientAudio(preferredCtx?: AudioContext | null): boolean 
     }
 
     if (isAmbientPlaying) {
-      // Fade out and stop
       const oscsToStop = [...ambientOscillators];
       const gainToStop = ambientGain;
       ambientOscillators = [];
@@ -58,7 +56,6 @@ export function toggleAmbientAudio(preferredCtx?: AudioContext | null): boolean 
             osc.stop();
             osc.disconnect();
           } catch {
-            // ignore
           }
         });
         if (ambientGain === gainToStop) {
@@ -69,14 +66,12 @@ export function toggleAmbientAudio(preferredCtx?: AudioContext | null): boolean 
       isAmbientPlaying = false;
       return false;
     } else {
-      // Start lush 432Hz binaural drone with sub-harmonics
       const gain = ctx.createGain();
       gain.gain.setValueAtTime(0.0001, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 2);
       gain.connect(ctx.destination);
       ambientGain = gain;
 
-      // Binaural frequencies: 108Hz (left-ish), 114Hz (right-ish: 6Hz theta wave), 216Hz, 432Hz harmonic
       const freqs = [108, 114, 216, 324, 432];
       ambientOscillators = freqs.map((f, i) => {
         const osc = ctx.createOscillator();
@@ -113,7 +108,6 @@ export function isAmbientActive(): boolean {
   return isAmbientPlaying;
 }
 
-// Cyberpunk Lofi Ambient Audio Generator for Focus Sanctuary Mode
 let focusGain: GainNode | null = null;
 let focusOscillators: OscillatorNode[] = [];
 let focusInterval: ReturnType<typeof setInterval> | null = null;
@@ -138,7 +132,6 @@ export function startFocusLofiAmbient(preferredCtx?: AudioContext | null): boole
     master.connect(ctx.destination);
     focusGain = master;
 
-    // Sub-binaural theta drone (108Hz & 114Hz)
     const baseFreqs = [54, 108, 114, 216];
     focusOscillators = baseFreqs.map((freq, i) => {
       const osc = ctx.createOscillator();
@@ -153,12 +146,11 @@ export function startFocusLofiAmbient(preferredCtx?: AudioContext | null): boole
       return osc;
     });
 
-    // Cyberpunk Lofi Minor Chord Pad Arp (Dm9 / Fmaj7 cycling warmly)
     const chordProgression = [
-      [146.83, 220.0, 261.63, 329.63], // Dm9 (D3, A3, C4, E4)
-      [130.81, 196.0, 246.94, 329.63], // Cmaj7/G (C3, G3, B3, E4)
-      [116.54, 174.61, 220.0, 261.63], // Bbmaj7 (Bb2, F3, A3, C4)
-      [130.81, 164.81, 196.0, 246.94], // Em7b5 (C3, E3, G3, B3)
+      [146.83, 220.0, 261.63, 329.63],
+      [130.81, 196.0, 246.94, 329.63],
+      [116.54, 174.61, 220.0, 261.63],
+      [130.81, 164.81, 196.0, 246.94],
     ];
     let chordIndex = 0;
 
@@ -235,7 +227,6 @@ export function stopFocusLofiAmbient(): void {
           osc.stop();
           osc.disconnect();
         } catch {
-          // ignore
         }
       });
       if (focusGain === gainToStop) {
@@ -263,7 +254,6 @@ export function isFocusLofiActive(): boolean {
   return isFocusLofiPlaying;
 }
 
-// Play melodic chime for XP gains and achievements
 export function playChime(type: 'xp' | 'level-up' | 'success' | 'send' = 'xp') {
   try {
     const ctx = getAudioContext();
@@ -274,8 +264,7 @@ export function playChime(type: 'xp' | 'level-up' | 'success' | 'send' = 'xp') {
     master.connect(ctx.destination);
 
   if (type === 'xp') {
-    // 2-tone bright rising chime
-    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+    const notes = [523.25, 659.25, 783.99];
     notes.forEach((freq, idx) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -290,7 +279,6 @@ export function playChime(type: 'xp' | 'level-up' | 'success' | 'send' = 'xp') {
       osc.stop(now + idx * 0.07 + 0.55);
     });
   } else if (type === 'level-up') {
-    // Triumphant chord fanfare
     const chord = [440, 554.37, 659.25, 880, 1108.73];
     chord.forEach((freq, idx) => {
       const osc = ctx.createOscillator();
@@ -318,7 +306,6 @@ export function playChime(type: 'xp' | 'level-up' | 'success' | 'send' = 'xp') {
     osc.start(now);
     osc.stop(now + 0.16);
   } else {
-    // success pleasant chime
     const notes = [659.25, 987.77];
     notes.forEach((freq, idx) => {
       const osc = ctx.createOscillator();
@@ -335,6 +322,5 @@ export function playChime(type: 'xp' | 'level-up' | 'success' | 'send' = 'xp') {
     });
   }
   } catch {
-    // Ignore any audio API playback restrictions
   }
 }

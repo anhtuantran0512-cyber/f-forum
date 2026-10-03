@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect } from 'react';
 import {
   Search,
@@ -88,7 +89,6 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
     return () => clearInterval(timer);
   }, [postCooldown]);
 
-  // New Club Form State
   const [newClubName, setNewClubName] = useState('');
   const [newSlogan, setNewSlogan] = useState('');
   const [newCover, setNewCover] = useState('');
@@ -96,13 +96,11 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   const [newFounders, setNewFounders] = useState('');
   const [newPurpose, setNewPurpose] = useState('');
 
-  // New Post inside Club detail state
   const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
 
   const isSuperAdmin = currentUser?.email === 'anhtuantran0512@gmail.com';
 
-  // Filter approved clubs for public view by Category + Search
   const approvedClubs = clubs.filter(
     c =>
       c.status === 'APPROVED' &&
@@ -112,10 +110,8 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
         c.purpose.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Pending clubs for Super Admin board
   const pendingClubs = clubs.filter(c => c.status === 'PENDING');
 
-  // Calculate dynamic Best Club of the Month based on real interaction counts
   const clubScores = approvedClubs.map(club => {
     const postCount = clubPosts.filter(p => p.clubId === club.id).length;
     const msgCount = chatMessages.filter(
@@ -142,7 +138,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
       return;
     }
 
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       setCoverUploadError(
         `Kích thước file (${(file.size / (1024 * 1024)).toFixed(2)}MB) vượt quá giới hạn 5MB!`
@@ -203,7 +199,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
     setNewPurpose('');
     setIsCreateModalOpen(false);
     setIsSubmittingClub(false);
-    setCreateCooldown(5); // 5-second anti-spam lock
+    setCreateCooldown(5);
   };
 
   const handleNewPost = (clubId: string) => {
@@ -215,12 +211,11 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
     if (ok) {
       setPostTitle('');
       setPostContent('');
-      setPostCooldown(3); // 3-second anti-spam lock
+      setPostCooldown(3);
     }
     setIsSubmittingPost(false);
   };
 
-  // 3D Card tilt helper
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const card = e.currentTarget;
     const rect = card.getBoundingClientRect();

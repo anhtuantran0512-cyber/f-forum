@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import './MemoryRealm.css';
 
@@ -68,14 +69,12 @@ const ORIGINAL_SIGHTS_DATA: LocalizedSightCard[] = [
   },
 ];
 
-// Cloned original 5 cards into 3 sets (15 cards total)
 const ALL_SIGHT_CARDS: LocalizedSightCard[] = [
   ...ORIGINAL_SIGHTS_DATA,
   ...ORIGINAL_SIGHTS_DATA,
   ...ORIGINAL_SIGHTS_DATA,
 ];
 
-// Calculation Helpers
 const clamp = (v: number, min = 0, max = 1) => Math.min(max, Math.max(min, v));
 const smoothstep = (e0: number, e1: number, v: number) => {
   const x = clamp((v - e0) / (e1 - e0));
@@ -100,7 +99,6 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
   const [language, setLanguage] = useState<'VIE' | 'ENG'>('VIE');
   const isTransitioningRef = useRef(false);
 
-  // Math scrub engine
   useEffect(() => {
     let currentSmoothScroll = 0;
     let targetScroll = 0;
@@ -129,7 +127,6 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
       }
       const smoothScroll = currentSmoothScroll;
 
-      // Scrub math
       const frame2 = segmentInOut(smoothScroll, 560, 900, 1300, 1620);
       const frame3 = segmentInOut(smoothScroll, 1760, 2140, 2540, 2700);
       const progress = clamp(smoothScroll / 2700);
@@ -201,7 +198,6 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
         el.style.setProperty('--sights-screen-top', `${sightsScreenTop.toFixed(2)}px`);
       }
 
-      // Fast class toggle without triggering React re-renders in RAF loop
       if (controlsRef.current) {
         if (sightsControlsEnter > 0.7) {
           controlsRef.current.classList.add('is-ready');
@@ -217,7 +213,6 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
     return () => cancelAnimationFrame(rafId);
   }, []);
 
-  // Subtle 3D mouse parallax tracking
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!sectionRef.current) return;
@@ -230,7 +225,6 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  // Card layout measurement in unscaled local coordinate space
   const getCardStep = useCallback(() => {
     if (!trackRef.current) return 400;
     const cards = trackRef.current.querySelectorAll('.sight-card');
@@ -240,7 +234,6 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
       const delta = el1.offsetLeft - el0.offsetLeft;
       if (delta > 50) return delta;
     }
-    // Fallback based on CSS specifications
     if (typeof window !== 'undefined') {
       if (window.innerWidth <= 640) {
         return Math.min(window.innerWidth * 0.82, 330) + 16;
@@ -263,7 +256,6 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
     updateSliderShift(activeSight);
   }, [activeSight, updateSliderShift]);
 
-  // Window resize handler with instantaneous realignment (no 640ms transition delay)
   useEffect(() => {
     const handleResize = () => {
       const track = trackRef.current;
@@ -283,7 +275,6 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
     return () => window.removeEventListener('resize', handleResize);
   }, [activeSight, isJumping, updateSliderShift]);
 
-  // Infinite slider navigation with bounded clicking and transition protection
   const moveSightSlider = (delta: number) => {
     if (isJumping || isTransitioningRef.current) return;
     isTransitioningRef.current = true;
@@ -291,13 +282,11 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
       const next = prev + delta;
       return Math.max(1, Math.min(13, next));
     });
-    // Safety timeout in case transitionend does not fire
     setTimeout(() => {
       isTransitioningRef.current = false;
     }, 700);
   };
 
-  // Seamless zero-flicker infinite jump using synchronous DOM manipulation
   const handleTransitionEnd = (e: React.TransitionEvent<HTMLDivElement>) => {
     if (e.target !== trackRef.current || (e.propertyName && e.propertyName !== 'transform')) return;
     isTransitioningRef.current = false;
@@ -308,22 +297,17 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
     if (activeSight >= 10 || activeSight < 5) {
       const reset = activeSight >= 10 ? activeSight - 5 : activeSight + 5;
 
-      // 1. Immediately disable transition directly on DOM
       track.classList.add('is-jumping');
       setIsJumping(true);
 
-      // 2. Force computed style recalculation
       void track.offsetHeight;
 
-      // 3. Reposition track synchronously while transition is none
       const step = getCardStep();
       sectionRef.current.style.setProperty('--sights-shift', `${-reset * step}px`);
       void track.offsetHeight;
 
-      // 4. Update React state to match reset position
       setActiveSight(reset);
 
-      // 5. Re-enable transition in next frame
       requestAnimationFrame(() => {
         track.classList.remove('is-jumping');
         setIsJumping(false);
@@ -331,7 +315,6 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
     }
   };
 
-  // Document-relative smooth scroll navigation
   const scrollToScrubPoint = (e: React.MouseEvent, scrubPx: number) => {
     e.preventDefault();
     if (!sectionRef.current) return;

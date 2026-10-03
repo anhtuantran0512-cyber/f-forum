@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Search,
@@ -141,7 +142,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [solCooldown, setSolCooldown] = useState(0);
   const [isSubmittingSol, setIsSubmittingSol] = useState(false);
 
-  // Admin Moderation States
   const [questionToDelete, setQuestionToDelete] = useState<Question | null>(null);
   const [questionToEdit, setQuestionToEdit] = useState<Question | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -216,7 +216,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     return () => clearInterval(timer);
   }, [solCooldown]);
 
-  // Automatic ambient timer
   useEffect(() => {
     if (!isAutoCycle) return;
     const interval = setInterval(() => {
@@ -225,7 +224,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     return () => clearInterval(interval);
   }, [isAutoCycle]);
 
-  // New Question Form
   const [newTitle, setNewTitle] = useState('');
   const [newSubject, setNewSubject] = useState<SubjectTag>('toan');
   const [newContent, setNewContent] = useState('');
@@ -234,7 +232,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [askImage, setAskImage] = useState<string | null>(null);
   const [askImageError, setAskImageError] = useState<string | null>(null);
 
-  // Ghibli disguise preview when anonymous toggled
   const previewAlias = useMemo(
     () => (isAnonymous ? generateGhibliAlias(newSubject) : ''),
     [isAnonymous, newSubject]
@@ -244,12 +241,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     [isAnonymous, newSubject]
   );
 
-  // New Solution Form inside detail view
   const [solutionText, setSolutionText] = useState('');
   const [solImage, setSolImage] = useState<string | null>(null);
   const [solImageError, setSolImageError] = useState<string | null>(null);
 
-  // Author mini-profile popover
   const [activeAuthorPopover, setActiveAuthorPopover] = useState<{
     id: string;
     name: string;
@@ -259,7 +254,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     coin?: number;
   } | null>(null);
 
-  // Report Account Modal
   const [reportModalUser, setReportModalUser] = useState<{ id: string; name: string } | null>(null);
   const [reportReason, setReportReason] = useState<string>('Toxic / Gây war / Xúc phạm bạn học');
   const [reportDetails, setReportDetails] = useState<string>('');
@@ -278,7 +272,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       e.target.value = '';
       return;
     }
-    const maxSize = 20 * 1024 * 1024; // 20MB
+    const maxSize = 20 * 1024 * 1024;
     if (file.size > maxSize) {
       setError(`Kích thước ảnh (${(file.size / (1024 * 1024)).toFixed(1)}MB) vượt quá giới hạn cho phép 20MB!`);
       e.target.value = '';
@@ -332,7 +326,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     }
   };
 
-  // Filter questions
   const filteredQuestions = questions.filter(q => {
     const matchesTag = selectedTag === 'all' || q.subject === selectedTag;
     const matchesSearch =
@@ -374,7 +367,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     setIsAnonymous(false);
     setIsAskModalOpen(false);
     setIsSubmittingAsk(false);
-    setAskCooldown(5); // 5-second anti-spam cooldown lock
+    setAskCooldown(5);
   };
 
   const handleSolutionSubmit = (questionId: string) => {
@@ -392,7 +385,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     setSolImage(null);
     setSolImageError(null);
     setIsSubmittingSol(false);
-    setSolCooldown(3); // 3-second anti-spam cooldown lock
+    setSolCooldown(3);
   };
 
   return (
@@ -1112,7 +1105,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     const isSuperAdminSolver = sol.authorEmail?.toLowerCase() === 'anhtuantran0512@gmail.com';
                     const solverName = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.name : sol.authorName;
                     const solverAvatar = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.avatar : sol.authorAvatar;
-                    // HOIDAP247 confirmation button permission check
                     const canConfirmBest =
                       isSuperAdmin || currentUser?.id === selectedQuestion.authorId;
 

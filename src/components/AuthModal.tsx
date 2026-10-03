@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState } from 'react';
 import { X, Mail, User as UserIcon, LogIn, UserPlus, Lock, CheckCircle, AlertCircle } from 'lucide-react';
 import type { User } from '../types';
@@ -32,7 +33,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>(initialTab);
 
-  // Form states
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
@@ -41,7 +41,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
 
-  // Graceful Dev Fallback Modal State (activated only when OAuth env variables are unconfigured)
   const [fallbackProvider, setFallbackProvider] = useState<'google' | 'facebook' | null>(null);
   const [fallbackCustomName, setFallbackCustomName] = useState('');
   const [fallbackCustomEmail, setFallbackCustomEmail] = useState('');
@@ -84,12 +83,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // 1. Native Google OAuth 2.0 Popup Trigger
   const handleGoogleAuth = async () => {
     setErrorMsg(null);
 
     if (!isGoogleConfigured()) {
-      // Graceful fallback prompt notifying developer/tester of unconfigured credentials
       setFallbackProvider('google');
       return;
     }
@@ -100,7 +97,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       await handleExecuteSocialLogin('google', profile);
     } catch (err: any) {
       if (err.message === 'POPUP_CLOSED') {
-        // User closed the popup window without completing
         return;
       }
       if (err.message === 'MISSING_GOOGLE_CLIENT_ID' || err.message === 'GOOGLE_SDK_UNAVAILABLE') {
@@ -113,12 +109,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // 2. Native Meta Facebook Login SDK Popup Trigger
   const handleFacebookAuth = async () => {
     setErrorMsg(null);
 
     if (!isFacebookConfigured()) {
-      // Graceful fallback prompt notifying developer/tester of unconfigured credentials
       setFallbackProvider('facebook');
       return;
     }
@@ -129,7 +123,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       await handleExecuteSocialLogin('facebook', profile);
     } catch (err: any) {
       if (err.message === 'POPUP_CLOSED') {
-        // User closed the popup window without completing
         return;
       }
       if (err.message === 'MISSING_FACEBOOK_APP_ID' || err.message === 'FACEBOOK_SDK_UNAVAILABLE') {
@@ -142,7 +135,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Standard Email/Password login
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -173,7 +165,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Standard Registration
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -215,7 +206,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Fallback submit for dev custom credentials
   const handleFallbackCustomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fallbackProvider) return;

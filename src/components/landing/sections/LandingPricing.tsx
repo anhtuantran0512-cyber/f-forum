@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState } from 'react';
 import { ArrowRight, Check, Sparkles, Users } from 'lucide-react';
 import { Reveal, SectionHeading } from '../LandingPrimitives';

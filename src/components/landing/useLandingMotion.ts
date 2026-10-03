@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useEffect, useRef, useState } from 'react';
 
 /* ==========================================================================
@@ -69,7 +70,6 @@ export function useInView<T extends HTMLElement>(
 ) {
   const { threshold = 0.18, rootMargin = '0px 0px -8% 0px', once = true } = options;
   const ref = useRef<T | null>(null);
-  // Environments without IntersectionObserver render content immediately.
   const [inView, setInView] = useState(() => typeof IntersectionObserver === 'undefined');
 
   useEffect(() => {
@@ -84,7 +84,6 @@ export function useInView<T extends HTMLElement>(
           if (once && seen) return;
           seen = true;
           setInView(true);
-          // One-shot reveals detach themselves so long pages stay cheap to scroll.
           if (once && ref.current) visibilityHandlers.delete(ref.current);
         } else if (!once) {
           seen = false;

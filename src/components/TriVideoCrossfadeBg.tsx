@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect } from 'react';
 import { handleVideoError } from '../utils/mediaFallback';
 import { TRI_CHAT_VIDEOS } from '../utils/chatVideos';

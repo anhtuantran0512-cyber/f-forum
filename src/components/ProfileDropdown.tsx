@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useRef, useEffect } from 'react';
 import { CreditCard, UserPen, Award, LogOut } from 'lucide-react';
 import type { User } from '../types';
@@ -25,7 +26,6 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
 }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on Escape key
   useEffect(() => {
     if (!isOpen) return;
 
@@ -46,7 +46,6 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   const isSuperAdmin = currentUser.email === 'anhtuantran0512@gmail.com';
   const tier = getTierForLevel(currentUser.level);
 
-  // Compute accurate XP progress
   const currentLevelBaseXP = getXPForLevel(currentUser.level);
   const nextLevelBaseXP = getXPForLevel(Math.min(150, currentUser.level + 1));
   const range = Math.max(1, nextLevelBaseXP - currentLevelBaseXP);

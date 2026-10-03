@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 export interface MasterAdminConfig {
   name: string;
   email: string;

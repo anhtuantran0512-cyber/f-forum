@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Send,
@@ -97,7 +98,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const [activeVideoIdx, setActiveVideoIdx] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Author mini-profile popup state
   const [activeAuthorCard, setActiveAuthorCard] = useState<{
     id: string;
     name: string;
@@ -107,7 +107,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
     coin?: number;
   } | null>(null);
 
-  // Report Account Modal state
   const [reportUser, setReportUser] = useState<{ id: string; name: string } | null>(null);
   const [reportReason, setReportReason] = useState<string>('Toxic / Gây war / Xúc phạm bạn học');
   const [reportDetails, setReportDetails] = useState<string>('');
@@ -148,7 +147,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
     }
   };
 
-  // Dynamic user presence calculations
   const dynamicOnlineCount =
     onlineUsers && onlineUsers.length > 0 ? onlineUsers.length : Math.max(1, onlineCount);
   const isMasterAdminOnline =
@@ -156,7 +154,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
     (currentUser ? isMasterAdmin(currentUser.email) : false);
   const activeStudents = (onlineUsers || []).filter(u => !isMasterAdmin(u.email));
 
-  // Auto-cycle through the 3 atmospheric Q&A video loops every 14 seconds
   useEffect(() => {
     const timer = setInterval(() => {
       setActiveVideoIdx(prev => (prev + 1) % TRI_CHAT_VIDEOS.length);
@@ -164,15 +161,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Filter messages for active channel
   const currentMessages = messages.filter(m => m.channelId === activeChannel);
 
-  // Auto scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, activeChannel]);
 
-  // Cooldown countdown timer (2.0s anti-spam)
   useEffect(() => {
     if (cooldownRemaining > 0) {
       const interval = setInterval(() => {
@@ -186,7 +180,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
     if (!inputText.trim() || cooldownRemaining > 0 || !currentUser) return;
     onSendMessage(activeChannel, inputText.trim());
     setInputText('');
-    setCooldownRemaining(2000); // 2.0s cooldown
+    setCooldownRemaining(2000);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

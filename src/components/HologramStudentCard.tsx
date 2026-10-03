@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useRef } from 'react';
 import type { User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
@@ -22,7 +23,6 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({ user }
   const streakCount = user.streakCount ?? (isSuperAdmin ? 36 : user.role === 'CLUB_LEADER' ? 24 : 14);
   const fPoints = user.fPoints ?? user.xp;
 
-  // Calculate 3D Cursor Tilt & Specular Glare Coordinates using unrotated container
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
     const el = containerRef.current || cardRef.current;
     if (!el) return;
@@ -32,7 +32,6 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({ user }
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
 
-    // Max rotation 16 degrees on X & Y
     const rotX = ((y - centerY) / centerY) * -16;
     const rotY = ((x - centerX) / centerX) * 16;
 
