@@ -106,13 +106,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label="Cài đặt hệ thống"
-        className={`absolute z-50 w-[380px] max-w-[calc(100vw-28px)] liquid-glass rounded-3xl p-4 sm:p-5 shadow-[0_25px_60px_rgba(0,0,0,0.92)] pointer-events-auto border border-white/20 select-none max-h-[82vh] overflow-y-auto no-scrollbar transition-all duration-300 transform scale-100 opacity-100 ${
+        className={`absolute z-50 w-[380px] max-w-[calc(100vw-28px)] liquid-glass rounded-3xl p-4 sm:p-5 shadow-[0_25px_60px_rgba(0,0,0,0.92)] pointer-events-auto border border-white/20 select-none max-h-[82vh] overflow-y-auto no-scrollbar popover-morph-enter ${
           activeDockPos === 'bottom'
             ? 'bottom-[calc(100%+14px)] top-auto right-0 origin-bottom-right'
             : activeDockPos === 'left'
-            ? 'left-[calc(100%+16px)] bottom-0 top-auto origin-bottom-left'
+            ? 'left-[calc(100%+16px)] top-1/2 -translate-y-1/2 origin-left'
             : activeDockPos === 'right'
-            ? 'right-[calc(100%+16px)] bottom-0 top-auto origin-bottom-right'
+            ? 'right-[calc(100%+16px)] top-1/2 -translate-y-1/2 origin-right'
             : 'top-[calc(100%+12px)] right-0 origin-top-right'
         }`}
         style={{
@@ -126,9 +126,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             activeDockPos === 'bottom'
               ? '-bottom-1.5 right-4 w-3 h-3 bg-[#0a0f14] border-b border-r border-amber-400/50 rotate-45 shadow-[0_4px_10px_rgba(0,0,0,0.8)]'
               : activeDockPos === 'left'
-              ? '-left-1.5 bottom-4 w-3 h-3 bg-[#0a0f14] border-b border-l border-amber-400/50 rotate-45 shadow-[-4px_0_10px_rgba(0,0,0,0.8)]'
+              ? '-left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-[#0a0f14] border-b border-l border-amber-400/50 rotate-45 shadow-[-4px_0_10px_rgba(0,0,0,0.8)]'
               : activeDockPos === 'right'
-              ? '-right-1.5 bottom-4 w-3 h-3 bg-[#0a0f14] border-t border-r border-amber-400/50 rotate-45 shadow-[4px_0_10px_rgba(0,0,0,0.8)]'
+              ? '-right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-[#0a0f14] border-t border-r border-amber-400/50 rotate-45 shadow-[4px_0_10px_rgba(0,0,0,0.8)]'
               : '-top-1.5 right-4 w-3 h-3 bg-[#0a0f14] border-t border-l border-amber-400/50 rotate-45 shadow-[0_-4px_10px_rgba(0,0,0,0.8)]'
           }`}
         />
