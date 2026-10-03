@@ -7,10 +7,10 @@ test('1. Settings button and iOS Liquid Glass Settings Modal Integration in Navb
   const navbarContent = fs.readFileSync(path.resolve('src/components/Navbar.tsx'), 'utf8');
   const settingsModalContent = fs.readFileSync(path.resolve('src/components/SettingsModal.tsx'), 'utf8');
 
-  // Verify Settings button styling on desktop navbar
+  // Verify Settings button on the capsule navbar
   assert.ok(
-    navbarContent.includes('w-9 h-9 rounded-full bg-white/5 border border-white/10 hover:border-amber-400/30 text-white/70 hover:text-white cursor-pointer'),
-    'Navbar Settings button must match specified sleek icon styling'
+    navbarContent.includes('aria-label="Cài đặt hệ thống"'),
+    'Navbar Settings button must exist with an accessible label'
   );
 
   // Verify Settings icon from lucide-react is used
@@ -33,14 +33,14 @@ test('1. Settings button and iOS Liquid Glass Settings Modal Integration in Navb
 
   // Verify transparent outside-click backdrop
   assert.ok(
-    settingsModalContent.includes('fixed inset-0 z-40 bg-transparent'),
+    settingsModalContent.includes('fixed inset-0') && settingsModalContent.includes('bg-transparent'),
     'SettingsModal must have transparent outside-click backdrop'
   );
 
-  // Verify liquid-glass popover anchored below Settings button
+  // Verify liquid-glass popover anchored to the Settings button via the dock-aware hook
   assert.ok(
-    settingsModalContent.includes('liquid-glass') && settingsModalContent.includes('top-[calc(100%+12px)]'),
-    'SettingsModal must use liquid-glass anchored directly below button'
+    settingsModalContent.includes('liquid-glass') && settingsModalContent.includes('usePopoverPosition'),
+    'SettingsModal must use liquid-glass anchored via usePopoverPosition'
   );
 });
 
@@ -125,7 +125,7 @@ test('4. Settings Menu Options: Ambient Audio, SFX, and Reduced Motion', () => {
     'Settings must include Ambient Audio 432Hz option'
   );
   assert.ok(
-    settingsModalContent.includes('Hiệu ứng âm thanh (SFX)'),
+    settingsModalContent.includes('Hiệu ứng âm thanh'),
     'Settings must include Sound Effects (SFX) option'
   );
   assert.ok(

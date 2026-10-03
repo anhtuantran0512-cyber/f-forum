@@ -7,10 +7,16 @@ test('1. Navbar Architecture & Notification Center Isolation', () => {
   const navbarContent = fs.readFileSync(path.resolve('src/components/Navbar.tsx'), 'utf8');
   const notifModalContent = fs.readFileSync(path.resolve('src/components/NotificationsModal.tsx'), 'utf8');
 
-  // Verify Navbar has the mandatory isolated fixed-height layout
+  // Verify Navbar has the mandatory floating glass-capsule layout (iOS-style, dock-adaptive)
   assert.ok(
-    navbarContent.includes('<nav className="fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full px-5 flex items-center justify-between shadow-2xl">'),
-    'Navbar MUST use fixed h-14 liquid-glass nav container'
+    navbarContent.includes('ff-nav-capsule fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full'),
+    'Navbar MUST use the fixed h-14 liquid-glass capsule container'
+  );
+
+  // Verify the capsule collapses to icon-only when the pointer leaves
+  assert.ok(
+    navbarContent.includes('data-compact'),
+    'Navbar must implement the data-compact collapse state'
   );
 
   // Verify that NotificationsModal is rendered
@@ -19,16 +25,15 @@ test('1. Navbar Architecture & Notification Center Isolation', () => {
     'Navbar must render NotificationsModal'
   );
 
-  // Verify NotificationsModal popover coordinates and styling
+  // Verify NotificationsModal anchors via the dock-aware popover hook
   assert.ok(
-    notifModalContent.includes('liquid-glass') &&
-    (notifModalContent.includes('top-[calc(100%+12px)]') || notifModalContent.includes('top-20')),
-    'NotificationsModal must be anchored below the Bell trigger'
+    notifModalContent.includes('liquid-glass') && notifModalContent.includes('usePopoverPosition'),
+    'NotificationsModal must be anchored to the bell via usePopoverPosition'
   );
 
   // Verify outside click transparent backdrop is present
   assert.ok(
-    notifModalContent.includes('fixed inset-0 z-40 bg-transparent'),
+    notifModalContent.includes('fixed inset-0') && notifModalContent.includes('bg-transparent'),
     'NotificationsModal must render an invisible full-viewport backdrop'
   );
 });

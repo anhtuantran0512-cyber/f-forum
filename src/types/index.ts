@@ -104,6 +104,7 @@ export interface Question {
   anonymousAlias?: string;
   anonymousMask?: string;
   createdAt: string;
+  createdAtMs?: number;
   isSolved: boolean;
   bestSolutionId?: string;
   views: number;
@@ -121,6 +122,7 @@ export interface Solution {
   authorLevel: number;
   content: string;
   createdAt: string;
+  createdAtMs?: number;
   isBest: boolean;
   upvotes: number;
   rewardCoin?: number;
@@ -146,6 +148,7 @@ export interface ChatMessage {
   authorLevel: number;
   content: string;
   timestamp: string;
+  timestampMs?: number;
   senderId?: string;
 }
 

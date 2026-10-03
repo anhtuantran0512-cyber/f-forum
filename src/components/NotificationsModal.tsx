@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { DimensionView } from '../types';
 import { safeStorage } from '../utils/storage';
+import { usePopoverPosition, type DockPosition } from '../utils/popover';
 
 export interface NotificationItem {
   id: string;
@@ -29,58 +30,15 @@ export interface NotificationItem {
   systemName?: string;
 }
 
-const DEFAULT_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 'notif-sys-1',
-    title: 'Hệ thống F-Forum chúc mừng bạn',
-    body: 'Hôm nay là một ngày tuyệt vời để khám phá tri thức và kết nối bạn bè, F-Forum xin gửi đến bạn những lời chúc tốt đẹp nhất ❤️',
-    time: 'Vừa xong',
-    type: 'system',
-    targetView: 'home',
-    isRead: false,
-    actorName: 'Bạn học',
-    systemName: 'F-Forum',
-  },
-  {
-    id: 'notif-qa-2',
-    title: 'Sàn Q&A Tri Thức có câu trả lời mới',
-    body: 'Thành viên vừa gửi lời giải chi tiết cho câu hỏi bạn quan tâm. Bấm để xem và xác nhận Đáp Án Chuẩn nhận 50% tiền cược!',
-    time: '5 phút trước',
-    type: 'qa',
-    targetView: 'qa',
-    isRead: false,
-    actorName: 'Cao thủ Toán',
-    systemName: 'Q&A Hub',
-  },
-  {
-    id: 'notif-chat-3',
-    title: 'Phòng Chat thời gian thực sôi động',
-    body: 'Các học sinh đang trao đổi bài học sôi nổi tại sảnh Kết bạn bốn phương. Hãy cùng tham gia thảo luận ngay.',
-    time: '15 phút trước',
-    type: 'chat',
-    targetView: 'chat',
-    isRead: false,
-    actorName: 'Cộng đồng FPT',
-    systemName: 'Live Chat',
-  },
-  {
-    id: 'notif-ach-4',
-    title: 'Cột mốc vinh danh ghi dấu',
-    body: 'Khu Vinh Danh 3D Fibonacci đã ghi nhận những thành tích nổi bật của bạn trên hành trình học tập.',
-    time: '1 giờ trước',
-    type: 'achievement',
-    targetView: 'chronicles',
-    isRead: true,
-    systemName: 'F-Chronicles',
-  },
-];
+const DEFAULT_NOTIFICATIONS: NotificationItem[] = [];
 
 interface NotificationsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigate: (view: DimensionView) => void;
   onUnreadCountChange?: (count: number) => void;
-  dockPosition?: 'top' | 'bottom' | 'left' | 'right';
+  dockPosition?: DockPosition;
+  anchorRef?: React.RefObject<HTMLElement | null>;
 }
 
 export const NotificationsModal: React.FC<NotificationsModalProps> = ({
@@ -89,6 +47,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
   onNavigate,
   onUnreadCountChange,
   dockPosition = 'top',
+  anchorRef,
 }) => {
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
     const saved = safeStorage.getItem('fforum_notifications');
@@ -105,6 +64,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
 
   const [notifTab, setNotifTab] = useState<'all' | 'system' | 'interactive'>('all');
   const modalRef = useRef<HTMLDivElement>(null);
+  const pop = usePopoverPosition(isOpen, anchorRef, dockPosition, 400, 560);
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   useEffect(() => {
@@ -253,41 +213,20 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         }}
       />
 
-      {/* Popover anchored directly to Bell button with position-aware Dynamic Island spring scale */}
+      {/* Popover anchored to Bell button, clamped to viewport for every dock edge */}
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-label="Trung tâm thông báo"
-        className={`absolute z-50 w-[400px] max-w-[calc(100vw-28px)] liquid-glass rounded-3xl p-4 shadow-[0_25px_60px_rgba(0,0,0,0.92)] border border-white/20 pointer-events-auto select-none popover-morph-enter ${
-          dockPosition === 'bottom'
-            ? 'bottom-[calc(100%+14px)] top-auto right-0 origin-bottom-right'
-            : dockPosition === 'left'
-            ? 'left-[calc(100%+16px)] top-1/2 -translate-y-1/2 origin-left'
-            : dockPosition === 'right'
-            ? 'right-[calc(100%+16px)] top-1/2 -translate-y-1/2 origin-right'
-            : 'top-[calc(100%+12px)] right-0 origin-top-right'
+        className={`z-[70] liquid-glass rounded-3xl p-4 shadow-[0_25px_60px_rgba(0,0,0,0.92)] border border-white/20 pointer-events-auto select-none popover-morph-enter bg-[#0c1218]/95 ${
+          !anchorRef || !pop.ready ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] max-w-[calc(100vw-28px)]' : ''
         }`}
-        style={{
-          maxHeight: 'min(82vh, 650px)',
-          transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
-        }}
+        style={anchorRef ? pop.style : undefined}
         onClick={(e) => {
           e.stopPropagation();
         }}
       >
-        {/* Directional Anchor Caret */}
-        <div
-          className={`absolute pointer-events-none transition-all ${
-            dockPosition === 'bottom'
-              ? '-bottom-1.5 right-4 w-3 h-3 bg-[#0a0f14] border-b border-r border-amber-400/50 rotate-45 shadow-[0_4px_10px_rgba(0,0,0,0.8)]'
-              : dockPosition === 'left'
-              ? '-left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-[#0a0f14] border-b border-l border-amber-400/50 rotate-45 shadow-[-4px_0_10px_rgba(0,0,0,0.8)]'
-              : dockPosition === 'right'
-              ? '-right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-[#0a0f14] border-t border-r border-amber-400/50 rotate-45 shadow-[4px_0_10px_rgba(0,0,0,0.8)]'
-              : '-top-1.5 right-4 w-3 h-3 bg-[#0a0f14] border-t border-l border-amber-400/50 rotate-45 shadow-[0_-4px_10px_rgba(0,0,0,0.8)]'
-          }`}
-        />
         {/* Header: Brand Hoidap/F-Forum Icon & Actions */}
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
           <div className="flex items-center gap-2.5">

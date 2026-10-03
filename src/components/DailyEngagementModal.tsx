@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   X,
   Lightbulb,
@@ -17,19 +17,26 @@ interface DailyEngagementModalProps {
   onClose: () => void;
   currentUserCoin?: number;
   onRewardCoin?: (amount: number, reason: string) => void;
+  onStreakChange?: (streak: number) => void;
 }
 
 const TIPS = [
   'Hãy trả lời chỉn chu và đầy đủ các bước giải để dễ nhận được xác nhận Đáp Án Chuẩn!',
   'Nên đặt câu hỏi một cách rõ ràng và cụ thể để nhận được câu trả lời nhanh nhất.',
-  'Điểm danh mỗi ngày tích lũy chuỗi streak và mở khóa hộp quà bí ẩn ngày 5, 10, 15.',
-  'Chia sẻ lời giải hay trên sàn Q&A giúp bạn tích lũy Coin và thăng hạng danh hiệu học sinh.',
+  'Điểm danh mỗi ngày tích lũy chuỗi streak và mở khóa hộp quà ở mốc 5, 10, 15 ngày.',
+  'Chia sẻ lời giải hay trên sàn hỏi đáp giúp bạn tích lũy Coin và thăng hạng danh hiệu.',
 ];
 
-const TRIVIA_QUESTIONS = [
+interface TriviaQuestion {
+  question: string;
+  options: string[];
+  correct: number;
+}
+
+const TRIVIA_POOL: TriviaQuestion[] = [
   {
     question: 'Thung lũng McMurdo (thung lũng Khô) nằm ở châu lục nào?',
-    options: ['Châu Úc', 'Châu Phi', 'Không có đáp án đúng', 'Châu Nam Cực'],
+    options: ['Châu Úc', 'Châu Phi', 'Châu Mỹ', 'Châu Nam Cực'],
     correct: 3,
   },
   {
@@ -47,62 +54,149 @@ const TRIVIA_QUESTIONS = [
     options: ['Volt (V)', 'Watt (W)', 'Ampere (A)', 'Ohm (Ω)'],
     correct: 2,
   },
+  {
+    question: 'Nguyên tố hóa học nào có ký hiệu "Fe"?',
+    options: ['Flo', 'Sắt', 'Phốt pho', 'Fermi'],
+    correct: 1,
+  },
+  {
+    question: 'Sông nào dài nhất Việt Nam?',
+    options: ['Sông Mã', 'Sông Hồng', 'Sông Đồng Nai', 'Sông Đà'],
+    correct: 2,
+  },
+  {
+    question: 'Trong Pascal, kiểu dữ liệu nào lưu được số thực?',
+    options: ['Integer', 'Boolean', 'Real', 'Char'],
+    correct: 2,
+  },
+  {
+    question: 'Vận tốc ánh sáng trong chân không xấp xỉ bao nhiêu?',
+    options: ['300.000 km/s', '150.000 km/s', '300.000 m/s', '30.000 km/s'],
+    correct: 0,
+  },
+  {
+    question: 'Ai là tác giả của "Truyện Kiều"?',
+    options: ['Nguyễn Du', 'Hồ Xuân Hương', 'Nguyễn Đình Chiểu', 'Xuân Diệu'],
+    correct: 0,
+  },
+  {
+    question: 'Nước có công thức hóa học là gì?',
+    options: ['CO2', 'H2O', 'O2', 'NaCl'],
+    correct: 1,
+  },
+  {
+    question: 'Đỉnh núi cao nhất Việt Nam là?',
+    options: ['Phan Xi Păng', 'Bạch Mã', 'Bà Đen', 'Ngọc Linh'],
+    correct: 0,
+  },
+  {
+    question: 'Số nào sau đây là số nguyên tố?',
+    options: ['51', '57', '53', '55'],
+    correct: 2,
+  },
 ];
+
+/** Chọn câu hỏi cố định theo ngày (mọi người cùng thấy 1 câu trong ngày). */
+const getDailyTrivia = (): TriviaQuestion => {
+  const today = new Date().toISOString().slice(0, 10);
+  let hash = 0;
+  for (let i = 0; i < today.length; i++) {
+    hash = (hash * 31 + today.charCodeAt(i)) % 100000;
+  }
+  return TRIVIA_POOL[hash % TRIVIA_POOL.length];
+};
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
+const yesterdayISO = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+};
+
+/** Tính chuỗi ngày liên tiếp từ lịch điểm danh (mảng ngày ISO). */
+const computeStreak = (log: string[]): number => {
+  const set = new Set(log);
+  let cursor = set.has(todayISO()) ? todayISO() : set.has(yesterdayISO()) ? yesterdayISO() : '';
+  if (!cursor) return 0;
+  let streak = 0;
+  while (set.has(cursor)) {
+    streak += 1;
+    const d = new Date(cursor);
+    d.setDate(d.getDate() - 1);
+    cursor = d.toISOString().slice(0, 10);
+  }
+  return streak;
+};
+
+const loadAttendanceLog = (): string[] => {
+  try {
+    const saved = safeStorage.getItem('fforum_attendance_log');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return parsed.filter((d) => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d));
+    }
+  } catch {
+    /* ignore */
+  }
+  return [];
+};
 
 export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
   isOpen,
   onClose,
-  currentUserCoin = 100,
+  currentUserCoin = 0,
   onRewardCoin,
+  onStreakChange,
 }) => {
   const [activeTab, setActiveTab] = useState<'attendance' | 'gifts' | 'quiz'>('attendance');
   const [tipIndex, setTipIndex] = useState(0);
 
-  const [attendedDays, setAttendedDays] = useState<number[]>(() => {
-    const saved = safeStorage.getItem('fforum_attended_days');
-    return saved ? JSON.parse(saved) : [1];
-  });
-  const [currentDay] = useState<number>(() => {
-    const saved = safeStorage.getItem('fforum_current_day');
-    return saved ? parseInt(saved, 10) : 1;
-  });
-  const [hasClaimedToday, setHasClaimedToday] = useState<boolean>(() => {
-    const lastClaim = safeStorage.getItem('fforum_last_claim_date');
-    const today = new Date().toISOString().slice(0, 10);
-    return lastClaim === today;
-  });
+  const [attendanceLog, setAttendanceLog] = useState<string[]>(loadAttendanceLog);
+  const streak = useMemo(() => computeStreak(attendanceLog), [attendanceLog]);
+  const hasClaimedToday = attendanceLog.includes(todayISO());
+  const cycleDay = Math.max(1, Math.min(15, streak === 0 && !hasClaimedToday ? 1 : streak));
 
   const [boxes, setBoxes] = useState<{ blue: number; gold: number; red: number }>(() => {
-    const saved = safeStorage.getItem('fforum_mystery_boxes');
-    return saved ? JSON.parse(saved) : { blue: 1, gold: 0, red: 0 };
+    try {
+      const saved = safeStorage.getItem('fforum_mystery_boxes');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      /* ignore */
+    }
+    return { blue: 0, gold: 0, red: 0 };
   });
+
+  const dailyTrivia = useMemo(getDailyTrivia, []);
 
   const [quizAnswered, setQuizAnswered] = useState<boolean>(() => {
     const lastQuiz = safeStorage.getItem('fforum_last_quiz_date');
-    const today = new Date().toISOString().slice(0, 10);
-    return lastQuiz === today;
+    return lastQuiz === todayISO();
   });
+  const [reviewMode, setReviewMode] = useState(false);
   const [quizTimer, setQuizTimer] = useState<number>(15);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [quizResult, setQuizResult] = useState<{ correct: boolean; reward: number } | null>(null);
   const [openingBox, setOpeningBox] = useState<string | null>(null);
   const [boxReward, setBoxReward] = useState<string | null>(null);
 
-  const handleAnswerQuiz = useCallback((index: number) => {
-    if (quizAnswered || selectedOption !== null) return;
-    setSelectedOption(index);
-    const isCorrect = index === TRIVIA_QUESTIONS[0].correct;
-    const today = new Date().toISOString().slice(0, 10);
-    const reward = isCorrect ? Math.floor(Math.random() * 6) + 5 : 0;
+  const handleAnswerQuiz = useCallback(
+    (index: number) => {
+      if (quizAnswered || reviewMode) return;
+      setSelectedOption(index);
+      const isCorrect = index === dailyTrivia.correct;
+      const reward = isCorrect ? Math.floor(Math.random() * 6) + 5 : 0;
 
-    setQuizResult({ correct: isCorrect, reward });
-    setQuizAnswered(true);
-    safeStorage.setItem('fforum_last_quiz_date', today);
+      setQuizResult({ correct: isCorrect, reward });
+      setQuizAnswered(true);
+      safeStorage.setItem('fforum_last_quiz_date', todayISO());
 
-    if (isCorrect && reward > 0) {
-      onRewardCoin?.(reward, 'Trả lời đúng Câu hỏi vui');
-    }
-  }, [quizAnswered, selectedOption, onRewardCoin]);
+      if (isCorrect && reward > 0) {
+        onRewardCoin?.(reward, 'Trả lời đúng câu hỏi vui');
+      }
+    },
+    [quizAnswered, reviewMode, dailyTrivia, onRewardCoin],
+  );
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -112,7 +206,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
   }, []);
 
   useEffect(() => {
-    if (activeTab !== 'quiz' || quizAnswered || selectedOption !== null) return;
+    if (!isOpen || activeTab !== 'quiz' || quizAnswered || reviewMode || selectedOption !== null) return;
     const timer = setInterval(() => {
       setQuizTimer((prev) => {
         if (prev <= 1) {
@@ -124,29 +218,33 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [activeTab, quizAnswered, selectedOption, handleAnswerQuiz]);
+  }, [isOpen, activeTab, quizAnswered, reviewMode, selectedOption, handleAnswerQuiz]);
+
+  useEffect(() => {
+    onStreakChange?.(streak);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streak]);
 
   if (!isOpen) return null;
 
   const handleClaimAttendance = () => {
     if (hasClaimedToday) return;
-    const today = new Date().toISOString().slice(0, 10);
-    const nextAttended = Array.from(new Set([...attendedDays, currentDay]));
-    setAttendedDays(nextAttended);
-    setHasClaimedToday(true);
-    safeStorage.setItem('fforum_attended_days', JSON.stringify(nextAttended));
-    safeStorage.setItem('fforum_last_claim_date', today);
+    const today = todayISO();
+    const nextLog = [...attendanceLog, today];
+    setAttendanceLog(nextLog);
+    safeStorage.setItem('fforum_attendance_log', JSON.stringify(nextLog));
 
+    const newStreak = computeStreak(nextLog);
     const nextBoxes = { ...boxes };
-    if (currentDay === 5) nextBoxes.blue += 1;
-    if (currentDay === 10) nextBoxes.gold += 1;
-    if (currentDay === 15) nextBoxes.red += 1;
+    if (newStreak % 15 === 5 || newStreak === 5) nextBoxes.blue += 1;
+    if (newStreak % 15 === 10 || newStreak === 10) nextBoxes.gold += 1;
+    if (newStreak > 0 && newStreak % 15 === 0) nextBoxes.red += 1;
     setBoxes(nextBoxes);
     safeStorage.setItem('fforum_mystery_boxes', JSON.stringify(nextBoxes));
 
-    onRewardCoin?.(25, `Điểm danh ngày ${currentDay}`);
+    onStreakChange?.(newStreak);
+    onRewardCoin?.(25, `Điểm danh ngày (chuỗi ${newStreak})`);
   };
-
 
   const handleOpenBox = (type: 'blue' | 'gold' | 'red') => {
     if (boxes[type] <= 0 || openingBox) return;
@@ -158,7 +256,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
       const nextBoxes = { ...boxes, [type]: boxes[type] - 1 };
       setBoxes(nextBoxes);
       safeStorage.setItem('fforum_mystery_boxes', JSON.stringify(nextBoxes));
-      setBoxReward(`+${rewardCoin} Coin & Huy hiệu may mắn`);
+      setBoxReward(`+${rewardCoin} Coin`);
       onRewardCoin?.(rewardCoin, `Mở hộp quà ${type}`);
       setOpeningBox(null);
     }, 1200);
@@ -166,10 +264,10 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-up"
+      className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-up"
       role="dialog"
       aria-modal="true"
-      aria-label="Daily Engagement Hub"
+      aria-label="Điểm danh và câu hỏi hằng ngày"
     >
       {/* Invisible backdrop */}
       <button
@@ -181,7 +279,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
       />
 
       <div className="liquid-glass w-full max-w-xl rounded-3xl bg-[#0c1218]/95 border border-white/15 shadow-[0_25px_60px_rgba(0,0,0,0.9)] p-4 sm:p-6 relative z-10 overflow-hidden max-h-[95vh] overflow-y-auto">
-        {/* Header Tabs with thick golden underline */}
+        {/* Header Tabs */}
         <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-3">
           <div className="flex items-center bg-white/10 backdrop-blur-md p-1 rounded-2xl border border-white/10 gap-1 sm:gap-2">
             {(
@@ -228,7 +326,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
           </p>
         </div>
 
-        {/* TAB 1: ĐIỂM DANH (15-Day Attendance Calendar Grid) */}
+        {/* TAB 1: ĐIỂM DANH */}
         {activeTab === 'attendance' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between text-xs text-neutral-300">
@@ -237,15 +335,15 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                 Chu kỳ điểm danh 15 ngày
               </span>
               <span className="text-[11px] text-amber-300 font-mono">
-                Chuỗi Streak: {attendedDays.length} ngày 🔥
+                Chuỗi streak: {streak} ngày 🔥
               </span>
             </div>
 
             {/* 3 rows x 5 cols grid */}
             <div className="grid grid-cols-5 gap-2.5 sm:gap-3">
               {Array.from({ length: 15 }, (_, i) => i + 1).map((day) => {
-                const isAttended = attendedDays.includes(day);
-                const isActive = day === currentDay;
+                const isAttended = day <= streak;
+                const isActive = day === cycleDay && !hasClaimedToday;
                 const isMilestone = day === 5 || day === 10 || day === 15;
 
                 return (
@@ -262,11 +360,10 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                     <span className="text-[10px] uppercase font-mono opacity-60">Ngày</span>
                     <span className="text-base sm:text-lg font-extrabold text-white">{day}</span>
 
-                    {/* Milestone badge */}
                     {isMilestone && (
                       <div
                         className="absolute bottom-1 right-1 p-0.5 rounded-full"
-                        title={`Hộp quà mốc ngày ${day}`}
+                        title={`Hộp quà mốc ${day} ngày`}
                       >
                         <Gift
                           className={`w-3.5 h-3.5 ${
@@ -307,22 +404,17 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
           </div>
         )}
 
-        {/* TAB 2: KHO QUÀ (GIFT INVENTORY & MYSTERY BOXES) */}
+        {/* TAB 2: KHO QUÀ */}
         {activeTab === 'gifts' && (
           <div className="space-y-4">
-            {/* Khung thông tin quy đổi có đường viền xám bên trái */}
             <div className="p-3.5 rounded-2xl bg-black/40 border-l-4 border-l-neutral-400 border border-white/10 text-xs text-neutral-300 space-y-1.5">
-              <p className="font-semibold text-white">🎁 Thông tin quy đổi quà tặng:</p>
+              <p className="font-semibold text-white">🎁 Quy đổi quà tặng:</p>
               <p className="text-[11.5px] text-neutral-300 leading-relaxed">
-                Mở quà có cơ hội nhận được điểm, móc khoá, sổ tay, bộ sticker, con dấu, mũ, vở, áo mưa, bình giữ nhiệt...{' '}
-                <span className="text-sky-400 hover:underline cursor-pointer">chi tiết &amp; hướng dẫn nhận quà</span>
-              </p>
-              <p className="text-[11px] text-amber-300/90 font-medium hover:underline cursor-pointer">
-                → Danh sách trúng quà hiện vật tại đây
+                Giữ chuỗi điểm danh để nhận hộp quà ở mốc 5, 10 và 15 ngày. Mở hộp để nhận Coin thật vào tài khoản của bạn.
               </p>
             </div>
 
-            {/* 3 Isometric Gift Boxes Display with Star Patterns & Circular Gold Count Badges */}
+            {/* 3 Isometric Gift Boxes */}
             <div className="grid grid-cols-3 gap-3">
               {/* Blue Box */}
               <div className="rounded-2xl p-3 bg-gradient-to-b from-cyan-950/40 to-black/60 border border-cyan-500/30 flex flex-col items-center text-center relative group">
@@ -342,19 +434,11 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                         <stop offset="100%" stopColor="#0284c7" />
                       </linearGradient>
                     </defs>
-                    {/* Isometric 3D Box Top */}
                     <polygon points="32,8 54,20 32,32 10,20" fill="url(#blueBoxTop)" stroke="#7dd3fc" strokeWidth="1" />
-                    {/* Isometric 3D Box Left */}
                     <polygon points="10,20 32,32 32,54 10,42" fill="url(#blueBoxLeft)" stroke="#38bdf8" strokeWidth="1" />
-                    {/* Isometric 3D Box Right */}
                     <polygon points="32,32 54,20 54,42 32,54" fill="url(#blueBoxRight)" stroke="#38bdf8" strokeWidth="1" />
-                    {/* Star Pattern Accent */}
-                    <polygon points="21,30 22,33 25,33 23,35 24,38 21,36 18,38 19,35 17,33 20,33" fill="#bae6fd" opacity="0.8" />
-                    <polygon points="43,30 44,33 47,33 45,35 46,38 43,36 40,38 41,35 39,33 42,33" fill="#bae6fd" opacity="0.8" />
-                    {/* Cyan Bow */}
                     <path d="M26 12 C24 6 30 6 32 10 C34 6 40 6 38 12 C34 16 30 16 26 12 Z" fill="#e0f2fe" stroke="#38bdf8" strokeWidth="1" />
                   </svg>
-                  {/* Circular Gold Count Badge */}
                   <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 text-neutral-950 font-black font-mono text-[10px] flex items-center justify-center border border-amber-200 shadow-md">
                     {boxes.blue}
                   </span>
@@ -367,7 +451,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                   disabled={boxes.blue <= 0 || openingBox !== null}
                   className="mt-3 w-full py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-black text-xs font-bold transition-all cursor-pointer"
                 >
-                  {openingBox === 'blue' ? 'Đang mở...' : 'Mở Hộp'}
+                  {openingBox === 'blue' ? 'Đang mở...' : 'Mở hộp'}
                 </button>
               </div>
 
@@ -392,8 +476,6 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                     <polygon points="32,8 54,20 32,32 10,20" fill="url(#goldBoxTop)" stroke="#fef08a" strokeWidth="1" />
                     <polygon points="10,20 32,32 32,54 10,42" fill="url(#goldBoxLeft)" stroke="#facc15" strokeWidth="1" />
                     <polygon points="32,32 54,20 54,42 32,54" fill="url(#goldBoxRight)" stroke="#facc15" strokeWidth="1" />
-                    <polygon points="21,30 22,33 25,33 23,35 24,38 21,36 18,38 19,35 17,33 20,33" fill="#fef9c3" opacity="0.8" />
-                    <polygon points="43,30 44,33 47,33 45,35 46,38 43,36 40,38 41,35 39,33 42,33" fill="#fef9c3" opacity="0.8" />
                     <path d="M26 12 C24 6 30 6 32 10 C34 6 40 6 38 12 C34 16 30 16 26 12 Z" fill="#a3e635" stroke="#65a30d" strokeWidth="1" />
                   </svg>
                   <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 text-neutral-950 font-black font-mono text-[10px] flex items-center justify-center border border-amber-200 shadow-md">
@@ -408,7 +490,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                   disabled={boxes.gold <= 0 || openingBox !== null}
                   className="mt-3 w-full py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-black text-xs font-bold transition-all cursor-pointer"
                 >
-                  {openingBox === 'gold' ? 'Đang mở...' : 'Mở Hộp'}
+                  {openingBox === 'gold' ? 'Đang mở...' : 'Mở hộp'}
                 </button>
               </div>
 
@@ -433,8 +515,6 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                     <polygon points="32,8 54,20 32,32 10,20" fill="url(#redBoxTop)" stroke="#fecdd3" strokeWidth="1" />
                     <polygon points="10,20 32,32 32,54 10,42" fill="url(#redBoxLeft)" stroke="#f43f5e" strokeWidth="1" />
                     <polygon points="32,32 54,20 54,42 32,54" fill="url(#redBoxRight)" stroke="#f43f5e" strokeWidth="1" />
-                    <polygon points="21,30 22,33 25,33 23,35 24,38 21,36 18,38 19,35 17,33 20,33" fill="#ffe4e6" opacity="0.8" />
-                    <polygon points="43,30 44,33 47,33 45,35 46,38 43,36 40,38 41,35 39,33 42,33" fill="#ffe4e6" opacity="0.8" />
                     <path d="M26 12 C24 6 30 6 32 10 C34 6 40 6 38 12 C34 16 30 16 26 12 Z" fill="#fde047" stroke="#ca8a04" strokeWidth="1" />
                   </svg>
                   <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 text-neutral-950 font-black font-mono text-[10px] flex items-center justify-center border border-amber-200 shadow-md">
@@ -449,33 +529,20 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                   disabled={boxes.red <= 0 || openingBox !== null}
                   className="mt-3 w-full py-1.5 rounded-lg bg-rose-500 hover:bg-rose-400 disabled:opacity-40 text-white text-xs font-bold transition-all cursor-pointer"
                 >
-                  {openingBox === 'red' ? 'Đang mở...' : 'Mở Hộp'}
+                  {openingBox === 'red' ? 'Đang mở...' : 'Mở hộp'}
                 </button>
               </div>
             </div>
 
-            {/* Nút phụ: Dòng chữ in đậm 'Lịch sử mở quà' đặt ngay dưới hộp quà thứ 3 */}
-            <div className="flex justify-end pt-1">
-              <button
-                type="button"
-                onClick={() => setBoxReward(boxes.blue + boxes.gold + boxes.red > 0 ? 'Đã nhận chuỗi phần thưởng quà điểm danh' : 'Chưa có lịch sử mở quà gần đây')}
-                className="text-xs font-bold text-amber-300 hover:text-amber-200 underline transition-colors cursor-pointer"
-              >
-                Lịch sử mở quà
-              </button>
-            </div>
-
             {boxReward && (
               <div className="p-3 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 text-center animate-fade-up">
-                <span className="text-xs font-bold text-emerald-300">
-                  🎉 {boxReward}!
-                </span>
+                <span className="text-xs font-bold text-emerald-300">🎉 {boxReward}!</span>
               </div>
             )}
           </div>
         )}
 
-        {/* TAB 3: CÂU HỎI VUI (DAILY TRIVIA QUIZ) */}
+        {/* TAB 3: CÂU HỎI VUI */}
         {activeTab === 'quiz' && (
           <div className="space-y-4">
             {!quizAnswered ? (
@@ -483,7 +550,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                 {/* Active Question with 15s Countdown */}
                 <div className="flex items-center justify-between pb-2 border-b border-white/10">
                   <h3 className="text-xs sm:text-sm font-bold text-white max-w-[80%] leading-snug">
-                    {TRIVIA_QUESTIONS[0].question}
+                    {dailyTrivia.question}
                   </h3>
                   <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-cyan-500/10 border border-cyan-400/40 text-cyan-300 font-mono font-bold text-xs shrink-0">
                     <Clock className="w-3 h-3 absolute -top-1 -right-1 text-cyan-400" />
@@ -493,7 +560,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
 
                 {/* 4 Choices */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {TRIVIA_QUESTIONS[0].options.map((opt, idx) => (
+                  {dailyTrivia.options.map((opt, idx) => (
                     <button
                       key={opt}
                       type="button"
@@ -509,46 +576,86 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                 </div>
               </>
             ) : (
-              /* Rules & Completed Result with "Xem lại" button */
+              /* Completed result / read-only review */
               <div className="space-y-3">
-                <div
-                  className={`p-4 rounded-2xl border text-center ${
-                    quizResult?.correct
-                      ? 'bg-emerald-500/20 border-emerald-400/40 text-emerald-300'
-                      : 'bg-white/5 border-white/10 text-neutral-300'
-                  }`}
-                >
-                  <p className="text-xs text-neutral-400">Bạn đã trả lời câu hỏi hôm nay</p>
-                  <p className="text-sm sm:text-base font-bold text-white mt-1">
-                    {quizResult?.correct
-                      ? `Trả lời đúng +${quizResult.reward} điểm`
-                      : 'Rất tiếc chưa chính xác. Hẹn bạn vào ngày mai nhé!'}
-                  </p>
-                  {/* Nút hành động phụ: Nút bo góc màu xanh ngọc "Xem lại" */}
-                  <div className="mt-3 flex justify-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setQuizAnswered(false);
-                        setSelectedOption(null);
-                        setQuizTimer(15);
-                      }}
-                      className="px-4 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-neutral-950 font-bold text-xs transition-colors cursor-pointer shadow-md"
-                    >
-                      Xem lại
-                    </button>
+                {!reviewMode ? (
+                  <div
+                    className={`p-4 rounded-2xl border text-center ${
+                      quizResult?.correct
+                        ? 'bg-emerald-500/20 border-emerald-400/40 text-emerald-300'
+                        : 'bg-white/5 border-white/10 text-neutral-300'
+                    }`}
+                  >
+                    <p className="text-xs text-neutral-400">Bạn đã trả lời câu hỏi hôm nay</p>
+                    <p className="text-sm sm:text-base font-bold text-white mt-1">
+                      {quizResult?.correct
+                        ? `Trả lời đúng +${quizResult.reward} Coin`
+                        : 'Rất tiếc chưa chính xác. Hẹn bạn vào ngày mai nhé!'}
+                    </p>
+                    <div className="mt-3 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setReviewMode(true)}
+                        className="px-4 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-neutral-950 font-bold text-xs transition-colors cursor-pointer shadow-md"
+                      >
+                        Xem lại câu hỏi
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                      <h3 className="text-xs sm:text-sm font-bold text-white max-w-[85%] leading-snug">
+                        {dailyTrivia.question}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setReviewMode(false)}
+                        className="text-[10px] text-teal-300 hover:text-teal-200 font-bold cursor-pointer shrink-0"
+                      >
+                        ← Quay lại
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {dailyTrivia.options.map((opt, idx) => {
+                        const isCorrectOption = idx === dailyTrivia.correct;
+                        return (
+                          <div
+                            key={opt}
+                            className={`p-3 rounded-2xl border text-left text-xs font-medium transition-all ${
+                              isCorrectOption
+                                ? 'bg-emerald-500/15 border-emerald-400/50 text-emerald-200'
+                                : 'bg-white/5 border-white/10 text-white/60'
+                            }`}
+                          >
+                            <span
+                              className={`w-5 h-5 rounded-full inline-flex items-center justify-center text-[10px] font-mono mr-2 ${
+                                isCorrectOption ? 'bg-emerald-400/20 text-emerald-300' : 'bg-white/10 text-amber-300'
+                              }`}
+                            >
+                              {String.fromCharCode(65 + idx)}
+                            </span>
+                            {opt}
+                            {isCorrectOption && <span className="ml-1.5 text-emerald-400">✓</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] text-neutral-500 text-center">
+                      Chế độ xem lại — không thể trả lời lại trong hôm nay.
+                    </p>
+                  </div>
+                )}
 
                 <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 space-y-1.5 text-xs text-neutral-300">
                   <p className="font-semibold text-white flex items-center gap-1.5">
                     <HelpCircle className="w-4 h-4 text-amber-400" />
-                    Luật chơi câu hỏi vui:
+                    Luật chơi:
                   </p>
-                  <p className="text-[11px] text-neutral-400">🟢 Mỗi ngày có thể tham gia trả lời câu hỏi vui 1 lần.</p>
-                  <p className="text-[11px] text-neutral-400">🟢 Bạn có 15 giây để đọc và trả lời câu hỏi.</p>
-                  <p className="text-[11px] text-neutral-400">🟢 Bạn sẽ nhận được ngẫu nhiên từ 5 đến 10 điểm nếu trả lời đúng câu hỏi.</p>
-                  <p className="text-[11px] text-neutral-400">🟢 Trả lời sai không bị mất điểm.</p>
+                  <p className="text-[11px] text-neutral-400">🟢 Mỗi ngày trả lời câu hỏi vui 1 lần.</p>
+                  <p className="text-[11px] text-neutral-400">🟢 Bạn có 15 giây để đọc và trả lời.</p>
+                  <p className="text-[11px] text-neutral-400">🟢 Trả lời đúng nhận ngẫu nhiên 5–10 Coin.</p>
+                  <p className="text-[11px] text-neutral-400">🟢 Trả lời sai không bị mất gì.</p>
                 </div>
               </div>
             )}
@@ -567,7 +674,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
             onClick={onClose}
             className="px-4 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs transition-colors cursor-pointer"
           >
-            ĐÓNG
+            Đóng
           </button>
         </div>
       </div>
@@ -579,23 +686,26 @@ export const StreakFlameWidget: React.FC<{
   streakCount: number;
   onClick: () => void;
   className?: string;
-}> = ({ streakCount, onClick, className = '' }) => {
+  compact?: boolean;
+}> = ({ streakCount, onClick, className = '', compact = false }) => {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-full liquid-glass border border-amber-400/40 hover:border-amber-300 bg-amber-500/10 hover:bg-amber-500/20 transition-all cursor-pointer shadow-[0_0_18px_rgba(245,158,11,0.25)] select-none ${className}`}
-      title="Chuỗi điểm danh hàng ngày • Nhấp để mở Lò Coin & Kho Quà"
+      className={`ff-streak-widget group relative flex items-center gap-2 rounded-full liquid-glass border border-amber-400/40 hover:border-amber-300 bg-amber-500/10 hover:bg-amber-500/20 transition-all cursor-pointer shadow-[0_0_18px_rgba(245,158,11,0.25)] select-none overflow-visible ${
+        compact ? 'px-2 py-1' : 'px-3 py-1.5'
+      } ${className}`}
+      title="Chuỗi điểm danh • Nhấp để mở điểm danh & kho quà"
       aria-label="Chuỗi điểm danh hàng ngày"
     >
       {/* Animated Aura Glow */}
-      <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-amber-500/30 via-orange-500/20 to-yellow-400/30 blur-sm pointer-events-none group-hover:opacity-100 transition-opacity opacity-70 animate-pulse" />
+      <span className="absolute -inset-1 rounded-full ff-streak-aura pointer-events-none opacity-70 group-hover:opacity-100 transition-opacity" />
 
       {/* Fiery Flame Icon with Multi-layer SVG */}
       <div className="relative w-6 h-6 flex items-center justify-center shrink-0">
         <svg
           viewBox="0 0 24 24"
-          className="w-5 h-5 text-orange-500 transition-transform duration-300 group-hover:scale-110 drop-shadow-[0_0_8px_#f97316]"
+          className="w-5 h-5 text-orange-500 transition-transform duration-300 group-hover:scale-110 drop-shadow-[0_0_8px_#f97316] ff-flame-flicker"
           fill="currentColor"
         >
           <path d="M12 2C9.5 6.5 6 9 6 13.5C6 17 8.7 20 12 20C15.3 20 18 17 18 13.5C18 9 14.5 6.5 12 2Z" />
@@ -610,12 +720,12 @@ export const StreakFlameWidget: React.FC<{
       </div>
 
       <div className="flex flex-col items-start leading-none relative z-10">
-        <span className="text-[11px] font-extrabold text-amber-300 font-mono tracking-wider">
+        <span className="text-[11px] font-extrabold ff-aurora-text font-mono tracking-wider">
           {streakCount} NGÀY
         </span>
-        <span className="text-[8.5px] uppercase font-mono text-amber-200/70 tracking-tight">
-          STREAK
-        </span>
+        {!compact && (
+          <span className="text-[8.5px] uppercase font-mono text-amber-200/70 tracking-tight">Streak</span>
+        )}
       </div>
     </button>
   );
