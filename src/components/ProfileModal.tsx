@@ -99,7 +99,7 @@ const ProfileModalInner: React.FC<{
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Brief shimmer skeleton so the profile feels loaded, not popped
+  /* Brief shimmer skeleton so the profile feels loaded, not popped */
   const [isBooting, setIsBooting] = useState(true);
   useEffect(() => {
     setIsBooting(true);
@@ -133,7 +133,7 @@ const ProfileModalInner: React.FC<{
   );
 
   const statsMetrics = useMemo(() => {
-    // Toàn bộ chỉ số tính từ hoạt động thật — không có số ảo.
+    /* Toàn bộ chỉ số tính từ hoạt động thật — không có số ảo. */
     const thanks =
       currentUser.stats?.thanksCount ??
       userSolutions.reduce((acc, s) => acc + (s.upvotes || 0), 0);
@@ -156,7 +156,7 @@ const ProfileModalInner: React.FC<{
   }, [currentUser, userSolutions, userCoin]);
 
   const radarAxes = useMemo(() => {
-    // Radar tính theo môn học người dùng thật sự tham gia (câu hỏi + lời giải).
+    /* Radar tính theo môn học người dùng thật sự tham gia (câu hỏi + lời giải). */
     const SUBJECT_GROUPS: Record<string, string[]> = {
       KHTN: ['toan', 'ly', 'hoa', 'sinh'],
       KHXH: ['van', 'su'],

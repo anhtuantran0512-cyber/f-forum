@@ -186,7 +186,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setTimeout(() => window.location.reload(), 700);
   };
 
-  // Mobile / no-anchor fallback: centered dialog
+  /* Mobile / no-anchor fallback: centered dialog */
   const useCentered = !anchorRef || !pop.ready;
 
   return (

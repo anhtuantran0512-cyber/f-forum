@@ -36,7 +36,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
   const tier = getTierForLevel(user.level);
   const isSuperAdmin = user.role === 'SUPER_ADMIN';
 
-  // Clamp the card near the click point, always inside the viewport
+  /* Clamp the card near the click point, always inside the viewport */
   const pos = useMemo(() => {
     const W = 308;
     const H = 380;

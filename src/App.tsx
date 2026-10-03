@@ -190,7 +190,7 @@ export const App: React.FC = () => {
       return;
     }
 
-    // Clicking another user shows the quick card first; the full profile opens on demand.
+    /* Clicking another user shows the quick card first; the full profile opens on demand. */
     const emailKey = userToView.email ? userToView.email.toLowerCase() : '';
     const existing = (emailKey && users[emailKey]) || Object.values(users).find(u => u.id === userToView.id);
     const resolved: User = existing || {
@@ -206,7 +206,7 @@ export const App: React.FC = () => {
     };
 
     if (currentUser && resolved.id === currentUser.id) {
-      // Own avatar → go straight to the full profile
+      /* Own avatar → go straight to the full profile */
       handleOpenProfile('overview');
       return;
     }
