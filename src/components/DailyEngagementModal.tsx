@@ -222,7 +222,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
 
   useEffect(() => {
     onStreakChange?.(streak);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [streak]);
 
   if (!isOpen) return null;

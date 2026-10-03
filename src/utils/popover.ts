@@ -55,7 +55,7 @@ export function computePopoverPosition(
     if (top < MARGIN) top = MARGIN;
     origin = 'bottom right';
   } else {
-    // top dock: panel opens below
+    /* top dock: panel opens below */
     left = rect.right - width;
     left = Math.max(MARGIN, Math.min(left, vw - MARGIN - width));
     top = rect.bottom + GAP;

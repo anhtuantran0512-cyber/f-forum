@@ -47,7 +47,7 @@ const periodStart = (period: Period): number => {
   const now = new Date();
   if (period === 'week') {
     const d = new Date(now);
-    const day = (d.getDay() + 6) % 7; // Monday = 0
+    const day = (d.getDay() + 6) % 7; /* Monday = 0 */
     d.setDate(d.getDate() - day);
     d.setHours(0, 0, 0, 0);
     return d.getTime();

@@ -179,7 +179,7 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
       clearInterval(tick);
       clearInterval(cssCheck);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);
 
   const handleManualSkip = () => {

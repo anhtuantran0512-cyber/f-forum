@@ -171,14 +171,14 @@ export const Navbar: React.FC<NavbarProps> = ({
     }, delay);
   }, [alwaysCompact]);
 
-  // Scroll direction drives compact/expand (like the iOS 26 tab bar)
+  /* Scroll direction drives compact/expand (like the iOS 26 tab bar) */
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY;
       const last = lastScrollYRef.current;
       lastScrollYRef.current = y;
       if (anyPopoverOpenRef.current) return;
-      if (alwaysCompact) return; // user pinned icon-only mode
+      if (alwaysCompact) return; /* user pinned icon-only mode */
 
       if (y > last + 10 && y > 50) {
         setIsCompact(true);
@@ -186,7 +186,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         forceExpand();
       }
 
-      // After 900ms idle the bar becomes reachable again
+      /* After 900ms idle the bar becomes reachable again */
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       idleTimerRef.current = setTimeout(() => {
         if (!anyPopoverOpenRef.current) forceExpand();
@@ -199,7 +199,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
   }, [alwaysCompact, forceExpand]);
 
-  // Always-compact preference
+  /* Always-compact preference */
   useEffect(() => {
     if (alwaysCompact) setIsCompact(true);
   }, [alwaysCompact]);
@@ -214,7 +214,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const handleNavPointerLeave = () => {
-    // 0.5s grace: the capsule folds into icon-only mode
+    /* 0.5s grace: the capsule folds into icon-only mode */
     if (!alwaysCompact && !anyPopoverOpenRef.current) {
       scheduleCompact(500);
     }
@@ -256,7 +256,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
     return () => window.removeEventListener('mousemove', handleMouseMove);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [navbarAutoHide, navbarPosition, isFlyoutOpen, isNotificationsOpen, isSettingsOpen, alwaysCompact]);
 
   const isVertical = navbarPosition === 'left' || navbarPosition === 'right';
@@ -276,7 +276,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       const tRect = activeEl.getBoundingClientRect();
       let left = tRect.left - cRect.left + container.scrollLeft;
       let width = tRect.width;
-      // Clamp so the pill can never overflow the tab strip
+      /* Clamp so the pill can never overflow the tab strip */
       const maxLeft = container.scrollWidth - 2;
       left = Math.max(0, Math.min(left, maxLeft));
       width = Math.min(width, Math.max(0, container.scrollWidth - left));
@@ -290,7 +290,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
 
     updatePill();
-    // Re-measure after compact/expand transitions & fonts/layout shifts
+    /* Re-measure after compact/expand transitions & fonts/layout shifts */
     const t1 = setTimeout(updatePill, 80);
     const t2 = setTimeout(updatePill, 480);
     window.addEventListener('resize', updatePill);
@@ -314,7 +314,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
   }, [currentView, isVertical, isCompact]);
 
-  // Keep the active tab visible inside the scrollable strip
+  /* Keep the active tab visible inside the scrollable strip */
   useEffect(() => {
     const activeEl = tabRefs.current[currentView];
     if (activeEl && !isVertical) {
