@@ -13,7 +13,6 @@ import {
   Sparkles,
   Award,
   Settings,
-  Move,
 } from 'lucide-react';
 import type { DimensionView, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
@@ -167,11 +166,44 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const handleMouseLeaveNav = () => {
     if (!navbarAutoHide) return;
+    if (isFlyoutOpen || isNotificationsOpen || isSettingsOpen) return;
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     hideTimerRef.current = setTimeout(() => {
       setIsNavbarHovered(false);
     }, 1000);
   };
+
+  useEffect(() => {
+    if (!navbarAutoHide) {
+      setIsNavbarHovered(true);
+      return;
+    }
+    const TRIGGER_DISTANCE = 117;
+    const handleMouseMove = (e: MouseEvent) => {
+      const { clientX, clientY } = e;
+      const winW = window.innerWidth;
+      const winH = window.innerHeight;
+      let isNearEdge = false;
+      if (navbarPosition === 'bottom') {
+        isNearEdge = clientY >= winH - TRIGGER_DISTANCE;
+      } else if (navbarPosition === 'left') {
+        isNearEdge = clientX <= TRIGGER_DISTANCE;
+      } else if (navbarPosition === 'right') {
+        isNearEdge = clientX >= winW - TRIGGER_DISTANCE;
+      } else {
+        isNearEdge = clientY <= TRIGGER_DISTANCE;
+      }
+
+      if (isNearEdge) {
+        handleMouseEnterNav();
+      } else if (!isFlyoutOpen && !isNotificationsOpen && !isSettingsOpen) {
+        handleMouseLeaveNav();
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [navbarAutoHide, navbarPosition, isFlyoutOpen, isNotificationsOpen, isSettingsOpen]);
 
   const isVertical = navbarPosition === 'left' || navbarPosition === 'right';
 
@@ -365,20 +397,20 @@ export const Navbar: React.FC<NavbarProps> = ({
     qa: <HelpCircle size={16} className="text-cyan-400" />,
     chat: <MessageSquare size={16} className="text-orange-400" />,
     memory: (
-      <svg width={17} height={17} viewBox="0 0 24 24" fill="none">
-        <polygon points="12,2 20,8 17,20 7,20 4,8" fill="url(#crystalGradNav)" stroke="#38bdf8" strokeWidth="1.5" strokeLinejoin="round" />
-        <polygon points="12,2 17,10 12,18 7,10" fill="#0284c7" fillOpacity="0.4" stroke="#e0f2fe" strokeWidth="0.8" />
-        <circle cx="12" cy="10" r="1.5" fill="#ffffff" />
+      <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 transition-transform group-hover/tab:scale-110">
+        <rect x="3" y="3" width="18" height="18" rx="4" />
+        <path d="M3 15l5-5c.9-.9 2.3-.9 3.2 0l6.8 6.8" />
+        <path d="M14 14.5l1.5-1.5c.8-.8 2.2-.8 3 0L21 15.5" />
+        <circle cx="8" cy="8" r="1.5" />
       </svg>
     ),
     chronicles: (
-      <svg width={17} height={17} viewBox="0 0 24 24" fill="none">
-        <path d="M7 4 H17 V10 C17 13.5 14.5 15.5 12 15.5 C9.5 15.5 7 13.5 7 10 Z" fill="url(#trophyGradNav)" stroke="#fbbf24" strokeWidth="1.2" strokeLinejoin="round" />
-        <path d="M7 6 C4.5 6 4.5 9.5 7 10" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M17 6 C19.5 6 19.5 9.5 17 10" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
-        <line x1="12" y1="15.5" x2="12" y2="19" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
-        <line x1="8" y1="19" x2="16" y2="19" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx="12" cy="9.5" r="1.2" fill="#ffffff" />
+      <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 transition-transform group-hover/tab:scale-110">
+        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+        <path d="M4 22h16" />
+        <path d="M10 14.66V17c0 .55-.45 1-1 1H8v4h8v-4h-1c-.55 0-1-.45-1-1v-2.34" />
+        <path d="M6 4h12a1 1 0 0 1 1 1v4c0 3.87-3.13 7-7 7s-7-3.13-7-7V5a1 1 0 0 1 1-1z" />
       </svg>
     ),
     'coming-soon': <Timer size={16} className="text-yellow-400" />,
@@ -397,17 +429,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      {/* Auto-Hide Hover Trigger Zone (Synchronized across all 4 edges) */}
+      {/* Auto-Hide Hover Trigger Zone (Synchronized across all 4 edges, 117px = +30% reach) */}
       {navbarAutoHide && (
         <div
-          className={`hidden md:block fixed z-[51] pointer-events-auto transition-all ${
+          className={`hidden md:block fixed z-[51] pointer-events-auto opacity-0 transition-all ${
             navbarPosition === 'bottom'
-              ? 'bottom-0 inset-x-0 h-4'
+              ? 'bottom-0 inset-x-0 h-[117px]'
               : navbarPosition === 'left'
-              ? 'left-0 inset-y-0 w-4'
+              ? 'left-0 inset-y-0 w-[117px]'
               : navbarPosition === 'right'
-              ? 'right-0 inset-y-0 w-4'
-              : 'top-0 inset-x-0 h-4'
+              ? 'right-0 inset-y-0 w-[117px]'
+              : 'top-0 inset-x-0 h-[117px]'
           }`}
           onMouseEnter={handleMouseEnterNav}
         />
@@ -461,22 +493,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Center Tabs: Strictly 1 Single Line, NO wrapping into 2 rows */}
           <div className="relative flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-1 nav-center-tabs">
-            {/* SVG Defs for Navbar Icons */}
-            <svg width="0" height="0" className="absolute pointer-events-none">
-              <defs>
-                <linearGradient id="crystalGradNav" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#a5f3fc" />
-                  <stop offset="50%" stopColor="#38bdf8" />
-                  <stop offset="100%" stopColor="#818cf8" />
-                </linearGradient>
-                <linearGradient id="trophyGradNav" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#fef08a" />
-                  <stop offset="50%" stopColor="#f59e0b" />
-                  <stop offset="100%" stopColor="#b45309" />
-                </linearGradient>
-              </defs>
-            </svg>
-
             {!isVertical && (
               <>
                 {/* Liquid sliding pill indicator */}
@@ -542,22 +558,22 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span className="dock-horizontal-content flex items-center gap-1.5">
                     {isMemory ? (
                       <span className="flex items-center gap-1.5" title="Miền Ký Ức">
-                        <svg width={18} height={18} viewBox="0 0 24 24" fill="none" className="transition-transform hover:scale-110 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]">
-                          <polygon points="12,2 20,8 17,20 7,20 4,8" fill="url(#crystalGradNav)" stroke={isActive ? "#38bdf8" : "#a5f3fc"} strokeWidth="1.5" strokeLinejoin="round" />
-                          <polygon points="12,2 17,10 12,18 7,10" fill="#0284c7" fillOpacity="0.4" stroke="#e0f2fe" strokeWidth="0.8" />
-                          <circle cx="12" cy="10" r="1.5" fill="#ffffff" />
+                        <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover/tab:scale-110">
+                          <rect x="3" y="3" width="18" height="18" rx="4" />
+                          <path d="M3 15l5-5c.9-.9 2.3-.9 3.2 0l6.8 6.8" />
+                          <path d="M14 14.5l1.5-1.5c.8-.8 2.2-.8 3 0L21 15.5" />
+                          <circle cx="8" cy="8" r="1.5" />
                         </svg>
                         <span className="sr-only">{item.label}</span>
                       </span>
                     ) : isChronicles ? (
                       <span className="flex items-center gap-1.5" title="Khu Vinh Danh">
-                        <svg width={18} height={18} viewBox="0 0 24 24" fill="none" className="transition-transform hover:scale-110 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]">
-                          <path d="M7 4 H17 V10 C17 13.5 14.5 15.5 12 15.5 C9.5 15.5 7 13.5 7 10 Z" fill="url(#trophyGradNav)" stroke={isActive ? "#fbbf24" : "#fef08a"} strokeWidth="1.2" strokeLinejoin="round" />
-                          <path d="M7 6 C4.5 6 4.5 9.5 7 10" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
-                          <path d="M17 6 C19.5 6 19.5 9.5 17 10" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
-                          <line x1="12" y1="15.5" x2="12" y2="19" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" />
-                          <line x1="8" y1="19" x2="16" y2="19" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" />
-                          <circle cx="12" cy="9.5" r="1.2" fill="#ffffff" />
+                        <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover/tab:scale-110">
+                          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                          <path d="M4 22h16" />
+                          <path d="M10 14.66V17c0 .55-.45 1-1 1H8v4h8v-4h-1c-.55 0-1-.45-1-1v-2.34" />
+                          <path d="M6 4h12a1 1 0 0 1 1 1v4c0 3.87-3.13 7-7 7s-7-3.13-7-7V5a1 1 0 0 1 1-1z" />
                         </svg>
                         <span className="sr-only">{item.label}</span>
                       </span>
@@ -583,13 +599,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Side: Quick Dock */}
           <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0 nav-actions-dock">
-            {/* Streak Flame Widget with Fire & Aura */}
-            <StreakFlameWidget
-              streakCount={currentUser?.streakCount || 1}
-              onClick={() => setIsDailyModalOpen(true)}
-              className="pointer-events-auto mr-0.5"
-            />
-
             {/* Sleek Settings button with iOS Liquid Glass flyout */}
             <div ref={settingsMenuRef} className="relative inline-flex items-center flex-shrink-0">
               <button
@@ -648,28 +657,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 dockPosition={navbarPosition}
               />
             </div>
-
-            {/* Quick Swap Navbar Position Button */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSwapNavbarPosition();
-              }}
-              className="relative w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/30 flex items-center justify-center text-white/70 hover:text-white transition-all cursor-pointer pointer-events-auto"
-              title={`Đổi vị trí thanh: ${
-                navbarPosition === 'top'
-                  ? 'Trên'
-                  : navbarPosition === 'bottom'
-                  ? 'Dưới'
-                  : navbarPosition === 'left'
-                  ? 'Trái'
-                  : 'Phải'
-              } (Bấm để dời góc)`}
-              aria-label="Đổi vị trí Navbar"
-            >
-              <Move className="w-3.5 h-3.5 text-amber-400/80 hover:text-amber-300" />
-            </button>
 
             {/* Chat Toggle Button */}
             <button
@@ -1196,7 +1183,14 @@ export const Navbar: React.FC<NavbarProps> = ({
         </>
       )}
 
-      {/* Daily Engagement Hub Modal (Attendance, Mystery Boxes, Daily Quiz) */}
+      <div className="fixed bottom-20 left-4 md:bottom-5 md:left-5 z-40 pointer-events-auto">
+        <StreakFlameWidget
+          streakCount={currentUser?.streakCount || 1}
+          onClick={() => setIsDailyModalOpen(true)}
+          className="shadow-2xl hover:scale-105 transition-transform"
+        />
+      </div>
+
       <DailyEngagementModal
         isOpen={isDailyModalOpen}
         onClose={() => setIsDailyModalOpen(false)}

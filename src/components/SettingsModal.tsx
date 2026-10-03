@@ -357,15 +357,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="rounded-2xl p-3 bg-black/30 border border-white/10 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-white tracking-wide">
-                Hào Quang Godrays (Grainient)
+                Gradient
               </span>
               <span className="text-[10px] text-amber-300 font-mono">
                 {godrayIntensity}% Độ rực
               </span>
             </div>
 
-            {/* Presets Grid */}
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-44 overflow-y-auto no-scrollbar pr-0.5">
               {GODRAY_PRESETS.map((p) => (
                 <button
                   key={p.id}
