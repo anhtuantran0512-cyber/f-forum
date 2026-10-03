@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { ArrowRight, ArrowUpRight, ChevronDown, Compass, HelpCircle, MousePointerClick } from 'lucide-react';
 import type { DimensionView } from '../../types';
 import { BoomerangVideoBg } from '../BoomerangVideoBg';
-import { StreakFlameWidget } from '../DailyEngagementModal';
 
 interface HomeViewProps {
   onNavigate: (view: DimensionView) => void;
@@ -17,8 +16,6 @@ interface HomeViewProps {
   resolvedQuestionsCount?: number;
   totalClubsCount?: number;
   chatMessagesTodayCount?: number;
-  streakCount?: number;
-  onOpenDaily?: () => void;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
@@ -26,13 +23,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onOpenLanding,
   totalClubs,
   solvedQuestionsCount,
-  onlineCount = 1,
+  onlineCount = 0,
   onlineUsersCount = onlineCount,
   resolvedQuestionsCount = solvedQuestionsCount,
   totalClubsCount = totalClubs,
   chatMessagesTodayCount = 0,
-  streakCount = 1,
-  onOpenDaily,
 }) => {
   const [headlinePhase, setHeadlinePhase] = useState<0 | 1>(0);
 
@@ -52,26 +47,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
       {/* Hero Foreground Content */}
       <div className="relative z-10 w-full max-w-4xl mx-auto px-4 sm:px-6 flex flex-col items-center text-center pt-16 sm:pt-10">
         
-        {/* Tag Badge & Streak Flame Widget */}
-        <div className="animate-fade-up delay-1 mb-6 flex items-center justify-center gap-3 flex-wrap">
+        {/* Community label */}
+        <div className="animate-fade-up delay-1 mb-6 flex items-center justify-center">
           <div className="liquid-glass rounded-full px-4 py-1.5 text-xs sm:text-sm text-amber-300 inline-flex items-center gap-2 border border-amber-400/25 shadow-[0_0_15px_rgba(245,158,11,0.15)] bg-[#0c1218]/60 backdrop-blur-xl">
-            <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_#f59e0b] animate-ping" />
+            <span className="w-2 h-2 rounded-full bg-amber-400" />
             <span className="font-semibold tracking-wider uppercase font-mono">
-              F-FORUM • HỆ THỐNG GIAO LƯU TRI THỨC TOÀN TRƯỜNG
+              F-Forum · Cộng đồng học tập
             </span>
           </div>
-
-          <StreakFlameWidget
-            streakCount={streakCount}
-            onClick={() => {
-              if (onOpenDaily) {
-                onOpenDaily();
-              } else if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('fforum_open_daily'));
-              }
-            }}
-            className="cursor-pointer hover:scale-105 transition-transform"
-          />
         </div>
 
         {/* Headline with Alternating Phrases (3s / 4s) & Single-Line Styled F-Forum */}
@@ -203,21 +186,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <span className="font-semibold text-sky-300">{totalClubsCount}</span>
             </div>
             <div className="flex items-center justify-between text-white/70">
-              <span className="text-white/40">Thảo luận 24h:</span>
+              <span className="text-white/40">Tin nhắn:</span>
               <span className="font-semibold text-purple-300">{chatMessagesTodayCount}</span>
-            </div>
-            <div className="flex items-center justify-between text-white/70 pt-1.5 border-t border-white/10">
-              <span className="text-white/40">Điểm danh ngày:</span>
-              <StreakFlameWidget
-                streakCount={streakCount}
-                onClick={() => {
-                  if (onOpenDaily) {
-                    onOpenDaily();
-                  } else if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('fforum_open_daily'));
-                  }
-                }}
-              />
             </div>
           </div>
         </div>

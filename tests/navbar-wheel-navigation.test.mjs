@@ -178,13 +178,14 @@ test('3. Simulation of Transition State Machine & Edge Cases', () => {
 
 test('4. Invariants & Preserved Systems Integrity', () => {
   const appContent = fs.readFileSync(path.resolve('src/App.tsx'), 'utf8');
+  const serverContent = fs.readFileSync(path.resolve('server/forumServer.ts'), 'utf8');
   const homeContent = fs.readFileSync(path.resolve('src/components/views/HomeView.tsx'), 'utf8');
 
-  // Super Admin guard isolation
-  assert.ok(
-    appContent.includes("currentUser?.email === 'anhtuantran0512@gmail.com' &&"),
-    'App.tsx must strictly preserve Super Admin guard'
-  );
+  // Admin authorization is enforced against a server-authenticated session, not a client email claim.
+  assert.ok(serverContent.includes('function getAuthenticatedUser'), 'Server must resolve the authenticated session');
+  assert.ok(serverContent.includes("admin?.role !== 'SUPER_ADMIN'"), 'Privileged endpoints must check the server role');
+  assert.ok(serverContent.includes('findUserForRequest(req, body.email, body.userId)'), 'User mutations must bind to the authenticated user');
+  assert.ok(!appContent.includes('XPSandboxDock'), 'Client-side arbitrary XP controls must remain removed');
 
   // Dynamic Homepage Title with Diễn Đàn Học Sinh
   assert.ok(

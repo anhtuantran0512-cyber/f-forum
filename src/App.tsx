@@ -22,7 +22,6 @@ const ChatDock = lazy(() => import('./components/ChatDock').then(m => ({ default
 const ProfileModal = lazy(() => import('./components/ProfileModal').then(m => ({ default: m.ProfileModal })));
 const FocusSanctuary = lazy(() => import('./components/FocusSanctuary').then(m => ({ default: m.FocusSanctuary })));
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
-const XPSandboxDock = lazy(() => import('./components/XPSandboxDock').then(m => ({ default: m.XPSandboxDock })));
 
 const ViewLoadingFallback = () => (
   <div className="w-full h-full min-h-[50vh] flex items-center justify-center" aria-busy="true" aria-label="Đang tải giao diện">
@@ -45,6 +44,10 @@ export const App: React.FC = () => {
     loginSocial,
     logout,
     addXP,
+    checkInDaily,
+    answerDailyQuestion,
+    openDailyBox,
+    purchaseShopItem,
     updateProfile,
     clubs,
     clubPosts,
@@ -158,7 +161,7 @@ export const App: React.FC = () => {
           role: userToView.email === 'anhtuantran0512@gmail.com' ? 'SUPER_ADMIN' : 'STUDENT',
           level: userToView.level || 1,
           xp: 0,
-          coin: 100,
+          coin: 0,
           bio: '',
           scopedClubIds: [],
         });
@@ -306,6 +309,9 @@ export const App: React.FC = () => {
           unreadChatCount={unreadChatCount}
           onOpenProfile={handleOpenProfile}
           onOpenFocusMode={() => setIsFocusModeOpen(true)}
+          onClaimAttendance={checkInDaily}
+          onAnswerDailyQuestion={answerDailyQuestion}
+          onOpenDailyBox={openDailyBox}
           isInsideCinema={isInsideCinema}
         />
         )
@@ -319,7 +325,7 @@ export const App: React.FC = () => {
               currentUser={currentUser}
               onOpenAuth={() => handleOpenAuth('register')}
               onEnterApp={() => handleViewChange('home')}
-              onlineCount={Math.max(1, onlineUsers.length > 0 ? onlineUsers.length : Object.keys(users).length)}
+              onlineCount={onlineUsers.length}
               totalQuestions={questions.length}
               solvedQuestions={solvedQuestionsCount}
               totalClubs={clubs.filter(c => c.status === 'APPROVED').length}
@@ -334,13 +340,11 @@ export const App: React.FC = () => {
                 totalClubs={clubs.filter(c => c.status === 'APPROVED').length}
                 totalQuestions={questions.length}
                 solvedQuestionsCount={solvedQuestionsCount}
-                onlineCount={Math.max(1, onlineUsers.length > 0 ? onlineUsers.length : Object.keys(users).length)}
-                onlineUsersCount={Math.max(1, onlineUsers.length > 0 ? onlineUsers.length : Object.keys(users).length)}
+                onlineCount={onlineUsers.length}
+                onlineUsersCount={onlineUsers.length}
                 resolvedQuestionsCount={solvedQuestionsCount}
                 totalClubsCount={clubs.filter(c => c.status === 'APPROVED').length}
                 chatMessagesTodayCount={chatMessages.length}
-                streakCount={currentUser?.streakCount || 1}
-                onOpenDaily={() => window.dispatchEvent(new CustomEvent('fforum_open_daily'))}
               />
             </div>
           )}
@@ -364,6 +368,7 @@ export const App: React.FC = () => {
               currentUser={currentUser}
               questions={questions}
               solutions={solutions}
+              users={users}
               onCreateQuestion={createQuestion}
               onAddSolution={addSolution}
               onMarkBestSolution={markBestSolution}
@@ -382,7 +387,7 @@ export const App: React.FC = () => {
               onSendMessage={sendChatMessage}
               onDeleteMessage={adminDeleteChatMessage}
               onlineUsers={onlineUsers}
-              onlineCount={Math.max(1, onlineUsers.length)}
+              onlineCount={onlineUsers.length}
               onOpenLoginModal={() => handleOpenAuth('login')}
               onOpenProfile={handleOpenUserProfile}
             />
@@ -445,6 +450,7 @@ export const App: React.FC = () => {
             currentUser={targetProfileUser || currentUser!}
             viewerUser={currentUser}
             onSaveProfile={updateProfile}
+            onPurchaseShopItem={purchaseShopItem}
             initialTab={profileInitialTab}
             questions={questions}
             solutions={solutions}
@@ -496,15 +502,6 @@ export const App: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Super Admin XP & Level Management Sandbox */}
-      {currentUser?.email === 'anhtuantran0512@gmail.com' && (
-        <XPSandboxDock
-          level={currentUser.level}
-          xp={currentUser.xp}
-          onAddXP={addXP}
-        />
       )}
 
       {/* CodeFronts .la-08 Healthcare Appointment & Resource Loading Animation */}

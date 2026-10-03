@@ -22,6 +22,19 @@ export interface UserStats {
   subjectDistribution?: Record<string, number>;
 }
 
+export interface PointActivity {
+  id: string;
+  points: number;
+  reason: string;
+  createdAt: string;
+}
+
+export interface MysteryBoxes {
+  blue: number;
+  gold: number;
+  red: number;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -39,10 +52,19 @@ export interface User {
   className?: string;
   scopedClubIds: string[];
   equippedBadge?: string;
+  earnedBadges?: string[];
   inventory?: string[];
   reportedUsers?: string[];
   joinedAt?: string;
   stats?: UserStats;
+  activityLog?: PointActivity[];
+  attendanceDates?: string[];
+  lastCheckInDate?: string;
+  lastQuizDate?: string;
+  lastQuizQuestionId?: string;
+  lastQuizCorrect?: boolean;
+  lastFocusRewardAt?: string;
+  mysteryBoxes?: MysteryBoxes;
 }
 
 export type ClubCategory = 'Công nghệ' | 'Nghệ thuật' | 'Thể thao' | 'Học thuật';
@@ -108,6 +130,7 @@ export interface Question {
   bestSolutionId?: string;
   views: number;
   bountyCoin?: number;
+  bountyPaid?: boolean;
   imageUrl?: string;
 }
 

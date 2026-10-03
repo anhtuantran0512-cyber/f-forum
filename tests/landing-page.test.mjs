@@ -133,7 +133,7 @@ test('5. App integration: landing is the first-run route and the wheel engine ig
     app.includes("onOpenAuth={() => handleOpenAuth('register')}"),
     'Landing CTAs must open the auth dialog on the register tab',
   );
-  assert.ok(navbar.includes("{ id: 'landing', label: 'GIỚI THIỆU' }"), 'In-app navbar needs a way back to the landing page');
+  assert.ok(navbar.includes("{ id: 'landing', label: 'Giới thiệu' }"), 'In-app navbar needs a way back to the landing page');
 
   // The wheel engine invariants asserted by the navigation test must survive.
   assert.ok(

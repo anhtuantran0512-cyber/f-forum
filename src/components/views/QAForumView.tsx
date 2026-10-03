@@ -23,7 +23,6 @@ import {
   Flag,
   User as UserIcon,
   Coins,
-  Shield,
   Waves,
   Grid3X3,
 } from 'lucide-react';
@@ -82,9 +81,10 @@ interface QAForumViewProps {
     isAnonymous: boolean;
     bountyCoin?: number;
     imageUrl?: string;
-  }) => void;
-  onAddSolution: (questionId: string, content: string, imageUrl?: string) => void;
-  onMarkBestSolution: (questionId: string, solutionId: string) => void;
+  }) => boolean | Promise<boolean>;
+  onAddSolution: (questionId: string, content: string, imageUrl?: string) => boolean | Promise<boolean>;
+  onMarkBestSolution: (questionId: string, solutionId: string) => boolean | Promise<boolean>;
+  users?: Record<string, User>;
   onDeleteQuestion?: (questionId: string) => void;
   onEditQuestion?: (questionId: string, updates: { title?: string; content?: string; subject?: SubjectTag }) => void;
   onDeleteSolution?: (solutionId: string) => void;
@@ -129,6 +129,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   onDeleteSolution,
   onOpenLoginModal,
   onOpenProfile,
+  users = {},
   isEmbedded = false,
 }) => {
   const [activeVideoIdx, setActiveVideoIdx] = useState(0);
@@ -229,7 +230,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [newSubject, setNewSubject] = useState<SubjectTag>('toan');
   const [newContent, setNewContent] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [bountyCoin, setBountyCoin] = useState<number>(20);
+  const [bountyCoin, setBountyCoin] = useState<number>(0);
   const [askImage, setAskImage] = useState<string | null>(null);
   const [askImageError, setAskImageError] = useState<string | null>(null);
 
@@ -304,7 +305,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         body: JSON.stringify({
           reporterId: currentUser?.id || 'guest',
           reporterName: currentUser?.name || 'Ẩn danh',
-          reporterEmail: currentUser?.email || '',
           reportedUserId: reportModalUser.id,
           reportedUserName: reportModalUser.name,
           reason: reportReason,
@@ -312,16 +312,17 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         }),
       });
       const data = await res.json();
-      setReportSuccessMsg(data.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị (anhtuantran0512@gmail.com).');
+      if (!res.ok || !data.success) throw new Error(data.message || 'Không thể gửi tố cáo.');
+      setReportSuccessMsg('Đã ghi nhận tố cáo.');
       pushNotification({
         type: 'system',
         category: 'system',
         title: 'Đã Tiếp Nhận Báo Cáo',
-        body: `Tố cáo đối với "${reportModalUser.name}" đã được chuyển tới Ban Giám Hiệu và Super Admin.`,
+        body: `Đã ghi nhận tố cáo về ${reportModalUser.name}.`,
         targetView: 'qa',
       });
-    } catch {
-      setReportSuccessMsg('Đã ghi nhận tố cáo của bạn và chuyển tới anhtuantran0512@gmail.com.');
+    } catch (error) {
+      setReportSuccessMsg(error instanceof Error ? error.message : 'Không thể gửi tố cáo. Vui lòng thử lại.');
     } finally {
       setIsSubmittingReport(false);
     }
@@ -336,7 +337,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     return matchesTag && matchesSearch;
   });
 
-  const handleAskSubmit = (e: React.FormEvent) => {
+  const handleAskSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (askCooldown > 0 || isSubmittingAsk) return;
     if (!currentUser) {
@@ -344,15 +345,13 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       onOpenLoginModal?.();
       return;
     }
-
     if (!newTitle.trim() || !newContent.trim()) {
       alert('Vui lòng nhập tiêu đề và nội dung câu hỏi!');
       return;
     }
 
     setIsSubmittingAsk(true);
-
-    onCreateQuestion({
+    const created = await onCreateQuestion({
       title: newTitle.trim().slice(0, 150),
       subject: newSubject,
       content: newContent.trim().slice(0, 1500),
@@ -360,18 +359,20 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       bountyCoin,
       imageUrl: askImage || undefined,
     });
+    setIsSubmittingAsk(false);
+    if (!created) return;
 
     setNewTitle('');
     setNewContent('');
     setAskImage(null);
     setAskImageError(null);
     setIsAnonymous(false);
+    setBountyCoin(0);
     setIsAskModalOpen(false);
-    setIsSubmittingAsk(false);
     setAskCooldown(5);
   };
 
-  const handleSolutionSubmit = (questionId: string) => {
+  const handleSolutionSubmit = async (questionId: string) => {
     if (solCooldown > 0 || isSubmittingSol) return;
     if (!solutionText.trim()) return;
     if (!currentUser) {
@@ -381,11 +382,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     }
 
     setIsSubmittingSol(true);
-    onAddSolution(questionId, solutionText.trim().slice(0, 1500), solImage || undefined);
+    const created = await onAddSolution(questionId, solutionText.trim().slice(0, 1500), solImage || undefined);
+    setIsSubmittingSol(false);
+    if (!created) return;
     setSolutionText('');
     setSolImage(null);
     setSolImageError(null);
-    setIsSubmittingSol(false);
     setSolCooldown(3);
   };
 
@@ -469,7 +471,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               </button>
             </div>
 
-            {/* Glowing + Đặt Câu Hỏi Mới (+50 XP) Button */}
+            {/* Open the real question form */}
             <button
               onClick={() => {
                 if (!currentUser) {
@@ -481,7 +483,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-400 to-blue-500 text-black hover:opacity-95 active:scale-95 transition-all shadow-[0_0_20px_rgba(6,182,212,0.5)] flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
             >
               <PlusCircle className="w-4 h-4 text-black" />
-              <span>+ Đặt Câu Hỏi Mới (+50 XP)</span>
+              <span>Đặt câu hỏi</span>
             </button>
           </div>
         </div>
@@ -759,6 +761,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           <div className={`lg:col-span-4 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-4 pb-6`}>
             <LeaderboardWidget
               currentUser={currentUser}
+              users={users}
               onOpenProfile={onOpenProfile}
               onOpenAskModal={() => {
                 if (!currentUser) {
@@ -772,7 +775,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         </div>
       </div>
 
-      {/* Modal: Đặt Câu Hỏi Mới (+50 XP) */}
+      {/* Modal: Đặt câu hỏi */}
       {isAskModalOpen && (
         <div role="dialog" aria-modal="true" aria-label="Đặt câu hỏi mới" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-up">
           <div className="liquid-glass w-full max-w-lg rounded-3xl bg-neutral-950/95 border border-cyan-400/40 shadow-2xl p-6 relative">
@@ -872,35 +875,34 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 )}
               </div>
 
-              {/* Bounty Coin Selector (10 - 100 Coin) */}
+              {/* Optional, funded bounty */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-semibold text-neutral-300">
-                    Cược Coin Phần Thưởng (Bounty Bet) (*):
+                    Thưởng cho lời giải (không bắt buộc)
                   </label>
                   <span className="text-[11px] font-mono text-amber-300">
-                    Số dư: {(currentUser?.coin ?? 100).toLocaleString()} Coin
+                    Số dư: {(currentUser?.coin ?? 0).toLocaleString()} Coin
                   </span>
                 </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {[10, 20, 50, 100].map(amt => (
+                <div className="grid grid-cols-5 gap-2">
+                  {[0, 10, 20, 50, 100].map((amount) => (
                     <button
-                      key={amt}
+                      key={amount}
                       type="button"
-                      onClick={() => setBountyCoin(amt)}
-                      className={`py-1.5 px-2 rounded-xl border text-xs font-mono font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
-                        bountyCoin === amt
-                          ? 'bg-amber-500/25 border-amber-400 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
+                      onClick={() => setBountyCoin(amount)}
+                      className={`py-1.5 px-2 rounded-xl border text-[10px] sm:text-xs font-mono font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                        bountyCoin === amount
+                          ? 'bg-amber-500/25 border-amber-400 text-amber-300'
                           : 'bg-white/5 border-white/10 text-neutral-400 hover:bg-white/10 hover:text-white'
                       }`}
                     >
-                      <Coins className="w-3 h-3 text-amber-400" />
-                      <span>{amt} Coin</span>
+                      {amount === 0 ? <span>Không</span> : <><Coins className="w-3 h-3 text-amber-400" /><span>{amount}</span></>}
                     </button>
                   ))}
                 </div>
                 <p className="text-[10px] text-neutral-400 mt-1">
-                  Người giải bài được trao Đáp Án Chuẩn sẽ nhận 50% tiền cược + 100 Coin danh dự.
+                  Coin cược được chuyển đầy đủ cho người có lời giải tốt nhất.
                 </p>
               </div>
 
@@ -970,7 +972,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               <div className="pt-2 flex items-center justify-between border-t border-white/10">
                 <span className="text-[11px] font-mono text-cyan-300 flex items-center gap-1">
                   <Sparkles className="w-3.5 h-3.5" />
-                  Nhận ngay +50 XP khi đăng bài
+                  Nhận 20 XP khi đăng câu hỏi
                 </span>
 
                 <div className="flex items-center gap-2">
@@ -986,7 +988,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     disabled={askCooldown > 0 || isSubmittingAsk}
                     className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 text-black font-bold text-xs shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    {askCooldown > 0 ? `Chờ ${askCooldown}s...` : isSubmittingAsk ? 'Đang gửi...' : 'Đăng Câu Hỏi (+50 XP)'}
+                    {askCooldown > 0 ? `Chờ ${askCooldown}s...` : isSubmittingAsk ? 'Đang gửi...' : 'Đăng câu hỏi (+20 XP)'}
                   </button>
                 </div>
               </div>
@@ -1226,10 +1228,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               <button
                                 onClick={() => onMarkBestSolution(selectedQuestion.id, sol.id)}
                                 className="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black font-bold text-[11px] border border-amber-400/40 transition-all flex items-center gap-1 cursor-pointer"
-                                title={`Xác nhận đáp án chính xác nhất để thưởng +${Math.floor((selectedQuestion.bountyCoin || 20) * 0.5) + 100} Coin`}
+                                title="Chọn lời giải tốt nhất"
                               >
                                 <Check className="w-3.5 h-3.5" />
-                                ✓ Xác nhận Đáp Án Chuẩn (+{Math.floor((selectedQuestion.bountyCoin || 20) * 0.5) + 100} Coin)
+                                Chọn lời giải tốt nhất (+25 XP)
                               </button>
                             )}
                           </div>
@@ -1240,11 +1242,11 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               )}
             </div>
 
-            {/* Submit New Solution (+25 XP) */}
+            {/* Submit a solution; XP is recorded after the server accepts it */}
             <div className="pt-3 border-t border-white/10">
               <label className="block text-xs font-semibold text-neutral-300 mb-1.5 flex items-center justify-between">
                 <span>Đóng góp lời giải của bạn:</span>
-                <span className="text-[10px] font-mono text-cyan-300">+25 XP khi gửi lời giải</span>
+                <span className="text-[10px] font-mono text-cyan-300">+10 XP khi lời giải được gửi</span>
               </label>
 
               <textarea
@@ -1296,7 +1298,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-neutral-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>{solCooldown > 0 ? `Chờ ${solCooldown}s...` : isSubmittingSol ? 'Đang gửi...' : '+ Trợ Giúp Giải Bài (+25 XP)'}</span>
+                  <span>{solCooldown > 0 ? `Chờ ${solCooldown}s...` : isSubmittingSol ? 'Đang gửi...' : '+ Gửi lời giải (+10 XP)'}</span>
                 </button>
               </div>
             </div>
@@ -1489,7 +1491,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     className="w-full py-2.5 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-98"
                   >
                     <UserIcon className="w-4 h-4 text-cyan-400" />
-                    <span>Trang Cá Nhân (Xem đầy đủ thông tin & tất cả huy hiệu)</span>
+                    <span>Cá nhân</span>
                   </button>
                 )}
 
@@ -1503,7 +1505,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   className="w-full py-2.5 px-3 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-98"
                 >
                   <Flag className="w-4 h-4 text-red-400" />
-                  <span>Tố Cáo Tài Khoản Vi Phạm (Gửi Gmail anhtuantran0512@gmail.com)</span>
+                  <span>Tố cáo</span>
                 </button>
               </div>
             </div>
@@ -1595,15 +1597,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   />
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-red-950/30 border border-red-500/20 text-[10px] text-red-300 space-y-1">
-                  <span className="font-bold flex items-center gap-1">
-                    <Shield className="w-3.5 h-3.5 text-red-400" />
-                    Kỷ luật trường học nghiêm ngặt:
-                  </span>
-                  <p>
-                    Báo cáo vi phạm sẽ được gửi trực tiếp tới Ban Quản Trị (anhtuantran0512@gmail.com) và Ban Giám Hiệu nhà trường.
-                  </p>
-                </div>
+                <p className="text-[11px] text-white/45">Tố cáo sẽ được xem xét theo nội quy cộng đồng.</p>
 
                 <div className="pt-2 flex items-center justify-end gap-2 border-t border-white/10">
                   <button

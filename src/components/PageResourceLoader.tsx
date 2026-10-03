@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface PageResourceLoaderProps {
   onLoaded: () => void;
@@ -8,176 +8,152 @@ interface PageResourceLoaderProps {
 
 export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
   onLoaded,
-  minDurationMs = 1200,
+  minDurationMs = 650,
 }) => {
+  const [progress, setProgress] = useState(0);
+  const [loadedImages, setLoadedImages] = useState(0);
+  const [totalImages, setTotalImages] = useState(0);
   const [isReady, setIsReady] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
-  const [isDarkTheme, setIsDarkTheme] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
+    let mounted = true;
+    const timers: ReturnType<typeof setTimeout>[] = [];
     const startTime = Date.now();
+    const setProgressAtLeast = (next: number) => {
+      if (mounted) setProgress((current) => Math.max(current, Math.min(100, next)));
+    };
 
-    const checkResourcesReady = async () => {
-      if (document.readyState !== 'complete') {
-        await new Promise((resolve) => window.addEventListener('load', resolve, { once: true }));
+    const waitForImages = async () => {
+      const images = Array.from(document.images);
+      const pendingImages = images.filter((image) => !image.complete);
+      let finished = images.length - pendingImages.length;
+      if (mounted) {
+        setTotalImages(images.length);
+        setLoadedImages(finished);
       }
+      setProgressAtLeast(20);
+
+      if (pendingImages.length === 0) {
+        setProgressAtLeast(65);
+        return;
+      }
+
+      await Promise.all(pendingImages.map((image) => new Promise<void>((resolve) => {
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          image.removeEventListener('load', finish);
+          image.removeEventListener('error', finish);
+          finished += 1;
+          if (mounted) setLoadedImages(finished);
+          setProgressAtLeast(20 + Math.round((finished / images.length) * 45));
+          resolve();
+        };
+        image.addEventListener('load', finish, { once: true });
+        image.addEventListener('error', finish, { once: true });
+        // A failed or stalled third-party image should not hold the screen forever.
+        timers.push(setTimeout(finish, 10000));
+      })));
+      setProgressAtLeast(65);
+    };
+
+    const loadResources = async () => {
+      setProgressAtLeast(5);
+      if (document.readyState === 'loading') {
+        await new Promise<void>((resolve) => {
+          document.addEventListener('DOMContentLoaded', () => resolve(), { once: true });
+        });
+      }
+      setProgressAtLeast(15);
+
+      await waitForImages();
+
       if ('fonts' in document) {
         try {
-          await (document as any).fonts.ready;
+          await Promise.race([
+            document.fonts.ready,
+            new Promise<void>((resolve) => timers.push(setTimeout(resolve, 8000))),
+          ]);
         } catch {
-          /* ignore */
+          // Font failures are settled like other failed resources.
         }
       }
-      const elapsed = Date.now() - startTime;
-      const waitRemaining = Math.max(0, minDurationMs - elapsed);
-      await new Promise((r) => setTimeout(r, waitRemaining));
+      setProgressAtLeast(82);
 
-      if (isMounted) {
-        setIsReady(true);
-        setTimeout(() => {
-          if (isMounted) {
-            setIsExiting(true);
-            setTimeout(() => {
-              if (isMounted) {
-                onLoaded();
-              }
-            }, 450);
-          }
-        }, 900);
+      if (document.readyState !== 'complete') {
+        await Promise.race([
+          new Promise<void>((resolve) => window.addEventListener('load', () => resolve(), { once: true })),
+          new Promise<void>((resolve) => timers.push(setTimeout(resolve, 10000))),
+        ]);
       }
+      setProgressAtLeast(94);
+
+      const remaining = Math.max(0, minDurationMs - (Date.now() - startTime));
+      await new Promise<void>((resolve) => timers.push(setTimeout(resolve, remaining)));
+      if (!mounted) return;
+      setProgress(100);
+      setIsReady(true);
+      timers.push(setTimeout(() => {
+        if (!mounted) return;
+        setIsExiting(true);
+        timers.push(setTimeout(() => {
+          if (mounted) onLoaded();
+        }, 300));
+      }, 250));
     };
 
-    checkResourcesReady();
-
+    void loadResources();
     return () => {
-      isMounted = false;
+      mounted = false;
+      timers.forEach(clearTimeout);
     };
-  }, [onLoaded, minDurationMs]);
+  }, [minDurationMs, onLoaded]);
 
-  const handleManualSkip = () => {
-    setIsReady(true);
+  const handleSkip = () => {
     setIsExiting(true);
-    setTimeout(() => {
-      onLoaded();
-    }, 200);
+    window.setTimeout(onLoaded, 180);
   };
 
   return (
     <div
-      className={`la-08 fixed inset-0 z-[9999] flex items-center justify-center p-4 transition-opacity duration-500 ${
-        isReady ? 'is-ready' : ''
-      } ${isExiting ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      className={`la-08 fixed inset-0 z-[9999] flex items-center justify-center bg-[#0c1218] p-4 transition-opacity duration-300 ${isExiting ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
       data-state={isReady ? 'ready' : 'loading'}
-      data-theme={isDarkTheme ? 'dark' : 'light'}
-      style={{
-        background: 'radial-gradient(100% 70% at 50% -10%, rgba(13,148,136,0.22), transparent 65%), #0c1218',
-      }}
+      role="status"
+      aria-live="polite"
     >
-      {/* Top Chrome Controls */}
-      <div className="la-08__chrome fixed top-4 right-4 flex items-center gap-2 z-50">
-        <button
-          type="button"
-          onClick={() => setIsDarkTheme((prev) => !prev)}
-          className="la-08__btn la-08__theme w-10 h-10 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 border border-white/15 text-white transition-all cursor-pointer shadow-lg"
-          aria-pressed={isDarkTheme}
-          aria-label={isDarkTheme ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+      <section className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#101820]/95 p-6 text-center shadow-[0_25px_60px_rgba(0,0,0,.6)]">
+        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-teal-300/20 bg-teal-300/[0.08] text-teal-200">
+          <div className={`h-9 w-9 rounded-full border-[3px] border-teal-200/20 border-t-teal-300 ${isReady ? '' : 'animate-spin'}`} aria-hidden="true" />
+        </div>
+        <h1 className="text-sm font-bold text-white">{isReady ? 'F-Forum đã sẵn sàng' : 'Đang tải tài nguyên'}</h1>
+        <p className="mt-1 text-xs text-white/50">Kiểm tra giao diện, hình ảnh và phông chữ</p>
+
+        <div className="mt-6 flex items-center justify-between text-[11px] font-mono text-teal-200">
+          <span>{isReady ? 'Hoàn tất' : 'Tiến độ'}</span>
+          <span aria-live="polite">{progress}%</span>
+        </div>
+        <div
+          className="mt-2 h-2 overflow-hidden rounded-full bg-white/10"
+          role="progressbar"
+          aria-label="Tiến độ tải tài nguyên"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={progress}
         >
-          {isDarkTheme ? (
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="4" />
-              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-            </svg>
-          ) : (
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-            </svg>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={handleManualSkip}
-          className="px-3.5 py-1.5 rounded-full text-xs font-mono font-semibold bg-white/10 hover:bg-white/20 text-neutral-300 hover:text-white border border-white/15 transition-all cursor-pointer shadow-lg"
-        >
-          {isReady ? 'Vào F-Forum ✓' : 'Bỏ qua ➔'}
-        </button>
-      </div>
-
-      {/* Main Card */}
-      <section
-        className="la-08__card w-full max-w-[24rem] p-6 rounded-3xl bg-[#0f172a]/90 backdrop-blur-2xl border border-white/15 shadow-[0_25px_60px_rgba(0,0,0,0.85)] text-center flex flex-col items-center gap-4 relative animate-fade-up"
-        role="status"
-        aria-live="polite"
-        aria-label={
-          isReady
-            ? 'Tất cả tài nguyên F-Forum đã được tải đầy đủ'
-            : 'Đang tải tài nguyên giao diện F-Forum...'
-        }
-      >
-        {/* Calendar Tile */}
-        <div className="la-08__cal relative w-28 p-2.5 rounded-2xl bg-teal-500/10 border border-teal-500/30 flex flex-col gap-1.5 shadow-lg">
-          <span className="la-08__cal-top flex justify-center gap-6">
-            <i className="w-1.5 h-2.5 rounded-full bg-white/40 block" />
-            <i className="w-1.5 h-2.5 rounded-full bg-white/40 block" />
-          </span>
-
-          <ol className="la-08__grid list-none m-0 p-0 grid grid-cols-5 gap-1">
-            <li className="la-08__day" style={{ '--i': 0 } as any} />
-            <li className="la-08__day" style={{ '--i': 1 } as any} />
-            <li className="la-08__day" style={{ '--i': 2 } as any} />
-            <li className="la-08__day" style={{ '--i': 3 } as any} />
-            <li className="la-08__day" style={{ '--i': 4 } as any} />
-            <li className="la-08__day" style={{ '--i': 5 } as any} />
-            <li className="la-08__day" style={{ '--i': 6 } as any} />
-            <li className="la-08__day" style={{ '--i': 7 } as any} />
-            <li className="la-08__day la-08__day--sel font-bold text-[10px]" style={{ '--i': 8 } as any}>
-              12
-            </li>
-            <li className="la-08__day" style={{ '--i': 9 } as any} />
-            <li className="la-08__day" style={{ '--i': 10 } as any} />
-            <li className="la-08__day" style={{ '--i': 11 } as any} />
-            <li className="la-08__day" style={{ '--i': 12 } as any} />
-            <li className="la-08__day" style={{ '--i': 13 } as any} />
-            <li className="la-08__day" style={{ '--i': 14 } as any} />
-          </ol>
-
-          {/* Confirmation Seal */}
-          <svg className="la-08__seal" viewBox="0 0 48 48" focusable="false">
-            <circle className="la-08__ring" cx="24" cy="24" r="15" />
-            <path className="la-08__check" d="M16.5 24.6 21.6 29.8 32 18.8" />
-          </svg>
+          <div className="h-full rounded-full bg-gradient-to-r from-teal-400 to-emerald-300 transition-[width] duration-300" style={{ width: `${progress}%` }} />
         </div>
+        <p className="mt-2 min-h-4 text-[10px] text-white/40">
+          {totalImages > 0 ? `${loadedImages}/${totalImages} hình ảnh đã sẵn sàng` : 'Đang kiểm tra phông chữ và giao diện'}
+        </p>
 
-        {/* Copy Text */}
-        <div className="la-08__copy space-y-1">
-          <p className="la-08__label text-base font-bold text-white tracking-wide">
-            <span className="la-08__load inline-flex items-center gap-1.5 text-teal-300">
-              <span className="w-2 h-2 rounded-full bg-teal-400 animate-ping" />
-              Đang tải tài nguyên hệ thống
-            </span>
-            <span className="la-08__ready hidden text-emerald-300">
-              Hệ thống F-Forum đã sẵn sàng ✓
-            </span>
-          </p>
-          <p className="la-08__meta text-xs text-neutral-300 font-mono">
-            F-Forum Campus Network <span aria-hidden="true">·</span> Real-Time WebSockets
-          </p>
-          <p className="la-08__clinic text-[11px] text-neutral-400">
-            BroAmStuck Studio <span aria-hidden="true">·</span> Zero-Cost Cloud Edge
-          </p>
-        </div>
-
-        {/* ECG Vitals Line */}
-        <div className="la-08__vitals w-full flex items-center justify-between gap-3 p-2 px-3 rounded-2xl bg-teal-500/10 border border-teal-500/20">
-          <svg className="la-08__ecg-wrap flex-1 h-7" viewBox="0 0 240 40" preserveAspectRatio="none" focusable="false">
-            <path className="la-08__base" d="M0 24h240" />
-            <path className="la-08__ecg" d="M0 24h44l6-3 5 10 6-22 6 15 5-3h40l6-3 5 10 6-22 6 15 5-3h95" />
-          </svg>
-          <span className="la-08__bpm text-xs font-mono font-bold text-teal-300 shrink-0">
-            72 bpm
-          </span>
-        </div>
+        {!isReady && (
+          <button type="button" onClick={handleSkip} className="mt-5 rounded-full border border-white/10 px-4 py-2 text-xs text-white/55 transition hover:border-white/20 hover:text-white">
+            Bỏ qua
+          </button>
+        )}
+        {isReady && <p className="mt-4 text-[11px] text-emerald-200">Tài nguyên đã tải xong.</p>}
       </section>
     </div>
   );

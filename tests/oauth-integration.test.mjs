@@ -64,60 +64,26 @@ test('1. Dual OAuth Codebase Inspection: SDK Initializer in main.tsx & AuthModal
   assert.ok(loginModalCode.includes("from './AuthModal'"), 'LoginModal re-exports AuthModal');
 });
 
-test('2. OAuth Server Endpoint (/api/auth/social): Student auto-registration and Super Admin verification', async () => {
+test('2. Social auth rejects client-asserted identities until a verified OAuth callback exists', async () => {
   const testEnv = await createTestServer();
-
   try {
-    // 2.1 Standard Student Registration via Google
-    const googleRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        provider: 'google',
-        name: 'Nguyen Van Google',
-        email: 'test.google.user@fpt.edu.vn',
-        avatar: 'https://lh3.googleusercontent.com/a/test-avatar',
-      }),
-    });
-    const googleData = await googleRes.json();
-    assert.equal(googleRes.status, 200);
-    assert.equal(googleData.success, true);
-    assert.equal(googleData.user.email, 'test.google.user@fpt.edu.vn');
-    assert.equal(googleData.user.role, 'STUDENT');
-    assert.equal(googleData.user.level, 1);
-    assert.equal(googleData.user.xp, 0);
-    assert.equal(googleData.user.avatar, 'https://lh3.googleusercontent.com/a/test-avatar');
-
-    // 2.2 Super Admin Auto-Detection via OAuth
-    const adminRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        provider: 'facebook',
-        name: 'Trần Anh Tuấn',
-        email: 'anhtuantran0512@gmail.com',
-      }),
-    });
-    const adminData = await adminRes.json();
-    assert.equal(adminRes.status, 200);
-    assert.equal(adminData.success, true);
-    assert.equal(adminData.user.email, 'anhtuantran0512@gmail.com');
-    assert.equal(adminData.user.role, 'SUPER_ADMIN', 'anhtuantran0512@gmail.com must have SUPER_ADMIN role');
-    assert.equal(adminData.user.level, 150, 'Super admin must be Level 150');
-
-    // 2.3 Invalid email rejection
-    const invalidRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        provider: 'google',
-        name: 'Invalid Email',
-        email: 'not-an-email',
-      }),
-    });
-    assert.equal(invalidRes.status, 400);
-    const invalidData = await invalidRes.json();
-    assert.equal(invalidData.success, false);
+    for (const identity of [
+      { provider: 'google', name: 'Impersonated Student', email: 'spoof.student@example.test' },
+      { provider: 'facebook', name: 'Impersonated Admin', email: 'anhtuantran0512@gmail.com' },
+    ]) {
+      const response = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(identity),
+      });
+      const result = await response.json();
+      assert.equal(response.status, 501);
+      assert.equal(result.success, false);
+      assert.equal(response.headers.get('set-cookie'), null, 'Unverified identity must not create a session');
+    }
+    const sync = await (await fetch(`${testEnv.baseUrl}/api/sync`)).json();
+    assert.equal(sync.data.users['spoof.student@example.test'], undefined, 'Unverified OAuth must not create an account');
+    assert.equal(sync.data.users['anhtuantran0512@gmail.com'].role, 'SUPER_ADMIN', 'Built-in admin role remains server-defined');
   } finally {
     await testEnv.close();
   }
@@ -161,42 +127,19 @@ test('4. SDK Initializer Concurrency & Singleton Promise Protection', async () =
   await Promise.all([p1, p2, g1, g2]);
 });
 
-test('5. OAuth Server Endpoint Case-Insensitive Normalization & Avatar Updating', async () => {
+test('5. OAuth email claims cannot create, elevate, or authenticate an account', async () => {
   const testEnv = await createTestServer();
-
   try {
-    // 5.1 Case-Insensitive Super Admin detection
-    const adminUpperRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
+    const response = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        provider: 'google',
-        name: 'Trần Anh Tuấn',
-        email: 'ANHTUANTRAN0512@GMAIL.COM',
-      }),
+      body: JSON.stringify({ provider: 'google', name: 'Admin', email: 'ANHTUANTRAN0512@GMAIL.COM' }),
     });
-    const adminUpperData = await adminUpperRes.json();
-    assert.equal(adminUpperRes.status, 200);
-    assert.equal(adminUpperData.success, true);
-    assert.equal(adminUpperData.user.email, 'anhtuantran0512@gmail.com');
-    assert.equal(adminUpperData.user.role, 'SUPER_ADMIN');
-    assert.equal(adminUpperData.user.level, 150);
+    assert.equal(response.status, 501);
+    assert.equal(response.headers.get('set-cookie'), null);
 
-    // 5.2 Avatar update on subsequent login
-    const newAvatar = 'https://custom-avatar.com/photo.png';
-    const studentUpdateRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        provider: 'facebook',
-        name: 'Test Student',
-        email: 'student.updating@fpt.edu.vn',
-        avatar: newAvatar,
-      }),
-    });
-    const studentData = await studentUpdateRes.json();
-    assert.equal(studentUpdateRes.status, 200);
-    assert.equal(studentData.user.avatar, newAvatar);
+    const session = await fetch(`${testEnv.baseUrl}/api/auth/session`);
+    assert.equal(session.status, 401, 'An email string alone is not an authenticated session');
   } finally {
     await testEnv.close();
   }

@@ -4,7 +4,6 @@ import {
   MessageSquare,
   X,
   ChevronDown,
-  Timer,
   Bell,
   Home,
   Users,
@@ -13,6 +12,7 @@ import {
   Sparkles,
   Award,
   Settings,
+  RefreshCw,
 } from 'lucide-react';
 import type { DimensionView, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
@@ -22,7 +22,7 @@ import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { NotificationsModal } from './NotificationsModal';
 import { SettingsModal } from './SettingsModal';
 import { safeStorage } from '../utils/storage';
-import { StreakFlameWidget, DailyEngagementModal } from './DailyEngagementModal';
+import { StreakFlameWidget, DailyEngagementModal, type DailyActionResult } from './DailyEngagementModal';
 
 export interface NavbarProps {
   currentView: DimensionView;
@@ -35,6 +35,9 @@ export interface NavbarProps {
   unreadChatCount: number;
   onOpenProfile: (tab?: 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit') => void;
   onOpenFocusMode: () => void;
+  onClaimAttendance: () => Promise<DailyActionResult>;
+  onAnswerDailyQuestion: (questionId: string, choice: number) => Promise<DailyActionResult>;
+  onOpenDailyBox: (type: 'blue' | 'gold' | 'red') => Promise<DailyActionResult>;
   isInsideCinema?: boolean;
 }
 
@@ -48,6 +51,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   unreadChatCount,
   onOpenProfile,
   onOpenFocusMode,
+  onClaimAttendance,
+  onAnswerDailyQuestion,
+  onOpenDailyBox,
   isInsideCinema = false,
 }) => {
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
@@ -96,7 +102,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     return (safeStorage.getItem('fforum_font_size') as 'sm' | 'md' | 'lg') || 'md';
   });
   const [navbarAutoHide, setNavbarAutoHide] = useState<boolean>(() => {
-    return safeStorage.getItem('fforum_navbar_autohide') === 'true';
+    const saved = safeStorage.getItem('fforum_navbar_autohide');
+    return saved === null ? true : saved === 'true';
   });
   const [navbarPosition, setNavbarPosition] = useState<'top' | 'bottom' | 'left' | 'right'>(() => {
     return (safeStorage.getItem('fforum_navbar_pos') as 'top' | 'bottom' | 'left' | 'right') || 'top';
@@ -176,31 +183,30 @@ export const Navbar: React.FC<NavbarProps> = ({
   useEffect(() => {
     if (!navbarAutoHide) {
       setIsNavbarHovered(true);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
       return;
     }
-    const TRIGGER_DISTANCE = 117;
+    setIsNavbarHovered(false);
+  }, [navbarAutoHide, navbarPosition]);
+
+  useEffect(() => {
+    if (!navbarAutoHide) return;
+    const TRIGGER_DISTANCE = 18;
     const handleMouseMove = (e: MouseEvent) => {
       const { clientX, clientY } = e;
       const winW = window.innerWidth;
       const winH = window.innerHeight;
-      let isNearEdge = false;
-      if (navbarPosition === 'bottom') {
-        isNearEdge = clientY >= winH - TRIGGER_DISTANCE;
-      } else if (navbarPosition === 'left') {
-        isNearEdge = clientX <= TRIGGER_DISTANCE;
-      } else if (navbarPosition === 'right') {
-        isNearEdge = clientX >= winW - TRIGGER_DISTANCE;
-      } else {
-        isNearEdge = clientY <= TRIGGER_DISTANCE;
-      }
-
-      if (isNearEdge) {
-        handleMouseEnterNav();
-      } else if (!isFlyoutOpen && !isNotificationsOpen && !isSettingsOpen) {
-        handleMouseLeaveNav();
-      }
+      const isNearEdge = navbarPosition === 'bottom'
+        ? clientY >= winH - TRIGGER_DISTANCE
+        : navbarPosition === 'left'
+          ? clientX <= TRIGGER_DISTANCE
+          : navbarPosition === 'right'
+            ? clientX >= winW - TRIGGER_DISTANCE
+            : clientY <= TRIGGER_DISTANCE;
+      if (isNearEdge) handleMouseEnterNav();
+      else if (!isFlyoutOpen && !isNotificationsOpen && !isSettingsOpen) handleMouseLeaveNav();
     };
-
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [navbarAutoHide, navbarPosition, isFlyoutOpen, isNotificationsOpen, isSettingsOpen]);
@@ -249,6 +255,12 @@ export const Navbar: React.FC<NavbarProps> = ({
       document.documentElement.classList.remove('reduce-motion');
     }
   }, [theme, reducedMotion]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--glass-blur', `${glassBlur}px`);
+    document.documentElement.classList.remove('text-size-sm', 'text-size-md', 'text-size-lg');
+    document.documentElement.classList.add(`text-size-${fontSize}`);
+  }, [glassBlur, fontSize]);
 
   const handleToggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -413,33 +425,33 @@ export const Navbar: React.FC<NavbarProps> = ({
         <path d="M6 4h12a1 1 0 0 1 1 1v4c0 3.87-3.13 7-7 7s-7-3.13-7-7V5a1 1 0 0 1 1-1z" />
       </svg>
     ),
-    'coming-soon': <Timer size={16} className="text-yellow-400" />,
+    'coming-soon': <RefreshCw size={16} className="text-teal-300" />,
   };
 
   const navItems: { id: DimensionView; label: string }[] = [
-    { id: 'landing', label: 'GIỚI THIỆU' },
-    { id: 'home', label: 'TRANG CHỦ' },
-    { id: 'clubs', label: 'CÂU LẠC BỘ' },
-    { id: 'qa', label: 'HỎI ĐÁP' },
-    { id: 'chat', label: 'PHÒNG CHAT' },
-    { id: 'memory', label: 'MIỀN KÝ ỨC' },
-    { id: 'chronicles', label: 'KHU VINH DANH' },
-    { id: 'coming-soon', label: 'UPDATE' },
+    { id: 'landing', label: 'Giới thiệu' },
+    { id: 'home', label: 'Trang chủ' },
+    { id: 'clubs', label: 'CLB' },
+    { id: 'qa', label: 'Hỏi đáp' },
+    { id: 'chat', label: 'Chat' },
+    { id: 'memory', label: 'Ký ức' },
+    { id: 'chronicles', label: 'Vinh danh' },
+    { id: 'coming-soon', label: 'Cập nhật' },
   ];
 
   return (
     <>
-      {/* Auto-Hide Hover Trigger Zone (Synchronized across all 4 edges, 117px = +30% reach) */}
+      {/* Thin edge target keeps the collapsed icon rail easy to discover. */}
       {navbarAutoHide && (
         <div
-          className={`hidden md:block fixed z-[51] pointer-events-auto opacity-0 transition-all ${
+          className={`hidden md:block fixed z-[49] pointer-events-auto opacity-0 ${
             navbarPosition === 'bottom'
-              ? 'bottom-0 inset-x-0 h-[117px]'
+              ? 'bottom-0 inset-x-0 h-[18px]'
               : navbarPosition === 'left'
-              ? 'left-0 inset-y-0 w-[117px]'
-              : navbarPosition === 'right'
-              ? 'right-0 inset-y-0 w-[117px]'
-              : 'top-0 inset-x-0 h-[117px]'
+                ? 'left-0 inset-y-0 w-[18px]'
+                : navbarPosition === 'right'
+                  ? 'right-0 inset-y-0 w-[18px]'
+                  : 'top-0 inset-x-0 h-[18px]'
           }`}
           onMouseEnter={handleMouseEnterNav}
         />
@@ -451,19 +463,23 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div
         onMouseEnter={handleMouseEnterNav}
         onMouseLeave={handleMouseLeaveNav}
-        className={`hidden md:block fixed inset-0 z-50 pointer-events-none transition-all duration-500 dock-container dock-pos-${navbarPosition}`}
+        onFocusCapture={handleMouseEnterNav}
+        onBlurCapture={(event) => {
+          const nextTarget = event.relatedTarget as Node | null;
+          if (!nextTarget || !event.currentTarget.contains(nextTarget)) handleMouseLeaveNav();
+        }}
+        className={`hidden md:block fixed inset-0 z-50 pointer-events-none transition-all duration-300 dock-container dock-pos-${navbarPosition} ${navbarAutoHide && !isNavbarHovered ? 'navbar-collapsed' : 'navbar-expanded'}`}
         style={{
-          transform:
-            isInsideCinema || (navbarAutoHide && !isNavbarHovered)
-              ? navbarPosition === 'bottom'
-                ? 'translateY(120px)'
-                : navbarPosition === 'left'
+          transform: isInsideCinema
+            ? navbarPosition === 'bottom'
+              ? 'translateY(120px)'
+              : navbarPosition === 'left'
                 ? 'translateX(-120px)'
                 : navbarPosition === 'right'
-                ? 'translateX(120px)'
-                : 'translateY(-120px)'
-              : 'translate(0, 0)',
-          opacity: isInsideCinema || (navbarAutoHide && !isNavbarHovered) ? 0 : 1,
+                  ? 'translateX(120px)'
+                  : 'translateY(-120px)'
+            : 'translate(0, 0)',
+          opacity: isInsideCinema ? 0 : 1,
         }}
       >
         <nav className="fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full px-5 flex items-center justify-between shadow-2xl">
@@ -1174,9 +1190,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                     : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
                 }`}
               >
-                <Timer className="w-5 h-5 text-amber-400 shrink-0" />
+                <RefreshCw className="w-5 h-5 text-teal-300 shrink-0" />
                 <div>
-                  <div className="text-xs font-bold">Bản Nâng Cấp (UPDATE)</div>
+                  <div className="text-xs font-bold">Cập nhật</div>
                   <div className="text-[10px] text-neutral-400">Không gian phát triển tính năng mới</div>
                 </div>
               </button>
@@ -1187,7 +1203,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       <div className="fixed bottom-20 left-4 md:bottom-5 md:left-5 z-40 pointer-events-auto">
         <StreakFlameWidget
-          streakCount={currentUser?.streakCount || 1}
+          streakCount={currentUser?.streakCount ?? 0}
           onClick={() => setIsDailyModalOpen(true)}
           className="shadow-2xl hover:scale-105 transition-transform"
         />
@@ -1196,13 +1212,11 @@ export const Navbar: React.FC<NavbarProps> = ({
       <DailyEngagementModal
         isOpen={isDailyModalOpen}
         onClose={() => setIsDailyModalOpen(false)}
-        currentUserCoin={currentUser?.coin || currentUser?.xp || 100}
-        onRewardCoin={(amount, reason) => {
-          safeStorage.setItem('fforum_coin_reward', JSON.stringify({ amount, reason, date: Date.now() }));
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('fforum_coin_sync'));
-          }
-        }}
+        currentUser={currentUser}
+        onOpenLoginModal={onOpenLoginModal}
+        onClaimAttendance={onClaimAttendance}
+        onAnswerQuestion={onAnswerDailyQuestion}
+        onOpenBox={onOpenDailyBox}
       />
     </>
   );

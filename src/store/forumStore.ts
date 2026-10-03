@@ -27,9 +27,9 @@ import {
   saveAboutDataLocally,
   saveAboutDataToServer,
 } from './adminStore';
-import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../config/admin';
 import { getTierForLevel } from '../utils/tier';
 import { pushNotification } from '../utils/notifications';
+import { sanitizePersistedUser, sanitizeUserRegistry } from '../utils/userSanitizer';
 
 const CURRENT_TAB_ID =
   typeof window !== 'undefined'
@@ -84,6 +84,8 @@ const INITIAL_CLUBS: Club[] = [];
 const INITIAL_CLUB_POSTS: ClubPost[] = [];
 
 export function useForumStore() {
+  safeStorage.removeItem('f_forum_auth_token');
+
   const [currentView, setCurrentView] = useState<DimensionView>(() => {
     const hasSession = Boolean(safeStorage.getItem('fforum_current_user_email'));
     const hasSeenLanding = safeStorage.getItem('fforum_landing_seen') === 'true';
@@ -92,43 +94,15 @@ export function useForumStore() {
 
   const [users, setUsers] = useState<Record<string, User>>(() => {
     const saved = safeStorage.getItem('fforum_users_registry');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') {
-          for (const key of Object.keys(parsed)) {
-            if (parsed[key] && parsed[key].coin === undefined) {
-              parsed[key].coin = parsed[key].email === 'anhtuantran0512@gmail.com' ? 99999 : 100;
-            }
-          }
-          return parsed;
-        }
-      } catch {
-        /* ignore */
-      }
+    if (!saved) return {};
+    try {
+      return sanitizeUserRegistry(JSON.parse(saved));
+    } catch {
+      return {};
     }
-    return {};
   });
 
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const savedEmail = safeStorage.getItem('fforum_current_user_email');
-    if (savedEmail) {
-      const savedRegistry = safeStorage.getItem('fforum_users_registry');
-      if (savedRegistry) {
-        try {
-          const registry: Record<string, User> = JSON.parse(savedRegistry);
-          const u = registry[savedEmail.toLowerCase()] || null;
-          if (u && u.coin === undefined) {
-            u.coin = u.email === 'anhtuantran0512@gmail.com' ? 99999 : 100;
-          }
-          return u;
-        } catch {
-          /* ignore */
-        }
-      }
-    }
-    return null;
-  });
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const [clubs, setClubs] = useState<Club[]>(() => {
     const saved = safeStorage.getItem('fforum_clubs');
@@ -388,8 +362,9 @@ export function useForumStore() {
           const json = await res.json();
           if (json.success && json.data && isMounted) {
             const data = json.data;
-            if (data.users && Object.keys(data.users).length > 0) {
-              setUsers(prev => ({ ...prev, ...data.users }));
+            const normalizedUsers = sanitizeUserRegistry(data.users || {});
+            if (Object.keys(normalizedUsers).length > 0) {
+              setUsers(prev => ({ ...prev, ...normalizedUsers }));
             }
             if (Array.isArray(data.clubs)) setClubs(data.clubs);
             if (Array.isArray(data.clubPosts)) setClubPosts(data.clubPosts);
@@ -412,9 +387,23 @@ export function useForumStore() {
             }
 
 
-            const savedEmail = safeStorage.getItem('fforum_current_user_email');
-            if (savedEmail && data.users && data.users[savedEmail.toLowerCase()]) {
-              setCurrentUser(data.users[savedEmail.toLowerCase()]);
+            try {
+              const sessionResponse = await fetch('/api/auth/session');
+              const session = await sessionResponse.json();
+              if (sessionResponse.ok && session.success && session.user) {
+                const authenticatedUser = sanitizePersistedUser(session.user);
+                if (authenticatedUser) {
+                  setCurrentUser(authenticatedUser);
+                  setUsers((prev) => ({ ...prev, [authenticatedUser.email.toLowerCase()]: authenticatedUser }));
+                }
+              } else {
+                setCurrentUser(null);
+                safeStorage.removeItem('fforum_current_user_email');
+              }
+            } catch {
+              // Keep browsing as a guest if the server cannot validate a cached session.
+              setCurrentUser(null);
+              safeStorage.removeItem('fforum_current_user_email');
             }
           }
         }
@@ -862,7 +851,6 @@ export function useForumStore() {
     }));
     setCurrentUser(user);
 
-    safeStorage.setItem('f_forum_auth_token', data.token);
     safeStorage.setItem('fforum_current_user_email', normalizedEmail);
 
     try {
@@ -905,7 +893,6 @@ export function useForumStore() {
     }));
     setCurrentUser(user);
 
-    safeStorage.setItem('f_forum_auth_token', data.token);
     safeStorage.setItem('fforum_current_user_email', normalizedEmail);
 
     try {
@@ -931,112 +918,27 @@ export function useForumStore() {
     provider: 'google' | 'facebook',
     data: { name: string; email: string; avatar?: string }
   ): Promise<User> => {
-    const trimmedName = data.name.trim();
-    const normalizedEmail = data.email.trim().toLowerCase();
-
-    let result: { success: boolean; user: User; token: string };
-
-    try {
-      const res = await fetch('/api/auth/social', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          provider,
-          name: trimmedName,
-          email: normalizedEmail,
-          avatar: data.avatar?.trim() || undefined,
-        }),
-      });
-
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.message || 'Đăng nhập mạng xã hội thất bại');
-      }
-      result = json;
-    } catch (err: any) {
-      const errMsg = String(err?.message || '').toLowerCase();
-      const isNetworkError =
-        err?.name === 'TypeError' ||
-        errMsg.includes('fetch') ||
-        errMsg.includes('network') ||
-        errMsg.includes('failed') ||
-        errMsg.includes('load') ||
-        errMsg.includes('offline');
-
-      if (!isNetworkError) {
-        throw err;
-      }
-
-      const isSuperAdmin = isMasterAdmin(normalizedEmail);
-      const existing = users[normalizedEmail];
-      const localUser: User = isSuperAdmin
-        ? {
-            ...(existing || {}),
-            id: existing?.id || 'user-admin',
-            name: trimmedName || existing?.name || MASTER_ADMIN_CONFIG.name,
-            email: 'anhtuantran0512@gmail.com',
-            avatar: data.avatar || existing?.avatar || MASTER_ADMIN_CONFIG.avatar,
-            role: 'SUPER_ADMIN',
-            level: 150,
-            xp: Math.max(existing?.xp || 0, 45000),
-            fPoints: Math.max(existing?.fPoints || 0, 45000),
-            streakCount: Math.max(existing?.streakCount || 0, 36),
-            bio: existing?.bio || 'F-Forum Architect & Core Administrator. Xây dựng tương lai tri thức học đường.',
-            gender: existing?.gender || 'Nam',
-            city: existing?.city || 'Hà Nội',
-            className: existing?.className || 'K19 Software Engineering',
-            scopedClubIds: existing?.scopedClubIds || [],
-          }
-        : (existing || {
-            id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-            name: trimmedName || (provider === 'google' ? 'Google Student' : 'Facebook Student'),
-            email: normalizedEmail,
-            avatar: data.avatar || DEFAULT_AVATAR,
-            role: 'STUDENT',
-            level: 1,
-            xp: 0,
-            fPoints: 0,
-            streakCount: 1,
-            bio: 'Học sinh F-Forum',
-            gender: 'Chưa cập nhật',
-            city: 'FPT Campus',
-            className: 'Học sinh',
-            scopedClubIds: [],
-          });
-
-      result = {
-        success: true,
-        user: localUser,
-        token: `f_token_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      };
-    }
-
-    const user = result.user;
-    setUsers(prev => ({
-      ...prev,
-      [normalizedEmail]: user,
-    }));
-    setCurrentUser(user);
-
-    safeStorage.setItem('f_forum_auth_token', result.token);
-    safeStorage.setItem('fforum_current_user_email', normalizedEmail);
-
-    try {
-      syncBroadcastChannel?.postMessage({
-        type: 'USER_LOGIN',
-        payload: user,
-      });
-    } catch {
-      /* ignore */
-    }
-
-    playChime('success');
-    setToastMessage({
-      title: 'Đăng nhập thành công!',
-      subtitle: `Chào mừng ${user.name} (${provider === 'google' ? 'Google' : 'Facebook'}) gia nhập F-Forum.`,
-      type: 'success',
+    const response = await fetch('/api/auth/social', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider,
+        name: data.name.trim(),
+        email: data.email.trim().toLowerCase(),
+        avatar: data.avatar?.trim() || undefined,
+      }),
     });
-
+    const result = await response.json();
+    if (!response.ok || !result.success || !result.user) {
+      throw new Error(result.message || 'Đăng nhập mạng xã hội chưa khả dụng.');
+    }
+    const user = sanitizePersistedUser(result.user);
+    if (!user) throw new Error('Không thể xác thực tài khoản.');
+    setUsers((prev) => ({ ...prev, [user.email.toLowerCase()]: user }));
+    setCurrentUser(user);
+    safeStorage.setItem('fforum_current_user_email', user.email.toLowerCase());
+    playChime('success');
+    setToastMessage({ title: 'Đăng nhập thành công', subtitle: `Chào mừng ${user.name} quay lại.`, type: 'success' });
     return user;
   };
 
@@ -1054,8 +956,8 @@ export function useForumStore() {
   };
 
   const logout = () => {
+    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     setCurrentUser(null);
-    safeStorage.removeItem('f_forum_auth_token');
     safeStorage.removeItem('fforum_current_user_email');
     try {
       syncBroadcastChannel?.postMessage({
@@ -1072,135 +974,181 @@ export function useForumStore() {
     });
   };
 
-  const addXP = (amount: number, targetUserEmail?: string) => {
-    if (!currentUser && !targetUserEmail) return;
-
-    if (!targetUserEmail && currentUser?.email !== 'anhtuantran0512@gmail.com') {
-      return;
-    }
-
-    const emailToCredit = (targetUserEmail || currentUser?.email || '').toLowerCase();
-    if (!emailToCredit) return;
-
-    setUsers(prev => {
-      const targetUser = prev[emailToCredit];
-      if (!targetUser) return prev;
-
-      const newXp = targetUser.xp + amount;
-      const newCoin = (targetUser.coin ?? 100) + amount;
-      const newFPoints = (targetUser.fPoints ?? targetUser.xp) + amount;
-      const calculatedLevel = getLevelForXP(newXp);
-      const leveledUp = calculatedLevel > targetUser.level;
-
-      const updated = {
-        ...targetUser,
-        xp: newXp,
-        coin: newCoin,
-        fPoints: newFPoints,
-        level: calculatedLevel,
-      };
-
-      if (currentUser && currentUser.email.toLowerCase() === emailToCredit) {
-        setCurrentUser(updated);
-
-        if (leveledUp) {
-          playChime('level-up');
-          setToastMessage({
-            title: `Chúc mừng thăng cấp! LEVEL ${calculatedLevel}`,
-            subtitle: `+${amount} Coin nhận được. Bạn đã tiến gần hơn tới đỉnh cao danh dự!`,
-            type: 'level',
-          });
-          pushNotification({
-            type: 'system',
-            category: 'system',
-            title: `Thăng cấp! Cấp độ ${calculatedLevel}`,
-            body: `Bạn đã đạt Cấp độ ${calculatedLevel} và nhận thêm Coin. Hãy tiếp tục cống hiến tri thức!`,
-            targetView: 'home',
-          });
-        } else {
-          playChime('xp');
-          setToastMessage({
-            title: `+${amount} XP thưởng`,
-            subtitle: `Tổng XP hiện tại: ${newXp.toLocaleString()}`,
-            type: 'xp',
-          });
-        }
-      }
-
-      fetch('/api/users/update', {
+  const addXP = async (amount: number) => {
+    if (!currentUser || amount !== 25) return;
+    try {
+      const response = await fetch('/api/users/award-xp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailToCredit, updates: updated }),
-      }).catch(() => {});
-
-      try {
-        syncBroadcastChannel?.postMessage({
-          type: 'SYNC_USER',
-          payload: updated,
+        body: JSON.stringify({
+          email: currentUser.email,
+          userId: currentUser.id,
+          action: 'focus_session',
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        setToastMessage({
+          title: 'Chưa ghi nhận được XP',
+          subtitle: result.message || 'Hãy hoàn thành một phiên tập trung trước khi nhận thưởng.',
+          type: 'success',
         });
-      } catch {
-        /* ignore */
+        return;
       }
 
-      return {
-        ...prev,
-        [emailToCredit]: updated,
-      };
-    });
-  };
-
-  const updateProfile = (updates: Partial<User>) => {
-    if (!currentUser) return;
-    const emailKey = currentUser.email.toLowerCase();
-
-    const updated: User = {
-      ...currentUser,
-      ...updates,
-    };
-
-    setCurrentUser(updated);
-    setUsers(prev => ({
-      ...prev,
-      [emailKey]: updated,
-    }));
-
-    setQuestions(qList =>
-      qList.map(q =>
-        q.authorId === updated.id && !q.isAnonymous
-          ? { ...q, authorName: updated.name, authorAvatar: updated.avatar }
-          : q
-      )
-    );
-    setSolutions(sList =>
-      sList.map(s =>
-        s.authorId === updated.id
-          ? { ...s, authorName: updated.name, authorAvatar: updated.avatar }
-          : s
-      )
-    );
-    setChatMessages(cList =>
-      cList.map(c =>
-        c.authorId === updated.id
-          ? { ...c, authorName: updated.name, authorAvatar: updated.avatar }
-          : c
-      )
-    );
-
-    try {
-      syncBroadcastChannel?.postMessage({
-        type: 'SYNC_USER',
-        payload: updated,
+      const updated = sanitizePersistedUser(result.user, currentUser.email);
+      if (!updated) return;
+      setUsers((prev) => ({ ...prev, [updated.email.toLowerCase()]: updated }));
+      setCurrentUser(updated);
+      playChime(updated.level > currentUser.level ? 'level-up' : 'xp');
+      setToastMessage({
+        title: updated.level > currentUser.level ? `Đã lên cấp ${updated.level}` : '+25 XP',
+        subtitle: 'Hoàn thành phiên tập trung 25 phút.',
+        type: updated.level > currentUser.level ? 'level' : 'xp',
+      });
+      pushNotification({
+        type: 'system',
+        category: 'system',
+        title: 'Phiên tập trung hoàn tất',
+        body: 'Bạn đã nhận 25 XP sau một phiên học 25 phút.',
+        targetView: 'home',
       });
     } catch {
-      /* ignore */
+      setToastMessage({
+        title: 'Không thể kết nối',
+        subtitle: 'Phiên tập trung đã hoàn tất nhưng chưa đồng bộ được phần thưởng.',
+        type: 'success',
+      });
     }
+  };
 
-    playChime('success');
-    setToastMessage({
-      title: 'Hồ sơ đã lưu thành công!',
-      subtitle: 'Thông tin mới đã được cập nhật toàn hệ thống F-Forum.',
-      type: 'success',
-    });
+  const applyServerUser = (rawUser: unknown) => {
+    const updated = sanitizePersistedUser(rawUser, currentUser?.email);
+    if (!updated) return null;
+    setUsers((prev) => ({ ...prev, [updated.email.toLowerCase()]: updated }));
+    setCurrentUser((previous) => previous?.id === updated.id ? updated : previous);
+    return updated;
+  };
+
+  const checkInDaily = async () => {
+    if (!currentUser) return { success: false, message: 'Đăng nhập để điểm danh.' };
+    try {
+      const response = await fetch('/api/daily/check-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentUser.email, userId: currentUser.id }),
+      });
+      const result = await response.json();
+      if (result.user) applyServerUser(result.user);
+      if (result.success) playChime('success');
+      return result;
+    } catch {
+      return { success: false, message: 'Không thể kết nối để điểm danh.' };
+    }
+  };
+
+  const answerDailyQuestion = async (questionId: string, choice: number) => {
+    if (!currentUser) return { success: false, message: 'Đăng nhập để trả lời.' };
+    try {
+      const response = await fetch('/api/daily/quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: currentUser.email,
+          userId: currentUser.id,
+          questionId,
+          choice,
+        }),
+      });
+      const result = await response.json();
+      if (result.user) applyServerUser(result.user);
+      if (result.success) playChime(result.correct ? 'success' : 'send');
+      return result;
+    } catch {
+      return { success: false, message: 'Không thể gửi câu trả lời.' };
+    }
+  };
+
+  const openDailyBox = async (type: 'blue' | 'gold' | 'red') => {
+    if (!currentUser) return { success: false, message: 'Đăng nhập để mở hộp quà.' };
+    try {
+      const response = await fetch('/api/daily/open-box', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentUser.email, userId: currentUser.id, type }),
+      });
+      const result = await response.json();
+      if (result.user) applyServerUser(result.user);
+      if (result.success) playChime('success');
+      return result;
+    } catch {
+      return { success: false, message: 'Không thể mở hộp quà.' };
+    }
+  };
+
+  const purchaseShopItem = async (itemId: string) => {
+    if (!currentUser) return { success: false, message: 'Đăng nhập để mua vật phẩm.' };
+    try {
+      const response = await fetch('/api/shop/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentUser.email, userId: currentUser.id, itemId }),
+      });
+      const result = await response.json();
+      if (result.user) applyServerUser(result.user);
+      if (result.success) playChime('success');
+      return result;
+    } catch {
+      return { success: false, message: 'Không thể kết nối cửa hàng.' };
+    }
+  };
+
+  const updateProfile = async (updates: Partial<User>): Promise<boolean> => {
+    if (!currentUser) return false;
+    const emailKey = currentUser.email.toLowerCase();
+    const allowedUpdates = {
+      name: updates.name,
+      avatar: updates.avatar,
+      bio: updates.bio,
+      gender: updates.gender,
+      city: updates.city,
+      className: updates.className,
+      equippedBadge: updates.equippedBadge,
+    };
+    try {
+      const response = await fetch('/api/users/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentUser.email, userId: currentUser.id, updates: allowedUpdates }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || 'Không thể lưu hồ sơ.');
+      const saved = sanitizePersistedUser(result.user, currentUser.email);
+      if (!saved) throw new Error('Dữ liệu hồ sơ không hợp lệ.');
+      setCurrentUser(saved);
+      setUsers((prev) => ({ ...prev, [emailKey]: saved }));
+      setQuestions((previous) => previous.map((question) =>
+        question.authorId === saved.id && !question.isAnonymous
+          ? { ...question, authorName: saved.name, authorAvatar: saved.avatar }
+          : question,
+      ));
+      setSolutions((previous) => previous.map((solution) =>
+        solution.authorId === saved.id ? { ...solution, authorName: saved.name, authorAvatar: saved.avatar } : solution,
+      ));
+      setChatMessages((previous) => previous.map((message) =>
+        message.authorId === saved.id ? { ...message, authorName: saved.name, authorAvatar: saved.avatar } : message,
+      ));
+      syncBroadcastChannel?.postMessage({ type: 'SYNC_USER', payload: saved });
+      playChime('success');
+      return true;
+    } catch (error) {
+      setToastMessage({
+        title: 'Không thể lưu hồ sơ',
+        subtitle: error instanceof Error ? error.message : 'Vui lòng thử lại.',
+        type: 'level',
+      });
+      return false;
+    }
   };
 
   const createClub = (clubData: {
@@ -1398,75 +1346,74 @@ export function useForumStore() {
     return true;
   };
 
-  const createQuestion = (data: {
+  const createQuestion = async (data: {
     title: string;
     subject: SubjectTag;
     content: string;
     isAnonymous: boolean;
     bountyCoin?: number;
     imageUrl?: string;
-  }) => {
-    if (!currentUser) return;
-
-    const bountyCoin = data.bountyCoin ? Math.max(10, Math.min(100, data.bountyCoin)) : 20;
-    if (currentUser.email !== 'anhtuantran0512@gmail.com' && (currentUser.coin ?? 100) < bountyCoin) {
-      alert(`Bạn cần tối thiểu ${bountyCoin} Coin để đặt câu hỏi kèm cược phần thưởng. Số dư hiện tại: ${currentUser.coin ?? 100} Coin.`);
-      return;
+  }): Promise<boolean> => {
+    if (!currentUser) return false;
+    const bountyCoin = Math.max(0, Math.min(100, Number(data.bountyCoin) || 0));
+    if (bountyCoin > 0 && bountyCoin < 10) {
+      alert('Mức cược tối thiểu là 10 Coin.');
+      return false;
+    }
+    if (bountyCoin > (currentUser.coin || 0)) {
+      alert(`Bạn đang có ${currentUser.coin || 0} Coin; hãy giảm mức cược hoặc bỏ cược.`);
+      return false;
     }
 
-    const ghibliAlias = data.isAnonymous
-      ? generateGhibliAlias(data.subject)
-      : currentUser.name;
-    const ghibliMask = data.isAnonymous
+    const anonymousAlias = data.isAnonymous ? generateGhibliAlias(data.subject) : undefined;
+    const anonymousMask = data.isAnonymous
       ? getRandomGhibliMask(data.title + Date.now().toString())
-      : currentUser.avatar;
-
+      : undefined;
     const newQuestion: Question = {
       id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       title: data.title,
       subject: data.subject,
       content: data.content,
       authorId: currentUser.id,
-      authorName: ghibliAlias,
-      authorAvatar: ghibliMask,
+      authorName: anonymousAlias || currentUser.name,
+      authorAvatar: anonymousMask || currentUser.avatar,
       isAnonymous: data.isAnonymous,
-      anonymousAlias: data.isAnonymous ? ghibliAlias : undefined,
-      anonymousMask: data.isAnonymous ? ghibliMask : undefined,
-      createdAt: 'Vừa xong',
+      anonymousAlias,
+      anonymousMask,
+      createdAt: new Date().toISOString(),
       isSolved: false,
-      views: 1,
+      views: 0,
       bountyCoin,
       imageUrl: data.imageUrl,
     };
 
-    setQuestions(prev => [newQuestion, ...prev]);
-
-    const updatedAuthorCoin = Math.max(0, (currentUser.coin ?? 100) - bountyCoin);
-    const updatedAuthor = { ...currentUser, coin: updatedAuthorCoin };
-    setCurrentUser(updatedAuthor);
-    setUsers(prev => ({ ...prev, [currentUser.email.toLowerCase()]: updatedAuthor }));
-
-    fetch('/api/questions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...newQuestion, authorEmail: currentUser.email }),
-    }).catch(() => {});
-
     try {
-      syncBroadcastChannel?.postMessage({
-        type: 'NEW_QUESTION',
-        payload: newQuestion,
+      const response = await fetch('/api/questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newQuestion, authorEmail: currentUser.email }),
       });
-    } catch {
-      /* ignore */
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || 'Không thể đăng câu hỏi.');
+      setQuestions((prev) => prev.some((question) => question.id === result.question.id)
+        ? prev
+        : [result.question, ...prev]);
+      const updated = sanitizePersistedUser(result.user, currentUser.email);
+      if (updated) {
+        setCurrentUser(updated);
+        setUsers((prev) => ({ ...prev, [updated.email.toLowerCase()]: updated }));
+      }
+      playChime('success');
+      setToastMessage({ title: '+20 XP', subtitle: 'Câu hỏi đã được đăng.', type: 'xp' });
+      return true;
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Không thể đăng câu hỏi. Vui lòng thử lại.');
+      return false;
     }
-
-    addXP(50);
   };
 
-  const addSolution = (questionId: string, content: string, imageUrl?: string) => {
-    if (!currentUser) return;
-
+  const addSolution = async (questionId: string, content: string, imageUrl?: string): Promise<boolean> => {
+    if (!currentUser) return false;
     const newSolution: Solution = {
       id: `sol-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       questionId,
@@ -1476,115 +1423,69 @@ export function useForumStore() {
       authorAvatar: currentUser.avatar,
       authorLevel: currentUser.level,
       content,
-      createdAt: 'Vừa xong',
+      createdAt: new Date().toISOString(),
       isBest: false,
-      upvotes: 1,
+      upvotes: 0,
       imageUrl,
     };
-
-    setSolutions(prev => [...prev, newSolution]);
-
-    fetch('/api/solutions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newSolution),
-    }).catch(() => {});
-
     try {
-      syncBroadcastChannel?.postMessage({
-        type: 'NEW_SOLUTION',
-        payload: newSolution,
+      const response = await fetch('/api/solutions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSolution),
       });
-    } catch {
-      /* ignore */
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || 'Không thể gửi lời giải.');
+      setSolutions((prev) => prev.some((solution) => solution.id === result.solution.id)
+        ? prev
+        : [...prev, result.solution]);
+      const updated = sanitizePersistedUser(result.user, currentUser.email);
+      if (updated) {
+        setCurrentUser(updated);
+        setUsers((prev) => ({ ...prev, [updated.email.toLowerCase()]: updated }));
+      }
+      playChime('success');
+      setToastMessage({ title: '+10 XP', subtitle: 'Lời giải đã được gửi.', type: 'xp' });
+      return true;
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Không thể gửi lời giải. Vui lòng thử lại.');
+      return false;
     }
-
-    const targetQ = questions.find(q => q.id === questionId);
-    if (targetQ && targetQ.authorId !== currentUser.id) {
-      pushNotification({
-        type: 'interactive',
-        category: 'interactive',
-        title: 'Lời Giải Mới Cho Câu Hỏi Của Bạn!',
-        body: `${currentUser.name} vừa gửi lời giải cho "${targetQ.title.slice(0, 35)}...". Nhấp để kiểm tra và xác nhận Đáp Án Chuẩn!`,
-        targetView: 'qa',
-      });
-    }
-
-    addXP(25);
   };
 
-  const markBestSolution = (questionId: string, solutionId: string) => {
-    if (!currentUser) return;
-    const question = questions.find(q => q.id === questionId);
-    if (!question) return;
-
-    const isAuthorized =
-      currentUser.email === 'anhtuantran0512@gmail.com' ||
-      currentUser.id === question.authorId;
-
-    if (!isAuthorized) {
-      alert('Chỉ tác giả câu hỏi hoặc Super Admin mới có quyền xác nhận đáp án chuẩn!');
-      return;
-    }
-
-    const targetSolution = solutions.find(s => s.id === solutionId);
-
-    setQuestions(prev =>
-      prev.map(q =>
-        q.id === questionId
-          ? { ...q, isSolved: true, bestSolutionId: solutionId }
-          : q
-      )
-    );
-
-    setSolutions(prev =>
-      prev.map(s => {
-        if (s.id === solutionId) {
-          return { ...s, isBest: true, upvotes: s.upvotes + 5 };
-        }
-        return s.questionId === questionId ? { ...s, isBest: false } : s;
-      })
-    );
-
-    const bounty = question.bountyCoin || 20;
-    const solverCoinAward = Math.floor(bounty * 0.5) + 100;
-    if (targetSolution && targetSolution.authorEmail) {
-      addXP(solverCoinAward, targetSolution.authorEmail);
-      pushNotification({
-        type: 'interactive',
-        category: 'interactive',
-        title: 'Chúc mừng Đáp Án Chuẩn!',
-        body: `Lời giải của bạn đã được xác nhận là Đáp Án Chuẩn. Bạn nhận được +${solverCoinAward} Coin (+50% bounty + 100 Coin danh dự).`,
-        targetView: 'qa',
-      });
-    }
-
-    fetch('/api/solutions/best', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        questionId,
-        solutionId,
-        currentUserId: currentUser.id,
-        currentUserEmail: currentUser.email,
-      }),
-    }).catch(() => {});
-
+  const markBestSolution = async (questionId: string, solutionId: string): Promise<boolean> => {
+    if (!currentUser) return false;
     try {
-      syncBroadcastChannel?.postMessage({
-        type: 'MARK_BEST_SOLUTION',
-        payload: { questionId, solutionId },
+      const response = await fetch('/api/solutions/best', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questionId,
+          solutionId,
+          currentUserId: currentUser.id,
+          currentUserEmail: currentUser.email,
+        }),
       });
-    } catch {
-      /* ignore */
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || 'Không thể chọn lời giải.');
+      setQuestions((prev) => prev.map((question) => question.id === questionId
+        ? { ...question, isSolved: true, bestSolutionId: solutionId, bountyPaid: Boolean(result.rewardCoin) }
+        : question));
+      setSolutions((prev) => prev.map((solution) => solution.questionId === questionId
+        ? { ...solution, isBest: solution.id === solutionId }
+        : solution));
+      const updated = sanitizePersistedUser(result.user, result.user?.email);
+      if (updated) {
+        setUsers((prev) => ({ ...prev, [updated.email.toLowerCase()]: updated }));
+        setCurrentUser((previous) => previous?.id === updated.id ? updated : previous);
+      }
+      playChime('success');
+      setToastMessage({ title: 'Đã chọn lời giải tốt nhất', subtitle: 'Tác giả nhận 25 XP và phần thưởng cược (nếu có).', type: 'success' });
+      return true;
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Không thể chọn lời giải. Vui lòng thử lại.');
+      return false;
     }
-
-    playChime('level-up');
-    setToastMessage({
-      title: '✓ Đã xác nhận Đáp Án Chuẩn!',
-      subtitle: `Người giải bài (${targetSolution?.authorName || 'Bạn học'}) đã nhận thưởng +${solverCoinAward} Coin danh dự.`,
-      type: 'level',
-    });
   };
 
   const sendChatMessage = (channelId: ChatChannelId, content: string) => {
@@ -1866,6 +1767,10 @@ export function useForumStore() {
     loginSocial,
     logout,
     addXP,
+    checkInDaily,
+    answerDailyQuestion,
+    openDailyBox,
+    purchaseShopItem,
     updateProfile,
     clubs,
     clubPosts,

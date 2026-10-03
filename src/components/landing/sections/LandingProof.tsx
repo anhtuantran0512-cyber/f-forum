@@ -19,7 +19,7 @@ export const LandingProof: React.FC<LandingProofProps> = ({
   const stats = [
     {
       id: 'online',
-      value: Math.max(onlineCount, 1),
+      value: onlineCount,
       suffix: '',
       label: 'Sinh viên đang online',
       hint: 'Presence thời gian thực',

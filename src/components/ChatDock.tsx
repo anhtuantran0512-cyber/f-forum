@@ -88,16 +88,17 @@ export const ChatDock: React.FC<ChatDockProps> = ({
         }),
       });
       const data = await res.json();
-      setReportSuccessMsg(data.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị (anhtuantran0512@gmail.com).');
+      if (!res.ok || !data.success) throw new Error(data.message || 'Không thể gửi tố cáo.');
+      setReportSuccessMsg('Đã ghi nhận tố cáo.');
       pushNotification({
         type: 'system',
         category: 'system',
         title: 'Đã Tiếp Nhận Báo Cáo',
-        body: `Tố cáo đối với "${reportUser.name}" đã được chuyển tới Ban Giám Hiệu và Super Admin.`,
+        body: `Đã ghi nhận tố cáo về ${reportUser.name}.`,
         targetView: 'chat',
       });
-    } catch {
-      setReportSuccessMsg('Đã ghi nhận tố cáo của bạn và chuyển tới anhtuantran0512@gmail.com.');
+    } catch (error) {
+      setReportSuccessMsg(error instanceof Error ? error.message : 'Không thể gửi tố cáo. Vui lòng thử lại.');
     } finally {
       setIsSubmittingReport(false);
     }
@@ -439,7 +440,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                     className="w-full py-2.5 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-98"
                   >
                     <UserIcon className="w-4 h-4 text-cyan-400" />
-                    <span>Trang Cá Nhân (Xem đầy đủ thông tin & tất cả huy hiệu)</span>
+                    <span>Cá nhân</span>
                   </button>
                 )}
 
@@ -453,7 +454,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   className="w-full py-2.5 px-3 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-98"
                 >
                   <Flag className="w-4 h-4 text-red-400" />
-                  <span>Tố Cáo Tài Khoản Vi Phạm (Gửi Gmail anhtuantran0512@gmail.com)</span>
+                  <span>Tố cáo</span>
                 </button>
               </div>
             </div>
@@ -545,15 +546,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   />
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-red-950/30 border border-red-500/20 text-[10px] text-red-300 space-y-1">
-                  <span className="font-bold flex items-center gap-1">
-                    <Shield className="w-3.5 h-3.5 text-red-400" />
-                    Kỷ luật trường học nghiêm ngặt:
-                  </span>
-                  <p>
-                    Báo cáo vi phạm sẽ được gửi trực tiếp tới Ban Quản Trị (anhtuantran0512@gmail.com) và Ban Giám Hiệu nhà trường.
-                  </p>
-                </div>
+                <p className="text-[11px] text-white/45">Tố cáo sẽ được xem xét theo nội quy cộng đồng.</p>
 
                 <div className="pt-2 flex items-center justify-end gap-2 border-t border-white/10">
                   <button

@@ -44,7 +44,7 @@ function createTestServer() {
   });
 }
 
-test('1. Real-Time Multi-Device WebSocket Sync: Client A message immediately received by Client B', async () => {
+test('1. Security: unauthenticated WebSocket writes cannot persist forged chat messages', async () => {
   const testEnv = await createTestServer();
 
   try {
@@ -83,15 +83,8 @@ test('1. Real-Time Multi-Device WebSocket Sync: Client A message immediately rec
     // Client A sends message over WebSocket
     clientA.send(JSON.stringify({ type: 'NEW_CHAT_MESSAGE', payload: testMessage }));
 
-    // Wait up to 1000ms for Client B to receive
-    const start = Date.now();
-    while (receivedMessagesByB.length === 0 && Date.now() - start < 1500) {
-      await new Promise((r) => setTimeout(r, 50));
-    }
-
-    assert.equal(receivedMessagesByB.length, 1, 'Client B must have received 1 real-time message');
-    assert.equal(receivedMessagesByB[0].content, testMessage.content);
-    assert.equal(receivedMessagesByB[0].authorEmail, 'clone@test.local');
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    assert.equal(receivedMessagesByB.length, 0, 'Unauthenticated client-authored WebSocket messages are ignored');
 
     clientA.close();
     clientB.close();
@@ -131,7 +124,16 @@ test('2. Authentication Logic: Login rejects non-existent users; Register requir
     assert.equal(regData.user.level, 1, 'New student starts at Level 1');
     assert.equal(regData.user.xp, 0, 'New student starts with 0 XP');
     assert.equal(regData.user.role, 'STUDENT');
-    assert.ok(regData.token.startsWith('f_token_'), 'Session token generated');
+    assert.equal(regData.token, undefined, 'Session secret is not exposed to JavaScript');
+    const sessionCookie = registerRes.headers.get('set-cookie');
+    assert.ok(sessionCookie?.includes('HttpOnly'), 'Session cookie must be HttpOnly');
+    const cookie = sessionCookie.split(';')[0];
+    const sessionRes = await fetch(`${testEnv.baseUrl}/api/auth/session`, { headers: { Cookie: cookie } });
+    const sessionData = await sessionRes.json();
+    assert.equal(sessionRes.status, 200);
+    assert.equal(sessionData.user.id, regData.user.id);
+    assert.deepEqual(regData.user.inventory, [], 'New accounts start with empty inventory');
+    assert.deepEqual(regData.user.earnedBadges, [], 'New accounts start without earned badges');
 
     // 2.3 Duplicate register attempt -> Must reject
     const duplicateRes = await fetch(`${testEnv.baseUrl}/api/auth/register`, {
@@ -160,6 +162,18 @@ test('2. Authentication Logic: Login rejects non-existent users; Register requir
     assert.equal(validLoginRes.status, 200);
     assert.equal(validLoginData.success, true);
     assert.equal(validLoginData.user.email, 'hocsinhmoi@fpt.edu.vn');
+    const loginCookie = validLoginRes.headers.get('set-cookie')?.split(';')[0];
+    assert.ok(loginCookie, 'Successful password login sets a session cookie');
+    const validatedSession = await fetch(`${testEnv.baseUrl}/api/auth/session`, { headers: { Cookie: loginCookie } });
+    assert.equal(validatedSession.status, 200);
+
+    // Caller-supplied identity cannot target another account or claim XP.
+    const forgedReward = await fetch(`${testEnv.baseUrl}/api/users/award-xp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: loginCookie },
+      body: JSON.stringify({ email: 'another.user@example.test', userId: 'other-user', action: 'focus_session' }),
+    });
+    assert.notEqual(forgedReward.status, 200, 'A session cannot mutate another account by changing request identity');
 
     // 2.5 Login with incorrect password -> Must reject
     const wrongPassRes = await fetch(`${testEnv.baseUrl}/api/auth/login`, {
@@ -178,7 +192,7 @@ test('2. Authentication Logic: Login rejects non-existent users; Register requir
   }
 });
 
-test('3. Super Admin Isolation: ONLY anhtuantran0512@gmail.com receives SUPER_ADMIN role', async () => {
+test('3. Super Admin role is server-defined and cannot be claimed through registration or OAuth', async () => {
   const testEnv = await createTestServer();
 
   try {
@@ -195,12 +209,18 @@ test('3. Super Admin Isolation: ONLY anhtuantran0512@gmail.com receives SUPER_AD
     assert.ok(!loginModalCode.includes('Đăng nhập Super Admin'), 'LoginModal must not expose quick Super Admin login');
     assert.ok(!loginModalCode.includes('handleQuickAdmin'), 'LoginModal must not have handleQuickAdmin function');
 
-    // Check that App.tsx isolates XPSandboxDock strictly to admin
+    const registration = await fetch(`${testEnv.baseUrl}/api/auth/register`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Spoofed Admin', email: 'anhtuantran0512@gmail.com', password: 'test-password' }),
+    });
+    assert.equal(registration.status, 400, 'Reserved admin identity cannot self-register');
+    const social = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: 'google', email: 'anhtuantran0512@gmail.com', name: 'Spoofed Admin' }),
+    });
+    assert.equal(social.status, 501, 'An email claim cannot authenticate as admin');
     const appCode = fs.readFileSync('src/App.tsx', 'utf8');
-    assert.ok(
-      appCode.includes("currentUser?.email === 'anhtuantran0512@gmail.com' &&"),
-      'XPSandboxDock must strictly require currentUser.email === anhtuantran0512@gmail.com'
-    );
+    assert.ok(!appCode.includes('XPSandboxDock'), 'Arbitrary XP and Coin controls are removed');
   } finally {
     await testEnv.close();
   }

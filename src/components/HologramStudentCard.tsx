@@ -8,9 +8,10 @@ import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 
 interface HologramStudentCardProps {
   user: User;
+  showPrivateDetails?: boolean;
 }
 
-export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({ user }) => {
+export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({ user, showPrivateDetails = false }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const [rotateX, setRotateX] = useState(0);
@@ -20,7 +21,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({ user }
 
   const isSuperAdmin = user.email === 'anhtuantran0512@gmail.com';
   const tier = getTierForLevel(user.level);
-  const streakCount = user.streakCount ?? (isSuperAdmin ? 36 : user.role === 'CLUB_LEADER' ? 24 : 14);
+  const streakCount = user.streakCount ?? 0;
   const fPoints = user.fPoints ?? user.xp;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
@@ -160,7 +161,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({ user }
                   </div>
 
                   <p className="text-[11px] text-neutral-300 truncate font-mono mt-0.5">
-                    {user.className || 'FPT University Vietnam'} • {user.city || 'Hà Nội'}
+                    {[user.className, user.city].filter(Boolean).join(' · ') || 'Thông tin chưa cập nhật'}
                   </p>
 
                   {/* Rank Badge & Tier Specs */}
@@ -201,7 +202,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({ user }
                   </div>
                   <div>
                     <span className="text-[9px] uppercase tracking-wider text-neutral-400 block font-mono">
-                      Blue Flame Streak
+                      Chuỗi điểm danh
                     </span>
                     <span className="text-xs sm:text-sm font-extrabold font-mono text-cyan-200 flex items-center gap-1">
                       {streakCount} Ngày <span className="text-[10px] text-cyan-400">🔥</span>
@@ -233,24 +234,26 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({ user }
                     CHỨNG NHẬN DANH TÍNH ĐIỆN TỬ
                   </span>
                 </div>
-                <span className="text-[10px] font-mono text-cyan-400">VERIFIED PVC</span>
+                <span className="text-[10px] font-mono text-cyan-400">F-FORUM</span>
               </div>
 
               {/* Bio & Details */}
               <div className="my-2 space-y-1.5 text-xs text-neutral-300">
                 <p className="italic text-[11px] text-neutral-200 line-clamp-2 bg-white/5 p-2 rounded-xl border border-white/10">
-                  "{user.bio || 'Thành viên cộng đồng tri thức F-forum.'}"
+                  "{user.bio || 'Chưa có tiểu sử.'}"
                 </p>
-                <div className="grid grid-cols-2 gap-2 text-[10px] font-mono pt-1">
-                  <div>
-                    <span className="text-neutral-400">Email:</span>{' '}
-                    <span className="text-white truncate block">{user.email}</span>
+                {showPrivateDetails && (
+                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono pt-1">
+                    <div>
+                      <span className="text-neutral-400">Email:</span>{' '}
+                      <span className="text-white truncate block">{user.email}</span>
+                    </div>
+                    <div>
+                      <span className="text-neutral-400">Giới tính:</span>{' '}
+                      <span className="text-white">{user.gender || 'Chưa cập nhật'}</span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-neutral-400">Giới tính:</span>{' '}
-                    <span className="text-white">{user.gender || 'Chưa cập nhật'}</span>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Magnetic Strip & Barcode Simulation */}
