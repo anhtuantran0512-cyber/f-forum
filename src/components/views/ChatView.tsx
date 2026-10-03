@@ -585,7 +585,21 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 <Shield className="w-3 h-3 text-amber-400" />
                 <span>BAN QUẢN TRỊ (ADMIN)</span>
               </div>
-              <div className="p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-cyan-500/10 border border-amber-400/35 shadow-[0_0_20px_rgba(245,158,11,0.18)] relative overflow-hidden group">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveAuthorCard({
+                    id: 'admin-master',
+                    name: MASTER_ADMIN_CONFIG.name,
+                    avatar: MASTER_ADMIN_CONFIG.avatar,
+                    email: MASTER_ADMIN_CONFIG.email,
+                    level: 150,
+                    coin: 99999,
+                  });
+                }}
+                className="w-full text-left p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-cyan-500/10 hover:from-amber-500/20 hover:to-cyan-500/20 border border-amber-400/35 hover:border-amber-400/60 shadow-[0_0_20px_rgba(245,158,11,0.18)] relative overflow-hidden group cursor-pointer transition-all active:scale-98"
+                title={`Xem hồ sơ hoặc tương tác với ${MASTER_ADMIN_CONFIG.name}`}
+              >
                 <div className="relative flex items-center gap-2.5">
                   <div className="relative shrink-0">
                     <img
@@ -618,7 +632,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     </span>
                   </div>
                 </div>
-              </div>
+              </button>
             </div>
 
             {/* SECTION 2: HỌC SINH & HỘI VIÊN */}
@@ -831,7 +845,22 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 <Shield className="w-3 h-3 text-amber-400" />
                 <span>BAN QUẢN TRỊ (ADMIN)</span>
               </div>
-              <div className="p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-cyan-500/10 border border-amber-400/35 relative overflow-hidden">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMembersDrawerOpen(false);
+                  setActiveAuthorCard({
+                    id: 'admin-master',
+                    name: MASTER_ADMIN_CONFIG.name,
+                    avatar: MASTER_ADMIN_CONFIG.avatar,
+                    email: MASTER_ADMIN_CONFIG.email,
+                    level: 150,
+                    coin: 99999,
+                  });
+                }}
+                className="w-full text-left p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-cyan-500/10 border border-amber-400/35 relative overflow-hidden cursor-pointer active:scale-98"
+                title={`Xem hồ sơ ${MASTER_ADMIN_CONFIG.name}`}
+              >
                 <div className="flex items-center gap-2.5">
                   <div className="relative shrink-0">
                     <img
@@ -864,7 +893,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     </span>
                   </div>
                 </div>
-              </div>
+              </button>
             </div>
 
             {/* Active Students */}
@@ -983,10 +1012,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       setActiveAuthorCard(null);
                       onOpenProfile(user);
                     }}
-                    className="w-full py-2 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-300 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                    className="w-full py-2.5 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-98"
                   >
-                    <UserIcon className="w-3.5 h-3.5" />
-                    <span>Xem Hồ Sơ Chi Tiết</span>
+                    <UserIcon className="w-4 h-4 text-cyan-400" />
+                    <span>Trang Cá Nhân (Xem đầy đủ thông tin & tất cả huy hiệu)</span>
                   </button>
                 )}
 
@@ -997,10 +1026,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     setActiveAuthorCard(null);
                     setReportUser({ id: user.id, name: user.name });
                   }}
-                  className="w-full py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  className="w-full py-2.5 px-3 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-98"
                 >
-                  <Flag className="w-3.5 h-3.5 text-red-400" />
-                  <span>Tố Cáo Tài Khoản Này</span>
+                  <Flag className="w-4 h-4 text-red-400" />
+                  <span>Tố Cáo Tài Khoản Vi Phạm (Gửi Gmail anhtuantran0512@gmail.com)</span>
                 </button>
               </div>
             </div>
@@ -1014,6 +1043,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
           role="dialog"
           aria-modal="true"
           aria-label="Tố cáo tài khoản vi phạm"
+          onClick={e => {
+            if (e.target === e.currentTarget) {
+              setReportUser(null);
+              setReportSuccessMsg(null);
+            }
+          }}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
         >
           <div className="liquid-glass w-full max-w-md rounded-3xl bg-neutral-950/95 border border-red-500/40 shadow-2xl p-6 relative">

@@ -543,6 +543,469 @@ html.light div[role="dialog"] .bg-black\/25 {
   display: block !important;
 }
 
+/* ==========================================================================
+   CodeFronts CSS Loading Animation: Healthcare Appointment / Resource Loader (.la-08)
+   ========================================================================== */
+.la-08 {
+  --la-bg: #0c1218;
+  --la-surface: rgba(15, 22, 32, 0.95);
+  --la-ink: #f1f5f9;
+  --la-muted: #94a3b8;
+  --la-line: rgba(255, 255, 255, 0.12);
+  --la-acc: #0d9488;
+  --la-acc-2: #f59e0b;
+  --la-ok: #10b981;
+  --la-ring-c: #0d9488;
+  --la-shadow: rgba(0, 0, 0, 0.8);
+  --la-dur: 3.6s;
+  --la-bpm-dur: 1s;
+}
+
+.la-08__card {
+  position: relative;
+  inline-size: min(24rem, 100%);
+  padding: 1.8rem 1.5rem 1.4rem;
+  display: grid;
+  justify-items: center;
+  gap: 1.15rem;
+  text-align: center;
+  border-radius: 1.6rem;
+  background: var(--la-surface);
+  border: 1px solid var(--la-line);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 36px 64px -20px var(--la-shadow);
+  backdrop-filter: blur(20px);
+}
+
+.la-08__cal {
+  position: relative;
+  inline-size: 7.2rem;
+  padding: 0.55rem;
+  border-radius: 1rem;
+  background: rgba(13, 148, 136, 0.12);
+  border: 1px solid var(--la-line);
+  display: grid;
+  gap: 0.45rem;
+  box-shadow: 0 0 0 0px rgba(13, 148, 136, 0.2);
+  animation: la-08-glow var(--la-dur) ease-in-out infinite;
+}
+
+@keyframes la-08-glow {
+  0%, 60% { box-shadow: 0 0 0 0px rgba(13, 148, 136, 0); }
+  78% { box-shadow: 0 0 18px 4px rgba(13, 148, 136, 0.45); }
+  100% { box-shadow: 0 0 0 0px rgba(13, 148, 136, 0); }
+}
+
+.la-08__cal-top {
+  display: flex;
+  justify-content: center;
+  gap: 1.6rem;
+}
+
+.la-08__cal-top i {
+  inline-size: 0.32rem;
+  block-size: 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.la-08__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.24rem;
+}
+
+.la-08__day {
+  aspect-ratio: 1;
+  border-radius: 0.35rem;
+  background: rgba(255, 255, 255, 0.08);
+  display: grid;
+  place-items: center;
+  font-size: 0.55rem;
+  font-weight: 600;
+  color: transparent;
+  animation: la-08-scan var(--la-dur) linear infinite;
+  animation-delay: calc(var(--i) * 0.07s);
+}
+
+@keyframes la-08-scan {
+  0%, 3% { background: rgba(13, 148, 136, 0.5); }
+  10%, 100% { background: rgba(255, 255, 255, 0.08); }
+}
+
+.la-08__day--sel {
+  color: #fff;
+  animation: la-08-lock var(--la-dur) ease-out infinite;
+}
+
+@keyframes la-08-lock {
+  0%, 45% {
+    background: rgba(255, 255, 255, 0.08);
+    color: transparent;
+    transform: scale(1);
+  }
+  56% {
+    background: var(--la-acc);
+    color: #fff;
+    transform: scale(1.18);
+  }
+  70%, 100% {
+    background: var(--la-acc);
+    color: #fff;
+    transform: scale(1);
+  }
+}
+
+.la-08__seal {
+  position: absolute;
+  bottom: -0.9rem;
+  right: -0.9rem;
+  width: 2.6rem;
+  height: 2.6rem;
+  fill: none;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  background: var(--la-surface);
+  border-radius: 999px;
+  padding: 0.1rem;
+  border: 1px solid var(--la-line);
+}
+
+.la-08__ring {
+  stroke: var(--la-ok);
+  stroke-dasharray: 95;
+  stroke-dashoffset: 95;
+  animation: la-08-draw var(--la-dur) ease-in-out infinite;
+}
+
+.la-08__check {
+  stroke: var(--la-ok);
+  stroke-dasharray: 22;
+  stroke-dashoffset: 22;
+  animation: la-08-draw var(--la-dur) ease-in-out infinite;
+  animation-delay: 0.4s;
+}
+
+@keyframes la-08-draw {
+  0%, 62% { stroke-dashoffset: 95; }
+  84%, 96% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 95; }
+}
+
+.la-08.is-ready .la-08__day,
+.la-08.is-ready .la-08__cal,
+.la-08.is-ready .la-08__ring,
+.la-08.is-ready .la-08__check {
+  animation: none;
+}
+
+.la-08.is-ready .la-08__day--sel {
+  background: var(--la-acc);
+  color: #fff;
+}
+
+.la-08.is-ready .la-08__ring,
+.la-08.is-ready .la-08__check {
+  stroke-dashoffset: 0;
+}
+
+.la-08.is-ready .la-08__load {
+  display: none;
+}
+
+.la-08.is-ready .la-08__ready {
+  display: inline;
+}
+
+.la-08__vitals {
+  inline-size: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.8rem;
+  background: rgba(13, 148, 136, 0.1);
+  border: 1px solid rgba(13, 148, 136, 0.2);
+}
+
+.la-08__ecg-wrap {
+  inline-size: 100%;
+  block-size: 2.1rem;
+  fill: none;
+}
+
+.la-08__base {
+  stroke: rgba(255, 255, 255, 0.15);
+  stroke-width: 1;
+}
+
+.la-08__ecg {
+  stroke: #f59e0b;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 40 300;
+  stroke-dashoffset: 340;
+  animation: la-08-beat var(--la-bpm-dur) linear infinite;
+}
+
+@keyframes la-08-beat {
+  to { stroke-dashoffset: 0; }
+}
+
+/* ==========================================================================
+   CodeFronts Tailwind Like Heart Button (.tb-11)
+   ========================================================================== */
+@keyframes tb-11-pop {
+  0% { transform: scale(1); }
+  22% { transform: scale(0.75); }
+  55% { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}
+
+@keyframes tb-11-spark {
+  0% { opacity: 0; transform: scale(0.3) translate(0, 0); }
+  25% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0; transform: scale(0.5) translate(0, -1.55rem); }
+}
+
+.animate-tb11-pop {
+  animation: tb-11-pop 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-tb11-spark {
+  animation: tb-11-spark 0.62s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ==========================================================================
+   CodeFronts Tailwind Magnetic Mercury Ripple Button (.tb-15)
+   ========================================================================== */
+@keyframes tb-15-ripple {
+  0% { opacity: 0.85; transform: scale(0); }
+  100% { opacity: 0; transform: scale(22); }
+}
+
+.animate-tb15-ripple {
+  animation: tb-15-ripple 0.62s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.tb-15__btn {
+  --mx: 50%;
+  --my: 50%;
+  --dx: 0;
+  --dy: 0;
+  --tb-15-pull: 11px;
+}
+
+/* ==========================================================================
+   CodeFronts Metallic Gold Text Gradient Effect CSS (.tg-10)
+   ========================================================================== */
+:root {
+  --gold-grad: linear-gradient(
+    135deg,
+    #92400e 0%,
+    #b45309 15%,
+    #d97706 30%,
+    #fbbf24 45%,
+    #fef3c7 55%,
+    #fbbf24 65%,
+    #d97706 80%,
+    #92400e 100%
+  );
+}
+
+.tg-10__gold {
+  background: var(--gold-grad);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: tg-10-shimmer 4s ease-in-out infinite;
+}
+
+@keyframes tg-10-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.tg-10__crown {
+  background: var(--gold-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 6px rgba(251, 191, 36, 0.35));
+}
+
+.tg-10__check {
+  background: var(--gold-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ==========================================================================
+   CodeFronts Staggered Grid Entrance Reveal (.ac-01)
+   ========================================================================== */
+@keyframes ac-01-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ac-01__card {
+  animation: ac-01-enter 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
 
 
+/* ==========================================================================
+   Liquid Gooey Active Tab Indicator
+   ========================================================================== */
+@keyframes nav-liquid-pulse {
+  0%, 100% {
+    filter: blur(0px);
+    transform: scaleX(1) scaleY(1);
+  }
+  50% {
+    filter: blur(0.5px);
+    transform: scaleX(1.04) scaleY(0.94);
+  }
+}
 
+@keyframes nav-liquid-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.3), 0 0 20px rgba(245, 158, 11, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.5), 0 0 30px rgba(245, 158, 11, 0.15);
+  }
+}
+
+.nav-liquid-pill {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(234, 179, 8, 0.2), rgba(250, 204, 21, 0.25));
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 9999px;
+  animation: nav-liquid-glow 3s ease-in-out infinite;
+  transition: left 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              width 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              top 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              height 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 200ms ease;
+}
+
+.nav-liquid-pill::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.12), transparent 60%);
+  pointer-events: none;
+}
+
+.nav-liquid-drop {
+  background: linear-gradient(90deg, #f59e0b, #facc15, #f59e0b);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  animation: nav-liquid-pulse 2.4s ease-in-out infinite;
+  box-shadow: 0 0 8px #f59e0b, 0 2px 6px rgba(245, 158, 11, 0.4);
+  transition: left 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              top 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 200ms ease;
+}
+
+.nav-liquid-drop-vertical {
+  background: linear-gradient(180deg, #f59e0b, #facc15, #f59e0b);
+  border-radius: 60% 40% 40% 60% / 50% 50% 50% 50%;
+  animation: nav-liquid-pulse 2.4s ease-in-out infinite;
+  box-shadow: 0 0 8px #f59e0b, 2px 0 6px rgba(245, 158, 11, 0.4);
+  transition: top 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              opacity 200ms ease;
+}
+
+/* ==========================================================================
+   Dynamic Island / Hyprland Popover Morph Animations
+   ========================================================================== */
+@keyframes popover-morph-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) translateY(4px);
+    filter: blur(8px);
+    border-radius: 28px;
+  }
+  40% {
+    opacity: 0.8;
+    transform: scale(1.02) translateY(-1px);
+    filter: blur(1px);
+    border-radius: 20px;
+  }
+  70% {
+    transform: scale(0.99) translateY(0px);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+    border-radius: 16px;
+  }
+}
+
+@keyframes popover-morph-out {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.85) translateY(4px);
+    filter: blur(6px);
+  }
+}
+
+.popover-morph-enter {
+  animation: popover-morph-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transform-origin: var(--popover-origin, top center);
+}
+
+.popover-morph-exit {
+  animation: popover-morph-out 200ms ease-in both;
+  transform-origin: var(--popover-origin, top center);
+}
+
+.dock-pos-top .popover-morph-enter {
+  --popover-origin: top center;
+}
+.dock-pos-bottom .popover-morph-enter {
+  --popover-origin: bottom center;
+}
+.dock-pos-left .popover-morph-enter {
+  --popover-origin: top left;
+}
+.dock-pos-right .popover-morph-enter {
+  --popover-origin: top right;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-liquid-pill,
+  .nav-liquid-drop,
+  .nav-liquid-drop-vertical {
+    animation: none !important;
+  }
+  .popover-morph-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}

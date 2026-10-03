@@ -33,7 +33,7 @@ export interface NavbarProps {
   isChatOpen: boolean;
   onToggleChat: () => void;
   unreadChatCount: number;
-  onOpenProfile: (tab?: 'card' | 'edit') => void;
+  onOpenProfile: (tab?: 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit') => void;
   onOpenFocusMode: () => void;
   isInsideCinema?: boolean;
 }
@@ -497,7 +497,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <>
                 {/* Liquid sliding pill indicator */}
                 <div
-                  className="absolute top-1 bottom-1 rounded-full bg-gradient-to-r from-amber-500/25 via-amber-400/20 to-yellow-500/25 backdrop-blur-xl border border-amber-400/40 shadow-[0_0_20px_rgba(245,158,11,0.25)] transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] pointer-events-none hidden lg:block"
+                  className="absolute top-1 bottom-1 nav-liquid-pill pointer-events-none hidden lg:block"
                   style={{
                     left: `${pillStyle.left}px`,
                     width: `${pillStyle.width}px`,
@@ -507,10 +507,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                 {/* Organic liquid droplet bead */}
                 <div
-                  className={`absolute ${navbarPosition === 'bottom' ? '-top-0.5' : '-bottom-0.5'} h-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 shadow-[0_0_8px_#f59e0b] transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] pointer-events-none hidden lg:block`}
+                  className={`absolute ${navbarPosition === 'bottom' ? '-top-1' : '-bottom-1'} nav-liquid-drop pointer-events-none hidden lg:block`}
                   style={{
-                    left: `${pillStyle.left + pillStyle.width / 2 - 8}px`,
-                    width: '16px',
+                    left: `${pillStyle.left + pillStyle.width / 2 - 9}px`,
+                    width: '18px',
+                    height: '6px',
                     opacity: pillStyle.opacity,
                   }}
                 />
@@ -520,9 +521,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Vertical organic liquid droplet bead */}
             {isVertical && (
               <div
-                className={`absolute ${navbarPosition === 'left' ? '-left-1' : '-right-1'} w-1.5 rounded-full bg-gradient-to-b from-amber-400 to-yellow-300 shadow-[0_0_10px_#f59e0b] transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] pointer-events-none`}
+                className={`absolute ${navbarPosition === 'left' ? '-left-1' : '-right-1'} nav-liquid-drop-vertical pointer-events-none`}
                 style={{
                   top: `${pillStyle.top + (pillStyle.height ? pillStyle.height / 2 - 10 : 10)}px`,
+                  width: '6px',
                   height: '20px',
                   opacity: pillStyle.opacity,
                 }}
