@@ -1009,3 +1009,336 @@ html.light div[role="dialog"] .bg-black\/25 {
     filter: none !important;
   }
 }
+
+/* ==========================================================================
+   F-Forum Aurora Gradient System — animated brand gradients
+   ========================================================================== */
+.ff-aurora-text {
+  background: linear-gradient(
+    100deg,
+    #fcd34d 0%,
+    #fb923c 22%,
+    #f472b6 45%,
+    #a78bfa 68%,
+    #67e8f9 88%,
+    #fcd34d 100%
+  );
+  background-size: 280% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: ff-aurora-slide 7s linear infinite;
+}
+
+@keyframes ff-aurora-slide {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 280% 50%; }
+}
+
+.ff-aurora-bar {
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    #f59e0b, #f472b6, #a78bfa, #22d3ee, #34d399, #f59e0b
+  );
+  background-size: 300% 100%;
+  animation: ff-aurora-slide 6s linear infinite;
+}
+
+.ff-aurora-surface {
+  position: relative;
+  overflow: hidden;
+}
+.ff-aurora-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    120deg,
+    rgba(245, 158, 11, 0.16),
+    rgba(244, 114, 182, 0.12) 30%,
+    rgba(167, 139, 250, 0.14) 55%,
+    rgba(34, 211, 238, 0.12) 80%,
+    rgba(245, 158, 11, 0.16)
+  );
+  background-size: 260% 260%;
+  animation: ff-aurora-drift 11s ease-in-out infinite;
+}
+@keyframes ff-aurora-drift {
+  0%, 100% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+}
+
+/* Conic story-ring used around avatars */
+@property --ff-ring-a {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.ff-gradient-ring {
+  padding: 3px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from var(--ff-ring-a),
+    #f59e0b, #f472b6, #a78bfa, #22d3ee, #f59e0b
+  );
+  animation: ff-ring-spin 5.5s linear infinite;
+  display: grid;
+  place-items: center;
+}
+@keyframes ff-ring-spin {
+  100% { --ff-ring-a: 360deg; }
+}
+
+/* Squircle variant for rounded-2xl avatars */
+.ff-gradient-ring-sq {
+  padding: 2.5px;
+  border-radius: 1rem;
+  background: conic-gradient(
+    from var(--ff-ring-a),
+    #f59e0b, #f472b6, #a78bfa, #22d3ee, #f59e0b
+  );
+  animation: ff-ring-spin 5.5s linear infinite;
+}
+
+/* Shimmering skeleton blocks (profile & comment loaders) */
+.ff-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+}
+.ff-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.14) 50%, transparent 70%);
+  animation: ff-shimmer 1.8s ease-in-out infinite;
+}
+@keyframes ff-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+/* Streak widget aura + flame flicker */
+.ff-streak-aura {
+  background: linear-gradient(90deg, rgba(245,158,11,0.35), rgba(249,115,22,0.25), rgba(253,224,71,0.35));
+  background-size: 220% 100%;
+  filter: blur(6px);
+  animation: ff-aurora-slide 3.5s linear infinite, ff-streak-breathe 2.4s ease-in-out infinite;
+}
+@keyframes ff-streak-breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.95; }
+}
+.ff-flame-flicker {
+  animation: ff-flame 1.6s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+@keyframes ff-flame {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  30% { transform: scale(1.06) rotate(-2.5deg); }
+  60% { transform: scale(0.97) rotate(2deg); }
+}
+
+/* Aurora orb spinner (loading screen) */
+.ff-orb {
+  position: relative;
+}
+.ff-orb__layer {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+.ff-orb__layer:nth-child(1) {
+  background: radial-gradient(circle at 30% 40%, #f59e0b, transparent 60%), radial-gradient(circle at 70% 60%, #fb7185, transparent 60%);
+  filter: blur(4px);
+  animation: ff-orb-a 4s ease-in-out infinite;
+}
+.ff-orb__layer:nth-child(2) {
+  background: radial-gradient(circle at 60% 30%, #a78bfa, transparent 55%), radial-gradient(circle at 40% 70%, #22d3ee, transparent 55%);
+  filter: blur(6px);
+  animation: ff-orb-b 5s ease-in-out infinite;
+  animation-delay: -2s;
+  mix-blend-mode: screen;
+}
+.ff-orb__layer:nth-child(3) {
+  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.16), transparent 50%);
+  animation: ff-orb-pulse 3s ease-in-out infinite;
+}
+.ff-orb__ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.2);
+  animation: ff-orb-spin 8s linear infinite;
+}
+.ff-orb__ring::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.85);
+  box-shadow: 0 0 6px white;
+}
+@keyframes ff-orb-a {
+  0%, 100% { transform: rotate(0deg) scale(1); filter: blur(4px) hue-rotate(0deg); }
+  33% { transform: rotate(120deg) scale(1.1); filter: blur(5px) hue-rotate(60deg); }
+  66% { transform: rotate(240deg) scale(0.95); filter: blur(3px) hue-rotate(120deg); }
+}
+@keyframes ff-orb-b {
+  0%, 100% { transform: rotate(0deg) scale(1.05); }
+  50% { transform: rotate(-180deg) scale(0.95); }
+}
+@keyframes ff-orb-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.9; }
+}
+@keyframes ff-orb-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   iOS-26 style floating capsule navbar: compact/expand state machine
+   ========================================================================== */
+.ff-nav-capsule {
+  transition: padding 0.45s var(--ease-nb, cubic-bezier(0.34, 1.4, 0.5, 1)),
+              gap 0.45s var(--ease-nb, cubic-bezier(0.34, 1.4, 0.5, 1)),
+              background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+}
+.ff-nav-capsule .ff-nav-label {
+  max-width: 140px;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: max-width 0.45s var(--ease-nb, cubic-bezier(0.34, 1.4, 0.5, 1)),
+              opacity 0.32s ease, margin 0.45s ease;
+}
+.ff-nav-capsule[data-compact="true"] {
+  gap: 2px;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+/* Shrink-wrap the capsule around icons when compact (horizontal docks only) */
+.dock-pos-top .ff-nav-capsule[data-compact="true"],
+.dock-pos-bottom .ff-nav-capsule[data-compact="true"] {
+  width: auto !important;
+  max-width: 96%;
+}
+.ff-nav-capsule[data-compact="true"] .ff-nav-label {
+  max-width: 0;
+  opacity: 0;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+.ff-nav-capsule[data-compact="true"] .ff-nav-brand-text {
+  max-width: 0;
+  opacity: 0;
+  margin: 0;
+}
+.ff-nav-capsule .ff-nav-brand-text {
+  max-width: 160px;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: max-width 0.45s var(--ease-nb, cubic-bezier(0.34, 1.4, 0.5, 1)),
+              opacity 0.32s ease, margin 0.45s ease;
+}
+.ff-nav-tab-icon {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ff-nav-capsule .nav-tab-btn:hover .ff-nav-tab-icon {
+  transform: scale(1.15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-aurora-text,
+  .ff-aurora-bar,
+  .ff-aurora-surface::before,
+  .ff-gradient-ring,
+  .ff-skeleton::after,
+  .ff-streak-aura,
+  .ff-flame-flicker,
+  .ff-orb__layer,
+  .ff-orb__ring,
+  .ff-nav-capsule,
+  .ff-nav-label,
+  .ff-nav-brand-text {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   ccm-02 — Radial submenu (pure CSS sin()/cos(), CodeFronts)
+   ============================================================ */
+.ccm-02 {
+  --ccm-r: 84px;
+  width: 48px;
+  height: 48px;
+}
+.ccm-02__item {
+  transform: translate(0, 0) scale(0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.25s ease,
+    box-shadow 0.25s ease;
+  transition-delay: calc(var(--i) * 45ms);
+  will-change: transform, opacity;
+}
+.ccm-02__toggle:checked ~ .ccm-02__item {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(
+      calc(cos(var(--a)) * var(--ccm-r)),
+      calc(sin(var(--a)) * var(--ccm-r))
+    )
+    scale(1);
+}
+.ccm-02__toggle:checked ~ .ccm-02__hub > svg {
+  transform: rotate(135deg);
+}
+.ccm-02__toggle:checked ~ .ccm-02__hub {
+  border-color: rgba(34, 211, 238, 0.5);
+  color: #67e8f9;
+}
+.ccm-02__tip {
+  position: absolute;
+  right: calc(100% + 8px);
+  top: 50%;
+  translate: 0 -50%;
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: rgba(10, 14, 20, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 3px 8px;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.ccm-02__item:hover .ccm-02__tip,
+.ccm-02__item:focus-visible .ccm-02__tip {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ccm-02__item,
+  .ccm-02__hub > svg {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+}
+.reduce-motion .ccm-02__item,
+.reduce-motion .ccm-02__hub > svg {
+  transition-duration: 0.01ms !important;
+  transition-delay: 0ms !important;
+}

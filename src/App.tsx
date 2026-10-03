@@ -10,6 +10,8 @@ import { AuthProvider } from './context/AuthContext';
 import { GODRAY_PRESETS } from './utils/godrays';
 import { safeStorage } from './utils/storage';
 import { PageResourceLoader } from './components/PageResourceLoader';
+import { UserQuickCard } from './components/UserQuickCard';
+import { RadialQuickMenu } from './components/RadialQuickMenu';
 
 const LandingPage = lazy(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
 const ClubsView = lazy(() => import('./components/views/ClubsView').then(m => ({ default: m.ClubsView })));
@@ -68,6 +70,7 @@ export const App: React.FC = () => {
     setIsProfileModalOpen,
     isLoginModalOpen,
     setIsLoginModalOpen,
+    isSynced,
     toastMessage,
     adminDeleteQuestion,
     adminEditQuestion,
@@ -79,6 +82,7 @@ export const App: React.FC = () => {
   const [isFocusModeOpen, setIsFocusModeOpen] = useState(false);
   const [profileInitialTab, setProfileInitialTab] = useState<'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit'>('overview');
   const [targetProfileUser, setTargetProfileUser] = useState<User | null>(null);
+  const [quickProfile, setQuickProfile] = useState<{ user: User; anchor?: { x: number; y: number } | null } | null>(null);
   const [scrollInsideCinema, setScrollInsideCinema] = useState(false);
   const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>('login');
 
@@ -177,9 +181,47 @@ export const App: React.FC = () => {
     setIsProfileModalOpen(true);
   };
 
-  const handleOpenUserProfile = (userToView?: { id: string; name: string; avatar: string; email?: string; level?: number }) => {
-    handleOpenProfile('overview', userToView);
+  const handleOpenUserProfile = (
+    userToView?: { id: string; name: string; avatar: string; email?: string; level?: number },
+    anchor?: { x: number; y: number } | null,
+  ) => {
+    if (!userToView) {
+      handleOpenProfile('overview');
+      return;
+    }
+
+    // Clicking another user shows the quick card first; the full profile opens on demand.
+    const emailKey = userToView.email ? userToView.email.toLowerCase() : '';
+    const existing = (emailKey && users[emailKey]) || Object.values(users).find(u => u.id === userToView.id);
+    const resolved: User = existing || {
+      id: userToView.id,
+      name: userToView.name,
+      email: userToView.email || '',
+      avatar: userToView.avatar,
+      role: 'STUDENT',
+      level: userToView.level || 1,
+      xp: 0,
+      bio: '',
+      scopedClubIds: [],
+    };
+
+    if (currentUser && resolved.id === currentUser.id) {
+      // Own avatar → go straight to the full profile
+      handleOpenProfile('overview');
+      return;
+    }
+
+    setQuickProfile({ user: resolved, anchor: anchor ?? null });
   };
+
+  const quickProfileStats = quickProfile
+    ? {
+        questions: questions.filter((q) => q.authorId === quickProfile.user.id).length,
+        solutions: solutions.filter((s) => s.authorId === quickProfile.user.id).length,
+        best: solutions.filter((s) => s.authorId === quickProfile.user.id && s.isBest).length,
+        joinedAt: quickProfile.user.joinedAt,
+      }
+    : undefined;
 
   const handleToggleChat = () => {
     setIsChatOpen(prev => {
@@ -307,6 +349,14 @@ export const App: React.FC = () => {
           onOpenProfile={handleOpenProfile}
           onOpenFocusMode={() => setIsFocusModeOpen(true)}
           isInsideCinema={isInsideCinema}
+          onRewardCoins={(amount) => {
+            if (currentUser) addXP(amount, currentUser.email);
+          }}
+          onUpdateStreak={(streak) => {
+            if (currentUser && (currentUser.streakCount ?? 0) !== streak) {
+              updateProfile({ streakCount: streak });
+            }
+          }}
         />
         )
       )}
@@ -319,7 +369,7 @@ export const App: React.FC = () => {
               currentUser={currentUser}
               onOpenAuth={() => handleOpenAuth('register')}
               onEnterApp={() => handleViewChange('home')}
-              onlineCount={Math.max(1, onlineUsers.length > 0 ? onlineUsers.length : Object.keys(users).length)}
+              onlineCount={onlineUsers.length}
               totalQuestions={questions.length}
               solvedQuestions={solvedQuestionsCount}
               totalClubs={clubs.filter(c => c.status === 'APPROVED').length}
@@ -334,12 +384,12 @@ export const App: React.FC = () => {
                 totalClubs={clubs.filter(c => c.status === 'APPROVED').length}
                 totalQuestions={questions.length}
                 solvedQuestionsCount={solvedQuestionsCount}
-                onlineCount={Math.max(1, onlineUsers.length > 0 ? onlineUsers.length : Object.keys(users).length)}
-                onlineUsersCount={Math.max(1, onlineUsers.length > 0 ? onlineUsers.length : Object.keys(users).length)}
+                onlineCount={onlineUsers.length}
+                onlineUsersCount={onlineUsers.length}
                 resolvedQuestionsCount={solvedQuestionsCount}
                 totalClubsCount={clubs.filter(c => c.status === 'APPROVED').length}
                 chatMessagesTodayCount={chatMessages.length}
-                streakCount={currentUser?.streakCount || 1}
+                streakCount={currentUser?.streakCount || 0}
                 onOpenDaily={() => window.dispatchEvent(new CustomEvent('fforum_open_daily'))}
               />
             </div>
@@ -372,6 +422,9 @@ export const App: React.FC = () => {
               onDeleteSolution={adminDeleteSolution}
               onOpenLoginModal={() => handleOpenAuth('login')}
               onOpenProfile={handleOpenUserProfile}
+              users={users}
+              chatMessages={chatMessages}
+              isSynced={isSynced}
             />
           )}
 
@@ -382,9 +435,10 @@ export const App: React.FC = () => {
               onSendMessage={sendChatMessage}
               onDeleteMessage={adminDeleteChatMessage}
               onlineUsers={onlineUsers}
-              onlineCount={Math.max(1, onlineUsers.length)}
+              onlineCount={onlineUsers.length}
               onOpenLoginModal={() => handleOpenAuth('login')}
               onOpenProfile={handleOpenUserProfile}
+              isSynced={isSynced}
             />
           )}
 
@@ -417,6 +471,15 @@ export const App: React.FC = () => {
         </Suspense>
       </main>
 
+      {/* Radial quick actions (ccm-02 sin()/cos() fan) */}
+      {currentUser && currentView !== 'landing' && !isChatOpen && (
+        <RadialQuickMenu
+          onNavigate={(v) => handleNavigate(v as DimensionView)}
+          onOpenChat={() => setIsChatOpen(true)}
+          onOpenFocus={() => setIsFocusModeOpen(true)}
+        />
+      )}
+
       <Suspense fallback={null}>
         {/* Slide-over Chat Dock (For quick chatting when browsing Home, Clubs, QA, Chronicles) */}
         {currentView !== 'chat' && (
@@ -448,6 +511,32 @@ export const App: React.FC = () => {
             initialTab={profileInitialTab}
             questions={questions}
             solutions={solutions}
+          />
+        )}
+
+        {/* Quick Profile Card (click a user → preview, then open full profile on demand) */}
+        {quickProfile && (
+          <UserQuickCard
+            user={quickProfile.user}
+            stats={quickProfileStats}
+            anchor={quickProfile.anchor}
+            isOwn={currentUser?.id === quickProfile.user.id}
+            onClose={() => setQuickProfile(null)}
+            onOpenFullProfile={(user) => {
+              setQuickProfile(null);
+              handleOpenProfile('overview', {
+                id: user.id,
+                name: user.name,
+                avatar: user.avatar,
+                email: user.email,
+                level: user.level,
+              });
+            }}
+            onMessage={() => {
+              setQuickProfile(null);
+              handleViewChange('chat');
+              setIsChatOpen(true);
+            }}
           />
         )}
 

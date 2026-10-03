@@ -1,17 +1,20 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Trophy,
-  ChevronDown,
   ArrowRight,
   HelpCircle,
   Sparkles,
+  Medal,
 } from 'lucide-react';
-import type { User } from '../../types';
+import type { User, Question, Solution, ChatMessage } from '../../types';
 import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
 import { MagneticButton } from '../MagneticButton';
 
+type Period = 'week' | 'month' | 'year' | 'all';
+
 interface LeaderboardMember {
+  key: string;
   id: string;
   name: string;
   avatar: string;
@@ -19,268 +22,216 @@ interface LeaderboardMember {
   level: number;
   email?: string;
   rank: number;
+  isYou?: boolean;
 }
 
 interface LeaderboardWidgetProps {
   currentUser: User | null;
+  users?: Record<string, User>;
+  questions?: Question[];
+  solutions?: Solution[];
+  chatMessages?: ChatMessage[];
   onOpenProfile?: (user: { id: string; name: string; avatar: string; email?: string; level?: number }) => void;
   onOpenAskModal: () => void;
   className?: string;
 }
 
-const DEFAULT_LEADERBOARD: Record<'day' | 'week' | 'all', LeaderboardMember[]> = {
-  day: [
-    {
-      id: 'lb-1',
-      name: 'BangtanJiminnn',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=faces',
-      points: 320,
-      level: 45,
-      email: 'bangtanjimin@fpt.edu.vn',
-      rank: 1,
-    },
-    {
-      id: 'lb-2',
-      name: 'minhdoan70',
-      avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&h=100&fit=crop&crop=faces',
-      points: 210,
-      level: 38,
-      email: 'minhdoan70@fpt.edu.vn',
-      rank: 2,
-    },
-    {
-      id: 'lb-3',
-      name: 'DYNAMONSWORLD',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces',
-      points: 160,
-      level: 29,
-      email: 'dynamons@fpt.edu.vn',
-      rank: 3,
-    },
-    {
-      id: 'lb-4',
-      name: 'Noctis347',
-      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop&crop=faces',
-      points: 150,
-      level: 25,
-      email: 'noctis347@fpt.edu.vn',
-      rank: 4,
-    },
-    {
-      id: 'lb-5',
-      name: 'leelinh03',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces',
-      points: 80,
-      level: 18,
-      email: 'leelinh03@fpt.edu.vn',
-      rank: 5,
-    },
-  ],
-  week: [
-    {
-      id: 'lb-1',
-      name: 'BangtanJiminnn',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=faces',
-      points: 1420,
-      level: 45,
-      email: 'bangtanjimin@fpt.edu.vn',
-      rank: 1,
-    },
-    {
-      id: 'lb-3',
-      name: 'DYNAMONSWORLD',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces',
-      points: 980,
-      level: 29,
-      email: 'dynamons@fpt.edu.vn',
-      rank: 2,
-    },
-    {
-      id: 'lb-2',
-      name: 'minhdoan70',
-      avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&h=100&fit=crop&crop=faces',
-      points: 890,
-      level: 38,
-      email: 'minhdoan70@fpt.edu.vn',
-      rank: 3,
-    },
-    {
-      id: 'lb-4',
-      name: 'Noctis347',
-      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop&crop=faces',
-      points: 750,
-      level: 25,
-      email: 'noctis347@fpt.edu.vn',
-      rank: 4,
-    },
-    {
-      id: 'lb-5',
-      name: 'leelinh03',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces',
-      points: 520,
-      level: 18,
-      email: 'leelinh03@fpt.edu.vn',
-      rank: 5,
-    },
-  ],
-  all: [
-    {
-      id: 'lb-admin',
-      name: 'Trần Văn Anh Tuấn',
-      avatar: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c.png',
-      points: 45000,
-      level: 150,
-      email: 'anhtuantran0512@gmail.com',
-      rank: 1,
-    },
-    {
-      id: 'lb-1',
-      name: 'BangtanJiminnn',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=faces',
-      points: 8420,
-      level: 45,
-      email: 'bangtanjimin@fpt.edu.vn',
-      rank: 2,
-    },
-    {
-      id: 'lb-2',
-      name: 'minhdoan70',
-      avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&h=100&fit=crop&crop=faces',
-      points: 6210,
-      level: 38,
-      email: 'minhdoan70@fpt.edu.vn',
-      rank: 3,
-    },
-    {
-      id: 'lb-3',
-      name: 'DYNAMONSWORLD',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces',
-      points: 4980,
-      level: 29,
-      email: 'dynamons@fpt.edu.vn',
-      rank: 4,
-    },
-    {
-      id: 'lb-4',
-      name: 'Noctis347',
-      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop&crop=faces',
-      points: 3850,
-      level: 25,
-      email: 'noctis347@fpt.edu.vn',
-      rank: 5,
-    },
-  ],
+const PERIOD_LABELS: Record<Period, string> = {
+  week: 'Tuần',
+  month: 'Tháng',
+  year: 'Năm',
+  all: 'Toàn thời gian',
+};
+
+const periodStart = (period: Period): number => {
+  const now = new Date();
+  if (period === 'week') {
+    const d = new Date(now);
+    const day = (d.getDay() + 6) % 7; // Monday = 0
+    d.setDate(d.getDate() - day);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+  if (period === 'month') {
+    return new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  }
+  if (period === 'year') {
+    return new Date(now.getFullYear(), 0, 1).getTime();
+  }
+  return 0;
+};
+
+/** Điểm = đóng góp thật trong kỳ (câu hỏi, lời giải, đáp án chuẩn, tin nhắn) + XP tích lũy (toàn thời gian). */
+function computeMembers(
+  users: Record<string, User>,
+  questions: Question[],
+  solutions: Solution[],
+  chatMessages: ChatMessage[],
+  period: Period,
+): LeaderboardMember[] {
+  const since = periodStart(period);
+  const inPeriod = (ts?: number) => (period === 'all' ? true : ts !== undefined && ts >= since);
+
+  const scores = new Map<string, number>();
+  const bump = (emailKey: string, amount: number) => {
+    if (!emailKey) return;
+    scores.set(emailKey, (scores.get(emailKey) || 0) + amount);
+  };
+
+  const emailById = new Map<string, string>();
+  Object.values(users).forEach((u) => {
+    if (u?.id && u?.email) emailById.set(u.id, u.email.toLowerCase());
+  });
+
+  questions.forEach((q) => {
+    if (!inPeriod(q.createdAtMs)) return;
+    const email = emailById.get(q.authorId) || '';
+    bump(email, 50);
+  });
+
+  solutions.forEach((s) => {
+    if (!inPeriod(s.createdAtMs)) return;
+    const email = (s.authorEmail || emailById.get(s.authorId) || '').toLowerCase();
+    bump(email, 25);
+    if (s.isBest) bump(email, 100);
+  });
+
+  chatMessages.forEach((m) => {
+    if (!inPeriod(m.timestampMs)) return;
+    const email = (m.authorEmail || '').toLowerCase();
+    bump(email, 2);
+  });
+
+  if (period === 'all') {
+    Object.entries(users).forEach(([email, u]) => {
+      bump(email, u.xp || 0);
+    });
+  }
+
+  const members: LeaderboardMember[] = [];
+  scores.forEach((points, emailKey) => {
+    const u = users[emailKey];
+    if (!u || points <= 0) return;
+    members.push({
+      key: emailKey,
+      id: u.id,
+      name: u.name,
+      avatar: u.avatar,
+      email: u.email,
+      level: u.level,
+      points: Math.round(points),
+      rank: 0,
+    });
+  });
+
+  members.sort((a, b) => b.points - a.points);
+  members.forEach((m, i) => {
+    m.rank = i + 1;
+  });
+  return members;
+}
+
+const RANK_STYLES: Record<number, string> = {
+  1: 'from-amber-400/30 to-yellow-500/10 border-amber-400/50 text-amber-300',
+  2: 'from-slate-300/20 to-slate-500/5 border-slate-300/40 text-slate-200',
+  3: 'from-orange-500/25 to-amber-700/10 border-orange-400/40 text-orange-300',
 };
 
 export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
   currentUser,
+  users = {},
+  questions = [],
+  solutions = [],
+  chatMessages = [],
   onOpenProfile,
   onOpenAskModal,
   className = '',
 }) => {
-  const [timeFilter, setTimeFilter] = useState<'day' | 'week' | 'all'>('day');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [period, setPeriod] = useState<Period>('week');
 
-  const members = DEFAULT_LEADERBOARD[timeFilter];
+  const members = useMemo(
+    () => computeMembers(users, questions, solutions, chatMessages, period),
+    [users, questions, solutions, chatMessages, period],
+  );
 
-  const currentUserName = currentUser?.name || 'TuanProinter512';
-  const currentUserPoints = currentUser ? currentUser.xp || 374 : 0;
-  const currentUserAvatar = currentUser?.avatar || DEFAULT_AVATAR;
-
-  const timeFilterLabels: Record<'day' | 'week' | 'all', string> = {
-    day: 'Trong ngày',
-    week: 'Trong tuần',
-    all: 'Tất cả',
-  };
+  const top = members.slice(0, 8);
+  const currentUserKey = currentUser ? currentUser.email.toLowerCase() : '';
+  const meEntry = members.find((m) => m.key === currentUserKey);
 
   return (
     <aside className={`space-y-4 ${className}`} aria-label="Bảng xếp hạng và đặt câu hỏi">
-      {/* Khối A: Bảng Xếp Hạng "THÀNH VIÊN HĂNG HÁI NHẤT" */}
+      {/* Real leaderboard */}
       <div className="rounded-3xl bg-[#0c1218]/90 backdrop-blur-2xl border border-white/15 p-4 shadow-xl flex flex-col gap-3.5 relative overflow-hidden">
-        {/* Tiêu đề & trang trí gạch chân */}
+        <div className="absolute inset-x-0 top-0 h-[3px] ff-aurora-bar opacity-80" aria-hidden="true" />
+
         <div className="flex flex-col items-center text-center">
-          <div className="flex items-center gap-1.5 text-[#0284C7] font-extrabold text-xs sm:text-sm tracking-wider uppercase">
+          <div className="flex items-center gap-1.5 font-extrabold text-xs sm:text-sm tracking-wider uppercase">
             <Trophy className="w-4 h-4 text-amber-400" />
-            <span>THÀNH VIÊN HĂNG HÁI NHẤT</span>
+            <span className="ff-aurora-text">Bảng xếp hạng</span>
           </div>
-          {/* Gạch chân trang trí xanh dương đậm */}
-          <div className="w-20 h-0.5 bg-gradient-to-r from-transparent via-[#0284C7] to-transparent mt-1 rounded-full" />
+          <div className="w-20 h-0.5 bg-gradient-to-r from-transparent via-amber-400/70 to-transparent mt-1 rounded-full" />
         </div>
 
-        {/* Bộ lọc thời gian: Dropdown hình viên thuốc */}
-        <div className="flex justify-center relative">
-          <button
-            type="button"
-            onClick={() => setIsDropdownOpen((prev) => !prev)}
-            className="px-3.5 py-1 rounded-full bg-white/10 hover:bg-white/15 border border-white/15 text-xs text-white font-semibold inline-flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-            aria-expanded={isDropdownOpen}
-            aria-haspopup="listbox"
-          >
-            <span>{timeFilterLabels[timeFilter]}</span>
-            <ChevronDown className={`w-3.5 h-3.5 text-neutral-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-          </button>
+        {/* Period filter */}
+        <div className="flex justify-center">
+          <div className="inline-flex items-center bg-black/50 border border-white/10 rounded-full p-1 gap-0.5">
+            {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPeriod(p)}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer ${
+                  period === p
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-400 text-neutral-950 shadow'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                {PERIOD_LABELS[p]}
+              </button>
+            ))}
+          </div>
+        </div>
 
-          {isDropdownOpen && (
-            <div className="absolute top-8 z-30 w-32 bg-[#0c1218] border border-white/20 rounded-2xl p-1 shadow-2xl animate-fade-up">
-              {(['day', 'week', 'all'] as const).map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => {
-                    setTimeFilter(opt);
-                    setIsDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                    timeFilter === opt
-                      ? 'bg-[#0284C7] text-white font-bold'
-                      : 'text-neutral-300 hover:text-white hover:bg-white/10'
-                  }`}
-                >
-                  {timeFilterLabels[opt]}
-                </button>
-              ))}
+        {/* Rows */}
+        <div className="space-y-1.5">
+          {top.length === 0 && (
+            <div className="py-8 text-center space-y-1.5">
+              <Medal className="w-6 h-6 text-white/20 mx-auto" />
+              <p className="text-xs text-neutral-400">Chưa có dữ liệu trong kỳ này.</p>
+              <p className="text-[10px] text-neutral-500">
+                Hỏi đáp, trả lời và thảo luận để trở thành người dẫn đầu!
+              </p>
             </div>
           )}
-        </div>
 
-        {/* Danh sách thứ hạng thành viên 1 - 5 */}
-        <div className="space-y-1.5">
-          {members.map((member, index) => {
-            const isTop1 = member.rank === 1;
-            const isTop2 = member.rank === 2;
-            const isTop3 = member.rank === 3;
-
+          {top.map((member, index) => {
+            const medal = RANK_STYLES[member.rank];
             return (
-              <div
-                key={member.id}
+              <button
+                key={member.key}
+                type="button"
                 style={{ '--i': index } as React.CSSProperties}
-                onClick={() => onOpenProfile?.({
-                  id: member.id,
-                  name: member.name,
-                  avatar: member.avatar,
-                  email: member.email,
-                  level: member.level,
-                })}
-                className="ac-01__card p-2 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-white/20 transition-all flex items-center justify-between gap-2.5 cursor-pointer group"
+                onClick={() =>
+                  onOpenProfile?.({
+                    id: member.id,
+                    name: member.name,
+                    avatar: member.avatar,
+                    email: member.email,
+                    level: member.level,
+                  })
+                }
+                className={`ac-01__card w-full p-2 rounded-2xl border transition-all flex items-center justify-between gap-2.5 cursor-pointer group text-left ${
+                  medal
+                    ? `bg-gradient-to-r ${medal}`
+                    : 'bg-white/[0.03] hover:bg-white/[0.08] border-white/5 hover:border-white/20'
+                }`}
                 title={`Xem hồ sơ của ${member.name}`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  {/* Rank indicator */}
-                  <span
-                    className={`w-4 text-center text-xs font-bold font-mono shrink-0 ${
-                      isTop1
-                        ? 'text-amber-400'
-                        : isTop2
-                        ? 'text-slate-300'
-                        : isTop3
-                        ? 'text-amber-600'
-                        : 'text-neutral-400'
-                    }`}
-                  >
+                  <span className={`w-5 text-center text-xs font-black font-mono shrink-0 ${member.rank <= 3 ? '' : 'text-neutral-400'}`}>
                     {member.rank}
                   </span>
 
-                  {/* Avatar tròn bên trái */}
                   <div className="relative shrink-0">
                     <img
                       src={member.avatar}
@@ -292,30 +243,29 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                       height={32}
                       className="w-8 h-8 rounded-full object-cover border border-white/20 group-hover:scale-105 transition-transform"
                     />
-                    {isTop1 && (
-                      <span className="absolute -top-1 -right-1 text-[10px]">👑</span>
+                    {member.rank === 1 && (
+                      <span className="absolute -top-1.5 -right-1 text-[11px]">👑</span>
                     )}
                   </div>
 
-                  {/* Tên đăng nhập ở giữa */}
                   <span className="text-xs font-semibold text-neutral-200 group-hover:text-white truncate">
                     {member.name}
                   </span>
                 </div>
 
-                {/* Điểm số in đậm bên phải */}
                 <div className="text-xs font-bold font-mono text-white shrink-0">
                   {member.points.toLocaleString()} <span className="text-[10px] font-normal text-neutral-400">điểm</span>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
 
-        {/* Vị trí người dùng hiện tại (Current User Pin) */}
-        <div
-          onClick={() => {
-            if (currentUser) {
+        {/* Current user pin */}
+        {currentUser && (
+          <button
+            type="button"
+            onClick={() => {
               onOpenProfile?.({
                 id: currentUser.id,
                 name: currentUser.name,
@@ -323,84 +273,72 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                 email: currentUser.email,
                 level: currentUser.level,
               });
-            }
-          }}
-          className="mt-1 p-2.5 rounded-2xl bg-[#0284C7]/15 border border-[#0284C7]/40 flex items-center justify-between gap-2.5 cursor-pointer transition-all hover:bg-[#0284C7]/25 shadow-sm"
-          title="Vị trí của bạn"
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="text-[11px] font-bold font-mono text-[#0284C7]">Bạn:</span>
-            <div className="relative shrink-0">
-              <img
-                src={currentUserAvatar}
-                alt={currentUserName}
-                onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                loading="lazy"
-                decoding="async"
-                width={32}
-                height={32}
-                className="w-8 h-8 rounded-full object-cover border-2 border-[#0284C7] shadow-sm"
-              />
+            }}
+            className="mt-1 w-full p-2.5 rounded-2xl bg-[#0284C7]/15 border border-[#0284C7]/40 flex items-center justify-between gap-2.5 cursor-pointer transition-all hover:bg-[#0284C7]/25 shadow-sm text-left"
+            title="Vị trí của bạn"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="text-[11px] font-bold font-mono text-[#0284C7] shrink-0">
+                {meEntry ? `#${meEntry.rank}` : 'Bạn'}:
+              </span>
+              <div className="relative shrink-0">
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.name}
+                  onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                  loading="lazy"
+                  decoding="async"
+                  width={32}
+                  height={32}
+                  className="w-8 h-8 rounded-full object-cover border-2 border-[#0284C7] shadow-sm"
+                />
+              </div>
+              <span className="text-xs font-bold text-[#0284C7] truncate">
+                {currentUser.name}
+              </span>
             </div>
-            <span className="text-xs font-bold text-[#0284C7] truncate">
-              {currentUserName}
-            </span>
-          </div>
 
-          <div className="text-xs font-bold font-mono text-[#0284C7] shrink-0">
-            {currentUserPoints.toLocaleString()} <span className="text-[10px] font-normal">điểm</span>
-          </div>
-        </div>
+            <div className="text-xs font-bold font-mono text-[#0284C7] shrink-0">
+              {(meEntry?.points ?? 0).toLocaleString()} <span className="text-[10px] font-normal">điểm</span>
+            </div>
+          </button>
+        )}
 
-        {/* Liên kết chân widget: "Xem thêm ➔" */}
         <div className="pt-1 flex justify-end">
           <button
             type="button"
-            onClick={() => {
-              if (members[0]) {
-                onOpenProfile?.({
-                  id: members[0].id,
-                  name: members[0].name,
-                  avatar: members[0].avatar,
-                  email: members[0].email,
-                  level: members[0].level,
-                });
-              }
-            }}
+            onClick={() => setPeriod('all')}
             className="text-xs text-[#0284C7] hover:text-sky-300 font-semibold inline-flex items-center gap-1 transition-colors cursor-pointer"
           >
-            <span>Xem thêm</span>
+            <span>Toàn thời gian</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Khối B: Widget Kêu Gọi Đặt Câu Hỏi (Call To Action - Ask Question) */}
+      {/* Ask CTA */}
       <div className="rounded-3xl bg-[#0c1218]/90 backdrop-blur-2xl border border-amber-400/30 p-5 shadow-xl flex flex-col items-center text-center gap-3 relative overflow-hidden">
-        {/* Glow ambient background */}
         <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-transparent to-orange-500/10 pointer-events-none" />
 
         <div className="relative z-10 flex items-center justify-center gap-1.5 text-amber-400 font-bold text-xs uppercase font-mono tracking-wider">
           <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-          <span>CẦN TRỢ GIÚP BÀI TẬP?</span>
+          <span>Cần trợ giúp bài tập?</span>
         </div>
 
-        {/* Tiêu đề gợi mở: "Bạn muốn hỏi điều gì?" */}
         <h3 className="relative z-10 text-sm sm:text-base font-extrabold text-white tracking-tight">
           Bạn muốn hỏi điều gì?
         </h3>
         <p className="relative z-10 text-xs text-neutral-300 max-w-xs leading-relaxed">
-          Đăng bài tập toán, lý, hóa, văn, ngoại ngữ hay lập trình để nhận giải đáp chuẩn xác trong 5 phút.
+          Đăng bài tập toán, lý, hóa, văn, ngoại ngữ hay lập trình để nhận giải đáp từ cộng đồng.
         </p>
 
-        {/* Nút bấm hành động chính: Nền vàng cam rực rỡ #EAB308 - #F59E0B với icon HelpCircle và hiệu ứng Magnetic Ripple */}
         <MagneticButton
           variant="gold"
           onClick={onOpenAskModal}
           className="relative z-10 w-full py-3 px-6 rounded-2xl !bg-gradient-to-r !from-[#EAB308] !to-[#F59E0B] text-neutral-950 font-black text-xs sm:text-sm tracking-wider uppercase shadow-[0_6px_25px_rgba(234,179,8,0.4)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.6)] cursor-pointer"
         >
           <HelpCircle className="w-4 h-4 text-neutral-950" />
-          <span>ĐẶT CÂU HỎI</span>
+          <span>Đặt câu hỏi</span>
         </MagneticButton>
       </div>
     </aside>

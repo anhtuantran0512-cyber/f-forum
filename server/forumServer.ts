@@ -20,6 +20,7 @@ export interface UserRecord {
   gender?: string;
   city?: string;
   className?: string;
+  joinedAt?: string;
   scopedClubIds: string[];
 }
 
@@ -755,12 +756,14 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               xp: 0,
               coin: 100,
               fPoints: 0,
-              streakCount: 1,
-              bio: 'Học sinh F-Forum',
+              streakCount: 0,
+              bio: '',
               gender: 'Chưa cập nhật',
-              city: 'FPT Campus',
-              className: 'Học sinh',
+              city: 'Chưa cập nhật',
+              className: 'Chưa cập nhật',
+              joinedAt: new Date().toISOString(),
               scopedClubIds: [],
+              inventory: [],
             };
 
         store.users[email] = newUser;
@@ -855,12 +858,14 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 xp: 0,
                 coin: 100,
                 fPoints: 0,
-                streakCount: 1,
-                bio: 'Học sinh F-Forum',
+                streakCount: 0,
+                bio: '',
                 gender: 'Chưa cập nhật',
-                city: 'FPT Campus',
-                className: 'Học sinh',
+                city: 'Chưa cập nhật',
+                className: 'Chưa cập nhật',
+                joinedAt: new Date().toISOString(),
                 scopedClubIds: [],
+                inventory: [],
               };
 
           store.users[email] = user;
@@ -986,7 +991,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         broadcastServerEvent('NEW_REPORT', reportSubmission);
         sendJson(res, 200, {
           success: true,
-          message: 'Báo cáo vi phạm đã được gửi trực tiếp tới Ban Quản Trị (anhtuantran0512@gmail.com) và Ban Giám Hiệu nhà trường.',
+          message: 'Báo cáo vi phạm đã được ghi nhận và chuyển tới Ban Quản Trị để xử lý theo nội quy.',
           reportId: reportSubmission.id,
         });
       } catch (err: any) {

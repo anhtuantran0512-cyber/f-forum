@@ -177,8 +177,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
                 HỘP THƯ GÓP Ý & PHẢN HỒI
               </h3>
               <p className="text-[11px] text-neutral-400">
-                Ý kiến đóng góp sẽ được chuyển trực tiếp tới Ban Quản Trị qua: 
-                <span className="text-cyan-300 font-mono ml-1">anhtuantran0512@gmail.com</span>
+                Ý kiến đóng góp sẽ được chuyển trực tiếp tới Ban Quản Trị qua biểu mẫu bên dưới.
               </p>
             </div>
           </div>

@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   X,
   Upload,
@@ -20,9 +20,6 @@ import {
   Star,
   Users,
   UserCheck,
-  Medal,
-  Pencil,
-  Bookmark,
   Crown,
   GraduationCap,
   Rocket,
@@ -51,41 +48,26 @@ interface ProfileModalProps {
 
 type TabType = 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit';
 
-const ALL_SYSTEM_BADGES = [
-  { id: 'b-active', name: 'Tích Cực', desc: 'Đóng góp năng nổ trong học tập & hỗ trợ bạn bè', IconComponent: Sprout, levelReq: 1, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
-  { id: 'b-pioneer', name: 'Tiên Phong', desc: 'Thành viên sáng lập & khai mở diễn đàn', IconComponent: Rocket, levelReq: 5, color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30' },
-  { id: 'b-mentor', name: 'Cố Vấn Tri Thức', desc: 'Có trên 20 câu trả lời chính xác được chấp nhận', IconComponent: GraduationCap, levelReq: 10, color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' },
-  { id: 'b-scholar', name: 'Học Bá F-Forum', desc: 'Đạt giải đáp xuất sắc trong các phân môn KHTN & KHCN', IconComponent: Star, levelReq: 20, color: 'text-yellow-300 bg-yellow-500/10 border-yellow-500/30' },
-  { id: 'b-ambassador', name: 'Đại Sứ Tri Thức', desc: 'Đại sứ kết nối văn hóa học đường văn minh', IconComponent: Award, levelReq: 35, color: 'text-purple-400 bg-purple-500/10 border-purple-500/30' },
-  { id: 'b-genius', name: 'Thần Đồng FPT', desc: 'Top 1% học sinh có chỉ số đóng góp cao nhất toàn trường', IconComponent: Crown, levelReq: 50, color: 'text-amber-300 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border-amber-400/40' },
+interface SystemBadge {
+  id: string;
+  name: string;
+  desc: string;
+  IconComponent: React.ComponentType<{ className?: string }>;
+  requirement: string;
+  isEarned: (level: number, solutions: number, best: number) => boolean;
+  color: string;
+}
+
+const ALL_SYSTEM_BADGES: SystemBadge[] = [
+  { id: 'b-active', name: 'Tích Cực', desc: 'Gửi 3 câu trả lời đầu tiên', requirement: 'Trả lời 3 câu hỏi', IconComponent: Sprout, isEarned: (_l, s) => s >= 3, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
+  { id: 'b-pioneer', name: 'Tiên Phong', desc: 'Đạt cấp độ 5', requirement: 'Đạt Level 5', IconComponent: Rocket, isEarned: (l) => l >= 5, color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30' },
+  { id: 'b-mentor', name: 'Cố Vấn Tri Thức', desc: 'Có 5 đáp án chuẩn được xác nhận', requirement: '5 đáp án chuẩn', IconComponent: GraduationCap, isEarned: (_l, _s, best) => best >= 5, color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' },
+  { id: 'b-scholar', name: 'Học Bá F-Forum', desc: 'Đạt cấp độ 20', requirement: 'Đạt Level 20', IconComponent: Star, isEarned: (l) => l >= 20, color: 'text-yellow-300 bg-yellow-500/10 border-yellow-500/30' },
+  { id: 'b-ambassador', name: 'Đại Sứ Tri Thức', desc: 'Đạt cấp độ 35', requirement: 'Đạt Level 35', IconComponent: Award, isEarned: (l) => l >= 35, color: 'text-purple-400 bg-purple-500/10 border-purple-500/30' },
+  { id: 'b-genius', name: 'Thần Đồng FPT', desc: 'Đạt cấp độ 50', requirement: 'Đạt Level 50', IconComponent: Crown, isEarned: (l) => l >= 50, color: 'text-amber-300 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border-amber-400/40' },
 ];
 
-const MOCK_ANSWERS_FEED = [
-  {
-    id: '4292916',
-    time: '08:30:28 07/12/2022',
-    subject: 'Ngữ Văn',
-    snippet: '1 B cây bưởi to tướng do ông trồng thuộc giống bưởi ngon ngọt nổi tiếng / 2 C Bắt sâu tưới nước cho cây thêm tốt / 3 A giật mình bật dậy, hứng...',
-  },
-  {
-    id: '5352240',
-    time: '07:32:46 05/12/2022',
-    subject: 'Ngữ Văn',
-    snippet: 'xôn xao là từ láy (1 phần nguyên âm và phụ âm láy như nhau) / lúng túng là từ ghép (âm vần ghép lại tạo nghĩa phân loại)...',
-  },
-  {
-    id: '5350818',
-    time: '07:31:19 05/12/2022',
-    subject: 'Ngữ Văn',
-    snippet: 'Trong cuộc đời mỗi con người, chúng ta chắc hẳn luôn có những người bạn giúp chúng ta vượt qua những khó khăn và kề bên mỗi khi gặp chuyện vui...',
-  },
-  {
-    id: '5351042',
-    time: '07:24:31 05/12/2022',
-    subject: 'Tin Học',
-    snippet: 'Để tối ưu hóa truy vấn SQL và giải bài tập thuật toán: Sử dụng chỉ mục B-Tree trên các trường điều kiện WHERE, tránh SELECT * và dùng JOIN thay vì subquery lồng nhau...',
-  },
-];
+
 
 const ProfileModalInner: React.FC<{
   currentUser: User;
@@ -117,6 +99,14 @@ const ProfileModalInner: React.FC<{
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Brief shimmer skeleton so the profile feels loaded, not popped
+  const [isBooting, setIsBooting] = useState(true);
+  useEffect(() => {
+    setIsBooting(true);
+    const t = setTimeout(() => setIsBooting(false), 460);
+    return () => clearTimeout(t);
+  }, [currentUser.id]);
+
   const [isReporting, setIsReporting] = useState(false);
   const [reportReason, setReportReason] = useState('Nội dung vi phạm / Gây war / Không đúng chuẩn mực');
   const [reportDetails, setReportDetails] = useState('');
@@ -127,9 +117,9 @@ const ProfileModalInner: React.FC<{
   const isOwnProfile = !viewerUser || viewerUser.id === currentUser.id;
   const tier = getTierForLevel(currentUser.level);
 
-  const userCoin = currentUser.coin ?? (isSuperAdmin ? 99999 : 100);
+  const userCoin = currentUser.coin ?? 0;
   const userInventory = useMemo(
-    () => currentUser.inventory || ['ribbon_pink_gem', 'ribbon_buddha_seal', 'pencil_starter'],
+    () => currentUser.inventory || [],
     [currentUser.inventory]
   );
 
@@ -143,45 +133,64 @@ const ProfileModalInner: React.FC<{
   );
 
   const statsMetrics = useMemo(() => {
+    // Toàn bộ chỉ số tính từ hoạt động thật — không có số ảo.
     const thanks =
       currentUser.stats?.thanksCount ??
-      userSolutions.reduce((acc, s) => acc + (s.upvotes || 0), 0) + (isSuperAdmin ? 128 : 35);
+      userSolutions.reduce((acc, s) => acc + (s.upvotes || 0), 0);
     const bestSolutions =
-      currentUser.stats?.bestCount ??
-      userSolutions.filter((s) => s.isBest).length + (isSuperAdmin ? 36 : 5);
-    const fiveStar =
-      currentUser.stats?.fiveStarCount ??
-      (isSuperAdmin ? 50 : 33);
-    const verified =
-      currentUser.stats?.verifiedCount ??
-      (isSuperAdmin ? 1 : 0);
-    const helped =
-      currentUser.stats?.helpedCount ??
-      userSolutions.length + (isSuperAdmin ? 88 : 38);
-    const xp = isSuperAdmin ? 45000 : currentUser.xp || 374;
+      currentUser.stats?.bestCount ?? userSolutions.filter((s) => s.isBest).length;
+    const fiveStar = currentUser.stats?.fiveStarCount ?? 0;
+    const verified = currentUser.stats?.verifiedCount ?? (currentUser.role === 'SUPER_ADMIN' ? 1 : 0);
+    const helped = currentUser.stats?.helpedCount ?? userSolutions.length;
 
     return {
-      xp,
+      xp: currentUser.xp || 0,
       coin: userCoin,
       thanks,
       bestSolutions,
       fiveStar,
       verified,
       helped,
-      answersCount: Math.max(40, userSolutions.length),
+      answersCount: userSolutions.length,
     };
-  }, [currentUser, userSolutions, userCoin, isSuperAdmin]);
+  }, [currentUser, userSolutions, userCoin]);
 
   const radarAxes = useMemo(() => {
-    const axes = [
-      { name: 'KHTN', full: 'Khoa Học Tự Nhiên', angle: -Math.PI / 2, score: isSuperAdmin ? 95 : 68 },
-      { name: 'KHXH', full: 'Khoa Học Xã Hội', angle: -Math.PI / 2 + (2 * Math.PI) / 5, score: isSuperAdmin ? 92 : 88 },
-      { name: 'Ngoại Ngữ', full: 'Ngoại Ngữ & Ngôn Ngữ', angle: -Math.PI / 2 + (4 * Math.PI) / 5, score: isSuperAdmin ? 90 : 55 },
-      { name: 'Nghệ Thuật', full: 'Nghệ Thuật & Đời Sống', angle: -Math.PI / 2 + (6 * Math.PI) / 5, score: isSuperAdmin ? 94 : 60 },
-      { name: 'KHCN', full: 'Khoa Học Công Nghệ', angle: -Math.PI / 2 + (8 * Math.PI) / 5, score: isSuperAdmin ? 98 : 92 },
-    ];
-    return axes;
-  }, [isSuperAdmin]);
+    // Radar tính theo môn học người dùng thật sự tham gia (câu hỏi + lời giải).
+    const SUBJECT_GROUPS: Record<string, string[]> = {
+      KHTN: ['toan', 'ly', 'hoa', 'sinh'],
+      KHXH: ['van', 'su'],
+      'Ngoại Ngữ': ['anh'],
+      'Nghệ Thuật': ['tamsu', 'share', 'kinhnghiem', 'tamly'],
+      KHCN: ['tin', 'hotro'],
+    };
+
+    const counts: Record<string, number> = {};
+    const countByGroup = (subject: string, weight: number) => {
+      for (const [group, subjects] of Object.entries(SUBJECT_GROUPS)) {
+        if (subjects.includes(subject)) {
+          counts[group] = (counts[group] || 0) + weight;
+          return;
+        }
+      }
+    };
+    userQuestions.forEach((q) => countByGroup(q.subject, 1));
+    userSolutions.forEach((s) => {
+      const q = questions.find((qq) => qq.id === s.questionId);
+      if (q) countByGroup(q.subject, s.isBest ? 3 : 1.5);
+    });
+
+    const max = Math.max(1, ...Object.values(counts));
+    const scale = (v: number) => Math.round((v / max) * 100);
+
+    const order = ['KHTN', 'KHXH', 'Ngoại Ngữ', 'Nghệ Thuật', 'KHCN'];
+    return order.map((name, i) => ({
+      name,
+      full: name === 'KHTN' ? 'Khoa Học Tự Nhiên' : name === 'KHXH' ? 'Khoa Học Xã Hội' : name === 'KHCN' ? 'Khoa Học Công Nghệ' : name === 'Ngoại Ngữ' ? 'Ngoại Ngữ & Ngôn Ngữ' : 'Nghệ Thuật & Đời Sống',
+      angle: -Math.PI / 2 + (i * 2 * Math.PI) / 5,
+      score: scale(counts[name] || 0),
+    }));
+  }, [userQuestions, userSolutions, questions]);
 
   const radarCx = 140;
   const radarCy = 135;
@@ -318,7 +327,7 @@ const ProfileModalInner: React.FC<{
         }),
       });
       const data = await res.json();
-      setReportSuccess(data.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị (anhtuantran0512@gmail.com).');
+      setReportSuccess(data.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị.');
       pushNotification({
         type: 'system',
         category: 'system',
@@ -327,7 +336,7 @@ const ProfileModalInner: React.FC<{
         targetView: 'home',
       });
     } catch {
-      setReportSuccess('Đã tiếp nhận tố cáo của bạn và chuyển tới anhtuantran0512@gmail.com.');
+      setReportSuccess('Đã tiếp nhận tố cáo của bạn và chuyển tới Ban Quản Trị.');
     } finally {
       setIsSubmittingReport(false);
     }
@@ -361,10 +370,10 @@ const ProfileModalInner: React.FC<{
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee] animate-pulse" />
             <h2 className="text-sm sm:text-base font-extrabold text-white tracking-wide truncate">
-              HỒ SƠ THÀNH VIÊN
+              Cá nhân
             </h2>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-              NEXT-GEN
+              Lv.{currentUser.level}
             </span>
           </div>
 
@@ -452,27 +461,57 @@ const ProfileModalInner: React.FC<{
 
         {/* Tab Content Container */}
         <div className="flex-1 overflow-y-auto pr-1 space-y-4 no-scrollbar">
-          {/* TAB 1: PHÂN VÙNG HỒ SƠ THÀNH VIÊN (USER PROFILE CARD) [Ảnh 1 & 2] */}
-          {activeTab === 'overview' && (
+          {/* Shimmer skeleton while the profile content boots */}
+          {isBooting && (
+            <div className="rounded-2xl bg-white/[0.04] border border-white/15 p-4 sm:p-5 space-y-4" role="status" aria-busy="true">
+              <span className="sr-only">Đang tải hồ sơ…</span>
+              <div aria-hidden="true">
+                <div className="flex items-center gap-4">
+                  <div className="ff-gradient-ring shrink-0">
+                    <div className="ff-skeleton w-16 h-16 sm:w-20 sm:h-20 rounded-full" style={{ borderRadius: '50%' }} />
+                  </div>
+                  <div className="flex-1 space-y-2.5">
+                    <div className="ff-skeleton h-3.5 rounded-full" style={{ width: '60%' }} />
+                    <div className="ff-skeleton h-2.5 rounded-full" style={{ width: '90%' }} />
+                    <div className="ff-skeleton h-2.5 rounded-full" style={{ width: '40%' }} />
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-5">
+                  <div className="ff-skeleton flex-1 h-9 rounded-xl" />
+                  <div className="ff-skeleton flex-1 h-9 rounded-xl" />
+                  <div className="ff-skeleton flex-1 h-9 rounded-xl" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!isBooting && activeTab === 'overview' && (
             <div className="space-y-4">
-              {/* Thẻ Card chính: viền mảnh, bo góc cong, chia khối border-b */}
-              <div className="rounded-2xl bg-white/[0.04] border border-white/15 p-4 sm:p-5 space-y-4 shadow-xl">
-                
+              {/* Thẻ Card chính với dải gradient aurora */}
+              <div className="rounded-2xl bg-white/[0.04] border border-white/15 shadow-xl overflow-hidden">
+                {/* Aurora banner */}
+                <div className="h-16 ff-aurora-surface relative" style={{ background: 'linear-gradient(120deg, rgba(245,158,11,0.25), rgba(167,139,250,0.2), rgba(34,211,238,0.22))' }}>
+                  <div className="absolute inset-0 ff-aurora-bar opacity-25" aria-hidden="true" />
+                </div>
+
+                <div className="p-4 sm:p-5 space-y-4">
                 {/* A. Khối Đầu Trang (Header Thông Tin Cá Nhân) */}
                 <div className="flex flex-col sm:flex-row items-start justify-between gap-4 pb-4 border-b border-white/10">
                   <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                    {/* Ảnh đại diện (Avatar): nằm góc trái, hình vuông bo góc hoặc tròn viền ngoài */}
-                    <div className="relative shrink-0">
-                      <img
-                        src={currentUser.avatar}
-                        alt={currentUser.name}
-                        onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                        loading="lazy"
-                        decoding="async"
-                        width={68}
-                        height={68}
-                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-cyan-400/50 shadow-md"
-                      />
+                    {/* Avatar với vòng gradient xoay */}
+                    <div className="relative shrink-0 -mt-12">
+                      <div className="ff-gradient-ring-sq">
+                        <img
+                          src={currentUser.avatar}
+                          alt={currentUser.name}
+                          onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                          loading="lazy"
+                          decoding="async"
+                          width={68}
+                          height={68}
+                          className="w-16 h-16 sm:w-20 sm:h-20 rounded-[14px] object-cover bg-[#0c1218] shadow-md"
+                        />
+                      </div>
                       <span className="absolute -bottom-1 -right-1">
                         <TierBadge level={currentUser.level} size={22} showTooltip={false} />
                       </span>
@@ -496,17 +535,17 @@ const ProfileModalInner: React.FC<{
                           <UserCheck className="w-3 h-3 text-white inline shrink-0" />
                           <span>
                             {currentUser.role === 'SUPER_ADMIN'
-                              ? 'SUPER ADMIN TEAM'
+                              ? 'Quản trị'
                               : currentUser.role === 'CLUB_LEADER'
-                              ? 'CLUB LEADER TEAM'
-                              : 'INTERVIEWER TEAM'}
+                              ? 'Chủ nhiệm CLB'
+                              : 'Học sinh'}
                           </span>
                         </span>
                       </div>
 
                       {/* Châm ngôn cá nhân (Bio): Dòng chữ nghiêng nhỏ màu xám đậm */}
                       <p className="text-xs italic text-neutral-400 leading-snug line-clamp-2">
-                        ❝ {currentUser.bio || 'TG_Call me went you need :D'} ❞
+                        ❝ {currentUser.bio || 'Chưa có mô tả'} ❞
                       </p>
 
                       <div className="flex items-center gap-2 text-[10px] text-neutral-400 font-mono pt-0.5">
@@ -634,43 +673,49 @@ const ProfileModalInner: React.FC<{
 
                 {/* B. Khối Danh Hiệu & Túi Đồ Ảo (Badges & Chill Box) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b border-white/10">
-                  {/* DANH HIỆU CỦA BẠN */}
+                  {/* DANH HIỆU — chỉ hiển thị những gì thật sự đạt được */}
                   <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5 font-mono">
                         <Award className="w-4 h-4 text-emerald-400" />
-                        DANH HIỆU CỦA BẠN
+                        Danh hiệu
                       </span>
-                      <span className="text-[10px] text-emerald-400 font-mono font-semibold">Tất cả huy hiệu</span>
+                      <span className="text-[10px] text-emerald-400 font-mono font-semibold">
+                        {ALL_SYSTEM_BADGES.filter((b) => b.isEarned(currentUser.level, userSolutions.length, userSolutions.filter((s) => s.isBest).length)).length}/{ALL_SYSTEM_BADGES.length}
+                      </span>
                     </div>
 
-                    {/* Huy hiệu tròn viền xanh lá đôi + nhánh mầm 3 lá + nhãn Tích cực */}
-                    <div className="flex items-center gap-3 p-2.5 rounded-xl bg-emerald-500/10 border-2 border-emerald-400/40">
-                      <div className="w-12 h-12 rounded-full border-2 border-emerald-400 border-dashed p-1 flex items-center justify-center bg-emerald-950/40 shrink-0 shadow-[0_0_12px_rgba(52,211,153,0.3)]">
-                        <Sprout className="w-6 h-6 text-emerald-400" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-white block">Tích Cực</span>
-                        <p className="text-[10px] text-neutral-300">
-                          Thành viên đóng góp tích cực và giải đáp nhiều bài tập hữu ích nhất.
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Danh sách các huy hiệu khác đã sở hữu */}
                     <div className="grid grid-cols-3 gap-1.5 pt-1">
-                      {ALL_SYSTEM_BADGES.map((b, index) => (
-                        <div
-                          key={b.id}
-                          style={{ '--i': index } as React.CSSProperties}
-                          className={`ac-01__card p-1.5 rounded-xl border text-center flex flex-col items-center justify-center ${b.color}`}
-                          title={`${b.name}: ${b.desc}`}
-                        >
-                          <span className="text-base flex items-center justify-center"><b.IconComponent className="w-4 h-4 inline" /></span>
-                          <span className="text-[9px] font-bold truncate max-w-full mt-0.5">{b.name}</span>
-                        </div>
-                      ))}
+                      {ALL_SYSTEM_BADGES.map((b, index) => {
+                        const earned = b.isEarned(
+                          currentUser.level,
+                          userSolutions.length,
+                          userSolutions.filter((s) => s.isBest).length,
+                        );
+                        return (
+                          <div
+                            key={b.id}
+                            style={{ '--i': index } as React.CSSProperties}
+                            className={`ac-01__card p-1.5 rounded-xl border text-center flex flex-col items-center justify-center relative ${
+                              earned ? b.color : 'text-neutral-500 bg-white/[0.02] border-white/10 opacity-60'
+                            }`}
+                            title={earned ? `${b.name}: ${b.desc}` : `${b.name} — chưa mở khóa (${b.requirement})`}
+                          >
+                            <span className="text-base flex items-center justify-center">
+                              <b.IconComponent className="w-4 h-4 inline" />
+                            </span>
+                            <span className="text-[9px] font-bold truncate max-w-full mt-0.5">{b.name}</span>
+                            {!earned && (
+                              <span className="text-[8px] text-neutral-500 font-mono">{b.requirement}</span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
+
+                    <p className="text-[9.5px] text-neutral-500">
+                      Danh hiệu mở khóa bằng hoạt động thật: cấp độ và số lời giải của bạn.
+                    </p>
                   </div>
 
                   {/* CHILL BOX & KỆ SÁCH */}
@@ -680,49 +725,50 @@ const ProfileModalInner: React.FC<{
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5 font-mono">
                           <ShoppingBag className="w-4 h-4 text-amber-400" />
-                          CHILL BOX (KHO ĐỒ TRANG BỊ)
+                          Chill Box
                         </span>
-                        <span className="text-[10px] text-amber-300 font-mono">Đã sở hữu</span>
+                        <span className="text-[10px] text-amber-300 font-mono">{userInventory.length} vật phẩm</span>
                       </div>
 
-                      {/* Danh sách vật phẩm ảo dạng ô mini */}
-                      <div className="grid grid-cols-4 gap-2">
-                        {/* Vật phẩm 1: Ruy băng tròn hồng có đính đá/ngọc, badge x1 */}
-                        <div style={{ '--i': 0 } as React.CSSProperties} className="ac-01__card relative p-2 rounded-xl bg-pink-500/10 border border-pink-500/30 flex flex-col items-center text-center shadow-sm">
-                          <Sparkles className="w-5 h-5 text-pink-400" />
-                          <span className="text-[9px] font-semibold text-pink-200 mt-1 truncate max-w-full">Ruy băng ngọc</span>
-                          <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-neutral-800 text-[9px] font-mono text-neutral-300 border border-white/20">
-                            1
-                          </span>
+                      {/* Trang bị thật đã mua từ cửa hàng */}
+                      {userInventory.length === 0 ? (
+                        <div className="py-4 px-3 rounded-xl bg-white/[0.02] border border-dashed border-white/15 text-center">
+                          <p className="text-[11px] text-neutral-400">Chưa sở hữu trang bị nào.</p>
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab('shop')}
+                            className="mt-1.5 text-[11px] font-bold text-amber-300 hover:text-amber-200 cursor-pointer underline underline-offset-2"
+                          >
+                            Ghé cửa hàng bằng Coin của bạn →
+                          </button>
                         </div>
-
-                        {/* Vật phẩm 2: Ruy băng tròn hồng đính huy hiệu tâm linh, badge x1 */}
-                        <div style={{ '--i': 1 } as React.CSSProperties} className="ac-01__card relative p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col items-center text-center shadow-sm">
-                          <Medal className="w-5 h-5 text-amber-400" />
-                          <span className="text-[9px] font-semibold text-amber-200 mt-1 truncate max-w-full">Huy hiệu thiền</span>
-                          <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-neutral-800 text-[9px] font-mono text-neutral-300 border border-white/20">
-                            1
-                          </span>
+                      ) : (
+                        <div className="grid grid-cols-4 gap-2">
+                          {userInventory.map((itemId, index) => {
+                            const item = SHOP_ITEMS.find((s) => s.id === itemId);
+                            return (
+                              <div
+                                key={itemId}
+                                style={{ '--i': index } as React.CSSProperties}
+                                className="ac-01__card relative p-2 rounded-xl bg-white/[0.04] border border-white/15 flex flex-col items-center text-center shadow-sm"
+                                title={item?.name || itemId}
+                              >
+                                <span className="w-5 h-5 flex items-center justify-center">
+                                  <ShopItemSvg type={item?.iconType || 'sparkle'} size={20} />
+                                </span>
+                                <span className="text-[9px] font-semibold text-white/80 mt-1 truncate max-w-full">
+                                  {item?.name || itemId}
+                                </span>
+                                {currentUser.equippedBadge === itemId && (
+                                  <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-[8px] font-bold text-black border border-amber-200">
+                                    Đeo
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-
-                        {/* Vật phẩm 3: Bút Chì Khởi Đầu */}
-                        <div style={{ '--i': 2 } as React.CSSProperties} className="ac-01__card relative p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col items-center text-center shadow-sm">
-                          <Pencil className="w-5 h-5 text-emerald-400" />
-                          <span className="text-[9px] font-semibold text-emerald-200 mt-1 truncate max-w-full">Bút chì</span>
-                          <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-neutral-800 text-[9px] font-mono text-neutral-300 border border-white/20">
-                            1
-                          </span>
-                        </div>
-
-                        {/* Vật phẩm 4: Thẻ Thư Viện */}
-                        <div style={{ '--i': 3 } as React.CSSProperties} className="ac-01__card relative p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex flex-col items-center text-center shadow-sm">
-                          <Bookmark className="w-5 h-5 text-cyan-400" />
-                          <span className="text-[9px] font-semibold text-cyan-200 mt-1 truncate max-w-full">Thẻ đọc</span>
-                          <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-neutral-800 text-[9px] font-mono text-neutral-300 border border-white/20">
-                            1
-                          </span>
-                        </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* KỆ SÁCH */}
@@ -941,21 +987,37 @@ const ProfileModalInner: React.FC<{
                   {/* Answer Feed / Question Feed */}
                   <div className="space-y-2 max-h-56 overflow-y-auto pr-1 no-scrollbar">
                     {activitySubTab === 'solutions' ? (
-                      MOCK_ANSWERS_FEED.map((item, idx) => (
-                        <div
-                          key={item.id}
-                          style={{ '--i': idx } as React.CSSProperties}
-                          className="ac-01__card p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 space-y-1 transition-colors"
-                        >
-                          <div className="flex items-center justify-between text-[11px] text-neutral-400 font-mono">
-                            <span className="text-sky-400 font-bold">ID câu hỏi: {item.id}</span>
-                            <span>{item.time}</span>
-                          </div>
-                          <p className="text-xs text-neutral-200 leading-relaxed font-light">
-                            {item.snippet}
-                          </p>
+                      userSolutions.length === 0 ? (
+                        <div className="py-6 text-center text-xs text-neutral-400 italic">
+                          Chưa có câu trả lời nào. Hãy bắt đầu giúp đỡ bạn bè trên sàn hỏi đáp!
                         </div>
-                      ))
+                      ) : (
+                        userSolutions.map((s, idx) => {
+                          const parentQ = questions.find((q) => q.id === s.questionId);
+                          return (
+                            <div
+                              key={s.id}
+                              style={{ '--i': idx } as React.CSSProperties}
+                              className="ac-01__card p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 space-y-1 transition-colors"
+                            >
+                              <div className="flex items-center justify-between text-[11px] text-neutral-400 font-mono">
+                                <span className="text-sky-400 font-bold truncate max-w-[65%]">
+                                  {parentQ ? parentQ.title : 'Câu hỏi'}
+                                </span>
+                                <span>{s.createdAt}</span>
+                              </div>
+                              <p className="text-xs text-neutral-200 leading-relaxed font-light line-clamp-2">
+                                {s.content}
+                              </p>
+                              {s.isBest && (
+                                <span className="inline-block text-[9px] font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-400/30 rounded-full px-2 py-0.5">
+                                  ✓ Đáp án chuẩn
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })
+                      )
                     ) : (
                       userQuestions.length === 0 ? (
                         <div className="py-6 text-center text-xs text-neutral-400 italic">
@@ -980,6 +1042,7 @@ const ProfileModalInner: React.FC<{
                   </div>
                 </div>
 
+                </div>
               </div>
             </div>
           )}
@@ -1426,7 +1489,7 @@ const ProfileModalInner: React.FC<{
                     Kỷ luật nghiêm minh:
                   </span>
                   <p>
-                    Thông báo sẽ được chuyển trực tiếp về hòm thư Admin (anhtuantran0512@gmail.com) và Ban Giám Hiệu để xử lý kỷ luật.
+                    Thông báo sẽ được chuyển tới Ban Quản Trị để xử lý kỷ luật.
                   </p>
                 </div>
 

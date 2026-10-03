@@ -27,7 +27,7 @@ import {
   Waves,
   Grid3X3,
 } from 'lucide-react';
-import type { Question, Solution, SubjectTag, User } from '../../types';
+import type { Question, Solution, SubjectTag, User, ChatMessage } from '../../types';
 import { TierBadge, AdminVerifiedBadge } from '../Badges10Tier';
 import { getTierForLevel } from '../../utils/tier';
 import { ForumPostModeration } from '../ForumPost';
@@ -39,6 +39,7 @@ import { DEFAULT_AVATAR, handleImageError, handleVideoError } from '../../utils/
 import { MASTER_ADMIN_CONFIG } from '../../config/admin';
 import { pushNotification } from '../../utils/notifications';
 import { LeaderboardWidget } from './LeaderboardWidget';
+import { CommentSkeletonList } from '../Skeletons';
 
 const MATH_SYMBOLS = [
   '√', 'π', '∑', '∫', '≤', '≥', 'α', 'β', '∞', '∆',
@@ -91,6 +92,10 @@ interface QAForumViewProps {
   onOpenLoginModal?: () => void;
   onOpenProfile?: (user?: { id: string; name: string; avatar: string; email?: string; level?: number }) => void;
   isEmbedded?: boolean;
+  users?: Record<string, User>;
+  chatMessages?: ChatMessage[];
+  /** False while the first server sync is in flight → show shimmer skeletons. */
+  isSynced?: boolean;
 }
 
 
@@ -130,6 +135,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   onOpenLoginModal,
   onOpenProfile,
   isEmbedded = false,
+  users = {},
+  chatMessages = [],
+  isSynced = true,
 }) => {
   const [activeVideoIdx, setActiveVideoIdx] = useState(0);
   const [isAutoCycle, setIsAutoCycle] = useState(true);
@@ -312,7 +320,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         }),
       });
       const data = await res.json();
-      setReportSuccessMsg(data.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị (anhtuantran0512@gmail.com).');
+      setReportSuccessMsg(data.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị.');
       pushNotification({
         type: 'system',
         category: 'system',
@@ -321,7 +329,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         targetView: 'qa',
       });
     } catch {
-      setReportSuccessMsg('Đã ghi nhận tố cáo của bạn và chuyển tới anhtuantran0512@gmail.com.');
+      setReportSuccessMsg('Đã ghi nhận tố cáo của bạn và chuyển tới Ban Quản Trị.');
     } finally {
       setIsSubmittingReport(false);
     }
@@ -422,9 +430,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
               <HelpCircle className="w-6 h-6 text-cyan-400" />
               <span>Sàn Giao Lưu Tri Thức Q&A</span>
-              <span className="text-xs font-mono font-normal text-cyan-300 px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/30">
-                HOIDAP247 NEXT-GEN
-              </span>
             </h1>
             <p className="text-xs text-neutral-300 mt-0.5">
               Hỏi bài tập ẩn danh, thảo luận học thuật chuyên sâu và nhận huy hiệu đáp án chuẩn.
@@ -530,7 +535,11 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         <div className={`flex-1 ${isEmbedded ? '' : 'overflow-hidden'} grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0 pb-6`}>
           {/* Left: Questions Feed */}
           <div className={`lg:col-span-8 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-3 pb-6`}>
-          {filteredQuestions.length === 0 ? (
+          {!isSynced && filteredQuestions.length === 0 ? (
+            <div className="rounded-2xl liquid-glass bg-white/5 border border-white/10 overflow-hidden">
+              <CommentSkeletonList rows={4} />
+            </div>
+          ) : filteredQuestions.length === 0 ? (
             <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-neutral-400 rounded-2xl liquid-glass bg-white/5 border border-white/10 space-y-2">
               <HelpCircle className="w-10 h-10 text-neutral-500 mb-1" />
               <p className="text-sm font-semibold text-white">Chưa có câu hỏi nào trên sàn thảo luận</p>
@@ -759,6 +768,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           <div className={`lg:col-span-4 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-4 pb-6`}>
             <LeaderboardWidget
               currentUser={currentUser}
+              users={users}
+              questions={questions}
+              solutions={solutions}
+              chatMessages={chatMessages}
               onOpenProfile={onOpenProfile}
               onOpenAskModal={() => {
                 if (!currentUser) {
@@ -1489,7 +1502,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     className="w-full py-2.5 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-98"
                   >
                     <UserIcon className="w-4 h-4 text-cyan-400" />
-                    <span>Trang Cá Nhân (Xem đầy đủ thông tin & tất cả huy hiệu)</span>
+                    <span>Trang cá nhân</span>
                   </button>
                 )}
 
@@ -1503,7 +1516,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   className="w-full py-2.5 px-3 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-98"
                 >
                   <Flag className="w-4 h-4 text-red-400" />
-                  <span>Tố Cáo Tài Khoản Vi Phạm (Gửi Gmail anhtuantran0512@gmail.com)</span>
+                  <span>Tố cáo</span>
                 </button>
               </div>
             </div>
@@ -1601,7 +1614,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     Kỷ luật trường học nghiêm ngặt:
                   </span>
                   <p>
-                    Báo cáo vi phạm sẽ được gửi trực tiếp tới Ban Quản Trị (anhtuantran0512@gmail.com) và Ban Giám Hiệu nhà trường.
+                    Báo cáo vi phạm sẽ được chuyển tới Ban Quản Trị để xử lý theo nội quy.
                   </p>
                 </div>
 

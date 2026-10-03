@@ -676,7 +676,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
               </div>
 
               <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 leading-relaxed">
-                ℹ️ Hồ sơ sẽ được chuyển trạng thái PENDING tới hòm thư Quản trị viên Super Admin (anhtuantran0512@gmail.com). Khi được phê duyệt, bạn sẽ nhận huy hiệu Chủ nhiệm CLB scoped và +250 XP!
+                ℹ️ Hồ sơ sẽ được chuyển trạng thái PENDING tới Ban Quản Trị. Khi được phê duyệt, bạn sẽ nhận huy hiệu Chủ nhiệm CLB scoped và +250 XP!
               </div>
 
               <div className="pt-2 flex justify-end gap-2 border-t border-white/10">

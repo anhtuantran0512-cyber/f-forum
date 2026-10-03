@@ -6,6 +6,7 @@ import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { getTierForLevel } from '../utils/tier';
 import { getXPForLevel } from '../store/forumStore';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
+import { usePopoverPosition, type DockPosition } from '../utils/popover';
 
 export interface ProfileDropdownProps {
   currentUser: User;
@@ -13,7 +14,8 @@ export interface ProfileDropdownProps {
   onClose: () => void;
   onOpenProfile: (tab?: 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit') => void;
   onLogout: () => void;
-  dockPosition?: 'top' | 'bottom' | 'left' | 'right';
+  dockPosition?: DockPosition;
+  anchorRef?: React.RefObject<HTMLElement | null>;
 }
 
 export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
@@ -23,8 +25,10 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   onOpenProfile,
   onLogout,
   dockPosition = 'top',
+  anchorRef,
 }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const pop = usePopoverPosition(isOpen, anchorRef, dockPosition, 320, 540);
 
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState('');
@@ -77,9 +81,9 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         }),
       });
       const data = await res.json();
-      setReportSuccess(data.message || 'Đã gửi báo cáo vi phạm tới Ban Quản Trị (anhtuantran0512@gmail.com).');
+      setReportSuccess(data.message || 'Đã gửi báo cáo vi phạm tới Ban Quản Trị.');
     } catch {
-      setReportSuccess('Đã gửi báo cáo vi phạm tới Ban Quản Trị (anhtuantran0512@gmail.com).');
+      setReportSuccess('Đã gửi báo cáo vi phạm tới Ban Quản Trị.');
     } finally {
       setIsSubmittingReport(false);
     }
@@ -98,15 +102,10 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       ref={dropdownRef}
       role="menu"
       aria-label="Menu tài khoản"
-      className={`absolute z-50 w-[320px] bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] popover-morph-enter select-none pointer-events-auto transition-all ${
-        dockPosition === 'bottom'
-          ? 'bottom-[calc(100%+14px)] top-auto right-0 origin-bottom-right'
-          : dockPosition === 'left'
-          ? 'left-[calc(100%+16px)] top-1/2 -translate-y-1/2 origin-left'
-          : dockPosition === 'right'
-          ? 'right-[calc(100%+16px)] top-1/2 -translate-y-1/2 origin-right'
-          : 'top-[calc(100%+12px)] right-0 origin-top-right'
+      className={`z-[70] bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] popover-morph-enter select-none pointer-events-auto transition-all overflow-y-auto no-scrollbar ${
+        !anchorRef || !pop.ready ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] max-w-[calc(100vw-28px)]' : ''
       }`}
+      style={anchorRef ? pop.style : undefined}
     >
       {/* Top Section (Current Real User) */}
       <div className="flex flex-col">
@@ -153,10 +152,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             <TierBadge level={currentUser.level} size={20} showTooltip={false} />
             <div className="flex flex-col">
               <span className="text-xs font-mono font-bold text-amber-300">
-                {`Danh hiệu: ${tier.name} • Level ${currentUser.level}`}
-              </span>
-              <span className="text-[10px] text-white/40 font-mono">
-                {tier.name}
+                {`${tier.name} • Level ${currentUser.level}`}
               </span>
             </div>
           </div>
@@ -201,7 +197,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         >
           <div className="flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5 text-cyan-400 group-hover:rotate-12 transition-transform" />
-            <span>Trang cá nhân (Hồ sơ chi tiết & Tất cả huy hiệu)</span>
+            <span>Cá nhân</span>
           </div>
           <ChevronRight className="w-3.5 h-3.5 text-white/50 group-hover:text-cyan-300 group-hover:translate-x-0.5 transition-all" />
         </button>
@@ -242,7 +238,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
           className="w-full mt-2 py-1.5 px-3 rounded-xl text-xs font-medium text-amber-300/90 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/25 hover:border-amber-400/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
         >
           <Flag className="w-3.5 h-3.5 text-amber-400" />
-          <span>Tố cáo tài khoản vi phạm (Gửi Gmail Admin)</span>
+          <span>Tố cáo</span>
         </button>
 
         {/* Divider */}
@@ -359,7 +355,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
                 <div className="p-2.5 rounded-xl bg-red-950/30 border border-red-500/20 text-[10px] text-red-300 flex items-start gap-1.5">
                   <Shield className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
                   <p>
-                    Báo cáo sẽ được chuyển thẳng tới Ban Quản Trị (anhtuantran0512@gmail.com) để xử lý theo nội quy.
+                    Báo cáo sẽ được chuyển tới Ban Quản Trị để xử lý theo nội quy.
                   </p>
                 </div>
 
