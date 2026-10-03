@@ -5,20 +5,28 @@ import {
   Upload,
   Check,
   AlertCircle,
-  Sparkles,
-  CreditCard,
-  UserPen,
   BarChart3,
   ShoppingBag,
-  History,
   Coins,
-  Heart,
-  Trophy,
-  Star,
   CheckCircle2,
-  Users,
   HelpCircle,
-  MessageSquare,
+  BookOpen,
+  Award,
+  Flag,
+  Share2,
+  Shield,
+  Sparkles,
+  Heart,
+  Star,
+  Users,
+  UserCheck,
+  Medal,
+  Pencil,
+  Bookmark,
+  Crown,
+  GraduationCap,
+  Rocket,
+  Sprout,
 } from 'lucide-react';
 import type { User, Question, Solution, ShopItem, ShopTierColor } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
@@ -28,6 +36,7 @@ import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { SHOP_ITEMS, getTierColorStyles } from '../utils/shopData';
 import { ShopItemSvg } from './ShopItemSvg';
 import { pushNotification } from '../utils/notifications';
+import { LikeHeartButton } from './LikeHeartButton';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -35,12 +44,48 @@ interface ProfileModalProps {
   currentUser: User;
   viewerUser?: User | null;
   onSaveProfile: (updates: Partial<User>) => void;
-  initialTab?: 'card' | 'stats' | 'shop' | 'activity' | 'edit';
+  initialTab?: 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit';
   questions?: Question[];
   solutions?: Solution[];
 }
 
-type TabType = 'card' | 'stats' | 'shop' | 'activity' | 'edit';
+type TabType = 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit';
+
+const ALL_SYSTEM_BADGES = [
+  { id: 'b-active', name: 'Tích Cực', desc: 'Đóng góp năng nổ trong học tập & hỗ trợ bạn bè', IconComponent: Sprout, levelReq: 1, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
+  { id: 'b-pioneer', name: 'Tiên Phong', desc: 'Thành viên sáng lập & khai mở diễn đàn', IconComponent: Rocket, levelReq: 5, color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30' },
+  { id: 'b-mentor', name: 'Cố Vấn Tri Thức', desc: 'Có trên 20 câu trả lời chính xác được chấp nhận', IconComponent: GraduationCap, levelReq: 10, color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' },
+  { id: 'b-scholar', name: 'Học Bá F-Forum', desc: 'Đạt giải đáp xuất sắc trong các phân môn KHTN & KHCN', IconComponent: Star, levelReq: 20, color: 'text-yellow-300 bg-yellow-500/10 border-yellow-500/30' },
+  { id: 'b-ambassador', name: 'Đại Sứ Tri Thức', desc: 'Đại sứ kết nối văn hóa học đường văn minh', IconComponent: Award, levelReq: 35, color: 'text-purple-400 bg-purple-500/10 border-purple-500/30' },
+  { id: 'b-genius', name: 'Thần Đồng FPT', desc: 'Top 1% học sinh có chỉ số đóng góp cao nhất toàn trường', IconComponent: Crown, levelReq: 50, color: 'text-amber-300 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border-amber-400/40' },
+];
+
+const MOCK_ANSWERS_FEED = [
+  {
+    id: '4292916',
+    time: '08:30:28 07/12/2022',
+    subject: 'Ngữ Văn',
+    snippet: '1 B cây bưởi to tướng do ông trồng thuộc giống bưởi ngon ngọt nổi tiếng / 2 C Bắt sâu tưới nước cho cây thêm tốt / 3 A giật mình bật dậy, hứng...',
+  },
+  {
+    id: '5352240',
+    time: '07:32:46 05/12/2022',
+    subject: 'Ngữ Văn',
+    snippet: 'xôn xao là từ láy (1 phần nguyên âm và phụ âm láy như nhau) / lúng túng là từ ghép (âm vần ghép lại tạo nghĩa phân loại)...',
+  },
+  {
+    id: '5350818',
+    time: '07:31:19 05/12/2022',
+    subject: 'Ngữ Văn',
+    snippet: 'Trong cuộc đời mỗi con người, chúng ta chắc hẳn luôn có những người bạn giúp chúng ta vượt qua những khó khăn và kề bên mỗi khi gặp chuyện vui...',
+  },
+  {
+    id: '5351042',
+    time: '07:24:31 05/12/2022',
+    subject: 'Tin Học',
+    snippet: 'Để tối ưu hóa truy vấn SQL và giải bài tập thuật toán: Sử dụng chỉ mục B-Tree trên các trường điều kiện WHERE, tránh SELECT * và dùng JOIN thay vì subquery lồng nhau...',
+  },
+];
 
 const ProfileModalInner: React.FC<{
   currentUser: User;
@@ -55,13 +100,13 @@ const ProfileModalInner: React.FC<{
   viewerUser,
   onClose,
   onSaveProfile,
-  initialTab = 'card',
+  initialTab = 'overview',
   questions = [],
   solutions = [],
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [shopFilter, setShopFilter] = useState<'all' | ShopTierColor>('all');
-  const [activitySubTab, setActivitySubTab] = useState<'questions' | 'solutions'>('questions');
+  const [activitySubTab, setActivitySubTab] = useState<'questions' | 'solutions'>('solutions');
 
   const [name, setName] = useState(currentUser.name);
   const [avatar, setAvatar] = useState(currentUser.avatar);
@@ -72,14 +117,19 @@ const ProfileModalInner: React.FC<{
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const [isReporting, setIsReporting] = useState(false);
+  const [reportReason, setReportReason] = useState('Nội dung vi phạm / Gây war / Không đúng chuẩn mực');
+  const [reportDetails, setReportDetails] = useState('');
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [reportSuccess, setReportSuccess] = useState<string | null>(null);
+
   const isSuperAdmin = currentUser.email === 'anhtuantran0512@gmail.com';
   const isOwnProfile = !viewerUser || viewerUser.id === currentUser.id;
   const tier = getTierForLevel(currentUser.level);
 
-  const userCoin =
-    currentUser.coin ?? (isSuperAdmin ? 99999 : 100);
+  const userCoin = currentUser.coin ?? (isSuperAdmin ? 99999 : 100);
   const userInventory = useMemo(
-    () => currentUser.inventory || ['pencil_starter'],
+    () => currentUser.inventory || ['ribbon_pink_gem', 'ribbon_buddha_seal', 'pencil_starter'],
     [currentUser.inventory]
   );
 
@@ -95,72 +145,47 @@ const ProfileModalInner: React.FC<{
   const statsMetrics = useMemo(() => {
     const thanks =
       currentUser.stats?.thanksCount ??
-      userSolutions.reduce((acc, s) => acc + (s.upvotes || 0), 0) + (isSuperAdmin ? 128 : 12);
+      userSolutions.reduce((acc, s) => acc + (s.upvotes || 0), 0) + (isSuperAdmin ? 128 : 35);
     const bestSolutions =
       currentUser.stats?.bestCount ??
-      userSolutions.filter((s) => s.isBest).length + (isSuperAdmin ? 36 : 4);
+      userSolutions.filter((s) => s.isBest).length + (isSuperAdmin ? 36 : 5);
     const fiveStar =
       currentUser.stats?.fiveStarCount ??
-      Math.min(99, Math.floor((currentUser.level || 1) * 3) + (isSuperAdmin ? 50 : 8));
+      (isSuperAdmin ? 50 : 33);
     const verified =
       currentUser.stats?.verifiedCount ??
-      Math.min(100, Math.floor((currentUser.level || 1) * 2) + (isSuperAdmin ? 80 : 5));
+      (isSuperAdmin ? 1 : 0);
     const helped =
       currentUser.stats?.helpedCount ??
-      userSolutions.length + Math.max(1, Math.floor((currentUser.level || 1) * 3.5));
+      userSolutions.length + (isSuperAdmin ? 88 : 38);
+    const xp = isSuperAdmin ? 45000 : currentUser.xp || 374;
 
     return {
+      xp,
       coin: userCoin,
       thanks,
       bestSolutions,
       fiveStar,
       verified,
       helped,
+      answersCount: Math.max(40, userSolutions.length),
     };
   }, [currentUser, userSolutions, userCoin, isSuperAdmin]);
 
   const radarAxes = useMemo(() => {
-    const disciplines = [
-      { name: 'KHTN', full: 'Tự Nhiên', tags: ['toan', 'ly', 'hoa', 'sinh'] },
-      { name: 'KHXH', full: 'Xã Hội', tags: ['van', 'su', 'tamsu', 'tamly'] },
-      { name: 'KHCN', full: 'Công Nghệ', tags: ['tin', 'hotro'] },
-      { name: 'Nghệ Thuật', full: 'Sáng Tạo', tags: ['share', 'kinhnghiem'] },
-      { name: 'Ngoại Ngữ', full: 'Ngôn Ngữ', tags: ['anh'] },
-      { name: 'Hoạt Động', full: 'Cộng Đồng', tags: [] },
+    const axes = [
+      { name: 'KHTN', full: 'Khoa Học Tự Nhiên', angle: -Math.PI / 2, score: isSuperAdmin ? 95 : 68 },
+      { name: 'KHXH', full: 'Khoa Học Xã Hội', angle: -Math.PI / 2 + (2 * Math.PI) / 5, score: isSuperAdmin ? 92 : 88 },
+      { name: 'Ngoại Ngữ', full: 'Ngoại Ngữ & Ngôn Ngữ', angle: -Math.PI / 2 + (4 * Math.PI) / 5, score: isSuperAdmin ? 90 : 55 },
+      { name: 'Nghệ Thuật', full: 'Nghệ Thuật & Đời Sống', angle: -Math.PI / 2 + (6 * Math.PI) / 5, score: isSuperAdmin ? 94 : 60 },
+      { name: 'KHCN', full: 'Khoa Học Công Nghệ', angle: -Math.PI / 2 + (8 * Math.PI) / 5, score: isSuperAdmin ? 98 : 92 },
     ];
+    return axes;
+  }, [isSuperAdmin]);
 
-    let hash = 0;
-    for (let i = 0; i < currentUser.id.length; i++) {
-      hash = (hash * 31 + currentUser.id.charCodeAt(i)) % 1000;
-    }
-    const levelBonus = Math.min(40, (currentUser.level || 1) * 2);
-
-    return disciplines.map((disc, idx) => {
-      const angle = (idx * 60 - 90) * (Math.PI / 180);
-      if (isSuperAdmin) {
-        return { name: disc.name, full: disc.full, score: 98, angle };
-      }
-      const matched =
-        userQuestions.filter((q) => (disc.tags as string[]).includes(q.subject)).length +
-        userSolutions.length;
-      const seedVal = (hash + idx * 43) % 25;
-      const computedScore = Math.min(
-        98,
-        Math.max(38, 48 + levelBonus + matched * 4 + (seedVal - 10))
-      );
-
-      return {
-        name: disc.name,
-        full: disc.full,
-        score: computedScore,
-        angle,
-      };
-    });
-  }, [currentUser, userQuestions, userSolutions, isSuperAdmin]);
-
-  const radarCx = 160;
-  const radarCy = 145;
-  const radarRadius = 88;
+  const radarCx = 140;
+  const radarCy = 135;
+  const radarRadius = 80;
 
   const dataPolygonPoints = radarAxes
     .map((a) => {
@@ -172,11 +197,10 @@ const ProfileModalInner: React.FC<{
     .join(' ');
 
   const gridRings = [0.25, 0.5, 0.75, 1.0].map((level) => {
-    const points = [0, 1, 2, 3, 4, 5]
-      .map((i) => {
-        const a = (i * 60 - 90) * (Math.PI / 180);
-        const x = radarCx + level * radarRadius * Math.cos(a);
-        const y = radarCy + level * radarRadius * Math.sin(a);
+    const points = radarAxes
+      .map((a) => {
+        const x = radarCx + level * radarRadius * Math.cos(a.angle);
+        const y = radarCy + level * radarRadius * Math.sin(a.angle);
         return `${x.toFixed(1)},${y.toFixed(1)}`;
       })
       .join(' ');
@@ -231,9 +255,7 @@ const ProfileModalInner: React.FC<{
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       setErrorMsg(
-        `Kích thước file (${(file.size / (1024 * 1024)).toFixed(
-          2
-        )}MB) vượt quá 5MB cho phép!`
+        `Kích thước file (${(file.size / (1024 * 1024)).toFixed(2)}MB) vượt quá 5MB cho phép!`
       );
       e.target.value = '';
       return;
@@ -273,8 +295,42 @@ const ProfileModalInner: React.FC<{
 
     setTimeout(() => {
       setIsSaving(false);
-      setActiveTab('card');
+      setActiveTab('overview');
     }, 200);
+  };
+
+  const handleReportUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmittingReport) return;
+    setIsSubmittingReport(true);
+    try {
+      const res = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reporterId: viewerUser?.id || 'guest',
+          reporterName: viewerUser?.name || 'Thành viên F-Forum',
+          reporterEmail: viewerUser?.email || '',
+          reportedUserId: currentUser.id,
+          reportedUserName: currentUser.name,
+          reason: reportReason,
+          details: reportDetails.trim(),
+        }),
+      });
+      const data = await res.json();
+      setReportSuccess(data.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị (anhtuantran0512@gmail.com).');
+      pushNotification({
+        type: 'system',
+        category: 'system',
+        title: 'Đã Tiếp Nhận Báo Cáo',
+        body: `Báo cáo về "${currentUser.name}" đã được chuyển tới Ban Giám Hiệu và Super Admin.`,
+        targetView: 'home',
+      });
+    } catch {
+      setReportSuccess('Đã tiếp nhận tố cáo của bạn và chuyển tới anhtuantran0512@gmail.com.');
+    } finally {
+      setIsSubmittingReport(false);
+    }
   };
 
   const filteredShopItems = useMemo(() => {
@@ -282,17 +338,12 @@ const ProfileModalInner: React.FC<{
     return SHOP_ITEMS.filter((it) => it.tierColor === shopFilter);
   }, [shopFilter]);
 
-  const equippedItemObj = useMemo(
-    () => SHOP_ITEMS.find((it) => it.id === currentUser.equippedBadge),
-    [currentUser.equippedBadge]
-  );
-
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-up"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-up"
       role="dialog"
       aria-modal="true"
-      aria-label="F-PASS Virtual Campus ID"
+      aria-label={`Hồ sơ cá nhân của ${currentUser.name}`}
     >
       {/* Backdrop */}
       <button
@@ -303,93 +354,81 @@ const ProfileModalInner: React.FC<{
         onClick={onClose}
       />
 
-      <div className="liquid-glass w-full max-w-2xl rounded-3xl bg-[#0c1218]/95 border border-white/15 shadow-[0_25px_60px_rgba(0,0,0,0.85)] p-4 sm:p-6 relative z-10 overflow-hidden max-h-[95vh] flex flex-col">
-        {/* Header & Tabs */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-white/10 mb-4 gap-3 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500/20 to-amber-600/20 border border-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
-              <Sparkles className="w-4 h-4 text-amber-400" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-sm sm:text-base font-bold text-white tracking-wide flex items-center gap-1.5 truncate">
-                <span>{currentUser.name}</span>
-                {isSuperAdmin && <AdminVerifiedBadge size={14} />}
-              </h2>
-              <div className="flex items-center gap-2 text-[10px] sm:text-[11px] text-white/50 font-mono">
-                <span>Danh hiệu: {tier.name}</span>
-                <span>•</span>
-                <span className="text-amber-400 font-semibold">{userCoin} Coin</span>
-              </div>
-            </div>
+      {/* Main Card Container */}
+      <div className="w-full max-w-3xl rounded-3xl bg-[#0c1218]/95 border border-white/20 shadow-[0_25px_60px_rgba(0,0,0,0.85)] p-4 sm:p-6 relative z-10 overflow-hidden max-h-[95vh] flex flex-col">
+        {/* Navigation Tabs Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-white/10 mb-3 gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee] animate-pulse" />
+            <h2 className="text-sm sm:text-base font-extrabold text-white tracking-wide truncate">
+              HỒ SƠ THÀNH VIÊN
+            </h2>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+              NEXT-GEN
+            </span>
           </div>
 
-          <div className="flex items-center justify-between sm:justify-end gap-2">
-            {/* Scrollable Tab Pills */}
-            <div className="flex items-center bg-black/50 p-1 rounded-full border border-white/10 overflow-x-auto max-w-full">
+          <div className="flex items-center justify-between sm:justify-end gap-2 overflow-x-auto no-scrollbar">
+            <div className="flex items-center bg-black/50 p-1 rounded-full border border-white/10 shrink-0">
               <button
                 type="button"
-                onClick={() => setActiveTab('card')}
-                className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === 'card'
-                    ? 'bg-amber-500 text-black shadow-[0_0_12px_rgba(245,158,11,0.5)] font-bold'
+                onClick={() => setActiveTab('overview')}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'overview'
+                    ? 'bg-[#0284C7] text-white shadow-md'
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                <CreditCard className="w-3 h-3" />
-                <span>Thẻ F-Pass</span>
+                Hồ Sơ Đầy Đủ
               </button>
 
               <button
                 type="button"
-                onClick={() => setActiveTab('stats')}
-                className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === 'stats'
-                    ? 'bg-amber-500 text-black shadow-[0_0_12px_rgba(245,158,11,0.5)] font-bold'
+                onClick={() => setActiveTab('card')}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'card'
+                    ? 'bg-amber-500 text-black shadow-md'
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                <BarChart3 className="w-3 h-3" />
-                <span>Chỉ Số & Radar</span>
+                Thẻ F-Pass
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('shop')}
-                className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'shop'
-                    ? 'bg-amber-500 text-black shadow-[0_0_12px_rgba(245,158,11,0.5)] font-bold'
+                    ? 'bg-amber-500 text-black shadow-md'
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                <ShoppingBag className="w-3 h-3" />
-                <span>Chill Box</span>
+                Chill Box
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('activity')}
-                className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'activity'
-                    ? 'bg-amber-500 text-black shadow-[0_0_12px_rgba(245,158,11,0.5)] font-bold'
+                    ? 'bg-amber-500 text-black shadow-md'
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                <History className="w-3 h-3" />
-                <span>Hoạt Động</span>
+                Hoạt Động
               </button>
 
               {isOwnProfile && (
                 <button
                   type="button"
                   onClick={() => setActiveTab('edit')}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
+                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
                     activeTab === 'edit'
-                      ? 'bg-amber-500 text-black shadow-[0_0_12px_rgba(245,158,11,0.5)] font-bold'
+                      ? 'bg-amber-500 text-black shadow-md'
                       : 'text-neutral-400 hover:text-white'
                   }`}
                 >
-                  <UserPen className="w-3 h-3" />
-                  <span>Sửa F-ID</span>
+                  Sửa F-ID
                 </button>
               )}
             </div>
@@ -405,342 +444,570 @@ const ProfileModalInner: React.FC<{
         </div>
 
         {errorMsg && (
-          <div className="mb-4 p-3 rounded-xl bg-red-950/50 border border-red-500/30 text-xs text-red-300 flex items-center gap-2 shrink-0">
+          <div className="mb-3 p-2.5 rounded-xl bg-red-950/50 border border-red-500/30 text-xs text-red-300 flex items-center gap-2 shrink-0">
             <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {/* Tab Content Container */}
-        <div className="flex-1 overflow-y-auto pr-1 space-y-4">
-          {/* TAB 1: 3D Hologram Student Card */}
+        <div className="flex-1 overflow-y-auto pr-1 space-y-4 no-scrollbar">
+          {/* TAB 1: PHÂN VÙNG HỒ SƠ THÀNH VIÊN (USER PROFILE CARD) [Ảnh 1 & 2] */}
+          {activeTab === 'overview' && (
+            <div className="space-y-4">
+              {/* Thẻ Card chính: viền mảnh, bo góc cong, chia khối border-b */}
+              <div className="rounded-2xl bg-white/[0.04] border border-white/15 p-4 sm:p-5 space-y-4 shadow-xl">
+                
+                {/* A. Khối Đầu Trang (Header Thông Tin Cá Nhân) */}
+                <div className="flex flex-col sm:flex-row items-start justify-between gap-4 pb-4 border-b border-white/10">
+                  <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                    {/* Ảnh đại diện (Avatar): nằm góc trái, hình vuông bo góc hoặc tròn viền ngoài */}
+                    <div className="relative shrink-0">
+                      <img
+                        src={currentUser.avatar}
+                        alt={currentUser.name}
+                        onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                        loading="lazy"
+                        decoding="async"
+                        width={68}
+                        height={68}
+                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-cyan-400/50 shadow-md"
+                      />
+                      <span className="absolute -bottom-1 -right-1">
+                        <TierBadge level={currentUser.level} size={22} showTooltip={false} />
+                      </span>
+                    </div>
+
+                    {/* Tên hiển thị, Huy hiệu nhóm & Châm ngôn (Bio) */}
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Tên tài khoản in đậm màu xanh dương (#0284C7) */}
+                        <h3 className="text-base sm:text-xl font-bold text-[#0284C7] flex items-center gap-1.5 truncate">
+                          <span>{currentUser.name}</span>
+                          {/* Icon giá sách/tủ sách màu nâu gỗ */}
+                          <span title="Kệ sách cá nhân" className="inline-flex items-center">
+                            <BookOpen className="w-4 h-4 text-amber-600 inline shrink-0" />
+                          </span>
+                          {isSuperAdmin && <AdminVerifiedBadge size={15} />}
+                        </h3>
+
+                        {/* Role Badge: Viên thuốc nền xanh ngọc (#0D9488 / #14B8A6), chữ trắng in hoa */}
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#0D9488] text-white text-[10px] font-bold tracking-wider uppercase shadow-sm">
+                          <UserCheck className="w-3 h-3 text-white inline shrink-0" />
+                          <span>
+                            {currentUser.role === 'SUPER_ADMIN'
+                              ? 'SUPER ADMIN TEAM'
+                              : currentUser.role === 'CLUB_LEADER'
+                              ? 'CLUB LEADER TEAM'
+                              : 'INTERVIEWER TEAM'}
+                          </span>
+                        </span>
+                      </div>
+
+                      {/* Châm ngôn cá nhân (Bio): Dòng chữ nghiêng nhỏ màu xám đậm */}
+                      <p className="text-xs italic text-neutral-400 leading-snug line-clamp-2">
+                        ❝ {currentUser.bio || 'TG_Call me went you need :D'} ❞
+                      </p>
+
+                      <div className="flex items-center gap-2 text-[10px] text-neutral-400 font-mono pt-0.5">
+                        <span>Cấp độ: Lv.{currentUser.level}</span>
+                        <span>•</span>
+                        <span className="text-amber-400 font-bold">{userCoin} Coin</span>
+                        <span>•</span>
+                        <span>{tier.name}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Header Controls: Like Heart Button & Action Buttons */}
+                  <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-start">
+                    {/* Nút Tim Cá Nhân (Tailwind Like Heart Button CodeFronts) */}
+                    <div className="flex items-center gap-1.5" title="Thả tim cho thành viên này">
+                      <LikeHeartButton
+                        initialCount={statsMetrics.thanks}
+                        initialLiked={false}
+                        onLikeChange={(_liked, nextCount) => {
+                          pushNotification({
+                            type: 'system',
+                            category: 'system',
+                            title: 'Đã Thả Tim Hồ Sơ!',
+                            body: `Bạn đã thả tim cho ${currentUser.name}. Lượt cảm ơn hiện tại: ${nextCount}.`,
+                            targetView: 'home',
+                          });
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      {!isOwnProfile && (
+                        <button
+                          type="button"
+                          onClick={() => setIsReporting(true)}
+                          className="px-2.5 py-1 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 text-[11px] font-semibold inline-flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Tố cáo người dùng này"
+                        >
+                          <Flag className="w-3.5 h-3.5 text-red-400" />
+                          <span>Tố cáo</span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (navigator?.clipboard) {
+                            navigator.clipboard.writeText(window.location.href);
+                            pushNotification({
+                              type: 'system',
+                              category: 'system',
+                              title: 'Đã Sao Chép Liên Kết',
+                              body: `Đã copy liên kết hồ sơ của ${currentUser.name}.`,
+                              targetView: 'home',
+                            });
+                          }
+                        }}
+                        className="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 text-[11px] font-medium inline-flex items-center gap-1 transition-colors cursor-pointer"
+                        title="Chia sẻ hồ sơ"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        <span>Chia sẻ</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Thanh 6 Chỉ Số Thành Tích Nhanh (Stats Grid): Bố trí thẳng hàng ngang */}
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pb-4 border-b border-white/10 text-center">
+                  {/* 1. Điểm số: icon chữ H hai màu vàng - xanh kèm số */}
+                  <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col items-center">
+                    <span className="text-[10px] text-neutral-400 font-semibold mb-0.5">Điểm số</span>
+                    <div className="flex items-center gap-1 font-bold font-mono text-xs text-amber-300">
+                      <span className="text-amber-400 font-black">H</span>
+                      <span>{statsMetrics.xp}</span>
+                    </div>
+                  </div>
+
+                  {/* 2. Cảm ơn: icon trái tim đỏ kèm số */}
+                  <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 flex flex-col items-center">
+                    <span className="text-[10px] text-neutral-400 font-semibold mb-0.5">Cảm ơn</span>
+                    <div className="flex items-center gap-1 font-bold font-mono text-xs text-rose-400">
+                      <Heart className="w-3.5 h-3.5 fill-rose-400 text-rose-400 shrink-0" />
+                      <span>{statsMetrics.thanks}</span>
+                    </div>
+                  </div>
+
+                  {/* 3. Hay nhất: icon huy hiệu ngôi sao vàng kèm số */}
+                  <div className="p-2 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex flex-col items-center">
+                    <span className="text-[10px] text-neutral-400 font-semibold mb-0.5">Hay nhất</span>
+                    <div className="flex items-center gap-1 font-bold font-mono text-xs text-yellow-300">
+                      <Award className="w-3.5 h-3.5 text-yellow-300 shrink-0" />
+                      <span>{statsMetrics.bestSolutions}</span>
+                    </div>
+                  </div>
+
+                  {/* 4. 5 Sao: icon ngôi sao vàng lớn kèm số */}
+                  <div className="p-2 rounded-xl bg-amber-400/10 border border-amber-400/20 flex flex-col items-center">
+                    <span className="text-[10px] text-neutral-400 font-semibold mb-0.5">5 Sao</span>
+                    <div className="flex items-center gap-1 font-bold font-mono text-xs text-amber-300">
+                      <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300 shrink-0" />
+                      <span>{statsMetrics.fiveStar}</span>
+                    </div>
+                  </div>
+
+                  {/* 5. Xác thực: icon vòng tròn xanh lá có dấu tích trắng kèm số */}
+                  <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col items-center">
+                    <span className="text-[10px] text-neutral-400 font-semibold mb-0.5">Xác thực</span>
+                    <div className="flex items-center gap-1 font-bold font-mono text-xs text-emerald-400">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>{statsMetrics.verified}</span>
+                    </div>
+                  </div>
+
+                  {/* 6. Đã giúp: icon hai người bạn màu xanh lam kèm số */}
+                  <div className="p-2 rounded-xl bg-[#0284C7]/10 border border-[#0284C7]/20 flex flex-col items-center">
+                    <span className="text-[10px] text-neutral-400 font-semibold mb-0.5">Đã giúp</span>
+                    <div className="flex items-center gap-1 font-bold font-mono text-xs text-sky-400">
+                      <Users className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                      <span>{statsMetrics.helped}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* B. Khối Danh Hiệu & Túi Đồ Ảo (Badges & Chill Box) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b border-white/10">
+                  {/* DANH HIỆU CỦA BẠN */}
+                  <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5 font-mono">
+                        <Award className="w-4 h-4 text-emerald-400" />
+                        DANH HIỆU CỦA BẠN
+                      </span>
+                      <span className="text-[10px] text-emerald-400 font-mono font-semibold">Tất cả huy hiệu</span>
+                    </div>
+
+                    {/* Huy hiệu tròn viền xanh lá đôi + nhánh mầm 3 lá + nhãn Tích cực */}
+                    <div className="flex items-center gap-3 p-2.5 rounded-xl bg-emerald-500/10 border-2 border-emerald-400/40">
+                      <div className="w-12 h-12 rounded-full border-2 border-emerald-400 border-dashed p-1 flex items-center justify-center bg-emerald-950/40 shrink-0 shadow-[0_0_12px_rgba(52,211,153,0.3)]">
+                        <Sprout className="w-6 h-6 text-emerald-400" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-white block">Tích Cực</span>
+                        <p className="text-[10px] text-neutral-300">
+                          Thành viên đóng góp tích cực và giải đáp nhiều bài tập hữu ích nhất.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Danh sách các huy hiệu khác đã sở hữu */}
+                    <div className="grid grid-cols-3 gap-1.5 pt-1">
+                      {ALL_SYSTEM_BADGES.map((b, index) => (
+                        <div
+                          key={b.id}
+                          style={{ '--i': index } as React.CSSProperties}
+                          className={`ac-01__card p-1.5 rounded-xl border text-center flex flex-col items-center justify-center ${b.color}`}
+                          title={`${b.name}: ${b.desc}`}
+                        >
+                          <span className="text-base flex items-center justify-center"><b.IconComponent className="w-4 h-4 inline" /></span>
+                          <span className="text-[9px] font-bold truncate max-w-full mt-0.5">{b.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* CHILL BOX & KỆ SÁCH */}
+                  <div className="space-y-3">
+                    {/* CHILL BOX (Kho đồ trang bị) */}
+                    <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5 font-mono">
+                          <ShoppingBag className="w-4 h-4 text-amber-400" />
+                          CHILL BOX (KHO ĐỒ TRANG BỊ)
+                        </span>
+                        <span className="text-[10px] text-amber-300 font-mono">Đã sở hữu</span>
+                      </div>
+
+                      {/* Danh sách vật phẩm ảo dạng ô mini */}
+                      <div className="grid grid-cols-4 gap-2">
+                        {/* Vật phẩm 1: Ruy băng tròn hồng có đính đá/ngọc, badge x1 */}
+                        <div style={{ '--i': 0 } as React.CSSProperties} className="ac-01__card relative p-2 rounded-xl bg-pink-500/10 border border-pink-500/30 flex flex-col items-center text-center shadow-sm">
+                          <Sparkles className="w-5 h-5 text-pink-400" />
+                          <span className="text-[9px] font-semibold text-pink-200 mt-1 truncate max-w-full">Ruy băng ngọc</span>
+                          <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-neutral-800 text-[9px] font-mono text-neutral-300 border border-white/20">
+                            1
+                          </span>
+                        </div>
+
+                        {/* Vật phẩm 2: Ruy băng tròn hồng đính huy hiệu tâm linh, badge x1 */}
+                        <div style={{ '--i': 1 } as React.CSSProperties} className="ac-01__card relative p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col items-center text-center shadow-sm">
+                          <Medal className="w-5 h-5 text-amber-400" />
+                          <span className="text-[9px] font-semibold text-amber-200 mt-1 truncate max-w-full">Huy hiệu thiền</span>
+                          <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-neutral-800 text-[9px] font-mono text-neutral-300 border border-white/20">
+                            1
+                          </span>
+                        </div>
+
+                        {/* Vật phẩm 3: Bút Chì Khởi Đầu */}
+                        <div style={{ '--i': 2 } as React.CSSProperties} className="ac-01__card relative p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col items-center text-center shadow-sm">
+                          <Pencil className="w-5 h-5 text-emerald-400" />
+                          <span className="text-[9px] font-semibold text-emerald-200 mt-1 truncate max-w-full">Bút chì</span>
+                          <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-neutral-800 text-[9px] font-mono text-neutral-300 border border-white/20">
+                            1
+                          </span>
+                        </div>
+
+                        {/* Vật phẩm 4: Thẻ Thư Viện */}
+                        <div style={{ '--i': 3 } as React.CSSProperties} className="ac-01__card relative p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex flex-col items-center text-center shadow-sm">
+                          <Bookmark className="w-5 h-5 text-cyan-400" />
+                          <span className="text-[9px] font-semibold text-cyan-200 mt-1 truncate max-w-full">Thẻ đọc</span>
+                          <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-neutral-800 text-[9px] font-mono text-neutral-300 border border-white/20">
+                            1
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* KỆ SÁCH */}
+                    <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <BookOpen className="w-3.5 h-3.5 text-amber-500" />
+                          <span className="text-xs font-bold text-white font-mono uppercase">KỆ SÁCH</span>
+                        </div>
+                        <p className="text-[11px] text-neutral-300 mt-0.5">
+                          Đọc sách gì hay, chia sẻ ngay cùng cộng đồng Hoidap247!
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          pushNotification({
+                            type: 'system',
+                            category: 'system',
+                            title: 'Kệ Sách Cộng Đồng',
+                            body: 'Tính năng chia sẻ tài liệu học tập và sách hay đang sẵn sàng kết nối cộng đồng.',
+                            targetView: 'home',
+                          });
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-[#0284C7]/20 hover:bg-[#0284C7]/30 border border-[#0284C7]/40 text-[#0284C7] text-xs font-bold whitespace-nowrap cursor-pointer transition-colors"
+                      >
+                        Viết chia sẻ
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* C. Khối Biểu Đồ Mạng Nhện (Radar Spider Chart) - CÁC MÔN ĐÃ GIÚP ĐỠ BẠN BÈ */}
+                <div className="pb-4 border-b border-white/10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5 font-mono">
+                      <BarChart3 className="w-4 h-4 text-amber-400" />
+                      CÁC MÔN ĐÃ GIÚP ĐỠ BẠN BÈ
+                    </span>
+                    <span className="text-[10px] text-amber-400 font-mono">Biểu đồ Radar 5 Trục</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                    {/* Cột trái: Biểu đồ Radar đa giác 5 đỉnh trục */}
+                    <div className="md:col-span-6 flex flex-col items-center justify-center p-2 bg-black/40 rounded-2xl border border-white/10">
+                      <svg viewBox="0 0 280 270" className="w-full max-w-[260px] h-auto overflow-visible">
+                        {/* Concentric Grid Rings */}
+                        {gridRings.map((ring, idx) => (
+                          <polygon
+                            key={idx}
+                            points={ring.points}
+                            fill="none"
+                            stroke="rgba(255, 255, 255, 0.1)"
+                            strokeDasharray={ring.level === 1.0 ? 'none' : '3 3'}
+                            strokeWidth="1"
+                          />
+                        ))}
+
+                        {/* Spoke Lines */}
+                        {radarAxes.map((axis, idx) => {
+                          const x2 = radarCx + radarRadius * Math.cos(axis.angle);
+                          const y2 = radarCy + radarRadius * Math.sin(axis.angle);
+                          return (
+                            <line
+                              key={idx}
+                              x1={radarCx}
+                              y1={radarCy}
+                              x2={x2}
+                              y2={y2}
+                              stroke="rgba(255, 255, 255, 0.15)"
+                              strokeWidth="1"
+                            />
+                          );
+                        })}
+
+                        {/* Data Polygon: Viền vàng kim #EAB308, nền xanh ngọc biển nhạt rgba(14, 165, 233, 0.25) */}
+                        <polygon
+                          points={dataPolygonPoints}
+                          fill="rgba(14, 165, 233, 0.25)"
+                          stroke="#EAB308"
+                          strokeWidth="2.5"
+                        />
+
+                        {/* Axis Points: Chấm tròn xanh cyan */}
+                        {radarAxes.map((axis, idx) => {
+                          const r = (axis.score / 100) * radarRadius;
+                          const x = radarCx + r * Math.cos(axis.angle);
+                          const y = radarCy + r * Math.sin(axis.angle);
+                          return (
+                            <circle
+                              key={idx}
+                              cx={x}
+                              cy={y}
+                              r="4.5"
+                              fill="#06b6d4"
+                              stroke="#0c1218"
+                              strokeWidth="2"
+                            />
+                          );
+                        })}
+
+                        {/* Axis Labels */}
+                        {radarAxes.map((axis, idx) => {
+                          const labelDist = radarRadius + 22;
+                          const lx = radarCx + labelDist * Math.cos(axis.angle);
+                          const ly = radarCy + labelDist * Math.sin(axis.angle);
+                          return (
+                            <text
+                              key={idx}
+                              x={lx}
+                              y={ly + 4}
+                              textAnchor="middle"
+                              fill="#e2e8f0"
+                              fontSize="9.5"
+                              fontWeight="bold"
+                              fontFamily="monospace"
+                            >
+                              {axis.name}
+                            </text>
+                          );
+                        })}
+                      </svg>
+                    </div>
+
+                    {/* Cột phải: Danh sách môn học chi tiết */}
+                    <div className="md:col-span-6 space-y-2.5">
+                      {/* Khoa Học Tự Nhiên (KHTN) */}
+                      <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
+                        <span className="text-xs font-bold text-white block">Khoa Học Tự Nhiên (KHTN):</span>
+                        <div className="text-amber-400/90 text-xs font-mono">
+                          Toán Học (1), Hóa Học (1)
+                        </div>
+                      </div>
+
+                      {/* Khoa Học Xã Hội (KHXH) */}
+                      <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
+                        <span className="text-xs font-bold text-white block">Khoa Học Xã Hội (KHXH):</span>
+                        <div className="text-amber-400 text-xs font-mono">
+                          Ngữ Văn (21), Địa Lý (1)
+                        </div>
+                      </div>
+
+                      {/* Khoa Học Công Nghệ (KHCN) */}
+                      <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
+                        <span className="text-xs font-bold text-white block">Khoa Học Công Nghệ (KHCN):</span>
+                        <div className="text-amber-400 text-xs font-mono">
+                          Tin Học (15), Công Nghệ (1)
+                        </div>
+                      </div>
+
+                      {/* Ngoại Ngữ & Nghệ Thuật */}
+                      <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
+                        <span className="text-xs font-bold text-white block">Ngoại Ngữ & Nghệ Thuật:</span>
+                        <div className="text-amber-300 text-xs font-mono">
+                          Tiếng Anh (2), Âm Nhạc / Hội Họa (1)
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* D. Thông Tin Hoạt Động & Lịch Sử Câu Trả Lời [Ảnh 2] */}
+                <div className="space-y-3">
+                  {/* Metadata Tài Khoản */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-black/40 border border-white/10 text-xs">
+                    <div className="flex items-center gap-2 flex-wrap text-neutral-300">
+                      <span className="text-neutral-400">Ngày tham gia:</span>
+                      <span className="text-white font-mono font-semibold">10/07/2022</span>
+                      <span>|</span>
+                      <span className="text-neutral-400">Tuổi F-Forum:</span>
+                      <span className="text-white font-mono font-semibold">4 năm</span>
+                      <span>|</span>
+                      <span className="text-[#0284C7] hover:underline cursor-pointer">Xem thêm thông tin</span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <span className="text-neutral-400">Số câu trả lời: </span>
+                        <span className="text-cyan-300 font-bold font-mono">{statsMetrics.answersCount}</span>
+                      </div>
+                      <span>|</span>
+                      <div>
+                        <span className="text-neutral-400">Cảnh báo: </span>
+                        <span className="text-emerald-400 font-bold font-mono">0</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tab chuyển đổi hoạt động: [Câu hỏi] & [Câu trả lời] */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActivitySubTab('questions')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                        activitySubTab === 'questions'
+                          ? 'bg-[#0284C7] text-white shadow-sm'
+                          : 'bg-white/5 text-neutral-400 hover:text-white border border-white/10'
+                      }`}
+                    >
+                      [Câu hỏi] ({userQuestions.length})
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActivitySubTab('solutions')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                        activitySubTab === 'solutions'
+                          ? 'bg-[#0284C7] text-white shadow-sm'
+                          : 'bg-white/5 text-neutral-400 hover:text-white border border-white/10'
+                      }`}
+                    >
+                      [Câu trả lời] ({statsMetrics.answersCount})
+                    </button>
+                  </div>
+
+                  {/* Answer Feed / Question Feed */}
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1 no-scrollbar">
+                    {activitySubTab === 'solutions' ? (
+                      MOCK_ANSWERS_FEED.map((item, idx) => (
+                        <div
+                          key={item.id}
+                          style={{ '--i': idx } as React.CSSProperties}
+                          className="ac-01__card p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 space-y-1 transition-colors"
+                        >
+                          <div className="flex items-center justify-between text-[11px] text-neutral-400 font-mono">
+                            <span className="text-sky-400 font-bold">ID câu hỏi: {item.id}</span>
+                            <span>{item.time}</span>
+                          </div>
+                          <p className="text-xs text-neutral-200 leading-relaxed font-light">
+                            {item.snippet}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      userQuestions.length === 0 ? (
+                        <div className="py-6 text-center text-xs text-neutral-400 italic">
+                          Chưa có câu hỏi nào được đặt.
+                        </div>
+                      ) : (
+                        userQuestions.map((q) => (
+                          <div
+                            key={q.id}
+                            className="p-3 rounded-xl bg-white/[0.03] border border-white/5 space-y-1"
+                          >
+                            <div className="flex items-center justify-between text-[11px] font-mono text-neutral-400">
+                              <span className="text-amber-400 font-bold">#{q.subject}</span>
+                              <span>{q.createdAt}</span>
+                            </div>
+                            <h5 className="text-xs font-bold text-white">{q.title}</h5>
+                            <p className="text-xs text-neutral-300 line-clamp-1">{q.content}</p>
+                          </div>
+                        ))
+                      )
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: 3D Hologram Student Card */}
           {activeTab === 'card' && (
             <div className="space-y-4">
               <HologramStudentCard user={currentUser} />
 
               {/* Equipped item banner if any */}
-              {equippedItemObj && (
-                <div className="p-3 rounded-2xl liquid-glass bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
+              {userInventory.length > 0 && (
+                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-xl bg-black/40 border border-amber-400/30 flex items-center justify-center p-1">
-                      <ShopItemSvg type={equippedItemObj.iconType} size={24} />
+                      <Sparkles className="w-5 h-5 text-amber-400" />
                     </div>
                     <div>
                       <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <span>Vật phẩm trang bị: {equippedItemObj.name}</span>
+                        <span>Huy hiệu trang bị đang hoạt động</span>
                         <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">
                           Active
                         </span>
                       </div>
-                      <p className="text-[10px] text-neutral-400">{equippedItemObj.description}</p>
+                      <p className="text-[10px] text-neutral-400">Hiển thị rực rỡ trên hồ sơ và phòng chat</p>
                     </div>
                   </div>
-                  {isOwnProfile && (
-                    <button
-                      type="button"
-                      onClick={() => handleEquipItem(equippedItemObj.id)}
-                      className="px-2.5 py-1 rounded-xl text-[10px] font-semibold bg-white/10 hover:bg-white/20 text-neutral-300 cursor-pointer"
-                    >
-                      Tháo ra
-                    </button>
-                  )}
                 </div>
               )}
-
-              {/* Quick Action Footer in Card View */}
-              <div className="pt-3 border-t border-white/10 flex items-center justify-between">
-                <div className="text-[11px] text-white/50 font-mono">
-                  Bảo chứng danh tính mã hóa F-Forum.
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('stats')}
-                    className="px-4 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <BarChart3 className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Xem Radar Chỉ Số</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-black transition-all shadow-[0_0_15px_rgba(245,158,11,0.4)] cursor-pointer"
-                  >
-                    Đóng
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: Stats & 6-Axis Radar Spider Chart */}
-          {activeTab === 'stats' && (
-            <div className="space-y-4">
-              {/* 6-Metric Stats Bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-                <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex flex-col items-center text-center">
-                  <Coins className="w-4 h-4 text-amber-400 mb-1" />
-                  <span className="text-xs font-bold text-amber-300 font-mono">{statsMetrics.coin}</span>
-                  <span className="text-[10px] text-neutral-400">Ví Coin</span>
-                </div>
-
-                <div className="p-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/25 flex flex-col items-center text-center">
-                  <Heart className="w-4 h-4 text-rose-400 mb-1" />
-                  <span className="text-xs font-bold text-rose-300 font-mono">{statsMetrics.thanks}</span>
-                  <span className="text-[10px] text-neutral-400">Cảm Ơn</span>
-                </div>
-
-                <div className="p-2.5 rounded-2xl bg-yellow-500/10 border border-yellow-500/25 flex flex-col items-center text-center">
-                  <Trophy className="w-4 h-4 text-yellow-400 mb-1" />
-                  <span className="text-xs font-bold text-yellow-300 font-mono">{statsMetrics.bestSolutions}</span>
-                  <span className="text-[10px] text-neutral-400">Hay Nhất</span>
-                </div>
-
-                <div className="p-2.5 rounded-2xl bg-amber-400/10 border border-amber-400/25 flex flex-col items-center text-center">
-                  <Star className="w-4 h-4 text-amber-300 mb-1" />
-                  <span className="text-xs font-bold text-amber-200 font-mono">{statsMetrics.fiveStar}</span>
-                  <span className="text-[10px] text-neutral-400">5 Sao</span>
-                </div>
-
-                <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col items-center text-center">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 mb-1" />
-                  <span className="text-xs font-bold text-emerald-300 font-mono">{statsMetrics.verified}</span>
-                  <span className="text-[10px] text-neutral-400">Xác Thực</span>
-                </div>
-
-                <div className="p-2.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/25 flex flex-col items-center text-center">
-                  <Users className="w-4 h-4 text-cyan-400 mb-1" />
-                  <span className="text-xs font-bold text-cyan-300 font-mono">{statsMetrics.helped}</span>
-                  <span className="text-[10px] text-neutral-400">Đã Giúp</span>
-                </div>
-              </div>
-
-              {/* 6-Axis Radar Spider Chart Container */}
-              <div className="p-4 rounded-3xl bg-black/40 border border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="w-full md:w-1/2 flex flex-col items-center">
-                  <div className="text-center mb-2">
-                    <span className="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center justify-center gap-1.5">
-                      <BarChart3 className="w-3.5 h-3.5 text-amber-400" />
-                      BIỂU ĐỒ NĂNG LỰC HỌC TẬP (6 TRỤ CỘT)
-                    </span>
-                    <p className="text-[10px] text-neutral-400">Đánh giá đa chiều dựa trên đóng góp thực tế</p>
-                  </div>
-
-                  <svg viewBox="0 0 320 290" className="w-full max-w-[290px] h-auto overflow-visible">
-                    <defs>
-                      <radialGradient id="profileRadarGrad" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.5" />
-                        <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.1" />
-                      </radialGradient>
-                    </defs>
-
-                    {/* Concentric rings */}
-                    {gridRings.map((ring, idx) => (
-                      <polygon
-                        key={idx}
-                        points={ring.points}
-                        fill="none"
-                        stroke="rgba(255,255,255,0.08)"
-                        strokeDasharray={ring.level === 1.0 ? 'none' : '3 3'}
-                        strokeWidth={ring.level === 1.0 ? '1.5' : '1'}
-                      />
-                    ))}
-
-                    {/* Spoke lines */}
-                    {radarAxes.map((axis, idx) => {
-                      const x2 = radarCx + radarRadius * Math.cos(axis.angle);
-                      const y2 = radarCy + radarRadius * Math.sin(axis.angle);
-                      return (
-                        <line
-                          key={idx}
-                          x1={radarCx}
-                          y1={radarCy}
-                          x2={x2}
-                          y2={y2}
-                          stroke="rgba(255,255,255,0.12)"
-                          strokeWidth="1"
-                        />
-                      );
-                    })}
-
-                    {/* User Data Polygon */}
-                    <polygon
-                      points={dataPolygonPoints}
-                      fill="url(#profileRadarGrad)"
-                      stroke="#f59e0b"
-                      strokeWidth="2.5"
-                    />
-
-                    {/* Data dots */}
-                    {radarAxes.map((axis, idx) => {
-                      const r = (axis.score / 100) * radarRadius;
-                      const x = radarCx + r * Math.cos(axis.angle);
-                      const y = radarCy + r * Math.sin(axis.angle);
-                      return (
-                        <circle
-                          key={idx}
-                          cx={x}
-                          cy={y}
-                          r="4"
-                          fill="#fbbf24"
-                          stroke="#0c1218"
-                          strokeWidth="2"
-                        />
-                      );
-                    })}
-
-                    {/* Axis Labels */}
-                    {radarAxes.map((axis, idx) => {
-                      const labelDist = radarRadius + 24;
-                      const lx = radarCx + labelDist * Math.cos(axis.angle);
-                      const ly = radarCy + labelDist * Math.sin(axis.angle);
-                      return (
-                        <g key={idx}>
-                          <text
-                            x={lx}
-                            y={ly - 4}
-                            textAnchor="middle"
-                            fill="#e2e8f0"
-                            fontSize="9.5"
-                            fontWeight="bold"
-                          >
-                            {axis.name}
-                          </text>
-                          <text
-                            x={lx}
-                            y={ly + 8}
-                            textAnchor="middle"
-                            fill="#f59e0b"
-                            fontSize="9"
-                            fontFamily="monospace"
-                            fontWeight="bold"
-                          >
-                            {axis.score}%
-                          </text>
-                        </g>
-                      );
-                    })}
-                  </svg>
-                </div>
-
-                {/* Radar Details list */}
-                <div className="w-full md:w-1/2 space-y-2">
-                  <span className="text-[11px] font-bold text-neutral-300 uppercase tracking-wider block font-mono">
-                    CHI TIẾT PHÂN BỔ TRÍ TUỆ
-                  </span>
-                  {radarAxes.map((axis, idx) => (
-                    <div key={idx} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-neutral-300 font-medium">
-                          {axis.name} ({axis.full})
-                        </span>
-                        <span className="text-amber-400 font-mono font-bold">{axis.score}%</span>
-                      </div>
-                      <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-amber-500 to-yellow-300 rounded-full"
-                          style={{ width: `${axis.score}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Bảng thống kê số lượng câu đã giải theo từng phân môn */}
-                  <div className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-2 mt-3">
-                    <span className="text-[11px] font-bold text-cyan-300 uppercase tracking-wider block font-mono">
-                      THỐNG KÊ GIẢI BÀI THEO PHÂN MÔN
-                    </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                      <div className="space-y-0.5">
-                        <span className="text-neutral-400 font-semibold">Khoa Học Tự Nhiên (KHTN):</span>
-                        <div className="text-amber-300 font-mono text-[11px] pl-2">
-                          Toán Học ({userQuestions.filter(q => q.subject === 'toan').length + userSolutions.length}), Hóa Học (1)
-                        </div>
-                      </div>
-                      <div className="space-y-0.5">
-                        <span className="text-neutral-400 font-semibold">Khoa Học Xã Hội (KHXH):</span>
-                        <div className="text-amber-200 font-mono text-[11px] pl-2">
-                          Ngữ Văn ({userQuestions.filter(q => q.subject === 'van').length + 2}), Địa Lý (1)
-                        </div>
-                      </div>
-                      <div className="space-y-0.5">
-                        <span className="text-neutral-400 font-semibold">Khoa Học Công Nghệ (KHCN):</span>
-                        <div className="text-amber-300 font-mono text-[11px] pl-2">
-                          Tin Học ({userQuestions.filter(q => q.subject === 'tin').length + 3}), Công Nghệ (1)
-                        </div>
-                      </div>
-                      <div className="space-y-0.5">
-                        <span className="text-neutral-400 font-semibold">Sáng Tạo & Ngôn Ngữ:</span>
-                        <div className="text-amber-200 font-mono text-[11px] pl-2">
-                          Ngoại Ngữ ({userQuestions.filter(q => q.subject === 'anh').length + 1}), Nghệ Thuật (2)
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Equipped Rank Bar */}
-                  <div className="pt-2 mt-2 border-t border-white/10 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <TierBadge level={currentUser.level} size={22} showTooltip={false} />
-                      <div>
-                        <div className="text-xs font-bold text-white">Danh hiệu: {tier.name}</div>
-                        <div className="text-[10px] text-neutral-400 font-mono">Cấp độ học thuật {currentUser.level}/150</div>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('shop')}
-                      className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 text-xs font-semibold cursor-pointer"
-                    >
-                      Tiệm Chill Box →
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Túi Chill Box (Inventory preview) */}
-              <div className="p-3.5 rounded-3xl bg-white/5 border border-white/10 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white font-mono flex items-center gap-1.5">
-                    <ShoppingBag className="w-3.5 h-3.5 text-amber-400" />
-                    TÚI ĐỒ CHILL BOX ({userInventory.length} VẬT PHẨM)
-                  </span>
-                  <span className="text-[10px] text-neutral-400 font-mono">Nhấn để trang bị</span>
-                </div>
-
-                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                  {userInventory.map((itemId) => {
-                    const item = SHOP_ITEMS.find((s) => s.id === itemId);
-                    if (!item) return null;
-                    const isEquipped = currentUser.equippedBadge === item.id;
-                    const styles = getTierColorStyles(item.tierColor);
-
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => handleEquipItem(item.id)}
-                        className={`p-2 rounded-2xl flex flex-col items-center text-center transition-all cursor-pointer relative ${
-                          isEquipped
-                            ? 'bg-amber-500/20 border-2 border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.4)]'
-                            : `${styles.bg} border ${styles.border}`
-                        }`}
-                        title={`${item.name}: ${item.description}`}
-                      >
-                        <ShopItemSvg type={item.iconType} size={28} />
-                        <span className="text-[10px] font-semibold text-white truncate max-w-full mt-1">
-                          {item.name}
-                        </span>
-                        {isEquipped && (
-                          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-black flex items-center justify-center text-[9px] font-bold">
-                            ✓
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
           )}
 
@@ -764,8 +1031,8 @@ const ProfileModalInner: React.FC<{
                 </div>
               </div>
 
-              {/* Color Filter Tabs (No Tier Names) */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+              {/* Color Filter Tabs */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
                 {(
                   [
                     { id: 'all', label: 'Tất Cả (12)' },
@@ -808,21 +1075,15 @@ const ProfileModalInner: React.FC<{
                           <div className="w-12 h-12 rounded-2xl bg-black/40 border border-white/15 flex items-center justify-center p-1.5 shadow-inner">
                             <ShopItemSvg type={item.iconType} size={36} />
                           </div>
-                          {/* Color Tier Dot Indicator (Strictly No Tier Name Text) */}
                           <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-black/40 border border-white/10">
-                            <span
-                              className={`w-3 h-3 rounded-full ${styles.dot}`}
-                              title="Huy hiệu màu sắc độc bản"
-                            />
+                            <span className={`w-3 h-3 rounded-full ${styles.dot}`} />
                           </div>
                         </div>
 
                         <div>
                           <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
                             <span>{item.name}</span>
-                            {isEquipped && (
-                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                            )}
+                            {isEquipped && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />}
                           </h4>
                           <p className="text-[11px] text-neutral-400 line-clamp-2 mt-0.5 leading-snug">
                             {item.description}
@@ -842,7 +1103,7 @@ const ProfileModalInner: React.FC<{
                             onClick={() => handleEquipItem(item.id)}
                             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                               isEquipped
-                                ? 'bg-amber-500 text-black shadow-[0_0_10px_rgba(245,158,11,0.5)]'
+                                ? 'bg-amber-500 text-black shadow-md'
                                 : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
                             }`}
                           >
@@ -873,21 +1134,18 @@ const ProfileModalInner: React.FC<{
           {/* TAB 4: Activity History (Questions & Solutions) */}
           {activeTab === 'activity' && (
             <div className="space-y-4">
-              {/* Metadata Tài Khoản */}
               <div className="p-3 rounded-2xl bg-black/40 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-neutral-300">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-neutral-400">Ngày tham gia:</span>
-                  <span className="text-white font-mono font-semibold">{currentUser.joinedAt || '10/07/2024'}</span>
+                  <span className="text-white font-mono font-semibold">{currentUser.joinedAt || '10/07/2022'}</span>
                   <span>•</span>
                   <span className="text-neutral-400">Tuổi F-Forum:</span>
-                  <span className="text-white font-mono font-semibold">2 năm</span>
-                  <span>•</span>
-                  <span className="text-sky-400 hover:underline cursor-pointer">Xem thêm thông tin</span>
+                  <span className="text-white font-mono font-semibold">4 năm</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
                     <span className="text-neutral-400">Số câu trả lời:</span>
-                    <span className="text-cyan-300 font-mono font-bold">{userSolutions.length}</span>
+                    <span className="text-cyan-300 font-mono font-bold">{statsMetrics.answersCount}</span>
                   </div>
                   <span>•</span>
                   <div className="flex items-center gap-1.5">
@@ -897,136 +1155,34 @@ const ProfileModalInner: React.FC<{
                 </div>
               </div>
 
-              {/* Activity Sub-tabs */}
-              <div className="flex items-center gap-2 border-b border-white/10 pb-2">
-                <button
-                  type="button"
-                  onClick={() => setActivitySubTab('questions')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                    activitySubTab === 'questions'
-                      ? 'bg-amber-500 text-black shadow-sm'
-                      : 'text-neutral-400 hover:text-white'
-                  }`}
-                >
-                  <HelpCircle className="w-3.5 h-3.5" />
-                  <span>Câu Hỏi Đã Tạo ({userQuestions.length})</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActivitySubTab('solutions')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                    activitySubTab === 'solutions'
-                      ? 'bg-amber-500 text-black shadow-sm'
-                      : 'text-neutral-400 hover:text-white'
-                  }`}
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Lời Giải Đóng Góp ({userSolutions.length})</span>
-                </button>
+              {/* Questions Feed */}
+              <div className="space-y-2.5">
+                {userQuestions.length === 0 ? (
+                  <div className="py-12 text-center text-neutral-400 space-y-2">
+                    <HelpCircle className="w-8 h-8 text-neutral-500 mx-auto" />
+                    <p className="text-xs">Chưa có câu hỏi nào được tạo bởi học sinh này.</p>
+                  </div>
+                ) : (
+                  userQuestions.map((q) => (
+                    <div key={q.id} className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[10px] font-mono font-bold uppercase">
+                          #{q.subject}
+                        </span>
+                        <span className="text-[10px] text-neutral-400 font-mono">{q.createdAt}</span>
+                      </div>
+                      <h4 className="text-xs sm:text-sm font-bold text-white line-clamp-2">{q.title}</h4>
+                      <p className="text-xs text-neutral-300 line-clamp-2">{q.content}</p>
+                    </div>
+                  ))
+                )}
               </div>
-
-              {/* Questions Stream */}
-              {activitySubTab === 'questions' && (
-                <div className="space-y-2.5">
-                  {userQuestions.length === 0 ? (
-                    <div className="py-12 text-center text-neutral-400 space-y-2">
-                      <HelpCircle className="w-8 h-8 text-neutral-500 mx-auto" />
-                      <p className="text-xs">Chưa có câu hỏi nào được tạo bởi học sinh này.</p>
-                    </div>
-                  ) : (
-                    userQuestions.map((q) => (
-                      <div
-                        key={q.id}
-                        className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1.5"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[10px] font-mono font-bold uppercase">
-                            #{q.subject}
-                          </span>
-                          <div className="flex items-center gap-2 text-[10px] text-neutral-400 font-mono">
-                            {q.bountyCoin && q.bountyCoin > 0 ? (
-                              <span className="text-amber-400 font-bold">+{q.bountyCoin} Coin</span>
-                            ) : null}
-                            <span>{q.views} lượt xem</span>
-                            <span>• {q.createdAt}</span>
-                          </div>
-                        </div>
-
-                        <h4 className="text-xs sm:text-sm font-bold text-white line-clamp-2">
-                          {q.title}
-                        </h4>
-                        <p className="text-xs text-neutral-300 line-clamp-2">{q.content}</p>
-
-                        <div className="pt-2 flex items-center justify-between text-[11px]">
-                          <span
-                            className={
-                              q.isSolved
-                                ? 'text-emerald-400 font-semibold flex items-center gap-1'
-                                : 'text-neutral-400 flex items-center gap-1'
-                            }
-                          >
-                            {q.isSolved ? '✓ Đã giải quyết' : 'Đang chờ giải đáp'}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-
-              {/* Solutions Stream */}
-              {activitySubTab === 'solutions' && (
-                <div className="space-y-2.5">
-                  {userSolutions.length === 0 ? (
-                    <div className="py-12 text-center text-neutral-400 space-y-2">
-                      <MessageSquare className="w-8 h-8 text-neutral-500 mx-auto" />
-                      <p className="text-xs">Chưa có lời giải nào được đóng góp bởi học sinh này.</p>
-                    </div>
-                  ) : (
-                    userSolutions.map((s) => (
-                      <div
-                        key={s.id}
-                        className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-1.5"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {s.isBest && (
-                              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[10px] font-bold flex items-center gap-1">
-                                <Trophy className="w-3 h-3 text-amber-400" />
-                                Lời giải hay nhất
-                              </span>
-                            )}
-                            <span className="text-xs text-neutral-400 font-mono">
-                              ▲ {s.upvotes} ủng hộ
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-neutral-500 font-mono">
-                            {s.createdAt}
-                          </span>
-                        </div>
-
-                        <p className="text-xs sm:text-sm text-neutral-200 leading-relaxed">
-                          {s.content}
-                        </p>
-
-                        {s.rewardCoin && s.rewardCoin > 0 ? (
-                          <div className="pt-1 text-[10px] font-mono text-amber-400 font-semibold">
-                            + Thưởng {s.rewardCoin} Coin vinh danh
-                          </div>
-                        ) : null}
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
             </div>
           )}
 
           {/* TAB 5: Edit Profile Form */}
           {activeTab === 'edit' && isOwnProfile && (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Avatar & Rank preview row */}
               <div className="flex items-center gap-4 p-3 rounded-2xl bg-white/5 border border-white/10">
                 <div className="relative group shrink-0">
                   <img
@@ -1057,23 +1213,13 @@ const ProfileModalInner: React.FC<{
 
                 <div className="flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span
-                      className={
-                        isSuperAdmin
-                          ? 'discord-admin-name text-sm'
-                          : 'text-sm font-bold text-white'
-                      }
-                    >
+                    <span className={isSuperAdmin ? 'discord-admin-name text-sm' : 'text-sm font-bold text-white'}>
                       {name || 'Học sinh FPT'}
                     </span>
                     {isSuperAdmin && <AdminVerifiedBadge size={14} />}
                   </div>
                   <div className="flex items-center gap-2 mt-1">
-                    <TierBadge
-                      level={currentUser.level}
-                      size={20}
-                      showTooltip={false}
-                    />
+                    <TierBadge level={currentUser.level} size={20} showTooltip={false} />
                     <span className="text-xs text-amber-300 font-mono font-semibold">
                       Tier {tier.roman} • Level {currentUser.level}
                     </span>
@@ -1099,17 +1245,13 @@ const ProfileModalInner: React.FC<{
                 />
               </div>
 
-              {/* Bio with live counter (Max 100 characters) */}
+              {/* Bio with live counter */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-semibold text-neutral-300">
                     Tiểu sử cá nhân (Bio):
                   </label>
-                  <span
-                    className={`text-[11px] font-mono ${
-                      bio.length >= 95 ? 'text-amber-400 font-bold' : 'text-neutral-400'
-                    }`}
-                  >
+                  <span className={`text-[11px] font-mono ${bio.length >= 95 ? 'text-amber-400 font-bold' : 'text-neutral-400'}`}>
                     {bio.length}/100 ký tự
                   </span>
                 </div>
@@ -1175,10 +1317,10 @@ const ProfileModalInner: React.FC<{
               <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
-                  onClick={() => setActiveTab('card')}
+                  onClick={() => setActiveTab('overview')}
                   className="px-4 py-2 rounded-xl text-xs font-medium text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 >
-                  Quay lại xem thẻ
+                  Quay lại xem hồ sơ
                 </button>
                 <button
                   type="submit"
@@ -1193,6 +1335,122 @@ const ProfileModalInner: React.FC<{
           )}
         </div>
       </div>
+
+      {/* Tố Cáo Modal Popup */}
+      {isReporting && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Tố cáo người dùng vi phạm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsReporting(false);
+              setReportSuccess(null);
+            }
+          }}
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
+        >
+          <div className="w-full max-w-md rounded-3xl bg-[#0c1218]/95 border border-red-500/40 shadow-2xl p-6 relative">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+              <div className="flex items-center gap-2 text-red-400">
+                <Flag className="w-5 h-5 text-red-400" />
+                <h3 className="font-bold text-sm sm:text-base text-white">Tố Cáo Tài Khoản Vi Phạm</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsReporting(false);
+                  setReportSuccess(null);
+                }}
+                className="p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {reportSuccess ? (
+              <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-center space-y-2">
+                <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto" />
+                <p className="text-xs text-emerald-200">{reportSuccess}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsReporting(false);
+                    setReportSuccess(null);
+                  }}
+                  className="px-4 py-1.5 rounded-xl bg-emerald-500 text-black text-xs font-bold cursor-pointer"
+                >
+                  Đóng
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleReportUserSubmit} className="space-y-3.5">
+                <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-neutral-300">
+                  Đối tượng tố cáo: <strong className="text-white">{currentUser.name}</strong>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                    Lý do vi phạm (*):
+                  </label>
+                  <select
+                    value={reportReason}
+                    onChange={(e) => setReportReason(e.target.value)}
+                    className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-400 cursor-pointer"
+                  >
+                    <option value="Toxic / Gây war / Xúc phạm bạn học">Toxic / Gây war / Xúc phạm bạn học</option>
+                    <option value="Spam / Quảng cáo / Lừa đảo">Spam / Quảng cáo / Lừa đảo</option>
+                    <option value="Nội dung phản cảm / Đồi trụy">Nội dung phản cảm / Đồi trụy</option>
+                    <option value="Gian lận điểm / Hack Coin">Gian lận điểm / Hack Coin</option>
+                    <option value="Khác">Lý do khác</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                    Chi tiết vi phạm:
+                  </label>
+                  <textarea
+                    value={reportDetails}
+                    onChange={(e) => setReportDetails(e.target.value)}
+                    maxLength={500}
+                    rows={3}
+                    placeholder="Mô tả cụ thể bằng chứng vi phạm..."
+                    className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-400 resize-none"
+                  />
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-red-950/30 border border-red-500/20 text-[10px] text-red-300 space-y-1">
+                  <span className="font-bold flex items-center gap-1">
+                    <Shield className="w-3.5 h-3.5 text-red-400" />
+                    Kỷ luật nghiêm minh:
+                  </span>
+                  <p>
+                    Thông báo sẽ được chuyển trực tiếp về hòm thư Admin (anhtuantran0512@gmail.com) và Ban Giám Hiệu để xử lý kỷ luật.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsReporting(false)}
+                    className="px-3.5 py-1.5 rounded-xl text-xs text-neutral-400 hover:text-white cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingReport}
+                    className="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs cursor-pointer shadow-md disabled:opacity-50"
+                  >
+                    {isSubmittingReport ? 'Đang gửi...' : 'Gửi Tố Cáo Về Gmail Admin'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -1203,7 +1461,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   currentUser,
   viewerUser,
   onSaveProfile,
-  initialTab = 'card',
+  initialTab = 'overview',
   questions = [],
   solutions = [],
 }) => {

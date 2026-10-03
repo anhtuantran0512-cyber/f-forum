@@ -9,6 +9,7 @@ import type { DimensionView, User } from './types';
 import { AuthProvider } from './context/AuthContext';
 import { GODRAY_PRESETS } from './utils/godrays';
 import { safeStorage } from './utils/storage';
+import { PageResourceLoader } from './components/PageResourceLoader';
 
 const LandingPage = lazy(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
 const ClubsView = lazy(() => import('./components/views/ClubsView').then(m => ({ default: m.ClubsView })));
@@ -74,8 +75,9 @@ export const App: React.FC = () => {
     adminDeleteChatMessage,
   } = useForumStore();
 
+  const [isResourceLoading, setIsResourceLoading] = useState(true);
   const [isFocusModeOpen, setIsFocusModeOpen] = useState(false);
-  const [profileInitialTab, setProfileInitialTab] = useState<'card' | 'stats' | 'shop' | 'activity' | 'edit'>('card');
+  const [profileInitialTab, setProfileInitialTab] = useState<'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit'>('overview');
   const [targetProfileUser, setTargetProfileUser] = useState<User | null>(null);
   const [scrollInsideCinema, setScrollInsideCinema] = useState(false);
   const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>('login');
@@ -139,7 +141,7 @@ export const App: React.FC = () => {
   );
 
   const handleOpenProfile = (
-    tab: 'card' | 'stats' | 'shop' | 'activity' | 'edit' = 'card',
+    tab: 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit' = 'overview',
     userToView?: { id: string; name: string; avatar: string; email?: string; level?: number }
   ) => {
     if (userToView) {
@@ -176,7 +178,7 @@ export const App: React.FC = () => {
   };
 
   const handleOpenUserProfile = (userToView?: { id: string; name: string; avatar: string; email?: string; level?: number }) => {
-    handleOpenProfile('card', userToView);
+    handleOpenProfile('overview', userToView);
   };
 
   const handleToggleChat = () => {
@@ -503,6 +505,11 @@ export const App: React.FC = () => {
           xp={currentUser.xp}
           onAddXP={addXP}
         />
+      )}
+
+      {/* CodeFronts .la-08 Healthcare Appointment & Resource Loading Animation */}
+      {isResourceLoading && (
+        <PageResourceLoader onLoaded={() => setIsResourceLoading(false)} />
       )}
 
       </div>

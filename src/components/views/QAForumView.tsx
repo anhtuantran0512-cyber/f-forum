@@ -38,6 +38,7 @@ import {
 import { DEFAULT_AVATAR, handleImageError, handleVideoError } from '../../utils/mediaFallback';
 import { MASTER_ADMIN_CONFIG } from '../../config/admin';
 import { pushNotification } from '../../utils/notifications';
+import { LeaderboardWidget } from './LeaderboardWidget';
 
 const MATH_SYMBOLS = [
   '√', 'π', '∑', '∫', '≤', '≥', 'α', 'β', '∞', '∆',
@@ -525,8 +526,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           </div>
         </div>
 
-        {/* Questions Feed (Scrollable when standalone) */}
-        <div className={`flex-1 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-3 pb-12`}>
+        {/* Main Content Area: Questions Feed (Col 8) + Leaderboard & Ask CTA Widget (Col 4) */}
+        <div className={`flex-1 ${isEmbedded ? '' : 'overflow-hidden'} grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0 pb-6`}>
+          {/* Left: Questions Feed */}
+          <div className={`lg:col-span-8 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-3 pb-6`}>
           {filteredQuestions.length === 0 ? (
             <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-neutral-400 rounded-2xl liquid-glass bg-white/5 border border-white/10 space-y-2">
               <HelpCircle className="w-10 h-10 text-neutral-500 mb-1" />
@@ -750,6 +753,22 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
             })
           )}
+          </div>
+
+          {/* Right Sidebar: Leaderboard & "Bạn muốn hỏi điều gì?" Widget */}
+          <div className={`lg:col-span-4 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-4 pb-6`}>
+            <LeaderboardWidget
+              currentUser={currentUser}
+              onOpenProfile={onOpenProfile}
+              onOpenAskModal={() => {
+                if (!currentUser) {
+                  onOpenLoginModal?.();
+                } else {
+                  setIsAskModalOpen(true);
+                }
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -1467,10 +1486,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       setActiveAuthorPopover(null);
                       onOpenProfile(user);
                     }}
-                    className="w-full py-2 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-300 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                    className="w-full py-2.5 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-98"
                   >
-                    <UserIcon className="w-3.5 h-3.5" />
-                    <span>Xem Hồ Sơ Chi Tiết</span>
+                    <UserIcon className="w-4 h-4 text-cyan-400" />
+                    <span>Trang Cá Nhân (Xem đầy đủ thông tin & tất cả huy hiệu)</span>
                   </button>
                 )}
 
@@ -1481,10 +1500,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     setActiveAuthorPopover(null);
                     setReportModalUser({ id: user.id, name: user.name });
                   }}
-                  className="w-full py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  className="w-full py-2.5 px-3 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-98"
                 >
-                  <Flag className="w-3.5 h-3.5 text-red-400" />
-                  <span>Tố Cáo Tài Khoản Này</span>
+                  <Flag className="w-4 h-4 text-red-400" />
+                  <span>Tố Cáo Tài Khoản Vi Phạm (Gửi Gmail anhtuantran0512@gmail.com)</span>
                 </button>
               </div>
             </div>
@@ -1498,6 +1517,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           role="dialog"
           aria-modal="true"
           aria-label="Tố cáo tài khoản vi phạm"
+          onClick={e => {
+            if (e.target === e.currentTarget) {
+              setReportModalUser(null);
+              setReportSuccessMsg(null);
+            }
+          }}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
         >
           <div className="liquid-glass w-full max-w-md rounded-3xl bg-neutral-950/95 border border-red-500/40 shadow-2xl p-6 relative">
