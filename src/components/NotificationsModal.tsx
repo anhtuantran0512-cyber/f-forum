@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
@@ -111,7 +112,6 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
     safeStorage.setItem('fforum_notifications', JSON.stringify(notifications));
   }, [notifications, unreadCount, onUnreadCountChange]);
 
-  // Synchronize when other components trigger new notifications
   useEffect(() => {
     const handleSync = () => {
       const saved = safeStorage.getItem('fforum_notifications');
@@ -137,7 +137,6 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
     }
   }, []);
 
-  // Keyboard shortcut & mousedown protection
   useEffect(() => {
     if (!isOpen) return;
 
@@ -274,7 +273,6 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
           transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
         }}
         onClick={(e) => {
-          // Stop propagation so clicking tabs/items inside does not close dialog
           e.stopPropagation();
         }}
       >

@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 import type { DimensionView } from '../../types';
 import { handleVideoError } from '../../utils/mediaFallback';

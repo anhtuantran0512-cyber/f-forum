@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   X,
@@ -57,7 +58,6 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
   const [activeTab, setActiveTab] = useState<'attendance' | 'gifts' | 'quiz'>('attendance');
   const [tipIndex, setTipIndex] = useState(0);
 
-  // Attendance state
   const [attendedDays, setAttendedDays] = useState<number[]>(() => {
     const saved = safeStorage.getItem('fforum_attended_days');
     return saved ? JSON.parse(saved) : [1];
@@ -72,13 +72,11 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
     return lastClaim === today;
   });
 
-  // Gift Boxes state: { blue: number, gold: number, red: number }
   const [boxes, setBoxes] = useState<{ blue: number; gold: number; red: number }>(() => {
     const saved = safeStorage.getItem('fforum_mystery_boxes');
     return saved ? JSON.parse(saved) : { blue: 1, gold: 0, red: 0 };
   });
 
-  // Quiz state
   const [quizAnswered, setQuizAnswered] = useState<boolean>(() => {
     const lastQuiz = safeStorage.getItem('fforum_last_quiz_date');
     const today = new Date().toISOString().slice(0, 10);
@@ -95,7 +93,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
     setSelectedOption(index);
     const isCorrect = index === TRIVIA_QUESTIONS[0].correct;
     const today = new Date().toISOString().slice(0, 10);
-    const reward = isCorrect ? Math.floor(Math.random() * 6) + 5 : 0; // 5 - 10 Coin
+    const reward = isCorrect ? Math.floor(Math.random() * 6) + 5 : 0;
 
     setQuizResult({ correct: isCorrect, reward });
     setQuizAnswered(true);
@@ -106,7 +104,6 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
     }
   }, [quizAnswered, selectedOption, onRewardCoin]);
 
-  // Tips cycling
   useEffect(() => {
     const interval = setInterval(() => {
       setTipIndex((prev) => (prev + 1) % TIPS.length);
@@ -114,7 +111,6 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // Quiz timer countdown
   useEffect(() => {
     if (activeTab !== 'quiz' || quizAnswered || selectedOption !== null) return;
     const timer = setInterval(() => {
@@ -141,7 +137,6 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
     safeStorage.setItem('fforum_attended_days', JSON.stringify(nextAttended));
     safeStorage.setItem('fforum_last_claim_date', today);
 
-    // Milestone box awards
     const nextBoxes = { ...boxes };
     if (currentDay === 5) nextBoxes.blue += 1;
     if (currentDay === 10) nextBoxes.gold += 1;
@@ -149,7 +144,6 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
     setBoxes(nextBoxes);
     safeStorage.setItem('fforum_mystery_boxes', JSON.stringify(nextBoxes));
 
-    // Award +25 Coin for check-in
     onRewardCoin?.(25, `Điểm danh ngày ${currentDay}`);
   };
 
@@ -581,7 +575,6 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
   );
 };
 
-// Streak Flame Widget Component with GPU-accelerated animated fire & aura
 export const StreakFlameWidget: React.FC<{
   streakCount: number;
   onClick: () => void;

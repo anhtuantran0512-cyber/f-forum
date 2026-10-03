@@ -1,7 +1,7 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 import { getTierForLevel } from '../utils/tier';
 
-// 1. HỌC SINH (Level 1-5): Mầm non 1 lá xanh tươi
 export const Tier1HocSinh = ({ size = 28 }: { size?: number }) => (
   <svg
     width={size}
@@ -35,7 +35,6 @@ export const Tier1HocSinh = ({ size = 28 }: { size?: number }) => (
   </svg>
 );
 
-// 2. HỌC SINH GIỎI (Level 6-15): Cặp lá kép đối xứng
 export const Tier2HocSinhGioi = ({ size = 28 }: { size?: number }) => (
   <svg
     width={size}
@@ -77,7 +76,6 @@ export const Tier2HocSinhGioi = ({ size = 28 }: { size?: number }) => (
   </svg>
 );
 
-// 3. HỌC SINH XUẤT SẮC (Level 16-30): Nhánh 3 lá xòe nở hoa
 export const Tier3HocSinhXuatSac = ({ size = 28 }: { size?: number }) => (
   <svg
     width={size}
@@ -108,7 +106,6 @@ export const Tier3HocSinhXuatSac = ({ size = 28 }: { size?: number }) => (
   </svg>
 );
 
-// 4. THÔNG THÁI (Level 31-50): Lăng kính 4 lá tinh hoa phát sáng Cyan
 export const Tier4ThongThai = ({ size = 28 }: { size?: number }) => (
   <svg
     width={size}
@@ -141,7 +138,6 @@ export const Tier4ThongThai = ({ size = 28 }: { size?: number }) => (
   </svg>
 );
 
-// 5. TÀI NĂNG (Level 51-75): Ngôi sao tri thức 5 cánh lam saphir rực rỡ
 export const Tier5TaiNang = ({ size = 28 }: { size?: number }) => (
   <svg
     width={size}
@@ -176,7 +172,6 @@ export const Tier5TaiNang = ({ size = 28 }: { size?: number }) => (
   </svg>
 );
 
-// 6. THIÊN TÀI (Level 76-105): Bông lúa mì vàng trĩu hạt kết hợp mặt trời
 export const Tier6ThienTai = ({ size = 28 }: { size?: number }) => (
   <svg
     width={size}
@@ -215,7 +210,6 @@ export const Tier6ThienTai = ({ size = 28 }: { size?: number }) => (
   </svg>
 );
 
-// 7. BẬC THẦY (Level 106-130): Ngọn đuốc trí tuệ & Vương miện hồng ngọc
 export const Tier7BacThay = ({ size = 28 }: { size?: number }) => (
   <svg
     width={size}
@@ -256,7 +250,6 @@ export const Tier7BacThay = ({ size = 28 }: { size?: number }) => (
   </svg>
 );
 
-// 8. CHUYÊN GIA (Level 131-150): Tinh thể vũ trụ tím huyền bí & Vầng hào quang
 export const Tier8ChuyenGia = ({ size = 28 }: { size?: number }) => (
   <svg
     width={size}
@@ -321,7 +314,6 @@ export const TierSvg = ({
   }
 };
 
-// Tier Badge Component with Tooltip
 interface TierBadgeProps {
   level: number;
   size?: number;
@@ -366,7 +358,6 @@ export const TierBadge: React.FC<TierBadgeProps> = ({
   );
 };
 
-// Super Admin Verified Tick
 export const AdminVerifiedBadge: React.FC<{
   size?: number;
   tooltipPosition?: 'top' | 'bottom';

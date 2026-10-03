@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, ArrowUpRight, ChevronDown, Compass, HelpCircle, MousePointerClick } from 'lucide-react';
 import type { DimensionView } from '../../types';
@@ -33,7 +34,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
   streakCount = 1,
   onOpenDaily,
 }) => {
-  // Alternating headline: 3s for "Diễn Đàn Học Sinh F-Forum", 4s for "Nơi Khai Phóng Tiềm Năng Tuổi Trẻ"
   const [headlinePhase, setHeadlinePhase] = useState<0 | 1>(0);
 
   useEffect(() => {

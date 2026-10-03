@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 import { BadgeCheck, Quote, Star } from 'lucide-react';
 import { Marquee, Reveal, SectionHeading } from '../LandingPrimitives';

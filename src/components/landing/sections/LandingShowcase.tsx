@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, MousePointerClick } from 'lucide-react';
 import { ArenaMock, ClubsMock, QAMock } from '../LandingMocks';

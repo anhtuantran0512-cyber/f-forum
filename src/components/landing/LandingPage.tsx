@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect } from 'react';
 import type { User } from '../../types';
 import { safeStorage } from '../../utils/storage';
@@ -40,8 +41,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   solvedQuestions,
   totalClubs,
 }) => {
-  // Remember that the visitor has met the marketing surface so they land
-  // straight in the product on their next visit.
   useEffect(() => {
     safeStorage.setItem('fforum_landing_seen', 'true');
   }, []);

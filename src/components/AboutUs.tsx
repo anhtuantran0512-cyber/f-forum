@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   ShieldCheck,
@@ -39,9 +40,8 @@ interface AboutUsProps {
   isEmbedded?: boolean;
 }
 
-// Total 21 Milestone frames distributed evenly via Golden Ratio
 const N = 21;
-const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5)); // ~2.399963229728653
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
 interface FibonacciPoint {
   index: number;
@@ -52,7 +52,6 @@ interface FibonacciPoint {
   lon: number;
 }
 
-// Precompute 21 Fibonacci coordinates on unit sphere
 const FIBONACCI_POINTS: FibonacciPoint[] = Array.from({ length: N }, (_, i) => {
   const y = 1 - (i / (N - 1)) * 2;
   const rad = Math.sqrt(Math.max(0, 1 - y * y));
@@ -79,37 +78,30 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
   const aboutData = customAboutData || localAboutData;
 
-  // View presentation mode: 'sphere' (3D Fibonacci sphere) | 'grid' (flat responsive bento grid)
   const [viewMode, setViewMode] = useState<'sphere' | 'grid'>('sphere');
   const [isFullscreenStage, setIsFullscreenStage] = useState(false);
   const [sphereRadius, setSphereRadius] = useState(360);
 
-  // FLIP Lightbox Plate Inspection State
   const [activeLightboxMilestone, setActiveLightboxMilestone] = useState<MilestoneItem | null>(null);
   const [lightboxSourceRect, setLightboxSourceRect] = useState<DOMRect | null>(null);
   const [lightboxMilestoneIndex, setLightboxMilestoneIndex] = useState<number | null>(null);
   const [isLightboxEntering, setIsLightboxEntering] = useState(false);
 
-  // Admin In-Place Milestone Editor inside Lightbox
   const [isEditingInLightbox, setIsEditingInLightbox] = useState(false);
   const [editingMilestoneData, setEditingMilestoneData] = useState<MilestoneItem | null>(null);
 
-  // Admin Master Content Editor Modal State
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editFormData, setEditFormData] = useState<AboutData>(aboutData);
   const [isSaving, setIsSaving] = useState(false);
   const [saveToast, setSaveToast] = useState(false);
 
-  // Quick Avatar Editor Modal (URL or File Upload)
   const [isAvatarPromptOpen, setIsAvatarPromptOpen] = useState(false);
   const [avatarInputUrl, setAvatarInputUrl] = useState('');
   const avatarFileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Quick Inline Field Editor Modal for Spotlight (Name, Role, Bio)
   const [quickFieldTarget, setQuickFieldTarget] = useState<'name' | 'role' | 'bio' | null>(null);
   const [quickFieldValue, setQuickFieldValue] = useState('');
 
-  // 3D Engine DOM references
   const stageRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const orbRef = useRef<HTMLDivElement>(null);
@@ -117,7 +109,6 @@ export const AboutUs: React.FC<AboutUsProps> = ({
   const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const dotRef = useRef<HTMLDivElement>(null);
 
-  // 3D Camera & Interaction Engine State
   const engineState = useRef({
     spin: 0,
     tilt: -4,
@@ -138,7 +129,6 @@ export const AboutUs: React.FC<AboutUsProps> = ({
   });
 
 
-  // Listen for cross-tab sync via BroadcastChannel and Storage events
   useEffect(() => {
     let bc: BroadcastChannel | null = null;
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -190,7 +180,6 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     };
   }, [isEditorOpen, isAvatarPromptOpen, quickFieldTarget, activeLightboxMilestone, isFullscreenStage]);
 
-  // FLIP animation frame trigger
   useEffect(() => {
     if (activeLightboxMilestone && isLightboxEntering) {
       const raf = requestAnimationFrame(() => {
@@ -200,7 +189,6 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     }
   }, [activeLightboxMilestone, isLightboxEntering]);
 
-  // Calculate dynamic Sphere Radius R and Card Width cw based on viewport dimensions
   const updateEngineDimensions = useCallback(() => {
     const stage = stageRef.current;
     const width = stage ? stage.clientWidth : window.innerWidth;
@@ -218,7 +206,6 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     engineState.current.cw = cw;
     setSphereRadius(R);
 
-    // Apply card sizes and spherical origins
     FIBONACCI_POINTS.forEach((pt, i) => {
       const cardEl = cardsRef.current[i];
       if (!cardEl) return;
@@ -237,7 +224,6 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     });
   }, [aboutData.milestones]);
 
-  // RequestAnimationFrame Camera Mathematical Loop & Depth Shading
   useEffect(() => {
     let animId: number;
 
@@ -253,7 +239,6 @@ export const AboutUs: React.FC<AboutUsProps> = ({
       const state = engineState.current;
       const { R } = state;
 
-      // Momentum friction damping 0.94 and auto idle rotation
       if (!state.isDragging) {
         if (Math.abs(state.velX) > 0.002 || Math.abs(state.velY) > 0.002) {
           state.spin += state.velX;
@@ -261,12 +246,10 @@ export const AboutUs: React.FC<AboutUsProps> = ({
           state.velX *= 0.94;
           state.velY *= 0.94;
         } else {
-          // Slow ambient idle drift when user is not interacting
           state.spin += 0.07;
         }
       }
 
-      // Scroll dolly progress p = clamp(scrollY / (innerHeight * 0.16), 0, 1)
       let scrollDolly = 0;
       if (typeof window !== 'undefined') {
         const scrollProg = Math.max(0, Math.min(1, window.scrollY / (Math.max(1, window.innerHeight) * 0.16)));
@@ -278,18 +261,14 @@ export const AboutUs: React.FC<AboutUsProps> = ({
       const sy = state.spin;
       const camZ = state.camZ;
 
-      // 1. World Transform: translateZ(camZ px) rotateY(sy deg) rotateX(sx deg) (NO translateX/Y)
       if (worldRef.current) {
         worldRef.current.style.transform = `translateZ(${camZ}px) rotateY(${sy}deg) rotateX(${sx}deg)`;
       }
 
-      // 2. Headline Transform: Strictly rotateX(-sx deg) rotateY(-sy deg) translateZ(R * 0.62 px)
-      // Keeps text square to camera and optically locked at sphere center
       if (headlineRef.current) {
         headlineRef.current.style.transform = `rotateX(${-sx}deg) rotateY(${-sy}deg) translateZ(${R * 0.62}px)`;
       }
 
-      // 3. Per-card Unit Vector Depth Shading (flat black wash via figure::after, zero blur)
       const sxRad = (sx * Math.PI) / 180;
       const syRad = (sy * Math.PI) / 180;
       const cosX = Math.cos(sxRad);
@@ -301,24 +280,19 @@ export const AboutUs: React.FC<AboutUsProps> = ({
         const cardEl = cardsRef.current[i];
         if (!cardEl) return;
 
-        // Rotation around X axis by sx (in CSS 3D, Y is downward so CSS Y = -pt.y)
         const z1 = -pt.y * sinX + pt.z * cosX;
         const x1 = pt.x;
 
-        // Rotation around Y axis by sy
         const z2 = -x1 * sinY + z1 * cosY;
 
-        // zf ranges from -1 (far side) to +1 (front camera face)
         const zf = z2;
         const d = Math.max(0, Math.min(0.85, (1 - zf) * 0.45));
 
         cardEl.style.setProperty('--d', d.toFixed(3));
         cardEl.style.zIndex = Math.round((zf + 1) * 100).toString();
-        // Prevent clicking cards occluded on back of sphere
         cardEl.style.pointerEvents = zf < -0.2 ? 'none' : 'auto';
       });
 
-      // 4. Custom cursor #dot lerp smoothly follows pointer on fine-pointer devices
       if (dotRef.current && state.hasFinePointer) {
         const { mousePos, dotPos } = state;
         dotPos.x += (mousePos.x - dotPos.x) * 0.18;
@@ -337,9 +311,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     };
   }, [updateEngineDimensions]);
 
-  // Pointer & Touch Drag Handlers (0.13 deg/pixel, pitch clamped within ±32°)
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // Only drag with primary pointer button
     if (e.button !== 0) return;
     engineState.current.isDragging = true;
     engineState.current.lastPointerX = e.clientX;
@@ -359,7 +331,6 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     state.lastPointerX = e.clientX;
     state.lastPointerY = e.clientY;
 
-    // 0.13 deg/pixel sensitivity
     state.velX = dx * 0.13;
     state.velY = -dy * 0.13;
 
@@ -376,14 +347,12 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     }
   };
 
-  // Mouse wheel dolly adjustment
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     const state = engineState.current;
     const { R } = state;
     state.wheelCamZ = Math.max(-R * 0.35, Math.min(R * 0.5, state.wheelCamZ - e.deltaY * 0.22));
   };
 
-  // Lightbox Inspection Trigger with FLIP Source Coordinates
   const handleCardClick = (ms: MilestoneItem, index: number, e: React.MouseEvent<HTMLElement>) => {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
@@ -404,7 +373,6 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     }
   };
 
-  // 3D Card Hover Tilt for Grid Mode
   const handleGridCardMouseMove = (e: React.MouseEvent<HTMLElement>) => {
     const card = e.currentTarget;
     const rect = card.getBoundingClientRect();
@@ -421,7 +389,6 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
   };
 
-  // Helper to convert uploaded File to Base64 Data URL
   const handleFileToDataUrl = (file: File, callback: (dataUrl: string) => void) => {
     if (!file || !file.type.startsWith('image/')) return;
     const reader = new FileReader();
@@ -434,13 +401,11 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // Open Master Editor Modal
   const handleOpenEditor = () => {
     setEditFormData(JSON.parse(JSON.stringify(aboutData)));
     setIsEditorOpen(true);
   };
 
-  // Save Master Editor Data
   const handleSaveAboutData = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!currentUser || !isSuperAdmin) return;
@@ -451,7 +416,6 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     if (onUpdateAbout) {
       onUpdateAbout(updated);
     }
-    // Also broadcast and persist fforum_vinhdanh_records
     saveAboutDataLocally(updated);
     safeStorage.setItem('fforum_vinhdanh_records', JSON.stringify(updated.milestones));
 
@@ -461,7 +425,6 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     setTimeout(() => setSaveToast(false), 3000);
   };
 
-  // Quick In-Place Milestone Save from Lightbox
   const handleSaveMilestoneInLightbox = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser || !isSuperAdmin || !editingMilestoneData || lightboxMilestoneIndex === null) return;
@@ -488,7 +451,6 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     setTimeout(() => setSaveToast(false), 3000);
   };
 
-  // Quick Avatar Save
   const handleQuickAvatarSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser || !isSuperAdmin || !avatarInputUrl.trim()) return;
@@ -513,7 +475,6 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     setTimeout(() => setSaveToast(false), 3000);
   };
 
-  // Quick Bio / Role / Name Save
   const handleOpenQuickField = (field: 'name' | 'role' | 'bio') => {
     setQuickFieldTarget(field);
     setQuickFieldValue(aboutData.founder[field]);
@@ -591,8 +552,6 @@ export const AboutUs: React.FC<AboutUsProps> = ({
           : 'h-[780px] sm:h-[860px] rounded-3xl border border-white/15 shadow-2xl overflow-hidden'
       } ${viewMode === 'grid' ? '!h-auto !min-h-0 !overflow-visible' : ''} ${className}`}
       style={{
-        // 1. Core tokens and typography integration
-        // Fonts: Display Serif "Playfair Display", Clean Sans "Inter"
         fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
       }}
     >
@@ -1025,7 +984,6 @@ export const AboutUs: React.FC<AboutUsProps> = ({
           <div
             className="plate lightbox-dialog relative z-10 w-full max-w-3xl rounded-3xl obsidian-glass border border-cyan-400/40 p-6 sm:p-8 shadow-[0_30px_90px_rgba(0,0,0,0.95)] max-h-[92vh] overflow-y-auto"
             style={{
-              // First-Last-Invert-Play (FLIP) transition timing
               transition: isLightboxEntering
                 ? 'none'
                 : 'transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.35s ease',

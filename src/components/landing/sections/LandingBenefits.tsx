@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 import { ArrowRight, Quote } from 'lucide-react';
 import { Counter, Reveal, SectionHeading, SpotlightCard } from '../LandingPrimitives';

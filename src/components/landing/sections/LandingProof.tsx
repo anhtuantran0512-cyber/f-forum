@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 import { Counter, Marquee, Reveal, SpotlightCard } from '../LandingPrimitives';
 import { TRUST_PILLARS } from '../landingContent';

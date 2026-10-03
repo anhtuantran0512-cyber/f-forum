@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowUp } from 'lucide-react';
 import { useInView, usePrefersReducedMotion, useScrollProgress } from './useLandingMotion';
@@ -106,7 +107,7 @@ export const Counter: React.FC<CounterProps> = ({
     const tick = (now: number) => {
       const elapsed = now - start;
       const t = Math.min(1, elapsed / duration);
-      const eased = 1 - Math.pow(2, -10 * t); // easeOutExpo
+      const eased = 1 - Math.pow(2, -10 * t);
       const currentVal = value * (t === 1 ? 1 : eased);
       setDisplay(currentVal);
 

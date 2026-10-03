@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 import { ArrowUpRight, Check } from 'lucide-react';
 import { Reveal, SectionHeading, SpotlightCard } from '../LandingPrimitives';
@@ -31,7 +32,6 @@ const ACCENTS: Record<string, { text: string; bg: string; ring: string; glow: st
 };
 
 const spanClass = (feature: { id: string; span: 'lg' | 'md' }) => {
-  // The closing "Memory Realm" band stretches the full bento width.
   if (feature.id === 'memory') return 'md:col-span-6';
   return feature.span === 'lg' ? 'md:col-span-4' : 'md:col-span-2';
 };

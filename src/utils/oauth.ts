@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 export interface SocialUserProfile {
   name: string;
   email: string;
@@ -314,7 +315,6 @@ export async function loginWithFacebookPopup(): Promise<SocialUserProfile> {
               }
             );
           } else {
-            // Popup closed by user or permission declined
             reject(new Error('POPUP_CLOSED'));
           }
         },

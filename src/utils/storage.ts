@@ -1,4 +1,4 @@
-// Safe LocalStorage wrapper for private browsing / incognito mode and iframe sandbox environments
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 
 const memoryStore = new Map<string, string>();
 
@@ -10,7 +10,6 @@ export const safeStorage = {
         if (val !== null) return val;
       }
     } catch {
-      // In private browsing or restricted iframes, fall back to memoryStore
     }
     return memoryStore.get(key) ?? null;
   },
@@ -20,7 +19,6 @@ export const safeStorage = {
         window.localStorage.setItem(key, value);
       }
     } catch {
-      // Gracefully ignore QuotaExceededError or SecurityError in private browsing
     }
     memoryStore.set(key, value);
   },
@@ -30,7 +28,6 @@ export const safeStorage = {
         window.localStorage.removeItem(key);
       }
     } catch {
-      // Gracefully ignore
     }
     memoryStore.delete(key);
   },
@@ -40,7 +37,6 @@ export const safeStorage = {
         window.localStorage.clear();
       }
     } catch {
-      // Gracefully ignore
     }
     memoryStore.clear();
   },

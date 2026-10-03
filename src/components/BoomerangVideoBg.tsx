@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useRef, useState } from 'react';
 
 const VIDEO_URL =
@@ -22,7 +23,6 @@ export const BoomerangVideoBg: React.FC = () => {
 
     const ctx = canvas.getContext('2d', { alpha: false });
 
-    // Set canvas dimensions
     const setupCanvas = () => {
       const w = video.videoWidth || 960;
       const h = video.videoHeight || 540;
@@ -37,7 +37,6 @@ export const BoomerangVideoBg: React.FC = () => {
       canvas.height = targetH;
     };
 
-    // Frame capture logic
     const captureFrame = async () => {
       if (isCancelled || video.paused || video.ended) return;
 
@@ -54,7 +53,6 @@ export const BoomerangVideoBg: React.FC = () => {
           frames.push(bitmap);
         }
       } catch {
-        // Cross-origin or context restriction: fallback gracefully to native video loop
         setLoadError(true);
         video.loop = true;
         return;
@@ -68,7 +66,6 @@ export const BoomerangVideoBg: React.FC = () => {
       }
     };
 
-    // Start playback & capture
     const handlePlay = () => {
       setupCanvas();
       captureFrame();
@@ -79,18 +76,16 @@ export const BoomerangVideoBg: React.FC = () => {
         setUseCanvas(true);
         startBoomerangLoop();
       } else {
-        // Fallback: loop video natively
         video.loop = true;
         video.play().catch(() => {});
       }
     };
 
-    // Forward-backward ping-pong at 30fps
     const startBoomerangLoop = () => {
       let currentIdx = 0;
-      let direction = 1; // 1 = forward, -1 = backward
+      let direction = 1;
       let lastTime = performance.now();
-      const frameInterval = 1000 / 30; // 30fps
+      const frameInterval = 1000 / 30;
 
       const renderLoop = (time: number) => {
         if (isCancelled || !ctx) return;
@@ -122,7 +117,6 @@ export const BoomerangVideoBg: React.FC = () => {
     video.addEventListener('ended', handleEnded);
 
     video.play().catch(() => {
-      // autoplay policy handled
     });
 
     return () => {

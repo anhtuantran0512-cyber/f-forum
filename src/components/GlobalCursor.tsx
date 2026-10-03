@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useRef } from 'react';
 
 export const GlobalCursor: React.FC = () => {
@@ -13,7 +14,6 @@ export const GlobalCursor: React.FC = () => {
   });
 
   useEffect(() => {
-    // Only enable on fine pointer devices (mouse/trackpad), never on touch screens
     if (typeof window === 'undefined') return;
     const isFinePointer = window.matchMedia('(pointer: fine)').matches;
     const isHoverCapable = window.matchMedia('(hover: hover)').matches;
@@ -29,7 +29,6 @@ export const GlobalCursor: React.FC = () => {
         state.curY = e.clientY;
       }
 
-      // Check if hovering over clickable / interactive elements
       const target = e.target as HTMLElement | null;
       if (target) {
         const isClickable = Boolean(
@@ -50,7 +49,6 @@ export const GlobalCursor: React.FC = () => {
       const halo = haloRef.current;
 
       if (container && state.isVisible) {
-        // Smooth lerp interpolation factor 0.2 on requestAnimationFrame
         state.curX += (state.mouseX - state.curX) * 0.2;
         state.curY += (state.mouseY - state.curY) * 0.2;
 
@@ -58,7 +56,6 @@ export const GlobalCursor: React.FC = () => {
         container.style.transform = `translate3d(${state.curX}px, ${state.curY}px, 0)`;
 
         if (halo) {
-          // Normal 32px (scale 1.0) -> Hover 48px (scale 1.5)
           const scale = state.isHovering ? 1.5 : 1.0;
           halo.style.transform = `scale(${scale})`;
         }

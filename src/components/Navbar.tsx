@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useRef, useEffect } from 'react';
 import {
   MessageSquare,
@@ -174,7 +175,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const isVertical = navbarPosition === 'left' || navbarPosition === 'right';
 
-  // Liquid navbar sliding pill indicator calculation (Horizontal X-axis & Vertical Y-axis)
   useEffect(() => {
     const updatePill = () => {
       const activeEl = tabRefs.current[currentView];
@@ -202,7 +202,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => window.removeEventListener('fforum_open_daily', handleOpenDaily);
   }, []);
 
-  // Synchronize theme & motion classes on DOM
   useEffect(() => {
     if (theme === 'light') {
       document.documentElement.classList.remove('dark');
@@ -354,7 +353,6 @@ export const Navbar: React.FC<NavbarProps> = ({
         await audioCtxRef.current.resume();
       }
     } catch {
-      // AudioContext resume catch
     }
     const active = toggleAmbientAudio(audioCtxRef.current);
     setIsAudioPlaying(active || isAmbientActive());

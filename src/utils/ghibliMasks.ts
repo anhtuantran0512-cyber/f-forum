@@ -1,8 +1,7 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import type { SubjectTag } from '../types';
 
-// Curated Handcrafted SVG Ghibli Wizard Masks encoded as vector SVG data URIs
 export const GHIBLI_MASKS = [
-  // 1. Howl's Midnight Feathered Wizard Mask
   'data:image/svg+xml;utf8,' +
     encodeURIComponent(
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
@@ -28,7 +27,6 @@ export const GHIBLI_MASKS = [
       </svg>`
     ),
 
-  // 2. No-Face Spirit Wizard Mask (Kaonashi Arcane Edition)
   'data:image/svg+xml;utf8,' +
     encodeURIComponent(
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
@@ -49,7 +47,6 @@ export const GHIBLI_MASKS = [
       </svg>`
     ),
 
-  // 3. Mononoke Sun-Emblem Spirit Mask
   'data:image/svg+xml;utf8,' +
     encodeURIComponent(
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
@@ -73,7 +70,6 @@ export const GHIBLI_MASKS = [
       </svg>`
     ),
 
-  // 4. Calcifer's Arcane Blue-Flame Mask
   'data:image/svg+xml;utf8,' +
     encodeURIComponent(
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
@@ -96,7 +92,6 @@ export const GHIBLI_MASKS = [
       </svg>`
     ),
 
-  // 5. Totoro Moss-Guardian Wizard Mask
   'data:image/svg+xml;utf8,' +
     encodeURIComponent(
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">

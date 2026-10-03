@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 
 export const ShopItemSvg: React.FC<{ type: string; size?: number; className?: string }> = ({
