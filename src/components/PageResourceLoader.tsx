@@ -53,7 +53,7 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
         };
         image.addEventListener('load', finish, { once: true });
         image.addEventListener('error', finish, { once: true });
-        // A failed or stalled third-party image should not hold the screen forever.
+        /* A failed or stalled third-party image should not hold the screen forever. */
         timers.push(setTimeout(finish, 10000));
       })));
       setProgressAtLeast(65);
@@ -77,7 +77,7 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
             new Promise<void>((resolve) => timers.push(setTimeout(resolve, 8000))),
           ]);
         } catch {
-          // Font failures are settled like other failed resources.
+          /* Font failures are settled like other failed resources. */
         }
       }
       setProgressAtLeast(82);

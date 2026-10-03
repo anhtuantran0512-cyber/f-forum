@@ -401,7 +401,7 @@ export function useForumStore() {
                 safeStorage.removeItem('fforum_current_user_email');
               }
             } catch {
-              // Keep browsing as a guest if the server cannot validate a cached session.
+              /* Keep browsing as a guest if the server cannot validate a cached session. */
               setCurrentUser(null);
               safeStorage.removeItem('fforum_current_user_email');
             }

@@ -296,7 +296,7 @@ const ProfileModalInner: React.FC<Omit<ProfileModalProps, 'isOpen'>> = ({
         setSaveMessage('Đã sao chép liên kết hồ sơ.');
       }
     } catch {
-      // Sharing can be dismissed by the user without changing the profile.
+      /* Sharing can be dismissed by the user without changing the profile. */
     }
   };
 
