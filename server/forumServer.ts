@@ -166,6 +166,20 @@ const RETIRED_VIRTUAL_DOMAIN = '@sv.f-forum.vn';
 const EMAIL_PATTERN = /^[^\s@,;:]+@[^\s@,;:.]+(\.[^\s@,;:.]+)+$/;
 
 /** Chỉ giữ tài khoản thật: bỏ bản ghi mô phỏng cũ và bản ghi hỏng */
+/** Số nguyên không âm, dùng để lấp các trường số của bản ghi cũ. */
+const asCount = (value: unknown, fallback = 0): number => {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : fallback;
+};
+
+/**
+  Chuẩn hoá bản ghi người dùng nạp từ đĩa.
+
+  Chỉ spread thô (`{ ...raw, email }`) là không đủ: tệp dữ liệu viết ra từ bản cũ
+  thiếu hẳn những trường thêm về sau (ví dụ `scopedClubIds`). Bản ghi đó đi thẳng
+  vào store với trường `undefined`, và chỗ nào spread/cộng dồn trường ấy sẽ ném
+  `TypeError` — làm dở dang cả một luồng đang mutate nhiều bước.
+*/
 function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
   const out: Record<string, UserRecord> = {};
   if (!rawUsers || typeof rawUsers !== 'object') return out;
@@ -174,7 +188,19 @@ function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
     const email = typeof raw.email === 'string' ? raw.email.trim().toLowerCase() : '';
     if (!email || !email.includes('@') || email.endsWith(RETIRED_VIRTUAL_DOMAIN)) return;
     if (!raw.id || !raw.name) return;
-    out[email] = { ...raw, email };
+    out[email] = {
+      ...raw,
+      email,
+      role: typeof raw.role === 'string' ? raw.role : 'STUDENT',
+      avatar: typeof raw.avatar === 'string' ? raw.avatar : '',
+      level: asCount(raw.level, 1),
+      xp: asCount(raw.xp),
+      fPoints: asCount(raw.fPoints, asCount(raw.xp)),
+      coin: asCount(raw.coin, 100),
+      scopedClubIds: Array.isArray(raw.scopedClubIds)
+        ? raw.scopedClubIds.map((c: unknown) => String(c))
+        : [],
+    };
   });
   return out;
 }
@@ -817,13 +843,16 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 break;
               }
               const clubId = payload;
+              /* Cùng chốt idempotent như đường HTTP. */
+              const pendingClub = store.clubs.find(c => c.id === clubId);
+              if (!pendingClub || pendingClub.status === 'APPROVED') break;
               store.clubs = store.clubs.map(c => (c.id === clubId ? { ...c, status: 'APPROVED' } : c));
               const club = store.clubs.find(c => c.id === clubId);
               if (club) {
                 const creator = Object.values(store.users).find(u => u.id === club.leaderId);
                 if (creator) {
                   creator.role = creator.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'CLUB_LEADER';
-                  creator.scopedClubIds = Array.from(new Set([...creator.scopedClubIds, clubId]));
+                  creator.scopedClubIds = Array.from(new Set([...(creator.scopedClubIds || []), clubId]));
                   creator.xp += 250;
                   creator.fPoints = (creator.fPoints ?? creator.xp) + 250;
                   creator.level = calculateLevelFromXP(creator.xp);
@@ -1871,6 +1900,12 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const club = store.clubs.find(c => c.id === clubId);
         if (!club) {
           sendJson(res, 404, { success: false, message: 'Không tìm thấy câu lạc bộ này!' });
+          return;
+        }
+        /* Idempotent: duyệt lại một CLB đã duyệt không được thăng cấp và cộng
+           250 XP lần nữa. Không có chốt này thì bấm duyệt bao nhiêu lần cũng được. */
+        if (club.status === 'APPROVED') {
+          sendJson(res, 200, { success: true, club, alreadyApproved: true, message: 'Câu lạc bộ này đã được duyệt trước đó.' });
           return;
         }
 

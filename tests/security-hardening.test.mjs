@@ -2079,3 +2079,103 @@ test('40. Tin chat phát lại không được đếm chưa đọc lần hai, v�
     'chatMessagesRef phải được đồng bộ trong effect'
   );
 });
+
+test('41. Bản ghi người dùng kiểu cũ thiếu trường không làm sập luồng duyệt CLB', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fforum-legacy-'));
+  process.env.FFORUM_DATA_DIR = dir;
+
+  /* Gieo một bản ghi kiểu cũ: có trước khi `scopedClubIds` tồn tại, nên thiếu
+     hẳn trường này. `sanitizeUsers` chỉ spread thô nên nó đi thẳng vào store. */
+  fs.writeFileSync(path.join(dir, 'forum-data.json'), JSON.stringify({
+    users: {
+      'legacy@example.com': {
+        id: 'user-legacy-0001',
+        name: 'Người Dùng Cũ',
+        email: 'legacy@example.com',
+        avatar: '',
+        role: 'STUDENT',
+        level: 3,
+        xp: 400,
+        coin: 100,
+      },
+    },
+    passwords: {},
+    clubs: [{
+      id: 'club-legacy-0001',
+      name: 'CLB Từ Bản Cũ',
+      leaderId: 'user-legacy-0001',
+      leaderName: 'Người Dùng Cũ',
+      status: 'PENDING',
+      foundingMembers: [],
+      purpose: 'Kiểm tra khả năng tương thích ngược.',
+      createdAt: '2024-01-01',
+    }],
+    clubPosts: [], questions: [], solutions: [], chatMessages: [], feedbacks: [], reports: [],
+  }));
+
+  const env = await createTestServer();
+  try {
+    const sync0 = await get(env.baseUrl, '/api/sync');
+    const legacy = sync0.data.data.users['legacy@example.com'];
+    assert.ok(legacy, 'Bản ghi kiểu cũ phải nạp được');
+    /* sanitizeUsers phải lấp trường thiếu ngay khi nạp, không để undefined lọt
+       vào store rồi nổ ở chỗ nào đó sâu bên trong một luồng mutate nhiều bước. */
+    assert.ok(
+      Array.isArray(legacy.scopedClubIds),
+      `scopedClubIds phải được chuẩn hoá thành mảng, thực tế = ${JSON.stringify(legacy.scopedClubIds)}`
+    );
+    assert.equal(legacy.xp, 400, 'xp gốc phải giữ nguyên');
+
+    const adminLogin = await post(env.baseUrl, '/api/auth/login', {
+      email: 'anhtuantran0512@gmail.com',
+      password: 'admin123',
+    });
+    assert.equal(adminLogin.status, 200, `admin login: ${JSON.stringify(adminLogin.data)}`);
+
+    /* Đường WS: nhánh này spread `[...creator.scopedClubIds, clubId]` KHÔNG phòng
+       undefined, nên scopedClubIds của bản ghi kiểu cũ làm ném TypeError. */
+    const adminWs = await connectWs(env.wsUrl, adminLogin.data.token);
+    try {
+      adminWs.send('APPROVE_CLUB', 'club-legacy-0001');
+      await sleep(400);
+    } finally {
+      adminWs.ws.close();
+    }
+
+    /* Đường HTTP (đã có `|| []`) cũng phải chạy được và cho cùng kết quả. */
+    const approved = await post(env.baseUrl, '/api/clubs/approve', {
+      clubId: 'club-legacy-0001',
+    }, adminLogin.data.token);
+    assert.equal(approved.status, 200, `duyệt CLB của user kiểu cũ: ${JSON.stringify(approved.data)}`);
+    assert.equal(approved.data.club.status, 'APPROVED', 'Duyệt qua WS phải có hiệu lực');
+
+    const sync1 = await get(env.baseUrl, '/api/sync');
+    const after = sync1.data.data.users['legacy@example.com'];
+    assert.equal(after.role, 'CLUB_LEADER', 'Chủ nhiệm kiểu cũ vẫn phải được thăng cấp');
+    assert.ok(
+      Array.isArray(after.scopedClubIds) && after.scopedClubIds.includes('club-legacy-0001'),
+      `scopedClubIds phải được tạo và gắn CLB, thực tế = ${JSON.stringify(after.scopedClubIds)}`
+    );
+    /*
+      TRƯỚC KHI VÁ, nhánh WS ném TypeError ngay tại dòng gán scopedClubIds nên các
+      bước SAU đó không bao giờ chạy: xp đứng ở 400 thay vì 650, và
+      persistStoreToDisk() không được gọi — CLB hiện là APPROVED trong RAM nhưng
+      vẫn PENDING trên đĩa. Phải kiểm cả hai để không lọt trạng thái dở dang.
+    */
+    assert.equal(after.xp, 650, `xp phải được cộng 250, thực tế = ${after.xp}`);
+
+    await sleep(400); /* chờ persistStoreToDisk (debounce 200ms) */
+    const onDisk = JSON.parse(fs.readFileSync(path.join(dir, 'forum-data.json'), 'utf8'));
+    const diskClub = (onDisk.clubs || []).find((c) => c.id === 'club-legacy-0001');
+    assert.equal(diskClub?.status, 'APPROVED', 'Trạng thái duyệt phải được ghi xuống đĩa');
+    const diskUser = onDisk.users['legacy@example.com'];
+    assert.equal(diskUser?.xp, 650, 'XP phải được ghi xuống đĩa');
+    assert.ok(
+      Array.isArray(diskUser?.scopedClubIds) && diskUser.scopedClubIds.includes('club-legacy-0001'),
+      'scopedClubIds phải được ghi xuống đĩa'
+    );
+  } finally {
+    await env.close();
+    process.env.FFORUM_DATA_DIR = DATA_DIR;
+  }
+});
