@@ -35,8 +35,15 @@ Hệ thống được thiết kế theo giao diện kính mờ hiện đại, h�
 
 ### 2. Câu Lạc Bộ & Hoạt Động Ngoại Khóa
 - Danh sách các câu lạc bộ học thuật, thể thao, nghệ thuật và tình nguyện.
+- **Nộp hồ sơ thành lập CLB** — học sinh đăng nhập gửi hồ sơ, hồ sơ luôn ở trạng
+  thái *Chờ duyệt* cho tới khi Ban Quản Trị chấp thuận. Chủ nhiệm được thăng cấp
+  `CLUB_LEADER` kèm 250 XP và gắn CLB vào phạm vi quản lý của mình.
+- **Duyệt / từ chối hồ sơ** trong trang quản trị, kèm lý do từ chối ghi lại trên
+  hồ sơ để người nộp biết cần bổ sung gì.
 - Đăng bài thông báo lịch sinh hoạt, tuyển thành viên và hình ảnh hoạt động.
 - Thành viên có thể theo dõi và tham gia câu lạc bộ yêu thích.
+- Toàn bộ hồ sơ và bài viết CLB **lưu trên máy chủ**, nên dữ liệu hiện ra giống
+  nhau trên mọi thiết bị và không mất khi xoá bộ nhớ đệm trình duyệt.
 
 ### 3. Phòng Chat Trực Tuyến (Live Chat)
 - Trò chuyện và thảo luận bài học trực tiếp theo thời gian thực (Real-time).
@@ -113,7 +120,7 @@ Máy chủ không tin dữ liệu client gửi lên. Toàn bộ tầng xác th�
 Chi tiết từng lỗ hổng đã tìm thấy và cách vá: **[docs/SECURITY.md](docs/SECURITY.md)**.
 
 ```bash
-# 22 bài kiểm thử bảo mật, chạy trên máy chủ thật qua HTTP/WebSocket
+# 26 bài kiểm thử bảo mật, chạy trên máy chủ thật qua HTTP/WebSocket
 node --test tests/security-hardening.test.mjs
 ```
 
@@ -161,7 +168,7 @@ Sau khi chạy lệnh, mở trình duyệt web và truy cập địa chỉ: `htt
 # Kiểm tra lỗi cú pháp với Oxlint
 npx oxlint
 
-# Chạy toàn bộ 118 bài kiểm thử tự động
+# Chạy toàn bộ 122 bài kiểm thử tự động
 npm test
 
 # Biên dịch mã nguồn cho môi trường sản xuất
@@ -191,7 +198,7 @@ f-forum/
 │   ├── index.css           # Cấu hình giao diện và hiệu ứng kính
 │   └── main.tsx            # Điểm khởi động ứng dụng
 ├── docs/                   # Tài liệu thiết kế & bảo mật
-├── tests/                  # Bộ bài kiểm thử tự động (118 bài)
+├── tests/                  # Bộ bài kiểm thử tự động (122 bài)
 └── package.json            # Thông tin dự án và danh sách thư viện
 ```
 

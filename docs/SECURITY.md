@@ -264,6 +264,78 @@ tại thời điểm dùng.
 
 ---
 
+## 16. Server tin `maxLength` của client
+
+**Mức độ:** Cao · **Vị trí:** `POST /api/chat`, `POST /api/feedback`
+
+Ô nhập có `maxLength={300}`, nhưng `maxLength` chỉ là thuộc tính HTML — một
+request thủ công gửi được body tới 25 MB. Nội dung đó được lưu vào kho rồi phát
+cho **mọi** client đang kết nối.
+
+`authorLevel` cũng lấy thẳng từ body, nên ai cũng tự khai "cấp 150" cho tin nhắn
+của mình.
+
+**Đã vá:** cắt nội dung ở server (chat 500 ký tự, góp ý 4000), chặn `400` khi quá
+dài hoặc chỉ có khoảng trắng, rate limit theo IP, và `authorLevel` đọc từ bản ghi
+thật. Đường WS `NEW_CHAT_MESSAGE` cũng bị bỏ sót trong lần vá đầu — test #24 bắt
+được.
+
+---
+
+## 17. Kho dữ liệu phình vô hạn
+
+**Mức độ:** Trung bình · **Vị trí:** `store.chatMessages`, `store.feedbacks`, `store.reports`
+
+`store.chatMessages.push(...)` không có trần. Mảng này được serialize **toàn bộ**
+mỗi lần ghi đĩa và trả về **nguyên khối** cho mọi client qua `/api/sync`, nên
+diễn đàn chạy càng lâu thì cả hai đường càng chậm.
+
+**Đã vá:** trần 500 bản ghi mới nhất cho mỗi kho, áp dụng cho cả đường HTTP lẫn WS.
+
+---
+
+## 18. Bốn endpoint câu lạc bộ không tồn tại
+
+**Mức độ:** Cao (mất dữ liệu) · **Vị trí:** `POST /api/clubs`, `/approve`, `/reject`, `/posts`
+
+Client gọi bốn địa chỉ này cho mọi thao tác CLB, nhưng server **không có route
+nào** — tất cả trả `404`. Mỗi lời gọi lại kết thúc bằng `.catch(() => {})`, nuốt
+lặng lỗi, nên giao diện vẫn báo "Hồ sơ thành lập CLB đã gửi!".
+
+Phần còn lại đi qua `BroadcastChannel`, chỉ tới các tab **cùng trình duyệt**.
+Handler WS cho CLB ở server thì có sẵn nhưng client không bao giờ gửi loại thông
+điệp đó. Kết quả: lập CLB trên điện thoại thì mọi thiết bị khác và mọi người dùng
+khác đều không thấy gì, và dữ liệu biến mất khi xoá bộ nhớ đệm.
+
+Xác nhận bằng HTTP thật trước khi sửa:
+
+```
+POST /api/clubs          -> HTTP 404
+POST /api/clubs/approve  -> HTTP 404
+POST /api/clubs/reject   -> HTTP 404
+POST /api/clubs/posts    -> HTTP 404
+```
+
+**Đã vá:** thêm đủ bốn route, có xác thực và kiểm quyền:
+
+| Route | Quyền | Ghi chú |
+|---|---|---|
+| `POST /api/clubs` | Đã đăng nhập | Người sáng lập lấy **thuần từ token**; hồ sơ mới luôn `PENDING` |
+| `POST /api/clubs/approve` | Super Admin | Thăng cấp chủ nhiệm lên `CLUB_LEADER` + 250 XP |
+| `POST /api/clubs/reject` | Super Admin | Ghi `rejectReason`, trả `404` nếu CLB không tồn tại |
+| `POST /api/clubs/posts` | Đã đăng nhập | Tác giả lấy từ phiên, không từ body |
+
+`leaderEmail` / `authorEmail` / `adminEmail` trong body đều **bị bỏ qua** — không ai
+mạo danh người khác hay tự duyệt hồ sơ của mình được. Kho CLB có trần 300, bài
+viết 800. Client nay gửi `authHeaders()`.
+
+Kiểm chứng end-to-end trên dev server (11 bước, toàn bộ đúng kỳ vọng): khách bị
+`401`, tự duyệt bằng `adminEmail` bị `403`, học sinh tự duyệt bị `403`, admin duyệt
+`200` → chủ nhiệm lên `CLUB_LEADER` với 250 XP và `scopedClubIds`, `/api/sync` trả
+CLB lẫn bài viết về cho thiết bị khác.
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -277,6 +349,8 @@ tại thời điểm dùng.
 | Tần suất | Cửa sổ trượt theo IP/email, `429` + `Retry-After` |
 | Social | Xác minh access token với nhà cung cấp, so khớp email |
 | Tố cáo | Hộp thư chỉ Super Admin đọc được; báo cáo sống sót qua khởi động lại |
+| Nội dung | Server tự cắt độ dài, không tin `maxLength` của client; kho dữ liệu có trần |
+| Câu lạc bộ | Lập cần đăng nhập; duyệt/từ chối chỉ Super Admin; người sáng lập lấy từ token |
 
 ## Biến môi trường
 
@@ -287,6 +361,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 22 bài, chạy trên server thật
-npm test                                        # toàn bộ 118 bài
+node --test tests/security-hardening.test.mjs   # 26 bài, chạy trên server thật
+npm test                                        # toàn bộ 122 bài
 ```
