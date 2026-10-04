@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Trophy, ArrowRight, HelpCircle, Sparkles, Medal, Clock, Crown, Minus, Flame } from 'lucide-react';
 import type { User, Question, Solution, ChatMessage } from '../../types';
 import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
@@ -9,7 +9,6 @@ import { StudyPulsePanel } from '../StudyPulsePanel';
 import {
   buildStudyLeaderboard,
   computeStudyTotals,
-  logStudyMinutes,
   periodMinutes,
   readDailyTargetMinutes,
   readStudySessions,
@@ -222,13 +221,6 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
 
   const myPeriodMinutes = currentUser ? periodMinutes(totals, period) : periodMinutes(totals, period);
 
-  const handleLogMinutes = useCallback(
-    (minutes: number) => {
-      logStudyMinutes(minutes, 'manual', currentUser?.email);
-    },
-    [currentUser?.email],
-  );
-
   const formatValue = (m: LeaderboardMember) =>
     metric === 'hours' ? `${(m.minutes / 60).toFixed(1)} giờ` : `${m.points.toLocaleString()} điểm`;
 
@@ -374,7 +366,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
             <p className="text-xs text-neutral-300 mt-2">Chưa có dữ liệu trong kỳ này.</p>
             <p className="text-[10px] text-neutral-500 mt-1">
               {metric === 'hours'
-                ? 'Hoàn thành một phiên Focus 25 phút để mở bảng xếp hạng giờ học!'
+                ? 'Hoàn thành một phiên Pomodoro 25 phút để mở bảng xếp hạng giờ học!'
                 : 'Hỏi đáp, trả lời và thảo luận để trở thành người dẫn đầu!'}
             </p>
           </div>
@@ -443,7 +435,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
 
         {metric === 'hours' && (
           <p className="ff-board__note">
-            Số giờ của bạn lấy từ nhật ký Focus/ghi nhanh; thành viên khác được quy đổi từ XP tích luỹ.
+            Số giờ của bạn lấy từ nhật ký Phòng Tập Trung (mỗi phiên 25 phút); thành viên khác được quy đổi từ XP tích luỹ.
           </p>
         )}
 
@@ -464,7 +456,6 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
         totals={totals}
         weeklyGoalMinutes={weeklyGoal}
         dailyTargetMinutes={dailyTarget}
-        onLogMinutes={handleLogMinutes}
         onOpenFocusMode={onOpenFocusMode}
       />
 

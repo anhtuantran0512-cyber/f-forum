@@ -2849,52 +2849,34 @@ html.light .ff-odo__strip > i { text-shadow: none; }
 }
 .ff-pulse__grid dd { margin-top: 3px; font-size: 13px; font-weight: 800; color: var(--fp-ink); letter-spacing: -0.01em; }
 
-.ff-pulse__log {
+/* Giờ học chỉ ghi tự động từ Phòng Tập Trung → một nút CTA duy nhất, không nút cộng tay */
+.ff-pulse__focus-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
   margin-top: 13px;
-  padding-top: 12px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.09);
-}
-.ff-pulse__log-label { font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--fp-ink-dim); }
-.ff-pulse__log-btns { display: flex; gap: 5px; flex-wrap: wrap; }
-.ff-pulse__log-btn {
-  padding: 5px 9px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 700;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  color: #fcd34d;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.28);
-  cursor: pointer;
-  transition: transform 0.18s ease, background 0.22s ease, box-shadow 0.22s ease;
-}
-.ff-pulse__log-btn:hover {
-  background: rgba(245, 158, 11, 0.2);
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px -10px rgba(245, 158, 11, 0.9);
-}
-.ff-pulse__focus-btn {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 11px;
-  font-size: 11px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 11.5px;
   font-weight: 800;
   letter-spacing: 0.02em;
   color: #0b0e13;
   background: linear-gradient(135deg, #fde68a, #f59e0b);
   border: none;
   cursor: pointer;
-  box-shadow: 0 10px 24px -12px rgba(245, 158, 11, 0.95);
+  box-shadow: 0 12px 26px -14px rgba(245, 158, 11, 0.95);
   transition: transform 0.18s ease, box-shadow 0.22s ease;
 }
-.ff-pulse__focus-btn:hover { transform: translateY(-1px); box-shadow: 0 14px 30px -12px rgba(245, 158, 11, 1); }
+.ff-pulse__focus-btn:hover { transform: translateY(-1px); box-shadow: 0 16px 32px -14px rgba(245, 158, 11, 1); }
+.ff-pulse__hint {
+  margin-top: 8px;
+  font-size: 9.5px;
+  line-height: 1.55;
+  text-align: center;
+  color: rgba(148, 163, 184, 0.9);
+}
 
 /* --- Bảng xếp hạng thế hệ mới -------------------------------------------- */
 .ff-board {
@@ -3235,7 +3217,7 @@ html.light .ff-pulse {
 html.light .ff-pulse::before { background-image: linear-gradient(rgba(16, 24, 39, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(16, 24, 39, 0.05) 1px, transparent 1px); }
 html.light .ff-pulse__ecg { background: linear-gradient(180deg, rgba(14, 165, 233, 0.08), rgba(14, 165, 233, 0.01)); border-color: rgba(14, 165, 233, 0.22); }
 html.light .ff-pulse__grid > div { border-color: rgba(16, 24, 39, 0.07); }
-html.light .ff-pulse__log { border-top-color: rgba(16, 24, 39, 0.12); }
+html.light .ff-pulse__hint { color: rgba(82, 96, 122, 0.95); }
 html.light .ff-pulse__zone > b { color: #b45309; }
 html.light .ff-pulse__zone > span { color: #0369a1; }
 html.light .ff-pulse__eyebrow { color: #0369a1; }

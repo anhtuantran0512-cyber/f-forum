@@ -1,6 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
-import { Activity, Heart, Target, Timer, Flame, CalendarDays, TrendingUp } from 'lucide-react';
+import { Heart, Target, Timer, Flame, CalendarDays, TrendingUp } from 'lucide-react';
 import { OdometerDigits } from './OdometerDigits';
 import { formatDuration, type StudyTotals } from '../utils/studyLog';
 
@@ -10,12 +10,12 @@ import { formatDuration, type StudyTotals } from '../utils/studyLog';
  * Bảng "nhịp học tập": nhịp tim, đường ECG và vệt quét đều đập theo ĐÚNG cường
  * độ học hôm nay (animation-duration tính từ số phút thật), nên hình ảnh không
  * nói dối về dữ liệu. Kèm thước đo tiến độ tuần và lưới chỉ số.
+ * Giờ học chỉ được ghi TỰ ĐỘNG từ phiên Phòng Tập Trung, không cộng tay.
  */
 export interface StudyPulsePanelProps {
   totals: StudyTotals;
   weeklyGoalMinutes: number;
   dailyTargetMinutes: number;
-  onLogMinutes: (minutes: number) => void;
   onOpenFocusMode?: () => void;
 }
 
@@ -26,7 +26,6 @@ export const StudyPulsePanel: React.FC<StudyPulsePanelProps> = ({
   totals,
   weeklyGoalMinutes,
   dailyTargetMinutes,
-  onLogMinutes,
   onOpenFocusMode,
 }) => {
   /* Nhịp đập suy ra từ số phút học hôm nay: 56 bpm (nghỉ) → 148 bpm (học căng) */
@@ -159,32 +158,16 @@ export const StudyPulsePanel: React.FC<StudyPulsePanelProps> = ({
         ))}
       </dl>
 
-      {/* Ghi nhanh thời gian học ngoài nền tảng */}
-      <div className="ff-pulse__log">
-        <span className="ff-pulse__log-label inline-flex items-center gap-1.5">
-          <Activity className="w-3.5 h-3.5 text-amber-300" />
-          Ghi nhanh
-        </span>
-        <div className="ff-pulse__log-btns">
-          {[15, 30, 45, 60].map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => onLogMinutes(m)}
-              className="ff-pulse__log-btn"
-              aria-label={`Ghi thêm ${m} phút học`}
-            >
-              +{m}′
-            </button>
-          ))}
-        </div>
-        {onOpenFocusMode && (
-          <button type="button" onClick={onOpenFocusMode} className="ff-pulse__focus-btn">
-            <Target className="w-3.5 h-3.5" />
-            Vào Focus
-          </button>
-        )}
-      </div>
+      {/* Giờ học chỉ ghi tự động từ Phòng Tập Trung — không cộng tay */}
+      {onOpenFocusMode && (
+        <button type="button" onClick={onOpenFocusMode} className="ff-pulse__focus-btn">
+          <Target className="w-3.5 h-3.5" />
+          Vào Phòng Tập Trung để ghi giờ
+        </button>
+      )}
+      <p className="ff-pulse__hint">
+        Giờ học được ghi tự động sau mỗi phiên Pomodoro 25 phút — không cần bấm gì thêm.
+      </p>
     </div>
   );
 };

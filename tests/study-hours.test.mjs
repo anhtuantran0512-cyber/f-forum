@@ -95,9 +95,15 @@ test('5. Bảng nhịp học tập (cnc-21) — nhịp đập và vệt quét su
   assert.ok(pulse.includes('sweepSeconds') && pulse.includes('animationDuration'), 'ECG sweep speed must come from real data');
   assert.ok(pulse.includes('ff-pulse__trace') && pulse.includes("[0, 100, 200, 300, 400, 500]"), 'ECG must repeat the beat 6 times');
   assert.ok(pulse.includes("data-z=\"1\"") && pulse.includes('ff-pulse__marker'), 'Four-zone progress track + marker must exist');
-  assert.ok(pulse.includes('[15, 30, 45, 60]'), 'Quick log buttons must offer 15/30/45/60 minutes');
-  assert.ok(pulse.includes('onLogMinutes(m)'), 'Log buttons must write real study minutes');
+  assert.ok(
+    !pulse.includes('ff-pulse__log') && !pulse.includes('onLogMinutes'),
+    'Manual quick-log buttons must be gone — hours only come from real Pomodoro sessions',
+  );
   assert.ok(pulse.includes('onOpenFocusMode'), 'Panel must be able to jump into Focus mode');
+  assert.ok(
+    pulse.includes('Vào Phòng Tập Trung để ghi giờ') && pulse.includes('không cần bấm gì thêm'),
+    'Panel must point users at the Focus room and explain that logging is automatic',
+  );
   assert.ok(pulse.includes('weeklyGoalMinutes') && pulse.includes('dailyTargetMinutes'), 'Panel must read the goal + target settings');
 
   assert.ok(css.includes('.ff-pulse__heart') && css.includes('@keyframes ffPulseHeart'), 'Heart must beat in CSS');
@@ -135,6 +141,10 @@ test('6. Bảng xếp hạng giờ học — GUI mới, giữ nguyên hợp đ�
   assert.ok(board.includes('ff-podium') && board.includes('[1, 0, 2]'), 'Podium must render silver-gold-bronze order');
   assert.ok(board.includes('ff-row__track') && board.includes('progressOf'), 'List rows must show relative progress bars');
   assert.ok(board.includes('onOpenFocusMode'), 'Board must pass the Focus hook to the gauge panel');
+  assert.ok(
+    !board.includes('logStudyMinutes') && !board.includes("'manual'"),
+    'Board must not expose any manual study-minute logging path',
+  );
   assert.ok(board.includes('estimated'), 'Estimated hours must be flagged in the UI');
 
   assert.ok(css.includes('.ff-board {') && css.includes('.ff-board__switch-btn.is-active'), 'New board shell must be styled');
