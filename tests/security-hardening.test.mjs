@@ -2279,3 +2279,68 @@ test('43. Tắt tiến trình phải ghi nốt thay đổi đang chờ — khôn
     'flushPendingSave phải kiểm tra có lần ghi đang chờ hay không'
   );
 });
+
+test('44. Ghi atomic và giữ lại tệp dữ liệu hỏng thay vì ghi đè mất', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fforum-atomic-'));
+  process.env.FFORUM_DATA_DIR = dir;
+
+  /* JSON cắt cụt — đúng thứ còn lại nếu writeFileSync bị ngắt giữa chừng. */
+  const truncated = '{"users":{"a@b.com":{"id":"u1","name":"A","email":"a@b.com","xp":500,"coin":300}},"questions":[{"id":"q1"';
+  fs.writeFileSync(path.join(dir, 'forum-data.json'), truncated);
+
+  const env = await createTestServer();
+  try {
+    /* Kích hoạt một lần ghi. Trước khi vá, lần ghi này đè mất tệp hỏng vì
+       store đã rơi về giá trị rỗng mặc định sau khi JSON.parse ném lỗi.
+       Dùng /api/reports vì limiter của /api/chat đã bị test #23 làm cạn
+       (limiter đặt ở cấp module nên dùng chung giữa các test trong cùng tiến trình). */
+    const report = await post(env.baseUrl, '/api/reports', {
+      reporterId: 'u-atomic',
+      reporterName: 'Người Tố Cáo',
+      reportedUserId: 'u-spam',
+      reportedUserName: 'Kẻ Spam',
+      reason: 'Spam',
+      details: 'Kiểm tra tệp hỏng có bị ghi đè mất hay không.',
+    });
+    assert.equal(report.status, 200, `gửi tố cáo: ${JSON.stringify(report.data)}`);
+    await sleep(400); /* chờ persistStoreToDisk */
+
+    const files = fs.readdirSync(dir);
+    const kept = files.find((f) => f.includes('.corrupt-'));
+    assert.ok(kept, `Tệp hỏng phải được giữ lại để còn cứu, thực tế có: ${files.join(', ')}`);
+
+    const raw = fs.readFileSync(path.join(dir, kept), 'utf8');
+    assert.equal(raw, truncated, 'Bản giữ lại phải đúng nguyên văn nội dung hỏng ban đầu');
+    assert.ok(raw.includes('"xp":500'), 'Dữ liệu cũ phải còn đọc được để khôi phục tay');
+
+    /* Server vẫn phải chạy được và có tệp dữ liệu mới hợp lệ. */
+    const fresh = JSON.parse(fs.readFileSync(path.join(dir, 'forum-data.json'), 'utf8'));
+    assert.ok(Array.isArray(fresh.reports), 'Tệp mới phải là JSON hợp lệ');
+    assert.equal(fresh.reports.length, 1, 'Tố cáo vừa gửi phải nằm trong tệp mới');
+  } finally {
+    await env.close();
+    process.env.FFORUM_DATA_DIR = DATA_DIR;
+  }
+});
+
+test('45. Ghi xuống đĩa phải atomic (ghi tệp tạm rồi rename)', () => {
+  const server = fs.readFileSync(path.resolve('server/forumServer.ts'), 'utf8');
+  const flushAt = server.indexOf('function flushStoreToDisk()');
+  assert.ok(flushAt > 0, 'phải có flushStoreToDisk');
+  const body = server.slice(flushAt, flushAt + 900);
+
+  /*
+    rename là atomic trên cùng hệ tệp, nên tệp dữ liệu không bao giờ ở trạng thái
+    viết dở. Ghi thẳng bằng writeFileSync mà bị ngắt giữa chừng sẽ để lại JSON cắt
+    cụt — không parse được, tức mất toàn bộ dữ liệu ở lần khởi động sau.
+  */
+  assert.ok(body.includes('renameSync(tmp, target)'), 'phải ghi tệp tạm rồi rename');
+  assert.ok(body.includes('.tmp-'), 'tệp tạm phải có tên riêng theo pid');
+  const writeAt = body.indexOf('writeFileSync(tmp');
+  const renameAt = body.indexOf('renameSync(tmp, target)');
+  assert.ok(writeAt > 0 && renameAt > writeAt, 'phải ghi tệp tạm TRƯỚC rồi mới rename');
+  assert.ok(
+    !/writeFileSync\(dataFilePath\(\)/.test(server),
+    'không được ghi thẳng vào tệp dữ liệu nữa'
+  );
+});

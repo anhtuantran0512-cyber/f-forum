@@ -235,6 +235,22 @@ function loadStoreFromDisk() {
     }
   } catch (err) {
     console.error('[Forum Server] Failed to load data from disk:', err);
+    /*
+      Không được để yên rồi ghi đè. Nếu tệp hỏng (đĩa đầy, bị ngắt giữa chừng ở
+      bản cũ chưa ghi atomic) thì store giữ giá trị rỗng mặc định, và lần
+      persistStoreToDisk đầu tiên sẽ XOÁ SẠCH tệp đó — mất luôn cơ hội cứu.
+      Đổi tên tệp hỏng sang một bản sao có dấu thời gian để còn khôi phục tay.
+    */
+    try {
+      const file = dataFilePath();
+      if (fs.existsSync(file)) {
+        const backup = `${file}.corrupt-${Date.now()}`;
+        fs.renameSync(file, backup);
+        console.error(`[Forum Server] Đã giữ lại tệp dữ liệu hỏng tại ${backup} để khôi phục.`);
+      }
+    } catch (backupErr) {
+      console.error('[Forum Server] Không giữ lại được tệp dữ liệu hỏng:', backupErr);
+    }
   }
 }
 
@@ -242,12 +258,25 @@ let saveTimeout: NodeJS.Timeout | null = null;
 /**
   Ghi store xuống đĩa NGAY, đồng bộ. Trả về true nếu ghi được.
 */
+/**
+  Ghi store xuống đĩa NGAY, đồng bộ. Trả về true nếu ghi được.
+
+  Ghi qua tệp tạm rồi `rename`, không ghi thẳng. `rename` là thao tác atomic trên
+  cùng một hệ tệp, nên tệp dữ liệu không bao giờ ở trạng thái viết dở: tiến trình
+  chết giữa chừng thì hoặc là bản cũ còn nguyên, hoặc là bản mới đã xong. Ghi
+  thẳng bằng `writeFileSync` mà bị ngắt giữa chừng sẽ để lại JSON cắt cụt — không
+  parse được, tức mất TOÀN BỘ dữ liệu ở lần khởi động sau.
+*/
 function flushStoreToDisk(): boolean {
   try {
-    if (!fs.existsSync(dataDir())) {
-      fs.mkdirSync(dataDir(), { recursive: true });
+    const dir = dataDir();
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(dataFilePath(), JSON.stringify(store, null, 2), 'utf8');
+    const target = dataFilePath();
+    const tmp = `${target}.tmp-${process.pid}`;
+    fs.writeFileSync(tmp, JSON.stringify(store, null, 2), 'utf8');
+    fs.renameSync(tmp, target);
     return true;
   } catch (err) {
     console.error('[Forum Server] Failed to persist data to disk:', err);
