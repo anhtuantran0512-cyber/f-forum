@@ -1479,7 +1479,49 @@ export function useForumStore() {
       }
     }
 
-    postJson('/api/users/update', { email: emailToCredit, updates: updated }).catch(() => {});
+    /*
+      Bản cũ nuốt mọi lỗi: `.catch(() => {})`. Khi server từ chối (phiên hết hạn
+      -> 401, hoặc bản ghi không tồn tại -> 400) thì state cục bộ vẫn đã được
+      cộng và toast "+XP" vẫn hiện, nhưng KHÔNG có gì được lưu. Reload là phần
+      thưởng biến mất — người dùng thấy thưởng mà chưa từng nhận.
+
+      Nay kiểm tra mã phản hồi và hoàn tác đúng phần vừa cộng nếu ghi thất bại.
+      Chỉ hoàn tác XP/coin/fPoints/level của chính bản ghi này, không đụng ai khác.
+    */
+    postJson('/api/users/update', { email: emailToCredit, updates: updated })
+      .then((res) => {
+        if (res.status >= 200 && res.status < 300) return;
+        commitUsers(prev => {
+          const targetUser = prev[emailToCredit];
+          if (!targetUser) return prev;
+          const restoredXp = Math.max(0, (targetUser.xp ?? 0) - amount);
+          return {
+            ...prev,
+            [emailToCredit]: {
+              ...targetUser,
+              xp: restoredXp,
+              coin: Math.max(0, (targetUser.coin ?? 100) - amount),
+              fPoints: Math.max(0, (targetUser.fPoints ?? 0) - amount),
+              level: getLevelForXP(restoredXp),
+            },
+          };
+        });
+        setToastMessage({
+          title: 'Chưa ghi được phần thưởng',
+          subtitle:
+            res.status === 401
+              ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để nhận thưởng.'
+              : 'Máy chủ từ chối lưu thay đổi. Phần thưởng đã được hoàn tác.',
+          type: 'error',
+        });
+      })
+      .catch(() => {
+        setToastMessage({
+          title: 'Mất kết nối khi lưu phần thưởng',
+          subtitle: 'Không ghi được phần thưởng lên máy chủ. Vui lòng thử lại.',
+          type: 'error',
+        });
+      });
 
     try {
       syncBroadcastChannel?.postMessage({
