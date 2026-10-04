@@ -189,6 +189,81 @@ cũ và âm thầm hoàn lại số Coin vừa trừ khi treo thưởng.
 
 ---
 
+## 12. Phiên đăng nhập không được kiểm tra lại
+
+**Mức độ:** Trung bình · **Vị trí:** `src/store/forumStore.ts`
+
+Client khôi phục phiên từ `localStorage` và **không bao giờ hỏi lại server**. Token
+hết hạn, tài khoản bị xoá, hoặc quyền bị thu hồi thì giao diện vẫn hiện "đã đăng
+nhập" trong khi mọi lệnh ghi đều bị `401` — người dùng không hiểu vì sao bấm gì
+cũng không được.
+
+**Đã vá:** thêm `GET /api/auth/session`. Lúc khởi động, nếu `401` thì xoá token,
+xoá email đã lưu, đưa về chế độ khách và báo "Phiên đăng nhập đã hết hạn". `role`
+luôn đọc từ bản ghi thật chứ không từ token, nên thu hồi quyền có hiệu lực ngay.
+
+---
+
+## 13. Mất dữ liệu Khu Vinh Danh
+
+**Mức độ:** Cao · **Vị trí:** WS `SYNC_ABOUT`, `POST /api/admin/about`
+
+```js
+// TRƯỚC: ghi đè NGUYÊN KHỐI tài liệu bằng payload client gửi
+store.about = payload;
+```
+
+Một payload chỉ chứa `{ headline }` sẽ **xoá sạch `founder` và toàn bộ
+`milestones`**, rồi `persistStoreToDisk` ghi luôn xuống đĩa — hỏng dữ liệu cho mọi
+lần khởi động về sau, kể cả ở tiến trình khác. Đã tái hiện được: tệp
+`data/forum-data.json` chỉ còn đúng `{"headline":"Realtime WebSocket About Update"}`.
+
+Đây cũng là nguyên nhân làm `tests/admin-moderation-about` test 2 fail **thất
+thường ở lần chạy thứ hai trở đi** — không phải lỗi của test.
+
+**Đã vá:** gộp vào tài liệu hiện có (`mergeAboutData`). `founder` null và
+`milestones` rỗng bị coi là "không gửi" nên không thể thổi bay hai khối lõi.
+
+---
+
+## 14. Tố cáo vi phạm rơi vào khoảng không
+
+**Mức độ:** Cao · **Vị trí:** `loadStoreFromDisk`, `/api/sync`, UI
+
+Nút "Tố Cáo Tài Khoản" có ở hồ sơ, phòng chat và sàn Q&A, nhưng:
+
+1. `loadStoreFromDisk` dựng lại `store` mà **bỏ quên `reports`** → mọi báo cáo đã
+   ghi xuống đĩa bị vứt đi mỗi lần khởi động lại.
+2. Không có cổng nào **đọc** danh sách báo cáo; `NEW_REPORT` được broadcast nhưng
+   không client nào xử lý. Tố cáo được ghi vào rồi không ai xem được.
+
+```
+[1] POST /api/reports: 200
+[2] reports trong tệp đĩa: 1 bản ghi      ← có ghi xuống đĩa
+[3] SAU KHỞI ĐỘNG LẠI: server còn giữ?  không   ← TRƯỚC KHI VÁ
+```
+
+**Đã vá:** khôi phục `reports` khi nạp từ đĩa; thêm `GET /api/admin/reports` và
+`POST /api/admin/reports/resolve` (chỉ Super Admin); thêm hộp thư
+`ReportInboxModal` + huy hiệu số báo cáo chờ xử lý; `NEW_REPORT` đẩy thông báo cho
+Super Admin đang trực; tố cáo trùng (cùng người, cùng mục, cùng lý do, đang chờ)
+được gộp để không làm ngập hộp thư.
+
+---
+
+## 15. `FFORUM_DATA_DIR` bị chốt lúc import
+
+**Mức độ:** Thấp · **Vị trí:** `server/forumServer.ts`
+
+Đường dẫn thư mục dữ liệu được tính bằng `const` ở đầu module, nên việc đặt
+`FFORUM_DATA_DIR` **sau khi** nạp module bị bỏ qua âm thầm — rất dễ gây nhầm khi
+chạy nhiều bộ test trong một tiến trình.
+
+**Đã vá:** chuyển thành hàm `dataDir()` / `dataFilePath()`, đọc biến môi trường
+tại thời điểm dùng.
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -201,6 +276,7 @@ cũ và âm thầm hoàn lại số Coin vừa trừ khi treo thưởng.
 | Tiền tệ | Kiểm số dư, thưởng idempotent, khử trùng lặp bản ghi |
 | Tần suất | Cửa sổ trượt theo IP/email, `429` + `Retry-After` |
 | Social | Xác minh access token với nhà cung cấp, so khớp email |
+| Tố cáo | Hộp thư chỉ Super Admin đọc được; báo cáo sống sót qua khởi động lại |
 
 ## Biến môi trường
 
@@ -211,6 +287,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 18 bài, chạy trên server thật
-npm test                                        # toàn bộ 114 bài
+node --test tests/security-hardening.test.mjs   # 22 bài, chạy trên server thật
+npm test                                        # toàn bộ 118 bài
 ```

@@ -629,6 +629,29 @@ export function useForumStore() {
       if (!type) return;
 
       switch (type) {
+        /* Có tố cáo mới — báo ngay cho Super Admin đang trực để không phải chờ
+           mở hộp thư mới biết. Người dùng thường không nhận gì cả. */
+        case 'NEW_REPORT': {
+          if (!isMasterAdmin(currentUserRef.current?.email)) break;
+          const report = payload as { reportedUserName?: string; reportedUserId?: string; reason?: string };
+          pushNotification({
+            type: 'system',
+            category: 'system',
+            title: 'Có báo cáo vi phạm mới',
+            body: `${report?.reportedUserName || report?.reportedUserId || 'Một tài khoản'} — ${report?.reason || 'không rõ lý do'}`,
+            targetView: 'home',
+          });
+          playChime('send');
+          break;
+        }
+        case 'REPORT_UPDATED': {
+          /* Ban quản trị ở tab/thiết bị khác vừa xử lý → nhắc tải lại hộp thư. */
+          if (!isMasterAdmin(currentUserRef.current?.email)) break;
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('fforum_reports_changed'));
+          }
+          break;
+        }
         case 'NEW_CHAT_MESSAGE': {
           const newMsg = payload as ChatMessage;
           if (!newMsg || !newMsg.id) break;

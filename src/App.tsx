@@ -26,6 +26,7 @@ import {
   Settings as SettingsIcon,
   Flame,
   User as UserIcon,
+  ShieldAlert,
 } from 'lucide-react';
 import type { DimensionView, User } from './types';
 import { CommandPalette, type PaletteCommand } from './components/CommandPalette';
@@ -52,6 +53,7 @@ const ProfileModal = lazyWithRetry(() => import('./components/ProfileModal').the
 const FocusSanctuary = lazyWithRetry(() => import('./components/FocusSanctuary').then(m => ({ default: m.FocusSanctuary })));
 const AuthModal = lazyWithRetry(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const XPSandboxDock = lazyWithRetry(() => import('./components/XPSandboxDock').then(m => ({ default: m.XPSandboxDock })));
+const ReportInboxModal = lazyWithRetry(() => import('./components/ReportInboxModal').then(m => ({ default: m.ReportInboxModal })));
 
 const ViewLoadingFallback = () => (
   <div className="w-full h-full min-h-[50vh] flex items-center justify-center" aria-busy="true" aria-label="Đang tải giao diện">
@@ -173,6 +175,9 @@ export const App: React.FC = () => {
   const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>('login');
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [isNotesOpen, setIsNotesOpen] = useState(false);
+  /* Hộp thư tố cáo — chỉ Super Admin mở được. */
+  const [isReportInboxOpen, setIsReportInboxOpen] = useState(false);
+  const [pendingReportCount, setPendingReportCount] = useState(0);
   const [eyeRestEnabled, setEyeRestEnabled] = useState<boolean>(() => {
     return safeStorage.getItem('fforum_eye_rest') === 'true';
   });
@@ -1024,6 +1029,34 @@ export const App: React.FC = () => {
           onAddXP={addXP}
         />
       )}
+
+      {/* Lối vào hộp thư tố cáo — chỉ hiện với Super Admin */}
+      {currentUser?.email === 'anhtuantran0512@gmail.com' && !isReportInboxOpen && (
+        <button
+          type="button"
+          onClick={() => setIsReportInboxOpen(true)}
+          aria-label={`Hộp thư tố cáo${pendingReportCount > 0 ? ` — ${pendingReportCount} báo cáo chờ xử lý` : ''}`}
+          className="fixed bottom-4 left-24 z-40 flex items-center gap-2 pl-3 pr-4 py-2.5 rounded-2xl liquid-glass bg-[#0c1218]/95 border border-rose-400/25 text-neutral-200 hover:border-rose-400/50 hover:text-white transition-colors shadow-[0_18px_45px_rgba(0,0,0,0.7)]"
+        >
+          <ShieldAlert className="w-4 h-4 text-rose-300" />
+          <span className="text-[11px] font-medium">Tố cáo</span>
+          {pendingReportCount > 0 && (
+            <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500/90 text-white text-[10px] font-bold flex items-center justify-center">
+              {pendingReportCount > 99 ? '99+' : pendingReportCount}
+            </span>
+          )}
+        </button>
+      )}
+
+      <Suspense fallback={<ViewLoadingFallback />}>
+        {isReportInboxOpen && (
+          <ReportInboxModal
+            isOpen={isReportInboxOpen}
+            onClose={() => setIsReportInboxOpen(false)}
+            onPendingCountChange={setPendingReportCount}
+          />
+        )}
+      </Suspense>
 
       {/* CodeFronts .la-08 Healthcare Appointment & Resource Loading Animation */}
       {isResourceLoading && (

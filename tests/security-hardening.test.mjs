@@ -958,3 +958,102 @@ test('21. Khu Vinh Danh: payload một phần phải GỘP, không được xoá
     await env.close();
   }
 });
+
+/* -------------------------------------------------------------------------- */
+/* 4. Quy trình tố cáo vi phạm                                                */
+/* -------------------------------------------------------------------------- */
+
+test('22. Tố cáo vi phạm: không mất khi khởi động lại, chỉ admin đọc được', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fforum-reports-'));
+  process.env.FFORUM_DATA_DIR = dir;
+
+  let env = await createTestServer();
+  try {
+    /* Gửi một tố cáo như người dùng thật. */
+    const submitted = await post(env.baseUrl, '/api/reports', {
+      reporterId: 'u-reporter',
+      reporterName: 'Người Tố Cáo',
+      reporterEmail: 'reporter@example.com',
+      reportedUserId: 'u-spammer',
+      reportedUserName: 'Kẻ Spam',
+      reason: 'Spam',
+      details: 'Đăng lặp cùng một nội dung 20 lần trong 5 phút.',
+    });
+    assert.equal(submitted.status, 200);
+    assert.ok(submitted.data.reportId, 'Phải trả về reportId');
+    assert.equal(submitted.data.duplicated, undefined, 'Lần đầu không phải bản trùng');
+
+    /* Gửi y hệt lần nữa → gộp lại, không làm ngập hộp thư. */
+    const again = await post(env.baseUrl, '/api/reports', {
+      reporterId: 'u-reporter',
+      reportedUserId: 'u-spammer',
+      reason: 'Spam',
+      details: 'Đăng lặp cùng một nội dung 20 lần trong 5 phút.',
+    });
+    assert.equal(again.data.duplicated, true, 'Tố cáo trùng phải được gộp');
+
+    /* Chưa đăng nhập → không đọc được hộp thư. */
+    const forbidden = await get(env.baseUrl, '/api/admin/reports');
+    assert.equal(forbidden.status, 403, 'Hộp thư tố cáo phải khoá với người lạ');
+
+    const adminLogin = await post(env.baseUrl, '/api/auth/login', {
+      email: 'anhtuantran0512@gmail.com',
+      password: 'admin123',
+    });
+    const adminToken = adminLogin.data.token;
+
+    const inbox = await fetch(`${env.baseUrl}/api/admin/reports`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    }).then((r) => r.json());
+    assert.equal(inbox.success, true);
+    assert.equal(inbox.reports.length, 1, 'Hai lượt gửi trùng chỉ tạo một báo cáo');
+    assert.equal(inbox.pending, 1);
+    assert.equal(inbox.reports[0].status, 'PENDING');
+    const reportId = inbox.reports[0].id;
+
+    /* Học sinh có token hợp lệ vẫn không đọc được. */
+    const student = await register(env.baseUrl, 'Học Sinh', 'report.probe@example.com', 'mat-khau-probe-9');
+    const studentInbox = await fetch(`${env.baseUrl}/api/admin/reports`, {
+      headers: { Authorization: `Bearer ${student.token}` },
+    });
+    assert.equal(studentInbox.status, 403, 'Token học sinh không mở được hộp thư');
+
+    /* Xử lý báo cáo. */
+    const resolved = await post(env.baseUrl, '/api/admin/reports/resolve', {
+      reportId,
+      status: 'RESOLVED',
+      note: 'Đã khoá tài khoản 7 ngày.',
+    }, adminToken);
+    assert.equal(resolved.status, 200);
+    assert.equal(resolved.data.report.status, 'RESOLVED');
+    assert.equal(resolved.data.report.resolutionNote, 'Đã khoá tài khoản 7 ngày.');
+
+    await sleep(400); /* chờ persistStoreToDisk (debounce 200ms) */
+  } finally {
+    await env.close();
+  }
+
+  /* ---- Mô phỏng khởi động lại server trên cùng thư mục dữ liệu ---- */
+  const saved = JSON.parse(fs.readFileSync(path.join(dir, 'forum-data.json'), 'utf8'));
+  assert.equal((saved.reports || []).length, 1, 'Báo cáo phải nằm trong tệp dữ liệu');
+  assert.equal(saved.reports[0].status, 'RESOLVED', 'Trạng thái đã xử lý phải được lưu');
+
+  env = await createTestServer();
+  try {
+    const adminLogin = await post(env.baseUrl, '/api/auth/login', {
+      email: 'anhtuantran0512@gmail.com',
+      password: 'admin123',
+    });
+    const after = await fetch(`${env.baseUrl}/api/admin/reports`, {
+      headers: { Authorization: `Bearer ${adminLogin.data.token}` },
+    }).then((r) => r.json());
+    /* TRƯỚC KHI VÁ: loadStoreFromDisk dựng lại store mà bỏ quên `reports`,
+       nên toàn bộ tố cáo biến mất sau mỗi lần khởi động lại. */
+    assert.equal(after.reports.length, 1, 'Khởi động lại KHÔNG được làm mất báo cáo');
+    assert.equal(after.reports[0].reportedUserName, 'Kẻ Spam');
+    assert.equal(after.reports[0].status, 'RESOLVED');
+  } finally {
+    await env.close();
+    process.env.FFORUM_DATA_DIR = DATA_DIR;
+  }
+});

@@ -81,11 +81,16 @@ export function calculateLevelFromXP(xp: number): number {
 
 const DEFAULT_AVATAR = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%231a2332"/><circle cx="50" cy="38" r="20" fill="%234a5d78"/><path d="M20 90 Q50 65 80 90" fill="%234a5d78"/></svg>`;
 
-/** Thư mục dữ liệu — đổi được qua `FFORUM_DATA_DIR` (hữu ích khi chạy test song song). */
-const dataDir = process.env.FFORUM_DATA_DIR
-  ? path.resolve(process.env.FFORUM_DATA_DIR)
-  : path.resolve(process.cwd(), 'data');
-const dataFilePath = path.join(dataDir, 'forum-data.json');
+/**
+ * Thư mục dữ liệu — đổi được qua `FFORUM_DATA_DIR` (hữu ích khi chạy test song
+ * song). Đọc biến môi trường MỖI LẦN dùng chứ không chốt lúc import: nếu chốt
+ * sớm thì việc đặt `FFORUM_DATA_DIR` sau khi nạp module bị bỏ qua âm thầm.
+ */
+const dataDir = (): string =>
+  process.env.FFORUM_DATA_DIR
+    ? path.resolve(process.env.FFORUM_DATA_DIR)
+    : path.resolve(process.cwd(), 'data');
+const dataFilePath = (): string => path.join(dataDir(), 'forum-data.json');
 
 let store: ForumDataStore = {
   users: {
@@ -176,8 +181,8 @@ function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
 
 function loadStoreFromDisk() {
   try {
-    if (fs.existsSync(dataFilePath)) {
-      const raw = fs.readFileSync(dataFilePath, 'utf8');
+    if (fs.existsSync(dataFilePath())) {
+      const raw = fs.readFileSync(dataFilePath(), 'utf8');
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
         const cleanUsers = sanitizeUsers({ ...store.users, ...(parsed.users || {}) });
@@ -195,6 +200,9 @@ function loadStoreFromDisk() {
           solutions: Array.isArray(parsed.solutions) ? parsed.solutions : [],
           chatMessages: Array.isArray(parsed.chatMessages) ? parsed.chatMessages : [],
           feedbacks: Array.isArray(parsed.feedbacks) ? parsed.feedbacks : [],
+          /* LỖI MẤT DỮ LIỆU: bản cũ dựng lại store mà bỏ quên `reports`, nên mọi
+             báo cáo vi phạm đã ghi xuống đĩa bị vứt đi mỗi lần khởi động lại. */
+          reports: Array.isArray(parsed.reports) ? parsed.reports : store.reports || [],
           about: parsed.about || store.about,
         };
       }
@@ -209,10 +217,10 @@ function persistStoreToDisk() {
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(() => {
     try {
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
+      if (!fs.existsSync(dataDir())) {
+        fs.mkdirSync(dataDir(), { recursive: true });
       }
-      fs.writeFileSync(dataFilePath, JSON.stringify(store, null, 2), 'utf8');
+      fs.writeFileSync(dataFilePath(), JSON.stringify(store, null, 2), 'utf8');
     } catch (err) {
       console.error('[Forum Server] Failed to persist data to disk:', err);
     }
@@ -1443,21 +1451,46 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
+        const throttle = writeLimiter.check(`report:${clientIpOf(req)}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'gửi tố cáo');
+          return;
+        }
+
         const reportSubmission = {
-          id: `rep-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          reporterId,
-          reporterName,
-          reporterEmail,
-          reportedUserId,
-          reportedUserName,
-          reason,
-          details,
-          targetEmail: 'anhtuantran0512@gmail.com',
+          id: randomId('rep'),
+          reporterId: reporterId.slice(0, 120),
+          reporterName: reporterName.slice(0, 120),
+          reporterEmail: reporterEmail.slice(0, 200).toLowerCase(),
+          reportedUserId: reportedUserId.slice(0, 120),
+          reportedUserName: reportedUserName.slice(0, 120),
+          reason: reason.slice(0, 200),
+          details: details.slice(0, 2000),
+          targetEmail: MASTER_ADMIN_EMAIL,
+          status: 'PENDING',
           createdAt: new Date().toISOString(),
         };
 
         if (!store.reports) {
           store.reports = [];
+        }
+        /* Cùng một người tố cùng một mục với cùng lý do trong thời gian ngắn thì
+           gộp lại, tránh một nút bấm spam làm ngập hộp thư ban quản trị. */
+        const duplicate = store.reports.find(
+          r =>
+            r.reporterId === reportSubmission.reporterId &&
+            r.reportedUserId === reportSubmission.reportedUserId &&
+            r.reason === reportSubmission.reason &&
+            r.status === 'PENDING',
+        );
+        if (duplicate) {
+          sendJson(res, 200, {
+            success: true,
+            message: 'Bạn đã tố cáo trường hợp này và Ban Quản Trị đang xử lý.',
+            reportId: duplicate.id,
+            duplicated: true,
+          });
+          return;
         }
         store.reports.push(reportSubmission);
         persistStoreToDisk();
@@ -1503,6 +1536,66 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         persistStoreToDisk();
         broadcastServerEvent('SYNC_USER', merged);
         sendJson(res, 200, { success: true, user: merged });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /**
+     * Hộp thư báo cáo vi phạm — chỉ Super Admin đọc được.
+     * Trước đây `/api/reports` chỉ ghi vào kho rồi thôi: không có cổng đọc, và
+     * `reports` còn bị vứt khi khởi động lại, nên tố cáo rơi vào khoảng không.
+     */
+    if (method === 'GET' && url.startsWith('/api/admin/reports')) {
+      if (!requireSuperAdmin(req, {})) {
+        sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới xem được báo cáo vi phạm!' });
+        return;
+      }
+      const list = store.reports || [];
+      sendJson(res, 200, {
+        success: true,
+        reports: list,
+        pending: list.filter((r) => r?.status !== 'RESOLVED' && r?.status !== 'DISMISSED').length,
+      });
+      return;
+    }
+
+    /** Đánh dấu đã xử lý / bỏ qua / xoá hẳn một báo cáo. */
+    if (method === 'POST' && url === '/api/admin/reports/resolve') {
+      try {
+        const body = await parseJsonBody(req);
+        if (!requireSuperAdmin(req, body)) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới xử lý được báo cáo vi phạm!' });
+          return;
+        }
+        const reportId = String(body.reportId || '').trim();
+        const action = body.action === 'delete' ? 'delete' : String(body.status || 'RESOLVED');
+        if (!reportId) {
+          sendJson(res, 400, { success: false, message: 'Thiếu reportId' });
+          return;
+        }
+        if (!store.reports) store.reports = [];
+        if (!store.reports.some((r) => r?.id === reportId)) {
+          sendJson(res, 404, { success: false, message: 'Báo cáo không tồn tại' });
+          return;
+        }
+
+        if (action === 'delete') {
+          store.reports = store.reports.filter((r) => r.id !== reportId);
+        } else {
+          const status = ['RESOLVED', 'DISMISSED'].includes(action) ? action : 'RESOLVED';
+          store.reports = store.reports.map((r) =>
+            r.id === reportId
+              ? { ...r, status, resolvedAt: new Date().toISOString(), resolutionNote: String(body.note || '').slice(0, 500) }
+              : r
+          );
+        }
+
+        persistStoreToDisk();
+        const updated = (store.reports || []).find((r) => r.id === reportId) || null;
+        broadcastServerEvent('REPORT_UPDATED', { reportId, action, report: updated });
+        sendJson(res, 200, { success: true, report: updated, reports: store.reports });
       } catch (err: any) {
         handleApiError(res, err);
       }
