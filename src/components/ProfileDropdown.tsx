@@ -308,10 +308,10 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             ) : (
               <form onSubmit={handleReportSubmit} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                  <label htmlFor="tai-khoan-hoac-noi-dung-nghi-van" className="block text-xs font-semibold text-neutral-300 mb-1">
                     Tài khoản hoặc nội dung nghi vấn:
                   </label>
-                  <input
+                  <input id="tai-khoan-hoac-noi-dung-nghi-van"
                     type="text"
                     maxLength={100}
                     value={reportTarget}
@@ -339,10 +339,10 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                  <label htmlFor="chi-tiet-vi-pham" className="block text-xs font-semibold text-neutral-300 mb-1">
                     Chi tiết vi phạm:
                   </label>
-                  <textarea
+                  <textarea id="chi-tiet-vi-pham"
                     value={reportDetails}
                     onChange={(e) => setReportDetails(e.target.value)}
                     maxLength={500}

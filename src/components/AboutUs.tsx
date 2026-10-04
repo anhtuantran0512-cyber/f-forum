@@ -1094,8 +1094,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs text-neutral-300 mb-1">Tiêu đề cột mốc (*):</label>
-                  <input
+                  <label htmlFor="tieu-de-cot-moc" className="block text-xs text-neutral-300 mb-1">Tiêu đề cột mốc (*):</label>
+                  <input id="tieu-de-cot-moc"
                     type="text"
                     required
                     maxLength={100}
@@ -1109,8 +1109,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-neutral-300 mb-1">Phân loại (*):</label>
-                    <input
+                    <label htmlFor="phan-loai" className="block text-xs text-neutral-300 mb-1">Phân loại (*):</label>
+                    <input id="phan-loai"
                       type="text"
                       required
                       maxLength={100}
@@ -1123,8 +1123,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs text-neutral-300 mb-1">Địa điểm (Place):</label>
-                    <input
+                    <label htmlFor="dia-diem-place" className="block text-xs text-neutral-300 mb-1">Địa điểm (Place):</label>
+                    <input id="dia-diem-place"
                       type="text"
                       maxLength={150}
                       value={editingMilestoneData?.place || ''}
@@ -1140,10 +1140,10 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs text-neutral-300">URL hình ảnh hoặc Tải ảnh từ máy (*):</label>
-                    <label className="text-[11px] text-cyan-400 hover:text-cyan-300 cursor-pointer inline-flex items-center gap-1 font-mono">
+                    <label htmlFor="field" className="text-[11px] text-cyan-400 hover:text-cyan-300 cursor-pointer inline-flex items-center gap-1 font-mono">
                       <Upload size={12} />
                       <span>Chọn file từ máy</span>
-                      <input
+                      <input id="field"
                         type="file"
                         accept="image/*"
                         className="hidden"
@@ -1187,8 +1187,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs text-neutral-300 mb-1">Ghi chú phát triển & câu chuyện (*):</label>
-                  <textarea
+                  <label htmlFor="ghi-chu-phat-trien-cau-chuyen" className="block text-xs text-neutral-300 mb-1">Ghi chú phát triển & câu chuyện (*):</label>
+                  <textarea id="ghi-chu-phat-trien-cau-chuyen"
                     rows={4}
                     required
                     maxLength={800}
@@ -1266,8 +1266,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 </h4>
 
                 <div>
-                  <label className="block text-xs text-neutral-300 mb-1">Tiêu đề chính (*):</label>
-                  <input
+                  <label htmlFor="tieu-de-chinh" className="block text-xs text-neutral-300 mb-1">Tiêu đề chính (*):</label>
+                  <input id="tieu-de-chinh"
                     type="text"
                     required
                     maxLength={150}
@@ -1278,8 +1278,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs text-neutral-300 mb-1">Mô tả phụ (*):</label>
-                  <input
+                  <label htmlFor="mo-ta-phu" className="block text-xs text-neutral-300 mb-1">Mô tả phụ (*):</label>
+                  <input id="mo-ta-phu"
                     type="text"
                     required
                     maxLength={200}
@@ -1298,8 +1298,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-neutral-300 mb-1">Họ và tên (*):</label>
-                    <input
+                    <label htmlFor="ho-va-ten" className="block text-xs text-neutral-300 mb-1">Họ và tên (*):</label>
+                    <input id="ho-va-ten"
                       type="text"
                       required
                       maxLength={80}
@@ -1315,8 +1315,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs text-neutral-300 mb-1">Chức danh / Danh xưng (*):</label>
-                    <input
+                    <label htmlFor="chuc-danh-danh-xung" className="block text-xs text-neutral-300 mb-1">Chức danh / Danh xưng (*):</label>
+                    <input id="chuc-danh-danh-xung"
                       type="text"
                       required
                       maxLength={120}
@@ -1335,10 +1335,10 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs text-neutral-300">URL hoặc Tải lên Ảnh Đại Diện (*):</label>
-                    <label className="text-[11px] text-cyan-400 hover:text-cyan-300 cursor-pointer inline-flex items-center gap-1 font-mono">
+                    <label htmlFor="field-2" className="text-[11px] text-cyan-400 hover:text-cyan-300 cursor-pointer inline-flex items-center gap-1 font-mono">
                       <Upload size={12} />
                       <span>Chọn file từ máy</span>
-                      <input
+                      <input id="field-2"
                         type="file"
                         accept="image/*"
                         className="hidden"
@@ -1373,8 +1373,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs text-neutral-300 mb-1">Tiểu sử & Tuyên ngôn sứ mệnh (*):</label>
-                  <textarea
+                  <label htmlFor="tieu-su-tuyen-ngon-su-menh" className="block text-xs text-neutral-300 mb-1">Tiểu sử & Tuyên ngôn sứ mệnh (*):</label>
+                  <textarea id="tieu-su-tuyen-ngon-su-menh"
                     rows={3}
                     required
                     maxLength={1000}
@@ -1430,8 +1430,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <div>
-                          <label className="block text-[11px] text-neutral-400 mb-0.5">Tiêu đề:</label>
-                          <input
+                          <label htmlFor="tieu-de" className="block text-[11px] text-neutral-400 mb-0.5">Tiêu đề:</label>
+                          <input id="tieu-de"
                             type="text"
                             required
                             maxLength={100}
@@ -1442,8 +1442,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                         </div>
 
                         <div>
-                          <label className="block text-[11px] text-neutral-400 mb-0.5">Phân loại:</label>
-                          <input
+                          <label htmlFor="phan-loai-2" className="block text-[11px] text-neutral-400 mb-0.5">Phân loại:</label>
+                          <input id="phan-loai-2"
                             type="text"
                             required
                             maxLength={100}
@@ -1456,8 +1456,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-center">
                         <div>
-                          <label className="block text-[11px] text-neutral-400 mb-0.5">Địa điểm / Phạm vi (Place):</label>
-                          <input
+                          <label htmlFor="dia-diem-pham-vi-place" className="block text-[11px] text-neutral-400 mb-0.5">Địa điểm / Phạm vi (Place):</label>
+                          <input id="dia-diem-pham-vi-place"
                             type="text"
                             maxLength={150}
                             value={ms.place || ''}
@@ -1484,10 +1484,10 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                       <div>
                         <div className="flex items-center justify-between mb-0.5">
                           <label className="text-[11px] text-neutral-400">URL hoặc Tải lên Hình ảnh:</label>
-                          <label className="text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer inline-flex items-center gap-1 font-mono">
+                          <label htmlFor="field-3" className="text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer inline-flex items-center gap-1 font-mono">
                             <Upload size={11} />
                             <span>Tải ảnh từ máy</span>
-                            <input
+                            <input id="field-3"
                               type="file"
                               accept="image/*"
                               className="hidden"
@@ -1513,8 +1513,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                       </div>
 
                       <div>
-                        <label className="block text-[11px] text-neutral-400 mb-0.5">Ghi chú phát triển:</label>
-                        <textarea
+                        <label htmlFor="ghi-chu-phat-trien" className="block text-[11px] text-neutral-400 mb-0.5">Ghi chú phát triển:</label>
+                        <textarea id="ghi-chu-phat-trien"
                           rows={2}
                           required
                           maxLength={800}
@@ -1576,8 +1576,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
             <form onSubmit={handleQuickAvatarSave} className="space-y-4">
               <div>
-                <label className="block text-[11px] text-neutral-300 mb-1">Dán URL hình ảnh:</label>
-                <input
+                <label htmlFor="dan-url-hinh-anh" className="block text-[11px] text-neutral-300 mb-1">Dán URL hình ảnh:</label>
+                <input id="dan-url-hinh-anh"
                   type="text"
                   required
                   maxLength={500}

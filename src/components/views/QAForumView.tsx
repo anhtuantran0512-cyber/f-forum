@@ -857,10 +857,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label htmlFor="tieu-de-cau-hoi" className="block text-xs font-semibold text-neutral-300 mb-1">
                   Tiêu đề câu hỏi (*):
                 </label>
-                <input
+                <input id="tieu-de-cau-hoi"
                   type="text"
                   required
                   maxLength={150}
@@ -872,10 +872,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label htmlFor="noi-dung-chi-tiet-thac-mac" className="block text-xs font-semibold text-neutral-300 mb-1">
                   Nội dung chi tiết & thắc mắc (*):
                 </label>
-                <textarea
+                <textarea id="noi-dung-chi-tiet-thac-mac"
                   required
                   rows={4}
                   maxLength={1500}
@@ -905,10 +905,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     </button>
                   </div>
                 ) : (
-                  <label className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
+                  <label htmlFor="field" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
                     <ImageIcon className="w-4 h-4 text-cyan-400" />
                     <span>Tải ảnh câu hỏi / đề bài / sơ đồ (Tối đa 20MB)</span>
-                    <input
+                    <input id="field"
                       type="file"
                       accept="image/*"
                       onChange={e => handleImageUpload(e, setAskImage, setAskImageError)}
@@ -1291,12 +1291,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
             {/* Submit New Solution (+25 XP) */}
             <div className="pt-3 border-t border-white/10">
-              <label className="block text-xs font-semibold text-neutral-300 mb-1.5 flex items-center justify-between">
+              <label htmlFor="field-2" className="block text-xs font-semibold text-neutral-300 mb-1.5 flex items-center justify-between">
                 <span>Đóng góp lời giải của bạn:</span>
                 <span className="text-[10px] font-mono text-cyan-300">+25 XP khi gửi lời giải</span>
               </label>
 
-              <textarea
+              <textarea id="field-2"
                 rows={3}
                 maxLength={1500}
                 value={solutionText}
@@ -1323,10 +1323,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       </button>
                     </div>
                   ) : (
-                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
+                    <label htmlFor="field-3" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
                       <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
                       <span>Đính kèm ảnh lời giải (&le; 20MB)</span>
-                      <input
+                      <input id="field-3"
                         type="file"
                         accept="image/*"
                         onChange={e => handleImageUpload(e, setSolImage, setSolImageError)}
@@ -1419,8 +1419,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">Tiêu đề câu hỏi (*):</label>
-                <input
+                <label htmlFor="tieu-de-cau-hoi-2" className="block text-xs font-semibold text-neutral-300 mb-1">Tiêu đề câu hỏi (*):</label>
+                <input id="tieu-de-cau-hoi-2"
                   type="text"
                   required
                   maxLength={150}
@@ -1648,10 +1648,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                  <label htmlFor="chi-tiet-vi-pham" className="block text-xs font-semibold text-neutral-300 mb-1">
                     Chi tiết vi phạm:
                   </label>
-                  <textarea
+                  <textarea id="chi-tiet-vi-pham"
                     value={reportDetails}
                     onChange={e => setReportDetails(e.target.value)}
                     maxLength={500}

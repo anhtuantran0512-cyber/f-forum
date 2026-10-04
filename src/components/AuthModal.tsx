@@ -311,10 +311,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {/* Account Linking Form */}
             <form onSubmit={handleFallbackCustomSubmit} className="space-y-3 pt-1">
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label htmlFor="ho-va-ten-hien-thi" className="block text-xs font-semibold text-neutral-300 mb-1">
                   Họ và tên hiển thị <span className="text-red-400">*</span>
                 </label>
-                <input
+                <input id="ho-va-ten-hien-thi"
                   type="text"
                   required
                   maxLength={60}
@@ -326,10 +326,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label htmlFor="dia-chi-email-fallbackprovider-g" className="block text-xs font-semibold text-neutral-300 mb-1">
                   Địa chỉ Email {fallbackProvider === 'google' ? 'Google' : 'Facebook'} <span className="text-red-400">*</span>
                 </label>
-                <input
+                <input id="dia-chi-email-fallbackprovider-g"
                   type="email"
                   required
                   maxLength={120}
@@ -408,11 +408,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {activeTab === 'login' && (
               <form onSubmit={handleLoginSubmit} className="relative z-10 space-y-3.5">
                 <div>
-                  <label className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
+                  <label htmlFor="field" className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
                     <Mail className="w-3.5 h-3.5 text-amber-400" />
                     <span>Địa chỉ Email</span>
                   </label>
-                  <input
+                  <input id="field"
                     type="email"
                     required
                     maxLength={120}
@@ -424,11 +424,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
+                  <label htmlFor="field-2" className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
                     <Lock className="w-3.5 h-3.5 text-amber-400" />
                     <span>Mật khẩu</span>
                   </label>
-                  <input
+                  <input id="field-2"
                     type="password"
                     required
                     maxLength={60}
@@ -456,11 +456,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {activeTab === 'register' && (
               <form onSubmit={handleRegisterSubmit} className="relative z-10 space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
+                  <label htmlFor="field-3" className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
                     <UserIcon className="w-3.5 h-3.5 text-amber-400" />
                     <span>Họ và tên hiển thị</span>
                   </label>
-                  <input
+                  <input id="field-3"
                     type="text"
                     required
                     maxLength={60}
@@ -472,11 +472,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
+                  <label htmlFor="field-4" className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
                     <Mail className="w-3.5 h-3.5 text-amber-400" />
                     <span>Địa chỉ Email</span>
                   </label>
-                  <input
+                  <input id="field-4"
                     type="email"
                     required
                     maxLength={120}
@@ -489,11 +489,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
+                    <label htmlFor="field-5" className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
                       <Lock className="w-3.5 h-3.5 text-amber-400" />
                       <span>Mật khẩu</span>
                     </label>
-                    <input
+                    <input id="field-5"
                       type="password"
                       required
                       maxLength={60}
@@ -505,11 +505,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
+                    <label htmlFor="field-6" className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
                       <Lock className="w-3.5 h-3.5 text-amber-400" />
                       <span>Xác nhận</span>
                     </label>
-                    <input
+                    <input id="field-6"
                       type="password"
                       required
                       maxLength={60}
