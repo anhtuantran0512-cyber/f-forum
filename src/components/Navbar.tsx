@@ -10,9 +10,14 @@ import {
   HelpCircle,
   Compass,
   Sparkles,
-  Award,
   Settings,
   Rocket,
+  Flame,
+  Film,
+  Trophy,
+  NotebookPen,
+  Command,
+  Timer,
 } from 'lucide-react';
 import type { DimensionView, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
@@ -22,7 +27,7 @@ import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { NotificationsModal } from './NotificationsModal';
 import { SettingsModal } from './SettingsModal';
 import { safeStorage } from '../utils/storage';
-import { StreakFlameWidget, DailyEngagementModal } from './DailyEngagementModal';
+import { DailyEngagementModal } from './DailyEngagementModal';
 
 export interface NavbarProps {
   currentView: DimensionView;
@@ -38,6 +43,8 @@ export interface NavbarProps {
   isInsideCinema?: boolean;
   onRewardCoins?: (amount: number, reason: string) => void;
   onUpdateStreak?: (streak: number) => void;
+  eyeRestEnabled?: boolean;
+  onToggleEyeRest?: () => void;
 }
 
 const NAV_ICONS: Record<DimensionView, React.ReactNode> = {
@@ -79,6 +86,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   isInsideCinema = false,
   onRewardCoins,
   onUpdateStreak,
+  eyeRestEnabled = false,
+  onToggleEyeRest,
 }) => {
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isFlyoutOpen, setIsFlyoutOpen] = useState(false);
@@ -209,6 +218,15 @@ export const Navbar: React.FC<NavbarProps> = ({
   useEffect(() => {
     setIsCompact(alwaysCompact);
   }, [alwaysCompact]);
+
+  /* Khi đổi vị trí dock (trên/dưới/trái/phải): chạy hoạt ảnh morph để việc
+     chuyển giữa GUI lớn ↔ GUI nhỏ không còn bị "giật" hình. */
+  const [isMorphing, setIsMorphing] = useState(false);
+  useEffect(() => {
+    setIsMorphing(true);
+    const t = window.setTimeout(() => setIsMorphing(false), 480);
+    return () => window.clearTimeout(t);
+  }, [navbarPosition]);
 
   const handleNavPointerEnter = () => {
     if (hideTimerRef.current) {
@@ -419,6 +437,19 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
+  /* Cho phép Bảng lệnh (⌘K) và các phím tắt đổi theme từ bên ngoài Navbar */
+  useEffect(() => {
+    const onToggleTheme = () => handleToggleTheme();
+    const onOpenDaily = () => setIsDailyModalOpen(true);
+    window.addEventListener('fforum_toggle_theme', onToggleTheme);
+    window.addEventListener('fforum_open_daily', onOpenDaily);
+    return () => {
+      window.removeEventListener('fforum_toggle_theme', onToggleTheme);
+      window.removeEventListener('fforum_open_daily', onOpenDaily);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme]);
+
   const handleToggleSoundEffects = () => {
     setSoundEffects((prev) => {
       const next = !prev;
@@ -561,14 +592,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'coming-soon', label: 'UPDATE' },
   ];
 
-  /* Streak flame sits right above the Lightning Bolt (RadialQuickMenu) at bottom-left */
-  const streakWidgetPosClass =
-    navbarPosition === 'bottom'
-      ? 'fixed bottom-40 left-4 md:bottom-40 md:left-5'
-      : navbarPosition === 'left'
-      ? 'fixed bottom-20 left-24 md:bottom-20 md:left-24'
-      : 'fixed bottom-20 left-4 md:bottom-20 md:left-5';
-
   const sharedSettingsProps = {
     isOpen: isSettingsOpen,
     onClose: () => setIsSettingsOpen(false),
@@ -643,6 +666,8 @@ export const Navbar: React.FC<NavbarProps> = ({
       });
     },
     dockPosition: navbarPosition,
+    eyeRestEnabled,
+    onToggleEyeRest,
   };
 
   const isDockHidden = isInsideCinema || (navbarAutoHide && !isNavbarHovered && !anyPopoverOpen);
@@ -671,7 +696,9 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div
         onMouseEnter={handleNavPointerEnter}
         onMouseLeave={handleNavPointerLeave}
-        className={`hidden md:block fixed inset-0 z-50 pointer-events-none transition-all duration-500 dock-container dock-pos-${navbarPosition}`}
+        className={`hidden md:block fixed inset-0 z-50 pointer-events-none transition-all duration-500 dock-container dock-pos-${navbarPosition} ${
+          isMorphing ? 'ff-nav-morphing' : ''
+        }`}
         style={{
           transform: isDockHidden
             ? navbarPosition === 'bottom'
@@ -1262,11 +1289,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             role="dialog"
             aria-modal="true"
             aria-label="Menu khám phá"
-            className="fixed bottom-[calc(56px+var(--safe-bottom)+8px)] inset-x-3 z-50 rounded-3xl bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 p-4 shadow-2xl animate-fade-up md:hidden pointer-events-auto"
+            className="fixed bottom-[calc(56px+var(--safe-bottom)+8px)] inset-x-3 z-50 rounded-3xl bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 p-3.5 shadow-2xl animate-fade-up md:hidden pointer-events-auto"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
-                <Compass className="w-4 h-4 text-amber-400" />
+            <div className="flex items-center justify-between pb-2.5 border-b border-white/10 mb-3">
+              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                <Compass className="w-3.5 h-3.5 text-amber-400" />
                 Khám phá
               </span>
               <button
@@ -1279,24 +1306,25 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-2">
+            {/* Lưới icon chủ đề — thay cho danh sách chữ dài dòng */}
+            <div className="grid grid-cols-4 gap-2">
               <button
                 type="button"
                 onClick={() => {
                   onViewChange('landing');
                   setIsMobileMenuOpen(false);
                 }}
-                className={`w-full p-3 rounded-2xl border transition-all text-left flex items-center gap-3 cursor-pointer ${
-                  currentView === 'landing'
-                    ? 'bg-amber-500/20 border-amber-400/40 text-amber-300'
-                    : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-                }`}
+                data-active={currentView === 'landing' ? 'true' : 'false'}
+                className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
+                aria-label="Giới thiệu F-Forum"
+                title="Giới thiệu F-Forum"
               >
-                <Sparkles className="w-5 h-5 text-amber-400 shrink-0" />
-                <div>
-                  <div className="text-xs font-bold">Giới thiệu F-Forum</div>
-                  <div className="text-[10px] text-neutral-400">Trang giới thiệu, tính năng &amp; bảng giá</div>
-                </div>
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-amber-400/25 to-yellow-200/10 border border-amber-300/30 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-amber-300" />
+                </span>
+                <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
+                  Giới thiệu
+                </span>
               </button>
 
               <button
@@ -1305,17 +1333,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onViewChange('memory');
                   setIsMobileMenuOpen(false);
                 }}
-                className={`w-full p-3 rounded-2xl border transition-all text-left flex items-center gap-3 cursor-pointer ${
-                  currentView === 'memory'
-                    ? 'bg-amber-500/20 border-amber-400/40 text-amber-300'
-                    : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-                }`}
+                data-active={currentView === 'memory' ? 'true' : 'false'}
+                className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
+                aria-label="Miền Ký Ức"
+                title="Miền Ký Ức"
               >
-                <Sparkles className="w-5 h-5 text-amber-400 shrink-0" />
-                <div>
-                  <div className="text-xs font-bold">Miền Ký Ức</div>
-                  <div className="text-[10px] text-neutral-400">Dòng thời gian điện ảnh</div>
-                </div>
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-pink-400/25 to-fuchsia-500/10 border border-pink-300/30 flex items-center justify-center">
+                  <Film className="w-4 h-4 text-pink-300" />
+                </span>
+                <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
+                  Ký ức
+                </span>
               </button>
 
               <button
@@ -1324,17 +1352,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onViewChange('chronicles');
                   setIsMobileMenuOpen(false);
                 }}
-                className={`w-full p-3 rounded-2xl border transition-all text-left flex items-center gap-3 cursor-pointer ${
-                  currentView === 'chronicles'
-                    ? 'bg-amber-500/20 border-amber-400/40 text-amber-300'
-                    : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-                }`}
+                data-active={currentView === 'chronicles' ? 'true' : 'false'}
+                className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
+                aria-label="Khu Vinh Danh"
+                title="Khu Vinh Danh"
               >
-                <Award className="w-5 h-5 text-amber-400 shrink-0" />
-                <div>
-                  <div className="text-xs font-bold">Khu Vinh Danh</div>
-                  <div className="text-[10px] text-neutral-400">Quả cầu 3D & các cột mốc</div>
-                </div>
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-amber-300/25 to-orange-500/10 border border-amber-300/30 flex items-center justify-center">
+                  <Trophy className="w-4 h-4 text-amber-300" />
+                </span>
+                <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
+                  Vinh danh
+                </span>
               </button>
 
               <button
@@ -1343,33 +1371,101 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onViewChange('coming-soon');
                   setIsMobileMenuOpen(false);
                 }}
-                className={`w-full p-3 rounded-2xl border transition-all text-left flex items-center gap-3 cursor-pointer ${
-                  currentView === 'coming-soon'
-                    ? 'bg-amber-500/20 border-amber-400/40 text-amber-300'
-                    : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-                }`}
+                data-active={currentView === 'coming-soon' ? 'true' : 'false'}
+                className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
+                aria-label="Bản nâng cấp"
+                title="Bản nâng cấp"
               >
-                <Rocket className="w-5 h-5 text-amber-400 shrink-0" />
-                <div>
-                  <div className="text-xs font-bold">Bản nâng cấp</div>
-                  <div className="text-[10px] text-neutral-400">Không gian phát triển tính năng mới</div>
-                </div>
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-cyan-400/25 to-blue-500/10 border border-cyan-300/30 flex items-center justify-center">
+                  <Rocket className="w-4 h-4 text-cyan-300" />
+                </span>
+                <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
+                  Update
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDailyModalOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="ff-explore-tile relative p-2 flex flex-col items-center gap-1.5 cursor-pointer"
+                aria-label="Điểm danh và kho quà"
+                title="Điểm danh &amp; kho quà"
+              >
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-rose-500/25 to-red-500/10 border border-rose-400/30 flex items-center justify-center">
+                  <Flame className="w-4 h-4 text-rose-300" />
+                </span>
+                <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
+                  Điểm danh
+                </span>
+                {(currentUser?.streakCount ?? 0) > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-gradient-to-r from-red-600 to-rose-500 text-[9px] font-bold text-white flex items-center justify-center border border-rose-200/40">
+                    {currentUser?.streakCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('fforum_open_notes'));
+                  setIsMobileMenuOpen(false);
+                }}
+                className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
+                aria-label="Sổ tay nhanh"
+                title="Sổ tay nhanh"
+              >
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-sky-400/25 to-cyan-500/10 border border-sky-300/30 flex items-center justify-center">
+                  <NotebookPen className="w-4 h-4 text-sky-300" />
+                </span>
+                <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
+                  Sổ tay
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('fforum_open_palette'));
+                  setIsMobileMenuOpen(false);
+                }}
+                className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
+                aria-label="Bảng lệnh nhanh"
+                title="Bảng lệnh nhanh"
+              >
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-violet-400/25 to-indigo-500/10 border border-violet-300/30 flex items-center justify-center">
+                  <Command className="w-4 h-4 text-violet-300" />
+                </span>
+                <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
+                  Bảng lệnh
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenFocusMode();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
+                aria-label="Không gian tập trung"
+                title="Không gian tập trung"
+              >
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-emerald-400/25 to-teal-500/10 border border-emerald-300/30 flex items-center justify-center">
+                  <Timer className="w-4 h-4 text-emerald-300" />
+                </span>
+                <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
+                  Tập trung
+                </span>
               </button>
             </div>
           </div>
         </>
       )}
 
-      {/* Single global streak widget (sits above the lightning bolt at bottom-left) */}
-      <div className={`${streakWidgetPosClass} z-40 pointer-events-auto`}>
-        <StreakFlameWidget
-          streakCount={currentUser?.streakCount || 0}
-          onClick={() => setIsDailyModalOpen(true)}
-          className="shadow-2xl hover:scale-105 transition-transform"
-          compact={effectiveCompact}
-        />
-      </div>
-
+      {/* Streak giờ nằm TRONG menu tia sét (RadialQuickMenu) — không còn ngọn lửa nổi bên ngoài */}
       <DailyEngagementModal
         isOpen={isDailyModalOpen}
         onClose={() => setIsDailyModalOpen(false)}

@@ -4,8 +4,31 @@ import { useForumStore } from './store/forumStore';
 import { Navbar } from './components/Navbar';
 import { HomeView } from './components/views/HomeView';
 import { GlobalCursor } from './components/GlobalCursor';
-import { Sparkles, Trophy, CheckCircle, Info } from 'lucide-react';
+import {
+  Eye,
+  Sparkles,
+  Trophy,
+  CheckCircle,
+  Info,
+  Home,
+  Users,
+  HelpCircle,
+  MessageSquare,
+  Compass,
+  Award,
+  Rocket,
+  Headphones,
+  NotebookPen,
+  Command as CommandIcon,
+  Palette,
+  Settings as SettingsIcon,
+  Flame,
+  User as UserIcon,
+} from 'lucide-react';
 import type { DimensionView, User } from './types';
+import { CommandPalette, type PaletteCommand } from './components/CommandPalette';
+import { QuickNotesDock } from './components/QuickNotesDock';
+import { StudyCareCoach } from './components/StudyCareCoach';
 import { AuthProvider } from './context/AuthContext';
 import { GODRAY_PRESETS } from './utils/godrays';
 import { safeStorage } from './utils/storage';
@@ -72,6 +95,7 @@ export const App: React.FC = () => {
     setIsLoginModalOpen,
     isSynced,
     toastMessage,
+    setToastMessage,
     adminDeleteQuestion,
     adminEditQuestion,
     adminDeleteSolution,
@@ -85,6 +109,11 @@ export const App: React.FC = () => {
   const [quickProfile, setQuickProfile] = useState<{ user: User; anchor?: { x: number; y: number } | null } | null>(null);
   const [scrollInsideCinema, setScrollInsideCinema] = useState(false);
   const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>('login');
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
+  const [eyeRestEnabled, setEyeRestEnabled] = useState<boolean>(() => {
+    return safeStorage.getItem('fforum_eye_rest') === 'true';
+  });
 
   const isInsideCinema = currentView === 'memory' && scrollInsideCinema;
 
@@ -289,6 +318,198 @@ export const App: React.FC = () => {
     };
   }, [currentView, isLoginModalOpen, isProfileModalOpen, isFocusModeOpen, isChatOpen, handleViewChange]);
 
+  /* ============================================================
+     F-ID Hidden Layer — bảng lệnh (⌘K), sổ tay nhanh (⌘I) & phím tắt
+     ============================================================ */
+  useEffect(() => {
+    const openPalette = () => setIsPaletteOpen(true);
+    const openNotes = () => setIsNotesOpen((prev) => !prev);
+    window.addEventListener('fforum_open_palette', openPalette);
+    window.addEventListener('fforum_open_notes', openNotes);
+    return () => {
+      window.removeEventListener('fforum_open_palette', openPalette);
+      window.removeEventListener('fforum_open_notes', openNotes);
+    };
+  }, []);
+
+  const toggleEyeRest = useCallback(() => {
+    setEyeRestEnabled((prev) => {
+      const next = !prev;
+      safeStorage.setItem('fforum_eye_rest', String(next));
+      if (next) {
+        setToastMessage({
+          title: 'Đã bật nhắc nghỉ mắt 20-20-20',
+          subtitle: 'Cứ 20 phút F-Forum sẽ nhắc bạn thư giãn mắt 20 giây.',
+          type: 'success',
+        });
+      }
+      return next;
+    });
+  }, [setToastMessage]);
+
+  const paletteCommands: PaletteCommand[] = React.useMemo(() => {
+    const views: { id: DimensionView; label: string; hint: string; icon: React.ReactNode; keywords: string }[] = [
+      { id: 'home', label: 'Trang chủ', hint: 'Bảng tin tổng hợp & thống kê', icon: <Home className="w-4 h-4" />, keywords: 'home bang tin' },
+      { id: 'clubs', label: 'Câu lạc bộ', hint: 'CLB, sự kiện & bài đăng nhóm', icon: <Users className="w-4 h-4" />, keywords: 'clb club' },
+      { id: 'qa', label: 'Hỏi đáp', hint: 'Sàn hỏi bài theo môn học', icon: <HelpCircle className="w-4 h-4" />, keywords: 'hoi bai qa' },
+      { id: 'chat', label: 'Phòng chat', hint: 'Trò chuyện thời gian thực', icon: <MessageSquare className="w-4 h-4" />, keywords: 'chat tin nhan' },
+      { id: 'memory', label: 'Miền ký ức', hint: 'Chuyến cuộn phim thanh xuân', icon: <Compass className="w-4 h-4" />, keywords: 'ky uc memory' },
+      { id: 'chronicles', label: 'Khu vinh danh', hint: 'Quả cầu 3D & cột mốc', icon: <Award className="w-4 h-4" />, keywords: 'vinh danh' },
+      { id: 'coming-soon', label: 'Bản nâng cấp', hint: 'Những gì đang được phát triển', icon: <Rocket className="w-4 h-4" />, keywords: 'update' },
+      { id: 'landing', label: 'Giới thiệu F-Forum', hint: 'Trang marketing & bảng giá', icon: <Sparkles className="w-4 h-4" />, keywords: 'gioi thieu landing' },
+    ];
+
+    const viewCommands: PaletteCommand[] = views.map((v) => ({
+      id: `view-${v.id}`,
+      label: v.label,
+      hint: v.hint,
+      group: 'Điều hướng',
+      icon: v.icon,
+      keywords: v.keywords,
+      run: () => handleViewChange(v.id),
+    }));
+
+    const actionCommands: PaletteCommand[] = [
+      {
+        id: 'act-palette-shortcut',
+        label: 'Bảng lệnh nhanh',
+        hint: 'Đang mở — gõ để lọc mọi tác vụ',
+        group: 'Tác vụ',
+        icon: <CommandIcon className="w-4 h-4" />,
+        shortcut: '⌘K',
+        keywords: 'command palette lenh',
+        run: () => setIsPaletteOpen(true),
+      },
+      {
+        id: 'act-notes',
+        label: 'Sổ tay nhanh',
+        hint: 'Ghi chú dùng chung với Focus Sanctuary',
+        group: 'Tác vụ',
+        icon: <NotebookPen className="w-4 h-4" />,
+        shortcut: '⌘I',
+        keywords: 'so tay ghi chu note',
+        run: () => setIsNotesOpen(true),
+      },
+      {
+        id: 'act-focus',
+        label: 'Vào không gian tập trung',
+        hint: 'Pomodoro 25 phút + âm thanh 432Hz',
+        group: 'Không gian',
+        icon: <Headphones className="w-4 h-4" />,
+        shortcut: '⌘⇧F',
+        keywords: 'focus pomodoro tap trung',
+        run: () => setIsFocusModeOpen(true),
+      },
+      {
+        id: 'act-attendance',
+        label: 'Điểm danh & mở kho quà',
+        hint: 'Giữ chuỗi ngày, nhận Coin',
+        group: 'Không gian',
+        icon: <Flame className="w-4 h-4" />,
+        keywords: 'diem danh streak hop qua',
+        run: () => window.dispatchEvent(new CustomEvent('fforum_open_daily')),
+      },
+      {
+        id: 'act-chat',
+        label: 'Bật / tắt khung chat nhanh',
+        hint: 'Chat Dock trượt bên phải',
+        group: 'Không gian',
+        icon: <MessageSquare className="w-4 h-4" />,
+        keywords: 'chat dock',
+        run: handleToggleChat,
+      },
+      {
+        id: 'act-eye-rest',
+        label: eyeRestEnabled ? 'Tắt nhắc nghỉ mắt 20-20-20' : 'Bật nhắc nghỉ mắt 20-20-20',
+        hint: eyeRestEnabled ? 'Đang bật — cứ 20 phút nhắc một lần' : 'Bảo vệ mắt khi học lâu trên màn hình',
+        group: 'Không gian',
+        icon: <Eye className="w-4 h-4" />,
+        keywords: 'nghi mat eye rest 20-20-20',
+        run: toggleEyeRest,
+      },
+      {
+        id: 'act-eye-rest-now',
+        label: 'Nghỉ mắt ngay (20 giây)',
+        hint: 'Mở lớp phủ thư giãn mắt tức thì',
+        group: 'Không gian',
+        icon: <Eye className="w-4 h-4" />,
+        keywords: 'nghi mat ngay thu gian',
+        run: () => window.dispatchEvent(new CustomEvent('fforum_eye_rest_now')),
+      },
+      {
+        id: 'act-theme',
+        label: 'Đổi chế độ Sáng / Tối',
+        hint: 'Chuyển nhanh giao diện Obsidian ↔ Pha lê',
+        group: 'Giao diện',
+        icon: <Palette className="w-4 h-4" />,
+        shortcut: '⌘⇧L',
+        keywords: 'theme sang toi dark light',
+        run: () => window.dispatchEvent(new CustomEvent('fforum_toggle_theme')),
+      },
+      {
+        id: 'act-settings',
+        label: 'Mở trung tâm điều khiển',
+        hint: 'Giao diện, trải nghiệm & dữ liệu',
+        group: 'Giao diện',
+        icon: <SettingsIcon className="w-4 h-4" />,
+        keywords: 'cai dat setting',
+        run: () => window.dispatchEvent(new CustomEvent('fforum_open_settings')),
+      },
+    ];
+
+    if (currentUser) {
+      actionCommands.push({
+        id: 'act-profile',
+        label: 'Trang cá nhân của tôi',
+        hint: `${currentUser.name} · Cấp ${currentUser.level}`,
+        group: 'Tài khoản',
+        icon: <UserIcon className="w-4 h-4" />,
+        keywords: 'profile ho so ca nhan',
+        run: () => handleOpenProfile('overview'),
+      });
+    }
+
+    return [...viewCommands, ...actionCommands];
+  }, [currentUser, handleViewChange, handleToggleChat, handleOpenProfile, eyeRestEnabled, toggleEyeRest]);
+
+  useEffect(() => {
+    const isTypingTarget = (target: EventTarget | null) => {
+      const el = target as HTMLElement | null;
+      if (!el) return false;
+      const tag = el.tagName?.toLowerCase();
+      return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (!mod) return;
+
+      if (e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsPaletteOpen((prev) => !prev);
+        return;
+      }
+      if (e.key.toLowerCase() === 'i' && !e.shiftKey) {
+        if (isTypingTarget(e.target)) return;
+        e.preventDefault();
+        setIsNotesOpen((prev) => !prev);
+        return;
+      }
+      if (e.shiftKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('fforum_toggle_theme'));
+        return;
+      }
+      if (e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setIsFocusModeOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   const solvedQuestionsCount = questions.filter(q => q.isSolved).length;
   const isScrollableView =
     currentView === 'memory' || currentView === 'chronicles' || currentView === 'landing';
@@ -355,6 +576,8 @@ export const App: React.FC = () => {
               updateProfile({ streakCount: streak });
             }
           }}
+          eyeRestEnabled={eyeRestEnabled}
+          onToggleEyeRest={toggleEyeRest}
         />
         )
       )}
@@ -475,6 +698,10 @@ export const App: React.FC = () => {
           onNavigate={(v) => handleNavigate(v as DimensionView)}
           onToggleChat={handleToggleChat}
           onOpenFocusMode={() => setIsFocusModeOpen(true)}
+          onOpenStreak={() => window.dispatchEvent(new CustomEvent('fforum_open_daily'))}
+          onOpenNotes={() => setIsNotesOpen(true)}
+          onOpenPalette={() => setIsPaletteOpen(true)}
+          streakCount={currentUser?.streakCount ?? 0}
         />
       )}
 
@@ -548,6 +775,28 @@ export const App: React.FC = () => {
           isOpen={isFocusModeOpen}
           onClose={() => setIsFocusModeOpen(false)}
           onRewardXP={addXP}
+        />
+      </Suspense>
+
+      {/* ======================================================== */}
+      {/* HIDDEN PREMIUM LAYER: Bảng lệnh, Sổ tay nhanh, Nghỉ mắt  */}
+      {/* ======================================================== */}
+      <Suspense fallback={null}>
+        <CommandPalette
+          isOpen={isPaletteOpen}
+          onClose={() => setIsPaletteOpen(false)}
+          commands={paletteCommands}
+        />
+
+        <QuickNotesDock
+          isOpen={isNotesOpen}
+          onClose={() => setIsNotesOpen(false)}
+          onOpenFocusMode={() => setIsFocusModeOpen(true)}
+        />
+
+        <StudyCareCoach
+          enabled={eyeRestEnabled}
+          onToast={(title, subtitle) => setToastMessage({ title, subtitle, type: 'success' })}
         />
       </Suspense>
 

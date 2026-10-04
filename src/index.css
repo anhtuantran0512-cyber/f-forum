@@ -33,6 +33,9 @@
 }
 
 :root {
+  /* Cho phép nội suy các giá trị kích thước dạng keyword (max-content, fit-content)
+     → navbar co giãn giữa GUI lớn ↔ GUI nhỏ mượt mà trên trình duyệt hỗ trợ. */
+  interpolate-size: allow-keywords;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -1283,9 +1286,11 @@ html.light div[role="dialog"] .bg-black\/25 {
 }
 .dock-pos-top .ff-nav-capsule[data-compact="true"] .nav-tab-btn,
 .dock-pos-bottom .ff-nav-capsule[data-compact="true"] .nav-tab-btn {
-  width: 36px;
+  /* KHÔNG khóa cứng width — để bề rộng co theo nhãn đang thu gọn,
+     nhờ vậy chuyển GUI lớn ↔ GUI nhỏ diễn ra liên tục, không bị giật. */
+  min-width: 34px;
   height: 36px;
-  padding: 0 !important;
+  padding: 0 6px !important;
   border-radius: 9999px;
 }
 .dock-pos-top .ff-nav-capsule[data-compact="true"] .dock-vertical-tooltip,
@@ -1346,23 +1351,32 @@ html.light div[role="dialog"] .bg-black\/25 {
 }
 
 /* ============================================================
-   ccm-02 — Radial submenu (pure CSS sin()/cos(), CodeFronts +10% scale)
+   ccm-02 — Radial submenu v2 (pure CSS sin()/cos(), +20% scale,
+   staggered radii for an overlap-free premium fan)
    ============================================================ */
 .ccm-02 {
-  --ccm-r: 92px;
-  width: 53px;
-  height: 53px;
+  --ccm-r: 132px;
+  --ccm-r-alt: 164px;
+  --ccm-hub: 64px;
+  --ccm-item: 53px;
+  width: var(--ccm-hub);
+  height: var(--ccm-hub);
 }
 .ccm-02__item {
   transform: translate(0, 0) scale(0.3);
   opacity: 0;
   pointer-events: none;
   transition:
-    transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
-    opacity 0.25s ease,
-    box-shadow 0.25s ease;
-  transition-delay: calc(var(--i) * 45ms);
+    transform 0.52s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.28s ease,
+    box-shadow 0.28s ease,
+    border-color 0.28s ease;
+  transition-delay: calc(var(--i) * 55ms);
   will-change: transform, opacity;
+}
+/* Chỉ số chẵn dùng bán kính gần, chỉ số lẻ đẩy xa hơn → vòng cung so le, không chồng nhau */
+.ccm-02__item[data-tier='far'] {
+  --ccm-r: var(--ccm-r-alt);
 }
 .ccm-02__toggle:checked ~ .ccm-02__item {
   opacity: 1;
@@ -1377,12 +1391,26 @@ html.light div[role="dialog"] .bg-black\/25 {
   transform: rotate(135deg);
 }
 .ccm-02__toggle:checked ~ .ccm-02__hub {
-  border-color: rgba(34, 211, 238, 0.5);
+  border-color: rgba(34, 211, 238, 0.55);
   color: #67e8f9;
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.7),
+    0 0 0 6px rgba(34, 211, 238, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+.ccm-02__hub {
+  background-image: linear-gradient(145deg, rgba(30, 40, 58, 0.95), rgba(14, 19, 30, 0.98));
+  box-shadow:
+    0 16px 38px rgba(0, 0, 0, 0.66),
+    0 0 22px rgba(245, 158, 11, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+.ccm-02__hub:hover {
+  transform: translateY(-1px) scale(1.03);
 }
 .ccm-02__tip {
   position: absolute;
-  left: calc(100% + 10px);
+  left: calc(100% + 12px);
   top: 50%;
   translate: 0 -50%;
   white-space: nowrap;
@@ -1398,10 +1426,37 @@ html.light div[role="dialog"] .bg-black\/25 {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
+  z-index: 5;
 }
 .ccm-02__item:hover .ccm-02__tip,
 .ccm-02__item:focus-visible .ccm-02__tip {
   opacity: 1;
+}
+/* Nhãn luôn mở về bên phải: các item đều nằm trong góc phần tư trên-phải
+   nên nhãn không bao giờ tràn ra ngoài mép trái màn hình. */
+.ccm-02__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fb7185, #ef4444);
+  color: #180606;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.65);
+  border: 1px solid rgba(0, 0, 0, 0.5);
+}
+.ccm-02__item--hot {
+  border-color: rgba(244, 63, 94, 0.45) !important;
+}
+.ccm-02__item--hot:hover {
+  border-color: rgba(248, 113, 113, 0.85) !important;
 }
 @media (prefers-reduced-motion: reduce) {
   .ccm-02__item,
@@ -1554,3 +1609,292 @@ html.light .pc-12-shell {
   animation: ffRedFlameAura 2.4s ease-in-out infinite;
 }
 
+
+/* ==========================================================================
+   F-Forum Premium Layer (2026) — bảng lệnh, sổ tay, nghỉ mắt, khám phá,
+   gradient tiles, và chuyển động mượt giữa GUI lớn ↔ GUI nhỏ.
+   ========================================================================== */
+
+/* ---------- Scrollbar mảnh cao cấp cho các panel nội bộ ---------- */
+.ff-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 158, 11, 0.45) transparent;
+}
+.ff-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.ff-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ff-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.55), rgba(244, 114, 182, 0.45));
+  border-radius: 999px;
+}
+
+/* ---------- Bảng lệnh (⌘K) ---------- */
+@keyframes ffPaletteIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.96);
+    filter: blur(10px);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(0.5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+.ff-palette {
+  animation: ffPaletteIn 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  box-shadow:
+    0 50px 140px rgba(0, 0, 0, 0.85),
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+html.light .ff-palette {
+  background: rgba(248, 250, 253, 0.94);
+  color: #101827;
+  border-color: rgba(15, 23, 42, 0.12);
+}
+html.light .ff-palette .text-white,
+html.light .ff-palette .text-white\/70,
+html.light .ff-palette .text-white\/45 {
+  color: #101827;
+}
+
+/* ---------- Sổ tay nhanh ---------- */
+@keyframes ffNotesIn {
+  0% {
+    opacity: 0;
+    transform: translateY(22px) scale(0.97);
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+.ff-notes-panel {
+  animation: ffNotesIn 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---------- Nghỉ mắt 20-20-20 ---------- */
+@keyframes ffEyeRestFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ffEyeRestBreath {
+  0%, 100% { transform: scale(0.9); opacity: 0.65; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+@keyframes ffEyeRestRing {
+  0% { transform: rotate(0deg) scale(1); opacity: 0.5; }
+  50% { transform: rotate(180deg) scale(1.04); opacity: 0.9; }
+  100% { transform: rotate(360deg) scale(1); opacity: 0.5; }
+}
+.ff-eye-rest {
+  animation: ffEyeRestFade 380ms ease both;
+}
+.ff-eye-rest__breath {
+  animation: ffEyeRestBreath 6s ease-in-out infinite;
+}
+.ff-eye-rest__ring {
+  border-style: dashed;
+  animation: ffEyeRestRing 18s linear infinite;
+}
+
+/* ---------- Thẻ gradient cao cấp (thay cho dải nút gradient cũ) ---------- */
+.ff-grad-tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.24s ease, border-color 0.24s ease;
+}
+.ff-grad-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.22), transparent 45%);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.ff-grad-tile:hover {
+  transform: translateY(-2px) scale(1.015);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+}
+.ff-grad-tile[aria-checked='true'] {
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.35),
+    0 14px 34px rgba(0, 0, 0, 0.6);
+}
+.ff-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.ff-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #fff, #cbd5e1);
+  border: 2px solid rgba(15, 23, 42, 0.55);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+.ff-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid rgba(15, 23, 42, 0.55);
+}
+
+/* ---------- Ô chọn vị trí navbar: mockup màn hình mini ---------- */
+.ff-dock-mock {
+  position: relative;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 120%, rgba(245, 158, 11, 0.12), transparent 62%),
+    linear-gradient(160deg, rgba(12, 17, 26, 0.92), rgba(6, 9, 14, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 12px 30px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+html.light .ff-dock-mock {
+  background: linear-gradient(160deg, #eef2f9, #dfe6f2);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+.ff-dock-zone {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.12), rgba(148, 163, 184, 0.12));
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  transition: all 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  cursor: pointer;
+}
+.ff-dock-zone:hover {
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.22), rgba(245, 158, 11, 0.12));
+  border-color: rgba(245, 158, 11, 0.55);
+}
+.ff-dock-zone[data-active='true'] {
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.85), rgba(251, 191, 36, 0.55));
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.55);
+}
+.ff-dock-zone[data-active='true'] span {
+  color: #1b1204;
+}
+
+/* ---------- Ô khám phá (drawer mobile) ---------- */
+.ff-explore-tile {
+  position: relative;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 0.22s ease, background 0.22s ease;
+}
+.ff-explore-tile:active {
+  transform: scale(0.96);
+}
+.ff-explore-tile[data-active='true'] {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: linear-gradient(160deg, rgba(245, 158, 11, 0.22), rgba(245, 158, 11, 0.06));
+  box-shadow: 0 10px 26px rgba(245, 158, 11, 0.18);
+}
+
+/* ---------- Chuyển GUI lớn ↔ GUI nhỏ mượt hơn ---------- */
+.nav-tab-btn {
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+              height 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+              padding 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 0.35s ease,
+              border-color 0.35s ease,
+              color 0.3s ease,
+              box-shadow 0.35s ease,
+              transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: width, padding;
+  transform: translateZ(0);
+}
+.ff-nav-tab-icon-wrap {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: max-width, opacity, transform;
+}
+.ff-nav-label {
+  min-width: 0;
+  will-change: max-width, opacity;
+}
+.ff-gradient-ring-sq,
+.ff-gradient-ring {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 6px 18px rgba(245, 158, 11, 0.25);
+}
+/* Nhịp thở nhẹ khi navbar đang đổi vị trí / đổi kích thước */
+@keyframes ffNavMorph {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.97);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+.ff-nav-capsule.ff-nav-morphing,
+.dock-container.ff-nav-morphing > nav {
+  animation: ffNavMorph 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* Chuyển động dock dọc mềm: fade + trượt nhẹ thay vì "giật" do đổi trục */
+.dock-pos-left > nav,
+.dock-pos-right > nav {
+  animation: ffNavMorph 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-palette,
+  .ff-notes-panel,
+  .ff-eye-rest,
+  .ff-eye-rest__breath,
+  .ff-eye-rest__ring,
+  .nav-tab-btn,
+  .ff-nav-capsule.ff-nav-morphing,
+  .dock-container.ff-nav-morphing > nav,
+  .dock-pos-left > nav,
+  .dock-pos-right > nav {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+.reduce-motion .ff-palette,
+.reduce-motion .ff-notes-panel,
+.reduce-motion .ff-eye-rest,
+.reduce-motion .ff-eye-rest__breath,
+.reduce-motion .ff-eye-rest__ring,
+.reduce-motion .nav-tab-btn,
+.reduce-motion .ff-nav-capsule.ff-nav-morphing,
+.reduce-motion .dock-container.ff-nav-morphing > nav,
+.reduce-motion .dock-pos-left > nav,
+.reduce-motion .dock-pos-right > nav {
+  animation: none !important;
+  transition-duration: 0.01ms !important;
+}

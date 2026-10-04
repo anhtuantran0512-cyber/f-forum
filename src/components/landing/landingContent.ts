@@ -2,6 +2,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   BadgeCheck,
+  Command,
   BellRing,
   BookOpenCheck,
   Bot,
@@ -93,6 +94,16 @@ export const FEATURES: {
     icon: Headphones,
     accent: 'emerald',
     span: 'md',
+  },
+  {
+    id: 'command',
+    title: 'Bảng lệnh & tiện ích ẩn',
+    description:
+      'Nhấn ⌘/Ctrl + K để mở bảng lệnh nhanh, ⌘/Ctrl + I để ghi chú tức thì ở bất kỳ phân khu nào, kèm nhắc nghỉ mắt 20-20-20 khi học lâu.',
+    icon: Command,
+    accent: 'violet',
+    span: 'md',
+    bullets: ['Bảng lệnh ⌘K không rời bàn phím', 'Sổ tay nhanh dùng chung với Focus', 'Nhắc nghỉ mắt 20-20-20'],
   },
   {
     id: 'memory',
@@ -307,7 +318,7 @@ export const PRICING_PLANS: {
     badge: 'Sắp ra mắt',
     features: [
       'Tất cả quyền lợi gói Sinh viên',
-      'Kho lời giải ưu tiên & ôn tập thông minh',
+      'Bảng lệnh ⌘K, Sổ tay nhanh & nhắc nghỉ mắt 20-20-20',
       'Thống kê tiến độ học tập theo tuần',
       'Chế độ thi đua nhóm & bảng xếp hạng riêng',
       'Huy hiệu Pro & khung hồ sơ đặc biệt',

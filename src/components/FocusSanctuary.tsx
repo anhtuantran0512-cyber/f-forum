@@ -344,7 +344,7 @@ const FocusSanctuaryInner: React.FC<{
               <div className="flex items-center gap-2">
                 <NotebookPen className="w-4 h-4 text-cyan-400" />
                 <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-                  BẢNG GHI CHÚ NHANH (SCRATCHPAD)
+                  SỔ TAY NHANH · DÙNG CHUNG VỚI CTRL + I
                 </span>
               </div>
 
@@ -396,7 +396,7 @@ const FocusSanctuaryInner: React.FC<{
             <div className="mt-4 p-3 rounded-2xl bg-cyan-950/30 border border-cyan-500/20 text-xs text-cyan-200 flex items-center gap-2.5">
               <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
               <span className="text-[11px] leading-relaxed">
-                Hoàn thành 1 chu kỳ Pomodoro 25 phút để nhận ngay <strong>+25 Coin</strong> danh dự và giữ chuỗi ngọn lửa xanh!
+                Hoàn thành 1 chu kỳ Pomodoro 25 phút để nhận ngay <strong>+25 Coin</strong> danh dự và giữ chuỗi điểm danh của bạn!
               </span>
             </div>
           </div>

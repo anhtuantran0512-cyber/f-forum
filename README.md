@@ -46,19 +46,30 @@ Hệ thống được thiết kế theo giao diện kính mờ hiện đại, h�
 ### 4. Điểm Danh & Câu Hỏi Vui Hàng Ngày
 - **Điểm danh 15 ngày**: Đăng nhập mỗi ngày để nhận Coin tích lũy. Hoàn thành các mốc ngày 5, 10, 15 để nhận thêm hộp quà.
 - **Kho quà**: Mở các hộp quà ảo để nhận vật phẩm lưu niệm và điểm thưởng.
-- **Câu hỏi vui (Trivia Quiz)**: Mỗi ngày có một câu đố kiến thức ngắn trong 15 giây. Trả lời đúng được thưởng Coin kèm nút "Xem lại" để đọc lời giải thích chi tiết.
+- **Câu hỏi vui (Trivia Quiz)**: Mỗi ngày có một câu đố kiến thức ngắn trong 15 giây. Trả lời đúng được thưởng Coin ngay trong ngày (không cần chế độ ôn lại — hôm sau đã có câu mới).
+- **Ngọn lửa Streak** nằm trong menu tia sét ở góc dưới bên trái, hiển thị số ngày điểm danh liên tiếp.
 
 ### 5. Cửa Hàng Vật Phẩm Ảo (Chill Box)
 - Sử dụng điểm Coin tích lũy được từ việc giải bài tập và điểm danh để đổi vật phẩm trang trí.
 - 12 vật phẩm ảo thiết kế riêng được chia theo các cấp độ màu sắc: Xanh lá, Xanh lam, Đỏ và Tím.
 - Các vật phẩm đã sở hữu có thể trang bị trực tiếp lên trang cá nhân.
 
-### 6. Hồ Sơ Cá Nhân & Báo Cáo Vi Phạm
+### 6. Lớp Tiện Ích Ẩn (Premium Layer)
+- **Bảng lệnh nhanh (⌘/Ctrl + K)**: Gõ không dấu để tìm và nhảy tới mọi phân khu, hoặc chạy tác vụ (đổi theme, điểm danh, mở Focus, bật/tắt chat, nghỉ mắt...).
+- **Sổ tay nhanh (⌘/Ctrl + I)**: Ghi chú tức thì ở bất kỳ phân khu nào, tự động lưu và dùng chung một cuốn sổ với Focus Sanctuary. Có mẫu nhanh cho hạn chót, ý tưởng và công thức.
+- **Nhắc nghỉ mắt 20-20-20**: Cứ 20 phút hiện lớp phủ thư giãn 20 giây với vòng thở dịu mắt (bật/tắt trong Cài đặt → Trải nghiệm).
+- **Sao lưu & khôi phục**: Xuất/nhập toàn bộ dữ liệu học tập trên trình duyệt thành một tệp JSON trong Cài đặt → Hệ thống.
+- **Phím tắt**: ⌘/Ctrl + K (bảng lệnh), ⌘/Ctrl + I (sổ tay), ⌘/Ctrl + Shift + L (theme), ⌘/Ctrl + Shift + F (Focus Mode).
+
+### 7. Trung Tâm Điều Khiển (Cài đặt)
+- Ba nhóm tab cao cấp: **Giao diện** (theme, gradient không gian dạng tile, cỡ chữ, độ mờ kính), **Trải nghiệm** (mockup chọn vị trí navbar bằng cách chạm vào cạnh khung, tự ẩn, chế độ chỉ hiện icon, âm thanh, chuyển động, không gian tập trung, phím tắt) và **Hệ thống** (sao lưu, xóa cache, đặt lại dữ liệu).
+
+### 8. Hồ Sơ Cá Nhân & Báo Cáo Vi Phạm
 - Hiển thị 6 chỉ số hoạt động: Tổng Coin, Lượt cảm ơn, Câu trả lời hay nhất, Đánh giá 5 sao, Xác thực và Số người đã giúp đỡ.
 - Biểu đồ mạng nhện (Radar Chart) thể hiện thế mạnh giải bài theo 6 nhóm môn học.
 - Nút **Tố Cáo Tài Khoản**: Cho phép người dùng báo cáo các hành vi vi phạm (spam, quấy rối, ngôn từ độc hại) về ban quản trị để xử lý kịp thời.
 
-### 7. Hệ Thống 8 Cấp Bậc Học Đường
+### 9. Hệ Thống 8 Cấp Bậc Học Đường
 Hệ thống cấp bậc được đặt tên gần gũi với học sinh theo tiến trình tích lũy Coin:
 1. 🌱 **Học Sinh** (0 Coin)
 2. 🌿 **Học Sinh Giỏi** (150 Coin)
@@ -69,7 +80,7 @@ Hệ thống cấp bậc được đặt tên gần gũi với học sinh theo t
 7. 👑 **Bậc Thầy** (6,000 Coin)
 8. 🔮 **Chuyên Gia** (12,000 Coin)
 
-### 8. Giao Diện & Tùy Chọn Hiển Thị
+### 10. Giao Diện & Tùy Chọn Hiển Thị
 - Hỗ trợ cả 2 chế độ: Giao diện Sáng (Light Mode) và Giao diện Tối (Dark Mode).
 - **Thanh điều hướng linh hoạt**: Có thể đặt ở 4 vị trí: Trên cùng, Dưới cùng, Cạnh trái hoặc Cạnh phải màn hình.
 - Các cửa sổ thông báo, cài đặt và tài khoản tự động điều chỉnh hướng mở tương ứng để không bị che khuất.
