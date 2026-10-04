@@ -30,10 +30,11 @@ interface ClubsViewProps {
     category?: ClubCategory;
     foundingMembers: string[];
     purpose: string;
-  }) => void;
-  onApproveClub: (clubId: string) => void;
-  onRejectClub: (clubId: string, reason: string) => void;
-  onCreateClubPost: (clubId: string, title: string, content: string) => boolean;
+  }) => void | Promise<void>;
+  /* Các thao tác này nay đọc kết quả thật từ máy chủ nên trả về Promise. */
+  onApproveClub: (clubId: string) => void | Promise<void>;
+  onRejectClub: (clubId: string, reason: string) => void | Promise<void>;
+  onCreateClubPost: (clubId: string, title: string, content: string) => boolean | Promise<boolean>;
   chatMessages?: ChatMessage[];
   onOpenLoginModal?: () => void;
   isEmbedded?: boolean;
@@ -182,7 +183,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
       .map(f => f.trim().slice(0, 50))
       .filter(Boolean);
 
-    onCreateClub({
+    void onCreateClub({
       name: newClubName.trim().slice(0, 60),
       slogan: newSlogan.trim().slice(0, 120),
       coverImage: newCover.trim().slice(0, 500) || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&h=500&fit=crop',
@@ -202,12 +203,14 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
     setCreateCooldown(5);
   };
 
-  const handleNewPost = (clubId: string) => {
+  const handleNewPost = async (clubId: string) => {
     if (postCooldown > 0 || isSubmittingPost) return;
     if (!postTitle.trim() || !postContent.trim()) return;
 
     setIsSubmittingPost(true);
-    const ok = onCreateClubPost(clubId, postTitle.trim().slice(0, 100), postContent.trim().slice(0, 1000));
+    /* Phải await: nếu không thì `ok` là một Promise luôn truthy, form sẽ tự xoá
+       nội dung và bật cooldown kể cả khi máy chủ từ chối bài viết. */
+    const ok = await onCreateClubPost(clubId, postTitle.trim().slice(0, 100), postContent.trim().slice(0, 1000));
     if (ok) {
       setPostTitle('');
       setPostContent('');
@@ -364,7 +367,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
 
                     <div className="flex items-center gap-2 mt-3 pt-2 border-t border-white/10">
                       <button
-                        onClick={() => onApproveClub(pClub.id)}
+                        onClick={() => void onApproveClub(pClub.id)}
                         className="flex-1 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs flex items-center justify-center gap-1 shadow-md"
                       >
                         <CheckCircle className="w-3.5 h-3.5" />
@@ -873,7 +876,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
               </button>
               <button
                 onClick={() => {
-                  onRejectClub(rejectPromptClubId, rejectReason || 'Không đủ điều kiện theo quy chế.');
+                  void onRejectClub(rejectPromptClubId, rejectReason || 'Không đủ điều kiện theo quy chế.');
                   setRejectPromptClubId(null);
                   setRejectReason('');
                 }}

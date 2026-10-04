@@ -27,6 +27,7 @@ import {
   Flame,
   User as UserIcon,
   ShieldAlert,
+  AlertCircle,
 } from 'lucide-react';
 import type { DimensionView, User } from './types';
 import { CommandPalette, type PaletteCommand } from './components/CommandPalette';
@@ -999,7 +1000,9 @@ export const App: React.FC = () => {
         <div className="fixed top-20 sm:top-24 right-4 sm:right-6 z-50 animate-fade-up">
           <div className="liquid-glass rounded-2xl bg-neutral-950/95 border border-white/20 p-3 sm:p-4 shadow-2xl backdrop-blur-xl flex items-center gap-3 max-w-sm">
             <div className="shrink-0 p-2 rounded-xl bg-white/10">
-              {toastMessage.type === 'level' ? (
+              {toastMessage.type === 'error' ? (
+                <AlertCircle className="w-5 h-5 text-rose-400" />
+              ) : toastMessage.type === 'level' ? (
                 <Trophy className="w-5 h-5 text-amber-400 animate-bounce" />
               ) : toastMessage.type === 'xp' ? (
                 <Sparkles className="w-5 h-5 text-cyan-400 animate-spin" />

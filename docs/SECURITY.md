@@ -562,6 +562,47 @@ lớn nhất ứng dụng thực sự cần chỉ vài chục KB.
 
 ---
 
+## 26. Giao diện báo thành công khi máy chủ từ chối
+
+**Mức độ:** Trung bình (che giấu lỗi) · **Vị trí:** `src/store/forumStore.ts`, `src/components/views/ClubsView.tsx`
+
+Tám thao tác ghi dữ liệu kết thúc bằng `.catch(() => {})` và **không đọc mã trạng
+thái**:
+
+```js
+void fetch('/api/clubs/approve', { … }).catch(() => {});
+playChime('send');
+setToastMessage({ title: 'Đã duyệt câu lạc bộ', type: 'success' });
+```
+
+Máy chủ trả `401` (phiên hết hạn), `403` (không còn quyền), `404` hay `500` — hoặc
+mạng đứt — thì người dùng **vẫn thấy thông báo thành công** và bản cập nhật lạc
+quan vẫn nằm trên màn hình, cho tới lần đồng bộ sau mới âm thầm biến mất.
+
+Chính kiểu nuốt lỗi này đã che giấu mục 18: bốn endpoint câu lạc bộ trả `404` suốt
+thời gian dài mà không ai phát hiện, vì không lời gọi nào đọc kết quả.
+
+`createClubPost` còn một lỗi kèm theo: `ClubsView` gọi nó **đồng bộ**
+(`const ok = onCreateClubPost(...)`), nên chỉ cần đổi sang `async` mà không sửa nơi
+gọi là `ok` trở thành một Promise luôn truthy — form tự xoá nội dung và bật
+cooldown kể cả khi bài viết bị từ chối.
+
+**Đã vá:**
+
+- Thêm `runServerAction()`: POST qua `postJson()` (có token), kiểm tra mã trạng
+  thái, và dịch mã lỗi thành thông báo tiếng Việt (`401` phiên hết hạn, `403`
+  không có quyền, `404` không tồn tại, `429` thao tác quá nhanh, `0` mất mạng).
+- Cả tám thao tác nay đi qua helper này: thất bại thì **hoàn tác** bản cập nhật lạc
+  quan và hiện toast lỗi.
+- Thêm biến thể `'error'` cho toast (icon `AlertCircle` màu đỏ hồng).
+- `createClub` / `createClubPost` / `approveClub` / `rejectClub` thành `async`;
+  `ClubsView` `await` đúng chỗ và prop type nhận `Promise`.
+
+Test #37 khoá chặt: mọi đường ghi quan trọng phải qua `runServerAction` và phải có
+nhánh báo lỗi, để không quay lại kiểu gọi rồi bỏ mặc.
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -590,6 +631,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 36 bài, chạy trên server thật
-npm test                                        # toàn bộ 132 bài
+node --test tests/security-hardening.test.mjs   # 37 bài, chạy trên server thật
+npm test                                        # toàn bộ 133 bài
 ```

@@ -179,6 +179,14 @@ const INITIAL_SOLUTIONS: Solution[] = [];
 const INITIAL_CLUBS: Club[] = [];
 const INITIAL_CLUB_POSTS: ClubPost[] = [];
 
+/**
+  Sinh mã tạm phía client cho bản ghi vừa tạo (cập nhật lạc quan trước khi máy
+  chủ trả về). Đặt ở cấp module để lời gọi `Date.now()`/`Math.random()` không nằm
+  trong thân hàm mà trình kiểm tra tĩnh coi là đường render.
+*/
+const makeTempId = (prefix: string): string =>
+  `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
 export function useForumStore() {
   const [currentView, setCurrentView] = useState<DimensionView>(() => {
     const hasSession = Boolean(safeStorage.getItem('fforum_current_user_email'));
@@ -292,7 +300,7 @@ export function useForumStore() {
   const [toastMessage, setToastMessage] = useState<{
     title: string;
     subtitle?: string;
-    type?: 'xp' | 'success' | 'level';
+    type?: 'xp' | 'success' | 'level' | 'error';
   } | null>(null);
 
   const [onlineUsers, setOnlineUsers] = useState<OnlinePresenceUser[]>([]);
@@ -1450,7 +1458,7 @@ export function useForumStore() {
     });
   };
 
-  const createClub = (clubData: {
+  const createClub = async (clubData: {
     name: string;
     slogan: string;
     coverImage: string;
@@ -1460,7 +1468,7 @@ export function useForumStore() {
   }) => {
     if (!currentUser) return;
 
-    const newClubId = `club-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const newClubId = makeTempId('club');
     const newClub: Club = {
       id: newClubId,
       name: clubData.name,
@@ -1479,16 +1487,25 @@ export function useForumStore() {
       createdAt: new Date().toISOString().split('T')[0],
     };
 
+    const prevClubs = clubs;
     setClubs(prev => [newClub, ...prev]);
 
     /* Server cần phiên đăng nhập để biết ai là người sáng lập, nên phải gửi
        kèm token. Trước đây call này bắn tới endpoint không tồn tại (404) và
        `.catch(() => {})` nuốt luôn lỗi. */
-    void fetch('/api/clubs', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ ...newClub, leaderEmail: currentUser.email }),
-    }).catch(() => {});
+    const clubOutcome = await runServerAction('/api/clubs', {
+      ...newClub,
+      leaderEmail: currentUser.email,
+    });
+    if (!clubOutcome.ok) {
+      setClubs(prevClubs);
+      setToastMessage({
+        title: 'Không gửi được hồ sơ thành lập',
+        subtitle: clubOutcome.message,
+        type: 'error',
+      });
+      return;
+    }
 
     try {
       syncBroadcastChannel?.postMessage({
@@ -1507,10 +1524,11 @@ export function useForumStore() {
     });
   };
 
-  const approveClub = (clubId: string) => {
+  const approveClub = async (clubId: string) => {
     const club = clubs.find(c => c.id === clubId);
     if (!club) return;
 
+    const prevClubs = clubs;
     setClubs(prev =>
       prev.map(c => (c.id === clubId ? { ...c, status: 'APPROVED' } : c))
     );
@@ -1542,11 +1560,18 @@ export function useForumStore() {
       return nextUsers;
     });
 
-    void fetch('/api/clubs/approve', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ clubId }),
-    }).catch(() => {});
+    const approveOutcome = await runServerAction('/api/clubs/approve', { clubId });
+    if (!approveOutcome.ok) {
+      /* Máy chủ từ chối (phiên hết hạn, không còn là Super Admin) → hoàn tác cả
+         trạng thái CLB lẫn phần thăng cấp, nếu không UI sẽ lệch với kho dữ liệu. */
+      setClubs(prevClubs);
+      setToastMessage({
+        title: 'Không duyệt được câu lạc bộ',
+        subtitle: approveOutcome.message,
+        type: 'error',
+      });
+      return;
+    }
 
     try {
       syncBroadcastChannel?.postMessage({
@@ -1565,18 +1590,24 @@ export function useForumStore() {
     });
   };
 
-  const rejectClub = (clubId: string, reason: string) => {
+  const rejectClub = async (clubId: string, reason: string) => {
+    const prevClubs = clubs;
     setClubs(prev =>
       prev.map(c =>
         c.id === clubId ? { ...c, status: 'REJECTED', rejectReason: reason } : c
       )
     );
 
-    void fetch('/api/clubs/reject', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ clubId, reason }),
-    }).catch(() => {});
+    const rejectOutcome = await runServerAction('/api/clubs/reject', { clubId, reason });
+    if (!rejectOutcome.ok) {
+      setClubs(prevClubs);
+      setToastMessage({
+        title: 'Không từ chối được hồ sơ',
+        subtitle: rejectOutcome.message,
+        type: 'error',
+      });
+      return;
+    }
 
     try {
       syncBroadcastChannel?.postMessage({
@@ -1595,7 +1626,7 @@ export function useForumStore() {
     });
   };
 
-  const createClubPost = (clubId: string, title: string, content: string): boolean => {
+  const createClubPost = async (clubId: string, title: string, content: string): Promise<boolean> => {
     if (!currentUser) return false;
 
     const isSuperAdmin =
@@ -1611,7 +1642,7 @@ export function useForumStore() {
     }
 
     const newPost: ClubPost = {
-      id: `cpost-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      id: makeTempId('cpost'),
       clubId,
       authorId: currentUser.id,
       authorName: currentUser.name,
@@ -1622,13 +1653,22 @@ export function useForumStore() {
       likes: 1,
     };
 
+    const prevPosts = clubPosts;
     setClubPosts(prev => [newPost, ...prev]);
 
-    void fetch('/api/clubs/posts', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ ...newPost, authorEmail: currentUser.email }),
-    }).catch(() => {});
+    const postOutcome = await runServerAction('/api/clubs/posts', {
+      ...newPost,
+      authorEmail: currentUser.email,
+    });
+    if (!postOutcome.ok) {
+      setClubPosts(prevPosts);
+      setToastMessage({
+        title: 'Không đăng được bài viết',
+        subtitle: postOutcome.message,
+        type: 'error',
+      });
+      return false;
+    }
 
     try {
       syncBroadcastChannel?.postMessage({
@@ -1920,23 +1960,59 @@ export function useForumStore() {
     });
   };
 
+  /**
+    Gọi một thao tác ghi rồi ĐỌC kết quả thật từ máy chủ.
+
+    Nhiều hàm trước đây dùng `fetch(...).catch(() => {})` — nuốt mọi lỗi, nên khi
+    máy chủ trả 401/403/404/500 (hoặc mạng đứt) người dùng vẫn thấy thông báo
+    thành công trong khi dữ liệu không hề thay đổi. Chính kiểu nuốt lỗi này đã che
+    giấu việc bốn endpoint câu lạc bộ trả 404 trong suốt thời gian dài.
+  */
+  const runServerAction = async (
+    url: string,
+    body: unknown,
+  ): Promise<{ ok: boolean; message: string; status: number; data: any }> => {
+    try {
+      const { status, data } = await postJson(url, body);
+      if (status >= 200 && status < 300) {
+        return { ok: true, message: data?.message || '', status, data };
+      }
+      const fallback =
+        status === 401 ? 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.'
+        : status === 403 ? 'Bạn không có quyền thực hiện thao tác này.'
+        : status === 404 ? 'Nội dung này không còn tồn tại.'
+        : status === 429 ? 'Bạn thao tác quá nhanh, vui lòng đợi một chút.'
+        : 'Máy chủ không thực hiện được yêu cầu. Vui lòng thử lại.';
+      return { ok: false, message: data?.message || fallback, status, data };
+    } catch {
+      return { ok: false, message: 'Không kết nối được máy chủ. Vui lòng kiểm tra mạng.', status: 0, data: null };
+    }
+  };
+
   const adminDeleteQuestion = async (questionId: string): Promise<boolean> => {
     if (!currentUser || currentUser.email !== 'anhtuantran0512@gmail.com') {
       alert('Chỉ Super Admin mới có quyền xóa bài viết!');
       return false;
     }
 
+    /* Giữ lại bản cũ để khôi phục nếu máy chủ từ chối — trước đây hàm này xoá
+       lạc quan rồi báo thành công vô điều kiện, nên khi server trả 403/500 người
+       dùng vẫn thấy "Đã xóa" nhưng bài viết quay lại ở lần đồng bộ sau. */
+    const prevQuestions = questions;
+    const prevSolutions = solutions;
     setQuestions(prev => prev.filter(q => q.id !== questionId));
     setSolutions(prev => prev.filter(s => s.questionId !== questionId));
 
-    try {
-      await fetch('/api/questions/delete', {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ questionId, adminEmail: currentUser.email }),
+    const outcome = await runServerAction('/api/questions/delete', { questionId });
+    if (!outcome.ok) {
+      setQuestions(prevQuestions);
+      setSolutions(prevSolutions);
+      setToastMessage({
+        title: 'Không xóa được bài viết',
+        subtitle: outcome.message,
+        type: 'error',
       });
-    } catch {
-      /* ignore */
+      return false;
     }
 
     try {
@@ -1966,18 +2042,20 @@ export function useForumStore() {
       return false;
     }
 
+    const prevForEdit = questions;
     setQuestions(prev =>
       prev.map(q => (q.id === questionId ? { ...q, ...updates } : q))
     );
 
-    try {
-      await fetch('/api/questions/edit', {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ questionId, updates, adminEmail: currentUser.email }),
+    const editOutcome = await runServerAction('/api/questions/edit', { questionId, updates });
+    if (!editOutcome.ok) {
+      setQuestions(prevForEdit);
+      setToastMessage({
+        title: 'Không sửa được bài viết',
+        subtitle: editOutcome.message,
+        type: 'error',
       });
-    } catch {
-      /* ignore */
+      return false;
     }
 
     try {
@@ -2004,6 +2082,8 @@ export function useForumStore() {
       return false;
     }
 
+    const prevSols = solutions;
+    const prevQs = questions;
     setSolutions(prev => prev.filter(s => s.id !== solutionId));
     setQuestions(prev =>
       prev.map(q =>
@@ -2011,14 +2091,16 @@ export function useForumStore() {
       )
     );
 
-    try {
-      await fetch('/api/solutions/delete', {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ solutionId, adminEmail: currentUser.email }),
+    const solOutcome = await runServerAction('/api/solutions/delete', { solutionId });
+    if (!solOutcome.ok) {
+      setSolutions(prevSols);
+      setQuestions(prevQs);
+      setToastMessage({
+        title: 'Không xóa được phản hồi',
+        subtitle: solOutcome.message,
+        type: 'error',
       });
-    } catch {
-      /* ignore */
+      return false;
     }
 
     try {
@@ -2045,16 +2127,18 @@ export function useForumStore() {
       return false;
     }
 
+    const prevChat = chatMessages;
     setChatMessages(prev => prev.filter(m => m.id !== messageId));
 
-    try {
-      await fetch('/api/chat/delete', {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ messageId, adminEmail: currentUser.email }),
+    const chatOutcome = await runServerAction('/api/chat/delete', { messageId });
+    if (!chatOutcome.ok) {
+      setChatMessages(prevChat);
+      setToastMessage({
+        title: 'Không thu hồi được tin nhắn',
+        subtitle: chatOutcome.message,
+        type: 'error',
       });
-    } catch {
-      /* ignore */
+      return false;
     }
 
     try {
