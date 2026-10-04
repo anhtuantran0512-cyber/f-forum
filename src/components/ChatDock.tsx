@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import type { ChatChannelId, ChatMessage, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
+import { useEscapeKey } from '../utils/useEscapeKey';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { useChatCooldown } from '../utils/chatCooldown';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../config/admin';
@@ -85,6 +86,13 @@ export const ChatDock: React.FC<ChatDockProps> = ({
   const [reportDetails, setReportDetails] = useState('');
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [reportSuccessMsg, setReportSuccessMsg] = useState<string | null>(null);
+
+  /* Hộp thoại tố cáo khai báo aria-modal="true" mà không có đường thoát bằng
+     phím. Chỉ bật khi hộp thoại đang mở để không giành phím Escape của lớp khác. */
+  useEscapeKey(() => {
+    setReportUser(null);
+    setReportSuccessMsg(null);
+  }, Boolean(reportUser));
 
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
