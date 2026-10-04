@@ -652,10 +652,17 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 subject: String(payload.subject || 'toan').slice(0, 40),
                 content: String(payload.content).trim().slice(0, 20000),
                 authorId: String(asker.id).slice(0, MAX_NAME_LENGTH),
-                authorName: String(asker.name).slice(0, MAX_NAME_LENGTH),
+                /* Cùng ngoại lệ ẩn danh như đường HTTP. */
+                authorName: String(
+                  payload.isAnonymous
+                    ? (payload.anonymousAlias || payload.authorName || 'Pháp sư Ghibli')
+                    : asker.name
+                ).slice(0, MAX_NAME_LENGTH),
                 authorEmail: asker.email,
                 authorLevel: asker.level ?? 1,
-                authorAvatar: String(asker.avatar || DEFAULT_AVATAR).slice(0, 2000),
+                authorAvatar: String(
+                  (payload.isAnonymous ? payload.anonymousMask : asker.avatar) || DEFAULT_AVATAR
+                ).slice(0, 2000),
                 isAnonymous: Boolean(payload.isAnonymous),
                 createdAt: 'Vừa xong',
                 createdAtMs: Date.now(),
@@ -1225,6 +1232,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
+        const isAnonymousQuestion = Boolean(body.isAnonymous);
+
         const newQuestion = {
           id: randomId('q'),
           title: title.slice(0, 200),
@@ -1232,17 +1241,29 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           content: content.slice(0, 20000),
           /* Đã đăng nhập thì danh tính hiển thị lấy từ bản ghi thật — không thì
              ai cũng đăng bài dưới tên và ảnh đại diện của người khác. Khách chưa
-             đăng nhập vẫn dùng tên tự nhập (diễn đàn cho phép hỏi ẩn danh). */
+             đăng nhập vẫn dùng tên tự nhập.
+             NGOẠI LỆ: câu hỏi ẩn danh. Diễn đàn cho phép hỏi mà không lộ tên, và
+             giao diện render chính trường `authorName` làm bí danh ("Pháp sư
+             Ghibli"), nên ở chế độ này phải giữ bí danh client gửi. Danh tính thật
+             vẫn nằm ở `authorEmail`/`authorId` để kiểm quyền chọn đáp án chuẩn. */
           authorId: String(author?.id ?? body.authorId ?? '').slice(0, MAX_NAME_LENGTH),
-          authorName: String(author?.name ?? body.authorName ?? 'Học sinh').slice(0, MAX_NAME_LENGTH),
+          authorName: String(
+            isAnonymousQuestion
+              ? (body.anonymousAlias || body.authorName || 'Pháp sư Ghibli')
+              : (author?.name ?? body.authorName ?? 'Học sinh')
+          ).slice(0, MAX_NAME_LENGTH),
           /* Trước đây authorEmail bị bỏ rơi → server không biết câu hỏi của ai
              và không thể kiểm tra quyền "chọn đáp án chuẩn". */
           authorEmail: authorEmail || undefined,
           authorLevel: author?.level ?? 1,
-          authorAvatar: String(author?.avatar ?? body.authorAvatar ?? DEFAULT_AVATAR).slice(0, 2000),
-          isAnonymous: Boolean(body.isAnonymous),
+          authorAvatar: String(
+            isAnonymousQuestion
+              ? (body.anonymousMask || body.authorAvatar || DEFAULT_AVATAR)
+              : (author?.avatar ?? body.authorAvatar ?? DEFAULT_AVATAR)
+          ).slice(0, 2000),
+          isAnonymous: isAnonymousQuestion,
           anonymousAlias: typeof body.anonymousAlias === 'string' ? body.anonymousAlias.slice(0, 40) : undefined,
-          anonymousMask: typeof body.anonymousMask === 'string' ? body.anonymousMask.slice(0, 40) : undefined,
+          anonymousMask: typeof body.anonymousMask === 'string' ? body.anonymousMask.slice(0, 2000) : undefined,
           createdAt: 'Vừa xong',
           createdAtMs: Date.now(),
           isSolved: false,
