@@ -988,6 +988,48 @@ CLB nào thì hạ về `STUDENT`, kèm phát `SYNC_USER`.
 
 ---
 
+## 35. Cờ cấp module không chặn được việc cài lặp handler khi reload
+
+**Mức độ:** Trung bình · **Vị trí:** `installShutdownFlush()` trong `server/forumServer.ts`
+
+Mục 31 thêm móc ghi dữ liệu khi tắt tiến trình, với một cờ để chỉ cài một lần:
+
+```js
+let shutdownHooksInstalled = false;
+function installShutdownFlush() {
+  if (shutdownHooksInstalled) return;
+  shutdownHooksInstalled = true;
+  ...
+}
+```
+
+Cờ này ở **cấp module**. Vite reload module server mỗi lần tệp thay đổi, nên mỗi
+lần reload tạo một instance module mới với cờ đã đặt lại — trong khi bộ handler
+của lần trước vẫn dính trên `process`.
+
+Repro (nạp module 6 lần qua query string khác nhau để Node tạo instance mới):
+
+```
+trước khi sửa: SIGTERM = 1, 2, 3, 4, 5, 6
+sau khi sửa:   SIGTERM = 1, 1, 1, 1, 1, 1
+```
+
+Trên dev server thật, log hiện đúng cảnh báo đó:
+
+```
+MaxListenersExceededWarning: Possible EventEmitter memory leak detected.
+11 SIGTERM listeners added to [process]. MaxListeners is 10.
+```
+
+**Nguy hiểm hơn việc tràn listener:** handler của module cũ vẫn giữ closure trỏ
+tới `store` của module cũ. Nếu chúng chạy thì sẽ ghi đè tệp dữ liệu bằng bản đã
+lỗi thời — đúng loại mất dữ liệu mà mục 31 và 32 đang cố ngăn.
+
+**Đã sửa:** lưu bộ handler trên `globalThis` qua `Symbol.for('fforum.shutdownHooks')`
+(sống sót qua reload module), và **gỡ bộ cũ trước khi gắn bộ mới**. Test #49.
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -1016,6 +1058,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 48 bài, chạy trên server thật
-npm test                                        # toàn bộ 144 bài
+node --test tests/security-hardening.test.mjs   # 49 bài, chạy trên server thật
+npm test                                        # toàn bộ 145 bài
 ```
