@@ -742,6 +742,70 @@ cũng bị tính là chưa đọc. Nhánh `BroadcastChannel` ngay bên dưới l
 
 ---
 
+## 29. Bản ghi người dùng kiểu cũ làm dở dang luồng duyệt câu lạc bộ
+
+**Mức độ:** Cao · **Vị trí:** `sanitizeUsers()`, WS `APPROVE_CLUB`
+
+`sanitizeUsers` chỉ spread thô bản ghi nạp từ đĩa:
+
+```js
+out[email] = { ...raw, email };
+```
+
+Tệp dữ liệu viết ra từ bản cũ thiếu hẳn những trường thêm về sau — ví dụ
+`scopedClubIds`. Bản ghi đó đi thẳng vào store với trường `undefined`, và nhánh WS
+`APPROVE_CLUB` thì spread nó mà không phòng bị:
+
+```js
+creator.scopedClubIds = Array.from(new Set([...creator.scopedClubIds, clubId]));
+//                                           ^^^ TypeError: not iterable
+```
+
+Điều nguy hiểm không phải là lỗi bị ném, mà là **trạng thái bị áp dụng dở dang**.
+Thứ tự mutate trong nhánh đó là:
+
+| Bước | Kết quả khi lỗi |
+|---|---|
+| `store.clubs` → `APPROVED` | đã chạy |
+| `creator.role = 'CLUB_LEADER'` | đã chạy |
+| `creator.scopedClubIds = [...]` | **ném `TypeError`** |
+| `creator.xp += 250` | không bao giờ chạy |
+| `broadcastServerEvent('SYNC_USER', …)` | không bao giờ chạy |
+| `persistStoreToDisk()` | không bao giờ chạy |
+
+Xác nhận bằng repro:
+
+```
+[Forum Server WS] Error handling message: TypeError: creator.scopedClubIds is not iterable
+    at WebSocket.<anonymous> (server/forumServer.ts:826:74)
+[2] sau APPROVE_CLUB qua WS: role = CLUB_LEADER | scopedClubIds = undefined | xp = 400
+[3] status CLB = APPROVED
+```
+
+CLB hiện là `APPROVED` trong RAM nhưng vẫn `PENDING` trên đĩa, chủ nhiệm đã lên cấp
+nhưng không có XP và không có quyền phạm vi CLB — và mọi client khác không nhận
+được `SYNC_USER`.
+
+**Đã vá hai lớp:**
+
+1. `sanitizeUsers` lấp giá trị mặc định cho `role`/`avatar`/`level`/`xp`/`fPoints`/
+   `coin`/`scopedClubIds` ngay khi nạp, nên trường `undefined` không lọt được vào
+   store.
+2. Chỗ spread vẫn giữ `|| []` làm lưới an toàn.
+
+### Kèm theo: duyệt câu lạc bộ không idempotent
+
+Khi viết test cho lỗi trên, một lần duyệt qua WS rồi một lần qua HTTP cho ra
+`xp = 900` thay vì `650` — tức **mỗi lần duyệt lại cộng thêm 250 XP**. Không có
+chốt nào ngăn duyệt đi duyệt lại một CLB đã `APPROVED`, nên bấm duyệt bao nhiêu
+lần cũng thưởng bấy nhiêu.
+
+**Đã vá:** cả HTTP lẫn WS thoát sớm nếu CLB đã `APPROVED` (HTTP trả
+`alreadyApproved: true`). Test #41 kiểm cả XP, `scopedClubIds`, và trạng thái **trên
+đĩa** sau khi duyệt.
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -770,6 +834,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 40 bài, chạy trên server thật
-npm test                                        # toàn bộ 136 bài
+node --test tests/security-hardening.test.mjs   # 41 bài, chạy trên server thật
+npm test                                        # toàn bộ 137 bài
 ```
