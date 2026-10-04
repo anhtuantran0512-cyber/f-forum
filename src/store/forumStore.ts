@@ -346,8 +346,13 @@ export function useForumStore() {
   const activeWsRef = useRef<WebSocket | null>(null);
   /* Cầu nối để hàm login (khai báo sau) gọi được bước xác thực socket. */
   const authenticateSocketRef = useRef<() => void>(() => {});
+  /* Các ref "bản sao mới nhất" phải được đồng bộ trong effect, KHÔNG gán lúc
+     render: gán ref khi render là side effect và cho kết quả sai khi React render
+     thử nhiều lần (StrictMode) hoặc khi render bị vứt giữa chừng. */
   const currentUserRef = useRef(currentUser);
-  currentUserRef.current = currentUser;
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
   /**
    * Bản sao mới nhất của sổ tài khoản.
    * React StrictMode gọi state updater HAI lần, nên không được đặt fetch/toast/
@@ -410,7 +415,9 @@ export function useForumStore() {
   }, [getGuestId]);
 
   const getSelfPresenceRef = useRef(getSelfPresence);
-  getSelfPresenceRef.current = getSelfPresence;
+  useEffect(() => {
+    getSelfPresenceRef.current = getSelfPresence;
+  }, [getSelfPresence]);
 
   const recomputeOnlineUsers = useCallback(() => {
     const now = Date.now();
@@ -446,7 +453,9 @@ export function useForumStore() {
   );
 
   const handleIncomingPresencePingRef = useRef(handleIncomingPresencePing);
-  handleIncomingPresencePingRef.current = handleIncomingPresencePing;
+  useEffect(() => {
+    handleIncomingPresencePingRef.current = handleIncomingPresencePing;
+  }, [handleIncomingPresencePing]);
 
   useEffect(() => {
     const ping = () => {
@@ -506,7 +515,10 @@ export function useForumStore() {
       clearInterval(timer);
       clearInterval(pruneTimer);
     };
-  }, [currentUser]);
+    /* Hai hàm này bọc useCallback với deps ổn định (getSelfPresence phụ thuộc
+       getGuestId, mà getGuestId có deps rỗng) nên liệt kê vào đây không làm effect
+       chạy lại — chỉ để thoả exhaustive-deps. */
+  }, [currentUser, recomputeOnlineUsers, getSelfPresence]);
 
   useEffect(() => {
     if (currentUser) {
@@ -734,7 +746,10 @@ export function useForumStore() {
         case 'PRESENCE_PING': {
           const incomingUser = payload as OnlinePresenceUser;
           if (incomingUser && incomingUser.id) {
-            handleIncomingPresencePing(incomingUser);
+            /* Gọi qua ref cho nhất quán với nhánh WS bên dưới: hàm này nằm trong
+               closure của effect kết nối có deps rỗng, gọi trực tiếp sẽ bị chốt vào
+               bản cũ và mất mọi cập nhật sau đó. */
+            handleIncomingPresencePingRef.current(incomingUser);
           }
           break;
         }
@@ -938,7 +953,9 @@ export function useForumStore() {
       }
       if (sse) sse.close();
     };
-  }, []);
+    /* commitUsers có deps rỗng nên địa chỉ không bao giờ đổi: liệt kê vào đây
+       không khiến effect kết nối chạy lại (và do đó không gây reconnect). */
+  }, [commitUsers]);
 
   useEffect(() => {
     if (!syncBroadcastChannel) return;

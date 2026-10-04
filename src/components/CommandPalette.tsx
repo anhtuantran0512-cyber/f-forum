@@ -92,10 +92,23 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
 
   const flat = useMemo(() => grouped.flatMap(([, items]) => items), [grouped]);
 
+  /*
+    Reset từ khoá và con trỏ mỗi lần mở lại. Dùng mẫu "điều chỉnh state khi prop
+    đổi" của React thay vì useEffect: gọi setState ngay trong lúc render là hợp lệ
+    và tránh được một lượt render thừa so với đặt trong effect.
+  */
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) {
+      setQuery('');
+      setActiveIndex(0);
+    }
+  }
+
+  /* Đưa con trỏ vào ô nhập — thao tác DOM thật nên vẫn phải nằm trong effect. */
   useEffect(() => {
-    if (!isOpen) return;
-    setQuery('');
-    setActiveIndex(0);
+    if (!isOpen) return undefined;
     const timer = window.setTimeout(() => inputRef.current?.focus(), 40);
     return () => window.clearTimeout(timer);
   }, [isOpen]);
