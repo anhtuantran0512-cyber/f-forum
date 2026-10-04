@@ -1306,8 +1306,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             </div>
 
             <div>
-              <label className="text-xs text-white/70 block mb-1">Tiêu đề cột mốc</label>
-              <input
+              <label htmlFor="tieu-de-cot-moc" className="text-xs text-white/70 block mb-1">Tiêu đề cột mốc</label>
+              <input id="tieu-de-cot-moc"
                 type="text"
                 required
                 maxLength={100}
@@ -1318,8 +1318,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             </div>
 
             <div>
-              <label className="text-xs text-white/70 block mb-1">Địa điểm / Danh mục</label>
-              <input
+              <label htmlFor="dia-diem-danh-muc" className="text-xs text-white/70 block mb-1">Địa điểm / Danh mục</label>
+              <input id="dia-diem-danh-muc"
                 type="text"
                 required
                 maxLength={80}
@@ -1330,9 +1330,9 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             </div>
 
             <div>
-              <label className="text-xs text-white/70 block mb-1">Ảnh (Dán URL hoặc Tải tệp)</label>
+              <label htmlFor="anh-dan-url-hoac-tai-tep" className="text-xs text-white/70 block mb-1">Ảnh (Dán URL hoặc Tải tệp)</label>
               <div className="flex items-center gap-2">
-                <input
+                <input id="anh-dan-url-hoac-tai-tep"
                   type="text"
                   placeholder="https://..."
                   maxLength={500}
@@ -1359,8 +1359,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             </div>
 
             <div>
-              <label className="text-xs text-white/70 block mb-1">Nội dung ghi chú</label>
-              <textarea
+              <label htmlFor="noi-dung-ghi-chu" className="text-xs text-white/70 block mb-1">Nội dung ghi chú</label>
+              <textarea id="noi-dung-ghi-chu"
                 required
                 rows={3}
                 maxLength={400}
@@ -1371,8 +1371,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             </div>
 
             <div className="flex items-center justify-between pt-2">
-              <label className="flex items-center gap-2 text-xs text-white/80 cursor-pointer">
-                <input
+              <label htmlFor="field" className="flex items-center gap-2 text-xs text-white/80 cursor-pointer">
+                <input id="field"
                   type="checkbox"
                   checked={Boolean(editingRecord.isTall)}
                   onChange={(e) => setEditingRecord({ ...editingRecord, isTall: e.target.checked })}
@@ -1445,8 +1445,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             {adminModalTab === 'bio' ? (
               <form onSubmit={handleSaveBio} className="space-y-4">
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Họ và tên</label>
-                  <input
+                  <label htmlFor="ho-va-ten" className="text-xs text-white/70 block mb-1">Họ và tên</label>
+                  <input id="ho-va-ten"
                     type="text"
                     required
                     maxLength={80}
@@ -1457,8 +1457,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Chức danh / Vai trò</label>
-                  <input
+                  <label htmlFor="chuc-danh-vai-tro" className="text-xs text-white/70 block mb-1">Chức danh / Vai trò</label>
+                  <input id="chuc-danh-vai-tro"
                     type="text"
                     required
                     maxLength={100}
@@ -1469,19 +1469,19 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Ảnh đại diện (URL hoặc Tải tệp)</label>
+                  <label htmlFor="anh-dai-dien-url-hoac-tai-tep" className="text-xs text-white/70 block mb-1">Ảnh đại diện (URL hoặc Tải tệp)</label>
                   <div className="flex items-center gap-2">
-                    <input
+                    <input id="anh-dai-dien-url-hoac-tai-tep"
                       type="text"
                       maxLength={500}
                       value={editBioForm.avatarUrl}
                       onChange={(e) => setEditBioForm({ ...editBioForm, avatarUrl: e.target.value })}
                       className="flex-1 bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
                     />
-                    <label className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs text-white flex items-center gap-1 cursor-pointer">
+                    <label htmlFor="field-2" className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs text-white flex items-center gap-1 cursor-pointer">
                       <Upload className="w-3.5 h-3.5" />
                       <span>Tải ảnh</span>
-                      <input
+                      <input id="field-2"
                         type="file"
                         accept="image/*"
                         onChange={(e) => handleFileUpload(e, true)}
@@ -1492,8 +1492,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Lời ngỏ / Tiểu sử</label>
-                  <textarea
+                  <label htmlFor="loi-ngo-tieu-su" className="text-xs text-white/70 block mb-1">Lời ngỏ / Tiểu sử</label>
+                  <textarea id="loi-ngo-tieu-su"
                     required
                     rows={4}
                     maxLength={400}
@@ -1537,8 +1537,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Tiêu đề cột mốc</label>
-                  <input
+                  <label htmlFor="tieu-de-cot-moc-2" className="text-xs text-white/70 block mb-1">Tiêu đề cột mốc</label>
+                  <input id="tieu-de-cot-moc-2"
                     type="text"
                     required
                     maxLength={100}
@@ -1554,8 +1554,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Địa điểm / Danh mục</label>
-                  <input
+                  <label htmlFor="dia-diem-danh-muc-2" className="text-xs text-white/70 block mb-1">Địa điểm / Danh mục</label>
+                  <input id="dia-diem-danh-muc-2"
                     type="text"
                     required
                     maxLength={80}
@@ -1571,8 +1571,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Nội dung ghi chú</label>
-                  <textarea
+                  <label htmlFor="noi-dung-ghi-chu-2" className="text-xs text-white/70 block mb-1">Nội dung ghi chú</label>
+                  <textarea id="noi-dung-ghi-chu-2"
                     required
                     rows={3}
                     maxLength={400}

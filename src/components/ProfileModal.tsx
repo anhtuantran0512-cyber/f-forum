@@ -1791,10 +1791,10 @@ const ProfileModalInner: React.FC<{
               <div className="pc-12-card p-4 space-y-3.5">
                 {/* Full Name */}
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                  <label htmlFor="ten-hien-thi" className="block text-xs font-semibold text-neutral-300 mb-1">
                     Tên hiển thị:
                   </label>
-                  <input
+                  <input id="ten-hien-thi"
                     type="text"
                     value={name}
                     maxLength={50}
@@ -1848,10 +1848,10 @@ const ProfileModalInner: React.FC<{
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                    <label htmlFor="lop-khoa-hoc" className="block text-xs font-semibold text-neutral-300 mb-1">
                       Lớp / Khoá học:
                     </label>
-                    <input
+                    <input id="lop-khoa-hoc"
                       type="text"
                       value={className}
                       maxLength={50}
@@ -1862,10 +1862,10 @@ const ProfileModalInner: React.FC<{
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                    <label htmlFor="thanh-pho" className="block text-xs font-semibold text-neutral-300 mb-1">
                       Thành phố:
                     </label>
-                    <input
+                    <input id="thanh-pho"
                       type="text"
                       value={city}
                       maxLength={50}
@@ -1971,10 +1971,10 @@ const ProfileModalInner: React.FC<{
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                  <label htmlFor="chi-tiet-vi-pham" className="block text-xs font-semibold text-neutral-300 mb-1">
                     Chi tiết vi phạm:
                   </label>
-                  <textarea
+                  <textarea id="chi-tiet-vi-pham"
                     value={reportDetails}
                     onChange={(e) => setReportDetails(e.target.value)}
                     maxLength={500}

@@ -191,10 +191,10 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                <label htmlFor="f-1-ho-va-ten-nguoi-gui" className="block text-xs font-semibold text-neutral-300 mb-1.5">
                   1. Họ và tên người gửi <span className="text-red-400">*</span>
                 </label>
-                <input
+                <input id="f-1-ho-va-ten-nguoi-gui"
                   type="text"
                   required
                   maxLength={80}
@@ -206,10 +206,10 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                <label htmlFor="f-2-email-lien-he" className="block text-xs font-semibold text-neutral-300 mb-1.5">
                   2. Email liên hệ <span className="text-red-400">*</span>
                 </label>
-                <input
+                <input id="f-2-email-lien-he"
                   type="email"
                   required
                   maxLength={120}
@@ -239,14 +239,14 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-neutral-300">
+                <label htmlFor="f-4-noi-dung-chi-tiet-toi-thieu-20" className="text-xs font-semibold text-neutral-300">
                   4. Nội dung chi tiết (tối thiểu 20 ký tự) <span className="text-red-400">*</span>
                 </label>
                 <span className="text-[10px] font-mono text-neutral-400">
                   {content.length}/1000 ký tự
                 </span>
               </div>
-              <textarea
+              <textarea id="f-4-noi-dung-chi-tiet-toi-thieu-20"
                 required
                 rows={4}
                 maxLength={1000}

@@ -572,10 +572,10 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
 
             <form onSubmit={handleCreateSubmit} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label htmlFor="ten-cau-lac-bo" className="block text-xs font-semibold text-neutral-300 mb-1">
                   Tên Câu Lạc Bộ (*):
                 </label>
-                <input
+                <input id="ten-cau-lac-bo"
                   type="text"
                   required
                   maxLength={60}
@@ -603,10 +603,10 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label htmlFor="khau-hieu-slogan" className="block text-xs font-semibold text-neutral-300 mb-1">
                   Khẩu hiệu / Slogan (*):
                 </label>
-                <input
+                <input id="khau-hieu-slogan"
                   type="text"
                   required
                   maxLength={120}
@@ -650,10 +650,10 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label htmlFor="danh-sach-thanh-vien-sang-lap-ca" className="block text-xs font-semibold text-neutral-300 mb-1">
                   Danh sách thành viên sáng lập (cách nhau bởi dấu phẩy):
                 </label>
-                <input
+                <input id="danh-sach-thanh-vien-sang-lap-ca"
                   type="text"
                   maxLength={200}
                   value={newFounders}
@@ -664,10 +664,10 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label htmlFor="ton-chi-hoat-dong" className="block text-xs font-semibold text-neutral-300 mb-1">
                   Tôn chỉ hoạt động (*):
                 </label>
-                <textarea
+                <textarea id="ton-chi-hoat-dong"
                   required
                   rows={3}
                   maxLength={500}
