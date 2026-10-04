@@ -788,8 +788,11 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               if (solver) {
                 const award = solverAwardFor(targetQuestion.bountyCoin ?? 20);
                 solver.coin = (solver.coin ?? 100) + award;
-                solver.xp += award;
+                /* fPoints phải lấy từ XP TRƯỚC khi cộng. Bản cũ viết
+                   `(fPoints ?? xp) + award` SAU dòng `xp += award`, nên nếu fPoints
+                   thiếu thì nhánh ?? lấy XP đã cộng làm gốc và bị cộng đôi. */
                 solver.fPoints = (solver.fPoints ?? solver.xp) + award;
+                solver.xp += award;
                 solver.level = calculateLevelFromXP(solver.xp);
                 broadcastServerEvent('SYNC_USER', solver);
               }
@@ -853,8 +856,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 if (creator) {
                   creator.role = creator.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'CLUB_LEADER';
                   creator.scopedClubIds = Array.from(new Set([...(creator.scopedClubIds || []), clubId]));
-                  creator.xp += 250;
                   creator.fPoints = (creator.fPoints ?? creator.xp) + 250;
+                  creator.xp += 250;
                   creator.level = calculateLevelFromXP(creator.xp);
                   broadcastServerEvent('SYNC_USER', creator);
                 }
@@ -1305,8 +1308,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
         if (author) {
           author.coin = Math.max(0, (author.coin ?? 100) - bountyCoin);
+          author.fPoints = (author.fPoints ?? author.xp ?? 0) + 50;
           author.xp = (author.xp ?? 0) + 50;
-          author.fPoints = (author.fPoints ?? author.xp) + 50;
           author.level = calculateLevelFromXP(author.xp);
           broadcastServerEvent('SYNC_USER', author);
         }
@@ -1372,8 +1375,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         store.solutions.push(newSolution);
 
         if (author) {
+          author.fPoints = (author.fPoints ?? author.xp ?? 0) + 25;
           author.xp = (author.xp ?? 0) + 25;
-          author.fPoints = (author.fPoints ?? author.xp) + 25;
           author.level = calculateLevelFromXP(author.xp);
           broadcastServerEvent('SYNC_USER', author);
         }
@@ -1462,8 +1465,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           const bounty = (targetQ as any).bountyCoin || 20;
           const solverAward = solverAwardFor(bounty);
           solver.coin = (solver.coin ?? 100) + solverAward;
-          solver.xp += solverAward;
           solver.fPoints = (solver.fPoints ?? solver.xp) + solverAward;
+          solver.xp += solverAward;
           solver.level = calculateLevelFromXP(solver.xp);
           broadcastServerEvent('SYNC_USER', solver);
         }
@@ -1915,8 +1918,9 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         if (creator) {
           creator.role = creator.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'CLUB_LEADER';
           creator.scopedClubIds = Array.from(new Set([...(creator.scopedClubIds || []), clubId]));
-          creator.xp += 250;
+          /* fPoints lấy từ XP trước khi cộng — xem ghi chú ở nhánh WS. */
           creator.fPoints = (creator.fPoints ?? creator.xp) + 250;
+          creator.xp += 250;
           creator.level = calculateLevelFromXP(creator.xp);
           broadcastServerEvent('SYNC_USER', creator);
         }
