@@ -1057,3 +1057,81 @@ test('22. Tố cáo vi phạm: không mất khi khởi động lại, chỉ admi
     process.env.FFORUM_DATA_DIR = DATA_DIR;
   }
 });
+
+test('23. Chat & góp ý: server tự giữ giới hạn, không tin maxLength của client', async () => {
+  const env = await createTestServer();
+  try {
+    /* Ô nhập phía client chặn 300 ký tự, nhưng một request thủ công thì không. */
+    const oversized = await post(env.baseUrl, '/api/chat', {
+      channelId: 'hallway',
+      content: 'A'.repeat(5000),
+      authorName: 'Kẻ phá',
+    });
+    assert.equal(oversized.status, 400, 'Tin nhắn quá dài phải bị từ chối');
+    assert.ok(/tối đa/.test(oversized.data.message));
+
+    const ok = await post(env.baseUrl, '/api/chat', {
+      channelId: 'hallway',
+      content: 'Tin nhắn hợp lệ',
+      authorName: 'Học sinh',
+      authorLevel: 150,
+    });
+    assert.equal(ok.status, 200);
+    assert.equal(ok.data.message.authorLevel, 1, 'Cấp bậc phải lấy từ bản ghi thật, không từ client tự khai');
+
+    /* Nội dung rỗng / chỉ khoảng trắng. */
+    const blank = await post(env.baseUrl, '/api/chat', { channelId: 'hallway', content: '   ' });
+    assert.equal(blank.status, 400, 'Tin nhắn chỉ có khoảng trắng phải bị từ chối');
+
+    /* Góp ý: quá ngắn đã chặn từ trước, giờ chặn luôn quá dài. */
+    const longFeedback = await post(env.baseUrl, '/api/feedback', {
+      name: 'Người góp ý',
+      email: 'gopy@example.com',
+      content: 'B'.repeat(9000),
+    });
+    assert.equal(longFeedback.status, 400, 'Góp ý quá dài phải bị từ chối');
+
+    const shortFeedback = await post(env.baseUrl, '/api/feedback', {
+      name: 'Người góp ý',
+      email: 'gopy@example.com',
+      content: 'Ngắn',
+    });
+    assert.equal(shortFeedback.status, 400, 'Góp ý quá ngắn vẫn bị từ chối như cũ');
+
+    const goodFeedback = await post(env.baseUrl, '/api/feedback', {
+      name: 'Người góp ý',
+      email: 'gopy@example.com',
+      content: 'Giao diện rất đẹp nhưng mong có thêm chế độ đọc ban đêm cho phần diễn đàn.',
+    });
+    assert.equal(goodFeedback.status, 200);
+
+    /* Chặn spam: bắn nhiều tin liên tiếp phải chạm 429. */
+    let sawTooMany = false;
+    for (let i = 0; i < 140; i++) {
+      const res = await fetch(`${env.baseUrl}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelId: 'hallway', content: `spam ${i}` }),
+      });
+      if (res.status === 429) { sawTooMany = true; break; }
+    }
+    assert.ok(sawTooMany, 'Bắn tin liên tục phải bị chặn 429');
+  } finally {
+    await env.close();
+  }
+});
+
+test('24. Kho tin nhắn/góp ý/báo cáo có trần — không phình vô hạn theo thời gian chạy', () => {
+  const server = fs.readFileSync(path.resolve('server/forumServer.ts'), 'utf8');
+
+  assert.ok(server.includes('const capTail ='), 'Phải có hàm cắt kho dữ liệu');
+  assert.ok(server.includes('MAX_CHAT_MESSAGES'), 'Kho tin nhắn phải có trần');
+  assert.ok(server.includes('MAX_FEEDBACKS'), 'Kho góp ý phải có trần');
+  assert.ok(server.includes('MAX_REPORTS'), 'Kho báo cáo phải có trần');
+
+  /* Mỗi kho phải thực sự được cắt khi thêm mới, không chỉ khai báo hằng số. */
+  assert.ok(server.includes('capTail([...store.chatMessages, msg], MAX_CHAT_MESSAGES)'), 'chatMessages phải được cắt');
+  assert.ok(server.includes('capTail([...store.feedbacks, submission], MAX_FEEDBACKS)'), 'feedbacks phải được cắt');
+  assert.ok(server.includes('capTail([...store.reports, reportSubmission], MAX_REPORTS)'), 'reports phải được cắt');
+  assert.ok(!/store\.chatMessages\.push\(/.test(server), 'Không push thẳng vào kho tin nhắn nữa');
+});

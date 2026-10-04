@@ -327,6 +327,27 @@ export function broadcastServerEvent(type: string, payload: any) {
 /** Giới hạn body JSON — quá cỡ thì từ chối thẳng, không nạp hết vào RAM. */
 const MAX_JSON_BODY_BYTES = 25 * 1024 * 1024;
 
+/*
+  Giới hạn nội dung. Ô nhập phía client đã có `maxLength`, nhưng client thì ai
+  cũng sửa được — server PHẢI tự giữ giới hạn của mình, nếu không một request
+  thủ công nhét được "tin nhắn" vài MB vào kho rồi phát cho mọi người.
+*/
+const MAX_CHAT_CONTENT = 500;
+const MAX_FEEDBACK_CONTENT = 4000;
+const MAX_NAME_LENGTH = 120;
+
+/**
+  Trần số tin nhắn giữ trong kho. Mảng này được serialize toàn bộ mỗi lần ghi
+  đĩa và trả về nguyên khối cho mọi client qua /api/sync, nên để nó phình vô
+  hạn thì cả hai đường đều chậm dần theo thời gian chạy.
+*/
+const MAX_CHAT_MESSAGES = 500;
+const MAX_FEEDBACKS = 500;
+const MAX_REPORTS = 500;
+
+/** Giữ lại N phần tử MỚI NHẤT (mảng chat/feedback được push thêm vào cuối). */
+const capTail = <T,>(list: T[], max: number): T[] => (list.length > max ? list.slice(list.length - max) : list);
+
 export class PayloadTooLargeError extends Error {
   constructor() {
     super('Payload too large');
@@ -485,8 +506,15 @@ export function setupForumServer(httpServer: any, middlewares: any) {
             case 'NEW_CHAT_MESSAGE': {
               if (payload && payload.content) {
                 if (!store.chatMessages.some(m => m.id === payload.id)) {
-                  store.chatMessages.push(payload);
+                  /* Cùng một luật như đường HTTP: cắt nội dung và giữ trần kho. */
+                  const relayed = {
+                    ...payload,
+                    content: String(payload.content).slice(0, MAX_CHAT_CONTENT),
+                  };
+                  store.chatMessages = capTail([...store.chatMessages, relayed], MAX_CHAT_MESSAGES);
                   persistStoreToDisk();
+                  broadcastServerEvent('NEW_CHAT_MESSAGE', relayed);
+                  break;
                 }
                 broadcastServerEvent('NEW_CHAT_MESSAGE', payload);
               }
@@ -842,21 +870,39 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/chat') {
       try {
         const body = await parseJsonBody(req);
-        if (!body.content || !body.channelId) {
+        const content = String(body.content ?? '').trim();
+        if (!content || !body.channelId) {
           sendJson(res, 400, { success: false, message: 'Nội dung tin nhắn không được để trống' });
           return;
         }
+        if (content.length > MAX_CHAT_CONTENT) {
+          sendJson(res, 400, {
+            success: false,
+            message: `Tin nhắn tối đa ${MAX_CHAT_CONTENT} ký tự.`,
+          });
+          return;
+        }
+
+        const throttle = writeLimiter.check(`chat:${clientIpOf(req)}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'gửi tin nhắn');
+          return;
+        }
+
+        const authorEmail = String(body.authorEmail || '').trim().toLowerCase();
+        const knownAuthor = authorEmail ? store.users[authorEmail] : undefined;
 
         const msg = {
-          id: body.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`),
-          channelId: body.channelId,
-          authorId: body.authorId || 'guest',
-          authorName: body.authorName || 'Học sinh',
-          authorEmail: body.authorEmail || '',
-          authorAvatar: body.authorAvatar || DEFAULT_AVATAR,
-          authorLevel: body.authorLevel || 1,
-          content: body.content,
-          senderId: body.senderId || '',
+          id: body.id || randomId('msg'),
+          channelId: String(body.channelId).slice(0, 60),
+          authorId: String(body.authorId || 'guest').slice(0, MAX_NAME_LENGTH),
+          authorName: String(knownAuthor?.name || body.authorName || 'Học sinh').slice(0, MAX_NAME_LENGTH),
+          authorEmail,
+          authorAvatar: String(knownAuthor?.avatar || body.authorAvatar || DEFAULT_AVATAR).slice(0, 2000),
+          /* Cấp bậc lấy từ bản ghi thật — client tự khai thì ai cũng tự phong cấp 150. */
+          authorLevel: knownAuthor?.level ?? 1,
+          content: content.slice(0, MAX_CHAT_CONTENT),
+          senderId: String(body.senderId || '').slice(0, MAX_NAME_LENGTH),
           timestamp: body.timestamp || new Date().toLocaleTimeString('vi-VN', {
             hour: '2-digit',
             minute: '2-digit',
@@ -864,7 +910,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         };
 
         if (!store.chatMessages.some(m => m.id === msg.id)) {
-          store.chatMessages.push(msg);
+          store.chatMessages = capTail([...store.chatMessages, msg], MAX_CHAT_MESSAGES);
           persistStoreToDisk();
         }
         broadcastServerEvent('NEW_CHAT_MESSAGE', msg);
@@ -1412,17 +1458,27 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           });
           return;
         }
+        if (content.length > MAX_FEEDBACK_CONTENT) {
+          sendJson(res, 400, { success: false, message: `Nội dung góp ý tối đa ${MAX_FEEDBACK_CONTENT} ký tự.` });
+          return;
+        }
+
+        const fbThrottle = writeLimiter.check(`feedback:${clientIpOf(req)}`);
+        if (!fbThrottle.allowed) {
+          sendRateLimited(res, fbThrottle.retryAfterMs, 'gửi góp ý');
+          return;
+        }
 
         const submission = {
-          id: `fb-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          name,
-          email,
-          category,
-          content,
+          id: randomId('fb'),
+          name: name.slice(0, MAX_NAME_LENGTH),
+          email: email.slice(0, 200),
+          category: String(category).slice(0, 80),
+          content: content.slice(0, MAX_FEEDBACK_CONTENT),
           createdAt: new Date().toISOString(),
         };
 
-        store.feedbacks.push(submission);
+        store.feedbacks = capTail([...store.feedbacks, submission], MAX_FEEDBACKS);
         persistStoreToDisk();
         broadcastServerEvent('NEW_FEEDBACK', submission);
         sendJson(res, 200, {
@@ -1492,7 +1548,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           });
           return;
         }
-        store.reports.push(reportSubmission);
+        store.reports = capTail([...store.reports, reportSubmission], MAX_REPORTS);
         persistStoreToDisk();
         broadcastServerEvent('NEW_REPORT', reportSubmission);
         sendJson(res, 200, {
