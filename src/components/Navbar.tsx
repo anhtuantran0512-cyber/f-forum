@@ -333,13 +333,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   const effectiveCompact = isCompact || alwaysCompact;
 
   /* ---------------------------------------------------------------------
-     Lớp "đang tải" khi navbar phóng to / thu nhỏ (CodeFronts la-15 skeleton).
+     Lớp "đang tải" khi navbar phóng to / thu nhỏ.
      Trong lúc hình dáng thanh điều hướng đang đổi, các nhãn/icon co giãn lệch
-     nhịp trông rối. Ta phủ một lớp xương mờ (shimmer) đúng bằng thời gian
-     morph, xong mới cho giao diện thật hiện lên — nên mắt chỉ thấy một nhịp
-     "đang tải → hiện bản đẹp".
+     nhịp trông rối. Ta hạ mờ nội dung thật thành một bóng mờ (ghost) và cho
+     một vệt sáng quét ngang; hết nhịp morph mới trả lại độ nét — mắt chỉ thấy
+     "đang tải → hiện bản đẹp", gọn và êm hơn hẳn.
      --------------------------------------------------------------------- */
-  const NAV_MORPH_MS = 640;
+  const NAV_MORPH_MS = 420;
   const [isMorphBusy, setIsMorphBusy] = useState(false);
   const morphBusyTimerRef = useRef<number | null>(null);
 
@@ -372,6 +372,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   /* Robust active pill measurement (offset-based + rAF tracker)   */
   /* ============================================================ */
   useEffect(() => {
+    /* Đang ở nhịp morph thì pill bị làm mờ, không cần đo mỗi khung hình —
+       đo liên tục trong lúc thanh đổi kích thước chính là nguồn gây giật. */
+    if (isMorphBusy) return;
+
     let rafId: number | null = null;
     const startMs = performance.now();
 
@@ -413,12 +417,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 
     const tick = () => {
       updatePill();
-      if (performance.now() - startMs < 550) {
+      if (performance.now() - startMs < 200) {
         rafId = requestAnimationFrame(tick);
       }
     };
 
     rafId = requestAnimationFrame(tick);
+    /* Morph xong mới là lúc bố cục đứng yên: đo lại vài nhịp để pill về đúng chỗ */
+    const settleTimers = [280, 620, 900].map((delay) => window.setTimeout(updatePill, delay));
     window.addEventListener('resize', updatePill);
 
     let ro: ResizeObserver | null = null;
@@ -433,12 +439,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
     return () => {
       if (rafId !== null) cancelAnimationFrame(rafId);
+      settleTimers.forEach((t) => window.clearTimeout(t));
       window.removeEventListener('resize', updatePill);
       ro?.disconnect();
       containerEl?.removeEventListener('scroll', updatePill);
       containerEl?.removeEventListener('transitionend', updatePill);
     };
-  }, [currentView, isVertical, effectiveCompact, navbarPosition]);
+  }, [currentView, isVertical, effectiveCompact, navbarPosition, isMorphBusy]);
 
   /* Keep the active tab visible inside the scrollable strip */
   useEffect(() => {
@@ -787,27 +794,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Lớp aura chuyển động rất nhẹ, nằm SAU nội dung nên không đè chữ nào */}
           <span className="ff-nav-aura" aria-hidden="true" />
 
-          {/* Lớp xương mờ che lúc thanh điều hướng đang đổi hình dáng */}
-          {isMorphBusy && (
-            <span
-              className={`ff-nav-skeleton ${
-                effectiveCompact && !isVertical ? 'ff-nav-skeleton--compact' : ''
-              } ${isVertical ? 'ff-nav-skeleton--vertical' : ''}`}
-              aria-hidden="true"
-            >
-              <i className="ff-nav-skeleton__sk ff-nav-skeleton__brand" />
-              <span className="ff-nav-skeleton__tabs">
-                {Array.from({ length: effectiveCompact && !isVertical ? 6 : 5 }).map((_, i) => (
-                  <i key={i} className="ff-nav-skeleton__sk ff-nav-skeleton__tab" />
-                ))}
-              </span>
-              <span className="ff-nav-skeleton__actions">
-                {!effectiveCompact && <i className="ff-nav-skeleton__sk ff-nav-skeleton__pill" />}
-                <i className="ff-nav-skeleton__sk ff-nav-skeleton__avatar" />
-                <i className="ff-nav-skeleton__sk ff-nav-skeleton__avatar" />
-              </span>
-            </span>
-          )}
+          {/* Lớp "đang tải" khi thanh điều hướng đổi hình dáng: nội dung thật
+              được giữ nguyên vị trí và hạ mờ thành bóng, phủ thêm một vệt sáng
+              quét ngang. Nhờ giữ nguyên nội dung nên bố cục luôn khớp 100% và
+              chỉ có MỘT phần tử chuyển động (transform) — nhẹ, không giật. */}
+          <span className="ff-nav-loading" aria-hidden="true">
+            <i className="ff-nav-loading__sheen" />
+          </span>
 
           {/* Brand Logo */}
           <button

@@ -2202,6 +2202,7 @@ html.light .ff-dock-mock {
 /* ---------- Chuyển GUI lớn ↔ GUI nhỏ mượt hơn ---------- */
 .nav-tab-btn {
   transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+              min-width 0.5s cubic-bezier(0.22, 1, 0.36, 1),
               height 0.5s cubic-bezier(0.22, 1, 0.36, 1),
               padding 0.45s cubic-bezier(0.22, 1, 0.36, 1),
               background-color 0.35s ease,
@@ -2209,7 +2210,7 @@ html.light .ff-dock-mock {
               color 0.3s ease,
               box-shadow 0.35s ease,
               transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-  will-change: width, padding;
+  will-change: width, min-width, padding;
   /* KHÔNG dùng transform ở đây: transform sẽ biến nút thành containing block
      khiến tooltip position:fixed bị lệch/bám sai chỗ. */
 }
@@ -3247,88 +3248,93 @@ html.light .ff-pulse__eyebrow { color: #0369a1; }
 
 
 /* ==========================================================================
-   VÒNG 5 · A — Lớp "đang tải" khi navbar phóng to/thu nhỏ (CodeFronts la-15)
+   VÒNG 5 · A — Lớp "đang tải" khi navbar phóng to/thu nhỏ
    --------------------------------------------------------------------------
-   Trong lúc hình dáng thanh điều hướng đang đổi, nội dung được ẩn đi và phủ
-   một lớp xương mờ nhấp nháy; morph xong mới cho giao diện thật hiện lên.
+   Không vẽ các thanh xương giả (dễ lệch vị trí, phải nhấp nháy nhiều phần tử
+   nên nặng và trông rối). Thay vào đó: giữ nguyên nội dung THẬT tại chỗ, hạ
+   độ mờ thành "bóng", rồi phủ MỘT vệt sáng quét ngang bằng transform.
+   Ưu điểm: bố cục xương luôn khớp 100% với bố cục thật, chỉ 1 phần tử
+   chuyển động nên chạy ở 60fps kể cả khi thanh đang đổi kích thước.
    ========================================================================== */
-.ff-nav-skeleton {
-  position: absolute;
+.ff-nav-loading {
+  position: absolute !important;
   inset: 0;
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 0 12px;
+  z-index: 3 !important;
   border-radius: inherit;
+  overflow: hidden;
   pointer-events: none;
-  animation: ffNavSkIn 150ms ease-out both;
+  opacity: 0;
+  transition: opacity 240ms ease;
 }
-@keyframes ffNavSkIn { from { opacity: 0; } to { opacity: 1; } }
-
-.ff-nav-skeleton__sk {
-  display: block;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.055) 25%, rgba(255, 255, 255, 0.17) 37%, rgba(255, 255, 255, 0.055) 50%) 0 0 / 220% 100%;
-  animation: ffNavSkShimmer 1.25s linear infinite;
+.ff-nav-capsule--busy .ff-nav-loading {
+  /* Hiện ngay trong cùng khung hình với lúc thanh đổi bề rộng → che cú nhảy,
+     còn lúc tắt thì mờ dần 260ms cho êm. */
+  opacity: 1;
+  transition: none;
 }
-@keyframes ffNavSkShimmer { to { background-position: -220% 0; } }
 
-.ff-nav-skeleton__brand { width: 34px; height: 34px; border-radius: 50%; flex: none; }
-.ff-nav-skeleton__tabs { display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1; min-width: 0; overflow: hidden; }
-.ff-nav-skeleton__tab { width: 70px; height: 26px; flex: none; }
-.ff-nav-skeleton__tab:nth-child(2n) { width: 56px; }
-.ff-nav-skeleton__actions { display: flex; align-items: center; gap: 6px; flex: none; }
-.ff-nav-skeleton__avatar { width: 32px; height: 32px; border-radius: 50%; }
-.ff-nav-skeleton__pill { width: 90px; height: 30px; }
-
-.ff-nav-skeleton--compact { padding: 0 10px; gap: 8px; }
-.ff-nav-skeleton--compact .ff-nav-skeleton__tab { width: 30px; height: 30px; }
-.ff-nav-skeleton--compact .ff-nav-skeleton__tab:nth-child(2n) { width: 30px; }
-
-.ff-nav-skeleton--vertical {
-  flex-direction: column;
-  justify-content: center;
-  gap: 9px;
-  padding: 12px 0;
+.ff-nav-loading__sheen {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 34%;
+  min-width: 132px;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.09) 38%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.09) 62%,
+    transparent 100%
+  );
+  transform: translateX(-165%);
+  will-change: transform;
+  animation: ffNavLoadingSheen 1150ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  animation-play-state: paused;
 }
-.ff-nav-skeleton--vertical .ff-nav-skeleton__tabs { flex-direction: column; gap: 8px; flex: none; }
-.ff-nav-skeleton--vertical .ff-nav-skeleton__tab,
-.ff-nav-skeleton--vertical .ff-nav-skeleton__tab:nth-child(2n) { width: 30px; height: 30px; }
-.ff-nav-skeleton--vertical .ff-nav-skeleton__actions { flex-direction: column; }
-.ff-nav-skeleton--vertical .ff-nav-skeleton__pill { display: none; }
-
-/* Nội dung thật ẩn hẳn trong lúc hiện lớp xương (trừ aura và chính nó).
-   Kèm pointer-events: none để không ai bấm trúng nút đang vô hình. */
-.ff-nav-capsule--busy > *:not(.ff-nav-aura):not(.ff-nav-skeleton) {
-  opacity: 0 !important;
-  pointer-events: none !important;
+.ff-nav-capsule--busy .ff-nav-loading__sheen { animation-play-state: running; }
+@keyframes ffNavLoadingSheen {
+  from { transform: translateX(-165%); }
+  to { transform: translateX(330%); }
 }
-/* Morph xong: nội dung thật hiện lên nhẹ nhàng (chỉ opacity, không transform
-   để không tạo containing block làm lệch tooltip position: fixed) */
-.ff-nav-capsule[data-morph='ready'] > .ff-nav-brand,
-.ff-nav-capsule[data-morph='ready'] > .nav-center-tabs,
-.ff-nav-capsule[data-morph='ready'] > .nav-actions-dock {
-  animation: ffNavSkReveal 300ms ease-out both;
-}
-@keyframes ffNavSkReveal { from { opacity: 0; } to { opacity: 1; } }
 
-html.light .ff-nav-skeleton__sk {
-  background: linear-gradient(90deg, rgba(16, 24, 39, 0.06) 25%, rgba(16, 24, 39, 0.15) 37%, rgba(16, 24, 39, 0.06) 50%) 0 0 / 220% 100%;
+/* Nội dung thật: mờ thành bóng và "thở" rất nhẹ (chỉ đổi opacity, không dùng
+   filter/blur để tránh phải vẽ lại toàn thanh mỗi khung hình) */
+.ff-nav-capsule > *:not(.ff-nav-aura):not(.ff-nav-loading) {
+  transition: opacity 240ms ease;
+}
+.ff-nav-capsule--busy > *:not(.ff-nav-aura):not(.ff-nav-loading) {
+  pointer-events: none;
+  transition-duration: 70ms;
+  animation: ffNavGhostBreath 1500ms ease-in-out infinite;
+}
+@keyframes ffNavGhostBreath {
+  0%, 100% { opacity: 0.24; }
+  50% { opacity: 0.34; }
+}
+
+html.light .ff-nav-loading__sheen {
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(16, 24, 39, 0.05) 38%,
+    rgba(16, 24, 39, 0.11) 50%,
+    rgba(16, 24, 39, 0.05) 62%,
+    transparent 100%
+  );
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ff-nav-skeleton,
-  .ff-nav-skeleton__sk,
-  .ff-nav-capsule[data-morph='ready'] > .ff-nav-brand,
-  .ff-nav-capsule[data-morph='ready'] > .nav-center-tabs,
-  .ff-nav-capsule[data-morph='ready'] > .nav-actions-dock {
+  .ff-nav-loading,
+  .ff-nav-loading__sheen,
+  .ff-nav-capsule--busy > *:not(.ff-nav-aura):not(.ff-nav-loading) {
     animation: none !important;
+    transition: none !important;
   }
 }
-.reduce-motion .ff-nav-skeleton,
-.reduce-motion .ff-nav-skeleton__sk {
+.reduce-motion .ff-nav-loading__sheen,
+.reduce-motion .ff-nav-capsule--busy > *:not(.ff-nav-aura):not(.ff-nav-loading) {
   animation: none !important;
 }
 

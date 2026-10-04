@@ -272,26 +272,58 @@ test('11. Chi tiết giờ học — biểu đồ 7 ngày, thống kê, nhật k
   assert.ok(board.includes('sessionsForOwner(sessions, currentUser?.email)'), 'Personal totals must not mix accounts');
 });
 
-test('12. Navbar phóng to/thu nhỏ — có lớp loading shimmer rồi mới hiện bản đẹp', () => {
+test('12. Navbar phóng to/thu nhỏ — bóng mờ + MỘT vệt sáng, không giật', () => {
   const navbar = read('src/components/Navbar.tsx');
   const css = read('src/index.css');
 
-  assert.ok(navbar.includes('ff-nav-skeleton'), 'Navbar must render the skeleton layer');
-  assert.ok(navbar.includes('isMorphBusy') && navbar.includes('flashMorphLoading'), 'Skeleton must be driven by a morph flag');
-  assert.ok(navbar.includes('NAV_MORPH_MS'), 'Morph skeleton must be time-boxed');
+  assert.ok(navbar.includes('ff-nav-loading'), 'Navbar must render the loading layer');
+  assert.ok(
+    navbar.split('ff-nav-loading__sheen').length - 1 === 1,
+    'There must be exactly ONE animated element (a single sheen), not a row of fake bars',
+  );
+  assert.ok(!navbar.includes('ff-nav-skeleton'), 'Fake skeleton bars must be gone (bad alignment + heavy)');
+  assert.ok(!css.includes('ff-nav-skeleton'), 'Old skeleton CSS must be removed');
+
+  assert.ok(navbar.includes('isMorphBusy') && navbar.includes('flashMorphLoading'), 'Layer must be driven by a morph flag');
+  assert.ok(navbar.includes('NAV_MORPH_MS'), 'Morph loading must be time-boxed');
   assert.ok(navbar.includes('ff-nav-capsule--busy'), 'Capsule must expose the busy state');
   assert.ok(navbar.includes("data-morph={isMorphBusy ? 'loading' : 'ready'}"), 'Capsule must report loading → ready');
   assert.ok(navbar.includes('aria-busy={isMorphBusy}'), 'Busy state must be announced');
   assert.ok(
     navbar.includes('prefers-reduced-motion') && navbar.includes('flashMorphLoading'),
-    'Reduced motion must skip the skeleton',
+    'Reduced motion must skip the loading layer',
   );
 
-  assert.ok(css.includes('.ff-nav-skeleton__sk') && css.includes('@keyframes ffNavSkShimmer'), 'Skeleton bars must shimmer');
-  assert.ok(css.includes('@keyframes ffNavSkReveal'), 'Real content must fade in after the morph');
-  assert.ok(css.includes('.ff-nav-skeleton--compact') && css.includes('.ff-nav-skeleton--vertical'), 'Skeleton must follow compact + dock layouts');
-  assert.ok(!/ffNavSkReveal \{[^}]*transform/.test(css), 'Reveal must not use transform (would break fixed tooltips)');
-  assert.ok(css.includes('html.light .ff-nav-skeleton__sk'), 'Skeleton must have a light-mode variant');
+  assert.ok(css.includes('.ff-nav-loading__sheen') && css.includes('@keyframes ffNavLoadingSheen'), 'Sheen must animate');
+  assert.ok(
+    css.includes('will-change: transform') && css.includes('animation-play-state: paused'),
+    'Sheen must be GPU-friendly and paused while idle',
+  );
+  assert.ok(
+    /\.ff-nav-capsule--busy \.ff-nav-loading \{[\s\S]{0,340}transition: none;/.test(css),
+    'Layer must appear instantly to mask the width jump',
+  );
+  assert.ok(
+    css.includes('.ff-nav-capsule--busy > *:not(.ff-nav-aura):not(.ff-nav-loading)') &&
+      css.includes('pointer-events: none'),
+    'Real content must dim into a ghost and stop receiving clicks',
+  );
+  assert.ok(css.includes('@keyframes ffNavGhostBreath'), 'Ghost must breathe softly while loading');
+  assert.ok(!css.includes('ffNavSkReveal'), 'No double reveal animation (it re-triggered on every morph)');
+  assert.ok(css.includes('html.light .ff-nav-loading__sheen'), 'Sheen must have a light-mode variant');
+  assert.ok(css.includes('.reduce-motion .ff-nav-loading__sheen'), 'Reduced-motion class must cover the sheen');
+  assert.ok(/\.nav-tab-btn \{[\s\S]{0,200}min-width 0\.5s/.test(css), 'Tab min-width must glide with the morph');
+
+  /* Chống giật: không đo vị trí pill mỗi khung hình trong lúc thanh đang đổi kích thước */
+  assert.ok(
+    navbar.includes('if (isMorphBusy) return;'),
+    'Pill measurement must be skipped while the morph loading layer runs',
+  );
+  assert.ok(navbar.includes('settleTimers'), 'Pill must be re-measured once the morph settles, not every frame');
+  assert.ok(
+    navbar.includes('performance.now() - startMs < 200'),
+    'Per-frame measuring burst must stay short (was 550ms of layout reads)',
+  );
 });
 
 test('13. CSS vòng 5 — chip phiên học, toast, chi tiết giờ học đều có light mode', () => {

@@ -76,7 +76,7 @@ test('4. Chuyển GUI lớn ↔ GUI nhỏ mượt hơn (morph + nhãn co giãn)'
   assert.ok(css.includes('.dock-container.ff-nav-morphing > nav'), 'CSS must animate the morphing dock');
   assert.ok(css.includes('interpolate-size: allow-keywords'), 'CSS must allow keyword size interpolation');
   assert.ok(
-    css.includes('.nav-tab-btn {') && css.includes('will-change: width, padding;'),
+    css.includes('.nav-tab-btn {') && css.includes('will-change: width, min-width, padding;'),
     'Nav tab buttons must transition width/padding smoothly',
   );
   assert.ok(
