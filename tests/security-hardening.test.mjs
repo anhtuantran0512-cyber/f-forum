@@ -1817,3 +1817,34 @@ test('35. Sửa câu hỏi qua WS: cùng một bộ lọc trường như đườ
     await env.close();
   }
 });
+
+test('36. Trần kết nối và giới hạn khung WebSocket', async () => {
+  const env = await createTestServer();
+  try {
+    /* Khung WS phải bị giới hạn — mặc định của thư viện `ws` là 100 MiB. */
+    const big = await connectWs(env.wsUrl);
+    try {
+      const closed = new Promise((resolve) => {
+        big.ws.once('close', () => resolve(true));
+        setTimeout(() => resolve(false), 1500);
+      });
+      /* Vượt trần 256 KiB. Dùng send nhị phân để không phải dựng chuỗi khổng lồ. */
+      big.ws.send(Buffer.alloc(512 * 1024));
+      const wasClosed = await closed;
+      assert.ok(wasClosed, 'Khung vượt 256 KiB phải bị đóng kết nối');
+    } finally {
+      big.ws.close();
+    }
+
+    /* Cấu hình phải thực sự được đặt, không chỉ khai báo hằng số. */
+    const server = fs.readFileSync(path.resolve('server/forumServer.ts'), 'utf8');
+    assert.ok(
+      server.includes('maxPayload: MAX_WS_FRAME_BYTES'),
+      'WebSocketServer phải nhận maxPayload'
+    );
+    assert.ok(server.includes('wsClients.size >= MAX_WS_CLIENTS'), 'Phải chặn khi WS vượt trần');
+    assert.ok(server.includes('sseClients.size >= MAX_SSE_CLIENTS'), 'Phải chặn khi SSE vượt trần');
+  } finally {
+    await env.close();
+  }
+});

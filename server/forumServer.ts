@@ -347,6 +347,17 @@ const MAX_REPORTS = 500;
 const MAX_CLUBS = 300;
 const MAX_CLUB_POSTS = 800;
 
+/*
+  Trần kết nối đồng thời. Mỗi kết nối SSE/WebSocket giữ một socket và (với SSE)
+  một interval nhịp tim, nên không giới hạn thì một vòng lặp mở kết nối là đủ
+  làm cạn tài nguyên máy chủ.
+*/
+const MAX_SSE_CLIENTS = 300;
+const MAX_WS_CLIENTS = 300;
+
+/** Khung WebSocket tối đa. Mặc định của thư viện `ws` là 100 MiB — quá rộng. */
+const MAX_WS_FRAME_BYTES = 256 * 1024;
+
 /** Giữ lại N phần tử MỚI NHẤT (mảng chat/feedback được push thêm vào cuối). */
 const capTail = <T,>(list: T[], max: number): T[] => (list.length > max ? list.slice(list.length - max) : list);
 
@@ -525,7 +536,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
   }
 
   if (httpServer) {
-    const wss = new WebSocketServer({ noServer: true });
+    const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_FRAME_BYTES });
 
     httpServer.on('upgrade', (req: IncomingMessage, socket: any, head: any) => {
       const url = req.url || '';
@@ -537,6 +548,13 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     });
 
     wss.on('connection', (ws) => {
+      if (wsClients.size >= MAX_WS_CLIENTS) {
+        try {
+          ws.send(JSON.stringify({ type: 'SERVER_FULL', payload: { message: 'Máy chủ đang quá tải, vui lòng thử lại sau.' } }));
+        } catch { /* ignore */ }
+        ws.close();
+        return;
+      }
       wsClients.add(ws);
 
       ws.send(JSON.stringify({ type: 'WS_CONNECTED', payload: { clientCount: wsClients.size } }));
@@ -1001,6 +1019,10 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     }
 
     if (method === 'GET' && url.startsWith('/api/events')) {
+      if (sseClients.size >= MAX_SSE_CLIENTS) {
+        sendJson(res, 503, { success: false, message: 'Kênh sự kiện đang quá tải, vui lòng thử lại sau.' });
+        return;
+      }
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
