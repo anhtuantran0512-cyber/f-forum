@@ -1075,6 +1075,47 @@ vá, pass sau khi vá**.
 
 ---
 
+## 37. Chuyển sang kênh WebSocket để vượt mọi giới hạn ghi
+
+**Mức độ:** Cao · **Vị trí:** handler message WS trong `server/forumServer.ts`
+
+Năm đường ghi qua WS không có rate limiter nào, trong khi bản HTTP của chính chúng
+thì có:
+
+| Thao tác | HTTP | WS (trước khi vá) |
+|---|---|---|
+| Gửi tin nhắn | `writeLimiter` — chặn ở lượt 121 | **không có** |
+| Đặt câu hỏi | `writeLimiter` | **không có** |
+| Gửi lời giải | `writeLimiter` | **không có** |
+| Lập câu lạc bộ | `writeLimiter` | **không có** |
+| Đăng bài CLB | `writeLimiter` | **không có** |
+
+Nghĩa là mọi công sức giới hạn tốc độ ở tầng HTTP đều vô nghĩa: client chỉ cần đổi
+kênh. Repro chỉ dùng WS, tiến trình sạch, giới hạn 120 lượt/phút:
+
+```
+trước khi vá: 200/200 được lưu, nhận 0 lần RATE_LIMITED
+sau khi vá:   120/200 được lưu, nhận 80 lần RATE_LIMITED
+```
+
+Nguyên nhân gốc: `wss.emit('connection', ws, req)` **có** truyền `req` nhưng handler
+`wss.on('connection', (ws) => …)` không nhận tham số thứ hai, nên server không có
+cách nào biết IP của kết nối để làm khoá limiter.
+
+**Đã vá:** thêm `wsClientIps` (WeakMap lưu IP theo kết nối, lấy từ `clientIpOf(req)`
+lúc bắt tay), và kiểm tra `writeLimiter` ở đầu handler message cho cả năm thao tác —
+dùng **đúng bộ limiter và đúng khoá IP** (`chat:`, `question:`, `solution:`, `club:`,
+`clubpost:`) như bản HTTP nên hai kênh dùng chung một ô đếm, không thể cộng dồn để
+vượt trần. Vượt trần thì trả `RATE_LIMITED` kèm `retryAfterMs`.
+
+Test #53.
+
+> **Bài học chung:** cùng một thao tác có hai đường vào (HTTP và WS) thì mọi chốt
+> kiểm — xác thực, validate, giới hạn độ dài, giới hạn tốc độ — phải có ở CẢ HAI.
+> Mục 34 và 37 đều là biến thể của cùng một lớp lỗi này.
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -1103,6 +1144,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 52 bài, chạy trên server thật
-npm test                                        # toàn bộ 148 bài
+node --test tests/security-hardening.test.mjs   # 53 bài, chạy trên server thật
+npm test                                        # toàn bộ 149 bài
 ```
