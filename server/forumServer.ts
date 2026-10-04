@@ -571,22 +571,100 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               break;
             }
             case 'NEW_QUESTION': {
-              if (payload && payload.id) {
-                /* Không trùng id → không thể phát lại một câu hỏi để nhân đôi. */
-                if (store.questions.some(q => q.id === payload.id)) break;
-                store.questions.unshift(payload);
-                persistStoreToDisk();
-                broadcastServerEvent('NEW_QUESTION', payload);
+              /*
+                LỖ HỔNG NẶNG ĐÃ VÁ. Trước đây nhánh này ghi NGUYÊN payload vào kho,
+                không đòi phiên đăng nhập và không kiểm số dư. Chuỗi khai thác:
+                  AUTH → NEW_QUESTION{bountyCoin:999999, authorEmail:mình}
+                       → NEW_SOLUTION{authorEmail:mình}
+                       → MARK_BEST_SOLUTION
+                vì thưởng = bounty*0.5 + 100, một tài khoản mới (100 coin) tự bơm
+                và tự chọn đáp án để nhận 500.199 coin. Đã xác nhận bằng repro.
+
+                Nay áp đúng luật kinh tế của đường HTTP: phải đăng nhập, danh tính
+                lấy từ phiên, và coin treo thưởng bị kiểm số dư + trừ thật.
+              */
+              const askerEmail = session?.email || '';
+              const asker = askerEmail ? store.users[askerEmail] : undefined;
+              if (!session || !asker) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
               }
+              if (!payload || !payload.id || !String(payload.title || '').trim() || !String(payload.content || '').trim()) break;
+              /* Không trùng id → không thể phát lại một câu hỏi để nhân đôi. */
+              if (store.questions.some(q => q.id === payload.id)) break;
+
+              const requestedBounty = normalizeBounty(payload.bountyCoin);
+              const balance = asker.coin ?? 100;
+              if (balance < requestedBounty) {
+                ws.send(JSON.stringify({
+                  type: 'FORBIDDEN',
+                  payload: { action: type, reason: 'Số dư không đủ để treo thưởng.' },
+                }));
+                break;
+              }
+
+              const relayedQuestion = {
+                id: String(payload.id).slice(0, 80),
+                title: String(payload.title).trim().slice(0, 200),
+                subject: String(payload.subject || 'toan').slice(0, 40),
+                content: String(payload.content).trim().slice(0, 20000),
+                authorId: String(asker.id).slice(0, MAX_NAME_LENGTH),
+                authorName: String(asker.name).slice(0, MAX_NAME_LENGTH),
+                authorEmail: asker.email,
+                authorLevel: asker.level ?? 1,
+                authorAvatar: String(asker.avatar || DEFAULT_AVATAR).slice(0, 2000),
+                isAnonymous: Boolean(payload.isAnonymous),
+                createdAt: 'Vừa xong',
+                createdAtMs: Date.now(),
+                isSolved: false,
+                views: 1,
+                bountyCoin: requestedBounty,
+                imageUrl: typeof payload.imageUrl === 'string' ? payload.imageUrl.slice(0, 2000) : undefined,
+              };
+
+              /* Trừ coin treo thưởng THẬT — đây là phần đường HTTP có mà WS thiếu. */
+              asker.coin = Math.max(0, balance - requestedBounty);
+              broadcastServerEvent('SYNC_USER', asker);
+
+              /* Vẫn KHÔNG cộng XP ở đường WS: XP do đường HTTP kiểm soát cấp. */
+              store.questions.unshift(relayedQuestion);
+              persistStoreToDisk();
+              broadcastServerEvent('NEW_QUESTION', relayedQuestion);
               break;
             }
             case 'NEW_SOLUTION': {
-              if (payload && payload.id) {
-                if (store.solutions.some(s => s.id === payload.id)) break;
-                store.solutions.push(payload);
-                persistStoreToDisk();
-                broadcastServerEvent('NEW_SOLUTION', payload);
+              /* Cùng lý do như trên: phải đăng nhập và danh tính lấy từ phiên. */
+              const solverEmail = session?.email || '';
+              const solver = solverEmail ? store.users[solverEmail] : undefined;
+              if (!session || !solver) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
               }
+              const targetQId = String(payload?.questionId || '').trim();
+              if (!payload || !payload.id || !targetQId || !String(payload.content || '').trim()) break;
+              /* Câu hỏi phải tồn tại, giống đường HTTP. */
+              if (!store.questions.some(q => q.id === targetQId)) break;
+              if (store.solutions.some(s => s.id === payload.id)) break;
+
+              const relayedSolution = {
+                id: String(payload.id).slice(0, 80),
+                questionId: targetQId.slice(0, 80),
+                authorId: String(solver.id).slice(0, MAX_NAME_LENGTH),
+                authorName: String(solver.name).slice(0, MAX_NAME_LENGTH),
+                authorEmail: solver.email,
+                authorLevel: solver.level ?? 1,
+                authorAvatar: String(solver.avatar || DEFAULT_AVATAR).slice(0, 2000),
+                content: String(payload.content).trim().slice(0, 20000),
+                createdAt: 'Vừa xong',
+                createdAtMs: Date.now(),
+                isBest: false,
+                upvotes: 1,
+                imageUrl: typeof payload.imageUrl === 'string' ? payload.imageUrl.slice(0, 2000) : undefined,
+              };
+              /* Không cộng XP ở đường WS — giữ nguyên như trước. */
+              store.solutions.push(relayedSolution);
+              persistStoreToDisk();
+              broadcastServerEvent('NEW_SOLUTION', relayedSolution);
               break;
             }
             case 'MARK_BEST_SOLUTION': {
@@ -605,6 +683,16 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               }
               const targetSolution = store.solutions.find(s => s.id === solutionId);
               if (!targetSolution || targetSolution.questionId !== questionId) break;
+
+              /* Cùng luật như đường HTTP: không tự chấm câu trả lời của chính mình. */
+              const wsSolutionAuthor = String(targetSolution.authorEmail || '').toLowerCase();
+              if (wsSolutionAuthor && wsSolutionAuthor === session.email) {
+                ws.send(JSON.stringify({
+                  type: 'FORBIDDEN',
+                  payload: { action: type, reason: 'Không thể chọn câu trả lời của chính bạn.' },
+                }));
+                break;
+              }
 
               /* Idempotent: chọn lại đúng đáp án cũ không được cộng thưởng lần nữa. */
               if (targetQuestion.bestSolutionId === solutionId) break;
@@ -1174,6 +1262,26 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const targetSolution = store.solutions.find(s => s.id === solutionId);
         if (!targetSolution || targetSolution.questionId !== questionId) {
           sendJson(res, 404, { success: false, message: 'Lời giải không thuộc câu hỏi này.' });
+          return;
+        }
+
+        /*
+          Không cho tự chọn câu trả lời của CHÍNH MÌNH làm đáp án chuẩn.
+
+          Thưởng = bounty*0.5 + 100, mà người hỏi đã được trừ bounty khi đặt câu.
+          Nếu tự hỏi rồi tự trả lời rồi tự chọn, mỗi vòng bỏ túi +50 coin và
+          +225 XP — lặp vô hạn, tự động hoá được. Đã xác nhận bằng repro:
+            [1] vòng 1: coin = 150 | xp = 225
+            [2] vòng 2: coin = 200 | xp = 450
+            [3] vòng 3: coin = 250 | xp = 675
+          Về mặt nghiệp vụ cũng vô nghĩa: không ai tự chấm mình là người giải đúng.
+        */
+        const solutionAuthorEmail = String((targetSolution as any).authorEmail || '').toLowerCase();
+        if (solutionAuthorEmail && solutionAuthorEmail === claims.email) {
+          sendJson(res, 409, {
+            success: false,
+            message: 'Không thể chọn câu trả lời của chính bạn làm đáp án chuẩn!',
+          });
           return;
         }
 
