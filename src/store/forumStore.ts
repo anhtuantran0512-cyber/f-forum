@@ -1479,10 +1479,13 @@ export function useForumStore() {
 
     setClubs(prev => [newClub, ...prev]);
 
-    fetch('/api/clubs', {
+    /* Server cần phiên đăng nhập để biết ai là người sáng lập, nên phải gửi
+       kèm token. Trước đây call này bắn tới endpoint không tồn tại (404) và
+       `.catch(() => {})` nuốt luôn lỗi. */
+    void fetch('/api/clubs', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newClub),
+      headers: authHeaders(),
+      body: JSON.stringify({ ...newClub, leaderEmail: currentUser.email }),
     }).catch(() => {});
 
     try {
@@ -1537,10 +1540,10 @@ export function useForumStore() {
       return nextUsers;
     });
 
-    fetch('/api/clubs/approve', {
+    void fetch('/api/clubs/approve', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clubId, adminEmail: currentUser?.email }),
+      headers: authHeaders(),
+      body: JSON.stringify({ clubId }),
     }).catch(() => {});
 
     try {
@@ -1567,10 +1570,10 @@ export function useForumStore() {
       )
     );
 
-    fetch('/api/clubs/reject', {
+    void fetch('/api/clubs/reject', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clubId, reason, adminEmail: currentUser?.email }),
+      headers: authHeaders(),
+      body: JSON.stringify({ clubId, reason }),
     }).catch(() => {});
 
     try {
@@ -1619,10 +1622,10 @@ export function useForumStore() {
 
     setClubPosts(prev => [newPost, ...prev]);
 
-    fetch('/api/clubs/posts', {
+    void fetch('/api/clubs/posts', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newPost),
+      headers: authHeaders(),
+      body: JSON.stringify({ ...newPost, authorEmail: currentUser.email }),
     }).catch(() => {});
 
     try {

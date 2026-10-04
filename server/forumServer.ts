@@ -344,6 +344,8 @@ const MAX_NAME_LENGTH = 120;
 const MAX_CHAT_MESSAGES = 500;
 const MAX_FEEDBACKS = 500;
 const MAX_REPORTS = 500;
+const MAX_CLUBS = 300;
+const MAX_CLUB_POSTS = 800;
 
 /** Giữ lại N phần tử MỚI NHẤT (mảng chat/feedback được push thêm vào cuối). */
 const capTail = <T,>(list: T[], max: number): T[] => (list.length > max ? list.slice(list.length - max) : list);
@@ -1487,6 +1489,199 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         });
       } catch (err: any) {
         sendJson(res, 500, { success: false, message: err.message });
+      }
+      return;
+    }
+
+    /*
+      ───────────────────────────────────────────────────────────────────────────
+      CÂU LẠC BỘ
+      Bốn thao tác này trước đây CHỈ gọi HTTP tới endpoint không tồn tại (404) và
+      phát BroadcastChannel — tức là chỉ tới các tab CÙNG trình duyệt. Handler WS
+      phía server có sẵn nhưng client không bao giờ gửi, nên hồ sơ CLB lập trên
+      điện thoại sẽ biến mất trên mọi thiết bị khác. Nay đi qua HTTP có xác thực.
+      ───────────────────────────────────────────────────────────────────────────
+    */
+    if (method === 'POST' && url === '/api/clubs') {
+      try {
+        const body = await parseJsonBody(req);
+        const name = String(body.name || '').trim();
+        const purpose = String(body.purpose || '').trim();
+        if (!name) {
+          sendJson(res, 400, { success: false, message: 'Tên câu lạc bộ không được để trống!' });
+          return;
+        }
+
+        const throttle = writeLimiter.check(`club:${clientIpOf(req)}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'thành lập câu lạc bộ');
+          return;
+        }
+
+        /* Người sáng lập lấy THUẦN từ token — `leaderEmail` trong body chỉ để
+           tham khảo và bị bỏ qua, nên không ai mạo danh người khác được. */
+        const claims = authorizeRequest(req, null, body.token);
+        const founder = claims ? store.users[claims.email] : undefined;
+        if (!founder) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để thành lập câu lạc bộ!' });
+          return;
+        }
+
+        const club = {
+          id: typeof body.id === 'string' && body.id ? body.id.slice(0, 80) : randomId('club'),
+          name: name.slice(0, 120),
+          slogan: String(body.slogan || '').slice(0, 200),
+          coverImage: String(body.coverImage || '').slice(0, 2000),
+          category: String(body.category || 'Công nghệ').slice(0, 60),
+          foundingMembers: Array.isArray(body.foundingMembers)
+            ? body.foundingMembers.slice(0, 20).map((m: unknown) => String(m).slice(0, 120))
+            : [],
+          purpose: purpose.slice(0, 2000),
+          leaderId: founder.id,
+          leaderName: founder.name,
+          followerCount: 1,
+          membersCount: Math.max(1, Array.isArray(body.foundingMembers) ? body.foundingMembers.length : 0),
+          /* Hồ sơ mới luôn ở trạng thái chờ — người dùng không tự duyệt cho mình. */
+          status: 'PENDING',
+          createdAt: new Date().toISOString().split('T')[0],
+        };
+
+        if (store.clubs.some(c => c.id === club.id)) {
+          sendJson(res, 200, { success: true, club, duplicated: true });
+          return;
+        }
+        store.clubs = [club, ...store.clubs].slice(0, MAX_CLUBS);
+        persistStoreToDisk();
+        broadcastServerEvent('NEW_CLUB', club);
+        sendJson(res, 200, { success: true, club, message: 'Hồ sơ thành lập đã được gửi tới Ban Quản Trị.' });
+      } catch (err: any) {
+        sendJson(res, 500, { success: false, message: err?.message || 'Không tạo được câu lạc bộ' });
+      }
+      return;
+    }
+
+    /** Duyệt hồ sơ CLB — chỉ Super Admin. Logic thăng cấp giữ nguyên như nhánh WS. */
+    if (method === 'POST' && url === '/api/clubs/approve') {
+      try {
+        const body = await parseJsonBody(req);
+        const clubId = String(body.clubId || '').trim();
+        if (!clubId) {
+          sendJson(res, 400, { success: false, message: 'Thiếu mã câu lạc bộ!' });
+          return;
+        }
+        if (!requireSuperAdmin(req, body)) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới duyệt được câu lạc bộ!' });
+          return;
+        }
+
+        const club = store.clubs.find(c => c.id === clubId);
+        if (!club) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy câu lạc bộ này!' });
+          return;
+        }
+
+        store.clubs = store.clubs.map(c => (c.id === clubId ? { ...c, status: 'APPROVED' } : c));
+        const approved = store.clubs.find(c => c.id === clubId);
+        const creator = Object.values(store.users).find(u => u.id === approved?.leaderId);
+        if (creator) {
+          creator.role = creator.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'CLUB_LEADER';
+          creator.scopedClubIds = Array.from(new Set([...(creator.scopedClubIds || []), clubId]));
+          creator.xp += 250;
+          creator.fPoints = (creator.fPoints ?? creator.xp) + 250;
+          creator.level = calculateLevelFromXP(creator.xp);
+          broadcastServerEvent('SYNC_USER', creator);
+        }
+        persistStoreToDisk();
+        broadcastServerEvent('APPROVE_CLUB', clubId);
+        sendJson(res, 200, { success: true, club: approved, message: 'Đã duyệt câu lạc bộ.' });
+      } catch (err: any) {
+        sendJson(res, 500, { success: false, message: err?.message || 'Không duyệt được câu lạc bộ' });
+      }
+      return;
+    }
+
+    /** Từ chối hồ sơ CLB kèm lý do — chỉ Super Admin. */
+    if (method === 'POST' && url === '/api/clubs/reject') {
+      try {
+        const body = await parseJsonBody(req);
+        const clubId = String(body.clubId || '').trim();
+        const reason = String(body.reason || '').trim();
+        if (!clubId) {
+          sendJson(res, 400, { success: false, message: 'Thiếu mã câu lạc bộ!' });
+          return;
+        }
+        if (!requireSuperAdmin(req, body)) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới từ chối được câu lạc bộ!' });
+          return;
+        }
+        if (!store.clubs.some(c => c.id === clubId)) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy câu lạc bộ này!' });
+          return;
+        }
+        store.clubs = store.clubs.map(c =>
+          c.id === clubId ? { ...c, status: 'REJECTED', rejectReason: reason.slice(0, 500) } : c
+        );
+        persistStoreToDisk();
+        broadcastServerEvent('REJECT_CLUB', { clubId, reason });
+        sendJson(res, 200, { success: true, clubId, message: 'Đã từ chối hồ sơ câu lạc bộ.' });
+      } catch (err: any) {
+        sendJson(res, 500, { success: false, message: err?.message || 'Không từ chối được câu lạc bộ' });
+      }
+      return;
+    }
+
+    /** Bài viết trong CLB — cần đăng nhập. */
+    if (method === 'POST' && url === '/api/clubs/posts') {
+      try {
+        const body = await parseJsonBody(req);
+        const title = String(body.title || '').trim();
+        const content = String(body.content || '').trim();
+        const clubId = String(body.clubId || '').trim();
+        if (!clubId || !title || !content) {
+          sendJson(res, 400, { success: false, message: 'Tiêu đề và nội dung bài viết không được để trống!' });
+          return;
+        }
+        if (!store.clubs.some(c => c.id === clubId)) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy câu lạc bộ này!' });
+          return;
+        }
+
+        const throttle = writeLimiter.check(`clubpost:${clientIpOf(req)}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'đăng bài');
+          return;
+        }
+
+        /* Tác giả bài viết cũng lấy thuần từ token. */
+        const claims = authorizeRequest(req, null, body.token);
+        const author = claims ? store.users[claims.email] : undefined;
+        if (!author) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để đăng bài!' });
+          return;
+        }
+
+        const post = {
+          id: typeof body.id === 'string' && body.id ? body.id.slice(0, 80) : randomId('cpost'),
+          clubId: clubId.slice(0, 80),
+          authorId: author.id,
+          authorName: author.name,
+          authorAvatar: author.avatar || DEFAULT_AVATAR,
+          title: title.slice(0, 200),
+          content: content.slice(0, 5000),
+          createdAt: new Date().toISOString(),
+          likes: 0,
+        };
+
+        if (store.clubPosts.some(p => p.id === post.id)) {
+          sendJson(res, 200, { success: true, post, duplicated: true });
+          return;
+        }
+        store.clubPosts = [post, ...store.clubPosts].slice(0, MAX_CLUB_POSTS);
+        persistStoreToDisk();
+        broadcastServerEvent('NEW_CLUB_POST', post);
+        sendJson(res, 200, { success: true, post, message: 'Đã đăng bài viết.' });
+      } catch (err: any) {
+        sendJson(res, 500, { success: false, message: err?.message || 'Không đăng được bài viết' });
       }
       return;
     }

@@ -1135,3 +1135,144 @@ test('24. Kho tin nhắn/góp ý/báo cáo có trần — không phình vô hạ
   assert.ok(server.includes('capTail([...store.reports, reportSubmission], MAX_REPORTS)'), 'reports phải được cắt');
   assert.ok(!/store\.chatMessages\.push\(/.test(server), 'Không push thẳng vào kho tin nhắn nữa');
 });
+
+test('25. Câu lạc bộ: bốn endpoint từng trả 404 nay lưu thật và kiểm quyền đúng', async () => {
+  const env = await createTestServer();
+  try {
+    /* Khách chưa đăng nhập không lập được CLB. */
+    const anon = await post(env.baseUrl, '/api/clubs', { name: 'CLB Ẩn Danh', purpose: 'Thử' });
+    assert.equal(anon.status, 401, 'Chưa đăng nhập thì không lập được CLB');
+
+    /* Khai leaderEmail của người khác mà không có token của họ → không mạo danh được. */
+    const attacker = await register(env.baseUrl, 'Kẻ Mạo Danh', 'maodanh@example.com', 'mat-khau-mao-danh');
+    const spoofed = await post(env.baseUrl, '/api/clubs', {
+      name: 'CLB Mạo Danh',
+      purpose: 'Mượn danh admin',
+      leaderEmail: 'anhtuantran0512@gmail.com',
+    }, attacker.token);
+    assert.equal(spoofed.status, 200);
+    assert.notEqual(
+      spoofed.data.club.leaderName,
+      'anhtuantran0512@gmail.com',
+      'Người sáng lập phải lấy từ phiên đăng nhập, không từ body tự khai'
+    );
+
+    /* Hồ sơ mới luôn ở trạng thái chờ — người dùng không tự duyệt cho mình. */
+    assert.equal(spoofed.data.club.status, 'PENDING', 'CLB mới phải ở trạng thái PENDING');
+
+    const founder = await register(env.baseUrl, 'Chủ Nhiệm', 'chunhiem@example.com', 'mat-khau-chu-nhiem');
+    const created = await post(env.baseUrl, '/api/clubs', {
+      name: 'CLB Lập Trình',
+      slogan: 'Code cùng nhau',
+      category: 'Công nghệ',
+      purpose: 'Học thuật toán và dự án nhóm mỗi tuần.',
+      foundingMembers: ['Bạn A', 'Bạn B'],
+    }, founder.token);
+    assert.equal(created.status, 200, `tạo CLB: ${JSON.stringify(created.data)}`);
+    const clubId = created.data.club.id;
+    assert.equal(created.data.club.leaderName, 'Chủ Nhiệm');
+    assert.equal(created.data.club.membersCount, 2);
+
+    /* Học sinh thường không duyệt được. */
+    const studentApprove = await post(env.baseUrl, '/api/clubs/approve', { clubId }, attacker.token);
+    assert.equal(studentApprove.status, 403, 'Học sinh không duyệt được CLB');
+
+    /* Không có token thì cũng không duyệt được. */
+    const anonApprove = await post(env.baseUrl, '/api/clubs/approve', {
+      clubId,
+      adminEmail: 'anhtuantran0512@gmail.com',
+    });
+    assert.equal(anonApprove.status, 403, 'Khai adminEmail không mở được quyền duyệt');
+
+    /* Admin thật duyệt được, và chủ nhiệm được thăng cấp + XP. */
+    const adminLogin = await post(env.baseUrl, '/api/auth/login', {
+      email: 'anhtuantran0512@gmail.com',
+      password: 'admin123',
+    });
+    assert.equal(adminLogin.status, 200, `admin login: ${JSON.stringify(adminLogin.data)}`);
+
+    const approved = await post(env.baseUrl, '/api/clubs/approve', { clubId }, adminLogin.data.token);
+    assert.equal(approved.status, 200, `duyệt CLB: ${JSON.stringify(approved.data)}`);
+    assert.equal(approved.data.club.status, 'APPROVED');
+
+    const sync = await get(env.baseUrl, '/api/sync');
+    const syncData = sync.data.data;
+    const founderRow = Object.values(syncData.users).find((u) => u.email === 'chunhiem@example.com');
+    assert.equal(founderRow.role, 'CLUB_LEADER', 'Chủ nhiệm phải được thăng cấp');
+    assert.ok(founderRow.xp >= 250, `Chủ nhiệm phải nhận XP, thực tế = ${founderRow.xp}`);
+    assert.ok(founderRow.scopedClubIds.includes(clubId), 'Phải gắn CLB vào phạm vi quản lý');
+
+    /* Bài viết trong CLB cần đăng nhập và CLB phải tồn tại. */
+    const ghostPost = await post(env.baseUrl, '/api/clubs/posts', {
+      clubId,
+      title: 'Ma',
+      content: 'Không ai đăng được đâu',
+    });
+    assert.equal(ghostPost.status, 401, 'Chưa đăng nhập thì không đăng bài được');
+
+    const badClubPost = await post(env.baseUrl, '/api/clubs/posts', {
+      clubId: 'club-khong-ton-tai',
+      title: 'Lạc đề',
+      content: 'CLB này không có thật',
+    }, founder.token);
+    assert.equal(badClubPost.status, 404, 'Đăng vào CLB không tồn tại phải 404');
+
+    const posted = await post(env.baseUrl, '/api/clubs/posts', {
+      clubId,
+      title: 'Buổi học đầu tiên',
+      content: 'Mọi người mang laptop, mình bắt đầu với quy hoạch động.',
+    }, founder.token);
+    assert.equal(posted.status, 200, `đăng bài: ${JSON.stringify(posted.data)}`);
+    assert.equal(posted.data.post.authorName, 'Chủ Nhiệm', 'Tác giả lấy từ phiên, không từ body');
+
+    /* Cả CLB lẫn bài viết phải xuống đĩa và về lại qua /api/sync. */
+    assert.ok(
+      syncData.clubs.some((c) => c.id === clubId),
+      '/api/sync phải trả CLB về để thiết bị khác thấy'
+    );
+  } finally {
+    await env.close();
+  }
+});
+
+test('26. Luồng từ chối CLB: ghi lý do và không cho học sinh đụng vào', async () => {
+  const env = await createTestServer();
+  try {
+    const founder = await register(env.baseUrl, 'Người Đề Xuất', 'dexuat@example.com', 'mat-khau-de-xuat');
+    const created = await post(env.baseUrl, '/api/clubs', {
+      name: 'CLB Thiếu Mục Đích',
+      purpose: 'Chưa rõ.',
+    }, founder.token);
+    assert.equal(created.status, 200);
+    const clubId = created.data.club.id;
+
+    const studentReject = await post(env.baseUrl, '/api/clubs/reject', {
+      clubId,
+      reason: 'Tự ý từ chối',
+    }, founder.token);
+    assert.equal(studentReject.status, 403, 'Học sinh không từ chối được hồ sơ CLB');
+
+    const missing = await post(env.baseUrl, '/api/clubs/reject', {});
+    assert.equal(missing.status, 400, 'Thiếu mã CLB phải báo 400');
+
+    const adminLogin = await post(env.baseUrl, '/api/auth/login', {
+      email: 'anhtuantran0512@gmail.com',
+      password: 'admin123',
+    });
+    const rejected = await post(env.baseUrl, '/api/clubs/reject', {
+      clubId,
+      reason: 'Thiếu mục tiêu hoạt động cụ thể.',
+    }, adminLogin.data.token);
+    assert.equal(rejected.status, 200, `từ chối CLB: ${JSON.stringify(rejected.data)}`);
+
+    const ghost = await post(env.baseUrl, '/api/clubs/reject', { clubId: 'club-khong-co' }, adminLogin.data.token);
+    assert.equal(ghost.status, 404, 'Từ chối CLB không tồn tại phải 404');
+
+    const sync = await get(env.baseUrl, '/api/sync');
+    const row = sync.data.data.clubs.find((c) => c.id === clubId);
+    assert.equal(row.status, 'REJECTED');
+    assert.equal(row.rejectReason, 'Thiếu mục tiêu hoạt động cụ thể.', 'Lý do từ chối phải được lưu');
+  } finally {
+    await env.close();
+  }
+});
