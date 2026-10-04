@@ -122,24 +122,32 @@ test('6. Vòng 9 — một lượt thích chỉ cộng ĐÚNG 1, bảng rank m�
   const profile = fs.readFileSync('src/components/ProfileModal.tsx', 'utf8');
   const sheet = fs.readFileSync('src/components/TierRankSheet.tsx', 'utf8');
 
-  /* Tim: nền = số đã có trừ đi lượt của chính mình, để 1 lượt thích = +1 */
-  assert.ok(
-    heart.includes('baseCount') && /Math\.max\(0, initialCount - \(initialLiked \? 1 : 0\)\)/.test(heart),
-    'Like count must subtract my own like from the base so one like adds exactly one',
-  );
-  assert.ok(
-    heart.includes('const currentCount = isLiked ? baseCount + 1 : baseCount'),
-    'Rendered count must derive from the base, never double-count',
-  );
+  /* Tim: nút chỉ HIỂN THỊ số cha truyền xuống, không tự cộng/trừ (bản cũ tự
+     cộng 1 rồi lại cộng tiếp ở cha → bấm một lần mà nhảy 2). Hợp đồng số học
+     được kiểm tra bằng test thật ở tests/like-heart.test.mjs. */
+  /* Soi phần MÃ (bỏ chú thích) để lời giải thích trong comment không tự bắt lỗi */
+  const heartCode = heart.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  assert.ok(heartCode.includes('<button'), 'Heart must be a real button (a label + hidden tick can double-fire)');
+  assert.ok(!heartCode.includes('type="checkbox"'), 'No checkbox/label pair may remain in the heart');
+  assert.ok(!heartCode.includes('useState'), 'Heart must not keep its own counter state');
+  assert.ok(heartCode.includes('onToggle(!liked)'), 'Heart must report the DESIRED state, never flip internally');
+  assert.ok(!/currentCount \+ 1/.test(heartCode), 'No "+1" math may live inside the heart button');
 
   /* Hồ sơ: số lượt thích = cảm ơn thật + danh sách người đã thích, lưu theo tài khoản */
-  assert.ok(profile.includes('fforum_profile_likes_v1'), 'Profile likes must persist per account');
   assert.ok(profile.includes('PROFILE_LIKES_KEY'), 'Profile likes key must be a named constant');
-  assert.ok(profile.includes('writeProfileLikes') && profile.includes('readProfileLikes'), 'Profile likes must be read + written through helpers');
+  assert.ok(
+    profile.includes('parseProfileLikes') && profile.includes('serializeProfileLikes'),
+    'Profile likes must be read + written through the shared helpers',
+  );
   assert.ok(profile.includes('handleProfileLike'), 'Heart must be wired to a real handler');
   assert.ok(
-    profile.includes('statsMetrics.thanks + profileLikers.length'),
-    'Heart count must be real thanks + real likers',
+    profile.includes('profileLikeCount(statsMetrics.thanks, profileLikers)'),
+    'Heart count must be real thanks + real likers, computed once',
+  );
+  assert.ok(profile.includes('count={profileHeartCount}') && profile.includes('liked={likedByMe}'), 'Heart must be controlled by the profile state');
+  assert.ok(
+    !/key=\{`\$\{profileKey\}-\$\{likedByMe/.test(profile),
+    'The old remount-by-liked-state hack must be gone (it re-mounted on every like)',
   );
 
   /* Thẻ "danh hiệu" → mở bảng rank + danh hiệu + yêu cầu */

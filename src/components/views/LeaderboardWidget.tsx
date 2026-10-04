@@ -467,8 +467,9 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
           </div>
         )}
 
-        {/* Danh sách các hạng tiếp theo */}
+        {/* Danh sách các hạng tiếp theo — cuộn trong khung để trang không dài */}
         {list.length > 0 && (
+          <div className="ff-board__scroll">
           <ol className="ff-board__list">
             {list.map((m) => (
               <li key={m.key}>
@@ -508,6 +509,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
               </li>
             ))}
           </ol>
+          </div>
         )}
 
         {list.length > 0 && (

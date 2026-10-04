@@ -36,9 +36,30 @@ import { SHOP_ITEMS, getTierColorStyles } from '../utils/shopData';
 import { ShopItemSvg } from './ShopItemSvg';
 import { pushNotification } from '../utils/notifications';
 import { LikeHeartButton } from './LikeHeartButton';
+import { safeStorage } from '../utils/storage';
+import {
+  PROFILE_LIKES_KEY,
+  isProfileLikedBy,
+  parseProfileLikes,
+  profileLikeCount,
+  profileLikersOf,
+  serializeProfileLikes,
+  setProfileLike,
+  type ProfileLikesMap,
+} from '../utils/profileLikes';
+
+/* Đọc/ghi lượt thả tim qua safeStorage — mọi phép tính nằm ở utils/profileLikes */
+const readProfileLikes = (): ProfileLikesMap =>
+  parseProfileLikes(safeStorage.getItem(PROFILE_LIKES_KEY));
+const writeProfileLikes = (map: ProfileLikesMap): void => {
+  try {
+    safeStorage.setItem(PROFILE_LIKES_KEY, serializeProfileLikes(map));
+  } catch {
+    /* bỏ qua khi trình duyệt chặn ghi */
+  }
+};
 import { BookshelfPanel } from './BookshelfPanel';
 import { TierRankSheet } from './TierRankSheet';
-import { safeStorage } from '../utils/storage';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -133,27 +154,6 @@ const ALL_SYSTEM_BADGES: SystemBadge[] = [
 ];
 
 /* Tim hồ sơ: lưu theo từng hồ sơ + người thả tim để mở lại vẫn đúng 1 tim */
-const PROFILE_LIKES_KEY = 'fforum_profile_likes_v1';
-
-const readProfileLikes = (): Record<string, string[]> => {
-  try {
-    const raw = safeStorage.getItem(PROFILE_LIKES_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, string[]>;
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
-};
-
-const writeProfileLikes = (map: Record<string, string[]>): void => {
-  try {
-    safeStorage.setItem(PROFILE_LIKES_KEY, JSON.stringify(map));
-  } catch {
-    /* ignore */
-  }
-};
-
 const PROFILE_BANNER_GRADIENTS = [
   {
     id: 'aurora-gold',
@@ -292,30 +292,29 @@ const ProfileModalInner: React.FC<{
   /* GUI nhỏ "Bảng rank · danh hiệu · yêu cầu" mở từ khối Danh hiệu */
   const [isRankSheetOpen, setIsRankSheetOpen] = useState(false);
 
-  /* Tim hồ sơ — 1 lần bấm = đúng 1 tim, ghi nhớ theo người xem */
-  const [likesMap, setLikesMap] = useState<Record<string, string[]>>(() => readProfileLikes());
+  /* Tim hồ sơ — MỘT nguồn sự thật: likesMap. Nút tim chỉ hiển thị số cha tính
+     ra, không tự cộng trừ, nên một lần bấm luôn đúng ±1 (không thể nhân đôi). */
+  const [likesMap, setLikesMap] = useState<ProfileLikesMap>(() => readProfileLikes());
   const profileKey = currentUser.email.toLowerCase();
   const viewerKey = (viewerUser?.email || viewerUser?.id || '').toLowerCase();
-  const profileLikers = likesMap[profileKey] || [];
-  const likedByMe = Boolean(viewerKey) && profileLikers.includes(viewerKey);
+  const profileLikers = profileLikersOf(likesMap, profileKey);
+  const likedByMe = isProfileLikedBy(likesMap, profileKey, viewerKey);
 
-  const handleProfileLike = (liked: boolean, nextCount: number) => {
+  const handleProfileLike = (next: boolean) => {
     if (!viewerKey) return;
+    const already = isProfileLikedBy(likesMap, profileKey, viewerKey);
+    if (already === next) return; /* bấm lặp / sự kiện trùng → không làm gì */
     setLikesMap((prev) => {
-      const current = prev[profileKey] || [];
-      const nextList = liked
-        ? Array.from(new Set([...current, viewerKey]))
-        : current.filter((k) => k !== viewerKey);
-      const nextMap = { ...prev, [profileKey]: nextList };
+      const nextMap = setProfileLike(prev, profileKey, viewerKey, next);
       writeProfileLikes(nextMap);
       return nextMap;
     });
-    if (liked) {
+    if (next) {
       pushNotification({
         type: 'system',
         category: 'system',
         title: 'Đã Thả Tim Hồ Sơ!',
-        body: `Bạn đã thả tim cho ${currentUser.name}. Lượt cảm ơn hiện tại: ${nextCount}.`,
+        body: `Bạn đã thả tim cho ${currentUser.name}.`,
         targetView: 'home',
       });
     }
@@ -381,6 +380,9 @@ const ProfileModalInner: React.FC<{
       answersCount: userSolutions.length,
     };
   }, [currentUser, userSolutions, userCoin]);
+
+  /* Số trên nút tim = cảm ơn thật + số người đã thả tim (mỗi người một lần) */
+  const profileHeartCount = profileLikeCount(statsMetrics.thanks, profileLikers);
 
   const radarAxes = useMemo(() => {
     /* Radar tính theo môn học người dùng thật sự tham gia (câu hỏi + lời giải). */
@@ -885,10 +887,10 @@ const ProfileModalInner: React.FC<{
                     <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-start">
                       <div className="flex items-center gap-1.5" title="Thả tim cho thành viên này">
                         <LikeHeartButton
-                          key={`${profileKey}-${likedByMe ? 'on' : 'off'}`}
-                          initialCount={statsMetrics.thanks + profileLikers.length}
-                          initialLiked={likedByMe}
-                          onLikeChange={handleProfileLike}
+                          count={profileHeartCount}
+                          liked={likedByMe}
+                          onToggle={handleProfileLike}
+                          disabled={!viewerKey}
                         />
                       </div>
 
@@ -954,7 +956,7 @@ const ProfileModalInner: React.FC<{
                         type="button"
                         onClick={() =>
                           setSelectedStatNote(
-                            `Cảm ơn: ${statsMetrics.thanks} lượt — tổng số lượt yêu thích & bình chọn hữu ích từ bạn bè.`
+                            `Cảm ơn: ${statsMetrics.thanks} lượt — bình chọn hữu ích nhận được từ các lời giải của bạn.`
                           )
                         }
                         className="pc-12-well p-2.5 flex flex-col items-center cursor-pointer"

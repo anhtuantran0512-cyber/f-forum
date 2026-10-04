@@ -3126,6 +3126,22 @@ html.light .ff-odo__strip > i { text-shadow: none; }
 .ff-board__empty { padding: 20px 10px; text-align: center; }
 
 .ff-board__list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+
+/* Khung cuộn cho gần 100 hạng: bảng gọn, không kéo trang dài cả nghìn pixel */
+.ff-board__scroll {
+  max-height: 420px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  margin-right: -4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+  -webkit-mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 18px), transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 18px), transparent 100%);
+}
+.ff-board__scroll::-webkit-scrollbar { width: 6px; }
+.ff-board__scroll::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.45); border-radius: 999px; }
+.ff-board__scroll::-webkit-scrollbar-track { background: transparent; }
 .ff-row {
   display: grid;
   grid-template-columns: 22px 30px minmax(0, 1fr) auto;
