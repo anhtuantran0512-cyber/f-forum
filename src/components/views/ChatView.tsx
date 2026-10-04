@@ -190,7 +190,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
   }, [cooldownRemaining]);
 
   const handleSend = () => {
-    if (!inputText.trim() || cooldownRemaining > 0 || !currentUser) return;
+    if (!inputText.trim() || cooldownRemaining > 0) return;
+    if (!currentUser) {
+      onOpenLoginModal?.();
+      return;
+    }
     onSendMessage(activeChannel, inputText.trim());
     setInputText('');
     setCooldownRemaining(2000);
