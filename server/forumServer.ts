@@ -749,7 +749,16 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                   broadcastServerEvent('NEW_CHAT_MESSAGE', relayed);
                   break;
                 }
-                broadcastServerEvent('NEW_CHAT_MESSAGE', payload);
+                /*
+                  Tin đã có trong kho (client gửi lại, hoặc hai kênh cùng đưa về).
+                  Bản cũ phát ngược NGUYÊN payload client cho mọi người: chỉ cần lấy
+                  một id có sẵn kèm nội dung tuỳ ý là đẩy được một tin MA lên màn
+                  hình tất cả client mà tin đó không hề nằm trong store — reload là
+                  biến mất, và không bị giới hạn độ dài hay lọc gì cả.
+                  Nay phát lại đúng bản đã lưu.
+                */
+                const existing = store.chatMessages.find(m => m.id === payload.id);
+                if (existing) broadcastServerEvent('NEW_CHAT_MESSAGE', existing);
               }
               break;
             }
@@ -918,7 +927,12 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 broadcastServerEvent('SYNC_USER', solver);
               }
               persistStoreToDisk();
-              broadcastServerEvent('MARK_BEST_SOLUTION', payload);
+              /* Phát đúng hai trường client dùng, không phát ngược payload thô —
+                 khớp với bản HTTP của cùng thao tác này. */
+              broadcastServerEvent('MARK_BEST_SOLUTION', {
+                questionId: targetQuestion.id,
+                solutionId: targetSolution.id,
+              });
               break;
             }
             case 'NEW_CLUB': {

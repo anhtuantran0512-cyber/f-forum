@@ -2498,3 +2498,95 @@ test('49. Nạp lại module server không được cộng dồn listener tín h
     'không được dùng cờ cấp module để chặn cài lặp — nó bị reset khi reload'
   );
 });
+
+test('50. Không phát được "tin ma" qua id chat đã tồn tại', async () => {
+  const env = await createTestServer();
+  try {
+    (await import('../server/forumServer.ts')).resetRateLimitersForTest();
+
+    const sender = await register(env.baseUrl, 'Người Gửi Ma', 'guima@example.com', 'mat-khau-gui-ma-12345');
+    const viewer = await register(env.baseUrl, 'Người Xem', 'xemtin@example.com', 'mat-khau-xem-tin-12345');
+
+    /* Gửi một tin thật để có id hợp lệ trong kho. */
+    const real = await post(env.baseUrl, '/api/chat', {
+      channelId: 'hallway',
+      content: 'Tin nhắn thật, hợp lệ.',
+    });
+    assert.equal(real.status, 200, `gửi tin thật: ${JSON.stringify(real.data)}`);
+    const existingId = real.data.message.id;
+
+    /* Người xem lắng nghe mọi tin được phát sóng. */
+    const viewerWs = await connectWs(env.wsUrl, viewer.token);
+    const senderWs = await connectWs(env.wsUrl, sender.token);
+
+    const PHANTOM = 'TIN MA — nội dung này không hề được lưu vào kho';
+    senderWs.send('NEW_CHAT_MESSAGE', {
+      id: existingId,
+      channelId: 'hallway',
+      content: PHANTOM,
+      authorId: 'ke-tan-cong',
+      authorName: 'Kẻ Tấn Công',
+    });
+
+    let phantomSeen = false;
+    try {
+      const msg = await viewerWs.waitFor('NEW_CHAT_MESSAGE', 900);
+      if (String(msg.payload?.content || '').includes('TIN MA')) phantomSeen = true;
+    } catch {
+      /* không nhận được tin nào — đúng như mong đợi */
+    }
+    assert.equal(
+      phantomSeen,
+      false,
+      'Gửi id có sẵn kèm nội dung tuỳ ý KHÔNG được đẩy tin ma lên client khác'
+    );
+
+    /* Kho vẫn chỉ có đúng một tin với nội dung gốc. */
+    const sync = await get(env.baseUrl, '/api/sync');
+    const hall = (sync.data.data.chatMessages || []).filter((m) => m.channelId === 'hallway');
+    assert.equal(hall.length, 1, `kho phải chỉ có 1 tin, thực tế ${hall.length}`);
+    assert.equal(hall[0].content, 'Tin nhắn thật, hợp lệ.', 'nội dung gốc không được bị ghi đè');
+  } finally {
+    await env.close();
+  }
+});
+
+test('51. MARK_BEST_SOLUTION qua WS chỉ phát questionId và solutionId', async () => {
+  const env = await createTestServer();
+  try {
+    const asker = await register(env.baseUrl, 'Người Hỏi 51', 'hoi51@example.com', 'mat-khau-hoi51-12345');
+    const solver = await register(env.baseUrl, 'Người Giải 51', 'giai51@example.com', 'mat-khau-giai51-12345');
+    const askerWs = await connectWs(env.wsUrl, asker.token);
+
+    const asked = await post(env.baseUrl, '/api/questions', {
+      title: 'Câu hỏi cho test payload',
+      content: 'Kiểm tra broadcast không lộ trường thừa.',
+      authorEmail: 'hoi51@example.com',
+      bountyCoin: 20,
+    }, asker.token);
+    assert.equal(asked.status, 200);
+
+    const solved = await post(env.baseUrl, '/api/solutions', {
+      questionId: asked.data.question.id,
+      content: 'Đáp án kiểm thử.',
+      authorEmail: 'giai51@example.com',
+    }, solver.token);
+    assert.equal(solved.status, 200);
+
+    askerWs.send('MARK_BEST_SOLUTION', {
+      questionId: asked.data.question.id,
+      solutionId: solved.data.solution.id,
+      adminEmail: 'anhtuantran0512@gmail.com',
+      ghiChuBiMat: 'trường thừa do client tự bịa',
+    });
+    const msg = await askerWs.waitFor('MARK_BEST_SOLUTION');
+    assert.ok(msg, 'phải phát MARK_BEST_SOLUTION');
+    assert.deepEqual(
+      Object.keys(msg.payload).sort(),
+      ['questionId', 'solutionId'],
+      `payload phát ra chỉ được có hai trường, thực tế: ${Object.keys(msg.payload).join(', ')}`
+    );
+  } finally {
+    await env.close();
+  }
+});
