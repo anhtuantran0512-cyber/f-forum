@@ -369,6 +369,20 @@ const sseClients = new Set<ServerResponse>();
  */
 const wsSessions = new WeakMap<WebSocket, SessionClaims>();
 
+/**
+  IP của từng kết nối WS, lấy từ request lúc bắt tay.
+
+  Cần có để khoá rate limiter cho các đường ghi qua WS. Trước đây NĂM đường ghi
+  qua WS (`NEW_CHAT_MESSAGE`, `NEW_QUESTION`, `NEW_SOLUTION`, `NEW_CLUB`,
+  `NEW_CLUB_POST`) không có limiter nào, trong khi bản HTTP của chúng thì có —
+  nên chỉ cần chuyển sang kênh WS là vượt mọi giới hạn ghi.
+
+  Repro với giới hạn 120 lượt/phút:
+    HTTP /api/chat 200 lượt        -> 120 thành công (limiter hoạt động)
+    WS NEW_CHAT_MESSAGE 200 lượt   -> 200 được lưu   (không giới hạn)
+*/
+const wsClientIps = new WeakMap<WebSocket, string>();
+
 const sessionOf = (ws: WebSocket): SessionClaims | null => wsSessions.get(ws) || null;
 
 const isWsSuperAdmin = (ws: WebSocket): boolean =>
@@ -694,7 +708,11 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       }
     });
 
-    wss.on('connection', (ws) => {
+    wss.on('connection', (ws, req) => {
+      /* `wss.emit('connection', ws, req)` có truyền req nhưng handler cũ không
+         nhận, nên không có cách nào biết IP của kết nối để giới hạn tốc độ. */
+      if (req) wsClientIps.set(ws, clientIpOf(req));
+
       if (wsClients.size >= MAX_WS_CLIENTS) {
         try {
           ws.send(JSON.stringify({ type: 'SERVER_FULL', payload: { message: 'Máy chủ đang quá tải, vui lòng thử lại sau.' } }));
@@ -712,6 +730,43 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           if (!type) return;
 
           const session = sessionOf(ws);
+
+          /*
+            Chặn spam qua kênh WS bằng ĐÚNG bộ limiter và đúng khoá IP như bản HTTP.
+
+            Trước đây năm đường ghi qua WS không có limiter nào, nên chỉ cần chuyển
+            từ HTTP sang WS là vượt mọi giới hạn: HTTP /api/chat chặn ở lượt 121, còn
+            WS NEW_CHAT_MESSAGE cho lưu cả 200 lượt.
+
+            Khoá theo IP (không theo phiên) để khớp hành vi HTTP; chưa AUTH thì vẫn
+            tính vào ô của IP đó, không có đường lách bằng cách không đăng nhập.
+          */
+          const WS_WRITE_ACTIONS = [
+            'NEW_CHAT_MESSAGE',
+            'NEW_QUESTION',
+            'NEW_SOLUTION',
+            'NEW_CLUB',
+            'NEW_CLUB_POST',
+          ];
+          if (WS_WRITE_ACTIONS.includes(type)) {
+            const wsIp = wsClientIps.get(ws) || 'ws-unknown';
+            const key =
+              type === 'NEW_CHAT_MESSAGE' ? `chat:${wsIp}`
+              : type === 'NEW_QUESTION' ? `question:${wsIp}`
+              : type === 'NEW_SOLUTION' ? `solution:${wsIp}`
+              : type === 'NEW_CLUB' ? `club:${wsIp}`
+              : `clubpost:${wsIp}`;
+            const throttle = writeLimiter.check(key);
+            if (!throttle.allowed) {
+              ws.send(JSON.stringify({
+                type: 'RATE_LIMITED',
+                payload: { action: type, retryAfterMs: throttle.retryAfterMs },
+              }));
+              /* `return` chứ không phải `break`: đoạn này nằm trong thân hàm xử lý
+                 message, TRƯỚC switch, nên break sẽ nhảy sai phạm vi. */
+              return;
+            }
+          }
 
           switch (type) {
             case 'PING': {

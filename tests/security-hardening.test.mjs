@@ -2644,3 +2644,51 @@ test('52. REJECT_CLUB qua HTTP cũng phải rút quyền chủ nhiệm như nhá
     await env.close();
   }
 });
+
+test('53. Ghi qua WebSocket cũng bị giới hạn tốc độ như HTTP', async () => {
+  const env = await createTestServer();
+  try {
+    (await import('../server/forumServer.ts')).resetRateLimitersForTest();
+
+    const user = await register(env.baseUrl, 'Kẻ Spam WS', 'spamws@example.com', 'mat-khau-spam-ws-12345');
+    const ws = await connectWs(env.wsUrl, user.token);
+
+    /*
+      Năm đường ghi qua WS (NEW_CHAT_MESSAGE, NEW_QUESTION, NEW_SOLUTION, NEW_CLUB,
+      NEW_CLUB_POST) trước đây không có limiter nào, trong khi bản HTTP của chúng
+      thì có — nên chỉ cần chuyển sang kênh WS là vượt mọi giới hạn.
+
+      Repro, chỉ dùng WS trong tiến trình sạch (giới hạn 120 lượt/phút):
+        trước khi vá: 200/200 được lưu, nhận 0 lần RATE_LIMITED
+        sau khi vá:   120/200 được lưu, nhận 80 lần RATE_LIMITED
+    */
+    let rateLimited = 0;
+    ws.ws.on('message', (raw) => {
+      try {
+        if (JSON.parse(raw.toString()).type === 'RATE_LIMITED') rateLimited++;
+      } catch { /* ignore */ }
+    });
+
+    for (let i = 0; i < 200; i++) {
+      ws.send('NEW_CHAT_MESSAGE', {
+        id: `spam-${i}`,
+        channelId: 'hallway',
+        content: `Tin spam số ${i}`,
+        authorId: 'ke-spam',
+        authorName: 'Kẻ Spam WS',
+      });
+    }
+    await sleep(1000);
+
+    const sync = await get(env.baseUrl, '/api/sync');
+    const saved = (sync.data.data.chatMessages || []).filter((m) =>
+      String(m.content || '').startsWith('Tin spam số'),
+    ).length;
+
+    assert.ok(saved < 200, `WS phải bị giới hạn, thực tế lưu ${saved}/200 tin`);
+    assert.ok(rateLimited > 0, 'client phải nhận được thông báo RATE_LIMITED');
+    ws.ws.close();
+  } finally {
+    await env.close();
+  }
+});
