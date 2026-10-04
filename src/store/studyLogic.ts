@@ -18,12 +18,12 @@ export const DAY_MS = 24 * HOUR_MS;
 
 /** Khoảng cách ôn tập của từng hộp Leitner (index = hộp). */
 export const STUDY_BOX_INTERVALS_MS: number[] = [
-  0, // 0 — thẻ mới hoặc vừa quên: ôn lại ngay trong phiên
-  10 * MINUTE_MS, // 1
-  1 * DAY_MS, // 2
-  3 * DAY_MS, // 3
-  7 * DAY_MS, // 4
-  21 * DAY_MS, // 5 — đã thuộc
+  0, /* 0 — thẻ mới hoặc vừa quên: ôn lại ngay trong phiên */
+  10 * MINUTE_MS, /* 1 */
+  1 * DAY_MS, /* 2 */
+  3 * DAY_MS, /* 3 */
+  7 * DAY_MS, /* 4 */
+  21 * DAY_MS, /* 5 — đã thuộc */
 ];
 
 export const RELEARN_DELAY_MS = MINUTE_MS;
