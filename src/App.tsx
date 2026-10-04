@@ -861,6 +861,7 @@ export const App: React.FC = () => {
         visible={Boolean(transition) && Boolean(loaderMeta)}
         targetLabel={loaderMeta?.label}
         variant={loaderMeta?.variant || 'vinyl'}
+        onSkip={() => setTransition(null)}
       />
 
       {/* Radial quick actions (ccm-02 sin()/cos() fan at bottom-left below Streak) */}

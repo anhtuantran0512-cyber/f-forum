@@ -235,6 +235,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     return () => window.clearTimeout(t);
   }, [isOpen, isRendered]);
 
+  /* Lưới an toàn: nếu vì lý do nào đó hoạt ảnh đóng bị kẹt, sau 900ms khoá
+     lại trạng thái đóng — không bao giờ để tấm phủ vô hình chặn cả trang. */
+  useEffect(() => {
+    if (isOpen) return;
+    const guard = window.setTimeout(() => {
+      setIsRendered(false);
+      setIsClosing(false);
+    }, 900);
+    return () => window.clearTimeout(guard);
+  }, [isOpen]);
+
   const pop = usePopoverPosition(isRendered, anchorRef, activeDockPos, 392, 640);
 
   /* Bật transition top/left SAU khung hình đầu tiên: panel lướt theo khi nút

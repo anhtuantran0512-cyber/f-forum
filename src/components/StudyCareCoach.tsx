@@ -33,6 +33,9 @@ export const StudyCareCoach: React.FC<StudyCareCoachProps> = ({
   const tipIndexRef = useRef(0);
   const [tip, setTip] = useState(TIPS[0]);
   const timerRef = useRef<number | null>(null);
+  /* Mốc kết thúc theo ĐỒNG HỒ THẬT: tab bị treo/bóp nhịp thì lúc quay lại
+     lớp phủ cũng tự đóng ngay, không thể kẹt lại chặn cả trang. */
+  const endsAtRef = useRef<number>(0);
 
   const finish = useCallback(
     (announce: boolean) => {
@@ -50,6 +53,7 @@ export const StudyCareCoach: React.FC<StudyCareCoachProps> = ({
     tipIndexRef.current = (tipIndexRef.current + 1) % TIPS.length;
     setTip(TIPS[tipIndexRef.current]);
     setSecondsLeft(EYE_REST_SECONDS);
+    endsAtRef.current = Date.now() + EYE_REST_SECONDS * 1000;
     setIsResting(true);
   }, [isResting]);
 
@@ -71,14 +75,20 @@ export const StudyCareCoach: React.FC<StudyCareCoachProps> = ({
     return () => window.removeEventListener('fforum_eye_rest_now', handler as EventListener);
   }, [start]);
 
-  /* Đếm ngược 20 giây (tick thuần, không gây tác dụng phụ trong state updater) */
+  /* Đếm ngược 20 giây theo mốc thời gian thật (không cộng/trừ dồn) */
   useEffect(() => {
     if (!isResting) return;
-    timerRef.current = window.setInterval(() => {
-      setSecondsLeft((prev) => Math.max(0, prev - 1));
-    }, 1000);
+    if (!endsAtRef.current) endsAtRef.current = Date.now() + EYE_REST_SECONDS * 1000;
+    const sync = () => setSecondsLeft(Math.max(0, Math.ceil((endsAtRef.current - Date.now()) / 1000)));
+    sync();
+    timerRef.current = window.setInterval(sync, 500);
+    /* Quay lại tab là tính lại ngay — hết giờ thì lớp phủ biến mất tức thì */
+    document.addEventListener('visibilitychange', sync);
+    window.addEventListener('focus', sync);
     return () => {
       if (timerRef.current) window.clearInterval(timerRef.current);
+      document.removeEventListener('visibilitychange', sync);
+      window.removeEventListener('focus', sync);
     };
   }, [isResting]);
 
@@ -87,6 +97,16 @@ export const StudyCareCoach: React.FC<StudyCareCoachProps> = ({
       finish(true);
     }
   }, [isResting, secondsLeft, finish]);
+
+  /* Esc luôn thoát được lớp phủ nghỉ mắt */
+  useEffect(() => {
+    if (!isResting) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') finish(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isResting, finish]);
 
   if (!isResting) return null;
 

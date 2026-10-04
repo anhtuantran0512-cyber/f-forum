@@ -337,3 +337,49 @@ test('13. CSS vòng 5 — chip phiên học, toast, chi tiết giờ học đề
   assert.ok(css.includes('.reduce-motion .ff-focus-chip'), 'Reduced-motion class must cover the chip');
   assert.ok(css.includes('.ff-hours__col.is-today'), 'Today column must be highlighted in the chart');
 });
+
+test('14. Không bao giờ khoá tương tác: mọi lớp phủ đều có đường thoát', () => {
+  const css = read('src/index.css');
+  const navbar = read('src/components/Navbar.tsx');
+  const settings = read('src/components/SettingsModal.tsx');
+  const loader = read('src/components/ViewTransitionLoader.tsx');
+  const app = read('src/App.tsx');
+  const coach = read('src/components/StudyCareCoach.tsx');
+  const pageLoader = read('src/components/PageResourceLoader.tsx');
+
+  /* 1. Lớp loading navbar chỉ được LÀM MỜ, không được chặn chuột */
+  const busyBlock = css.match(
+    /\.ff-nav-capsule--busy > \*:not\(\.ff-nav-aura\):not\(\.ff-nav-loading\) \{([\s\S]*?)\}/,
+  );
+  assert.ok(busyBlock, 'Busy-state rule must exist');
+  assert.ok(
+    !busyBlock[1].includes('pointer-events'),
+    'Busy navbar content must stay clickable (this caused “bấm gì cũng không mở”)',
+  );
+  assert.ok(
+    navbar.includes('cancelMorphLoading') && navbar.includes('onPointerDownCapture={cancelMorphLoading}'),
+    'The loading layer must be dismissed by the very first pointer down',
+  );
+
+  /* 2. Tấm phủ cài đặt đang tan không được giữ chuột */
+  const backdropOut = css.match(/\.ff-backdrop-out \{([\s\S]*?)\}/);
+  assert.ok(backdropOut && backdropOut[1].includes('pointer-events: none'), 'Fading backdrop must be click-through');
+  assert.ok(
+    settings.includes('const guard = window.setTimeout') && settings.includes('900'),
+    'Settings must force-close itself if the exit animation ever stalls',
+  );
+
+  /* 3. Màn hình chờ chuyển phân khu phải bấm/Esc là vào được ngay */
+  assert.ok(loader.includes('onSkip'), 'Transition loader must accept a skip handler');
+  assert.ok(loader.includes('onPointerDown={onSkip}'), 'Clicking the loader must skip it');
+  assert.ok(loader.includes("e.key === 'Escape'"), 'Escape must skip the loader');
+  assert.ok(app.includes('onSkip={() => setTransition(null)}'), 'App must wire the loader skip');
+
+  /* 4. Nghỉ mắt 20-20-20 đếm theo đồng hồ thật, không thể kẹt */
+  assert.ok(coach.includes('endsAtRef'), 'Eye rest must track a real end timestamp');
+  assert.ok(coach.includes('visibilitychange'), 'Returning to the tab must re-sync the countdown');
+  assert.ok(coach.includes("e.key === 'Escape'"), 'Escape must dismiss the eye-rest overlay');
+
+  /* 5. Màn hình tải tài nguyên đầu trang có trần thời gian */
+  assert.ok(pageLoader.includes('hardStop') && pageLoader.includes('5200'), 'Boot loader must self-close after 5.2s max');
+});

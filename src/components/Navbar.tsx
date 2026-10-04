@@ -354,6 +354,16 @@ export const Navbar: React.FC<NavbarProps> = ({
     morphBusyTimerRef.current = window.setTimeout(() => setIsMorphBusy(false), NAV_MORPH_MS);
   }, []);
 
+  /* Huỷ lớp loading ngay khi người dùng chạm vào thanh điều hướng:
+     cú bấm đầu tiên luôn được xử lý, không bao giờ bị "nuốt". */
+  const cancelMorphLoading = useCallback(() => {
+    if (morphBusyTimerRef.current) {
+      window.clearTimeout(morphBusyTimerRef.current);
+      morphBusyTimerRef.current = null;
+    }
+    setIsMorphBusy(false);
+  }, []);
+
   const layoutKey = `${effectiveCompact && !isVertical ? 'compact' : 'expanded'}-${navbarPosition}`;
   const prevLayoutKeyRef = useRef(layoutKey);
   useEffect(() => {
@@ -784,7 +794,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           data-compact={effectiveCompact && !isVertical ? 'true' : 'false'}
           data-morph={isMorphBusy ? 'loading' : 'ready'}
           onPointerEnter={forceExpand}
-          onFocusCapture={forceExpand}
+          onPointerDownCapture={cancelMorphLoading}
+          onFocusCapture={() => {
+            forceExpand();
+            cancelMorphLoading();
+          }}
           aria-busy={isMorphBusy}
           className={`ff-nav-capsule fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full px-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 shadow-2xl ${
             isMorphBusy ? 'ff-nav-capsule--busy' : ''

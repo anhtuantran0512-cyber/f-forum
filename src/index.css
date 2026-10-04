@@ -2029,6 +2029,9 @@ html.light .ff-palette .text-white\/45 {
 }
 .ff-backdrop-out {
   animation: ffBackdropOut 220ms ease both;
+  /* Lớp phủ đang mờ dần vẫn phủ toàn màn hình → phải nhường chuột ngay,
+     nếu không nó sẽ khoá cả trang khi bị kẹt ở trạng thái đang đóng. */
+  pointer-events: none;
 }
 .ff-settings-panel {
   transform-origin: var(--ff-settings-origin, top right);
@@ -3305,7 +3308,8 @@ html.light .ff-pulse__eyebrow { color: #0369a1; }
   transition: opacity 240ms ease;
 }
 .ff-nav-capsule--busy > *:not(.ff-nav-aura):not(.ff-nav-loading) {
-  pointer-events: none;
+  /* TUYỆT ĐỐI không chặn chuột ở đây — từng gây lỗi "bấm gì cũng không mở"
+     trong lúc thanh đang chạy hiệu ứng. Chỉ làm mờ thôi. */
   transition-duration: 70ms;
   animation: ffNavGhostBreath 1500ms ease-in-out infinite;
 }

@@ -16,6 +16,8 @@ export interface ViewTransitionLoaderProps {
   /** Câu trạng thái đổi dần để người dùng biết hệ thống đang làm gì. */
   hints?: string[];
   variant?: 'vinyl' | 'dots';
+  /** Bấm phím/chuột để bỏ qua màn chờ (lưới an toàn nếu tải lâu). */
+  onSkip?: () => void;
 }
 
 const DEFAULT_HINTS = [
@@ -30,8 +32,19 @@ export const ViewTransitionLoader: React.FC<ViewTransitionLoaderProps> = ({
   targetLabel,
   hints = DEFAULT_HINTS,
   variant = 'vinyl',
+  onSkip,
 }) => {
   const [hintIndex, setHintIndex] = useState(0);
+
+  /* Bấm chuột hoặc Esc là thoát màn chờ ngay — không bao giờ kẹt ở màn hình này */
+  useEffect(() => {
+    if (!visible || !onSkip) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'Enter') onSkip();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [visible, onSkip]);
 
   /* Chỉ chạy đồng hồ đổi câu trạng thái khi màn hình chờ đang hiện */
   useEffect(() => {
@@ -49,6 +62,8 @@ export const ViewTransitionLoader: React.FC<ViewTransitionLoaderProps> = ({
       className={`la-09 ff-transition-loader la-09--${variant}`}
       data-state="loading"
       aria-hidden={false}
+      onPointerDown={onSkip}
+      title={onSkip ? 'Bấm để vào ngay' : undefined}
     >
       <div
         className="la-09__veil"
