@@ -2000,3 +2000,37 @@ test('38. Ẩn danh: giữ bí danh mà vẫn không cho mạo danh người kh�
     await env.close();
   }
 });
+
+test('39. WS nối lại phải đóng kênh SSE dự phòng — không xử lý sự kiện hai lần', () => {
+  const store = fs.readFileSync(path.resolve('src/store/forumStore.ts'), 'utf8');
+
+  const onOpenAt = store.indexOf('ws.onopen = () =>');
+  assert.ok(onOpenAt > 0, 'phải có ws.onopen');
+  const onOpenBlock = store.slice(onOpenAt, onOpenAt + 900);
+
+  /*
+    Trước khi vá, SSE chỉ bị đóng khi chính nó lỗi hoặc khi unmount. Sau một lần
+    rớt mạng (WS đóng → SSE bật → WS nối lại sau 4 giây) cả hai kênh cùng sống,
+    nên mọi sự kiện máy chủ bị handleServerBroadcast xử lý HAI LẦN: hai thông báo,
+    hai tiếng chuông, hai toast cho cùng một tin.
+  */
+  assert.ok(
+    onOpenBlock.includes('sse.close()') && onOpenBlock.includes('sse = null'),
+    'ws.onopen phải đóng và giải phóng kênh SSE dự phòng'
+  );
+
+  /* Timer nối lại phải được dọn trước khi đặt timer mới. */
+  const onCloseAt = store.indexOf('ws.onclose = () =>');
+  assert.ok(onCloseAt > 0, 'phải có ws.onclose');
+  const onCloseBlock = store.slice(onCloseAt, onCloseAt + 500);
+  assert.ok(
+    onCloseBlock.includes('clearTimeout(reconnectTimer)'),
+    'onclose phải dọn timer cũ để không để lại timer mồ côi'
+  );
+
+  /* startSSE phải có guard chống tạo EventSource trùng. */
+  assert.ok(
+    store.includes('if (isDisposed || sse) return;'),
+    'startSSE phải có guard chống tạo EventSource thứ hai'
+  );
+});

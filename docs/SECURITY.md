@@ -681,6 +681,30 @@ phần đồng bộ danh tính vào nội dung, và hiện toast lỗi.
 
 ---
 
+## 27. Hai kênh realtime cùng sống sau khi rớt mạng
+
+**Mức độ:** Trung bình · **Vị trí:** `src/store/forumStore.ts` (effect kết nối)
+
+Ứng dụng dùng WebSocket làm kênh chính và SSE (`/api/events`) làm kênh dự phòng.
+Khi WS rớt thì `ws.onclose` bật SSE và đặt lịch nối lại WS sau 4 giây. Nhưng
+`ws.onopen` **không đóng SSE**, và SSE chỉ bị đóng khi chính nó lỗi hoặc khi
+component unmount.
+
+Kết quả: sau bất kỳ lần rớt mạng thoáng qua nào, **cả hai kênh cùng sống**. Mỗi sự
+kiện máy chủ phát ra được `handleServerBroadcast` xử lý **hai lần** — hai thông
+báo, hai tiếng chuông, hai toast cho cùng một tin; tố cáo mới báo hai lần cho Super
+Admin; và tin chat hiển thị trùng.
+
+Kèm theo một lỗi nhỏ: `reconnectTimer` là biến đơn, mỗi lần `onclose` lại ghi đè,
+nên nhiều socket đóng liên tiếp sẽ để lại timer mồ côi không thể huỷ khi unmount.
+
+**Đã vá:** `ws.onopen` đóng và giải phóng SSE ngay khi WS nối lại thành công;
+`ws.onclose` gọi `clearTimeout` trước khi đặt timer mới. `startSSE` vốn đã có guard
+`if (isDisposed || sse) return` chống tạo EventSource trùng — giữ nguyên. Test #39
+khoá cả ba điểm.
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -709,6 +733,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 38 bài, chạy trên server thật
-npm test                                        # toàn bộ 134 bài
+node --test tests/security-hardening.test.mjs   # 39 bài, chạy trên server thật
+npm test                                        # toàn bộ 135 bài
 ```

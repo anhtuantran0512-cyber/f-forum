@@ -817,6 +817,18 @@ export function useForumStore() {
         activeWsRef.current = ws;
 
         ws.onopen = () => {
+          /*
+            Đóng kênh SSE dự phòng. Trước đây SSE chỉ bị đóng khi chính nó lỗi
+            hoặc khi component unmount, nên sau một lần rớt mạng (WS đóng → SSE
+            bật → WS nối lại sau 4 giây) CẢ HAI KÊNH cùng sống. Mọi sự kiện máy
+            chủ phát ra bị `handleServerBroadcast` xử lý hai lần: hai thông báo,
+            hai tiếng chuông, hai toast cho cùng một tin.
+          */
+          if (sse) {
+            sse.close();
+            sse = null;
+          }
+
           /* Xác thực TRƯỚC, rồi mới báo presence. */
           authenticateSocketRef.current();
           const payload = getSelfPresenceRef.current();
@@ -848,6 +860,9 @@ export function useForumStore() {
           ws = null;
           startSSE();
           if (!isDisposed) {
+            /* Dọn timer cũ trước khi đặt timer mới: nhiều socket đóng liên tiếp
+               sẽ ghi đè biến và để lại timer mồ côi không thể huỷ khi unmount. */
+            if (reconnectTimer) clearTimeout(reconnectTimer);
             reconnectTimer = setTimeout(startWS, 4000);
           }
         };
