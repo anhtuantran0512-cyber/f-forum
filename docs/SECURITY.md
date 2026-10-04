@@ -870,6 +870,58 @@ nhiều lần gọi `setupForumServer` (trong test) không nhân bản handler.
 
 ---
 
+## 32. Ghi không atomic + tệp dữ liệu hỏng bị ghi đè mất
+
+**Mức độ:** Cao (mất dữ liệu) · **Vị trí:** `flushStoreToDisk()`, `loadStoreFromDisk()`
+
+Hai lỗi ghép lại thành mất dữ liệu vĩnh viễn.
+
+**(a) Ghi không atomic.** `fs.writeFileSync(dataFilePath(), JSON.stringify(store))`
+ghi thẳng vào tệp dữ liệu. Nếu tiến trình bị ngắt giữa chừng (kill -9, đĩa đầy,
+mất điện) thì tệp còn lại là JSON **cắt cụt**.
+
+**(b) Tệp hỏng bị ghi đè.** `loadStoreFromDisk` bọc toàn bộ trong `try/catch` chỉ để
+log:
+
+```js
+} catch (err) {
+  console.error('[Forum Server] Failed to load data from disk:', err);
+}
+```
+
+`JSON.parse` ném lỗi → `store` giữ giá trị rỗng mặc định → lần
+`persistStoreToDisk()` đầu tiên **ghi đè luôn tệp hỏng**. Dữ liệu cũ mất hẳn, không
+còn gì để cứu.
+
+Xác nhận bằng repro (gieo một tệp JSON cắt cụt, khởi động server, kích hoạt một lần
+ghi):
+
+```
+── TRƯỚC khi vá ──
+[1] các tệp: forum-data.json, session-key
+[2] tệp hỏng có được giữ lại không? KHÔNG -> đã bị ghi đè mất
+
+── SAU khi vá ──
+[1] các tệp: forum-data.json, forum-data.json.corrupt-1791116289458, session-key
+[2] tệp hỏng có được giữ lại không? CÓ
+[3] nội dung gốc còn đọc được để cứu? CÒN (thấy xp:500 của user cũ)
+```
+
+**Đã vá:**
+
+- `flushStoreToDisk()` ghi ra tệp tạm `forum-data.json.tmp-<pid>` rồi `renameSync`.
+  `rename` là atomic trên cùng hệ tệp, nên tệp dữ liệu không bao giờ ở trạng thái
+  viết dở: tiến trình chết giữa chừng thì hoặc bản cũ còn nguyên, hoặc bản mới đã
+  xong.
+- Khi nạp thất bại, tệp hỏng được đổi tên thành `forum-data.json.corrupt-<ts>` và
+  đường dẫn được log ra, để người vận hành còn khôi phục tay thay vì mất trắng.
+
+Test #44 kiểm bằng hành vi thật (gieo tệp hỏng → khẳng định bản giữ lại đúng
+nguyên văn và còn đọc được `xp:500` của tài khoản cũ); test #45 khoá thứ tự
+ghi-tạm-rồi-rename.
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -898,6 +950,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 43 bài, chạy trên server thật
-npm test                                        # toàn bộ 139 bài
+node --test tests/security-hardening.test.mjs   # 45 bài, chạy trên server thật
+npm test                                        # toàn bộ 141 bài
 ```
