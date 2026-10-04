@@ -83,8 +83,11 @@ Hệ thống cấp bậc được đặt tên gần gũi với học sinh theo t
 ### 10. Giao Diện & Tùy Chọn Hiển Thị
 - Hỗ trợ cả 2 chế độ: Giao diện Sáng (Light Mode) và Giao diện Tối (Dark Mode).
 - **Thanh điều hướng linh hoạt**: Có thể đặt ở 4 vị trí: Trên cùng, Dưới cùng, Cạnh trái hoặc Cạnh phải màn hình.
-- Các cửa sổ thông báo, cài đặt và tài khoản tự động điều chỉnh hướng mở tương ứng để không bị che khuất.
-- Tính năng tự động ẩn thanh điều hướng sau 1 giây khi không di chuột để tăng diện tích hiển thị nội dung.
+- **Nút F (logo) là lối vào trang Giới thiệu** — không còn tab chữ "GIỚI THIỆU" cho thanh gọn hơn.
+- **Miền Ký Ức · Khu Vinh Danh · Update luôn ở dạng icon** (có vạch phân cách và tooltip khi rê chuột), kể cả khi thanh đang mở rộng.
+- Nhịp thu nhỏ / phóng to thanh điều hướng được kéo dài (0.78s) với đường cong êm, panel Cài đặt lướt theo thay vì nhảy từng nấc.
+- Các cửa sổ thông báo, cài đặt và tài khoản tự động điều chỉnh hướng mở tương ứng để không bị che khuất; panel Cài đặt có hoạt ảnh mở/đóng mềm mại kèm lớp phủ mờ dần.
+- Tính năng tự động ẩn thanh điều hướng sau khoảng 1.2 giây khi không di chuột để tăng diện tích hiển thị nội dung.
 - Tích hợp âm thanh nền nhẹ nhàng hỗ trợ tập trung học tập (Ambient Audio) và hẹn giờ học tập (Focus Mode).
 
 ---

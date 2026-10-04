@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { Fragment, useState, useRef, useEffect, useCallback } from 'react';
 import {
   MessageSquare,
   X,
@@ -173,7 +173,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   }, [alwaysCompact]);
 
-  const scheduleCompact = useCallback((delay = 500) => {
+  const scheduleCompact = useCallback((delay = 760) => {
     if (alwaysCompact) {
       setIsCompact(true);
       return;
@@ -205,7 +205,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       idleTimerRef.current = setTimeout(() => {
         if (!anyPopoverOpenRef.current && !alwaysCompact) forceExpand();
-      }, 900);
+      }, 1200);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
@@ -240,9 +240,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const handleNavPointerLeave = () => {
-    /* 0.5s grace: the capsule folds into icon-only mode */
+    /* 0.76s grace: capsule co lại thành dải icon với nhịp chậm, êm mắt */
     if (!alwaysCompact && !anyPopoverOpenRef.current) {
-      scheduleCompact(500);
+      scheduleCompact(760);
     }
     if (!navbarAutoHide) return;
     if (anyPopoverOpenRef.current) return;
@@ -251,7 +251,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       if (!anyPopoverOpenRef.current) {
         setIsNavbarHovered(false);
       }
-    }, 900);
+    }, 1200);
   };
 
   useEffect(() => {
@@ -291,7 +291,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           hideTimerRef.current = setTimeout(() => {
             if (!anyPopoverOpenRef.current) setIsNavbarHovered(false);
             hideTimerRef.current = null;
-          }, 900);
+          }, 1200);
         }
       }
     };
@@ -581,16 +581,18 @@ export const Navbar: React.FC<NavbarProps> = ({
     setIsAudioPlaying(active || isAmbientActive());
   };
 
-  const navItems: { id: DimensionView; label: string }[] = [
-    { id: 'landing', label: 'GIỚI THIỆU' },
+  /* Nút F (logo) là lối vào trang Giới thiệu -> không còn tab chữ "GIỚI THIỆU".
+     Miền Ký Ức / Khu Vinh Danh / Update luôn ở dạng icon cho thanh gọn và sang hơn. */
+  const navItems: { id: DimensionView; label: string; iconOnly?: boolean }[] = [
     { id: 'home', label: 'TRANG CHỦ' },
     { id: 'clubs', label: 'CÂU LẠC BỘ' },
     { id: 'qa', label: 'HỎI ĐÁP' },
     { id: 'chat', label: 'PHÒNG CHAT' },
-    { id: 'memory', label: 'MIỀN KÝ ỨC' },
-    { id: 'chronicles', label: 'KHU VINH DANH' },
-    { id: 'coming-soon', label: 'UPDATE' },
+    { id: 'memory', label: 'MIỀN KÝ ỨC', iconOnly: true },
+    { id: 'chronicles', label: 'KHU VINH DANH', iconOnly: true },
+    { id: 'coming-soon', label: 'UPDATE', iconOnly: true },
   ];
+  const firstIconOnlyIndex = navItems.findIndex((item) => item.iconOnly);
 
   const sharedSettingsProps = {
     isOpen: isSettingsOpen,
@@ -723,12 +725,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             type="button"
             onClick={() => {
-              onViewChange('home');
+              onViewChange('landing');
               setIsMobileMenuOpen(false);
             }}
             className="group text-left focus:outline-none cursor-pointer flex-shrink-0 pointer-events-auto"
-            title="F-Forum - Trở về Trang chủ"
-            aria-label="Trang chủ F-Forum"
+            title="F-Forum — Trang Giới thiệu"
+            aria-label="Mở trang Giới thiệu F-Forum"
           >
             <div className="flex items-center gap-2 flex-shrink-0 whitespace-nowrap select-none">
               <div className="w-8 h-8 rounded-full ff-gradient-ring flex-shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.3)]">
@@ -782,54 +784,63 @@ export const Navbar: React.FC<NavbarProps> = ({
               />
             )}
 
-            {navItems.map((item) => {
+            {navItems.map((item, idx) => {
               const isActive = currentView === item.id;
 
               return (
-                <button
-                  key={item.id}
-                  ref={(el) => {
-                    tabRefs.current[item.id] = el;
-                  }}
-                  onClick={() => onViewChange(item.id)}
-                  title={item.label}
-                  aria-label={item.label}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`nav-tab-btn px-3 py-1.5 rounded-full text-xs font-semibold tracking-wider whitespace-nowrap flex-shrink-0 select-none transition-all cursor-pointer flex items-center justify-center z-10 group/tab relative ${
-                    isActive
-                      ? 'bg-amber-500/20 lg:bg-amber-500/15 text-amber-300 border border-amber-500/35 shadow-[0_0_14px_rgba(245,158,11,0.22)]'
-                      : 'text-white/75 hover:text-white hover:bg-white/10 border border-transparent'
-                  }`}
-                >
-                  {/* Icon: shown ONLY in compact mode or vertical dock */}
-                  <span className="dock-nav-icon ff-nav-tab-icon-wrap flex items-center justify-center ff-nav-tab-icon">
-                    {NAV_ICONS[item.id]}
-                  </span>
+                <Fragment key={item.id}>
+                  {/* Vạch phân cách mảnh giữa nhóm tab chữ và nhóm tab icon */}
+                  {idx === firstIconOnlyIndex && <span className="nav-dock-divider" aria-hidden="true" />}
 
-                  {/* Label: shown ONLY in expanded horizontal mode */}
-                  <span className="ff-nav-label nav-tab-label whitespace-nowrap select-none">
-                    {item.label}
-                  </span>
-
-                  {/* Hover Tooltip in Vertical or Compact Mode */}
-                  <span
-                    className={`pointer-events-none opacity-0 group-hover/tab:opacity-100 transition-all duration-200 fixed ${
-                      navbarPosition === 'left'
-                        ? 'left-24'
-                        : navbarPosition === 'right'
-                        ? 'right-24'
-                        : navbarPosition === 'bottom'
-                        ? 'bottom-20'
-                        : 'top-20'
-                    } px-2.5 py-1 rounded-xl bg-[#0a0f14]/95 backdrop-blur-xl border border-white/20 text-[11px] font-bold text-amber-300 shadow-[0_10px_25px_rgba(0,0,0,0.8)] z-50 whitespace-nowrap hidden dock-vertical-tooltip`}
+                  <button
+                    ref={(el) => {
+                      tabRefs.current[item.id] = el;
+                    }}
+                    onClick={() => onViewChange(item.id)}
+                    title={item.label}
+                    aria-label={item.label}
+                    aria-current={isActive ? 'page' : undefined}
+                    data-icon-only={item.iconOnly ? 'true' : 'false'}
+                    className={`nav-tab-btn ${
+                      item.iconOnly ? 'nav-tab-btn--icon-only' : ''
+                    } px-3 py-1.5 rounded-full text-xs font-semibold tracking-wider whitespace-nowrap flex-shrink-0 select-none cursor-pointer flex items-center justify-center z-10 group/tab relative ${
+                      isActive
+                        ? 'bg-amber-500/20 lg:bg-amber-500/15 text-amber-300 border border-amber-500/35 shadow-[0_0_14px_rgba(245,158,11,0.22)]'
+                        : 'text-white/75 hover:text-white hover:bg-white/10 border border-transparent'
+                    }`}
                   >
-                    {item.label}
-                  </span>
+                    {/* Icon: hiện khi thu gọn, khi dock dọc, hoặc với các tab luôn-dạng-icon */}
+                    <span className="dock-nav-icon ff-nav-tab-icon-wrap flex items-center justify-center ff-nav-tab-icon">
+                      {NAV_ICONS[item.id]}
+                    </span>
 
-                  {item.id === 'chat' && unreadChatCount > 0 && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0 ml-1" />
-                  )}
-                </button>
+                    {/* Label: chỉ hiện ở chế độ mở rộng với các tab chữ */}
+                    <span className="ff-nav-label nav-tab-label whitespace-nowrap select-none">
+                      {item.label}
+                    </span>
+
+                    {/* Hover Tooltip: dock dọc, chế độ thu gọn và mọi tab chỉ-icon */}
+                    <span
+                      className={`pointer-events-none opacity-0 group-hover/tab:opacity-100 transition-all duration-200 fixed ${
+                        navbarPosition === 'left'
+                          ? 'left-24'
+                          : navbarPosition === 'right'
+                          ? 'right-24'
+                          : navbarPosition === 'bottom'
+                          ? 'bottom-20'
+                          : 'top-20'
+                      } px-2.5 py-1 rounded-xl bg-[#0a0f14]/95 backdrop-blur-xl border border-white/20 text-[11px] font-bold text-amber-300 shadow-[0_10px_25px_rgba(0,0,0,0.8)] z-50 whitespace-nowrap hidden dock-vertical-tooltip ${
+                        item.iconOnly ? 'ff-tip-always' : ''
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+
+                    {item.id === 'chat' && unreadChatCount > 0 && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0 ml-1" />
+                    )}
+                  </button>
+                </Fragment>
               );
             })}
           </div>
@@ -1024,11 +1035,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         <button
           type="button"
           onClick={() => {
-            onViewChange('home');
+            onViewChange('landing');
             setIsMobileMenuOpen(false);
           }}
           className="flex items-center gap-2 flex-shrink-0 whitespace-nowrap select-none cursor-pointer focus:outline-none"
-          aria-label="Trang chủ F-Forum"
+          aria-label="Mở trang Giới thiệu F-Forum"
         >
           <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-200 p-[1px] flex-shrink-0">
             <div className="w-full h-full bg-[#0a0f14] rounded-full flex items-center justify-center text-amber-400 font-bold text-xs">

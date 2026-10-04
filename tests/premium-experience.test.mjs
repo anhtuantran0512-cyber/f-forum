@@ -149,3 +149,86 @@ test('8. Giao diện "ôn tập" dư thừa đã bị gỡ khỏi DailyEngagemen
   assert.ok(!daily.includes('StreakFlameWidget'), 'The detached streak widget must be deleted with the floating flame');
   assert.ok(!content.includes('ôn tập'), 'Landing copy must not advertise the redundant revision feature');
 });
+
+test('9. Nút F là lối vào Giới thiệu; tab chữ GIỚI THIỆU đã bị gỡ', () => {
+  const navbar = read('src/components/Navbar.tsx');
+  const app = read('src/App.tsx');
+
+  assert.ok(
+    !navbar.includes("{ id: 'landing', label: 'GIỚI THIỆU' }"),
+    'Navbar must not render the redundant "GIỚI THIỆU" text tab',
+  );
+  assert.ok(
+    navbar.includes('aria-label="Mở trang Giới thiệu F-Forum"'),
+    'The F logo button must announce the landing page destination',
+  );
+  assert.ok(
+    navbar.includes("title=\"F-Forum — Trang Giới thiệu\""),
+    'The F logo tooltip must point at the landing page',
+  );
+
+  const landingNavCount = (navbar.match(/onViewChange\('landing'\)/g) || []).length;
+  assert.ok(landingNavCount >= 2, 'Both desktop F logo and mobile header logo must open the landing page');
+  assert.ok(app.includes("currentView === 'landing'"), 'Landing route must stay wired in App');
+});
+
+test('10. Miền Ký Ức / Khu Vinh Danh / Update luôn ở dạng icon', () => {
+  const navbar = read('src/components/Navbar.tsx');
+  const css = read('src/index.css');
+
+  assert.ok(
+    navbar.includes("{ id: 'memory', label: 'MIỀN KÝ ỨC', iconOnly: true }") &&
+      navbar.includes("{ id: 'chronicles', label: 'KHU VINH DANH', iconOnly: true }") &&
+      navbar.includes("{ id: 'coming-soon', label: 'UPDATE', iconOnly: true }"),
+    'The three utility tabs must be flagged iconOnly',
+  );
+  assert.ok(navbar.includes('nav-tab-btn--icon-only'), 'Icon-only tabs must carry the dedicated class');
+  assert.ok(navbar.includes('data-icon-only'), 'Icon-only tabs must expose data-icon-only for styling/tests');
+  assert.ok(navbar.includes('nav-dock-divider'), 'A slim divider must separate text tabs from icon tabs');
+  assert.ok(
+    navbar.includes("item.iconOnly ? 'ff-tip-always' : ''"),
+    'Icon-only tabs must keep their hover tooltip even when the navbar is expanded',
+  );
+
+  assert.ok(
+    css.includes('.ff-nav-capsule .nav-tab-btn--icon-only .ff-nav-label') &&
+      css.includes('max-width: 0 !important;'),
+    'CSS must hide labels permanently for icon-only tabs',
+  );
+  assert.ok(
+    css.includes('.dock-pos-top .ff-nav-capsule[data-compact="false"] .nav-tab-btn--icon-only .ff-nav-tab-icon-wrap'),
+    'CSS must keep the icon visible for icon-only tabs in expanded mode',
+  );
+  assert.ok(css.includes('.ff-nav-capsule .ff-tip-always'), 'CSS must force tooltips for icon-only tabs');
+});
+
+test('11. Nhịp thu nhỏ / phóng to navbar chậm và mượt hơn', () => {
+  const navbar = read('src/components/Navbar.tsx');
+  const css = read('src/index.css');
+
+  assert.ok(navbar.includes('scheduleCompact(760)'), 'Collapse grace period must be slowed to 760ms');
+  assert.ok(navbar.includes('delay = 760'), 'scheduleCompact default must be 760ms');
+  assert.ok(!navbar.includes('scheduleCompact(500)'), 'The old snappy 500ms collapse must be gone');
+
+  assert.ok(css.includes('width 0.78s cubic-bezier(0.32, 0.72, 0, 1)'), 'Capsule width must ease over 0.78s');
+  assert.ok(css.includes('max-width 0.76s cubic-bezier(0.32, 0.72, 0, 1)'), 'Label shrink must ease over 0.76s');
+  assert.ok(css.includes('animation: ffNavMorph 620ms cubic-bezier(0.32, 0.72, 0, 1) both'), 'Dock morph must slow down');
+  assert.ok(css.includes('transition: top 0.46s cubic-bezier(0.32, 0.72, 0, 1)') || css.includes('top 0.46s'), 'Popovers must glide when the dock shifts');
+});
+
+test('12. Hiệu ứng hiện ra của panel Cài đặt được làm mượt', () => {
+  const settings = read('src/components/SettingsModal.tsx');
+  const css = read('src/index.css');
+
+  assert.ok(settings.includes('isRendered') && settings.includes('isClosing'), 'Settings must keep an enter/exit state machine');
+  assert.ok(settings.includes("setTimeout(() => {\n      setIsRendered(false);"), 'Exit must wait before unmounting so the fade-out can play');
+  assert.ok(settings.includes('ff-settings-panel--in') && settings.includes('ff-settings-panel--out'), 'Panel must swap between in/out animation classes');
+  assert.ok(settings.includes('ff-settings-panel--settled') && settings.includes('settledRafRef'), 'Panel position updates must be transition-enabled after first paint');
+  assert.ok(settings.includes('ff-backdrop-in') && settings.includes('ff-backdrop-out'), 'Backdrop must fade in and out');
+  assert.ok(settings.includes("'--ff-settings-origin'"), 'Panel must expose a dock-aware transform origin');
+
+  assert.ok(css.includes('@keyframes ffSettingsIn') && css.includes('@keyframes ffSettingsOut'), 'Settings keyframes must exist');
+  assert.ok(css.includes('@keyframes ffBackdropIn') && css.includes('@keyframes ffBackdropOut'), 'Backdrop keyframes must exist');
+  assert.ok(css.includes('.ff-settings-panel--settled'), 'Settled transition rule must exist');
+  assert.ok(css.includes('animation: ffSettingsIn 480ms cubic-bezier(0.22, 1, 0.36, 1) both'), 'Panel reveal must be a soft 480ms spring');
+});

@@ -1229,14 +1229,72 @@ html.light div[role="dialog"] .bg-black\/25 {
 }
 
 /* ==========================================================================
+   Tab LUÔN dạng icon (Miền Ký Ức / Khu Vinh Danh / Update)
+   ========================================================================== */
+/* Ẩn nhãn chữ vĩnh viễn cho các tab này, kể cả khi thanh đang mở rộng */
+.ff-nav-capsule .nav-tab-btn--icon-only .ff-nav-label {
+  max-width: 0 !important;
+  opacity: 0 !important;
+  margin: 0 !important;
+  overflow: hidden;
+}
+/* Giữ icon luôn hiện với các tab đó */
+.dock-pos-top .ff-nav-capsule[data-compact="false"] .nav-tab-btn--icon-only .ff-nav-tab-icon-wrap,
+.dock-pos-bottom .ff-nav-capsule[data-compact="false"] .nav-tab-btn--icon-only .ff-nav-tab-icon-wrap {
+  max-width: 24px !important;
+  opacity: 1 !important;
+  transform: scale(1) !important;
+  pointer-events: auto !important;
+}
+.ff-nav-capsule .nav-tab-btn--icon-only {
+  min-width: 38px;
+  padding: 0 8px !important;
+  border-radius: 9999px !important;
+}
+.nav-tab-btn--icon-only[aria-current='page'] {
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.3);
+}
+/* Vạch phân cách mảnh, tự mờ dần khi thanh co lại */
+.nav-dock-divider {
+  width: 1px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin: 0 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transition: opacity 0.5s ease, margin 0.6s cubic-bezier(0.32, 0.72, 0, 1), transform 0.6s ease;
+}
+.ff-nav-capsule[data-compact='true'] .nav-dock-divider {
+  opacity: 0;
+  margin: 0;
+  transform: scaleY(0.4);
+}
+/* Ép tooltip hiện cả khi thanh đang ở chế độ mở rộng (cho tab chỉ-icon) */
+.ff-nav-capsule .ff-tip-always {
+  display: block !important;
+}
+/* Ở dock dọc, vạch phân cách xoay thành đường ngang */
+.dock-pos-left .nav-dock-divider,
+.dock-pos-right .nav-dock-divider {
+  width: 20px;
+  height: 1px;
+  margin: 4px 0;
+}
+.dock-pos-left .ff-nav-capsule[data-compact='true'] .nav-dock-divider,
+.dock-pos-right .ff-nav-capsule[data-compact='true'] .nav-dock-divider {
+  margin: 0;
+}
+
+/* ==========================================================================
    iOS-26 style floating capsule navbar: compact/expand state machine
    ========================================================================== */
 .ff-nav-capsule {
-  transition: width 0.48s cubic-bezier(0.22, 1, 0.36, 1),
-              max-width 0.48s cubic-bezier(0.22, 1, 0.36, 1),
-              padding 0.45s var(--ease-nb, cubic-bezier(0.34, 1.4, 0.5, 1)),
-              gap 0.45s var(--ease-nb, cubic-bezier(0.34, 1.4, 0.5, 1)),
-              background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+  /* Nhịp chậm & êm: co giãn 0.78s với ease-out dài, không còn "giật" khi phóng to */
+  transition: width 0.78s cubic-bezier(0.32, 0.72, 0, 1),
+              max-width 0.78s cubic-bezier(0.32, 0.72, 0, 1),
+              padding 0.74s cubic-bezier(0.32, 0.72, 0, 1),
+              gap 0.74s cubic-bezier(0.32, 0.72, 0, 1),
+              background 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
 }
 
 /* In expanded horizontal mode, hide tab icons so tabs show clean text only */
@@ -1248,9 +1306,9 @@ html.light div[role="dialog"] .bg-black\/25 {
   transform: scale(0.5);
   margin: 0 !important;
   pointer-events: none;
-  transition: max-width 0.42s cubic-bezier(0.22, 1, 0.36, 1),
-              opacity 0.25s ease,
-              transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: max-width 0.72s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 0.42s ease,
+              transform 0.6s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* In compact mode (or vertical dock), show icons with spring pop-in */
@@ -1260,17 +1318,17 @@ html.light div[role="dialog"] .bg-black\/25 {
   max-width: 24px;
   opacity: 1;
   transform: scale(1);
-  transition: max-width 0.42s cubic-bezier(0.22, 1, 0.36, 1),
-              opacity 0.32s ease,
-              transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: max-width 0.72s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 0.5s ease,
+              transform 0.66s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .ff-nav-capsule .ff-nav-label {
   max-width: 140px;
   overflow: hidden;
   white-space: nowrap;
-  transition: max-width 0.45s var(--ease-nb, cubic-bezier(0.34, 1.4, 0.5, 1)),
-              opacity 0.32s ease, margin 0.45s ease;
+  transition: max-width 0.76s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 0.5s ease, margin 0.76s cubic-bezier(0.32, 0.72, 0, 1);
 }
 .ff-nav-capsule[data-compact="true"] {
   gap: 6px;
@@ -1322,8 +1380,8 @@ html.light div[role="dialog"] .bg-black\/25 {
   max-width: 160px;
   overflow: hidden;
   white-space: nowrap;
-  transition: max-width 0.45s var(--ease-nb, cubic-bezier(0.34, 1.4, 0.5, 1)),
-              opacity 0.32s ease, margin 0.45s ease;
+  transition: max-width 0.76s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 0.5s ease, margin 0.76s cubic-bezier(0.32, 0.72, 0, 1);
 }
 .ff-nav-tab-icon {
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -1667,6 +1725,67 @@ html.light .ff-palette .text-white\/45 {
   color: #101827;
 }
 
+/* ---------- Panel Cài đặt: hiện ra với nhịp lò xo mềm, không còn "bụp" ---------- */
+@keyframes ffSettingsIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(-10px);
+    filter: blur(14px);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.006) translateY(0);
+    filter: blur(1px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
+}
+@keyframes ffSettingsOut {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.94) translateY(-6px);
+    filter: blur(10px);
+  }
+}
+@keyframes ffBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ffBackdropOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.ff-backdrop-in {
+  animation: ffBackdropIn 300ms ease both;
+}
+.ff-backdrop-out {
+  animation: ffBackdropOut 220ms ease both;
+}
+.ff-settings-panel {
+  transform-origin: var(--ff-settings-origin, top right);
+  will-change: transform, opacity, filter;
+}
+.ff-settings-panel--in {
+  animation: ffSettingsIn 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.ff-settings-panel--out {
+  animation: ffSettingsOut 220ms cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+/* Khi phần neo (nút Cài đặt) di chuyển do thanh navbar co giãn → panel lướt theo */
+.ff-settings-panel--settled {
+  transition: top 0.46s cubic-bezier(0.32, 0.72, 0, 1),
+              left 0.46s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 /* ---------- Sổ tay nhanh ---------- */
 @keyframes ffNotesIn {
   0% {
@@ -1850,9 +1969,13 @@ html.light .ff-dock-mock {
 /* Nhịp thở nhẹ khi navbar đang đổi vị trí / đổi kích thước */
 @keyframes ffNavMorph {
   0% {
-    opacity: 0.55;
-    transform: scale(0.97);
-    filter: blur(6px);
+    opacity: 0.5;
+    transform: scale(0.965);
+    filter: blur(8px);
+  }
+  60% {
+    opacity: 0.95;
+    filter: blur(1px);
   }
   100% {
     opacity: 1;
@@ -1862,16 +1985,20 @@ html.light .ff-dock-mock {
 }
 .ff-nav-capsule.ff-nav-morphing,
 .dock-container.ff-nav-morphing > nav {
-  animation: ffNavMorph 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ffNavMorph 620ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 /* Chuyển động dock dọc mềm: fade + trượt nhẹ thay vì "giật" do đổi trục */
 .dock-pos-left > nav,
 .dock-pos-right > nav {
-  animation: ffNavMorph 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ffNavMorph 680ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ff-palette,
+  .ff-settings-panel--in,
+  .ff-settings-panel--out,
+  .ff-backdrop-in,
+  .ff-backdrop-out,
   .ff-notes-panel,
   .ff-eye-rest,
   .ff-eye-rest__breath,
@@ -1886,6 +2013,10 @@ html.light .ff-dock-mock {
   }
 }
 .reduce-motion .ff-palette,
+.reduce-motion .ff-settings-panel--in,
+.reduce-motion .ff-settings-panel--out,
+.reduce-motion .ff-backdrop-in,
+.reduce-motion .ff-backdrop-out,
 .reduce-motion .ff-notes-panel,
 .reduce-motion .ff-eye-rest,
 .reduce-motion .ff-eye-rest__breath,

@@ -176,8 +176,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const activeDockPos: DockPosition = dockPosition || navbarPosition;
-  const pop = usePopoverPosition(isOpen, anchorRef, activeDockPos, 392, 640);
   const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
+  const settledRafRef = useRef<number | null>(null);
   const [confirmReset, setConfirmReset] = useState<null | 'cache' | 'full'>(null);
   const [resetDone, setResetDone] = useState<string | null>(null);
   const [dataNotice, setDataNotice] = useState<string | null>(null);
@@ -213,7 +213,46 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  /* ============================================================
+     Hiệu ứng hiện ra: giữ panel thêm ~230ms để chạy hoạt ảnh đóng,
+     nhờ vậy panel không còn "bụp" tắt mà tan ra mượt mà.
+     ============================================================ */
+  const [isRendered, setIsRendered] = useState(isOpen);
+  const [isClosing, setIsClosing] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsRendered(true);
+      setIsClosing(false);
+      return;
+    }
+    if (!isRendered) return;
+    setIsClosing(true);
+    const t = window.setTimeout(() => {
+      setIsRendered(false);
+      setIsClosing(false);
+    }, 230);
+    return () => window.clearTimeout(t);
+  }, [isOpen, isRendered]);
+
+  const pop = usePopoverPosition(isRendered, anchorRef, activeDockPos, 392, 640);
+
+  /* Bật transition top/left SAU khung hình đầu tiên: panel lướt theo khi nút
+     Cài đặt di chuyển lúc thanh navbar co giãn, thay vì nhảy từng nấc. */
+  const [isSettled, setIsSettled] = useState(false);
+
+  useEffect(() => {
+    if (!isRendered || !pop.ready) {
+      setIsSettled(false);
+      return;
+    }
+    settledRafRef.current = window.requestAnimationFrame(() => setIsSettled(true));
+    return () => {
+      if (settledRafRef.current) window.cancelAnimationFrame(settledRafRef.current);
+    };
+  }, [isRendered, pop.ready]);
+
+  if (!isRendered) return null;
 
   const handleResetCache = () => {
     const keep = [
@@ -297,16 +336,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         tabIndex={-1}
         aria-label="Đóng cài đặt"
         onClick={onClose}
-        className="fixed inset-0 z-40 bg-transparent border-none outline-none cursor-default"
-      />
+        className={`fixed inset-0 z-40 bg-transparent border-none outline-none cursor-default ${
+          isClosing ? 'ff-backdrop-out' : 'ff-backdrop-in'
+        }`}
+      >
+        <span aria-hidden="true" className="absolute inset-0 bg-black/25 backdrop-blur-[2px]" />
+      </button>
 
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-label="Cài đặt F-Forum"
-        className="settings-modal liquid-glass fixed z-50 w-[calc(100vw-1.5rem)] max-w-[392px] max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden rounded-[26px] p-3.5 text-white shadow-[0_40px_120px_rgba(0,0,0,0.75)]"
-        style={pop.style}
+        className={`settings-modal liquid-glass fixed z-50 w-[calc(100vw-1.5rem)] max-w-[392px] max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden rounded-[26px] p-3.5 text-white shadow-[0_40px_120px_rgba(0,0,0,0.75)] ff-settings-panel ${
+          isClosing ? 'ff-settings-panel--out' : 'ff-settings-panel--in'
+        } ${isSettled && !isClosing ? 'ff-settings-panel--settled' : ''}`}
+        style={{
+          ...pop.style,
+          ['--ff-settings-origin' as string]: (pop.style.transformOrigin as string) || 'top right',
+        } as React.CSSProperties}
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-white/10">
