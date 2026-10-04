@@ -2034,3 +2034,48 @@ test('39. WS nối lại phải đóng kênh SSE dự phòng — không xử lý
     'startSSE phải có guard chống tạo EventSource thứ hai'
   );
 });
+
+test('40. Tin chat phát lại không được đếm chưa đọc lần hai, và phải đọc ref người dùng', () => {
+  const store = fs.readFileSync(path.resolve('src/store/forumStore.ts'), 'utf8');
+
+  /*
+    Cùng một tin tới được hai lần: qua BroadcastChannel (tab khác của cùng trình
+    duyệt) và qua broadcast của máy chủ. Trước khi vá, `setUnreadChatCount(c => c+1)`
+    nằm NGOÀI phần dedupe nên badge nhân đôi và chuông kêu hai lần.
+  */
+  assert.ok(
+    store.includes('const noteChatMessage = (id: string): boolean =>'),
+    'phải có hàm ghi nhận mã tin đã gặp'
+  );
+
+  const occurrences = store.split('noteChatMessage(newMsg.id)').length - 1;
+  assert.equal(occurrences, 2, 'Cả hai đường nhận tin đều phải hỏi noteChatMessage');
+
+  /* Số chưa đọc phải nằm sau khi biết tin là mới. */
+  const checks = store.split('if (\n            !alreadySeen &&');
+  assert.ok(checks.length >= 2, 'Cả hai nhánh phải chặn đếm trùng bằng alreadySeen');
+
+  /*
+    `handleServerBroadcast` nằm trong effect deps rỗng nên `currentUser` bị chốt ở
+    lần render đầu (null khi chưa đăng nhập) — tin của chính mình cũng bị tính là
+    chưa đọc. Phải đọc qua ref.
+  */
+  const serverBranchAt = store.indexOf('const handleServerBroadcast = ');
+  const serverBranch = store.slice(serverBranchAt, serverBranchAt + 3000);
+  const chatCaseAt = serverBranch.indexOf("case 'NEW_CHAT_MESSAGE'");
+  const chatCase = serverBranch.slice(chatCaseAt, chatCaseAt + 1200);
+  assert.ok(
+    chatCase.includes('currentUserRef.current'),
+    'Nhánh chat của server broadcast phải đọc currentUserRef, không đọc currentUser bị chốt'
+  );
+  assert.ok(
+    !/newMsg\.authorId !== currentUser\?\.id/.test(chatCase),
+    'Không được so với currentUser bị chốt trong closure'
+  );
+
+  /* Ref mirror phải được gán trong effect, không gán lúc render (react/refs). */
+  assert.ok(
+    /useEffect\(\(\) => \{\s*chatMessagesRef\.current = chatMessages;\s*\}, \[chatMessages\]\)/.test(store),
+    'chatMessagesRef phải được đồng bộ trong effect'
+  );
+});

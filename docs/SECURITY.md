@@ -705,6 +705,43 @@ khoá cả ba điểm.
 
 ---
 
+## 28. Tin chat đếm chưa đọc trùng, và closure chốt người dùng cũ
+
+**Mức độ:** Trung bình · **Vị trí:** `src/store/forumStore.ts` — hai nhánh `NEW_CHAT_MESSAGE`
+
+**Lỗi 1 — badge nhân đôi.** Cùng một tin nhắn tới được **hai lần**: qua
+`BroadcastChannel` (từ tab khác của cùng trình duyệt) và qua broadcast của máy chủ
+(tới mọi client, gồm cả các tab khác của cùng người đó). Phần dedupe chỉ chặn việc
+thêm trùng vào danh sách, còn `setUnreadChatCount(c => c + 1)` và `playChime('send')`
+nằm **ngoài** phần đó:
+
+```js
+setChatMessages(prev => { if (prev.some(...)) return prev; return [...prev, newMsg]; });
+if (newMsg.authorId !== currentUser?.id) { setUnreadChatCount(c => c + 1); playChime('send'); }
+//                                        ↑ chạy cho CẢ HAI lần nhận cùng một tin
+```
+
+**Lỗi 2 — closure chốt người dùng cũ.** `handleServerBroadcast` nằm trong
+`useEffect(..., [])`, nên `currentUser` bị chốt ở lần render đầu — tức `null` khi
+chưa đăng nhập, và không bao giờ cập nhật. Điều kiện
+`newMsg.authorId !== currentUser?.id` vì thế luôn đúng, nên **tin của chính mình**
+cũng bị tính là chưa đọc. Nhánh `BroadcastChannel` ngay bên dưới lại dùng đúng
+`currentUserRef.current` — hai nhánh cùng một việc nhưng viết khác nhau.
+
+**Đã vá:**
+
+- Thêm `noteChatMessage(id)`: trả về `true` nếu mã tin đã gặp, và ghi nhận mã mới.
+  Cả hai nhánh đều hỏi hàm này; số chưa đọc và tiếng chuông chỉ chạy khi tin là
+  **mới thật**.
+- Lần gọi đầu gieo tập bằng các tin có sẵn (nạp từ localStorage) để tin cũ không
+  bị tính là mới.
+- Cả hai nhánh chuyển sang `currentUserRef.current`.
+- `chatMessagesRef` được đồng bộ **trong `useEffect`**, không gán lúc render — gán
+  `ref.current` lúc render vi phạm quy tắc `react(refs)` (dự án đã có sẵn 3 chỗ như
+  vậy ở mức baseline, không thêm chỗ thứ tư).
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -733,6 +770,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 39 bài, chạy trên server thật
-npm test                                        # toàn bộ 135 bài
+node --test tests/security-hardening.test.mjs   # 40 bài, chạy trên server thật
+npm test                                        # toàn bộ 136 bài
 ```

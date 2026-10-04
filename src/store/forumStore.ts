@@ -297,6 +297,44 @@ export function useForumStore() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isSynced, setIsSynced] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
+
+  /*
+    Tập mã tin đã xử lý, để biết một tin là MỚI THẬT hay chỉ là bản phát lại.
+
+    Cần vì cùng một tin có thể tới hai lần: qua BroadcastChannel (tab khác của
+    cùng trình duyệt) và qua broadcast của máy chủ. Nếu đếm số chưa đọc theo mỗi
+    lần nhận thì badge nhân đôi.
+
+    Không dùng ref mirror của `chatMessages` (gán `ref.current` lúc render sẽ vi
+    phạm quy tắc react(refs)); tập này chỉ được mutate BÊN TRONG event handler.
+  */
+  const seenChatIdsRef = useRef<Set<string> | null>(null);
+
+  /* Mirror của danh sách tin nhắn. Gán trong effect chứ không gán lúc render —
+     gán `ref.current` lúc render vi phạm quy tắc react(refs). */
+  const chatMessagesRef = useRef<ChatMessage[]>(chatMessages);
+  useEffect(() => {
+    chatMessagesRef.current = chatMessages;
+  }, [chatMessages]);
+
+  /**
+    Ghi nhận một mã tin và cho biết nó đã gặp trước đó chưa.
+
+    Cả hai đường nhận tin (BroadcastChannel và broadcast của máy chủ) đều hỏi hàm
+    này, nên một tin phát lại không bị đếm chưa đọc lần thứ hai. Lần gọi đầu tiên
+    gieo tập bằng các tin đang có sẵn (nạp từ localStorage) để tin cũ không bị
+    tính là tin mới.
+
+    Hàm chỉ đọc ref nên hai effect deps rỗng bắt được bản cũ vẫn cho kết quả đúng.
+  */
+  const noteChatMessage = (id: string): boolean => {
+    if (!seenChatIdsRef.current) {
+      seenChatIdsRef.current = new Set(chatMessagesRef.current.map((m) => m.id));
+    }
+    if (seenChatIdsRef.current.has(id)) return true;
+    seenChatIdsRef.current.add(id);
+    return false;
+  };
   const [toastMessage, setToastMessage] = useState<{
     title: string;
     subtitle?: string;
@@ -666,11 +704,28 @@ export function useForumStore() {
           const newMsg = payload as ChatMessage;
           if (!newMsg || !newMsg.id) break;
           if (newMsg.senderId && newMsg.senderId === CURRENT_TAB_ID) break;
-          setChatMessages(prev => {
-            if (prev.some(m => m.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
-          });
-          if (newMsg.authorId !== currentUser?.id && newMsg.authorEmail !== currentUser?.email) {
+
+          /* Cùng một tin có thể tới hai lần: qua BroadcastChannel (tab khác của
+             cùng trình duyệt) và qua broadcast của máy chủ. Số chưa đọc và tiếng
+             chuông phải đếm theo tin MỚI THẬT, không thì badge nhân đôi. */
+          const alreadySeen = noteChatMessage(newMsg.id);
+          if (!alreadySeen) {
+            setChatMessages(prev => {
+              if (prev.some(m => m.id === newMsg.id)) return prev;
+              return [...prev, newMsg];
+            });
+          }
+
+          /* `currentUserRef` chứ không phải `currentUser`: handler này nằm trong
+             effect deps rỗng nên `currentUser` bị chốt ở lần render đầu (null khi
+             chưa đăng nhập) và không bao giờ cập nhật — khiến tin của chính mình
+             cũng bị tính là chưa đọc. */
+          const me = currentUserRef.current;
+          if (
+            !alreadySeen &&
+            newMsg.authorId !== me?.id &&
+            newMsg.authorEmail !== me?.email
+          ) {
             setUnreadChatCount(c => c + 1);
             playChime('send');
           }
@@ -897,11 +952,21 @@ export function useForumStore() {
           const newMsg = payload as ChatMessage;
           if (!newMsg || !newMsg.id) break;
           if (newMsg.senderId && newMsg.senderId === CURRENT_TAB_ID) break;
-          setChatMessages(prev => {
-            if (prev.some(m => m.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
-          });
-          if (newMsg.authorId !== currentUserRef.current?.id && newMsg.authorEmail !== currentUserRef.current?.email) {
+
+          /* Cùng luật chống đếm trùng như nhánh broadcast của máy chủ. */
+          const alreadySeen = noteChatMessage(newMsg.id);
+          if (!alreadySeen) {
+            setChatMessages(prev => {
+              if (prev.some(m => m.id === newMsg.id)) return prev;
+              return [...prev, newMsg];
+            });
+          }
+          const me = currentUserRef.current;
+          if (
+            !alreadySeen &&
+            newMsg.authorId !== me?.id &&
+            newMsg.authorEmail !== me?.email
+          ) {
             setUnreadChatCount(c => c + 1);
           }
           break;
