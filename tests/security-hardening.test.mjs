@@ -1926,3 +1926,52 @@ test('37. Thao tác ghi dữ liệu phải đọc kết quả máy chủ, không
     'App phải render được toast lỗi'
   );
 });
+
+test('38. Ẩn danh: giữ bí danh mà vẫn không cho mạo danh người khác', async () => {
+  const env = await createTestServer();
+  try {
+    const asker = await register(env.baseUrl, 'Tên Thật Của Tôi', 'an-danh@example.com', 'mat-khau-an-12345');
+
+    /* Câu hỏi ẩn danh phải giữ bí danh — giao diện render chính authorName. */
+    const anon = await post(env.baseUrl, '/api/questions', {
+      title: 'Câu hỏi ẩn danh',
+      content: 'Tôi muốn hỏi mà không lộ tên.',
+      authorEmail: 'an-danh@example.com',
+      authorName: 'Pháp Sư Ghibli',
+      isAnonymous: true,
+      anonymousAlias: 'Pháp Sư Ghibli',
+      anonymousMask: 'https://example.com/mat-na.png',
+    }, asker.token);
+    assert.equal(anon.status, 200, `câu hỏi ẩn danh: ${JSON.stringify(anon.data)}`);
+    assert.equal(anon.data.question.authorName, 'Pháp Sư Ghibli', 'Ẩn danh phải giữ bí danh, không lộ tên thật');
+    assert.notEqual(anon.data.question.authorName, 'Tên Thật Của Tôi', 'Không được lộ tên thật');
+    assert.equal(anon.data.question.isAnonymous, true);
+    /* Danh tính thật vẫn phải có để kiểm quyền chọn đáp án chuẩn. */
+    assert.equal(anon.data.question.authorEmail, 'an-danh@example.com', 'authorEmail vẫn là thật để kiểm quyền');
+
+    /* Câu hỏi KHÔNG ẩn danh thì vẫn chống mạo danh như test #30. */
+    const normal = await post(env.baseUrl, '/api/questions', {
+      title: 'Câu hỏi thường',
+      content: 'Không ẩn danh.',
+      authorEmail: 'an-danh@example.com',
+      authorName: 'Super Admin Giả Mạo',
+      authorAvatar: 'https://example.com/gia.jpg',
+    }, asker.token);
+    assert.equal(normal.status, 200);
+    assert.equal(normal.data.question.authorName, 'Tên Thật Của Tôi', 'Không ẩn danh thì tên lấy từ bản ghi thật');
+    assert.notEqual(normal.data.question.authorAvatar, 'https://example.com/gia.jpg');
+
+    /* Ẩn danh không phải cửa sau để mạo danh: bí danh bị cắt độ dài. */
+    const longAlias = await post(env.baseUrl, '/api/questions', {
+      title: 'Bí danh dài',
+      content: 'Thử cắt độ dài bí danh.',
+      authorEmail: 'an-danh@example.com',
+      isAnonymous: true,
+      anonymousAlias: 'A'.repeat(500),
+    }, asker.token);
+    assert.equal(longAlias.status, 200);
+    assert.ok(longAlias.data.question.authorName.length <= 120, `bí danh phải ≤120, thực tế ${longAlias.data.question.authorName.length}`);
+  } finally {
+    await env.close();
+  }
+});

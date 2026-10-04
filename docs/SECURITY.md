@@ -406,6 +406,25 @@ Xác nhận end-to-end trên dev server:
 [3] title=200/200 content=20000/20000 subject=40/40 imageUrl=2000/2000
 ```
 
+### Hồi quy do chính bản vá này gây ra (đã sửa)
+
+Lấy `authorName` từ bản ghi thật đã **phá tính năng hỏi ẩn danh**. Diễn đàn cho
+phép đặt câu hỏi mà không lộ tên; giao diện render chính trường `authorName` làm bí
+danh ("Pháp sư Ghibli"), nên ghi đè bằng tên thật là làm lộ danh tính người hỏi:
+
+```
+[1] tên đăng ký thật     = "Tên Thật Của Tôi"
+[2] client gửi bí danh   = "Pháp Sư Ghibli"
+[3] server lưu authorName = "Tên Thật Của Tôi"     ← LỘ
+[4] isAnonymous = true
+```
+
+**Đã sửa:** khi `isAnonymous` thì `authorName`/`authorAvatar` giữ bí danh và mặt nạ
+client gửi (`anonymousAlias`/`anonymousMask`, có cắt độ dài); danh tính thật vẫn nằm
+ở `authorEmail`/`authorId` nên quyền chọn đáp án chuẩn không đổi. Cả hai đường HTTP
+và WS. Test #38 khoá cả hai chiều: ẩn danh giữ bí danh, **và** câu hỏi không ẩn danh
+vẫn không mạo danh được.
+
 ---
 
 ## 21. Bơm coin vô hạn qua WebSocket
@@ -631,6 +650,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 37 bài, chạy trên server thật
-npm test                                        # toàn bộ 133 bài
+node --test tests/security-hardening.test.mjs   # 38 bài, chạy trên server thật
+npm test                                        # toàn bộ 134 bài
 ```
