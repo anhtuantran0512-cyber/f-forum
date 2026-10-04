@@ -281,11 +281,20 @@ const ProfileModalInner: React.FC<{
 
   /* Brief shimmer skeleton so the profile feels loaded, not popped */
   const [isBooting, setIsBooting] = useState(true);
-  useEffect(() => {
+
+  /* Đổi sang hồ sơ khác thì chạy lại skeleton. Phần "bật skeleton" được suy ra
+     lúc render (mẫu điều chỉnh state khi prop đổi); effect chỉ giữ phần hẹn giờ. */
+  const [bootingForId, setBootingForId] = useState(currentUser.id);
+  if (bootingForId !== currentUser.id) {
+    setBootingForId(currentUser.id);
     setIsBooting(true);
+  }
+
+  useEffect(() => {
+    if (!isBooting) return undefined;
     const t = setTimeout(() => setIsBooting(false), 420);
     return () => clearTimeout(t);
-  }, [currentUser.id]);
+  }, [isBooting, currentUser.id]);
 
   const [isReporting, setIsReporting] = useState(false);
   const [reportReason, setReportReason] = useState('Nội dung vi phạm / Gây war / Không đúng chuẩn mực');

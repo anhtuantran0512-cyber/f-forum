@@ -262,7 +262,7 @@ export const App: React.FC = () => {
     [setIsLoginModalOpen],
   );
 
-  const handleOpenProfile = (
+  const handleOpenProfile = useCallback((
     tab: 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit' = 'overview',
     userToView?: { id: string; name: string; avatar: string; email?: string; level?: number }
   ) => {
@@ -297,7 +297,7 @@ export const App: React.FC = () => {
     setTargetProfileUser(null);
     setProfileInitialTab(tab);
     setIsProfileModalOpen(true);
-  };
+  }, [users, currentUser, handleOpenAuth, setTargetProfileUser, setProfileInitialTab, setIsProfileModalOpen]);
 
   const handleOpenUserProfile = (
     userToView?: { id: string; name: string; avatar: string; email?: string; level?: number },
@@ -331,7 +331,9 @@ export const App: React.FC = () => {
     handleOpenProfile('overview', userToView);
   };
 
-  const handleToggleChat = () => {
+  /* useCallback với deps rỗng: chỉ dùng setter từ useState nên địa chỉ ổn định,
+     nhờ đó paletteCommands (useMemo phụ thuộc nó) không tính lại mỗi lần render. */
+  const handleToggleChat = useCallback(() => {
     setIsChatOpen(prev => {
       const next = !prev;
       if (next) {
@@ -339,7 +341,7 @@ export const App: React.FC = () => {
       }
       return next;
     });
-  };
+  }, [setIsChatOpen, setUnreadChatCount]);
 
   /* Chuyển phân khu kèm màn hình chờ cho các trang nặng */
   const beginTransition = useCallback(

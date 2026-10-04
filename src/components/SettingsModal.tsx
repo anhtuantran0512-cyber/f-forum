@@ -206,13 +206,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose, confirmReset]);
 
-  useEffect(() => {
+  /* Xoá các hộp xác nhận khi đóng. Dùng mẫu "điều chỉnh state khi prop đổi" của
+     React thay vì useEffect để tránh một lượt render thừa. */
+  const [wasOpenForReset, setWasOpenForReset] = useState(isOpen);
+  if (isOpen !== wasOpenForReset) {
+    setWasOpenForReset(isOpen);
     if (!isOpen) {
       setConfirmReset(null);
       setResetDone(null);
       setDataNotice(null);
     }
-  }, [isOpen]);
+  }
 
   /* ============================================================
      Hiệu ứng hiện ra: giữ panel thêm ~230ms để chạy hoạt ảnh đóng,
@@ -221,14 +225,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [isRendered, setIsRendered] = useState(isOpen);
   const [isClosing, setIsClosing] = useState(false);
 
-  useEffect(() => {
+  /* Phần chuyển trạng thái đồng bộ (mở -> hiện, đóng -> đang đóng) được suy ra
+     lúc render; effect chỉ còn giữ đúng phần hẹn giờ 230ms. */
+  const [openDeps, setOpenDeps] = useState({ isOpen, isRendered });
+  if (openDeps.isOpen !== isOpen || openDeps.isRendered !== isRendered) {
+    setOpenDeps({ isOpen, isRendered });
     if (isOpen) {
       setIsRendered(true);
       setIsClosing(false);
-      return;
+    } else if (isRendered) {
+      setIsClosing(true);
     }
-    if (!isRendered) return;
-    setIsClosing(true);
+  }
+
+  useEffect(() => {
+    if (isOpen || !isRendered) return undefined;
     const t = window.setTimeout(() => {
       setIsRendered(false);
       setIsClosing(false);
@@ -258,11 +269,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const [isFloating, setIsFloating] = useState(false);
 
+  /* Phần "tắt ngay" được suy ra lúc render (mẫu điều chỉnh state khi prop đổi);
+     chỉ phần hẹn giờ mới thật sự cần effect. */
+  const [floatDeps, setFloatDeps] = useState({ isRendered, isAnchored });
+  if (floatDeps.isRendered !== isRendered || floatDeps.isAnchored !== isAnchored) {
+    setFloatDeps({ isRendered, isAnchored });
+    if (!isRendered || isAnchored) setIsFloating(false);
+  }
+
   useEffect(() => {
-    if (!isRendered || isAnchored) {
-      setIsFloating(false);
-      return;
-    }
+    if (!isRendered || isAnchored) return undefined;
     /* Chờ 220ms cho khung hình đầu đo xong neo; quá hạn thì nổi giữa màn hình. */
     const timer = window.setTimeout(() => setIsFloating(true), 220);
     return () => window.clearTimeout(timer);
@@ -276,11 +292,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
      Cài đặt di chuyển lúc thanh navbar co giãn, thay vì nhảy từng nấc. */
   const [isSettled, setIsSettled] = useState(false);
 
+  const [settledDeps, setSettledDeps] = useState({ isRendered, isAnchored });
+  if (settledDeps.isRendered !== isRendered || settledDeps.isAnchored !== isAnchored) {
+    setSettledDeps({ isRendered, isAnchored });
+    if (!isRendered || !isAnchored) setIsSettled(false);
+  }
+
   useEffect(() => {
-    if (!isRendered || !isAnchored) {
-      setIsSettled(false);
-      return;
-    }
+    if (!isRendered || !isAnchored) return undefined;
     settledRafRef.current = window.requestAnimationFrame(() => setIsSettled(true));
     return () => {
       if (settledRafRef.current) window.cancelAnimationFrame(settledRafRef.current);
