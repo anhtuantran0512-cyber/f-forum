@@ -1276,3 +1276,116 @@ test('26. Luồng từ chối CLB: ghi lý do và không cho học sinh đụng 
     await env.close();
   }
 });
+
+test('27. Presence: không mạo danh được email/role qua gói ping tự khai', async () => {
+  const env = await createTestServer();
+  const ws = new WebSocket(env.wsUrl);
+  const received = [];
+  ws.on('message', (raw) => { try { received.push(JSON.parse(raw.toString())); } catch { /* ignore */ } });
+
+  try {
+    await new Promise((res) => ws.once('open', res));
+
+    /* Khách chưa đăng nhập khai email của Super Admin. */
+    ws.send(JSON.stringify({
+      type: 'PRESENCE_PING',
+      payload: {
+        id: 'ke-gia-danh',
+        name: 'Admin Rởm',
+        email: 'anhtuantran0512@gmail.com',
+        role: 'SUPER_ADMIN',
+        level: 150,
+      },
+    }));
+    await sleep(250);
+
+    const spoofed = received.filter((m) => m.type === 'PRESENCE_PING');
+    assert.ok(spoofed.length >= 1, 'Phải nhận lại được gói PRESENCE_PING');
+    const last = spoofed[spoofed.length - 1];
+    assert.equal(last.payload.email, undefined, 'Khách chưa đăng nhập không được gắn email');
+    assert.equal(last.payload.role, undefined, 'Khách chưa đăng nhập không được gắn role');
+    assert.equal(last.payload.level, 150, 'Cấp bậc vẫn được giữ (không phải trường nhạy cảm)');
+
+    /* Người đã đăng nhập khai email NGƯỜI KHÁC → server ghi đè bằng email thật. */
+    const student = await register(env.baseUrl, 'Học Sinh Thật', 'hoc-sinh-that@example.com', 'mat-khau-that-123');
+    ws.send(JSON.stringify({ type: 'AUTH', payload: { token: student.token } }));
+    await sleep(200);
+
+    received.length = 0;
+    ws.send(JSON.stringify({
+      type: 'PRESENCE_PING',
+      payload: {
+        id: 'chinh-chu',
+        name: 'Tôi là admin',
+        email: 'anhtuantran0512@gmail.com',
+        role: 'SUPER_ADMIN',
+      },
+    }));
+    await sleep(250);
+
+    const authed = received.filter((m) => m.type === 'PRESENCE_PING');
+    assert.ok(authed.length >= 1, 'Phải nhận lại gói ping sau khi xác thực');
+    const mine = authed[authed.length - 1];
+    assert.equal(mine.payload.email, 'hoc-sinh-that@example.com', 'Email phải lấy từ phiên, không từ body');
+    assert.notEqual(mine.payload.role, 'SUPER_ADMIN', 'Không được tự phong SUPER_ADMIN');
+  } finally {
+    ws.close();
+    await env.close();
+  }
+});
+
+test('28. Presence qua HTTP: lọc trường, chặn thiếu id, và chặn flood', async () => {
+  const env = await createTestServer();
+  try {
+    const missingId = await post(env.baseUrl, '/api/presence', { user: { name: 'Vô danh' } });
+    assert.equal(missingId.status, 400, 'Thiếu id phải báo 400');
+
+    const noUser = await post(env.baseUrl, '/api/presence', {});
+    assert.equal(noUser.status, 400, 'Thiếu user phải báo 400');
+
+    const student = await register(env.baseUrl, 'Ping HTTP', 'ping-http@example.com', 'mat-khau-ping-123');
+    const ok = await post(env.baseUrl, '/api/presence', {
+      user: {
+        id: 'ping-http',
+        name: 'Khai man tên',
+        email: 'anhtuantran0512@gmail.com',
+        role: 'SUPER_ADMIN',
+      },
+    }, student.token);
+    assert.equal(ok.status, 200);
+
+    /* Gói quá dài phải bị cắt, không nhét được payload khổng lồ vào broadcast. */
+    const huge = await post(env.baseUrl, '/api/presence', {
+      user: { id: 'ping-dai', name: 'A'.repeat(5000), avatar: 'B'.repeat(20000) },
+    });
+    assert.equal(huge.status, 200);
+
+    /* Chặn flood: client thật ping mỗi 15 giây nên 40/phút là rất rộng. */
+    let sawTooMany = false;
+    for (let i = 0; i < 70; i++) {
+      const res = await fetch(`${env.baseUrl}/api/presence`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: { id: `spam-${i}` } }),
+      });
+      if (res.status === 429) { sawTooMany = true; break; }
+    }
+    assert.ok(sawTooMany, 'Bắn presence liên tục phải bị chặn 429');
+  } finally {
+    await env.close();
+  }
+});
+
+test('29. Presence: server không còn broadcast nguyên khối dữ liệu client tự khai', () => {
+  const server = fs.readFileSync(path.resolve('server/forumServer.ts'), 'utf8');
+  assert.ok(server.includes('function sanitizePresence'), 'Phải có bộ lọc presence');
+  assert.ok(
+    server.includes("broadcastServerEvent('PRESENCE_PING', cleaned)"),
+    'Cả hai đường phải phát gói đã lọc, không phát payload gốc'
+  );
+  assert.ok(
+    !/broadcastServerEvent\('PRESENCE_PING', (payload|body\.user)\)/.test(server),
+    'Không được phát thẳng payload/body.user nữa'
+  );
+  assert.ok(server.includes('presenceLimiter'), 'Presence phải có rate limit');
+});

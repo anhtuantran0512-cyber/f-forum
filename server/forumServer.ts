@@ -437,6 +437,47 @@ function sendRateLimited(res: ServerResponse, retryAfterMs: number, what: string
 }
 
 /** Xác thực quản trị: token hợp lệ + email trong token là Super Admin. */
+/**
+  Lọc gói presence trước khi phát cho mọi client.
+
+  Trước đây server nhận `body.user` rồi broadcast NGUYÊN KHỐI. Client tự khai
+  được `email`, nên một request giả mạo khai email của Super Admin sẽ làm chấm
+  "Ban Quản Trị đang trực tuyến" sáng lên trên màn hình của mọi người; khai
+  `name`/`avatar`/`role` tuỳ ý thì hiện ra thành bất kỳ ai. Mỗi gói còn được phát
+  tới MỌI kết nối, nên không lọc là vừa mạo danh vừa khuếch đại.
+
+  `email` và `role` chỉ được lấy từ phiên đăng nhập đã xác thực — không bao giờ
+  từ body. Khách chưa đăng nhập thì hai trường đó bị bỏ.
+*/
+function sanitizePresence(payload: any, claims: SessionClaims | null) {
+  if (!payload || typeof payload !== 'object') return null;
+  const id = String(payload.id || '').trim().slice(0, 120);
+  if (!id) return null;
+
+  const verifiedUser = claims ? store.users[claims.email] : undefined;
+  const cleaned: Record<string, unknown> = {
+    id,
+    name: String(verifiedUser?.name ?? payload.name ?? 'Học sinh').slice(0, MAX_NAME_LENGTH),
+    avatar: String(verifiedUser?.avatar ?? payload.avatar ?? DEFAULT_AVATAR).slice(0, 2000),
+  };
+
+  const level = Number(verifiedUser?.level ?? payload.level);
+  if (Number.isFinite(level)) cleaned.level = Math.min(150, Math.max(1, Math.floor(level)));
+
+  if (typeof payload.rank === 'string') cleaned.rank = payload.rank.slice(0, 20);
+
+  /* Chỉ tài khoản đã đăng nhập mới được gắn email/role — và phải đúng của chính
+     tài khoản đó, lấy từ bản ghi thật trên server. */
+  if (verifiedUser) {
+    cleaned.email = verifiedUser.email;
+    cleaned.role = verifiedUser.role;
+  }
+  return cleaned;
+}
+
+/** Chặn flood presence: client thật ping mỗi 15 giây, ngưỡng này còn rất rộng. */
+const presenceLimiter = new SlidingWindowRateLimiter(60 * 1000, 40);
+
 function requireSuperAdmin(req: IncomingMessage, body: any): SessionClaims | null {
   const claims = authorizeRequest(req, null, body?.adminToken || body?.token || null);
   if (!claims) return null;
@@ -523,9 +564,10 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               break;
             }
             case 'PRESENCE_PING': {
-              if (payload) {
-                broadcastServerEvent('PRESENCE_PING', payload);
-              }
+              /* Cùng một bộ lọc như đường HTTP; `session` là phiên đã xác thực
+                 qua thông điệp AUTH nên email/role không thể khai man. */
+              const cleaned = sanitizePresence(payload, session);
+              if (cleaned) broadcastServerEvent('PRESENCE_PING', cleaned);
               break;
             }
             case 'NEW_QUESTION': {
@@ -926,9 +968,24 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/presence') {
       try {
         const body = await parseJsonBody(req);
-        if (body && body.user) {
-          broadcastServerEvent('PRESENCE_PING', body.user);
+        if (!body || !body.user) {
+          sendJson(res, 400, { success: false, message: 'Thiếu thông tin người dùng' });
+          return;
         }
+
+        const throttle = presenceLimiter.check(clientIpOf(req));
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'cập nhật trạng thái trực tuyến');
+          return;
+        }
+
+        const claims = authorizeRequest(req, null, body.token);
+        const cleaned = sanitizePresence(body.user, claims);
+        if (!cleaned) {
+          sendJson(res, 400, { success: false, message: 'Thiếu mã định danh người dùng' });
+          return;
+        }
+        broadcastServerEvent('PRESENCE_PING', cleaned);
         sendJson(res, 200, { success: true });
       } catch (err: any) {
         sendJson(res, 500, { success: false, message: err.message });

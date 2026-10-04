@@ -336,6 +336,45 @@ CLB lẫn bài viết về cho thiết bị khác.
 
 ---
 
+## 19. Mạo danh qua gói presence
+
+**Mức độ:** Trung bình · **Vị trí:** `POST /api/presence`, WS `PRESENCE_PING`
+
+Server nhận `body.user` rồi `broadcastServerEvent('PRESENCE_PING', body.user)` —
+**nguyên khối**, không lọc một trường nào. Client tự khai được `email`, nên:
+
+```js
+// Một request duy nhất làm "Super Admin" hiện là đang trực tuyến
+// trên màn hình của MỌI người đang kết nối:
+fetch('/api/presence', { method: 'POST', headers: {'Content-Type':'application/json'},
+  body: JSON.stringify({ user: { id: 'x', name: 'Admin Rởm',
+    email: 'anhtuantran0512@gmail.com', role: 'SUPER_ADMIN' } }) });
+```
+
+`ChatView` tính `isMasterAdminOnline` từ `onlineUsers.some(u => isMasterAdmin(u.email))`,
+tức đúng trường vừa mạo danh được — chấm "Ban Quản Trị đang trực tuyến" sáng lên.
+Khai `name`/`avatar` tuỳ ý thì hiện ra thành bất kỳ ai. Ngoài ra gói này phát tới
+mọi kết nối nên không giới hạn là vừa mạo danh vừa khuếch đại, và cũng không có
+rate limit nên bắn ngập được danh sách trực tuyến.
+
+**Đã vá:** thêm `sanitizePresence()` dùng chung cho cả hai đường. Chỉ `id`, `name`,
+`avatar`, `level`, `rank` được giữ (cắt độ dài); **`email` và `role` chỉ lấy từ
+phiên đã xác thực**, đọc từ bản ghi thật trên server — khách chưa đăng nhập thì
+hai trường đó bị bỏ hẳn. Thêm `presenceLimiter` 40 lần/phút theo IP (client thật
+ping mỗi 15 giây). Client nay gửi kèm token ở đường HTTP fallback.
+
+Xác nhận end-to-end trên dev server:
+
+```
+[1] mạo danh (chưa đăng nhập): email=undefined role=undefined level=150
+[2] đã đăng nhập, khai email admin: email=e2e…@example.com role=STUDENT
+[3] tên 5000 ký tự → còn 12 ký tự
+[4] thiếu id: 400
+[5] flood bị chặn 429 ở lượt 40
+```
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -351,6 +390,7 @@ CLB lẫn bài viết về cho thiết bị khác.
 | Tố cáo | Hộp thư chỉ Super Admin đọc được; báo cáo sống sót qua khởi động lại |
 | Nội dung | Server tự cắt độ dài, không tin `maxLength` của client; kho dữ liệu có trần |
 | Câu lạc bộ | Lập cần đăng nhập; duyệt/từ chối chỉ Super Admin; người sáng lập lấy từ token |
+| Trực tuyến | `email`/`role` trong gói presence chỉ lấy từ phiên đã xác thực |
 
 ## Biến môi trường
 
@@ -361,6 +401,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 26 bài, chạy trên server thật
-npm test                                        # toàn bộ 122 bài
+node --test tests/security-hardening.test.mjs   # 29 bài, chạy trên server thật
+npm test                                        # toàn bộ 125 bài
 ```

@@ -424,9 +424,11 @@ export function useForumStore() {
           /* ignore */
         }
       } else {
-        fetch('/api/presence', {
+        /* Gửi kèm token: server chỉ gắn email/role từ phiên đã xác thực, nên
+           thiếu token thì tên và cấp bậc hiển thị sẽ kém chính xác hơn. */
+        void fetch('/api/presence', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders(),
           body: JSON.stringify({ user: payload }),
         }).catch(() => {});
       }
