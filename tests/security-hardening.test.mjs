@@ -2238,3 +2238,44 @@ test('42. fPoints không bị cộng đôi khi thiếu trường (thứ tự xp/
     await env.close();
   }
 });
+
+test('43. Tắt tiến trình phải ghi nốt thay đổi đang chờ — không mất lần ghi cuối', () => {
+  const server = fs.readFileSync(path.resolve('server/forumServer.ts'), 'utf8');
+
+  /*
+    persistStoreToDisk debounce 200ms và gọi .unref(), nên timer không giữ tiến
+    trình sống. Trước khi vá không có chỗ nào ghi nốt: tắt server trong vòng 200ms
+    sau một thao tác là lần ghi cuối MẤT. Repro xác nhận trước khi vá không có cả
+    tệp dữ liệu sau SIGTERM.
+  */
+  assert.ok(
+    server.includes('function flushStoreToDisk()'),
+    'phải có hàm ghi đồng bộ dùng được lúc tắt'
+  );
+  assert.ok(
+    server.includes('function flushPendingSave()'),
+    'phải có hàm ghi nốt lần thay đổi đang chờ'
+  );
+  assert.ok(
+    server.includes('installShutdownFlush()'),
+    'setupForumServer phải cài móc ghi khi tắt'
+  );
+  for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP']) {
+    assert.ok(
+      server.includes(`'${signal}'`),
+      `phải ghi nốt khi nhận ${signal}`
+    );
+  }
+  assert.ok(
+    /process\.on\('exit', flushPendingSave\)/.test(server),
+    "phải ghi nốt ở sự kiện 'exit'"
+  );
+
+  /* flushPendingSave chỉ ghi khi thực sự có lần ghi đang chờ. */
+  const flushAt = server.indexOf('function flushPendingSave()');
+  const flushBody = server.slice(flushAt, flushAt + 400);
+  assert.ok(
+    flushBody.includes('if (saveTimeout)'),
+    'flushPendingSave phải kiểm tra có lần ghi đang chờ hay không'
+  );
+});
