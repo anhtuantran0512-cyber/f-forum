@@ -408,6 +408,82 @@ Xác nhận end-to-end trên dev server:
 
 ---
 
+## 21. Bơm coin vô hạn qua WebSocket
+
+**Mức độ:** Nghiêm trọng · **Vị trí:** WS `NEW_QUESTION`, `NEW_SOLUTION`
+
+Hai nhánh này ghi **nguyên payload** của client vào kho, không đòi phiên đăng nhập
+và không kiểm số dư — trong khi `MARK_BEST_SOLUTION` lại trả thưởng theo
+`bountyCoin` của câu hỏi (`thưởng = bounty*0.5 + 100`).
+
+Đường HTTP kiểm số dư và trừ coin; đường WS thì không. Chuỗi khai thác:
+
+```js
+ws.send({ type: 'AUTH', payload: { token } })                      // tài khoản mới, 100 coin
+ws.send({ type: 'NEW_QUESTION', payload: {
+  id: 'q-bom', title: 'x', content: 'x',
+  authorEmail: '<email của mình>', bountyCoin: 999999 }})          // không kiểm số dư
+ws.send({ type: 'NEW_SOLUTION', payload: {
+  id: 's-bom', questionId: 'q-bom', authorEmail: '<email của mình>', content: 'x' }})
+ws.send({ type: 'MARK_BEST_SOLUTION', payload: { questionId: 'q-bom', solutionId: 's-bom' }})
+```
+
+Xác nhận bằng repro trên dev server, **trước khi vá**:
+
+```
+[1] coin ban đầu = 100
+[2] coin sau = 500199 | xp = 500099 | level = 150
+[3] coin tạo từ hư không = +500099
+```
+
+Một tài khoản mới tự biến thành 500.199 coin và cấp 150 trong chưa tới một giây.
+(Biến thể *không* gửi `AUTH` thì ra `+0` — vì `MARK_BEST_SOLUTION` đã đòi phiên —
+nhưng câu hỏi bơm vẫn nằm trong kho với `bountyCoin: 999999`.)
+
+**Đã vá:** cả hai nhánh nay đòi phiên đăng nhập (không có thì trả `FORBIDDEN`),
+danh tính lấy từ bản ghi thật, `bountyCoin` đi qua `normalizeBounty()` và **bị kiểm
+số dư + trừ thật** như đường HTTP. Vẫn không cộng XP ở đường WS.
+
+Sau khi vá, cùng một repro:
+
+```
+[2] coin sau = 150 | xp = 150 | level = 2
+[4] bountyCoin = 100        (999999 bị kẹp về trần)
+```
+
+---
+
+## 22. Tự hỏi rồi tự chọn đáp án để cày coin
+
+**Mức độ:** Cao · **Vị trí:** `POST /api/solutions/best`, WS `MARK_BEST_SOLUTION`
+
+Việc kiểm quyền chỉ hỏi "có phải tác giả câu hỏi không", nên người hỏi **tự chọn
+câu trả lời của chính mình** làm đáp án chuẩn và tự nhận thưởng. Mỗi vòng bỏ túi
+`+50` coin và `+225` XP, lặp vô hạn và tự động hoá được.
+
+Xác nhận bằng repro trên dev server, **trước khi vá**:
+
+```
+[0] khởi điểm: coin = 100 | xp = 0   | level = 1
+[1] vòng 1:    coin = 150 | xp = 225 | level = 2
+[2] vòng 2:    coin = 200 | xp = 450 | level = 4
+[3] vòng 3:    coin = 250 | xp = 675 | level = 5
+```
+
+**Đã vá:** từ chối khi email tác giả lời giải trùng email người đang thao tác —
+`409` ở HTTP, `FORBIDDEN` ở WS. Ngoài chuyện kinh tế, về nghiệp vụ cũng vô nghĩa:
+không ai tự chấm mình là người giải đúng. Luồng bình thường (chọn đáp án của
+người khác) vẫn hoạt động và vẫn trả thưởng — test #32 kiểm cả hai chiều.
+
+Sau khi vá, cùng một repro:
+
+```
+[1] vòng 1: chọn đáp án của chính mình → 409 | coin = 0 | xp = 75
+[2] đặt câu hỏi thất bại: Số dư không đủ để treo thưởng 100 Coin. Hiện có 0 Coin.
+```
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -425,6 +501,7 @@ Xác nhận end-to-end trên dev server:
 | Câu lạc bộ | Lập cần đăng nhập; duyệt/từ chối chỉ Super Admin; người sáng lập lấy từ token |
 | Trực tuyến | `email`/`role` trong gói presence chỉ lấy từ phiên đã xác thực |
 | Nội dung đăng | Tên, ảnh, cấp bậc hiển thị lấy từ bản ghi thật — không đăng dưới danh tính người khác được |
+| Nền kinh tế | WS ghi câu hỏi/lời giải phải đăng nhập và bị trừ coin thật; không tự chọn đáp án của chính mình |
 
 ## Biến môi trường
 
@@ -435,6 +512,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 30 bài, chạy trên server thật
-npm test                                        # toàn bộ 126 bài
+node --test tests/security-hardening.test.mjs   # 32 bài, chạy trên server thật
+npm test                                        # toàn bộ 128 bài
 ```

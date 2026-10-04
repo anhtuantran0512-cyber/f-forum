@@ -1449,3 +1449,138 @@ test('30. Câu hỏi & lời giải: danh tính hiển thị lấy từ bản gh
     await env.close();
   }
 });
+
+test('31. WS: không bơm được bountyCoin khổng lồ để tự nhận thưởng', async () => {
+  const env = await createTestServer();
+  const client = await connectWs(env.wsUrl);
+  try {
+    /* Trước khi vá: AUTH → NEW_QUESTION{bountyCoin:999999} → NEW_SOLUTION
+       → MARK_BEST_SOLUTION biến tài khoản mới 100 coin thành 500.199 coin. */
+    const account = await register(env.baseUrl, 'Kẻ Bơm', 'ke-bom@example.com', 'mat-khau-bom-12345');
+    const authed = await connectWs(env.wsUrl, account.token);
+    try {
+      const stamp = Date.now();
+      authed.send('NEW_QUESTION', {
+        id: `q-bom-${stamp}`,
+        title: 'Câu hỏi bơm',
+        content: 'Bơm coin',
+        authorEmail: 'ke-bom@example.com',
+        bountyCoin: 999999,
+      });
+      await sleep(250);
+      authed.send('NEW_SOLUTION', {
+        id: `s-bom-${stamp}`,
+        questionId: `q-bom-${stamp}`,
+        authorEmail: 'ke-bom@example.com',
+        content: 'Tự trả lời',
+      });
+      await sleep(250);
+
+      const sync0 = await get(env.baseUrl, '/api/sync');
+      const q = sync0.data.data.questions.find((x) => x.id === `q-bom-${stamp}`);
+      assert.ok(q, 'Câu hỏi phải được ghi');
+      assert.ok(q.bountyCoin <= 100, `bountyCoin phải bị kẹp về trần, thực tế = ${q.bountyCoin}`);
+
+      authed.send('MARK_BEST_SOLUTION', { questionId: `q-bom-${stamp}`, solutionId: `s-bom-${stamp}` });
+      await sleep(350);
+
+      const sync1 = await get(env.baseUrl, '/api/sync');
+      const after = sync1.data.data.users['ke-bom@example.com'];
+      /* Thưởng tối đa với bounty 100 là 150; trừ bounty đã trả thì còn +50,
+         chứ không phải +500.099 như trước khi vá. */
+      assert.ok(after.coin <= 250, `Coin phải nằm trong giới hạn hợp lệ, thực tế = ${after.coin}`);
+      assert.ok(after.xp <= 250, `XP phải nằm trong giới hạn hợp lệ, thực tế = ${after.xp}`);
+    } finally {
+      authed.ws.close();
+    }
+
+    /* Không xác thực thì không ghi được câu hỏi qua WS. */
+    const before = await get(env.baseUrl, '/api/sync');
+    const beforeCount = before.data.data.questions.length;
+    client.send('NEW_QUESTION', {
+      id: 'q-khong-auth',
+      title: 'Không auth',
+      content: 'Không auth',
+      authorEmail: 'ke-bom@example.com',
+      bountyCoin: 999999,
+    });
+    const forbidden = await client.waitFor('FORBIDDEN');
+    assert.equal(forbidden.payload.action, 'NEW_QUESTION', 'Phải trả FORBIDDEN cho NEW_QUESTION không auth');
+    await sleep(200);
+    const after = await get(env.baseUrl, '/api/sync');
+    assert.equal(
+      after.data.data.questions.filter((x) => x.id === 'q-khong-auth').length,
+      0,
+      'Không auth thì không ghi được câu hỏi vào kho'
+    );
+    assert.equal(after.data.data.questions.length, beforeCount, 'Số câu hỏi không được tăng');
+  } finally {
+    client.ws.close();
+    await env.close();
+  }
+});
+
+test('32. Không tự chọn câu trả lời của chính mình làm đáp án chuẩn', async () => {
+  const env = await createTestServer();
+  try {
+    /* Trước khi vá, mỗi vòng tự hỏi → tự trả lời → tự chọn bỏ túi +50 coin và
+       +225 XP, lặp vô hạn. */
+    const farmer = await register(env.baseUrl, 'Nông Dân', 'nong-dan@example.com', 'mat-khau-cay-12345');
+
+    const asked = await post(env.baseUrl, '/api/questions', {
+      title: 'Câu tự hỏi',
+      content: 'Tự hỏi rồi tự trả lời để lấy thưởng.',
+      authorEmail: 'nong-dan@example.com',
+      authorName: 'Nông Dân',
+      bountyCoin: 100,
+    }, farmer.token);
+    assert.equal(asked.status, 200, `đặt câu hỏi: ${JSON.stringify(asked.data)}`);
+    const questionId = asked.data.question.id;
+
+    const solved = await post(env.baseUrl, '/api/solutions', {
+      questionId,
+      content: 'Tự trả lời.',
+      authorEmail: 'nong-dan@example.com',
+      authorName: 'Nông Dân',
+    }, farmer.token);
+    assert.equal(solved.status, 200);
+    const solutionId = solved.data.solution.id;
+
+    const selfAward = await post(env.baseUrl, '/api/solutions/best', {
+      questionId,
+      solutionId,
+      authorEmail: 'nong-dan@example.com',
+    }, farmer.token);
+    assert.equal(selfAward.status, 409, 'Tự chọn đáp án của chính mình phải bị từ chối');
+    assert.ok(/chính bạn/.test(selfAward.data.message), `Thông báo phải rõ ràng: ${selfAward.data.message}`);
+
+    /* Coin đã bị trừ khi đặt câu và KHÔNG được trả lại. */
+    const sync = await get(env.baseUrl, '/api/sync');
+    const me = sync.data.data.users['nong-dan@example.com'];
+    assert.ok(me.coin <= 100, `Coin không được tăng nhờ tự chọn, thực tế = ${me.coin}`);
+    assert.ok(me.xp <= 100, `XP không được tăng vọt nhờ tự chọn, thực tế = ${me.xp}`);
+
+    /* Người khác trả lời thì vẫn được chọn bình thường — không phá luồng chính. */
+    const helper = await register(env.baseUrl, 'Người Giúp', 'nguoi-giup@example.com', 'mat-khau-giup-12345');
+    const helperAnswer = await post(env.baseUrl, '/api/solutions', {
+      questionId,
+      content: 'Để mình giải giúp bạn.',
+      authorEmail: 'nguoi-giup@example.com',
+      authorName: 'Người Giúp',
+    }, helper.token);
+    assert.equal(helperAnswer.status, 200);
+
+    const legit = await post(env.baseUrl, '/api/solutions/best', {
+      questionId,
+      solutionId: helperAnswer.data.solution.id,
+      authorEmail: 'nong-dan@example.com',
+    }, farmer.token);
+    assert.equal(legit.status, 200, `Chọn đáp án của người khác vẫn phải được: ${JSON.stringify(legit.data)}`);
+
+    const sync2 = await get(env.baseUrl, '/api/sync');
+    const rewarded = sync2.data.data.users['nguoi-giup@example.com'];
+    assert.ok(rewarded.coin > 100, `Người giải đúng phải nhận thưởng, thực tế = ${rewarded.coin}`);
+  } finally {
+    await env.close();
+  }
+});
