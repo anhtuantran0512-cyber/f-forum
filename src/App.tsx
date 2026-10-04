@@ -1,5 +1,7 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import { lazyWithRetry } from './utils/lazyWithRetry';
+import { installInteractionWatchdog } from './utils/interactionWatchdog';
 import { useForumStore } from './store/forumStore';
 import { Navbar } from './components/Navbar';
 import { HomeView } from './components/views/HomeView';
@@ -38,18 +40,18 @@ import { PageResourceLoader } from './components/PageResourceLoader';
 import { UserQuickCard } from './components/UserQuickCard';
 import { RadialQuickMenu } from './components/RadialQuickMenu';
 
-const LandingPage = lazy(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
-const ClubsView = lazy(() => import('./components/views/ClubsView').then(m => ({ default: m.ClubsView })));
-const QAForumView = lazy(() => import('./components/views/QAForumView').then(m => ({ default: m.QAForumView })));
-const ChatView = lazy(() => import('./components/views/ChatView').then(m => ({ default: m.ChatView })));
-const KhuVinhDanhView = lazy(() => import('./components/views/KhuVinhDanhView').then(m => ({ default: m.KhuVinhDanhView })));
-const ComingSoonView = lazy(() => import('./components/views/ComingSoonView').then(m => ({ default: m.ComingSoonView })));
-const MemoryRealm = lazy(() => import('./components/MemoryRealm').then(m => ({ default: m.MemoryRealm })));
-const ChatDock = lazy(() => import('./components/ChatDock').then(m => ({ default: m.ChatDock })));
-const ProfileModal = lazy(() => import('./components/ProfileModal').then(m => ({ default: m.ProfileModal })));
-const FocusSanctuary = lazy(() => import('./components/FocusSanctuary').then(m => ({ default: m.FocusSanctuary })));
-const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
-const XPSandboxDock = lazy(() => import('./components/XPSandboxDock').then(m => ({ default: m.XPSandboxDock })));
+const LandingPage = lazyWithRetry(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
+const ClubsView = lazyWithRetry(() => import('./components/views/ClubsView').then(m => ({ default: m.ClubsView })));
+const QAForumView = lazyWithRetry(() => import('./components/views/QAForumView').then(m => ({ default: m.QAForumView })));
+const ChatView = lazyWithRetry(() => import('./components/views/ChatView').then(m => ({ default: m.ChatView })));
+const KhuVinhDanhView = lazyWithRetry(() => import('./components/views/KhuVinhDanhView').then(m => ({ default: m.KhuVinhDanhView })));
+const ComingSoonView = lazyWithRetry(() => import('./components/views/ComingSoonView').then(m => ({ default: m.ComingSoonView })));
+const MemoryRealm = lazyWithRetry(() => import('./components/MemoryRealm').then(m => ({ default: m.MemoryRealm })));
+const ChatDock = lazyWithRetry(() => import('./components/ChatDock').then(m => ({ default: m.ChatDock })));
+const ProfileModal = lazyWithRetry(() => import('./components/ProfileModal').then(m => ({ default: m.ProfileModal })));
+const FocusSanctuary = lazyWithRetry(() => import('./components/FocusSanctuary').then(m => ({ default: m.FocusSanctuary })));
+const AuthModal = lazyWithRetry(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
+const XPSandboxDock = lazyWithRetry(() => import('./components/XPSandboxDock').then(m => ({ default: m.XPSandboxDock })));
 
 const ViewLoadingFallback = () => (
   <div className="w-full h-full min-h-[50vh] flex items-center justify-center" aria-busy="true" aria-label="Đang tải giao diện">
@@ -663,6 +665,10 @@ export const App: React.FC = () => {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
+
+  /* Lưới an toàn cuối: nếu một lớp phủ VÔ HÌNH nào đó đang nuốt cú bấm, tự gỡ
+     nó để giao diện không bao giờ rơi vào trạng thái "bấm gì cũng không mở". */
+  useEffect(() => installInteractionWatchdog(), []);
 
   const solvedQuestionsCount = questions.filter(q => q.isSolved).length;
   const isScrollableView =

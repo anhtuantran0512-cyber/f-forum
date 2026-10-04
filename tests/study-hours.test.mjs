@@ -383,3 +383,56 @@ test('14. Không bao giờ khoá tương tác: mọi lớp phủ đều có đư
   /* 5. Màn hình tải tài nguyên đầu trang có trần thời gian */
   assert.ok(pageLoader.includes('hardStop') && pageLoader.includes('5200'), 'Boot loader must self-close after 5.2s max');
 });
+
+test('15. Vòng 7 — không lớp phủ vô hình nào được phép khoá cả trang', () => {
+  const settings = read('src/components/SettingsModal.tsx');
+  const navbar = read('src/components/Navbar.tsx');
+  const css = read('src/index.css');
+  const app = read('src/App.tsx');
+  const main = read('src/main.tsx');
+
+  /* 1. Bảng Cài đặt: hết cảnh panel vô hình mà tấm phủ vẫn bắt chuột */
+  assert.ok(settings.includes('const isAnchored = hasAnchor && pop.ready'), 'Panel must know whether it is anchored');
+  assert.ok(settings.includes('const isOnScreen = isAnchored || isFloating'), 'Panel must know whether it is on screen');
+  assert.ok(
+    settings.includes('{isOnScreen ? (') || settings.includes('{isOnScreen ?'),
+    'The full-screen backdrop may only exist while the panel is visible',
+  );
+  assert.ok(settings.includes('ff-settings-panel--floating'), 'Panel must fall back to a centred sheet when unanchored');
+  assert.ok(settings.includes('ff-settings-panel--ghost'), 'Panel must be click-through during the measuring grace period');
+  assert.ok(settings.includes('usePopoverPosition(isRendered'), 'Anchored positioning must stay in place');
+
+  const layerRule = css.match(/\.ff-settings-layer \{([\s\S]*?)\}/);
+  assert.ok(layerRule && layerRule[1].includes('pointer-events: none'), 'The centred wrapper itself must never catch clicks');
+  const floatingRule = css.match(/\.ff-settings-panel--floating \{([\s\S]*?)\}/);
+  assert.ok(
+    floatingRule && floatingRule[1].includes('pointer-events: auto !important'),
+    'Only the centred panel receives interaction',
+  );
+  const ghostRule = css.match(/\.ff-settings-panel--ghost \{([\s\S]*?)\}/);
+  assert.ok(ghostRule && ghostRule[1].includes('pointer-events: none'), 'Ghost panel must be click-through');
+
+  /* 2. Dải bắt hover vô hình của navbar auto-hide đã bị xoá hẳn */
+  assert.ok(!navbar.includes('z-[51]'), 'The invisible auto-hide strip (z-51, above the navbar) must be gone');
+  assert.ok(navbar.includes('navbarAutoHide'), 'Auto-hide edge detection must still work via mousemove');
+
+  /* 3. Watchdog: tự gỡ lớp phủ vô hình nuốt cú bấm */
+  const watchdog = read('src/utils/interactionWatchdog.ts');
+  assert.ok(app.includes('installInteractionWatchdog()'), 'App must install the interaction watchdog');
+  assert.ok(watchdog.includes('document.elementFromPoint'), 'Watchdog must inspect the real top element under the cursor');
+  assert.ok(watchdog.includes('VIEWPORT_COVERAGE = 0.96'), 'Only near-full-viewport layers are considered');
+  assert.ok(watchdog.includes("setProperty('pointer-events', 'none', 'important')"), 'Watchdog must neutralise the veil');
+  assert.ok(watchdog.includes('NEUTRALIZED_EVENT'), 'Watchdog must announce what it neutralised');
+
+  /* 4. Lưới an toàn chunk: thử lại rồi mới tải lại trang, có màn hình khôi phục */
+  const retry = read('src/utils/lazyWithRetry.ts');
+  assert.ok(main.includes('AppErrorBoundary'), 'Root must be wrapped in the error boundary');
+  assert.ok(retry.includes('window.location.reload()'), 'Failed chunk must trigger a single reload');
+  assert.ok(retry.includes('400'), 'Failed chunk must be retried once before reloading');
+  assert.ok(!app.includes('= lazy(() => import('), 'All lazy chunks must go through lazyWithRetry');
+
+  const boundary = read('src/components/AppErrorBoundary.tsx');
+  assert.ok(boundary.includes('getDerivedStateFromError'), 'Boundary must catch render errors');
+  assert.ok(boundary.includes('window.location.reload()'), 'Boundary must offer a reload path');
+  assert.ok(boundary.includes('fforum_chunk_reload_'), 'Boundary must be able to clear poisoned chunk flags');
+});

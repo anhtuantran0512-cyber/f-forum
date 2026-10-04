@@ -752,21 +752,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      {/* Auto-Hide Hover Trigger Zone (Synchronized across all 4 edges) */}
-      {navbarAutoHide && (
-        <div
-          className={`hidden md:block fixed z-[51] pointer-events-auto opacity-0 transition-all ${
-            navbarPosition === 'bottom'
-              ? 'bottom-0 inset-x-0 h-[88px]'
-              : navbarPosition === 'left'
-              ? 'left-0 inset-y-0 w-[88px]'
-              : navbarPosition === 'right'
-              ? 'right-0 inset-y-0 w-[88px]'
-              : 'top-0 inset-x-0 h-[88px]'
-          }`}
-          onMouseEnter={handleNavPointerEnter}
-        />
-      )}
+      {/* (Đã xoá dải vô hình bắt hover ở mép màn hình: nó phủ lên navbar và
+          nuốt cú bấm. Việc dò mép đã do listener mousemove ở trên lo — không
+          còn lớp nào chặn chuột nữa.) */}
 
       {/* ======================================================== */}
       {/* 1. DESKTOP FLOATING GLASS CAPSULE (Viewports >= 768px)   */}
@@ -1066,11 +1054,15 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* ======================================================== */}
       {/* DESKTOP POPOVERS (Rendered outside transformed nav!)     */}
       {/* ======================================================== */}
-      <div className="hidden md:block">
-        <div ref={settingsMenuRef}>
-          <SettingsModal {...sharedSettingsProps} anchorRef={settingsTriggerRef} />
-        </div>
+      {/* CÀI ĐẶT — chỉ MỘT bản duy nhất, không nằm trong khung ẩn `hidden md:block`
+          và cũng không nằm trong khung có transform/filter, nhờ vậy tấm phủ của
+          bảng luôn phủ đúng toàn màn hình. Không còn bản sao cho điện thoại:
+          nếu nút neo bị ẩn, panel tự nổi giữa màn hình (xem SettingsModal). */}
+      <div ref={settingsMenuRef}>
+        <SettingsModal {...sharedSettingsProps} anchorRef={settingsTriggerRef} />
+      </div>
 
+      <div className="hidden md:block">
         <div ref={notifMenuRef}>
           <NotificationsModal
             isOpen={isNotificationsOpen}
@@ -1145,11 +1137,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Settings size={18} className={isSettingsOpen ? 'text-amber-300 rotate-90 transition-transform' : 'text-amber-400'} />
             </button>
-
-            {/* Mobile Settings Modal */}
-            <div className="md:hidden">
-              <SettingsModal {...sharedSettingsProps} />
-            </div>
           </div>
 
           {/* Notification Bell Button */}

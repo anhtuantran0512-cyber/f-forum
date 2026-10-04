@@ -248,12 +248,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const pop = usePopoverPosition(isRendered, anchorRef, activeDockPos, 392, 640);
 
+  /* Neo có đo được không? Nút Cài đặt có thể đang bị ẩn (ví dụ bảng mở từ thanh
+     dưới của điện thoại) → khi đó panel PHẢI chuyển sang dạng giữa màn hình.
+     Tuyệt đối không được để panel vô hình (top:-9999, opacity:0) mà tấm phủ
+     toàn màn hình vẫn bắt chuột — đó chính là lỗi "bấm gì cũng không mở". */
+  const hasAnchor = Boolean(anchorRef);
+  const isAnchored = hasAnchor && pop.ready;
+
+  const [isFloating, setIsFloating] = useState(false);
+
+  useEffect(() => {
+    if (!isRendered || isAnchored) {
+      setIsFloating(false);
+      return;
+    }
+    /* Chờ 220ms cho khung hình đầu đo xong neo; quá hạn thì nổi giữa màn hình. */
+    const timer = window.setTimeout(() => setIsFloating(true), 220);
+    return () => window.clearTimeout(timer);
+  }, [isRendered, isAnchored]);
+
+  /* isOnScreen = panel thực sự đang nhìn thấy được. Chỉ khi đó tấm phủ mới
+     được phép tồn tại. */
+  const isOnScreen = isAnchored || isFloating;
+
   /* Bật transition top/left SAU khung hình đầu tiên: panel lướt theo khi nút
      Cài đặt di chuyển lúc thanh navbar co giãn, thay vì nhảy từng nấc. */
   const [isSettled, setIsSettled] = useState(false);
 
   useEffect(() => {
-    if (!isRendered || !pop.ready) {
+    if (!isRendered || !isAnchored) {
       setIsSettled(false);
       return;
     }
@@ -261,7 +284,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     return () => {
       if (settledRafRef.current) window.cancelAnimationFrame(settledRafRef.current);
     };
-  }, [isRendered, pop.ready]);
+  }, [isRendered, isAnchored]);
 
   if (!isRendered) return null;
 
@@ -342,18 +365,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <>
-      <button
-        type="button"
-        tabIndex={-1}
-        aria-label="Đóng cài đặt"
-        onClick={onClose}
-        className={`fixed inset-0 z-40 bg-transparent border-none outline-none cursor-default ${
-          isClosing ? 'ff-backdrop-out' : 'ff-backdrop-in'
-        }`}
-      >
-        <span aria-hidden="true" className="absolute inset-0 bg-black/25 backdrop-blur-[2px]" />
-      </button>
+      {/* Tấm phủ chỉ được tồn tại khi panel ĐANG NHÌN THẤY. Không bao giờ để một
+          tấm phủ toàn màn hình sống một mình — đó là cách khoá cả trang. */}
+      {isOnScreen ? (
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label="Đóng cài đặt"
+          onClick={onClose}
+          className={`fixed inset-0 z-40 bg-transparent border-none outline-none cursor-default ${
+            isClosing ? 'ff-backdrop-out' : 'ff-backdrop-in'
+          }`}
+        >
+          <span aria-hidden="true" className="absolute inset-0 bg-black/25 backdrop-blur-[2px]" />
+        </button>
+      ) : null}
 
+      <div className={isAnchored ? 'contents' : 'ff-settings-layer'}>
       <div
         ref={modalRef}
         role="dialog"
@@ -361,11 +389,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         aria-label="Cài đặt F-Forum"
         className={`settings-modal liquid-glass fixed z-50 w-[calc(100vw-1.5rem)] max-w-[392px] max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden rounded-[26px] p-3.5 text-white shadow-[0_40px_120px_rgba(0,0,0,0.75)] ff-settings-panel ${
           isClosing ? 'ff-settings-panel--out' : 'ff-settings-panel--in'
-        } ${isSettled && !isClosing ? 'ff-settings-panel--settled' : ''}`}
-        style={{
-          ...pop.style,
-          ['--ff-settings-origin' as string]: (pop.style.transformOrigin as string) || 'top right',
-        } as React.CSSProperties}
+        } ${
+          isAnchored
+            ? isSettled && !isClosing
+              ? 'ff-settings-panel--settled'
+              : ''
+            : isFloating
+            ? 'ff-settings-panel--floating'
+            : 'ff-settings-panel--ghost'
+        }`}
+        style={
+          {
+            ...(isAnchored ? pop.style : { zIndex: 50 }),
+            ['--ff-settings-origin' as string]: isAnchored
+              ? (pop.style.transformOrigin as string) || 'top right'
+              : 'center',
+          } as React.CSSProperties
+        }
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-white/10">
@@ -1053,6 +1093,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </>
           )}
         </div>
+      </div>
       </div>
     </>
   );
