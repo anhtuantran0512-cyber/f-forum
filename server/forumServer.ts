@@ -478,6 +478,31 @@ function sanitizePresence(payload: any, claims: SessionClaims | null) {
 /** Chặn flood presence: client thật ping mỗi 15 giây, ngưỡng này còn rất rộng. */
 const presenceLimiter = new SlidingWindowRateLimiter(60 * 1000, 40);
 
+/**
+  Chỉ cho sửa ba trường nội dung của một câu hỏi.
+
+  Cả hai đường sửa bài đều gộp `{ ...q, ...updates }` — tức là nhận MỌI trường
+  client gửi. Dù cổng này chỉ Super Admin qua được, `authorEmail` là trường quyết
+  định quyền sở hữu (chọn đáp án chuẩn, xoá bài) và `bountyCoin` là trường quyết
+  định tiền thưởng, nên để ghi đè được hai trường đó là một lỗ mass-assignment:
+  một token admin lộ ra, hay một nút bấm gửi nhầm payload, cũng đủ đổi chủ câu
+  hỏi hoặc thổi tiền thưởng. Client thật chỉ gửi title/content/subject.
+*/
+function sanitizeQuestionUpdates(updates: any) {
+  if (!updates || typeof updates !== 'object') return null;
+  const clean: Record<string, unknown> = {};
+  if (typeof updates.title === 'string' && updates.title.trim()) {
+    clean.title = updates.title.trim().slice(0, 200);
+  }
+  if (typeof updates.content === 'string' && updates.content.trim()) {
+    clean.content = updates.content.trim().slice(0, 20000);
+  }
+  if (typeof updates.subject === 'string' && updates.subject.trim()) {
+    clean.subject = updates.subject.trim().slice(0, 40);
+  }
+  return Object.keys(clean).length > 0 ? clean : null;
+}
+
 function requireSuperAdmin(req: IncomingMessage, body: any): SessionClaims | null {
   const claims = authorizeRequest(req, null, body?.adminToken || body?.token || null);
   if (!claims) return null;
@@ -868,11 +893,16 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
                 break;
               }
+              /* Cùng một bộ lọc như đường HTTP: không ghi đè được authorEmail
+                 hay bountyCoin qua cửa sửa bài. */
+              const safeWsUpdates = sanitizeQuestionUpdates(updates);
+              if (!safeWsUpdates) break;
+              if (!store.questions.some(q => q.id === questionId)) break;
               store.questions = store.questions.map(q =>
-                q.id === questionId ? { ...q, ...updates } : q
+                q.id === questionId ? { ...q, ...safeWsUpdates } : q
               );
               persistStoreToDisk();
-              broadcastServerEvent('EDIT_QUESTION', { questionId, updates });
+              broadcastServerEvent('EDIT_QUESTION', { questionId, updates: safeWsUpdates });
               break;
             }
             case 'DELETE_SOLUTION': {
@@ -2146,11 +2176,23 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           sendJson(res, 400, { success: false, message: 'Thiếu thông tin cập nhật' });
           return;
         }
+        const safeUpdates = sanitizeQuestionUpdates(updates);
+        if (!safeUpdates) {
+          sendJson(res, 400, {
+            success: false,
+            message: 'Chỉ sửa được tiêu đề, nội dung và môn học của câu hỏi.',
+          });
+          return;
+        }
+        if (!store.questions.some(q => q.id === questionId)) {
+          sendJson(res, 404, { success: false, message: 'Câu hỏi này không còn tồn tại.' });
+          return;
+        }
         store.questions = store.questions.map(q =>
-          q.id === questionId ? { ...q, ...updates } : q
+          q.id === questionId ? { ...q, ...safeUpdates } : q
         );
         persistStoreToDisk();
-        broadcastServerEvent('EDIT_QUESTION', { questionId, updates });
+        broadcastServerEvent('EDIT_QUESTION', { questionId, updates: safeUpdates });
         const updatedQ = store.questions.find(q => q.id === questionId);
         sendJson(res, 200, { success: true, message: 'Đã cập nhật bài viết thành công', question: updatedQ });
       } catch (err: any) {

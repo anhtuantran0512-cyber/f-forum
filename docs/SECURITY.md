@@ -515,6 +515,33 @@ Sau khi vá, cùng một repro:
 
 ---
 
+## 24. Ghi đè trường cấm qua cửa sửa bài (mass-assignment)
+
+**Mức độ:** Trung bình · **Vị trí:** `POST /api/questions/edit`, WS `EDIT_QUESTION`
+
+Cả hai đường sửa bài đều gộp thô:
+
+```js
+store.questions = store.questions.map(q => q.id === questionId ? { ...q, ...updates } : q);
+```
+
+`updates` là object client gửi nguyên khối, nên payload sửa bài kèm thêm trường nào
+cũng được ghi. Cổng này chỉ Super Admin qua được, nhưng hai trường bị ghi đè nguy
+hiểm nhất lại chính là hai trường điều khiển quyền và tiền:
+
+- `authorEmail` — quyết định ai được chọn đáp án chuẩn và xoá bài; đổi được là
+  **đổi chủ câu hỏi**.
+- `bountyCoin` — quyết định tiền thưởng (`bounty*0.5 + 100`); thổi được là thổi
+  tiền thưởng cho bất kỳ ai được chọn làm đáp án chuẩn.
+
+Một token admin lộ ra, hay một nút bấm gửi nhầm payload, là đủ.
+
+**Đã vá:** thêm `sanitizeQuestionUpdates()` dùng chung cho cả HTTP lẫn WS, chỉ giữ
+`title` (200), `content` (20000), `subject` (40) — đúng ba trường client thật gửi.
+Payload chỉ chứa trường cấm thì trả `400`; câu hỏi không tồn tại thì `404`.
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -543,6 +570,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 33 bài, chạy trên server thật
-npm test                                        # toàn bộ 129 bài
+node --test tests/security-hardening.test.mjs   # 35 bài, chạy trên server thật
+npm test                                        # toàn bộ 131 bài
 ```
