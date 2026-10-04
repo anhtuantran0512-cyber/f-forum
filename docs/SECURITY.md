@@ -375,6 +375,39 @@ Xác nhận end-to-end trên dev server:
 
 ---
 
+## 20. Đăng bài dưới danh tính người khác
+
+**Mức độ:** Trung bình · **Vị trí:** `POST /api/questions`, `POST /api/solutions`
+
+Ngay cả khi token hợp lệ, các trường hiển thị vẫn lấy thẳng từ body:
+
+```js
+authorId:     body.authorId,
+authorName:   body.authorName,
+authorAvatar: body.authorAvatar || DEFAULT_AVATAR,
+authorLevel:  body.authorLevel || author?.level || 1,
+```
+
+Nghĩa là một tài khoản thật vẫn đăng được câu hỏi hoặc lời giải hiện ra dưới tên,
+ảnh đại diện và cấp bậc của bất kỳ ai — kể cả tên Super Admin, làm nội dung trông
+như do Ban Quản Trị viết. `subject` và `imageUrl` cũng không bị cắt độ dài.
+
+**Đã vá:** đã đăng nhập thì `authorId` / `authorName` / `authorAvatar` /
+`authorLevel` lấy từ bản ghi thật trên server (giống cách đã làm cho chat, presence
+và CLB). Khách chưa đăng nhập vẫn được tự nhập tên vì diễn đàn cho phép hỏi ẩn
+danh. Thêm cắt độ dài cho `subject` (40), `imageUrl` (2000), `anonymousAlias` /
+`anonymousMask` (40).
+
+Xác nhận end-to-end trên dev server:
+
+```
+[1] đặt câu hỏi: 200 | tên="E2E Người Hỏi" level=1   (body khai tên giả, level 150)
+[2] gửi lời giải: 200 | tên="E2E Người Giải" level=1
+[3] title=200/200 content=20000/20000 subject=40/40 imageUrl=2000/2000
+```
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -391,6 +424,7 @@ Xác nhận end-to-end trên dev server:
 | Nội dung | Server tự cắt độ dài, không tin `maxLength` của client; kho dữ liệu có trần |
 | Câu lạc bộ | Lập cần đăng nhập; duyệt/từ chối chỉ Super Admin; người sáng lập lấy từ token |
 | Trực tuyến | `email`/`role` trong gói presence chỉ lấy từ phiên đã xác thực |
+| Nội dung đăng | Tên, ảnh, cấp bậc hiển thị lấy từ bản ghi thật — không đăng dưới danh tính người khác được |
 
 ## Biến môi trường
 
@@ -401,6 +435,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 29 bài, chạy trên server thật
-npm test                                        # toàn bộ 125 bài
+node --test tests/security-hardening.test.mjs   # 30 bài, chạy trên server thật
+npm test                                        # toàn bộ 126 bài
 ```

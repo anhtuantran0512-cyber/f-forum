@@ -1389,3 +1389,63 @@ test('29. Presence: server không còn broadcast nguyên khối dữ liệu clie
   );
   assert.ok(server.includes('presenceLimiter'), 'Presence phải có rate limit');
 });
+
+test('30. Câu hỏi & lời giải: danh tính hiển thị lấy từ bản ghi thật, không từ body', async () => {
+  const env = await createTestServer();
+  try {
+    const asker = await register(env.baseUrl, 'Người Hỏi Thật', 'nguoi-hoi-that@example.com', 'mat-khau-hoi-12345');
+    const solver = await register(env.baseUrl, 'Người Giải Thật', 'nguoi-giai-that@example.com', 'mat-khau-giai-12345');
+
+    /* Đặt câu hỏi nhưng khai tên + ảnh đại diện của người khác. */
+    const asked = await post(env.baseUrl, '/api/questions', {
+      title: 'Giải giúp bài tích phân này',
+      content: 'Tính tích phân của x^2 từ 0 đến 1.',
+      authorEmail: 'nguoi-hoi-that@example.com',
+      authorName: 'Super Admin Giả Mạo',
+      authorId: 'id-cua-nguoi-khac',
+      authorAvatar: 'https://example.com/avatar-gia.jpg',
+      authorLevel: 150,
+    }, asker.token);
+    assert.equal(asked.status, 200, `đặt câu hỏi: ${JSON.stringify(asked.data)}`);
+
+    const q = asked.data.question;
+    assert.equal(q.authorName, 'Người Hỏi Thật', 'Tên tác giả phải lấy từ bản ghi thật');
+    assert.notEqual(q.authorId, 'id-cua-nguoi-khac', 'authorId không được lấy từ body tự khai');
+    assert.notEqual(q.authorAvatar, 'https://example.com/avatar-gia.jpg', 'Ảnh đại diện không được lấy từ body');
+    assert.notEqual(q.authorLevel, 150, 'Cấp bậc không được tự khai');
+
+    const questionId = q.id;
+
+    /* Trả lời cũng vậy. */
+    const answered = await post(env.baseUrl, '/api/solutions', {
+      questionId,
+      content: 'Kết quả là 1/3.',
+      authorEmail: 'nguoi-giai-that@example.com',
+      authorName: 'Thầy Giáo Giả Mạo',
+      authorAvatar: 'https://example.com/giao-vien.jpg',
+      authorLevel: 150,
+    }, solver.token);
+    assert.equal(answered.status, 200, `gửi lời giải: ${JSON.stringify(answered.data)}`);
+
+    const sol = answered.data.solution;
+    assert.equal(sol.authorName, 'Người Giải Thật', 'Tên người giải phải lấy từ bản ghi thật');
+    assert.notEqual(sol.authorAvatar, 'https://example.com/giao-vien.jpg', 'Ảnh người giải không được lấy từ body');
+    assert.notEqual(sol.authorLevel, 150, 'Cấp bậc người giải không được tự khai');
+
+    /* Trường tự do vẫn bị cắt độ dài. */
+    const longOne = await post(env.baseUrl, '/api/questions', {
+      title: 'T'.repeat(500),
+      content: 'C'.repeat(50000),
+      subject: 'S'.repeat(500),
+      imageUrl: 'U'.repeat(9000),
+      authorEmail: 'nguoi-hoi-that@example.com',
+    }, asker.token);
+    assert.equal(longOne.status, 200);
+    assert.ok(longOne.data.question.title.length <= 200, `title phải ≤200, thực tế ${longOne.data.question.title.length}`);
+    assert.ok(longOne.data.question.content.length <= 20000, 'content phải ≤20000');
+    assert.ok(longOne.data.question.subject.length <= 40, `subject phải ≤40, thực tế ${longOne.data.question.subject.length}`);
+    assert.ok(longOne.data.question.imageUrl.length <= 2000, 'imageUrl phải ≤2000');
+  } finally {
+    await env.close();
+  }
+});

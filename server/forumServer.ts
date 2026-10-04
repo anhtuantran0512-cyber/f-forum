@@ -1036,24 +1036,27 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const newQuestion = {
           id: randomId('q'),
           title: title.slice(0, 200),
-          subject: body.subject || 'toan',
+          subject: String(body.subject || 'toan').slice(0, 40),
           content: content.slice(0, 20000),
-          authorId: body.authorId,
-          authorName: body.authorName,
+          /* Đã đăng nhập thì danh tính hiển thị lấy từ bản ghi thật — không thì
+             ai cũng đăng bài dưới tên và ảnh đại diện của người khác. Khách chưa
+             đăng nhập vẫn dùng tên tự nhập (diễn đàn cho phép hỏi ẩn danh). */
+          authorId: String(author?.id ?? body.authorId ?? '').slice(0, MAX_NAME_LENGTH),
+          authorName: String(author?.name ?? body.authorName ?? 'Học sinh').slice(0, MAX_NAME_LENGTH),
           /* Trước đây authorEmail bị bỏ rơi → server không biết câu hỏi của ai
              và không thể kiểm tra quyền "chọn đáp án chuẩn". */
           authorEmail: authorEmail || undefined,
-          authorLevel: body.authorLevel ?? author?.level ?? 1,
-          authorAvatar: body.authorAvatar || DEFAULT_AVATAR,
+          authorLevel: author?.level ?? 1,
+          authorAvatar: String(author?.avatar ?? body.authorAvatar ?? DEFAULT_AVATAR).slice(0, 2000),
           isAnonymous: Boolean(body.isAnonymous),
-          anonymousAlias: body.anonymousAlias,
-          anonymousMask: body.anonymousMask,
+          anonymousAlias: typeof body.anonymousAlias === 'string' ? body.anonymousAlias.slice(0, 40) : undefined,
+          anonymousMask: typeof body.anonymousMask === 'string' ? body.anonymousMask.slice(0, 40) : undefined,
           createdAt: 'Vừa xong',
           createdAtMs: Date.now(),
           isSolved: false,
           views: 1,
           bountyCoin,
-          imageUrl: body.imageUrl || undefined,
+          imageUrl: typeof body.imageUrl === 'string' ? body.imageUrl.slice(0, 2000) : undefined,
         };
 
         store.questions.unshift(newQuestion);
@@ -1110,17 +1113,18 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const newSolution = {
           id: randomId('sol'),
           questionId,
-          authorId: body.authorId,
-          authorName: body.authorName,
+          /* Danh tính lấy từ bản ghi thật khi đã đăng nhập, như ở câu hỏi. */
+          authorId: String(author?.id ?? body.authorId ?? '').slice(0, MAX_NAME_LENGTH),
+          authorName: String(author?.name ?? body.authorName ?? 'Học sinh').slice(0, MAX_NAME_LENGTH),
           authorEmail: authorEmail || undefined,
-          authorAvatar: body.authorAvatar || DEFAULT_AVATAR,
-          authorLevel: body.authorLevel || author?.level || 1,
+          authorAvatar: String(author?.avatar ?? body.authorAvatar ?? DEFAULT_AVATAR).slice(0, 2000),
+          authorLevel: author?.level ?? 1,
           content: content.slice(0, 20000),
           createdAt: 'Vừa xong',
           createdAtMs: Date.now(),
           isBest: false,
           upvotes: 1,
-          imageUrl: body.imageUrl || undefined,
+          imageUrl: typeof body.imageUrl === 'string' ? body.imageUrl.slice(0, 2000) : undefined,
         };
 
         store.solutions.push(newSolution);
