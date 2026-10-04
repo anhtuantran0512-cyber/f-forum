@@ -69,7 +69,12 @@ Hệ thống được thiết kế theo giao diện kính mờ hiện đại, h�
 - Biểu đồ mạng nhện (Radar Chart) thể hiện thế mạnh giải bài theo 6 nhóm môn học.
 - Nút **Tố Cáo Tài Khoản**: Cho phép người dùng báo cáo các hành vi vi phạm (spam, quấy rối, ngôn từ độc hại) về ban quản trị để xử lý kịp thời.
 
-### 9. Hệ Thống 8 Cấp Bậc Học Đường
+### 9. Hộp Thư Tố Cáo Dành Cho Ban Quản Trị
+- Nút **Tố Cáo Tài Khoản** ở hồ sơ, phòng chat và sàn Q&A gửi báo cáo về máy chủ.
+- **Hộp thư tố cáo** (chỉ Super Admin) liệt kê báo cáo kèm huy hiệu số vụ chờ xử lý, cho phép đánh dấu *Đã xử lý*, *Bỏ qua* hoặc *Xoá* kèm ghi chú.
+- Báo cáo được lưu bền vững (không mất khi khởi động lại), tố cáo trùng tự gộp, và Super Admin đang trực nhận thông báo ngay khi có vụ mới.
+
+### 10. Hệ Thống 8 Cấp Bậc Học Đường
 Hệ thống cấp bậc được đặt tên gần gũi với học sinh theo tiến trình tích lũy Coin:
 1. 🌱 **Học Sinh** (0 Coin)
 2. 🌿 **Học Sinh Giỏi** (150 Coin)
@@ -80,7 +85,7 @@ Hệ thống cấp bậc được đặt tên gần gũi với học sinh theo t
 7. 👑 **Bậc Thầy** (6,000 Coin)
 8. 🔮 **Chuyên Gia** (12,000 Coin)
 
-### 10. Giao Diện & Tùy Chọn Hiển Thị
+### 11. Giao Diện & Tùy Chọn Hiển Thị
 - Hỗ trợ cả 2 chế độ: Giao diện Sáng (Light Mode) và Giao diện Tối (Dark Mode).
 - **Thanh điều hướng linh hoạt**: Có thể đặt ở 4 vị trí: Trên cùng, Dưới cùng, Cạnh trái hoặc Cạnh phải màn hình.
 - **Nút F (logo) là lối vào trang Giới thiệu** — không còn tab chữ "GIỚI THIỆU" cho thanh gọn hơn.
@@ -108,7 +113,7 @@ Máy chủ không tin dữ liệu client gửi lên. Toàn bộ tầng xác th�
 Chi tiết từng lỗ hổng đã tìm thấy và cách vá: **[docs/SECURITY.md](docs/SECURITY.md)**.
 
 ```bash
-# 18 bài kiểm thử bảo mật, chạy trên máy chủ thật qua HTTP/WebSocket
+# 22 bài kiểm thử bảo mật, chạy trên máy chủ thật qua HTTP/WebSocket
 node --test tests/security-hardening.test.mjs
 ```
 
@@ -156,7 +161,7 @@ Sau khi chạy lệnh, mở trình duyệt web và truy cập địa chỉ: `htt
 # Kiểm tra lỗi cú pháp với Oxlint
 npx oxlint
 
-# Chạy toàn bộ 114 bài kiểm thử tự động
+# Chạy toàn bộ 118 bài kiểm thử tự động
 npm test
 
 # Biên dịch mã nguồn cho môi trường sản xuất
@@ -186,7 +191,7 @@ f-forum/
 │   ├── index.css           # Cấu hình giao diện và hiệu ứng kính
 │   └── main.tsx            # Điểm khởi động ứng dụng
 ├── docs/                   # Tài liệu thiết kế & bảo mật
-├── tests/                  # Bộ bài kiểm thử tự động (114 bài)
+├── tests/                  # Bộ bài kiểm thử tự động (118 bài)
 └── package.json            # Thông tin dự án và danh sách thư viện
 ```
 
