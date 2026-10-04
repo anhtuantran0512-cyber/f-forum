@@ -96,6 +96,8 @@ interface QAForumViewProps {
   chatMessages?: ChatMessage[];
   /** False while the first server sync is in flight → show shimmer skeletons. */
   isSynced?: boolean;
+  /** Mở Phòng Tập Trung (Pomodoro) từ widget xếp hạng giờ học. */
+  onOpenFocusMode?: () => void;
 }
 
 
@@ -138,6 +140,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   users = {},
   chatMessages = [],
   isSynced = true,
+  onOpenFocusMode,
 }) => {
   const [activeVideoIdx, setActiveVideoIdx] = useState(0);
   const [isAutoCycle, setIsAutoCycle] = useState(true);
@@ -754,7 +757,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         <span className="truncate italic text-neutral-200">{bestSol.content}</span>
                       </div>
                       <span className="text-[10px] font-mono text-amber-400 font-bold ml-2 shrink-0">
-                        ✓ HOIDAP247 BEST
+                        ✓ ĐÁP ÁN CHUẨN
                       </span>
                     </div>
                   )}
@@ -789,6 +792,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   setIsAskModalOpen(true);
                 }
               }}
+              onOpenFocusMode={onOpenFocusMode}
             />
           </div>
         </div>
@@ -1243,7 +1247,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               </button>
                             )}
 
-                            {/* HOIDAP247 BEST ANSWER CONFIRMATION BUTTON */}
+                            {/* Nút xác nhận Đáp Án Chuẩn */}
                             {canConfirmBest && !sol.isBest && (
                               <button
                                 onClick={() => onMarkBestSolution(selectedQuestion.id, sol.id)}

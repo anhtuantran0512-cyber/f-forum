@@ -174,10 +174,23 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
       });
     }, 60);
 
+    /* Lưới an toàn tuyệt đối: dù có bước nào treo (tab bị bóp nhịp, mạng đứng),
+       màn hình chờ cũng tự đóng sau tối đa 5.2s — không bao giờ khoá trang. */
+    const hardStop = window.setTimeout(() => {
+      if (!mountedRef.current || finishedRef.current) return;
+      finishedRef.current = true;
+      pushLog('> f-forum: bỏ qua bước còn lại, vào trang');
+      setIsExiting(true);
+      window.setTimeout(() => {
+        if (mountedRef.current) onLoaded();
+      }, 300);
+    }, 5200);
+
     return () => {
       mountedRef.current = false;
       clearInterval(tick);
       clearInterval(cssCheck);
+      window.clearTimeout(hardStop);
     };
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, []);

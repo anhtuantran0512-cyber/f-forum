@@ -17,7 +17,7 @@ test('1. Landing page composes the complete conversion structure', () => {
     'LandingFeatures',
     'LandingShowcase',
     'LandingBenefits',
-    'LandingTestimonials',
+    'LandingHighlights',
     'LandingPricing',
     'LandingFAQ',
     'LandingCTA',
@@ -97,7 +97,7 @@ test('4. Pricing, FAQ and copy data stay in one iterable source', () => {
   const content = read(`${LANDING_DIR}/landingContent.ts`);
   const pricing = read(`${LANDING_DIR}/sections/LandingPricing.tsx`);
 
-  ['FEATURES', 'SHOWCASE_STEPS', 'BENEFITS', 'TESTIMONIALS', 'PRICING_PLANS', 'FAQ_ITEMS'].forEach((exportName) => {
+  ['FEATURES', 'SHOWCASE_STEPS', 'BENEFITS', 'HIGHLIGHTS', 'PRICING_PLANS', 'FAQ_ITEMS'].forEach((exportName) => {
     assert.ok(content.includes(`export const ${exportName}`), `${exportName} must be exported from landingContent`);
   });
 
@@ -133,7 +133,15 @@ test('5. App integration: landing is the first-run route and the wheel engine ig
     app.includes("onOpenAuth={() => handleOpenAuth('register')}"),
     'Landing CTAs must open the auth dialog on the register tab',
   );
-  assert.ok(navbar.includes("{ id: 'landing', label: 'GIỚI THIỆU' }"), 'In-app navbar needs a way back to the landing page');
+  // Nút F (logo) là lối vào trang Giới thiệu — tab chữ "GIỚI THIỆU" đã được gỡ khỏi thanh điều hướng
+  assert.ok(
+    !navbar.includes("{ id: 'landing', label: 'GIỚI THIỆU' }"),
+    'The text tab "GIỚI THIỆU" must be removed from the navbar',
+  );
+  assert.ok(
+    navbar.includes("aria-label=\"Mở trang Giới thiệu F-Forum\"") && navbar.includes("onViewChange('landing')"),
+    'The F logo button must be the in-app way back to the landing page',
+  );
 
   // The wheel engine invariants asserted by the navigation test must survive.
   assert.ok(

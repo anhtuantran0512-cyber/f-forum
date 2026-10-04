@@ -2,6 +2,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   BadgeCheck,
+  Command,
   BellRing,
   BookOpenCheck,
   Bot,
@@ -93,6 +94,16 @@ export const FEATURES: {
     icon: Headphones,
     accent: 'emerald',
     span: 'md',
+  },
+  {
+    id: 'command',
+    title: 'Bảng lệnh & tiện ích ẩn',
+    description:
+      'Nhấn ⌘/Ctrl + K để mở bảng lệnh nhanh, ⌘/Ctrl + I để ghi chú tức thì ở bất kỳ phân khu nào, kèm nhắc nghỉ mắt 20-20-20 khi học lâu.',
+    icon: Command,
+    accent: 'violet',
+    span: 'md',
+    bullets: ['Bảng lệnh ⌘K không rời bàn phím', 'Sổ tay nhanh dùng chung với Focus', 'Nhắc nghỉ mắt 20-20-20'],
   },
   {
     id: 'memory',
@@ -189,81 +200,74 @@ export const BENEFITS: {
   },
 ];
 
-export const TESTIMONIALS: {
+/**
+ * Khối "Năng lực hệ thống" trên trang giới thiệu.
+ * Trước đây chỗ này là 6 lời chứng thực của những sinh viên mô phỏng (kèm bậc
+ * danh hiệu ảo) — đã bị xoá cùng toàn bộ tài khoản ảo ở vòng 11. Nay mỗi thẻ
+ * mô tả đúng một tính năng đang chạy thật trong ứng dụng.
+ */
+export const HIGHLIGHTS: {
   id: string;
-  quote: string;
-  name: string;
-  role: string;
-  initials: string;
+  tag: string;
+  title: string;
+  body: string;
+  icon: 'qa' | 'chat' | 'rank' | 'focus' | 'clubs' | 'memory';
   from: string;
   to: string;
-  tier: string;
 }[] = [
   {
-    id: 't1',
-    quote:
-      'Mình đăng câu hỏi lúc 22h và có lời giải chi tiết trước khi đi ngủ. Phần “Lời giải hay nhất” giúp mình tiết kiệm hẳn nửa tiếng đọc lan man.',
-    name: 'Minh Anh',
-    role: 'Sinh viên K19 · Công nghệ thông tin',
-    initials: 'MA',
+    id: 'h1',
+    tag: 'Hỏi đáp',
+    title: 'Câu hỏi ẩn danh, lời giải chọn lọc',
+    body: 'Đăng câu hỏi dưới bút danh, nhận lời giải chi tiết và bình chọn “Lời giải hay nhất” để đáp án đúng luôn nằm trên cùng.',
+    icon: 'qa',
     from: '#fbbf24',
     to: '#f97316',
-    tier: 'Bậc III',
   },
   {
-    id: 't2',
-    quote:
-      'Tham gia CLB Lập trình qua F-Forum là bước ngoặt của mình. Có nơi để hỏi, có người cùng làm dự án, và hồ sơ năng lực cứ thế dày lên.',
-    name: 'Khánh Linh',
-    role: 'Sinh viên K18 · Kỹ thuật phần mềm',
-    initials: 'KL',
+    id: 'h2',
+    tag: 'Phòng chat',
+    title: 'Kênh chung và kênh riêng cho CLB',
+    body: 'Tin nhắn thời gian thực, đồng bộ tức thời giữa các tab và mọi người trong trường, kèm bộ đếm chờ chống spam.',
+    icon: 'chat',
     from: '#38bdf8',
     to: '#818cf8',
-    tier: 'Bậc IV',
   },
   {
-    id: 't3',
-    quote:
-      'Focus Sanctuary là thứ mình dùng mỗi tối. Tiếng mưa 432Hz cộng với Pomodoro khiến việc học 2 tiếng trôi qua rất nhẹ.',
-    name: 'Minh Quân',
-    role: 'Sinh viên K19 · Anh ngữ',
-    initials: 'MQ',
+    id: 'h3',
+    tag: 'Danh hiệu',
+    title: '8 bậc danh hiệu tính từ dữ liệu thật',
+    body: 'XP chỉ đến từ câu hỏi, câu trả lời, lời giải hay nhất và phiên học thật — huy hiệu tự tiến bậc, không có tài khoản ảo trên bảng.',
+    icon: 'rank',
     from: '#34d399',
     to: '#22d3ee',
-    tier: 'Bậc IV',
   },
   {
-    id: 't4',
-    quote:
-      'Khu Vinh Danh cuối học kỳ khiến cả khoa phải bấm vào xem. Nhìn lại quả cầu ký ức 3D, mình thấy một học kỳ thật trọn vẹn.',
-    name: 'Thanh Trúc',
-    role: 'Sinh viên K17 · Truyền thông',
-    initials: 'TT',
+    id: 'h4',
+    tag: 'Tập trung',
+    title: 'Focus Sanctuary 432Hz và nhật ký giờ học',
+    body: 'Pomodoro kèm âm thanh thư giãn; mỗi phiên hoàn thành được ghi thẳng vào nhật ký giờ học theo ngày, tuần, tháng.',
+    icon: 'focus',
+    from: '#a855f7',
+    to: '#6366f1',
+  },
+  {
+    id: 'h5',
+    tag: 'Câu lạc bộ',
+    title: 'CLB có duyệt, có lý do phản hồi',
+    body: 'Tạo CLB, đăng bài trong kênh riêng và để Ban Quản Trị duyệt minh bạch — hồ sơ năng lực dày lên theo hoạt động thật.',
+    icon: 'clubs',
     from: '#f472b6',
     to: '#a855f7',
-    tier: 'Bậc V',
   },
   {
-    id: 't5',
-    quote:
-      'Mình hỏi ẩn danh những chuyện khó nói về áp lực học tập và được Ban Quản Trị phản hồi riêng. Điều đó khiến mình tin tưởng nền tảng này.',
-    name: 'Hoàng Nam',
-    role: 'Sinh viên K20 · Học thuật',
-    initials: 'HN',
-    from: '#94a3b8',
-    to: '#64748b',
-    tier: 'Bậc II',
-  },
-  {
-    id: 't6',
-    quote:
-      'Cả nhóm mình chuyển từ nhóm chat rời rạc sang F-Forum. Tin nhắn đồng bộ, có kênh riêng cho CLB, chẳng bỏ sót deadline nào.',
-    name: 'Quốc Bảo',
-    role: 'Trưởng CLB Truyền thông',
-    initials: 'QB',
+    id: 'h6',
+    tag: 'Ký ức',
+    title: 'Khu Vinh Danh lưu lại cột mốc học đường',
+    body: 'Mỗi mùa học để lại một quả cầu ký ức: ảnh, cột mốc và những con số thật của cả trường trong học kỳ đó.',
+    icon: 'memory',
     from: '#fbbf24',
     to: '#ec4899',
-    tier: 'Bậc V',
   },
 ];
 
@@ -307,7 +311,7 @@ export const PRICING_PLANS: {
     badge: 'Sắp ra mắt',
     features: [
       'Tất cả quyền lợi gói Sinh viên',
-      'Kho lời giải ưu tiên & ôn tập thông minh',
+      'Bảng lệnh ⌘K, Sổ tay nhanh & nhắc nghỉ mắt 20-20-20',
       'Thống kê tiến độ học tập theo tuần',
       'Chế độ thi đua nhóm & bảng xếp hạng riêng',
       'Huy hiệu Pro & khung hồ sơ đặc biệt',

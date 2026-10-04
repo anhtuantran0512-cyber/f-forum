@@ -116,12 +116,21 @@ export function getTierForLevel(level: number): TierInfo {
   };
 }
 
+/**
+ * Mốc XP để đạt một cấp — DÙNG CHUNG công thức với store
+ * (`forumStore.getXPForLevel`), nhờ vậy thanh tiến độ trong hồ sơ và bảng rank
+ * luôn khớp đúng cấp độ thật của tài khoản.
+ */
+export function xpThresholdForLevel(level: number): number {
+  const lvl = Math.max(0, Math.round(level));
+  if (lvl <= 1) return 0;
+  return Math.floor(140 * (lvl - 1) + 1.08 * Math.pow(lvl - 1, 2));
+}
+
 export function getXPProgress(xp: number, level: number): { current: number; next: number; percent: number } {
   const lvl = Math.max(1, Math.min(150, level));
-  const thresholdFor = (l: number) =>
-    l <= 1 ? 0 : Math.floor(140 * (l - 1) + 1.08 * Math.pow(l - 1, 2));
-  const curThreshold = thresholdFor(lvl);
-  const nextThreshold = lvl >= 150 ? curThreshold + 1000 : thresholdFor(lvl + 1);
+  const curThreshold = xpThresholdForLevel(lvl);
+  const nextThreshold = lvl >= 150 ? curThreshold + 1000 : xpThresholdForLevel(lvl + 1);
   const span = Math.max(1, nextThreshold - curThreshold);
   const intoLevel = Math.max(0, xp - curThreshold);
   const percent = lvl >= 150 ? 100 : Math.max(0, Math.min(100, Math.round((intoLevel / span) * 100)));

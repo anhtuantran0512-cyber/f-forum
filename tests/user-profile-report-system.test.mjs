@@ -2,7 +2,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import http from 'node:http';
 
 test('1. User Profile Architecture: 6 Fast Metrics, Radar Spider Chart, Badges & Chill Box', () => {
   const profileModal = fs.readFileSync('src/components/ProfileModal.tsx', 'utf8');
@@ -31,8 +30,18 @@ test('1. User Profile Architecture: 6 Fast Metrics, Radar Spider Chart, Badges &
   assert.ok(profileModal.includes('Chill Box'), 'Must include Chill Box');
   assert.ok(profileModal.includes('SHOP_ITEMS'), 'Chill box must render real shop inventory');
   assert.ok(profileModal.includes('userInventory'), 'Chill box must render the user own inventory only');
-  assert.ok(profileModal.includes('Kệ Sách Cộng Đồng'), 'Must include Kệ Sách Cộng Đồng');
-  assert.ok(profileModal.includes('Đọc sách gì hay, chia sẻ ngay cùng cộng đồng Hoidap247!'), 'Must include Kệ Sách description');
+  /* Kệ sách: vòng 9 thay khối mô tả suông bằng KỆ THẬT (lưu theo từng tài khoản) */
+  assert.ok(profileModal.includes('BookshelfPanel'), 'Profile must mount the real bookshelf panel');
+  const bookshelf = fs.readFileSync('src/components/BookshelfPanel.tsx', 'utf8');
+  assert.ok(bookshelf.includes('fforum_bookshelf_v1'), 'Bookshelf must persist per account');
+  assert.ok(bookshelf.includes('safeStorage'), 'Bookshelf must use the safeStorage wrapper');
+  assert.ok(!bookshelf.includes('localStorage.'), 'Bookshelf must not touch raw localStorage');
+  assert.ok(bookshelf.includes('ownerKey'), 'Bookshelf must be scoped to the profile owner');
+  assert.ok(profileModal.includes('TierRankSheet'), 'Danh hiệu card must open the rank/badge sheet');
+  assert.ok(
+    !profileModal.includes('hoidap') && !bookshelf.includes('hoidap'),
+    'Every hoidap247 reference must be purged from the profile',
+  );
 
   // Verify the answer history feed is built from REAL user solutions (no mock ids)
   assert.ok(profileModal.includes('userSolutions.map'), 'Answers feed must render real user solutions');
@@ -106,4 +115,47 @@ test('5. Page Resource Loader (.la-08) with real progress bar & mini console', (
   assert.ok(indexCss.includes('.la-08'), 'Must include .la-08 styles');
   assert.ok(indexCss.includes('@keyframes la-08-glow'), 'Must include la-08-glow keyframes');
   assert.ok(indexCss.includes('@keyframes la-08-beat'), 'Must include la-08-beat keyframes');
+});
+
+test('6. Vòng 9 — một lượt thích chỉ cộng ĐÚNG 1, bảng rank mở từ thẻ danh hiệu', () => {
+  const heart = fs.readFileSync('src/components/LikeHeartButton.tsx', 'utf8');
+  const profile = fs.readFileSync('src/components/ProfileModal.tsx', 'utf8');
+  const sheet = fs.readFileSync('src/components/TierRankSheet.tsx', 'utf8');
+
+  /* Tim: nút chỉ HIỂN THỊ số cha truyền xuống, không tự cộng/trừ (bản cũ tự
+     cộng 1 rồi lại cộng tiếp ở cha → bấm một lần mà nhảy 2). Hợp đồng số học
+     được kiểm tra bằng test thật ở tests/like-heart.test.mjs. */
+  /* Soi phần MÃ (bỏ chú thích) để lời giải thích trong comment không tự bắt lỗi */
+  const heartCode = heart.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+  assert.ok(heartCode.includes('<button'), 'Heart must be a real button (a label + hidden tick can double-fire)');
+  assert.ok(!heartCode.includes('type="checkbox"'), 'No checkbox/label pair may remain in the heart');
+  assert.ok(!heartCode.includes('useState'), 'Heart must not keep its own counter state');
+  assert.ok(heartCode.includes('onToggle(!liked)'), 'Heart must report the DESIRED state, never flip internally');
+  assert.ok(!/currentCount \+ 1/.test(heartCode), 'No "+1" math may live inside the heart button');
+
+  /* Hồ sơ: số lượt thích = cảm ơn thật + danh sách người đã thích, lưu theo tài khoản */
+  assert.ok(profile.includes('PROFILE_LIKES_KEY'), 'Profile likes key must be a named constant');
+  assert.ok(
+    profile.includes('parseProfileLikes') && profile.includes('serializeProfileLikes'),
+    'Profile likes must be read + written through the shared helpers',
+  );
+  assert.ok(profile.includes('handleProfileLike'), 'Heart must be wired to a real handler');
+  assert.ok(
+    profile.includes('profileLikeCount(statsMetrics.thanks, profileLikers)'),
+    'Heart count must be real thanks + real likers, computed once',
+  );
+  assert.ok(profile.includes('count={profileHeartCount}') && profile.includes('liked={likedByMe}'), 'Heart must be controlled by the profile state');
+  assert.ok(
+    !/key=\{`\$\{profileKey\}-\$\{likedByMe/.test(profile),
+    'The old remount-by-liked-state hack must be gone (it re-mounted on every like)',
+  );
+
+  /* Thẻ "danh hiệu" → mở bảng rank + danh hiệu + yêu cầu */
+  assert.ok(profile.includes('setIsRankSheetOpen(true)'), 'Rank card must open the sheet');
+  assert.ok(sheet.includes('Bảng rank') && sheet.includes('Danh hiệu') && sheet.includes('Yêu cầu'), 'Sheet must have the three tabs');
+  assert.ok(sheet.includes('TIER_CONFIGS'), 'Sheet must list every tier');
+  assert.ok(sheet.includes('xpThresholdForLevel'), 'Sheet must use the shared XP threshold helper');
+  assert.ok(sheet.includes('requirement'), 'Every badge row must state its requirement');
+  const tier = fs.readFileSync('src/utils/tier.ts', 'utf8');
+  assert.ok(/export (const|function) xpThresholdForLevel/.test(tier), 'XP threshold helper must be shared, not duplicated');
 });

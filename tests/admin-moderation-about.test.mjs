@@ -737,3 +737,42 @@ test('8. 3D Fibonacci Sphere Engine: Golden angle, optical invariance, FLIP plat
 });
 
 
+test('Vòng 9 — nhịp gửi tin mới, không khoá ô nhập, đã xoá nội dung văn hoá FPT', () => {
+  const chatView = fs.readFileSync(path.resolve('src/components/views/ChatView.tsx'), 'utf8');
+  const chatDock = fs.readFileSync(path.resolve('src/components/ChatDock.tsx'), 'utf8');
+  const hook = fs.readFileSync(path.resolve('src/utils/chatCooldown.ts'), 'utf8');
+  const bar = fs.readFileSync(path.resolve('src/components/ChatCooldownBar.tsx'), 'utf8');
+  const css = fs.readFileSync(path.resolve('src/index.css'), 'utf8');
+
+  /* Cơ chế mới: neo theo mốc thời gian kết thúc, KHÔNG trừ dần một biến đếm */
+  assert.ok(hook.includes('CHAT_COOLDOWN_MS'), 'Cooldown duration must be a named constant');
+  assert.ok(hook.includes('export const useChatCooldown'), 'Cooldown logic must be one shared hook');
+  assert.ok(hook.includes('Date.now() + durationMs'), 'Cooldown must be anchored to an end timestamp');
+  assert.ok(!/setCooldownRemaining/.test(hook), 'The drift-prone counter state must be gone');
+  assert.ok(hook.includes('const left = endsAt - Date.now()'), 'Remaining time must be computed from the end timestamp');
+  assert.ok(hook.includes('window.clearInterval'), 'The tick interval must always be cleaned up');
+
+  for (const [name, src] of [['ChatView', chatView], ['ChatDock', chatDock]]) {
+    assert.ok(src.includes('useChatCooldown()'), `${name} must use the shared cooldown hook`);
+    assert.ok(!/cooldownRemaining/.test(src), `${name} must not keep the old ad-hoc counter`);
+    assert.ok(src.includes('ChatCooldownBar'), `${name} must render the new cooldown bar`);
+    assert.ok(src.includes('ff-cd-btn'), `${name} send button must show the waiting ring`);
+    assert.ok(src.includes('cooldown.nudge()'), `${name} must nudge instead of silently dropping a send`);
+    /* Ô nhập phải LUÔN gõ được — chỉ nút Gửi chờ tới hạn */
+    assert.ok(!/disabled=\{cooldownRemaining/.test(src), `${name} must not disable the input while cooling`);
+  }
+  assert.ok(bar.includes('pointer-events') === false, 'The bar relies on CSS for hit-testing (no inline tricks)');
+  assert.ok(css.includes('.ff-cd.is-cooling') && css.includes('.ff-cd__dial-arc'), 'The cooldown bar must be styled');
+  assert.ok(css.includes('html.light .ff-cd'), 'The cooldown bar needs a light-mode variant');
+  assert.ok(css.includes('.reduce-motion .ff-cd'), 'The cooldown bar must honour reduced motion');
+  assert.ok(
+    /\.ff-cd \{[\s\S]{0,400}pointer-events: none;/.test(css),
+    'The cooldown bar must never swallow clicks',
+  );
+
+  /* Nội dung đã xoá hẳn */
+  for (const gone of ['VĂN HOÁ NÓI CHUYỆN FPT', 'Chào đón tân sinh viên', 'Đại sảnh giao lưu kết bạn toàn trường']) {
+    assert.ok(!chatView.includes(gone), `ChatView must no longer contain "${gone}"`);
+    assert.ok(!chatDock.includes(gone), `ChatDock must no longer contain "${gone}"`);
+  }
+});
