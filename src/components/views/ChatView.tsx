@@ -29,7 +29,7 @@ import { TRI_CHAT_VIDEOS } from '../../utils/chatVideos';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
 import { getTierForLevel } from '../../utils/tier';
 import { pushNotification } from '../../utils/notifications';
-import { CommentSkeletonList } from '../Skeletons';
+import { ThinkingBubble } from '../ViewTransitionLoader';
 
 interface ChatViewProps {
   currentUser: User | null;
@@ -381,8 +381,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
             {/* Message Stream */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4" role="log" aria-live="polite" aria-relevant="additions" aria-label="Tin nhắn cuộc trò chuyện">
               {!isSynced && currentMessages.length === 0 ? (
-                <div className="max-w-xl mx-auto rounded-2xl bg-white/[0.03] border border-white/5 overflow-hidden">
-                  <CommentSkeletonList rows={4} />
+                <div className="max-w-xl mx-auto space-y-3" aria-busy="true">
+                  <ThinkingBubble phase="Đang kết nối máy chủ F-Forum…" />
+                  <ThinkingBubble phase="Đang tải tin nhắn kênh này…" />
+                  <ThinkingBubble phase="Đang sắp xếp hội thoại…" />
                 </div>
               ) : currentMessages.length === 0 ? (
                 /* Clean High-Design Empty State with MessageSquareDashed */

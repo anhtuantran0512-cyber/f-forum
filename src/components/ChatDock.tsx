@@ -23,6 +23,7 @@ import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../config/admin';
 import { getTierForLevel } from '../utils/tier';
 import { pushNotification } from '../utils/notifications';
+import { ThinkingBubble } from './ViewTransitionLoader';
 
 export interface ChatDockProps {
   isOpen: boolean;
@@ -33,6 +34,8 @@ export interface ChatDockProps {
   onDeleteMessage?: (messageId: string) => void;
   onOpenLoginModal?: () => void;
   onOpenProfile?: (user: { id: string; name: string; avatar: string; email?: string; level?: number }) => void;
+  /** False khi máy chủ chưa đồng bộ xong → hiện bong bóng "đang tải". */
+  isSynced?: boolean;
 }
 
 
@@ -52,6 +55,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
   onDeleteMessage,
   onOpenLoginModal,
   onOpenProfile,
+  isSynced = true,
 }) => {
   const [activeChannel, setActiveChannel] = useState<ChatChannelId>('hallway');
   const [inputText, setInputText] = useState('');
@@ -216,7 +220,13 @@ export const ChatDock: React.FC<ChatDockProps> = ({
 
         {/* Messages Feed Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3.5" role="log" aria-live="polite" aria-relevant="additions" aria-label="Danh sách tin nhắn">
-          {currentMessages.length === 0 ? (
+          {!isSynced && currentMessages.length === 0 ? (
+            /* Đang đồng bộ máy chủ → bong bóng suy nghĩ (CodeFronts la-05) */
+            <div className="space-y-3 pt-1" aria-busy="true">
+              <ThinkingBubble phase="Đang kết nối máy chủ F-Forum…" compact />
+              <ThinkingBubble phase={`Đang tải tin nhắn #${currentChannelObj.name}…`} compact />
+            </div>
+          ) : currentMessages.length === 0 ? (
             /* Authentic Empty State with MessageSquareDashed */
             <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3 text-neutral-400">
               <div className="relative">

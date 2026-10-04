@@ -29,6 +29,7 @@ import type { DimensionView, User } from './types';
 import { CommandPalette, type PaletteCommand } from './components/CommandPalette';
 import { QuickNotesDock } from './components/QuickNotesDock';
 import { StudyCareCoach } from './components/StudyCareCoach';
+import { ViewTransitionLoader } from './components/ViewTransitionLoader';
 import { AuthProvider } from './context/AuthContext';
 import { GODRAY_PRESETS } from './utils/godrays';
 import { safeStorage } from './utils/storage';
@@ -57,6 +58,64 @@ const ViewLoadingFallback = () => (
 
 const CORE_SCROLL_VIEWS: DimensionView[] = ['home', 'clubs', 'qa', 'coming-soon'];
 const SCROLL_COOLDOWN_MS = 650;
+
+/* Thứ tự phân khu dùng để biết hướng trượt (lên/xuống) khi chuyển trang */
+const VIEW_ORDER: DimensionView[] = [
+  'landing',
+  'home',
+  'clubs',
+  'qa',
+  'chat',
+  'memory',
+  'chronicles',
+  'coming-soon',
+];
+
+/* Phân khu cần màn hình chờ (CodeFronts la-09 vinyl / la-05 dots).
+   home là trang nhẹ nên vào thẳng, không chặn người dùng. */
+const VIEW_LOADERS: Partial<Record<DimensionView, { label: string; variant: 'vinyl' | 'dots' }>> = {
+  landing: { label: 'Trang Giới thiệu', variant: 'vinyl' },
+  clubs: { label: 'Câu lạc bộ', variant: 'vinyl' },
+  qa: { label: 'Sàn Hỏi đáp', variant: 'vinyl' },
+  chat: { label: 'Phòng Chat', variant: 'dots' },
+  memory: { label: 'Miền Ký Ức', variant: 'vinyl' },
+  chronicles: { label: 'Khu Vinh Danh', variant: 'vinyl' },
+  'coming-soon': { label: 'Bản nâng cấp', variant: 'vinyl' },
+};
+
+const LOADER_MIN_MS = 950; /* lần đầu vào phân khu */
+const LOADER_REVISIT_MS = 520; /* quay lại phân khu đã tải rồi */
+const LOADER_HARD_CAP_MS = 2600;
+
+/**
+ * Kiểm tra con trỏ có đang nằm trong một khung cuộn dọc còn cuộn được không.
+ * Nếu có thì nhường cuộn cho khung đó, không nhảy phân khu (tránh cướp cuộn
+ * ở sidebar Hỏi đáp, danh sách CLB…).
+ */
+const isInsideScrollable = (el: HTMLElement | null, deltaY: number): boolean => {
+  let node: HTMLElement | null = el;
+  while (node && node !== document.body && node !== document.documentElement) {
+    const style = window.getComputedStyle(node);
+    if (/(auto|scroll|overlay)/.test(style.overflowY) && node.scrollHeight - node.clientHeight > 4) {
+      const atTop = node.scrollTop <= 1;
+      const atBottom = node.scrollTop + node.clientHeight >= node.scrollHeight - 1;
+      if (deltaY > 0 ? !atBottom : !atTop) return true;
+    }
+    node = node.parentElement;
+  }
+  return false;
+};
+
+/** Báo cho App biết phân khu đã dựng xong (đã tải xong chunk lazy). */
+const ViewReadySignal: React.FC<{ view: DimensionView; onReady: (view: DimensionView) => void }> = ({
+  view,
+  onReady,
+}) => {
+  useEffect(() => {
+    onReady(view);
+  }, [view, onReady]);
+  return null;
+};
 
 export const App: React.FC = () => {
   const {
@@ -114,6 +173,11 @@ export const App: React.FC = () => {
   const [eyeRestEnabled, setEyeRestEnabled] = useState<boolean>(() => {
     return safeStorage.getItem('fforum_eye_rest') === 'true';
   });
+  const [transition, setTransition] = useState<{ target: DimensionView; startedAt: number; revisit: boolean } | null>(null);
+  const [readyView, setReadyView] = useState<DimensionView | null>(null);
+  const visitedViewsRef = useRef<Set<DimensionView>>(new Set<DimensionView>([currentView]));
+  const [slideDir, setSlideDir] = useState<'up' | 'down' | 'none'>('none');
+  const prevViewIndexRef = useRef<number>(VIEW_ORDER.indexOf(currentView));
 
   const isInsideCinema = currentView === 'memory' && scrollInsideCinema;
 
@@ -252,21 +316,82 @@ export const App: React.FC = () => {
     });
   };
 
+  /* Chuyển phân khu kèm màn hình chờ cho các trang nặng */
+  const beginTransition = useCallback(
+    (v: DimensionView) => {
+      if (!VIEW_LOADERS[v]) return;
+      const revisit = visitedViewsRef.current.has(v);
+      visitedViewsRef.current.add(v);
+      setReadyView(null);
+      setTransition({ target: v, startedAt: Date.now(), revisit });
+    },
+    [],
+  );
+
   const handleNavigate = (v: DimensionView) => {
+    /* Bấm lại đúng phân khu đang mở thì chỉ cuộn lên đầu, không chạy màn hình chờ */
+    if (v === currentView) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+      return;
+    }
+    beginTransition(v);
     setCurrentView(v);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
-  const handleViewChange = useCallback((v: DimensionView) => {
-    setCurrentView(v);
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-  }, [setCurrentView]);
+  const handleViewChange = useCallback(
+    (v: DimensionView) => {
+      if (v === currentView) {
+        window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+        return;
+      }
+      beginTransition(v);
+      setCurrentView(v);
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    },
+    [currentView, setCurrentView, beginTransition],
+  );
+
+  const handleViewReady = useCallback((view: DimensionView) => {
+    setReadyView(view);
+  }, []);
+
+  /* Hướng trượt khi đổi phân khu (lướt như lật trang) */
+  useEffect(() => {
+    const idx = VIEW_ORDER.indexOf(currentView);
+    const prev = prevViewIndexRef.current;
+    if (idx === -1 || prev === -1) return;
+    setSlideDir(idx > prev ? 'up' : idx < prev ? 'down' : 'none');
+    prevViewIndexRef.current = idx;
+  }, [currentView]);
+
+  /* Tắt màn hình chờ: sớm nhất sau LOADER_MIN_MS khi phân khu đã dựng xong,
+     muộn nhất là LOADER_HARD_CAP_MS để không bao giờ treo người dùng. */
+  useEffect(() => {
+    if (!transition) return;
+    const elapsed = Date.now() - transition.startedAt;
+    const isReady = readyView === transition.target;
+    const minMs = transition.revisit ? LOADER_REVISIT_MS : LOADER_MIN_MS;
+    const delay = isReady ? Math.max(0, minMs - elapsed) + 170 : Math.max(0, LOADER_HARD_CAP_MS - elapsed);
+    const timer = window.setTimeout(() => setTransition(null), delay);
+    return () => window.clearTimeout(timer);
+  }, [transition, readyView]);
+
+  const loaderMeta = transition ? VIEW_LOADERS[transition.target] : null;
 
   const lastScrollTimeRef = useRef<number>(0);
   const lastWheelTimeRef = useRef<number>(0);
+  const transitionActiveRef = useRef(false);
+
+  useEffect(() => {
+    transitionActiveRef.current = transition !== null;
+  }, [transition]);
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
+      /* Đang chạy màn hình chờ thì bỏ qua cuộn, tránh nhảy hai phân khu một lúc */
+      if (transitionActiveRef.current) return;
+
       if (currentView === 'chat' || currentView === 'memory' || currentView === 'chronicles') {
         return;
       }
@@ -296,6 +421,9 @@ export const App: React.FC = () => {
 
       const deltaY = e.deltaY;
       if (Math.abs(deltaY) <= 30) return;
+
+      /* Đang cuộn trong một khung nội bộ (sidebar, danh sách dài) → nhường */
+      if (isInsideScrollable(target, deltaY)) return;
 
       const now = Date.now();
       const timeSinceLastScroll = now - lastScrollTimeRef.current;
@@ -601,6 +729,14 @@ export const App: React.FC = () => {
       {/* Main Dimension View Routing (Single-Viewport Multi-View Architecture) */}
       <main className={`w-full ${currentView === 'memory' || currentView === 'chronicles' ? 'min-h-[116vh]' : 'h-full'}`}>
         <Suspense fallback={<ViewLoadingFallback />}>
+          {/* Bọc theo key để mỗi lần đổi phân khu chạy lại hoạt ảnh trượt */}
+          <div
+            key={currentView}
+            className={`w-full h-full ${
+              slideDir === 'up' ? 'ff-view-slide-up' : slideDir === 'down' ? 'ff-view-slide-down' : ''
+            }`}
+          >
+          <ViewReadySignal view={currentView} onReady={handleViewReady} />
           {currentView === 'landing' && (
             <LandingPage
               currentUser={currentUser}
@@ -662,6 +798,7 @@ export const App: React.FC = () => {
               users={users}
               chatMessages={chatMessages}
               isSynced={isSynced}
+              onOpenFocusMode={() => setIsFocusModeOpen(true)}
             />
           )}
 
@@ -705,8 +842,16 @@ export const App: React.FC = () => {
           {currentView === 'coming-soon' && (
             <ComingSoonView onReturnHome={handleViewChange} />
           )}
+          </div>
         </Suspense>
       </main>
+
+      {/* Màn hình chờ chuyển phân khu (CodeFronts la-09 vinyl / la-05 dots) */}
+      <ViewTransitionLoader
+        visible={Boolean(transition) && Boolean(loaderMeta)}
+        targetLabel={loaderMeta?.label}
+        variant={loaderMeta?.variant || 'vinyl'}
+      />
 
       {/* Radial quick actions (ccm-02 sin()/cos() fan at bottom-left below Streak) */}
       {currentView !== 'landing' && currentView !== 'chronicles' && !isChatOpen && (
@@ -734,6 +879,7 @@ export const App: React.FC = () => {
             onDeleteMessage={adminDeleteChatMessage}
             onOpenLoginModal={() => handleOpenAuth('login')}
             onOpenProfile={handleOpenUserProfile}
+            isSynced={isSynced}
           />
           )
         )}

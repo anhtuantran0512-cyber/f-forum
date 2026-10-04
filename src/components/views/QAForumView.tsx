@@ -96,6 +96,8 @@ interface QAForumViewProps {
   chatMessages?: ChatMessage[];
   /** False while the first server sync is in flight → show shimmer skeletons. */
   isSynced?: boolean;
+  /** Mở Phòng Tập Trung (Pomodoro) từ widget xếp hạng giờ học. */
+  onOpenFocusMode?: () => void;
 }
 
 
@@ -138,6 +140,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   users = {},
   chatMessages = [],
   isSynced = true,
+  onOpenFocusMode,
 }) => {
   const [activeVideoIdx, setActiveVideoIdx] = useState(0);
   const [isAutoCycle, setIsAutoCycle] = useState(true);
@@ -789,6 +792,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   setIsAskModalOpen(true);
                 }
               }}
+              onOpenFocusMode={onOpenFocusMode}
             />
           </div>
         </div>

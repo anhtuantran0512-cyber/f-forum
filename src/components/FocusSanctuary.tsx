@@ -23,6 +23,7 @@ import {
   playChime,
 } from '../utils/audio';
 import { safeStorage } from '../utils/storage';
+import { logStudyMinutes } from '../utils/studyLog';
 
 interface FocusSanctuaryProps {
   isOpen: boolean;
@@ -71,6 +72,8 @@ const FocusSanctuaryInner: React.FC<{
         playChime('level-up');
         if (timerMode === 'work') {
           setCompletedSessions(s => s + 1);
+          /* Ghi nhận 25 phút vào nhật ký giờ học → nuôi bảng xếp hạng giờ học */
+          logStudyMinutes(25, 'focus');
           if (onRewardXP) {
             onRewardXP(25);
           }
