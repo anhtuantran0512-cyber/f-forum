@@ -1,5 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useMemo } from 'react';
+import { useDraftAutosave } from '../../utils/useDraftAutosave';
 import {
   Search,
   PlusCircle,
@@ -259,9 +260,30 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     return () => window.removeEventListener('fforum_open_question', onOpenQuestion);
   }, [questions]);
 
-  const [newTitle, setNewTitle] = useState('');
-  const [newSubject, setNewSubject] = useState<SubjectTag>('toan');
-  const [newContent, setNewContent] = useState('');
+  /*
+    Ô soạn này trước đây giữ nội dung trong state thuần: reload trang, bấm nhầm
+    nút đóng, hay trình duyệt sập là mất sạch phần đã gõ. Nay tự lưu nháp theo
+    nhịp 600ms vào localStorage và khôi phục khi mở lại.
+  */
+  const askDraftInitial = useMemo(
+    () => ({ title: '', subject: 'toan' as SubjectTag, content: '' }),
+    [],
+  );
+  const {
+    fields: askDraft,
+    setField: setAskField,
+    restoredAt: askDraftRestoredAt,
+    hasRestoredDraft,
+    clearDraft: clearAskDraft,
+    discardDraft: discardAskDraft,
+  } = useDraftAutosave('fforum_draft_ask', askDraftInitial);
+
+  const newTitle = askDraft.title;
+  const newSubject = askDraft.subject;
+  const newContent = askDraft.content;
+  const setNewTitle = (value: string) => setAskField('title', value);
+  const setNewSubject = (value: SubjectTag) => setAskField('subject', value);
+  const setNewContent = (value: string) => setAskField('content', value);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [bountyCoin, setBountyCoin] = useState<number>(20);
   const [askImage, setAskImage] = useState<string | null>(null);
@@ -406,6 +428,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
     setNewTitle('');
     setNewContent('');
+    clearAskDraft();
     setAskImage(null);
     setAskImageError(null);
     setIsAnonymous(false);
@@ -839,6 +862,34 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             </div>
 
             <form onSubmit={handleAskSubmit} className="space-y-3.5">
+              {/* Báo cho người dùng biết nội dung đang có là nháp được khôi phục,
+                  kèm đường bỏ nháp — đừng âm thầm điền sẵn rồi để họ tưởng là
+                  mình vừa gõ. */}
+              {hasRestoredDraft && (
+                <div className="flex items-center gap-2 rounded-2xl border border-amber-300/30 bg-amber-400/10 px-3 py-2.5">
+                  <Sparkles className="w-4 h-4 shrink-0 text-amber-300" />
+                  <span className="min-w-0 flex-1 text-[11px] leading-snug text-amber-100">
+                    Đã khôi phục bản nháp
+                    {askDraftRestoredAt
+                      ? ` lưu lúc ${new Date(askDraftRestoredAt).toLocaleString('vi-VN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          day: '2-digit',
+                          month: '2-digit',
+                        })}`
+                      : ''}
+                    .
+                  </span>
+                  <button
+                    type="button"
+                    onClick={discardAskDraft}
+                    className="shrink-0 rounded-lg border border-amber-300/30 px-2 py-1 text-[10.5px] font-bold text-amber-200 transition hover:bg-amber-400/20 cursor-pointer"
+                  >
+                    Bỏ nháp
+                  </button>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-semibold text-neutral-300 mb-1">
                   Chủ đề môn học / đời sống (*):
@@ -884,7 +935,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   placeholder="Ghi rõ đề bài, dữ kiện đã cho và phần em đang vướng mắc để các bạn trợ giúp nhanh nhất..."
                   className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 resize-none"
                 />
-                <MathSymbolsBar onInsert={sym => setNewContent(prev => prev + sym)} />
+                <MathSymbolsBar onInsert={sym => setNewContent(newContent + sym)} />
               </div>
 
               {/* 20MB Image Upload */}
