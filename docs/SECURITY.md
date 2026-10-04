@@ -484,6 +484,37 @@ Sau khi vá, cùng một repro:
 
 ---
 
+## 23. Tự duyệt câu lạc bộ qua WebSocket
+
+**Mức độ:** Cao · **Vị trí:** WS `NEW_CLUB`, `NEW_CLUB_POST`
+
+Cùng một kiểu lỗi như mục 21: hai nhánh này ghi **nguyên payload** vào kho và không
+đòi phiên đăng nhập. Một client chưa xác thực chèn được câu lạc bộ có sẵn
+`status: 'APPROVED'`, kèm `followerCount` / `membersCount` / `leaderName` tự đặt —
+vòng qua toàn bộ quy trình duyệt của Ban Quản Trị.
+
+Xác nhận bằng repro trên dev server, **trước khi vá**:
+
+```
+[1] CLB chèn qua WS (không auth) có trong kho? true
+[2] status = APPROVED
+[3] followerCount = 9999 | membersCount = 9999 | leaderName = "Lãnh đạo giả"
+```
+
+**Đã vá:** cả hai nhánh đòi phiên đăng nhập (không có thì `FORBIDDEN`); `status`
+luôn bị ép về `PENDING`; `leaderId`/`leaderName` (và `authorId`/`authorName` của bài
+viết) lấy từ bản ghi thật; `followerCount` khởi tạo 1, `membersCount` tính từ
+`foundingMembers` thật, `likes` khởi tạo 0; mọi trường tự do bị cắt độ dài; bài
+viết chỉ ghi được khi CLB tồn tại.
+
+Sau khi vá, cùng một repro:
+
+```
+[1] CLB chèn qua WS (không auth) có trong kho? false
+```
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -512,6 +543,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 32 bài, chạy trên server thật
-npm test                                        # toàn bộ 128 bài
+node --test tests/security-hardening.test.mjs   # 33 bài, chạy trên server thật
+npm test                                        # toàn bộ 129 bài
 ```

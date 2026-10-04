@@ -1584,3 +1584,113 @@ test('32. Không tự chọn câu trả lời của chính mình làm đáp án 
     await env.close();
   }
 });
+
+test('33. WS: không chèn được CLB tự duyệt và bài viết CLB khi chưa đăng nhập', async () => {
+  const env = await createTestServer();
+  const stamp = Date.now();
+  const anon = await connectWs(env.wsUrl);
+  try {
+    /* Trước khi vá: chèn được CLB có sẵn status:'APPROVED' kèm số thành viên
+       và tên lãnh đạo tự đặt, vòng qua toàn bộ quy trình duyệt. */
+    anon.send('NEW_CLUB', {
+      id: `club-tu-duyet-${stamp}`,
+      name: 'CLB Tự Duyệt',
+      slogan: 'Không cần ban quản trị',
+      foundingMembers: ['Kẻ chèn'],
+      purpose: 'Chèn thẳng CLB đã duyệt qua WS.',
+      leaderName: 'Lãnh đạo giả',
+      followerCount: 9999,
+      membersCount: 9999,
+      status: 'APPROVED',
+    });
+    const forbidden = await anon.waitFor('FORBIDDEN');
+    assert.equal(forbidden.payload.action, 'NEW_CLUB', 'Phải trả FORBIDDEN cho NEW_CLUB không auth');
+
+    anon.send('NEW_CLUB_POST', {
+      id: `cpost-lau-${stamp}`,
+      clubId: 'club-bat-ky',
+      title: 'Bài lậu',
+      content: 'Không ai duyệt được',
+    });
+    const forbidden2 = await anon.waitFor('FORBIDDEN');
+    assert.equal(forbidden2.payload.action, 'NEW_CLUB_POST', 'Phải trả FORBIDDEN cho NEW_CLUB_POST không auth');
+
+    await sleep(250);
+    const sync = await get(env.baseUrl, '/api/sync');
+    assert.equal(
+      sync.data.data.clubs.filter((c) => c.id === `club-tu-duyet-${stamp}`).length,
+      0,
+      'CLB chèn không auth không được vào kho'
+    );
+    assert.equal(
+      sync.data.data.clubPosts.filter((p) => p.id === `cpost-lau-${stamp}`).length,
+      0,
+      'Bài viết CLB chèn không auth không được vào kho'
+    );
+  } finally {
+    anon.ws.close();
+  }
+
+  /* Đã đăng nhập thì lập được, nhưng luôn ở trạng thái chờ và lãnh đạo là chính mình. */
+  const founder = await register(env.baseUrl, 'Chủ Nhiệm WS', 'chunhiem-ws@example.com', 'mat-khau-ws-12345');
+  const authed = await connectWs(env.wsUrl, founder.token);
+  try {
+    authed.send('NEW_CLUB', {
+      id: `club-hop-le-${stamp}`,
+      name: 'CLB Hợp Lệ',
+      purpose: 'Lập đúng quy trình.',
+      foundingMembers: ['Bạn A'],
+      leaderName: 'Lãnh đạo giả mạo',
+      followerCount: 9999,
+      membersCount: 9999,
+      status: 'APPROVED',
+    });
+    await sleep(300);
+
+    const sync = await get(env.baseUrl, '/api/sync');
+    const club = sync.data.data.clubs.find((c) => c.id === `club-hop-le-${stamp}`);
+    assert.ok(club, 'CLB hợp lệ phải được ghi');
+    assert.equal(club.status, 'PENDING', 'Không tự phong APPROVED được');
+    assert.equal(club.leaderName, 'Chủ Nhiệm WS', 'Lãnh đạo phải lấy từ bản ghi thật');
+    assert.equal(club.followerCount, 1, 'Số người theo dõi không được tự khai');
+    assert.equal(club.membersCount, 1, 'Số thành viên tính từ foundingMembers thật');
+
+    /* Bài viết vào CLB chưa được duyệt thì CLB vẫn phải tồn tại mới ghi được. */
+    authed.send('NEW_CLUB_POST', {
+      id: `cpost-hop-le-${stamp}`,
+      clubId: `club-hop-le-${stamp}`,
+      title: 'Bài hợp lệ',
+      content: 'Đăng đúng quy trình.',
+      authorName: 'Tác giả giả mạo',
+    });
+    await sleep(300);
+
+    const sync2 = await get(env.baseUrl, '/api/sync');
+    const postRow = sync2.data.data.clubPosts.find((p) => p.id === `cpost-hop-le-${stamp}`);
+    assert.ok(postRow, 'Bài viết hợp lệ phải được ghi');
+    assert.equal(postRow.authorName, 'Chủ Nhiệm WS', 'Tác giả phải lấy từ bản ghi thật');
+    assert.equal(postRow.likes, 0, 'Số lượt thích không được tự khai');
+
+    const ghost = await connectWs(env.wsUrl, founder.token);
+    try {
+      ghost.send('NEW_CLUB_POST', {
+        id: `cpost-ma-${stamp}`,
+        clubId: 'club-khong-ton-tai',
+        title: 'Lạc đề',
+        content: 'CLB này không có thật',
+      });
+      await sleep(300);
+      const sync3 = await get(env.baseUrl, '/api/sync');
+      assert.equal(
+        sync3.data.data.clubPosts.filter((p) => p.id === `cpost-ma-${stamp}`).length,
+        0,
+        'Không ghi được bài vào CLB không tồn tại'
+      );
+    } finally {
+      ghost.ws.close();
+    }
+  } finally {
+    authed.ws.close();
+    await env.close();
+  }
+});

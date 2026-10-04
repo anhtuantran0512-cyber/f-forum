@@ -722,12 +722,43 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               break;
             }
             case 'NEW_CLUB': {
-              if (payload && payload.id) {
-                if (store.clubs.some(c => c.id === payload.id)) break;
-                store.clubs.unshift(payload);
-                persistStoreToDisk();
-                broadcastServerEvent('NEW_CLUB', payload);
+              /*
+                Trước đây nhánh này ghi nguyên payload, không đòi phiên đăng nhập.
+                Một client chưa xác thực chèn được CLB có sẵn status:'APPROVED'
+                kèm followerCount/membersCount/leaderName tự đặt — vòng qua toàn bộ
+                quy trình duyệt. Đã xác nhận bằng repro.
+              */
+              const clubFounderEmail = session?.email || '';
+              const clubFounder = clubFounderEmail ? store.users[clubFounderEmail] : undefined;
+              if (!session || !clubFounder) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
               }
+              if (!payload || !payload.id || !String(payload.name || '').trim()) break;
+              if (store.clubs.some(c => c.id === payload.id)) break;
+
+              const relayedClub = {
+                id: String(payload.id).slice(0, 80),
+                name: String(payload.name).trim().slice(0, 120),
+                slogan: String(payload.slogan || '').slice(0, 200),
+                coverImage: String(payload.coverImage || '').slice(0, 2000),
+                category: String(payload.category || 'Công nghệ').slice(0, 60),
+                foundingMembers: Array.isArray(payload.foundingMembers)
+                  ? payload.foundingMembers.slice(0, 20).map((m: unknown) => String(m).slice(0, MAX_NAME_LENGTH))
+                  : [],
+                purpose: String(payload.purpose || '').slice(0, 2000),
+                leaderId: clubFounder.id,
+                leaderName: clubFounder.name,
+                followerCount: 1,
+                membersCount: Math.max(1, Array.isArray(payload.foundingMembers) ? payload.foundingMembers.length : 0),
+                /* Hồ sơ mới luôn chờ duyệt — không tự phong trạng thái được. */
+                status: 'PENDING',
+                createdAt: new Date().toISOString().split('T')[0],
+              };
+
+              store.clubs = [relayedClub, ...store.clubs].slice(0, MAX_CLUBS);
+              persistStoreToDisk();
+              broadcastServerEvent('NEW_CLUB', relayedClub);
               break;
             }
             case 'APPROVE_CLUB': {
@@ -767,12 +798,33 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               break;
             }
             case 'NEW_CLUB_POST': {
-              if (payload && payload.id) {
-                if (store.clubPosts.some(p => p.id === payload.id)) break;
-                store.clubPosts.unshift(payload);
-                persistStoreToDisk();
-                broadcastServerEvent('NEW_CLUB_POST', payload);
+              /* Cùng lý do: phải đăng nhập, tác giả lấy từ phiên, CLB phải tồn tại. */
+              const posterEmail = session?.email || '';
+              const poster = posterEmail ? store.users[posterEmail] : undefined;
+              if (!session || !poster) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
               }
+              const postClubId = String(payload?.clubId || '').trim();
+              if (!payload || !payload.id || !postClubId ||
+                  !String(payload.title || '').trim() || !String(payload.content || '').trim()) break;
+              if (!store.clubs.some(c => c.id === postClubId)) break;
+              if (store.clubPosts.some(p => p.id === payload.id)) break;
+
+              const relayedPost = {
+                id: String(payload.id).slice(0, 80),
+                clubId: postClubId.slice(0, 80),
+                authorId: poster.id,
+                authorName: poster.name,
+                authorAvatar: poster.avatar || DEFAULT_AVATAR,
+                title: String(payload.title).trim().slice(0, 200),
+                content: String(payload.content).trim().slice(0, 5000),
+                createdAt: new Date().toISOString(),
+                likes: 0,
+              };
+              store.clubPosts = [relayedPost, ...store.clubPosts].slice(0, MAX_CLUB_POSTS);
+              persistStoreToDisk();
+              broadcastServerEvent('NEW_CLUB_POST', relayedPost);
               break;
             }
             case 'SYNC_USER': {

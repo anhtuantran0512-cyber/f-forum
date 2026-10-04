@@ -120,7 +120,7 @@ Máy chủ không tin dữ liệu client gửi lên. Toàn bộ tầng xác th�
 Chi tiết từng lỗ hổng đã tìm thấy và cách vá: **[docs/SECURITY.md](docs/SECURITY.md)**.
 
 ```bash
-# 32 bài kiểm thử bảo mật, chạy trên máy chủ thật qua HTTP/WebSocket
+# 33 bài kiểm thử bảo mật, chạy trên máy chủ thật qua HTTP/WebSocket
 node --test tests/security-hardening.test.mjs
 ```
 
@@ -168,7 +168,7 @@ Sau khi chạy lệnh, mở trình duyệt web và truy cập địa chỉ: `htt
 # Kiểm tra lỗi cú pháp với Oxlint
 npx oxlint
 
-# Chạy toàn bộ 128 bài kiểm thử tự động
+# Chạy toàn bộ 129 bài kiểm thử tự động
 npm test
 
 # Biên dịch mã nguồn cho môi trường sản xuất
@@ -198,7 +198,7 @@ f-forum/
 │   ├── index.css           # Cấu hình giao diện và hiệu ứng kính
 │   └── main.tsx            # Điểm khởi động ứng dụng
 ├── docs/                   # Tài liệu thiết kế & bảo mật
-├── tests/                  # Bộ bài kiểm thử tự động (128 bài)
+├── tests/                  # Bộ bài kiểm thử tự động (129 bài)
 └── package.json            # Thông tin dự án và danh sách thư viện
 ```
 
