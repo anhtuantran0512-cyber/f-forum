@@ -806,6 +806,32 @@ lần cũng thưởng bấy nhiêu.
 
 ---
 
+## 30. fPoints bị cộng đôi khi bản ghi thiếu trường
+
+**Mức độ:** Thấp (nay không còn tới được) · **Vị trí:** 6 chỗ cộng thưởng trong `server/forumServer.ts`
+
+Cả sáu chỗ cộng thưởng đều viết theo cùng một mẫu sai thứ tự:
+
+```js
+solver.xp += award;
+solver.fPoints = (solver.fPoints ?? solver.xp) + award;
+//                                  ^^^^^^^^ XP ĐÃ bị cộng ở dòng trên
+```
+
+Nếu `fPoints` thiếu, nhánh `??` lấy XP **đã cộng** làm gốc rồi cộng thêm lần nữa —
+kết quả `xp` tăng `N` nhưng `fPoints` tăng `2N`.
+
+Sau mục 29 (`sanitizeUsers` chuẩn hoá `fPoints` khi nạp) và việc mọi đường tạo tài
+khoản (`register`, `social`) đều đặt sẵn `fPoints`, nhánh `??` **không còn tới
+được**. Nhưng đây vẫn là code sai tiềm ẩn: chỉ cần thêm một đường tạo tài khoản mới
+mà quên trường đó là lỗi sống lại.
+
+**Đã sửa:** đảo thứ tự ở cả sáu chỗ — tính `fPoints` từ XP **trước** khi cộng.
+Test #42 kiểm bằng hành vi thật: qua ba bước thưởng (đặt câu hỏi +50, gửi lời giải
++25, đáp án chuẩn +120) thì `xp` và `fPoints` phải luôn bằng nhau.
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -834,6 +860,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 41 bài, chạy trên server thật
-npm test                                        # toàn bộ 137 bài
+node --test tests/security-hardening.test.mjs   # 42 bài, chạy trên server thật
+npm test                                        # toàn bộ 138 bài
 ```

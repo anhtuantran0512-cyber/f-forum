@@ -2179,3 +2179,62 @@ test('41. Bản ghi người dùng kiểu cũ thiếu trường không làm sậ
     process.env.FFORUM_DATA_DIR = DATA_DIR;
   }
 });
+
+test('42. fPoints không bị cộng đôi khi thiếu trường (thứ tự xp/fPoints)', async () => {
+  const env = await createTestServer();
+  try {
+    /*
+      Bản cũ viết `x.fPoints = (x.fPoints ?? x.xp) + N` SAU dòng `x.xp += N`.
+      Nếu fPoints thiếu thì nhánh ?? lấy XP đã cộng làm gốc, thành cộng đôi:
+      xp tăng N nhưng fPoints tăng 2N.
+    */
+    const solver = await register(env.baseUrl, 'Người Giải F', 'giai-f@example.com', 'mat-khau-giai-f-123');
+    const asker = await register(env.baseUrl, 'Người Hỏi F', 'hoi-f@example.com', 'mat-khau-hoi-f-12345');
+
+    const sync0 = await get(env.baseUrl, '/api/sync');
+    const before = sync0.data.data.users['giai-f@example.com'];
+    assert.equal(before.xp, 0, 'xp khởi điểm phải 0');
+    assert.equal(before.fPoints, 0, 'fPoints khởi điểm phải 0');
+
+    const asked = await post(env.baseUrl, '/api/questions', {
+      title: 'Câu hỏi cho test fPoints',
+      content: 'Cần kiểm tra fPoints không bị cộng đôi.',
+      authorEmail: 'hoi-f@example.com',
+      bountyCoin: 40,
+    }, asker.token);
+    assert.equal(asked.status, 200);
+
+    const solved = await post(env.baseUrl, '/api/solutions', {
+      questionId: asked.data.question.id,
+      content: 'Đáp án là 42.',
+      authorEmail: 'giai-f@example.com',
+    }, solver.token);
+    assert.equal(solved.status, 200);
+
+    /* Người hỏi được +50 XP khi đặt câu hỏi. */
+    const syncAsker = await get(env.baseUrl, '/api/sync');
+    const askerRow = syncAsker.data.data.users['hoi-f@example.com'];
+    assert.equal(askerRow.xp, askerRow.fPoints, `XP và fPoints của người hỏi phải bằng nhau: xp=${askerRow.xp} fPoints=${askerRow.fPoints}`);
+
+    /* Người giải được +25 XP khi gửi lời giải. */
+    const syncSolver1 = await get(env.baseUrl, '/api/sync');
+    const solverMid = syncSolver1.data.data.users['giai-f@example.com'];
+    assert.equal(solverMid.xp, 25, `xp người giải phải 25, thực tế ${solverMid.xp}`);
+    assert.equal(solverMid.fPoints, 25, `fPoints phải bằng xp, thực tế ${solverMid.fPoints}`);
+
+    /* Chọn đáp án chuẩn: thưởng = 40*0.5 + 100 = 120. */
+    const best = await post(env.baseUrl, '/api/solutions/best', {
+      questionId: asked.data.question.id,
+      solutionId: solved.data.solution.id,
+      authorEmail: 'hoi-f@example.com',
+    }, asker.token);
+    assert.equal(best.status, 200);
+
+    const syncFinal = await get(env.baseUrl, '/api/sync');
+    const after = syncFinal.data.data.users['giai-f@example.com'];
+    assert.equal(after.xp, 145, `xp phải 25 + 120 = 145, thực tế ${after.xp}`);
+    assert.equal(after.fPoints, after.xp, `fPoints phải bằng xp, thực tế fPoints=${after.fPoints} xp=${after.xp}`);
+  } finally {
+    await env.close();
+  }
+});
