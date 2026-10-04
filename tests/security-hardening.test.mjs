@@ -1904,6 +1904,9 @@ test('37. Thao tác ghi dữ liệu phải đọc kết quả máy chủ, không
     '/api/solutions',
     '/api/chat',
     '/api/feedback',
+    /* Sửa hồ sơ: máy chủ loại các trường nó sở hữu (role/id/email) nên có thể
+       từ chối — nuốt lỗi thì giao diện vẫn báo "Hồ sơ đã lưu thành công!". */
+    '/api/users/update',
   ];
   for (const endpoint of criticalWrites) {
     assert.ok(
