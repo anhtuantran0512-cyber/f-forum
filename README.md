@@ -32,6 +32,15 @@ Hệ thống được thiết kế theo giao diện kính mờ hiện đại, h�
 - Cho phép đính kèm hình ảnh tài liệu bài tập (hỗ trợ tệp dung lượng tối đa 20MB và tự động tối ưu hóa).
 - Cơ chế tiền thưởng Coin: Người hỏi có thể đặt mức thưởng từ 10 đến 100 Coin để khuyến khích câu trả lời nhanh và chất lượng.
 - Người giải đáp được chọn "Đáp Án Chuẩn" sẽ nhận 50% tiền thưởng cược cộng thêm 100 Coin danh dự.
+- **Lưu câu hỏi để xem lại**: mỗi thẻ câu hỏi có nút đánh dấu; danh sách lưu riêng theo
+  từng người dùng (không lẫn giữa các tài khoản dùng chung một trình duyệt) và được
+  lọc nhanh bằng nút **Đã lưu** trên thanh môn học, kèm số lượng đang lưu. Câu hỏi đã
+  bị xoá sẽ tự động được dọn khỏi danh sách. Toàn bộ phép tính nằm trong
+  `src/utils/savedQuestions.ts` — module thuần tuý, idempotent (bấm lặp không tạo bản
+  ghi trùng), có trần 200 mục, và được kiểm thử trực tiếp bằng node (15 bài).
+- **Tự lưu bản nháp khi đang soạn câu hỏi**: gõ dở mà reload trang, bấm nhầm nút đóng
+  hay trình duyệt sập thì nội dung vẫn còn; mở lại sẽ thấy banner "Đã khôi phục bản
+  nháp" kèm thời điểm lưu và nút bỏ nháp.
 
 ### 2. Câu Lạc Bộ & Hoạt Động Ngoại Khóa
 - Danh sách các câu lạc bộ học thuật, thể thao, nghệ thuật và tình nguyện.
@@ -168,7 +177,7 @@ Sau khi chạy lệnh, mở trình duyệt web và truy cập địa chỉ: `htt
 # Kiểm tra lỗi cú pháp với Oxlint
 npx oxlint
 
-# Chạy toàn bộ 149 bài kiểm thử tự động
+# Chạy toàn bộ 164 bài kiểm thử tự động
 npm test
 
 # Biên dịch mã nguồn cho môi trường sản xuất
@@ -198,7 +207,7 @@ f-forum/
 │   ├── index.css           # Cấu hình giao diện và hiệu ứng kính
 │   └── main.tsx            # Điểm khởi động ứng dụng
 ├── docs/                   # Tài liệu thiết kế & bảo mật
-├── tests/                  # Bộ bài kiểm thử tự động (149 bài)
+├── tests/                  # Bộ bài kiểm thử tự động (164 bài)
 └── package.json            # Thông tin dự án và danh sách thư viện
 ```
 

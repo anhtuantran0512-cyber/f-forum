@@ -27,6 +27,8 @@ import {
   Shield,
   Waves,
   Grid3X3,
+  Bookmark,
+  BookmarkCheck,
 } from 'lucide-react';
 import type { Question, Solution, SubjectTag, User, ChatMessage } from '../../types';
 import { TierBadge, AdminVerifiedBadge } from '../Badges10Tier';
@@ -39,6 +41,16 @@ import {
 import { DEFAULT_AVATAR, handleImageError, handleVideoError } from '../../utils/mediaFallback';
 import { MASTER_ADMIN_CONFIG } from '../../config/admin';
 import { pushNotification } from '../../utils/notifications';
+import { safeStorage } from '../../utils/storage';
+import {
+  SAVED_QUESTIONS_KEY,
+  isQuestionSaved,
+  parseSavedQuestions,
+  pruneSavedQuestions,
+  savedIdsOf,
+  serializeSavedQuestions,
+  toggleSavedQuestion,
+} from '../../utils/savedQuestions';
 import { LeaderboardWidget } from './LeaderboardWidget';
 import { CommentSkeletonList } from '../Skeletons';
 
@@ -392,13 +404,80 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     }
   };
 
+  /*
+    CÂU HỎI ĐÃ LƯU.
+    Mỗi người dùng một danh sách riêng, khoá theo email (khách thì theo guest id).
+    Toàn bộ phép tính nằm trong utils/savedQuestions.ts (thuần tuý, đã có test);
+    ở đây chỉ đọc/ghi storage và giữ state.
+  */
+  const savedOwnerKey = currentUser?.email?.trim().toLowerCase() || '';
+  const [savedMap, setSavedMap] = useState(() =>
+    parseSavedQuestions(safeStorage.getItem(SAVED_QUESTIONS_KEY)),
+  );
+  const [showSavedOnly, setShowSavedOnly] = useState(false);
+
+  /*
+    Chủ sở hữu đổi (đăng nhập / đăng xuất / đổi tài khoản) thì nạp lại đúng danh
+    sách của người đó. Điều chỉnh state lúc render theo mẫu React khuyến nghị,
+    không dùng effect — tránh một lượt render thừa và tránh chớp danh sách cũ.
+  */
+  const [savedLoadedFor, setSavedLoadedFor] = useState(savedOwnerKey);
+  if (savedLoadedFor !== savedOwnerKey) {
+    setSavedLoadedFor(savedOwnerKey);
+    setSavedMap(parseSavedQuestions(safeStorage.getItem(SAVED_QUESTIONS_KEY)));
+    setShowSavedOnly(false);
+  }
+
+  const mySavedIds = savedIdsOf(savedMap, savedOwnerKey);
+
+  const persistSavedMap = (next: typeof savedMap) => {
+    setSavedMap(next);
+    /*
+      Chỉ ghi khi map thật sự đổi tham chiếu — toggleSavedQuestion trả nguyên map
+      cũ nếu không có gì thay đổi, nhờ đó không ghi storage thừa mỗi lần bấm.
+    */
+    if (next !== savedMap) {
+      safeStorage.setItem(SAVED_QUESTIONS_KEY, serializeSavedQuestions(next));
+    }
+  };
+
+  const handleToggleSaveQuestion = (questionId: string) => {
+    if (!savedOwnerKey) {
+      alert('Vui lòng đăng nhập để lưu câu hỏi!');
+      onOpenLoginModal?.();
+      return;
+    }
+    const wasSaved = isQuestionSaved(savedMap, savedOwnerKey, questionId);
+    persistSavedMap(toggleSavedQuestion(savedMap, savedOwnerKey, questionId, !wasSaved));
+    pushNotification({
+      title: wasSaved ? 'Đã bỏ lưu câu hỏi' : 'Đã lưu câu hỏi',
+      body: wasSaved
+        ? 'Câu hỏi đã được gỡ khỏi danh sách đã lưu.'
+        : 'Xem lại bất cứ lúc nào trong mục Đã lưu.',
+      type: 'qa',
+    });
+  };
+
+  /*
+    Dọn các mục trỏ tới câu hỏi đã bị xoá. So sánh bằng tham chiếu nên khi không
+    có gì để dọn thì pruneSavedQuestions trả nguyên map và không ghi storage.
+  */
+  const prunedSavedMap = useMemo(
+    () => pruneSavedQuestions(savedMap, questions.map(q => q.id)),
+    [savedMap, questions],
+  );
+  if (prunedSavedMap !== savedMap) {
+    persistSavedMap(prunedSavedMap);
+  }
+
   const filteredQuestions = questions.filter(q => {
     const matchesTag = selectedTag === 'all' || q.subject === selectedTag;
     const matchesSearch =
       q.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       q.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
       q.subject.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesTag && matchesSearch;
+    const matchesSaved = !showSavedOnly || mySavedIds.includes(q.id);
+    return matchesTag && matchesSearch && matchesSaved;
   });
 
   const handleAskSubmit = (e: React.FormEvent) => {
@@ -586,6 +665,37 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 </button>
               );
             })}
+
+            {/* Bộ lọc "Đã lưu" — tắt nếu chưa đăng nhập vì danh sách theo từng người */}
+            {savedOwnerKey && (
+              <button
+                type="button"
+                onClick={() => setShowSavedOnly(prev => !prev)}
+                aria-pressed={showSavedOnly}
+                className={`shrink-0 inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-mono font-medium whitespace-nowrap transition-all focus:outline-none ${
+                  showSavedOnly
+                    ? 'bg-amber-400 text-neutral-950 font-bold shadow-[0_0_12px_rgba(245,158,11,0.6)]'
+                    : 'bg-white/5 text-neutral-300 hover:bg-white/15 border border-white/10'
+                }`}
+                title={
+                  showSavedOnly
+                    ? 'Đang chỉ hiện câu hỏi đã lưu — bấm để xem tất cả'
+                    : 'Chỉ hiện các câu hỏi bạn đã lưu'
+                }
+              >
+                <Bookmark className="w-3 h-3" />
+                Đã lưu
+                {mySavedIds.length > 0 && (
+                  <span
+                    className={`px-1.5 rounded-full text-[10px] font-bold ${
+                      showSavedOnly ? 'bg-neutral-950/20 text-neutral-900' : 'bg-amber-500/25 text-amber-300'
+                    }`}
+                  >
+                    {mySavedIds.length}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
@@ -702,6 +812,37 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           <MessageSquare className="w-3.5 h-3.5" />
                           {qSolutions.length} lời giải
                         </span>
+
+                        {/* Nút lưu câu hỏi — stopPropagation vì cả thẻ là role="button" */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleSaveQuestion(q.id);
+                          }}
+                          aria-pressed={isQuestionSaved(savedMap, savedOwnerKey, q.id)}
+                          className={`p-1 rounded-md border transition-colors cursor-pointer ${
+                            isQuestionSaved(savedMap, savedOwnerKey, q.id)
+                              ? 'bg-amber-500/20 border-amber-400/40 text-amber-300'
+                              : 'bg-white/5 border-white/10 text-neutral-400 hover:bg-white/15 hover:text-white'
+                          }`}
+                          title={
+                            isQuestionSaved(savedMap, savedOwnerKey, q.id)
+                              ? 'Bỏ lưu câu hỏi này'
+                              : 'Lưu câu hỏi này để xem lại sau'
+                          }
+                          aria-label={
+                            isQuestionSaved(savedMap, savedOwnerKey, q.id)
+                              ? `Bỏ lưu câu hỏi: ${q.title}`
+                              : `Lưu câu hỏi: ${q.title}`
+                          }
+                        >
+                          {isQuestionSaved(savedMap, savedOwnerKey, q.id) ? (
+                            <BookmarkCheck size={13} />
+                          ) : (
+                            <Bookmark size={13} />
+                          )}
+                        </button>
 
                         {/* Super Admin 3-dots Menu Button */}
                         {isSuperAdmin && (
