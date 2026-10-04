@@ -275,7 +275,14 @@ export const App: React.FC = () => {
         return;
       }
 
-      if (isLoginModalOpen || isProfileModalOpen || isFocusModeOpen || isChatOpen) {
+      if (
+        isLoginModalOpen ||
+        isProfileModalOpen ||
+        isFocusModeOpen ||
+        isChatOpen ||
+        isPaletteOpen ||
+        isNotesOpen
+      ) {
         return;
       }
 
@@ -316,7 +323,16 @@ export const App: React.FC = () => {
     return () => {
       window.removeEventListener('wheel', handleWheel);
     };
-  }, [currentView, isLoginModalOpen, isProfileModalOpen, isFocusModeOpen, isChatOpen, handleViewChange]);
+  }, [
+    currentView,
+    isLoginModalOpen,
+    isProfileModalOpen,
+    isFocusModeOpen,
+    isChatOpen,
+    isPaletteOpen,
+    isNotesOpen,
+    handleViewChange,
+  ]);
 
   /* ============================================================
      F-ID Hidden Layer — bảng lệnh (⌘K), sổ tay nhanh (⌘I) & phím tắt
