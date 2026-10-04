@@ -2143,15 +2143,34 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới từ chối được câu lạc bộ!' });
           return;
         }
-        if (!store.clubs.some(c => c.id === clubId)) {
+        const rejectedTarget = store.clubs.find(c => c.id === clubId);
+        if (!rejectedTarget) {
           sendJson(res, 404, { success: false, message: 'Không tìm thấy câu lạc bộ này!' });
           return;
         }
+        /*
+          Từ chối một CLB ĐÃ DUYỆT thì phải rút lại quyền đã trao. Nhánh WS của
+          cùng thao tác này đã làm việc đó, còn bản HTTP thì quên: chủ nhiệm vẫn
+          giữ role CLUB_LEADER và vẫn còn mã CLB trong scopedClubIds, tức còn quyền
+          quản trị phạm vi một câu lạc bộ đã bị loại. E2E bắt được đúng chỗ này.
+        */
+        const wasApproved = rejectedTarget.status === 'APPROVED';
+        const safeReason = reason.slice(0, 500);
         store.clubs = store.clubs.map(c =>
-          c.id === clubId ? { ...c, status: 'REJECTED', rejectReason: reason.slice(0, 500) } : c
+          c.id === clubId ? { ...c, status: 'REJECTED', rejectReason: safeReason } : c
         );
+        if (wasApproved && rejectedTarget.leaderId) {
+          const leader = Object.values(store.users).find(u => u.id === rejectedTarget.leaderId);
+          if (leader) {
+            leader.scopedClubIds = [...(leader.scopedClubIds || [])].filter(id => id !== clubId);
+            if (leader.role === 'CLUB_LEADER' && leader.scopedClubIds.length === 0) {
+              leader.role = 'STUDENT';
+            }
+            broadcastServerEvent('SYNC_USER', leader);
+          }
+        }
         persistStoreToDisk();
-        broadcastServerEvent('REJECT_CLUB', { clubId, reason });
+        broadcastServerEvent('REJECT_CLUB', { clubId, reason: safeReason });
         sendJson(res, 200, { success: true, clubId, message: 'Đã từ chối hồ sơ câu lạc bộ.' });
       } catch (err: any) {
         sendJson(res, 500, { success: false, message: err?.message || 'Không từ chối được câu lạc bộ' });

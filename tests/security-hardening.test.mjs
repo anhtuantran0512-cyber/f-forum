@@ -2590,3 +2590,57 @@ test('51. MARK_BEST_SOLUTION qua WS chỉ phát questionId và solutionId', asyn
     await env.close();
   }
 });
+
+test('52. REJECT_CLUB qua HTTP cũng phải rút quyền chủ nhiệm như nhánh WS', async () => {
+  const env = await createTestServer();
+  try {
+    (await import('../server/forumServer.ts')).resetRateLimitersForTest();
+
+    const adminLogin = await post(env.baseUrl, '/api/auth/login', {
+      email: 'anhtuantran0512@gmail.com',
+      password: 'admin123',
+    });
+    assert.equal(adminLogin.status, 200, `admin login: ${JSON.stringify(adminLogin.data)}`);
+
+    const founder = await register(env.baseUrl, 'Chủ Nhiệm HTTP', 'founder-http@example.com', 'mat-khau-founder-http1');
+    const created = await post(env.baseUrl, '/api/clubs', {
+      name: 'CLB Từ Chối Qua HTTP',
+      slogan: 'Kiểm thử rút quyền',
+      purpose: 'Kiểm thử rằng từ chối qua HTTP cũng rút lại quyền đã trao.',
+    }, founder.token);
+    assert.equal(created.status, 200, `tạo CLB: ${JSON.stringify(created.data)}`);
+    const clubId = created.data.club.id;
+
+    /* Duyệt qua HTTP để chủ nhiệm nhận quyền. */
+    const approved = await post(env.baseUrl, '/api/clubs/approve', { clubId }, adminLogin.data.token);
+    assert.equal(approved.status, 200, `duyệt: ${JSON.stringify(approved.data)}`);
+
+    let sync = await get(env.baseUrl, '/api/sync');
+    let row = sync.data.data.users['founder-http@example.com'];
+    assert.equal(row.role, 'CLUB_LEADER', 'chủ nhiệm phải lên CLUB_LEADER');
+    assert.ok(row.scopedClubIds.includes(clubId), 'phải có mã CLB trong scopedClubIds');
+
+    /*
+      Từ chối qua HTTP. Trước khi vá, nhánh WS đã rút quyền còn bản HTTP thì quên:
+      chủ nhiệm vẫn giữ CLUB_LEADER và vẫn còn mã CLB trong scopedClubIds — tức còn
+      quyền quản trị phạm vi một CLB đã bị loại. E2E bắt được đúng chỗ này.
+    */
+    const rejected = await post(
+      env.baseUrl,
+      '/api/clubs/reject',
+      { clubId, reason: 'Không đạt yêu cầu về mục đích hoạt động.' },
+      adminLogin.data.token,
+    );
+    assert.equal(rejected.status, 200, `từ chối: ${JSON.stringify(rejected.data)}`);
+
+    sync = await get(env.baseUrl, '/api/sync');
+    row = sync.data.data.users['founder-http@example.com'];
+    assert.ok(
+      !row.scopedClubIds.includes(clubId),
+      `mã CLB phải bị rút khỏi scopedClubIds, thực tế: ${JSON.stringify(row.scopedClubIds)}`
+    );
+    assert.equal(row.role, 'STUDENT', 'hết CLB nào thì phải hạ về STUDENT');
+  } finally {
+    await env.close();
+  }
+});
