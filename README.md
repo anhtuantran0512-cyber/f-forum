@@ -38,6 +38,12 @@ Hệ thống được thiết kế theo giao diện kính mờ hiện đại, h�
   bị xoá sẽ tự động được dọn khỏi danh sách. Toàn bộ phép tính nằm trong
   `src/utils/savedQuestions.ts` — module thuần tuý, idempotent (bấm lặp không tạo bản
   ghi trùng), có trần 200 mục, và được kiểm thử trực tiếp bằng node (15 bài).
+- **Sắp xếp diễn đàn**: bốn chế độ — *Mới nhất*, *Thưởng cao*, *Sôi nổi* (nhiều lời
+  giải nhất) và *Chưa có lời giải*. Lựa chọn được nhớ giữa các phiên. Toàn bộ phép
+  so sánh nằm trong `src/utils/questionSort.ts` — module thuần tuý, không sửa mảng
+  gốc, thứ tự ổn định (cùng điểm thì phá hoà theo thời điểm rồi tới id nên danh
+  sách không "nhảy chỗ" giữa các lần render), chịu được dữ liệu cũ thiếu
+  `createdAtMs`, và được kiểm thử bằng node (15 bài).
 - **Tự lưu bản nháp khi đang soạn câu hỏi**: gõ dở mà reload trang, bấm nhầm nút đóng
   hay trình duyệt sập thì nội dung vẫn còn; mở lại sẽ thấy banner "Đã khôi phục bản
   nháp" kèm thời điểm lưu và nút bỏ nháp.

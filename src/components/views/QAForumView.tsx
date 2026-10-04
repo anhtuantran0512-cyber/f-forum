@@ -29,6 +29,7 @@ import {
   Grid3X3,
   Bookmark,
   BookmarkCheck,
+  ArrowUpDown,
 } from 'lucide-react';
 import type { Question, Solution, SubjectTag, User, ChatMessage } from '../../types';
 import { TierBadge, AdminVerifiedBadge } from '../Badges10Tier';
@@ -42,6 +43,16 @@ import { DEFAULT_AVATAR, handleImageError, handleVideoError } from '../../utils/
 import { MASTER_ADMIN_CONFIG } from '../../config/admin';
 import { pushNotification } from '../../utils/notifications';
 import { safeStorage } from '../../utils/storage';
+import { useEscapeKey } from '../../utils/useEscapeKey';
+import {
+  DEFAULT_QUESTION_SORT,
+  QUESTION_SORT_OPTIONS,
+  SAVED_SORT_KEY,
+  buildSolutionCounts,
+  normalizeSortMode,
+  sortQuestions,
+  type QuestionSortMode,
+} from '../../utils/questionSort';
 import {
   SAVED_QUESTIONS_KEY,
   isQuestionSaved,
@@ -487,15 +498,54 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     persistSavedMap(prunedSavedMap);
   }
 
-  const filteredQuestions = questions.filter(q => {
-    const matchesTag = selectedTag === 'all' || q.subject === selectedTag;
-    const matchesSearch =
-      q.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.subject.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSaved = !showSavedOnly || mySavedIds.includes(q.id);
-    return matchesTag && matchesSearch && matchesSaved;
-  });
+  /*
+    SẮP XẾP DIỄN ĐÀN.
+    Server luôn unshift nên danh sách mặc định là mới-nhất-trước; trước đây không
+    có cách nào xem câu hỏi treo thưởng cao hay câu đang cần người giải. Lựa chọn
+    được nhớ giữa các phiên và chuẩn hoá khi đọc lên (dữ liệu cũ không làm vỡ UI).
+  */
+  const [sortMode, setSortMode] = useState<QuestionSortMode>(() =>
+    normalizeSortMode(safeStorage.getItem(SAVED_SORT_KEY)),
+  );
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+
+  /*
+    Escape phải đóng được menu đang mở. Trước đây menu 3-chấm của quản trị không
+    có lối thoát bằng bàn phím: mở ra là phải chuột ra ngoài mới đóng được.
+    Một handler dùng chung cho cả hai menu, và chỉ gắn khi thật sự có menu mở
+    (tham số `enabled` của useEscapeKey) để không bắt phím vô ích.
+  */
+  useEscapeKey(
+    () => {
+      setIsSortMenuOpen(false);
+      setOpenMenuQuestionId(null);
+    },
+    isSortMenuOpen || openMenuQuestionId !== null,
+  );
+
+  const chooseSortMode = (mode: QuestionSortMode) => {
+    setSortMode(mode);
+    setIsSortMenuOpen(false);
+    safeStorage.setItem(SAVED_SORT_KEY, mode);
+  };
+
+  const filteredQuestions = useMemo(() => {
+    const matched = questions.filter(q => {
+      const matchesTag = selectedTag === 'all' || q.subject === selectedTag;
+      const matchesSearch =
+        q.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        q.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        q.subject.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSaved = !showSavedOnly || mySavedIds.includes(q.id);
+      return matchesTag && matchesSearch && matchesSaved;
+    });
+    /*
+      Đếm số lời giải MỘT lần cho cả danh sách thay vì đếm lại trong mỗi lần so
+      sánh — sort gọi comparator O(n log n) lần, đếm bên trong sẽ thành O(n² log n).
+    */
+    const counts = buildSolutionCounts(solutions);
+    return sortQuestions(matched, sortMode, counts);
+  }, [questions, solutions, selectedTag, searchTerm, showSavedOnly, mySavedIds, sortMode]);
 
   const handleAskSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -713,6 +763,59 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 )}
               </button>
             )}
+
+            {/* Menu sắp xếp */}
+            <div className="relative shrink-0 ml-auto">
+              <button
+                type="button"
+                onClick={() => setIsSortMenuOpen(prev => !prev)}
+                aria-expanded={isSortMenuOpen}
+                aria-haspopup="menu"
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-mono font-medium whitespace-nowrap transition-all focus:outline-none ${
+                  sortMode !== DEFAULT_QUESTION_SORT
+                    ? 'bg-cyan-400 text-neutral-950 font-bold shadow-[0_0_12px_rgba(6,182,212,0.6)]'
+                    : 'bg-white/5 text-neutral-300 hover:bg-white/15 border border-white/10'
+                }`}
+                title="Sắp xếp danh sách câu hỏi"
+              >
+                <ArrowUpDown className="w-3 h-3" />
+                {QUESTION_SORT_OPTIONS.find(o => o.id === sortMode)?.label ?? 'Sắp xếp'}
+              </button>
+
+              {isSortMenuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full mt-1.5 w-56 rounded-xl obsidian-glass bg-[#0c1218] border border-cyan-500/30 shadow-2xl p-1.5 z-30 space-y-0.5 animate-fade-up"
+                >
+                  {QUESTION_SORT_OPTIONS.map(opt => {
+                    const isActive = opt.id === sortMode;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={isActive}
+                        onClick={() => chooseSortMode(opt.id)}
+                        className={`w-full px-2.5 py-1.5 text-left rounded-lg transition-colors cursor-pointer ${
+                          isActive ? 'bg-cyan-500/20' : 'hover:bg-white/10'
+                        }`}
+                      >
+                        <span
+                          className={`flex items-center gap-2 text-xs font-semibold ${
+                            isActive ? 'text-cyan-300' : 'text-neutral-200'
+                          }`}
+                        >
+                          {isActive && <Check size={12} />}
+                          {!isActive && <span className="w-3" />}
+                          {opt.label}
+                        </span>
+                        <span className="block text-[10px] text-neutral-500 pl-5">{opt.hint}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
