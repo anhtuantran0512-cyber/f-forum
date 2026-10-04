@@ -252,10 +252,27 @@ export class SlidingWindowRateLimiter {
 }
 
 /** Đọc IP thật (có xét proxy) để chặn brute-force theo nguồn. */
+/**
+  IP dùng làm khoá cho MỌI rate limiter (đăng nhập, đăng ký, gửi tin, tố cáo…).
+
+  LỖ HỔNG TRƯỚC ĐÂY: hàm này luôn tin header `X-Forwarded-For` do client gửi.
+  Mà header đó client tự đặt được, nên chỉ cần đổi giá trị mỗi request là mỗi lần
+  thử rơi vào một ô đếm khác nhau — toàn bộ chống brute-force bị vô hiệu.
+
+  Repro (giới hạn đăng ký 30 lần/10 phút):
+    không đổi header        -> 30/60 thành công, 30 bị chặn   (limiter hoạt động)
+    đổi header mỗi lượt     -> 61/61 thành công               (vượt hoàn toàn)
+
+  Nay chỉ tin header này khi người vận hành khai báo rõ là server ĐỨNG SAU proxy
+  bằng `FFORUM_TRUST_PROXY=1`. Mặc định lấy địa chỉ socket thật, không thể giả.
+*/
 export const clientIpOf = (req: IncomingMessage): string => {
-  const forwarded = req.headers['x-forwarded-for'];
-  const first = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-  if (first) return String(first).split(',')[0].trim();
+  const flag = process.env.FFORUM_TRUST_PROXY;
+  if (flag === '1' || flag === 'true') {
+    const forwarded = req.headers['x-forwarded-for'];
+    const first = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+    if (first) return String(first).split(',')[0].trim();
+  }
   return req.socket?.remoteAddress || 'unknown';
 };
 

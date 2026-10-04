@@ -922,6 +922,72 @@ ghi-tạm-rồi-rename.
 
 ---
 
+## 33. Giả header `X-Forwarded-For` để vượt toàn bộ rate limit
+
+**Mức độ:** Nghiêm trọng · **Vị trí:** `clientIpOf()` trong `server/authGuard.ts`
+
+Mọi rate limiter đều khoá theo IP lấy từ `clientIpOf(req)`, và hàm đó **luôn tin**
+header `X-Forwarded-For`:
+
+```js
+const forwarded = req.headers['x-forwarded-for'];
+if (first) return String(first).split(',')[0].trim();   // client tự đặt được
+```
+
+Header này client tự đặt được. Đổi giá trị mỗi request thì mỗi lần thử rơi vào một
+ô đếm khác nhau — **toàn bộ chống brute-force bị vô hiệu**: đăng nhập, đăng ký,
+đăng nhập mạng xã hội, gửi tin, tố cáo, đặt câu hỏi, presence.
+
+Xác nhận bằng repro (giới hạn đăng ký 30 lượt/10 phút):
+
+```
+[1] KHÔNG đổi X-Forwarded-For: 30 thành công / 30 bị chặn  -> limiter HOẠT ĐỘNG
+[2] ĐỔI X-Forwarded-For mỗi lượt: 61/61 thành công        -> BYPASS ĐƯỢC limiter
+```
+
+**Đã vá:** chỉ tin header này khi người vận hành khai báo rõ server **đứng sau
+proxy** bằng `FFORUM_TRUST_PROXY=1`. Mặc định lấy địa chỉ socket thật, không giả
+được. Sau khi vá:
+
+```
+[2] ĐỔI X-Forwarded-For mỗi lượt: 0/61 thành công -> không bypass được
+```
+
+> Khi triển khai sau reverse proxy (nginx, Cloudflare Tunnel…), phải đặt
+> `FFORUM_TRUST_PROXY=1`, nếu không mọi người dùng sẽ dùng chung một ô đếm IP.
+
+## 34. Nhánh WS của các thao tác quản trị CLB yếu hơn bản HTTP
+
+**Mức độ:** Trung bình · **Vị trí:** `APPROVE_CLUB`, `REJECT_CLUB` trong `server/forumServer.ts`
+
+**(a) `APPROVE_CLUB` im lặng bỏ qua khi payload sai dạng.** Handler lấy
+`const clubId = payload` — tức coi **nguyên payload** là mã CLB. Client gửi đúng
+dạng đó (`payload: clubId`, chuỗi thô), nhưng `REJECT_CLUB` ngay bên cạnh lại nhận
+`{ clubId, reason }`. Gửi nhầm `{ clubId }` thì `find` không thấy gì và handler
+`break` **không báo lỗi nào** — người duyệt bấm mà không có chuyện gì xảy ra. Nay
+nhận cả hai dạng, và luôn phản hồi: `NOT_FOUND` nếu CLB không tồn tại, phát lại
+`APPROVE_CLUB` nếu đã duyệt rồi.
+
+**(b) `REJECT_CLUB` không validate gì.** Bản HTTP của cùng thao tác kiểm thiếu mã
+→ 400, CLB không tồn tại → 404, lý do cắt 500 ký tự. Nhánh WS thì:
+
+```js
+store.clubs = store.clubs.map(c =>
+  c.id === clubId ? { ...c, status: 'REJECTED', rejectReason: reason } : c);
+broadcastServerEvent('REJECT_CLUB', payload);   // phát ngược payload thô
+```
+
+nên `reason` thô được ghi thẳng vào store và xuống đĩa không giới hạn độ dài,
+phát ngược nguyên payload client cho mọi client, và từ chối một mã không tồn tại
+vẫn báo thành công.
+
+**(c) Từ chối một CLB đã duyệt không rút lại quyền.** Chủ nhiệm vẫn giữ
+`role: 'CLUB_LEADER'` và vẫn còn mã CLB trong `scopedClubIds` — tức còn quyền quản
+trị phạm vi một CLB đã bị loại. Nay rút mã khỏi `scopedClubIds`, và nếu không còn
+CLB nào thì hạ về `STUDENT`, kèm phát `SYNC_USER`.
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -950,6 +1016,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 45 bài, chạy trên server thật
-npm test                                        # toàn bộ 141 bài
+node --test tests/security-hardening.test.mjs   # 48 bài, chạy trên server thật
+npm test                                        # toàn bộ 144 bài
 ```

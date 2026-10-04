@@ -351,6 +351,23 @@ const registerLimiter = new SlidingWindowRateLimiter(AUTH_WINDOW_MS, 30);
 const socialLimiter = new SlidingWindowRateLimiter(AUTH_WINDOW_MS, 30);
 const writeLimiter = new SlidingWindowRateLimiter(60 * 1000, 120);
 
+/**
+  Chỉ dành cho bộ kiểm thử.
+
+  Các limiter nằm ở cấp module nên dùng chung giữa mọi test trong cùng tiến trình:
+  bộ test càng dài thì các test ở cuối càng dễ va trần (giới hạn đăng ký 30 lượt/
+  10 phút trong khi bộ test tạo hơn 30 tài khoản). Đây là giới hạn của hạ tầng
+  kiểm thử, không phải của sản phẩm, nên cho phép đặt lại giữa các test thay vì
+  nới giới hạn thật.
+*/
+export function resetRateLimitersForTest() {
+  loginLimiter.reset();
+  registerLimiter.reset();
+  socialLimiter.reset();
+  writeLimiter.reset();
+  presenceLimiter.reset();
+}
+
 const startedAtMs = Date.now();
 
 /**
@@ -917,10 +934,29 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
                 break;
               }
-              const clubId = payload;
+              /*
+                Nhận cả hai dạng payload. Client gửi APPROVE_CLUB với payload là
+                CHÍNH CHUỖI mã CLB, còn REJECT_CLUB (cùng là thao tác của admin lên
+                một CLB) lại gửi `{ clubId, reason }`. Hai thao tác cùng loại mà hai
+                kiểu khác nhau rất dễ踩: gửi nhầm `{ clubId }` thì `find` không thấy
+                gì và handler im lặng bỏ qua, không báo lỗi — người duyệt bấm mà
+                không có chuyện gì xảy ra.
+              */
+              const clubId = typeof payload === 'string' ? payload : String(payload?.clubId || '');
+              if (!clubId) {
+                ws.send(JSON.stringify({ type: 'ERROR', payload: { message: 'Thiếu mã câu lạc bộ!' } }));
+                break;
+              }
               /* Cùng chốt idempotent như đường HTTP. */
               const pendingClub = store.clubs.find(c => c.id === clubId);
-              if (!pendingClub || pendingClub.status === 'APPROVED') break;
+              if (!pendingClub) {
+                ws.send(JSON.stringify({ type: 'NOT_FOUND', payload: { action: type } }));
+                break;
+              }
+              if (pendingClub.status === 'APPROVED') {
+                ws.send(JSON.stringify({ type: 'APPROVE_CLUB', payload: clubId }));
+                break;
+              }
               store.clubs = store.clubs.map(c => (c.id === clubId ? { ...c, status: 'APPROVED' } : c));
               const club = store.clubs.find(c => c.id === clubId);
               if (club) {
@@ -943,12 +979,54 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
                 break;
               }
-              const { clubId, reason } = payload || {};
+              /*
+                Bản HTTP của cùng thao tác này validate đầy đủ (thiếu mã -> 400,
+                CLB không tồn tại -> 404, lý do cắt 500 ký tự). Nhánh WS thì
+                không làm gì cả:
+
+                  store.clubs = store.clubs.map(c =>
+                    c.id === clubId ? { ...c, status:'REJECTED', rejectReason: reason } : c);
+                  broadcastServerEvent('REJECT_CLUB', payload);
+
+                nên (1) `reason` thô của client được ghi thẳng vào store và xuống
+                đĩa không giới hạn độ dài, (2) phát ngược nguyên payload client cho
+                MỌI client thay vì bản đã làm sạch, (3) từ chối một mã không tồn
+                tại vẫn báo thành công và vẫn phát sóng, khiến các client khác hiện
+                trạng thái REJECTED cho một CLB không có thật.
+              */
+              const clubId = String(payload?.clubId || '').trim();
+              if (!clubId) {
+                ws.send(JSON.stringify({ type: 'ERROR', payload: { message: 'Thiếu mã câu lạc bộ!' } }));
+                break;
+              }
+              const target = store.clubs.find(c => c.id === clubId);
+              if (!target) {
+                ws.send(JSON.stringify({ type: 'NOT_FOUND', payload: { action: type } }));
+                break;
+              }
+              const reason = String(payload?.reason || '').trim().slice(0, 500);
+              const wasApproved = target.status === 'APPROVED';
               store.clubs = store.clubs.map(c =>
                 c.id === clubId ? { ...c, status: 'REJECTED', rejectReason: reason } : c
               );
+              /*
+                Từ chối một CLB ĐÃ DUYỆT thì phải rút lại quyền đã trao. Nếu không,
+                chủ nhiệm vẫn giữ role CLUB_LEADER và vẫn còn mã CLB trong
+                scopedClubIds — tức còn quyền quản trị phạm vi một CLB đã bị loại.
+              */
+              if (wasApproved && target.leaderId) {
+                const leader = Object.values(store.users).find(u => u.id === target.leaderId);
+                if (leader) {
+                  leader.scopedClubIds = [...(leader.scopedClubIds || [])].filter(id => id !== clubId);
+                  if (leader.role === 'CLUB_LEADER' && leader.scopedClubIds.length === 0) {
+                    leader.role = 'STUDENT';
+                  }
+                  broadcastServerEvent('SYNC_USER', leader);
+                }
+              }
               persistStoreToDisk();
-              broadcastServerEvent('REJECT_CLUB', payload);
+              /* Phát bản đã làm sạch, không phát ngược payload client. */
+              broadcastServerEvent('REJECT_CLUB', { clubId, reason });
               break;
             }
             case 'NEW_CLUB_POST': {
