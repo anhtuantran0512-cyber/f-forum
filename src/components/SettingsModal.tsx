@@ -418,33 +418,54 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </section>
 
-          {/* 2. GRADIENT */}
+          {/* 2. GRADIENT (Horizontal Spectrum Color Bar - Bảng màu ngang) */}
           <section>
             <SectionTitle icon={<Zap className="w-3 h-3 text-fuchsia-300" />}>Gradient</SectionTitle>
-            <div className="rounded-2xl p-3 bg-black/30 border border-white/10 space-y-2">
+            <div className="rounded-2xl p-3 bg-black/30 border border-white/10 space-y-2.5">
               <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold text-white">
+                  {(GODRAY_PRESETS.find((p) => p.id === godrayPreset) || GODRAY_PRESETS[0]).name}
+                </span>
                 <span className="text-[10px] text-amber-300 font-mono">{godrayIntensity}% độ rực</span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-44 overflow-y-auto no-scrollbar pr-0.5">
-                {GODRAY_PRESETS.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => onSelectGodray?.(p.id)}
-                    className={`p-1.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-1.5 ${
-                      godrayPreset === p.id
-                        ? 'border-amber-400 bg-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
-                        : 'border-white/10 bg-white/5 hover:bg-white/10'
-                    }`}
-                  >
-                    <span className={`w-3.5 h-3.5 rounded-full bg-gradient-to-tr ${p.color} shrink-0 border border-white/30`} />
-                    <span className="text-[10px] font-medium text-white truncate">{p.name}</span>
-                  </button>
-                ))}
+              {/* Horizontal Gradient Color Bar (Bảng màu ngang chọn luôn) */}
+              <div
+                role="radiogroup"
+                aria-label="Bảng màu ngang Gradient"
+                className="relative h-8 w-full rounded-full p-1 flex items-center justify-between border border-white/20 shadow-inner overflow-hidden"
+                style={{
+                  background: `linear-gradient(90deg, ${GODRAY_PRESETS.map(
+                    (g, idx) => `${g.accent} ${Math.round((idx / (GODRAY_PRESETS.length - 1)) * 100)}%`
+                  ).join(', ')})`,
+                }}
+              >
+                {GODRAY_PRESETS.map((p) => {
+                  const active = godrayPreset === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      title={p.name}
+                      onClick={() => onSelectGodray?.(p.id)}
+                      className="relative z-10 h-6 flex-1 rounded-full flex items-center justify-center transition-transform cursor-pointer"
+                    >
+                      <span
+                        className={`w-4 h-4 rounded-full bg-gradient-to-tr ${p.color} transition-all duration-200 ${
+                          active
+                            ? 'scale-125 ring-2 ring-white shadow-[0_0_12px_rgba(255,255,255,0.95)]'
+                            : 'opacity-75 hover:opacity-100 hover:scale-110 border border-black/30'
+                        }`}
+                      />
+                      <span className="sr-only">{p.name}</span>
+                    </button>
+                  );
+                })}
               </div>
 
-              <div className="pt-1 flex items-center gap-2">
+              <div className="pt-0.5 flex items-center gap-2">
                 <span className="text-[10px] text-neutral-400 shrink-0">Độ rực:</span>
                 <input
                   type="range"

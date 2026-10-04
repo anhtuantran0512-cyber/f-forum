@@ -42,6 +42,8 @@ export interface User {
   inventory?: string[];
   reportedUsers?: string[];
   joinedAt?: string;
+  bannerUrl?: string;
+  profileGradient?: string;
   stats?: UserStats;
 }
 
@@ -125,6 +127,7 @@ export interface Solution {
   createdAtMs?: number;
   isBest: boolean;
   upvotes: number;
+  fiveStarCount?: number;
   rewardCoin?: number;
   imageUrl?: string;
 }

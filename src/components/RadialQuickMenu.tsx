@@ -1,99 +1,170 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck
- * Radial quick menu — phỏng theo CodeFronts ccm-02 (radial submenu, pure CSS sin()/cos()). */
-import React from 'react';
-import { Zap, MessagesSquare, MessageCircleQuestion, Flower2, Crown } from 'lucide-react';
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
+import React, { useEffect, useId, useRef, useState } from 'react';
+import { HelpCircle, Headphones, Flame, Settings, Zap } from 'lucide-react';
+import type { DimensionView } from '../types';
+import { safeStorage } from '../utils/storage';
 
-interface RadialQuickMenuProps {
-  onNavigate: (view: string) => void;
-  onOpenChat: () => void;
-  onOpenFocus: () => void;
+export interface RadialQuickMenuProps {
+  onNavigate: (view: DimensionView) => void;
+  onToggleChat?: () => void;
+  onOpenFocusMode: () => void;
+  onOpenSettings?: () => void;
+  onOpenStreak?: () => void;
+  hidden?: boolean;
 }
 
-/** Hub ở góc phải màn hình; bấm vào sẽ xoè 4 nút theo hình quạt dùng sin()/cos() thuần CSS. */
+interface QuickAction {
+  id: string;
+  label: string;
+  angle: string;
+  icon: React.ReactNode;
+  onSelect: () => void;
+}
+
+/**
+ * CodeFronts ccm-02 — Radial Submenu (Pure CSS sin()/cos() fan-out).
+ * Positioned at the bottom-left corner right below the Streak widget,
+ * scaled +10% (53px hub, 44px satellite items) fanning into the top-right quadrant.
+ */
 export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
   onNavigate,
-  onOpenChat,
-  onOpenFocus,
+  onOpenFocusMode,
+  onOpenSettings,
+  onOpenStreak,
+  hidden = false,
 }) => {
-  const items: {
-    key: string;
-    angle: number;
-    label: string;
-    icon: React.ReactNode;
-    tone: string;
-    onClick: () => void;
-  }[] = [
+  const toggleId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [navPos, setNavPos] = useState<'top' | 'bottom' | 'left' | 'right'>(() => {
+    return (safeStorage.getItem('fforum_navbar_pos') as 'top' | 'bottom' | 'left' | 'right') || 'top';
+  });
+
+  useEffect(() => {
+    const onPosChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail as 'top' | 'bottom' | 'left' | 'right' | undefined;
+      setNavPos(detail || ((safeStorage.getItem('fforum_navbar_pos') as 'top' | 'bottom' | 'left' | 'right') || 'top'));
+    };
+    window.addEventListener('fforum_navbar_pos_change', onPosChange);
+    return () => window.removeEventListener('fforum_navbar_pos_change', onPosChange);
+  }, []);
+
+  const close = () => {
+    if (inputRef.current) inputRef.current.checked = false;
+  };
+
+  useEffect(() => {
+    const onDocDown = (e: MouseEvent) => {
+      if (!inputRef.current?.checked) return;
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) close();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
+    document.addEventListener('mousedown', onDocDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, []);
+
+  if (hidden) return null;
+
+  /* Fan into the upper-right quadrant (-90deg straight up to 0deg right) */
+  const actions: QuickAction[] = [
     {
-      key: 'chat',
-      angle: -90,
-      label: 'Trò chuyện',
-      icon: <MessagesSquare className="w-4 h-4" />,
-      tone: 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40 hover:shadow-[0_0_18px_rgba(34,211,238,0.45)]',
-      onClick: onOpenChat,
+      id: 'streak',
+      label: 'Streak',
+      angle: '-86deg',
+      icon: <Flame className="w-[18px] h-[18px] text-rose-400" />,
+      onSelect: () => {
+        if (onOpenStreak) {
+          onOpenStreak();
+        } else if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('fforum_open_daily'));
+        }
+      },
     },
     {
-      key: 'ask',
-      angle: -120,
+      id: 'qa',
       label: 'Hỏi bài',
-      icon: <MessageCircleQuestion className="w-4 h-4" />,
-      tone: 'bg-amber-500/20 text-amber-300 border-amber-400/40 hover:shadow-[0_0_18px_rgba(245,158,11,0.45)]',
-      onClick: () => onNavigate('qa'),
+      angle: '-56deg',
+      icon: <HelpCircle className="w-[18px] h-[18px] text-cyan-300" />,
+      onSelect: () => onNavigate('qa'),
     },
     {
-      key: 'focus',
-      angle: -150,
+      id: 'focus',
       label: 'Tập trung',
-      icon: <Flower2 className="w-4 h-4" />,
-      tone: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40 hover:shadow-[0_0_18px_rgba(52,211,153,0.45)]',
-      onClick: onOpenFocus,
+      angle: '-28deg',
+      icon: <Headphones className="w-[18px] h-[18px] text-emerald-300" />,
+      onSelect: onOpenFocusMode,
     },
     {
-      key: 'honor',
-      angle: -180,
-      label: 'Vinh danh',
-      icon: <Crown className="w-4 h-4" />,
-      tone: 'bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-400/40 hover:shadow-[0_0_18px_rgba(232,121,249,0.45)]',
-      onClick: () => onNavigate('memory'),
+      id: 'settings',
+      label: 'Cài đặt',
+      angle: '2deg',
+      icon: <Settings className="w-[18px] h-[18px] text-amber-300" />,
+      onSelect: () => {
+        if (onOpenSettings) {
+          onOpenSettings();
+        } else if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('fforum_open_settings'));
+        }
+      },
     },
   ];
 
+  const posClass =
+    navPos === 'bottom'
+      ? 'bottom-24 left-4 md:bottom-24 md:left-5'
+      : navPos === 'left'
+      ? 'bottom-4 left-24 md:bottom-5 md:left-24'
+      : 'bottom-4 left-4 md:bottom-5 md:left-5';
+
   return (
-    <div className="ccm-02 fixed bottom-5 right-5 z-40 hidden md:block select-none" aria-label="Thao tác nhanh">
+    <div
+      ref={rootRef}
+      className={`ccm-02 hidden md:block fixed ${posClass} z-40 select-none`}
+      aria-label="Menu tác vụ nhanh"
+    >
       <input
-        id="ccm-02-toggle"
+        ref={inputRef}
+        id={toggleId}
         type="checkbox"
-        className="ccm-02__toggle peer sr-only"
-        aria-label="Mở menu thao tác nhanh"
+        className="ccm-02__toggle sr-only"
+        aria-label="Mở menu tác vụ nhanh"
       />
 
-      {/* Radial items — vị trí tính bằng cos()/sin() thuần CSS */}
-      {items.map((it, i) => (
+      {actions.map((action, idx) => (
         <button
-          key={it.key}
+          key={action.id}
           type="button"
+          style={
+            {
+              '--i': idx,
+              '--a': action.angle,
+            } as React.CSSProperties
+          }
           onClick={() => {
-            it.onClick();
-            const el = document.getElementById('ccm-02-toggle') as HTMLInputElement | null;
-            if (el) el.checked = false;
+            close();
+            action.onSelect();
           }}
-          title={it.label}
-          aria-label={it.label}
-          style={{ '--a': `${it.angle}deg`, '--i': i } as React.CSSProperties}
-          className={`ccm-02__item absolute left-1/2 top-1/2 w-10 h-10 -ml-5 -mt-5 rounded-full border backdrop-blur-md flex items-center justify-center cursor-pointer transition-[transform,opacity,box-shadow] duration-300 ${it.tone}`}
+          className="ccm-02__item group absolute inset-0 m-auto w-11 h-11 rounded-full bg-[#131926]/95 border border-white/15 text-slate-200 flex items-center justify-center shadow-[0_10px_28px_rgba(0,0,0,0.65)] hover:border-cyan-400/50 hover:text-cyan-300 cursor-pointer"
+          aria-label={action.label}
+          title={action.label}
         >
-          {it.icon}
-          <span className="ccm-02__tip">{it.label}</span>
+          {action.icon}
+          <span className="ccm-02__tip">{action.label}</span>
         </button>
       ))}
 
-      {/* Hub */}
       <label
-        htmlFor="ccm-02-toggle"
-        className="ccm-02__hub relative w-12 h-12 rounded-full liquid-glass border border-amber-400/40 flex items-center justify-center cursor-pointer text-amber-300 shadow-[0_8px_30px_rgba(0,0,0,0.5)] transition-transform duration-300 hover:scale-105"
-        title="Thao tác nhanh"
+        htmlFor={toggleId}
+        className="ccm-02__hub relative z-10 w-[53px] h-[53px] rounded-full bg-gradient-to-br from-[#1b2234] to-[#111726] border border-white/15 text-amber-300 flex items-center justify-center cursor-pointer shadow-[0_14px_34px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.14)] hover:border-amber-400/45 transition-colors"
+        title="Tác vụ nhanh"
       >
         <Zap className="w-5 h-5 transition-transform duration-300" />
-        <span className="absolute inset-0 rounded-full animate-ping bg-amber-400/10 pointer-events-none" aria-hidden="true" />
       </label>
     </div>
   );

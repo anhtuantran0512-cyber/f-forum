@@ -1,188 +1,241 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useEffect, useMemo } from 'react';
-import { MessageSquare, ChevronRight, X } from 'lucide-react';
-import type { User } from '../types';
-import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
+import React, { useEffect, useState } from 'react';
+import { Award, Coins, Flame, HelpCircle, CheckCircle2, Sparkles, User as UserIcon, X } from 'lucide-react';
+import type { User, Question, Solution } from '../types';
 import { getTierForLevel } from '../utils/tier';
+import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 
-export interface QuickProfileStats {
-  questions: number;
-  solutions: number;
-  best: number;
-  joinedAt?: string;
-}
-
-interface UserQuickCardProps {
-  user: User;
-  stats?: QuickProfileStats;
-  anchor?: { x: number; y: number } | null;
-  isOwn?: boolean;
+export interface UserQuickCardProps {
+  user: User | null;
+  isOpen: boolean;
   onClose: () => void;
-  onOpenFullProfile: (user: User) => void;
-  onMessage?: () => void;
+  onOpenFullProfile: (user: User, tab?: 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit') => void;
+  questions?: Question[];
+  solutions?: Solution[];
 }
 
-/** Gaming-style quick profile overlay: xem nhanh, bấm tiếp để mở hồ sơ đầy đủ. */
+/**
+ * CodeFronts pc-09 + pc-12 — Discord-style User Card with translucent 3D depth.
+ * Opens on user click; clicking "Xem hồ sơ" escalates to the full ProfileModal.
+ */
 export const UserQuickCard: React.FC<UserQuickCardProps> = ({
   user,
-  stats,
-  anchor,
-  isOwn = false,
+  isOpen,
   onClose,
   onOpenFullProfile,
-  onMessage,
+  questions = [],
+  solutions = [],
 }) => {
-  const tier = getTierForLevel(user.level);
-  const isSuperAdmin = user.role === 'SUPER_ADMIN';
-
-  /* Clamp the card near the click point, always inside the viewport */
-  const pos = useMemo(() => {
-    const W = 308;
-    const H = 380;
-    const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
-    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
-    if (!anchor) {
-      return { left: Math.max(12, (vw - W) / 2), top: Math.max(12, (vh - H) / 2) };
-    }
-    let left = anchor.x + 14;
-    let top = anchor.y - 40;
-    if (left + W > vw - 12) left = Math.max(12, anchor.x - W - 14);
-    if (top + H > vh - 12) top = Math.max(12, vh - H - 12);
-    if (top < 12) top = 12;
-    return { left, top };
-  }, [anchor]);
+  const [note, setNote] = useState('');
 
   useEffect(() => {
+    if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
 
-  const joinedLabel = user.joinedAt
-    ? new Date(user.joinedAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-    : null;
+  if (!isOpen || !user) return null;
+
+  const isSuperAdmin = user.email === 'anhtuantran0512@gmail.com';
+  const tier = getTierForLevel(user.level);
+  const userQuestions = questions.filter((q) => q.authorId === user.id);
+  const userSolutions = solutions.filter((s) => s.authorId === user.id);
+  const bestSolutions = userSolutions.filter((s) => s.isBest);
+  const userCoin = user.coin ?? 0;
 
   return (
-    <>
-      <button
-        type="button"
-        tabIndex={-1}
-        aria-label="Đóng thẻ hồ sơ"
-        className="fixed inset-0 z-[75] bg-black/40 backdrop-blur-[2px] cursor-default border-none outline-none"
-        onClick={onClose}
-      />
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Thẻ nhanh của ${user.name}`}
+      className="fixed inset-0 z-[55] flex items-center justify-center p-4 bg-black/45 backdrop-blur-sm animate-fade-up"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <article className="pc-09 pc-12-shell relative w-full max-w-[340px] rounded-[24px] text-[#f2f3f5] overflow-hidden select-none">
+        {/* Banner with custom bannerUrl or profileGradient */}
+        <div
+          className="relative h-[96px] overflow-hidden"
+          style={{
+            background:
+              user.profileGradient ||
+              (isSuperAdmin
+                ? 'linear-gradient(125deg, #f59e0b 0%, #ec4899 50%, #5865f2 100%)'
+                : 'linear-gradient(125deg, #5865f2 0%, #9b59b6 55%, #06b6d4 100%)'),
+          }}
+        >
+          {user.bannerUrl ? (
+            <img src={user.bannerUrl} alt={user.name} className="w-full h-full object-cover" />
+          ) : (
+            <div
+              className="absolute inset-0 opacity-30"
+              style={{
+                background:
+                  'radial-gradient(circle at 22% 30%, rgba(255,255,255,0.45), transparent 45%), radial-gradient(circle at 78% 70%, rgba(0,0,0,0.35), transparent 55%)',
+              }}
+            />
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Đóng thẻ"
+            className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-black/45 hover:bg-black/70 border border-white/15 flex items-center justify-center text-white/80 hover:text-white transition-colors cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
 
-      <div
-        role="dialog"
-        aria-label={`Hồ sơ nhanh của ${user.name}`}
-        className="fixed z-[80] w-[308px] animate-modal-pop"
-        style={{ left: pos.left, top: pos.top }}
-      >
-        <div className="rounded-2xl overflow-hidden bg-[#111214] border border-white/15 shadow-[0_20px_50px_-18px_rgba(0,0,0,0.9)]">
-          {/* Animated gradient banner */}
-          <div className="h-24 ff-aurora-surface" style={{ background: 'linear-gradient(120deg, rgba(21,24,32,1), rgba(21,24,32,0.6))' }}>
-            <button
-              type="button"
-              onClick={onClose}
-              className="absolute top-2 right-2 p-1 rounded-lg bg-black/40 text-white/60 hover:text-white cursor-pointer"
-              aria-label="Đóng"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
+        {/* Floating avatar + status dot + badge tray */}
+        <div className="relative px-4">
+          <div className="relative -mt-11 w-[78px] h-[78px] rounded-full bg-[#111214] p-[5px]">
+            <img
+              src={user.avatar}
+              alt={user.name}
+              onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+              width={68}
+              height={68}
+              className="w-full h-full rounded-full object-cover bg-[#1e1f22]"
+            />
+            <span
+              className="absolute right-1 bottom-1 w-4 h-4 rounded-full bg-[#23a55a] border-[3px] border-[#111214]"
+              title="Đang hoạt động"
+            />
           </div>
 
-          {/* Avatar overlapping banner edge */}
-          <div className="relative px-5">
-            <div className="-mt-10 w-[84px] h-[84px]">
-              <div className="ff-gradient-ring w-full h-full">
-                <img
-                  src={user.avatar}
-                  alt={user.name}
-                  onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                  className="w-full h-full rounded-full object-cover border-4 border-[#111214]"
-                />
-              </div>
-              {/* Presence dot */}
-              <span className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-400 border-4 border-[#111214] shadow-[0_0_8px_#34d399]" />
-            </div>
+          {/* Badge tray */}
+          <div className="pc-12-well absolute right-4 top-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-lg">
+            <TierBadge level={user.level} size={16} showTooltip={false} />
+            {isSuperAdmin && <AdminVerifiedBadge size={14} />}
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
           </div>
+        </div>
 
-          <div className="px-5 pb-5 pt-2.5">
-            {/* Name row */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <h3 className={`text-base font-extrabold truncate ${isSuperAdmin ? 'discord-admin-name' : 'text-white'}`}>
-                  {user.name}
-                </h3>
-                {isSuperAdmin && <AdminVerifiedBadge size={14} tooltipPosition="bottom" />}
-              </div>
-              <TierBadge level={user.level} size={20} showTooltip={false} />
+        {/* Inner surface body */}
+        <div className="pc-12-card m-3 mt-2.5 p-3.5 rounded-2xl space-y-3">
+          {/* Identity */}
+          <div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h3 className={`text-[17px] font-extrabold leading-tight ${isSuperAdmin ? 'discord-admin-name' : 'text-white'}`}>
+                {user.name.replace(/ \(.*\)/, '')}
+              </h3>
+              {isSuperAdmin && <AdminVerifiedBadge size={15} />}
             </div>
-
-            {/* Sub info (no private data) */}
-            <p className="text-[11.5px] text-neutral-400 mt-0.5 truncate">
-              {[user.className, user.city].filter((v) => v && v !== 'Chưa cập nhật' && v !== 'Học sinh').join(' • ') ||
-                `Level ${user.level} • ${tier.name}`}
+            <p className="text-xs text-[#949ba4] font-mono">
+              {tier.titleVi} • Lv.{user.level}
             </p>
+          </div>
 
-            {/* Mini stats — real numbers only */}
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <div className="rounded-xl bg-white/[0.05] border border-white/10 px-2 py-1.5 text-center">
-                <div className="text-sm font-black text-white font-mono">{stats?.questions ?? 0}</div>
-                <div className="text-[9px] uppercase tracking-wider text-neutral-400">Câu hỏi</div>
+          {/* Custom status / bio */}
+          <p className="text-xs text-[#dbdee1] leading-relaxed pb-2.5 border-b border-white/[0.07]">
+            {user.bio || 'Thành viên học tập tại F-Forum.'}
+          </p>
+
+          {/* Activity stats */}
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[#949ba4] mb-1.5">
+              Hoạt động
+            </div>
+            <div className="grid grid-cols-3 gap-1.5 text-center">
+              <div className="pc-12-well p-1.5">
+                <div className="text-xs font-extrabold text-amber-300 font-mono flex items-center justify-center gap-1">
+                  <Coins className="w-3 h-3" />
+                  {userCoin}
+                </div>
+                <div className="text-[9.5px] text-[#949ba4]">Coin</div>
               </div>
-              <div className="rounded-xl bg-white/[0.05] border border-white/10 px-2 py-1.5 text-center">
-                <div className="text-sm font-black text-white font-mono">{stats?.solutions ?? 0}</div>
-                <div className="text-[9px] uppercase tracking-wider text-neutral-400">Trả lời</div>
+              <div className="pc-12-well p-1.5">
+                <div className="text-xs font-extrabold text-cyan-300 font-mono flex items-center justify-center gap-1">
+                  <HelpCircle className="w-3 h-3" />
+                  {userSolutions.length}
+                </div>
+                <div className="text-[9.5px] text-[#949ba4]">Lời giải</div>
               </div>
-              <div className="rounded-xl bg-white/[0.05] border border-white/10 px-2 py-1.5 text-center">
-                <div className="text-sm font-black text-amber-300 font-mono">{stats?.best ?? 0}</div>
-                <div className="text-[9px] uppercase tracking-wider text-neutral-400">Đáp án</div>
+              <div className="pc-12-well p-1.5">
+                <div className="text-xs font-extrabold text-emerald-300 font-mono flex items-center justify-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  {bestSolutions.length}
+                </div>
+                <div className="text-[9.5px] text-[#949ba4]">Hay nhất</div>
               </div>
             </div>
+          </div>
 
-            {/* Role chips */}
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              <span className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)' }}>
-                Danh hiệu {tier.roman}
+          {/* Roles */}
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[#949ba4] mb-1.5">
+              Vai trò
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <span className="pc-12-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-semibold text-[#dbdee1]">
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                {tier.titleVi}
               </span>
-              <span className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ color: '#22d3ee', background: 'rgba(34,211,238,0.1)', border: '1px solid rgba(34,211,238,0.35)' }}>
-                {user.role === 'SUPER_ADMIN' ? 'Quản trị' : user.role === 'CLUB_LEADER' ? 'Chủ nhiệm CLB' : 'Học sinh'}
+              <span className="pc-12-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-semibold text-[#dbdee1]">
+                <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                {user.role === 'SUPER_ADMIN'
+                  ? 'Quản trị'
+                  : user.role === 'CLUB_LEADER'
+                  ? 'Chủ nhiệm CLB'
+                  : 'Học sinh'}
               </span>
-              {joinedLabel && (
-                <span className="text-[10px] px-2 py-1 rounded-lg font-semibold text-emerald-300 bg-emerald-500/10 border border-emerald-400/30">
-                  Tham gia {joinedLabel}
+              {(user.streakCount || 0) > 0 && (
+                <span className="pc-12-pill inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-semibold text-orange-300">
+                  <Flame className="w-3 h-3 text-orange-400" />
+                  {user.streakCount} ngày
+                </span>
+              )}
+              {userQuestions.length > 0 && (
+                <span className="pc-12-pill inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-semibold text-[#dbdee1]">
+                  <Award className="w-3 h-3 text-emerald-400" />
+                  {userQuestions.length} câu hỏi
                 </span>
               )}
             </div>
+          </div>
 
-            {/* Actions */}
+          {/* Quick note input */}
+          <input
+            type="text"
+            value={note}
+            maxLength={80}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Thêm ghi chú cá nhân..."
+            className="w-full pc-12-well rounded-lg px-2.5 py-1.5 text-xs text-[#dbdee1] placeholder-[#949ba4] focus:outline-none focus:border-[#5865f2] transition-colors"
+          />
+
+          {/* Primary action: escalate to full profile modal */}
+          <div className="grid grid-cols-2 gap-2 pt-0.5">
             <button
               type="button"
-              onClick={() => onOpenFullProfile(user)}
-              className="w-full mt-4 py-2.5 rounded-xl border-none cursor-pointer font-bold text-[13px] text-neutral-950 ff-aurora-bar shadow-[0_8px_20px_-8px_rgba(245,158,11,0.7)] hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
+              onClick={() => {
+                onClose();
+                onOpenFullProfile(user, 'overview');
+              }}
+              className="py-2 px-3 rounded-xl bg-[#5865f2] hover:bg-[#4752c4] text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md"
             >
+              <UserIcon className="w-3.5 h-3.5" />
               <span>Xem hồ sơ</span>
-              <ChevronRight className="w-4 h-4" />
             </button>
-
-            {!isOwn && onMessage && (
-              <button
-                type="button"
-                onClick={onMessage}
-                className="w-full mt-2 py-2 rounded-xl cursor-pointer font-semibold text-xs text-white bg-white/5 hover:bg-white/10 border border-white/15 transition-colors flex items-center justify-center gap-1.5"
-              >
-                <MessageSquare className="w-3.5 h-3.5 text-orange-400" />
-                <span>Nhắn tin</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenFullProfile(user, 'card');
+              }}
+              className="pc-12-btn py-2 px-3 rounded-xl text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Thẻ F-Pass</span>
+            </button>
           </div>
         </div>
-      </div>
-    </>
+      </article>
+    </div>
   );
 };
 

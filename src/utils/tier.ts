@@ -3,11 +3,13 @@ export interface TierInfo {
   tierNumber: number;
   roman: string;
   name: string;
+  titleVi?: string;
   minLevel: number;
   maxLevel: number;
   auraRadius: number;
   auraColor: string;
   badgeColor: string;
+  accentColor?: string;
   description: string;
 }
 
@@ -104,8 +106,25 @@ export const TIER_CONFIGS: TierInfo[] = [
 
 export function getTierForLevel(level: number): TierInfo {
   const clamped = Math.max(1, Math.min(150, level));
-  const found = TIER_CONFIGS.find(
-    t => clamped >= t.minLevel && clamped <= t.maxLevel
-  );
-  return found || TIER_CONFIGS[TIER_CONFIGS.length - 1];
+  const found =
+    TIER_CONFIGS.find(t => clamped >= t.minLevel && clamped <= t.maxLevel) ||
+    TIER_CONFIGS[TIER_CONFIGS.length - 1];
+  return {
+    ...found,
+    titleVi: found.name,
+    accentColor: found.badgeColor,
+  };
 }
+
+export function getXPProgress(xp: number, level: number): { current: number; next: number; percent: number } {
+  const lvl = Math.max(1, Math.min(150, level));
+  const thresholdFor = (l: number) =>
+    l <= 1 ? 0 : Math.floor(140 * (l - 1) + 1.08 * Math.pow(l - 1, 2));
+  const curThreshold = thresholdFor(lvl);
+  const nextThreshold = lvl >= 150 ? curThreshold + 1000 : thresholdFor(lvl + 1);
+  const span = Math.max(1, nextThreshold - curThreshold);
+  const intoLevel = Math.max(0, xp - curThreshold);
+  const percent = lvl >= 150 ? 100 : Math.max(0, Math.min(100, Math.round((intoLevel / span) * 100)));
+  return { current: intoLevel, next: span, percent };
+}
+

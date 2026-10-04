@@ -47,7 +47,7 @@ const NAV_ICONS: Record<DimensionView, React.ReactNode> = {
   qa: <HelpCircle size={16} className="text-cyan-400" />,
   chat: <MessageSquare size={16} className="text-orange-400" />,
   memory: (
-    <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 ff-nav-tab-icon">
+    <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 ff-nav-tab-icon text-pink-300">
       <rect x="3" y="3" width="18" height="18" rx="4" />
       <path d="M3 15l5-5c.9-.9 2.3-.9 3.2 0l6.8 6.8" />
       <path d="M14 14.5l1.5-1.5c.8-.8 2.2-.8 3 0L21 15.5" />
@@ -55,7 +55,7 @@ const NAV_ICONS: Record<DimensionView, React.ReactNode> = {
     </svg>
   ),
   chronicles: (
-    <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 ff-nav-tab-icon">
+    <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 ff-nav-tab-icon text-amber-300">
       <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
       <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
       <path d="M4 22h16" />
@@ -138,13 +138,15 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [alwaysCompact, setAlwaysCompact] = useState<boolean>(() => {
     return safeStorage.getItem('fforum_nav_compact') === 'true';
   });
-  const [isNavbarHovered, setIsNavbarHovered] = useState<boolean>(false);
+  const [isNavbarHovered, setIsNavbarHovered] = useState<boolean>(true);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /* ============================================================ */
   /* iOS-26 compact capsule state machine                          */
   /* ============================================================ */
-  const [isCompact, setIsCompact] = useState<boolean>(false);
+  const [isCompact, setIsCompact] = useState<boolean>(() => {
+    return safeStorage.getItem('fforum_nav_compact') === 'true';
+  });
   const compactTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastScrollYRef = useRef<number>(0);
@@ -157,8 +159,10 @@ export const Navbar: React.FC<NavbarProps> = ({
       clearTimeout(compactTimerRef.current);
       compactTimerRef.current = null;
     }
-    setIsCompact(false);
-  }, []);
+    if (!alwaysCompact) {
+      setIsCompact(false);
+    }
+  }, [alwaysCompact]);
 
   const scheduleCompact = useCallback((delay = 500) => {
     if (alwaysCompact) {
@@ -178,7 +182,10 @@ export const Navbar: React.FC<NavbarProps> = ({
       const last = lastScrollYRef.current;
       lastScrollYRef.current = y;
       if (anyPopoverOpenRef.current) return;
-      if (alwaysCompact) return; /* user pinned icon-only mode */
+      if (alwaysCompact) {
+        setIsCompact(true);
+        return;
+      }
 
       if (y > last + 10 && y > 50) {
         setIsCompact(true);
@@ -186,10 +193,9 @@ export const Navbar: React.FC<NavbarProps> = ({
         forceExpand();
       }
 
-      /* After 900ms idle the bar becomes reachable again */
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       idleTimerRef.current = setTimeout(() => {
-        if (!anyPopoverOpenRef.current) forceExpand();
+        if (!anyPopoverOpenRef.current && !alwaysCompact) forceExpand();
       }, 900);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -199,9 +205,9 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
   }, [alwaysCompact, forceExpand]);
 
-  /* Always-compact preference */
+  /* Sync compact state when user toggles "Chỉ hiện icon" */
   useEffect(() => {
-    if (alwaysCompact) setIsCompact(true);
+    setIsCompact(alwaysCompact);
   }, [alwaysCompact]);
 
   const handleNavPointerEnter = () => {
@@ -210,7 +216,9 @@ export const Navbar: React.FC<NavbarProps> = ({
       hideTimerRef.current = null;
     }
     setIsNavbarHovered(true);
-    forceExpand();
+    if (!alwaysCompact) {
+      forceExpand();
+    }
   };
 
   const handleNavPointerLeave = () => {
@@ -219,11 +227,13 @@ export const Navbar: React.FC<NavbarProps> = ({
       scheduleCompact(500);
     }
     if (!navbarAutoHide) return;
-    if (isFlyoutOpen || isNotificationsOpen || isSettingsOpen) return;
+    if (anyPopoverOpenRef.current) return;
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     hideTimerRef.current = setTimeout(() => {
-      setIsNavbarHovered(false);
-    }, 1000);
+      if (!anyPopoverOpenRef.current) {
+        setIsNavbarHovered(false);
+      }
+    }, 900);
   };
 
   useEffect(() => {
@@ -231,8 +241,12 @@ export const Navbar: React.FC<NavbarProps> = ({
       setIsNavbarHovered(true);
       return;
     }
-    const TRIGGER_DISTANCE = 117;
+    const TRIGGER_DISTANCE = 96;
     const handleMouseMove = (e: MouseEvent) => {
+      if (anyPopoverOpenRef.current) {
+        setIsNavbarHovered(true);
+        return;
+      }
       const { clientX, clientY } = e;
       const winW = window.innerWidth;
       const winH = window.innerHeight;
@@ -248,23 +262,42 @@ export const Navbar: React.FC<NavbarProps> = ({
       }
 
       if (isNearEdge) {
-        handleNavPointerEnter();
-      } else if (!isFlyoutOpen && !isNotificationsOpen && !isSettingsOpen) {
-        handleNavPointerLeave();
+        if (hideTimerRef.current) {
+          clearTimeout(hideTimerRef.current);
+          hideTimerRef.current = null;
+        }
+        setIsNavbarHovered(true);
+        if (!alwaysCompact) forceExpand();
+      } else {
+        if (!hideTimerRef.current) {
+          hideTimerRef.current = setTimeout(() => {
+            if (!anyPopoverOpenRef.current) setIsNavbarHovered(false);
+            hideTimerRef.current = null;
+          }, 900);
+        }
       }
     };
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [navbarAutoHide, navbarPosition, isFlyoutOpen, isNotificationsOpen, isSettingsOpen, alwaysCompact]);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+    };
+  }, [navbarAutoHide, navbarPosition, alwaysCompact, forceExpand]);
 
   const isVertical = navbarPosition === 'left' || navbarPosition === 'right';
+  const effectiveCompact = isCompact || alwaysCompact;
 
   /* ============================================================ */
-  /* Robust active pill measurement (rect-based, clamped)          */
+  /* Robust active pill measurement (offset-based + rAF tracker)   */
   /* ============================================================ */
   useEffect(() => {
+    let rafId: number | null = null;
+    const startMs = performance.now();
+
     const updatePill = () => {
       const container = tabsContainerRef.current;
       const activeEl = tabRefs.current[currentView];
@@ -272,27 +305,43 @@ export const Navbar: React.FC<NavbarProps> = ({
         setPillStyle((prev) => ({ ...prev, opacity: 0 }));
         return;
       }
-      const cRect = container.getBoundingClientRect();
-      const tRect = activeEl.getBoundingClientRect();
-      let left = tRect.left - cRect.left + container.scrollLeft;
-      let width = tRect.width;
-      /* Clamp so the pill can never overflow the tab strip */
-      const maxLeft = container.scrollWidth - 2;
-      left = Math.max(0, Math.min(left, maxLeft));
-      width = Math.min(width, Math.max(0, container.scrollWidth - left));
-      setPillStyle({
-        left,
-        width,
-        top: activeEl.offsetTop,
-        height: activeEl.offsetHeight,
-        opacity: 1,
+
+      /* Use offsetLeft / offsetWidth which are strictly relative to tabsContainerRef
+         and unaffected by parent CSS transforms or scale animations */
+      const maxScrollW = Math.max(container.scrollWidth, container.clientWidth);
+      const maxScrollH = Math.max(container.scrollHeight, container.clientHeight);
+      const rawLeft = activeEl.offsetLeft;
+      const rawWidth = activeEl.offsetWidth;
+      const rawTop = activeEl.offsetTop;
+      const rawHeight = activeEl.offsetHeight;
+
+      const left = Math.max(0, Math.min(rawLeft, Math.max(0, maxScrollW - rawWidth)));
+      const width = Math.max(0, Math.min(rawWidth, maxScrollW - left));
+      const top = Math.max(0, Math.min(rawTop, Math.max(0, maxScrollH - rawHeight)));
+      const height = Math.max(0, Math.min(rawHeight, maxScrollH - top));
+
+      setPillStyle((prev) => {
+        if (
+          Math.abs(prev.left - left) < 0.5 &&
+          Math.abs(prev.width - width) < 0.5 &&
+          Math.abs(prev.top - top) < 0.5 &&
+          Math.abs(prev.height - height) < 0.5 &&
+          prev.opacity === 1
+        ) {
+          return prev;
+        }
+        return { left, width, top, height, opacity: width > 0 ? 1 : 0 };
       });
     };
 
-    updatePill();
-    /* Re-measure after compact/expand transitions & fonts/layout shifts */
-    const t1 = setTimeout(updatePill, 80);
-    const t2 = setTimeout(updatePill, 480);
+    const tick = () => {
+      updatePill();
+      if (performance.now() - startMs < 550) {
+        rafId = requestAnimationFrame(tick);
+      }
+    };
+
+    rafId = requestAnimationFrame(tick);
     window.addEventListener('resize', updatePill);
 
     let ro: ResizeObserver | null = null;
@@ -302,17 +351,17 @@ export const Navbar: React.FC<NavbarProps> = ({
       Object.values(tabRefs.current).forEach((el) => el && ro!.observe(el));
     }
     const containerEl = tabsContainerRef.current;
-    const onContainerScroll = () => updatePill();
-    containerEl?.addEventListener('scroll', onContainerScroll, { passive: true });
+    containerEl?.addEventListener('scroll', updatePill, { passive: true });
+    containerEl?.addEventListener('transitionend', updatePill);
 
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
+      if (rafId !== null) cancelAnimationFrame(rafId);
       window.removeEventListener('resize', updatePill);
       ro?.disconnect();
-      containerEl?.removeEventListener('scroll', onContainerScroll);
+      containerEl?.removeEventListener('scroll', updatePill);
+      containerEl?.removeEventListener('transitionend', updatePill);
     };
-  }, [currentView, isVertical, isCompact]);
+  }, [currentView, isVertical, effectiveCompact, navbarPosition]);
 
   /* Keep the active tab visible inside the scrollable strip */
   useEffect(() => {
@@ -328,8 +377,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   useEffect(() => {
     const handleOpenDaily = () => setIsDailyModalOpen(true);
+    const handleOpenSettings = () => {
+      setIsSettingsOpen((prev) => !prev);
+      setIsNotificationsOpen(false);
+      setIsFlyoutOpen(false);
+    };
     window.addEventListener('fforum_open_daily', handleOpenDaily);
-    return () => window.removeEventListener('fforum_open_daily', handleOpenDaily);
+    window.addEventListener('fforum_open_settings', handleOpenSettings);
+    return () => {
+      window.removeEventListener('fforum_open_daily', handleOpenDaily);
+      window.removeEventListener('fforum_open_settings', handleOpenSettings);
+    };
   }, []);
 
   useEffect(() => {
@@ -486,6 +544,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         await audioCtxRef.current.resume();
       }
     } catch {
+      /* ignore */
     }
     const active = toggleAmbientAudio(audioCtxRef.current);
     setIsAudioPlaying(active || isAmbientActive());
@@ -502,14 +561,13 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'coming-soon', label: 'UPDATE' },
   ];
 
+  /* Streak flame sits right above the Lightning Bolt (RadialQuickMenu) at bottom-left */
   const streakWidgetPosClass =
     navbarPosition === 'bottom'
-      ? 'fixed bottom-24 left-4 md:bottom-24 md:left-5'
+      ? 'fixed bottom-40 left-4 md:bottom-40 md:left-5'
       : navbarPosition === 'left'
-      ? 'fixed bottom-20 left-24 md:bottom-5 md:left-24'
-      : navbarPosition === 'right'
-      ? 'fixed bottom-20 right-24 md:bottom-5 md:right-24 left-auto'
-      : 'fixed bottom-20 left-4 md:bottom-5 md:left-5';
+      ? 'fixed bottom-20 left-24 md:bottom-20 md:left-24'
+      : 'fixed bottom-20 left-4 md:bottom-20 md:left-5';
 
   const sharedSettingsProps = {
     isOpen: isSettingsOpen,
@@ -556,6 +614,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       setNavbarAutoHide((prev) => {
         const next = !prev;
         safeStorage.setItem('fforum_navbar_autohide', String(next));
+        if (!next) setIsNavbarHovered(true);
         return next;
       });
     },
@@ -565,11 +624,13 @@ export const Navbar: React.FC<NavbarProps> = ({
       const next = list[(list.indexOf(navbarPosition) + 1) % list.length];
       setNavbarPosition(next);
       safeStorage.setItem('fforum_navbar_pos', next);
+      window.dispatchEvent(new CustomEvent('fforum_navbar_pos_change', { detail: next }));
       if (soundEffects) playChime('success');
     },
     onSelectNavbarPosition: (pos: 'top' | 'bottom' | 'left' | 'right') => {
       setNavbarPosition(pos);
       safeStorage.setItem('fforum_navbar_pos', pos);
+      window.dispatchEvent(new CustomEvent('fforum_navbar_pos_change', { detail: pos }));
       if (soundEffects) playChime('success');
     },
     alwaysCompact,
@@ -577,11 +638,14 @@ export const Navbar: React.FC<NavbarProps> = ({
       setAlwaysCompact((prev) => {
         const next = !prev;
         safeStorage.setItem('fforum_nav_compact', String(next));
+        setIsCompact(next);
         return next;
       });
     },
     dockPosition: navbarPosition,
   };
+
+  const isDockHidden = isInsideCinema || (navbarAutoHide && !isNavbarHovered && !anyPopoverOpen);
 
   return (
     <>
@@ -590,12 +654,12 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div
           className={`hidden md:block fixed z-[51] pointer-events-auto opacity-0 transition-all ${
             navbarPosition === 'bottom'
-              ? 'bottom-0 inset-x-0 h-[117px]'
+              ? 'bottom-0 inset-x-0 h-[88px]'
               : navbarPosition === 'left'
-              ? 'left-0 inset-y-0 w-[117px]'
+              ? 'left-0 inset-y-0 w-[88px]'
               : navbarPosition === 'right'
-              ? 'right-0 inset-y-0 w-[117px]'
-              : 'top-0 inset-x-0 h-[117px]'
+              ? 'right-0 inset-y-0 w-[88px]'
+              : 'top-0 inset-x-0 h-[88px]'
           }`}
           onMouseEnter={handleNavPointerEnter}
         />
@@ -609,27 +673,25 @@ export const Navbar: React.FC<NavbarProps> = ({
         onMouseLeave={handleNavPointerLeave}
         className={`hidden md:block fixed inset-0 z-50 pointer-events-none transition-all duration-500 dock-container dock-pos-${navbarPosition}`}
         style={{
-          transform:
-            isInsideCinema || (navbarAutoHide && !isNavbarHovered)
-              ? navbarPosition === 'bottom'
-                ? 'translateY(120px)'
-                : navbarPosition === 'left'
-                ? 'translateX(-120px)'
-                : navbarPosition === 'right'
-                ? 'translateX(120px)'
-                : 'translateY(-120px)'
-              : 'translate(0, 0)',
-          opacity: isInsideCinema || (navbarAutoHide && !isNavbarHovered) ? 0 : 1,
+          transform: isDockHidden
+            ? navbarPosition === 'bottom'
+              ? 'translateY(120px)'
+              : navbarPosition === 'left'
+              ? 'translateX(-120px)'
+              : navbarPosition === 'right'
+              ? 'translateX(120px)'
+              : 'translateY(-120px)'
+            : undefined,
+          opacity: isDockHidden ? 0 : 1,
         }}
       >
         <nav
-          data-compact={isCompact && !isVertical ? 'true' : 'false'}
+          data-compact={effectiveCompact && !isVertical ? 'true' : 'false'}
           onPointerEnter={forceExpand}
           onFocusCapture={forceExpand}
           className="ff-nav-capsule fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full px-4 flex items-center justify-between gap-1 shadow-2xl"
           aria-label="Điều hướng chính"
         >
-
           {/* Brand Logo */}
           <button
             type="button"
@@ -641,7 +703,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             title="F-Forum - Trở về Trang chủ"
             aria-label="Trang chủ F-Forum"
           >
-            <div className="flex items-center gap-2 flex-shrink-0 whitespace-nowrap select-none mr-1">
+            <div className="flex items-center gap-2 flex-shrink-0 whitespace-nowrap select-none">
               <div className="w-8 h-8 rounded-full ff-gradient-ring flex-shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.3)]">
                 <div className="w-full h-full bg-[#0a0f14] rounded-full flex items-center justify-center text-amber-400 font-bold text-sm">
                   F
@@ -653,9 +715,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </button>
 
-          {/* Center Tabs: single line, icon + collapsible label */}
+          {/* Center Tabs: text-only when expanded, icon-only when compact or vertical */}
           <div ref={tabsContainerRef} className="relative flex items-center gap-1 overflow-x-auto no-scrollbar py-1 nav-center-tabs">
-            {!isVertical && (
+            {!isVertical && pillStyle.opacity > 0 && (
               <>
                 {/* Liquid sliding pill indicator */}
                 <div
@@ -669,11 +731,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                 {/* Organic liquid droplet bead */}
                 <div
-                  className={`absolute ${navbarPosition === 'bottom' ? '-top-1' : '-bottom-1'} nav-liquid-drop pointer-events-none hidden lg:block`}
+                  className={`absolute ${navbarPosition === 'bottom' ? 'top-0' : 'bottom-0'} nav-liquid-drop pointer-events-none hidden lg:block`}
                   style={{
-                    left: `${pillStyle.left + pillStyle.width / 2 - 9}px`,
-                    width: '18px',
-                    height: '6px',
+                    left: `${Math.max(4, pillStyle.left + pillStyle.width / 2 - 8)}px`,
+                    width: '16px',
+                    height: '4px',
                     opacity: pillStyle.opacity,
                   }}
                 />
@@ -681,13 +743,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
 
             {/* Vertical organic liquid droplet bead */}
-            {isVertical && (
+            {isVertical && pillStyle.opacity > 0 && (
               <div
-                className={`absolute ${navbarPosition === 'left' ? '-left-1' : '-right-1'} nav-liquid-drop-vertical pointer-events-none`}
+                className={`absolute ${navbarPosition === 'left' ? 'left-0.5' : 'right-0.5'} nav-liquid-drop-vertical pointer-events-none`}
                 style={{
-                  top: `${pillStyle.top + (pillStyle.height ? pillStyle.height / 2 - 10 : 10)}px`,
-                  width: '6px',
-                  height: '20px',
+                  top: `${Math.max(4, pillStyle.top + (pillStyle.height ? pillStyle.height / 2 - 9 : 10))}px`,
+                  width: '4px',
+                  height: '18px',
                   opacity: pillStyle.opacity,
                 }}
               />
@@ -706,31 +768,39 @@ export const Navbar: React.FC<NavbarProps> = ({
                   title={item.label}
                   aria-label={item.label}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`nav-tab-btn px-3 py-1.5 rounded-full text-xs font-semibold tracking-wider whitespace-nowrap flex-shrink-0 select-none transition-all cursor-pointer flex items-center justify-center gap-1.5 z-10 group/tab relative ${
+                  className={`nav-tab-btn px-3 py-1.5 rounded-full text-xs font-semibold tracking-wider whitespace-nowrap flex-shrink-0 select-none transition-all cursor-pointer flex items-center justify-center z-10 group/tab relative ${
                     isActive
-                      ? 'bg-amber-500/20 lg:bg-transparent text-amber-300 border border-amber-500/30 lg:border-transparent shadow-[0_0_15px_rgba(245,158,11,0.25)] lg:shadow-none'
-                      : 'text-white/70 hover:text-white hover:bg-white/5 border border-transparent'
+                      ? 'bg-amber-500/20 lg:bg-amber-500/15 text-amber-300 border border-amber-500/35 shadow-[0_0_14px_rgba(245,158,11,0.22)]'
+                      : 'text-white/75 hover:text-white hover:bg-white/10 border border-transparent'
                   }`}
                 >
-                  {/* Icon (always visible) */}
-                  <span className="dock-nav-icon flex items-center justify-center ff-nav-tab-icon">
+                  {/* Icon: shown ONLY in compact mode or vertical dock */}
+                  <span className="dock-nav-icon ff-nav-tab-icon-wrap flex items-center justify-center ff-nav-tab-icon">
                     {NAV_ICONS[item.id]}
                   </span>
 
-                  {/* Label (collapses in compact mode) */}
+                  {/* Label: shown ONLY in expanded horizontal mode */}
                   <span className="ff-nav-label nav-tab-label whitespace-nowrap select-none">
                     {item.label}
                   </span>
 
-                  {/* Hover Tooltip in Vertical Mode */}
-                  <span className={`pointer-events-none opacity-0 group-hover/tab:opacity-100 transition-all duration-200 fixed ${
-                    navbarPosition === 'left' ? 'left-24' : 'right-24'
-                  } px-2.5 py-1 rounded-xl bg-[#0a0f14]/95 backdrop-blur-xl border border-white/20 text-[11px] font-bold text-amber-300 shadow-[0_10px_25px_rgba(0,0,0,0.8)] z-50 whitespace-nowrap hidden dock-vertical-tooltip`}>
+                  {/* Hover Tooltip in Vertical or Compact Mode */}
+                  <span
+                    className={`pointer-events-none opacity-0 group-hover/tab:opacity-100 transition-all duration-200 fixed ${
+                      navbarPosition === 'left'
+                        ? 'left-24'
+                        : navbarPosition === 'right'
+                        ? 'right-24'
+                        : navbarPosition === 'bottom'
+                        ? 'bottom-20'
+                        : 'top-20'
+                    } px-2.5 py-1 rounded-xl bg-[#0a0f14]/95 backdrop-blur-xl border border-white/20 text-[11px] font-bold text-amber-300 shadow-[0_10px_25px_rgba(0,0,0,0.8)] z-50 whitespace-nowrap hidden dock-vertical-tooltip`}
+                  >
                     {item.label}
                   </span>
 
                   {item.id === 'chat' && unreadChatCount > 0 && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0 ml-1" />
                   )}
                 </button>
               );
@@ -739,8 +809,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Side: Quick Dock */}
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 nav-actions-dock">
-            {/* Settings */}
-            <div ref={settingsTriggerRef} className="relative inline-flex items-center flex-shrink-0">
+            {/* Settings Trigger */}
+            <div ref={settingsTriggerRef} className="relative inline-flex items-center justify-center flex-shrink-0">
               <button
                 type="button"
                 data-settings-trigger="true"
@@ -764,10 +834,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   }`}
                 />
               </button>
-
-              <div ref={settingsMenuRef}>
-                <SettingsModal {...sharedSettingsProps} anchorRef={settingsTriggerRef} />
-              </div>
             </div>
 
             {/* Chat Toggle */}
@@ -789,8 +855,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </button>
 
-            {/* Notification Bell */}
-            <div ref={notifTriggerRef} className="relative inline-flex items-center flex-shrink-0">
+            {/* Notification Bell Trigger */}
+            <div ref={notifTriggerRef} className="relative inline-flex items-center justify-center flex-shrink-0">
               <button
                 type="button"
                 data-notif-trigger="true"
@@ -798,32 +864,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                   e.stopPropagation();
                   setIsNotificationsOpen((prev) => !prev);
                   setIsFlyoutOpen(false);
+                  setIsSettingsOpen(false);
                 }}
-                className="relative p-2.5 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors pointer-events-auto cursor-pointer"
+                className="relative w-9 h-9 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors pointer-events-auto cursor-pointer"
                 aria-label="Thông báo"
                 title="Thông báo"
               >
-                <Bell size={19} className={isNotificationsOpen ? 'text-amber-300' : 'text-amber-400'} />
+                <Bell size={18} className={isNotificationsOpen ? 'text-amber-300' : 'text-amber-400'} />
                 {unreadNotifCount > 0 && (
-                  <span className="absolute top-1 right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-black ring-2 ring-[#0a0f14]">
+                  <span className="absolute top-0.5 right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-black ring-2 ring-[#0a0f14]">
                     {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
                   </span>
                 )}
               </button>
-
-              <div ref={notifMenuRef}>
-                <NotificationsModal
-                  isOpen={isNotificationsOpen}
-                  onClose={() => setIsNotificationsOpen(false)}
-                  onNavigate={(view) => {
-                    setIsNotificationsOpen(false);
-                    onViewChange(view);
-                  }}
-                  onUnreadCountChange={setUnreadNotifCount}
-                  dockPosition={navbarPosition}
-                  anchorRef={notifTriggerRef}
-                />
-              </div>
             </div>
 
             {/* Auth Capsule or Login Button */}
@@ -831,20 +884,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 onClick={onOpenLoginModal}
-                className="bg-white text-neutral-900 px-4 py-1.5 rounded-full text-xs font-semibold hover:bg-neutral-200 transition-colors shadow-md cursor-pointer whitespace-nowrap flex-shrink-0"
+                className="nav-login-btn bg-white text-neutral-900 px-3.5 py-1.5 rounded-full text-xs font-semibold hover:bg-neutral-200 transition-colors shadow-md cursor-pointer whitespace-nowrap flex-shrink-0 pointer-events-auto"
               >
                 Đăng nhập
               </button>
             ) : (
-              <div ref={userTriggerRef} className="relative inline-flex items-center flex-shrink-0">
+              <div ref={userTriggerRef} className="relative inline-flex items-center justify-center flex-shrink-0">
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsFlyoutOpen((prev) => !prev);
                     setIsNotificationsOpen(false);
+                    setIsSettingsOpen(false);
                   }}
-                  className={`cursor-pointer pointer-events-auto flex items-center gap-2 pl-1.5 pr-2.5 sm:pr-3 py-1 rounded-full transition-all duration-200 group focus:outline-none flex-shrink-0 ${
+                  className={`nav-profile-trigger cursor-pointer pointer-events-auto flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full transition-all duration-200 group focus:outline-none flex-shrink-0 ${
                     isFlyoutOpen
                       ? 'bg-amber-500/15 border border-amber-400/40 shadow-[0_0_20px_rgba(245,158,11,0.25)]'
                       : 'bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/30'
@@ -867,8 +921,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-[#0a0f14] shadow-[0_0_6px_#34d399]" />
                   </div>
 
-                  {/* Roman Rank icon */}
-                  <div className="shrink-0 flex items-center justify-center">
+                  {/* Roman Rank icon (hidden when vertical or compact to prevent overflow) */}
+                  <div className="shrink-0 flex items-center justify-center nav-user-extra">
                     <TierBadge level={currentUser.level} size={17} showTooltip={false} />
                   </div>
 
@@ -887,26 +941,52 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </div>
 
                   <ChevronDown
-                    className={`w-3 h-3 text-neutral-400 group-hover:text-amber-400 transition-transform duration-200 ${
+                    className={`w-3 h-3 text-neutral-400 group-hover:text-amber-400 transition-transform duration-200 nav-user-extra ${
                       isFlyoutOpen ? 'rotate-180 text-amber-400' : ''
                     }`}
                   />
                 </button>
-
-                {/* Profile Card */}
-                <ProfileDropdown
-                  currentUser={currentUser}
-                  isOpen={isFlyoutOpen}
-                  onClose={() => setIsFlyoutOpen(false)}
-                  onOpenProfile={onOpenProfile}
-                  onLogout={onLogout}
-                  dockPosition={navbarPosition}
-                  anchorRef={userTriggerRef}
-                />
               </div>
             )}
           </div>
         </nav>
+      </div>
+
+      {/* ======================================================== */}
+      {/* DESKTOP POPOVERS (Rendered outside transformed nav!)     */}
+      {/* ======================================================== */}
+      <div className="hidden md:block">
+        <div ref={settingsMenuRef}>
+          <SettingsModal {...sharedSettingsProps} anchorRef={settingsTriggerRef} />
+        </div>
+
+        <div ref={notifMenuRef}>
+          <NotificationsModal
+            isOpen={isNotificationsOpen}
+            onClose={() => setIsNotificationsOpen(false)}
+            onNavigate={(view) => {
+              setIsNotificationsOpen(false);
+              onViewChange(view);
+            }}
+            onUnreadCountChange={setUnreadNotifCount}
+            dockPosition={navbarPosition}
+            anchorRef={notifTriggerRef}
+          />
+        </div>
+
+        {currentUser && (
+          <div ref={userMenuRef}>
+            <ProfileDropdown
+              currentUser={currentUser}
+              isOpen={isFlyoutOpen}
+              onClose={() => setIsFlyoutOpen(false)}
+              onOpenProfile={onOpenProfile}
+              onLogout={onLogout}
+              dockPosition={navbarPosition}
+              anchorRef={userTriggerRef}
+            />
+          </div>
+        )}
       </div>
 
       {/* ======================================================== */}
@@ -956,7 +1036,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             {/* Mobile Settings Modal */}
-            <SettingsModal {...sharedSettingsProps} />
+            <div className="md:hidden">
+              <SettingsModal {...sharedSettingsProps} />
+            </div>
           </div>
 
           {/* Notification Bell Button */}
@@ -968,6 +1050,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 e.stopPropagation();
                 setIsNotificationsOpen((prev) => !prev);
                 setIsFlyoutOpen(false);
+                setIsSettingsOpen(false);
               }}
               className="relative p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors focus:outline-none pointer-events-auto cursor-pointer"
               aria-label="Thông báo"
@@ -981,15 +1064,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             {/* Mobile anchored notification modal */}
-            <NotificationsModal
-              isOpen={isNotificationsOpen}
-              onClose={() => setIsNotificationsOpen(false)}
-              onNavigate={(view) => {
-                setIsNotificationsOpen(false);
-                onViewChange(view);
-              }}
-              onUnreadCountChange={setUnreadNotifCount}
-            />
+            <div className="md:hidden">
+              <NotificationsModal
+                isOpen={isNotificationsOpen}
+                onClose={() => setIsNotificationsOpen(false)}
+                onNavigate={(view) => {
+                  setIsNotificationsOpen(false);
+                  onViewChange(view);
+                }}
+                onUnreadCountChange={setUnreadNotifCount}
+              />
+            </div>
           </div>
 
           {/* User Avatar pill / Login */}
@@ -1009,6 +1094,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   e.stopPropagation();
                   setIsFlyoutOpen((prev) => !prev);
                   setIsNotificationsOpen(false);
+                  setIsSettingsOpen(false);
                 }}
                 className="flex items-center gap-1.5 pl-1.5 pr-2 py-0.5 rounded-full bg-white/5 border border-white/10 hover:border-amber-400/30 transition-all cursor-pointer pointer-events-auto"
                 aria-label="Tài khoản cá nhân"
@@ -1033,13 +1119,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                 />
               </button>
 
-              <ProfileDropdown
-                currentUser={currentUser}
-                isOpen={isFlyoutOpen}
-                onClose={() => setIsFlyoutOpen(false)}
-                onOpenProfile={onOpenProfile}
-                onLogout={onLogout}
-              />
+              <div className="md:hidden">
+                <ProfileDropdown
+                  currentUser={currentUser}
+                  isOpen={isFlyoutOpen}
+                  onClose={() => setIsFlyoutOpen(false)}
+                  onOpenProfile={onOpenProfile}
+                  onLogout={onLogout}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -1272,13 +1360,13 @@ export const Navbar: React.FC<NavbarProps> = ({
         </>
       )}
 
-      {/* Single global streak widget (adapts to navbar edge) */}
+      {/* Single global streak widget (sits above the lightning bolt at bottom-left) */}
       <div className={`${streakWidgetPosClass} z-40 pointer-events-auto`}>
         <StreakFlameWidget
           streakCount={currentUser?.streakCount || 0}
           onClick={() => setIsDailyModalOpen(true)}
           className="shadow-2xl hover:scale-105 transition-transform"
-          compact={isCompact}
+          compact={effectiveCompact}
         />
       </div>
 

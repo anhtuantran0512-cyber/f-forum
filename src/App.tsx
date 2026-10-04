@@ -190,38 +190,28 @@ export const App: React.FC = () => {
       return;
     }
 
-    /* Clicking another user shows the quick card first; the full profile opens on demand. */
-    const emailKey = userToView.email ? userToView.email.toLowerCase() : '';
-    const existing = (emailKey && users[emailKey]) || Object.values(users).find(u => u.id === userToView.id);
-    const resolved: User = existing || {
-      id: userToView.id,
-      name: userToView.name,
-      email: userToView.email || '',
-      avatar: userToView.avatar,
-      role: 'STUDENT',
-      level: userToView.level || 1,
-      xp: 0,
-      bio: '',
-      scopedClubIds: [],
-    };
-
-    if (currentUser && resolved.id === currentUser.id) {
-      /* Own avatar → go straight to the full profile */
-      handleOpenProfile('overview');
+    /* If an explicit anchor is passed, open the quick card; otherwise ("Trang cá nhân" button),
+       open the full ProfileModal directly so no extra modal blocks the screen. */
+    if (anchor) {
+      const emailKey = userToView.email ? userToView.email.toLowerCase() : '';
+      const existing = (emailKey && users[emailKey]) || Object.values(users).find(u => u.id === userToView.id);
+      const resolved: User = existing || {
+        id: userToView.id,
+        name: userToView.name,
+        email: userToView.email || '',
+        avatar: userToView.avatar,
+        role: 'STUDENT',
+        level: userToView.level || 1,
+        xp: 0,
+        bio: '',
+        scopedClubIds: [],
+      };
+      setQuickProfile({ user: resolved, anchor });
       return;
     }
 
-    setQuickProfile({ user: resolved, anchor: anchor ?? null });
+    handleOpenProfile('overview', userToView);
   };
-
-  const quickProfileStats = quickProfile
-    ? {
-        questions: questions.filter((q) => q.authorId === quickProfile.user.id).length,
-        solutions: solutions.filter((s) => s.authorId === quickProfile.user.id).length,
-        best: solutions.filter((s) => s.authorId === quickProfile.user.id && s.isBest).length,
-        joinedAt: quickProfile.user.joinedAt,
-      }
-    : undefined;
 
   const handleToggleChat = () => {
     setIsChatOpen(prev => {
@@ -278,11 +268,6 @@ export const App: React.FC = () => {
         return;
       }
 
-      const timeSinceLastWheel = now - lastWheelTimeRef.current;
-      if (lastWheelTimeRef.current > 0 && timeSinceLastScroll < 1200 && timeSinceLastWheel < 80) {
-        lastWheelTimeRef.current = now;
-        return;
-      }
       lastWheelTimeRef.current = now;
 
       if (deltaY > 30) {
@@ -308,6 +293,17 @@ export const App: React.FC = () => {
   const isScrollableView =
     currentView === 'memory' || currentView === 'chronicles' || currentView === 'landing';
 
+  const activeGodray = GODRAY_PRESETS.find(p => p.id === godrayPreset) || GODRAY_PRESETS[0];
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--ff-accent', activeGodray.accent);
+    document.documentElement.style.setProperty('--ff-godray-gradient', activeGodray.gradient);
+    document.documentElement.style.setProperty(
+      '--ff-godray-opacity',
+      String(Math.min(0.95, (godrayIntensity / 100) * 0.92))
+    );
+  }, [activeGodray, godrayIntensity]);
+
   return (
     <AuthProvider currentUser={currentUser}>
       {/* Global Radiant Cursor (Active across entire app on pointer devices) */}
@@ -318,21 +314,23 @@ export const App: React.FC = () => {
           isScrollableView ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'
         } ${currentView === 'landing' ? 'bg-[var(--ff-bg)]' : 'bg-black'} text-white font-sans`}
       >
-        {/* Ambient Godray Gradient Lighting Overlay */}
-        {(() => {
-          const preset = GODRAY_PRESETS.find(p => p.id === godrayPreset) || GODRAY_PRESETS[0];
-          const opacity = (godrayIntensity / 100) * 0.75;
-          return (
-            <div
-              className="fixed inset-0 pointer-events-none z-[1] overflow-hidden transition-all duration-700"
-              style={{
-                background: preset.gradient,
-                opacity,
-              }}
-              aria-hidden="true"
-            />
-          );
-        })()}
+        {/* Ambient Godray Gradient Lighting Overlay (Enhanced influence across viewport) */}
+        <div
+          className="fixed inset-0 pointer-events-none z-[1] overflow-hidden transition-all duration-700"
+          style={{
+            background: activeGodray.gradient,
+            opacity: Math.min(0.95, (godrayIntensity / 100) * 0.92),
+          }}
+          aria-hidden="true"
+        />
+        <div
+          className="fixed -top-24 inset-x-0 h-[360px] pointer-events-none z-[1] blur-3xl transition-all duration-700"
+          style={{
+            background: `radial-gradient(ellipse at 50% 0%, ${activeGodray.accent}55 0%, transparent 72%)`,
+            opacity: Math.min(0.9, (godrayIntensity / 100) * 0.85),
+          }}
+          aria-hidden="true"
+        />
       
       {/* Floating Global Navbar Dock (Viewport fixed wrapper with graceful transitions) */}
       {currentView !== 'chronicles' && (
@@ -471,12 +469,12 @@ export const App: React.FC = () => {
         </Suspense>
       </main>
 
-      {/* Radial quick actions (ccm-02 sin()/cos() fan) */}
-      {currentUser && currentView !== 'landing' && !isChatOpen && (
+      {/* Radial quick actions (ccm-02 sin()/cos() fan at bottom-left below Streak) */}
+      {currentView !== 'landing' && currentView !== 'chronicles' && !isChatOpen && (
         <RadialQuickMenu
           onNavigate={(v) => handleNavigate(v as DimensionView)}
-          onOpenChat={() => setIsChatOpen(true)}
-          onOpenFocus={() => setIsFocusModeOpen(true)}
+          onToggleChat={handleToggleChat}
+          onOpenFocusMode={() => setIsFocusModeOpen(true)}
         />
       )}
 
@@ -515,30 +513,23 @@ export const App: React.FC = () => {
         )}
 
         {/* Quick Profile Card (click a user → preview, then open full profile on demand) */}
-        {quickProfile && (
-          <UserQuickCard
-            user={quickProfile.user}
-            stats={quickProfileStats}
-            anchor={quickProfile.anchor}
-            isOwn={currentUser?.id === quickProfile.user.id}
-            onClose={() => setQuickProfile(null)}
-            onOpenFullProfile={(user) => {
-              setQuickProfile(null);
-              handleOpenProfile('overview', {
-                id: user.id,
-                name: user.name,
-                avatar: user.avatar,
-                email: user.email,
-                level: user.level,
-              });
-            }}
-            onMessage={() => {
-              setQuickProfile(null);
-              handleViewChange('chat');
-              setIsChatOpen(true);
-            }}
-          />
-        )}
+        <UserQuickCard
+          user={quickProfile?.user || null}
+          isOpen={Boolean(quickProfile)}
+          onClose={() => setQuickProfile(null)}
+          onOpenFullProfile={(user, tab) => {
+            setQuickProfile(null);
+            handleOpenProfile(tab || 'overview', {
+              id: user.id,
+              name: user.name,
+              avatar: user.avatar,
+              email: user.email,
+              level: user.level,
+            });
+          }}
+          questions={questions}
+          solutions={solutions}
+        />
 
         {/* Authentication Modal */}
         <AuthModal

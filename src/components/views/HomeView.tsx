@@ -1,6 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, ArrowUpRight, ChevronDown, Compass, Flame, HelpCircle, MousePointerClick } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, ChevronDown, Compass, HelpCircle, MousePointerClick } from 'lucide-react';
 import type { DimensionView } from '../../types';
 import { BoomerangVideoBg } from '../BoomerangVideoBg';
 
@@ -30,8 +30,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
   resolvedQuestionsCount = solvedQuestionsCount,
   totalClubsCount = totalClubs,
   chatMessagesTodayCount = 0,
-  streakCount = 1,
-  onOpenDaily,
 }) => {
   const [headlinePhase, setHeadlinePhase] = useState<0 | 1>(0);
 
@@ -193,24 +191,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <span className="text-white/40">Thảo luận 24h:</span>
               <span className="font-semibold text-purple-300">{chatMessagesTodayCount}</span>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (onOpenDaily) {
-                  onOpenDaily();
-                } else if (typeof window !== 'undefined') {
-                  window.dispatchEvent(new CustomEvent('fforum_open_daily'));
-                }
-              }}
-              className="w-full flex items-center justify-between text-white/70 hover:text-white pt-1.5 border-t border-white/10 cursor-pointer transition-colors"
-              title="Chuỗi điểm danh • Nhấp để mở điểm danh"
-            >
-              <span className="text-white/40 flex items-center gap-1">
-                <Flame className="w-3 h-3 text-orange-400" />
-                Điểm danh:
-              </span>
-              <span className="font-semibold text-orange-300">{streakCount} ngày</span>
-            </button>
           </div>
         </div>
       </div>
