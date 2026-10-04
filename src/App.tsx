@@ -18,7 +18,8 @@ const ClubsView = lazy(() => import('./components/views/ClubsView').then(m => ({
 const QAForumView = lazy(() => import('./components/views/QAForumView').then(m => ({ default: m.QAForumView })));
 const ChatView = lazy(() => import('./components/views/ChatView').then(m => ({ default: m.ChatView })));
 const KhuVinhDanhView = lazy(() => import('./components/views/KhuVinhDanhView').then(m => ({ default: m.KhuVinhDanhView })));
-const ComingSoonView = lazy(() => import('./components/views/ComingSoonView').then(m => ({ default: m.ComingSoonView })));
+const UpdateHubView = lazy(() => import('./components/views/UpdateHubView').then(m => ({ default: m.UpdateHubView })));
+const StudyRoomView = lazy(() => import('./components/views/StudyRoomView').then(m => ({ default: m.StudyRoomView })));
 const MemoryRealm = lazy(() => import('./components/MemoryRealm').then(m => ({ default: m.MemoryRealm })));
 const ChatDock = lazy(() => import('./components/ChatDock').then(m => ({ default: m.ChatDock })));
 const ProfileModal = lazy(() => import('./components/ProfileModal').then(m => ({ default: m.ProfileModal })));
@@ -76,6 +77,19 @@ export const App: React.FC = () => {
     adminEditQuestion,
     adminDeleteSolution,
     adminDeleteChatMessage,
+    feedbacks,
+    submitFeedback,
+    studyDecks,
+    studySessions,
+    createStudyDeck,
+    updateStudyDeck,
+    deleteStudyDeck,
+    importStudyCards,
+    gradeStudyCard,
+    syncStudyDeck,
+    recordStudySession,
+    toggleStudyDeckStar,
+    cloneStudyDeck,
   } = useForumStore();
 
   const [isResourceLoading, setIsResourceLoading] = useState(true);
@@ -463,8 +477,40 @@ export const App: React.FC = () => {
             />
           )}
 
+          {currentView === 'study' && (
+            <StudyRoomView
+              currentUser={currentUser}
+              decks={studyDecks}
+              sessions={studySessions}
+              onOpenLoginModal={() => handleOpenAuth('login')}
+              onCreateDeck={createStudyDeck}
+              onUpdateDeck={updateStudyDeck}
+              onDeleteDeck={deleteStudyDeck}
+              onImportCards={importStudyCards}
+              onGradeCard={gradeStudyCard}
+              onSyncDeck={syncStudyDeck}
+              onRecordSession={recordStudySession}
+              onToggleStar={toggleStudyDeckStar}
+              onCloneDeck={cloneStudyDeck}
+            />
+          )}
+
           {currentView === 'coming-soon' && (
-            <ComingSoonView onReturnHome={handleViewChange} />
+            <UpdateHubView
+              currentUser={currentUser}
+              onOpenAuth={() => handleOpenAuth('register')}
+              onNavigate={handleViewChange}
+              stats={{
+                members: Object.keys(users).length,
+                questions: questions.length,
+                solutions: solutions.length,
+                clubs: clubs.filter(club => club.status === 'APPROVED').length,
+                decks: studyDecks.length,
+                sessions: studySessions.length,
+              }}
+              feedbacks={feedbacks}
+              onSubmitFeedback={submitFeedback}
+            />
           )}
         </Suspense>
       </main>

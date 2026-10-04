@@ -48,17 +48,26 @@ Hệ thống được thiết kế theo giao diện kính mờ hiện đại, h�
 - **Kho quà**: Mở các hộp quà ảo để nhận vật phẩm lưu niệm và điểm thưởng.
 - **Câu hỏi vui (Trivia Quiz)**: Mỗi ngày có một câu đố kiến thức ngắn trong 15 giây. Trả lời đúng được thưởng Coin kèm nút "Xem lại" để đọc lời giải thích chi tiết.
 
-### 5. Cửa Hàng Vật Phẩm Ảo (Chill Box)
+### 5. Phòng Ôn Tập — Flashcard & Luyện Đề (Mới)
+- **Bộ thẻ ghi nhớ theo môn học**: học sinh tự tạo bộ thẻ cho từng môn, hoặc sao chép bộ thẻ công khai của bạn khác về thư viện cá nhân.
+- **Lặp lại ngắt quãng 6 hộp Leitner**: mỗi thẻ có lịch ôn riêng (ôn lại sau 1 phút → 10 phút → 1 ngày → 3 ngày → 7 ngày → 21 ngày). Trả lời "Quên rồi" sẽ đưa thẻ về hộp 0 và cho thẻ xuất hiện lại ngay trong phiên.
+- **Nhập nhanh hàng loạt**: dán danh sách theo cú pháp `mặt trước | mặt sau | gợi ý` để tạo tối đa 200 thẻ mỗi lần (trần 300 thẻ/bộ).
+- **Luyện đề trắc nghiệm**: sinh đề tự động từ bộ thẻ (tối thiểu 3 đáp án khác nhau), mỗi câu 20 giây, có phím tắt 1–4, chấm điểm và xem lại câu sai.
+- **Thưởng XP – Coin**: ôn thẻ được 0–3 XP mỗi lượt (trần 120 XP/phiên), luyện đề +4 XP mỗi câu đúng, thêm +25 XP khi đạt từ 80% và +50 XP khi đạt điểm tuyệt đối.
+- **Đồng bộ tức thì**: tiến độ thẻ, bộ thẻ và lịch sử phiên ôn tập được đồng bộ qua WebSocket, BroadcastChannel và REST API — mở máy khác là học tiếp đúng chỗ.
+- **Bảng thống kê cá nhân**: số thẻ đến hạn hôm nay, số thẻ đã thuộc, độ chính xác ghi nhớ, và biểu đồ XP 7 ngày gần nhất lấy từ lịch sử ôn tập thật.
+
+### 6. Cửa Hàng Vật Phẩm Ảo (Chill Box)
 - Sử dụng điểm Coin tích lũy được từ việc giải bài tập và điểm danh để đổi vật phẩm trang trí.
 - 12 vật phẩm ảo thiết kế riêng được chia theo các cấp độ màu sắc: Xanh lá, Xanh lam, Đỏ và Tím.
 - Các vật phẩm đã sở hữu có thể trang bị trực tiếp lên trang cá nhân.
 
-### 6. Hồ Sơ Cá Nhân & Báo Cáo Vi Phạm
+### 7. Hồ Sơ Cá Nhân & Báo Cáo Vi Phạm
 - Hiển thị 6 chỉ số hoạt động: Tổng Coin, Lượt cảm ơn, Câu trả lời hay nhất, Đánh giá 5 sao, Xác thực và Số người đã giúp đỡ.
 - Biểu đồ mạng nhện (Radar Chart) thể hiện thế mạnh giải bài theo 6 nhóm môn học.
 - Nút **Tố Cáo Tài Khoản**: Cho phép người dùng báo cáo các hành vi vi phạm (spam, quấy rối, ngôn từ độc hại) về ban quản trị để xử lý kịp thời.
 
-### 7. Hệ Thống 8 Cấp Bậc Học Đường
+### 8. Hệ Thống 8 Cấp Bậc Học Đường
 Hệ thống cấp bậc được đặt tên gần gũi với học sinh theo tiến trình tích lũy Coin:
 1. 🌱 **Học Sinh** (0 Coin)
 2. 🌿 **Học Sinh Giỏi** (150 Coin)
@@ -69,8 +78,16 @@ Hệ thống cấp bậc được đặt tên gần gũi với học sinh theo t
 7. 👑 **Bậc Thầy** (6,000 Coin)
 8. 🔮 **Chuyên Gia** (12,000 Coin)
 
-### 8. Giao Diện & Tùy Chọn Hiển Thị
+### 9. Bảng Tin Cập Nhật & Lộ Trình (Mới)
+- Trang **UPDATE** không còn là màn hình "Comming soon" — nay là **Bảng tin Cập nhật** thật của dự án.
+- **Nhật ký phát hành** theo từng phiên bản (v1.0 → v2.4.0): ngày phát hành, tên phiên bản, tóm tắt và danh sách thay đổi phân loại rõ *Tính năng / Cải tiến / Sửa lỗi / Bảo mật*, có bộ lọc theo loại.
+- **Lộ trình minh bạch**: các hạng mục đang triển khai — đã lên kế hoạch — đang nghiên cứu kèm thanh tiến độ và mốc thời gian.
+- **Gửi đề xuất tính năng**: biểu mẫu gửi thẳng tới Ban Quản Trị (tối thiểu 20 ký tự), tự điền họ tên/email khi đã đăng nhập và hiển thị lại các góp ý gần đây của bạn.
+- **Số liệu nền tảng thật**: số thành viên, câu hỏi, lời giải, câu lạc bộ, bộ thẻ và phiên ôn tập lấy trực tiếp từ store.
+
+### 10. Giao Diện & Tùy Chọn Hiển Thị
 - Hỗ trợ cả 2 chế độ: Giao diện Sáng (Light Mode) và Giao diện Tối (Dark Mode).
+- 9 phân khu trên thanh điều hướng: Giới thiệu, Trang chủ, Câu lạc bộ, Hỏi đáp, **Ôn tập**, Phòng chat, Miền ký ức, Khu vinh danh và **Cập nhật**.
 - **Thanh điều hướng linh hoạt**: Có thể đặt ở 4 vị trí: Trên cùng, Dưới cùng, Cạnh trái hoặc Cạnh phải màn hình.
 - Các cửa sổ thông báo, cài đặt và tài khoản tự động điều chỉnh hướng mở tương ứng để không bị che khuất.
 - Tính năng tự động ẩn thanh điều hướng sau 1 giây khi không di chuột để tăng diện tích hiển thị nội dung.
@@ -83,7 +100,8 @@ Hệ thống cấp bậc được đặt tên gần gũi với học sinh theo t
 - **Frontend**: React 19, TypeScript
 - **Styling**: Tailwind CSS v4, hiệu ứng kính mờ (Liquid Glass)
 - **Công cụ xây dựng**: Vite 6
-- **Thời gian thực**: WebSocket, BroadcastChannel API
+- **Thời gian thực**: WebSocket, BroadcastChannel API (đồng bộ chat, bộ thẻ ôn tập, hồ sơ người dùng)
+- **Ôn tập ngắt quãng**: động cơ Leitner 6 hộp viết thuần TypeScript, không phụ thuộc thư viện ngoài
 - **Âm thanh**: Web Audio API
 - **Biểu tượng**: Lucide React và icon SVG tự thiết kế
 - **Kiểm thử & Chất lượng mã nguồn**: Node.js Test Runner, Oxlint
@@ -120,7 +138,7 @@ Sau khi chạy lệnh, mở trình duyệt web và truy cập địa chỉ: `htt
 # Kiểm tra lỗi cú pháp với Oxlint
 npx oxlint
 
-# Chạy toàn bộ 51 bài kiểm thử tự động
+# Chạy toàn bộ 71 bài kiểm thử tự động (gồm động cơ ôn tập & bảng tin cập nhật)
 npm test
 
 # Biên dịch mã nguồn cho môi trường sản xuất
@@ -139,8 +157,10 @@ f-forum/
 ├── src/
 │   ├── components/         # Các thành phần giao diện (Navbar, Modal, View...)
 │   │   ├── landing/        # Trang giới thiệu
-│   │   └── views/          # Màn hình chính: Hỏi đáp, Câu lạc bộ, Chat, Vinh danh...
-│   ├── store/              # Quản lý trạng thái ứng dụng (forumStore)
+│   │   ├── study/          # Phòng Ôn Tập: soạn bộ thẻ, phiên ôn, luyện đề
+│   │   └── views/          # Màn hình chính: Hỏi đáp, Câu lạc bộ, Ôn tập, Chat, Vinh danh...
+│   ├── data/               # Nhật ký phát hành & lộ trình (changelog.ts)
+│   ├── store/              # Quản lý trạng thái ứng dụng (forumStore, studyLogic)
 │   ├── types/              # Định nghĩa kiểu dữ liệu TypeScript
 │   ├── utils/              # Các hàm tiện ích (âm thanh, thông báo, lưu trữ, cấp bậc)
 │   ├── App.tsx             # Thành phần gốc điều hướng giao diện

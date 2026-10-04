@@ -13,6 +13,7 @@ import {
   Award,
   Settings,
   Rocket,
+  Brain,
 } from 'lucide-react';
 import type { DimensionView, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
@@ -63,6 +64,7 @@ const NAV_ICONS: Record<DimensionView, React.ReactNode> = {
       <path d="M6 4h12a1 1 0 0 1 1 1v4c0 3.87-3.13 7-7 7s-7-3.13-7-7V5a1 1 0 0 1 1-1z" />
     </svg>
   ),
+  study: <Brain size={16} className="text-emerald-300" />,
   'coming-soon': <Rocket size={16} className="text-yellow-400" />,
 };
 
@@ -555,10 +557,11 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'home', label: 'TRANG CHỦ' },
     { id: 'clubs', label: 'CÂU LẠC BỘ' },
     { id: 'qa', label: 'HỎI ĐÁP' },
+    { id: 'study', label: 'ÔN TẬP' },
     { id: 'chat', label: 'PHÒNG CHAT' },
     { id: 'memory', label: 'MIỀN KÝ ỨC' },
     { id: 'chronicles', label: 'KHU VINH DANH' },
-    { id: 'coming-soon', label: 'UPDATE' },
+    { id: 'coming-soon', label: 'CẬP NHẬT' },
   ];
 
   /* Streak flame sits right above the Lightning Bolt (RadialQuickMenu) at bottom-left */

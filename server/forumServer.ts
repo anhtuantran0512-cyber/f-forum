@@ -37,6 +37,10 @@ export interface ForumDataStore {
   feedbacks: any[];
   reports?: any[];
   about?: any;
+  /** Phòng Ôn Tập: bộ thẻ ghi nhớ do học sinh tạo. */
+  studyDecks: any[];
+  /** Phòng Ôn Tập: lịch sử phiên ôn tập & luyện đề. */
+  studySessions: any[];
 }
 
 
@@ -94,6 +98,8 @@ let store: ForumDataStore = {
   solutions: [],
   chatMessages: [],
   feedbacks: [],
+  studyDecks: [],
+  studySessions: [],
   about: {
     headline: 'Người Kiến Tạo & Quản Trị Hệ Thống',
     subtitle: 'Field Notes & Development Chronicles — BroAmStuck Studio',
@@ -148,6 +154,8 @@ function loadStoreFromDisk() {
           solutions: Array.isArray(parsed.solutions) ? parsed.solutions : [],
           chatMessages: Array.isArray(parsed.chatMessages) ? parsed.chatMessages : [],
           feedbacks: Array.isArray(parsed.feedbacks) ? parsed.feedbacks : [],
+          studyDecks: Array.isArray(parsed.studyDecks) ? parsed.studyDecks : [],
+          studySessions: Array.isArray(parsed.studySessions) ? parsed.studySessions : [],
           about: parsed.about || store.about,
         };
       }
@@ -430,6 +438,41 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               }
               break;
             }
+            case 'SYNC_DECK': {
+              if (payload && payload.id) {
+                const index = store.studyDecks.findIndex((deck: any) => deck.id === payload.id);
+                if (index === -1) {
+                  store.studyDecks.unshift(payload);
+                } else {
+                  store.studyDecks[index] = payload;
+                }
+                persistStoreToDisk();
+                broadcastServerEvent('SYNC_DECK', payload);
+              }
+              break;
+            }
+            case 'DELETE_DECK': {
+              if (payload && payload.deckId) {
+                store.studyDecks = store.studyDecks.filter((deck: any) => deck.id !== payload.deckId);
+                store.studySessions = store.studySessions.filter((session: any) => session.deckId !== payload.deckId);
+                persistStoreToDisk();
+                broadcastServerEvent('DELETE_DECK', { deckId: payload.deckId });
+              }
+              break;
+            }
+            case 'STUDY_SESSION': {
+              if (payload && payload.id) {
+                if (!store.studySessions.some((session: any) => session.id === payload.id)) {
+                  store.studySessions.push(payload);
+                  if (store.studySessions.length > 500) {
+                    store.studySessions = store.studySessions.slice(-500);
+                  }
+                  persistStoreToDisk();
+                }
+                broadcastServerEvent('STUDY_SESSION', payload);
+              }
+              break;
+            }
           }
         } catch (err) {
           console.error('[Forum Server WS] Error handling message:', err);
@@ -518,6 +561,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           solutions: store.solutions,
           chatMessages: store.chatMessages,
           feedbacks: store.feedbacks,
+          studyDecks: store.studyDecks,
+          studySessions: store.studySessions,
           about: store.about,
         },
       });
@@ -1014,6 +1059,104 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
         sendJson(res, 400, { success: false, message: 'Người dùng không tồn tại' });
+      } catch (err: any) {
+        sendJson(res, 500, { success: false, message: err.message });
+      }
+      return;
+    }
+
+    if (method === 'GET' && url.startsWith('/api/study')) {
+      sendJson(res, 200, {
+        success: true,
+        decks: store.studyDecks,
+        sessions: store.studySessions,
+      });
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/study/deck') {
+      try {
+        const body = await parseJsonBody(req);
+        const deck = body.deck;
+        if (!deck || !deck.id || !deck.title) {
+          sendJson(res, 400, { success: false, message: 'Bộ thẻ không hợp lệ (thiếu id hoặc tiêu đề)' });
+          return;
+        }
+
+        const sanitizedDeck = {
+          ...deck,
+          cards: Array.isArray(deck.cards) ? deck.cards.slice(0, 300) : [],
+          updatedAt: Date.now(),
+        };
+
+        const index = store.studyDecks.findIndex((item: any) => item.id === sanitizedDeck.id);
+        if (index === -1) {
+          store.studyDecks.unshift(sanitizedDeck);
+        } else {
+          store.studyDecks[index] = sanitizedDeck;
+        }
+
+        if (store.studyDecks.length > 1000) {
+          store.studyDecks = store.studyDecks.slice(0, 1000);
+        }
+
+        persistStoreToDisk();
+        broadcastServerEvent('SYNC_DECK', sanitizedDeck);
+        sendJson(res, 200, { success: true, deck: sanitizedDeck });
+      } catch (err: any) {
+        sendJson(res, 500, { success: false, message: err.message });
+      }
+      return;
+    }
+
+    if ((method === 'POST' || method === 'DELETE') && url === '/api/study/deck/delete') {
+      try {
+        const body = await parseJsonBody(req);
+        const { deckId } = body;
+        if (!deckId) {
+          sendJson(res, 400, { success: false, message: 'Thiếu deckId' });
+          return;
+        }
+        const deck = store.studyDecks.find((item: any) => item.id === deckId);
+        const requesterId = body.requesterId;
+        const isSuperAdmin = (body.requesterEmail || '').trim().toLowerCase() === 'anhtuantran0512@gmail.com';
+        if (deck && requesterId && deck.ownerId !== requesterId && !isSuperAdmin) {
+          sendJson(res, 403, { success: false, message: 'Chỉ chủ sở hữu bộ thẻ mới có quyền xoá!' });
+          return;
+        }
+
+        store.studyDecks = store.studyDecks.filter((item: any) => item.id !== deckId);
+        store.studySessions = store.studySessions.filter((session: any) => session.deckId !== deckId);
+        persistStoreToDisk();
+        broadcastServerEvent('DELETE_DECK', { deckId });
+        sendJson(res, 200, { success: true, message: 'Đã xoá bộ thẻ' });
+      } catch (err: any) {
+        sendJson(res, 500, { success: false, message: err.message });
+      }
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/study/session') {
+      try {
+        const body = await parseJsonBody(req);
+        const session = body.session;
+        if (!session || !session.id || !session.deckId) {
+          sendJson(res, 400, { success: false, message: 'Phiên ôn tập không hợp lệ' });
+          return;
+        }
+
+        if (!store.studySessions.some((item: any) => item.id === session.id)) {
+          store.studySessions.push(session);
+          if (store.studySessions.length > 500) {
+            store.studySessions = store.studySessions.slice(-500);
+          }
+          persistStoreToDisk();
+        }
+
+        /* XP/Coin do máy khách đã cộng và đẩy qua /api/users/update — máy chủ chỉ
+           lưu lịch sử và phát sóng để tránh cộng trùng phần thưởng. */
+        broadcastServerEvent('STUDY_SESSION', session);
+        sendJson(res, 200, { success: true, session });
       } catch (err: any) {
         sendJson(res, 500, { success: false, message: err.message });
       }

@@ -13,6 +13,9 @@ import type {
   SubjectTag,
   ClubCategory,
   OnlinePresenceUser,
+  StudyCard,
+  StudyDeck,
+  StudySession,
 } from '../types';
 import { playChime } from '../utils/audio';
 import {
@@ -28,6 +31,17 @@ import {
   saveAboutDataToServer,
 } from './adminStore';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../config/admin';
+import {
+  MAX_CARDS_PER_IMPORT,
+  MAX_DECK_CARDS,
+  STUDY_REVIEW_XP,
+  createStudyCard,
+  createStudyDeck as buildStudyDeck,
+  parseBulkCards,
+  reviewStudyCard as applyStudyReview,
+  sanitizeDecks,
+  type StudyGrade,
+} from './studyLogic';
 import { getTierForLevel } from '../utils/tier';
 import { pushNotification } from '../utils/notifications';
 
@@ -215,6 +229,46 @@ export function useForumStore() {
     type?: 'xp' | 'success' | 'level';
   } | null>(null);
 
+  /* ----- Phòng Ôn Tập: bộ thẻ ghi nhớ & lịch sử ôn tập ----- */
+  const [studyDecks, setStudyDecks] = useState<StudyDeck[]>(() => {
+    const saved = safeStorage.getItem('fforum_study_decks');
+    if (saved) {
+      try {
+        return sanitizeDecks(JSON.parse(saved));
+      } catch {
+        /* ignore corrupted payload */
+      }
+    }
+    return [];
+  });
+
+  const [studySessions, setStudySessions] = useState<StudySession[]>(() => {
+    const saved = safeStorage.getItem('fforum_study_sessions');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed.slice(-200);
+      } catch {
+        /* ignore corrupted payload */
+      }
+    }
+    return [];
+  });
+
+  /* ----- Ý kiến gửi Ban Quản Trị (dùng cho Bảng tin Cập nhật) ----- */
+  const [feedbacks, setFeedbacks] = useState<FeedbackSubmission[]>(() => {
+    const saved = safeStorage.getItem('fforum_feedbacks');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        /* ignore corrupted payload */
+      }
+    }
+    return [];
+  });
+
   const [onlineUsers, setOnlineUsers] = useState<OnlinePresenceUser[]>([]);
   const presenceMapRef = useRef<Map<string, { user: OnlinePresenceUser; lastSeen: number }>>(new Map());
   const activeWsRef = useRef<WebSocket | null>(null);
@@ -370,6 +424,18 @@ export function useForumStore() {
     safeStorage.setItem('fforum_chat_messages', JSON.stringify(chatMessages));
   }, [chatMessages]);
 
+  useEffect(() => {
+    safeStorage.setItem('fforum_study_decks', JSON.stringify(studyDecks));
+  }, [studyDecks]);
+
+  useEffect(() => {
+    safeStorage.setItem('fforum_study_sessions', JSON.stringify(studySessions.slice(-200)));
+  }, [studySessions]);
+
+  useEffect(() => {
+    safeStorage.setItem('fforum_feedbacks', JSON.stringify(feedbacks));
+  }, [feedbacks]);
+
   const [aboutData, setAboutData] = useState<AboutData>(() => {
     return getSavedAboutData();
   });
@@ -411,6 +477,35 @@ export function useForumStore() {
             if (data.about) {
               setAboutData(data.about);
               saveAboutDataLocally(data.about);
+            }
+            if (Array.isArray(data.studyDecks) && data.studyDecks.length > 0) {
+              setStudyDecks(prev => {
+                const merged = new Map<string, StudyDeck>();
+                sanitizeDecks(data.studyDecks).forEach(deck => merged.set(deck.id, deck));
+                prev.forEach(deck => merged.set(deck.id, deck));
+                return Array.from(merged.values()).sort((a, b) => b.updatedAt - a.updatedAt);
+              });
+            }
+            if (Array.isArray(data.studySessions) && data.studySessions.length > 0) {
+              setStudySessions(prev => {
+                const merged = [...data.studySessions, ...prev];
+                const unique = new Map<string, StudySession>();
+                merged.forEach(session => {
+                  if (session && session.id) unique.set(session.id, session);
+                });
+                return Array.from(unique.values())
+                  .sort((a, b) => a.createdAt - b.createdAt)
+                  .slice(-200);
+              });
+            }
+            if (Array.isArray(data.feedbacks) && data.feedbacks.length > 0) {
+              setFeedbacks(prev => {
+                const unique = new Map<string, FeedbackSubmission>();
+                [...prev, ...data.feedbacks].forEach(item => {
+                  if (item && item.id) unique.set(item.id, item);
+                });
+                return Array.from(unique.values());
+              });
             }
 
 
@@ -556,6 +651,30 @@ export function useForumStore() {
           const newAbout = payload as AboutData;
           setAboutData(newAbout);
           saveAboutDataLocally(newAbout);
+          break;
+        }
+        case 'SYNC_DECK': {
+          const incoming = payload as StudyDeck;
+          if (!incoming || !incoming.id) break;
+          setStudyDecks(prev => {
+            const index = prev.findIndex(deck => deck.id === incoming.id);
+            if (index === -1) return [incoming, ...prev];
+            return prev.map(deck => (deck.id === incoming.id ? incoming : deck));
+          });
+          break;
+        }
+        case 'DELETE_DECK': {
+          const { deckId } = payload as { deckId: string };
+          setStudyDecks(prev => prev.filter(deck => deck.id !== deckId));
+          break;
+        }
+        case 'STUDY_SESSION': {
+          const session = payload as StudySession;
+          if (!session || !session.id) break;
+          setStudySessions(prev => {
+            if (prev.some(item => item.id === session.id)) return prev;
+            return [...prev, session].slice(-200);
+          });
           break;
         }
 
@@ -772,6 +891,31 @@ export function useForumStore() {
           saveAboutDataLocally(newAbout);
           break;
         }
+        case 'SYNC_DECK': {
+          const incoming = payload as StudyDeck;
+          if (!incoming || !incoming.id) break;
+          setStudyDecks(prev => {
+            if (prev.some(deck => deck.id === incoming.id)) {
+              return prev.map(deck => (deck.id === incoming.id ? incoming : deck));
+            }
+            return [incoming, ...prev];
+          });
+          break;
+        }
+        case 'DELETE_DECK': {
+          const { deckId } = payload as { deckId: string };
+          setStudyDecks(prev => prev.filter(deck => deck.id !== deckId));
+          break;
+        }
+        case 'STUDY_SESSION': {
+          const session = payload as StudySession;
+          if (!session || !session.id) break;
+          setStudySessions(prev => {
+            if (prev.some(item => item.id === session.id)) return prev;
+            return [...prev, session].slice(-200);
+          });
+          break;
+        }
       }
     };
 
@@ -822,6 +966,26 @@ export function useForumStore() {
       } else if (e.key === 'fforum_about_data' && e.newValue) {
         try {
           setAboutData(JSON.parse(e.newValue));
+        } catch {
+          /* ignore */
+        }
+      } else if (e.key === 'fforum_study_decks' && e.newValue) {
+        try {
+          setStudyDecks(sanitizeDecks(JSON.parse(e.newValue)));
+        } catch {
+          /* ignore */
+        }
+      } else if (e.key === 'fforum_study_sessions' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setStudySessions(parsed.slice(-200));
+        } catch {
+          /* ignore */
+        }
+      } else if (e.key === 'fforum_feedbacks' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setFeedbacks(parsed);
         } catch {
           /* ignore */
         }
@@ -1666,9 +1830,18 @@ export function useForumStore() {
       createdAt: new Date().toISOString(),
     };
     const saved = safeStorage.getItem('fforum_feedbacks');
-    const list: FeedbackSubmission[] = saved ? JSON.parse(saved) : [];
-    list.push(submission);
+    let list: FeedbackSubmission[] = [];
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) list = parsed;
+      } catch {
+        /* ignore corrupted payload */
+      }
+    }
+    list = [...list, submission];
     safeStorage.setItem('fforum_feedbacks', JSON.stringify(list));
+    setFeedbacks(list);
 
     fetch('/api/feedback', {
       method: 'POST',
@@ -1872,6 +2045,378 @@ export function useForumStore() {
     return newAboutData;
   };
 
+  /* =========================================================================
+   * Phòng Ôn Tập (Study Room) — Flashcard, lặp lại ngắt quãng & luyện đề
+   * ========================================================================= */
+
+  const makeStudyId = (prefix: string) =>
+    `${prefix}-${
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`
+    }`;
+
+  const canEditDeck = (deck: StudyDeck): boolean => {
+    const me = currentUserRef.current;
+    if (!me) return false;
+    return deck.ownerId === me.id || isMasterAdmin(me.email);
+  };
+
+  const requireAccount = (action: string): boolean => {
+    if (currentUserRef.current) return true;
+    setToastMessage({
+      title: 'Cần đăng nhập để tiếp tục',
+      subtitle: `${action} yêu cầu một tài khoản F-Forum.`,
+      type: 'success',
+    });
+    return false;
+  };
+
+  /** Đẩy bộ thẻ lên máy chủ + các tab đang mở (một lần cho mỗi thao tác lớn). */
+  const pushDeckToNetwork = (deck: StudyDeck, options?: { removed?: boolean }) => {
+    if (options?.removed) {
+      fetch('/api/study/deck/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deckId: deck.id,
+          requesterId: currentUserRef.current?.id || '',
+          requesterEmail: currentUserRef.current?.email || '',
+        }),
+      }).catch(() => {});
+      try {
+        syncBroadcastChannel?.postMessage({ type: 'DELETE_DECK', payload: { deckId: deck.id } });
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+
+    fetch('/api/study/deck', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deck }),
+    }).catch(() => {});
+
+    try {
+      syncBroadcastChannel?.postMessage({ type: 'SYNC_DECK', payload: deck });
+    } catch {
+      /* ignore */
+    }
+  };
+
+  /** Cộng XP + Coin cho chính người học (đồng bộ lên máy chủ qua /api/users/update). */
+  const awardStudyXP = (amount: number, title: string, subtitle: string) => {
+    const me = currentUserRef.current;
+    if (!me || amount <= 0) return;
+
+    const key = me.email.toLowerCase();
+    const nextXp = Math.max(0, me.xp + amount);
+    const updated: User = {
+      ...me,
+      xp: nextXp,
+      coin: (me.coin ?? 100) + amount,
+      fPoints: (me.fPoints ?? me.xp) + amount,
+      level: getLevelForXP(nextXp),
+    };
+
+    setUsers(prev => ({ ...prev, [key]: updated }));
+    setCurrentUser(updated);
+
+    fetch('/api/users/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: key, updates: updated }),
+    }).catch(() => {});
+
+    playChime('xp');
+    setToastMessage({ title, subtitle, type: 'xp' });
+  };
+
+  /** Tạo bộ thẻ mới (kèm danh sách thẻ nhập tay hoặc dán hàng loạt). */
+  const createStudyDeck = (input: {
+    title: string;
+    description?: string;
+    subject: SubjectTag;
+    isPublic?: boolean;
+    cards?: { front: string; back: string; hint?: string }[];
+  }): StudyDeck | null => {
+    if (!requireAccount('Tạo bộ thẻ ôn tập')) return null;
+    const me = currentUserRef.current;
+    if (!me) return null;
+
+    const title = input.title.trim();
+    if (!title) return null;
+
+    const deck = buildStudyDeck({
+      title,
+      description: input.description,
+      subject: input.subject,
+      ownerId: me.id,
+      ownerName: me.name,
+      ownerAvatar: me.avatar,
+      isPublic: input.isPublic,
+    });
+
+    deck.cards = (input.cards || [])
+      .slice(0, MAX_DECK_CARDS)
+      .map(entry => createStudyCard(entry.front, entry.back, entry.hint))
+      .filter(card => card.front && card.back);
+    deck.updatedAt = Date.now();
+
+    setStudyDecks(prev => [deck, ...prev]);
+    pushDeckToNetwork(deck);
+
+    playChime('success');
+    setToastMessage({
+      title: 'Đã tạo bộ thẻ mới!',
+      subtitle: `${deck.title} • ${deck.cards.length} thẻ ghi nhớ`,
+      type: 'success',
+    });
+
+    return deck;
+  };
+
+  const updateStudyDeck = (
+    deckId: string,
+    updates: Partial<Pick<StudyDeck, 'title' | 'description' | 'subject' | 'isPublic' | 'cards'>>,
+  ): StudyDeck | null => {
+    const existing = studyDecks.find(deck => deck.id === deckId);
+    if (!existing || !canEditDeck(existing)) return null;
+
+    const updated: StudyDeck = {
+      ...existing,
+      ...updates,
+      title: (updates.title ?? existing.title).trim() || existing.title,
+      description: updates.description ?? existing.description,
+      cards: (updates.cards ?? existing.cards).slice(0, MAX_DECK_CARDS),
+      updatedAt: Date.now(),
+    };
+
+    setStudyDecks(prev => prev.map(deck => (deck.id === deckId ? updated : deck)));
+    pushDeckToNetwork(updated);
+    return updated;
+  };
+
+  const deleteStudyDeck = (deckId: string): boolean => {
+    const existing = studyDecks.find(deck => deck.id === deckId);
+    if (!existing || !canEditDeck(existing)) return false;
+
+    setStudyDecks(prev => prev.filter(deck => deck.id !== deckId));
+    setStudySessions(prev => prev.filter(session => session.deckId !== deckId));
+    pushDeckToNetwork(existing, { removed: true });
+
+    setToastMessage({
+      title: 'Đã xoá bộ thẻ',
+      subtitle: existing.title,
+      type: 'success',
+    });
+    return true;
+  };
+
+  const addStudyCard = (deckId: string, front: string, back: string, hint?: string): StudyCard | null => {
+    const deck = studyDecks.find(item => item.id === deckId);
+    if (!deck || !canEditDeck(deck)) return null;
+    if (!front.trim() || !back.trim()) return null;
+    if (deck.cards.length >= MAX_DECK_CARDS) return null;
+
+    const card = createStudyCard(front, back, hint);
+    updateStudyDeck(deckId, { cards: [...deck.cards, card] });
+    return card;
+  };
+
+  const updateStudyCard = (
+    deckId: string,
+    cardId: string,
+    updates: Partial<Pick<StudyCard, 'front' | 'back' | 'hint'>>,
+  ): boolean => {
+    const deck = studyDecks.find(item => item.id === deckId);
+    if (!deck || !canEditDeck(deck)) return false;
+
+    const nextCards = deck.cards.map(card =>
+      card.id === cardId
+        ? {
+            ...card,
+            front: (updates.front ?? card.front).trim() || card.front,
+            back: (updates.back ?? card.back).trim() || card.back,
+            hint: updates.hint !== undefined ? updates.hint.trim() || undefined : card.hint,
+          }
+        : card,
+    );
+
+    updateStudyDeck(deckId, { cards: nextCards });
+    return true;
+  };
+
+  const deleteStudyCard = (deckId: string, cardId: string): boolean => {
+    const deck = studyDecks.find(item => item.id === deckId);
+    if (!deck || !canEditDeck(deck)) return false;
+    updateStudyDeck(deckId, { cards: deck.cards.filter(card => card.id !== cardId) });
+    return true;
+  };
+
+  /** Dán danh sách thẻ theo định dạng "mặt trước | mặt sau | gợi ý". */
+  const importStudyCards = (deckId: string, rawText: string): number => {
+    const deck = studyDecks.find(item => item.id === deckId);
+    if (!deck || !canEditDeck(deck)) return 0;
+
+    const parsed = parseBulkCards(rawText).slice(0, MAX_CARDS_PER_IMPORT);
+    if (parsed.length === 0) return 0;
+
+    const room = Math.max(0, MAX_DECK_CARDS - deck.cards.length);
+    const fresh = parsed.slice(0, room).map(entry => createStudyCard(entry.front, entry.back, entry.hint));
+    if (fresh.length === 0) return 0;
+
+    updateStudyDeck(deckId, { cards: [...deck.cards, ...fresh] });
+    setToastMessage({
+      title: `Đã nhập ${fresh.length} thẻ`,
+      subtitle: `Bộ thẻ «${deck.title}» hiện có ${deck.cards.length + fresh.length} thẻ.`,
+      type: 'success',
+    });
+    return fresh.length;
+  };
+
+  /**
+   * Chấm điểm một thẻ trong phiên ôn tập.
+   * Cập nhật cục bộ để phiên ôn không bị gián đoạn; tiến độ được đồng bộ
+   * lên máy chủ một lần khi kết thúc phiên (recordStudySession/syncStudyDeck).
+   */
+  const gradeStudyCard = (
+    deckId: string,
+    cardId: string,
+    grade: StudyGrade,
+  ): { card: StudyCard; xp: number } | null => {
+    const deck = studyDecks.find(item => item.id === deckId);
+    const card = deck?.cards.find(item => item.id === cardId);
+    if (!deck || !card) return null;
+
+    const nextCard = applyStudyReview(card, grade);
+    setStudyDecks(prev =>
+      prev.map(item =>
+        item.id === deckId
+          ? { ...item, cards: item.cards.map(c => (c.id === cardId ? nextCard : c)), updatedAt: Date.now() }
+          : item,
+      ),
+    );
+
+    return { card: nextCard, xp: STUDY_REVIEW_XP[grade] ?? 0 };
+  };
+
+  /** Đồng bộ thủ công tiến độ của một bộ thẻ (dùng khi rời phiên ôn giữa chừng). */
+  const syncStudyDeck = (deckId: string): boolean => {
+    const deck = studyDecks.find(item => item.id === deckId);
+    if (!deck) return false;
+    pushDeckToNetwork(deck);
+    return true;
+  };
+
+  const recordStudySession = (input: {
+    deckId: string;
+    mode: 'review' | 'quiz';
+    correct: number;
+    total: number;
+    xpAwarded: number;
+  }): StudySession | null => {
+    const me = currentUserRef.current;
+    if (!me) return null;
+
+    const deck = studyDecks.find(item => item.id === input.deckId);
+    const session: StudySession = {
+      id: makeStudyId('sess'),
+      deckId: input.deckId,
+      deckTitle: deck?.title || 'Bộ thẻ ôn tập',
+      userId: me.id,
+      userName: me.name,
+      mode: input.mode,
+      correct: Math.max(0, input.correct),
+      total: Math.max(0, input.total),
+      scorePct: input.total > 0 ? Math.round((input.correct / input.total) * 100) : 0,
+      xpAwarded: Math.max(0, input.xpAwarded),
+      createdAt: Date.now(),
+    };
+
+    setStudySessions(prev => [...prev, session].slice(-200));
+
+    fetch('/api/study/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session, userEmail: me.email }),
+    }).catch(() => {});
+
+    if (deck) pushDeckToNetwork(deck);
+
+    if (session.xpAwarded > 0) {
+      awardStudyXP(
+        session.xpAwarded,
+        session.mode === 'quiz' ? `Kết quả luyện đề: ${session.scorePct}%` : 'Hoàn thành phiên ôn tập!',
+        `${session.deckTitle} • +${session.xpAwarded} XP`,
+      );
+    }
+
+    return session;
+  };
+
+  const toggleStudyDeckStar = (deckId: string): boolean => {
+    const me = currentUserRef.current;
+    const deck = studyDecks.find(item => item.id === deckId);
+    if (!me || !deck) return false;
+
+    const starred = deck.starredBy ?? [];
+    const hasStar = starred.includes(me.id);
+    const updated: StudyDeck = {
+      ...deck,
+      starredBy: hasStar ? starred.filter(id => id !== me.id) : [...starred, me.id],
+      updatedAt: Date.now(),
+    };
+
+    setStudyDecks(prev => prev.map(item => (item.id === deckId ? updated : item)));
+    pushDeckToNetwork(updated);
+    return !hasStar;
+  };
+
+  /** Sao chép một bộ thẻ (công khai hoặc của bạn bè) về thư viện cá nhân, reset tiến độ. */
+  const cloneStudyDeck = (deckId: string): StudyDeck | null => {
+    if (!requireAccount('Sao chép bộ thẻ')) return null;
+    const me = currentUserRef.current;
+    const source = studyDecks.find(item => item.id === deckId);
+    if (!me || !source) return null;
+
+    const now = Date.now();
+    const clone: StudyDeck = {
+      ...source,
+      id: makeStudyId('deck'),
+      title: `${source.title} (bản sao)`,
+      ownerId: me.id,
+      ownerName: me.name,
+      ownerAvatar: me.avatar,
+      cards: source.cards.slice(0, MAX_DECK_CARDS).map(card => ({
+        ...card,
+        id: makeStudyId('card'),
+        box: 0,
+        dueAt: now,
+        lapses: 0,
+        reviews: 0,
+        lastReviewedAt: undefined,
+        createdAt: now,
+      })),
+      starredBy: [],
+      cloneCount: 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    setStudyDecks(prev => [clone, ...prev]);
+    pushDeckToNetwork(clone);
+
+    playChime('success');
+    setToastMessage({
+      title: 'Đã sao chép bộ thẻ',
+      subtitle: `${clone.title} • ${clone.cards.length} thẻ sẵn sàng để ôn.`,
+      type: 'success',
+    });
+    return clone;
+  };
+
   return {
     currentView,
     setCurrentView,
@@ -1910,7 +2455,22 @@ export function useForumStore() {
     toastMessage,
     setToastMessage,
     submitFeedback,
+    feedbacks,
     aboutData,
+    studyDecks,
+    studySessions,
+    createStudyDeck,
+    updateStudyDeck,
+    deleteStudyDeck,
+    addStudyCard,
+    updateStudyCard,
+    deleteStudyCard,
+    importStudyCards,
+    gradeStudyCard,
+    syncStudyDeck,
+    recordStudySession,
+    toggleStudyDeckStar,
+    cloneStudyDeck,
     adminDeleteQuestion,
     adminEditQuestion,
     adminDeleteSolution,

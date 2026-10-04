@@ -7,6 +7,7 @@ export type DimensionView =
   | 'chat'
   | 'memory'
   | 'chronicles'
+  | 'study'
   | 'coming-soon';
 
 export type UserRole = 'SUPER_ADMIN' | 'CLUB_LEADER' | 'STUDENT';
@@ -197,4 +198,77 @@ export interface ReportSubmission {
   details: string;
   targetEmail: string;
   createdAt: string;
+}
+
+
+/* ---------- Phòng Ôn Tập (Study Room): Flashcard & Luyện đề ---------- */
+
+/** Một thẻ ghi nhớ (flashcard) thuộc một bộ thẻ. */
+export interface StudyCard {
+  id: string;
+  front: string;
+  back: string;
+  hint?: string;
+  /** Hộp Leitner 0..5 (0 = mới/quên, 5 = đã thuộc). */
+  box: number;
+  /** Mốc thời gian (epoch ms) thẻ được phép ôn lại. */
+  dueAt: number;
+  lapses: number;
+  reviews: number;
+  lastReviewedAt?: number;
+  createdAt: number;
+}
+
+export interface StudyDeck {
+  id: string;
+  title: string;
+  description: string;
+  subject: SubjectTag;
+  ownerId: string;
+  ownerName: string;
+  ownerAvatar?: string;
+  cards: StudyCard[];
+  isPublic: boolean;
+  createdAt: number;
+  updatedAt: number;
+  starredBy?: string[];
+  cloneCount?: number;
+}
+
+export interface StudySession {
+  id: string;
+  deckId: string;
+  deckTitle: string;
+  userId: string;
+  userName: string;
+  mode: 'review' | 'quiz';
+  correct: number;
+  total: number;
+  scorePct: number;
+  xpAwarded: number;
+  createdAt: number;
+}
+
+export interface RoadmapItem {
+  id: string;
+  title: string;
+  description: string;
+  status: 'shipped' | 'in-progress' | 'planned' | 'exploring';
+  progress: number;
+  kind: 'feature' | 'improvement' | 'fix' | 'security';
+  horizon: string;
+}
+
+export interface ReleaseHighlight {
+  kind: 'feature' | 'improvement' | 'fix' | 'security';
+  text: string;
+}
+
+export interface ReleaseNote {
+  version: string;
+  date: string;
+  codename: string;
+  title: string;
+  summary: string;
+  highlights: ReleaseHighlight[];
 }
