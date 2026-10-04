@@ -227,12 +227,15 @@ function parseJsonBody(req: IncomingMessage): Promise<any> {
   return new Promise((resolve, reject) => {
     let body = '';
     let settled = false;
+    let tooLarge = false;
     req.on('data', chunk => {
-      if (settled) return;
+      if (tooLarge || settled) return; /* vẫn đọc tiếp để "xả" phần dữ liệu dư, không ngắt socket */
       body += chunk;
       if (body.length > MAX_BODY_BYTES) {
+        tooLarge = true;
+        body = '';
         settled = true;
-        req.destroy();
+        /* Không destroy() để máy chủ còn trả được JSON 413 cho trình duyệt */
         reject(new Error(PAYLOAD_TOO_LARGE));
       }
     });
