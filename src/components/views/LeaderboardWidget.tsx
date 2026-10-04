@@ -356,6 +356,16 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
           </div>
         </div>
 
+        {/* Trạng thái khi trường mới chỉ có ít tài khoản thật */}
+        {members.length <= 1 && (
+          <p className="ff-board__micro">
+            <Sparkles className="w-3 h-3" />
+            {members.length === 0
+              ? 'Bảng chỉ tính tài khoản thật — chưa có ai đăng ký. Hãy là người đầu tiên nhé!'
+              : `Bảng chỉ tính tài khoản thật — hiện có ${members.length} người. Mời bạn bè đăng ký để cùng leo hạng!`}
+          </p>
+        )}
+
         {/* Podium */}
         {podium.length > 0 ? (
           <div className="ff-podium" aria-label="Ba vị trí dẫn đầu">
