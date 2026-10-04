@@ -654,7 +654,24 @@ chủ. Test #37 mở rộng bao cả bốn đường này.
 `try/catch` và không kiểm `Array.isArray`, nên một giá trị hỏng trong localStorage
 làm ném lỗi và mất luôn góp ý.
 
-### Đợt ba: lưu hồ sơ
+### Đợt ba: chọn đáp án chuẩn cộng thưởng trước khi hỏi máy chủ
+
+`markBestSolution` cộng thưởng **cục bộ** và hiện toast *"✓ Đã xác nhận Đáp Án
+Chuẩn! … đã nhận thưởng +N Coin danh dự"* rồi mới gửi request, và nuốt kết quả.
+
+Sau khi mục 22 được vá (máy chủ trả `409` khi tự chọn đáp án của chính mình), thứ
+tự ngược đó lộ ra rõ ràng: người dùng tự chọn vẫn thấy thông báo nhận thưởng,
+nhưng máy chủ từ chối nên thưởng không bao giờ đến, và mọi thứ âm thầm quay về ở
+lần đồng bộ sau.
+
+**Đã vá:**
+
+- Chặn tự chọn ngay phía client với thông báo rõ ràng, khớp với `409` của máy chủ.
+- Đổi thứ tự: **hỏi máy chủ trước, cộng thưởng sau**. Thất bại thì hoàn tác cả
+  `questions` lẫn `solutions` và hiện toast lỗi.
+- Test #37 nay kiểm cả thứ tự này (`addXP` phải nằm **sau** `runServerAction`).
+
+### Đợt bốn: lưu hồ sơ
 
 `updateProfile` cũng nuốt lỗi rồi vô điều kiện báo *"Hồ sơ đã lưu thành công!"*.
 Máy chủ loại bỏ các trường nó sở hữu (`role`/`id`/`email`) và kẹp các trường còn
