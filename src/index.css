@@ -495,6 +495,8 @@ html.light div[role="dialog"] .bg-black\/25 {
   display: none !important;
 }
 
+.dock-pos-left .nav-user-extra,
+.dock-pos-right .nav-user-extra,
 .dock-pos-left .nav-user-text,
 .dock-pos-right .nav-user-text {
   display: none !important;
@@ -1277,9 +1279,41 @@ html.light div[role="dialog"] .bg-black\/25 {
    ccm-02 — Radial submenu (pure CSS sin()/cos(), CodeFronts)
    ============================================================ */
 .ccm-02 {
-  --ccm-r: 84px;
-  width: 48px;
-  height: 48px;
+  --ccm-r: 92px;
+  width: 53px;
+  height: 53px;
+}
+.ccm-02--left .ccm-02__tip {
+  right: auto;
+  left: 50%;
+  top: auto;
+  bottom: calc(100% + 8px);
+  translate: -50% 0;
+}
+/* Left hub sits under the streak pill: the fan unrolls as a horizontal glass rail */
+.ccm-02--left .ccm-02__toggle:checked ~ .ccm-02__item {
+  transform: translate(calc((var(--i) + 1) * 54px), 0) scale(1);
+}
+.ccm-02--left::before {
+  content: '';
+  position: absolute;
+  left: 26px;
+  top: 50%;
+  height: 50px;
+  width: 0;
+  translate: 0 -50%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(34, 211, 238, 0.14), rgba(245, 158, 11, 0.12), rgba(236, 72, 153, 0.12));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  opacity: 0;
+  pointer-events: none;
+  transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+}
+.ccm-02--left:has(.ccm-02__toggle:checked)::before {
+  width: 222px;
+  opacity: 1;
 }
 .ccm-02__item {
   transform: translate(0, 0) scale(0.3);
@@ -1342,3 +1376,162 @@ html.light div[role="dialog"] .bg-black\/25 {
   transition-duration: 0.01ms !important;
   transition-delay: 0ms !important;
 }
+
+/* ============================================================
+   Dock-aware floating widgets: never sit under the navbar edge
+   ============================================================ */
+.ff-telemetry { right: 24px; bottom: 24px; transition: right 0.45s cubic-bezier(0.16, 1, 0.3, 1), bottom 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
+html[data-nav-pos="right"] .ff-telemetry { right: 104px; }
+html[data-nav-pos="bottom"] .ff-telemetry { bottom: 104px; }
+.ff-toast { top: 96px; right: 24px; transition: top 0.45s cubic-bezier(0.16, 1, 0.3, 1), right 0.45s cubic-bezier(0.16, 1, 0.3, 1); max-width: calc(100vw - 32px); }
+html[data-nav-pos="bottom"] .ff-toast,
+html[data-nav-pos="left"] .ff-toast { top: 24px; }
+html[data-nav-pos="right"] .ff-toast { top: 24px; right: 104px; }
+@media (max-width: 767px) {
+  .ff-toast { top: calc(66px + var(--safe-top, 0px)) !important; right: 16px !important; }
+}
+
+/* Settings: horizontal gradient spectrum */
+.ff-spectrum-knob {
+  translate: 0 -50%;
+  transition: left 0.55s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.4s ease, box-shadow 0.4s ease;
+}
+.ff-spectrum-sheen {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 55%);
+  mix-blend-mode: soft-light;
+}
+
+/* Profile cover: slow Ken-Burns drift */
+.ff-cover-img { animation: ff-cover-drift 18s ease-in-out infinite alternate; transform-origin: center; }
+@keyframes ff-cover-drift { from { transform: scale(1.04) translate(0, 0); } to { transform: scale(1.12) translate(-1.5%, -2%); } }
+.reduce-motion .ff-cover-img { animation: none; }
+@media (prefers-reduced-motion: reduce) { .ff-cover-img { animation: none; } }
+
+/* Loader bottom rail */
+.ff-load-rail__fill {
+  background: linear-gradient(90deg, #22d3ee, #a78bfa 30%, #f472b6 55%, #f59e0b 80%, #34d399);
+  background-size: 200% 100%;
+  animation: ff-rail-flow 2.4s linear infinite;
+  box-shadow: 0 0 14px rgba(167, 139, 250, 0.55), 0 0 28px rgba(34, 211, 238, 0.25);
+}
+.ff-load-rail__comet {
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  translate: 0 -50%;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 0 10px #fff, 0 0 22px #f472b6, 0 0 40px #22d3ee;
+}
+@keyframes ff-rail-flow { to { background-position: -200% 0; } }
+.reduce-motion .ff-load-rail__fill { animation: none; }
+
+/* ============================================================
+   F-Pass: conic aurora rim, scan line, drifting orbs, entrance
+   ============================================================ */
+.ff-fpass { animation: ff-fpass-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes ff-fpass-in {
+  from { opacity: 0; transform: perspective(1200px) rotateX(24deg) translateY(28px) scale(0.92); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@property --ff-rim { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+.ff-fpass-inner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(from var(--ff-rim), #22d3ee, #a78bfa, #f472b6, #f59e0b, #34d399, #22d3ee);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: ff-rim-spin 6s linear infinite;
+  z-index: 40;
+  pointer-events: none;
+}
+@keyframes ff-rim-spin { to { --ff-rim: 360deg; } }
+.ff-fpass-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 40%;
+  top: -40%;
+  background: linear-gradient(180deg, transparent, rgba(34, 211, 238, 0.12) 70%, rgba(34, 211, 238, 0.35));
+  pointer-events: none;
+  animation: ff-scan 4.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes ff-scan { 0% { top: -40%; } 60%, 100% { top: 110%; } }
+.ff-fpass-orb {
+  position: absolute;
+  width: 55%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  filter: blur(40px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+.ff-fpass-orb--a { background: #7c3aed; top: -30%; right: -15%; animation: ff-orb-a 9s ease-in-out infinite alternate; }
+.ff-fpass-orb--b { background: #0891b2; bottom: -35%; left: -10%; animation: ff-orb-b 11s ease-in-out infinite alternate; }
+@keyframes ff-orb-a { to { transform: translate(-30%, 25%) scale(1.2); } }
+@keyframes ff-orb-b { to { transform: translate(35%, -20%) scale(0.85); } }
+.reduce-motion .ff-fpass, .reduce-motion .ff-fpass-inner::before, .reduce-motion .ff-fpass-scan, .reduce-motion .ff-fpass-orb { animation: none !important; }
+
+/* Tab / GUI switch: soft rise + de-blur + stagger */
+.ff-tab-enter { animation: ff-tab-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ff-tab-enter > * { animation: ff-tab-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ff-tab-enter > *:nth-child(2) { animation-delay: 60ms; }
+.ff-tab-enter > *:nth-child(3) { animation-delay: 120ms; }
+.ff-tab-enter > *:nth-child(n + 4) { animation-delay: 180ms; }
+@keyframes ff-tab-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); filter: blur(4px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+.reduce-motion .ff-tab-enter, .reduce-motion .ff-tab-enter > * { animation: none !important; }
+
+/* Horizontal tab strip: fade the clipped edges instead of hard cuts */
+.dock-pos-top .ff-tabs-fade,
+.dock-pos-bottom .ff-tabs-fade {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+}
+
+/* ============================================================
+   Global gradient influence (toggle: Cài đặt → Hiệu ứng)
+   ============================================================ */
+@property --ff-rim2 { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+html.ff-fx-rims .liquid-glass.rounded-2xl:not(.fixed):not(.absolute):not(.sticky),
+html.ff-fx-rims .liquid-glass.rounded-3xl:not(.fixed):not(.absolute):not(.sticky) {
+  position: relative;
+}
+html.ff-fx-rims .liquid-glass.rounded-2xl::after,
+html.ff-fx-rims .liquid-glass.rounded-3xl::after,
+html.ff-fx-rims [data-ff-popover]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(from var(--ff-rim2), rgba(34, 211, 238, 0.55), rgba(167, 139, 250, 0.15), rgba(244, 114, 182, 0.55), rgba(245, 158, 11, 0.15), rgba(52, 211, 153, 0.5), rgba(34, 211, 238, 0.55));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: ff-rim2-spin 9s linear infinite;
+}
+@keyframes ff-rim2-spin { to { --ff-rim2: 360deg; } }
+html.ff-fx-ambient body::before {
+  content: '';
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(40% 35% at 15% 20%, rgba(124, 58, 237, 0.16), transparent 70%),
+    radial-gradient(35% 30% at 85% 30%, rgba(8, 145, 178, 0.14), transparent 70%),
+    radial-gradient(40% 35% at 60% 90%, rgba(236, 72, 153, 0.12), transparent 70%);
+  animation: ff-ambient-drift 26s ease-in-out infinite alternate;
+}
+@keyframes ff-ambient-drift { to { transform: translate(4%, -3%) rotate(6deg) scale(1.05); } }
+.reduce-motion .liquid-glass::after, .reduce-motion [data-ff-popover]::after, html.reduce-motion body::before { animation: none !important; }

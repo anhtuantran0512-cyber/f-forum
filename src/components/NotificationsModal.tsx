@@ -1,4 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
+import { createPortal } from 'react-dom';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
@@ -199,7 +200,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
     }
   };
 
-  return (
+  return createPortal(
     <>
       {/* Invisible backdrop to catch outside clicks without closing from within modal */}
       <button
@@ -219,6 +220,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label="Trung tâm thông báo"
+        data-ff-popover="true"
         className={`z-[70] liquid-glass rounded-3xl p-4 shadow-[0_25px_60px_rgba(0,0,0,0.92)] border border-white/20 pointer-events-auto select-none popover-morph-enter bg-[#0c1218]/95 ${
           !anchorRef || !pop.ready ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] max-w-[calc(100vw-28px)]' : ''
         }`}
@@ -372,7 +374,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         </div>
       </div>
     </>
-  );
+  , document.body);
 };
 
 export default NotificationsModal;

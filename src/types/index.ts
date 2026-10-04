@@ -27,6 +27,8 @@ export interface User {
   name: string;
   email: string;
   avatar: string;
+  /** Profile cover marker (`idb:<userId>`); the image itself lives in IndexedDB (up to 15MB). */
+  coverImage?: string;
   role: UserRole;
   level: number;
   xp: number;

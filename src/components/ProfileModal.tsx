@@ -24,7 +24,10 @@ import {
   GraduationCap,
   Rocket,
   Sprout,
+  ImagePlus,
+  Trash2,
 } from 'lucide-react';
+import { COVER_MAX_BYTES, saveCover, deleteCover, useCoverUrl } from '../utils/coverStore';
 import type { User, Question, Solution, ShopItem, ShopTierColor } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { getTierForLevel } from '../utils/tier';
@@ -92,6 +95,10 @@ const ProfileModalInner: React.FC<{
 
   const [name, setName] = useState(currentUser.name);
   const [avatar, setAvatar] = useState(currentUser.avatar);
+  const savedCoverUrl = useCoverUrl(currentUser);
+  const [coverDraft, setCoverDraft] = useState<{ blob: Blob; url: string } | null>(null);
+  const [coverRemoved, setCoverRemoved] = useState(false);
+  const coverPreview = coverDraft?.url ?? (coverRemoved ? null : savedCoverUrl);
   const [bio, setBio] = useState(currentUser.bio || '');
   const [gender, setGender] = useState(currentUser.gender || 'Nam');
   const [city, setCity] = useState(currentUser.city || '');
@@ -284,7 +291,31 @@ const ProfileModalInner: React.FC<{
     e.target.value = '';
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setErrorMsg('Ảnh nền chỉ nhận tệp hình ảnh (PNG, JPG, WebP, GIF)!');
+      return;
+    }
+    if (file.size > COVER_MAX_BYTES) {
+      setErrorMsg(`Ảnh nền (${(file.size / (1024 * 1024)).toFixed(2)}MB) vượt quá 15MB cho phép!`);
+      return;
+    }
+    setErrorMsg(null);
+    if (coverDraft) URL.revokeObjectURL(coverDraft.url);
+    setCoverDraft({ blob: file, url: URL.createObjectURL(file) });
+    setCoverRemoved(false);
+  };
+
+  const handleCoverRemove = () => {
+    if (coverDraft) URL.revokeObjectURL(coverDraft.url);
+    setCoverDraft(null);
+    setCoverRemoved(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving) return;
     if (!name.trim()) {
@@ -293,7 +324,23 @@ const ProfileModalInner: React.FC<{
     }
 
     setIsSaving(true);
+    let coverImage = currentUser.coverImage;
+    try {
+      if (coverDraft) {
+        coverImage = await saveCover(currentUser.id, coverDraft.blob);
+        setCoverDraft(null);
+      } else if (coverRemoved && currentUser.coverImage) {
+        await deleteCover(currentUser.id);
+        coverImage = undefined;
+      }
+    } catch {
+      setErrorMsg('Không thể lưu ảnh nền trên trình duyệt này. Vui lòng thử ảnh khác!');
+      setIsSaving(false);
+      return;
+    }
+    setCoverRemoved(false);
     onSaveProfile({
+      coverImage,
       name: name.trim().slice(0, 50),
       avatar,
       bio: bio.trim().slice(0, 100),
@@ -460,7 +507,7 @@ const ProfileModalInner: React.FC<{
         )}
 
         {/* Tab Content Container */}
-        <div className="flex-1 overflow-y-auto pr-1 space-y-4 no-scrollbar">
+        <div key={activeTab} className="ff-tab-enter flex-1 overflow-y-auto pr-1 space-y-4 no-scrollbar">
           {/* Shimmer skeleton while the profile content boots */}
           {isBooting && (
             <div className="rounded-2xl bg-white/[0.04] border border-white/15 p-4 sm:p-5 space-y-4" role="status" aria-busy="true">
@@ -490,8 +537,15 @@ const ProfileModalInner: React.FC<{
               {/* Thẻ Card chính với dải gradient aurora */}
               <div className="rounded-2xl bg-white/[0.04] border border-white/15 shadow-xl overflow-hidden">
                 {/* Aurora banner */}
-                <div className="h-16 ff-aurora-surface relative" style={{ background: 'linear-gradient(120deg, rgba(245,158,11,0.25), rgba(167,139,250,0.2), rgba(34,211,238,0.22))' }}>
-                  <div className="absolute inset-0 ff-aurora-bar opacity-25" aria-hidden="true" />
+                <div className={`${savedCoverUrl ? 'h-28 sm:h-36' : 'h-16'} ff-aurora-surface ff-cover relative overflow-hidden transition-[height] duration-500`} style={{ background: 'linear-gradient(120deg, rgba(245,158,11,0.25), rgba(167,139,250,0.2), rgba(34,211,238,0.22))' }}>
+                  {savedCoverUrl ? (
+                    <>
+                      <img src={savedCoverUrl} alt="Ảnh nền hồ sơ" className="ff-cover-img absolute inset-0 w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-[#0c1218]/90" aria-hidden="true" />
+                    </>
+                  ) : (
+                    <div className="absolute inset-0 ff-aurora-bar opacity-25" aria-hidden="true" />
+                  )}
                 </div>
 
                 <div className="p-4 sm:p-5 space-y-4">
@@ -1246,6 +1300,34 @@ const ProfileModalInner: React.FC<{
           {/* TAB 5: Edit Profile Form */}
           {activeTab === 'edit' && isOwnProfile && (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Cover image (≤15MB, stored in IndexedDB) */}
+              <div className="relative h-32 rounded-2xl overflow-hidden border border-white/15 group ff-cover shadow-[0_18px_40px_rgba(0,0,0,0.45)]" style={{ background: 'linear-gradient(120deg, rgba(245,158,11,0.28), rgba(167,139,250,0.24), rgba(34,211,238,0.24))' }}>
+                {coverPreview ? (
+                  <img src={coverPreview} alt="Xem trước ảnh nền" className="ff-cover-img absolute inset-0 w-full h-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 ff-aurora-bar opacity-30" aria-hidden="true" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" aria-hidden="true" />
+                <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-bold text-white drop-shadow">Ảnh nền hồ sơ</p>
+                    <p className="text-[10px] text-white/60 font-mono">PNG, JPG, WebP, GIF • tối đa 15MB</p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {coverPreview && (
+                      <button type="button" onClick={handleCoverRemove} className="p-2 rounded-xl bg-black/50 border border-white/15 text-rose-300 hover:bg-rose-500/20 transition-colors cursor-pointer" aria-label="Gỡ ảnh nền" title="Gỡ ảnh nền">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    <label htmlFor="cover-upload" className="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white flex items-center gap-1.5 cursor-pointer transition-all hover:-translate-y-0.5">
+                      <ImagePlus className="w-3.5 h-3.5" />
+                      {coverPreview ? 'Đổi ảnh nền' : 'Thêm ảnh nền'}
+                    </label>
+                    <input id="cover-upload" type="file" accept="image/*" onChange={handleCoverChange} className="hidden" />
+                  </div>
+                </div>
+              </div>
+
               <div className="flex items-center gap-4 p-3 rounded-2xl bg-white/5 border border-white/10">
                 <div className="relative group shrink-0">
                   <img

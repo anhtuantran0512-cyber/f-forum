@@ -1,4 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
+import { createPortal } from 'react-dom';
 import React, { useRef, useEffect, useState } from 'react';
 import {
   Settings,
@@ -114,6 +115,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const pop = usePopoverPosition(isOpen, anchorRef, activeDockPos, 380, 600);
   const [confirmReset, setConfirmReset] = useState<null | 'cache' | 'full'>(null);
   const [resetDone, setResetDone] = useState<string | null>(null);
+  const [fxRims, setFxRims] = useState(() => safeStorage.getItem('fforum_fx_rims') !== 'false');
+  const [fxAmbient, setFxAmbient] = useState(() => safeStorage.getItem('fforum_fx_ambient') !== 'false');
+  const toggleFx = (key: 'rims' | 'ambient') => {
+    const next = key === 'rims' ? !fxRims : !fxAmbient;
+    if (key === 'rims') setFxRims(next);
+    else setFxAmbient(next);
+    safeStorage.setItem(`fforum_fx_${key}`, String(next));
+    document.documentElement.classList.toggle(key === 'rims' ? 'ff-fx-rims' : 'ff-fx-ambient', next);
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -189,7 +199,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   /* Mobile / no-anchor fallback: centered dialog */
   const useCentered = !anchorRef || !pop.ready;
 
-  return (
+  return createPortal(
     <>
       {/* Transparent Click-Outside Backdrop */}
       <button
@@ -209,6 +219,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label="Cài đặt hệ thống"
+        data-ff-popover="true"
         className={`z-[70] liquid-glass rounded-3xl p-4 sm:p-5 shadow-[0_25px_60px_rgba(0,0,0,0.92)] pointer-events-auto border border-white/20 select-none max-h-[82vh] overflow-y-auto no-scrollbar popover-morph-enter bg-[#0c1218]/95 ${
           useCentered ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[380px] max-w-[calc(100vw-28px)]' : ''
         }`}
@@ -426,23 +437,45 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span className="text-[10px] text-amber-300 font-mono">{godrayIntensity}% độ rực</span>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-44 overflow-y-auto no-scrollbar pr-0.5">
-                {GODRAY_PRESETS.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => onSelectGodray?.(p.id)}
-                    className={`p-1.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-1.5 ${
-                      godrayPreset === p.id
-                        ? 'border-amber-400 bg-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
-                        : 'border-white/10 bg-white/5 hover:bg-white/10'
-                    }`}
-                  >
-                    <span className={`w-3.5 h-3.5 rounded-full bg-gradient-to-tr ${p.color} shrink-0 border border-white/30`} />
-                    <span className="text-[10px] font-medium text-white truncate">{p.name}</span>
-                  </button>
-                ))}
-              </div>
+              {/* One horizontal spectrum rail: tap a colour stop, the knob glides to it */}
+              {(() => {
+                const activeIdx = Math.max(0, GODRAY_PRESETS.findIndex((p) => p.id === godrayPreset));
+                const active = GODRAY_PRESETS[activeIdx];
+                const stops = GODRAY_PRESETS.map((p, i) => `${p.accent} ${(i / (GODRAY_PRESETS.length - 1)) * 100}%`).join(', ');
+                const pct = (activeIdx / Math.max(1, GODRAY_PRESETS.length - 1)) * 100;
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-white flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full shadow-[0_0_10px_currentColor]" style={{ background: active?.accent, color: active?.accent }} />
+                        {active?.name}
+                      </span>
+                    </div>
+                    <div className="ff-spectrum relative h-9 rounded-full p-1 border border-white/15 shadow-[inset_0_2px_8px_rgba(0,0,0,0.6)]" style={{ background: `linear-gradient(90deg, ${stops})` }}>
+                      <span className="absolute inset-0 rounded-full ff-spectrum-sheen pointer-events-none" aria-hidden="true" />
+                      <div className="relative h-full flex items-center justify-between" role="radiogroup" aria-label="Bảng màu gradient">
+                        {GODRAY_PRESETS.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={godrayPreset === p.id}
+                            aria-label={p.name}
+                            title={p.name}
+                            onClick={() => onSelectGodray?.(p.id)}
+                            className="relative z-10 w-3 h-3 rounded-full cursor-pointer bg-white/25 hover:bg-white/80 hover:scale-150 transition-all duration-300"
+                          />
+                        ))}
+                        <span
+                          className="ff-spectrum-knob absolute top-1/2 w-7 h-7 rounded-full border-2 border-white pointer-events-none"
+                          style={{ left: `calc(${pct}% - ${(pct / 100) * 12}px - 8px)`, background: active?.accent, boxShadow: `0 0 0 4px rgba(255,255,255,0.12), 0 0 22px ${active?.accent}` }}
+                          aria-hidden="true"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="pt-1 flex items-center gap-2">
                 <span className="text-[10px] text-neutral-400 shrink-0">Độ rực:</span>
@@ -493,6 +526,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-400"
                 />
                 <span className="text-[10px] font-mono text-amber-300 shrink-0">{glassBlur}px</span>
+              </div>
+            </div>
+          </section>
+
+          {/* 3b. EFFECTS */}
+          <section>
+            <SectionTitle icon={<Zap className="w-3 h-3 text-pink-300" />}>Hiệu ứng</SectionTitle>
+            <div className="rounded-2xl p-3 bg-black/30 border border-white/10 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <span className="text-xs font-semibold text-white block">Viền gradient động</span>
+                  <span className="text-[10px] text-white/45">Thẻ & bảng kính có viền màu chuyển động</span>
+                </div>
+                <MiniSwitch on={fxRims} onToggle={() => toggleFx('rims')} label="Viền gradient động" />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <span className="text-xs font-semibold text-white block">Nền ambient</span>
+                  <span className="text-[10px] text-white/45">Dải màu gradient trôi nhẹ phía sau trang</span>
+                </div>
+                <MiniSwitch on={fxAmbient} onToggle={() => toggleFx('ambient')} label="Nền ambient" />
               </div>
             </div>
           </section>
@@ -681,7 +735,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
       </div>
     </>
-  );
+  , document.body);
 };
 
 export default SettingsModal;

@@ -326,6 +326,35 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Bottom spectrum rail: real weighted % + per-resource checkpoints */}
+      <div className="ff-load-rail fixed bottom-0 inset-x-0 px-4 sm:px-8 pb-[calc(14px+var(--safe-bottom,0px))] pt-3 pointer-events-none">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center justify-between mb-1.5 font-mono text-[10px] tracking-widest uppercase">
+            <div className="flex items-center gap-2.5">
+              {STEPS.map((st) => {
+                const done = Boolean(doneRef.current[st.id]);
+                return (
+                  <span key={st.id} className={`flex items-center gap-1 transition-colors duration-500 ${done ? 'text-emerald-300' : 'text-white/30'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${done ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-white/20'}`} />
+                    {st.label}
+                  </span>
+                );
+              })}
+            </div>
+            <span className="ff-aurora-text font-bold text-xs tabular-nums">{pct}%</span>
+          </div>
+          <div className="relative h-[6px] rounded-full bg-white/[0.07] border border-white/10 overflow-visible">
+            <div className="ff-load-rail__fill absolute inset-y-0 left-0 rounded-full transition-[width] duration-300 ease-out" style={{ width: `${pct}%` }}>
+              <span className="ff-load-rail__comet" aria-hidden="true" />
+            </div>
+            {STEPS.slice(0, -1).map((st, i) => {
+              const at = (STEPS.slice(0, i + 1).reduce((a, x) => a + x.weight, 0) / TOTAL_WEIGHT) * 100;
+              return <span key={st.id} className="absolute top-1/2 -translate-y-1/2 w-px h-2.5 bg-white/25" style={{ left: `${at}%` }} aria-hidden="true" />;
+            })}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

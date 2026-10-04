@@ -1,4 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
+import { createPortal } from 'react-dom';
 import React, { useRef, useEffect, useState } from 'react';
 import { CreditCard, UserPen, Award, LogOut, Sparkles, ChevronRight, Flag, X, Shield, CheckCircle2 } from 'lucide-react';
 import type { User } from '../types';
@@ -97,12 +98,13 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       ? 100
       : Math.min(100, Math.max(0, Math.round(((currentUser.xp - currentLevelBaseXP) / range) * 100)));
 
-  return (
+  return createPortal(
     <div
       ref={dropdownRef}
       role="menu"
       aria-label="Menu tài khoản"
-      className={`z-[70] bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] popover-morph-enter select-none pointer-events-auto transition-all overflow-y-auto no-scrollbar ${
+      data-ff-popover="true"
+        className={`z-[70] bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] popover-morph-enter select-none pointer-events-auto transition-all overflow-y-auto no-scrollbar ${
         !anchorRef || !pop.ready ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] max-w-[calc(100vw-28px)]' : ''
       }`}
       style={anchorRef ? pop.style : undefined}
@@ -381,7 +383,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         </div>
       )}
     </div>
-  );
+  , document.body);
 };
 
 export default ProfileDropdown;

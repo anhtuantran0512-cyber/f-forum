@@ -5,6 +5,7 @@ import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { getTierForLevel } from '../utils/tier';
 import { Flame, Sparkles, Shield, Wifi, Award } from 'lucide-react';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
+import { useCoverUrl } from '../utils/coverStore';
 
 interface HologramStudentCardProps {
   user: User;
@@ -20,7 +21,9 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({ user }
 
   const isSuperAdmin = user.email === 'anhtuantran0512@gmail.com';
   const tier = getTierForLevel(user.level);
-  const streakCount = user.streakCount ?? (isSuperAdmin ? 36 : user.role === 'CLUB_LEADER' ? 24 : 14);
+  const streakCount = user.streakCount ?? 0;
+  const coverUrl = useCoverUrl(user);
+  const [isFlipping, setIsFlipping] = useState(false);
   const fPoints = user.fPoints ?? user.xp;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
@@ -57,10 +60,14 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({ user }
       <button
         type="button"
         ref={containerRef as unknown as React.RefObject<HTMLButtonElement>}
-        className="hologram-card w-full max-w-[420px] aspect-[1.586/1] cursor-pointer relative py-2 block text-left border-none bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+        className="hologram-card ff-fpass w-full max-w-[420px] aspect-[1.586/1] cursor-pointer relative py-2 block text-left border-none bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        onClick={() => setIsFlipped(prev => !prev)}
+        onClick={() => {
+          setIsFlipping(true);
+          setIsFlipped(prev => !prev);
+          window.setTimeout(() => setIsFlipping(false), 720);
+        }}
         aria-label="Thẻ sinh viên 3D (Bấm để lật thẻ)"
         title="Di chuột để tương tác 3D tilt • Nhấp chuột để lật thẻ"
       >
@@ -70,7 +77,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({ user }
             transform: `perspective(1200px) rotateX(${rotateX}deg) rotateY(${currentRotY + (isFlipped ? 180 : 0)}deg)`,
             transformStyle: 'preserve-3d',
           }}
-          className="hologram-inner w-full h-full rounded-2xl relative overflow-hidden select-none p-4 sm:p-5 flex flex-col justify-between border border-white/30 backdrop-blur-2xl transition-transform duration-150 ease-out shadow-[0_25px_60px_rgba(0,0,0,0.85)]"
+          className={`hologram-inner ff-fpass-inner w-full h-full rounded-2xl relative overflow-hidden select-none p-4 sm:p-5 flex flex-col justify-between border border-white/30 backdrop-blur-2xl ease-out shadow-[0_25px_60px_rgba(0,0,0,0.85)] ${isFlipping ? 'duration-700' : 'duration-150'} transition-transform`}
         >
           {/* Iridescent Gradient Sheen Overlay */}
           <div
@@ -95,6 +102,12 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({ user }
 
           {/* Deep Cyberpunk Carbon / Glass Foil Pattern */}
           <div className="absolute inset-0 bg-gradient-to-br from-neutral-900/90 via-neutral-950/95 to-black/95 z-0" />
+          {coverUrl && (
+            <img src={coverUrl} alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover opacity-35 mix-blend-luminosity z-0" />
+          )}
+          <span className="ff-fpass-scan z-20" aria-hidden="true" />
+          <span className="ff-fpass-orb ff-fpass-orb--a z-0" aria-hidden="true" />
+          <span className="ff-fpass-orb ff-fpass-orb--b z-0" aria-hidden="true" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-cyan-900/30 via-transparent to-purple-900/20 z-0" />
 
           {/* CARD FRONT SIDE (when !isFlipped) */}
@@ -160,7 +173,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({ user }
                   </div>
 
                   <p className="text-[11px] text-neutral-300 truncate font-mono mt-0.5">
-                    {user.className || 'FPT University Vietnam'} • {user.city || 'Hà Nội'}
+                    {[user.className, user.city].filter(Boolean).join(' • ') || 'F-Forum Member'}
                   </p>
 
                   {/* Rank Badge & Tier Specs */}

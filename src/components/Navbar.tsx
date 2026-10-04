@@ -13,6 +13,7 @@ import {
   Award,
   Settings,
   Rocket,
+  LogIn,
 } from 'lucide-react';
 import type { DimensionView, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
@@ -23,6 +24,7 @@ import { NotificationsModal } from './NotificationsModal';
 import { SettingsModal } from './SettingsModal';
 import { safeStorage } from '../utils/storage';
 import { StreakFlameWidget, DailyEngagementModal } from './DailyEngagementModal';
+import { RadialQuickMenu } from './RadialQuickMenu';
 
 export interface NavbarProps {
   currentView: DimensionView;
@@ -72,6 +74,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   onOpenLoginModal,
   onLogout,
+  isChatOpen,
   onToggleChat,
   unreadChatCount,
   onOpenProfile,
@@ -261,6 +264,18 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const isVertical = navbarPosition === 'left' || navbarPosition === 'right';
 
+  /* Only one popover instance (desktop OR mobile) may mount: popovers are portaled to <body>,
+     so the CSS `hidden` on the inactive layout no longer hides them. */
+  const [isDesktop, setIsDesktop] = useState<boolean>(() =>
+    typeof window === 'undefined' ? true : window.matchMedia('(min-width: 768px)').matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const onChange = () => setIsDesktop(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
   /* ============================================================ */
   /* Robust active pill measurement (rect-based, clamped)          */
   /* ============================================================ */
@@ -272,14 +287,13 @@ export const Navbar: React.FC<NavbarProps> = ({
         setPillStyle((prev) => ({ ...prev, opacity: 0 }));
         return;
       }
-      const cRect = container.getBoundingClientRect();
-      const tRect = activeEl.getBoundingClientRect();
-      let left = tRect.left - cRect.left + container.scrollLeft;
-      let width = tRect.width;
-      /* Clamp so the pill can never overflow the tab strip */
-      const maxLeft = container.scrollWidth - 2;
-      left = Math.max(0, Math.min(left, maxLeft));
-      width = Math.min(width, Math.max(0, container.scrollWidth - left));
+      /* Layout offsets ignore parent transforms (dock slide / translateY(-50%)),
+         so the pill never drifts while the capsule animates. */
+      const maxW = container.scrollWidth;
+      let left = activeEl.offsetLeft;
+      let width = activeEl.offsetWidth;
+      left = Math.max(0, Math.min(left, Math.max(0, maxW - 4)));
+      width = Math.max(0, Math.min(width, maxW - left));
       setPillStyle({
         left,
         width,
@@ -304,6 +318,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     const containerEl = tabsContainerRef.current;
     const onContainerScroll = () => updatePill();
     containerEl?.addEventListener('scroll', onContainerScroll, { passive: true });
+    containerEl?.addEventListener('transitionend', onContainerScroll);
 
     return () => {
       clearTimeout(t1);
@@ -311,8 +326,9 @@ export const Navbar: React.FC<NavbarProps> = ({
       window.removeEventListener('resize', updatePill);
       ro?.disconnect();
       containerEl?.removeEventListener('scroll', onContainerScroll);
+      containerEl?.removeEventListener('transitionend', onContainerScroll);
     };
-  }, [currentView, isVertical, isCompact]);
+  }, [currentView, isVertical, isCompact, navbarPosition]);
 
   /* Keep the active tab visible inside the scrollable strip */
   useEffect(() => {
@@ -392,7 +408,8 @@ export const Navbar: React.FC<NavbarProps> = ({
       const insideDesktop = userMenuRef.current && userMenuRef.current.contains(target);
       const insideTrigger = userTriggerRef.current && userTriggerRef.current.contains(target);
       const insideMobile = mobileUserMenuRef.current && mobileUserMenuRef.current.contains(target);
-      if (!insideDesktop && !insideMobile && !insideTrigger) {
+      const insidePortal = (target as HTMLElement).closest?.('[data-ff-popover]');
+      if (!insideDesktop && !insideMobile && !insideTrigger && !insidePortal) {
         setIsFlyoutOpen(false);
       }
     };
@@ -421,7 +438,8 @@ export const Navbar: React.FC<NavbarProps> = ({
       const insideDesktop = notifMenuRef.current && notifMenuRef.current.contains(target);
       const insideTrigger = notifTriggerRef.current && notifTriggerRef.current.contains(target);
       const insideMobile = mobileNotifMenuRef.current && mobileNotifMenuRef.current.contains(target);
-      if (!insideDesktop && !insideMobile && !insideTrigger) {
+      const insidePortal = (target as HTMLElement).closest?.('[data-ff-popover]');
+      if (!insideDesktop && !insideMobile && !insideTrigger && !insidePortal) {
         setIsNotificationsOpen(false);
       }
     };
@@ -450,7 +468,8 @@ export const Navbar: React.FC<NavbarProps> = ({
       const insideDesktop = settingsMenuRef.current && settingsMenuRef.current.contains(target);
       const insideTrigger = settingsTriggerRef.current && settingsTriggerRef.current.contains(target);
       const insideMobile = mobileSettingsMenuRef.current && mobileSettingsMenuRef.current.contains(target);
-      if (!insideDesktop && !insideMobile && !insideTrigger) {
+      const insidePortal = (target as HTMLElement).closest?.('[data-ff-popover]');
+      if (!insideDesktop && !insideMobile && !insideTrigger && !insidePortal) {
         setIsSettingsOpen(false);
       }
     };
@@ -502,14 +521,17 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'coming-soon', label: 'UPDATE' },
   ];
 
+  /* Streak + quick-action hub share one stack that always avoids the docked edge */
   const streakWidgetPosClass =
     navbarPosition === 'bottom'
-      ? 'fixed bottom-24 left-4 md:bottom-24 md:left-5'
+      ? 'fixed bottom-20 left-4 md:bottom-[104px] md:left-5'
       : navbarPosition === 'left'
-      ? 'fixed bottom-20 left-24 md:bottom-5 md:left-24'
-      : navbarPosition === 'right'
-      ? 'fixed bottom-20 right-24 md:bottom-5 md:right-24 left-auto'
+      ? 'fixed bottom-20 left-4 md:bottom-5 md:left-[104px]'
       : 'fixed bottom-20 left-4 md:bottom-5 md:left-5';
+
+  useEffect(() => {
+    document.documentElement.dataset.navPos = navbarPosition;
+  }, [navbarPosition]);
 
   const sharedSettingsProps = {
     isOpen: isSettingsOpen,
@@ -654,7 +676,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           {/* Center Tabs: single line, icon + collapsible label */}
-          <div ref={tabsContainerRef} className="relative flex items-center gap-1 overflow-x-auto no-scrollbar py-1 nav-center-tabs">
+          <div ref={tabsContainerRef} className="relative flex items-center gap-1 overflow-x-auto no-scrollbar py-1 nav-center-tabs ff-tabs-fade">
             {!isVertical && (
               <>
                 {/* Liquid sliding pill indicator */}
@@ -766,7 +788,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
 
               <div ref={settingsMenuRef}>
-                <SettingsModal {...sharedSettingsProps} anchorRef={settingsTriggerRef} />
+                <SettingsModal {...sharedSettingsProps} isOpen={isSettingsOpen && isDesktop} anchorRef={settingsTriggerRef} />
               </div>
             </div>
 
@@ -813,7 +835,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               <div ref={notifMenuRef}>
                 <NotificationsModal
-                  isOpen={isNotificationsOpen}
+                  isOpen={isNotificationsOpen && isDesktop}
                   onClose={() => setIsNotificationsOpen(false)}
                   onNavigate={(view) => {
                     setIsNotificationsOpen(false);
@@ -831,9 +853,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 onClick={onOpenLoginModal}
-                className="bg-white text-neutral-900 px-4 py-1.5 rounded-full text-xs font-semibold hover:bg-neutral-200 transition-colors shadow-md cursor-pointer whitespace-nowrap flex-shrink-0"
+                title="Đăng nhập"
+                aria-label="Đăng nhập"
+                className={`bg-white text-neutral-900 rounded-full text-xs font-semibold hover:bg-neutral-200 transition-all shadow-md cursor-pointer whitespace-nowrap flex-shrink-0 pointer-events-auto ${
+                  isVertical ? 'w-10 h-10 flex items-center justify-center' : 'px-4 py-1.5'
+                }`}
               >
-                Đăng nhập
+                {isVertical ? <LogIn className="w-4 h-4" /> : 'Đăng nhập'}
               </button>
             ) : (
               <div ref={userTriggerRef} className="relative inline-flex items-center flex-shrink-0">
@@ -868,7 +894,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </div>
 
                   {/* Roman Rank icon */}
-                  <div className="shrink-0 flex items-center justify-center">
+                  <div className="shrink-0 flex items-center justify-center nav-user-extra">
                     <TierBadge level={currentUser.level} size={17} showTooltip={false} />
                   </div>
 
@@ -887,7 +913,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </div>
 
                   <ChevronDown
-                    className={`w-3 h-3 text-neutral-400 group-hover:text-amber-400 transition-transform duration-200 ${
+                    className={`nav-user-extra w-3 h-3 text-neutral-400 group-hover:text-amber-400 transition-transform duration-200 ${
                       isFlyoutOpen ? 'rotate-180 text-amber-400' : ''
                     }`}
                   />
@@ -896,7 +922,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {/* Profile Card */}
                 <ProfileDropdown
                   currentUser={currentUser}
-                  isOpen={isFlyoutOpen}
+                  isOpen={isFlyoutOpen && isDesktop}
                   onClose={() => setIsFlyoutOpen(false)}
                   onOpenProfile={onOpenProfile}
                   onLogout={onLogout}
@@ -956,7 +982,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             {/* Mobile Settings Modal */}
-            <SettingsModal {...sharedSettingsProps} />
+            <SettingsModal {...sharedSettingsProps} isOpen={isSettingsOpen && !isDesktop} />
           </div>
 
           {/* Notification Bell Button */}
@@ -982,7 +1008,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Mobile anchored notification modal */}
             <NotificationsModal
-              isOpen={isNotificationsOpen}
+              isOpen={isNotificationsOpen && !isDesktop}
               onClose={() => setIsNotificationsOpen(false)}
               onNavigate={(view) => {
                 setIsNotificationsOpen(false);
@@ -1035,7 +1061,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               <ProfileDropdown
                 currentUser={currentUser}
-                isOpen={isFlyoutOpen}
+                isOpen={isFlyoutOpen && !isDesktop}
                 onClose={() => setIsFlyoutOpen(false)}
                 onOpenProfile={onOpenProfile}
                 onLogout={onLogout}
@@ -1273,13 +1299,28 @@ export const Navbar: React.FC<NavbarProps> = ({
       )}
 
       {/* Single global streak widget (adapts to navbar edge) */}
-      <div className={`${streakWidgetPosClass} z-40 pointer-events-auto`}>
+      <div className={`${streakWidgetPosClass} z-40 pointer-events-auto flex flex-col items-start gap-3 transition-all duration-500`}>
         <StreakFlameWidget
           streakCount={currentUser?.streakCount || 0}
           onClick={() => setIsDailyModalOpen(true)}
           className="shadow-2xl hover:scale-105 transition-transform"
           compact={isCompact}
         />
+        {currentUser && currentView !== 'landing' && !isChatOpen && (
+          <RadialQuickMenu
+            side="left"
+            onNavigate={(v) => onViewChange(v as DimensionView)}
+            onOpenSettings={() => {
+              setIsSettingsOpen(true);
+              setIsNotificationsOpen(false);
+              setIsFlyoutOpen(false);
+              forceExpand();
+              setIsNavbarHovered(true);
+            }}
+            onOpenStreak={() => setIsDailyModalOpen(true)}
+            onOpenFocus={onOpenFocusMode}
+          />
+        )}
       </div>
 
       <DailyEngagementModal

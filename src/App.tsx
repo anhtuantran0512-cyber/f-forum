@@ -11,7 +11,6 @@ import { GODRAY_PRESETS } from './utils/godrays';
 import { safeStorage } from './utils/storage';
 import { PageResourceLoader } from './components/PageResourceLoader';
 import { UserQuickCard } from './components/UserQuickCard';
-import { RadialQuickMenu } from './components/RadialQuickMenu';
 
 const LandingPage = lazy(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
 const ClubsView = lazy(() => import('./components/views/ClubsView').then(m => ({ default: m.ClubsView })));
@@ -471,14 +470,6 @@ export const App: React.FC = () => {
         </Suspense>
       </main>
 
-      {/* Radial quick actions (ccm-02 sin()/cos() fan) */}
-      {currentUser && currentView !== 'landing' && !isChatOpen && (
-        <RadialQuickMenu
-          onNavigate={(v) => handleNavigate(v as DimensionView)}
-          onOpenChat={() => setIsChatOpen(true)}
-          onOpenFocus={() => setIsFocusModeOpen(true)}
-        />
-      )}
 
       <Suspense fallback={null}>
         {/* Slide-over Chat Dock (For quick chatting when browsing Home, Clubs, QA, Chronicles) */}
@@ -562,7 +553,7 @@ export const App: React.FC = () => {
 
       {/* Toast Notification Banner */}
       {toastMessage && (
-        <div className="fixed top-20 sm:top-24 right-4 sm:right-6 z-50 animate-fade-up">
+        <div className="ff-toast fixed z-50 animate-fade-up">
           <div className="liquid-glass rounded-2xl bg-neutral-950/95 border border-white/20 p-3 sm:p-4 shadow-2xl backdrop-blur-xl flex items-center gap-3 max-w-sm">
             <div className="shrink-0 p-2 rounded-xl bg-white/10">
               {toastMessage.type === 'level' ? (

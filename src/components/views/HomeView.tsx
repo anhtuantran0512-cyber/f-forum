@@ -157,7 +157,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
       </div>
 
       {/* Live Campus Telemetry HUD (Bottom Right Floating Widget) */}
-      <div className="fixed bottom-6 right-6 z-30 hidden md:block">
+      <div className="ff-telemetry fixed z-30 hidden md:block">
         <div className="liquid-glass rounded-2xl p-4 w-[250px] shadow-2xl border border-white/10 transition-transform duration-300 hover:scale-[1.02]">
           {/* Header Indicator */}
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10">

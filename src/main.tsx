@@ -3,6 +3,10 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { safeStorage } from './utils/storage'
+
+document.documentElement.classList.toggle('ff-fx-rims', safeStorage.getItem('fforum_fx_rims') !== 'false')
+document.documentElement.classList.toggle('ff-fx-ambient', safeStorage.getItem('fforum_fx_ambient') !== 'false')
 
 declare global {
   interface Window {
