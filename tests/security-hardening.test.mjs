@@ -1694,3 +1694,126 @@ test('33. WS: không chèn được CLB tự duyệt và bài viết CLB khi ch�
     await env.close();
   }
 });
+
+test('34. Sửa câu hỏi: không ghi đè được authorEmail / bountyCoin (mass-assignment)', async () => {
+  const env = await createTestServer();
+  try {
+    const owner = await register(env.baseUrl, 'Chủ Câu Hỏi', 'chu-cau-hoi@example.com', 'mat-khau-chu-12345');
+    const victim = await register(env.baseUrl, 'Người Khác', 'nguoi-khac@example.com', 'mat-khau-khac-12345');
+
+    const asked = await post(env.baseUrl, '/api/questions', {
+      title: 'Bài cần sửa',
+      content: 'Nội dung gốc.',
+      authorEmail: 'chu-cau-hoi@example.com',
+      authorName: 'Chủ Câu Hỏi',
+      bountyCoin: 40,
+    }, owner.token);
+    assert.equal(asked.status, 200, `đặt câu hỏi: ${JSON.stringify(asked.data)}`);
+    const questionId = asked.data.question.id;
+
+    const adminLogin = await post(env.baseUrl, '/api/auth/login', {
+      email: 'anhtuantran0512@gmail.com',
+      password: 'admin123',
+    });
+    assert.equal(adminLogin.status, 200);
+
+    /* Payload cố tình kèm các trường không được phép sửa. */
+    const edited = await post(env.baseUrl, '/api/questions/edit', {
+      questionId,
+      updates: {
+        title: 'Tiêu đề đã sửa',
+        content: 'Nội dung đã sửa.',
+        subject: 'ly',
+        authorEmail: 'nguoi-khac@example.com',
+        authorName: 'Đổi chủ',
+        bountyCoin: 999999,
+        id: 'id-bi-doi',
+        isSolved: true,
+      },
+    }, adminLogin.data.token);
+    assert.equal(edited.status, 200, `sửa bài: ${JSON.stringify(edited.data)}`);
+
+    const q = edited.data.question;
+    assert.equal(q.title, 'Tiêu đề đã sửa', 'Ba trường nội dung vẫn sửa được');
+    assert.equal(q.content, 'Nội dung đã sửa.');
+    assert.equal(q.subject, 'ly');
+
+    /* Các trường nhạy cảm phải giữ nguyên. */
+    assert.equal(q.authorEmail, 'chu-cau-hoi@example.com', 'authorEmail không được đổi chủ');
+    assert.equal(q.authorName, 'Chủ Câu Hỏi', 'authorName không được đổi');
+    assert.equal(q.bountyCoin, 40, `bountyCoin không được thổi, thực tế = ${q.bountyCoin}`);
+    assert.equal(q.id, questionId, 'id không được đổi');
+    assert.equal(q.isSolved, false, 'isSolved không được tự bật');
+
+    /* Không có trường nào hợp lệ thì báo 400. */
+    const empty = await post(env.baseUrl, '/api/questions/edit', {
+      questionId,
+      updates: { authorEmail: 'nguoi-khac@example.com', bountyCoin: 999999 },
+    }, adminLogin.data.token);
+    assert.equal(empty.status, 400, 'Payload chỉ có trường cấm phải bị từ chối');
+
+    /* Câu hỏi không tồn tại thì 404. */
+    const ghost = await post(env.baseUrl, '/api/questions/edit', {
+      questionId: 'q-khong-ton-tai',
+      updates: { title: 'Ma' },
+    }, adminLogin.data.token);
+    assert.equal(ghost.status, 404, 'Sửa câu hỏi không tồn tại phải 404');
+
+    /* Học sinh vẫn không sửa được. */
+    const studentAttempt = await post(env.baseUrl, '/api/questions/edit', {
+      questionId,
+      updates: { title: 'Học sinh sửa' },
+    }, victim.token);
+    assert.equal(studentAttempt.status, 403, 'Học sinh không sửa được bài');
+  } finally {
+    await env.close();
+  }
+});
+
+test('35. Sửa câu hỏi qua WS: cùng một bộ lọc trường như đường HTTP', async () => {
+  const env = await createTestServer();
+  const adminLogin = await post(env.baseUrl, '/api/auth/login', {
+    email: 'anhtuantran0512@gmail.com',
+    password: 'admin123',
+  });
+  const admin = await connectWs(env.wsUrl, adminLogin.data.token);
+  try {
+    const owner = await register(env.baseUrl, 'Chủ Bài WS', 'chu-bai-ws@example.com', 'mat-khau-ws-12345');
+    const asked = await post(env.baseUrl, '/api/questions', {
+      title: 'Bài WS',
+      content: 'Nội dung WS.',
+      authorEmail: 'chu-bai-ws@example.com',
+      bountyCoin: 40,
+    }, owner.token);
+    const questionId = asked.data.question.id;
+
+    admin.send('EDIT_QUESTION', {
+      questionId,
+      updates: {
+        title: 'Sửa qua WS',
+        authorEmail: 'anhtuantran0512@gmail.com',
+        bountyCoin: 999999,
+      },
+    });
+    await sleep(300);
+
+    const sync = await get(env.baseUrl, '/api/sync');
+    const q = sync.data.data.questions.find((x) => x.id === questionId);
+    assert.equal(q.title, 'Sửa qua WS', 'Tiêu đề sửa được qua WS');
+    assert.equal(q.authorEmail, 'chu-bai-ws@example.com', 'authorEmail không đổi được qua WS');
+    assert.equal(q.bountyCoin, 40, `bountyCoin không thổi được qua WS, thực tế = ${q.bountyCoin}`);
+
+    /* Học sinh không sửa được qua WS. */
+    const student = await connectWs(env.wsUrl, owner.token);
+    try {
+      student.send('EDIT_QUESTION', { questionId, updates: { title: 'Học sinh sửa qua WS' } });
+      const forbidden = await student.waitFor('FORBIDDEN');
+      assert.equal(forbidden.payload.action, 'EDIT_QUESTION');
+    } finally {
+      student.ws.close();
+    }
+  } finally {
+    admin.ws.close();
+    await env.close();
+  }
+});
