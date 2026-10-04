@@ -832,6 +832,44 @@ Test #42 kiểm bằng hành vi thật: qua ba bước thưởng (đặt câu h�
 
 ---
 
+## 31. Tắt tiến trình làm mất lần ghi cuối cùng
+
+**Mức độ:** Cao (mất dữ liệu) · **Vị trí:** `persistStoreToDisk()`, `setupForumServer()`
+
+Việc ghi xuống đĩa được debounce 200 ms và timer bị `.unref()`:
+
+```js
+saveTimeout = setTimeout(() => { fs.writeFileSync(...) }, 200);
+saveTimeout.unref();          // timer KHÔNG giữ tiến trình sống
+```
+
+Server **không có bất kỳ handler tín hiệu nào** để ghi nốt. `scripts/start-public.mjs`
+bắt `SIGINT`/`SIGTERM`/`SIGHUP` nhưng chỉ để kill tiến trình con, không yêu cầu
+server ghi lại.
+
+Nghĩa là tắt server trong vòng 200 ms sau một thao tác — Ctrl+C, container bị dừng,
+crash — là lần ghi đó **mất**. Người dùng vừa đăng bài, người vận hành restart, và
+bài viết biến mất.
+
+Xác nhận bằng repro (khởi động server con, ghi một tin nhắn, gửi `SIGTERM` ngay):
+
+```
+── TRƯỚC khi vá ──
+[1] ghi tin nhắn: 200
+[2] KHÔNG có tệp dữ liệu → mất toàn bộ
+
+── SAU khi vá ──
+[1] ghi tin nhắn: 200
+[2] sau SIGTERM ngay lập tức, tin nhắn có trên đĩa? CÓ — đã được ghi nốt
+```
+
+**Đã vá:** tách `flushStoreToDisk()` (ghi đồng bộ) và `flushPendingSave()` (ghi nốt
+nếu đang có lần chờ); cài móc cho `SIGTERM`/`SIGINT`/`SIGHUP` và sự kiện `exit`
+trong `setupForumServer()`. Móc chỉ cài một lần qua cờ `shutdownHooksInstalled` để
+nhiều lần gọi `setupForumServer` (trong test) không nhân bản handler.
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -860,6 +898,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 42 bài, chạy trên server thật
-npm test                                        # toàn bộ 138 bài
+node --test tests/security-hardening.test.mjs   # 43 bài, chạy trên server thật
+npm test                                        # toàn bộ 139 bài
 ```

@@ -239,20 +239,62 @@ function loadStoreFromDisk() {
 }
 
 let saveTimeout: NodeJS.Timeout | null = null;
+/**
+  Ghi store xuống đĩa NGAY, đồng bộ. Trả về true nếu ghi được.
+*/
+function flushStoreToDisk(): boolean {
+  try {
+    if (!fs.existsSync(dataDir())) {
+      fs.mkdirSync(dataDir(), { recursive: true });
+    }
+    fs.writeFileSync(dataFilePath(), JSON.stringify(store, null, 2), 'utf8');
+    return true;
+  } catch (err) {
+    console.error('[Forum Server] Failed to persist data to disk:', err);
+    return false;
+  }
+}
+
 function persistStoreToDisk() {
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(() => {
-    try {
-      if (!fs.existsSync(dataDir())) {
-        fs.mkdirSync(dataDir(), { recursive: true });
-      }
-      fs.writeFileSync(dataFilePath(), JSON.stringify(store, null, 2), 'utf8');
-    } catch (err) {
-      console.error('[Forum Server] Failed to persist data to disk:', err);
-    }
+    saveTimeout = null;
+    flushStoreToDisk();
   }, 200);
   saveTimeout.unref();
 }
+
+/**
+  Ghi nốt lần thay đổi đang chờ (nếu có) trước khi tiến trình tắt.
+
+  `persistStoreToDisk` debounce 200ms và gọi `.unref()`, nên timer không giữ tiến
+  trình sống. Trước đây không có chỗ nào ghi nốt: tắt server trong vòng 200ms sau
+  một thao tác (Ctrl+C, container bị dừng, crash) là lần ghi cuối cùng MẤT — người
+  dùng vừa đăng bài mà khởi động lại thì bài biến mất.
+*/
+function flushPendingSave() {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+    flushStoreToDisk();
+  }
+}
+
+let shutdownHooksInstalled = false;
+function installShutdownFlush() {
+  if (shutdownHooksInstalled) return;
+  shutdownHooksInstalled = true;
+  for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP'] as const) {
+    process.on(signal, () => {
+      flushPendingSave();
+      process.exit(0);
+    });
+  }
+  /* `exit` không chạy được code bất đồng bộ, nhưng ghi ở đây là đồng bộ. */
+  process.on('exit', flushPendingSave);
+}
+
+export { flushStoreToDisk, flushPendingSave };
 
 const wsClients = new Set<WebSocket>();
 const sseClients = new Set<ServerResponse>();
@@ -551,6 +593,7 @@ function requireSuperAdmin(req: IncomingMessage, body: any): SessionClaims | nul
 
 export function setupForumServer(httpServer: any, middlewares: any) {
   loadStoreFromDisk();
+  installShutdownFlush();
 
   delete store.users['hocsinhmoi@fpt.edu.vn'];
   delete store.passwords['hocsinhmoi@fpt.edu.vn'];
