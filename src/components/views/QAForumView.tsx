@@ -708,27 +708,75 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               <CommentSkeletonList rows={4} />
             </div>
           ) : filteredQuestions.length === 0 ? (
-            <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-neutral-400 rounded-2xl liquid-glass bg-white/5 border border-white/10 space-y-2">
-              <HelpCircle className="w-10 h-10 text-neutral-500 mb-1" />
-              <p className="text-sm font-semibold text-white">Chưa có câu hỏi nào trên sàn thảo luận</p>
-              <p className="text-xs text-neutral-400 max-w-sm">
-                Hãy là người đầu tiên đặt câu hỏi để cùng thảo luận bài học và nhận giải đáp từ cộng đồng!
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!currentUser) {
-                    onOpenLoginModal?.();
-                  } else {
-                    setIsAskModalOpen(true);
-                  }
-                }}
-                className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/30 text-xs font-semibold transition-all cursor-pointer"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>Đặt câu hỏi đầu tiên</span>
-              </button>
-            </div>
+            /*
+              Trạng thái trống phải nói đúng LÝ DO trống. Bản cũ luôn hiện "hãy là
+              người đầu tiên đặt câu hỏi" — sai hẳn khi người dùng chỉ vừa bật bộ
+              lọc hay gõ từ khoá làm danh sách rỗng; họ cần nút gỡ lọc, không phải
+              lời rủ đặt câu hỏi.
+            */
+            showSavedOnly && mySavedIds.length === 0 ? (
+              <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-neutral-400 rounded-2xl liquid-glass bg-white/5 border border-white/10 space-y-2">
+                <Bookmark className="w-10 h-10 text-amber-500/60 mb-1" />
+                <p className="text-sm font-semibold text-white">Chưa lưu câu hỏi nào</p>
+                <p className="text-xs text-neutral-400 max-w-sm">
+                  Bấm biểu tượng đánh dấu trên bất kỳ thẻ câu hỏi nào để giữ lại đọc sau.
+                  Danh sách này là của riêng bạn.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowSavedOnly(false)}
+                  className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-neutral-200 border border-white/15 text-xs font-semibold transition-all cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Xem tất cả câu hỏi</span>
+                </button>
+              </div>
+            ) : showSavedOnly || searchTerm || selectedTag !== 'all' ? (
+              <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-neutral-400 rounded-2xl liquid-glass bg-white/5 border border-white/10 space-y-2">
+                <Search className="w-10 h-10 text-neutral-500 mb-1" />
+                <p className="text-sm font-semibold text-white">Không có câu hỏi nào khớp bộ lọc</p>
+                <p className="text-xs text-neutral-400 max-w-sm">
+                  {searchTerm
+                    ? `Không tìm thấy kết quả cho "${searchTerm}".`
+                    : 'Không có câu hỏi nào trong mục này.'}{' '}
+                  Thử bỏ bớt điều kiện lọc để xem nhiều hơn.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSavedOnly(false);
+                    setSearchTerm('');
+                    setSelectedTag('all');
+                  }}
+                  className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/30 text-xs font-semibold transition-all cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Xoá toàn bộ bộ lọc</span>
+                </button>
+              </div>
+            ) : (
+              <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-neutral-400 rounded-2xl liquid-glass bg-white/5 border border-white/10 space-y-2">
+                <HelpCircle className="w-10 h-10 text-neutral-500 mb-1" />
+                <p className="text-sm font-semibold text-white">Chưa có câu hỏi nào trên sàn thảo luận</p>
+                <p className="text-xs text-neutral-400 max-w-sm">
+                  Hãy là người đầu tiên đặt câu hỏi để cùng thảo luận bài học và nhận giải đáp từ cộng đồng!
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!currentUser) {
+                      onOpenLoginModal?.();
+                    } else {
+                      setIsAskModalOpen(true);
+                    }
+                  }}
+                  className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/30 text-xs font-semibold transition-all cursor-pointer"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>Đặt câu hỏi đầu tiên</span>
+                </button>
+              </div>
+            )
           ) : (
             filteredQuestions.map(q => {
               const qSolutions = solutions.filter(s => s.questionId === q.id);
