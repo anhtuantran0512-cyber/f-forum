@@ -463,7 +463,7 @@ const ProfileModalInner: React.FC<{
       return;
     }
 
-    const maxSize = 15 * 1024 * 1024; // 15MB
+    const maxSize = 15 * 1024 * 1024; /* 15MB */
     if (file.size > maxSize) {
       setErrorMsg(
         `Kích thước ảnh bìa (${(file.size / (1024 * 1024)).toFixed(2)}MB) vượt quá giới hạn 15MB!`
