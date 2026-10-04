@@ -1030,6 +1030,40 @@ lỗi thời — đúng loại mất dữ liệu mà mục 31 và 32 đang cố 
 
 ---
 
+## 36. Phát ngược payload thô của client cho mọi người
+
+**Mức độ:** Trung bình · **Vị trí:** WS `NEW_CHAT_MESSAGE`, `MARK_BEST_SOLUTION`
+
+Hai nhánh WS phát ngược nguyên `payload` do client gửi, thay vì bản đã kiểm
+duyệt:
+
+```js
+broadcastServerEvent('NEW_CHAT_MESSAGE', payload);
+broadcastServerEvent('MARK_BEST_SOLUTION', payload);
+```
+
+**(a) Tin nhắn ma.** Nhánh xử lý tin trùng id (client gửi lại, hoặc hai kênh cùng
+đưa về) không ghi vào kho nhưng vẫn phát payload thô:
+
+```js
+if (!store.chatMessages.some(m => m.id === payload.id)) { ... break; }
+broadcastServerEvent('NEW_CHAT_MESSAGE', payload);   // <-- phát mà không lưu
+```
+
+Chỉ cần lấy một id có sẵn kèm nội dung tuỳ ý là đẩy được một tin **ma** lên màn
+hình tất cả client: không bị cắt độ dài, không qua lọc nào, và reload là biến mất
+vì nó không nằm trong store.
+
+**(b) Trường thừa lọt qua.** `MARK_BEST_SOLUTION` chỉ cần `questionId` và
+`solutionId`, nhưng phát cả payload nên mọi trường client tự bịa (`adminEmail`,
+ghi chú…) đều tới tay mọi người.
+
+**Đã sửa:** phát lại đúng bản đã lưu trong kho, và phát đúng hai trường client
+dùng (khớp bản HTTP của cùng thao tác). Test #50 và #51 — cả hai **fail trước khi
+vá, pass sau khi vá**.
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -1058,6 +1092,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 49 bài, chạy trên server thật
-npm test                                        # toàn bộ 145 bài
+node --test tests/security-hardening.test.mjs   # 51 bài, chạy trên server thật
+npm test                                        # toàn bộ 147 bài
 ```
