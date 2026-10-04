@@ -430,6 +430,23 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
   const mySavedIds = savedIdsOf(savedMap, savedOwnerKey);
 
+  /*
+    Kênh để Bảng lệnh bảo diễn đàn bật bộ lọc "Đã lưu". Cùng lý do với
+    fforum_open_question ở trên: showSavedOnly là state nội bộ của view này.
+    Bỏ luôn từ khoá tìm kiếm và môn học để kết quả không bị lọc chồng lên nhau —
+    người dùng bấm lệnh là muốn thấy ĐÚNG danh sách đã lưu.
+  */
+  useEffect(() => {
+    const onShowSaved = () => {
+      if (!savedOwnerKey) return;
+      setSearchTerm('');
+      setSelectedTag('all');
+      setShowSavedOnly(true);
+    };
+    window.addEventListener('fforum_show_saved_questions', onShowSaved);
+    return () => window.removeEventListener('fforum_show_saved_questions', onShowSaved);
+  }, [savedOwnerKey]);
+
   const persistSavedMap = (next: typeof savedMap) => {
     setSavedMap(next);
     /*

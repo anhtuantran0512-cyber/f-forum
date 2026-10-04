@@ -175,3 +175,31 @@ test('Lưu câu hỏi 15. Module thuần không import gì (giữ test được 
   const src = read('src/utils/savedQuestions.ts');
   assert.doesNotMatch(src, /^import\s/m, 'Không được import gì để node test trực tiếp được');
 });
+
+test('Lưu câu hỏi 16. Bảng lệnh có lối vào "Câu hỏi đã lưu" phát đúng sự kiện', () => {
+  const app = read('src/App.tsx');
+  assert.match(app, /id: 'act-saved-questions'/, 'Có lệnh trong bảng lệnh');
+  assert.match(
+    app,
+    /fforum_show_saved_questions/,
+    'Lệnh phải phát sự kiện fforum_show_saved_questions',
+  );
+  assert.match(app, /handleViewChange\('qa'\)/, 'Lệnh phải chuyển sang phân khu Hỏi đáp trước');
+
+  const view = read('src/components/views/QAForumView.tsx');
+  assert.match(
+    view,
+    /addEventListener\('fforum_show_saved_questions'/,
+    'QAForumView phải lắng nghe sự kiện đó',
+  );
+});
+
+test('Lưu câu hỏi 17. Không dùng .push() để dựng lệnh bảng lệnh (React Compiler)', () => {
+  /*
+    actionCommands.push(...) trong lúc render khiến React Compiler bỏ tối ưu cả
+    component và phát cảnh báo react(refs). Dựng mảng bất biến bằng spread thay vì
+    đột biến. Test này chốt lại để không ai đưa .push() quay trở lại.
+  */
+  const app = read('src/App.tsx');
+  assert.doesNotMatch(app, /actionCommands\.push\(/, 'Không được đột biến actionCommands');
+});

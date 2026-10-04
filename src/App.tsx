@@ -627,6 +627,20 @@ export const App: React.FC = () => {
         run: () => window.dispatchEvent(new CustomEvent('fforum_eye_rest_now')),
       },
       {
+        id: 'act-saved-questions',
+        label: 'Câu hỏi đã lưu',
+        hint: 'Mở danh sách câu hỏi bạn đã đánh dấu để đọc lại',
+        group: 'Diễn đàn',
+        icon: <HelpCircle className="w-4 h-4" />,
+        keywords: 'cau hoi da luu bookmark luu danh dau saved',
+        run: () => {
+          handleViewChange('qa');
+          window.setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('fforum_show_saved_questions'));
+          }, 0);
+        },
+      },
+      {
         id: 'act-theme',
         label: 'Đổi chế độ Sáng / Tối',
         hint: 'Chuyển nhanh giao diện Obsidian ↔ Pha lê',
@@ -647,19 +661,28 @@ export const App: React.FC = () => {
       },
     ];
 
-    if (currentUser) {
-      actionCommands.push({
-        id: 'act-profile',
-        label: 'Trang cá nhân của tôi',
-        hint: `${currentUser.name} · Cấp ${currentUser.level}`,
-        group: 'Tài khoản',
-        icon: <UserIcon className="w-4 h-4" />,
-        keywords: 'profile ho so ca nhan',
-        run: () => handleOpenProfile('overview'),
-      });
-    }
+    /*
+      Lệnh "Trang cá nhân" chỉ có khi đã đăng nhập. Trước đây mảng lệnh tác vụ
+      được đẩy thêm phần tử bằng phương thức push — nhưng React Compiler coi việc
+      gọi hàm trên một giá trị đang dựng trong lúc render là "truyền ref vào hàm",
+      và cả component bị bỏ tối ưu. Dựng bằng spread có điều kiện thì mảng chỉ
+      được tạo một lần, không đột biến, và cảnh báo biến mất.
+    */
+    const accountCommands: PaletteCommand[] = currentUser
+      ? [
+          {
+            id: 'act-profile',
+            label: 'Trang cá nhân của tôi',
+            hint: `${currentUser.name} · Cấp ${currentUser.level}`,
+            group: 'Tài khoản',
+            icon: <UserIcon className="w-4 h-4" />,
+            keywords: 'profile ho so ca nhan',
+            run: () => handleOpenProfile('overview'),
+          },
+        ]
+      : [];
 
-    return [...viewCommands, ...actionCommands];
+    return [...viewCommands, ...actionCommands, ...accountCommands];
   }, [currentUser, handleViewChange, handleToggleChat, handleOpenProfile, eyeRestEnabled, toggleEyeRest]);
 
   /**
