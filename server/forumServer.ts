@@ -39,6 +39,15 @@ export interface ForumDataStore {
   about?: any;
 }
 
+const DEFAULT_CLUB_COVER =
+  'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&h=500&fit=crop';
+
+const CLUB_CATEGORIES = ['Công nghệ', 'Nghệ thuật', 'Thể thao', 'Học thuật'];
+
+function makeId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
 
 const XP_THRESHOLDS: number[] = Array.from({ length: 151 }, (_, lvl) =>
   lvl <= 1 ? 0 : Math.floor(140 * (lvl - 1) + 1.08 * Math.pow(lvl - 1, 2))
@@ -63,8 +72,17 @@ export function calculateLevelFromXP(xp: number): number {
 
 const DEFAULT_AVATAR = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%231a2332"/><circle cx="50" cy="38" r="20" fill="%234a5d78"/><path d="M20 90 Q50 65 80 90" fill="%234a5d78"/></svg>`;
 
-const dataDir = path.resolve(process.cwd(), 'data');
-const dataFilePath = path.join(dataDir, 'forum-data.json');
+/* Thư mục lưu dữ liệu — có thể ghi đè bằng biến môi trường FFORUM_DATA_DIR
+   để các bài kiểm thử không ghi vào dữ liệu thật của ứng dụng. */
+function getDataDir() {
+  return process.env.FFORUM_DATA_DIR
+    ? path.resolve(process.env.FFORUM_DATA_DIR)
+    : path.resolve(process.cwd(), 'data');
+}
+
+function getDataFilePath() {
+  return path.join(getDataDir(), 'forum-data.json');
+}
 
 let store: ForumDataStore = {
   users: {
@@ -135,6 +153,7 @@ let store: ForumDataStore = {
 
 function loadStoreFromDisk() {
   try {
+    const dataFilePath = getDataFilePath();
     if (fs.existsSync(dataFilePath)) {
       const raw = fs.readFileSync(dataFilePath, 'utf8');
       const parsed = JSON.parse(raw);
@@ -148,6 +167,7 @@ function loadStoreFromDisk() {
           solutions: Array.isArray(parsed.solutions) ? parsed.solutions : [],
           chatMessages: Array.isArray(parsed.chatMessages) ? parsed.chatMessages : [],
           feedbacks: Array.isArray(parsed.feedbacks) ? parsed.feedbacks : [],
+          reports: Array.isArray(parsed.reports) ? parsed.reports : [],
           about: parsed.about || store.about,
         };
       }
@@ -162,6 +182,8 @@ function persistStoreToDisk() {
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(() => {
     try {
+      const dataDir = getDataDir();
+      const dataFilePath = getDataFilePath();
       if (!fs.existsSync(dataDir)) {
         fs.mkdirSync(dataDir, { recursive: true });
       }
@@ -198,25 +220,49 @@ export function broadcastServerEvent(type: string, payload: any) {
   }
 }
 
+export const PAYLOAD_TOO_LARGE = 'PAYLOAD_TOO_LARGE';
+const MAX_BODY_BYTES = 25 * 1024 * 1024; // 25MB (ảnh tải lên đã được nén phía client)
+
 function parseJsonBody(req: IncomingMessage): Promise<any> {
   return new Promise((resolve, reject) => {
     let body = '';
+    let settled = false;
     req.on('data', chunk => {
+      if (settled) return;
       body += chunk;
-      if (body.length > 25 * 1024 * 1024) {
+      if (body.length > MAX_BODY_BYTES) {
+        settled = true;
         req.destroy();
-        reject(new Error('Payload too large'));
+        reject(new Error(PAYLOAD_TOO_LARGE));
       }
     });
     req.on('end', () => {
+      if (settled) return;
       try {
         resolve(body ? JSON.parse(body) : {});
       } catch (err) {
         reject(err);
       }
     });
-    req.on('error', reject);
+    req.on('error', err => {
+      if (settled) return;
+      settled = true;
+      reject(err);
+    });
   });
+}
+
+/** Chuẩn hoá lỗi xử lý request thành JSON response thân thiện với người dùng. */
+export function sendRequestError(res: ServerResponse, err: any) {
+  const message = String(err?.message || '');
+  if (message === PAYLOAD_TOO_LARGE) {
+    sendJson(res, 413, {
+      success: false,
+      message: 'Dữ liệu gửi lên quá lớn (giới hạn 25MB). Vui lòng chọn ảnh nhỏ hơn!',
+    });
+    return;
+  }
+  sendJson(res, 500, { success: false, message: message || 'Lỗi máy chủ không xác định' });
 }
 
 function sendJson(res: ServerResponse, statusCode: number, data: any) {
@@ -555,7 +601,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         broadcastServerEvent('NEW_CHAT_MESSAGE', msg);
         sendJson(res, 200, { success: true, message: msg });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        sendRequestError(res, err);
       }
       return;
     }
@@ -568,7 +614,200 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         }
         sendJson(res, 200, { success: true });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        sendRequestError(res, err);
+      }
+      return;
+    }
+
+    /* ---------------------------------------------------------------- */
+    /* Clubs Plaza: create / approve / reject / posts / join              */
+    /* ---------------------------------------------------------------- */
+
+    if (method === 'POST' && url === '/api/clubs') {
+      try {
+        const body = await parseJsonBody(req);
+        const name = (body.name || '').trim();
+        if (!name) {
+          sendJson(res, 400, { success: false, message: 'Tên câu lạc bộ không được để trống!' });
+          return;
+        }
+
+        const duplicated = store.clubs.some(
+          c => (c.name || '').trim().toLowerCase() === name.toLowerCase() && c.status !== 'REJECTED'
+        );
+        const existingById = body.id ? store.clubs.find(c => c.id === body.id) : null;
+
+        if (duplicated && !existingById) {
+          sendJson(res, 409, { success: false, message: 'Tên câu lạc bộ này đã tồn tại trên Quảng Trường!' });
+          return;
+        }
+
+        const category = CLUB_CATEGORIES.includes(body.category) ? body.category : 'Công nghệ';
+        const club = {
+          id: existingById?.id || body.id || makeId('club'),
+          name,
+          slogan: (body.slogan || '').trim(),
+          coverImage: body.coverImage || DEFAULT_CLUB_COVER,
+          category,
+          foundingMembers: Array.isArray(body.foundingMembers)
+            ? body.foundingMembers.filter((m: any) => typeof m === 'string' && m.trim()).slice(0, 30)
+            : [],
+          purpose: (body.purpose || '').trim(),
+          leaderId: body.leaderId || '',
+          leaderName: body.leaderName || 'Học sinh',
+          followerCount: Number(existingById?.followerCount ?? 1) || 1,
+          membersCount: Number(existingById?.membersCount ?? body.foundingMembers?.length ?? 1) || 1,
+          memberIds: Array.isArray(existingById?.memberIds) ? existingById!.memberIds : [],
+          status: existingById?.status || 'PENDING',
+          isSpotlight: Boolean(existingById?.isSpotlight),
+          createdAt: existingById?.createdAt || new Date().toISOString().split('T')[0],
+        };
+
+        if (existingById) {
+          Object.assign(existingById, club);
+        } else {
+          store.clubs.unshift(club);
+        }
+
+        persistStoreToDisk();
+        broadcastServerEvent('NEW_CLUB', club);
+        sendJson(res, 200, { success: true, club });
+      } catch (err: any) {
+        sendRequestError(res, err);
+      }
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/clubs/approve') {
+      try {
+        const body = await parseJsonBody(req);
+        const club = store.clubs.find(c => c.id === body.clubId);
+        if (!club) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy hồ sơ câu lạc bộ!' });
+          return;
+        }
+
+        club.status = 'APPROVED';
+        club.rejectReason = undefined;
+
+        const leaderKey = Object.keys(store.users).find(
+          key => store.users[key].id === club.leaderId || store.users[key].name === club.leaderName
+        );
+
+        if (leaderKey) {
+          const leader = store.users[leaderKey];
+          leader.role = leader.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'CLUB_LEADER';
+          leader.scopedClubIds = Array.from(new Set([...(leader.scopedClubIds || []), club.id]));
+          leader.xp += 250;
+          leader.fPoints = (leader.fPoints ?? leader.xp) + 250;
+          leader.level = calculateLevelFromXP(leader.xp);
+          broadcastServerEvent('SYNC_USER', leader);
+        }
+
+        persistStoreToDisk();
+        broadcastServerEvent('APPROVE_CLUB', club.id);
+        sendJson(res, 200, { success: true, club });
+      } catch (err: any) {
+        sendRequestError(res, err);
+      }
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/clubs/reject') {
+      try {
+        const body = await parseJsonBody(req);
+        const club = store.clubs.find(c => c.id === body.clubId);
+        if (!club) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy hồ sơ câu lạc bộ!' });
+          return;
+        }
+
+        const reason = (body.reason || '').trim() || 'Không đủ điều kiện theo quy chế.';
+        club.status = 'REJECTED';
+        club.rejectReason = reason;
+
+        persistStoreToDisk();
+        broadcastServerEvent('REJECT_CLUB', { clubId: club.id, reason });
+        sendJson(res, 200, { success: true, club });
+      } catch (err: any) {
+        sendRequestError(res, err);
+      }
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/clubs/posts') {
+      try {
+        const body = await parseJsonBody(req);
+        const clubId = body.clubId;
+        if (!clubId || !store.clubs.some(c => c.id === clubId)) {
+          sendJson(res, 404, { success: false, message: 'Câu lạc bộ không tồn tại!' });
+          return;
+        }
+        if (!body.title || !body.content) {
+          sendJson(res, 400, { success: false, message: 'Tiêu đề và nội dung bài viết không được để trống!' });
+          return;
+        }
+
+        const post = {
+          id: body.id || makeId('cpost'),
+          clubId,
+          authorId: body.authorId || '',
+          authorName: body.authorName || 'Học sinh',
+          authorAvatar: body.authorAvatar || DEFAULT_AVATAR,
+          title: body.title,
+          content: body.content,
+          createdAt: body.createdAt || 'Vừa xong',
+          likes: Number(body.likes) || 1,
+        };
+
+        if (!store.clubPosts.some(p => p.id === post.id)) {
+          store.clubPosts.unshift(post);
+        }
+
+        persistStoreToDisk();
+        broadcastServerEvent('NEW_CLUB_POST', post);
+        sendJson(res, 200, { success: true, post });
+      } catch (err: any) {
+        sendRequestError(res, err);
+      }
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/clubs/join') {
+      try {
+        const body = await parseJsonBody(req);
+        const club = store.clubs.find(c => c.id === body.clubId);
+        if (!club) {
+          sendJson(res, 404, { success: false, message: 'Câu lạc bộ không tồn tại!' });
+          return;
+        }
+
+        const userId = String(body.userId || '').trim();
+        if (!Array.isArray(club.memberIds)) club.memberIds = [];
+        const alreadyMember = Boolean(userId) && club.memberIds.includes(userId);
+
+        if (!alreadyMember) {
+          if (userId) club.memberIds.push(userId);
+          club.followerCount = (Number(club.followerCount) || 0) + 1;
+          if (club.leaderId !== userId) {
+            club.membersCount = (Number(club.membersCount) || 0) + 1;
+          }
+          persistStoreToDisk();
+          broadcastServerEvent('JOIN_CLUB', {
+            clubId: club.id,
+            followerCount: club.followerCount,
+            membersCount: club.membersCount,
+          });
+        }
+
+        sendJson(res, 200, {
+          success: true,
+          alreadyMember,
+          followerCount: club.followerCount,
+          membersCount: club.membersCount,
+        });
+      } catch (err: any) {
+        sendRequestError(res, err);
       }
       return;
     }
@@ -610,7 +849,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         broadcastServerEvent('NEW_QUESTION', newQuestion);
         sendJson(res, 200, { success: true, question: newQuestion });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        sendRequestError(res, err);
       }
       return;
     }
@@ -647,7 +886,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         broadcastServerEvent('NEW_SOLUTION', newSolution);
         sendJson(res, 200, { success: true, solution: newSolution });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        sendRequestError(res, err);
       }
       return;
     }
@@ -699,7 +938,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         broadcastServerEvent('MARK_BEST_SOLUTION', { questionId, solutionId });
         sendJson(res, 200, { success: true });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        sendRequestError(res, err);
       }
       return;
     }
@@ -777,7 +1016,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const token = `f_token_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
         sendJson(res, 200, { success: true, user: newUser, token });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        sendRequestError(res, err);
       }
       return;
     }
@@ -803,7 +1042,15 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         }
 
         const registeredPassword = store.passwords[email];
-        if (registeredPassword && registeredPassword !== password) {
+        if (!registeredPassword) {
+          /* Tài khoản tạo bằng Google/Facebook không có mật khẩu -> không cho đăng nhập bằng mật khẩu bất kỳ */
+          sendJson(res, 400, {
+            success: false,
+            message: 'Tài khoản này được tạo bằng Google/Facebook. Vui lòng đăng nhập bằng mạng xã hội tương ứng!',
+          });
+          return;
+        }
+        if (registeredPassword !== password) {
           sendJson(res, 400, { success: false, message: 'Mật khẩu không chính xác. Vui lòng thử lại!' });
           return;
         }
@@ -811,7 +1058,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const token = `f_token_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
         sendJson(res, 200, { success: true, user, token });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        sendRequestError(res, err);
       }
       return;
     }
@@ -908,7 +1155,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const token = `f_token_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
         sendJson(res, 200, { success: true, user, token });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        sendRequestError(res, err);
       }
       return;
     }
@@ -951,7 +1198,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           message: 'Cảm ơn bạn! Ý kiến đóng góp đã được chuyển tới Ban Quản Trị.',
         });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        sendRequestError(res, err);
       }
       return;
     }
@@ -997,7 +1244,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           reportId: reportSubmission.id,
         });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        sendRequestError(res, err);
       }
       return;
     }
@@ -1014,6 +1261,21 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
         sendJson(res, 400, { success: false, message: 'Người dùng không tồn tại' });
+      } catch (err: any) {
+        sendRequestError(res, err);
+      }
+      return;
+    }
+
+    if (method === 'GET' && url.startsWith('/api/admin/reports')) {
+      try {
+        const parsedUrl = new URL(url, 'http://localhost');
+        const adminEmail = (parsedUrl.searchParams.get('adminEmail') || '').trim().toLowerCase();
+        if (adminEmail !== 'anhtuantran0512@gmail.com') {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới có quyền xem danh sách tố cáo!' });
+          return;
+        }
+        sendJson(res, 200, { success: true, reports: store.reports || [] });
       } catch (err: any) {
         sendJson(res, 500, { success: false, message: err.message });
       }
@@ -1047,7 +1309,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         broadcastServerEvent('SYNC_ABOUT', store.about);
         sendJson(res, 200, { success: true, about: store.about, ...store.about });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        sendRequestError(res, err);
       }
       return;
     }
@@ -1071,7 +1333,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         broadcastServerEvent('DELETE_QUESTION', { questionId });
         sendJson(res, 200, { success: true, message: 'Đã xóa bài viết thành công' });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        sendRequestError(res, err);
       }
       return;
     }
@@ -1097,7 +1359,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const updatedQ = store.questions.find(q => q.id === questionId);
         sendJson(res, 200, { success: true, message: 'Đã cập nhật bài viết thành công', question: updatedQ });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        sendRequestError(res, err);
       }
       return;
     }
@@ -1123,7 +1385,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         broadcastServerEvent('DELETE_SOLUTION', { solutionId });
         sendJson(res, 200, { success: true, message: 'Đã xóa phản hồi thành công' });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        sendRequestError(res, err);
       }
       return;
     }
@@ -1146,7 +1408,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         broadcastServerEvent('DELETE_CHAT_MESSAGE', { messageId });
         sendJson(res, 200, { success: true, message: 'Đã thu hồi tin nhắn thành công' });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        sendRequestError(res, err);
       }
       return;
     }

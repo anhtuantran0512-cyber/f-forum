@@ -3,8 +3,12 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { setupForumServer } from '../server/forumServer.ts';
 import { WebSocket } from 'ws';
+
+/* Mỗi bài kiểm thử chạy trên thư mục dữ liệu tạm để không ghi vào data/ thật của ứng dụng */
+process.env.FFORUM_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'fforum-test-'));
 
 function createTestServer() {
   const middlewares = [];

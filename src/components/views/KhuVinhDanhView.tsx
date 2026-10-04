@@ -15,6 +15,7 @@ import {
   type MilestoneItem,
 } from '../../store/adminStore';
 import { DEFAULT_CLUB_COVER, DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
+import { optimizeImageFile } from '../../utils/imageOptimize';
 
 export interface VinhDanhRecord {
   id: string;
@@ -637,17 +638,30 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isAvatar = false) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith('image/')) return;
+    if (file.size > 15 * 1024 * 1024) {
+      alert('Kích thước ảnh vượt quá 15MB. Vui lòng chọn ảnh nhỏ hơn!');
+      e.target.value = '';
+      return;
+    }
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const dataUrl = evt.target?.result as string;
+    const applyDataUrl = (dataUrl: string) => {
+      if (!dataUrl) return;
       if (isAvatar) {
         setEditBioForm((prev: { name: string; role: string; avatarUrl: string; bio: string }) => ({ ...prev, avatarUrl: dataUrl }));
       } else if (editingRecord) {
         setEditingRecord((prev: VinhDanhRecord | null) => (prev ? { ...prev, customImgUrl: dataUrl } : null));
       }
     };
-    reader.readAsDataURL(file);
+
+    /* Nén & thu nhỏ ảnh trước khi lưu */
+    optimizeImageFile(file, { maxDimension: 1600, targetBytes: 500 * 1024 })
+      .then(applyDataUrl)
+      .catch(() => {
+        const reader = new FileReader();
+        reader.onload = (evt) => applyDataUrl(evt.target?.result as string);
+        reader.readAsDataURL(file);
+      });
+    e.target.value = '';
   };
 
   return (

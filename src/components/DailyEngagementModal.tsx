@@ -16,9 +16,14 @@ interface DailyEngagementModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentUserCoin?: number;
+  /** Email tài khoản đang đăng nhập — dữ liệu điểm danh/hộp quà được tách riêng theo từng tài khoản. */
+  accountKey?: string;
   onRewardCoin?: (amount: number, reason: string) => void;
   onStreakChange?: (streak: number) => void;
 }
+
+const storageKeyFor = (suffix: string, accountKey?: string) =>
+  `fforum_${suffix}${accountKey ? `_${accountKey.toLowerCase()}` : ''}`;
 
 const TIPS = [
   'Hãy trả lời chỉn chu và đầy đủ các bước giải để dễ nhận được xác nhận Đáp Án Chuẩn!',
@@ -129,9 +134,10 @@ const computeStreak = (log: string[]): number => {
   return streak;
 };
 
-const loadAttendanceLog = (): string[] => {
+const loadAttendanceLog = (attendanceKey: string): string[] => {
   try {
-    const saved = safeStorage.getItem('fforum_attendance_log');
+    /* Tương thích dữ liệu cũ: trước đây log điểm danh dùng chung 1 key cho mọi tài khoản */
+    const saved = safeStorage.getItem(attendanceKey) || safeStorage.getItem('fforum_attendance_log');
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) return parsed.filter((d) => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d));
@@ -146,20 +152,25 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
   isOpen,
   onClose,
   currentUserCoin = 0,
+  accountKey,
   onRewardCoin,
   onStreakChange,
 }) => {
+  const attendanceKey = storageKeyFor('attendance_log', accountKey);
+  const boxesKey = storageKeyFor('mystery_boxes', accountKey);
+  const quizKey = storageKeyFor('last_quiz_date', accountKey);
   const [activeTab, setActiveTab] = useState<'attendance' | 'gifts' | 'quiz'>('attendance');
   const [tipIndex, setTipIndex] = useState(0);
 
-  const [attendanceLog, setAttendanceLog] = useState<string[]>(loadAttendanceLog);
+  const [attendanceLog, setAttendanceLog] = useState<string[]>(() => loadAttendanceLog(attendanceKey));
   const streak = useMemo(() => computeStreak(attendanceLog), [attendanceLog]);
   const hasClaimedToday = attendanceLog.includes(todayISO());
   const cycleDay = Math.max(1, Math.min(15, streak === 0 && !hasClaimedToday ? 1 : streak));
 
   const [boxes, setBoxes] = useState<{ blue: number; gold: number; red: number }>(() => {
     try {
-      const saved = safeStorage.getItem('fforum_mystery_boxes');
+      const saved =
+        safeStorage.getItem(boxesKey) || safeStorage.getItem('fforum_mystery_boxes');
       if (saved) return JSON.parse(saved);
     } catch {
       /* ignore */
@@ -167,10 +178,32 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
     return { blue: 0, gold: 0, red: 0 };
   });
 
+  /* Đổi tài khoản đăng nhập -> nạp lại dữ liệu điểm danh/hộp quà/câu hỏi vui của tài khoản đó */
+  useEffect(() => {
+    setAttendanceLog(loadAttendanceLog(attendanceKey));
+    try {
+      const saved = safeStorage.getItem(boxesKey) || safeStorage.getItem('fforum_mystery_boxes');
+      const parsed = saved ? JSON.parse(saved) : null;
+      setBoxes(
+        parsed && typeof parsed === 'object'
+          ? { blue: Number(parsed.blue) || 0, gold: Number(parsed.gold) || 0, red: Number(parsed.red) || 0 }
+          : { blue: 0, gold: 0, red: 0 }
+      );
+    } catch {
+      setBoxes({ blue: 0, gold: 0, red: 0 });
+    }
+    setQuizAnswered(safeStorage.getItem(quizKey) === todayISO());
+    setSelectedOption(null);
+    setQuizResult(null);
+    setReviewMode(false);
+    setQuizTimer(15);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attendanceKey, boxesKey, quizKey]);
+
   const dailyTrivia = useMemo(getDailyTrivia, []);
 
   const [quizAnswered, setQuizAnswered] = useState<boolean>(() => {
-    const lastQuiz = safeStorage.getItem('fforum_last_quiz_date');
+    const lastQuiz = safeStorage.getItem(quizKey);
     return lastQuiz === todayISO();
   });
   const [reviewMode, setReviewMode] = useState(false);
@@ -189,13 +222,13 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
 
       setQuizResult({ correct: isCorrect, reward });
       setQuizAnswered(true);
-      safeStorage.setItem('fforum_last_quiz_date', todayISO());
+      safeStorage.setItem(quizKey, todayISO());
 
       if (isCorrect && reward > 0) {
         onRewardCoin?.(reward, 'Trả lời đúng câu hỏi vui');
       }
     },
-    [quizAnswered, reviewMode, dailyTrivia, onRewardCoin],
+    [quizAnswered, reviewMode, dailyTrivia, onRewardCoin, quizKey],
   );
 
   useEffect(() => {
@@ -232,7 +265,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
     const today = todayISO();
     const nextLog = [...attendanceLog, today];
     setAttendanceLog(nextLog);
-    safeStorage.setItem('fforum_attendance_log', JSON.stringify(nextLog));
+    safeStorage.setItem(attendanceKey, JSON.stringify(nextLog));
 
     const newStreak = computeStreak(nextLog);
     const nextBoxes = { ...boxes };
@@ -240,7 +273,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
     if (newStreak % 15 === 10 || newStreak === 10) nextBoxes.gold += 1;
     if (newStreak > 0 && newStreak % 15 === 0) nextBoxes.red += 1;
     setBoxes(nextBoxes);
-    safeStorage.setItem('fforum_mystery_boxes', JSON.stringify(nextBoxes));
+    safeStorage.setItem(boxesKey, JSON.stringify(nextBoxes));
 
     onStreakChange?.(newStreak);
     onRewardCoin?.(25, `Điểm danh ngày (chuỗi ${newStreak})`);
@@ -255,7 +288,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
       const rewardCoin = type === 'blue' ? 30 : type === 'gold' ? 80 : 200;
       const nextBoxes = { ...boxes, [type]: boxes[type] - 1 };
       setBoxes(nextBoxes);
-      safeStorage.setItem('fforum_mystery_boxes', JSON.stringify(nextBoxes));
+      safeStorage.setItem(boxesKey, JSON.stringify(nextBoxes));
       setBoxReward(`+${rewardCoin} Coin`);
       onRewardCoin?.(rewardCoin, `Mở hộp quà ${type}`);
       setOpeningBox(null);

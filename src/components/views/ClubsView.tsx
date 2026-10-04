@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import type { Club, ClubPost, User, ClubCategory, ChatMessage } from '../../types';
 import { DEFAULT_CLUB_COVER, handleImageError, handleVideoError } from '../../utils/mediaFallback';
+import { optimizeImageFile } from '../../utils/imageOptimize';
+import { safeStorage } from '../../utils/storage';
 
 interface ClubsViewProps {
   currentUser: User | null;
@@ -34,6 +36,7 @@ interface ClubsViewProps {
   onApproveClub: (clubId: string) => void;
   onRejectClub: (clubId: string, reason: string) => void;
   onCreateClubPost: (clubId: string, title: string, content: string) => boolean;
+  onJoinClub: (clubId: string) => boolean;
   chatMessages?: ChatMessage[];
   onOpenLoginModal?: () => void;
   isEmbedded?: boolean;
@@ -55,6 +58,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   onApproveClub,
   onRejectClub,
   onCreateClubPost,
+  onJoinClub,
   chatMessages = [],
   onOpenLoginModal,
   isEmbedded = false,
@@ -65,7 +69,50 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [rejectPromptClubId, setRejectPromptClubId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [applicationSubmitted, setApplicationSubmitted] = useState<string | null>(null);
+  /* Danh sách CLB đã nộp đơn ứng tuyển (theo từng tài khoản, lưu cục bộ để không mất khi tải lại) */
+  const applicationsKey = `fforum_club_applications_${currentUser?.email?.toLowerCase() || 'guest'}`;
+  const [appliedClubIds, setAppliedClubIds] = useState<string[]>(() => {
+    try {
+      const saved = safeStorage.getItem(applicationsKey);
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed.filter((id: unknown) => typeof id === 'string') : [];
+    } catch {
+      return [];
+    }
+  });
+
+  /* Đổi tài khoản -> nạp lại danh sách đơn ứng tuyển của tài khoản đó */
+  useEffect(() => {
+    try {
+      const saved = safeStorage.getItem(applicationsKey);
+      const parsed = saved ? JSON.parse(saved) : [];
+      setAppliedClubIds(
+        Array.isArray(parsed) ? parsed.filter((id: unknown) => typeof id === 'string') : []
+      );
+    } catch {
+      setAppliedClubIds([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [applicationsKey]);
+
+  const handleApplyJoin = (clubId: string) => {
+    if (!currentUser) {
+      onOpenLoginModal?.();
+      return;
+    }
+    if (appliedClubIds.includes(clubId)) return;
+
+    const ok = onJoinClub(clubId);
+    if (!ok) return;
+
+    const next = [...appliedClubIds, clubId];
+    setAppliedClubIds(next);
+    try {
+      safeStorage.setItem(applicationsKey, JSON.stringify(next));
+    } catch {
+      /* ignore */
+    }
+  };
 
   const [createCooldown, setCreateCooldown] = useState(0);
   const [isSubmittingClub, setIsSubmittingClub] = useState(false);
@@ -148,16 +195,10 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
     }
 
     setCoverUploadError(null);
-    const reader = new FileReader();
-    reader.onload = ev => {
-      if (typeof ev.target?.result === 'string') {
-        setNewCover(ev.target.result);
-      }
-    };
-    reader.onerror = () => {
-      setCoverUploadError('Lỗi đọc file ảnh. Vui lòng thử lại!');
-    };
-    reader.readAsDataURL(file);
+    /* Nén & thu nhỏ ảnh bìa CLB trước khi lưu (tránh vượt hạn mức localStorage/máy chủ) */
+    optimizeImageFile(file, { maxDimension: 1600, targetBytes: 500 * 1024 })
+      .then(optimized => setNewCover(optimized))
+      .catch(() => setCoverUploadError('Lỗi đọc file ảnh. Vui lòng thử lại!'));
     e.target.value = '';
   };
 
@@ -182,10 +223,15 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
       .map(f => f.trim().slice(0, 50))
       .filter(Boolean);
 
+    const coverValue = newCover.trim();
+
     onCreateClub({
       name: newClubName.trim().slice(0, 60),
       slogan: newSlogan.trim().slice(0, 120),
-      coverImage: newCover.trim().slice(0, 500) || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&h=500&fit=crop',
+      /* Ảnh tải lên là data URL base64 — KHÔNG được cắt ngắn, nếu không ảnh sẽ hỏng */
+      coverImage: coverValue.startsWith('data:')
+        ? coverValue
+        : coverValue.slice(0, 500) || DEFAULT_CLUB_COVER,
       category: newCategory,
       foundingMembers: foundersList.length > 0 ? foundersList : [currentUser?.name || 'Sáng lập viên'],
       purpose: newPurpose.trim().slice(0, 500),
@@ -442,11 +488,12 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   </button>
 
                   <button
-                    onClick={() => setApplicationSubmitted(spotlightClub.id)}
-                    className="flex-1 md:flex-initial px-5 py-2.5 rounded-xl liquid-glass bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    onClick={() => handleApplyJoin(spotlightClub.id)}
+                    disabled={appliedClubIds.includes(spotlightClub.id)}
+                    className="flex-1 md:flex-initial px-5 py-2.5 rounded-xl liquid-glass bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60 disabled:cursor-default"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                    {applicationSubmitted === spotlightClub.id ? '✓ Đã Nộp Đơn' : 'Nộp Đơn Ứng Tuyển'}
+                    {appliedClubIds.includes(spotlightClub.id) ? '✓ Đã Nộp Đơn' : 'Nộp Đơn Ứng Tuyển'}
                   </button>
                 </div>
               </div>
@@ -538,10 +585,11 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     Xem Chi Tiết
                   </button>
                   <button
-                    onClick={() => setApplicationSubmitted(club.id)}
-                    className="flex-1 py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold border border-amber-500/30 transition-colors"
+                    onClick={() => handleApplyJoin(club.id)}
+                    disabled={appliedClubIds.includes(club.id)}
+                    className="flex-1 py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold border border-amber-500/30 transition-colors disabled:opacity-60 disabled:cursor-default"
                   >
-                    {applicationSubmitted === club.id ? '✓ Đã Nộp' : 'Nộp Đơn'}
+                    {appliedClubIds.includes(club.id) ? '✓ Đã Nộp' : 'Nộp Đơn'}
                   </button>
                 </div>
               </div>

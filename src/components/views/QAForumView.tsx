@@ -36,6 +36,7 @@ import {
   getRandomGhibliMask,
 } from '../../utils/ghibliMasks';
 import { DEFAULT_AVATAR, handleImageError, handleVideoError } from '../../utils/mediaFallback';
+import { optimizeImageFile } from '../../utils/imageOptimize';
 import { MASTER_ADMIN_CONFIG } from '../../config/admin';
 import { pushNotification } from '../../utils/notifications';
 import { LeaderboardWidget } from './LeaderboardWidget';
@@ -297,16 +298,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       return;
     }
     setError(null);
-    const reader = new FileReader();
-    reader.onload = ev => {
-      if (typeof ev.target?.result === 'string') {
-        setImage(ev.target.result);
-      }
-    };
-    reader.onerror = () => {
-      setError('Lỗi khi đọc file ảnh. Vui lòng thử lại!');
-    };
-    reader.readAsDataURL(file);
+    /* Tối ưu hoá ảnh trước khi lưu: 20MB -> ~0.3MB, đảm bảo lưu được vào localStorage và máy chủ */
+    optimizeImageFile(file, { maxDimension: 1600, targetBytes: 600 * 1024 })
+      .then(optimized => setImage(optimized))
+      .catch(() => setError('Lỗi khi đọc file ảnh. Vui lòng thử lại!'));
     e.target.value = '';
   };
 

@@ -35,6 +35,7 @@ import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { SHOP_ITEMS, getTierColorStyles } from '../utils/shopData';
 import { ShopItemSvg } from './ShopItemSvg';
 import { pushNotification } from '../utils/notifications';
+import { optimizeImageFile } from '../utils/imageOptimize';
 import { LikeHeartButton } from './LikeHeartButton';
 
 interface ProfileModalProps {
@@ -385,7 +386,19 @@ const ProfileModalInner: React.FC<{
   });
 
   const handleBuyItem = (item: ShopItem) => {
-    if (userCoin < item.price) return;
+    if (userCoin < item.price) {
+      setErrorMsg(
+        `Bạn cần thêm ${(item.price - userCoin).toLocaleString('vi-VN')} Coin để mở khoá "${item.name}". Hãy trả lời câu hỏi và điểm danh mỗi ngày để tích luỹ thêm!`
+      );
+      pushNotification({
+        type: 'coin',
+        category: 'system',
+        title: 'Chưa đủ Coin để mua vật phẩm',
+        body: `"${item.name}" có giá ${item.price} Coin, bạn đang có ${userCoin} Coin.`,
+        targetView: 'home',
+      });
+      return;
+    }
     const newCoin = userCoin - item.price;
     const newInventory = Array.from(new Set([...userInventory, item.id]));
     onSaveProfile({
@@ -439,16 +452,10 @@ const ProfileModalInner: React.FC<{
     }
 
     setErrorMsg(null);
-    const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
-      if (typeof uploadEvent.target?.result === 'string') {
-        setAvatar(uploadEvent.target.result);
-      }
-    };
-    reader.onerror = () => {
-      setErrorMsg('Đã xảy ra lỗi khi đọc tệp ảnh. Vui lòng thử lại!');
-    };
-    reader.readAsDataURL(file);
+    /* Nén & thu nhỏ ảnh đại diện trước khi lưu (GIF giữ nguyên để không mất chuyển động) */
+    optimizeImageFile(file, { maxDimension: 512, targetBytes: 200 * 1024 })
+      .then(optimized => setAvatar(optimized))
+      .catch(() => setErrorMsg('Đã xảy ra lỗi khi đọc tệp ảnh. Vui lòng thử lại!'));
     e.target.value = '';
   };
 
@@ -473,16 +480,10 @@ const ProfileModalInner: React.FC<{
     }
 
     setErrorMsg(null);
-    const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
-      if (typeof uploadEvent.target?.result === 'string') {
-        setBannerUrl(uploadEvent.target.result);
-      }
-    };
-    reader.onerror = () => {
-      setErrorMsg('Không thể đọc tệp ảnh bìa. Vui lòng thử lại!');
-    };
-    reader.readAsDataURL(file);
+    /* Nén & thu nhỏ ảnh bìa trước khi lưu */
+    optimizeImageFile(file, { maxDimension: 1920, targetBytes: 500 * 1024 })
+      .then(optimized => setBannerUrl(optimized))
+      .catch(() => setErrorMsg('Không thể đọc tệp ảnh bìa. Vui lòng thử lại!'));
     e.target.value = '';
   };
 

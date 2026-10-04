@@ -54,6 +54,7 @@ export const App: React.FC = () => {
     approveClub,
     rejectClub,
     createClubPost,
+    joinClub,
     questions,
     solutions,
     createQuestion,
@@ -402,6 +403,7 @@ export const App: React.FC = () => {
               onApproveClub={approveClub}
               onRejectClub={rejectClub}
               onCreateClubPost={createClubPost}
+              onJoinClub={joinClub}
               chatMessages={chatMessages}
               onOpenLoginModal={() => handleOpenAuth('login')}
             />

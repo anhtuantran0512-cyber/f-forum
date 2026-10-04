@@ -152,7 +152,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   const lastScrollYRef = useRef<number>(0);
   const anyPopoverOpen = isFlyoutOpen || isNotificationsOpen || isSettingsOpen || isDailyModalOpen || isMobileMenuOpen;
   const anyPopoverOpenRef = useRef(anyPopoverOpen);
-  anyPopoverOpenRef.current = anyPopoverOpen;
+  useEffect(() => {
+    anyPopoverOpenRef.current = anyPopoverOpen;
+  }, [anyPopoverOpen]);
 
   const forceExpand = useCallback(() => {
     if (compactTimerRef.current) {
@@ -405,6 +407,17 @@ export const Navbar: React.FC<NavbarProps> = ({
       document.documentElement.classList.remove('reduce-motion');
     }
   }, [theme, reducedMotion]);
+
+  /* Áp dụng lại "Độ mờ kính" đã lưu mỗi khi tải trang (trước đây chỉ áp dụng khi kéo slider) */
+  useEffect(() => {
+    document.documentElement.style.setProperty('--glass-blur', `${glassBlur}px`);
+  }, [glassBlur]);
+
+  /* Áp dụng lại "Cỡ chữ" đã lưu mỗi khi tải trang */
+  useEffect(() => {
+    document.documentElement.classList.remove('text-size-sm', 'text-size-md', 'text-size-lg');
+    document.documentElement.classList.add(`text-size-${fontSize}`);
+  }, [fontSize]);
 
   const handleToggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -1374,6 +1387,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         isOpen={isDailyModalOpen}
         onClose={() => setIsDailyModalOpen(false)}
         currentUserCoin={currentUser?.coin ?? 0}
+        accountKey={currentUser?.email}
         onRewardCoin={(amount, reason) => {
           safeStorage.setItem('fforum_coin_reward', JSON.stringify({ amount, reason, date: Date.now() }));
           if (typeof window !== 'undefined') {

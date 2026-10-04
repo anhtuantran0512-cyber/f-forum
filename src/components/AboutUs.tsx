@@ -29,6 +29,7 @@ import {
   saveAboutDataLocally,
 } from '../store/adminStore';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
+import { optimizeImageFile } from '../utils/imageOptimize';
 import { safeStorage } from '../utils/storage';
 
 export type { MilestoneItem };
@@ -391,14 +392,21 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
   const handleFileToDataUrl = (file: File, callback: (dataUrl: string) => void) => {
     if (!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        callback(result);
-      }
-    };
-    reader.readAsDataURL(file);
+    if (file.size > 15 * 1024 * 1024) {
+      alert('Kích thước ảnh vượt quá 15MB. Vui lòng chọn ảnh nhỏ hơn!');
+      return;
+    }
+    /* Nén & thu nhỏ ảnh trước khi lưu để không vượt hạn mức localStorage/máy chủ */
+    optimizeImageFile(file, { maxDimension: 1600, targetBytes: 500 * 1024 })
+      .then(callback)
+      .catch(() => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const result = event.target?.result as string;
+          if (result) callback(result);
+        };
+        reader.readAsDataURL(file);
+      });
   };
 
   const handleOpenEditor = () => {

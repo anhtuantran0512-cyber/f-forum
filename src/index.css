@@ -36,6 +36,7 @@
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --glass-blur: 14px;
 }
 
 .obsidian-glass {
@@ -1554,3 +1555,29 @@ html.light .pc-12-shell {
   animation: ffRedFlameAura 2.4s ease-in-out infinite;
 }
 
+
+/* ========================================================================== */
+/* SETTINGS: Cỡ chữ (font-size) & Độ mờ kính (glass blur) — trước đây bị lỗi   */
+/* vì Navbar chỉ ghi class/biến mà CSS không hề định nghĩa/không sử dụng.      */
+/* ========================================================================== */
+
+html.text-size-sm {
+  font-size: 14px;
+}
+html.text-size-md {
+  font-size: 16px;
+}
+html.text-size-lg {
+  font-size: 18px;
+}
+
+/* Độ mờ kính do người dùng điều chỉnh qua Cài đặt (mặc định 14px). */
+html.dark .liquid-glass,
+html.light .liquid-glass,
+.liquid-glass,
+.obsidian-glass,
+nav.liquid-glass,
+header.liquid-glass {
+  backdrop-filter: blur(var(--glass-blur, 14px));
+  -webkit-backdrop-filter: blur(var(--glass-blur, 14px));
+}

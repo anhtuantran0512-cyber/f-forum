@@ -219,7 +219,9 @@ export function useForumStore() {
   const presenceMapRef = useRef<Map<string, { user: OnlinePresenceUser; lastSeen: number }>>(new Map());
   const activeWsRef = useRef<WebSocket | null>(null);
   const currentUserRef = useRef(currentUser);
-  currentUserRef.current = currentUser;
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
 
   const getGuestId = useCallback(() => {
     let gid = safeStorage.getItem('fforum_guest_id');
@@ -260,7 +262,9 @@ export function useForumStore() {
   }, [getGuestId]);
 
   const getSelfPresenceRef = useRef(getSelfPresence);
-  getSelfPresenceRef.current = getSelfPresence;
+  useEffect(() => {
+    getSelfPresenceRef.current = getSelfPresence;
+  }, [getSelfPresence]);
 
   const recomputeOnlineUsers = useCallback(() => {
     const now = Date.now();
@@ -296,7 +300,9 @@ export function useForumStore() {
   );
 
   const handleIncomingPresencePingRef = useRef(handleIncomingPresencePing);
-  handleIncomingPresencePingRef.current = handleIncomingPresencePing;
+  useEffect(() => {
+    handleIncomingPresencePingRef.current = handleIncomingPresencePing;
+  }, [handleIncomingPresencePing]);
 
   useEffect(() => {
     const ping = () => {
@@ -346,6 +352,60 @@ export function useForumStore() {
     }
   }, [currentUser]);
 
+  /* Super Admin: đồng bộ danh sách tố cáo vi phạm và bắn thông báo vào chuông */
+  useEffect(() => {
+    if (!currentUser || currentUser.email.toLowerCase() !== 'anhtuantran0512@gmail.com') return;
+    let cancelled = false;
+
+    const fetchReports = async () => {
+      try {
+        const res = await fetch(
+          `/api/admin/reports?adminEmail=${encodeURIComponent(currentUser.email)}`
+        );
+        if (!res.ok) return;
+        const json = await res.json();
+        if (cancelled || !json?.success || !Array.isArray(json.reports)) return;
+
+        const seenRaw = safeStorage.getItem('fforum_seen_report_ids');
+        let seen: string[] = [];
+        try {
+          const parsed = seenRaw ? JSON.parse(seenRaw) : [];
+          if (Array.isArray(parsed)) seen = parsed.filter((v: unknown) => typeof v === 'string');
+        } catch {
+          seen = [];
+        }
+
+        const fresh = json.reports.filter(
+          (r: { id?: string }) => r && r.id && !seen.includes(r.id)
+        );
+
+        fresh.slice(-5).forEach((r: any) => {
+          pushNotification({
+            type: 'report',
+            category: 'system',
+            title: 'Tố cáo vi phạm mới!',
+            body: `${r.reportedUserName || 'Một tài khoản'} bị tố cáo: ${r.reason || 'Không rõ lý do'}.`,
+            targetView: 'home',
+          });
+        });
+
+        safeStorage.setItem(
+          'fforum_seen_report_ids',
+          JSON.stringify([...seen, ...fresh.map((r: any) => r.id)].slice(-200))
+        );
+      } catch {
+        /* ignore */
+      }
+    };
+
+    fetchReports();
+    const timer = setInterval(fetchReports, 60000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [currentUser]);
+
   useEffect(() => {
     safeStorage.setItem('fforum_users_registry', JSON.stringify(users));
   }, [users]);
@@ -393,8 +453,24 @@ export function useForumStore() {
             if (data.users && Object.keys(data.users).length > 0) {
               setUsers(prev => ({ ...prev, ...data.users }));
             }
-            if (Array.isArray(data.clubs)) setClubs(data.clubs);
-            if (Array.isArray(data.clubPosts)) setClubPosts(data.clubPosts);
+            /* Máy chủ là nguồn dữ liệu chính, nhưng vẫn giữ lại CLB/bài viết chỉ có ở máy này
+               (ví dụ khi máy chủ chưa kịp lưu) để tránh mất dữ liệu người dùng. */
+            if (Array.isArray(data.clubs)) {
+              setClubs(prev => {
+                const merged = new Map<string, Club>();
+                prev.forEach(c => merged.set(c.id, c));
+                data.clubs.forEach((c: Club) => merged.set(c.id, c));
+                return Array.from(merged.values());
+              });
+            }
+            if (Array.isArray(data.clubPosts)) {
+              setClubPosts(prev => {
+                const merged = new Map<string, ClubPost>();
+                prev.forEach(p => merged.set(p.id, p));
+                data.clubPosts.forEach((p: ClubPost) => merged.set(p.id, p));
+                return Array.from(merged.values());
+              });
+            }
             if (Array.isArray(data.questions)) setQuestions(data.questions);
             if (Array.isArray(data.solutions)) setSolutions(data.solutions);
             if (Array.isArray(data.chatMessages)) {
@@ -516,6 +592,22 @@ export function useForumStore() {
           });
           break;
         }
+        case 'JOIN_CLUB': {
+          const joinPayload = payload as { clubId: string; followerCount?: number; membersCount?: number };
+          if (!joinPayload || !joinPayload.clubId) break;
+          setClubs(prev =>
+            prev.map(c =>
+              c.id === joinPayload.clubId
+                ? {
+                    ...c,
+                    followerCount: joinPayload.followerCount ?? (c.followerCount || 0) + 1,
+                    membersCount: joinPayload.membersCount ?? (c.membersCount || 0) + 1,
+                  }
+                : c
+            )
+          );
+          break;
+        }
         case 'SYNC_USER': {
           const updatedUser = payload as User;
           setUsers(prev => ({
@@ -556,6 +648,21 @@ export function useForumStore() {
           const newAbout = payload as AboutData;
           setAboutData(newAbout);
           saveAboutDataLocally(newAbout);
+          break;
+        }
+        case 'NEW_REPORT': {
+          const report = payload as { reportedUserName?: string; reason?: string; id?: string };
+          if (currentUserRef.current?.email === 'anhtuantran0512@gmail.com' && report) {
+            pushNotification({
+              type: 'report',
+              category: 'system',
+              title: 'Tố cáo vi phạm mới!',
+              body: `${report.reportedUserName || 'Một tài khoản'} bị tố cáo với lý do: ${
+                report.reason || 'Không rõ'
+              }. Mở Hồ sơ để xem chi tiết.`,
+              targetView: 'home',
+            });
+          }
           break;
         }
 
@@ -697,6 +804,22 @@ export function useForumStore() {
             if (prev.some(p => p.id === newPost.id)) return prev;
             return [newPost, ...prev];
           });
+          break;
+        }
+        case 'JOIN_CLUB': {
+          const joinPayload = payload as { clubId: string; followerCount?: number; membersCount?: number };
+          if (!joinPayload || !joinPayload.clubId) break;
+          setClubs(prev =>
+            prev.map(c =>
+              c.id === joinPayload.clubId
+                ? {
+                    ...c,
+                    followerCount: joinPayload.followerCount ?? (c.followerCount || 0) + 1,
+                    membersCount: joinPayload.membersCount ?? (c.membersCount || 0) + 1,
+                  }
+                : c
+            )
+          );
           break;
         }
         case 'NEW_QUESTION': {
@@ -846,15 +969,20 @@ export function useForumStore() {
     const trimmedName = name.trim();
     const normalizedEmail = email.trim().toLowerCase();
 
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: trimmedName, email: normalizedEmail, password }),
-    });
+    let res: Response;
+    try {
+      res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmedName, email: normalizedEmail, password }),
+      });
+    } catch {
+      throw new Error('Không kết nối được tới máy chủ F-Forum. Vui lòng kiểm tra mạng và thử lại!');
+    }
 
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      throw new Error(data.message || 'Đăng ký tài khoản thất bại');
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.success) {
+      throw new Error(data?.message || 'Đăng ký tài khoản thất bại');
     }
 
     const user = data.user as User;
@@ -889,15 +1017,20 @@ export function useForumStore() {
   const loginWithPassword = async (email: string, password: string): Promise<User> => {
     const normalizedEmail = email.trim().toLowerCase();
 
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: normalizedEmail, password }),
-    });
+    let res: Response;
+    try {
+      res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail, password }),
+      });
+    } catch {
+      throw new Error('Không kết nối được tới máy chủ F-Forum. Vui lòng kiểm tra mạng và thử lại!');
+    }
 
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      throw new Error(data.message || 'Đăng nhập thất bại');
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.success) {
+      throw new Error(data?.message || 'Đăng nhập thất bại');
     }
 
     const user = data.user as User;
@@ -1079,10 +1212,6 @@ export function useForumStore() {
   const addXP = (amount: number, targetUserEmail?: string) => {
     if (!currentUser && !targetUserEmail) return;
 
-    if (!targetUserEmail && currentUser?.email !== 'anhtuantran0512@gmail.com') {
-      return;
-    }
-
     const emailToCredit = (targetUserEmail || currentUser?.email || '').toLowerCase();
     if (!emailToCredit) return;
 
@@ -1252,7 +1381,27 @@ export function useForumStore() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newClub),
-    }).catch(() => {});
+    })
+      .then(async res => {
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.success) {
+          /* Máy chủ từ chối (trùng tên, dữ liệu không hợp lệ...) -> thu hồi bản ghi tạm */
+          setClubs(prev => prev.filter(c => c.id !== newClubId));
+          playChime('send');
+          setToastMessage({
+            title: 'Không thể gửi hồ sơ CLB',
+            subtitle: json?.message || 'Đã xảy ra lỗi, vui lòng thử lại sau.',
+            type: 'level',
+          });
+          return;
+        }
+        if (json.club) {
+          setClubs(prev => prev.map(c => (c.id === newClubId ? json.club : c)));
+        }
+      })
+      .catch(() => {
+        /* offline: giữ nguyên bản ghi cục bộ */
+      });
 
     try {
       syncBroadcastChannel?.postMessage({
@@ -1269,6 +1418,48 @@ export function useForumStore() {
       subtitle: 'Đang chờ phê duyệt từ Ban Quản Trị.',
       type: 'success',
     });
+  };
+
+  const joinClub = (clubId: string): boolean => {
+    if (!currentUser) return false;
+    const club = clubs.find(c => c.id === clubId);
+    if (!club) return false;
+
+    setClubs(prev =>
+      prev.map(c =>
+        c.id === clubId
+          ? {
+              ...c,
+              followerCount: (c.followerCount || 0) + 1,
+              membersCount:
+                c.leaderId === currentUser.id ? c.membersCount : (c.membersCount || 0) + 1,
+            }
+          : c
+      )
+    );
+
+    fetch('/api/clubs/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clubId, userId: currentUser.id, userName: currentUser.name }),
+    }).catch(() => {});
+
+    try {
+      syncBroadcastChannel?.postMessage({
+        type: 'JOIN_CLUB',
+        payload: { clubId },
+      });
+    } catch {
+      /* ignore */
+    }
+
+    playChime('success');
+    setToastMessage({
+      title: `Đã nộp đơn ứng tuyển CLB "${club.name}"!`,
+      subtitle: 'Chủ nhiệm CLB sẽ duyệt đơn của bạn trong thời gian sớm nhất.',
+      type: 'success',
+    });
+    return true;
   };
 
   const approveClub = (clubId: string) => {
@@ -1665,8 +1856,14 @@ export function useForumStore() {
       content: data.content,
       createdAt: new Date().toISOString(),
     };
-    const saved = safeStorage.getItem('fforum_feedbacks');
-    const list: FeedbackSubmission[] = saved ? JSON.parse(saved) : [];
+    let list: FeedbackSubmission[] = [];
+    try {
+      const saved = safeStorage.getItem('fforum_feedbacks');
+      const parsed = saved ? JSON.parse(saved) : [];
+      if (Array.isArray(parsed)) list = parsed;
+    } catch {
+      list = [];
+    }
     list.push(submission);
     safeStorage.setItem('fforum_feedbacks', JSON.stringify(list));
 
@@ -1890,6 +2087,7 @@ export function useForumStore() {
     approveClub,
     rejectClub,
     createClubPost,
+    joinClub,
     questions,
     solutions,
     createQuestion,
