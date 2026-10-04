@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { GODRAY_PRESETS } from '../utils/godrays';
 import { safeStorage } from '../utils/storage';
+import { AUTH_TOKEN_KEY, clearAuthToken } from '../utils/session';
 import { usePopoverPosition, type DockPosition } from '../utils/popover';
 
 export interface SettingsModalProps {
@@ -291,7 +292,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleResetCache = () => {
     const keep = [
       'fforum_current_user_email',
-      'f_forum_auth_token',
+      AUTH_TOKEN_KEY,
       'fforum_users_registry',
       'fforum_questions',
       'fforum_solutions',
@@ -308,7 +309,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleResetFull = () => {
     safeStorage.removeWithPrefix('fforum_');
-    safeStorage.removeItem('f_forum_auth_token');
+    clearAuthToken();
     setResetDone('Đã đặt lại toàn bộ dữ liệu cục bộ.');
     setConfirmReset(null);
     setTimeout(() => window.location.reload(), 700);

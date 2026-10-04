@@ -3,6 +3,12 @@ export interface SocialUserProfile {
   name: string;
   email: string;
   avatar?: string;
+  /**
+   * Access token của nhà cung cấp. Máy chủ DÙNG CÁI NÀY để tự kiểm chứng với
+   * Google/Facebook — nếu không, `/api/auth/social` chỉ nhận một email do client
+   * tự khai và ai cũng khai được email của quản trị viên.
+   */
+  accessToken?: string;
 }
 
 /**
@@ -259,6 +265,7 @@ export async function loginWithGooglePopup(): Promise<SocialUserProfile> {
               name: profile.name || profile.given_name || 'Google User',
               email: String(profile.email).toLowerCase(),
               avatar: profile.picture,
+              accessToken: tokenResponse.access_token,
             });
           } catch (err) {
             reject(err);
@@ -308,7 +315,8 @@ export async function loginWithFacebookPopup(): Promise<SocialUserProfile> {
                   const email = String(profile.email || fallbackEmail).toLowerCase();
                   const name = profile.name || 'Facebook User';
                   const avatar = profile.picture?.data?.url;
-                  resolve({ name, email, avatar });
+                  /* Gửi kèm access token để máy chủ tự kiểm chứng với Graph API. */
+                  resolve({ name, email, avatar, accessToken: response.authResponse.accessToken });
                 } else {
                   reject(new Error(profile?.error?.message || 'Không thể lấy dữ liệu người dùng từ Facebook'));
                 }

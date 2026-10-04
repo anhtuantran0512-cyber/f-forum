@@ -7,13 +7,17 @@ import {
   isFacebookConfigured,
   loginWithGooglePopup,
   loginWithFacebookPopup,
+  type SocialUserProfile,
 } from '../utils/oauth';
+
+/** Hồ sơ social kèm access token — server cần token để tự kiểm chứng danh tính. */
+export type SocialLoginPayload = SocialUserProfile;
 
 export interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLogin?: (provider: 'google' | 'facebook', data: { name: string; email: string; avatar?: string }) => void;
-  onLoginSocial?: (provider: 'google' | 'facebook', data: { name: string; email: string; avatar?: string }) => Promise<User>;
+  onLogin?: (provider: 'google' | 'facebook', data: SocialLoginPayload) => void;
+  onLoginSocial?: (provider: 'google' | 'facebook', data: SocialLoginPayload) => Promise<User>;
   onLoginWithPassword?: (email: string, password: string) => Promise<User>;
   onRegister?: (name: string, email: string, password: string) => Promise<User>;
   /** Tab shown when the dialog opens (marketing CTAs open the register tab). */
@@ -65,7 +69,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleExecuteSocialLogin = async (
     provider: 'google' | 'facebook',
-    profile: { name: string; email: string; avatar?: string }
+    profile: SocialLoginPayload
   ) => {
     setIsSubmitting(true);
     setErrorMsg(null);
