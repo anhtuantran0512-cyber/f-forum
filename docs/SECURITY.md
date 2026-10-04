@@ -654,6 +654,14 @@ chủ. Test #37 mở rộng bao cả bốn đường này.
 `try/catch` và không kiểm `Array.isArray`, nên một giá trị hỏng trong localStorage
 làm ném lỗi và mất luôn góp ý.
 
+### Đợt ba: lưu hồ sơ
+
+`updateProfile` cũng nuốt lỗi rồi vô điều kiện báo *"Hồ sơ đã lưu thành công!"*.
+Máy chủ loại bỏ các trường nó sở hữu (`role`/`id`/`email`) và kẹp các trường còn
+lại, nên lời gọi này hoàn toàn có thể bị từ chối (`401` phiên hết hạn, `429`). Nay
+đi qua `runServerAction`: thất bại thì hoàn tác cả `currentUser`, sổ người dùng lẫn
+phần đồng bộ danh tính vào nội dung, và hiện toast lỗi.
+
 ---
 
 ## Mô hình phân quyền hiện tại

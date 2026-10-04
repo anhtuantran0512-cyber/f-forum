@@ -1411,10 +1411,11 @@ export function useForumStore() {
     }
   };
 
-  const updateProfile = (updates: Partial<User>) => {
+  const updateProfile = async (updates: Partial<User>) => {
     if (!currentUser) return;
     const emailKey = currentUser.email.toLowerCase();
 
+    const previousUser = currentUser;
     const updated: User = {
       ...currentUser,
       ...updates,
@@ -1431,14 +1432,22 @@ export function useForumStore() {
       setQuestions, setSolutions, setChatMessages, setClubPosts, setClubs,
     });
 
-    try {
-      fetch('/api/users/update', {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ email: emailKey, updates }),
-      }).catch(() => {});
-    } catch {
-      /* ignore */
+    /* Máy chủ loại bỏ các trường nó sở hữu (role/id/email) và kẹp các trường còn
+       lại, nên lời gọi này có thể bị từ chối. Trước đây lỗi bị nuốt và giao diện
+       vẫn báo "Hồ sơ đã lưu thành công!" trong khi không có gì được lưu. */
+    const profileOutcome = await runServerAction('/api/users/update', { email: emailKey, updates });
+    if (!profileOutcome.ok) {
+      setCurrentUser(previousUser);
+      commitUsers(prev => ({ ...prev, [emailKey]: previousUser }));
+      syncUserIdentityIntoContent(previousUser, {
+        setQuestions, setSolutions, setChatMessages, setClubPosts, setClubs,
+      });
+      setToastMessage({
+        title: 'Không lưu được hồ sơ',
+        subtitle: profileOutcome.message,
+        type: 'error',
+      });
+      return;
     }
 
     try {
