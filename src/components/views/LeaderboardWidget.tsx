@@ -1,17 +1,26 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useMemo, useState } from 'react';
-import {
-  Trophy,
-  ArrowRight,
-  HelpCircle,
-  Sparkles,
-  Medal,
-} from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Trophy, ArrowRight, HelpCircle, Sparkles, Medal, Clock, Crown, Minus, Flame } from 'lucide-react';
 import type { User, Question, Solution, ChatMessage } from '../../types';
 import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
 import { MagneticButton } from '../MagneticButton';
+import { OdometerDigits } from '../OdometerDigits';
+import { StudyPulsePanel } from '../StudyPulsePanel';
+import { StudyHoursDetail } from '../StudyHoursDetail';
+import {
+  buildStudyLeaderboard,
+  computeStudyTotals,
+  periodMinutes,
+  readDailyTargetMinutes,
+  readStudySessions,
+  readWeeklyGoalMinutes,
+  sessionsForOwner,
+  type StudySession,
+  type StudyTotals,
+} from '../../utils/studyLog';
 
 type Period = 'week' | 'month' | 'year' | 'all';
+type Metric = 'points' | 'hours';
 
 interface LeaderboardMember {
   key: string;
@@ -19,10 +28,13 @@ interface LeaderboardMember {
   name: string;
   avatar: string;
   points: number;
+  minutes: number;
   level: number;
   email?: string;
   rank: number;
   isYou?: boolean;
+  /** Chỉ ở bảng giờ học: số phút quy đổi từ XP của tài khoản (chưa có phiên thật) */
+  estimated?: boolean;
 }
 
 interface LeaderboardWidgetProps {
@@ -33,6 +45,7 @@ interface LeaderboardWidgetProps {
   chatMessages?: ChatMessage[];
   onOpenProfile?: (user: { id: string; name: string; avatar: string; email?: string; level?: number }) => void;
   onOpenAskModal: () => void;
+  onOpenFocusMode?: () => void;
   className?: string;
 }
 
@@ -41,6 +54,11 @@ const PERIOD_LABELS: Record<Period, string> = {
   month: 'Tháng',
   year: 'Năm',
   all: 'Toàn thời gian',
+};
+
+const METRIC_LABELS: Record<Metric, string> = {
+  points: 'Điểm đóng góp',
+  hours: 'Giờ học',
 };
 
 const periodStart = (period: Period): number => {
@@ -68,6 +86,7 @@ function computeMembers(
   solutions: Solution[],
   chatMessages: ChatMessage[],
   period: Period,
+  currentUserEmail?: string | null,
 ): LeaderboardMember[] {
   const since = periodStart(period);
   const inPeriod = (ts?: number) => (period === 'all' ? true : ts !== undefined && ts >= since);
@@ -102,16 +121,20 @@ function computeMembers(
     bump(email, 2);
   });
 
+  /* Điểm toàn thời gian = XP thật tích luỹ của từng tài khoản */
   if (period === 'all') {
     Object.entries(users).forEach(([email, u]) => {
       bump(email, u.xp || 0);
     });
   }
 
+  const mine = currentUserEmail ? currentUserEmail.toLowerCase() : '';
   const members: LeaderboardMember[] = [];
   scores.forEach((points, emailKey) => {
     const u = users[emailKey];
-    if (!u || points <= 0) return;
+    if (!u) return;
+    const isYou = Boolean(mine) && emailKey === mine;
+    if (points <= 0 && !isYou) return;
     members.push({
       key: emailKey,
       id: u.id,
@@ -119,23 +142,61 @@ function computeMembers(
       avatar: u.avatar,
       email: u.email,
       level: u.level,
+      minutes: 0,
       points: Math.round(points),
       rank: 0,
+      isYou,
     });
   });
 
-  members.sort((a, b) => b.points - a.points);
+  /* Bạn luôn có mặt trên bảng — kể cả khi chưa có điểm nào — để thấy đúng hạng */
+  if (mine && !members.some((m) => m.key === mine)) {
+    const u = users[mine];
+    members.push({
+      key: mine,
+      id: u?.id || 'me',
+      name: u?.name || 'Bạn',
+      avatar: u?.avatar || '',
+      email: u?.email || mine,
+      level: u?.level || 1,
+      minutes: 0,
+      points: 0,
+      rank: 0,
+      isYou: true,
+    });
+  }
+
+  /* Điểm bằng nhau → xếp theo tên để thứ hạng luôn ổn định, không nhảy loạn */
+  members.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name, 'vi'));
   members.forEach((m, i) => {
     m.rank = i + 1;
   });
   return members;
 }
 
-const RANK_STYLES: Record<number, string> = {
-  1: 'from-amber-400/30 to-yellow-500/10 border-amber-400/50 text-amber-300',
-  2: 'from-slate-300/20 to-slate-500/5 border-slate-300/40 text-slate-200',
-  3: 'from-orange-500/25 to-amber-700/10 border-orange-400/40 text-orange-300',
-};
+const buildHoursMembers = (
+  users: Record<string, User>,
+  sessions: StudySession[],
+  period: Period,
+  currentUserEmail?: string | null,
+): LeaderboardMember[] =>
+  buildStudyLeaderboard(users, sessions, period, currentUserEmail).map((m, i) => ({
+    key: m.key,
+    id: m.id,
+    name: m.name,
+    avatar: m.avatar,
+    email: m.email,
+    level: m.level,
+    minutes: m.minutes,
+    points: 0,
+    rank: i + 1,
+    isYou: m.isYou,
+    estimated: m.estimated,
+  }));
+
+const RANK_MEDAL = ['🥇', '🥈', '🥉'];
+/** Số thành viên tối đa hiển thị trên bảng */
+const MAX_BOARD_ROWS = 100;
 
 export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
   currentUser,
@@ -145,176 +206,369 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
   chatMessages = [],
   onOpenProfile,
   onOpenAskModal,
+  onOpenFocusMode,
   className = '',
 }) => {
   const [period, setPeriod] = useState<Period>('week');
+  const [metric, setMetric] = useState<Metric>('points');
+  const [sessions, setSessions] = useState<StudySession[]>(() => readStudySessions());
+  const [weeklyGoal, setWeeklyGoal] = useState<number>(() => readWeeklyGoalMinutes());
+  const [dailyTarget, setDailyTarget] = useState<number>(() => readDailyTargetMinutes());
 
-  const members = useMemo(
-    () => computeMembers(users, questions, solutions, chatMessages, period),
-    [users, questions, solutions, chatMessages, period],
+  /* Nhật ký giờ học cập nhật realtime khi Focus Sanctuary ghi phiên mới */
+  useEffect(() => {
+    const sync = () => {
+      setSessions(readStudySessions());
+      setWeeklyGoal(readWeeklyGoalMinutes());
+      setDailyTarget(readDailyTargetMinutes());
+    };
+    window.addEventListener('fforum_study_sync', sync);
+    window.addEventListener('fforum_coin_sync', sync);
+    return () => {
+      window.removeEventListener('fforum_study_sync', sync);
+      window.removeEventListener('fforum_coin_sync', sync);
+    };
+  }, []);
+
+  /* Chỉ số cá nhân chỉ tính phiên của tài khoản đang đăng nhập */
+  const mySessions = useMemo(() => sessionsForOwner(sessions, currentUser?.email), [sessions, currentUser?.email]);
+  const totals: StudyTotals = useMemo(() => computeStudyTotals(mySessions), [mySessions]);
+
+  /* Danh bạ duy nhất: sổ đăng ký tài khoản thật (không còn dữ liệu mô phỏng) */
+  const pointsMembers = useMemo(
+    () => computeMembers(users, questions, solutions, chatMessages, period, currentUser?.email),
+    [users, questions, solutions, chatMessages, period, currentUser?.email],
   );
 
-  const top = members.slice(0, 8);
+  const hoursMembers = useMemo(
+    () => buildHoursMembers(users, sessions, period, currentUser?.email),
+    [users, sessions, period, currentUser?.email],
+  );
+
+  const members = metric === 'points' ? pointsMembers : hoursMembers;
+  const boardRows = members.slice(0, MAX_BOARD_ROWS);
+  const top = members.slice(0, 5);
   const currentUserKey = currentUser ? currentUser.email.toLowerCase() : '';
   const meEntry = members.find((m) => m.key === currentUserKey);
+  const maxValue = members.length > 0 ? Math.max(members[0].points, members[0].minutes) : 1;
+
+  const myPeriodMinutes = currentUser ? periodMinutes(totals, period) : periodMinutes(totals, period);
+
+  const formatValue = (m: LeaderboardMember) =>
+    metric === 'hours' ? `${(m.minutes / 60).toFixed(1)} giờ` : `${m.points.toLocaleString()} điểm`;
+
+  const progressOf = (m: LeaderboardMember) => {
+    const value = metric === 'hours' ? m.minutes : m.points;
+    return Math.max(4, Math.round((value / Math.max(1, maxValue)) * 100));
+  };
+
+  const openProfile = (m: LeaderboardMember) =>
+    onOpenProfile?.({ id: m.id, name: m.name, avatar: m.avatar, email: m.email, level: m.level });
+
+  const podium = top.slice(0, 3);
+  /* Bậc 4 & 5 nối tiếp bục 1-2-3 thành "thang rank" 5 bậc */
+  const ladderSteps = top.slice(3, 5);
+  const list = boardRows.slice(5);
 
   return (
     <aside className={`space-y-4 ${className}`} aria-label="Bảng xếp hạng và đặt câu hỏi">
-      {/* Real leaderboard */}
-      <div className="rounded-3xl bg-[#0c1218]/90 backdrop-blur-2xl border border-white/15 p-4 shadow-xl flex flex-col gap-3.5 relative overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-[3px] ff-aurora-bar opacity-80" aria-hidden="true" />
+      <div className="ff-board">
+        <div className="ff-board__topline" aria-hidden="true" />
 
-        <div className="flex flex-col items-center text-center">
-          <div className="flex items-center gap-1.5 font-extrabold text-xs sm:text-sm tracking-wider uppercase">
-            <Trophy className="w-4 h-4 text-amber-400" />
-            <span className="ff-aurora-text">Bảng xếp hạng</span>
+        {/* Header */}
+        <div className="ff-board__head">
+          <span className="ff-board__crest" aria-hidden="true">
+            <Trophy className="w-[18px] h-[18px]" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="ff-board__title">Bảng xếp hạng</h3>
+            <p className="ff-board__sub">
+              {metric === 'hours' ? 'Ai học nhiều nhất kỳ này' : 'Ai đóng góp nhiều nhất kỳ này'}
+              <span className="ff-board__count">
+                {boardRows.length}/{members.length} thành viên
+              </span>
+            </p>
           </div>
-          <div className="w-20 h-0.5 bg-gradient-to-r from-transparent via-amber-400/70 to-transparent mt-1 rounded-full" />
+          {meEntry && (
+            <span className="ff-board__you-badge">#{meEntry.rank}</span>
+          )}
+        </div>
+
+        {/* Metric switch */}
+        <div role="tablist" aria-label="Chọn bảng xếp hạng" className="ff-board__switch">
+          {(Object.keys(METRIC_LABELS) as Metric[]).map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={metric === m}
+              onClick={() => setMetric(m)}
+              className={`ff-board__switch-btn ${metric === m ? 'is-active' : ''}`}
+            >
+              {m === 'points' ? <Sparkles className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+              {METRIC_LABELS[m]}
+            </button>
+          ))}
         </div>
 
         {/* Period filter */}
-        <div className="flex justify-center">
-          <div className="inline-flex items-center bg-black/50 border border-white/10 rounded-full p-1 gap-0.5">
-            {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPeriod(p)}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer ${
-                  period === p
-                    ? 'bg-gradient-to-r from-amber-500 to-orange-400 text-neutral-950 shadow'
-                    : 'text-neutral-400 hover:text-white'
-                }`}
-              >
-                {PERIOD_LABELS[p]}
-              </button>
-            ))}
+        <div className="ff-board__periods" role="group" aria-label="Chọn khoảng thời gian">
+          {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPeriod(p)}
+              aria-pressed={period === p}
+              className={`ff-board__period-btn ${period === p ? 'is-active' : ''}`}
+            >
+              {PERIOD_LABELS[p]}
+            </button>
+          ))}
+        </div>
+
+        {/* Tổng của bạn bằng đồng hồ cơ */}
+        <div className="ff-board__total">
+          <div className="min-w-0">
+            <p className="ff-board__total-label">
+              {metric === 'hours' ? `Giờ học của bạn · ${PERIOD_LABELS[period]}` : `Điểm của bạn · ${PERIOD_LABELS[period]}`}
+            </p>
+            <OdometerDigits
+              value={metric === 'hours' ? myPeriodMinutes / 60 : meEntry?.points ?? 0}
+              decimals={metric === 'hours' ? 1 : 0}
+              unit={metric === 'hours' ? 'giờ' : 'điểm'}
+              size="md"
+              ariaLabel={
+                metric === 'hours'
+                  ? `${(myPeriodMinutes / 60).toFixed(1)} giờ học`
+                  : `${meEntry?.points ?? 0} điểm`
+              }
+            />
+          </div>
+          <div className="ff-board__total-side">
+            <span className="ff-board__total-chip inline-flex items-center gap-1">
+              <Flame className="w-3 h-3 text-rose-300" />
+              {totals.streakDays} ngày liên tiếp
+            </span>
+            <span className="ff-board__total-chip inline-flex items-center gap-1">
+              <Clock className="w-3 h-3 text-cyan-300" />
+              Hôm nay {totals.todayMinutes}′
+            </span>
           </div>
         </div>
 
-        {/* Rows */}
-        <div className="space-y-1.5">
-          {top.length === 0 && (
-            <div className="py-8 text-center space-y-1.5">
-              <Medal className="w-6 h-6 text-white/20 mx-auto" />
-              <p className="text-xs text-neutral-400">Chưa có dữ liệu trong kỳ này.</p>
-              <p className="text-[10px] text-neutral-500">
-                Hỏi đáp, trả lời và thảo luận để trở thành người dẫn đầu!
-              </p>
-            </div>
-          )}
+        {/* Trạng thái khi trường mới chỉ có ít tài khoản thật */}
+        {members.length <= 1 && (
+          <p className="ff-board__micro">
+            <Sparkles className="w-3 h-3" />
+            {members.length === 0
+              ? 'Bảng chỉ tính tài khoản thật — chưa có ai đăng ký. Hãy là người đầu tiên nhé!'
+              : `Bảng chỉ tính tài khoản thật — hiện có ${members.length} người. Mời bạn bè đăng ký để cùng leo hạng!`}
+          </p>
+        )}
 
-          {top.map((member, index) => {
-            const medal = RANK_STYLES[member.rank];
-            return (
-              <button
-                key={member.key}
-                type="button"
-                style={{ '--i': index } as React.CSSProperties}
-                onClick={() =>
-                  onOpenProfile?.({
-                    id: member.id,
-                    name: member.name,
-                    avatar: member.avatar,
-                    email: member.email,
-                    level: member.level,
-                  })
-                }
-                className={`ac-01__card w-full p-2 rounded-2xl border transition-all flex items-center justify-between gap-2.5 cursor-pointer group text-left ${
-                  medal
-                    ? `bg-gradient-to-r ${medal}`
-                    : 'bg-white/[0.03] hover:bg-white/[0.08] border-white/5 hover:border-white/20'
-                }`}
-                title={`Xem hồ sơ của ${member.name}`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className={`w-5 text-center text-xs font-black font-mono shrink-0 ${member.rank <= 3 ? '' : 'text-neutral-400'}`}>
-                    {member.rank}
+        {/* Podium */}
+        {podium.length > 0 ? (
+          <div className="ff-podium" aria-label="Ba vị trí dẫn đầu">
+            {[1, 0, 2].map((slot) => {
+              const m = podium[slot];
+              if (!m) return <span key={`empty-${slot}`} className="ff-podium__empty" aria-hidden="true" />;
+              const place = slot + 1;
+              return (
+                <button
+                  key={m.key}
+                  type="button"
+                  onClick={() => openProfile(m)}
+                  className={`ff-podium__slot ff-podium__slot--${place} group`}
+                  title={`Xem hồ sơ của ${m.name}`}
+                >
+                  <span className="ff-podium__medal" aria-hidden="true">
+                    {RANK_MEDAL[slot]}
                   </span>
-
-                  <div className="relative shrink-0">
+                  <span className="ff-podium__avatar-wrap">
                     <img
-                      src={member.avatar}
-                      alt={member.name}
+                      src={m.avatar || DEFAULT_AVATAR}
+                      alt={m.name}
                       onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
                       loading="lazy"
                       decoding="async"
-                      width={32}
-                      height={32}
-                      className="w-8 h-8 rounded-full object-cover border border-white/20 group-hover:scale-105 transition-transform"
+                      width={place === 1 ? 60 : 50}
+                      height={place === 1 ? 60 : 50}
+                      className="ff-podium__avatar"
                     />
-                    {member.rank === 1 && (
-                      <span className="absolute -top-1.5 -right-1 text-[11px]">👑</span>
+                    {place === 1 && (
+                      <Crown className="ff-podium__crown" aria-hidden="true" />
                     )}
-                  </div>
-
-                  <span className="text-xs font-semibold text-neutral-200 group-hover:text-white truncate">
-                    {member.name}
                   </span>
-                </div>
+                  <span className="ff-podium__name">{m.name}</span>
+                  <span className="ff-podium__value font-mono">{formatValue(m)}</span>
+                  <span className="ff-podium__plinth" aria-hidden="true">
+                    <i style={{ height: `${place === 1 ? 58 : place === 2 ? 40 : 30}px` }} />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="ff-board__empty">
+            <Medal className="w-6 h-6 text-white/20 mx-auto" />
+            <p className="text-xs text-neutral-300 mt-2">Chưa có dữ liệu trong kỳ này.</p>
+            <p className="text-[10px] text-neutral-500 mt-1">
+              {metric === 'hours'
+                ? 'Hoàn thành một phiên Pomodoro 25 phút để mở bảng xếp hạng giờ học!'
+                : 'Hỏi đáp, trả lời và thảo luận để trở thành người dẫn đầu!'}
+            </p>
+          </div>
+        )}
 
-                <div className="text-xs font-bold font-mono text-white shrink-0">
-                  {member.points.toLocaleString()} <span className="text-[10px] font-normal text-neutral-400">điểm</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Current user pin */}
-        {currentUser && (
-          <button
-            type="button"
-            onClick={() => {
-              onOpenProfile?.({
-                id: currentUser.id,
-                name: currentUser.name,
-                avatar: currentUser.avatar,
-                email: currentUser.email,
-                level: currentUser.level,
-              });
-            }}
-            className="mt-1 w-full p-2.5 rounded-2xl bg-[#0284C7]/15 border border-[#0284C7]/40 flex items-center justify-between gap-2.5 cursor-pointer transition-all hover:bg-[#0284C7]/25 shadow-sm text-left"
-            title="Vị trí của bạn"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="text-[11px] font-bold font-mono text-[#0284C7] shrink-0">
-                {meEntry ? `#${meEntry.rank}` : 'Bạn'}:
-              </span>
-              <div className="relative shrink-0">
+        {/* Thang rank: bậc 4 & 5 nối tiếp bục 1-2-3 */}
+        {ladderSteps.length > 0 && (
+          <div className="ff-ladder" aria-label="Các bậc tiếp theo của thang rank">
+            {ladderSteps.map((m, i) => (
+              <button
+                key={m.key}
+                type="button"
+                onClick={() => openProfile(m)}
+                title={`Xem hồ sơ của ${m.name}`}
+                className={`ff-ladder__step ff-ladder__step--b${m.rank} ${m.isYou ? 'is-you' : ''}`}
+              >
+                <span className="ff-ladder__rank font-mono">{m.rank}</span>
                 <img
-                  src={currentUser.avatar}
-                  alt={currentUser.name}
+                  src={m.avatar || DEFAULT_AVATAR}
+                  alt={m.name}
                   onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
                   loading="lazy"
                   decoding="async"
-                  width={32}
-                  height={32}
-                  className="w-8 h-8 rounded-full object-cover border-2 border-[#0284C7] shadow-sm"
+                  width={i === 0 ? 40 : 36}
+                  height={i === 0 ? 40 : 36}
+                  className="ff-ladder__avatar"
                 />
-              </div>
-              <span className="text-xs font-bold text-[#0284C7] truncate">
-                {currentUser.name}
-              </span>
-            </div>
+                <span className="ff-ladder__body">
+                  <span className="ff-ladder__name">
+                    {m.name}
+                    {m.isYou && <em className="ff-row__you">Bạn</em>}
+                  </span>
+                  <span className="ff-ladder__track" aria-hidden="true">
+                    <i style={{ width: `${progressOf(m)}%` }} />
+                  </span>
+                </span>
+                <span className="ff-ladder__value font-mono">
+                  {metric === 'hours' && m.estimated && (
+                    <span className="ff-row__est" title="Quy đổi từ XP tích luỹ của tài khoản này">≈</span>
+                  )}
+                  {formatValue(m)}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
 
-            <div className="text-xs font-bold font-mono text-[#0284C7] shrink-0">
-              {(meEntry?.points ?? 0).toLocaleString()} <span className="text-[10px] font-normal">điểm</span>
-            </div>
+        {/* Danh sách các hạng tiếp theo — cuộn trong khung để trang không dài */}
+        {list.length > 0 && (
+          <div className="ff-board__scroll">
+          <ol className="ff-board__list">
+            {list.map((m) => (
+              <li key={m.key}>
+                <button
+                  type="button"
+                  onClick={() => openProfile(m)}
+                  className={`ff-row ${m.isYou ? 'ff-row--you' : ''}`}
+                  title={`Xem hồ sơ của ${m.name}`}
+                >
+                  <span className="ff-row__rank font-mono">{m.rank}</span>
+                  <img
+                    src={m.avatar || DEFAULT_AVATAR}
+                    alt={m.name}
+                    onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                    loading="lazy"
+                    decoding="async"
+                    width={30}
+                    height={30}
+                    className="ff-row__avatar"
+                  />
+                  <span className="ff-row__body">
+                    <span className="ff-row__name">
+                      {m.name}
+                      {m.isYou && <em className="ff-row__you">Bạn</em>}
+                    </span>
+                    <span className="ff-row__track" aria-hidden="true">
+                      <i style={{ width: `${progressOf(m)}%` }} />
+                    </span>
+                  </span>
+                  <span className="ff-row__value font-mono">
+                    {metric === 'hours' && m.estimated && (
+                      <span className="ff-row__est" title="Quy đổi từ XP tích luỹ của tài khoản này">≈</span>
+                    )}
+                    {formatValue(m)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ol>
+          </div>
+        )}
+
+        {list.length > 0 && (
+          <p className="ff-board__micro">
+            Bảng chỉ gồm tài khoản thật đã đăng ký, xếp theo hoạt động thật (XP, giờ học) — ai bằng điểm thì xếp theo tên.
+            {metric === 'hours' && ' Dấu ≈ là số giờ quy đổi từ XP tích luỹ của người chưa mở phòng tập trung.'}
+            {metric === 'points' && ' Thành viên chưa đăng nhập không xuất hiện trên bảng.'}
+          </p>
+        )}
+
+        {metric === 'hours' && list.length === 0 && podium.length > 0 && (
+          <p className="ff-board__micro">
+            <Minus className="w-3 h-3" /> Chưa có thêm thành viên nào khác trong kỳ này.
+          </p>
+        )}
+
+        {/* Vị trí của bạn */}
+        {currentUser && meEntry && (
+          <button type="button" onClick={() => openProfile(meEntry)} className="ff-board__me">
+            <span className="ff-board__me-rank font-mono">#{meEntry.rank}</span>
+            <img
+              src={currentUser.avatar || DEFAULT_AVATAR}
+              alt={currentUser.name}
+              onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+              width={32}
+              height={32}
+              className="w-8 h-8 rounded-full object-cover ring-2 ring-sky-400/70"
+            />
+            <span className="ff-board__me-name truncate">{currentUser.name}</span>
+            <span className="ff-board__me-value font-mono">{formatValue(meEntry)}</span>
           </button>
         )}
 
-        <div className="pt-1 flex justify-end">
+        {metric === 'hours' && (
+          <p className="ff-board__note">
+            Số giờ của bạn lấy từ nhật ký Phòng Tập Trung (phiên 25 phút, dừng sớm vẫn tính phần đã học); thành
+            viên khác được quy đổi từ XP tích luỹ.
+          </p>
+        )}
+
+        <div className="pt-0.5 flex justify-end">
           <button
             type="button"
             onClick={() => setPeriod('all')}
-            className="text-xs text-[#0284C7] hover:text-sky-300 font-semibold inline-flex items-center gap-1 transition-colors cursor-pointer"
+            className="text-xs text-[#38bdf8] hover:text-sky-300 font-semibold inline-flex items-center gap-1 transition-colors cursor-pointer"
           >
             <span>Toàn thời gian</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
+
+      {/* Bảng nhịp học tập: chỉ số tuần/tháng của bạn */}
+      <StudyPulsePanel
+        totals={totals}
+        weeklyGoalMinutes={weeklyGoal}
+        dailyTargetMinutes={dailyTarget}
+        onOpenFocusMode={onOpenFocusMode}
+      />
+
+      {/* Chi tiết giờ học: biểu đồ 7 ngày, thống kê, danh sách phiên */}
+      {metric === 'hours' && (
+        <StudyHoursDetail sessions={mySessions} onOpenFocusMode={onOpenFocusMode} />
+      )}
 
       {/* Ask CTA */}
       <div className="rounded-3xl bg-[#0c1218]/90 backdrop-blur-2xl border border-amber-400/30 p-5 shadow-xl flex flex-col items-center text-center gap-3 relative overflow-hidden">

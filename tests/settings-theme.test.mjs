@@ -216,13 +216,30 @@ test('8. Desktop and Mobile Navbar Settings Integration & Outside Click Isolatio
     'Click outside must check both desktop and mobile settings containment'
   );
 
-  // Verify both desktop and mobile render SettingsModal with synchronized state
+  /* Vòng 7 — sửa lỗi "bấm gì cũng không mở":
+     Chỉ còn MỘT bảng Cài đặt, đặt ngoài khung `hidden md:block` và ngoài mọi
+     khung có transform/filter, nhờ vậy tấm phủ của bảng luôn phủ đúng toàn màn
+     hình. Bản sao cho điện thoại cũ từng không có nút neo → panel nằm ở
+     top:-9999 + opacity:0 nhưng tấm phủ toàn màn hình vẫn bắt chuột. */
   const settingsModalOccurrences = navbarContent.split('<SettingsModal').length - 1;
   assert.equal(
     settingsModalOccurrences,
-    2,
-    'Navbar must render SettingsModal in both desktop and mobile layouts'
+    1,
+    'Navbar must render exactly ONE SettingsModal (the duplicate had no anchor and froze the app)'
   );
+  assert.ok(
+    !navbarContent.includes('<SettingsModal {...sharedSettingsProps} />'),
+    'The anchor-less duplicate SettingsModal must be gone',
+  );
+  assert.ok(
+    navbarContent.includes(
+      '<div ref={settingsMenuRef}>\n        <SettingsModal {...sharedSettingsProps} anchorRef={settingsTriggerRef} />',
+    ),
+    'SettingsModal must be mounted outside the desktop-only popover container',
+  );
+
+  const permissiveAnchor = navbarContent.includes('mobileSettingsMenuRef');
+  assert.ok(permissiveAnchor, 'Mobile settings trigger must still be recognised by the outside-click guard');
 });
 
 test('9. Cartoon Switch Knob Geometry, Travel Offset & Easing Physics', () => {

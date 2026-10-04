@@ -9,7 +9,7 @@ import { LandingProof } from './sections/LandingProof';
 import { LandingFeatures } from './sections/LandingFeatures';
 import { LandingShowcase } from './sections/LandingShowcase';
 import { LandingBenefits } from './sections/LandingBenefits';
-import { LandingTestimonials } from './sections/LandingTestimonials';
+import { LandingHighlights } from './sections/LandingHighlights';
 import { LandingPricing } from './sections/LandingPricing';
 import { LandingFAQ } from './sections/LandingFAQ';
 import { LandingCTA } from './sections/LandingCTA';
@@ -30,7 +30,7 @@ export interface LandingPageProps {
  *
  * Fully self-contained: sticky navbar with reading progress, hero with
  * scroll-to-explore cue, animated social proof, bento features, a scroll-scrubbed
- * product tour, benefits, testimonials, pricing, FAQ, closing CTA and footer.
+ * product tour, benefits, highlights, pricing, FAQ, closing CTA and footer.
  */
 export const LandingPage: React.FC<LandingPageProps> = ({
   currentUser,
@@ -69,7 +69,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <LandingFeatures />
         <LandingShowcase />
         <LandingBenefits onOpenAuth={onOpenAuth} />
-        <LandingTestimonials />
+        <LandingHighlights />
         <LandingPricing onOpenAuth={onOpenAuth} />
         <LandingFAQ onOpenAuth={onOpenAuth} />
         <LandingCTA onOpenAuth={onOpenAuth} />

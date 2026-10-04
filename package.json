@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "node --test tests/audit-verification.test.mjs tests/edge-cases.test.mjs tests/multi-user-sync.test.mjs tests/oauth-integration.test.mjs tests/admin-moderation-about.test.mjs tests/navbar-wheel-navigation.test.mjs tests/settings-theme.test.mjs tests/landing-page.test.mjs tests/user-profile-report-system.test.mjs tests/study-room.test.mjs tests/update-hub.test.mjs",
+    "test": "node --test tests/audit-verification.test.mjs tests/edge-cases.test.mjs tests/multi-user-sync.test.mjs tests/oauth-integration.test.mjs tests/admin-moderation-about.test.mjs tests/navbar-wheel-navigation.test.mjs tests/settings-theme.test.mjs tests/landing-page.test.mjs tests/user-profile-report-system.test.mjs tests/premium-experience.test.mjs tests/study-hours.test.mjs tests/like-heart.test.mjs",
     "preview": "vite preview",
     "public": "node scripts/start-public.mjs"
   },

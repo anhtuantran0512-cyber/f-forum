@@ -1,6 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, ArrowUpRight, ChevronDown, Compass, HelpCircle, MousePointerClick, Brain } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, ChevronDown, Compass, HelpCircle, MousePointerClick } from 'lucide-react';
 import type { DimensionView } from '../../types';
 import { BoomerangVideoBg } from '../BoomerangVideoBg';
 
@@ -122,18 +122,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <HelpCircle className="w-4 h-4 text-amber-400" />
             <span>Sàn Hỏi Đáp Tri Thức</span>
           </button>
-
-          {/* New: Phòng Ôn Tập (v2.4.0) */}
-          <button
-            onClick={() => onNavigate('study')}
-            className="group w-full sm:w-auto liquid-glass rounded-full px-7 py-3 text-sm font-medium text-white hover:scale-105 active:scale-95 transition-all duration-200 inline-flex items-center justify-center gap-2 border border-emerald-400/25 hover:border-emerald-400/50 shadow-lg cursor-pointer"
-          >
-            <Brain className="w-4 h-4 text-emerald-300" />
-            <span>Phòng Ôn Tập</span>
-            <span className="text-[9px] font-bold uppercase tracking-wider rounded-full bg-emerald-400/20 border border-emerald-400/40 text-emerald-200 px-1.5 py-0.5">
-              Mới
-            </span>
-          </button>
         </div>
 
         {/* Tertiary: marketing landing page */}
@@ -161,7 +149,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <ChevronDown className="w-3 h-3 ff-chevron-1" />
           </span>
           <span className="text-[9.5px] font-mono tracking-wider text-neutral-500">
-            TRANG CHỦ → CÂU LẠC BỘ → HỎI ĐÁP → CẬP NHẬT
+            TRANG CHỦ → CÂU LẠC BỘ → HỎI ĐÁP → UPDATE
           </span>
         </div>
       </div>

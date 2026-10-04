@@ -36,7 +36,7 @@ const LINK_GROUPS: { title: string; links: { label: string; section?: string; hr
     links: [
       { label: 'Sàn hỏi đáp', section: 'kham-pha' },
       { label: 'Câu lạc bộ', section: 'kham-pha' },
-      { label: 'Câu chuyện sinh viên', section: 'danh-gia' },
+      { label: 'Năng lực hệ thống', section: 'tinh-nang' },
       { label: 'Khu vinh danh', section: 'kham-pha' },
     ],
   },

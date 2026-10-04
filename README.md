@@ -46,28 +46,30 @@ Hệ thống được thiết kế theo giao diện kính mờ hiện đại, h�
 ### 4. Điểm Danh & Câu Hỏi Vui Hàng Ngày
 - **Điểm danh 15 ngày**: Đăng nhập mỗi ngày để nhận Coin tích lũy. Hoàn thành các mốc ngày 5, 10, 15 để nhận thêm hộp quà.
 - **Kho quà**: Mở các hộp quà ảo để nhận vật phẩm lưu niệm và điểm thưởng.
-- **Câu hỏi vui (Trivia Quiz)**: Mỗi ngày có một câu đố kiến thức ngắn trong 15 giây. Trả lời đúng được thưởng Coin kèm nút "Xem lại" để đọc lời giải thích chi tiết.
+- **Câu hỏi vui (Trivia Quiz)**: Mỗi ngày có một câu đố kiến thức ngắn trong 15 giây. Trả lời đúng được thưởng Coin ngay trong ngày (không cần chế độ ôn lại — hôm sau đã có câu mới).
+- **Ngọn lửa Streak** nằm trong menu tia sét ở góc dưới bên trái, hiển thị số ngày điểm danh liên tiếp.
 
-### 5. Phòng Ôn Tập — Flashcard & Luyện Đề (Mới)
-- **Bộ thẻ ghi nhớ theo môn học**: học sinh tự tạo bộ thẻ cho từng môn, hoặc sao chép bộ thẻ công khai của bạn khác về thư viện cá nhân.
-- **Lặp lại ngắt quãng 6 hộp Leitner**: mỗi thẻ có lịch ôn riêng (ôn lại sau 1 phút → 10 phút → 1 ngày → 3 ngày → 7 ngày → 21 ngày). Trả lời "Quên rồi" sẽ đưa thẻ về hộp 0 và cho thẻ xuất hiện lại ngay trong phiên.
-- **Nhập nhanh hàng loạt**: dán danh sách theo cú pháp `mặt trước | mặt sau | gợi ý` để tạo tối đa 200 thẻ mỗi lần (trần 300 thẻ/bộ).
-- **Luyện đề trắc nghiệm**: sinh đề tự động từ bộ thẻ (tối thiểu 3 đáp án khác nhau), mỗi câu 20 giây, có phím tắt 1–4, chấm điểm và xem lại câu sai.
-- **Thưởng XP – Coin**: ôn thẻ được 0–3 XP mỗi lượt (trần 120 XP/phiên), luyện đề +4 XP mỗi câu đúng, thêm +25 XP khi đạt từ 80% và +50 XP khi đạt điểm tuyệt đối.
-- **Đồng bộ tức thì**: tiến độ thẻ, bộ thẻ và lịch sử phiên ôn tập được đồng bộ qua WebSocket, BroadcastChannel và REST API — mở máy khác là học tiếp đúng chỗ.
-- **Bảng thống kê cá nhân**: số thẻ đến hạn hôm nay, số thẻ đã thuộc, độ chính xác ghi nhớ, và biểu đồ XP 7 ngày gần nhất lấy từ lịch sử ôn tập thật.
-
-### 6. Cửa Hàng Vật Phẩm Ảo (Chill Box)
+### 5. Cửa Hàng Vật Phẩm Ảo (Chill Box)
 - Sử dụng điểm Coin tích lũy được từ việc giải bài tập và điểm danh để đổi vật phẩm trang trí.
 - 12 vật phẩm ảo thiết kế riêng được chia theo các cấp độ màu sắc: Xanh lá, Xanh lam, Đỏ và Tím.
 - Các vật phẩm đã sở hữu có thể trang bị trực tiếp lên trang cá nhân.
 
-### 7. Hồ Sơ Cá Nhân & Báo Cáo Vi Phạm
+### 6. Lớp Tiện Ích Ẩn (Premium Layer)
+- **Bảng lệnh nhanh (⌘/Ctrl + K)**: Gõ không dấu để tìm và nhảy tới mọi phân khu, hoặc chạy tác vụ (đổi theme, điểm danh, mở Focus, bật/tắt chat, nghỉ mắt...).
+- **Sổ tay nhanh (⌘/Ctrl + I)**: Ghi chú tức thì ở bất kỳ phân khu nào, tự động lưu và dùng chung một cuốn sổ với Focus Sanctuary. Có mẫu nhanh cho hạn chót, ý tưởng và công thức.
+- **Nhắc nghỉ mắt 20-20-20**: Cứ 20 phút hiện lớp phủ thư giãn 20 giây với vòng thở dịu mắt (bật/tắt trong Cài đặt → Trải nghiệm).
+- **Sao lưu & khôi phục**: Xuất/nhập toàn bộ dữ liệu học tập trên trình duyệt thành một tệp JSON trong Cài đặt → Hệ thống.
+- **Phím tắt**: ⌘/Ctrl + K (bảng lệnh), ⌘/Ctrl + I (sổ tay), ⌘/Ctrl + Shift + L (theme), ⌘/Ctrl + Shift + F (Focus Mode).
+
+### 7. Trung Tâm Điều Khiển (Cài đặt)
+- Ba nhóm tab cao cấp: **Giao diện** (theme, gradient không gian dạng tile, cỡ chữ, độ mờ kính), **Trải nghiệm** (mockup chọn vị trí navbar bằng cách chạm vào cạnh khung, tự ẩn, chế độ chỉ hiện icon, âm thanh, chuyển động, không gian tập trung, phím tắt) và **Hệ thống** (sao lưu, xóa cache, đặt lại dữ liệu).
+
+### 8. Hồ Sơ Cá Nhân & Báo Cáo Vi Phạm
 - Hiển thị 6 chỉ số hoạt động: Tổng Coin, Lượt cảm ơn, Câu trả lời hay nhất, Đánh giá 5 sao, Xác thực và Số người đã giúp đỡ.
 - Biểu đồ mạng nhện (Radar Chart) thể hiện thế mạnh giải bài theo 6 nhóm môn học.
 - Nút **Tố Cáo Tài Khoản**: Cho phép người dùng báo cáo các hành vi vi phạm (spam, quấy rối, ngôn từ độc hại) về ban quản trị để xử lý kịp thời.
 
-### 8. Hệ Thống 8 Cấp Bậc Học Đường
+### 9. Hệ Thống 8 Cấp Bậc Học Đường
 Hệ thống cấp bậc được đặt tên gần gũi với học sinh theo tiến trình tích lũy Coin:
 1. 🌱 **Học Sinh** (0 Coin)
 2. 🌿 **Học Sinh Giỏi** (150 Coin)
@@ -78,19 +80,14 @@ Hệ thống cấp bậc được đặt tên gần gũi với học sinh theo t
 7. 👑 **Bậc Thầy** (6,000 Coin)
 8. 🔮 **Chuyên Gia** (12,000 Coin)
 
-### 9. Bảng Tin Cập Nhật & Lộ Trình (Mới)
-- Trang **UPDATE** không còn là màn hình "Comming soon" — nay là **Bảng tin Cập nhật** thật của dự án.
-- **Nhật ký phát hành** theo từng phiên bản (v1.0 → v2.4.0): ngày phát hành, tên phiên bản, tóm tắt và danh sách thay đổi phân loại rõ *Tính năng / Cải tiến / Sửa lỗi / Bảo mật*, có bộ lọc theo loại.
-- **Lộ trình minh bạch**: các hạng mục đang triển khai — đã lên kế hoạch — đang nghiên cứu kèm thanh tiến độ và mốc thời gian.
-- **Gửi đề xuất tính năng**: biểu mẫu gửi thẳng tới Ban Quản Trị (tối thiểu 20 ký tự), tự điền họ tên/email khi đã đăng nhập và hiển thị lại các góp ý gần đây của bạn.
-- **Số liệu nền tảng thật**: số thành viên, câu hỏi, lời giải, câu lạc bộ, bộ thẻ và phiên ôn tập lấy trực tiếp từ store.
-
 ### 10. Giao Diện & Tùy Chọn Hiển Thị
 - Hỗ trợ cả 2 chế độ: Giao diện Sáng (Light Mode) và Giao diện Tối (Dark Mode).
-- 9 phân khu trên thanh điều hướng: Giới thiệu, Trang chủ, Câu lạc bộ, Hỏi đáp, **Ôn tập**, Phòng chat, Miền ký ức, Khu vinh danh và **Cập nhật**.
 - **Thanh điều hướng linh hoạt**: Có thể đặt ở 4 vị trí: Trên cùng, Dưới cùng, Cạnh trái hoặc Cạnh phải màn hình.
-- Các cửa sổ thông báo, cài đặt và tài khoản tự động điều chỉnh hướng mở tương ứng để không bị che khuất.
-- Tính năng tự động ẩn thanh điều hướng sau 1 giây khi không di chuột để tăng diện tích hiển thị nội dung.
+- **Nút F (logo) là lối vào trang Giới thiệu** — không còn tab chữ "GIỚI THIỆU" cho thanh gọn hơn.
+- **Miền Ký Ức · Khu Vinh Danh · Update luôn ở dạng icon** (có vạch phân cách và tooltip khi rê chuột), kể cả khi thanh đang mở rộng.
+- Nhịp thu nhỏ / phóng to thanh điều hướng được kéo dài (0.78s) với đường cong êm, panel Cài đặt lướt theo thay vì nhảy từng nấc.
+- Các cửa sổ thông báo, cài đặt và tài khoản tự động điều chỉnh hướng mở tương ứng để không bị che khuất; panel Cài đặt có hoạt ảnh mở/đóng mềm mại kèm lớp phủ mờ dần.
+- Tính năng tự động ẩn thanh điều hướng sau khoảng 1.2 giây khi không di chuột để tăng diện tích hiển thị nội dung.
 - Tích hợp âm thanh nền nhẹ nhàng hỗ trợ tập trung học tập (Ambient Audio) và hẹn giờ học tập (Focus Mode).
 
 ---
@@ -100,8 +97,7 @@ Hệ thống cấp bậc được đặt tên gần gũi với học sinh theo t
 - **Frontend**: React 19, TypeScript
 - **Styling**: Tailwind CSS v4, hiệu ứng kính mờ (Liquid Glass)
 - **Công cụ xây dựng**: Vite 6
-- **Thời gian thực**: WebSocket, BroadcastChannel API (đồng bộ chat, bộ thẻ ôn tập, hồ sơ người dùng)
-- **Ôn tập ngắt quãng**: động cơ Leitner 6 hộp viết thuần TypeScript, không phụ thuộc thư viện ngoài
+- **Thời gian thực**: WebSocket, BroadcastChannel API
 - **Âm thanh**: Web Audio API
 - **Biểu tượng**: Lucide React và icon SVG tự thiết kế
 - **Kiểm thử & Chất lượng mã nguồn**: Node.js Test Runner, Oxlint
@@ -138,7 +134,7 @@ Sau khi chạy lệnh, mở trình duyệt web và truy cập địa chỉ: `htt
 # Kiểm tra lỗi cú pháp với Oxlint
 npx oxlint
 
-# Chạy toàn bộ 71 bài kiểm thử tự động (gồm động cơ ôn tập & bảng tin cập nhật)
+# Chạy toàn bộ 51 bài kiểm thử tự động
 npm test
 
 # Biên dịch mã nguồn cho môi trường sản xuất
@@ -157,10 +153,8 @@ f-forum/
 ├── src/
 │   ├── components/         # Các thành phần giao diện (Navbar, Modal, View...)
 │   │   ├── landing/        # Trang giới thiệu
-│   │   ├── study/          # Phòng Ôn Tập: soạn bộ thẻ, phiên ôn, luyện đề
-│   │   └── views/          # Màn hình chính: Hỏi đáp, Câu lạc bộ, Ôn tập, Chat, Vinh danh...
-│   ├── data/               # Nhật ký phát hành & lộ trình (changelog.ts)
-│   ├── store/              # Quản lý trạng thái ứng dụng (forumStore, studyLogic)
+│   │   └── views/          # Màn hình chính: Hỏi đáp, Câu lạc bộ, Chat, Vinh danh...
+│   ├── store/              # Quản lý trạng thái ứng dụng (forumStore)
 │   ├── types/              # Định nghĩa kiểu dữ liệu TypeScript
 │   ├── utils/              # Các hàm tiện ích (âm thanh, thông báo, lưu trữ, cấp bậc)
 │   ├── App.tsx             # Thành phần gốc điều hướng giao diện

@@ -1,11 +1,38 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import { lazyWithRetry } from './utils/lazyWithRetry';
+import { installInteractionWatchdog } from './utils/interactionWatchdog';
 import { useForumStore } from './store/forumStore';
 import { Navbar } from './components/Navbar';
 import { HomeView } from './components/views/HomeView';
 import { GlobalCursor } from './components/GlobalCursor';
-import { Sparkles, Trophy, CheckCircle, Info } from 'lucide-react';
+import {
+  Eye,
+  Sparkles,
+  Trophy,
+  CheckCircle,
+  Info,
+  Home,
+  Users,
+  HelpCircle,
+  MessageSquare,
+  Compass,
+  Award,
+  Rocket,
+  Headphones,
+  NotebookPen,
+  Command as CommandIcon,
+  Palette,
+  Settings as SettingsIcon,
+  Flame,
+  User as UserIcon,
+} from 'lucide-react';
 import type { DimensionView, User } from './types';
+import { CommandPalette, type PaletteCommand } from './components/CommandPalette';
+import { QuickNotesDock } from './components/QuickNotesDock';
+import { StudyCareCoach } from './components/StudyCareCoach';
+import { ViewTransitionLoader } from './components/ViewTransitionLoader';
+import { FocusSessionWatcher } from './components/FocusSessionWatcher';
 import { AuthProvider } from './context/AuthContext';
 import { GODRAY_PRESETS } from './utils/godrays';
 import { safeStorage } from './utils/storage';
@@ -13,19 +40,18 @@ import { PageResourceLoader } from './components/PageResourceLoader';
 import { UserQuickCard } from './components/UserQuickCard';
 import { RadialQuickMenu } from './components/RadialQuickMenu';
 
-const LandingPage = lazy(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
-const ClubsView = lazy(() => import('./components/views/ClubsView').then(m => ({ default: m.ClubsView })));
-const QAForumView = lazy(() => import('./components/views/QAForumView').then(m => ({ default: m.QAForumView })));
-const ChatView = lazy(() => import('./components/views/ChatView').then(m => ({ default: m.ChatView })));
-const KhuVinhDanhView = lazy(() => import('./components/views/KhuVinhDanhView').then(m => ({ default: m.KhuVinhDanhView })));
-const UpdateHubView = lazy(() => import('./components/views/UpdateHubView').then(m => ({ default: m.UpdateHubView })));
-const StudyRoomView = lazy(() => import('./components/views/StudyRoomView').then(m => ({ default: m.StudyRoomView })));
-const MemoryRealm = lazy(() => import('./components/MemoryRealm').then(m => ({ default: m.MemoryRealm })));
-const ChatDock = lazy(() => import('./components/ChatDock').then(m => ({ default: m.ChatDock })));
-const ProfileModal = lazy(() => import('./components/ProfileModal').then(m => ({ default: m.ProfileModal })));
-const FocusSanctuary = lazy(() => import('./components/FocusSanctuary').then(m => ({ default: m.FocusSanctuary })));
-const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
-const XPSandboxDock = lazy(() => import('./components/XPSandboxDock').then(m => ({ default: m.XPSandboxDock })));
+const LandingPage = lazyWithRetry(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
+const ClubsView = lazyWithRetry(() => import('./components/views/ClubsView').then(m => ({ default: m.ClubsView })));
+const QAForumView = lazyWithRetry(() => import('./components/views/QAForumView').then(m => ({ default: m.QAForumView })));
+const ChatView = lazyWithRetry(() => import('./components/views/ChatView').then(m => ({ default: m.ChatView })));
+const KhuVinhDanhView = lazyWithRetry(() => import('./components/views/KhuVinhDanhView').then(m => ({ default: m.KhuVinhDanhView })));
+const ComingSoonView = lazyWithRetry(() => import('./components/views/ComingSoonView').then(m => ({ default: m.ComingSoonView })));
+const MemoryRealm = lazyWithRetry(() => import('./components/MemoryRealm').then(m => ({ default: m.MemoryRealm })));
+const ChatDock = lazyWithRetry(() => import('./components/ChatDock').then(m => ({ default: m.ChatDock })));
+const ProfileModal = lazyWithRetry(() => import('./components/ProfileModal').then(m => ({ default: m.ProfileModal })));
+const FocusSanctuary = lazyWithRetry(() => import('./components/FocusSanctuary').then(m => ({ default: m.FocusSanctuary })));
+const AuthModal = lazyWithRetry(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
+const XPSandboxDock = lazyWithRetry(() => import('./components/XPSandboxDock').then(m => ({ default: m.XPSandboxDock })));
 
 const ViewLoadingFallback = () => (
   <div className="w-full h-full min-h-[50vh] flex items-center justify-center" aria-busy="true" aria-label="Đang tải giao diện">
@@ -35,6 +61,64 @@ const ViewLoadingFallback = () => (
 
 const CORE_SCROLL_VIEWS: DimensionView[] = ['home', 'clubs', 'qa', 'coming-soon'];
 const SCROLL_COOLDOWN_MS = 650;
+
+/* Thứ tự phân khu dùng để biết hướng trượt (lên/xuống) khi chuyển trang */
+const VIEW_ORDER: DimensionView[] = [
+  'landing',
+  'home',
+  'clubs',
+  'qa',
+  'chat',
+  'memory',
+  'chronicles',
+  'coming-soon',
+];
+
+/* Phân khu cần màn hình chờ (CodeFronts la-09 vinyl / la-05 dots).
+   home là trang nhẹ nên vào thẳng, không chặn người dùng. */
+const VIEW_LOADERS: Partial<Record<DimensionView, { label: string; variant: 'vinyl' | 'dots' }>> = {
+  landing: { label: 'Trang Giới thiệu', variant: 'vinyl' },
+  clubs: { label: 'Câu lạc bộ', variant: 'vinyl' },
+  qa: { label: 'Sàn Hỏi đáp', variant: 'vinyl' },
+  chat: { label: 'Phòng Chat', variant: 'dots' },
+  memory: { label: 'Miền Ký Ức', variant: 'vinyl' },
+  chronicles: { label: 'Khu Vinh Danh', variant: 'vinyl' },
+  'coming-soon': { label: 'Bản nâng cấp', variant: 'vinyl' },
+};
+
+const LOADER_MIN_MS = 950; /* lần đầu vào phân khu */
+const LOADER_REVISIT_MS = 520; /* quay lại phân khu đã tải rồi */
+const LOADER_HARD_CAP_MS = 2600;
+
+/**
+ * Kiểm tra con trỏ có đang nằm trong một khung cuộn dọc còn cuộn được không.
+ * Nếu có thì nhường cuộn cho khung đó, không nhảy phân khu (tránh cướp cuộn
+ * ở sidebar Hỏi đáp, danh sách CLB…).
+ */
+const isInsideScrollable = (el: HTMLElement | null, deltaY: number): boolean => {
+  let node: HTMLElement | null = el;
+  while (node && node !== document.body && node !== document.documentElement) {
+    const style = window.getComputedStyle(node);
+    if (/(auto|scroll|overlay)/.test(style.overflowY) && node.scrollHeight - node.clientHeight > 4) {
+      const atTop = node.scrollTop <= 1;
+      const atBottom = node.scrollTop + node.clientHeight >= node.scrollHeight - 1;
+      if (deltaY > 0 ? !atBottom : !atTop) return true;
+    }
+    node = node.parentElement;
+  }
+  return false;
+};
+
+/** Báo cho App biết phân khu đã dựng xong (đã tải xong chunk lazy). */
+const ViewReadySignal: React.FC<{ view: DimensionView; onReady: (view: DimensionView) => void }> = ({
+  view,
+  onReady,
+}) => {
+  useEffect(() => {
+    onReady(view);
+  }, [view, onReady]);
+  return null;
+};
 
 export const App: React.FC = () => {
   const {
@@ -73,23 +157,11 @@ export const App: React.FC = () => {
     setIsLoginModalOpen,
     isSynced,
     toastMessage,
+    setToastMessage,
     adminDeleteQuestion,
     adminEditQuestion,
     adminDeleteSolution,
     adminDeleteChatMessage,
-    feedbacks,
-    submitFeedback,
-    studyDecks,
-    studySessions,
-    createStudyDeck,
-    updateStudyDeck,
-    deleteStudyDeck,
-    importStudyCards,
-    gradeStudyCard,
-    syncStudyDeck,
-    recordStudySession,
-    toggleStudyDeckStar,
-    cloneStudyDeck,
   } = useForumStore();
 
   const [isResourceLoading, setIsResourceLoading] = useState(true);
@@ -99,6 +171,16 @@ export const App: React.FC = () => {
   const [quickProfile, setQuickProfile] = useState<{ user: User; anchor?: { x: number; y: number } | null } | null>(null);
   const [scrollInsideCinema, setScrollInsideCinema] = useState(false);
   const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>('login');
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
+  const [eyeRestEnabled, setEyeRestEnabled] = useState<boolean>(() => {
+    return safeStorage.getItem('fforum_eye_rest') === 'true';
+  });
+  const [transition, setTransition] = useState<{ target: DimensionView; startedAt: number; revisit: boolean } | null>(null);
+  const [readyView, setReadyView] = useState<DimensionView | null>(null);
+  const visitedViewsRef = useRef<Set<DimensionView>>(new Set<DimensionView>([currentView]));
+  const [slideDir, setSlideDir] = useState<'up' | 'down' | 'none'>('none');
+  const prevViewIndexRef = useRef<number>(VIEW_ORDER.indexOf(currentView));
 
   const isInsideCinema = currentView === 'memory' && scrollInsideCinema;
 
@@ -237,21 +319,91 @@ export const App: React.FC = () => {
     });
   };
 
+  /* Chuyển phân khu kèm màn hình chờ cho các trang nặng */
+  const beginTransition = useCallback(
+    (v: DimensionView) => {
+      if (!VIEW_LOADERS[v]) return;
+      const revisit = visitedViewsRef.current.has(v);
+      visitedViewsRef.current.add(v);
+      setReadyView(null);
+      setTransition({ target: v, startedAt: Date.now(), revisit });
+    },
+    [],
+  );
+
   const handleNavigate = (v: DimensionView) => {
+    /* Bấm lại đúng phân khu đang mở thì chỉ cuộn lên đầu, không chạy màn hình chờ */
+    if (v === currentView) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+      return;
+    }
+    beginTransition(v);
     setCurrentView(v);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
-  const handleViewChange = useCallback((v: DimensionView) => {
-    setCurrentView(v);
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-  }, [setCurrentView]);
+  const handleViewChange = useCallback(
+    (v: DimensionView) => {
+      if (v === currentView) {
+        window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+        return;
+      }
+      beginTransition(v);
+      setCurrentView(v);
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    },
+    [currentView, setCurrentView, beginTransition],
+  );
+
+  const handleViewReady = useCallback((view: DimensionView) => {
+    setReadyView(view);
+  }, []);
+
+  /* Phiên Pomodoro hoàn thành: cộng XP đúng tài khoản đang đăng nhập.
+     (addXP(amount) không kèm email sẽ bị bỏ qua với người dùng thường.) */
+  const handleFocusReward = useCallback(
+    (amount: number) => {
+      if (currentUser) addXP(amount, currentUser.email);
+    },
+    [addXP, currentUser],
+  );
+
+  /* Hướng trượt khi đổi phân khu (lướt như lật trang) */
+  useEffect(() => {
+    const idx = VIEW_ORDER.indexOf(currentView);
+    const prev = prevViewIndexRef.current;
+    if (idx === -1 || prev === -1) return;
+    setSlideDir(idx > prev ? 'up' : idx < prev ? 'down' : 'none');
+    prevViewIndexRef.current = idx;
+  }, [currentView]);
+
+  /* Tắt màn hình chờ: sớm nhất sau LOADER_MIN_MS khi phân khu đã dựng xong,
+     muộn nhất là LOADER_HARD_CAP_MS để không bao giờ treo người dùng. */
+  useEffect(() => {
+    if (!transition) return;
+    const elapsed = Date.now() - transition.startedAt;
+    const isReady = readyView === transition.target;
+    const minMs = transition.revisit ? LOADER_REVISIT_MS : LOADER_MIN_MS;
+    const delay = isReady ? Math.max(0, minMs - elapsed) + 170 : Math.max(0, LOADER_HARD_CAP_MS - elapsed);
+    const timer = window.setTimeout(() => setTransition(null), delay);
+    return () => window.clearTimeout(timer);
+  }, [transition, readyView]);
+
+  const loaderMeta = transition ? VIEW_LOADERS[transition.target] : null;
 
   const lastScrollTimeRef = useRef<number>(0);
   const lastWheelTimeRef = useRef<number>(0);
+  const transitionActiveRef = useRef(false);
+
+  useEffect(() => {
+    transitionActiveRef.current = transition !== null;
+  }, [transition]);
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
+      /* Đang chạy màn hình chờ thì bỏ qua cuộn, tránh nhảy hai phân khu một lúc */
+      if (transitionActiveRef.current) return;
+
       if (currentView === 'chat' || currentView === 'memory' || currentView === 'chronicles') {
         return;
       }
@@ -260,7 +412,14 @@ export const App: React.FC = () => {
         return;
       }
 
-      if (isLoginModalOpen || isProfileModalOpen || isFocusModeOpen || isChatOpen) {
+      if (
+        isLoginModalOpen ||
+        isProfileModalOpen ||
+        isFocusModeOpen ||
+        isChatOpen ||
+        isPaletteOpen ||
+        isNotesOpen
+      ) {
         return;
       }
 
@@ -274,6 +433,9 @@ export const App: React.FC = () => {
 
       const deltaY = e.deltaY;
       if (Math.abs(deltaY) <= 30) return;
+
+      /* Đang cuộn trong một khung nội bộ (sidebar, danh sách dài) → nhường */
+      if (isInsideScrollable(target, deltaY)) return;
 
       const now = Date.now();
       const timeSinceLastScroll = now - lastScrollTimeRef.current;
@@ -301,7 +463,212 @@ export const App: React.FC = () => {
     return () => {
       window.removeEventListener('wheel', handleWheel);
     };
-  }, [currentView, isLoginModalOpen, isProfileModalOpen, isFocusModeOpen, isChatOpen, handleViewChange]);
+  }, [
+    currentView,
+    isLoginModalOpen,
+    isProfileModalOpen,
+    isFocusModeOpen,
+    isChatOpen,
+    isPaletteOpen,
+    isNotesOpen,
+    handleViewChange,
+  ]);
+
+  /* ============================================================
+     F-ID Hidden Layer — bảng lệnh (⌘K), sổ tay nhanh (⌘I) & phím tắt
+     ============================================================ */
+  useEffect(() => {
+    const openPalette = () => setIsPaletteOpen(true);
+    const openNotes = () => setIsNotesOpen((prev) => !prev);
+    window.addEventListener('fforum_open_palette', openPalette);
+    window.addEventListener('fforum_open_notes', openNotes);
+    return () => {
+      window.removeEventListener('fforum_open_palette', openPalette);
+      window.removeEventListener('fforum_open_notes', openNotes);
+    };
+  }, []);
+
+  const toggleEyeRest = useCallback(() => {
+    setEyeRestEnabled((prev) => {
+      const next = !prev;
+      safeStorage.setItem('fforum_eye_rest', String(next));
+      if (next) {
+        setToastMessage({
+          title: 'Đã bật nhắc nghỉ mắt 20-20-20',
+          subtitle: 'Cứ 20 phút F-Forum sẽ nhắc bạn thư giãn mắt 20 giây.',
+          type: 'success',
+        });
+      }
+      return next;
+    });
+  }, [setToastMessage]);
+
+  const paletteCommands: PaletteCommand[] = React.useMemo(() => {
+    const views: { id: DimensionView; label: string; hint: string; icon: React.ReactNode; keywords: string }[] = [
+      { id: 'home', label: 'Trang chủ', hint: 'Bảng tin tổng hợp & thống kê', icon: <Home className="w-4 h-4" />, keywords: 'home bang tin' },
+      { id: 'clubs', label: 'Câu lạc bộ', hint: 'CLB, sự kiện & bài đăng nhóm', icon: <Users className="w-4 h-4" />, keywords: 'clb club' },
+      { id: 'qa', label: 'Hỏi đáp', hint: 'Sàn hỏi bài theo môn học', icon: <HelpCircle className="w-4 h-4" />, keywords: 'hoi bai qa' },
+      { id: 'chat', label: 'Phòng chat', hint: 'Trò chuyện thời gian thực', icon: <MessageSquare className="w-4 h-4" />, keywords: 'chat tin nhan' },
+      { id: 'memory', label: 'Miền ký ức', hint: 'Chuyến cuộn phim thanh xuân', icon: <Compass className="w-4 h-4" />, keywords: 'ky uc memory' },
+      { id: 'chronicles', label: 'Khu vinh danh', hint: 'Quả cầu 3D & cột mốc', icon: <Award className="w-4 h-4" />, keywords: 'vinh danh' },
+      { id: 'coming-soon', label: 'Bản nâng cấp', hint: 'Những gì đang được phát triển', icon: <Rocket className="w-4 h-4" />, keywords: 'update' },
+      { id: 'landing', label: 'Giới thiệu F-Forum', hint: 'Trang marketing & bảng giá', icon: <Sparkles className="w-4 h-4" />, keywords: 'gioi thieu landing' },
+    ];
+
+    const viewCommands: PaletteCommand[] = views.map((v) => ({
+      id: `view-${v.id}`,
+      label: v.label,
+      hint: v.hint,
+      group: 'Điều hướng',
+      icon: v.icon,
+      keywords: v.keywords,
+      run: () => handleViewChange(v.id),
+    }));
+
+    const actionCommands: PaletteCommand[] = [
+      {
+        id: 'act-palette-shortcut',
+        label: 'Bảng lệnh nhanh',
+        hint: 'Đang mở — gõ để lọc mọi tác vụ',
+        group: 'Tác vụ',
+        icon: <CommandIcon className="w-4 h-4" />,
+        shortcut: '⌘K',
+        keywords: 'command palette lenh',
+        run: () => setIsPaletteOpen(true),
+      },
+      {
+        id: 'act-notes',
+        label: 'Sổ tay nhanh',
+        hint: 'Ghi chú dùng chung với Focus Sanctuary',
+        group: 'Tác vụ',
+        icon: <NotebookPen className="w-4 h-4" />,
+        shortcut: '⌘I',
+        keywords: 'so tay ghi chu note',
+        run: () => setIsNotesOpen(true),
+      },
+      {
+        id: 'act-focus',
+        label: 'Vào không gian tập trung',
+        hint: 'Pomodoro 25 phút + âm thanh 432Hz',
+        group: 'Không gian',
+        icon: <Headphones className="w-4 h-4" />,
+        shortcut: '⌘⇧F',
+        keywords: 'focus pomodoro tap trung',
+        run: () => setIsFocusModeOpen(true),
+      },
+      {
+        id: 'act-attendance',
+        label: 'Điểm danh & mở kho quà',
+        hint: 'Giữ chuỗi ngày, nhận Coin',
+        group: 'Không gian',
+        icon: <Flame className="w-4 h-4" />,
+        keywords: 'diem danh streak hop qua',
+        run: () => window.dispatchEvent(new CustomEvent('fforum_open_daily')),
+      },
+      {
+        id: 'act-chat',
+        label: 'Bật / tắt khung chat nhanh',
+        hint: 'Chat Dock trượt bên phải',
+        group: 'Không gian',
+        icon: <MessageSquare className="w-4 h-4" />,
+        keywords: 'chat dock',
+        run: handleToggleChat,
+      },
+      {
+        id: 'act-eye-rest',
+        label: eyeRestEnabled ? 'Tắt nhắc nghỉ mắt 20-20-20' : 'Bật nhắc nghỉ mắt 20-20-20',
+        hint: eyeRestEnabled ? 'Đang bật — cứ 20 phút nhắc một lần' : 'Bảo vệ mắt khi học lâu trên màn hình',
+        group: 'Không gian',
+        icon: <Eye className="w-4 h-4" />,
+        keywords: 'nghi mat eye rest 20-20-20',
+        run: toggleEyeRest,
+      },
+      {
+        id: 'act-eye-rest-now',
+        label: 'Nghỉ mắt ngay (20 giây)',
+        hint: 'Mở lớp phủ thư giãn mắt tức thì',
+        group: 'Không gian',
+        icon: <Eye className="w-4 h-4" />,
+        keywords: 'nghi mat ngay thu gian',
+        run: () => window.dispatchEvent(new CustomEvent('fforum_eye_rest_now')),
+      },
+      {
+        id: 'act-theme',
+        label: 'Đổi chế độ Sáng / Tối',
+        hint: 'Chuyển nhanh giao diện Obsidian ↔ Pha lê',
+        group: 'Giao diện',
+        icon: <Palette className="w-4 h-4" />,
+        shortcut: '⌘⇧L',
+        keywords: 'theme sang toi dark light',
+        run: () => window.dispatchEvent(new CustomEvent('fforum_toggle_theme')),
+      },
+      {
+        id: 'act-settings',
+        label: 'Mở trung tâm điều khiển',
+        hint: 'Giao diện, trải nghiệm & dữ liệu',
+        group: 'Giao diện',
+        icon: <SettingsIcon className="w-4 h-4" />,
+        keywords: 'cai dat setting',
+        run: () => window.dispatchEvent(new CustomEvent('fforum_open_settings')),
+      },
+    ];
+
+    if (currentUser) {
+      actionCommands.push({
+        id: 'act-profile',
+        label: 'Trang cá nhân của tôi',
+        hint: `${currentUser.name} · Cấp ${currentUser.level}`,
+        group: 'Tài khoản',
+        icon: <UserIcon className="w-4 h-4" />,
+        keywords: 'profile ho so ca nhan',
+        run: () => handleOpenProfile('overview'),
+      });
+    }
+
+    return [...viewCommands, ...actionCommands];
+  }, [currentUser, handleViewChange, handleToggleChat, handleOpenProfile, eyeRestEnabled, toggleEyeRest]);
+
+  useEffect(() => {
+    const isTypingTarget = (target: EventTarget | null) => {
+      const el = target as HTMLElement | null;
+      if (!el) return false;
+      const tag = el.tagName?.toLowerCase();
+      return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (!mod) return;
+
+      if (e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsPaletteOpen((prev) => !prev);
+        return;
+      }
+      if (e.key.toLowerCase() === 'i' && !e.shiftKey) {
+        if (isTypingTarget(e.target)) return;
+        e.preventDefault();
+        setIsNotesOpen((prev) => !prev);
+        return;
+      }
+      if (e.shiftKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('fforum_toggle_theme'));
+        return;
+      }
+      if (e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setIsFocusModeOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  /* Lưới an toàn cuối: nếu một lớp phủ VÔ HÌNH nào đó đang nuốt cú bấm, tự gỡ
+     nó để giao diện không bao giờ rơi vào trạng thái "bấm gì cũng không mở". */
+  useEffect(() => installInteractionWatchdog(), []);
 
   const solvedQuestionsCount = questions.filter(q => q.isSolved).length;
   const isScrollableView =
@@ -369,6 +736,8 @@ export const App: React.FC = () => {
               updateProfile({ streakCount: streak });
             }
           }}
+          eyeRestEnabled={eyeRestEnabled}
+          onToggleEyeRest={toggleEyeRest}
         />
         )
       )}
@@ -376,6 +745,14 @@ export const App: React.FC = () => {
       {/* Main Dimension View Routing (Single-Viewport Multi-View Architecture) */}
       <main className={`w-full ${currentView === 'memory' || currentView === 'chronicles' ? 'min-h-[116vh]' : 'h-full'}`}>
         <Suspense fallback={<ViewLoadingFallback />}>
+          {/* Bọc theo key để mỗi lần đổi phân khu chạy lại hoạt ảnh trượt */}
+          <div
+            key={currentView}
+            className={`w-full h-full ${
+              slideDir === 'up' ? 'ff-view-slide-up' : slideDir === 'down' ? 'ff-view-slide-down' : ''
+            }`}
+          >
+          <ViewReadySignal view={currentView} onReady={handleViewReady} />
           {currentView === 'landing' && (
             <LandingPage
               currentUser={currentUser}
@@ -437,6 +814,7 @@ export const App: React.FC = () => {
               users={users}
               chatMessages={chatMessages}
               isSynced={isSynced}
+              onOpenFocusMode={() => setIsFocusModeOpen(true)}
             />
           )}
 
@@ -477,43 +855,20 @@ export const App: React.FC = () => {
             />
           )}
 
-          {currentView === 'study' && (
-            <StudyRoomView
-              currentUser={currentUser}
-              decks={studyDecks}
-              sessions={studySessions}
-              onOpenLoginModal={() => handleOpenAuth('login')}
-              onCreateDeck={createStudyDeck}
-              onUpdateDeck={updateStudyDeck}
-              onDeleteDeck={deleteStudyDeck}
-              onImportCards={importStudyCards}
-              onGradeCard={gradeStudyCard}
-              onSyncDeck={syncStudyDeck}
-              onRecordSession={recordStudySession}
-              onToggleStar={toggleStudyDeckStar}
-              onCloneDeck={cloneStudyDeck}
-            />
-          )}
-
           {currentView === 'coming-soon' && (
-            <UpdateHubView
-              currentUser={currentUser}
-              onOpenAuth={() => handleOpenAuth('register')}
-              onNavigate={handleViewChange}
-              stats={{
-                members: Object.keys(users).length,
-                questions: questions.length,
-                solutions: solutions.length,
-                clubs: clubs.filter(club => club.status === 'APPROVED').length,
-                decks: studyDecks.length,
-                sessions: studySessions.length,
-              }}
-              feedbacks={feedbacks}
-              onSubmitFeedback={submitFeedback}
-            />
+            <ComingSoonView onReturnHome={handleViewChange} />
           )}
+          </div>
         </Suspense>
       </main>
+
+      {/* Màn hình chờ chuyển phân khu (CodeFronts la-09 vinyl / la-05 dots) */}
+      <ViewTransitionLoader
+        visible={Boolean(transition) && Boolean(loaderMeta)}
+        targetLabel={loaderMeta?.label}
+        variant={loaderMeta?.variant || 'vinyl'}
+        onSkip={() => setTransition(null)}
+      />
 
       {/* Radial quick actions (ccm-02 sin()/cos() fan at bottom-left below Streak) */}
       {currentView !== 'landing' && currentView !== 'chronicles' && !isChatOpen && (
@@ -521,6 +876,10 @@ export const App: React.FC = () => {
           onNavigate={(v) => handleNavigate(v as DimensionView)}
           onToggleChat={handleToggleChat}
           onOpenFocusMode={() => setIsFocusModeOpen(true)}
+          onOpenStreak={() => window.dispatchEvent(new CustomEvent('fforum_open_daily'))}
+          onOpenNotes={() => setIsNotesOpen(true)}
+          onOpenPalette={() => setIsPaletteOpen(true)}
+          streakCount={currentUser?.streakCount ?? 0}
         />
       )}
 
@@ -537,6 +896,7 @@ export const App: React.FC = () => {
             onDeleteMessage={adminDeleteChatMessage}
             onOpenLoginModal={() => handleOpenAuth('login')}
             onOpenProfile={handleOpenUserProfile}
+            isSynced={isSynced}
           />
           )
         )}
@@ -593,7 +953,39 @@ export const App: React.FC = () => {
         <FocusSanctuary
           isOpen={isFocusModeOpen}
           onClose={() => setIsFocusModeOpen(false)}
-          onRewardXP={addXP}
+          userEmail={currentUser?.email}
+          onRewardXP={handleFocusReward}
+        />
+      </Suspense>
+
+      {/* Người giữ nhịp Phòng Tập Trung: đếm theo thời gian thật ở cấp App,
+          ghi giờ học + XP kể cả khi HUD đã đóng, kèm chip đếm ngược nổi. */}
+      <FocusSessionWatcher
+        userEmail={currentUser?.email}
+        onRewardXP={handleFocusReward}
+        isHudOpen={isFocusModeOpen}
+        onOpenHud={() => setIsFocusModeOpen(true)}
+      />
+
+      {/* ======================================================== */}
+      {/* HIDDEN PREMIUM LAYER: Bảng lệnh, Sổ tay nhanh, Nghỉ mắt  */}
+      {/* ======================================================== */}
+      <Suspense fallback={null}>
+        <CommandPalette
+          isOpen={isPaletteOpen}
+          onClose={() => setIsPaletteOpen(false)}
+          commands={paletteCommands}
+        />
+
+        <QuickNotesDock
+          isOpen={isNotesOpen}
+          onClose={() => setIsNotesOpen(false)}
+          onOpenFocusMode={() => setIsFocusModeOpen(true)}
+        />
+
+        <StudyCareCoach
+          enabled={eyeRestEnabled}
+          onToast={(title, subtitle) => setToastMessage({ title, subtitle, type: 'success' })}
         />
       </Suspense>
 

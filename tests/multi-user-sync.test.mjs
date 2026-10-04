@@ -259,3 +259,101 @@ test('5. Copywriting Purge: Hero Headline and Subtext grounded in student forum 
   );
   assert.ok(!homeCode.includes('tham gia cộng đồng học sinh thật tương tác thật'), 'No artificial slogan');
 });
+
+test('6. Vòng 11 — tài khoản ảo bị xoá vĩnh viễn, hồ sơ người dùng đồng bộ qua sổ đăng ký thật', async () => {
+  /* 6.1 Không còn module tài khoản mô phỏng nào trong mã nguồn */
+  assert.ok(!fs.existsSync('src/utils/cohort.ts'), 'The virtual cohort module must be deleted, not shimmed');
+  [
+    'src/components/views/LeaderboardWidget.tsx',
+    'src/store/forumStore.ts',
+    'src/components/views/ChatView.tsx',
+  ].forEach((rel) => {
+    const code = fs.readFileSync(rel, 'utf8');
+    assert.ok(
+      !/COHORT|cohortActivityPoints|isCohortMember/.test(code),
+      `${rel} must be free of virtual accounts`,
+    );
+    assert.ok(
+      (code.match(/sv\.f-forum\.vn/g) || []).length <= 1,
+      `${rel} may mention the retired domain once (the guard) and nowhere else`,
+    );
+  });
+
+  /* 6.2 Server từ chối mọi email thuộc miền mô phỏng đã xoá */
+  const testEnv = await createTestServer();
+  try {
+    const blocked = await fetch(`${testEnv.baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Tài Khoản Ảo', email: 'sinhvien01@sv.f-forum.vn', password: 'password123' }),
+    });
+    assert.equal(blocked.status, 400, 'Virtual account domain must be rejected');
+    const blockedData = await blocked.json();
+    assert.equal(blockedData.success, false);
+    assert.ok(blockedData.message.includes('không còn được hỗ trợ'), 'Rejection must explain the retired domain');
+
+    /* 6.3 Sổ đăng ký server chỉ chứa tài khoản thật */
+    const syncRes = await fetch(`${testEnv.baseUrl}/api/sync`);
+    const syncData = await syncRes.json();
+    const emails = Object.keys(syncData.data.users || {});
+    assert.ok(emails.length >= 1, 'Server registry must expose the real accounts');
+    assert.ok(
+      !emails.some((email) => email.endsWith('@sv.f-forum.vn')),
+      'Server registry must never contain a virtual account',
+    );
+  } finally {
+    await testEnv.close();
+  }
+
+  /* 6.4 Client: sổ đăng ký được vệ sinh ở mọi cửa vào và luôn khoá theo email */
+  const store = fs.readFileSync('src/store/forumStore.ts', 'utf8');
+  assert.ok(store.includes("RETIRED_VIRTUAL_DOMAIN = '@sv.f-forum.vn'"), 'Store must retire the virtual domain');
+  assert.ok(store.includes('sanitizeUsersRegistry(JSON.parse(saved))'), 'Hydration must sanitize the persisted registry');
+  assert.ok(store.includes('sanitizeUsersRegistry(users)'), 'Every persist must write the sanitized registry');
+  assert.ok(
+    store.includes('sanitizeUsersRegistry({ ...prev, ...data.users })'),
+    'Server sync must sanitize the merged registry (server wins on conflicts)',
+  );
+  assert.ok(
+    store.includes('prev.email.toLowerCase() === updatedUser.email.toLowerCase() ? updatedUser : prev'),
+    'Editing a profile in one tab must refresh the profile in every other tab',
+  );
+
+  /* 6.5 Bảng xếp hạng đọc thẳng sổ đăng ký thật, không gộp nguồn ảo nào */
+  const board = fs.readFileSync('src/components/views/LeaderboardWidget.tsx', 'utf8');
+  assert.ok(
+    board.includes('computeMembers(users,') && board.includes('buildHoursMembers(users,'),
+    'Both leaderboards must read the real registry directly',
+  );
+  assert.ok(!board.includes('...COHORT'), 'Board must not merge any virtual list');
+
+  /* 6.6 Trang giới thiệu cũng không còn nhân vật mô phỏng */
+  const mocks = fs.readFileSync('src/components/landing/LandingMocks.tsx', 'utf8');
+  const content = fs.readFileSync('src/components/landing/landingContent.ts', 'utf8');
+  assert.ok(!mocks.includes('Minh Anh') && !mocks.includes('Nguyễn Khánh Linh'), 'Landing mocks must not name virtual students');
+  assert.ok(!content.includes('TESTIMONIALS'), 'The fake testimonial list must be replaced by real feature highlights');
+  assert.ok(content.includes('export const HIGHLIGHTS'), 'Feature highlights must describe real system capabilities');
+
+  /* 6.7 Đổi hồ sơ ở bất kỳ đâu → mọi nội dung đã đăng cũng đổi theo */
+  assert.ok(
+    store.includes('function syncUserIdentityIntoContent'),
+    'Store must have ONE shared identity-sync helper (no duplicated patch lists)',
+  );
+  assert.ok(
+    (store.match(/syncUserIdentityIntoContent\(/g) || []).length >= 5,
+    'The helper must run from updateProfile, /api/sync, the BroadcastChannel handler and the server broadcast handler',
+  );
+  assert.ok(store.includes('!q.isAnonymous'), 'Anonymous questions must keep their pen name');
+  assert.ok(
+    store.includes('setChatMessages, setClubPosts, setClubs'),
+    'Chat messages, club posts and club leader names must be synced as well',
+  );
+  assert.ok(
+    store.includes('const resolveOwner'),
+    'Content loaded from the server must be re-labelled with the newest profile',
+  );
+  assert.ok(
+    store.includes("candidate.id === c.leaderId"),
+    'Club leader names must follow the leader profile',
+  );
+});

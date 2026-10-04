@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { Fragment, useState, useRef, useEffect, useCallback } from 'react';
 import {
   MessageSquare,
   X,
@@ -10,10 +10,14 @@ import {
   HelpCircle,
   Compass,
   Sparkles,
-  Award,
   Settings,
   Rocket,
-  Brain,
+  Flame,
+  Film,
+  Trophy,
+  NotebookPen,
+  Command,
+  Timer,
 } from 'lucide-react';
 import type { DimensionView, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
@@ -23,7 +27,7 @@ import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { NotificationsModal } from './NotificationsModal';
 import { SettingsModal } from './SettingsModal';
 import { safeStorage } from '../utils/storage';
-import { StreakFlameWidget, DailyEngagementModal } from './DailyEngagementModal';
+import { DailyEngagementModal } from './DailyEngagementModal';
 
 export interface NavbarProps {
   currentView: DimensionView;
@@ -39,6 +43,8 @@ export interface NavbarProps {
   isInsideCinema?: boolean;
   onRewardCoins?: (amount: number, reason: string) => void;
   onUpdateStreak?: (streak: number) => void;
+  eyeRestEnabled?: boolean;
+  onToggleEyeRest?: () => void;
 }
 
 const NAV_ICONS: Record<DimensionView, React.ReactNode> = {
@@ -64,7 +70,6 @@ const NAV_ICONS: Record<DimensionView, React.ReactNode> = {
       <path d="M6 4h12a1 1 0 0 1 1 1v4c0 3.87-3.13 7-7 7s-7-3.13-7-7V5a1 1 0 0 1 1-1z" />
     </svg>
   ),
-  study: <Brain size={16} className="text-emerald-300" />,
   'coming-soon': <Rocket size={16} className="text-yellow-400" />,
 };
 
@@ -81,6 +86,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   isInsideCinema = false,
   onRewardCoins,
   onUpdateStreak,
+  eyeRestEnabled = false,
+  onToggleEyeRest,
 }) => {
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isFlyoutOpen, setIsFlyoutOpen] = useState(false);
@@ -156,18 +163,27 @@ export const Navbar: React.FC<NavbarProps> = ({
   const anyPopoverOpenRef = useRef(anyPopoverOpen);
   anyPopoverOpenRef.current = anyPopoverOpen;
 
+  /* Màn hẹp (< 1024px): thanh luôn ở chế độ icon để không phải cuộn và
+     không bao giờ bị mất tab/icon khi cửa sổ nhỏ lại. */
+  const isNarrowViewport = () =>
+    typeof window !== 'undefined' && window.innerWidth < 1024;
+
   const forceExpand = useCallback(() => {
     if (compactTimerRef.current) {
       clearTimeout(compactTimerRef.current);
       compactTimerRef.current = null;
+    }
+    if (isNarrowViewport()) {
+      setIsCompact(true);
+      return;
     }
     if (!alwaysCompact) {
       setIsCompact(false);
     }
   }, [alwaysCompact]);
 
-  const scheduleCompact = useCallback((delay = 500) => {
-    if (alwaysCompact) {
+  const scheduleCompact = useCallback((delay = 760) => {
+    if (alwaysCompact || isNarrowViewport()) {
       setIsCompact(true);
       return;
     }
@@ -198,7 +214,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       idleTimerRef.current = setTimeout(() => {
         if (!anyPopoverOpenRef.current && !alwaysCompact) forceExpand();
-      }, 900);
+      }, 1200);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
@@ -212,6 +228,29 @@ export const Navbar: React.FC<NavbarProps> = ({
     setIsCompact(alwaysCompact);
   }, [alwaysCompact]);
 
+  /* Cửa sổ nhỏ lại → tự chuyển sang chế độ icon ngay, tránh tràn/mất tab */
+  useEffect(() => {
+    const onResize = () => {
+      if (isNarrowViewport()) {
+        setIsCompact(true);
+      } else if (!alwaysCompact && !anyPopoverOpenRef.current) {
+        setIsCompact(false);
+      }
+    };
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [alwaysCompact]);
+
+  /* Khi đổi vị trí dock (trên/dưới/trái/phải): chạy hoạt ảnh morph để việc
+     chuyển giữa GUI lớn ↔ GUI nhỏ không còn bị "giật" hình. */
+  const [isMorphing, setIsMorphing] = useState(false);
+  useEffect(() => {
+    setIsMorphing(true);
+    const t = window.setTimeout(() => setIsMorphing(false), 480);
+    return () => window.clearTimeout(t);
+  }, [navbarPosition]);
+
   const handleNavPointerEnter = () => {
     if (hideTimerRef.current) {
       clearTimeout(hideTimerRef.current);
@@ -224,9 +263,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const handleNavPointerLeave = () => {
-    /* 0.5s grace: the capsule folds into icon-only mode */
+    /* 0.76s grace: capsule co lại thành dải icon với nhịp chậm, êm mắt */
     if (!alwaysCompact && !anyPopoverOpenRef.current) {
-      scheduleCompact(500);
+      scheduleCompact(760);
     }
     if (!navbarAutoHide) return;
     if (anyPopoverOpenRef.current) return;
@@ -235,7 +274,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       if (!anyPopoverOpenRef.current) {
         setIsNavbarHovered(false);
       }
-    }, 900);
+    }, 1200);
   };
 
   useEffect(() => {
@@ -275,7 +314,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           hideTimerRef.current = setTimeout(() => {
             if (!anyPopoverOpenRef.current) setIsNavbarHovered(false);
             hideTimerRef.current = null;
-          }, 900);
+          }, 1200);
         }
       }
     };
@@ -293,10 +332,62 @@ export const Navbar: React.FC<NavbarProps> = ({
   const isVertical = navbarPosition === 'left' || navbarPosition === 'right';
   const effectiveCompact = isCompact || alwaysCompact;
 
+  /* ---------------------------------------------------------------------
+     Lớp "đang tải" khi navbar phóng to / thu nhỏ.
+     Nội dung thật (icon + nhãn) KHÔNG bị hạ mờ nữa — icon luôn rõ và luôn bấm
+     được. Hiệu ứng "đang chuyển hình dáng" được báo bằng MỘT dải sáng mảnh
+     chạy men theo hai mép trên/dưới của thanh (mask 2.5px) nên không phủ lên
+     chữ/icon, kèm dải aura chạy nhanh hơn một nhịp.
+     --------------------------------------------------------------------- */
+  /* Thời gian chạy lớp loading = đúng nhịp bề rộng thanh co giãn (0.78s) để
+     hiệu ứng "đang đổi hình dáng" phủ trọn vẹn cú morph, không tắt giữa chừng. */
+  const NAV_MORPH_MS = 780;
+  const [isMorphBusy, setIsMorphBusy] = useState(false);
+  const morphBusyTimerRef = useRef<number | null>(null);
+
+  const flashMorphLoading = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const reduceMotion =
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ||
+      document.documentElement.classList.contains('reduce-motion');
+    if (reduceMotion) return;
+    setIsMorphBusy(true);
+    if (morphBusyTimerRef.current) window.clearTimeout(morphBusyTimerRef.current);
+    morphBusyTimerRef.current = window.setTimeout(() => setIsMorphBusy(false), NAV_MORPH_MS);
+  }, []);
+
+  /* Huỷ lớp loading ngay khi người dùng chạm vào thanh điều hướng:
+     cú bấm đầu tiên luôn được xử lý, không bao giờ bị "nuốt". */
+  const cancelMorphLoading = useCallback(() => {
+    if (morphBusyTimerRef.current) {
+      window.clearTimeout(morphBusyTimerRef.current);
+      morphBusyTimerRef.current = null;
+    }
+    setIsMorphBusy(false);
+  }, []);
+
+  const layoutKey = `${effectiveCompact && !isVertical ? 'compact' : 'expanded'}-${navbarPosition}`;
+  const prevLayoutKeyRef = useRef(layoutKey);
+  useEffect(() => {
+    if (prevLayoutKeyRef.current === layoutKey) return;
+    prevLayoutKeyRef.current = layoutKey;
+    flashMorphLoading();
+  }, [layoutKey, flashMorphLoading]);
+
+  useEffect(() => {
+    return () => {
+      if (morphBusyTimerRef.current) window.clearTimeout(morphBusyTimerRef.current);
+    };
+  }, []);
+
   /* ============================================================ */
   /* Robust active pill measurement (offset-based + rAF tracker)   */
   /* ============================================================ */
   useEffect(() => {
+    /* Đang ở nhịp morph thì pill bị làm mờ, không cần đo mỗi khung hình —
+       đo liên tục trong lúc thanh đổi kích thước chính là nguồn gây giật. */
+    if (isMorphBusy) return;
+
     let rafId: number | null = null;
     const startMs = performance.now();
 
@@ -338,12 +429,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 
     const tick = () => {
       updatePill();
-      if (performance.now() - startMs < 550) {
+      if (performance.now() - startMs < 200) {
         rafId = requestAnimationFrame(tick);
       }
     };
 
     rafId = requestAnimationFrame(tick);
+    /* Morph xong mới là lúc bố cục đứng yên: đo lại vài nhịp để pill về đúng chỗ */
+    const settleTimers = [280, 620, 900].map((delay) => window.setTimeout(updatePill, delay));
     window.addEventListener('resize', updatePill);
 
     let ro: ResizeObserver | null = null;
@@ -358,12 +451,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
     return () => {
       if (rafId !== null) cancelAnimationFrame(rafId);
+      settleTimers.forEach((t) => window.clearTimeout(t));
       window.removeEventListener('resize', updatePill);
       ro?.disconnect();
       containerEl?.removeEventListener('scroll', updatePill);
       containerEl?.removeEventListener('transitionend', updatePill);
     };
-  }, [currentView, isVertical, effectiveCompact, navbarPosition]);
+  }, [currentView, isVertical, effectiveCompact, navbarPosition, isMorphBusy]);
 
   /* Keep the active tab visible inside the scrollable strip */
   useEffect(() => {
@@ -420,6 +514,19 @@ export const Navbar: React.FC<NavbarProps> = ({
       document.documentElement.classList.add('dark');
     }
   };
+
+  /* Cho phép Bảng lệnh (⌘K) và các phím tắt đổi theme từ bên ngoài Navbar */
+  useEffect(() => {
+    const onToggleTheme = () => handleToggleTheme();
+    const onOpenDaily = () => setIsDailyModalOpen(true);
+    window.addEventListener('fforum_toggle_theme', onToggleTheme);
+    window.addEventListener('fforum_open_daily', onOpenDaily);
+    return () => {
+      window.removeEventListener('fforum_toggle_theme', onToggleTheme);
+      window.removeEventListener('fforum_open_daily', onOpenDaily);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme]);
 
   const handleToggleSoundEffects = () => {
     setSoundEffects((prev) => {
@@ -552,25 +659,18 @@ export const Navbar: React.FC<NavbarProps> = ({
     setIsAudioPlaying(active || isAmbientActive());
   };
 
-  const navItems: { id: DimensionView; label: string }[] = [
-    { id: 'landing', label: 'GIỚI THIỆU' },
+  /* Nút F (logo) là lối vào trang Giới thiệu -> không còn tab chữ "GIỚI THIỆU".
+     Miền Ký Ức / Khu Vinh Danh / Update luôn ở dạng icon cho thanh gọn và sang hơn. */
+  const navItems: { id: DimensionView; label: string; iconOnly?: boolean }[] = [
     { id: 'home', label: 'TRANG CHỦ' },
     { id: 'clubs', label: 'CÂU LẠC BỘ' },
     { id: 'qa', label: 'HỎI ĐÁP' },
-    { id: 'study', label: 'ÔN TẬP' },
     { id: 'chat', label: 'PHÒNG CHAT' },
-    { id: 'memory', label: 'MIỀN KÝ ỨC' },
-    { id: 'chronicles', label: 'KHU VINH DANH' },
-    { id: 'coming-soon', label: 'CẬP NHẬT' },
+    { id: 'memory', label: 'MIỀN KÝ ỨC', iconOnly: true },
+    { id: 'chronicles', label: 'KHU VINH DANH', iconOnly: true },
+    { id: 'coming-soon', label: 'UPDATE', iconOnly: true },
   ];
-
-  /* Streak flame sits right above the Lightning Bolt (RadialQuickMenu) at bottom-left */
-  const streakWidgetPosClass =
-    navbarPosition === 'bottom'
-      ? 'fixed bottom-40 left-4 md:bottom-40 md:left-5'
-      : navbarPosition === 'left'
-      ? 'fixed bottom-20 left-24 md:bottom-20 md:left-24'
-      : 'fixed bottom-20 left-4 md:bottom-20 md:left-5';
+  const firstIconOnlyIndex = navItems.findIndex((item) => item.iconOnly);
 
   const sharedSettingsProps = {
     isOpen: isSettingsOpen,
@@ -646,27 +746,17 @@ export const Navbar: React.FC<NavbarProps> = ({
       });
     },
     dockPosition: navbarPosition,
+    eyeRestEnabled,
+    onToggleEyeRest,
   };
 
   const isDockHidden = isInsideCinema || (navbarAutoHide && !isNavbarHovered && !anyPopoverOpen);
 
   return (
     <>
-      {/* Auto-Hide Hover Trigger Zone (Synchronized across all 4 edges) */}
-      {navbarAutoHide && (
-        <div
-          className={`hidden md:block fixed z-[51] pointer-events-auto opacity-0 transition-all ${
-            navbarPosition === 'bottom'
-              ? 'bottom-0 inset-x-0 h-[88px]'
-              : navbarPosition === 'left'
-              ? 'left-0 inset-y-0 w-[88px]'
-              : navbarPosition === 'right'
-              ? 'right-0 inset-y-0 w-[88px]'
-              : 'top-0 inset-x-0 h-[88px]'
-          }`}
-          onMouseEnter={handleNavPointerEnter}
-        />
-      )}
+      {/* (Đã xoá dải vô hình bắt hover ở mép màn hình: nó phủ lên navbar và
+          nuốt cú bấm. Việc dò mép đã do listener mousemove ở trên lo — không
+          còn lớp nào chặn chuột nữa.) */}
 
       {/* ======================================================== */}
       {/* 1. DESKTOP FLOATING GLASS CAPSULE (Viewports >= 768px)   */}
@@ -674,7 +764,9 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div
         onMouseEnter={handleNavPointerEnter}
         onMouseLeave={handleNavPointerLeave}
-        className={`hidden md:block fixed inset-0 z-50 pointer-events-none transition-all duration-500 dock-container dock-pos-${navbarPosition}`}
+        className={`hidden md:block fixed inset-0 z-50 pointer-events-none transition-all duration-500 dock-container dock-pos-${navbarPosition} ${
+          isMorphing ? 'ff-nav-morphing' : ''
+        }`}
         style={{
           transform: isDockHidden
             ? navbarPosition === 'bottom'
@@ -690,128 +782,131 @@ export const Navbar: React.FC<NavbarProps> = ({
       >
         <nav
           data-compact={effectiveCompact && !isVertical ? 'true' : 'false'}
+          data-morph={isMorphBusy ? 'loading' : 'ready'}
           onPointerEnter={forceExpand}
-          onFocusCapture={forceExpand}
-          className="ff-nav-capsule fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full px-4 flex items-center justify-between gap-1 shadow-2xl"
+          onPointerDownCapture={cancelMorphLoading}
+          onFocusCapture={() => {
+            forceExpand();
+            cancelMorphLoading();
+          }}
+          aria-busy={isMorphBusy}
+          className={`ff-nav-capsule fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full px-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 shadow-2xl ${
+            isMorphBusy ? 'ff-nav-capsule--busy' : ''
+          }`}
           aria-label="Điều hướng chính"
         >
+          {/* Lớp aura chuyển động rất nhẹ, nằm SAU nội dung nên không đè chữ nào */}
+          <span className="ff-nav-aura" aria-hidden="true" />
+
+          {/* Lớp "đang tải" khi thanh điều hướng đổi hình dáng: nội dung thật
+              được giữ nguyên vị trí và hạ mờ thành bóng, phủ thêm một vệt sáng
+              quét ngang. Nhờ giữ nguyên nội dung nên bố cục luôn khớp 100% và
+              chỉ có MỘT phần tử chuyển động (transform) — nhẹ, không giật. */}
+          <span className="ff-nav-loading" aria-hidden="true">
+            <i className="ff-nav-loading__sheen" />
+          </span>
+
           {/* Brand Logo */}
           <button
             type="button"
             onClick={() => {
-              onViewChange('home');
+              onViewChange('landing');
               setIsMobileMenuOpen(false);
             }}
-            className="group text-left focus:outline-none cursor-pointer flex-shrink-0 pointer-events-auto"
-            title="F-Forum - Trở về Trang chủ"
-            aria-label="Trang chủ F-Forum"
+            className="ff-nav-brand group focus:outline-none cursor-pointer flex-shrink-0 pointer-events-auto"
+            title="F-Forum — Trang Giới thiệu"
+            aria-label="Mở trang Giới thiệu F-Forum"
           >
-            <div className="flex items-center gap-2 flex-shrink-0 whitespace-nowrap select-none">
-              <div className="w-8 h-8 rounded-full ff-gradient-ring flex-shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.3)]">
-                <div className="w-full h-full bg-[#0a0f14] rounded-full flex items-center justify-center text-amber-400 font-bold text-sm">
-                  F
-                </div>
-              </div>
-              <span className="ff-nav-brand-text nav-brand-text font-['Playfair_Display'] italic font-bold text-xl tracking-wide ff-aurora-text flex-shrink-0 drop-shadow-[0_2px_12px_rgba(245,158,11,0.3)]">
-                F-Forum
-              </span>
-            </div>
+            {/* Huy hiệu F: một vòng gradient duy nhất, không xếp lớp */}
+            <span className="ff-nav-logo" aria-hidden="true">
+              <span className="ff-nav-logo__core">F</span>
+            </span>
+
+            {/* Chữ F-Forum: gradient vàng tĩnh + vệt sáng lướt, đọc rõ không bị loè */}
+            <span className="ff-nav-brand-text nav-brand-text">
+              <span className="ff-nav-brand-title">F-Forum</span>
+            </span>
           </button>
 
           {/* Center Tabs: text-only when expanded, icon-only when compact or vertical */}
-          <div ref={tabsContainerRef} className="relative flex items-center gap-1 overflow-x-auto no-scrollbar py-1 nav-center-tabs">
+          <div
+            ref={tabsContainerRef}
+            className="relative flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-1 min-w-0 nav-center-tabs"
+          >
+            {/* Viên chỉ báo trượt: điểm nhấn DUY NHẤT khi thanh mở rộng ở màn rộng.
+                Không dùng thêm hạt droplet hay nền riêng cho tab để tránh chồng lớp. */}
             {!isVertical && pillStyle.opacity > 0 && (
-              <>
-                {/* Liquid sliding pill indicator */}
-                <div
-                  className="absolute top-1 bottom-1 nav-liquid-pill pointer-events-none hidden lg:block"
-                  style={{
-                    left: `${pillStyle.left}px`,
-                    width: `${pillStyle.width}px`,
-                    opacity: pillStyle.opacity,
-                  }}
-                />
-
-                {/* Organic liquid droplet bead */}
-                <div
-                  className={`absolute ${navbarPosition === 'bottom' ? 'top-0' : 'bottom-0'} nav-liquid-drop pointer-events-none hidden lg:block`}
-                  style={{
-                    left: `${Math.max(4, pillStyle.left + pillStyle.width / 2 - 8)}px`,
-                    width: '16px',
-                    height: '4px',
-                    opacity: pillStyle.opacity,
-                  }}
-                />
-              </>
-            )}
-
-            {/* Vertical organic liquid droplet bead */}
-            {isVertical && pillStyle.opacity > 0 && (
               <div
-                className={`absolute ${navbarPosition === 'left' ? 'left-0.5' : 'right-0.5'} nav-liquid-drop-vertical pointer-events-none`}
+                className="absolute top-1 bottom-1 nav-liquid-pill pointer-events-none hidden lg:block"
                 style={{
-                  top: `${Math.max(4, pillStyle.top + (pillStyle.height ? pillStyle.height / 2 - 9 : 10))}px`,
-                  width: '4px',
-                  height: '18px',
+                  left: `${pillStyle.left}px`,
+                  width: `${pillStyle.width}px`,
                   opacity: pillStyle.opacity,
                 }}
+                aria-hidden="true"
               />
             )}
 
-            {navItems.map((item) => {
+            {navItems.map((item, idx) => {
               const isActive = currentView === item.id;
 
               return (
-                <button
-                  key={item.id}
-                  ref={(el) => {
-                    tabRefs.current[item.id] = el;
-                  }}
-                  onClick={() => onViewChange(item.id)}
-                  title={item.label}
-                  aria-label={item.label}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`nav-tab-btn px-3 py-1.5 rounded-full text-xs font-semibold tracking-wider whitespace-nowrap flex-shrink-0 select-none transition-all cursor-pointer flex items-center justify-center z-10 group/tab relative ${
-                    isActive
-                      ? 'bg-amber-500/20 lg:bg-amber-500/15 text-amber-300 border border-amber-500/35 shadow-[0_0_14px_rgba(245,158,11,0.22)]'
-                      : 'text-white/75 hover:text-white hover:bg-white/10 border border-transparent'
-                  }`}
-                >
-                  {/* Icon: shown ONLY in compact mode or vertical dock */}
-                  <span className="dock-nav-icon ff-nav-tab-icon-wrap flex items-center justify-center ff-nav-tab-icon">
-                    {NAV_ICONS[item.id]}
-                  </span>
+                <Fragment key={item.id}>
+                  {/* Vạch phân cách mảnh giữa nhóm tab chữ và nhóm tab icon */}
+                  {idx === firstIconOnlyIndex && <span className="nav-dock-divider" aria-hidden="true" />}
 
-                  {/* Label: shown ONLY in expanded horizontal mode */}
-                  <span className="ff-nav-label nav-tab-label whitespace-nowrap select-none">
-                    {item.label}
-                  </span>
-
-                  {/* Hover Tooltip in Vertical or Compact Mode */}
-                  <span
-                    className={`pointer-events-none opacity-0 group-hover/tab:opacity-100 transition-all duration-200 fixed ${
-                      navbarPosition === 'left'
-                        ? 'left-24'
-                        : navbarPosition === 'right'
-                        ? 'right-24'
-                        : navbarPosition === 'bottom'
-                        ? 'bottom-20'
-                        : 'top-20'
-                    } px-2.5 py-1 rounded-xl bg-[#0a0f14]/95 backdrop-blur-xl border border-white/20 text-[11px] font-bold text-amber-300 shadow-[0_10px_25px_rgba(0,0,0,0.8)] z-50 whitespace-nowrap hidden dock-vertical-tooltip`}
+                  <button
+                    ref={(el) => {
+                      tabRefs.current[item.id] = el;
+                    }}
+                    onClick={() => onViewChange(item.id)}
+                    aria-label={item.label}
+                    aria-current={isActive ? 'page' : undefined}
+                    data-icon-only={item.iconOnly ? 'true' : 'false'}
+                    className={`nav-tab-btn ${
+                      item.iconOnly ? 'nav-tab-btn--icon-only' : ''
+                    } ${isActive ? 'nav-tab-btn--active' : ''} px-3 py-1.5 rounded-full text-[11.5px] font-semibold tracking-[0.055em] whitespace-nowrap flex-shrink-0 select-none cursor-pointer flex items-center justify-center z-10 group/tab relative border border-transparent ${
+                      isActive ? 'text-amber-100' : 'text-white/70 hover:text-white hover:bg-white/[0.07]'
+                    }`}
                   >
-                    {item.label}
-                  </span>
+                    {/* Icon: hiện khi thu gọn, khi dock dọc, hoặc với các tab luôn-dạng-icon */}
+                    <span className="dock-nav-icon ff-nav-tab-icon-wrap flex items-center justify-center ff-nav-tab-icon">
+                      {NAV_ICONS[item.id]}
+                    </span>
 
-                  {item.id === 'chat' && unreadChatCount > 0 && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0 ml-1" />
-                  )}
-                </button>
+                    {/* Label: chỉ hiện ở chế độ mở rộng với các tab chữ */}
+                    <span className="ff-nav-label nav-tab-label whitespace-nowrap select-none">
+                      {item.label}
+                    </span>
+
+                    {/* Hover Tooltip: dock dọc, chế độ thu gọn và mọi tab chỉ-icon */}
+                    <span
+                      className={`pointer-events-none opacity-0 group-hover/tab:opacity-100 transition-all duration-200 fixed ${
+                        navbarPosition === 'left'
+                          ? 'left-24'
+                          : navbarPosition === 'right'
+                          ? 'right-24'
+                          : navbarPosition === 'bottom'
+                          ? 'bottom-20'
+                          : 'top-20'
+                      } px-2.5 py-1 rounded-xl bg-[#0a0f14]/95 backdrop-blur-xl border border-white/20 text-[11px] font-bold text-amber-300 shadow-[0_10px_25px_rgba(0,0,0,0.8)] z-50 whitespace-nowrap hidden dock-vertical-tooltip ${
+                        item.iconOnly ? 'ff-tip-always' : ''
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+
+                    {item.id === 'chat' && unreadChatCount > 0 && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0 ml-1" />
+                    )}
+                  </button>
+                </Fragment>
               );
             })}
           </div>
 
-          {/* Right Side: Quick Dock */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 nav-actions-dock">
+          {/* Right Side: Quick Dock (cụm tiện ích + vạch phân cách với tài khoản) */}
+          <div className="flex items-center gap-1.5 flex-shrink-0 nav-actions-dock">
             {/* Settings Trigger */}
             <div ref={settingsTriggerRef} className="relative inline-flex items-center justify-center flex-shrink-0">
               <button
@@ -823,16 +918,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setIsNotificationsOpen(false);
                   setIsFlyoutOpen(false);
                 }}
-                className={`relative w-9 h-9 rounded-full bg-white/5 border border-white/10 hover:border-amber-400/30 text-white/70 hover:text-white cursor-pointer pointer-events-auto flex items-center justify-center transition-all duration-300 focus:outline-none ${
-                  isSettingsOpen
-                    ? 'bg-amber-500/20 border-amber-400/50 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.4)]'
-                    : 'hover:bg-white/10'
+                className={`nav-icon-btn group relative w-9 h-9 rounded-full cursor-pointer pointer-events-auto flex items-center justify-center focus:outline-none ${
+                  isSettingsOpen ? 'nav-icon-btn--on text-amber-300' : 'text-white/70 hover:text-white'
                 }`}
                 title="Cài đặt"
                 aria-label="Cài đặt hệ thống"
               >
                 <Settings
-                  className={`w-4 h-4 transition-transform duration-500 ${
+                  className={`w-[17px] h-[17px] transition-transform duration-500 ${
                     isSettingsOpen ? 'rotate-90 text-amber-300' : 'group-hover:rotate-45'
                   }`}
                 />
@@ -846,7 +939,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 e.stopPropagation();
                 onToggleChat();
               }}
-              className="relative w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/30 flex items-center justify-center text-white/70 hover:text-white transition-all cursor-pointer pointer-events-auto"
+              className="nav-icon-btn group relative w-9 h-9 rounded-full flex items-center justify-center text-white/70 hover:text-white cursor-pointer pointer-events-auto"
               title="Mở phòng chat"
               aria-label="Mở phòng chat"
             >
@@ -869,7 +962,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setIsFlyoutOpen(false);
                   setIsSettingsOpen(false);
                 }}
-                className="relative w-9 h-9 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors pointer-events-auto cursor-pointer"
+                className={`nav-icon-btn group relative w-9 h-9 rounded-full flex items-center justify-center pointer-events-auto cursor-pointer ${
+                  isNotificationsOpen ? 'nav-icon-btn--on text-amber-300' : 'text-white/80 hover:text-white'
+                }`}
                 aria-label="Thông báo"
                 title="Thông báo"
               >
@@ -881,6 +976,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
               </button>
             </div>
+
+            {/* Vạch phân cách giữa cụm tiện ích và tài khoản */}
+            <span className="nav-actions-divider" aria-hidden="true" />
 
             {/* Auth Capsule or Login Button */}
             {!currentUser ? (
@@ -958,11 +1056,15 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* ======================================================== */}
       {/* DESKTOP POPOVERS (Rendered outside transformed nav!)     */}
       {/* ======================================================== */}
-      <div className="hidden md:block">
-        <div ref={settingsMenuRef}>
-          <SettingsModal {...sharedSettingsProps} anchorRef={settingsTriggerRef} />
-        </div>
+      {/* CÀI ĐẶT — chỉ MỘT bản duy nhất, không nằm trong khung ẩn `hidden md:block`
+          và cũng không nằm trong khung có transform/filter, nhờ vậy tấm phủ của
+          bảng luôn phủ đúng toàn màn hình. Không còn bản sao cho điện thoại:
+          nếu nút neo bị ẩn, panel tự nổi giữa màn hình (xem SettingsModal). */}
+      <div ref={settingsMenuRef}>
+        <SettingsModal {...sharedSettingsProps} anchorRef={settingsTriggerRef} />
+      </div>
 
+      <div className="hidden md:block">
         <div ref={notifMenuRef}>
           <NotificationsModal
             isOpen={isNotificationsOpen}
@@ -1000,11 +1102,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         <button
           type="button"
           onClick={() => {
-            onViewChange('home');
+            onViewChange('landing');
             setIsMobileMenuOpen(false);
           }}
           className="flex items-center gap-2 flex-shrink-0 whitespace-nowrap select-none cursor-pointer focus:outline-none"
-          aria-label="Trang chủ F-Forum"
+          aria-label="Mở trang Giới thiệu F-Forum"
         >
           <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-200 p-[1px] flex-shrink-0">
             <div className="w-full h-full bg-[#0a0f14] rounded-full flex items-center justify-center text-amber-400 font-bold text-xs">
@@ -1037,11 +1139,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Settings size={18} className={isSettingsOpen ? 'text-amber-300 rotate-90 transition-transform' : 'text-amber-400'} />
             </button>
-
-            {/* Mobile Settings Modal */}
-            <div className="md:hidden">
-              <SettingsModal {...sharedSettingsProps} />
-            </div>
           </div>
 
           {/* Notification Bell Button */}
@@ -1265,11 +1362,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             role="dialog"
             aria-modal="true"
             aria-label="Menu khám phá"
-            className="fixed bottom-[calc(56px+var(--safe-bottom)+8px)] inset-x-3 z-50 rounded-3xl bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 p-4 shadow-2xl animate-fade-up md:hidden pointer-events-auto"
+            className="fixed bottom-[calc(56px+var(--safe-bottom)+8px)] inset-x-3 z-50 rounded-3xl bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 p-3.5 shadow-2xl animate-fade-up md:hidden pointer-events-auto"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
-                <Compass className="w-4 h-4 text-amber-400" />
+            <div className="flex items-center justify-between pb-2.5 border-b border-white/10 mb-3">
+              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                <Compass className="w-3.5 h-3.5 text-amber-400" />
                 Khám phá
               </span>
               <button
@@ -1282,24 +1379,25 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-2">
+            {/* Lưới icon chủ đề — thay cho danh sách chữ dài dòng */}
+            <div className="grid grid-cols-4 gap-2">
               <button
                 type="button"
                 onClick={() => {
                   onViewChange('landing');
                   setIsMobileMenuOpen(false);
                 }}
-                className={`w-full p-3 rounded-2xl border transition-all text-left flex items-center gap-3 cursor-pointer ${
-                  currentView === 'landing'
-                    ? 'bg-amber-500/20 border-amber-400/40 text-amber-300'
-                    : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-                }`}
+                data-active={currentView === 'landing' ? 'true' : 'false'}
+                className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
+                aria-label="Giới thiệu F-Forum"
+                title="Giới thiệu F-Forum"
               >
-                <Sparkles className="w-5 h-5 text-amber-400 shrink-0" />
-                <div>
-                  <div className="text-xs font-bold">Giới thiệu F-Forum</div>
-                  <div className="text-[10px] text-neutral-400">Trang giới thiệu, tính năng &amp; bảng giá</div>
-                </div>
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-amber-400/25 to-yellow-200/10 border border-amber-300/30 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-amber-300" />
+                </span>
+                <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
+                  Giới thiệu
+                </span>
               </button>
 
               <button
@@ -1308,17 +1406,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onViewChange('memory');
                   setIsMobileMenuOpen(false);
                 }}
-                className={`w-full p-3 rounded-2xl border transition-all text-left flex items-center gap-3 cursor-pointer ${
-                  currentView === 'memory'
-                    ? 'bg-amber-500/20 border-amber-400/40 text-amber-300'
-                    : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-                }`}
+                data-active={currentView === 'memory' ? 'true' : 'false'}
+                className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
+                aria-label="Miền Ký Ức"
+                title="Miền Ký Ức"
               >
-                <Sparkles className="w-5 h-5 text-amber-400 shrink-0" />
-                <div>
-                  <div className="text-xs font-bold">Miền Ký Ức</div>
-                  <div className="text-[10px] text-neutral-400">Dòng thời gian điện ảnh</div>
-                </div>
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-pink-400/25 to-fuchsia-500/10 border border-pink-300/30 flex items-center justify-center">
+                  <Film className="w-4 h-4 text-pink-300" />
+                </span>
+                <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
+                  Ký ức
+                </span>
               </button>
 
               <button
@@ -1327,17 +1425,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onViewChange('chronicles');
                   setIsMobileMenuOpen(false);
                 }}
-                className={`w-full p-3 rounded-2xl border transition-all text-left flex items-center gap-3 cursor-pointer ${
-                  currentView === 'chronicles'
-                    ? 'bg-amber-500/20 border-amber-400/40 text-amber-300'
-                    : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-                }`}
+                data-active={currentView === 'chronicles' ? 'true' : 'false'}
+                className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
+                aria-label="Khu Vinh Danh"
+                title="Khu Vinh Danh"
               >
-                <Award className="w-5 h-5 text-amber-400 shrink-0" />
-                <div>
-                  <div className="text-xs font-bold">Khu Vinh Danh</div>
-                  <div className="text-[10px] text-neutral-400">Quả cầu 3D & các cột mốc</div>
-                </div>
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-amber-300/25 to-orange-500/10 border border-amber-300/30 flex items-center justify-center">
+                  <Trophy className="w-4 h-4 text-amber-300" />
+                </span>
+                <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
+                  Vinh danh
+                </span>
               </button>
 
               <button
@@ -1346,33 +1444,101 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onViewChange('coming-soon');
                   setIsMobileMenuOpen(false);
                 }}
-                className={`w-full p-3 rounded-2xl border transition-all text-left flex items-center gap-3 cursor-pointer ${
-                  currentView === 'coming-soon'
-                    ? 'bg-amber-500/20 border-amber-400/40 text-amber-300'
-                    : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-                }`}
+                data-active={currentView === 'coming-soon' ? 'true' : 'false'}
+                className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
+                aria-label="Bản nâng cấp"
+                title="Bản nâng cấp"
               >
-                <Rocket className="w-5 h-5 text-amber-400 shrink-0" />
-                <div>
-                  <div className="text-xs font-bold">Bản nâng cấp</div>
-                  <div className="text-[10px] text-neutral-400">Không gian phát triển tính năng mới</div>
-                </div>
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-cyan-400/25 to-blue-500/10 border border-cyan-300/30 flex items-center justify-center">
+                  <Rocket className="w-4 h-4 text-cyan-300" />
+                </span>
+                <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
+                  Update
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDailyModalOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="ff-explore-tile relative p-2 flex flex-col items-center gap-1.5 cursor-pointer"
+                aria-label="Điểm danh và kho quà"
+                title="Điểm danh &amp; kho quà"
+              >
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-rose-500/25 to-red-500/10 border border-rose-400/30 flex items-center justify-center">
+                  <Flame className="w-4 h-4 text-rose-300" />
+                </span>
+                <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
+                  Điểm danh
+                </span>
+                {(currentUser?.streakCount ?? 0) > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-gradient-to-r from-red-600 to-rose-500 text-[9px] font-bold text-white flex items-center justify-center border border-rose-200/40">
+                    {currentUser?.streakCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('fforum_open_notes'));
+                  setIsMobileMenuOpen(false);
+                }}
+                className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
+                aria-label="Sổ tay nhanh"
+                title="Sổ tay nhanh"
+              >
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-sky-400/25 to-cyan-500/10 border border-sky-300/30 flex items-center justify-center">
+                  <NotebookPen className="w-4 h-4 text-sky-300" />
+                </span>
+                <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
+                  Sổ tay
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('fforum_open_palette'));
+                  setIsMobileMenuOpen(false);
+                }}
+                className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
+                aria-label="Bảng lệnh nhanh"
+                title="Bảng lệnh nhanh"
+              >
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-violet-400/25 to-indigo-500/10 border border-violet-300/30 flex items-center justify-center">
+                  <Command className="w-4 h-4 text-violet-300" />
+                </span>
+                <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
+                  Bảng lệnh
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenFocusMode();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
+                aria-label="Không gian tập trung"
+                title="Không gian tập trung"
+              >
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-emerald-400/25 to-teal-500/10 border border-emerald-300/30 flex items-center justify-center">
+                  <Timer className="w-4 h-4 text-emerald-300" />
+                </span>
+                <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
+                  Tập trung
+                </span>
               </button>
             </div>
           </div>
         </>
       )}
 
-      {/* Single global streak widget (sits above the lightning bolt at bottom-left) */}
-      <div className={`${streakWidgetPosClass} z-40 pointer-events-auto`}>
-        <StreakFlameWidget
-          streakCount={currentUser?.streakCount || 0}
-          onClick={() => setIsDailyModalOpen(true)}
-          className="shadow-2xl hover:scale-105 transition-transform"
-          compact={effectiveCompact}
-        />
-      </div>
-
+      {/* Streak giờ nằm TRONG menu tia sét (RadialQuickMenu) — không còn ngọn lửa nổi bên ngoài */}
       <DailyEngagementModal
         isOpen={isDailyModalOpen}
         onClose={() => setIsDailyModalOpen(false)}

@@ -1,10 +1,8 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 import {
-  BadgeCheck,
   Bell,
   Compass,
-  Flame,
   GraduationCap,
   Heart,
   HelpCircle,
@@ -137,11 +135,13 @@ export const AppWindowMock: React.FC = () => (
 
           <div className="mt-3 rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface-2)] p-3">
             <div className="flex items-center gap-2">
-              <Monogram label="MA" from="#fbbf24" to="#f97316" />
+              <Monogram label="GB" from="#fbbf24" to="#f97316" />
               <div className="min-w-0">
                 <p className="flex items-center gap-1 text-[11px] font-semibold text-[var(--ff-text)]">
-                  Minh Anh
-                  <BadgeCheck className="h-3 w-3 text-sky-400" />
+                  Bút danh Ghibli
+                  <span className="rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[8.5px] font-semibold uppercase tracking-wide text-sky-300 ring-1 ring-sky-400/25">
+                    Ẩn danh
+                  </span>
                 </p>
                 <p className="font-mono text-[9px] text-[var(--ff-text-dim)]">2 phút trước · 46 lượt xem</p>
               </div>
@@ -211,11 +211,11 @@ export const AppWindowMock: React.FC = () => (
     <div className="ff-glass ff-float-delayed absolute -right-4 top-16 hidden w-[176px] rounded-2xl p-3 lg:block">
       <div className="flex items-center gap-2">
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-amber-400 to-yellow-200 text-[13px] font-bold text-black">
-          <Flame className="h-4 w-4" />
+          <Trophy className="h-4 w-4" />
         </span>
         <div>
-          <p className="text-[11px] font-bold text-[var(--ff-text)]">Chuỗi 7 ngày!</p>
-          <p className="font-mono text-[9px] text-[var(--ff-text-dim)]">+120 XP · Bậc Roman II</p>
+          <p className="text-[11px] font-bold text-[var(--ff-text)]">Lời giải hay nhất!</p>
+          <p className="font-mono text-[9px] text-[var(--ff-text-dim)]">+100 XP · +50% Coin</p>
         </div>
       </div>
     </div>
@@ -314,9 +314,7 @@ export const ArenaMock: React.FC = () => (
 
     <div className="mt-3 space-y-1.5">
       {[
-        { rank: '01', name: 'Trần Văn Anh Tuấn', xp: '18.420 Coin', badge: 'Chuyên Gia', from: '#fbbf24', to: '#f97316', label: 'TA' },
-        { rank: '02', name: 'Nguyễn Khánh Linh', xp: '16.980 Coin', badge: 'Bậc Thầy', from: '#38bdf8', to: '#818cf8', label: 'KL' },
-        { rank: '03', name: 'Lê Minh Quân', xp: '15.310 Coin', badge: 'Thiên Tài', from: '#34d399', to: '#22d3ee', label: 'MQ' },
+        { rank: '01', name: 'Trần Văn Anh Tuấn', xp: '45.000 XP', badge: 'Chuyên Gia', from: '#fbbf24', to: '#f97316', label: 'TA' },
       ].map((row) => (
         <div
           key={row.rank}
@@ -331,11 +329,23 @@ export const ArenaMock: React.FC = () => (
           <span className="font-mono text-[10px] font-semibold text-[var(--ff-text-soft)]">{row.xp}</span>
         </div>
       ))}
+
+      {/* Bảng chỉ gồm tài khoản thật — dòng của bạn xuất hiện sau khi đăng ký */}
+      <div className="flex items-center gap-2.5 rounded-2xl border border-dashed border-[var(--ff-border-strong)] bg-transparent p-2.5">
+        <span className="font-mono text-[11px] font-bold text-[var(--ff-text-dim)]">--</span>
+        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-[var(--ff-border-strong)] font-mono text-[10px] text-[var(--ff-text-dim)]">
+          ?
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[11.5px] font-semibold text-[var(--ff-text-soft)]">Vị trí của bạn</p>
+          <p className="font-mono text-[9px] text-[var(--ff-text-dim)]">Đăng ký bằng email thật để ghi tên lên bảng</p>
+        </div>
+      </div>
     </div>
 
     <div className="mt-3 grid grid-cols-3 gap-2">
       {[
-        { icon: <Flame className="h-3.5 w-3.5" />, label: 'Chuỗi ngày', value: '12' },
+        { icon: <Compass className="h-3.5 w-3.5" />, label: 'Giờ học', value: '42' },
         { icon: <Trophy className="h-3.5 w-3.5" />, label: 'Huy hiệu', value: '08' },
         { icon: <Sparkles className="h-3.5 w-3.5" />, label: 'Điểm F', value: '640' },
       ].map((stat) => (

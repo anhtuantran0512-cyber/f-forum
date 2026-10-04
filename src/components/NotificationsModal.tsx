@@ -227,10 +227,10 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
           e.stopPropagation();
         }}
       >
-        {/* Header: Brand Hoidap/F-Forum Icon & Actions */}
+        {/* Header: Brand F-Forum Icon & Actions */}
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
           <div className="flex items-center gap-2.5">
-            {/* Stylized Brand H/F Icon */}
+            {/* Stylized Brand F Icon */}
             <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-500 to-cyan-400 p-[1.5px] shadow-[0_0_12px_rgba(245,158,11,0.4)]">
               <div className="w-full h-full bg-[#0a0f14] rounded-[9px] flex items-center justify-center font-black text-xs text-amber-300 font-mono">
                 F
