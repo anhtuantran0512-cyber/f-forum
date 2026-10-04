@@ -1897,6 +1897,13 @@ test('37. Thao tác ghi dữ liệu phải đọc kết quả máy chủ, không
     '/api/clubs/approve',
     '/api/clubs/reject',
     '/api/clubs/posts',
+    /* Các đường tạo nội dung cũng phải đọc kết quả: createQuestion TRỪ COIN
+       trước khi gửi, nên máy chủ từ chối (402/429/401) mà không hoàn tác là
+       người dùng mất tiền mà bài không được đăng. */
+    '/api/questions',
+    '/api/solutions',
+    '/api/chat',
+    '/api/feedback',
   ];
   for (const endpoint of criticalWrites) {
     assert.ok(

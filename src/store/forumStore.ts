@@ -1688,7 +1688,36 @@ export function useForumStore() {
     return true;
   };
 
-  const createQuestion = (data: {
+  /**
+    Gọi một thao tác ghi rồi ĐỌC kết quả thật từ máy chủ.
+
+    Nhiều hàm trước đây dùng `fetch(...).catch(() => {})` — nuốt mọi lỗi, nên khi
+    máy chủ trả 401/403/404/500 (hoặc mạng đứt) người dùng vẫn thấy thông báo
+    thành công trong khi dữ liệu không hề thay đổi. Chính kiểu nuốt lỗi này đã che
+    giấu việc bốn endpoint câu lạc bộ trả 404 trong suốt thời gian dài.
+  */
+  const runServerAction = async (
+    url: string,
+    body: unknown,
+  ): Promise<{ ok: boolean; message: string; status: number; data: any }> => {
+    try {
+      const { status, data } = await postJson(url, body);
+      if (status >= 200 && status < 300) {
+        return { ok: true, message: data?.message || '', status, data };
+      }
+      const fallback =
+        status === 401 ? 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.'
+        : status === 403 ? 'Bạn không có quyền thực hiện thao tác này.'
+        : status === 404 ? 'Nội dung này không còn tồn tại.'
+        : status === 429 ? 'Bạn thao tác quá nhanh, vui lòng đợi một chút.'
+        : 'Máy chủ không thực hiện được yêu cầu. Vui lòng thử lại.';
+      return { ok: false, message: data?.message || fallback, status, data };
+    } catch {
+      return { ok: false, message: 'Không kết nối được máy chủ. Vui lòng kiểm tra mạng.', status: 0, data: null };
+    }
+  };
+
+  const createQuestion = async (data: {
     title: string;
     subject: SubjectTag;
     content: string;
@@ -1730,18 +1759,35 @@ export function useForumStore() {
       imageUrl: data.imageUrl,
     };
 
+    const prevQuestions = questions;
+    const prevCoin = currentUser.coin ?? 100;
     setQuestions(prev => [newQuestion, ...prev]);
 
-    const updatedAuthorCoin = Math.max(0, (currentUser.coin ?? 100) - bountyCoin);
+    const updatedAuthorCoin = Math.max(0, prevCoin - bountyCoin);
     const updatedAuthor = { ...currentUser, coin: updatedAuthorCoin };
     setCurrentUser(updatedAuthor);
     commitUsers(prev => ({ ...prev, [currentUser.email.toLowerCase()]: updatedAuthor }));
 
-    fetch('/api/questions', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ ...newQuestion, authorEmail: currentUser.email }),
-    }).catch(() => {});
+    /* Đây là chỗ nặng nhất nếu nuốt lỗi: hàm đã TRỪ COIN của người dùng trước khi
+       gửi. Máy chủ có thể từ chối (402 không đủ số dư theo sổ cái thật, 429 thao tác
+       quá nhanh, 401 phiên hết hạn) — khi đó phải trả lại coin và rút câu hỏi về,
+       nếu không người dùng mất tiền mà câu hỏi không hề được đăng. */
+    const questionOutcome = await runServerAction('/api/questions', {
+      ...newQuestion,
+      authorEmail: currentUser.email,
+    });
+    if (!questionOutcome.ok) {
+      setQuestions(prevQuestions);
+      const reverted = { ...currentUser, coin: prevCoin };
+      setCurrentUser(reverted);
+      commitUsers(prev => ({ ...prev, [currentUser.email.toLowerCase()]: reverted }));
+      setToastMessage({
+        title: 'Không đăng được câu hỏi',
+        subtitle: `${questionOutcome.message} (Coin treo thưởng đã được hoàn lại.)`,
+        type: 'error',
+      });
+      return;
+    }
 
     try {
       syncBroadcastChannel?.postMessage({
@@ -1755,7 +1801,7 @@ export function useForumStore() {
     addXP(50);
   };
 
-  const addSolution = (questionId: string, content: string, imageUrl?: string) => {
+  const addSolution = async (questionId: string, content: string, imageUrl?: string) => {
     if (!currentUser) return;
 
     const newSolution: Solution = {
@@ -1774,13 +1820,19 @@ export function useForumStore() {
       imageUrl,
     };
 
+    const prevSolutions = solutions;
     setSolutions(prev => [...prev, newSolution]);
 
-    fetch('/api/solutions', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify(newSolution),
-    }).catch(() => {});
+    const solutionOutcome = await runServerAction('/api/solutions', newSolution);
+    if (!solutionOutcome.ok) {
+      setSolutions(prevSolutions);
+      setToastMessage({
+        title: 'Không gửi được lời giải',
+        subtitle: solutionOutcome.message,
+        type: 'error',
+      });
+      return;
+    }
 
     try {
       syncBroadcastChannel?.postMessage({
@@ -1879,7 +1931,7 @@ export function useForumStore() {
     });
   };
 
-  const sendChatMessage = (channelId: ChatChannelId, content: string) => {
+  const sendChatMessage = async (channelId: ChatChannelId, content: string) => {
     if (!currentUser) return;
 
     const messageId =
@@ -1904,16 +1956,24 @@ export function useForumStore() {
       timestampMs: Date.now(),
     };
 
+    const prevChat = chatMessages;
     setChatMessages(prev => {
       if (prev.some(m => m.id === newMsg.id)) return prev;
       return [...prev, newMsg];
     });
 
-    fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newMsg),
-    }).catch(() => {});
+    /* Gửi kèm token để máy chủ gắn đúng cấp bậc từ bản ghi thật. Thất bại thì rút
+       tin nhắn khỏi màn hình — để lại một tin "đã gửi" không có thật là tệ hơn. */
+    const chatOutcome = await runServerAction('/api/chat', newMsg);
+    if (!chatOutcome.ok) {
+      setChatMessages(prevChat);
+      setToastMessage({
+        title: 'Không gửi được tin nhắn',
+        subtitle: chatOutcome.message,
+        type: 'error',
+      });
+      return;
+    }
 
     try {
       syncBroadcastChannel?.postMessage({
@@ -1927,30 +1987,42 @@ export function useForumStore() {
     playChime('send');
   };
 
-  const submitFeedback = (data: {
+  const submitFeedback = async (data: {
     name: string;
     email: string;
     category?: string;
     content: string;
   }) => {
     const submission: FeedbackSubmission = {
-      id: `fb-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      id: makeTempId('fb'),
       name: data.name,
       email: data.email,
       category: data.category || 'Góp ý khác',
       content: data.content,
       createdAt: new Date().toISOString(),
     };
+    /* Ghi bản sao xuống localStorage TRƯỚC để không mất góp ý nếu mạng đứt,
+       rồi mới gửi lên máy chủ và báo đúng kết quả. */
     const saved = safeStorage.getItem('fforum_feedbacks');
-    const list: FeedbackSubmission[] = saved ? JSON.parse(saved) : [];
+    let list: FeedbackSubmission[] = [];
+    try {
+      const parsed = saved ? JSON.parse(saved) : [];
+      if (Array.isArray(parsed)) list = parsed;
+    } catch {
+      list = [];
+    }
     list.push(submission);
     safeStorage.setItem('fforum_feedbacks', JSON.stringify(list));
 
-    fetch('/api/feedback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    }).catch(() => {});
+    const feedbackOutcome = await runServerAction('/api/feedback', data);
+    if (!feedbackOutcome.ok) {
+      setToastMessage({
+        title: 'Chưa gửi được góp ý lên máy chủ',
+        subtitle: `${feedbackOutcome.message} Bản nháp đã được giữ lại trên thiết bị này.`,
+        type: 'error',
+      });
+      return;
+    }
 
     playChime('success');
     setToastMessage({
@@ -1958,35 +2030,6 @@ export function useForumStore() {
       subtitle: 'Ý kiến của bạn đã được chuyển tới Ban Quản Trị. Cảm ơn bạn!',
       type: 'success',
     });
-  };
-
-  /**
-    Gọi một thao tác ghi rồi ĐỌC kết quả thật từ máy chủ.
-
-    Nhiều hàm trước đây dùng `fetch(...).catch(() => {})` — nuốt mọi lỗi, nên khi
-    máy chủ trả 401/403/404/500 (hoặc mạng đứt) người dùng vẫn thấy thông báo
-    thành công trong khi dữ liệu không hề thay đổi. Chính kiểu nuốt lỗi này đã che
-    giấu việc bốn endpoint câu lạc bộ trả 404 trong suốt thời gian dài.
-  */
-  const runServerAction = async (
-    url: string,
-    body: unknown,
-  ): Promise<{ ok: boolean; message: string; status: number; data: any }> => {
-    try {
-      const { status, data } = await postJson(url, body);
-      if (status >= 200 && status < 300) {
-        return { ok: true, message: data?.message || '', status, data };
-      }
-      const fallback =
-        status === 401 ? 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.'
-        : status === 403 ? 'Bạn không có quyền thực hiện thao tác này.'
-        : status === 404 ? 'Nội dung này không còn tồn tại.'
-        : status === 429 ? 'Bạn thao tác quá nhanh, vui lòng đợi một chút.'
-        : 'Máy chủ không thực hiện được yêu cầu. Vui lòng thử lại.';
-      return { ok: false, message: data?.message || fallback, status, data };
-    } catch {
-      return { ok: false, message: 'Không kết nối được máy chủ. Vui lòng kiểm tra mạng.', status: 0, data: null };
-    }
   };
 
   const adminDeleteQuestion = async (questionId: string): Promise<boolean> => {

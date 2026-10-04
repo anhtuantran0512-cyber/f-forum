@@ -620,6 +620,40 @@ cooldown kể cả khi bài viết bị từ chối.
 Test #37 khoá chặt: mọi đường ghi quan trọng phải qua `runServerAction` và phải có
 nhánh báo lỗi, để không quay lại kiểu gọi rồi bỏ mặc.
 
+### Đợt hai: các đường tạo nội dung
+
+Bốn đường còn lại cũng nuốt lỗi, trong đó `createQuestion` là chỗ nặng nhất vì nó
+**trừ coin của người dùng trước khi gửi**:
+
+```js
+setCurrentUser({ ...currentUser, coin: prevCoin - bountyCoin });   // trừ trước
+fetch('/api/questions', { … }).catch(() => {});                    // rồi bỏ mặc
+addXP(50);                                                          // và cộng XP
+```
+
+Máy chủ có thể từ chối vì số dư theo sổ cái thật không đủ (`402`), thao tác quá
+nhanh (`429`), hay phiên hết hạn (`401`). Khi đó người dùng **mất coin mà câu hỏi
+không được đăng**, và vẫn được cộng 50 XP.
+
+Xác nhận bằng HTTP thật rằng máy chủ trả đúng các mã đó:
+
+```
+[1] số dư sau khi rút: 0 coin
+[2] đặt câu hỏi vượt số dư: HTTP 402 | "Số dư không đủ để treo thưởng 100 Coin. Hiện có 0 Coin."
+[3] số dư sau khi bị từ chối: 0 coin (server không trừ)
+[4] chat bị chặn 429 ở lượt 121
+```
+
+**Đã vá:** `createQuestion`, `addSolution`, `sendChatMessage`, `submitFeedback` nay
+đi qua `runServerAction`. `createQuestion` **hoàn lại coin** và rút câu hỏi về khi
+thất bại; `addSolution`/`sendChatMessage` rút bản ghi lạc quan khỏi màn hình;
+`submitFeedback` giữ bản nháp trong localStorage và báo rõ là chưa lên được máy
+chủ. Test #37 mở rộng bao cả bốn đường này.
+
+`submitFeedback` còn một lỗi kèm được sửa: `JSON.parse(saved)` không bọc
+`try/catch` và không kiểm `Array.isArray`, nên một giá trị hỏng trong localStorage
+làm ném lỗi và mất luôn góp ý.
+
 ---
 
 ## Mô hình phân quyền hiện tại
