@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import type { DimensionView, User } from './types';
 import { CommandPalette, type PaletteCommand } from './components/CommandPalette';
+import { searchCorpus, type SearchHit } from './utils/globalSearch';
 import { QuickNotesDock } from './components/QuickNotesDock';
 import { StudyCareCoach } from './components/StudyCareCoach';
 import { ViewTransitionLoader } from './components/ViewTransitionLoader';
@@ -647,6 +648,83 @@ export const App: React.FC = () => {
     return [...viewCommands, ...actionCommands];
   }, [currentUser, handleViewChange, handleToggleChat, handleOpenProfile, eyeRestEnabled, toggleEyeRest]);
 
+  /**
+   * Tìm kiếm toàn cục trong bảng lệnh.
+   *
+   * Dựng hoàn toàn từ dữ liệu đã có trong store sau lần `/api/sync` nên không
+   * tốn thêm request nào. Mỗi kết quả được biến thành một "lệnh" để dùng lại
+   * nguyên cơ chế điều hướng bằng bàn phím sẵn có của bảng lệnh.
+   */
+  const paletteSearch = useCallback(
+    (query: string): PaletteCommand[] => {
+      if (!query.trim()) return [];
+      const hits: SearchHit[] = searchCorpus(
+        { questions, clubs, clubPosts, users },
+        query,
+        6,
+      );
+      return hits.map((hit) => ({
+        id: `hit-${hit.kind}-${hit.id}`,
+        label: hit.title,
+        hint: hit.subtitle,
+        group:
+          hit.kind === 'question'
+            ? 'Câu hỏi'
+            : hit.kind === 'club'
+              ? 'Câu lạc bộ'
+              : hit.kind === 'clubPost'
+                ? 'Bài đăng CLB'
+                : 'Thành viên',
+        icon:
+          hit.kind === 'question' ? (
+            <HelpCircle className="w-4 h-4" />
+          ) : hit.kind === 'club' ? (
+            <Users className="w-4 h-4" />
+          ) : (
+            <UserIcon className="w-4 h-4" />
+          ),
+        run: () => {
+          if (hit.kind === 'question') {
+            handleViewChange('qa');
+            /* Chuyển view là bất đồng bộ với việc mount QAForumView, nên phát sự
+               kiện ở lượt tick kế tiếp để listener kịp gắn. */
+            window.setTimeout(() => {
+              window.dispatchEvent(
+                new CustomEvent('fforum_open_question', { detail: { questionId: hit.targetId } }),
+              );
+            }, 0);
+          } else if (hit.kind === 'club' || hit.kind === 'clubPost') {
+            handleViewChange('clubs');
+          } else {
+            const target = users?.[
+              Object.keys(users ?? {}).find((email) => users?.[email]?.id === hit.targetId) ?? ''
+            ];
+            /* Mở thẳng bằng các setter từ useState (địa chỉ ổn định) thay vì
+               gọi `handleOpenProfile` — hàm đó đổi địa chỉ mỗi render, liệt kê
+               vào deps sẽ làm useCallback mất tác dụng. */
+            if (target) {
+              setTargetProfileUser(target);
+              setProfileInitialTab('overview');
+              setIsProfileModalOpen(true);
+            }
+          }
+        },
+      }));
+    },
+    /* Các setter từ useState có địa chỉ ổn định nên liệt kê vào đây không làm
+       useCallback tính lại — nhưng phải có mặt để thoả exhaustive-deps. */
+    [
+      questions,
+      clubs,
+      clubPosts,
+      users,
+      handleViewChange,
+      setTargetProfileUser,
+      setProfileInitialTab,
+      setIsProfileModalOpen,
+    ],
+  );
+
   useEffect(() => {
     const isTypingTarget = (target: EventTarget | null) => {
       const el = target as HTMLElement | null;
@@ -1019,6 +1097,7 @@ export const App: React.FC = () => {
           isOpen={isPaletteOpen}
           onClose={() => setIsPaletteOpen(false)}
           commands={paletteCommands}
+          search={paletteSearch}
         />
 
         {/* Nút cuộn về đầu trang, viền là vòng tiến trình đọc bài. */}
