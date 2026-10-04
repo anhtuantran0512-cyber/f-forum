@@ -236,6 +236,29 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     return () => clearInterval(interval);
   }, [isAutoCycle]);
 
+  /**
+   * Kênh để nơi khác (bảng lệnh, tìm kiếm toàn cục) bảo diễn đàn mở một câu hỏi
+   * cụ thể. `selectedQuestion` là state nội bộ của view này nên không thể điều
+   * khiển từ App bằng prop; dùng sự kiện window để giữ nguyên ranh giới đó.
+   *
+   * Kèm theo: đặt luôn từ khoá tìm kiếm thành tiêu đề câu hỏi để nếu câu hỏi đó
+   * vừa bị xoá, người dùng vẫn thấy ngữ cảnh thay vì một danh sách trống.
+   */
+  useEffect(() => {
+    const onOpenQuestion = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      const questionId = typeof detail === 'string' ? detail : detail?.questionId;
+      if (!questionId) return;
+      const target = questions.find(q => q.id === questionId);
+      if (!target) return;
+      setSelectedTag(target.subject ?? 'all');
+      setSearchTerm('');
+      setSelectedQuestion(target);
+    };
+    window.addEventListener('fforum_open_question', onOpenQuestion);
+    return () => window.removeEventListener('fforum_open_question', onOpenQuestion);
+  }, [questions]);
+
   const [newTitle, setNewTitle] = useState('');
   const [newSubject, setNewSubject] = useState<SubjectTag>('toan');
   const [newContent, setNewContent] = useState('');
