@@ -334,12 +334,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   /* ---------------------------------------------------------------------
      Lớp "đang tải" khi navbar phóng to / thu nhỏ.
-     Trong lúc hình dáng thanh điều hướng đang đổi, các nhãn/icon co giãn lệch
-     nhịp trông rối. Ta hạ mờ nội dung thật thành một bóng mờ (ghost) và cho
-     một vệt sáng quét ngang; hết nhịp morph mới trả lại độ nét — mắt chỉ thấy
-     "đang tải → hiện bản đẹp", gọn và êm hơn hẳn.
+     Nội dung thật (icon + nhãn) KHÔNG bị hạ mờ nữa — icon luôn rõ và luôn bấm
+     được. Hiệu ứng "đang chuyển hình dáng" được báo bằng MỘT dải sáng mảnh
+     chạy men theo hai mép trên/dưới của thanh (mask 2.5px) nên không phủ lên
+     chữ/icon, kèm dải aura chạy nhanh hơn một nhịp.
      --------------------------------------------------------------------- */
-  const NAV_MORPH_MS = 420;
+  /* Thời gian chạy lớp loading = đúng nhịp bề rộng thanh co giãn (0.78s) để
+     hiệu ứng "đang đổi hình dáng" phủ trọn vẹn cú morph, không tắt giữa chừng. */
+  const NAV_MORPH_MS = 780;
   const [isMorphBusy, setIsMorphBusy] = useState(false);
   const morphBusyTimerRef = useRef<number | null>(null);
 

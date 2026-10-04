@@ -10,7 +10,6 @@ import {
   Coins,
   CheckCircle2,
   HelpCircle,
-  BookOpen,
   Award,
   Flag,
   Share2,
@@ -21,6 +20,7 @@ import {
   Users,
   UserCheck,
   Crown,
+  Trophy,
   GraduationCap,
   Rocket,
   Sprout,
@@ -36,6 +36,9 @@ import { SHOP_ITEMS, getTierColorStyles } from '../utils/shopData';
 import { ShopItemSvg } from './ShopItemSvg';
 import { pushNotification } from '../utils/notifications';
 import { LikeHeartButton } from './LikeHeartButton';
+import { BookshelfPanel } from './BookshelfPanel';
+import { TierRankSheet } from './TierRankSheet';
+import { safeStorage } from '../utils/storage';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -57,6 +60,12 @@ interface SystemBadge {
   IconComponent: React.ComponentType<{ className?: string }>;
   requirement: string;
   isEarned: (level: number, solutions: number, best: number) => boolean;
+  /** Tiến độ mở khoá: hiện `current/target` cho người chưa đạt. */
+  progress: (level: number, solutions: number, best: number) => {
+    current: number;
+    target: number;
+    unit: string;
+  };
   color: string;
 }
 
@@ -68,6 +77,7 @@ const ALL_SYSTEM_BADGES: SystemBadge[] = [
     requirement: 'Trả lời 3 câu hỏi',
     IconComponent: Sprout,
     isEarned: (_l, s) => s >= 3,
+    progress: (_l, s) => ({ current: s, target: 3, unit: 'lời giải' }),
     color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
   },
   {
@@ -77,6 +87,7 @@ const ALL_SYSTEM_BADGES: SystemBadge[] = [
     requirement: 'Đạt Level 5',
     IconComponent: Rocket,
     isEarned: (l) => l >= 5,
+    progress: (l) => ({ current: l, target: 5, unit: 'cấp' }),
     color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
   },
   {
@@ -86,6 +97,7 @@ const ALL_SYSTEM_BADGES: SystemBadge[] = [
     requirement: '5 đáp án chuẩn',
     IconComponent: GraduationCap,
     isEarned: (_l, _s, best) => best >= 5,
+    progress: (_l, _s, best) => ({ current: best, target: 5, unit: 'đáp án chuẩn' }),
     color: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
   },
   {
@@ -95,6 +107,7 @@ const ALL_SYSTEM_BADGES: SystemBadge[] = [
     requirement: 'Đạt Level 20',
     IconComponent: Star,
     isEarned: (l) => l >= 20,
+    progress: (l) => ({ current: l, target: 20, unit: 'cấp' }),
     color: 'text-yellow-300 bg-yellow-500/10 border-yellow-500/30',
   },
   {
@@ -104,6 +117,7 @@ const ALL_SYSTEM_BADGES: SystemBadge[] = [
     requirement: 'Đạt Level 35',
     IconComponent: Award,
     isEarned: (l) => l >= 35,
+    progress: (l) => ({ current: l, target: 35, unit: 'cấp' }),
     color: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
   },
   {
@@ -113,9 +127,32 @@ const ALL_SYSTEM_BADGES: SystemBadge[] = [
     requirement: 'Đạt Level 50',
     IconComponent: Crown,
     isEarned: (l) => l >= 50,
+    progress: (l) => ({ current: l, target: 50, unit: 'cấp' }),
     color: 'text-amber-300 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border-amber-400/40',
   },
 ];
+
+/* Tim hồ sơ: lưu theo từng hồ sơ + người thả tim để mở lại vẫn đúng 1 tim */
+const PROFILE_LIKES_KEY = 'fforum_profile_likes_v1';
+
+const readProfileLikes = (): Record<string, string[]> => {
+  try {
+    const raw = safeStorage.getItem(PROFILE_LIKES_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, string[]>;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const writeProfileLikes = (map: Record<string, string[]>): void => {
+  try {
+    safeStorage.setItem(PROFILE_LIKES_KEY, JSON.stringify(map));
+  } catch {
+    /* ignore */
+  }
+};
 
 const PROFILE_BANNER_GRADIENTS = [
   {
@@ -251,6 +288,38 @@ const ProfileModalInner: React.FC<{
 
   const isSuperAdmin = currentUser.email === 'anhtuantran0512@gmail.com';
   const isOwnProfile = !viewerUser || viewerUser.id === currentUser.id;
+
+  /* GUI nhỏ "Bảng rank · danh hiệu · yêu cầu" mở từ khối Danh hiệu */
+  const [isRankSheetOpen, setIsRankSheetOpen] = useState(false);
+
+  /* Tim hồ sơ — 1 lần bấm = đúng 1 tim, ghi nhớ theo người xem */
+  const [likesMap, setLikesMap] = useState<Record<string, string[]>>(() => readProfileLikes());
+  const profileKey = currentUser.email.toLowerCase();
+  const viewerKey = (viewerUser?.email || viewerUser?.id || '').toLowerCase();
+  const profileLikers = likesMap[profileKey] || [];
+  const likedByMe = Boolean(viewerKey) && profileLikers.includes(viewerKey);
+
+  const handleProfileLike = (liked: boolean, nextCount: number) => {
+    if (!viewerKey) return;
+    setLikesMap((prev) => {
+      const current = prev[profileKey] || [];
+      const nextList = liked
+        ? Array.from(new Set([...current, viewerKey]))
+        : current.filter((k) => k !== viewerKey);
+      const nextMap = { ...prev, [profileKey]: nextList };
+      writeProfileLikes(nextMap);
+      return nextMap;
+    });
+    if (liked) {
+      pushNotification({
+        type: 'system',
+        category: 'system',
+        title: 'Đã Thả Tim Hồ Sơ!',
+        body: `Bạn đã thả tim cho ${currentUser.name}. Lượt cảm ơn hiện tại: ${nextCount}.`,
+        targetView: 'home',
+      });
+    }
+  };
   const tier = getTierForLevel(currentUser.level);
 
   const userCoin = currentUser.coin ?? 0;
@@ -567,6 +636,22 @@ const ProfileModalInner: React.FC<{
     [currentUser.level, userSolutions]
   );
 
+  /* Danh hiệu gửi sang GUI nhỏ: kèm trạng thái mở khoá + tiến độ yêu cầu */
+  const sheetBadges = useMemo(() => {
+    const solutionCount = userSolutions.length;
+    const bestCount = userSolutions.filter((s) => s.isBest).length;
+    return ALL_SYSTEM_BADGES.map((b) => ({
+      id: b.id,
+      name: b.name,
+      desc: b.desc,
+      requirement: b.requirement,
+      IconComponent: b.IconComponent,
+      color: b.color,
+      earned: b.isEarned(currentUser.level, solutionCount, bestCount),
+      progress: b.progress(currentUser.level, solutionCount, bestCount),
+    }));
+  }, [currentUser.level, userSolutions]);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/45 backdrop-blur-md animate-fade-up"
@@ -765,9 +850,6 @@ const ProfileModalInner: React.FC<{
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="text-base sm:text-xl font-bold text-[#0284C7] flex items-center gap-1.5 truncate">
                             <span>{currentUser.name}</span>
-                            <span title="Kệ sách cá nhân" className="inline-flex items-center">
-                              <BookOpen className="w-4 h-4 text-amber-600 inline shrink-0" />
-                            </span>
                             {isSuperAdmin && <AdminVerifiedBadge size={15} />}
                           </h3>
 
@@ -803,17 +885,10 @@ const ProfileModalInner: React.FC<{
                     <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-start">
                       <div className="flex items-center gap-1.5" title="Thả tim cho thành viên này">
                         <LikeHeartButton
-                          initialCount={statsMetrics.thanks}
-                          initialLiked={false}
-                          onLikeChange={(_liked, nextCount) => {
-                            pushNotification({
-                              type: 'system',
-                              category: 'system',
-                              title: 'Đã Thả Tim Hồ Sơ!',
-                              body: `Bạn đã thả tim cho ${currentUser.name}. Lượt cảm ơn hiện tại: ${nextCount}.`,
-                              targetView: 'home',
-                            });
-                          }}
+                          key={`${profileKey}-${likedByMe ? 'on' : 'off'}`}
+                          initialCount={statsMetrics.thanks + profileLikers.length}
+                          initialLiked={likedByMe}
+                          onLikeChange={handleProfileLike}
                         />
                       </div>
 
@@ -979,7 +1054,7 @@ const ProfileModalInner: React.FC<{
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b border-white/10">
                     {/* DANH HIỆU — chỉ hiển thị danh hiệu thật sự đạt được, không lộ trước danh hiệu chưa mở khóa */}
                     <div className="pc-12-card p-3.5 space-y-2.5">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5 font-mono">
                           <Award className="w-4 h-4 text-emerald-400" />
                           Danh hiệu
@@ -989,8 +1064,13 @@ const ProfileModalInner: React.FC<{
                         </span>
                       </div>
 
-                      {/* Rank hiện tại luôn hiển thị rõ ràng (Mặc định: Học Sinh) */}
-                      <div className="pc-12-well p-2.5 flex items-center gap-2.5">
+                      {/* Rank hiện tại — bấm vào để mở GUI nhỏ bảng rank/danh hiệu/yêu cầu */}
+                      <button
+                        type="button"
+                        onClick={() => setIsRankSheetOpen(true)}
+                        title="Xem bảng rank, danh hiệu và yêu cầu thăng hạng"
+                        className="pc-12-well p-2.5 flex items-center gap-2.5 w-full text-left cursor-pointer transition-colors hover:border-amber-400/40"
+                      >
                         <TierBadge level={currentUser.level} size={26} showTooltip={false} />
                         <div className="min-w-0 flex-1">
                           <div className="text-xs font-bold text-white truncate">
@@ -1000,7 +1080,8 @@ const ProfileModalInner: React.FC<{
                             Cấp {currentUser.level} • {statsMetrics.xp.toLocaleString()} XP
                           </div>
                         </div>
-                      </div>
+                        <Trophy className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                      </button>
 
                       {earnedBadgesList.length === 0 ? (
                         <div className="pc-12-well py-3 px-3 text-center">
@@ -1030,6 +1111,15 @@ const ProfileModalInner: React.FC<{
                           ))}
                         </div>
                       )}
+
+                      <button
+                        type="button"
+                        onClick={() => setIsRankSheetOpen(true)}
+                        className="pc-12-btn w-full py-1.5 rounded-xl text-[11px] font-bold text-amber-200 inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Trophy className="w-3.5 h-3.5" />
+                        Bảng rank · danh hiệu · yêu cầu
+                      </button>
                     </div>
 
                     {/* CHILL BOX & KỆ SÁCH */}
@@ -1086,36 +1176,15 @@ const ProfileModalInner: React.FC<{
                         )}
                       </div>
 
-                      {/* KỆ SÁCH */}
-                      <div className="pc-12-card p-3 flex items-center justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <BookOpen className="w-3.5 h-3.5 text-amber-500" />
-                            <span className="text-xs font-bold text-white font-mono uppercase">KỆ SÁCH</span>
-                          </div>
-                          <p className="text-[11px] text-neutral-300 mt-0.5">
-                            Đọc sách gì hay, chia sẻ ngay cùng cộng đồng Hoidap247!
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            pushNotification({
-                              type: 'system',
-                              category: 'system',
-                              title: 'Kệ Sách Cộng Đồng',
-                              body: 'Tính năng chia sẻ tài liệu học tập và sách hay đang sẵn sàng kết nối cộng đồng.',
-                              targetView: 'home',
-                            });
-                          }}
-                          className="pc-12-btn px-3 py-1.5 rounded-xl text-[#38bdf8] text-xs font-bold whitespace-nowrap cursor-pointer"
-                        >
-                          Viết chia sẻ
-                        </button>
-                      </div>
+                      {/* KỆ SÁCH — kệ sách thật, lưu theo tài khoản */}
+                      <BookshelfPanel
+                        key={profileKey}
+                        ownerKey={profileKey}
+                        ownerName={currentUser.name}
+                        canEdit={isOwnProfile}
+                      />
                     </div>
                   </div>
-
                   {/* C. Khối Biểu Đồ Mạng Nhện (Radar Spider Chart) - CÁC MÔN ĐÃ GIÚP ĐỠ BẠN BÈ */}
                   <div className="pb-4 border-b border-white/10 space-y-3">
                     <div className="flex items-center justify-between">
@@ -1938,6 +2007,15 @@ const ProfileModalInner: React.FC<{
           </div>
         </div>
       )}
+
+      <TierRankSheet
+        isOpen={isRankSheetOpen}
+        onClose={() => setIsRankSheetOpen(false)}
+        level={currentUser.level}
+        xp={statsMetrics.xp}
+        badges={sheetBadges}
+        isSuperAdmin={isSuperAdmin}
+      />
     </div>
   );
 };

@@ -303,12 +303,31 @@ test('12. Navbar phóng to/thu nhỏ — bóng mờ + MỘT vệt sáng, không 
     /\.ff-nav-capsule--busy \.ff-nav-loading \{[\s\S]{0,340}transition: none;/.test(css),
     'Layer must appear instantly to mask the width jump',
   );
+  /* Vòng 9: icon/nhãn phải LUÔN rõ và LUÔN bấm được — hiệu ứng "bóng mờ 0.24"
+     từng khiến người dùng tưởng icon biến mất, nay bị xoá hẳn. */
   assert.ok(
-    css.includes('.ff-nav-capsule--busy > *:not(.ff-nav-aura):not(.ff-nav-loading)') &&
-      css.includes('pointer-events: none'),
-    'Real content must dim into a ghost and stop receiving clicks',
+    css.includes('.ff-nav-capsule--busy > *:not(.ff-nav-aura):not(.ff-nav-loading)'),
+    'Busy-state rule for the real content must exist',
   );
-  assert.ok(css.includes('@keyframes ffNavGhostBreath'), 'Ghost must breathe softly while loading');
+  const busyRule = css.match(
+    /\.ff-nav-capsule--busy > \*:not\(\.ff-nav-aura\):not\(\.ff-nav-loading\) \{([\s\S]*?)\}/,
+  );
+  assert.ok(busyRule, 'Busy-state rule must be readable');
+  assert.ok(!busyRule[1].includes('opacity'), 'Icons + labels must keep full opacity while morphing');
+  assert.ok(!busyRule[1].includes('pointer-events'), 'Busy content must stay clickable');
+  assert.ok(!css.includes('ffNavGhostBreath'), 'The dim-into-ghost effect must be gone for good');
+  assert.ok(
+    /\.ff-nav-loading__sheen \{[\s\S]{0,1600}mask:/.test(css),
+    'The sheen must be masked to the capsule edges so it never covers icons',
+  );
+  assert.ok(
+    css.includes('.ff-nav-capsule--busy .ff-nav-aura::before'),
+    'The aura (not a veil) must carry the loading signal while morphing',
+  );
+  assert.ok(
+    /@keyframes ffNavMorph \{[\s\S]{0,220}\}/.test(css) && !/@keyframes ffNavMorph \{[\s\S]{0,220}blur/.test(css),
+    'ffNavMorph must not animate filter: blur (heavy paint + washed-out icons)',
+  );
   assert.ok(!css.includes('ffNavSkReveal'), 'No double reveal animation (it re-triggered on every morph)');
   assert.ok(css.includes('html.light .ff-nav-loading__sheen'), 'Sheen must have a light-mode variant');
   assert.ok(css.includes('.reduce-motion .ff-nav-loading__sheen'), 'Reduced-motion class must cover the sheen');
@@ -435,4 +454,38 @@ test('15. Vòng 7 — không lớp phủ vô hình nào được phép khoá c�
   assert.ok(boundary.includes('getDerivedStateFromError'), 'Boundary must catch render errors');
   assert.ok(boundary.includes('window.location.reload()'), 'Boundary must offer a reload path');
   assert.ok(boundary.includes('fforum_chunk_reload_'), 'Boundary must be able to clear poisoned chunk flags');
+});
+
+test('16. Vòng 9 — bảng xếp hạng ~100 người: dữ liệu thật + thang rank 5 bậc', () => {
+  const board = read('src/components/views/LeaderboardWidget.tsx');
+  const cohort = read('src/utils/cohort.ts');
+
+  /* Nguồn dữ liệu: nhóm sinh viên mô phỏng tất định + tài khoản thật */
+  assert.ok(cohort.includes('COHORT_MEMBERS'), 'Cohort must be a real computed list');
+  assert.ok(cohort.includes('COHORT_SIZE = 112'), 'Cohort must be large enough for a ~100 row board');
+  assert.ok(cohort.includes('makeRandom(20260214)'), 'Cohort must be deterministic (same seed → same board)');
+  assert.ok(cohort.includes('export const COHORT_USERS'), 'Cohort must expose store-shaped users');
+  assert.ok(cohort.includes('cohortActivityPoints'), 'Cohort must contribute period points');
+  assert.ok(cohort.includes("period === 'all') return member.xp"), 'All-time cohort points must be their accumulated XP');
+  assert.ok(!/localStorage/.test(cohort), 'Cohort must not touch storage');
+  assert.ok(!cohort.includes('fetch('), 'Cohort must be generated offline (no network)');
+
+  /* Bảng: gộp danh bạ thật + cohort, luôn có mặt chính mình, cắt 100 dòng */
+  assert.ok(board.includes('COHORT_USERS') && board.includes('...users'), 'Board must merge real accounts with cohort');
+  assert.ok(board.includes('MAX_BOARD_ROWS = 100'), 'Board must show up to 100 members');
+  assert.ok(board.includes('const top = members.slice(0, 5)'), 'Top 5 must sit on the big rank ladder');
+  assert.ok(board.includes('ladderSteps'), 'Ranks 4 & 5 must continue the podium as ladder steps');
+  assert.ok(board.includes('boardRows.slice(5)'), 'Everyone below the top 5 shows as a plain list');
+  assert.ok(board.includes('isYou'), 'The current user must be flagged on the board');
+  assert.ok(board.includes('estimated'), 'Derived cohort values must be marked as estimates');
+  assert.ok(
+    /members\.sort\(\(a, b\) => b\.points - a\.points \|\|/.test(board),
+    'Ties must break deterministically so ranks never flicker',
+  );
+  assert.ok(board.includes('meEntry.rank'), 'Your own rank must be shown even outside the top 100');
+
+  const css = read('src/index.css');
+  assert.ok(css.includes('.ff-ladder__step--b4') && css.includes('.ff-ladder__step--b5'), 'Ladder steps 4 & 5 must be styled');
+  assert.ok(css.includes('.ff-board__count'), 'The member count badge must be styled');
+  assert.ok(css.includes('html.light .ff-ladder__step'), 'Ladder must have a light-mode variant');
 });

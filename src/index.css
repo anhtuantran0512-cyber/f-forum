@@ -2260,22 +2260,15 @@ html.light .ff-dock-mock {
 .ff-gradient-ring {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 6px 18px rgba(245, 158, 11, 0.25);
 }
-/* Nhịp thở nhẹ khi navbar đang đổi vị trí / đổi kích thước */
+/* Nhịp "hiện dần" khi navbar đổi vị trí.
+   Trước đây dùng filter: blur(8px) + scale(0.965) — vừa phải vẽ lại toàn thanh
+   mỗi khung hình (nguồn giật), vừa làm icon/nhãn nhoè đi như biến mất. Nay chỉ
+   còn độ mờ chạy bằng compositor: tuyệt đối không tạo containing block mới cho
+   các tooltip position:fixed bên trong, không đụng tới màu chữ hay icon. */
 @keyframes ffNavMorph {
-  0% {
-    opacity: 0.5;
-    transform: scale(0.965);
-    filter: blur(8px);
-  }
-  60% {
-    opacity: 0.95;
-    filter: blur(1px);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-    filter: blur(0);
-  }
+  0% { opacity: 0.58; }
+  55% { opacity: 0.96; }
+  100% { opacity: 1; }
 }
 .ff-nav-capsule.ff-nav-morphing,
 .dock-container.ff-nav-morphing > nav {
@@ -3185,6 +3178,88 @@ html.light .ff-odo__strip > i { text-shadow: none; }
 }
 .ff-row__value { font-size: 10.5px; font-weight: 700; color: #fcd34d; white-space: nowrap; }
 
+/* Thang rank: bậc 4 & 5 nối tiếp bục 1-2-3, càng lên cao bề ngang càng hẹp */
+.ff-ladder {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.ff-ladder::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -12px;
+  height: 12px;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.4), rgba(148, 163, 184, 0.06));
+  pointer-events: none;
+}
+.ff-ladder__step {
+  display: grid;
+  grid-template-columns: 24px 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 11px;
+  border-radius: 15px;
+  cursor: pointer;
+  text-align: left;
+  background: linear-gradient(100deg, rgba(148, 163, 184, 0.1), rgba(148, 163, 184, 0.02));
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  transition: transform 0.24s ease, background 0.24s ease, border-color 0.24s ease;
+}
+.ff-ladder__step--b4 { width: calc(100% - 10px); margin-inline: auto; }
+.ff-ladder__step--b5 { width: calc(100% - 22px); margin-inline: auto; }
+.ff-ladder__step:hover { transform: translateY(-1px); background: linear-gradient(100deg, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.05)); border-color: rgba(148, 163, 184, 0.34); }
+.ff-ladder__step.is-you { background: linear-gradient(100deg, rgba(56, 189, 248, 0.18), rgba(56, 189, 248, 0.05)); border-color: rgba(56, 189, 248, 0.4); }
+.ff-ladder__rank { font-size: 14px; font-weight: 900; text-align: center; letter-spacing: -0.02em; color: #e2e8f0; }
+.ff-ladder__step--b5 .ff-ladder__rank { color: #cbd5e1; }
+.ff-ladder__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(226, 232, 240, 0.55);
+}
+.ff-ladder__step--b5 .ff-ladder__avatar { width: 36px; height: 36px; border-color: rgba(203, 213, 225, 0.4); }
+.ff-ladder__body { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.ff-ladder__name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fb-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ff-ladder__track { display: block; height: 5px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.ff-ladder__track > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #94a3b8, #e2e8f0);
+  transition: width 720ms cubic-bezier(0.22, 0.9, 0.24, 1);
+}
+.ff-ladder__value { font-size: 10.5px; font-weight: 700; color: #e2e8f0; white-space: nowrap; }
+
+.ff-board__count {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.26);
+}
+
 .ff-board__me {
   display: flex;
   align-items: center;
@@ -3237,6 +3312,15 @@ html.light .ff-board__me-value { color: #b45309; }
 html.light .ff-board__me-rank { color: #0369a1; }
 html.light .ff-board__note { color: rgba(82, 96, 122, 0.9); }
 html.light .ff-podium__plinth > i { background: linear-gradient(180deg, rgba(16, 24, 39, 0.12), rgba(16, 24, 39, 0.02)); border-color: rgba(16, 24, 39, 0.1); }
+html.light .ff-ladder__step { background: linear-gradient(100deg, rgba(16, 24, 39, 0.05), rgba(16, 24, 39, 0.012)); border-color: rgba(16, 24, 39, 0.1); }
+html.light .ff-ladder__step:hover { background: linear-gradient(100deg, rgba(16, 24, 39, 0.09), rgba(16, 24, 39, 0.03)); border-color: rgba(16, 24, 39, 0.18); }
+html.light .ff-ladder__step.is-you { background: linear-gradient(100deg, rgba(14, 165, 233, 0.14), rgba(14, 165, 233, 0.04)); border-color: rgba(14, 165, 233, 0.35); }
+html.light .ff-ladder__rank { color: #33405a; }
+html.light .ff-ladder__avatar { border-color: rgba(51, 64, 90, 0.32); }
+html.light .ff-ladder__track { background: rgba(16, 24, 39, 0.08); }
+html.light .ff-ladder__track > i { background: linear-gradient(90deg, #64748b, #101827); }
+html.light .ff-ladder__value { color: #33405a; }
+html.light .ff-board__count { color: #0369a1; background: rgba(14, 165, 233, 0.12); border-color: rgba(14, 165, 233, 0.3); }
 
 html.light .ff-pulse {
   --fp-surface: linear-gradient(180deg, #ffffff, #f6f8fc);
@@ -3262,7 +3346,9 @@ html.light .ff-pulse__eyebrow { color: #0369a1; }
   .ff-podium__crown,
   .ff-podium__avatar,
   .ff-board__topline,
-  .ff-row__track > i {
+  .ff-row__track > i,
+  .ff-ladder__track > i,
+  .ff-ladder__step {
     animation: none !important;
     transition-duration: 0.01ms !important;
   }
@@ -3272,7 +3358,9 @@ html.light .ff-pulse__eyebrow { color: #0369a1; }
 .reduce-motion .ff-pulse__sweep,
 .reduce-motion .ff-pulse__badge > i,
 .reduce-motion .ff-podium__crown,
-.reduce-motion .ff-board__topline {
+.reduce-motion .ff-board__topline,
+.reduce-motion .ff-ladder__track > i,
+.reduce-motion .ff-ladder__step {
   animation: none !important;
   transition-duration: 0.01ms !important;
 }
@@ -3319,9 +3407,17 @@ html.light .ff-pulse__eyebrow { color: #0369a1; }
     rgba(255, 255, 255, 0.09) 62%,
     transparent 100%
   );
+  /* CHỈ vẽ ở 2 mép trên/dưới của thanh (mask 2px) — icon và chữ phía dưới
+     không bị che, vẫn bấm được như thường. */
+  -webkit-mask:
+    linear-gradient(#000 0 0) top / 100% 2.5px no-repeat,
+    linear-gradient(#000 0 0) bottom / 100% 2.5px no-repeat;
+  mask:
+    linear-gradient(#000 0 0) top / 100% 2.5px no-repeat,
+    linear-gradient(#000 0 0) bottom / 100% 2.5px no-repeat;
   transform: translateX(-165%);
   will-change: transform;
-  animation: ffNavLoadingSheen 1150ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  animation: ffNavLoadingSheen 980ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
   animation-play-state: paused;
 }
 .ff-nav-capsule--busy .ff-nav-loading__sheen { animation-play-state: running; }
@@ -3336,14 +3432,17 @@ html.light .ff-pulse__eyebrow { color: #0369a1; }
   transition: opacity 240ms ease;
 }
 .ff-nav-capsule--busy > *:not(.ff-nav-aura):not(.ff-nav-loading) {
-  /* TUYỆT ĐỐI không chặn chuột ở đây — từng gây lỗi "bấm gì cũng không mở"
-     trong lúc thanh đang chạy hiệu ứng. Chỉ làm mờ thôi. */
+  /* Icon và nhãn GIỮ NGUYÊN độ nét trong suốt nhịp morph — không còn hiệu ứng
+     "bóng mờ" 0.24 khiến icon như biến mất. Khối này cũng TUYỆT ĐỐI không hề
+     chặn chuột (đúng như hợp đồng ở test 14). */
   transition-duration: 70ms;
-  animation: ffNavGhostBreath 1500ms ease-in-out infinite;
 }
-@keyframes ffNavGhostBreath {
-  0%, 100% { opacity: 0.24; }
-  50% { opacity: 0.34; }
+
+/* Trong lúc morph, dải aura chạy nhanh và rõ hơn một chút để báo "đang chuyển
+   hình dáng" — chỉ đổi animation-duration + opacity, không thêm lớp phủ nào. */
+.ff-nav-capsule--busy .ff-nav-aura::before {
+  animation-duration: 1200ms;
+  opacity: 1;
 }
 
 html.light .ff-nav-loading__sheen {
@@ -3701,4 +3800,172 @@ html.light .ff-hours__del { border-color: rgba(16, 24, 39, 0.1); background: rgb
 .reduce-motion .ff-focus-live,
 .reduce-motion .ff-focus-flash {
   animation: none !important;
+}
+
+
+/* ==========================================================================
+   VÒNG 9 — Nhịp gửi tin (chống spam) của phòng chat
+   --------------------------------------------------------------------------
+   Gộp hai khối cũ (dòng chữ "đang khoá" + thanh tiến trình rời) thành MỘT dải
+   gọn nằm ngay trên ô nhập: vòng tròn rút dần, đường ray tụt dần, nhãn số giây
+   chạy bằng con số 1 chữ số thập phân. Toàn bộ chuyển động do CSS đảm nhiệm,
+   JS chỉ cập nhật số mỗi 80ms → thanh vẫn mượt, không nhấp nháy theo nhịp tick.
+   Dải đặt `pointer-events: none` nên tuyệt đối không chặn thao tác nào.
+   Ô nhập KHÔNG bị khoá trong lúc chờ — chỉ nút Gửi chờ tới hạn.
+   ========================================================================== */
+.ff-cd {
+  position: relative;
+  flex: none;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.006));
+  pointer-events: none;
+  transition: background 0.34s ease, border-color 0.34s ease;
+}
+.ff-cd--dock {
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 7px 12px;
+}
+.ff-cd.is-cooling {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.13), rgba(245, 158, 11, 0.015));
+  border-top-color: rgba(245, 158, 11, 0.3);
+  animation: ffCdPop 460ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+.ff-cd__dial {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+}
+.ff-cd--dock .ff-cd__dial { width: 28px; height: 28px; }
+.ff-cd__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+.ff-cd__dial-track { fill: none; stroke: rgba(255, 255, 255, 0.12); stroke-width: 3; }
+.ff-cd__dial-arc {
+  fill: none;
+  stroke: #fbbf24;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 97.4;
+  transition: stroke-dashoffset 140ms linear, stroke 0.3s ease;
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.55));
+}
+.ff-cd.is-ready .ff-cd__dial-arc { stroke: #34d399; stroke-dashoffset: 0; filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.45)); }
+.ff-cd__dial-value {
+  position: relative;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  color: #fcd34d;
+}
+.ff-cd--dock .ff-cd__dial-value { font-size: 10px; }
+.ff-cd.is-ready .ff-cd__dial-value { color: #6ee7b7; font-size: 12px; }
+.ff-cd__body { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.ff-cd__label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #9aa6b5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.3s ease;
+}
+.ff-cd.is-cooling .ff-cd__label { color: #fcd34d; }
+.ff-cd.is-ready .ff-cd__label { color: #6ee7b7; }
+.ff-cd__rail {
+  display: block;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+}
+.ff-cd__rail > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f59e0b, #fde68a);
+  box-shadow: 0 0 10px -2px rgba(251, 191, 36, 0.9);
+  transition: width 140ms linear;
+}
+.ff-cd.is-ready .ff-cd__rail > i { background: linear-gradient(90deg, #10b981, #6ee7b7); box-shadow: none; opacity: 0.5; }
+.ff-cd__value {
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  color: #fcd34d;
+}
+.ff-cd.is-ready .ff-cd__value { color: #6ee7b7; }
+
+@keyframes ffCdPop {
+  0% { transform: translateX(0); }
+  24% { transform: translateX(-4px); }
+  52% { transform: translateX(3px); }
+  76% { transform: translateX(-1.5px); }
+  100% { transform: translateX(0); }
+}
+
+/* Vòng sáng quay quanh nút Gửi khi đang chờ — thuần trang trí, không bắt click */
+.ff-cd-btn.is-cooling::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  background: conic-gradient(from 0deg, rgba(251, 191, 36, 0), rgba(251, 191, 36, 0.85) 58%, rgba(251, 191, 36, 0) 76%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+  animation: ffCdSpin 1.15s linear infinite;
+  pointer-events: none;
+}
+.ff-cd-btn.is-cooling { animation: ffCdGlow 1.6s ease-in-out infinite; }
+@keyframes ffCdSpin { to { transform: rotate(360deg); } }
+@keyframes ffCdGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+  50% { box-shadow: 0 0 14px -2px rgba(251, 191, 36, 0.55); }
+}
+
+/* --- Light mode --------------------------------------------------------- */
+html.light .ff-cd { border-top-color: rgba(16, 24, 39, 0.08); background: linear-gradient(180deg, rgba(16, 24, 39, 0.028), rgba(16, 24, 39, 0.006)); }
+html.light .ff-cd.is-cooling { background: linear-gradient(180deg, rgba(245, 158, 11, 0.16), rgba(245, 158, 11, 0.03)); border-top-color: rgba(180, 83, 9, 0.28); }
+html.light .ff-cd__label { color: #52607a; }
+html.light .ff-cd.is-cooling .ff-cd__label { color: #b45309; }
+html.light .ff-cd.is-ready .ff-cd__label { color: #047857; }
+html.light .ff-cd__dial-track { stroke: rgba(16, 24, 39, 0.14); }
+html.light .ff-cd__dial-arc { stroke: #d97706; filter: none; }
+html.light .ff-cd.is-ready .ff-cd__dial-arc { stroke: #059669; filter: none; }
+html.light .ff-cd__dial-value { color: #b45309; }
+html.light .ff-cd.is-ready .ff-cd__dial-value { color: #047857; }
+html.light .ff-cd__rail { background: rgba(16, 24, 39, 0.1); }
+html.light .ff-cd__value { color: #b45309; }
+html.light .ff-cd.is-ready .ff-cd__value { color: #047857; }
+
+/* --- Giảm chuyển động --------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .ff-cd,
+  .ff-cd__rail > i,
+  .ff-cd__dial-arc,
+  .ff-cd-btn.is-cooling,
+  .ff-cd-btn.is-cooling::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+.reduce-motion .ff-cd,
+.reduce-motion .ff-cd__rail > i,
+.reduce-motion .ff-cd__dial-arc,
+.reduce-motion .ff-cd-btn.is-cooling,
+.reduce-motion .ff-cd-btn.is-cooling::after {
+  animation: none !important;
+  transition-duration: 0.01ms !important;
 }

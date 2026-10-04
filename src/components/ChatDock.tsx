@@ -8,7 +8,6 @@ import {
   HelpCircle,
   Heart,
   Shield,
-  Clock,
   Sparkles,
   LogIn,
   Trash2,
@@ -20,9 +19,11 @@ import {
 import type { ChatChannelId, ChatMessage, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
+import { useChatCooldown } from '../utils/chatCooldown';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../config/admin';
 import { getTierForLevel } from '../utils/tier';
 import { pushNotification } from '../utils/notifications';
+import { ChatCooldownBar } from './ChatCooldownBar';
 import { ThinkingBubble } from './ViewTransitionLoader';
 
 export interface ChatDockProps {
@@ -40,7 +41,7 @@ export interface ChatDockProps {
 
 
 const CHANNELS: { id: ChatChannelId; name: string; desc: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'hallway', name: 'Kết bạn bốn phương', desc: 'Đại sảnh giao lưu kết bạn toàn trường', icon: Users },
+  { id: 'hallway', name: 'Kết bạn bốn phương', desc: 'Làm quen và kết nối bạn học toàn trường', icon: Users },
   { id: 'quick-qa', name: 'Hỏi bài nhanh', desc: 'Hỏi đáp khẩn cấp, giải bài trong 5 phút', icon: HelpCircle },
   { id: 'confessions', name: 'Góc tâm sự', desc: 'Áp lực học tập & suy tư tuổi học trò', icon: Heart },
   { id: 'club-hub', name: 'Hội quán CLB', desc: 'Giao lưu điều phối giữa các Ban Chủ nhiệm', icon: Shield },
@@ -59,7 +60,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
 }) => {
   const [activeChannel, setActiveChannel] = useState<ChatChannelId>('hallway');
   const [inputText, setInputText] = useState('');
-  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
+  const cooldown = useChatCooldown();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const [activeAuthorCard, setActiveAuthorCard] = useState<{
@@ -124,20 +125,17 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     }
   }, [messages, activeChannel, isOpen]);
 
-  useEffect(() => {
-    if (cooldownRemaining > 0) {
-      const interval = setInterval(() => {
-        setCooldownRemaining(prev => Math.max(0, prev - 100));
-      }, 100);
-      return () => clearInterval(interval);
-    }
-  }, [cooldownRemaining]);
-
   const handleSend = () => {
-    if (!inputText.trim() || cooldownRemaining > 0 || !currentUser) return;
-    onSendMessage(activeChannel, inputText.trim());
+    if (!currentUser) return;
+    if (cooldown.isCooling) {
+      cooldown.nudge();
+      return;
+    }
+    const text = inputText.trim();
+    if (!text) return;
+    onSendMessage(activeChannel, text);
     setInputText('');
-    setCooldownRemaining(2000);
+    cooldown.startCooldown();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -335,26 +333,12 @@ export const ChatDock: React.FC<ChatDockProps> = ({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Anti-Spam Cooldown Indicator */}
-        {cooldownRemaining > 0 && (
-          <div className="px-4 py-1 bg-amber-950/40 border-t border-amber-500/20 text-[10px] text-amber-300 flex items-center justify-between">
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3 text-amber-400" />
-              Chống spam (2.0s): Đang khóa gửi...
-            </span>
-            <span className="font-mono font-bold">{(cooldownRemaining / 1000).toFixed(1)}s</span>
-          </div>
-        )}
-
-        {/* Cooldown progress bar */}
-        {cooldownRemaining > 0 && (
-          <div className="w-full bg-neutral-800 h-1 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-amber-500 to-amber-300 animate-cooldown-shrink"
-              style={{ width: `${(cooldownRemaining / 2000) * 100}%` }}
-            />
-          </div>
-        )}
+        <ChatCooldownBar
+          isCooling={cooldown.isCooling}
+          remainingMs={cooldown.remainingMs}
+          nudgeKey={cooldown.nudgeKey}
+          variant="dock"
+        />
 
         {/* Input Bar or Login Prompt */}
         {!currentUser ? (
@@ -377,20 +361,17 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               maxLength={300}
               onChange={e => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={cooldownRemaining > 0}
-              placeholder={
-                cooldownRemaining > 0
-                  ? 'Đang chờ bộ đếm chống spam 2.0s...'
-                  : `Nhắn vào #${currentChannelObj.name}...`
-              }
+              placeholder={`Nhắn vào #${currentChannelObj.name}...`}
               className="flex-1 bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400 transition-colors disabled:opacity-50"
             />
 
             <button
               onClick={handleSend}
-              disabled={!inputText.trim() || cooldownRemaining > 0}
-              className="p-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 font-semibold active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md"
-              title={cooldownRemaining > 0 ? 'Vui lòng chờ hết thời gian đếm ngược' : 'Gửi tin nhắn'}
+              disabled={!inputText.trim() || cooldown.isCooling}
+              className={`relative p-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 font-semibold active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md ${
+                cooldown.isCooling ? 'ff-cd-btn is-cooling' : ''
+              }`}
+              title={cooldown.isCooling ? `Còn ${cooldown.secondsLeft}s trước tin tiếp theo` : 'Gửi tin nhắn'}
             >
               <Send className="w-4 h-4" />
             </button>

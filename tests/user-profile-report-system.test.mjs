@@ -30,8 +30,18 @@ test('1. User Profile Architecture: 6 Fast Metrics, Radar Spider Chart, Badges &
   assert.ok(profileModal.includes('Chill Box'), 'Must include Chill Box');
   assert.ok(profileModal.includes('SHOP_ITEMS'), 'Chill box must render real shop inventory');
   assert.ok(profileModal.includes('userInventory'), 'Chill box must render the user own inventory only');
-  assert.ok(profileModal.includes('Kệ Sách Cộng Đồng'), 'Must include Kệ Sách Cộng Đồng');
-  assert.ok(profileModal.includes('Đọc sách gì hay, chia sẻ ngay cùng cộng đồng Hoidap247!'), 'Must include Kệ Sách description');
+  /* Kệ sách: vòng 9 thay khối mô tả suông bằng KỆ THẬT (lưu theo từng tài khoản) */
+  assert.ok(profileModal.includes('BookshelfPanel'), 'Profile must mount the real bookshelf panel');
+  const bookshelf = fs.readFileSync('src/components/BookshelfPanel.tsx', 'utf8');
+  assert.ok(bookshelf.includes('fforum_bookshelf_v1'), 'Bookshelf must persist per account');
+  assert.ok(bookshelf.includes('safeStorage'), 'Bookshelf must use the safeStorage wrapper');
+  assert.ok(!bookshelf.includes('localStorage.'), 'Bookshelf must not touch raw localStorage');
+  assert.ok(bookshelf.includes('ownerKey'), 'Bookshelf must be scoped to the profile owner');
+  assert.ok(profileModal.includes('TierRankSheet'), 'Danh hiệu card must open the rank/badge sheet');
+  assert.ok(
+    !profileModal.includes('hoidap') && !bookshelf.includes('hoidap'),
+    'Every hoidap247 reference must be purged from the profile',
+  );
 
   // Verify the answer history feed is built from REAL user solutions (no mock ids)
   assert.ok(profileModal.includes('userSolutions.map'), 'Answers feed must render real user solutions');
@@ -105,4 +115,39 @@ test('5. Page Resource Loader (.la-08) with real progress bar & mini console', (
   assert.ok(indexCss.includes('.la-08'), 'Must include .la-08 styles');
   assert.ok(indexCss.includes('@keyframes la-08-glow'), 'Must include la-08-glow keyframes');
   assert.ok(indexCss.includes('@keyframes la-08-beat'), 'Must include la-08-beat keyframes');
+});
+
+test('6. Vòng 9 — một lượt thích chỉ cộng ĐÚNG 1, bảng rank mở từ thẻ danh hiệu', () => {
+  const heart = fs.readFileSync('src/components/LikeHeartButton.tsx', 'utf8');
+  const profile = fs.readFileSync('src/components/ProfileModal.tsx', 'utf8');
+  const sheet = fs.readFileSync('src/components/TierRankSheet.tsx', 'utf8');
+
+  /* Tim: nền = số đã có trừ đi lượt của chính mình, để 1 lượt thích = +1 */
+  assert.ok(
+    heart.includes('baseCount') && /Math\.max\(0, initialCount - \(initialLiked \? 1 : 0\)\)/.test(heart),
+    'Like count must subtract my own like from the base so one like adds exactly one',
+  );
+  assert.ok(
+    heart.includes('const currentCount = isLiked ? baseCount + 1 : baseCount'),
+    'Rendered count must derive from the base, never double-count',
+  );
+
+  /* Hồ sơ: số lượt thích = cảm ơn thật + danh sách người đã thích, lưu theo tài khoản */
+  assert.ok(profile.includes('fforum_profile_likes_v1'), 'Profile likes must persist per account');
+  assert.ok(profile.includes('PROFILE_LIKES_KEY'), 'Profile likes key must be a named constant');
+  assert.ok(profile.includes('writeProfileLikes') && profile.includes('readProfileLikes'), 'Profile likes must be read + written through helpers');
+  assert.ok(profile.includes('handleProfileLike'), 'Heart must be wired to a real handler');
+  assert.ok(
+    profile.includes('statsMetrics.thanks + profileLikers.length'),
+    'Heart count must be real thanks + real likers',
+  );
+
+  /* Thẻ "danh hiệu" → mở bảng rank + danh hiệu + yêu cầu */
+  assert.ok(profile.includes('setIsRankSheetOpen(true)'), 'Rank card must open the sheet');
+  assert.ok(sheet.includes('Bảng rank') && sheet.includes('Danh hiệu') && sheet.includes('Yêu cầu'), 'Sheet must have the three tabs');
+  assert.ok(sheet.includes('TIER_CONFIGS'), 'Sheet must list every tier');
+  assert.ok(sheet.includes('xpThresholdForLevel'), 'Sheet must use the shared XP threshold helper');
+  assert.ok(sheet.includes('requirement'), 'Every badge row must state its requirement');
+  const tier = fs.readFileSync('src/utils/tier.ts', 'utf8');
+  assert.ok(/export (const|function) xpThresholdForLevel/.test(tier), 'XP threshold helper must be shared, not duplicated');
 });

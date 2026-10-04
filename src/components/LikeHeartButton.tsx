@@ -15,13 +15,18 @@ export const LikeHeartButton: React.FC<LikeHeartButtonProps> = ({
   className = '',
 }) => {
   const [isLiked, setIsLiked] = useState<boolean>(initialLiked);
-  const currentCount = isLiked ? initialCount + (initialLiked ? 0 : 1) : initialCount - (initialLiked ? 1 : 0);
+
+  /* `initialCount` là con số ĐÃ bao gồm lượt tim của bạn (nếu đã thả trước đó).
+     Vì vậy phải trừ ra để lấy "số tim khi chưa có bạn", rồi mới cộng đúng 1 khi
+     bạn thả tim. Trước đây công thức cộng dồn 2 lần nên bấm 1 tim mà nhảy 2. */
+  const baseCount = Math.max(0, initialCount - (initialLiked ? 1 : 0));
+  const currentCount = isLiked ? baseCount + 1 : baseCount;
   const nextRolloverCount = currentCount + 1;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const checked = e.target.checked;
     setIsLiked(checked);
-    const newCount = checked ? initialCount + (initialLiked ? 0 : 1) : initialCount - (initialLiked ? 1 : 0);
+    const newCount = checked ? baseCount + 1 : baseCount;
     if (onLikeChange) {
       onLikeChange(checked, newCount);
     }

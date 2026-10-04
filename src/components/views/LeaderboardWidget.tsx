@@ -7,6 +7,7 @@ import { MagneticButton } from '../MagneticButton';
 import { OdometerDigits } from '../OdometerDigits';
 import { StudyPulsePanel } from '../StudyPulsePanel';
 import { StudyHoursDetail } from '../StudyHoursDetail';
+import { COHORT_USERS, cohortActivityPoints, isCohortMember } from '../../utils/cohort';
 import {
   buildStudyLeaderboard,
   computeStudyTotals,
@@ -85,6 +86,7 @@ function computeMembers(
   solutions: Solution[],
   chatMessages: ChatMessage[],
   period: Period,
+  currentUserEmail?: string | null,
 ): LeaderboardMember[] {
   const since = periodStart(period);
   const inPeriod = (ts?: number) => (period === 'all' ? true : ts !== undefined && ts >= since);
@@ -119,16 +121,27 @@ function computeMembers(
     bump(email, 2);
   });
 
+  /* Nhóm sinh viên mô phỏng: nhịp đóng góp tất định theo kỳ (xem utils/cohort) */
+  Object.keys(users).forEach((emailKey) => {
+    const cohortPoints = cohortActivityPoints(emailKey, period);
+    if (cohortPoints > 0) bump(emailKey, cohortPoints);
+  });
+
   if (period === 'all') {
     Object.entries(users).forEach(([email, u]) => {
+      /* Thành viên mô phỏng đã được cộng XP ở nhánh cohort phía trên */
+      if (isCohortMember(email)) return;
       bump(email, u.xp || 0);
     });
   }
 
+  const mine = currentUserEmail ? currentUserEmail.toLowerCase() : '';
   const members: LeaderboardMember[] = [];
   scores.forEach((points, emailKey) => {
     const u = users[emailKey];
-    if (!u || points <= 0) return;
+    if (!u) return;
+    const isYou = Boolean(mine) && emailKey === mine;
+    if (points <= 0 && !isYou) return;
     members.push({
       key: emailKey,
       id: u.id,
@@ -139,10 +152,31 @@ function computeMembers(
       minutes: 0,
       points: Math.round(points),
       rank: 0,
+      isYou,
+      estimated: isCohortMember(emailKey),
     });
   });
 
-  members.sort((a, b) => b.points - a.points);
+  /* Bạn luôn có mặt trên bảng — kể cả khi chưa có điểm nào — để thấy đúng hạng */
+  if (mine && !members.some((m) => m.key === mine)) {
+    const u = users[mine];
+    members.push({
+      key: mine,
+      id: u?.id || 'me',
+      name: u?.name || 'Bạn',
+      avatar: u?.avatar || '',
+      email: u?.email || mine,
+      level: u?.level || 1,
+      minutes: 0,
+      points: 0,
+      rank: 0,
+      isYou: true,
+      estimated: false,
+    });
+  }
+
+  /* Điểm bằng nhau → xếp theo tên để thứ hạng luôn ổn định, không nhảy loạn */
+  members.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name, 'vi'));
   members.forEach((m, i) => {
     m.rank = i + 1;
   });
@@ -170,6 +204,8 @@ const buildHoursMembers = (
   }));
 
 const RANK_MEDAL = ['🥇', '🥈', '🥉'];
+/** Số thành viên tối đa hiển thị trên bảng */
+const MAX_BOARD_ROWS = 100;
 
 export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
   currentUser,
@@ -207,18 +243,26 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
   const mySessions = useMemo(() => sessionsForOwner(sessions, currentUser?.email), [sessions, currentUser?.email]);
   const totals: StudyTotals = useMemo(() => computeStudyTotals(mySessions), [mySessions]);
 
+  /* Danh bạ hợp nhất: tài khoản thật (sổ đăng ký) + nhóm sinh viên mô phỏng.
+     Tài khoản thật luôn thắng nếu trùng email. */
+  const boardUsers = useMemo<Record<string, User>>(
+    () => ({ ...COHORT_USERS, ...users }),
+    [users],
+  );
+
   const pointsMembers = useMemo(
-    () => computeMembers(users, questions, solutions, chatMessages, period),
-    [users, questions, solutions, chatMessages, period],
+    () => computeMembers(boardUsers, questions, solutions, chatMessages, period, currentUser?.email),
+    [boardUsers, questions, solutions, chatMessages, period, currentUser?.email],
   );
 
   const hoursMembers = useMemo(
-    () => buildHoursMembers(users, sessions, period, currentUser?.email),
-    [users, sessions, period, currentUser?.email],
+    () => buildHoursMembers(boardUsers, sessions, period, currentUser?.email),
+    [boardUsers, sessions, period, currentUser?.email],
   );
 
   const members = metric === 'points' ? pointsMembers : hoursMembers;
-  const top = members.slice(0, 8);
+  const boardRows = members.slice(0, MAX_BOARD_ROWS);
+  const top = members.slice(0, 5);
   const currentUserKey = currentUser ? currentUser.email.toLowerCase() : '';
   const meEntry = members.find((m) => m.key === currentUserKey);
   const maxValue = members.length > 0 ? Math.max(members[0].points, members[0].minutes) : 1;
@@ -237,7 +281,9 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
     onOpenProfile?.({ id: m.id, name: m.name, avatar: m.avatar, email: m.email, level: m.level });
 
   const podium = top.slice(0, 3);
-  const list = top.slice(3);
+  /* Bậc 4 & 5 nối tiếp bục 1-2-3 thành "thang rank" 5 bậc */
+  const ladderSteps = top.slice(3, 5);
+  const list = boardRows.slice(5);
 
   return (
     <aside className={`space-y-4 ${className}`} aria-label="Bảng xếp hạng và đặt câu hỏi">
@@ -253,6 +299,9 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
             <h3 className="ff-board__title">Bảng xếp hạng</h3>
             <p className="ff-board__sub">
               {metric === 'hours' ? 'Ai học nhiều nhất kỳ này' : 'Ai đóng góp nhiều nhất kỳ này'}
+              <span className="ff-board__count">
+                {boardRows.length}/{members.length} thành viên
+              </span>
             </p>
           </div>
           {meEntry && (
@@ -376,6 +425,43 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
           </div>
         )}
 
+        {/* Thang rank: bậc 4 & 5 nối tiếp bục 1-2-3 */}
+        {ladderSteps.length > 0 && (
+          <div className="ff-ladder" aria-label="Các bậc tiếp theo của thang rank">
+            {ladderSteps.map((m, i) => (
+              <button
+                key={m.key}
+                type="button"
+                onClick={() => openProfile(m)}
+                title={`Xem hồ sơ của ${m.name}`}
+                className={`ff-ladder__step ff-ladder__step--b${m.rank} ${m.isYou ? 'is-you' : ''}`}
+              >
+                <span className="ff-ladder__rank font-mono">{m.rank}</span>
+                <img
+                  src={m.avatar || DEFAULT_AVATAR}
+                  alt={m.name}
+                  onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                  loading="lazy"
+                  decoding="async"
+                  width={i === 0 ? 40 : 36}
+                  height={i === 0 ? 40 : 36}
+                  className="ff-ladder__avatar"
+                />
+                <span className="ff-ladder__body">
+                  <span className="ff-ladder__name">
+                    {m.name}
+                    {m.isYou && <em className="ff-row__you">Bạn</em>}
+                  </span>
+                  <span className="ff-ladder__track" aria-hidden="true">
+                    <i style={{ width: `${progressOf(m)}%` }} />
+                  </span>
+                </span>
+                <span className="ff-ladder__value font-mono">{formatValue(m)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Danh sách các hạng tiếp theo */}
         {list.length > 0 && (
           <ol className="ff-board__list">
@@ -412,6 +498,13 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
               </li>
             ))}
           </ol>
+        )}
+
+        {list.length > 0 && (
+          <p className="ff-board__micro">
+            Thứ hạng tính trực tiếp từ hoạt động thật (XP, giờ học) — ai bằng điểm thì xếp theo tên.
+            {metric === 'points' && ' Thành viên chưa đăng nhập không xuất hiện trên bảng.'}
+          </p>
         )}
 
         {metric === 'hours' && list.length === 0 && podium.length > 0 && (
