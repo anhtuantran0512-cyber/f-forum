@@ -1907,6 +1907,9 @@ test('37. Thao tác ghi dữ liệu phải đọc kết quả máy chủ, không
     /* Sửa hồ sơ: máy chủ loại các trường nó sở hữu (role/id/email) nên có thể
        từ chối — nuốt lỗi thì giao diện vẫn báo "Hồ sơ đã lưu thành công!". */
     '/api/users/update',
+    /* Chọn đáp án chuẩn: máy chủ trả 409 khi tự chọn đáp án của chính mình.
+       Client phải đọc mã đó thay vì cộng thưởng rồi báo thành công. */
+    '/api/solutions/best',
   ];
   for (const endpoint of criticalWrites) {
     assert.ok(
@@ -1924,6 +1927,18 @@ test('37. Thao tác ghi dữ liệu phải đọc kết quả máy chủ, không
       `${endpoint} phải báo lỗi cho người dùng khi máy chủ từ chối`
     );
   }
+
+  /* Chọn đáp án chuẩn: phải hỏi máy chủ trước rồi mới cộng thưởng. */
+  const bestAt = store.indexOf("runServerAction('/api/solutions/best'");
+  assert.ok(bestAt > 0, 'markBestSolution phải đọc kết quả máy chủ');
+  const awardAt = store.indexOf('addXP(solverCoinAward', bestAt);
+  assert.ok(awardAt > bestAt, 'Thưởng chỉ được cộng SAU khi máy chủ xác nhận');
+
+  /* Và phải chặn tự chọn ngay phía client, khớp với 409 của máy chủ. */
+  assert.ok(
+    store.includes('Không thể chọn đáp án của chính bạn'),
+    'Client phải chặn tự chọn đáp án của chính mình'
+  );
 
   /* Toast phải có biến thể lỗi để hiển thị được. */
   assert.ok(

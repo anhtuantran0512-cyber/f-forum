@@ -1866,7 +1866,7 @@ export function useForumStore() {
     addXP(25);
   };
 
-  const markBestSolution = (questionId: string, solutionId: string) => {
+  const markBestSolution = async (questionId: string, solutionId: string) => {
     if (!currentUser) return;
     const question = questions.find(q => q.id === questionId);
     if (!question) return;
@@ -1882,6 +1882,23 @@ export function useForumStore() {
 
     const targetSolution = solutions.find(s => s.id === solutionId);
 
+    /* Máy chủ từ chối việc tự chọn câu trả lời của chính mình (409) vì đó là cách
+       tự trả thưởng cho bản thân. Chặn ngay phía client để người dùng biết trước
+       thay vì thấy thông báo thành công rồi thưởng không bao giờ đến. */
+    if (
+      targetSolution?.authorEmail &&
+      targetSolution.authorEmail.toLowerCase() === currentUser.email.toLowerCase()
+    ) {
+      setToastMessage({
+        title: 'Không thể chọn đáp án của chính bạn',
+        subtitle: 'Đáp án chuẩn phải là lời giải của người khác. Nhờ bạn học khác trả lời nhé!',
+        type: 'error',
+      });
+      return;
+    }
+
+    const prevQuestions = questions;
+    const prevSolutions = solutions;
     setQuestions(prev =>
       prev.map(q =>
         q.id === questionId
@@ -1901,6 +1918,27 @@ export function useForumStore() {
 
     const bounty = question.bountyCoin || 20;
     const solverCoinAward = Math.floor(bounty * 0.5) + 100;
+
+    /* Hỏi máy chủ TRƯỚC, cộng thưởng SAU. Trước đây thứ tự ngược lại: thưởng được
+       cộng cục bộ và toast thành công hiện ra bất kể server trả gì, nên khi server
+       từ chối (409 tự chọn, 401 phiên hết hạn, 404 lời giải không thuộc câu hỏi)
+       người dùng vẫn thấy "+Coin danh dự" rồi mọi thứ âm thầm quay về ở lần đồng
+       bộ sau. */
+    const bestOutcome = await runServerAction('/api/solutions/best', {
+      questionId,
+      solutionId,
+    });
+    if (!bestOutcome.ok) {
+      setQuestions(prevQuestions);
+      setSolutions(prevSolutions);
+      setToastMessage({
+        title: 'Không xác nhận được Đáp Án Chuẩn',
+        subtitle: bestOutcome.message,
+        type: 'error',
+      });
+      return;
+    }
+
     if (targetSolution && targetSolution.authorEmail) {
       addXP(solverCoinAward, targetSolution.authorEmail);
       pushNotification({
@@ -1911,17 +1949,6 @@ export function useForumStore() {
         targetView: 'qa',
       });
     }
-
-    fetch('/api/solutions/best', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({
-        questionId,
-        solutionId,
-        currentUserId: currentUser.id,
-        currentUserEmail: currentUser.email,
-      }),
-    }).catch(() => {});
 
     try {
       syncBroadcastChannel?.postMessage({
