@@ -5,6 +5,7 @@ import { installInteractionWatchdog } from './utils/interactionWatchdog';
 import { useForumStore } from './store/forumStore';
 import { Navbar } from './components/Navbar';
 import { ScrollToTopDock } from './components/ScrollToTopDock';
+import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { CelebrationBurst } from './components/CelebrationBurst';
 import { HomeView } from './components/views/HomeView';
 import { GlobalCursor } from './components/GlobalCursor';
@@ -179,6 +180,7 @@ export const App: React.FC = () => {
   );
 
   /* Hiệu ứng ăn mừng: `celebrationTick` tăng lên mỗi lần cần bắn hoa giấy. */
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [celebrationTick, setCelebrationTick] = useState(0);
   const [celebrationText, setCelebrationText] = useState<string | undefined>(undefined);
   const lastCelebratedRef = useRef<string | null>(null);
@@ -547,6 +549,16 @@ export const App: React.FC = () => {
 
     const actionCommands: PaletteCommand[] = [
       {
+        id: 'act-shortcuts',
+        label: 'Xem bảng phím tắt',
+        hint: 'Bốn tổ hợp phím đang có trong app',
+        group: 'Tác vụ',
+        icon: <CommandIcon className="w-4 h-4" />,
+        shortcut: '⌘/',
+        keywords: 'phim tat shortcut keyboard ban phim',
+        run: () => setIsShortcutsOpen(true),
+      },
+      {
         id: 'act-palette-shortcut',
         label: 'Bảng lệnh nhanh',
         hint: 'Đang mở — gõ để lọc mọi tác vụ',
@@ -756,6 +768,13 @@ export const App: React.FC = () => {
       if (e.shiftKey && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         setIsFocusModeOpen(true);
+        return;
+      }
+      /* Ctrl/Cmd + / mở bảng phím tắt — quy ước quen thuộc, và là cách duy nhất
+         để người dùng biết bốn tổ hợp phím còn lại tồn tại. */
+      if (e.key === '/' || e.key === '?') {
+        e.preventDefault();
+        setIsShortcutsOpen((prev) => !prev);
       }
     };
 
@@ -1093,6 +1112,12 @@ export const App: React.FC = () => {
       {/* HIDDEN PREMIUM LAYER: Bảng lệnh, Sổ tay nhanh, Nghỉ mắt  */}
       {/* ======================================================== */}
       <Suspense fallback={null}>
+        <KeyboardShortcutsModal
+          isOpen={isShortcutsOpen}
+          onClose={() => setIsShortcutsOpen(false)}
+          onOpenPalette={() => setIsPaletteOpen(true)}
+        />
+
         <CommandPalette
           isOpen={isPaletteOpen}
           onClose={() => setIsPaletteOpen(false)}
