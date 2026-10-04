@@ -456,37 +456,89 @@ test('15. Vòng 7 — không lớp phủ vô hình nào được phép khoá c�
   assert.ok(boundary.includes('fforum_chunk_reload_'), 'Boundary must be able to clear poisoned chunk flags');
 });
 
-test('16. Vòng 9 — bảng xếp hạng ~100 người: dữ liệu thật + thang rank 5 bậc', () => {
+test('16. Vòng 11 — bảng xếp hạng chỉ còn tài khoản thật + thang rank 5 bậc', () => {
   const board = read('src/components/views/LeaderboardWidget.tsx');
-  const cohort = read('src/utils/cohort.ts');
+  const store = read('src/store/forumStore.ts');
 
-  /* Nguồn dữ liệu: nhóm sinh viên mô phỏng tất định + tài khoản thật */
-  assert.ok(cohort.includes('COHORT_MEMBERS'), 'Cohort must be a real computed list');
-  assert.ok(cohort.includes('COHORT_SIZE = 112'), 'Cohort must be large enough for a ~100 row board');
-  assert.ok(cohort.includes('makeRandom(20260214)'), 'Cohort must be deterministic (same seed → same board)');
-  assert.ok(cohort.includes('export const COHORT_USERS'), 'Cohort must expose store-shaped users');
-  assert.ok(cohort.includes('cohortActivityPoints'), 'Cohort must contribute period points');
-  assert.ok(cohort.includes("period === 'all') return member.xp"), 'All-time cohort points must be their accumulated XP');
-  assert.ok(!/localStorage/.test(cohort), 'Cohort must not touch storage');
-  assert.ok(!cohort.includes('fetch('), 'Cohort must be generated offline (no network)');
+  /* Lớp tài khoản mô phỏng đã bị xoá vĩnh viễn khỏi repo */
+  assert.ok(!fs.existsSync(path.resolve('src/utils/cohort.ts')), 'The virtual cohort module must be deleted, not shimmed');
+  assert.ok(!/COHORT_USERS|cohortActivityPoints|isCohortMember/.test(board), 'Board must not reference the deleted virtual accounts');
+  assert.ok(!/COHORT_USERS|cohortActivityPoints|isCohortMember/.test(store), 'Store must not reference the deleted virtual accounts');
 
-  /* Bảng: gộp danh bạ thật + cohort, luôn có mặt chính mình, cắt 100 dòng */
-  assert.ok(board.includes('COHORT_USERS') && board.includes('...users'), 'Board must merge real accounts with cohort');
+  /* Bảng chỉ đọc sổ đăng ký thật: không gộp, không cộng XP ảo */
+  assert.ok(board.includes('computeMembers(users,'), 'Points board must read the real account registry directly');
+  assert.ok(board.includes('buildHoursMembers(users,'), 'Hours board must read the real account registry directly');
+  assert.ok(board.includes('bump(email, u.xp || 0)'), 'All-time points must come from each account real XP');
   assert.ok(board.includes('MAX_BOARD_ROWS = 100'), 'Board must show up to 100 members');
   assert.ok(board.includes('const top = members.slice(0, 5)'), 'Top 5 must sit on the big rank ladder');
   assert.ok(board.includes('ladderSteps'), 'Ranks 4 & 5 must continue the podium as ladder steps');
   assert.ok(board.includes('boardRows.slice(5)'), 'Everyone below the top 5 shows as a plain list');
   assert.ok(board.includes('isYou'), 'The current user must be flagged on the board');
-  assert.ok(board.includes('estimated'), 'Derived cohort values must be marked as estimates');
+  assert.ok(
+    board.includes("metric === 'hours' && m.estimated"),
+    'Only real accounts whose hours are derived from their own XP may be marked ≈',
+  );
   assert.ok(board.includes('ff-row__est'), 'Estimated values must be visibly marked in the UI (≈ symbol)');
   assert.ok(
     /members\.sort\(\(a, b\) => b\.points - a\.points \|\|/.test(board),
     'Ties must break deterministically so ranks never flicker',
   );
   assert.ok(board.includes('meEntry.rank'), 'Your own rank must be shown even outside the top 100');
+  assert.ok(
+    board.includes('chỉ gồm tài khoản thật'),
+    'Board footnote must state that only real accounts are ranked',
+  );
+
+  /* Vệ sinh sổ đăng ký: tài khoản mô phỏng cũ không thể quay lại (client + server) */
+  const server = read('server/forumServer.ts');
+  assert.ok(store.includes("RETIRED_VIRTUAL_DOMAIN = '@sv.f-forum.vn'"), 'Store must retire the virtual account domain');
+  assert.ok(store.includes('sanitizeUsersRegistry'), 'Store must sanitize the registry before every read/write');
+  assert.ok(server.includes("RETIRED_VIRTUAL_DOMAIN = '@sv.f-forum.vn'"), 'Server must retire the virtual account domain too');
+  assert.ok(server.includes('sanitizeUsers('), 'Server must drop virtual accounts when loading its data file');
+  assert.ok(
+    store.includes('sanitizeUsersRegistry({ ...prev, ...data.users })'),
+    'Server sync must sanitize the merged registry so virtual rows cannot survive',
+  );
+  assert.ok(
+    store.includes("prev.email.toLowerCase() === updatedUser.email.toLowerCase() ? updatedUser : prev"),
+    'Profile edits in another tab must refresh this tab (accounts stay in sync)',
+  );
 
   const css = read('src/index.css');
   assert.ok(css.includes('.ff-ladder__step--b4') && css.includes('.ff-ladder__step--b5'), 'Ladder steps 4 & 5 must be styled');
   assert.ok(css.includes('.ff-board__count'), 'The member count badge must be styled');
   assert.ok(css.includes('html.light .ff-ladder__step'), 'Ladder must have a light-mode variant');
+});
+
+test('17. Vòng 11 — bộ icon rank 8 bậc được vẽ lại, khớp màu cấu hình tier', () => {
+  const badges = read('src/components/Badges10Tier.tsx');
+
+  assert.ok(badges.includes('const Medallion'), 'All eight ranks must share one medallion frame');
+  assert.ok(badges.includes('data-rank-tier={tier}'), 'Every icon must expose its tier for styling/tests');
+  for (let tier = 1; tier <= 8; tier += 1) {
+    assert.ok(
+      badges.includes(`<Medallion tier={${tier}}`),
+      `Rank ${tier} must be drawn through the shared medallion`,
+    );
+  }
+  for (let i = 0; i < 8; i += 1) {
+    assert.ok(
+      badges.includes(`TIER_CONFIGS[${i}].badgeColor`) && badges.includes(`<Glyph`),
+      `Rank ${i + 1} must take its colour from TIER_CONFIGS`,
+    );
+  }
+  assert.ok(badges.includes('ornate') && badges.includes("'diamond'"), 'Higher ranks must be more ornate than lower ones');
+  assert.ok(badges.includes('export const TierSvg') && badges.includes('export const TierBadge'), 'TierSvg/TierBadge public API must stay stable');
+  assert.ok(badges.includes('AdminVerifiedBadge'), 'Admin verified badge must survive the redesign');
+
+  /* Không được tái sử dụng id gradient trùng giữa các bậc khác nhau */
+  /* Id gradient phải riêng cho từng instance: render cùng bậc cũng không đụng id */
+  assert.ok(badges.includes('useId()'), 'Each badge instance must derive its own unique id');
+  assert.ok(badges.includes('[^a-zA-Z0-9]'), 'The unique id must be stripped to characters that are safe inside url(#…)');
+  assert.ok(badges.includes('url(#${p}-glyph)'), 'Glyph gradients must use the instance prefix, not a hardcoded id');
+  assert.ok(!/url\(#ffr\d-glyph\)/.test(badges), 'No hardcoded glyph gradient id may remain');
+
+  /* Tooltip vẫn mô tả đúng bậc lấy từ utils/tier */
+  assert.ok(badges.includes('getTierForLevel'), 'Badge must resolve the tier from the user level');
+  assert.ok(badges.includes('tier.description'), 'Tooltip must keep the tier description');
 });

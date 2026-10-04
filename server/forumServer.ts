@@ -133,15 +133,38 @@ let store: ForumDataStore = {
   },
 };
 
+/** Miền email của lớp tài khoản mô phỏng đã bị xoá — chặn vĩnh viễn ở tầng server */
+const RETIRED_VIRTUAL_DOMAIN = '@sv.f-forum.vn';
+
+/** Chỉ giữ tài khoản thật: bỏ bản ghi mô phỏng cũ và bản ghi hỏng */
+function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
+  const out: Record<string, UserRecord> = {};
+  if (!rawUsers || typeof rawUsers !== 'object') return out;
+  Object.values(rawUsers).forEach((raw: any) => {
+    if (!raw || typeof raw !== 'object') return;
+    const email = typeof raw.email === 'string' ? raw.email.trim().toLowerCase() : '';
+    if (!email || !email.includes('@') || email.endsWith(RETIRED_VIRTUAL_DOMAIN)) return;
+    if (!raw.id || !raw.name) return;
+    out[email] = { ...raw, email };
+  });
+  return out;
+}
+
 function loadStoreFromDisk() {
   try {
     if (fs.existsSync(dataFilePath)) {
       const raw = fs.readFileSync(dataFilePath, 'utf8');
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') {
+        const cleanUsers = sanitizeUsers({ ...store.users, ...(parsed.users || {}) });
+        const cleanPasswords: Record<string, string> = {};
+        Object.entries(parsed.passwords || {}).forEach(([email, pw]) => {
+          const key = email.trim().toLowerCase();
+          if (cleanUsers[key]) cleanPasswords[key] = pw as string;
+        });
         store = {
-          users: { ...store.users, ...(parsed.users || {}) },
-          passwords: { ...store.passwords, ...(parsed.passwords || {}) },
+          users: cleanUsers,
+          passwords: { ...store.passwords, ...cleanPasswords },
           clubs: Array.isArray(parsed.clubs) ? parsed.clubs : [],
           clubPosts: Array.isArray(parsed.clubPosts) ? parsed.clubPosts : [],
           questions: Array.isArray(parsed.questions) ? parsed.questions : [],
@@ -724,6 +747,11 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
+        if (email.endsWith(RETIRED_VIRTUAL_DOMAIN)) {
+          sendJson(res, 400, { success: false, message: 'Miền email này không còn được hỗ trợ. Vui lòng dùng email thật!' });
+          return;
+        }
+
         if (store.users[email]) {
           sendJson(res, 400, { success: false, message: 'Email này đã được đăng ký. Vui lòng đăng nhập!' });
           return;
@@ -826,6 +854,10 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
         if (!email || !email.includes('@')) {
           sendJson(res, 400, { success: false, message: 'Địa chỉ email mạng xã hội không hợp lệ!' });
+          return;
+        }
+        if (email.endsWith(RETIRED_VIRTUAL_DOMAIN)) {
+          sendJson(res, 400, { success: false, message: 'Miền email này không còn được hỗ trợ!' });
           return;
         }
 

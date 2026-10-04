@@ -7,7 +7,6 @@ import { MagneticButton } from '../MagneticButton';
 import { OdometerDigits } from '../OdometerDigits';
 import { StudyPulsePanel } from '../StudyPulsePanel';
 import { StudyHoursDetail } from '../StudyHoursDetail';
-import { COHORT_USERS, cohortActivityPoints, isCohortMember } from '../../utils/cohort';
 import {
   buildStudyLeaderboard,
   computeStudyTotals,
@@ -34,6 +33,7 @@ interface LeaderboardMember {
   email?: string;
   rank: number;
   isYou?: boolean;
+  /** Chỉ ở bảng giờ học: số phút quy đổi từ XP của tài khoản (chưa có phiên thật) */
   estimated?: boolean;
 }
 
@@ -121,16 +121,9 @@ function computeMembers(
     bump(email, 2);
   });
 
-  /* Nhóm sinh viên mô phỏng: nhịp đóng góp tất định theo kỳ (xem utils/cohort) */
-  Object.keys(users).forEach((emailKey) => {
-    const cohortPoints = cohortActivityPoints(emailKey, period);
-    if (cohortPoints > 0) bump(emailKey, cohortPoints);
-  });
-
+  /* Điểm toàn thời gian = XP thật tích luỹ của từng tài khoản */
   if (period === 'all') {
     Object.entries(users).forEach(([email, u]) => {
-      /* Thành viên mô phỏng đã được cộng XP ở nhánh cohort phía trên */
-      if (isCohortMember(email)) return;
       bump(email, u.xp || 0);
     });
   }
@@ -153,7 +146,6 @@ function computeMembers(
       points: Math.round(points),
       rank: 0,
       isYou,
-      estimated: isCohortMember(emailKey),
     });
   });
 
@@ -171,7 +163,6 @@ function computeMembers(
       points: 0,
       rank: 0,
       isYou: true,
-      estimated: false,
     });
   }
 
@@ -243,21 +234,15 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
   const mySessions = useMemo(() => sessionsForOwner(sessions, currentUser?.email), [sessions, currentUser?.email]);
   const totals: StudyTotals = useMemo(() => computeStudyTotals(mySessions), [mySessions]);
 
-  /* Danh bạ hợp nhất: tài khoản thật (sổ đăng ký) + nhóm sinh viên mô phỏng.
-     Tài khoản thật luôn thắng nếu trùng email. */
-  const boardUsers = useMemo<Record<string, User>>(
-    () => ({ ...COHORT_USERS, ...users }),
-    [users],
-  );
-
+  /* Danh bạ duy nhất: sổ đăng ký tài khoản thật (không còn dữ liệu mô phỏng) */
   const pointsMembers = useMemo(
-    () => computeMembers(boardUsers, questions, solutions, chatMessages, period, currentUser?.email),
-    [boardUsers, questions, solutions, chatMessages, period, currentUser?.email],
+    () => computeMembers(users, questions, solutions, chatMessages, period, currentUser?.email),
+    [users, questions, solutions, chatMessages, period, currentUser?.email],
   );
 
   const hoursMembers = useMemo(
-    () => buildHoursMembers(boardUsers, sessions, period, currentUser?.email),
-    [boardUsers, sessions, period, currentUser?.email],
+    () => buildHoursMembers(users, sessions, period, currentUser?.email),
+    [users, sessions, period, currentUser?.email],
   );
 
   const members = metric === 'points' ? pointsMembers : hoursMembers;
@@ -457,8 +442,8 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                   </span>
                 </span>
                 <span className="ff-ladder__value font-mono">
-                  {m.estimated && (
-                    <span className="ff-row__est" title="Mức ước lượng từ hoạt động tích luỹ">≈</span>
+                  {metric === 'hours' && m.estimated && (
+                    <span className="ff-row__est" title="Quy đổi từ XP tích luỹ của tài khoản này">≈</span>
                   )}
                   {formatValue(m)}
                 </span>
@@ -500,8 +485,8 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                     </span>
                   </span>
                   <span className="ff-row__value font-mono">
-                    {m.estimated && (
-                      <span className="ff-row__est" title="Mức ước lượng từ hoạt động tích luỹ">≈</span>
+                    {metric === 'hours' && m.estimated && (
+                      <span className="ff-row__est" title="Quy đổi từ XP tích luỹ của tài khoản này">≈</span>
                     )}
                     {formatValue(m)}
                   </span>
@@ -514,8 +499,8 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
 
         {list.length > 0 && (
           <p className="ff-board__micro">
-            Thứ hạng tính trực tiếp từ hoạt động thật (XP, giờ học) — ai bằng điểm thì xếp theo tên.
-            Dấu ≈ là mức ước lượng từ hoạt động tích luỹ của thành viên; số của bạn luôn là số thật.
+            Bảng chỉ gồm tài khoản thật đã đăng ký, xếp theo hoạt động thật (XP, giờ học) — ai bằng điểm thì xếp theo tên.
+            {metric === 'hours' && ' Dấu ≈ là số giờ quy đổi từ XP tích luỹ của người chưa mở phòng tập trung.'}
             {metric === 'points' && ' Thành viên chưa đăng nhập không xuất hiện trên bảng.'}
           </p>
         )}

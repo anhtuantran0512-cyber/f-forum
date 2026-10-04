@@ -15,7 +15,7 @@ const NAV_LINKS: { id: string; label: string }[] = [
   { id: 'tinh-nang', label: 'Tính năng' },
   { id: 'kham-pha', label: 'Khám phá' },
   { id: 'loi-ich', label: 'Lợi ích' },
-  { id: 'danh-gia', label: 'Đánh giá' },
+  { id: 'tinh-nang', label: 'Năng lực' },
   { id: 'bang-gia', label: 'Bảng giá' },
   { id: 'faq', label: 'Hỏi đáp' },
 ];

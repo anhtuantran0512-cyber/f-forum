@@ -17,7 +17,7 @@ test('1. Landing page composes the complete conversion structure', () => {
     'LandingFeatures',
     'LandingShowcase',
     'LandingBenefits',
-    'LandingTestimonials',
+    'LandingHighlights',
     'LandingPricing',
     'LandingFAQ',
     'LandingCTA',
@@ -97,7 +97,7 @@ test('4. Pricing, FAQ and copy data stay in one iterable source', () => {
   const content = read(`${LANDING_DIR}/landingContent.ts`);
   const pricing = read(`${LANDING_DIR}/sections/LandingPricing.tsx`);
 
-  ['FEATURES', 'SHOWCASE_STEPS', 'BENEFITS', 'TESTIMONIALS', 'PRICING_PLANS', 'FAQ_ITEMS'].forEach((exportName) => {
+  ['FEATURES', 'SHOWCASE_STEPS', 'BENEFITS', 'HIGHLIGHTS', 'PRICING_PLANS', 'FAQ_ITEMS'].forEach((exportName) => {
     assert.ok(content.includes(`export const ${exportName}`), `${exportName} must be exported from landingContent`);
   });
 

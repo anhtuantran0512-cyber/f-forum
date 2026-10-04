@@ -77,6 +77,37 @@ try {
   syncBroadcastChannel = null;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Vệ sinh sổ đăng ký tài khoản                                               */
+/* -------------------------------------------------------------------------- */
+/**
+ * Miền email của lớp tài khoản mô phỏng đã bị xoá vĩnh viễn khỏi hệ thống.
+ * Bất kỳ bản ghi cũ nào còn sót trong localStorage / payload đồng bộ đều bị loại.
+ */
+export const RETIRED_VIRTUAL_DOMAIN = '@sv.f-forum.vn';
+
+/** Số Coin chào mừng, đúng bằng mức server cấp khi tạo tài khoản thật */
+const welcomeCoinFor = (email: string) => (email === 'anhtuantran0512@gmail.com' ? 99999 : 100);
+
+/**
+ * Chuẩn hoá sổ đăng ký: chỉ giữ tài khoản thật, khoá theo email (chữ thường),
+ * bỏ tài khoản mô phỏng đã xoá và bản ghi hỏng. Nhờ vậy mọi bề mặt (bảng xếp
+ * hạng, thẻ hồ sơ, danh sách thành viên) luôn nhìn đúng một nguồn dữ liệu.
+ */
+export function sanitizeUsersRegistry(input: unknown): Record<string, User> {
+  if (!input || typeof input !== 'object') return {};
+  const out: Record<string, User> = {};
+  Object.values(input as Record<string, unknown>).forEach((raw) => {
+    if (!raw || typeof raw !== 'object') return;
+    const u = raw as User;
+    const email = typeof u.email === 'string' ? u.email.trim().toLowerCase() : '';
+    if (!email || !email.includes('@') || email.endsWith(RETIRED_VIRTUAL_DOMAIN)) return;
+    if (!u.id || !u.name) return;
+    out[email] = u.coin === undefined ? { ...u, email, coin: welcomeCoinFor(email) } : { ...u, email };
+  });
+  return out;
+}
+
 const INITIAL_CHATS: ChatMessage[] = [];
 const INITIAL_QUESTIONS: Question[] = [];
 const INITIAL_SOLUTIONS: Solution[] = [];
@@ -94,15 +125,7 @@ export function useForumStore() {
     const saved = safeStorage.getItem('fforum_users_registry');
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') {
-          for (const key of Object.keys(parsed)) {
-            if (parsed[key] && parsed[key].coin === undefined) {
-              parsed[key].coin = parsed[key].email === 'anhtuantran0512@gmail.com' ? 99999 : 100;
-            }
-          }
-          return parsed;
-        }
+        return sanitizeUsersRegistry(JSON.parse(saved));
       } catch {
         /* ignore */
       }
@@ -112,22 +135,14 @@ export function useForumStore() {
 
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const savedEmail = safeStorage.getItem('fforum_current_user_email');
-    if (savedEmail) {
-      const savedRegistry = safeStorage.getItem('fforum_users_registry');
-      if (savedRegistry) {
-        try {
-          const registry: Record<string, User> = JSON.parse(savedRegistry);
-          const u = registry[savedEmail.toLowerCase()] || null;
-          if (u && u.coin === undefined) {
-            u.coin = u.email === 'anhtuantran0512@gmail.com' ? 99999 : 100;
-          }
-          return u;
-        } catch {
-          /* ignore */
-        }
-      }
+    if (!savedEmail) return null;
+    const savedRegistry = safeStorage.getItem('fforum_users_registry');
+    if (!savedRegistry) return null;
+    try {
+      return sanitizeUsersRegistry(JSON.parse(savedRegistry))[savedEmail.toLowerCase()] || null;
+    } catch {
+      return null;
     }
-    return null;
   });
 
   const [clubs, setClubs] = useState<Club[]>(() => {
@@ -347,7 +362,8 @@ export function useForumStore() {
   }, [currentUser]);
 
   useEffect(() => {
-    safeStorage.setItem('fforum_users_registry', JSON.stringify(users));
+    /* Ghi bản đã vệ sinh: tab khác nhận storage event cũng không thấy tài khoản mô phỏng */
+    safeStorage.setItem('fforum_users_registry', JSON.stringify(sanitizeUsersRegistry(users)));
   }, [users]);
 
   useEffect(() => {
@@ -391,7 +407,8 @@ export function useForumStore() {
           if (json.success && json.data && isMounted) {
             const data = json.data;
             if (data.users && Object.keys(data.users).length > 0) {
-              setUsers(prev => ({ ...prev, ...data.users }));
+              /* Server là nguồn chuẩn; vệ sinh để tài khoản mô phỏng cũ không quay lại */
+              setUsers(prev => sanitizeUsersRegistry({ ...prev, ...data.users }));
             }
             if (Array.isArray(data.clubs)) setClubs(data.clubs);
             if (Array.isArray(data.clubPosts)) setClubPosts(data.clubPosts);
@@ -731,6 +748,10 @@ export function useForumStore() {
             ...prev,
             [updatedUser.email.toLowerCase()]: updatedUser,
           }));
+          /* Sửa hồ sơ ở tab khác → tab này cập nhật ngay, không cần tải lại */
+          setCurrentUser(prev =>
+            prev && prev.email.toLowerCase() === updatedUser.email.toLowerCase() ? updatedUser : prev
+          );
           break;
         }
         case 'USER_LOGIN': {
@@ -815,7 +836,7 @@ export function useForumStore() {
         }
       } else if (e.key === 'fforum_users_registry' && e.newValue) {
         try {
-          setUsers(JSON.parse(e.newValue));
+          setUsers(sanitizeUsersRegistry(JSON.parse(e.newValue)));
         } catch {
           /* ignore */
         }
