@@ -567,7 +567,40 @@ export function useForumStore() {
 
 
             const savedEmail = safeStorage.getItem('fforum_current_user_email');
-            if (savedEmail && data.users && data.users[savedEmail.toLowerCase()]) {
+            const savedToken = getAuthToken();
+
+            /*
+              Khôi phục phiên: token trong localStorage có thể đã hết hạn, hoặc
+              tài khoản đã bị xoá / bị thu hồi quyền. Phải hỏi lại server — nếu
+              không giao diện vẫn hiện "đã đăng nhập" trong khi mọi lệnh ghi đều
+              bị từ chối 401 và người dùng không hiểu vì sao.
+            */
+            if (savedToken) {
+              try {
+                const sessionRes = await fetch('/api/auth/session', { headers: authHeaders() });
+                if (sessionRes.status === 401) {
+                  clearAuthToken();
+                  safeStorage.removeItem('fforum_current_user_email');
+                  if (isMounted) {
+                    setCurrentUser(null);
+                    setToastMessage({
+                      title: 'Phiên đăng nhập đã hết hạn',
+                      subtitle: 'Vui lòng đăng nhập lại để tiếp tục.',
+                      type: 'level',
+                    });
+                  }
+                } else if (sessionRes.ok) {
+                  const sessionJson = await sessionRes.json();
+                  if (sessionJson?.success && sessionJson.user && isMounted) {
+                    const fresh = sessionJson.user as User;
+                    safeStorage.setItem('fforum_current_user_email', fresh.email.toLowerCase());
+                    setCurrentUser(fresh);
+                  }
+                }
+              } catch {
+                /* Ngoại tuyến: giữ phiên cục bộ, thử lại lần mở kế tiếp. */
+              }
+            } else if (savedEmail && data.users && data.users[savedEmail.toLowerCase()] && isMounted) {
               setCurrentUser(data.users[savedEmail.toLowerCase()]);
             }
           }

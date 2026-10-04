@@ -268,6 +268,32 @@ function migratePlaintextPasswords(): number {
 /** Cấp token phiên cho một tài khoản (dùng chung register / login / social). */
 const issueTokenFor = (user: UserRecord): string => createSessionToken(user.email, user.role);
 
+/**
+ * Gộp dữ liệu Khu Vinh Danh thay vì thay nguyên khối.
+ *
+ * Client có quyền gửi một phần tài liệu (ví dụ chỉ đổi `headline`). Nếu ghi đè
+ * cả khối thì một payload thiếu sẽ XOÁ SẠCH `founder` và `milestones`, rồi
+ * `persistStoreToDisk` ghi luôn xuống đĩa — làm hỏng dữ liệu cho MỌI lần khởi
+ * động về sau, kể cả ở tiến trình khác. Gộp thì payload thiếu chỉ cập nhật đúng
+ * phần nó mang theo.
+ */
+function mergeAboutData(incoming: any): any {
+  const base: any = store.about || {};
+  if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) return base;
+
+  const merged: any = { ...base, ...incoming };
+  /*
+    Không cho phép xoá mất hai khối lõi. Mảng RỖNG cũng bị coi là "không gửi"
+    — một payload thiếu sót hay một lời gọi lỗi không được phép thổi bay toàn bộ
+    danh sách mốc kỷ niệm. Muốn gỡ từng mốc thì gửi lại danh sách còn lại.
+  */
+  if (!merged.founder || typeof merged.founder !== 'object') merged.founder = base.founder;
+  if (!Array.isArray(merged.milestones) || merged.milestones.length === 0) {
+    merged.milestones = Array.isArray(base.milestones) ? base.milestones : [];
+  }
+  return merged;
+}
+
 export function broadcastServerEvent(type: string, payload: any) {
   const eventMessage = JSON.stringify({ type, payload, timestamp: Date.now() });
 
@@ -666,9 +692,10 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 break;
               }
               if (payload) {
-                store.about = payload;
+                /* Gộp, không thay khối — payload thiếu không được xoá founder/milestones. */
+                store.about = mergeAboutData(payload);
                 persistStoreToDisk();
-                broadcastServerEvent('SYNC_ABOUT', payload);
+                broadcastServerEvent('SYNC_ABOUT', store.about);
               }
               break;
             }
@@ -1230,6 +1257,33 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
+    /**
+     * Kiểm tra token đang giữ còn hiệu lực không.
+     * Client khôi phục phiên từ localStorage nên cần một nơi hỏi lại server:
+     * token hết hạn / tài khoản bị xoá / role bị thu hồi thì phải đăng xuất,
+     * thay vì để giao diện tưởng đã đăng nhập trong khi mọi API đều trả 401.
+     */
+    if (method === 'GET' && url.startsWith('/api/auth/session')) {
+      const claims = authorizeRequest(req, null, null);
+      if (!claims) {
+        sendJson(res, 401, { success: false, message: 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn.' });
+        return;
+      }
+      const account = store.users[claims.email];
+      if (!account) {
+        sendJson(res, 401, { success: false, message: 'Tài khoản này không còn tồn tại.' });
+        return;
+      }
+      /* Role đọc từ bản ghi thật, không từ token — thu hồi quyền là có hiệu lực ngay. */
+      sendJson(res, 200, {
+        success: true,
+        user: account,
+        role: account.role,
+        expiresAt: claims.exp,
+      });
+      return;
+    }
+
     if (method === 'POST' && url === '/api/auth/social') {
       try {
         const body = await parseJsonBody(req);
@@ -1478,7 +1532,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           sendJson(res, 400, { success: false, message: 'Dữ liệu không hợp lệ!' });
           return;
         }
-        store.about = aboutPayload;
+        store.about = mergeAboutData(aboutPayload);
         persistStoreToDisk();
         broadcastServerEvent('SYNC_ABOUT', store.about);
         sendJson(res, 200, { success: true, about: store.about, ...store.about });

@@ -862,3 +862,99 @@ test('18. Client luôn gắn token phiên vào các API ghi dữ liệu', () => 
   assert.ok(store.includes("type: 'AUTH'"), 'forumStore phải gửi AUTH qua WebSocket');
   assert.ok(store.includes('authenticateSocketRef.current()'), 'Phải xác thực lại socket sau khi đăng nhập');
 });
+
+test('19. /api/auth/session: token hợp lệ trả đúng tài khoản, token hỏng trả 401', async () => {
+  const env = await createTestServer();
+  try {
+    /* Chưa đăng nhập -> 401 */
+    const anon = await fetch(`${env.baseUrl}/api/auth/session`);
+    assert.equal(anon.status, 401, 'Không token phải trả 401');
+
+    const account = await register(env.baseUrl, 'Kiểm Phiên', 'session.check@example.com', 'mat-khau-phien-1');
+
+    const ok = await fetch(`${env.baseUrl}/api/auth/session`, {
+      headers: { Authorization: `Bearer ${account.token}` },
+    });
+    assert.equal(ok.status, 200, 'Token hợp lệ phải trả 200');
+    const okData = await ok.json();
+    assert.equal(okData.user.email, 'session.check@example.com');
+    assert.equal(okData.role, 'STUDENT', 'Role phải đọc từ bản ghi thật, không từ token');
+    assert.ok(okData.expiresAt > Date.now(), 'Phải báo hạn dùng của phiên');
+
+    /* Token bị sửa một ký tự -> 401 */
+    const tampered = account.token.slice(0, -2) + 'xx';
+    const bad = await fetch(`${env.baseUrl}/api/auth/session`, {
+      headers: { Authorization: `Bearer ${tampered}` },
+    });
+    assert.equal(bad.status, 401, 'Token giả mạo phải trả 401');
+
+    /* Token đúng chữ ký nhưng tài khoản không tồn tại -> 401 */
+    const ghost = createSessionToken('khong.ton.tai@example.com', 'STUDENT');
+    const ghostRes = await fetch(`${env.baseUrl}/api/auth/session`, {
+      headers: { Authorization: `Bearer ${ghost}` },
+    });
+    assert.equal(ghostRes.status, 401, 'Token của tài khoản đã bị xoá phải trả 401');
+  } finally {
+    await env.close();
+  }
+});
+
+test('20. Client kiểm tra lại phiên lúc khởi động thay vì tin localStorage', () => {
+  const store = fs.readFileSync(path.resolve('src/store/forumStore.ts'), 'utf8');
+
+  assert.ok(store.includes("fetch('/api/auth/session'"), 'Phải hỏi server xem token còn hiệu lực không');
+  assert.ok(store.includes("sessionRes.status === 401"), 'Phải xử lý nhánh phiên hết hạn');
+
+  const start = store.indexOf("if (savedToken) {");
+  assert.ok(start > 0, 'Phải có nhánh khôi phục phiên theo token');
+  const block = store.slice(start, start + 1400);
+  assert.ok(block.includes('clearAuthToken()'), 'Phiên hỏng phải xoá token');
+  assert.ok(block.includes("safeStorage.removeItem('fforum_current_user_email')"), 'Phiên hỏng phải xoá email đã lưu');
+  assert.ok(block.includes('setCurrentUser(null)'), 'Phiên hỏng phải đưa người dùng về chế độ khách');
+});
+
+test('21. Khu Vinh Danh: payload một phần phải GỘP, không được xoá founder/milestones', async () => {
+  const env = await createTestServer();
+  try {
+    const initial = await get(env.baseUrl, '/api/admin/about');
+    const before = initial.data.about || initial.data;
+    assert.ok(before.founder, 'Tài liệu gốc phải có founder');
+    assert.ok(Array.isArray(before.milestones) && before.milestones.length > 0, 'Tài liệu gốc phải có milestones');
+
+    const adminLogin = await post(env.baseUrl, '/api/auth/login', {
+      email: 'anhtuantran0512@gmail.com',
+      password: 'admin123',
+    });
+    assert.equal(adminLogin.status, 200);
+
+    /* Gửi lên CHỈ một trường — đây chính là payload từng xoá sạch tài liệu
+       rồi ghi xuống đĩa, làm hỏng dữ liệu cho mọi lần khởi động sau. */
+    const partial = await post(env.baseUrl, '/api/admin/about', {
+      adminEmail: 'anhtuantran0512@gmail.com',
+      aboutData: { headline: 'Chỉ Đổi Tiêu Đề' },
+    }, adminLogin.data.token);
+    assert.equal(partial.status, 200);
+    assert.equal(partial.data.headline, 'Chỉ Đổi Tiêu Đề', 'Trường gửi lên phải được cập nhật');
+    assert.ok(partial.data.founder, 'founder không được biến mất');
+    assert.equal(partial.data.founder.name, before.founder.name, 'founder phải giữ nguyên');
+    assert.equal(partial.data.milestones.length, before.milestones.length, 'milestones phải giữ nguyên');
+
+    /* Payload cố tình null hoá hai khối lõi cũng không phá được tài liệu. */
+    const hostile = await post(env.baseUrl, '/api/admin/about', {
+      adminEmail: 'anhtuantran0512@gmail.com',
+      aboutData: { headline: 'Phá Dữ Liệu', founder: null, milestones: [] },
+    }, adminLogin.data.token);
+    assert.equal(hostile.status, 200);
+    assert.ok(hostile.data.founder, 'founder = null phải bị bỏ qua');
+    assert.ok(Array.isArray(hostile.data.milestones), 'milestones phải còn là mảng');
+
+    /* Đọc lại vẫn phải nguyên vẹn. */
+    const after = await get(env.baseUrl, '/api/admin/about');
+    const doc = after.data.about || after.data;
+    assert.equal(doc.headline, 'Phá Dữ Liệu');
+    assert.equal(doc.founder.name, before.founder.name);
+    assert.ok(doc.milestones.length > 0);
+  } finally {
+    await env.close();
+  }
+});
