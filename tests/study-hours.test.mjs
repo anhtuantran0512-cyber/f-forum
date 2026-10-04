@@ -478,6 +478,7 @@ test('16. Vòng 9 — bảng xếp hạng ~100 người: dữ liệu thật + th
   assert.ok(board.includes('boardRows.slice(5)'), 'Everyone below the top 5 shows as a plain list');
   assert.ok(board.includes('isYou'), 'The current user must be flagged on the board');
   assert.ok(board.includes('estimated'), 'Derived cohort values must be marked as estimates');
+  assert.ok(board.includes('ff-row__est'), 'Estimated values must be visibly marked in the UI (≈ symbol)');
   assert.ok(
     /members\.sort\(\(a, b\) => b\.points - a\.points \|\|/.test(board),
     'Ties must break deterministically so ranks never flicker',

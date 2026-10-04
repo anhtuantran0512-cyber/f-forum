@@ -456,7 +456,12 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                     <i style={{ width: `${progressOf(m)}%` }} />
                   </span>
                 </span>
-                <span className="ff-ladder__value font-mono">{formatValue(m)}</span>
+                <span className="ff-ladder__value font-mono">
+                  {m.estimated && (
+                    <span className="ff-row__est" title="Mức ước lượng từ hoạt động tích luỹ">≈</span>
+                  )}
+                  {formatValue(m)}
+                </span>
               </button>
             ))}
           </div>
@@ -493,7 +498,12 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                       <i style={{ width: `${progressOf(m)}%` }} />
                     </span>
                   </span>
-                  <span className="ff-row__value font-mono">{formatValue(m)}</span>
+                  <span className="ff-row__value font-mono">
+                    {m.estimated && (
+                      <span className="ff-row__est" title="Mức ước lượng từ hoạt động tích luỹ">≈</span>
+                    )}
+                    {formatValue(m)}
+                  </span>
                 </button>
               </li>
             ))}
@@ -503,6 +513,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
         {list.length > 0 && (
           <p className="ff-board__micro">
             Thứ hạng tính trực tiếp từ hoạt động thật (XP, giờ học) — ai bằng điểm thì xếp theo tên.
+            Dấu ≈ là mức ước lượng từ hoạt động tích luỹ của thành viên; số của bạn luôn là số thật.
             {metric === 'points' && ' Thành viên chưa đăng nhập không xuất hiện trên bảng.'}
           </p>
         )}
