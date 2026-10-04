@@ -333,4 +333,27 @@ test('6. Vòng 11 — tài khoản ảo bị xoá vĩnh viễn, hồ sơ ngườ
   assert.ok(!mocks.includes('Minh Anh') && !mocks.includes('Nguyễn Khánh Linh'), 'Landing mocks must not name virtual students');
   assert.ok(!content.includes('TESTIMONIALS'), 'The fake testimonial list must be replaced by real feature highlights');
   assert.ok(content.includes('export const HIGHLIGHTS'), 'Feature highlights must describe real system capabilities');
+
+  /* 6.7 Đổi hồ sơ ở bất kỳ đâu → mọi nội dung đã đăng cũng đổi theo */
+  assert.ok(
+    store.includes('function syncUserIdentityIntoContent'),
+    'Store must have ONE shared identity-sync helper (no duplicated patch lists)',
+  );
+  assert.ok(
+    (store.match(/syncUserIdentityIntoContent\(/g) || []).length >= 5,
+    'The helper must run from updateProfile, /api/sync, the BroadcastChannel handler and the server broadcast handler',
+  );
+  assert.ok(store.includes('!q.isAnonymous'), 'Anonymous questions must keep their pen name');
+  assert.ok(
+    store.includes('setChatMessages, setClubPosts, setClubs'),
+    'Chat messages, club posts and club leader names must be synced as well',
+  );
+  assert.ok(
+    store.includes('const resolveOwner'),
+    'Content loaded from the server must be re-labelled with the newest profile',
+  );
+  assert.ok(
+    store.includes("candidate.id === c.leaderId"),
+    'Club leader names must follow the leader profile',
+  );
 });

@@ -108,6 +108,70 @@ export function sanitizeUsersRegistry(input: unknown): Record<string, User> {
   return out;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Đồng bộ danh tính vào nội dung đã đăng                                     */
+/* -------------------------------------------------------------------------- */
+/** Phần dữ liệu mà mỗi bài viết/tin nhắn tự lưu bản sao tên + ảnh tác giả */
+interface AuthoredItem {
+  authorId: string;
+  authorName: string;
+  authorAvatar: string;
+  authorEmail?: string;
+  authorLevel?: number;
+  isAnonymous?: boolean;
+}
+
+/** Nội dung này có phải của tài khoản đang xét không (khớp theo id hoặc email) */
+const isAuthoredBy = (item: AuthoredItem, user: User, emailKey: string) =>
+  (Boolean(user.id) && item.authorId === user.id) ||
+  (Boolean(emailKey) && (item.authorEmail || '').toLowerCase() === emailKey);
+
+/**
+ * Đổi tên / ảnh / cấp ở MỘT nơi thì mọi nội dung cũ của người đó cũng đổi theo ở
+ * MỌI tab và mọi thiết bị: câu hỏi, lời giải, tin nhắn, bài CLB, tên trưởng CLB.
+ * Câu hỏi ẩn danh được giữ nguyên bút danh (không lộ danh tính).
+ */
+function syncUserIdentityIntoContent(
+  user: User,
+  setters: {
+    setQuestions: React.Dispatch<React.SetStateAction<Question[]>>;
+    setSolutions: React.Dispatch<React.SetStateAction<Solution[]>>;
+    setChatMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
+    setClubPosts: React.Dispatch<React.SetStateAction<ClubPost[]>>;
+    setClubs: React.Dispatch<React.SetStateAction<Club[]>>;
+  },
+) {
+  const emailKey = (user.email || '').toLowerCase();
+
+  setters.setQuestions(prev =>
+    prev.map(q =>
+      isAuthoredBy(q, user, emailKey) && !q.isAnonymous
+        ? { ...q, authorName: user.name, authorAvatar: user.avatar }
+        : q,
+    ),
+  );
+  setters.setSolutions(prev =>
+    prev.map(s =>
+      isAuthoredBy(s, user, emailKey)
+        ? { ...s, authorName: user.name, authorAvatar: user.avatar, authorLevel: user.level ?? s.authorLevel }
+        : s,
+    ),
+  );
+  setters.setChatMessages(prev =>
+    prev.map(m =>
+      isAuthoredBy(m, user, emailKey)
+        ? { ...m, authorName: user.name, authorAvatar: user.avatar, authorLevel: user.level ?? m.authorLevel }
+        : m,
+    ),
+  );
+  setters.setClubPosts(prev =>
+    prev.map(p =>
+      isAuthoredBy(p, user, emailKey) ? { ...p, authorName: user.name, authorAvatar: user.avatar } : p,
+    ),
+  );
+  setters.setClubs(prev => prev.map(c => (c.leaderId === user.id ? { ...c, leaderName: user.name } : c)));
+}
+
 const INITIAL_CHATS: ChatMessage[] = [];
 const INITIAL_QUESTIONS: Question[] = [];
 const INITIAL_SOLUTIONS: Solution[] = [];
@@ -406,23 +470,51 @@ export function useForumStore() {
           const json = await res.json();
           if (json.success && json.data && isMounted) {
             const data = json.data;
+            /* Sổ đăng ký chuẩn từ server (đã vệ sinh). Dùng nó gắn lại danh tính MỚI NHẤT
+               cho nội dung tải về, để tên/ảnh cũ không nằm cứng trong bài viết. */
+            const registry = sanitizeUsersRegistry({ ...(data.users || {}) });
+            const resolveOwner = <T extends AuthoredItem>(item: T): T => {
+              const owner =
+                (item.authorEmail ? registry[item.authorEmail.toLowerCase()] : undefined) ||
+                Object.values(registry).find(candidate => candidate.id === item.authorId);
+              if (!owner) return item;
+              if (owner.name === item.authorName && owner.avatar === item.authorAvatar) return item;
+              return { ...item, authorName: owner.name, authorAvatar: owner.avatar } as T;
+            };
+
             if (data.users && Object.keys(data.users).length > 0) {
               /* Server là nguồn chuẩn; vệ sinh để tài khoản mô phỏng cũ không quay lại */
               setUsers(prev => sanitizeUsersRegistry({ ...prev, ...data.users }));
             }
-            if (Array.isArray(data.clubs)) setClubs(data.clubs);
-            if (Array.isArray(data.clubPosts)) setClubPosts(data.clubPosts);
-            if (Array.isArray(data.questions)) setQuestions(data.questions);
-            if (Array.isArray(data.solutions)) setSolutions(data.solutions);
-            if (Array.isArray(data.chatMessages)) {
-              const cleanMsgs = data.chatMessages.filter(
-                (m: any) =>
-                  m &&
-                  m.id &&
-                  m.content &&
-                  !m.content.includes('tôi là acc clone') &&
-                  !m.content.includes('acc clone đang test')
+            if (Array.isArray(data.clubs)) {
+              setClubs(
+                data.clubs.map((c: Club) => {
+                  const owner = Object.values(registry).find(candidate => candidate.id === c.leaderId);
+                  return owner && owner.name !== c.leaderName ? { ...c, leaderName: owner.name } : c;
+                })
               );
+            }
+            if (Array.isArray(data.clubPosts)) {
+              setClubPosts(data.clubPosts.map((p: ClubPost) => resolveOwner(p)));
+            }
+            if (Array.isArray(data.questions)) {
+              /* Câu hỏi ẩn danh giữ nguyên bút danh */
+              setQuestions(data.questions.map((q: Question) => (q.isAnonymous ? q : resolveOwner(q))));
+            }
+            if (Array.isArray(data.solutions)) {
+              setSolutions(data.solutions.map((sol: Solution) => resolveOwner(sol)));
+            }
+            if (Array.isArray(data.chatMessages)) {
+              const cleanMsgs = data.chatMessages
+                .filter(
+                  (m: any) =>
+                    m &&
+                    m.id &&
+                    m.content &&
+                    !m.content.includes('tôi là acc clone') &&
+                    !m.content.includes('acc clone đang test')
+                )
+                .map((m: ChatMessage) => resolveOwner(m));
               setChatMessages(cleanMsgs);
             }
             if (data.about) {
@@ -544,6 +636,10 @@ export function useForumStore() {
               return updatedUser;
             }
             return prev;
+          });
+          /* Đổi hồ sơ ở thiết bị khác → tên/ảnh trong mọi bài viết cũ đổi theo */
+          syncUserIdentityIntoContent(updatedUser, {
+            setQuestions, setSolutions, setChatMessages, setClubPosts, setClubs,
           });
           break;
         }
@@ -752,6 +848,9 @@ export function useForumStore() {
           setCurrentUser(prev =>
             prev && prev.email.toLowerCase() === updatedUser.email.toLowerCase() ? updatedUser : prev
           );
+          syncUserIdentityIntoContent(updatedUser, {
+            setQuestions, setSolutions, setChatMessages, setClubPosts, setClubs,
+          });
           break;
         }
         case 'USER_LOGIN': {
@@ -760,6 +859,9 @@ export function useForumStore() {
             ...prev,
             [loggedUser.email.toLowerCase()]: loggedUser,
           }));
+          syncUserIdentityIntoContent(loggedUser, {
+            setQuestions, setSolutions, setChatMessages, setClubPosts, setClubs,
+          });
           break;
         }
         case 'USER_LOGOUT': {
@@ -1189,27 +1291,10 @@ export function useForumStore() {
       [emailKey]: updated,
     }));
 
-    setQuestions(qList =>
-      qList.map(q =>
-        q.authorId === updated.id && !q.isAnonymous
-          ? { ...q, authorName: updated.name, authorAvatar: updated.avatar }
-          : q
-      )
-    );
-    setSolutions(sList =>
-      sList.map(s =>
-        s.authorId === updated.id
-          ? { ...s, authorName: updated.name, authorAvatar: updated.avatar }
-          : s
-      )
-    );
-    setChatMessages(cList =>
-      cList.map(c =>
-        c.authorId === updated.id
-          ? { ...c, authorName: updated.name, authorAvatar: updated.avatar }
-          : c
-      )
-    );
+    /* Cùng một hàm dùng cho cả tab này lẫn tab khác → không lệch nhau */
+    syncUserIdentityIntoContent(updated, {
+      setQuestions, setSolutions, setChatMessages, setClubPosts, setClubs,
+    });
 
     try {
       fetch('/api/users/update', {
