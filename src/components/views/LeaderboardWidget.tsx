@@ -6,6 +6,7 @@ import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
 import { MagneticButton } from '../MagneticButton';
 import { OdometerDigits } from '../OdometerDigits';
 import { StudyPulsePanel } from '../StudyPulsePanel';
+import { StudyHoursDetail } from '../StudyHoursDetail';
 import {
   buildStudyLeaderboard,
   computeStudyTotals,
@@ -13,6 +14,7 @@ import {
   readDailyTargetMinutes,
   readStudySessions,
   readWeeklyGoalMinutes,
+  sessionsForOwner,
   type StudySession,
   type StudyTotals,
 } from '../../utils/studyLog';
@@ -201,7 +203,9 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
     };
   }, []);
 
-  const totals: StudyTotals = useMemo(() => computeStudyTotals(sessions), [sessions]);
+  /* Chỉ số cá nhân chỉ tính phiên của tài khoản đang đăng nhập */
+  const mySessions = useMemo(() => sessionsForOwner(sessions, currentUser?.email), [sessions, currentUser?.email]);
+  const totals: StudyTotals = useMemo(() => computeStudyTotals(mySessions), [mySessions]);
 
   const pointsMembers = useMemo(
     () => computeMembers(users, questions, solutions, chatMessages, period),
@@ -435,7 +439,8 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
 
         {metric === 'hours' && (
           <p className="ff-board__note">
-            Số giờ của bạn lấy từ nhật ký Phòng Tập Trung (mỗi phiên 25 phút); thành viên khác được quy đổi từ XP tích luỹ.
+            Số giờ của bạn lấy từ nhật ký Phòng Tập Trung (phiên 25 phút, dừng sớm vẫn tính phần đã học); thành
+            viên khác được quy đổi từ XP tích luỹ.
           </p>
         )}
 
@@ -451,13 +456,18 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
         </div>
       </div>
 
-      {/* Bảng nhịp học tập: chỉ số tuần/tháng + ghi nhanh giờ học */}
+      {/* Bảng nhịp học tập: chỉ số tuần/tháng của bạn */}
       <StudyPulsePanel
         totals={totals}
         weeklyGoalMinutes={weeklyGoal}
         dailyTargetMinutes={dailyTarget}
         onOpenFocusMode={onOpenFocusMode}
       />
+
+      {/* Chi tiết giờ học: biểu đồ 7 ngày, thống kê, danh sách phiên */}
+      {metric === 'hours' && (
+        <StudyHoursDetail sessions={mySessions} onOpenFocusMode={onOpenFocusMode} />
+      )}
 
       {/* Ask CTA */}
       <div className="rounded-3xl bg-[#0c1218]/90 backdrop-blur-2xl border border-amber-400/30 p-5 shadow-xl flex flex-col items-center text-center gap-3 relative overflow-hidden">

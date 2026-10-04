@@ -3244,3 +3244,423 @@ html.light .ff-pulse__eyebrow { color: #0369a1; }
   animation: none !important;
   transition-duration: 0.01ms !important;
 }
+
+
+/* ==========================================================================
+   VÒNG 5 · A — Lớp "đang tải" khi navbar phóng to/thu nhỏ (CodeFronts la-15)
+   --------------------------------------------------------------------------
+   Trong lúc hình dáng thanh điều hướng đang đổi, nội dung được ẩn đi và phủ
+   một lớp xương mờ nhấp nháy; morph xong mới cho giao diện thật hiện lên.
+   ========================================================================== */
+.ff-nav-skeleton {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 12px;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: ffNavSkIn 150ms ease-out both;
+}
+@keyframes ffNavSkIn { from { opacity: 0; } to { opacity: 1; } }
+
+.ff-nav-skeleton__sk {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.055) 25%, rgba(255, 255, 255, 0.17) 37%, rgba(255, 255, 255, 0.055) 50%) 0 0 / 220% 100%;
+  animation: ffNavSkShimmer 1.25s linear infinite;
+}
+@keyframes ffNavSkShimmer { to { background-position: -220% 0; } }
+
+.ff-nav-skeleton__brand { width: 34px; height: 34px; border-radius: 50%; flex: none; }
+.ff-nav-skeleton__tabs { display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1; min-width: 0; overflow: hidden; }
+.ff-nav-skeleton__tab { width: 70px; height: 26px; flex: none; }
+.ff-nav-skeleton__tab:nth-child(2n) { width: 56px; }
+.ff-nav-skeleton__actions { display: flex; align-items: center; gap: 6px; flex: none; }
+.ff-nav-skeleton__avatar { width: 32px; height: 32px; border-radius: 50%; }
+.ff-nav-skeleton__pill { width: 90px; height: 30px; }
+
+.ff-nav-skeleton--compact { padding: 0 10px; gap: 8px; }
+.ff-nav-skeleton--compact .ff-nav-skeleton__tab { width: 30px; height: 30px; }
+.ff-nav-skeleton--compact .ff-nav-skeleton__tab:nth-child(2n) { width: 30px; }
+
+.ff-nav-skeleton--vertical {
+  flex-direction: column;
+  justify-content: center;
+  gap: 9px;
+  padding: 12px 0;
+}
+.ff-nav-skeleton--vertical .ff-nav-skeleton__tabs { flex-direction: column; gap: 8px; flex: none; }
+.ff-nav-skeleton--vertical .ff-nav-skeleton__tab,
+.ff-nav-skeleton--vertical .ff-nav-skeleton__tab:nth-child(2n) { width: 30px; height: 30px; }
+.ff-nav-skeleton--vertical .ff-nav-skeleton__actions { flex-direction: column; }
+.ff-nav-skeleton--vertical .ff-nav-skeleton__pill { display: none; }
+
+/* Nội dung thật ẩn hẳn trong lúc hiện lớp xương (trừ aura và chính nó).
+   Kèm pointer-events: none để không ai bấm trúng nút đang vô hình. */
+.ff-nav-capsule--busy > *:not(.ff-nav-aura):not(.ff-nav-skeleton) {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+/* Morph xong: nội dung thật hiện lên nhẹ nhàng (chỉ opacity, không transform
+   để không tạo containing block làm lệch tooltip position: fixed) */
+.ff-nav-capsule[data-morph='ready'] > .ff-nav-brand,
+.ff-nav-capsule[data-morph='ready'] > .nav-center-tabs,
+.ff-nav-capsule[data-morph='ready'] > .nav-actions-dock {
+  animation: ffNavSkReveal 300ms ease-out both;
+}
+@keyframes ffNavSkReveal { from { opacity: 0; } to { opacity: 1; } }
+
+html.light .ff-nav-skeleton__sk {
+  background: linear-gradient(90deg, rgba(16, 24, 39, 0.06) 25%, rgba(16, 24, 39, 0.15) 37%, rgba(16, 24, 39, 0.06) 50%) 0 0 / 220% 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-nav-skeleton,
+  .ff-nav-skeleton__sk,
+  .ff-nav-capsule[data-morph='ready'] > .ff-nav-brand,
+  .ff-nav-capsule[data-morph='ready'] > .nav-center-tabs,
+  .ff-nav-capsule[data-morph='ready'] > .nav-actions-dock {
+    animation: none !important;
+  }
+}
+.reduce-motion .ff-nav-skeleton,
+.reduce-motion .ff-nav-skeleton__sk {
+  animation: none !important;
+}
+
+/* ==========================================================================
+   VÒNG 5 · B — Phiên tập trung: chip đếm ngược nổi, toast ghi nhận giờ học
+   ========================================================================== */
+.ff-focus-chip {
+  position: fixed;
+  right: 16px;
+  bottom: 18px;
+  z-index: 58;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 10px;
+  border-radius: 18px;
+  background: linear-gradient(150deg, rgba(14, 19, 28, 0.96), rgba(9, 12, 18, 0.99));
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 20px 45px -22px rgba(0, 0, 0, 0.95), 0 0 22px -12px rgba(56, 189, 248, 0.9);
+  animation: ffFocusChipIn 320ms cubic-bezier(0.22, 0.9, 0.24, 1) both;
+}
+@keyframes ffFocusChipIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.ff-focus-chip__main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+}
+.ff-focus-chip__icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  animation: ffFocusChipBeat 2.2s ease-in-out infinite;
+}
+.ff-focus-chip__icon.is-break {
+  color: #c4b5fd;
+  background: rgba(167, 139, 250, 0.14);
+  border-color: rgba(167, 139, 250, 0.35);
+}
+@keyframes ffFocusChipBeat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+.ff-focus-chip__copy { display: flex; flex-direction: column; line-height: 1.15; text-align: left; }
+.ff-focus-chip__copy b { font-size: 13px; font-weight: 800; font-family: ui-monospace, SFMono-Regular, monospace; color: #eef2f8; }
+.ff-focus-chip__copy small { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: #94a3b8; }
+.ff-focus-chip__open { color: #64748b; }
+.ff-focus-chip__stop {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.ff-focus-chip__stop:hover { background: rgba(245, 158, 11, 0.24); transform: translateY(-1px); }
+.ff-focus-chip__track {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 4px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.ff-focus-chip__track > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #38bdf8, #f59e0b);
+  transition: width 480ms linear;
+}
+
+.ff-focus-toast {
+  position: fixed;
+  right: 16px;
+  bottom: 96px;
+  z-index: 59;
+  max-width: 340px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 11px 12px;
+  border-radius: 16px;
+  background: linear-gradient(150deg, rgba(14, 19, 28, 0.97), rgba(9, 12, 18, 0.99));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 24px 50px -24px rgba(0, 0, 0, 0.95);
+  animation: ffFocusToastIn 320ms cubic-bezier(0.22, 0.9, 0.24, 1) both;
+}
+@keyframes ffFocusToastIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+.ff-focus-toast--credited { border-color: rgba(16, 185, 129, 0.45); }
+.ff-focus-toast--partial { border-color: rgba(245, 158, 11, 0.45); }
+.ff-focus-toast--lost { border-color: rgba(244, 63, 94, 0.45); }
+.ff-focus-toast__icon { flex: none; margin-top: 2px; color: #6ee7b7; }
+.ff-focus-toast--partial .ff-focus-toast__icon { color: #fcd34d; }
+.ff-focus-toast--break .ff-focus-toast__icon { color: #c4b5fd; }
+.ff-focus-toast--lost .ff-focus-toast__icon { color: #fda4af; }
+.ff-focus-toast__copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ff-focus-toast__copy b { font-size: 12.5px; font-weight: 700; color: #eef2f8; }
+.ff-focus-toast__copy small { font-size: 10.5px; line-height: 1.5; color: #98a4b5; }
+.ff-focus-toast__close {
+  margin-left: auto;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ff-focus-toast__close:hover { background: rgba(255, 255, 255, 0.14); color: #e2e8f0; }
+
+.ff-focus-live { animation: ffFocusLive 1.6s ease-in-out infinite; }
+@keyframes ffFocusLive {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.ff-focus-flash { animation: ffFocusFlash 600ms ease-out both; }
+@keyframes ffFocusFlash {
+  0% { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: none; }
+}
+
+html.light .ff-focus-chip,
+html.light .ff-focus-toast { background: linear-gradient(150deg, #ffffff, #f6f8fc); border-color: rgba(16, 24, 39, 0.12); }
+html.light .ff-focus-chip__copy b,
+html.light .ff-focus-toast__copy b { color: #101827; }
+html.light .ff-focus-chip__copy small,
+html.light .ff-focus-toast__copy small { color: #56617a; }
+html.light .ff-focus-chip__track { background: rgba(16, 24, 39, 0.1); }
+
+@media (max-width: 640px) {
+  .ff-focus-toast { left: 12px; right: 12px; bottom: 92px; max-width: none; }
+}
+
+/* ==========================================================================
+   VÒNG 5 · C — Chi tiết giờ học (biểu đồ 7 ngày, thống kê, nhật ký phiên)
+   ========================================================================== */
+.ff-hours {
+  --fh-surface: linear-gradient(180deg, rgba(14, 19, 28, 0.95), rgba(9, 12, 18, 0.98));
+  --fh-border: rgba(255, 255, 255, 0.08);
+  --fh-ink: #e9eef6;
+  --fh-ink-dim: #94a3b8;
+  --fh-tile: rgba(255, 255, 255, 0.035);
+  position: relative;
+  padding: 15px 15px 14px;
+  border-radius: 24px;
+  background: var(--fh-surface);
+  border: 1px solid var(--fh-border);
+  box-shadow: 0 20px 48px -26px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  overflow: hidden;
+}
+.ff-hours__head { display: flex; align-items: center; gap: 10px; }
+.ff-hours__crest {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #6ee7b7;
+  background: linear-gradient(150deg, rgba(16, 185, 129, 0.22), rgba(16, 185, 129, 0.05));
+  border: 1px solid rgba(16, 185, 129, 0.32);
+}
+.ff-hours__title { font-size: 14px; font-weight: 800; color: var(--fh-ink); letter-spacing: -0.01em; }
+.ff-hours__sub { font-size: 10px; color: var(--fh-ink-dim); margin-top: 1px; }
+.ff-hours__chip {
+  flex: none;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fda4af;
+  background: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.28);
+}
+
+.ff-hours__chart {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+  align-items: end;
+  height: 118px;
+  margin-top: 14px;
+  padding: 8px 8px 0;
+  border-radius: 16px;
+  background: var(--fh-tile);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.ff-hours__col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  height: 100%;
+  gap: 3px;
+}
+.ff-hours__value {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(148, 163, 184, 0.85);
+  height: 11px;
+}
+.ff-hours__bar {
+  width: 100%;
+  max-width: 22px;
+  min-height: 3px;
+  border-radius: 6px 6px 3px 3px;
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.85), rgba(56, 189, 248, 0.25));
+  transition: height 620ms cubic-bezier(0.22, 0.9, 0.24, 1);
+}
+.ff-hours__col.has-data .ff-hours__bar { background: linear-gradient(180deg, #fbbf24, rgba(245, 158, 11, 0.28)); }
+.ff-hours__col.is-today .ff-hours__bar { background: linear-gradient(180deg, #6ee7b7, rgba(16, 185, 129, 0.3)); box-shadow: 0 0 12px -2px rgba(16, 185, 129, 0.7); }
+.ff-hours__col.is-today .ff-hours__value { color: #6ee7b7; }
+.ff-hours__day { font-size: 8.5px; font-weight: 700; letter-spacing: 0.04em; color: rgba(148, 163, 184, 0.75); }
+.ff-hours__col.is-today .ff-hours__day { color: #6ee7b7; }
+
+.ff-hours__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 12px; }
+.ff-hours__grid > div {
+  padding: 8px 10px;
+  border-radius: 13px;
+  background: var(--fh-tile);
+  border: 1px solid rgba(255, 255, 255, 0.055);
+}
+.ff-hours__grid dt { display: flex; align-items: center; gap: 5px; font-size: 9.5px; font-weight: 600; letter-spacing: 0.02em; }
+.ff-hours__grid dd { margin-top: 3px; font-size: 13.5px; font-weight: 800; color: var(--fh-ink); font-family: ui-monospace, SFMono-Regular, monospace; }
+.ff-hours__grid small { display: block; margin-top: 1px; font-size: 9px; color: rgba(148, 163, 184, 0.8); }
+
+.ff-hours__recent { margin-top: 13px; padding-top: 12px; border-top: 1px dashed rgba(255, 255, 255, 0.09); }
+.ff-hours__recent-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fh-ink-dim); }
+.ff-hours__recent ul { list-style: none; margin: 9px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.ff-hours__recent li {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto auto 22px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.022);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.ff-hours__dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.8); }
+.ff-hours__when { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+.ff-hours__when b { font-size: 11px; font-weight: 700; color: var(--fh-ink); }
+.ff-hours__when small { font-size: 9.5px; color: var(--fh-ink-dim); font-family: ui-monospace, SFMono-Regular, monospace; }
+.ff-hours__source { font-size: 9px; font-weight: 700; letter-spacing: 0.03em; padding: 2px 6px; border-radius: 999px; color: #7dd3fc; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); white-space: nowrap; }
+.ff-hours__minutes { font-size: 11px; font-weight: 800; color: #fcd34d; }
+.ff-hours__del {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+.ff-hours__del:hover { color: #fda4af; background: rgba(244, 63, 94, 0.14); border-color: rgba(244, 63, 94, 0.35); }
+.ff-hours__note { margin-top: 8px; font-size: 9px; line-height: 1.55; color: rgba(148, 163, 184, 0.8); }
+
+.ff-hours__empty { padding: 18px 10px 6px; text-align: center; }
+.ff-hours__empty p { margin-top: 6px; font-size: 11px; color: var(--fh-ink-dim); }
+.ff-hours__cta {
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #0b0e13;
+  background: linear-gradient(135deg, #6ee7b7, #10b981);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 10px 24px -12px rgba(16, 185, 129, 0.95);
+  transition: transform 0.18s ease;
+}
+.ff-hours__cta:hover { transform: translateY(-1px); }
+
+html.light .ff-hours {
+  --fh-surface: linear-gradient(180deg, #ffffff, #f6f8fc);
+  --fh-border: rgba(16, 24, 39, 0.1);
+  --fh-ink: #101827;
+  --fh-ink-dim: #56617a;
+  --fh-tile: rgba(16, 24, 39, 0.03);
+}
+html.light .ff-hours__chart,
+html.light .ff-hours__grid > div { border-color: rgba(16, 24, 39, 0.07); }
+html.light .ff-hours__recent { border-top-color: rgba(16, 24, 39, 0.12); }
+html.light .ff-hours__recent li { background: rgba(16, 24, 39, 0.025); border-color: rgba(16, 24, 39, 0.07); }
+html.light .ff-hours__minutes { color: #b45309; }
+html.light .ff-hours__del { border-color: rgba(16, 24, 39, 0.1); background: rgba(16, 24, 39, 0.03); color: #56617a; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-focus-chip,
+  .ff-focus-chip__icon,
+  .ff-focus-toast,
+  .ff-focus-live,
+  .ff-focus-flash,
+  .ff-hours__bar {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+.reduce-motion .ff-focus-chip,
+.reduce-motion .ff-focus-chip__icon,
+.reduce-motion .ff-focus-toast,
+.reduce-motion .ff-focus-live,
+.reduce-motion .ff-focus-flash {
+  animation: none !important;
+}

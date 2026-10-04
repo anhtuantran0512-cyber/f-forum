@@ -197,12 +197,111 @@ test('8. Cuộn chuột & màn hình chờ được nối vào App', () => {
   );
 });
 
-test('9. Ghi nhận giờ học thật từ Phòng Tập Trung + quà tặng liên quan', () => {
+test('9. Phòng Tập Trung — phiên học là mốc thời gian thật, sống ngoài HUD', () => {
   const focus = read('src/components/FocusSanctuary.tsx');
-  const qa = read('src/components/views/QAForumView.tsx');
+  const session = read('src/utils/focusSession.ts');
 
-  assert.ok(focus.includes("logStudyMinutes(25, 'focus')"), 'Completing a 25-minute Pomodoro must log real study minutes');
-  assert.ok(focus.includes('onRewardXP(25)'), 'XP reward must stay intact next to the study log');
-  assert.ok(qa.includes('onOpenFocusMode?: () => void'), 'Forum view must accept the Focus opener');
-  assert.ok(qa.includes('onOpenFocusMode={onOpenFocusMode}'), 'Forum view must pass it to the leaderboard widget');
+  assert.ok(session.includes("FOCUS_SESSION_KEY = 'fforum_focus_session'"), 'Session must persist under a stable key');
+  assert.ok(session.includes('endsAt'), 'Session must be defined by a real end timestamp');
+  assert.ok(!session.includes('setInterval('), 'Session utility must not depend on interval ticks');
+  assert.ok(session.includes('focusRemainingLabel') && session.includes('focusElapsedMinutes'), 'Shared time helpers must exist');
+  assert.ok(session.includes('subscribeFocusSession') && session.includes("FOCUS_SYNC_EVENT"), 'Every surface must be able to follow the same session');
+  assert.ok(session.includes('requestFocusStop') && session.includes('FOCUS_STOP_REQUEST_EVENT'), 'Stopping must go through one shared flow');
+  assert.ok(session.includes('FOCUS_STALE_GRACE_MS'), 'Sessions that ended while the app was closed must not be credited blindly');
+
+  assert.ok(!focus.includes('timeLeft'), 'HUD must not own a decrementing counter anymore');
+  assert.ok(focus.includes('startFocusSession(') && focus.includes('readFocusSession('), 'HUD must drive the shared session');
+  assert.ok(focus.includes('requestFocusStop()'), 'HUD stop button must ask the watcher to settle the session');
+  assert.ok(focus.includes('Đóng cửa sổ này vẫn KHÔNG mất phiên học'), 'HUD must tell the student the session keeps running');
+  assert.ok(focus.includes('Nhật ký giờ học') && focus.includes('sessionsForOwner'), 'HUD must show the real study-hours log of this account');
+  assert.ok(focus.includes('FOCUS_CREDITED_EVENT'), 'HUD must react when a session is credited');
+});
+
+test('10. FocusSessionWatcher — ghi giờ + XP kể cả khi HUD đã đóng', () => {
+  const watcher = read('src/components/FocusSessionWatcher.tsx');
+  const app = read('src/App.tsx');
+
+  assert.ok(watcher.includes("logStudyMinutes(minutes, 'focus', userEmail)"), 'Completed sessions must be logged for the right account');
+  assert.ok(watcher.includes('onRewardXP?.(minutes)'), 'Completed sessions must still grant XP');
+  assert.ok(watcher.includes('announceFocusCredited'), 'Other surfaces must be told about the credit');
+  assert.ok(watcher.includes('studied >= 5'), 'Stopping early must log the real minutes (from 5 minutes)');
+  assert.ok(watcher.includes('playChime'), 'Completing a block must still ring the chime');
+  assert.ok(watcher.includes('ff-focus-chip'), 'A floating countdown chip must exist for when the HUD is closed');
+  assert.ok(watcher.includes('setInterval'), 'The watcher is the single place allowed to tick');
+  assert.ok(watcher.includes('computeStudyTotals') && watcher.includes('sessionsForOwner'), 'Today total must belong to this account');
+
+  /* Lỗi cũ: App truyền thẳng addXP (chỉ cộng cho admin) → học sinh không nhận được gì */
+  assert.ok(
+    !app.includes('onRewardXP={addXP}'),
+    'App must not pass the raw addXP handler (it silently ignores normal students)',
+  );
+  assert.ok(
+    app.includes('const handleFocusReward = useCallback') && app.includes('addXP(amount, currentUser.email)'),
+    'Focus rewards must credit the logged-in student by email',
+  );
+  assert.ok(
+    app.includes('<FocusSessionWatcher') && app.includes('isHudOpen={isFocusModeOpen}'),
+    'The watcher must be mounted at app level with the HUD state',
+  );
+  assert.ok(
+    app.includes('userEmail={currentUser?.email}'),
+    'The focus surfaces must know whose session is running',
+  );
+});
+
+test('11. Chi tiết giờ học — biểu đồ 7 ngày, thống kê, nhật ký phiên', () => {
+  const detail = read('src/components/StudyHoursDetail.tsx');
+  const log = read('src/utils/studyLog.ts');
+  const board = read('src/components/views/LeaderboardWidget.tsx');
+
+  assert.ok(log.includes('studyDaySeries') && log.includes('computeStudyStats'), 'Detail helpers must exist in the study log');
+  assert.ok(log.includes('sessionsForOwner'), 'Study log must be filterable per account');
+  assert.ok(log.includes('removeStudySession') && log.includes('STUDY_SOURCE_LABELS'), 'Removal + source labels must exist');
+  assert.ok(log.includes('formatDayLabel') && log.includes('formatClock'), 'Human day/clock labels must exist');
+
+  assert.ok(detail.includes('ff-hours__chart'), 'A 7-day chart must be rendered');
+  assert.ok(detail.includes('studyDaySeries(sessions, 7)'), 'Chart must use real 7-day data');
+  assert.ok(detail.includes('ff-hours__recent') && detail.includes('recentStudySessions(sessions, 6)'), 'Recent sessions list must exist');
+  assert.ok(detail.includes('removeStudySession(id)'), 'Wrong sessions must be removable');
+  assert.ok(detail.includes('Trung bình / ngày học') && detail.includes('Phiên dài nhất'), 'Stats tiles must be detailed');
+  assert.ok(detail.includes('window.confirm'), 'Deleting a session must ask for confirmation');
+  assert.ok(
+    board.includes('StudyHoursDetail') && board.includes("metric === 'hours' &&"),
+    'Detail panel must only show on the study-hours tab',
+  );
+  assert.ok(board.includes('sessionsForOwner(sessions, currentUser?.email)'), 'Personal totals must not mix accounts');
+});
+
+test('12. Navbar phóng to/thu nhỏ — có lớp loading shimmer rồi mới hiện bản đẹp', () => {
+  const navbar = read('src/components/Navbar.tsx');
+  const css = read('src/index.css');
+
+  assert.ok(navbar.includes('ff-nav-skeleton'), 'Navbar must render the skeleton layer');
+  assert.ok(navbar.includes('isMorphBusy') && navbar.includes('flashMorphLoading'), 'Skeleton must be driven by a morph flag');
+  assert.ok(navbar.includes('NAV_MORPH_MS'), 'Morph skeleton must be time-boxed');
+  assert.ok(navbar.includes('ff-nav-capsule--busy'), 'Capsule must expose the busy state');
+  assert.ok(navbar.includes("data-morph={isMorphBusy ? 'loading' : 'ready'}"), 'Capsule must report loading → ready');
+  assert.ok(navbar.includes('aria-busy={isMorphBusy}'), 'Busy state must be announced');
+  assert.ok(
+    navbar.includes('prefers-reduced-motion') && navbar.includes('flashMorphLoading'),
+    'Reduced motion must skip the skeleton',
+  );
+
+  assert.ok(css.includes('.ff-nav-skeleton__sk') && css.includes('@keyframes ffNavSkShimmer'), 'Skeleton bars must shimmer');
+  assert.ok(css.includes('@keyframes ffNavSkReveal'), 'Real content must fade in after the morph');
+  assert.ok(css.includes('.ff-nav-skeleton--compact') && css.includes('.ff-nav-skeleton--vertical'), 'Skeleton must follow compact + dock layouts');
+  assert.ok(!/ffNavSkReveal \{[^}]*transform/.test(css), 'Reveal must not use transform (would break fixed tooltips)');
+  assert.ok(css.includes('html.light .ff-nav-skeleton__sk'), 'Skeleton must have a light-mode variant');
+});
+
+test('13. CSS vòng 5 — chip phiên học, toast, chi tiết giờ học đều có light mode', () => {
+  const css = read('src/index.css');
+
+  for (const block of ['.ff-focus-chip', '.ff-focus-toast', '.ff-hours__chart', '.ff-hours__recent', '.ff-hours__del']) {
+    assert.ok(css.includes(block), `Missing style block: ${block}`);
+  }
+  assert.ok(css.includes('@keyframes ffFocusChipIn') && css.includes('@keyframes ffFocusToastIn'), 'Chip + toast must animate in');
+  assert.ok(css.includes('html.light .ff-focus-chip') && css.includes('html.light .ff-hours'), 'Light-mode variants required');
+  assert.ok(css.includes('.reduce-motion .ff-focus-chip'), 'Reduced-motion class must cover the chip');
+  assert.ok(css.includes('.ff-hours__col.is-today'), 'Today column must be highlighted in the chart');
 });

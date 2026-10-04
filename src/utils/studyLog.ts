@@ -5,8 +5,8 @@ import { safeStorage } from './storage';
    Nhật ký giờ học (Study Log)
    --------------------------------------------------------------------------
    Nguồn dữ liệu THẬT cho bảng xếp hạng giờ học:
-   • Mỗi chu kỳ Pomodoro 25 phút hoàn thành trong Focus Sanctuary được ghi vào.
-   • Người học có thể tự ghi nhanh (15/30/45/60 phút) khi học ngoài nền tảng.
+   • Mỗi phiên Học 25 phút trong Phòng Tập Trung (Pomodoro) được ghi tự động.
+   • Phiên bị dừng giữa đường vẫn ghi số phút đã học thật (từ 5 phút trở lên).
    Dữ liệu lưu cục bộ trên trình duyệt, đồng bộ giữa các tab qua CustomEvent.
    ========================================================================== */
 
@@ -333,6 +333,160 @@ export const formatHours = (minutes: number, decimals = 1): string => {
   const hours = minutes / 60;
   if (hours >= 100 || decimals === 0) return Math.round(hours).toLocaleString('vi-VN');
   return hours.toFixed(decimals).replace('.', ',');
+};
+
+/**
+ * Lọc nhật ký theo chủ tài khoản.
+ * • Đã đăng nhập: lấy phiên của mình + phiên cũ không gắn tài khoản.
+ * • Chưa đăng nhập: chỉ lấy phiên không gắn tài khoản (không lẫn dữ liệu người khác).
+ */
+export const sessionsForOwner = (sessions: StudySession[], owner?: string | null): StudySession[] => {
+  if (!owner) return sessions.filter((s) => !s.owner);
+  const me = owner.toLowerCase();
+  return sessions.filter((s) => !s.owner || s.owner === me);
+};
+
+/* -------------------------------------------------------------------------- */
+/* Thống kê chi tiết cho trang "Giờ học"                                       */
+/* -------------------------------------------------------------------------- */
+
+/** Mốc 00:00 của một ngày (lệch `offsetDays` ngày so với hôm nay). */
+export const dayStartMs = (offsetDays = 0, now: Date = new Date()): number => {
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  d.setDate(d.getDate() + offsetDays);
+  return d.getTime();
+};
+
+const VI_WEEKDAY = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
+export interface StudyDayBar {
+  key: string;
+  /** Nhãn ngắn: T2…T7, CN */
+  label: string;
+  /** Ngày/tháng để đọc rõ hơn khi cần. */
+  dateLabel: string;
+  minutes: number;
+  isToday: boolean;
+  /** Chiều cao cột 8–100% để vẽ biểu đồ. */
+  heightPercent: number;
+}
+
+/** Chuỗi N ngày gần nhất (cũ → mới) kèm số phút học thật mỗi ngày. */
+export const studyDaySeries = (sessions: StudySession[], days = 7): StudyDayBar[] => {
+  const now = new Date();
+  const buckets = new Map<number, number>();
+  sessions.forEach((s) => {
+    const key = dayStartMs(0, new Date(s.at));
+    buckets.set(key, (buckets.get(key) || 0) + s.minutes);
+  });
+
+  const raw: StudyDayBar[] = [];
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const start = dayStartMs(-i, now);
+    const d = new Date(start);
+    const minutes = buckets.get(start) || 0;
+    raw.push({
+      key: `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`,
+      label: VI_WEEKDAY[d.getDay()],
+      dateLabel: `${d.getDate()}/${d.getMonth() + 1}`,
+      minutes,
+      isToday: i === 0,
+      heightPercent: minutes > 0 ? 8 : 3,
+    });
+  }
+
+  const max = Math.max(1, ...raw.map((b) => b.minutes));
+  return raw.map((b) => ({
+    ...b,
+    heightPercent: b.minutes > 0 ? Math.max(10, Math.round((b.minutes / max) * 100)) : 3,
+  }));
+};
+
+export interface StudyStats {
+  totalMinutes: number;
+  sessionCount: number;
+  activeDays: number;
+  avgMinutesPerActiveDay: number;
+  bestDayLabel: string;
+  bestDayMinutes: number;
+  focusMinutes: number;
+  longestSessionMinutes: number;
+}
+
+/** Thống kê chi tiết toàn bộ nhật ký (mọi thời gian). */
+export const computeStudyStats = (sessions: StudySession[]): StudyStats => {
+  const dayTotals = new Map<number, number>();
+  let totalMinutes = 0;
+  let focusMinutes = 0;
+  let longestSessionMinutes = 0;
+
+  sessions.forEach((s) => {
+    totalMinutes += s.minutes;
+    if (s.source === 'focus') focusMinutes += s.minutes;
+    if (s.minutes > longestSessionMinutes) longestSessionMinutes = s.minutes;
+    const key = dayStartMs(0, new Date(s.at));
+    dayTotals.set(key, (dayTotals.get(key) || 0) + s.minutes);
+  });
+
+  let bestDayKey = 0;
+  let bestDayMinutes = 0;
+  dayTotals.forEach((minutes, key) => {
+    if (minutes > bestDayMinutes) {
+      bestDayMinutes = minutes;
+      bestDayKey = key;
+    }
+  });
+
+  const bestDate = bestDayKey ? new Date(bestDayKey) : null;
+  const activeDays = dayTotals.size;
+
+  return {
+    totalMinutes,
+    sessionCount: sessions.length,
+    activeDays,
+    avgMinutesPerActiveDay: activeDays > 0 ? Math.round(totalMinutes / activeDays) : 0,
+    bestDayLabel: bestDate ? `${bestDate.getDate()}/${bestDate.getMonth() + 1}` : '—',
+    bestDayMinutes,
+    focusMinutes,
+    longestSessionMinutes,
+  };
+};
+
+/** Giờ:phút của một mốc thời gian. */
+export const formatClock = (at: number): string => {
+  const d = new Date(at);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
+/** Nhãn ngày thân thiện: Hôm nay / Hôm qua / dd/mm. */
+export const formatDayLabel = (at: number, now: Date = new Date()): string => {
+  const key = dayStartMs(0, new Date(at));
+  const today = dayStartMs(0, now);
+  const yesterday = dayStartMs(-1, now);
+  if (key === today) return 'Hôm nay';
+  if (key === yesterday) return 'Hôm qua';
+  const d = new Date(at);
+  return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+};
+
+export interface StudySessionRow extends StudySession {
+  dayLabel: string;
+  clock: string;
+}
+
+/** N phiên gần nhất kèm nhãn ngày/giờ đã định dạng sẵn cho giao diện. */
+export const recentStudySessions = (sessions: StudySession[], limit = 6): StudySessionRow[] =>
+  sessions.slice(0, limit).map((s) => ({
+    ...s,
+    dayLabel: formatDayLabel(s.at),
+    clock: formatClock(s.at),
+  }));
+
+export const STUDY_SOURCE_LABELS: Record<StudySource, string> = {
+  focus: 'Phòng Tập Trung',
+  manual: 'Ghi tay',
+  quiz: 'Luyện đề',
+  reading: 'Đọc tài liệu',
 };
 
 export const formatDuration = (minutes: number): string => {

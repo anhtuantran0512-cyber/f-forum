@@ -332,6 +332,42 @@ export const Navbar: React.FC<NavbarProps> = ({
   const isVertical = navbarPosition === 'left' || navbarPosition === 'right';
   const effectiveCompact = isCompact || alwaysCompact;
 
+  /* ---------------------------------------------------------------------
+     Lớp "đang tải" khi navbar phóng to / thu nhỏ (CodeFronts la-15 skeleton).
+     Trong lúc hình dáng thanh điều hướng đang đổi, các nhãn/icon co giãn lệch
+     nhịp trông rối. Ta phủ một lớp xương mờ (shimmer) đúng bằng thời gian
+     morph, xong mới cho giao diện thật hiện lên — nên mắt chỉ thấy một nhịp
+     "đang tải → hiện bản đẹp".
+     --------------------------------------------------------------------- */
+  const NAV_MORPH_MS = 640;
+  const [isMorphBusy, setIsMorphBusy] = useState(false);
+  const morphBusyTimerRef = useRef<number | null>(null);
+
+  const flashMorphLoading = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const reduceMotion =
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ||
+      document.documentElement.classList.contains('reduce-motion');
+    if (reduceMotion) return;
+    setIsMorphBusy(true);
+    if (morphBusyTimerRef.current) window.clearTimeout(morphBusyTimerRef.current);
+    morphBusyTimerRef.current = window.setTimeout(() => setIsMorphBusy(false), NAV_MORPH_MS);
+  }, []);
+
+  const layoutKey = `${effectiveCompact && !isVertical ? 'compact' : 'expanded'}-${navbarPosition}`;
+  const prevLayoutKeyRef = useRef(layoutKey);
+  useEffect(() => {
+    if (prevLayoutKeyRef.current === layoutKey) return;
+    prevLayoutKeyRef.current = layoutKey;
+    flashMorphLoading();
+  }, [layoutKey, flashMorphLoading]);
+
+  useEffect(() => {
+    return () => {
+      if (morphBusyTimerRef.current) window.clearTimeout(morphBusyTimerRef.current);
+    };
+  }, []);
+
   /* ============================================================ */
   /* Robust active pill measurement (offset-based + rAF tracker)   */
   /* ============================================================ */
@@ -739,13 +775,39 @@ export const Navbar: React.FC<NavbarProps> = ({
       >
         <nav
           data-compact={effectiveCompact && !isVertical ? 'true' : 'false'}
+          data-morph={isMorphBusy ? 'loading' : 'ready'}
           onPointerEnter={forceExpand}
           onFocusCapture={forceExpand}
-          className="ff-nav-capsule fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full px-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 shadow-2xl"
+          aria-busy={isMorphBusy}
+          className={`ff-nav-capsule fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full px-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 shadow-2xl ${
+            isMorphBusy ? 'ff-nav-capsule--busy' : ''
+          }`}
           aria-label="Điều hướng chính"
         >
           {/* Lớp aura chuyển động rất nhẹ, nằm SAU nội dung nên không đè chữ nào */}
           <span className="ff-nav-aura" aria-hidden="true" />
+
+          {/* Lớp xương mờ che lúc thanh điều hướng đang đổi hình dáng */}
+          {isMorphBusy && (
+            <span
+              className={`ff-nav-skeleton ${
+                effectiveCompact && !isVertical ? 'ff-nav-skeleton--compact' : ''
+              } ${isVertical ? 'ff-nav-skeleton--vertical' : ''}`}
+              aria-hidden="true"
+            >
+              <i className="ff-nav-skeleton__sk ff-nav-skeleton__brand" />
+              <span className="ff-nav-skeleton__tabs">
+                {Array.from({ length: effectiveCompact && !isVertical ? 6 : 5 }).map((_, i) => (
+                  <i key={i} className="ff-nav-skeleton__sk ff-nav-skeleton__tab" />
+                ))}
+              </span>
+              <span className="ff-nav-skeleton__actions">
+                {!effectiveCompact && <i className="ff-nav-skeleton__sk ff-nav-skeleton__pill" />}
+                <i className="ff-nav-skeleton__sk ff-nav-skeleton__avatar" />
+                <i className="ff-nav-skeleton__sk ff-nav-skeleton__avatar" />
+              </span>
+            </span>
+          )}
 
           {/* Brand Logo */}
           <button

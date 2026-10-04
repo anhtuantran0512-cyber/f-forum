@@ -166,7 +166,8 @@ export const StudyPulsePanel: React.FC<StudyPulsePanelProps> = ({
         </button>
       )}
       <p className="ff-pulse__hint">
-        Giờ học được ghi tự động sau mỗi phiên Pomodoro 25 phút — không cần bấm gì thêm.
+        Giờ học được ghi tự động sau mỗi phiên Pomodoro 25 phút — không cần bấm gì thêm. Dừng sớm vẫn ghi
+        số phút thực học (từ 5 phút), nhưng chỉ phiên đủ 25 phút mới có XP.
       </p>
     </div>
   );

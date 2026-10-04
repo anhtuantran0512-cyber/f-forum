@@ -30,6 +30,7 @@ import { CommandPalette, type PaletteCommand } from './components/CommandPalette
 import { QuickNotesDock } from './components/QuickNotesDock';
 import { StudyCareCoach } from './components/StudyCareCoach';
 import { ViewTransitionLoader } from './components/ViewTransitionLoader';
+import { FocusSessionWatcher } from './components/FocusSessionWatcher';
 import { AuthProvider } from './context/AuthContext';
 import { GODRAY_PRESETS } from './utils/godrays';
 import { safeStorage } from './utils/storage';
@@ -355,6 +356,15 @@ export const App: React.FC = () => {
   const handleViewReady = useCallback((view: DimensionView) => {
     setReadyView(view);
   }, []);
+
+  /* Phiên Pomodoro hoàn thành: cộng XP đúng tài khoản đang đăng nhập.
+     (addXP(amount) không kèm email sẽ bị bỏ qua với người dùng thường.) */
+  const handleFocusReward = useCallback(
+    (amount: number) => {
+      if (currentUser) addXP(amount, currentUser.email);
+    },
+    [addXP, currentUser],
+  );
 
   /* Hướng trượt khi đổi phân khu (lướt như lật trang) */
   useEffect(() => {
@@ -936,9 +946,19 @@ export const App: React.FC = () => {
         <FocusSanctuary
           isOpen={isFocusModeOpen}
           onClose={() => setIsFocusModeOpen(false)}
-          onRewardXP={addXP}
+          userEmail={currentUser?.email}
+          onRewardXP={handleFocusReward}
         />
       </Suspense>
+
+      {/* Người giữ nhịp Phòng Tập Trung: đếm theo thời gian thật ở cấp App,
+          ghi giờ học + XP kể cả khi HUD đã đóng, kèm chip đếm ngược nổi. */}
+      <FocusSessionWatcher
+        userEmail={currentUser?.email}
+        onRewardXP={handleFocusReward}
+        isHudOpen={isFocusModeOpen}
+        onOpenHud={() => setIsFocusModeOpen(true)}
+      />
 
       {/* ======================================================== */}
       {/* HIDDEN PREMIUM LAYER: Bảng lệnh, Sổ tay nhanh, Nghỉ mắt  */}
