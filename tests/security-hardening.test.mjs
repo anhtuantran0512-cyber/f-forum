@@ -74,9 +74,10 @@ function createTestServer() {
   });
 }
 
-const post = async (baseUrl, url, body, token) => {
+const post = async (baseUrl, url, body, token, extraHeaders) => {
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
+  if (extraHeaders) Object.assign(headers, extraHeaders);
   const res = await fetch(`${baseUrl}${url}`, { method: 'POST', headers, body: JSON.stringify(body) });
   return { status: res.status, data: await res.json().catch(() => null), res };
 };
@@ -2343,4 +2344,117 @@ test('45. Ghi xuống đĩa phải atomic (ghi tệp tạm rồi rename)', () =>
     !/writeFileSync\(dataFilePath\(\)/.test(server),
     'không được ghi thẳng vào tệp dữ liệu nữa'
   );
+});
+
+test('46. REJECT_CLUB qua WS phải validate như bản HTTP và rút quyền chủ nhiệm', async () => {
+  /* Limiter ở cấp module nên dùng chung cả tiến trình; đặt lại để không va trần
+     giới hạn đăng ký 30 lượt/10 phút do các test trước đó đã dùng hết. */
+  (await import('../server/forumServer.ts')).resetRateLimitersForTest();
+  const env = await createTestServer();
+  try {
+    /* Quyền duyệt/từ chối CLB chỉ thuộc tài khoản Super Admin thật. */
+    const adminLogin = await post(env.baseUrl, '/api/auth/login', {
+      email: 'anhtuantran0512@gmail.com',
+      password: 'admin123',
+    });
+    assert.equal(adminLogin.status, 200, `admin login: ${JSON.stringify(adminLogin.data)}`);
+    const founder = await register(env.baseUrl, 'Sáng Lập Bị Từ Chối', 'founder-reject@example.com', 'mat-khau-founder-rej1');
+    const adminWs = await connectWs(env.wsUrl, adminLogin.data.token);
+
+    /* Tạo và duyệt một CLB để chủ nhiệm có quyền. */
+    const created = await post(env.baseUrl, '/api/clubs', {
+      name: 'CLB Sắp Bị Từ Chối',
+      slogan: 'Kiểm thử rút quyền',
+      purpose: 'Kiểm thử rằng từ chối một CLB đã duyệt thì rút lại quyền đã trao.',
+    }, founder.token);
+    assert.equal(created.status, 200);
+    const clubId = created.data.club.id;
+
+    adminWs.send('APPROVE_CLUB', { clubId });
+    const approved = await adminWs.waitFor('APPROVE_CLUB');
+    assert.ok(approved, 'duyệt CLB qua WS');
+
+    const syncA = await get(env.baseUrl, '/api/sync');
+    const leaderAfter = syncA.data.data.users['founder-reject@example.com'];
+    assert.equal(leaderAfter.role, 'CLUB_LEADER', 'chủ nhiệm phải lên CLUB_LEADER');
+    assert.ok(leaderAfter.scopedClubIds.includes(clubId), 'phải có mã CLB trong scopedClubIds');
+
+    /* (a) Từ chối một mã không tồn tại phải báo NOT_FOUND, không phát sóng. */
+    adminWs.send('REJECT_CLUB', { clubId: 'club-khong-ton-tai', reason: 'ma ảo' });
+    const ghost = await adminWs.waitFor('NOT_FOUND');
+    assert.ok(ghost, 'mã CLB không tồn tại phải trả NOT_FOUND');
+
+    /* (b) Lý do phải bị cắt 500 ký tự. */
+    adminWs.send('REJECT_CLUB', { clubId, reason: 'x'.repeat(5000) });
+    const rejected = await adminWs.waitFor('REJECT_CLUB');
+    assert.ok(rejected, 'từ chối CLB');
+    assert.equal(String(rejected.payload?.reason || '').length, 500, 'lý do phải bị cắt còn 500 ký tự');
+
+    /* (c) Phát sóng phải là bản đã làm sạch, không phải nguyên payload client. */
+    assert.deepEqual(Object.keys(rejected.payload).sort(), ['clubId', 'reason'], 'payload phát ra chỉ có clubId và reason');
+
+    /* (d) Chủ nhiệm phải bị rút quyền. */
+    const syncR = await get(env.baseUrl, '/api/sync');
+    const demoted = syncR.data.data.users['founder-reject@example.com'];
+    assert.ok(!demoted.scopedClubIds.includes(clubId), 'mã CLB phải bị rút khỏi scopedClubIds');
+    assert.equal(demoted.role, 'STUDENT', 'hết CLB nào thì phải hạ về STUDENT');
+  } finally {
+    await env.close();
+  }
+});
+
+test('47. Không vượt được rate limit bằng cách giả header X-Forwarded-For', async () => {
+  const env = await createTestServer();
+  try {
+    (await import('../server/forumServer.ts')).resetRateLimitersForTest();
+
+    /*
+      clientIpOf từng luôn tin X-Forwarded-For do client gửi, mà header đó client
+      tự đặt được. Mọi rate limiter đều khoá theo IP nên chỉ cần đổi giá trị mỗi
+      request là mỗi lần thử rơi vào một ô đếm khác nhau — toàn bộ chống
+      brute-force bị vô hiệu.
+
+      Repro với giới hạn đăng ký 30 lượt/10 phút:
+        không đổi header    -> 30/60 thành công, 30 bị chặn
+        đổi header mỗi lượt -> 61/61 thành công (vượt hoàn toàn)
+    */
+    const attempt = (i, headers) =>
+      post(env.baseUrl, '/api/auth/register',
+        { name: `Kẻ Thử ${i}`, email: `xff${i}@example.com`, password: 'mat-khau-xff-12345' },
+        undefined, headers);
+
+    /* Đổi IP giả mỗi lượt — phải bị chặn như thường, không được vượt trần. */
+    let succeeded = 0;
+    for (let i = 0; i < 45; i++) {
+      const res = await attempt(i, { 'X-Forwarded-For': `10.0.${Math.floor(i / 250)}.${i % 250}` });
+      if (res.status === 200) succeeded++;
+    }
+    assert.ok(
+      succeeded <= 30,
+      `Đổi X-Forwarded-For không được vượt trần 30 lượt đăng ký, thực tế thành công ${succeeded}/45`
+    );
+  } finally {
+    await env.close();
+  }
+});
+
+test('48. clientIpOf chỉ tin X-Forwarded-For khi khai báo đứng sau proxy', async () => {
+  const { clientIpOf } = await import('../server/authGuard.ts');
+  const reqWith = (xff) => ({ headers: { 'x-forwarded-for': xff }, socket: { remoteAddress: '203.0.113.7' } });
+
+  const saved = process.env.FFORUM_TRUST_PROXY;
+  try {
+    /* Mặc định: bỏ qua header, dùng địa chỉ socket thật. */
+    delete process.env.FFORUM_TRUST_PROXY;
+    assert.equal(clientIpOf(reqWith('10.1.2.3')), '203.0.113.7',
+      'Mặc định phải dùng địa chỉ socket, không tin header client gửi');
+
+    /* Khi người vận hành khai báo đứng sau proxy thì mới dùng header. */
+    process.env.FFORUM_TRUST_PROXY = '1';
+    assert.equal(clientIpOf(reqWith('10.1.2.3, 10.0.0.1')), '10.1.2.3',
+      'Khi bật FFORUM_TRUST_PROXY mới lấy IP từ header');
+  } finally {
+    if (saved === undefined) delete process.env.FFORUM_TRUST_PROXY;
+    else process.env.FFORUM_TRUST_PROXY = saved;
+  }
 });
