@@ -833,6 +833,20 @@ test('18. Client luôn gắn token phiên vào các API ghi dữ liệu', () => 
   assert.ok(session.includes("AUTH_TOKEN_KEY = 'f_forum_auth_token'"), 'Khóa lưu token phải giữ nguyên để không đăng xuất người dùng cũ');
   assert.ok(session.includes('Authorization: `Bearer ${token}`'), 'Helper phải gắn header Bearer');
 
+  /* `postJson` gắn `authHeaders()` theo định nghĩa, nên lời gọi qua helper này
+     đương nhiên có token. Kiểm cả hai đường: fetch trực tiếp và qua helper. */
+  assert.ok(
+    /export const postJson[\s\S]*?authHeaders\(\)/.test(session),
+    'postJson phải dùng authHeaders để mọi lời gọi qua helper đều có token'
+  );
+
+  /* `runServerAction` bọc `postJson` và còn đọc kết quả thật từ máy chủ, nên
+     lời gọi qua nó vừa có token vừa không nuốt lỗi. */
+  assert.ok(
+    /const runServerAction[\s\S]*?postJson\(/.test(store),
+    'runServerAction phải gọi qua postJson (có token)'
+  );
+
   const protectedEndpoints = [
     '/api/questions',
     '/api/solutions',
@@ -844,14 +858,22 @@ test('18. Client luôn gắn token phiên vào các API ghi dữ liệu', () => 
     '/api/chat/delete',
   ];
   for (const endpoint of protectedEndpoints) {
-    const at = store.indexOf(`fetch('${endpoint}'`);
-    assert.ok(at > 0, `forumStore phải gọi ${endpoint}`);
-    const block = store.slice(at, at + 260);
-    assert.ok(block.includes('authHeaders()'), `${endpoint} phải gửi kèm token (authHeaders)`);
+    const viaHelper = store.indexOf(`postJson('${endpoint}'`);
+    const viaAction = store.indexOf(`runServerAction('${endpoint}'`);
+    const directAt = store.indexOf(`fetch('${endpoint}'`);
     assert.ok(
-      !block.includes("headers: { 'Content-Type': 'application/json' }"),
-      `${endpoint} không được dùng header trần`,
+      viaHelper > 0 || viaAction > 0 || directAt > 0,
+      `forumStore phải gọi ${endpoint} (qua runServerAction, postJson hoặc fetch)`
     );
+
+    if (directAt > 0) {
+      const block = store.slice(directAt, directAt + 260);
+      assert.ok(block.includes('authHeaders()'), `${endpoint} gọi fetch trực tiếp phải gửi kèm token`);
+      assert.ok(
+        !block.includes("headers: { 'Content-Type': 'application/json' }"),
+        `${endpoint} không được dùng header trần`,
+      );
+    }
   }
 
   const aboutAt = adminStore.indexOf("fetch('/api/admin/about', {");
@@ -1847,4 +1869,60 @@ test('36. Trần kết nối và giới hạn khung WebSocket', async () => {
   } finally {
     await env.close();
   }
+});
+
+test('37. Thao tác ghi dữ liệu phải đọc kết quả máy chủ, không nuốt lỗi', () => {
+  const store = fs.readFileSync(path.resolve('src/store/forumStore.ts'), 'utf8');
+
+  assert.ok(
+    /const runServerAction[\s\S]*?status >= 200 && status < 300/.test(store),
+    'runServerAction phải kiểm tra mã trạng thái'
+  );
+  assert.ok(
+    /const runServerAction[\s\S]*?Không kết nối được máy chủ/.test(store),
+    'runServerAction phải xử lý cả lỗi mạng'
+  );
+
+  /*
+    Chính kiểu `.catch(() => {})` này đã che giấu việc bốn endpoint câu lạc bộ trả
+    404 trong thời gian dài: máy chủ từ chối mà giao diện vẫn báo thành công.
+    Các đường ghi quan trọng phải đi qua helper có đọc kết quả.
+  */
+  const criticalWrites = [
+    '/api/questions/delete',
+    '/api/questions/edit',
+    '/api/solutions/delete',
+    '/api/chat/delete',
+    '/api/clubs',
+    '/api/clubs/approve',
+    '/api/clubs/reject',
+    '/api/clubs/posts',
+  ];
+  for (const endpoint of criticalWrites) {
+    assert.ok(
+      store.includes(`runServerAction('${endpoint}'`),
+      `${endpoint} phải đi qua runServerAction để đọc kết quả máy chủ`
+    );
+  }
+
+  /* Các đường đó không được quay lại kiểu gọi rồi bỏ mặc. */
+  for (const endpoint of criticalWrites) {
+    const at = store.indexOf(`runServerAction('${endpoint}'`);
+    const tail = store.slice(at, at + 700);
+    assert.ok(
+      tail.includes('type: \'error\''),
+      `${endpoint} phải báo lỗi cho người dùng khi máy chủ từ chối`
+    );
+  }
+
+  /* Toast phải có biến thể lỗi để hiển thị được. */
+  assert.ok(
+    store.includes("'xp' | 'success' | 'level' | 'error'"),
+    'Toast phải hỗ trợ loại error'
+  );
+  const app = fs.readFileSync(path.resolve('src/App.tsx'), 'utf8');
+  assert.ok(
+    app.includes("toastMessage.type === 'error'"),
+    'App phải render được toast lỗi'
+  );
 });
