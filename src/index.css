@@ -425,6 +425,228 @@ html.light div[role="dialog"] .bg-black\/25 {
 /* ======================================================== */
 /* Dynamic Liquid Dock Transformations for F-Forum Navbar  */
 /* ======================================================== */
+/* ==========================================================================
+   Navbar surface: MỘT lớp kính + MỘT viền sáng duy nhất.
+   Tắt vòng gradient ::before của .liquid-glass trên navbar (nguyên nhân gây
+   cảm giác nhiều viền màu đè lên nhau) và thay bằng hairline gradient tinh tế.
+   ========================================================================== */
+.ff-nav-capsule.liquid-glass {
+  background: linear-gradient(180deg, rgba(17, 23, 34, 0.88), rgba(8, 11, 17, 0.94));
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.60),
+    0 1px 0 rgba(255, 255, 255, 0.09) inset,
+    0 -1px 0 rgba(245, 158, 11, 0.08) inset;
+}
+.ff-nav-capsule.liquid-glass::before,
+html.light .ff-nav-capsule.liquid-glass::before {
+  content: none !important;
+}
+/* Hairline gradient: chỉ 1 đường, mờ ở giữa để không tranh chấp với tab */
+.ff-nav-capsule.liquid-glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.34) 0%,
+    rgba(255, 255, 255, 0.06) 22%,
+    rgba(255, 255, 255, 0.03) 55%,
+    rgba(251, 191, 36, 0.30) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.85;
+  transition: opacity 0.4s ease;
+}
+.ff-nav-capsule.liquid-glass:hover::after {
+  opacity: 1;
+}
+html.light .ff-nav-capsule.liquid-glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(238, 242, 248, 0.66));
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow:
+    0 18px 44px rgba(15, 23, 42, 0.16),
+    0 1px 0 rgba(255, 255, 255, 0.8) inset;
+}
+html.light .ff-nav-capsule.liquid-glass::after {
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(148, 163, 184, 0.25) 26%,
+    rgba(148, 163, 184, 0.16) 60%,
+    rgba(180, 83, 9, 0.32) 100%
+  );
+}
+
+/* Aura chuyển động bên trong thanh: một dải sáng mờ lướt qua, nằm dưới nội dung
+   (z-index 0) nên tuyệt đối không đè lên chữ hay icon. */
+.ff-nav-capsule.liquid-glass > * {
+  position: relative;
+  z-index: 1;
+}
+.ff-nav-aura {
+  position: absolute !important;
+  inset: 0;
+  z-index: 0 !important;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ff-nav-aura::before {
+  content: '';
+  position: absolute;
+  top: -70%;
+  bottom: -70%;
+  width: 38%;
+  left: -45%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(251, 191, 36, 0.10) 42%,
+    rgba(255, 255, 255, 0.07) 55%,
+    transparent 100%
+  );
+  filter: blur(16px);
+  opacity: 0;
+  animation: ffNavAuraSweep 10s ease-in-out infinite;
+}
+@keyframes ffNavAuraSweep {
+  0%, 58% { transform: translateX(0); opacity: 0; }
+  66% { opacity: 1; }
+  100% { transform: translateX(360%); opacity: 0; }
+}
+/* Viền ngoài ấm lên khi rê chuột — một lớp bóng duy nhất, không chồng hiệu ứng */
+.ff-nav-capsule.liquid-glass:hover {
+  box-shadow:
+    0 22px 52px rgba(0, 0, 0, 0.62),
+    0 0 0 1px rgba(251, 191, 36, 0.14),
+    0 1px 0 rgba(255, 255, 255, 0.12) inset,
+    0 -1px 0 rgba(245, 158, 11, 0.12) inset;
+}
+html.light .ff-nav-capsule.liquid-glass:hover {
+  box-shadow:
+    0 20px 48px rgba(15, 23, 42, 0.2),
+    0 0 0 1px rgba(180, 83, 9, 0.14),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
+/* ==========================================================================
+   Brand lockup: huy hiệu F + chữ vàng tĩnh (thay cho hiệu ứng aurora loè)
+   ========================================================================== */
+.ff-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px 4px 2px;
+  border-radius: 999px;
+  transition: background 0.3s ease;
+}
+.ff-nav-brand:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.ff-nav-logo {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  padding: 1.5px;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(from 140deg, #fbbf24, #f472b6 26%, #a78bfa 50%, #22d3ee 72%, #fbbf24 100%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 6px 18px rgba(245, 158, 11, 0.2);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+  flex-shrink: 0;
+}
+.ff-nav-brand:hover .ff-nav-logo {
+  transform: translateY(-1px) scale(1.05);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2), 0 10px 26px rgba(245, 158, 11, 0.42);
+}
+.ff-nav-logo__core {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 34% 26%, #1c2534, #070a10 72%);
+  color: #fcd34d;
+  font-weight: 800;
+  font-size: 15px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -6px 12px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 1px 6px rgba(252, 211, 77, 0.45);
+}
+.ff-nav-brand-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 19px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  background: linear-gradient(96deg, #fef3c7 0%, #fbbf24 38%, #fff8dd 52%, #f59e0b 74%, #fbbf24 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: ffBrandSweep 7.5s ease-in-out infinite;
+}
+html.light .ff-nav-brand-title {
+  background-image: linear-gradient(96deg, #b45309 0%, #f59e0b 42%, #fbbf24 55%, #92400e 100%);
+}
+@keyframes ffBrandSweep {
+  0%, 64% { background-position: 130% 50%; }
+  90%, 100% { background-position: -30% 50%; }
+}
+
+/* ==========================================================================
+   Nút tiện ích trên navbar: đồng bộ, 1 lớp hiệu ứng duy nhất
+   ========================================================================== */
+.nav-icon-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  transition: background 0.28s ease, border-color 0.28s ease, color 0.28s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nav-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+.nav-icon-btn--on {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.38);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+html.light .nav-icon-btn:hover {
+  background: rgba(15, 23, 42, 0.06);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+/* Vạch phân cách cụm tiện ích ↔ tài khoản */
+.nav-actions-divider {
+  width: 1px;
+  height: 20px;
+  flex: 0 0 auto;
+  margin: 0 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+}
+html.light .nav-actions-divider {
+  background: linear-gradient(180deg, transparent, rgba(15, 23, 42, 0.16), transparent);
+}
+.dock-pos-left .nav-actions-divider,
+.dock-pos-right .nav-actions-divider {
+  width: 22px;
+  height: 1px;
+  margin: 3px 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+}
+
 .dock-pos-top > nav {
   top: 20px;
   bottom: auto;
@@ -445,6 +667,7 @@ html.light div[role="dialog"] .bg-black\/25 {
 }
 
 .dock-pos-left > nav {
+  display: flex !important;
   top: 50% !important;
   bottom: auto !important;
   left: 20px !important;
@@ -467,6 +690,7 @@ html.light div[role="dialog"] .bg-black\/25 {
 }
 
 .dock-pos-right > nav {
+  display: flex !important;
   top: 50% !important;
   bottom: auto !important;
   left: auto !important;
@@ -906,35 +1130,48 @@ html.light div[role="dialog"] .bg-black\/25 {
   }
 }
 
-@keyframes nav-liquid-glow {
-  0%, 100% {
-    box-shadow: 0 0 8px rgba(245, 158, 11, 0.3), 0 0 20px rgba(245, 158, 11, 0.1);
-  }
-  50% {
-    box-shadow: 0 0 12px rgba(245, 158, 11, 0.5), 0 0 30px rgba(245, 158, 11, 0.15);
-  }
-}
-
 .nav-liquid-pill {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(234, 179, 8, 0.2), rgba(250, 204, 21, 0.25));
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(245, 158, 11, 0.4);
+  /* Một lớp duy nhất: nền mờ + 1 viền sáng + 1 bóng mềm. Không nhấp nháy để
+     tránh cảm giác các lớp hiệu ứng chồng lên nhau. */
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.20), rgba(245, 158, 11, 0.10));
+  border: 1px solid rgba(251, 191, 36, 0.34);
   border-radius: 9999px;
-  animation: nav-liquid-glow 3s ease-in-out infinite;
-  transition: left 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
-              width 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
-              top 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
-              height 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
-              opacity 200ms ease;
+  box-shadow:
+    0 6px 18px rgba(245, 158, 11, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  transition: left 460ms cubic-bezier(0.32, 0.72, 0, 1),
+              width 460ms cubic-bezier(0.32, 0.72, 0, 1),
+              top 460ms cubic-bezier(0.32, 0.72, 0, 1),
+              height 460ms cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 240ms ease;
 }
 
-.nav-liquid-pill::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.12), transparent 60%);
-  pointer-events: none;
+/* Trong chế độ thu gọn thì viên chỉ báo nhường chỗ cho nút tự phát sáng */
+.ff-nav-capsule[data-compact='true'] .nav-liquid-pill {
+  opacity: 0 !important;
+}
+
+/* Trạng thái "đang xem": ở thanh mở rộng trên màn rộng thì để viên trượt lo,
+   mọi trường hợp khác (thu gọn, dock dọc, màn hình nhỏ) tự làm nổi bật gọn gàng. */
+.nav-tab-btn--active {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.30) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
+@media (min-width: 1024px) {
+  .dock-pos-top .ff-nav-capsule[data-compact='false'] .nav-tab-btn--active,
+  .dock-pos-bottom .ff-nav-capsule[data-compact='false'] .nav-tab-btn--active {
+    background: transparent;
+    border-color: transparent !important;
+    box-shadow: none;
+  }
+}
+html.light .nav-tab-btn--active {
+  background: rgba(245, 158, 11, 0.18);
+}
+html.light .nav-liquid-pill {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.30), rgba(245, 158, 11, 0.16));
+  border-color: rgba(180, 83, 9, 0.35);
 }
 
 .nav-liquid-drop {
@@ -1255,6 +1492,14 @@ html.light div[role="dialog"] .bg-black\/25 {
   box-shadow: 0 0 16px rgba(245, 158, 11, 0.3);
 }
 /* Vạch phân cách mảnh, tự mờ dần khi thanh co lại */
+/* Căn giữa "an toàn": tab luôn ở giữa khi vừa chỗ, và khi tràn thì cuộn được
+   từ đầu (không bị mất tab ngoài cùng bên trái như justify-content: center thuần) */
+.nav-center-tabs {
+  justify-content: safe center;
+  scroll-padding-inline: 12px;
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+}
 .nav-dock-divider {
   width: 1px;
   height: 18px;
@@ -1297,38 +1542,50 @@ html.light div[role="dialog"] .bg-black\/25 {
               background 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
 }
 
-/* In expanded horizontal mode, hide tab icons so tabs show clean text only */
+/* Ở chế độ mở rộng: icon thu về 0 NHƯNG trễ 0.22s, sau khi nhãn chữ đã hiện ra.
+   Nhờ vậy không còn khoảnh khắc "nút rỗng" làm icon biến mất khi phóng to. */
 .dock-pos-top .ff-nav-capsule[data-compact="false"] .ff-nav-tab-icon-wrap,
 .dock-pos-bottom .ff-nav-capsule[data-compact="false"] .ff-nav-tab-icon-wrap {
   max-width: 0;
   opacity: 0;
   overflow: hidden;
-  transform: scale(0.5);
+  transform: scale(0.72);
   margin: 0 !important;
   pointer-events: none;
-  transition: max-width 0.72s cubic-bezier(0.32, 0.72, 0, 1),
-              opacity 0.42s ease,
-              transform 0.6s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: max-width 0.5s cubic-bezier(0.32, 0.72, 0, 1) 0.22s,
+              opacity 0.26s ease 0.22s,
+              transform 0.5s cubic-bezier(0.32, 0.72, 0, 1) 0.22s;
 }
 
-/* In compact mode (or vertical dock), show icons with spring pop-in */
+/* Ở chế độ thu gọn (hoặc dock dọc): icon hiện NGAY để nút không bao giờ trống */
 .ff-nav-capsule[data-compact="true"] .ff-nav-tab-icon-wrap,
 .dock-pos-left .ff-nav-tab-icon-wrap,
 .dock-pos-right .ff-nav-tab-icon-wrap {
   max-width: 24px;
   opacity: 1;
   transform: scale(1);
-  transition: max-width 0.72s cubic-bezier(0.32, 0.72, 0, 1),
-              opacity 0.5s ease,
-              transform 0.66s cubic-bezier(0.32, 0.72, 0, 1);
+  flex: 0 0 auto;
+  transition: max-width 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 0.3s ease,
+              transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+}
+/* Chừa chỗ tối thiểu cho icon: kể cả khi đang chuyển tiếp, nút không bị rỗng */
+.ff-nav-capsule .ff-nav-tab-icon-wrap > svg,
+.ff-nav-capsule .ff-nav-tab-icon-wrap > * {
+  flex-shrink: 0;
 }
 
 .ff-nav-capsule .ff-nav-label {
   max-width: 140px;
+  opacity: 1;
   overflow: hidden;
   white-space: nowrap;
-  transition: max-width 0.76s cubic-bezier(0.32, 0.72, 0, 1),
-              opacity 0.5s ease, margin 0.76s cubic-bezier(0.32, 0.72, 0, 1);
+  min-width: 0;
+  /* Khi MỞ RỘNG: nới bề rộng trước (0.66s), chữ hiện dần sau 0.26s
+     -> không thấy chữ bị cắt ngang trong lúc chuyển động. */
+  transition: max-width 0.66s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 0.3s ease 0.26s,
+              margin 0.66s cubic-bezier(0.32, 0.72, 0, 1);
 }
 .ff-nav-capsule[data-compact="true"] {
   gap: 6px;
@@ -1370,6 +1627,10 @@ html.light div[role="dialog"] .bg-black\/25 {
   opacity: 0;
   margin-left: 0 !important;
   margin-right: 0 !important;
+  /* Khi THU GỌN: chữ mờ đi trước, rồi mới co bề rộng -> mượt, không gãy chữ. */
+  transition: max-width 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.1s,
+              opacity 0.18s ease,
+              margin 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.1s;
 }
 .ff-nav-capsule[data-compact="true"] .ff-nav-brand-text {
   max-width: 0;
@@ -1949,7 +2210,8 @@ html.light .ff-dock-mock {
               box-shadow 0.35s ease,
               transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   will-change: width, padding;
-  transform: translateZ(0);
+  /* KHÔNG dùng transform ở đây: transform sẽ biến nút thành containing block
+     khiến tooltip position:fixed bị lệch/bám sai chỗ. */
 }
 .ff-nav-tab-icon-wrap {
   min-width: 0;
@@ -1999,6 +2261,8 @@ html.light .ff-dock-mock {
   .ff-settings-panel--out,
   .ff-backdrop-in,
   .ff-backdrop-out,
+  .ff-nav-aura::before,
+  .ff-nav-brand-title,
   .ff-notes-panel,
   .ff-eye-rest,
   .ff-eye-rest__breath,
@@ -2017,6 +2281,8 @@ html.light .ff-dock-mock {
 .reduce-motion .ff-settings-panel--out,
 .reduce-motion .ff-backdrop-in,
 .reduce-motion .ff-backdrop-out,
+.reduce-motion .ff-nav-aura::before,
+.reduce-motion .ff-nav-brand-title,
 .reduce-motion .ff-notes-panel,
 .reduce-motion .ff-eye-rest,
 .reduce-motion .ff-eye-rest__breath,

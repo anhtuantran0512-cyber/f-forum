@@ -163,10 +163,19 @@ export const Navbar: React.FC<NavbarProps> = ({
   const anyPopoverOpenRef = useRef(anyPopoverOpen);
   anyPopoverOpenRef.current = anyPopoverOpen;
 
+  /* Màn hẹp (< 1024px): thanh luôn ở chế độ icon để không phải cuộn và
+     không bao giờ bị mất tab/icon khi cửa sổ nhỏ lại. */
+  const isNarrowViewport = () =>
+    typeof window !== 'undefined' && window.innerWidth < 1024;
+
   const forceExpand = useCallback(() => {
     if (compactTimerRef.current) {
       clearTimeout(compactTimerRef.current);
       compactTimerRef.current = null;
+    }
+    if (isNarrowViewport()) {
+      setIsCompact(true);
+      return;
     }
     if (!alwaysCompact) {
       setIsCompact(false);
@@ -174,7 +183,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, [alwaysCompact]);
 
   const scheduleCompact = useCallback((delay = 760) => {
-    if (alwaysCompact) {
+    if (alwaysCompact || isNarrowViewport()) {
       setIsCompact(true);
       return;
     }
@@ -217,6 +226,20 @@ export const Navbar: React.FC<NavbarProps> = ({
   /* Sync compact state when user toggles "Chỉ hiện icon" */
   useEffect(() => {
     setIsCompact(alwaysCompact);
+  }, [alwaysCompact]);
+
+  /* Cửa sổ nhỏ lại → tự chuyển sang chế độ icon ngay, tránh tràn/mất tab */
+  useEffect(() => {
+    const onResize = () => {
+      if (isNarrowViewport()) {
+        setIsCompact(true);
+      } else if (!alwaysCompact && !anyPopoverOpenRef.current) {
+        setIsCompact(false);
+      }
+    };
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, [alwaysCompact]);
 
   /* Khi đổi vị trí dock (trên/dưới/trái/phải): chạy hoạt ảnh morph để việc
@@ -718,9 +741,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           data-compact={effectiveCompact && !isVertical ? 'true' : 'false'}
           onPointerEnter={forceExpand}
           onFocusCapture={forceExpand}
-          className="ff-nav-capsule fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full px-4 flex items-center justify-between gap-1 shadow-2xl"
+          className="ff-nav-capsule fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full px-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 shadow-2xl"
           aria-label="Điều hướng chính"
         >
+          {/* Lớp aura chuyển động rất nhẹ, nằm SAU nội dung nên không đè chữ nào */}
+          <span className="ff-nav-aura" aria-hidden="true" />
+
           {/* Brand Logo */}
           <button
             type="button"
@@ -728,59 +754,37 @@ export const Navbar: React.FC<NavbarProps> = ({
               onViewChange('landing');
               setIsMobileMenuOpen(false);
             }}
-            className="group text-left focus:outline-none cursor-pointer flex-shrink-0 pointer-events-auto"
+            className="ff-nav-brand group focus:outline-none cursor-pointer flex-shrink-0 pointer-events-auto"
             title="F-Forum — Trang Giới thiệu"
             aria-label="Mở trang Giới thiệu F-Forum"
           >
-            <div className="flex items-center gap-2 flex-shrink-0 whitespace-nowrap select-none">
-              <div className="w-8 h-8 rounded-full ff-gradient-ring flex-shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.3)]">
-                <div className="w-full h-full bg-[#0a0f14] rounded-full flex items-center justify-center text-amber-400 font-bold text-sm">
-                  F
-                </div>
-              </div>
-              <span className="ff-nav-brand-text nav-brand-text font-['Playfair_Display'] italic font-bold text-xl tracking-wide ff-aurora-text flex-shrink-0 drop-shadow-[0_2px_12px_rgba(245,158,11,0.3)]">
-                F-Forum
-              </span>
-            </div>
+            {/* Huy hiệu F: một vòng gradient duy nhất, không xếp lớp */}
+            <span className="ff-nav-logo" aria-hidden="true">
+              <span className="ff-nav-logo__core">F</span>
+            </span>
+
+            {/* Chữ F-Forum: gradient vàng tĩnh + vệt sáng lướt, đọc rõ không bị loè */}
+            <span className="ff-nav-brand-text nav-brand-text">
+              <span className="ff-nav-brand-title">F-Forum</span>
+            </span>
           </button>
 
           {/* Center Tabs: text-only when expanded, icon-only when compact or vertical */}
-          <div ref={tabsContainerRef} className="relative flex items-center gap-1 overflow-x-auto no-scrollbar py-1 nav-center-tabs">
+          <div
+            ref={tabsContainerRef}
+            className="relative flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-1 min-w-0 nav-center-tabs"
+          >
+            {/* Viên chỉ báo trượt: điểm nhấn DUY NHẤT khi thanh mở rộng ở màn rộng.
+                Không dùng thêm hạt droplet hay nền riêng cho tab để tránh chồng lớp. */}
             {!isVertical && pillStyle.opacity > 0 && (
-              <>
-                {/* Liquid sliding pill indicator */}
-                <div
-                  className="absolute top-1 bottom-1 nav-liquid-pill pointer-events-none hidden lg:block"
-                  style={{
-                    left: `${pillStyle.left}px`,
-                    width: `${pillStyle.width}px`,
-                    opacity: pillStyle.opacity,
-                  }}
-                />
-
-                {/* Organic liquid droplet bead */}
-                <div
-                  className={`absolute ${navbarPosition === 'bottom' ? 'top-0' : 'bottom-0'} nav-liquid-drop pointer-events-none hidden lg:block`}
-                  style={{
-                    left: `${Math.max(4, pillStyle.left + pillStyle.width / 2 - 8)}px`,
-                    width: '16px',
-                    height: '4px',
-                    opacity: pillStyle.opacity,
-                  }}
-                />
-              </>
-            )}
-
-            {/* Vertical organic liquid droplet bead */}
-            {isVertical && pillStyle.opacity > 0 && (
               <div
-                className={`absolute ${navbarPosition === 'left' ? 'left-0.5' : 'right-0.5'} nav-liquid-drop-vertical pointer-events-none`}
+                className="absolute top-1 bottom-1 nav-liquid-pill pointer-events-none hidden lg:block"
                 style={{
-                  top: `${Math.max(4, pillStyle.top + (pillStyle.height ? pillStyle.height / 2 - 9 : 10))}px`,
-                  width: '4px',
-                  height: '18px',
+                  left: `${pillStyle.left}px`,
+                  width: `${pillStyle.width}px`,
                   opacity: pillStyle.opacity,
                 }}
+                aria-hidden="true"
               />
             )}
 
@@ -797,16 +801,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                       tabRefs.current[item.id] = el;
                     }}
                     onClick={() => onViewChange(item.id)}
-                    title={item.label}
                     aria-label={item.label}
                     aria-current={isActive ? 'page' : undefined}
                     data-icon-only={item.iconOnly ? 'true' : 'false'}
                     className={`nav-tab-btn ${
                       item.iconOnly ? 'nav-tab-btn--icon-only' : ''
-                    } px-3 py-1.5 rounded-full text-xs font-semibold tracking-wider whitespace-nowrap flex-shrink-0 select-none cursor-pointer flex items-center justify-center z-10 group/tab relative ${
-                      isActive
-                        ? 'bg-amber-500/20 lg:bg-amber-500/15 text-amber-300 border border-amber-500/35 shadow-[0_0_14px_rgba(245,158,11,0.22)]'
-                        : 'text-white/75 hover:text-white hover:bg-white/10 border border-transparent'
+                    } ${isActive ? 'nav-tab-btn--active' : ''} px-3 py-1.5 rounded-full text-[11.5px] font-semibold tracking-[0.055em] whitespace-nowrap flex-shrink-0 select-none cursor-pointer flex items-center justify-center z-10 group/tab relative border border-transparent ${
+                      isActive ? 'text-amber-100' : 'text-white/70 hover:text-white hover:bg-white/[0.07]'
                     }`}
                   >
                     {/* Icon: hiện khi thu gọn, khi dock dọc, hoặc với các tab luôn-dạng-icon */}
@@ -845,8 +846,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             })}
           </div>
 
-          {/* Right Side: Quick Dock */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 nav-actions-dock">
+          {/* Right Side: Quick Dock (cụm tiện ích + vạch phân cách với tài khoản) */}
+          <div className="flex items-center gap-1.5 flex-shrink-0 nav-actions-dock">
             {/* Settings Trigger */}
             <div ref={settingsTriggerRef} className="relative inline-flex items-center justify-center flex-shrink-0">
               <button
@@ -858,16 +859,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setIsNotificationsOpen(false);
                   setIsFlyoutOpen(false);
                 }}
-                className={`relative w-9 h-9 rounded-full bg-white/5 border border-white/10 hover:border-amber-400/30 text-white/70 hover:text-white cursor-pointer pointer-events-auto flex items-center justify-center transition-all duration-300 focus:outline-none ${
-                  isSettingsOpen
-                    ? 'bg-amber-500/20 border-amber-400/50 text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.4)]'
-                    : 'hover:bg-white/10'
+                className={`nav-icon-btn group relative w-9 h-9 rounded-full cursor-pointer pointer-events-auto flex items-center justify-center focus:outline-none ${
+                  isSettingsOpen ? 'nav-icon-btn--on text-amber-300' : 'text-white/70 hover:text-white'
                 }`}
                 title="Cài đặt"
                 aria-label="Cài đặt hệ thống"
               >
                 <Settings
-                  className={`w-4 h-4 transition-transform duration-500 ${
+                  className={`w-[17px] h-[17px] transition-transform duration-500 ${
                     isSettingsOpen ? 'rotate-90 text-amber-300' : 'group-hover:rotate-45'
                   }`}
                 />
@@ -881,7 +880,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 e.stopPropagation();
                 onToggleChat();
               }}
-              className="relative w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/30 flex items-center justify-center text-white/70 hover:text-white transition-all cursor-pointer pointer-events-auto"
+              className="nav-icon-btn group relative w-9 h-9 rounded-full flex items-center justify-center text-white/70 hover:text-white cursor-pointer pointer-events-auto"
               title="Mở phòng chat"
               aria-label="Mở phòng chat"
             >
@@ -904,7 +903,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setIsFlyoutOpen(false);
                   setIsSettingsOpen(false);
                 }}
-                className="relative w-9 h-9 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-colors pointer-events-auto cursor-pointer"
+                className={`nav-icon-btn group relative w-9 h-9 rounded-full flex items-center justify-center pointer-events-auto cursor-pointer ${
+                  isNotificationsOpen ? 'nav-icon-btn--on text-amber-300' : 'text-white/80 hover:text-white'
+                }`}
                 aria-label="Thông báo"
                 title="Thông báo"
               >
@@ -916,6 +917,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
               </button>
             </div>
+
+            {/* Vạch phân cách giữa cụm tiện ích và tài khoản */}
+            <span className="nav-actions-divider" aria-hidden="true" />
 
             {/* Auth Capsule or Login Button */}
             {!currentUser ? (

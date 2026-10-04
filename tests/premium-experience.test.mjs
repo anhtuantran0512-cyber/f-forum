@@ -232,3 +232,92 @@ test('12. Hiệu ứng hiện ra của panel Cài đặt được làm mượt',
   assert.ok(css.includes('.ff-settings-panel--settled'), 'Settled transition rule must exist');
   assert.ok(css.includes('animation: ffSettingsIn 480ms cubic-bezier(0.22, 1, 0.36, 1) both'), 'Panel reveal must be a soft 480ms spring');
 });
+
+test('13. Navbar surface: một viền sáng duy nhất, không xếp lớp gradient', () => {
+  const css = read('src/index.css');
+  const navbar = read('src/components/Navbar.tsx');
+
+  // Tắt vòng gradient ::before của liquid-glass riêng cho navbar
+  assert.ok(css.includes('.ff-nav-capsule.liquid-glass::before'), 'Navbar must disable the inherited gradient ring');
+  assert.ok(css.includes('content: none !important;'), 'The ring must be switched off with content: none');
+  assert.ok(css.includes('.ff-nav-capsule.liquid-glass::after'), 'Navbar must draw ONE hairline gradient instead');
+  assert.ok(
+    css.includes('mask-composite: exclude;') && css.includes('-webkit-mask-composite: xor;'),
+    'The single hairline must be masked to the border ring only',
+  );
+
+  // Viên chỉ báo trượt là điểm nhấn duy nhất ở chế độ mở rộng
+  assert.ok(!navbar.includes('nav-liquid-drop'), 'The overlapping droplet beads must be removed from the navbar');
+  assert.ok(!css.includes('nav-liquid-glow'), 'The pulsing pill glow (double effect) must be removed');
+  assert.ok(css.includes(".ff-nav-capsule[data-compact='true'] .nav-liquid-pill"), 'Compact mode must hide the pill');
+  assert.ok(
+    css.includes(".dock-pos-top .ff-nav-capsule[data-compact='false'] .nav-tab-btn--active"),
+    'Expanded lg+ mode must let the pill be the only highlight (no doubled background)',
+  );
+});
+
+test('14. Brand lockup: huy hiệu F + chữ vàng tĩnh, hết aurora loè/méo', () => {
+  const navbar = read('src/components/Navbar.tsx');
+  const css = read('src/index.css');
+
+  assert.ok(navbar.includes('ff-nav-brand') && navbar.includes('ff-nav-logo__core'), 'Navbar must use the new brand lockup');
+  assert.ok(!navbar.includes('ff-aurora-text'), 'The navbar wordmark must not use the rainbow aurora animation anymore');
+  assert.ok(!navbar.includes('drop-shadow-[0_2px_12px_rgba(245,158,11,0.3)]'), 'The heavy blurred drop-shadow must be gone');
+  assert.ok(css.includes('.ff-nav-brand-title'), 'A dedicated, legible wordmark style must exist');
+  assert.ok(css.includes('@keyframes ffBrandSweep'), 'The wordmark keeps a subtle specular sweep');
+  assert.ok(css.includes('html.light .ff-nav-brand-title'), 'Light mode needs a darker gold gradient for contrast');
+  assert.ok(css.includes('.ff-nav-logo__core'), 'The F monogram core must be styled as a crisp badge');
+});
+
+test('15. Bố cục navbar cân đối + icon không bao giờ biến mất', () => {
+  const navbar = read('src/components/Navbar.tsx');
+  const css = read('src/index.css');
+
+  // Lưới 3 cột: thương hiệu | tab căn giữa | tiện ích
+  assert.ok(
+    navbar.includes('grid grid-cols-[auto_minmax(0,1fr)_auto] items-center'),
+    'Navbar must use a 3-column grid so tabs are truly centred',
+  );
+  assert.ok(navbar.includes('justify-center gap-1 overflow-x-auto'), 'Tab strip must centre its content');
+  assert.ok(css.includes('justify-content: safe center;'), 'Centring must be overflow-safe (no clipped leading tab)');
+  assert.ok(navbar.includes('nav-actions-divider'), 'Utility cluster must be separated from the account cluster');
+
+  // Nhịp chuyển đổi icon/nhãn chống "nút rỗng"
+  assert.ok(
+    css.includes('transition: max-width 0.5s cubic-bezier(0.32, 0.72, 0, 1) 0.22s,'),
+    'Icon collapse must be delayed so buttons are never empty while expanding',
+  );
+  assert.ok(
+    css.includes('transition: max-width 0.66s cubic-bezier(0.32, 0.72, 0, 1),'),
+    'Labels must expand before their text fades in (no clipped glyphs)',
+  );
+  assert.ok(
+    !/\.nav-tab-btn \{[^}]*transform: translateZ\(0\)/.test(css),
+    'Tab buttons must not create a containing block (would break fixed tooltips)',
+  );
+  assert.ok(css.includes('.nav-icon-btn--on'), 'Navbar utility buttons must share one consistent active style');
+});
+
+test('16. Aura navbar tách lớp đúng: nằm sau nội dung, không đè chữ/icon', () => {
+  const navbar = read('src/components/Navbar.tsx');
+  const css = read('src/index.css');
+
+  assert.ok(navbar.includes('ff-nav-aura'), 'Navbar must render the ambient aura layer');
+  assert.ok(
+    navbar.indexOf('ff-nav-aura') < navbar.indexOf('ff-nav-brand'),
+    'The aura span must be rendered before the brand/content, as a background layer',
+  );
+  assert.ok(
+    css.includes('.ff-nav-capsule.liquid-glass > * {') && css.includes('z-index: 1;'),
+    'Navbar content must sit above the aura layer',
+  );
+  assert.ok(
+    css.includes('z-index: 0 !important;') && css.includes('@keyframes ffNavAuraSweep'),
+    'Aura layer must stay at z-index 0 with its own slow sweep animation',
+  );
+  assert.ok(css.includes('@media (prefers-reduced-motion: reduce)'), 'Reduced motion support must remain');
+  assert.ok(
+    css.includes('.reduce-motion .ff-nav-aura::before') && css.includes('.reduce-motion .ff-nav-brand-title'),
+    'Reduced-motion class must also disable the aura and brand sweep',
+  );
+});
