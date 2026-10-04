@@ -986,6 +986,17 @@ vẫn báo thành công.
 trị phạm vi một CLB đã bị loại. Nay rút mã khỏi `scopedClubIds`, và nếu không còn
 CLB nào thì hạ về `STUDENT`, kèm phát `SYNC_USER`.
 
+> **Sửa bổ sung:** lần vá đầu chỉ sửa nhánh **WS**. Chạy lại bộ E2E — vốn đi qua
+> **HTTP** `POST /api/clubs/reject` — mới lộ ra bản HTTP vẫn quên rút quyền:
+>
+> ```
+> [1] sau khi duyệt:    role=CLUB_LEADER scopedClubIds=["club-mutut4pp-2b5d8d42"]
+> [2] từ chối qua HTTP: 200
+> [3] sau khi từ chối:  role=CLUB_LEADER scopedClubIds=["club-mutut4pp-2b5d8d42"]  ← LỖI
+> ```
+>
+> Cùng một thao tác có hai đường vào thì phải vá cả hai. Test #52 khoá bản HTTP.
+
 ---
 
 ## 35. Cờ cấp module không chặn được việc cài lặp handler khi reload
@@ -1092,6 +1103,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 51 bài, chạy trên server thật
-npm test                                        # toàn bộ 147 bài
+node --test tests/security-hardening.test.mjs   # 52 bài, chạy trên server thật
+npm test                                        # toàn bộ 148 bài
 ```
