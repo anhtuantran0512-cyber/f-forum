@@ -1191,6 +1191,16 @@ export function useForumStore() {
     );
 
     try {
+      fetch('/api/users/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailKey, updates }),
+      }).catch(() => {});
+    } catch {
+      /* ignore */
+    }
+
+    try {
       syncBroadcastChannel?.postMessage({
         type: 'SYNC_USER',
         payload: updated,

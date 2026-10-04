@@ -21,6 +21,8 @@ export interface UserRecord {
   city?: string;
   className?: string;
   joinedAt?: string;
+  bannerUrl?: string;
+  profileGradient?: string;
   scopedClubIds: string[];
 }
 
@@ -201,7 +203,7 @@ function parseJsonBody(req: IncomingMessage): Promise<any> {
     let body = '';
     req.on('data', chunk => {
       body += chunk;
-      if (body.length > 2 * 1024 * 1024) {
+      if (body.length > 25 * 1024 * 1024) {
         req.destroy();
         reject(new Error('Payload too large'));
       }

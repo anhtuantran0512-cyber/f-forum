@@ -19,67 +19,161 @@ export function computePopoverPosition(
   panelWidth: number,
   panelMaxHeight: number,
 ): PopoverPosition {
-  if (!anchorEl) {
-    return { style: { position: 'fixed', top: 12, left: 12 }, ready: false };
+  if (!anchorEl || typeof window === 'undefined') {
+    return { style: { position: 'fixed', top: 16, left: 16 }, ready: false };
   }
 
   const rect = anchorEl.getBoundingClientRect();
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const MARGIN = 10;
+  const MARGIN = 12;
   const GAP = 12;
 
-  const width = Math.min(panelWidth, vw - MARGIN * 2);
-  const maxHeight = Math.min(panelMaxHeight, vh - MARGIN * 2);
-
-  let top = 0;
-  let left = 0;
-  let origin = 'top center';
+  /* Guard against invisible or zero-rect anchor */
+  if (rect.width === 0 && rect.height === 0) {
+    return { style: { position: 'fixed', top: 16, left: 16 }, ready: false };
+  }
 
   if (dockPos === 'left') {
-    left = rect.right + GAP;
-    if (left + width > vw - MARGIN) left = Math.max(MARGIN, vw - MARGIN - width);
-    top = rect.top + rect.height / 2 - maxHeight / 2;
-    top = Math.max(MARGIN, Math.min(top, vh - MARGIN - Math.min(maxHeight, vh - 2 * MARGIN)));
-    origin = 'left center';
-  } else if (dockPos === 'right') {
-    left = rect.left - GAP - width;
-    if (left < MARGIN) left = MARGIN;
-    top = rect.top + rect.height / 2 - maxHeight / 2;
-    top = Math.max(MARGIN, Math.min(top, vh - MARGIN - Math.min(maxHeight, vh - 2 * MARGIN)));
-    origin = 'right center';
-  } else if (dockPos === 'bottom') {
-    left = rect.right - width;
-    left = Math.max(MARGIN, Math.min(left, vw - MARGIN - width));
-    top = rect.top - GAP - maxHeight;
-    if (top < MARGIN) top = MARGIN;
-    origin = 'bottom right';
-  } else {
-    /* top dock: panel opens below */
-    left = rect.right - width;
-    left = Math.max(MARGIN, Math.min(left, vw - MARGIN - width));
-    top = rect.bottom + GAP;
-    if (top + maxHeight > vh - MARGIN) top = Math.max(MARGIN, vh - MARGIN - maxHeight);
-    origin = 'top right';
+    const left = Math.max(MARGIN, Math.round(rect.right + GAP));
+    const availableW = Math.max(240, vw - left - MARGIN);
+    const width = Math.min(panelWidth, availableW);
+    const isLowerHalf = rect.top + rect.height / 2 > vh * 0.52;
+
+    if (isLowerHalf) {
+      const bottom = Math.max(MARGIN, Math.round(vh - rect.bottom));
+      const maxH = Math.max(220, Math.min(panelMaxHeight, vh - bottom - MARGIN));
+      return {
+        style: {
+          position: 'fixed',
+          top: 'auto',
+          bottom,
+          left,
+          right: 'auto',
+          width,
+          maxWidth: `calc(100vw - ${MARGIN * 2}px)`,
+          maxHeight: maxH,
+          transformOrigin: 'bottom left',
+          zIndex: 85,
+        },
+        ready: true,
+      };
+    }
+
+    const top = Math.max(MARGIN, Math.round(rect.top));
+    const maxH = Math.max(220, Math.min(panelMaxHeight, vh - top - MARGIN));
+    return {
+      style: {
+        position: 'fixed',
+        top,
+        bottom: 'auto',
+        left,
+        right: 'auto',
+        width,
+        maxWidth: `calc(100vw - ${MARGIN * 2}px)`,
+        maxHeight: maxH,
+        transformOrigin: 'top left',
+        zIndex: 85,
+      },
+      ready: true,
+    };
   }
+
+  if (dockPos === 'right') {
+    const right = Math.max(MARGIN, Math.round(vw - rect.left + GAP));
+    const availableW = Math.max(240, vw - right - MARGIN);
+    const width = Math.min(panelWidth, availableW);
+    const isLowerHalf = rect.top + rect.height / 2 > vh * 0.52;
+
+    if (isLowerHalf) {
+      const bottom = Math.max(MARGIN, Math.round(vh - rect.bottom));
+      const maxH = Math.max(220, Math.min(panelMaxHeight, vh - bottom - MARGIN));
+      return {
+        style: {
+          position: 'fixed',
+          top: 'auto',
+          bottom,
+          left: 'auto',
+          right,
+          width,
+          maxWidth: `calc(100vw - ${MARGIN * 2}px)`,
+          maxHeight: maxH,
+          transformOrigin: 'bottom right',
+          zIndex: 85,
+        },
+        ready: true,
+      };
+    }
+
+    const top = Math.max(MARGIN, Math.round(rect.top));
+    const maxH = Math.max(220, Math.min(panelMaxHeight, vh - top - MARGIN));
+    return {
+      style: {
+        position: 'fixed',
+        top,
+        bottom: 'auto',
+        left: 'auto',
+        right,
+        width,
+        maxWidth: `calc(100vw - ${MARGIN * 2}px)`,
+        maxHeight: maxH,
+        transformOrigin: 'top right',
+        zIndex: 85,
+      },
+      ready: true,
+    };
+  }
+
+  if (dockPos === 'bottom') {
+    const width = Math.min(panelWidth, vw - MARGIN * 2);
+    let left = Math.round(rect.right - width);
+    left = Math.max(MARGIN, Math.min(left, vw - MARGIN - width));
+    const bottom = Math.max(MARGIN, Math.round(vh - rect.top + GAP));
+    const maxH = Math.max(220, Math.min(panelMaxHeight, Math.round(rect.top - GAP - MARGIN)));
+
+    return {
+      style: {
+        position: 'fixed',
+        top: 'auto',
+        bottom,
+        left,
+        right: 'auto',
+        width,
+        maxWidth: `calc(100vw - ${MARGIN * 2}px)`,
+        maxHeight: maxH,
+        transformOrigin: 'bottom right',
+        zIndex: 85,
+      },
+      ready: true,
+    };
+  }
+
+  /* Default: top dock -> panel opens below the trigger */
+  const width = Math.min(panelWidth, vw - MARGIN * 2);
+  let left = Math.round(rect.right - width);
+  left = Math.max(MARGIN, Math.min(left, vw - MARGIN - width));
+  const top = Math.max(MARGIN, Math.round(rect.bottom + GAP));
+  const maxH = Math.max(220, Math.min(panelMaxHeight, Math.round(vh - top - MARGIN)));
 
   return {
     style: {
       position: 'fixed',
-      top: Math.round(top),
-      left: Math.round(left),
+      top,
+      bottom: 'auto',
+      left,
+      right: 'auto',
       width,
       maxWidth: `calc(100vw - ${MARGIN * 2}px)`,
-      maxHeight: Math.min(maxHeight, vh - MARGIN * 2),
-      transformOrigin: origin,
-      zIndex: 80,
+      maxHeight: maxH,
+      transformOrigin: 'top right',
+      zIndex: 85,
     },
     ready: true,
   };
 }
 
 /**
- * Hook: keeps a popover pinned & clamped while open (recomputes on resize/scroll).
+ * Hook: keeps a popover pinned & clamped while open (recomputes on resize/scroll/dock shift).
  */
 export function usePopoverPosition(
   isOpen: boolean,
@@ -103,9 +197,16 @@ export function usePopoverPosition(
     };
 
     update();
+    /* Recompute after dock transition frames */
+    const t1 = setTimeout(update, 60);
+    const t2 = setTimeout(update, 220);
+    const t3 = setTimeout(update, 440);
     window.addEventListener('resize', update);
     window.addEventListener('scroll', update, true);
     return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
       window.removeEventListener('resize', update);
       window.removeEventListener('scroll', update, true);
     };

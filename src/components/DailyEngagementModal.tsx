@@ -687,46 +687,53 @@ export const StreakFlameWidget: React.FC<{
   onClick: () => void;
   className?: string;
   compact?: boolean;
-}> = ({ streakCount, onClick, className = '', compact = false }) => {
+}> = ({ streakCount, onClick, className = '' }) => {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`ff-streak-widget group relative flex items-center gap-2 rounded-full liquid-glass border border-amber-400/40 hover:border-amber-300 bg-amber-500/10 hover:bg-amber-500/20 transition-all cursor-pointer shadow-[0_0_18px_rgba(245,158,11,0.25)] select-none overflow-visible ${
-        compact ? 'px-2 py-1' : 'px-3 py-1.5'
-      } ${className}`}
-      title="Chuỗi điểm danh • Nhấp để mở điểm danh & kho quà"
+      className={`ff-streak-widget ff-streak-red-aura group relative w-[53px] h-[53px] flex items-center justify-center rounded-full bg-gradient-to-br from-rose-950/90 via-red-950/85 to-[#160b0f]/95 border border-rose-500/45 hover:border-red-400 transition-all cursor-pointer select-none overflow-visible ${className}`}
+      title={`Chuỗi điểm danh: ${streakCount} ngày • Nhấp để mở điểm danh & kho quà`}
       aria-label="Chuỗi điểm danh hàng ngày"
     >
-      {/* Animated Aura Glow */}
-      <span className="absolute -inset-1 rounded-full ff-streak-aura pointer-events-none opacity-70 group-hover:opacity-100 transition-opacity" />
+      {/* Animated Crimson/Red Aura Glow */}
+      <span
+        className="absolute -inset-1.5 rounded-full ff-streak-aura pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity blur-md"
+        style={{
+          background:
+            'radial-gradient(circle, rgba(239,68,68,0.55) 0%, rgba(225,29,72,0.3) 55%, transparent 75%)',
+        }}
+      />
 
-      {/* Fiery Flame Icon with Multi-layer SVG */}
-      <div className="relative w-6 h-6 flex items-center justify-center shrink-0">
+      {/* Fiery Red/Crimson Flame Icon with Multi-layer SVG */}
+      <div className="relative w-7 h-7 flex items-center justify-center shrink-0 z-10">
         <svg
           viewBox="0 0 24 24"
-          className="w-5 h-5 text-orange-500 transition-transform duration-300 group-hover:scale-110 drop-shadow-[0_0_8px_#f97316] ff-flame-flicker"
+          className="w-6 h-6 text-red-500 transition-transform duration-300 group-hover:scale-110 drop-shadow-[0_0_10px_#ef4444] ff-flame-flicker"
           fill="currentColor"
         >
           <path d="M12 2C9.5 6.5 6 9 6 13.5C6 17 8.7 20 12 20C15.3 20 18 17 18 13.5C18 9 14.5 6.5 12 2Z" />
         </svg>
         <svg
           viewBox="0 0 24 24"
-          className="w-3.5 h-3.5 text-amber-300 absolute inset-0 m-auto animate-pulse"
+          className="w-4 h-4 text-orange-400 absolute inset-0 m-auto"
           fill="currentColor"
         >
           <path d="M12 6C10.5 9 8 10.5 8 13.5C8 15.5 9.8 17.5 12 17.5C14.2 17.5 16 15.5 16 13.5C16 10.5 13.5 9 12 6Z" />
         </svg>
+        <svg
+          viewBox="0 0 24 24"
+          className="w-2.5 h-2.5 text-amber-200 absolute inset-0 m-auto translate-y-0.5 animate-pulse"
+          fill="currentColor"
+        >
+          <path d="M12 9.5C11.1 11.2 9.8 12.2 9.8 14C9.8 15.2 10.8 16.4 12 16.4C13.2 16.4 14.2 15.2 14.2 14C14.2 12.2 12.9 11.2 12 9.5Z" />
+        </svg>
       </div>
 
-      <div className="flex flex-col items-start leading-none relative z-10">
-        <span className="text-[11px] font-extrabold ff-aurora-text font-mono tracking-wider">
-          {streakCount} NGÀY
-        </span>
-        {!compact && (
-          <span className="text-[8.5px] uppercase font-mono text-amber-200/70 tracking-tight">Streak</span>
-        )}
-      </div>
+      {/* Compact Streak Counter Badge on the corner */}
+      <span className="absolute -top-1 -right-1 z-20 min-w-[20px] h-5 px-1.5 rounded-full bg-gradient-to-r from-red-600 to-rose-500 border border-rose-200/40 text-[10px] font-extrabold font-mono text-white flex items-center justify-center shadow-[0_2px_10px_rgba(239,68,68,0.65)]">
+        {streakCount}
+      </span>
     </button>
   );
 };

@@ -65,6 +65,15 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     email?: string;
     level: number;
   } | null>(null);
+  const [authorAnchorPos, setAuthorAnchorPos] = useState<{ x: number; y: number }>({ x: 240, y: 180 });
+
+  useEffect(() => {
+    const onPointerDown = (e: PointerEvent) => {
+      setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('pointerdown', onPointerDown, { passive: true });
+    return () => window.removeEventListener('pointerdown', onPointerDown);
+  }, []);
 
   const [reportUser, setReportUser] = useState<{ id: string; name: string } | null>(null);
   const [reportReason, setReportReason] = useState<string>('Toxic / Gây war / Xúc phạm bạn học');
@@ -380,82 +389,99 @@ export const ChatDock: React.FC<ChatDockProps> = ({
       </div>
     </div>
 
-      {/* Author Mini-Profile Popover */}
+      {/* Compact Floating Author Context Popover */}
       {activeAuthorCard && (
         <div
           role="dialog"
-          aria-modal="true"
+          aria-modal="false"
           aria-label="Thông tin người dùng"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-up"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setActiveAuthorCard(null);
+          }}
+          className="fixed inset-0 z-50 bg-transparent"
         >
-          <div className="liquid-glass w-full max-w-sm rounded-3xl bg-[#0c1218]/95 border border-white/20 shadow-2xl p-5 relative">
+          <div
+            style={{
+              position: 'fixed',
+              left:
+                typeof window !== 'undefined'
+                  ? Math.max(12, Math.min(authorAnchorPos.x - 260, window.innerWidth - 264))
+                  : 24,
+              top:
+                typeof window !== 'undefined'
+                  ? Math.max(12, Math.min(authorAnchorPos.y - 20, window.innerHeight - 230))
+                  : 120,
+            }}
+            className="pc-12-shell w-[248px] rounded-2xl p-3.5 shadow-[0_18px_48px_rgba(0,0,0,0.85)] popover-morph-enter"
+          >
             <button
               type="button"
               onClick={() => setActiveAuthorCard(null)}
-              className="absolute top-4 right-4 p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer"
+              className="absolute top-2.5 right-2.5 p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer"
+              aria-label="Đóng"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
 
-            <div className="flex flex-col items-center text-center space-y-3">
-              <div className="relative">
+            <div className="flex items-center gap-2.5 pb-2.5 border-b border-white/10 pr-5">
+              <div className="relative shrink-0">
                 <img
                   src={activeAuthorCard.avatar}
                   alt={activeAuthorCard.name}
                   onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                  width={64}
-                  height={64}
-                  className="w-16 h-16 rounded-full object-cover border-2 border-amber-400/60 shadow-lg"
+                  width={42}
+                  height={42}
+                  className="w-10 h-10 rounded-full object-cover border border-amber-400/60 shadow-md"
                 />
                 <span className="absolute -bottom-1 -right-1">
-                  <TierBadge level={activeAuthorCard.level} size={22} showTooltip={false} />
+                  <TierBadge level={activeAuthorCard.level} size={16} showTooltip={false} />
                 </span>
               </div>
 
-              <div>
-                <h4 className="text-base font-bold text-white flex items-center justify-center gap-1.5">
-                  <span>{activeAuthorCard.name}</span>
-                  {isMasterAdmin(activeAuthorCard.email) && <AdminVerifiedBadge size={14} />}
+              <div className="min-w-0 flex-1">
+                <h4 className="text-xs font-bold text-white flex items-center gap-1 truncate">
+                  <span className="truncate">{activeAuthorCard.name}</span>
+                  {isMasterAdmin(activeAuthorCard.email) && <AdminVerifiedBadge size={12} />}
                 </h4>
-                <div className="flex items-center justify-center gap-2 mt-1">
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[10px] font-mono font-bold">
-                    Danh hiệu: {getTierForLevel(activeAuthorCard.level).name}
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[9.5px] font-mono font-bold">
+                    {getTierForLevel(activeAuthorCard.level).titleVi}
                   </span>
-                  <span className="text-xs text-neutral-400 font-mono">
+                  <span className="text-[10px] text-neutral-400 font-mono">
                     Lv.{activeAuthorCard.level}
                   </span>
                 </div>
               </div>
+            </div>
 
-              <div className="w-full pt-3 border-t border-white/10 flex flex-col gap-2">
-                {onOpenProfile && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const user = activeAuthorCard;
-                      setActiveAuthorCard(null);
-                      onOpenProfile(user);
-                    }}
-                    className="w-full py-2.5 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-98"
-                  >
-                    <UserIcon className="w-4 h-4 text-cyan-400" />
-                    <span>Trang cá nhân</span>
-                  </button>
-                )}
-
+            <div className="pt-2.5 flex flex-col gap-1.5">
+              {onOpenProfile && (
                 <button
                   type="button"
                   onClick={() => {
                     const user = activeAuthorCard;
                     setActiveAuthorCard(null);
-                    setReportUser({ id: user.id, name: user.name });
+                    onOpenProfile(user);
                   }}
-                  className="w-full py-2.5 px-3 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer active:scale-98"
+                  className="pc-12-btn w-full py-2 px-3 rounded-xl text-cyan-200 hover:text-white text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <Flag className="w-4 h-4 text-red-400" />
-                  <span>Tố cáo</span>
+                  <UserIcon className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Trang cá nhân</span>
                 </button>
-              </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  const user = activeAuthorCard;
+                  setActiveAuthorCard(null);
+                  setReportUser({ id: user.id, name: user.name });
+                }}
+                className="pc-12-btn w-full py-2 px-3 rounded-xl text-red-200 hover:text-red-100 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+              >
+                <Flag className="w-3.5 h-3.5 text-red-400" />
+                <span>Tố cáo</span>
+              </button>
             </div>
           </div>
         </div>
