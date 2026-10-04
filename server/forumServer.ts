@@ -3,6 +3,24 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
+import {
+  MASTER_ADMIN_EMAIL,
+  SlidingWindowRateLimiter,
+  authorizeRequest,
+  clientIpOf,
+  createSessionToken,
+  hashPassword,
+  isHashedPassword,
+  isMasterAdminEmail,
+  normalizeBounty,
+  randomId,
+  sanitizeUserUpdate,
+  solverAwardFor,
+  verifyPassword,
+  verifySessionToken,
+  type SessionClaims,
+} from './authGuard.ts';
+import { decideSocialAccess } from './socialAuth.ts';
 
 export interface UserRecord {
   id: string;
@@ -63,7 +81,10 @@ export function calculateLevelFromXP(xp: number): number {
 
 const DEFAULT_AVATAR = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%231a2332"/><circle cx="50" cy="38" r="20" fill="%234a5d78"/><path d="M20 90 Q50 65 80 90" fill="%234a5d78"/></svg>`;
 
-const dataDir = path.resolve(process.cwd(), 'data');
+/** Thư mục dữ liệu — đổi được qua `FFORUM_DATA_DIR` (hữu ích khi chạy test song song). */
+const dataDir = process.env.FFORUM_DATA_DIR
+  ? path.resolve(process.env.FFORUM_DATA_DIR)
+  : path.resolve(process.cwd(), 'data');
 const dataFilePath = path.join(dataDir, 'forum-data.json');
 
 let store: ForumDataStore = {
@@ -136,6 +157,9 @@ let store: ForumDataStore = {
 /** Miền email của lớp tài khoản mô phỏng đã bị xoá — chặn vĩnh viễn ở tầng server */
 const RETIRED_VIRTUAL_DOMAIN = '@sv.f-forum.vn';
 
+/** Email hợp lệ (kiểm tra thực dụng, không cần RFC 5322 đầy đủ). */
+const EMAIL_PATTERN = /^[^\s@,;:]+@[^\s@,;:.]+(\.[^\s@,;:.]+)+$/;
+
 /** Chỉ giữ tài khoản thật: bỏ bản ghi mô phỏng cũ và bản ghi hỏng */
 function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
   const out: Record<string, UserRecord> = {};
@@ -199,6 +223,51 @@ function persistStoreToDisk() {
 const wsClients = new Set<WebSocket>();
 const sseClients = new Set<ServerResponse>();
 
+/* -------------------------------------------------------------------------- */
+/* Phiên đăng nhập của từng kết nối WebSocket                                 */
+/* -------------------------------------------------------------------------- */
+/**
+ * Kết nối WS chỉ được đụng vào dữ liệu "nhạy cảm" sau khi gửi `AUTH` kèm token
+ * hợp lệ. Trước đây mọi client đều có quyền như admin.
+ */
+const wsSessions = new WeakMap<WebSocket, SessionClaims>();
+
+const sessionOf = (ws: WebSocket): SessionClaims | null => wsSessions.get(ws) || null;
+
+const isWsSuperAdmin = (ws: WebSocket): boolean =>
+  isMasterAdminEmail(sessionOf(ws)?.email);
+
+/* -------------------------------------------------------------------------- */
+/* Chặn brute-force trên các cổng đăng nhập                                   */
+/* -------------------------------------------------------------------------- */
+const AUTH_WINDOW_MS = 10 * 60 * 1000;
+const loginLimiter = new SlidingWindowRateLimiter(AUTH_WINDOW_MS, 12);
+const registerLimiter = new SlidingWindowRateLimiter(AUTH_WINDOW_MS, 30);
+const socialLimiter = new SlidingWindowRateLimiter(AUTH_WINDOW_MS, 30);
+const writeLimiter = new SlidingWindowRateLimiter(60 * 1000, 120);
+
+const startedAtMs = Date.now();
+
+/**
+ * Dời mật khẩu plaintext cũ sang scrypt. Chạy một lần lúc khởi động để
+ * `data/forum-data.json` không còn chứa mật khẩu đọc được bằng mắt thường.
+ */
+function migratePlaintextPasswords(): number {
+  let migrated = 0;
+  Object.keys(store.passwords).forEach((email) => {
+    const record = store.passwords[email];
+    if (typeof record === 'string' && record && !isHashedPassword(record)) {
+      store.passwords[email] = hashPassword(record);
+      migrated += 1;
+    }
+  });
+  if (migrated > 0) persistStoreToDisk();
+  return migrated;
+}
+
+/** Cấp token phiên cho một tài khoản (dùng chung register / login / social). */
+const issueTokenFor = (user: UserRecord): string => createSessionToken(user.email, user.role);
+
 export function broadcastServerEvent(type: string, payload: any) {
   const eventMessage = JSON.stringify({ type, payload, timestamp: Date.now() });
 
@@ -221,28 +290,64 @@ export function broadcastServerEvent(type: string, payload: any) {
   }
 }
 
+/** Giới hạn body JSON — quá cỡ thì từ chối thẳng, không nạp hết vào RAM. */
+const MAX_JSON_BODY_BYTES = 25 * 1024 * 1024;
+
+export class PayloadTooLargeError extends Error {
+  constructor() {
+    super('Payload too large');
+    this.name = 'PayloadTooLargeError';
+  }
+}
+
 function parseJsonBody(req: IncomingMessage): Promise<any> {
   return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', chunk => {
-      body += chunk;
-      if (body.length > 25 * 1024 * 1024) {
-        req.destroy();
-        reject(new Error('Payload too large'));
+    let received = 0;
+    const chunks: Buffer[] = [];
+    let settled = false;
+
+    const fail = (err: Error) => {
+      if (settled) return;
+      settled = true;
+      req.off('data', onData);
+      req.off('end', onEnd);
+      reject(err);
+    };
+
+    function onData(chunk: Buffer) {
+      received += chunk.length;
+      if (received > MAX_JSON_BODY_BYTES) {
+        /* Huỷ socket NGAY, không đọc tiếp phần còn lại của payload. */
+        fail(new PayloadTooLargeError());
+        try {
+          req.destroy();
+        } catch {
+          /* ignore */
+        }
+        return;
       }
-    });
-    req.on('end', () => {
+      chunks.push(chunk);
+    }
+
+    function onEnd() {
+      if (settled) return;
+      settled = true;
+      const body = Buffer.concat(chunks).toString('utf8');
       try {
         resolve(body ? JSON.parse(body) : {});
-      } catch (err) {
-        reject(err);
+      } catch {
+        reject(new SyntaxError('Invalid JSON body'));
       }
-    });
-    req.on('error', reject);
+    }
+
+    req.on('data', onData);
+    req.on('end', onEnd);
+    req.on('error', fail);
   });
 }
 
 function sendJson(res: ServerResponse, statusCode: number, data: any) {
+  if (res.writableEnded || res.destroyed) return;
   res.statusCode = statusCode;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -251,11 +356,50 @@ function sendJson(res: ServerResponse, statusCode: number, data: any) {
   res.end(JSON.stringify(data));
 }
 
+/** Bắt lỗi chung cho mọi endpoint: đúng mã, đúng thông điệp, không rò stack. */
+function handleApiError(res: ServerResponse, err: any) {
+  if (err instanceof PayloadTooLargeError) {
+    sendJson(res, 413, { success: false, message: 'Dữ liệu gửi lên quá lớn (tối đa 25MB).' });
+    return;
+  }
+  if (err instanceof SyntaxError) {
+    sendJson(res, 400, { success: false, message: 'Dữ liệu JSON không hợp lệ.' });
+    return;
+  }
+  console.error('[Forum Server] Request failed:', err);
+  sendJson(res, 500, { success: false, message: 'Máy chủ gặp sự cố, vui lòng thử lại.' });
+}
+
+/** Phản hồi 429 kèm thời gian chờ, để client biết khi nào được thử lại. */
+function sendRateLimited(res: ServerResponse, retryAfterMs: number, what: string) {
+  res.setHeader('Retry-After', String(Math.ceil(retryAfterMs / 1000)));
+  sendJson(res, 429, {
+    success: false,
+    message: `Quá nhiều lượt ${what}. Vui lòng thử lại sau ${Math.ceil(retryAfterMs / 60000)} phút.`,
+  });
+}
+
+/** Xác thực quản trị: token hợp lệ + email trong token là Super Admin. */
+function requireSuperAdmin(req: IncomingMessage, body: any): SessionClaims | null {
+  const claims = authorizeRequest(req, null, body?.adminToken || body?.token || null);
+  if (!claims) return null;
+  if (!isMasterAdminEmail(claims.email)) return null;
+  if (store.users[claims.email]?.role !== 'SUPER_ADMIN') return null;
+  return claims;
+}
+
+
 export function setupForumServer(httpServer: any, middlewares: any) {
   loadStoreFromDisk();
 
   delete store.users['hocsinhmoi@fpt.edu.vn'];
   delete store.passwords['hocsinhmoi@fpt.edu.vn'];
+
+  /* Mật khẩu plaintext còn sót từ bản cũ → băm lại trước khi mở cổng. */
+  const migrated = migratePlaintextPasswords();
+  if (migrated > 0) {
+    console.log(`[Forum Server] Đã băm lại ${migrated} mật khẩu plaintext (scrypt).`);
+  }
 
   if (httpServer) {
     const wss = new WebSocketServer({ noServer: true });
@@ -279,9 +423,29 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           const { type, payload } = JSON.parse(messageRaw.toString());
           if (!type) return;
 
+          const session = sessionOf(ws);
+
           switch (type) {
             case 'PING': {
               ws.send(JSON.stringify({ type: 'PONG' }));
+              break;
+            }
+            case 'AUTH': {
+              /* Gắn danh tính cho kết nối này. Không có bước này thì mọi thao tác
+                 nhạy cảm bên dưới đều bị từ chối. */
+              const token = typeof payload === 'string' ? payload : payload?.token;
+              const claims = verifySessionToken(token);
+              /* Không tin `role` trong token một cách mù quáng: đối chiếu bản ghi
+                 thật trên server để token cũ không giữ được quyền đã bị thu hồi. */
+              const account = claims ? store.users[claims.email] : undefined;
+              if (!claims || !account) {
+                wsSessions.delete(ws);
+                ws.send(JSON.stringify({ type: 'AUTH_ERROR', payload: { message: 'Phiên đăng nhập không hợp lệ.' } }));
+                break;
+              }
+              const bound: SessionClaims = { ...claims, role: account.role || 'STUDENT' };
+              wsSessions.set(ws, bound);
+              ws.send(JSON.stringify({ type: 'AUTH_OK', payload: { email: bound.email, role: bound.role } }));
               break;
             }
             case 'NEW_CHAT_MESSAGE': {
@@ -302,14 +466,9 @@ export function setupForumServer(httpServer: any, middlewares: any) {
             }
             case 'NEW_QUESTION': {
               if (payload && payload.id) {
+                /* Không trùng id → không thể phát lại một câu hỏi để nhân đôi. */
+                if (store.questions.some(q => q.id === payload.id)) break;
                 store.questions.unshift(payload);
-                const user = Object.values(store.users).find(u => u.id === payload.authorId);
-                if (user) {
-                  user.xp += 50;
-                  user.fPoints = (user.fPoints ?? user.xp) + 50;
-                  user.level = calculateLevelFromXP(user.xp);
-                  broadcastServerEvent('SYNC_USER', user);
-                }
                 persistStoreToDisk();
                 broadcastServerEvent('NEW_QUESTION', payload);
               }
@@ -317,14 +476,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
             }
             case 'NEW_SOLUTION': {
               if (payload && payload.id) {
+                if (store.solutions.some(s => s.id === payload.id)) break;
                 store.solutions.push(payload);
-                const user = Object.values(store.users).find(u => u.id === payload.authorId);
-                if (user) {
-                  user.xp += 25;
-                  user.fPoints = (user.fPoints ?? user.xp) + 25;
-                  user.level = calculateLevelFromXP(user.xp);
-                  broadcastServerEvent('SYNC_USER', user);
-                }
                 persistStoreToDisk();
                 broadcastServerEvent('NEW_SOLUTION', payload);
               }
@@ -332,20 +485,43 @@ export function setupForumServer(httpServer: any, middlewares: any) {
             }
             case 'MARK_BEST_SOLUTION': {
               const { questionId, solutionId } = payload || {};
+              if (!questionId || !solutionId) break;
+
+              /* Phải đăng nhập, và phải là tác giả câu hỏi (hoặc Super Admin).
+                 Đường HTTP đã kiểm tra điều này từ trước; đường WS thì chưa. */
+              const targetQuestion = store.questions.find(q => q.id === questionId);
+              if (!targetQuestion) break;
+              const isOwner = Boolean(session && targetQuestion.authorEmail &&
+                String(targetQuestion.authorEmail).toLowerCase() === session.email);
+              if (!session || (!isOwner && !isWsSuperAdmin(ws))) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
+              }
+              const targetSolution = store.solutions.find(s => s.id === solutionId);
+              if (!targetSolution || targetSolution.questionId !== questionId) break;
+
+              /* Idempotent: chọn lại đúng đáp án cũ không được cộng thưởng lần nữa. */
+              if (targetQuestion.bestSolutionId === solutionId) break;
+
+              const previousBestId = targetQuestion.bestSolutionId;
               store.questions = store.questions.map(q =>
                 q.id === questionId ? { ...q, isSolved: true, bestSolutionId: solutionId } : q
               );
-              const sol = store.solutions.find(s => s.id === solutionId);
-              if (sol) {
-                sol.isBest = true;
-                sol.upvotes = (sol.upvotes || 0) + 5;
-                if (sol.authorEmail && store.users[sol.authorEmail.toLowerCase()]) {
-                  const solver = store.users[sol.authorEmail.toLowerCase()];
-                  solver.xp += 100;
-                  solver.fPoints = (solver.fPoints ?? solver.xp) + 100;
-                  solver.level = calculateLevelFromXP(solver.xp);
-                  broadcastServerEvent('SYNC_USER', solver);
-                }
+              store.solutions = store.solutions.map(s => {
+                if (s.id === solutionId) return { ...s, isBest: true, upvotes: (s.upvotes || 0) + 5 };
+                if (s.id === previousBestId) return { ...s, isBest: false };
+                return s;
+              });
+
+              const solverEmail = String(targetSolution.authorEmail || '').toLowerCase();
+              const solver = solverEmail ? store.users[solverEmail] : undefined;
+              if (solver) {
+                const award = solverAwardFor(targetQuestion.bountyCoin ?? 20);
+                solver.coin = (solver.coin ?? 100) + award;
+                solver.xp += award;
+                solver.fPoints = (solver.fPoints ?? solver.xp) + award;
+                solver.level = calculateLevelFromXP(solver.xp);
+                broadcastServerEvent('SYNC_USER', solver);
               }
               persistStoreToDisk();
               broadcastServerEvent('MARK_BEST_SOLUTION', payload);
@@ -353,6 +529,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
             }
             case 'NEW_CLUB': {
               if (payload && payload.id) {
+                if (store.clubs.some(c => c.id === payload.id)) break;
                 store.clubs.unshift(payload);
                 persistStoreToDisk();
                 broadcastServerEvent('NEW_CLUB', payload);
@@ -360,6 +537,10 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               break;
             }
             case 'APPROVE_CLUB': {
+              if (!isWsSuperAdmin(ws)) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
+              }
               const clubId = payload;
               store.clubs = store.clubs.map(c => (c.id === clubId ? { ...c, status: 'APPROVED' } : c));
               const club = store.clubs.find(c => c.id === clubId);
@@ -379,6 +560,10 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               break;
             }
             case 'REJECT_CLUB': {
+              if (!isWsSuperAdmin(ws)) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
+              }
               const { clubId, reason } = payload || {};
               store.clubs = store.clubs.map(c =>
                 c.id === clubId ? { ...c, status: 'REJECTED', rejectReason: reason } : c
@@ -389,6 +574,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
             }
             case 'NEW_CLUB_POST': {
               if (payload && payload.id) {
+                if (store.clubPosts.some(p => p.id === payload.id)) break;
                 store.clubPosts.unshift(payload);
                 persistStoreToDisk();
                 broadcastServerEvent('NEW_CLUB_POST', payload);
@@ -396,56 +582,89 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               break;
             }
             case 'SYNC_USER': {
-              if (payload && payload.email) {
-                store.users[payload.email.toLowerCase()] = payload;
-                persistStoreToDisk();
-                broadcastServerEvent('SYNC_USER', payload);
+              /* Chỉ chủ tài khoản mới được sửa hồ sơ của chính mình, và KHÔNG
+                 được đụng tới `role` / `id` / `email` — server sở hữu ba trường đó. */
+              const email = typeof payload?.email === 'string' ? payload.email.trim().toLowerCase() : '';
+              if (!session || !email || session.email !== email) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
               }
+              if (!store.users[email]) break;
+              const patch = sanitizeUserUpdate(payload);
+              const merged = { ...store.users[email], ...patch };
+              merged.level = calculateLevelFromXP(merged.xp ?? 0);
+              store.users[email] = merged;
+              persistStoreToDisk();
+              broadcastServerEvent('SYNC_USER', merged);
               break;
             }
             case 'DELETE_QUESTION': {
               const { questionId } = payload || {};
-              if (questionId) {
-                store.questions = store.questions.filter(q => q.id !== questionId);
-                store.solutions = store.solutions.filter(s => s.questionId !== questionId);
-                persistStoreToDisk();
-                broadcastServerEvent('DELETE_QUESTION', { questionId });
+              if (!questionId) break;
+              const owned = store.questions.find(q => q.id === questionId);
+              const mayDelete = isWsSuperAdmin(ws) ||
+                Boolean(session && owned && owned.authorEmail &&
+                  String(owned.authorEmail).toLowerCase() === session.email);
+              if (!mayDelete) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
               }
+              store.questions = store.questions.filter(q => q.id !== questionId);
+              store.solutions = store.solutions.filter(s => s.questionId !== questionId);
+              persistStoreToDisk();
+              broadcastServerEvent('DELETE_QUESTION', { questionId });
               break;
             }
             case 'EDIT_QUESTION': {
               const { questionId, updates } = payload || {};
-              if (questionId && updates) {
-                store.questions = store.questions.map(q =>
-                  q.id === questionId ? { ...q, ...updates } : q
-                );
-                persistStoreToDisk();
-                broadcastServerEvent('EDIT_QUESTION', { questionId, updates });
+              if (!questionId || !updates) break;
+              if (!isWsSuperAdmin(ws)) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
               }
+              store.questions = store.questions.map(q =>
+                q.id === questionId ? { ...q, ...updates } : q
+              );
+              persistStoreToDisk();
+              broadcastServerEvent('EDIT_QUESTION', { questionId, updates });
               break;
             }
             case 'DELETE_SOLUTION': {
               const { solutionId } = payload || {};
-              if (solutionId) {
-                store.solutions = store.solutions.filter(s => s.id !== solutionId);
-                store.questions = store.questions.map(q =>
-                  q.bestSolutionId === solutionId ? { ...q, isSolved: false, bestSolutionId: undefined } : q
-                );
-                persistStoreToDisk();
-                broadcastServerEvent('DELETE_SOLUTION', { solutionId });
+              if (!solutionId) break;
+              const ownedSolution = store.solutions.find(s => s.id === solutionId);
+              const mayDeleteSolution = isWsSuperAdmin(ws) ||
+                Boolean(session && ownedSolution && ownedSolution.authorEmail &&
+                  String(ownedSolution.authorEmail).toLowerCase() === session.email);
+              if (!mayDeleteSolution) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
               }
+              store.solutions = store.solutions.filter(s => s.id !== solutionId);
+              store.questions = store.questions.map(q =>
+                q.bestSolutionId === solutionId ? { ...q, isSolved: false, bestSolutionId: undefined } : q
+              );
+              persistStoreToDisk();
+              broadcastServerEvent('DELETE_SOLUTION', { solutionId });
               break;
             }
             case 'DELETE_CHAT_MESSAGE': {
               const { messageId } = payload || {};
-              if (messageId) {
-                store.chatMessages = store.chatMessages.filter(m => m.id !== messageId);
-                persistStoreToDisk();
-                broadcastServerEvent('DELETE_CHAT_MESSAGE', { messageId });
+              if (!messageId) break;
+              if (!isWsSuperAdmin(ws)) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
               }
+              store.chatMessages = store.chatMessages.filter(m => m.id !== messageId);
+              persistStoreToDisk();
+              broadcastServerEvent('DELETE_CHAT_MESSAGE', { messageId });
               break;
             }
             case 'SYNC_ABOUT': {
+              if (!isWsSuperAdmin(ws)) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
+              }
               if (payload) {
                 store.about = payload;
                 persistStoreToDisk();
@@ -510,15 +729,19 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
         'Access-Control-Allow-Origin': '*',
+        'X-Accel-Buffering': 'no',
       });
       res.write(`data: ${JSON.stringify({ type: 'CONNECTED', clientCount: sseClients.size + 1 })}\n\n`);
       sseClients.add(res);
 
-      req.on('close', () => {
-        sseClients.delete(res);
-      });
-
+      /* Trước đây interval nhịp tim KHÔNG bị dọn khi client ngắt → mỗi lần
+         reload trang lại rò một timer vĩnh viễn. Giờ dọn ở cả hai ngả. */
       const heartbeat = setInterval(() => {
+        if (res.writableEnded || res.destroyed) {
+          clearInterval(heartbeat);
+          sseClients.delete(res);
+          return;
+        }
         try {
           res.write(':keepalive\n\n');
         } catch {
@@ -526,7 +749,41 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           sseClients.delete(res);
         }
       }, 20000);
+      heartbeat.unref?.();
 
+      const cleanup = () => {
+        clearInterval(heartbeat);
+        sseClients.delete(res);
+      };
+
+      req.on('close', cleanup);
+      req.on('error', cleanup);
+      res.on('close', cleanup);
+
+      return;
+    }
+
+    /** Trạng thái máy chủ — dùng cho trang vận hành và cho test smoke. */
+    if (method === 'GET' && url.startsWith('/api/health')) {
+      sendJson(res, 200, {
+        success: true,
+        status: 'ok',
+        uptimeSeconds: Math.round((Date.now() - startedAtMs) / 1000),
+        counts: {
+          users: Object.keys(store.users).length,
+          clubs: store.clubs.length,
+          clubPosts: store.clubPosts.length,
+          questions: store.questions.length,
+          solutions: store.solutions.length,
+          chatMessages: store.chatMessages.length,
+          feedbacks: store.feedbacks.length,
+          reports: store.reports?.length ?? 0,
+        },
+        connections: {
+          websocket: wsClients.size,
+          sse: sseClients.size,
+        },
+      });
       return;
     }
 
@@ -599,19 +856,60 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/questions') {
       try {
         const body = await parseJsonBody(req);
-        const bountyCoin = body.bountyCoin ? Math.max(10, Math.min(100, Number(body.bountyCoin) || 20)) : 20;
+
+        const title = String(body.title || '').trim();
+        const content = String(body.content || '').trim();
+        if (!title || !content) {
+          sendJson(res, 400, { success: false, message: 'Tiêu đề và nội dung câu hỏi không được để trống!' });
+          return;
+        }
+
+        const authorEmail = String(body.authorEmail || '').trim().toLowerCase();
+        const author = authorEmail ? store.users[authorEmail] : undefined;
+        /* Treo thưởng là tiêu tiền thật → chỉ tài khoản đã đăng nhập và đủ số dư
+           mới được đặt. Khách ẩn danh nhận bountyCoin = 0 thay vì thưởng miễn phí. */
+        const wantedBounty = normalizeBounty(body.bountyCoin);
+        let bountyCoin = author ? wantedBounty : 0;
+
+        if (author) {
+          const claims = authorizeRequest(req, authorEmail, body.token);
+          if (!claims) {
+            sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập lại để đặt câu hỏi!' });
+            return;
+          }
+          const balance = author.coin ?? 100;
+          if (balance < bountyCoin) {
+            sendJson(res, 402, {
+              success: false,
+              message: `Số dư không đủ để treo thưởng ${bountyCoin} Coin. Hiện có ${balance} Coin.`,
+            });
+            return;
+          }
+        }
+
+        const throttle = writeLimiter.check(`question:${clientIpOf(req)}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'đặt câu hỏi');
+          return;
+        }
+
         const newQuestion = {
-          id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          title: body.title,
+          id: randomId('q'),
+          title: title.slice(0, 200),
           subject: body.subject || 'toan',
-          content: body.content,
+          content: content.slice(0, 20000),
           authorId: body.authorId,
           authorName: body.authorName,
+          /* Trước đây authorEmail bị bỏ rơi → server không biết câu hỏi của ai
+             và không thể kiểm tra quyền "chọn đáp án chuẩn". */
+          authorEmail: authorEmail || undefined,
+          authorLevel: body.authorLevel ?? author?.level ?? 1,
           authorAvatar: body.authorAvatar || DEFAULT_AVATAR,
           isAnonymous: Boolean(body.isAnonymous),
           anonymousAlias: body.anonymousAlias,
           anonymousMask: body.anonymousMask,
           createdAt: 'Vừa xong',
+          createdAtMs: Date.now(),
           isSolved: false,
           views: 1,
           bountyCoin,
@@ -620,20 +918,19 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
         store.questions.unshift(newQuestion);
 
-        if (body.authorEmail && store.users[body.authorEmail.toLowerCase()]) {
-          const user = store.users[body.authorEmail.toLowerCase()];
-          user.coin = Math.max(0, (user.coin ?? 100) - bountyCoin);
-          user.xp += 50;
-          user.fPoints = (user.fPoints ?? user.xp) + 50;
-          user.level = calculateLevelFromXP(user.xp);
-          broadcastServerEvent('SYNC_USER', user);
+        if (author) {
+          author.coin = Math.max(0, (author.coin ?? 100) - bountyCoin);
+          author.xp = (author.xp ?? 0) + 50;
+          author.fPoints = (author.fPoints ?? author.xp) + 50;
+          author.level = calculateLevelFromXP(author.xp);
+          broadcastServerEvent('SYNC_USER', author);
         }
 
         persistStoreToDisk();
         broadcastServerEvent('NEW_QUESTION', newQuestion);
         sendJson(res, 200, { success: true, question: newQuestion });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        handleApiError(res, err);
       }
       return;
     }
@@ -641,16 +938,46 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/solutions') {
       try {
         const body = await parseJsonBody(req);
+
+        const questionId = String(body.questionId || '').trim();
+        const content = String(body.content || '').trim();
+        if (!questionId || !content) {
+          sendJson(res, 400, { success: false, message: 'Nội dung lời giải không được để trống!' });
+          return;
+        }
+        /* Trả lời một câu hỏi không tồn tại chỉ làm rác kho dữ liệu. */
+        if (!store.questions.some(q => q.id === questionId)) {
+          sendJson(res, 404, { success: false, message: 'Câu hỏi này không còn tồn tại.' });
+          return;
+        }
+
+        const authorEmail = String(body.authorEmail || '').trim().toLowerCase();
+        const author = authorEmail ? store.users[authorEmail] : undefined;
+        if (author) {
+          const claims = authorizeRequest(req, authorEmail, body.token);
+          if (!claims) {
+            sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập lại để gửi lời giải!' });
+            return;
+          }
+        }
+
+        const throttle = writeLimiter.check(`solution:${clientIpOf(req)}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'gửi lời giải');
+          return;
+        }
+
         const newSolution = {
-          id: `sol-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          questionId: body.questionId,
+          id: randomId('sol'),
+          questionId,
           authorId: body.authorId,
           authorName: body.authorName,
-          authorEmail: body.authorEmail,
+          authorEmail: authorEmail || undefined,
           authorAvatar: body.authorAvatar || DEFAULT_AVATAR,
-          authorLevel: body.authorLevel || 1,
-          content: body.content,
+          authorLevel: body.authorLevel || author?.level || 1,
+          content: content.slice(0, 20000),
           createdAt: 'Vừa xong',
+          createdAtMs: Date.now(),
           isBest: false,
           upvotes: 1,
           imageUrl: body.imageUrl || undefined,
@@ -658,19 +985,18 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
         store.solutions.push(newSolution);
 
-        if (body.authorEmail && store.users[body.authorEmail.toLowerCase()]) {
-          const user = store.users[body.authorEmail.toLowerCase()];
-          user.xp += 25;
-          user.fPoints = (user.fPoints ?? user.xp) + 25;
-          user.level = calculateLevelFromXP(user.xp);
-          broadcastServerEvent('SYNC_USER', user);
+        if (author) {
+          author.xp = (author.xp ?? 0) + 25;
+          author.fPoints = (author.fPoints ?? author.xp) + 25;
+          author.level = calculateLevelFromXP(author.xp);
+          broadcastServerEvent('SYNC_USER', author);
         }
 
         persistStoreToDisk();
         broadcastServerEvent('NEW_SOLUTION', newSolution);
         sendJson(res, 200, { success: true, solution: newSolution });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        handleApiError(res, err);
       }
       return;
     }
@@ -680,17 +1006,35 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const body = await parseJsonBody(req);
         const { questionId, solutionId } = body;
 
-        const isSuperAdmin = (body.currentUserEmail || '').trim().toLowerCase() === 'anhtuantran0512@gmail.com';
         const targetQ = store.questions.find(q => q.id === questionId);
-        const isAuthor = Boolean(targetQ && body.currentUserId && targetQ.authorId === body.currentUserId);
+        if (!targetQ) {
+          sendJson(res, 404, { success: false, message: 'Câu hỏi này không còn tồn tại.' });
+          return;
+        }
 
-        if (!isSuperAdmin && !isAuthor) {
+        /* CŨ: tin `currentUserId` / `currentUserEmail` trong body → ai biết id
+           tác giả là giả được. MỚI: phải có token hợp lệ của chính tài khoản đó. */
+        const claims = authorizeRequest(req, null, body.token);
+        const questionOwnerEmail = String((targetQ as any).authorEmail || '').toLowerCase();
+        const isAuthor = Boolean(claims && questionOwnerEmail && claims.email === questionOwnerEmail);
+        const isSuperAdmin = Boolean(claims && isMasterAdminEmail(claims.email));
+
+        if (!claims || (!isSuperAdmin && !isAuthor)) {
           sendJson(res, 403, {
             success: false,
             message: 'Chỉ tác giả câu hỏi hoặc Super Admin mới có quyền xác nhận đáp án chuẩn!',
           });
           return;
         }
+
+        const targetSolution = store.solutions.find(s => s.id === solutionId);
+        if (!targetSolution || targetSolution.questionId !== questionId) {
+          sendJson(res, 404, { success: false, message: 'Lời giải không thuộc câu hỏi này.' });
+          return;
+        }
+
+        /* Chọn lại đúng đáp án cũ thì không phát thưởng lần thứ hai. */
+        const alreadyBest = (targetQ as any).bestSolutionId === solutionId;
 
         store.questions = store.questions.map(q =>
           q.id === questionId ? { ...q, isSolved: true, bestSolutionId: solutionId } : q
@@ -699,7 +1043,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         store.solutions = store.solutions.map(s => {
           if (s.questionId === questionId) {
             if (s.id === solutionId) {
-              return { ...s, isBest: true, upvotes: (s.upvotes || 0) + 5 };
+              return alreadyBest ? { ...s, isBest: true } : { ...s, isBest: true, upvotes: (s.upvotes || 0) + 5 };
             }
             return { ...s, isBest: false };
           }
@@ -707,10 +1051,10 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         });
 
         const sol = store.solutions.find(s => s.id === solutionId);
-        if (sol && sol.authorEmail && store.users[sol.authorEmail.toLowerCase()]) {
+        if (!alreadyBest && sol && sol.authorEmail && store.users[sol.authorEmail.toLowerCase()]) {
           const solver = store.users[sol.authorEmail.toLowerCase()];
-          const bounty = (targetQ && (targetQ as any).bountyCoin) ? (targetQ as any).bountyCoin : 20;
-          const solverAward = Math.floor(bounty * 0.5) + 100;
+          const bounty = (targetQ as any).bountyCoin || 20;
+          const solverAward = solverAwardFor(bounty);
           solver.coin = (solver.coin ?? 100) + solverAward;
           solver.xp += solverAward;
           solver.fPoints = (solver.fPoints ?? solver.xp) + solverAward;
@@ -738,12 +1082,21 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           sendJson(res, 400, { success: false, message: 'Vui lòng nhập họ và tên của bạn!' });
           return;
         }
-        if (!email || !email.includes('@')) {
+        if (!name || name.length > 80) {
+          sendJson(res, 400, { success: false, message: 'Họ tên tối đa 80 ký tự!' });
+          return;
+        }
+        if (!EMAIL_PATTERN.test(email)) {
           sendJson(res, 400, { success: false, message: 'Vui lòng nhập địa chỉ email hợp lệ!' });
           return;
         }
         if (!password || password.length < 6) {
           sendJson(res, 400, { success: false, message: 'Mật khẩu phải có ít nhất 6 ký tự!' });
+          return;
+        }
+        /* Mật khẩu quá dài khiến scrypt tốn tài nguyên vô ích. */
+        if (password.length > 200) {
+          sendJson(res, 400, { success: false, message: 'Mật khẩu tối đa 200 ký tự!' });
           return;
         }
 
@@ -752,12 +1105,18 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
+        const throttle = registerLimiter.check(`register:${clientIpOf(req)}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'đăng ký');
+          return;
+        }
+
         if (store.users[email]) {
           sendJson(res, 400, { success: false, message: 'Email này đã được đăng ký. Vui lòng đăng nhập!' });
           return;
         }
 
-        const isSuperAdmin = email === 'anhtuantran0512@gmail.com';
+        const isSuperAdmin = isMasterAdminEmail(email);
         const newUser: UserRecord = isSuperAdmin
           ? {
               id: 'user-admin',
@@ -777,7 +1136,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               scopedClubIds: [],
             }
           : {
-              id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              id: randomId('user'),
               name,
               email,
               avatar: DEFAULT_AVATAR,
@@ -797,15 +1156,15 @@ export function setupForumServer(httpServer: any, middlewares: any) {
             };
 
         store.users[email] = newUser;
-        store.passwords[email] = password;
+        /* Không bao giờ lưu mật khẩu thô — chỉ giữ bản băm scrypt. */
+        store.passwords[email] = hashPassword(password);
         persistStoreToDisk();
 
         broadcastServerEvent('SYNC_USER', newUser);
 
-        const token = `f_token_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-        sendJson(res, 200, { success: true, user: newUser, token });
+        sendJson(res, 200, { success: true, user: newUser, token: issueTokenFor(newUser) });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        handleApiError(res, err);
       }
       return;
     }
@@ -821,6 +1180,13 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
+        const ip = clientIpOf(req);
+        const throttle = loginLimiter.check(`login:${ip}:${email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'đăng nhập');
+          return;
+        }
+
         const user = store.users[email];
         if (!user) {
           sendJson(res, 400, {
@@ -831,15 +1197,35 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         }
 
         const registeredPassword = store.passwords[email];
-        if (registeredPassword && registeredPassword !== password) {
+
+        /* LỖ HỔNG CŨ: `if (registeredPassword && registeredPassword !== password)`
+           — tài khoản tạo qua Google/Facebook không có bản ghi mật khẩu nên điều
+           kiện bị bỏ qua và MỌI mật khẩu đều được chấp nhận (chiếm tài khoản).
+           Giờ: không có mật khẩu = không đăng nhập được bằng form này. */
+        if (!registeredPassword) {
+          sendJson(res, 400, {
+            success: false,
+            message: 'Tài khoản này đăng nhập bằng Google/Facebook. Vui lòng chọn nút đăng nhập mạng xã hội!',
+          });
+          return;
+        }
+
+        const check = verifyPassword(password, registeredPassword);
+        if (!check.ok) {
           sendJson(res, 400, { success: false, message: 'Mật khẩu không chính xác. Vui lòng thử lại!' });
           return;
         }
 
-        const token = `f_token_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-        sendJson(res, 200, { success: true, user, token });
+        /* Mật khẩu plaintext cũ → băm lại ngay lần đăng nhập thành công này. */
+        if (check.needsRehash) {
+          store.passwords[email] = hashPassword(password);
+          persistStoreToDisk();
+        }
+
+        loginLimiter.reset(`login:${ip}:${email}`);
+        sendJson(res, 200, { success: true, user, token: issueTokenFor(user) });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        handleApiError(res, err);
       }
       return;
     }
@@ -847,12 +1233,13 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/auth/social') {
       try {
         const body = await parseJsonBody(req);
-        const provider = body.provider || 'google';
+        const provider: 'google' | 'facebook' = body.provider === 'facebook' ? 'facebook' : 'google';
         const name = (body.name || '').trim();
         const email = (body.email || '').trim().toLowerCase();
         const avatar = (body.avatar || '').trim();
+        const accessToken = typeof body.accessToken === 'string' ? body.accessToken : null;
 
-        if (!email || !email.includes('@')) {
+        if (!EMAIL_PATTERN.test(email)) {
           sendJson(res, 400, { success: false, message: 'Địa chỉ email mạng xã hội không hợp lệ!' });
           return;
         }
@@ -861,14 +1248,29 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
+        const throttle = socialLimiter.check(`social:${clientIpOf(req)}:${email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'đăng nhập mạng xã hội');
+          return;
+        }
+
+        /* Email là do client tự khai → phải kiểm chứng với nhà cung cấp, và
+           quyền SUPER_ADMIN thì KHÔNG BAO GIỜ được cấp từ một lời khai. */
+        const decision = await decideSocialAccess({ provider, accessToken, claimedEmail: email });
+        if (!decision.allowed) {
+          console.warn(`[Forum Server] Chặn đăng nhập social ${email}: ${decision.message}`);
+          sendJson(res, decision.status || 403, { success: false, message: decision.message });
+          return;
+        }
+
         let user = store.users[email];
         if (!user) {
-          const isSuperAdmin = email === 'anhtuantran0512@gmail.com';
+          const isSuperAdmin = isMasterAdminEmail(email);
           user = isSuperAdmin
             ? {
                 id: 'user-admin',
                 name: name || 'Trần Văn Anh Tuấn',
-                email: 'anhtuantran0512@gmail.com',
+                email: MASTER_ADMIN_EMAIL,
                 avatar: avatar || 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c.png',
                 role: 'SUPER_ADMIN',
                 level: 150,
@@ -883,7 +1285,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 scopedClubIds: [],
               }
             : {
-                id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                id: randomId('user'),
                 name: name || (provider === 'google' ? 'Google User' : 'Facebook User'),
                 email,
                 avatar: avatar || DEFAULT_AVATAR,
@@ -907,22 +1309,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           broadcastServerEvent('SYNC_USER', user);
         } else {
           let updated = false;
-          const isSuperAdmin = email === 'anhtuantran0512@gmail.com';
-          if (isSuperAdmin) {
-            if (user.role !== 'SUPER_ADMIN') {
-              user.role = 'SUPER_ADMIN';
-              updated = true;
-            }
-            if (user.level !== 150) {
-              user.level = 150;
-              updated = true;
-            }
-            if (user.xp < 45000) {
-              user.xp = 45000;
-              user.fPoints = 45000;
-              updated = true;
-            }
-          }
           if (avatar && (user.avatar === DEFAULT_AVATAR || !user.avatar)) {
             user.avatar = avatar;
             updated = true;
@@ -937,10 +1323,9 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           }
         }
 
-        const token = `f_token_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-        sendJson(res, 200, { success: true, user, token });
+        sendJson(res, 200, { success: true, user, token: issueTokenFor(user) });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        handleApiError(res, err);
       }
       return;
     }
@@ -1038,16 +1423,34 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       try {
         const body = await parseJsonBody(req);
         const email = (body.email || '').trim().toLowerCase();
-        if (email && store.users[email] && body.updates) {
-          store.users[email] = { ...store.users[email], ...body.updates };
-          persistStoreToDisk();
-          broadcastServerEvent('SYNC_USER', store.users[email]);
-          sendJson(res, 200, { success: true, user: store.users[email] });
+
+        if (!email || !store.users[email]) {
+          sendJson(res, 400, { success: false, message: 'Người dùng không tồn tại' });
           return;
         }
-        sendJson(res, 400, { success: false, message: 'Người dùng không tồn tại' });
+
+        /* Phải là CHÍNH CHỦ (hoặc Super Admin) mới được sửa bản ghi này. */
+        const claims = authorizeRequest(req, null, body.token);
+        if (!claims || (claims.email !== email && !isMasterAdminEmail(claims.email))) {
+          sendJson(res, 401, {
+            success: false,
+            message: 'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại!',
+          });
+          return;
+        }
+
+        /* Bỏ `role` / `id` / `email` khỏi payload, kẹp số về khoảng hợp lý —
+           đây chính là chỗ trước kia cho phép tự phong SUPER_ADMIN. */
+        const patch = sanitizeUserUpdate(body.updates);
+        const merged = { ...store.users[email], ...patch };
+        merged.level = calculateLevelFromXP(merged.xp ?? 0);
+
+        store.users[email] = merged;
+        persistStoreToDisk();
+        broadcastServerEvent('SYNC_USER', merged);
+        sendJson(res, 200, { success: true, user: merged });
       } catch (err: any) {
-        sendJson(res, 500, { success: false, message: err.message });
+        handleApiError(res, err);
       }
       return;
     }
@@ -1064,8 +1467,9 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/admin/about') {
       try {
         const body = await parseJsonBody(req);
-        const adminEmail = (body.adminEmail || '').trim().toLowerCase();
-        if (adminEmail !== 'anhtuantran0512@gmail.com') {
+        /* `adminEmail` trong body là do client tự khai — phải kèm token hợp lệ
+           của đúng tài khoản Super Admin, nếu không ai cũng giả được admin. */
+        if (!requireSuperAdmin(req, body)) {
           sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới có quyền cập nhật Khu Vinh Danh!' });
           return;
         }
@@ -1087,8 +1491,9 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/questions/delete') {
       try {
         const body = await parseJsonBody(req);
-        const adminEmail = (body.adminEmail || '').trim().toLowerCase();
-        if (adminEmail !== 'anhtuantran0512@gmail.com') {
+        /* `adminEmail` trong body là do client tự khai — phải kèm token hợp lệ
+           của đúng tài khoản Super Admin, nếu không ai cũng giả được admin. */
+        if (!requireSuperAdmin(req, body)) {
           sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới có quyền xóa bài viết!' });
           return;
         }
@@ -1111,8 +1516,9 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/questions/edit') {
       try {
         const body = await parseJsonBody(req);
-        const adminEmail = (body.adminEmail || '').trim().toLowerCase();
-        if (adminEmail !== 'anhtuantran0512@gmail.com') {
+        /* `adminEmail` trong body là do client tự khai — phải kèm token hợp lệ
+           của đúng tài khoản Super Admin, nếu không ai cũng giả được admin. */
+        if (!requireSuperAdmin(req, body)) {
           sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới có quyền sửa bài viết!' });
           return;
         }
@@ -1137,8 +1543,9 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/solutions/delete') {
       try {
         const body = await parseJsonBody(req);
-        const adminEmail = (body.adminEmail || '').trim().toLowerCase();
-        if (adminEmail !== 'anhtuantran0512@gmail.com') {
+        /* `adminEmail` trong body là do client tự khai — phải kèm token hợp lệ
+           của đúng tài khoản Super Admin, nếu không ai cũng giả được admin. */
+        if (!requireSuperAdmin(req, body)) {
           sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới có quyền xóa phản hồi!' });
           return;
         }
@@ -1163,8 +1570,9 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/chat/delete') {
       try {
         const body = await parseJsonBody(req);
-        const adminEmail = (body.adminEmail || '').trim().toLowerCase();
-        if (adminEmail !== 'anhtuantran0512@gmail.com') {
+        /* `adminEmail` trong body là do client tự khai — phải kèm token hợp lệ
+           của đúng tài khoản Super Admin, nếu không ai cũng giả được admin. */
+        if (!requireSuperAdmin(req, body)) {
           sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới có quyền thu hồi tin nhắn!' });
           return;
         }

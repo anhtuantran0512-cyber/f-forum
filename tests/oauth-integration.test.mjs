@@ -4,6 +4,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import { setupForumServer } from '../server/forumServer.ts';
 import { isGoogleConfigured, isFacebookConfigured, loginWithGooglePopup, loginWithFacebookPopup } from '../src/utils/oauth.ts';
+import { setProviderLookupForTest } from '../server/socialAuth.ts';
 
 // Test Helper to spin up a mock server
 function createTestServer() {
@@ -88,8 +89,9 @@ test('2. OAuth Server Endpoint (/api/auth/social): Student auto-registration and
     assert.equal(googleData.user.xp, 0);
     assert.equal(googleData.user.avatar, 'https://lh3.googleusercontent.com/a/test-avatar');
 
-    // 2.2 Super Admin Auto-Detection via OAuth
-    const adminRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
+    // 2.2 Super Admin qua OAuth: email là do client tự khai nên PHẢI xác minh được
+    //     với nhà cung cấp. Khai suông mà được cấp quyền là lỗ hổng chiếm quản trị.
+    const unverifiedAdminRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -98,12 +100,34 @@ test('2. OAuth Server Endpoint (/api/auth/social): Student auto-registration and
         email: 'anhtuantran0512@gmail.com',
       }),
     });
-    const adminData = await adminRes.json();
-    assert.equal(adminRes.status, 200);
-    assert.equal(adminData.success, true);
-    assert.equal(adminData.user.email, 'anhtuantran0512@gmail.com');
-    assert.equal(adminData.user.role, 'SUPER_ADMIN', 'anhtuantran0512@gmail.com must have SUPER_ADMIN role');
-    assert.equal(adminData.user.level, 150, 'Super admin must be Level 150');
+    const unverifiedAdminData = await unverifiedAdminRes.json();
+    assert.equal(unverifiedAdminRes.status, 403, 'Khai email admin mà không xác minh được phải bị chặn');
+    assert.equal(unverifiedAdminData.token, undefined, 'Không được cấp token quản trị');
+
+    // 2.2b Khi nhà cung cấp xác nhận đúng email đó -> vẫn cấp SUPER_ADMIN như cũ
+    const restoreFb = setProviderLookupForTest('facebook', async (accessToken) =>
+      accessToken === 'fb-token-that' ? { email: 'anhtuantran0512@gmail.com' } : null,
+    );
+    try {
+      const adminRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: 'facebook',
+          name: 'Trần Anh Tuấn',
+          email: 'anhtuantran0512@gmail.com',
+          accessToken: 'fb-token-that',
+        }),
+      });
+      const adminData = await adminRes.json();
+      assert.equal(adminRes.status, 200);
+      assert.equal(adminData.success, true);
+      assert.equal(adminData.user.email, 'anhtuantran0512@gmail.com');
+      assert.equal(adminData.user.role, 'SUPER_ADMIN', 'anhtuantran0512@gmail.com must have SUPER_ADMIN role');
+      assert.equal(adminData.user.level, 150, 'Super admin must be Level 150');
+    } finally {
+      restoreFb();
+    }
 
     // 2.3 Invalid email rejection
     const invalidRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
@@ -165,22 +189,44 @@ test('5. OAuth Server Endpoint Case-Insensitive Normalization & Avatar Updating'
   const testEnv = await createTestServer();
 
   try {
-    // 5.1 Case-Insensitive Super Admin detection
-    const adminUpperRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        provider: 'google',
-        name: 'Trần Anh Tuấn',
-        email: 'ANHTUANTRAN0512@GMAIL.COM',
-      }),
-    });
-    const adminUpperData = await adminUpperRes.json();
-    assert.equal(adminUpperRes.status, 200);
-    assert.equal(adminUpperData.success, true);
-    assert.equal(adminUpperData.user.email, 'anhtuantran0512@gmail.com');
-    assert.equal(adminUpperData.user.role, 'SUPER_ADMIN');
-    assert.equal(adminUpperData.user.level, 150);
+    // 5.1 Case-Insensitive Super Admin detection (email vẫn được chuẩn hoá về chữ
+    //     thường, và vẫn phải qua xác minh nhà cung cấp)
+    const restoreGoogle = setProviderLookupForTest('google', async (accessToken) =>
+      accessToken === 'gg-token-that' ? { email: 'anhtuantran0512@gmail.com' } : null,
+    );
+    try {
+      const adminUpperRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: 'google',
+          name: 'Trần Anh Tuấn',
+          email: 'ANHTUANTRAN0512@GMAIL.COM',
+          accessToken: 'gg-token-that',
+        }),
+      });
+      const adminUpperData = await adminUpperRes.json();
+      assert.equal(adminUpperRes.status, 200);
+      assert.equal(adminUpperData.success, true);
+      assert.equal(adminUpperData.user.email, 'anhtuantran0512@gmail.com', 'Email phải được chuẩn hoá về chữ thường');
+      assert.equal(adminUpperData.user.role, 'SUPER_ADMIN');
+      assert.equal(adminUpperData.user.level, 150);
+
+      // Viết hoa để lách bộ lọc, kèm access token không hợp lệ -> vẫn bị chặn
+      const forgedUpperRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: 'google',
+          name: 'Kẻ Giả Mạo',
+          email: 'ANHTUANTRAN0512@GMAIL.COM',
+          accessToken: 'gg-token-gia',
+        }),
+      });
+      assert.equal(forgedUpperRes.status, 403, 'Access token không xác minh được vẫn bị chặn');
+    } finally {
+      restoreGoogle();
+    }
 
     // 5.2 Avatar update on subsequent login
     const newAvatar = 'https://custom-avatar.com/photo.png';

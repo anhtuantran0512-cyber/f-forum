@@ -6,6 +6,33 @@ import path from 'node:path';
 import { setupForumServer } from '../server/forumServer.ts';
 import { WebSocket } from 'ws';
 
+/* Cổng quản trị giờ đòi token phiên hợp lệ, không chỉ chuỗi `adminEmail` trong
+   body. Helper này đăng nhập thật để lấy token — giống hệt cách client làm. */
+async function loginAsAdmin(baseUrl) {
+  const res = await fetch(`${baseUrl}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'anhtuantran0512@gmail.com', password: 'admin123' }),
+  });
+  const data = await res.json();
+  if (res.status !== 200 || !data.success) {
+    throw new Error(`Không đăng nhập được Super Admin: ${res.status} ${JSON.stringify(data)}`);
+  }
+  return data.token;
+}
+
+async function postAsAdmin(baseUrl, url, body, token) {
+  const res = await fetch(`${baseUrl}${url}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  return res;
+}
+
 function createTestServer() {
   const middlewares = [];
   const middlewareRunner = {
@@ -30,6 +57,13 @@ function createTestServer() {
 
   setupForumServer(server, middlewareRunner);
 
+  /* server.close() chờ mọi socket đóng; WebSocket còn mở sẽ làm treo cả bộ. */
+  const sockets = new Set();
+  server.on('connection', (socket) => {
+    sockets.add(socket);
+    socket.on('close', () => sockets.delete(socket));
+  });
+
   return new Promise((resolve) => {
     server.listen(0, '127.0.0.1', () => {
       const port = server.address().port;
@@ -38,7 +72,12 @@ function createTestServer() {
         port,
         baseUrl: `http://127.0.0.1:${port}`,
         wsUrl: `ws://127.0.0.1:${port}/ws`,
-        close: () => new Promise((res) => server.close(res)),
+        close: () =>
+          new Promise((res) => {
+            server.close(res);
+            for (const socket of sockets) socket.destroy();
+            sockets.clear();
+          }),
       });
     });
   });
@@ -215,14 +254,11 @@ test('2. REST Endpoint: GET & POST /api/admin/about isolation and persistence', 
       },
     };
 
-    const adminRes = await fetch(`${testEnv.baseUrl}/api/admin/about`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        adminEmail: 'anhtuantran0512@gmail.com',
-        aboutData: updatedDataPayload,
-      }),
-    });
+    const adminToken = await loginAsAdmin(testEnv.baseUrl);
+    const adminRes = await postAsAdmin(testEnv.baseUrl, '/api/admin/about', {
+      adminEmail: 'anhtuantran0512@gmail.com',
+      aboutData: updatedDataPayload,
+    }, adminToken);
     assert.equal(adminRes.status, 200, 'Super Admin POST /api/admin/about must return 200 OK');
     const savedData = await adminRes.json();
     assert.equal(savedData.headline, 'Đại Kỷ Nguyên F-Forum 2026: Đỉnh Cao Công Nghệ FPT');
@@ -287,28 +323,21 @@ test('3. REST Endpoint: Q&A Question Moderation (Delete & Edit authorization)', 
     assert.equal(badEdit.status, 403, 'Non-admin cannot edit question');
 
     // 3.3 Super Admin edit attempt -> 200
-    const goodEdit = await fetch(`${testEnv.baseUrl}/api/questions/edit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        questionId: targetQ.id,
-        updates: { title: '[Đã điều chỉnh bởi BQT] ' + targetQ.title, subject: 'cntt' },
-        adminEmail: 'anhtuantran0512@gmail.com',
-      }),
-    });
+    const adminToken = await loginAsAdmin(testEnv.baseUrl);
+    const goodEdit = await postAsAdmin(testEnv.baseUrl, '/api/questions/edit', {
+      questionId: targetQ.id,
+      updates: { title: '[Đã điều chỉnh bởi BQT] ' + targetQ.title, subject: 'cntt' },
+      adminEmail: 'anhtuantran0512@gmail.com',
+    }, adminToken);
     assert.equal(goodEdit.status, 200, 'Super admin can edit question');
     const editResult = await goodEdit.json();
     assert.ok(editResult.question.title.startsWith('[Đã điều chỉnh bởi BQT]'));
 
     // 3.4 Super Admin delete attempt -> 200
-    const goodDelete = await fetch(`${testEnv.baseUrl}/api/questions/delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        questionId: targetQ.id,
-        adminEmail: 'anhtuantran0512@gmail.com',
-      }),
-    });
+    const goodDelete = await postAsAdmin(testEnv.baseUrl, '/api/questions/delete', {
+      questionId: targetQ.id,
+      adminEmail: 'anhtuantran0512@gmail.com',
+    }, adminToken);
     assert.equal(goodDelete.status, 200, 'Super admin can delete question');
 
     // Verify question is removed from sync
@@ -373,14 +402,11 @@ test('4. REST Endpoint: Solution Moderation (Delete solution vi phạm)', async 
     assert.equal(badDelete.status, 403, 'Non-admin cannot delete solution');
 
     // 4.2 Super Admin delete attempt -> 200
-    const goodDelete = await fetch(`${testEnv.baseUrl}/api/solutions/delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        solutionId: targetSol.id,
-        adminEmail: 'anhtuantran0512@gmail.com',
-      }),
-    });
+    const adminToken = await loginAsAdmin(testEnv.baseUrl);
+    const goodDelete = await postAsAdmin(testEnv.baseUrl, '/api/solutions/delete', {
+      solutionId: targetSol.id,
+      adminEmail: 'anhtuantran0512@gmail.com',
+    }, adminToken);
     assert.equal(goodDelete.status, 200, 'Super admin can delete solution');
 
     // Verify solution is removed
@@ -427,14 +453,11 @@ test('5. REST Endpoint: Chat Message Recall (/api/chat/delete)', async () => {
     assert.equal(badDelete.status, 403, 'Non-admin cannot recall chat message');
 
     // 5.2 Super Admin recall attempt -> 200
-    const goodDelete = await fetch(`${testEnv.baseUrl}/api/chat/delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messageId: targetMsg.id,
-        adminEmail: 'anhtuantran0512@gmail.com',
-      }),
-    });
+    const adminToken = await loginAsAdmin(testEnv.baseUrl);
+    const goodDelete = await postAsAdmin(testEnv.baseUrl, '/api/chat/delete', {
+      messageId: targetMsg.id,
+      adminEmail: 'anhtuantran0512@gmail.com',
+    }, adminToken);
     assert.equal(goodDelete.status, 200, 'Super admin can recall chat message');
 
     // Verify chat message is removed
@@ -470,41 +493,76 @@ test('6. WebSocket Real-Time Broadcast: DELETE_QUESTION, DELETE_CHAT_MESSAGE, SY
       }
     });
 
-    // Client A sends DELETE_CHAT_MESSAGE
-    clientA.send(
-      JSON.stringify({
-        type: 'DELETE_CHAT_MESSAGE',
-        payload: {
-          messageId: 'test-msg-123',
-          adminEmail: 'anhtuantran0512@gmail.com',
-        },
-      })
-    );
+    try {
+      // 6.1 Client CHƯA xác thực: các lệnh kiểm duyệt phải bị từ chối thẳng.
+      clientA.send(
+        JSON.stringify({
+          type: 'SYNC_ABOUT',
+          payload: { headline: 'Ghi Đè Khi Chưa Đăng Nhập' },
+        })
+      );
+      const denied = await new Promise((res) => {
+        const timer = setTimeout(() => res(null), 1500);
+        const onMsg = (raw) => {
+          const parsed = JSON.parse(raw.toString());
+          if (parsed.type === 'FORBIDDEN') {
+            clearTimeout(timer);
+            clientA.off('message', onMsg);
+            res(parsed);
+          }
+        };
+        clientA.on('message', onMsg);
+      });
+      assert.ok(denied, 'Lệnh kiểm duyệt từ client chưa đăng nhập phải nhận FORBIDDEN');
 
-    // Client A sends SYNC_ABOUT
-    clientA.send(
-      JSON.stringify({
-        type: 'SYNC_ABOUT',
-        payload: {
-          headline: 'Realtime WebSocket About Update',
-          adminEmail: 'anhtuantran0512@gmail.com',
-        },
-      })
-    );
+      // 6.2 Client A đăng nhập Super Admin rồi mới phát lệnh kiểm duyệt.
+      const adminToken = await loginAsAdmin(testEnv.baseUrl);
+      const authOk = await new Promise((res) => {
+        const timer = setTimeout(() => res(null), 1500);
+        const onMsg = (raw) => {
+          const parsed = JSON.parse(raw.toString());
+          if (parsed.type === 'AUTH_OK') {
+            clearTimeout(timer);
+            clientA.off('message', onMsg);
+            res(parsed);
+          }
+        };
+        clientA.on('message', onMsg);
+        clientA.send(JSON.stringify({ type: 'AUTH', payload: { token: adminToken } }));
+      });
+      assert.ok(authOk, 'AUTH với token Super Admin hợp lệ phải trả AUTH_OK');
+      assert.equal(authOk.payload.role, 'SUPER_ADMIN');
 
-    // Wait for propagation
-    await new Promise((r) => setTimeout(r, 120));
+      // Client A sends DELETE_CHAT_MESSAGE
+      clientA.send(
+        JSON.stringify({
+          type: 'DELETE_CHAT_MESSAGE',
+          payload: { messageId: 'test-msg-123' },
+        })
+      );
 
-    const chatDeleteEvent = receivedEventsByB.find((e) => e.type === 'DELETE_CHAT_MESSAGE');
-    assert.ok(chatDeleteEvent, 'Client B should receive DELETE_CHAT_MESSAGE broadcast');
-    assert.equal(chatDeleteEvent.payload.messageId, 'test-msg-123');
+      // Client A sends SYNC_ABOUT
+      clientA.send(
+        JSON.stringify({
+          type: 'SYNC_ABOUT',
+          payload: { headline: 'Realtime WebSocket About Update' },
+        })
+      );
 
-    const aboutSyncEvent = receivedEventsByB.find((e) => e.type === 'SYNC_ABOUT');
-    assert.ok(aboutSyncEvent, 'Client B should receive SYNC_ABOUT broadcast');
-    assert.equal(aboutSyncEvent.payload.headline, 'Realtime WebSocket About Update');
+      // Wait for propagation
+      await new Promise((r) => setTimeout(r, 200));
 
-    clientA.close();
-    clientB.close();
+      const chatDeleteEvent = receivedEventsByB.find((e) => e.type === 'DELETE_CHAT_MESSAGE');
+      assert.ok(chatDeleteEvent, 'Client B should receive DELETE_CHAT_MESSAGE broadcast');
+      assert.equal(chatDeleteEvent.payload.messageId, 'test-msg-123');
+
+      const aboutSyncEvent = receivedEventsByB.find((e) => e.type === 'SYNC_ABOUT');
+      assert.ok(aboutSyncEvent, 'Client B should receive SYNC_ABOUT broadcast');
+      assert.equal(aboutSyncEvent.payload.headline, 'Realtime WebSocket About Update');
+    } finally {
+      clientA.close();
+      clientB.close();
+    }
   } finally {
     await testEnv.close();
   }
@@ -579,8 +637,9 @@ test('7. REST Endpoint: Best Solution Award authorization & single-best invarian
     });
     assert.equal(badMarkRes.status, 403, 'Unauthorized student cannot confirm best solution');
 
-    // 7.2 Super Admin marks Solution 1 -> 200
-    const adminMarkRes = await fetch(`${testEnv.baseUrl}/api/solutions/best`, {
+    // 7.1b Khai đúng currentUserEmail của admin trong body nhưng KHÔNG có token
+    //      -> vẫn 403. Đây chính là lỗ hổng giả mạo danh tính đã vá.
+    const spoofedAdminMark = await fetch(`${testEnv.baseUrl}/api/solutions/best`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -589,6 +648,15 @@ test('7. REST Endpoint: Best Solution Award authorization & single-best invarian
         currentUserEmail: 'anhtuantran0512@gmail.com',
       }),
     });
+    assert.equal(spoofedAdminMark.status, 403, 'Khai email admin mà không có token vẫn bị chặn');
+
+    // 7.2 Super Admin marks Solution 1 -> 200
+    const adminToken = await loginAsAdmin(testEnv.baseUrl);
+    const adminMarkRes = await postAsAdmin(testEnv.baseUrl, '/api/solutions/best', {
+      questionId,
+      solutionId: sol1Id,
+      currentUserEmail: 'anhtuantran0512@gmail.com',
+    }, adminToken);
     assert.equal(adminMarkRes.status, 200, 'Super admin can award best solution');
 
     // Verify Solution 1 is best
@@ -598,15 +666,11 @@ test('7. REST Endpoint: Best Solution Award authorization & single-best invarian
     assert.equal(s1.isBest, true, 'Solution 1 should be marked best');
 
     // 7.3 Super Admin marks Solution 2 -> Solution 1 must be reset to false!
-    const adminMarkRes2 = await fetch(`${testEnv.baseUrl}/api/solutions/best`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        questionId,
-        solutionId: sol2Id,
-        currentUserEmail: 'anhtuantran0512@gmail.com',
-      }),
-    });
+    const adminMarkRes2 = await postAsAdmin(testEnv.baseUrl, '/api/solutions/best', {
+      questionId,
+      solutionId: sol2Id,
+      currentUserEmail: 'anhtuantran0512@gmail.com',
+    }, adminToken);
     assert.equal(adminMarkRes2.status, 200);
 
     syncRes = await fetch(`${testEnv.baseUrl}/api/sync`);

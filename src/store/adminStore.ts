@@ -1,5 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { safeStorage } from '../utils/storage';
+import { authHeaders } from '../utils/session';
 
 export interface MilestoneItem {
   id: string;
@@ -281,7 +282,7 @@ export async function saveAboutDataToServer(data: AboutData, adminEmail: string)
   try {
     const res = await fetch('/api/admin/about', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ about: data, adminEmail }),
     });
     if (res.ok) {

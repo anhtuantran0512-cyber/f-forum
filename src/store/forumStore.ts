@@ -20,6 +20,7 @@ import {
   getRandomGhibliMask,
 } from '../utils/ghibliMasks';
 import { safeStorage } from '../utils/storage';
+import { authHeaders, getAuthToken, postJson, setAuthToken, clearAuthToken } from '../utils/session';
 import { DEFAULT_AVATAR } from '../utils/mediaFallback';
 import {
   type AboutData,
@@ -297,8 +298,32 @@ export function useForumStore() {
   const [onlineUsers, setOnlineUsers] = useState<OnlinePresenceUser[]>([]);
   const presenceMapRef = useRef<Map<string, { user: OnlinePresenceUser; lastSeen: number }>>(new Map());
   const activeWsRef = useRef<WebSocket | null>(null);
+  /* Cầu nối để hàm login (khai báo sau) gọi được bước xác thực socket. */
+  const authenticateSocketRef = useRef<() => void>(() => {});
   const currentUserRef = useRef(currentUser);
   currentUserRef.current = currentUser;
+  /**
+   * Bản sao mới nhất của sổ tài khoản.
+   * React StrictMode gọi state updater HAI lần, nên không được đặt fetch/toast/
+   * âm thanh bên trong updater (mỗi lần thưởng sẽ gửi 2 request, hiện 2 thông
+   * báo). Muốn vậy các hàm nghiệp vụ phải đọc được trạng thái hiện tại ở NGOÀI
+   * updater — `usersRef` làm việc đó, và được giữ khớp ngay trong cùng một tick
+   * nhờ `commitUsers` bên dưới.
+   */
+  const usersRef = useRef(users);
+
+  /**
+   * CỔNG DUY NHẤT để đổi sổ tài khoản.
+   * Nếu gọi `setUsers` trực tiếp rồi đọc `usersRef.current` ngay sau đó trong
+   * cùng một lần bấm, ta sẽ gặp snapshot cũ — ví dụ `createQuestion` trừ Coin
+   * treo thưởng rồi gọi `addXP(50)`: bản cũ đẩy con số cũ lên server và âm thầm
+   * hoàn lại số Coin vừa trừ. Đi qua đây thì không còn cửa đó.
+   */
+  const commitUsers = useCallback((next: React.SetStateAction<Record<string, User>>) => {
+    const resolved = typeof next === 'function' ? next(usersRef.current) : next;
+    usersRef.current = resolved;
+    setUsers(resolved);
+  }, []);
 
   const getGuestId = useCallback(() => {
     let gid = safeStorage.getItem('fforum_guest_id');
@@ -407,6 +432,24 @@ export function useForumStore() {
       }
     };
 
+    /**
+     * Gắn danh tính cho kết nối WebSocket đang mở.
+     * Máy chủ chỉ cho phép thao tác nhạy cảm (chọn đáp án chuẩn, xoá bài, sửa hồ
+     * sơ...) sau khi nhận được AUTH kèm token hợp lệ.
+     */
+    const authenticateSocket = () => {
+      const socket = activeWsRef.current;
+      if (!socket || socket.readyState !== WebSocket.OPEN) return;
+      const token = getAuthToken();
+      if (!token) return;
+      try {
+        socket.send(JSON.stringify({ type: 'AUTH', payload: { token } }));
+      } catch {
+        /* ignore */
+      }
+    };
+    authenticateSocketRef.current = authenticateSocket;
+
     ping();
     const timer = setInterval(ping, 15000);
     const pruneTimer = setInterval(recomputeOnlineUsers, 5000);
@@ -484,7 +527,7 @@ export function useForumStore() {
 
             if (data.users && Object.keys(data.users).length > 0) {
               /* Server là nguồn chuẩn; vệ sinh để tài khoản mô phỏng cũ không quay lại */
-              setUsers(prev => sanitizeUsersRegistry({ ...prev, ...data.users }));
+              commitUsers(prev => sanitizeUsersRegistry({ ...prev, ...data.users }));
             }
             if (Array.isArray(data.clubs)) {
               setClubs(
@@ -538,7 +581,8 @@ export function useForumStore() {
     return () => {
       isMounted = false;
     };
-  }, []);
+    /* commitUsers là useCallback([]) nên identity không đổi — effect vẫn chỉ chạy 1 lần. */
+  }, [commitUsers]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -627,7 +671,7 @@ export function useForumStore() {
         }
         case 'SYNC_USER': {
           const updatedUser = payload as User;
-          setUsers(prev => ({
+          commitUsers(prev => ({
             ...prev,
             [updatedUser.email.toLowerCase()]: updatedUser,
           }));
@@ -707,6 +751,8 @@ export function useForumStore() {
         activeWsRef.current = ws;
 
         ws.onopen = () => {
+          /* Xác thực TRƯỚC, rồi mới báo presence. */
+          authenticateSocketRef.current();
           const payload = getSelfPresenceRef.current();
           try {
             ws?.send(JSON.stringify({ type: 'PRESENCE_PING', payload }));
@@ -840,7 +886,7 @@ export function useForumStore() {
         }
         case 'SYNC_USER': {
           const updatedUser = payload as User;
-          setUsers(prev => ({
+          commitUsers(prev => ({
             ...prev,
             [updatedUser.email.toLowerCase()]: updatedUser,
           }));
@@ -855,7 +901,7 @@ export function useForumStore() {
         }
         case 'USER_LOGIN': {
           const loggedUser = payload as User;
-          setUsers(prev => ({
+          commitUsers(prev => ({
             ...prev,
             [loggedUser.email.toLowerCase()]: loggedUser,
           }));
@@ -902,7 +948,7 @@ export function useForumStore() {
     return () => {
       syncBroadcastChannel.removeEventListener('message', handleBroadcast);
     };
-  }, []);
+  }, [commitUsers]);
 
   useEffect(() => {
     const handleStorageEvent = (e: StorageEvent) => {
@@ -938,7 +984,7 @@ export function useForumStore() {
         }
       } else if (e.key === 'fforum_users_registry' && e.newValue) {
         try {
-          setUsers(sanitizeUsersRegistry(JSON.parse(e.newValue)));
+          commitUsers(sanitizeUsersRegistry(JSON.parse(e.newValue)));
         } catch {
           /* ignore */
         }
@@ -956,7 +1002,7 @@ export function useForumStore() {
     return () => {
       window.removeEventListener('storage', handleStorageEvent);
     };
-  }, []);
+  }, [commitUsers]);
 
   useEffect(() => {
     if (toastMessage) {
@@ -981,13 +1027,14 @@ export function useForumStore() {
     }
 
     const user = data.user as User;
-    setUsers(prev => ({
+    commitUsers(prev => ({
       ...prev,
       [normalizedEmail]: user,
     }));
     setCurrentUser(user);
 
-    safeStorage.setItem('f_forum_auth_token', data.token);
+    setAuthToken(data.token);
+    authenticateSocketRef.current();
     safeStorage.setItem('fforum_current_user_email', normalizedEmail);
 
     try {
@@ -1024,13 +1071,14 @@ export function useForumStore() {
     }
 
     const user = data.user as User;
-    setUsers(prev => ({
+    commitUsers(prev => ({
       ...prev,
       [normalizedEmail]: user,
     }));
     setCurrentUser(user);
 
-    safeStorage.setItem('f_forum_auth_token', data.token);
+    setAuthToken(data.token);
+    authenticateSocketRef.current();
     safeStorage.setItem('fforum_current_user_email', normalizedEmail);
 
     try {
@@ -1054,7 +1102,7 @@ export function useForumStore() {
 
   const loginSocial = async (
     provider: 'google' | 'facebook',
-    data: { name: string; email: string; avatar?: string }
+    data: { name: string; email: string; avatar?: string; accessToken?: string }
   ): Promise<User> => {
     const trimmedName = data.name.trim();
     const normalizedEmail = data.email.trim().toLowerCase();
@@ -1070,6 +1118,8 @@ export function useForumStore() {
           name: trimmedName,
           email: normalizedEmail,
           avatar: data.avatar?.trim() || undefined,
+          /* Server dùng token này để tự hỏi Google/Facebook — chống khai email giả. */
+          accessToken: data.accessToken || undefined,
         }),
       });
 
@@ -1139,13 +1189,14 @@ export function useForumStore() {
     }
 
     const user = result.user;
-    setUsers(prev => ({
+    commitUsers(prev => ({
       ...prev,
       [normalizedEmail]: user,
     }));
     setCurrentUser(user);
 
-    safeStorage.setItem('f_forum_auth_token', result.token);
+    setAuthToken(result.token);
+    authenticateSocketRef.current();
     safeStorage.setItem('fforum_current_user_email', normalizedEmail);
 
     try {
@@ -1169,7 +1220,7 @@ export function useForumStore() {
 
   const login = (
     provider: 'google' | 'facebook',
-    data: { name: string; email: string; avatar?: string }
+    data: { name: string; email: string; avatar?: string; accessToken?: string }
   ) => {
     loginSocial(provider, data).catch((err) => {
       setToastMessage({
@@ -1182,8 +1233,15 @@ export function useForumStore() {
 
   const logout = () => {
     setCurrentUser(null);
-    safeStorage.removeItem('f_forum_auth_token');
+    clearAuthToken();
     safeStorage.removeItem('fforum_current_user_email');
+    /* Đóng socket để máy chủ huỷ phiên WS vừa đăng nhập — socket tự mở lại
+       ở trạng thái khách, không còn giữ quyền của tài khoản cũ. */
+    try {
+      activeWsRef.current?.close();
+    } catch {
+      /* ignore */
+    }
     try {
       syncBroadcastChannel?.postMessage({
         type: 'USER_LOGOUT',
@@ -1200,80 +1258,91 @@ export function useForumStore() {
   };
 
   const addXP = (amount: number, targetUserEmail?: string) => {
-    if (!currentUser && !targetUserEmail) return;
+    const viewer = currentUserRef.current;
+    if (!viewer && !targetUserEmail) return;
 
-    if (!targetUserEmail && currentUser?.email !== 'anhtuantran0512@gmail.com') {
-      return;
-    }
+    /* Không kèm email nghĩa là "cộng cho admin đang xem" — giữ nguyên luật cũ. */
+    if (!targetUserEmail && !isMasterAdmin(viewer?.email)) return;
 
-    const emailToCredit = (targetUserEmail || currentUser?.email || '').toLowerCase();
+    const emailToCredit = (targetUserEmail || viewer?.email || '').toLowerCase();
     if (!emailToCredit) return;
 
-    setUsers(prev => {
+    const snapshot = usersRef.current[emailToCredit];
+    if (!snapshot) return;
+
+    const newXp = (snapshot.xp ?? 0) + amount;
+    const newCoin = (snapshot.coin ?? 100) + amount;
+    const newFPoints = (snapshot.fPoints ?? snapshot.xp) + amount;
+    const calculatedLevel = getLevelForXP(newXp);
+    const leveledUp = calculatedLevel > snapshot.level;
+
+    /*
+      Updater PHẢI thuần: chỉ tính trạng thái mới từ `prev`.
+      Bản cũ nhét setCurrentUser + fetch + playChime + toast vào đây; StrictMode
+      gọi updater hai lần nên mỗi lần thưởng gửi 2 request lên server và hiện
+      2 thông báo. Toàn bộ tác dụng phụ giờ chạy đúng MỘT lần ở bên dưới.
+    */
+    commitUsers(prev => {
       const targetUser = prev[emailToCredit];
       if (!targetUser) return prev;
-
-      const newXp = targetUser.xp + amount;
-      const newCoin = (targetUser.coin ?? 100) + amount;
-      const newFPoints = (targetUser.fPoints ?? targetUser.xp) + amount;
-      const calculatedLevel = getLevelForXP(newXp);
-      const leveledUp = calculatedLevel > targetUser.level;
-
-      const updated = {
-        ...targetUser,
-        xp: newXp,
-        coin: newCoin,
-        fPoints: newFPoints,
-        level: calculatedLevel,
-      };
-
-      if (currentUser && currentUser.email.toLowerCase() === emailToCredit) {
-        setCurrentUser(updated);
-
-        if (leveledUp) {
-          playChime('level-up');
-          setToastMessage({
-            title: `Chúc mừng thăng cấp! LEVEL ${calculatedLevel}`,
-            subtitle: `+${amount} Coin nhận được. Bạn đã tiến gần hơn tới đỉnh cao danh dự!`,
-            type: 'level',
-          });
-          pushNotification({
-            type: 'system',
-            category: 'system',
-            title: `Thăng cấp! Cấp độ ${calculatedLevel}`,
-            body: `Bạn đã đạt Cấp độ ${calculatedLevel} và nhận thêm Coin. Hãy tiếp tục cống hiến tri thức!`,
-            targetView: 'home',
-          });
-        } else {
-          playChime('xp');
-          setToastMessage({
-            title: `+${amount} XP thưởng`,
-            subtitle: `Tổng XP hiện tại: ${newXp.toLocaleString()}`,
-            type: 'xp',
-          });
-        }
-      }
-
-      fetch('/api/users/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailToCredit, updates: updated }),
-      }).catch(() => {});
-
-      try {
-        syncBroadcastChannel?.postMessage({
-          type: 'SYNC_USER',
-          payload: updated,
-        });
-      } catch {
-        /* ignore */
-      }
-
+      const nextXp = (targetUser.xp ?? 0) + amount;
       return {
         ...prev,
-        [emailToCredit]: updated,
+        [emailToCredit]: {
+          ...targetUser,
+          xp: nextXp,
+          coin: (targetUser.coin ?? 100) + amount,
+          fPoints: (targetUser.fPoints ?? targetUser.xp) + amount,
+          level: getLevelForXP(nextXp),
+        },
       };
     });
+
+    const updated: User = {
+      ...snapshot,
+      xp: newXp,
+      coin: newCoin,
+      fPoints: newFPoints,
+      level: calculatedLevel,
+    };
+
+    if (viewer && viewer.email.toLowerCase() === emailToCredit) {
+      setCurrentUser(updated);
+
+      if (leveledUp) {
+        playChime('level-up');
+        setToastMessage({
+          title: `Chúc mừng thăng cấp! LEVEL ${calculatedLevel}`,
+          subtitle: `+${amount} Coin nhận được. Bạn đã tiến gần hơn tới đỉnh cao danh dự!`,
+          type: 'level',
+        });
+        pushNotification({
+          type: 'system',
+          category: 'system',
+          title: `Thăng cấp! Cấp độ ${calculatedLevel}`,
+          body: `Bạn đã đạt Cấp độ ${calculatedLevel} và nhận thêm Coin. Hãy tiếp tục cống hiến tri thức!`,
+          targetView: 'home',
+        });
+      } else {
+        playChime('xp');
+        setToastMessage({
+          title: `+${amount} XP thưởng`,
+          subtitle: `Tổng XP hiện tại: ${newXp.toLocaleString()}`,
+          type: 'xp',
+        });
+      }
+    }
+
+    postJson('/api/users/update', { email: emailToCredit, updates: updated }).catch(() => {});
+
+    try {
+      syncBroadcastChannel?.postMessage({
+        type: 'SYNC_USER',
+        payload: updated,
+      });
+    } catch {
+      /* ignore */
+    }
   };
 
   const updateProfile = (updates: Partial<User>) => {
@@ -1286,7 +1355,7 @@ export function useForumStore() {
     };
 
     setCurrentUser(updated);
-    setUsers(prev => ({
+    commitUsers(prev => ({
       ...prev,
       [emailKey]: updated,
     }));
@@ -1299,7 +1368,7 @@ export function useForumStore() {
     try {
       fetch('/api/users/update', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ email: emailKey, updates }),
       }).catch(() => {});
     } catch {
@@ -1385,7 +1454,7 @@ export function useForumStore() {
       prev.map(c => (c.id === clubId ? { ...c, status: 'APPROVED' } : c))
     );
 
-    setUsers(prev => {
+    commitUsers(prev => {
       const nextUsers = { ...prev };
       const creatorKey = Object.keys(nextUsers).find(
         k => nextUsers[k].id === club.leaderId || nextUsers[k].name === club.leaderName
@@ -1565,11 +1634,11 @@ export function useForumStore() {
     const updatedAuthorCoin = Math.max(0, (currentUser.coin ?? 100) - bountyCoin);
     const updatedAuthor = { ...currentUser, coin: updatedAuthorCoin };
     setCurrentUser(updatedAuthor);
-    setUsers(prev => ({ ...prev, [currentUser.email.toLowerCase()]: updatedAuthor }));
+    commitUsers(prev => ({ ...prev, [currentUser.email.toLowerCase()]: updatedAuthor }));
 
     fetch('/api/questions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ ...newQuestion, authorEmail: currentUser.email }),
     }).catch(() => {});
 
@@ -1608,7 +1677,7 @@ export function useForumStore() {
 
     fetch('/api/solutions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(newSolution),
     }).catch(() => {});
 
@@ -1683,7 +1752,7 @@ export function useForumStore() {
 
     fetch('/api/solutions/best', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({
         questionId,
         solutionId,
@@ -1802,7 +1871,7 @@ export function useForumStore() {
     try {
       await fetch('/api/questions/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ questionId, adminEmail: currentUser.email }),
       });
     } catch {
@@ -1843,7 +1912,7 @@ export function useForumStore() {
     try {
       await fetch('/api/questions/edit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ questionId, updates, adminEmail: currentUser.email }),
       });
     } catch {
@@ -1884,7 +1953,7 @@ export function useForumStore() {
     try {
       await fetch('/api/solutions/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ solutionId, adminEmail: currentUser.email }),
       });
     } catch {
@@ -1920,7 +1989,7 @@ export function useForumStore() {
     try {
       await fetch('/api/chat/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify({ messageId, adminEmail: currentUser.email }),
       });
     } catch {

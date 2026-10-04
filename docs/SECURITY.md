@@ -1,0 +1,216 @@
+# Bảo mật & Toàn vẹn dữ liệu — F-Forum
+
+Tài liệu này ghi lại các lỗ hổng thật đã tìm thấy trong mã nguồn, cách chúng bị
+lợi dụng, và cách đã vá. Mỗi mục đều có bài kiểm thử tương ứng trong
+`tests/security-hardening.test.mjs` chạy trên **máy chủ thật** qua HTTP/WebSocket.
+
+---
+
+## 1. Đăng nhập bỏ qua mật khẩu (chiếm tài khoản)
+
+**Mức độ:** Nghiêm trọng · **Vị trí:** `POST /api/auth/login`
+
+```ts
+// TRƯỚC
+const registeredPassword = store.passwords[email];
+if (registeredPassword && registeredPassword !== password) { /* từ chối */ }
+```
+
+Tài khoản tạo qua Google/Facebook **không có bản ghi mật khẩu**, nên
+`registeredPassword` là `undefined` → cả điều kiện bị bỏ qua → **mọi mật khẩu đều
+được chấp nhận**.
+
+```bash
+# Tạo tài khoản qua social, rồi đăng nhập bằng mật khẩu bịa — vẫn nhận token:
+curl -X POST /api/auth/social -d '{"provider":"google","email":"nannhan@gmail.com"}'
+curl -X POST /api/auth/login  -d '{"email":"nannhan@gmail.com","password":"bat-ky"}'
+# => 200 { success: true, token: "f_token_..." }   ← TRƯỚC KHI VÁ
+```
+
+**Đã vá:** không có bản ghi mật khẩu = không đăng nhập được bằng form; người dùng
+được hướng dẫn sang đăng nhập mạng xã hội. So khớp dùng `crypto.timingSafeEqual`.
+
+---
+
+## 2. Mật khẩu lưu plaintext
+
+**Mức độ:** Cao · **Vị trí:** `data/forum-data.json`
+
+Toàn bộ mật khẩu được ghi thẳng ra đĩa (`"admin123"`). Ai đọc được tệp dữ liệu là
+đọc được mọi mật khẩu.
+
+**Đã vá:** băm `scrypt` (N=16384, r=8, p=1, 32 byte, salt 16 byte) dạng
+`scrypt$<salt>$<hash>`. Dữ liệu cũ được **tự động băm lại lúc khởi động**, và bản
+ghi plaintext còn sót được nâng cấp ngay lần đăng nhập thành công kế tiếp.
+
+---
+
+## 3. Tự phong SUPER_ADMIN qua WebSocket
+
+**Mức độ:** Nghiêm trọng · **Vị trí:** WS `SYNC_USER`
+
+```js
+// TRƯỚC: ghi thẳng payload của client vào sổ tài khoản, không kiểm tra gì
+case 'SYNC_USER':
+  store.users[payload.email.toLowerCase()] = payload;
+```
+
+Bất kỳ client nào mở WebSocket đều tự tạo được tài khoản quản trị:
+
+```js
+ws.send(JSON.stringify({ type: 'SYNC_USER', payload: {
+  email: 'hacker@x.com', role: 'SUPER_ADMIN', coin: 9999999, level: 150
+}}));
+// => /api/sync trả về role = "SUPER_ADMIN", coin = 9999999   ← TRƯỚC KHI VÁ
+```
+
+**Đã vá:** kết nối WS phải gửi `AUTH` kèm token hợp lệ; chỉ **chủ tài khoản** mới
+sửa được hồ sơ của mình; `role` / `id` / `email` là trường server sở hữu và bị
+loại khỏi payload; `level` luôn được tính lại từ `xp`.
+
+---
+
+## 4. Chiếm quyền quản trị qua đăng nhập xã hội
+
+**Mức độ:** Nghiêm trọng · **Vị trí:** `POST /api/auth/social`
+
+Endpoint nhận `email` **do client tự khai** và cấp tài khoản tương ứng — kể cả tài
+khoản Super Admin — mà không hề kiểm chứng với Google/Facebook.
+
+```bash
+curl -X POST /api/auth/social -d '{"provider":"google","email":"anhtuantran0512@gmail.com"}'
+# => 200 { user: { role: "SUPER_ADMIN", level: 150 }, token: "f_token_..." }  ← TRƯỚC KHI VÁ
+```
+
+**Đã vá:** `server/socialAuth.ts` kiểm chứng access token với chính nhà cung cấp
+(Google: `/oauth2/v3/userinfo`, Facebook: `/me` hoặc `/debug_token`) rồi **so khớp
+email trong phản hồi với email client khai**. Email quản trị **bắt buộc** xác minh
+thành công; tài khoản thường vẫn đăng nhập được ở chế độ demo chưa cấu hình OAuth.
+
+---
+
+## 5. Cổng quản trị chỉ nhìn `adminEmail` trong body
+
+**Mức độ:** Nghiêm trọng · **Vị trí:** `/api/admin/about`, `/api/questions/delete`,
+`/api/questions/edit`, `/api/solutions/delete`, `/api/chat/delete`,
+`/api/solutions/best`, `/api/users/update`
+
+```js
+// TRƯỚC
+if (adminEmail !== 'anhtuantran0512@gmail.com') return 403;
+```
+
+`adminEmail` nằm trong body — ai cũng gõ được chuỗi đó. Tương tự,
+`/api/solutions/best` tin `currentUserId`/`currentUserEmail` do client gửi.
+
+**Đã vá:** mọi cổng này đòi token phiên có chữ ký HMAC, và email trong token phải
+khớp tài khoản đang thao tác. Token giả/sửa một ký tự là vô hiệu.
+
+---
+
+## 6. In Coin vô hạn qua tiền thưởng
+
+**Mức độ:** Cao · **Vị trí:** `POST /api/questions`, WS `MARK_BEST_SOLUTION`
+
+- Đặt câu hỏi treo thưởng **không kiểm tra số dư**: tài khoản 100 Coin đặt được vô
+  hạn câu thưởng 100 Coin (`Math.max(0, ...)` chỉ kẹp số dư về 0, câu hỏi vẫn tồn
+  tại và người giải vẫn được trả thưởng).
+- WS `MARK_BEST_SOLUTION` **không kiểm quyền và không idempotent**: gọi lại 5 lần
+  là cộng 5 lần XP.
+- WS `NEW_QUESTION` / `NEW_SOLUTION` cộng XP theo `authorId` client khai, không khử
+  trùng → phát lại bao nhiêu lần cũng được.
+
+**Đã vá:** kiểm tra số dư (thiếu thì `402`); email chưa đăng ký thì `bountyCoin = 0`;
+chọn đáp án chuẩn đòi đúng tác giả hoặc Super Admin và chỉ phát thưởng **một lần**;
+các bản ghi WS được khử trùng theo `id`; XP chỉ cấp qua đường HTTP đã xác thực.
+
+---
+
+## 7. Token phiên không kiểm chứng được
+
+**Mức độ:** Cao · **Vị trí:** `f_token_${Date.now()}_${Math.random()...}`
+
+Token chỉ là chuỗi ngẫu nhiên, server không lưu và không kiểm tra được → không
+dùng để xác thực bất cứ thứ gì.
+
+**Đã vá:** token có chữ ký `HMAC-SHA256` với khoá lấy từ `FFORUM_SESSION_SECRET`
+(hoặc tệp `data/session-key` quyền `0600`), kèm hạn dùng 30 ngày. Vẫn giữ tiền tố
+`f_token_` nên client cũ không bị đăng xuất.
+
+---
+
+## 8. Không chặn brute-force
+
+**Đã vá:** `SlidingWindowRateLimiter` theo `IP + email` cho đăng nhập (12 lượt/10
+phút), theo IP cho đăng ký (30/10 phút) và social (30/10 phút). Vượt ngưỡng trả
+`429` kèm header `Retry-After`.
+
+---
+
+## 9. Rò rỉ timer ở luồng SSE
+
+**Mức độ:** Trung bình · **Vị trí:** `GET /api/events`
+
+```js
+// TRƯỚC
+req.on('close', () => sseClients.delete(res));   // không dọn interval
+const heartbeat = setInterval(...);              // chạy mãi sau khi client ngắt
+```
+
+Mỗi lần reload trang rò một `setInterval` vĩnh viễn. `res.write` trên response đã
+đóng **không ném lỗi** nên nhánh `catch` không bao giờ chạy.
+
+**Đã vá:** dọn ở cả `req.close`, `req.error` và `res.close`, kiểm tra
+`writableEnded`/`destroyed` trước khi ghi, và `unref()` timer. Test #15 đếm số kết
+nối qua `/api/health` để chứng minh bộ đếm về 0.
+
+---
+
+## 10. Body quá lớn và JSON hỏng
+
+**Đã vá:** `parseJsonBody` đếm byte và huỷ socket **ngay khi vượt 25 MB** (bản cũ
+vẫn nạp hết vào RAM rồi mới huỷ), trả `413`; JSON hỏng trả `400` thay vì `500`;
+thông điệp lỗi không còn rò `err.message` nội bộ.
+
+---
+
+## 11. Tác dụng phụ trong state updater (phía client)
+
+**Mức độ:** Trung bình · **Vị trí:** `addXP()` trong `src/store/forumStore.ts`
+
+`setCurrentUser`, `fetch`, `playChime`, `setToastMessage`, `pushNotification` đều
+nằm **bên trong** `setUsers(prev => ...)`. React StrictMode gọi updater hai lần →
+mỗi lần thưởng gửi **2 request** và hiện **2 thông báo**.
+
+**Đã vá:** updater chỉ còn là phép tính thuần; mọi tác dụng phụ chạy đúng một lần
+bên ngoài. Đồng thời toàn bộ sổ tài khoản đi qua cổng `commitUsers` để `usersRef`
+khớp trạng thái mới **ngay trong cùng một tick** — bản nháp trước đó đọc snapshot
+cũ và âm thầm hoàn lại số Coin vừa trừ khi treo thưởng.
+
+---
+
+## Mô hình phân quyền hiện tại
+
+| Tầng | Cơ chế |
+|---|---|
+| Mật khẩu | scrypt + salt, so khớp thời gian cố định, tự nâng cấp bản ghi cũ |
+| Phiên | Token HMAC-SHA256, hạn 30 ngày, gửi qua `Authorization: Bearer` |
+| WebSocket | Bắt tay `AUTH` → gắn `SessionClaims` cho từng kết nối |
+| Hồ sơ | Chỉ chủ tài khoản; `role`/`id`/`email` do server sở hữu; `level` tính lại từ `xp` |
+| Kiểm duyệt | Super Admin có token hợp lệ, hoặc chủ nội dung với nội dung của mình |
+| Tiền tệ | Kiểm số dư, thưởng idempotent, khử trùng lặp bản ghi |
+| Tần suất | Cửa sổ trượt theo IP/email, `429` + `Retry-After` |
+| Social | Xác minh access token với nhà cung cấp, so khớp email |
+
+## Biến môi trường
+
+Xem `.env.example`. Tất cả đều **tuỳ chọn**: không có `FFORUM_SESSION_SECRET` thì
+server tự sinh và lưu vào `data/session-key`; không có credential OAuth thì tài
+khoản thường vẫn đăng nhập social được, riêng quyền quản trị thì không.
+
+## Chạy kiểm thử bảo mật
+
+```bash
+node --test tests/security-hardening.test.mjs   # 18 bài, chạy trên server thật
+npm test                                        # toàn bộ 114 bài
+```

@@ -92,6 +92,28 @@ Hệ thống cấp bậc được đặt tên gần gũi với học sinh theo t
 
 ---
 
+## 🔐 Bảo Mật & Toàn Vẹn Dữ Liệu
+
+Máy chủ không tin dữ liệu client gửi lên. Toàn bộ tầng xác thực nằm ở
+`server/authGuard.ts` và `server/socialAuth.ts`:
+
+- **Mật khẩu**: băm `scrypt` + salt, so khớp thời gian cố định, tự nâng cấp bản ghi plaintext cũ.
+- **Phiên đăng nhập**: token ký `HMAC-SHA256`, hạn 30 ngày, gửi qua `Authorization: Bearer`.
+- **WebSocket**: bắt tay `AUTH` trước khi được đụng tới dữ liệu nhạy cảm.
+- **Hồ sơ**: `role` / `id` / `email` do server sở hữu; `level` luôn tính lại từ `xp`.
+- **Tiền Coin**: kiểm tra số dư khi treo thưởng, thưởng đáp án chuẩn chỉ phát một lần.
+- **Chặn brute-force**: cửa sổ trượt theo IP + email, trả `429` kèm `Retry-After`.
+- **Đăng nhập Google/Facebook**: máy chủ tự kiểm chứng access token với nhà cung cấp.
+
+Chi tiết từng lỗ hổng đã tìm thấy và cách vá: **[docs/SECURITY.md](docs/SECURITY.md)**.
+
+```bash
+# 18 bài kiểm thử bảo mật, chạy trên máy chủ thật qua HTTP/WebSocket
+node --test tests/security-hardening.test.mjs
+```
+
+---
+
 ## 🛠️ Công Nghệ Sử Dụng
 
 - **Frontend**: React 19, TypeScript
@@ -134,7 +156,7 @@ Sau khi chạy lệnh, mở trình duyệt web và truy cập địa chỉ: `htt
 # Kiểm tra lỗi cú pháp với Oxlint
 npx oxlint
 
-# Chạy toàn bộ 51 bài kiểm thử tự động
+# Chạy toàn bộ 114 bài kiểm thử tự động
 npm test
 
 # Biên dịch mã nguồn cho môi trường sản xuất
@@ -149,18 +171,22 @@ npm run build
 f-forum/
 ├── public/                 # Tệp tĩnh (ảnh, icon)
 ├── server/                 # Mã nguồn máy chủ WebSocket và API phụ trợ
-│   └── forumServer.ts
+│   ├── forumServer.ts      # Định tuyến API + WebSocket
+│   ├── authGuard.ts        # Băm mật khẩu, token HMAC, rate limit, lọc payload
+│   └── socialAuth.ts       # Kiểm chứng đăng nhập Google / Facebook
 ├── src/
 │   ├── components/         # Các thành phần giao diện (Navbar, Modal, View...)
 │   │   ├── landing/        # Trang giới thiệu
 │   │   └── views/          # Màn hình chính: Hỏi đáp, Câu lạc bộ, Chat, Vinh danh...
 │   ├── store/              # Quản lý trạng thái ứng dụng (forumStore)
+│   ├── context/            # AuthContext — tài khoản đang đăng nhập
 │   ├── types/              # Định nghĩa kiểu dữ liệu TypeScript
 │   ├── utils/              # Các hàm tiện ích (âm thanh, thông báo, lưu trữ, cấp bậc)
 │   ├── App.tsx             # Thành phần gốc điều hướng giao diện
 │   ├── index.css           # Cấu hình giao diện và hiệu ứng kính
 │   └── main.tsx            # Điểm khởi động ứng dụng
-├── tests/                  # Bộ bài kiểm thử tự động
+├── docs/                   # Tài liệu thiết kế & bảo mật
+├── tests/                  # Bộ bài kiểm thử tự động (114 bài)
 └── package.json            # Thông tin dự án và danh sách thư viện
 ```
 
