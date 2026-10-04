@@ -542,6 +542,26 @@ Payload chỉ chứa trường cấm thì trả `400`; câu hỏi không tồn t
 
 ---
 
+## 25. Không có trần kết nối, khung WebSocket quá rộng
+
+**Mức độ:** Trung bình · **Vị trí:** `GET /api/events`, WebSocket `/ws`
+
+Cả hai kênh giữ kết nối mở và không giới hạn số lượng. Mỗi kết nối SSE chiếm một
+socket và một `setInterval` nhịp tim, nên một vòng lặp mở kết nối là đủ làm cạn tài
+nguyên. Ngoài ra `new WebSocketServer({ noServer: true })` không đặt `maxPayload`,
+tức dùng mặc định của thư viện `ws` — **100 MiB cho mỗi khung**, trong khi payload
+lớn nhất ứng dụng thực sự cần chỉ vài chục KB.
+
+**Đã vá:**
+
+| Giới hạn | Giá trị |
+|---|---|
+| Kết nối SSE đồng thời | 300 (vượt thì `503`) |
+| Kết nối WebSocket đồng thời | 300 (vượt thì gửi `SERVER_FULL` rồi đóng) |
+| Kích thước khung WebSocket | 256 KiB (vượt thì đóng kết nối) |
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -570,6 +590,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 35 bài, chạy trên server thật
-npm test                                        # toàn bộ 131 bài
+node --test tests/security-hardening.test.mjs   # 36 bài, chạy trên server thật
+npm test                                        # toàn bộ 132 bài
 ```
