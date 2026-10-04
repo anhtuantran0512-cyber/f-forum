@@ -28,6 +28,8 @@ import { NotificationsModal } from './NotificationsModal';
 import { SettingsModal } from './SettingsModal';
 import { safeStorage } from '../utils/storage';
 import { DailyEngagementModal } from './DailyEngagementModal';
+import { ScrollProgressRail } from './ScrollProgressRail';
+import { spawnRipple } from '../utils/ripple';
 
 export interface NavbarProps {
   currentView: DimensionView;
@@ -798,6 +800,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Lớp aura chuyển động rất nhẹ, nằm SAU nội dung nên không đè chữ nào */}
           <span className="ff-nav-aura" aria-hidden="true" />
 
+          {/* Vạch tiến trình cuộn bám mép thanh — tự đổi cạnh theo vị trí dock. */}
+          <ScrollProgressRail position={navbarPosition} />
+
           {/* Lớp "đang tải" khi thanh điều hướng đổi hình dáng: nội dung thật
               được giữ nguyên vị trí và hạ mờ thành bóng, phủ thêm một vệt sáng
               quét ngang. Nhờ giữ nguyên nội dung nên bố cục luôn khớp 100% và
@@ -859,7 +864,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                     ref={(el) => {
                       tabRefs.current[item.id] = el;
                     }}
-                    onClick={() => onViewChange(item.id)}
+                    onClick={(event) => {
+                      /* Gợn sóng toả từ đúng điểm bấm, chỉ là hiệu ứng nên
+                         không được chặn việc chuyển trang nếu nó lỗi. */
+                      try {
+                        spawnRipple(event.currentTarget, event);
+                      } catch {
+                        /* bỏ qua */
+                      }
+                      onViewChange(item.id);
+                    }}
                     aria-label={item.label}
                     aria-current={isActive ? 'page' : undefined}
                     data-icon-only={item.iconOnly ? 'true' : 'false'}

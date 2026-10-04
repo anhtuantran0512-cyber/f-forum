@@ -309,18 +309,50 @@ function flushPendingSave() {
   }
 }
 
-let shutdownHooksInstalled = false;
+/**
+  Các handler ghi-dữ-liệu-khi-tắt đang gắn trên `process`.
+
+  Phải lưu trên `globalThis` chứ không phải biến cấp module: Vite reload module
+  server mỗi lần tệp thay đổi, nên biến cấp module bị đặt lại và mỗi lần reload
+  lại cộng thêm một bộ handler mới. Kết quả实测 là cảnh báo
+  `MaxListenersExceededWarning: 11 SIGTERM listeners added` sau vài lần restart.
+
+  Nguy hiểm hơn việc tràn listener: handler của module CŨ vẫn giữ closure trỏ tới
+  `store` của module cũ, nên nếu chúng chạy thì sẽ ghi đè tệp dữ liệu bằng bản
+  đã lỗi thời. Vì vậy phải GỠ bộ cũ trước khi gắn bộ mới.
+*/
+const SHUTDOWN_HOOKS_KEY = Symbol.for('fforum.shutdownHooks');
+type ShutdownHooks = {
+  signals: Array<{ signal: NodeJS.Signals; handler: () => void }>;
+  exit: () => void;
+};
+
 function installShutdownFlush() {
-  if (shutdownHooksInstalled) return;
-  shutdownHooksInstalled = true;
+  const globalRef = globalThis as unknown as Record<symbol, ShutdownHooks | undefined>;
+
+  /* Gỡ bộ handler của lần nạp module trước, nếu có. */
+  const previous = globalRef[SHUTDOWN_HOOKS_KEY];
+  if (previous) {
+    for (const { signal, handler } of previous.signals) {
+      process.removeListener(signal, handler);
+    }
+    process.removeListener('exit', previous.exit);
+  }
+
+  const signals: ShutdownHooks['signals'] = [];
   for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP'] as const) {
-    process.on(signal, () => {
+    const handler = () => {
       flushPendingSave();
       process.exit(0);
-    });
+    };
+    process.on(signal, handler);
+    signals.push({ signal, handler });
   }
   /* `exit` không chạy được code bất đồng bộ, nhưng ghi ở đây là đồng bộ. */
-  process.on('exit', flushPendingSave);
+  const exitHandler = () => flushPendingSave();
+  process.on('exit', exitHandler);
+
+  globalRef[SHUTDOWN_HOOKS_KEY] = { signals, exit: exitHandler };
 }
 
 export { flushStoreToDisk, flushPendingSave };

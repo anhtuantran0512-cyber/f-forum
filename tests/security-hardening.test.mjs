@@ -2267,9 +2267,15 @@ test('43. Tắt tiến trình phải ghi nốt thay đổi đang chờ — khôn
       `phải ghi nốt khi nhận ${signal}`
     );
   }
+  /* Bản hiện tại bọc trong một handler đặt tên để còn gỡ được khi reload
+     module — chỉ cần khẳng định có gắn vào sự kiện 'exit' và nó gọi flush. */
   assert.ok(
-    /process\.on\('exit', flushPendingSave\)/.test(server),
+    /process\.on\('exit',\s*exitHandler\)/.test(server),
     "phải ghi nốt ở sự kiện 'exit'"
+  );
+  assert.ok(
+    /const exitHandler = \(\) => flushPendingSave\(\)/.test(server),
+    "handler sự kiện 'exit' phải gọi flushPendingSave"
   );
 
   /* flushPendingSave chỉ ghi khi thực sự có lần ghi đang chờ. */
@@ -2457,4 +2463,38 @@ test('48. clientIpOf chỉ tin X-Forwarded-For khi khai báo đứng sau proxy',
     if (saved === undefined) delete process.env.FFORUM_TRUST_PROXY;
     else process.env.FFORUM_TRUST_PROXY = saved;
   }
+});
+
+test('49. Nạp lại module server không được cộng dồn listener tín hiệu tắt', () => {
+  const server = fs.readFileSync(path.resolve('server/forumServer.ts'), 'utf8');
+
+  /*
+    installShutdownFlush từng dùng cờ `shutdownHooksInstalled` ở CẤP MODULE để chỉ
+    cài một lần. Nhưng Vite reload module server mỗi lần tệp thay đổi, nên biến đó
+    bị đặt lại và mỗi lần reload cộng thêm một bộ handler mới.
+
+    Repro (nạp module 6 lần qua query string khác nhau để Node tạo instance mới):
+      trước khi sửa: SIGTERM = 1, 2, 3, 4, 5, 6
+      sau khi sửa:   SIGTERM = 1, 1, 1, 1, 1, 1
+
+    Nguy hiểm hơn việc tràn listener: handler của module CŨ vẫn giữ closure trỏ tới
+    `store` của module cũ, nên nếu chúng chạy sẽ ghi đè tệp dữ liệu bằng bản đã
+    lỗi thời.
+  */
+  assert.ok(
+    server.includes("Symbol.for('fforum.shutdownHooks')"),
+    'phải lưu trạng thái handler trên globalThis để sống sót qua reload module'
+  );
+  const installAt = server.indexOf('function installShutdownFlush()');
+  assert.ok(installAt > 0, 'phải có installShutdownFlush');
+  const body = server.slice(installAt, installAt + 1600);
+
+  assert.ok(
+    body.includes('removeListener'),
+    'phải GỠ bộ handler của lần nạp module trước khi gắn bộ mới'
+  );
+  assert.ok(
+    !/let shutdownHooksInstalled/.test(server),
+    'không được dùng cờ cấp module để chặn cài lặp — nó bị reset khi reload'
+  );
 });

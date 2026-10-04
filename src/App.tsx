@@ -4,6 +4,8 @@ import { lazyWithRetry } from './utils/lazyWithRetry';
 import { installInteractionWatchdog } from './utils/interactionWatchdog';
 import { useForumStore } from './store/forumStore';
 import { Navbar } from './components/Navbar';
+import { ScrollToTopDock } from './components/ScrollToTopDock';
+import { CelebrationBurst } from './components/CelebrationBurst';
 import { HomeView } from './components/views/HomeView';
 import { GlobalCursor } from './components/GlobalCursor';
 import {
@@ -168,6 +170,17 @@ export const App: React.FC = () => {
   } = useForumStore();
 
   const [isResourceLoading, setIsResourceLoading] = useState(true);
+
+  /* Vị trí dock điều hướng — nút "lên đầu trang" phải tránh đè lên thanh.
+     Đọc qua safeStorage theo đúng quy ước dự án, không đụng localStorage thô. */
+  const [navbarAtBottom, setNavbarAtBottom] = useState<boolean>(
+    () => safeStorage.getItem('fforum_navbar_pos') === 'bottom',
+  );
+
+  /* Hiệu ứng ăn mừng: `celebrationTick` tăng lên mỗi lần cần bắn hoa giấy. */
+  const [celebrationTick, setCelebrationTick] = useState(0);
+  const [celebrationText, setCelebrationText] = useState<string | undefined>(undefined);
+  const lastCelebratedRef = useRef<string | null>(null);
   const [isFocusModeOpen, setIsFocusModeOpen] = useState(false);
   const [profileInitialTab, setProfileInitialTab] = useState<'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit'>('overview');
   const [targetProfileUser, setTargetProfileUser] = useState<User | null>(null);
@@ -691,6 +704,31 @@ export const App: React.FC = () => {
     );
   }, [activeGodray, godrayIntensity]);
 
+  /* Navbar phát sự kiện khi người dùng đổi vị trí dock. */
+  useEffect(() => {
+    const onPosChange = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      setNavbarAtBottom(detail === 'bottom');
+    };
+    window.addEventListener('fforum_navbar_pos_change', onPosChange);
+    return () => window.removeEventListener('fforum_navbar_pos_change', onPosChange);
+  }, []);
+
+  /*
+    Mọi mốc thành tích (lên cấp, đạt danh hiệu…) đều đi qua toast có
+    `type === 'level'`, nên móc hiệu ứng ăn mừng vào đó thay vì sửa năm chỗ
+    phát toast trong store. `lastCelebratedRef` chặn bắn lặp khi cùng một toast
+    được render lại.
+  */
+  useEffect(() => {
+    if (!toastMessage || toastMessage.type !== 'level') return;
+    const key = `${toastMessage.title}|${toastMessage.subtitle ?? ''}`;
+    if (lastCelebratedRef.current === key) return;
+    lastCelebratedRef.current = key;
+    setCelebrationText(toastMessage.title);
+    setCelebrationTick((n) => n + 1);
+  }, [toastMessage]);
+
   return (
     <AuthProvider currentUser={currentUser}>
       {/* Global Radiant Cursor (Active across entire app on pointer devices) */}
@@ -983,6 +1021,9 @@ export const App: React.FC = () => {
           commands={paletteCommands}
         />
 
+        {/* Nút cuộn về đầu trang, viền là vòng tiến trình đọc bài. */}
+        <ScrollToTopDock navbarAtBottom={navbarAtBottom} />
+
         <QuickNotesDock
           isOpen={isNotesOpen}
           onClose={() => setIsNotesOpen(false)}
@@ -1060,6 +1101,9 @@ export const App: React.FC = () => {
           />
         )}
       </Suspense>
+
+      {/* Hoa giấy ăn mừng khi lên cấp hoặc đạt mốc thành tích. */}
+      <CelebrationBurst trigger={celebrationTick} tone="gold" headline={celebrationText} />
 
       {/* CodeFronts .la-08 Healthcare Appointment & Resource Loading Animation */}
       {isResourceLoading && (
