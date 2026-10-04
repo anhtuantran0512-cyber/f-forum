@@ -14,6 +14,7 @@
 
 import { spawn } from 'node:child_process';
 import http from 'node:http';
+import https from 'node:https';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -144,13 +145,56 @@ function isPortActive(port) {
   });
 }
 
+/**
+ * Dò IP công khai của máy đang chạy tunnel.
+ *
+ * LocalTunnel hiện một trang chặn bắt người xem gõ IP công khai của máy chủ.
+ * Banner trước đây in cứng một địa chỉ: đổi mạng (4G, quán cà phê, nhà khác)
+ * là dòng hướng dẫn đó SAI, người được chia sẻ link gõ theo sẽ bị chặn và không
+ * hiểu vì sao. Nay dò động; dò không được thì nói rõ thay vì đưa số sai.
+ */
+function detectPublicIp(timeoutMs = 2500) {
+  const services = [
+    { url: 'https://api.ipify.org', parse: (body) => body.trim() },
+    { url: 'https://ifconfig.me/ip', parse: (body) => body.trim() },
+  ];
+
+  const probe = ({ url, parse }) =>
+    new Promise((resolve, reject) => {
+      const req = https.get(url, { headers: { 'User-Agent': 'curl/8' } }, (res) => {
+        let body = '';
+        res.on('data', (chunk) => { body += chunk; });
+        res.on('end', () => {
+          const ip = parse(body);
+          /* Chỉ chấp nhận chuỗi trông giống IPv4/IPv6, tránh in ra trang lỗi HTML. */
+          if (/^[0-9a-fA-F:.]+$/.test(ip) && ip.length <= 45) resolve(ip);
+          else reject(new Error('định dạng không hợp lệ'));
+        });
+      });
+      req.on('error', reject);
+      req.setTimeout(timeoutMs, () => {
+        req.destroy();
+        reject(new Error('hết thời gian chờ'));
+      });
+    });
+
+  return services.reduce(
+    (chain, service) => chain.catch(() => probe(service)),
+    Promise.reject(new Error('chưa thử dịch vụ nào')),
+  );
+}
+
 // Format and print terminal status banner
-function printStatusBanner(publicUrl, backupUrl) {
+async function printStatusBanner(publicUrl, backupUrl) {
   console.log('\n' + '='.repeat(68));
   console.log('🚀 FFORUM_BROAMSTUCK_STUDIO IS NOW LIVE PUBLICLY!');
   console.log(`⚡ DIRECT 1-CLICK URL : ${publicUrl} (VÀO THẲNG - 0 PROMPT)`);
   if (backupUrl && backupUrl.includes('loca.lt')) {
-    console.log(`🌐 BRANDED URL        : ${backupUrl} (Yêu cầu IP: 116.105.31.157)`);
+    const ip = await detectPublicIp().catch(() => null);
+    const hint = ip
+      ? `Yêu cầu IP: ${ip}`
+      : 'không dò được IP — xem https://ipv4.icanhazip.com';
+    console.log(`🌐 BRANDED URL        : ${backupUrl} (${hint})`);
   } else {
     console.log(`🌐 BACKUP URL         : ${backupUrl}`);
   }
@@ -410,8 +454,8 @@ async function main() {
       throw new Error('Unable to establish any public tunnel connection.');
     }
 
-    // 3. Print Banner
-    printStatusBanner(directUrl, brandedUrl);
+    // 3. Print Banner (async: chờ dò IP công khai để in đúng hướng dẫn)
+    await printStatusBanner(directUrl, brandedUrl);
 
     // 4. Handle test mode
     if (isTestMode) {
