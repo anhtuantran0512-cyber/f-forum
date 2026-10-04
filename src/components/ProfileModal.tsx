@@ -60,6 +60,7 @@ const writeProfileLikes = (map: ProfileLikesMap): void => {
 };
 import { BookshelfPanel } from './BookshelfPanel';
 import { TierRankSheet } from './TierRankSheet';
+import { useEscapeKey } from '../utils/useEscapeKey';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -255,6 +256,12 @@ const ProfileModalInner: React.FC<{
   solutions = [],
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+
+  /* Hộp thoại này khai báo aria-modal="true" nhưng trước đây không có đường
+     thoát bằng phím: screen reader coi phần còn lại của trang là không tồn tại,
+     nên người dùng bàn phím bị kẹt trong hộp thoại. */
+  useEscapeKey(onClose);
+
   const [shopFilter, setShopFilter] = useState<'all' | ShopTierColor>('all');
   const [activitySubTab, setActivitySubTab] = useState<'questions' | 'solutions'>('solutions');
   const [selectedStatNote, setSelectedStatNote] = useState<string | null>(null);
