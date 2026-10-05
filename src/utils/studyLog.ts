@@ -5,8 +5,8 @@ import { safeStorage } from './storage';
    Nhật ký giờ học (Study Log)
    --------------------------------------------------------------------------
    Nguồn dữ liệu THẬT cho bảng xếp hạng giờ học:
-   • Mỗi phiên Học 25 phút trong Phòng Tập Trung (Pomodoro) được ghi tự động.
-   • Phiên bị dừng giữa đường vẫn ghi số phút đã học thật (từ 5 phút trở lên).
+   • Đồng hồ tự do ở Phòng Tập Trung ghi số phút thực tế khi người học dừng phiên.
+   • Không cần hoàn thành 25 phút; mọi phiên đạt ít nhất 1 phút đều được ghi.
    Dữ liệu lưu cục bộ trên trình duyệt, đồng bộ giữa các tab qua CustomEvent.
    ========================================================================== */
 

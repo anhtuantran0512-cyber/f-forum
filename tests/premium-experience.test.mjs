@@ -265,7 +265,7 @@ test('14. Brand lockup: huy hiệu F + chữ vàng tĩnh, hết aurora loè/méo
   assert.ok(!navbar.includes('drop-shadow-[0_2px_12px_rgba(245,158,11,0.3)]'), 'The heavy blurred drop-shadow must be gone');
   assert.ok(css.includes('.ff-nav-brand-title'), 'A dedicated, legible wordmark style must exist');
   assert.ok(css.includes('@keyframes ffBrandSweep'), 'The wordmark keeps a subtle specular sweep');
-  assert.ok(css.includes('html.light .ff-nav-brand-title'), 'Light mode needs a darker gold gradient for contrast');
+  assert.ok(css.includes('html.light .ff-nav-brand-title'), 'Light-mode tinted glass needs a luminous gold wordmark');
   assert.ok(css.includes('.ff-nav-logo__core'), 'The F monogram core must be styled as a crisp badge');
 });
 

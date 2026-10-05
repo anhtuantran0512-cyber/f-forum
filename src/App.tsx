@@ -132,6 +132,7 @@ export const App: React.FC = () => {
     loginSocial,
     logout,
     addXP,
+    addCoins,
     updateProfile,
     clubs,
     clubPosts,
@@ -359,13 +360,12 @@ export const App: React.FC = () => {
     setReadyView(view);
   }, []);
 
-  /* Phiên Pomodoro hoàn thành: cộng XP đúng tài khoản đang đăng nhập.
-     (addXP(amount) không kèm email sẽ bị bỏ qua với người dùng thường.) */
-  const handleFocusReward = useCallback(
-    (amount: number) => {
-      if (currentUser) addXP(amount, currentUser.email);
+  /* Mốc học thưởng Coin thuần cho đúng chủ phiên; không cộng XP/FPoints. */
+  const handleFocusCoinReward = useCallback(
+    (amount: number, ownerEmail: string) => {
+      addCoins(amount, ownerEmail);
     },
-    [addXP, currentUser],
+    [addCoins],
   );
 
   /* Hướng trượt khi đổi phân khu (lướt như lật trang) */
@@ -691,7 +691,8 @@ export const App: React.FC = () => {
       <GlobalCursor />
 
       <div
-        className={`relative w-full ${
+        data-view={currentView}
+        className={`ff-app-shell relative w-full ${
           isScrollableView ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'
         } ${currentView === 'landing' ? 'bg-[var(--ff-bg)]' : 'bg-black'} text-white font-sans`}
       >
@@ -729,7 +730,7 @@ export const App: React.FC = () => {
           onOpenFocusMode={() => setIsFocusModeOpen(true)}
           isInsideCinema={isInsideCinema}
           onRewardCoins={(amount) => {
-            if (currentUser) addXP(amount, currentUser.email);
+            if (currentUser) addCoins(amount, currentUser.email);
           }}
           onUpdateStreak={(streak) => {
             if (currentUser && (currentUser.streakCount ?? 0) !== streak) {
@@ -954,15 +955,14 @@ export const App: React.FC = () => {
           isOpen={isFocusModeOpen}
           onClose={() => setIsFocusModeOpen(false)}
           userEmail={currentUser?.email}
-          onRewardXP={handleFocusReward}
         />
       </Suspense>
 
-      {/* Người giữ nhịp Phòng Tập Trung: đếm theo thời gian thật ở cấp App,
-          ghi giờ học + XP kể cả khi HUD đã đóng, kèm chip đếm ngược nổi. */}
+      {/* Người giữ nhịp stopwatch ở cấp App: ghi phút thực tế + thưởng mốc Coin
+          kể cả khi HUD đã đóng; không cộng XP/FPoints từ phần thưởng này. */}
       <FocusSessionWatcher
         userEmail={currentUser?.email}
-        onRewardXP={handleFocusReward}
+        onRewardCoins={handleFocusCoinReward}
         isHudOpen={isFocusModeOpen}
         onOpenHud={() => setIsFocusModeOpen(true)}
       />

@@ -38,6 +38,25 @@ test('1. Navbar Architecture & Notification Center Isolation', () => {
   );
 });
 
+test('1a. Navbar expands on tablet and desktop instead of being locked compact', () => {
+  const navbarContent = fs.readFileSync(path.resolve('src/components/Navbar.tsx'), 'utf8');
+
+  assert.ok(
+    navbarContent.includes('window.innerWidth < 768') && !navbarContent.includes('window.innerWidth < 1024'),
+    'Only the mobile breakpoint should lock the desktop capsule into compact mode'
+  );
+  assert.ok(
+    navbarContent.includes('onPointerEnter={forceExpand}') &&
+      navbarContent.includes('if (!alwaysCompact) forceExpand();') &&
+      navbarContent.includes('onFocusCapture={() => {'),
+    'Pointer, click/touch, and keyboard focus should all be able to expand the capsule'
+  );
+  assert.ok(
+    navbarContent.includes('else if (!alwaysCompact && !anyPopoverOpenRef.current) {\n        setIsCompact(false);'),
+    'Resizing back into the desktop breakpoint should automatically expand the navbar'
+  );
+});
+
 test('2. Wheel-Scroll Transition Controller & Pipeline Logic', () => {
   const appContent = fs.readFileSync(path.resolve('src/App.tsx'), 'utf8');
 

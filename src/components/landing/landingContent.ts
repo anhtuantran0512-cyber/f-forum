@@ -90,7 +90,7 @@ export const FEATURES: {
     id: 'focus',
     title: 'Focus Sanctuary',
     description:
-      'Pomodoro tích hợp cùng âm thanh môi trường tổng hợp 432Hz (mưa, sóng biển, thư viện) — không tải tệp nặng, không làm gián đoạn dòng tập trung.',
+      'Đồng hồ học tự do, các mốc mục tiêu 25 / 60 / 120 phút và âm thanh môi trường 432Hz (mưa, sóng biển, thư viện) — không tải tệp nặng, không làm gián đoạn dòng tập trung.',
     icon: Headphones,
     accent: 'emerald',
     span: 'md',
@@ -150,7 +150,7 @@ export const SHOWCASE_STEPS: {
     description:
       'Bật Focus Sanctuary để học sâu, tích Coin mỗi ngày và leo bảng vinh danh. Hồ sơ năng lực của bạn được xây dựng theo cách tự nhiên nhất.',
     icon: Target,
-    points: ['Pomodoro + âm thanh tập trung', 'Chuỗi ngày & phần thưởng Coin', '8 danh hiệu học sinh vinh danh'],
+    points: ['Đồng hồ học tự do + âm thanh tập trung', 'Mốc học ngày & phần thưởng Coin', '8 danh hiệu học sinh vinh danh'],
   },
 ];
 
@@ -246,7 +246,7 @@ export const HIGHLIGHTS: {
     id: 'h4',
     tag: 'Tập trung',
     title: 'Focus Sanctuary 432Hz và nhật ký giờ học',
-    body: 'Pomodoro kèm âm thanh thư giãn; mỗi phiên hoàn thành được ghi thẳng vào nhật ký giờ học theo ngày, tuần, tháng.',
+    body: 'Đồng hồ học tự do kèm âm thanh thư giãn; dừng bất cứ lúc nào để ghi phút học thật vào nhật ký theo ngày, tuần, tháng.',
     icon: 'focus',
     from: '#a855f7',
     to: '#6366f1',
