@@ -96,7 +96,7 @@ interface QAForumViewProps {
   chatMessages?: ChatMessage[];
   /** False while the first server sync is in flight → show shimmer skeletons. */
   isSynced?: boolean;
-  /** Mở Phòng Tập Trung (Pomodoro) từ widget xếp hạng giờ học. */
+  /** Mở Phòng Tập Trung với đồng hồ học tự do. */
   onOpenFocusMode?: () => void;
 }
 

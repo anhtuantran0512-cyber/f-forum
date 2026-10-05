@@ -70,7 +70,7 @@ export const StudyHoursDetail: React.FC<StudyHoursDetailProps> = ({ sessions, on
       id: 'longest',
       label: 'Phiên dài nhất',
       value: formatDuration(stats.longestSessionMinutes),
-      hint: 'mỗi phiên tối đa 25 phút',
+      hint: 'đồng hồ dừng tự do',
       icon: <Timer className="w-3.5 h-3.5" />,
       tone: 'text-sky-300',
     },
@@ -149,7 +149,7 @@ export const StudyHoursDetail: React.FC<StudyHoursDetailProps> = ({ sessions, on
             ))}
           </ul>
           <p className="ff-hours__note">
-            Nhật ký chỉ ghi tự động từ phiên Pomodoro — nút thùng rác dùng khi phiên bị ghi nhầm.
+            Nhật ký ghi phút học thật từ đồng hồ Phòng Tập Trung — nút thùng rác dùng khi phiên bị ghi nhầm.
           </p>
         </div>
       ) : (
@@ -158,7 +158,7 @@ export const StudyHoursDetail: React.FC<StudyHoursDetailProps> = ({ sessions, on
           <p>Chưa có phiên học nào trong nhật ký.</p>
           {onOpenFocusMode && (
             <button type="button" onClick={onOpenFocusMode} className="ff-hours__cta">
-              Bắt đầu phiên 25 phút đầu tiên
+              Bắt đầu đồng hồ học tự do
             </button>
           )}
         </div>

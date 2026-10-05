@@ -776,3 +776,16 @@ test('Vòng 9 — nhịp gửi tin mới, không khoá ô nhập, đã xoá nộ
     assert.ok(!chatDock.includes(gone), `ChatDock must no longer contain "${gone}"`);
   }
 });
+
+test('Khu Vinh Danh uses the requested Hall of frame title', () => {
+  const source = fs.readFileSync(path.resolve('src/components/views/KhuVinhDanhView.tsx'), 'utf8');
+  const headingId = source.indexOf('id="headline"');
+  const headingStart = source.lastIndexOf('<h1', headingId);
+  const headingEnd = source.indexOf('</h1>', headingId);
+  assert.ok(headingId >= 0 && headingStart >= 0 && headingEnd > headingId, 'Khu Vinh Danh headline must exist');
+
+  const heading = source.slice(headingStart, headingEnd);
+  assert.ok(heading.includes('>Hall</span>') && heading.includes('>of</span>') && heading.includes('>frame</span>'));
+  assert.ok(!heading.includes('BroAmStuck') && !heading.includes('Trần'), 'Old studio/founder headline must be removed');
+  assert.ok(source.includes("headline: 'Hall of frame'"), 'Saved About headline must match the visible title');
+});

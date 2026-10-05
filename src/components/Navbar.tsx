@@ -163,10 +163,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   const anyPopoverOpenRef = useRef(anyPopoverOpen);
   anyPopoverOpenRef.current = anyPopoverOpen;
 
-  /* Màn hẹp (< 1024px): thanh luôn ở chế độ icon để không phải cuộn và
-     không bao giờ bị mất tab/icon khi cửa sổ nhỏ lại. */
+  /* Đồng bộ với breakpoint md của thanh mobile: chỉ dưới 768px mới khóa ở dạng icon.
+     Tablet/cửa sổ 768–1023px vẫn được phép mở rộng bằng hover, focus hoặc scroll lên. */
   const isNarrowViewport = () =>
-    typeof window !== 'undefined' && window.innerWidth < 1024;
+    typeof window !== 'undefined' && window.innerWidth < 768;
 
   const forceExpand = useCallback(() => {
     if (compactTimerRef.current) {
@@ -231,6 +231,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   /* Cửa sổ nhỏ lại → tự chuyển sang chế độ icon ngay, tránh tràn/mất tab */
   useEffect(() => {
     const onResize = () => {
+      if (compactTimerRef.current) {
+        clearTimeout(compactTimerRef.current);
+        compactTimerRef.current = null;
+      }
       if (isNarrowViewport()) {
         setIsCompact(true);
       } else if (!alwaysCompact && !anyPopoverOpenRef.current) {
@@ -239,7 +243,13 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
     onResize();
     window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      if (compactTimerRef.current) {
+        clearTimeout(compactTimerRef.current);
+        compactTimerRef.current = null;
+      }
+    };
   }, [alwaysCompact]);
 
   /* Khi đổi vị trí dock (trên/dưới/trái/phải): chạy hoạt ảnh morph để việc
@@ -485,6 +495,10 @@ export const Navbar: React.FC<NavbarProps> = ({
       window.removeEventListener('fforum_open_settings', handleOpenSettings);
     };
   }, []);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--glass-blur', `${Math.max(0, Math.min(40, glassBlur))}px`);
+  }, [glassBlur]);
 
   useEffect(() => {
     if (theme === 'light') {
@@ -784,7 +798,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           data-compact={effectiveCompact && !isVertical ? 'true' : 'false'}
           data-morph={isMorphBusy ? 'loading' : 'ready'}
           onPointerEnter={forceExpand}
-          onPointerDownCapture={cancelMorphLoading}
+          onPointerDownCapture={() => {
+            cancelMorphLoading();
+            if (!alwaysCompact) forceExpand();
+          }}
           onFocusCapture={() => {
             forceExpand();
             cancelMorphLoading();
@@ -1097,7 +1114,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* ======================================================== */}
       {/* 2. MOBILE TOP HEADER BAR (Viewports < 768px)             */}
       {/* ======================================================== */}
-      <header className="md:hidden fixed top-0 inset-x-0 z-40 h-[calc(54px+var(--safe-top))] pt-[var(--safe-top)] liquid-glass border-b border-white/10 px-4 flex items-center justify-between pointer-events-auto select-none">
+      <header className="ff-mobile-header md:hidden fixed top-0 inset-x-0 z-40 h-[calc(54px+var(--safe-top))] pt-[var(--safe-top)] liquid-glass border-b border-white/10 px-4 flex items-center justify-between pointer-events-auto select-none">
         {/* Left: Brand Logo */}
         <button
           type="button"
@@ -1236,7 +1253,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* ======================================================== */}
       {/* 3. MOBILE BOTTOM NAVIGATION DOCK (Viewports < 768px)     */}
       {/* ======================================================== */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 h-[calc(56px+var(--safe-bottom))] pb-[var(--safe-bottom)] liquid-glass border-t border-white/10 px-2 flex items-center justify-around pointer-events-auto select-none">
+      <nav className="ff-mobile-tabbar md:hidden fixed bottom-0 inset-x-0 z-40 h-[calc(56px+var(--safe-bottom))] pb-[var(--safe-bottom)] liquid-glass border-t border-white/10 px-2 flex items-center justify-around pointer-events-auto select-none">
         {/* Tab 1: Trang Chủ */}
         <button
           type="button"

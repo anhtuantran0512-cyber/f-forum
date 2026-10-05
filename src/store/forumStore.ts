@@ -1276,6 +1276,46 @@ export function useForumStore() {
     });
   };
 
+  /** Cộng Coin thuần, không làm thay đổi XP / FPoints / cấp độ. */
+  const addCoins = (amount: number, targetUserEmail?: string) => {
+    const safeAmount = Math.floor(amount);
+    if (!Number.isFinite(safeAmount) || safeAmount <= 0) return;
+    if (!currentUser && !targetUserEmail) return;
+
+    const emailToCredit = (targetUserEmail || currentUser?.email || '').trim().toLowerCase();
+    if (!emailToCredit) return;
+
+    setUsers(prev => {
+      const targetUser = prev[emailToCredit];
+      if (!targetUser) return prev;
+
+      const currentCoins = Number.isFinite(targetUser.coin) ? Math.max(0, targetUser.coin ?? 0) : 100;
+      const updated = { ...targetUser, coin: currentCoins + safeAmount };
+
+      if (currentUserRef.current?.email.toLowerCase() === emailToCredit) {
+        setCurrentUser(current =>
+          current && current.email.toLowerCase() === emailToCredit
+            ? { ...current, coin: updated.coin }
+            : current,
+        );
+      }
+
+      fetch('/api/users/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailToCredit, updates: { coin: updated.coin } }),
+      }).catch(() => {});
+
+      try {
+        syncBroadcastChannel?.postMessage({ type: 'SYNC_USER', payload: updated });
+      } catch {
+        /* ignore */
+      }
+
+      return { ...prev, [emailToCredit]: updated };
+    });
+  };
+
   const updateProfile = (updates: Partial<User>) => {
     if (!currentUser) return;
     const emailKey = currentUser.email.toLowerCase();
@@ -1989,6 +2029,7 @@ export function useForumStore() {
     loginSocial,
     logout,
     addXP,
+    addCoins,
     updateProfile,
     clubs,
     clubPosts,
