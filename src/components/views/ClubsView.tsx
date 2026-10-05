@@ -233,7 +233,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   };
 
   return (
-    <section className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8`}>
+    <section className={`ff-mobile-viewport-screen ff-mobile-workspace relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8`}>
       {/* Background Video Engine */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         <video

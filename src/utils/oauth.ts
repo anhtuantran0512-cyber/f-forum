@@ -1,5 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 export interface SocialUserProfile {
+  accessToken: string;
   name: string;
   email: string;
   avatar?: string;
@@ -243,26 +244,13 @@ export async function loginWithGooglePopup(): Promise<SocialUserProfile> {
             return;
           }
 
-          try {
-            const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-              headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-            });
-            if (!res.ok) {
-              throw new Error('Không thể lấy thông tin tài khoản từ Google API');
-            }
-            const profile = await res.json();
-            if (!profile?.email) {
-              reject(new Error('Tài khoản Google không cung cấp địa chỉ email'));
-              return;
-            }
-            resolve({
-              name: profile.name || profile.given_name || 'Google User',
-              email: String(profile.email).toLowerCase(),
-              avatar: profile.picture,
-            });
-          } catch (err) {
-            reject(err);
-          }
+          // The server verifies the access token directly with Google and derives
+          // the account identity there; browser-supplied profile fields are not trusted.
+          resolve({
+            accessToken: String(tokenResponse.access_token),
+            name: '',
+            email: '',
+          });
         },
         error_callback: (err: any) => {
           if (err?.type === 'popup_closed' || err?.type === 'popup_closed_by_user') {
@@ -298,22 +286,10 @@ export async function loginWithFacebookPopup(): Promise<SocialUserProfile> {
     try {
       window.FB.login(
         (response: any) => {
-          if (response?.authResponse) {
-            window.FB.api(
-              '/me',
-              { fields: 'id,name,email,picture.width(200).height(200)' },
-              (profile: any) => {
-                if (profile && !profile.error) {
-                  const fallbackEmail = `${profile.id || Date.now()}@facebook.user`;
-                  const email = String(profile.email || fallbackEmail).toLowerCase();
-                  const name = profile.name || 'Facebook User';
-                  const avatar = profile.picture?.data?.url;
-                  resolve({ name, email, avatar });
-                } else {
-                  reject(new Error(profile?.error?.message || 'Không thể lấy dữ liệu người dùng từ Facebook'));
-                }
-              }
-            );
+          const accessToken = response?.authResponse?.accessToken;
+          if (typeof accessToken === 'string' && accessToken.length > 0) {
+            // The server validates this token with Facebook and obtains the profile.
+            resolve({ accessToken, name: '', email: '' });
           } else {
             reject(new Error('POPUP_CLOSED'));
           }

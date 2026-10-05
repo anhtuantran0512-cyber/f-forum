@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
+import ts from 'typescript';
 
 const read = (rel) => fs.readFileSync(path.resolve(rel), 'utf8');
 
@@ -97,12 +99,17 @@ test('5. Bảng nhịp học tập (cnc-21) — nhịp đập và vệt quét su
   assert.ok(pulse.includes("data-z=\"1\"") && pulse.includes('ff-pulse__marker'), 'Four-zone progress track + marker must exist');
   assert.ok(
     !pulse.includes('ff-pulse__log') && !pulse.includes('onLogMinutes'),
-    'Manual quick-log buttons must be gone — hours only come from real Pomodoro sessions',
+    'Manual quick-log buttons must be gone — hours come from real stopwatch sessions',
   );
   assert.ok(pulse.includes('onOpenFocusMode'), 'Panel must be able to jump into Focus mode');
+  assert.ok(pulse.includes('Vào Phòng Tập Trung để ghi giờ'), 'Panel must point users at the Focus room');
   assert.ok(
-    pulse.includes('Vào Phòng Tập Trung để ghi giờ') && pulse.includes('không cần bấm gì thêm'),
-    'Panel must point users at the Focus room and explain that logging is automatic',
+    pulse.includes('đồng hồ tự do') && pulse.includes('từ 1 phút học thật'),
+    'Panel must explain that any real study session can be stopped and logged',
+  );
+  assert.ok(
+    pulse.includes('+25, +35, +60 Coin') && pulse.includes('120 Coin/ngày'),
+    'Study goal rewards must be visible and capped daily',
   );
   assert.ok(pulse.includes('weeklyGoalMinutes') && pulse.includes('dailyTargetMinutes'), 'Panel must read the goal + target settings');
 
@@ -197,56 +204,130 @@ test('8. Cuộn chuột & màn hình chờ được nối vào App', () => {
   );
 });
 
-test('9. Phòng Tập Trung — phiên học là mốc thời gian thật, sống ngoài HUD', () => {
+test('9. Phòng Tập Trung — stopwatch tự do, không có hạn 25 phút', () => {
   const focus = read('src/components/FocusSanctuary.tsx');
   const session = read('src/utils/focusSession.ts');
 
   assert.ok(session.includes("FOCUS_SESSION_KEY = 'fforum_focus_session'"), 'Session must persist under a stable key');
-  assert.ok(session.includes('endsAt'), 'Session must be defined by a real end timestamp');
-  assert.ok(!session.includes('setInterval('), 'Session utility must not depend on interval ticks');
-  assert.ok(session.includes('focusRemainingLabel') && session.includes('focusElapsedMinutes'), 'Shared time helpers must exist');
-  assert.ok(session.includes('subscribeFocusSession') && session.includes("FOCUS_SYNC_EVENT"), 'Every surface must be able to follow the same session');
-  assert.ok(session.includes('requestFocusStop') && session.includes('FOCUS_STOP_REQUEST_EVENT'), 'Stopping must go through one shared flow');
-  assert.ok(session.includes('FOCUS_STALE_GRACE_MS'), 'Sessions that ended while the app was closed must not be credited blindly');
+  assert.ok(
+    session.includes("mode === 'work'") && session.includes('...(cleanSubject ? { subject: cleanSubject } : {})'),
+    'A work session must remain open-ended while carrying only its optional subject tag',
+  );
+  assert.ok(session.includes('focusClockLabel') && session.includes('focusElapsedMinutes'), 'Shared count-up helpers must exist');
+  assert.ok(session.includes('(now - session.startedAt) / 60_000'), 'Study duration must use real elapsed time');
+  assert.ok(!session.includes('Math.min(now, session.endsAt)'), 'Work duration must not stop at a 25-minute countdown');
+  assert.ok(session.includes('subscribeFocusSession') && session.includes('FOCUS_SYNC_EVENT'), 'Every surface must follow the same session');
+  assert.ok(session.includes('requestFocusStop') && session.includes('FOCUS_STOP_REQUEST_EVENT'), 'Stopping must use one shared flow');
+  assert.ok(session.includes('FOCUS_STALE_GRACE_MS'), 'Timed breaks must still guard stale completion');
 
-  assert.ok(!focus.includes('timeLeft'), 'HUD must not own a decrementing counter anymore');
+  assert.ok(!focus.includes('timeLeft'), 'HUD must not own a decrementing work counter');
   assert.ok(focus.includes('startFocusSession(') && focus.includes('readFocusSession('), 'HUD must drive the shared session');
-  assert.ok(focus.includes('requestFocusStop()'), 'HUD stop button must ask the watcher to settle the session');
-  assert.ok(focus.includes('Đóng cửa sổ này vẫn KHÔNG mất phiên học'), 'HUD must tell the student the session keeps running');
-  assert.ok(focus.includes('Nhật ký giờ học') && focus.includes('sessionsForOwner'), 'HUD must show the real study-hours log of this account');
-  assert.ok(focus.includes('FOCUS_CREDITED_EVENT'), 'HUD must react when a session is credited');
+  assert.ok(
+    focus.includes('STUDY_SUBJECTS.map') && focus.includes('setSelectedSubject(event.target.value)'),
+    'HUD must offer a subject picker and pass its selection into work sessions',
+  );
+  assert.ok(focus.includes('requestFocusStop()'), 'HUD stop button must ask the watcher to record actual minutes');
+  assert.ok(focus.includes('dừng bất cứ lúc nào'), 'HUD must clearly explain free stopping');
+  assert.ok(focus.includes('STUDY_GOAL_REWARD_MILESTONES') && focus.includes('Mục tiêu học tập'), '25/60/120 goals must be visible in the HUD');
+  assert.ok(focus.includes('Nhật ký giờ học') && focus.includes('sessionsForOwner'), 'HUD must show the real study log for the account');
+  assert.ok(focus.includes('FOCUS_CREDITED_EVENT'), 'HUD must refresh when a session is credited');
 });
 
-test('10. FocusSessionWatcher — ghi giờ + XP kể cả khi HUD đã đóng', () => {
+test('10. FocusSessionWatcher — server-timed Coin milestones replace client claims', () => {
   const watcher = read('src/components/FocusSessionWatcher.tsx');
   const app = read('src/App.tsx');
+  const store = read('src/store/forumStore.ts');
+  const server = read('server/forumServer.ts');
 
-  assert.ok(watcher.includes("logStudyMinutes(minutes, 'focus', userEmail)"), 'Completed sessions must be logged for the right account');
-  assert.ok(watcher.includes('onRewardXP?.(minutes)'), 'Completed sessions must still grant XP');
-  assert.ok(watcher.includes('announceFocusCredited'), 'Other surfaces must be told about the credit');
-  assert.ok(watcher.includes('studied >= 5'), 'Stopping early must log the real minutes (from 5 minutes)');
-  assert.ok(watcher.includes('playChime'), 'Completing a block must still ring the chime');
-  assert.ok(watcher.includes('ff-focus-chip'), 'A floating countdown chip must exist for when the HUD is closed');
-  assert.ok(watcher.includes('setInterval'), 'The watcher is the single place allowed to tick');
-  assert.ok(watcher.includes('computeStudyTotals') && watcher.includes('sessionsForOwner'), 'Today total must belong to this account');
+  assert.ok(
+    watcher.includes("logStudyMinutes(studiedMinutes, 'focus', owner || undefined, finished.subject)"),
+    'Stopped sessions must log their owner and selected subject',
+  );
+  assert.ok(watcher.includes('studiedMinutes < 1'), 'There must be no 5- or 25-minute minimum');
+  assert.ok(watcher.includes('onStudySessionStart') && watcher.includes('onStudyHeartbeat') && watcher.includes('onStudySessionStop'));
+  assert.ok(watcher.includes('authenticated heartbeats') && watcher.includes('showServerStudyRewards'));
+  assert.ok(!watcher.includes('claimStudyGoalRewards') && !watcher.includes('onRewardCoins'), 'Client-local claims cannot award Coin');
+  assert.ok(watcher.includes('announceFocusCredited'), 'Other surfaces must be told when time is logged');
+  assert.ok(watcher.includes('ff-focus-chip') && watcher.includes('focusClockLabel'), 'A live stopwatch chip must remain when the HUD is closed');
+  assert.ok(watcher.includes('setInterval') && watcher.includes('computeStudyTotals') && watcher.includes('sessionsForOwner'));
+  assert.ok(!watcher.includes('onRewardXP'), 'Study goals must not grant XP');
 
-  /* Lỗi cũ: App truyền thẳng addXP (chỉ cộng cho admin) → học sinh không nhận được gì */
-  assert.ok(
-    !app.includes('onRewardXP={addXP}'),
-    'App must not pass the raw addXP handler (it silently ignores normal students)',
-  );
-  assert.ok(
-    app.includes('const handleFocusReward = useCallback') && app.includes('addXP(amount, currentUser.email)'),
-    'Focus rewards must credit the logged-in student by email',
-  );
-  assert.ok(
-    app.includes('<FocusSessionWatcher') && app.includes('isHudOpen={isFocusModeOpen}'),
-    'The watcher must be mounted at app level with the HUD state',
-  );
-  assert.ok(
-    app.includes('userEmail={currentUser?.email}'),
-    'The focus surfaces must know whose session is running',
-  );
+  assert.ok(app.includes('startStudyRewardSession') && app.includes('pulseStudyRewardSession') && app.includes('stopStudyRewardSession'));
+  assert.ok(app.includes('onStudyHeartbeat={pulseStudyRewardSession}'), 'Watcher must pulse the authenticated server session');
+  assert.ok(app.includes('userEmail={currentUser?.email}'), 'Focus surfaces must know which account is signed in');
+  assert.ok(store.includes("requestRewardApi('/api/rewards/study/start')"));
+  assert.ok(store.includes("requestRewardApi('/api/rewards/study/pulse', { sessionId })"));
+  assert.ok(store.includes("requestRewardApi('/api/rewards/study/stop', { sessionId })"));
+  assert.ok(!store.includes("fetch('/api/rewards/coin'") && !store.includes('JSON.stringify({ amount: safeAmount })'));
+  assert.ok(server.includes('MAX_STUDY_SESSION_IDLE_MS') && server.includes('accrueServerStudyTime'));
+  assert.ok(server.includes('STUDY_REWARD_MILESTONES') && server.includes('MAX_DAILY_REWARD_COIN_CREDIT'));
+  assert.ok(server.includes("sendJson(res, 410"), 'The legacy amount-based reward route must be disabled');
+});
+
+test('10a. Study reward milestones are display constants, not a localStorage claim ledger', () => {
+  const source = read('src/utils/studyRewards.ts');
+  assert.ok(source.includes('{ minutes: 25, coins: 25 }'));
+  assert.ok(source.includes('{ minutes: 60, coins: 35 }'));
+  assert.ok(source.includes('{ minutes: 120, coins: 60 }'));
+  assert.ok(!source.includes('safeStorage') && !source.includes('claimStudyGoalRewards'));
+  assert.ok(source.includes('MAX_STUDY_GOAL_COINS_PER_DAY = 120'));
+});
+
+test('10c. Stopwatch chạy quá 25 phút và nâng cấp được phiên Pomodoro cũ', () => {
+  const source = read('src/utils/focusSession.ts');
+  const javascript = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const memory = new Map();
+  const module = { exports: {} };
+  vm.runInNewContext(javascript, {
+    module,
+    exports: module.exports,
+    require: (specifier) => {
+      assert.equal(specifier, './storage');
+      return {
+        safeStorage: {
+          getItem: (key) => memory.get(key) ?? null,
+          setItem: (key, value) => memory.set(key, value),
+          removeItem: (key) => memory.delete(key),
+        },
+      };
+    },
+  });
+
+  const { focusClockLabel, focusElapsedMinutes, focusProgressPercent, readFocusSession, startFocusSession } = module.exports;
+  const startedAt = Date.now() - 25 * 60_000;
+  memory.set('fforum_focus_session', JSON.stringify({
+    mode: 'work', startedAt, endsAt: startedAt + 25 * 60_000, plannedMinutes: 25, subject: '  Toán  ',
+  }));
+
+  const upgraded = readFocusSession();
+  assert.equal(upgraded.mode, 'work');
+  assert.equal(upgraded.startedAt, startedAt);
+  assert.equal(upgraded.subject, 'Toán', 'Persisted session subjects must be trimmed and restored');
+  assert.equal(upgraded.endsAt, undefined, 'Legacy work end timestamps must be ignored');
+  assert.equal(focusElapsedMinutes(upgraded, startedAt + 61 * 60_000), 61);
+  assert.equal(focusClockLabel(upgraded, startedAt + 61 * 60_000), '01:01:00');
+  assert.equal(focusProgressPercent(upgraded, startedAt + 60 * 60_000), 50);
+
+  const fresh = startFocusSession('work', 'student@example.test', '  Vật   lý  ');
+  assert.equal(fresh.mode, 'work');
+  assert.equal(fresh.subject, 'Vật lý', 'New sessions must store a normalized optional subject');
+  assert.equal(fresh.endsAt, undefined, 'New stopwatch sessions must not have a fixed end');
+  assert.equal(memory.get('fforum_focus_session_owner'), 'student@example.test');
+});
+
+test('10b. Mọi bảng giờ học cùng mô tả stopwatch và Coin theo mốc', () => {
+  const detail = read('src/components/StudyHoursDetail.tsx');
+  const board = read('src/components/views/LeaderboardWidget.tsx');
+  const tiers = read('src/components/TierRankSheet.tsx');
+  const pulse = read('src/components/StudyPulsePanel.tsx');
+
+  assert.ok(detail.includes('đồng hồ dừng tự do') && detail.includes('Bắt đầu đồng hồ học tự do'));
+  assert.ok(board.includes('đồng hồ tự do') && board.includes('mọi phút thực học được ghi khi dừng'));
+  assert.ok(tiers.includes('+25 / +35 / +60 Coin') && tiers.includes('tối đa 120 Coin học tập/ngày'));
+  assert.ok(pulse.includes('25′, 60′, 120′') && pulse.includes('120 Coin/ngày'));
+  assert.ok(!tiers.includes('Hoàn thành phiên tập trung 25′') && !pulse.includes('Pomodoro 25 phút'));
 });
 
 test('11. Chi tiết giờ học — biểu đồ 7 ngày, thống kê, nhật ký phiên', () => {
@@ -258,8 +339,10 @@ test('11. Chi tiết giờ học — biểu đồ 7 ngày, thống kê, nhật k
   assert.ok(log.includes('sessionsForOwner'), 'Study log must be filterable per account');
   assert.ok(log.includes('removeStudySession') && log.includes('STUDY_SOURCE_LABELS'), 'Removal + source labels must exist');
   assert.ok(log.includes('formatDayLabel') && log.includes('formatClock'), 'Human day/clock labels must exist');
+  assert.ok(log.includes('computeStudySubjectTotals'), 'Study minutes must be groupable by subject');
 
   assert.ok(detail.includes('ff-hours__chart'), 'A 7-day chart must be rendered');
+  assert.ok(detail.includes('ff-hours__subjects') && detail.includes('s.subject'), 'Subject totals and labels must appear in detail view');
   assert.ok(detail.includes('studyDaySeries(sessions, 7)'), 'Chart must use real 7-day data');
   assert.ok(detail.includes('ff-hours__recent') && detail.includes('recentStudySessions(sessions, 6)'), 'Recent sessions list must exist');
   assert.ok(detail.includes('removeStudySession(id)'), 'Wrong sessions must be removable');
@@ -270,6 +353,55 @@ test('11. Chi tiết giờ học — biểu đồ 7 ngày, thống kê, nhật k
     'Detail panel must only show on the study-hours tab',
   );
   assert.ok(board.includes('sessionsForOwner(sessions, currentUser?.email)'), 'Personal totals must not mix accounts');
+});
+
+test('11a. Nhật ký theo môn — làm sạch nhãn và gộp thời lượng đúng cách', () => {
+  const source = read('src/utils/studyLog.ts');
+  const javascript = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const memory = new Map();
+  const module = { exports: {} };
+  vm.runInNewContext(javascript, {
+    module,
+    exports: module.exports,
+    require: (specifier) => {
+      assert.equal(specifier, './storage');
+      return {
+        safeStorage: {
+          getItem: (key) => memory.get(key) ?? null,
+          setItem: (key, value) => memory.set(key, value),
+        },
+      };
+    },
+  });
+
+  const { computeStudySubjectTotals, logStudyMinutes, readStudySessions, STUDY_SUBJECT_UNSPECIFIED } = module.exports;
+  logStudyMinutes(30, 'focus', 'Student@Example.test', '  Toán  ');
+  logStudyMinutes(20, 'focus', 'student@example.test', 'Toán');
+  logStudyMinutes(25, 'focus', 'student@example.test', 'Vật lý');
+  logStudyMinutes(7, 'focus', 'student@example.test', '   ');
+  logStudyMinutes(4, 'focus', 'student@example.test', 'L'.repeat(40));
+
+  const sessions = readStudySessions();
+  assert.equal(sessions[0].owner, 'student@example.test', 'Session owner should stay normalized');
+  assert.equal(sessions[0].subject.length, 32, 'Stored subject names must be capped at 32 characters');
+  assert.deepEqual(
+    Array.from(computeStudySubjectTotals(sessions), ({ subject, minutes, sessions: count }) => [subject, minutes, count]),
+    [['Toán', 50, 2], ['Vật lý', 25, 1], [STUDY_SUBJECT_UNSPECIFIED, 7, 1], ['L'.repeat(32), 4, 1]],
+  );
+
+  memory.set('fforum_study_log', JSON.stringify([
+    { id: 'whitespace', at: Date.now(), minutes: 9, source: 'focus', subject: '  Toán  lớp\n10  ' },
+    { id: 'invalid', at: Date.now() - 1, minutes: 8, source: 'focus', subject: 42 },
+  ]));
+  const normalizedSessions = readStudySessions();
+  assert.equal(normalizedSessions[0].subject, 'Toán lớp 10', 'Legacy subjects should be trimmed and whitespace-collapsed');
+  assert.equal(normalizedSessions[1].subject, undefined, 'Invalid legacy subject values should be discarded');
+  assert.deepEqual(
+    Array.from(computeStudySubjectTotals(normalizedSessions), ({ subject, minutes, sessions: count }) => [subject, minutes, count]),
+    [['Toán lớp 10', 9, 1], [STUDY_SUBJECT_UNSPECIFIED, 8, 1]],
+  );
 });
 
 test('12. Navbar phóng to/thu nhỏ — bóng mờ + MỘT vệt sáng, không giật', () => {
@@ -345,7 +477,7 @@ test('12. Navbar phóng to/thu nhỏ — bóng mờ + MỘT vệt sáng, không 
   );
 });
 
-test('13. CSS vòng 5 — chip phiên học, toast, chi tiết giờ học đều có light mode', () => {
+test('13. CSS vòng 5 — stopwatch, toast và chi tiết giờ học đều có light mode', () => {
   const css = read('src/index.css');
 
   for (const block of ['.ff-focus-chip', '.ff-focus-toast', '.ff-hours__chart', '.ff-hours__recent', '.ff-hours__del']) {
@@ -353,6 +485,10 @@ test('13. CSS vòng 5 — chip phiên học, toast, chi tiết giờ học đề
   }
   assert.ok(css.includes('@keyframes ffFocusChipIn') && css.includes('@keyframes ffFocusToastIn'), 'Chip + toast must animate in');
   assert.ok(css.includes('html.light .ff-focus-chip') && css.includes('html.light .ff-hours'), 'Light-mode variants required');
+  assert.ok(
+    css.includes('html.light .ff-focus-backdrop') && css.includes('html.light .ff-focus-panel .bg-black'),
+    'Focus mode must use translucent tinted glass in light mode, not opaque white surfaces',
+  );
   assert.ok(css.includes('.reduce-motion .ff-focus-chip'), 'Reduced-motion class must cover the chip');
   assert.ok(css.includes('.ff-hours__col.is-today'), 'Today column must be highlighted in the chart');
 });
@@ -376,7 +512,9 @@ test('14. Không bao giờ khoá tương tác: mọi lớp phủ đều có đư
     'Busy navbar content must stay clickable (this caused “bấm gì cũng không mở”)',
   );
   assert.ok(
-    navbar.includes('cancelMorphLoading') && navbar.includes('onPointerDownCapture={cancelMorphLoading}'),
+    navbar.includes('cancelMorphLoading') &&
+      navbar.includes('onPointerDownCapture={() => {') &&
+      navbar.includes('cancelMorphLoading();'),
     'The loading layer must be dismissed by the very first pointer down',
   );
 
@@ -500,8 +638,8 @@ test('16. Vòng 11 — bảng xếp hạng chỉ còn tài khoản thật + than
     'Server sync must sanitize the merged registry so virtual rows cannot survive',
   );
   assert.ok(
-    store.includes("prev.email.toLowerCase() === updatedUser.email.toLowerCase() ? updatedUser : prev"),
-    'Profile edits in another tab must refresh this tab (accounts stay in sync)',
+    store.includes('setCurrentUser(prev => prev && prev.id === updatedUser.id') && store.includes('email: prev.email'),
+    'Profile edits in another tab must refresh the active account while preserving its private email',
   );
 
   const css = read('src/index.css');

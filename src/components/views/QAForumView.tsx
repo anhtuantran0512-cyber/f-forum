@@ -96,7 +96,7 @@ interface QAForumViewProps {
   chatMessages?: ChatMessage[];
   /** False while the first server sync is in flight → show shimmer skeletons. */
   isSynced?: boolean;
-  /** Mở Phòng Tập Trung (Pomodoro) từ widget xếp hạng giờ học. */
+  /** Mở Phòng Tập Trung với đồng hồ học tự do. */
   onOpenFocusMode?: () => void;
 }
 
@@ -288,14 +288,14 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setError('Vui lòng chỉ tải lên tệp hình ảnh (PNG, JPG, WebP)!');
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type.toLowerCase())) {
+      setError('Chỉ hỗ trợ ảnh PNG, JPG hoặc WebP để bảo vệ dữ liệu tải lên.');
       e.target.value = '';
       return;
     }
-    const maxSize = 20 * 1024 * 1024;
+    const maxSize = 8 * 1024 * 1024;
     if (file.size > maxSize) {
-      setError(`Kích thước ảnh (${(file.size / (1024 * 1024)).toFixed(1)}MB) vượt quá giới hạn cho phép 20MB!`);
+      setError(`Kích thước ảnh (${(file.size / (1024 * 1024)).toFixed(1)}MB) vượt quá giới hạn cho phép 8MB!`);
       e.target.value = '';
       return;
     }
@@ -410,7 +410,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   };
 
   return (
-    <section className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8`}>
+    <section className={`ff-mobile-viewport-screen ff-mobile-workspace relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8`}>
       
       {/* Triple Video Crossfade Switcher Background Engine */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -864,10 +864,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 <MathSymbolsBar onInsert={sym => setNewContent(prev => prev + sym)} />
               </div>
 
-              {/* 20MB Image Upload */}
+              {/* Bounded image upload */}
               <div>
                 <label className="block text-xs font-semibold text-neutral-300 mb-1">
-                  Đính kèm hình ảnh (Tối đa 20MB):
+                  Đính kèm hình ảnh (Tối đa 8MB):
                 </label>
                 {askImage ? (
                   <div className="relative rounded-xl overflow-hidden border border-white/20 bg-black/40 p-2 max-w-xs">
@@ -884,10 +884,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 ) : (
                   <label className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
                     <ImageIcon className="w-4 h-4 text-cyan-400" />
-                    <span>Tải ảnh câu hỏi / đề bài / sơ đồ (Tối đa 20MB)</span>
+                    <span>Tải ảnh câu hỏi / đề bài / sơ đồ (Tối đa 8MB)</span>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/png,image/jpeg,image/webp"
                       onChange={e => handleImageUpload(e, setAskImage, setAskImageError)}
                       className="hidden"
                     />
@@ -1302,10 +1302,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   ) : (
                     <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
                       <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Đính kèm ảnh lời giải (&le; 20MB)</span>
+                      <span>Đính kèm ảnh lời giải (&le; 8MB)</span>
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/png,image/jpeg,image/webp"
                         onChange={e => handleImageUpload(e, setSolImage, setSolImageError)}
                         className="hidden"
                       />
