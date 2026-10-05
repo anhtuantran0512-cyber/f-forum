@@ -2,6 +2,7 @@
 import React, { useMemo } from 'react';
 import {
   BarChart3,
+  BookOpen,
   CalendarRange,
   Clock,
   Flame,
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react';
 import {
   computeStudyStats,
+  computeStudySubjectTotals,
   formatDuration,
   recentStudySessions,
   removeStudySession,
@@ -33,6 +35,8 @@ interface StudyHoursDetailProps {
 
 export const StudyHoursDetail: React.FC<StudyHoursDetailProps> = ({ sessions, onOpenFocusMode }) => {
   const stats = useMemo(() => computeStudyStats(sessions), [sessions]);
+  const subjects = useMemo(() => computeStudySubjectTotals(sessions), [sessions]);
+  const subjectMaximum = subjects[0]?.minutes || 1;
   const days = useMemo(() => studyDaySeries(sessions, 7), [sessions]);
   const recent = useMemo(() => recentStudySessions(sessions, 6), [sessions]);
 
@@ -70,7 +74,7 @@ export const StudyHoursDetail: React.FC<StudyHoursDetailProps> = ({ sessions, on
       id: 'longest',
       label: 'Phiên dài nhất',
       value: formatDuration(stats.longestSessionMinutes),
-      hint: 'mỗi phiên tối đa 25 phút',
+      hint: 'đồng hồ dừng tự do',
       icon: <Timer className="w-3.5 h-3.5" />,
       tone: 'text-sky-300',
     },
@@ -120,6 +124,34 @@ export const StudyHoursDetail: React.FC<StudyHoursDetailProps> = ({ sessions, on
         ))}
       </dl>
 
+      {/* Tổng phút được gộp theo môn học */}
+      <section className="ff-hours__subjects" aria-label="Thống kê thời lượng theo môn học">
+        <h5 className="ff-hours__subjects-title inline-flex items-center gap-1.5">
+          <BookOpen className="w-3.5 h-3.5" /> Thời lượng theo môn
+        </h5>
+        {subjects.length > 0 ? (
+          <ul>
+            {subjects.map((subject) => (
+              <li key={subject.subject}>
+                <span className="ff-hours__subject-name" title={subject.subject}>{subject.subject}</span>
+                <span className="ff-hours__subject-time">
+                  {formatDuration(subject.minutes)} <small>· {subject.sessions} phiên</small>
+                </span>
+                <span
+                  className="ff-hours__subject-track"
+                  role="img"
+                  aria-label={`${subject.subject}: ${formatDuration(subject.minutes)} trong ${subject.sessions} phiên`}
+                >
+                  <i style={{ width: `${Math.max(4, (subject.minutes / subjectMaximum) * 100)}%` }} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="ff-hours__subjects-empty">Bắt đầu một phiên và gắn môn để xem phân bổ thời gian học.</p>
+        )}
+      </section>
+
       {/* Danh sách phiên gần đây */}
       {recent.length > 0 ? (
         <div className="ff-hours__recent">
@@ -133,6 +165,7 @@ export const StudyHoursDetail: React.FC<StudyHoursDetailProps> = ({ sessions, on
                 <span className="ff-hours__when">
                   <b>{s.dayLabel}</b>
                   <small>{s.clock}</small>
+                  {s.subject && <em className="ff-hours__session-subject" title={`Môn học: ${s.subject}`}>{s.subject}</em>}
                 </span>
                 <span className="ff-hours__source">{STUDY_SOURCE_LABELS[s.source] || s.source}</span>
                 <span className="ff-hours__minutes font-mono">{s.minutes}′</span>
@@ -149,7 +182,7 @@ export const StudyHoursDetail: React.FC<StudyHoursDetailProps> = ({ sessions, on
             ))}
           </ul>
           <p className="ff-hours__note">
-            Nhật ký chỉ ghi tự động từ phiên Pomodoro — nút thùng rác dùng khi phiên bị ghi nhầm.
+            Nhật ký ghi phút học thật từ đồng hồ Phòng Tập Trung — nút thùng rác dùng khi phiên bị ghi nhầm.
           </p>
         </div>
       ) : (
@@ -158,7 +191,7 @@ export const StudyHoursDetail: React.FC<StudyHoursDetailProps> = ({ sessions, on
           <p>Chưa có phiên học nào trong nhật ký.</p>
           {onOpenFocusMode && (
             <button type="button" onClick={onOpenFocusMode} className="ff-hours__cta">
-              Bắt đầu phiên 25 phút đầu tiên
+              Bắt đầu đồng hồ học tự do
             </button>
           )}
         </div>

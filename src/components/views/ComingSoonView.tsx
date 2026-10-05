@@ -10,7 +10,7 @@ interface ComingSoonViewProps {
 export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) => {
   return (
     <div
-      className="relative min-h-screen w-full bg-[#001428] text-white overflow-hidden select-none flex flex-col justify-between font-sans"
+      className="ff-coming-soon relative min-h-screen w-full bg-[#001428] text-white overflow-hidden select-none flex flex-col justify-between font-sans"
     >
       {/* Video Background: Fullscreen looping video */}
       <video
@@ -30,7 +30,7 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/70 z-0 pointer-events-none" />
 
       {/* Top Spacer for Global Fixed Navbar */}
-      <div className="h-20 shrink-0" />
+      <div className="ff-coming-soon__nav-spacer h-20 shrink-0" />
 
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 pt-12 pb-24 max-w-4xl mx-auto my-auto">

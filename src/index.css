@@ -36,9 +36,28 @@
   /* Cho phép nội suy các giá trị kích thước dạng keyword (max-content, fit-content)
      → navbar co giãn giữa GUI lớn ↔ GUI nhỏ mượt mà trên trình duyệt hỗ trợ. */
   interpolate-size: allow-keywords;
+  color-scheme: dark;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ff-glass-ink: #eef2f8;
+  --ff-glass-muted: rgba(226, 232, 240, 0.72);
+  --ff-glass-fill: rgba(15, 20, 26, 0.75);
+  --ff-glass-fill-strong: rgba(12, 18, 24, 0.92);
+  --ff-glass-border: rgba(255, 255, 255, 0.1);
+  --ff-glass-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+html.light {
+  color-scheme: light;
+  /* Main app views sit over a dark/video canvas, so translucent glass keeps luminous copy. */
+  --ff-glass-ink: #f1f6fc;
+  --ff-glass-muted: rgba(221, 232, 245, 0.76);
+  --ff-glass-fill: linear-gradient(145deg, rgba(145, 176, 211, 0.34), rgba(82, 116, 157, 0.24));
+  --ff-glass-fill-strong: linear-gradient(145deg, rgba(107, 142, 181, 0.52), rgba(62, 92, 131, 0.4));
+  --ff-glass-border: rgba(216, 232, 250, 0.24);
+  --ff-glass-shadow: 0 22px 56px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(248, 251, 255, 0.22);
 }
 
 .obsidian-glass {
@@ -56,13 +75,14 @@
 /* Liquid Glass Component (Original Crystalline iOS Liquid Glass Baseline) */
 .liquid-glass {
   background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(var(--glass-blur, 14px)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur, 14px)) saturate(140%);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 20px 50px rgba(0, 0, 0, 0.5);
   transition: background 0.5s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.5s cubic-bezier(0.16, 1, 0.3, 1),
               box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.32s ease,
               backdrop-filter 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .liquid-glass:not(.absolute):not(.fixed) {
@@ -347,8 +367,8 @@ nav.liquid-glass {
 /* Dark Mode: Deeper Obsidian Liquid Glass */
 html.dark .liquid-glass {
   background: rgba(15, 20, 26, 0.75);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(var(--glass-blur, 20px)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-blur, 20px)) saturate(150%);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), inset 0 1px 1px rgba(255, 255, 255, 0.12);
 }
@@ -360,57 +380,55 @@ html.dark .liquid-glass::before {
     rgba(255, 255, 255, 0.12) 80%, rgba(255, 255, 255, 0.35) 100%);
 }
 
-/* Light Mode: Original Crystalline iOS Liquid Glass (Ultra-translucent) */
+/* Light Mode: genuinely translucent, cool-tinted glass over the app canvas. */
 html.light .liquid-glass {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 20px 50px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--ff-glass-ink, #f1f6fc);
+  background: var(--ff-glass-fill);
+  backdrop-filter: blur(var(--glass-blur, 18px)) saturate(170%);
+  -webkit-backdrop-filter: blur(var(--glass-blur, 18px)) saturate(170%);
+  border: 1px solid var(--ff-glass-border);
+  box-shadow: var(--ff-glass-shadow);
 }
 
-/* Light Mode: Glowing white/amber specular highlights on signature gradient border */
+/* A fine specular edge reads as glass without turning the whole surface white. */
 html.light .liquid-glass::before {
   background: linear-gradient(180deg,
-    rgba(255, 255, 255, 0.55) 0%, rgba(251, 191, 36, 0.25) 20%,
-    rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0) 60%,
-    rgba(251, 191, 36, 0.2) 80%, rgba(255, 255, 255, 0.55) 100%);
+    rgba(248, 251, 255, 0.3) 0%, rgba(251, 191, 36, 0.08) 20%,
+    rgba(255, 255, 255, 0) 42%, rgba(255, 255, 255, 0) 58%,
+    rgba(251, 191, 36, 0.07) 80%, rgba(248, 251, 255, 0.24) 100%);
 }
 
-/* Dialog popovers in Light Mode */
+/* Dialog popovers use a little more tint, while still letting the canvas show through. */
 html.light div[role="dialog"].liquid-glass,
 html.light [role="dialog"] .liquid-glass {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.25);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 25px 60px rgba(0, 0, 0, 0.65);
+  background: var(--ff-glass-fill-strong);
+  border-color: rgba(216, 232, 250, 0.26);
+  box-shadow: 0 26px 64px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(248, 251, 255, 0.22);
 }
 
-/* Navbar in Light Mode */
-html.light nav.liquid-glass {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.22);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3), 0 20px 50px rgba(0, 0, 0, 0.5);
-}
-
-/* Header in Light Mode */
+/* Navbar and mobile header share the same translucent mineral-glass palette. */
+html.light nav.liquid-glass,
 html.light header.liquid-glass {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--ff-glass-ink);
+  background: var(--ff-glass-fill-strong);
+  border-color: rgba(216, 232, 250, 0.24);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(248, 251, 255, 0.22);
 }
 
 /* Obsidian Glass Light Mode counterpart */
 html.light .obsidian-glass {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 20px 50px rgba(0, 0, 0, 0.5);
+  color: var(--ff-glass-ink);
+  background: var(--ff-glass-fill);
+  backdrop-filter: blur(var(--glass-blur, 18px)) saturate(170%);
+  -webkit-backdrop-filter: blur(var(--glass-blur, 18px)) saturate(170%);
+  border: 1px solid var(--ff-glass-border);
+  box-shadow: var(--ff-glass-shadow);
 }
 
 /* Option cards inside liquid-glass popovers in Light Mode */
 html.light div[role="dialog"] .bg-black\/25 {
-  background-color: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.16);
+  background-color: rgba(91, 114, 146, 0.09);
+  border-color: rgba(70, 92, 124, 0.14);
 }
 
 /* Reduced motion accessibility */
@@ -468,19 +486,20 @@ html.light .ff-nav-capsule.liquid-glass::before {
   opacity: 1;
 }
 html.light .ff-nav-capsule.liquid-glass {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(238, 242, 248, 0.66));
-  border-color: rgba(15, 23, 42, 0.08);
+  background: linear-gradient(135deg, rgba(107, 142, 181, 0.5), rgba(45, 68, 99, 0.4));
+  border-color: rgba(216, 232, 250, 0.25);
   box-shadow:
-    0 18px 44px rgba(15, 23, 42, 0.16),
-    0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    0 18px 44px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(248, 251, 255, 0.24),
+    inset 0 -1px 0 rgba(73, 97, 130, 0.12);
 }
 html.light .ff-nav-capsule.liquid-glass::after {
   background: linear-gradient(
     100deg,
-    rgba(255, 255, 255, 0.9) 0%,
-    rgba(148, 163, 184, 0.25) 26%,
-    rgba(148, 163, 184, 0.16) 60%,
-    rgba(180, 83, 9, 0.32) 100%
+    rgba(246, 250, 255, 0.38) 0%,
+    rgba(181, 206, 236, 0.14) 28%,
+    rgba(181, 206, 236, 0.09) 60%,
+    rgba(251, 191, 36, 0.2) 100%
   );
 }
 
@@ -531,9 +550,39 @@ html.light .ff-nav-capsule.liquid-glass::after {
 }
 html.light .ff-nav-capsule.liquid-glass:hover {
   box-shadow:
-    0 20px 48px rgba(15, 23, 42, 0.2),
-    0 0 0 1px rgba(180, 83, 9, 0.14),
-    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    0 22px 50px rgba(0, 0, 0, 0.44),
+    0 0 0 1px rgba(251, 191, 36, 0.18),
+    0 1px 0 rgba(248, 251, 255, 0.28) inset;
+}
+
+html.light .ff-nav-capsule .nav-tab-btn {
+  color: rgba(239, 246, 253, 0.78);
+}
+html.light .ff-nav-capsule .nav-tab-btn:hover {
+  color: #ffffff;
+  background: rgba(221, 234, 250, 0.1);
+}
+html.light .ff-nav-capsule .nav-tab-btn--active {
+  color: #fde68a;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(245, 158, 11, 0.12));
+  border-color: rgba(252, 211, 77, 0.24) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 249, 228, 0.28);
+}
+html.light .ff-nav-capsule .nav-icon-btn {
+  color: rgba(239, 246, 253, 0.78);
+}
+html.light .ff-nav-capsule .nav-icon-btn:hover {
+  background: rgba(221, 234, 250, 0.1);
+  border-color: rgba(216, 232, 250, 0.18);
+}
+html.light .ff-nav-capsule .nav-profile-trigger {
+  color: var(--ff-glass-ink);
+}
+html.light .ff-nav-capsule .nav-login-btn {
+  color: #f4f8fd;
+  background: rgba(220, 234, 251, 0.16);
+  border: 1px solid rgba(216, 232, 250, 0.22);
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.18);
 }
 
 /* ==========================================================================
@@ -598,7 +647,7 @@ html.light .ff-nav-capsule.liquid-glass:hover {
   animation: ffBrandSweep 7.5s ease-in-out infinite;
 }
 html.light .ff-nav-brand-title {
-  background-image: linear-gradient(96deg, #b45309 0%, #f59e0b 42%, #fbbf24 55%, #92400e 100%);
+  background-image: linear-gradient(96deg, #fef3c7 0%, #fbbf24 38%, #fff8dd 52%, #f59e0b 74%, #fbbf24 100%);
 }
 @keyframes ffBrandSweep {
   0%, 64% { background-position: 130% 50%; }
@@ -624,8 +673,8 @@ html.light .ff-nav-brand-title {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 html.light .nav-icon-btn:hover {
-  background: rgba(15, 23, 42, 0.06);
-  border-color: rgba(15, 23, 42, 0.1);
+  background: rgba(221, 234, 250, 0.1);
+  border-color: rgba(216, 232, 250, 0.18);
 }
 /* Vạch phân cách cụm tiện ích ↔ tài khoản */
 .nav-actions-divider {
@@ -637,7 +686,7 @@ html.light .nav-icon-btn:hover {
   background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.22), transparent);
 }
 html.light .nav-actions-divider {
-  background: linear-gradient(180deg, transparent, rgba(15, 23, 42, 0.16), transparent);
+  background: linear-gradient(180deg, transparent, rgba(216, 232, 250, 0.2), transparent);
 }
 .dock-pos-left .nav-actions-divider,
 .dock-pos-right .nav-actions-divider {
@@ -1809,15 +1858,20 @@ html.light .nav-liquid-pill {
     inset 0 1px 1px rgba(255, 255, 255, 0.14);
 }
 html.light .pc-12-shell {
-  --pc12-bg: rgba(232, 237, 245, 0.72);
-  --pc12-surface: rgba(238, 242, 249, 0.78);
-  --pc12-hi: rgba(255, 255, 255, 0.85);
-  --pc12-lo: rgba(163, 177, 198, 0.55);
-  --pc12-border: rgba(255, 255, 255, 0.6);
+  --pc12-bg: rgba(96, 130, 171, 0.38);
+  --pc12-surface: rgba(130, 160, 198, 0.26);
+  --pc12-hi: rgba(255, 255, 255, 0.2);
+  --pc12-lo: rgba(0, 0, 0, 0.42);
+  --pc12-border: rgba(216, 232, 250, 0.22);
   box-shadow:
     16px 16px 36px var(--pc12-lo),
-    -12px -12px 28px var(--pc12-hi),
-    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    -12px -12px 28px rgba(255, 255, 255, 0.035),
+    inset 0 1px 1px var(--pc12-hi);
+}
+html.light .pc-12-card {
+  background: linear-gradient(145deg, rgba(135, 165, 201, 0.26), rgba(73, 103, 145, 0.2));
+  border-color: rgba(216, 232, 250, 0.15);
+  box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* Extruded 3D rounded card inside ProfileModal */
@@ -1976,14 +2030,16 @@ html.light .pc-12-shell {
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 html.light .ff-palette {
-  background: rgba(248, 250, 253, 0.94);
-  color: #101827;
-  border-color: rgba(15, 23, 42, 0.12);
+  background: linear-gradient(145deg, rgba(107, 142, 181, 0.58), rgba(45, 68, 99, 0.46));
+  color: #f1f6fc;
+  border-color: rgba(216, 232, 250, 0.24);
+  backdrop-filter: blur(26px) saturate(165%);
+  -webkit-backdrop-filter: blur(26px) saturate(165%);
 }
 html.light .ff-palette .text-white,
 html.light .ff-palette .text-white\/70,
 html.light .ff-palette .text-white\/45 {
-  color: #101827;
+  color: #f1f6fc;
 }
 
 /* ---------- Panel Cài đặt: hiện ra với nhịp lò xo mềm, không còn "bụp" ---------- */
@@ -2185,8 +2241,8 @@ html.light .ff-palette .text-white\/45 {
   overflow: hidden;
 }
 html.light .ff-dock-mock {
-  background: linear-gradient(160deg, #eef2f9, #dfe6f2);
-  border-color: rgba(15, 23, 42, 0.1);
+  background: linear-gradient(160deg, rgba(145, 176, 211, 0.32), rgba(45, 68, 99, 0.22));
+  border-color: rgba(216, 232, 250, 0.2);
 }
 .ff-dock-zone {
   position: absolute;
@@ -2634,30 +2690,32 @@ html.light .ff-dock-mock {
 /* --- Light mode + giảm chuyển động cho nhóm A ---------------------------- */
 html.light .la-09__veil {
   background:
-    radial-gradient(70% 55% at 22% 12%, rgba(56, 189, 248, 0.2), transparent 62%),
-    radial-gradient(60% 50% at 82% 88%, rgba(245, 158, 11, 0.18), transparent 62%),
-    rgba(243, 246, 251, 0.95) !important;
+    radial-gradient(70% 55% at 22% 12%, rgba(56, 189, 248, 0.12), transparent 62%),
+    radial-gradient(60% 50% at 82% 88%, rgba(245, 158, 11, 0.1), transparent 62%),
+    rgba(8, 16, 28, 0.36) !important;
+  backdrop-filter: blur(12px) saturate(145%);
+  -webkit-backdrop-filter: blur(12px) saturate(145%);
 }
 html.light .la-09__card {
-  --la-card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(244, 247, 252, 0.98));
-  --la-ink: #101827;
-  --la-ink-dim: #55617a;
-  --la-card-border: rgba(16, 24, 39, 0.1);
+  --la-card-bg: linear-gradient(145deg, rgba(107, 142, 181, 0.54), rgba(45, 68, 99, 0.46));
+  --la-ink: #f1f6fc;
+  --la-ink-dim: rgba(221, 232, 245, 0.76);
+  --la-card-border: rgba(216, 232, 250, 0.24);
 }
 html.light .la-09__disc {
   background:
     repeating-radial-gradient(circle at 50% 50%, rgba(16, 24, 39, 0.08) 0 1px, transparent 1px 4px),
     radial-gradient(circle at 50% 50%, #e2e8f0 0 26%, #94a3b8 72%);
 }
-html.light .la-09__bar { background: rgba(16, 24, 39, 0.1); }
-html.light .la-05__bubble { background: #ffffff; border-color: rgba(16, 24, 39, 0.1); }
-html.light .la-05__tail { background: #ffffff; border-color: rgba(16, 24, 39, 0.1); }
-html.light .la-05__phase { color: #101827; }
-html.light .la-05__who { color: #55617a; }
-html.light .ff-odo { --ff-odo-ink: #b45309; }
-html.light .ff-odo__col { background: linear-gradient(180deg, rgba(16, 24, 39, 0.07), rgba(16, 24, 39, 0.02)); }
-html.light .ff-odo__col::after { background: linear-gradient(180deg, rgba(255, 255, 255, 0.75), transparent 34%, transparent 66%, rgba(255, 255, 255, 0.8)); }
-html.light .ff-odo__strip > i { text-shadow: none; }
+html.light .la-09__bar { background: rgba(221, 232, 245, 0.14); }
+html.light .la-05__bubble { background: rgba(107, 142, 181, 0.42); border-color: rgba(216, 232, 250, 0.2); }
+html.light .la-05__tail { background: rgba(107, 142, 181, 0.42); border-color: rgba(216, 232, 250, 0.2); }
+html.light .la-05__phase { color: #f1f6fc; }
+html.light .la-05__who { color: rgba(221, 232, 245, 0.72); }
+html.light .ff-odo { --ff-odo-ink: #fbbf24; }
+html.light .ff-odo__col { background: linear-gradient(180deg, rgba(221, 232, 245, 0.075), rgba(221, 232, 245, 0.02)); }
+html.light .ff-odo__col::after { background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 34%, transparent 66%, rgba(255, 255, 255, 0.18)); }
+html.light .ff-odo__strip > i { text-shadow: 0 0 12px rgba(251, 191, 36, 0.16); }
 
 @media (prefers-reduced-motion: reduce) {
   .ff-view-slide-up,
@@ -3313,55 +3371,72 @@ html.light .ff-odo__strip > i { text-shadow: none; }
 }
 .ff-board__note { margin-top: 10px; font-size: 9.5px; line-height: 1.55; color: rgba(148, 163, 184, 0.85); }
 
-/* --- Light mode cho nhóm B ----------------------------------------------- */
+/* --- Light mode: translucent glass for dashboard cards over the media canvas --- */
 html.light .ff-board {
-  --fb-surface: radial-gradient(120% 80% at 50% -10%, rgba(56, 189, 248, 0.12), transparent 60%),
-    linear-gradient(180deg, #ffffff, #f6f8fc);
-  --fb-border: rgba(16, 24, 39, 0.1);
-  --fb-ink: #101827;
-  --fb-ink-dim: #56617a;
-  --fb-tile: rgba(16, 24, 39, 0.035);
+  --fb-surface: radial-gradient(120% 80% at 50% -10%, rgba(56, 189, 248, 0.08), transparent 60%),
+    linear-gradient(145deg, rgba(145, 176, 211, 0.34), rgba(64, 94, 133, 0.26));
+  --fb-border: rgba(216, 232, 250, 0.2);
+  --fb-ink: #f1f6fc;
+  --fb-ink-dim: rgba(221, 232, 245, 0.72);
+  --fb-tile: rgba(221, 232, 245, 0.06);
 }
-html.light .ff-board__total { background: linear-gradient(140deg, rgba(16, 24, 39, 0.045), rgba(16, 24, 39, 0.012)); border-color: rgba(16, 24, 39, 0.08); }
-html.light .ff-board__total-chip { color: #33405a; background: rgba(16, 24, 39, 0.05); border-color: rgba(16, 24, 39, 0.08); }
-html.light .ff-board__period-btn { background: rgba(16, 24, 39, 0.03); border-color: rgba(16, 24, 39, 0.1); color: #56617a; }
-html.light .ff-board__period-btn.is-active { color: #0369a1; background: rgba(14, 165, 233, 0.12); border-color: rgba(14, 165, 233, 0.4); }
-html.light .ff-row { background: rgba(16, 24, 39, 0.025); border-color: rgba(16, 24, 39, 0.07); }
-html.light .ff-row:hover { background: rgba(16, 24, 39, 0.05); border-color: rgba(16, 24, 39, 0.14); }
-html.light .ff-row--you { background: rgba(14, 165, 233, 0.1); border-color: rgba(14, 165, 233, 0.35); }
-html.light .ff-row__track { background: rgba(16, 24, 39, 0.08); }
-html.light .ff-row__value { color: #b45309; }
-html.light .ff-row__est { color: #64748b; }
-html.light .ff-board__me { background: linear-gradient(120deg, rgba(14, 165, 233, 0.14), rgba(14, 165, 233, 0.04)); border-color: rgba(14, 165, 233, 0.35); }
-html.light .ff-board__me-value { color: #b45309; }
-html.light .ff-board__me-rank { color: #0369a1; }
-html.light .ff-board__note { color: rgba(82, 96, 122, 0.9); }
-html.light .ff-podium__plinth > i { background: linear-gradient(180deg, rgba(16, 24, 39, 0.12), rgba(16, 24, 39, 0.02)); border-color: rgba(16, 24, 39, 0.1); }
-html.light .ff-ladder__step { background: linear-gradient(100deg, rgba(16, 24, 39, 0.05), rgba(16, 24, 39, 0.012)); border-color: rgba(16, 24, 39, 0.1); }
-html.light .ff-ladder__step:hover { background: linear-gradient(100deg, rgba(16, 24, 39, 0.09), rgba(16, 24, 39, 0.03)); border-color: rgba(16, 24, 39, 0.18); }
-html.light .ff-ladder__step.is-you { background: linear-gradient(100deg, rgba(14, 165, 233, 0.14), rgba(14, 165, 233, 0.04)); border-color: rgba(14, 165, 233, 0.35); }
-html.light .ff-ladder__rank { color: #33405a; }
-html.light .ff-ladder__avatar { border-color: rgba(51, 64, 90, 0.32); }
-html.light .ff-ladder__track { background: rgba(16, 24, 39, 0.08); }
-html.light .ff-ladder__track > i { background: linear-gradient(90deg, #64748b, #101827); }
-html.light .ff-ladder__value { color: #33405a; }
-html.light .ff-board__count { color: #0369a1; background: rgba(14, 165, 233, 0.12); border-color: rgba(14, 165, 233, 0.3); }
+html.light .ff-board__total {
+  background: linear-gradient(140deg, rgba(221, 232, 245, 0.08), rgba(221, 232, 245, 0.025));
+  border-color: rgba(216, 232, 250, 0.14);
+}
+html.light .ff-board__total-chip {
+  color: #e7f0fa;
+  background: rgba(221, 232, 245, 0.07);
+  border-color: rgba(216, 232, 250, 0.14);
+}
+html.light .ff-board__period-btn {
+  background: rgba(221, 232, 245, 0.045);
+  border-color: rgba(216, 232, 250, 0.15);
+  color: rgba(221, 232, 245, 0.72);
+}
+html.light .ff-board__period-btn.is-active {
+  color: #7dd3fc;
+  background: rgba(14, 165, 233, 0.16);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+html.light .ff-row { background: rgba(221, 232, 245, 0.035); border-color: rgba(216, 232, 250, 0.11); }
+html.light .ff-row:hover { background: rgba(221, 232, 245, 0.075); border-color: rgba(216, 232, 250, 0.2); }
+html.light .ff-row--you { background: rgba(14, 165, 233, 0.13); border-color: rgba(56, 189, 248, 0.42); }
+html.light .ff-row__track { background: rgba(221, 232, 245, 0.12); }
+html.light .ff-row__value { color: #fbbf24; }
+html.light .ff-row__est { color: rgba(221, 232, 245, 0.68); }
+html.light .ff-board__me { background: linear-gradient(120deg, rgba(14, 165, 233, 0.17), rgba(14, 165, 233, 0.055)); border-color: rgba(56, 189, 248, 0.38); }
+html.light .ff-board__me-value { color: #fbbf24; }
+html.light .ff-board__me-rank { color: #7dd3fc; }
+html.light .ff-board__note { color: rgba(221, 232, 245, 0.72); }
+html.light .ff-podium__plinth > i { background: linear-gradient(180deg, rgba(221, 232, 245, 0.12), rgba(221, 232, 245, 0.025)); border-color: rgba(216, 232, 250, 0.14); }
+html.light .ff-ladder__step { background: linear-gradient(100deg, rgba(221, 232, 245, 0.07), rgba(221, 232, 245, 0.02)); border-color: rgba(216, 232, 250, 0.14); }
+html.light .ff-ladder__step:hover { background: linear-gradient(100deg, rgba(221, 232, 245, 0.12), rgba(221, 232, 245, 0.045)); border-color: rgba(216, 232, 250, 0.22); }
+html.light .ff-ladder__step.is-you { background: linear-gradient(100deg, rgba(14, 165, 233, 0.17), rgba(14, 165, 233, 0.055)); border-color: rgba(56, 189, 248, 0.38); }
+html.light .ff-ladder__rank { color: #e2eaf5; }
+html.light .ff-ladder__avatar { border-color: rgba(216, 232, 250, 0.36); }
+html.light .ff-ladder__track { background: rgba(221, 232, 245, 0.12); }
+html.light .ff-ladder__track > i { background: linear-gradient(90deg, #94a3b8, #f1f6fc); }
+html.light .ff-ladder__value { color: #e7eef8; }
+html.light .ff-board__count { color: #7dd3fc; background: rgba(14, 165, 233, 0.16); border-color: rgba(56, 189, 248, 0.34); }
 
 html.light .ff-pulse {
-  --fp-surface: linear-gradient(180deg, #ffffff, #f6f8fc);
-  --fp-border: rgba(16, 24, 39, 0.1);
-  --fp-ink: #101827;
-  --fp-ink-dim: #56617a;
-  --fp-tile: rgba(16, 24, 39, 0.03);
-  --fp-trace: #0e7490;
+  --fp-surface: linear-gradient(145deg, rgba(145, 176, 211, 0.34), rgba(64, 94, 133, 0.26));
+  --fp-border: rgba(216, 232, 250, 0.2);
+  --fp-ink: #f1f6fc;
+  --fp-ink-dim: rgba(221, 232, 245, 0.72);
+  --fp-tile: rgba(221, 232, 245, 0.06);
+  --fp-trace: #67e8f9;
 }
-html.light .ff-pulse::before { background-image: linear-gradient(rgba(16, 24, 39, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(16, 24, 39, 0.05) 1px, transparent 1px); }
-html.light .ff-pulse__ecg { background: linear-gradient(180deg, rgba(14, 165, 233, 0.08), rgba(14, 165, 233, 0.01)); border-color: rgba(14, 165, 233, 0.22); }
-html.light .ff-pulse__grid > div { border-color: rgba(16, 24, 39, 0.07); }
-html.light .ff-pulse__hint { color: rgba(82, 96, 122, 0.95); }
-html.light .ff-pulse__zone > b { color: #b45309; }
-html.light .ff-pulse__zone > span { color: #0369a1; }
-html.light .ff-pulse__eyebrow { color: #0369a1; }
+html.light .ff-pulse::before {
+  background-image: linear-gradient(rgba(221, 232, 245, 0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(221, 232, 245, 0.055) 1px, transparent 1px);
+}
+html.light .ff-pulse__ecg { background: linear-gradient(180deg, rgba(14, 165, 233, 0.12), rgba(14, 165, 233, 0.025)); border-color: rgba(56, 189, 248, 0.28); }
+html.light .ff-pulse__grid > div { border-color: rgba(216, 232, 250, 0.13); }
+html.light .ff-pulse__hint { color: rgba(221, 232, 245, 0.72); }
+html.light .ff-pulse__zone > b { color: #fde68a; }
+html.light .ff-pulse__zone > span { color: #67e8f9; }
+html.light .ff-pulse__eyebrow { color: #7dd3fc; }
 
 @media (prefers-reduced-motion: reduce) {
   .ff-pulse__heart,
@@ -3495,7 +3570,7 @@ html.light .ff-nav-loading__sheen {
 }
 
 /* ==========================================================================
-   VÒNG 5 · B — Phiên tập trung: chip đếm ngược nổi, toast ghi nhận giờ học
+   VÒNG 5 · B — Stopwatch tập trung: chip thời gian thực, toast giờ học
    ========================================================================== */
 .ff-focus-chip {
   position: fixed;
@@ -3603,9 +3678,11 @@ html.light .ff-nav-loading__sheen {
 }
 .ff-focus-toast--credited { border-color: rgba(16, 185, 129, 0.45); }
 .ff-focus-toast--partial { border-color: rgba(245, 158, 11, 0.45); }
+.ff-focus-toast--reward { border-color: rgba(251, 191, 36, 0.52); }
 .ff-focus-toast--lost { border-color: rgba(244, 63, 94, 0.45); }
 .ff-focus-toast__icon { flex: none; margin-top: 2px; color: #6ee7b7; }
-.ff-focus-toast--partial .ff-focus-toast__icon { color: #fcd34d; }
+.ff-focus-toast--partial .ff-focus-toast__icon,
+.ff-focus-toast--reward .ff-focus-toast__icon { color: #fcd34d; }
 .ff-focus-toast--break .ff-focus-toast__icon { color: #c4b5fd; }
 .ff-focus-toast--lost .ff-focus-toast__icon { color: #fda4af; }
 .ff-focus-toast__copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -3638,12 +3715,24 @@ html.light .ff-nav-loading__sheen {
 }
 
 html.light .ff-focus-chip,
-html.light .ff-focus-toast { background: linear-gradient(150deg, #ffffff, #f6f8fc); border-color: rgba(16, 24, 39, 0.12); }
+html.light .ff-focus-toast {
+  background: linear-gradient(145deg, rgba(107, 142, 181, 0.42), rgba(45, 68, 99, 0.32));
+  border-color: rgba(216, 232, 250, 0.2);
+}
 html.light .ff-focus-chip__copy b,
-html.light .ff-focus-toast__copy b { color: #101827; }
+html.light .ff-focus-toast__copy b { color: #f1f6fc; }
 html.light .ff-focus-chip__copy small,
-html.light .ff-focus-toast__copy small { color: #56617a; }
-html.light .ff-focus-chip__track { background: rgba(16, 24, 39, 0.1); }
+html.light .ff-focus-toast__copy small { color: rgba(221, 232, 245, 0.76); }
+html.light .ff-focus-chip__track { background: rgba(221, 232, 245, 0.16); }
+html.light .ff-focus-backdrop {
+  background: rgba(9, 18, 32, 0.48);
+  backdrop-filter: blur(18px) saturate(145%);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+}
+html.light .ff-focus-panel .bg-neutral-900\/60 { background-color: rgba(43, 64, 91, 0.28); }
+html.light .ff-focus-panel .bg-black\/60 { background-color: rgba(30, 47, 70, 0.28); }
+html.light .ff-focus-panel .bg-black\/40 { background-color: rgba(30, 47, 70, 0.2); }
+html.light .ff-focus-panel .bg-black\/30 { background-color: rgba(30, 47, 70, 0.16); }
 
 @media (max-width: 640px) {
   .ff-focus-toast { left: 12px; right: 12px; bottom: 92px; max-width: none; }
@@ -3743,6 +3832,26 @@ html.light .ff-focus-chip__track { background: rgba(16, 24, 39, 0.1); }
 .ff-hours__grid dd { margin-top: 3px; font-size: 13.5px; font-weight: 800; color: var(--fh-ink); font-family: ui-monospace, SFMono-Regular, monospace; }
 .ff-hours__grid small { display: block; margin-top: 1px; font-size: 9px; color: rgba(148, 163, 184, 0.8); }
 
+.ff-hours__subjects { margin-top: 13px; padding-top: 12px; border-top: 1px dashed rgba(255, 255, 255, 0.09); }
+.ff-hours__subjects-title { font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fh-ink-dim); }
+.ff-hours__subjects ul { list-style: none; display: grid; gap: 6px; max-height: 224px; overflow-y: auto; margin: 9px 0 0; padding: 0 2px 0 0; }
+.ff-hours__subjects li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 7px 9px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.022);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.ff-hours__subject-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; font-weight: 700; color: var(--fh-ink); }
+.ff-hours__subject-time { white-space: nowrap; font: 700 10px ui-monospace, SFMono-Regular, monospace; color: #67e8f9; }
+.ff-hours__subject-time small { color: var(--fh-ink-dim); font: 500 9px ui-sans-serif, system-ui, sans-serif; }
+.ff-hours__subject-track { grid-column: 1 / -1; display: block; height: 4px; overflow: hidden; border-radius: 99px; background: rgba(255, 255, 255, 0.08); }
+.ff-hours__subject-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, rgba(34, 211, 238, 0.72), rgba(16, 185, 129, 0.85)); transition: width 520ms cubic-bezier(0.22, 0.9, 0.24, 1); }
+.ff-hours__subjects-empty { margin-top: 8px; padding: 10px; border-radius: 11px; color: var(--fh-ink-dim); background: var(--fh-tile); font-size: 10px; line-height: 1.5; }
+
 .ff-hours__recent { margin-top: 13px; padding-top: 12px; border-top: 1px dashed rgba(255, 255, 255, 0.09); }
 .ff-hours__recent-label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fh-ink-dim); }
 .ff-hours__recent ul { list-style: none; margin: 9px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
@@ -3757,9 +3866,10 @@ html.light .ff-focus-chip__track { background: rgba(16, 24, 39, 0.1); }
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 .ff-hours__dot { width: 7px; height: 7px; border-radius: 50%; background: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.8); }
-.ff-hours__when { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
-.ff-hours__when b { font-size: 11px; font-weight: 700; color: var(--fh-ink); }
-.ff-hours__when small { font-size: 9.5px; color: var(--fh-ink-dim); font-family: ui-monospace, SFMono-Regular, monospace; }
+.ff-hours__when { display: flex; align-items: baseline; gap: 5px; min-width: 0; overflow: hidden; }
+.ff-hours__when b { flex: none; font-size: 11px; font-weight: 700; color: var(--fh-ink); }
+.ff-hours__when small { flex: none; font-size: 9.5px; color: var(--fh-ink-dim); font-family: ui-monospace, SFMono-Regular, monospace; }
+.ff-hours__session-subject { min-width: 0; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; font-style: normal; color: #67e8f9; }
 .ff-hours__source { font-size: 9px; font-weight: 700; letter-spacing: 0.03em; padding: 2px 6px; border-radius: 999px; color: #7dd3fc; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); white-space: nowrap; }
 .ff-hours__minutes { font-size: 11px; font-weight: 800; color: #fcd34d; }
 .ff-hours__del {
@@ -3795,18 +3905,20 @@ html.light .ff-focus-chip__track { background: rgba(16, 24, 39, 0.1); }
 .ff-hours__cta:hover { transform: translateY(-1px); }
 
 html.light .ff-hours {
-  --fh-surface: linear-gradient(180deg, #ffffff, #f6f8fc);
-  --fh-border: rgba(16, 24, 39, 0.1);
-  --fh-ink: #101827;
-  --fh-ink-dim: #56617a;
-  --fh-tile: rgba(16, 24, 39, 0.03);
+  --fh-surface: linear-gradient(145deg, rgba(145, 176, 211, 0.34), rgba(64, 94, 133, 0.26));
+  --fh-border: rgba(216, 232, 250, 0.2);
+  --fh-ink: #f1f6fc;
+  --fh-ink-dim: rgba(221, 232, 245, 0.72);
+  --fh-tile: rgba(221, 232, 245, 0.06);
 }
 html.light .ff-hours__chart,
-html.light .ff-hours__grid > div { border-color: rgba(16, 24, 39, 0.07); }
-html.light .ff-hours__recent { border-top-color: rgba(16, 24, 39, 0.12); }
-html.light .ff-hours__recent li { background: rgba(16, 24, 39, 0.025); border-color: rgba(16, 24, 39, 0.07); }
-html.light .ff-hours__minutes { color: #b45309; }
-html.light .ff-hours__del { border-color: rgba(16, 24, 39, 0.1); background: rgba(16, 24, 39, 0.03); color: #56617a; }
+html.light .ff-hours__grid > div { border-color: rgba(216, 232, 250, 0.13); }
+html.light .ff-hours__recent,
+html.light .ff-hours__subjects { border-top-color: rgba(216, 232, 250, 0.17); }
+html.light .ff-hours__recent li,
+html.light .ff-hours__subjects li { background: rgba(221, 232, 245, 0.035); border-color: rgba(216, 232, 250, 0.11); }
+html.light .ff-hours__minutes { color: #fbbf24; }
+html.light .ff-hours__del { border-color: rgba(216, 232, 250, 0.16); background: rgba(221, 232, 245, 0.06); color: rgba(221, 232, 245, 0.76); }
 
 @media (prefers-reduced-motion: reduce) {
   .ff-focus-chip,
@@ -3960,20 +4072,26 @@ html.light .ff-hours__del { border-color: rgba(16, 24, 39, 0.1); background: rgb
   50% { box-shadow: 0 0 14px -2px rgba(251, 191, 36, 0.55); }
 }
 
-/* --- Light mode --------------------------------------------------------- */
-html.light .ff-cd { border-top-color: rgba(16, 24, 39, 0.08); background: linear-gradient(180deg, rgba(16, 24, 39, 0.028), rgba(16, 24, 39, 0.006)); }
-html.light .ff-cd.is-cooling { background: linear-gradient(180deg, rgba(245, 158, 11, 0.16), rgba(245, 158, 11, 0.03)); border-top-color: rgba(180, 83, 9, 0.28); }
-html.light .ff-cd__label { color: #52607a; }
-html.light .ff-cd.is-cooling .ff-cd__label { color: #b45309; }
-html.light .ff-cd.is-ready .ff-cd__label { color: #047857; }
-html.light .ff-cd__dial-track { stroke: rgba(16, 24, 39, 0.14); }
-html.light .ff-cd__dial-arc { stroke: #d97706; filter: none; }
-html.light .ff-cd.is-ready .ff-cd__dial-arc { stroke: #059669; filter: none; }
-html.light .ff-cd__dial-value { color: #b45309; }
-html.light .ff-cd.is-ready .ff-cd__dial-value { color: #047857; }
-html.light .ff-cd__rail { background: rgba(16, 24, 39, 0.1); }
-html.light .ff-cd__value { color: #b45309; }
-html.light .ff-cd.is-ready .ff-cd__value { color: #047857; }
+/* --- Light mode: clear glass + luminous copy over chat media ------------- */
+html.light .ff-cd {
+  border-top-color: rgba(216, 232, 250, 0.16);
+  background: linear-gradient(180deg, rgba(145, 176, 211, 0.14), rgba(64, 94, 133, 0.08));
+}
+html.light .ff-cd.is-cooling {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.13), rgba(245, 158, 11, 0.035));
+  border-top-color: rgba(252, 211, 77, 0.28);
+}
+html.light .ff-cd__label { color: rgba(221, 232, 245, 0.72); }
+html.light .ff-cd.is-cooling .ff-cd__label { color: #fde68a; }
+html.light .ff-cd.is-ready .ff-cd__label { color: #6ee7b7; }
+html.light .ff-cd__dial-track { stroke: rgba(216, 232, 250, 0.18); }
+html.light .ff-cd__dial-arc { stroke: #fbbf24; filter: none; }
+html.light .ff-cd.is-ready .ff-cd__dial-arc { stroke: #34d399; filter: none; }
+html.light .ff-cd__dial-value { color: #fde68a; }
+html.light .ff-cd.is-ready .ff-cd__dial-value { color: #6ee7b7; }
+html.light .ff-cd__rail { background: rgba(216, 232, 250, 0.14); }
+html.light .ff-cd__value { color: #fde68a; }
+html.light .ff-cd.is-ready .ff-cd__value { color: #6ee7b7; }
 
 /* --- Giảm chuyển động --------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
@@ -3993,4 +4111,350 @@ html.light .ff-cd.is-ready .ff-cd__value { color: #047857; }
 .reduce-motion .ff-cd-btn.is-cooling::after {
   animation: none !important;
   transition-duration: 0.01ms !important;
+}
+
+/* ==========================================================================
+   GLOBAL POLISH — calm liquid-glass light palette + compositor-friendly motion
+   ========================================================================== */
+html {
+  scroll-behavior: smooth;
+}
+body,
+#root {
+  min-height: 100%;
+}
+body {
+  transition: background-color 420ms var(--ease-smooth), color 320ms ease;
+}
+html.light body,
+html.light #root {
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(112, 164, 205, 0.14), transparent 42%),
+    radial-gradient(ellipse at 88% 100%, rgba(196, 155, 108, 0.1), transparent 40%),
+    linear-gradient(135deg, #cbd7e5, #dbe4ee 54%, #c8d5e4);
+  color: var(--ff-glass-ink);
+}
+.ff-app-shell {
+  transition: background-color 420ms var(--ease-smooth), color 320ms ease;
+}
+html.light .ff-app-shell[data-view='landing'] {
+  background-color: #d5dfeb !important;
+}
+
+/* Light-mode glass sits over the app's dark/media canvas: tint the controls, not the whole pane. */
+html.light .ff-app-shell [class~="bg-white"]:not(.nav-login-btn) {
+  background-color: rgba(213, 228, 245, 0.76) !important;
+}
+html.light .ff-app-shell [class*="bg-white/"] {
+  background-color: rgba(213, 231, 251, 0.075) !important;
+}
+html.light .ff-app-shell [class*="border-white/"] {
+  border-color: rgba(216, 232, 250, 0.17) !important;
+}
+html.light .ff-app-shell [class*="hover:bg-white/"]:hover {
+  background-color: rgba(213, 231, 251, 0.13) !important;
+}
+
+/* Keep copy luminous over transparent glass; accent hues remain semantic and saturated. */
+html.light .liquid-glass [class~="text-white"],
+html.light .obsidian-glass [class~="text-white"] {
+  color: var(--ff-glass-ink) !important;
+}
+html.light .liquid-glass [class*="text-white/"],
+html.light .obsidian-glass [class*="text-white/"] {
+  color: var(--ff-glass-muted) !important;
+}
+html.light .liquid-glass [class*="hover:text-white"]:hover,
+html.light .obsidian-glass [class*="hover:text-white"]:hover {
+  color: #ffffff !important;
+}
+html.light .liquid-glass [class~="text-neutral-100"],
+html.light .liquid-glass [class~="text-neutral-200"],
+html.light .obsidian-glass [class~="text-neutral-100"],
+html.light .obsidian-glass [class~="text-neutral-200"] {
+  color: #edf4fc !important;
+}
+html.light .liquid-glass [class~="text-neutral-300"],
+html.light .liquid-glass [class~="text-neutral-400"],
+html.light .obsidian-glass [class~="text-neutral-300"],
+html.light .obsidian-glass [class~="text-neutral-400"] {
+  color: rgba(221, 232, 245, 0.76) !important;
+}
+
+/* Chips and controls use a small translucent frost instead of opaque white panels. */
+html.light .liquid-glass [class~="bg-white"],
+html.light .obsidian-glass [class~="bg-white"] {
+  background-color: rgba(213, 228, 245, 0.76) !important;
+}
+html.light .liquid-glass [class*="bg-white/"],
+html.light .obsidian-glass [class*="bg-white/"],
+html.light .liquid-glass [class*="bg-black/"],
+html.light .liquid-glass [class*="bg-neutral-950"],
+html.light .liquid-glass [class*="bg-neutral-900"],
+html.light .obsidian-glass [class*="bg-black/"],
+html.light .obsidian-glass [class*="bg-neutral-950"],
+html.light .obsidian-glass [class*="bg-neutral-900"] {
+  background-color: rgba(213, 231, 251, 0.075) !important;
+}
+html.light .liquid-glass [class*="border-white/"],
+html.light .obsidian-glass [class*="border-white/"] {
+  border-color: rgba(216, 232, 250, 0.17) !important;
+}
+html.light .liquid-glass :is(input, textarea, select),
+html.light .obsidian-glass :is(input, textarea, select) {
+  color: var(--ff-glass-ink);
+  background-color: rgba(213, 231, 251, 0.075);
+  border-color: rgba(216, 232, 250, 0.22);
+}
+html.light .liquid-glass :is(input, textarea, select)::placeholder,
+html.light .obsidian-glass :is(input, textarea, select)::placeholder {
+  color: rgba(221, 232, 245, 0.54);
+}
+html.light .ff-app-shell .nav-login-btn {
+  color: #f4f8fd !important;
+}
+
+/* Compact mobile bars keep the same tint and contrast as the desktop capsule. */
+html.light .ff-mobile-header,
+html.light .ff-mobile-tabbar {
+  background: linear-gradient(135deg, rgba(107, 142, 181, 0.5), rgba(45, 68, 99, 0.4));
+  border-color: rgba(216, 232, 250, 0.24);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(248, 251, 255, 0.2);
+}
+
+/* Navbar morphs only the properties that actually move; avoid an expensive `all` repaint. */
+.dock-container {
+  transition: opacity 480ms ease, transform 560ms var(--ease-smooth);
+}
+.dock-container > nav.ff-nav-capsule {
+  transition:
+    width 760ms cubic-bezier(0.22, 1, 0.36, 1),
+    max-width 760ms cubic-bezier(0.22, 1, 0.36, 1),
+    min-width 640ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 560ms cubic-bezier(0.22, 1, 0.36, 1),
+    max-height 560ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding 680ms cubic-bezier(0.22, 1, 0.36, 1),
+    gap 680ms cubic-bezier(0.22, 1, 0.36, 1),
+    top 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    right 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    bottom 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    left 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 420ms ease,
+    border-color 420ms ease,
+    box-shadow 420ms ease,
+    backdrop-filter 420ms ease;
+}
+.ff-app-shell :is(button, a, [role="button"], input, select, textarea) {
+  transition-timing-function: var(--ease-smooth);
+  -webkit-tap-highlight-color: transparent;
+}
+
+:where(button, a, input, select, textarea, [role="button"]):focus-visible {
+  outline: 2px solid rgba(14, 165, 233, 0.72);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  .dock-container,
+  .dock-container > nav.ff-nav-capsule,
+  .liquid-glass,
+  .obsidian-glass {
+    transition-duration: 0.01ms !important;
+  }
+}
+.reduce-motion {
+  scroll-behavior: auto !important;
+}
+.reduce-motion .dock-container,
+.reduce-motion .dock-container > nav.ff-nav-capsule,
+.reduce-motion .liquid-glass,
+.reduce-motion .obsidian-glass {
+  transition-duration: 0.01ms !important;
+}
+
+/* ==========================================================================
+   PHONE-FIRST ADAPTIVE LAYOUT — reflow with short screens, browser chrome,
+   on-screen keyboards, desktop resizing and page zoom.
+   ========================================================================== */
+:root {
+  --ff-visible-width: 100vw;
+  --ff-visible-height: 100vh;
+  --ff-visible-center-x: 50vw;
+  --ff-visible-center-y: 50vh;
+  --ff-mobile-header-height: 54px;
+  --ff-mobile-tabbar-height: 56px;
+}
+@supports (height: 100dvh) {
+  :root { --ff-visible-height: 100dvh; }
+}
+
+@media (max-width: 767px) {
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+  }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body { min-height: 100svh; }
+
+  .ff-app-shell,
+  .ff-app-main,
+  .ff-app-main > div {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .ff-mobile-header {
+    height: calc(var(--ff-mobile-header-height) + var(--safe-top));
+    padding-inline: clamp(8px, 3.4vw, 14px);
+    gap: 6px;
+  }
+  .ff-mobile-header > div:last-child { gap: clamp(2px, 1vw, 8px); }
+  .ff-mobile-header button { min-height: 40px; }
+
+  .ff-mobile-tabbar {
+    height: calc(var(--ff-mobile-tabbar-height) + var(--safe-bottom));
+    padding-inline: clamp(3px, 1.2vw, 10px);
+    justify-content: stretch;
+  }
+  .ff-mobile-tabbar > button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: clamp(1px, 0.7vw, 7px);
+  }
+  .ff-mobile-tabbar > button > span { font-size: clamp(8px, 2.6vw, 10px); }
+
+  .ff-mobile-menu-drawer {
+    bottom: calc(var(--ff-mobile-tabbar-height) + var(--safe-bottom) + 8px);
+    max-height: calc(var(--ff-visible-height, 100vh) - var(--ff-mobile-header-height) - var(--ff-mobile-tabbar-height) - var(--safe-top) - var(--safe-bottom) - 28px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  html.light .ff-mobile-menu-drawer {
+    background: linear-gradient(145deg, rgba(107, 142, 181, 0.62), rgba(45, 68, 99, 0.48));
+    border-color: rgba(216, 232, 250, 0.24);
+    backdrop-filter: blur(24px) saturate(155%);
+    -webkit-backdrop-filter: blur(24px) saturate(155%);
+  }
+
+  .ff-notifications-popover--floating {
+    top: var(--ff-visible-center-y, 50vh) !important;
+    left: var(--ff-visible-center-x, 50vw) !important;
+    max-width: max(1px, calc(var(--ff-visible-width, 100vw) - 24px));
+    max-height: max(1px, calc(var(--ff-visible-height, 100vh) - var(--safe-top) - var(--safe-bottom) - 24px));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .ff-notifications-popover--floating > :not(.ff-notification-feed) { flex-shrink: 0; }
+  .ff-notification-feed { min-height: 0; }
+  .ff-notifications-popover--floating .ff-notification-feed {
+    flex: 1 1 auto;
+    max-height: max(0px, min(340px, calc(var(--ff-visible-height, 100vh) - var(--safe-top) - var(--safe-bottom) - 210px)));
+  }
+
+  .ff-app-shell[data-view='home'],
+  .ff-app-shell[data-view='coming-soon'] {
+    height: auto !important;
+    min-height: var(--ff-visible-height, 100vh);
+    overflow: visible !important;
+  }
+  .ff-app-shell[data-view='home'] .ff-app-main,
+  .ff-app-shell[data-view='home'] .ff-app-main > div,
+  .ff-app-shell[data-view='coming-soon'] .ff-app-main,
+  .ff-app-shell[data-view='coming-soon'] .ff-app-main > div {
+    height: auto !important;
+    min-height: var(--ff-visible-height, 100vh);
+    overflow: visible !important;
+  }
+  .ff-home-view {
+    min-height: var(--ff-visible-height, 100vh);
+    height: auto;
+    padding-top: calc(var(--ff-mobile-header-height) + var(--safe-top) + 10px);
+    padding-bottom: calc(var(--ff-mobile-tabbar-height) + var(--safe-bottom) + 24px);
+    gap: 10px;
+  }
+  .ff-home-copy { padding-top: clamp(0px, 1.5vh, 10px) !important; }
+  .ff-home-headline {
+    max-width: 100%;
+    font-size: clamp(1.75rem, 8vw, 3.65rem);
+    line-height: 1.1;
+  }
+  .ff-home-badge { max-width: 100%; padding-inline: clamp(10px, 3vw, 16px); }
+  .ff-home-badge-row { margin-bottom: clamp(10px, 2vh, 20px); }
+  .ff-home-scroll-cue {
+    bottom: calc(var(--ff-mobile-tabbar-height) + var(--safe-bottom) + 14px);
+    max-width: calc(100% - 24px);
+  }
+  .ff-home-scroll-cue > div { gap: 4px; }
+  .ff-home-scroll-cue > div > span:last-child { font-size: 8px; text-align: center; }
+
+  .ff-coming-soon {
+    min-height: var(--ff-visible-height, 100vh);
+    height: auto;
+    overflow: visible !important;
+    padding-bottom: calc(var(--ff-mobile-tabbar-height) + var(--safe-bottom));
+  }
+  .ff-coming-soon__nav-spacer { height: calc(var(--ff-mobile-header-height) + var(--safe-top) + 10px); }
+  .ff-coming-soon > main { padding: 24px 16px 36px !important; }
+  .ff-coming-soon > footer { padding-bottom: 16px; }
+
+  .ff-mobile-viewport-screen { height: var(--ff-visible-height, 100vh) !important; }
+  .ff-mobile-workspace {
+    padding-top: calc(var(--ff-mobile-header-height) + var(--safe-top) + 12px);
+    padding-bottom: calc(var(--ff-mobile-tabbar-height) + var(--safe-bottom) + 12px);
+  }
+  .ff-mobile-chat {
+    padding-top: calc(var(--ff-mobile-header-height) + var(--safe-top));
+    padding-bottom: calc(var(--ff-mobile-tabbar-height) + var(--safe-bottom));
+  }
+
+  .ff-focus-chip {
+    right: 10px;
+    bottom: calc(var(--ff-mobile-tabbar-height) + var(--safe-bottom) + 10px);
+    max-width: calc(100vw - 20px);
+  }
+  .ff-focus-toast {
+    left: 10px;
+    right: 10px;
+    bottom: calc(var(--ff-mobile-tabbar-height) + var(--safe-bottom) + 70px);
+    max-width: none;
+  }
+
+  /* Prevent iOS Safari from unexpectedly zooming the page when a small input gets focus. */
+  .ff-app-shell :is(input, textarea, select) { font-size: max(16px, 1rem); }
+  .ff-app-shell :is(h1, h2, h3, p) { overflow-wrap: anywhere; }
+  .ff-app-shell img,
+  .ff-app-shell video,
+  .ff-app-shell canvas { max-width: 100%; }
+}
+
+/* Narrow and landscape phones: preserve touch targets but reclaim vertical room. */
+@media (max-width: 767px) and (max-height: 560px) {
+  :root {
+    --ff-mobile-header-height: 48px;
+    --ff-mobile-tabbar-height: 52px;
+  }
+  .ff-home-view { gap: 4px; }
+  .ff-home-badge-row { margin-bottom: 8px; }
+  .ff-home-copy > p { margin-top: 8px; }
+  .ff-home-copy > div:nth-of-type(2) { margin-top: 12px; }
+  .ff-coming-soon > main { padding-block: 12px 24px !important; }
+  .ff-coming-soon > main h1 { font-size: clamp(1.75rem, 7vw, 3rem); }
+  .ff-home-scroll-cue { display: none; }
+}
+
+/* Small physical widths (including browser zoom): prioritize controls over labels. */
+@media (max-width: 359px) {
+  .ff-mobile-header .ff-mobile-brand-name,
+  .ff-mobile-header .ff-mobile-user-name { display: none; }
+  .ff-mobile-header { padding-inline: 8px; }
+  .ff-mobile-tabbar > button > span { font-size: 8px; }
 }

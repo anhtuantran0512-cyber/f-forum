@@ -1,6 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState } from 'react';
-import { X, Mail, User as UserIcon, LogIn, UserPlus, Lock, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Mail, User as UserIcon, LogIn, UserPlus, Lock, AlertCircle } from 'lucide-react';
 import type { User } from '../types';
 import {
   isGoogleConfigured,
@@ -12,8 +12,7 @@ import {
 export interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLogin?: (provider: 'google' | 'facebook', data: { name: string; email: string; avatar?: string }) => void;
-  onLoginSocial?: (provider: 'google' | 'facebook', data: { name: string; email: string; avatar?: string }) => Promise<User>;
+  onLoginSocial?: (provider: 'google' | 'facebook', data: { accessToken: string; name: string; email: string; avatar?: string }) => Promise<User>;
   onLoginWithPassword?: (email: string, password: string) => Promise<User>;
   onRegister?: (name: string, email: string, password: string) => Promise<User>;
   /** Tab shown when the dialog opens (marketing CTAs open the register tab). */
@@ -25,7 +24,6 @@ export type LoginModalProps = AuthModalProps;
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
-  onLogin,
   onLoginSocial,
   onLoginWithPassword,
   onRegister,
@@ -41,10 +39,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
 
-  const [fallbackProvider, setFallbackProvider] = useState<'google' | 'facebook' | null>(null);
-  const [fallbackCustomName, setFallbackCustomName] = useState('');
-  const [fallbackCustomEmail, setFallbackCustomEmail] = useState('');
-
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -53,9 +47,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const resetFormState = () => {
     setErrorMsg(null);
     setIsSubmitting(false);
-    setFallbackProvider(null);
-    setFallbackCustomName('');
-    setFallbackCustomEmail('');
   };
 
   const handleClose = () => {
@@ -65,16 +56,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleExecuteSocialLogin = async (
     provider: 'google' | 'facebook',
-    profile: { name: string; email: string; avatar?: string }
+    profile: { accessToken: string; name: string; email: string; avatar?: string }
   ) => {
     setIsSubmitting(true);
     setErrorMsg(null);
     try {
-      if (onLoginSocial) {
-        await onLoginSocial(provider, profile);
-      } else if (onLogin) {
-        onLogin(provider, profile);
-      }
+      if (!onLoginSocial) throw new Error('Đăng nhập hiện không khả dụng. Vui lòng thử lại sau.');
+      await onLoginSocial(provider, profile);
       handleClose();
     } catch (err: any) {
       setErrorMsg(err.message || 'Xác thực tài khoản thất bại');
@@ -87,7 +75,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setErrorMsg(null);
 
     if (!isGoogleConfigured()) {
-      setFallbackProvider('google');
+      setErrorMsg('Đăng nhập Google chưa được cấu hình an toàn trên máy chủ.');
       return;
     }
 
@@ -99,11 +87,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (err.message === 'POPUP_CLOSED') {
         return;
       }
-      if (err.message === 'MISSING_GOOGLE_CLIENT_ID' || err.message === 'GOOGLE_SDK_UNAVAILABLE') {
-        setFallbackProvider('google');
-      } else {
-        setErrorMsg(err.message || 'Đăng nhập Google thất bại');
-      }
+      setErrorMsg(err.message || 'Đăng nhập Google thất bại. Vui lòng thử lại sau.');
     } finally {
       setIsSubmitting(false);
     }
@@ -113,7 +97,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setErrorMsg(null);
 
     if (!isFacebookConfigured()) {
-      setFallbackProvider('facebook');
+      setErrorMsg('Đăng nhập Facebook chưa được cấu hình an toàn trên máy chủ.');
       return;
     }
 
@@ -125,11 +109,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (err.message === 'POPUP_CLOSED') {
         return;
       }
-      if (err.message === 'MISSING_FACEBOOK_APP_ID' || err.message === 'FACEBOOK_SDK_UNAVAILABLE') {
-        setFallbackProvider('facebook');
-      } else {
-        setErrorMsg(err.message || 'Đăng nhập Facebook thất bại');
-      }
+      setErrorMsg(err.message || 'Đăng nhập Facebook thất bại. Vui lòng thử lại sau.');
     } finally {
       setIsSubmitting(false);
     }
@@ -140,7 +120,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setErrorMsg(null);
 
     const email = loginEmail.trim().toLowerCase();
-    const password = loginPassword.trim();
+    const password = loginPassword;
 
     if (!email || !password) {
       setErrorMsg('Vui lòng nhập đầy đủ Email và Mật khẩu!');
@@ -149,14 +129,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      if (onLoginWithPassword) {
-        await onLoginWithPassword(email, password);
-      } else {
-        const isSuperAdmin = email === 'anhtuantran0512@gmail.com';
-        if (!isSuperAdmin) {
-          throw new Error('Tài khoản không tồn tại. Vui lòng đăng ký trước!');
-        }
-      }
+      if (!onLoginWithPassword) throw new Error('Đăng nhập hiện không khả dụng. Vui lòng thử lại sau.');
+      await onLoginWithPassword(email, password);
       handleClose();
     } catch (err: any) {
       setErrorMsg(err.message || 'Tài khoản không tồn tại. Vui lòng đăng ký trước!');
@@ -171,8 +145,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     const name = registerName.trim();
     const email = registerEmail.trim().toLowerCase();
-    const password = registerPassword.trim();
-    const confirm = registerConfirmPassword.trim();
+    const password = registerPassword;
+    const confirm = registerConfirmPassword;
 
     if (!name) {
       setErrorMsg('Vui lòng nhập họ và tên của bạn!');
@@ -182,8 +156,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setErrorMsg('Vui lòng nhập địa chỉ email hợp lệ!');
       return;
     }
-    if (password.length < 6) {
-      setErrorMsg('Mật khẩu phải có tối thiểu 6 ký tự!');
+    if (password.length < 12 || password.length > 128) {
+      setErrorMsg('Mật khẩu phải có từ 12 đến 128 ký tự!');
       return;
     }
     if (password !== confirm) {
@@ -193,11 +167,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      if (onRegister) {
-        await onRegister(name, email, password);
-      } else if (onLogin) {
-        onLogin('google', { name, email });
-      }
+      if (!onRegister) throw new Error('Đăng ký hiện không khả dụng. Vui lòng thử lại sau.');
+      await onRegister(name, email, password);
       handleClose();
     } catch (err: any) {
       setErrorMsg(err.message || 'Đăng ký không thành công. Vui lòng thử lại!');
@@ -206,23 +177,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const handleFallbackCustomSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!fallbackProvider) return;
-
-    const email = fallbackCustomEmail.trim().toLowerCase();
-    const name = fallbackCustomName.trim();
-
-    if (!email || !email.includes('@')) {
-      setErrorMsg('Vui lòng nhập địa chỉ email hợp lệ để kiểm thử!');
-      return;
-    }
-
-    await handleExecuteSocialLogin(fallbackProvider, {
-      name: name || (fallbackProvider === 'google' ? 'Google Student' : 'Facebook Student'),
-      email,
-    });
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md">
@@ -257,106 +211,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </button>
         </div>
 
-        {/* ========================================================================= */}
-        {/* GRACEFUL DEV FALLBACK PROMPT (Activated ONLY if OAuth env vars are unset) */}
-        {/* ========================================================================= */}
-        {fallbackProvider ? (
-          <div className="relative z-10 space-y-4">
-            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {fallbackProvider === 'google' ? (
-                    <svg className="w-4 h-4" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
-                      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24Z"/>
-                      <path fill="#FBBC05" d="M5.28 14.27a7.17 7.17 0 0 1 0-4.54V6.58H1.25a11.96 11.96 0 0 0 0 10.84l4.03-3.15Z"/>
-                      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
-                    </svg>
-                  ) : (
-                    <svg className="w-4 h-4 fill-[#1877F2]" viewBox="0 0 24 24">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
-                  )}
-                  <span className="text-xs font-bold text-amber-200 uppercase tracking-wider">
-                    {fallbackProvider === 'google' ? 'Xác Thực Google OAuth 2.0' : 'Xác Thực Facebook SDK'}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setFallbackProvider(null)}
-                  className="text-xs text-white/50 hover:text-white"
-                >
-                  Quay lại
-                </button>
-              </div>
-
-              <div className="flex items-start gap-2 text-xs text-white/80">
-                <p className="text-[12px] leading-relaxed text-white/80">
-                  Xác thực liên kết trực tiếp với tài khoản <span className="text-amber-300 font-semibold">{fallbackProvider === 'google' ? 'Google' : 'Facebook'}</span>. Vui lòng nhập thông tin của bạn để hoàn tất đăng nhập:
-                </p>
-              </div>
-            </div>
-
-            {errorMsg && (
-              <div className="p-2.5 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-red-300 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
-
-            {/* Account Linking Form */}
-            <form onSubmit={handleFallbackCustomSubmit} className="space-y-3 pt-1">
-              <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
-                  Họ và tên hiển thị <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  maxLength={60}
-                  value={fallbackCustomName}
-                  onChange={e => setFallbackCustomName(e.target.value)}
-                  placeholder="Ví dụ: Nguyễn Văn Nam"
-                  className="w-full bg-neutral-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-amber-400 transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
-                  Địa chỉ Email {fallbackProvider === 'google' ? 'Google' : 'Facebook'} <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="email"
-                  required
-                  maxLength={120}
-                  value={fallbackCustomEmail}
-                  onChange={e => setFallbackCustomEmail(e.target.value)}
-                  placeholder={fallbackProvider === 'google' ? 'name@gmail.com' : 'name@facebook.com'}
-                  className="w-full bg-neutral-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-amber-400 transition-colors"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFallbackProvider(null)}
-                  className="w-1/3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium text-xs transition-colors cursor-pointer"
-                >
-                  Quay lại
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 py-2.5 rounded-xl bg-white text-neutral-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-transform hover:scale-102 active:scale-98 cursor-pointer disabled:opacity-50"
-                >
-                  <CheckCircle className="w-3.5 h-3.5" />
-                  <span>{isSubmitting ? 'Đang xác thực...' : 'Liên kết & Đăng nhập'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        ) : (
-          <>
             {/* Primary Mode Tabs: [Đăng nhập] vs [Đăng ký] */}
             <div className="relative z-10 grid grid-cols-2 gap-1.5 p-1 bg-black/40 rounded-2xl border border-white/10 mb-4">
               <button
@@ -427,7 +281,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <input
                     type="password"
                     required
-                    maxLength={60}
+                    maxLength={128}
                     value={loginPassword}
                     onChange={e => setLoginPassword(e.target.value)}
                     placeholder="Nhập mật khẩu..."
@@ -492,10 +346,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <input
                       type="password"
                       required
-                      maxLength={60}
+                      maxLength={128}
+                      minLength={12}
                       value={registerPassword}
                       onChange={e => setRegisterPassword(e.target.value)}
-                      placeholder="Ít nhất 6 ký tự"
+                      placeholder="Ít nhất 12 ký tự"
                       className="w-full bg-neutral-900/90 border border-white/15 rounded-xl px-3 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-amber-400 transition-colors"
                     />
                   </div>
@@ -508,7 +363,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <input
                       type="password"
                       required
-                      maxLength={60}
+                      maxLength={128}
+                      minLength={12}
                       value={registerConfirmPassword}
                       onChange={e => setRegisterConfirmPassword(e.target.value)}
                       placeholder="Nhập lại mật khẩu"
@@ -575,8 +431,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </button>
               </div>
             </div>
-          </>
-        )}
+
       </div>
     </div>
   );

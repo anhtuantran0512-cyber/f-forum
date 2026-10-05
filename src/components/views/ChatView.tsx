@@ -205,7 +205,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
     CHANNELS.find(c => c.id === activeChannel) || CHANNELS[0];
 
   return (
-    <section className="relative w-full h-[100dvh] md:h-screen overflow-hidden flex flex-col pt-[calc(54px+var(--safe-top))] pb-[calc(56px+var(--safe-bottom))] md:pt-24 md:pb-6 px-2 sm:px-6">
+    <section className="ff-mobile-viewport-screen ff-mobile-chat relative w-full h-[100dvh] md:h-screen overflow-hidden flex flex-col pt-[calc(54px+var(--safe-top))] pb-[calc(56px+var(--safe-bottom))] md:pt-24 md:pb-6 px-2 sm:px-6">
       {/* Background Video Engine: TriVideoCrossfadeBg running at z-0 absolute inset-0 */}
       <TriVideoCrossfadeBg activeIdx={activeVideoIdx} onIdxChange={setActiveVideoIdx} />
 

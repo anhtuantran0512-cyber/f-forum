@@ -66,7 +66,7 @@ interface ProfileModalProps {
   onClose: () => void;
   currentUser: User;
   viewerUser?: User | null;
-  onSaveProfile: (updates: Partial<User>) => void;
+  onSaveProfile: (updates: Partial<User>) => Promise<boolean>;
   initialTab?: 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit';
   questions?: Question[];
   solutions?: Solution[];
@@ -241,7 +241,7 @@ const ProfileModalInner: React.FC<{
   currentUser: User;
   viewerUser?: User | null;
   onClose: () => void;
-  onSaveProfile: (updates: Partial<User>) => void;
+  onSaveProfile: (updates: Partial<User>) => Promise<boolean>;
   initialTab?: TabType;
   questions?: Question[];
   solutions?: Solution[];
@@ -455,14 +455,18 @@ const ProfileModalInner: React.FC<{
     return { level, points };
   });
 
-  const handleBuyItem = (item: ShopItem) => {
+  const handleBuyItem = async (item: ShopItem) => {
     if (userCoin < item.price) return;
     const newCoin = userCoin - item.price;
     const newInventory = Array.from(new Set([...userInventory, item.id]));
-    onSaveProfile({
+    const saved = await onSaveProfile({
       coin: newCoin,
       inventory: newInventory,
     });
+    if (!saved) {
+      setErrorMsg('Giao dịch chưa được máy chủ xác nhận. Số dư và vật phẩm vẫn được giữ nguyên.');
+      return;
+    }
     pushNotification({
       type: 'coin',
       category: 'system',
@@ -472,12 +476,14 @@ const ProfileModalInner: React.FC<{
     });
   };
 
-  const handleEquipItem = (itemId: string) => {
+  const handleEquipItem = async (itemId: string) => {
     const isCurrentlyEquipped = currentUser.equippedBadge === itemId;
     const nextBadge = isCurrentlyEquipped ? '' : itemId;
-    onSaveProfile({
-      equippedBadge: nextBadge,
-    });
+    const saved = await onSaveProfile({ equippedBadge: nextBadge });
+    if (!saved) {
+      setErrorMsg('Không thể cập nhật vật phẩm đang trang bị. Vui lòng thử lại.');
+      return;
+    }
     const it = SHOP_ITEMS.find((s) => s.id === itemId);
     pushNotification({
       type: 'system',
@@ -557,7 +563,7 @@ const ProfileModalInner: React.FC<{
     e.target.value = '';
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving) return;
     if (!name.trim()) {
@@ -566,21 +572,25 @@ const ProfileModalInner: React.FC<{
     }
 
     setIsSaving(true);
-    onSaveProfile({
-      name: name.trim().slice(0, 50),
-      avatar,
-      bannerUrl,
-      profileGradient,
-      bio: bio.trim().slice(0, 100),
-      gender,
-      city: city.trim().slice(0, 50),
-      className: className.trim().slice(0, 50),
-    });
-
-    setTimeout(() => {
+    setErrorMsg(null);
+    try {
+      const saved = await onSaveProfile({
+        name: name.trim().slice(0, 50),
+        avatar,
+        bannerUrl,
+        profileGradient,
+        bio: bio.trim().slice(0, 100),
+        gender,
+        city: city.trim().slice(0, 50),
+        className: className.trim().slice(0, 50),
+      });
+      if (saved) setActiveTab('overview');
+      else setErrorMsg('Thay đổi chưa được máy chủ lưu. Vui lòng kiểm tra rồi thử lại.');
+    } catch {
+      setErrorMsg('Không thể kết nối máy chủ. Vui lòng thử lại.');
+    } finally {
       setIsSaving(false);
-      setActiveTab('overview');
-    }, 200);
+    }
   };
 
   const handleReportUserSubmit = async (e: React.FormEvent) => {

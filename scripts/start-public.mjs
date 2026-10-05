@@ -6,9 +6,10 @@
  * Orchestrates Vite dev server and an automated public tunnel:
  * - Spawns Vite server locally on port 5173 (or reuses active instance).
  * - Drains Vite stdout/stderr to prevent OS pipe buffer overflow.
- * - Automatically launches public tunnel with custom subdomain 'fforum-broamstuck-studio' via LocalTunnel.
- * - Dynamic fallback to Cloudflare Tunnel (via untun / cloudflared) if subdomain is occupied or LocalTunnel fails.
- * - Renders eye-catching terminal status banner with public, backup, and local URLs.
+ * - Opens a Cloudflare Quick Tunnel only for an explicit public run.
+ * - Test/dry-run mode only checks the local server and never exposes it publicly.
+ * - Uses the maintained untun / cloudflared tunnel runner.
+ * - Renders a terminal status banner with public and local URLs.
  * - Clean process group termination on SIGINT (Ctrl + C), SIGTERM, and SIGHUP without lingering ports.
  */
 
@@ -23,16 +24,12 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 
 const PORT = parseInt(process.env.PORT || '5173', 10);
-const SUBDOMAIN = 'fforum-broamstuck-studio';
-const EXPECTED_LT_URL = `https://${SUBDOMAIN}.loca.lt`;
 const LOCAL_HOST_URL = `http://localhost:${PORT}`;
 
 const isTestMode = process.argv.includes('--test') || process.argv.includes('--dry-run');
-const isForceFallback = process.argv.includes('--test-fallback') || process.argv.includes('--simulate-occupied');
 
 // Track child processes
 let viteProcess = null;
-let ltProcess = null;
 let cfProcess = null;
 let isSpawnedVite = false;
 let isShuttingDown = false;
@@ -44,11 +41,6 @@ function getNodeRunner(name) {
       localScript: path.join(projectRoot, 'node_modules', 'vite', 'bin', 'vite.js'),
       binName: 'vite',
       pkgName: 'vite',
-    },
-    localtunnel: {
-      localScript: path.join(projectRoot, 'node_modules', 'localtunnel', 'bin', 'lt.js'),
-      binName: 'lt',
-      pkgName: 'localtunnel',
     },
     untun: {
       localScript: path.join(projectRoot, 'node_modules', 'untun', 'dist', 'cli.mjs'),
@@ -145,17 +137,12 @@ function isPortActive(port) {
 }
 
 // Format and print terminal status banner
-function printStatusBanner(publicUrl, backupUrl) {
+function printStatusBanner(publicUrl) {
   console.log('\n' + '='.repeat(68));
   console.log('🚀 FFORUM_BROAMSTUCK_STUDIO IS NOW LIVE PUBLICLY!');
-  console.log(`⚡ DIRECT 1-CLICK URL : ${publicUrl} (VÀO THẲNG - 0 PROMPT)`);
-  if (backupUrl && backupUrl.includes('loca.lt')) {
-    console.log(`🌐 BRANDED URL        : ${backupUrl} (Yêu cầu IP: 116.105.31.157)`);
-  } else {
-    console.log(`🌐 BACKUP URL         : ${backupUrl}`);
-  }
+  console.log(`⚡ PUBLIC URL          : ${publicUrl}`);
   console.log(`💻 LOCAL HOST         : ${LOCAL_HOST_URL}`);
-  console.log('📡 Chia sẻ link DIRECT 1-CLICK để bất kỳ ai vào thẳng ngay lập tức!');
+  console.log('📡 Chỉ chia sẻ URL này với người được phép truy cập.');
   console.log('='.repeat(68) + '\n');
 }
 
@@ -182,8 +169,7 @@ function cleanup(exitCode = 0) {
 
   console.log('\n🛑 Shutting down fforum_broamstuck_studio deployment pipeline...');
 
-  // 1. Send SIGTERM to tunnel processes
-  killProcessGroup(ltProcess, 'SIGTERM');
+  // Stop the public tunnel before shutting down the local server.
   killProcessGroup(cfProcess, 'SIGTERM');
 
   // 2. Terminate Vite server only if this runner spawned it
@@ -193,7 +179,6 @@ function cleanup(exitCode = 0) {
 
   // 3. Forceful cleanup after grace period to ensure no hanging sockets/ports
   setTimeout(() => {
-    killProcessGroup(ltProcess, 'SIGKILL');
     killProcessGroup(cfProcess, 'SIGKILL');
     if (isSpawnedVite && viteProcess) {
       killProcessGroup(viteProcess, 'SIGKILL');
@@ -257,74 +242,6 @@ async function ensureViteServer() {
   // Wait for server to respond
   await checkHttpReady(`http://127.0.0.1:${PORT}`, 20000);
   console.log(`✅ [Vite] Server is live at ${LOCAL_HOST_URL}`);
-}
-
-// Launch LocalTunnel
-function startLocalTunnel() {
-  return new Promise((resolve) => {
-    if (isForceFallback) {
-      console.log(`🧪 [--simulate-occupied] Simulating occupied LocalTunnel subdomain...`);
-      resolve({ success: false, url: null, occupied: true });
-      return;
-    }
-
-    const runner = getNodeRunner('localtunnel');
-    console.log(`🌐 [Tunnel] Connecting LocalTunnel with subdomain: ${SUBDOMAIN}...`);
-
-    let resolved = false;
-    let accumulatedOutput = '';
-
-    ltProcess = spawn(runner.cmd, [...runner.prefixArgs, '--port', String(PORT), '--subdomain', SUBDOMAIN], {
-      cwd: projectRoot,
-      detached: true,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env },
-    });
-
-    const timeout = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        console.warn('⚠️ [Tunnel] LocalTunnel connection timed out (12s).');
-        resolve({ success: false, url: null, reason: 'timeout' });
-      }
-    }, 12000);
-
-    const onData = (chunk) => {
-      const text = chunk.toString();
-      accumulatedOutput += text;
-
-      const match = accumulatedOutput.match(/your url is:\s*(https?:\/\/[^\s]+)/i);
-      if (match && !resolved) {
-        resolved = true;
-        clearTimeout(timeout);
-        const url = match[1].trim();
-        const isExactSubdomain = url === EXPECTED_LT_URL;
-        resolve({
-          success: isExactSubdomain,
-          url,
-          occupied: !isExactSubdomain,
-        });
-      }
-    };
-
-    ltProcess.stdout.on('data', onData);
-    ltProcess.stderr.on('data', (d) => {
-      const errText = d.toString();
-      if (errText.includes('error') && !resolved) {
-        resolved = true;
-        clearTimeout(timeout);
-        resolve({ success: false, url: null, reason: errText });
-      }
-    });
-
-    ltProcess.on('exit', (code) => {
-      if (!resolved) {
-        resolved = true;
-        clearTimeout(timeout);
-        resolve({ success: false, url: null, reason: `Process exited with code ${code}` });
-      }
-    });
-  });
 }
 
 // Launch Cloudflare Tunnel
@@ -396,34 +313,25 @@ async function main() {
     // 1. Ensure Vite server is running
     await ensureViteServer();
 
-    // 2. Launch Cloudflare Direct Tunnel (Zero-password 1-click) & LocalTunnel
-    console.log('🌐 [Tunnel] Activating Cloudflare Direct Tunnel & LocalTunnel...');
-    const [cfResult, ltResult] = await Promise.all([
-      startCloudflareTunnel(),
-      startLocalTunnel(),
-    ]);
-
-    const directUrl = cfResult.success && cfResult.url ? cfResult.url : (ltResult.url || EXPECTED_LT_URL);
-    const brandedUrl = ltResult.url ? ltResult.url : (cfResult.url || '(LocalTunnel unavailable)');
-
-    if (!cfResult.success && !ltResult.success) {
-      throw new Error('Unable to establish any public tunnel connection.');
-    }
-
-    // 3. Print Banner
-    printStatusBanner(directUrl, brandedUrl);
-
-    // 4. Handle test mode
+    // Test mode is intentionally local-only; do not open any public tunnel.
     if (isTestMode) {
-      console.log('🧪 [--test] Verifying pipeline health...');
+      console.log('🧪 [--test] Verifying only the local Vite server; public tunneling is disabled...');
       await checkHttpReady(`http://127.0.0.1:${PORT}`, 5000);
-      console.log('✅ [--test] Vite dev server response verified.');
-      console.log('✅ [--test] Public URL and Banner validated successfully.');
+      console.log('✅ [--test] Local Vite response verified; no public URL was created.');
       console.log('🧹 [--test] Initiating automated clean shutdown...\n');
       cleanup(0);
       return;
     }
 
+    // 2. Expose the app only when explicitly running the public deployment command.
+    console.log('🌐 [Tunnel] Starting the Cloudflare Quick Tunnel...');
+    const cfResult = await startCloudflareTunnel();
+    if (!cfResult.success || !cfResult.url) {
+      throw new Error('Unable to establish the Cloudflare public tunnel.');
+    }
+
+    // 3. Print the public URL
+    printStatusBanner(cfResult.url);
     console.log('🟢 Deployment active. Press Ctrl + C to stop all services.\n');
   } catch (err) {
     console.error('\n❌ Deployment failed:', err.message);

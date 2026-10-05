@@ -105,7 +105,7 @@ const INITIAL_VINHDANH_RECORDS: VinhDanhRecord[] = [
     imgId: 'hf_20260922_194417_555e4d90-f35f-4a1a-8c75-def1e8b71988',
     title: 'Focus Sanctuary 432Hz',
     place: 'Tịnh Tâm Thư Phòng',
-    note: 'Âm thanh sóng não Alpha và đồng hồ Pomodoro hỗ trợ ôn thi hiệu quả.',
+    note: 'Âm thanh sóng não Alpha và đồng hồ học tự do hỗ trợ ôn thi hiệu quả.'
   },
   {
     id: 'vd-10',
@@ -599,7 +599,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     }));
 
     saveAboutDataToServer({
-      headline: 'BroAmStuck Studio • Trần Văn Anh Tuấn',
+      headline: 'Hall of frame',
       subtitle: 'Khu Vinh Danh • 3D Fibonacci Sphere Chronicles & System Archive',
       founder: {
         name: updatedFounder.name,
@@ -880,18 +880,16 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             })}
           </div>
 
-          {/* h1#headline: Exactly 5 spans, optical lock at sphere center */}
+          {/* h1#headline: word-by-word reveal, optically locked at sphere center */}
           <h1
             id="headline"
             ref={headlineRef}
             className="absolute top-0 left-0 w-[var(--hw)] -ml-[calc(var(--hw)/2)] text-center font-['Playfair_Display'] text-white select-none pointer-events-none font-playfair tracking-tight"
           >
             <span className="inner absolute top-0 left-0 w-full -translate-y-1/2">
-              <span style={{ '--i': 0 } as React.CSSProperties}>BroAmStuck</span>{' '}
-              <span style={{ '--i': 1 } as React.CSSProperties}>Studio</span>{' '}
-              <span style={{ '--i': 2 } as React.CSSProperties}>•</span>{' '}
-              <span style={{ '--i': 3 } as React.CSSProperties}>Trần</span>{' '}
-              <span style={{ '--i': 4 } as React.CSSProperties}>Tuấn</span>
+              <span style={{ '--i': 0 } as React.CSSProperties}>Hall</span>{' '}
+              <span style={{ '--i': 1 } as React.CSSProperties}>of</span>{' '}
+              <span style={{ '--i': 2 } as React.CSSProperties}>frame</span>
             </span>
           </h1>
         </div>

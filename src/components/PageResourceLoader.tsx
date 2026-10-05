@@ -93,11 +93,26 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
       markDone('fonts', '> fonts: hoàn tất');
     }
 
-    /* 4. Server data sync (the real resource gate) */
-    pushLog('> api: đồng bộ dữ liệu máy chủ...');
+    const sessionPromise = fetch('/api/auth/session', { credentials: 'same-origin', cache: 'no-store' })
+      .then(async response => {
+        if (!response.ok) return false;
+        const data = await response.json();
+        return Boolean(data.user?.id);
+      })
+      .catch(() => false);
+
+    /* 4. Server data sync is private, so guests do not request it. */
+    pushLog('> api: kiểm tra phiên và đồng bộ dữ liệu...');
     let apiFinished = false;
-    fetch('/api/sync')
-      .then(async (res) => {
+    void sessionPromise.then(async (hasSession) => {
+      if (!mountedRef.current) return;
+      if (!hasSession) {
+        apiFinished = true;
+        markDone('api', '> api: khách — đồng bộ sau khi đăng nhập');
+        return;
+      }
+      try {
+        const res = await fetch('/api/sync');
         if (res.ok) {
           const json = await res.json();
           const data = json?.data || {};
@@ -112,39 +127,46 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
           apiFinished = true;
           markDone('api', '> api: ngoại tuyến, dùng bộ nhớ đệm');
         }
-      })
-      .catch(() => {
+      } catch {
         apiFinished = true;
         markDone('api', '> api: ngoại tuyến, dùng bộ nhớ đệm');
-      });
+      }
+    });
     setTimeout(() => {
       if (!apiFinished) markDone('api', '> api: timeout, tiếp tục');
     }, 6000);
 
-    /* 5. Realtime channel (WebSocket, fallback SSE) */
-    pushLog('> ws: mở kênh thời gian thực...');
+    /* 5. Realtime is account-bound too; avoid an anonymous rejected handshake. */
+    pushLog('> ws: kiểm tra quyền kênh thời gian thực...');
     let rtFinished = false;
-    try {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
-      const finishRt = (line: string) => {
-        if (rtFinished) return;
-        rtFinished = true;
-        markDone('rt', line);
-      };
-      ws.onopen = () => finishRt('> ws: kết nối thời gian thực ok');
-      ws.onerror = () => finishRt('> sse: dùng kênh dự phòng');
-      setTimeout(() => {
+    const finishRt = (line: string) => {
+      if (rtFinished) return;
+      rtFinished = true;
+      markDone('rt', line);
+    };
+    void sessionPromise.then((hasSession) => {
+      if (!mountedRef.current || rtFinished) return;
+      if (!hasSession) {
+        finishRt('> ws: khả dụng sau khi đăng nhập');
+        return;
+      }
+      try {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+        ws.onopen = () => finishRt('> ws: kết nối thời gian thực ok');
+        ws.onerror = () => finishRt('> sse: dùng kênh dự phòng');
+        setTimeout(() => {
+          finishRt('> ws: sẵn sàng');
+          try {
+            ws.close();
+          } catch {
+            /* ignore */
+          }
+        }, 3500);
+      } catch {
         finishRt('> ws: sẵn sàng');
-        try {
-          ws.close();
-        } catch {
-          /* ignore */
-        }
-      }, 3500);
-    } catch {
-      markDone('rt', '> ws: sẵn sàng');
-    }
+      }
+    });
 
     /* Smooth progress animation toward the real target */
     const tick = setInterval(() => {
