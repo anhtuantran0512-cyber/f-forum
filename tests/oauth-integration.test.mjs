@@ -58,67 +58,152 @@ test('1. Dual OAuth Codebase Inspection: SDK Initializer in main.tsx & AuthModal
   assert.ok(!authModalCode.includes('socialModalProvider === \'google\' ? \'Google Student\' : \'Facebook Student\''), 'Fake prompt eliminated');
   assert.ok(!authModalCode.includes('Đăng nhập Super Admin'), 'Must not expose Đăng nhập Super Admin');
   assert.ok(!authModalCode.includes('handleQuickAdmin'), 'Must not expose handleQuickAdmin');
+  assert.ok(!authModalCode.includes('handleFallbackCustomSubmit'), 'Manual social identity fallback is forbidden');
+  assert.ok(!authModalCode.includes('fallbackCustomEmail'), 'Social login must not ask users to type an unverified email');
 
   // Verify LoginModal re-exports AuthModal
   const loginModalCode = fs.readFileSync('src/components/LoginModal.tsx', 'utf8');
   assert.ok(loginModalCode.includes("from './AuthModal'"), 'LoginModal re-exports AuthModal');
 });
 
-test('2. OAuth Server Endpoint (/api/auth/social): Student auto-registration and Super Admin verification', async () => {
+test('2. OAuth endpoint rejects client profiles and verifies provider tokens on the server', async () => {
   const testEnv = await createTestServer();
+  const originalFetch = globalThis.fetch;
+  const previousGoogleClientId = process.env.FFORUM_GOOGLE_CLIENT_ID;
+  const previousFacebookAppId = process.env.FFORUM_FACEBOOK_APP_ID;
+  const previousFacebookAppSecret = process.env.FFORUM_FACEBOOK_APP_SECRET;
+  process.env.FFORUM_GOOGLE_CLIENT_ID = 'forum-google-client';
+  process.env.FFORUM_FACEBOOK_APP_ID = 'forum-facebook-app';
+  process.env.FFORUM_FACEBOOK_APP_SECRET = 'server-only-facebook-secret';
+  const providerProfiles = new Map();
+  providerProfiles.set('https://oauth2.googleapis.com/tokeninfo?', {
+    aud: 'forum-google-client', azp: 'forum-google-client',
+  });
+  providerProfiles.set('https://graph.facebook.com/debug_token?', {
+    data: { is_valid: true, app_id: 'forum-facebook-app', user_id: 'fb-verified-id' },
+  });
+  globalThis.fetch = async (input, init) => {
+    const url = String(input);
+    for (const [providerUrl, profile] of providerProfiles) {
+      if (url.startsWith(providerUrl)) {
+        return new Response(JSON.stringify(profile), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    }
+    return originalFetch(input, init);
+  };
 
   try {
-    // 2.1 Standard Student Registration via Google
+    const forgedRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: 'google',
+        name: 'Forged Super Admin',
+        email: 'claimed-admin@example.test',
+        avatar: 'https://attacker.example/avatar.png',
+      }),
+    });
+    assert.equal(forgedRes.status, 401, 'A profile without an OAuth credential must not create a session');
+    assert.equal(forgedRes.headers.get('set-cookie'), null);
+
+    providerProfiles.set('https://www.googleapis.com/oauth2/v3/userinfo', {
+      name: 'Verified Google Student',
+      email: 'test.google.user@fpt.edu.vn',
+      email_verified: true,
+      picture: 'https://lh3.googleusercontent.com/a/verified-avatar',
+    });
     const googleRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         provider: 'google',
-        name: 'Nguyen Van Google',
-        email: 'test.google.user@fpt.edu.vn',
-        avatar: 'https://lh3.googleusercontent.com/a/test-avatar',
+        credential: 'google-access-token-for-server-verification',
+        email: 'attacker-supplied@example.org',
+        name: 'Attacker supplied name',
       }),
     });
     const googleData = await googleRes.json();
-    assert.equal(googleRes.status, 200);
-    assert.equal(googleData.success, true);
+    assert.equal(googleRes.status, 200, googleData.message);
     assert.equal(googleData.user.email, 'test.google.user@fpt.edu.vn');
-    assert.equal(googleData.user.role, 'STUDENT');
+    assert.equal(googleData.user.name, 'Verified Google Student');
+    assert.equal(googleData.user.role, 'user');
     assert.equal(googleData.user.level, 1);
-    assert.equal(googleData.user.xp, 0);
-    assert.equal(googleData.user.avatar, 'https://lh3.googleusercontent.com/a/test-avatar');
+    assert.equal(googleData.token, undefined, 'Session bearer tokens are not returned to JavaScript');
+    assert.match(googleRes.headers.get('set-cookie'), /HttpOnly/);
+    assert.match(googleRes.headers.get('set-cookie'), /SameSite=Lax/);
 
-    // 2.2 Super Admin Auto-Detection via OAuth
+    providerProfiles.set('https://oauth2.googleapis.com/tokeninfo?', { aud: 'attacker-owned-client' });
+    providerProfiles.set('https://www.googleapis.com/oauth2/v3/userinfo', {
+      name: 'Forged Admin via foreign OAuth app',
+      email: 'claimed-admin@example.test',
+      email_verified: true,
+    });
+    const foreignGoogleApp = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: 'google', credential: 'google-token-from-foreign-client' }),
+    });
+    assert.equal(foreignGoogleApp.status, 401, 'A valid Google token for another OAuth client cannot sign in to F-Forum');
+    assert.equal(foreignGoogleApp.headers.get('set-cookie'), null);
+    providerProfiles.set('https://oauth2.googleapis.com/tokeninfo?', {
+      aud: 'forum-google-client', azp: 'forum-google-client',
+    });
+
+    providerProfiles.set('https://graph.facebook.com/me?', {
+      name: 'Verified Facebook Owner',
+      email: 'verified.facebook.user@fpt.edu.vn',
+      picture: { data: { url: 'https://facebook.example/avatar.png' } },
+      id: 'fb-verified-id',
+    });
     const adminRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         provider: 'facebook',
-        name: 'Trần Anh Tuấn',
-        email: 'anhtuantran0512@gmail.com',
+        credential: 'facebook-access-token-for-server-verification',
+        email: 'student@example.org',
       }),
     });
     const adminData = await adminRes.json();
-    assert.equal(adminRes.status, 200);
-    assert.equal(adminData.success, true);
-    assert.equal(adminData.user.email, 'anhtuantran0512@gmail.com');
-    assert.equal(adminData.user.role, 'SUPER_ADMIN', 'anhtuantran0512@gmail.com must have SUPER_ADMIN role');
-    assert.equal(adminData.user.level, 150, 'Super admin must be Level 150');
+    assert.equal(adminRes.status, 200, adminData.message);
+    assert.equal(adminData.user.email, 'verified.facebook.user@fpt.edu.vn');
+    assert.equal(adminData.user.role, 'user', 'OAuth verification authenticates identity but never grants an Admin role');
+    assert.equal(adminData.user.level, 1);
 
-    // 2.3 Invalid email rejection
-    const invalidRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
+    providerProfiles.set('https://graph.facebook.com/debug_token?', {
+      data: { is_valid: true, app_id: 'attacker-owned-facebook-app', user_id: 'fb-verified-id' },
+    });
+    const foreignFacebookApp = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        provider: 'google',
-        name: 'Invalid Email',
-        email: 'not-an-email',
-      }),
+      body: JSON.stringify({ provider: 'facebook', credential: 'facebook-token-from-foreign-client' }),
     });
-    assert.equal(invalidRes.status, 400);
-    const invalidData = await invalidRes.json();
-    assert.equal(invalidData.success, false);
+    assert.equal(foreignFacebookApp.status, 401, 'A Facebook token for another app cannot create an F-Forum session');
+    assert.equal(foreignFacebookApp.headers.get('set-cookie'), null);
+
+    providerProfiles.set('https://www.googleapis.com/oauth2/v3/userinfo', {
+      email: 'unverified@example.org',
+      email_verified: false,
+      name: 'Unverified',
+    });
+    const unverifiedRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: 'google', credential: 'google-token-unverified-identity' }),
+    });
+    assert.equal(unverifiedRes.status, 401, 'Unverified Google email identities are rejected');
+    assert.equal(unverifiedRes.headers.get('set-cookie'), null);
   } finally {
+    globalThis.fetch = originalFetch;
+    if (previousGoogleClientId === undefined) delete process.env.FFORUM_GOOGLE_CLIENT_ID;
+    else process.env.FFORUM_GOOGLE_CLIENT_ID = previousGoogleClientId;
+    if (previousFacebookAppId === undefined) delete process.env.FFORUM_FACEBOOK_APP_ID;
+    else process.env.FFORUM_FACEBOOK_APP_ID = previousFacebookAppId;
+    if (previousFacebookAppSecret === undefined) delete process.env.FFORUM_FACEBOOK_APP_SECRET;
+    else process.env.FFORUM_FACEBOOK_APP_SECRET = previousFacebookAppSecret;
     await testEnv.close();
   }
 });
@@ -161,43 +246,46 @@ test('4. SDK Initializer Concurrency & Singleton Promise Protection', async () =
   await Promise.all([p1, p2, g1, g2]);
 });
 
-test('5. OAuth Server Endpoint Case-Insensitive Normalization & Avatar Updating', async () => {
+test('5. Verified OAuth normalizes email and uses the verified provider avatar', async () => {
   const testEnv = await createTestServer();
-
+  const originalFetch = globalThis.fetch;
+  const previousGoogleClientId = process.env.FFORUM_GOOGLE_CLIENT_ID;
+  process.env.FFORUM_GOOGLE_CLIENT_ID = 'normalization-google-client';
+  globalThis.fetch = async (input, init) => {
+    if (String(input).startsWith('https://oauth2.googleapis.com/tokeninfo?')) {
+      return new Response(JSON.stringify({ aud: 'normalization-google-client' }), { status: 200 });
+    }
+    if (String(input).startsWith('https://www.googleapis.com/oauth2/v3/userinfo')) {
+      return new Response(JSON.stringify({
+        name: 'Verified Case Student',
+        email: 'STUDENT.UPDATING@FPT.EDU.VN',
+        email_verified: true,
+        picture: 'https://custom-avatar.example/photo.png',
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    return originalFetch(input, init);
+  };
   try {
-    // 5.1 Case-Insensitive Super Admin detection
-    const adminUpperRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
+    const response = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         provider: 'google',
-        name: 'Trần Anh Tuấn',
-        email: 'ANHTUANTRAN0512@GMAIL.COM',
+        credential: 'verified-google-token-for-normalization-test',
+        name: 'Untrusted client name',
+        email: 'untrusted@example.org',
+        avatar: 'javascript:alert(1)',
       }),
     });
-    const adminUpperData = await adminUpperRes.json();
-    assert.equal(adminUpperRes.status, 200);
-    assert.equal(adminUpperData.success, true);
-    assert.equal(adminUpperData.user.email, 'anhtuantran0512@gmail.com');
-    assert.equal(adminUpperData.user.role, 'SUPER_ADMIN');
-    assert.equal(adminUpperData.user.level, 150);
-
-    // 5.2 Avatar update on subsequent login
-    const newAvatar = 'https://custom-avatar.com/photo.png';
-    const studentUpdateRes = await fetch(`${testEnv.baseUrl}/api/auth/social`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        provider: 'facebook',
-        name: 'Test Student',
-        email: 'student.updating@fpt.edu.vn',
-        avatar: newAvatar,
-      }),
-    });
-    const studentData = await studentUpdateRes.json();
-    assert.equal(studentUpdateRes.status, 200);
-    assert.equal(studentData.user.avatar, newAvatar);
+    const data = await response.json();
+    assert.equal(response.status, 200, data.message);
+    assert.equal(data.user.email, 'student.updating@fpt.edu.vn');
+    assert.equal(data.user.name, 'Verified Case Student');
+    assert.equal(data.user.avatar, 'https://custom-avatar.example/photo.png');
   } finally {
+    globalThis.fetch = originalFetch;
+    if (previousGoogleClientId === undefined) delete process.env.FFORUM_GOOGLE_CLIENT_ID;
+    else process.env.FFORUM_GOOGLE_CLIENT_ID = previousGoogleClientId;
     await testEnv.close();
   }
 });

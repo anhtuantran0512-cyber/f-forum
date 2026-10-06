@@ -19,12 +19,6 @@ test('1. Settings button and iOS Liquid Glass Settings Modal Integration in Navb
     'Navbar must render Settings icon'
   );
 
-  // Verify AudioContext and toggleFocusAudio are preserved in Navbar
-  assert.ok(
-    navbarContent.includes('toggleFocusAudio') && navbarContent.includes('audioCtxRef'),
-    'Navbar must preserve toggleFocusAudio and audioCtxRef'
-  );
-
   // Verify SettingsModal is rendered
   assert.ok(
     navbarContent.includes('<SettingsModal'),
@@ -72,29 +66,37 @@ test('2. Playful Cartoon Light/Dark Theme Switch Specifications', () => {
   );
 });
 
-test('3. Apple iOS Light Glass & Dark Mode CSS Rules', () => {
+test('3. Tinted Liquid Glass Light Theme & Obsidian Dark Mode CSS Rules', () => {
   const cssContent = fs.readFileSync(path.resolve('src/index.css'), 'utf8');
 
-  // Verify html.light transforms .liquid-glass into original ultra-translucent crystalline liquid glass
+  // Main-app light mode uses low-opacity blue glass, never an opaque white wash.
   assert.ok(
     cssContent.includes('html.light .liquid-glass'),
     'index.css must define html.light .liquid-glass'
   );
   assert.ok(
-    cssContent.includes('background: rgba(255, 255, 255, 0.03);'),
-    'Light liquid-glass must have ultra-translucent rgba(255, 255, 255, 0.03) background'
+    cssContent.includes('--ff-glass-fill: linear-gradient(145deg, rgba(145, 176, 211, 0.34), rgba(82, 116, 157, 0.24));'),
+    'Light liquid-glass must use a genuinely translucent blue-tinted fill'
   );
   assert.ok(
-    cssContent.includes('backdrop-filter: blur(14px);'),
-    'Light liquid-glass must use blur(14px)'
+    cssContent.includes('--ff-glass-ink: #f1f6fc;'),
+    'Light liquid-glass must keep foreground copy bright over the dark/media canvas'
   );
   assert.ok(
-    cssContent.includes('border: 1px solid rgba(255, 255, 255, 0.2);'),
-    'Light liquid-glass must use border rgba(255, 255, 255, 0.2)'
+    cssContent.includes('background: var(--ff-glass-fill);'),
+    'Light liquid-glass must use the shared low-opacity glass-fill token'
   );
   assert.ok(
-    cssContent.includes('box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 20px 50px rgba(0, 0, 0, 0.5);'),
-    'Light liquid-glass must define original crystalline specular box-shadow'
+    cssContent.includes('backdrop-filter: blur(var(--glass-blur, 18px)) saturate(170%);'),
+    'Light liquid-glass must use the adjustable blur and glass-like saturation'
+  );
+  assert.ok(
+    cssContent.includes('border: 1px solid var(--ff-glass-border);'),
+    'Light liquid-glass must use a soft tinted border'
+  );
+  assert.ok(
+    cssContent.includes('box-shadow: var(--ff-glass-shadow);'),
+    'Light liquid-glass must use a soft ambient glass shadow'
   );
 
   // Verify dark mode defines deeper Obsidian Liquid Glass
@@ -117,24 +119,20 @@ test('3. Apple iOS Light Glass & Dark Mode CSS Rules', () => {
   );
 });
 
-test('4. Settings Menu Options: Ambient Audio, SFX, and Reduced Motion', () => {
+test('4. Settings Menu Options: Interface SFX, Focus, and Reduced Motion', () => {
   const settingsModalContent = fs.readFileSync(path.resolve('src/components/SettingsModal.tsx'), 'utf8');
 
   assert.ok(
-    settingsModalContent.includes('Âm thanh Ambient (432Hz)'),
-    'Settings must include Ambient Audio 432Hz option'
-  );
-  assert.ok(
     settingsModalContent.includes('Hiệu ứng âm thanh'),
-    'Settings must include Sound Effects (SFX) option'
+    'Settings must include the separate interface sound-effects option'
   );
   assert.ok(
     settingsModalContent.includes('Giảm chuyển động'),
     'Settings must include Reduced Motion option'
   );
   assert.ok(
-    settingsModalContent.includes('Mở Focus Mode'),
-    'Settings must provide direct Focus Sanctuary shortcut'
+    settingsModalContent.includes('Mở Focus Mode') && settingsModalContent.includes('Nhắc nghỉ mắt 20-20-20'),
+    'Settings must preserve Focus Mode and eye-rest controls'
   );
 });
 

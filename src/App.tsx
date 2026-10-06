@@ -19,7 +19,7 @@ import {
   Compass,
   Award,
   Rocket,
-  Headphones,
+  Timer,
   NotebookPen,
   Command as CommandIcon,
   Palette,
@@ -33,6 +33,7 @@ import { QuickNotesDock } from './components/QuickNotesDock';
 import { StudyCareCoach } from './components/StudyCareCoach';
 import { ViewTransitionLoader } from './components/ViewTransitionLoader';
 import { FocusSessionWatcher } from './components/FocusSessionWatcher';
+import { OfflineStatusBanner } from './components/OfflineStatusBanner';
 import { AuthProvider } from './context/AuthContext';
 import { GODRAY_PRESETS } from './utils/godrays';
 import { safeStorage } from './utils/storage';
@@ -52,6 +53,7 @@ const ProfileModal = lazyWithRetry(() => import('./components/ProfileModal').the
 const FocusSanctuary = lazyWithRetry(() => import('./components/FocusSanctuary').then(m => ({ default: m.FocusSanctuary })));
 const AuthModal = lazyWithRetry(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const XPSandboxDock = lazyWithRetry(() => import('./components/XPSandboxDock').then(m => ({ default: m.XPSandboxDock })));
+const AdminConsole = lazyWithRetry(() => import('./components/AdminConsole').then(m => ({ default: m.AdminConsole })));
 
 const ViewLoadingFallback = () => (
   <div className="w-full h-full min-h-[50vh] flex items-center justify-center" aria-busy="true" aria-label="Đang tải giao diện">
@@ -74,8 +76,7 @@ const VIEW_ORDER: DimensionView[] = [
   'coming-soon',
 ];
 
-/* Phân khu cần màn hình chờ (CodeFronts la-09 vinyl / la-05 dots).
-   home là trang nhẹ nên vào thẳng, không chặn người dùng. */
+/* Phân khu cần màn hình chờ chuyển cảnh; home nhẹ nên vào thẳng. */
 const VIEW_LOADERS: Partial<Record<DimensionView, { label: string; variant: 'vinyl' | 'dots' }>> = {
   landing: { label: 'Trang Giới thiệu', variant: 'vinyl' },
   clubs: { label: 'Câu lạc bộ', variant: 'vinyl' },
@@ -126,12 +127,15 @@ export const App: React.FC = () => {
     setCurrentView,
     currentUser,
     users,
-    login,
     loginWithPassword,
     registerWithPassword,
     loginSocial,
     logout,
     addXP,
+    claimDailyReward,
+    startStudyRewardSession,
+    pulseStudyRewardSession,
+    stopStudyRewardSession,
     updateProfile,
     clubs,
     clubPosts,
@@ -162,10 +166,12 @@ export const App: React.FC = () => {
     adminEditQuestion,
     adminDeleteSolution,
     adminDeleteChatMessage,
+    adminDeleteClubPost,
   } = useForumStore();
 
   const [isResourceLoading, setIsResourceLoading] = useState(true);
   const [isFocusModeOpen, setIsFocusModeOpen] = useState(false);
+  const [isAdminConsoleOpen, setIsAdminConsoleOpen] = useState(false);
   const [profileInitialTab, setProfileInitialTab] = useState<'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit'>('overview');
   const [targetProfileUser, setTargetProfileUser] = useState<User | null>(null);
   const [quickProfile, setQuickProfile] = useState<{ user: User; anchor?: { x: number; y: number } | null } | null>(null);
@@ -183,6 +189,46 @@ export const App: React.FC = () => {
   const prevViewIndexRef = useRef<number>(VIEW_ORDER.indexOf(currentView));
 
   const isInsideCinema = currentView === 'memory' && scrollInsideCinema;
+
+  /* Đồng bộ vùng nhìn thấy thực tế để bố cục và popover vẫn nằm trong màn hình
+     khi đổi hướng, mở bàn phím hoặc pinch-zoom trên trình duyệt di động. */
+  useEffect(() => {
+    const visualViewport = window.visualViewport;
+    let frame = 0;
+    const syncVisibleViewport = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        const visibleWidth = Math.max(1, Math.round(visualViewport?.width || window.innerWidth));
+        const visibleHeight = Math.max(1, Math.round(visualViewport?.height || window.innerHeight));
+        const visibleLeft = Math.max(0, Math.round(visualViewport?.offsetLeft || 0));
+        const visibleTop = Math.max(0, Math.round(visualViewport?.offsetTop || 0));
+        const viewportStyles: Record<string, string> = {
+          '--ff-visible-width': `${visibleWidth}px`,
+          '--ff-visible-height': `${visibleHeight}px`,
+          '--ff-visible-center-x': `${visibleLeft + visibleWidth / 2}px`,
+          '--ff-visible-center-y': `${visibleTop + visibleHeight / 2}px`,
+        };
+        const rootStyle = document.documentElement.style;
+        Object.entries(viewportStyles).forEach(([property, value]) => {
+          if (rootStyle.getPropertyValue(property) !== value) rootStyle.setProperty(property, value);
+        });
+      });
+    };
+
+    syncVisibleViewport();
+    window.addEventListener('resize', syncVisibleViewport, { passive: true });
+    window.addEventListener('orientationchange', syncVisibleViewport, { passive: true });
+    visualViewport?.addEventListener('resize', syncVisibleViewport, { passive: true });
+    visualViewport?.addEventListener('scroll', syncVisibleViewport, { passive: true });
+    return () => {
+      window.removeEventListener('resize', syncVisibleViewport);
+      window.removeEventListener('orientationchange', syncVisibleViewport);
+      visualViewport?.removeEventListener('resize', syncVisibleViewport);
+      visualViewport?.removeEventListener('scroll', syncVisibleViewport);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
 
   const [godrayPreset, setGodrayPreset] = useState<string>(() => {
     return safeStorage.getItem('fforum_godray_preset') || 'godray-gold';
@@ -255,7 +301,7 @@ export const App: React.FC = () => {
           name: userToView.name,
           email: userToView.email || '',
           avatar: userToView.avatar,
-          role: userToView.email === 'anhtuantran0512@gmail.com' ? 'SUPER_ADMIN' : 'STUDENT',
+          role: 'user',
           level: userToView.level || 1,
           xp: 0,
           coin: 100,
@@ -296,7 +342,7 @@ export const App: React.FC = () => {
         name: userToView.name,
         email: userToView.email || '',
         avatar: userToView.avatar,
-        role: 'STUDENT',
+        role: 'user',
         level: userToView.level || 1,
         xp: 0,
         bio: '',
@@ -358,15 +404,6 @@ export const App: React.FC = () => {
   const handleViewReady = useCallback((view: DimensionView) => {
     setReadyView(view);
   }, []);
-
-  /* Phiên Pomodoro hoàn thành: cộng XP đúng tài khoản đang đăng nhập.
-     (addXP(amount) không kèm email sẽ bị bỏ qua với người dùng thường.) */
-  const handleFocusReward = useCallback(
-    (amount: number) => {
-      if (currentUser) addXP(amount, currentUser.email);
-    },
-    [addXP, currentUser],
-  );
 
   /* Hướng trượt khi đổi phân khu (lướt như lật trang) */
   useEffect(() => {
@@ -549,9 +586,9 @@ export const App: React.FC = () => {
       {
         id: 'act-focus',
         label: 'Vào không gian tập trung',
-        hint: 'Pomodoro 25 phút + âm thanh 432Hz',
+        hint: 'Đồng hồ học tự do + nhật ký giờ học',
         group: 'Không gian',
-        icon: <Headphones className="w-4 h-4" />,
+        icon: <Timer className="w-4 h-4" />,
         shortcut: '⌘⇧F',
         keywords: 'focus pomodoro tap trung',
         run: () => setIsFocusModeOpen(true),
@@ -675,6 +712,8 @@ export const App: React.FC = () => {
     currentView === 'memory' || currentView === 'chronicles' || currentView === 'landing';
 
   const activeGodray = GODRAY_PRESETS.find(p => p.id === godrayPreset) || GODRAY_PRESETS[0];
+  /* LandingPage owns its main landmark; other views use the shared app landmark. */
+  const MainContent = currentView === 'landing' ? 'div' : 'main';
 
   useEffect(() => {
     document.documentElement.style.setProperty('--ff-accent', activeGodray.accent);
@@ -691,10 +730,16 @@ export const App: React.FC = () => {
       <GlobalCursor />
 
       <div
-        className={`relative w-full ${
+        data-view={currentView}
+        className={`ff-app-shell relative w-full ${
           isScrollableView ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'
         } ${currentView === 'landing' ? 'bg-[var(--ff-bg)]' : 'bg-black'} text-white font-sans`}
       >
+        {currentView !== 'landing' && (
+          <a className="ff-skip-link" href="#main-content">Bỏ qua điều hướng</a>
+        )}
+        <OfflineStatusBanner />
+
         {/* Ambient Godray Gradient Lighting Overlay (Enhanced influence across viewport) */}
         <div
           className="fixed inset-0 pointer-events-none z-[1] overflow-hidden transition-all duration-700"
@@ -726,16 +771,10 @@ export const App: React.FC = () => {
           onToggleChat={handleToggleChat}
           unreadChatCount={unreadChatCount}
           onOpenProfile={handleOpenProfile}
+          onOpenAdminConsole={() => setIsAdminConsoleOpen(true)}
           onOpenFocusMode={() => setIsFocusModeOpen(true)}
           isInsideCinema={isInsideCinema}
-          onRewardCoins={(amount) => {
-            if (currentUser) addXP(amount, currentUser.email);
-          }}
-          onUpdateStreak={(streak) => {
-            if (currentUser && (currentUser.streakCount ?? 0) !== streak) {
-              updateProfile({ streakCount: streak });
-            }
-          }}
+          onClaimDailyReward={claimDailyReward}
           eyeRestEnabled={eyeRestEnabled}
           onToggleEyeRest={toggleEyeRest}
         />
@@ -743,7 +782,11 @@ export const App: React.FC = () => {
       )}
 
       {/* Main Dimension View Routing (Single-Viewport Multi-View Architecture) */}
-      <main className={`w-full ${currentView === 'memory' || currentView === 'chronicles' ? 'min-h-[116vh]' : 'h-full'}`}>
+      <MainContent
+        id={currentView === 'landing' ? undefined : 'main-content'}
+        tabIndex={currentView === 'landing' ? undefined : -1}
+        className={`ff-app-main w-full ${currentView === 'memory' || currentView === 'chronicles' ? 'min-h-[116vh]' : 'h-full'}`}
+      >
         <Suspense fallback={<ViewLoadingFallback />}>
           {/* Bọc theo key để mỗi lần đổi phân khu chạy lại hoạt ảnh trượt */}
           <div
@@ -860,9 +903,9 @@ export const App: React.FC = () => {
           )}
           </div>
         </Suspense>
-      </main>
+      </MainContent>
 
-      {/* Màn hình chờ chuyển phân khu (CodeFronts la-09 vinyl / la-05 dots) */}
+      {/* Màn hình chờ chuyển phân khu (vinyl / vòng xoay dots) */}
       <ViewTransitionLoader
         visible={Boolean(transition) && Boolean(loaderMeta)}
         targetLabel={loaderMeta?.label}
@@ -884,6 +927,18 @@ export const App: React.FC = () => {
       )}
 
       <Suspense fallback={null}>
+        {isAdminConsoleOpen && (
+          <AdminConsole
+            isOpen={isAdminConsoleOpen}
+            onClose={() => setIsAdminConsoleOpen(false)}
+            currentUser={currentUser}
+            onDeleteQuestion={adminDeleteQuestion}
+            onDeleteSolution={adminDeleteSolution}
+            onDeleteChatMessage={adminDeleteChatMessage}
+            onDeleteClubPost={adminDeleteClubPost}
+          />
+        )}
+
         {/* Slide-over Chat Dock (For quick chatting when browsing Home, Clubs, QA, Chronicles) */}
         {currentView !== 'chat' && (
           currentView === 'landing' ? null : (
@@ -943,7 +998,6 @@ export const App: React.FC = () => {
           initialTab={authInitialTab}
           isOpen={isLoginModalOpen}
           onClose={() => setIsLoginModalOpen(false)}
-          onLogin={login}
           onLoginSocial={loginSocial}
           onLoginWithPassword={loginWithPassword}
           onRegister={registerWithPassword}
@@ -954,15 +1008,16 @@ export const App: React.FC = () => {
           isOpen={isFocusModeOpen}
           onClose={() => setIsFocusModeOpen(false)}
           userEmail={currentUser?.email}
-          onRewardXP={handleFocusReward}
         />
       </Suspense>
 
-      {/* Người giữ nhịp Phòng Tập Trung: đếm theo thời gian thật ở cấp App,
-          ghi giờ học + XP kể cả khi HUD đã đóng, kèm chip đếm ngược nổi. */}
+      {/* Người giữ nhịp stopwatch ở cấp App: ghi phút thực tế + thưởng mốc Coin
+          kể cả khi HUD đã đóng; không cộng XP/FPoints từ phần thưởng này. */}
       <FocusSessionWatcher
         userEmail={currentUser?.email}
-        onRewardXP={handleFocusReward}
+        onStudySessionStart={startStudyRewardSession}
+        onStudyHeartbeat={pulseStudyRewardSession}
+        onStudySessionStop={stopStudyRewardSession}
         isHudOpen={isFocusModeOpen}
         onOpenHud={() => setIsFocusModeOpen(true)}
       />
@@ -1017,7 +1072,7 @@ export const App: React.FC = () => {
       )}
 
       {/* Super Admin XP & Level Management Sandbox */}
-      {currentUser?.email === 'anhtuantran0512@gmail.com' && (
+      {import.meta.env.DEV && currentUser?.role === 'super_admin' && (
         <XPSandboxDock
           level={currentUser.level}
           xp={currentUser.xp}

@@ -40,7 +40,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
 
   if (!isOpen || !user) return null;
 
-  const isSuperAdmin = user.email === 'anhtuantran0512@gmail.com';
+  const isSuperAdmin = user.role === 'super_admin';
   const tier = getTierForLevel(user.level);
   const userQuestions = questions.filter((q) => q.authorId === user.id);
   const userSolutions = solutions.filter((s) => s.authorId === user.id);
@@ -177,9 +177,9 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
               </span>
               <span className="pc-12-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-semibold text-[#dbdee1]">
                 <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                {user.role === 'SUPER_ADMIN'
+                {user.role === 'super_admin'
                   ? 'Quản trị'
-                  : user.role === 'CLUB_LEADER'
+                  : user.role === 'user' && user.scopedClubIds.length > 0
                   ? 'Chủ nhiệm CLB'
                   : 'Học sinh'}
               </span>

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { setupForumServer } from '../server/forumServer.ts';
+import { setUserRoleForTest, setupForumServer } from '../server/forumServer.ts';
 import { WebSocket } from 'ws';
 
 function createTestServer() {
@@ -95,8 +95,8 @@ test('1. Static Architecture & Security Audit: Khu Vinh Danh & Super Admin Moder
 
   // Non-Admin Isolation in AboutUs: Floating button & edit modal
   assert.ok(
-    aboutUsContent.includes('isSuperAdmin'),
-    'AboutUs must check isSuperAdmin before showing edit controls'
+    aboutUsContent.includes('canManageAbout') && aboutUsContent.includes('isAdminRole'),
+    'AboutUs must gate edit controls by a recognized server role'
   );
   assert.ok(
     aboutUsContent.includes('Chỉnh sửa trang Vinh danh'),
@@ -163,458 +163,581 @@ test('1. Static Architecture & Security Audit: Khu Vinh Danh & Super Admin Moder
   }
 });
 
-// 2. REST Endpoints: GET and POST /api/admin/about with strict Super Admin authorization
-test('2. REST Endpoint: GET & POST /api/admin/about isolation and persistence', async () => {
-  const testEnv = await createTestServer();
+let generatedUser = 0;
+const adminByEnv = new WeakMap();
 
+function cookieFrom(response) {
+  const value = response.headers.get('set-cookie');
+  assert.ok(value, 'Successful authentication must issue a session cookie');
+  return value.split(';')[0];
+}
+
+async function postJson(testEnv, route, body, cookie) {
+  return fetch(`${testEnv.baseUrl}${route}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(cookie ? { Cookie: cookie } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+async function registerUser(testEnv, name = 'Student') {
+  generatedUser += 1;
+  const email = `security-test-${generatedUser}-${Date.now()}@example.org`;
+  const password = `Strong-Password-${generatedUser}-2026!`;
+  const response = await postJson(testEnv, '/api/auth/register', { name, email, password });
+  const registrationData = await response.json();
+  assert.equal(response.status, 202, registrationData.message);
+  const loginResponse = await postJson(testEnv, '/api/auth/login', { email, password });
+  const data = await loginResponse.json();
+  assert.equal(loginResponse.status, 200, data.message);
+  return { cookie: cookieFrom(loginResponse), user: data.user, password };
+}
+
+async function getTestAdmin(testEnv) {
+  const existing = adminByEnv.get(testEnv);
+  if (existing) return existing;
+  const registered = await registerUser(testEnv, 'Test Super Admin');
+  setUserRoleForTest(registered.user.email, 'super_admin');
+  const response = await postJson(testEnv, '/api/auth/login', {
+    email: registered.user.email,
+    password: registered.password,
+  });
+  const data = await response.json();
+  assert.equal(response.status, 200, data.message);
+  const admin = { ...registered, user: data.user, cookie: cookieFrom(response) };
+  adminByEnv.set(testEnv, admin);
+  return admin;
+}
+
+async function loginAdmin(testEnv) {
+  return (await getTestAdmin(testEnv)).cookie;
+}
+
+test('Super Admin has a separate console entry and the console uses real moderation APIs', () => {
+  const profilePath = path.resolve('src/components/ProfileDropdown.tsx');
+  const navbarPath = path.resolve('src/components/Navbar.tsx');
+  const appPath = path.resolve('src/App.tsx');
+  const consolePath = path.resolve('src/components/AdminConsole.tsx');
+  const profile = fs.readFileSync(profilePath, 'utf8');
+  const navbar = fs.readFileSync(navbarPath, 'utf8');
+  const app = fs.readFileSync(appPath, 'utf8');
+  const adminConsole = fs.readFileSync(consolePath, 'utf8');
+
+  assert.ok(profile.includes('isAdminRole(currentUser.role)'), 'The profile menu must gate the admin entry by the server role');
+  assert.ok(profile.includes('Bảng điều khiển quản trị') && profile.includes('onOpenAdminConsole'), 'The admin console must have its own menu entry');
+  assert.ok(navbar.includes('onOpenAdminConsole={onOpenAdminConsole}'), 'Desktop and mobile account menus must receive the admin action');
+  assert.ok(app.includes('isAdminConsoleOpen &&') && app.includes('<AdminConsole'), 'The separate console should load only while open');
+  for (const endpoint of ['/api/admin/console', '/api/admin/users/moderation', '/api/admin/reports/review']) {
+    assert.ok(adminConsole.includes(endpoint), `The console must call server endpoint ${endpoint}`);
+  }
+  assert.ok(adminConsole.includes('onDeleteQuestion') && adminConsole.includes('onDeleteClubPost'), 'The console must support existing forum posts and club posts');
+  assert.ok(adminConsole.includes('Nhật ký') && adminConsole.includes('Lý do / căn cứ xử lý'), 'Moderation should leave auditable reasons');
+});
+
+test('Admin console GET and report triage are restricted to a server-authenticated Super Admin', async () => {
+  const testEnv = await createTestServer();
   try {
-    // 2.1 GET /api/admin/about returns founder and milestone data
-    const getRes = await fetch(`${testEnv.baseUrl}/api/admin/about`);
-    assert.equal(getRes.status, 200);
-    const initialJson = await getRes.json();
-    const initialData = initialJson.about || initialJson;
-    assert.ok(initialData.founder);
+    const reporter = await registerUser(testEnv, 'Report submitter');
+    const reportResponse = await postJson(testEnv, '/api/reports', {
+      reportedUserId: 'unregistered-target',
+      reportedUserName: 'Reported account',
+      reason: 'Spam / lừa đảo',
+      details: 'Bằng chứng cần được rà soát bởi quản trị viên.',
+      reporterEmail: 'forged@example.org',
+    }, reporter.cookie);
+    const reportResult = await reportResponse.json();
+    assert.equal(reportResponse.status, 200, reportResult.message);
+
+    const anonymousRead = await fetch(`${testEnv.baseUrl}/api/admin/console`);
+    assert.equal(anonymousRead.status, 401);
+    const studentRead = await fetch(`${testEnv.baseUrl}/api/admin/console`, { headers: { Cookie: reporter.cookie } });
+    assert.equal(studentRead.status, 403);
+
+    const adminCookie = await loginAdmin(testEnv);
+    const snapshotResponse = await fetch(`${testEnv.baseUrl}/api/admin/console`, { headers: { Cookie: adminCookie } });
+    const snapshot = await snapshotResponse.json();
+    assert.equal(snapshotResponse.status, 200);
+    const report = snapshot.data.reports.find(item => item.id === reportResult.reportId);
+    assert.ok(report);
+    assert.equal(report.status, 'open');
+    assert.equal(report.reporterEmail, reporter.user.email, 'The server must use the authenticated reporter identity');
+    assert.equal(snapshot.data.accounts.some(account => account.email === reporter.user.email), true);
+
+    const resolved = await postJson(testEnv, '/api/admin/reports/review', {
+      reportId: report.id,
+      status: 'resolved',
+      reviewNote: 'Đã kiểm tra bằng chứng.',
+    }, adminCookie);
+    assert.equal(resolved.status, 200);
+    const reopened = await postJson(testEnv, '/api/admin/reports/review', {
+      reportId: report.id,
+      status: 'open',
+      reviewNote: 'Cần bổ sung rà soát.',
+    }, adminCookie);
+    assert.equal(reopened.status, 200, 'Resolved and dismissed reports can be reopened');
+
+    const after = await (await fetch(`${testEnv.baseUrl}/api/admin/console`, { headers: { Cookie: adminCookie } })).json();
+    assert.equal(after.data.reports.find(item => item.id === report.id).status, 'open');
+    assert.ok(after.data.auditLog.some(item => item.action === 'resolve_report' && item.targetId === report.id));
+    assert.ok(after.data.auditLog.some(item => item.action === 'reopen_report' && item.targetId === report.id));
+  } finally {
+    await testEnv.close();
+  }
+});
+
+test('Chat mute and account lock are persisted, reversible, and enforced on the server', async () => {
+  const testEnv = await createTestServer();
+  try {
+    const student = await registerUser(testEnv, 'Moderation target');
+    const forged = await postJson(testEnv, '/api/admin/users/moderation', {
+      userId: student.user.id,
+      action: 'lock',
+      reason: 'Forged admin request',
+      adminEmail: 'forged-admin@example.org',
+    });
+    assert.equal(forged.status, 401);
+
+    const adminCookie = await loginAdmin(testEnv);
+    const studentAttempt = await postJson(testEnv, '/api/admin/users/moderation', {
+      userId: student.user.id,
+      action: 'mute',
+      durationMinutes: 60,
+      reason: 'Spam in chat',
+    }, student.cookie);
+    assert.equal(studentAttempt.status, 403);
+
+    const invalidDuration = await postJson(testEnv, '/api/admin/users/moderation', {
+      userId: student.user.id,
+      action: 'mute',
+      durationMinutes: 999,
+      reason: 'Spam in chat',
+    }, adminCookie);
+    assert.equal(invalidDuration.status, 400);
+
+    const mute = await postJson(testEnv, '/api/admin/users/moderation', {
+      userId: student.user.id,
+      action: 'mute',
+      durationMinutes: 60,
+      reason: 'Repeated disruptive messages',
+    }, adminCookie);
+    assert.equal(mute.status, 200);
+    assert.equal((await mute.json()).account.chatMuted, true);
+
+    const blockedChat = await postJson(testEnv, '/api/chat', {
+      channelId: 'hallway',
+      content: 'This must not be persisted while muted',
+    }, student.cookie);
+    const blockedChatResult = await blockedChat.json();
+    assert.equal(blockedChat.status, 403);
+    assert.equal(blockedChatResult.code, 'CHAT_MUTED');
+    assert.equal((await (await fetch(`${testEnv.baseUrl}/api/auth/session`, { headers: { Cookie: student.cookie } })).json()).success, true,
+      'A chat mute must not lock the entire account');
+
+    const activeSnapshot = await (await fetch(`${testEnv.baseUrl}/api/admin/console`, { headers: { Cookie: adminCookie } })).json();
+    const account = activeSnapshot.data.accounts.find(item => item.id === student.user.id);
+    assert.equal(account.chatMuted, true);
+    assert.ok(account.mutedUntil > Date.now());
+
+    const unmute = await postJson(testEnv, '/api/admin/users/moderation', {
+      userId: student.user.id,
+      action: 'unmute',
+      reason: 'Review complete; chat access restored',
+    }, adminCookie);
+    assert.equal(unmute.status, 200);
+    assert.equal((await unmute.json()).account.chatMuted, false);
+    const allowedChat = await postJson(testEnv, '/api/chat', {
+      channelId: 'hallway',
+      content: 'Chat access restored after unmute',
+    }, student.cookie);
+    assert.equal(allowedChat.status, 200);
+
+    const lock = await postJson(testEnv, '/api/admin/users/moderation', {
+      userId: student.user.id,
+      action: 'lock',
+      reason: 'Repeated account abuse',
+    }, adminCookie);
+    assert.equal(lock.status, 200);
+    assert.equal((await lock.json()).account.accountLocked, true);
+    const revokedSession = await fetch(`${testEnv.baseUrl}/api/auth/session`, { headers: { Cookie: student.cookie } });
+    assert.equal(revokedSession.status, 401, 'Locking revokes already-issued session cookies');
+    const blockedLogin = await postJson(testEnv, '/api/auth/login', {
+      email: student.user.email,
+      password: student.password,
+    });
+    assert.equal(blockedLogin.status, 401, 'Locked accounts receive the same generic failure as invalid credentials');
+    assert.equal((await blockedLogin.json()).message, 'Thông tin đăng nhập không chính xác.');
+
+    const testAdmin = await getTestAdmin(testEnv);
+    const selfLock = await postJson(testEnv, '/api/admin/users/moderation', {
+      userId: testAdmin.user.id, action: 'lock', reason: 'Should never lock the root admin',
+    }, adminCookie);
+    assert.equal(selfLock.status, 403);
+
+    const unlock = await postJson(testEnv, '/api/admin/users/moderation', {
+      userId: student.user.id,
+      action: 'unlock',
+      reason: 'Identity verified; access restored',
+    }, adminCookie);
+    assert.equal(unlock.status, 200);
+    const restoredLogin = await postJson(testEnv, '/api/auth/login', {
+      email: student.user.email,
+      password: student.password,
+    });
+    assert.equal(restoredLogin.status, 200);
+  } finally {
+    await testEnv.close();
+  }
+});
+
+test('Club posts are stored with server-derived authorship and removable through admin moderation', async () => {
+  const testEnv = await createTestServer();
+  try {
+    const student = await registerUser(testEnv, 'Regular member');
+    const deniedPost = await postJson(testEnv, '/api/clubs/posts', {
+      clubId: 'club-test', title: 'Student post', content: 'Unapproved post', authorId: 'forged-admin',
+    }, student.cookie);
+    assert.equal(deniedPost.status, 403);
+
+    const adminCookie = await loginAdmin(testEnv);
+    const created = await postJson(testEnv, '/api/clubs/posts', {
+      clubId: 'club-test',
+      title: 'Moderation test post',
+      content: 'Post created with trusted server authorship.',
+      authorId: 'forged-author',
+      authorName: 'Forged Author',
+      likes: 99999,
+    }, adminCookie);
+    const createdData = await created.json();
+    assert.equal(created.status, 200, createdData.message);
+    assert.equal(createdData.post.authorId, (await getTestAdmin(testEnv)).user.id);
+    assert.notEqual(createdData.post.authorName, 'Forged Author');
+    assert.equal(createdData.post.likes, 0);
+
+    const deleted = await postJson(testEnv, '/api/admin/club-posts/delete', {
+      postId: createdData.post.id,
+      reason: 'Community guidelines violation',
+    }, adminCookie);
+    assert.equal(deleted.status, 200);
+    const sync = await (await fetch(`${testEnv.baseUrl}/api/sync`, { headers: { Cookie: adminCookie } })).json();
+    assert.equal(sync.data.clubPosts.some(post => post.id === createdData.post.id), false);
+    const snapshot = await (await fetch(`${testEnv.baseUrl}/api/admin/console`, { headers: { Cookie: adminCookie } })).json();
+    assert.ok(snapshot.data.auditLog.some(item => item.action === 'delete_club_post' && item.targetId === createdData.post.id));
+  } finally {
+    await testEnv.close();
+  }
+});
+
+// 2. REST Endpoints: session-bound Super Admin authorization
+ test('2. REST Endpoint: /api/admin/about requires a server-authenticated Super Admin session', async () => {
+  const testEnv = await createTestServer();
+  try {
+    const publicAboutResponse = await fetch(`${testEnv.baseUrl}/api/about`);
+    assert.equal(publicAboutResponse.status, 200);
+    const publicJson = await publicAboutResponse.json();
+    const initialData = publicJson.about;
     assert.equal(initialData.founder.name, 'Trần Văn Anh Tuấn');
-    assert.ok(Array.isArray(initialData.milestones));
-    assert.ok(initialData.milestones.length > 0);
+    assert.equal(initialData.founder.email, undefined, 'Public About data must not expose legacy founder email');
+    const getRes = await fetch(`${testEnv.baseUrl}/api/admin/about`);
+    assert.equal(getRes.status, 401, 'Admin About requires an authenticated role');
 
-    // 2.2 POST /api/admin/about from non-admin (student) MUST be rejected with 403
-    const forbiddenRes = await fetch(`${testEnv.baseUrl}/api/admin/about`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        adminEmail: 'student@fpt.edu.vn',
-        aboutData: {
-          ...initialData,
-          headline: 'Hacker Overwrite Attempt',
-        },
-      }),
+    const forgedAdmin = await postJson(testEnv, '/api/admin/about', {
+      adminEmail: 'forged-admin@example.org',
+      aboutData: { ...initialData, headline: 'Forged client admin' },
     });
-    assert.equal(forbiddenRes.status, 403, 'Non-admin POST /api/admin/about must return 403 Forbidden');
+    assert.equal(forgedAdmin.status, 401, 'A client-supplied admin email is not authentication');
 
-    // 2.3 POST /api/admin/about without adminEmail MUST be rejected with 403
-    const anonRes = await fetch(`${testEnv.baseUrl}/api/admin/about`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        aboutData: {
-          ...initialData,
-          headline: 'Anonymous Overwrite Attempt',
-        },
-      }),
-    });
-    assert.equal(anonRes.status, 403, 'Anonymous POST /api/admin/about must return 403 Forbidden');
+    const student = await registerUser(testEnv);
+    const studentEdit = await postJson(testEnv, '/api/admin/about', {
+      adminEmail: 'forged-admin@example.org',
+      aboutData: { ...initialData, headline: 'Student overwrite attempt' },
+    }, student.cookie);
+    assert.equal(studentEdit.status, 403, 'A signed-in student still cannot administer the site');
 
-    // 2.4 POST /api/admin/about from Super Admin (anhtuantran0512@gmail.com) MUST succeed
-    const updatedDataPayload = {
-      ...initialData,
-      headline: 'Đại Kỷ Nguyên F-Forum 2026: Đỉnh Cao Công Nghệ FPT',
-      founder: {
-        ...initialData.founder,
-        bio: 'Kiến trúc sư hệ thống F-Forum & Chủ nhiệm BroAmStuck Studio.',
+    const adminCookie = await loginAdmin(testEnv);
+    const response = await postJson(testEnv, '/api/admin/about', {
+      aboutData: {
+        ...initialData,
+        headline: 'Đại Kỷ Nguyên F-Forum 2026: Đỉnh Cao Công Nghệ FPT',
+        founder: { ...initialData.founder, bio: 'Kiến trúc sư hệ thống F-Forum.' },
       },
-    };
-
-    const adminRes = await fetch(`${testEnv.baseUrl}/api/admin/about`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        adminEmail: 'anhtuantran0512@gmail.com',
-        aboutData: updatedDataPayload,
-      }),
-    });
-    assert.equal(adminRes.status, 200, 'Super Admin POST /api/admin/about must return 200 OK');
-    const savedData = await adminRes.json();
-    assert.equal(savedData.headline, 'Đại Kỷ Nguyên F-Forum 2026: Đỉnh Cao Công Nghệ FPT');
-
-    // 2.5 Verify persistence on subsequent GET
-    const verifyRes = await fetch(`${testEnv.baseUrl}/api/admin/about`);
-    assert.equal(verifyRes.status, 200);
-    const verifyJson = await verifyRes.json();
-    const persisted = verifyJson.about || verifyJson;
-    assert.equal(persisted.headline, 'Đại Kỷ Nguyên F-Forum 2026: Đỉnh Cao Công Nghệ FPT');
-    assert.equal(persisted.founder.bio, 'Kiến trúc sư hệ thống F-Forum & Chủ nhiệm BroAmStuck Studio.');
+    }, adminCookie);
+    assert.equal(response.status, 200);
+    const saved = await response.json();
+    assert.equal(saved.headline, 'Đại Kỷ Nguyên F-Forum 2026: Đỉnh Cao Công Nghệ FPT');
+    const verifyResponse = await fetch(`${testEnv.baseUrl}/api/admin/about`, { headers: { Cookie: adminCookie } });
+    const verify = await verifyResponse.json();
+    assert.equal(verifyResponse.status, 200);
+    assert.equal(verify.about.founder.bio, 'Kiến trúc sư hệ thống F-Forum.');
+    assert.equal(verify.about.founder.email, undefined, 'Admin read APIs also strip legacy founder emails');
   } finally {
     await testEnv.close();
   }
 });
 
-// 3. REST Endpoints: Q&A Moderation (/api/questions/delete and /api/questions/edit)
-test('3. REST Endpoint: Q&A Question Moderation (Delete & Edit authorization)', async () => {
+// 3. REST Endpoints: Q&A moderation uses the session role, not the request body.
+test('3. REST Endpoint: Q&A moderation enforces server-side roles', async () => {
   const testEnv = await createTestServer();
-
   try {
-    // Create a question first
-    const createQRes = await fetch(`${testEnv.baseUrl}/api/questions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: 'Cần giải gấp bài toán rời rạc',
-        content: 'Chi tiết bài tập số 5 liên quan đến ma trận kề...',
-        subject: 'toan',
-        authorId: 'student-q-1',
-        authorName: 'Sinh Viên FPT',
-        authorEmail: 'studentq@fpt.edu.vn',
-        authorAvatar: 'avatar.png',
-        authorLevel: 1,
-      }),
-    });
-    const qData = await createQRes.json();
-    assert.ok(qData.success && qData.question);
-    const targetQ = qData.question;
-
-    // 3.1 Non-admin delete attempt -> 403
-    const badDelete = await fetch(`${testEnv.baseUrl}/api/questions/delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        questionId: targetQ.id,
-        adminEmail: 'guest_user@fpt.edu.vn',
-      }),
-    });
-    assert.equal(badDelete.status, 403, 'Non-admin cannot delete question');
-
-    // 3.2 Non-admin edit attempt -> 403
-    const badEdit = await fetch(`${testEnv.baseUrl}/api/questions/edit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        questionId: targetQ.id,
-        updates: { title: 'Vandalized Title' },
-        adminEmail: 'guest_user@fpt.edu.vn',
-      }),
-    });
-    assert.equal(badEdit.status, 403, 'Non-admin cannot edit question');
-
-    // 3.3 Super Admin edit attempt -> 200
-    const goodEdit = await fetch(`${testEnv.baseUrl}/api/questions/edit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        questionId: targetQ.id,
-        updates: { title: '[Đã điều chỉnh bởi BQT] ' + targetQ.title, subject: 'cntt' },
-        adminEmail: 'anhtuantran0512@gmail.com',
-      }),
-    });
-    assert.equal(goodEdit.status, 200, 'Super admin can edit question');
-    const editResult = await goodEdit.json();
-    assert.ok(editResult.question.title.startsWith('[Đã điều chỉnh bởi BQT]'));
-
-    // 3.4 Super Admin delete attempt -> 200
-    const goodDelete = await fetch(`${testEnv.baseUrl}/api/questions/delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        questionId: targetQ.id,
-        adminEmail: 'anhtuantran0512@gmail.com',
-      }),
-    });
-    assert.equal(goodDelete.status, 200, 'Super admin can delete question');
-
-    // Verify question is removed from sync
-    const afterSyncRes = await fetch(`${testEnv.baseUrl}/api/sync`);
-    const afterSyncData = await afterSyncRes.json();
-    const found = afterSyncData.data.questions.some((q) => q.id === targetQ.id);
-    assert.equal(found, false, 'Deleted question must no longer exist in data store');
-  } finally {
-    await testEnv.close();
-  }
-});
-
-// 4. REST Endpoints: Solution Moderation (/api/solutions/delete)
-test('4. REST Endpoint: Solution Moderation (Delete solution vi phạm)', async () => {
-  const testEnv = await createTestServer();
-
-  try {
-    // Create question and solution
-    const createQRes = await fetch(`${testEnv.baseUrl}/api/questions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: 'Hỏi về giải thuật Dijkstra',
-        content: 'Làm sao tối ưu bằng Min-Heap trong Java?',
-        subject: 'cntt',
-        authorId: 'student-dijkstra',
-        authorName: 'Coder Pro',
-        authorEmail: 'coder@fpt.edu.vn',
-        authorAvatar: 'avatar.png',
-        authorLevel: 2,
-      }),
-    });
-    const qData = await createQRes.json();
+    const student = await registerUser(testEnv, 'Sinh Viên FPT');
+    const adminCookie = await loginAdmin(testEnv);
+    const created = await postJson(testEnv, '/api/questions', {
+      title: 'Cần giải gấp bài toán rời rạc',
+      content: 'Chi tiết bài tập số 5 liên quan đến ma trận kề...',
+      subject: 'toan',
+      authorId: 'forged-author-id',
+      authorName: 'Forged author',
+      authorEmail: 'forged-admin@example.org',
+      bountyCoin: 20,
+    }, student.cookie);
+    const qData = await created.json();
+    assert.equal(created.status, 200, qData.message);
+    assert.equal(qData.question.authorId, student.user.id, 'The server must derive the author from the session');
+    assert.equal(qData.question.authorEmail, student.user.email);
+    assert.equal(qData.user.xp, student.user.xp + 50, 'Question XP is granted and returned by the authenticated server route');
     const questionId = qData.question.id;
 
-    const createSolRes = await fetch(`${testEnv.baseUrl}/api/solutions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        questionId,
-        content: 'Giải pháp dùng PriorityQueue trong java.util...',
-        authorId: 'solver-pro',
-        authorName: 'Java Guru',
-        authorEmail: 'javaguru@fpt.edu.vn',
-        authorAvatar: 'avatar.png',
-        authorLevel: 3,
-      }),
-    });
-    const solData = await createSolRes.json();
-    assert.ok(solData.success && solData.solution);
-    const targetSol = solData.solution;
+    const forbidden = await postJson(testEnv, '/api/questions/delete', {
+      questionId,
+      adminEmail: 'forged-admin@example.org',
+    }, student.cookie);
+    assert.equal(forbidden.status, 403);
 
-    // 4.1 Non-admin delete attempt -> 403
-    const badDelete = await fetch(`${testEnv.baseUrl}/api/solutions/delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        solutionId: targetSol.id,
-        adminEmail: 'imposter@gmail.com',
-      }),
-    });
-    assert.equal(badDelete.status, 403, 'Non-admin cannot delete solution');
+    const forgedEdit = await postJson(testEnv, '/api/questions/edit', {
+      questionId,
+      updates: { authorId: 'forged-author', bountyCoin: 999_999, isSolved: true },
+      reason: 'Attempted protected-field change',
+    }, adminCookie);
+    assert.equal(forgedEdit.status, 400, 'Moderation edit allowlists only ordinary question content fields');
 
-    // 4.2 Super Admin delete attempt -> 200
-    const goodDelete = await fetch(`${testEnv.baseUrl}/api/solutions/delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        solutionId: targetSol.id,
-        adminEmail: 'anhtuantran0512@gmail.com',
-      }),
-    });
-    assert.equal(goodDelete.status, 200, 'Super admin can delete solution');
+    const edit = await postJson(testEnv, '/api/questions/edit', {
+      questionId,
+      updates: { title: '[Đã điều chỉnh bởi BQT] Câu hỏi' },
+      reason: 'Clarify misleading title',
+      adminEmail: 'not-an-admin@example.org',
+    }, adminCookie);
+    assert.equal(edit.status, 200);
+    const editedQuestion = (await edit.json()).question;
+    assert.ok(editedQuestion.title.startsWith('[Đã điều chỉnh bởi BQT]'));
+    assert.equal(editedQuestion.authorId, student.user.id);
+    assert.equal(editedQuestion.bountyCoin, 20);
 
-    // Verify solution is removed
-    const afterSyncRes = await fetch(`${testEnv.baseUrl}/api/sync`);
-    const afterSyncData = await afterSyncRes.json();
-    const found = afterSyncData.data.solutions.some((s) => s.id === targetSol.id);
-    assert.equal(found, false, 'Deleted solution must no longer exist in data store');
+    const noReasonDelete = await postJson(testEnv, '/api/questions/delete', { questionId }, adminCookie);
+    assert.equal(noReasonDelete.status, 400, 'Destructive moderation requires an auditable reason');
+    const deleted = await postJson(testEnv, '/api/questions/delete', {
+      questionId,
+      reason: 'Remove policy-violating question',
+      adminEmail: 'attacker@example.org',
+    }, adminCookie);
+    assert.equal(deleted.status, 200);
+    const sync = await (await fetch(`${testEnv.baseUrl}/api/sync`, { headers: { Cookie: student.cookie } })).json();
+    assert.equal(sync.data.questions.some(question => question.id === questionId), false);
   } finally {
     await testEnv.close();
   }
 });
 
-// 5. REST Endpoints: Chat Message Moderation (/api/chat/delete)
-test('5. REST Endpoint: Chat Message Recall (/api/chat/delete)', async () => {
+// 4. REST Endpoints: Solution moderation requires authenticated admin.
+test('4. REST Endpoint: solution moderation rejects body-only admin identity', async () => {
   const testEnv = await createTestServer();
-
   try {
-    const createMsgRes = await fetch(`${testEnv.baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        channelId: 'hallway',
-        content: 'Nội dung chat cần thu hồi vi phạm',
-        authorId: 'spammer-1',
-        authorName: 'Spam User',
-        authorEmail: 'spammer@fpt.edu.vn',
-        authorAvatar: 'avatar.png',
-        authorLevel: 1,
-      }),
-    });
-    const msgData = await createMsgRes.json();
-    assert.ok(msgData.success && msgData.message);
-    const targetMsg = msgData.message;
+    const author = await registerUser(testEnv, 'Question author');
+    const solver = await registerUser(testEnv, 'Java Guru');
+    const adminCookie = await loginAdmin(testEnv);
+    const qResponse = await postJson(testEnv, '/api/questions', {
+      title: 'Hỏi về giải thuật Dijkstra',
+      content: 'Làm sao tối ưu bằng Min-Heap trong Java?',
+      subject: 'cntt',
+      bountyCoin: 20,
+    }, author.cookie);
+    const qData = await qResponse.json();
+    assert.equal(qResponse.status, 200, qData.message);
+    const solResponse = await postJson(testEnv, '/api/solutions', {
+      questionId: qData.question.id,
+      content: 'Giải pháp dùng PriorityQueue trong java.util...',
+      authorEmail: 'forged-admin@example.org',
+    }, solver.cookie);
+    const solData = await solResponse.json();
+    assert.equal(solResponse.status, 200, solData.message);
+    assert.equal(solData.solution.authorId, solver.user.id);
+    assert.equal(solData.user.xp, solver.user.xp + 25, 'Solution XP comes from the server, not a client profile update');
 
-    // 5.1 Non-admin recall attempt -> 403
-    const badDelete = await fetch(`${testEnv.baseUrl}/api/chat/delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messageId: targetMsg.id,
-        adminEmail: 'regular_student@fpt.edu.vn',
-      }),
-    });
-    assert.equal(badDelete.status, 403, 'Non-admin cannot recall chat message');
+    const duplicateSolution = await postJson(testEnv, '/api/solutions', {
+      questionId: qData.question.id,
+      content: 'Duplicate answer should not generate XP.',
+    }, solver.cookie);
+    assert.equal(duplicateSolution.status, 409, 'One account must not farm solution rewards by reposting');
 
-    // 5.2 Super Admin recall attempt -> 200
-    const goodDelete = await fetch(`${testEnv.baseUrl}/api/chat/delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messageId: targetMsg.id,
-        adminEmail: 'anhtuantran0512@gmail.com',
-      }),
+    const forged = await postJson(testEnv, '/api/solutions/delete', {
+      solutionId: solData.solution.id,
+      adminEmail: 'forged-admin@example.org',
     });
-    assert.equal(goodDelete.status, 200, 'Super admin can recall chat message');
-
-    // Verify chat message is removed
-    const afterSyncRes = await fetch(`${testEnv.baseUrl}/api/sync`);
-    const afterSyncData = await afterSyncRes.json();
-    const found = afterSyncData.data.chatMessages.some((m) => m.id === targetMsg.id);
-    assert.equal(found, false, 'Recalled message must no longer exist in data store');
+    assert.equal(forged.status, 401);
+    const studentDelete = await postJson(testEnv, '/api/solutions/delete', {
+      solutionId: solData.solution.id,
+    }, solver.cookie);
+    assert.equal(studentDelete.status, 403);
+    const noReasonDelete = await postJson(testEnv, '/api/solutions/delete', {
+      solutionId: solData.solution.id,
+    }, adminCookie);
+    assert.equal(noReasonDelete.status, 400, 'Solution deletion requires an auditable reason');
+    const adminDelete = await postJson(testEnv, '/api/solutions/delete', {
+      solutionId: solData.solution.id,
+      reason: 'Remove unsafe answer content',
+    }, adminCookie);
+    assert.equal(adminDelete.status, 200);
+    const sync = await (await fetch(`${testEnv.baseUrl}/api/sync`, { headers: { Cookie: solver.cookie } })).json();
+    assert.equal(sync.data.solutions.some(solution => solution.id === solData.solution.id), false);
   } finally {
     await testEnv.close();
   }
 });
 
-// 6. WebSocket Real-Time Broadcasting of Moderation Actions
-test('6. WebSocket Real-Time Broadcast: DELETE_QUESTION, DELETE_CHAT_MESSAGE, SYNC_ABOUT', async () => {
+// 5. REST Endpoints: Chat messages are authored from the session, then moderated by admin.
+test('5. REST Endpoint: chat author identity is session-bound and moderation is admin-only', async () => {
   const testEnv = await createTestServer();
-
   try {
-    const clientA = new WebSocket(testEnv.wsUrl);
-    const clientB = new WebSocket(testEnv.wsUrl);
+    const student = await registerUser(testEnv, 'Chat Student');
+    const adminCookie = await loginAdmin(testEnv);
+    const created = await postJson(testEnv, '/api/chat', {
+      channelId: 'hallway',
+      content: 'Nội dung chat cần thu hồi vi phạm',
+      authorId: 'forged-admin-id',
+      authorName: 'Fake Admin',
+      authorEmail: 'forged-admin@example.org',
+      authorAvatar: 'javascript:alert(1)',
+    }, student.cookie);
+    const messageData = await created.json();
+    assert.equal(created.status, 200, messageData.message);
+    assert.equal(messageData.message.authorId, student.user.id);
+    assert.equal(messageData.message.authorEmail, student.user.email);
 
+    const forbidden = await postJson(testEnv, '/api/chat/delete', {
+      messageId: messageData.message.id,
+      adminEmail: 'forged-admin@example.org',
+    }, student.cookie);
+    assert.equal(forbidden.status, 403);
+    const noReasonDelete = await postJson(testEnv, '/api/chat/delete', {
+      messageId: messageData.message.id,
+    }, adminCookie);
+    assert.equal(noReasonDelete.status, 400, 'Chat deletion requires an auditable reason');
+    const deleted = await postJson(testEnv, '/api/chat/delete', {
+      messageId: messageData.message.id,
+      reason: 'Remove harassment from chat',
+    }, adminCookie);
+    assert.equal(deleted.status, 200);
+    const sync = await (await fetch(`${testEnv.baseUrl}/api/sync`, { headers: { Cookie: student.cookie } })).json();
+    assert.equal(sync.data.chatMessages.some(message => message.id === messageData.message.id), false);
+  } finally {
+    await testEnv.close();
+  }
+});
+
+// 6. WebSocket is read-only for client messages; all writes go through the authenticated API.
+test('6. WebSocket rejects client-originated moderation and state writes', async () => {
+  const testEnv = await createTestServer();
+  let clientA;
+  let clientB;
+  try {
+    const userA = await registerUser(testEnv, 'Realtime Student A');
+    const userB = await registerUser(testEnv, 'Realtime Student B');
+    clientA = new WebSocket(testEnv.wsUrl, { headers: { Cookie: userA.cookie } });
+    clientB = new WebSocket(testEnv.wsUrl, { headers: { Cookie: userB.cookie } });
     await Promise.all([
-      new Promise((res) => clientA.on('open', res)),
-      new Promise((res) => clientB.on('open', res)),
+      new Promise((resolve, reject) => { clientA.once('open', resolve); clientA.once('error', reject); }),
+      new Promise((resolve, reject) => { clientB.once('open', resolve); clientB.once('error', reject); }),
     ]);
-
-    const receivedEventsByB = [];
-    clientB.on('message', (raw) => {
-      try {
-        const parsed = JSON.parse(raw.toString());
-        receivedEventsByB.push(parsed);
-      } catch {
-        /* ignore */
-      }
+    const eventsByB = [];
+    clientB.on('message', raw => {
+      try { eventsByB.push(JSON.parse(raw.toString())); } catch { /* ignore */ }
     });
-
-    // Client A sends DELETE_CHAT_MESSAGE
-    clientA.send(
-      JSON.stringify({
-        type: 'DELETE_CHAT_MESSAGE',
-        payload: {
-          messageId: 'test-msg-123',
-          adminEmail: 'anhtuantran0512@gmail.com',
-        },
-      })
-    );
-
-    // Client A sends SYNC_ABOUT
-    clientA.send(
-      JSON.stringify({
-        type: 'SYNC_ABOUT',
-        payload: {
-          headline: 'Realtime WebSocket About Update',
-          adminEmail: 'anhtuantran0512@gmail.com',
-        },
-      })
-    );
-
-    // Wait for propagation
-    await new Promise((r) => setTimeout(r, 120));
-
-    const chatDeleteEvent = receivedEventsByB.find((e) => e.type === 'DELETE_CHAT_MESSAGE');
-    assert.ok(chatDeleteEvent, 'Client B should receive DELETE_CHAT_MESSAGE broadcast');
-    assert.equal(chatDeleteEvent.payload.messageId, 'test-msg-123');
-
-    const aboutSyncEvent = receivedEventsByB.find((e) => e.type === 'SYNC_ABOUT');
-    assert.ok(aboutSyncEvent, 'Client B should receive SYNC_ABOUT broadcast');
-    assert.equal(aboutSyncEvent.payload.headline, 'Realtime WebSocket About Update');
-
-    clientA.close();
-    clientB.close();
+    const rejectedMessage = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('WebSocket did not reject mutation')), 2_000);
+      clientA.on('message', raw => {
+        const parsed = JSON.parse(raw.toString());
+        if (parsed.type === 'WS_ERROR') {
+          clearTimeout(timeout);
+          resolve(parsed);
+        }
+      });
+    });
+    clientA.send(JSON.stringify({ type: 'DELETE_CHAT_MESSAGE', payload: { messageId: 'test-msg', adminEmail: 'forged-admin@example.org' } }));
+    const error = await rejectedMessage;
+    assert.equal(error.payload.status, 403);
+    clientA.send(JSON.stringify({ type: 'SYNC_ABOUT', payload: { headline: 'Forged update' } }));
+    await new Promise(resolve => setTimeout(resolve, 80));
+    assert.equal(eventsByB.some(event => ['DELETE_CHAT_MESSAGE', 'SYNC_ABOUT'].includes(event.type)), false);
+    const about = await (await fetch(`${testEnv.baseUrl}/api/admin/about`)).json();
+    assert.notEqual(about.headline, 'Forged update');
   } finally {
+    if (clientA?.readyState === WebSocket.OPEN) clientA.close();
+    if (clientB?.readyState === WebSocket.OPEN) clientB.close();
+    await new Promise(resolve => setTimeout(resolve, 50));
     await testEnv.close();
   }
 });
 
-// 7. REST Endpoint: Best Solution Award & Authorization (/api/solutions/best)
-test('7. REST Endpoint: Best Solution Award authorization & single-best invariant', async () => {
+// 7. Best-answer choice is tied to the question owner and awarded only once.
+test('7. REST Endpoint: best solution requires question ownership and cannot be re-awarded', async () => {
   const testEnv = await createTestServer();
-
   try {
-    const createQRes = await fetch(`${testEnv.baseUrl}/api/questions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: 'Câu hỏi kiểm tra đáp án chuẩn',
-        content: 'Nội dung câu hỏi...',
-        subject: 'toan',
-        authorId: 'original-author-id',
-        authorName: 'Tác Giả Gốc',
-        authorEmail: 'author@fpt.edu.vn',
-        authorAvatar: 'avatar.png',
-        authorLevel: 1,
-      }),
-    });
-    const qData = await createQRes.json();
-    const questionId = qData.question.id;
+    const author = await registerUser(testEnv, 'Original author');
+    const solver1 = await registerUser(testEnv, 'Student one');
+    const solver2 = await registerUser(testEnv, 'Student two');
+    const stranger = await registerUser(testEnv, 'Imposter');
+    const qResponse = await postJson(testEnv, '/api/questions', {
+      title: 'Câu hỏi kiểm tra đáp án chuẩn',
+      content: 'Nội dung câu hỏi...',
+      subject: 'toan',
+      bountyCoin: 20,
+    }, author.cookie);
+    const question = (await qResponse.json()).question;
+    assert.ok(question);
+    const selfSolutionResponse = await postJson(testEnv, '/api/solutions', {
+      questionId: question.id, content: 'Tác giả tự trả lời để thử tự nhận Coin.',
+    }, author.cookie);
+    assert.equal(selfSolutionResponse.status, 200);
+    const selfSolution = (await selfSolutionResponse.json()).solution;
+    const sol1 = (await (await postJson(testEnv, '/api/solutions', {
+      questionId: question.id, content: 'Lời giải số 1', authorId: 'forged-solver',
+    }, solver1.cookie)).json()).solution;
+    const sol2 = (await (await postJson(testEnv, '/api/solutions', {
+      questionId: question.id, content: 'Lời giải số 2',
+    }, solver2.cookie)).json()).solution;
 
-    // Create Solution 1
-    const createSol1 = await fetch(`${testEnv.baseUrl}/api/solutions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        questionId,
-        content: 'Lời giải số 1',
-        authorId: 'solver-1',
-        authorName: 'Học sinh 1',
-        authorEmail: 'student1@fpt.edu.vn',
-        authorAvatar: 'avatar.png',
-        authorLevel: 1,
-      }),
-    });
-    const sol1Data = await createSol1.json();
-    const sol1Id = sol1Data.solution.id;
+    const spoofed = await postJson(testEnv, '/api/solutions/best', {
+      questionId: question.id,
+      solutionId: sol1.id,
+      currentUserId: author.user.id,
+      currentUserEmail: 'spoofed@example.org',
+    }, stranger.cookie);
+    assert.equal(spoofed.status, 403);
 
-    // Create Solution 2
-    const createSol2 = await fetch(`${testEnv.baseUrl}/api/solutions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        questionId,
-        content: 'Lời giải số 2 xuất sắc hơn',
-        authorId: 'solver-2',
-        authorName: 'Học sinh 2',
-        authorEmail: 'student2@fpt.edu.vn',
-        authorAvatar: 'avatar.png',
-        authorLevel: 2,
-      }),
-    });
-    const sol2Data = await createSol2.json();
-    const sol2Id = sol2Data.solution.id;
+    const selfAward = await postJson(testEnv, '/api/solutions/best', {
+      questionId: question.id, solutionId: selfSolution.id,
+    }, author.cookie);
+    assert.equal(selfAward.status, 403, 'Authors cannot transfer bounty or bonus Coin to their own answer');
 
-    // 7.1 Non-author, non-admin attempt -> 403
-    const badMarkRes = await fetch(`${testEnv.baseUrl}/api/solutions/best`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        questionId,
-        solutionId: sol1Id,
-        currentUserId: 'imposter-student',
-        currentUserEmail: 'imposter@fpt.edu.vn',
-      }),
-    });
-    assert.equal(badMarkRes.status, 403, 'Unauthorized student cannot confirm best solution');
+    const firstSelection = await postJson(testEnv, '/api/solutions/best', {
+      questionId: question.id, solutionId: sol1.id,
+    }, author.cookie);
+    assert.equal(firstSelection.status, 200);
+    const solverSession = await (await fetch(`${testEnv.baseUrl}/api/auth/session`, {
+      headers: { Cookie: solver1.cookie },
+    })).json();
+    assert.equal(solverSession.user.xp, solver1.user.xp + 25 + 110);
+    assert.equal(solverSession.user.coin, solver1.user.coin + 110);
+    const repeat = await postJson(testEnv, '/api/solutions/best', {
+      questionId: question.id, solutionId: sol2.id,
+    }, author.cookie);
+    assert.equal(repeat.status, 409, 'A solved question cannot award a second best-answer reward');
 
-    // 7.2 Super Admin marks Solution 1 -> 200
-    const adminMarkRes = await fetch(`${testEnv.baseUrl}/api/solutions/best`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        questionId,
-        solutionId: sol1Id,
-        currentUserEmail: 'anhtuantran0512@gmail.com',
-      }),
-    });
-    assert.equal(adminMarkRes.status, 200, 'Super admin can award best solution');
-
-    // Verify Solution 1 is best
-    let syncRes = await fetch(`${testEnv.baseUrl}/api/sync`);
-    let syncData = await syncRes.json();
-    let s1 = syncData.data.solutions.find((s) => s.id === sol1Id);
-    assert.equal(s1.isBest, true, 'Solution 1 should be marked best');
-
-    // 7.3 Super Admin marks Solution 2 -> Solution 1 must be reset to false!
-    const adminMarkRes2 = await fetch(`${testEnv.baseUrl}/api/solutions/best`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        questionId,
-        solutionId: sol2Id,
-        currentUserEmail: 'anhtuantran0512@gmail.com',
-      }),
-    });
-    assert.equal(adminMarkRes2.status, 200);
-
-    syncRes = await fetch(`${testEnv.baseUrl}/api/sync`);
-    syncData = await syncRes.json();
-    s1 = syncData.data.solutions.find((s) => s.id === sol1Id);
-    const s2 = syncData.data.solutions.find((s) => s.id === sol2Id);
-    assert.equal(s1.isBest, false, 'Solution 1 must no longer be best');
-    assert.equal(s2.isBest, true, 'Solution 2 must now be best');
+    const sync = await (await fetch(`${testEnv.baseUrl}/api/sync`, { headers: { Cookie: author.cookie } })).json();
+    assert.equal(sync.data.solutions.find(solution => solution.id === sol1.id).isBest, true);
+    assert.equal(sync.data.solutions.find(solution => solution.id === sol2.id).isBest, false);
+    assert.equal(sync.data.solutions.find(solution => solution.id === selfSolution.id).isBest, false);
   } finally {
     await testEnv.close();
   }
@@ -775,4 +898,17 @@ test('Vòng 9 — nhịp gửi tin mới, không khoá ô nhập, đã xoá nộ
     assert.ok(!chatView.includes(gone), `ChatView must no longer contain "${gone}"`);
     assert.ok(!chatDock.includes(gone), `ChatDock must no longer contain "${gone}"`);
   }
+});
+
+test('Khu Vinh Danh uses the requested Hall of frame title', () => {
+  const source = fs.readFileSync(path.resolve('src/components/views/KhuVinhDanhView.tsx'), 'utf8');
+  const headingId = source.indexOf('id="headline"');
+  const headingStart = source.lastIndexOf('<h1', headingId);
+  const headingEnd = source.indexOf('</h1>', headingId);
+  assert.ok(headingId >= 0 && headingStart >= 0 && headingEnd > headingId, 'Khu Vinh Danh headline must exist');
+
+  const heading = source.slice(headingStart, headingEnd);
+  assert.ok(heading.includes('>Hall</span>') && heading.includes('>of</span>') && heading.includes('>frame</span>'));
+  assert.ok(!heading.includes('BroAmStuck') && !heading.includes('Trần'), 'Old studio/founder headline must be removed');
+  assert.ok(source.includes("headline: 'Hall of frame'"), 'Saved About headline must match the visible title');
 });

@@ -38,6 +38,50 @@ test('1. Navbar Architecture & Notification Center Isolation', () => {
   );
 });
 
+test('1a. Navbar expands on tablet and desktop instead of being locked compact', () => {
+  const navbarContent = fs.readFileSync(path.resolve('src/components/Navbar.tsx'), 'utf8');
+
+  assert.ok(
+    navbarContent.includes('window.innerWidth < 768') && !navbarContent.includes('window.innerWidth < 1024'),
+    'Only the mobile breakpoint should lock the desktop capsule into compact mode'
+  );
+  assert.ok(
+    navbarContent.includes('onPointerEnter={forceExpand}') &&
+      navbarContent.includes('if (!alwaysCompact) forceExpand();') &&
+      navbarContent.includes('onFocusCapture={() => {'),
+    'Pointer, click/touch, and keyboard focus should all be able to expand the capsule'
+  );
+  assert.ok(
+    navbarContent.includes('else if (!alwaysCompact && !anyPopoverOpenRef.current) {\n        setIsCompact(false);'),
+    'Resizing back into the desktop breakpoint should automatically expand the navbar'
+  );
+});
+
+test('1b. Mobile layout adapts to visual viewport, zoom, safe areas, and small widths', () => {
+  const appContent = fs.readFileSync(path.resolve('src/App.tsx'), 'utf8');
+  const homeView = fs.readFileSync(path.resolve('src/components/views/HomeView.tsx'), 'utf8');
+  const comingSoonView = fs.readFileSync(path.resolve('src/components/views/ComingSoonView.tsx'), 'utf8');
+  const navbarContent = fs.readFileSync(path.resolve('src/components/Navbar.tsx'), 'utf8');
+  const popoverPosition = fs.readFileSync(path.resolve('src/utils/popover.ts'), 'utf8');
+  const notificationsModal = fs.readFileSync(path.resolve('src/components/NotificationsModal.tsx'), 'utf8');
+  const css = fs.readFileSync(path.resolve('src/index.css'), 'utf8');
+  const html = fs.readFileSync(path.resolve('index.html'), 'utf8');
+
+  assert.ok(appContent.includes('window.visualViewport') && appContent.includes('--ff-visible-height') && appContent.includes('--ff-visible-center-x'), 'App must sync the visual viewport bounds and center');
+  assert.ok(appContent.includes('visualViewport?.addEventListener(\'resize\'') && appContent.includes('visualViewport?.addEventListener(\'scroll\''), 'Viewport changes such as orientation, keyboard, and pinch-zoom pan should be observed');
+  assert.ok(popoverPosition.includes('visualViewport?.width') && popoverPosition.includes('visualViewport?.offsetLeft') && popoverPosition.includes('visualViewport?.offsetTop'), 'Anchored panels must clamp to the actual visible viewport');
+  assert.ok(popoverPosition.includes('visualViewport?.addEventListener(\'resize\'') && popoverPosition.includes('visualViewport?.addEventListener(\'scroll\''), 'Open popovers must reposition while the visible viewport changes');
+  assert.ok(notificationsModal.includes('ff-notifications-popover--floating') && css.includes('.ff-notifications-popover--floating .ff-notification-feed'), 'Mobile notifications must scroll within short landscape viewports');
+  assert.ok(homeView.includes('ff-home-view') && homeView.includes('flex-wrap'), 'Home hero must reflow on narrow screens');
+  assert.ok(comingSoonView.includes('ff-coming-soon') && css.includes('.ff-coming-soon__nav-spacer'), 'Coming-soon page must remain scrollable around the fixed mobile navigation');
+  assert.ok(navbarContent.includes('ff-mobile-menu-drawer') && navbarContent.includes('ff-mobile-brand-name'), 'Mobile navigation must have adaptive drawer and branding hooks');
+  assert.ok(navbarContent.includes('anchorRef={mobileNotifMenuRef}') && navbarContent.includes('dockPosition="top"'), 'Mobile notifications must anchor outside the blurred header and open within the viewport');
+  assert.ok(css.includes('@media (max-width: 767px)') && css.includes('--ff-mobile-tabbar-height'), 'Mobile layout must have a dedicated responsive breakpoint');
+  assert.ok(css.includes('max-height: 560px') && css.includes('max-width: 359px'), 'Short landscape and very narrow screens must have compact layouts');
+  assert.ok(html.includes('interactive-widget=resizes-content'), 'Mobile viewport should resize with the on-screen keyboard when supported');
+  assert.ok(!/maximum-scale\s*=|user-scalable\s*=\s*no/i.test(html), 'Users must retain pinch-to-zoom access');
+});
+
 test('2. Wheel-Scroll Transition Controller & Pipeline Logic', () => {
   const appContent = fs.readFileSync(path.resolve('src/App.tsx'), 'utf8');
 
@@ -187,8 +231,8 @@ test('4. Invariants & Preserved Systems Integrity', () => {
 
   // Super Admin guard isolation
   assert.ok(
-    appContent.includes("currentUser?.email === 'anhtuantran0512@gmail.com' &&"),
-    'App.tsx must strictly preserve Super Admin guard'
+    appContent.includes("currentUser?.role === 'super_admin'"),
+    'App.tsx must use the server-assigned Super Admin role without a fixed email'
   );
 
   // Dynamic Homepage Title with Diễn Đàn Học Sinh

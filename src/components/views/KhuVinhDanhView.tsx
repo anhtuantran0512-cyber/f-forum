@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type { User, DimensionView } from '../../types';
 import { AdminVerifiedBadge } from '../Badges10Tier';
+import { isAdminRole } from '../../config/admin';
 import { safeStorage } from '../../utils/storage';
 import {
   saveAboutDataToServer,
@@ -103,9 +104,9 @@ const INITIAL_VINHDANH_RECORDS: VinhDanhRecord[] = [
   {
     id: 'vd-9',
     imgId: 'hf_20260922_194417_555e4d90-f35f-4a1a-8c75-def1e8b71988',
-    title: 'Focus Sanctuary 432Hz',
-    place: 'Tịnh Tâm Thư Phòng',
-    note: 'Âm thanh sóng não Alpha và đồng hồ Pomodoro hỗ trợ ôn thi hiệu quả.',
+    title: 'Focus Sanctuary & nhật ký giờ học',
+    place: 'Phòng Tập Trung',
+    note: 'Đồng hồ học tự do ghi lại thời lượng học thật, có thống kê theo ngày, tuần và tháng.'
   },
   {
     id: 'vd-10',
@@ -232,7 +233,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
   onNavigate,
   currentUser,
 }) => {
-  const isSuperAdmin = currentUser?.email?.toLowerCase() === 'anhtuantran0512@gmail.com';
+  const canManageAbout = isAdminRole(currentUser?.role);
 
   const [founderProfile, setFounderProfile] = useState<FounderProfileState>(() => {
     const saved = safeStorage.getItem('fforum_vinhdanh_founder');
@@ -587,7 +588,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
   };
 
   const syncToServer = useCallback((updatedFounder: typeof founderProfile, updatedRecords: VinhDanhRecord[]) => {
-    if (!currentUser || !isSuperAdmin) return;
+    if (!currentUser || !canManageAbout) return;
     const milestones: MilestoneItem[] = updatedRecords.map((r, idx) => ({
       id: `ms-${idx + 1}`,
       title: r.title,
@@ -599,18 +600,17 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     }));
 
     saveAboutDataToServer({
-      headline: 'BroAmStuck Studio • Trần Văn Anh Tuấn',
+      headline: 'Hall of frame',
       subtitle: 'Khu Vinh Danh • 3D Fibonacci Sphere Chronicles & System Archive',
       founder: {
         name: updatedFounder.name,
         role: updatedFounder.role,
         avatarUrl: updatedFounder.avatarUrl,
         bio: updatedFounder.bio,
-        email: 'anhtuantran0512@gmail.com',
       },
       milestones,
-    }, currentUser.email).catch(() => {});
-  }, [currentUser, isSuperAdmin]);
+    }).catch(() => {});
+  }, [currentUser, canManageAbout]);
 
   const handleSaveRecord = (e: React.FormEvent) => {
     e.preventDefault();
@@ -880,18 +880,16 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             })}
           </div>
 
-          {/* h1#headline: Exactly 5 spans, optical lock at sphere center */}
+          {/* h1#headline: word-by-word reveal, optically locked at sphere center */}
           <h1
             id="headline"
             ref={headlineRef}
             className="absolute top-0 left-0 w-[var(--hw)] -ml-[calc(var(--hw)/2)] text-center font-['Playfair_Display'] text-white select-none pointer-events-none font-playfair tracking-tight"
           >
             <span className="inner absolute top-0 left-0 w-full -translate-y-1/2">
-              <span style={{ '--i': 0 } as React.CSSProperties}>BroAmStuck</span>{' '}
-              <span style={{ '--i': 1 } as React.CSSProperties}>Studio</span>{' '}
-              <span style={{ '--i': 2 } as React.CSSProperties}>•</span>{' '}
-              <span style={{ '--i': 3 } as React.CSSProperties}>Trần</span>{' '}
-              <span style={{ '--i': 4 } as React.CSSProperties}>Tuấn</span>
+              <span style={{ '--i': 0 } as React.CSSProperties}>Hall</span>{' '}
+              <span style={{ '--i': 1 } as React.CSSProperties}>of</span>{' '}
+              <span style={{ '--i': 2 } as React.CSSProperties}>frame</span>
             </span>
           </h1>
         </div>
@@ -1004,7 +1002,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
               height={52}
               className="bio-avatar w-[52px] h-[52px] rounded-[3px] object-cover grayscale-[0.15] border border-white/20"
             />
-            {isSuperAdmin && (
+            {canManageAbout && (
               <button
                 type="button"
                 onClick={() => setIsEditBioModalOpen(true)}
@@ -1067,7 +1065,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       </div>
 
       {/* Super Admin Floating Quick Trigger */}
-      {isSuperAdmin && (
+      {canManageAbout && (
         <div className="fixed right-[var(--pad)] bottom-[calc(var(--pad)+36px)] z-56">
           <button
             type="button"
@@ -1208,7 +1206,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                   <span>{activeLitRecord.place}</span>
                 </div>
 
-                {isSuperAdmin && (
+                {canManageAbout && (
                   <button
                     type="button"
                     onClick={() => handleOpenEditRecord(activeLitRecord)}
@@ -1288,7 +1286,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       />
 
       {/* Admin Edit Record Modal */}
-      {isEditRecordModalOpen && editingRecord && isSuperAdmin && (
+      {isEditRecordModalOpen && editingRecord && canManageAbout && (
         <div className="fixed inset-0 z-[100] grid place-items-center p-4 bg-black/80 backdrop-blur-md">
           <form
             onSubmit={handleSaveRecord}
@@ -1402,7 +1400,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       )}
 
       {/* Admin Edit Bio & Milestones Modal */}
-      {isEditBioModalOpen && isSuperAdmin && (
+      {isEditBioModalOpen && canManageAbout && (
         <div className="fixed inset-0 z-[100] grid place-items-center p-4 bg-black/80 backdrop-blur-md">
           <div className="w-full max-w-lg rounded-2xl bg-[#0e141a] border border-white/20 p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">

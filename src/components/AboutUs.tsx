@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AdminVerifiedBadge } from './Badges10Tier';
+import { isAdminRole } from '../config/admin';
 import {
   type MilestoneItem,
   type AboutData,
@@ -70,7 +71,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
   isEmbedded = false,
 }) => {
   const { currentUser } = useAuth();
-  const isSuperAdmin = currentUser?.email?.toLowerCase() === 'anhtuantran0512@gmail.com';
+  const canManageAbout = isAdminRole(currentUser?.role);
 
   const [localAboutData, setLocalAboutData] = useState<AboutData>(() => {
     return customAboutData || getSavedAboutData();
@@ -408,10 +409,10 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
   const handleSaveAboutData = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!currentUser || !isSuperAdmin) return;
+    if (!currentUser || !canManageAbout) return;
 
     setIsSaving(true);
-    const updated = await saveAboutDataToServer(editFormData, currentUser.email);
+    const updated = await saveAboutDataToServer(editFormData);
     setLocalAboutData(updated);
     if (onUpdateAbout) {
       onUpdateAbout(updated);
@@ -427,7 +428,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
   const handleSaveMilestoneInLightbox = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || !isSuperAdmin || !editingMilestoneData || lightboxMilestoneIndex === null) return;
+    if (!currentUser || !canManageAbout || !editingMilestoneData || lightboxMilestoneIndex === null) return;
 
     const nextMilestones = [...aboutData.milestones];
     nextMilestones[lightboxMilestoneIndex] = editingMilestoneData;
@@ -438,7 +439,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     };
 
     setIsSaving(true);
-    const updated = await saveAboutDataToServer(nextData, currentUser.email);
+    const updated = await saveAboutDataToServer(nextData);
     setLocalAboutData(updated);
     if (onUpdateAbout) onUpdateAbout(updated);
     saveAboutDataLocally(updated);
@@ -453,7 +454,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
   const handleQuickAvatarSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || !isSuperAdmin || !avatarInputUrl.trim()) return;
+    if (!currentUser || !canManageAbout || !avatarInputUrl.trim()) return;
 
     const nextData: AboutData = {
       ...aboutData,
@@ -463,7 +464,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
       },
     };
     setIsSaving(true);
-    const updated = await saveAboutDataToServer(nextData, currentUser.email);
+    const updated = await saveAboutDataToServer(nextData);
     setLocalAboutData(updated);
     if (onUpdateAbout) onUpdateAbout(updated);
     saveAboutDataLocally(updated);
@@ -482,7 +483,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
   const handleQuickFieldSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || !isSuperAdmin || !quickFieldTarget) return;
+    if (!currentUser || !canManageAbout || !quickFieldTarget) return;
 
     const nextData: AboutData = {
       ...aboutData,
@@ -492,7 +493,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
       },
     };
     setIsSaving(true);
-    const updated = await saveAboutDataToServer(nextData, currentUser.email);
+    const updated = await saveAboutDataToServer(nextData);
     setLocalAboutData(updated);
     if (onUpdateAbout) onUpdateAbout(updated);
     saveAboutDataLocally(updated);
@@ -682,7 +683,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 height={56}
                 className="bio-avatar w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border border-cyan-400/50 shadow-lg"
               />
-              {isSuperAdmin && (
+              {canManageAbout && (
                 <button
                   type="button"
                   onClick={() => {
@@ -704,7 +705,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 </h2>
                 {/* Facebook Blue Verified Tick sweep */}
                 <AdminVerifiedBadge size={16} />
-                {isSuperAdmin && (
+                {canManageAbout && (
                   <button
                     type="button"
                     onClick={() => handleOpenQuickField('name')}
@@ -721,7 +722,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                   <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                   <span>{aboutData.founder.role}</span>
                 </p>
-                {isSuperAdmin && (
+                {canManageAbout && (
                   <button
                     type="button"
                     onClick={() => handleOpenQuickField('role')}
@@ -740,7 +741,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
             <p className="text-[11px] sm:text-xs text-neutral-300 italic font-sans leading-relaxed line-clamp-3">
               &ldquo;{aboutData.founder.bio}&rdquo;
             </p>
-            {isSuperAdmin && (
+            {canManageAbout && (
               <button
                 type="button"
                 onClick={() => handleOpenQuickField('bio')}
@@ -1050,7 +1051,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                       <span>Ghi Chú Phát Triển & Kiến Trúc — Field Notes</span>
                     </h4>
 
-                    {isSuperAdmin && (
+                    {canManageAbout && (
                       <button
                         type="button"
                         onClick={() => {
@@ -1223,8 +1224,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
         </div>
       )}
 
-      {/* 5. EXCLUSIVE ADMIN CONTROLS (Only rendered if isSuperAdmin) */}
-      {isSuperAdmin && (
+      {/* 5. EXCLUSIVE ADMIN CONTROLS (Only rendered if canManageAbout) */}
+      {canManageAbout && (
         <div className="fixed bottom-6 right-6 z-40">
           <button
             type="button"
@@ -1239,7 +1240,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
       )}
 
       {/* Master Content Editor Modal (Admin Only) */}
-      {isSuperAdmin && isEditorOpen && (
+      {canManageAbout && isEditorOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-up">
           <div className="relative w-full max-w-3xl rounded-3xl obsidian-glass border border-amber-400/40 p-6 sm:p-8 shadow-2xl max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
@@ -1563,7 +1564,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
       )}
 
       {/* Quick Avatar URL / File Upload Modal (Admin Only) */}
-      {isSuperAdmin && isAvatarPromptOpen && (
+      {canManageAbout && isAvatarPromptOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-up">
           <div className="w-full max-w-md rounded-2xl obsidian-glass border border-cyan-400/40 p-6 shadow-2xl">
             <h3 className="font-bold text-sm text-white mb-2 flex items-center gap-2">
@@ -1651,7 +1652,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
       )}
 
       {/* Quick Spotlight Field Editor Modal (Admin Only) */}
-      {isSuperAdmin && quickFieldTarget && (
+      {canManageAbout && quickFieldTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-up">
           <div className="w-full max-w-md rounded-2xl obsidian-glass border border-amber-400/40 p-6 shadow-2xl">
             <h3 className="font-bold text-sm text-white mb-2 flex items-center gap-2">

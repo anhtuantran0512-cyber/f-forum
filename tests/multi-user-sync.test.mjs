@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
-import { setupForumServer } from '../server/forumServer.ts';
+import { getAttendanceBoxType, getNextAttendanceStreak, setupForumServer } from '../server/forumServer.ts';
 import { WebSocket } from 'ws';
 
 // Test Helper to spin up a mock server with connect middlewares
@@ -44,163 +44,211 @@ function createTestServer() {
   });
 }
 
-test('1. Real-Time Multi-Device WebSocket Sync: Client A message immediately received by Client B', async () => {
+let registeredCounter = 0;
+async function registerTestUser(testEnv, name = 'Realtime Test User') {
+  registeredCounter += 1;
+  const email = `realtime-${Date.now()}-${registeredCounter}@example.org`;
+  const password = `Strong-password-${registeredCounter}-2026!`;
+  const response = await fetch(`${testEnv.baseUrl}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, password }),
+  });
+  const registrationData = await response.json();
+  assert.equal(response.status, 202, registrationData.message);
+  const authenticated = await fetch(`${testEnv.baseUrl}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await authenticated.json();
+  assert.equal(authenticated.status, 200, data.message);
+  const setCookie = authenticated.headers.get('set-cookie');
+  assert.ok(setCookie, 'Successful login must issue an authentication cookie');
+  return { user: data.user, cookie: setCookie.split(';')[0], email, password, registrationData };
+}
+
+test('Server attendance streak and box milestones use consecutive calendar dates', () => {
+  assert.equal(getNextAttendanceStreak('', 0, '2026-03-01'), 1);
+  assert.equal(getNextAttendanceStreak('2026-02-28', 4, '2026-03-01'), 5, 'Streak math crosses month boundaries');
+  assert.equal(getNextAttendanceStreak('2026-03-02', 5, '2026-03-03'), 6);
+  assert.equal(getNextAttendanceStreak('2026-03-01', 5, '2026-03-03'), 1, 'A missed calendar day resets the streak');
+  assert.deepEqual([5, 10, 15, 20, 25, 30].map(getAttendanceBoxType), [
+    'blue', 'gold', 'red', 'blue', 'gold', 'red',
+  ]);
+  assert.equal(getAttendanceBoxType(9), null);
+});
+
+test('Unauthenticated clients cannot read forum sync/events or open a realtime socket', async () => {
   const testEnv = await createTestServer();
-
+  let socket;
   try {
-    const clientA = new WebSocket(testEnv.wsUrl);
-    const clientB = new WebSocket(testEnv.wsUrl);
+    assert.equal((await fetch(`${testEnv.baseUrl}/api/sync`)).status, 401);
+    assert.equal((await fetch(`${testEnv.baseUrl}/api/events`)).status, 401);
 
-    await Promise.all([
-      new Promise((res) => clientA.on('open', res)),
-      new Promise((res) => clientB.on('open', res)),
-    ]);
-
-    const receivedMessagesByB = [];
-    clientB.on('message', (raw) => {
-      try {
-        const parsed = JSON.parse(raw.toString());
-        if (parsed.type === 'NEW_CHAT_MESSAGE') {
-          receivedMessagesByB.push(parsed.payload);
-        }
-      } catch {
-        /* ignore */
-      }
+    socket = new WebSocket(testEnv.wsUrl);
+    const handshake = await new Promise(resolve => {
+      const timer = setTimeout(() => resolve('timeout'), 2_000);
+      socket.once('open', () => { clearTimeout(timer); resolve('unexpected open'); });
+      socket.once('error', error => { clearTimeout(timer); resolve(error.message); });
     });
-
-    const testMessage = {
-      id: `msg-test-${Date.now()}`,
-      channelId: 'hallway',
-      authorId: 'user-clone-123',
-      authorName: 'Clone Account',
-      authorEmail: 'clone@test.local',
-      authorAvatar: 'avatar.png',
-      authorLevel: 1,
-      content: 'Chào acc chính, tôi là acc clone đang test real-time sync!',
-      timestamp: '12:00',
-    };
-
-    // Client A sends message over WebSocket
-    clientA.send(JSON.stringify({ type: 'NEW_CHAT_MESSAGE', payload: testMessage }));
-
-    // Wait up to 1000ms for Client B to receive
-    const start = Date.now();
-    while (receivedMessagesByB.length === 0 && Date.now() - start < 1500) {
-      await new Promise((r) => setTimeout(r, 50));
-    }
-
-    assert.equal(receivedMessagesByB.length, 1, 'Client B must have received 1 real-time message');
-    assert.equal(receivedMessagesByB[0].content, testMessage.content);
-    assert.equal(receivedMessagesByB[0].authorEmail, 'clone@test.local');
-
-    clientA.close();
-    clientB.close();
+    assert.match(String(handshake), /401/, 'Anonymous WebSocket handshake must be rejected');
   } finally {
+    socket?.terminate();
     await testEnv.close();
   }
 });
 
-test('2. Authentication Logic: Login rejects non-existent users; Register requires email and password', async () => {
+test('1. WebSocket accepts presence but refuses client-originated content writes', async () => {
   const testEnv = await createTestServer();
-
+  let clientA;
+  let clientB;
   try {
-    // 2.1 Attempt login with unregistered email -> Must reject
-    const nonExistentLogin = await fetch(`${testEnv.baseUrl}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'ghost_user_999@fpt.edu.vn', password: 'password123' }),
+    const userA = await registerTestUser(testEnv, 'Realtime User A');
+    const userB = await registerTestUser(testEnv, 'Realtime User B');
+    clientA = new WebSocket(testEnv.wsUrl, { headers: { Cookie: userA.cookie } });
+    clientB = new WebSocket(testEnv.wsUrl, { headers: { Cookie: userB.cookie } });
+    await Promise.all([
+      new Promise((resolve, reject) => { clientA.once('open', resolve); clientA.once('error', reject); }),
+      new Promise((resolve, reject) => { clientB.once('open', resolve); clientB.once('error', reject); }),
+    ]);
+    const receivedByB = [];
+    clientB.on('message', raw => {
+      try { receivedByB.push(JSON.parse(raw.toString())); } catch { /* ignore */ }
     });
-    const loginErr = await nonExistentLogin.json();
-    assert.equal(nonExistentLogin.status, 400);
-    assert.equal(loginErr.success, false);
-    assert.ok(loginErr.message.includes('Tài khoản không tồn tại'));
+    const rejected = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Expected WS_ERROR for a client write')), 2_000);
+      clientA.on('message', raw => {
+        const event = JSON.parse(raw.toString());
+        if (event.type === 'WS_ERROR') {
+          clearTimeout(timer);
+          resolve(event);
+        }
+      });
+    });
+    clientA.send(JSON.stringify({ type: 'NEW_CHAT_MESSAGE', payload: {
+      id: 'forged-message', content: 'This write must not be accepted', authorEmail: 'owner@example.org',
+    } }));
+    const response = await rejected;
+    assert.equal(response.payload.status, 403);
+    await new Promise(resolve => setTimeout(resolve, 80));
+    assert.equal(receivedByB.some(event => event.type === 'NEW_CHAT_MESSAGE'), false);
+    const sync = await (await fetch(`${testEnv.baseUrl}/api/sync`, { headers: { Cookie: userB.cookie } })).json();
+    assert.equal(sync.data.chatMessages.some(message => message.id === 'forged-message'), false);
+  } finally {
+    if (clientA?.readyState === WebSocket.OPEN) clientA.close();
+    if (clientB?.readyState === WebSocket.OPEN) clientB.close();
+    await new Promise(resolve => setTimeout(resolve, 50));
+    await testEnv.close();
+  }
+});
 
-    // 2.2 Register new valid student account
+test('2. Authentication uses strong passwords, hashed credentials and an HttpOnly session', async () => {
+  const testEnv = await createTestServer();
+  const email = `hocsinhmoi-${Date.now()}@fpt.edu.vn`;
+  const password = 'secure_password_123';
+  try {
+    const unknown = await fetch(`${testEnv.baseUrl}/api/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'ghost_user_999@fpt.edu.vn', password: 'wrong-password' }),
+    });
+    const unknownData = await unknown.json();
+    assert.equal(unknown.status, 401);
+    assert.equal(unknownData.message, 'Thông tin đăng nhập không chính xác.');
+
+    const weakRegistration = await fetch(`${testEnv.baseUrl}/api/auth/register`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Weak', email: `weak-${Date.now()}@example.org`, password: 'short12' }),
+    });
+    assert.equal(weakRegistration.status, 400, 'Passwords shorter than 12 characters are rejected');
+
     const registerRes = await fetch(`${testEnv.baseUrl}/api/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: 'Học Sinh Mới',
-        email: 'hocsinhmoi@fpt.edu.vn',
-        password: 'secure_password_123',
-      }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Học Sinh Mới', email, password }),
     });
     const regData = await registerRes.json();
-    assert.equal(registerRes.status, 200);
+    assert.equal(registerRes.status, 202, regData.message);
     assert.equal(regData.success, true);
-    assert.equal(regData.user.level, 1, 'New student starts at Level 1');
-    assert.equal(regData.user.xp, 0, 'New student starts with 0 XP');
-    assert.equal(regData.user.role, 'STUDENT');
-    assert.ok(regData.token.startsWith('f_token_'), 'Session token generated');
+    assert.equal(registerRes.headers.get('set-cookie'), null, 'Registration does not create a client-readable or existence-revealing session');
 
-    // 2.3 Duplicate register attempt -> Must reject
     const duplicateRes = await fetch(`${testEnv.baseUrl}/api/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: 'Trùng Email',
-        email: 'hocsinhmoi@fpt.edu.vn',
-        password: 'another_password',
-      }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Duplicate', email, password: 'another_password_2026' }),
     });
-    const dupErr = await duplicateRes.json();
-    assert.equal(duplicateRes.status, 400);
-    assert.ok(dupErr.message.includes('đã được đăng ký'));
+    const duplicateData = await duplicateRes.json();
+    assert.equal(duplicateRes.status, 202);
+    assert.deepEqual(duplicateData, regData, 'New and already-registered addresses receive the same response');
+    assert.equal(duplicateRes.headers.get('set-cookie'), null);
 
-    // 2.4 Login with registered credentials -> Must succeed
-    const validLoginRes = await fetch(`${testEnv.baseUrl}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: 'hocsinhmoi@fpt.edu.vn',
-        password: 'secure_password_123',
-      }),
+    const validLogin = await fetch(`${testEnv.baseUrl}/api/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
     });
-    const validLoginData = await validLoginRes.json();
-    assert.equal(validLoginRes.status, 200);
-    assert.equal(validLoginData.success, true);
-    assert.equal(validLoginData.user.email, 'hocsinhmoi@fpt.edu.vn');
+    const loginData = await validLogin.json();
+    assert.equal(validLogin.status, 200, loginData.message);
+    assert.equal(loginData.user.level, 1);
+    assert.equal(loginData.user.xp, 0);
+    assert.equal(loginData.user.role, 'user');
+    assert.equal(loginData.token, undefined, 'The API does not expose a JS-readable bearer token');
+    const cookie = validLogin.headers.get('set-cookie');
+    assert.match(cookie, /HttpOnly/);
+    assert.match(cookie, /SameSite=Lax/);
+    const sessionCookie = cookie.split(';')[0];
 
-    // 2.5 Login with incorrect password -> Must reject
-    const wrongPassRes = await fetch(`${testEnv.baseUrl}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: 'hocsinhmoi@fpt.edu.vn',
-        password: 'wrong_password',
-      }),
+    const sessionRes = await fetch(`${testEnv.baseUrl}/api/auth/session`,{
+      headers: { Cookie: sessionCookie },
     });
-    const wrongPassData = await wrongPassRes.json();
-    assert.equal(wrongPassRes.status, 400);
-    assert.ok(wrongPassData.message.includes('Mật khẩu không chính xác'));
+    assert.equal(sessionRes.status, 200);
+    assert.equal((await sessionRes.json()).user.email, email);
+
+    const logoutRes = await fetch(`${testEnv.baseUrl}/api/auth/logout`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: sessionCookie }, body: '{}',
+    });
+    assert.equal(logoutRes.status, 200);
+    const revoked = await fetch(`${testEnv.baseUrl}/api/auth/session`, { headers: { Cookie: sessionCookie } });
+    assert.equal(revoked.status, 401, 'Logout revokes the server-side session');
+
+    const loginAfterLogout = await fetch(`${testEnv.baseUrl}/api/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    assert.equal(loginAfterLogout.status, 200);
+    assert.match(loginAfterLogout.headers.get('set-cookie'), /HttpOnly/);
+
+    const wrongPassword = await fetch(`${testEnv.baseUrl}/api/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: 'incorrect_password_2026' }),
+    });
+    assert.equal(wrongPassword.status, 401);
+    assert.equal((await wrongPassword.json()).message, 'Thông tin đăng nhập không chính xác.');
   } finally {
     await testEnv.close();
   }
 });
 
-test('3. Super Admin Isolation: ONLY anhtuantran0512@gmail.com receives SUPER_ADMIN role', async () => {
+test('3. New accounts default to user and no email-based Super Admin identity exists', async () => {
   const testEnv = await createTestServer();
 
   try {
-    const syncRes = await fetch(`${testEnv.baseUrl}/api/sync`);
+    const reader = await registerTestUser(testEnv, 'Role isolation reader');
+    const syncRes = await fetch(`${testEnv.baseUrl}/api/sync`, { headers: { Cookie: reader.cookie } });
     const syncData = await syncRes.json();
-    const adminUser = syncData.data.users['anhtuantran0512@gmail.com'];
+    const storedReader = Object.values(syncData.data.users).find(user => user.id === reader.user.id);
 
-    assert.ok(adminUser, 'Admin user must exist in registry');
-    assert.equal(adminUser.role, 'SUPER_ADMIN', 'anhtuantran0512@gmail.com must have SUPER_ADMIN role');
-    assert.equal(adminUser.name, 'Trần Văn Anh Tuấn');
+    assert.ok(storedReader, 'The registered account must be present in the authenticated registry');
+    assert.equal(storedReader.role, 'user', 'An email address cannot implicitly elevate an account');
+    assert.equal(storedReader.email, `${reader.user.id}@public.invalid`, 'Public sync must not expose account email addresses');
+    assert.equal(Object.values(syncData.data.users).some(user => user.role === 'super_admin'), false,
+      'A new installation has no baked-in Super Admin account');
 
-    // Check that LoginModal source has NO "Đăng nhập Super Admin" shortcut button
     const loginModalCode = fs.readFileSync('src/components/LoginModal.tsx', 'utf8');
     assert.ok(!loginModalCode.includes('Đăng nhập Super Admin'), 'LoginModal must not expose quick Super Admin login');
     assert.ok(!loginModalCode.includes('handleQuickAdmin'), 'LoginModal must not have handleQuickAdmin function');
 
-    // Check that App.tsx isolates XPSandboxDock strictly to admin
     const appCode = fs.readFileSync('src/App.tsx', 'utf8');
-    assert.ok(
-      appCode.includes("currentUser?.email === 'anhtuantran0512@gmail.com' &&"),
-      'XPSandboxDock must strictly require currentUser.email === anhtuantran0512@gmail.com'
-    );
+    assert.ok(appCode.includes("import.meta.env.DEV && currentUser?.role === 'super_admin'"),
+      'The local XP sandbox is development-only and role-labelled');
+    assert.ok(!appCode.includes('@gmail.com'), 'Frontend admin gating must not depend on a personal email');
   } finally {
     await testEnv.close();
   }
@@ -285,7 +333,7 @@ test('6. Vòng 11 — tài khoản ảo bị xoá vĩnh viễn, hồ sơ ngườ
     const blocked = await fetch(`${testEnv.baseUrl}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Tài Khoản Ảo', email: 'sinhvien01@sv.f-forum.vn', password: 'password123' }),
+      body: JSON.stringify({ name: 'Tài Khoản Ảo', email: 'sinhvien01@sv.f-forum.vn', password: 'Strong-password-2026!' }),
     });
     assert.equal(blocked.status, 400, 'Virtual account domain must be rejected');
     const blockedData = await blocked.json();
@@ -293,7 +341,8 @@ test('6. Vòng 11 — tài khoản ảo bị xoá vĩnh viễn, hồ sơ ngườ
     assert.ok(blockedData.message.includes('không còn được hỗ trợ'), 'Rejection must explain the retired domain');
 
     /* 6.3 Sổ đăng ký server chỉ chứa tài khoản thật */
-    const syncRes = await fetch(`${testEnv.baseUrl}/api/sync`);
+    const reader = await registerTestUser(testEnv, 'Registry Audit Reader');
+    const syncRes = await fetch(`${testEnv.baseUrl}/api/sync`, { headers: { Cookie: reader.cookie } });
     const syncData = await syncRes.json();
     const emails = Object.keys(syncData.data.users || {});
     assert.ok(emails.length >= 1, 'Server registry must expose the real accounts');
@@ -315,8 +364,8 @@ test('6. Vòng 11 — tài khoản ảo bị xoá vĩnh viễn, hồ sơ ngườ
     'Server sync must sanitize the merged registry (server wins on conflicts)',
   );
   assert.ok(
-    store.includes('prev.email.toLowerCase() === updatedUser.email.toLowerCase() ? updatedUser : prev'),
-    'Editing a profile in one tab must refresh the profile in every other tab',
+    store.includes('prev.id === broadcastUser.id') && store.includes('email: prev.email'),
+    'Server broadcasts update profiles by server user id while preserving the signed-in account email',
   );
 
   /* 6.5 Bảng xếp hạng đọc thẳng sổ đăng ký thật, không gộp nguồn ảo nào */

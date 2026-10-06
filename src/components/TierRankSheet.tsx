@@ -46,7 +46,7 @@ const REQUIREMENT_ROWS: { action: string; reward: string; note: string }[] = [
   { action: 'Gửi lời giải cho một câu hỏi', reward: '+25 XP · +25 điểm', note: 'Mỗi lời giải được duyệt' },
   { action: 'Được xác nhận Đáp án chuẩn', reward: '+100 XP · +50% Coin thưởng', note: 'Cộng thêm khi tác giả xác nhận' },
   { action: 'Nhắn tin trong cộng đồng', reward: '+2 điểm', note: 'Tính vào bảng đóng góp' },
-  { action: 'Hoàn thành phiên tập trung 25′', reward: '+25 XP · ghi 25′ giờ học', note: 'Bảng xếp hạng giờ học' },
+  { action: 'Học bằng đồng hồ tự do', reward: '+25 / +35 / +60 Coin', note: 'Mốc ngày 25′ / 60′ / 120′ · tối đa 120 Coin học tập/ngày' },
   { action: 'Điểm danh mỗi ngày', reward: '+25 Coin', note: 'Chuỗi ngày mốc 5 · 10 · 15 mở hộp quà' },
 ];
 
@@ -304,8 +304,8 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
               <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-2.5 flex items-start gap-2">
                 <Sparkles className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
                 <p className="text-[11px] text-amber-100 leading-snug">
-                  XP và Coin cộng song song (1 XP = 1 Coin). Cấp độ được tính từ tổng XP:{' '}
-                  <span className="font-mono font-bold">Lv.L = 140·(L−1) + 1.08·(L−1)² XP</span>.
+                  XP từ đóng góp cộng thêm Coin; phần thưởng học tập là Coin thuần, không cộng XP/FPoints.
+                  Cấp độ dựa trên tổng XP: <span className="font-mono font-bold">Lv.L = 140·(L−1) + 1.08·(L−1)² XP</span>.
                 </p>
               </div>
 
@@ -330,7 +330,7 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
                   Mẹo lên hạng nhanh
                 </p>
                 <ul className="mt-1.5 space-y-1 text-[10.5px] text-neutral-300 leading-snug list-disc pl-4">
-                  <li>Mỗi ngày: điểm danh (+25) và một phiên tập trung 25′ (+25 XP).</li>
+                  <li>Mỗi ngày: điểm danh +25 Coin; học tổng 25′ / 60′ / 120′ nhận +25 / +35 / +60 Coin (tối đa 120 Coin học tập).</li>
                   <li>Trả lời câu hỏi đang mở — được xác nhận Đáp án chuẩn là mốc cộng lớn nhất.</li>
                   <li>Giữ chuỗi ngày để mở hộp quà mốc 5 · 10 · 15 (30–200 Coin).</li>
                 </ul>

@@ -24,148 +24,83 @@ export function computePopoverPosition(
   }
 
   const rect = anchorEl.getBoundingClientRect();
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
+  const visualViewport = window.visualViewport;
+  const viewportLeft = Math.max(0, visualViewport?.offsetLeft ?? 0);
+  const viewportTop = Math.max(0, visualViewport?.offsetTop ?? 0);
+  const viewportWidth = Math.max(1, visualViewport?.width || window.innerWidth);
+  const viewportHeight = Math.max(1, visualViewport?.height || window.innerHeight);
+  const viewportRight = viewportLeft + viewportWidth;
+  const viewportBottom = viewportTop + viewportHeight;
   const MARGIN = 12;
   const GAP = 12;
 
-  /* Guard against invisible or zero-rect anchor */
+  /* Guard against invisible or zero-rect anchors. */
   if (rect.width === 0 && rect.height === 0) {
     return { style: { position: 'fixed', top: 16, left: 16 }, ready: false };
   }
 
-  if (dockPos === 'left') {
-    const left = Math.max(MARGIN, Math.round(rect.right + GAP));
-    const availableW = Math.max(240, vw - left - MARGIN);
-    const width = Math.min(panelWidth, availableW);
-    const isLowerHalf = rect.top + rect.height / 2 > vh * 0.52;
+  const width = Math.min(panelWidth, Math.max(1, viewportWidth - MARGIN * 2));
+  const horizontalInset = Math.min(MARGIN, viewportWidth / 2);
+  const minLeft = viewportLeft + horizontalInset;
+  const maxLeft = Math.max(minLeft, viewportRight - horizontalInset - width);
+  const clampLeft = (left: number) => Math.max(minLeft, Math.min(Math.round(left), maxLeft));
+  const verticalInset = Math.min(MARGIN, viewportHeight / 2);
+  const minTop = viewportTop + verticalInset;
+  const maxBottom = viewportBottom - verticalInset;
+  const clampHeight = (available: number) => Math.max(1, Math.min(panelMaxHeight, Math.max(0, available)));
+  const isLowerHalf = rect.top + rect.height / 2 > viewportTop + viewportHeight * 0.52;
 
-    if (isLowerHalf) {
-      const bottom = Math.max(MARGIN, Math.round(vh - rect.bottom));
-      const maxH = Math.max(220, Math.min(panelMaxHeight, vh - bottom - MARGIN));
-      return {
-        style: {
-          position: 'fixed',
-          top: 'auto',
-          bottom,
-          left,
-          right: 'auto',
-          width,
-          maxWidth: `calc(100vw - ${MARGIN * 2}px)`,
-          maxHeight: maxH,
-          transformOrigin: 'bottom left',
-          zIndex: 85,
-        },
-        ready: true,
-      };
-    }
+  if (dockPos === 'left' || dockPos === 'right') {
+    const availableHeight = isLowerHalf
+      ? rect.top - GAP - minTop
+      : maxBottom - Math.max(minTop, rect.top);
+    const maxHeight = clampHeight(availableHeight);
+    const top = isLowerHalf
+      ? Math.max(minTop, Math.round(rect.top - GAP - maxHeight))
+      : Math.max(minTop, Math.round(rect.top));
+    const clampedTop = Math.min(top, Math.max(minTop, maxBottom - maxHeight));
+    const preferredLeft = dockPos === 'left'
+      ? rect.right + GAP
+      : rect.left - GAP - width;
 
-    const top = Math.max(MARGIN, Math.round(rect.top));
-    const maxH = Math.max(220, Math.min(panelMaxHeight, vh - top - MARGIN));
     return {
       style: {
         position: 'fixed',
-        top,
-        bottom: 'auto',
-        left,
-        right: 'auto',
+        top: clampedTop,
+        left: clampLeft(preferredLeft),
         width,
-        maxWidth: `calc(100vw - ${MARGIN * 2}px)`,
-        maxHeight: maxH,
-        transformOrigin: 'top left',
+        maxWidth: width,
+        maxHeight,
+        transformOrigin: `${isLowerHalf ? 'bottom' : 'top'} ${dockPos === 'left' ? 'left' : 'right'}`,
         zIndex: 85,
       },
       ready: true,
     };
   }
 
-  if (dockPos === 'right') {
-    const right = Math.max(MARGIN, Math.round(vw - rect.left + GAP));
-    const availableW = Math.max(240, vw - right - MARGIN);
-    const width = Math.min(panelWidth, availableW);
-    const isLowerHalf = rect.top + rect.height / 2 > vh * 0.52;
-
-    if (isLowerHalf) {
-      const bottom = Math.max(MARGIN, Math.round(vh - rect.bottom));
-      const maxH = Math.max(220, Math.min(panelMaxHeight, vh - bottom - MARGIN));
-      return {
-        style: {
-          position: 'fixed',
-          top: 'auto',
-          bottom,
-          left: 'auto',
-          right,
-          width,
-          maxWidth: `calc(100vw - ${MARGIN * 2}px)`,
-          maxHeight: maxH,
-          transformOrigin: 'bottom right',
-          zIndex: 85,
-        },
-        ready: true,
-      };
-    }
-
-    const top = Math.max(MARGIN, Math.round(rect.top));
-    const maxH = Math.max(220, Math.min(panelMaxHeight, vh - top - MARGIN));
-    return {
-      style: {
-        position: 'fixed',
-        top,
-        bottom: 'auto',
-        left: 'auto',
-        right,
-        width,
-        maxWidth: `calc(100vw - ${MARGIN * 2}px)`,
-        maxHeight: maxH,
-        transformOrigin: 'top right',
-        zIndex: 85,
-      },
-      ready: true,
-    };
-  }
-
-  if (dockPos === 'bottom') {
-    const width = Math.min(panelWidth, vw - MARGIN * 2);
-    let left = Math.round(rect.right - width);
-    left = Math.max(MARGIN, Math.min(left, vw - MARGIN - width));
-    const bottom = Math.max(MARGIN, Math.round(vh - rect.top + GAP));
-    const maxH = Math.max(220, Math.min(panelMaxHeight, Math.round(rect.top - GAP - MARGIN)));
-
-    return {
-      style: {
-        position: 'fixed',
-        top: 'auto',
-        bottom,
-        left,
-        right: 'auto',
-        width,
-        maxWidth: `calc(100vw - ${MARGIN * 2}px)`,
-        maxHeight: maxH,
-        transformOrigin: 'bottom right',
-        zIndex: 85,
-      },
-      ready: true,
-    };
-  }
-
-  /* Default: top dock -> panel opens below the trigger */
-  const width = Math.min(panelWidth, vw - MARGIN * 2);
-  let left = Math.round(rect.right - width);
-  left = Math.max(MARGIN, Math.min(left, vw - MARGIN - width));
-  const top = Math.max(MARGIN, Math.round(rect.bottom + GAP));
-  const maxH = Math.max(220, Math.min(panelMaxHeight, Math.round(vh - top - MARGIN)));
+  const belowTop = Math.max(minTop, Math.round(rect.bottom + GAP));
+  const availableBelow = Math.max(0, maxBottom - belowTop);
+  const availableAbove = Math.max(0, Math.round(rect.top - GAP - minTop));
+  const openAbove = dockPos === 'bottom'
+    ? availableAbove >= availableBelow
+    : availableBelow < Math.min(panelMaxHeight, 220) && availableAbove > availableBelow;
+  const availableHeight = openAbove ? availableAbove : availableBelow;
+  const maxHeight = clampHeight(availableHeight);
+  const top = openAbove
+    ? Math.max(minTop, Math.round(rect.top - GAP - maxHeight))
+    : belowTop;
+  const clampedTop = Math.min(top, Math.max(minTop, maxBottom - maxHeight));
+  const left = clampLeft(rect.right - width);
 
   return {
     style: {
       position: 'fixed',
-      top,
-      bottom: 'auto',
+      top: clampedTop,
       left,
-      right: 'auto',
       width,
-      maxWidth: `calc(100vw - ${MARGIN * 2}px)`,
-      maxHeight: maxH,
-      transformOrigin: 'top right',
+      maxWidth: width,
+      maxHeight,
+      transformOrigin: `${openAbove ? 'bottom' : 'top'} right`,
       zIndex: 85,
     },
     ready: true,
@@ -190,25 +125,41 @@ export function usePopoverPosition(
   useLayoutEffect(() => {
     if (!isOpen) return;
 
+    let frame = 0;
     const update = () => {
       const anchorEl = anchorRef?.current || null;
       const next = computePopoverPosition(anchorEl, dockPos, panelWidth, panelMaxHeight);
       setPos(next);
     };
+    const scheduleUpdate = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        update();
+      });
+    };
+    const visualViewport = window.visualViewport;
 
     update();
-    /* Recompute after dock transition frames */
-    const t1 = setTimeout(update, 60);
-    const t2 = setTimeout(update, 220);
-    const t3 = setTimeout(update, 440);
-    window.addEventListener('resize', update);
-    window.addEventListener('scroll', update, true);
+    /* Recompute after dock transition frames and viewport/zoom movement. */
+    const t1 = setTimeout(scheduleUpdate, 60);
+    const t2 = setTimeout(scheduleUpdate, 220);
+    const t3 = setTimeout(scheduleUpdate, 440);
+    window.addEventListener('resize', scheduleUpdate, { passive: true });
+    window.addEventListener('orientationchange', scheduleUpdate, { passive: true });
+    window.addEventListener('scroll', scheduleUpdate, { passive: true, capture: true });
+    visualViewport?.addEventListener('resize', scheduleUpdate, { passive: true });
+    visualViewport?.addEventListener('scroll', scheduleUpdate, { passive: true });
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
-      window.removeEventListener('resize', update);
-      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', scheduleUpdate);
+      window.removeEventListener('orientationchange', scheduleUpdate);
+      window.removeEventListener('scroll', scheduleUpdate, true);
+      visualViewport?.removeEventListener('resize', scheduleUpdate);
+      visualViewport?.removeEventListener('scroll', scheduleUpdate);
+      if (frame) window.cancelAnimationFrame(frame);
     };
   }, [isOpen, dockPos, panelWidth, panelMaxHeight, anchorRef]);
 

@@ -1,12 +1,13 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useRef, useEffect, useState } from 'react';
-import { CreditCard, UserPen, Award, LogOut, Sparkles, ChevronRight, Flag, X, Shield, CheckCircle2 } from 'lucide-react';
+import { CreditCard, UserPen, Award, LogOut, Sparkles, ChevronRight, Flag, X, Shield, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import type { User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { getTierForLevel } from '../utils/tier';
 import { getXPForLevel } from '../store/forumStore';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { usePopoverPosition, type DockPosition } from '../utils/popover';
+import { isAdminRole } from '../config/admin';
 
 export interface ProfileDropdownProps {
   currentUser: User;
@@ -14,6 +15,7 @@ export interface ProfileDropdownProps {
   onClose: () => void;
   onOpenProfile: (tab?: 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit') => void;
   onLogout: () => void;
+  onOpenAdminConsole?: () => void;
   dockPosition?: DockPosition;
   anchorRef?: React.RefObject<HTMLElement | null>;
 }
@@ -24,6 +26,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   onClose,
   onOpenProfile,
   onLogout,
+  onOpenAdminConsole,
   dockPosition = 'top',
   anchorRef,
 }) => {
@@ -59,7 +62,8 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
 
   if (!isOpen) return null;
 
-  const isSuperAdmin = currentUser.email === 'anhtuantran0512@gmail.com';
+  const isSuperAdmin = currentUser.role === 'super_admin';
+  const canOpenAdminConsole = isAdminRole(currentUser.role);
   const tier = getTierForLevel(currentUser.level);
 
   const handleReportSubmit = async (e: React.FormEvent) => {
@@ -158,11 +162,9 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
           </div>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/25 font-semibold flex items-center gap-1">
             <Award className="w-3 h-3 text-amber-400" />
-            {currentUser.role === 'SUPER_ADMIN'
-              ? 'ADMIN'
-              : currentUser.role === 'CLUB_LEADER'
+            {currentUser.role === 'user' && currentUser.scopedClubIds.length > 0
               ? 'LEADER'
-              : 'STUDENT'}
+              : currentUser.role.replace('_', ' ').toUpperCase()}
           </span>
         </div>
 
@@ -201,6 +203,24 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
           </div>
           <ChevronRight className="w-3.5 h-3.5 text-white/50 group-hover:text-cyan-300 group-hover:translate-x-0.5 transition-all" />
         </button>
+
+        {canOpenAdminConsole && onOpenAdminConsole && (
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onOpenAdminConsole();
+            }}
+            aria-label="Mở bảng điều khiển quản trị"
+            className="w-full mt-2 py-2 px-3 rounded-xl text-xs font-bold text-amber-100 hover:text-white bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-rose-500/15 hover:from-amber-500/30 hover:to-rose-500/25 border border-amber-300/30 hover:border-amber-300/55 transition-all flex items-center justify-between group cursor-pointer active:scale-[0.98] shadow-sm"
+          >
+            <span className="flex items-center gap-2">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
+              <span>Bảng điều khiển quản trị</span>
+            </span>
+            <span className="text-[9px] tracking-[0.16em] text-amber-200/70">ADMIN PANEL</span>
+          </button>
+        )}
 
         {/* Action Buttons: F-Pass Card & Profile Edit */}
         <div className="mt-2.5 grid grid-cols-2 gap-2">

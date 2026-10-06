@@ -58,14 +58,30 @@ test('2. Chat View & Dock: Avatar/User click triggers Profile modal and Report t
   // ChatView avatar/name interaction (labels simplified, no personal email leaked)
   assert.ok(chatView.includes('Trang cá nhân'), 'ChatView must offer view profile');
   assert.ok(chatView.includes('Tố cáo'), 'ChatView must offer report');
-  assert.ok(!chatView.includes('anhtuantran0512@gmail.com'), 'ChatView must not leak personal email');
+  assert.ok(!chatView.includes('FOUNDER_PROFILE_CONFIG.email'), 'ChatView must not require a founder account email');
   assert.ok(chatView.includes('/api/reports'), 'ChatView must submit report to /api/reports');
+  assert.ok(chatView.includes('onOpenProfile(user)'), 'ChatView must pass the selected member to the profile handler');
+  assert.ok(chatView.includes('setReportUser({ id: user.id, name: user.name })'), 'ChatView report action must select the clicked member');
+  assert.ok(chatView.includes("import { createPortal } from 'react-dom';"), 'ChatView overlays must use React portals');
+  assert.equal((chatView.match(/createPortal\(/g) || []).length, 2, 'ChatView must portal both the user actions and report dialog');
+  assert.ok(chatView.includes('document.body'), 'ChatView overlays must escape the clipped view wrapper');
+  assert.ok(chatView.includes('z-[110]'), 'ChatView overlays must sit above the navbar and page stack');
 
   // ChatDock avatar/name interaction (labels simplified, no personal email leaked)
   assert.ok(chatDock.includes('Trang cá nhân'), 'ChatDock must offer view profile');
   assert.ok(chatDock.includes('Tố cáo'), 'ChatDock must offer report');
-  assert.ok(!chatDock.includes('anhtuantran0512@gmail.com'), 'ChatDock must not leak personal email');
+  assert.ok(!chatDock.includes('FOUNDER_PROFILE_CONFIG.email'), 'ChatDock must not require a founder account email');
   assert.ok(chatDock.includes('/api/reports'), 'ChatDock must submit report to /api/reports');
+  assert.ok(chatDock.includes('onOpenProfile(user)'), 'ChatDock must pass the selected member to the profile handler');
+  assert.ok(chatDock.includes('setReportUser({ id: user.id, name: user.name })'), 'ChatDock report action must select the clicked member');
+  assert.ok(chatDock.includes("import { createPortal } from 'react-dom';"), 'ChatDock overlays must use React portals');
+  assert.equal((chatDock.match(/createPortal\(/g) || []).length, 2, 'ChatDock must portal both the user actions and report dialog');
+  assert.ok(chatDock.includes('document.body'), 'ChatDock overlays must escape the transformed dock panel');
+  assert.ok(chatDock.includes('z-[110]'), 'ChatDock overlays must sit above the navbar and page stack');
+
+  const app = fs.readFileSync('src/App.tsx', 'utf8');
+  assert.ok(app.includes('onOpenProfile={handleOpenUserProfile}'), 'App must wire chat actions to the selected-user profile route');
+  assert.ok(app.includes("handleOpenProfile('overview', userToView)"), 'Chat profile actions must open that member in the full profile modal');
 });
 
 test('3. Leaderboard Widget & "Đặt Câu Hỏi" CTA in QAForum', () => {

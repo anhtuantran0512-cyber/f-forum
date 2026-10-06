@@ -36,7 +36,7 @@ import {
   getRandomGhibliMask,
 } from '../../utils/ghibliMasks';
 import { DEFAULT_AVATAR, handleImageError, handleVideoError } from '../../utils/mediaFallback';
-import { MASTER_ADMIN_CONFIG } from '../../config/admin';
+import { FOUNDER_PROFILE_CONFIG } from '../../config/admin';
 import { pushNotification } from '../../utils/notifications';
 import { LeaderboardWidget } from './LeaderboardWidget';
 import { CommentSkeletonList } from '../Skeletons';
@@ -86,9 +86,9 @@ interface QAForumViewProps {
   }) => void;
   onAddSolution: (questionId: string, content: string, imageUrl?: string) => void;
   onMarkBestSolution: (questionId: string, solutionId: string) => void;
-  onDeleteQuestion?: (questionId: string) => void;
-  onEditQuestion?: (questionId: string, updates: { title?: string; content?: string; subject?: SubjectTag }) => void;
-  onDeleteSolution?: (solutionId: string) => void;
+  onDeleteQuestion?: (questionId: string, reason?: string) => Promise<boolean> | boolean | void;
+  onEditQuestion?: (questionId: string, updates: { title?: string; content?: string; subject?: SubjectTag }, reason?: string) => Promise<boolean> | boolean | void;
+  onDeleteSolution?: (solutionId: string, reason?: string) => Promise<boolean> | boolean | void;
   onOpenLoginModal?: () => void;
   onOpenProfile?: (user?: { id: string; name: string; avatar: string; email?: string; level?: number }) => void;
   isEmbedded?: boolean;
@@ -96,7 +96,7 @@ interface QAForumViewProps {
   chatMessages?: ChatMessage[];
   /** False while the first server sync is in flight → show shimmer skeletons. */
   isSynced?: boolean;
-  /** Mở Phòng Tập Trung (Pomodoro) từ widget xếp hạng giờ học. */
+  /** Mở Phòng Tập Trung với đồng hồ học tự do. */
   onOpenFocusMode?: () => void;
 }
 
@@ -155,26 +155,70 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [isSubmittingSol, setIsSubmittingSol] = useState(false);
 
   const [questionToDelete, setQuestionToDelete] = useState<Question | null>(null);
+  const [solutionToDelete, setSolutionToDelete] = useState<Solution | null>(null);
   const [questionToEdit, setQuestionToEdit] = useState<Question | null>(null);
+  const [moderationReason, setModerationReason] = useState('');
+  const [moderationError, setModerationError] = useState('');
+  const [isSubmittingModeration, setIsSubmittingModeration] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editSubject, setEditSubject] = useState<SubjectTag>('toan');
   const [editContent, setEditContent] = useState('');
   const [openMenuQuestionId, setOpenMenuQuestionId] = useState<string | null>(null);
 
-  const isSuperAdmin = currentUser?.email?.toLowerCase() === 'anhtuantran0512@gmail.com';
+  const isSuperAdmin = currentUser?.role === 'super_admin';
 
   const handleAdminDeletePost = (questionId: string) => {
     const q = questions.find(item => item.id === questionId);
-    if (q) setQuestionToDelete(q);
+    if (q) {
+      setQuestionToDelete(q);
+      setModerationReason('');
+      setModerationError('');
+    }
   };
 
-  const handleConfirmDelete = () => {
-    if (questionToDelete && onDeleteQuestion) {
-      onDeleteQuestion(questionToDelete.id);
-      if (selectedQuestion?.id === questionToDelete.id) {
-        setSelectedQuestion(null);
+  const validateModerationReason = () => {
+    if (moderationReason.trim().length < 5) {
+      setModerationError('Ghi rõ căn cứ xử lý (ít nhất 5 ký tự).');
+      return false;
+    }
+    setModerationError('');
+    return true;
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!questionToDelete || !onDeleteQuestion || !validateModerationReason()) return;
+    setIsSubmittingModeration(true);
+    try {
+      const success = await onDeleteQuestion(questionToDelete.id, moderationReason.trim());
+      if (success === false) {
+        setModerationError('Máy chủ chưa xác nhận thao tác. Nội dung vẫn được giữ nguyên.');
+        return;
       }
+      if (selectedQuestion?.id === questionToDelete.id) setSelectedQuestion(null);
       setQuestionToDelete(null);
+      setModerationReason('');
+    } catch {
+      setModerationError('Không thể hoàn tất thao tác. Vui lòng thử lại.');
+    } finally {
+      setIsSubmittingModeration(false);
+    }
+  };
+
+  const handleConfirmSolutionDelete = async () => {
+    if (!solutionToDelete || !onDeleteSolution || !validateModerationReason()) return;
+    setIsSubmittingModeration(true);
+    try {
+      const success = await onDeleteSolution(solutionToDelete.id, moderationReason.trim());
+      if (success === false) {
+        setModerationError('Máy chủ chưa xác nhận thao tác. Nội dung vẫn được giữ nguyên.');
+        return;
+      }
+      setSolutionToDelete(null);
+      setModerationReason('');
+    } catch {
+      setModerationError('Không thể hoàn tất thao tác. Vui lòng thử lại.');
+    } finally {
+      setIsSubmittingModeration(false);
     }
   };
 
@@ -185,30 +229,31 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       setEditTitle(q.title);
       setEditSubject(q.subject);
       setEditContent(q.content);
+      setModerationReason('');
+      setModerationError('');
     }
   };
 
-  const handleConfirmEdit = (e: React.FormEvent) => {
+  const handleConfirmEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (questionToEdit && onEditQuestion) {
-      onEditQuestion(questionToEdit.id, {
-        title: editTitle.trim(),
-        subject: editSubject,
-        content: editContent.trim(),
-      });
+    if (!questionToEdit || !onEditQuestion || !validateModerationReason()) return;
+    setIsSubmittingModeration(true);
+    try {
+      const updates = { title: editTitle.trim(), subject: editSubject, content: editContent.trim() };
+      const success = await onEditQuestion(questionToEdit.id, updates, moderationReason.trim());
+      if (success === false) {
+        setModerationError('Máy chủ chưa xác nhận thao tác. Nội dung chưa được cập nhật.');
+        return;
+      }
       if (selectedQuestion?.id === questionToEdit.id) {
-        setSelectedQuestion(prev =>
-          prev
-            ? {
-                ...prev,
-                title: editTitle.trim(),
-                subject: editSubject,
-                content: editContent.trim(),
-              }
-            : null
-        );
+        setSelectedQuestion(prev => prev ? { ...prev, ...updates } : null);
       }
       setQuestionToEdit(null);
+      setModerationReason('');
+    } catch {
+      setModerationError('Không thể hoàn tất thao tác. Vui lòng thử lại.');
+    } finally {
+      setIsSubmittingModeration(false);
     }
   };
 
@@ -262,6 +307,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     name: string;
     avatar: string;
     email?: string;
+    role?: string;
     level: number;
     coin?: number;
   } | null>(null);
@@ -288,14 +334,14 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setError('Vui lòng chỉ tải lên tệp hình ảnh (PNG, JPG, WebP)!');
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type.toLowerCase())) {
+      setError('Chỉ hỗ trợ ảnh PNG, JPG hoặc WebP để bảo vệ dữ liệu tải lên.');
       e.target.value = '';
       return;
     }
-    const maxSize = 20 * 1024 * 1024;
+    const maxSize = 8 * 1024 * 1024;
     if (file.size > maxSize) {
-      setError(`Kích thước ảnh (${(file.size / (1024 * 1024)).toFixed(1)}MB) vượt quá giới hạn cho phép 20MB!`);
+      setError(`Kích thước ảnh (${(file.size / (1024 * 1024)).toFixed(1)}MB) vượt quá giới hạn cho phép 8MB!`);
       e.target.value = '';
       return;
     }
@@ -410,7 +456,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   };
 
   return (
-    <section className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8`}>
+    <section className={`ff-mobile-viewport-screen ff-mobile-workspace relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8`}>
       
       {/* Triple Video Crossfade Switcher Background Engine */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -714,6 +760,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               id: q.authorId,
                               name: q.authorName,
                               avatar: q.authorAvatar,
+                              role: Object.values(users).find(user => user.id === q.authorId)?.role,
                               level: 1,
                             });
                           }
@@ -864,10 +911,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 <MathSymbolsBar onInsert={sym => setNewContent(prev => prev + sym)} />
               </div>
 
-              {/* 20MB Image Upload */}
+              {/* Bounded image upload */}
               <div>
                 <label className="block text-xs font-semibold text-neutral-300 mb-1">
-                  Đính kèm hình ảnh (Tối đa 20MB):
+                  Đính kèm hình ảnh (Tối đa 8MB):
                 </label>
                 {askImage ? (
                   <div className="relative rounded-xl overflow-hidden border border-white/20 bg-black/40 p-2 max-w-xs">
@@ -884,10 +931,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 ) : (
                   <label className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
                     <ImageIcon className="w-4 h-4 text-cyan-400" />
-                    <span>Tải ảnh câu hỏi / đề bài / sơ đồ (Tối đa 20MB)</span>
+                    <span>Tải ảnh câu hỏi / đề bài / sơ đồ (Tối đa 8MB)</span>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/png,image/jpeg,image/webp"
                       onChange={e => handleImageUpload(e, setAskImage, setAskImageError)}
                       className="hidden"
                     />
@@ -1069,6 +1116,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         id: selectedQuestion.authorId,
                         name: selectedQuestion.authorName,
                         avatar: selectedQuestion.authorAvatar,
+                        role: Object.values(users).find(user => user.id === selectedQuestion.authorId)?.role,
                         level: 1,
                       });
                     }
@@ -1147,9 +1195,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   .filter(s => s.questionId === selectedQuestion.id)
                   .sort((a, b) => (b.isBest ? 1 : 0) - (a.isBest ? 1 : 0))
                   .map(sol => {
-                    const isSuperAdminSolver = sol.authorEmail?.toLowerCase() === 'anhtuantran0512@gmail.com';
-                    const solverName = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.name : sol.authorName;
-                    const solverAvatar = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.avatar : sol.authorAvatar;
+                    const isSuperAdminSolver = sol.authorRole === 'super_admin';
+                    const solverName = isSuperAdminSolver ? FOUNDER_PROFILE_CONFIG.name : sol.authorName;
+                    const solverAvatar = isSuperAdminSolver ? FOUNDER_PROFILE_CONFIG.avatar : sol.authorAvatar;
                     const canConfirmBest =
                       isSuperAdmin || currentUser?.id === selectedQuestion.authorId;
 
@@ -1171,6 +1219,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                 name: solverName,
                                 avatar: solverAvatar,
                                 email: sol.authorEmail,
+                                role: sol.authorRole,
                                 level: isSuperAdminSolver ? 150 : sol.authorLevel,
                               });
                             }}
@@ -1239,7 +1288,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             {isSuperAdmin && (
                               <button
                                 type="button"
-                                onClick={() => onDeleteSolution?.(sol.id)}
+                                onClick={() => { setSolutionToDelete(sol); setModerationReason(''); setModerationError(''); }}
                                 className="inline-flex items-center gap-1 text-[11px] text-red-400 hover:text-red-300 transition-colors px-2 py-0.5 rounded bg-red-500/10 border border-red-500/20 cursor-pointer"
                                 title="Xóa phản hồi vi phạm"
                               >
@@ -1302,10 +1351,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   ) : (
                     <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
                       <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Đính kèm ảnh lời giải (&le; 20MB)</span>
+                      <span>Đính kèm ảnh lời giải (&le; 8MB)</span>
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/png,image/jpeg,image/webp"
                         onChange={e => handleImageUpload(e, setSolImage, setSolImageError)}
                         className="hidden"
                       />
@@ -1341,20 +1390,49 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             <p className="text-xs text-neutral-300 leading-relaxed">
               Bạn có chắc chắn muốn xóa vĩnh viễn bài viết <strong>"{questionToDelete.title}"</strong> không? Toàn bộ các câu trả lời liên quan cũng sẽ bị xóa khỏi hệ thống.
             </p>
+            <label className="block text-xs text-neutral-300 space-y-1.5">
+              <span>Lý do / căn cứ xử lý</span>
+              <textarea required minLength={5} maxLength={500} value={moderationReason} onChange={e => setModerationReason(e.target.value)} rows={3} className="w-full rounded-xl bg-neutral-900 border border-white/15 px-3 py-2 text-white resize-y" />
+            </label>
+            {moderationError && <p role="alert" className="text-xs text-red-300">{moderationError}</p>}
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setQuestionToDelete(null)}
+                onClick={() => { setQuestionToDelete(null); setModerationError(''); }}
                 className="px-3.5 py-1.5 rounded-xl text-xs text-neutral-400 hover:text-white transition-colors cursor-pointer"
               >
                 Hủy bỏ
               </button>
               <button
                 type="button"
+                disabled={isSubmittingModeration || moderationReason.trim().length < 5}
                 onClick={handleConfirmDelete}
-                className="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+                className="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer disabled:opacity-50"
               >
-                Xác nhận xóa vĩnh viễn
+                {isSubmittingModeration ? 'Đang xử lý...' : 'Xác nhận xóa vĩnh viễn'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isSuperAdmin && solutionToDelete && (
+        <div role="dialog" aria-modal="true" aria-label="Xác nhận xóa lời giải" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-up">
+          <div className="w-full max-w-md rounded-2xl bg-neutral-950 border border-red-500/40 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-2 text-red-400">
+              <Trash2 className="w-5 h-5" />
+              <h3 className="font-bold text-sm text-white">Xác nhận xóa lời giải</h3>
+            </div>
+            <p className="text-xs text-neutral-300 leading-relaxed">Lời giải sẽ bị gỡ khỏi câu hỏi. Thao tác sẽ được ghi vào nhật ký kiểm duyệt.</p>
+            <label className="block text-xs text-neutral-300 space-y-1.5">
+              <span>Lý do / căn cứ xử lý</span>
+              <textarea required minLength={5} maxLength={500} value={moderationReason} onChange={e => setModerationReason(e.target.value)} rows={3} className="w-full rounded-xl bg-neutral-900 border border-white/15 px-3 py-2 text-white resize-y" />
+            </label>
+            {moderationError && <p role="alert" className="text-xs text-red-300">{moderationError}</p>}
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button type="button" onClick={() => { setSolutionToDelete(null); setModerationError(''); }} className="px-3.5 py-1.5 rounded-xl text-xs text-neutral-400 hover:text-white">Hủy bỏ</button>
+              <button type="button" disabled={isSubmittingModeration || moderationReason.trim().length < 5} onClick={handleConfirmSolutionDelete} className="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md disabled:opacity-50">
+                {isSubmittingModeration ? 'Đang xử lý...' : 'Xác nhận xóa lời giải'}
               </button>
             </div>
           </div>
@@ -1437,19 +1515,25 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 />
               </div>
 
+              <label className="block text-xs text-neutral-300 space-y-1.5">
+                <span>Lý do / căn cứ chỉnh sửa</span>
+                <textarea required minLength={5} maxLength={500} value={moderationReason} onChange={e => setModerationReason(e.target.value)} rows={2} className="w-full rounded-xl bg-neutral-900 border border-white/15 px-3 py-2 text-white resize-y" />
+              </label>
+              {moderationError && <p role="alert" className="text-xs text-red-300">{moderationError}</p>}
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
                 <button
                   type="button"
-                  onClick={() => setQuestionToEdit(null)}
+                  onClick={() => { setQuestionToEdit(null); setModerationError(''); }}
                   className="px-4 py-2 rounded-xl text-xs text-neutral-400 hover:text-white"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs shadow-md cursor-pointer"
+                  disabled={isSubmittingModeration || moderationReason.trim().length < 5}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs shadow-md cursor-pointer disabled:opacity-50"
                 >
-                  Lưu thay đổi
+                  {isSubmittingModeration ? 'Đang lưu...' : 'Lưu thay đổi'}
                 </button>
               </div>
             </form>
@@ -1508,7 +1592,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               <div className="min-w-0 flex-1">
                 <h4 className="text-xs font-bold text-white flex items-center gap-1 truncate">
                   <span className="truncate">{activeAuthorPopover.name}</span>
-                  {activeAuthorPopover.email === 'anhtuantran0512@gmail.com' && <AdminVerifiedBadge size={12} />}
+                  {activeAuthorPopover.role === 'super_admin' && <AdminVerifiedBadge size={12} />}
                 </h4>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[9.5px] font-mono font-bold">

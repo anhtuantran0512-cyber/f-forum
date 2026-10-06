@@ -16,7 +16,6 @@ export interface FounderProfile {
   role: string;
   avatarUrl: string;
   bio: string;
-  email: string;
 }
 
 export interface AboutData {
@@ -31,10 +30,9 @@ export const DEFAULT_ABOUT_DATA: AboutData = {
   subtitle: 'Khu Vinh Danh • 3D Fibonacci Sphere Chronicles & System Archive',
   founder: {
     name: 'Trần Văn Anh Tuấn',
-    role: 'Admin F-Forum • Owner BroAmStuck Studio',
+    role: 'F-Forum Founder • BroAmStuck Studio',
     avatarUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c.png',
     bio: 'Xây dựng F-Forum từ những dòng code đầu tiên. Không gian kết nối thực, dữ liệu thực, tôn vinh tri thức và lưu giữ ký ức học trò.',
-    email: 'anhtuantran0512@gmail.com',
   },
   milestones: [
     {
@@ -93,11 +91,11 @@ export const DEFAULT_ABOUT_DATA: AboutData = {
     },
     {
       id: 'ms-7',
-      title: 'Focus Sanctuary 432Hz',
-      category: 'Tâm Lý Học',
-      place: 'Zen Sanctuary',
+      title: 'Focus Sanctuary & nhật ký giờ học',
+      category: 'Học Tập',
+      place: 'Phòng Tập Trung',
       imageUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260922_194417_2c031e22-2fad-4c81-a544-83cd6bba1c33.png',
-      notes: 'Không gian tập trung Pomodoro tích hợp máy phát âm thanh sóng não Alpha 432Hz hỗ trợ ôn thi hiệu quả cao.',
+      notes: 'Đồng hồ học tự do và nhật ký ghi lại thời lượng học thực tế theo từng ngày.',
       isTall: false,
     },
     {
@@ -262,7 +260,7 @@ export function saveAboutDataLocally(data: AboutData): void {
 
 export async function fetchAboutDataFromServer(): Promise<AboutData> {
   try {
-    const res = await fetch('/api/admin/about');
+    const res = await fetch('/api/about', { credentials: 'same-origin', cache: 'no-store' });
     if (res.ok) {
       const json = await res.json();
       if (json.success && json.about) {
@@ -276,23 +274,17 @@ export async function fetchAboutDataFromServer(): Promise<AboutData> {
   return getSavedAboutData();
 }
 
-export async function saveAboutDataToServer(data: AboutData, adminEmail: string): Promise<AboutData> {
-  saveAboutDataLocally(data);
-  try {
-    const res = await fetch('/api/admin/about', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ about: data, adminEmail }),
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && json.about) {
-        saveAboutDataLocally(json.about);
-        return json.about as AboutData;
-      }
-    }
-  } catch {
-    /* ignore network issues */
+export async function saveAboutDataToServer(data: AboutData, reason = 'Cập nhật nội dung Khu Vinh Danh'): Promise<AboutData> {
+  const res = await fetch('/api/admin/about', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ about: data, reason }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.success !== true || !json.about) {
+    throw new Error(json.message || 'Máy chủ chưa xác nhận thay đổi cài đặt.');
   }
-  return data;
+  saveAboutDataLocally(json.about);
+  return json.about as AboutData;
 }

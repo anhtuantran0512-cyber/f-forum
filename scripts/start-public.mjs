@@ -1,15 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * fforum_broamstuck_studio - Zero-Config Public Deployment Runner
- * 
- * Orchestrates Vite dev server and an automated public tunnel:
- * - Spawns Vite server locally on port 5173 (or reuses active instance).
- * - Drains Vite stdout/stderr to prevent OS pipe buffer overflow.
- * - Automatically launches public tunnel with custom subdomain 'fforum-broamstuck-studio' via LocalTunnel.
- * - Dynamic fallback to Cloudflare Tunnel (via untun / cloudflared) if subdomain is occupied or LocalTunnel fails.
- * - Renders eye-catching terminal status banner with public, backup, and local URLs.
- * - Clean process group termination on SIGINT (Ctrl + C), SIGTERM, and SIGHUP without lingering ports.
+ * fforum_broamstuck_studio - Temporary Production Preview Runner
+ *
+ * Builds and serves the production bundle before an explicitly requested public tunnel:
+ * - Never exposes Vite's development server, source modules, or HMR endpoint.
+ * - Uses a dedicated preview port and fails closed if another process owns it.
+ * - Test/dry-run mode builds and checks locally but never opens a public tunnel.
+ * - Uses the maintained untun / cloudflared tunnel runner.
+ * - Clean process-group termination on SIGINT, SIGTERM, and SIGHUP.
  */
 
 import { spawn } from 'node:child_process';
@@ -22,19 +21,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 
-const PORT = parseInt(process.env.PORT || '5173', 10);
-const SUBDOMAIN = 'fforum-broamstuck-studio';
-const EXPECTED_LT_URL = `https://${SUBDOMAIN}.loca.lt`;
+const PORT = Number.parseInt(process.env.PORT || '4173', 10);
+if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65_535) {
+  throw new Error('PORT must be an integer between 1 and 65535.');
+}
 const LOCAL_HOST_URL = `http://localhost:${PORT}`;
 
 const isTestMode = process.argv.includes('--test') || process.argv.includes('--dry-run');
-const isForceFallback = process.argv.includes('--test-fallback') || process.argv.includes('--simulate-occupied');
 
 // Track child processes
-let viteProcess = null;
-let ltProcess = null;
+let buildProcess = null;
+let previewProcess = null;
 let cfProcess = null;
-let isSpawnedVite = false;
+let isSpawnedPreview = false;
 let isShuttingDown = false;
 
 // Resolve runner for local packages or global npx fallback
@@ -44,11 +43,6 @@ function getNodeRunner(name) {
       localScript: path.join(projectRoot, 'node_modules', 'vite', 'bin', 'vite.js'),
       binName: 'vite',
       pkgName: 'vite',
-    },
-    localtunnel: {
-      localScript: path.join(projectRoot, 'node_modules', 'localtunnel', 'bin', 'lt.js'),
-      binName: 'lt',
-      pkgName: 'localtunnel',
     },
     untun: {
       localScript: path.join(projectRoot, 'node_modules', 'untun', 'dist', 'cli.mjs'),
@@ -68,7 +62,37 @@ function getNodeRunner(name) {
     return { cmd: binPath, prefixArgs: [] };
   }
 
-  return { cmd: 'npx', prefixArgs: ['--yes', cfg.pkgName] };
+  throw new Error(`Required local package "${cfg.pkgName}" is missing. Run npm ci before starting the public preview.`);
+}
+
+function runProductionBuild() {
+  return new Promise((resolve, reject) => {
+    const npmCli = process.env.npm_execpath;
+    const command = npmCli ? process.execPath : process.platform === 'win32' ? 'npm.cmd' : 'npm';
+    const args = npmCli ? [npmCli, 'run', 'build'] : ['run', 'build'];
+    buildProcess = spawn(command, args, {
+      cwd: projectRoot,
+      detached: process.platform !== 'win32',
+      stdio: 'inherit',
+      env: { ...process.env, NODE_ENV: 'production' },
+      shell: !npmCli && process.platform === 'win32',
+    });
+
+    let settled = false;
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
+      buildProcess = null;
+      if (error) reject(error);
+      else resolve();
+    };
+
+    buildProcess.once('error', (error) => finish(error));
+    buildProcess.once('exit', (code, signal) => {
+      if (code === 0) finish();
+      else finish(new Error(`Production build failed${signal ? ` (${signal})` : ` with exit code ${code}`}.`));
+    });
+  });
 }
 
 // Function to check if HTTP endpoint is responsive without duplicate timer leaks
@@ -145,23 +169,18 @@ function isPortActive(port) {
 }
 
 // Format and print terminal status banner
-function printStatusBanner(publicUrl, backupUrl) {
+function printStatusBanner(publicUrl) {
   console.log('\n' + '='.repeat(68));
-  console.log('🚀 FFORUM_BROAMSTUCK_STUDIO IS NOW LIVE PUBLICLY!');
-  console.log(`⚡ DIRECT 1-CLICK URL : ${publicUrl} (VÀO THẲNG - 0 PROMPT)`);
-  if (backupUrl && backupUrl.includes('loca.lt')) {
-    console.log(`🌐 BRANDED URL        : ${backupUrl} (Yêu cầu IP: 116.105.31.157)`);
-  } else {
-    console.log(`🌐 BACKUP URL         : ${backupUrl}`);
-  }
+  console.log('🚀 F-FORUM PRODUCTION PREVIEW IS LIVE');
+  console.log(`⚡ PUBLIC URL          : ${publicUrl}`);
   console.log(`💻 LOCAL HOST         : ${LOCAL_HOST_URL}`);
-  console.log('📡 Chia sẻ link DIRECT 1-CLICK để bất kỳ ai vào thẳng ngay lập tức!');
+  console.log('📡 Chỉ chia sẻ URL này với người được phép truy cập.');
   console.log('='.repeat(68) + '\n');
 }
 
 // Safely kill process group and descendants
 function killProcessGroup(proc, signal = 'SIGTERM') {
-  if (!proc || proc.killed) return;
+  if (!proc || proc.exitCode !== null || proc.signalCode !== null) return;
   try {
     if (proc.pid) {
       try {
@@ -182,22 +201,16 @@ function cleanup(exitCode = 0) {
 
   console.log('\n🛑 Shutting down fforum_broamstuck_studio deployment pipeline...');
 
-  // 1. Send SIGTERM to tunnel processes
-  killProcessGroup(ltProcess, 'SIGTERM');
+  // Stop the public tunnel before shutting down the production preview.
   killProcessGroup(cfProcess, 'SIGTERM');
+  if (buildProcess) killProcessGroup(buildProcess, 'SIGTERM');
+  if (isSpawnedPreview && previewProcess) killProcessGroup(previewProcess, 'SIGTERM');
 
-  // 2. Terminate Vite server only if this runner spawned it
-  if (isSpawnedVite && viteProcess) {
-    killProcessGroup(viteProcess, 'SIGTERM');
-  }
-
-  // 3. Forceful cleanup after grace period to ensure no hanging sockets/ports
+  // Forceful cleanup after grace period to avoid lingering child processes.
   setTimeout(() => {
-    killProcessGroup(ltProcess, 'SIGKILL');
     killProcessGroup(cfProcess, 'SIGKILL');
-    if (isSpawnedVite && viteProcess) {
-      killProcessGroup(viteProcess, 'SIGKILL');
-    }
+    if (buildProcess) killProcessGroup(buildProcess, 'SIGKILL');
+    if (isSpawnedPreview && previewProcess) killProcessGroup(previewProcess, 'SIGKILL');
     console.log('✅ Cleanup complete. Exiting gracefully.\n');
     process.exit(exitCode);
   }, 350);
@@ -216,121 +229,57 @@ process.on('unhandledRejection', (reason) => {
   cleanup(1);
 });
 
-// Launch Vite dev server
-async function ensureViteServer() {
-  const active = await isPortActive(PORT);
-  if (active) {
-    console.log(`⚡ [Vite] Active server detected on ${LOCAL_HOST_URL}. Reusing existing instance.`);
-    return;
+// Build and launch Vite's production preview; never tunnel the dev server.
+async function ensureProductionPreviewServer() {
+  if (await isPortActive(PORT)) {
+    throw new Error(`Port ${PORT} is already in use. Stop that server or choose another PORT before opening a tunnel.`);
   }
 
-  console.log(`📦 [Vite] Starting local dev server on port ${PORT}...`);
-  const runner = getNodeRunner('vite');
+  console.log('📦 [Build] Creating a fresh production bundle before exposing the app...');
+  await runProductionBuild();
 
-  viteProcess = spawn(runner.cmd, [...runner.prefixArgs, '--host', '0.0.0.0', '--port', String(PORT)], {
+  console.log(`🚀 [Preview] Starting the production bundle on port ${PORT}...`);
+  const runner = getNodeRunner('vite');
+  previewProcess = spawn(runner.cmd, [
+    ...runner.prefixArgs,
+    'preview',
+    '--host', '127.0.0.1',
+    '--port', String(PORT),
+    '--strictPort',
+  ], {
     cwd: projectRoot,
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env },
+    env: {
+      ...process.env,
+      NODE_ENV: 'production',
+      // This runner exposes only a Cloudflare Tunnel origin, so the edge-provided
+      // CF-Connecting-IP header is a trusted client address for audit/rate limits.
+      FFORUM_TRUST_CLOUDFLARE_PROXY: process.env.FFORUM_TRUST_CLOUDFLARE_PROXY ?? 'true',
+    },
   });
 
-  isSpawnedVite = true;
-
-  // Drain stdout to prevent 64KB OS pipe buffer exhaustion deadlock
-  viteProcess.stdout.resume();
-
-  // Forward critical errors from Vite
-  viteProcess.stderr.on('data', (d) => {
-    const text = d.toString();
-    if (text.toLowerCase().includes('error')) {
-      console.error(`[Vite Error] ${text.trim()}`);
-    }
+  isSpawnedPreview = true;
+  previewProcess.stdout.resume();
+  previewProcess.stderr.on('data', (data) => {
+    const text = data.toString();
+    if (text.toLowerCase().includes('error')) console.error(`[Preview Error] ${text.trim()}`);
   });
-
-  viteProcess.on('exit', (code) => {
+  previewProcess.on('exit', (code) => {
     if (!isShuttingDown && code !== 0 && code !== null) {
-      console.error(`\n❌ [Vite] Server exited unexpectedly with code ${code}`);
+      console.error(`\n❌ [Preview] Server exited unexpectedly with code ${code}`);
       cleanup(1);
     }
   });
 
-  // Wait for server to respond
   await checkHttpReady(`http://127.0.0.1:${PORT}`, 20000);
-  console.log(`✅ [Vite] Server is live at ${LOCAL_HOST_URL}`);
-}
-
-// Launch LocalTunnel
-function startLocalTunnel() {
-  return new Promise((resolve) => {
-    if (isForceFallback) {
-      console.log(`🧪 [--simulate-occupied] Simulating occupied LocalTunnel subdomain...`);
-      resolve({ success: false, url: null, occupied: true });
-      return;
-    }
-
-    const runner = getNodeRunner('localtunnel');
-    console.log(`🌐 [Tunnel] Connecting LocalTunnel with subdomain: ${SUBDOMAIN}...`);
-
-    let resolved = false;
-    let accumulatedOutput = '';
-
-    ltProcess = spawn(runner.cmd, [...runner.prefixArgs, '--port', String(PORT), '--subdomain', SUBDOMAIN], {
-      cwd: projectRoot,
-      detached: true,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env },
-    });
-
-    const timeout = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        console.warn('⚠️ [Tunnel] LocalTunnel connection timed out (12s).');
-        resolve({ success: false, url: null, reason: 'timeout' });
-      }
-    }, 12000);
-
-    const onData = (chunk) => {
-      const text = chunk.toString();
-      accumulatedOutput += text;
-
-      const match = accumulatedOutput.match(/your url is:\s*(https?:\/\/[^\s]+)/i);
-      if (match && !resolved) {
-        resolved = true;
-        clearTimeout(timeout);
-        const url = match[1].trim();
-        const isExactSubdomain = url === EXPECTED_LT_URL;
-        resolve({
-          success: isExactSubdomain,
-          url,
-          occupied: !isExactSubdomain,
-        });
-      }
-    };
-
-    ltProcess.stdout.on('data', onData);
-    ltProcess.stderr.on('data', (d) => {
-      const errText = d.toString();
-      if (errText.includes('error') && !resolved) {
-        resolved = true;
-        clearTimeout(timeout);
-        resolve({ success: false, url: null, reason: errText });
-      }
-    });
-
-    ltProcess.on('exit', (code) => {
-      if (!resolved) {
-        resolved = true;
-        clearTimeout(timeout);
-        resolve({ success: false, url: null, reason: `Process exited with code ${code}` });
-      }
-    });
-  });
+  console.log(`✅ [Preview] Production app is live at ${LOCAL_HOST_URL}`);
 }
 
 // Launch Cloudflare Tunnel
 function getCloudflaredRunner() {
-  const customPath = '/home/broamstuck/.9router/bin/cloudflared';
-  if (fs.existsSync(customPath)) {
+  const customPath = process.env.CLOUDFLARED_BIN || '';
+  if (customPath && fs.existsSync(customPath)) {
     return { cmd: customPath, prefixArgs: ['tunnel', '--url', `http://localhost:${PORT}`] };
   }
   const runner = getNodeRunner('untun');
@@ -393,37 +342,28 @@ async function main() {
   try {
     console.log('🚀 Initializing fforum_broamstuck_studio deployment pipeline...\n');
 
-    // 1. Ensure Vite server is running
-    await ensureViteServer();
+    // Build and serve production assets locally before any optional exposure.
+    await ensureProductionPreviewServer();
 
-    // 2. Launch Cloudflare Direct Tunnel (Zero-password 1-click) & LocalTunnel
-    console.log('🌐 [Tunnel] Activating Cloudflare Direct Tunnel & LocalTunnel...');
-    const [cfResult, ltResult] = await Promise.all([
-      startCloudflareTunnel(),
-      startLocalTunnel(),
-    ]);
-
-    const directUrl = cfResult.success && cfResult.url ? cfResult.url : (ltResult.url || EXPECTED_LT_URL);
-    const brandedUrl = ltResult.url ? ltResult.url : (cfResult.url || '(LocalTunnel unavailable)');
-
-    if (!cfResult.success && !ltResult.success) {
-      throw new Error('Unable to establish any public tunnel connection.');
-    }
-
-    // 3. Print Banner
-    printStatusBanner(directUrl, brandedUrl);
-
-    // 4. Handle test mode
+    // Test mode is intentionally local-only; do not open any public tunnel.
     if (isTestMode) {
-      console.log('🧪 [--test] Verifying pipeline health...');
+      console.log('🧪 [--test] Verifying only the local production preview; public tunneling is disabled...');
       await checkHttpReady(`http://127.0.0.1:${PORT}`, 5000);
-      console.log('✅ [--test] Vite dev server response verified.');
-      console.log('✅ [--test] Public URL and Banner validated successfully.');
+      console.log('✅ [--test] Production response verified; no public URL was created.');
       console.log('🧹 [--test] Initiating automated clean shutdown...\n');
       cleanup(0);
       return;
     }
 
+    // 2. Expose the app only when explicitly running the public deployment command.
+    console.log('🌐 [Tunnel] Starting the Cloudflare Quick Tunnel...');
+    const cfResult = await startCloudflareTunnel();
+    if (!cfResult.success || !cfResult.url) {
+      throw new Error('Unable to establish the Cloudflare public tunnel.');
+    }
+
+    // 3. Print the public URL
+    printStatusBanner(cfResult.url);
     console.log('🟢 Deployment active. Press Ctrl + C to stop all services.\n');
   } catch (err) {
     console.error('\n❌ Deployment failed:', err.message);

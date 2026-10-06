@@ -37,7 +37,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
   const progress = getXPProgress(user.xp, user.level);
   const fPoints = user.fPoints ?? user.xp;
   const streakCount = user.streakCount ?? 0;
-  const isSuperAdmin = user.email === 'anhtuantran0512@gmail.com';
+  const isSuperAdmin = user.role === 'super_admin';
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;

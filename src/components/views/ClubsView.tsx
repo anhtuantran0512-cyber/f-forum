@@ -33,7 +33,7 @@ interface ClubsViewProps {
   }) => void;
   onApproveClub: (clubId: string) => void;
   onRejectClub: (clubId: string, reason: string) => void;
-  onCreateClubPost: (clubId: string, title: string, content: string) => boolean;
+  onCreateClubPost: (clubId: string, title: string, content: string) => boolean | Promise<boolean>;
   chatMessages?: ChatMessage[];
   onOpenLoginModal?: () => void;
   isEmbedded?: boolean;
@@ -99,7 +99,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
 
-  const isSuperAdmin = currentUser?.email === 'anhtuantran0512@gmail.com';
+  const isSuperAdmin = currentUser?.role === 'super_admin';
 
   const approvedClubs = clubs.filter(
     c =>
@@ -202,18 +202,21 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
     setCreateCooldown(5);
   };
 
-  const handleNewPost = (clubId: string) => {
+  const handleNewPost = async (clubId: string) => {
     if (postCooldown > 0 || isSubmittingPost) return;
     if (!postTitle.trim() || !postContent.trim()) return;
 
     setIsSubmittingPost(true);
-    const ok = onCreateClubPost(clubId, postTitle.trim().slice(0, 100), postContent.trim().slice(0, 1000));
-    if (ok) {
-      setPostTitle('');
-      setPostContent('');
-      setPostCooldown(3);
+    try {
+      const ok = await onCreateClubPost(clubId, postTitle.trim().slice(0, 100), postContent.trim().slice(0, 1000));
+      if (ok) {
+        setPostTitle('');
+        setPostContent('');
+        setPostCooldown(3);
+      }
+    } finally {
+      setIsSubmittingPost(false);
     }
-    setIsSubmittingPost(false);
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -233,7 +236,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   };
 
   return (
-    <section className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8`}>
+    <section className={`ff-mobile-viewport-screen ff-mobile-workspace relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8`}>
       {/* Background Video Engine */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         <video
@@ -324,7 +327,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
           </div>
         </div>
 
-        {/* Master Admin Approval Board (EXCLUSIVELY rendered for anhtuantran0512@gmail.com) */}
+        {/* Admin approval board */}
         {isSuperAdmin && (
           <div className="mb-5 p-4 rounded-2xl liquid-glass bg-amber-950/40 border border-amber-500/40 shadow-xl shrink-0 animate-fade-up">
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-amber-500/20">
@@ -335,7 +338,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                 </h3>
               </div>
               <span className="text-[10px] text-amber-400/80 font-mono">
-                Scoped Admin Zone • anhtuantran0512@gmail.com
+                Khu vực quản trị câu lạc bộ
               </span>
             </div>
 
