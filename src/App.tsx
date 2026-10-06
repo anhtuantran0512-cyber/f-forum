@@ -31,6 +31,7 @@ import {
   User as UserIcon,
   ShieldAlert,
   AlertCircle,
+  Gauge,
 } from 'lucide-react';
 import type { DimensionView, User } from './types';
 import { CommandPalette, type PaletteCommand } from './components/CommandPalette';
@@ -59,6 +60,7 @@ const FocusSanctuary = lazyWithRetry(() => import('./components/FocusSanctuary')
 const AuthModal = lazyWithRetry(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const XPSandboxDock = lazyWithRetry(() => import('./components/XPSandboxDock').then(m => ({ default: m.XPSandboxDock })));
 const ReportInboxModal = lazyWithRetry(() => import('./components/ReportInboxModal').then(m => ({ default: m.ReportInboxModal })));
+const AdminConsoleModal = lazyWithRetry(() => import('./components/AdminConsoleModal').then(m => ({ default: m.AdminConsoleModal })));
 
 const ViewLoadingFallback = () => (
   <div className="w-full h-full min-h-[50vh] flex items-center justify-center" aria-busy="true" aria-label="Đang tải giao diện">
@@ -194,6 +196,7 @@ export const App: React.FC = () => {
   const [isNotesOpen, setIsNotesOpen] = useState(false);
   /* Hộp thư tố cáo — chỉ Super Admin mở được. */
   const [isReportInboxOpen, setIsReportInboxOpen] = useState(false);
+  const [isAdminConsoleOpen, setIsAdminConsoleOpen] = useState(false);
   const [pendingReportCount, setPendingReportCount] = useState(0);
   const [eyeRestEnabled, setEyeRestEnabled] = useState<boolean>(() => {
     return safeStorage.getItem('fforum_eye_rest') === 'true';
@@ -1203,6 +1206,19 @@ export const App: React.FC = () => {
         />
       )}
 
+      {/* Lối vào bảng điều khiển quản trị — chỉ hiện với Super Admin */}
+      {currentUser?.email === 'anhtuantran0512@gmail.com' && !isAdminConsoleOpen && (
+        <button
+          type="button"
+          onClick={() => setIsAdminConsoleOpen(true)}
+          aria-label="Bảng điều khiển quản trị"
+          className="fixed bottom-4 left-56 z-40 flex items-center gap-2 pl-3 pr-4 py-2.5 rounded-2xl liquid-glass bg-[#0c1218]/95 border border-cyan-400/25 text-neutral-200 hover:border-cyan-400/50 hover:text-white transition-colors shadow-[0_18px_45px_rgba(0,0,0,0.7)]"
+        >
+          <Gauge className="w-4 h-4 text-cyan-300" />
+          <span className="text-[11px] font-medium">Điều khiển</span>
+        </button>
+      )}
+
       {/* Lối vào hộp thư tố cáo — chỉ hiện với Super Admin */}
       {currentUser?.email === 'anhtuantran0512@gmail.com' && !isReportInboxOpen && (
         <button
@@ -1227,6 +1243,23 @@ export const App: React.FC = () => {
             isOpen={isReportInboxOpen}
             onClose={() => setIsReportInboxOpen(false)}
             onPendingCountChange={setPendingReportCount}
+          />
+        )}
+        {isAdminConsoleOpen && (
+          <AdminConsoleModal
+            isOpen={isAdminConsoleOpen}
+            onClose={() => setIsAdminConsoleOpen(false)}
+            onOpenReports={() => {
+              /* Bảng điều khiển chỉ điều hướng, không ghi: đóng mình lại rồi mở
+                 đúng hộp thư tố cáo — mọi thao tác xử lý vẫn đi qua endpoint có
+                 quyền riêng của nó, không tạo cổng ghi thứ hai. */
+              setIsAdminConsoleOpen(false);
+              setIsReportInboxOpen(true);
+            }}
+            onOpenClubs={() => {
+              setIsAdminConsoleOpen(false);
+              handleViewChange('clubs');
+            }}
           />
         )}
       </Suspense>

@@ -249,6 +249,53 @@ export class SlidingWindowRateLimiter {
   get trackedKeys(): number {
     return this.hits.size;
   }
+
+  /**
+   * Ảnh chụp tổng hợp cho trang vận hành của quản trị.
+   *
+   * Chỉ trả SỐ LIỆU GỘP, không trả danh sách khoá: khoá là IP/email của người
+   * dùng thật, và endpoint đọc nó dù đã gate quyền vẫn không nên nhân bản dữ liệu
+   * cá nhân ra thêm một chỗ. Quản trị cần biết "có bao nhiêu nguồn đang bị chặn",
+   * không cần danh sách đó ở đây.
+   */
+  snapshot(now: number = Date.now()): {
+    windowMs: number;
+    max: number;
+    trackedKeys: number;
+    blockedKeys: number;
+    totalHits: number;
+  } {
+    const cutoff = now - this.windowMs;
+    let tracked = 0;
+    let blocked = 0;
+    let total = 0;
+    this.hits.forEach((times) => {
+      const recent = times.filter((t) => t > cutoff);
+      /* Dọn luôn các khoá đã hết hạn trong lúc duyệt — Map này chỉ phình chứ
+         không tự co lại, chạy lâu sẽ giữ hàng nghìn khoá rỗng. */
+      if (recent.length === 0) return;
+      tracked += 1;
+      total += recent.length;
+      if (recent.length >= this.max) blocked += 1;
+    });
+    return { windowMs: this.windowMs, max: this.max, trackedKeys: tracked, blockedKeys: blocked, totalHits: total };
+  }
+
+  /** Xoá các khoá không còn lượt nào trong cửa sổ — gọi định kỳ để giải phóng bộ nhớ. */
+  prune(now: number = Date.now()): number {
+    const cutoff = now - this.windowMs;
+    let removed = 0;
+    this.hits.forEach((times, key) => {
+      const recent = times.filter((t) => t > cutoff);
+      if (recent.length === 0) {
+        this.hits.delete(key);
+        removed += 1;
+      } else if (recent.length !== times.length) {
+        this.hits.set(key, recent);
+      }
+    });
+    return removed;
+  }
 }
 
 /** Đọc IP thật (có xét proxy) để chặn brute-force theo nguồn. */

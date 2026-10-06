@@ -2692,3 +2692,71 @@ test('53. Ghi qua WebSocket cũng bị giới hạn tốc độ như HTTP', asyn
     await env.close();
   }
 });
+
+test('Bảo mật 54. /api/admin/overview chỉ Super Admin đọc được, không lộ dữ liệu cho người khác', async () => {
+  const env = await createTestServer();
+  try {
+    const authedGet = async (token) => {
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`${env.baseUrl}/api/admin/overview`, { headers });
+      return { status: res.status, data: await res.json().catch(() => null) };
+    };
+
+    /* 1. Không token → 403, và KHÔNG được trả kèm số liệu nào. */
+    const anon = await authedGet(null);
+    assert.equal(anon.status, 403, 'khách không token phải bị chặn');
+    assert.equal(anon.data?.success, false);
+    assert.equal(anon.data?.counts, undefined, 'không được lộ số đếm cho khách');
+
+    /* 2. Học sinh thường có token hợp lệ → vẫn 403.
+          Đây là ca nguy hiểm nhất: token thật, chỉ sai quyền. */
+    const student = await register(env.baseUrl, 'Học Sinh', `hs54.${Date.now()}@example.com`, 'mat-khau-hoc-sinh-123');
+    const asStudent = await authedGet(student.token);
+    assert.equal(asStudent.status, 403, 'học sinh có token vẫn phải bị chặn');
+    assert.equal(asStudent.data?.server, undefined, 'không được lộ thông tin máy chủ cho học sinh');
+    assert.equal(asStudent.data?.rateLimits, undefined, 'không được lộ trạng thái limiter cho học sinh');
+
+    /* 3. Token rác → 403. */
+    const bogus = await authedGet('token-khong-ton-tai');
+    assert.equal(bogus.status, 403, 'token rác phải bị chặn');
+
+    /* 4. Super Admin → 200 với đầy đủ các khối số liệu. */
+    const admin = await post(env.baseUrl, '/api/auth/login', {
+      email: 'anhtuantran0512@gmail.com',
+      password: 'admin123',
+    });
+    assert.equal(admin.status, 200, 'đăng nhập super admin phải thành công');
+    const asAdmin = await authedGet(admin.data.token);
+    assert.equal(asAdmin.status, 200, 'super admin phải đọc được tổng quan');
+    assert.equal(asAdmin.data?.success, true);
+
+    for (const block of ['server', 'counts', 'connections', 'pending', 'contentHealth', 'community', 'rateLimits', 'topReported']) {
+      assert.ok(block in asAdmin.data, `thiếu khối "${block}" trong tổng quan`);
+    }
+
+    /* 5. Số liệu phải tự nhất quán — đây là chỗ dễ sai khi thêm field mới. */
+    const d = asAdmin.data;
+    assert.ok(Array.isArray(d.rateLimits), 'rateLimits phải là mảng');
+    assert.ok(d.rateLimits.length > 0, 'phải có ít nhất một limiter');
+    for (const lim of d.rateLimits) {
+      assert.ok(lim.max > 0, `limiter ${lim.name} phải có trần`);
+      assert.ok(lim.trackedKeys >= lim.blockedKeys,
+        `limiter ${lim.name}: số nguồn bị chặn (${lim.blockedKeys}) không thể vượt số nguồn theo dõi (${lim.trackedKeys})`);
+    }
+    assert.ok(d.contentHealth.solvedRate >= 0 && d.contentHealth.solvedRate <= 100,
+      `tỉ lệ đã giải phải trong 0..100, thực tế ${d.contentHealth.solvedRate}`);
+    assert.ok(d.contentHealth.unansweredQuestions <= d.counts.questions,
+      'số câu chưa ai trả lời không thể vượt tổng số câu hỏi');
+    assert.ok(d.community.superAdmins >= 1, 'phải có ít nhất một super admin');
+    assert.equal(
+      d.community.superAdmins + d.community.clubLeaders + d.community.students,
+      d.counts.users,
+      'tổng ba nhóm vai trò phải bằng tổng số người dùng',
+    );
+    assert.ok(typeof d.server.uptimeSeconds === 'number' && d.server.uptimeSeconds >= 0);
+    assert.ok(Array.isArray(d.topReported) && d.topReported.length <= 5,
+      'topReported phải là mảng tối đa 5 mục');
+  } finally {
+    await env.close();
+  }
+});
