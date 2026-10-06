@@ -55,6 +55,15 @@ Hệ thống được thiết kế theo giao diện kính mờ hiện đại, h�
   `CLUB_LEADER` kèm 250 XP và gắn CLB vào phạm vi quản lý của mình.
 - **Duyệt / từ chối hồ sơ** trong trang quản trị, kèm lý do từ chối ghi lại trên
   hồ sơ để người nộp biết cần bổ sung gì.
+- **Bảng Điều Khiển Quản Trị** (nút *Điều khiển*, chỉ Super Admin): một màn hình
+  gom toàn bộ tình trạng hệ thống — hàng chờ cần xử lý (tố cáo, hồ sơ CLB chờ
+  duyệt), sức khoẻ diễn đàn (tỉ lệ đã giải, số câu chưa ai trả lời, Coin đang
+  treo), cộng đồng, máy chủ & tệp dữ liệu, trạng thái năm bộ giới hạn tần suất
+  (nguồn đang bị chặn / tổng nguồn theo dõi), và danh sách bị tố cáo nhiều nhất.
+  Tự làm mới mỗi 20 giây. Màn hình này **chỉ đọc và điều hướng** — mọi thao tác
+  ghi vẫn đi qua endpoint có quyền riêng của nó, không tạo cổng ghi thứ hai.
+  Dữ liệu lấy từ một lần gọi `GET /api/admin/overview` (Super Admin, 403 với mọi
+  vai trò khác kể cả khi có token hợp lệ).
 - Đăng bài thông báo lịch sinh hoạt, tuyển thành viên và hình ảnh hoạt động.
 - Thành viên có thể theo dõi và tham gia câu lạc bộ yêu thích.
 - Toàn bộ hồ sơ và bài viết CLB **lưu trên máy chủ**, nên dữ liệu hiện ra giống
@@ -183,7 +192,7 @@ Sau khi chạy lệnh, mở trình duyệt web và truy cập địa chỉ: `htt
 # Kiểm tra lỗi cú pháp với Oxlint
 npx oxlint
 
-# Chạy toàn bộ 181 bài kiểm thử tự động
+# Chạy toàn bộ 190 bài kiểm thử tự động
 npm test
 
 # Biên dịch mã nguồn cho môi trường sản xuất
@@ -213,7 +222,7 @@ f-forum/
 │   ├── index.css           # Cấu hình giao diện và hiệu ứng kính
 │   └── main.tsx            # Điểm khởi động ứng dụng
 ├── docs/                   # Tài liệu thiết kế & bảo mật
-├── tests/                  # Bộ bài kiểm thử tự động (181 bài)
+├── tests/                  # Bộ bài kiểm thử tự động (190 bài)
 └── package.json            # Thông tin dự án và danh sách thư viện
 ```
 

@@ -2456,6 +2456,138 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
+    /**
+     * TỔNG QUAN VẬN HÀNH — chỉ Super Admin.
+     *
+     * `/api/health` đã phơi số đếm nhưng nó CÔNG KHAI và chỉ cho biết "có bao
+     * nhiêu". Quản trị cần biết "đang có gì cần xử lý" và "hệ thống có khoẻ
+     * không": hàng chờ duyệt, tỉ lệ câu hỏi chưa có lời giải, nguồn nào đang bị
+     * chặn, tệp dữ liệu còn chỗ không. Endpoint này gộp tất cả vào một lần gọi để
+     * bảng điều khiển không phải bắn năm sáu request.
+     */
+    if (method === 'GET' && url.startsWith('/api/admin/overview')) {
+      const claims = requireSuperAdmin(req, {});
+      if (!claims) {
+        sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới xem được tổng quan hệ thống!' });
+        return;
+      }
+      try {
+        const now = Date.now();
+
+        /* Dọn các khoá limiter đã hết hạn trước khi chụp ảnh — Map này chỉ phình
+           chứ không tự co, chạy lâu sẽ giữ hàng nghìn khoá rỗng. */
+        const limiters = [
+          { name: 'login', limiter: loginLimiter },
+          { name: 'register', limiter: registerLimiter },
+          { name: 'social', limiter: socialLimiter },
+          { name: 'write', limiter: writeLimiter },
+          { name: 'presence', limiter: presenceLimiter },
+        ].map(({ name, limiter }) => {
+          limiter.prune(now);
+          return { name, ...limiter.snapshot(now) };
+        });
+
+        const allUsers = Object.values(store.users) as any[];
+        const reports = store.reports || [];
+        const pendingReports = reports.filter(
+          (r) => r?.status !== 'RESOLVED' && r?.status !== 'DISMISSED',
+        );
+        const clubs = store.clubs || [];
+        const questions = store.questions || [];
+        const solutions = store.solutions || [];
+
+        /* Câu hỏi chưa ai trả lời — khác với "chưa được chọn đáp án chuẩn": câu có
+           ba lời giải nhưng chưa chốt vẫn là đang chờ, còn câu zero lời giải mới là
+           đang bị bỏ rơi. Quản trị cần phân biệt hai loại này. */
+        const answeredIds = new Set(solutions.map((s: any) => s?.questionId).filter(Boolean));
+        const unanswered = questions.filter((q: any) => !answeredIds.has(q?.id)).length;
+
+        /* Kích thước tệp dữ liệu: store giữ toàn bộ trong RAM và ghi đè một tệp,
+           nên đây là chỉ báo sớm cho việc sắp chạm trần. */
+        let dataFileBytes = 0;
+        let dataFileOk = false;
+        try {
+          const st = fs.statSync(dataFilePath());
+          dataFileBytes = st.size;
+          dataFileOk = true;
+        } catch {
+          dataFileOk = false;
+        }
+        let corruptBackups = 0;
+        try {
+          corruptBackups = fs
+            .readdirSync(dataDir())
+            .filter((f) => f.startsWith('forum-data.json.corrupt-')).length;
+        } catch {
+          corruptBackups = 0;
+        }
+
+        /* Nguồn bị tố cáo nhiều nhất — vào thẳng việc cần xử lý, không bắt quản trị
+           tự lật danh sách. Chỉ lấy 5 mục và không kèm nội dung tố cáo. */
+        const reportTally = new Map<string, number>();
+        reports.forEach((r: any) => {
+          const target = String(r?.targetId || r?.targetEmail || '');
+          if (!target) return;
+          reportTally.set(target, (reportTally.get(target) || 0) + 1);
+        });
+        const topReported = Array.from(reportTally.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([target, count]) => ({ target, count }));
+
+        sendJson(res, 200, {
+          success: true,
+          generatedAt: new Date(now).toISOString(),
+          server: {
+            uptimeSeconds: Math.round((now - startedAtMs) / 1000),
+            node: process.version,
+            dataFileBytes,
+            dataFileOk,
+            corruptBackups,
+          },
+          counts: {
+            users: allUsers.length,
+            clubs: clubs.length,
+            clubPosts: (store.clubPosts || []).length,
+            questions: questions.length,
+            solutions: solutions.length,
+            chatMessages: (store.chatMessages || []).length,
+            feedbacks: (store.feedbacks || []).length,
+            reports: reports.length,
+          },
+          connections: { websocket: wsClients.size, sse: sseClients.size },
+          pending: {
+            reports: pendingReports.length,
+            clubs: clubs.filter((c: any) => c?.status === 'PENDING').length,
+          },
+          contentHealth: {
+            unansweredQuestions: unanswered,
+            unsolvedQuestions: questions.filter((q: any) => !q?.isSolved).length,
+            solvedRate:
+              questions.length === 0
+                ? 0
+                : Math.round((questions.filter((q: any) => q?.isSolved).length / questions.length) * 100),
+            anonymousQuestions: questions.filter((q: any) => q?.isAnonymous).length,
+            openBountyCoin: questions
+              .filter((q: any) => !q?.isSolved)
+              .reduce((sum: number, q: any) => sum + (Number(q?.bountyCoin) || 0), 0),
+          },
+          community: {
+            superAdmins: allUsers.filter((u) => u?.role === 'SUPER_ADMIN').length,
+            clubLeaders: allUsers.filter((u) => u?.role === 'CLUB_LEADER').length,
+            students: allUsers.filter((u) => u?.role === 'STUDENT').length,
+            totalCoin: allUsers.reduce((sum, u) => sum + (Number(u?.coin) || 0), 0),
+            highestLevel: allUsers.reduce((max, u) => Math.max(max, Number(u?.level) || 0), 0),
+          },
+          rateLimits: limiters,
+          topReported,
+        });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
     if (method === 'GET' && url.startsWith('/api/admin/about')) {
       sendJson(res, 200, {
         success: true,
