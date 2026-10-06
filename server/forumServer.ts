@@ -33,6 +33,17 @@ import {
   type SessionClaims,
 } from './authGuard.ts';
 import { decideSocialAccess } from './socialAuth.ts';
+import {
+  buildAnalyticsReport,
+  createEmptyAnalytics,
+  recordAnalyticsActivity,
+  recordAnalyticsHeartbeat,
+  recordAnalyticsPageView,
+  recordAnalyticsSignup,
+  recordAnalyticsVisit,
+  sanitizeAnalyticsStore,
+  type AnalyticsStore,
+} from './analytics.ts';
 
 export interface UserRecord {
   id: string;
@@ -40,6 +51,11 @@ export interface UserRecord {
   email: string;
   avatar: string;
   role: 'SUPER_ADMIN' | 'CLUB_LEADER' | 'STUDENT';
+  /** Vai trò được Super Admin cấp riêng; không thay đổi quyền sở hữu CLB. */
+  staffRole?: 'MODERATOR' | 'TEACHER';
+  /** Mốc Premium (ms); 0 = vĩnh viễn, undefined = chưa được cấp. */
+  premiumUntil?: number;
+  premiumGrantedAt?: number;
   level: number;
   xp: number;
   fPoints?: number;
@@ -54,6 +70,14 @@ export interface UserRecord {
   bannerUrl?: string;
   profileGradient?: string;
   scopedClubIds: string[];
+}
+
+export interface AdminWarningRecord {
+  id: string;
+  at: number;
+  targetEmail: string;
+  reason: string;
+  by: string;
 }
 
 export interface ForumDataStore {
@@ -71,6 +95,10 @@ export interface ForumDataStore {
   moderation?: ModerationMap;
   /** Nhật ký hành động quản trị — cần cho truy vết, tối đa 300 mục. */
   auditLog?: any[];
+  /** Thời lượng, lượt mở và hoạt động; visitor ID được băm trước khi lưu. */
+  analytics?: AnalyticsStore;
+  /** Cảnh cáo riêng tư, tối đa 1.000 bản ghi mới nhất. */
+  adminWarnings?: AdminWarningRecord[];
 }
 
 
@@ -136,6 +164,8 @@ let store: ForumDataStore = {
   solutions: [],
   chatMessages: [],
   feedbacks: [],
+  analytics: createEmptyAnalytics(),
+  adminWarnings: [],
   about: {
     headline: 'Người Kiến Tạo & Quản Trị Hệ Thống',
     subtitle: 'Field Notes & Development Chronicles — BroAmStuck Studio',
@@ -204,10 +234,27 @@ function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
     const email = typeof raw.email === 'string' ? raw.email.trim().toLowerCase() : '';
     if (!email || !email.includes('@') || email.endsWith(RETIRED_VIRTUAL_DOMAIN)) return;
     if (!raw.id || !raw.name) return;
+    const allowedRole = ['SUPER_ADMIN', 'CLUB_LEADER', 'STUDENT'].includes(raw.role)
+      ? raw.role as UserRecord['role']
+      : 'STUDENT';
+    const role: UserRecord['role'] = isMasterAdminEmail(email) ? 'SUPER_ADMIN' : allowedRole;
+    const staffRole = role !== 'SUPER_ADMIN' && ['MODERATOR', 'TEACHER'].includes(raw.staffRole)
+      ? raw.staffRole as 'MODERATOR' | 'TEACHER'
+      : undefined;
+    const premiumUntil = typeof raw.premiumUntil === 'number' && Number.isFinite(raw.premiumUntil) && raw.premiumUntil >= 0
+      ? Math.floor(raw.premiumUntil)
+      : undefined;
+    const safeRaw = { ...raw };
+    delete safeRaw.premiumGrantedBy;
     out[email] = {
-      ...raw,
+      ...safeRaw,
       email,
-      role: typeof raw.role === 'string' ? raw.role : 'STUDENT',
+      role,
+      staffRole,
+      ...(premiumUntil !== undefined ? { premiumUntil } : {}),
+      ...(typeof raw.premiumGrantedAt === 'number' && Number.isFinite(raw.premiumGrantedAt)
+        ? { premiumGrantedAt: Math.max(0, Math.floor(raw.premiumGrantedAt)) }
+        : {}),
       avatar: typeof raw.avatar === 'string' ? raw.avatar : '',
       level: asCount(raw.level, 1),
       xp: asCount(raw.xp),
@@ -241,6 +288,21 @@ function sanitizeAuditLog(rawLog: unknown): any[] {
     }));
 }
 
+function sanitizeAdminWarnings(rawWarnings: unknown): AdminWarningRecord[] {
+  if (!Array.isArray(rawWarnings)) return [];
+  return rawWarnings
+    .filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry))
+    .slice(0, 1000)
+    .map((entry: any) => ({
+      id: typeof entry.id === 'string' && entry.id ? entry.id.slice(0, 120) : randomId('warning'),
+      at: typeof entry.at === 'number' && Number.isFinite(entry.at) && entry.at >= 0 ? entry.at : 0,
+      targetEmail: typeof entry.targetEmail === 'string' ? entry.targetEmail.trim().toLowerCase().slice(0, 120) : '',
+      reason: typeof entry.reason === 'string' ? entry.reason.trim().slice(0, 500) : '',
+      by: typeof entry.by === 'string' ? entry.by.trim().toLowerCase().slice(0, 120) : '',
+    }))
+    .filter((entry) => entry.targetEmail && entry.reason);
+}
+
 function loadStoreFromDisk() {
   try {
     if (fs.existsSync(dataFilePath())) {
@@ -271,6 +333,8 @@ function loadStoreFromDisk() {
              khởi động. `reports` từng mất dữ liệu đúng theo cách đó. */
           moderation: parseModerationMap(parsed.moderation),
           auditLog: sanitizeAuditLog(parsed.auditLog),
+          analytics: sanitizeAnalyticsStore(parsed.analytics),
+          adminWarnings: sanitizeAdminWarnings(parsed.adminWarnings),
         };
       }
     }
@@ -453,6 +517,7 @@ export function resetRateLimitersForTest() {
   socialLimiter.reset();
   writeLimiter.reset();
   presenceLimiter.reset();
+  analyticsLimiter.reset();
 }
 
 const startedAtMs = Date.now();
@@ -689,6 +754,8 @@ function sanitizePresence(payload: any, claims: SessionClaims | null) {
 
 /** Chặn flood presence: client thật ping mỗi 15 giây, ngưỡng này còn rất rộng. */
 const presenceLimiter = new SlidingWindowRateLimiter(60 * 1000, 40);
+/** Nhịp tracker tối đa 2 heartbeat/phút; vẫn dư chỗ cho chuyển trang và mở tab. */
+const analyticsLimiter = new SlidingWindowRateLimiter(60 * 1000, 180);
 
 /**
   Chỉ cho sửa ba trường nội dung của một câu hỏi.
@@ -766,6 +833,49 @@ function requireSuperAdmin(req: IncomingMessage, body: any): SessionClaims | nul
   return claims;
 }
 
+interface AdminActor {
+  claims: SessionClaims;
+  user: UserRecord;
+  role: 'SUPER_ADMIN' | 'MODERATOR' | 'TEACHER';
+}
+
+/** Quyền luôn đọc từ hồ sơ server hiện tại, không tin role cũ trong token. */
+function requireModerationStaff(req: IncomingMessage, body: any): AdminActor | null {
+  const claims = authorizeRequest(req, null, body?.adminToken || body?.token || null);
+  if (!claims) return null;
+  const user = store.users[claims.email];
+  if (!user) return null;
+  const role: AdminActor['role'] = isMasterAdminEmail(claims.email) && user.role === 'SUPER_ADMIN'
+    ? 'SUPER_ADMIN'
+    : user.staffRole === 'MODERATOR' || user.staffRole === 'TEACHER'
+      ? user.staffRole
+      : 'SUPER_ADMIN';
+  if (role === 'SUPER_ADMIN') {
+    if (!isMasterAdminEmail(claims.email) || user.role !== 'SUPER_ADMIN') return null;
+  } else if (!['MODERATOR', 'TEACHER'].includes(role)) {
+    return null;
+  }
+  return { claims: { ...claims, role: user.role }, user, role };
+}
+
+function isPremiumActive(user: UserRecord | undefined, now: number = Date.now()): boolean {
+  return typeof user?.premiumUntil === 'number' &&
+    (user.premiumUntil === 0 || user.premiumUntil > now);
+}
+
+function getAnalyticsStore(): AnalyticsStore {
+  if (!store.analytics) store.analytics = createEmptyAnalytics();
+  return store.analytics;
+}
+
+function notifyUserSockets(email: string, type: string, payload: unknown): void {
+  const target = String(email || '').trim().toLowerCase();
+  const message = JSON.stringify({ type, payload, timestamp: Date.now() });
+  wsClients.forEach((client) => {
+    if (client.readyState !== WebSocket.OPEN || sessionOf(client)?.email !== target) return;
+    try { client.send(message); } catch { /* kết nối vừa có thể đóng */ }
+  });
+}
 
 export function setupForumServer(httpServer: any, middlewares: any) {
   loadStoreFromDisk();
@@ -932,6 +1042,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                     content: String(payload.content).slice(0, MAX_CHAT_CONTENT),
                   };
                   store.chatMessages = capTail([...store.chatMessages, relayed], MAX_CHAT_MESSAGES);
+                  recordAnalyticsActivity(getAnalyticsStore(), 'messages', String(relayed.authorEmail || session?.email || '') || undefined);
                   persistStoreToDisk();
                   broadcastServerEvent('NEW_CHAT_MESSAGE', relayed);
                   break;
@@ -1021,6 +1132,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
               /* Vẫn KHÔNG cộng XP ở đường WS: XP do đường HTTP kiểm soát cấp. */
               store.questions.unshift(relayedQuestion);
+              recordAnalyticsActivity(getAnalyticsStore(), 'questions', asker.email);
               persistStoreToDisk();
               broadcastServerEvent('NEW_QUESTION', relayedQuestion);
               break;
@@ -1056,6 +1168,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               };
               /* Không cộng XP ở đường WS — giữ nguyên như trước. */
               store.solutions.push(relayedSolution);
+              recordAnalyticsActivity(getAnalyticsStore(), 'answers', solver.email);
               persistStoreToDisk();
               broadcastServerEvent('NEW_SOLUTION', relayedSolution);
               break;
@@ -1158,6 +1271,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               };
 
               store.clubs = [relayedClub, ...store.clubs].slice(0, MAX_CLUBS);
+              recordAnalyticsActivity(getAnalyticsStore(), 'clubsCreated', clubFounder.email);
               persistStoreToDisk();
               broadcastServerEvent('NEW_CLUB', relayedClub);
               break;
@@ -1288,6 +1402,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 likes: 0,
               };
               store.clubPosts = [relayedPost, ...store.clubPosts].slice(0, MAX_CLUB_POSTS);
+              recordAnalyticsActivity(getAnalyticsStore(), 'clubPosts', poster.email);
               persistStoreToDisk();
               broadcastServerEvent('NEW_CLUB_POST', relayedPost);
               break;
@@ -1484,6 +1599,66 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
+    /**
+     * Đo lượt mở, thời gian tab đang hiển thị và lượt chuyển phân khu.
+     * Mã khách do trình duyệt tạo là ngẫu nhiên, được băm trước khi lưu; email
+     * chỉ được gắn khi token hợp lệ. Không lưu IP hay dấu vân tay thiết bị.
+     */
+    if (method === 'POST' && url.split('?')[0] === '/api/analytics/track') {
+      try {
+        const body = await parseJsonBody(req);
+        const throttle = analyticsLimiter.check(`analytics:${clientIpOf(req)}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'cập nhật thống kê');
+          return;
+        }
+        const visitorId = String(body?.visitorId || '').trim();
+        const sessionId = String(body?.sessionId || '').trim();
+        const eventId = String(body?.eventId || '').trim();
+        if (!/^[A-Za-z0-9_-]{20,100}$/.test(visitorId) ||
+            !/^[A-Za-z0-9_-]{20,100}$/.test(sessionId) ||
+            !/^[A-Za-z0-9_-]{20,100}$/.test(eventId)) {
+          sendJson(res, 400, { success: false, message: 'Mã phiên thống kê không hợp lệ.' });
+          return;
+        }
+        const claims = authorizeRequest(req, null, body?.token);
+        const analyticsEmail = claims && store.users[claims.email] ? claims.email : undefined;
+        const analytics = getAnalyticsStore();
+        let result: { ok: boolean; duplicate: boolean };
+        if (body.type === 'visit') {
+          result = recordAnalyticsVisit(analytics, { visitorId, sessionId, eventId, email: analyticsEmail });
+        } else if (body.type === 'heartbeat') {
+          const activeSeconds = Number(body.activeSeconds);
+          if (!Number.isFinite(activeSeconds) || activeSeconds < 0 || activeSeconds > 60) {
+            sendJson(res, 400, { success: false, message: 'Thời lượng phiên không hợp lệ.' });
+            return;
+          }
+          result = recordAnalyticsHeartbeat(analytics, {
+            visitorId, sessionId, eventId, email: analyticsEmail, activeSeconds,
+          });
+        } else if (body.type === 'page_view') {
+          const allowedViews = ['landing', 'home', 'clubs', 'qa', 'chat', 'memory', 'chronicles', 'coming-soon'];
+          if (!allowedViews.includes(String(body.view || ''))) {
+            sendJson(res, 400, { success: false, message: 'Phân khu thống kê không hợp lệ.' });
+            return;
+          }
+          result = recordAnalyticsPageView(analytics, { visitorId, sessionId, eventId, email: analyticsEmail });
+        } else {
+          sendJson(res, 400, { success: false, message: 'Loại sự kiện thống kê không hợp lệ.' });
+          return;
+        }
+        if (!result.ok) {
+          sendJson(res, 409, { success: false, message: 'Mã phiên đã gắn với một trình duyệt khác.' });
+          return;
+        }
+        persistStoreToDisk();
+        sendJson(res, 200, { success: true, duplicate: result.duplicate });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
     /** Trạng thái máy chủ — dùng cho trang vận hành và cho test smoke. */
     if (method === 'GET' && url.startsWith('/api/health')) {
       sendJson(res, 200, {
@@ -1593,6 +1768,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
         if (!store.chatMessages.some(m => m.id === msg.id)) {
           store.chatMessages = capTail([...store.chatMessages, msg], MAX_CHAT_MESSAGES);
+          recordAnalyticsActivity(getAnalyticsStore(), 'messages', authorEmail || undefined);
           persistStoreToDisk();
         }
         broadcastServerEvent('NEW_CHAT_MESSAGE', msg);
@@ -1719,6 +1895,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         };
 
         store.questions.unshift(newQuestion);
+        recordAnalyticsActivity(getAnalyticsStore(), 'questions', authorEmail || undefined);
 
         if (author) {
           author.coin = Math.max(0, (author.coin ?? 100) - bountyCoin);
@@ -1794,6 +1971,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         };
 
         store.solutions.push(newSolution);
+        recordAnalyticsActivity(getAnalyticsStore(), 'answers', authorEmail || undefined);
 
         if (author) {
           author.fPoints = (author.fPoints ?? author.xp ?? 0) + 25;
@@ -1986,6 +2164,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
             };
 
         store.users[email] = newUser;
+        recordAnalyticsSignup(getAnalyticsStore(), email);
         /* Không bao giờ lưu mật khẩu thô — chỉ giữ bản băm scrypt. */
         store.passwords[email] = hashPassword(password);
         persistStoreToDisk();
@@ -2162,6 +2341,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               };
 
           store.users[email] = user;
+          recordAnalyticsSignup(getAnalyticsStore(), email);
           persistStoreToDisk();
           broadcastServerEvent('SYNC_USER', user);
         } else {
@@ -2305,6 +2485,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
         store.clubs = [club, ...store.clubs].slice(0, MAX_CLUBS);
+        recordAnalyticsActivity(getAnalyticsStore(), 'clubsCreated', founder.email);
         persistStoreToDisk();
         broadcastServerEvent('NEW_CLUB', club);
         sendJson(res, 200, { success: true, club, message: 'Hồ sơ thành lập đã được gửi tới Ban Quản Trị.' });
@@ -2464,6 +2645,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
         store.clubPosts = [post, ...store.clubPosts].slice(0, MAX_CLUB_POSTS);
+        recordAnalyticsActivity(getAnalyticsStore(), 'clubPosts', author.email);
         persistStoreToDisk();
         broadcastServerEvent('NEW_CLUB_POST', post);
         sendJson(res, 200, { success: true, post, message: 'Đã đăng bài viết.' });
@@ -2641,6 +2823,277 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     }
 
     /**
+     * SỐ LIỆU NGƯỜI DÙNG — chỉ Super Admin.
+     * Lượt khách là trình duyệt cài ID ngẫu nhiên; tài khoản đăng nhập được gộp
+     * theo email đã xác thực để không đếm nhiều thiết bị của cùng một tài khoản.
+     */
+    if (method === 'GET' && url.split('?')[0] === '/api/admin/analytics') {
+      if (!requireSuperAdmin(req, {})) {
+        sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới xem được thống kê người dùng.' });
+        return;
+      }
+      const params = new URL(url, 'http://fforum.local').searchParams;
+      const report = buildAnalyticsReport(getAnalyticsStore(), store.users, params.get('range'), Date.now());
+      sendJson(res, 200, { success: true, analytics: report });
+      return;
+    }
+
+    /** Danh bạ hồ sơ có phân trang; giáo viên/moderator chỉ nhận trường cần kiểm duyệt. */
+    if (method === 'GET' && url.split('?')[0] === '/api/admin/members') {
+      const actor = requireModerationStaff(req, {});
+      if (!actor) {
+        sendJson(res, 403, { success: false, message: 'Chỉ Super Admin, Giáo viên hoặc Moderator mới xem được danh sách thành viên.' });
+        return;
+      }
+      const params = new URL(url, 'http://fforum.local').searchParams;
+      const query = String(params.get('q') || '').trim().slice(0, 120);
+      const roleFilter = String(params.get('role') || 'ALL').trim().toUpperCase();
+      const allowedFilters = ['ALL', 'SUPER_ADMIN', 'MODERATOR', 'TEACHER', 'CLUB_LEADER', 'STUDENT', 'PREMIUM'];
+      const role = allowedFilters.includes(roleFilter) ? roleFilter : 'ALL';
+      const rawPage = Number(params.get('page'));
+      const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
+      const rawLimit = Number(params.get('limit'));
+      const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(100, Math.floor(rawLimit)) : 50;
+      const now = Date.now();
+      const fold = (value: unknown) => String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
+        .toLowerCase();
+      const q = fold(query);
+      const all = Object.entries(store.users).map(([email, user]) => {
+        const displayRole = isMasterAdminEmail(email)
+          ? 'SUPER_ADMIN'
+          : user.staffRole || user.role;
+        const moderation = moderationStatusOf(store.moderation, email, now);
+        const premiumActive = isPremiumActive(user, now);
+        return { email, user, displayRole, moderation, premiumActive };
+      }).filter(({ email, user, displayRole, premiumActive }) => {
+        const visibleSearchFields = actor.role === 'SUPER_ADMIN'
+          ? `${user.city || ''} ${user.className || ''} ${user.bio || ''}`
+          : '';
+        const queryMatch = !q || fold(`${email} ${user.name} ${user.id} ${visibleSearchFields}`).includes(q);
+        const roleMatch = role === 'ALL' || (role === 'PREMIUM'
+          ? premiumActive
+          : displayRole === role || user.role === role);
+        return queryMatch && roleMatch;
+      }).sort((a, b) => {
+        const aLast = getAnalyticsStore().members[a.email]?.lastSeenAt || 0;
+        const bLast = getAnalyticsStore().members[b.email]?.lastSeenAt || 0;
+        return bLast - aLast || String(a.user.name || '').localeCompare(String(b.user.name || ''), 'vi');
+      });
+      const total = all.length;
+      const entries = all.slice((page - 1) * limit, page * limit).map(({ email, user, displayRole, moderation, premiumActive }) => {
+        const metrics = getAnalyticsStore().members[email];
+        const warnings = (store.adminWarnings || []).filter((warning) => warning.targetEmail === email).slice(0, 5);
+        const fullProfile = actor.role === 'SUPER_ADMIN' ? {
+          bio: String(user.bio || '').slice(0, 1000),
+          city: String(user.city || '').slice(0, 120),
+          className: String(user.className || '').slice(0, 120),
+          gender: String(user.gender || '').slice(0, 40),
+          joinedAt: String(user.joinedAt || ''),
+          bannerUrl: String(user.bannerUrl || '').slice(0, 2000),
+          profileGradient: String(user.profileGradient || '').slice(0, 120),
+        } : undefined;
+        return {
+          id: String(user.id || '').slice(0, 120),
+          email,
+          name: String(user.name || 'Người dùng').slice(0, 120),
+          avatar: String(user.avatar || '').slice(0, 2000),
+          role: displayRole,
+          userRole: user.role,
+          staffRole: user.staffRole || null,
+          level: Math.max(1, Math.min(150, Math.floor(Number(user.level) || 1))),
+          moderation,
+          premium: {
+            active: premiumActive,
+            until: typeof user.premiumUntil === 'number' ? user.premiumUntil : null,
+            grantedAt: typeof user.premiumGrantedAt === 'number' ? user.premiumGrantedAt : null,
+          },
+          metrics: {
+            visits: metrics?.visits || 0,
+            activeSeconds: metrics?.activeSeconds || 0,
+            pageViews: metrics?.pageViews || 0,
+            messages: metrics?.messages || 0,
+            questions: metrics?.questions || 0,
+            answers: metrics?.answers || 0,
+            clubsCreated: metrics?.clubsCreated || 0,
+            clubPosts: metrics?.clubPosts || 0,
+            lastSeenAt: metrics?.lastSeenAt || 0,
+          },
+          warningCount: (store.adminWarnings || []).filter((warning) => warning.targetEmail === email).length,
+          warnings,
+          ...(fullProfile ? { profile: fullProfile } : {}),
+        };
+      });
+      sendJson(res, 200, {
+        success: true,
+        members: entries,
+        total,
+        page,
+        limit,
+        pages: Math.max(1, Math.ceil(total / limit)),
+        role,
+        canAssignRoles: actor.role === 'SUPER_ADMIN',
+        canManagePremium: actor.role === 'SUPER_ADMIN',
+      });
+      return;
+    }
+
+    /** Vai trò do Super Admin cấp; không có API nào nhận lệnh cấp SUPER_ADMIN. */
+    if (method === 'POST' && url === '/api/admin/role') {
+      try {
+        const body = await parseJsonBody(req);
+        const claims = requireSuperAdmin(req, body);
+        if (!claims) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới được cấp hoặc thu hồi vai trò.' });
+          return;
+        }
+        const email = String(body?.email || '').trim().toLowerCase();
+        const target = store.users[email];
+        if (!target) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy thành viên.' });
+          return;
+        }
+        if (isMasterAdminEmail(email) || target.role === 'SUPER_ADMIN') {
+          sendJson(res, 400, { success: false, message: 'Vai trò Super Admin được bảo vệ và không thể cấp từ danh sách này.' });
+          return;
+        }
+        const requestedRole = body?.staffRole;
+        if (requestedRole !== null && requestedRole !== 'MODERATOR' && requestedRole !== 'TEACHER') {
+          sendJson(res, 400, { success: false, message: 'Chỉ được cấp vai trò Giáo viên hoặc Moderator; vai trò Super Admin không thể cấp.' });
+          return;
+        }
+        const previousRole = target.staffRole || null;
+        if (previousRole === requestedRole) {
+          sendJson(res, 200, { success: true, changed: false, member: target });
+          return;
+        }
+        if (requestedRole) target.staffRole = requestedRole;
+        else delete target.staffRole;
+        pushAuditLog({
+          action: requestedRole ? `role:assign:${requestedRole}` : 'role:revoke',
+          targetEmail: email,
+          reason: String(body?.reason || (requestedRole ? 'Cấp vai trò quản trị cộng đồng.' : 'Thu hồi vai trò quản trị cộng đồng.')).trim().slice(0, 500),
+          by: claims.email,
+        });
+        persistStoreToDisk();
+        broadcastServerEvent('SYNC_USER', target);
+        sendJson(res, 200, {
+          success: true,
+          changed: true,
+          previousRole,
+          staffRole: target.staffRole || null,
+          member: target,
+        });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /** Cảnh cáo nội dung và gửi riêng cho chính thành viên nhận cảnh cáo. */
+    if (method === 'POST' && url === '/api/admin/warn') {
+      try {
+        const body = await parseJsonBody(req);
+        const actor = requireModerationStaff(req, body);
+        if (!actor) {
+          sendJson(res, 403, { success: false, message: 'Chỉ nhân sự kiểm duyệt mới được gửi cảnh cáo.' });
+          return;
+        }
+        const email = String(body?.email || '').trim().toLowerCase();
+        const target = store.users[email];
+        if (!target) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy thành viên.' });
+          return;
+        }
+        if (email === actor.claims.email || target.role === 'SUPER_ADMIN' || isMasterAdminEmail(email)) {
+          sendJson(res, 400, { success: false, message: 'Không thể cảnh cáo chính mình hoặc tài khoản Super Admin.' });
+          return;
+        }
+        if (actor.role !== 'SUPER_ADMIN' && target.staffRole) {
+          sendJson(res, 403, { success: false, message: 'Giáo viên/Moderator chỉ có thể cảnh cáo thành viên không giữ vai trò kiểm duyệt.' });
+          return;
+        }
+        const reason = String(body?.reason || '').trim().slice(0, 500);
+        if (reason.length < 3) {
+          sendJson(res, 400, { success: false, message: 'Cảnh cáo cần nội dung cụ thể (ít nhất 3 ký tự).' });
+          return;
+        }
+        const warning: AdminWarningRecord = {
+          id: randomId('warning'),
+          at: Date.now(),
+          targetEmail: email,
+          reason,
+          by: actor.claims.email,
+        };
+        store.adminWarnings = [warning, ...(store.adminWarnings || [])].slice(0, 1000);
+        pushAuditLog({ action: 'warning', targetEmail: email, reason, by: actor.claims.email });
+        persistStoreToDisk();
+        notifyUserSockets(email, 'USER_WARNED', { id: warning.id, reason: warning.reason, at: warning.at });
+        sendJson(res, 200, { success: true, warning, warningCount: store.adminWarnings.filter((item) => item.targetEmail === email).length });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /** Cấp F-Forum Premium thủ công; đây không phải thanh toán hay gói thu phí. */
+    if (method === 'POST' && url === '/api/admin/premium') {
+      try {
+        const body = await parseJsonBody(req);
+        const claims = requireSuperAdmin(req, body);
+        if (!claims) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới được cấp hoặc thu hồi Premium.' });
+          return;
+        }
+        const email = String(body?.email || '').trim().toLowerCase();
+        const target = store.users[email];
+        if (!target) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy thành viên.' });
+          return;
+        }
+        if (target.role === 'SUPER_ADMIN' || isMasterAdminEmail(email)) {
+          sendJson(res, 400, { success: false, message: 'Không cần cấp Premium cho tài khoản Super Admin.' });
+          return;
+        }
+        const action = body?.action;
+        const reason = String(body?.reason || '').trim().slice(0, 500);
+        if (reason.length < 3) {
+          sendJson(res, 400, { success: false, message: 'Vui lòng ghi lý do cấp/thu hồi Premium (ít nhất 3 ký tự).' });
+          return;
+        }
+        if (action === 'grant') {
+          const days = Number(body?.durationDays);
+          if (![30, 90, 365, 0].includes(days)) {
+            sendJson(res, 400, { success: false, message: 'Thời hạn Premium không hợp lệ.' });
+            return;
+          }
+          target.premiumUntil = days === 0 ? 0 : Date.now() + days * 24 * 60 * 60 * 1000;
+          target.premiumGrantedAt = Date.now();
+        } else if (action === 'revoke') {
+          delete target.premiumUntil;
+          delete target.premiumGrantedAt;
+        } else {
+          sendJson(res, 400, { success: false, message: 'Thao tác Premium không hợp lệ.' });
+          return;
+        }
+        pushAuditLog({ action: `premium:${action}`, targetEmail: email, reason, by: claims.email });
+        persistStoreToDisk();
+        broadcastServerEvent('SYNC_USER', target);
+        notifyUserSockets(email, 'USER_PREMIUM_UPDATED', { active: isPremiumActive(target), until: target.premiumUntil ?? null });
+        sendJson(res, 200, {
+          success: true,
+          action,
+          premium: { active: isPremiumActive(target), until: target.premiumUntil ?? null, grantedAt: target.premiumGrantedAt ?? null },
+        });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /**
      * TỔNG QUAN VẬN HÀNH — chỉ Super Admin.
      *
      * `/api/health` đã phơi số đếm nhưng nó CÔNG KHAI và chỉ cho biết "có bao
@@ -2691,6 +3144,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           { name: 'social', limiter: socialLimiter },
           { name: 'write', limiter: writeLimiter },
           { name: 'presence', limiter: presenceLimiter },
+          { name: 'analytics', limiter: analyticsLimiter },
         ].map(({ name, limiter }) => {
           limiter.prune(now);
           return { name, ...limiter.snapshot(now) };
@@ -2815,7 +3269,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     }
 
     /**
-     * CẤM / KHOÁ GỬI TIN một người dùng — chỉ Super Admin.
+     * CẤM / KHOÁ GỬI TIN — Super Admin, Giáo viên hoặc Moderator.
      *
      * Đây là mảnh còn thiếu của quy trình tố cáo: trước đây quản trị chỉ đánh dấu
      * được một báo cáo là "đã xử lý" chứ không có cách nào thực thi, người bị tố
@@ -2824,11 +3278,12 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/admin/moderate') {
       try {
         const body = await parseJsonBody(req);
-        const claims = requireSuperAdmin(req, body);
-        if (!claims) {
-          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới được quản lý người dùng!' });
+        const actor = requireModerationStaff(req, body);
+        if (!actor) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin, Giáo viên hoặc Moderator mới được kiểm duyệt người dùng.' });
           return;
         }
+        const claims = actor.claims;
         const action = String(body?.action || '').trim() as ModerationAction;
         if (!MODERATION_ACTIONS.includes(action)) {
           sendJson(res, 400, {
@@ -2853,8 +3308,12 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
         /* Không cho phép quản trị tự khoá mình hoặc khoá bất kỳ tài khoản quản trị
            nào — dễ tự nhốt toàn bộ hệ thống ngoài quyền gỡ. */
-        if (targetEmail === String(claims.email).trim().toLowerCase() || targetUser.role === 'SUPER_ADMIN') {
-          sendJson(res, 400, { success: false, message: 'Không thể áp chế tài khoản Super Admin.' });
+        if (targetEmail === String(claims.email).trim().toLowerCase() || targetUser.role === 'SUPER_ADMIN' || isMasterAdminEmail(targetEmail)) {
+          sendJson(res, 400, { success: false, message: 'Không thể áp chế chính mình hoặc tài khoản Super Admin.' });
+          return;
+        }
+        if (actor.role !== 'SUPER_ADMIN' && targetUser.staffRole) {
+          sendJson(res, 403, { success: false, message: 'Giáo viên/Moderator chỉ được kiểm duyệt thành viên không giữ vai trò kiểm duyệt.' });
           return;
         }
 
@@ -2907,15 +3366,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
            ở server nên đóng WS chỉ là tín hiệu cập nhật tức thời, không phải hàng rào
            bảo mật duy nhất. */
         const st = moderationStatusOf(store.moderation, targetEmail);
-        wsClients.forEach((client) => {
-          if (client.readyState !== WebSocket.OPEN || sessionOf(client)?.email !== targetEmail) return;
-          try {
-            client.send(JSON.stringify({
-              type: 'USER_MODERATED',
-              payload: { banned: st.banned, muted: st.muted },
-            }));
-          } catch { /* kết nối có thể vừa đóng */ }
-        });
+        notifyUserSockets(targetEmail, 'USER_MODERATED', { banned: st.banned, muted: st.muted });
 
         sendJson(res, 200, {
           success: true,

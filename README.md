@@ -95,23 +95,39 @@ Hệ thống được thiết kế theo giao diện kính mờ hiện đại, h�
 - **Bảng Điều Khiển Quản Trị** (nút *Điều khiển*, chỉ Super Admin): một màn hình
   gom hàng chờ cần xử lý (tố cáo, hồ sơ CLB chờ duyệt), sức khoẻ diễn đàn (tỉ lệ
   đã giải, câu hỏi chưa ai trả lời, Coin đang treo), cộng đồng, máy chủ/tệp dữ
-  liệu, trạng thái năm bộ giới hạn tần suất và danh sách bị tố cáo nhiều nhất.
+  liệu, trạng thái các bộ giới hạn tần suất và danh sách bị tố cáo nhiều nhất.
   Tự làm mới mỗi 20 giây; đóng bằng Escape.
-- **Quản lý thành viên**: tìm kiếm không dấu theo tên/email/mã/lớp; query rỗng
-  hiển thị người đang bị áp chế. Super Admin có thể *cấm đăng* (chặn chat, câu
-  hỏi, lời giải, CLB nhưng vẫn cho đăng nhập/xem) hoặc *khoá chat* riêng, trong
-  15 phút / 1 giờ / 1 ngày / 7 ngày / vĩnh viễn, kèm nút gỡ. Cấm vĩnh viễn có
-  bước xác nhận; mọi quyết định phải có lý do, thời hạn và người thực hiện.
+- **Insights Bento** trong menu tia sét: Super Admin xem tổng lượt truy cập duy
+  nhất, thời gian tab đang hiển thị, tin nhắn và hoạt động cộng đồng; biểu đồ
+  theo 24 giờ / 7 ngày / 30 ngày / 12 tháng / năm. Thành viên và khách chưa
+  đăng nhập được tách rõ. Mã khách là mã first-party ngẫu nhiên trong trình
+  duyệt; cùng một người dùng khách rồi đăng nhập có thể xuất hiện ở cả hai nhóm,
+  và mã khách có thể được tính lại khi xoá dữ liệu trình duyệt. Vì vậy đây không
+  phải số người thật đã xác minh. Dữ liệu được lưu ở máy chủ.
+- **Danh bạ thành viên**: tìm kiếm không dấu theo tên/email/mã/lớp, lọc theo
+  vai trò, có phân trang và chỉ số hoạt động. Super Admin xem hồ sơ chi tiết;
+  Giáo viên/Moderator chỉ nhận thông tin tối thiểu cần cho kiểm duyệt.
+- **Phân quyền nhân sự**: chỉ Super Admin được cấp/gỡ vai trò Giáo viên hoặc
+  Moderator; không thể tạo thêm Super Admin từ giao diện. Giáo viên và Moderator
+  được cảnh cáo có nội dung, *cấm đăng* (chặn chat, câu hỏi, lời giải và bài CLB
+  nhưng vẫn cho đăng nhập/xem) hoặc *khoá chat* riêng trong 15 phút / 1 giờ /
+  1 ngày / 7 ngày / vĩnh viễn. Nhân sự không thể tự kiểm duyệt hay xử lý nhân sự
+  khác; tài khoản Super Admin luôn được bảo vệ. Mỗi quyết định cần lý do và được
+  ghi vào nhật ký.
+- **F-Forum Premium** được Super Admin cấp thủ công theo 30 ngày / 90 ngày /
+  365 ngày / vĩnh viễn; huy hiệu hiển thị trên hồ sơ. Đây chưa phải tích hợp
+  thanh toán, không tự gia hạn và không thu phí.
 - **Nhật ký kiểm duyệt**: tối đa 300 mục, lưu bền vững qua lần khởi động lại;
-  chỉ Super Admin được đọc. Tài khoản Super Admin được bảo vệ; mọi đường ghi
-  (HTTP và WebSocket) đều kiểm tra áp chế ở máy chủ.
+  chỉ Super Admin được đọc. Mọi đường ghi (HTTP và WebSocket) đều kiểm tra áp
+  chế ở máy chủ.
 - Nút **Tố Cáo Tài Khoản** ở hồ sơ, phòng chat và sàn Q&A gửi báo cáo về máy chủ.
 - **Hộp thư tố cáo** liệt kê báo cáo kèm huy hiệu số vụ chờ xử lý, cho phép đánh
   dấu *Đã xử lý*, *Bỏ qua* hoặc *Xoá* kèm ghi chú.
 - Báo cáo được lưu bền vững (không mất khi khởi động lại), tố cáo trùng tự gộp,
   và Super Admin đang trực nhận thông báo ngay khi có vụ mới.
-- Mọi API tra cứu/quản lý/nhật ký trả 403 với vai trò khác kể cả khi có token
-  hợp lệ; kết quả tìm kiếm chỉ trả trường tối thiểu cần cho công việc.
+- API kiểm tra quyền theo phiên và hồ sơ hiện hành trên máy chủ; không tin vai
+  trò client tự khai. Quyền xem thống kê, danh bạ, cấp vai trò và Premium được
+  tách riêng theo cấp bậc.
 
 ### 10. Hệ Thống 8 Cấp Bậc Học Đường
 Hệ thống cấp bậc được đặt tên gần gũi với học sinh theo tiến trình tích lũy Coin:
@@ -200,7 +216,7 @@ Sau khi chạy lệnh, mở trình duyệt web và truy cập địa chỉ: `htt
 # Kiểm tra lỗi cú pháp với Oxlint
 npx oxlint
 
-# Chạy toàn bộ 215 bài kiểm thử tự động
+# Chạy toàn bộ 220 bài kiểm thử tự động
 npm test
 
 # Biên dịch mã nguồn cho môi trường sản xuất
@@ -230,7 +246,7 @@ f-forum/
 │   ├── index.css           # Cấu hình giao diện và hiệu ứng kính
 │   └── main.tsx            # Điểm khởi động ứng dụng
 ├── docs/                   # Tài liệu thiết kế & bảo mật
-├── tests/                  # Bộ bài kiểm thử tự động (215 bài)
+├── tests/                  # Bộ bài kiểm thử tự động (220 bài)
 └── package.json            # Thông tin dự án và danh sách thư viện
 ```
 

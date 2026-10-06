@@ -1777,6 +1777,15 @@ html.light .nav-liquid-pill {
 .ccm-02__item--hot:hover {
   border-color: rgba(248, 113, 113, 0.85) !important;
 }
+.ccm-02__item--admin {
+  border-color: rgba(34, 211, 238, 0.42);
+  background-image: linear-gradient(145deg, rgba(8, 47, 73, 0.96), rgba(13, 23, 34, 0.98));
+  box-shadow: 0 0 22px rgba(34, 211, 238, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.ccm-02__item--admin:hover {
+  border-color: rgba(103, 232, 249, 0.85);
+  box-shadow: 0 0 25px rgba(34, 211, 238, 0.3);
+}
 @media (prefers-reduced-motion: reduce) {
   .ccm-02__item,
   .ccm-02__hub > svg {

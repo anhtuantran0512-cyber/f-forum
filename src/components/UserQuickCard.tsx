@@ -5,6 +5,7 @@ import type { User, Question, Solution } from '../types';
 import { getTierForLevel } from '../utils/tier';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
+import { PremiumMark } from './PremiumMark';
 
 export interface UserQuickCardProps {
   user: User | null;
@@ -124,6 +125,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
                 {user.name.replace(/ \(.*\)/, '')}
               </h3>
               {isSuperAdmin && <AdminVerifiedBadge size={15} />}
+              <PremiumMark user={user} compact />
             </div>
             <p className="text-xs text-[#949ba4] font-mono">
               {tier.titleVi} • Lv.{user.level}

@@ -46,6 +46,9 @@ import { safeStorage } from './utils/storage';
 import { PageResourceLoader } from './components/PageResourceLoader';
 import { UserQuickCard } from './components/UserQuickCard';
 import { RadialQuickMenu } from './components/RadialQuickMenu';
+import { AnalyticsTracker } from './components/AnalyticsTracker';
+
+const AdminInsightsModal = lazyWithRetry(() => import('./components/AdminInsightsModal').then(m => ({ default: m.AdminInsightsModal })));
 
 const LandingPage = lazyWithRetry(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
 const ClubsView = lazyWithRetry(() => import('./components/views/ClubsView').then(m => ({ default: m.ClubsView })));
@@ -197,6 +200,7 @@ export const App: React.FC = () => {
   /* Hộp thư tố cáo — chỉ Super Admin mở được. */
   const [isReportInboxOpen, setIsReportInboxOpen] = useState(false);
   const [isAdminConsoleOpen, setIsAdminConsoleOpen] = useState(false);
+  const [isAdminInsightsOpen, setIsAdminInsightsOpen] = useState(false);
   const [pendingReportCount, setPendingReportCount] = useState(0);
   const [eyeRestEnabled, setEyeRestEnabled] = useState<boolean>(() => {
     return safeStorage.getItem('fforum_eye_rest') === 'true';
@@ -856,6 +860,7 @@ export const App: React.FC = () => {
 
   return (
     <AuthProvider currentUser={currentUser}>
+      <AnalyticsTracker accountKey={currentUser?.email || undefined} view={currentView} />
       {/* Global Radiant Cursor (Active across entire app on pointer devices) */}
       <GlobalCursor />
 
@@ -1048,6 +1053,12 @@ export const App: React.FC = () => {
           onOpenStreak={() => window.dispatchEvent(new CustomEvent('fforum_open_daily'))}
           onOpenNotes={() => setIsNotesOpen(true)}
           onOpenPalette={() => setIsPaletteOpen(true)}
+          adminAccess={Boolean(currentUser && (
+            currentUser.email === 'anhtuantran0512@gmail.com' ||
+            currentUser.staffRole === 'MODERATOR' ||
+            currentUser.staffRole === 'TEACHER'
+          ))}
+          onOpenAdminPanel={() => setIsAdminInsightsOpen(true)}
           streakCount={currentUser?.streakCount ?? 0}
         />
       )}
@@ -1238,6 +1249,22 @@ export const App: React.FC = () => {
       )}
 
       <Suspense fallback={<ViewLoadingFallback />}>
+        {isAdminInsightsOpen && currentUser && (
+          currentUser.email === 'anhtuantran0512@gmail.com' ||
+          currentUser.staffRole === 'MODERATOR' ||
+          currentUser.staffRole === 'TEACHER'
+        ) && (
+          <AdminInsightsModal
+            isOpen={isAdminInsightsOpen}
+            currentUser={currentUser}
+            onClose={() => setIsAdminInsightsOpen(false)}
+            onOpenOperations={() => {
+              if (currentUser.email !== 'anhtuantran0512@gmail.com') return;
+              setIsAdminInsightsOpen(false);
+              setIsAdminConsoleOpen(true);
+            }}
+          />
+        )}
         {isReportInboxOpen && (
           <ReportInboxModal
             isOpen={isReportInboxOpen}

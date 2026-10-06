@@ -738,6 +738,27 @@ export function useForumStore() {
           }
           break;
         }
+        case 'USER_WARNED': {
+          const warning = payload as { id?: string; reason?: string; at?: number };
+          const reason = String(warning?.reason || '').trim().slice(0, 500);
+          if (!reason) break;
+          pushNotification({
+            id: warning.id,
+            type: 'system',
+            category: 'system',
+            title: 'Cảnh cáo từ Ban Quản Trị',
+            body: reason,
+            time: warning.at ? new Date(warning.at).toLocaleString('vi-VN') : undefined,
+            targetView: 'home',
+          });
+          setToastMessage({
+            title: 'Bạn nhận được cảnh cáo',
+            subtitle: reason,
+            type: 'error',
+          });
+          playChime('send');
+          break;
+        }
         case 'NEW_CHAT_MESSAGE': {
           const newMsg = payload as ChatMessage;
           if (!newMsg || !newMsg.id) break;
