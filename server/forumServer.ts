@@ -4,6 +4,18 @@ import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
 import {
+  MODERATION_ACTIONS,
+  MODERATION_DURATIONS_MIN,
+  applyModerationAction,
+  isUntilActive,
+  moderationStatusOf,
+  normalizeModerationReason,
+  parseModerationMap,
+  pruneModeration,
+  type ModerationAction,
+  type ModerationMap,
+} from './moderation.ts';
+import {
   MASTER_ADMIN_EMAIL,
   SlidingWindowRateLimiter,
   authorizeRequest,
@@ -55,6 +67,10 @@ export interface ForumDataStore {
   feedbacks: any[];
   reports?: any[];
   about?: any;
+  /** Áp chế theo email: cấm / khoá gửi tin, có thời hạn. Xem server/moderation.ts. */
+  moderation?: ModerationMap;
+  /** Nhật ký hành động quản trị — cần cho truy vết, tối đa 300 mục. */
+  auditLog?: any[];
 }
 
 
@@ -205,6 +221,26 @@ function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
   return out;
 }
 
+/**
+ * Nhật ký là dữ liệu nội bộ nhưng vẫn phải chuẩn hoá khi nạp: file JSON có thể
+ * là bản cũ, bị sửa tay hoặc hỏng một vài dòng. Không cho object lạ tràn vào UI
+ * quản trị (ví dụ `at: {}` làm `new Date(...).toISOString()` ném lỗi).
+ */
+function sanitizeAuditLog(rawLog: unknown): any[] {
+  if (!Array.isArray(rawLog)) return [];
+  return rawLog
+    .filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry))
+    .slice(0, 300)
+    .map((entry: any) => ({
+      id: typeof entry.id === 'string' && entry.id ? entry.id.slice(0, 120) : randomId('audit'),
+      at: typeof entry.at === 'number' && Number.isFinite(entry.at) && entry.at >= 0 ? entry.at : 0,
+      action: typeof entry.action === 'string' ? entry.action.slice(0, 80) : 'unknown',
+      targetEmail: typeof entry.targetEmail === 'string' ? entry.targetEmail.slice(0, 120).toLowerCase() : '',
+      reason: typeof entry.reason === 'string' ? entry.reason.slice(0, 500) : '',
+      by: typeof entry.by === 'string' ? entry.by.slice(0, 120).toLowerCase() : '',
+    }));
+}
+
 function loadStoreFromDisk() {
   try {
     if (fs.existsSync(dataFilePath())) {
@@ -230,6 +266,11 @@ function loadStoreFromDisk() {
              báo cáo vi phạm đã ghi xuống đĩa bị vứt đi mỗi lần khởi động lại. */
           reports: Array.isArray(parsed.reports) ? parsed.reports : store.reports || [],
           about: parsed.about || store.about,
+          /* Hai field này PHẢI được liệt kê ở đây: loadStoreFromDisk dựng lại store
+             bằng một object literal nên field nào không liệt kê sẽ bị vứt mỗi lần
+             khởi động. `reports` từng mất dữ liệu đúng theo cách đó. */
+          moderation: parseModerationMap(parsed.moderation),
+          auditLog: sanitizeAuditLog(parsed.auditLog),
         };
       }
     }
@@ -674,6 +715,49 @@ function sanitizeQuestionUpdates(updates: any) {
   return Object.keys(clean).length > 0 ? clean : null;
 }
 
+/**
+ * Kiểm tra một người có được phép tạo nội dung hay không.
+ *
+ * MỘT helper duy nhất, gọi ở MỌI đường ghi trên CẢ HAI transport. Đây là bài học
+ * đã trả giá hai lần trong dự án này (defect 34 và 37): một đột biến có hai đường
+ * HTTP và WebSocket, vá một đường thì đường kia vẫn hở. Vì thế việc kiểm tra nằm
+ * ở đây chứ không rải ra từng nhánh.
+ *
+ * `kind`:
+ *   - 'chat'    → bị chặn khi BANNED hoặc MUTED (khoá gửi tin chỉ áp cho chat)
+ *   - 'content' → chỉ bị chặn khi BANNED (đăng câu hỏi, lời giải, CLB, bài CLB)
+ */
+function checkCanPost(
+  email: string | null | undefined,
+  kind: 'chat' | 'content',
+): { ok: true } | { ok: false; status: number; message: string } {
+  const st = moderationStatusOf(store.moderation, email);
+  if (st.banned) {
+    const until = st.bannedUntil === 0 ? 'vĩnh viễn' : `đến ${new Date(st.bannedUntil as number).toLocaleString('vi-VN')}`;
+    return {
+      ok: false,
+      status: 403,
+      message: `Tài khoản của bạn đã bị quản trị viên khoá ${until}.${st.reason ? ` Lý do: ${st.reason}` : ''}`,
+    };
+  }
+  if (kind === 'chat' && st.muted) {
+    const until = st.mutedUntil === 0 ? 'vĩnh viễn' : `đến ${new Date(st.mutedUntil as number).toLocaleString('vi-VN')}`;
+    return {
+      ok: false,
+      status: 403,
+      message: `Bạn đang bị khoá gửi tin ${until}.${st.reason ? ` Lý do: ${st.reason}` : ''}`,
+    };
+  }
+  return { ok: true };
+}
+
+/** Ghi một dòng vào nhật ký quản trị (giữ tối đa 300 mục mới nhất). */
+function pushAuditLog(entry: Record<string, unknown>): void {
+  const log = Array.isArray(store.auditLog) ? store.auditLog : [];
+  log.unshift({ id: randomId('audit'), at: Date.now(), ...entry });
+  store.auditLog = log.slice(0, 300);
+}
+
 function requireSuperAdmin(req: IncomingMessage, body: any): SessionClaims | null {
   const claims = authorizeRequest(req, null, body?.adminToken || body?.token || null);
   if (!claims) return null;
@@ -764,6 +848,54 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               }));
               /* `return` chứ không phải `break`: đoạn này nằm trong thân hàm xử lý
                  message, TRƯỚC switch, nên break sẽ nhảy sai phạm vi. */
+              return;
+            }
+
+            /*
+              QUẢN LÝ NGƯỜI DÙNG trên đường WS — cùng một helper checkCanPost như
+              HTTP, đặt ngay trước switch nên MỘT chỗ phủ cả năm hành động ghi.
+
+              Đây đúng là lớp lỗi đã gặp hai lần (defect 34 và 37): một đột biến có
+              hai transport, vá HTTP thì WS vẫn hở. Người bị cấm chỉ cần chuyển sang
+              WebSocket là đăng tiếp được nếu thiếu đoạn này.
+
+              Ưu tiên danh tính từ phiên đã AUTH (không giả mạo được); chưa AUTH thì
+              xét authorEmail trong payload để khách không lách bằng cách không đăng
+              nhập — khớp cách HTTP đối xử với tác giả.
+            */
+            const wsSessionEmail = sessionOf(ws)?.email || null;
+            const claimedWsEmail = String((payload as any)?.authorEmail || '').trim().toLowerCase();
+
+            /* Chat có chế độ khách, nhưng không cho khách mạo danh một tài khoản có
+               thật; phiên đã đăng nhập cũng không được khai email người khác. */
+            if (type === 'NEW_CHAT_MESSAGE') {
+              if (wsSessionEmail && claimedWsEmail && claimedWsEmail !== wsSessionEmail) {
+                ws.send(JSON.stringify({
+                  type: 'FORBIDDEN',
+                  payload: { action: type, reason: 'Email người gửi không khớp với phiên đăng nhập.' },
+                }));
+                return;
+              }
+              if (!wsSessionEmail && claimedWsEmail && store.users[claimedWsEmail]) {
+                ws.send(JSON.stringify({
+                  type: 'FORBIDDEN',
+                  payload: { action: type, reason: 'Vui lòng xác thực tài khoản trước khi gửi tin.' },
+                }));
+                return;
+              }
+            }
+
+            /* Chỉ phiên đã AUTH mới là danh tính có thể áp chế; payload không được
+               dùng để tự nhận mình là một tài khoản khác. */
+            const wsGate = checkCanPost(
+              wsSessionEmail,
+              type === 'NEW_CHAT_MESSAGE' ? 'chat' : 'content',
+            );
+            if (!wsGate.ok) {
+              ws.send(JSON.stringify({
+                type: 'FORBIDDEN',
+                payload: { action: type, reason: wsGate.message },
+              }));
               return;
             }
           }
@@ -1415,8 +1547,32 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
-        const authorEmail = String(body.authorEmail || '').trim().toLowerCase();
+        const claimedEmail = String(body.authorEmail || '').trim().toLowerCase();
+        const claims = authorizeRequest(req, null, body.token);
+        const authorEmail = claims?.email || '';
+
+        /*
+          Chat công khai vẫn cho khách gửi tin, nhưng không được mạo danh tài khoản
+          đã đăng ký bằng cách tự gõ email vào payload. Tài khoản thật phải có Bearer
+          token khớp; nếu không, ghi nhận là khách (email rỗng). Nếu bỏ bước này,
+          người bị cấm chỉ cần đổi authorEmail sang người không bị cấm để lách.
+        */
+        if (claims && claimedEmail && claimedEmail !== claims.email) {
+          sendJson(res, 403, { success: false, message: 'Email người gửi không khớp với phiên đăng nhập.' });
+          return;
+        }
+        if (!claims && claimedEmail && store.users[claimedEmail]) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để gửi tin bằng tài khoản này.' });
+          return;
+        }
         const knownAuthor = authorEmail ? store.users[authorEmail] : undefined;
+
+        /* Quản lý người dùng: khoá gửi tin áp riêng cho chat, cấm thì chặn hết. */
+        const chatGate = checkCanPost(authorEmail, 'chat');
+        if (!chatGate.ok) {
+          sendJson(res, chatGate.status, { success: false, message: chatGate.message });
+          return;
+        }
 
         const msg = {
           id: body.id || randomId('msg'),
@@ -1488,6 +1644,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
         const authorEmail = String(body.authorEmail || '').trim().toLowerCase();
         const author = authorEmail ? store.users[authorEmail] : undefined;
+
         /* Treo thưởng là tiêu tiền thật → chỉ tài khoản đã đăng nhập và đủ số dư
            mới được đặt. Khách ẩn danh nhận bountyCoin = 0 thay vì thưởng miễn phí. */
         const wantedBounty = normalizeBounty(body.bountyCoin);
@@ -1497,6 +1654,12 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           const claims = authorizeRequest(req, authorEmail, body.token);
           if (!claims) {
             sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập lại để đặt câu hỏi!' });
+            return;
+          }
+          /* Chỉ báo lý do áp chế sau khi chứng minh đây đúng là tài khoản đó. */
+          const questionGate = checkCanPost(claims.email, 'content');
+          if (!questionGate.ok) {
+            sendJson(res, questionGate.status, { success: false, message: questionGate.message });
             return;
           }
           const balance = author.coin ?? 100;
@@ -1592,10 +1755,17 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
         const authorEmail = String(body.authorEmail || '').trim().toLowerCase();
         const author = authorEmail ? store.users[authorEmail] : undefined;
+
         if (author) {
           const claims = authorizeRequest(req, authorEmail, body.token);
           if (!claims) {
             sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập lại để gửi lời giải!' });
+            return;
+          }
+          /* Không cho người ngoài dò trạng thái/lý do áp chế bằng email mục tiêu. */
+          const solutionGate = checkCanPost(claims.email, 'content');
+          if (!solutionGate.ok) {
+            sendJson(res, solutionGate.status, { success: false, message: solutionGate.message });
             return;
           }
         }
@@ -2104,6 +2274,13 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
+        /* Quản lý người dùng: tài khoản bị cấm không được lập CLB mới. */
+        const clubGate = checkCanPost(founder.email, 'content');
+        if (!clubGate.ok) {
+          sendJson(res, clubGate.status, { success: false, message: clubGate.message });
+          return;
+        }
+
         const club = {
           id: typeof body.id === 'string' && body.id ? body.id.slice(0, 80) : randomId('club'),
           name: name.slice(0, 120),
@@ -2260,6 +2437,13 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const author = claims ? store.users[claims.email] : undefined;
         if (!author) {
           sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để đăng bài!' });
+          return;
+        }
+
+        /* Quản lý người dùng: bị cấm thì không được đăng bài trong CLB. */
+        const clubPostGate = checkCanPost(author.email, 'content');
+        if (!clubPostGate.ok) {
+          sendJson(res, clubPostGate.status, { success: false, message: clubPostGate.message });
           return;
         }
 
@@ -2474,6 +2658,31 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       try {
         const now = Date.now();
 
+        /*
+          Dọn các áp chế đã hết hạn. Không có bước này thì mỗi lần cấm tạm thời để
+          lại một bản ghi chết vĩnh viễn trong tệp dữ liệu — map chỉ phình chứ
+          không tự co. Trả nguyên map khi không có gì để dọn nên không ghi đĩa thừa.
+        */
+        const prunedModeration = pruneModeration(store.moderation, now);
+        if (prunedModeration !== store.moderation) {
+          store.moderation = prunedModeration;
+          persistStoreToDisk();
+        }
+
+        /*
+          Đếm áp chế đang có hiệu lực. Duyệt trực tiếp theo cặp khoá–bản ghi rồi
+          gọi isUntilActive trên từng mốc: cách viết trước dò ngược khoá bằng
+          `Object.keys().find(k => map[k] === rec)` — so sánh tham chiếu, vừa chậm
+          vừa sai nếu hai bản ghi trùng nội dung.
+        */
+        const modEntries = Object.entries(store.moderation || {});
+        const moderationSummary = {
+          banned: modEntries.filter(([, r]) => isUntilActive(r?.bannedUntil, now)).length,
+          muted: modEntries.filter(([, r]) => isUntilActive(r?.mutedUntil, now)).length,
+          records: modEntries.length,
+          auditEntries: Array.isArray(store.auditLog) ? store.auditLog.length : 0,
+        };
+
         /* Dọn các khoá limiter đã hết hạn trước khi chụp ảnh — Map này chỉ phình
            chứ không tự co, chạy lâu sẽ giữ hàng nghìn khoá rỗng. */
         const limiters = [
@@ -2522,16 +2731,30 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           corruptBackups = 0;
         }
 
-        /* Nguồn bị tố cáo nhiều nhất — vào thẳng việc cần xử lý, không bắt quản trị
-           tự lật danh sách. Chỉ lấy 5 mục và không kèm nội dung tố cáo. */
+        /*
+          Nguồn bị tố cáo nhiều nhất — vào thẳng việc cần xử lý, không bắt quản trị
+          tự lật danh sách. Báo cáo có `reportedUserId`/`reportedUserName`; trường
+          `targetEmail` chỉ là địa chỉ NHẬN báo cáo (luôn là admin), tuyệt đối không
+          được dùng làm người bị tố — nếu không dashboard sẽ báo chính admin là
+          người bị tố cáo nhiều nhất. Ánh xạ id thật về email để tìm kiếm được.
+          Chỉ lấy 5 mục và không kèm nội dung/lý do tố cáo.
+        */
+        const reportUserById = new Map<string, string>();
+        Object.entries(store.users).forEach(([email, user]) => {
+          if (user?.id) reportUserById.set(String(user.id), email);
+          reportUserById.set(email, email);
+        });
         const reportTally = new Map<string, number>();
         reports.forEach((r: any) => {
-          const target = String(r?.targetId || r?.targetEmail || '');
+          const id = String(r?.reportedUserId || r?.targetId || '').trim();
+          const target =
+            reportUserById.get(id) ||
+            String(r?.reportedUserEmail || r?.reportedUserName || id).trim();
           if (!target) return;
           reportTally.set(target, (reportTally.get(target) || 0) + 1);
         });
         const topReported = Array.from(reportTally.entries())
-          .sort((a, b) => b[1] - a[1])
+          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
           .slice(0, 5)
           .map(([target, count]) => ({ target, count }));
 
@@ -2560,6 +2783,9 @@ export function setupForumServer(httpServer: any, middlewares: any) {
             reports: pendingReports.length,
             clubs: clubs.filter((c: any) => c?.status === 'PENDING').length,
           },
+          /* Áp chế đang có hiệu lực — quản trị cần biết đã khoá ai mà không phải
+             mở tệp dữ liệu ra đọc. */
+          moderation: moderationSummary,
           contentHealth: {
             unansweredQuestions: unanswered,
             unsolvedQuestions: questions.filter((q: any) => !q?.isSolved).length,
@@ -2585,6 +2811,210 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       } catch (err: any) {
         handleApiError(res, err);
       }
+      return;
+    }
+
+    /**
+     * CẤM / KHOÁ GỬI TIN một người dùng — chỉ Super Admin.
+     *
+     * Đây là mảnh còn thiếu của quy trình tố cáo: trước đây quản trị chỉ đánh dấu
+     * được một báo cáo là "đã xử lý" chứ không có cách nào thực thi, người bị tố
+     * cáo vẫn tiếp tục đăng.
+     */
+    if (method === 'POST' && url === '/api/admin/moderate') {
+      try {
+        const body = await parseJsonBody(req);
+        const claims = requireSuperAdmin(req, body);
+        if (!claims) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới được quản lý người dùng!' });
+          return;
+        }
+        const action = String(body?.action || '').trim() as ModerationAction;
+        if (!MODERATION_ACTIONS.includes(action)) {
+          sendJson(res, 400, {
+            success: false,
+            message: `Hành động không hợp lệ. Phải là một trong: ${MODERATION_ACTIONS.join(', ')}.`,
+          });
+          return;
+        }
+
+        /* Email mục tiêu phải khớp một tài khoản thật trong store; không tạo bản
+           ghi áp chế cho email tuỳ ý chưa đăng ký (vốn không thể truy vết/gỡ). */
+        const targetEmail = String(body?.email || '').trim().toLowerCase();
+        if (!targetEmail) {
+          sendJson(res, 400, { success: false, message: 'Thiếu email người dùng cần quản lý.' });
+          return;
+        }
+        const targetUser = store.users[targetEmail];
+        if (!targetUser) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy người dùng này trong hệ thống.' });
+          return;
+        }
+
+        /* Không cho phép quản trị tự khoá mình hoặc khoá bất kỳ tài khoản quản trị
+           nào — dễ tự nhốt toàn bộ hệ thống ngoài quyền gỡ. */
+        if (targetEmail === String(claims.email).trim().toLowerCase() || targetUser.role === 'SUPER_ADMIN') {
+          sendJson(res, 400, { success: false, message: 'Không thể áp chế tài khoản Super Admin.' });
+          return;
+        }
+
+        const isApplyingRestriction = action === 'ban' || action === 'mute';
+        const reason = normalizeModerationReason(body?.reason);
+        if (isApplyingRestriction && reason.length < 3) {
+          sendJson(res, 400, { success: false, message: 'Vui lòng ghi lý do quản lý (ít nhất 3 ký tự) để lưu vào nhật ký.' });
+          return;
+        }
+        const durationMinutes = Number(body?.durationMinutes);
+        if (isApplyingRestriction && !MODERATION_DURATIONS_MIN.some((allowed) => allowed === durationMinutes)) {
+          sendJson(res, 400, {
+            success: false,
+            message: `Thời hạn không hợp lệ. Chọn một trong: ${MODERATION_DURATIONS_MIN.map((m) => m === 0 ? 'vĩnh viễn' : `${m} phút`).join(', ')}.`,
+          });
+          return;
+        }
+
+        const result = applyModerationAction(store.moderation, targetEmail, action, {
+          durationMinutes: isApplyingRestriction ? durationMinutes : undefined,
+          reason,
+          by: claims.email,
+        });
+        if (!result.changed) {
+          sendJson(res, 200, {
+            success: true,
+            changed: false,
+            message: 'Không có gì thay đổi — áp chế này vốn đã ở trạng thái bạn yêu cầu.',
+            status: moderationStatusOf(store.moderation, targetEmail),
+          });
+          return;
+        }
+
+        store.moderation = result.next;
+        const auditReason = reason || (
+          action === 'unban' ? 'Gỡ cấm đăng theo quyết định quản trị.'
+          : action === 'unmute' ? 'Gỡ khoá chat theo quyết định quản trị.'
+          : result.record?.reason || ''
+        );
+        pushAuditLog({
+          action: `moderate:${action}`,
+          targetEmail,
+          reason: auditReason,
+          by: claims.email,
+        });
+        persistStoreToDisk();
+
+        /* Chỉ báo cho các WS đang đăng nhập đúng tài khoản đó — không broadcast
+           email/lý do áp chế ra toàn cộng đồng. Việc gửi nội dung mới vẫn được gate
+           ở server nên đóng WS chỉ là tín hiệu cập nhật tức thời, không phải hàng rào
+           bảo mật duy nhất. */
+        const st = moderationStatusOf(store.moderation, targetEmail);
+        wsClients.forEach((client) => {
+          if (client.readyState !== WebSocket.OPEN || sessionOf(client)?.email !== targetEmail) return;
+          try {
+            client.send(JSON.stringify({
+              type: 'USER_MODERATED',
+              payload: { banned: st.banned, muted: st.muted },
+            }));
+          } catch { /* kết nối có thể vừa đóng */ }
+        });
+
+        sendJson(res, 200, {
+          success: true,
+          changed: true,
+          action,
+          targetEmail,
+          status: st,
+        });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /**
+     * Tra cứu tài khoản cho công cụ quản lý — chỉ Super Admin.
+     *
+     * Không trả toàn bộ store.users (có thể chứa thông tin hồ sơ riêng tư).
+     * Tìm kiếm trả tối đa 20 bản ghi với các trường tối thiểu cần để quản lý;
+     * query rỗng chỉ trả các tài khoản hiện đang bị cấm/khoá gửi tin để admin
+     * thấy ngay ai đang bị áp chế, không biến endpoint thành danh bạ đại trà.
+     */
+    if (method === 'GET' && url.split('?')[0] === '/api/admin/users') {
+      if (!requireSuperAdmin(req, {})) {
+        sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới được tra cứu người dùng!' });
+        return;
+      }
+
+      const searchParams = new URL(url, 'http://fforum.local').searchParams;
+      const query = String(searchParams.get('q') || '').trim().slice(0, 120);
+      const fold = (value: unknown) => String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
+        .toLowerCase();
+
+      const now = Date.now();
+      const pruned = pruneModeration(store.moderation, now);
+      if (pruned !== store.moderation) {
+        store.moderation = pruned;
+        persistStoreToDisk();
+      }
+
+      const q = fold(query);
+      const matching = Object.entries(store.users)
+        .map(([email, raw]) => {
+          const user = raw as any;
+          const status = moderationStatusOf(store.moderation, email, now);
+          const searchable = fold(`${email} ${user?.name || ''} ${user?.id || ''} ${user?.className || ''}`);
+          return { email, user, status, searchable };
+        })
+        .filter(({ searchable, status }) => q.length >= 2 ? searchable.includes(q) : status.banned || status.muted)
+        .sort((a, b) => {
+          if (q.length < 2) {
+            const aBan = a.status.banned ? 0 : 1;
+            const bBan = b.status.banned ? 0 : 1;
+            return aBan - bBan || String(a.user?.name || '').localeCompare(String(b.user?.name || ''), 'vi');
+          }
+          const rank = (email: string, name: string) => {
+            const e = fold(email);
+            const n = fold(name);
+            return e === q ? 0 : e.startsWith(q) ? 1 : n.startsWith(q) ? 2 : e.includes(q) ? 3 : n.includes(q) ? 4 : 5;
+          };
+          return rank(a.email, a.user?.name) - rank(b.email, b.user?.name)
+            || String(a.user?.name || '').localeCompare(String(b.user?.name || ''), 'vi');
+        });
+      const total = matching.length;
+      const entries = matching.slice(0, 20).map(({ email, user, status }) => ({
+          id: String(user?.id || '').slice(0, 120),
+          email,
+          name: String(user?.name || 'Người dùng').slice(0, 120),
+          avatar: String(user?.avatar || '').slice(0, 2000),
+          role: ['SUPER_ADMIN', 'CLUB_LEADER', 'STUDENT'].includes(user?.role) ? user.role : 'STUDENT',
+          level: Math.max(1, Math.min(150, Math.floor(Number(user?.level) || 1))),
+          moderation: status,
+        }));
+
+      sendJson(res, 200, {
+        success: true,
+        query,
+        mode: q.length >= 2 ? 'search' : 'active-moderation',
+        users: entries,
+        total,
+        limit: 20,
+      });
+      return;
+    }
+
+    /** Nhật ký hành động quản trị — chỉ Super Admin đọc được. */
+    if (method === 'GET' && url.startsWith('/api/admin/audit')) {
+      if (!requireSuperAdmin(req, {})) {
+        sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới xem được nhật ký quản trị!' });
+        return;
+      }
+      const log = Array.isArray(store.auditLog) ? store.auditLog : [];
+      const searchParams = new URL(url, 'http://fforum.local').searchParams;
+      const rawLimit = Number(searchParams.get('limit'));
+      const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(100, Math.floor(rawLimit)) : 50;
+      sendJson(res, 200, { success: true, auditLog: log.slice(0, limit), total: log.length, limit });
       return;
     }
 

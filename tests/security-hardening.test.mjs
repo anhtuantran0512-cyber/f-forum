@@ -2062,7 +2062,9 @@ test('40. Tin chat phát lại không được đếm chưa đọc lần hai, v�
     chưa đọc. Phải đọc qua ref.
   */
   const serverBranchAt = store.indexOf('const handleServerBroadcast = ');
-  const serverBranch = store.slice(serverBranchAt, serverBranchAt + 3000);
+  /* Các case realtime mới (REPORT_UPDATED / USER_MODERATED) có thể đứng trước
+     chat; không cắt cửa sổ ngắn tới mức case thật bị rơi khỏi bài kiểm tra. */
+  const serverBranch = store.slice(serverBranchAt, serverBranchAt + 8000);
   const chatCaseAt = serverBranch.indexOf("case 'NEW_CHAT_MESSAGE'");
   const chatCase = serverBranch.slice(chatCaseAt, chatCaseAt + 1200);
   assert.ok(
@@ -2758,5 +2760,297 @@ test('Bảo mật 54. /api/admin/overview chỉ Super Admin đọc được, kh�
       'topReported phải là mảng tối đa 5 mục');
   } finally {
     await env.close();
+  }
+});
+
+test('Bảo mật 55. Cấm người dùng chặn ở CẢ HTTP lẫn WebSocket, không có đường lách', async () => {
+  /*
+    Lớp lỗi đã trả giá hai lần trong dự án này (defect 34 và 37): một đột biến có
+    hai transport, vá HTTP thì WebSocket vẫn hở. Test này tồn tại để lần thứ ba
+    không xảy ra — nó bắn cả năm hành động ghi qua WS sau khi tài khoản bị cấm.
+  */
+  const env = await createTestServer();
+  let ws;
+  try {
+    /*
+      Limiter nằm ở cấp module nên là NGÂN SÁCH DÙNG CHUNG cho cả file test: tới
+      lượt test này thì ô `chat:<ip>` đã gần cạn và baseline bị 429 thay vì 200.
+      Đặt lại trước khi đo để kết quả phản ánh đúng hành vi sản phẩm.
+    */
+    (await import('../server/forumServer.ts')).resetRateLimitersForTest();
+
+    const admin = await post(env.baseUrl, '/api/auth/login', {
+      email: 'anhtuantran0512@gmail.com',
+      password: 'admin123',
+    });
+    const target = await register(env.baseUrl, 'Người Bị Cấm', `cam55.${Date.now()}@example.com`, 'mat-khau-bi-cam-123');
+    const email = target.user.email;
+
+    /* Nền: một câu hỏi và một CLB đã duyệt để có chỗ gửi lời giải / bài viết. */
+    const q = await post(env.baseUrl, '/api/questions', {
+      title: 'Câu hỏi nền cho test cấm',
+      content: 'Dùng làm nền để kiểm thử việc chặn ở cả hai transport.',
+      authorEmail: 'anhtuantran0512@gmail.com',
+    }, admin.data.token);
+    const club = await post(env.baseUrl, '/api/clubs', {
+      name: `CLB Nền Test Cấm ${Date.now()}`,
+      slogan: 'Test',
+      purpose: 'Mục đích đủ dài để hợp lệ khi kiểm thử.',
+      leaderEmail: 'anhtuantran0512@gmail.com',
+    }, admin.data.token);
+    await post(env.baseUrl, '/api/clubs/approve', { clubId: club.data.club.id }, admin.data.token);
+
+    /* --- Baseline: chưa bị gì thì ghi được --- */
+    const before = await post(env.baseUrl, '/api/chat', {
+      id: `pre55-${Date.now()}`, channelId: 'hallway', content: 'Tin trước khi bị cấm',
+      authorEmail: email, authorName: 'Người Bị Cấm',
+    }, target.token);
+    assert.equal(before.status, 200, 'trước khi bị cấm phải gửi được');
+
+    /* Giữ một socket đã xác thực để kiểm tra sự kiện được gửi đúng người. */
+    ws = await connectWs(env.wsUrl, target.token);
+
+    /* --- Cấm vĩnh viễn --- */
+    const moderationNotice = ws.waitFor('USER_MODERATED');
+    const ban = await post(env.baseUrl, '/api/admin/moderate', {
+      action: 'ban', email, durationMinutes: 0, reason: 'Gây war nghiêm trọng',
+    }, admin.data.token);
+    assert.equal(ban.status, 200);
+    assert.equal(ban.data.status.banned, true, 'phải ở trạng thái bị cấm');
+    const notice = await moderationNotice;
+    assert.equal(notice.payload.banned, true, 'socket của đúng tài khoản nhận được tín hiệu hạn chế');
+    assert.equal(notice.payload.email, undefined, 'không gửi email mục tiêu qua broadcast');
+    assert.equal(notice.payload.reason, undefined, 'không gửi lý do nội bộ qua broadcast');
+
+    /* --- HTTP: cả ba đường ghi đều 403 --- */
+    const chatHttp = await post(env.baseUrl, '/api/chat', {
+      id: `ban55-chat-${Date.now()}`, channelId: 'hallway', content: 'Tin khi bị cấm',
+      authorEmail: email, authorName: 'Người Bị Cấm',
+    }, target.token);
+    const qHttp = await post(env.baseUrl, '/api/questions', {
+      title: 'Câu hỏi khi bị cấm', content: 'Nội dung câu hỏi khi tài khoản đang bị cấm.',
+      authorEmail: email,
+    }, target.token);
+    const clubHttp = await post(env.baseUrl, '/api/clubs', {
+      name: `CLB Khi Bị Cấm ${Date.now()}`, slogan: 't',
+      purpose: 'Mục đích đủ dài để hợp lệ khi kiểm thử.', leaderEmail: email,
+    }, target.token);
+    assert.equal(chatHttp.status, 403, 'HTTP chat phải bị chặn');
+    assert.equal(qHttp.status, 403, 'HTTP question phải bị chặn');
+    assert.equal(clubHttp.status, 403, 'HTTP club phải bị chặn');
+
+    /* Người ngoài biết email nhưng không có token chỉ được nhận 401 chung, không
+       được dò trạng thái cấm hay đọc lý do nội bộ. */
+    const unauthQuestion = await post(env.baseUrl, '/api/questions', {
+      title: 'Dò trạng thái', content: 'Không có token nên không được biết trạng thái.', authorEmail: email,
+    });
+    const unauthSolution = await post(env.baseUrl, '/api/solutions', {
+      questionId: q.data.question.id, content: 'Không có token nên không được biết trạng thái.', authorEmail: email,
+    });
+    assert.equal(unauthQuestion.status, 401, 'question xác thực trước khi tiết lộ áp chế');
+    assert.equal(unauthSolution.status, 401, 'solution xác thực trước khi tiết lộ áp chế');
+    assert.doesNotMatch(unauthQuestion.data.message, /Gây war nghiêm trọng/);
+    assert.doesNotMatch(unauthSolution.data.message, /Gây war nghiêm trọng/);
+
+    /* --- WebSocket: cả NĂM hành động ghi đều phải bị chặn --- */
+    const ts = Date.now();
+    ws.send('NEW_CHAT_MESSAGE', { id: `ws55-chat-${ts}`, channelId: 'hallway', content: 'Tin WS khi bị cấm', authorEmail: email, authorName: 'Người Bị Cấm' });
+    ws.send('NEW_QUESTION', { id: `ws55-q-${ts}`, title: 'Câu hỏi WS khi bị cấm', content: 'Nội dung câu hỏi gửi qua WS khi bị cấm.', subject: 'toan', authorEmail: email, authorName: 'Người Bị Cấm' });
+    ws.send('NEW_SOLUTION', { id: `ws55-s-${ts}`, questionId: q.data.question.id, content: 'Lời giải gửi qua WS khi bị cấm.', authorEmail: email, authorName: 'Người Bị Cấm' });
+    ws.send('NEW_CLUB', { id: `ws55-c-${ts}`, name: `CLB WS Khi Bị Cấm ${ts}`, slogan: 't', purpose: 'Mục đích đủ dài để hợp lệ khi kiểm thử.', leaderEmail: email });
+    ws.send('NEW_CLUB_POST', { id: `ws55-p-${ts}`, clubId: club.data.club.id, title: 'Bài WS khi bị cấm', content: 'Nội dung bài viết gửi qua WS khi bị cấm.', authorEmail: email, authorName: 'Người Bị Cấm' });
+    await sleep(900);
+
+    const sync = await get(env.baseUrl, '/api/sync');
+    const d = sync.data.data;
+    const leaked = [];
+    if (d.chatMessages.some((m) => m.id === `ws55-chat-${ts}`)) leaked.push('chat');
+    if (d.questions.some((x) => x.id === `ws55-q-${ts}`)) leaked.push('question');
+    if (d.solutions.some((x) => x.id === `ws55-s-${ts}`)) leaked.push('solution');
+    if (d.clubs.some((x) => x.id === `ws55-c-${ts}`)) leaked.push('club');
+    if (d.clubPosts.some((x) => x.id === `ws55-p-${ts}`)) leaked.push('clubPost');
+    assert.deepEqual(leaked, [], `WebSocket phải chặn cả năm hành động, thực tế rò rỉ: ${leaked.join(', ')}`);
+
+    /* Client phải được báo lý do, không im lặng nuốt tin. */
+    await sleep(200);
+    assert.ok(ws.inbox.filter((m) => m.type === 'FORBIDDEN').length >= 5,
+      'client phải nhận FORBIDDEN cho cả năm hành động');
+
+    /* --- Gỡ cấm thì ghi lại được --- */
+    await post(env.baseUrl, '/api/admin/moderate', { action: 'unban', email }, admin.data.token);
+    const afterUnban = await post(env.baseUrl, '/api/chat', {
+      id: `unban55-${Date.now()}`, channelId: 'hallway', content: 'Tin sau khi gỡ cấm',
+      authorEmail: email, authorName: 'Người Bị Cấm',
+    }, target.token);
+    assert.equal(afterUnban.status, 200, 'gỡ cấm rồi phải gửi lại được');
+
+    /* --- Khoá gửi tin chỉ áp cho chat, không chặn đăng câu hỏi --- */
+    const muteResult = await post(env.baseUrl, '/api/admin/moderate', {
+      action: 'mute', email, durationMinutes: 60, reason: 'Spam trong chat sau nhiều lần nhắc nhở',
+    }, admin.data.token);
+    assert.equal(muteResult.status, 200, 'mute phải có lý do và thời hạn hợp lệ');
+    const mutedChat = await post(env.baseUrl, '/api/chat', {
+      id: `mute55-${Date.now()}`, channelId: 'hallway', content: 'Tin khi bị khoá gửi tin',
+      authorEmail: email, authorName: 'Người Bị Cấm',
+    }, target.token);
+    const mutedQuestion = await post(env.baseUrl, '/api/questions', {
+      title: 'Câu hỏi khi bị khoá gửi tin', content: 'Khoá gửi tin không được chặn đăng câu hỏi.',
+      authorEmail: email,
+    }, target.token);
+    assert.equal(mutedChat.status, 403, 'khoá gửi tin phải chặn chat');
+    assert.equal(mutedQuestion.status, 200, 'khoá gửi tin KHÔNG được chặn đăng câu hỏi');
+  } finally {
+    if (ws) ws.ws.close();
+    await env.close();
+  }
+});
+
+test('Bảo mật 56. Tra cứu và áp chế người dùng chỉ admin, dữ liệu tối thiểu và có audit bền vững', async () => {
+  let env = await createTestServer();
+  let restarted;
+  let guestWs;
+  try {
+    (await import('../server/forumServer.ts')).resetRateLimitersForTest();
+
+    const admin = await post(env.baseUrl, '/api/auth/login', {
+      email: 'anhtuantran0512@gmail.com',
+      password: 'admin123',
+    });
+    assert.equal(admin.status, 200);
+
+    const student = await register(
+      env.baseUrl,
+      'Người Có Dấu',
+      `nguoicodau56.${Date.now()}@example.com`,
+      'mat-khau-co-dau-123',
+    );
+    const email = student.user.email;
+
+    /* Báo cáo mục tiêu là người này; targetEmail trong record lại là admin nhận. */
+    const report = await post(env.baseUrl, '/api/reports', {
+      reporterId: `reporter56-${Date.now()}`,
+      reporterName: 'Người Báo Cáo',
+      reporterEmail: `reporter56.${Date.now()}@example.com`,
+      reportedUserId: student.user.id,
+      reportedUserName: student.user.name,
+      reason: 'Spam',
+      details: 'Tố cáo kiểm tra thống kê quản trị.',
+    });
+    assert.equal(report.status, 200, 'tạo được báo cáo kiểm thử');
+
+    /* Chat cho khách, nhưng không được giả danh tài khoản có thật qua HTTP/WS. */
+    const spoofHttp = await post(env.baseUrl, '/api/chat', {
+      id: `spoof56-${Date.now()}`, channelId: 'hallway', content: 'Giả danh qua HTTP',
+      authorEmail: email, authorName: 'Người Mạo Danh',
+    });
+    assert.equal(spoofHttp.status, 401, 'khách không được khai email tài khoản có thật');
+    const mismatchHttp = await post(env.baseUrl, '/api/chat', {
+      id: `mismatch56-${Date.now()}`, channelId: 'hallway', content: 'Mượn email người khác',
+      authorEmail: email, authorName: 'Người Mạo Danh',
+    }, admin.data.token);
+    assert.equal(mismatchHttp.status, 403, 'token của admin không được gửi dưới email học sinh');
+
+    guestWs = await connectWs(env.wsUrl);
+    const deniedGuestWrite = guestWs.waitFor('FORBIDDEN');
+    guestWs.send('NEW_CHAT_MESSAGE', {
+      id: `spoof-ws56-${Date.now()}`, channelId: 'hallway', content: 'Giả danh qua WS',
+      authorEmail: email, authorName: 'Người Mạo Danh',
+    });
+    await deniedGuestWrite;
+    const afterSpoof = await get(env.baseUrl, '/api/sync');
+    assert.ok(!afterSpoof.data.data.chatMessages.some((m) => m.id.startsWith('spoof-ws56-')),
+      'tin giả danh qua WS không được lưu');
+
+    const adminGet = async (baseUrl, url, token) => {
+      const res = await fetch(`${baseUrl}${url}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      return { status: res.status, data: await res.json().catch(() => null) };
+    };
+    const moderate = (body, token = admin.data.token) =>
+      post(env.baseUrl, '/api/admin/moderate', body, token);
+
+    /* Các endpoint tra cứu / nhật ký đều là dữ liệu nhạy cảm. */
+    assert.equal((await adminGet(env.baseUrl, `/api/admin/users?q=${encodeURIComponent(email)}`)).status, 403,
+      'khách không được tra cứu');
+    assert.equal((await adminGet(env.baseUrl, `/api/admin/users?q=${encodeURIComponent(email)}`, student.token)).status, 403,
+      'học sinh có token thật vẫn không được tra cứu');
+    assert.equal((await adminGet(env.baseUrl, '/api/admin/audit', student.token)).status, 403,
+      'học sinh không được đọc nhật ký');
+
+    /* Tự khoá Super Admin / người dùng không tồn tại / thời hạn rác đều bị chặn. */
+    const self = await moderate({ action: 'ban', email: 'anhtuantran0512@gmail.com', durationMinutes: 0, reason: 'Tự khoá' });
+    assert.equal(self.status, 400, 'không cho tự khoá Super Admin');
+    const missing = await moderate({ action: 'ban', email: 'khong-co@example.com', durationMinutes: 60, reason: 'Không tồn tại' });
+    assert.equal(missing.status, 404, 'email không tồn tại phải bị từ chối');
+    const noReason = await moderate({ action: 'mute', email, durationMinutes: 60, reason: '  ' });
+    assert.equal(noReason.status, 400, 'không chấp nhận quyết định không có lý do');
+    const badDuration = await moderate({ action: 'ban', email, durationMinutes: 37, reason: 'Thời hạn tuỳ ý' });
+    assert.equal(badDuration.status, 400, 'chỉ chấp nhận các thời hạn UI đã công bố');
+    const badAction = await moderate({ action: 'delete-user', email, reason: 'Sai hành động' });
+    assert.equal(badAction.status, 400, 'whitelist hành động');
+
+    /* Tìm kiếm gấp dấu tiếng Việt, chỉ trả trường tối thiểu — không lộ hồ sơ / coin. */
+    const search = await adminGet(env.baseUrl, `/api/admin/users?q=${encodeURIComponent('nguoi co dau')}`, admin.data.token);
+    assert.equal(search.status, 200);
+    assert.equal(search.data.mode, 'search');
+    const overview = await adminGet(env.baseUrl, '/api/admin/overview', admin.data.token);
+    assert.equal(overview.status, 200);
+    assert.ok(overview.data.topReported.some((entry) => entry.target === email),
+      'topReported phải group theo reportedUserId và map ra người bị tố, không dùng targetEmail của admin');
+    const found = search.data.users.find((u) => u.email === email);
+    assert.ok(found, '"nguoi co dau" phải tìm được tên "Người Có Dấu"');
+    assert.deepEqual(
+      Object.keys(found).sort(),
+      ['avatar', 'email', 'id', 'level', 'moderation', 'name', 'role'].sort(),
+      'chỉ trả các trường cần cho quản trị, không trả hồ sơ đầy đủ',
+    );
+    assert.equal(found.bio, undefined);
+    assert.equal(found.coin, undefined);
+    assert.equal(found.xp, undefined);
+    assert.equal(found.password, undefined);
+
+    /* Một quyết định hợp lệ phải có lý do/thời hạn/người thực hiện trong audit. */
+    const applied = await moderate({
+      action: 'mute', email, durationMinutes: 60, reason: 'Gửi spam sau nhiều lần nhắc nhở',
+    });
+    assert.equal(applied.status, 200);
+    assert.equal(applied.data.changed, true);
+    assert.equal(applied.data.status.muted, true);
+    assert.equal(applied.data.moderation, undefined, 'không trả cả map moderation của mọi người');
+
+    const active = await adminGet(env.baseUrl, '/api/admin/users?q=', admin.data.token);
+    assert.equal(active.status, 200);
+    assert.equal(active.data.mode, 'active-moderation');
+    assert.ok(active.data.users.some((u) => u.email === email && u.moderation.muted),
+      'query rỗng chỉ hiện người đang bị áp chế');
+
+    await sleep(280);
+    const disk = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    assert.equal(disk.moderation[email].mutedUntil, applied.data.status.mutedUntil,
+      'bản ghi moderation phải được persist đúng thời hạn server đã trả về');
+    assert.ok(disk.moderation[email].mutedUntil > Date.now(), 'thời hạn phải còn ở tương lai');
+    assert.ok(disk.auditLog.some((entry) => entry.targetEmail === email && entry.action === 'moderate:mute'),
+      'audit phải được persist xuống đĩa');
+
+    const audit = await adminGet(env.baseUrl, '/api/admin/audit?limit=1', admin.data.token);
+    assert.equal(audit.status, 200);
+    assert.equal(audit.data.auditLog.length, 1, 'limit phải có hiệu lực');
+    assert.ok(audit.data.total >= 1);
+    assert.equal(audit.data.auditLog[0].by, 'anhtuantran0512@gmail.com');
+
+    /* Khởi động lại server trên cùng thư mục: áp chế + audit không được mất. */
+    await env.close();
+    env = null;
+    restarted = await createTestServer();
+    const afterRestart = await adminGet(restarted.baseUrl, '/api/admin/users?q=', admin.data.token);
+    assert.equal(afterRestart.status, 200);
+    assert.ok(afterRestart.data.users.some((u) => u.email === email && u.moderation.muted),
+      'khoá chat phải còn hiệu lực sau restart');
+    const auditAfterRestart = await adminGet(restarted.baseUrl, '/api/admin/audit?limit=1', admin.data.token);
+    assert.ok(auditAfterRestart.data.auditLog.some((entry) => entry.targetEmail === email),
+      'nhật ký phải còn sau restart');
+  } finally {
+    if (guestWs) guestWs.ws.close();
+    if (env) await env.close();
+    if (restarted) await restarted.close();
   }
 });

@@ -37,7 +37,7 @@ Hệ thống được thiết kế theo giao diện kính mờ hiện đại, h�
   lọc nhanh bằng nút **Đã lưu** trên thanh môn học, kèm số lượng đang lưu. Câu hỏi đã
   bị xoá sẽ tự động được dọn khỏi danh sách. Toàn bộ phép tính nằm trong
   `src/utils/savedQuestions.ts` — module thuần tuý, idempotent (bấm lặp không tạo bản
-  ghi trùng), có trần 200 mục, và được kiểm thử trực tiếp bằng node (15 bài).
+  ghi trùng), có trần 200 mục, và được kiểm thử trực tiếp bằng node (17 bài).
 - **Sắp xếp diễn đàn**: bốn chế độ — *Mới nhất*, *Thưởng cao*, *Sôi nổi* (nhiều lời
   giải nhất) và *Chưa có lời giải*. Lựa chọn được nhớ giữa các phiên. Toàn bộ phép
   so sánh nằm trong `src/utils/questionSort.ts` — module thuần tuý, không sửa mảng
@@ -55,15 +55,6 @@ Hệ thống được thiết kế theo giao diện kính mờ hiện đại, h�
   `CLUB_LEADER` kèm 250 XP và gắn CLB vào phạm vi quản lý của mình.
 - **Duyệt / từ chối hồ sơ** trong trang quản trị, kèm lý do từ chối ghi lại trên
   hồ sơ để người nộp biết cần bổ sung gì.
-- **Bảng Điều Khiển Quản Trị** (nút *Điều khiển*, chỉ Super Admin): một màn hình
-  gom toàn bộ tình trạng hệ thống — hàng chờ cần xử lý (tố cáo, hồ sơ CLB chờ
-  duyệt), sức khoẻ diễn đàn (tỉ lệ đã giải, số câu chưa ai trả lời, Coin đang
-  treo), cộng đồng, máy chủ & tệp dữ liệu, trạng thái năm bộ giới hạn tần suất
-  (nguồn đang bị chặn / tổng nguồn theo dõi), và danh sách bị tố cáo nhiều nhất.
-  Tự làm mới mỗi 20 giây. Màn hình này **chỉ đọc và điều hướng** — mọi thao tác
-  ghi vẫn đi qua endpoint có quyền riêng của nó, không tạo cổng ghi thứ hai.
-  Dữ liệu lấy từ một lần gọi `GET /api/admin/overview` (Super Admin, 403 với mọi
-  vai trò khác kể cả khi có token hợp lệ).
 - Đăng bài thông báo lịch sinh hoạt, tuyển thành viên và hình ảnh hoạt động.
 - Thành viên có thể theo dõi và tham gia câu lạc bộ yêu thích.
 - Toàn bộ hồ sơ và bài viết CLB **lưu trên máy chủ**, nên dữ liệu hiện ra giống
@@ -100,10 +91,27 @@ Hệ thống được thiết kế theo giao diện kính mờ hiện đại, h�
 - Biểu đồ mạng nhện (Radar Chart) thể hiện thế mạnh giải bài theo 6 nhóm môn học.
 - Nút **Tố Cáo Tài Khoản**: Cho phép người dùng báo cáo các hành vi vi phạm (spam, quấy rối, ngôn từ độc hại) về ban quản trị để xử lý kịp thời.
 
-### 9. Hộp Thư Tố Cáo Dành Cho Ban Quản Trị
+### 9. Bảng Điều Khiển & Kiểm Duyệt Dành Cho Ban Quản Trị
+- **Bảng Điều Khiển Quản Trị** (nút *Điều khiển*, chỉ Super Admin): một màn hình
+  gom hàng chờ cần xử lý (tố cáo, hồ sơ CLB chờ duyệt), sức khoẻ diễn đàn (tỉ lệ
+  đã giải, câu hỏi chưa ai trả lời, Coin đang treo), cộng đồng, máy chủ/tệp dữ
+  liệu, trạng thái năm bộ giới hạn tần suất và danh sách bị tố cáo nhiều nhất.
+  Tự làm mới mỗi 20 giây; đóng bằng Escape.
+- **Quản lý thành viên**: tìm kiếm không dấu theo tên/email/mã/lớp; query rỗng
+  hiển thị người đang bị áp chế. Super Admin có thể *cấm đăng* (chặn chat, câu
+  hỏi, lời giải, CLB nhưng vẫn cho đăng nhập/xem) hoặc *khoá chat* riêng, trong
+  15 phút / 1 giờ / 1 ngày / 7 ngày / vĩnh viễn, kèm nút gỡ. Cấm vĩnh viễn có
+  bước xác nhận; mọi quyết định phải có lý do, thời hạn và người thực hiện.
+- **Nhật ký kiểm duyệt**: tối đa 300 mục, lưu bền vững qua lần khởi động lại;
+  chỉ Super Admin được đọc. Tài khoản Super Admin được bảo vệ; mọi đường ghi
+  (HTTP và WebSocket) đều kiểm tra áp chế ở máy chủ.
 - Nút **Tố Cáo Tài Khoản** ở hồ sơ, phòng chat và sàn Q&A gửi báo cáo về máy chủ.
-- **Hộp thư tố cáo** (chỉ Super Admin) liệt kê báo cáo kèm huy hiệu số vụ chờ xử lý, cho phép đánh dấu *Đã xử lý*, *Bỏ qua* hoặc *Xoá* kèm ghi chú.
-- Báo cáo được lưu bền vững (không mất khi khởi động lại), tố cáo trùng tự gộp, và Super Admin đang trực nhận thông báo ngay khi có vụ mới.
+- **Hộp thư tố cáo** liệt kê báo cáo kèm huy hiệu số vụ chờ xử lý, cho phép đánh
+  dấu *Đã xử lý*, *Bỏ qua* hoặc *Xoá* kèm ghi chú.
+- Báo cáo được lưu bền vững (không mất khi khởi động lại), tố cáo trùng tự gộp,
+  và Super Admin đang trực nhận thông báo ngay khi có vụ mới.
+- Mọi API tra cứu/quản lý/nhật ký trả 403 với vai trò khác kể cả khi có token
+  hợp lệ; kết quả tìm kiếm chỉ trả trường tối thiểu cần cho công việc.
 
 ### 10. Hệ Thống 8 Cấp Bậc Học Đường
 Hệ thống cấp bậc được đặt tên gần gũi với học sinh theo tiến trình tích lũy Coin:
@@ -144,7 +152,7 @@ Máy chủ không tin dữ liệu client gửi lên. Toàn bộ tầng xác th�
 Chi tiết từng lỗ hổng đã tìm thấy và cách vá: **[docs/SECURITY.md](docs/SECURITY.md)**.
 
 ```bash
-# 53 bài kiểm thử bảo mật, chạy trên máy chủ thật qua HTTP/WebSocket
+# 56 bài kiểm thử bảo mật, chạy trên máy chủ thật qua HTTP/WebSocket
 node --test tests/security-hardening.test.mjs
 ```
 
@@ -192,7 +200,7 @@ Sau khi chạy lệnh, mở trình duyệt web và truy cập địa chỉ: `htt
 # Kiểm tra lỗi cú pháp với Oxlint
 npx oxlint
 
-# Chạy toàn bộ 190 bài kiểm thử tự động
+# Chạy toàn bộ 215 bài kiểm thử tự động
 npm test
 
 # Biên dịch mã nguồn cho môi trường sản xuất
@@ -222,7 +230,7 @@ f-forum/
 │   ├── index.css           # Cấu hình giao diện và hiệu ứng kính
 │   └── main.tsx            # Điểm khởi động ứng dụng
 ├── docs/                   # Tài liệu thiết kế & bảo mật
-├── tests/                  # Bộ bài kiểm thử tự động (190 bài)
+├── tests/                  # Bộ bài kiểm thử tự động (215 bài)
 └── package.json            # Thông tin dự án và danh sách thư viện
 ```
 

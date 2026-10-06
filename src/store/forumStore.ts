@@ -712,6 +712,32 @@ export function useForumStore() {
           }
           break;
         }
+        case 'USER_MODERATED': {
+          /* Máy chủ chỉ gửi sự kiện riêng này tới socket đã AUTH của đúng người.
+             Báo ngay khi quyết định có hiệu lực để lần gửi nội dung kế tiếp không
+             trở thành một lỗi khó hiểu, nhưng không tiết lộ lý do nội bộ. */
+          const restriction = payload as { banned?: boolean; muted?: boolean };
+          if (restriction?.banned) {
+            setToastMessage({
+              title: 'Tài khoản đang bị hạn chế đăng',
+              subtitle: 'Bạn vẫn có thể xem diễn đàn; chat và các nội dung mới sẽ bị chặn. Liên hệ Ban Quản Trị nếu cần trao đổi.',
+              type: 'error',
+            });
+          } else if (restriction?.muted) {
+            setToastMessage({
+              title: 'Tạm khoá gửi tin chat',
+              subtitle: 'Bạn vẫn có thể đọc chat và đăng câu hỏi/lời giải. Liên hệ Ban Quản Trị nếu cần trao đổi.',
+              type: 'error',
+            });
+          } else {
+            setToastMessage({
+              title: 'Đã gỡ hạn chế tài khoản',
+              subtitle: 'Bạn có thể tiếp tục sử dụng các tính năng đã được mở lại.',
+              type: 'success',
+            });
+          }
+          break;
+        }
         case 'NEW_CHAT_MESSAGE': {
           const newMsg = payload as ChatMessage;
           if (!newMsg || !newMsg.id) break;
