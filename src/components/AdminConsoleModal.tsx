@@ -15,8 +15,14 @@ import {
   Coins,
   Radio,
   Inbox,
+  Ban,
+  MessageSquareOff,
+  Undo2,
+  Search,
+  UserRound,
+  ScrollText,
 } from 'lucide-react';
-import { authHeaders } from '../utils/session';
+import { authHeaders, postJson } from '../utils/session';
 import { useEscapeKey } from '../utils/useEscapeKey';
 import { formatBytes, formatUptime } from '../utils/formatOps';
 
@@ -47,6 +53,7 @@ export interface AdminOverview {
   counts: Record<string, number>;
   connections: { websocket: number; sse: number };
   pending: { reports: number; clubs: number };
+  moderation: { banned: number; muted: number; records: number; auditEntries: number };
   contentHealth: {
     unansweredQuestions: number;
     unsolvedQuestions: number;
@@ -71,6 +78,39 @@ export interface AdminOverview {
   }[];
   topReported: { target: string; count: number }[];
 }
+
+export interface AdminUserRecord {
+  id: string;
+  email: string;
+  name: string;
+  avatar: string;
+  role: 'SUPER_ADMIN' | 'CLUB_LEADER' | 'STUDENT';
+  level: number;
+  moderation: {
+    banned: boolean;
+    muted: boolean;
+    bannedUntil?: number;
+    mutedUntil?: number;
+    reason?: string;
+  };
+}
+
+interface AdminAuditRecord {
+  id: string;
+  at: number;
+  action: string;
+  targetEmail?: string;
+  reason?: string;
+  by?: string;
+}
+
+const MODERATION_DURATIONS = [
+  { value: 15, label: '15 phút' },
+  { value: 60, label: '1 giờ' },
+  { value: 1440, label: '1 ngày' },
+  { value: 10080, label: '7 ngày' },
+  { value: 0, label: 'Vĩnh viễn' },
+] as const;
 
 interface AdminConsoleModalProps {
   isOpen: boolean;
@@ -106,6 +146,21 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
   */
   const [isRefreshing, setIsRefreshing] = useState(false);
   const isLoading = overview === null && errorMsg === null;
+
+  /* Tra cứu thành viên: truy vấn rỗng chỉ hiện người đang bị áp chế. */
+  const [userQuery, setUserQuery] = useState('');
+  const [userResults, setUserResults] = useState<AdminUserRecord[]>([]);
+  const [userLoadedQuery, setUserLoadedQuery] = useState<string | null>(null);
+  const [userSearchError, setUserSearchError] = useState<string | null>(null);
+  const [moderationDuration, setModerationDuration] = useState<number>(60);
+  const [moderationReason, setModerationReason] = useState('');
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const userSearchLoading = userLoadedQuery !== userQuery;
+
+  /* Nhật ký thao tác quản trị — chỉ lấy dữ liệu đã giới hạn từ server. */
+  const [auditRows, setAuditRows] = useState<AdminAuditRecord[]>([]);
+  const [auditError, setAuditError] = useState<string | null>(null);
+  const [auditRefreshTick, setAuditRefreshTick] = useState(0);
 
   /**
    * Chỉ làm phần mạng + bóc tách dữ liệu, KHÔNG đụng tới state — nhờ vậy gọi
@@ -150,6 +205,142 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
     setIsRefreshing(true);
     applyResult(await fetchOverview());
   }, [fetchOverview, applyResult]);
+
+  /*
+    HÀNH ĐỘNG QUẢN LÝ (cấm / khoá gửi tin / gỡ).
+
+    Đây là chỗ DUY NHẤT trong UI gọi endpoint ghi của quản trị. Nó không tự suy
+    diễn luật nào cả — gửi hành động lên server rồi dùng đúng `status` server trả
+    về để vẽ lại, nên UI không bao giờ lệch với sự thật trên máy chủ.
+  */
+  const [busyTarget, setBusyTarget] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const runModeration = useCallback(
+    async (email: string, action: 'ban' | 'mute' | 'unban' | 'unmute') => {
+      const appliesRestriction = action === 'ban' || action === 'mute';
+      const reason = moderationReason.trim();
+      if (appliesRestriction && reason.length < 3) {
+        setActionError('Hãy ghi lý do cụ thể (ít nhất 3 ký tự) để quyết định có thể truy vết.');
+        return;
+      }
+      if (appliesRestriction && moderationDuration === 0) {
+        const scope = action === 'ban'
+          ? 'không thể đăng câu hỏi, lời giải, CLB hoặc gửi tin'
+          : 'không thể gửi tin chat';
+        const accepted = window.confirm(
+          `${action === 'ban' ? 'Cấm đăng' : 'Khoá chat'} ${email} vĩnh viễn? Người này ${scope}. Có thể gỡ lại từ bảng điều khiển.`,
+        );
+        if (!accepted) return;
+      }
+
+      setBusyTarget(email);
+      setActionError(null);
+      setActionNotice(null);
+      try {
+        const { status, data } = await postJson('/api/admin/moderate', {
+          email,
+          action,
+          durationMinutes: appliesRestriction ? moderationDuration : undefined,
+          reason: appliesRestriction ? reason : '',
+        });
+        if (status !== 200 || !data?.success) {
+          setActionError(data?.message || `Không thực hiện được thao tác (HTTP ${status}).`);
+          return;
+        }
+
+        /* Cập nhật dòng đang xem ngay từ trạng thái chuẩn server vừa trả về. */
+        if (data.status) {
+          setUserResults((prev) => prev.flatMap((user) => {
+            if (user.email !== email) return [user];
+            const updated = { ...user, moderation: data.status };
+            /* Query rỗng là danh sách "đang bị áp chế"; gỡ hết thì hàng này
+               không còn thuộc bộ lọc, nhưng khi đang tìm theo tên/email thì giữ. */
+            if (!userQuery.trim() && !data.status.banned && !data.status.muted) return [];
+            return [updated];
+          }));
+        }
+        setActionNotice(data.changed ? 'Đã cập nhật trạng thái và ghi vào nhật ký quản trị.' : data.message);
+        applyResult(await fetchOverview());
+        setAuditRefreshTick((tick) => tick + 1);
+      } catch {
+        setActionError('Không kết nối được máy chủ. Trạng thái chưa được xác nhận — hãy làm mới trước khi thử lại.');
+      } finally {
+        setBusyTarget(null);
+      }
+    },
+    [applyResult, fetchOverview, moderationDuration, moderationReason, userQuery],
+  );
+
+  /** Tra cứu thuần — không setState, có thể gọi từ effect và event handler. */
+  const fetchAdminUsers = useCallback(async (query: string): Promise<
+    { ok: true; users: AdminUserRecord[] } | { ok: false; message: string }
+  > => {
+    try {
+      const res = await fetch(`/api/admin/users?q=${encodeURIComponent(query)}`, { headers: authHeaders() });
+      const data = await res.json().catch(() => null);
+      if (res.status !== 200 || !data?.success) {
+        return { ok: false, message: data?.message || `Không tra cứu được người dùng (HTTP ${res.status}).` };
+      }
+      return { ok: true, users: Array.isArray(data.users) ? data.users as AdminUserRecord[] : [] };
+    } catch {
+      return { ok: false, message: 'Không kết nối được máy chủ để tra cứu người dùng.' };
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      const result = await fetchAdminUsers(userQuery);
+      if (cancelled) return;
+      setUserLoadedQuery(userQuery);
+      if (result.ok) {
+        setUserResults(result.users);
+        setUserSearchError(null);
+      } else {
+        setUserResults([]);
+        setUserSearchError(result.message);
+      }
+    }, userQuery ? 250 : 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [isOpen, userQuery, fetchAdminUsers]);
+
+  const fetchAudit = useCallback(async (): Promise<
+    { ok: true; rows: AdminAuditRecord[] } | { ok: false; message: string }
+  > => {
+    try {
+      const res = await fetch('/api/admin/audit?limit=8', { headers: authHeaders() });
+      const data = await res.json().catch(() => null);
+      if (res.status !== 200 || !data?.success) {
+        return { ok: false, message: data?.message || `Không tải được nhật ký (HTTP ${res.status}).` };
+      }
+      return { ok: true, rows: Array.isArray(data.auditLog) ? data.auditLog as AdminAuditRecord[] : [] };
+    } catch {
+      return { ok: false, message: 'Không kết nối được máy chủ để tải nhật ký.' };
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    let cancelled = false;
+    (async () => {
+      const result = await fetchAudit();
+      if (cancelled) return;
+      if (result.ok) {
+        setAuditRows(result.rows);
+        setAuditError(null);
+      } else {
+        setAuditError(result.message);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, auditRefreshTick, fetchAudit]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -235,7 +426,7 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/15 text-neutral-200 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
               title="Tải lại số liệu"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'motion-safe:animate-spin' : ''}`} />
               Làm mới
             </button>
             <button
@@ -367,6 +558,193 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
                 </div>
               </section>
 
+              {/* QUẢN LÝ THÀNH VIÊN — thứ admin cần để xử lý ngay một tài khoản */}
+              <section className="rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-500/[0.07] to-transparent p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                  <div>
+                    <h3 className="flex items-center gap-2 text-sm font-bold text-white">
+                      <Users className="w-4 h-4 text-cyan-300" />
+                      Quản lý thành viên
+                    </h3>
+                    <p className="mt-1 text-[11px] text-neutral-400">
+                      {overview.moderation.banned} tài khoản bị cấm đăng · {overview.moderation.muted} tài khoản bị khoá chat
+                    </p>
+                  </div>
+                  <span className="text-[10px] text-neutral-500">
+                    Tìm theo tên, email, mã thành viên hoặc lớp
+                  </span>
+                </div>
+
+                <label className="block">
+                  <span className="sr-only">Tìm thành viên theo tên hoặc email</span>
+                  <span className="relative block">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                    <input
+                      type="search"
+                      value={userQuery}
+                      onChange={(event) => setUserQuery(event.target.value.slice(0, 120))}
+                      placeholder="Nhập tên hoặc email… (từ 2 ký tự)"
+                      aria-label="Tìm thành viên theo tên, email, mã hoặc lớp"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-black/25 border border-white/10 focus:border-cyan-400/45 focus:outline-none text-xs text-white placeholder:text-neutral-600"
+                    />
+                  </span>
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-[170px_1fr] gap-2">
+                  <label className="text-[10px] text-neutral-500">
+                    <span className="block mb-1">Thời hạn áp dụng</span>
+                    <select
+                      value={moderationDuration}
+                      onChange={(event) => setModerationDuration(Number(event.target.value))}
+                      className="w-full px-2.5 py-2 rounded-lg bg-[#111923] border border-white/10 text-xs text-neutral-200 focus:border-cyan-400/45 focus:outline-none"
+                    >
+                      {MODERATION_DURATIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-[10px] text-neutral-500">
+                    <span className="block mb-1">Lý do (bắt buộc khi cấm / khoá chat)</span>
+                    <input
+                      type="text"
+                      value={moderationReason}
+                      onChange={(event) => setModerationReason(event.target.value.slice(0, 500))}
+                      maxLength={500}
+                      placeholder="Ví dụ: spam liên tục sau khi đã được nhắc nhở"
+                      className="w-full px-2.5 py-2 rounded-lg bg-black/25 border border-white/10 text-xs text-neutral-200 placeholder:text-neutral-600 focus:border-cyan-400/45 focus:outline-none"
+                    />
+                  </label>
+                </div>
+
+                {actionError && (
+                  <p role="alert" className="flex items-center gap-1.5 text-[11px] text-rose-300">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />{actionError}
+                  </p>
+                )}
+                {actionNotice && (
+                  <p role="status" className="flex items-center gap-1.5 text-[11px] text-emerald-300">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />{actionNotice}
+                  </p>
+                )}
+                {userSearchError && (
+                  <p role="alert" className="text-[11px] text-rose-300">{userSearchError}</p>
+                )}
+
+                {userSearchLoading ? (
+                  <div className="py-4 text-center text-xs text-neutral-500 motion-safe:animate-pulse">Đang tìm thành viên…</div>
+                ) : userResults.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-white/10 px-3 py-4 text-center">
+                    <p className="text-xs text-neutral-400">
+                      {userQuery.trim().length >= 2
+                        ? 'Không tìm thấy thành viên phù hợp.'
+                        : 'Hiện chưa có tài khoản bị áp chế. Nhập ít nhất 2 ký tự để tra cứu.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-neutral-500">
+                      {userQuery.trim().length >= 2
+                        ? `Tối đa 20 kết quả · ${userResults.length} đang hiển thị`
+                        : `Đang bị áp chế · ${userResults.length} tài khoản`}
+                    </p>
+                    {userResults.map((user) => {
+                      const banned = user.moderation?.banned === true;
+                      const muted = user.moderation?.muted === true;
+                      const busy = busyTarget === user.email;
+                      const restrictionText = (until?: number) => {
+                        if (until === 0) return 'vĩnh viễn';
+                        if (!until) return 'đã hết hạn';
+                        const date = new Date(until);
+                        return Number.isNaN(date.getTime()) ? 'có thời hạn' : date.toLocaleString('vi-VN');
+                      };
+                      return (
+                        <div key={user.email} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-black/20 border border-white/8">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {user.avatar ? (
+                              <img src={user.avatar} alt="" className="w-9 h-9 rounded-full object-cover border border-white/10 shrink-0" />
+                            ) : (
+                              <span className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-neutral-500 shrink-0">
+                                <UserRound className="w-4 h-4" />
+                              </span>
+                            )}
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-xs font-semibold text-neutral-100 truncate">{user.name}</span>
+                                <span className="px-1.5 py-0.5 rounded bg-white/5 text-[9px] text-neutral-500">
+                                  {user.role === 'CLUB_LEADER' ? 'Chủ nhiệm CLB' : user.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Học sinh'} · Cấp {user.level}
+                                </span>
+                                {banned && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-400/25 text-[9px] font-semibold text-rose-300">
+                                    <Ban className="w-3 h-3" /> Cấm đăng · {restrictionText(user.moderation.bannedUntil)}
+                                  </span>
+                                )}
+                                {muted && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-400/25 text-[9px] font-semibold text-amber-300">
+                                    <MessageSquareOff className="w-3 h-3" /> Khoá chat · {restrictionText(user.moderation.mutedUntil)}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="mt-0.5 text-[10px] text-neutral-500 font-mono truncate">{user.email}</p>
+                              {(banned || muted) && user.moderation.reason && (
+                                <p className="mt-1 text-[10px] text-neutral-500 truncate" title={user.moderation.reason}>Lý do: {user.moderation.reason}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 sm:shrink-0">
+                            {banned ? (
+                              <button
+                                type="button"
+                                onClick={() => void runModeration(user.email, 'unban')}
+                                disabled={busy}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-400/25 text-[10px] font-semibold text-emerald-300 hover:bg-emerald-500/25 disabled:opacity-50 cursor-pointer"
+                                title="Gỡ cấm đăng nội dung"
+                              >
+                                <Undo2 className="w-3 h-3" /> Gỡ cấm
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => void runModeration(user.email, 'ban')}
+                                disabled={busy || user.role === 'SUPER_ADMIN'}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-500/15 border border-rose-400/25 text-[10px] font-semibold text-rose-300 hover:bg-rose-500/25 disabled:opacity-40 cursor-pointer"
+                                title="Chặn đăng câu hỏi, lời giải, CLB và tin nhắn"
+                              >
+                                <Ban className="w-3 h-3" /> Cấm đăng
+                              </button>
+                            )}
+                            {muted ? (
+                              <button
+                                type="button"
+                                onClick={() => void runModeration(user.email, 'unmute')}
+                                disabled={busy}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-400/25 text-[10px] font-semibold text-emerald-300 hover:bg-emerald-500/25 disabled:opacity-50 cursor-pointer"
+                                title="Mở khoá gửi tin chat"
+                              >
+                                <Undo2 className="w-3 h-3" /> Gỡ chat
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => void runModeration(user.email, 'mute')}
+                                disabled={busy || user.role === 'SUPER_ADMIN'}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500/15 border border-amber-400/25 text-[10px] font-semibold text-amber-300 hover:bg-amber-500/25 disabled:opacity-40 cursor-pointer"
+                                title="Chỉ khoá gửi tin chat; không chặn đăng bài"
+                              >
+                                <MessageSquareOff className="w-3 h-3" /> Khoá chat
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="text-[10px] leading-relaxed text-neutral-600">
+                  Cấm đăng sẽ chặn tạo câu hỏi, lời giải, CLB, bài CLB và tin nhắn; người dùng vẫn có thể đăng nhập để xem nội dung. Khoá chat chỉ chặn gửi tin. Mọi quyết định có lý do, thời hạn và người thực hiện trong nhật ký; tài khoản Super Admin được bảo vệ.
+                </p>
+              </section>
+
               {/* CỘNG ĐỒNG + KẾT NỐI */}
               <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div>
@@ -474,6 +852,48 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
                   </div>
                 </section>
               )}
+
+              {/* NHẬT KÝ QUẢN TRỊ — truy vết ai quyết định gì */}
+              <section>
+                <h3 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-2">
+                  <ScrollText className="w-3.5 h-3.5" />
+                  Nhật ký quản trị
+                  <span className="normal-case font-normal text-neutral-500">({overview.moderation.auditEntries} mục lưu)</span>
+                </h3>
+                {auditError ? (
+                  <p role="alert" className="text-[11px] text-rose-300">{auditError}</p>
+                ) : auditRows.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-white/10 p-3 text-center text-[11px] text-neutral-500">
+                    Chưa có thao tác quản lý nào được ghi lại.
+                  </p>
+                ) : (
+                  <div className="rounded-xl border border-white/10 bg-white/5 divide-y divide-white/5">
+                    {auditRows.slice(0, 8).map((entry) => {
+                      const at = Number(entry.at);
+                      const auditDate = Number.isFinite(at) && at >= 0 ? new Date(at) : null;
+                      return (
+                      <div key={entry.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2">
+                        <div className="min-w-0">
+                          <p className="text-[11px] text-neutral-200">
+                            <span className="font-semibold">{entry.action.replace('moderate:', '')}</span>
+                            {entry.targetEmail && <span className="ml-1.5 font-mono text-cyan-300">{entry.targetEmail}</span>}
+                          </p>
+                          <p className="text-[10px] text-neutral-500 truncate">
+                            {entry.reason || 'Không có lý do'} · bởi {entry.by || 'quản trị'}
+                          </p>
+                        </div>
+                        <time
+                          className="shrink-0 text-[10px] text-neutral-600 font-mono"
+                          dateTime={auditDate ? auditDate.toISOString() : undefined}
+                        >
+                          {auditDate && at > 0 ? auditDate.toLocaleString('vi-VN') : '—'}
+                        </time>
+                      </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
 
               {/* SỐ ĐẾM NỘI DUNG */}
               <section>

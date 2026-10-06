@@ -1116,6 +1116,94 @@ Test #53.
 
 ---
 
+## 38. Không có cơ chế thực thi kiểm duyệt tài khoản
+
+**Mức độ:** Cao · **Vị trí:** `server/forumServer.ts`, toàn bộ các đường ghi HTTP/WS
+
+Trước đây Super Admin có thể mở hộp thư tố cáo và đánh dấu báo cáo là đã xử lý,
+nhưng không có thao tác nào thực sự ngăn người bị tố cáo tiếp tục đăng. Tố cáo
+được "giải quyết" trên giao diện trong khi tài khoản vẫn có thể gửi chat, câu hỏi,
+lời giải, hồ sơ CLB và bài đăng CLB. Cũng không có nhật ký ai đã quyết định gì.
+
+**Đã vá:**
+- `server/moderation.ts` là module thuần cho bốn hành động `ban`, `mute`, `unban`,
+  `unmute`; thời hạn 15 phút / 1 giờ / 1 ngày / 7 ngày / vĩnh viễn; tự hết hạn và
+  dọn bản ghi chết. `0` nghĩa là vĩnh viễn (không dùng `Infinity`, vì JSON sẽ đổi
+  thành `null`). Lý do tối đa 500 ký tự; thao tác lặp cùng yêu cầu là no-op.
+- `POST /api/admin/moderate` chỉ Super Admin, xác minh tài khoản mục tiêu có thật,
+  từ chối tự khoá / khoá Super Admin, bắt buộc có lý do và chỉ nhận các thời hạn
+  UI đã công bố. Không trả cả map moderation trong response.
+- Một helper `checkCanPost` kiểm tra cả HTTP lẫn WebSocket: cấm đăng chặn chat,
+  câu hỏi, lời giải, lập CLB, bài CLB; khoá chat chỉ chặn chat. Các quyết định
+  được lưu bền vững qua restart, nhật ký có tối đa 300 mục và chỉ Super Admin đọc.
+- `GET /api/admin/users` tìm theo tên/email/mã/lớp, không phân biệt dấu, tối đa 20
+  kết quả và chỉ trả các trường cần thiết; query rỗng chỉ liệt kê người đang bị áp
+  chế. `GET /api/admin/audit` giới hạn tối đa 100 mục mỗi lần đọc.
+- Bảng điều khiển có thời hạn + lý do, xác nhận cấm vĩnh viễn, nút gỡ, trạng thái
+  đang có hiệu lực và nhật ký ai / lúc nào / làm gì. Tài khoản Super Admin được
+  bảo vệ ở cả giao diện lẫn máy chủ.
+
+Test #55 và #56; test #55 được chứng minh fail khi tạm bỏ chốt WebSocket: cả năm
+đường ghi WS lọt qua mặc dù HTTP đã chặn.
+
+---
+
+## 39. Chat tin email do client tự khai, cho phép mạo danh và lách kiểm duyệt
+
+**Mức độ:** Cao · **Vị trí:** `POST /api/chat`, `NEW_CHAT_MESSAGE` qua WebSocket
+
+HTTP nhận `authorEmail` từ body rồi tra người dùng để điền tên/cấp mà không buộc
+email đó khớp phiên đăng nhập. WS chat còn phát lại payload do client tự khai.
+Một tài khoản bị cấm có thể đổi `authorEmail` sang email không bị cấm; khách cũng
+có thể mượn email của tài khoản thật để gửi dưới danh tính đó. Khi thêm moderation,
+đây là lối lách trực tiếp qua chốt `checkCanPost`.
+
+**Đã vá:**
+- HTTP chat lấy danh tính từ Bearer token; email body khác phiên → 403. Khách vẫn
+  được gửi chat công khai, nhưng không được nhận vơ email của tài khoản đã đăng ký
+  (401); tin khách được lưu với email rỗng.
+- WS chat dùng email từ phiên `AUTH`, từ chối payload lệch danh tính; kết nối chưa
+  xác thực không được tự khai email tài khoản thật. Moderation chỉ dùng danh tính
+  của phiên, không tin payload.
+- Tín hiệu `USER_MODERATED` chỉ gửi đến WebSocket của chính người bị áp chế; không
+  broadcast email / lý do nội bộ ra toàn cộng đồng.
+
+Test #56 kiểm tra giả danh bằng cả HTTP và WS; tin giả không được ghi vào store.
+
+---
+
+## 40. Dashboard đếm nhầm người nhận báo cáo thành người bị tố
+
+**Mức độ:** Trung bình · **Vị trí:** `GET /api/admin/overview`, thống kê `topReported`
+
+Bản đầu của bảng điều khiển gom báo cáo theo `targetEmail`. Trường này là email
+NHẬN báo cáo (Super Admin), không phải người bị tố cáo; kết quả là dashboard có
+thể báo admin là người bị tố cáo nhiều nhất trong khi bỏ qua các tài khoản thật.
+
+**Đã vá:** group theo `reportedUserId`, ánh xạ id về email tài khoản trong store;
+nếu tài khoản không còn tồn tại thì dùng `reportedUserName` / id làm nhãn. Không
+trả nội dung hay lý do tố cáo trong thống kê. Test #56 tạo một báo cáo tới user
+kiểm thử và xác nhận `topReported` trỏ đúng email người bị tố. Đã chứng minh test
+fail khi tạm khôi phục phép đếm cũ.
+
+---
+
+## 41. Có thể dò trạng thái/lý do cấm bằng email chưa xác thực
+
+**Mức độ:** Trung bình · **Vị trí:** `POST /api/questions`, `POST /api/solutions`
+
+Khi nối moderation vào các endpoint này, kiểm tra ban ban đầu đứng trước bước
+xác thực token. Người ngoài chỉ cần biết email mục tiêu là phân biệt được tài
+khoản bị cấm qua `403`, thậm chí đọc lý do nội bộ trong thông báo — dù họ không
+đăng nhập được bằng tài khoản đó.
+
+**Đã vá:** với tài khoản đã đăng ký, kiểm tra Bearer token khớp email trước; token
+thiếu/sai chỉ nhận `401` chung. Chỉ sau đó mới trả `403` cùng lý do cho đúng chủ
+phiên. Test #55 xác nhận chat/question/club của chủ tài khoản bị cấm nhận 403,
+nhưng dò bằng email không token ở question/solution chỉ nhận 401 và không lộ lý do.
+
+---
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -1124,11 +1212,11 @@ Test #53.
 | Phiên | Token HMAC-SHA256, hạn 30 ngày, gửi qua `Authorization: Bearer` |
 | WebSocket | Bắt tay `AUTH` → gắn `SessionClaims` cho từng kết nối |
 | Hồ sơ | Chỉ chủ tài khoản; `role`/`id`/`email` do server sở hữu; `level` tính lại từ `xp` |
-| Kiểm duyệt | Super Admin có token hợp lệ, hoặc chủ nội dung với nội dung của mình |
+| Kiểm duyệt | Super Admin có token; cấm/khoá chat được thực thi trên cả HTTP + WS; audit tối đa 300 mục |
 | Tiền tệ | Kiểm số dư, thưởng idempotent, khử trùng lặp bản ghi |
 | Tần suất | Cửa sổ trượt theo IP/email, `429` + `Retry-After` |
 | Social | Xác minh access token với nhà cung cấp, so khớp email |
-| Tố cáo | Hộp thư chỉ Super Admin đọc được; báo cáo sống sót qua khởi động lại |
+| Tố cáo | Hộp thư chỉ Super Admin đọc được; xử lý có thể đi kèm cấm/khoá; dữ liệu sống sót qua restart |
 | Nội dung | Server tự cắt độ dài, không tin `maxLength` của client; kho dữ liệu có trần |
 | Câu lạc bộ | Lập cần đăng nhập; duyệt/từ chối chỉ Super Admin; người sáng lập lấy từ token |
 | Trực tuyến | `email`/`role` trong gói presence chỉ lấy từ phiên đã xác thực |
@@ -1144,6 +1232,6 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 53 bài, chạy trên server thật
-npm test                                        # toàn bộ 190 bài
+node --test tests/security-hardening.test.mjs   # 56 bài, chạy trên server thật
+npm test                                        # toàn bộ 215 bài
 ```
