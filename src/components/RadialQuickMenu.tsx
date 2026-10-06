@@ -1,6 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { HelpCircle, Headphones, Flame, Settings, Zap, NotebookPen, Command } from 'lucide-react';
+import { HelpCircle, Timer, Flame, Settings, Zap, NotebookPen, Command } from 'lucide-react';
 import type { DimensionView } from '../types';
 import { safeStorage } from '../utils/storage';
 
@@ -104,7 +104,7 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
       label: 'Vào không gian tập trung',
       angle: '-72deg',
       tier: 'far',
-      icon: <Headphones className="w-[21px] h-[21px] text-emerald-300" />,
+      icon: <Timer className="w-[21px] h-[21px] text-emerald-300" />,
       onSelect: onOpenFocusMode,
     },
     {

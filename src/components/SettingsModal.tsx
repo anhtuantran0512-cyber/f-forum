@@ -4,7 +4,6 @@ import {
   Settings,
   X,
   Volume2,
-  VolumeX,
   Timer,
   Sparkles,
   Zap,
@@ -33,8 +32,6 @@ export interface SettingsModalProps {
   onClose: () => void;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
-  isAudioPlaying: boolean;
-  onToggleAudio: (e?: React.MouseEvent) => void;
   onOpenFocusMode: () => void;
   soundEffects: boolean;
   onToggleSoundEffects: () => void;
@@ -147,8 +144,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   theme,
   onToggleTheme,
-  isAudioPlaying,
-  onToggleAudio,
   onOpenFocusMode,
   soundEffects,
   onToggleSoundEffects,
@@ -876,7 +871,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* 5. SFX & MOTION */}
               <section>
-                <SectionTitle icon={<Zap className="w-3 h-3 text-amber-300" />}>Âm thanh &amp; chuyển động</SectionTitle>
+                <SectionTitle icon={<Zap className="w-3 h-3 text-amber-300" />}>Phản hồi &amp; chuyển động</SectionTitle>
                 <Card className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <SwitchRow
                     icon={<Volume2 className="w-3.5 h-3.5 text-amber-400" />}
@@ -898,49 +893,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* 6. KHÔNG GIAN TẬP TRUNG */}
               <section>
-                <SectionTitle icon={<Volume2 className="w-3 h-3 text-emerald-300" />}>Không gian tập trung</SectionTitle>
+                <SectionTitle icon={<Timer className="w-3 h-3 text-emerald-300" />}>Không gian tập trung</SectionTitle>
                 <Card className="space-y-2.5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div
-                        className={`w-8 h-8 rounded-2xl flex items-center justify-center shrink-0 ${
-                          isAudioPlaying
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
-                            : 'bg-white/5 text-white/60 border border-white/10'
-                        }`}
-                      >
-                        {isAudioPlaying ? (
-                          <Volume2 className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                        ) : (
-                          <VolumeX className="w-3.5 h-3.5" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-[11.5px] font-semibold text-white">Âm thanh Ambient (432Hz)</div>
-                        <div className="text-[10px] text-white/55 truncate">
-                          {isAudioPlaying ? 'Binaural 432Hz đang chạy' : 'Tập trung sâu & thư giãn'}
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={isAudioPlaying}
-                      onClick={onToggleAudio}
-                      className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer flex items-center shrink-0 ${
-                        isAudioPlaying ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-white/20'
-                      }`}
-                      aria-label="Bật/Tắt âm thanh ambient"
-                    >
-                      <div
-                        className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform ${
-                          isAudioPlaying ? 'translate-x-4' : 'translate-x-0'
-                        }`}
-                      />
-                    </button>
-                  </div>
-
                   <SwitchRow
                     icon={<Eye className="w-3.5 h-3.5 text-emerald-400" />}
                     title="Nhắc nghỉ mắt 20-20-20"

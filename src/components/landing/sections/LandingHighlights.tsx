@@ -3,7 +3,7 @@ import React from 'react';
 import {
   BookOpen,
   GraduationCap,
-  Headphones,
+  Timer,
   MessageSquare,
   Sparkles,
   Trophy,
@@ -16,7 +16,7 @@ const HIGHLIGHT_ICONS: Record<(typeof HIGHLIGHTS)[number]['icon'], React.ReactNo
   qa: <GraduationCap className="h-5 w-5" aria-hidden="true" />,
   chat: <MessageSquare className="h-5 w-5" aria-hidden="true" />,
   rank: <Trophy className="h-5 w-5" aria-hidden="true" />,
-  focus: <Headphones className="h-5 w-5" aria-hidden="true" />,
+  focus: <Timer className="h-5 w-5" aria-hidden="true" />,
   clubs: <Users className="h-5 w-5" aria-hidden="true" />,
   memory: <BookOpen className="h-5 w-5" aria-hidden="true" />,
 };

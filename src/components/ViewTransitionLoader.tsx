@@ -3,11 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 
 /* ==========================================================================
-   CodeFronts la-09 — Music Player Vinyl Spin Loading Animation
-   --------------------------------------------------------------------------
-   Đã lược bỏ các nút demo (đổi theme / xong) và gắn nhãn phân khu thật:
-   đĩa than quay, tay cần hạ xuống theo chu kỳ, dải equalizer nhấp nhô,
-   dòng trạng thái đọc như một "now loading" row thật.
+   la-09 transition loader — decorative vinyl-style visual, with no audio playback.
    ========================================================================== */
 export interface ViewTransitionLoaderProps {
   visible: boolean;
