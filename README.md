@@ -183,7 +183,7 @@ Sau khi chạy lệnh, mở trình duyệt web và truy cập địa chỉ: `htt
 # Kiểm tra lỗi cú pháp với Oxlint
 npx oxlint
 
-# Chạy toàn bộ 164 bài kiểm thử tự động
+# Chạy toàn bộ 181 bài kiểm thử tự động
 npm test
 
 # Biên dịch mã nguồn cho môi trường sản xuất
@@ -213,7 +213,7 @@ f-forum/
 │   ├── index.css           # Cấu hình giao diện và hiệu ứng kính
 │   └── main.tsx            # Điểm khởi động ứng dụng
 ├── docs/                   # Tài liệu thiết kế & bảo mật
-├── tests/                  # Bộ bài kiểm thử tự động (164 bài)
+├── tests/                  # Bộ bài kiểm thử tự động (181 bài)
 └── package.json            # Thông tin dự án và danh sách thư viện
 ```
 

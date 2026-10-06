@@ -1145,5 +1145,5 @@ khoản thường vẫn đăng nhập social được, riêng quyền quản tr�
 
 ```bash
 node --test tests/security-hardening.test.mjs   # 53 bài, chạy trên server thật
-npm test                                        # toàn bộ 164 bài
+npm test                                        # toàn bộ 181 bài
 ```
