@@ -1,0 +1,483 @@
+/* Bảng thống kê / danh bạ quản trị — toàn bộ selector được cô lập bằng faa-. */
+.faa-backdrop,
+.faa-backdrop *,
+.faa-backdrop *::before,
+.faa-backdrop *::after,
+.faa-detail-backdrop,
+.faa-detail-backdrop *,
+.faa-detail-backdrop *::before,
+.faa-detail-backdrop *::after {
+  box-sizing: border-box;
+}
+
+.faa-backdrop {
+  --faa-bg: #0b1119;
+  --faa-card: rgba(18, 27, 39, 0.88);
+  --faa-card-strong: rgba(23, 34, 49, 0.94);
+  --faa-edge: rgba(148, 163, 184, 0.15);
+  --faa-ink: #edf4fb;
+  --faa-muted: #8b9aaa;
+  --faa-cyan: #58d7e8;
+  --faa-mint: #69e4b8;
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  color: var(--faa-ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  isolation: isolate;
+  container-type: inline-size;
+}
+
+.faa-backdrop__dismiss {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: rgba(2, 5, 10, 0.78);
+  backdrop-filter: blur(12px);
+  cursor: default;
+}
+
+.faa-shell {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(1480px, 100%);
+  height: min(940px, calc(100dvh - 24px));
+  overflow: hidden;
+  border: 1px solid rgba(103, 232, 249, 0.22);
+  border-radius: 26px;
+  background:
+    radial-gradient(100% 70% at 88% -10%, rgba(56, 189, 248, 0.13), transparent 64%),
+    radial-gradient(70% 60% at -12% 110%, rgba(129, 140, 248, 0.1), transparent 60%),
+    linear-gradient(160deg, rgba(14, 21, 31, 0.99), rgba(7, 11, 17, 0.99));
+  box-shadow: 0 36px 100px rgba(0, 0, 0, 0.76), inset 0 1px rgba(255, 255, 255, 0.045);
+  animation: faa-enter 320ms cubic-bezier(0.18, 0.7, 0.24, 1) both;
+}
+
+@keyframes faa-enter {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.faa-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 76px;
+  padding: 15px 22px;
+  border-bottom: 1px solid var(--faa-edge);
+  background: linear-gradient(90deg, rgba(8, 145, 178, 0.1), transparent 48%, rgba(139, 92, 246, 0.055));
+}
+
+.faa-brand,
+.faa-brand__copy,
+.faa-topbar__actions,
+.faa-button,
+.faa-tabs button,
+.faa-tabs__right,
+.faa-tile__top,
+.faa-chart-head,
+.faa-chart-legend,
+.faa-activity-row,
+.faa-member-identity,
+.faa-member-metrics,
+.faa-member-badges,
+.faa-member-action,
+.faa-pagination,
+.faa-detail__head,
+.faa-profile-card__main,
+.faa-profile-card__identity,
+.faa-action-button,
+.faa-alert,
+.faa-permission,
+.faa-updated {
+  display: flex;
+  align-items: center;
+}
+
+.faa-brand { min-width: 0; gap: 12px; }
+.faa-mark {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(103, 232, 249, 0.35);
+  border-radius: 14px;
+  color: #92f2ff;
+  background: linear-gradient(145deg, rgba(8, 145, 178, 0.28), rgba(79, 70, 229, 0.12));
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.11), inset 0 1px rgba(255, 255, 255, 0.13);
+}
+.faa-brand__copy { display: block; min-width: 0; }
+.faa-brand__copy h2 { margin: 0; color: #f6fbff; font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+.faa-brand__copy p { margin: 3px 0 0; color: var(--faa-muted); font-size: 11px; }
+.faa-live {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  margin-left: 7px;
+  padding: 6px 10px;
+  border: 1px solid rgba(105, 228, 184, 0.22);
+  border-radius: 999px;
+  color: #92efce;
+  background: rgba(16, 185, 129, 0.08);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+}
+.faa-live i,
+.faa-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #4adea8; box-shadow: 0 0 12px rgba(74, 222, 168, 0.7); }
+.faa-live i { animation: faa-pulse 1.8s ease-in-out infinite; }
+@keyframes faa-pulse { 50% { opacity: 0.45; transform: scale(0.8); } }
+.faa-topbar__actions { flex: none; gap: 8px; }
+
+.faa-button,
+.faa-icon-button {
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 11px;
+  color: #dce8f2;
+  background: rgba(255, 255, 255, 0.045);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 180ms ease, background 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+.faa-button:hover:not(:disabled),
+.faa-icon-button:hover { color: white; border-color: rgba(103, 232, 249, 0.42); background: rgba(34, 211, 238, 0.09); transform: translateY(-1px); }
+.faa-button:disabled { opacity: 0.55; cursor: wait; }
+.faa-button--quiet { background: rgba(255, 255, 255, 0.035); }
+.faa-button--member { min-height: 32px; color: #b7edfa; border-color: rgba(34, 211, 238, 0.24); background: rgba(8, 145, 178, 0.1); white-space: nowrap; }
+.faa-button--warning { color: #ffdaa0; border-color: rgba(245, 158, 11, 0.28); background: rgba(245, 158, 11, 0.11); }
+.faa-icon-button { width: 36px; min-width: 36px; min-height: 36px; padding: 0; }
+.faa-spin { animation: faa-spin 850ms linear infinite; }
+@keyframes faa-spin { to { transform: rotate(360deg); } }
+
+.faa-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 52px;
+  padding: 8px 22px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.11);
+  background: rgba(3, 7, 12, 0.28);
+}
+.faa-tabs button {
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #8796a5;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+.faa-tabs button:hover { color: #dff8ff; background: rgba(255, 255, 255, 0.045); }
+.faa-tabs button.is-active { color: #9ceefa; border-color: rgba(34, 211, 238, 0.19); background: rgba(8, 145, 178, 0.1); }
+.faa-tabs button > span { min-width: 19px; padding: 2px 5px; border-radius: 999px; color: #cbd5e1; background: rgba(255, 255, 255, 0.08); text-align: center; font-size: 9px; }
+.faa-tabs__right { gap: 8px; margin-left: auto; }
+.faa-updated { gap: 5px; color: #6e7d8e; font-size: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.faa-permission { gap: 5px; color: #89dbcc; font-size: 10px; font-weight: 700; }
+.faa-content { flex: 1; min-height: 0; overflow: auto; scrollbar-color: rgba(148, 163, 184, 0.25) transparent; scrollbar-width: thin; }
+.faa-overview,
+.faa-members-view { padding: 20px 22px 24px; }
+.faa-period-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 15px; }
+.faa-eyebrow { display: flex; align-items: center; gap: 7px; margin: 0; color: #7f91a3; font-size: 9px; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; }
+.faa-live-dot { display: inline-block; width: 6px; height: 6px; }
+.faa-period-note { margin: 5px 0 0 13px; color: #677789; font-size: 10px; }
+.faa-range { display: flex; flex: none; gap: 3px; padding: 4px; border: 1px solid rgba(148, 163, 184, 0.13); border-radius: 12px; background: rgba(2, 6, 10, 0.38); }
+.faa-range button,
+.faa-role-filters button {
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #8090a0;
+  background: transparent;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+.faa-range button:hover,
+.faa-role-filters button:hover { color: #dffaff; background: rgba(255, 255, 255, 0.055); }
+.faa-range button.is-active,
+.faa-role-filters button.is-active { color: #b4f5fc; border-color: rgba(34, 211, 238, 0.2); background: rgba(34, 211, 238, 0.1); }
+
+.faa-bento { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: minmax(132px, auto); gap: 12px; }
+.faa-tile {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  padding: 15px 16px;
+  border: 1px solid var(--faa-edge);
+  border-radius: 17px;
+  background: linear-gradient(150deg, rgba(26, 39, 54, 0.82), rgba(14, 21, 31, 0.9));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.025);
+  transition: opacity 240ms ease, scale 240ms ease, border-color 220ms ease, transform 220ms ease;
+}
+.faa-tile:hover { border-color: rgba(103, 232, 249, 0.36); transform: translateY(-1px); }
+.faa-bento:has(.faa-tile:hover) .faa-tile:not(:hover) { opacity: 0.78; scale: 0.995; }
+.faa-tile--hero { grid-column: span 2; grid-row: span 2; min-height: 276px; padding: 19px 20px; background: radial-gradient(90% 80% at 100% 100%, rgba(14, 165, 233, 0.18), transparent 70%), linear-gradient(150deg, rgba(17, 47, 64, 0.93), rgba(13, 22, 33, 0.96)); border-color: rgba(34, 211, 238, 0.23); }
+.faa-tile--metric { display: flex; flex-direction: column; gap: 7px; min-height: 132px; }
+.faa-tile__top { justify-content: space-between; gap: 8px; min-width: 0; }
+.faa-tile__icon { display: grid; flex: none; width: 31px; height: 31px; place-items: center; border: 1px solid currentColor; border-radius: 10px; background: rgba(255, 255, 255, 0.04); }
+.faa-tile__hint { min-width: 0; overflow: hidden; color: #a2afbd; font-size: 10px; font-weight: 700; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.faa-cyan { color: #6be5f4; border-color: rgba(103, 232, 249, 0.25); background-color: rgba(34, 211, 238, 0.08); }
+.faa-mint { color: #78ebc1; border-color: rgba(105, 228, 184, 0.24); background-color: rgba(16, 185, 129, 0.08); }
+.faa-violet { color: #c1a4ff; border-color: rgba(167, 139, 250, 0.24); background-color: rgba(139, 92, 246, 0.08); }
+.faa-amber, .faa-gold { color: #f7cb76; border-color: rgba(245, 158, 11, 0.24); background-color: rgba(245, 158, 11, 0.08); }
+.faa-blue { color: #8db8ff; border-color: rgba(96, 165, 250, 0.24); background-color: rgba(59, 130, 246, 0.08); }
+.faa-hero-number { position: relative; z-index: 1; margin-top: 17px; color: #f5fbff; font-size: clamp(38px, 5.1cqi, 68px); font-weight: 800; letter-spacing: -0.06em; line-height: 0.98; font-variant-numeric: tabular-nums; }
+.faa-tile__caption { position: relative; z-index: 1; margin: 7px 0 0; color: #9baaba; font-size: 11px; }
+.faa-breakdown { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 8px 15px; margin-top: 18px; color: #a6b5c4; font-size: 10px; }
+.faa-breakdown span { display: inline-flex; align-items: center; gap: 6px; }
+.faa-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
+.faa-dot--cyan { background: #59d5e8; box-shadow: 0 0 10px rgba(89, 213, 232, 0.6); }
+.faa-dot--purple { background: #a78bfa; box-shadow: 0 0 10px rgba(167, 139, 250, 0.5); }
+.faa-dot--mint { background: #64e3b4; box-shadow: 0 0 10px rgba(100, 227, 180, 0.5); }
+.faa-hero-wave { position: absolute; inset: auto 0 0; height: 76px; opacity: 0.48; pointer-events: none; }
+.faa-hero-wave i { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(34, 211, 238, 0.23), transparent); clip-path: polygon(0 75%, 10% 64%, 20% 72%, 30% 49%, 40% 58%, 50% 32%, 60% 43%, 71% 20%, 83% 34%, 92% 10%, 100% 18%, 100% 100%, 0 100%); }
+.faa-metric-value { margin-top: auto; overflow: hidden; color: #f2f7fb; font-size: clamp(18px, 2.05cqi, 28px); font-weight: 800; letter-spacing: -0.035em; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.faa-tile--metric .faa-tile__caption { margin-top: 0; color: #738397; font-size: 9px; line-height: 1.35; }
+
+.faa-tile--chart { grid-column: span 2; grid-row: span 2; min-height: 276px; }
+.faa-chart-head { justify-content: space-between; gap: 10px; }
+.faa-chart-head h3 { margin: 0; color: #e8f0f7; font-size: 12px; font-weight: 800; letter-spacing: -0.01em; }
+.faa-chart-head p { margin: 4px 0 0; color: #738295; font-size: 9px; }
+.faa-chart-select select,
+.faa-form-field select { min-height: 31px; padding: 0 26px 0 9px; border: 1px solid rgba(148, 163, 184, 0.17); border-radius: 9px; color: #cdd9e4; background: #101924; font: inherit; font-size: 10px; outline: none; }
+.faa-chart { display: flex; align-items: stretch; justify-content: space-between; gap: 5px; height: 160px; margin-top: 22px; padding: 8px 8px 0; border-bottom: 1px solid rgba(148, 163, 184, 0.17); background: linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent); }
+.faa-chart__col { display: flex; flex: 1 1 0; min-width: 0; flex-direction: column; justify-content: flex-end; align-items: center; gap: 7px; }
+.faa-chart__bar { display: block; width: min(72%, 22px); min-height: 2px; border-radius: 5px 5px 1px 1px; background: linear-gradient(180deg, #66e5f2 0%, rgba(34, 211, 238, 0.2) 100%); box-shadow: 0 0 14px rgba(34, 211, 238, 0.09); transform-origin: bottom; transition: height 420ms cubic-bezier(0.22, 0.8, 0.28, 1); }
+.faa-chart__col:nth-child(3n) .faa-chart__bar { background: linear-gradient(180deg, #78eac0 0%, rgba(16, 185, 129, 0.17) 100%); }
+.faa-chart__col small { min-height: 12px; color: #66778a; font-size: 8px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.faa-chart__col:nth-child(even) small { color: #8695a5; }
+.faa-chart-empty { display: grid; min-height: 185px; place-items: center; color: #66778a; font-size: 11px; }
+.faa-chart-legend { gap: 13px; margin-top: 11px; color: #728295; font-size: 9px; }
+.faa-chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.faa-chart-legend b { margin-left: auto; color: #b7c5d2; font-size: 9px; }
+.faa-tile--activity { grid-column: span 2; min-height: 174px; }
+.faa-activity-list { display: flex; flex-direction: column; gap: 5px; margin-top: 15px; }
+.faa-activity-row { gap: 8px; min-height: 26px; color: #96a6b6; font-size: 10px; }
+.faa-activity-row__icon { display: grid; width: 23px; height: 23px; place-items: center; color: #9ddfea; border: 1px solid rgba(103, 232, 249, 0.11); border-radius: 8px; background: rgba(34, 211, 238, 0.05); }
+.faa-activity-row b { margin-left: auto; color: #e7f0f7; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+.faa-tile--top-members { grid-column: span 2; min-height: 174px; }
+.faa-top-list { display: flex; flex-direction: column; gap: 7px; margin: 13px 0 0; padding: 0; list-style: none; }
+.faa-top-list li { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.faa-top-list__rank { width: 21px; color: #718197; font-size: 9px; font-weight: 800; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.faa-avatar { display: grid; flex: none; width: 38px; height: 38px; place-items: center; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.13); border-radius: 13px; object-fit: cover; color: hsl(var(--avatar-hue, 200) 78% 85%); background: linear-gradient(135deg, hsl(var(--avatar-hue, 200) 62% 36%), hsl(calc(var(--avatar-hue, 200) + 45) 68% 23%)); font-size: 11px; font-weight: 800; }
+.faa-avatar--small { width: 27px; height: 27px; border-radius: 9px; font-size: 8px; }
+.faa-avatar--large { width: 58px; height: 58px; border-radius: 17px; font-size: 16px; }
+.faa-top-list__name { display: flex; flex: 1; min-width: 0; flex-direction: column; overflow: hidden; }
+.faa-top-list__name b { overflow: hidden; color: #dfe9f1; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.faa-top-list__name small { overflow: hidden; color: #6f8092; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.faa-top-list__time { flex: none; color: #8cdcc6; font-size: 9px; font-variant-numeric: tabular-nums; }
+.faa-muted-empty { margin: 20px 0 0; color: #738295; font-size: 10px; }
+.faa-privacy-note,
+.faa-permission-note { display: flex; align-items: flex-start; gap: 7px; margin: 14px 1px 0; color: #728295; font-size: 9px; line-height: 1.5; }
+.faa-privacy-note svg,
+.faa-permission-note svg { flex: none; color: #81cdb8; }
+.faa-loading { display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 220px; color: #8a9aac; font-size: 11px; }
+.faa-alert { gap: 8px; margin: 0 0 12px; padding: 10px 12px; border: 1px solid rgba(248, 113, 113, 0.22); border-radius: 12px; font-size: 10px; line-height: 1.45; }
+.faa-alert svg { flex: none; }
+.faa-alert--error { color: #fecaca; background: rgba(127, 29, 29, 0.2); }
+.faa-alert--success { color: #a7f3d0; background: rgba(6, 78, 59, 0.2); border-color: rgba(52, 211, 153, 0.18); }
+
+.faa-members-heading { display: flex; align-items: end; justify-content: space-between; gap: 15px; margin-bottom: 16px; }
+.faa-members-heading h3 { margin: 5px 0 3px; color: #f2f7fb; font-size: 20px; font-weight: 800; letter-spacing: -0.035em; }
+.faa-members-heading h3 span { margin-left: 5px; color: #8adce8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+.faa-members-heading p:not(.faa-eyebrow) { margin: 0; color: #748497; font-size: 10px; }
+.faa-search { display: flex; align-items: center; gap: 9px; width: min(370px, 43%); min-height: 40px; padding: 0 11px; border: 1px solid rgba(148, 163, 184, 0.17); border-radius: 12px; color: #718296; background: rgba(4, 8, 13, 0.42); }
+.faa-search:focus-within { border-color: rgba(34, 211, 238, 0.4); box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.055); }
+.faa-search input { flex: 1; min-width: 0; border: 0; outline: 0; color: #e5eef5; background: transparent; font: inherit; font-size: 10px; }
+.faa-search input::placeholder { color: #627386; }
+.faa-role-filters { display: flex; gap: 5px; overflow-x: auto; margin: 0 0 13px; padding: 2px 0 7px; scrollbar-width: thin; }
+.faa-role-filters button { border-color: rgba(148, 163, 184, 0.11); background: rgba(255, 255, 255, 0.025); }
+.faa-role-filters button.is-active { border-color: rgba(34, 211, 238, 0.22); background: rgba(34, 211, 238, 0.1); }
+.faa-member-table { overflow: hidden; border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 16px; background: rgba(3, 7, 12, 0.24); }
+.faa-member-head { position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: minmax(230px, 1.25fr) minmax(190px, 1fr) minmax(185px, 0.9fr) 95px; gap: 13px; padding: 11px 14px; border-bottom: 1px solid rgba(148, 163, 184, 0.13); color: #6e7d8f; background: #121b27; font-size: 9px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; }
+.faa-member-row { display: grid; grid-template-columns: minmax(230px, 1.25fr) minmax(190px, 1fr) minmax(185px, 0.9fr) 95px; align-items: center; gap: 13px; min-height: 78px; padding: 10px 14px; border-bottom: 1px solid rgba(148, 163, 184, 0.085); transition: background 160ms ease; }
+.faa-member-row:last-child { border-bottom: 0; }
+.faa-member-row:hover { background: rgba(56, 189, 248, 0.045); }
+.faa-member-identity { gap: 10px; min-width: 0; }
+.faa-member-name { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.faa-member-name b { overflow: hidden; color: #e6edf4; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.faa-member-name span { overflow: hidden; color: #8998a8; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.faa-member-name small { overflow: hidden; color: #607185; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.faa-member-badges { flex-wrap: wrap; gap: 5px; min-width: 0; }
+.faa-role-pill,
+.faa-status-pill { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 4px 7px; overflow: hidden; border: 1px solid rgba(148, 163, 184, 0.14); border-radius: 999px; color: #b8c5d2; background: rgba(255, 255, 255, 0.045); font-size: 8px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.faa-role-pill--super_admin { color: #ffe1a3; border-color: rgba(251, 191, 36, 0.25); background: rgba(245, 158, 11, 0.09); }
+.faa-role-pill--moderator { color: #c6b3ff; border-color: rgba(167, 139, 250, 0.25); background: rgba(139, 92, 246, 0.09); }
+.faa-role-pill--teacher { color: #a7f3d0; border-color: rgba(52, 211, 153, 0.23); background: rgba(16, 185, 129, 0.08); }
+.faa-role-pill--club_leader { color: #b9e3ff; border-color: rgba(96, 165, 250, 0.23); background: rgba(59, 130, 246, 0.08); }
+.faa-status-pill--ban { color: #fda4af; border-color: rgba(251, 113, 133, 0.25); background: rgba(244, 63, 94, 0.09); }
+.faa-status-pill--mute { color: #fcd34d; border-color: rgba(245, 158, 11, 0.22); background: rgba(245, 158, 11, 0.08); }
+.faa-status-pill--warning { color: #ffc985; border-color: rgba(245, 158, 11, 0.19); background: rgba(245, 158, 11, 0.06); }
+.faa-member-metrics { align-items: flex-start; flex-direction: column; gap: 4px; color: #a6b4c2; font-size: 9px; font-variant-numeric: tabular-nums; }
+.faa-member-metrics span { display: inline-flex; align-items: center; gap: 5px; }
+.faa-member-metrics span svg { color: #7cbed1; }
+.faa-member-metrics small { display: -webkit-box; max-width: 100%; overflow: hidden; color: #607185; font-size: 8px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
+.faa-member-action { justify-content: flex-end; }
+.faa-empty { display: flex; flex-direction: column; align-items: center; gap: 7px; min-height: 210px; justify-content: center; color: #6f8092; font-size: 10px; }
+.faa-empty svg { color: #58758c; }
+.faa-empty b { color: #bac7d4; font-size: 12px; }
+.faa-empty span { color: #748497; }
+.faa-pagination { justify-content: space-between; gap: 12px; padding-top: 13px; color: #748497; font-size: 9px; }
+.faa-pagination > div { display: flex; gap: 6px; }
+.faa-pagination button { display: grid; width: 31px; height: 31px; place-items: center; border: 1px solid rgba(148, 163, 184, 0.16); border-radius: 9px; color: #bdc9d4; background: rgba(255, 255, 255, 0.035); cursor: pointer; }
+.faa-pagination button:disabled { opacity: 0.38; cursor: not-allowed; }
+
+.faa-detail-backdrop { position: absolute; inset: 0; z-index: 5; display: flex; justify-content: flex-end; background: rgba(2, 5, 9, 0.66); backdrop-filter: blur(5px); }
+.faa-detail { display: flex; flex-direction: column; width: min(500px, 100%); height: 100%; border-left: 1px solid rgba(103, 232, 249, 0.2); background: linear-gradient(160deg, #111b28, #090e15); box-shadow: -22px 0 80px rgba(0, 0, 0, 0.52); animation: faa-drawer-in 240ms cubic-bezier(0.2, 0.75, 0.25, 1) both; }
+@keyframes faa-drawer-in { from { opacity: 0.4; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+.faa-detail__head { flex: none; justify-content: space-between; gap: 12px; padding: 17px 19px; border-bottom: 1px solid rgba(148, 163, 184, 0.12); }
+.faa-detail__head h3 { margin: 4px 0 0; color: #eef5fa; font-size: 15px; font-weight: 800; }
+.faa-detail__scroll { flex: 1; overflow-y: auto; padding: 16px 18px 22px; scrollbar-width: thin; scrollbar-color: rgba(148, 163, 184, 0.25) transparent; }
+.faa-profile-card { position: relative; overflow: hidden; padding: 14px; border: 1px solid rgba(103, 232, 249, 0.17); border-radius: 17px; background: linear-gradient(145deg, rgba(19, 40, 54, 0.8), rgba(14, 21, 31, 0.9)); }
+.faa-profile-card__banner { position: absolute; inset: 0 0 auto; width: 100%; height: 86px; object-fit: cover; opacity: 0.22; mask-image: linear-gradient(#000, transparent); }
+.faa-profile-card__main { position: relative; gap: 11px; min-width: 0; }
+.faa-profile-card__identity { display: block; min-width: 0; }
+.faa-profile-card__identity h4 { margin: 0; overflow: hidden; color: #f1f7fb; font-size: 14px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.faa-profile-card__identity p { margin: 4px 0 8px; overflow: hidden; color: #8a9bac; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.faa-profile-card__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 14px; }
+.faa-profile-card__stats span { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 8px; border: 1px solid rgba(148, 163, 184, 0.095); border-radius: 10px; background: rgba(3, 7, 12, 0.2); }
+.faa-profile-card__stats b { overflow: hidden; color: #dff9fc; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.faa-profile-card__stats small { color: #748497; font-size: 8px; }
+.faa-profile-card__joined { margin: 10px 0 0; color: #718197; font-size: 8px; line-height: 1.45; }
+.faa-detail-section { margin-top: 13px; padding: 13px; border: 1px solid rgba(148, 163, 184, 0.12); border-radius: 15px; background: rgba(255, 255, 255, 0.025); }
+.faa-detail-section > h4 { display: flex; align-items: center; gap: 7px; margin: 0 0 10px; color: #dce6ee; font-size: 10px; font-weight: 800; }
+.faa-detail-section > h4 svg { color: #85deea; }
+.faa-detail-section > h4 > span { margin-left: auto; color: #9aa9b8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.faa-detail-section > h4 .faa-no-charge { margin-left: auto; color: #927ac1; font-size: 8px; font-weight: 600; }
+.faa-bio { margin: 0; color: #a3b0bd; font-size: 9px; line-height: 1.55; }
+.faa-profile-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 10px; }
+.faa-profile-fields span { display: flex; min-width: 0; flex-direction: column; gap: 2px; padding: 7px; border-radius: 8px; background: rgba(2, 6, 11, 0.24); }
+.faa-profile-fields small { color: #6d7d8f; font-size: 8px; }
+.faa-profile-fields b { overflow: hidden; color: #c4d0db; font-size: 8px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.faa-form-field { display: flex; flex-direction: column; gap: 5px; margin-top: 9px; color: #8d9bab; font-size: 9px; }
+.faa-form-field > span { font-weight: 700; }
+.faa-form-field small { color: #68798b; font-size: 8px; font-weight: 400; }
+.faa-form-field select,
+.faa-form-field textarea,
+.faa-form-field input { width: 100%; min-height: 34px; padding: 8px 9px; border: 1px solid rgba(148, 163, 184, 0.15); border-radius: 9px; outline: 0; color: #d7e1e9; background: rgba(3, 7, 12, 0.46); font: inherit; font-size: 9px; resize: vertical; }
+.faa-form-field textarea { line-height: 1.45; }
+.faa-form-field select:focus,
+.faa-form-field textarea:focus,
+.faa-form-field input:focus { border-color: rgba(34, 211, 238, 0.42); box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.05); }
+.faa-action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 10px; }
+.faa-action-button { justify-content: center; gap: 6px; min-height: 34px; padding: 6px 9px; border: 1px solid rgba(148, 163, 184, 0.16); border-radius: 9px; color: #dbe4eb; background: rgba(255, 255, 255, 0.045); font: inherit; font-size: 9px; font-weight: 800; cursor: pointer; transition: background 170ms ease, border-color 170ms ease; }
+.faa-action-button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); border-color: rgba(148, 163, 184, 0.28); }
+.faa-action-button:disabled { opacity: 0.5; cursor: wait; }
+.faa-action-button--danger { color: #fda4af; border-color: rgba(251, 113, 133, 0.22); background: rgba(244, 63, 94, 0.08); }
+.faa-action-button--warn { color: #fcd982; border-color: rgba(245, 158, 11, 0.22); background: rgba(245, 158, 11, 0.07); }
+.faa-action-button--good { color: #90e9c2; border-color: rgba(52, 211, 153, 0.22); background: rgba(16, 185, 129, 0.08); }
+.faa-action-button--accent { flex: none; margin-top: 9px; color: #b7f0fa; border-color: rgba(34, 211, 238, 0.25); background: rgba(8, 145, 178, 0.09); }
+.faa-action-button--premium { color: #f1c9ff; border-color: rgba(217, 70, 239, 0.25); background: linear-gradient(100deg, rgba(168, 85, 247, 0.12), rgba(245, 158, 11, 0.09)); }
+.faa-explainer,
+.faa-current-reason,
+.faa-premium-until { margin: 8px 0 0; color: #6f8091; font-size: 8px; line-height: 1.5; }
+.faa-current-reason { padding: 7px 8px; border-left: 2px solid rgba(251, 113, 133, 0.52); color: #d0a6ab; background: rgba(244, 63, 94, 0.055); }
+.faa-protected { display: flex; align-items: center; gap: 7px; margin: 0; color: #f4d489; font-size: 9px; }
+.faa-protected svg { color: #f8c65f; }
+.faa-inline-form { display: flex; align-items: end; gap: 8px; }
+.faa-inline-form .faa-form-field { flex: 1; min-width: 0; }
+.faa-warning-list { display: flex; flex-direction: column; gap: 6px; max-height: 170px; overflow: auto; margin: 10px 0 0; padding: 0; list-style: none; }
+.faa-warning-list li { display: flex; flex-direction: column; gap: 3px; padding: 8px; border: 1px solid rgba(245, 158, 11, 0.12); border-radius: 9px; background: rgba(245, 158, 11, 0.035); }
+.faa-warning-list b { color: #a98d60; font-size: 8px; }
+.faa-warning-list span { color: #c9bda8; font-size: 9px; line-height: 1.45; }
+.faa-warning-list small { color: #758293; font-size: 8px; }
+.faa-premium-section { border-color: rgba(217, 70, 239, 0.16); background: linear-gradient(145deg, rgba(139, 92, 246, 0.045), rgba(245, 158, 11, 0.025)); }
+.faa-premium-until { color: #c3a7d8; }
+
+@container (max-width: 900px) {
+  .faa-bento { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .faa-tile--hero, .faa-tile--chart { grid-column: span 2; }
+  .faa-tile--activity, .faa-tile--top-members { grid-column: span 1; }
+  .faa-member-head { display: none; }
+  .faa-member-row { grid-template-columns: minmax(200px, 1.1fr) minmax(150px, 0.9fr) minmax(150px, 0.8fr) 90px; }
+}
+
+@container (max-width: 650px) {
+  .faa-backdrop { padding: 0; }
+  .faa-shell { width: 100%; height: 100dvh; max-height: 100dvh; border-radius: 0; border-left: 0; border-right: 0; }
+  .faa-topbar { min-height: 66px; padding: 11px 12px; gap: 8px; }
+  .faa-mark { width: 36px; height: 36px; border-radius: 12px; }
+  .faa-brand { gap: 8px; }
+  .faa-brand__copy h2 { font-size: 13px; }
+  .faa-brand__copy p { font-size: 9px; }
+  .faa-live { display: none; }
+  .faa-topbar__actions { gap: 5px; }
+  .faa-topbar__actions .faa-button { min-width: 33px; width: 34px; padding: 0; overflow: hidden; font-size: 0; }
+  .faa-topbar__actions .faa-button svg { flex: none; }
+  .faa-operations { display: none !important; }
+  .faa-tabs { min-height: 46px; padding: 6px 10px; }
+  .faa-tabs button { min-height: 32px; padding: 0 9px; font-size: 10px; }
+  .faa-updated { display: none; }
+  .faa-overview, .faa-members-view { padding: 13px 11px 22px; }
+  .faa-period-row { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .faa-range { width: 100%; overflow-x: auto; }
+  .faa-range button { flex: 1; padding: 7px 8px; }
+  .faa-bento { gap: 8px; grid-auto-rows: minmax(110px, auto); }
+  .faa-tile { padding: 11px; border-radius: 14px; }
+  .faa-tile--hero { min-height: 224px; padding: 14px; }
+  .faa-hero-number { font-size: clamp(36px, 13vw, 54px); }
+  .faa-tile--metric { min-height: 116px; }
+  .faa-tile__hint { font-size: 8px; }
+  .faa-metric-value { font-size: clamp(16px, 5vw, 22px); }
+  .faa-tile--chart { min-height: 265px; }
+  .faa-chart { height: 145px; gap: 2px; padding: 7px 1px 0; }
+  .faa-chart__col small { font-size: 7px; }
+  .faa-chart-legend { flex-wrap: wrap; gap: 6px 10px; }
+  .faa-chart-legend b { width: 100%; margin-left: 0; }
+  .faa-tile--activity, .faa-tile--top-members { grid-column: span 2; }
+  .faa-members-heading { align-items: stretch; flex-direction: column; gap: 11px; }
+  .faa-search { width: 100%; }
+  .faa-role-filters { margin-right: -11px; padding-right: 11px; }
+  .faa-member-row { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 11px; }
+  .faa-member-identity { grid-column: 1; }
+  .faa-member-badges { grid-column: 1 / -1; grid-row: 2; padding-left: 48px; }
+  .faa-member-metrics { grid-column: 1; grid-row: 3; flex-direction: row; flex-wrap: wrap; gap: 7px 11px; padding-left: 48px; }
+  .faa-member-metrics small { flex-basis: 100%; }
+  .faa-member-action { grid-column: 2; grid-row: 1; }
+  .faa-button--member { min-height: 30px; padding: 0 8px; font-size: 9px; }
+  .faa-detail-backdrop { align-items: flex-end; }
+  .faa-detail { width: 100%; height: min(94dvh, 900px); border-left: 0; border-top: 1px solid rgba(103, 232, 249, 0.22); border-radius: 20px 20px 0 0; }
+  .faa-detail__scroll { padding: 12px 12px 24px; }
+  .faa-detail__head { padding: 12px 14px; }
+  .faa-inline-form { align-items: stretch; flex-direction: column; gap: 0; }
+  .faa-inline-form .faa-action-button { align-self: flex-end; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faa-backdrop *, .faa-backdrop *::before, .faa-backdrop *::after,
+  .faa-detail-backdrop *, .faa-detail-backdrop *::before, .faa-detail-backdrop *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+.reduce-motion .faa-backdrop *,
+.reduce-motion .faa-detail-backdrop * {
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
+}

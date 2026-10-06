@@ -1,6 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { HelpCircle, Headphones, Flame, Settings, Zap, NotebookPen, Command } from 'lucide-react';
+import { HelpCircle, Headphones, Flame, Settings, Zap, NotebookPen, Command, Gauge } from 'lucide-react';
 import type { DimensionView } from '../types';
 import { safeStorage } from '../utils/storage';
 
@@ -12,6 +12,9 @@ export interface RadialQuickMenuProps {
   onOpenStreak?: () => void;
   onOpenNotes?: () => void;
   onOpenPalette?: () => void;
+  /** Lối vào bảng thống kê/quản lý, chỉ được truyền cho nhân sự quản trị. */
+  onOpenAdminPanel?: () => void;
+  adminAccess?: boolean;
   streakCount?: number;
   hidden?: boolean;
 }
@@ -40,6 +43,8 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
   onOpenStreak,
   onOpenNotes,
   onOpenPalette,
+  onOpenAdminPanel,
+  adminAccess = false,
   streakCount = 0,
   hidden = false,
 }) => {
@@ -83,10 +88,19 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
 
   /* Quạt 6 tác vụ vào góc phần tư trên-phải: -90° (thẳng đứng) → 0° (ngang phải) */
   const actions: QuickAction[] = [
+    ...(adminAccess && onOpenAdminPanel ? [{
+      id: 'admin',
+      label: 'Thống kê & quản lý thành viên',
+      angle: '-96deg',
+      tier: 'near' as const,
+      icon: <Gauge className="w-[21px] h-[21px] text-cyan-300" />,
+      extraClass: 'ccm-02__item--admin',
+      onSelect: onOpenAdminPanel,
+    }] : []),
     {
       id: 'streak',
       label: streakCount > 0 ? `Điểm danh · ${streakCount} ngày` : 'Điểm danh & kho quà',
-      angle: '-90deg',
+      angle: adminAccess ? '-80deg' : '-90deg',
       tier: 'near',
       icon: <Flame className="w-[21px] h-[21px] text-rose-400" />,
       extraClass: 'ccm-02__item--hot ff-streak-red-aura',
@@ -102,7 +116,7 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
     {
       id: 'focus',
       label: 'Vào không gian tập trung',
-      angle: '-72deg',
+      angle: adminAccess ? '-64deg' : '-72deg',
       tier: 'far',
       icon: <Headphones className="w-[21px] h-[21px] text-emerald-300" />,
       onSelect: onOpenFocusMode,
@@ -110,7 +124,7 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
     {
       id: 'qa',
       label: 'Hỏi bài',
-      angle: '-54deg',
+      angle: adminAccess ? '-48deg' : '-54deg',
       tier: 'near',
       icon: <HelpCircle className="w-[21px] h-[21px] text-cyan-300" />,
       onSelect: () => onNavigate('qa'),
@@ -118,7 +132,7 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
     {
       id: 'notes',
       label: 'Sổ tay nhanh (Ctrl + I)',
-      angle: '-36deg',
+      angle: adminAccess ? '-32deg' : '-36deg',
       tier: 'far',
       icon: <NotebookPen className="w-[21px] h-[21px] text-sky-300" />,
       onSelect: () => {
@@ -132,7 +146,7 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
     {
       id: 'palette',
       label: 'Bảng lệnh (Ctrl + K)',
-      angle: '-18deg',
+      angle: adminAccess ? '-16deg' : '-18deg',
       tier: 'near',
       icon: <Command className="w-[21px] h-[21px] text-violet-300" />,
       onSelect: () => {
@@ -169,7 +183,7 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
   return (
     <div
       ref={rootRef}
-      className={`ccm-02 hidden md:block fixed ${posClass} z-40 select-none`}
+      className={`ccm-02 ${adminAccess ? 'block' : 'hidden md:block'} fixed ${posClass} z-40 select-none`}
       aria-label="Menu tác vụ nhanh"
     >
       <input

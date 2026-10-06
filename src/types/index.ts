@@ -28,6 +28,11 @@ export interface User {
   email: string;
   avatar: string;
   role: UserRole;
+  /** Vai trò kiểm duyệt được Super Admin cấp riêng, không thay quyền chủ nhiệm CLB. */
+  staffRole?: 'MODERATOR' | 'TEACHER';
+  /** 0 = Premium vĩnh viễn; timestamp ms > 0 = ngày hết hạn. */
+  premiumUntil?: number;
+  premiumGrantedAt?: number;
   level: number;
   xp: number;
   coin?: number;

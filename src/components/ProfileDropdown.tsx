@@ -6,6 +6,7 @@ import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { getTierForLevel } from '../utils/tier';
 import { getXPForLevel } from '../store/forumStore';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
+import { PremiumMark } from './PremiumMark';
 import { usePopoverPosition, type DockPosition } from '../utils/popover';
 
 export interface ProfileDropdownProps {
@@ -138,6 +139,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
               {isSuperAdmin && (
                 <AdminVerifiedBadge size={14} tooltipPosition="bottom" />
               )}
+              <PremiumMark user={currentUser} compact />
             </div>
 
             <p className="text-[11px] text-white/50 truncate mt-0.5 font-mono">
@@ -160,6 +162,10 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             <Award className="w-3 h-3 text-amber-400" />
             {currentUser.role === 'SUPER_ADMIN'
               ? 'ADMIN'
+              : currentUser.staffRole === 'MODERATOR'
+              ? 'MODERATOR'
+              : currentUser.staffRole === 'TEACHER'
+              ? 'GIÁO VIÊN'
               : currentUser.role === 'CLUB_LEADER'
               ? 'LEADER'
               : 'STUDENT'}
