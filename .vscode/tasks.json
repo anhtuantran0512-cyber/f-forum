@@ -1,0 +1,42 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "F-Forum: Khởi chạy Dev Server",
+      "type": "npm",
+      "script": "dev",
+      "isBackground": true,
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "F-Forum: Chạy toàn bộ 225 bài Test",
+      "type": "npm",
+      "script": "test",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "F-Forum: Quét lỗi cú pháp Oxlint",
+      "type": "npm",
+      "script": "lint",
+      "problemMatcher": []
+    },
+    {
+      "label": "F-Forum: Đóng gói Production Build",
+      "type": "npm",
+      "script": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "F-Forum: Khởi chạy Hosting Công Khai (Cloudflare)",
+      "type": "npm",
+      "script": "public",
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}
