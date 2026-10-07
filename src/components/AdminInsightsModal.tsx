@@ -532,11 +532,17 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
 
         <div className="faa-content">
           {tab === 'overview' && isSuperAdmin && (
-            <div className="faa-overview">
+            <div className="faa-overview cdl-01">
               {analyticsError && <div className="faa-alert faa-alert--error" role="alert"><AlertTriangle size={16} />{analyticsError}</div>}
               {!analytics && analyticsLoading && <div className="faa-loading"><LoaderCircle className="faa-spin" /> Đang tổng hợp số liệu từ máy chủ…</div>}
               {analytics && (
-                <>
+                <div className="cdl-01__stage">
+                  <header className="cdl-01__top">
+                    <span className="cdl-01__mark" aria-hidden="true" />
+                    <strong>Pulse · Thống kê người dùng & hệ thống</strong>
+                    <span className="cdl-01__live"><i aria-hidden="true" />Trực tiếp</span>
+                  </header>
+
                   <div className="faa-period-row">
                     <div>
                       <p className="faa-eyebrow"><span className="faa-live-dot" /> Dữ liệu được ghi nhận từ {dateFmt(analytics.trackingStartedAt)}</p>
@@ -555,10 +561,10 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="faa-bento">
-                    <article className="faa-tile faa-tile--hero">
+                  <div className="faa-bento cdl-01__board">
+                    <article className="faa-tile faa-tile--hero cdl-01__tile cdl-01__hero" style={{ '--i': 0 } as CSSProperties}>
                       <div className="faa-tile__top"><span className="faa-tile__icon faa-cyan"><Eye size={17} /></span><span className="faa-tile__hint">Lượt duy nhất · toàn thời gian</span></div>
-                      <div className="faa-hero-number">{numberFmt.format(analytics.totals.uniqueVisitors)}</div>
+                      <div className="faa-hero-number cdl-01__big">{numberFmt.format(analytics.totals.uniqueVisitors)}</div>
                       <p className="faa-tile__caption">Người dùng duy nhất</p>
                       <div className="faa-breakdown">
                         <span><i className="faa-dot faa-dot--cyan" /> {numberFmt.format(analytics.totals.registeredVisitors)} tài khoản</span>
@@ -573,6 +579,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                       label="Thời gian mở web"
                       value={`${(analytics.totals.activeSeconds / 3600).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} giờ`}
                       note={`${durationLabel(analytics.period.activeSeconds)} trong ${analytics.rangeLabel}`}
+                      index={1}
                     />
                     <MetricTile
                       icon={<MessageSquare size={17} />}
@@ -580,6 +587,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                       label="Tin nhắn chat"
                       value={numberFmt.format(analytics.totals.messages)}
                       note={`${numberFmt.format(analytics.period.messages)} trong ${analytics.rangeLabel}`}
+                      index={2}
                     />
                     <MetricTile
                       icon={<Users size={17} />}
@@ -587,6 +595,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                       label="Thành viên"
                       value={numberFmt.format(analytics.totalMembers)}
                       note={`+${numberFmt.format(analytics.totals.newMembers)} đăng ký từ ngày theo dõi`}
+                      index={3}
                     />
                     <MetricTile
                       icon={<Activity size={17} />}
@@ -594,6 +603,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                       label="Đang hoạt động"
                       value={numberFmt.format(analytics.activeNow)}
                       note={`${numberFmt.format(analytics.activeMembersNow)} tài khoản · 5 phút gần nhất`}
+                      index={4}
                     />
                     <MetricTile
                       icon={<CalendarDays size={17} />}
@@ -601,6 +611,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                       label="Lượt mở site"
                       value={numberFmt.format(analytics.totals.visits)}
                       note={`${numberFmt.format(analytics.period.visits)} trong kỳ đang chọn`}
+                      index={5}
                     />
                     <MetricTile
                       icon={<Eye size={17} />}
@@ -608,9 +619,10 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                       label="Lượt xem phân khu"
                       value={numberFmt.format(analytics.totals.pageViews)}
                       note={`${numberFmt.format(analytics.period.pageViews)} trong kỳ đang chọn`}
+                      index={6}
                     />
 
-                    <article className="faa-tile faa-tile--chart">
+                    <article className="faa-tile faa-tile--chart cdl-01__tile cdl-01__wide" style={{ '--i': 7 } as CSSProperties}>
                       <div className="faa-chart-head">
                         <div>
                           <h3>Hoạt động theo thời gian</h3>
@@ -649,7 +661,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                       </div>
                     </article>
 
-                    <article className="faa-tile faa-tile--activity">
+                    <article className="faa-tile faa-tile--activity cdl-01__tile cdl-01__tall" style={{ '--i': 8 } as CSSProperties}>
                       <div className="faa-chart-head">
                         <div><h3>Hoạt động cộng đồng</h3><p>Thống kê tích luỹ kể từ khi bật đo lường</p></div>
                         <span className="faa-tile__icon faa-gold"><Sparkles size={16} /></span>
@@ -662,7 +674,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                       </div>
                     </article>
 
-                    <article className="faa-tile faa-tile--top-members">
+                    <article className="faa-tile faa-tile--top-members cdl-01__tile cdl-01__wide" style={{ '--i': 9 } as CSSProperties}>
                       <div className="faa-chart-head"><div><h3>Thành viên hoạt động nổi bật</h3><p>Sắp theo tổng thời gian truy cập đã ghi nhận</p></div><Users size={16} className="text-cyan-300" /></div>
                       {analytics.topMembers.length === 0 ? (
                         <p className="faa-muted-empty">Chưa có phiên tài khoản trong giai đoạn đo lường.</p>
@@ -682,7 +694,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                   </div>
 
                   <p className="faa-privacy-note"><Shield size={13} /> Chỉ tính thời gian khi tab đang hiển thị. Không lưu IP, dấu vân tay thiết bị hay nội dung; một người dùng khách rồi đăng nhập có thể xuất hiện ở cả hai nhóm.</p>
-                </>
+                </div>
               )}
             </div>
           )}
@@ -722,8 +734,8 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
 
               {membersError && <div className="faa-alert faa-alert--error" role="alert"><AlertTriangle size={16} />{membersError}</div>}
 
-              <div className="faa-member-table" aria-busy={membersLoading}>
-                <div className="faa-member-head" aria-hidden="true">
+              <div className="faa-member-table ct-03" aria-busy={membersLoading}>
+                <div className="faa-member-head ct-03__head" aria-hidden="true">
                   <span>Thành viên</span><span>Vai trò & trạng thái</span><span>Hoạt động đã ghi nhận</span><span>Hồ sơ</span>
                 </div>
                 {membersLoading && members.length === 0 ? (
@@ -731,10 +743,10 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                 ) : members.length === 0 ? (
                   <div className="faa-empty"><Users size={24} /><b>Chưa tìm thấy thành viên</b><span>Thử từ khoá khác hoặc bỏ bộ lọc vai trò.</span></div>
                 ) : (
-                  <div className="faa-member-list">
+                  <div className="faa-member-list ct-03__body">
                     {members.map((member) => (
-                      <article className="faa-member-row" key={member.email}>
-                        <div className="faa-member-identity">
+                      <article className="faa-member-row ct-03__row" key={member.email}>
+                        <div className="faa-member-identity ct-03__cell">
                           <Avatar name={member.name} avatar={member.avatar} email={member.email} />
                           <div className="faa-member-name">
                             <b>{member.name}</b>
@@ -742,7 +754,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                             <small>#{member.id} · Cấp {member.level}</small>
                           </div>
                         </div>
-                        <div className="faa-member-badges">
+                        <div className="faa-member-badges ct-03__cell">
                           <span className={`faa-role-pill faa-role-pill--${member.role.toLowerCase()}`}>
                             {member.role === 'TEACHER' ? <GraduationCap size={12} /> : member.role === 'SUPER_ADMIN' ? <ShieldCheck size={12} /> : member.role === 'MODERATOR' ? <Shield size={12} /> : null}
                             {ROLE_LABELS[member.role] || member.role}
@@ -757,12 +769,12 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                           {member.moderation.muted && <span className="faa-status-pill faa-status-pill--mute"><MessageSquareOff size={12} /> Khoá chat</span>}
                           {member.warningCount > 0 && <span className="faa-status-pill faa-status-pill--warning"><AlertTriangle size={12} /> {member.warningCount} cảnh cáo</span>}
                         </div>
-                        <div className="faa-member-metrics">
+                        <div className="faa-member-metrics ct-03__cell">
                           <span><Clock3 size={13} />{durationLabel(member.metrics.activeSeconds)}</span>
                           <span><MessageSquare size={13} />{numberFmt.format(member.metrics.messages)} tin</span>
                           <small>{member.metrics.visits} lượt · gần nhất {member.metrics.lastSeenAt ? dateFmt(member.metrics.lastSeenAt) : 'chưa ghi nhận'}</small>
                         </div>
-                        <div className="faa-member-action">
+                        <div className="faa-member-action ct-03__cell ct-03__actions">
                           <button type="button" className="faa-button faa-button--member" onClick={() => updateSelected(member.email)}>
                             <UserRound size={14} /> Quản lý
                           </button>
@@ -961,11 +973,12 @@ const MetricTile: FC<{
   label: string;
   value: string;
   note: string;
-}> = ({ icon, tone, label, value, note }) => (
-  <article className="faa-tile faa-tile--metric">
+  index?: number;
+}> = ({ icon, tone, label, value, note, index = 1 }) => (
+  <article className="faa-tile faa-tile--metric cdl-01__tile" style={{ '--i': index } as CSSProperties}>
     <div className="faa-tile__top"><span className={`faa-tile__icon faa-${tone}`}>{icon}</span><span className="faa-tile__hint">{label}</span></div>
-    <b className="faa-metric-value">{value}</b>
-    <p className="faa-tile__caption">{note}</p>
+    <b className="faa-metric-value cdl-01__num">{value}</b>
+    <p className="faa-tile__caption cdl-01__sub">{note}</p>
   </article>
 );
 
