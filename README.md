@@ -236,26 +236,57 @@ npm run build
 
 ```text
 f-forum/
-├── public/                 # Tệp tĩnh (ảnh, icon)
-├── server/                 # Mã nguồn máy chủ WebSocket và API phụ trợ
-│   ├── forumServer.ts      # Định tuyến API + WebSocket
+├── .vscode/                # Cấu hình tối ưu VSCode (File nesting, Tasks, Extensions)
+├── docs/                   # Tài liệu thiết kế, đặc tả & bảo mật hệ thống
+│   ├── PROFILE_SPEC_AND_PROMPT.md  # Đặc tả hồ sơ người dùng & hiệu ứng UI/UX
+│   ├── WORKFLOW_ARENA.md   # Quy trình đồng bộ mã nguồn & GitHub
+│   ├── LANDING-UPGRADE.md  # Tài liệu nâng cấp Landing Page
+│   └── SECURITY.md         # Báo cáo kiểm định an ninh & phòng thủ
+├── public/                 # Tệp tĩnh (ảnh minh hoạ, âm thanh, icon)
+├── scripts/                # Kịch bản vận hành máy chủ (start-public.mjs)
+├── server/                 # Mã nguồn máy chủ WebSocket & API phụ trợ
+│   ├── analytics.ts        # Thu thập & xử lý thông số Insights Bento (.cdl-01)
 │   ├── authGuard.ts        # Băm mật khẩu, token HMAC, rate limit, lọc payload
+│   ├── economy.ts          # Quản lý giao dịch Coin & phần thưởng Q&A
+│   ├── forumServer.ts      # Định tuyến API + WebSocket thời gian thực
+│   ├── moderation.ts       # Quy trình kiểm duyệt, cảnh cáo, mute & ban
 │   └── socialAuth.ts       # Kiểm chứng đăng nhập Google / Facebook
-├── src/
-│   ├── components/         # Các thành phần giao diện (Navbar, Modal, View...)
-│   │   ├── landing/        # Trang giới thiệu
-│   │   └── views/          # Màn hình chính: Hỏi đáp, Câu lạc bộ, Chat, Vinh danh...
+├── shared/                 # Định nghĩa dữ liệu dùng chung Client & Server
+├── src/                    # Mã nguồn ứng dụng giao diện (React + Vite)
+│   ├── components/         # Các thành phần giao diện (Navbar, Modal, Bento...)
+│   │   ├── landing/        # Trang giới thiệu (Landing Page)
+│   │   └── views/          # Các phân khu chính: Q&A, Chat, CLB, Vinh danh...
+│   ├── config/             # Cấu hình quản trị & quyền hạn
+│   ├── context/            # AuthContext — tài khoản người dùng
 │   ├── store/              # Quản lý trạng thái ứng dụng (forumStore)
-│   ├── context/            # AuthContext — tài khoản đang đăng nhập
-│   ├── types/              # Định nghĩa kiểu dữ liệu TypeScript
-│   ├── utils/              # Các hàm tiện ích (âm thanh, thông báo, lưu trữ, cấp bậc)
+│   ├── types/              # Định nghĩa kiểu TypeScript
+│   ├── utils/              # Các hàm tiện ích (âm thanh, thông báo, lưu trữ)
 │   ├── App.tsx             # Thành phần gốc điều hướng giao diện
-│   ├── index.css           # Cấu hình giao diện và hiệu ứng kính
+│   ├── index.css           # Cấu hình Tailwind CSS & hiệu ứng kính mờ
 │   └── main.tsx            # Điểm khởi động ứng dụng
-├── docs/                   # Tài liệu thiết kế & bảo mật
-├── tests/                  # Bộ bài kiểm thử tự động (225 bài)
-└── package.json            # Thông tin dự án và danh sách thư viện
+├── tests/                  # Bộ bài kiểm thử tự động (225 bài test bảo mật & logic)
+├── package.json            # Thông tin dự án và danh sách thư viện
+├── tsconfig.json           # Cấu hình TypeScript dự án
+└── vite.config.ts          # Cấu hình trình xây dựng Vite
 ```
+
+---
+
+## 💻 Trải Nghiệm Mở Mã Nguồn Trên VSCode
+
+Mã nguồn đã được thiết lập sẵn bộ cấu hình không gian làm việc chuyên nghiệp trong thư mục `.vscode/`:
+
+- **File Nesting (Gọn Gàng & Chống Rối)**:
+  - Tự động gom các tệp cấu hình phụ vào dưới tệp chính (ví dụ: `package-lock.json` nằm gọn dưới `package.json`, các tệp `tsconfig.*.json` nằm dưới `tsconfig.json`).
+  - Tự động ẩn các thư mục rác khỏi danh sách tìm kiếm (`dist/`, `data/`, `node_modules/`), giúp tìm kiếm tệp (`Ctrl + P`) và tìm nội dung (`Ctrl + Shift + F`) luôn nhanh và chính xác nhất.
+- **Tiện ích Khuyến Nghị (Extensions)**:
+  - Dự án tự động gợi ý các tiện ích tốt nhất khi mở: Tailwind CSS IntelliSense, Oxlint, Prettier, Material Icon Theme.
+- **Tác Vụ 1-Chạm (VSCode Tasks)**:
+  - Nhấn `Ctrl + Shift + B` hoặc mở menu **Terminal → Run Task** để chạy nhanh:
+    - *F-Forum: Khởi chạy Dev Server* (`npm run dev`)
+    - *F-Forum: Chạy toàn bộ 225 bài Test* (`npm test`)
+    - *F-Forum: Quét lỗi cú pháp Oxlint* (`npm run lint`)
+    - *F-Forum: Khởi chạy Hosting Công Khai* (`npm run public`)
 
 ---
 
@@ -263,3 +294,4 @@ f-forum/
 
 **Bản quyền trí tuệ thuộc về BroAmStuck.**  
 Toàn bộ mã nguồn, thiết kế giao diện và ý tưởng hệ thống được bảo hộ và phát triển bởi BroAmStuck.
+
