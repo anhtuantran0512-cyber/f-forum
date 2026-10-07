@@ -481,3 +481,136 @@
   animation-duration: 0.01ms !important;
   transition-duration: 0.01ms !important;
 }
+
+/* CodeFronts cdl-01: Modern CSS Grid Bento Dashboard */
+.cdl-01 {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  container-type: inline-size;
+}
+
+.cdl-01__stage {
+  width: 100%;
+  padding: 18px 20px;
+  border-radius: 20px;
+}
+
+.cdl-01__top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  letter-spacing: .02em;
+  margin-bottom: 14px;
+  padding: 4px 6px;
+}
+
+.cdl-01__mark {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: conic-gradient(from 220deg, var(--faa-cyan), #818cf8);
+}
+
+.cdl-01__live {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--faa-mint);
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(105, 228, 184, 0.28);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.cdl-01__live i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--faa-mint);
+  animation: cdl01-pulse 2s infinite;
+}
+
+@keyframes cdl01-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(105, 228, 184, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+
+.cdl-01__board {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: minmax(122px, auto);
+}
+
+.cdl-01__tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  padding: 16px 18px;
+  transition: opacity .5s ease, translate .5s cubic-bezier(.2,.7,.2,1), scale .3s ease, filter .3s ease, border-color .3s ease;
+  transition-delay: calc(var(--i, 0) * 55ms), calc(var(--i, 0) * 55ms), 0s, 0s, 0s;
+}
+
+@starting-style {
+  .cdl-01__tile {
+    opacity: 0;
+    translate: 0 14px;
+  }
+}
+
+.cdl-01__tile:hover {
+  border-color: rgba(103, 232, 249, 0.45);
+}
+
+.cdl-01__board:has(.cdl-01__tile:hover) .cdl-01__tile:not(:hover) {
+  opacity: .65;
+  scale: .988;
+  filter: saturate(.82);
+}
+
+.cdl-01__hero {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.cdl-01__wide {
+  grid-column: span 2;
+}
+
+.cdl-01__tall {
+  grid-row: span 2;
+}
+
+/* CodeFronts ct-03: Admin User Management Data Grid */
+.ct-03 {
+  width: 100%;
+}
+.ct-03__head {
+  display: grid;
+  grid-template-columns: 2.2fr 1.8fr 1.6fr 110px;
+  gap: 12px;
+}
+.ct-03__row {
+  display: grid;
+  grid-template-columns: 2.2fr 1.8fr 1.6fr 110px;
+  gap: 12px;
+}
+.ct-03__cell {
+  min-width: 0;
+}
+.ct-03__actions {
+  display: flex;
+  justify-content: flex-end;
+}

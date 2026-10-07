@@ -1044,7 +1044,8 @@ export const App: React.FC = () => {
           onOpenNotes={() => setIsNotesOpen(true)}
           onOpenPalette={() => setIsPaletteOpen(true)}
           adminAccess={Boolean(currentUser && (
-            currentUser.email === 'anhtuantran0512@gmail.com' ||
+            currentUser.email?.toLowerCase() === 'anhtuantran0512@gmail.com' ||
+            currentUser.role === 'SUPER_ADMIN' ||
             currentUser.staffRole === 'MODERATOR' ||
             currentUser.staffRole === 'TEACHER'
           ))}

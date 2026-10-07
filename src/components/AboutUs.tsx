@@ -17,6 +17,9 @@ import {
   Globe,
   LayoutGrid,
   Minimize2,
+  Compass,
+  ArrowRight,
+  Settings,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AdminVerifiedBadge } from './Badges10Tier';
@@ -38,6 +41,7 @@ interface AboutUsProps {
   onUpdateAbout?: (data: AboutData) => void;
   className?: string;
   isEmbedded?: boolean;
+  onNavigate?: (view: string) => void;
 }
 
 const N = 21;
@@ -68,6 +72,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
   onUpdateAbout,
   className = '',
   isEmbedded = false,
+  onNavigate,
 }) => {
   const { currentUser } = useAuth();
   const isSuperAdmin = currentUser?.email?.toLowerCase() === 'anhtuantran0512@gmail.com';
@@ -380,13 +385,18 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     const y = e.clientY - rect.top;
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-    const rotateX = ((y - centerY) / centerY) * -6;
-    const rotateY = ((x - centerX) / centerX) * 6;
-    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+    const rotateX = ((y - centerY) / centerY) * -7;
+    const rotateY = ((x - centerX) / centerX) * 7;
+    const xPct = `${((x / rect.width) * 100).toFixed(1)}%`;
+    const yPct = `${((y / rect.height) * 100).toFixed(1)}%`;
+    card.style.setProperty('--x', xPct);
+    card.style.setProperty('--y', yPct);
+    card.style.transform = `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale3d(1.025, 1.025, 1.025)`;
   };
 
   const handleGridCardMouseLeave = (e: React.MouseEvent<HTMLElement>) => {
-    e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+    const card = e.currentTarget;
+    card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
   };
 
   const handleFileToDataUrl = (file: File, callback: (dataUrl: string) => void) => {
@@ -607,6 +617,36 @@ export const AboutUs: React.FC<AboutUsProps> = ({
           border-radius: inherit;
           transition: background 0.08s linear;
         }
+        /* CodeFronts tch-01: 3D Tilt & Parallax Card */
+        .tch-01 {
+          perspective: 1000px;
+          transform-style: preserve-3d;
+          transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+        .tch-01__parallax {
+          transform: translateZ(18px);
+          transform-style: preserve-3d;
+        }
+        /* CodeFronts tch-30: Color-Burn Ignition Card */
+        .tch-30 {
+          position: relative;
+          overflow: hidden;
+        }
+        .tch-30::before {
+          content: '';
+          position: absolute;
+          inset: -1px;
+          border-radius: inherit;
+          background: radial-gradient(320px circle at var(--x, 50%) var(--y, 50%), rgba(34, 211, 238, 0.36), rgba(168, 85, 247, 0.26), transparent 70%);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          pointer-events: none;
+          z-index: 2;
+          mix-blend-mode: screen;
+        }
+        .tch-30:hover::before {
+          opacity: 1;
+        }
       `}</style>
 
       {/* Custom smooth cursor #dot lerp */}
@@ -625,8 +665,54 @@ export const AboutUs: React.FC<AboutUsProps> = ({
         }}
       />
 
-      {/* Top Floating Utility Bar (View Mode Toggle & Fullscreen Switcher) */}
-      <div className="absolute top-[var(--pad)] right-[var(--pad)] z-30 flex items-center gap-2">
+      {/* Top Floating Utility Bar (Social Links, Vào Forum, View Mode Toggle & Fullscreen Switcher) */}
+      <div className="absolute top-[var(--pad)] right-[var(--pad)] z-30 flex items-center gap-2 flex-wrap justify-end">
+        {/* Facebook Link */}
+        <a
+          href="https://www.facebook.com/TuanNotTun/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-8 h-8 rounded-full bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-[0_0_12px_rgba(59,130,246,0.3)] backdrop-blur-md"
+          title="Facebook Admin"
+          aria-label="Facebook Admin"
+        >
+          <svg className="w-3.5 h-3.5 fill-[#1877F2]" viewBox="0 0 24 24">
+            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+          </svg>
+        </a>
+
+        {/* Discord Link */}
+        <a
+          href="https://discord.gg/GMDCnxxJwX"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-8 h-8 rounded-full bg-[#5865F2]/20 hover:bg-[#5865F2]/40 border border-[#5865F2]/50 text-indigo-200 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-[0_0_12px_rgba(88,101,242,0.3)] backdrop-blur-md"
+          title="Discord F-Forum"
+          aria-label="Discord F-Forum"
+        >
+          <svg className="w-3.5 h-3.5 fill-[#5865F2]" viewBox="0 0 24 24">
+            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+          </svg>
+        </a>
+
+        {/* Vào Forum Button */}
+        <button
+          type="button"
+          onClick={() => {
+            if (onNavigate) {
+              onNavigate('qa');
+            } else if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('fforum_navigate', { detail: 'qa' }));
+            }
+          }}
+          className="ff-enter-forum-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-600 hover:from-cyan-400 hover:via-indigo-400 hover:to-purple-500 border border-cyan-300/40 shadow-[0_0_18px_rgba(34,211,238,0.35)] hover:shadow-[0_0_24px_rgba(168,85,247,0.5)] transition-all transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
+          title="Chuyển đến Diễn đàn F-Forum Q&A"
+        >
+          <Compass className="w-3.5 h-3.5 text-cyan-200" />
+          <span>Vào Forum</span>
+          <ArrowRight className="w-3 h-3 text-purple-200" />
+        </button>
+
         <div className="flex items-center rounded-full bg-black/60 border border-white/20 p-1 backdrop-blur-md">
           <button
             type="button"
@@ -896,9 +982,9 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 onClick={e => handleCardClick(ms, idx, e)}
                 onMouseMove={handleGridCardMouseMove}
                 onMouseLeave={handleGridCardMouseLeave}
-                className="text-left w-full group cursor-pointer rounded-2xl obsidian-glass border border-white/10 p-3.5 transition-all duration-300 hover:border-cyan-400/50 hover:shadow-[0_15px_40px_rgba(6,182,212,0.15)] flex flex-col justify-between"
+                className="tch-01 tch-30 text-left w-full group cursor-pointer rounded-2xl obsidian-glass border border-white/10 p-3.5 transition-all duration-300 hover:border-cyan-400/50 hover:shadow-[0_15px_40px_rgba(6,182,212,0.18)] flex flex-col justify-between"
               >
-                <div className="space-y-2.5">
+                <div className="space-y-2.5 tch-01__parallax">
                   <div className={`relative w-full ${ms.isTall ? 'aspect-[3/4]' : 'aspect-video'} rounded-xl overflow-hidden bg-neutral-900 border border-white/10`}>
                     <img
                       src={ms.imageUrl}
@@ -1072,7 +1158,10 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
                   {activeLightboxMilestone.place && (
                     <div className="flex items-center gap-2 text-xs font-mono text-neutral-300 pt-1">
-                      <span className="text-amber-400">📍 Địa điểm / Phạm vi:</span>
+                      <span className="text-amber-400 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Địa điểm / Phạm vi:</span>
+                      </span>
                       <span>{activeLightboxMilestone.place}</span>
                     </div>
                   )}
@@ -1232,7 +1321,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
             className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-xs shadow-[0_10px_30px_rgba(245,158,11,0.4)] transition-all hover:scale-105 active:scale-95 cursor-pointer"
             title="Bảng Quản Trị Vinh Danh & Cột Mốc 3D"
           >
-            <span>⚙️</span>
+            <Settings className="w-4 h-4 text-black" />
             <span>Quản trị Vinh Danh (Admin) • Chỉnh sửa trang Vinh danh</span>
           </button>
         </div>
@@ -1244,7 +1333,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
           <div className="relative w-full max-w-3xl rounded-3xl obsidian-glass border border-amber-400/40 p-6 sm:p-8 shadow-2xl max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
               <div className="flex items-center gap-2">
-                <span className="text-lg">⚙️</span>
+                <Settings className="w-5 h-5 text-amber-400" />
                 <h3 className="font-bold text-base sm:text-lg text-white">
                   Bảng Quản Trị & Chỉnh Sửa "Khu Vinh Danh"
                 </h3>
