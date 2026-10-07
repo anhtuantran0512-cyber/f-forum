@@ -14,6 +14,7 @@
 import { spawn } from 'node:child_process';
 import http from 'node:http';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -29,14 +30,14 @@ const LOCAL_HOST_URL = `http://localhost:${PORT}`;
 
 const isTestMode = process.argv.includes('--test') || process.argv.includes('--dry-run');
 
-// Track child processes
+/* Track child processes */
 let buildProcess = null;
 let previewProcess = null;
 let cfProcess = null;
 let isSpawnedPreview = false;
 let isShuttingDown = false;
 
-// Resolve runner for local packages or global npx fallback
+/* Resolve runner for local packages or global npx fallback */
 function getNodeRunner(name) {
   const configs = {
     vite: {
@@ -95,7 +96,7 @@ function runProductionBuild() {
   });
 }
 
-// Function to check if HTTP endpoint is responsive without duplicate timer leaks
+/* Function to check if HTTP endpoint is responsive without duplicate timer leaks */
 function checkHttpReady(url, maxWaitMs = 25000, intervalMs = 250) {
   const start = Date.now();
   return new Promise((resolve, reject) => {
@@ -143,7 +144,7 @@ function checkHttpReady(url, maxWaitMs = 25000, intervalMs = 250) {
   });
 }
 
-// Check if port is already active
+/* Check if port is already active */
 function isPortActive(port) {
   return new Promise((resolve) => {
     let settled = false;
@@ -168,17 +169,37 @@ function isPortActive(port) {
   });
 }
 
-// Format and print terminal status banner
+function getLanIp() {
+  try {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+      for (const iface of interfaces[name] || []) {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          return iface.address;
+        }
+      }
+    }
+  } catch {
+    /* bỏ qua lỗi đọc mạng */
+  }
+  return null;
+}
+
+/* Format and print terminal status banner */
 function printStatusBanner(publicUrl) {
+  const lanIp = getLanIp();
   console.log('\n' + '='.repeat(68));
-  console.log('🚀 F-FORUM PRODUCTION PREVIEW IS LIVE');
-  console.log(`⚡ PUBLIC URL          : ${publicUrl}`);
-  console.log(`💻 LOCAL HOST         : ${LOCAL_HOST_URL}`);
-  console.log('📡 Chỉ chia sẻ URL này với người được phép truy cập.');
+  console.log('🚀 F-FORUM ĐANG CHẠY HOSTING CÔNG KHAI (PRODUCTION PREVIEW)');
+  console.log(`⚡ LINK TRUY CẬP (INTERNET) : ${publicUrl}`);
+  if (lanIp) {
+    console.log(`📱 MẠNG NỘI BỘ (LAN/WI-FI)  : http://${lanIp}:${PORT}`);
+  }
+  console.log(`💻 MÁY CHỦ NỘI BỘ (LOCAL)   : ${LOCAL_HOST_URL}`);
+  console.log('📡 Bất kỳ ai mở link Cloudflare trên đều có thể vào web bình thường!');
   console.log('='.repeat(68) + '\n');
 }
 
-// Safely kill process group and descendants
+/* Safely kill process group and descendants */
 function killProcessGroup(proc, signal = 'SIGTERM') {
   if (!proc || proc.exitCode !== null || proc.signalCode !== null) return;
   try {
@@ -190,23 +211,23 @@ function killProcessGroup(proc, signal = 'SIGTERM') {
       }
     }
   } catch {
-    // Process already exited
+/* Process already exited */
   }
 }
 
-// Clean termination handler
+/* Clean termination handler */
 function cleanup(exitCode = 0) {
   if (isShuttingDown) return;
   isShuttingDown = true;
 
   console.log('\n🛑 Shutting down fforum_broamstuck_studio deployment pipeline...');
 
-  // Stop the public tunnel before shutting down the production preview.
+/* Stop the public tunnel before shutting down the production preview. */
   killProcessGroup(cfProcess, 'SIGTERM');
   if (buildProcess) killProcessGroup(buildProcess, 'SIGTERM');
   if (isSpawnedPreview && previewProcess) killProcessGroup(previewProcess, 'SIGTERM');
 
-  // Forceful cleanup after grace period to avoid lingering child processes.
+/* Forceful cleanup after grace period to avoid lingering child processes. */
   setTimeout(() => {
     killProcessGroup(cfProcess, 'SIGKILL');
     if (buildProcess) killProcessGroup(buildProcess, 'SIGKILL');
@@ -216,7 +237,7 @@ function cleanup(exitCode = 0) {
   }, 350);
 }
 
-// Register signal handlers
+/* Register signal handlers */
 process.on('SIGINT', () => cleanup(0));
 process.on('SIGTERM', () => cleanup(0));
 process.on('SIGHUP', () => cleanup(0));
@@ -229,7 +250,7 @@ process.on('unhandledRejection', (reason) => {
   cleanup(1);
 });
 
-// Build and launch Vite's production preview; never tunnel the dev server.
+/* Build and launch Vite's production preview; never tunnel the dev server. */
 async function ensureProductionPreviewServer() {
   if (await isPortActive(PORT)) {
     throw new Error(`Port ${PORT} is already in use. Stop that server or choose another PORT before opening a tunnel.`);
@@ -240,21 +261,29 @@ async function ensureProductionPreviewServer() {
 
   console.log(`🚀 [Preview] Starting the production bundle on port ${PORT}...`);
   const runner = getNodeRunner('vite');
-  previewProcess = spawn(runner.cmd, [
+  const allowLan = process.env.FFORUM_LAN === '1' || process.env.HOST === '0.0.0.0' || process.argv.includes('--lan');
+  const previewArgs = [
     ...runner.prefixArgs,
     'preview',
     '--host', '127.0.0.1',
     '--port', String(PORT),
     '--strictPort',
-  ], {
+  ];
+  if (allowLan) {
+    const hostIndex = previewArgs.indexOf('--host');
+    if (hostIndex !== -1) {
+      previewArgs[hostIndex + 1] = '0.0.0.0';
+    }
+  }
+  previewProcess = spawn(runner.cmd, previewArgs, {
     cwd: projectRoot,
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: {
       ...process.env,
       NODE_ENV: 'production',
-      // This runner exposes only a Cloudflare Tunnel origin, so the edge-provided
-      // CF-Connecting-IP header is a trusted client address for audit/rate limits.
+      /* This runner exposes only a Cloudflare Tunnel origin, so the edge-provided
+         CF-Connecting-IP header is a trusted client address for audit/rate limits. */
       FFORUM_TRUST_CLOUDFLARE_PROXY: process.env.FFORUM_TRUST_CLOUDFLARE_PROXY ?? 'true',
     },
   });
@@ -276,11 +305,52 @@ async function ensureProductionPreviewServer() {
   console.log(`✅ [Preview] Production app is live at ${LOCAL_HOST_URL}`);
 }
 
-// Launch Cloudflare Tunnel
+/* Locate existing working cloudflared binary across standard local paths */
+function resolveCloudflaredPath() {
+  const envPath = process.env.CLOUDFLARED_BIN;
+  if (envPath && fs.existsSync(envPath)) {
+    return envPath;
+  }
+
+  const userHome = os.homedir();
+  const searchPaths = [
+    path.join(userHome, '.local', 'bin', 'cloudflared'),
+    path.join(userHome, '.9router', 'bin', 'cloudflared'),
+    '/usr/local/bin/cloudflared',
+    '/usr/bin/cloudflared',
+    '/bin/cloudflared',
+  ];
+
+  const envPaths = (process.env.PATH || '').split(path.delimiter);
+  for (const p of envPaths) {
+    if (p) searchPaths.push(path.join(p, 'cloudflared'));
+  }
+
+  for (const p of searchPaths) {
+    if (p && fs.existsSync(p)) {
+      try {
+        fs.accessSync(p, fs.constants.X_OK);
+        return p;
+      } catch {
+        try {
+          fs.chmodSync(p, 0o755);
+          return p;
+        } catch {
+          /* không cấp được quyền execute */
+        }
+      }
+    }
+  }
+
+  return '';
+}
+
+/* Launch Cloudflare Tunnel */
 function getCloudflaredRunner() {
-  const customPath = process.env.CLOUDFLARED_BIN || '';
+  const resolvedPath = resolveCloudflaredPath();
+  const customPath = process.env.CLOUDFLARED_BIN || resolvedPath || '';
   if (customPath && fs.existsSync(customPath)) {
-    return { cmd: customPath, prefixArgs: ['tunnel', '--url', `http://localhost:${PORT}`] };
+    return { cmd: customPath, prefixArgs: ['tunnel', '--url', `http://127.0.0.1:${PORT}`] };
   }
   const runner = getNodeRunner('untun');
   return { cmd: runner.cmd, prefixArgs: [...runner.prefixArgs, 'tunnel', `http://localhost:${PORT}`] };
@@ -307,10 +377,13 @@ function startCloudflareTunnel() {
     const timeout = setTimeout(() => {
       if (!resolved) {
         resolved = true;
-        console.warn('⚠️ [Tunnel] Cloudflare Tunnel timed out waiting for URL (15s).');
+        console.warn('⚠️ [Tunnel] Cloudflare Tunnel timed out waiting for URL (30s).');
+        if (accumulatedOutput) {
+          console.warn(`[Tunnel Output]:\n${accumulatedOutput.trim()}`);
+        }
         resolve({ success: false, url: null });
       }
-    }, 15000);
+    }, 30000);
 
     const checkUrl = (chunk) => {
       const text = chunk.toString();
@@ -331,21 +404,27 @@ function startCloudflareTunnel() {
       if (!resolved) {
         resolved = true;
         clearTimeout(timeout);
+        if (code !== 0 && code !== null) {
+          console.error(`\n❌ [Tunnel] Process exited unexpectedly with code ${code}.`);
+          if (accumulatedOutput) {
+            console.error(`[Tunnel Output]:\n${accumulatedOutput.trim()}`);
+          }
+        }
         resolve({ success: false, url: null, code });
       }
     });
   });
 }
 
-// Main execution flow
+/* Main execution flow */
 async function main() {
   try {
     console.log('🚀 Initializing fforum_broamstuck_studio deployment pipeline...\n');
 
-    // Build and serve production assets locally before any optional exposure.
+/* Build and serve production assets locally before any optional exposure. */
     await ensureProductionPreviewServer();
 
-    // Test mode is intentionally local-only; do not open any public tunnel.
+/* Test mode is intentionally local-only; do not open any public tunnel. */
     if (isTestMode) {
       console.log('🧪 [--test] Verifying only the local production preview; public tunneling is disabled...');
       await checkHttpReady(`http://127.0.0.1:${PORT}`, 5000);
@@ -355,14 +434,14 @@ async function main() {
       return;
     }
 
-    // 2. Expose the app only when explicitly running the public deployment command.
+/* 2. Expose the app only when explicitly running the public deployment command. */
     console.log('🌐 [Tunnel] Starting the Cloudflare Quick Tunnel...');
     const cfResult = await startCloudflareTunnel();
     if (!cfResult.success || !cfResult.url) {
       throw new Error('Unable to establish the Cloudflare public tunnel.');
     }
 
-    // 3. Print the public URL
+/* 3. Print the public URL */
     printStatusBanner(cfResult.url);
     console.log('🟢 Deployment active. Press Ctrl + C to stop all services.\n');
   } catch (err) {
