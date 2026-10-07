@@ -1,5 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useDraftAutosave } from '../../utils/useDraftAutosave';
 import {
   Search,
@@ -1065,11 +1066,15 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           if (!q.isAnonymous) {
+                            const existing = Object.values(users).find(u => u.id === q.authorId) ||
+                              (currentUser && currentUser.id === q.authorId ? currentUser : null);
                             setActiveAuthorPopover({
                               id: q.authorId,
-                              name: q.authorName,
-                              avatar: q.authorAvatar,
-                              level: 1,
+                              name: existing?.name || q.authorName,
+                              avatar: existing?.avatar || q.authorAvatar,
+                              email: existing?.email,
+                              level: existing?.level || 1,
+                              coin: existing?.coin || 100,
                             });
                           }
                         }}
@@ -1448,11 +1453,15 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   type="button"
                   onClick={() => {
                     if (!selectedQuestion.isAnonymous) {
+                      const existing = Object.values(users).find(u => u.id === selectedQuestion.authorId) ||
+                        (currentUser && currentUser.id === selectedQuestion.authorId ? currentUser : null);
                       setActiveAuthorPopover({
                         id: selectedQuestion.authorId,
-                        name: selectedQuestion.authorName,
-                        avatar: selectedQuestion.authorAvatar,
-                        level: 1,
+                        name: existing?.name || selectedQuestion.authorName,
+                        avatar: existing?.avatar || selectedQuestion.authorAvatar,
+                        email: existing?.email,
+                        level: existing?.level || 1,
+                        coin: existing?.coin || 100,
                       });
                     }
                   }}
@@ -1549,12 +1558,15 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           <button
                             type="button"
                             onClick={() => {
+                              const existing = Object.values(users).find(u => u.id === sol.authorId || (sol.authorEmail && u.email?.toLowerCase() === sol.authorEmail.toLowerCase())) ||
+                                (currentUser && (currentUser.id === sol.authorId || (sol.authorEmail && currentUser.email?.toLowerCase() === sol.authorEmail.toLowerCase())) ? currentUser : null);
                               setActiveAuthorPopover({
                                 id: sol.authorId,
-                                name: solverName,
-                                avatar: solverAvatar,
-                                email: sol.authorEmail,
-                                level: isSuperAdminSolver ? 150 : sol.authorLevel,
+                                name: isSuperAdminSolver ? MASTER_ADMIN_CONFIG.name : (existing?.name || solverName),
+                                avatar: isSuperAdminSolver ? MASTER_ADMIN_CONFIG.avatar : (existing?.avatar || solverAvatar),
+                                email: sol.authorEmail || existing?.email,
+                                level: isSuperAdminSolver ? 150 : (existing?.level || sol.authorLevel),
+                                coin: existing?.coin || 100,
                               });
                             }}
                             className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer text-left"
@@ -1839,8 +1851,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           </div>
         </div>
       )}
-      {/* Compact Floating Author Context Popover */}
-      {activeAuthorPopover && (
+      {/* Compact Floating Author Context Popover — portaled to document.body */}
+      {activeAuthorPopover && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-modal="false"
@@ -1848,7 +1860,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           onClick={(e) => {
             if (e.target === e.currentTarget) setActiveAuthorPopover(null);
           }}
-          className="fixed inset-0 z-50 bg-transparent"
+          className="fixed inset-0 z-[100] bg-transparent"
         >
           <div
             style={{
@@ -1934,11 +1946,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Modal: Tố cáo tài khoản */}
-      {reportModalUser && (
+      {/* Modal: Tố cáo tài khoản — portaled to document.body */}
+      {reportModalUser && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-modal="true"
@@ -1949,7 +1962,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               setReportSuccessMsg(null);
             }
           }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
         >
           <div className="liquid-glass w-full max-w-md rounded-3xl bg-neutral-950/95 border border-red-500/40 shadow-2xl p-6 relative">
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
@@ -2050,7 +2063,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   );

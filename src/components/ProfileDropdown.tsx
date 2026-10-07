@@ -1,5 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useRef, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CreditCard, UserPen, Award, LogOut, Sparkles, ChevronRight, Flag, X, Shield, CheckCircle2 } from 'lucide-react';
 import type { User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
@@ -203,7 +204,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         >
           <div className="flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5 text-cyan-400 group-hover:rotate-12 transition-transform" />
-            <span>Cá nhân</span>
+            <span>Trang cá nhân</span>
           </div>
           <ChevronRight className="w-3.5 h-3.5 text-white/50 group-hover:text-cyan-300 group-hover:translate-x-0.5 transition-all" />
         </button>
@@ -264,8 +265,8 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         </button>
       </div>
 
-      {/* Report Modal */}
-      {isReportModalOpen && (
+      {/* Report Modal — portaled to document.body so it is never trapped in dropdown bounds */}
+      {isReportModalOpen && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-modal="true"
@@ -384,7 +385,8 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

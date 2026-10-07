@@ -1,5 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Send,
   Hash,
@@ -409,13 +410,23 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          setActiveAuthorCard({
-                            id: msg.authorId,
-                            name: authorDisplayName,
-                            avatar: authorDisplayAvatar,
-                            email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
-                            level: isSuperAdminMsg ? 150 : (msg.authorLevel || 1),
-                          });
+                          if (isMe && currentUser) {
+                            setActiveAuthorCard({
+                              id: currentUser.id,
+                              name: currentUser.name,
+                              avatar: currentUser.avatar,
+                              email: currentUser.email,
+                              level: currentUser.level || 1,
+                            });
+                          } else {
+                            setActiveAuthorCard({
+                              id: msg.authorId,
+                              name: authorDisplayName,
+                              avatar: authorDisplayAvatar,
+                              email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
+                              level: isSuperAdminMsg ? 150 : (msg.authorLevel || 1),
+                            });
+                          }
                         }}
                         className="relative shrink-0 cursor-pointer focus:outline-none transition-transform hover:scale-105"
                         title={`Xem thông tin ${authorDisplayName}`}
@@ -453,13 +464,23 @@ export const ChatView: React.FC<ChatViewProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              setActiveAuthorCard({
-                                id: msg.authorId,
-                                name: authorDisplayName,
-                                avatar: authorDisplayAvatar,
-                                email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
-                                level: isSuperAdminMsg ? 150 : (msg.authorLevel || 1),
-                              });
+                              if (isMe && currentUser) {
+                                setActiveAuthorCard({
+                                  id: currentUser.id,
+                                  name: currentUser.name,
+                                  avatar: currentUser.avatar,
+                                  email: currentUser.email,
+                                  level: currentUser.level || 1,
+                                });
+                              } else {
+                                setActiveAuthorCard({
+                                  id: msg.authorId,
+                                  name: authorDisplayName,
+                                  avatar: authorDisplayAvatar,
+                                  email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
+                                  level: isSuperAdminMsg ? 150 : (msg.authorLevel || 1),
+                                });
+                              }
                             }}
                             className={
                               isSuperAdminMsg
@@ -931,8 +952,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
         </>
       )}
 
-      {/* Compact Floating Author Context Popover (anchored beside clicked user) */}
-      {activeAuthorCard && (
+      {/* Compact Floating Author Context Popover — portaled to document.body */}
+      {activeAuthorCard && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-modal="false"
@@ -940,7 +961,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
           onClick={(e) => {
             if (e.target === e.currentTarget) setActiveAuthorCard(null);
           }}
-          className="fixed inset-0 z-50 bg-transparent"
+          className="fixed inset-0 z-[100] bg-transparent"
         >
           <div
             style={{
@@ -1026,11 +1047,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Modal: Tố cáo tài khoản */}
-      {reportUser && (
+      {/* Modal: Tố cáo tài khoản — portaled to document.body */}
+      {reportUser && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-modal="true"
@@ -1041,7 +1063,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               setReportSuccessMsg(null);
             }
           }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
         >
           <div className="liquid-glass w-full max-w-md rounded-3xl bg-neutral-950/95 border border-red-500/40 shadow-2xl p-6 relative">
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
@@ -1142,7 +1164,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   );

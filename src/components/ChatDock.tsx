@@ -1,5 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Send,
@@ -262,13 +263,23 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      setActiveAuthorCard({
-                        id: msg.authorId,
-                        name: authorDisplayName,
-                        avatar: authorDisplayAvatar,
-                        email: msg.authorEmail,
-                        level: isSuperAdminMsg ? 150 : msg.authorLevel,
-                      });
+                      if (isMe && currentUser) {
+                        setActiveAuthorCard({
+                          id: currentUser.id,
+                          name: currentUser.name,
+                          avatar: currentUser.avatar,
+                          email: currentUser.email,
+                          level: currentUser.level || 1,
+                        });
+                      } else {
+                        setActiveAuthorCard({
+                          id: msg.authorId,
+                          name: authorDisplayName,
+                          avatar: authorDisplayAvatar,
+                          email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
+                          level: isSuperAdminMsg ? 150 : msg.authorLevel,
+                        });
+                      }
                     }}
                     className="relative shrink-0 cursor-pointer focus:outline-none"
                     title={`Xem thông tin của ${authorDisplayName}`}
@@ -295,13 +306,23 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          setActiveAuthorCard({
-                            id: msg.authorId,
-                            name: authorDisplayName,
-                            avatar: authorDisplayAvatar,
-                            email: msg.authorEmail,
-                            level: isSuperAdminMsg ? 150 : msg.authorLevel,
-                          });
+                          if (isMe && currentUser) {
+                            setActiveAuthorCard({
+                              id: currentUser.id,
+                              name: currentUser.name,
+                              avatar: currentUser.avatar,
+                              email: currentUser.email,
+                              level: currentUser.level || 1,
+                            });
+                          } else {
+                            setActiveAuthorCard({
+                              id: msg.authorId,
+                              name: authorDisplayName,
+                              avatar: authorDisplayAvatar,
+                              email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
+                              level: isSuperAdminMsg ? 150 : msg.authorLevel,
+                            });
+                          }
                         }}
                         className={`${isSuperAdminMsg ? 'discord-admin-name text-xs' : 'font-semibold text-neutral-200'} cursor-pointer hover:underline focus:outline-none`}
                       >
@@ -388,8 +409,8 @@ export const ChatDock: React.FC<ChatDockProps> = ({
       </div>
     </div>
 
-      {/* Compact Floating Author Context Popover */}
-      {activeAuthorCard && (
+      {/* Compact Floating Author Context Popover — portaled to document.body */}
+      {activeAuthorCard && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-modal="false"
@@ -397,7 +418,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
           onClick={(e) => {
             if (e.target === e.currentTarget) setActiveAuthorCard(null);
           }}
-          className="fixed inset-0 z-50 bg-transparent"
+          className="fixed inset-0 z-[100] bg-transparent"
         >
           <div
             style={{
@@ -483,11 +504,12 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Modal: Tố cáo tài khoản */}
-      {reportUser && (
+      {/* Modal: Tố cáo tài khoản — portaled to document.body */}
+      {reportUser && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-modal="true"
@@ -498,7 +520,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               setReportSuccessMsg(null);
             }
           }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
         >
           <div className="liquid-glass w-full max-w-md rounded-3xl bg-neutral-950/95 border border-red-500/40 shadow-2xl p-6 relative">
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
@@ -599,7 +621,8 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

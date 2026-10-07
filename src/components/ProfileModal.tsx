@@ -1,5 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Upload,
@@ -308,7 +309,7 @@ const ProfileModalInner: React.FC<{
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [reportSuccess, setReportSuccess] = useState<string | null>(null);
 
-  const isSuperAdmin = currentUser.email === 'anhtuantran0512@gmail.com';
+  const isSuperAdmin = (currentUser.email || '').toLowerCase() === 'anhtuantran0512@gmail.com' || currentUser.role === 'SUPER_ADMIN';
   const isOwnProfile = !viewerUser || viewerUser.id === currentUser.id;
 
   /* GUI nhỏ "Bảng rank · danh hiệu · yêu cầu" mở từ khối Danh hiệu */
@@ -317,7 +318,7 @@ const ProfileModalInner: React.FC<{
   /* Tim hồ sơ — MỘT nguồn sự thật: likesMap. Nút tim chỉ hiển thị số cha tính
      ra, không tự cộng trừ, nên một lần bấm luôn đúng ±1 (không thể nhân đôi). */
   const [likesMap, setLikesMap] = useState<ProfileLikesMap>(() => readProfileLikes());
-  const profileKey = currentUser.email.toLowerCase();
+  const profileKey = (currentUser.email || currentUser.id || '').toLowerCase();
   const viewerKey = (viewerUser?.email || viewerUser?.id || '').toLowerCase();
   const profileLikers = profileLikersOf(likesMap, profileKey);
   const likedByMe = isProfileLikedBy(likesMap, profileKey, viewerKey);
@@ -671,7 +672,7 @@ const ProfileModalInner: React.FC<{
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/45 backdrop-blur-md animate-fade-up"
+      className="fixed inset-0 z-[80] flex items-center justify-center p-2 sm:p-4 bg-black/45 backdrop-blur-md animate-fade-up"
       role="dialog"
       aria-modal="true"
       aria-label={`Hồ sơ cá nhân của ${currentUser.name}`}
@@ -1908,8 +1909,8 @@ const ProfileModalInner: React.FC<{
         </div>
       </div>
 
-      {/* Tố Cáo Modal Popup */}
-      {isReporting && (
+      {/* Tố Cáo Modal Popup — portaled to document.body */}
+      {isReporting && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-modal="true"
@@ -1920,7 +1921,7 @@ const ProfileModalInner: React.FC<{
               setReportSuccess(null);
             }
           }}
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-up"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-up"
         >
           <div className="pc-12-shell w-full max-w-md rounded-3xl border border-red-500/40 shadow-2xl p-6 relative">
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
@@ -2022,7 +2023,8 @@ const ProfileModalInner: React.FC<{
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <TierRankSheet
