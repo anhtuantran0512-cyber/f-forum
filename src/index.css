@@ -1829,6 +1829,101 @@ html.light .pc-12-shell {
     inset 0 1px 1px rgba(255, 255, 255, 0.8);
 }
 
+html.light .pc-12-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(240, 245, 252, 0.82));
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    8px 8px 22px rgba(163, 177, 198, 0.42),
+    -6px -6px 16px rgba(255, 255, 255, 0.95),
+    inset 0 1px 1px rgba(255, 255, 255, 0.98);
+}
+html.light .pc-12-card:hover {
+  border-color: rgba(217, 119, 6, 0.35);
+  box-shadow:
+    10px 10px 26px rgba(163, 177, 198, 0.52),
+    -6px -6px 18px rgba(255, 255, 255, 0.98),
+    inset 0 1px 1px rgba(255, 255, 255, 1);
+}
+
+html.light .pc-12-well {
+  background: rgba(228, 235, 246, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    inset 4px 4px 9px rgba(163, 177, 198, 0.45),
+    inset -3px -3px 8px rgba(255, 255, 255, 0.88);
+}
+html.light .pc-12-well:hover {
+  border-color: rgba(217, 119, 6, 0.35);
+  box-shadow:
+    inset 2px 2px 6px rgba(163, 177, 198, 0.32),
+    0 6px 16px rgba(163, 177, 198, 0.38);
+}
+
+html.light .pc-12-pill {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(234, 240, 249, 0.84));
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    3px 3px 8px rgba(163, 177, 198, 0.42),
+    -2px -2px 6px rgba(255, 255, 255, 0.92);
+  color: #1e293b;
+}
+html.light .pc-12-pill:hover {
+  border-color: rgba(217, 119, 6, 0.4);
+}
+
+html.light .pc-12-btn {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(236, 242, 250, 0.86));
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    4px 4px 10px rgba(163, 177, 198, 0.45),
+    -3px -3px 8px rgba(255, 255, 255, 0.95);
+  color: #1e293b;
+}
+html.light .pc-12-btn:hover {
+  border-color: rgba(217, 119, 6, 0.45);
+  color: #1e293b;
+}
+html.light .pc-12-btn:active,
+html.light .pc-12-btn[aria-pressed="true"],
+html.light .pc-12-btn-active {
+  box-shadow:
+    inset 3px 3px 8px rgba(163, 177, 198, 0.5),
+    inset -2px -2px 6px rgba(255, 255, 255, 0.85);
+}
+
+/* Light Mode popover & profile shell crystalline translucent surfaces */
+html.light .popover-morph-enter {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  border-color: rgba(255, 255, 255, 0.75) !important;
+  box-shadow: 0 20px 48px rgba(100, 116, 139, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.95) !important;
+}
+
+html.light .pc-12-shell .text-white,
+html.light .popover-morph-enter .text-white {
+  color: #1e293b;
+}
+html.light .pc-12-shell .text-neutral-200,
+html.light .pc-12-shell .text-neutral-300,
+html.light .popover-morph-enter .text-neutral-200,
+html.light .popover-morph-enter .text-neutral-300 {
+  color: #334155;
+}
+html.light .pc-12-shell .text-neutral-400,
+html.light .popover-morph-enter .text-neutral-400,
+html.light .popover-morph-enter .text-white\/50,
+html.light .popover-morph-enter .text-white\/60 {
+  color: #64748b;
+}
+html.light .pc-12-shell .bg-white\/5,
+html.light .pc-12-shell .bg-white\/10,
+html.light .popover-morph-enter .bg-white\/5,
+html.light .popover-morph-enter .bg-white\/10 {
+  background-color: rgba(230, 236, 246, 0.65);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
 /* Extruded 3D rounded card inside ProfileModal */
 .pc-12-card {
   background: linear-gradient(145deg, rgba(26, 35, 49, 0.68), rgba(14, 20, 29, 0.76));

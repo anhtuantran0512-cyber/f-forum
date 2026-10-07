@@ -279,6 +279,12 @@ export const App: React.FC = () => {
     userToView?: { id: string; name: string; avatar: string; email?: string; level?: number }
   ) => {
     if (userToView) {
+      if (currentUser && (userToView.id === currentUser.id || (userToView.email && userToView.email.toLowerCase() === currentUser.email.toLowerCase()))) {
+        setTargetProfileUser(null);
+        setProfileInitialTab(tab);
+        setIsProfileModalOpen(true);
+        return;
+      }
       const emailKey = userToView.email ? userToView.email.toLowerCase() : '';
       const existing = (emailKey && users[emailKey]) || Object.values(users).find(u => u.id === userToView.id);
       if (existing) {
