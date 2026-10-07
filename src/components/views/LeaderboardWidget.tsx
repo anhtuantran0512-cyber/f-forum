@@ -414,7 +414,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
             <p className="text-xs text-neutral-300 mt-2">Chưa có dữ liệu trong kỳ này.</p>
             <p className="text-[10px] text-neutral-500 mt-1">
               {metric === 'hours'
-                ? 'Bắt đầu đồng hồ tự do và dừng khi bạn muốn để ghi giờ học vào bảng!'
+                ? 'Hoàn thành một phiên Pomodoro 25 phút để mở bảng xếp hạng giờ học!'
                 : 'Hỏi đáp, trả lời và thảo luận để trở thành người dẫn đầu!'}
             </p>
           </div>
@@ -540,8 +540,8 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
 
         {metric === 'hours' && (
           <p className="ff-board__note">
-            Số giờ của bạn lấy từ nhật ký đồng hồ tự do trong Phòng Tập Trung; mọi phút thực học được ghi khi dừng.
-            Thành viên khác được quy đổi từ XP tích luỹ.
+            Số giờ của bạn lấy từ nhật ký Phòng Tập Trung (phiên 25 phút, dừng sớm vẫn tính phần đã học); thành
+            viên khác được quy đổi từ XP tích luỹ.
           </p>
         )}
 

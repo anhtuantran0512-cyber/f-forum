@@ -232,11 +232,11 @@ export const BookshelfPanel: React.FC<BookshelfPanelProps> = ({ ownerKey, ownerN
       {canEdit && isAdding && (
         <div className="pc-12-well p-3 space-y-2.5 animate-fade-up">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <label className="block">
+            <label htmlFor="field" className="block">
               <span className="text-[10px] font-semibold text-neutral-300 uppercase tracking-wide">
                 Tên sách *
               </span>
-              <input
+              <input id="field"
                 value={title}
                 onChange={(e) => {
                   setTitle(e.target.value);
@@ -250,11 +250,11 @@ export const BookshelfPanel: React.FC<BookshelfPanelProps> = ({ ownerKey, ownerN
                 className="mt-1 w-full bg-black/40 border border-white/15 rounded-xl px-2.5 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400 transition-colors"
               />
             </label>
-            <label className="block">
+            <label htmlFor="field-2" className="block">
               <span className="text-[10px] font-semibold text-neutral-300 uppercase tracking-wide">
                 Tác giả
               </span>
-              <input
+              <input id="field-2"
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
                 onKeyDown={(e) => {
@@ -286,11 +286,11 @@ export const BookshelfPanel: React.FC<BookshelfPanelProps> = ({ ownerKey, ownerN
             ))}
           </div>
 
-          <label className="block">
+          <label htmlFor="field-3" className="block">
             <span className="text-[10px] font-semibold text-neutral-300 uppercase tracking-wide">
               Ghi chú
             </span>
-            <input
+            <input id="field-3"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               onKeyDown={(e) => {

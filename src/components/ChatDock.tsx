@@ -1,6 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import {
   X,
   Send,
@@ -19,9 +18,10 @@ import {
 } from 'lucide-react';
 import type { ChatChannelId, ChatMessage, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
+import { useEscapeKey } from '../utils/useEscapeKey';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { useChatCooldown } from '../utils/chatCooldown';
-import { FOUNDER_PROFILE_CONFIG, isSuperAdminRole } from '../config/admin';
+import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../config/admin';
 import { getTierForLevel } from '../utils/tier';
 import { pushNotification } from '../utils/notifications';
 import { ChatCooldownBar } from './ChatCooldownBar';
@@ -32,7 +32,7 @@ export interface ChatDockProps {
   onClose: () => void;
   currentUser: User | null;
   messages: ChatMessage[];
-  onSendMessage: (channelId: ChatChannelId, content: string) => void | boolean | Promise<void | boolean>;
+  onSendMessage: (channelId: ChatChannelId, content: string) => void;
   onDeleteMessage?: (messageId: string) => void;
   onOpenLoginModal?: () => void;
   onOpenProfile?: (user: { id: string; name: string; avatar: string; email?: string; level?: number }) => void;
@@ -61,7 +61,6 @@ export const ChatDock: React.FC<ChatDockProps> = ({
 }) => {
   const [activeChannel, setActiveChannel] = useState<ChatChannelId>('hallway');
   const [inputText, setInputText] = useState('');
-  const [isSending, setIsSending] = useState(false);
   const cooldown = useChatCooldown();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -70,7 +69,6 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     name: string;
     avatar: string;
     email?: string;
-    role?: string;
     level: number;
   } | null>(null);
   const [authorAnchorPos, setAuthorAnchorPos] = useState<{ x: number; y: number }>({ x: 240, y: 180 });
@@ -88,6 +86,13 @@ export const ChatDock: React.FC<ChatDockProps> = ({
   const [reportDetails, setReportDetails] = useState('');
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [reportSuccessMsg, setReportSuccessMsg] = useState<string | null>(null);
+
+  /* Hộp thoại tố cáo khai báo aria-modal="true" mà không có đường thoát bằng
+     phím. Chỉ bật khi hộp thoại đang mở để không giành phím Escape của lớp khác. */
+  useEscapeKey(() => {
+    setReportUser(null);
+    setReportSuccessMsg(null);
+  }, Boolean(reportUser));
 
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,25 +133,17 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     }
   }, [messages, activeChannel, isOpen]);
 
-  const handleSend = async () => {
-    if (!currentUser || isSending) return;
+  const handleSend = () => {
+    if (!currentUser) return;
     if (cooldown.isCooling) {
       cooldown.nudge();
       return;
     }
     const text = inputText.trim();
     if (!text) return;
-    setIsSending(true);
-    try {
-      const accepted = await onSendMessage(activeChannel, text);
-      if (accepted === false) return;
-      setInputText('');
-      cooldown.startCooldown();
-    } catch {
-      /* Keep the draft when the send fails. */
-    } finally {
-      setIsSending(false);
-    }
+    onSendMessage(activeChannel, text);
+    setInputText('');
+    cooldown.startCooldown();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -252,10 +249,10 @@ export const ChatDock: React.FC<ChatDockProps> = ({
           ) : (
             currentMessages.map(msg => {
               const isMe = currentUser ? msg.authorId === currentUser.id : false;
-              const isSuperAdminMsg = isSuperAdminRole(msg.authorRole);
-              const isSuperAdmin = currentUser ? isSuperAdminRole(currentUser.role) : false;
-              const authorDisplayName = isSuperAdminMsg ? FOUNDER_PROFILE_CONFIG.name : msg.authorName;
-              const authorDisplayAvatar = isSuperAdminMsg ? FOUNDER_PROFILE_CONFIG.avatar : msg.authorAvatar;
+              const isSuperAdminMsg = isMasterAdmin(msg.authorEmail);
+              const isSuperAdmin = currentUser ? isMasterAdmin(currentUser.email) : false;
+              const authorDisplayName = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.name : msg.authorName;
+              const authorDisplayAvatar = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.avatar : msg.authorAvatar;
 
               return (
                 <div
@@ -270,7 +267,6 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                         name: authorDisplayName,
                         avatar: authorDisplayAvatar,
                         email: msg.authorEmail,
-                        role: msg.authorRole,
                         level: isSuperAdminMsg ? 150 : msg.authorLevel,
                       });
                     }}
@@ -304,7 +300,6 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                             name: authorDisplayName,
                             avatar: authorDisplayAvatar,
                             email: msg.authorEmail,
-                            role: msg.authorRole,
                             level: isSuperAdminMsg ? 150 : msg.authorLevel,
                           });
                         }}
@@ -372,7 +367,6 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               type="text"
               value={inputText}
               maxLength={300}
-              disabled={isSending}
               onChange={e => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={`Nhắn vào #${currentChannelObj.name}...`}
@@ -381,7 +375,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
 
             <button
               onClick={handleSend}
-              disabled={!inputText.trim() || cooldown.isCooling || isSending}
+              disabled={!inputText.trim() || cooldown.isCooling}
               className={`relative p-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 font-semibold active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md ${
                 cooldown.isCooling ? 'ff-cd-btn is-cooling' : ''
               }`}
@@ -395,7 +389,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     </div>
 
       {/* Compact Floating Author Context Popover */}
-      {activeAuthorCard && typeof document !== 'undefined' && createPortal(
+      {activeAuthorCard && (
         <div
           role="dialog"
           aria-modal="false"
@@ -403,7 +397,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
           onClick={(e) => {
             if (e.target === e.currentTarget) setActiveAuthorCard(null);
           }}
-          className="fixed inset-0 z-[110] bg-transparent"
+          className="fixed inset-0 z-50 bg-transparent"
         >
           <div
             style={{
@@ -446,7 +440,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               <div className="min-w-0 flex-1">
                 <h4 className="text-xs font-bold text-white flex items-center gap-1 truncate">
                   <span className="truncate">{activeAuthorCard.name}</span>
-                  {isSuperAdminRole(activeAuthorCard.role) && <AdminVerifiedBadge size={12} />}
+                  {isMasterAdmin(activeAuthorCard.email) && <AdminVerifiedBadge size={12} />}
                 </h4>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[9.5px] font-mono font-bold">
@@ -489,12 +483,11 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               </button>
             </div>
           </div>
-        </div>,
-        document.body,
+        </div>
       )}
 
       {/* Modal: Tố cáo tài khoản */}
-      {reportUser && typeof document !== 'undefined' && createPortal(
+      {reportUser && (
         <div
           role="dialog"
           aria-modal="true"
@@ -505,7 +498,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               setReportSuccessMsg(null);
             }
           }}
-          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
         >
           <div className="liquid-glass w-full max-w-md rounded-3xl bg-neutral-950/95 border border-red-500/40 shadow-2xl p-6 relative">
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
@@ -564,10 +557,10 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                  <label htmlFor="chi-tiet-vi-pham" className="block text-xs font-semibold text-neutral-300 mb-1">
                     Chi tiết vi phạm:
                   </label>
-                  <textarea
+                  <textarea id="chi-tiet-vi-pham"
                     value={reportDetails}
                     onChange={e => setReportDetails(e.target.value)}
                     maxLength={500}
@@ -606,8 +599,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               </form>
             )}
           </div>
-        </div>,
-        document.body,
+        </div>
       )}
     </>
   );

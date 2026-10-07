@@ -29,6 +29,7 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
   const [isExiting, setIsExiting] = useState(false);
   const [displayProgress, setDisplayProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>(['> f-forum: khởi tạo tài nguyên...']);
+  const [isDarkTheme, setIsDarkTheme] = useState(true);
 
   const doneRef = useRef<Record<string, boolean>>({});
   const targetRef = useRef(0);
@@ -92,26 +93,11 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
       markDone('fonts', '> fonts: hoàn tất');
     }
 
-    const sessionPromise = fetch('/api/auth/session', { credentials: 'same-origin', cache: 'no-store' })
-      .then(async response => {
-        if (!response.ok) return false;
-        const data = await response.json();
-        return Boolean(data.user?.id);
-      })
-      .catch(() => false);
-
-    /* 4. Server data sync is private, so guests do not request it. */
-    pushLog('> api: kiểm tra phiên và đồng bộ dữ liệu...');
+    /* 4. Server data sync (the real resource gate) */
+    pushLog('> api: đồng bộ dữ liệu máy chủ...');
     let apiFinished = false;
-    void sessionPromise.then(async (hasSession) => {
-      if (!mountedRef.current) return;
-      if (!hasSession) {
-        apiFinished = true;
-        markDone('api', '> api: khách — đồng bộ sau khi đăng nhập');
-        return;
-      }
-      try {
-        const res = await fetch('/api/sync');
+    fetch('/api/sync')
+      .then(async (res) => {
         if (res.ok) {
           const json = await res.json();
           const data = json?.data || {};
@@ -126,46 +112,39 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
           apiFinished = true;
           markDone('api', '> api: ngoại tuyến, dùng bộ nhớ đệm');
         }
-      } catch {
+      })
+      .catch(() => {
         apiFinished = true;
         markDone('api', '> api: ngoại tuyến, dùng bộ nhớ đệm');
-      }
-    });
+      });
     setTimeout(() => {
       if (!apiFinished) markDone('api', '> api: timeout, tiếp tục');
     }, 6000);
 
-    /* 5. Realtime is account-bound too; avoid an anonymous rejected handshake. */
-    pushLog('> ws: kiểm tra quyền kênh thời gian thực...');
+    /* 5. Realtime channel (WebSocket, fallback SSE) */
+    pushLog('> ws: mở kênh thời gian thực...');
     let rtFinished = false;
-    const finishRt = (line: string) => {
-      if (rtFinished) return;
-      rtFinished = true;
-      markDone('rt', line);
-    };
-    void sessionPromise.then((hasSession) => {
-      if (!mountedRef.current || rtFinished) return;
-      if (!hasSession) {
-        finishRt('> ws: khả dụng sau khi đăng nhập');
-        return;
-      }
-      try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
-        ws.onopen = () => finishRt('> ws: kết nối thời gian thực ok');
-        ws.onerror = () => finishRt('> sse: dùng kênh dự phòng');
-        setTimeout(() => {
-          finishRt('> ws: sẵn sàng');
-          try {
-            ws.close();
-          } catch {
-            /* ignore */
-          }
-        }, 3500);
-      } catch {
+    try {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+      const finishRt = (line: string) => {
+        if (rtFinished) return;
+        rtFinished = true;
+        markDone('rt', line);
+      };
+      ws.onopen = () => finishRt('> ws: kết nối thời gian thực ok');
+      ws.onerror = () => finishRt('> sse: dùng kênh dự phòng');
+      setTimeout(() => {
         finishRt('> ws: sẵn sàng');
-      }
-    });
+        try {
+          ws.close();
+        } catch {
+          /* ignore */
+        }
+      }, 3500);
+    } catch {
+      markDone('rt', '> ws: sẵn sàng');
+    }
 
     /* Smooth progress animation toward the real target */
     const tick = setInterval(() => {
@@ -232,16 +211,34 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
         isExiting ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
       role="status"
-      aria-live="off"
-      aria-busy="true"
-      aria-label="Đang tải F-Forum"
+      aria-live="polite"
+      aria-label={`Đang tải F-Forum — ${pct}%`}
       style={{
         background:
           'radial-gradient(100% 70% at 50% -10%, rgba(13,148,136,0.22), transparent 65%), radial-gradient(70% 50% at 85% 100%, rgba(167,139,250,0.14), transparent 60%), radial-gradient(70% 50% at 10% 90%, rgba(245,158,11,0.12), transparent 55%), #0c1218',
       }}
     >
-      {/* Manual skip remains available; no decorative controls that pretend to change app state. */}
-      <div className="fixed top-4 right-4 z-50">
+      {/* Top Chrome Controls */}
+      <div className="fixed top-4 right-4 flex items-center gap-2 z-50">
+        <button
+          type="button"
+          onClick={() => setIsDarkTheme((prev) => !prev)}
+          className="w-10 h-10 rounded-full flex items-center justify-center bg-white/10 hover:bg-white/20 border border-white/15 text-white transition-all cursor-pointer shadow-lg"
+          aria-pressed={isDarkTheme}
+          aria-label={isDarkTheme ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+        >
+          {isDarkTheme ? (
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          )}
+        </button>
+
         <button
           type="button"
           onClick={handleManualSkip}

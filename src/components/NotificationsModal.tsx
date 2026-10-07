@@ -220,9 +220,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         aria-modal="true"
         aria-label="Trung tâm thông báo"
         className={`z-[70] liquid-glass rounded-3xl p-4 shadow-[0_25px_60px_rgba(0,0,0,0.92)] border border-white/20 pointer-events-auto select-none popover-morph-enter bg-[#0c1218]/95 ${
-          !anchorRef || !pop.ready
-            ? 'ff-notifications-popover--floating fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] max-w-[calc(100vw-28px)]'
-            : ''
+          !anchorRef || !pop.ready ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] max-w-[calc(100vw-28px)]' : ''
         }`}
         style={anchorRef ? pop.style : undefined}
         onClick={(e) => {
@@ -299,7 +297,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         </div>
 
         {/* Notification Feed */}
-        <div className="ff-notification-feed max-h-[340px] overflow-y-auto space-y-2.5 pr-1 no-scrollbar">
+        <div className="max-h-[340px] overflow-y-auto space-y-2.5 pr-1 no-scrollbar">
           {filtered.length === 0 ? (
             <div className="py-10 text-center text-xs text-neutral-400 space-y-1">
               <p>Chưa có thông báo nào trong mục này.</p>

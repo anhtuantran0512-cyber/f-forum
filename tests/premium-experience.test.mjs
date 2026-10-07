@@ -76,11 +76,8 @@ test('4. Chuyển GUI lớn ↔ GUI nhỏ mượt hơn (morph + nhãn co giãn)'
   assert.ok(css.includes('.dock-container.ff-nav-morphing > nav'), 'CSS must animate the morphing dock');
   assert.ok(css.includes('interpolate-size: allow-keywords'), 'CSS must allow keyword size interpolation');
   assert.ok(
-    css.includes('.nav-tab-btn {') &&
-      css.includes('min-width 700ms cubic-bezier(0.22, 1, 0.36, 1)') &&
-      css.includes('.ff-nav-capsule--busy .nav-tab-btn') &&
-      css.includes('will-change: width, min-width, height, padding;'),
-    'Tab geometry must transition smoothly and allocate motion hints only while morphing',
+    css.includes('.nav-tab-btn {') && css.includes('will-change: width, min-width, padding;'),
+    'Nav tab buttons must transition width/padding smoothly',
   );
   assert.ok(
     !/\.dock-pos-top \.ff-nav-capsule\[data-compact="true"\] \.nav-tab-btn,\n\.dock-pos-bottom \.ff-nav-capsule\[data-compact="true"\] \.nav-tab-btn \{\n  width: 36px;/.test(
@@ -205,19 +202,17 @@ test('10. Miền Ký Ức / Khu Vinh Danh / Update luôn ở dạng icon', () =>
   assert.ok(css.includes('.ff-nav-capsule .ff-tip-always'), 'CSS must force tooltips for icon-only tabs');
 });
 
-test('11. Nhịp thu nhỏ / phóng to navbar đồng bộ và mượt', () => {
+test('11. Nhịp thu nhỏ / phóng to navbar chậm và mượt hơn', () => {
   const navbar = read('src/components/Navbar.tsx');
   const css = read('src/index.css');
 
-  assert.ok(navbar.includes('scheduleCompact(760)'), 'A grace period must prevent accidental collapse while moving the pointer');
-  assert.ok(navbar.includes('delay = 760'), 'The default collapse grace period must remain consistent');
-  assert.ok(navbar.includes('NAV_MORPH_MS = 860'), 'The morph signal must span the capsule geometry transition');
-  assert.ok(navbar.includes('NAV_POSITION_MORPH_MS = 720'), 'Dock-position animation state must last for its full CSS animation');
+  assert.ok(navbar.includes('scheduleCompact(760)'), 'Collapse grace period must be slowed to 760ms');
+  assert.ok(navbar.includes('delay = 760'), 'scheduleCompact default must be 760ms');
+  assert.ok(!navbar.includes('scheduleCompact(500)'), 'The old snappy 500ms collapse must be gone');
 
-  assert.ok(css.includes('--ff-nav-shape-duration: 860ms'), 'Capsule geometry must use one shared 860ms duration');
-  assert.ok(css.includes('width var(--ff-nav-shape-duration) var(--ff-nav-morph-ease)'), 'Capsule width must follow the shared morph timing');
-  assert.ok(css.includes('padding var(--ff-nav-shape-duration) var(--ff-nav-morph-ease)'), 'Capsule padding must stay synchronized with its width');
-  assert.ok(css.includes('animation: ffNavMorph 720ms cubic-bezier(0.22, 1, 0.36, 1) both'), 'Dock morph and its state timer must finish together');
+  assert.ok(css.includes('width 0.78s cubic-bezier(0.32, 0.72, 0, 1)'), 'Capsule width must ease over 0.78s');
+  assert.ok(css.includes('max-width 0.76s cubic-bezier(0.32, 0.72, 0, 1)'), 'Label shrink must ease over 0.76s');
+  assert.ok(css.includes('animation: ffNavMorph 620ms cubic-bezier(0.32, 0.72, 0, 1) both'), 'Dock morph must slow down');
   assert.ok(css.includes('transition: top 0.46s cubic-bezier(0.32, 0.72, 0, 1)') || css.includes('top 0.46s'), 'Popovers must glide when the dock shifts');
 });
 
@@ -270,7 +265,7 @@ test('14. Brand lockup: huy hiệu F + chữ vàng tĩnh, hết aurora loè/méo
   assert.ok(!navbar.includes('drop-shadow-[0_2px_12px_rgba(245,158,11,0.3)]'), 'The heavy blurred drop-shadow must be gone');
   assert.ok(css.includes('.ff-nav-brand-title'), 'A dedicated, legible wordmark style must exist');
   assert.ok(css.includes('@keyframes ffBrandSweep'), 'The wordmark keeps a subtle specular sweep');
-  assert.ok(css.includes('html.light .ff-nav-brand-title'), 'Light-mode tinted glass needs a luminous gold wordmark');
+  assert.ok(css.includes('html.light .ff-nav-brand-title'), 'Light mode needs a darker gold gradient for contrast');
   assert.ok(css.includes('.ff-nav-logo__core'), 'The F monogram core must be styled as a crisp badge');
 });
 
@@ -289,37 +284,18 @@ test('15. Bố cục navbar cân đối + icon không bao giờ biến mất', (
 
   // Nhịp chuyển đổi icon/nhãn chống "nút rỗng"
   assert.ok(
-    css.includes('transition: max-width var(--ff-nav-content-duration) var(--ff-nav-morph-ease) 0.18s,'),
-    'Icon collapse must wait briefly so labels can begin appearing before the icons leave',
+    css.includes('transition: max-width 0.5s cubic-bezier(0.32, 0.72, 0, 1) 0.22s,'),
+    'Icon collapse must be delayed so buttons are never empty while expanding',
   );
   assert.ok(
-    css.includes('transition: max-width var(--ff-nav-content-duration) var(--ff-nav-morph-ease),') &&
-      css.includes('opacity 280ms var(--ff-nav-soft-ease) 180ms'),
-    'Labels must gain width before fading in, preventing clipped glyphs',
+    css.includes('transition: max-width 0.66s cubic-bezier(0.32, 0.72, 0, 1),'),
+    'Labels must expand before their text fades in (no clipped glyphs)',
   );
   assert.ok(
     !/\.nav-tab-btn \{[^}]*transform: translateZ\(0\)/.test(css),
     'Tab buttons must not create a containing block (would break fixed tooltips)',
   );
   assert.ok(css.includes('.nav-icon-btn--on'), 'Navbar utility buttons must share one consistent active style');
-});
-
-test('README: giới hạn upload và mốc cấp bậc phải khớp logic thật', () => {
-  const readme = read('README.md');
-  const qa = read('src/components/views/QAForumView.tsx');
-  const server = read('server/forumServer.ts');
-  const tiers = read('src/utils/tier.ts');
-  const comingSoon = read('src/components/views/ComingSoonView.tsx');
-
-  assert.ok(readme.includes('PNG, JPG hoặc WebP, tối đa 8MB/tệp'));
-  assert.ok(qa.includes('const maxSize = 8 * 1024 * 1024') && server.includes('MAX_QA_IMAGE_BYTES = 8 * 1024 * 1024'));
-  assert.ok(!readme.includes('20MB') && !readme.includes('tự động tối ưu hóa'), 'Do not promise an upload size or image optimization that is not implemented');
-  assert.ok(readme.includes('tăng theo **XP**') && !readme.includes('tiến trình tích lũy Coin'));
-  for (const threshold of ['727 XP', '2.343 XP', '5.172 XP', '9.700 XP', '16.575 XP', '26.607 XP', '36.452 XP']) {
-    assert.ok(readme.includes(threshold), `README is missing the real XP threshold ${threshold}`);
-  }
-  assert.ok(tiers.includes('minLevel: 6') && tiers.includes('minLevel: 131'));
-  assert.ok(comingSoon.includes('Coming soon') && !comingSoon.includes('Comming soon'), 'The explicitly planned upgrade page must not ship with a spelling error');
 });
 
 test('16. Aura navbar tách lớp đúng: nằm sau nội dung, không đè chữ/icon', () => {

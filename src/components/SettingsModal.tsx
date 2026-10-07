@@ -4,6 +4,7 @@ import {
   Settings,
   X,
   Volume2,
+  VolumeX,
   Timer,
   Sparkles,
   Zap,
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 import { GODRAY_PRESETS } from '../utils/godrays';
 import { safeStorage } from '../utils/storage';
+import { AUTH_TOKEN_KEY, clearAuthToken } from '../utils/session';
 import { usePopoverPosition, type DockPosition } from '../utils/popover';
 
 export interface SettingsModalProps {
@@ -32,6 +34,8 @@ export interface SettingsModalProps {
   onClose: () => void;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
+  isAudioPlaying: boolean;
+  onToggleAudio: (e?: React.MouseEvent) => void;
   onOpenFocusMode: () => void;
   soundEffects: boolean;
   onToggleSoundEffects: () => void;
@@ -144,6 +148,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   theme,
   onToggleTheme,
+  isAudioPlaying,
+  onToggleAudio,
   onOpenFocusMode,
   soundEffects,
   onToggleSoundEffects,
@@ -200,13 +206,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose, confirmReset]);
 
-  useEffect(() => {
+  /* Xoá các hộp xác nhận khi đóng. Dùng mẫu "điều chỉnh state khi prop đổi" của
+     React thay vì useEffect để tránh một lượt render thừa. */
+  const [wasOpenForReset, setWasOpenForReset] = useState(isOpen);
+  if (isOpen !== wasOpenForReset) {
+    setWasOpenForReset(isOpen);
     if (!isOpen) {
       setConfirmReset(null);
       setResetDone(null);
       setDataNotice(null);
     }
-  }, [isOpen]);
+  }
 
   /* ============================================================
      Hiệu ứng hiện ra: giữ panel thêm ~230ms để chạy hoạt ảnh đóng,
@@ -215,14 +225,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [isRendered, setIsRendered] = useState(isOpen);
   const [isClosing, setIsClosing] = useState(false);
 
-  useEffect(() => {
+  /* Phần chuyển trạng thái đồng bộ (mở -> hiện, đóng -> đang đóng) được suy ra
+     lúc render; effect chỉ còn giữ đúng phần hẹn giờ 230ms. */
+  const [openDeps, setOpenDeps] = useState({ isOpen, isRendered });
+  if (openDeps.isOpen !== isOpen || openDeps.isRendered !== isRendered) {
+    setOpenDeps({ isOpen, isRendered });
     if (isOpen) {
       setIsRendered(true);
       setIsClosing(false);
-      return;
+    } else if (isRendered) {
+      setIsClosing(true);
     }
-    if (!isRendered) return;
-    setIsClosing(true);
+  }
+
+  useEffect(() => {
+    if (isOpen || !isRendered) return undefined;
     const t = window.setTimeout(() => {
       setIsRendered(false);
       setIsClosing(false);
@@ -252,11 +269,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const [isFloating, setIsFloating] = useState(false);
 
+  /* Phần "tắt ngay" được suy ra lúc render (mẫu điều chỉnh state khi prop đổi);
+     chỉ phần hẹn giờ mới thật sự cần effect. */
+  const [floatDeps, setFloatDeps] = useState({ isRendered, isAnchored });
+  if (floatDeps.isRendered !== isRendered || floatDeps.isAnchored !== isAnchored) {
+    setFloatDeps({ isRendered, isAnchored });
+    if (!isRendered || isAnchored) setIsFloating(false);
+  }
+
   useEffect(() => {
-    if (!isRendered || isAnchored) {
-      setIsFloating(false);
-      return;
-    }
+    if (!isRendered || isAnchored) return undefined;
     /* Chờ 220ms cho khung hình đầu đo xong neo; quá hạn thì nổi giữa màn hình. */
     const timer = window.setTimeout(() => setIsFloating(true), 220);
     return () => window.clearTimeout(timer);
@@ -270,11 +292,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
      Cài đặt di chuyển lúc thanh navbar co giãn, thay vì nhảy từng nấc. */
   const [isSettled, setIsSettled] = useState(false);
 
+  const [settledDeps, setSettledDeps] = useState({ isRendered, isAnchored });
+  if (settledDeps.isRendered !== isRendered || settledDeps.isAnchored !== isAnchored) {
+    setSettledDeps({ isRendered, isAnchored });
+    if (!isRendered || !isAnchored) setIsSettled(false);
+  }
+
   useEffect(() => {
-    if (!isRendered || !isAnchored) {
-      setIsSettled(false);
-      return;
-    }
+    if (!isRendered || !isAnchored) return undefined;
     settledRafRef.current = window.requestAnimationFrame(() => setIsSettled(true));
     return () => {
       if (settledRafRef.current) window.cancelAnimationFrame(settledRafRef.current);
@@ -286,7 +311,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleResetCache = () => {
     const keep = [
       'fforum_current_user_email',
-      'f_forum_auth_token',
+      AUTH_TOKEN_KEY,
       'fforum_users_registry',
       'fforum_questions',
       'fforum_solutions',
@@ -303,7 +328,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleResetFull = () => {
     safeStorage.removeWithPrefix('fforum_');
-    safeStorage.removeItem('f_forum_auth_token');
+    clearAuthToken();
     setResetDone('Đã đặt lại toàn bộ dữ liệu cục bộ.');
     setConfirmReset(null);
     setTimeout(() => window.location.reload(), 700);
@@ -871,7 +896,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* 5. SFX & MOTION */}
               <section>
-                <SectionTitle icon={<Zap className="w-3 h-3 text-amber-300" />}>Phản hồi &amp; chuyển động</SectionTitle>
+                <SectionTitle icon={<Zap className="w-3 h-3 text-amber-300" />}>Âm thanh &amp; chuyển động</SectionTitle>
                 <Card className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <SwitchRow
                     icon={<Volume2 className="w-3.5 h-3.5 text-amber-400" />}
@@ -893,8 +918,49 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* 6. KHÔNG GIAN TẬP TRUNG */}
               <section>
-                <SectionTitle icon={<Timer className="w-3 h-3 text-emerald-300" />}>Không gian tập trung</SectionTitle>
+                <SectionTitle icon={<Volume2 className="w-3 h-3 text-emerald-300" />}>Không gian tập trung</SectionTitle>
                 <Card className="space-y-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div
+                        className={`w-8 h-8 rounded-2xl flex items-center justify-center shrink-0 ${
+                          isAudioPlaying
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                            : 'bg-white/5 text-white/60 border border-white/10'
+                        }`}
+                      >
+                        {isAudioPlaying ? (
+                          <Volume2 className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                        ) : (
+                          <VolumeX className="w-3.5 h-3.5" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[11.5px] font-semibold text-white">Âm thanh Ambient (432Hz)</div>
+                        <div className="text-[10px] text-white/55 truncate">
+                          {isAudioPlaying ? 'Binaural 432Hz đang chạy' : 'Tập trung sâu & thư giãn'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={isAudioPlaying}
+                      onClick={onToggleAudio}
+                      className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer flex items-center shrink-0 ${
+                        isAudioPlaying ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-white/20'
+                      }`}
+                      aria-label="Bật/Tắt âm thanh ambient"
+                    >
+                      <div
+                        className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform ${
+                          isAudioPlaying ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
                   <SwitchRow
                     icon={<Eye className="w-3.5 h-3.5 text-emerald-400" />}
                     title="Nhắc nghỉ mắt 20-20-20"

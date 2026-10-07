@@ -1,26 +1,21 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { forumServerPlugin } from './server/forumPlugin.ts'
 
 // https://vite.dev/config/
-export default defineConfig(async ({ mode }) => {
-  // Load only required server-side configuration; VITE_ values are public and
-  // FFORUM_ secrets are never injected into browser code.
-  const loadedEnv = loadEnv(mode, process.cwd(), '')
-  const serverEnvNames = [
-    'FFORUM_DATA_DIR',
-    'FFORUM_TRUST_CLOUDFLARE_PROXY',
-    'FFORUM_GOOGLE_CLIENT_ID',
-    'FFORUM_FACEBOOK_APP_ID',
-    'FFORUM_FACEBOOK_APP_SECRET',
-    'VITE_GOOGLE_CLIENT_ID',
-    'VITE_FACEBOOK_APP_ID',
-  ]
-  for (const name of serverEnvNames) {
-    if (!process.env[name] && loadedEnv[name]) process.env[name] = loadedEnv[name]
-  }
+export default defineConfig(({ mode }) => {
+  /*
+   * Vite does not automatically expose non-VITE_ variables through process.env.
+   * The server plugin uses FFORUM_* secrets, so load them explicitly before its
+   * configureServer hook imports the backend. Never expose these values through
+   * import.meta.env; Vite keeps its normal VITE_ client prefix.
+   */
+  const serverEnv = loadEnv(mode, process.cwd(), '')
+  Object.entries(serverEnv).forEach(([key, value]) => {
+    if (process.env[key] === undefined) process.env[key] = value
+  })
 
-  const { forumServerPlugin } = await import('./server/forumPlugin.ts')
   return {
     plugins: [
       react(),
@@ -31,15 +26,13 @@ export default defineConfig(async ({ mode }) => {
       host: '0.0.0.0', // Listen on all network interfaces
       port: 5173,
       strictPort: true,
-      allowedHosts: ['.e2b.app', '.loca.lt', '.trycloudflare.com', 'localhost', '127.0.0.1'],
-      fs: {
-        deny: ['**/data/**'], // Never serve private persisted account/forum data from the project root.
-      },
+      allowedHosts: true, // Allow any incoming tunnel hostname (localtunnel, cloudflare)
+      cors: true,
     },
     build: {
       rollupOptions: {
         output: {
-          manualChunks(id: string) {
+          manualChunks(id) {
             if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
               return 'vendor-react'
             }

@@ -2,13 +2,9 @@
 import { safeStorage } from './storage';
 import type { NotificationItem } from '../components/NotificationsModal';
 
-export const pushNotification = (item: Omit<NotificationItem, 'id' | 'isRead'>) => {
-  const newNotif: NotificationItem = {
-    ...item,
-    id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    isRead: false,
-  };
+type NotificationInput = Omit<NotificationItem, 'id' | 'isRead'> & { id?: string };
 
+export const pushNotification = (item: NotificationInput) => {
   let list: NotificationItem[] = [];
   const saved = safeStorage.getItem('fforum_notifications');
   if (saved) {
@@ -20,6 +16,14 @@ export const pushNotification = (item: Omit<NotificationItem, 'id' | 'isRead'>) 
     }
   }
 
+  const id = item.id || `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  if (item.id && list.some((notification) => notification?.id === item.id)) return;
+
+  const newNotif: NotificationItem = {
+    ...item,
+    id,
+    isRead: false,
+  };
   list = [newNotif, ...list].slice(0, 30);
   safeStorage.setItem('fforum_notifications', JSON.stringify(list));
 

@@ -166,8 +166,8 @@ export const StudyPulsePanel: React.FC<StudyPulsePanelProps> = ({
         </button>
       )}
       <p className="ff-pulse__hint">
-        Bắt đầu đồng hồ tự do trong Phòng Tập Trung rồi dừng bất cứ lúc nào; nhật ký ghi từ 1 phút học thật.
-        Mốc ngày 25′, 60′, 120′ lần lượt thưởng +25, +35, +60 Coin (tối đa 120 Coin/ngày).
+        Giờ học được ghi tự động sau mỗi phiên Pomodoro 25 phút — không cần bấm gì thêm. Dừng sớm vẫn ghi
+        số phút thực học (từ 5 phút), nhưng chỉ phiên đủ 25 phút mới có XP.
       </p>
     </div>
   );

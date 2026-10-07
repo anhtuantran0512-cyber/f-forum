@@ -10,7 +10,7 @@
 ### ✅ Điểm mạnh đã có
 - Kiến trúc SPA đa phân khu rõ ràng: Trang chủ, Câu lạc bộ, Hỏi đáp, Chat, Miền Ký Ức, Khu Vinh Danh, Update.
 - Ngôn ngữ thiết kế Liquid Glass + 2 chủ đề Sáng/Tối, hệ thống XP 1–150 và 10 bậc huy hiệu.
-- Nhiều "signature feature" ấn tượng: quả cầu 3D Fibonacci, parallax 3700px, wheel-scroll engine, telemetry HUD, đồng hồ Focus và nhật ký giờ học.
+- Nhiều "signature feature" ấn tượng: quả cầu 3D Fibonacci, parallax 3700px, wheel-scroll engine, telemetry HUD, Web Audio 432Hz.
 - Nền tảng kỹ thuật tốt: React 19 + Vite + Tailwind v4, oxlint, 31 bài test tự động đang xanh.
 
 ### ⚠️ Khoảng trống so với một sản phẩm "production-ready"
