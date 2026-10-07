@@ -31,6 +31,7 @@ import {
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../config/admin';
 import { getTierForLevel } from '../utils/tier';
 import { pushNotification } from '../utils/notifications';
+import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
 
 const CURRENT_TAB_ID =
   typeof window !== 'undefined'
@@ -364,11 +365,9 @@ export function useForumStore() {
   const usersRef = useRef(users);
 
   /**
-   * CỔNG DUY NHẤT để đổi sổ tài khoản.
-   * Nếu gọi `setUsers` trực tiếp rồi đọc `usersRef.current` ngay sau đó trong
-   * cùng một lần bấm, ta sẽ gặp snapshot cũ — ví dụ `createQuestion` trừ Coin
-   * treo thưởng rồi gọi `addXP(50)`: bản cũ đẩy con số cũ lên server và âm thầm
-   * hoàn lại số Coin vừa trừ. Đi qua đây thì không còn cửa đó.
+   * CỔNG DUY NHẤT để đổi sổ tài khoản phía client. Số dư, XP, cấp, streak,
+   * kho vật phẩm và quyền vẫn do API máy chủ cấp; hàm này chỉ nhận snapshot
+   * máy chủ hoặc cập nhật lạc quan cho trường hồ sơ có thể tự sửa.
    */
   const commitUsers = useCallback((next: React.SetStateAction<Record<string, User>>) => {
     const resolved = typeof next === 'function' ? next(usersRef.current) : next;
@@ -1467,136 +1466,6 @@ export function useForumStore() {
     });
   };
 
-  const addXP = (amount: number, targetUserEmail?: string) => {
-    const viewer = currentUserRef.current;
-    if (!viewer && !targetUserEmail) return;
-
-    /* Không kèm email nghĩa là "cộng cho admin đang xem" — giữ nguyên luật cũ. */
-    if (!targetUserEmail && !isMasterAdmin(viewer?.email)) return;
-
-    const emailToCredit = (targetUserEmail || viewer?.email || '').toLowerCase();
-    if (!emailToCredit) return;
-
-    const snapshot = usersRef.current[emailToCredit];
-    if (!snapshot) return;
-
-    const newXp = (snapshot.xp ?? 0) + amount;
-    const newCoin = (snapshot.coin ?? 100) + amount;
-    const newFPoints = (snapshot.fPoints ?? snapshot.xp) + amount;
-    const calculatedLevel = getLevelForXP(newXp);
-    const leveledUp = calculatedLevel > snapshot.level;
-
-    /*
-      Updater PHẢI thuần: chỉ tính trạng thái mới từ `prev`.
-      Bản cũ nhét setCurrentUser + fetch + playChime + toast vào đây; StrictMode
-      gọi updater hai lần nên mỗi lần thưởng gửi 2 request lên server và hiện
-      2 thông báo. Toàn bộ tác dụng phụ giờ chạy đúng MỘT lần ở bên dưới.
-    */
-    commitUsers(prev => {
-      const targetUser = prev[emailToCredit];
-      if (!targetUser) return prev;
-      const nextXp = (targetUser.xp ?? 0) + amount;
-      return {
-        ...prev,
-        [emailToCredit]: {
-          ...targetUser,
-          xp: nextXp,
-          coin: (targetUser.coin ?? 100) + amount,
-          fPoints: (targetUser.fPoints ?? targetUser.xp) + amount,
-          level: getLevelForXP(nextXp),
-        },
-      };
-    });
-
-    const updated: User = {
-      ...snapshot,
-      xp: newXp,
-      coin: newCoin,
-      fPoints: newFPoints,
-      level: calculatedLevel,
-    };
-
-    if (viewer && viewer.email.toLowerCase() === emailToCredit) {
-      setCurrentUser(updated);
-
-      if (leveledUp) {
-        playChime('level-up');
-        setToastMessage({
-          title: `Chúc mừng thăng cấp! LEVEL ${calculatedLevel}`,
-          subtitle: `+${amount} Coin nhận được. Bạn đã tiến gần hơn tới đỉnh cao danh dự!`,
-          type: 'level',
-        });
-        pushNotification({
-          type: 'system',
-          category: 'system',
-          title: `Thăng cấp! Cấp độ ${calculatedLevel}`,
-          body: `Bạn đã đạt Cấp độ ${calculatedLevel} và nhận thêm Coin. Hãy tiếp tục cống hiến tri thức!`,
-          targetView: 'home',
-        });
-      } else {
-        playChime('xp');
-        setToastMessage({
-          title: `+${amount} XP thưởng`,
-          subtitle: `Tổng XP hiện tại: ${newXp.toLocaleString()}`,
-          type: 'xp',
-        });
-      }
-    }
-
-    /*
-      Bản cũ nuốt mọi lỗi: `.catch(() => {})`. Khi server từ chối (phiên hết hạn
-      -> 401, hoặc bản ghi không tồn tại -> 400) thì state cục bộ vẫn đã được
-      cộng và toast "+XP" vẫn hiện, nhưng KHÔNG có gì được lưu. Reload là phần
-      thưởng biến mất — người dùng thấy thưởng mà chưa từng nhận.
-
-      Nay kiểm tra mã phản hồi và hoàn tác đúng phần vừa cộng nếu ghi thất bại.
-      Chỉ hoàn tác XP/coin/fPoints/level của chính bản ghi này, không đụng ai khác.
-    */
-    postJson('/api/users/update', { email: emailToCredit, updates: updated })
-      .then((res) => {
-        if (res.status >= 200 && res.status < 300) return;
-        commitUsers(prev => {
-          const targetUser = prev[emailToCredit];
-          if (!targetUser) return prev;
-          const restoredXp = Math.max(0, (targetUser.xp ?? 0) - amount);
-          return {
-            ...prev,
-            [emailToCredit]: {
-              ...targetUser,
-              xp: restoredXp,
-              coin: Math.max(0, (targetUser.coin ?? 100) - amount),
-              fPoints: Math.max(0, (targetUser.fPoints ?? 0) - amount),
-              level: getLevelForXP(restoredXp),
-            },
-          };
-        });
-        setToastMessage({
-          title: 'Chưa ghi được phần thưởng',
-          subtitle:
-            res.status === 401
-              ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để nhận thưởng.'
-              : 'Máy chủ từ chối lưu thay đổi. Phần thưởng đã được hoàn tác.',
-          type: 'error',
-        });
-      })
-      .catch(() => {
-        setToastMessage({
-          title: 'Mất kết nối khi lưu phần thưởng',
-          subtitle: 'Không ghi được phần thưởng lên máy chủ. Vui lòng thử lại.',
-          type: 'error',
-        });
-      });
-
-    try {
-      syncBroadcastChannel?.postMessage({
-        type: 'SYNC_USER',
-        payload: updated,
-      });
-    } catch {
-      /* ignore */
-    }
-  };
-
   const updateProfile = async (updates: Partial<User>) => {
     if (!currentUser) return;
     const emailKey = currentUser.email.toLowerCase();
@@ -1636,10 +1505,17 @@ export function useForumStore() {
       return;
     }
 
+    const savedUser = (profileOutcome.data?.user || updated) as User;
+    setCurrentUser(savedUser);
+    commitUsers((prev) => ({ ...prev, [emailKey]: savedUser }));
+    syncUserIdentityIntoContent(savedUser, {
+      setQuestions, setSolutions, setChatMessages, setClubPosts, setClubs,
+    });
+
     try {
       syncBroadcastChannel?.postMessage({
         type: 'SYNC_USER',
-        payload: updated,
+        payload: savedUser,
       });
     } catch {
       /* ignore */
@@ -1723,43 +1599,10 @@ export function useForumStore() {
     const club = clubs.find(c => c.id === clubId);
     if (!club) return;
 
-    const prevClubs = clubs;
-    setClubs(prev =>
-      prev.map(c => (c.id === clubId ? { ...c, status: 'APPROVED' } : c))
-    );
-
-    commitUsers(prev => {
-      const nextUsers = { ...prev };
-      const creatorKey = Object.keys(nextUsers).find(
-        k => nextUsers[k].id === club.leaderId || nextUsers[k].name === club.leaderName
-      );
-
-      if (creatorKey) {
-        const creator = nextUsers[creatorKey];
-        const newXp = creator.xp + 250;
-        const newLevel = getLevelForXP(newXp);
-        const updatedCreator: User = {
-          ...creator,
-          role: creator.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'CLUB_LEADER',
-          scopedClubIds: Array.from(new Set([...creator.scopedClubIds, clubId])),
-          xp: newXp,
-          fPoints: (creator.fPoints ?? creator.xp) + 250,
-          level: newLevel,
-        };
-        nextUsers[creatorKey] = updatedCreator;
-
-        if (currentUser && currentUser.id === creator.id) {
-          setCurrentUser(updatedCreator);
-        }
-      }
-      return nextUsers;
-    });
-
+    /* Vai trò, phạm vi CLB và XP chỉ đổi sau khi server xác nhận; không dựng
+       trạng thái tạm trên client vì đó là các trường server-owned. */
     const approveOutcome = await runServerAction('/api/clubs/approve', { clubId });
     if (!approveOutcome.ok) {
-      /* Máy chủ từ chối (phiên hết hạn, không còn là Super Admin) → hoàn tác cả
-         trạng thái CLB lẫn phần thăng cấp, nếu không UI sẽ lệch với kho dữ liệu. */
-      setClubs(prevClubs);
       setToastMessage({
         title: 'Không duyệt được câu lạc bộ',
         subtitle: approveOutcome.message,
@@ -1767,6 +1610,12 @@ export function useForumStore() {
       });
       return;
     }
+
+    const approvedClub = approveOutcome.data?.club as Club | undefined;
+    if (approvedClub) {
+      setClubs(prev => prev.map(c => c.id === approvedClub.id ? approvedClub : c));
+    }
+    if (approveOutcome.data?.user) applyServerUser(approveOutcome.data.user as User);
 
     try {
       syncBroadcastChannel?.postMessage({
@@ -1777,11 +1626,14 @@ export function useForumStore() {
       /* ignore */
     }
 
-    playChime('level-up');
+    const reward = Number(approveOutcome.data?.reward) || 0;
+    playChime(reward > 0 ? 'level-up' : 'success');
     setToastMessage({
       title: `Đã phê duyệt CLB "${club.name}"!`,
-      subtitle: `Đã cấp quyền Chủ nhiệm CLB và tặng +250 XP cho người sáng lập (${club.leaderName}).`,
-      type: 'level',
+      subtitle: reward > 0
+        ? `Máy chủ đã cấp quyền Chủ nhiệm CLB và tặng +${reward} XP cho người sáng lập (${club.leaderName}).`
+        : 'Quyền Chủ nhiệm đã được cập nhật; phần thưởng sáng lập đã được ghi nhận trước đó.',
+      type: reward > 0 ? 'level' : 'success',
     });
   };
 
@@ -1891,7 +1743,7 @@ export function useForumStore() {
     thành công trong khi dữ liệu không hề thay đổi. Chính kiểu nuốt lỗi này đã che
     giấu việc bốn endpoint câu lạc bộ trả 404 trong suốt thời gian dài.
   */
-  const runServerAction = async (
+  const runServerAction = useCallback(async (
     url: string,
     body: unknown,
   ): Promise<{ ok: boolean; message: string; status: number; data: any }> => {
@@ -1910,7 +1762,135 @@ export function useForumStore() {
     } catch {
       return { ok: false, message: 'Không kết nối được máy chủ. Vui lòng kiểm tra mạng.', status: 0, data: null };
     }
-  };
+  }, []);
+
+  const applyServerUser = useCallback((serverUser: User): void => {
+    if (!serverUser?.email) return;
+    const emailKey = serverUser.email.toLowerCase();
+    commitUsers((prev) => ({ ...prev, [emailKey]: serverUser }));
+    setCurrentUser((previous) =>
+      previous && previous.email.toLowerCase() === emailKey ? serverUser : previous,
+    );
+    syncUserIdentityIntoContent(serverUser, {
+      setQuestions, setSolutions, setChatMessages, setClubPosts, setClubs,
+    });
+  }, [commitUsers]);
+
+  const postStoreAction = useCallback(async (url: string, body: unknown) => {
+    const outcome = await runServerAction(url, body);
+    if (outcome.ok && outcome.data?.user) applyServerUser(outcome.data.user as User);
+    return outcome;
+  }, [runServerAction, applyServerUser]);
+
+  const loadDailyRewardStatus = useCallback(async (): Promise<{ ok: boolean; status?: DailyRewardStatus; message?: string }> => {
+    try {
+      const response = await fetch('/api/rewards/daily/status', { headers: authHeaders() });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.status) {
+        return { ok: false, message: data?.message || 'Không tải được trạng thái phần thưởng.' };
+      }
+      return { ok: true, status: data.status as DailyRewardStatus };
+    } catch {
+      return { ok: false, message: 'Không kết nối được máy chủ để tải phần thưởng.' };
+    }
+  }, []);
+
+  const claimDailyReward = useCallback(async (action: DailyRewardAction): Promise<DailyRewardActionResult> => {
+    const outcome = await postStoreAction('/api/rewards/daily/claim', action);
+    if (!outcome.ok) {
+      return {
+        ok: false,
+        message: outcome.message,
+        httpStatus: outcome.status,
+        status: outcome.data?.status as DailyRewardStatus | undefined,
+      };
+    }
+    return {
+      ok: true,
+      message: outcome.message,
+      httpStatus: outcome.status,
+      status: outcome.data?.status as DailyRewardStatus | undefined,
+      reward: Number(outcome.data?.reward) || 0,
+      correct: typeof outcome.data?.correct === 'boolean' ? outcome.data.correct : undefined,
+      boxGranted: outcome.data?.boxGranted,
+    };
+  }, [postStoreAction]);
+
+  const startFocusRewardSession = useCallback(async (): Promise<string | null> => {
+    if (!currentUserRef.current) return null;
+    const outcome = await postStoreAction('/api/rewards/focus/start', {});
+    if (!outcome.ok) {
+      setToastMessage({ title: 'Không mở được phiên thưởng', subtitle: outcome.message, type: 'error' });
+      return null;
+    }
+    return typeof outcome.data?.sessionId === 'string' ? outcome.data.sessionId : null;
+  }, [postStoreAction]);
+
+  const completeFocusRewardSession = useCallback(async (sessionId: string): Promise<boolean> => {
+    if (!sessionId) return false;
+    const email = currentUserRef.current?.email.toLowerCase();
+    const previousLevel = email ? usersRef.current[email]?.level ?? 1 : 1;
+    const outcome = await postStoreAction('/api/rewards/focus/complete', { sessionId });
+    if (!outcome.ok) {
+      setToastMessage({ title: 'Chưa nhận được thưởng tập trung', subtitle: outcome.message, type: 'error' });
+      return false;
+    }
+    const reward = Number(outcome.data?.reward) || 0;
+    const updatedUser = outcome.data?.user as User | undefined;
+    if (updatedUser && updatedUser.level > previousLevel) {
+      playChime('level-up');
+      pushNotification({
+        type: 'system',
+        category: 'system',
+        title: `Thăng cấp! Cấp độ ${updatedUser.level}`,
+        body: `Bạn nhận ${reward} Coin và XP sau phiên tập trung.`,
+        targetView: 'home',
+      });
+      setToastMessage({
+        title: `Chúc mừng thăng cấp! LEVEL ${updatedUser.level}`,
+        subtitle: `Máy chủ đã ghi nhận +${reward} Coin và XP cho phiên tập trung.`,
+        type: 'level',
+      });
+    } else {
+      playChime('xp');
+      setToastMessage({
+        title: `+${reward} XP và Coin`,
+        subtitle: 'Phần thưởng phiên tập trung đã được lưu trên máy chủ.',
+        type: 'xp',
+      });
+    }
+    return reward > 0;
+  }, [postStoreAction]);
+
+  const cancelFocusRewardSession = useCallback(async (sessionId?: string): Promise<void> => {
+    if (!sessionId) return;
+    await postStoreAction('/api/rewards/focus/cancel', { sessionId });
+  }, [postStoreAction]);
+
+  const purchaseShopItem = useCallback(async (itemId: string): Promise<boolean> => {
+    const outcome = await postStoreAction('/api/shop/purchase', { itemId });
+    if (!outcome.ok) {
+      setToastMessage({ title: 'Không mua được vật phẩm', subtitle: outcome.message, type: 'error' });
+      return false;
+    }
+    playChime('success');
+    setToastMessage({
+      title: outcome.data?.duplicate ? 'Vật phẩm đã có trong kho' : 'Mua vật phẩm thành công',
+      subtitle: outcome.data?.duplicate ? 'Không trừ Coin lần nữa.' : 'Kho và số dư đã được máy chủ cập nhật.',
+      type: 'success',
+    });
+    return true;
+  }, [postStoreAction]);
+
+  const equipShopItem = useCallback(async (itemId: string): Promise<boolean> => {
+    const outcome = await postStoreAction('/api/shop/equip', { itemId });
+    if (!outcome.ok) {
+      setToastMessage({ title: 'Không trang bị được vật phẩm', subtitle: outcome.message, type: 'error' });
+      return false;
+    }
+    playChime('success');
+    return true;
+  }, [postStoreAction]);
 
   const createQuestion = async (data: {
     title: string;
@@ -1923,10 +1903,6 @@ export function useForumStore() {
     if (!currentUser) return;
 
     const bountyCoin = data.bountyCoin ? Math.max(10, Math.min(100, data.bountyCoin)) : 20;
-    if (currentUser.email !== 'anhtuantran0512@gmail.com' && (currentUser.coin ?? 100) < bountyCoin) {
-      alert(`Bạn cần tối thiểu ${bountyCoin} Coin để đặt câu hỏi kèm cược phần thưởng. Số dư hiện tại: ${currentUser.coin ?? 100} Coin.`);
-      return;
-    }
 
     const ghibliAlias = data.isAnonymous
       ? generateGhibliAlias(data.subject)
@@ -1955,45 +1931,39 @@ export function useForumStore() {
     };
 
     const prevQuestions = questions;
-    const prevCoin = currentUser.coin ?? 100;
     setQuestions(prev => [newQuestion, ...prev]);
 
-    const updatedAuthorCoin = Math.max(0, prevCoin - bountyCoin);
-    const updatedAuthor = { ...currentUser, coin: updatedAuthorCoin };
-    setCurrentUser(updatedAuthor);
-    commitUsers(prev => ({ ...prev, [currentUser.email.toLowerCase()]: updatedAuthor }));
-
-    /* Đây là chỗ nặng nhất nếu nuốt lỗi: hàm đã TRỪ COIN của người dùng trước khi
-       gửi. Máy chủ có thể từ chối (402 không đủ số dư theo sổ cái thật, 429 thao tác
-       quá nhanh, 401 phiên hết hạn) — khi đó phải trả lại coin và rút câu hỏi về,
-       nếu không người dùng mất tiền mà câu hỏi không hề được đăng. */
+    /* Nội dung có thể hiện lạc quan trong lúc gửi; Coin tuyệt đối không đổi tại
+       client. Số dư, trừ bounty và thưởng đăng bài chỉ đến từ phản hồi máy chủ. */
     const questionOutcome = await runServerAction('/api/questions', {
       ...newQuestion,
       authorEmail: currentUser.email,
     });
     if (!questionOutcome.ok) {
       setQuestions(prevQuestions);
-      const reverted = { ...currentUser, coin: prevCoin };
-      setCurrentUser(reverted);
-      commitUsers(prev => ({ ...prev, [currentUser.email.toLowerCase()]: reverted }));
       setToastMessage({
         title: 'Không đăng được câu hỏi',
-        subtitle: `${questionOutcome.message} (Coin treo thưởng đã được hoàn lại.)`,
+        subtitle: questionOutcome.message,
         type: 'error',
       });
       return;
     }
 
-    try {
-      syncBroadcastChannel?.postMessage({
-        type: 'NEW_QUESTION',
-        payload: newQuestion,
-      });
-    } catch {
-      /* ignore */
-    }
-
-    addXP(50);
+    const persistedQuestion = (questionOutcome.data?.question || newQuestion) as Question;
+    setQuestions((prev) => [
+      persistedQuestion,
+      ...prev.filter((question) => question.id !== newQuestion.id && question.id !== persistedQuestion.id),
+    ]);
+    if (questionOutcome.data?.user) applyServerUser(questionOutcome.data.user as User);
+    const reward = Math.max(0, Number(questionOutcome.data?.reward) || 0);
+    playChime(reward > 0 ? 'xp' : 'success');
+    setToastMessage({
+      title: reward > 0 ? `Đã đăng câu hỏi · +${reward} XP và Coin` : 'Câu hỏi đã được tiếp nhận',
+      subtitle: reward > 0
+        ? 'Phần thưởng và số dư đã được máy chủ xác nhận.'
+        : 'Yêu cầu này đã được ghi nhận trước đó; máy chủ không cấp thưởng lần hai.',
+      type: reward > 0 ? 'xp' : 'success',
+    });
   };
 
   const addSolution = async (questionId: string, content: string, imageUrl?: string) => {
@@ -2029,14 +1999,12 @@ export function useForumStore() {
       return;
     }
 
-    try {
-      syncBroadcastChannel?.postMessage({
-        type: 'NEW_SOLUTION',
-        payload: newSolution,
-      });
-    } catch {
-      /* ignore */
-    }
+    const persistedSolution = (solutionOutcome.data?.solution || newSolution) as Solution;
+    setSolutions((prev) => [
+      ...prev.filter((solution) => solution.id !== newSolution.id && solution.id !== persistedSolution.id),
+      persistedSolution,
+    ]);
+    if (solutionOutcome.data?.user) applyServerUser(solutionOutcome.data.user as User);
 
     const targetQ = questions.find(q => q.id === questionId);
     if (targetQ && targetQ.authorId !== currentUser.id) {
@@ -2049,7 +2017,17 @@ export function useForumStore() {
       });
     }
 
-    addXP(25);
+    const reward = Math.max(0, Number(solutionOutcome.data?.reward) || 0);
+    playChime(reward > 0 ? 'xp' : 'success');
+    setToastMessage({
+      title: reward > 0
+        ? `Đã gửi lời giải · +${reward} XP và Coin`
+        : solutionOutcome.data?.duplicate ? 'Lời giải đã được tiếp nhận trước đó' : 'Đã gửi lời giải',
+      subtitle: reward > 0
+        ? 'Phần thưởng đã được máy chủ xác nhận.'
+        : 'Bạn đã nhận phần thưởng cho câu hỏi này trước đó; không phát thưởng lặp.',
+      type: reward > 0 ? 'xp' : 'success',
+    });
   };
 
   const markBestSolution = async (questionId: string, solutionId: string) => {
@@ -2067,6 +2045,7 @@ export function useForumStore() {
     }
 
     const targetSolution = solutions.find(s => s.id === solutionId);
+    if (question.bestSolutionId === solutionId) return;
 
     /* Máy chủ từ chối việc tự chọn câu trả lời của chính mình (409) vì đó là cách
        tự trả thưởng cho bản thân. Chặn ngay phía client để người dùng biết trước
@@ -2083,40 +2062,13 @@ export function useForumStore() {
       return;
     }
 
-    const prevQuestions = questions;
-    const prevSolutions = solutions;
-    setQuestions(prev =>
-      prev.map(q =>
-        q.id === questionId
-          ? { ...q, isSolved: true, bestSolutionId: solutionId }
-          : q
-      )
-    );
-
-    setSolutions(prev =>
-      prev.map(s => {
-        if (s.id === solutionId) {
-          return { ...s, isBest: true, upvotes: s.upvotes + 5 };
-        }
-        return s.questionId === questionId ? { ...s, isBest: false } : s;
-      })
-    );
-
-    const bounty = question.bountyCoin || 20;
-    const solverCoinAward = Math.floor(bounty * 0.5) + 100;
-
-    /* Hỏi máy chủ TRƯỚC, cộng thưởng SAU. Trước đây thứ tự ngược lại: thưởng được
-       cộng cục bộ và toast thành công hiện ra bất kể server trả gì, nên khi server
-       từ chối (409 tự chọn, 401 phiên hết hạn, 404 lời giải không thuộc câu hỏi)
-       người dùng vẫn thấy "+Coin danh dự" rồi mọi thứ âm thầm quay về ở lần đồng
-       bộ sau. */
-    const bestOutcome = await runServerAction('/api/solutions/best', {
+    /* Mọi đột biến và phần thưởng của đáp án chuẩn do máy chủ xác nhận trước;
+       không cộng lạc quan ở client để sự kiện phát lại không tăng upvote lần hai. */
+    const bestOutcome = await postStoreAction('/api/solutions/best', {
       questionId,
       solutionId,
     });
     if (!bestOutcome.ok) {
-      setQuestions(prevQuestions);
-      setSolutions(prevSolutions);
       setToastMessage({
         title: 'Không xác nhận được Đáp Án Chuẩn',
         subtitle: bestOutcome.message,
@@ -2125,31 +2077,33 @@ export function useForumStore() {
       return;
     }
 
-    if (targetSolution && targetSolution.authorEmail) {
-      addXP(solverCoinAward, targetSolution.authorEmail);
+    const awardedAmount = Math.max(0, Number(bestOutcome.data?.reward) || 0);
+    const savedQuestion = bestOutcome.data?.question as Question | undefined;
+    const savedSolution = bestOutcome.data?.solution as Solution | undefined;
+    if (savedQuestion) {
+      setQuestions((prev) => prev.map((item) => item.id === savedQuestion.id ? savedQuestion : item));
+    }
+    if (savedSolution) {
+      setSolutions((prev) => prev.map((item) => item.id === savedSolution.id ? savedSolution : item));
+    }
+
+    if (targetSolution && targetSolution.authorEmail && awardedAmount > 0) {
       pushNotification({
         type: 'interactive',
         category: 'interactive',
         title: 'Chúc mừng Đáp Án Chuẩn!',
-        body: `Lời giải của bạn đã được xác nhận là Đáp Án Chuẩn. Bạn nhận được +${solverCoinAward} Coin (+50% bounty + 100 Coin danh dự).`,
+        body: `Lời giải của bạn đã được xác nhận là Đáp Án Chuẩn. Bạn nhận được +${awardedAmount} Coin.`,
         targetView: 'qa',
       });
     }
 
-    try {
-      syncBroadcastChannel?.postMessage({
-        type: 'MARK_BEST_SOLUTION',
-        payload: { questionId, solutionId },
-      });
-    } catch {
-      /* ignore */
-    }
-
-    playChime('level-up');
+    playChime(awardedAmount > 0 ? 'level-up' : 'success');
     setToastMessage({
       title: '✓ Đã xác nhận Đáp Án Chuẩn!',
-      subtitle: `Người giải bài (${targetSolution?.authorName || 'Bạn học'}) đã nhận thưởng +${solverCoinAward} Coin danh dự.`,
-      type: 'level',
+      subtitle: awardedAmount > 0
+        ? `Người giải bài (${targetSolution?.authorName || 'Bạn học'}) nhận +${awardedAmount} Coin và XP đã ghi trên máy chủ.`
+        : 'Đáp án đã được cập nhật trên máy chủ.',
+      type: awardedAmount > 0 ? 'level' : 'success',
     });
   };
 
@@ -2467,8 +2421,14 @@ export function useForumStore() {
     registerWithPassword,
     loginSocial,
     logout,
-    addXP,
     updateProfile,
+    loadDailyRewardStatus,
+    claimDailyReward,
+    startFocusRewardSession,
+    completeFocusRewardSession,
+    cancelFocusRewardSession,
+    purchaseShopItem,
+    equipShopItem,
     clubs,
     clubPosts,
     createClub,

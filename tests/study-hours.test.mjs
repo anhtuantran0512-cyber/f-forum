@@ -217,36 +217,31 @@ test('9. Phòng Tập Trung — phiên học là mốc thời gian thật, sốn
   assert.ok(focus.includes('FOCUS_CREDITED_EVENT'), 'HUD must react when a session is credited');
 });
 
-test('10. FocusSessionWatcher — ghi giờ + XP kể cả khi HUD đã đóng', () => {
+test('10. FocusSessionWatcher — giờ học được ghi cục bộ, phần thưởng do máy chủ xác nhận', () => {
   const watcher = read('src/components/FocusSessionWatcher.tsx');
   const app = read('src/App.tsx');
+  const store = read('src/store/forumStore.ts');
+  const session = read('src/utils/focusSession.ts');
 
   assert.ok(watcher.includes("logStudyMinutes(minutes, 'focus', userEmail)"), 'Completed sessions must be logged for the right account');
-  assert.ok(watcher.includes('onRewardXP?.(minutes)'), 'Completed sessions must still grant XP');
-  assert.ok(watcher.includes('announceFocusCredited'), 'Other surfaces must be told about the credit');
+  assert.ok(watcher.includes('onCompleteReward?.(finished.serverSessionId)'), 'A completed reward session must be confirmed by the server');
+  assert.ok(watcher.includes('onCancelReward?.(finished.serverSessionId)'), 'Early/stale sessions must be canceled server-side');
+  assert.ok(!watcher.includes('onRewardXP'), 'The watcher must not grant XP directly from the client');
+  assert.ok(watcher.includes('announceFocusCredited'), 'Other surfaces must be told about the study-log entry');
   assert.ok(watcher.includes('studied >= 5'), 'Stopping early must log the real minutes (from 5 minutes)');
-  assert.ok(watcher.includes('playChime'), 'Completing a block must still ring the chime');
   assert.ok(watcher.includes('ff-focus-chip'), 'A floating countdown chip must exist for when the HUD is closed');
   assert.ok(watcher.includes('setInterval'), 'The watcher is the single place allowed to tick');
   assert.ok(watcher.includes('computeStudyTotals') && watcher.includes('sessionsForOwner'), 'Today total must belong to this account');
 
-  /* Lỗi cũ: App truyền thẳng addXP (chỉ cộng cho admin) → học sinh không nhận được gì */
-  assert.ok(
-    !app.includes('onRewardXP={addXP}'),
-    'App must not pass the raw addXP handler (it silently ignores normal students)',
-  );
-  assert.ok(
-    app.includes('const handleFocusReward = useCallback') && app.includes('addXP(amount, currentUser.email)'),
-    'Focus rewards must credit the logged-in student by email',
-  );
-  assert.ok(
-    app.includes('<FocusSessionWatcher') && app.includes('isHudOpen={isFocusModeOpen}'),
-    'The watcher must be mounted at app level with the HUD state',
-  );
-  assert.ok(
-    app.includes('userEmail={currentUser?.email}'),
-    'The focus surfaces must know whose session is running',
-  );
+  assert.ok(app.includes('onStartRewardSession={startFocusRewardSession}'), 'HUD must ask server to open a reward session');
+  assert.ok(app.includes('onCompleteReward={completeFocusRewardSession}'), 'Watcher must complete the server session');
+  assert.ok(app.includes('onCancelReward={cancelFocusRewardSession}'), 'Watcher must cancel incomplete server sessions');
+  assert.ok(app.includes('<FocusSessionWatcher') && app.includes('isHudOpen={isFocusModeOpen}'), 'Watcher must stay mounted at app level');
+  assert.ok(app.includes('userEmail={currentUser?.email}'), 'Focus surfaces must know whose session is running');
+  assert.ok(session.includes('serverSessionId?: string'), 'Persisted focus session must retain its server-issued reward id');
+  assert.ok(store.includes("postStoreAction('/api/rewards/focus/start'"), 'Focus reward session must start through authenticated API');
+  assert.ok(store.includes("postStoreAction('/api/rewards/focus/complete'"), 'XP/Coin must be credited only after server completion');
+  assert.ok(store.includes("postStoreAction('/api/rewards/focus/cancel'"), 'Canceled reward sessions must be closed through API');
 });
 
 test('11. Chi tiết giờ học — biểu đồ 7 ngày, thống kê, nhật ký phiên', () => {

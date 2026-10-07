@@ -9,6 +9,8 @@ import { WebSocket } from 'ws';
 
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'fforum-insights-'));
 process.env.FFORUM_DATA_DIR = DATA_DIR;
+const TEST_ADMIN_PASSWORD = 'test-only-super-admin-password-2026';
+process.env.FFORUM_ADMIN_PASSWORD = TEST_ADMIN_PASSWORD;
 const { setupForumServer, resetRateLimitersForTest, flushPendingSave } = await import('../server/forumServer.ts');
 const {
   buildAnalyticsReport,
@@ -126,7 +128,7 @@ test('Insights: thống kê bền vững, danh bạ có phân quyền và thao t
 
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
       email: 'anhtuantran0512@gmail.com',
-      password: 'admin123',
+      password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200);
     const adminToken = adminLogin.data.token;
@@ -148,6 +150,40 @@ test('Insights: thống kê bền vững, danh bạ có phân quyền và thao t
     assert.equal(grantTeacher.status, 200);
     assert.equal(grantModerator.status, 200);
     studentWs = await connectWs(`${env.baseUrl.replace(/^http/, 'ws')}/ws`, student.token);
+
+    /* Hồ sơ qua HTTP lẫn WebSocket không được phép tự cấp vai trò, Premium
+       hay phạm vi quản lý CLB — nếu lọt đây thì API quản trị có thể bị chiếm. */
+    const wsUserSync = studentWs.waitFor('SYNC_USER');
+    studentWs.ws.send(JSON.stringify({
+      type: 'SYNC_USER',
+      payload: {
+        email: student.user.email,
+        role: 'SUPER_ADMIN',
+        staffRole: 'MODERATOR',
+        premiumUntil: 0,
+        premiumGrantedAt: Date.now(),
+        scopedClubIds: ['club-gia-mao'],
+      },
+    }));
+    const wsUserResult = await wsUserSync;
+    assert.equal(wsUserResult.payload.role, 'STUDENT', 'SYNC_USER không thể đổi vai trò gốc');
+    assert.equal(wsUserResult.payload.staffRole, undefined, 'SYNC_USER không thể tự cấp Moderator');
+    assert.equal(wsUserResult.payload.premiumUntil, undefined, 'SYNC_USER không thể tự cấp Premium vĩnh viễn');
+    assert.deepEqual(wsUserResult.payload.scopedClubIds, [], 'SYNC_USER không thể tự cấp quyền quản lý CLB');
+
+    const httpUserUpdate = await post(env.baseUrl, '/api/users/update', {
+      email: student.user.email,
+      updates: {
+        staffRole: 'TEACHER',
+        premiumUntil: 0,
+        premiumGrantedAt: Date.now(),
+        scopedClubIds: ['club-gia-mao'],
+      },
+    }, student.token);
+    assert.equal(httpUserUpdate.status, 200);
+    assert.equal(httpUserUpdate.data.user.staffRole, undefined, 'HTTP hồ sơ không thể tự cấp Giáo viên');
+    assert.equal(httpUserUpdate.data.user.premiumUntil, undefined, 'HTTP hồ sơ không thể tự cấp Premium');
+    assert.deepEqual(httpUserUpdate.data.user.scopedClubIds, [], 'HTTP hồ sơ không thể tự cấp quyền CLB');
 
     const deniedAnalytics = await get(env.baseUrl, '/api/admin/analytics?range=7d', teacher.token);
     assert.equal(deniedAnalytics.status, 403, 'Giáo viên không xem dữ liệu thống kê riêng');

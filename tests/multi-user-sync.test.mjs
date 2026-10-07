@@ -195,12 +195,9 @@ test('3. Super Admin Isolation: ONLY anhtuantran0512@gmail.com receives SUPER_AD
     assert.ok(!loginModalCode.includes('Đăng nhập Super Admin'), 'LoginModal must not expose quick Super Admin login');
     assert.ok(!loginModalCode.includes('handleQuickAdmin'), 'LoginModal must not have handleQuickAdmin function');
 
-    // Check that App.tsx isolates XPSandboxDock strictly to admin
+    // Developer reward dock was removed; no client-only route may mint Coin or XP.
     const appCode = fs.readFileSync('src/App.tsx', 'utf8');
-    assert.ok(
-      appCode.includes("currentUser?.email === 'anhtuantran0512@gmail.com' &&"),
-      'XPSandboxDock must strictly require currentUser.email === anhtuantran0512@gmail.com'
-    );
+    assert.ok(!appCode.includes('XPSandboxDock'), 'Production App must not mount the client-only reward sandbox');
   } finally {
     await testEnv.close();
   }

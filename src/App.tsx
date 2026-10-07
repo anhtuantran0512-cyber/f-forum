@@ -61,7 +61,6 @@ const ChatDock = lazyWithRetry(() => import('./components/ChatDock').then(m => (
 const ProfileModal = lazyWithRetry(() => import('./components/ProfileModal').then(m => ({ default: m.ProfileModal })));
 const FocusSanctuary = lazyWithRetry(() => import('./components/FocusSanctuary').then(m => ({ default: m.FocusSanctuary })));
 const AuthModal = lazyWithRetry(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
-const XPSandboxDock = lazyWithRetry(() => import('./components/XPSandboxDock').then(m => ({ default: m.XPSandboxDock })));
 const ReportInboxModal = lazyWithRetry(() => import('./components/ReportInboxModal').then(m => ({ default: m.ReportInboxModal })));
 const AdminConsoleModal = lazyWithRetry(() => import('./components/AdminConsoleModal').then(m => ({ default: m.AdminConsoleModal })));
 
@@ -143,8 +142,14 @@ export const App: React.FC = () => {
     registerWithPassword,
     loginSocial,
     logout,
-    addXP,
     updateProfile,
+    loadDailyRewardStatus,
+    claimDailyReward,
+    startFocusRewardSession,
+    completeFocusRewardSession,
+    cancelFocusRewardSession,
+    purchaseShopItem,
+    equipShopItem,
     clubs,
     clubPosts,
     createClub,
@@ -389,15 +394,6 @@ export const App: React.FC = () => {
   const handleViewReady = useCallback((view: DimensionView) => {
     setReadyView(view);
   }, []);
-
-  /* Phiên Pomodoro hoàn thành: cộng XP đúng tài khoản đang đăng nhập.
-     (addXP(amount) không kèm email sẽ bị bỏ qua với người dùng thường.) */
-  const handleFocusReward = useCallback(
-    (amount: number) => {
-      if (currentUser) addXP(amount, currentUser.email);
-    },
-    [addXP, currentUser],
-  );
 
   /* Hướng trượt khi đổi phân khu (lướt như lật trang) */
   useEffect(() => {
@@ -902,14 +898,8 @@ export const App: React.FC = () => {
           onOpenProfile={handleOpenProfile}
           onOpenFocusMode={() => setIsFocusModeOpen(true)}
           isInsideCinema={isInsideCinema}
-          onRewardCoins={(amount) => {
-            if (currentUser) addXP(amount, currentUser.email);
-          }}
-          onUpdateStreak={(streak) => {
-            if (currentUser && (currentUser.streakCount ?? 0) !== streak) {
-              updateProfile({ streakCount: streak });
-            }
-          }}
+          onLoadDailyRewardStatus={loadDailyRewardStatus}
+          onClaimDailyReward={claimDailyReward}
           eyeRestEnabled={eyeRestEnabled}
           onToggleEyeRest={toggleEyeRest}
         />
@@ -1092,6 +1082,8 @@ export const App: React.FC = () => {
             currentUser={targetProfileUser || currentUser!}
             viewerUser={currentUser}
             onSaveProfile={updateProfile}
+            onPurchaseItem={purchaseShopItem}
+            onEquipItem={equipShopItem}
             initialTab={profileInitialTab}
             questions={questions}
             solutions={solutions}
@@ -1134,7 +1126,7 @@ export const App: React.FC = () => {
           isOpen={isFocusModeOpen}
           onClose={() => setIsFocusModeOpen(false)}
           userEmail={currentUser?.email}
-          onRewardXP={handleFocusReward}
+          onStartRewardSession={startFocusRewardSession}
         />
       </Suspense>
 
@@ -1142,7 +1134,8 @@ export const App: React.FC = () => {
           ghi giờ học + XP kể cả khi HUD đã đóng, kèm chip đếm ngược nổi. */}
       <FocusSessionWatcher
         userEmail={currentUser?.email}
-        onRewardXP={handleFocusReward}
+        onCompleteReward={completeFocusRewardSession}
+        onCancelReward={cancelFocusRewardSession}
         isHudOpen={isFocusModeOpen}
         onOpenHud={() => setIsFocusModeOpen(true)}
       />
@@ -1206,15 +1199,6 @@ export const App: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Super Admin XP & Level Management Sandbox */}
-      {currentUser?.email === 'anhtuantran0512@gmail.com' && (
-        <XPSandboxDock
-          level={currentUser.level}
-          xp={currentUser.xp}
-          onAddXP={addXP}
-        />
       )}
 
       {/* Lối vào bảng điều khiển quản trị — chỉ hiện với Super Admin */}

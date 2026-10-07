@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import type { ShopItem, ShopTierColor } from '../types';
+import type { ShopItem, ShopTierColor } from '../types/index.ts';
 
 export const SHOP_ITEMS: ShopItem[] = [
   {

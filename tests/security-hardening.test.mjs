@@ -11,19 +11,24 @@ import { WebSocket } from 'ws';
    đọc tệp bên dưới không bị tiến trình khác ghi đè. */
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'fforum-sec-'));
 process.env.FFORUM_DATA_DIR = DATA_DIR;
+const TEST_ADMIN_PASSWORD = 'test-only-super-admin-password-2026';
+process.env.FFORUM_ADMIN_PASSWORD = TEST_ADMIN_PASSWORD;
 
-const { setupForumServer } = await import('../server/forumServer.ts');
+const { setupForumServer, resetRateLimitersForTest } = await import('../server/forumServer.ts');
 const {
   hashPassword,
   verifyPassword,
   createSessionToken,
   verifySessionToken,
   sanitizeUserUpdate,
+  SERVER_OWNED_USER_FIELDS,
   solverAwardFor,
   normalizeBounty,
   SlidingWindowRateLimiter,
 } = await import('../server/authGuard.ts');
 const { setProviderLookupForTest } = await import('../server/socialAuth.ts');
+const { FOCUS_REWARD_MINIMUM_MS } = await import('../server/economy.ts');
+const { dailyTriviaForDate } = await import('../shared/dailyTrivia.ts');
 
 /* ==========================================================================
    Kiểm thử lớp bảo mật & toàn vẹn dữ liệu (server/authGuard + forumServer)
@@ -33,6 +38,7 @@ const { setProviderLookupForTest } = await import('../server/socialAuth.ts');
 const DATA_FILE = path.join(DATA_DIR, 'forum-data.json');
 
 function createTestServer() {
+  resetRateLimitersForTest();
   const middlewares = [];
   const middlewareRunner = { use(fn) { middlewares.push(fn); } };
 
@@ -166,6 +172,12 @@ test('1. Mật khẩu được băm scrypt — không thể đọc ngược, sai
   assert.equal(legacy.ok, true, 'Mật khẩu plaintext cũ vẫn khớp');
   assert.equal(legacy.needsRehash, true, 'Bản ghi plaintext phải được đánh dấu để băm lại');
   assert.equal(verifyPassword('khac', 'admin123').ok, false, 'Plaintext sai vẫn trượt');
+  assert.equal(verifyPassword('x'.repeat(1025), record).ok, false, 'đầu vào quá dài bị từ chối trước khi chạy scrypt');
+  assert.equal(
+    verifyPassword('x', `scrypt$${'00'.repeat(16)}$${'ab'.repeat(100000)}`).ok,
+    false,
+    'bản hash hỏng không thể buộc máy chủ cấp phát bộ nhớ tuỳ ý',
+  );
 });
 
 test('2. Token phiên có chữ ký HMAC — sửa một ký tự là vô hiệu', () => {
@@ -198,30 +210,46 @@ test('2. Token phiên có chữ ký HMAC — sửa một ký tự là vô hiệu
   assert.equal(verifySessionToken(expired), null, 'Token hết hạn phải bị từ chối');
 });
 
-test('3. sanitizeUserUpdate chặn tự phong quyền và kẹp giá trị vô lý', () => {
+test('3. sanitizeUserUpdate chỉ nhận hồ sơ — mọi tài nguyên và quyền do server sở hữu', () => {
   const clean = sanitizeUserUpdate({
     name: 'Đổi Tên Hợp Lệ',
     role: 'SUPER_ADMIN',
     id: 'user-hacker',
     email: 'khac@gmail.com',
+    joinedAt: '2000-01-01',
     coin: 99999999999,
     xp: -500,
+    fPoints: 900000,
     level: 999,
+    streakCount: 999,
     bio: 'x'.repeat(30000),
     inventory: ['a', 'a', 'b'],
+    equippedBadge: 'crown_unowned',
     hacked: { nested: true },
+    isAdmin: true,
+    founderRewardGranted: 'forged',
+    staffRole: 'MODERATOR',
+    premiumUntil: 0,
+    premiumGrantedAt: Date.now(),
+    scopedClubIds: ['club-admin'],
   });
 
   assert.equal(clean.name, 'Đổi Tên Hợp Lệ', 'Trường hồ sơ bình thường vẫn đi qua');
   assert.equal('role' in clean, false, 'role là của server — client không ghi được');
   assert.equal('id' in clean, false, 'id là của server');
   assert.equal('email' in clean, false, 'email là của server');
-  assert.equal(clean.coin, 10000000, 'coin phải bị kẹp về trần hợp lý');
-  assert.equal(clean.xp, 0, 'xp âm phải về 0');
-  assert.equal(clean.level, 150, 'level phải bị kẹp về 1..150');
+  assert.equal('joinedAt' in clean, false, 'ngày tham gia do server ghi khi tạo tài khoản');
+  assert.equal('staffRole' in clean, false, 'vai trò kiểm duyệt chỉ Super Admin mới cấp');
+  assert.equal('premiumUntil' in clean, false, 'trạng thái Premium do server cấp');
+  assert.equal('premiumGrantedAt' in clean, false, 'mốc cấp Premium do server cấp');
+  assert.equal('scopedClubIds' in clean, false, 'phạm vi quản lý CLB không phải hồ sơ client sửa được');
+  for (const field of ['coin', 'xp', 'fPoints', 'level', 'streakCount', 'inventory', 'equippedBadge']) {
+    assert.equal(field in clean, false, `${field} chỉ được ghi qua nghiệp vụ server chuyên biệt`);
+  }
   assert.ok(clean.bio.length <= 20000, 'chuỗi quá dài phải bị cắt');
-  assert.deepEqual(clean.inventory, ['a', 'b'], 'inventory phải khử trùng lặp');
   assert.equal('hacked' in clean, false, 'object lạ không được ghi vào bản ghi');
+  assert.equal('isAdmin' in clean, false, 'trường quyền chưa được duyệt cũng bị loại');
+  assert.equal('founderRewardGranted' in clean, false, 'trường nghiệp vụ server không được mass-assign');
   assert.deepEqual(sanitizeUserUpdate(null), {}, 'payload null → rỗng');
   assert.deepEqual(sanitizeUserUpdate('chuỗi'), {}, 'payload sai kiểu → rỗng');
 });
@@ -269,7 +297,7 @@ test('5. LỖ HỔNG ĐĂNG NHẬP: tài khoản social không còn bị chiếm
     assert.equal(takeover.status, 400, 'Không có mật khẩu thì không được đăng nhập bằng form');
     assert.equal(takeover.data.success, false);
     assert.equal(takeover.data.token, undefined, 'Không được cấp token');
-    assert.ok(/Google\/Facebook/.test(takeover.data.message), 'Phải hướng người dùng sang đăng nhập social');
+    assert.ok(/đăng nhập đã liên kết/i.test(takeover.data.message), 'Phải hướng người dùng sang phương thức đăng nhập đã liên kết');
 
     /* Tài khoản có mật khẩu thì vẫn đăng nhập bình thường. */
     await register(env.baseUrl, 'Học Sinh Mật Khẩu', 'password.user@example.com', 'mat-khau-dung-123');
@@ -369,7 +397,7 @@ test('8. WS AUTH hợp lệ: sửa được hồ sơ của chính mình nhưng K
     assert.equal(saved.name, 'Đã Đổi Tên', 'Chủ tài khoản sửa được tên của mình');
     assert.equal(saved.bio, 'Tiểu sử mới', 'Chủ tài khoản sửa được tiểu sử');
     assert.equal(saved.role, 'STUDENT', 'role phải do server quyết định, không theo payload');
-    assert.equal(saved.coin, 5000, 'coin của chính mình vẫn cập nhật được');
+    assert.equal(saved.coin, 100, 'coin là tài nguyên server-owned, không thể sửa qua SYNC_USER');
 
     /* Token của người này không dùng để sửa hồ sơ người khác được. */
     client.send('SYNC_USER', { email: 'anhtuantran0512@gmail.com', name: 'Bị Chiếm' });
@@ -392,6 +420,7 @@ test('9. MARK_BEST_SOLUTION: phải có quyền, và gọi lại không phát th
   try {
     const asker = await register(env.baseUrl, 'Người Hỏi', 'best.asker@example.com', 'mat-khau-hoi-123');
     const solver = await register(env.baseUrl, 'Người Giải', 'best.solver@example.com', 'mat-khau-giai-123');
+    const alternateSolver = await register(env.baseUrl, 'Người Giải Khác', 'best.solver2@example.com', 'mat-khau-giai-456');
 
     const question = await post(env.baseUrl, '/api/questions', {
       title: 'Chứng minh bất đẳng thức Cauchy-Schwarz',
@@ -413,6 +442,13 @@ test('9. MARK_BEST_SOLUTION: phải có quyền, và gọi lại không phát th
     }, solver.token);
     assert.equal(solution.status, 200, `gửi lời giải: ${JSON.stringify(solution.data)}`);
 
+    const alternateSolution = await post(env.baseUrl, '/api/solutions', {
+      questionId: question.data.question.id,
+      content: 'Dùng bất đẳng thức AM-GM để suy ra kết quả.',
+      authorEmail: 'best.solver2@example.com',
+    }, alternateSolver.token);
+    assert.equal(alternateSolution.status, 200, `gửi lời giải thứ hai: ${JSON.stringify(alternateSolution.data)}`);
+
     /* 9.1 Client chưa xác thực không chọn được đáp án chuẩn. */
     const stranger = await connectWs(env.wsUrl);
     try {
@@ -424,18 +460,23 @@ test('9. MARK_BEST_SOLUTION: phải có quyền, và gọi lại không phát th
     }
 
     let sync = await get(env.baseUrl, '/api/sync');
-    assert.equal(sync.data.data.users['best.solver@example.com'].coin, 100, 'Chưa xác thực thì chưa phát thưởng');
+    const coinBeforeMark = sync.data.data.users['best.solver@example.com'].coin;
+    assert.equal(coinBeforeMark, 125, 'Lời giải hợp lệ được server thưởng +25 Coin một lần');
+    assert.equal(coinBeforeMark, 100 + 25, 'Client chưa xác thực không phát thêm thưởng khi chọn đáp án');
+    assert.equal(sync.data.data.users['best.solver2@example.com'].coin, 125,
+      'Một người giải chỉ nhận thưởng gửi lời giải một lần cho câu hỏi này');
 
     /* 9.2 Chính chủ câu hỏi chọn đáp án → thưởng đúng một lần. */
     const owner = await connectWs(env.wsUrl, asker.token);
     try {
     const payload = { questionId: question.data.question.id, solutionId: solution.data.solution.id };
     owner.send('MARK_BEST_SOLUTION', payload);
+    await owner.waitFor('MARK_BEST_SOLUTION');
     await sleep(250);
 
     sync = await get(env.baseUrl, '/api/sync');
     const coinAfterFirst = sync.data.data.users['best.solver@example.com'].coin;
-    assert.equal(coinAfterFirst, 100 + solverAwardFor(40), '40 coin cược → +120 coin');
+    assert.equal(coinAfterFirst, coinBeforeMark + solverAwardFor(40), '40 Coin cược → server thưởng thêm 120 Coin đúng một lần');
 
     /* 9.3 Phát lại đúng lệnh đó 4 lần nữa → không được cộng thêm. */
     for (let i = 0; i < 4; i++) owner.send('MARK_BEST_SOLUTION', payload);
@@ -448,12 +489,240 @@ test('9. MARK_BEST_SOLUTION: phải có quyền, và gọi lại không phát th
       'Chọn lại đáp án cũ không được phát thưởng lần hai',
     );
 
+    owner.send('MARK_BEST_SOLUTION', {
+      questionId: question.data.question.id,
+      solutionId: alternateSolution.data.solution.id,
+    });
+    const switchAccepted = await owner.waitFor('MARK_BEST_SOLUTION');
+    assert.equal(switchAccepted.payload.solutionId, alternateSolution.data.solution.id,
+      'Tác giả vẫn có thể sửa lựa chọn đáp án chuẩn');
+    const alternateBest = await post(env.baseUrl, '/api/solutions/best', {
+      questionId: question.data.question.id,
+      solutionId: alternateSolution.data.solution.id,
+    }, asker.token);
+    assert.equal(alternateBest.status, 200, 'HTTP và WS phải đồng bộ đáp án hiện tại');
+    assert.equal(alternateBest.data.reward, 0, 'Đổi đáp án không phát thưởng lần hai');
+
+    sync = await get(env.baseUrl, '/api/sync');
+    assert.equal(sync.data.data.users['best.solver@example.com'].coin, coinAfterFirst,
+      'Đổi đáp án không phát lại khoản thưởng cũ');
+    assert.equal(sync.data.data.users['best.solver2@example.com'].coin, 125,
+      'Người giải thay thế không nhận bounty lần thứ hai');
+
+    owner.send('MARK_BEST_SOLUTION', payload);
+    await owner.waitFor('MARK_BEST_SOLUTION');
+    sync = await get(env.baseUrl, '/api/sync');
+    assert.equal(sync.data.data.users['best.solver@example.com'].coin, coinAfterFirst,
+      'Chọn lại đáp án cũ không cộng thêm Coin');
     const marked = sync.data.data.questions.find((q) => q.id === question.data.question.id);
     assert.equal(marked.bestSolutionId, solution.data.solution.id);
     assert.equal(marked.isSolved, true);
+    const firstSolution = sync.data.data.solutions.find((entry) => entry.id === solution.data.solution.id);
+    const secondSolution = sync.data.data.solutions.find((entry) => entry.id === alternateSolution.data.solution.id);
+    assert.equal(firstSolution.upvotes, 6, 'Bonus upvote chỉ cấp một lần dù đổi đáp án qua lại');
+    assert.equal(secondSolution.upvotes, 6, 'Lời giải thay thế cũng chỉ nhận bonus upvote một lần');
     } finally {
       owner.ws.close();
     }
+  } finally {
+    await env.close();
+  }
+});
+
+test('9b. Gửi lời giải qua HTTP/WS không phát lại XP khi dùng lại hoặc đổi mã yêu cầu', async () => {
+  const env = await createTestServer();
+  try {
+    const asker = await register(env.baseUrl, 'Người Hỏi Idempotent', 'idempotent.asker@example.com', 'mat-khau-idem-hoi');
+    const solver = await register(env.baseUrl, 'Người Giải Idempotent', 'idempotent.solver@example.com', 'mat-khau-idem-giai');
+    const question = await post(env.baseUrl, '/api/questions', {
+      id: 'q-idempotent-solution',
+      title: 'Bài cần lời giải duy nhất',
+      content: 'Nội dung dùng để kiểm tra phát lại.',
+      authorEmail: asker.user.email,
+      bountyCoin: 20,
+    }, asker.token);
+    assert.equal(question.status, 200);
+
+    const payload = {
+      id: 'sol-idempotent-once',
+      questionId: question.data.question.id,
+      content: 'Lời giải đầu tiên.',
+      authorEmail: solver.user.email,
+    };
+    const first = await post(env.baseUrl, '/api/solutions', payload, solver.token);
+    assert.equal(first.status, 200);
+    assert.equal(first.data.reward, 25, 'Lần gửi lời giải đầu tiên nhận +25 Coin/XP từ server');
+
+    const replay = await post(env.baseUrl, '/api/solutions', payload, solver.token);
+    assert.equal(replay.status, 200);
+    assert.equal(replay.data.duplicate, true, 'Cùng ID trả lại kết quả idempotent');
+    assert.equal(replay.data.reward, 0, 'Gửi lại cùng ID không trả thưởng lần hai');
+
+    const second = await post(env.baseUrl, '/api/solutions', {
+      ...payload,
+      id: 'sol-idempotent-second',
+      content: 'Một cách trình bày bổ sung.',
+    }, solver.token);
+    assert.equal(second.status, 200, 'Có thể bổ sung lời giải, nhưng không lặp thưởng theo cùng câu hỏi');
+    assert.equal(second.data.reward, 0, 'Mỗi tài khoản chỉ được thưởng lời giải một lần cho một câu hỏi');
+
+    const client = await connectWs(env.wsUrl, solver.token);
+    try {
+      client.send('NEW_SOLUTION', {
+        ...payload,
+        id: 'sol-idempotent-ws',
+        content: 'Bản gửi qua WebSocket.',
+      });
+      await sleep(250);
+    } finally {
+      client.ws.close();
+    }
+
+    const sync = await get(env.baseUrl, '/api/sync');
+    const savedSolver = sync.data.data.users[solver.user.email];
+    assert.equal(savedSolver.coin, 125, 'Cả HTTP lẫn WS chỉ cộng 25 Coin tổng cộng');
+    assert.equal(savedSolver.xp, 25, 'Cả HTTP lẫn WS chỉ cộng 25 XP tổng cộng');
+    assert.equal(sync.data.data.solutions.filter((item) => item.authorEmail === solver.user.email).length, 3,
+      'Ba bản nội dung được lưu nhưng không nhân thưởng');
+  } finally {
+    await env.close();
+  }
+});
+
+test('9c. Điểm danh và trivia chỉ trả thưởng một lần theo trạng thái/ngày server', async () => {
+  const env = await createTestServer();
+  try {
+    const account = await register(env.baseUrl, 'Người Điểm Danh', 'daily.owner@example.com', 'mat-khau-daily-123');
+    const statusResponse = await fetch(`${env.baseUrl}/api/rewards/daily/status`, {
+      headers: { Authorization: `Bearer ${account.token}` },
+    });
+    const status = await statusResponse.json();
+    assert.equal(statusResponse.status, 200);
+    assert.match(status.date, /^\d{4}-\d{2}-\d{2}$/);
+
+    const attendance = await post(env.baseUrl, '/api/rewards/daily/claim', {
+      action: 'attendance', amount: 999999, coin: 999999, xp: 999999,
+    }, account.token);
+    assert.equal(attendance.status, 200);
+    assert.equal(attendance.data.reward, 25, 'Mức điểm danh do server cố định');
+    assert.equal(attendance.data.user.coin, 125, 'Payload amount/coin không thay đổi được số dư');
+    assert.equal(attendance.data.user.xp, 25);
+    assert.equal(attendance.data.user.streakCount, 1, 'Chuỗi điểm danh do server tính');
+
+    const repeatedAttendance = await post(env.baseUrl, '/api/rewards/daily/claim', {
+      action: 'attendance', amount: 999999,
+    }, account.token);
+    assert.equal(repeatedAttendance.status, 409, 'Không thể nhận điểm danh lần hai trong cùng ngày');
+
+    const trivia = dailyTriviaForDate(status.date);
+    const quiz = await post(env.baseUrl, '/api/rewards/daily/claim', {
+      action: 'quiz', answerIndex: trivia.correct, amount: 999999, reward: 999999,
+    }, account.token);
+    assert.equal(quiz.status, 200);
+    assert.equal(quiz.data.correct, true, 'Server đối chiếu đáp án theo ngày');
+    assert.ok(quiz.data.reward >= 5 && quiz.data.reward <= 10, 'Server tự chọn mức thưởng trong giới hạn');
+    assert.equal(quiz.data.user.coin, 125 + quiz.data.reward, 'Không tin trường reward từ client');
+
+    const repeatedQuiz = await post(env.baseUrl, '/api/rewards/daily/claim', {
+      action: 'quiz', answerIndex: trivia.correct, reward: 999999,
+    }, account.token);
+    assert.equal(repeatedQuiz.status, 409, 'Không thể trả lời lại để nhận XP/Coin lần nữa');
+    const finalSync = await get(env.baseUrl, '/api/sync');
+    assert.equal(finalSync.data.data.users[account.user.email].coin, 125 + quiz.data.reward);
+    assert.equal(finalSync.data.data.users[account.user.email].xp, 25 + quiz.data.reward);
+  } finally {
+    await env.close();
+  }
+});
+
+test('9d. Phiên tập trung chỉ thưởng sau đủ 25 phút do đồng hồ server đo', async () => {
+  const env = await createTestServer();
+  const realNow = Date.now;
+  let offset = 0;
+  try {
+    const account = await register(env.baseUrl, 'Người Tập Trung', 'focus.owner@example.com', 'mat-khau-focus-123');
+    Date.now = () => realNow() + offset;
+
+    const forged = await post(env.baseUrl, '/api/rewards/focus/complete', {
+      sessionId: 'focus-forged', elapsedMs: 999999999, reward: 999999,
+    }, account.token);
+    assert.equal(forged.status, 409, 'Không thể tự khai một phiên chưa được server mở');
+
+    const started = await post(env.baseUrl, '/api/rewards/focus/start', {
+      durationMs: 1, reward: 999999,
+    }, account.token);
+    assert.equal(started.status, 200);
+    assert.ok(started.data.sessionId, 'Mã phiên do server cấp');
+
+    const early = await post(env.baseUrl, '/api/rewards/focus/complete', {
+      sessionId: started.data.sessionId, elapsedMs: 999999999, reward: 999999,
+    }, account.token);
+    assert.equal(early.status, 409, 'Thời lượng client gửi không thay thế đồng hồ server');
+    let sync = await get(env.baseUrl, '/api/sync');
+    assert.equal(sync.data.data.users[account.user.email].coin, 100, 'Phiên quá sớm không phát thưởng');
+
+    offset = FOCUS_REWARD_MINIMUM_MS;
+    const completed = await post(env.baseUrl, '/api/rewards/focus/complete', {
+      sessionId: started.data.sessionId, elapsedMs: 1, reward: 999999, coin: 999999,
+    }, account.token);
+    assert.equal(completed.status, 200);
+    assert.equal(completed.data.reward, 25, 'Server áp dụng mức thưởng cố định');
+
+    const replay = await post(env.baseUrl, '/api/rewards/focus/complete', {
+      sessionId: started.data.sessionId, reward: 999999,
+    }, account.token);
+    assert.equal(replay.status, 200);
+    assert.equal(replay.data.duplicate, true, 'Phiên hoàn tất được nhận diện khi phát lại');
+    sync = await get(env.baseUrl, '/api/sync');
+    assert.equal(sync.data.data.users[account.user.email].coin, 125, 'Phát lại phiên không cộng thêm Coin');
+    assert.equal(sync.data.data.users[account.user.email].xp, 25, 'Phát lại phiên không cộng thêm XP');
+
+    const nextSession = await post(env.baseUrl, '/api/rewards/focus/start', {}, account.token);
+    assert.equal(nextSession.status, 200);
+    const cancelled = await post(env.baseUrl, '/api/rewards/focus/cancel', {
+      sessionId: nextSession.data.sessionId,
+    }, account.token);
+    assert.equal(cancelled.status, 200);
+    assert.equal(cancelled.data.cancelled, true);
+    const afterCancel = await post(env.baseUrl, '/api/rewards/focus/complete', {
+      sessionId: nextSession.data.sessionId,
+    }, account.token);
+    assert.equal(afterCancel.status, 409, 'Phiên bị hủy không thể nhận thưởng');
+  } finally {
+    Date.now = realNow;
+    await env.close();
+  }
+});
+
+test('9e. Cửa hàng kiểm tra số dư/sở hữu phía server và chống trừ Coin lặp', async () => {
+  const env = await createTestServer();
+  try {
+    const account = await register(env.baseUrl, 'Người Mua Hàng', 'shop.owner@example.com', 'mat-khau-shop-123');
+    const purchase = await post(env.baseUrl, '/api/shop/purchase', {
+      itemId: 'pencil_starter', price: 0, coin: 999999, amount: 0,
+    }, account.token);
+    assert.equal(purchase.status, 200);
+    assert.equal(purchase.data.user.coin, 50, 'Giá thật 50 Coin do catalog server quyết định');
+    assert.deepEqual(purchase.data.user.inventory, ['pencil_starter']);
+
+    const duplicate = await post(env.baseUrl, '/api/shop/purchase', {
+      itemId: 'pencil_starter', price: 0,
+    }, account.token);
+    assert.equal(duplicate.status, 200);
+    assert.equal(duplicate.data.duplicate, true);
+    assert.equal(duplicate.data.user.coin, 50, 'Mua lại vật phẩm không trừ Coin lần nữa');
+
+    const unownedEquip = await post(env.baseUrl, '/api/shop/equip', { itemId: 'crown_celestial' }, account.token);
+    assert.equal(unownedEquip.status, 403, 'Không thể tự trang bị vật phẩm chưa sở hữu');
+    const equip = await post(env.baseUrl, '/api/shop/equip', { itemId: 'pencil_starter' }, account.token);
+    assert.equal(equip.status, 200);
+    assert.equal(equip.data.user.equippedBadge, 'pencil_starter');
+
+    const unaffordable = await post(env.baseUrl, '/api/shop/purchase', { itemId: 'seed_wisdom' }, account.token);
+    assert.equal(unaffordable.status, 402, 'Không đủ Coin thì không thể mua hàng');
+    const sync = await get(env.baseUrl, '/api/sync');
+    assert.equal(sync.data.data.users[account.user.email].coin, 50);
+    assert.deepEqual(sync.data.data.users[account.user.email].inventory, ['pencil_starter']);
   } finally {
     await env.close();
   }
@@ -474,7 +743,8 @@ test('10. Tiền thưởng: không đủ Coin thì không treo thưởng đượ
     assert.equal(first.status, 200);
 
     let sync = await get(env.baseUrl, '/api/sync');
-    assert.equal(sync.data.data.users['bounty.poor@example.com'].coin, 0, '100 - 100 = 0 Coin');
+    assert.equal(sync.data.data.users['bounty.poor@example.com'].coin, 50,
+      'Server trừ 100 Coin treo thưởng rồi cấp thưởng câu hỏi 50 Coin: 100 - 100 + 50');
 
     /* Trước khi vá: câu thứ hai vẫn được tạo, coin bị kẹp về 0 → thưởng miễn phí. */
     const second = await post(env.baseUrl, '/api/questions', {
@@ -606,7 +876,7 @@ test('12. API quản trị: chỉ adminEmail trong body là chưa đủ — ph�
     /* Admin thật: đăng nhập bằng mật khẩu để lấy token hợp lệ. */
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
       email: 'anhtuantran0512@gmail.com',
-      password: 'admin123',
+      password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200, `admin login: ${JSON.stringify(adminLogin.data)}`);
 
@@ -642,7 +912,7 @@ test('12. API quản trị: chỉ adminEmail trong body là chưa đủ — ph�
   }
 });
 
-test('13. /api/users/update: phải là chính chủ, và role/id/email không ghi đè được', async () => {
+test('13. /api/users/update: chính chủ chỉ sửa hồ sơ; role và tài nguyên vẫn do server sở hữu', async () => {
   const env = await createTestServer();
   try {
     const account = await register(env.baseUrl, 'Người Sửa Hồ Sơ', 'profile.edit@example.com', 'mat-khau-sua-123');
@@ -662,7 +932,21 @@ test('13. /api/users/update: phải là chính chủ, và role/id/email không g
 
     const selfUpdate = await post(env.baseUrl, '/api/users/update', {
       email: 'profile.edit@example.com',
-      updates: { name: 'Tên Mới Chính Chủ', role: 'SUPER_ADMIN', id: 'user-gia-mao', city: 'Đà Nẵng' },
+      updates: {
+        name: 'Tên Mới Chính Chủ',
+        role: 'SUPER_ADMIN',
+        id: 'user-gia-mao',
+        city: 'Đà Nẵng',
+        joinedAt: '2000-01-01',
+        coin: 999999,
+        xp: 999999,
+        fPoints: 999999,
+        level: 150,
+        streakCount: 999,
+        inventory: ['badge-crown'],
+        equippedBadge: 'badge-crown',
+        isAdmin: true,
+      },
     }, account.token);
     assert.equal(selfUpdate.status, 200);
     assert.equal(selfUpdate.data.user.name, 'Tên Mới Chính Chủ', 'Sửa hồ sơ của mình vẫn hoạt động');
@@ -670,6 +954,15 @@ test('13. /api/users/update: phải là chính chủ, và role/id/email không g
     assert.equal(selfUpdate.data.user.role, 'STUDENT', 'role không được ghi đè từ client');
     assert.equal(selfUpdate.data.user.id, account.user.id, 'id không được ghi đè từ client');
     assert.equal(selfUpdate.data.user.email, 'profile.edit@example.com', 'email không được ghi đè');
+    assert.equal(selfUpdate.data.user.joinedAt, account.user.joinedAt, 'ngày tham gia không được ghi đè');
+    assert.equal(selfUpdate.data.user.coin, 100, 'Coin không được ghi đè qua API hồ sơ');
+    assert.equal(selfUpdate.data.user.xp, 0, 'XP không được ghi đè qua API hồ sơ');
+    assert.equal(selfUpdate.data.user.fPoints, 0, 'fPoints không được ghi đè qua API hồ sơ');
+    assert.equal(selfUpdate.data.user.level, 1, 'level được server suy ra từ XP thật');
+    assert.equal(selfUpdate.data.user.streakCount, 0, 'streak chỉ thay đổi qua điểm danh server');
+    assert.deepEqual(selfUpdate.data.user.inventory, [], 'kho vật phẩm không được ghi đè qua API hồ sơ');
+    assert.equal(selfUpdate.data.user.equippedBadge, '', 'không thể tự trang bị vật phẩm chưa mua');
+    assert.equal(selfUpdate.data.user.isAdmin, undefined, 'field lạ bị loại bởi allowlist');
   } finally {
     await env.close();
   }
@@ -731,7 +1024,7 @@ test('15. Rò rỉ timer SSE đã được dọn: ngắt kết nối là bộ đ
   }
 });
 
-test('16. Phát lại nội dung qua WS không nhân đôi bản ghi, không tự cộng XP', async () => {
+test('16. Phát lại nội dung qua WS chỉ ghi và thưởng đúng một lần bằng sổ cái server', async () => {
   const env = await createTestServer();
   try {
     const account = await register(env.baseUrl, 'Người Đăng', 'relay.author@example.com', 'mat-khau-relay-1');
@@ -749,11 +1042,24 @@ test('16. Phát lại nội dung qua WS không nhân đôi bản ghi, không t�
     const sync = await get(env.baseUrl, '/api/sync');
     const copies = sync.data.data.questions.filter((q) => q.id === 'q-relay-cung-id').length;
     assert.equal(copies, 1, 'Cùng một id chỉ được ghi một lần');
-    assert.equal(
-      sync.data.data.users['relay.author@example.com'].xp,
-      0,
-      'Đường WS chỉ chuyển tiếp nội dung — XP do đường HTTP đã kiểm soát cấp',
-    );
+    assert.equal(sync.data.data.users['relay.author@example.com'].xp, 50,
+      'Đường WS phải phát thưởng do server tính đúng một lần');
+    assert.equal(sync.data.data.users['relay.author@example.com'].coin, 130,
+      'Bounty 20 bị trừ thật rồi thưởng 50 Coin được cộng đúng một lần');
+
+    const httpReplay = await post(env.baseUrl, '/api/questions', {
+      ...payload,
+      authorEmail: 'relay.author@example.com',
+      bountyCoin: 20,
+    }, account.token);
+    assert.equal(httpReplay.status, 200, 'Cùng mã yêu cầu qua HTTP phải được nhận diện là phát lại');
+    assert.equal(httpReplay.data.duplicate, true, 'HTTP phải trả kết quả idempotent');
+    assert.equal(httpReplay.data.reward, 0, 'Phát lại không trả thêm thưởng');
+    const afterReplay = await get(env.baseUrl, '/api/sync');
+    assert.equal(afterReplay.data.data.users['relay.author@example.com'].coin, 130,
+      'Phát lại từ HTTP sau WS không thay đổi số dư');
+    assert.equal(afterReplay.data.data.questions.filter((q) => q.id === payload.id).length, 1,
+      'Một ID không tạo bản ghi khác khi đổi transport');
     } finally {
       client.ws.close();
     }
@@ -766,64 +1072,33 @@ test('16. Phát lại nội dung qua WS không nhân đôi bản ghi, không t�
 /* 3. Toàn vẹn phía client                                                    */
 /* -------------------------------------------------------------------------- */
 
-test('17. addXP: state updater phải thuần — không còn fetch/toast/âm thanh bên trong', () => {
+test('17. Phần thưởng, số dư và kho vật phẩm chỉ thay đổi qua nghiệp vụ máy chủ', () => {
   const store = fs.readFileSync(path.resolve('src/store/forumStore.ts'), 'utf8');
+  const app = fs.readFileSync(path.resolve('src/App.tsx'), 'utf8');
+  const server = fs.readFileSync(path.resolve('server/forumServer.ts'), 'utf8');
 
-  /* Cắt đúng thân hàm addXP (từ khai báo tới hàm kế tiếp). */
-  const start = store.indexOf('const addXP = (amount: number');
-  assert.ok(start > 0, 'addXP phải tồn tại trong forumStore');
-  const end = store.indexOf('const updateProfile = ', start);
-  assert.ok(end > start, 'Phải xác định được điểm kết thúc của addXP');
-  const body = store.slice(start, end);
-
-  /* Lấy riêng khối commitUsers(prev => { ... }) bên trong addXP. */
-  const updaterStart = body.indexOf('commitUsers(prev => {');
-  assert.ok(updaterStart > 0, 'addXP phải cập nhật sổ tài khoản qua cổng commitUsers');
-  let depth = 0;
-  let updaterEnd = -1;
-  for (let i = body.indexOf('{', updaterStart); i < body.length; i++) {
-    if (body[i] === '{') depth++;
-    else if (body[i] === '}') {
-      depth--;
-      if (depth === 0) { updaterEnd = i; break; }
-    }
+  for (const field of ['coin', 'xp', 'fPoints', 'level', 'streakCount', 'inventory', 'equippedBadge']) {
+    assert.ok(SERVER_OWNED_USER_FIELDS.includes(field), `${field} phải là trường server sở hữu`);
   }
-  assert.ok(updaterEnd > updaterStart, 'Phải đóng được khối updater');
-  const updater = body.slice(updaterStart, updaterEnd + 1);
+  assert.doesNotMatch(store, /const addXP\s*=/, 'Không còn API client nhận amount tùy ý để cộng tài nguyên');
+  assert.doesNotMatch(store, /coin:\s*updatedAuthorCoin|const newXp = creator\.xp/, 'Tạo câu hỏi/duyệt CLB không tự sửa Coin hoặc XP ở client');
+  assert.doesNotMatch(app, /XPSandboxDock/, 'Bảng nạp Coin thử nghiệm không được đưa vào bản chạy');
+  assert.ok(store.includes("postStoreAction('/api/shop/purchase'"), 'Mua hàng phải đi qua API kiểm số dư');
+  assert.ok(store.includes("postStoreAction('/api/shop/equip'"), 'Trang bị phải qua API kiểm sở hữu');
+  assert.ok(store.includes("postStoreAction('/api/rewards/daily/claim'"), 'Thưởng ngày phải dùng action allowlist');
+  assert.ok(store.includes("postStoreAction('/api/rewards/focus/complete'"), 'Thưởng Pomodoro phải được server xác thực');
+  assert.ok(server.includes('FOCUS_REWARD_MINIMUM_MS'), 'Server phải kiểm đủ thời lượng trước khi thưởng');
+  assert.ok(server.includes('claimDailyAttendance(profile, today)'), 'Server tính ngày điểm danh và streak');
+  assert.ok(server.includes('claimDailyTrivia(profile, today, body.answerIndex'), 'Server kiểm đáp án, không tin amount từ client');
+  assert.ok(server.includes('grantCoinsAndExperience(actor.user, rewardResult.reward)'), 'Server mới ghi sổ tài nguyên');
 
-  const banned = ['fetch(', 'postJson(', 'setCurrentUser(', 'playChime(', 'setToastMessage(', 'pushNotification('];
-  for (const call of banned) {
-    assert.ok(
-      !updater.includes(call),
-      `Updater của addXP không được chứa ${call} — StrictMode gọi updater 2 lần sẽ nhân đôi tác dụng phụ`,
-    );
-  }
-
-  /* Tác dụng phụ vẫn phải tồn tại, chỉ là nằm NGOÀI updater. */
-  assert.ok(body.includes("postJson('/api/users/update'"), 'Thưởng XP vẫn phải đồng bộ lên server');
-  assert.ok(body.includes("playChime('level-up')"), 'Vẫn phải có âm thanh thăng cấp');
-  assert.ok(body.includes('pushNotification({'), 'Vẫn phải đẩy thông báo thăng cấp');
-  assert.ok(body.includes('usersRef.current[emailToCredit]'), 'Phải đọc snapshot ngoài updater qua usersRef');
-
-  /* Cổng commitUsers phải giữ usersRef khớp NGAY trong cùng một tick, nếu không
-     đọc snapshot sẽ ra số cũ (ví dụ hoàn lại Coin vừa trừ khi treo thưởng). */
   const commitStart = store.indexOf('const commitUsers = useCallback(');
   assert.ok(commitStart > 0, 'commitUsers phải tồn tại');
   const commitBody = store.slice(commitStart, store.indexOf('}, []);', commitStart) + 7);
   assert.ok(commitBody.includes('usersRef.current = resolved'), 'commitUsers phải cập nhật usersRef đồng bộ');
   assert.ok(commitBody.includes('setUsers(resolved)'), 'commitUsers phải là nơi duy nhất gọi setUsers');
-  assert.ok(
-    !/usersRef\.current = users;/.test(store),
-    'Không gán ref trong lúc render — phải đồng bộ qua commitUsers',
-  );
-
-  /* Ngoài commitUsers, không chỗ nào được gọi setUsers trực tiếp. */
-  assert.ok(
-    store.includes('const [users, setUsers] = useState<Record<string, User>>('),
-    'useState vẫn khai báo setUsers',
-  );
-  const directCalls = store.match(/(?<![\w.])setUsers\(/g) || [];
-  assert.equal(directCalls.length, 1, 'Chỉ bên trong commitUsers được gọi setUsers');
+  assert.equal((store.match(/(?<![\w.])setUsers\(/g) || []).length, 1,
+    'Chỉ bên trong commitUsers được gọi setUsers');
 });
 
 test('18. Client luôn gắn token phiên vào các API ghi dữ liệu', () => {
@@ -861,10 +1136,11 @@ test('18. Client luôn gắn token phiên vào các API ghi dữ liệu', () => 
   for (const endpoint of protectedEndpoints) {
     const viaHelper = store.indexOf(`postJson('${endpoint}'`);
     const viaAction = store.indexOf(`runServerAction('${endpoint}'`);
+    const viaStoreAction = store.indexOf(`postStoreAction('${endpoint}'`);
     const directAt = store.indexOf(`fetch('${endpoint}'`);
     assert.ok(
-      viaHelper > 0 || viaAction > 0 || directAt > 0,
-      `forumStore phải gọi ${endpoint} (qua runServerAction, postJson hoặc fetch)`
+      viaHelper > 0 || viaAction > 0 || viaStoreAction > 0 || directAt > 0,
+      `forumStore phải gọi ${endpoint} qua helper có xác thực hoặc fetch trực tiếp có token`
     );
 
     if (directAt > 0) {
@@ -946,7 +1222,7 @@ test('21. Khu Vinh Danh: payload một phần phải GỘP, không được xoá
 
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
       email: 'anhtuantran0512@gmail.com',
-      password: 'admin123',
+      password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200);
 
@@ -1021,7 +1297,7 @@ test('22. Tố cáo vi phạm: không mất khi khởi động lại, chỉ admi
 
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
       email: 'anhtuantran0512@gmail.com',
-      password: 'admin123',
+      password: TEST_ADMIN_PASSWORD,
     });
     const adminToken = adminLogin.data.token;
 
@@ -1065,7 +1341,7 @@ test('22. Tố cáo vi phạm: không mất khi khởi động lại, chỉ admi
   try {
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
       email: 'anhtuantran0512@gmail.com',
-      password: 'admin123',
+      password: TEST_ADMIN_PASSWORD,
     });
     const after = await fetch(`${env.baseUrl}/api/admin/reports`, {
       headers: { Authorization: `Bearer ${adminLogin.data.token}` },
@@ -1210,7 +1486,7 @@ test('25. Câu lạc bộ: bốn endpoint từng trả 404 nay lưu thật và k
     /* Admin thật duyệt được, và chủ nhiệm được thăng cấp + XP. */
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
       email: 'anhtuantran0512@gmail.com',
-      password: 'admin123',
+      password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200, `admin login: ${JSON.stringify(adminLogin.data)}`);
 
@@ -1280,7 +1556,7 @@ test('26. Luồng từ chối CLB: ghi lý do và không cho học sinh đụng 
 
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
       email: 'anhtuantran0512@gmail.com',
-      password: 'admin123',
+      password: TEST_ADMIN_PASSWORD,
     });
     const rejected = await post(env.baseUrl, '/api/clubs/reject', {
       clubId,
@@ -1736,7 +2012,7 @@ test('34. Sửa câu hỏi: không ghi đè được authorEmail / bountyCoin (m
 
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
       email: 'anhtuantran0512@gmail.com',
-      password: 'admin123',
+      password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200);
 
@@ -1797,7 +2073,7 @@ test('35. Sửa câu hỏi qua WS: cùng một bộ lọc trường như đườ
   const env = await createTestServer();
   const adminLogin = await post(env.baseUrl, '/api/auth/login', {
     email: 'anhtuantran0512@gmail.com',
-    password: 'admin123',
+    password: TEST_ADMIN_PASSWORD,
   });
   const admin = await connectWs(env.wsUrl, adminLogin.data.token);
   try {
@@ -1914,14 +2190,17 @@ test('37. Thao tác ghi dữ liệu phải đọc kết quả máy chủ, không
   ];
   for (const endpoint of criticalWrites) {
     assert.ok(
-      store.includes(`runServerAction('${endpoint}'`),
-      `${endpoint} phải đi qua runServerAction để đọc kết quả máy chủ`
+      store.includes(`runServerAction('${endpoint}'`) || store.includes(`postStoreAction('${endpoint}'`),
+      `${endpoint} phải đi qua helper kiểm tra trạng thái và đọc kết quả máy chủ`
     );
   }
 
   /* Các đường đó không được quay lại kiểu gọi rồi bỏ mặc. */
   for (const endpoint of criticalWrites) {
-    const at = store.indexOf(`runServerAction('${endpoint}'`);
+    const at = Math.max(
+      store.indexOf(`runServerAction('${endpoint}'`),
+      store.indexOf(`postStoreAction('${endpoint}'`),
+    );
     const tail = store.slice(at, at + 700);
     assert.ok(
       tail.includes('type: \'error\''),
@@ -1929,11 +2208,12 @@ test('37. Thao tác ghi dữ liệu phải đọc kết quả máy chủ, không
     );
   }
 
-  /* Chọn đáp án chuẩn: phải hỏi máy chủ trước rồi mới cộng thưởng. */
-  const bestAt = store.indexOf("runServerAction('/api/solutions/best'");
-  assert.ok(bestAt > 0, 'markBestSolution phải đọc kết quả máy chủ');
-  const awardAt = store.indexOf('addXP(solverCoinAward', bestAt);
-  assert.ok(awardAt > bestAt, 'Thưởng chỉ được cộng SAU khi máy chủ xác nhận');
+  /* Chọn đáp án chuẩn: máy chủ quyết định thưởng; client chỉ dùng phản hồi để hiển thị. */
+  const bestAt = store.indexOf("postStoreAction('/api/solutions/best'");
+  assert.ok(bestAt > 0, 'markBestSolution phải hỏi máy chủ và áp dụng hồ sơ trả về');
+  assert.ok(!store.includes('addXP('), 'Không còn bộ cộng XP/Coin có thể gọi trực tiếp từ client');
+  const awardAt = store.indexOf('const awardedAmount =', bestAt);
+  assert.ok(awardAt > bestAt, 'Giao diện chỉ đọc số thưởng sau khi máy chủ xác nhận');
 
   /* Và phải chặn tự chọn ngay phía client, khớp với 409 của máy chủ. */
   assert.ok(
@@ -2131,7 +2411,7 @@ test('41. Bản ghi người dùng kiểu cũ thiếu trường không làm sậ
 
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
       email: 'anhtuantran0512@gmail.com',
-      password: 'admin123',
+      password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200, `admin login: ${JSON.stringify(adminLogin.data)}`);
 
@@ -2363,7 +2643,7 @@ test('46. REJECT_CLUB qua WS phải validate như bản HTTP và rút quyền ch
     /* Quyền duyệt/từ chối CLB chỉ thuộc tài khoản Super Admin thật. */
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
       email: 'anhtuantran0512@gmail.com',
-      password: 'admin123',
+      password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200, `admin login: ${JSON.stringify(adminLogin.data)}`);
     const founder = await register(env.baseUrl, 'Sáng Lập Bị Từ Chối', 'founder-reject@example.com', 'mat-khau-founder-rej1');
@@ -2406,6 +2686,13 @@ test('46. REJECT_CLUB qua WS phải validate như bản HTTP và rút quyền ch
     const demoted = syncR.data.data.users['founder-reject@example.com'];
     assert.ok(!demoted.scopedClubIds.includes(clubId), 'mã CLB phải bị rút khỏi scopedClubIds');
     assert.equal(demoted.role, 'STUDENT', 'hết CLB nào thì phải hạ về STUDENT');
+
+    const reapproved = await post(env.baseUrl, '/api/clubs/approve', { clubId }, adminLogin.data.token);
+    assert.equal(reapproved.status, 200, 'Có thể duyệt lại hồ sơ sau khi xử lý');
+    assert.equal(reapproved.data.reward, 0, 'Duyệt lại không phát lại thưởng sáng lập');
+    const syncAgain = await get(env.baseUrl, '/api/sync');
+    assert.equal(syncAgain.data.data.users['founder-reject@example.com'].xp, leaderAfter.xp,
+      'XP sáng lập chỉ được cấp một lần dù có luồng duyệt-từ-chối-duyệt');
   } finally {
     await env.close();
   }
@@ -2600,7 +2887,7 @@ test('52. REJECT_CLUB qua HTTP cũng phải rút quyền chủ nhiệm như nhá
 
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
       email: 'anhtuantran0512@gmail.com',
-      password: 'admin123',
+      password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200, `admin login: ${JSON.stringify(adminLogin.data)}`);
 
@@ -2725,7 +3012,7 @@ test('Bảo mật 54. /api/admin/overview chỉ Super Admin đọc được, kh�
     /* 4. Super Admin → 200 với đầy đủ các khối số liệu. */
     const admin = await post(env.baseUrl, '/api/auth/login', {
       email: 'anhtuantran0512@gmail.com',
-      password: 'admin123',
+      password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(admin.status, 200, 'đăng nhập super admin phải thành công');
     const asAdmin = await authedGet(admin.data.token);
@@ -2781,7 +3068,7 @@ test('Bảo mật 55. Cấm người dùng chặn ở CẢ HTTP lẫn WebSocket,
 
     const admin = await post(env.baseUrl, '/api/auth/login', {
       email: 'anhtuantran0512@gmail.com',
-      password: 'admin123',
+      password: TEST_ADMIN_PASSWORD,
     });
     const target = await register(env.baseUrl, 'Người Bị Cấm', `cam55.${Date.now()}@example.com`, 'mat-khau-bi-cam-123');
     const email = target.user.email;
@@ -2914,7 +3201,7 @@ test('Bảo mật 56. Tra cứu và áp chế người dùng chỉ admin, dữ l
 
     const admin = await post(env.baseUrl, '/api/auth/login', {
       email: 'anhtuantran0512@gmail.com',
-      password: 'admin123',
+      password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(admin.status, 200);
 

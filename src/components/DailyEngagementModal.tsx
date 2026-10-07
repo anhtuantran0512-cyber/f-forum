@@ -11,13 +11,17 @@ import {
   Calendar,
 } from 'lucide-react';
 import { safeStorage } from '../utils/storage';
+import { dailyTriviaForDate, dateKeyInTimeZone, shiftDateKey } from '../../shared/dailyTrivia';
+import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
 
 interface DailyEngagementModalProps {
   isOpen: boolean;
   onClose: () => void;
+  isAuthenticated: boolean;
   currentUserCoin?: number;
-  onRewardCoin?: (amount: number, reason: string) => void;
-  onStreakChange?: (streak: number) => void;
+  onOpenLogin?: () => void;
+  onLoadRewardStatus?: () => Promise<{ ok: boolean; status?: DailyRewardStatus; message?: string }>;
+  onClaimReward?: (action: DailyRewardAction) => Promise<DailyRewardActionResult>;
 }
 
 const TIPS = [
@@ -27,104 +31,17 @@ const TIPS = [
   'Chia sẻ lời giải hay trên sàn hỏi đáp giúp bạn tích lũy Coin và thăng hạng danh hiệu.',
 ];
 
-interface TriviaQuestion {
-  question: string;
-  options: string[];
-  correct: number;
-}
+const todayISO = () => dateKeyInTimeZone();
 
-const TRIVIA_POOL: TriviaQuestion[] = [
-  {
-    question: 'Thung lũng McMurdo (thung lũng Khô) nằm ở châu lục nào?',
-    options: ['Châu Úc', 'Châu Phi', 'Châu Mỹ', 'Châu Nam Cực'],
-    correct: 3,
-  },
-  {
-    question: 'Kim loại nào có tính dẫn điện tốt nhất ở điều kiện thường?',
-    options: ['Vàng (Au)', 'Bạc (Ag)', 'Đồng (Cu)', 'Nhôm (Al)'],
-    correct: 1,
-  },
-  {
-    question: 'Tác phẩm "Bình Ngô Đại Cáo" được sáng tác bởi danh nhân nào?',
-    options: ['Nguyễn Trãi', 'Lê Lợi', 'Nguyễn Du', 'Trần Hưng Đạo'],
-    correct: 0,
-  },
-  {
-    question: 'Đơn vị đo cường độ dòng điện trong hệ SI là gì?',
-    options: ['Volt (V)', 'Watt (W)', 'Ampere (A)', 'Ohm (Ω)'],
-    correct: 2,
-  },
-  {
-    question: 'Nguyên tố hóa học nào có ký hiệu "Fe"?',
-    options: ['Flo', 'Sắt', 'Phốt pho', 'Fermi'],
-    correct: 1,
-  },
-  {
-    question: 'Sông nào dài nhất Việt Nam?',
-    options: ['Sông Mã', 'Sông Hồng', 'Sông Đồng Nai', 'Sông Đà'],
-    correct: 2,
-  },
-  {
-    question: 'Trong Pascal, kiểu dữ liệu nào lưu được số thực?',
-    options: ['Integer', 'Boolean', 'Real', 'Char'],
-    correct: 2,
-  },
-  {
-    question: 'Vận tốc ánh sáng trong chân không xấp xỉ bao nhiêu?',
-    options: ['300.000 km/s', '150.000 km/s', '300.000 m/s', '30.000 km/s'],
-    correct: 0,
-  },
-  {
-    question: 'Ai là tác giả của "Truyện Kiều"?',
-    options: ['Nguyễn Du', 'Hồ Xuân Hương', 'Nguyễn Đình Chiểu', 'Xuân Diệu'],
-    correct: 0,
-  },
-  {
-    question: 'Nước có công thức hóa học là gì?',
-    options: ['CO2', 'H2O', 'O2', 'NaCl'],
-    correct: 1,
-  },
-  {
-    question: 'Đỉnh núi cao nhất Việt Nam là?',
-    options: ['Phan Xi Păng', 'Bạch Mã', 'Bà Đen', 'Ngọc Linh'],
-    correct: 0,
-  },
-  {
-    question: 'Số nào sau đây là số nguyên tố?',
-    options: ['51', '57', '53', '55'],
-    correct: 2,
-  },
-];
-
-/** Chọn câu hỏi cố định theo ngày (mọi người cùng thấy 1 câu trong ngày). */
-const getDailyTrivia = (): TriviaQuestion => {
-  const today = new Date().toISOString().slice(0, 10);
-  let hash = 0;
-  for (let i = 0; i < today.length; i++) {
-    hash = (hash * 31 + today.charCodeAt(i)) % 100000;
-  }
-  return TRIVIA_POOL[hash % TRIVIA_POOL.length];
-};
-
-const todayISO = () => new Date().toISOString().slice(0, 10);
-
-const yesterdayISO = () => {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
-};
-
-/** Tính chuỗi ngày liên tiếp từ lịch điểm danh (mảng ngày ISO). */
-const computeStreak = (log: string[]): number => {
+/** Tính chuỗi ngày liên tiếp bằng ngày lịch Việt Nam, không phụ thuộc timezone trình duyệt. */
+const computeStreak = (log: string[], today = todayISO()): number => {
   const set = new Set(log);
-  let cursor = set.has(todayISO()) ? todayISO() : set.has(yesterdayISO()) ? yesterdayISO() : '';
-  if (!cursor) return 0;
+  let cursor = set.has(today) ? today : shiftDateKey(today, -1);
+  if (!set.has(cursor)) return 0;
   let streak = 0;
-  while (set.has(cursor)) {
+  while (cursor && set.has(cursor) && streak < 400) {
     streak += 1;
-    const d = new Date(cursor);
-    d.setDate(d.getDate() - 1);
-    cursor = d.toISOString().slice(0, 10);
+    cursor = shiftDateKey(cursor, -1);
   }
   return streak;
 };
@@ -145,18 +62,16 @@ const loadAttendanceLog = (): string[] => {
 export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
   isOpen,
   onClose,
+  isAuthenticated,
   currentUserCoin = 0,
-  onRewardCoin,
-  onStreakChange,
+  onOpenLogin,
+  onLoadRewardStatus,
+  onClaimReward,
 }) => {
   const [activeTab, setActiveTab] = useState<'attendance' | 'gifts' | 'quiz'>('attendance');
   const [tipIndex, setTipIndex] = useState(0);
-
+  const [rewardDate, setRewardDate] = useState(todayISO());
   const [attendanceLog, setAttendanceLog] = useState<string[]>(loadAttendanceLog);
-  const streak = useMemo(() => computeStreak(attendanceLog), [attendanceLog]);
-  const hasClaimedToday = attendanceLog.includes(todayISO());
-  const cycleDay = Math.max(1, Math.min(15, streak === 0 && !hasClaimedToday ? 1 : streak));
-
   const [boxes, setBoxes] = useState<{ blue: number; gold: number; red: number }>(() => {
     try {
       const saved = safeStorage.getItem('fforum_mystery_boxes');
@@ -166,36 +81,52 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
     }
     return { blue: 0, gold: 0, red: 0 };
   });
-
-  const dailyTrivia = useMemo(getDailyTrivia, []);
-
-  const [quizAnswered, setQuizAnswered] = useState<boolean>(() => {
-    const lastQuiz = safeStorage.getItem('fforum_last_quiz_date');
-    return lastQuiz === todayISO();
-  });
+  const [quizAnswered, setQuizAnswered] = useState<boolean>(() =>
+    safeStorage.getItem('fforum_last_quiz_date') === todayISO(),
+  );
   const [quizTimer, setQuizTimer] = useState<number>(15);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [quizResult, setQuizResult] = useState<{ correct: boolean; reward: number } | null>(null);
   const [openingBox, setOpeningBox] = useState<string | null>(null);
   const [boxReward, setBoxReward] = useState<string | null>(null);
+  const [isClaimingAttendance, setIsClaimingAttendance] = useState(false);
+  const [actionError, setActionError] = useState('');
 
-  const handleAnswerQuiz = useCallback(
-    (index: number) => {
-      if (quizAnswered) return;
-      setSelectedOption(index);
-      const isCorrect = index === dailyTrivia.correct;
-      const reward = isCorrect ? Math.floor(Math.random() * 6) + 5 : 0;
+  const streak = useMemo(() => computeStreak(attendanceLog, rewardDate), [attendanceLog, rewardDate]);
+  const hasClaimedToday = attendanceLog.includes(rewardDate);
+  const cycleDay = Math.max(1, Math.min(15, streak === 0 && !hasClaimedToday ? 1 : streak));
+  const dailyTrivia = useMemo(() => dailyTriviaForDate(rewardDate), [rewardDate]);
 
-      setQuizResult({ correct: isCorrect, reward });
-      setQuizAnswered(true);
-      safeStorage.setItem('fforum_last_quiz_date', todayISO());
+  const applyRewardStatus = useCallback((status: DailyRewardStatus): void => {
+    const date = status.date || todayISO();
+    setRewardDate(date);
+    setAttendanceLog(status.attendanceDates);
+    setBoxes(status.boxes);
+    setQuizAnswered(status.quizAnswered);
+    safeStorage.setItem('fforum_attendance_log', JSON.stringify(status.attendanceDates));
+    safeStorage.setItem('fforum_mystery_boxes', JSON.stringify(status.boxes));
+    safeStorage.setItem('fforum_last_quiz_date', status.quizAnswered ? date : '');
+  }, []);
 
-      if (isCorrect && reward > 0) {
-        onRewardCoin?.(reward, 'Trả lời đúng câu hỏi vui');
-      }
-    },
-    [quizAnswered, dailyTrivia, onRewardCoin],
-  );
+  const performClaim = useCallback(async (action: DailyRewardAction): Promise<DailyRewardActionResult> => {
+    if (!isAuthenticated) {
+      setActionError('Đăng nhập để lưu điểm danh và nhận Coin vào tài khoản.');
+      onOpenLogin?.();
+      return { ok: false, message: 'Vui lòng đăng nhập trước.' };
+    }
+    if (!onClaimReward) return { ok: false, message: 'Chức năng phần thưởng chưa sẵn sàng.' };
+    try {
+      const result = await onClaimReward(action);
+      if (result.status) applyRewardStatus(result.status);
+      if (!result.ok && result.httpStatus === 401) onOpenLogin?.();
+      setActionError(result.ok ? '' : result.message || 'Máy chủ chưa ghi nhận phần thưởng.');
+      return result;
+    } catch {
+      const result = { ok: false, message: 'Không kết nối được máy chủ. Vui lòng thử lại.' };
+      setActionError(result.message);
+      return result;
+    }
+  }, [isAuthenticated, onClaimReward, onOpenLogin, applyRewardStatus]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -205,12 +136,44 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
   }, []);
 
   useEffect(() => {
+    if (!isOpen || !isAuthenticated || !onLoadRewardStatus) return;
+    let active = true;
+    onLoadRewardStatus().then((result) => {
+      if (!active) return;
+      if (result.ok && result.status) {
+        applyRewardStatus(result.status);
+        setActionError('');
+      } else if (result.message) {
+        setActionError(result.message);
+      }
+    }).catch(() => {
+      if (active) setActionError('Không kết nối được máy chủ để tải trạng thái phần thưởng.');
+    });
+    return () => { active = false; };
+  }, [isOpen, isAuthenticated, onLoadRewardStatus, applyRewardStatus]);
+
+  const handleAnswerQuiz = useCallback(async (index: number) => {
+    if (quizAnswered || selectedOption !== null) return;
+    setSelectedOption(index);
+    const result = await performClaim({ action: 'quiz', answerIndex: index });
+    if (!result.ok && !result.status?.quizAnswered) {
+      setSelectedOption(null);
+      return;
+    }
+    const correct = Boolean(result.correct);
+    const reward = Math.max(0, Number(result.reward) || 0);
+    setQuizResult({ correct, reward });
+    setQuizAnswered(true);
+    safeStorage.setItem('fforum_last_quiz_date', rewardDate);
+  }, [quizAnswered, selectedOption, performClaim, rewardDate]);
+
+  useEffect(() => {
     if (!isOpen || activeTab !== 'quiz' || quizAnswered || selectedOption !== null) return;
     const timer = setInterval(() => {
       setQuizTimer((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          setTimeout(() => handleAnswerQuiz(-1), 0);
+          setTimeout(() => { void handleAnswerQuiz(-1); }, 0);
           return 0;
         }
         return prev - 1;
@@ -219,30 +182,13 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
     return () => clearInterval(timer);
   }, [isOpen, activeTab, quizAnswered, selectedOption, handleAnswerQuiz]);
 
-  useEffect(() => {
-    onStreakChange?.(streak);
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [streak]);
-
   if (!isOpen) return null;
 
-  const handleClaimAttendance = () => {
-    if (hasClaimedToday) return;
-    const today = todayISO();
-    const nextLog = [...attendanceLog, today];
-    setAttendanceLog(nextLog);
-    safeStorage.setItem('fforum_attendance_log', JSON.stringify(nextLog));
-
-    const newStreak = computeStreak(nextLog);
-    const nextBoxes = { ...boxes };
-    if (newStreak % 15 === 5 || newStreak === 5) nextBoxes.blue += 1;
-    if (newStreak % 15 === 10 || newStreak === 10) nextBoxes.gold += 1;
-    if (newStreak > 0 && newStreak % 15 === 0) nextBoxes.red += 1;
-    setBoxes(nextBoxes);
-    safeStorage.setItem('fforum_mystery_boxes', JSON.stringify(nextBoxes));
-
-    onStreakChange?.(newStreak);
-    onRewardCoin?.(25, `Điểm danh ngày (chuỗi ${newStreak})`);
+  const handleClaimAttendance = async () => {
+    if (hasClaimedToday || isClaimingAttendance) return;
+    setIsClaimingAttendance(true);
+    await performClaim({ action: 'attendance' });
+    setIsClaimingAttendance(false);
   };
 
   const handleOpenBox = (type: 'blue' | 'gold' | 'red') => {
@@ -250,13 +196,10 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
     setOpeningBox(type);
     setBoxReward(null);
 
-    setTimeout(() => {
-      const rewardCoin = type === 'blue' ? 30 : type === 'gold' ? 80 : 200;
-      const nextBoxes = { ...boxes, [type]: boxes[type] - 1 };
-      setBoxes(nextBoxes);
-      safeStorage.setItem('fforum_mystery_boxes', JSON.stringify(nextBoxes));
-      setBoxReward(`+${rewardCoin} Coin`);
-      onRewardCoin?.(rewardCoin, `Mở hộp quà ${type}`);
+    window.setTimeout(async () => {
+      const result = await performClaim({ action: 'box', boxType: type });
+      if (result.ok) setBoxReward(`+${result.reward || 0} Coin`);
+      else setBoxReward('Chưa mở được hộp quà');
       setOpeningBox(null);
     }, 1200);
   };
@@ -324,6 +267,12 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
             {TIPS[tipIndex]}
           </p>
         </div>
+
+        {actionError && (
+          <p className="mb-3 rounded-xl border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-200" role="alert">
+            {actionError}
+          </p>
+        )}
 
         {/* TAB 1: ĐIỂM DANH */}
         {activeTab === 'attendance' && (
@@ -393,11 +342,11 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
               <button
                 type="button"
                 onClick={handleClaimAttendance}
-                disabled={hasClaimedToday}
+                disabled={hasClaimedToday || isClaimingAttendance}
                 className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-neutral-950 font-bold text-xs flex items-center gap-1.5 shadow-lg cursor-pointer"
               >
                 <Flame className="w-4 h-4 text-neutral-950" />
-                <span>{hasClaimedToday ? 'Đã điểm danh' : 'Điểm danh ngay'}</span>
+                <span>{isClaimingAttendance ? 'Đang ghi nhận...' : hasClaimedToday ? 'Đã điểm danh' : 'Điểm danh ngay'}</span>
               </button>
             </div>
           </div>
@@ -563,8 +512,9 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                     <button
                       key={opt}
                       type="button"
-                      onClick={() => handleAnswerQuiz(idx)}
-                      className="p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 text-left text-xs font-medium text-white transition-all hover:border-amber-400/40 active:scale-98 cursor-pointer"
+                      onClick={() => { void handleAnswerQuiz(idx); }}
+                      disabled={selectedOption !== null}
+                      className="p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 text-left text-xs font-medium text-white transition-all hover:border-amber-400/40 active:scale-98 disabled:opacity-50 cursor-pointer"
                     >
                       <span className="w-5 h-5 rounded-full bg-white/10 inline-flex items-center justify-center text-[10px] font-mono mr-2 text-amber-300">
                         {String.fromCharCode(65 + idx)}
@@ -588,7 +538,9 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                   <p className="text-sm sm:text-base font-bold text-white mt-1">
                     {quizResult?.correct
                       ? `Trả lời đúng +${quizResult.reward} Coin`
-                      : 'Rất tiếc chưa chính xác. Hẹn bạn vào ngày mai nhé!'}
+                      : quizResult
+                        ? 'Rất tiếc chưa chính xác. Hẹn bạn vào ngày mai nhé!'
+                        : 'Hôm nay bạn đã hoàn thành câu hỏi vui.'}
                   </p>
                   <p className="text-[10px] text-neutral-500 mt-2">
                     Câu hỏi vui làm mới mỗi ngày — không cần ôn lại, cứ quay lại vào ngày mai là có câu mới.

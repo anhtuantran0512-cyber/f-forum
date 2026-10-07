@@ -2,9 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
-import { setupForumServer } from '../server/forumServer.ts';
 import { WebSocket } from 'ws';
+
+const TEST_ADMIN_PASSWORD = 'test-only-super-admin-password-2026';
+const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'fforum-admin-about-'));
+process.env.FFORUM_DATA_DIR = DATA_DIR;
+process.env.FFORUM_ADMIN_PASSWORD = TEST_ADMIN_PASSWORD;
+const { setupForumServer } = await import('../server/forumServer.ts');
+
+test.after(() => fs.rmSync(DATA_DIR, { recursive: true, force: true }));
 
 /* Cổng quản trị giờ đòi token phiên hợp lệ, không chỉ chuỗi `adminEmail` trong
    body. Helper này đăng nhập thật để lấy token — giống hệt cách client làm. */
@@ -12,7 +20,7 @@ async function loginAsAdmin(baseUrl) {
   const res = await fetch(`${baseUrl}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'anhtuantran0512@gmail.com', password: 'admin123' }),
+    body: JSON.stringify({ email: 'anhtuantran0512@gmail.com', password: TEST_ADMIN_PASSWORD }),
   });
   const data = await res.json();
   if (res.status !== 200 || !data.success) {

@@ -41,7 +41,10 @@ Toàn bộ mật khẩu được ghi thẳng ra đĩa (`"admin123"`). Ai đọc 
 
 **Đã vá:** băm `scrypt` (N=16384, r=8, p=1, 32 byte, salt 16 byte) dạng
 `scrypt$<salt>$<hash>`. Dữ liệu cũ được **tự động băm lại lúc khởi động**, và bản
-ghi plaintext còn sót được nâng cấp ngay lần đăng nhập thành công kế tiếp.
+ghi plaintext còn sót được nâng cấp ngay lần đăng nhập thành công kế tiếp. Mật
+khẩu Super Admin mẫu từng có trong mã nguồn đã bị loại; cả plaintext lẫn hash cũ
+đều bị thu hồi. Cài mới không có mật khẩu quản trị nếu thiếu
+`FFORUM_ADMIN_PASSWORD` đủ mạnh (tối thiểu 16 ký tự), hoặc OAuth server đã xác minh.
 
 ---
 
@@ -65,8 +68,9 @@ ws.send(JSON.stringify({ type: 'SYNC_USER', payload: {
 ```
 
 **Đã vá:** kết nối WS phải gửi `AUTH` kèm token hợp lệ; chỉ **chủ tài khoản** mới
-sửa được hồ sơ của mình; `role` / `id` / `email` là trường server sở hữu và bị
-loại khỏi payload; `level` luôn được tính lại từ `xp`.
+sửa được hồ sơ của mình; `role` / `id` / `email`, `staffRole`, Premium và
+`scopedClubIds` là trường server sở hữu, bị loại khỏi payload; `level` luôn được
+tính lại từ `xp`.
 
 ---
 
@@ -1225,13 +1229,16 @@ nhưng dò bằng email không token ở question/solution chỉ nhận 401 và 
 
 ## Biến môi trường
 
-Xem `.env.example`. Tất cả đều **tuỳ chọn**: không có `FFORUM_SESSION_SECRET` thì
-server tự sinh và lưu vào `data/session-key`; không có credential OAuth thì tài
-khoản thường vẫn đăng nhập social được, riêng quyền quản trị thì không.
+Xem `.env.example`. `FFORUM_SESSION_SECRET` có thể để trống vì server tự sinh và
+lưu vào `data/session-key`. Không có OAuth phía máy chủ thì tài khoản thường vẫn
+đăng nhập social ở chế độ demo, nhưng quyền Super Admin không được cấp qua social.
+Cài mới muốn đăng nhập Super Admin bằng mật khẩu phải đặt `FFORUM_ADMIN_PASSWORD`
+riêng, dài tối thiểu 16 ký tự; không có secret này thì không tồn tại mật khẩu mặc
+định. Credential mẫu công khai từ bản cũ được tự động thu hồi.
 
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 56 bài, chạy trên server thật
-npm test                                        # toàn bộ 215 bài
+node --test tests/security-hardening.test.mjs   # 60 bài, chạy trên server thật
+npm test                                        # toàn bộ 225 bài
 ```

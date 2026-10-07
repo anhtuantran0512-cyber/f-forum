@@ -1,6 +1,23 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import fs from 'node:fs';
 import path from 'node:path';
+import { randomInt } from 'node:crypto';
+import { SHOP_ITEMS } from '../src/utils/shopData.ts';
+import { dateKeyInTimeZone } from '../shared/dailyTrivia.ts';
+import {
+  claimDailyAttendance,
+  claimDailyTrivia,
+  claimGiftBox,
+  createEmptyDailyRewardProfile,
+  dailyRewardStatus,
+  sanitizeDailyRewardProfiles,
+  sanitizeFocusRewardSessions,
+  FOCUS_REWARD_AMOUNT,
+  FOCUS_REWARD_MINIMUM_MS,
+  FOCUS_SESSION_MAX_AGE_MS,
+  type DailyRewardProfile,
+  type FocusRewardSession,
+} from './economy.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
 import {
@@ -62,6 +79,7 @@ export interface UserRecord {
   streakCount?: number;
   coin?: number;
   inventory?: string[];
+  equippedBadge?: string;
   bio: string;
   gender?: string;
   city?: string;
@@ -99,6 +117,10 @@ export interface ForumDataStore {
   analytics?: AnalyticsStore;
   /** Cảnh cáo riêng tư, tối đa 1.000 bản ghi mới nhất. */
   adminWarnings?: AdminWarningRecord[];
+  /** Điểm danh, lượt trả lời và kho hộp quà do máy chủ quản lý. */
+  dailyRewards?: Record<string, DailyRewardProfile>;
+  /** Phiên Pomodoro đang mở, đối chiếu bằng đồng hồ máy chủ khi nhận thưởng. */
+  focusRewardSessions?: Record<string, FocusRewardSession>;
 }
 
 
@@ -135,6 +157,17 @@ const dataDir = (): string =>
     ? path.resolve(process.env.FFORUM_DATA_DIR)
     : path.resolve(process.cwd(), 'data');
 const dataFilePath = (): string => path.join(dataDir(), 'forum-data.json');
+const ADMIN_BOOTSTRAP_PASSWORD_MIN_LENGTH = 16;
+
+/**
+ * Mật khẩu quản trị chỉ được khởi tạo từ secret ngoài mã nguồn. Mật khẩu yếu
+ * hoặc thiếu không tạo credential; khi đó Super Admin chỉ đăng nhập được qua
+ * OAuth phía máy chủ đã xác minh.
+ */
+const configuredAdminBootstrapPassword = (): string | null => {
+  const password = String(process.env.FFORUM_ADMIN_PASSWORD || '').trim();
+  return password.length >= ADMIN_BOOTSTRAP_PASSWORD_MIN_LENGTH ? password : null;
+};
 
 let store: ForumDataStore = {
   users: {
@@ -148,6 +181,8 @@ let store: ForumDataStore = {
       xp: 45000,
       fPoints: 45000,
       streakCount: 36,
+      inventory: [],
+      equippedBadge: '',
       bio: 'F-Forum Architect & Core Administrator. Xây dựng tương lai tri thức học đường.',
       gender: 'Nam',
       city: 'Hà Nội',
@@ -155,9 +190,7 @@ let store: ForumDataStore = {
       scopedClubIds: [],
     },
   },
-  passwords: {
-    'anhtuantran0512@gmail.com': 'admin123',
-  },
+  passwords: {},
   clubs: [],
   clubPosts: [],
   questions: [],
@@ -166,6 +199,8 @@ let store: ForumDataStore = {
   feedbacks: [],
   analytics: createEmptyAnalytics(),
   adminWarnings: [],
+  dailyRewards: {},
+  focusRewardSessions: {},
   about: {
     headline: 'Người Kiến Tạo & Quản Trị Hệ Thống',
     subtitle: 'Field Notes & Development Chronicles — BroAmStuck Studio',
@@ -218,6 +253,13 @@ const asCount = (value: unknown, fallback = 0): number => {
   return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : fallback;
 };
 
+const asBoundedCount = (value: unknown, fallback: number, max: number): number =>
+  Math.min(max, asCount(value, fallback));
+
+const SHOP_ITEM_BY_ID = new Map(SHOP_ITEMS.map((item) => [item.id, item]));
+const MAX_USER_COIN = 10_000_000;
+const MAX_USER_XP = 100_000_000;
+
 /**
   Chuẩn hoá bản ghi người dùng nạp từ đĩa.
 
@@ -246,6 +288,10 @@ function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
       : undefined;
     const safeRaw = { ...raw };
     delete safeRaw.premiumGrantedBy;
+    const xp = asBoundedCount(raw.xp, 0, MAX_USER_XP);
+    const inventory = Array.isArray(raw.inventory)
+      ? [...new Set(raw.inventory.filter((id: unknown) => typeof id === 'string' && SHOP_ITEM_BY_ID.has(id)))].slice(0, 500)
+      : [];
     out[email] = {
       ...safeRaw,
       email,
@@ -256,12 +302,17 @@ function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
         ? { premiumGrantedAt: Math.max(0, Math.floor(raw.premiumGrantedAt)) }
         : {}),
       avatar: typeof raw.avatar === 'string' ? raw.avatar : '',
-      level: asCount(raw.level, 1),
-      xp: asCount(raw.xp),
-      fPoints: asCount(raw.fPoints, asCount(raw.xp)),
-      coin: asCount(raw.coin, 100),
+      level: calculateLevelFromXP(xp),
+      xp,
+      fPoints: asBoundedCount(raw.fPoints, xp, MAX_USER_XP),
+      coin: asBoundedCount(raw.coin, 100, MAX_USER_COIN),
+      streakCount: asBoundedCount(raw.streakCount, 0, 100_000),
+      inventory,
+      equippedBadge: typeof raw.equippedBadge === 'string' && inventory.includes(raw.equippedBadge)
+        ? raw.equippedBadge
+        : '',
       scopedClubIds: Array.isArray(raw.scopedClubIds)
-        ? raw.scopedClubIds.map((c: unknown) => String(c))
+        ? raw.scopedClubIds.slice(0, 500).map((c: unknown) => String(c))
         : [],
     };
   });
@@ -318,10 +369,40 @@ function loadStoreFromDisk() {
         store = {
           users: cleanUsers,
           passwords: { ...store.passwords, ...cleanPasswords },
-          clubs: Array.isArray(parsed.clubs) ? parsed.clubs : [],
+          clubs: Array.isArray(parsed.clubs)
+            ? parsed.clubs.map((club: any) => club && typeof club === 'object'
+              ? {
+                  ...club,
+                  /* Dữ liệu cũ đã từng duyệt CLB được xem là đã nhận thưởng;
+                     không mở lại cửa cộng XP sau khi từ chối rồi duyệt lại. */
+                  founderRewardGranted: club.founderRewardGranted === true || club.status === 'APPROVED',
+                }
+              : club)
+            : [],
           clubPosts: Array.isArray(parsed.clubPosts) ? parsed.clubPosts : [],
-          questions: Array.isArray(parsed.questions) ? parsed.questions : [],
-          solutions: Array.isArray(parsed.solutions) ? parsed.solutions : [],
+          questions: Array.isArray(parsed.questions)
+            ? parsed.questions.map((question: any) => question && typeof question === 'object'
+              ? {
+                  ...question,
+                  /* Với bản ghi cũ, đã có đáp án chuẩn nghĩa là thưởng có thể
+                     đã được trả; giữ khóa chống phát lại sau khi xóa/chọn lại. */
+                  bountyRewardClaimed: question.bountyRewardClaimed === true || Boolean(question.bestSolutionId),
+                  solutionRewardedEmails: Array.isArray(question.solutionRewardedEmails)
+                    ? [...new Set(question.solutionRewardedEmails.filter((email: unknown) => typeof email === 'string').map((email: string) => email.toLowerCase()))].slice(0, 1000)
+                    : [],
+                }
+              : question)
+            : [],
+          solutions: Array.isArray(parsed.solutions)
+            ? parsed.solutions.map((solution: any) => solution && typeof solution === 'object'
+              ? {
+                  ...solution,
+                  /* Đáp án từng được chọn đã nhận +5 upvote từ logic cũ; khóa
+                     bonus ở dữ liệu nạp để không cộng lại khi đổi rồi chọn lại. */
+                  bestSelectionBonusGranted: solution.bestSelectionBonusGranted === true || Boolean(solution.isBest),
+                }
+              : solution)
+            : [],
           chatMessages: Array.isArray(parsed.chatMessages) ? parsed.chatMessages : [],
           feedbacks: Array.isArray(parsed.feedbacks) ? parsed.feedbacks : [],
           /* LỖI MẤT DỮ LIỆU: bản cũ dựng lại store mà bỏ quên `reports`, nên mọi
@@ -335,6 +416,11 @@ function loadStoreFromDisk() {
           auditLog: sanitizeAuditLog(parsed.auditLog),
           analytics: sanitizeAnalyticsStore(parsed.analytics),
           adminWarnings: sanitizeAdminWarnings(parsed.adminWarnings),
+          dailyRewards: sanitizeDailyRewardProfiles(parsed.dailyRewards, new Set(Object.keys(cleanUsers))),
+          focusRewardSessions: sanitizeFocusRewardSessions(
+            parsed.focusRewardSessions,
+            new Set(Object.keys(cleanUsers)),
+          ),
         };
       }
     }
@@ -521,6 +607,36 @@ export function resetRateLimitersForTest() {
 }
 
 const startedAtMs = Date.now();
+
+/**
+ * Vô hiệu hoá credential quản trị mẫu từng được phát hành trong mã nguồn.
+ * Nhận diện cả bản plaintext cũ lẫn bản đã được migrate sang scrypt. Nếu nhà
+ * vận hành đã đặt secret mới đủ mạnh thì dùng secret đó; nếu chưa, xoá credential
+ * cũ để tài khoản phải đăng nhập qua OAuth đã xác minh hoặc được bootstrap an toàn.
+ */
+function retirePublicAdminPassword(): boolean {
+  const stored = store.passwords[MASTER_ADMIN_EMAIL];
+  if (typeof stored !== 'string' || !stored) return false;
+  if (!verifyPassword('admin123', stored).ok) return false;
+
+  delete store.passwords[MASTER_ADMIN_EMAIL];
+  persistStoreToDisk();
+  return true;
+}
+
+/**
+ * Secret cấu hình là nguồn có thẩm quyền cho mật khẩu Super Admin: cài mới được
+ * bootstrap và đổi secret trong secret manager sẽ xoay mật khẩu khi restart.
+ */
+function syncAdminPasswordFromEnvironment(): 'created' | 'rotated' | null {
+  const configured = configuredAdminBootstrapPassword();
+  if (!configured) return null;
+  const existing = store.passwords[MASTER_ADMIN_EMAIL];
+  if (existing && verifyPassword(configured, existing).ok) return null;
+  store.passwords[MASTER_ADMIN_EMAIL] = hashPassword(configured);
+  persistStoreToDisk();
+  return existing ? 'rotated' : 'created';
+}
 
 /**
  * Dời mật khẩu plaintext cũ sang scrypt. Chạy một lần lúc khởi động để
@@ -833,6 +949,13 @@ function requireSuperAdmin(req: IncomingMessage, body: any): SessionClaims | nul
   return claims;
 }
 
+function authenticatedUser(req: IncomingMessage, body?: any): { claims: SessionClaims; user: UserRecord } | null {
+  const claims = authorizeRequest(req, null, body?.token || null);
+  if (!claims) return null;
+  const user = store.users[claims.email];
+  return user ? { claims, user } : null;
+}
+
 interface AdminActor {
   claims: SessionClaims;
   user: UserRecord;
@@ -868,6 +991,42 @@ function getAnalyticsStore(): AnalyticsStore {
   return store.analytics;
 }
 
+function getDailyRewardProfile(email: string): DailyRewardProfile {
+  if (!store.dailyRewards) store.dailyRewards = {};
+  const key = email.trim().toLowerCase();
+  if (!store.dailyRewards[key]) store.dailyRewards[key] = createEmptyDailyRewardProfile();
+  return store.dailyRewards[key];
+}
+
+function currentRewardDateKey(now = Date.now()): string {
+  const configuredZone = String(process.env.FFORUM_REWARD_TIME_ZONE || 'Asia/Ho_Chi_Minh').trim();
+  try {
+    return dateKeyInTimeZone(now, configuredZone || 'Asia/Ho_Chi_Minh');
+  } catch {
+    console.warn(`[Forum Server] Múi giờ thưởng "${configuredZone}" không hợp lệ; dùng Asia/Ho_Chi_Minh.`);
+    return dateKeyInTimeZone(now, 'Asia/Ho_Chi_Minh');
+  }
+}
+
+function grantCoinsAndExperience(user: UserRecord, amount: number): void {
+  const credit = Math.max(0, Math.floor(amount));
+  const previousXp = asBoundedCount(user.xp, 0, MAX_USER_XP);
+  const previousFPoints = asBoundedCount(user.fPoints, previousXp, MAX_USER_XP);
+  user.coin = Math.min(MAX_USER_COIN, asBoundedCount(user.coin, 100, MAX_USER_COIN) + credit);
+  user.xp = Math.min(MAX_USER_XP, previousXp + credit);
+  user.fPoints = Math.min(MAX_USER_XP, previousFPoints + credit);
+  user.level = calculateLevelFromXP(user.xp);
+}
+
+function grantExperience(user: UserRecord, amount: number): void {
+  const credit = Math.max(0, Math.floor(amount));
+  const previousXp = asBoundedCount(user.xp, 0, MAX_USER_XP);
+  const previousFPoints = asBoundedCount(user.fPoints, previousXp, MAX_USER_XP);
+  user.xp = Math.min(MAX_USER_XP, previousXp + credit);
+  user.fPoints = Math.min(MAX_USER_XP, previousFPoints + credit);
+  user.level = calculateLevelFromXP(user.xp);
+}
+
 function notifyUserSockets(email: string, type: string, payload: unknown): void {
   const target = String(email || '').trim().toLowerCase();
   const message = JSON.stringify({ type, payload, timestamp: Date.now() });
@@ -880,6 +1039,17 @@ function notifyUserSockets(email: string, type: string, payload: unknown): void 
 export function setupForumServer(httpServer: any, middlewares: any) {
   loadStoreFromDisk();
   installShutdownFlush();
+
+  const retiredAdminPassword = retirePublicAdminPassword();
+  if (retiredAdminPassword) {
+    console.warn('[Forum Server] Đã thu hồi mật khẩu quản trị mẫu từng được phát hành công khai.');
+  }
+  const adminPasswordSync = syncAdminPasswordFromEnvironment();
+  if (adminPasswordSync) {
+    console.info(`[Forum Server] Đã ${adminPasswordSync === 'created' ? 'bootstrap' : 'xoay'} mật khẩu Super Admin từ secret máy chủ (chỉ lưu scrypt).`);
+  } else if (String(process.env.FFORUM_ADMIN_PASSWORD || '').trim() && !configuredAdminBootstrapPassword()) {
+    console.warn('[Forum Server] Bỏ qua FFORUM_ADMIN_PASSWORD vì mật khẩu phải dài tối thiểu 16 ký tự.');
+  }
 
   delete store.users['hocsinhmoi@fpt.edu.vn'];
   delete store.passwords['hocsinhmoi@fpt.edu.vn'];
@@ -1086,9 +1256,10 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
                 break;
               }
-              if (!payload || !payload.id || !String(payload.title || '').trim() || !String(payload.content || '').trim()) break;
-              /* Không trùng id → không thể phát lại một câu hỏi để nhân đôi. */
-              if (store.questions.some(q => q.id === payload.id)) break;
+              const requestedQuestionId = typeof payload?.id === 'string' ? payload.id.trim().slice(0, 80) : '';
+              if (!requestedQuestionId || !String(payload.title || '').trim() || !String(payload.content || '').trim()) break;
+              /* Chuẩn hoá trước khi tra cứu; ID dài bị cắt không được nhân bản. */
+              if (store.questions.some(q => q.id === requestedQuestionId)) break;
 
               const requestedBounty = normalizeBounty(payload.bountyCoin);
               const balance = asker.coin ?? 100;
@@ -1101,7 +1272,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               }
 
               const relayedQuestion = {
-                id: String(payload.id).slice(0, 80),
+                id: requestedQuestionId,
                 title: String(payload.title).trim().slice(0, 200),
                 subject: String(payload.subject || 'toan').slice(0, 40),
                 content: String(payload.content).trim().slice(0, 20000),
@@ -1123,14 +1294,16 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 isSolved: false,
                 views: 1,
                 bountyCoin: requestedBounty,
+                bountyRewardClaimed: false,
+                solutionRewardedEmails: [],
                 imageUrl: typeof payload.imageUrl === 'string' ? payload.imageUrl.slice(0, 2000) : undefined,
               };
 
-              /* Trừ coin treo thưởng THẬT — đây là phần đường HTTP có mà WS thiếu. */
+              /* Cùng sổ cái với HTTP: trừ bounty rồi phát thưởng do server tính. */
               asker.coin = Math.max(0, balance - requestedBounty);
+              grantCoinsAndExperience(asker, 50);
               broadcastServerEvent('SYNC_USER', asker);
 
-              /* Vẫn KHÔNG cộng XP ở đường WS: XP do đường HTTP kiểm soát cấp. */
               store.questions.unshift(relayedQuestion);
               recordAnalyticsActivity(getAnalyticsStore(), 'questions', asker.email);
               persistStoreToDisk();
@@ -1145,14 +1318,16 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
                 break;
               }
-              const targetQId = String(payload?.questionId || '').trim();
-              if (!payload || !payload.id || !targetQId || !String(payload.content || '').trim()) break;
+              const targetQId = String(payload?.questionId || '').trim().slice(0, 80);
+              const requestedSolutionId = typeof payload?.id === 'string' ? payload.id.trim().slice(0, 80) : '';
+              if (!requestedSolutionId || !targetQId || !String(payload.content || '').trim()) break;
               /* Câu hỏi phải tồn tại, giống đường HTTP. */
-              if (!store.questions.some(q => q.id === targetQId)) break;
-              if (store.solutions.some(s => s.id === payload.id)) break;
+              const targetQuestion = store.questions.find(q => q.id === targetQId);
+              if (!targetQuestion) break;
+              if (store.solutions.some(s => s.id === requestedSolutionId)) break;
 
               const relayedSolution = {
-                id: String(payload.id).slice(0, 80),
+                id: requestedSolutionId,
                 questionId: targetQId.slice(0, 80),
                 authorId: String(solver.id).slice(0, MAX_NAME_LENGTH),
                 authorName: String(solver.name).slice(0, MAX_NAME_LENGTH),
@@ -1164,9 +1339,17 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 createdAtMs: Date.now(),
                 isBest: false,
                 upvotes: 1,
+                bestSelectionBonusGranted: false,
                 imageUrl: typeof payload.imageUrl === 'string' ? payload.imageUrl.slice(0, 2000) : undefined,
               };
-              /* Không cộng XP ở đường WS — giữ nguyên như trước. */
+              const rewardedEmails: string[] = Array.isArray(targetQuestion.solutionRewardedEmails)
+                ? targetQuestion.solutionRewardedEmails
+                : [];
+              if (!rewardedEmails.includes(solver.email)) {
+                targetQuestion.solutionRewardedEmails = [...rewardedEmails, solver.email].slice(-1000);
+                grantCoinsAndExperience(solver, 25);
+                broadcastServerEvent('SYNC_USER', solver);
+              }
               store.solutions.push(relayedSolution);
               recordAnalyticsActivity(getAnalyticsStore(), 'answers', solver.email);
               persistStoreToDisk();
@@ -1189,7 +1372,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               }
               const targetSolution = store.solutions.find(s => s.id === solutionId);
               if (!targetSolution || targetSolution.questionId !== questionId) break;
-
               /* Cùng luật như đường HTTP: không tự chấm câu trả lời của chính mình. */
               const wsSolutionAuthor = String(targetSolution.authorEmail || '').toLowerCase();
               if (wsSolutionAuthor && wsSolutionAuthor === session.email) {
@@ -1204,26 +1386,32 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               if (targetQuestion.bestSolutionId === solutionId) break;
 
               const previousBestId = targetQuestion.bestSolutionId;
+              const rewardAlreadyClaimed = targetQuestion.bountyRewardClaimed === true;
               store.questions = store.questions.map(q =>
-                q.id === questionId ? { ...q, isSolved: true, bestSolutionId: solutionId } : q
+                q.id === questionId
+                  ? { ...q, isSolved: true, bestSolutionId: solutionId, bountyRewardClaimed: true }
+                  : q
               );
               store.solutions = store.solutions.map(s => {
-                if (s.id === solutionId) return { ...s, isBest: true, upvotes: (s.upvotes || 0) + 5 };
+                if (s.id === solutionId) {
+                  const upvotes = Number.isFinite(s.upvotes) ? s.upvotes : 0;
+                  const bonusAlreadyClaimed = s.bestSelectionBonusGranted === true;
+                  return {
+                    ...s,
+                    isBest: true,
+                    upvotes: bonusAlreadyClaimed ? upvotes : upvotes + 5,
+                    bestSelectionBonusGranted: true,
+                  };
+                }
                 if (s.id === previousBestId) return { ...s, isBest: false };
                 return s;
               });
 
               const solverEmail = String(targetSolution.authorEmail || '').toLowerCase();
               const solver = solverEmail ? store.users[solverEmail] : undefined;
-              if (solver) {
+              if (solver && !rewardAlreadyClaimed) {
                 const award = solverAwardFor(targetQuestion.bountyCoin ?? 20);
-                solver.coin = (solver.coin ?? 100) + award;
-                /* fPoints phải lấy từ XP TRƯỚC khi cộng. Bản cũ viết
-                   `(fPoints ?? xp) + award` SAU dòng `xp += award`, nên nếu fPoints
-                   thiếu thì nhánh ?? lấy XP đã cộng làm gốc và bị cộng đôi. */
-                solver.fPoints = (solver.fPoints ?? solver.xp) + award;
-                solver.xp += award;
-                solver.level = calculateLevelFromXP(solver.xp);
+                grantCoinsAndExperience(solver, award);
                 broadcastServerEvent('SYNC_USER', solver);
               }
               persistStoreToDisk();
@@ -1304,18 +1492,17 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 ws.send(JSON.stringify({ type: 'APPROVE_CLUB', payload: clubId }));
                 break;
               }
-              store.clubs = store.clubs.map(c => (c.id === clubId ? { ...c, status: 'APPROVED' } : c));
-              const club = store.clubs.find(c => c.id === clubId);
-              if (club) {
-                const creator = Object.values(store.users).find(u => u.id === club.leaderId);
-                if (creator) {
-                  creator.role = creator.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'CLUB_LEADER';
-                  creator.scopedClubIds = Array.from(new Set([...(creator.scopedClubIds || []), clubId]));
-                  creator.fPoints = (creator.fPoints ?? creator.xp) + 250;
-                  creator.xp += 250;
-                  creator.level = calculateLevelFromXP(creator.xp);
-                  broadcastServerEvent('SYNC_USER', creator);
-                }
+              const creator = Object.values(store.users).find(u => u.id === pendingClub.leaderId);
+              const reward = creator && pendingClub.founderRewardGranted !== true ? 250 : 0;
+              const founderRewardGranted = pendingClub.founderRewardGranted === true || reward > 0;
+              store.clubs = store.clubs.map(c => c.id === clubId
+                ? { ...c, status: 'APPROVED', founderRewardGranted }
+                : c);
+              if (creator) {
+                creator.role = creator.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'CLUB_LEADER';
+                creator.scopedClubIds = Array.from(new Set([...(creator.scopedClubIds || []), clubId]));
+                if (reward > 0) grantExperience(creator, reward);
+                broadcastServerEvent('SYNC_USER', creator);
               }
               persistStoreToDisk();
               broadcastServerEvent('APPROVE_CLUB', clubId);
@@ -1408,8 +1595,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               break;
             }
             case 'SYNC_USER': {
-              /* Chỉ chủ tài khoản mới được sửa hồ sơ của chính mình, và KHÔNG
-                 được đụng tới `role` / `id` / `email` — server sở hữu ba trường đó. */
+              /* Chỉ chủ tài khoản mới được sửa hồ sơ của chính mình. Các trường
+                 quyền (role/staffRole), Premium và phạm vi CLB luôn do server cấp. */
               const email = typeof payload?.email === 'string' ? payload.email.trim().toLowerCase() : '';
               if (!session || !email || session.email !== email) {
                 ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
@@ -1838,14 +2025,37 @@ export function setupForumServer(httpServer: any, middlewares: any) {
             sendJson(res, questionGate.status, { success: false, message: questionGate.message });
             return;
           }
-          const balance = author.coin ?? 100;
-          if (balance < bountyCoin) {
-            sendJson(res, 402, {
-              success: false,
-              message: `Số dư không đủ để treo thưởng ${bountyCoin} Coin. Hiện có ${balance} Coin.`,
-            });
+        }
+
+        const requestedId = typeof body.id === 'string' && body.id.trim()
+          ? body.id.trim().slice(0, 80)
+          : randomId('q');
+        const duplicateQuestion = store.questions.find(q => q.id === requestedId);
+        if (duplicateQuestion) {
+          const existingOwner = String(duplicateQuestion.authorEmail || '').trim().toLowerCase();
+          const requestedOwner = author?.email || '';
+          if (existingOwner !== requestedOwner) {
+            sendJson(res, 409, { success: false, message: 'Mã yêu cầu đã được dùng cho một nội dung khác.' });
             return;
           }
+          sendJson(res, 200, {
+            success: true,
+            duplicate: true,
+            reward: 0,
+            question: duplicateQuestion,
+            user: author,
+            message: 'Câu hỏi này đã được tiếp nhận trước đó.',
+          });
+          return;
+        }
+
+        const balance = author?.coin ?? 100;
+        if (author && balance < bountyCoin) {
+          sendJson(res, 402, {
+            success: false,
+            message: `Số dư không đủ để treo thưởng ${bountyCoin} Coin. Hiện có ${balance} Coin.`,
+          });
+          return;
         }
 
         const throttle = writeLimiter.check(`question:${clientIpOf(req)}`);
@@ -1857,7 +2067,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const isAnonymousQuestion = Boolean(body.isAnonymous);
 
         const newQuestion = {
-          id: randomId('q'),
+          id: requestedId,
           title: title.slice(0, 200),
           subject: String(body.subject || 'toan').slice(0, 40),
           content: content.slice(0, 20000),
@@ -1868,7 +2078,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
              giao diện render chính trường `authorName` làm bí danh ("Pháp sư
              Ghibli"), nên ở chế độ này phải giữ bí danh client gửi. Danh tính thật
              vẫn nằm ở `authorEmail`/`authorId` để kiểm quyền chọn đáp án chuẩn. */
-          authorId: String(author?.id ?? body.authorId ?? '').slice(0, MAX_NAME_LENGTH),
+          authorId: String(author?.id ?? '').slice(0, MAX_NAME_LENGTH),
           authorName: String(
             isAnonymousQuestion
               ? (body.anonymousAlias || body.authorName || 'Pháp sư Ghibli')
@@ -1876,7 +2086,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           ).slice(0, MAX_NAME_LENGTH),
           /* Trước đây authorEmail bị bỏ rơi → server không biết câu hỏi của ai
              và không thể kiểm tra quyền "chọn đáp án chuẩn". */
-          authorEmail: authorEmail || undefined,
+          authorEmail: author?.email,
           authorLevel: author?.level ?? 1,
           authorAvatar: String(
             isAnonymousQuestion
@@ -1891,23 +2101,23 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           isSolved: false,
           views: 1,
           bountyCoin,
+          bountyRewardClaimed: false,
+          solutionRewardedEmails: [],
           imageUrl: typeof body.imageUrl === 'string' ? body.imageUrl.slice(0, 2000) : undefined,
         };
 
         store.questions.unshift(newQuestion);
-        recordAnalyticsActivity(getAnalyticsStore(), 'questions', authorEmail || undefined);
+        recordAnalyticsActivity(getAnalyticsStore(), 'questions', author?.email);
 
         if (author) {
           author.coin = Math.max(0, (author.coin ?? 100) - bountyCoin);
-          author.fPoints = (author.fPoints ?? author.xp ?? 0) + 50;
-          author.xp = (author.xp ?? 0) + 50;
-          author.level = calculateLevelFromXP(author.xp);
+          grantCoinsAndExperience(author, 50);
           broadcastServerEvent('SYNC_USER', author);
         }
 
         persistStoreToDisk();
         broadcastServerEvent('NEW_QUESTION', newQuestion);
-        sendJson(res, 200, { success: true, question: newQuestion });
+        sendJson(res, 200, { success: true, question: newQuestion, user: author, reward: author ? 50 : 0 });
       } catch (err: any) {
         handleApiError(res, err);
       }
@@ -1925,7 +2135,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
         /* Trả lời một câu hỏi không tồn tại chỉ làm rác kho dữ liệu. */
-        if (!store.questions.some(q => q.id === questionId)) {
+        const targetQuestion = store.questions.find(q => q.id === questionId);
+        if (!targetQuestion) {
           sendJson(res, 404, { success: false, message: 'Câu hỏi này không còn tồn tại.' });
           return;
         }
@@ -1947,6 +2158,28 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           }
         }
 
+        const requestedSolutionId = typeof body.id === 'string' && body.id.trim()
+          ? body.id.trim().slice(0, 80)
+          : randomId('sol');
+        const duplicateSolution = store.solutions.find(s => s.id === requestedSolutionId);
+        if (duplicateSolution) {
+          const existingOwner = String(duplicateSolution.authorEmail || '').trim().toLowerCase();
+          const requestedOwner = author?.email || '';
+          if (duplicateSolution.questionId !== questionId || existingOwner !== requestedOwner) {
+            sendJson(res, 409, { success: false, message: 'Mã yêu cầu đã được dùng cho một nội dung khác.' });
+            return;
+          }
+          sendJson(res, 200, {
+            success: true,
+            duplicate: true,
+            reward: 0,
+            solution: duplicateSolution,
+            user: author,
+            message: 'Lời giải này đã được tiếp nhận trước đó.',
+          });
+          return;
+        }
+
         const throttle = writeLimiter.check(`solution:${clientIpOf(req)}`);
         if (!throttle.allowed) {
           sendRateLimited(res, throttle.retryAfterMs, 'gửi lời giải');
@@ -1954,12 +2187,12 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         }
 
         const newSolution = {
-          id: randomId('sol'),
+          id: requestedSolutionId,
           questionId,
           /* Danh tính lấy từ bản ghi thật khi đã đăng nhập, như ở câu hỏi. */
-          authorId: String(author?.id ?? body.authorId ?? '').slice(0, MAX_NAME_LENGTH),
+          authorId: String(author?.id ?? '').slice(0, MAX_NAME_LENGTH),
           authorName: String(author?.name ?? body.authorName ?? 'Học sinh').slice(0, MAX_NAME_LENGTH),
-          authorEmail: authorEmail || undefined,
+          authorEmail: author?.email,
           authorAvatar: String(author?.avatar ?? body.authorAvatar ?? DEFAULT_AVATAR).slice(0, 2000),
           authorLevel: author?.level ?? 1,
           content: content.slice(0, 20000),
@@ -1967,22 +2200,26 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           createdAtMs: Date.now(),
           isBest: false,
           upvotes: 1,
+          bestSelectionBonusGranted: false,
           imageUrl: typeof body.imageUrl === 'string' ? body.imageUrl.slice(0, 2000) : undefined,
         };
 
         store.solutions.push(newSolution);
-        recordAnalyticsActivity(getAnalyticsStore(), 'answers', authorEmail || undefined);
+        recordAnalyticsActivity(getAnalyticsStore(), 'answers', author?.email);
 
-        if (author) {
-          author.fPoints = (author.fPoints ?? author.xp ?? 0) + 25;
-          author.xp = (author.xp ?? 0) + 25;
-          author.level = calculateLevelFromXP(author.xp);
+        const rewardedEmails: string[] = Array.isArray(targetQuestion.solutionRewardedEmails)
+          ? targetQuestion.solutionRewardedEmails
+          : [];
+        const reward = author && !rewardedEmails.includes(author.email) ? 25 : 0;
+        if (author && reward > 0) {
+          targetQuestion.solutionRewardedEmails = [...rewardedEmails, author.email].slice(-1000);
+          grantCoinsAndExperience(author, reward);
           broadcastServerEvent('SYNC_USER', author);
         }
 
         persistStoreToDisk();
         broadcastServerEvent('NEW_SOLUTION', newSolution);
-        sendJson(res, 200, { success: true, solution: newSolution });
+        sendJson(res, 200, { success: true, solution: newSolution, user: author, reward });
       } catch (err: any) {
         handleApiError(res, err);
       }
@@ -2020,7 +2257,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           sendJson(res, 404, { success: false, message: 'Lời giải không thuộc câu hỏi này.' });
           return;
         }
-
         /*
           Không cho tự chọn câu trả lời của CHÍNH MÌNH làm đáp án chuẩn.
 
@@ -2041,17 +2277,37 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
-        /* Chọn lại đúng đáp án cũ thì không phát thưởng lần thứ hai. */
+        /* Chọn lại đúng đáp án cũ là no-op thật: không tăng upvote hay phát lại sự kiện. */
         const alreadyBest = (targetQ as any).bestSolutionId === solutionId;
+        if (alreadyBest) {
+          sendJson(res, 200, {
+            success: true,
+            duplicate: true,
+            reward: 0,
+            question: targetQ,
+            solution: targetSolution,
+          });
+          return;
+        }
 
+        const rewardAlreadyClaimed = (targetQ as any).bountyRewardClaimed === true;
         store.questions = store.questions.map(q =>
-          q.id === questionId ? { ...q, isSolved: true, bestSolutionId: solutionId } : q
+          q.id === questionId
+            ? { ...q, isSolved: true, bestSolutionId: solutionId, bountyRewardClaimed: true }
+            : q
         );
 
         store.solutions = store.solutions.map(s => {
           if (s.questionId === questionId) {
             if (s.id === solutionId) {
-              return alreadyBest ? { ...s, isBest: true } : { ...s, isBest: true, upvotes: (s.upvotes || 0) + 5 };
+              const upvotes = Number.isFinite(s.upvotes) ? s.upvotes : 0;
+              const bonusAlreadyClaimed = s.bestSelectionBonusGranted === true;
+              return {
+                ...s,
+                isBest: true,
+                upvotes: bonusAlreadyClaimed ? upvotes : upvotes + 5,
+                bestSelectionBonusGranted: true,
+              };
             }
             return { ...s, isBest: false };
           }
@@ -2059,20 +2315,26 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         });
 
         const sol = store.solutions.find(s => s.id === solutionId);
-        if (!alreadyBest && sol && sol.authorEmail && store.users[sol.authorEmail.toLowerCase()]) {
-          const solver = store.users[sol.authorEmail.toLowerCase()];
-          const bounty = (targetQ as any).bountyCoin || 20;
-          const solverAward = solverAwardFor(bounty);
-          solver.coin = (solver.coin ?? 100) + solverAward;
-          solver.fPoints = (solver.fPoints ?? solver.xp) + solverAward;
-          solver.xp += solverAward;
-          solver.level = calculateLevelFromXP(solver.xp);
-          broadcastServerEvent('SYNC_USER', solver);
+        let awardedUser: UserRecord | undefined;
+        let awardedAmount = 0;
+        if (sol?.authorEmail && store.users[sol.authorEmail.toLowerCase()]) {
+          awardedUser = store.users[sol.authorEmail.toLowerCase()];
+          if (!rewardAlreadyClaimed) {
+            awardedAmount = solverAwardFor((targetQ as any).bountyCoin || 20);
+            grantCoinsAndExperience(awardedUser, awardedAmount);
+            broadcastServerEvent('SYNC_USER', awardedUser);
+          }
         }
 
         persistStoreToDisk();
         broadcastServerEvent('MARK_BEST_SOLUTION', { questionId, solutionId });
-        sendJson(res, 200, { success: true });
+        sendJson(res, 200, {
+          success: true,
+          reward: awardedAmount,
+          user: awardedUser,
+          question: store.questions.find((question) => question.id === questionId),
+          solution: store.solutions.find((solution) => solution.id === solutionId),
+        });
       } catch (err: any) {
         sendJson(res, 500, { success: false, message: err.message });
       }
@@ -2137,6 +2399,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               coin: 99999,
               fPoints: 45000,
               streakCount: 36,
+              inventory: [],
+              equippedBadge: '',
               bio: 'F-Forum Architect & Core Administrator. Xây dựng tương lai tri thức học đường.',
               gender: 'Nam',
               city: 'Hà Nội',
@@ -2161,6 +2425,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               joinedAt: new Date().toISOString(),
               scopedClubIds: [],
               inventory: [],
+              equippedBadge: '',
             };
 
         store.users[email] = newUser;
@@ -2214,7 +2479,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         if (!registeredPassword) {
           sendJson(res, 400, {
             success: false,
-            message: 'Tài khoản này đăng nhập bằng Google/Facebook. Vui lòng chọn nút đăng nhập mạng xã hội!',
+            message: 'Tài khoản này chưa có mật khẩu. Vui lòng dùng phương thức đăng nhập đã liên kết; Super Admin cần được bootstrap bằng cấu hình máy chủ.',
           });
           return;
         }
@@ -2314,6 +2579,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 coin: 99999,
                 fPoints: 45000,
                 streakCount: 36,
+                inventory: [],
+                equippedBadge: '',
                 bio: 'F-Forum Architect & Core Administrator. Xây dựng tương lai tri thức học đường.',
                 gender: 'Nam',
                 city: 'Hà Nội',
@@ -2338,6 +2605,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 joinedAt: new Date().toISOString(),
                 scopedClubIds: [],
                 inventory: [],
+                equippedBadge: '',
               };
 
           store.users[email] = user;
@@ -2477,11 +2745,18 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           membersCount: Math.max(1, Array.isArray(body.foundingMembers) ? body.foundingMembers.length : 0),
           /* Hồ sơ mới luôn ở trạng thái chờ — người dùng không tự duyệt cho mình. */
           status: 'PENDING',
+          founderRewardGranted: false,
           createdAt: new Date().toISOString().split('T')[0],
         };
 
-        if (store.clubs.some(c => c.id === club.id)) {
-          sendJson(res, 200, { success: true, club, duplicated: true });
+        const existingClub = store.clubs.find(c => c.id === club.id);
+        if (existingClub) {
+          sendJson(res, 200, {
+            success: true,
+            club: existingClub,
+            duplicated: true,
+            message: 'Hồ sơ thành lập này đã được tiếp nhận trước đó.',
+          });
           return;
         }
         store.clubs = [club, ...store.clubs].slice(0, MAX_CLUBS);
@@ -2516,26 +2791,42 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         }
         /* Idempotent: duyệt lại một CLB đã duyệt không được thăng cấp và cộng
            250 XP lần nữa. Không có chốt này thì bấm duyệt bao nhiêu lần cũng được. */
+        const creator = Object.values(store.users).find(u => u.id === club.leaderId);
         if (club.status === 'APPROVED') {
-          sendJson(res, 200, { success: true, club, alreadyApproved: true, message: 'Câu lạc bộ này đã được duyệt trước đó.' });
+          sendJson(res, 200, {
+            success: true,
+            club,
+            user: creator,
+            reward: 0,
+            alreadyApproved: true,
+            message: 'Câu lạc bộ này đã được duyệt trước đó.',
+          });
           return;
         }
 
-        store.clubs = store.clubs.map(c => (c.id === clubId ? { ...c, status: 'APPROVED' } : c));
+        /* Một CLB chỉ phát thưởng sáng lập đúng một lần, kể cả khi bị từ chối
+           rồi được duyệt lại. Cờ này do server đặt và được lưu cùng CLB. */
+        const reward = creator && club.founderRewardGranted !== true ? 250 : 0;
+        const founderRewardGranted = club.founderRewardGranted === true || reward > 0;
+        store.clubs = store.clubs.map(c => c.id === clubId
+          ? { ...c, status: 'APPROVED', founderRewardGranted }
+          : c);
         const approved = store.clubs.find(c => c.id === clubId);
-        const creator = Object.values(store.users).find(u => u.id === approved?.leaderId);
         if (creator) {
           creator.role = creator.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'CLUB_LEADER';
           creator.scopedClubIds = Array.from(new Set([...(creator.scopedClubIds || []), clubId]));
-          /* fPoints lấy từ XP trước khi cộng — xem ghi chú ở nhánh WS. */
-          creator.fPoints = (creator.fPoints ?? creator.xp) + 250;
-          creator.xp += 250;
-          creator.level = calculateLevelFromXP(creator.xp);
+          if (reward > 0) grantExperience(creator, reward);
           broadcastServerEvent('SYNC_USER', creator);
         }
         persistStoreToDisk();
         broadcastServerEvent('APPROVE_CLUB', clubId);
-        sendJson(res, 200, { success: true, club: approved, message: 'Đã duyệt câu lạc bộ.' });
+        sendJson(res, 200, {
+          success: true,
+          club: approved,
+          user: creator,
+          reward,
+          message: 'Đã duyệt câu lạc bộ.',
+        });
       } catch (err: any) {
         sendJson(res, 500, { success: false, message: err?.message || 'Không duyệt được câu lạc bộ' });
       }
@@ -2726,6 +3017,287 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
+    if (method === 'GET' && url.split('?')[0] === '/api/rewards/daily/status') {
+      const actor = authenticatedUser(req);
+      if (!actor) {
+        sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để xem phần thưởng hằng ngày.' });
+        return;
+      }
+      const today = currentRewardDateKey();
+      sendJson(res, 200, {
+        success: true,
+        date: today,
+        status: { ...dailyRewardStatus(getDailyRewardProfile(actor.user.email), today), date: today },
+      });
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/rewards/daily/claim') {
+      try {
+        const body = await parseJsonBody(req) || {};
+        const actor = authenticatedUser(req, body);
+        if (!actor) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để nhận phần thưởng hằng ngày.' });
+          return;
+        }
+        const throttle = writeLimiter.check(`daily-reward:${actor.user.email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'nhận phần thưởng');
+          return;
+        }
+
+        const today = currentRewardDateKey();
+        const profile = getDailyRewardProfile(actor.user.email);
+        let rewardResult: ReturnType<typeof claimDailyAttendance> | ReturnType<typeof claimDailyTrivia> | ReturnType<typeof claimGiftBox> = null;
+        let actionMessage = '';
+
+        if (body.action === 'attendance') {
+          rewardResult = claimDailyAttendance(profile, today);
+          actionMessage = 'Điểm danh thành công.';
+        } else if (body.action === 'quiz') {
+          rewardResult = claimDailyTrivia(profile, today, body.answerIndex, randomInt(5, 11));
+          actionMessage = 'Đã ghi nhận câu trả lời hôm nay.';
+        } else if (body.action === 'box') {
+          rewardResult = claimGiftBox(profile, today, body.boxType);
+          actionMessage = 'Đã mở hộp quà.';
+        } else {
+          sendJson(res, 400, { success: false, message: 'Loại phần thưởng không hợp lệ.' });
+          return;
+        }
+
+        if (!rewardResult) {
+          sendJson(res, 409, {
+            success: false,
+            message: body.action === 'attendance'
+              ? 'Bạn đã điểm danh hôm nay.'
+              : body.action === 'quiz'
+                ? 'Bạn đã trả lời câu hỏi hôm nay.'
+                : 'Bạn không còn hộp quà loại này.',
+            status: { ...dailyRewardStatus(profile, today), date: today },
+          });
+          return;
+        }
+
+        store.dailyRewards![actor.user.email] = rewardResult.profile;
+        if (body.action === 'attendance') actor.user.streakCount = rewardResult.status.streak;
+        if (rewardResult.reward > 0) grantCoinsAndExperience(actor.user, rewardResult.reward);
+        persistStoreToDisk();
+        if (rewardResult.reward > 0 || body.action === 'attendance') {
+          broadcastServerEvent('SYNC_USER', actor.user);
+        }
+        sendJson(res, 200, {
+          success: true,
+          action: body.action,
+          reward: rewardResult.reward,
+          correct: 'correct' in rewardResult ? rewardResult.correct : undefined,
+          boxGranted: 'boxGranted' in rewardResult ? rewardResult.boxGranted : undefined,
+          status: { ...rewardResult.status, date: today },
+          user: actor.user,
+          message: actionMessage,
+        });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/rewards/focus/start') {
+      try {
+        const body = await parseJsonBody(req) || {};
+        const actor = authenticatedUser(req, body);
+        if (!actor) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để nhận thưởng phiên tập trung.' });
+          return;
+        }
+        const throttle = writeLimiter.check(`focus:${actor.user.email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'bắt đầu phiên tập trung');
+          return;
+        }
+
+        const now = Date.now();
+        if (!store.focusRewardSessions) store.focusRewardSessions = {};
+        const existing = store.focusRewardSessions[actor.user.email];
+        if (existing && !existing.claimedAt && now - existing.startedAt < FOCUS_SESSION_MAX_AGE_MS) {
+          sendJson(res, 200, {
+            success: true,
+            sessionId: existing.id,
+            startedAt: existing.startedAt,
+            resumed: true,
+          });
+          return;
+        }
+
+        const session: FocusRewardSession = { id: randomId('focus'), startedAt: now };
+        store.focusRewardSessions[actor.user.email] = session;
+        persistStoreToDisk();
+        sendJson(res, 200, {
+          success: true,
+          sessionId: session.id,
+          startedAt: session.startedAt,
+          resumed: false,
+        });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/rewards/focus/complete') {
+      try {
+        const body = await parseJsonBody(req) || {};
+        const actor = authenticatedUser(req, body);
+        if (!actor) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để nhận thưởng phiên tập trung.' });
+          return;
+        }
+        const throttle = writeLimiter.check(`focus:${actor.user.email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'nhận thưởng phiên tập trung');
+          return;
+        }
+
+        const sessionId = typeof body.sessionId === 'string' ? body.sessionId.trim() : '';
+        const session = store.focusRewardSessions?.[actor.user.email];
+        if (!sessionId || !session || session.id !== sessionId) {
+          sendJson(res, 409, { success: false, message: 'Phiên tập trung không còn hợp lệ.' });
+          return;
+        }
+        if (session.claimedAt) {
+          sendJson(res, 200, {
+            success: true,
+            duplicate: true,
+            reward: session.reward || FOCUS_REWARD_AMOUNT,
+            user: actor.user,
+          });
+          return;
+        }
+
+        const now = Date.now();
+        const elapsed = now - session.startedAt;
+        if (elapsed < FOCUS_REWARD_MINIMUM_MS) {
+          sendJson(res, 409, { success: false, message: 'Bạn cần hoàn thành đủ 25 phút tập trung mới nhận được thưởng.' });
+          return;
+        }
+        if (elapsed > FOCUS_SESSION_MAX_AGE_MS) {
+          delete store.focusRewardSessions![actor.user.email];
+          persistStoreToDisk();
+          sendJson(res, 409, { success: false, message: 'Phiên tập trung đã hết hạn; hãy bắt đầu phiên mới.' });
+          return;
+        }
+
+        grantCoinsAndExperience(actor.user, FOCUS_REWARD_AMOUNT);
+        session.claimedAt = now;
+        session.reward = FOCUS_REWARD_AMOUNT;
+        persistStoreToDisk();
+        broadcastServerEvent('SYNC_USER', actor.user);
+        sendJson(res, 200, {
+          success: true,
+          reward: FOCUS_REWARD_AMOUNT,
+          user: actor.user,
+          message: 'Đã ghi nhận 25 phút tập trung và phần thưởng tương ứng.',
+        });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/rewards/focus/cancel') {
+      try {
+        const body = await parseJsonBody(req) || {};
+        const actor = authenticatedUser(req, body);
+        if (!actor) {
+          sendJson(res, 401, { success: false, message: 'Phiên đăng nhập không hợp lệ.' });
+          return;
+        }
+        const sessionId = typeof body.sessionId === 'string' ? body.sessionId.trim() : '';
+        const session = store.focusRewardSessions?.[actor.user.email];
+        const cancelled = Boolean(sessionId && session && session.id === sessionId && !session.claimedAt);
+        if (cancelled) {
+          delete store.focusRewardSessions![actor.user.email];
+          persistStoreToDisk();
+        }
+        sendJson(res, 200, { success: true, cancelled });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/shop/purchase') {
+      try {
+        const body = await parseJsonBody(req) || {};
+        const actor = authenticatedUser(req, body);
+        if (!actor) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để mua vật phẩm.' });
+          return;
+        }
+        const throttle = writeLimiter.check(`shop:${actor.user.email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'mua vật phẩm');
+          return;
+        }
+        const itemId = typeof body.itemId === 'string' ? body.itemId.trim() : '';
+        const item = SHOP_ITEM_BY_ID.get(itemId);
+        if (!item) {
+          sendJson(res, 404, { success: false, message: 'Vật phẩm không tồn tại trong cửa hàng.' });
+          return;
+        }
+        const inventory = Array.isArray(actor.user.inventory) ? actor.user.inventory : [];
+        if (inventory.includes(itemId)) {
+          sendJson(res, 200, { success: true, duplicate: true, user: actor.user, item: { id: item.id, price: item.price } });
+          return;
+        }
+        const balance = asBoundedCount(actor.user.coin, 100, MAX_USER_COIN);
+        if (balance < item.price) {
+          sendJson(res, 402, { success: false, message: `Bạn cần ${item.price} Coin; số dư hiện tại là ${balance} Coin.` });
+          return;
+        }
+        actor.user.coin = balance - item.price;
+        actor.user.inventory = [...inventory, itemId];
+        persistStoreToDisk();
+        broadcastServerEvent('SYNC_USER', actor.user);
+        sendJson(res, 200, {
+          success: true,
+          user: actor.user,
+          item: { id: item.id, name: item.name, price: item.price },
+        });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/shop/equip') {
+      try {
+        const body = await parseJsonBody(req) || {};
+        const actor = authenticatedUser(req, body);
+        if (!actor) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để thay đổi trang bị.' });
+          return;
+        }
+        const itemId = typeof body.itemId === 'string' ? body.itemId.trim() : '';
+        if (itemId) {
+          if (!SHOP_ITEM_BY_ID.has(itemId)) {
+            sendJson(res, 404, { success: false, message: 'Vật phẩm không tồn tại trong cửa hàng.' });
+            return;
+          }
+          if (!(actor.user.inventory || []).includes(itemId)) {
+            sendJson(res, 403, { success: false, message: 'Bạn chưa sở hữu vật phẩm này.' });
+            return;
+          }
+        }
+        actor.user.equippedBadge = itemId;
+        persistStoreToDisk();
+        broadcastServerEvent('SYNC_USER', actor.user);
+        sendJson(res, 200, { success: true, user: actor.user });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
     if (method === 'POST' && url === '/api/users/update') {
       try {
         const body = await parseJsonBody(req);
@@ -2746,8 +3318,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
-        /* Bỏ `role` / `id` / `email` khỏi payload, kẹp số về khoảng hợp lý —
-           đây chính là chỗ trước kia cho phép tự phong SUPER_ADMIN. */
+        /* Loại mọi trường quyền do server sở hữu (role/staffRole, Premium,
+           phạm vi CLB), đồng thời kẹp số về khoảng hợp lý. */
         const patch = sanitizeUserUpdate(body.updates);
         const merged = { ...store.users[email], ...patch };
         merged.level = calculateLevelFromXP(merged.xp ?? 0);

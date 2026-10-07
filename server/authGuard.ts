@@ -91,19 +91,23 @@ export interface PasswordCheck {
 export const verifyPassword = (password: string, record?: string | null): PasswordCheck => {
   if (!record) return { ok: false, needsRehash: false };
   const candidate = String(password ?? '');
+  if (Buffer.byteLength(candidate, 'utf8') > 1024) return { ok: false, needsRehash: false };
 
   if (isHashedPassword(record)) {
     const parts = String(record).split('$');
     const saltHex = parts[1];
     const hashHex = parts[2];
-    if (!saltHex || !hashHex) return { ok: false, needsRehash: false };
+    /* Độ dài khoá/salt cố định: không để dữ liệu JSON hỏng ép scrypt cấp phát
+       lượng bộ nhớ tuỳ ý khi đăng nhập hoặc lúc thu hồi mật khẩu cũ. */
+    if (parts.length !== 3 || !/^[a-f0-9]{32}$/i.test(saltHex || '') || !/^[a-f0-9]{64}$/i.test(hashHex || '')) {
+      return { ok: false, needsRehash: false };
+    }
     try {
       const salt = Buffer.from(saltHex, 'hex');
       const expected = Buffer.from(hashHex, 'hex');
-      if (expected.length === 0) return { ok: false, needsRehash: false };
-      const derived = crypto.scryptSync(candidate, salt, expected.length, SCRYPT_OPTS);
+      const derived = crypto.scryptSync(candidate, salt, SCRYPT_KEYLEN, SCRYPT_OPTS);
       return {
-        ok: derived.length === expected.length && crypto.timingSafeEqual(derived, expected),
+        ok: crypto.timingSafeEqual(derived, expected),
         needsRehash: false,
       };
     } catch {
@@ -112,6 +116,7 @@ export const verifyPassword = (password: string, record?: string | null): Passwo
   }
 
   /* Tương thích ngược: dữ liệu cũ lưu plaintext → so khớp rồi băm lại. */
+  if (Buffer.byteLength(String(record), 'utf8') > 1024) return { ok: false, needsRehash: false };
   const expected = Buffer.from(String(record), 'utf8');
   const given = Buffer.from(candidate, 'utf8');
   const ok = expected.length === given.length && crypto.timingSafeEqual(expected, given);
@@ -328,50 +333,49 @@ export const clientIpOf = (req: IncomingMessage): string => {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Các trường client KHÔNG BAO GIỜ được tự ghi. `role` ở đây là lỗ hổng nặng
- * nhất: trước đây WS `SYNC_USER` cho phép tự phong SUPER_ADMIN.
+ * Các trường client KHÔNG BAO GIỜ được tự ghi. Ngoài `role`, vai trò kiểm duyệt,
+ * Premium và phạm vi CLB đều là quyền hạn server cấp; để lọt một trường nào cũng
+ * có thể mở ra leo thang quyền hoặc giả trạng thái thuê bao.
  */
-export const SERVER_OWNED_USER_FIELDS: readonly string[] = ['id', 'email', 'role'];
+export const SERVER_OWNED_USER_FIELDS: readonly string[] = [
+  'id',
+  'email',
+  'role',
+  'staffRole',
+  'premiumUntil',
+  'premiumGrantedAt',
+  'scopedClubIds',
+  'coin',
+  'xp',
+  'fPoints',
+  'level',
+  'streakCount',
+  'inventory',
+  'equippedBadge',
+  'joinedAt',
+];
 
-/** Giới hạn hợp lý để một payload bẩn không phá vỡ bảng xếp hạng. */
-const NUMERIC_BOUNDS: Record<string, [number, number]> = {
-  coin: [0, 10_000_000],
-  xp: [0, 100_000_000],
-  fPoints: [0, 100_000_000],
-  level: [1, 150],
-  streakCount: [0, 100_000],
-};
+const CLIENT_EDITABLE_PROFILE_FIELD_LIMITS = new Map<string, number>([
+  ['name', 50],
+  ['avatar', 2000],
+  ['bio', 20000],
+  ['gender', 40],
+  ['city', 80],
+  ['className', 80],
+  ['bannerUrl', 2000],
+  ['profileGradient', 500],
+]);
 
-const MAX_TEXT_LENGTH = 20_000;
-
-/** Lọc payload cập nhật hồ sơ: bỏ trường server sở hữu, kẹp số, cắt chuỗi dài. */
+/** Lọc theo allowlist hồ sơ: mọi quyền, tài nguyên và trường chưa được duyệt đều bị loại. */
 export const sanitizeUserUpdate = (updates: unknown): Record<string, unknown> => {
   if (!updates || typeof updates !== 'object' || Array.isArray(updates)) return {};
   const clean: Record<string, unknown> = {};
 
   Object.entries(updates as Record<string, unknown>).forEach(([key, value]) => {
-    if (SERVER_OWNED_USER_FIELDS.includes(key)) return;
-    if (value === undefined) return;
-
-    const bounds = NUMERIC_BOUNDS[key];
-    if (bounds) {
-      const num = Number(value);
-      if (!Number.isFinite(num)) return;
-      clean[key] = Math.max(bounds[0], Math.min(bounds[1], Math.round(num)));
-      return;
-    }
-
-    if (key === 'inventory' || key === 'scopedClubIds') {
-      if (Array.isArray(value)) clean[key] = Array.from(new Set(value.slice(0, 500).map(String)));
-      return;
-    }
-
-    if (typeof value === 'string') {
-      clean[key] = value.length > MAX_TEXT_LENGTH ? value.slice(0, MAX_TEXT_LENGTH) : value;
-      return;
-    }
-
-    if (typeof value === 'boolean' || typeof value === 'number') clean[key] = value;
+    const maxLength = CLIENT_EDITABLE_PROFILE_FIELD_LIMITS.get(key);
+    if (maxLength === undefined || SERVER_OWNED_USER_FIELDS.includes(key) || typeof value !== 'string') return;
+    if (key === 'name' && !value.trim()) return;
+    clean[key] = (key === 'name' ? value.trim() : value).slice(0, maxLength);
   });
 
   return clean;

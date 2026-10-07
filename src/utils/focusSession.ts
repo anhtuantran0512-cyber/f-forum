@@ -32,6 +32,8 @@ export interface FocusSessionState {
   endsAt: number;
   /** Số phút dự kiến của phiên (25 cho Học, 5 cho Nghỉ). */
   plannedMinutes: number;
+  /** Mã phiên do máy chủ phát; thiếu mã thì không có phần thưởng số dư. */
+  serverSessionId?: string;
 }
 
 export const FOCUS_WORK_MINUTES = 25;
@@ -47,6 +49,7 @@ const isSession = (value: unknown): value is FocusSessionState => {
     typeof s.startedAt === 'number' &&
     typeof s.endsAt === 'number' &&
     typeof s.plannedMinutes === 'number' &&
+    (s.serverSessionId === undefined || typeof s.serverSessionId === 'string') &&
     s.endsAt > s.startedAt
   );
 };
@@ -70,7 +73,11 @@ const writeFocusSession = (session: FocusSessionState | null): void => {
   }
 };
 
-export const startFocusSession = (mode: FocusMode, userEmail?: string | null): FocusSessionState => {
+export const startFocusSession = (
+  mode: FocusMode,
+  userEmail?: string | null,
+  serverSessionId?: string | null,
+): FocusSessionState => {
   const plannedMinutes = mode === 'work' ? FOCUS_WORK_MINUTES : FOCUS_BREAK_MINUTES;
   const startedAt = Date.now();
   const session: FocusSessionState = {
@@ -78,6 +85,7 @@ export const startFocusSession = (mode: FocusMode, userEmail?: string | null): F
     startedAt,
     endsAt: startedAt + plannedMinutes * 60_000,
     plannedMinutes,
+    ...(serverSessionId ? { serverSessionId } : {}),
   };
   /* Ghi kèm chủ phiên để biết ai đang học (hiển thị + chống lệch tài khoản) */
   if (userEmail) safeStorage.setItem(`${FOCUS_SESSION_KEY}_owner`, userEmail.toLowerCase());
