@@ -45,9 +45,16 @@ export const QuickNotesDock: React.FC<QuickNotesDockProps> = ({ isOpen, onClose,
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const timerRef = useRef<number | null>(null);
 
+  /* Nạp lại ghi chú từ localStorage mỗi lần mở — dùng mẫu "điều chỉnh state khi
+     prop đổi" để tránh setState trong effect (gây một lượt render thừa). */
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) setNotes(safeStorage.getItem(QUICK_NOTES_KEY) || '');
+  }
+
   useEffect(() => {
-    if (!isOpen) return;
-    setNotes(safeStorage.getItem(QUICK_NOTES_KEY) || '');
+    if (!isOpen) return undefined;
     const t = window.setTimeout(() => textareaRef.current?.focus(), 60);
     return () => window.clearTimeout(t);
   }, [isOpen]);

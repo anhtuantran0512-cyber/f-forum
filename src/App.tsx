@@ -4,6 +4,9 @@ import { lazyWithRetry } from './utils/lazyWithRetry';
 import { installInteractionWatchdog } from './utils/interactionWatchdog';
 import { useForumStore } from './store/forumStore';
 import { Navbar } from './components/Navbar';
+import { ScrollToTopDock } from './components/ScrollToTopDock';
+import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
+import { CelebrationBurst } from './components/CelebrationBurst';
 import { HomeView } from './components/views/HomeView';
 import { GlobalCursor } from './components/GlobalCursor';
 import {
@@ -19,27 +22,33 @@ import {
   Compass,
   Award,
   Rocket,
-  Timer,
+  Headphones,
   NotebookPen,
   Command as CommandIcon,
   Palette,
   Settings as SettingsIcon,
   Flame,
   User as UserIcon,
+  ShieldAlert,
+  AlertCircle,
+  Gauge,
 } from 'lucide-react';
 import type { DimensionView, User } from './types';
 import { CommandPalette, type PaletteCommand } from './components/CommandPalette';
+import { searchCorpus, type SearchHit } from './utils/globalSearch';
 import { QuickNotesDock } from './components/QuickNotesDock';
 import { StudyCareCoach } from './components/StudyCareCoach';
 import { ViewTransitionLoader } from './components/ViewTransitionLoader';
 import { FocusSessionWatcher } from './components/FocusSessionWatcher';
-import { OfflineStatusBanner } from './components/OfflineStatusBanner';
 import { AuthProvider } from './context/AuthContext';
 import { GODRAY_PRESETS } from './utils/godrays';
 import { safeStorage } from './utils/storage';
 import { PageResourceLoader } from './components/PageResourceLoader';
 import { UserQuickCard } from './components/UserQuickCard';
 import { RadialQuickMenu } from './components/RadialQuickMenu';
+import { AnalyticsTracker } from './components/AnalyticsTracker';
+
+const AdminInsightsModal = lazyWithRetry(() => import('./components/AdminInsightsModal').then(m => ({ default: m.AdminInsightsModal })));
 
 const LandingPage = lazyWithRetry(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
 const ClubsView = lazyWithRetry(() => import('./components/views/ClubsView').then(m => ({ default: m.ClubsView })));
@@ -52,8 +61,8 @@ const ChatDock = lazyWithRetry(() => import('./components/ChatDock').then(m => (
 const ProfileModal = lazyWithRetry(() => import('./components/ProfileModal').then(m => ({ default: m.ProfileModal })));
 const FocusSanctuary = lazyWithRetry(() => import('./components/FocusSanctuary').then(m => ({ default: m.FocusSanctuary })));
 const AuthModal = lazyWithRetry(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
-const XPSandboxDock = lazyWithRetry(() => import('./components/XPSandboxDock').then(m => ({ default: m.XPSandboxDock })));
-const AdminConsole = lazyWithRetry(() => import('./components/AdminConsole').then(m => ({ default: m.AdminConsole })));
+const ReportInboxModal = lazyWithRetry(() => import('./components/ReportInboxModal').then(m => ({ default: m.ReportInboxModal })));
+const AdminConsoleModal = lazyWithRetry(() => import('./components/AdminConsoleModal').then(m => ({ default: m.AdminConsoleModal })));
 
 const ViewLoadingFallback = () => (
   <div className="w-full h-full min-h-[50vh] flex items-center justify-center" aria-busy="true" aria-label="Đang tải giao diện">
@@ -76,7 +85,8 @@ const VIEW_ORDER: DimensionView[] = [
   'coming-soon',
 ];
 
-/* Phân khu cần màn hình chờ chuyển cảnh; home nhẹ nên vào thẳng. */
+/* Phân khu cần màn hình chờ (CodeFronts la-09 vinyl / la-05 dots).
+   home là trang nhẹ nên vào thẳng, không chặn người dùng. */
 const VIEW_LOADERS: Partial<Record<DimensionView, { label: string; variant: 'vinyl' | 'dots' }>> = {
   landing: { label: 'Trang Giới thiệu', variant: 'vinyl' },
   clubs: { label: 'Câu lạc bộ', variant: 'vinyl' },
@@ -127,16 +137,19 @@ export const App: React.FC = () => {
     setCurrentView,
     currentUser,
     users,
+    login,
     loginWithPassword,
     registerWithPassword,
     loginSocial,
     logout,
-    addXP,
-    claimDailyReward,
-    startStudyRewardSession,
-    pulseStudyRewardSession,
-    stopStudyRewardSession,
     updateProfile,
+    loadDailyRewardStatus,
+    claimDailyReward,
+    startFocusRewardSession,
+    completeFocusRewardSession,
+    cancelFocusRewardSession,
+    purchaseShopItem,
+    equipShopItem,
     clubs,
     clubPosts,
     createClub,
@@ -166,12 +179,22 @@ export const App: React.FC = () => {
     adminEditQuestion,
     adminDeleteSolution,
     adminDeleteChatMessage,
-    adminDeleteClubPost,
   } = useForumStore();
 
   const [isResourceLoading, setIsResourceLoading] = useState(true);
+
+  /* Vị trí dock điều hướng — nút "lên đầu trang" phải tránh đè lên thanh.
+     Đọc qua safeStorage theo đúng quy ước dự án, không đụng localStorage thô. */
+  const [navbarAtBottom, setNavbarAtBottom] = useState<boolean>(
+    () => safeStorage.getItem('fforum_navbar_pos') === 'bottom',
+  );
+
+  /* Hiệu ứng ăn mừng: `celebrationTick` tăng lên mỗi lần cần bắn hoa giấy. */
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [celebrationTick, setCelebrationTick] = useState(0);
+  const [celebrationText, setCelebrationText] = useState<string | undefined>(undefined);
+  const lastCelebratedRef = useRef<string | null>(null);
   const [isFocusModeOpen, setIsFocusModeOpen] = useState(false);
-  const [isAdminConsoleOpen, setIsAdminConsoleOpen] = useState(false);
   const [profileInitialTab, setProfileInitialTab] = useState<'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit'>('overview');
   const [targetProfileUser, setTargetProfileUser] = useState<User | null>(null);
   const [quickProfile, setQuickProfile] = useState<{ user: User; anchor?: { x: number; y: number } | null } | null>(null);
@@ -179,6 +202,11 @@ export const App: React.FC = () => {
   const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>('login');
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [isNotesOpen, setIsNotesOpen] = useState(false);
+  /* Hộp thư tố cáo — chỉ Super Admin mở được. */
+  const [isReportInboxOpen, setIsReportInboxOpen] = useState(false);
+  const [isAdminConsoleOpen, setIsAdminConsoleOpen] = useState(false);
+  const [isAdminInsightsOpen, setIsAdminInsightsOpen] = useState(false);
+  const [pendingReportCount, setPendingReportCount] = useState(0);
   const [eyeRestEnabled, setEyeRestEnabled] = useState<boolean>(() => {
     return safeStorage.getItem('fforum_eye_rest') === 'true';
   });
@@ -189,46 +217,6 @@ export const App: React.FC = () => {
   const prevViewIndexRef = useRef<number>(VIEW_ORDER.indexOf(currentView));
 
   const isInsideCinema = currentView === 'memory' && scrollInsideCinema;
-
-  /* Đồng bộ vùng nhìn thấy thực tế để bố cục và popover vẫn nằm trong màn hình
-     khi đổi hướng, mở bàn phím hoặc pinch-zoom trên trình duyệt di động. */
-  useEffect(() => {
-    const visualViewport = window.visualViewport;
-    let frame = 0;
-    const syncVisibleViewport = () => {
-      if (frame) return;
-      frame = window.requestAnimationFrame(() => {
-        frame = 0;
-        const visibleWidth = Math.max(1, Math.round(visualViewport?.width || window.innerWidth));
-        const visibleHeight = Math.max(1, Math.round(visualViewport?.height || window.innerHeight));
-        const visibleLeft = Math.max(0, Math.round(visualViewport?.offsetLeft || 0));
-        const visibleTop = Math.max(0, Math.round(visualViewport?.offsetTop || 0));
-        const viewportStyles: Record<string, string> = {
-          '--ff-visible-width': `${visibleWidth}px`,
-          '--ff-visible-height': `${visibleHeight}px`,
-          '--ff-visible-center-x': `${visibleLeft + visibleWidth / 2}px`,
-          '--ff-visible-center-y': `${visibleTop + visibleHeight / 2}px`,
-        };
-        const rootStyle = document.documentElement.style;
-        Object.entries(viewportStyles).forEach(([property, value]) => {
-          if (rootStyle.getPropertyValue(property) !== value) rootStyle.setProperty(property, value);
-        });
-      });
-    };
-
-    syncVisibleViewport();
-    window.addEventListener('resize', syncVisibleViewport, { passive: true });
-    window.addEventListener('orientationchange', syncVisibleViewport, { passive: true });
-    visualViewport?.addEventListener('resize', syncVisibleViewport, { passive: true });
-    visualViewport?.addEventListener('scroll', syncVisibleViewport, { passive: true });
-    return () => {
-      window.removeEventListener('resize', syncVisibleViewport);
-      window.removeEventListener('orientationchange', syncVisibleViewport);
-      visualViewport?.removeEventListener('resize', syncVisibleViewport);
-      visualViewport?.removeEventListener('scroll', syncVisibleViewport);
-      if (frame) window.cancelAnimationFrame(frame);
-    };
-  }, []);
 
   const [godrayPreset, setGodrayPreset] = useState<string>(() => {
     return safeStorage.getItem('fforum_godray_preset') || 'godray-gold';
@@ -286,7 +274,7 @@ export const App: React.FC = () => {
     [setIsLoginModalOpen],
   );
 
-  const handleOpenProfile = (
+  const handleOpenProfile = useCallback((
     tab: 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit' = 'overview',
     userToView?: { id: string; name: string; avatar: string; email?: string; level?: number }
   ) => {
@@ -301,7 +289,7 @@ export const App: React.FC = () => {
           name: userToView.name,
           email: userToView.email || '',
           avatar: userToView.avatar,
-          role: 'user',
+          role: userToView.email === 'anhtuantran0512@gmail.com' ? 'SUPER_ADMIN' : 'STUDENT',
           level: userToView.level || 1,
           xp: 0,
           coin: 100,
@@ -321,7 +309,7 @@ export const App: React.FC = () => {
     setTargetProfileUser(null);
     setProfileInitialTab(tab);
     setIsProfileModalOpen(true);
-  };
+  }, [users, currentUser, handleOpenAuth, setTargetProfileUser, setProfileInitialTab, setIsProfileModalOpen]);
 
   const handleOpenUserProfile = (
     userToView?: { id: string; name: string; avatar: string; email?: string; level?: number },
@@ -342,7 +330,7 @@ export const App: React.FC = () => {
         name: userToView.name,
         email: userToView.email || '',
         avatar: userToView.avatar,
-        role: 'user',
+        role: 'STUDENT',
         level: userToView.level || 1,
         xp: 0,
         bio: '',
@@ -355,7 +343,9 @@ export const App: React.FC = () => {
     handleOpenProfile('overview', userToView);
   };
 
-  const handleToggleChat = () => {
+  /* useCallback với deps rỗng: chỉ dùng setter từ useState nên địa chỉ ổn định,
+     nhờ đó paletteCommands (useMemo phụ thuộc nó) không tính lại mỗi lần render. */
+  const handleToggleChat = useCallback(() => {
     setIsChatOpen(prev => {
       const next = !prev;
       if (next) {
@@ -363,7 +353,7 @@ export const App: React.FC = () => {
       }
       return next;
     });
-  };
+  }, [setIsChatOpen, setUnreadChatCount]);
 
   /* Chuyển phân khu kèm màn hình chờ cho các trang nặng */
   const beginTransition = useCallback(
@@ -564,6 +554,16 @@ export const App: React.FC = () => {
 
     const actionCommands: PaletteCommand[] = [
       {
+        id: 'act-shortcuts',
+        label: 'Xem bảng phím tắt',
+        hint: 'Bốn tổ hợp phím đang có trong app',
+        group: 'Tác vụ',
+        icon: <CommandIcon className="w-4 h-4" />,
+        shortcut: '⌘/',
+        keywords: 'phim tat shortcut keyboard ban phim',
+        run: () => setIsShortcutsOpen(true),
+      },
+      {
         id: 'act-palette-shortcut',
         label: 'Bảng lệnh nhanh',
         hint: 'Đang mở — gõ để lọc mọi tác vụ',
@@ -586,9 +586,9 @@ export const App: React.FC = () => {
       {
         id: 'act-focus',
         label: 'Vào không gian tập trung',
-        hint: 'Đồng hồ học tự do + nhật ký giờ học',
+        hint: 'Pomodoro 25 phút + âm thanh 432Hz',
         group: 'Không gian',
-        icon: <Timer className="w-4 h-4" />,
+        icon: <Headphones className="w-4 h-4" />,
         shortcut: '⌘⇧F',
         keywords: 'focus pomodoro tap trung',
         run: () => setIsFocusModeOpen(true),
@@ -630,6 +630,20 @@ export const App: React.FC = () => {
         run: () => window.dispatchEvent(new CustomEvent('fforum_eye_rest_now')),
       },
       {
+        id: 'act-saved-questions',
+        label: 'Câu hỏi đã lưu',
+        hint: 'Mở danh sách câu hỏi bạn đã đánh dấu để đọc lại',
+        group: 'Diễn đàn',
+        icon: <HelpCircle className="w-4 h-4" />,
+        keywords: 'cau hoi da luu bookmark luu danh dau saved',
+        run: () => {
+          handleViewChange('qa');
+          window.setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('fforum_show_saved_questions'));
+          }, 0);
+        },
+      },
+      {
         id: 'act-theme',
         label: 'Đổi chế độ Sáng / Tối',
         hint: 'Chuyển nhanh giao diện Obsidian ↔ Pha lê',
@@ -650,20 +664,106 @@ export const App: React.FC = () => {
       },
     ];
 
-    if (currentUser) {
-      actionCommands.push({
-        id: 'act-profile',
-        label: 'Trang cá nhân của tôi',
-        hint: `${currentUser.name} · Cấp ${currentUser.level}`,
-        group: 'Tài khoản',
-        icon: <UserIcon className="w-4 h-4" />,
-        keywords: 'profile ho so ca nhan',
-        run: () => handleOpenProfile('overview'),
-      });
-    }
+    /*
+      Lệnh "Trang cá nhân" chỉ có khi đã đăng nhập. Trước đây mảng lệnh tác vụ
+      được đẩy thêm phần tử bằng phương thức push — nhưng React Compiler coi việc
+      gọi hàm trên một giá trị đang dựng trong lúc render là "truyền ref vào hàm",
+      và cả component bị bỏ tối ưu. Dựng bằng spread có điều kiện thì mảng chỉ
+      được tạo một lần, không đột biến, và cảnh báo biến mất.
+    */
+    const accountCommands: PaletteCommand[] = currentUser
+      ? [
+          {
+            id: 'act-profile',
+            label: 'Trang cá nhân của tôi',
+            hint: `${currentUser.name} · Cấp ${currentUser.level}`,
+            group: 'Tài khoản',
+            icon: <UserIcon className="w-4 h-4" />,
+            keywords: 'profile ho so ca nhan',
+            run: () => handleOpenProfile('overview'),
+          },
+        ]
+      : [];
 
-    return [...viewCommands, ...actionCommands];
+    return [...viewCommands, ...actionCommands, ...accountCommands];
   }, [currentUser, handleViewChange, handleToggleChat, handleOpenProfile, eyeRestEnabled, toggleEyeRest]);
+
+  /**
+   * Tìm kiếm toàn cục trong bảng lệnh.
+   *
+   * Dựng hoàn toàn từ dữ liệu đã có trong store sau lần `/api/sync` nên không
+   * tốn thêm request nào. Mỗi kết quả được biến thành một "lệnh" để dùng lại
+   * nguyên cơ chế điều hướng bằng bàn phím sẵn có của bảng lệnh.
+   */
+  const paletteSearch = useCallback(
+    (query: string): PaletteCommand[] => {
+      if (!query.trim()) return [];
+      const hits: SearchHit[] = searchCorpus(
+        { questions, clubs, clubPosts, users },
+        query,
+        6,
+      );
+      return hits.map((hit) => ({
+        id: `hit-${hit.kind}-${hit.id}`,
+        label: hit.title,
+        hint: hit.subtitle,
+        group:
+          hit.kind === 'question'
+            ? 'Câu hỏi'
+            : hit.kind === 'club'
+              ? 'Câu lạc bộ'
+              : hit.kind === 'clubPost'
+                ? 'Bài đăng CLB'
+                : 'Thành viên',
+        icon:
+          hit.kind === 'question' ? (
+            <HelpCircle className="w-4 h-4" />
+          ) : hit.kind === 'club' ? (
+            <Users className="w-4 h-4" />
+          ) : (
+            <UserIcon className="w-4 h-4" />
+          ),
+        run: () => {
+          if (hit.kind === 'question') {
+            handleViewChange('qa');
+            /* Chuyển view là bất đồng bộ với việc mount QAForumView, nên phát sự
+               kiện ở lượt tick kế tiếp để listener kịp gắn. */
+            window.setTimeout(() => {
+              window.dispatchEvent(
+                new CustomEvent('fforum_open_question', { detail: { questionId: hit.targetId } }),
+              );
+            }, 0);
+          } else if (hit.kind === 'club' || hit.kind === 'clubPost') {
+            handleViewChange('clubs');
+          } else {
+            const target = users?.[
+              Object.keys(users ?? {}).find((email) => users?.[email]?.id === hit.targetId) ?? ''
+            ];
+            /* Mở thẳng bằng các setter từ useState (địa chỉ ổn định) thay vì
+               gọi `handleOpenProfile` — hàm đó đổi địa chỉ mỗi render, liệt kê
+               vào deps sẽ làm useCallback mất tác dụng. */
+            if (target) {
+              setTargetProfileUser(target);
+              setProfileInitialTab('overview');
+              setIsProfileModalOpen(true);
+            }
+          }
+        },
+      }));
+    },
+    /* Các setter từ useState có địa chỉ ổn định nên liệt kê vào đây không làm
+       useCallback tính lại — nhưng phải có mặt để thoả exhaustive-deps. */
+    [
+      questions,
+      clubs,
+      clubPosts,
+      users,
+      handleViewChange,
+      setTargetProfileUser,
+      setProfileInitialTab,
+      setIsProfileModalOpen,
+    ],
+  );
 
   useEffect(() => {
     const isTypingTarget = (target: EventTarget | null) => {
@@ -696,6 +796,13 @@ export const App: React.FC = () => {
       if (e.shiftKey && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         setIsFocusModeOpen(true);
+        return;
+      }
+      /* Ctrl/Cmd + / mở bảng phím tắt — quy ước quen thuộc, và là cách duy nhất
+         để người dùng biết bốn tổ hợp phím còn lại tồn tại. */
+      if (e.key === '/' || e.key === '?') {
+        e.preventDefault();
+        setIsShortcutsOpen((prev) => !prev);
       }
     };
 
@@ -712,8 +819,6 @@ export const App: React.FC = () => {
     currentView === 'memory' || currentView === 'chronicles' || currentView === 'landing';
 
   const activeGodray = GODRAY_PRESETS.find(p => p.id === godrayPreset) || GODRAY_PRESETS[0];
-  /* LandingPage owns its main landmark; other views use the shared app landmark. */
-  const MainContent = currentView === 'landing' ? 'div' : 'main';
 
   useEffect(() => {
     document.documentElement.style.setProperty('--ff-accent', activeGodray.accent);
@@ -724,22 +829,42 @@ export const App: React.FC = () => {
     );
   }, [activeGodray, godrayIntensity]);
 
+  /* Navbar phát sự kiện khi người dùng đổi vị trí dock. */
+  useEffect(() => {
+    const onPosChange = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      setNavbarAtBottom(detail === 'bottom');
+    };
+    window.addEventListener('fforum_navbar_pos_change', onPosChange);
+    return () => window.removeEventListener('fforum_navbar_pos_change', onPosChange);
+  }, []);
+
+  /*
+    Mọi mốc thành tích (lên cấp, đạt danh hiệu…) đều đi qua toast có
+    `type === 'level'`, nên móc hiệu ứng ăn mừng vào đó thay vì sửa năm chỗ
+    phát toast trong store. `lastCelebratedRef` chặn bắn lặp khi cùng một toast
+    được render lại.
+  */
+  useEffect(() => {
+    if (!toastMessage || toastMessage.type !== 'level') return;
+    const key = `${toastMessage.title}|${toastMessage.subtitle ?? ''}`;
+    if (lastCelebratedRef.current === key) return;
+    lastCelebratedRef.current = key;
+    setCelebrationText(toastMessage.title);
+    setCelebrationTick((n) => n + 1);
+  }, [toastMessage]);
+
   return (
     <AuthProvider currentUser={currentUser}>
+      <AnalyticsTracker accountKey={currentUser?.email || undefined} view={currentView} />
       {/* Global Radiant Cursor (Active across entire app on pointer devices) */}
       <GlobalCursor />
 
       <div
-        data-view={currentView}
-        className={`ff-app-shell relative w-full ${
+        className={`relative w-full ${
           isScrollableView ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'
         } ${currentView === 'landing' ? 'bg-[var(--ff-bg)]' : 'bg-black'} text-white font-sans`}
       >
-        {currentView !== 'landing' && (
-          <a className="ff-skip-link" href="#main-content">Bỏ qua điều hướng</a>
-        )}
-        <OfflineStatusBanner />
-
         {/* Ambient Godray Gradient Lighting Overlay (Enhanced influence across viewport) */}
         <div
           className="fixed inset-0 pointer-events-none z-[1] overflow-hidden transition-all duration-700"
@@ -771,9 +896,9 @@ export const App: React.FC = () => {
           onToggleChat={handleToggleChat}
           unreadChatCount={unreadChatCount}
           onOpenProfile={handleOpenProfile}
-          onOpenAdminConsole={() => setIsAdminConsoleOpen(true)}
           onOpenFocusMode={() => setIsFocusModeOpen(true)}
           isInsideCinema={isInsideCinema}
+          onLoadDailyRewardStatus={loadDailyRewardStatus}
           onClaimDailyReward={claimDailyReward}
           eyeRestEnabled={eyeRestEnabled}
           onToggleEyeRest={toggleEyeRest}
@@ -782,11 +907,7 @@ export const App: React.FC = () => {
       )}
 
       {/* Main Dimension View Routing (Single-Viewport Multi-View Architecture) */}
-      <MainContent
-        id={currentView === 'landing' ? undefined : 'main-content'}
-        tabIndex={currentView === 'landing' ? undefined : -1}
-        className={`ff-app-main w-full ${currentView === 'memory' || currentView === 'chronicles' ? 'min-h-[116vh]' : 'h-full'}`}
-      >
+      <main className={`w-full ${currentView === 'memory' || currentView === 'chronicles' ? 'min-h-[116vh]' : 'h-full'}`}>
         <Suspense fallback={<ViewLoadingFallback />}>
           {/* Bọc theo key để mỗi lần đổi phân khu chạy lại hoạt ảnh trượt */}
           <div
@@ -903,9 +1024,9 @@ export const App: React.FC = () => {
           )}
           </div>
         </Suspense>
-      </MainContent>
+      </main>
 
-      {/* Màn hình chờ chuyển phân khu (vinyl / vòng xoay dots) */}
+      {/* Màn hình chờ chuyển phân khu (CodeFronts la-09 vinyl / la-05 dots) */}
       <ViewTransitionLoader
         visible={Boolean(transition) && Boolean(loaderMeta)}
         targetLabel={loaderMeta?.label}
@@ -922,23 +1043,17 @@ export const App: React.FC = () => {
           onOpenStreak={() => window.dispatchEvent(new CustomEvent('fforum_open_daily'))}
           onOpenNotes={() => setIsNotesOpen(true)}
           onOpenPalette={() => setIsPaletteOpen(true)}
+          adminAccess={Boolean(currentUser && (
+            currentUser.email === 'anhtuantran0512@gmail.com' ||
+            currentUser.staffRole === 'MODERATOR' ||
+            currentUser.staffRole === 'TEACHER'
+          ))}
+          onOpenAdminPanel={() => setIsAdminInsightsOpen(true)}
           streakCount={currentUser?.streakCount ?? 0}
         />
       )}
 
       <Suspense fallback={null}>
-        {isAdminConsoleOpen && (
-          <AdminConsole
-            isOpen={isAdminConsoleOpen}
-            onClose={() => setIsAdminConsoleOpen(false)}
-            currentUser={currentUser}
-            onDeleteQuestion={adminDeleteQuestion}
-            onDeleteSolution={adminDeleteSolution}
-            onDeleteChatMessage={adminDeleteChatMessage}
-            onDeleteClubPost={adminDeleteClubPost}
-          />
-        )}
-
         {/* Slide-over Chat Dock (For quick chatting when browsing Home, Clubs, QA, Chronicles) */}
         {currentView !== 'chat' && (
           currentView === 'landing' ? null : (
@@ -967,6 +1082,8 @@ export const App: React.FC = () => {
             currentUser={targetProfileUser || currentUser!}
             viewerUser={currentUser}
             onSaveProfile={updateProfile}
+            onPurchaseItem={purchaseShopItem}
+            onEquipItem={equipShopItem}
             initialTab={profileInitialTab}
             questions={questions}
             solutions={solutions}
@@ -998,6 +1115,7 @@ export const App: React.FC = () => {
           initialTab={authInitialTab}
           isOpen={isLoginModalOpen}
           onClose={() => setIsLoginModalOpen(false)}
+          onLogin={login}
           onLoginSocial={loginSocial}
           onLoginWithPassword={loginWithPassword}
           onRegister={registerWithPassword}
@@ -1008,16 +1126,16 @@ export const App: React.FC = () => {
           isOpen={isFocusModeOpen}
           onClose={() => setIsFocusModeOpen(false)}
           userEmail={currentUser?.email}
+          onStartRewardSession={startFocusRewardSession}
         />
       </Suspense>
 
-      {/* Người giữ nhịp stopwatch ở cấp App: ghi phút thực tế + thưởng mốc Coin
-          kể cả khi HUD đã đóng; không cộng XP/FPoints từ phần thưởng này. */}
+      {/* Người giữ nhịp Phòng Tập Trung: đếm theo thời gian thật ở cấp App,
+          ghi giờ học + XP kể cả khi HUD đã đóng, kèm chip đếm ngược nổi. */}
       <FocusSessionWatcher
         userEmail={currentUser?.email}
-        onStudySessionStart={startStudyRewardSession}
-        onStudyHeartbeat={pulseStudyRewardSession}
-        onStudySessionStop={stopStudyRewardSession}
+        onCompleteReward={completeFocusRewardSession}
+        onCancelReward={cancelFocusRewardSession}
         isHudOpen={isFocusModeOpen}
         onOpenHud={() => setIsFocusModeOpen(true)}
       />
@@ -1026,11 +1144,21 @@ export const App: React.FC = () => {
       {/* HIDDEN PREMIUM LAYER: Bảng lệnh, Sổ tay nhanh, Nghỉ mắt  */}
       {/* ======================================================== */}
       <Suspense fallback={null}>
+        <KeyboardShortcutsModal
+          isOpen={isShortcutsOpen}
+          onClose={() => setIsShortcutsOpen(false)}
+          onOpenPalette={() => setIsPaletteOpen(true)}
+        />
+
         <CommandPalette
           isOpen={isPaletteOpen}
           onClose={() => setIsPaletteOpen(false)}
           commands={paletteCommands}
+          search={paletteSearch}
         />
+
+        {/* Nút cuộn về đầu trang, viền là vòng tiến trình đọc bài. */}
+        <ScrollToTopDock navbarAtBottom={navbarAtBottom} />
 
         <QuickNotesDock
           isOpen={isNotesOpen}
@@ -1049,7 +1177,9 @@ export const App: React.FC = () => {
         <div className="fixed top-20 sm:top-24 right-4 sm:right-6 z-50 animate-fade-up">
           <div className="liquid-glass rounded-2xl bg-neutral-950/95 border border-white/20 p-3 sm:p-4 shadow-2xl backdrop-blur-xl flex items-center gap-3 max-w-sm">
             <div className="shrink-0 p-2 rounded-xl bg-white/10">
-              {toastMessage.type === 'level' ? (
+              {toastMessage.type === 'error' ? (
+                <AlertCircle className="w-5 h-5 text-rose-400" />
+              ) : toastMessage.type === 'level' ? (
                 <Trophy className="w-5 h-5 text-amber-400 animate-bounce" />
               ) : toastMessage.type === 'xp' ? (
                 <Sparkles className="w-5 h-5 text-cyan-400 animate-spin" />
@@ -1071,14 +1201,82 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Super Admin XP & Level Management Sandbox */}
-      {import.meta.env.DEV && currentUser?.role === 'super_admin' && (
-        <XPSandboxDock
-          level={currentUser.level}
-          xp={currentUser.xp}
-          onAddXP={addXP}
-        />
+      {/* Lối vào bảng điều khiển quản trị — chỉ hiện với Super Admin */}
+      {currentUser?.email === 'anhtuantran0512@gmail.com' && !isAdminConsoleOpen && (
+        <button
+          type="button"
+          onClick={() => setIsAdminConsoleOpen(true)}
+          aria-label="Bảng điều khiển quản trị"
+          className="fixed bottom-4 left-56 z-40 flex items-center gap-2 pl-3 pr-4 py-2.5 rounded-2xl liquid-glass bg-[#0c1218]/95 border border-cyan-400/25 text-neutral-200 hover:border-cyan-400/50 hover:text-white transition-colors shadow-[0_18px_45px_rgba(0,0,0,0.7)]"
+        >
+          <Gauge className="w-4 h-4 text-cyan-300" />
+          <span className="text-[11px] font-medium">Điều khiển</span>
+        </button>
       )}
+
+      {/* Lối vào hộp thư tố cáo — chỉ hiện với Super Admin */}
+      {currentUser?.email === 'anhtuantran0512@gmail.com' && !isReportInboxOpen && (
+        <button
+          type="button"
+          onClick={() => setIsReportInboxOpen(true)}
+          aria-label={`Hộp thư tố cáo${pendingReportCount > 0 ? ` — ${pendingReportCount} báo cáo chờ xử lý` : ''}`}
+          className="fixed bottom-4 left-24 z-40 flex items-center gap-2 pl-3 pr-4 py-2.5 rounded-2xl liquid-glass bg-[#0c1218]/95 border border-rose-400/25 text-neutral-200 hover:border-rose-400/50 hover:text-white transition-colors shadow-[0_18px_45px_rgba(0,0,0,0.7)]"
+        >
+          <ShieldAlert className="w-4 h-4 text-rose-300" />
+          <span className="text-[11px] font-medium">Tố cáo</span>
+          {pendingReportCount > 0 && (
+            <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500/90 text-white text-[10px] font-bold flex items-center justify-center">
+              {pendingReportCount > 99 ? '99+' : pendingReportCount}
+            </span>
+          )}
+        </button>
+      )}
+
+      <Suspense fallback={<ViewLoadingFallback />}>
+        {isAdminInsightsOpen && currentUser && (
+          currentUser.email === 'anhtuantran0512@gmail.com' ||
+          currentUser.staffRole === 'MODERATOR' ||
+          currentUser.staffRole === 'TEACHER'
+        ) && (
+          <AdminInsightsModal
+            isOpen={isAdminInsightsOpen}
+            currentUser={currentUser}
+            onClose={() => setIsAdminInsightsOpen(false)}
+            onOpenOperations={() => {
+              if (currentUser.email !== 'anhtuantran0512@gmail.com') return;
+              setIsAdminInsightsOpen(false);
+              setIsAdminConsoleOpen(true);
+            }}
+          />
+        )}
+        {isReportInboxOpen && (
+          <ReportInboxModal
+            isOpen={isReportInboxOpen}
+            onClose={() => setIsReportInboxOpen(false)}
+            onPendingCountChange={setPendingReportCount}
+          />
+        )}
+        {isAdminConsoleOpen && (
+          <AdminConsoleModal
+            isOpen={isAdminConsoleOpen}
+            onClose={() => setIsAdminConsoleOpen(false)}
+            onOpenReports={() => {
+              /* Bảng điều khiển chỉ điều hướng, không ghi: đóng mình lại rồi mở
+                 đúng hộp thư tố cáo — mọi thao tác xử lý vẫn đi qua endpoint có
+                 quyền riêng của nó, không tạo cổng ghi thứ hai. */
+              setIsAdminConsoleOpen(false);
+              setIsReportInboxOpen(true);
+            }}
+            onOpenClubs={() => {
+              setIsAdminConsoleOpen(false);
+              handleViewChange('clubs');
+            }}
+          />
+        )}
+      </Suspense>
+
+      {/* Hoa giấy ăn mừng khi lên cấp hoặc đạt mốc thành tích. */}
+      <CelebrationBurst trigger={celebrationTick} tone="gold" headline={celebrationText} />
 
       {/* CodeFronts .la-08 Healthcare Appointment & Resource Loading Animation */}
       {isResourceLoading && (

@@ -42,16 +42,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
   }, [headlinePhase]);
 
   return (
-    <section className="ff-home-view relative w-full min-h-screen overflow-x-clip flex flex-col items-center justify-center">
+    <section className="relative w-full h-screen overflow-hidden flex flex-col items-center justify-center">
       {/* Background Boomerang Engine */}
       <BoomerangVideoBg />
 
       {/* Hero Foreground Content */}
-      <div className="ff-home-copy relative z-10 w-full max-w-4xl mx-auto px-4 sm:px-6 flex flex-col items-center text-center pt-16 sm:pt-10">
+      <div className="relative z-10 w-full max-w-4xl mx-auto px-4 sm:px-6 flex flex-col items-center text-center pt-16 sm:pt-10">
         
         {/* Tag Badge */}
-        <div className="ff-home-badge-row animate-fade-up delay-1 mb-6 flex items-center justify-center gap-3 flex-wrap">
-          <div className="ff-home-badge liquid-glass rounded-full px-4 py-1.5 text-xs sm:text-sm text-amber-300 inline-flex items-center gap-2 border border-amber-400/25 shadow-[0_0_15px_rgba(245,158,11,0.15)] bg-[#0c1218]/60 backdrop-blur-xl">
+        <div className="animate-fade-up delay-1 mb-6 flex items-center justify-center gap-3 flex-wrap">
+          <div className="liquid-glass rounded-full px-4 py-1.5 text-xs sm:text-sm text-amber-300 inline-flex items-center gap-2 border border-amber-400/25 shadow-[0_0_15px_rgba(245,158,11,0.15)] bg-[#0c1218]/60 backdrop-blur-xl">
             <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_#f59e0b] animate-ping" />
             <span className="font-semibold tracking-wider uppercase font-mono">
               F-FORUM • HỆ THỐNG GIAO LƯU TRI THỨC TOÀN TRƯỜNG
@@ -63,7 +63,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
         <div className="relative min-h-[90px] sm:min-h-[140px] flex items-center justify-center w-full">
           {/* Phase 1: Calligraphic Artistic F-FORUM */}
           <h1
-            className={`ff-home-headline text-4xl sm:text-6xl text-white font-normal tracking-tight text-center leading-tight max-w-4xl flex flex-wrap items-center justify-center gap-x-2 px-2 ${
+            className={`text-4xl sm:text-6xl text-white font-normal tracking-tight text-center leading-tight max-w-4xl flex items-center justify-center ${
               headlinePhase === 0
                 ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
                 : 'opacity-0 -translate-y-2 scale-98 pointer-events-none absolute inset-0'
@@ -80,7 +80,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
           {/* Phase 2: Refined Calligraphic Vietnamese Tiềm Năng */}
           <h1
-            className={`ff-home-headline text-4xl sm:text-6xl text-white font-normal tracking-tight text-center leading-tight max-w-4xl flex flex-wrap items-center justify-center gap-x-2 px-2 ${
+            className={`text-4xl sm:text-6xl text-white font-normal tracking-tight text-center leading-tight max-w-4xl flex items-center justify-center ${
               headlinePhase === 1
                 ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
                 : 'opacity-0 translate-y-2 scale-98 pointer-events-none absolute inset-0'
@@ -138,7 +138,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
       </div>
 
       {/* Scroll-to-Explore cue: the wheel engine walks through the 4 core dimensions */}
-      <div className="ff-home-scroll-cue pointer-events-none absolute bottom-24 left-1/2 z-20 -translate-x-1/2 md:bottom-8">
+      <div className="pointer-events-none absolute bottom-24 left-1/2 z-20 -translate-x-1/2 md:bottom-8">
         <div className="flex flex-col items-center gap-1.5 text-neutral-400/80">
           <span className="hidden sm:flex h-7 w-4 items-start justify-center rounded-full border border-white/25 pt-1.5">
             <span className="ff-scroll-dot h-1.5 w-1 rounded-full bg-amber-400" />

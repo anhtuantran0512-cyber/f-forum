@@ -4,7 +4,6 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
-import { safeStorage } from './utils/storage'
 
 declare global {
   interface Window {
@@ -13,18 +12,6 @@ declare global {
     google: any;
     __fbSdkPromise?: Promise<void>;
     __googleSdkPromise?: Promise<void>;
-  }
-}
-
-/* Khởi tạo theme trước lần paint đầu tiên để tránh flash trắng/tối khi tải app. */
-if (typeof document !== 'undefined') {
-  const lightMode = safeStorage.getItem('fforum_theme') === 'light';
-  document.documentElement.classList.toggle('light', lightMode);
-  document.documentElement.classList.toggle('dark', !lightMode);
-  document.documentElement.classList.toggle('reduce-motion', safeStorage.getItem('fforum_reduced_motion') === 'true');
-  const savedGlassBlur = Number.parseInt(safeStorage.getItem('fforum_glass_blur') || '', 10);
-  if (Number.isFinite(savedGlassBlur)) {
-    document.documentElement.style.setProperty('--glass-blur', `${Math.max(0, Math.min(40, savedGlassBlur))}px`);
   }
 }
 

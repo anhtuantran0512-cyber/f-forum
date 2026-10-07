@@ -32,6 +32,15 @@ export interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
   commands: PaletteCommand[];
+  /**
+   * Hàm tìm kiếm NỘI DUNG (câu hỏi, CLB, thành viên…), nhận đúng từ khoá người
+   * dùng đang gõ và trả về kết quả ĐÃ xếp hạng.
+   *
+   * Để ở dạng callback chứ không phải mảng dựng sẵn: từ khoá nằm trong state của
+   * bảng lệnh, component cha không nhìn thấy. Kết quả trả về không bị bộ khớp từ
+   * khoá bên dưới lọc lại, vì chúng đã xếp hạng theo điểm trọng số rồi.
+   */
+  search?: (query: string) => PaletteCommand[];
 }
 
 /** Bỏ dấu tiếng Việt để tìm kiếm không phân biệt dấu (gõ "hoi dap" vẫn ra "Hỏi Đáp"). */
@@ -43,11 +52,17 @@ const normalize = (value: string): string =>
     .replace(/đ/g, 'd')
     .trim();
 
-export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, commands }) => {
+export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, commands, search }) => {
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  /* Kết quả nội dung, tính lại mỗi khi từ khoá đổi. */
+  const contentResults = useMemo(
+    () => (search ? search(query) : []),
+    [search, query],
+  );
 
   const filtered = useMemo(() => {
     const q = normalize(query);
@@ -60,20 +75,40 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
 
   const grouped = useMemo(() => {
     const map = new Map<string, PaletteCommand[]>();
+    /* Kết quả nội dung lên trước: người dùng gõ từ khoá là đang tìm bài, không
+       phải đang tìm lệnh hệ thống. */
+    contentResults.forEach((cmd) => {
+      const bucket = map.get(cmd.group) || [];
+      bucket.push(cmd);
+      map.set(cmd.group, bucket);
+    });
     filtered.forEach((cmd) => {
       const bucket = map.get(cmd.group) || [];
       bucket.push(cmd);
       map.set(cmd.group, bucket);
     });
     return Array.from(map.entries());
-  }, [filtered]);
+  }, [filtered, contentResults]);
 
   const flat = useMemo(() => grouped.flatMap(([, items]) => items), [grouped]);
 
+  /*
+    Reset từ khoá và con trỏ mỗi lần mở lại. Dùng mẫu "điều chỉnh state khi prop
+    đổi" của React thay vì useEffect: gọi setState ngay trong lúc render là hợp lệ
+    và tránh được một lượt render thừa so với đặt trong effect.
+  */
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) {
+      setQuery('');
+      setActiveIndex(0);
+    }
+  }
+
+  /* Đưa con trỏ vào ô nhập — thao tác DOM thật nên vẫn phải nằm trong effect. */
   useEffect(() => {
-    if (!isOpen) return;
-    setQuery('');
-    setActiveIndex(0);
+    if (!isOpen) return undefined;
     const timer = window.setTimeout(() => inputRef.current?.focus(), 40);
     return () => window.clearTimeout(timer);
   }, [isOpen]);

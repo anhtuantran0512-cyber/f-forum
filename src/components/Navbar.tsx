@@ -21,14 +21,16 @@ import {
 } from 'lucide-react';
 import type { DimensionView, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
-import { playChime } from '../utils/audio';
+import { toggleAmbientAudio, isAmbientActive, playChime } from '../utils/audio';
 import { ProfileDropdown } from './ProfileDropdown';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { NotificationsModal } from './NotificationsModal';
 import { SettingsModal } from './SettingsModal';
 import { safeStorage } from '../utils/storage';
 import { DailyEngagementModal } from './DailyEngagementModal';
-import type { DailyRewardAction, RewardApiResponse } from '../types/rewards';
+import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
+import { ScrollProgressRail } from './ScrollProgressRail';
+import { spawnRipple } from '../utils/ripple';
 
 export interface NavbarProps {
   currentView: DimensionView;
@@ -40,16 +42,13 @@ export interface NavbarProps {
   onToggleChat: () => void;
   unreadChatCount: number;
   onOpenProfile: (tab?: 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit') => void;
-  onOpenAdminConsole: () => void;
   onOpenFocusMode: () => void;
   isInsideCinema?: boolean;
-  onClaimDailyReward?: (action: DailyRewardAction) => Promise<RewardApiResponse | null>;
+  onLoadDailyRewardStatus?: () => Promise<{ ok: boolean; status?: DailyRewardStatus; message?: string }>;
+  onClaimDailyReward?: (action: DailyRewardAction) => Promise<DailyRewardActionResult>;
   eyeRestEnabled?: boolean;
   onToggleEyeRest?: () => void;
 }
-
-const NAV_POSITION_MORPH_MS = 720;
-const NAV_MORPH_MS = 860;
 
 const NAV_ICONS: Record<DimensionView, React.ReactNode> = {
   landing: <Sparkles size={16} className="text-amber-300" />,
@@ -86,13 +85,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleChat,
   unreadChatCount,
   onOpenProfile,
-  onOpenAdminConsole,
   onOpenFocusMode,
   isInsideCinema = false,
+  onLoadDailyRewardStatus,
   onClaimDailyReward,
   eyeRestEnabled = false,
   onToggleEyeRest,
 }) => {
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isFlyoutOpen, setIsFlyoutOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -107,6 +107,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [reducedMotion, setReducedMotion] = useState(() => {
     return safeStorage.getItem('fforum_reduced_motion') === 'true';
   });
+  const audioCtxRef = useRef<AudioContext | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notifMenuRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
@@ -165,10 +166,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   const anyPopoverOpenRef = useRef(anyPopoverOpen);
   anyPopoverOpenRef.current = anyPopoverOpen;
 
-  /* Đồng bộ với breakpoint md của thanh mobile: chỉ dưới 768px mới khóa ở dạng icon.
-     Tablet/cửa sổ 768–1023px vẫn được phép mở rộng bằng hover, focus hoặc scroll lên. */
+  /* Màn hẹp (< 1024px): thanh luôn ở chế độ icon để không phải cuộn và
+     không bao giờ bị mất tab/icon khi cửa sổ nhỏ lại. */
   const isNarrowViewport = () =>
-    typeof window !== 'undefined' && window.innerWidth < 768;
+    typeof window !== 'undefined' && window.innerWidth < 1024;
 
   const forceExpand = useCallback(() => {
     if (compactTimerRef.current) {
@@ -233,10 +234,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   /* Cửa sổ nhỏ lại → tự chuyển sang chế độ icon ngay, tránh tràn/mất tab */
   useEffect(() => {
     const onResize = () => {
-      if (compactTimerRef.current) {
-        clearTimeout(compactTimerRef.current);
-        compactTimerRef.current = null;
-      }
       if (isNarrowViewport()) {
         setIsCompact(true);
       } else if (!alwaysCompact && !anyPopoverOpenRef.current) {
@@ -245,13 +242,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
     onResize();
     window.addEventListener('resize', onResize);
-    return () => {
-      window.removeEventListener('resize', onResize);
-      if (compactTimerRef.current) {
-        clearTimeout(compactTimerRef.current);
-        compactTimerRef.current = null;
-      }
-    };
+    return () => window.removeEventListener('resize', onResize);
   }, [alwaysCompact]);
 
   /* Khi đổi vị trí dock (trên/dưới/trái/phải): chạy hoạt ảnh morph để việc
@@ -259,7 +250,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isMorphing, setIsMorphing] = useState(false);
   useEffect(() => {
     setIsMorphing(true);
-    const t = window.setTimeout(() => setIsMorphing(false), NAV_POSITION_MORPH_MS);
+    const t = window.setTimeout(() => setIsMorphing(false), 480);
     return () => window.clearTimeout(t);
   }, [navbarPosition]);
 
@@ -351,7 +342,9 @@ export const Navbar: React.FC<NavbarProps> = ({
      chạy men theo hai mép trên/dưới của thanh (mask 2.5px) nên không phủ lên
      chữ/icon, kèm dải aura chạy nhanh hơn một nhịp.
      --------------------------------------------------------------------- */
-  /* Match the loading signal to the capsule's 860ms geometry transition. */
+  /* Thời gian chạy lớp loading = đúng nhịp bề rộng thanh co giãn (0.78s) để
+     hiệu ứng "đang đổi hình dáng" phủ trọn vẹn cú morph, không tắt giữa chừng. */
+  const NAV_MORPH_MS = 780;
   const [isMorphBusy, setIsMorphBusy] = useState(false);
   const morphBusyTimerRef = useRef<number | null>(null);
 
@@ -497,10 +490,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, []);
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--glass-blur', `${Math.max(0, Math.min(40, glassBlur))}px`);
-  }, [glassBlur]);
-
-  useEffect(() => {
     if (theme === 'light') {
       document.documentElement.classList.remove('dark');
       document.documentElement.classList.add('light');
@@ -563,7 +552,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     });
   };
 
-  const isSuperAdmin = currentUser?.role === 'super_admin';
+  const isSuperAdmin = currentUser?.email === 'anhtuantran0512@gmail.com';
 
   useEffect(() => {
     if (!isFlyoutOpen) return;
@@ -652,6 +641,27 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
   }, [isSettingsOpen]);
 
+  const toggleFocusAudio = async (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    try {
+      if (!audioCtxRef.current && typeof window !== 'undefined') {
+        const AudioContextClass =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtxRef.current = new AudioContextClass();
+        }
+      }
+      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+        await audioCtxRef.current.resume();
+      }
+    } catch {
+      /* ignore */
+    }
+    const active = toggleAmbientAudio(audioCtxRef.current);
+    setIsAudioPlaying(active || isAmbientActive());
+  };
+
   /* Nút F (logo) là lối vào trang Giới thiệu -> không còn tab chữ "GIỚI THIỆU".
      Miền Ký Ức / Khu Vinh Danh / Update luôn ở dạng icon cho thanh gọn và sang hơn. */
   const navItems: { id: DimensionView; label: string; iconOnly?: boolean }[] = [
@@ -670,6 +680,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     onClose: () => setIsSettingsOpen(false),
     theme,
     onToggleTheme: handleToggleTheme,
+    isAudioPlaying,
+    onToggleAudio: toggleFocusAudio,
     onOpenFocusMode: () => {
       setIsSettingsOpen(false);
       onOpenFocusMode();
@@ -775,10 +787,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           data-compact={effectiveCompact && !isVertical ? 'true' : 'false'}
           data-morph={isMorphBusy ? 'loading' : 'ready'}
           onPointerEnter={forceExpand}
-          onPointerDownCapture={() => {
-            cancelMorphLoading();
-            if (!alwaysCompact) forceExpand();
-          }}
+          onPointerDownCapture={cancelMorphLoading}
           onFocusCapture={() => {
             forceExpand();
             cancelMorphLoading();
@@ -791,6 +800,9 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           {/* Lớp aura chuyển động rất nhẹ, nằm SAU nội dung nên không đè chữ nào */}
           <span className="ff-nav-aura" aria-hidden="true" />
+
+          {/* Vạch tiến trình cuộn bám mép thanh — tự đổi cạnh theo vị trí dock. */}
+          <ScrollProgressRail position={navbarPosition} />
 
           {/* Lớp "đang tải" khi thanh điều hướng đổi hình dáng: nội dung thật
               được giữ nguyên vị trí và hạ mờ thành bóng, phủ thêm một vệt sáng
@@ -853,7 +865,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                     ref={(el) => {
                       tabRefs.current[item.id] = el;
                     }}
-                    onClick={() => onViewChange(item.id)}
+                    onClick={(event) => {
+                      /* Gợn sóng toả từ đúng điểm bấm, chỉ là hiệu ứng nên
+                         không được chặn việc chuyển trang nếu nó lỗi. */
+                      try {
+                        spawnRipple(event.currentTarget, event);
+                      } catch {
+                        /* bỏ qua */
+                      }
+                      onViewChange(item.id);
+                    }}
                     aria-label={item.label}
                     aria-current={isActive ? 'page' : undefined}
                     data-icon-only={item.iconOnly ? 'true' : 'false'}
@@ -1081,7 +1102,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClose={() => setIsFlyoutOpen(false)}
               onOpenProfile={onOpenProfile}
               onLogout={onLogout}
-              onOpenAdminConsole={onOpenAdminConsole}
               dockPosition={navbarPosition}
               anchorRef={userTriggerRef}
             />
@@ -1092,7 +1112,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* ======================================================== */}
       {/* 2. MOBILE TOP HEADER BAR (Viewports < 768px)             */}
       {/* ======================================================== */}
-      <header className="ff-mobile-header md:hidden fixed top-0 inset-x-0 z-40 h-[calc(54px+var(--safe-top))] pt-[var(--safe-top)] liquid-glass border-b border-white/10 px-4 flex items-center justify-between pointer-events-auto select-none">
+      <header className="md:hidden fixed top-0 inset-x-0 z-40 h-[calc(54px+var(--safe-top))] pt-[var(--safe-top)] liquid-glass border-b border-white/10 px-4 flex items-center justify-between pointer-events-auto select-none">
         {/* Left: Brand Logo */}
         <button
           type="button"
@@ -1108,7 +1128,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               F
             </div>
           </div>
-          <span className="ff-mobile-brand-name font-['Playfair_Display'] italic font-bold text-lg tracking-wide bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent whitespace-nowrap">
+          <span className="font-['Playfair_Display'] italic font-bold text-lg tracking-wide bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent whitespace-nowrap">
             F-Forum
           </span>
         </button>
@@ -1158,6 +1178,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </button>
 
+            {/* Mobile anchored notification modal */}
+            <div className="md:hidden">
+              <NotificationsModal
+                isOpen={isNotificationsOpen}
+                onClose={() => setIsNotificationsOpen(false)}
+                onNavigate={(view) => {
+                  setIsNotificationsOpen(false);
+                  onViewChange(view);
+                }}
+                onUnreadCountChange={setUnreadNotifCount}
+              />
+            </div>
           </div>
 
           {/* User Avatar pill / Login */}
@@ -1192,7 +1224,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   height={24}
                   className="w-6 h-6 rounded-full object-cover ring-1 ring-amber-400/60"
                 />
-                <span className="ff-mobile-user-name text-xs font-medium text-white max-w-[70px] truncate whitespace-nowrap">
+                <span className="text-xs font-medium text-white max-w-[70px] truncate whitespace-nowrap">
                   {currentUser.name.replace(/ \(.*\)/, '')}
                 </span>
                 <ChevronDown
@@ -1209,7 +1241,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClose={() => setIsFlyoutOpen(false)}
                   onOpenProfile={onOpenProfile}
                   onLogout={onLogout}
-                  onOpenAdminConsole={onOpenAdminConsole}
                 />
               </div>
             </div>
@@ -1217,26 +1248,10 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </header>
 
-      {/* Render the mobile popup outside the blurred header so fixed positioning
-          uses the real viewport, while its anchor still points at the bell. */}
-      <div className="md:hidden">
-        <NotificationsModal
-          isOpen={isNotificationsOpen}
-          onClose={() => setIsNotificationsOpen(false)}
-          onNavigate={(view) => {
-            setIsNotificationsOpen(false);
-            onViewChange(view);
-          }}
-          onUnreadCountChange={setUnreadNotifCount}
-          dockPosition="top"
-          anchorRef={mobileNotifMenuRef}
-        />
-      </div>
-
       {/* ======================================================== */}
       {/* 3. MOBILE BOTTOM NAVIGATION DOCK (Viewports < 768px)     */}
       {/* ======================================================== */}
-      <nav className="ff-mobile-tabbar md:hidden fixed bottom-0 inset-x-0 z-40 h-[calc(56px+var(--safe-bottom))] pb-[var(--safe-bottom)] liquid-glass border-t border-white/10 px-2 flex items-center justify-around pointer-events-auto select-none">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 h-[calc(56px+var(--safe-bottom))] pb-[var(--safe-bottom)] liquid-glass border-t border-white/10 px-2 flex items-center justify-around pointer-events-auto select-none">
         {/* Tab 1: Trang Chủ */}
         <button
           type="button"
@@ -1362,7 +1377,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             role="dialog"
             aria-modal="true"
             aria-label="Menu khám phá"
-            className="ff-mobile-menu-drawer fixed bottom-[calc(56px+var(--safe-bottom)+8px)] inset-x-3 z-50 rounded-3xl bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 p-3.5 shadow-2xl animate-fade-up md:hidden pointer-events-auto"
+            className="fixed bottom-[calc(56px+var(--safe-bottom)+8px)] inset-x-3 z-50 rounded-3xl bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 p-3.5 shadow-2xl animate-fade-up md:hidden pointer-events-auto"
           >
             <div className="flex items-center justify-between pb-2.5 border-b border-white/10 mb-3">
               <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
@@ -1542,8 +1557,10 @@ export const Navbar: React.FC<NavbarProps> = ({
       <DailyEngagementModal
         isOpen={isDailyModalOpen}
         onClose={() => setIsDailyModalOpen(false)}
-        currentUserId={currentUser?.id}
+        isAuthenticated={Boolean(currentUser)}
         currentUserCoin={currentUser?.coin ?? 0}
+        onOpenLogin={onOpenLoginModal}
+        onLoadRewardStatus={onLoadDailyRewardStatus}
         onClaimReward={onClaimDailyReward}
       />
     </>

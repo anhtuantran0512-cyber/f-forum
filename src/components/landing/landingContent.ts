@@ -10,7 +10,7 @@ import {
   Flame,
   Gauge,
   GraduationCap,
-  Timer,
+  Headphones,
   HelpCircle,
   Lock,
   MessagesSquare,
@@ -90,8 +90,8 @@ export const FEATURES: {
     id: 'focus',
     title: 'Focus Sanctuary',
     description:
-      'Đồng hồ học tự do, mục tiêu 25 / 60 / 120 phút và nhật ký ghi lại thời lượng học thật — không ép đủ 25 phút mỗi phiên, không làm gián đoạn dòng tập trung.',
-    icon: Timer,
+      'Pomodoro tích hợp cùng âm thanh môi trường tổng hợp 432Hz (mưa, sóng biển, thư viện) — không tải tệp nặng, không làm gián đoạn dòng tập trung.',
+    icon: Headphones,
     accent: 'emerald',
     span: 'md',
   },
@@ -150,7 +150,7 @@ export const SHOWCASE_STEPS: {
     description:
       'Bật Focus Sanctuary để học sâu, tích Coin mỗi ngày và leo bảng vinh danh. Hồ sơ năng lực của bạn được xây dựng theo cách tự nhiên nhất.',
     icon: Target,
-    points: ['Đồng hồ học tự do + nhật ký giờ học', 'Mốc học ngày & phần thưởng Coin', '8 danh hiệu học sinh vinh danh'],
+    points: ['Pomodoro + âm thanh tập trung', 'Chuỗi ngày & phần thưởng Coin', '8 danh hiệu học sinh vinh danh'],
   },
 ];
 
@@ -184,7 +184,7 @@ export const BENEFITS: {
     id: 'discipline',
     title: 'Kỷ luật học tập được tự động hoá',
     description:
-      'Chuỗi ngày, nhắc nhở và mục tiêu học tập rõ ràng giúp bạn duy trì động lực. Mỗi phiên học đều được ghi nhận thành XP và cấp độ.',
+      'Chuỗi ngày, nhắc nhở và âm thanh tập trung sinh học giúp bạn duy trì động lực. Mỗi phiên học đều được ghi nhận thành XP và cấp độ.',
     icon: Gauge,
     stat: '150',
     statLabel: 'cấp độ ghi nhận',
@@ -245,8 +245,8 @@ export const HIGHLIGHTS: {
   {
     id: 'h4',
     tag: 'Tập trung',
-    title: 'Focus Sanctuary và nhật ký giờ học',
-    body: 'Đồng hồ học tự do, mục tiêu 25 / 60 / 120 phút; dừng bất cứ lúc nào để ghi thời lượng thật vào nhật ký theo ngày, tuần, tháng.',
+    title: 'Focus Sanctuary 432Hz và nhật ký giờ học',
+    body: 'Pomodoro kèm âm thanh thư giãn; mỗi phiên hoàn thành được ghi thẳng vào nhật ký giờ học theo ngày, tuần, tháng.',
     icon: 'focus',
     from: '#a855f7',
     to: '#6366f1',
@@ -294,7 +294,7 @@ export const PRICING_PLANS: {
       'Hỏi đáp không giới hạn theo môn học',
       'Tham gia tất cả câu lạc bộ công khai',
       '4 kênh chat thời gian thực',
-      'Focus Sanctuary & nhật ký giờ học',
+      'Focus Sanctuary & âm thanh 432Hz',
       'Hệ thống Coin, chuỗi ngày, 8 danh hiệu',
       'Miền Ký Ức & Khu Vinh Danh',
     ],

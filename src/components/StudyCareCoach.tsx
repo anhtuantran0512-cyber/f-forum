@@ -75,11 +75,31 @@ export const StudyCareCoach: React.FC<StudyCareCoachProps> = ({
     return () => window.removeEventListener('fforum_eye_rest_now', handler as EventListener);
   }, [start]);
 
+  /* `finish` đổi địa chỉ khi `onToast` đổi; giữ bản mới nhất trong ref để hàm
+     đếm ngược bên dưới không bị chốt vào bản cũ (lỗi closure kinh điển của
+     effect có deps rỗng/hẹp). */
+  const finishRef = useRef(finish);
+  useEffect(() => {
+    finishRef.current = finish;
+  }, [finish]);
+
   /* Đếm ngược 20 giây theo mốc thời gian thật (không cộng/trừ dồn) */
   useEffect(() => {
     if (!isResting) return;
     if (!endsAtRef.current) endsAtRef.current = Date.now() + EYE_REST_SECONDS * 1000;
-    const sync = () => setSecondsLeft(Math.max(0, Math.ceil((endsAtRef.current - Date.now()) / 1000)));
+    const sync = () => {
+      const left = Math.max(0, Math.ceil((endsAtRef.current - Date.now()) / 1000));
+      setSecondsLeft(left);
+      /*
+        Kết thúc ngay tại đây thay vì để một effect khác canh `secondsLeft`.
+        Cách cũ phải render thêm một lượt rồi mới phát hiện hết giờ; gọi thẳng
+        trong hàm đếm ngược thì lớp phủ tắt đúng khung hình vừa tính ra 0.
+      */
+      if (left <= 0) {
+        if (timerRef.current) window.clearInterval(timerRef.current);
+        finishRef.current(true);
+      }
+    };
     sync();
     timerRef.current = window.setInterval(sync, 500);
     /* Quay lại tab là tính lại ngay — hết giờ thì lớp phủ biến mất tức thì */
@@ -91,12 +111,6 @@ export const StudyCareCoach: React.FC<StudyCareCoachProps> = ({
       window.removeEventListener('focus', sync);
     };
   }, [isResting]);
-
-  useEffect(() => {
-    if (isResting && secondsLeft <= 0) {
-      finish(true);
-    }
-  }, [isResting, secondsLeft, finish]);
 
   /* Esc luôn thoát được lớp phủ nghỉ mắt */
   useEffect(() => {

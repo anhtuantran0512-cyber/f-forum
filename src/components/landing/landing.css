@@ -41,27 +41,25 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: clip;
   -webkit-font-smoothing: antialiased;
-  transition: background-color 460ms var(--ff-ease), color 320ms ease;
 }
 
 html.light .ff-landing {
-  /* Canvas sáng xanh khói, còn các bề mặt là lớp kính thực sự xuyên nền. */
-  --ff-bg: #d5dfeb;
-  --ff-bg-soft: #c7d4e3;
-  --ff-surface: rgba(190, 207, 228, 0.3);
-  --ff-surface-2: rgba(202, 217, 235, 0.44);
-  --ff-border: rgba(65, 86, 116, 0.16);
-  --ff-border-strong: rgba(65, 86, 116, 0.28);
-  --ff-text: #17263b;
-  --ff-text-soft: #43556e;
-  --ff-text-dim: #5b6d84;
-  --ff-amber: #9a570d;
+  --ff-bg: #f6f7fb;
+  --ff-bg-soft: #ffffff;
+  --ff-surface: rgba(255, 255, 255, 0.78);
+  --ff-surface-2: rgba(255, 255, 255, 0.92);
+  --ff-border: rgba(15, 23, 42, 0.09);
+  --ff-border-strong: rgba(15, 23, 42, 0.16);
+  --ff-text: #0a1020;
+  --ff-text-soft: #4a5670;
+  --ff-text-dim: #5a6678;
+  --ff-amber: #b45309;
   --ff-amber-soft: rgba(245, 158, 11, 0.16);
   --ff-cyan: #0e7490;
   --ff-violet: #6d28d9;
   --ff-emerald: #047857;
-  --ff-shadow: 0 24px 60px rgba(38, 57, 84, 0.12);
-  --ff-glow: 0 0 50px rgba(245, 158, 11, 0.12);
+  --ff-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+  --ff-glow: 0 0 50px rgba(245, 158, 11, 0.14);
 }
 
 /* --------------------------------------------------------------------------
@@ -119,8 +117,6 @@ html.light .ff-landing {
   backdrop-filter: blur(20px) saturate(150%);
   -webkit-backdrop-filter: blur(20px) saturate(150%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), var(--ff-shadow);
-  transition: background 460ms var(--ff-ease), border-color 460ms var(--ff-ease),
-    color 320ms ease, box-shadow 460ms var(--ff-ease), backdrop-filter 460ms var(--ff-ease);
 }
 
 .ff-glass::before {
@@ -145,9 +141,9 @@ html.light .ff-landing {
 html.light .ff-glass::before {
   background: linear-gradient(
     160deg,
-    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.95) 0%,
     rgba(255, 255, 255, 0) 40%,
-    rgba(15, 23, 42, 0.045) 100%
+    rgba(15, 23, 42, 0.06) 100%
   );
 }
 

@@ -15,6 +15,7 @@ import type { User } from '../types';
 import { getTierForLevel, getXPProgress } from '../utils/tier';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
+import { PremiumMark } from './PremiumMark';
 
 interface HologramStudentCardProps {
   user: User;
@@ -37,7 +38,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
   const progress = getXPProgress(user.xp, user.level);
   const fPoints = user.fPoints ?? user.xp;
   const streakCount = user.streakCount ?? 0;
-  const isSuperAdmin = user.role === 'super_admin';
+  const isSuperAdmin = user.email === 'anhtuantran0512@gmail.com';
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
@@ -154,7 +155,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
                     F-FORUM STUDENT ID
                   </div>
                   <div className="text-[9px] font-mono text-neutral-400">
-                    VERIFIED ACADEMIC PASS • {isSuperAdmin ? 'FOUNDER' : user.role}
+                    VERIFIED ACADEMIC PASS • {isSuperAdmin ? 'FOUNDER' : user.staffRole || user.role}
                   </div>
                 </div>
               </div>
@@ -210,6 +211,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
                   ) : (
                     <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
                   )}
+                  <PremiumMark user={user} compact />
                 </div>
 
                 <p className="text-xs text-neutral-400 truncate mb-2 font-mono">

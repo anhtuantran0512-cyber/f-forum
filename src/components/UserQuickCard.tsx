@@ -5,6 +5,7 @@ import type { User, Question, Solution } from '../types';
 import { getTierForLevel } from '../utils/tier';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
+import { PremiumMark } from './PremiumMark';
 
 export interface UserQuickCardProps {
   user: User | null;
@@ -40,7 +41,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
 
   if (!isOpen || !user) return null;
 
-  const isSuperAdmin = user.role === 'super_admin';
+  const isSuperAdmin = user.email === 'anhtuantran0512@gmail.com';
   const tier = getTierForLevel(user.level);
   const userQuestions = questions.filter((q) => q.authorId === user.id);
   const userSolutions = solutions.filter((s) => s.authorId === user.id);
@@ -124,6 +125,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
                 {user.name.replace(/ \(.*\)/, '')}
               </h3>
               {isSuperAdmin && <AdminVerifiedBadge size={15} />}
+              <PremiumMark user={user} compact />
             </div>
             <p className="text-xs text-[#949ba4] font-mono">
               {tier.titleVi} • Lv.{user.level}
@@ -177,9 +179,9 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
               </span>
               <span className="pc-12-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-semibold text-[#dbdee1]">
                 <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                {user.role === 'super_admin'
+                {user.role === 'SUPER_ADMIN'
                   ? 'Quản trị'
-                  : user.role === 'user' && user.scopedClubIds.length > 0
+                  : user.role === 'CLUB_LEADER'
                   ? 'Chủ nhiệm CLB'
                   : 'Học sinh'}
               </span>

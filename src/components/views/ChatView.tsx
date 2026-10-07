@@ -1,6 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import {
   Send,
   Hash,
@@ -26,7 +25,7 @@ import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
 import { useChatCooldown } from '../../utils/chatCooldown';
 import { TriVideoCrossfadeBg } from '../TriVideoCrossfadeBg';
 import { TRI_CHAT_VIDEOS } from '../../utils/chatVideos';
-import { FOUNDER_PROFILE_CONFIG, isSuperAdminRole } from '../../config/admin';
+import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
 import { getTierForLevel } from '../../utils/tier';
 import { pushNotification } from '../../utils/notifications';
 import { ChatCooldownBar } from '../ChatCooldownBar';
@@ -35,7 +34,7 @@ import { ThinkingBubble } from '../ViewTransitionLoader';
 interface ChatViewProps {
   currentUser: User | null;
   messages: ChatMessage[];
-  onSendMessage: (channelId: ChatChannelId, content: string) => void | boolean | Promise<void | boolean>;
+  onSendMessage: (channelId: ChatChannelId, content: string) => void;
   onDeleteMessage?: (messageId: string) => void;
   onlineUsers?: OnlinePresenceUser[];
   onlineCount?: number;
@@ -99,7 +98,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const [isChannelDrawerOpen, setIsChannelDrawerOpen] = useState(false);
   const [isMembersDrawerOpen, setIsMembersDrawerOpen] = useState(false);
   const [inputText, setInputText] = useState('');
-  const [isSending, setIsSending] = useState(false);
   const cooldown = useChatCooldown();
   const [activeVideoIdx, setActiveVideoIdx] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -109,7 +107,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
     name: string;
     avatar: string;
     email?: string;
-    role?: string;
     level: number;
     coin?: number;
   } | null>(null);
@@ -165,10 +162,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
   const dynamicOnlineCount =
     onlineUsers && onlineUsers.length > 0 ? onlineUsers.length : Math.max(1, onlineCount);
-  const isSuperAdminRoleOnline =
-    (onlineUsers || []).some(u => isSuperAdminRole(u.role)) ||
-    (currentUser ? isSuperAdminRole(currentUser.role) : false);
-  const activeStudents = (onlineUsers || []).filter(u => !isSuperAdminRole(u.role));
+  const isMasterAdminOnline =
+    (onlineUsers || []).some(u => isMasterAdmin(u.email)) ||
+    (currentUser ? isMasterAdmin(currentUser.email) : false);
+  const activeStudents = (onlineUsers || []).filter(u => !isMasterAdmin(u.email));
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -183,8 +180,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, activeChannel]);
 
-  const handleSend = async () => {
-    if (!currentUser || isSending) return;
+  const handleSend = () => {
+    if (!currentUser) return;
     /* Đang trong nhịp chờ → rung nhẹ thanh nhịp thay vì im lặng bỏ qua */
     if (cooldown.isCooling) {
       cooldown.nudge();
@@ -192,17 +189,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
     }
     const text = inputText.trim();
     if (!text) return;
-    setIsSending(true);
-    try {
-      const accepted = await onSendMessage(activeChannel, text);
-      if (accepted === false) return;
-      setInputText('');
-      cooldown.startCooldown();
-    } catch {
-      /* Keep the draft when the send fails. */
-    } finally {
-      setIsSending(false);
-    }
+    onSendMessage(activeChannel, text);
+    setInputText('');
+    cooldown.startCooldown();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -216,7 +205,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
     CHANNELS.find(c => c.id === activeChannel) || CHANNELS[0];
 
   return (
-    <section className="ff-mobile-viewport-screen ff-mobile-chat relative w-full h-[100dvh] md:h-screen overflow-hidden flex flex-col pt-[calc(54px+var(--safe-top))] pb-[calc(56px+var(--safe-bottom))] md:pt-24 md:pb-6 px-2 sm:px-6">
+    <section className="relative w-full h-[100dvh] md:h-screen overflow-hidden flex flex-col pt-[calc(54px+var(--safe-top))] pb-[calc(56px+var(--safe-bottom))] md:pt-24 md:pb-6 px-2 sm:px-6">
       {/* Background Video Engine: TriVideoCrossfadeBg running at z-0 absolute inset-0 */}
       <TriVideoCrossfadeBg activeIdx={activeVideoIdx} onIdxChange={setActiveVideoIdx} />
 
@@ -294,7 +283,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
         {/* 3-Column Discord Layout */}
         <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 overflow-hidden pb-2">
-
+          
           {/* Left Column: 4 Channels Selector (md:col-span-3) */}
           <div className="hidden md:flex md:col-span-3 flex-col rounded-3xl liquid-glass bg-black/35 backdrop-blur-xl border border-white/10 p-3.5 shadow-2xl overflow-y-auto space-y-3">
             <div className="flex items-center justify-between px-2 pb-2 border-b border-white/10">
@@ -357,7 +346,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
           {/* Center Column: Active Channel Messages & Input (md:col-span-6 lg:col-span-6) */}
           <div className="col-span-1 md:col-span-9 lg:col-span-6 flex flex-col rounded-3xl liquid-glass bg-black/35 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden">
-
+            
 
 
             {/* Chat Room Subheader */}
@@ -404,10 +393,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
               ) : (
                 currentMessages.map(msg => {
                   const isMe = currentUser ? msg.authorId === currentUser.id : false;
-                  const isSuperAdminMsg = isSuperAdminRole(msg.authorRole);
-                  const isSuperAdmin = currentUser ? isSuperAdminRole(currentUser.role) : false;
-                  const authorDisplayName = isSuperAdminMsg ? FOUNDER_PROFILE_CONFIG.name : msg.authorName;
-                  const authorDisplayAvatar = isSuperAdminMsg ? FOUNDER_PROFILE_CONFIG.avatar : msg.authorAvatar;
+                  const isSuperAdminMsg = isMasterAdmin(msg.authorEmail);
+                  const isSuperAdmin = currentUser ? isMasterAdmin(currentUser.email) : false;
+                  const authorDisplayName = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.name : msg.authorName;
+                  const authorDisplayAvatar = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.avatar : msg.authorAvatar;
 
                   return (
                     <div
@@ -424,7 +413,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                             id: msg.authorId,
                             name: authorDisplayName,
                             avatar: authorDisplayAvatar,
-                            email: msg.authorEmail,
+                            email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
                             level: isSuperAdminMsg ? 150 : (msg.authorLevel || 1),
                           });
                         }}
@@ -468,7 +457,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                                 id: msg.authorId,
                                 name: authorDisplayName,
                                 avatar: authorDisplayAvatar,
-                                email: msg.authorEmail,
+                                email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
                                 level: isSuperAdminMsg ? 150 : (msg.authorLevel || 1),
                               });
                             }}
@@ -541,7 +530,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   type="text"
                   value={inputText}
                   maxLength={300}
-                  disabled={isSending}
                   onChange={e => setInputText(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder={`Nhắn tin vào #${currentChannelObj.name}...`}
@@ -550,7 +538,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
                 <button
                   onClick={handleSend}
-                  disabled={!inputText.trim() || cooldown.isCooling || isSending}
+                  disabled={!inputText.trim() || cooldown.isCooling}
                   className={`relative p-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-black font-bold text-xs sm:text-sm hover:opacity-95 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_2px_12px_rgba(249,115,22,0.4)] flex items-center gap-1.5 cursor-pointer ${
                     cooldown.isCooling ? 'ff-cd-btn is-cooling' : ''
                   }`}
@@ -575,31 +563,32 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </span>
             </div>
 
-            {/* F-Forum public founder profile — this card grants no account permissions. */}
+            {/* SECTION 1: BAN QUẢN TRỊ (ADMIN) */}
             <div className="space-y-2">
               <div className="text-[10px] font-mono uppercase tracking-wider text-amber-400/90 font-bold px-1 flex items-center gap-1.5">
                 <Shield className="w-3 h-3 text-amber-400" />
-                <span>NHÀ SÁNG LẬP F-FORUM</span>
+                <span>BAN QUẢN TRỊ (ADMIN)</span>
               </div>
               <button
                 type="button"
                 onClick={() => {
                   setActiveAuthorCard({
-                    id: 'founder-profile',
-                    name: FOUNDER_PROFILE_CONFIG.name,
-                    avatar: FOUNDER_PROFILE_CONFIG.avatar,
-                    role: 'user',
-                    level: FOUNDER_PROFILE_CONFIG.level,
+                    id: 'admin-master',
+                    name: MASTER_ADMIN_CONFIG.name,
+                    avatar: MASTER_ADMIN_CONFIG.avatar,
+                    email: MASTER_ADMIN_CONFIG.email,
+                    level: 150,
+                    coin: 99999,
                   });
                 }}
                 className="w-full text-left p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-cyan-500/10 hover:from-amber-500/20 hover:to-cyan-500/20 border border-amber-400/35 hover:border-amber-400/60 shadow-[0_0_20px_rgba(245,158,11,0.18)] relative overflow-hidden group cursor-pointer transition-all active:scale-98"
-                title={`Xem hồ sơ hoặc tương tác với ${FOUNDER_PROFILE_CONFIG.name}`}
+                title={`Xem hồ sơ hoặc tương tác với ${MASTER_ADMIN_CONFIG.name}`}
               >
                 <div className="relative flex items-center gap-2.5">
                   <div className="relative shrink-0">
                     <img
-                      src={FOUNDER_PROFILE_CONFIG.avatar}
-                      alt={FOUNDER_PROFILE_CONFIG.name}
+                      src={MASTER_ADMIN_CONFIG.avatar}
+                      alt={MASTER_ADMIN_CONFIG.name}
                       onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
                       loading="lazy"
                       decoding="async"
@@ -609,7 +598,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     />
                     <span
                       className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#0c1218] ${
-                        isSuperAdminRoleOnline
+                        isMasterAdminOnline
                           ? 'bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse'
                           : 'bg-cyan-400 shadow-[0_0_8px_#22d3ee]'
                       }`}
@@ -618,12 +607,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1">
                       <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-200 to-amber-400 truncate">
-                        {FOUNDER_PROFILE_CONFIG.name}
+                        {MASTER_ADMIN_CONFIG.name}
                       </span>
-
+                      <AdminVerifiedBadge size={13} />
                     </div>
                     <span className="text-[10px] text-cyan-300 font-mono block truncate mt-0.5">
-                      {FOUNDER_PROFILE_CONFIG.role}
+                      {MASTER_ADMIN_CONFIG.role}
                     </span>
                   </div>
                 </div>
@@ -689,7 +678,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </div>
             </div>
 
-            {!currentUser && (
+            {/* Guest Login Banner or Audio Visualizer Notice */}
+            {!currentUser ? (
               <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 text-center space-y-2 mt-auto">
                 <p className="text-xs text-neutral-400 leading-snug">
                   Bạn đang xem với tư cách Khách.
@@ -701,6 +691,16 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 >
                   Đăng nhập ngay
                 </button>
+              </div>
+            ) : (
+              <div className="mt-auto p-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-xs text-orange-200">
+                <span className="font-bold flex items-center gap-1.5 text-orange-300 mb-1">
+                  <Radio className="w-3.5 h-3.5 text-orange-400 animate-pulse" />
+                  KÊNH PHÁT THANH NỘI BỘ
+                </span>
+                <p className="text-[10px] text-neutral-300 leading-relaxed">
+                  Nhấn vào biểu tượng 5 cột sóng âm trên thanh điều hướng để kích hoạt âm hưởng thiền định 432Hz binaural.
+                </p>
               </div>
             )}
           </div>
@@ -814,32 +814,33 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </button>
             </div>
 
-            {/* Public founder profile — not an authenticated admin account. */}
+            {/* Admin Card */}
             <div className="space-y-2 mb-4">
               <div className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold px-1 flex items-center gap-1.5">
                 <Shield className="w-3 h-3 text-amber-400" />
-                <span>NHÀ SÁNG LẬP F-FORUM</span>
+                <span>BAN QUẢN TRỊ (ADMIN)</span>
               </div>
               <button
                 type="button"
                 onClick={() => {
                   setIsMembersDrawerOpen(false);
                   setActiveAuthorCard({
-                    id: 'founder-profile',
-                    name: FOUNDER_PROFILE_CONFIG.name,
-                    avatar: FOUNDER_PROFILE_CONFIG.avatar,
-                    role: 'user',
-                    level: FOUNDER_PROFILE_CONFIG.level,
+                    id: 'admin-master',
+                    name: MASTER_ADMIN_CONFIG.name,
+                    avatar: MASTER_ADMIN_CONFIG.avatar,
+                    email: MASTER_ADMIN_CONFIG.email,
+                    level: 150,
+                    coin: 99999,
                   });
                 }}
                 className="w-full text-left p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-cyan-500/10 border border-amber-400/35 relative overflow-hidden cursor-pointer active:scale-98"
-                title={`Xem hồ sơ ${FOUNDER_PROFILE_CONFIG.name}`}
+                title={`Xem hồ sơ ${MASTER_ADMIN_CONFIG.name}`}
               >
                 <div className="flex items-center gap-2.5">
                   <div className="relative shrink-0">
                     <img
-                      src={FOUNDER_PROFILE_CONFIG.avatar}
-                      alt={FOUNDER_PROFILE_CONFIG.name}
+                      src={MASTER_ADMIN_CONFIG.avatar}
+                      alt={MASTER_ADMIN_CONFIG.name}
                       onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
                       loading="lazy"
                       decoding="async"
@@ -849,7 +850,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     />
                     <span
                       className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#0c1218] ${
-                        isSuperAdminRoleOnline
+                        isMasterAdminOnline
                           ? 'bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse'
                           : 'bg-cyan-400 shadow-[0_0_8px_#22d3ee]'
                       }`}
@@ -858,12 +859,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1">
                       <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-200 to-amber-400 truncate">
-                        {FOUNDER_PROFILE_CONFIG.name}
+                        {MASTER_ADMIN_CONFIG.name}
                       </span>
-
+                      <AdminVerifiedBadge size={13} />
                     </div>
                     <span className="text-[10px] text-cyan-300 font-mono block truncate mt-0.5">
-                      {FOUNDER_PROFILE_CONFIG.role}
+                      {MASTER_ADMIN_CONFIG.role}
                     </span>
                   </div>
                 </div>
@@ -931,7 +932,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
       )}
 
       {/* Compact Floating Author Context Popover (anchored beside clicked user) */}
-      {activeAuthorCard && typeof document !== 'undefined' && createPortal(
+      {activeAuthorCard && (
         <div
           role="dialog"
           aria-modal="false"
@@ -939,7 +940,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
           onClick={(e) => {
             if (e.target === e.currentTarget) setActiveAuthorCard(null);
           }}
-          className="fixed inset-0 z-[110] bg-transparent"
+          className="fixed inset-0 z-50 bg-transparent"
         >
           <div
             style={{
@@ -982,7 +983,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               <div className="min-w-0 flex-1">
                 <h4 className="text-xs font-bold text-white flex items-center gap-1 truncate">
                   <span className="truncate">{activeAuthorCard.name}</span>
-                  {isSuperAdminRole(activeAuthorCard.role) && <AdminVerifiedBadge size={12} />}
+                  {isMasterAdmin(activeAuthorCard.email) && <AdminVerifiedBadge size={12} />}
                 </h4>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[9.5px] font-mono font-bold">
@@ -1025,12 +1026,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </button>
             </div>
           </div>
-        </div>,
-        document.body,
+        </div>
       )}
 
       {/* Modal: Tố cáo tài khoản */}
-      {reportUser && typeof document !== 'undefined' && createPortal(
+      {reportUser && (
         <div
           role="dialog"
           aria-modal="true"
@@ -1041,7 +1041,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               setReportSuccessMsg(null);
             }
           }}
-          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
         >
           <div className="liquid-glass w-full max-w-md rounded-3xl bg-neutral-950/95 border border-red-500/40 shadow-2xl p-6 relative">
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
@@ -1100,10 +1100,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                  <label htmlFor="chi-tiet-vi-pham" className="block text-xs font-semibold text-neutral-300 mb-1">
                     Chi tiết vi phạm:
                   </label>
-                  <textarea
+                  <textarea id="chi-tiet-vi-pham"
                     value={reportDetails}
                     onChange={e => setReportDetails(e.target.value)}
                     maxLength={500}
@@ -1142,8 +1142,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </form>
             )}
           </div>
-        </div>,
-        document.body,
+        </div>
       )}
     </section>
   );

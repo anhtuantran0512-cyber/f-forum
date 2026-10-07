@@ -9,24 +9,7 @@ export type DimensionView =
   | 'chronicles'
   | 'coming-soon';
 
-export const USER_ROLES = ['user', 'moderator', 'admin', 'super_admin'] as const;
-export type UserRole = (typeof USER_ROLES)[number];
-
-export type Permission =
-  | 'admin.access'
-  | 'users.view'
-  | 'users.edit'
-  | 'users.delete'
-  | 'users.role'
-  | 'posts.view'
-  | 'posts.edit'
-  | 'posts.delete'
-  | 'reports.view'
-  | 'reports.resolve'
-  | 'analytics.view'
-  | 'logs.view'
-  | 'settings.view'
-  | 'settings.edit';
+export type UserRole = 'SUPER_ADMIN' | 'CLUB_LEADER' | 'STUDENT';
 
 export interface UserStats {
   thanksCount: number;
@@ -45,9 +28,11 @@ export interface User {
   email: string;
   avatar: string;
   role: UserRole;
-  createdAt?: string;
-  updatedAt?: string;
-  lastLoginAt?: string;
+  /** Vai trò kiểm duyệt được Super Admin cấp riêng, không thay quyền chủ nhiệm CLB. */
+  staffRole?: 'MODERATOR' | 'TEACHER';
+  /** 0 = Premium vĩnh viễn; timestamp ms > 0 = ngày hết hạn. */
+  premiumUntil?: number;
+  premiumGrantedAt?: number;
   level: number;
   xp: number;
   coin?: number;
@@ -142,7 +127,6 @@ export interface Solution {
   authorEmail?: string;
   authorAvatar: string;
   authorLevel: number;
-  authorRole?: UserRole;
   content: string;
   createdAt: string;
   createdAtMs?: number;
@@ -170,7 +154,6 @@ export interface ChatMessage {
   authorEmail: string;
   authorAvatar: string;
   authorLevel: number;
-  authorRole?: UserRole;
   content: string;
   timestamp: string;
   timestampMs?: number;
@@ -217,5 +200,6 @@ export interface ReportSubmission {
   reportedUserName: string;
   reason: string;
   details: string;
+  targetEmail: string;
   createdAt: string;
 }

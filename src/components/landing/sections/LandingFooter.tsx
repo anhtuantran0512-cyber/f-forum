@@ -1,6 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
-import { ArrowUpRight, Heart, ShieldCheck } from 'lucide-react';
+import { ArrowUpRight, Heart, Mail, ShieldCheck } from 'lucide-react';
 import { scrollToSection } from '../useLandingMotion';
 
 /** Inline brand marks (lucide no longer ships third-party logo icons). */
@@ -101,6 +101,13 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ onEnterApp, onOpen
                 className="ff-btn ff-btn-ghost h-9 w-9 !p-0"
               >
                 <GithubMark className="h-4 w-4" />
+              </a>
+              <a
+                href="mailto:anhtuantran0512@gmail.com"
+                aria-label="Gửi email cho Ban Quản Trị"
+                className="ff-btn ff-btn-ghost h-9 w-9 !p-0"
+              >
+                <Mail className="h-4 w-4" />
               </a>
             </div>
           </div>

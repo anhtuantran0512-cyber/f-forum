@@ -1,22 +1,78 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import fs from 'node:fs';
 import path from 'node:path';
-import os from 'node:os';
+import { randomInt } from 'node:crypto';
+import { SHOP_ITEMS } from '../src/utils/shopData.ts';
+import { dateKeyInTimeZone } from '../shared/dailyTrivia.ts';
+import {
+  claimDailyAttendance,
+  claimDailyTrivia,
+  claimGiftBox,
+  createEmptyDailyRewardProfile,
+  dailyRewardStatus,
+  sanitizeDailyRewardProfiles,
+  sanitizeFocusRewardSessions,
+  FOCUS_REWARD_AMOUNT,
+  FOCUS_REWARD_MINIMUM_MS,
+  FOCUS_SESSION_MAX_AGE_MS,
+  type DailyRewardProfile,
+  type FocusRewardSession,
+} from './economy.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
-import { createHash, pbkdf2 as pbkdf2Callback, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
-import { promisify } from 'node:util';
-import { isIP } from 'node:net';
+import {
+  MODERATION_ACTIONS,
+  MODERATION_DURATIONS_MIN,
+  applyModerationAction,
+  isUntilActive,
+  moderationStatusOf,
+  normalizeModerationReason,
+  parseModerationMap,
+  pruneModeration,
+  type ModerationAction,
+  type ModerationMap,
+} from './moderation.ts';
+import {
+  MASTER_ADMIN_EMAIL,
+  SlidingWindowRateLimiter,
+  authorizeRequest,
+  clientIpOf,
+  createSessionToken,
+  hashPassword,
+  isHashedPassword,
+  isMasterAdminEmail,
+  normalizeBounty,
+  randomId,
+  sanitizeUserUpdate,
+  solverAwardFor,
+  verifyPassword,
+  verifySessionToken,
+  type SessionClaims,
+} from './authGuard.ts';
+import { decideSocialAccess } from './socialAuth.ts';
+import {
+  buildAnalyticsReport,
+  createEmptyAnalytics,
+  recordAnalyticsActivity,
+  recordAnalyticsHeartbeat,
+  recordAnalyticsPageView,
+  recordAnalyticsSignup,
+  recordAnalyticsVisit,
+  sanitizeAnalyticsStore,
+  type AnalyticsStore,
+} from './analytics.ts';
 
 export interface UserRecord {
   id: string;
   name: string;
   email: string;
   avatar: string;
-  role: 'user' | 'moderator' | 'admin' | 'super_admin';
-  createdAt: string;
-  updatedAt: string;
-  lastLoginAt: string;
+  role: 'SUPER_ADMIN' | 'CLUB_LEADER' | 'STUDENT';
+  /** Vai trò được Super Admin cấp riêng; không thay đổi quyền sở hữu CLB. */
+  staffRole?: 'MODERATOR' | 'TEACHER';
+  /** Mốc Premium (ms); 0 = vĩnh viễn, undefined = chưa được cấp. */
+  premiumUntil?: number;
+  premiumGrantedAt?: number;
   level: number;
   xp: number;
   fPoints?: number;
@@ -34,56 +90,17 @@ export interface UserRecord {
   scopedClubIds: string[];
 }
 
-interface UserModerationState {
-  lockedAt?: string;
-  lockReason?: string;
-  mutedAt?: string;
-  mutedUntil?: number | null;
-  muteReason?: string;
-}
-
-interface AdminAuditEvent {
+export interface AdminWarningRecord {
   id: string;
-  actorId: string;
-  actorName: string;
-  action: string;
-  targetId: string;
-  targetName: string;
+  at: number;
+  targetEmail: string;
   reason: string;
-  createdAt: string;
-  ip?: string;
-  userAgent?: string;
-  result: 'success' | 'failure';
-}
-
-export type RewardBoxType = 'blue' | 'gold' | 'red';
-
-export interface DailyRewardBoxRecord {
-  id: string;
-  type: RewardBoxType;
-  earnedOn: string;
-  streak: number;
-}
-
-export interface StoredDailyRewardState {
-  lastAttendanceDate: string;
-  attendanceStreak: number;
-  boxes: DailyRewardBoxRecord[];
-  openedBoxes: Record<string, { type: RewardBoxType; coins: number; openedOn: string }>;
-  date: string;
-  triviaClaimed: boolean;
-  triviaCorrect: boolean;
-  triviaCoins: number;
-  studyMilliseconds: number;
-  studyClaimedMinutes: number[];
-  activeStudySession: { id: string; startedAt: number; lastHeartbeatAt: number } | null;
+  by: string;
 }
 
 export interface ForumDataStore {
-  schemaVersion: number;
   users: Record<string, UserRecord>;
   passwords: Record<string, string>;
-  dailyRewards: Record<string, StoredDailyRewardState>;
   clubs: any[];
   clubPosts: any[];
   questions: any[];
@@ -91,10 +108,19 @@ export interface ForumDataStore {
   chatMessages: any[];
   feedbacks: any[];
   reports?: any[];
-  userModeration: Record<string, UserModerationState>;
-  adminAuditLog: AdminAuditEvent[];
-  coinCredits: Record<string, { date: string; amount: number }>;
   about?: any;
+  /** Áp chế theo email: cấm / khoá gửi tin, có thời hạn. Xem server/moderation.ts. */
+  moderation?: ModerationMap;
+  /** Nhật ký hành động quản trị — cần cho truy vết, tối đa 300 mục. */
+  auditLog?: any[];
+  /** Thời lượng, lượt mở và hoạt động; visitor ID được băm trước khi lưu. */
+  analytics?: AnalyticsStore;
+  /** Cảnh cáo riêng tư, tối đa 1.000 bản ghi mới nhất. */
+  adminWarnings?: AdminWarningRecord[];
+  /** Điểm danh, lượt trả lời và kho hộp quà do máy chủ quản lý. */
+  dailyRewards?: Record<string, DailyRewardProfile>;
+  /** Phiên Pomodoro đang mở, đối chiếu bằng đồng hồ máy chủ khi nhận thưởng. */
+  focusRewardSessions?: Record<string, FocusRewardSession>;
 }
 
 
@@ -120,111 +146,70 @@ export function calculateLevelFromXP(xp: number): number {
 }
 
 const DEFAULT_AVATAR = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%231a2332"/><circle cx="50" cy="38" r="20" fill="%234a5d78"/><path d="M20 90 Q50 65 80 90" fill="%234a5d78"/></svg>`;
-const DATA_SCHEMA_VERSION = 3;
-const USER_ROLE_VALUES = new Set(['user', 'moderator', 'admin', 'super_admin']);
-const ADMIN_PERMISSIONS: Record<UserRecord['role'], string[]> = {
-  user: [],
-  moderator: ['admin.access', 'users.view', 'users.edit', 'posts.view', 'posts.delete', 'reports.view', 'reports.resolve', 'analytics.view'],
-  admin: ['admin.access', 'users.view', 'users.edit', 'users.delete', 'posts.view', 'posts.edit', 'posts.delete', 'reports.view', 'reports.resolve', 'analytics.view', 'logs.view', 'settings.view', 'settings.edit'],
-  super_admin: ['admin.access', 'users.view', 'users.edit', 'users.delete', 'users.role', 'posts.view', 'posts.edit', 'posts.delete', 'reports.view', 'reports.resolve', 'analytics.view', 'logs.view', 'settings.view', 'settings.edit'],
-};
-const SESSION_COOKIE_NAME = 'fforum_session';
-const configuredTestSessionTtl = Number(process.env.FFORUM_TEST_SESSION_TTL_MS);
-const SESSION_TTL_MS = process.env.NODE_TEST_CONTEXT && Number.isSafeInteger(configuredTestSessionTtl) && configuredTestSessionTtl >= 500 && configuredTestSessionTtl <= 60_000
-  ? configuredTestSessionTtl
-  : 12 * 60 * 60 * 1000;
-const PASSWORD_HASH_ITERATIONS = 600_000;
-const MAX_REQUEST_BODY_BYTES = 25 * 1024 * 1024;
-const MAX_QA_IMAGE_BYTES = 8 * 1024 * 1024;
-const MAX_QA_IMAGE_DATA_URL_CHARS = Math.ceil(MAX_QA_IMAGE_BYTES / 3) * 4 + 32;
-const MAX_DAILY_REWARD_COIN_CREDIT = 500;
-const MAX_STUDY_SESSION_IDLE_MS = 2 * 60_000;
-const MAX_STUDY_CREDIT_PER_HEARTBEAT_MS = 60_000;
-const MAX_DAILY_STUDY_MILLISECONDS = 120 * 60_000;
-const STUDY_REWARD_MILESTONES = [
-  { minutes: 25, coins: 25 },
-  { minutes: 60, coins: 35 },
-  { minutes: 120, coins: 60 },
-] as const;
-const BOX_COIN_REWARDS: Record<RewardBoxType, number> = { blue: 30, gold: 80, red: 200 };
-const TRIVIA_CORRECT_OPTION_INDICES = [3, 1, 0, 2, 1, 2, 2, 0, 0, 1, 0, 2] as const;
-const ACCOUNT_READ_ROUTE_RATE_LIMITS: Record<string, { maxRequests: number; windowMs: number }> = {
-  '/api/sync': { maxRequests: 60, windowMs: 60_000 },
-  '/api/events': { maxRequests: 30, windowMs: 60_000 },
-  '/api/rewards/daily/state': { maxRequests: 30, windowMs: 60_000 },
-  '/api/admin/console': { maxRequests: 30, windowMs: 60_000 },
-  '/api/admin/users': { maxRequests: 30, windowMs: 60_000 },
-  '/api/admin/posts': { maxRequests: 30, windowMs: 60_000 },
-  '/api/admin/reports': { maxRequests: 30, windowMs: 60_000 },
-  '/api/admin/logs': { maxRequests: 20, windowMs: 60_000 },
-};
-const ACCOUNT_ROUTE_RATE_LIMITS: Record<string, { maxRequests: number; windowMs: number }> = {
-  '/api/chat': { maxRequests: 30, windowMs: 60_000 },
-  '/api/clubs/posts': { maxRequests: 10, windowMs: 60 * 60_000 },
-  '/api/questions': { maxRequests: 10, windowMs: 60 * 60_000 },
-  '/api/solutions': { maxRequests: 30, windowMs: 60 * 60_000 },
-  '/api/reports': { maxRequests: 10, windowMs: 60 * 60_000 },
-  '/api/rewards/coin': { maxRequests: 20, windowMs: 60_000 },
-  '/api/rewards/daily/attendance': { maxRequests: 3, windowMs: 60_000 },
-  '/api/rewards/daily/trivia': { maxRequests: 3, windowMs: 60_000 },
-  '/api/rewards/daily/boxes/open': { maxRequests: 10, windowMs: 60_000 },
-  '/api/rewards/study/start': { maxRequests: 5, windowMs: 60_000 },
-  '/api/rewards/study/pulse': { maxRequests: 6, windowMs: 60_000 },
-  '/api/rewards/study/stop': { maxRequests: 5, windowMs: 60_000 },
-};
-const pbkdf2 = promisify(pbkdf2Callback);
-const sessions = new Map<string, { email: string; userId: string; expiresAt: number; elevatedUntil?: number }>();
-const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
-const UNAUTHENTICATED_POST_PATHS = new Set([
-  '/api/auth/register', '/api/auth/login', '/api/auth/social', '/api/auth/logout',
-  '/api/feedback', '/api/presence',
-]);
-let dummyPasswordHashPromise: Promise<string> | null = null;
 
-const isNodeTestProcess = process.env.NODE_TEST_CONTEXT === 'child-v8';
-const projectRoot = path.resolve(process.cwd());
-const defaultPrivateDataDir = path.join(os.homedir(), '.local', 'share', 'f-forum');
-const isolatedTestDataDir = path.join(os.tmpdir(), 'f-forum-test-data', String(process.pid));
-const configuredDataDir = process.env.FFORUM_DATA_DIR ? path.resolve(process.env.FFORUM_DATA_DIR) : '';
-const configuredDataDirRelativePath = configuredDataDir ? path.relative(projectRoot, configuredDataDir) : '';
-const configuredDataDirIsInsideProject = Boolean(configuredDataDir) && (
-  configuredDataDirRelativePath === '' ||
-  (configuredDataDirRelativePath !== '..' && !configuredDataDirRelativePath.startsWith(`..${path.sep}`) && !path.isAbsolute(configuredDataDirRelativePath))
-);
-if (!isNodeTestProcess && configuredDataDirIsInsideProject) {
-  console.warn('[Forum Server] FFORUM_DATA_DIR must be outside the project root; using the private home data directory instead.');
-}
-const dataDir = configuredDataDir && (isNodeTestProcess || !configuredDataDirIsInsideProject)
-  ? configuredDataDir
-  : isNodeTestProcess
-    ? isolatedTestDataDir
-    : defaultPrivateDataDir;
-const dataFilePath = path.join(dataDir, 'forum-data.json');
-const legacyDataFilePath = path.resolve(process.cwd(), 'data', 'forum-data.json');
+/**
+ * Thư mục dữ liệu — đổi được qua `FFORUM_DATA_DIR` (hữu ích khi chạy test song
+ * song). Đọc biến môi trường MỖI LẦN dùng chứ không chốt lúc import: nếu chốt
+ * sớm thì việc đặt `FFORUM_DATA_DIR` sau khi nạp module bị bỏ qua âm thầm.
+ */
+const dataDir = (): string =>
+  process.env.FFORUM_DATA_DIR
+    ? path.resolve(process.env.FFORUM_DATA_DIR)
+    : path.resolve(process.cwd(), 'data');
+const dataFilePath = (): string => path.join(dataDir(), 'forum-data.json');
+const ADMIN_BOOTSTRAP_PASSWORD_MIN_LENGTH = 16;
+
+/**
+ * Mật khẩu quản trị chỉ được khởi tạo từ secret ngoài mã nguồn. Mật khẩu yếu
+ * hoặc thiếu không tạo credential; khi đó Super Admin chỉ đăng nhập được qua
+ * OAuth phía máy chủ đã xác minh.
+ */
+const configuredAdminBootstrapPassword = (): string | null => {
+  const password = String(process.env.FFORUM_ADMIN_PASSWORD || '').trim();
+  return password.length >= ADMIN_BOOTSTRAP_PASSWORD_MIN_LENGTH ? password : null;
+};
 
 let store: ForumDataStore = {
-  schemaVersion: DATA_SCHEMA_VERSION,
-  users: {},
+  users: {
+    'anhtuantran0512@gmail.com': {
+      id: 'user-admin',
+      name: 'Trần Văn Anh Tuấn',
+      email: 'anhtuantran0512@gmail.com',
+      avatar: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c.png',
+      role: 'SUPER_ADMIN',
+      level: 150,
+      xp: 45000,
+      fPoints: 45000,
+      streakCount: 36,
+      inventory: [],
+      equippedBadge: '',
+      bio: 'F-Forum Architect & Core Administrator. Xây dựng tương lai tri thức học đường.',
+      gender: 'Nam',
+      city: 'Hà Nội',
+      className: 'K19 Software Engineering',
+      scopedClubIds: [],
+    },
+  },
   passwords: {},
-  dailyRewards: {},
-  userModeration: {},
-  adminAuditLog: [],
   clubs: [],
   clubPosts: [],
   questions: [],
   solutions: [],
   chatMessages: [],
   feedbacks: [],
-  coinCredits: {},
+  analytics: createEmptyAnalytics(),
+  adminWarnings: [],
+  dailyRewards: {},
+  focusRewardSessions: {},
   about: {
     headline: 'Người Kiến Tạo & Quản Trị Hệ Thống',
     subtitle: 'Field Notes & Development Chronicles — BroAmStuck Studio',
     founder: {
       name: 'Trần Văn Anh Tuấn',
-      role: 'F-Forum Founder • BroAmStuck Studio',
+      role: 'Admin F-Forum • Owner BroAmStuck Studio',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&h=600&fit=crop&crop=faces',
       bio: 'Xây dựng F-Forum từ những dòng code đầu tiên với mong muốn tạo nên một không gian số bình đẳng, nơi học sinh tự do kết nối tri thức, chia sẻ câu lạc bộ và lưu giữ ký ức tuổi học trò mà không bị rào cản bởi phán xét hay công nghệ phức tạp.',
-      email: '',
+      email: 'anhtuantran0512@gmail.com',
     },
     milestones: [
       {
@@ -258,368 +243,449 @@ let store: ForumDataStore = {
 /** Miền email của lớp tài khoản mô phỏng đã bị xoá — chặn vĩnh viễn ở tầng server */
 const RETIRED_VIRTUAL_DOMAIN = '@sv.f-forum.vn';
 
-/** Chỉ giữ tài khoản thật và những trường hồ sơ được phép; vai trò đến từ máy chủ. */
+/** Email hợp lệ (kiểm tra thực dụng, không cần RFC 5322 đầy đủ). */
+const EMAIL_PATTERN = /^[^\s@,;:]+@[^\s@,;:.]+(\.[^\s@,;:.]+)+$/;
+
+/** Chỉ giữ tài khoản thật: bỏ bản ghi mô phỏng cũ và bản ghi hỏng */
+/** Số nguyên không âm, dùng để lấp các trường số của bản ghi cũ. */
+const asCount = (value: unknown, fallback = 0): number => {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : fallback;
+};
+
+const asBoundedCount = (value: unknown, fallback: number, max: number): number =>
+  Math.min(max, asCount(value, fallback));
+
+const SHOP_ITEM_BY_ID = new Map(SHOP_ITEMS.map((item) => [item.id, item]));
+const MAX_USER_COIN = 10_000_000;
+const MAX_USER_XP = 100_000_000;
+
+/**
+  Chuẩn hoá bản ghi người dùng nạp từ đĩa.
+
+  Chỉ spread thô (`{ ...raw, email }`) là không đủ: tệp dữ liệu viết ra từ bản cũ
+  thiếu hẳn những trường thêm về sau (ví dụ `scopedClubIds`). Bản ghi đó đi thẳng
+  vào store với trường `undefined`, và chỗ nào spread/cộng dồn trường ấy sẽ ném
+  `TypeError` — làm dở dang cả một luồng đang mutate nhiều bước.
+*/
 function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
   const out: Record<string, UserRecord> = {};
-  if (!rawUsers || typeof rawUsers !== 'object' || Array.isArray(rawUsers)) return out;
-  const safeString = (value: unknown, maxLength: number, fallback = '') =>
-    typeof value === 'string' ? value.trim().slice(0, maxLength) : fallback;
-  const safeNumber = (value: unknown, min: number, max: number, fallback: number) => {
-    const number = Number(value);
-    return Number.isFinite(number) ? Math.max(min, Math.min(max, Math.floor(number))) : fallback;
-  };
-
+  if (!rawUsers || typeof rawUsers !== 'object') return out;
   Object.values(rawUsers).forEach((raw: any) => {
     if (!raw || typeof raw !== 'object') return;
     const email = typeof raw.email === 'string' ? raw.email.trim().toLowerCase() : '';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.endsWith(RETIRED_VIRTUAL_DOMAIN)) return;
-    const id = safeString(raw.id, 128);
-    const name = safeString(raw.name, 60);
-    if (!id || !name) return;
-
-    const storedRole = typeof raw.role === 'string' ? raw.role.trim().toLowerCase() : '';
-    // Migration is performed only while loading the private server-owned store.
-    // Legacy CLUB_LEADER/STUDENT accounts become ordinary users; club scope is retained.
-    const role: UserRecord['role'] = storedRole === 'super_admin' || storedRole === 'super-admin'
-      ? 'super_admin'
-      : storedRole === 'admin'
-        ? 'admin'
-        : storedRole === 'moderator'
-          ? 'moderator'
-          : 'user';
-    const safeDate = (value: unknown, fallback: string) => {
-      if (typeof value !== 'string' || !Number.isFinite(Date.parse(value))) return fallback;
-      return new Date(value).toISOString();
-    };
-    const createdAt = safeDate(raw.createdAt, safeDate(raw.joinedAt, new Date().toISOString()));
-    const avatar = safeString(raw.avatar, 2_000, DEFAULT_AVATAR);
+    if (!email || !email.includes('@') || email.endsWith(RETIRED_VIRTUAL_DOMAIN)) return;
+    if (!raw.id || !raw.name) return;
+    const allowedRole = ['SUPER_ADMIN', 'CLUB_LEADER', 'STUDENT'].includes(raw.role)
+      ? raw.role as UserRecord['role']
+      : 'STUDENT';
+    const role: UserRecord['role'] = isMasterAdminEmail(email) ? 'SUPER_ADMIN' : allowedRole;
+    const staffRole = role !== 'SUPER_ADMIN' && ['MODERATOR', 'TEACHER'].includes(raw.staffRole)
+      ? raw.staffRole as 'MODERATOR' | 'TEACHER'
+      : undefined;
+    const premiumUntil = typeof raw.premiumUntil === 'number' && Number.isFinite(raw.premiumUntil) && raw.premiumUntil >= 0
+      ? Math.floor(raw.premiumUntil)
+      : undefined;
+    const safeRaw = { ...raw };
+    delete safeRaw.premiumGrantedBy;
+    const xp = asBoundedCount(raw.xp, 0, MAX_USER_XP);
+    const inventory = Array.isArray(raw.inventory)
+      ? [...new Set(raw.inventory.filter((id: unknown) => typeof id === 'string' && SHOP_ITEM_BY_ID.has(id)))].slice(0, 500)
+      : [];
     out[email] = {
-      id,
-      name,
+      ...safeRaw,
       email,
-      avatar: avatar.startsWith('https://') || avatar === DEFAULT_AVATAR || avatar.startsWith('data:image/png;base64,') || avatar.startsWith('data:image/jpeg;base64,') || avatar.startsWith('data:image/webp;base64,') ? avatar : DEFAULT_AVATAR,
       role,
-      createdAt,
-      updatedAt: safeDate(raw.updatedAt, createdAt),
-      lastLoginAt: safeDate(raw.lastLoginAt, ''),
-      level: safeNumber(raw.level, 1, 150, 1),
-      xp: safeNumber(raw.xp, 0, 1_000_000_000, 0),
-      fPoints: safeNumber(raw.fPoints, 0, 1_000_000_000, 0),
-      streakCount: safeNumber(raw.streakCount, 0, 100_000, 0),
-      coin: safeNumber(raw.coin, 0, 1_000_000_000, 100),
-      inventory: Array.isArray(raw.inventory) ? raw.inventory.filter((item: unknown) => typeof item === 'string').slice(0, 500) : [],
-      equippedBadge: safeString(raw.equippedBadge, 80),
-      bio: safeString(raw.bio, 2_000),
-      gender: safeString(raw.gender, 40),
-      city: safeString(raw.city, 100),
-      className: safeString(raw.className, 100),
-      joinedAt: safeDate(raw.joinedAt, createdAt),
-      bannerUrl: safeString(raw.bannerUrl, 2_000),
-      profileGradient: safeString(raw.profileGradient, 120),
-      scopedClubIds: Array.isArray(raw.scopedClubIds) ? raw.scopedClubIds.filter((id: unknown) => typeof id === 'string').slice(0, 100) : [],
+      staffRole,
+      ...(premiumUntil !== undefined ? { premiumUntil } : {}),
+      ...(typeof raw.premiumGrantedAt === 'number' && Number.isFinite(raw.premiumGrantedAt)
+        ? { premiumGrantedAt: Math.max(0, Math.floor(raw.premiumGrantedAt)) }
+        : {}),
+      avatar: typeof raw.avatar === 'string' ? raw.avatar : '',
+      level: calculateLevelFromXP(xp),
+      xp,
+      fPoints: asBoundedCount(raw.fPoints, xp, MAX_USER_XP),
+      coin: asBoundedCount(raw.coin, 100, MAX_USER_COIN),
+      streakCount: asBoundedCount(raw.streakCount, 0, 100_000),
+      inventory,
+      equippedBadge: typeof raw.equippedBadge === 'string' && inventory.includes(raw.equippedBadge)
+        ? raw.equippedBadge
+        : '',
+      scopedClubIds: Array.isArray(raw.scopedClubIds)
+        ? raw.scopedClubIds.slice(0, 500).map((c: unknown) => String(c))
+        : [],
     };
   });
   return out;
 }
 
-type EncodedPasswordHash = string & { readonly __encodedPasswordHash: true };
-
-function isPasswordHash(value: unknown): value is EncodedPasswordHash {
-  return typeof value === 'string' && /^pbkdf2-sha256\$\d{6,7}\$[a-f0-9]{32,128}\$[a-f0-9]{64}$/.test(value);
+/**
+ * Nhật ký là dữ liệu nội bộ nhưng vẫn phải chuẩn hoá khi nạp: file JSON có thể
+ * là bản cũ, bị sửa tay hoặc hỏng một vài dòng. Không cho object lạ tràn vào UI
+ * quản trị (ví dụ `at: {}` làm `new Date(...).toISOString()` ném lỗi).
+ */
+function sanitizeAuditLog(rawLog: unknown): any[] {
+  if (!Array.isArray(rawLog)) return [];
+  return rawLog
+    .filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry))
+    .slice(0, 300)
+    .map((entry: any) => ({
+      id: typeof entry.id === 'string' && entry.id ? entry.id.slice(0, 120) : randomId('audit'),
+      at: typeof entry.at === 'number' && Number.isFinite(entry.at) && entry.at >= 0 ? entry.at : 0,
+      action: typeof entry.action === 'string' ? entry.action.slice(0, 80) : 'unknown',
+      targetEmail: typeof entry.targetEmail === 'string' ? entry.targetEmail.slice(0, 120).toLowerCase() : '',
+      reason: typeof entry.reason === 'string' ? entry.reason.slice(0, 500) : '',
+      by: typeof entry.by === 'string' ? entry.by.slice(0, 120).toLowerCase() : '',
+    }));
 }
 
-async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16);
-  const digest = await pbkdf2(password, salt, PASSWORD_HASH_ITERATIONS, 32, 'sha256') as Buffer;
-  return `pbkdf2-sha256$${PASSWORD_HASH_ITERATIONS}$${salt.toString('hex')}$${digest.toString('hex')}`;
+function sanitizeAdminWarnings(rawWarnings: unknown): AdminWarningRecord[] {
+  if (!Array.isArray(rawWarnings)) return [];
+  return rawWarnings
+    .filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry))
+    .slice(0, 1000)
+    .map((entry: any) => ({
+      id: typeof entry.id === 'string' && entry.id ? entry.id.slice(0, 120) : randomId('warning'),
+      at: typeof entry.at === 'number' && Number.isFinite(entry.at) && entry.at >= 0 ? entry.at : 0,
+      targetEmail: typeof entry.targetEmail === 'string' ? entry.targetEmail.trim().toLowerCase().slice(0, 120) : '',
+      reason: typeof entry.reason === 'string' ? entry.reason.trim().slice(0, 500) : '',
+      by: typeof entry.by === 'string' ? entry.by.trim().toLowerCase().slice(0, 120) : '',
+    }))
+    .filter((entry) => entry.targetEmail && entry.reason);
 }
 
-async function verifyPasswordHash(password: string, encodedHash: string): Promise<boolean> {
-  const match = /^pbkdf2-sha256\$(\d{6,7})\$([a-f0-9]{32,128})\$([a-f0-9]{64})$/.exec(encodedHash);
-  if (!match) return false;
-  const iterations = Number(match[1]);
-  if (iterations < 100_000 || iterations > 1_000_000) return false;
-  const salt = Buffer.from(match[2], 'hex');
-  const expected = Buffer.from(match[3], 'hex');
-  const derived = await pbkdf2(password, salt, iterations, expected.length, 'sha256') as Buffer;
-  return timingSafeEqual(derived, expected);
-}
-
-async function getDummyPasswordHash(): Promise<string> {
-  if (!dummyPasswordHashPromise) dummyPasswordHashPromise = hashPassword(randomBytes(32).toString('hex'));
-  return dummyPasswordHashPromise;
-}
-
-const isDateKey = (value: unknown): value is string =>
-  typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
-
-function emptyDailyRewardState(): StoredDailyRewardState {
-  return {
-    lastAttendanceDate: '',
-    attendanceStreak: 0,
-    boxes: [],
-    openedBoxes: {},
-    date: '',
-    triviaClaimed: false,
-    triviaCorrect: false,
-    triviaCoins: 0,
-    studyMilliseconds: 0,
-    studyClaimedMinutes: [],
-    activeStudySession: null,
-  };
-}
-
-function sanitizeDailyRewardState(value: any): StoredDailyRewardState {
-  const empty = emptyDailyRewardState();
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return empty;
-  const validBoxTypes = new Set<RewardBoxType>(['blue', 'gold', 'red']);
-  const boxes = Array.isArray(value.boxes)
-    ? value.boxes.slice(-500).flatMap((box: any) => {
-        if (!box || typeof box !== 'object' || !validBoxTypes.has(box.type) || typeof box.id !== 'string' || !/^[a-zA-Z0-9_-]{8,100}$/.test(box.id) || !isDateKey(box.earnedOn)) return [];
-        const streak = Number(box.streak);
-        if (!Number.isSafeInteger(streak) || streak < 1 || streak > 1_000_000) return [];
-        return [{ id: box.id, type: box.type as RewardBoxType, earnedOn: box.earnedOn, streak }];
-      })
-    : [];
-  const openedBoxes: StoredDailyRewardState['openedBoxes'] = {};
-  const rawOpenedBoxes = value.openedBoxes && typeof value.openedBoxes === 'object' ? Object.entries(value.openedBoxes).slice(-500) : [];
-  for (const [id, entry] of rawOpenedBoxes) {
-    const box = entry as any;
-    if (!/^[a-zA-Z0-9_-]{8,100}$/.test(id) || !box || !validBoxTypes.has(box.type) || !isDateKey(box.openedOn)) continue;
-    if (Number(box.coins) !== BOX_COIN_REWARDS[box.type as RewardBoxType]) continue;
-    openedBoxes[id] = { type: box.type as RewardBoxType, coins: BOX_COIN_REWARDS[box.type as RewardBoxType], openedOn: box.openedOn };
-  }
-  const rawClaimedMinutes: unknown[] = Array.isArray(value.studyClaimedMinutes) ? value.studyClaimedMinutes : [];
-  const studyClaimedMinutes: number[] = [...new Set<number>(rawClaimedMinutes.filter((minute): minute is number =>
-    typeof minute === 'number' && STUDY_REWARD_MILESTONES.some(goal => goal.minutes === minute),
-  ))].sort((left, right) => left - right);
-  const rawStudyMilliseconds = Number(value.studyMilliseconds);
-  const rawActive = value.activeStudySession;
-  const now = Date.now();
-  const activeStudySession = rawActive && typeof rawActive === 'object' &&
-    typeof rawActive.id === 'string' && /^[a-zA-Z0-9_-]{8,100}$/.test(rawActive.id) &&
-    Number.isFinite(rawActive.startedAt) && Number.isFinite(rawActive.lastHeartbeatAt) &&
-    rawActive.startedAt > 0 && rawActive.startedAt <= now + 60_000 &&
-    rawActive.lastHeartbeatAt >= rawActive.startedAt && rawActive.lastHeartbeatAt <= now + 60_000
-    ? { id: rawActive.id, startedAt: rawActive.startedAt, lastHeartbeatAt: rawActive.lastHeartbeatAt }
-    : null;
-  const triviaCoins = Number(value.triviaCoins);
-  return {
-    lastAttendanceDate: isDateKey(value.lastAttendanceDate) ? value.lastAttendanceDate : '',
-    attendanceStreak: Number.isSafeInteger(value.attendanceStreak) ? Math.max(0, Math.min(1_000_000, value.attendanceStreak)) : 0,
-    boxes,
-    openedBoxes,
-    date: isDateKey(value.date) ? value.date : '',
-    triviaClaimed: Boolean(value.triviaClaimed),
-    triviaCorrect: Boolean(value.triviaCorrect),
-    triviaCoins: Number.isSafeInteger(triviaCoins) ? Math.max(0, Math.min(10, triviaCoins)) : 0,
-    studyMilliseconds: Number.isFinite(rawStudyMilliseconds) ? Math.max(0, Math.min(MAX_DAILY_STUDY_MILLISECONDS, Math.floor(rawStudyMilliseconds))) : 0,
-    studyClaimedMinutes,
-    activeStudySession,
-  };
-}
-
-async function loadStoreFromDisk() {
+function loadStoreFromDisk() {
   try {
-    if (!isNodeTestProcess && path.resolve(dataFilePath) !== path.resolve(legacyDataFilePath) && !fs.existsSync(dataFilePath) && fs.existsSync(legacyDataFilePath)) {
-      fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 });
-      try {
-        fs.renameSync(legacyDataFilePath, dataFilePath);
-      } catch (error: any) {
-        if (error?.code !== 'EXDEV') throw error;
-        const migrationPath = `${dataFilePath}.migration-${randomBytes(6).toString('hex')}`;
-        fs.copyFileSync(legacyDataFilePath, migrationPath, fs.constants.COPYFILE_EXCL);
-        fs.chmodSync(migrationPath, 0o600);
-        fs.renameSync(migrationPath, dataFilePath);
-        fs.unlinkSync(legacyDataFilePath);
+    if (fs.existsSync(dataFilePath())) {
+      const raw = fs.readFileSync(dataFilePath(), 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        const cleanUsers = sanitizeUsers({ ...store.users, ...(parsed.users || {}) });
+        const cleanPasswords: Record<string, string> = {};
+        Object.entries(parsed.passwords || {}).forEach(([email, pw]) => {
+          const key = email.trim().toLowerCase();
+          if (cleanUsers[key]) cleanPasswords[key] = pw as string;
+        });
+        store = {
+          users: cleanUsers,
+          passwords: { ...store.passwords, ...cleanPasswords },
+          clubs: Array.isArray(parsed.clubs)
+            ? parsed.clubs.map((club: any) => club && typeof club === 'object'
+              ? {
+                  ...club,
+                  /* Dữ liệu cũ đã từng duyệt CLB được xem là đã nhận thưởng;
+                     không mở lại cửa cộng XP sau khi từ chối rồi duyệt lại. */
+                  founderRewardGranted: club.founderRewardGranted === true || club.status === 'APPROVED',
+                }
+              : club)
+            : [],
+          clubPosts: Array.isArray(parsed.clubPosts) ? parsed.clubPosts : [],
+          questions: Array.isArray(parsed.questions)
+            ? parsed.questions.map((question: any) => question && typeof question === 'object'
+              ? {
+                  ...question,
+                  /* Với bản ghi cũ, đã có đáp án chuẩn nghĩa là thưởng có thể
+                     đã được trả; giữ khóa chống phát lại sau khi xóa/chọn lại. */
+                  bountyRewardClaimed: question.bountyRewardClaimed === true || Boolean(question.bestSolutionId),
+                  solutionRewardedEmails: Array.isArray(question.solutionRewardedEmails)
+                    ? [...new Set(question.solutionRewardedEmails.filter((email: unknown) => typeof email === 'string').map((email: string) => email.toLowerCase()))].slice(0, 1000)
+                    : [],
+                }
+              : question)
+            : [],
+          solutions: Array.isArray(parsed.solutions)
+            ? parsed.solutions.map((solution: any) => solution && typeof solution === 'object'
+              ? {
+                  ...solution,
+                  /* Đáp án từng được chọn đã nhận +5 upvote từ logic cũ; khóa
+                     bonus ở dữ liệu nạp để không cộng lại khi đổi rồi chọn lại. */
+                  bestSelectionBonusGranted: solution.bestSelectionBonusGranted === true || Boolean(solution.isBest),
+                }
+              : solution)
+            : [],
+          chatMessages: Array.isArray(parsed.chatMessages) ? parsed.chatMessages : [],
+          feedbacks: Array.isArray(parsed.feedbacks) ? parsed.feedbacks : [],
+          /* LỖI MẤT DỮ LIỆU: bản cũ dựng lại store mà bỏ quên `reports`, nên mọi
+             báo cáo vi phạm đã ghi xuống đĩa bị vứt đi mỗi lần khởi động lại. */
+          reports: Array.isArray(parsed.reports) ? parsed.reports : store.reports || [],
+          about: parsed.about || store.about,
+          /* Hai field này PHẢI được liệt kê ở đây: loadStoreFromDisk dựng lại store
+             bằng một object literal nên field nào không liệt kê sẽ bị vứt mỗi lần
+             khởi động. `reports` từng mất dữ liệu đúng theo cách đó. */
+          moderation: parseModerationMap(parsed.moderation),
+          auditLog: sanitizeAuditLog(parsed.auditLog),
+          analytics: sanitizeAnalyticsStore(parsed.analytics),
+          adminWarnings: sanitizeAdminWarnings(parsed.adminWarnings),
+          dailyRewards: sanitizeDailyRewardProfiles(parsed.dailyRewards, new Set(Object.keys(cleanUsers))),
+          focusRewardSessions: sanitizeFocusRewardSessions(
+            parsed.focusRewardSessions,
+            new Set(Object.keys(cleanUsers)),
+          ),
+        };
       }
-      fs.chmodSync(dataFilePath, 0o600);
     }
-    if (!fs.existsSync(dataFilePath)) return;
+  } catch (err) {
+    console.error('[Forum Server] Failed to load data from disk:', err);
+    /*
+      Không được để yên rồi ghi đè. Nếu tệp hỏng (đĩa đầy, bị ngắt giữa chừng ở
+      bản cũ chưa ghi atomic) thì store giữ giá trị rỗng mặc định, và lần
+      persistStoreToDisk đầu tiên sẽ XOÁ SẠCH tệp đó — mất luôn cơ hội cứu.
+      Đổi tên tệp hỏng sang một bản sao có dấu thời gian để còn khôi phục tay.
+    */
     try {
-      fs.chmodSync(dataDir, 0o700);
-      fs.chmodSync(dataFilePath, 0o600);
-    } catch {
-      /* Restrictive permissions are best-effort on platforms without chmod support. */
-    }
-    const raw = fs.readFileSync(dataFilePath, 'utf8');
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return;
-
-    const cleanUsers = sanitizeUsers({ ...store.users, ...(parsed.users || {}) });
-    const cleanPasswords: Record<string, string> = {};
-    let migratedLegacyPassword = false;
-    const parsedPasswords = parsed.passwords && typeof parsed.passwords === 'object' ? parsed.passwords : {};
-    for (const [email, value] of Object.entries(parsedPasswords)) {
-      const key = email.trim().toLowerCase();
-      if (!cleanUsers[key] || typeof value !== 'string' || value.length > 128) continue;
-      if (isPasswordHash(value)) {
-        cleanPasswords[key] = value;
-      } else if (value.length >= 1) {
-        cleanPasswords[key] = await hashPassword(value);
-        migratedLegacyPassword = true;
+      const file = dataFilePath();
+      if (fs.existsSync(file)) {
+        const backup = `${file}.corrupt-${Date.now()}`;
+        fs.renameSync(file, backup);
+        console.error(`[Forum Server] Đã giữ lại tệp dữ liệu hỏng tại ${backup} để khôi phục.`);
       }
+    } catch (backupErr) {
+      console.error('[Forum Server] Không giữ lại được tệp dữ liệu hỏng:', backupErr);
     }
-
-    const cleanCoinCredits: Record<string, { date: string; amount: number }> = {};
-    const rawCoinCredits = parsed.coinCredits && typeof parsed.coinCredits === 'object' ? parsed.coinCredits : {};
-    for (const [email, value] of Object.entries(rawCoinCredits)) {
-      const key = email.trim().toLowerCase();
-      if (!cleanUsers[key] || !value || typeof value !== 'object') continue;
-      const date = isDateKey((value as any).date) ? (value as any).date : '';
-      const amount = Number((value as any).amount);
-      if (date && Number.isFinite(amount) && amount >= 0 && amount <= MAX_DAILY_REWARD_COIN_CREDIT) {
-        cleanCoinCredits[key] = { date, amount: Math.floor(amount) };
-      }
-    }
-    const cleanDailyRewards: ForumDataStore['dailyRewards'] = {};
-    const rawDailyRewards = parsed.dailyRewards && typeof parsed.dailyRewards === 'object' ? parsed.dailyRewards : {};
-    for (const [email, value] of Object.entries(rawDailyRewards)) {
-      const key = email.trim().toLowerCase();
-      if (cleanUsers[key]) cleanDailyRewards[key] = sanitizeDailyRewardState(value);
-    }
-
-    const validUserIds = new Set(Object.values(cleanUsers).map(user => user.id));
-    const cleanUserModeration: ForumDataStore['userModeration'] = {};
-    const rawUserModeration = parsed.userModeration && typeof parsed.userModeration === 'object'
-      ? parsed.userModeration
-      : {};
-    for (const [userId, rawState] of Object.entries(rawUserModeration)) {
-      if (!validUserIds.has(userId) || !rawState || typeof rawState !== 'object' || Array.isArray(rawState)) continue;
-      const state = rawState as any;
-      const sanitized: UserModerationState = {};
-      if (typeof state.lockedAt === 'string' && Number.isFinite(Date.parse(state.lockedAt))) {
-        sanitized.lockedAt = new Date(state.lockedAt).toISOString();
-        sanitized.lockReason = asSafeText(state.lockReason, 500);
-      }
-      if (typeof state.mutedAt === 'string' && Number.isFinite(Date.parse(state.mutedAt)) &&
-          (state.mutedUntil === null || (Number.isSafeInteger(state.mutedUntil) && state.mutedUntil > 0))) {
-        sanitized.mutedAt = new Date(state.mutedAt).toISOString();
-        sanitized.mutedUntil = state.mutedUntil === null ? null : Number(state.mutedUntil);
-        sanitized.muteReason = asSafeText(state.muteReason, 500);
-      }
-      if (Object.keys(sanitized).length > 0) cleanUserModeration[userId] = sanitized;
-    }
-    const cleanAdminAuditLog: AdminAuditEvent[] = Array.isArray(parsed.adminAuditLog)
-      ? parsed.adminAuditLog.slice(-1_000).flatMap((raw: any) => {
-          if (!raw || typeof raw !== 'object' || typeof raw.id !== 'string' ||
-              typeof raw.action !== 'string' || typeof raw.createdAt !== 'string' ||
-              !Number.isFinite(Date.parse(raw.createdAt))) return [];
-          return [{
-            id: asSafeText(raw.id, 120),
-            actorId: asSafeText(raw.actorId, 128),
-            actorName: asSafeText(raw.actorName, 80),
-            action: asSafeText(raw.action, 80),
-            targetId: asSafeText(raw.targetId, 128),
-            targetName: asSafeText(raw.targetName, 100),
-            reason: asSafeText(raw.reason, 500),
-            createdAt: new Date(raw.createdAt).toISOString(),
-            ip: asSafeText(raw.ip, 80),
-            userAgent: asSafeText(raw.userAgent, 512),
-            result: raw.result === 'failure' ? 'failure' : 'success',
-          }];
-        })
-      : [];
-
-    store = {
-      schemaVersion: DATA_SCHEMA_VERSION,
-      users: cleanUsers,
-      passwords: cleanPasswords,
-      dailyRewards: cleanDailyRewards,
-      userModeration: cleanUserModeration,
-      adminAuditLog: cleanAdminAuditLog,
-      clubs: Array.isArray(parsed.clubs) ? parsed.clubs : [],
-      clubPosts: Array.isArray(parsed.clubPosts) ? parsed.clubPosts : [],
-      questions: Array.isArray(parsed.questions) ? parsed.questions : [],
-      solutions: Array.isArray(parsed.solutions) ? parsed.solutions : [],
-      chatMessages: Array.isArray(parsed.chatMessages) ? parsed.chatMessages : [],
-      feedbacks: Array.isArray(parsed.feedbacks) ? parsed.feedbacks : [],
-      reports: Array.isArray(parsed.reports) ? parsed.reports : [],
-      coinCredits: cleanCoinCredits,
-      about: parsed.about || store.about,
-    };
-    delete store.users['hocsinhmoi@fpt.edu.vn'];
-    delete store.passwords['hocsinhmoi@fpt.edu.vn'];
-    const requiresSchemaMigration = Number(parsed.schemaVersion || 0) < DATA_SCHEMA_VERSION;
-    store.schemaVersion = DATA_SCHEMA_VERSION;
-    if (migratedLegacyPassword || requiresSchemaMigration) persistStoreToDisk();
-  } catch {
-    // Keep the safe in-memory defaults if an old or corrupt data file cannot be loaded.
-    console.error('[Forum Server] Failed to load data from disk.');
   }
 }
 
 let saveTimeout: NodeJS.Timeout | null = null;
+/**
+  Ghi store xuống đĩa NGAY, đồng bộ. Trả về true nếu ghi được.
+*/
+/**
+  Ghi store xuống đĩa NGAY, đồng bộ. Trả về true nếu ghi được.
+
+  Ghi qua tệp tạm rồi `rename`, không ghi thẳng. `rename` là thao tác atomic trên
+  cùng một hệ tệp, nên tệp dữ liệu không bao giờ ở trạng thái viết dở: tiến trình
+  chết giữa chừng thì hoặc là bản cũ còn nguyên, hoặc là bản mới đã xong. Ghi
+  thẳng bằng `writeFileSync` mà bị ngắt giữa chừng sẽ để lại JSON cắt cụt — không
+  parse được, tức mất TOÀN BỘ dữ liệu ở lần khởi động sau.
+*/
+function flushStoreToDisk(): boolean {
+  try {
+    const dir = dataDir();
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    const target = dataFilePath();
+    const tmp = `${target}.tmp-${process.pid}`;
+    fs.writeFileSync(tmp, JSON.stringify(store, null, 2), 'utf8');
+    fs.renameSync(tmp, target);
+    return true;
+  } catch (err) {
+    console.error('[Forum Server] Failed to persist data to disk:', err);
+    return false;
+  }
+}
+
 function persistStoreToDisk() {
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(() => {
-    try {
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 });
-      }
-      try {
-        fs.chmodSync(dataDir, 0o700);
-      } catch {
-        /* File permissions may be unavailable on some deployment platforms. */
-      }
-      store.schemaVersion = DATA_SCHEMA_VERSION;
-      const temporaryPath = `${dataFilePath}.tmp-${process.pid}-${randomBytes(6).toString('hex')}`;
-      let descriptor: number | undefined;
-      try {
-        descriptor = fs.openSync(temporaryPath, 'wx', 0o600);
-        fs.writeFileSync(descriptor, JSON.stringify(store, null, 2), { encoding: 'utf8' });
-        fs.fsyncSync(descriptor);
-        fs.closeSync(descriptor);
-        descriptor = undefined;
-        fs.renameSync(temporaryPath, dataFilePath);
-        try { fs.chmodSync(dataFilePath, 0o600); } catch { /* best-effort on restricted platforms */ }
-      } catch (writeError) {
-        if (descriptor !== undefined) {
-          try { fs.closeSync(descriptor); } catch { /* ignore */ }
-        }
-        try { fs.unlinkSync(temporaryPath); } catch { /* ignore */ }
-        throw writeError;
-      }
-    } catch (err) {
-      console.error('[Forum Server] Failed to persist data to disk:', err);
-    }
+    saveTimeout = null;
+    flushStoreToDisk();
   }, 200);
   saveTimeout.unref();
 }
 
-const wsClients = new Set<WebSocket>();
-const sseClients = new Set<ServerResponse>();
-const wsClientUsers = new Map<WebSocket, string>();
-const sseClientUsers = new Map<ServerResponse, string>();
+/**
+  Ghi nốt lần thay đổi đang chờ (nếu có) trước khi tiến trình tắt.
 
-function disconnectUserStreams(userId: string, type: string, message: string, closeCode: number, closeReason: string) {
-  const eventMessage = JSON.stringify({ type, payload: { message }, timestamp: Date.now() });
-  for (const client of wsClients) {
-    if (wsClientUsers.get(client) !== userId) continue;
-    if (client.readyState === WebSocket.OPEN) {
-      try { client.send(eventMessage); } catch { /* ignore */ }
-    }
-    if (client.readyState !== WebSocket.CLOSED) {
-      try { client.close(closeCode, closeReason); } catch { /* ignore */ }
-    }
-  }
-  for (const response of sseClients) {
-    if (sseClientUsers.get(response) !== userId) continue;
-    try { response.write(`data: ${eventMessage}\n\n`); } catch { /* ignore */ }
-    try { response.end(); } catch { /* ignore */ }
-    sseClients.delete(response);
-    sseClientUsers.delete(response);
+  `persistStoreToDisk` debounce 200ms và gọi `.unref()`, nên timer không giữ tiến
+  trình sống. Trước đây không có chỗ nào ghi nốt: tắt server trong vòng 200ms sau
+  một thao tác (Ctrl+C, container bị dừng, crash) là lần ghi cuối cùng MẤT — người
+  dùng vừa đăng bài mà khởi động lại thì bài biến mất.
+*/
+function flushPendingSave() {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+    flushStoreToDisk();
   }
 }
 
-function disconnectLockedAccount(userId: string) {
-  disconnectUserStreams(userId, 'ACCOUNT_LOCKED', 'Tài khoản đã bị khóa bởi quản trị viên.', 4003, 'Account locked');
+/**
+  Các handler ghi-dữ-liệu-khi-tắt đang gắn trên `process`.
+
+  Phải lưu trên `globalThis` chứ không phải biến cấp module: Vite reload module
+  server mỗi lần tệp thay đổi, nên biến cấp module bị đặt lại và mỗi lần reload
+  lại cộng thêm một bộ handler mới. Kết quả实测 là cảnh báo
+  `MaxListenersExceededWarning: 11 SIGTERM listeners added` sau vài lần restart.
+
+  Nguy hiểm hơn việc tràn listener: handler của module CŨ vẫn giữ closure trỏ tới
+  `store` của module cũ, nên nếu chúng chạy thì sẽ ghi đè tệp dữ liệu bằng bản
+  đã lỗi thời. Vì vậy phải GỠ bộ cũ trước khi gắn bộ mới.
+*/
+const SHUTDOWN_HOOKS_KEY = Symbol.for('fforum.shutdownHooks');
+type ShutdownHooks = {
+  signals: Array<{ signal: NodeJS.Signals; handler: () => void }>;
+  exit: () => void;
+};
+
+function installShutdownFlush() {
+  const globalRef = globalThis as unknown as Record<symbol, ShutdownHooks | undefined>;
+
+  /* Gỡ bộ handler của lần nạp module trước, nếu có. */
+  const previous = globalRef[SHUTDOWN_HOOKS_KEY];
+  if (previous) {
+    for (const { signal, handler } of previous.signals) {
+      process.removeListener(signal, handler);
+    }
+    process.removeListener('exit', previous.exit);
+  }
+
+  const signals: ShutdownHooks['signals'] = [];
+  for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP'] as const) {
+    const handler = () => {
+      flushPendingSave();
+      process.exit(0);
+    };
+    process.on(signal, handler);
+    signals.push({ signal, handler });
+  }
+  /* `exit` không chạy được code bất đồng bộ, nhưng ghi ở đây là đồng bộ. */
+  const exitHandler = () => flushPendingSave();
+  process.on('exit', exitHandler);
+
+  globalRef[SHUTDOWN_HOOKS_KEY] = { signals, exit: exitHandler };
+}
+
+export { flushStoreToDisk, flushPendingSave };
+
+const wsClients = new Set<WebSocket>();
+const sseClients = new Set<ServerResponse>();
+
+/* -------------------------------------------------------------------------- */
+/* Phiên đăng nhập của từng kết nối WebSocket                                 */
+/* -------------------------------------------------------------------------- */
+/**
+ * Kết nối WS chỉ được đụng vào dữ liệu "nhạy cảm" sau khi gửi `AUTH` kèm token
+ * hợp lệ. Trước đây mọi client đều có quyền như admin.
+ */
+const wsSessions = new WeakMap<WebSocket, SessionClaims>();
+
+/**
+  IP của từng kết nối WS, lấy từ request lúc bắt tay.
+
+  Cần có để khoá rate limiter cho các đường ghi qua WS. Trước đây NĂM đường ghi
+  qua WS (`NEW_CHAT_MESSAGE`, `NEW_QUESTION`, `NEW_SOLUTION`, `NEW_CLUB`,
+  `NEW_CLUB_POST`) không có limiter nào, trong khi bản HTTP của chúng thì có —
+  nên chỉ cần chuyển sang kênh WS là vượt mọi giới hạn ghi.
+
+  Repro với giới hạn 120 lượt/phút:
+    HTTP /api/chat 200 lượt        -> 120 thành công (limiter hoạt động)
+    WS NEW_CHAT_MESSAGE 200 lượt   -> 200 được lưu   (không giới hạn)
+*/
+const wsClientIps = new WeakMap<WebSocket, string>();
+
+const sessionOf = (ws: WebSocket): SessionClaims | null => wsSessions.get(ws) || null;
+
+const isWsSuperAdmin = (ws: WebSocket): boolean =>
+  isMasterAdminEmail(sessionOf(ws)?.email);
+
+/* -------------------------------------------------------------------------- */
+/* Chặn brute-force trên các cổng đăng nhập                                   */
+/* -------------------------------------------------------------------------- */
+const AUTH_WINDOW_MS = 10 * 60 * 1000;
+const loginLimiter = new SlidingWindowRateLimiter(AUTH_WINDOW_MS, 12);
+const registerLimiter = new SlidingWindowRateLimiter(AUTH_WINDOW_MS, 30);
+const socialLimiter = new SlidingWindowRateLimiter(AUTH_WINDOW_MS, 30);
+const writeLimiter = new SlidingWindowRateLimiter(60 * 1000, 120);
+
+/**
+  Chỉ dành cho bộ kiểm thử.
+
+  Các limiter nằm ở cấp module nên dùng chung giữa mọi test trong cùng tiến trình:
+  bộ test càng dài thì các test ở cuối càng dễ va trần (giới hạn đăng ký 30 lượt/
+  10 phút trong khi bộ test tạo hơn 30 tài khoản). Đây là giới hạn của hạ tầng
+  kiểm thử, không phải của sản phẩm, nên cho phép đặt lại giữa các test thay vì
+  nới giới hạn thật.
+*/
+export function resetRateLimitersForTest() {
+  loginLimiter.reset();
+  registerLimiter.reset();
+  socialLimiter.reset();
+  writeLimiter.reset();
+  presenceLimiter.reset();
+  analyticsLimiter.reset();
+}
+
+const startedAtMs = Date.now();
+
+/**
+ * Vô hiệu hoá credential quản trị mẫu từng được phát hành trong mã nguồn.
+ * Nhận diện cả bản plaintext cũ lẫn bản đã được migrate sang scrypt. Nếu nhà
+ * vận hành đã đặt secret mới đủ mạnh thì dùng secret đó; nếu chưa, xoá credential
+ * cũ để tài khoản phải đăng nhập qua OAuth đã xác minh hoặc được bootstrap an toàn.
+ */
+function retirePublicAdminPassword(): boolean {
+  const stored = store.passwords[MASTER_ADMIN_EMAIL];
+  if (typeof stored !== 'string' || !stored) return false;
+  if (!verifyPassword('admin123', stored).ok) return false;
+
+  delete store.passwords[MASTER_ADMIN_EMAIL];
+  persistStoreToDisk();
+  return true;
+}
+
+/**
+ * Secret cấu hình là nguồn có thẩm quyền cho mật khẩu Super Admin: cài mới được
+ * bootstrap và đổi secret trong secret manager sẽ xoay mật khẩu khi restart.
+ */
+function syncAdminPasswordFromEnvironment(): 'created' | 'rotated' | null {
+  const configured = configuredAdminBootstrapPassword();
+  if (!configured) return null;
+  const existing = store.passwords[MASTER_ADMIN_EMAIL];
+  if (existing && verifyPassword(configured, existing).ok) return null;
+  store.passwords[MASTER_ADMIN_EMAIL] = hashPassword(configured);
+  persistStoreToDisk();
+  return existing ? 'rotated' : 'created';
+}
+
+/**
+ * Dời mật khẩu plaintext cũ sang scrypt. Chạy một lần lúc khởi động để
+ * `data/forum-data.json` không còn chứa mật khẩu đọc được bằng mắt thường.
+ */
+function migratePlaintextPasswords(): number {
+  let migrated = 0;
+  Object.keys(store.passwords).forEach((email) => {
+    const record = store.passwords[email];
+    if (typeof record === 'string' && record && !isHashedPassword(record)) {
+      store.passwords[email] = hashPassword(record);
+      migrated += 1;
+    }
+  });
+  if (migrated > 0) persistStoreToDisk();
+  return migrated;
+}
+
+/** Cấp token phiên cho một tài khoản (dùng chung register / login / social). */
+const issueTokenFor = (user: UserRecord): string => createSessionToken(user.email, user.role);
+
+/**
+ * Gộp dữ liệu Khu Vinh Danh thay vì thay nguyên khối.
+ *
+ * Client có quyền gửi một phần tài liệu (ví dụ chỉ đổi `headline`). Nếu ghi đè
+ * cả khối thì một payload thiếu sẽ XOÁ SẠCH `founder` và `milestones`, rồi
+ * `persistStoreToDisk` ghi luôn xuống đĩa — làm hỏng dữ liệu cho MỌI lần khởi
+ * động về sau, kể cả ở tiến trình khác. Gộp thì payload thiếu chỉ cập nhật đúng
+ * phần nó mang theo.
+ */
+function mergeAboutData(incoming: any): any {
+  const base: any = store.about || {};
+  if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) return base;
+
+  const merged: any = { ...base, ...incoming };
+  /*
+    Không cho phép xoá mất hai khối lõi. Mảng RỖNG cũng bị coi là "không gửi"
+    — một payload thiếu sót hay một lời gọi lỗi không được phép thổi bay toàn bộ
+    danh sách mốc kỷ niệm. Muốn gỡ từng mốc thì gửi lại danh sách còn lại.
+  */
+  if (!merged.founder || typeof merged.founder !== 'object') merged.founder = base.founder;
+  if (!Array.isArray(merged.milestones) || merged.milestones.length === 0) {
+    merged.milestones = Array.isArray(base.milestones) ? base.milestones : [];
+  }
+  return merged;
 }
 
 export function broadcastServerEvent(type: string, payload: any) {
-  const safePayload = sanitizeBroadcastPayload(type, payload);
-  if (safePayload === null) return;
-  const eventMessage = JSON.stringify({ type, payload: safePayload, timestamp: Date.now() });
+  const eventMessage = JSON.stringify({ type, payload, timestamp: Date.now() });
 
   for (const client of wsClients) {
     if (client.readyState === WebSocket.OPEN) {
@@ -640,835 +706,1003 @@ export function broadcastServerEvent(type: string, payload: any) {
   }
 }
 
-type AuthenticatedRequest = IncomingMessage & { forumUser?: UserRecord };
+/** Giới hạn body JSON — quá cỡ thì từ chối thẳng, không nạp hết vào RAM. */
+const MAX_JSON_BODY_BYTES = 25 * 1024 * 1024;
 
-function requestPath(req: IncomingMessage): string {
-  try {
-    return new URL(req.url || '/', 'http://forum.local').pathname;
-  } catch {
-    return '/';
+/*
+  Giới hạn nội dung. Ô nhập phía client đã có `maxLength`, nhưng client thì ai
+  cũng sửa được — server PHẢI tự giữ giới hạn của mình, nếu không một request
+  thủ công nhét được "tin nhắn" vài MB vào kho rồi phát cho mọi người.
+*/
+const MAX_CHAT_CONTENT = 500;
+const MAX_FEEDBACK_CONTENT = 4000;
+const MAX_NAME_LENGTH = 120;
+
+/**
+  Trần số tin nhắn giữ trong kho. Mảng này được serialize toàn bộ mỗi lần ghi
+  đĩa và trả về nguyên khối cho mọi client qua /api/sync, nên để nó phình vô
+  hạn thì cả hai đường đều chậm dần theo thời gian chạy.
+*/
+const MAX_CHAT_MESSAGES = 500;
+const MAX_FEEDBACKS = 500;
+const MAX_REPORTS = 500;
+const MAX_CLUBS = 300;
+const MAX_CLUB_POSTS = 800;
+
+/*
+  Trần kết nối đồng thời. Mỗi kết nối SSE/WebSocket giữ một socket và (với SSE)
+  một interval nhịp tim, nên không giới hạn thì một vòng lặp mở kết nối là đủ
+  làm cạn tài nguyên máy chủ.
+*/
+const MAX_SSE_CLIENTS = 300;
+const MAX_WS_CLIENTS = 300;
+
+/** Khung WebSocket tối đa. Mặc định của thư viện `ws` là 100 MiB — quá rộng. */
+const MAX_WS_FRAME_BYTES = 256 * 1024;
+
+/** Giữ lại N phần tử MỚI NHẤT (mảng chat/feedback được push thêm vào cuối). */
+const capTail = <T,>(list: T[], max: number): T[] => (list.length > max ? list.slice(list.length - max) : list);
+
+export class PayloadTooLargeError extends Error {
+  constructor() {
+    super('Payload too large');
+    this.name = 'PayloadTooLargeError';
   }
-}
-
-function setSecurityHeaders(res: ServerResponse) {
-  const isProduction = process.env.NODE_ENV === 'production';
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  res.setHeader(
-    'Content-Security-Policy',
-    `object-src 'none'; base-uri 'self'; form-action 'self'${isProduction ? "; frame-ancestors 'none'" : ''}`,
-  );
-  if (isProduction) {
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000');
-  }
-}
-
-function isSameOriginRequest(req: IncomingMessage): boolean {
-  const origin = req.headers.origin;
-  if (!origin) return true; // Native clients and same-origin GETs do not always send Origin.
-  if (origin === 'null' || !req.headers.host) return false;
-  try {
-    const originUrl = new URL(origin);
-    const forwardedProtocol = req.headers['x-forwarded-proto'];
-    const proxyProtocol = (Array.isArray(forwardedProtocol) ? forwardedProtocol[0] : forwardedProtocol)
-      ?.split(',')[0]
-      .trim()
-      .toLowerCase()
-      .replace(/:$/, '');
-    const socketProtocol = (req.socket as any).encrypted ? 'https' : 'http';
-    const requestProtocol = proxyProtocol === 'https' || proxyProtocol === 'http' ? proxyProtocol : socketProtocol;
-    return !originUrl.username && !originUrl.password &&
-      originUrl.host.toLowerCase() === String(req.headers.host).toLowerCase() &&
-      originUrl.protocol === `${requestProtocol}:`;
-  } catch {
-    return false;
-  }
-}
-
-function getSessionToken(req: IncomingMessage): string | null {
-  const cookieHeader = req.headers.cookie;
-  if (typeof cookieHeader !== 'string') return null;
-  const prefix = `${SESSION_COOKIE_NAME}=`;
-  const cookie = cookieHeader.split(';').map(part => part.trim()).find(part => part.startsWith(prefix));
-  return cookie ? cookie.slice(prefix.length) : null;
-}
-
-function getUserModerationState(userId: string): UserModerationState {
-  return store.userModeration[userId] || {};
-}
-
-function isAccountLocked(userId: string): boolean {
-  return Boolean(getUserModerationState(userId).lockedAt);
-}
-
-function getActiveChatMute(userId: string): { mutedUntil: number | null; reason: string } | null {
-  const state = getUserModerationState(userId);
-  if (typeof state.mutedAt !== 'string' || state.mutedUntil === undefined) return null;
-  if (state.mutedUntil !== null && state.mutedUntil <= Date.now()) return null;
-  return { mutedUntil: state.mutedUntil, reason: state.muteReason || '' };
-}
-
-function getClientIp(req: IncomingMessage): string {
-  const directAddress = req.socket.remoteAddress || 'unknown';
-  if (process.env.FFORUM_TRUST_CLOUDFLARE_PROXY === 'true') {
-    const forwardedAddress = req.headers['cf-connecting-ip'];
-    if (typeof forwardedAddress === 'string') {
-      const candidate = forwardedAddress.trim();
-      if (isIP(candidate)) return candidate;
-    }
-  }
-  return directAddress;
-}
-
-function appendAuditEvent(
-  actorId: string,
-  actorName: string,
-  action: string,
-  targetId: string,
-  targetName: string,
-  reason: string,
-  req?: IncomingMessage,
-  result: 'success' | 'failure' = 'success',
-) {
-  const ip = req ? getClientIp(req) : '';
-  const userAgent = typeof req?.headers['user-agent'] === 'string'
-    ? asSafeText(req.headers['user-agent'], 512)
-    : '';
-  const event: AdminAuditEvent = {
-    id: `audit-${Date.now()}-${randomBytes(6).toString('hex')}`,
-    actorId: asSafeText(actorId, 128),
-    actorName: asSafeText(actorName, 80),
-    action: asSafeText(action, 80),
-    targetId: asSafeText(targetId, 128),
-    targetName: asSafeText(targetName, 100),
-    reason: asSafeText(reason, 500),
-    createdAt: new Date().toISOString(),
-    ...(ip ? { ip: asSafeText(ip, 80) } : {}),
-    ...(userAgent ? { userAgent } : {}),
-    result,
-  };
-  store.adminAuditLog.push(event);
-  if (store.adminAuditLog.length > 1_000) store.adminAuditLog.splice(0, store.adminAuditLog.length - 1_000);
-  return event;
-}
-
-function addAdminAuditEvent(
-  actor: UserRecord,
-  action: string,
-  targetId: string,
-  targetName: string,
-  reason = '',
-  req?: IncomingMessage,
-  result: 'success' | 'failure' = 'success',
-) {
-  return appendAuditEvent(actor.id, actor.name, action, targetId, targetName, reason, req, result);
-}
-
-function addSecurityAuditEvent(
-  req: IncomingMessage,
-  action: string,
-  targetId: string,
-  targetName: string,
-  result: 'success' | 'failure',
-  actor?: UserRecord | null,
-) {
-  return appendAuditEvent(
-    actor?.id || 'anonymous',
-    actor?.name || 'Unauthenticated',
-    action,
-    targetId,
-    targetName,
-    '',
-    req,
-    result,
-  );
-}
-
-function getAuthenticatedUser(req: IncomingMessage): UserRecord | null {
-  const token = getSessionToken(req);
-  if (!token || token.length > 200) return null;
-  const tokenHash = createHash('sha256').update(token).digest('hex');
-  const session = sessions.get(tokenHash);
-  if (!session) return null;
-  if (session.expiresAt <= Date.now()) {
-    sessions.delete(tokenHash);
-    return null;
-  }
-  const user = store.users[session.email];
-  if (!user || user.id !== session.userId || isAccountLocked(session.userId)) {
-    sessions.delete(tokenHash);
-    return null;
-  }
-  return user;
-}
-
-function hasPermission(user: UserRecord | null | undefined, permission: string): boolean {
-  return Boolean(user && ADMIN_PERMISSIONS[user.role]?.includes(permission));
-}
-
-function permissionsFor(user: UserRecord): string[] {
-  return [...ADMIN_PERMISSIONS[user.role]];
-}
-
-function isSecureRequest(req: IncomingMessage): boolean {
-  const forwarded = req.headers['x-forwarded-proto'];
-  const proxyProtocol = (Array.isArray(forwarded) ? forwarded[0] : forwarded)
-    ?.split(',')[0]
-    .trim()
-    .toLowerCase()
-    .replace(/:$/, '');
-  return process.env.NODE_ENV === 'production' || proxyProtocol === 'https' || Boolean((req.socket as any).encrypted);
-}
-
-function createSession(req: IncomingMessage, res: ServerResponse, user: UserRecord) {
-  // Rotate the browser's previous session on every successful authentication.
-  const previousToken = getSessionToken(req);
-  if (previousToken) sessions.delete(createHash('sha256').update(previousToken).digest('hex'));
-  const token = randomBytes(32).toString('base64url');
-  const expiresAt = Date.now() + SESSION_TTL_MS;
-  const tokenHash = createHash('sha256').update(token).digest('hex');
-  if (sessions.size > 20_000) {
-    for (const [key, session] of sessions) {
-      if (session.expiresAt <= Date.now()) sessions.delete(key);
-    }
-  }
-  sessions.set(tokenHash, { email: user.email.toLowerCase(), userId: user.id, expiresAt });
-  const secure = isSecureRequest(req) ? '; Secure' : '';
-  const expires = new Date(expiresAt).toUTCString();
-  res.setHeader('Set-Cookie', `${SESSION_COOKIE_NAME}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}; Expires=${expires}${secure}`);
-}
-
-function revokeUserSessions(userId: string) {
-  for (const [tokenHash, session] of sessions) {
-    if (session.userId === userId) sessions.delete(tokenHash);
-  }
-  disconnectUserStreams(userId, 'SESSION_REVOKED', 'Phiên đăng nhập đã bị thu hồi. Vui lòng đăng nhập lại.', 4001, 'Session revoked');
-}
-
-function clearSession(req: IncomingMessage, res: ServerResponse) {
-  const token = getSessionToken(req);
-  if (token) sessions.delete(createHash('sha256').update(token).digest('hex'));
-  const secure = isSecureRequest(req) ? '; Secure' : '';
-  res.setHeader('Set-Cookie', `${SESSION_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT${secure}`);
-}
-
-function consumeRateLimitByKey(key: string, maxRequests: number, windowMs: number): number | null {
-  const now = Date.now();
-  let bucket = rateLimitBuckets.get(key);
-  if (!bucket || bucket.resetAt <= now) {
-    bucket = { count: 0, resetAt: now + windowMs };
-    rateLimitBuckets.set(key, bucket);
-  }
-  bucket.count += 1;
-
-  if (rateLimitBuckets.size > 10_000) {
-    for (const [oldKey, value] of rateLimitBuckets) {
-      if (value.resetAt <= now) rateLimitBuckets.delete(oldKey);
-    }
-  }
-  // Keep the limiter's own memory bounded under high-cardinality request floods.
-  if (rateLimitBuckets.size > 20_000) {
-    let toEvict = rateLimitBuckets.size - 15_000;
-    for (const oldKey of rateLimitBuckets.keys()) {
-      if (toEvict-- <= 0) break;
-      rateLimitBuckets.delete(oldKey);
-    }
-  }
-
-  return bucket.count > maxRequests ? Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)) : null;
-}
-
-function consumeRateLimit(req: IncomingMessage, bucketName: string, maxRequests: number, windowMs: number): number | null {
-  const address = getClientIp(req);
-  // Node's test suite hosts several independent ephemeral HTTP servers in one process;
-  // keep their in-memory rate-limit state isolated without changing production keys.
-  const testServerNamespace = isNodeTestProcess ? `:${req.socket.localPort || 'unknown-port'}` : '';
-  return consumeRateLimitByKey(`${bucketName}:${address}${testServerNamespace}`, maxRequests, windowMs);
-}
-
-async function verifyAccountPassword(user: UserRecord, password: unknown): Promise<boolean> {
-  const candidate = typeof password === 'string' ? password : '';
-  const storedHash = store.passwords[user.email.toLowerCase()];
-  if (candidate.length > 128 || !isPasswordHash(storedHash)) {
-    await verifyPasswordHash(candidate.slice(0, 128), await getDummyPasswordHash());
-    return false;
-  }
-  return verifyPasswordHash(candidate, storedHash);
-}
-
-function findUserById(userId: string): UserRecord | undefined {
-  return Object.values(store.users).find(user => user.id === userId);
-}
-
-function serializeAdminAccount(user: UserRecord) {
-  const moderation = getUserModerationState(user.id);
-  const activeMute = getActiveChatMute(user.id);
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    avatar: user.avatar,
-    role: user.role,
-    level: user.level,
-    joinedAt: user.joinedAt || user.createdAt,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-    lastLoginAt: user.lastLoginAt,
-    accountLocked: Boolean(moderation.lockedAt),
-    lockedAt: moderation.lockedAt || '',
-    lockReason: moderation.lockReason || '',
-    chatMuted: Boolean(activeMute),
-    mutedAt: activeMute ? moderation.mutedAt || '' : '',
-    mutedUntil: activeMute?.mutedUntil ?? null,
-    muteReason: activeMute?.reason || '',
-  };
-}
-
-function serializeAdminReport(report: any) {
-  return {
-    id: asSafeText(report.id, 120),
-    reporterId: asSafeText(report.reporterId, 128),
-    reporterName: asSafeText(report.reporterName, 80),
-    reporterEmail: asSafeText(report.reporterEmail, 254),
-    reportedUserId: asSafeText(report.reportedUserId, 128),
-    reportedUserName: asSafeText(report.reportedUserName, 80),
-    reason: asSafeText(report.reason, 200),
-    details: asSafeText(report.details, 5_000),
-    createdAt: typeof report.createdAt === 'string' ? report.createdAt : '',
-    status: ['resolved', 'dismissed'].includes(report.status) ? report.status : 'open',
-    reviewedAt: typeof report.reviewedAt === 'string' ? report.reviewedAt : '',
-    reviewNote: asSafeText(report.reviewNote, 500),
-    reviewedByName: asSafeText(report.reviewedByName, 80),
-  };
-}
-
-function serializeAdminContent() {
-  return {
-    questions: store.questions.slice(-500).map(item => publicAuthoredItem(item)),
-    solutions: store.solutions.slice(-500).map(item => publicAuthoredItem(item)),
-    chatMessages: store.chatMessages.slice(-500).map(item => publicAuthoredItem(item)),
-    clubPosts: store.clubPosts.slice(-500).map(item => publicAuthoredItem(item)),
-  };
-}
-
-function adminSettingsOverview() {
-  return {
-    schemaVersion: DATA_SCHEMA_VERSION,
-    storage: 'private-json',
-    singleInstanceSessions: true,
-    sessionTtlHours: Math.round(SESSION_TTL_MS / 3_600_000 * 100) / 100,
-    sessionCookie: 'HttpOnly; SameSite=Lax; Secure on HTTPS/production',
-    passwordHash: `PBKDF2-SHA256 · ${PASSWORD_HASH_ITERATIONS.toLocaleString()} iterations`,
-    socialLogin: {
-      google: Boolean(process.env.FFORUM_GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID),
-      facebook: Boolean(process.env.FFORUM_FACEBOOK_APP_ID && process.env.FFORUM_FACEBOOK_APP_SECRET),
-    },
-    roles: [...USER_ROLE_VALUES],
-    superAdminCount: Object.values(store.users).filter(user => user.role === 'super_admin').length,
-  };
-}
-
-function sanitizeAboutInput(value: any) {
-  const current = publicAbout(store.about) || {};
-  const incoming = value && typeof value === 'object' ? value : {};
-  const cleanText = (value: unknown, fallback: string, maxLength: number) =>
-    asSafeText(value, maxLength) || fallback;
-  const baseFounder = current.founder && typeof current.founder === 'object' ? current.founder : {};
-  const founder = incoming.founder && typeof incoming.founder === 'object' ? incoming.founder : {};
-  const avatarUrl = asSafeText(founder.avatarUrl, 2_000);
-  const milestones = Array.isArray(incoming.milestones)
-    ? incoming.milestones.slice(0, 200).filter((item: any) => item && typeof item === 'object').map((item: any, index: number) => ({
-      id: cleanText(item.id, `milestone-${index + 1}`, 100),
-      title: cleanText(item.title, 'Mốc hoạt động', 160),
-      category: cleanText(item.category, 'Hoạt động', 120),
-      place: cleanText(item.place, '', 160),
-      imageUrl: /^https:\/\//i.test(asSafeText(item.imageUrl, 2_000)) ? asSafeText(item.imageUrl, 2_000) : '',
-      notes: cleanText(item.notes, '', 4_000),
-      isTall: item.isTall === true,
-    }))
-    : (Array.isArray(current.milestones) ? current.milestones : []);
-  return {
-    headline: cleanText(incoming.headline, cleanText(current.headline, 'F-Forum', 160), 160),
-    subtitle: cleanText(incoming.subtitle, cleanText(current.subtitle, '', 240), 240),
-    founder: {
-      name: cleanText(founder.name, cleanText(baseFounder.name, 'F-Forum Founder', 100), 100),
-      role: cleanText(founder.role, cleanText(baseFounder.role, 'F-Forum Founder', 160), 160),
-      avatarUrl: /^https:\/\//i.test(avatarUrl) ? avatarUrl : asSafeText(baseFounder.avatarUrl, 2_000),
-      bio: cleanText(founder.bio, cleanText(baseFounder.bio, '', 2_000), 2_000),
-    },
-    milestones,
-  };
-}
-
-function adminOverviewMetrics() {
-  const accounts = Object.values(store.users);
-  const reports = store.reports || [];
-  return {
-    members: accounts.length,
-    questions: store.questions.length,
-    answers: store.solutions.length,
-    chatMessages: store.chatMessages.length,
-    clubPosts: store.clubPosts.length,
-    openReports: reports.filter((report: any) => report.status !== 'resolved' && report.status !== 'dismissed').length,
-    lockedAccounts: accounts.filter(account => isAccountLocked(account.id)).length,
-    mutedAccounts: accounts.filter(account => Boolean(getActiveChatMute(account.id))).length,
-  };
-}
-
-function isSafeQaImage(image: unknown): boolean {
-  if (image === undefined || image === null || image === '') return true;
-  if (typeof image !== 'string' || image.length > MAX_QA_IMAGE_DATA_URL_CHARS) return false;
-
-  const match = /^data:image\/(png|jpeg|webp);base64,([a-z0-9+/]+={0,2})$/i.exec(image);
-  if (!match || match[2].length % 4 !== 0) return false;
-  const bytes = Buffer.from(match[2], 'base64');
-  if (bytes.length === 0 || bytes.length > MAX_QA_IMAGE_BYTES || bytes.toString('base64') !== match[2]) return false;
-
-  switch (match[1].toLowerCase()) {
-    case 'png':
-      return bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
-    case 'jpeg':
-      return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-    case 'webp':
-      return bytes.length >= 12 && bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WEBP';
-    default:
-      return false;
-  }
-}
-
-function asSafeText(value: unknown, maxLength: number): string {
-  return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
-}
-
-function vietnamDateKey(now = new Date()): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).formatToParts(now);
-  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
-  return `${values.year}-${values.month}-${values.day}`;
-}
-
-function shiftDateKey(date: string, offsetDays: number): string {
-  if (!isDateKey(date)) return '';
-  const timestamp = Date.parse(`${date}T00:00:00.000Z`) + offsetDays * 86_400_000;
-  return new Date(timestamp).toISOString().slice(0, 10);
-}
-
-export function getDailyTriviaIndex(date: string): number {
-  let hash = 0;
-  for (let index = 0; index < date.length; index += 1) {
-    hash = (hash * 31 + date.charCodeAt(index)) % 100_000;
-  }
-  return hash % TRIVIA_CORRECT_OPTION_INDICES.length;
-}
-
-export function getNextAttendanceStreak(lastDate: string, currentStreak: number, today: string): number {
-  return lastDate === shiftDateKey(today, -1) ? Math.max(0, currentStreak) + 1 : 1;
-}
-
-export function getAttendanceBoxType(streak: number): RewardBoxType | null {
-  if (streak <= 0) return null;
-  const cycleDay = streak % 15 || 15;
-  return cycleDay === 5 ? 'blue' : cycleDay === 10 ? 'gold' : cycleDay === 15 ? 'red' : null;
-}
-
-function getUserDailyRewardState(user: UserRecord, today: string): { state: StoredDailyRewardState; changed: boolean } {
-  const key = user.email.toLowerCase();
-  const state = store.dailyRewards[key] || emptyDailyRewardState();
-  let changed = !store.dailyRewards[key];
-  if (state.date !== today) {
-    state.date = today;
-    state.triviaClaimed = false;
-    state.triviaCorrect = false;
-    state.triviaCoins = 0;
-    state.studyMilliseconds = 0;
-    state.studyClaimedMinutes = [];
-    if (state.activeStudySession) state.activeStudySession.lastHeartbeatAt = Date.now();
-    changed = true;
-  }
-  store.dailyRewards[key] = state;
-  return { state, changed };
-}
-
-function toDailyRewardSummary(state: StoredDailyRewardState, today: string) {
-  const lastDate = state.lastAttendanceDate;
-  const visibleStreak = lastDate === today || lastDate === shiftDateKey(today, -1) ? state.attendanceStreak : 0;
-  return {
-    date: today,
-    attendanceStreak: visibleStreak,
-    attendanceClaimed: lastDate === today,
-    boxes: {
-      blue: state.boxes.filter(box => box.type === 'blue').map(box => box.id),
-      gold: state.boxes.filter(box => box.type === 'gold').map(box => box.id),
-      red: state.boxes.filter(box => box.type === 'red').map(box => box.id),
-    },
-    triviaIndex: getDailyTriviaIndex(today),
-    triviaClaimed: state.triviaClaimed,
-    triviaCorrect: state.triviaClaimed ? state.triviaCorrect : null,
-    triviaCoins: state.triviaClaimed ? state.triviaCoins : 0,
-    studyMinutes: Math.floor(state.studyMilliseconds / 60_000),
-    studyClaimedMinutes: [...state.studyClaimedMinutes],
-  };
-}
-
-function creditDailyRewardCoins(user: UserRecord, amount: number, today: string): boolean {
-  if (!Number.isSafeInteger(amount) || amount <= 0) return false;
-  const accountKey = user.email.toLowerCase();
-  const previousCredit = store.coinCredits[accountKey];
-  const creditedToday = previousCredit?.date === today ? previousCredit.amount : 0;
-  if (creditedToday + amount > MAX_DAILY_REWARD_COIN_CREDIT) return false;
-  const currentCoin = typeof user.coin === 'number' && Number.isSafeInteger(user.coin) ? user.coin : 100;
-  if (!Number.isSafeInteger(currentCoin + amount) || currentCoin + amount > 1_000_000_000) return false;
-  user.coin = currentCoin + amount;
-  store.coinCredits[accountKey] = { date: today, amount: creditedToday + amount };
-  store.users[accountKey] = user;
-  return true;
-}
-
-function publishRewardUser(user: UserRecord) {
-  persistStoreToDisk();
-  broadcastServerEvent('SYNC_USER', user);
-}
-
-function accrueServerStudyTime(state: StoredDailyRewardState, now: number): number {
-  const active = state.activeStudySession;
-  if (!active) return 0;
-  const gap = now - active.lastHeartbeatAt;
-  active.lastHeartbeatAt = now;
-  if (!Number.isFinite(gap) || gap <= 0 || gap > MAX_STUDY_SESSION_IDLE_MS) return 0;
-  const creditedMilliseconds = Math.min(gap, MAX_STUDY_CREDIT_PER_HEARTBEAT_MS);
-  state.studyMilliseconds = Math.min(MAX_DAILY_STUDY_MILLISECONDS, state.studyMilliseconds + creditedMilliseconds);
-  return creditedMilliseconds;
-}
-
-function grantReachedStudyRewards(user: UserRecord, state: StoredDailyRewardState, today: string) {
-  const todayMinutes = Math.floor(state.studyMilliseconds / 60_000);
-  const claimed = new Set(state.studyClaimedMinutes);
-  const rewards: Array<{ minutes: number; coins: number }> = [];
-  for (const milestone of STUDY_REWARD_MILESTONES) {
-    if (todayMinutes < milestone.minutes || claimed.has(milestone.minutes)) continue;
-    claimed.add(milestone.minutes);
-    if (creditDailyRewardCoins(user, milestone.coins, today)) {
-      rewards.push(milestone);
-    }
-  }
-  state.studyClaimedMinutes = [...claimed].sort((left, right) => left - right);
-  return { rewards, todayMinutes };
-}
-
-function safePresencePayload(payload: any, user: UserRecord | null, req: IncomingMessage) {
-  if (user) {
-    return {
-      id: user.id,
-      name: user.name,
-      avatar: user.avatar,
-      role: user.role,
-      level: user.level,
-      rank: typeof payload?.rank === 'string' ? payload.rank.slice(0, 12) : 'I',
-    };
-  }
-  const suppliedId = asSafeText(payload?.id, 80);
-  const guestKey = createHash('sha256')
-    .update(`${req.socket.remoteAddress || 'unknown'}:${suppliedId}`)
-    .digest('hex')
-    .slice(0, 12);
-  return {
-    id: `guest-${guestKey}`,
-    name: asSafeText(payload?.name, 32) || 'Khách',
-    avatar: DEFAULT_AVATAR,
-    role: 'user',
-    level: 1,
-    rank: 'I',
-  };
-}
-
-function publicUser(user: UserRecord): UserRecord {
-  return { ...user, email: `${user.id}@public.invalid`, scopedClubIds: [...(user.scopedClubIds || [])] };
-}
-
-function publicAuthoredItem<T extends Record<string, any>>(item: T): T {
-  const copy: Record<string, any> = { ...item };
-  if ('authorEmail' in copy) copy.authorEmail = '';
-  if (copy.isAnonymous === true && 'authorId' in copy) copy.authorId = '';
-  if ('reporterEmail' in copy) copy.reporterEmail = '';
-  if ('email' in copy && typeof copy.email === 'string') copy.email = '';
-  return copy as T;
-}
-
-function publicAbout(value: any = store.about) {
-  const about = value && typeof value === 'object' ? { ...value } : value;
-  if (about?.founder && typeof about.founder === 'object') {
-    about.founder = { ...about.founder };
-    delete about.founder.email;
-  }
-  return about;
-}
-
-function sanitizeBroadcastPayload(type: string, payload: any): any | null {
-  if (type === 'NEW_REPORT' || type === 'NEW_FEEDBACK') return null;
-  if (type === 'SYNC_USER' && payload && typeof payload === 'object') return publicUser(payload as UserRecord);
-  if (type === 'SYNC_ABOUT') return publicAbout(payload);
-  if (type === 'PRESENCE_PING' && payload && typeof payload === 'object') {
-    const { email: _email, ...presence } = payload;
-    return presence;
-  }
-  if (['NEW_CHAT_MESSAGE', 'NEW_QUESTION', 'NEW_SOLUTION', 'NEW_CLUB_POST'].includes(type) && payload && typeof payload === 'object') {
-    return publicAuthoredItem(payload);
-  }
-  return payload;
 }
 
 function parseJsonBody(req: IncomingMessage): Promise<any> {
   return new Promise((resolve, reject) => {
-    const declaredLength = Number(req.headers['content-length'] || 0);
-    if (declaredLength > MAX_REQUEST_BODY_BYTES) {
-      const error = Object.assign(new Error('Request body too large'), { statusCode: 413 });
-      reject(error);
-      req.resume();
-      return;
-    }
+    let received = 0;
     const chunks: Buffer[] = [];
-    let totalBytes = 0;
     let settled = false;
-    const rejectOnce = (error: Error) => {
+
+    const fail = (err: Error) => {
       if (settled) return;
       settled = true;
-      reject(error);
+      req.off('data', onData);
+      req.off('end', onEnd);
+      reject(err);
     };
-    req.on('data', (chunk: Buffer | string) => {
-      if (settled) return;
-      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-      totalBytes += buffer.length;
-      if (totalBytes > MAX_REQUEST_BODY_BYTES) {
-        req.resume();
-        rejectOnce(Object.assign(new Error('Request body too large'), { statusCode: 413 }));
+
+    function onData(chunk: Buffer) {
+      received += chunk.length;
+      if (received > MAX_JSON_BODY_BYTES) {
+        /* Huỷ socket NGAY, không đọc tiếp phần còn lại của payload. */
+        fail(new PayloadTooLargeError());
+        try {
+          req.destroy();
+        } catch {
+          /* ignore */
+        }
         return;
       }
-      chunks.push(buffer);
-    });
-    req.on('end', () => {
+      chunks.push(chunk);
+    }
+
+    function onEnd() {
       if (settled) return;
+      settled = true;
+      const body = Buffer.concat(chunks).toString('utf8');
       try {
-        const body = Buffer.concat(chunks).toString('utf8');
         resolve(body ? JSON.parse(body) : {});
       } catch {
-        rejectOnce(Object.assign(new Error('Malformed JSON body'), { statusCode: 400 }));
+        reject(new SyntaxError('Invalid JSON body'));
       }
-    });
-    req.on('error', error => rejectOnce(error));
+    }
+
+    req.on('data', onData);
+    req.on('end', onEnd);
+    req.on('error', fail);
   });
 }
 
 function sendJson(res: ServerResponse, statusCode: number, data: any) {
+  if (res.writableEnded || res.destroyed) return;
   res.statusCode = statusCode;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.end(JSON.stringify(data));
 }
 
-function sendRequestError(res: ServerResponse, error: any) {
-  const status = Number(error?.statusCode);
-  if (status === 400 || status === 413) {
-    sendJson(res, status, { success: false, message: status === 413 ? 'Yêu cầu vượt quá kích thước cho phép.' : 'Dữ liệu gửi lên không hợp lệ.' });
+/** Bắt lỗi chung cho mọi endpoint: đúng mã, đúng thông điệp, không rò stack. */
+function handleApiError(res: ServerResponse, err: any) {
+  if (err instanceof PayloadTooLargeError) {
+    sendJson(res, 413, { success: false, message: 'Dữ liệu gửi lên quá lớn (tối đa 25MB).' });
     return;
   }
-  sendJson(res, 500, { success: false, message: 'Lỗi máy chủ nội bộ.' });
+  if (err instanceof SyntaxError) {
+    sendJson(res, 400, { success: false, message: 'Dữ liệu JSON không hợp lệ.' });
+    return;
+  }
+  console.error('[Forum Server] Request failed:', err);
+  sendJson(res, 500, { success: false, message: 'Máy chủ gặp sự cố, vui lòng thử lại.' });
 }
 
-async function verifySocialCredential(provider: string, credential: string): Promise<{ name: string; email: string; avatar?: string } | null> {
-  if (!['google', 'facebook'].includes(provider) || typeof credential !== 'string' || credential.length < 20 || credential.length > 4096) return null;
-  try {
-    let profileUrl: string;
-    if (provider === 'google') {
-      const clientId = process.env.FFORUM_GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || '';
-      if (!clientId) return null;
-      const tokenInfoResponse = await fetch(
-        `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(credential)}`,
-        { signal: AbortSignal.timeout(5_000) },
-      );
-      if (!tokenInfoResponse.ok) return null;
-      const tokenInfo: any = await tokenInfoResponse.json();
-      if (tokenInfo?.aud !== clientId || (tokenInfo?.azp && tokenInfo.azp !== clientId)) return null;
-      profileUrl = 'https://www.googleapis.com/oauth2/v3/userinfo';
-    } else {
-      const appId = process.env.FFORUM_FACEBOOK_APP_ID || process.env.VITE_FACEBOOK_APP_ID || '';
-      const appSecret = process.env.FFORUM_FACEBOOK_APP_SECRET || '';
-      if (!appId || !appSecret) return null;
-      const debugUrl = new URL('https://graph.facebook.com/debug_token');
-      debugUrl.searchParams.set('input_token', credential);
-      debugUrl.searchParams.set('access_token', `${appId}|${appSecret}`);
-      const debugResponse = await fetch(debugUrl, { signal: AbortSignal.timeout(5_000) });
-      if (!debugResponse.ok) return null;
-      const debugResult: any = await debugResponse.json();
-      if (debugResult?.data?.is_valid !== true || String(debugResult.data.app_id) !== appId || !debugResult.data.user_id) return null;
-      profileUrl = 'https://graph.facebook.com/me?fields=id,name,email,picture.width(200).height(200)';
-      const profileResponse = await fetch(profileUrl, {
-        headers: { Authorization: `Bearer ${credential}` },
-        signal: AbortSignal.timeout(5_000),
-      });
-      if (!profileResponse.ok) return null;
-      const profile: any = await profileResponse.json();
-      if (String(profile?.id) !== String(debugResult.data.user_id)) return null;
-      return normalizeSocialProfile(provider, profile);
-    }
+/** Phản hồi 429 kèm thời gian chờ, để client biết khi nào được thử lại. */
+function sendRateLimited(res: ServerResponse, retryAfterMs: number, what: string) {
+  res.setHeader('Retry-After', String(Math.ceil(retryAfterMs / 1000)));
+  sendJson(res, 429, {
+    success: false,
+    message: `Quá nhiều lượt ${what}. Vui lòng thử lại sau ${Math.ceil(retryAfterMs / 60000)} phút.`,
+  });
+}
 
-    const response = await fetch(profileUrl, {
-      headers: { Authorization: `Bearer ${credential}` },
-      signal: AbortSignal.timeout(5_000),
-    });
-    if (!response.ok) return null;
-    const profile: any = await response.json();
-    return normalizeSocialProfile(provider, profile);
-  } catch {
+/** Xác thực quản trị: token hợp lệ + email trong token là Super Admin. */
+/**
+  Lọc gói presence trước khi phát cho mọi client.
+
+  Trước đây server nhận `body.user` rồi broadcast NGUYÊN KHỐI. Client tự khai
+  được `email`, nên một request giả mạo khai email của Super Admin sẽ làm chấm
+  "Ban Quản Trị đang trực tuyến" sáng lên trên màn hình của mọi người; khai
+  `name`/`avatar`/`role` tuỳ ý thì hiện ra thành bất kỳ ai. Mỗi gói còn được phát
+  tới MỌI kết nối, nên không lọc là vừa mạo danh vừa khuếch đại.
+
+  `email` và `role` chỉ được lấy từ phiên đăng nhập đã xác thực — không bao giờ
+  từ body. Khách chưa đăng nhập thì hai trường đó bị bỏ.
+*/
+function sanitizePresence(payload: any, claims: SessionClaims | null) {
+  if (!payload || typeof payload !== 'object') return null;
+  const id = String(payload.id || '').trim().slice(0, 120);
+  if (!id) return null;
+
+  const verifiedUser = claims ? store.users[claims.email] : undefined;
+  const cleaned: Record<string, unknown> = {
+    id,
+    name: String(verifiedUser?.name ?? payload.name ?? 'Học sinh').slice(0, MAX_NAME_LENGTH),
+    avatar: String(verifiedUser?.avatar ?? payload.avatar ?? DEFAULT_AVATAR).slice(0, 2000),
+  };
+
+  const level = Number(verifiedUser?.level ?? payload.level);
+  if (Number.isFinite(level)) cleaned.level = Math.min(150, Math.max(1, Math.floor(level)));
+
+  if (typeof payload.rank === 'string') cleaned.rank = payload.rank.slice(0, 20);
+
+  /* Chỉ tài khoản đã đăng nhập mới được gắn email/role — và phải đúng của chính
+     tài khoản đó, lấy từ bản ghi thật trên server. */
+  if (verifiedUser) {
+    cleaned.email = verifiedUser.email;
+    cleaned.role = verifiedUser.role;
+  }
+  return cleaned;
+}
+
+/** Chặn flood presence: client thật ping mỗi 15 giây, ngưỡng này còn rất rộng. */
+const presenceLimiter = new SlidingWindowRateLimiter(60 * 1000, 40);
+/** Nhịp tracker tối đa 2 heartbeat/phút; vẫn dư chỗ cho chuyển trang và mở tab. */
+const analyticsLimiter = new SlidingWindowRateLimiter(60 * 1000, 180);
+
+/**
+  Chỉ cho sửa ba trường nội dung của một câu hỏi.
+
+  Cả hai đường sửa bài đều gộp `{ ...q, ...updates }` — tức là nhận MỌI trường
+  client gửi. Dù cổng này chỉ Super Admin qua được, `authorEmail` là trường quyết
+  định quyền sở hữu (chọn đáp án chuẩn, xoá bài) và `bountyCoin` là trường quyết
+  định tiền thưởng, nên để ghi đè được hai trường đó là một lỗ mass-assignment:
+  một token admin lộ ra, hay một nút bấm gửi nhầm payload, cũng đủ đổi chủ câu
+  hỏi hoặc thổi tiền thưởng. Client thật chỉ gửi title/content/subject.
+*/
+function sanitizeQuestionUpdates(updates: any) {
+  if (!updates || typeof updates !== 'object') return null;
+  const clean: Record<string, unknown> = {};
+  if (typeof updates.title === 'string' && updates.title.trim()) {
+    clean.title = updates.title.trim().slice(0, 200);
+  }
+  if (typeof updates.content === 'string' && updates.content.trim()) {
+    clean.content = updates.content.trim().slice(0, 20000);
+  }
+  if (typeof updates.subject === 'string' && updates.subject.trim()) {
+    clean.subject = updates.subject.trim().slice(0, 40);
+  }
+  return Object.keys(clean).length > 0 ? clean : null;
+}
+
+/**
+ * Kiểm tra một người có được phép tạo nội dung hay không.
+ *
+ * MỘT helper duy nhất, gọi ở MỌI đường ghi trên CẢ HAI transport. Đây là bài học
+ * đã trả giá hai lần trong dự án này (defect 34 và 37): một đột biến có hai đường
+ * HTTP và WebSocket, vá một đường thì đường kia vẫn hở. Vì thế việc kiểm tra nằm
+ * ở đây chứ không rải ra từng nhánh.
+ *
+ * `kind`:
+ *   - 'chat'    → bị chặn khi BANNED hoặc MUTED (khoá gửi tin chỉ áp cho chat)
+ *   - 'content' → chỉ bị chặn khi BANNED (đăng câu hỏi, lời giải, CLB, bài CLB)
+ */
+function checkCanPost(
+  email: string | null | undefined,
+  kind: 'chat' | 'content',
+): { ok: true } | { ok: false; status: number; message: string } {
+  const st = moderationStatusOf(store.moderation, email);
+  if (st.banned) {
+    const until = st.bannedUntil === 0 ? 'vĩnh viễn' : `đến ${new Date(st.bannedUntil as number).toLocaleString('vi-VN')}`;
+    return {
+      ok: false,
+      status: 403,
+      message: `Tài khoản của bạn đã bị quản trị viên khoá ${until}.${st.reason ? ` Lý do: ${st.reason}` : ''}`,
+    };
+  }
+  if (kind === 'chat' && st.muted) {
+    const until = st.mutedUntil === 0 ? 'vĩnh viễn' : `đến ${new Date(st.mutedUntil as number).toLocaleString('vi-VN')}`;
+    return {
+      ok: false,
+      status: 403,
+      message: `Bạn đang bị khoá gửi tin ${until}.${st.reason ? ` Lý do: ${st.reason}` : ''}`,
+    };
+  }
+  return { ok: true };
+}
+
+/** Ghi một dòng vào nhật ký quản trị (giữ tối đa 300 mục mới nhất). */
+function pushAuditLog(entry: Record<string, unknown>): void {
+  const log = Array.isArray(store.auditLog) ? store.auditLog : [];
+  log.unshift({ id: randomId('audit'), at: Date.now(), ...entry });
+  store.auditLog = log.slice(0, 300);
+}
+
+function requireSuperAdmin(req: IncomingMessage, body: any): SessionClaims | null {
+  const claims = authorizeRequest(req, null, body?.adminToken || body?.token || null);
+  if (!claims) return null;
+  if (!isMasterAdminEmail(claims.email)) return null;
+  if (store.users[claims.email]?.role !== 'SUPER_ADMIN') return null;
+  return claims;
+}
+
+function authenticatedUser(req: IncomingMessage, body?: any): { claims: SessionClaims; user: UserRecord } | null {
+  const claims = authorizeRequest(req, null, body?.token || null);
+  if (!claims) return null;
+  const user = store.users[claims.email];
+  return user ? { claims, user } : null;
+}
+
+interface AdminActor {
+  claims: SessionClaims;
+  user: UserRecord;
+  role: 'SUPER_ADMIN' | 'MODERATOR' | 'TEACHER';
+}
+
+/** Quyền luôn đọc từ hồ sơ server hiện tại, không tin role cũ trong token. */
+function requireModerationStaff(req: IncomingMessage, body: any): AdminActor | null {
+  const claims = authorizeRequest(req, null, body?.adminToken || body?.token || null);
+  if (!claims) return null;
+  const user = store.users[claims.email];
+  if (!user) return null;
+  const role: AdminActor['role'] = isMasterAdminEmail(claims.email) && user.role === 'SUPER_ADMIN'
+    ? 'SUPER_ADMIN'
+    : user.staffRole === 'MODERATOR' || user.staffRole === 'TEACHER'
+      ? user.staffRole
+      : 'SUPER_ADMIN';
+  if (role === 'SUPER_ADMIN') {
+    if (!isMasterAdminEmail(claims.email) || user.role !== 'SUPER_ADMIN') return null;
+  } else if (!['MODERATOR', 'TEACHER'].includes(role)) {
     return null;
+  }
+  return { claims: { ...claims, role: user.role }, user, role };
+}
+
+function isPremiumActive(user: UserRecord | undefined, now: number = Date.now()): boolean {
+  return typeof user?.premiumUntil === 'number' &&
+    (user.premiumUntil === 0 || user.premiumUntil > now);
+}
+
+function getAnalyticsStore(): AnalyticsStore {
+  if (!store.analytics) store.analytics = createEmptyAnalytics();
+  return store.analytics;
+}
+
+function getDailyRewardProfile(email: string): DailyRewardProfile {
+  if (!store.dailyRewards) store.dailyRewards = {};
+  const key = email.trim().toLowerCase();
+  if (!store.dailyRewards[key]) store.dailyRewards[key] = createEmptyDailyRewardProfile();
+  return store.dailyRewards[key];
+}
+
+function currentRewardDateKey(now = Date.now()): string {
+  const configuredZone = String(process.env.FFORUM_REWARD_TIME_ZONE || 'Asia/Ho_Chi_Minh').trim();
+  try {
+    return dateKeyInTimeZone(now, configuredZone || 'Asia/Ho_Chi_Minh');
+  } catch {
+    console.warn(`[Forum Server] Múi giờ thưởng "${configuredZone}" không hợp lệ; dùng Asia/Ho_Chi_Minh.`);
+    return dateKeyInTimeZone(now, 'Asia/Ho_Chi_Minh');
   }
 }
 
-function normalizeSocialProfile(provider: string, profile: any): { name: string; email: string; avatar?: string } | null {
-  const email = typeof profile?.email === 'string' ? profile.email.trim().toLowerCase() : '';
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
-  if (provider === 'google' && profile.email_verified !== true) return null;
-  const avatar = provider === 'google' ? profile.picture : profile.picture?.data?.url;
-  return {
-    name: asSafeText(profile.name || profile.given_name, 60) || (provider === 'google' ? 'Google User' : 'Facebook User'),
-    email,
-    ...(typeof avatar === 'string' && avatar.startsWith('https://') ? { avatar: avatar.slice(0, 2_000) } : {}),
-  };
+function grantCoinsAndExperience(user: UserRecord, amount: number): void {
+  const credit = Math.max(0, Math.floor(amount));
+  const previousXp = asBoundedCount(user.xp, 0, MAX_USER_XP);
+  const previousFPoints = asBoundedCount(user.fPoints, previousXp, MAX_USER_XP);
+  user.coin = Math.min(MAX_USER_COIN, asBoundedCount(user.coin, 100, MAX_USER_COIN) + credit);
+  user.xp = Math.min(MAX_USER_XP, previousXp + credit);
+  user.fPoints = Math.min(MAX_USER_XP, previousFPoints + credit);
+  user.level = calculateLevelFromXP(user.xp);
 }
 
-function adminPermissionForRequest(method: string, url: string): string | null {
-  const key = `${method.toUpperCase()} ${url}`;
-  const routePermissions: Record<string, string> = {
-    'GET /api/admin/me': 'admin.access',
-    'GET /api/admin/console': 'analytics.view',
-    'GET /api/admin/overview': 'analytics.view',
-    'GET /api/admin/users': 'users.view',
-    'GET /api/admin/posts': 'posts.view',
-    'GET /api/admin/reports': 'reports.view',
-    'GET /api/admin/logs': 'logs.view',
-    'GET /api/admin/settings': 'settings.view',
-    'GET /api/admin/about': 'settings.view',
-    'POST /api/admin/users/role': 'users.role',
-    'POST /api/admin/users/delete': 'users.delete',
-    'POST /api/admin/users/moderation': 'users.edit',
-    'POST /api/admin/reports/review': 'reports.resolve',
-    'POST /api/admin/club-posts/delete': 'posts.delete',
-    'POST /api/admin/about': 'settings.edit',
-    'POST /api/admin/settings': 'settings.edit',
-    'POST /api/questions/delete': 'posts.delete',
-    'POST /api/questions/edit': 'posts.edit',
-    'POST /api/solutions/delete': 'posts.delete',
-    'POST /api/chat/delete': 'posts.delete',
-  };
-  if (routePermissions[key]) return routePermissions[key];
-  return url.startsWith('/api/admin/') ? 'admin.access' : null;
+function grantExperience(user: UserRecord, amount: number): void {
+  const credit = Math.max(0, Math.floor(amount));
+  const previousXp = asBoundedCount(user.xp, 0, MAX_USER_XP);
+  const previousFPoints = asBoundedCount(user.fPoints, previousXp, MAX_USER_XP);
+  user.xp = Math.min(MAX_USER_XP, previousXp + credit);
+  user.fPoints = Math.min(MAX_USER_XP, previousFPoints + credit);
+  user.level = calculateLevelFromXP(user.xp);
 }
 
-function isAdminSensitiveLegacyRoute(method: string, url: string): boolean {
-  return adminPermissionForRequest(method, url) !== null && !url.startsWith('/api/admin/');
-}
-
-function getAuditTargetForRequest(req: IncomingMessage): { id: string; name: string } {
-  const route = requestPath(req).slice(0, 128);
-  return { id: route, name: route };
-}
-
-/** Test-only fixture helper; production callers are rejected. No HTTP route exposes this path. */
-export function setUserRoleForTest(email: string, role: UserRecord['role']): UserRecord {
-  if (!isNodeTestProcess) throw new Error('Test role fixture is available only under Node’s test runner.');
-  const key = email.trim().toLowerCase();
-  const user = store.users[key];
-  if (!user) throw new Error('Test role fixture requires an existing registered user.');
-  user.role = role;
-  user.updatedAt = new Date().toISOString();
-  store.users[key] = user;
-  persistStoreToDisk();
-  return { ...user, scopedClubIds: [...user.scopedClubIds] };
+function notifyUserSockets(email: string, type: string, payload: unknown): void {
+  const target = String(email || '').trim().toLowerCase();
+  const message = JSON.stringify({ type, payload, timestamp: Date.now() });
+  wsClients.forEach((client) => {
+    if (client.readyState !== WebSocket.OPEN || sessionOf(client)?.email !== target) return;
+    try { client.send(message); } catch { /* kết nối vừa có thể đóng */ }
+  });
 }
 
 export function setupForumServer(httpServer: any, middlewares: any) {
-  const storeReady = loadStoreFromDisk();
+  loadStoreFromDisk();
+  installShutdownFlush();
+
+  const retiredAdminPassword = retirePublicAdminPassword();
+  if (retiredAdminPassword) {
+    console.warn('[Forum Server] Đã thu hồi mật khẩu quản trị mẫu từng được phát hành công khai.');
+  }
+  const adminPasswordSync = syncAdminPasswordFromEnvironment();
+  if (adminPasswordSync) {
+    console.info(`[Forum Server] Đã ${adminPasswordSync === 'created' ? 'bootstrap' : 'xoay'} mật khẩu Super Admin từ secret máy chủ (chỉ lưu scrypt).`);
+  } else if (String(process.env.FFORUM_ADMIN_PASSWORD || '').trim() && !configuredAdminBootstrapPassword()) {
+    console.warn('[Forum Server] Bỏ qua FFORUM_ADMIN_PASSWORD vì mật khẩu phải dài tối thiểu 16 ký tự.');
+  }
+
+  delete store.users['hocsinhmoi@fpt.edu.vn'];
+  delete store.passwords['hocsinhmoi@fpt.edu.vn'];
+
+  /* Mật khẩu plaintext còn sót từ bản cũ → băm lại trước khi mở cổng. */
+  const migrated = migratePlaintextPasswords();
+  if (migrated > 0) {
+    console.log(`[Forum Server] Đã băm lại ${migrated} mật khẩu plaintext (scrypt).`);
+  }
 
   if (httpServer) {
-    const wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 });
+    const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_WS_FRAME_BYTES });
 
     httpServer.on('upgrade', (req: IncomingMessage, socket: any, head: any) => {
-      if (requestPath(req) !== '/ws' && requestPath(req) !== '/api/ws') return;
-      if (!isSameOriginRequest(req)) {
-        try {
-          socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
-        } catch {
-          socket.destroy();
-        }
-        return;
+      const url = req.url || '';
+      if (url === '/ws' || url.startsWith('/ws?') || url.startsWith('/api/ws')) {
+        wss.handleUpgrade(req, socket, head, (ws) => {
+          wss.emit('connection', ws, req);
+        });
       }
-      if (!getAuthenticatedUser(req)) {
-        try {
-          socket.end('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
-        } catch {
-          socket.destroy();
-        }
-        return;
-      }
-      wss.handleUpgrade(req, socket, head, (ws) => {
-        wss.emit('connection', ws, req);
-      });
     });
 
     wss.on('connection', (ws, req) => {
-      const connectedUser = getAuthenticatedUser(req);
-      if (!connectedUser) {
-        ws.close(4001, 'Authentication required');
+      /* `wss.emit('connection', ws, req)` có truyền req nhưng handler cũ không
+         nhận, nên không có cách nào biết IP của kết nối để giới hạn tốc độ. */
+      if (req) wsClientIps.set(ws, clientIpOf(req));
+
+      if (wsClients.size >= MAX_WS_CLIENTS) {
+        try {
+          ws.send(JSON.stringify({ type: 'SERVER_FULL', payload: { message: 'Máy chủ đang quá tải, vui lòng thử lại sau.' } }));
+        } catch { /* ignore */ }
+        ws.close();
         return;
       }
       wsClients.add(ws);
-      wsClientUsers.set(ws, connectedUser.id);
+
       ws.send(JSON.stringify({ type: 'WS_CONNECTED', payload: { clientCount: wsClients.size } }));
-      let messageCount = 0;
-      let messageWindowStart = Date.now();
 
       ws.on('message', (messageRaw) => {
-        if (Date.now() - messageWindowStart >= 60_000) {
-          messageCount = 0;
-          messageWindowStart = Date.now();
-        }
-        messageCount += 1;
-        if (messageCount > 60) {
-          ws.close(1008, 'Rate limit exceeded');
-          return;
-        }
         try {
-          const message = JSON.parse(messageRaw.toString());
-          if (!message || typeof message !== 'object') return;
-          if (message.type === 'PING') {
-            ws.send(JSON.stringify({ type: 'PONG' }));
-            return;
+          const { type, payload } = JSON.parse(messageRaw.toString());
+          if (!type) return;
+
+          const session = sessionOf(ws);
+
+          /*
+            Chặn spam qua kênh WS bằng ĐÚNG bộ limiter và đúng khoá IP như bản HTTP.
+
+            Trước đây năm đường ghi qua WS không có limiter nào, nên chỉ cần chuyển
+            từ HTTP sang WS là vượt mọi giới hạn: HTTP /api/chat chặn ở lượt 121, còn
+            WS NEW_CHAT_MESSAGE cho lưu cả 200 lượt.
+
+            Khoá theo IP (không theo phiên) để khớp hành vi HTTP; chưa AUTH thì vẫn
+            tính vào ô của IP đó, không có đường lách bằng cách không đăng nhập.
+          */
+          const WS_WRITE_ACTIONS = [
+            'NEW_CHAT_MESSAGE',
+            'NEW_QUESTION',
+            'NEW_SOLUTION',
+            'NEW_CLUB',
+            'NEW_CLUB_POST',
+          ];
+          if (WS_WRITE_ACTIONS.includes(type)) {
+            const wsIp = wsClientIps.get(ws) || 'ws-unknown';
+            const key =
+              type === 'NEW_CHAT_MESSAGE' ? `chat:${wsIp}`
+              : type === 'NEW_QUESTION' ? `question:${wsIp}`
+              : type === 'NEW_SOLUTION' ? `solution:${wsIp}`
+              : type === 'NEW_CLUB' ? `club:${wsIp}`
+              : `clubpost:${wsIp}`;
+            const throttle = writeLimiter.check(key);
+            if (!throttle.allowed) {
+              ws.send(JSON.stringify({
+                type: 'RATE_LIMITED',
+                payload: { action: type, retryAfterMs: throttle.retryAfterMs },
+              }));
+              /* `return` chứ không phải `break`: đoạn này nằm trong thân hàm xử lý
+                 message, TRƯỚC switch, nên break sẽ nhảy sai phạm vi. */
+              return;
+            }
+
+            /*
+              QUẢN LÝ NGƯỜI DÙNG trên đường WS — cùng một helper checkCanPost như
+              HTTP, đặt ngay trước switch nên MỘT chỗ phủ cả năm hành động ghi.
+
+              Đây đúng là lớp lỗi đã gặp hai lần (defect 34 và 37): một đột biến có
+              hai transport, vá HTTP thì WS vẫn hở. Người bị cấm chỉ cần chuyển sang
+              WebSocket là đăng tiếp được nếu thiếu đoạn này.
+
+              Ưu tiên danh tính từ phiên đã AUTH (không giả mạo được); chưa AUTH thì
+              xét authorEmail trong payload để khách không lách bằng cách không đăng
+              nhập — khớp cách HTTP đối xử với tác giả.
+            */
+            const wsSessionEmail = sessionOf(ws)?.email || null;
+            const claimedWsEmail = String((payload as any)?.authorEmail || '').trim().toLowerCase();
+
+            /* Chat có chế độ khách, nhưng không cho khách mạo danh một tài khoản có
+               thật; phiên đã đăng nhập cũng không được khai email người khác. */
+            if (type === 'NEW_CHAT_MESSAGE') {
+              if (wsSessionEmail && claimedWsEmail && claimedWsEmail !== wsSessionEmail) {
+                ws.send(JSON.stringify({
+                  type: 'FORBIDDEN',
+                  payload: { action: type, reason: 'Email người gửi không khớp với phiên đăng nhập.' },
+                }));
+                return;
+              }
+              if (!wsSessionEmail && claimedWsEmail && store.users[claimedWsEmail]) {
+                ws.send(JSON.stringify({
+                  type: 'FORBIDDEN',
+                  payload: { action: type, reason: 'Vui lòng xác thực tài khoản trước khi gửi tin.' },
+                }));
+                return;
+              }
+            }
+
+            /* Chỉ phiên đã AUTH mới là danh tính có thể áp chế; payload không được
+               dùng để tự nhận mình là một tài khoản khác. */
+            const wsGate = checkCanPost(
+              wsSessionEmail,
+              type === 'NEW_CHAT_MESSAGE' ? 'chat' : 'content',
+            );
+            if (!wsGate.ok) {
+              ws.send(JSON.stringify({
+                type: 'FORBIDDEN',
+                payload: { action: type, reason: wsGate.message },
+              }));
+              return;
+            }
           }
-          if (message.type === 'PRESENCE_PING') {
-            const presence = safePresencePayload(message.payload, getAuthenticatedUser(req), req);
-            broadcastServerEvent('PRESENCE_PING', presence);
-            return;
+
+          switch (type) {
+            case 'PING': {
+              ws.send(JSON.stringify({ type: 'PONG' }));
+              break;
+            }
+            case 'AUTH': {
+              /* Gắn danh tính cho kết nối này. Không có bước này thì mọi thao tác
+                 nhạy cảm bên dưới đều bị từ chối. */
+              const token = typeof payload === 'string' ? payload : payload?.token;
+              const claims = verifySessionToken(token);
+              /* Không tin `role` trong token một cách mù quáng: đối chiếu bản ghi
+                 thật trên server để token cũ không giữ được quyền đã bị thu hồi. */
+              const account = claims ? store.users[claims.email] : undefined;
+              if (!claims || !account) {
+                wsSessions.delete(ws);
+                ws.send(JSON.stringify({ type: 'AUTH_ERROR', payload: { message: 'Phiên đăng nhập không hợp lệ.' } }));
+                break;
+              }
+              const bound: SessionClaims = { ...claims, role: account.role || 'STUDENT' };
+              wsSessions.set(ws, bound);
+              ws.send(JSON.stringify({ type: 'AUTH_OK', payload: { email: bound.email, role: bound.role } }));
+              break;
+            }
+            case 'NEW_CHAT_MESSAGE': {
+              if (payload && payload.content) {
+                if (!store.chatMessages.some(m => m.id === payload.id)) {
+                  /* Cùng một luật như đường HTTP: cắt nội dung và giữ trần kho. */
+                  const relayed = {
+                    ...payload,
+                    content: String(payload.content).slice(0, MAX_CHAT_CONTENT),
+                  };
+                  store.chatMessages = capTail([...store.chatMessages, relayed], MAX_CHAT_MESSAGES);
+                  recordAnalyticsActivity(getAnalyticsStore(), 'messages', String(relayed.authorEmail || session?.email || '') || undefined);
+                  persistStoreToDisk();
+                  broadcastServerEvent('NEW_CHAT_MESSAGE', relayed);
+                  break;
+                }
+                /*
+                  Tin đã có trong kho (client gửi lại, hoặc hai kênh cùng đưa về).
+                  Bản cũ phát ngược NGUYÊN payload client cho mọi người: chỉ cần lấy
+                  một id có sẵn kèm nội dung tuỳ ý là đẩy được một tin MA lên màn
+                  hình tất cả client mà tin đó không hề nằm trong store — reload là
+                  biến mất, và không bị giới hạn độ dài hay lọc gì cả.
+                  Nay phát lại đúng bản đã lưu.
+                */
+                const existing = store.chatMessages.find(m => m.id === payload.id);
+                if (existing) broadcastServerEvent('NEW_CHAT_MESSAGE', existing);
+              }
+              break;
+            }
+            case 'PRESENCE_PING': {
+              /* Cùng một bộ lọc như đường HTTP; `session` là phiên đã xác thực
+                 qua thông điệp AUTH nên email/role không thể khai man. */
+              const cleaned = sanitizePresence(payload, session);
+              if (cleaned) broadcastServerEvent('PRESENCE_PING', cleaned);
+              break;
+            }
+            case 'NEW_QUESTION': {
+              /*
+                LỖ HỔNG NẶNG ĐÃ VÁ. Trước đây nhánh này ghi NGUYÊN payload vào kho,
+                không đòi phiên đăng nhập và không kiểm số dư. Chuỗi khai thác:
+                  AUTH → NEW_QUESTION{bountyCoin:999999, authorEmail:mình}
+                       → NEW_SOLUTION{authorEmail:mình}
+                       → MARK_BEST_SOLUTION
+                vì thưởng = bounty*0.5 + 100, một tài khoản mới (100 coin) tự bơm
+                và tự chọn đáp án để nhận 500.199 coin. Đã xác nhận bằng repro.
+
+                Nay áp đúng luật kinh tế của đường HTTP: phải đăng nhập, danh tính
+                lấy từ phiên, và coin treo thưởng bị kiểm số dư + trừ thật.
+              */
+              const askerEmail = session?.email || '';
+              const asker = askerEmail ? store.users[askerEmail] : undefined;
+              if (!session || !asker) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
+              }
+              const requestedQuestionId = typeof payload?.id === 'string' ? payload.id.trim().slice(0, 80) : '';
+              if (!requestedQuestionId || !String(payload.title || '').trim() || !String(payload.content || '').trim()) break;
+              /* Chuẩn hoá trước khi tra cứu; ID dài bị cắt không được nhân bản. */
+              if (store.questions.some(q => q.id === requestedQuestionId)) break;
+
+              const requestedBounty = normalizeBounty(payload.bountyCoin);
+              const balance = asker.coin ?? 100;
+              if (balance < requestedBounty) {
+                ws.send(JSON.stringify({
+                  type: 'FORBIDDEN',
+                  payload: { action: type, reason: 'Số dư không đủ để treo thưởng.' },
+                }));
+                break;
+              }
+
+              const relayedQuestion = {
+                id: requestedQuestionId,
+                title: String(payload.title).trim().slice(0, 200),
+                subject: String(payload.subject || 'toan').slice(0, 40),
+                content: String(payload.content).trim().slice(0, 20000),
+                authorId: String(asker.id).slice(0, MAX_NAME_LENGTH),
+                /* Cùng ngoại lệ ẩn danh như đường HTTP. */
+                authorName: String(
+                  payload.isAnonymous
+                    ? (payload.anonymousAlias || payload.authorName || 'Pháp sư Ghibli')
+                    : asker.name
+                ).slice(0, MAX_NAME_LENGTH),
+                authorEmail: asker.email,
+                authorLevel: asker.level ?? 1,
+                authorAvatar: String(
+                  (payload.isAnonymous ? payload.anonymousMask : asker.avatar) || DEFAULT_AVATAR
+                ).slice(0, 2000),
+                isAnonymous: Boolean(payload.isAnonymous),
+                createdAt: 'Vừa xong',
+                createdAtMs: Date.now(),
+                isSolved: false,
+                views: 1,
+                bountyCoin: requestedBounty,
+                bountyRewardClaimed: false,
+                solutionRewardedEmails: [],
+                imageUrl: typeof payload.imageUrl === 'string' ? payload.imageUrl.slice(0, 2000) : undefined,
+              };
+
+              /* Cùng sổ cái với HTTP: trừ bounty rồi phát thưởng do server tính. */
+              asker.coin = Math.max(0, balance - requestedBounty);
+              grantCoinsAndExperience(asker, 50);
+              broadcastServerEvent('SYNC_USER', asker);
+
+              store.questions.unshift(relayedQuestion);
+              recordAnalyticsActivity(getAnalyticsStore(), 'questions', asker.email);
+              persistStoreToDisk();
+              broadcastServerEvent('NEW_QUESTION', relayedQuestion);
+              break;
+            }
+            case 'NEW_SOLUTION': {
+              /* Cùng lý do như trên: phải đăng nhập và danh tính lấy từ phiên. */
+              const solverEmail = session?.email || '';
+              const solver = solverEmail ? store.users[solverEmail] : undefined;
+              if (!session || !solver) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
+              }
+              const targetQId = String(payload?.questionId || '').trim().slice(0, 80);
+              const requestedSolutionId = typeof payload?.id === 'string' ? payload.id.trim().slice(0, 80) : '';
+              if (!requestedSolutionId || !targetQId || !String(payload.content || '').trim()) break;
+              /* Câu hỏi phải tồn tại, giống đường HTTP. */
+              const targetQuestion = store.questions.find(q => q.id === targetQId);
+              if (!targetQuestion) break;
+              if (store.solutions.some(s => s.id === requestedSolutionId)) break;
+
+              const relayedSolution = {
+                id: requestedSolutionId,
+                questionId: targetQId.slice(0, 80),
+                authorId: String(solver.id).slice(0, MAX_NAME_LENGTH),
+                authorName: String(solver.name).slice(0, MAX_NAME_LENGTH),
+                authorEmail: solver.email,
+                authorLevel: solver.level ?? 1,
+                authorAvatar: String(solver.avatar || DEFAULT_AVATAR).slice(0, 2000),
+                content: String(payload.content).trim().slice(0, 20000),
+                createdAt: 'Vừa xong',
+                createdAtMs: Date.now(),
+                isBest: false,
+                upvotes: 1,
+                bestSelectionBonusGranted: false,
+                imageUrl: typeof payload.imageUrl === 'string' ? payload.imageUrl.slice(0, 2000) : undefined,
+              };
+              const rewardedEmails: string[] = Array.isArray(targetQuestion.solutionRewardedEmails)
+                ? targetQuestion.solutionRewardedEmails
+                : [];
+              if (!rewardedEmails.includes(solver.email)) {
+                targetQuestion.solutionRewardedEmails = [...rewardedEmails, solver.email].slice(-1000);
+                grantCoinsAndExperience(solver, 25);
+                broadcastServerEvent('SYNC_USER', solver);
+              }
+              store.solutions.push(relayedSolution);
+              recordAnalyticsActivity(getAnalyticsStore(), 'answers', solver.email);
+              persistStoreToDisk();
+              broadcastServerEvent('NEW_SOLUTION', relayedSolution);
+              break;
+            }
+            case 'MARK_BEST_SOLUTION': {
+              const { questionId, solutionId } = payload || {};
+              if (!questionId || !solutionId) break;
+
+              /* Phải đăng nhập, và phải là tác giả câu hỏi (hoặc Super Admin).
+                 Đường HTTP đã kiểm tra điều này từ trước; đường WS thì chưa. */
+              const targetQuestion = store.questions.find(q => q.id === questionId);
+              if (!targetQuestion) break;
+              const isOwner = Boolean(session && targetQuestion.authorEmail &&
+                String(targetQuestion.authorEmail).toLowerCase() === session.email);
+              if (!session || (!isOwner && !isWsSuperAdmin(ws))) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
+              }
+              const targetSolution = store.solutions.find(s => s.id === solutionId);
+              if (!targetSolution || targetSolution.questionId !== questionId) break;
+              /* Cùng luật như đường HTTP: không tự chấm câu trả lời của chính mình. */
+              const wsSolutionAuthor = String(targetSolution.authorEmail || '').toLowerCase();
+              if (wsSolutionAuthor && wsSolutionAuthor === session.email) {
+                ws.send(JSON.stringify({
+                  type: 'FORBIDDEN',
+                  payload: { action: type, reason: 'Không thể chọn câu trả lời của chính bạn.' },
+                }));
+                break;
+              }
+
+              /* Idempotent: chọn lại đúng đáp án cũ không được cộng thưởng lần nữa. */
+              if (targetQuestion.bestSolutionId === solutionId) break;
+
+              const previousBestId = targetQuestion.bestSolutionId;
+              const rewardAlreadyClaimed = targetQuestion.bountyRewardClaimed === true;
+              store.questions = store.questions.map(q =>
+                q.id === questionId
+                  ? { ...q, isSolved: true, bestSolutionId: solutionId, bountyRewardClaimed: true }
+                  : q
+              );
+              store.solutions = store.solutions.map(s => {
+                if (s.id === solutionId) {
+                  const upvotes = Number.isFinite(s.upvotes) ? s.upvotes : 0;
+                  const bonusAlreadyClaimed = s.bestSelectionBonusGranted === true;
+                  return {
+                    ...s,
+                    isBest: true,
+                    upvotes: bonusAlreadyClaimed ? upvotes : upvotes + 5,
+                    bestSelectionBonusGranted: true,
+                  };
+                }
+                if (s.id === previousBestId) return { ...s, isBest: false };
+                return s;
+              });
+
+              const solverEmail = String(targetSolution.authorEmail || '').toLowerCase();
+              const solver = solverEmail ? store.users[solverEmail] : undefined;
+              if (solver && !rewardAlreadyClaimed) {
+                const award = solverAwardFor(targetQuestion.bountyCoin ?? 20);
+                grantCoinsAndExperience(solver, award);
+                broadcastServerEvent('SYNC_USER', solver);
+              }
+              persistStoreToDisk();
+              /* Phát đúng hai trường client dùng, không phát ngược payload thô —
+                 khớp với bản HTTP của cùng thao tác này. */
+              broadcastServerEvent('MARK_BEST_SOLUTION', {
+                questionId: targetQuestion.id,
+                solutionId: targetSolution.id,
+              });
+              break;
+            }
+            case 'NEW_CLUB': {
+              /*
+                Trước đây nhánh này ghi nguyên payload, không đòi phiên đăng nhập.
+                Một client chưa xác thực chèn được CLB có sẵn status:'APPROVED'
+                kèm followerCount/membersCount/leaderName tự đặt — vòng qua toàn bộ
+                quy trình duyệt. Đã xác nhận bằng repro.
+              */
+              const clubFounderEmail = session?.email || '';
+              const clubFounder = clubFounderEmail ? store.users[clubFounderEmail] : undefined;
+              if (!session || !clubFounder) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
+              }
+              if (!payload || !payload.id || !String(payload.name || '').trim()) break;
+              if (store.clubs.some(c => c.id === payload.id)) break;
+
+              const relayedClub = {
+                id: String(payload.id).slice(0, 80),
+                name: String(payload.name).trim().slice(0, 120),
+                slogan: String(payload.slogan || '').slice(0, 200),
+                coverImage: String(payload.coverImage || '').slice(0, 2000),
+                category: String(payload.category || 'Công nghệ').slice(0, 60),
+                foundingMembers: Array.isArray(payload.foundingMembers)
+                  ? payload.foundingMembers.slice(0, 20).map((m: unknown) => String(m).slice(0, MAX_NAME_LENGTH))
+                  : [],
+                purpose: String(payload.purpose || '').slice(0, 2000),
+                leaderId: clubFounder.id,
+                leaderName: clubFounder.name,
+                followerCount: 1,
+                membersCount: Math.max(1, Array.isArray(payload.foundingMembers) ? payload.foundingMembers.length : 0),
+                /* Hồ sơ mới luôn chờ duyệt — không tự phong trạng thái được. */
+                status: 'PENDING',
+                createdAt: new Date().toISOString().split('T')[0],
+              };
+
+              store.clubs = [relayedClub, ...store.clubs].slice(0, MAX_CLUBS);
+              recordAnalyticsActivity(getAnalyticsStore(), 'clubsCreated', clubFounder.email);
+              persistStoreToDisk();
+              broadcastServerEvent('NEW_CLUB', relayedClub);
+              break;
+            }
+            case 'APPROVE_CLUB': {
+              if (!isWsSuperAdmin(ws)) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
+              }
+              /*
+                Nhận cả hai dạng payload. Client gửi APPROVE_CLUB với payload là
+                CHÍNH CHUỖI mã CLB, còn REJECT_CLUB (cùng là thao tác của admin lên
+                một CLB) lại gửi `{ clubId, reason }`. Hai thao tác cùng loại mà hai
+                kiểu khác nhau rất dễ踩: gửi nhầm `{ clubId }` thì `find` không thấy
+                gì và handler im lặng bỏ qua, không báo lỗi — người duyệt bấm mà
+                không có chuyện gì xảy ra.
+              */
+              const clubId = typeof payload === 'string' ? payload : String(payload?.clubId || '');
+              if (!clubId) {
+                ws.send(JSON.stringify({ type: 'ERROR', payload: { message: 'Thiếu mã câu lạc bộ!' } }));
+                break;
+              }
+              /* Cùng chốt idempotent như đường HTTP. */
+              const pendingClub = store.clubs.find(c => c.id === clubId);
+              if (!pendingClub) {
+                ws.send(JSON.stringify({ type: 'NOT_FOUND', payload: { action: type } }));
+                break;
+              }
+              if (pendingClub.status === 'APPROVED') {
+                ws.send(JSON.stringify({ type: 'APPROVE_CLUB', payload: clubId }));
+                break;
+              }
+              const creator = Object.values(store.users).find(u => u.id === pendingClub.leaderId);
+              const reward = creator && pendingClub.founderRewardGranted !== true ? 250 : 0;
+              const founderRewardGranted = pendingClub.founderRewardGranted === true || reward > 0;
+              store.clubs = store.clubs.map(c => c.id === clubId
+                ? { ...c, status: 'APPROVED', founderRewardGranted }
+                : c);
+              if (creator) {
+                creator.role = creator.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'CLUB_LEADER';
+                creator.scopedClubIds = Array.from(new Set([...(creator.scopedClubIds || []), clubId]));
+                if (reward > 0) grantExperience(creator, reward);
+                broadcastServerEvent('SYNC_USER', creator);
+              }
+              persistStoreToDisk();
+              broadcastServerEvent('APPROVE_CLUB', clubId);
+              break;
+            }
+            case 'REJECT_CLUB': {
+              if (!isWsSuperAdmin(ws)) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
+              }
+              /*
+                Bản HTTP của cùng thao tác này validate đầy đủ (thiếu mã -> 400,
+                CLB không tồn tại -> 404, lý do cắt 500 ký tự). Nhánh WS thì
+                không làm gì cả:
+
+                  store.clubs = store.clubs.map(c =>
+                    c.id === clubId ? { ...c, status:'REJECTED', rejectReason: reason } : c);
+                  broadcastServerEvent('REJECT_CLUB', payload);
+
+                nên (1) `reason` thô của client được ghi thẳng vào store và xuống
+                đĩa không giới hạn độ dài, (2) phát ngược nguyên payload client cho
+                MỌI client thay vì bản đã làm sạch, (3) từ chối một mã không tồn
+                tại vẫn báo thành công và vẫn phát sóng, khiến các client khác hiện
+                trạng thái REJECTED cho một CLB không có thật.
+              */
+              const clubId = String(payload?.clubId || '').trim();
+              if (!clubId) {
+                ws.send(JSON.stringify({ type: 'ERROR', payload: { message: 'Thiếu mã câu lạc bộ!' } }));
+                break;
+              }
+              const target = store.clubs.find(c => c.id === clubId);
+              if (!target) {
+                ws.send(JSON.stringify({ type: 'NOT_FOUND', payload: { action: type } }));
+                break;
+              }
+              const reason = String(payload?.reason || '').trim().slice(0, 500);
+              const wasApproved = target.status === 'APPROVED';
+              store.clubs = store.clubs.map(c =>
+                c.id === clubId ? { ...c, status: 'REJECTED', rejectReason: reason } : c
+              );
+              /*
+                Từ chối một CLB ĐÃ DUYỆT thì phải rút lại quyền đã trao. Nếu không,
+                chủ nhiệm vẫn giữ role CLUB_LEADER và vẫn còn mã CLB trong
+                scopedClubIds — tức còn quyền quản trị phạm vi một CLB đã bị loại.
+              */
+              if (wasApproved && target.leaderId) {
+                const leader = Object.values(store.users).find(u => u.id === target.leaderId);
+                if (leader) {
+                  leader.scopedClubIds = [...(leader.scopedClubIds || [])].filter(id => id !== clubId);
+                  if (leader.role === 'CLUB_LEADER' && leader.scopedClubIds.length === 0) {
+                    leader.role = 'STUDENT';
+                  }
+                  broadcastServerEvent('SYNC_USER', leader);
+                }
+              }
+              persistStoreToDisk();
+              /* Phát bản đã làm sạch, không phát ngược payload client. */
+              broadcastServerEvent('REJECT_CLUB', { clubId, reason });
+              break;
+            }
+            case 'NEW_CLUB_POST': {
+              /* Cùng lý do: phải đăng nhập, tác giả lấy từ phiên, CLB phải tồn tại. */
+              const posterEmail = session?.email || '';
+              const poster = posterEmail ? store.users[posterEmail] : undefined;
+              if (!session || !poster) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
+              }
+              const postClubId = String(payload?.clubId || '').trim();
+              if (!payload || !payload.id || !postClubId ||
+                  !String(payload.title || '').trim() || !String(payload.content || '').trim()) break;
+              if (!store.clubs.some(c => c.id === postClubId)) break;
+              if (store.clubPosts.some(p => p.id === payload.id)) break;
+
+              const relayedPost = {
+                id: String(payload.id).slice(0, 80),
+                clubId: postClubId.slice(0, 80),
+                authorId: poster.id,
+                authorName: poster.name,
+                authorAvatar: poster.avatar || DEFAULT_AVATAR,
+                title: String(payload.title).trim().slice(0, 200),
+                content: String(payload.content).trim().slice(0, 5000),
+                createdAt: new Date().toISOString(),
+                likes: 0,
+              };
+              store.clubPosts = [relayedPost, ...store.clubPosts].slice(0, MAX_CLUB_POSTS);
+              recordAnalyticsActivity(getAnalyticsStore(), 'clubPosts', poster.email);
+              persistStoreToDisk();
+              broadcastServerEvent('NEW_CLUB_POST', relayedPost);
+              break;
+            }
+            case 'SYNC_USER': {
+              /* Chỉ chủ tài khoản mới được sửa hồ sơ của chính mình. Các trường
+                 quyền (role/staffRole), Premium và phạm vi CLB luôn do server cấp. */
+              const email = typeof payload?.email === 'string' ? payload.email.trim().toLowerCase() : '';
+              if (!session || !email || session.email !== email) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
+              }
+              if (!store.users[email]) break;
+              const patch = sanitizeUserUpdate(payload);
+              const merged = { ...store.users[email], ...patch };
+              merged.level = calculateLevelFromXP(merged.xp ?? 0);
+              store.users[email] = merged;
+              persistStoreToDisk();
+              broadcastServerEvent('SYNC_USER', merged);
+              break;
+            }
+            case 'DELETE_QUESTION': {
+              const { questionId } = payload || {};
+              if (!questionId) break;
+              const owned = store.questions.find(q => q.id === questionId);
+              const mayDelete = isWsSuperAdmin(ws) ||
+                Boolean(session && owned && owned.authorEmail &&
+                  String(owned.authorEmail).toLowerCase() === session.email);
+              if (!mayDelete) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
+              }
+              store.questions = store.questions.filter(q => q.id !== questionId);
+              store.solutions = store.solutions.filter(s => s.questionId !== questionId);
+              persistStoreToDisk();
+              broadcastServerEvent('DELETE_QUESTION', { questionId });
+              break;
+            }
+            case 'EDIT_QUESTION': {
+              const { questionId, updates } = payload || {};
+              if (!questionId || !updates) break;
+              if (!isWsSuperAdmin(ws)) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
+              }
+              /* Cùng một bộ lọc như đường HTTP: không ghi đè được authorEmail
+                 hay bountyCoin qua cửa sửa bài. */
+              const safeWsUpdates = sanitizeQuestionUpdates(updates);
+              if (!safeWsUpdates) break;
+              if (!store.questions.some(q => q.id === questionId)) break;
+              store.questions = store.questions.map(q =>
+                q.id === questionId ? { ...q, ...safeWsUpdates } : q
+              );
+              persistStoreToDisk();
+              broadcastServerEvent('EDIT_QUESTION', { questionId, updates: safeWsUpdates });
+              break;
+            }
+            case 'DELETE_SOLUTION': {
+              const { solutionId } = payload || {};
+              if (!solutionId) break;
+              const ownedSolution = store.solutions.find(s => s.id === solutionId);
+              const mayDeleteSolution = isWsSuperAdmin(ws) ||
+                Boolean(session && ownedSolution && ownedSolution.authorEmail &&
+                  String(ownedSolution.authorEmail).toLowerCase() === session.email);
+              if (!mayDeleteSolution) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
+              }
+              store.solutions = store.solutions.filter(s => s.id !== solutionId);
+              store.questions = store.questions.map(q =>
+                q.bestSolutionId === solutionId ? { ...q, isSolved: false, bestSolutionId: undefined } : q
+              );
+              persistStoreToDisk();
+              broadcastServerEvent('DELETE_SOLUTION', { solutionId });
+              break;
+            }
+            case 'DELETE_CHAT_MESSAGE': {
+              const { messageId } = payload || {};
+              if (!messageId) break;
+              if (!isWsSuperAdmin(ws)) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
+              }
+              store.chatMessages = store.chatMessages.filter(m => m.id !== messageId);
+              persistStoreToDisk();
+              broadcastServerEvent('DELETE_CHAT_MESSAGE', { messageId });
+              break;
+            }
+            case 'SYNC_ABOUT': {
+              if (!isWsSuperAdmin(ws)) {
+                ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
+                break;
+              }
+              if (payload) {
+                /* Gộp, không thay khối — payload thiếu không được xoá founder/milestones. */
+                store.about = mergeAboutData(payload);
+                persistStoreToDisk();
+                broadcastServerEvent('SYNC_ABOUT', store.about);
+              }
+              break;
+            }
           }
-          // Persistent state and moderation may only be changed through the
-          // authenticated, validated HTTP API—not client-originated broadcasts.
-          ws.send(JSON.stringify({
-            type: 'WS_ERROR',
-            payload: { status: 403, message: 'Client-originated write events are not allowed.' },
-          }));
-        } catch {
-          ws.close(1007, 'Invalid message');
+        } catch (err) {
+          console.error('[Forum Server WS] Error handling message:', err);
         }
       });
 
       ws.on('close', () => {
         wsClients.delete(ws);
-        wsClientUsers.delete(ws);
       });
+
       ws.on('error', () => {
         wsClients.delete(ws);
-        wsClientUsers.delete(ws);
       });
     });
 
@@ -1482,7 +1716,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           }
         }
       }
-    }, 25_000);
+    }, 25000);
     wsPingTimer.unref();
 
     httpServer.on('close', () => {
@@ -1496,336 +1730,238 @@ export function setupForumServer(httpServer: any, middlewares: any) {
   }
 
   middlewares.use(async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-    await storeReady;
-    setSecurityHeaders(res);
-    const url = requestPath(req);
+    const url = req.url || '';
     const method = req.method || 'GET';
 
-    if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS' && url.startsWith('/api/') && !isSameOriginRequest(req)) {
-      sendJson(res, 403, { success: false, message: 'Yêu cầu khác nguồn bị từ chối.' });
-      return;
-    }
-    const fetchSite = req.headers['sec-fetch-site'];
-    if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS' &&
-        typeof fetchSite === 'string' && fetchSite !== 'same-origin') {
-      sendJson(res, 403, { success: false, message: 'Yêu cầu khác nguồn bị từ chối.' });
-      return;
-    }
     if (method === 'OPTIONS' && url.startsWith('/api/')) {
       res.statusCode = 204;
-      res.setHeader('Allow', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
       res.end();
       return;
     }
-    if (url.startsWith('/api/') && Number(req.headers['content-length'] || 0) > MAX_REQUEST_BODY_BYTES) {
-      sendJson(res, 413, { success: false, message: 'Yêu cầu vượt quá kích thước cho phép.' });
-      req.resume();
-      return;
-    }
-    const isMutatingMethod = !['GET', 'HEAD', 'OPTIONS'].includes(method);
-    const adminPermission = adminPermissionForRequest(method, url);
-    let authenticatedUser: UserRecord | null = null;
-
-    if (isMutatingMethod && url.startsWith('/api/')) {
-      const isAuthentication = url.startsWith('/api/auth/');
-      const ipRetryAfter = isAuthentication
-        ? consumeRateLimit(req, `auth:${url}`, 20, 15 * 60_000)
-        : consumeRateLimit(req, 'write', 120, 60_000);
-      if (ipRetryAfter !== null) {
-        res.setHeader('Retry-After', String(ipRetryAfter));
-        sendJson(res, 429, { success: false, message: 'Bạn thao tác quá nhanh. Vui lòng thử lại sau.' });
-        return;
-      }
-      if (url === '/api/feedback') {
-        const feedbackRetryAfter = consumeRateLimit(req, 'public-feedback', 20, 60 * 60_000);
-        if (feedbackRetryAfter !== null) {
-          res.setHeader('Retry-After', String(feedbackRetryAfter));
-          sendJson(res, 429, { success: false, message: 'Bạn đã gửi quá nhiều góp ý. Vui lòng thử lại sau.' });
-          return;
-        }
-      }
-      if (!UNAUTHENTICATED_POST_PATHS.has(url)) {
-        authenticatedUser = getAuthenticatedUser(req);
-        if (!authenticatedUser) {
-          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để tiếp tục.' });
-          return;
-        }
-        (req as AuthenticatedRequest).forumUser = authenticatedUser;
-      }
-    }
-
-    // Every /api/admin route is authenticated, including GETs and unknown endpoints.
-    // Legacy moderation URLs are also mapped to explicit permissions for compatibility.
-    if (url.startsWith('/api/admin/') || isAdminSensitiveLegacyRoute(method, url)) {
-      authenticatedUser ||= getAuthenticatedUser(req);
-      if (!authenticatedUser) {
-        sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để tiếp tục.' });
-        return;
-      }
-      (req as AuthenticatedRequest).forumUser = authenticatedUser;
-      const permission = adminPermission || 'admin.access';
-      if (!hasPermission(authenticatedUser, permission)) {
-        const target = getAuditTargetForRequest(req);
-        addSecurityAuditEvent(req, 'authorization_denied', target.id, target.name, 'failure', authenticatedUser);
-        persistStoreToDisk();
-        sendJson(res, 403, { success: false, message: 'Bạn không có quyền thực hiện thao tác này.' });
-        return;
-      }
-      const routeKey = url.startsWith('/api/admin/') ? url : `legacy:${url}`;
-      const retryAfter = consumeRateLimitByKey(`admin-route:${authenticatedUser.id}:${routeKey}`, 40, 60_000);
-      if (retryAfter !== null) {
-        res.setHeader('Retry-After', String(retryAfter));
-        sendJson(res, 429, { success: false, message: 'Bạn thao tác quá nhanh. Vui lòng thử lại sau.' });
-        return;
-      }
-    }
-
-    if (isMutatingMethod && url.startsWith('/api/') &&
-        !UNAUTHENTICATED_POST_PATHS.has(url) && !authenticatedUser) {
-      authenticatedUser = getAuthenticatedUser(req);
-      if (!authenticatedUser) {
-        sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để tiếp tục.' });
-        return;
-      }
-      (req as AuthenticatedRequest).forumUser = authenticatedUser;
-    }
-
-    if (isMutatingMethod && authenticatedUser && !url.startsWith('/api/admin/') && !isAdminSensitiveLegacyRoute(method, url)) {
-      const accountRetryAfter = consumeRateLimitByKey(`account-write:${authenticatedUser.id}`, 60, 60_000);
-      const routeLimit = ACCOUNT_ROUTE_RATE_LIMITS[url];
-      const routeRetryAfter = routeLimit
-        ? consumeRateLimitByKey(`account-route:${authenticatedUser.id}:${url}`, routeLimit.maxRequests, routeLimit.windowMs)
-        : null;
-      const retryAfter = Math.max(accountRetryAfter || 0, routeRetryAfter || 0);
-      if (retryAfter > 0) {
-        res.setHeader('Retry-After', String(retryAfter));
-        sendJson(res, 429, { success: false, message: 'Bạn thao tác quá nhanh. Vui lòng thử lại sau.' });
-        return;
-      }
-    }
-
-    if (url.startsWith('/api/admin/') && method === 'GET') {
-      const routeLimit = ACCOUNT_READ_ROUTE_RATE_LIMITS[url];
-      if (routeLimit && authenticatedUser) {
-        const retryAfter = consumeRateLimitByKey(`account-read:${authenticatedUser.id}:${url}`, routeLimit.maxRequests, routeLimit.windowMs);
-        if (retryAfter !== null) {
-          res.setHeader('Retry-After', String(retryAfter));
-          sendJson(res, 429, { success: false, message: 'Bạn gửi quá nhiều yêu cầu đọc dữ liệu. Vui lòng thử lại sau.' });
-          return;
-        }
-      }
-    }
-
-    const protectedReadRoute = method === 'GET'
-      ? url.startsWith('/api/sync')
-        ? '/api/sync'
-        : url.startsWith('/api/events')
-          ? '/api/events'
-          : url === '/api/rewards/daily/state'
-            ? '/api/rewards/daily/state'
-            : null
-      : null;
-    if (protectedReadRoute) {
-      const user = getAuthenticatedUser(req);
-      if (!user) {
-        sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để đồng bộ dữ liệu diễn đàn.' });
-        return;
-      }
-      (req as AuthenticatedRequest).forumUser = user;
-      const routeLimit = ACCOUNT_READ_ROUTE_RATE_LIMITS[protectedReadRoute];
-      const retryAfter = consumeRateLimitByKey(
-        `account-read:${user.id}:${protectedReadRoute}`,
-        routeLimit.maxRequests,
-        routeLimit.windowMs,
-      );
-      if (retryAfter !== null) {
-        res.setHeader('Retry-After', String(retryAfter));
-        sendJson(res, 429, { success: false, message: 'Bạn gửi quá nhiều yêu cầu đọc dữ liệu. Vui lòng thử lại sau.' });
-        return;
-      }
-    }
 
     if (method === 'GET' && url.startsWith('/api/events')) {
-      const viewer = getAuthenticatedUser(req);
-      if (!viewer) {
-        sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để nhận cập nhật thời gian thực.' });
+      if (sseClients.size >= MAX_SSE_CLIENTS) {
+        sendJson(res, 503, { success: false, message: 'Kênh sự kiện đang quá tải, vui lòng thử lại sau.' });
         return;
       }
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'X-Accel-Buffering': 'no',
       });
       res.write(`data: ${JSON.stringify({ type: 'CONNECTED', clientCount: sseClients.size + 1 })}\n\n`);
       sseClients.add(res);
-      sseClientUsers.set(res, viewer.id);
 
-      let heartbeat: ReturnType<typeof setInterval> | undefined;
-      let forgotten = false;
-      const forgetClient = () => {
-        if (heartbeat) {
+      /* Trước đây interval nhịp tim KHÔNG bị dọn khi client ngắt → mỗi lần
+         reload trang lại rò một timer vĩnh viễn. Giờ dọn ở cả hai ngả. */
+      const heartbeat = setInterval(() => {
+        if (res.writableEnded || res.destroyed) {
           clearInterval(heartbeat);
-          heartbeat = undefined;
-        }
-        if (forgotten) return;
-        forgotten = true;
-        sseClients.delete(res);
-        sseClientUsers.delete(res);
-      };
-      req.on('close', forgetClient);
-      res.on('close', forgetClient);
-
-      heartbeat = setInterval(() => {
-        if (res.destroyed || res.writableEnded) {
-          forgetClient();
+          sseClients.delete(res);
           return;
         }
         try {
           res.write(':keepalive\n\n');
         } catch {
-          forgetClient();
+          clearInterval(heartbeat);
+          sseClients.delete(res);
         }
       }, 20000);
-      heartbeat.unref();
+      heartbeat.unref?.();
+
+      const cleanup = () => {
+        clearInterval(heartbeat);
+        sseClients.delete(res);
+      };
+
+      req.on('close', cleanup);
+      req.on('error', cleanup);
+      res.on('close', cleanup);
 
       return;
     }
 
-    if (method === 'GET' && url === '/api/auth/session') {
-      const user = getAuthenticatedUser(req);
-      if (!user) {
-        sendJson(res, 401, { success: false, message: 'Phiên đăng nhập không còn hợp lệ.' });
-        return;
+    /**
+     * Đo lượt mở, thời gian tab đang hiển thị và lượt chuyển phân khu.
+     * Mã khách do trình duyệt tạo là ngẫu nhiên, được băm trước khi lưu; email
+     * chỉ được gắn khi token hợp lệ. Không lưu IP hay dấu vân tay thiết bị.
+     */
+    if (method === 'POST' && url.split('?')[0] === '/api/analytics/track') {
+      try {
+        const body = await parseJsonBody(req);
+        const throttle = analyticsLimiter.check(`analytics:${clientIpOf(req)}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'cập nhật thống kê');
+          return;
+        }
+        const visitorId = String(body?.visitorId || '').trim();
+        const sessionId = String(body?.sessionId || '').trim();
+        const eventId = String(body?.eventId || '').trim();
+        if (!/^[A-Za-z0-9_-]{20,100}$/.test(visitorId) ||
+            !/^[A-Za-z0-9_-]{20,100}$/.test(sessionId) ||
+            !/^[A-Za-z0-9_-]{20,100}$/.test(eventId)) {
+          sendJson(res, 400, { success: false, message: 'Mã phiên thống kê không hợp lệ.' });
+          return;
+        }
+        const claims = authorizeRequest(req, null, body?.token);
+        const analyticsEmail = claims && store.users[claims.email] ? claims.email : undefined;
+        const analytics = getAnalyticsStore();
+        let result: { ok: boolean; duplicate: boolean };
+        if (body.type === 'visit') {
+          result = recordAnalyticsVisit(analytics, { visitorId, sessionId, eventId, email: analyticsEmail });
+        } else if (body.type === 'heartbeat') {
+          const activeSeconds = Number(body.activeSeconds);
+          if (!Number.isFinite(activeSeconds) || activeSeconds < 0 || activeSeconds > 60) {
+            sendJson(res, 400, { success: false, message: 'Thời lượng phiên không hợp lệ.' });
+            return;
+          }
+          result = recordAnalyticsHeartbeat(analytics, {
+            visitorId, sessionId, eventId, email: analyticsEmail, activeSeconds,
+          });
+        } else if (body.type === 'page_view') {
+          const allowedViews = ['landing', 'home', 'clubs', 'qa', 'chat', 'memory', 'chronicles', 'coming-soon'];
+          if (!allowedViews.includes(String(body.view || ''))) {
+            sendJson(res, 400, { success: false, message: 'Phân khu thống kê không hợp lệ.' });
+            return;
+          }
+          result = recordAnalyticsPageView(analytics, { visitorId, sessionId, eventId, email: analyticsEmail });
+        } else {
+          sendJson(res, 400, { success: false, message: 'Loại sự kiện thống kê không hợp lệ.' });
+          return;
+        }
+        if (!result.ok) {
+          sendJson(res, 409, { success: false, message: 'Mã phiên đã gắn với một trình duyệt khác.' });
+          return;
+        }
+        persistStoreToDisk();
+        sendJson(res, 200, { success: true, duplicate: result.duplicate });
+      } catch (err: any) {
+        handleApiError(res, err);
       }
-      sendJson(res, 200, { success: true, user });
       return;
     }
 
-    if (method === 'GET' && url === '/api/rewards/daily/state') {
-      const user = getAuthenticatedUser(req)!;
-      const today = vietnamDateKey();
-      const { state, changed } = getUserDailyRewardState(user, today);
-      if (changed) persistStoreToDisk();
-      sendJson(res, 200, { success: true, state: toDailyRewardSummary(state, today) });
-      return;
-    }
-
-    if (method === 'GET' && url.startsWith('/api/sync')) {
-      const viewer = getAuthenticatedUser(req);
-      if (!viewer) {
-        sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để đồng bộ dữ liệu diễn đàn.' });
-        return;
-      }
-      const publicUsers = Object.fromEntries(Object.values(store.users).map(user => {
-        const safeUser = publicUser(user);
-        return [safeUser.email, safeUser];
-      }));
-      const publicQuestions = store.questions.map(question => {
-        const safeQuestion = publicAuthoredItem(question);
-        // An anonymous author gets their own identity back for account features; everyone else sees no account identifier.
-        if (question.isAnonymous && question.authorId === viewer.id) safeQuestion.authorId = viewer.id;
-        return safeQuestion;
-      });
+    /** Trạng thái máy chủ — dùng cho trang vận hành và cho test smoke. */
+    if (method === 'GET' && url.startsWith('/api/health')) {
       sendJson(res, 200, {
         success: true,
-        data: {
-          users: publicUsers,
-          clubs: store.clubs,
-          clubPosts: store.clubPosts.map(post => publicAuthoredItem(post)),
-          questions: publicQuestions,
-          solutions: store.solutions.map(solution => publicAuthoredItem(solution)),
-          chatMessages: store.chatMessages.map(message => publicAuthoredItem(message)),
-          feedbacks: [],
-          about: publicAbout(),
+        status: 'ok',
+        uptimeSeconds: Math.round((Date.now() - startedAtMs) / 1000),
+        counts: {
+          users: Object.keys(store.users).length,
+          clubs: store.clubs.length,
+          clubPosts: store.clubPosts.length,
+          questions: store.questions.length,
+          solutions: store.solutions.length,
+          chatMessages: store.chatMessages.length,
+          feedbacks: store.feedbacks.length,
+          reports: store.reports?.length ?? 0,
+        },
+        connections: {
+          websocket: wsClients.size,
+          sse: sseClients.size,
         },
       });
       return;
     }
 
-    if (method === 'POST' && url === '/api/clubs/posts') {
-      try {
-        const body = await parseJsonBody(req);
-        const user = (req as AuthenticatedRequest).forumUser!;
-        const clubId = asSafeText(body.clubId, 128);
-        const title = asSafeText(body.title, 100);
-        const content = asSafeText(body.content, 1_000);
-        const isAuthorizedLeader = (user.scopedClubIds || []).includes(clubId);
-        if (!hasPermission(user, 'posts.edit') && !isAuthorizedLeader) {
-          sendJson(res, 403, { success: false, message: 'Chỉ Chủ nhiệm được cấp quyền hoặc Super Admin mới có thể đăng bài trong CLB này.' });
-          return;
-        }
-        if (!clubId || title.length < 2 || !content) {
-          sendJson(res, 400, { success: false, message: 'Vui lòng nhập tiêu đề và nội dung bài viết hợp lệ.' });
-          return;
-        }
-        const post = {
-          id: `cpost-${randomBytes(12).toString('hex')}`,
-          clubId,
-          authorId: user.id,
-          authorName: user.name,
-          authorAvatar: user.avatar,
-          title,
-          content,
-          createdAt: new Date().toISOString(),
-          likes: 0,
-        };
-        store.clubPosts.push(post);
-        if (store.clubPosts.length > 5_000) store.clubPosts.splice(0, store.clubPosts.length - 5_000);
-        persistStoreToDisk();
-        broadcastServerEvent('NEW_CLUB_POST', post);
-        sendJson(res, 200, { success: true, post });
-      } catch (err: any) {
-        sendRequestError(res, err);
-      }
+    if (method === 'GET' && url.startsWith('/api/sync')) {
+      sendJson(res, 200, {
+        success: true,
+        data: {
+          users: store.users,
+          clubs: store.clubs,
+          clubPosts: store.clubPosts,
+          questions: store.questions,
+          solutions: store.solutions,
+          chatMessages: store.chatMessages,
+          feedbacks: store.feedbacks,
+          about: store.about,
+        },
+      });
       return;
     }
 
     if (method === 'POST' && url === '/api/chat') {
       try {
         const body = await parseJsonBody(req);
-        const user = (req as AuthenticatedRequest).forumUser!;
-        const activeMute = getActiveChatMute(user.id);
-        if (activeMute) {
-          const expiry = activeMute.mutedUntil
-            ? ` đến ${new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'short', timeStyle: 'short' }).format(new Date(activeMute.mutedUntil))}`
-            : ' vô thời hạn';
-          sendJson(res, 403, {
+        const content = String(body.content ?? '').trim();
+        if (!content || !body.channelId) {
+          sendJson(res, 400, { success: false, message: 'Nội dung tin nhắn không được để trống' });
+          return;
+        }
+        if (content.length > MAX_CHAT_CONTENT) {
+          sendJson(res, 400, {
             success: false,
-            code: 'CHAT_MUTED',
-            mutedUntil: activeMute.mutedUntil,
-            message: `Tài khoản đang bị tạm ngưng quyền nhắn tin${expiry}.`,
+            message: `Tin nhắn tối đa ${MAX_CHAT_CONTENT} ký tự.`,
           });
           return;
         }
-        const content = typeof body.content === 'string' ? body.content.trim() : '';
-        const validChannels = new Set(['hallway', 'quick-qa', 'confessions', 'club-hub']);
-        if (!content || content.length > 2_000 || !validChannels.has(body.channelId)) {
-          sendJson(res, 400, { success: false, message: 'Tin nhắn không hợp lệ.' });
+
+        const throttle = writeLimiter.check(`chat:${clientIpOf(req)}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'gửi tin nhắn');
+          return;
+        }
+
+        const claimedEmail = String(body.authorEmail || '').trim().toLowerCase();
+        const claims = authorizeRequest(req, null, body.token);
+        const authorEmail = claims?.email || '';
+
+        /*
+          Chat công khai vẫn cho khách gửi tin, nhưng không được mạo danh tài khoản
+          đã đăng ký bằng cách tự gõ email vào payload. Tài khoản thật phải có Bearer
+          token khớp; nếu không, ghi nhận là khách (email rỗng). Nếu bỏ bước này,
+          người bị cấm chỉ cần đổi authorEmail sang người không bị cấm để lách.
+        */
+        if (claims && claimedEmail && claimedEmail !== claims.email) {
+          sendJson(res, 403, { success: false, message: 'Email người gửi không khớp với phiên đăng nhập.' });
+          return;
+        }
+        if (!claims && claimedEmail && store.users[claimedEmail]) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để gửi tin bằng tài khoản này.' });
+          return;
+        }
+        const knownAuthor = authorEmail ? store.users[authorEmail] : undefined;
+
+        /* Quản lý người dùng: khoá gửi tin áp riêng cho chat, cấm thì chặn hết. */
+        const chatGate = checkCanPost(authorEmail, 'chat');
+        if (!chatGate.ok) {
+          sendJson(res, chatGate.status, { success: false, message: chatGate.message });
           return;
         }
 
         const msg = {
-          id: `msg-${randomBytes(12).toString('hex')}`,
-          channelId: body.channelId,
-          authorId: user.id,
-          authorName: user.name,
-          authorEmail: user.email,
-          authorAvatar: user.avatar,
-          authorLevel: user.level,
-          authorRole: user.role,
-          content,
-          senderId: asSafeText(body.senderId, 100),
-          timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-          timestampMs: Date.now(),
+          id: body.id || randomId('msg'),
+          channelId: String(body.channelId).slice(0, 60),
+          authorId: String(body.authorId || 'guest').slice(0, MAX_NAME_LENGTH),
+          authorName: String(knownAuthor?.name || body.authorName || 'Học sinh').slice(0, MAX_NAME_LENGTH),
+          authorEmail,
+          authorAvatar: String(knownAuthor?.avatar || body.authorAvatar || DEFAULT_AVATAR).slice(0, 2000),
+          /* Cấp bậc lấy từ bản ghi thật — client tự khai thì ai cũng tự phong cấp 150. */
+          authorLevel: knownAuthor?.level ?? 1,
+          content: content.slice(0, MAX_CHAT_CONTENT),
+          senderId: String(body.senderId || '').slice(0, MAX_NAME_LENGTH),
+          timestamp: body.timestamp || new Date().toLocaleTimeString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
         };
 
-        store.chatMessages.push(msg);
-        if (store.chatMessages.length > 5_000) store.chatMessages.splice(0, store.chatMessages.length - 5_000);
-        persistStoreToDisk();
+        if (!store.chatMessages.some(m => m.id === msg.id)) {
+          store.chatMessages = capTail([...store.chatMessages, msg], MAX_CHAT_MESSAGES);
+          recordAnalyticsActivity(getAnalyticsStore(), 'messages', authorEmail || undefined);
+          persistStoreToDisk();
+        }
         broadcastServerEvent('NEW_CHAT_MESSAGE', msg);
         sendJson(res, 200, { success: true, message: msg });
       } catch (err: any) {
-        sendRequestError(res, err);
+        sendJson(res, 500, { success: false, message: err.message });
       }
       return;
     }
@@ -1833,11 +1969,27 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/presence') {
       try {
         const body = await parseJsonBody(req);
-        const presence = safePresencePayload(body?.user, getAuthenticatedUser(req), req);
-        broadcastServerEvent('PRESENCE_PING', presence);
+        if (!body || !body.user) {
+          sendJson(res, 400, { success: false, message: 'Thiếu thông tin người dùng' });
+          return;
+        }
+
+        const throttle = presenceLimiter.check(clientIpOf(req));
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'cập nhật trạng thái trực tuyến');
+          return;
+        }
+
+        const claims = authorizeRequest(req, null, body.token);
+        const cleaned = sanitizePresence(body.user, claims);
+        if (!cleaned) {
+          sendJson(res, 400, { success: false, message: 'Thiếu mã định danh người dùng' });
+          return;
+        }
+        broadcastServerEvent('PRESENCE_PING', cleaned);
         sendJson(res, 200, { success: true });
       } catch (err: any) {
-        sendRequestError(res, err);
+        sendJson(res, 500, { success: false, message: err.message });
       }
       return;
     }
@@ -1845,57 +1997,129 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/questions') {
       try {
         const body = await parseJsonBody(req);
-        const user = (req as AuthenticatedRequest).forumUser!;
-        const title = typeof body.title === 'string' ? body.title.trim() : '';
-        const content = typeof body.content === 'string' ? body.content.trim() : '';
-        if (!title || title.length > 200 || !content || content.length > 20_000 || !isSafeQaImage(body.imageUrl)) {
-          sendJson(res, 400, { success: false, message: 'Tiêu đề, nội dung hoặc hình ảnh câu hỏi không hợp lệ.' });
+
+        const title = String(body.title || '').trim();
+        const content = String(body.content || '').trim();
+        if (!title || !content) {
+          sendJson(res, 400, { success: false, message: 'Tiêu đề và nội dung câu hỏi không được để trống!' });
           return;
         }
-        const requestedBounty = Number(body.bountyCoin);
-        const bountyCoin = body.bountyCoin ? Math.max(10, Math.min(100, Number.isFinite(requestedBounty) ? Math.floor(requestedBounty) : 20)) : 20;
-        if ((user.coin ?? 100) < bountyCoin) {
-          sendJson(res, 400, { success: false, message: 'Bạn không đủ Coin để đặt phần thưởng cho câu hỏi.' });
+
+        const authorEmail = String(body.authorEmail || '').trim().toLowerCase();
+        const author = authorEmail ? store.users[authorEmail] : undefined;
+
+        /* Treo thưởng là tiêu tiền thật → chỉ tài khoản đã đăng nhập và đủ số dư
+           mới được đặt. Khách ẩn danh nhận bountyCoin = 0 thay vì thưởng miễn phí. */
+        const wantedBounty = normalizeBounty(body.bountyCoin);
+        let bountyCoin = author ? wantedBounty : 0;
+
+        if (author) {
+          const claims = authorizeRequest(req, authorEmail, body.token);
+          if (!claims) {
+            sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập lại để đặt câu hỏi!' });
+            return;
+          }
+          /* Chỉ báo lý do áp chế sau khi chứng minh đây đúng là tài khoản đó. */
+          const questionGate = checkCanPost(claims.email, 'content');
+          if (!questionGate.ok) {
+            sendJson(res, questionGate.status, { success: false, message: questionGate.message });
+            return;
+          }
+        }
+
+        const requestedId = typeof body.id === 'string' && body.id.trim()
+          ? body.id.trim().slice(0, 80)
+          : randomId('q');
+        const duplicateQuestion = store.questions.find(q => q.id === requestedId);
+        if (duplicateQuestion) {
+          const existingOwner = String(duplicateQuestion.authorEmail || '').trim().toLowerCase();
+          const requestedOwner = author?.email || '';
+          if (existingOwner !== requestedOwner) {
+            sendJson(res, 409, { success: false, message: 'Mã yêu cầu đã được dùng cho một nội dung khác.' });
+            return;
+          }
+          sendJson(res, 200, {
+            success: true,
+            duplicate: true,
+            reward: 0,
+            question: duplicateQuestion,
+            user: author,
+            message: 'Câu hỏi này đã được tiếp nhận trước đó.',
+          });
           return;
         }
-        const requestedId = asSafeText(body.id, 100);
-        const id = /^[a-zA-Z0-9_-]+$/.test(requestedId) ? requestedId : `q-${randomBytes(12).toString('hex')}`;
-        if (store.questions.some(question => question.id === id)) {
-          sendJson(res, 409, { success: false, message: 'Câu hỏi này đã được gửi.' });
+
+        const balance = author?.coin ?? 100;
+        if (author && balance < bountyCoin) {
+          sendJson(res, 402, {
+            success: false,
+            message: `Số dư không đủ để treo thưởng ${bountyCoin} Coin. Hiện có ${balance} Coin.`,
+          });
           return;
         }
-        const isAnonymous = Boolean(body.isAnonymous);
+
+        const throttle = writeLimiter.check(`question:${clientIpOf(req)}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'đặt câu hỏi');
+          return;
+        }
+
+        const isAnonymousQuestion = Boolean(body.isAnonymous);
+
         const newQuestion = {
-          id,
-          title,
-          subject: asSafeText(body.subject, 40) || 'toan',
-          content,
-          authorId: user.id,
-          authorName: isAnonymous ? (asSafeText(body.anonymousAlias || body.authorName, 60) || 'Ẩn danh') : user.name,
-          authorAvatar: isAnonymous ? DEFAULT_AVATAR : user.avatar,
-          authorEmail: user.email,
-          isAnonymous,
-          anonymousAlias: isAnonymous ? (asSafeText(body.anonymousAlias || body.authorName, 60) || 'Ẩn danh') : undefined,
-          anonymousMask: isAnonymous ? DEFAULT_AVATAR : undefined,
+          id: requestedId,
+          title: title.slice(0, 200),
+          subject: String(body.subject || 'toan').slice(0, 40),
+          content: content.slice(0, 20000),
+          /* Đã đăng nhập thì danh tính hiển thị lấy từ bản ghi thật — không thì
+             ai cũng đăng bài dưới tên và ảnh đại diện của người khác. Khách chưa
+             đăng nhập vẫn dùng tên tự nhập.
+             NGOẠI LỆ: câu hỏi ẩn danh. Diễn đàn cho phép hỏi mà không lộ tên, và
+             giao diện render chính trường `authorName` làm bí danh ("Pháp sư
+             Ghibli"), nên ở chế độ này phải giữ bí danh client gửi. Danh tính thật
+             vẫn nằm ở `authorEmail`/`authorId` để kiểm quyền chọn đáp án chuẩn. */
+          authorId: String(author?.id ?? '').slice(0, MAX_NAME_LENGTH),
+          authorName: String(
+            isAnonymousQuestion
+              ? (body.anonymousAlias || body.authorName || 'Pháp sư Ghibli')
+              : (author?.name ?? body.authorName ?? 'Học sinh')
+          ).slice(0, MAX_NAME_LENGTH),
+          /* Trước đây authorEmail bị bỏ rơi → server không biết câu hỏi của ai
+             và không thể kiểm tra quyền "chọn đáp án chuẩn". */
+          authorEmail: author?.email,
+          authorLevel: author?.level ?? 1,
+          authorAvatar: String(
+            isAnonymousQuestion
+              ? (body.anonymousMask || body.authorAvatar || DEFAULT_AVATAR)
+              : (author?.avatar ?? body.authorAvatar ?? DEFAULT_AVATAR)
+          ).slice(0, 2000),
+          isAnonymous: isAnonymousQuestion,
+          anonymousAlias: typeof body.anonymousAlias === 'string' ? body.anonymousAlias.slice(0, 40) : undefined,
+          anonymousMask: typeof body.anonymousMask === 'string' ? body.anonymousMask.slice(0, 2000) : undefined,
           createdAt: 'Vừa xong',
           createdAtMs: Date.now(),
           isSolved: false,
           views: 1,
           bountyCoin,
-          imageUrl: typeof body.imageUrl === 'string' && body.imageUrl ? body.imageUrl : undefined,
+          bountyRewardClaimed: false,
+          solutionRewardedEmails: [],
+          imageUrl: typeof body.imageUrl === 'string' ? body.imageUrl.slice(0, 2000) : undefined,
         };
 
         store.questions.unshift(newQuestion);
-        user.coin = Math.max(0, (user.coin ?? 100) - bountyCoin);
-        user.xp += 50;
-        user.fPoints = (user.fPoints ?? user.xp) + 50;
-        user.level = calculateLevelFromXP(user.xp);
-        broadcastServerEvent('SYNC_USER', user);
+        recordAnalyticsActivity(getAnalyticsStore(), 'questions', author?.email);
+
+        if (author) {
+          author.coin = Math.max(0, (author.coin ?? 100) - bountyCoin);
+          grantCoinsAndExperience(author, 50);
+          broadcastServerEvent('SYNC_USER', author);
+        }
+
         persistStoreToDisk();
         broadcastServerEvent('NEW_QUESTION', newQuestion);
-        sendJson(res, 200, { success: true, question: newQuestion, user });
+        sendJson(res, 200, { success: true, question: newQuestion, user: author, reward: author ? 50 : 0 });
       } catch (err: any) {
-        sendRequestError(res, err);
+        handleApiError(res, err);
       }
       return;
     }
@@ -1903,55 +2127,101 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/solutions') {
       try {
         const body = await parseJsonBody(req);
-        const user = (req as AuthenticatedRequest).forumUser!;
-        const questionId = asSafeText(body.questionId, 100);
-        const targetQuestion = store.questions.find(question => question.id === questionId);
-        const content = typeof body.content === 'string' ? body.content.trim() : '';
-        if (!questionId || !targetQuestion || !content || content.length > 20_000 || !isSafeQaImage(body.imageUrl)) {
-          sendJson(res, 400, { success: false, message: 'Lời giải, câu hỏi hoặc hình ảnh không hợp lệ.' });
+
+        const questionId = String(body.questionId || '').trim();
+        const content = String(body.content || '').trim();
+        if (!questionId || !content) {
+          sendJson(res, 400, { success: false, message: 'Nội dung lời giải không được để trống!' });
           return;
         }
-        if (targetQuestion.isAnonymous && targetQuestion.authorId === user.id) {
-          sendJson(res, 403, { success: false, message: 'Không thể trả lời câu hỏi ẩn danh do chính tài khoản của bạn tạo.' });
+        /* Trả lời một câu hỏi không tồn tại chỉ làm rác kho dữ liệu. */
+        const targetQuestion = store.questions.find(q => q.id === questionId);
+        if (!targetQuestion) {
+          sendJson(res, 404, { success: false, message: 'Câu hỏi này không còn tồn tại.' });
           return;
         }
-        if (store.solutions.some(solution => solution.questionId === questionId && solution.authorId === user.id)) {
-          sendJson(res, 409, { success: false, message: 'Bạn đã gửi lời giải cho câu hỏi này rồi.' });
+
+        const authorEmail = String(body.authorEmail || '').trim().toLowerCase();
+        const author = authorEmail ? store.users[authorEmail] : undefined;
+
+        if (author) {
+          const claims = authorizeRequest(req, authorEmail, body.token);
+          if (!claims) {
+            sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập lại để gửi lời giải!' });
+            return;
+          }
+          /* Không cho người ngoài dò trạng thái/lý do áp chế bằng email mục tiêu. */
+          const solutionGate = checkCanPost(claims.email, 'content');
+          if (!solutionGate.ok) {
+            sendJson(res, solutionGate.status, { success: false, message: solutionGate.message });
+            return;
+          }
+        }
+
+        const requestedSolutionId = typeof body.id === 'string' && body.id.trim()
+          ? body.id.trim().slice(0, 80)
+          : randomId('sol');
+        const duplicateSolution = store.solutions.find(s => s.id === requestedSolutionId);
+        if (duplicateSolution) {
+          const existingOwner = String(duplicateSolution.authorEmail || '').trim().toLowerCase();
+          const requestedOwner = author?.email || '';
+          if (duplicateSolution.questionId !== questionId || existingOwner !== requestedOwner) {
+            sendJson(res, 409, { success: false, message: 'Mã yêu cầu đã được dùng cho một nội dung khác.' });
+            return;
+          }
+          sendJson(res, 200, {
+            success: true,
+            duplicate: true,
+            reward: 0,
+            solution: duplicateSolution,
+            user: author,
+            message: 'Lời giải này đã được tiếp nhận trước đó.',
+          });
           return;
         }
-        const requestedId = asSafeText(body.id, 100);
-        const id = /^[a-zA-Z0-9_-]+$/.test(requestedId) ? requestedId : `sol-${randomBytes(12).toString('hex')}`;
-        if (store.solutions.some(solution => solution.id === id)) {
-          sendJson(res, 409, { success: false, message: 'Lời giải này đã được gửi.' });
+
+        const throttle = writeLimiter.check(`solution:${clientIpOf(req)}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'gửi lời giải');
           return;
         }
+
         const newSolution = {
-          id,
+          id: requestedSolutionId,
           questionId,
-          authorId: user.id,
-          authorName: user.name,
-          authorEmail: user.email,
-          authorAvatar: user.avatar,
-          authorLevel: user.level,
-          authorRole: user.role,
-          content,
+          /* Danh tính lấy từ bản ghi thật khi đã đăng nhập, như ở câu hỏi. */
+          authorId: String(author?.id ?? '').slice(0, MAX_NAME_LENGTH),
+          authorName: String(author?.name ?? body.authorName ?? 'Học sinh').slice(0, MAX_NAME_LENGTH),
+          authorEmail: author?.email,
+          authorAvatar: String(author?.avatar ?? body.authorAvatar ?? DEFAULT_AVATAR).slice(0, 2000),
+          authorLevel: author?.level ?? 1,
+          content: content.slice(0, 20000),
           createdAt: 'Vừa xong',
           createdAtMs: Date.now(),
           isBest: false,
           upvotes: 1,
-          imageUrl: typeof body.imageUrl === 'string' && body.imageUrl ? body.imageUrl : undefined,
+          bestSelectionBonusGranted: false,
+          imageUrl: typeof body.imageUrl === 'string' ? body.imageUrl.slice(0, 2000) : undefined,
         };
 
         store.solutions.push(newSolution);
-        user.xp += 25;
-        user.fPoints = (user.fPoints ?? user.xp) + 25;
-        user.level = calculateLevelFromXP(user.xp);
-        broadcastServerEvent('SYNC_USER', user);
+        recordAnalyticsActivity(getAnalyticsStore(), 'answers', author?.email);
+
+        const rewardedEmails: string[] = Array.isArray(targetQuestion.solutionRewardedEmails)
+          ? targetQuestion.solutionRewardedEmails
+          : [];
+        const reward = author && !rewardedEmails.includes(author.email) ? 25 : 0;
+        if (author && reward > 0) {
+          targetQuestion.solutionRewardedEmails = [...rewardedEmails, author.email].slice(-1000);
+          grantCoinsAndExperience(author, reward);
+          broadcastServerEvent('SYNC_USER', author);
+        }
+
         persistStoreToDisk();
         broadcastServerEvent('NEW_SOLUTION', newSolution);
-        sendJson(res, 200, { success: true, solution: newSolution, user });
+        sendJson(res, 200, { success: true, solution: newSolution, user: author, reward });
       } catch (err: any) {
-        sendRequestError(res, err);
+        handleApiError(res, err);
       }
       return;
     }
@@ -1959,54 +2229,114 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/solutions/best') {
       try {
         const body = await parseJsonBody(req);
-        const user = (req as AuthenticatedRequest).forumUser!;
-        const questionId = asSafeText(body.questionId, 100);
-        const solutionId = asSafeText(body.solutionId, 100);
+        const { questionId, solutionId } = body;
+
         const targetQ = store.questions.find(q => q.id === questionId);
-        const selectedSolution = store.solutions.find(s => s.id === solutionId && s.questionId === questionId);
-        if (!targetQ || !selectedSolution) {
-          sendJson(res, 404, { success: false, message: 'Không tìm thấy câu hỏi hoặc lời giải.' });
-          return;
-        }
-        if (user.role !== 'super_admin' && targetQ.authorId !== user.id) {
-          sendJson(res, 403, { success: false, message: 'Chỉ tác giả câu hỏi hoặc Super Admin mới có quyền xác nhận đáp án chuẩn.' });
-          return;
-        }
-        if (targetQ.isSolved) {
-          sendJson(res, 409, { success: false, message: 'Câu hỏi đã có đáp án chuẩn.' });
-          return;
-        }
-        if (selectedSolution.authorId === targetQ.authorId) {
-          sendJson(res, 403, { success: false, message: 'Tác giả không thể tự trao Coin thưởng cho lời giải của chính mình.' });
+        if (!targetQ) {
+          sendJson(res, 404, { success: false, message: 'Câu hỏi này không còn tồn tại.' });
           return;
         }
 
-        store.questions = store.questions.map(question =>
-          question.id === questionId ? { ...question, isSolved: true, bestSolutionId: solutionId } : question
+        /* CŨ: tin `currentUserId` / `currentUserEmail` trong body → ai biết id
+           tác giả là giả được. MỚI: phải có token hợp lệ của chính tài khoản đó. */
+        const claims = authorizeRequest(req, null, body.token);
+        const questionOwnerEmail = String((targetQ as any).authorEmail || '').toLowerCase();
+        const isAuthor = Boolean(claims && questionOwnerEmail && claims.email === questionOwnerEmail);
+        const isSuperAdmin = Boolean(claims && isMasterAdminEmail(claims.email));
+
+        if (!claims || (!isSuperAdmin && !isAuthor)) {
+          sendJson(res, 403, {
+            success: false,
+            message: 'Chỉ tác giả câu hỏi hoặc Super Admin mới có quyền xác nhận đáp án chuẩn!',
+          });
+          return;
+        }
+
+        const targetSolution = store.solutions.find(s => s.id === solutionId);
+        if (!targetSolution || targetSolution.questionId !== questionId) {
+          sendJson(res, 404, { success: false, message: 'Lời giải không thuộc câu hỏi này.' });
+          return;
+        }
+        /*
+          Không cho tự chọn câu trả lời của CHÍNH MÌNH làm đáp án chuẩn.
+
+          Thưởng = bounty*0.5 + 100, mà người hỏi đã được trừ bounty khi đặt câu.
+          Nếu tự hỏi rồi tự trả lời rồi tự chọn, mỗi vòng bỏ túi +50 coin và
+          +225 XP — lặp vô hạn, tự động hoá được. Đã xác nhận bằng repro:
+            [1] vòng 1: coin = 150 | xp = 225
+            [2] vòng 2: coin = 200 | xp = 450
+            [3] vòng 3: coin = 250 | xp = 675
+          Về mặt nghiệp vụ cũng vô nghĩa: không ai tự chấm mình là người giải đúng.
+        */
+        const solutionAuthorEmail = String((targetSolution as any).authorEmail || '').toLowerCase();
+        if (solutionAuthorEmail && solutionAuthorEmail === claims.email) {
+          sendJson(res, 409, {
+            success: false,
+            message: 'Không thể chọn câu trả lời của chính bạn làm đáp án chuẩn!',
+          });
+          return;
+        }
+
+        /* Chọn lại đúng đáp án cũ là no-op thật: không tăng upvote hay phát lại sự kiện. */
+        const alreadyBest = (targetQ as any).bestSolutionId === solutionId;
+        if (alreadyBest) {
+          sendJson(res, 200, {
+            success: true,
+            duplicate: true,
+            reward: 0,
+            question: targetQ,
+            solution: targetSolution,
+          });
+          return;
+        }
+
+        const rewardAlreadyClaimed = (targetQ as any).bountyRewardClaimed === true;
+        store.questions = store.questions.map(q =>
+          q.id === questionId
+            ? { ...q, isSolved: true, bestSolutionId: solutionId, bountyRewardClaimed: true }
+            : q
         );
-        store.solutions = store.solutions.map(solution => {
-          if (solution.questionId !== questionId) return solution;
-          return solution.id === solutionId
-            ? { ...solution, isBest: true, upvotes: (solution.upvotes || 0) + 5 }
-            : { ...solution, isBest: false };
+
+        store.solutions = store.solutions.map(s => {
+          if (s.questionId === questionId) {
+            if (s.id === solutionId) {
+              const upvotes = Number.isFinite(s.upvotes) ? s.upvotes : 0;
+              const bonusAlreadyClaimed = s.bestSelectionBonusGranted === true;
+              return {
+                ...s,
+                isBest: true,
+                upvotes: bonusAlreadyClaimed ? upvotes : upvotes + 5,
+                bestSelectionBonusGranted: true,
+              };
+            }
+            return { ...s, isBest: false };
+          }
+          return s;
         });
 
-        const solver = store.users[selectedSolution.authorEmail?.toLowerCase() || ''];
-        if (solver) {
-          const bounty = Number(targetQ.bountyCoin) || 20;
-          const solverAward = Math.floor(bounty * 0.5) + 100;
-          solver.coin = (solver.coin ?? 100) + solverAward;
-          solver.xp += solverAward;
-          solver.fPoints = (solver.fPoints ?? solver.xp) + solverAward;
-          solver.level = calculateLevelFromXP(solver.xp);
-          broadcastServerEvent('SYNC_USER', solver);
+        const sol = store.solutions.find(s => s.id === solutionId);
+        let awardedUser: UserRecord | undefined;
+        let awardedAmount = 0;
+        if (sol?.authorEmail && store.users[sol.authorEmail.toLowerCase()]) {
+          awardedUser = store.users[sol.authorEmail.toLowerCase()];
+          if (!rewardAlreadyClaimed) {
+            awardedAmount = solverAwardFor((targetQ as any).bountyCoin || 20);
+            grantCoinsAndExperience(awardedUser, awardedAmount);
+            broadcastServerEvent('SYNC_USER', awardedUser);
+          }
         }
 
         persistStoreToDisk();
         broadcastServerEvent('MARK_BEST_SOLUTION', { questionId, solutionId });
-        sendJson(res, 200, { success: true });
+        sendJson(res, 200, {
+          success: true,
+          reward: awardedAmount,
+          user: awardedUser,
+          question: store.questions.find((question) => question.id === questionId),
+          solution: store.solutions.find((solution) => solution.id === solutionId),
+        });
       } catch (err: any) {
-        sendRequestError(res, err);
+        sendJson(res, 500, { success: false, message: err.message });
       }
       return;
     }
@@ -2014,74 +2344,101 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/auth/register') {
       try {
         const body = await parseJsonBody(req);
-        const name = asSafeText(body.name, 60);
-        const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
-        const password = typeof body.password === 'string' ? body.password : '';
+        const name = (body.name || '').trim();
+        const email = (body.email || '').trim().toLowerCase();
+        const password = (body.password || '').trim();
 
         if (!name) {
-          sendJson(res, 400, { success: false, message: 'Vui lòng nhập họ và tên của bạn.' });
+          sendJson(res, 400, { success: false, message: 'Vui lòng nhập họ và tên của bạn!' });
           return;
         }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          sendJson(res, 400, { success: false, message: 'Vui lòng nhập địa chỉ email hợp lệ.' });
+        if (!name || name.length > 80) {
+          sendJson(res, 400, { success: false, message: 'Họ tên tối đa 80 ký tự!' });
           return;
         }
-        if (password.length < 12 || password.length > 128) {
-          sendJson(res, 400, { success: false, message: 'Mật khẩu phải có từ 12 đến 128 ký tự.' });
+        if (!EMAIL_PATTERN.test(email)) {
+          sendJson(res, 400, { success: false, message: 'Vui lòng nhập địa chỉ email hợp lệ!' });
           return;
         }
-        if (email.endsWith(RETIRED_VIRTUAL_DOMAIN)) {
-          sendJson(res, 400, { success: false, message: 'Miền email này không còn được hỗ trợ.' });
+        if (!password || password.length < 6) {
+          sendJson(res, 400, { success: false, message: 'Mật khẩu phải có ít nhất 6 ký tự!' });
           return;
         }
-        // Pay the same password-hashing cost for an existing address so the
-        // registration response is less useful as a timing-based account oracle.
-        const passwordHash = await hashPassword(password);
-        if (store.users[email]) {
-          addSecurityAuditEvent(req, 'auth_register_duplicate', `email:${createHash('sha256').update(email).digest('hex').slice(0, 20)}`, 'Account registration', 'failure');
-          persistStoreToDisk();
-          sendJson(res, 202, {
-            success: true,
-            message: 'Nếu tài khoản có thể được tạo, bạn có thể đăng nhập để tiếp tục.',
-          });
+        /* Mật khẩu quá dài khiến scrypt tốn tài nguyên vô ích. */
+        if (password.length > 200) {
+          sendJson(res, 400, { success: false, message: 'Mật khẩu tối đa 200 ký tự!' });
           return;
         }
 
-        const now = new Date().toISOString();
-        const newUser: UserRecord = {
-          id: `user-${randomBytes(16).toString('hex')}`,
-          name,
-          email,
-          avatar: DEFAULT_AVATAR,
-          role: 'user',
-          createdAt: now,
-          updatedAt: now,
-          lastLoginAt: now,
-          level: 1,
-          xp: 0,
-          coin: 100,
-          fPoints: 0,
-          streakCount: 0,
-          bio: '',
-          gender: 'Chưa cập nhật',
-          city: 'Chưa cập nhật',
-          className: 'Chưa cập nhật',
-          joinedAt: now,
-          scopedClubIds: [],
-          inventory: [],
-        };
+        if (email.endsWith(RETIRED_VIRTUAL_DOMAIN)) {
+          sendJson(res, 400, { success: false, message: 'Miền email này không còn được hỗ trợ. Vui lòng dùng email thật!' });
+          return;
+        }
+
+        const throttle = registerLimiter.check(`register:${clientIpOf(req)}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'đăng ký');
+          return;
+        }
+
+        if (store.users[email]) {
+          sendJson(res, 400, { success: false, message: 'Email này đã được đăng ký. Vui lòng đăng nhập!' });
+          return;
+        }
+
+        const isSuperAdmin = isMasterAdminEmail(email);
+        const newUser: UserRecord = isSuperAdmin
+          ? {
+              id: 'user-admin',
+              name: name || 'Trần Văn Anh Tuấn',
+              email: 'anhtuantran0512@gmail.com',
+              avatar: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c.png',
+              role: 'SUPER_ADMIN',
+              level: 150,
+              xp: 45000,
+              coin: 99999,
+              fPoints: 45000,
+              streakCount: 36,
+              inventory: [],
+              equippedBadge: '',
+              bio: 'F-Forum Architect & Core Administrator. Xây dựng tương lai tri thức học đường.',
+              gender: 'Nam',
+              city: 'Hà Nội',
+              className: 'K19 Software Engineering',
+              scopedClubIds: [],
+            }
+          : {
+              id: randomId('user'),
+              name,
+              email,
+              avatar: DEFAULT_AVATAR,
+              role: 'STUDENT',
+              level: 1,
+              xp: 0,
+              coin: 100,
+              fPoints: 0,
+              streakCount: 0,
+              bio: '',
+              gender: 'Chưa cập nhật',
+              city: 'Chưa cập nhật',
+              className: 'Chưa cập nhật',
+              joinedAt: new Date().toISOString(),
+              scopedClubIds: [],
+              inventory: [],
+              equippedBadge: '',
+            };
+
         store.users[email] = newUser;
-        store.passwords[email] = passwordHash;
-        addSecurityAuditEvent(req, 'auth_register', newUser.id, newUser.name, 'success', newUser);
+        recordAnalyticsSignup(getAnalyticsStore(), email);
+        /* Không bao giờ lưu mật khẩu thô — chỉ giữ bản băm scrypt. */
+        store.passwords[email] = hashPassword(password);
         persistStoreToDisk();
-        // Do not broadcast account creation: realtime listeners must not be able
-        // to distinguish a new address from an already-registered one.
-        sendJson(res, 202, {
-          success: true,
-          message: 'Nếu tài khoản có thể được tạo, bạn có thể đăng nhập để tiếp tục.',
-        });
+
+        broadcastServerEvent('SYNC_USER', newUser);
+
+        sendJson(res, 200, { success: true, user: newUser, token: issueTokenFor(newUser) });
       } catch (err: any) {
-        sendRequestError(res, err);
+        handleApiError(res, err);
       }
       return;
     }
@@ -2089,144 +2446,204 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/auth/login') {
       try {
         const body = await parseJsonBody(req);
-        const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
-        const password = typeof body.password === 'string' ? body.password : '';
-        const emailKey = createHash('sha256').update(email.slice(0, 254)).digest('hex');
-        const emailRetryAfter = consumeRateLimitByKey(`auth-login-email:${emailKey}`, 10, 15 * 60_000);
-        if (emailRetryAfter !== null) {
-          res.setHeader('Retry-After', String(emailRetryAfter));
-          addSecurityAuditEvent(req, 'auth_login_rate_limited', `email:${emailKey.slice(0, 20)}`, 'Password login', 'failure');
-          persistStoreToDisk();
-          sendJson(res, 429, { success: false, message: 'Bạn thao tác quá nhanh. Vui lòng thử lại sau.' });
+        const email = (body.email || '').trim().toLowerCase();
+        const password = (body.password || '').trim();
+
+        if (!email) {
+          sendJson(res, 400, { success: false, message: 'Vui lòng nhập địa chỉ email!' });
           return;
         }
+
+        const ip = clientIpOf(req);
+        const throttle = loginLimiter.check(`login:${ip}:${email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'đăng nhập');
+          return;
+        }
+
         const user = store.users[email];
-        const storedPassword = user ? store.passwords[email] : undefined;
-        let valid = false;
-
-        if (isPasswordHash(storedPassword) && password.length <= 128) {
-          valid = await verifyPasswordHash(password, storedPassword);
-          const storedIterations = Number(storedPassword.split('$')[1]);
-          if (valid && storedIterations < PASSWORD_HASH_ITERATIONS) {
-            store.passwords[email] = await hashPassword(password);
-          }
-        } else {
-          await verifyPasswordHash(password.slice(0, 128), await getDummyPasswordHash());
-        }
-
-        if (!valid || !user || isAccountLocked(user.id)) {
-          const targetId = user?.id || `email:${emailKey.slice(0, 20)}`;
-          addSecurityAuditEvent(req, 'auth_login_failure', targetId, 'Password login', 'failure', user || null);
-          persistStoreToDisk();
-          sendJson(res, 401, { success: false, message: 'Thông tin đăng nhập không chính xác.' });
+        if (!user) {
+          sendJson(res, 400, {
+            success: false,
+            message: 'Tài khoản không tồn tại. Vui lòng đăng ký trước!',
+          });
           return;
         }
 
-        const now = new Date().toISOString();
-        user.lastLoginAt = now;
-        user.updatedAt = now;
-        addSecurityAuditEvent(req, 'auth_login_success', user.id, user.name, 'success', user);
-        persistStoreToDisk();
-        createSession(req, res, user);
-        sendJson(res, 200, { success: true, user });
+        const registeredPassword = store.passwords[email];
+
+        /* LỖ HỔNG CŨ: `if (registeredPassword && registeredPassword !== password)`
+           — tài khoản tạo qua Google/Facebook không có bản ghi mật khẩu nên điều
+           kiện bị bỏ qua và MỌI mật khẩu đều được chấp nhận (chiếm tài khoản).
+           Giờ: không có mật khẩu = không đăng nhập được bằng form này. */
+        if (!registeredPassword) {
+          sendJson(res, 400, {
+            success: false,
+            message: 'Tài khoản này chưa có mật khẩu. Vui lòng dùng phương thức đăng nhập đã liên kết; Super Admin cần được bootstrap bằng cấu hình máy chủ.',
+          });
+          return;
+        }
+
+        const check = verifyPassword(password, registeredPassword);
+        if (!check.ok) {
+          sendJson(res, 400, { success: false, message: 'Mật khẩu không chính xác. Vui lòng thử lại!' });
+          return;
+        }
+
+        /* Mật khẩu plaintext cũ → băm lại ngay lần đăng nhập thành công này. */
+        if (check.needsRehash) {
+          store.passwords[email] = hashPassword(password);
+          persistStoreToDisk();
+        }
+
+        loginLimiter.reset(`login:${ip}:${email}`);
+        sendJson(res, 200, { success: true, user, token: issueTokenFor(user) });
       } catch (err: any) {
-        sendRequestError(res, err);
+        handleApiError(res, err);
       }
+      return;
+    }
+
+    /**
+     * Kiểm tra token đang giữ còn hiệu lực không.
+     * Client khôi phục phiên từ localStorage nên cần một nơi hỏi lại server:
+     * token hết hạn / tài khoản bị xoá / role bị thu hồi thì phải đăng xuất,
+     * thay vì để giao diện tưởng đã đăng nhập trong khi mọi API đều trả 401.
+     */
+    if (method === 'GET' && url.startsWith('/api/auth/session')) {
+      const claims = authorizeRequest(req, null, null);
+      if (!claims) {
+        sendJson(res, 401, { success: false, message: 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn.' });
+        return;
+      }
+      const account = store.users[claims.email];
+      if (!account) {
+        sendJson(res, 401, { success: false, message: 'Tài khoản này không còn tồn tại.' });
+        return;
+      }
+      /* Role đọc từ bản ghi thật, không từ token — thu hồi quyền là có hiệu lực ngay. */
+      sendJson(res, 200, {
+        success: true,
+        user: account,
+        role: account.role,
+        expiresAt: claims.exp,
+      });
       return;
     }
 
     if (method === 'POST' && url === '/api/auth/social') {
       try {
         const body = await parseJsonBody(req);
-        const provider = typeof body.provider === 'string' ? body.provider : '';
-        const credential = typeof body.credential === 'string' ? body.credential : '';
-        if (!['google', 'facebook'].includes(provider)) {
-          addSecurityAuditEvent(req, 'auth_social_failure', provider || 'unknown-provider', 'Social login', 'failure');
-          persistStoreToDisk();
-          sendJson(res, 400, { success: false, message: 'Nhà cung cấp đăng nhập không hợp lệ.' });
+        const provider: 'google' | 'facebook' = body.provider === 'facebook' ? 'facebook' : 'google';
+        const name = (body.name || '').trim();
+        const email = (body.email || '').trim().toLowerCase();
+        const avatar = (body.avatar || '').trim();
+        const accessToken = typeof body.accessToken === 'string' ? body.accessToken : null;
+
+        if (!EMAIL_PATTERN.test(email)) {
+          sendJson(res, 400, { success: false, message: 'Địa chỉ email mạng xã hội không hợp lệ!' });
           return;
         }
-        const identity = await verifySocialCredential(provider, credential);
-        if (!identity) {
-          addSecurityAuditEvent(req, 'auth_social_failure', provider, 'Social login', 'failure');
-          persistStoreToDisk();
-          sendJson(res, 401, { success: false, message: 'Không thể xác thực tài khoản mạng xã hội.' });
-          return;
-        }
-        if (identity.email.endsWith(RETIRED_VIRTUAL_DOMAIN)) {
-          addSecurityAuditEvent(req, 'auth_social_failure', provider, 'Social login', 'failure');
-          persistStoreToDisk();
-          sendJson(res, 401, { success: false, message: 'Không thể xác thực tài khoản mạng xã hội.' });
+        if (email.endsWith(RETIRED_VIRTUAL_DOMAIN)) {
+          sendJson(res, 400, { success: false, message: 'Miền email này không còn được hỗ trợ!' });
           return;
         }
 
-        const now = new Date().toISOString();
-        let user = store.users[identity.email];
+        const throttle = socialLimiter.check(`social:${clientIpOf(req)}:${email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'đăng nhập mạng xã hội');
+          return;
+        }
+
+        /* Email là do client tự khai → phải kiểm chứng với nhà cung cấp, và
+           quyền SUPER_ADMIN thì KHÔNG BAO GIỜ được cấp từ một lời khai. */
+        const decision = await decideSocialAccess({ provider, accessToken, claimedEmail: email });
+        if (!decision.allowed) {
+          console.warn(`[Forum Server] Chặn đăng nhập social ${email}: ${decision.message}`);
+          sendJson(res, decision.status || 403, { success: false, message: decision.message });
+          return;
+        }
+
+        let user = store.users[email];
         if (!user) {
-          user = {
-            id: `user-${randomBytes(16).toString('hex')}`,
-            name: identity.name,
-            email: identity.email,
-            avatar: identity.avatar || DEFAULT_AVATAR,
-            role: 'user',
-            createdAt: now,
-            updatedAt: now,
-            lastLoginAt: now,
-            level: 1,
-            xp: 0,
-            coin: 100,
-            fPoints: 0,
-            streakCount: 0,
-            bio: '',
-            gender: 'Chưa cập nhật',
-            city: 'Chưa cập nhật',
-            className: 'Chưa cập nhật',
-            joinedAt: now,
-            scopedClubIds: [],
-            inventory: [],
-          };
-          store.users[identity.email] = user;
-        }
-        if (isAccountLocked(user.id)) {
-          addSecurityAuditEvent(req, 'auth_social_failure', user.id, user.name, 'failure', user);
-          persistStoreToDisk();
-          sendJson(res, 401, { success: false, message: 'Không thể xác thực tài khoản mạng xã hội.' });
-          return;
-        }
-        // Provider-verified identity can update only ordinary public profile fields.
-        if (user.role === 'user' && identity.avatar && user.avatar === DEFAULT_AVATAR) user.avatar = identity.avatar;
-        user.lastLoginAt = now;
-        user.updatedAt = now;
-        addSecurityAuditEvent(req, 'auth_social_success', user.id, user.name, 'success', user);
-        persistStoreToDisk();
-        broadcastServerEvent('SYNC_USER', user);
-        createSession(req, res, user);
-        sendJson(res, 200, { success: true, user });
-      } catch (err: any) {
-        sendRequestError(res, err);
-      }
-      return;
-    }
+          const isSuperAdmin = isMasterAdminEmail(email);
+          user = isSuperAdmin
+            ? {
+                id: 'user-admin',
+                name: name || 'Trần Văn Anh Tuấn',
+                email: MASTER_ADMIN_EMAIL,
+                avatar: avatar || 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c.png',
+                role: 'SUPER_ADMIN',
+                level: 150,
+                xp: 45000,
+                coin: 99999,
+                fPoints: 45000,
+                streakCount: 36,
+                inventory: [],
+                equippedBadge: '',
+                bio: 'F-Forum Architect & Core Administrator. Xây dựng tương lai tri thức học đường.',
+                gender: 'Nam',
+                city: 'Hà Nội',
+                className: 'K19 Software Engineering',
+                scopedClubIds: [],
+              }
+            : {
+                id: randomId('user'),
+                name: name || (provider === 'google' ? 'Google User' : 'Facebook User'),
+                email,
+                avatar: avatar || DEFAULT_AVATAR,
+                role: 'STUDENT',
+                level: 1,
+                xp: 0,
+                coin: 100,
+                fPoints: 0,
+                streakCount: 0,
+                bio: '',
+                gender: 'Chưa cập nhật',
+                city: 'Chưa cập nhật',
+                className: 'Chưa cập nhật',
+                joinedAt: new Date().toISOString(),
+                scopedClubIds: [],
+                inventory: [],
+                equippedBadge: '',
+              };
 
-    if (method === 'POST' && url === '/api/auth/logout') {
-      const actor = getAuthenticatedUser(req);
-      const token = getSessionToken(req);
-      addSecurityAuditEvent(req, 'auth_logout', actor?.id || 'session', actor?.name || 'Session', 'success', actor);
-      clearSession(req, res);
-      if (token) persistStoreToDisk();
-      sendJson(res, 200, { success: true });
+          store.users[email] = user;
+          recordAnalyticsSignup(getAnalyticsStore(), email);
+          persistStoreToDisk();
+          broadcastServerEvent('SYNC_USER', user);
+        } else {
+          let updated = false;
+          if (avatar && (user.avatar === DEFAULT_AVATAR || !user.avatar)) {
+            user.avatar = avatar;
+            updated = true;
+          }
+          if (name && (user.name === 'Google User' || user.name === 'Facebook User')) {
+            user.name = name;
+            updated = true;
+          }
+          if (updated) {
+            persistStoreToDisk();
+            broadcastServerEvent('SYNC_USER', user);
+          }
+        }
+
+        sendJson(res, 200, { success: true, user, token: issueTokenFor(user) });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
       return;
     }
 
     if (method === 'POST' && url === '/api/feedback') {
       try {
         const body = await parseJsonBody(req);
-        const name = asSafeText(body.name, 80);
-        const email = asSafeText(body.email, 254).toLowerCase();
-        const category = asSafeText(body.category, 80) || 'Góp ý khác';
-        const content = asSafeText(body.content, 5_000);
+        const name = (body.name || '').trim();
+        const email = (body.email || '').trim();
+        const category = body.category || 'Góp ý khác';
+        const content = (body.content || '').trim();
 
-        if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !content) {
+        if (!name || !email || !content) {
           sendJson(res, 400, { success: false, message: 'Vui lòng điền đầy đủ các trường thông tin!' });
           return;
         }
@@ -2238,17 +2655,27 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           });
           return;
         }
+        if (content.length > MAX_FEEDBACK_CONTENT) {
+          sendJson(res, 400, { success: false, message: `Nội dung góp ý tối đa ${MAX_FEEDBACK_CONTENT} ký tự.` });
+          return;
+        }
+
+        const fbThrottle = writeLimiter.check(`feedback:${clientIpOf(req)}`);
+        if (!fbThrottle.allowed) {
+          sendRateLimited(res, fbThrottle.retryAfterMs, 'gửi góp ý');
+          return;
+        }
 
         const submission = {
-          id: `fb-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          name,
-          email,
-          category,
-          content,
+          id: randomId('fb'),
+          name: name.slice(0, MAX_NAME_LENGTH),
+          email: email.slice(0, 200),
+          category: String(category).slice(0, 80),
+          content: content.slice(0, MAX_FEEDBACK_CONTENT),
           createdAt: new Date().toISOString(),
         };
 
-        store.feedbacks.push(submission);
+        store.feedbacks = capTail([...store.feedbacks, submission], MAX_FEEDBACKS);
         persistStoreToDisk();
         broadcastServerEvent('NEW_FEEDBACK', submission);
         sendJson(res, 200, {
@@ -2256,7 +2683,265 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           message: 'Cảm ơn bạn! Ý kiến đóng góp đã được chuyển tới Ban Quản Trị.',
         });
       } catch (err: any) {
-        sendRequestError(res, err);
+        sendJson(res, 500, { success: false, message: err.message });
+      }
+      return;
+    }
+
+    /*
+      ───────────────────────────────────────────────────────────────────────────
+      CÂU LẠC BỘ
+      Bốn thao tác này trước đây CHỈ gọi HTTP tới endpoint không tồn tại (404) và
+      phát BroadcastChannel — tức là chỉ tới các tab CÙNG trình duyệt. Handler WS
+      phía server có sẵn nhưng client không bao giờ gửi, nên hồ sơ CLB lập trên
+      điện thoại sẽ biến mất trên mọi thiết bị khác. Nay đi qua HTTP có xác thực.
+      ───────────────────────────────────────────────────────────────────────────
+    */
+    if (method === 'POST' && url === '/api/clubs') {
+      try {
+        const body = await parseJsonBody(req);
+        const name = String(body.name || '').trim();
+        const purpose = String(body.purpose || '').trim();
+        if (!name) {
+          sendJson(res, 400, { success: false, message: 'Tên câu lạc bộ không được để trống!' });
+          return;
+        }
+
+        const throttle = writeLimiter.check(`club:${clientIpOf(req)}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'thành lập câu lạc bộ');
+          return;
+        }
+
+        /* Người sáng lập lấy THUẦN từ token — `leaderEmail` trong body chỉ để
+           tham khảo và bị bỏ qua, nên không ai mạo danh người khác được. */
+        const claims = authorizeRequest(req, null, body.token);
+        const founder = claims ? store.users[claims.email] : undefined;
+        if (!founder) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để thành lập câu lạc bộ!' });
+          return;
+        }
+
+        /* Quản lý người dùng: tài khoản bị cấm không được lập CLB mới. */
+        const clubGate = checkCanPost(founder.email, 'content');
+        if (!clubGate.ok) {
+          sendJson(res, clubGate.status, { success: false, message: clubGate.message });
+          return;
+        }
+
+        const club = {
+          id: typeof body.id === 'string' && body.id ? body.id.slice(0, 80) : randomId('club'),
+          name: name.slice(0, 120),
+          slogan: String(body.slogan || '').slice(0, 200),
+          coverImage: String(body.coverImage || '').slice(0, 2000),
+          category: String(body.category || 'Công nghệ').slice(0, 60),
+          foundingMembers: Array.isArray(body.foundingMembers)
+            ? body.foundingMembers.slice(0, 20).map((m: unknown) => String(m).slice(0, 120))
+            : [],
+          purpose: purpose.slice(0, 2000),
+          leaderId: founder.id,
+          leaderName: founder.name,
+          followerCount: 1,
+          membersCount: Math.max(1, Array.isArray(body.foundingMembers) ? body.foundingMembers.length : 0),
+          /* Hồ sơ mới luôn ở trạng thái chờ — người dùng không tự duyệt cho mình. */
+          status: 'PENDING',
+          founderRewardGranted: false,
+          createdAt: new Date().toISOString().split('T')[0],
+        };
+
+        const existingClub = store.clubs.find(c => c.id === club.id);
+        if (existingClub) {
+          sendJson(res, 200, {
+            success: true,
+            club: existingClub,
+            duplicated: true,
+            message: 'Hồ sơ thành lập này đã được tiếp nhận trước đó.',
+          });
+          return;
+        }
+        store.clubs = [club, ...store.clubs].slice(0, MAX_CLUBS);
+        recordAnalyticsActivity(getAnalyticsStore(), 'clubsCreated', founder.email);
+        persistStoreToDisk();
+        broadcastServerEvent('NEW_CLUB', club);
+        sendJson(res, 200, { success: true, club, message: 'Hồ sơ thành lập đã được gửi tới Ban Quản Trị.' });
+      } catch (err: any) {
+        sendJson(res, 500, { success: false, message: err?.message || 'Không tạo được câu lạc bộ' });
+      }
+      return;
+    }
+
+    /** Duyệt hồ sơ CLB — chỉ Super Admin. Logic thăng cấp giữ nguyên như nhánh WS. */
+    if (method === 'POST' && url === '/api/clubs/approve') {
+      try {
+        const body = await parseJsonBody(req);
+        const clubId = String(body.clubId || '').trim();
+        if (!clubId) {
+          sendJson(res, 400, { success: false, message: 'Thiếu mã câu lạc bộ!' });
+          return;
+        }
+        if (!requireSuperAdmin(req, body)) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới duyệt được câu lạc bộ!' });
+          return;
+        }
+
+        const club = store.clubs.find(c => c.id === clubId);
+        if (!club) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy câu lạc bộ này!' });
+          return;
+        }
+        /* Idempotent: duyệt lại một CLB đã duyệt không được thăng cấp và cộng
+           250 XP lần nữa. Không có chốt này thì bấm duyệt bao nhiêu lần cũng được. */
+        const creator = Object.values(store.users).find(u => u.id === club.leaderId);
+        if (club.status === 'APPROVED') {
+          sendJson(res, 200, {
+            success: true,
+            club,
+            user: creator,
+            reward: 0,
+            alreadyApproved: true,
+            message: 'Câu lạc bộ này đã được duyệt trước đó.',
+          });
+          return;
+        }
+
+        /* Một CLB chỉ phát thưởng sáng lập đúng một lần, kể cả khi bị từ chối
+           rồi được duyệt lại. Cờ này do server đặt và được lưu cùng CLB. */
+        const reward = creator && club.founderRewardGranted !== true ? 250 : 0;
+        const founderRewardGranted = club.founderRewardGranted === true || reward > 0;
+        store.clubs = store.clubs.map(c => c.id === clubId
+          ? { ...c, status: 'APPROVED', founderRewardGranted }
+          : c);
+        const approved = store.clubs.find(c => c.id === clubId);
+        if (creator) {
+          creator.role = creator.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'CLUB_LEADER';
+          creator.scopedClubIds = Array.from(new Set([...(creator.scopedClubIds || []), clubId]));
+          if (reward > 0) grantExperience(creator, reward);
+          broadcastServerEvent('SYNC_USER', creator);
+        }
+        persistStoreToDisk();
+        broadcastServerEvent('APPROVE_CLUB', clubId);
+        sendJson(res, 200, {
+          success: true,
+          club: approved,
+          user: creator,
+          reward,
+          message: 'Đã duyệt câu lạc bộ.',
+        });
+      } catch (err: any) {
+        sendJson(res, 500, { success: false, message: err?.message || 'Không duyệt được câu lạc bộ' });
+      }
+      return;
+    }
+
+    /** Từ chối hồ sơ CLB kèm lý do — chỉ Super Admin. */
+    if (method === 'POST' && url === '/api/clubs/reject') {
+      try {
+        const body = await parseJsonBody(req);
+        const clubId = String(body.clubId || '').trim();
+        const reason = String(body.reason || '').trim();
+        if (!clubId) {
+          sendJson(res, 400, { success: false, message: 'Thiếu mã câu lạc bộ!' });
+          return;
+        }
+        if (!requireSuperAdmin(req, body)) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới từ chối được câu lạc bộ!' });
+          return;
+        }
+        const rejectedTarget = store.clubs.find(c => c.id === clubId);
+        if (!rejectedTarget) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy câu lạc bộ này!' });
+          return;
+        }
+        /*
+          Từ chối một CLB ĐÃ DUYỆT thì phải rút lại quyền đã trao. Nhánh WS của
+          cùng thao tác này đã làm việc đó, còn bản HTTP thì quên: chủ nhiệm vẫn
+          giữ role CLUB_LEADER và vẫn còn mã CLB trong scopedClubIds, tức còn quyền
+          quản trị phạm vi một câu lạc bộ đã bị loại. E2E bắt được đúng chỗ này.
+        */
+        const wasApproved = rejectedTarget.status === 'APPROVED';
+        const safeReason = reason.slice(0, 500);
+        store.clubs = store.clubs.map(c =>
+          c.id === clubId ? { ...c, status: 'REJECTED', rejectReason: safeReason } : c
+        );
+        if (wasApproved && rejectedTarget.leaderId) {
+          const leader = Object.values(store.users).find(u => u.id === rejectedTarget.leaderId);
+          if (leader) {
+            leader.scopedClubIds = [...(leader.scopedClubIds || [])].filter(id => id !== clubId);
+            if (leader.role === 'CLUB_LEADER' && leader.scopedClubIds.length === 0) {
+              leader.role = 'STUDENT';
+            }
+            broadcastServerEvent('SYNC_USER', leader);
+          }
+        }
+        persistStoreToDisk();
+        broadcastServerEvent('REJECT_CLUB', { clubId, reason: safeReason });
+        sendJson(res, 200, { success: true, clubId, message: 'Đã từ chối hồ sơ câu lạc bộ.' });
+      } catch (err: any) {
+        sendJson(res, 500, { success: false, message: err?.message || 'Không từ chối được câu lạc bộ' });
+      }
+      return;
+    }
+
+    /** Bài viết trong CLB — cần đăng nhập. */
+    if (method === 'POST' && url === '/api/clubs/posts') {
+      try {
+        const body = await parseJsonBody(req);
+        const title = String(body.title || '').trim();
+        const content = String(body.content || '').trim();
+        const clubId = String(body.clubId || '').trim();
+        if (!clubId || !title || !content) {
+          sendJson(res, 400, { success: false, message: 'Tiêu đề và nội dung bài viết không được để trống!' });
+          return;
+        }
+        if (!store.clubs.some(c => c.id === clubId)) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy câu lạc bộ này!' });
+          return;
+        }
+
+        const throttle = writeLimiter.check(`clubpost:${clientIpOf(req)}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'đăng bài');
+          return;
+        }
+
+        /* Tác giả bài viết cũng lấy thuần từ token. */
+        const claims = authorizeRequest(req, null, body.token);
+        const author = claims ? store.users[claims.email] : undefined;
+        if (!author) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để đăng bài!' });
+          return;
+        }
+
+        /* Quản lý người dùng: bị cấm thì không được đăng bài trong CLB. */
+        const clubPostGate = checkCanPost(author.email, 'content');
+        if (!clubPostGate.ok) {
+          sendJson(res, clubPostGate.status, { success: false, message: clubPostGate.message });
+          return;
+        }
+
+        const post = {
+          id: typeof body.id === 'string' && body.id ? body.id.slice(0, 80) : randomId('cpost'),
+          clubId: clubId.slice(0, 80),
+          authorId: author.id,
+          authorName: author.name,
+          authorAvatar: author.avatar || DEFAULT_AVATAR,
+          title: title.slice(0, 200),
+          content: content.slice(0, 5000),
+          createdAt: new Date().toISOString(),
+          likes: 0,
+        };
+
+        if (store.clubPosts.some(p => p.id === post.id)) {
+          sendJson(res, 200, { success: true, post, duplicated: true });
+          return;
+        }
+        store.clubPosts = [post, ...store.clubPosts].slice(0, MAX_CLUB_POSTS);
+        recordAnalyticsActivity(getAnalyticsStore(), 'clubPosts', author.email);
+        persistStoreToDisk();
+        broadcastServerEvent('NEW_CLUB_POST', post);
+        sendJson(res, 200, { success: true, post, message: 'Đã đăng bài viết.' });
+      } catch (err: any) {
+        sendJson(res, 500, { success: false, message: err?.message || 'Không đăng được bài viết' });
       }
       return;
     }
@@ -2264,37 +2949,61 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/reports') {
       try {
         const body = await parseJsonBody(req);
-        const reporter = (req as AuthenticatedRequest).forumUser!;
-        const reporterId = reporter.id;
-        const reporterName = reporter.name;
-        const reporterEmail = reporter.email;
-        const reportedUserId = asSafeText(body.reportedUserId, 128);
-        const reportedUserName = asSafeText(body.reportedUserName, 80);
-        const reason = asSafeText(body.reason, 200);
-        const details = asSafeText(body.details, 5_000);
+        const reporterId = (body.reporterId || '').trim();
+        const reporterName = (body.reporterName || '').trim();
+        const reporterEmail = (body.reporterEmail || '').trim();
+        const reportedUserId = (body.reportedUserId || '').trim();
+        const reportedUserName = (body.reportedUserName || '').trim();
+        const reason = (body.reason || '').trim();
+        const details = (body.details || '').trim();
 
         if (!reportedUserId || !reason) {
           sendJson(res, 400, { success: false, message: 'Vui lòng cung cấp lý do tố cáo!' });
           return;
         }
 
+        const throttle = writeLimiter.check(`report:${clientIpOf(req)}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'gửi tố cáo');
+          return;
+        }
+
         const reportSubmission = {
-          id: `rep-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          reporterId,
-          reporterName,
-          reporterEmail,
-          reportedUserId,
-          reportedUserName,
-          reason,
-          details,
+          id: randomId('rep'),
+          reporterId: reporterId.slice(0, 120),
+          reporterName: reporterName.slice(0, 120),
+          reporterEmail: reporterEmail.slice(0, 200).toLowerCase(),
+          reportedUserId: reportedUserId.slice(0, 120),
+          reportedUserName: reportedUserName.slice(0, 120),
+          reason: reason.slice(0, 200),
+          details: details.slice(0, 2000),
+          targetEmail: MASTER_ADMIN_EMAIL,
+          status: 'PENDING',
           createdAt: new Date().toISOString(),
-          status: 'open',
         };
 
         if (!store.reports) {
           store.reports = [];
         }
-        store.reports.push(reportSubmission);
+        /* Cùng một người tố cùng một mục với cùng lý do trong thời gian ngắn thì
+           gộp lại, tránh một nút bấm spam làm ngập hộp thư ban quản trị. */
+        const duplicate = store.reports.find(
+          r =>
+            r.reporterId === reportSubmission.reporterId &&
+            r.reportedUserId === reportSubmission.reportedUserId &&
+            r.reason === reportSubmission.reason &&
+            r.status === 'PENDING',
+        );
+        if (duplicate) {
+          sendJson(res, 200, {
+            success: true,
+            message: 'Bạn đã tố cáo trường hợp này và Ban Quản Trị đang xử lý.',
+            reportId: duplicate.id,
+            duplicated: true,
+          });
+          return;
+        }
+        store.reports = capTail([...store.reports, reportSubmission], MAX_REPORTS);
         persistStoreToDisk();
         broadcastServerEvent('NEW_REPORT', reportSubmission);
         sendJson(res, 200, {
@@ -2303,702 +3012,1064 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           reportId: reportSubmission.id,
         });
       } catch (err: any) {
-        sendRequestError(res, err);
+        sendJson(res, 500, { success: false, message: err.message });
       }
       return;
     }
 
-    if (method === 'POST' && url === '/api/rewards/coin') {
-      sendJson(res, 410, {
-        success: false,
-        message: 'Phần thưởng Coin phải được xác nhận bằng hành động hợp lệ trên máy chủ.',
-      });
-      return;
-    }
-
-    if (method === 'POST' && url === '/api/rewards/daily/attendance') {
-      try {
-        await parseJsonBody(req);
-        const user = (req as AuthenticatedRequest).forumUser!;
-        const today = vietnamDateKey();
-        const { state, changed } = getUserDailyRewardState(user, today);
-        if (state.lastAttendanceDate === today) {
-          if (changed) persistStoreToDisk();
-          sendJson(res, 200, {
-            success: true,
-            alreadyClaimed: true,
-            rewardCoins: 0,
-            state: toDailyRewardSummary(state, today),
-            user,
-          });
-          return;
-        }
-        if (!creditDailyRewardCoins(user, 25, today)) {
-          if (changed) persistStoreToDisk();
-          sendJson(res, 403, { success: false, message: 'Đã đạt giới hạn Coin thưởng trong ngày.' });
-          return;
-        }
-
-        const nextStreak = getNextAttendanceStreak(state.lastAttendanceDate, state.attendanceStreak, today);
-        state.lastAttendanceDate = today;
-        state.attendanceStreak = nextStreak;
-        user.streakCount = nextStreak;
-        const boxType = getAttendanceBoxType(nextStreak);
-        if (boxType) {
-          state.boxes.push({
-            id: randomBytes(18).toString('base64url'),
-            type: boxType,
-            earnedOn: today,
-            streak: nextStreak,
-          });
-        }
-        publishRewardUser(user);
-        sendJson(res, 200, {
-          success: true,
-          alreadyClaimed: false,
-          rewardCoins: 25,
-          earnedBox: boxType,
-          state: toDailyRewardSummary(state, today),
-          user,
-        });
-      } catch (err: any) {
-        sendRequestError(res, err);
+    if (method === 'GET' && url.split('?')[0] === '/api/rewards/daily/status') {
+      const actor = authenticatedUser(req);
+      if (!actor) {
+        sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để xem phần thưởng hằng ngày.' });
+        return;
       }
-      return;
-    }
-
-    if (method === 'POST' && url === '/api/rewards/daily/trivia') {
-      try {
-        const body = await parseJsonBody(req);
-        const answerIndex = body.answerIndex;
-        if (!Number.isInteger(answerIndex) || answerIndex < -1 || answerIndex > 3) {
-          sendJson(res, 400, { success: false, message: 'Câu trả lời không hợp lệ.' });
-          return;
-        }
-        const user = (req as AuthenticatedRequest).forumUser!;
-        const today = vietnamDateKey();
-        const { state, changed } = getUserDailyRewardState(user, today);
-        if (state.triviaClaimed) {
-          if (changed) persistStoreToDisk();
-          sendJson(res, 200, {
-            success: true,
-            alreadyClaimed: true,
-            rewardCoins: 0,
-            correct: state.triviaCorrect,
-            previousRewardCoins: state.triviaCoins,
-            state: toDailyRewardSummary(state, today),
-            user,
-          });
-          return;
-        }
-        const triviaIndex = getDailyTriviaIndex(today);
-        const correct = answerIndex === TRIVIA_CORRECT_OPTION_INDICES[triviaIndex];
-        const rewardCoins = correct ? randomInt(5, 11) : 0;
-        if (rewardCoins > 0 && !creditDailyRewardCoins(user, rewardCoins, today)) {
-          if (changed) persistStoreToDisk();
-          sendJson(res, 403, { success: false, message: 'Đã đạt giới hạn Coin thưởng trong ngày.' });
-          return;
-        }
-        state.triviaClaimed = true;
-        state.triviaCorrect = correct;
-        state.triviaCoins = rewardCoins;
-        if (rewardCoins > 0) publishRewardUser(user);
-        else persistStoreToDisk();
-        sendJson(res, 200, {
-          success: true,
-          alreadyClaimed: false,
-          correct,
-          rewardCoins,
-          state: toDailyRewardSummary(state, today),
-          user,
-        });
-      } catch (err: any) {
-        sendRequestError(res, err);
-      }
-      return;
-    }
-
-    if (method === 'POST' && url === '/api/rewards/daily/boxes/open') {
-      try {
-        const body = await parseJsonBody(req);
-        const boxId = asSafeText(body.boxId, 100);
-        if (!/^[a-zA-Z0-9_-]{8,100}$/.test(boxId)) {
-          sendJson(res, 400, { success: false, message: 'Hộp quà không hợp lệ.' });
-          return;
-        }
-        const user = (req as AuthenticatedRequest).forumUser!;
-        const today = vietnamDateKey();
-        const { state, changed } = getUserDailyRewardState(user, today);
-        const previouslyOpened = state.openedBoxes[boxId];
-        if (previouslyOpened) {
-          if (changed) persistStoreToDisk();
-          sendJson(res, 200, {
-            success: true,
-            alreadyOpened: true,
-            rewardCoins: 0,
-            previousRewardCoins: previouslyOpened.coins,
-            state: toDailyRewardSummary(state, today),
-            user,
-          });
-          return;
-        }
-        const boxIndex = state.boxes.findIndex(box => box.id === boxId);
-        if (boxIndex < 0) {
-          if (changed) persistStoreToDisk();
-          sendJson(res, 409, { success: false, message: 'Hộp quà đã được mở hoặc không thuộc tài khoản này.' });
-          return;
-        }
-        const [box] = state.boxes.splice(boxIndex, 1);
-        const rewardCoins = BOX_COIN_REWARDS[box.type];
-        if (!creditDailyRewardCoins(user, rewardCoins, today)) {
-          state.boxes.splice(boxIndex, 0, box);
-          if (changed) persistStoreToDisk();
-          sendJson(res, 403, { success: false, message: 'Đã đạt giới hạn Coin thưởng trong ngày.' });
-          return;
-        }
-        state.openedBoxes[boxId] = { type: box.type, coins: rewardCoins, openedOn: today };
-        publishRewardUser(user);
-        sendJson(res, 200, {
-          success: true,
-          alreadyOpened: false,
-          boxType: box.type,
-          rewardCoins,
-          state: toDailyRewardSummary(state, today),
-          user,
-        });
-      } catch (err: any) {
-        sendRequestError(res, err);
-      }
-      return;
-    }
-
-    if (method === 'POST' && url === '/api/rewards/study/start') {
-      const user = (req as AuthenticatedRequest).forumUser!;
-      const today = vietnamDateKey();
-      const { state } = getUserDailyRewardState(user, today);
-      const now = Date.now();
-      if (!state.activeStudySession || now - state.activeStudySession.lastHeartbeatAt > MAX_STUDY_SESSION_IDLE_MS) {
-        state.activeStudySession = {
-          id: randomBytes(18).toString('base64url'),
-          startedAt: now,
-          lastHeartbeatAt: now,
-        };
-      }
-      persistStoreToDisk();
+      const today = currentRewardDateKey();
       sendJson(res, 200, {
         success: true,
-        sessionId: state.activeStudySession.id,
-        studyMinutes: Math.floor(state.studyMilliseconds / 60_000),
-        user,
+        date: today,
+        status: { ...dailyRewardStatus(getDailyRewardProfile(actor.user.email), today), date: today },
       });
       return;
     }
 
-    if (method === 'POST' && (url === '/api/rewards/study/pulse' || url === '/api/rewards/study/stop')) {
-      let body: any;
+    if (method === 'POST' && url === '/api/rewards/daily/claim') {
       try {
-        body = await parseJsonBody(req);
-      } catch (err: any) {
-        sendRequestError(res, err);
-        return;
-      }
-      const sessionId = asSafeText(body.sessionId, 100);
-      if (!/^[a-zA-Z0-9_-]{8,100}$/.test(sessionId)) {
-        sendJson(res, 400, { success: false, message: 'Phiên học không hợp lệ.' });
-        return;
-      }
-      const user = (req as AuthenticatedRequest).forumUser!;
-      const today = vietnamDateKey();
-      const { state, changed } = getUserDailyRewardState(user, today);
-      const isStop = url.endsWith('/stop');
-      if (!state.activeStudySession) {
-        if (changed) persistStoreToDisk();
-        if (!isStop) {
-          sendJson(res, 409, { success: false, message: 'Chưa có phiên học đã xác nhận trên máy chủ.' });
+        const body = await parseJsonBody(req) || {};
+        const actor = authenticatedUser(req, body);
+        if (!actor) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để nhận phần thưởng hằng ngày.' });
           return;
+        }
+        const throttle = writeLimiter.check(`daily-reward:${actor.user.email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'nhận phần thưởng');
+          return;
+        }
+
+        const today = currentRewardDateKey();
+        const profile = getDailyRewardProfile(actor.user.email);
+        let rewardResult: ReturnType<typeof claimDailyAttendance> | ReturnType<typeof claimDailyTrivia> | ReturnType<typeof claimGiftBox> = null;
+        let actionMessage = '';
+
+        if (body.action === 'attendance') {
+          rewardResult = claimDailyAttendance(profile, today);
+          actionMessage = 'Điểm danh thành công.';
+        } else if (body.action === 'quiz') {
+          rewardResult = claimDailyTrivia(profile, today, body.answerIndex, randomInt(5, 11));
+          actionMessage = 'Đã ghi nhận câu trả lời hôm nay.';
+        } else if (body.action === 'box') {
+          rewardResult = claimGiftBox(profile, today, body.boxType);
+          actionMessage = 'Đã mở hộp quà.';
+        } else {
+          sendJson(res, 400, { success: false, message: 'Loại phần thưởng không hợp lệ.' });
+          return;
+        }
+
+        if (!rewardResult) {
+          sendJson(res, 409, {
+            success: false,
+            message: body.action === 'attendance'
+              ? 'Bạn đã điểm danh hôm nay.'
+              : body.action === 'quiz'
+                ? 'Bạn đã trả lời câu hỏi hôm nay.'
+                : 'Bạn không còn hộp quà loại này.',
+            status: { ...dailyRewardStatus(profile, today), date: today },
+          });
+          return;
+        }
+
+        store.dailyRewards![actor.user.email] = rewardResult.profile;
+        if (body.action === 'attendance') actor.user.streakCount = rewardResult.status.streak;
+        if (rewardResult.reward > 0) grantCoinsAndExperience(actor.user, rewardResult.reward);
+        persistStoreToDisk();
+        if (rewardResult.reward > 0 || body.action === 'attendance') {
+          broadcastServerEvent('SYNC_USER', actor.user);
         }
         sendJson(res, 200, {
           success: true,
-          rewards: [],
-          studyMinutes: Math.floor(state.studyMilliseconds / 60_000),
-          user,
+          action: body.action,
+          reward: rewardResult.reward,
+          correct: 'correct' in rewardResult ? rewardResult.correct : undefined,
+          boxGranted: 'boxGranted' in rewardResult ? rewardResult.boxGranted : undefined,
+          status: { ...rewardResult.status, date: today },
+          user: actor.user,
+          message: actionMessage,
         });
-        return;
+      } catch (err: any) {
+        handleApiError(res, err);
       }
-      if (state.activeStudySession.id !== sessionId) {
-        sendJson(res, 409, { success: false, message: 'Phiên học đã được thay thế hoặc đã kết thúc.' });
-        return;
-      }
+      return;
+    }
 
-      accrueServerStudyTime(state, Date.now());
-      if (isStop) state.activeStudySession = null;
-      const { rewards, todayMinutes } = grantReachedStudyRewards(user, state, today);
-      if (rewards.length > 0) publishRewardUser(user);
-      else persistStoreToDisk();
-      sendJson(res, 200, { success: true, rewards, studyMinutes: todayMinutes, user });
+    if (method === 'POST' && url === '/api/rewards/focus/start') {
+      try {
+        const body = await parseJsonBody(req) || {};
+        const actor = authenticatedUser(req, body);
+        if (!actor) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để nhận thưởng phiên tập trung.' });
+          return;
+        }
+        const throttle = writeLimiter.check(`focus:${actor.user.email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'bắt đầu phiên tập trung');
+          return;
+        }
+
+        const now = Date.now();
+        if (!store.focusRewardSessions) store.focusRewardSessions = {};
+        const existing = store.focusRewardSessions[actor.user.email];
+        if (existing && !existing.claimedAt && now - existing.startedAt < FOCUS_SESSION_MAX_AGE_MS) {
+          sendJson(res, 200, {
+            success: true,
+            sessionId: existing.id,
+            startedAt: existing.startedAt,
+            resumed: true,
+          });
+          return;
+        }
+
+        const session: FocusRewardSession = { id: randomId('focus'), startedAt: now };
+        store.focusRewardSessions[actor.user.email] = session;
+        persistStoreToDisk();
+        sendJson(res, 200, {
+          success: true,
+          sessionId: session.id,
+          startedAt: session.startedAt,
+          resumed: false,
+        });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/rewards/focus/complete') {
+      try {
+        const body = await parseJsonBody(req) || {};
+        const actor = authenticatedUser(req, body);
+        if (!actor) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để nhận thưởng phiên tập trung.' });
+          return;
+        }
+        const throttle = writeLimiter.check(`focus:${actor.user.email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'nhận thưởng phiên tập trung');
+          return;
+        }
+
+        const sessionId = typeof body.sessionId === 'string' ? body.sessionId.trim() : '';
+        const session = store.focusRewardSessions?.[actor.user.email];
+        if (!sessionId || !session || session.id !== sessionId) {
+          sendJson(res, 409, { success: false, message: 'Phiên tập trung không còn hợp lệ.' });
+          return;
+        }
+        if (session.claimedAt) {
+          sendJson(res, 200, {
+            success: true,
+            duplicate: true,
+            reward: session.reward || FOCUS_REWARD_AMOUNT,
+            user: actor.user,
+          });
+          return;
+        }
+
+        const now = Date.now();
+        const elapsed = now - session.startedAt;
+        if (elapsed < FOCUS_REWARD_MINIMUM_MS) {
+          sendJson(res, 409, { success: false, message: 'Bạn cần hoàn thành đủ 25 phút tập trung mới nhận được thưởng.' });
+          return;
+        }
+        if (elapsed > FOCUS_SESSION_MAX_AGE_MS) {
+          delete store.focusRewardSessions![actor.user.email];
+          persistStoreToDisk();
+          sendJson(res, 409, { success: false, message: 'Phiên tập trung đã hết hạn; hãy bắt đầu phiên mới.' });
+          return;
+        }
+
+        grantCoinsAndExperience(actor.user, FOCUS_REWARD_AMOUNT);
+        session.claimedAt = now;
+        session.reward = FOCUS_REWARD_AMOUNT;
+        persistStoreToDisk();
+        broadcastServerEvent('SYNC_USER', actor.user);
+        sendJson(res, 200, {
+          success: true,
+          reward: FOCUS_REWARD_AMOUNT,
+          user: actor.user,
+          message: 'Đã ghi nhận 25 phút tập trung và phần thưởng tương ứng.',
+        });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/rewards/focus/cancel') {
+      try {
+        const body = await parseJsonBody(req) || {};
+        const actor = authenticatedUser(req, body);
+        if (!actor) {
+          sendJson(res, 401, { success: false, message: 'Phiên đăng nhập không hợp lệ.' });
+          return;
+        }
+        const sessionId = typeof body.sessionId === 'string' ? body.sessionId.trim() : '';
+        const session = store.focusRewardSessions?.[actor.user.email];
+        const cancelled = Boolean(sessionId && session && session.id === sessionId && !session.claimedAt);
+        if (cancelled) {
+          delete store.focusRewardSessions![actor.user.email];
+          persistStoreToDisk();
+        }
+        sendJson(res, 200, { success: true, cancelled });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/shop/purchase') {
+      try {
+        const body = await parseJsonBody(req) || {};
+        const actor = authenticatedUser(req, body);
+        if (!actor) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để mua vật phẩm.' });
+          return;
+        }
+        const throttle = writeLimiter.check(`shop:${actor.user.email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'mua vật phẩm');
+          return;
+        }
+        const itemId = typeof body.itemId === 'string' ? body.itemId.trim() : '';
+        const item = SHOP_ITEM_BY_ID.get(itemId);
+        if (!item) {
+          sendJson(res, 404, { success: false, message: 'Vật phẩm không tồn tại trong cửa hàng.' });
+          return;
+        }
+        const inventory = Array.isArray(actor.user.inventory) ? actor.user.inventory : [];
+        if (inventory.includes(itemId)) {
+          sendJson(res, 200, { success: true, duplicate: true, user: actor.user, item: { id: item.id, price: item.price } });
+          return;
+        }
+        const balance = asBoundedCount(actor.user.coin, 100, MAX_USER_COIN);
+        if (balance < item.price) {
+          sendJson(res, 402, { success: false, message: `Bạn cần ${item.price} Coin; số dư hiện tại là ${balance} Coin.` });
+          return;
+        }
+        actor.user.coin = balance - item.price;
+        actor.user.inventory = [...inventory, itemId];
+        persistStoreToDisk();
+        broadcastServerEvent('SYNC_USER', actor.user);
+        sendJson(res, 200, {
+          success: true,
+          user: actor.user,
+          item: { id: item.id, name: item.name, price: item.price },
+        });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/shop/equip') {
+      try {
+        const body = await parseJsonBody(req) || {};
+        const actor = authenticatedUser(req, body);
+        if (!actor) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để thay đổi trang bị.' });
+          return;
+        }
+        const itemId = typeof body.itemId === 'string' ? body.itemId.trim() : '';
+        if (itemId) {
+          if (!SHOP_ITEM_BY_ID.has(itemId)) {
+            sendJson(res, 404, { success: false, message: 'Vật phẩm không tồn tại trong cửa hàng.' });
+            return;
+          }
+          if (!(actor.user.inventory || []).includes(itemId)) {
+            sendJson(res, 403, { success: false, message: 'Bạn chưa sở hữu vật phẩm này.' });
+            return;
+          }
+        }
+        actor.user.equippedBadge = itemId;
+        persistStoreToDisk();
+        broadcastServerEvent('SYNC_USER', actor.user);
+        sendJson(res, 200, { success: true, user: actor.user });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
       return;
     }
 
     if (method === 'POST' && url === '/api/users/update') {
       try {
         const body = await parseJsonBody(req);
-        const user = (req as AuthenticatedRequest).forumUser!;
-        const requestedEmail = typeof body.email === 'string' ? body.email.trim().toLowerCase() : user.email;
-        const requestedUserId = typeof body.userId === 'string' ? body.userId : user.id;
-        const updates = body.updates;
-        if (requestedEmail !== user.email.toLowerCase() || requestedUserId !== user.id || !updates || typeof updates !== 'object' || Array.isArray(updates)) {
-          sendJson(res, 403, { success: false, message: 'Bạn chỉ có thể cập nhật hồ sơ của chính mình.' });
-          return;
-        }
-        const allowed = new Set(['name', 'avatar', 'bio', 'gender', 'city', 'className', 'bannerUrl', 'profileGradient', 'coin', 'inventory', 'equippedBadge']);
-        if (Object.keys(updates).some(key => !allowed.has(key))) {
-          sendJson(res, 403, { success: false, message: 'Một số trường hồ sơ được bảo vệ và không thể chỉnh sửa.' });
+        const email = (body.email || '').trim().toLowerCase();
+
+        if (!email || !store.users[email]) {
+          sendJson(res, 400, { success: false, message: 'Người dùng không tồn tại' });
           return;
         }
 
-        const safeUpdates: Partial<UserRecord> = {};
-        if (Object.hasOwn(updates, 'name')) {
-          const name = asSafeText(updates.name, 60);
-          if (name.length < 2) {
-            sendJson(res, 400, { success: false, message: 'Tên hiển thị không hợp lệ.' });
-            return;
-          }
-          safeUpdates.name = name;
-        }
-        if (Object.hasOwn(updates, 'avatar')) {
-          const avatar = typeof updates.avatar === 'string' ? updates.avatar.slice(0, 2_000_000) : '';
-          safeUpdates.avatar = avatar.startsWith('https://') || avatar === DEFAULT_AVATAR || /^data:image\/(png|jpeg|webp);base64,[a-z0-9+/=]+$/i.test(avatar)
-            ? avatar
-            : DEFAULT_AVATAR;
-        }
-        for (const field of ['bio', 'gender', 'city', 'className'] as const) {
-          if (Object.hasOwn(updates, field)) {
-            const value = asSafeText(updates[field], field === 'bio' ? 2_000 : 100);
-            (safeUpdates as any)[field] = value;
-          }
-        }
-        for (const field of ['bannerUrl'] as const) {
-          if (Object.hasOwn(updates, field)) {
-            const value = typeof updates[field] === 'string' ? updates[field].slice(0, 2_000_000) : '';
-            if (value.startsWith('https://') || /^data:image\/(png|jpeg|webp);base64,[a-z0-9+/=]+$/i.test(value)) {
-              (safeUpdates as any)[field] = value;
-            }
-          }
-        }
-        if (Object.hasOwn(updates, 'profileGradient') && typeof updates.profileGradient === 'string' && /^[a-z0-9#%,.() -]{1,120}$/i.test(updates.profileGradient)) {
-          safeUpdates.profileGradient = updates.profileGradient;
-        }
-
-        const shopPrices: Record<string, number> = {
-          pencil_starter: 50, seed_wisdom: 80, journal_memories: 120,
-          magnifier_detective: 200, ruler_quantum: 300, flask_energy: 450,
-          compass_galaxy: 650, hourglass_time: 850, torch_victory: 1_200,
-          crown_celestial: 1_800, talisman_focus: 2_500, prism_universe: 4_000,
-        };
-        const currentInventory = Array.isArray(user.inventory) ? [...user.inventory] : [];
-        if (Object.hasOwn(updates, 'inventory')) {
-          const nextInventory = Array.isArray(updates.inventory) ? updates.inventory.filter((item: unknown) => typeof item === 'string') : [];
-          const added = nextInventory.filter((item: string) => !currentInventory.includes(item));
-          const removed = currentInventory.filter(item => !nextInventory.includes(item));
-          const price = added.length === 1 && removed.length === 0 ? shopPrices[added[0]] : undefined;
-          const currentCoin = typeof user.coin === 'number' && Number.isSafeInteger(user.coin) ? user.coin : 100;
-          if (price === undefined || !Number.isSafeInteger(updates.coin) || updates.coin !== currentCoin - price || currentCoin < price) {
-            sendJson(res, 403, { success: false, message: 'Số dư và vật phẩm chỉ được thay đổi qua thao tác mua hợp lệ.' });
-            return;
-          }
-          safeUpdates.coin = currentCoin - price;
-          safeUpdates.inventory = Array.from(new Set([...currentInventory, added[0]])).slice(0, 500);
-        } else if (Object.hasOwn(updates, 'coin')) {
-          sendJson(res, 403, { success: false, message: 'Coin thưởng chỉ được cộng qua API thưởng có giới hạn ngày.' });
+        /* Phải là CHÍNH CHỦ (hoặc Super Admin) mới được sửa bản ghi này. */
+        const claims = authorizeRequest(req, null, body.token);
+        if (!claims || (claims.email !== email && !isMasterAdminEmail(claims.email))) {
+          sendJson(res, 401, {
+            success: false,
+            message: 'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại!',
+          });
           return;
         }
-        if (Object.hasOwn(updates, 'equippedBadge')) {
-          const badge = typeof updates.equippedBadge === 'string' ? updates.equippedBadge.slice(0, 80) : '';
-          const inventoryAfterUpdate = safeUpdates.inventory || user.inventory || [];
-          if (badge && !inventoryAfterUpdate.includes(badge)) {
-            sendJson(res, 403, { success: false, message: 'Bạn chưa sở hữu vật phẩm này.' });
-            return;
-          }
-          (safeUpdates as any).equippedBadge = badge;
-        }
 
-        Object.assign(user, safeUpdates);
-        user.updatedAt = new Date().toISOString();
-        store.users[user.email.toLowerCase()] = user;
+        /* Loại mọi trường quyền do server sở hữu (role/staffRole, Premium,
+           phạm vi CLB), đồng thời kẹp số về khoảng hợp lý. */
+        const patch = sanitizeUserUpdate(body.updates);
+        const merged = { ...store.users[email], ...patch };
+        merged.level = calculateLevelFromXP(merged.xp ?? 0);
+
+        store.users[email] = merged;
         persistStoreToDisk();
-        broadcastServerEvent('SYNC_USER', user);
-        sendJson(res, 200, { success: true, user });
+        broadcastServerEvent('SYNC_USER', merged);
+        sendJson(res, 200, { success: true, user: merged });
       } catch (err: any) {
-        sendRequestError(res, err);
+        handleApiError(res, err);
       }
       return;
     }
 
-    if (method === 'GET' && url === '/api/admin/me') {
-      const viewer = (req as AuthenticatedRequest).forumUser!;
+    /**
+     * Hộp thư báo cáo vi phạm — chỉ Super Admin đọc được.
+     * Trước đây `/api/reports` chỉ ghi vào kho rồi thôi: không có cổng đọc, và
+     * `reports` còn bị vứt khi khởi động lại, nên tố cáo rơi vào khoảng không.
+     */
+    if (method === 'GET' && url.startsWith('/api/admin/reports')) {
+      if (!requireSuperAdmin(req, {})) {
+        sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới xem được báo cáo vi phạm!' });
+        return;
+      }
+      const list = store.reports || [];
       sendJson(res, 200, {
         success: true,
-        user: { id: viewer.id, name: viewer.name, email: viewer.email, role: viewer.role },
-        permissions: permissionsFor(viewer),
+        reports: list,
+        pending: list.filter((r) => r?.status !== 'RESOLVED' && r?.status !== 'DISMISSED').length,
       });
       return;
     }
 
-    if (method === 'GET' && url === '/api/admin/overview') {
-      sendJson(res, 200, { success: true, metrics: adminOverviewMetrics() });
-      return;
-    }
-
-    if (method === 'GET' && url === '/api/admin/users') {
-      const accounts = Object.values(store.users)
-        .map(serializeAdminAccount)
-        .sort((left, right) => left.name.localeCompare(right.name, 'vi'))
-        .slice(0, 2_000);
-      sendJson(res, 200, { success: true, accounts });
-      return;
-    }
-
-    if (method === 'GET' && url === '/api/admin/posts') {
-      sendJson(res, 200, { success: true, content: serializeAdminContent() });
-      return;
-    }
-
-    if (method === 'GET' && url === '/api/admin/reports') {
-      const reports = (store.reports || []).slice(-1_000).map(serializeAdminReport)
-        .sort((left, right) => Date.parse(right.createdAt || '') - Date.parse(left.createdAt || ''));
-      sendJson(res, 200, { success: true, reports });
-      return;
-    }
-
-    if (method === 'GET' && url === '/api/admin/logs') {
-      sendJson(res, 200, { success: true, auditLog: store.adminAuditLog.slice(-250).reverse() });
-      return;
-    }
-
-    if (method === 'GET' && url === '/api/admin/settings') {
-      sendJson(res, 200, { success: true, settings: adminSettingsOverview() });
-      return;
-    }
-
-    if (method === 'POST' && url === '/api/admin/users/role') {
+    /** Đánh dấu đã xử lý / bỏ qua / xoá hẳn một báo cáo. */
+    if (method === 'POST' && url === '/api/admin/reports/resolve') {
       try {
         const body = await parseJsonBody(req);
-        const actor = (req as AuthenticatedRequest).forumUser!;
-        const userId = asSafeText(body.userId, 128);
-        const nextRole = typeof body.role === 'string' ? body.role.trim().toLowerCase() : '';
-        const reason = asSafeText(body.reason, 500);
-        if (!userId || !USER_ROLE_VALUES.has(nextRole) || reason.length < 5) {
-          sendJson(res, 400, { success: false, message: 'Vui lòng chọn vai trò hợp lệ và ghi rõ lý do (ít nhất 5 ký tự).' });
+        if (!requireSuperAdmin(req, body)) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới xử lý được báo cáo vi phạm!' });
           return;
         }
-        if (actor.id === userId) {
-          sendJson(res, 403, { success: false, message: 'Không thể đổi vai trò của chính tài khoản đang dùng.' });
+        const reportId = String(body.reportId || '').trim();
+        const action = body.action === 'delete' ? 'delete' : String(body.status || 'RESOLVED');
+        if (!reportId) {
+          sendJson(res, 400, { success: false, message: 'Thiếu reportId' });
           return;
         }
-        const target = findUserById(userId);
-        if (!target) {
-          sendJson(res, 404, { success: false, message: 'Không tìm thấy tài khoản cần cập nhật.' });
-          return;
-        }
-        if (target.role === nextRole) {
-          sendJson(res, 409, { success: false, message: 'Tài khoản hiện đã có vai trò này.' });
-          return;
-        }
-        if (target.role === 'super_admin' && Object.values(store.users).filter(user => user.role === 'super_admin').length <= 1) {
-          sendJson(res, 409, { success: false, message: 'Phải duy trì ít nhất một Super Admin đang hoạt động.' });
-          return;
-        }
-        const reauthRetryAfter = consumeRateLimitByKey(`admin-role-reauth:${actor.id}`, 5, 15 * 60_000);
-        if (reauthRetryAfter !== null) {
-          res.setHeader('Retry-After', String(reauthRetryAfter));
-          sendJson(res, 429, { success: false, message: 'Bạn thao tác quá nhanh. Vui lòng thử lại sau.' });
-          return;
-        }
-        if (!await verifyAccountPassword(actor, body.currentPassword)) {
-          addAdminAuditEvent(actor, 'role_change_reauth_failure', target.id, target.name, reason, req, 'failure');
-          persistStoreToDisk();
-          sendJson(res, 401, { success: false, message: 'Xác minh lại mật khẩu không thành công.' });
+        if (!store.reports) store.reports = [];
+        if (!store.reports.some((r) => r?.id === reportId)) {
+          sendJson(res, 404, { success: false, message: 'Báo cáo không tồn tại' });
           return;
         }
 
-        const previousRole = target.role;
-        target.role = nextRole as UserRecord['role'];
-        target.updatedAt = new Date().toISOString();
-        revokeUserSessions(target.id);
-        addAdminAuditEvent(actor, 'role_change', target.id, target.name, `${previousRole} → ${nextRole}. ${reason}`, req);
+        if (action === 'delete') {
+          store.reports = store.reports.filter((r) => r.id !== reportId);
+        } else {
+          const status = ['RESOLVED', 'DISMISSED'].includes(action) ? action : 'RESOLVED';
+          store.reports = store.reports.map((r) =>
+            r.id === reportId
+              ? { ...r, status, resolvedAt: new Date().toISOString(), resolutionNote: String(body.note || '').slice(0, 500) }
+              : r
+          );
+        }
+
+        persistStoreToDisk();
+        const updated = (store.reports || []).find((r) => r.id === reportId) || null;
+        broadcastServerEvent('REPORT_UPDATED', { reportId, action, report: updated });
+        sendJson(res, 200, { success: true, report: updated, reports: store.reports });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /**
+     * SỐ LIỆU NGƯỜI DÙNG — chỉ Super Admin.
+     * Lượt khách là trình duyệt cài ID ngẫu nhiên; tài khoản đăng nhập được gộp
+     * theo email đã xác thực để không đếm nhiều thiết bị của cùng một tài khoản.
+     */
+    if (method === 'GET' && url.split('?')[0] === '/api/admin/analytics') {
+      if (!requireSuperAdmin(req, {})) {
+        sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới xem được thống kê người dùng.' });
+        return;
+      }
+      const params = new URL(url, 'http://fforum.local').searchParams;
+      const report = buildAnalyticsReport(getAnalyticsStore(), store.users, params.get('range'), Date.now());
+      sendJson(res, 200, { success: true, analytics: report });
+      return;
+    }
+
+    /** Danh bạ hồ sơ có phân trang; giáo viên/moderator chỉ nhận trường cần kiểm duyệt. */
+    if (method === 'GET' && url.split('?')[0] === '/api/admin/members') {
+      const actor = requireModerationStaff(req, {});
+      if (!actor) {
+        sendJson(res, 403, { success: false, message: 'Chỉ Super Admin, Giáo viên hoặc Moderator mới xem được danh sách thành viên.' });
+        return;
+      }
+      const params = new URL(url, 'http://fforum.local').searchParams;
+      const query = String(params.get('q') || '').trim().slice(0, 120);
+      const roleFilter = String(params.get('role') || 'ALL').trim().toUpperCase();
+      const allowedFilters = ['ALL', 'SUPER_ADMIN', 'MODERATOR', 'TEACHER', 'CLUB_LEADER', 'STUDENT', 'PREMIUM'];
+      const role = allowedFilters.includes(roleFilter) ? roleFilter : 'ALL';
+      const rawPage = Number(params.get('page'));
+      const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
+      const rawLimit = Number(params.get('limit'));
+      const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(100, Math.floor(rawLimit)) : 50;
+      const now = Date.now();
+      const fold = (value: unknown) => String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
+        .toLowerCase();
+      const q = fold(query);
+      const all = Object.entries(store.users).map(([email, user]) => {
+        const displayRole = isMasterAdminEmail(email)
+          ? 'SUPER_ADMIN'
+          : user.staffRole || user.role;
+        const moderation = moderationStatusOf(store.moderation, email, now);
+        const premiumActive = isPremiumActive(user, now);
+        return { email, user, displayRole, moderation, premiumActive };
+      }).filter(({ email, user, displayRole, premiumActive }) => {
+        const visibleSearchFields = actor.role === 'SUPER_ADMIN'
+          ? `${user.city || ''} ${user.className || ''} ${user.bio || ''}`
+          : '';
+        const queryMatch = !q || fold(`${email} ${user.name} ${user.id} ${visibleSearchFields}`).includes(q);
+        const roleMatch = role === 'ALL' || (role === 'PREMIUM'
+          ? premiumActive
+          : displayRole === role || user.role === role);
+        return queryMatch && roleMatch;
+      }).sort((a, b) => {
+        const aLast = getAnalyticsStore().members[a.email]?.lastSeenAt || 0;
+        const bLast = getAnalyticsStore().members[b.email]?.lastSeenAt || 0;
+        return bLast - aLast || String(a.user.name || '').localeCompare(String(b.user.name || ''), 'vi');
+      });
+      const total = all.length;
+      const entries = all.slice((page - 1) * limit, page * limit).map(({ email, user, displayRole, moderation, premiumActive }) => {
+        const metrics = getAnalyticsStore().members[email];
+        const warnings = (store.adminWarnings || []).filter((warning) => warning.targetEmail === email).slice(0, 5);
+        const fullProfile = actor.role === 'SUPER_ADMIN' ? {
+          bio: String(user.bio || '').slice(0, 1000),
+          city: String(user.city || '').slice(0, 120),
+          className: String(user.className || '').slice(0, 120),
+          gender: String(user.gender || '').slice(0, 40),
+          joinedAt: String(user.joinedAt || ''),
+          bannerUrl: String(user.bannerUrl || '').slice(0, 2000),
+          profileGradient: String(user.profileGradient || '').slice(0, 120),
+        } : undefined;
+        return {
+          id: String(user.id || '').slice(0, 120),
+          email,
+          name: String(user.name || 'Người dùng').slice(0, 120),
+          avatar: String(user.avatar || '').slice(0, 2000),
+          role: displayRole,
+          userRole: user.role,
+          staffRole: user.staffRole || null,
+          level: Math.max(1, Math.min(150, Math.floor(Number(user.level) || 1))),
+          moderation,
+          premium: {
+            active: premiumActive,
+            until: typeof user.premiumUntil === 'number' ? user.premiumUntil : null,
+            grantedAt: typeof user.premiumGrantedAt === 'number' ? user.premiumGrantedAt : null,
+          },
+          metrics: {
+            visits: metrics?.visits || 0,
+            activeSeconds: metrics?.activeSeconds || 0,
+            pageViews: metrics?.pageViews || 0,
+            messages: metrics?.messages || 0,
+            questions: metrics?.questions || 0,
+            answers: metrics?.answers || 0,
+            clubsCreated: metrics?.clubsCreated || 0,
+            clubPosts: metrics?.clubPosts || 0,
+            lastSeenAt: metrics?.lastSeenAt || 0,
+          },
+          warningCount: (store.adminWarnings || []).filter((warning) => warning.targetEmail === email).length,
+          warnings,
+          ...(fullProfile ? { profile: fullProfile } : {}),
+        };
+      });
+      sendJson(res, 200, {
+        success: true,
+        members: entries,
+        total,
+        page,
+        limit,
+        pages: Math.max(1, Math.ceil(total / limit)),
+        role,
+        canAssignRoles: actor.role === 'SUPER_ADMIN',
+        canManagePremium: actor.role === 'SUPER_ADMIN',
+      });
+      return;
+    }
+
+    /** Vai trò do Super Admin cấp; không có API nào nhận lệnh cấp SUPER_ADMIN. */
+    if (method === 'POST' && url === '/api/admin/role') {
+      try {
+        const body = await parseJsonBody(req);
+        const claims = requireSuperAdmin(req, body);
+        if (!claims) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới được cấp hoặc thu hồi vai trò.' });
+          return;
+        }
+        const email = String(body?.email || '').trim().toLowerCase();
+        const target = store.users[email];
+        if (!target) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy thành viên.' });
+          return;
+        }
+        if (isMasterAdminEmail(email) || target.role === 'SUPER_ADMIN') {
+          sendJson(res, 400, { success: false, message: 'Vai trò Super Admin được bảo vệ và không thể cấp từ danh sách này.' });
+          return;
+        }
+        const requestedRole = body?.staffRole;
+        if (requestedRole !== null && requestedRole !== 'MODERATOR' && requestedRole !== 'TEACHER') {
+          sendJson(res, 400, { success: false, message: 'Chỉ được cấp vai trò Giáo viên hoặc Moderator; vai trò Super Admin không thể cấp.' });
+          return;
+        }
+        const previousRole = target.staffRole || null;
+        if (previousRole === requestedRole) {
+          sendJson(res, 200, { success: true, changed: false, member: target });
+          return;
+        }
+        if (requestedRole) target.staffRole = requestedRole;
+        else delete target.staffRole;
+        pushAuditLog({
+          action: requestedRole ? `role:assign:${requestedRole}` : 'role:revoke',
+          targetEmail: email,
+          reason: String(body?.reason || (requestedRole ? 'Cấp vai trò quản trị cộng đồng.' : 'Thu hồi vai trò quản trị cộng đồng.')).trim().slice(0, 500),
+          by: claims.email,
+        });
         persistStoreToDisk();
         broadcastServerEvent('SYNC_USER', target);
         sendJson(res, 200, {
           success: true,
-          account: { id: target.id, name: target.name, role: target.role, updatedAt: target.updatedAt },
-          sessionsRevoked: true,
+          changed: true,
+          previousRole,
+          staffRole: target.staffRole || null,
+          member: target,
         });
       } catch (err: any) {
-        sendRequestError(res, err);
+        handleApiError(res, err);
       }
       return;
     }
 
-    if (method === 'POST' && url === '/api/admin/users/delete') {
+    /** Cảnh cáo nội dung và gửi riêng cho chính thành viên nhận cảnh cáo. */
+    if (method === 'POST' && url === '/api/admin/warn') {
       try {
         const body = await parseJsonBody(req);
-        const actor = (req as AuthenticatedRequest).forumUser!;
-        const userId = asSafeText(body.userId, 128);
-        const reason = asSafeText(body.reason, 500);
-        const target = findUserById(userId);
+        const actor = requireModerationStaff(req, body);
+        if (!actor) {
+          sendJson(res, 403, { success: false, message: 'Chỉ nhân sự kiểm duyệt mới được gửi cảnh cáo.' });
+          return;
+        }
+        const email = String(body?.email || '').trim().toLowerCase();
+        const target = store.users[email];
         if (!target) {
-          sendJson(res, 404, { success: false, message: 'Không tìm thấy tài khoản cần xóa.' });
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy thành viên.' });
           return;
         }
-        if (actor.id === target.id || target.role === 'super_admin' ||
-            (actor.role === 'admin' && target.role === 'admin')) {
-          sendJson(res, 403, { success: false, message: 'Không thể xóa chính mình hoặc tài khoản có quyền ngang/cao hơn.' });
+        if (email === actor.claims.email || target.role === 'SUPER_ADMIN' || isMasterAdminEmail(email)) {
+          sendJson(res, 400, { success: false, message: 'Không thể cảnh cáo chính mình hoặc tài khoản Super Admin.' });
           return;
         }
-        if (reason.length < 5 || typeof body.confirmation !== 'string' || body.confirmation !== target.email) {
-          sendJson(res, 400, { success: false, message: 'Cần nhập đúng email xác nhận của tài khoản và lý do (ít nhất 5 ký tự).' });
+        if (actor.role !== 'SUPER_ADMIN' && target.staffRole) {
+          sendJson(res, 403, { success: false, message: 'Giáo viên/Moderator chỉ có thể cảnh cáo thành viên không giữ vai trò kiểm duyệt.' });
           return;
         }
-        const reauthRetryAfter = consumeRateLimitByKey(`admin-delete-reauth:${actor.id}`, 5, 15 * 60_000);
-        if (reauthRetryAfter !== null) {
-          res.setHeader('Retry-After', String(reauthRetryAfter));
-          sendJson(res, 429, { success: false, message: 'Bạn thao tác quá nhanh. Vui lòng thử lại sau.' });
+        const reason = String(body?.reason || '').trim().slice(0, 500);
+        if (reason.length < 3) {
+          sendJson(res, 400, { success: false, message: 'Cảnh cáo cần nội dung cụ thể (ít nhất 3 ký tự).' });
           return;
         }
-        if (!await verifyAccountPassword(actor, body.currentPassword)) {
-          addAdminAuditEvent(actor, 'delete_user_reauth_failure', target.id, target.name, reason, req, 'failure');
-          persistStoreToDisk();
-          sendJson(res, 401, { success: false, message: 'Xác minh lại mật khẩu không thành công.' });
-          return;
-        }
-
-        addAdminAuditEvent(actor, 'delete_user', target.id, target.name, reason, req);
-        revokeUserSessions(target.id);
-        delete store.users[target.email.toLowerCase()];
-        delete store.passwords[target.email.toLowerCase()];
-        delete store.userModeration[target.id];
-        delete store.dailyRewards[target.email.toLowerCase()];
-        delete store.coinCredits[target.email.toLowerCase()];
-        const deletedQuestionIds = new Set(store.questions.filter(item => item.authorId === target.id).map(item => item.id));
-        const deletedSolutionIds = new Set(store.solutions.filter(item => item.authorId === target.id).map(item => item.id));
-        store.questions = store.questions.filter(item => item.authorId !== target.id);
-        store.solutions = store.solutions.filter(item => item.authorId !== target.id && !deletedQuestionIds.has(item.questionId));
-        store.questions = store.questions.map(item => deletedSolutionIds.has(item.bestSolutionId) ? { ...item, bestSolutionId: undefined, isSolved: false } : item);
-        store.chatMessages = store.chatMessages.filter(item => item.authorId !== target.id);
-        store.clubPosts = store.clubPosts.filter(item => item.authorId !== target.id);
+        const warning: AdminWarningRecord = {
+          id: randomId('warning'),
+          at: Date.now(),
+          targetEmail: email,
+          reason,
+          by: actor.claims.email,
+        };
+        store.adminWarnings = [warning, ...(store.adminWarnings || [])].slice(0, 1000);
+        pushAuditLog({ action: 'warning', targetEmail: email, reason, by: actor.claims.email });
         persistStoreToDisk();
-        broadcastServerEvent('ACCOUNT_DELETED', { userId: target.id });
-        sendJson(res, 200, { success: true, deletedUserId: target.id });
+        notifyUserSockets(email, 'USER_WARNED', { id: warning.id, reason: warning.reason, at: warning.at });
+        sendJson(res, 200, { success: true, warning, warningCount: store.adminWarnings.filter((item) => item.targetEmail === email).length });
       } catch (err: any) {
-        sendRequestError(res, err);
+        handleApiError(res, err);
       }
       return;
     }
 
-    if (method === 'GET' && url === '/api/admin/console') {
-      const viewer = (req as AuthenticatedRequest).forumUser!;
-      const accounts = hasPermission(viewer, 'users.view')
-        ? Object.values(store.users).map(serializeAdminAccount).sort((left, right) => left.name.localeCompare(right.name, 'vi'))
-        : [];
-      const reports = hasPermission(viewer, 'reports.view')
-        ? (store.reports || []).slice(-1_000).map(serializeAdminReport)
-          .sort((left, right) => Date.parse(right.createdAt || '') - Date.parse(left.createdAt || ''))
-        : [];
-      const auditLog = hasPermission(viewer, 'logs.view') ? store.adminAuditLog.slice(-250).reverse() : [];
+    /** Cấp F-Forum Premium thủ công; đây không phải thanh toán hay gói thu phí. */
+    if (method === 'POST' && url === '/api/admin/premium') {
+      try {
+        const body = await parseJsonBody(req);
+        const claims = requireSuperAdmin(req, body);
+        if (!claims) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới được cấp hoặc thu hồi Premium.' });
+          return;
+        }
+        const email = String(body?.email || '').trim().toLowerCase();
+        const target = store.users[email];
+        if (!target) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy thành viên.' });
+          return;
+        }
+        if (target.role === 'SUPER_ADMIN' || isMasterAdminEmail(email)) {
+          sendJson(res, 400, { success: false, message: 'Không cần cấp Premium cho tài khoản Super Admin.' });
+          return;
+        }
+        const action = body?.action;
+        const reason = String(body?.reason || '').trim().slice(0, 500);
+        if (reason.length < 3) {
+          sendJson(res, 400, { success: false, message: 'Vui lòng ghi lý do cấp/thu hồi Premium (ít nhất 3 ký tự).' });
+          return;
+        }
+        if (action === 'grant') {
+          const days = Number(body?.durationDays);
+          if (![30, 90, 365, 0].includes(days)) {
+            sendJson(res, 400, { success: false, message: 'Thời hạn Premium không hợp lệ.' });
+            return;
+          }
+          target.premiumUntil = days === 0 ? 0 : Date.now() + days * 24 * 60 * 60 * 1000;
+          target.premiumGrantedAt = Date.now();
+        } else if (action === 'revoke') {
+          delete target.premiumUntil;
+          delete target.premiumGrantedAt;
+        } else {
+          sendJson(res, 400, { success: false, message: 'Thao tác Premium không hợp lệ.' });
+          return;
+        }
+        pushAuditLog({ action: `premium:${action}`, targetEmail: email, reason, by: claims.email });
+        persistStoreToDisk();
+        broadcastServerEvent('SYNC_USER', target);
+        notifyUserSockets(email, 'USER_PREMIUM_UPDATED', { active: isPremiumActive(target), until: target.premiumUntil ?? null });
+        sendJson(res, 200, {
+          success: true,
+          action,
+          premium: { active: isPremiumActive(target), until: target.premiumUntil ?? null, grantedAt: target.premiumGrantedAt ?? null },
+        });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /**
+     * TỔNG QUAN VẬN HÀNH — chỉ Super Admin.
+     *
+     * `/api/health` đã phơi số đếm nhưng nó CÔNG KHAI và chỉ cho biết "có bao
+     * nhiêu". Quản trị cần biết "đang có gì cần xử lý" và "hệ thống có khoẻ
+     * không": hàng chờ duyệt, tỉ lệ câu hỏi chưa có lời giải, nguồn nào đang bị
+     * chặn, tệp dữ liệu còn chỗ không. Endpoint này gộp tất cả vào một lần gọi để
+     * bảng điều khiển không phải bắn năm sáu request.
+     */
+    if (method === 'GET' && url.startsWith('/api/admin/overview')) {
+      const claims = requireSuperAdmin(req, {});
+      if (!claims) {
+        sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới xem được tổng quan hệ thống!' });
+        return;
+      }
+      try {
+        const now = Date.now();
+
+        /*
+          Dọn các áp chế đã hết hạn. Không có bước này thì mỗi lần cấm tạm thời để
+          lại một bản ghi chết vĩnh viễn trong tệp dữ liệu — map chỉ phình chứ
+          không tự co. Trả nguyên map khi không có gì để dọn nên không ghi đĩa thừa.
+        */
+        const prunedModeration = pruneModeration(store.moderation, now);
+        if (prunedModeration !== store.moderation) {
+          store.moderation = prunedModeration;
+          persistStoreToDisk();
+        }
+
+        /*
+          Đếm áp chế đang có hiệu lực. Duyệt trực tiếp theo cặp khoá–bản ghi rồi
+          gọi isUntilActive trên từng mốc: cách viết trước dò ngược khoá bằng
+          `Object.keys().find(k => map[k] === rec)` — so sánh tham chiếu, vừa chậm
+          vừa sai nếu hai bản ghi trùng nội dung.
+        */
+        const modEntries = Object.entries(store.moderation || {});
+        const moderationSummary = {
+          banned: modEntries.filter(([, r]) => isUntilActive(r?.bannedUntil, now)).length,
+          muted: modEntries.filter(([, r]) => isUntilActive(r?.mutedUntil, now)).length,
+          records: modEntries.length,
+          auditEntries: Array.isArray(store.auditLog) ? store.auditLog.length : 0,
+        };
+
+        /* Dọn các khoá limiter đã hết hạn trước khi chụp ảnh — Map này chỉ phình
+           chứ không tự co, chạy lâu sẽ giữ hàng nghìn khoá rỗng. */
+        const limiters = [
+          { name: 'login', limiter: loginLimiter },
+          { name: 'register', limiter: registerLimiter },
+          { name: 'social', limiter: socialLimiter },
+          { name: 'write', limiter: writeLimiter },
+          { name: 'presence', limiter: presenceLimiter },
+          { name: 'analytics', limiter: analyticsLimiter },
+        ].map(({ name, limiter }) => {
+          limiter.prune(now);
+          return { name, ...limiter.snapshot(now) };
+        });
+
+        const allUsers = Object.values(store.users) as any[];
+        const reports = store.reports || [];
+        const pendingReports = reports.filter(
+          (r) => r?.status !== 'RESOLVED' && r?.status !== 'DISMISSED',
+        );
+        const clubs = store.clubs || [];
+        const questions = store.questions || [];
+        const solutions = store.solutions || [];
+
+        /* Câu hỏi chưa ai trả lời — khác với "chưa được chọn đáp án chuẩn": câu có
+           ba lời giải nhưng chưa chốt vẫn là đang chờ, còn câu zero lời giải mới là
+           đang bị bỏ rơi. Quản trị cần phân biệt hai loại này. */
+        const answeredIds = new Set(solutions.map((s: any) => s?.questionId).filter(Boolean));
+        const unanswered = questions.filter((q: any) => !answeredIds.has(q?.id)).length;
+
+        /* Kích thước tệp dữ liệu: store giữ toàn bộ trong RAM và ghi đè một tệp,
+           nên đây là chỉ báo sớm cho việc sắp chạm trần. */
+        let dataFileBytes = 0;
+        let dataFileOk = false;
+        try {
+          const st = fs.statSync(dataFilePath());
+          dataFileBytes = st.size;
+          dataFileOk = true;
+        } catch {
+          dataFileOk = false;
+        }
+        let corruptBackups = 0;
+        try {
+          corruptBackups = fs
+            .readdirSync(dataDir())
+            .filter((f) => f.startsWith('forum-data.json.corrupt-')).length;
+        } catch {
+          corruptBackups = 0;
+        }
+
+        /*
+          Nguồn bị tố cáo nhiều nhất — vào thẳng việc cần xử lý, không bắt quản trị
+          tự lật danh sách. Báo cáo có `reportedUserId`/`reportedUserName`; trường
+          `targetEmail` chỉ là địa chỉ NHẬN báo cáo (luôn là admin), tuyệt đối không
+          được dùng làm người bị tố — nếu không dashboard sẽ báo chính admin là
+          người bị tố cáo nhiều nhất. Ánh xạ id thật về email để tìm kiếm được.
+          Chỉ lấy 5 mục và không kèm nội dung/lý do tố cáo.
+        */
+        const reportUserById = new Map<string, string>();
+        Object.entries(store.users).forEach(([email, user]) => {
+          if (user?.id) reportUserById.set(String(user.id), email);
+          reportUserById.set(email, email);
+        });
+        const reportTally = new Map<string, number>();
+        reports.forEach((r: any) => {
+          const id = String(r?.reportedUserId || r?.targetId || '').trim();
+          const target =
+            reportUserById.get(id) ||
+            String(r?.reportedUserEmail || r?.reportedUserName || id).trim();
+          if (!target) return;
+          reportTally.set(target, (reportTally.get(target) || 0) + 1);
+        });
+        const topReported = Array.from(reportTally.entries())
+          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+          .slice(0, 5)
+          .map(([target, count]) => ({ target, count }));
+
+        sendJson(res, 200, {
+          success: true,
+          generatedAt: new Date(now).toISOString(),
+          server: {
+            uptimeSeconds: Math.round((now - startedAtMs) / 1000),
+            node: process.version,
+            dataFileBytes,
+            dataFileOk,
+            corruptBackups,
+          },
+          counts: {
+            users: allUsers.length,
+            clubs: clubs.length,
+            clubPosts: (store.clubPosts || []).length,
+            questions: questions.length,
+            solutions: solutions.length,
+            chatMessages: (store.chatMessages || []).length,
+            feedbacks: (store.feedbacks || []).length,
+            reports: reports.length,
+          },
+          connections: { websocket: wsClients.size, sse: sseClients.size },
+          pending: {
+            reports: pendingReports.length,
+            clubs: clubs.filter((c: any) => c?.status === 'PENDING').length,
+          },
+          /* Áp chế đang có hiệu lực — quản trị cần biết đã khoá ai mà không phải
+             mở tệp dữ liệu ra đọc. */
+          moderation: moderationSummary,
+          contentHealth: {
+            unansweredQuestions: unanswered,
+            unsolvedQuestions: questions.filter((q: any) => !q?.isSolved).length,
+            solvedRate:
+              questions.length === 0
+                ? 0
+                : Math.round((questions.filter((q: any) => q?.isSolved).length / questions.length) * 100),
+            anonymousQuestions: questions.filter((q: any) => q?.isAnonymous).length,
+            openBountyCoin: questions
+              .filter((q: any) => !q?.isSolved)
+              .reduce((sum: number, q: any) => sum + (Number(q?.bountyCoin) || 0), 0),
+          },
+          community: {
+            superAdmins: allUsers.filter((u) => u?.role === 'SUPER_ADMIN').length,
+            clubLeaders: allUsers.filter((u) => u?.role === 'CLUB_LEADER').length,
+            students: allUsers.filter((u) => u?.role === 'STUDENT').length,
+            totalCoin: allUsers.reduce((sum, u) => sum + (Number(u?.coin) || 0), 0),
+            highestLevel: allUsers.reduce((max, u) => Math.max(max, Number(u?.level) || 0), 0),
+          },
+          rateLimits: limiters,
+          topReported,
+        });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /**
+     * CẤM / KHOÁ GỬI TIN — Super Admin, Giáo viên hoặc Moderator.
+     *
+     * Đây là mảnh còn thiếu của quy trình tố cáo: trước đây quản trị chỉ đánh dấu
+     * được một báo cáo là "đã xử lý" chứ không có cách nào thực thi, người bị tố
+     * cáo vẫn tiếp tục đăng.
+     */
+    if (method === 'POST' && url === '/api/admin/moderate') {
+      try {
+        const body = await parseJsonBody(req);
+        const actor = requireModerationStaff(req, body);
+        if (!actor) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin, Giáo viên hoặc Moderator mới được kiểm duyệt người dùng.' });
+          return;
+        }
+        const claims = actor.claims;
+        const action = String(body?.action || '').trim() as ModerationAction;
+        if (!MODERATION_ACTIONS.includes(action)) {
+          sendJson(res, 400, {
+            success: false,
+            message: `Hành động không hợp lệ. Phải là một trong: ${MODERATION_ACTIONS.join(', ')}.`,
+          });
+          return;
+        }
+
+        /* Email mục tiêu phải khớp một tài khoản thật trong store; không tạo bản
+           ghi áp chế cho email tuỳ ý chưa đăng ký (vốn không thể truy vết/gỡ). */
+        const targetEmail = String(body?.email || '').trim().toLowerCase();
+        if (!targetEmail) {
+          sendJson(res, 400, { success: false, message: 'Thiếu email người dùng cần quản lý.' });
+          return;
+        }
+        const targetUser = store.users[targetEmail];
+        if (!targetUser) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy người dùng này trong hệ thống.' });
+          return;
+        }
+
+        /* Không cho phép quản trị tự khoá mình hoặc khoá bất kỳ tài khoản quản trị
+           nào — dễ tự nhốt toàn bộ hệ thống ngoài quyền gỡ. */
+        if (targetEmail === String(claims.email).trim().toLowerCase() || targetUser.role === 'SUPER_ADMIN' || isMasterAdminEmail(targetEmail)) {
+          sendJson(res, 400, { success: false, message: 'Không thể áp chế chính mình hoặc tài khoản Super Admin.' });
+          return;
+        }
+        if (actor.role !== 'SUPER_ADMIN' && targetUser.staffRole) {
+          sendJson(res, 403, { success: false, message: 'Giáo viên/Moderator chỉ được kiểm duyệt thành viên không giữ vai trò kiểm duyệt.' });
+          return;
+        }
+
+        const isApplyingRestriction = action === 'ban' || action === 'mute';
+        const reason = normalizeModerationReason(body?.reason);
+        if (isApplyingRestriction && reason.length < 3) {
+          sendJson(res, 400, { success: false, message: 'Vui lòng ghi lý do quản lý (ít nhất 3 ký tự) để lưu vào nhật ký.' });
+          return;
+        }
+        const durationMinutes = Number(body?.durationMinutes);
+        if (isApplyingRestriction && !MODERATION_DURATIONS_MIN.some((allowed) => allowed === durationMinutes)) {
+          sendJson(res, 400, {
+            success: false,
+            message: `Thời hạn không hợp lệ. Chọn một trong: ${MODERATION_DURATIONS_MIN.map((m) => m === 0 ? 'vĩnh viễn' : `${m} phút`).join(', ')}.`,
+          });
+          return;
+        }
+
+        const result = applyModerationAction(store.moderation, targetEmail, action, {
+          durationMinutes: isApplyingRestriction ? durationMinutes : undefined,
+          reason,
+          by: claims.email,
+        });
+        if (!result.changed) {
+          sendJson(res, 200, {
+            success: true,
+            changed: false,
+            message: 'Không có gì thay đổi — áp chế này vốn đã ở trạng thái bạn yêu cầu.',
+            status: moderationStatusOf(store.moderation, targetEmail),
+          });
+          return;
+        }
+
+        store.moderation = result.next;
+        const auditReason = reason || (
+          action === 'unban' ? 'Gỡ cấm đăng theo quyết định quản trị.'
+          : action === 'unmute' ? 'Gỡ khoá chat theo quyết định quản trị.'
+          : result.record?.reason || ''
+        );
+        pushAuditLog({
+          action: `moderate:${action}`,
+          targetEmail,
+          reason: auditReason,
+          by: claims.email,
+        });
+        persistStoreToDisk();
+
+        /* Chỉ báo cho các WS đang đăng nhập đúng tài khoản đó — không broadcast
+           email/lý do áp chế ra toàn cộng đồng. Việc gửi nội dung mới vẫn được gate
+           ở server nên đóng WS chỉ là tín hiệu cập nhật tức thời, không phải hàng rào
+           bảo mật duy nhất. */
+        const st = moderationStatusOf(store.moderation, targetEmail);
+        notifyUserSockets(targetEmail, 'USER_MODERATED', { banned: st.banned, muted: st.muted });
+
+        sendJson(res, 200, {
+          success: true,
+          changed: true,
+          action,
+          targetEmail,
+          status: st,
+        });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /**
+     * Tra cứu tài khoản cho công cụ quản lý — chỉ Super Admin.
+     *
+     * Không trả toàn bộ store.users (có thể chứa thông tin hồ sơ riêng tư).
+     * Tìm kiếm trả tối đa 20 bản ghi với các trường tối thiểu cần để quản lý;
+     * query rỗng chỉ trả các tài khoản hiện đang bị cấm/khoá gửi tin để admin
+     * thấy ngay ai đang bị áp chế, không biến endpoint thành danh bạ đại trà.
+     */
+    if (method === 'GET' && url.split('?')[0] === '/api/admin/users') {
+      if (!requireSuperAdmin(req, {})) {
+        sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới được tra cứu người dùng!' });
+        return;
+      }
+
+      const searchParams = new URL(url, 'http://fforum.local').searchParams;
+      const query = String(searchParams.get('q') || '').trim().slice(0, 120);
+      const fold = (value: unknown) => String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
+        .toLowerCase();
+
+      const now = Date.now();
+      const pruned = pruneModeration(store.moderation, now);
+      if (pruned !== store.moderation) {
+        store.moderation = pruned;
+        persistStoreToDisk();
+      }
+
+      const q = fold(query);
+      const matching = Object.entries(store.users)
+        .map(([email, raw]) => {
+          const user = raw as any;
+          const status = moderationStatusOf(store.moderation, email, now);
+          const searchable = fold(`${email} ${user?.name || ''} ${user?.id || ''} ${user?.className || ''}`);
+          return { email, user, status, searchable };
+        })
+        .filter(({ searchable, status }) => q.length >= 2 ? searchable.includes(q) : status.banned || status.muted)
+        .sort((a, b) => {
+          if (q.length < 2) {
+            const aBan = a.status.banned ? 0 : 1;
+            const bBan = b.status.banned ? 0 : 1;
+            return aBan - bBan || String(a.user?.name || '').localeCompare(String(b.user?.name || ''), 'vi');
+          }
+          const rank = (email: string, name: string) => {
+            const e = fold(email);
+            const n = fold(name);
+            return e === q ? 0 : e.startsWith(q) ? 1 : n.startsWith(q) ? 2 : e.includes(q) ? 3 : n.includes(q) ? 4 : 5;
+          };
+          return rank(a.email, a.user?.name) - rank(b.email, b.user?.name)
+            || String(a.user?.name || '').localeCompare(String(b.user?.name || ''), 'vi');
+        });
+      const total = matching.length;
+      const entries = matching.slice(0, 20).map(({ email, user, status }) => ({
+          id: String(user?.id || '').slice(0, 120),
+          email,
+          name: String(user?.name || 'Người dùng').slice(0, 120),
+          avatar: String(user?.avatar || '').slice(0, 2000),
+          role: ['SUPER_ADMIN', 'CLUB_LEADER', 'STUDENT'].includes(user?.role) ? user.role : 'STUDENT',
+          level: Math.max(1, Math.min(150, Math.floor(Number(user?.level) || 1))),
+          moderation: status,
+        }));
+
       sendJson(res, 200, {
         success: true,
-        data: {
-          metrics: adminOverviewMetrics(),
-          accounts,
-          reports,
-          auditLog,
-          content: hasPermission(viewer, 'posts.view') ? serializeAdminContent() : null,
-          settings: hasPermission(viewer, 'settings.view') ? adminSettingsOverview() : null,
-          permissions: permissionsFor(viewer),
-        },
+        query,
+        mode: q.length >= 2 ? 'search' : 'active-moderation',
+        users: entries,
+        total,
+        limit: 20,
       });
       return;
     }
 
-    if (method === 'GET' && url === '/api/about') {
-      const about = publicAbout();
-      sendJson(res, 200, { success: true, about, ...about });
-      return;
-    }
-
-    if (method === 'GET' && url === '/api/admin/about') {
-      const about = publicAbout();
-      sendJson(res, 200, { success: true, about, ...about });
-      return;
-    }
-
-    if (method === 'POST' && url === '/api/admin/users/moderation') {
-      try {
-        const body = await parseJsonBody(req);
-        const actor = (req as AuthenticatedRequest).forumUser!;
-        const userId = asSafeText(body.userId, 128);
-        const action = asSafeText(body.action, 24);
-        const reason = asSafeText(body.reason, 500);
-        const validActions = new Set(['mute', 'unmute', 'lock', 'unlock']);
-        if (!userId || !validActions.has(action) || reason.length < 5) {
-          sendJson(res, 400, { success: false, message: 'Vui lòng chọn thao tác hợp lệ và ghi rõ lý do (ít nhất 5 ký tự).' });
-          return;
-        }
-        const target = Object.values(store.users).find(user => user.id === userId);
-        if (!target) {
-          sendJson(res, 404, { success: false, message: 'Không tìm thấy tài khoản cần xử lý.' });
-          return;
-        }
-        const actorRank = actor.role === 'super_admin' ? 3 : actor.role === 'admin' ? 2 : 1;
-        const targetRank = target.role === 'super_admin' ? 3 : target.role === 'admin' ? 2 : target.role === 'moderator' ? 1 : 0;
-        if (target.id === actor.id || target.role === 'super_admin' || actorRank <= targetRank) {
-          sendJson(res, 403, { success: false, message: 'Không thể áp dụng chế tài lên chính mình hoặc tài khoản có quyền ngang/cao hơn.' });
-          return;
-        }
-
-        const moderation: UserModerationState = { ...getUserModerationState(target.id) };
-        const now = Date.now();
-        const nowIso = new Date(now).toISOString();
-        let auditAction = '';
-        if (action === 'mute') {
-          const rawDuration = body.durationMinutes;
-          const durationMinutes = typeof rawDuration === 'number'
-            ? rawDuration
-            : typeof rawDuration === 'string' && /^\d+$/.test(rawDuration)
-              ? Number(rawDuration)
-              : Number.NaN;
-          const permittedDurations = new Set([10, 60, 1_440, 10_080, 0]);
-          if (!Number.isSafeInteger(durationMinutes) || !permittedDurations.has(durationMinutes)) {
-            sendJson(res, 400, { success: false, message: 'Thời lượng mute không hợp lệ.' });
-            return;
-          }
-          moderation.mutedAt = nowIso;
-          moderation.mutedUntil = durationMinutes === 0 ? null : now + durationMinutes * 60_000;
-          moderation.muteReason = reason;
-          auditAction = 'mute_chat';
-        } else if (action === 'unmute') {
-          delete moderation.mutedAt;
-          delete moderation.mutedUntil;
-          delete moderation.muteReason;
-          auditAction = 'unmute_chat';
-        } else if (action === 'lock') {
-          moderation.lockedAt = nowIso;
-          moderation.lockReason = reason;
-          auditAction = 'lock_account';
-        } else {
-          delete moderation.lockedAt;
-          delete moderation.lockReason;
-          auditAction = 'unlock_account';
-        }
-
-        if (Object.keys(moderation).length > 0) store.userModeration[target.id] = moderation;
-        else delete store.userModeration[target.id];
-        addAdminAuditEvent(actor, auditAction, target.id, target.name, reason, req);
-        persistStoreToDisk();
-        if (action === 'lock') {
-          disconnectLockedAccount(target.id);
-          revokeUserSessions(target.id);
-        }
-        const activeMute = getActiveChatMute(target.id);
-        sendJson(res, 200, {
-          success: true,
-          account: {
-            id: target.id,
-            accountLocked: isAccountLocked(target.id),
-            lockedAt: moderation.lockedAt || '',
-            lockReason: moderation.lockReason || '',
-            chatMuted: Boolean(activeMute),
-            mutedAt: activeMute ? moderation.mutedAt || '' : '',
-            mutedUntil: activeMute?.mutedUntil ?? null,
-            muteReason: activeMute?.reason || '',
-          },
-        });
-      } catch (err: any) {
-        sendRequestError(res, err);
+    /** Nhật ký hành động quản trị — chỉ Super Admin đọc được. */
+    if (method === 'GET' && url.startsWith('/api/admin/audit')) {
+      if (!requireSuperAdmin(req, {})) {
+        sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới xem được nhật ký quản trị!' });
+        return;
       }
+      const log = Array.isArray(store.auditLog) ? store.auditLog : [];
+      const searchParams = new URL(url, 'http://fforum.local').searchParams;
+      const rawLimit = Number(searchParams.get('limit'));
+      const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(100, Math.floor(rawLimit)) : 50;
+      sendJson(res, 200, { success: true, auditLog: log.slice(0, limit), total: log.length, limit });
       return;
     }
 
-    if (method === 'POST' && url === '/api/admin/reports/review') {
-      try {
-        const body = await parseJsonBody(req);
-        const actor = (req as AuthenticatedRequest).forumUser!;
-        const reportId = asSafeText(body.reportId, 120);
-        const status = asSafeText(body.status, 24);
-        const reviewNote = asSafeText(body.reviewNote, 500);
-        if (!reportId || !['open', 'resolved', 'dismissed'].includes(status)) {
-          sendJson(res, 400, { success: false, message: 'Trạng thái xử lý báo cáo không hợp lệ.' });
-          return;
-        }
-        const report = (store.reports || []).find((item: any) => item.id === reportId);
-        if (!report) {
-          sendJson(res, 404, { success: false, message: 'Không tìm thấy báo cáo.' });
-          return;
-        }
-        report.status = status;
-        report.reviewedAt = new Date().toISOString();
-        report.reviewedById = actor.id;
-        report.reviewedByName = actor.name;
-        report.reviewNote = reviewNote;
-        addAdminAuditEvent(
-          actor,
-          status === 'open' ? 'reopen_report' : status === 'resolved' ? 'resolve_report' : 'dismiss_report',
-          report.id,
-          asSafeText(report.reportedUserName, 80) || 'Báo cáo',
-          reviewNote || `Report ${status}`,
-          req,
-        );
-        persistStoreToDisk();
-        sendJson(res, 200, { success: true, report: { id: report.id, status, reviewedAt: report.reviewedAt, reviewNote } });
-      } catch (err: any) {
-        sendRequestError(res, err);
-      }
-      return;
-    }
-
-    if (method === 'POST' && url === '/api/admin/club-posts/delete') {
-      try {
-        const body = await parseJsonBody(req);
-        const actor = (req as AuthenticatedRequest).forumUser!;
-        const postId = asSafeText(body.postId, 128);
-        const reason = asSafeText(body.reason, 500);
-        if (!postId || reason.length < 5) {
-          sendJson(res, 400, { success: false, message: 'Vui lòng cung cấp bài viết và lý do xóa (ít nhất 5 ký tự).' });
-          return;
-        }
-        const post = store.clubPosts.find(item => item.id === postId);
-        if (!post) {
-          sendJson(res, 404, { success: false, message: 'Không tìm thấy bài viết câu lạc bộ.' });
-          return;
-        }
-        store.clubPosts = store.clubPosts.filter(item => item.id !== postId);
-        addAdminAuditEvent(actor, 'delete_club_post', postId, asSafeText(post.title, 100) || 'Bài viết CLB', reason, req);
-        persistStoreToDisk();
-        broadcastServerEvent('DELETE_CLUB_POST', { postId });
-        sendJson(res, 200, { success: true, message: 'Đã xóa bài viết câu lạc bộ.' });
-      } catch (err: any) {
-        sendRequestError(res, err);
-      }
+    if (method === 'GET' && url.startsWith('/api/admin/about')) {
+      sendJson(res, 200, {
+        success: true,
+        about: store.about,
+        ...store.about,
+      });
       return;
     }
 
     if (method === 'POST' && url === '/api/admin/about') {
       try {
         const body = await parseJsonBody(req);
+        /* `adminEmail` trong body là do client tự khai — phải kèm token hợp lệ
+           của đúng tài khoản Super Admin, nếu không ai cũng giả được admin. */
+        if (!requireSuperAdmin(req, body)) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới có quyền cập nhật Khu Vinh Danh!' });
+          return;
+        }
         const aboutPayload = body.about || body.aboutData;
         if (!aboutPayload || typeof aboutPayload !== 'object') {
           sendJson(res, 400, { success: false, message: 'Dữ liệu không hợp lệ!' });
           return;
         }
-        store.about = sanitizeAboutInput(aboutPayload);
-        const actor = (req as AuthenticatedRequest).forumUser!;
-        addAdminAuditEvent(actor, 'update_about', 'about-page', 'Khu Vinh Danh', asSafeText(body.reason, 500) || 'Cập nhật nội dung Khu Vinh Danh', req);
+        store.about = mergeAboutData(aboutPayload);
         persistStoreToDisk();
-        broadcastServerEvent('SYNC_ABOUT', publicAbout(store.about));
-        const about = publicAbout(store.about);
-        sendJson(res, 200, { success: true, about, ...about });
+        broadcastServerEvent('SYNC_ABOUT', store.about);
+        sendJson(res, 200, { success: true, about: store.about, ...store.about });
       } catch (err: any) {
-        sendRequestError(res, err);
+        sendJson(res, 500, { success: false, message: err.message });
       }
       return;
     }
@@ -3006,26 +4077,24 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/questions/delete') {
       try {
         const body = await parseJsonBody(req);
-        const questionId = asSafeText(body.questionId, 128);
-        const reason = asSafeText(body.reason, 500);
-        if (!questionId || reason.length < 5) {
-          sendJson(res, 400, { success: false, message: 'Vui lòng cung cấp câu hỏi và lý do xóa (ít nhất 5 ký tự).' });
+        /* `adminEmail` trong body là do client tự khai — phải kèm token hợp lệ
+           của đúng tài khoản Super Admin, nếu không ai cũng giả được admin. */
+        if (!requireSuperAdmin(req, body)) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới có quyền xóa bài viết!' });
           return;
         }
-        const target = store.questions.find(question => question.id === questionId);
-        if (!target) {
-          sendJson(res, 404, { success: false, message: 'Không tìm thấy câu hỏi.' });
+        const { questionId } = body;
+        if (!questionId) {
+          sendJson(res, 400, { success: false, message: 'Thiếu questionId' });
           return;
         }
         store.questions = store.questions.filter(q => q.id !== questionId);
         store.solutions = store.solutions.filter(s => s.questionId !== questionId);
-        const actor = (req as AuthenticatedRequest).forumUser!;
-        addAdminAuditEvent(actor, 'delete_question', questionId, asSafeText(target.title, 100) || 'Câu hỏi', reason, req);
         persistStoreToDisk();
         broadcastServerEvent('DELETE_QUESTION', { questionId });
         sendJson(res, 200, { success: true, message: 'Đã xóa bài viết thành công' });
       } catch (err: any) {
-        sendRequestError(res, err);
+        sendJson(res, 500, { success: false, message: err.message });
       }
       return;
     }
@@ -3033,56 +4102,38 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/questions/edit') {
       try {
         const body = await parseJsonBody(req);
-        const questionId = asSafeText(body.questionId, 128);
-        const updates = body.updates;
-        const reason = asSafeText(body.reason, 500);
-        const allowedFields = new Set(['title', 'content', 'subject']);
-        if (!questionId || !updates || typeof updates !== 'object' || Array.isArray(updates) ||
-            Object.keys(updates).length === 0 || Object.keys(updates).some(key => !allowedFields.has(key)) || reason.length < 5) {
-          sendJson(res, 400, { success: false, message: 'Chỉ cho phép cập nhật tiêu đề, nội dung hoặc chủ đề và cần ghi rõ lý do.' });
+        /* `adminEmail` trong body là do client tự khai — phải kèm token hợp lệ
+           của đúng tài khoản Super Admin, nếu không ai cũng giả được admin. */
+        if (!requireSuperAdmin(req, body)) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới có quyền sửa bài viết!' });
           return;
         }
-        const target = store.questions.find(question => question.id === questionId);
-        if (!target) {
-          sendJson(res, 404, { success: false, message: 'Không tìm thấy câu hỏi.' });
+        const { questionId, updates } = body;
+        if (!questionId || !updates) {
+          sendJson(res, 400, { success: false, message: 'Thiếu thông tin cập nhật' });
           return;
         }
-        const safeUpdates: Record<string, string> = {};
-        if (Object.hasOwn(updates, 'title')) {
-          const title = asSafeText(updates.title, 200);
-          if (title.length < 2) {
-            sendJson(res, 400, { success: false, message: 'Tiêu đề câu hỏi không hợp lệ.' });
-            return;
-          }
-          safeUpdates.title = title;
+        const safeUpdates = sanitizeQuestionUpdates(updates);
+        if (!safeUpdates) {
+          sendJson(res, 400, {
+            success: false,
+            message: 'Chỉ sửa được tiêu đề, nội dung và môn học của câu hỏi.',
+          });
+          return;
         }
-        if (Object.hasOwn(updates, 'content')) {
-          const content = typeof updates.content === 'string' ? updates.content.trim() : '';
-          if (!content || content.length > 20_000) {
-            sendJson(res, 400, { success: false, message: 'Nội dung câu hỏi không hợp lệ.' });
-            return;
-          }
-          safeUpdates.content = content;
+        if (!store.questions.some(q => q.id === questionId)) {
+          sendJson(res, 404, { success: false, message: 'Câu hỏi này không còn tồn tại.' });
+          return;
         }
-        if (Object.hasOwn(updates, 'subject')) {
-          const subject = typeof updates.subject === 'string' ? updates.subject : '';
-          if (!new Set(['toan', 'ly', 'hoa', 'sinh', 'anh', 'tin', 'van', 'su', 'hotro', 'kinhnghiem', 'share', 'tamsu', 'tamly']).has(subject)) {
-            sendJson(res, 400, { success: false, message: 'Chủ đề câu hỏi không hợp lệ.' });
-            return;
-          }
-          safeUpdates.subject = subject;
-        }
-        store.questions = store.questions.map(question =>
-          question.id === questionId ? { ...question, ...safeUpdates } : question
+        store.questions = store.questions.map(q =>
+          q.id === questionId ? { ...q, ...safeUpdates } : q
         );
-        const actor = (req as AuthenticatedRequest).forumUser!;
-        addAdminAuditEvent(actor, 'edit_question', questionId, asSafeText(target.title, 100) || 'Câu hỏi', reason, req);
         persistStoreToDisk();
         broadcastServerEvent('EDIT_QUESTION', { questionId, updates: safeUpdates });
-        const updatedQ = store.questions.find(question => question.id === questionId);
+        const updatedQ = store.questions.find(q => q.id === questionId);
         sendJson(res, 200, { success: true, message: 'Đã cập nhật bài viết thành công', question: updatedQ });
       } catch (err: any) {
-        sendRequestError(res, err);
+        sendJson(res, 500, { success: false, message: err.message });
       }
       return;
     }
@@ -3090,28 +4141,26 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/solutions/delete') {
       try {
         const body = await parseJsonBody(req);
-        const solutionId = asSafeText(body.solutionId, 128);
-        const reason = asSafeText(body.reason, 500);
-        if (!solutionId || reason.length < 5) {
-          sendJson(res, 400, { success: false, message: 'Vui lòng cung cấp lời giải và lý do xóa (ít nhất 5 ký tự).' });
+        /* `adminEmail` trong body là do client tự khai — phải kèm token hợp lệ
+           của đúng tài khoản Super Admin, nếu không ai cũng giả được admin. */
+        if (!requireSuperAdmin(req, body)) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới có quyền xóa phản hồi!' });
           return;
         }
-        const target = store.solutions.find(solution => solution.id === solutionId);
-        if (!target) {
-          sendJson(res, 404, { success: false, message: 'Không tìm thấy câu trả lời.' });
+        const { solutionId } = body;
+        if (!solutionId) {
+          sendJson(res, 400, { success: false, message: 'Thiếu solutionId' });
           return;
         }
         store.solutions = store.solutions.filter(s => s.id !== solutionId);
         store.questions = store.questions.map(q =>
           q.bestSolutionId === solutionId ? { ...q, isSolved: false, bestSolutionId: undefined } : q
         );
-        const actor = (req as AuthenticatedRequest).forumUser!;
-        addAdminAuditEvent(actor, 'delete_solution', solutionId, asSafeText(target.content, 100) || 'Câu trả lời', reason, req);
         persistStoreToDisk();
         broadcastServerEvent('DELETE_SOLUTION', { solutionId });
         sendJson(res, 200, { success: true, message: 'Đã xóa phản hồi thành công' });
       } catch (err: any) {
-        sendRequestError(res, err);
+        sendJson(res, 500, { success: false, message: err.message });
       }
       return;
     }
@@ -3119,25 +4168,23 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/chat/delete') {
       try {
         const body = await parseJsonBody(req);
-        const messageId = asSafeText(body.messageId, 128);
-        const reason = asSafeText(body.reason, 500);
-        if (!messageId || reason.length < 5) {
-          sendJson(res, 400, { success: false, message: 'Vui lòng cung cấp tin nhắn và lý do xóa (ít nhất 5 ký tự).' });
+        /* `adminEmail` trong body là do client tự khai — phải kèm token hợp lệ
+           của đúng tài khoản Super Admin, nếu không ai cũng giả được admin. */
+        if (!requireSuperAdmin(req, body)) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới có quyền thu hồi tin nhắn!' });
           return;
         }
-        const target = store.chatMessages.find(message => message.id === messageId);
-        if (!target) {
-          sendJson(res, 404, { success: false, message: 'Không tìm thấy tin nhắn.' });
+        const { messageId } = body;
+        if (!messageId) {
+          sendJson(res, 400, { success: false, message: 'Thiếu messageId' });
           return;
         }
         store.chatMessages = store.chatMessages.filter(m => m.id !== messageId);
-        const actor = (req as AuthenticatedRequest).forumUser!;
-        addAdminAuditEvent(actor, 'delete_chat_message', messageId, asSafeText(target.content, 100) || 'Tin nhắn chat', reason, req);
         persistStoreToDisk();
         broadcastServerEvent('DELETE_CHAT_MESSAGE', { messageId });
         sendJson(res, 200, { success: true, message: 'Đã thu hồi tin nhắn thành công' });
       } catch (err: any) {
-        sendRequestError(res, err);
+        sendJson(res, 500, { success: false, message: err.message });
       }
       return;
     }

@@ -1,41 +1,26 @@
-import type { User } from './index';
+export type GiftBoxType = 'blue' | 'gold' | 'red';
 
-export type RewardBoxType = 'blue' | 'gold' | 'red';
-
-export interface StudyRewardMilestone {
-  minutes: number;
-  coins: number;
-}
-
-export interface DailyRewardStateSummary {
-  date: string;
-  attendanceStreak: number;
-  attendanceClaimed: boolean;
-  boxes: Record<RewardBoxType, string[]>;
-  triviaIndex: number;
-  triviaClaimed: boolean;
-  triviaCorrect: boolean | null;
-  triviaCoins: number;
-  studyMinutes: number;
-  studyClaimedMinutes: number[];
+export interface DailyRewardStatus {
+  /** Ngày theo múi giờ do máy chủ chọn. */
+  date?: string;
+  attendanceDates: string[];
+  claimedToday: boolean;
+  quizAnswered: boolean;
+  streak: number;
+  boxes: Record<GiftBoxType, number>;
 }
 
 export type DailyRewardAction =
-  | { type: 'attendance' }
-  | { type: 'trivia'; answerIndex: number }
-  | { type: 'open-box'; boxId: string };
+  | { action: 'attendance' }
+  | { action: 'quiz'; answerIndex: number }
+  | { action: 'box'; boxType: GiftBoxType };
 
-export interface RewardApiResponse {
-  success: boolean;
+export interface DailyRewardActionResult {
+  ok: boolean;
   message?: string;
-  user?: User;
-  state?: DailyRewardStateSummary;
-  rewardCoins?: number;
-  previousRewardCoins?: number;
-  alreadyClaimed?: boolean;
-  alreadyOpened?: boolean;
+  status?: DailyRewardStatus;
+  reward?: number;
   correct?: boolean;
-  rewards?: StudyRewardMilestone[];
-  studyMinutes?: number;
-  sessionId?: string;
+  boxGranted?: GiftBoxType;
+  httpStatus?: number;
 }

@@ -5,33 +5,12 @@ import { safeStorage } from './storage';
    Nhật ký giờ học (Study Log)
    --------------------------------------------------------------------------
    Nguồn dữ liệu THẬT cho bảng xếp hạng giờ học:
-   • Đồng hồ tự do ở Phòng Tập Trung ghi số phút thực tế khi người học dừng phiên.
-   • Không cần hoàn thành 25 phút; mọi phiên đạt ít nhất 1 phút đều được ghi.
+   • Mỗi phiên Học 25 phút trong Phòng Tập Trung (Pomodoro) được ghi tự động.
+   • Phiên bị dừng giữa đường vẫn ghi số phút đã học thật (từ 5 phút trở lên).
    Dữ liệu lưu cục bộ trên trình duyệt, đồng bộ giữa các tab qua CustomEvent.
    ========================================================================== */
 
 export type StudySource = 'focus' | 'manual' | 'quiz' | 'reading';
-
-export const STUDY_SUBJECTS = [
-  'Tổng hợp',
-  'Toán',
-  'Vật lý',
-  'Hóa học',
-  'Sinh học',
-  'Ngữ văn',
-  'Tiếng Anh',
-  'Tin học',
-  'Lịch sử',
-  'Địa lý',
-  'Khác',
-] as const;
-export const STUDY_SUBJECT_UNSPECIFIED = 'Chưa phân loại';
-
-export interface StudySubjectTotal {
-  subject: string;
-  minutes: number;
-  sessions: number;
-}
 
 export interface StudySession {
   id: string;
@@ -52,16 +31,6 @@ export const DEFAULT_DAILY_TARGET_MINUTES = 120; /* 2 giờ / ngày */
 
 const MAX_SESSIONS = 2000;
 
-const normalizeStudySubject = (value: unknown): string | undefined => {
-  if (typeof value !== 'string') return undefined;
-  const normalized = Array.from(value, (character) => {
-    const code = character.charCodeAt(0);
-    return code <= 31 || (code >= 127 && code <= 159) ? ' ' : character;
-  }).join('').trim().replace(/\s+/g, ' ');
-  const subject = Array.from(normalized).slice(0, 32).join('');
-  return subject || undefined;
-};
-
 const isSession = (value: unknown): value is StudySession => {
   if (!value || typeof value !== 'object') return false;
   const s = value as Partial<StudySession>;
@@ -78,10 +47,7 @@ export const readStudySessions = (): StudySession[] => {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter(isSession)
-      .map((session) => ({ ...session, subject: normalizeStudySubject(session.subject) }))
-      .sort((a, b) => b.at - a.at);
+    return parsed.filter(isSession).sort((a, b) => b.at - a.at);
   } catch {
     return [];
   }
@@ -112,7 +78,7 @@ export const logStudyMinutes = (
     minutes: safeMinutes,
     source,
     owner: owner ? owner.toLowerCase() : undefined,
-    subject: normalizeStudySubject(subject),
+    subject,
   };
   const next = [session, ...readStudySessions()];
   writeStudySessions(next);
@@ -521,19 +487,6 @@ export const STUDY_SOURCE_LABELS: Record<StudySource, string> = {
   manual: 'Ghi tay',
   quiz: 'Luyện đề',
   reading: 'Đọc tài liệu',
-};
-
-/** Tổng hợp phút và số phiên theo môn, nhiều phiên cùng môn được gộp lại. */
-export const computeStudySubjectTotals = (sessions: StudySession[]): StudySubjectTotal[] => {
-  const totals = new Map<string, StudySubjectTotal>();
-  sessions.forEach((session) => {
-    const subject = normalizeStudySubject(session.subject) || STUDY_SUBJECT_UNSPECIFIED;
-    const current = totals.get(subject) || { subject, minutes: 0, sessions: 0 };
-    current.minutes += session.minutes;
-    current.sessions += 1;
-    totals.set(subject, current);
-  });
-  return [...totals.values()].sort((a, b) => b.minutes - a.minutes || a.subject.localeCompare(b.subject));
 };
 
 export const formatDuration = (minutes: number): string => {

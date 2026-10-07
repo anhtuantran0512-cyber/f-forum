@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import type { User, DimensionView } from '../../types';
 import { AdminVerifiedBadge } from '../Badges10Tier';
-import { isAdminRole } from '../../config/admin';
 import { safeStorage } from '../../utils/storage';
 import {
   saveAboutDataToServer,
@@ -104,9 +103,9 @@ const INITIAL_VINHDANH_RECORDS: VinhDanhRecord[] = [
   {
     id: 'vd-9',
     imgId: 'hf_20260922_194417_555e4d90-f35f-4a1a-8c75-def1e8b71988',
-    title: 'Focus Sanctuary & nhật ký giờ học',
-    place: 'Phòng Tập Trung',
-    note: 'Đồng hồ học tự do ghi lại thời lượng học thật, có thống kê theo ngày, tuần và tháng.'
+    title: 'Focus Sanctuary 432Hz',
+    place: 'Tịnh Tâm Thư Phòng',
+    note: 'Âm thanh sóng não Alpha và đồng hồ Pomodoro hỗ trợ ôn thi hiệu quả.',
   },
   {
     id: 'vd-10',
@@ -233,7 +232,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
   onNavigate,
   currentUser,
 }) => {
-  const canManageAbout = isAdminRole(currentUser?.role);
+  const isSuperAdmin = currentUser?.email?.toLowerCase() === 'anhtuantran0512@gmail.com';
 
   const [founderProfile, setFounderProfile] = useState<FounderProfileState>(() => {
     const saved = safeStorage.getItem('fforum_vinhdanh_founder');
@@ -588,7 +587,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
   };
 
   const syncToServer = useCallback((updatedFounder: typeof founderProfile, updatedRecords: VinhDanhRecord[]) => {
-    if (!currentUser || !canManageAbout) return;
+    if (!currentUser || !isSuperAdmin) return;
     const milestones: MilestoneItem[] = updatedRecords.map((r, idx) => ({
       id: `ms-${idx + 1}`,
       title: r.title,
@@ -600,17 +599,18 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     }));
 
     saveAboutDataToServer({
-      headline: 'Hall of frame',
+      headline: 'BroAmStuck Studio • Trần Văn Anh Tuấn',
       subtitle: 'Khu Vinh Danh • 3D Fibonacci Sphere Chronicles & System Archive',
       founder: {
         name: updatedFounder.name,
         role: updatedFounder.role,
         avatarUrl: updatedFounder.avatarUrl,
         bio: updatedFounder.bio,
+        email: 'anhtuantran0512@gmail.com',
       },
       milestones,
-    }).catch(() => {});
-  }, [currentUser, canManageAbout]);
+    }, currentUser.email).catch(() => {});
+  }, [currentUser, isSuperAdmin]);
 
   const handleSaveRecord = (e: React.FormEvent) => {
     e.preventDefault();
@@ -880,16 +880,18 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             })}
           </div>
 
-          {/* h1#headline: word-by-word reveal, optically locked at sphere center */}
+          {/* h1#headline: Exactly 5 spans, optical lock at sphere center */}
           <h1
             id="headline"
             ref={headlineRef}
             className="absolute top-0 left-0 w-[var(--hw)] -ml-[calc(var(--hw)/2)] text-center font-['Playfair_Display'] text-white select-none pointer-events-none font-playfair tracking-tight"
           >
             <span className="inner absolute top-0 left-0 w-full -translate-y-1/2">
-              <span style={{ '--i': 0 } as React.CSSProperties}>Hall</span>{' '}
-              <span style={{ '--i': 1 } as React.CSSProperties}>of</span>{' '}
-              <span style={{ '--i': 2 } as React.CSSProperties}>frame</span>
+              <span style={{ '--i': 0 } as React.CSSProperties}>BroAmStuck</span>{' '}
+              <span style={{ '--i': 1 } as React.CSSProperties}>Studio</span>{' '}
+              <span style={{ '--i': 2 } as React.CSSProperties}>•</span>{' '}
+              <span style={{ '--i': 3 } as React.CSSProperties}>Trần</span>{' '}
+              <span style={{ '--i': 4 } as React.CSSProperties}>Tuấn</span>
             </span>
           </h1>
         </div>
@@ -1002,7 +1004,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
               height={52}
               className="bio-avatar w-[52px] h-[52px] rounded-[3px] object-cover grayscale-[0.15] border border-white/20"
             />
-            {canManageAbout && (
+            {isSuperAdmin && (
               <button
                 type="button"
                 onClick={() => setIsEditBioModalOpen(true)}
@@ -1065,7 +1067,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       </div>
 
       {/* Super Admin Floating Quick Trigger */}
-      {canManageAbout && (
+      {isSuperAdmin && (
         <div className="fixed right-[var(--pad)] bottom-[calc(var(--pad)+36px)] z-56">
           <button
             type="button"
@@ -1206,7 +1208,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                   <span>{activeLitRecord.place}</span>
                 </div>
 
-                {canManageAbout && (
+                {isSuperAdmin && (
                   <button
                     type="button"
                     onClick={() => handleOpenEditRecord(activeLitRecord)}
@@ -1286,7 +1288,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       />
 
       {/* Admin Edit Record Modal */}
-      {isEditRecordModalOpen && editingRecord && canManageAbout && (
+      {isEditRecordModalOpen && editingRecord && isSuperAdmin && (
         <div className="fixed inset-0 z-[100] grid place-items-center p-4 bg-black/80 backdrop-blur-md">
           <form
             onSubmit={handleSaveRecord}
@@ -1304,8 +1306,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             </div>
 
             <div>
-              <label className="text-xs text-white/70 block mb-1">Tiêu đề cột mốc</label>
-              <input
+              <label htmlFor="tieu-de-cot-moc" className="text-xs text-white/70 block mb-1">Tiêu đề cột mốc</label>
+              <input id="tieu-de-cot-moc"
                 type="text"
                 required
                 maxLength={100}
@@ -1316,8 +1318,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             </div>
 
             <div>
-              <label className="text-xs text-white/70 block mb-1">Địa điểm / Danh mục</label>
-              <input
+              <label htmlFor="dia-diem-danh-muc" className="text-xs text-white/70 block mb-1">Địa điểm / Danh mục</label>
+              <input id="dia-diem-danh-muc"
                 type="text"
                 required
                 maxLength={80}
@@ -1328,9 +1330,9 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             </div>
 
             <div>
-              <label className="text-xs text-white/70 block mb-1">Ảnh (Dán URL hoặc Tải tệp)</label>
+              <label htmlFor="anh-dan-url-hoac-tai-tep" className="text-xs text-white/70 block mb-1">Ảnh (Dán URL hoặc Tải tệp)</label>
               <div className="flex items-center gap-2">
-                <input
+                <input id="anh-dan-url-hoac-tai-tep"
                   type="text"
                   placeholder="https://..."
                   maxLength={500}
@@ -1357,8 +1359,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             </div>
 
             <div>
-              <label className="text-xs text-white/70 block mb-1">Nội dung ghi chú</label>
-              <textarea
+              <label htmlFor="noi-dung-ghi-chu" className="text-xs text-white/70 block mb-1">Nội dung ghi chú</label>
+              <textarea id="noi-dung-ghi-chu"
                 required
                 rows={3}
                 maxLength={400}
@@ -1369,8 +1371,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             </div>
 
             <div className="flex items-center justify-between pt-2">
-              <label className="flex items-center gap-2 text-xs text-white/80 cursor-pointer">
-                <input
+              <label htmlFor="field" className="flex items-center gap-2 text-xs text-white/80 cursor-pointer">
+                <input id="field"
                   type="checkbox"
                   checked={Boolean(editingRecord.isTall)}
                   onChange={(e) => setEditingRecord({ ...editingRecord, isTall: e.target.checked })}
@@ -1400,7 +1402,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       )}
 
       {/* Admin Edit Bio & Milestones Modal */}
-      {isEditBioModalOpen && canManageAbout && (
+      {isEditBioModalOpen && isSuperAdmin && (
         <div className="fixed inset-0 z-[100] grid place-items-center p-4 bg-black/80 backdrop-blur-md">
           <div className="w-full max-w-lg rounded-2xl bg-[#0e141a] border border-white/20 p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
@@ -1443,8 +1445,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             {adminModalTab === 'bio' ? (
               <form onSubmit={handleSaveBio} className="space-y-4">
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Họ và tên</label>
-                  <input
+                  <label htmlFor="ho-va-ten" className="text-xs text-white/70 block mb-1">Họ và tên</label>
+                  <input id="ho-va-ten"
                     type="text"
                     required
                     maxLength={80}
@@ -1455,8 +1457,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Chức danh / Vai trò</label>
-                  <input
+                  <label htmlFor="chuc-danh-vai-tro" className="text-xs text-white/70 block mb-1">Chức danh / Vai trò</label>
+                  <input id="chuc-danh-vai-tro"
                     type="text"
                     required
                     maxLength={100}
@@ -1467,19 +1469,19 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Ảnh đại diện (URL hoặc Tải tệp)</label>
+                  <label htmlFor="anh-dai-dien-url-hoac-tai-tep" className="text-xs text-white/70 block mb-1">Ảnh đại diện (URL hoặc Tải tệp)</label>
                   <div className="flex items-center gap-2">
-                    <input
+                    <input id="anh-dai-dien-url-hoac-tai-tep"
                       type="text"
                       maxLength={500}
                       value={editBioForm.avatarUrl}
                       onChange={(e) => setEditBioForm({ ...editBioForm, avatarUrl: e.target.value })}
                       className="flex-1 bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
                     />
-                    <label className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs text-white flex items-center gap-1 cursor-pointer">
+                    <label htmlFor="field-2" className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs text-white flex items-center gap-1 cursor-pointer">
                       <Upload className="w-3.5 h-3.5" />
                       <span>Tải ảnh</span>
-                      <input
+                      <input id="field-2"
                         type="file"
                         accept="image/*"
                         onChange={(e) => handleFileUpload(e, true)}
@@ -1490,8 +1492,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Lời ngỏ / Tiểu sử</label>
-                  <textarea
+                  <label htmlFor="loi-ngo-tieu-su" className="text-xs text-white/70 block mb-1">Lời ngỏ / Tiểu sử</label>
+                  <textarea id="loi-ngo-tieu-su"
                     required
                     rows={4}
                     maxLength={400}
@@ -1535,8 +1537,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Tiêu đề cột mốc</label>
-                  <input
+                  <label htmlFor="tieu-de-cot-moc-2" className="text-xs text-white/70 block mb-1">Tiêu đề cột mốc</label>
+                  <input id="tieu-de-cot-moc-2"
                     type="text"
                     required
                     maxLength={100}
@@ -1552,8 +1554,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Địa điểm / Danh mục</label>
-                  <input
+                  <label htmlFor="dia-diem-danh-muc-2" className="text-xs text-white/70 block mb-1">Địa điểm / Danh mục</label>
+                  <input id="dia-diem-danh-muc-2"
                     type="text"
                     required
                     maxLength={80}
@@ -1569,8 +1571,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Nội dung ghi chú</label>
-                  <textarea
+                  <label htmlFor="noi-dung-ghi-chu-2" className="text-xs text-white/70 block mb-1">Nội dung ghi chú</label>
+                  <textarea id="noi-dung-ghi-chu-2"
                     required
                     rows={3}
                     maxLength={400}

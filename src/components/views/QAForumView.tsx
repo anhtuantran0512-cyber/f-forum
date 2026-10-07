@@ -1,5 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useMemo } from 'react';
+import { useDraftAutosave } from '../../utils/useDraftAutosave';
 import {
   Search,
   PlusCircle,
@@ -26,6 +27,9 @@ import {
   Shield,
   Waves,
   Grid3X3,
+  Bookmark,
+  BookmarkCheck,
+  ArrowUpDown,
 } from 'lucide-react';
 import type { Question, Solution, SubjectTag, User, ChatMessage } from '../../types';
 import { TierBadge, AdminVerifiedBadge } from '../Badges10Tier';
@@ -36,8 +40,28 @@ import {
   getRandomGhibliMask,
 } from '../../utils/ghibliMasks';
 import { DEFAULT_AVATAR, handleImageError, handleVideoError } from '../../utils/mediaFallback';
-import { FOUNDER_PROFILE_CONFIG } from '../../config/admin';
+import { MASTER_ADMIN_CONFIG } from '../../config/admin';
 import { pushNotification } from '../../utils/notifications';
+import { safeStorage } from '../../utils/storage';
+import { useEscapeKey } from '../../utils/useEscapeKey';
+import {
+  DEFAULT_QUESTION_SORT,
+  QUESTION_SORT_OPTIONS,
+  SAVED_SORT_KEY,
+  buildSolutionCounts,
+  normalizeSortMode,
+  sortQuestions,
+  type QuestionSortMode,
+} from '../../utils/questionSort';
+import {
+  SAVED_QUESTIONS_KEY,
+  isQuestionSaved,
+  parseSavedQuestions,
+  pruneSavedQuestions,
+  savedIdsOf,
+  serializeSavedQuestions,
+  toggleSavedQuestion,
+} from '../../utils/savedQuestions';
 import { LeaderboardWidget } from './LeaderboardWidget';
 import { CommentSkeletonList } from '../Skeletons';
 
@@ -86,9 +110,9 @@ interface QAForumViewProps {
   }) => void;
   onAddSolution: (questionId: string, content: string, imageUrl?: string) => void;
   onMarkBestSolution: (questionId: string, solutionId: string) => void;
-  onDeleteQuestion?: (questionId: string, reason?: string) => Promise<boolean> | boolean | void;
-  onEditQuestion?: (questionId: string, updates: { title?: string; content?: string; subject?: SubjectTag }, reason?: string) => Promise<boolean> | boolean | void;
-  onDeleteSolution?: (solutionId: string, reason?: string) => Promise<boolean> | boolean | void;
+  onDeleteQuestion?: (questionId: string) => void;
+  onEditQuestion?: (questionId: string, updates: { title?: string; content?: string; subject?: SubjectTag }) => void;
+  onDeleteSolution?: (solutionId: string) => void;
   onOpenLoginModal?: () => void;
   onOpenProfile?: (user?: { id: string; name: string; avatar: string; email?: string; level?: number }) => void;
   isEmbedded?: boolean;
@@ -96,7 +120,7 @@ interface QAForumViewProps {
   chatMessages?: ChatMessage[];
   /** False while the first server sync is in flight → show shimmer skeletons. */
   isSynced?: boolean;
-  /** Mở Phòng Tập Trung với đồng hồ học tự do. */
+  /** Mở Phòng Tập Trung (Pomodoro) từ widget xếp hạng giờ học. */
   onOpenFocusMode?: () => void;
 }
 
@@ -155,70 +179,26 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [isSubmittingSol, setIsSubmittingSol] = useState(false);
 
   const [questionToDelete, setQuestionToDelete] = useState<Question | null>(null);
-  const [solutionToDelete, setSolutionToDelete] = useState<Solution | null>(null);
   const [questionToEdit, setQuestionToEdit] = useState<Question | null>(null);
-  const [moderationReason, setModerationReason] = useState('');
-  const [moderationError, setModerationError] = useState('');
-  const [isSubmittingModeration, setIsSubmittingModeration] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editSubject, setEditSubject] = useState<SubjectTag>('toan');
   const [editContent, setEditContent] = useState('');
   const [openMenuQuestionId, setOpenMenuQuestionId] = useState<string | null>(null);
 
-  const isSuperAdmin = currentUser?.role === 'super_admin';
+  const isSuperAdmin = currentUser?.email?.toLowerCase() === 'anhtuantran0512@gmail.com';
 
   const handleAdminDeletePost = (questionId: string) => {
     const q = questions.find(item => item.id === questionId);
-    if (q) {
-      setQuestionToDelete(q);
-      setModerationReason('');
-      setModerationError('');
-    }
+    if (q) setQuestionToDelete(q);
   };
 
-  const validateModerationReason = () => {
-    if (moderationReason.trim().length < 5) {
-      setModerationError('Ghi rõ căn cứ xử lý (ít nhất 5 ký tự).');
-      return false;
-    }
-    setModerationError('');
-    return true;
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!questionToDelete || !onDeleteQuestion || !validateModerationReason()) return;
-    setIsSubmittingModeration(true);
-    try {
-      const success = await onDeleteQuestion(questionToDelete.id, moderationReason.trim());
-      if (success === false) {
-        setModerationError('Máy chủ chưa xác nhận thao tác. Nội dung vẫn được giữ nguyên.');
-        return;
+  const handleConfirmDelete = () => {
+    if (questionToDelete && onDeleteQuestion) {
+      onDeleteQuestion(questionToDelete.id);
+      if (selectedQuestion?.id === questionToDelete.id) {
+        setSelectedQuestion(null);
       }
-      if (selectedQuestion?.id === questionToDelete.id) setSelectedQuestion(null);
       setQuestionToDelete(null);
-      setModerationReason('');
-    } catch {
-      setModerationError('Không thể hoàn tất thao tác. Vui lòng thử lại.');
-    } finally {
-      setIsSubmittingModeration(false);
-    }
-  };
-
-  const handleConfirmSolutionDelete = async () => {
-    if (!solutionToDelete || !onDeleteSolution || !validateModerationReason()) return;
-    setIsSubmittingModeration(true);
-    try {
-      const success = await onDeleteSolution(solutionToDelete.id, moderationReason.trim());
-      if (success === false) {
-        setModerationError('Máy chủ chưa xác nhận thao tác. Nội dung vẫn được giữ nguyên.');
-        return;
-      }
-      setSolutionToDelete(null);
-      setModerationReason('');
-    } catch {
-      setModerationError('Không thể hoàn tất thao tác. Vui lòng thử lại.');
-    } finally {
-      setIsSubmittingModeration(false);
     }
   };
 
@@ -229,31 +209,30 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       setEditTitle(q.title);
       setEditSubject(q.subject);
       setEditContent(q.content);
-      setModerationReason('');
-      setModerationError('');
     }
   };
 
-  const handleConfirmEdit = async (e: React.FormEvent) => {
+  const handleConfirmEdit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!questionToEdit || !onEditQuestion || !validateModerationReason()) return;
-    setIsSubmittingModeration(true);
-    try {
-      const updates = { title: editTitle.trim(), subject: editSubject, content: editContent.trim() };
-      const success = await onEditQuestion(questionToEdit.id, updates, moderationReason.trim());
-      if (success === false) {
-        setModerationError('Máy chủ chưa xác nhận thao tác. Nội dung chưa được cập nhật.');
-        return;
-      }
+    if (questionToEdit && onEditQuestion) {
+      onEditQuestion(questionToEdit.id, {
+        title: editTitle.trim(),
+        subject: editSubject,
+        content: editContent.trim(),
+      });
       if (selectedQuestion?.id === questionToEdit.id) {
-        setSelectedQuestion(prev => prev ? { ...prev, ...updates } : null);
+        setSelectedQuestion(prev =>
+          prev
+            ? {
+                ...prev,
+                title: editTitle.trim(),
+                subject: editSubject,
+                content: editContent.trim(),
+              }
+            : null
+        );
       }
       setQuestionToEdit(null);
-      setModerationReason('');
-    } catch {
-      setModerationError('Không thể hoàn tất thao tác. Vui lòng thử lại.');
-    } finally {
-      setIsSubmittingModeration(false);
     }
   };
 
@@ -281,9 +260,53 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     return () => clearInterval(interval);
   }, [isAutoCycle]);
 
-  const [newTitle, setNewTitle] = useState('');
-  const [newSubject, setNewSubject] = useState<SubjectTag>('toan');
-  const [newContent, setNewContent] = useState('');
+  /**
+   * Kênh để nơi khác (bảng lệnh, tìm kiếm toàn cục) bảo diễn đàn mở một câu hỏi
+   * cụ thể. `selectedQuestion` là state nội bộ của view này nên không thể điều
+   * khiển từ App bằng prop; dùng sự kiện window để giữ nguyên ranh giới đó.
+   *
+   * Kèm theo: đặt luôn từ khoá tìm kiếm thành tiêu đề câu hỏi để nếu câu hỏi đó
+   * vừa bị xoá, người dùng vẫn thấy ngữ cảnh thay vì một danh sách trống.
+   */
+  useEffect(() => {
+    const onOpenQuestion = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      const questionId = typeof detail === 'string' ? detail : detail?.questionId;
+      if (!questionId) return;
+      const target = questions.find(q => q.id === questionId);
+      if (!target) return;
+      setSelectedTag(target.subject ?? 'all');
+      setSearchTerm('');
+      setSelectedQuestion(target);
+    };
+    window.addEventListener('fforum_open_question', onOpenQuestion);
+    return () => window.removeEventListener('fforum_open_question', onOpenQuestion);
+  }, [questions]);
+
+  /*
+    Ô soạn này trước đây giữ nội dung trong state thuần: reload trang, bấm nhầm
+    nút đóng, hay trình duyệt sập là mất sạch phần đã gõ. Nay tự lưu nháp theo
+    nhịp 600ms vào localStorage và khôi phục khi mở lại.
+  */
+  const askDraftInitial = useMemo(
+    () => ({ title: '', subject: 'toan' as SubjectTag, content: '' }),
+    [],
+  );
+  const {
+    fields: askDraft,
+    setField: setAskField,
+    restoredAt: askDraftRestoredAt,
+    hasRestoredDraft,
+    clearDraft: clearAskDraft,
+    discardDraft: discardAskDraft,
+  } = useDraftAutosave('fforum_draft_ask', askDraftInitial);
+
+  const newTitle = askDraft.title;
+  const newSubject = askDraft.subject;
+  const newContent = askDraft.content;
+  const setNewTitle = (value: string) => setAskField('title', value);
+  const setNewSubject = (value: SubjectTag) => setAskField('subject', value);
+  const setNewContent = (value: string) => setAskField('content', value);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [bountyCoin, setBountyCoin] = useState<number>(20);
   const [askImage, setAskImage] = useState<string | null>(null);
@@ -307,7 +330,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     name: string;
     avatar: string;
     email?: string;
-    role?: string;
     level: number;
     coin?: number;
   } | null>(null);
@@ -334,14 +356,14 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type.toLowerCase())) {
-      setError('Chỉ hỗ trợ ảnh PNG, JPG hoặc WebP để bảo vệ dữ liệu tải lên.');
+    if (!file.type.startsWith('image/')) {
+      setError('Vui lòng chỉ tải lên tệp hình ảnh (PNG, JPG, WebP)!');
       e.target.value = '';
       return;
     }
-    const maxSize = 8 * 1024 * 1024;
+    const maxSize = 20 * 1024 * 1024;
     if (file.size > maxSize) {
-      setError(`Kích thước ảnh (${(file.size / (1024 * 1024)).toFixed(1)}MB) vượt quá giới hạn cho phép 8MB!`);
+      setError(`Kích thước ảnh (${(file.size / (1024 * 1024)).toFixed(1)}MB) vượt quá giới hạn cho phép 20MB!`);
       e.target.value = '';
       return;
     }
@@ -393,14 +415,137 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     }
   };
 
-  const filteredQuestions = questions.filter(q => {
-    const matchesTag = selectedTag === 'all' || q.subject === selectedTag;
-    const matchesSearch =
-      q.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.subject.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesTag && matchesSearch;
-  });
+  /*
+    CÂU HỎI ĐÃ LƯU.
+    Mỗi người dùng một danh sách riêng, khoá theo email (khách thì theo guest id).
+    Toàn bộ phép tính nằm trong utils/savedQuestions.ts (thuần tuý, đã có test);
+    ở đây chỉ đọc/ghi storage và giữ state.
+  */
+  const savedOwnerKey = currentUser?.email?.trim().toLowerCase() || '';
+  const [savedMap, setSavedMap] = useState(() =>
+    parseSavedQuestions(safeStorage.getItem(SAVED_QUESTIONS_KEY)),
+  );
+  const [showSavedOnly, setShowSavedOnly] = useState(false);
+
+  /*
+    Chủ sở hữu đổi (đăng nhập / đăng xuất / đổi tài khoản) thì nạp lại đúng danh
+    sách của người đó. Điều chỉnh state lúc render theo mẫu React khuyến nghị,
+    không dùng effect — tránh một lượt render thừa và tránh chớp danh sách cũ.
+  */
+  const [savedLoadedFor, setSavedLoadedFor] = useState(savedOwnerKey);
+  if (savedLoadedFor !== savedOwnerKey) {
+    setSavedLoadedFor(savedOwnerKey);
+    setSavedMap(parseSavedQuestions(safeStorage.getItem(SAVED_QUESTIONS_KEY)));
+    setShowSavedOnly(false);
+  }
+
+  const mySavedIds = savedIdsOf(savedMap, savedOwnerKey);
+
+  /*
+    Kênh để Bảng lệnh bảo diễn đàn bật bộ lọc "Đã lưu". Cùng lý do với
+    fforum_open_question ở trên: showSavedOnly là state nội bộ của view này.
+    Bỏ luôn từ khoá tìm kiếm và môn học để kết quả không bị lọc chồng lên nhau —
+    người dùng bấm lệnh là muốn thấy ĐÚNG danh sách đã lưu.
+  */
+  useEffect(() => {
+    const onShowSaved = () => {
+      if (!savedOwnerKey) return;
+      setSearchTerm('');
+      setSelectedTag('all');
+      setShowSavedOnly(true);
+    };
+    window.addEventListener('fforum_show_saved_questions', onShowSaved);
+    return () => window.removeEventListener('fforum_show_saved_questions', onShowSaved);
+  }, [savedOwnerKey]);
+
+  const persistSavedMap = (next: typeof savedMap) => {
+    setSavedMap(next);
+    /*
+      Chỉ ghi khi map thật sự đổi tham chiếu — toggleSavedQuestion trả nguyên map
+      cũ nếu không có gì thay đổi, nhờ đó không ghi storage thừa mỗi lần bấm.
+    */
+    if (next !== savedMap) {
+      safeStorage.setItem(SAVED_QUESTIONS_KEY, serializeSavedQuestions(next));
+    }
+  };
+
+  const handleToggleSaveQuestion = (questionId: string) => {
+    if (!savedOwnerKey) {
+      alert('Vui lòng đăng nhập để lưu câu hỏi!');
+      onOpenLoginModal?.();
+      return;
+    }
+    const wasSaved = isQuestionSaved(savedMap, savedOwnerKey, questionId);
+    persistSavedMap(toggleSavedQuestion(savedMap, savedOwnerKey, questionId, !wasSaved));
+    pushNotification({
+      title: wasSaved ? 'Đã bỏ lưu câu hỏi' : 'Đã lưu câu hỏi',
+      body: wasSaved
+        ? 'Câu hỏi đã được gỡ khỏi danh sách đã lưu.'
+        : 'Xem lại bất cứ lúc nào trong mục Đã lưu.',
+      type: 'qa',
+    });
+  };
+
+  /*
+    Dọn các mục trỏ tới câu hỏi đã bị xoá. So sánh bằng tham chiếu nên khi không
+    có gì để dọn thì pruneSavedQuestions trả nguyên map và không ghi storage.
+  */
+  const prunedSavedMap = useMemo(
+    () => pruneSavedQuestions(savedMap, questions.map(q => q.id)),
+    [savedMap, questions],
+  );
+  if (prunedSavedMap !== savedMap) {
+    persistSavedMap(prunedSavedMap);
+  }
+
+  /*
+    SẮP XẾP DIỄN ĐÀN.
+    Server luôn unshift nên danh sách mặc định là mới-nhất-trước; trước đây không
+    có cách nào xem câu hỏi treo thưởng cao hay câu đang cần người giải. Lựa chọn
+    được nhớ giữa các phiên và chuẩn hoá khi đọc lên (dữ liệu cũ không làm vỡ UI).
+  */
+  const [sortMode, setSortMode] = useState<QuestionSortMode>(() =>
+    normalizeSortMode(safeStorage.getItem(SAVED_SORT_KEY)),
+  );
+  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+
+  /*
+    Escape phải đóng được menu đang mở. Trước đây menu 3-chấm của quản trị không
+    có lối thoát bằng bàn phím: mở ra là phải chuột ra ngoài mới đóng được.
+    Một handler dùng chung cho cả hai menu, và chỉ gắn khi thật sự có menu mở
+    (tham số `enabled` của useEscapeKey) để không bắt phím vô ích.
+  */
+  useEscapeKey(
+    () => {
+      setIsSortMenuOpen(false);
+      setOpenMenuQuestionId(null);
+    },
+    isSortMenuOpen || openMenuQuestionId !== null,
+  );
+
+  const chooseSortMode = (mode: QuestionSortMode) => {
+    setSortMode(mode);
+    setIsSortMenuOpen(false);
+    safeStorage.setItem(SAVED_SORT_KEY, mode);
+  };
+
+  const filteredQuestions = useMemo(() => {
+    const matched = questions.filter(q => {
+      const matchesTag = selectedTag === 'all' || q.subject === selectedTag;
+      const matchesSearch =
+        q.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        q.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        q.subject.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSaved = !showSavedOnly || mySavedIds.includes(q.id);
+      return matchesTag && matchesSearch && matchesSaved;
+    });
+    /*
+      Đếm số lời giải MỘT lần cho cả danh sách thay vì đếm lại trong mỗi lần so
+      sánh — sort gọi comparator O(n log n) lần, đếm bên trong sẽ thành O(n² log n).
+    */
+    const counts = buildSolutionCounts(solutions);
+    return sortQuestions(matched, sortMode, counts);
+  }, [questions, solutions, selectedTag, searchTerm, showSavedOnly, mySavedIds, sortMode]);
 
   const handleAskSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -429,6 +574,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
     setNewTitle('');
     setNewContent('');
+    clearAskDraft();
     setAskImage(null);
     setAskImageError(null);
     setIsAnonymous(false);
@@ -456,7 +602,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   };
 
   return (
-    <section className={`ff-mobile-viewport-screen ff-mobile-workspace relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8`}>
+    <section className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8`}>
       
       {/* Triple Video Crossfade Switcher Background Engine */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -586,6 +732,90 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 </button>
               );
             })}
+
+            {/* Bộ lọc "Đã lưu" — tắt nếu chưa đăng nhập vì danh sách theo từng người */}
+            {savedOwnerKey && (
+              <button
+                type="button"
+                onClick={() => setShowSavedOnly(prev => !prev)}
+                aria-pressed={showSavedOnly}
+                className={`shrink-0 inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-mono font-medium whitespace-nowrap transition-all focus:outline-none ${
+                  showSavedOnly
+                    ? 'bg-amber-400 text-neutral-950 font-bold shadow-[0_0_12px_rgba(245,158,11,0.6)]'
+                    : 'bg-white/5 text-neutral-300 hover:bg-white/15 border border-white/10'
+                }`}
+                title={
+                  showSavedOnly
+                    ? 'Đang chỉ hiện câu hỏi đã lưu — bấm để xem tất cả'
+                    : 'Chỉ hiện các câu hỏi bạn đã lưu'
+                }
+              >
+                <Bookmark className="w-3 h-3" />
+                Đã lưu
+                {mySavedIds.length > 0 && (
+                  <span
+                    className={`px-1.5 rounded-full text-[10px] font-bold ${
+                      showSavedOnly ? 'bg-neutral-950/20 text-neutral-900' : 'bg-amber-500/25 text-amber-300'
+                    }`}
+                  >
+                    {mySavedIds.length}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {/* Menu sắp xếp */}
+            <div className="relative shrink-0 ml-auto">
+              <button
+                type="button"
+                onClick={() => setIsSortMenuOpen(prev => !prev)}
+                aria-expanded={isSortMenuOpen}
+                aria-haspopup="menu"
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-mono font-medium whitespace-nowrap transition-all focus:outline-none ${
+                  sortMode !== DEFAULT_QUESTION_SORT
+                    ? 'bg-cyan-400 text-neutral-950 font-bold shadow-[0_0_12px_rgba(6,182,212,0.6)]'
+                    : 'bg-white/5 text-neutral-300 hover:bg-white/15 border border-white/10'
+                }`}
+                title="Sắp xếp danh sách câu hỏi"
+              >
+                <ArrowUpDown className="w-3 h-3" />
+                {QUESTION_SORT_OPTIONS.find(o => o.id === sortMode)?.label ?? 'Sắp xếp'}
+              </button>
+
+              {isSortMenuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full mt-1.5 w-56 rounded-xl obsidian-glass bg-[#0c1218] border border-cyan-500/30 shadow-2xl p-1.5 z-30 space-y-0.5 animate-fade-up"
+                >
+                  {QUESTION_SORT_OPTIONS.map(opt => {
+                    const isActive = opt.id === sortMode;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={isActive}
+                        onClick={() => chooseSortMode(opt.id)}
+                        className={`w-full px-2.5 py-1.5 text-left rounded-lg transition-colors cursor-pointer ${
+                          isActive ? 'bg-cyan-500/20' : 'hover:bg-white/10'
+                        }`}
+                      >
+                        <span
+                          className={`flex items-center gap-2 text-xs font-semibold ${
+                            isActive ? 'text-cyan-300' : 'text-neutral-200'
+                          }`}
+                        >
+                          {isActive && <Check size={12} />}
+                          {!isActive && <span className="w-3" />}
+                          {opt.label}
+                        </span>
+                        <span className="block text-[10px] text-neutral-500 pl-5">{opt.hint}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -598,27 +828,75 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               <CommentSkeletonList rows={4} />
             </div>
           ) : filteredQuestions.length === 0 ? (
-            <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-neutral-400 rounded-2xl liquid-glass bg-white/5 border border-white/10 space-y-2">
-              <HelpCircle className="w-10 h-10 text-neutral-500 mb-1" />
-              <p className="text-sm font-semibold text-white">Chưa có câu hỏi nào trên sàn thảo luận</p>
-              <p className="text-xs text-neutral-400 max-w-sm">
-                Hãy là người đầu tiên đặt câu hỏi để cùng thảo luận bài học và nhận giải đáp từ cộng đồng!
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!currentUser) {
-                    onOpenLoginModal?.();
-                  } else {
-                    setIsAskModalOpen(true);
-                  }
-                }}
-                className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/30 text-xs font-semibold transition-all cursor-pointer"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>Đặt câu hỏi đầu tiên</span>
-              </button>
-            </div>
+            /*
+              Trạng thái trống phải nói đúng LÝ DO trống. Bản cũ luôn hiện "hãy là
+              người đầu tiên đặt câu hỏi" — sai hẳn khi người dùng chỉ vừa bật bộ
+              lọc hay gõ từ khoá làm danh sách rỗng; họ cần nút gỡ lọc, không phải
+              lời rủ đặt câu hỏi.
+            */
+            showSavedOnly && mySavedIds.length === 0 ? (
+              <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-neutral-400 rounded-2xl liquid-glass bg-white/5 border border-white/10 space-y-2">
+                <Bookmark className="w-10 h-10 text-amber-500/60 mb-1" />
+                <p className="text-sm font-semibold text-white">Chưa lưu câu hỏi nào</p>
+                <p className="text-xs text-neutral-400 max-w-sm">
+                  Bấm biểu tượng đánh dấu trên bất kỳ thẻ câu hỏi nào để giữ lại đọc sau.
+                  Danh sách này là của riêng bạn.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowSavedOnly(false)}
+                  className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-neutral-200 border border-white/15 text-xs font-semibold transition-all cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Xem tất cả câu hỏi</span>
+                </button>
+              </div>
+            ) : showSavedOnly || searchTerm || selectedTag !== 'all' ? (
+              <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-neutral-400 rounded-2xl liquid-glass bg-white/5 border border-white/10 space-y-2">
+                <Search className="w-10 h-10 text-neutral-500 mb-1" />
+                <p className="text-sm font-semibold text-white">Không có câu hỏi nào khớp bộ lọc</p>
+                <p className="text-xs text-neutral-400 max-w-sm">
+                  {searchTerm
+                    ? `Không tìm thấy kết quả cho "${searchTerm}".`
+                    : 'Không có câu hỏi nào trong mục này.'}{' '}
+                  Thử bỏ bớt điều kiện lọc để xem nhiều hơn.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSavedOnly(false);
+                    setSearchTerm('');
+                    setSelectedTag('all');
+                  }}
+                  className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/30 text-xs font-semibold transition-all cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Xoá toàn bộ bộ lọc</span>
+                </button>
+              </div>
+            ) : (
+              <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-neutral-400 rounded-2xl liquid-glass bg-white/5 border border-white/10 space-y-2">
+                <HelpCircle className="w-10 h-10 text-neutral-500 mb-1" />
+                <p className="text-sm font-semibold text-white">Chưa có câu hỏi nào trên sàn thảo luận</p>
+                <p className="text-xs text-neutral-400 max-w-sm">
+                  Hãy là người đầu tiên đặt câu hỏi để cùng thảo luận bài học và nhận giải đáp từ cộng đồng!
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!currentUser) {
+                      onOpenLoginModal?.();
+                    } else {
+                      setIsAskModalOpen(true);
+                    }
+                  }}
+                  className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/30 text-xs font-semibold transition-all cursor-pointer"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>Đặt câu hỏi đầu tiên</span>
+                </button>
+              </div>
+            )
           ) : (
             filteredQuestions.map(q => {
               const qSolutions = solutions.filter(s => s.questionId === q.id);
@@ -703,6 +981,37 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           {qSolutions.length} lời giải
                         </span>
 
+                        {/* Nút lưu câu hỏi — stopPropagation vì cả thẻ là role="button" */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleSaveQuestion(q.id);
+                          }}
+                          aria-pressed={isQuestionSaved(savedMap, savedOwnerKey, q.id)}
+                          className={`p-1 rounded-md border transition-colors cursor-pointer ${
+                            isQuestionSaved(savedMap, savedOwnerKey, q.id)
+                              ? 'bg-amber-500/20 border-amber-400/40 text-amber-300'
+                              : 'bg-white/5 border-white/10 text-neutral-400 hover:bg-white/15 hover:text-white'
+                          }`}
+                          title={
+                            isQuestionSaved(savedMap, savedOwnerKey, q.id)
+                              ? 'Bỏ lưu câu hỏi này'
+                              : 'Lưu câu hỏi này để xem lại sau'
+                          }
+                          aria-label={
+                            isQuestionSaved(savedMap, savedOwnerKey, q.id)
+                              ? `Bỏ lưu câu hỏi: ${q.title}`
+                              : `Lưu câu hỏi: ${q.title}`
+                          }
+                        >
+                          {isQuestionSaved(savedMap, savedOwnerKey, q.id) ? (
+                            <BookmarkCheck size={13} />
+                          ) : (
+                            <Bookmark size={13} />
+                          )}
+                        </button>
+
                         {/* Super Admin 3-dots Menu Button */}
                         {isSuperAdmin && (
                           <div className="relative ml-1">
@@ -760,7 +1069,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               id: q.authorId,
                               name: q.authorName,
                               avatar: q.authorAvatar,
-                              role: Object.values(users).find(user => user.id === q.authorId)?.role,
                               level: 1,
                             });
                           }
@@ -863,6 +1171,34 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             </div>
 
             <form onSubmit={handleAskSubmit} className="space-y-3.5">
+              {/* Báo cho người dùng biết nội dung đang có là nháp được khôi phục,
+                  kèm đường bỏ nháp — đừng âm thầm điền sẵn rồi để họ tưởng là
+                  mình vừa gõ. */}
+              {hasRestoredDraft && (
+                <div className="flex items-center gap-2 rounded-2xl border border-amber-300/30 bg-amber-400/10 px-3 py-2.5">
+                  <Sparkles className="w-4 h-4 shrink-0 text-amber-300" />
+                  <span className="min-w-0 flex-1 text-[11px] leading-snug text-amber-100">
+                    Đã khôi phục bản nháp
+                    {askDraftRestoredAt
+                      ? ` lưu lúc ${new Date(askDraftRestoredAt).toLocaleString('vi-VN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          day: '2-digit',
+                          month: '2-digit',
+                        })}`
+                      : ''}
+                    .
+                  </span>
+                  <button
+                    type="button"
+                    onClick={discardAskDraft}
+                    className="shrink-0 rounded-lg border border-amber-300/30 px-2 py-1 text-[10.5px] font-bold text-amber-200 transition hover:bg-amber-400/20 cursor-pointer"
+                  >
+                    Bỏ nháp
+                  </button>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-semibold text-neutral-300 mb-1">
                   Chủ đề môn học / đời sống (*):
@@ -881,10 +1217,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label htmlFor="tieu-de-cau-hoi" className="block text-xs font-semibold text-neutral-300 mb-1">
                   Tiêu đề câu hỏi (*):
                 </label>
-                <input
+                <input id="tieu-de-cau-hoi"
                   type="text"
                   required
                   maxLength={150}
@@ -896,10 +1232,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label htmlFor="noi-dung-chi-tiet-thac-mac" className="block text-xs font-semibold text-neutral-300 mb-1">
                   Nội dung chi tiết & thắc mắc (*):
                 </label>
-                <textarea
+                <textarea id="noi-dung-chi-tiet-thac-mac"
                   required
                   rows={4}
                   maxLength={1500}
@@ -908,13 +1244,13 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   placeholder="Ghi rõ đề bài, dữ kiện đã cho và phần em đang vướng mắc để các bạn trợ giúp nhanh nhất..."
                   className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 resize-none"
                 />
-                <MathSymbolsBar onInsert={sym => setNewContent(prev => prev + sym)} />
+                <MathSymbolsBar onInsert={sym => setNewContent(newContent + sym)} />
               </div>
 
-              {/* Bounded image upload */}
+              {/* 20MB Image Upload */}
               <div>
                 <label className="block text-xs font-semibold text-neutral-300 mb-1">
-                  Đính kèm hình ảnh (Tối đa 8MB):
+                  Đính kèm hình ảnh (Tối đa 20MB):
                 </label>
                 {askImage ? (
                   <div className="relative rounded-xl overflow-hidden border border-white/20 bg-black/40 p-2 max-w-xs">
@@ -929,12 +1265,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     </button>
                   </div>
                 ) : (
-                  <label className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
+                  <label htmlFor="field" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
                     <ImageIcon className="w-4 h-4 text-cyan-400" />
-                    <span>Tải ảnh câu hỏi / đề bài / sơ đồ (Tối đa 8MB)</span>
-                    <input
+                    <span>Tải ảnh câu hỏi / đề bài / sơ đồ (Tối đa 20MB)</span>
+                    <input id="field"
                       type="file"
-                      accept="image/png,image/jpeg,image/webp"
+                      accept="image/*"
                       onChange={e => handleImageUpload(e, setAskImage, setAskImageError)}
                       className="hidden"
                     />
@@ -1116,7 +1452,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         id: selectedQuestion.authorId,
                         name: selectedQuestion.authorName,
                         avatar: selectedQuestion.authorAvatar,
-                        role: Object.values(users).find(user => user.id === selectedQuestion.authorId)?.role,
                         level: 1,
                       });
                     }
@@ -1195,9 +1530,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   .filter(s => s.questionId === selectedQuestion.id)
                   .sort((a, b) => (b.isBest ? 1 : 0) - (a.isBest ? 1 : 0))
                   .map(sol => {
-                    const isSuperAdminSolver = sol.authorRole === 'super_admin';
-                    const solverName = isSuperAdminSolver ? FOUNDER_PROFILE_CONFIG.name : sol.authorName;
-                    const solverAvatar = isSuperAdminSolver ? FOUNDER_PROFILE_CONFIG.avatar : sol.authorAvatar;
+                    const isSuperAdminSolver = sol.authorEmail?.toLowerCase() === 'anhtuantran0512@gmail.com';
+                    const solverName = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.name : sol.authorName;
+                    const solverAvatar = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.avatar : sol.authorAvatar;
                     const canConfirmBest =
                       isSuperAdmin || currentUser?.id === selectedQuestion.authorId;
 
@@ -1219,7 +1554,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                 name: solverName,
                                 avatar: solverAvatar,
                                 email: sol.authorEmail,
-                                role: sol.authorRole,
                                 level: isSuperAdminSolver ? 150 : sol.authorLevel,
                               });
                             }}
@@ -1288,7 +1622,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             {isSuperAdmin && (
                               <button
                                 type="button"
-                                onClick={() => { setSolutionToDelete(sol); setModerationReason(''); setModerationError(''); }}
+                                onClick={() => onDeleteSolution?.(sol.id)}
                                 className="inline-flex items-center gap-1 text-[11px] text-red-400 hover:text-red-300 transition-colors px-2 py-0.5 rounded bg-red-500/10 border border-red-500/20 cursor-pointer"
                                 title="Xóa phản hồi vi phạm"
                               >
@@ -1317,12 +1651,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
             {/* Submit New Solution (+25 XP) */}
             <div className="pt-3 border-t border-white/10">
-              <label className="block text-xs font-semibold text-neutral-300 mb-1.5 flex items-center justify-between">
+              <label htmlFor="field-2" className="block text-xs font-semibold text-neutral-300 mb-1.5 flex items-center justify-between">
                 <span>Đóng góp lời giải của bạn:</span>
                 <span className="text-[10px] font-mono text-cyan-300">+25 XP khi gửi lời giải</span>
               </label>
 
-              <textarea
+              <textarea id="field-2"
                 rows={3}
                 maxLength={1500}
                 value={solutionText}
@@ -1349,12 +1683,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       </button>
                     </div>
                   ) : (
-                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
+                    <label htmlFor="field-3" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
                       <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Đính kèm ảnh lời giải (&le; 8MB)</span>
-                      <input
+                      <span>Đính kèm ảnh lời giải (&le; 20MB)</span>
+                      <input id="field-3"
                         type="file"
-                        accept="image/png,image/jpeg,image/webp"
+                        accept="image/*"
                         onChange={e => handleImageUpload(e, setSolImage, setSolImageError)}
                         className="hidden"
                       />
@@ -1390,49 +1724,20 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             <p className="text-xs text-neutral-300 leading-relaxed">
               Bạn có chắc chắn muốn xóa vĩnh viễn bài viết <strong>"{questionToDelete.title}"</strong> không? Toàn bộ các câu trả lời liên quan cũng sẽ bị xóa khỏi hệ thống.
             </p>
-            <label className="block text-xs text-neutral-300 space-y-1.5">
-              <span>Lý do / căn cứ xử lý</span>
-              <textarea required minLength={5} maxLength={500} value={moderationReason} onChange={e => setModerationReason(e.target.value)} rows={3} className="w-full rounded-xl bg-neutral-900 border border-white/15 px-3 py-2 text-white resize-y" />
-            </label>
-            {moderationError && <p role="alert" className="text-xs text-red-300">{moderationError}</p>}
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => { setQuestionToDelete(null); setModerationError(''); }}
+                onClick={() => setQuestionToDelete(null)}
                 className="px-3.5 py-1.5 rounded-xl text-xs text-neutral-400 hover:text-white transition-colors cursor-pointer"
               >
                 Hủy bỏ
               </button>
               <button
                 type="button"
-                disabled={isSubmittingModeration || moderationReason.trim().length < 5}
                 onClick={handleConfirmDelete}
-                className="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer disabled:opacity-50"
+                className="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
               >
-                {isSubmittingModeration ? 'Đang xử lý...' : 'Xác nhận xóa vĩnh viễn'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isSuperAdmin && solutionToDelete && (
-        <div role="dialog" aria-modal="true" aria-label="Xác nhận xóa lời giải" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-up">
-          <div className="w-full max-w-md rounded-2xl bg-neutral-950 border border-red-500/40 p-6 shadow-2xl space-y-4">
-            <div className="flex items-center gap-2 text-red-400">
-              <Trash2 className="w-5 h-5" />
-              <h3 className="font-bold text-sm text-white">Xác nhận xóa lời giải</h3>
-            </div>
-            <p className="text-xs text-neutral-300 leading-relaxed">Lời giải sẽ bị gỡ khỏi câu hỏi. Thao tác sẽ được ghi vào nhật ký kiểm duyệt.</p>
-            <label className="block text-xs text-neutral-300 space-y-1.5">
-              <span>Lý do / căn cứ xử lý</span>
-              <textarea required minLength={5} maxLength={500} value={moderationReason} onChange={e => setModerationReason(e.target.value)} rows={3} className="w-full rounded-xl bg-neutral-900 border border-white/15 px-3 py-2 text-white resize-y" />
-            </label>
-            {moderationError && <p role="alert" className="text-xs text-red-300">{moderationError}</p>}
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button type="button" onClick={() => { setSolutionToDelete(null); setModerationError(''); }} className="px-3.5 py-1.5 rounded-xl text-xs text-neutral-400 hover:text-white">Hủy bỏ</button>
-              <button type="button" disabled={isSubmittingModeration || moderationReason.trim().length < 5} onClick={handleConfirmSolutionDelete} className="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md disabled:opacity-50">
-                {isSubmittingModeration ? 'Đang xử lý...' : 'Xác nhận xóa lời giải'}
+                Xác nhận xóa vĩnh viễn
               </button>
             </div>
           </div>
@@ -1474,8 +1779,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">Tiêu đề câu hỏi (*):</label>
-                <input
+                <label htmlFor="tieu-de-cau-hoi-2" className="block text-xs font-semibold text-neutral-300 mb-1">Tiêu đề câu hỏi (*):</label>
+                <input id="tieu-de-cau-hoi-2"
                   type="text"
                   required
                   maxLength={150}
@@ -1515,25 +1820,19 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 />
               </div>
 
-              <label className="block text-xs text-neutral-300 space-y-1.5">
-                <span>Lý do / căn cứ chỉnh sửa</span>
-                <textarea required minLength={5} maxLength={500} value={moderationReason} onChange={e => setModerationReason(e.target.value)} rows={2} className="w-full rounded-xl bg-neutral-900 border border-white/15 px-3 py-2 text-white resize-y" />
-              </label>
-              {moderationError && <p role="alert" className="text-xs text-red-300">{moderationError}</p>}
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
                 <button
                   type="button"
-                  onClick={() => { setQuestionToEdit(null); setModerationError(''); }}
+                  onClick={() => setQuestionToEdit(null)}
                   className="px-4 py-2 rounded-xl text-xs text-neutral-400 hover:text-white"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmittingModeration || moderationReason.trim().length < 5}
-                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs shadow-md cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs shadow-md cursor-pointer"
                 >
-                  {isSubmittingModeration ? 'Đang lưu...' : 'Lưu thay đổi'}
+                  Lưu thay đổi
                 </button>
               </div>
             </form>
@@ -1592,7 +1891,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               <div className="min-w-0 flex-1">
                 <h4 className="text-xs font-bold text-white flex items-center gap-1 truncate">
                   <span className="truncate">{activeAuthorPopover.name}</span>
-                  {activeAuthorPopover.role === 'super_admin' && <AdminVerifiedBadge size={12} />}
+                  {activeAuthorPopover.email === 'anhtuantran0512@gmail.com' && <AdminVerifiedBadge size={12} />}
                 </h4>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[9.5px] font-mono font-bold">
@@ -1709,10 +2008,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                  <label htmlFor="chi-tiet-vi-pham" className="block text-xs font-semibold text-neutral-300 mb-1">
                     Chi tiết vi phạm:
                   </label>
-                  <textarea
+                  <textarea id="chi-tiet-vi-pham"
                     value={reportDetails}
                     onChange={e => setReportDetails(e.target.value)}
                     maxLength={500}

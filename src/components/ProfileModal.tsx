@@ -60,13 +60,16 @@ const writeProfileLikes = (map: ProfileLikesMap): void => {
 };
 import { BookshelfPanel } from './BookshelfPanel';
 import { TierRankSheet } from './TierRankSheet';
+import { useEscapeKey } from '../utils/useEscapeKey';
 
 interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: User;
   viewerUser?: User | null;
-  onSaveProfile: (updates: Partial<User>) => Promise<boolean>;
+  onSaveProfile: (updates: Partial<User>) => void;
+  onPurchaseItem: (itemId: string) => Promise<boolean>;
+  onEquipItem: (itemId: string) => Promise<boolean>;
   initialTab?: 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit';
   questions?: Question[];
   solutions?: Solution[];
@@ -241,7 +244,9 @@ const ProfileModalInner: React.FC<{
   currentUser: User;
   viewerUser?: User | null;
   onClose: () => void;
-  onSaveProfile: (updates: Partial<User>) => Promise<boolean>;
+  onSaveProfile: (updates: Partial<User>) => void;
+  onPurchaseItem: (itemId: string) => Promise<boolean>;
+  onEquipItem: (itemId: string) => Promise<boolean>;
   initialTab?: TabType;
   questions?: Question[];
   solutions?: Solution[];
@@ -250,11 +255,19 @@ const ProfileModalInner: React.FC<{
   viewerUser,
   onClose,
   onSaveProfile,
+  onPurchaseItem,
+  onEquipItem,
   initialTab = 'overview',
   questions = [],
   solutions = [],
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+
+  /* Hộp thoại này khai báo aria-modal="true" nhưng trước đây không có đường
+     thoát bằng phím: screen reader coi phần còn lại của trang là không tồn tại,
+     nên người dùng bàn phím bị kẹt trong hộp thoại. */
+  useEscapeKey(onClose);
+
   const [shopFilter, setShopFilter] = useState<'all' | ShopTierColor>('all');
   const [activitySubTab, setActivitySubTab] = useState<'questions' | 'solutions'>('solutions');
   const [selectedStatNote, setSelectedStatNote] = useState<string | null>(null);
@@ -274,11 +287,20 @@ const ProfileModalInner: React.FC<{
 
   /* Brief shimmer skeleton so the profile feels loaded, not popped */
   const [isBooting, setIsBooting] = useState(true);
-  useEffect(() => {
+
+  /* Đổi sang hồ sơ khác thì chạy lại skeleton. Phần "bật skeleton" được suy ra
+     lúc render (mẫu điều chỉnh state khi prop đổi); effect chỉ giữ phần hẹn giờ. */
+  const [bootingForId, setBootingForId] = useState(currentUser.id);
+  if (bootingForId !== currentUser.id) {
+    setBootingForId(currentUser.id);
     setIsBooting(true);
+  }
+
+  useEffect(() => {
+    if (!isBooting) return undefined;
     const t = setTimeout(() => setIsBooting(false), 420);
     return () => clearTimeout(t);
-  }, [currentUser.id]);
+  }, [isBooting, currentUser.id]);
 
   const [isReporting, setIsReporting] = useState(false);
   const [reportReason, setReportReason] = useState('Nội dung vi phạm / Gây war / Không đúng chuẩn mực');
@@ -286,7 +308,7 @@ const ProfileModalInner: React.FC<{
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [reportSuccess, setReportSuccess] = useState<string | null>(null);
 
-  const isSuperAdmin = currentUser.role === 'super_admin';
+  const isSuperAdmin = currentUser.email === 'anhtuantran0512@gmail.com';
   const isOwnProfile = !viewerUser || viewerUser.id === currentUser.id;
 
   /* GUI nhỏ "Bảng rank · danh hiệu · yêu cầu" mở từ khối Danh hiệu */
@@ -366,7 +388,7 @@ const ProfileModalInner: React.FC<{
       ).length;
     const verified =
       currentUser.stats?.verifiedCount ??
-      bestSolutions + (currentUser.role === 'super_admin' ? 1 : 0);
+      bestSolutions + (currentUser.role === 'SUPER_ADMIN' ? 1 : 0);
     const helped = currentUser.stats?.helpedCount ?? userSolutions.length;
 
     return {
@@ -457,16 +479,7 @@ const ProfileModalInner: React.FC<{
 
   const handleBuyItem = async (item: ShopItem) => {
     if (userCoin < item.price) return;
-    const newCoin = userCoin - item.price;
-    const newInventory = Array.from(new Set([...userInventory, item.id]));
-    const saved = await onSaveProfile({
-      coin: newCoin,
-      inventory: newInventory,
-    });
-    if (!saved) {
-      setErrorMsg('Giao dịch chưa được máy chủ xác nhận. Số dư và vật phẩm vẫn được giữ nguyên.');
-      return;
-    }
+    if (!(await onPurchaseItem(item.id))) return;
     pushNotification({
       type: 'coin',
       category: 'system',
@@ -479,11 +492,7 @@ const ProfileModalInner: React.FC<{
   const handleEquipItem = async (itemId: string) => {
     const isCurrentlyEquipped = currentUser.equippedBadge === itemId;
     const nextBadge = isCurrentlyEquipped ? '' : itemId;
-    const saved = await onSaveProfile({ equippedBadge: nextBadge });
-    if (!saved) {
-      setErrorMsg('Không thể cập nhật vật phẩm đang trang bị. Vui lòng thử lại.');
-      return;
-    }
+    if (!(await onEquipItem(nextBadge))) return;
     const it = SHOP_ITEMS.find((s) => s.id === itemId);
     pushNotification({
       type: 'system',
@@ -563,7 +572,7 @@ const ProfileModalInner: React.FC<{
     e.target.value = '';
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving) return;
     if (!name.trim()) {
@@ -572,25 +581,21 @@ const ProfileModalInner: React.FC<{
     }
 
     setIsSaving(true);
-    setErrorMsg(null);
-    try {
-      const saved = await onSaveProfile({
-        name: name.trim().slice(0, 50),
-        avatar,
-        bannerUrl,
-        profileGradient,
-        bio: bio.trim().slice(0, 100),
-        gender,
-        city: city.trim().slice(0, 50),
-        className: className.trim().slice(0, 50),
-      });
-      if (saved) setActiveTab('overview');
-      else setErrorMsg('Thay đổi chưa được máy chủ lưu. Vui lòng kiểm tra rồi thử lại.');
-    } catch {
-      setErrorMsg('Không thể kết nối máy chủ. Vui lòng thử lại.');
-    } finally {
+    onSaveProfile({
+      name: name.trim().slice(0, 50),
+      avatar,
+      bannerUrl,
+      profileGradient,
+      bio: bio.trim().slice(0, 100),
+      gender,
+      city: city.trim().slice(0, 50),
+      className: className.trim().slice(0, 50),
+    });
+
+    setTimeout(() => {
       setIsSaving(false);
-    }
+      setActiveTab('overview');
+    }, 200);
   };
 
   const handleReportUserSubmit = async (e: React.FormEvent) => {
@@ -869,9 +874,9 @@ const ProfileModalInner: React.FC<{
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#0D9488] text-white text-[10px] font-bold tracking-wider uppercase shadow-sm">
                             <UserCheck className="w-3 h-3 text-white inline shrink-0" />
                             <span>
-                              {currentUser.role === 'super_admin'
+                              {currentUser.role === 'SUPER_ADMIN'
                                 ? 'Quản trị'
-                                : currentUser.scopedClubIds.length > 0
+                                : currentUser.role === 'CLUB_LEADER'
                                 ? 'Chủ nhiệm CLB'
                                 : 'Học sinh'}
                             </span>
@@ -1794,10 +1799,10 @@ const ProfileModalInner: React.FC<{
               <div className="pc-12-card p-4 space-y-3.5">
                 {/* Full Name */}
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                  <label htmlFor="ten-hien-thi" className="block text-xs font-semibold text-neutral-300 mb-1">
                     Tên hiển thị:
                   </label>
-                  <input
+                  <input id="ten-hien-thi"
                     type="text"
                     value={name}
                     maxLength={50}
@@ -1851,10 +1856,10 @@ const ProfileModalInner: React.FC<{
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                    <label htmlFor="lop-khoa-hoc" className="block text-xs font-semibold text-neutral-300 mb-1">
                       Lớp / Khoá học:
                     </label>
-                    <input
+                    <input id="lop-khoa-hoc"
                       type="text"
                       value={className}
                       maxLength={50}
@@ -1865,10 +1870,10 @@ const ProfileModalInner: React.FC<{
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                    <label htmlFor="thanh-pho" className="block text-xs font-semibold text-neutral-300 mb-1">
                       Thành phố:
                     </label>
-                    <input
+                    <input id="thanh-pho"
                       type="text"
                       value={city}
                       maxLength={50}
@@ -1974,10 +1979,10 @@ const ProfileModalInner: React.FC<{
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                  <label htmlFor="chi-tiet-vi-pham" className="block text-xs font-semibold text-neutral-300 mb-1">
                     Chi tiết vi phạm:
                   </label>
-                  <textarea
+                  <textarea id="chi-tiet-vi-pham"
                     value={reportDetails}
                     onChange={(e) => setReportDetails(e.target.value)}
                     maxLength={500}
@@ -2038,6 +2043,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   currentUser,
   viewerUser,
   onSaveProfile,
+  onPurchaseItem,
+  onEquipItem,
   initialTab = 'overview',
   questions = [],
   solutions = [],
@@ -2050,6 +2057,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       viewerUser={viewerUser}
       onClose={onClose}
       onSaveProfile={onSaveProfile}
+      onPurchaseItem={onPurchaseItem}
+      onEquipItem={onEquipItem}
       initialTab={initialTab}
       questions={questions}
       solutions={solutions}

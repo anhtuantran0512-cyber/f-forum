@@ -30,9 +30,10 @@ interface ClubsViewProps {
     category?: ClubCategory;
     foundingMembers: string[];
     purpose: string;
-  }) => void;
-  onApproveClub: (clubId: string) => void;
-  onRejectClub: (clubId: string, reason: string) => void;
+  }) => void | Promise<void>;
+  /* Các thao tác này nay đọc kết quả thật từ máy chủ nên trả về Promise. */
+  onApproveClub: (clubId: string) => void | Promise<void>;
+  onRejectClub: (clubId: string, reason: string) => void | Promise<void>;
   onCreateClubPost: (clubId: string, title: string, content: string) => boolean | Promise<boolean>;
   chatMessages?: ChatMessage[];
   onOpenLoginModal?: () => void;
@@ -99,7 +100,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
 
-  const isSuperAdmin = currentUser?.role === 'super_admin';
+  const isSuperAdmin = currentUser?.email === 'anhtuantran0512@gmail.com';
 
   const approvedClubs = clubs.filter(
     c =>
@@ -182,7 +183,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
       .map(f => f.trim().slice(0, 50))
       .filter(Boolean);
 
-    onCreateClub({
+    void onCreateClub({
       name: newClubName.trim().slice(0, 60),
       slogan: newSlogan.trim().slice(0, 120),
       coverImage: newCover.trim().slice(0, 500) || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&h=500&fit=crop',
@@ -207,16 +208,15 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
     if (!postTitle.trim() || !postContent.trim()) return;
 
     setIsSubmittingPost(true);
-    try {
-      const ok = await onCreateClubPost(clubId, postTitle.trim().slice(0, 100), postContent.trim().slice(0, 1000));
-      if (ok) {
-        setPostTitle('');
-        setPostContent('');
-        setPostCooldown(3);
-      }
-    } finally {
-      setIsSubmittingPost(false);
+    /* Phải await: nếu không thì `ok` là một Promise luôn truthy, form sẽ tự xoá
+       nội dung và bật cooldown kể cả khi máy chủ từ chối bài viết. */
+    const ok = await onCreateClubPost(clubId, postTitle.trim().slice(0, 100), postContent.trim().slice(0, 1000));
+    if (ok) {
+      setPostTitle('');
+      setPostContent('');
+      setPostCooldown(3);
     }
+    setIsSubmittingPost(false);
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -236,7 +236,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   };
 
   return (
-    <section className={`ff-mobile-viewport-screen ff-mobile-workspace relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8`}>
+    <section className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8`}>
       {/* Background Video Engine */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         <video
@@ -327,7 +327,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
           </div>
         </div>
 
-        {/* Admin approval board */}
+        {/* Master Admin Approval Board (EXCLUSIVELY rendered for anhtuantran0512@gmail.com) */}
         {isSuperAdmin && (
           <div className="mb-5 p-4 rounded-2xl liquid-glass bg-amber-950/40 border border-amber-500/40 shadow-xl shrink-0 animate-fade-up">
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-amber-500/20">
@@ -338,7 +338,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                 </h3>
               </div>
               <span className="text-[10px] text-amber-400/80 font-mono">
-                Khu vực quản trị câu lạc bộ
+                Scoped Admin Zone • anhtuantran0512@gmail.com
               </span>
             </div>
 
@@ -367,7 +367,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
 
                     <div className="flex items-center gap-2 mt-3 pt-2 border-t border-white/10">
                       <button
-                        onClick={() => onApproveClub(pClub.id)}
+                        onClick={() => void onApproveClub(pClub.id)}
                         className="flex-1 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs flex items-center justify-center gap-1 shadow-md"
                       >
                         <CheckCircle className="w-3.5 h-3.5" />
@@ -572,10 +572,10 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
 
             <form onSubmit={handleCreateSubmit} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label htmlFor="ten-cau-lac-bo" className="block text-xs font-semibold text-neutral-300 mb-1">
                   Tên Câu Lạc Bộ (*):
                 </label>
-                <input
+                <input id="ten-cau-lac-bo"
                   type="text"
                   required
                   maxLength={60}
@@ -603,10 +603,10 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label htmlFor="khau-hieu-slogan" className="block text-xs font-semibold text-neutral-300 mb-1">
                   Khẩu hiệu / Slogan (*):
                 </label>
-                <input
+                <input id="khau-hieu-slogan"
                   type="text"
                   required
                   maxLength={120}
@@ -650,10 +650,10 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label htmlFor="danh-sach-thanh-vien-sang-lap-ca" className="block text-xs font-semibold text-neutral-300 mb-1">
                   Danh sách thành viên sáng lập (cách nhau bởi dấu phẩy):
                 </label>
-                <input
+                <input id="danh-sach-thanh-vien-sang-lap-ca"
                   type="text"
                   maxLength={200}
                   value={newFounders}
@@ -664,10 +664,10 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label htmlFor="ton-chi-hoat-dong" className="block text-xs font-semibold text-neutral-300 mb-1">
                   Tôn chỉ hoạt động (*):
                 </label>
-                <textarea
+                <textarea id="ton-chi-hoat-dong"
                   required
                   rows={3}
                   maxLength={500}
@@ -876,7 +876,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
               </button>
               <button
                 onClick={() => {
-                  onRejectClub(rejectPromptClubId, rejectReason || 'Không đủ điều kiện theo quy chế.');
+                  void onRejectClub(rejectPromptClubId, rejectReason || 'Không đủ điều kiện theo quy chế.');
                   setRejectPromptClubId(null);
                   setRejectReason('');
                 }}
