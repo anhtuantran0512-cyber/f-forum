@@ -289,7 +289,7 @@ export const App: React.FC = () => {
           name: userToView.name,
           email: userToView.email || '',
           avatar: userToView.avatar,
-          role: userToView.email === 'anhtuantran0512@gmail.com' ? 'SUPER_ADMIN' : 'STUDENT',
+          role: userToView.email?.toLowerCase() === 'anhtuantran0512@gmail.com' ? 'SUPER_ADMIN' : 'STUDENT',
           level: userToView.level || 1,
           xp: 0,
           coin: 100,
@@ -1235,7 +1235,8 @@ export const App: React.FC = () => {
 
       <Suspense fallback={<ViewLoadingFallback />}>
         {isAdminInsightsOpen && currentUser && (
-          currentUser.email === 'anhtuantran0512@gmail.com' ||
+          currentUser.email?.toLowerCase() === 'anhtuantran0512@gmail.com' ||
+          currentUser.role === 'SUPER_ADMIN' ||
           currentUser.staffRole === 'MODERATOR' ||
           currentUser.staffRole === 'TEACHER'
         ) && (
@@ -1244,7 +1245,7 @@ export const App: React.FC = () => {
             currentUser={currentUser}
             onClose={() => setIsAdminInsightsOpen(false)}
             onOpenOperations={() => {
-              if (currentUser.email !== 'anhtuantran0512@gmail.com') return;
+              if (currentUser.email?.toLowerCase() !== 'anhtuantran0512@gmail.com' && currentUser.role !== 'SUPER_ADMIN') return;
               setIsAdminInsightsOpen(false);
               setIsAdminConsoleOpen(true);
             }}
