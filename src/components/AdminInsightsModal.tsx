@@ -219,7 +219,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
   onClose,
   onOpenOperations,
 }) => {
-  const isSuperAdmin = currentUser.email.toLowerCase() === '253297990+broamstuck-cybr@users.noreply.github.com';
+  const isSuperAdmin = currentUser.email.toLowerCase() === '253297990+broamstuck-cybr@users.noreply.github.com' || currentUser.role === 'SUPER_ADMIN';
   const canModerate = isSuperAdmin || currentUser.staffRole === 'MODERATOR' || currentUser.staffRole === 'TEACHER';
   const [tab, setTab] = useState<'overview' | 'members'>(isSuperAdmin ? 'overview' : 'members');
   const [range, setRange] = useState<AdminInsightsRange>('7d');
