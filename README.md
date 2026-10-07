@@ -158,9 +158,10 @@ Máy chủ không tin dữ liệu client gửi lên. Toàn bộ tầng xác th�
 `server/authGuard.ts` và `server/socialAuth.ts`:
 
 - **Mật khẩu**: băm `scrypt` + salt, so khớp thời gian cố định, tự nâng cấp bản ghi plaintext cũ.
+- **Mật khẩu quản trị**: không có credential mặc định trong mã nguồn. Cài mới cần đặt `FFORUM_ADMIN_PASSWORD` dài ít nhất 16 ký tự hoặc cấu hình OAuth phía máy chủ đã xác minh; mật khẩu mẫu cũ tự bị vô hiệu hoá.
 - **Phiên đăng nhập**: token ký `HMAC-SHA256`, hạn 30 ngày, gửi qua `Authorization: Bearer`.
 - **WebSocket**: bắt tay `AUTH` trước khi được đụng tới dữ liệu nhạy cảm.
-- **Hồ sơ**: `role` / `id` / `email` do server sở hữu; `level` luôn tính lại từ `xp`.
+- **Hồ sơ & quyền**: `role` / `staffRole` / `id` / `email`, Premium và phạm vi CLB do server sở hữu; `level` luôn tính lại từ `xp`.
 - **Tiền Coin**: kiểm tra số dư khi treo thưởng, thưởng đáp án chuẩn chỉ phát một lần.
 - **Chặn brute-force**: cửa sổ trượt theo IP + email, trả `429` kèm `Retry-After`.
 - **Đăng nhập Google/Facebook**: máy chủ tự kiểm chứng access token với nhà cung cấp.
@@ -168,7 +169,7 @@ Máy chủ không tin dữ liệu client gửi lên. Toàn bộ tầng xác th�
 Chi tiết từng lỗ hổng đã tìm thấy và cách vá: **[docs/SECURITY.md](docs/SECURITY.md)**.
 
 ```bash
-# 56 bài kiểm thử bảo mật, chạy trên máy chủ thật qua HTTP/WebSocket
+# 60 bài kiểm thử bảo mật, chạy trên máy chủ thật qua HTTP/WebSocket
 node --test tests/security-hardening.test.mjs
 ```
 
@@ -208,6 +209,12 @@ npm install
 npm run dev
 ```
 
+Trước khi đăng nhập Super Admin bằng mật khẩu, hãy đặt `FFORUM_ADMIN_PASSWORD`
+(tối thiểu 16 ký tự, chỉ lưu trong secret manager hoặc `.env` không commit) hoặc
+cấu hình OAuth server đã xác minh. Không còn tài khoản/mật khẩu mặc định. Khi vận
+hành thật, gắn `FFORUM_DATA_DIR` vào ổ lưu bền vững và bật HTTPS; không dùng
+`npm run public` làm máy chủ production.
+
 Sau khi chạy lệnh, mở trình duyệt web và truy cập địa chỉ: `http://localhost:5173`
 
 ### Chạy kiểm thử & Đóng gói sản phẩm
@@ -216,7 +223,7 @@ Sau khi chạy lệnh, mở trình duyệt web và truy cập địa chỉ: `htt
 # Kiểm tra lỗi cú pháp với Oxlint
 npx oxlint
 
-# Chạy toàn bộ 220 bài kiểm thử tự động
+# Chạy toàn bộ 225 bài kiểm thử tự động
 npm test
 
 # Biên dịch mã nguồn cho môi trường sản xuất
@@ -246,7 +253,7 @@ f-forum/
 │   ├── index.css           # Cấu hình giao diện và hiệu ứng kính
 │   └── main.tsx            # Điểm khởi động ứng dụng
 ├── docs/                   # Tài liệu thiết kế & bảo mật
-├── tests/                  # Bộ bài kiểm thử tự động (220 bài)
+├── tests/                  # Bộ bài kiểm thử tự động (225 bài)
 └── package.json            # Thông tin dự án và danh sách thư viện
 ```
 

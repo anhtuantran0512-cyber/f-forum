@@ -40,7 +40,7 @@ import {
 interface FocusSanctuaryProps {
   isOpen: boolean;
   onClose: () => void;
-  onRewardXP?: (amount: number) => void;
+  onStartRewardSession?: () => Promise<string | null>;
   /** Email người đang học — dùng để ghi giờ học vào đúng tài khoản. */
   userEmail?: string;
 }
@@ -54,10 +54,12 @@ interface FocusSanctuaryProps {
    -------------------------------------------------------------------------- */
 const FocusSanctuaryInner: React.FC<{
   onClose: () => void;
+  onStartRewardSession?: () => Promise<string | null>;
   userEmail?: string;
-}> = ({ onClose, userEmail }) => {
+}> = ({ onClose, onStartRewardSession, userEmail }) => {
   const [mode, setMode] = useState<FocusMode>('work');
   const [session, setSession] = useState<FocusSessionState | null>(() => readFocusSession());
+  const [isStarting, setIsStarting] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [flash, setFlash] = useState<{ minutes: number; total: number } | null>(null);
 
@@ -122,10 +124,22 @@ const FocusSanctuaryInner: React.FC<{
   const progressPercent = session ? focusProgressPercent(session, now) : 0;
   const sessionMinutes = session ? focusElapsedMinutes(session, now) : 0;
 
-  const handleStart = () => {
-    startFocusSession(mode, userEmail);
-    setSession(readFocusSession());
-    setNow(Date.now());
+  const handleStart = async () => {
+    if (isStarting) return;
+    setIsStarting(true);
+    let serverSessionId: string | null = null;
+    try {
+      if (mode === 'work' && userEmail && onStartRewardSession) {
+        serverSessionId = await onStartRewardSession();
+      }
+    } catch {
+      serverSessionId = null;
+    } finally {
+      startFocusSession(mode, userEmail, serverSessionId);
+      setSession(readFocusSession());
+      setNow(Date.now());
+      setIsStarting(false);
+    }
   };
 
   const handleStop = () => {
@@ -336,8 +350,10 @@ const FocusSanctuaryInner: React.FC<{
 
             <div className="w-full space-y-3">
               <button
-                onClick={isRunning ? handleStop : handleStart}
-                className={`w-full px-8 py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-xl active:scale-[0.98] ${
+                onClick={isRunning ? handleStop : () => { void handleStart(); }}
+                disabled={!isRunning && isStarting}
+                aria-busy={!isRunning && isStarting}
+                className={`w-full px-8 py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-xl active:scale-[0.98] disabled:opacity-60 ${
                   isRunning
                     ? 'bg-amber-500 text-black hover:bg-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.5)]'
                     : 'bg-gradient-to-r from-cyan-400 to-blue-500 text-black hover:opacity-95 shadow-[0_0_20px_rgba(6,182,212,0.5)]'
@@ -351,14 +367,14 @@ const FocusSanctuaryInner: React.FC<{
                 ) : (
                   <>
                     <Play className="w-4 h-4 fill-current" />
-                    <span>BẮT ĐẦU TẬP TRUNG</span>
+                    <span>{isStarting ? 'ĐANG MỞ PHIÊN...' : 'BẮT ĐẦU TẬP TRUNG'}</span>
                   </>
                 )}
               </button>
 
               <p className="text-[10.5px] text-neutral-400 text-center leading-relaxed font-mono">
-                Học đủ 25 phút → tự ghi <b className="text-emerald-300">+25 phút</b> vào nhật ký giờ học và{' '}
-                <b className="text-amber-300">+25 XP</b>. Dừng sớm vẫn ghi số phút thực học (từ 5 phút), không cộng XP.
+                Học đủ 25 phút → tự ghi <b className="text-emerald-300">+25 phút</b> vào nhật ký. Tài khoản đăng nhập nhận{' '}
+                <b className="text-amber-300">+25 XP và Coin</b> sau khi máy chủ xác thực phiên; dừng sớm không có thưởng.
               </p>
             </div>
           </div>
@@ -430,12 +446,20 @@ const FocusSanctuaryInner: React.FC<{
   );
 };
 
-export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({ isOpen, onClose, onRewardXP, userEmail }) => {
-  /* onRewardXP không dùng ở đây: FocusSessionWatcher là nơi duy nhất cộng XP
-     (để 1 phiên không bao giờ bị cộng 2 lần). Prop vẫn giữ để tương thích. */
-  void onRewardXP;
+export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
+  isOpen,
+  onClose,
+  onStartRewardSession,
+  userEmail,
+}) => {
   if (!isOpen) return null;
-  return <FocusSanctuaryInner onClose={onClose} userEmail={userEmail} />;
+  return (
+    <FocusSanctuaryInner
+      onClose={onClose}
+      onStartRewardSession={onStartRewardSession}
+      userEmail={userEmail}
+    />
+  );
 };
 
 export default FocusSanctuary;

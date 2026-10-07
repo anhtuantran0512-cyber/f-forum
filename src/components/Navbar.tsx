@@ -28,6 +28,7 @@ import { NotificationsModal } from './NotificationsModal';
 import { SettingsModal } from './SettingsModal';
 import { safeStorage } from '../utils/storage';
 import { DailyEngagementModal } from './DailyEngagementModal';
+import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
 import { ScrollProgressRail } from './ScrollProgressRail';
 import { spawnRipple } from '../utils/ripple';
 
@@ -43,8 +44,8 @@ export interface NavbarProps {
   onOpenProfile: (tab?: 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit') => void;
   onOpenFocusMode: () => void;
   isInsideCinema?: boolean;
-  onRewardCoins?: (amount: number, reason: string) => void;
-  onUpdateStreak?: (streak: number) => void;
+  onLoadDailyRewardStatus?: () => Promise<{ ok: boolean; status?: DailyRewardStatus; message?: string }>;
+  onClaimDailyReward?: (action: DailyRewardAction) => Promise<DailyRewardActionResult>;
   eyeRestEnabled?: boolean;
   onToggleEyeRest?: () => void;
 }
@@ -86,8 +87,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenProfile,
   onOpenFocusMode,
   isInsideCinema = false,
-  onRewardCoins,
-  onUpdateStreak,
+  onLoadDailyRewardStatus,
+  onClaimDailyReward,
   eyeRestEnabled = false,
   onToggleEyeRest,
 }) => {
@@ -1556,15 +1557,11 @@ export const Navbar: React.FC<NavbarProps> = ({
       <DailyEngagementModal
         isOpen={isDailyModalOpen}
         onClose={() => setIsDailyModalOpen(false)}
+        isAuthenticated={Boolean(currentUser)}
         currentUserCoin={currentUser?.coin ?? 0}
-        onRewardCoin={(amount, reason) => {
-          safeStorage.setItem('fforum_coin_reward', JSON.stringify({ amount, reason, date: Date.now() }));
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('fforum_coin_sync'));
-          }
-          onRewardCoins?.(amount, reason);
-        }}
-        onStreakChange={(streak) => onUpdateStreak?.(streak)}
+        onOpenLogin={onOpenLoginModal}
+        onLoadRewardStatus={onLoadDailyRewardStatus}
+        onClaimReward={onClaimDailyReward}
       />
     </>
   );

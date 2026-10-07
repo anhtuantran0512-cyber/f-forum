@@ -68,6 +68,8 @@ interface ProfileModalProps {
   currentUser: User;
   viewerUser?: User | null;
   onSaveProfile: (updates: Partial<User>) => void;
+  onPurchaseItem: (itemId: string) => Promise<boolean>;
+  onEquipItem: (itemId: string) => Promise<boolean>;
   initialTab?: 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit';
   questions?: Question[];
   solutions?: Solution[];
@@ -243,6 +245,8 @@ const ProfileModalInner: React.FC<{
   viewerUser?: User | null;
   onClose: () => void;
   onSaveProfile: (updates: Partial<User>) => void;
+  onPurchaseItem: (itemId: string) => Promise<boolean>;
+  onEquipItem: (itemId: string) => Promise<boolean>;
   initialTab?: TabType;
   questions?: Question[];
   solutions?: Solution[];
@@ -251,6 +255,8 @@ const ProfileModalInner: React.FC<{
   viewerUser,
   onClose,
   onSaveProfile,
+  onPurchaseItem,
+  onEquipItem,
   initialTab = 'overview',
   questions = [],
   solutions = [],
@@ -471,14 +477,9 @@ const ProfileModalInner: React.FC<{
     return { level, points };
   });
 
-  const handleBuyItem = (item: ShopItem) => {
+  const handleBuyItem = async (item: ShopItem) => {
     if (userCoin < item.price) return;
-    const newCoin = userCoin - item.price;
-    const newInventory = Array.from(new Set([...userInventory, item.id]));
-    onSaveProfile({
-      coin: newCoin,
-      inventory: newInventory,
-    });
+    if (!(await onPurchaseItem(item.id))) return;
     pushNotification({
       type: 'coin',
       category: 'system',
@@ -488,12 +489,10 @@ const ProfileModalInner: React.FC<{
     });
   };
 
-  const handleEquipItem = (itemId: string) => {
+  const handleEquipItem = async (itemId: string) => {
     const isCurrentlyEquipped = currentUser.equippedBadge === itemId;
     const nextBadge = isCurrentlyEquipped ? '' : itemId;
-    onSaveProfile({
-      equippedBadge: nextBadge,
-    });
+    if (!(await onEquipItem(nextBadge))) return;
     const it = SHOP_ITEMS.find((s) => s.id === itemId);
     pushNotification({
       type: 'system',
@@ -2044,6 +2043,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   currentUser,
   viewerUser,
   onSaveProfile,
+  onPurchaseItem,
+  onEquipItem,
   initialTab = 'overview',
   questions = [],
   solutions = [],
@@ -2056,6 +2057,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       viewerUser={viewerUser}
       onClose={onClose}
       onSaveProfile={onSaveProfile}
+      onPurchaseItem={onPurchaseItem}
+      onEquipItem={onEquipItem}
       initialTab={initialTab}
       questions={questions}
       solutions={solutions}

@@ -1,7 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useCallback, useEffect, useState } from 'react';
 import { Timer, Pause, CheckCircle2, Coffee, ArrowUpRight, AlertTriangle } from 'lucide-react';
-import { playChime } from '../utils/audio';
 import {
   computeStudyTotals,
   formatDuration,
@@ -26,13 +25,14 @@ import {
  * Người giữ nhịp cho Phòng Tập Trung (chạy ở cấp App, không nằm trong HUD).
  * ---------------------------------------------------------------------------
  * • Đếm theo mốc thời gian thật → đóng HUD, đổi phân khu hay tab chạy nền vẫn đúng.
- * • Hoàn thành phiên Học 25 phút → tự ghi vào nhật ký giờ học (+XP, chime).
- * • Dừng giữa đường → ghi số phút THỰC học (từ 5 phút) nhưng không cộng XP.
+ * • Hoàn thành phiên Học 25 phút → ghi giờ học; XP/Coin chỉ nhận sau khi server xác nhận.
+ * • Dừng giữa đường → ghi số phút THỰC học (từ 5 phút), không gửi yêu cầu nhận thưởng.
  * • Hiện chip đếm ngược nổi khi HUD đang đóng để không ai quên mình đang học.
  */
 interface FocusSessionWatcherProps {
   userEmail?: string;
-  onRewardXP?: (amount: number) => void;
+  onCompleteReward?: (sessionId: string) => Promise<boolean>;
+  onCancelReward?: (sessionId?: string) => Promise<void>;
   isHudOpen: boolean;
   onOpenHud: () => void;
 }
@@ -46,7 +46,8 @@ interface FocusToast {
 
 const FocusSessionWatcher: React.FC<FocusSessionWatcherProps> = ({
   userEmail,
-  onRewardXP,
+  onCompleteReward,
+  onCancelReward,
   isHudOpen,
   onOpenHud,
 }) => {
@@ -66,7 +67,7 @@ const FocusSessionWatcher: React.FC<FocusSessionWatcherProps> = ({
 
   /* Ghi nhận một phiên đã kết thúc thật */
   const settleSession = useCallback(
-    (finished: FocusSessionState, lateByMs: number) => {
+    async (finished: FocusSessionState, lateByMs: number) => {
       clearFocusSession();
 
       if (finished.mode === 'break') {
@@ -80,6 +81,7 @@ const FocusSessionWatcher: React.FC<FocusSessionWatcherProps> = ({
       }
 
       if (lateByMs > FOCUS_STALE_GRACE_MS) {
+        void onCancelReward?.(finished.serverSessionId);
         setToast({
           id: Date.now(),
           kind: 'lost',
@@ -91,8 +93,9 @@ const FocusSessionWatcher: React.FC<FocusSessionWatcherProps> = ({
 
       const minutes = Math.max(1, Math.round(finished.plannedMinutes));
       logStudyMinutes(minutes, 'focus', userEmail);
-      onRewardXP?.(minutes);
-      playChime('level-up');
+      const rewardGranted = finished.serverSessionId
+        ? await onCompleteReward?.(finished.serverSessionId) ?? false
+        : false;
       announceFocusCredited(minutes, 'work');
 
       const total = todayMinutes();
@@ -100,10 +103,12 @@ const FocusSessionWatcher: React.FC<FocusSessionWatcherProps> = ({
         id: Date.now(),
         kind: 'credited',
         title: `Đã ghi +${minutes} phút học`,
-        detail: `Hôm nay bạn đã học ${formatDuration(total)} · +${minutes} XP vào tài khoản.`,
+        detail: rewardGranted
+          ? `Hôm nay bạn đã học ${formatDuration(total)} · máy chủ đã cấp +25 XP và Coin.`
+          : `Hôm nay bạn đã học ${formatDuration(total)} · phần giờ học đã lưu, không có thưởng Coin/XP cho phiên này.`,
       });
     },
-    [onRewardXP, todayMinutes, userEmail],
+    [onCompleteReward, onCancelReward, todayMinutes, userEmail],
   );
 
   /* Nhịp 500ms chỉ để vẽ lại; giờ giấc luôn tính từ Date.now() */
@@ -130,6 +135,7 @@ const FocusSessionWatcher: React.FC<FocusSessionWatcherProps> = ({
   const handleStopEarly = useCallback(() => {
     if (!session) return;
     const studied = focusElapsedMinutes(session);
+    void onCancelReward?.(session.serverSessionId);
     clearFocusSession();
     if (session.mode === 'work' && studied >= 5) {
       logStudyMinutes(studied, 'focus', userEmail);
@@ -151,7 +157,7 @@ const FocusSessionWatcher: React.FC<FocusSessionWatcherProps> = ({
             : 'Giờ nghỉ đã kết thúc sớm.',
       });
     }
-  }, [session, todayMinutes, userEmail]);
+  }, [session, onCancelReward, todayMinutes, userEmail]);
 
   /* HUD (hoặc bất kỳ nơi nào) xin dừng phiên → dùng CHUNG một luồng ghi nhận */
   useEffect(() => {
