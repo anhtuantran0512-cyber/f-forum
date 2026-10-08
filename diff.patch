@@ -1,0 +1,618 @@
+diff --git a/src/App.tsx b/src/App.tsx
+index 41f7e43..8bfdd84 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -432,80 +432,7 @@ export const App: React.FC = () => {
+     transitionActiveRef.current = transition !== null;
+   }, [transition]);
+ 
+-  useEffect(() => {
+-    const handleWheel = (e: WheelEvent) => {
+-      /* Đang chạy màn hình chờ thì bỏ qua cuộn, tránh nhảy hai phân khu một lúc */
+-      if (transitionActiveRef.current) return;
+-
+-      if (currentView === 'chat' || currentView === 'memory' || currentView === 'chronicles') {
+-        return;
+-      }
+-
+-      if (currentView === 'landing') {
+-        return;
+-      }
+-
+-      if (
+-        isLoginModalOpen ||
+-        isProfileModalOpen ||
+-        isFocusModeOpen ||
+-        isChatOpen ||
+-        isPaletteOpen ||
+-        isNotesOpen
+-      ) {
+-        return;
+-      }
+-
+-      const target = e.target as HTMLElement | null;
+-      if (target && target.closest('input, textarea, select, [role="dialog"]')) {
+-        return;
+-      }
+-
+-      const currentIndex = CORE_SCROLL_VIEWS.indexOf(currentView);
+-      if (currentIndex === -1) return;
+-
+-      const deltaY = e.deltaY;
+-      if (Math.abs(deltaY) <= 30) return;
+-
+-      /* Đang cuộn trong một khung nội bộ (sidebar, danh sách dài) → nhường */
+-      if (isInsideScrollable(target, deltaY)) return;
+-
+-      const now = Date.now();
+-      const timeSinceLastScroll = now - lastScrollTimeRef.current;
+-      if (timeSinceLastScroll < SCROLL_COOLDOWN_MS) {
+-        lastWheelTimeRef.current = now;
+-        return;
+-      }
+ 
+-      lastWheelTimeRef.current = now;
+-
+-      if (deltaY > 30) {
+-        if (currentIndex < CORE_SCROLL_VIEWS.length - 1) {
+-          lastScrollTimeRef.current = now;
+-          handleViewChange(CORE_SCROLL_VIEWS[currentIndex + 1]);
+-        }
+-      } else if (deltaY < -30) {
+-        if (currentIndex > 0) {
+-          lastScrollTimeRef.current = now;
+-          handleViewChange(CORE_SCROLL_VIEWS[currentIndex - 1]);
+-        }
+-      }
+-    };
+-
+-    window.addEventListener('wheel', handleWheel, { passive: true });
+-    return () => {
+-      window.removeEventListener('wheel', handleWheel);
+-    };
+-  }, [
+-    currentView,
+-    isLoginModalOpen,
+-    isProfileModalOpen,
+-    isFocusModeOpen,
+-    isChatOpen,
+-    isPaletteOpen,
+-    isNotesOpen,
+-    handleViewChange,
+-  ]);
+ 
+   /* ============================================================
+      F-ID Hidden Layer — bảng lệnh (⌘K), sổ tay nhanh (⌘I) & phím tắt
+@@ -912,6 +839,34 @@ export const App: React.FC = () => {
+         )
+       )}
+ 
++      {/* Navigation Arrows for Tab Navigation */}
++      {currentView !== 'landing' && CORE_SCROLL_VIEWS.includes(currentView as DimensionView) && (
++        <>
++          <button
++            onClick={() => {
++              const idx = CORE_SCROLL_VIEWS.indexOf(currentView as DimensionView);
++              if (idx > 0) handleViewChange(CORE_SCROLL_VIEWS[idx - 1]);
++            }}
++            className={`fixed left-4 top-1/2 -translate-y-1/2 z-50 p-4 rounded-full bg-black/10 dark:bg-white/10 text-slate-800 dark:text-white hover:bg-black/20 dark:hover:bg-white/20 hover:scale-110 transition-all duration-300 backdrop-blur-xl border border-black/5 dark:border-white/10 hidden md:flex items-center justify-center shadow-lg ${
++              CORE_SCROLL_VIEWS.indexOf(currentView as DimensionView) === 0 ? 'opacity-0 pointer-events-none' : 'opacity-100'
++            }`}
++          >
++            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
++          </button>
++          <button
++            onClick={() => {
++              const idx = CORE_SCROLL_VIEWS.indexOf(currentView as DimensionView);
++              if (idx < CORE_SCROLL_VIEWS.length - 1) handleViewChange(CORE_SCROLL_VIEWS[idx + 1]);
++            }}
++            className={`fixed right-4 top-1/2 -translate-y-1/2 z-50 p-4 rounded-full bg-black/10 dark:bg-white/10 text-slate-800 dark:text-white hover:bg-black/20 dark:hover:bg-white/20 hover:scale-110 transition-all duration-300 backdrop-blur-xl border border-black/5 dark:border-white/10 hidden md:flex items-center justify-center shadow-lg ${
++              CORE_SCROLL_VIEWS.indexOf(currentView as DimensionView) === CORE_SCROLL_VIEWS.length - 1 ? 'opacity-0 pointer-events-none' : 'opacity-100'
++            }`}
++          >
++            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
++          </button>
++        </>
++      )}
++
+       {/* Main Dimension View Routing (Single-Viewport Multi-View Architecture) */}
+       <main className={`w-full ${currentView === 'memory' || currentView === 'chronicles' ? 'min-h-[116vh]' : 'h-full'}`}>
+         <Suspense fallback={<ViewLoadingFallback />}>
+@@ -1268,6 +1223,7 @@ export const App: React.FC = () => {
+           <AdminConsoleModal
+             isOpen={isAdminConsoleOpen}
+             onClose={() => setIsAdminConsoleOpen(false)}
++            currentUserEmail={currentUser?.email}
+             onOpenReports={() => {
+               /* Bảng điều khiển chỉ điều hướng, không ghi: đóng mình lại rồi mở
+                  đúng hộp thư tố cáo — mọi thao tác xử lý vẫn đi qua endpoint có
+diff --git a/src/components/BoomerangVideoBg.tsx b/src/components/BoomerangVideoBg.tsx
+index e891bd0..c239be0 100644
+--- a/src/components/BoomerangVideoBg.tsx
++++ b/src/components/BoomerangVideoBg.tsx
+@@ -1,5 +1,6 @@
+ /* Bản quyền trí tuệ thuộc về BroAmStuck */
+ import React, { useEffect, useRef, useState } from 'react';
++import { safeStorage } from '../utils/storage';
+ 
+ const VIDEO_URL =
+   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260611_183632_c311af08-e4b7-458f-81e7-79847a49b3d3.mp4';
+@@ -9,6 +10,13 @@ export const BoomerangVideoBg: React.FC = () => {
+   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+   const [useCanvas, setUseCanvas] = useState(false);
+   const [loadError, setLoadError] = useState(false);
++  const [potatoMode, setPotatoMode] = useState(() => safeStorage.getItem('fforum_potato_mode') === 'true');
++
++  useEffect(() => {
++    const handleSync = () => setPotatoMode(safeStorage.getItem('fforum_potato_mode') === 'true');
++    window.addEventListener('fforum_theme_sync', handleSync);
++    return () => window.removeEventListener('fforum_theme_sync', handleSync);
++  }, []);
+ 
+   useEffect(() => {
+     const video = videoRef.current;
+@@ -129,6 +137,17 @@ export const BoomerangVideoBg: React.FC = () => {
+     };
+   }, []);
+ 
++  if (potatoMode) {
++    return (
++      <div className="absolute inset-0 z-0 bg-neutral-950">
++        <div className="absolute inset-0" style={{
++          background: 'radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%)',
++          opacity: 0.8
++        }} />
++      </div>
++    );
++  }
++
+   return (
+     <div className="absolute inset-0 z-0 scale-[1.08] origin-center overflow-hidden pointer-events-none bg-neutral-950">
+       <video
+diff --git a/src/components/FocusSanctuary.tsx b/src/components/FocusSanctuary.tsx
+index 9bd2dd3..37d763e 100644
+--- a/src/components/FocusSanctuary.tsx
++++ b/src/components/FocusSanctuary.tsx
+@@ -58,6 +58,7 @@ const FocusSanctuaryInner: React.FC<{
+   userEmail?: string;
+ }> = ({ onClose, onStartRewardSession, userEmail }) => {
+   const [mode, setMode] = useState<FocusMode>('work');
++  const [targetMinutes, setTargetMinutes] = useState(25);
+   const [session, setSession] = useState<FocusSessionState | null>(() => readFocusSession());
+   const [isStarting, setIsStarting] = useState(false);
+   const [now, setNow] = useState(() => Date.now());
+@@ -119,8 +120,8 @@ const FocusSanctuaryInner: React.FC<{
+ 
+   const isRunning = Boolean(session);
+   const activeMode: FocusMode = session ? session.mode : mode;
+-  const plannedSeconds = (activeMode === 'work' ? FOCUS_WORK_MINUTES : FOCUS_BREAK_MINUTES) * 60;
+-  const remainingLabel = session ? focusRemainingLabel(session, now) : `${String(activeMode === 'work' ? FOCUS_WORK_MINUTES : FOCUS_BREAK_MINUTES).padStart(2, '0')}:00`;
++  const plannedSeconds = session ? (session.plannedMinutes * 60) : (activeMode === 'work' ? targetMinutes : FOCUS_BREAK_MINUTES) * 60;
++  const remainingLabel = session ? focusRemainingLabel(session, now) : `${String(activeMode === 'work' ? targetMinutes : FOCUS_BREAK_MINUTES).padStart(2, '0')}:00`;
+   const progressPercent = session ? focusProgressPercent(session, now) : 0;
+   const sessionMinutes = session ? focusElapsedMinutes(session, now) : 0;
+ 
+@@ -135,7 +136,7 @@ const FocusSanctuaryInner: React.FC<{
+     } catch {
+       serverSessionId = null;
+     } finally {
+-      startFocusSession(mode, userEmail, serverSessionId);
++      startFocusSession(mode, userEmail, serverSessionId, targetMinutes);
+       setSession(readFocusSession());
+       setNow(Date.now());
+       setIsStarting(false);
+@@ -221,7 +222,7 @@ const FocusSanctuaryInner: React.FC<{
+               <div className="flex items-center gap-2 flex-wrap">
+                 <h2 className="text-base sm:text-lg font-bold text-white tracking-wide">PHÒNG TẬP TRUNG</h2>
+                 <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+-                  25 / 5 MIN
++                  {targetMinutes} / {FOCUS_BREAK_MINUTES} MIN
+                 </span>
+                 <span
+                   className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+@@ -287,9 +288,12 @@ const FocusSanctuaryInner: React.FC<{
+             ))}
+           </div>
+           {flash && (
+-            <p className="ff-focus-flash mt-2.5 text-[11px] font-semibold text-emerald-300 inline-flex items-center gap-1.5">
+-              <Check className="w-3.5 h-3.5" />
+-              Đã ghi +{flash.minutes} phút vào nhật ký · hôm nay {formatDuration(flash.total)}. Nghỉ 5 phút rồi học tiếp nhé!
++            <p className="ff-focus-flash mt-2.5 text-[11px] font-semibold text-emerald-300 inline-flex items-center gap-1.5 flex-wrap">
++              <Check className="w-3.5 h-3.5 shrink-0" />
++              <span>Đã ghi +{flash.minutes} phút vào nhật ký · hôm nay {formatDuration(flash.total)}. Nghỉ 5 phút rồi học tiếp nhé!</span>
++              {flash.minutes >= 120 ? <span className="text-amber-300 font-bold ml-1">Thưởng mốc 120p: +120 XP & Rương Huyền Bí!</span> :
++               flash.minutes >= 60 ? <span className="text-amber-300 font-bold ml-1">Thưởng mốc 60p: +60 XP & Hộp Quà Nhỏ!</span> :
++               flash.minutes >= 25 ? <span className="text-amber-300 font-bold ml-1">Thưởng mốc 25p: +25 XP & 10 Coin!</span> : null}
+             </p>
+           )}
+         </div>
+@@ -306,7 +310,7 @@ const FocusSanctuaryInner: React.FC<{
+                 }`}
+               >
+                 <Timer className="w-3.5 h-3.5" />
+-                <span>Học Tập (25m)</span>
++                <span>Học Tập ({targetMinutes}m)</span>
+               </button>
+               <button
+                 onClick={() => handleSwitchMode('break')}
+@@ -319,23 +323,27 @@ const FocusSanctuaryInner: React.FC<{
+               </button>
+             </div>
+ 
+-            <div className="relative w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center">
+-              <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
++            <div className="relative w-56 h-56 sm:w-64 sm:h-64 flex flex-col items-center justify-center">
++              {isRunning && activeMode === 'work' && (
++                <div className="absolute inset-0 rounded-full animate-pulse blur-xl bg-cyan-500/20 pointer-events-none" />
++              )}
++              <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
+                 <circle cx="50" cy="50" r="42" className="stroke-neutral-800" strokeWidth="5" fill="none" />
+                 <circle
+                   cx="50"
+                   cy="50"
+                   r="42"
+-                  className={`transition-all duration-500 ${activeMode === 'work' ? 'stroke-cyan-400' : 'stroke-purple-400'}`}
++                  className={`transition-all duration-1000 ease-out ${activeMode === 'work' ? 'stroke-cyan-400' : 'stroke-purple-400'}`}
+                   strokeWidth="5"
+                   strokeDasharray={264}
+                   strokeDashoffset={264 - (264 * progressPercent) / 100}
+                   strokeLinecap="round"
+                   fill="none"
++                  style={{ filter: isRunning ? 'drop-shadow(0 0 6px currentColor)' : 'none' }}
+                 />
+               </svg>
+ 
+-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
++              <div className="relative z-10 flex flex-col items-center justify-center text-center">
+                 <span className="text-4xl sm:text-5xl font-extrabold tracking-tight font-mono text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">
+                   {remainingLabel}
+                 </span>
+@@ -348,6 +356,24 @@ const FocusSanctuaryInner: React.FC<{
+               </div>
+             </div>
+ 
++            {!isRunning && activeMode === 'work' && (
++              <div className="w-full px-4 flex flex-col gap-1.5 mt-[-10px] z-10">
++                <div className="flex justify-between text-[10px] font-mono text-cyan-300/80 font-semibold px-1">
++                  <span>5m</span>
++                  <span>120m</span>
++                </div>
++                <input
++                  type="range"
++                  min="5"
++                  max="120"
++                  step="5"
++                  value={targetMinutes}
++                  onChange={(e) => setTargetMinutes(Number(e.target.value))}
++                  className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 hover:accent-cyan-300"
++                />
++              </div>
++            )}
++
+             <div className="w-full space-y-3">
+               <button
+                 onClick={isRunning ? handleStop : () => { void handleStart(); }}
+@@ -373,8 +399,8 @@ const FocusSanctuaryInner: React.FC<{
+               </button>
+ 
+               <p className="text-[10.5px] text-neutral-400 text-center leading-relaxed font-mono">
+-                Học đủ 25 phút → tự ghi <b className="text-emerald-300">+25 phút</b> vào nhật ký. Tài khoản đăng nhập nhận{' '}
+-                <b className="text-amber-300">+25 XP và Coin</b> sau khi máy chủ xác thực phiên; dừng sớm không có thưởng.
++                Học đủ {targetMinutes} phút → tự ghi <b className="text-emerald-300">+{targetMinutes} phút</b> vào nhật ký. Tài khoản đăng nhập nhận{' '}
++                <b className="text-amber-300">+{targetMinutes} XP và Coin</b> sau khi máy chủ xác thực phiên; có thưởng thêm ở mốc 25p, 60p, 120p.
+               </p>
+             </div>
+           </div>
+diff --git a/src/components/Navbar.tsx b/src/components/Navbar.tsx
+index 034909f..d8e3a65 100644
+--- a/src/components/Navbar.tsx
++++ b/src/components/Navbar.tsx
+@@ -107,6 +107,9 @@ export const Navbar: React.FC<NavbarProps> = ({
+   const [reducedMotion, setReducedMotion] = useState(() => {
+     return safeStorage.getItem('fforum_reduced_motion') === 'true';
+   });
++  const [potatoMode, setPotatoMode] = useState(() => {
++    return safeStorage.getItem('fforum_potato_mode') === 'true';
++  });
+   const audioCtxRef = useRef<AudioContext | null>(null);
+   const userMenuRef = useRef<HTMLDivElement>(null);
+   const notifMenuRef = useRef<HTMLDivElement>(null);
+@@ -690,6 +693,13 @@ export const Navbar: React.FC<NavbarProps> = ({
+     onToggleSoundEffects: handleToggleSoundEffects,
+     reducedMotion,
+     onToggleReducedMotion: handleToggleReducedMotion,
++    potatoMode,
++    onTogglePotatoMode: () => {
++      const next = !potatoMode;
++      setPotatoMode(next);
++      safeStorage.setItem('fforum_potato_mode', String(next));
++      window.dispatchEvent(new CustomEvent('fforum_theme_sync'));
++    },
+     godrayPreset,
+     onSelectGodray: (preset: string) => {
+       setGodrayPreset(preset);
+diff --git a/src/components/ProfileModal.tsx b/src/components/ProfileModal.tsx
+index 3c965e3..d820a82 100644
+--- a/src/components/ProfileModal.tsx
++++ b/src/components/ProfileModal.tsx
+@@ -529,7 +529,33 @@ const ProfileModalInner: React.FC<{
+     const reader = new FileReader();
+     reader.onload = (uploadEvent) => {
+       if (typeof uploadEvent.target?.result === 'string') {
+-        setAvatar(uploadEvent.target.result);
++        const img = new Image();
++        img.onload = () => {
++          const canvas = document.createElement('canvas');
++          let width = img.width;
++          let height = img.height;
++          const maxDim = 512;
++          if (width > maxDim || height > maxDim) {
++            if (width > height) {
++              height = Math.round((height * maxDim) / width);
++              width = maxDim;
++            } else {
++              width = Math.round((width * maxDim) / height);
++              height = maxDim;
++            }
++          }
++          canvas.width = width;
++          canvas.height = height;
++          const ctx = canvas.getContext('2d');
++          if (ctx) {
++            ctx.drawImage(img, 0, 0, width, height);
++            const webpData = canvas.toDataURL('image/webp', 0.95); // High quality WebP
++            setAvatar(webpData);
++          } else {
++            setAvatar(uploadEvent.target!.result as string);
++          }
++        };
++        img.src = uploadEvent.target.result;
+       }
+     };
+     reader.onerror = () => {
+diff --git a/src/components/SettingsModal.tsx b/src/components/SettingsModal.tsx
+index 8f16462..96846e0 100644
+--- a/src/components/SettingsModal.tsx
++++ b/src/components/SettingsModal.tsx
+@@ -41,6 +41,8 @@ export interface SettingsModalProps {
+   onToggleSoundEffects: () => void;
+   reducedMotion: boolean;
+   onToggleReducedMotion: () => void;
++  potatoMode?: boolean;
++  onTogglePotatoMode?: () => void;
+   godrayPreset?: string;
+   onSelectGodray?: (preset: string) => void;
+   godrayIntensity?: number;
+@@ -155,6 +157,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
+   onToggleSoundEffects,
+   reducedMotion,
+   onToggleReducedMotion,
++  potatoMode,
++  onTogglePotatoMode,
+   godrayPreset = 'godray-gold',
+   onSelectGodray,
+   godrayIntensity = 70,
+@@ -913,6 +917,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
+                     onToggle={onToggleReducedMotion}
+                     color="bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"
+                   />
++                  <SwitchRow
++                    icon={<Zap className="w-3.5 h-3.5 text-orange-400" />}
++                    title="Potator Mode"
++                    desc="Tắt nền động, tối ưu 100%"
++                    on={potatoMode ?? false}
++                    onToggle={() => onTogglePotatoMode?.()}
++                    color="bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"
++                  />
+                 </Card>
+               </section>
+ 
+diff --git a/src/components/TriVideoCrossfadeBg.tsx b/src/components/TriVideoCrossfadeBg.tsx
+index 01b64a5..7c2f41f 100644
+--- a/src/components/TriVideoCrossfadeBg.tsx
++++ b/src/components/TriVideoCrossfadeBg.tsx
+@@ -2,6 +2,7 @@
+ import React, { useState, useEffect } from 'react';
+ import { handleVideoError } from '../utils/mediaFallback';
+ import { TRI_CHAT_VIDEOS } from '../utils/chatVideos';
++import { safeStorage } from '../utils/storage';
+ 
+ export interface TriVideoCrossfadeBgProps {
+   activeIdx?: number;
+@@ -17,6 +18,7 @@ export const TriVideoCrossfadeBg: React.FC<TriVideoCrossfadeBgProps> = ({
+   const [internalIdx, setInternalIdx] = useState(0);
+   const isControlled = controlledIdx !== undefined;
+   const currentIdx = isControlled ? controlledIdx : internalIdx;
++  const [potatoMode, setPotatoMode] = useState(() => safeStorage.getItem('fforum_potato_mode') === 'true');
+ 
+   useEffect(() => {
+     const timer = setInterval(() => {
+@@ -30,6 +32,23 @@ export const TriVideoCrossfadeBg: React.FC<TriVideoCrossfadeBgProps> = ({
+     return () => clearInterval(timer);
+   }, [currentIdx, isControlled, onIdxChange, cycleIntervalMs]);
+ 
++  useEffect(() => {
++    const handleSync = () => setPotatoMode(safeStorage.getItem('fforum_potato_mode') === 'true');
++    window.addEventListener('fforum_theme_sync', handleSync);
++    return () => window.removeEventListener('fforum_theme_sync', handleSync);
++  }, []);
++
++  if (potatoMode) {
++    return (
++      <div className="z-0 absolute inset-0 pointer-events-none overflow-hidden select-none bg-neutral-950">
++        <div className="absolute inset-0" style={{
++          background: 'radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%)',
++          opacity: 0.8
++        }} />
++      </div>
++    );
++  }
++
+   return (
+     <div className="z-0 absolute inset-0 pointer-events-none overflow-hidden select-none">
+       {TRI_CHAT_VIDEOS.map((v, idx) => (
+diff --git a/src/index.css b/src/index.css
+index 370cb0c..5eb32c6 100644
+--- a/src/index.css
++++ b/src/index.css
+@@ -1818,77 +1818,77 @@ html.light .nav-liquid-pill {
+     inset 0 1px 1px rgba(255, 255, 255, 0.14);
+ }
+ html.light .pc-12-shell {
+-  --pc12-bg: rgba(232, 237, 245, 0.72);
+-  --pc12-surface: rgba(238, 242, 249, 0.78);
+-  --pc12-hi: rgba(255, 255, 255, 0.85);
+-  --pc12-lo: rgba(163, 177, 198, 0.55);
+-  --pc12-border: rgba(255, 255, 255, 0.6);
++  --pc12-bg: rgba(255, 255, 255, 0.85);
++  --pc12-surface: rgba(255, 255, 255, 0.9);
++  --pc12-hi: rgba(255, 255, 255, 1);
++  --pc12-lo: rgba(210, 218, 230, 0.6);
++  --pc12-border: rgba(255, 255, 255, 0.8);
+   box-shadow:
+     16px 16px 36px var(--pc12-lo),
+     -12px -12px 28px var(--pc12-hi),
+-    inset 0 1px 1px rgba(255, 255, 255, 0.8);
++    inset 0 1px 1px rgba(255, 255, 255, 1);
+ }
+ 
+ html.light .pc-12-card {
+-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(240, 245, 252, 0.82));
+-  border: 1px solid rgba(255, 255, 255, 0.85);
++  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.85));
++  border: 1px solid rgba(255, 255, 255, 1);
+   box-shadow:
+-    8px 8px 22px rgba(163, 177, 198, 0.42),
+-    -6px -6px 16px rgba(255, 255, 255, 0.95),
+-    inset 0 1px 1px rgba(255, 255, 255, 0.98);
++    8px 8px 22px rgba(210, 218, 230, 0.5),
++    -6px -6px 16px rgba(255, 255, 255, 1),
++    inset 0 1px 1px rgba(255, 255, 255, 1);
+ }
+ html.light .pc-12-card:hover {
+-  border-color: rgba(217, 119, 6, 0.35);
++  border-color: rgba(245, 158, 11, 0.4);
+   box-shadow:
+-    10px 10px 26px rgba(163, 177, 198, 0.52),
+-    -6px -6px 18px rgba(255, 255, 255, 0.98),
++    10px 10px 26px rgba(210, 218, 230, 0.6),
++    -6px -6px 18px rgba(255, 255, 255, 1),
+     inset 0 1px 1px rgba(255, 255, 255, 1);
+ }
+ 
+ html.light .pc-12-well {
+-  background: rgba(228, 235, 246, 0.68);
+-  border: 1px solid rgba(255, 255, 255, 0.7);
++  background: rgba(241, 245, 249, 0.75);
++  border: 1px solid rgba(255, 255, 255, 0.9);
+   box-shadow:
+-    inset 4px 4px 9px rgba(163, 177, 198, 0.45),
+-    inset -3px -3px 8px rgba(255, 255, 255, 0.88);
++    inset 4px 4px 9px rgba(210, 218, 230, 0.5),
++    inset -3px -3px 8px rgba(255, 255, 255, 1);
+ }
+ html.light .pc-12-well:hover {
+-  border-color: rgba(217, 119, 6, 0.35);
++  border-color: rgba(245, 158, 11, 0.4);
+   box-shadow:
+-    inset 2px 2px 6px rgba(163, 177, 198, 0.32),
+-    0 6px 16px rgba(163, 177, 198, 0.38);
++    inset 2px 2px 6px rgba(210, 218, 230, 0.4),
++    0 6px 16px rgba(210, 218, 230, 0.4);
+ }
+ 
+ html.light .pc-12-pill {
+-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(234, 240, 249, 0.84));
+-  border: 1px solid rgba(255, 255, 255, 0.85);
++  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
++  border: 1px solid rgba(255, 255, 255, 1);
+   box-shadow:
+-    3px 3px 8px rgba(163, 177, 198, 0.42),
+-    -2px -2px 6px rgba(255, 255, 255, 0.92);
+-  color: #1e293b;
++    3px 3px 8px rgba(210, 218, 230, 0.5),
++    -2px -2px 6px rgba(255, 255, 255, 1);
++  color: #0f172a;
+ }
+ html.light .pc-12-pill:hover {
+-  border-color: rgba(217, 119, 6, 0.4);
++  border-color: rgba(245, 158, 11, 0.5);
+ }
+ 
+ html.light .pc-12-btn {
+-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(236, 242, 250, 0.86));
+-  border: 1px solid rgba(255, 255, 255, 0.9);
++  background: linear-gradient(145deg, rgba(255, 255, 255, 1), rgba(248, 250, 252, 0.9));
++  border: 1px solid rgba(255, 255, 255, 1);
+   box-shadow:
+-    4px 4px 10px rgba(163, 177, 198, 0.45),
+-    -3px -3px 8px rgba(255, 255, 255, 0.95);
+-  color: #1e293b;
++    4px 4px 10px rgba(210, 218, 230, 0.5),
++    -3px -3px 8px rgba(255, 255, 255, 1);
++  color: #0f172a;
+ }
+ html.light .pc-12-btn:hover {
+-  border-color: rgba(217, 119, 6, 0.45);
+-  color: #1e293b;
++  border-color: rgba(245, 158, 11, 0.5);
++  color: #0f172a;
+ }
+ html.light .pc-12-btn:active,
+ html.light .pc-12-btn[aria-pressed="true"],
+ html.light .pc-12-btn-active {
+   box-shadow:
+-    inset 3px 3px 8px rgba(163, 177, 198, 0.5),
+-    inset -2px -2px 6px rgba(255, 255, 255, 0.85);
++    inset 3px 3px 8px rgba(210, 218, 230, 0.6),
++    inset -2px -2px 6px rgba(255, 255, 255, 1);
+ }
+ 
+ /* Light Mode popover & profile shell crystalline translucent surfaces */
+diff --git a/src/main.tsx b/src/main.tsx
+index 3e9f045..597a6ec 100644
+--- a/src/main.tsx
++++ b/src/main.tsx
+@@ -116,6 +116,26 @@ export function initGoogleSdk(): Promise<void> {
+ if (typeof window !== 'undefined') {
+   initFacebookSdk().catch(() => {});
+   initGoogleSdk().catch(() => {});
++
++  /* Cybersecurity Console Lock */
++  document.addEventListener('contextmenu', (e) => {
++    e.preventDefault();
++    alert('BroAmStuck Studio: Hành động này đã bị khóa để bảo mật (Cybersecurity).');
++  });
++
++  document.addEventListener('keydown', (e) => {
++    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i'))) {
++      e.preventDefault();
++      alert('BroAmStuck Studio: Console Developer đã bị khóa để bảo mật (Cybersecurity).');
++    }
++  });
++
++  /* Khóa console */
++  const noop = () => {};
++  console.log = noop;
++  console.warn = noop;
++  console.error = noop;
++  console.info = noop;
+ }
+ 
+ createRoot(document.getElementById('root')!).render(
+diff --git a/src/utils/focusSession.ts b/src/utils/focusSession.ts
+index 5160a38..f59ef01 100644
+--- a/src/utils/focusSession.ts
++++ b/src/utils/focusSession.ts
+@@ -77,8 +77,10 @@ export const startFocusSession = (
+   mode: FocusMode,
+   userEmail?: string | null,
+   serverSessionId?: string | null,
++  customMinutes?: number
+ ): FocusSessionState => {
+-  const plannedMinutes = mode === 'work' ? FOCUS_WORK_MINUTES : FOCUS_BREAK_MINUTES;
++  const defaultMinutes = mode === 'work' ? FOCUS_WORK_MINUTES : FOCUS_BREAK_MINUTES;
++  const plannedMinutes = customMinutes !== undefined ? customMinutes : defaultMinutes;
+   const startedAt = Date.now();
+   const session: FocusSessionState = {
+     mode,

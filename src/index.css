@@ -369,6 +369,13 @@ html.light .liquid-glass {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+/* Fix light mode text colors without ruining background */
+html.light .liquid-glass,
+html.light .ff-nav-capsule.liquid-glass,
+html.light div[role="dialog"] .liquid-glass {
+  color: #101827 !important;
+}
+
 /* Light Mode: Glowing white/amber specular highlights on signature gradient border */
 html.light .liquid-glass::before {
   background: linear-gradient(180deg,
@@ -1818,77 +1825,77 @@ html.light .nav-liquid-pill {
     inset 0 1px 1px rgba(255, 255, 255, 0.14);
 }
 html.light .pc-12-shell {
-  --pc12-bg: rgba(232, 237, 245, 0.72);
-  --pc12-surface: rgba(238, 242, 249, 0.78);
-  --pc12-hi: rgba(255, 255, 255, 0.85);
-  --pc12-lo: rgba(163, 177, 198, 0.55);
-  --pc12-border: rgba(255, 255, 255, 0.6);
+  --pc12-bg: rgba(255, 255, 255, 0.85);
+  --pc12-surface: rgba(255, 255, 255, 0.9);
+  --pc12-hi: rgba(255, 255, 255, 1);
+  --pc12-lo: rgba(210, 218, 230, 0.6);
+  --pc12-border: rgba(255, 255, 255, 0.8);
   box-shadow:
     16px 16px 36px var(--pc12-lo),
     -12px -12px 28px var(--pc12-hi),
-    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    inset 0 1px 1px rgba(255, 255, 255, 1);
 }
 
 html.light .pc-12-card {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(240, 245, 252, 0.82));
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.85));
+  border: 1px solid rgba(255, 255, 255, 1);
   box-shadow:
-    8px 8px 22px rgba(163, 177, 198, 0.42),
-    -6px -6px 16px rgba(255, 255, 255, 0.95),
-    inset 0 1px 1px rgba(255, 255, 255, 0.98);
+    8px 8px 22px rgba(210, 218, 230, 0.5),
+    -6px -6px 16px rgba(255, 255, 255, 1),
+    inset 0 1px 1px rgba(255, 255, 255, 1);
 }
 html.light .pc-12-card:hover {
-  border-color: rgba(217, 119, 6, 0.35);
+  border-color: rgba(245, 158, 11, 0.4);
   box-shadow:
-    10px 10px 26px rgba(163, 177, 198, 0.52),
-    -6px -6px 18px rgba(255, 255, 255, 0.98),
+    10px 10px 26px rgba(210, 218, 230, 0.6),
+    -6px -6px 18px rgba(255, 255, 255, 1),
     inset 0 1px 1px rgba(255, 255, 255, 1);
 }
 
 html.light .pc-12-well {
-  background: rgba(228, 235, 246, 0.68);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(241, 245, 249, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow:
-    inset 4px 4px 9px rgba(163, 177, 198, 0.45),
-    inset -3px -3px 8px rgba(255, 255, 255, 0.88);
+    inset 4px 4px 9px rgba(210, 218, 230, 0.5),
+    inset -3px -3px 8px rgba(255, 255, 255, 1);
 }
 html.light .pc-12-well:hover {
-  border-color: rgba(217, 119, 6, 0.35);
+  border-color: rgba(245, 158, 11, 0.4);
   box-shadow:
-    inset 2px 2px 6px rgba(163, 177, 198, 0.32),
-    0 6px 16px rgba(163, 177, 198, 0.38);
+    inset 2px 2px 6px rgba(210, 218, 230, 0.4),
+    0 6px 16px rgba(210, 218, 230, 0.4);
 }
 
 html.light .pc-12-pill {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(234, 240, 249, 0.84));
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
+  border: 1px solid rgba(255, 255, 255, 1);
   box-shadow:
-    3px 3px 8px rgba(163, 177, 198, 0.42),
-    -2px -2px 6px rgba(255, 255, 255, 0.92);
-  color: #1e293b;
+    3px 3px 8px rgba(210, 218, 230, 0.5),
+    -2px -2px 6px rgba(255, 255, 255, 1);
+  color: #101827;
 }
 html.light .pc-12-pill:hover {
-  border-color: rgba(217, 119, 6, 0.4);
+  border-color: rgba(245, 158, 11, 0.5);
 }
 
 html.light .pc-12-btn {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(236, 242, 250, 0.86));
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 1), rgba(248, 250, 252, 0.9));
+  border: 1px solid rgba(255, 255, 255, 1);
   box-shadow:
-    4px 4px 10px rgba(163, 177, 198, 0.45),
-    -3px -3px 8px rgba(255, 255, 255, 0.95);
-  color: #1e293b;
+    4px 4px 10px rgba(210, 218, 230, 0.5),
+    -3px -3px 8px rgba(255, 255, 255, 1);
+  color: #101827;
 }
 html.light .pc-12-btn:hover {
-  border-color: rgba(217, 119, 6, 0.45);
-  color: #1e293b;
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #101827;
 }
 html.light .pc-12-btn:active,
 html.light .pc-12-btn[aria-pressed="true"],
 html.light .pc-12-btn-active {
   box-shadow:
-    inset 3px 3px 8px rgba(163, 177, 198, 0.5),
-    inset -2px -2px 6px rgba(255, 255, 255, 0.85);
+    inset 3px 3px 8px rgba(210, 218, 230, 0.6),
+    inset -2px -2px 6px rgba(255, 255, 255, 1);
 }
 
 /* Light Mode popover & profile shell crystalline translucent surfaces */
@@ -4401,4 +4408,18 @@ html.light .ff-cd.is-ready .ff-cd__value { color: #047857; }
 }
 .reduce-motion .ff-shortcuts {
   animation: none !important;
+}
+
+/* Potato Mode (Grainient Static Mesh Gradients, disable animations) */
+html.potato-mode * {
+  animation: none !important;
+  transition: none !important;
+}
+html.potato-mode body::after {
+  content: "";
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E") !important;
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
 }

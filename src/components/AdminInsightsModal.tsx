@@ -219,7 +219,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
   onClose,
   onOpenOperations,
 }) => {
-  const isSuperAdmin = currentUser.email.toLowerCase() === 'anhtuantran0512@gmail.com' || currentUser.role === 'SUPER_ADMIN';
+  const isSuperAdmin = currentUser.email.toLowerCase() === 'BroAmStuck@gmail.com' || currentUser.role === 'SUPER_ADMIN';
   const canModerate = isSuperAdmin || currentUser.staffRole === 'MODERATOR' || currentUser.staffRole === 'TEACHER';
   const [tab, setTab] = useState<'overview' | 'members'>(isSuperAdmin ? 'overview' : 'members');
   const [range, setRange] = useState<AdminInsightsRange>('7d');
@@ -847,7 +847,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
 
                 <section className="faa-detail-section">
                   <h4><Shield size={15} /> Công cụ kiểm duyệt</h4>
-                  {(selectedMember.role === 'SUPER_ADMIN' || selectedMember.email.toLowerCase() === 'anhtuantran0512@gmail.com') ? (
+                  {(selectedMember.role === 'SUPER_ADMIN' || selectedMember.email.toLowerCase() === 'BroAmStuck@gmail.com') ? (
                     <p className="faa-protected"><ShieldCheck size={15} /> Tài khoản Super Admin được bảo vệ.</p>
                   ) : (
                     <>

@@ -20,7 +20,7 @@ async function loginAsAdmin(baseUrl) {
   const res = await fetch(`${baseUrl}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'anhtuantran0512@gmail.com', password: TEST_ADMIN_PASSWORD }),
+    body: JSON.stringify({ email: 'BroAmStuck@gmail.com', password: TEST_ADMIN_PASSWORD }),
   });
   const data = await res.json();
   if (res.status !== 200 || !data.success) {
@@ -252,7 +252,7 @@ test('2. REST Endpoint: GET & POST /api/admin/about isolation and persistence', 
     });
     assert.equal(anonRes.status, 403, 'Anonymous POST /api/admin/about must return 403 Forbidden');
 
-    // 2.4 POST /api/admin/about from Super Admin (anhtuantran0512@gmail.com) MUST succeed
+    // 2.4 POST /api/admin/about from Super Admin (BroAmStuck@gmail.com) MUST succeed
     const updatedDataPayload = {
       ...initialData,
       headline: 'Đại Kỷ Nguyên F-Forum 2026: Đỉnh Cao Công Nghệ FPT',
@@ -264,7 +264,7 @@ test('2. REST Endpoint: GET & POST /api/admin/about isolation and persistence', 
 
     const adminToken = await loginAsAdmin(testEnv.baseUrl);
     const adminRes = await postAsAdmin(testEnv.baseUrl, '/api/admin/about', {
-      adminEmail: 'anhtuantran0512@gmail.com',
+      adminEmail: 'BroAmStuck@gmail.com',
       aboutData: updatedDataPayload,
     }, adminToken);
     assert.equal(adminRes.status, 200, 'Super Admin POST /api/admin/about must return 200 OK');
@@ -335,7 +335,7 @@ test('3. REST Endpoint: Q&A Question Moderation (Delete & Edit authorization)', 
     const goodEdit = await postAsAdmin(testEnv.baseUrl, '/api/questions/edit', {
       questionId: targetQ.id,
       updates: { title: '[Đã điều chỉnh bởi BQT] ' + targetQ.title, subject: 'cntt' },
-      adminEmail: 'anhtuantran0512@gmail.com',
+      adminEmail: 'BroAmStuck@gmail.com',
     }, adminToken);
     assert.equal(goodEdit.status, 200, 'Super admin can edit question');
     const editResult = await goodEdit.json();
@@ -344,7 +344,7 @@ test('3. REST Endpoint: Q&A Question Moderation (Delete & Edit authorization)', 
     // 3.4 Super Admin delete attempt -> 200
     const goodDelete = await postAsAdmin(testEnv.baseUrl, '/api/questions/delete', {
       questionId: targetQ.id,
-      adminEmail: 'anhtuantran0512@gmail.com',
+      adminEmail: 'BroAmStuck@gmail.com',
     }, adminToken);
     assert.equal(goodDelete.status, 200, 'Super admin can delete question');
 
@@ -413,7 +413,7 @@ test('4. REST Endpoint: Solution Moderation (Delete solution vi phạm)', async 
     const adminToken = await loginAsAdmin(testEnv.baseUrl);
     const goodDelete = await postAsAdmin(testEnv.baseUrl, '/api/solutions/delete', {
       solutionId: targetSol.id,
-      adminEmail: 'anhtuantran0512@gmail.com',
+      adminEmail: 'BroAmStuck@gmail.com',
     }, adminToken);
     assert.equal(goodDelete.status, 200, 'Super admin can delete solution');
 
@@ -464,7 +464,7 @@ test('5. REST Endpoint: Chat Message Recall (/api/chat/delete)', async () => {
     const adminToken = await loginAsAdmin(testEnv.baseUrl);
     const goodDelete = await postAsAdmin(testEnv.baseUrl, '/api/chat/delete', {
       messageId: targetMsg.id,
-      adminEmail: 'anhtuantran0512@gmail.com',
+      adminEmail: 'BroAmStuck@gmail.com',
     }, adminToken);
     assert.equal(goodDelete.status, 200, 'Super admin can recall chat message');
 
@@ -653,7 +653,7 @@ test('7. REST Endpoint: Best Solution Award authorization & single-best invarian
       body: JSON.stringify({
         questionId,
         solutionId: sol1Id,
-        currentUserEmail: 'anhtuantran0512@gmail.com',
+        currentUserEmail: 'BroAmStuck@gmail.com',
       }),
     });
     assert.equal(spoofedAdminMark.status, 403, 'Khai email admin mà không có token vẫn bị chặn');
@@ -663,7 +663,7 @@ test('7. REST Endpoint: Best Solution Award authorization & single-best invarian
     const adminMarkRes = await postAsAdmin(testEnv.baseUrl, '/api/solutions/best', {
       questionId,
       solutionId: sol1Id,
-      currentUserEmail: 'anhtuantran0512@gmail.com',
+      currentUserEmail: 'BroAmStuck@gmail.com',
     }, adminToken);
     assert.equal(adminMarkRes.status, 200, 'Super admin can award best solution');
 
@@ -677,7 +677,7 @@ test('7. REST Endpoint: Best Solution Award authorization & single-best invarian
     const adminMarkRes2 = await postAsAdmin(testEnv.baseUrl, '/api/solutions/best', {
       questionId,
       solutionId: sol2Id,
-      currentUserEmail: 'anhtuantran0512@gmail.com',
+      currentUserEmail: 'BroAmStuck@gmail.com',
     }, adminToken);
     assert.equal(adminMarkRes2.status, 200);
 

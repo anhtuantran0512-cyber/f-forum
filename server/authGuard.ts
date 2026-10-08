@@ -17,10 +17,10 @@ import type { IncomingMessage } from 'node:http';
    Tệp này gom toàn bộ phép kiểm tra vào một nơi, thuần và test được.
    ========================================================================== */
 
-export const MASTER_ADMIN_EMAIL = 'anhtuantran0512@gmail.com';
+export const MASTER_ADMIN_EMAIL = 'BroAmStuck@gmail.com';
 
 export const isMasterAdminEmail = (email?: string | null): boolean =>
-  String(email || '').trim().toLowerCase() === MASTER_ADMIN_EMAIL;
+  String(email || '').trim().toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase();
 
 /* -------------------------------------------------------------------------- */
 /* Khoá ký token                                                              */

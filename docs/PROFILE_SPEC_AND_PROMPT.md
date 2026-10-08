@@ -4,7 +4,7 @@
 ---
 
 ### MỤC TIÊU DỰ ÁN
-Xây dựng và nâng cấp toàn diện cơ chế **Trang cá nhân (User Profile Modal)** thế hệ mới phong cách mạng xã hội học tập sáng tạo, tích hợp cơ chế **Tố cáo người dùng vi phạm gửi trực tiếp về Gmail Super Admin (`anhtuantran0512@gmail.com`)**, **Bảng xếp hạng thành viên hăng hái nhất**, cùng bộ hiệu ứng UI/UX cao cấp chuẩn CodeFronts (Healthcare Loading, Like Heart Button, Magnetic Mercury Ripple Button, Metallic Gold Shimmer, và Staggered Grid Reveal).
+Xây dựng và nâng cấp toàn diện cơ chế **Trang cá nhân (User Profile Modal)** thế hệ mới phong cách mạng xã hội học tập sáng tạo, tích hợp cơ chế **Tố cáo người dùng vi phạm gửi trực tiếp về Gmail Super Admin (`BroAmStuck@gmail.com`)**, **Bảng xếp hạng thành viên hăng hái nhất**, cùng bộ hiệu ứng UI/UX cao cấp chuẩn CodeFronts (Healthcare Loading, Like Heart Button, Magnetic Mercury Ripple Button, Metallic Gold Shimmer, và Staggered Grid Reveal).
 
 ---
 
@@ -24,7 +24,7 @@ Hệ thống lập tức hiển thị Popover / Modal điều hướng với 2 l
 2. **Tố Cáo Tài Khoản Vi Phạm (Report User)**:
    - Mở modal biểu mẫu tố cáo vi phạm chuyên nghiệp.
    - Các trường dữ liệu: Đối tượng tố cáo, Danh mục vi phạm (Toxic/Gây war, Spam/Lừa đảo, Nội dung phản cảm, Gian lận điểm/Hack Coin, Khác), Chi tiết chứng cứ (textarea kèm maxLength=500).
-   - Khi gửi: Bắn dữ liệu về endpoint `POST /api/reports`, lưu trữ dữ liệu tại server `server/forumServer.ts`, phát thông báo hệ thống qua WebSocket (`NEW_REPORT`), và thông báo gửi trực tiếp về Gmail Admin: **`anhtuantran0512@gmail.com`**.
+   - Khi gửi: Bắn dữ liệu về endpoint `POST /api/reports`, lưu trữ dữ liệu tại server `server/forumServer.ts`, phát thông báo hệ thống qua WebSocket (`NEW_REPORT`), và thông báo gửi trực tiếp về Gmail Admin: **`BroAmStuck@gmail.com`**.
 
 ---
 

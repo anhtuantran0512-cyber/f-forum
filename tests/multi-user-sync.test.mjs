@@ -178,16 +178,16 @@ test('2. Authentication Logic: Login rejects non-existent users; Register requir
   }
 });
 
-test('3. Super Admin Isolation: ONLY anhtuantran0512@gmail.com receives SUPER_ADMIN role', async () => {
+test('3. Super Admin Isolation: ONLY BroAmStuck@gmail.com receives SUPER_ADMIN role', async () => {
   const testEnv = await createTestServer();
 
   try {
     const syncRes = await fetch(`${testEnv.baseUrl}/api/sync`);
     const syncData = await syncRes.json();
-    const adminUser = syncData.data.users['anhtuantran0512@gmail.com'];
+    const adminUser = syncData.data.users['broamstuck@gmail.com'];
 
     assert.ok(adminUser, 'Admin user must exist in registry');
-    assert.equal(adminUser.role, 'SUPER_ADMIN', 'anhtuantran0512@gmail.com must have SUPER_ADMIN role');
+    assert.equal(adminUser.role, 'SUPER_ADMIN', 'BroAmStuck@gmail.com must have SUPER_ADMIN role');
     assert.equal(adminUser.name, 'Trần Văn Anh Tuấn');
 
     // Check that LoginModal source has NO "Đăng nhập Super Admin" shortcut button

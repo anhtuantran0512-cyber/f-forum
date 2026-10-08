@@ -189,7 +189,7 @@ test('Codebase Audit: Form text inputs and textareas have maxLength boundaries',
               break;
             }
           }
-          if (block.includes('type="checkbox"') || block.includes('type="radio"') || block.includes('type="file"')) {
+          if (block.includes('type="checkbox"') || block.includes('type="radio"') || block.includes('type="file"') || block.includes('type="range"')) {
             continue;
           }
           assert.ok(

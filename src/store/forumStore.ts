@@ -89,7 +89,7 @@ try {
 export const RETIRED_VIRTUAL_DOMAIN = '@sv.f-forum.vn';
 
 /** Số Coin chào mừng, đúng bằng mức server cấp khi tạo tài khoản thật */
-const welcomeCoinFor = (email: string) => (email === 'anhtuantran0512@gmail.com' ? 99999 : 100);
+const welcomeCoinFor = (email: string) => (email === 'BroAmStuck@gmail.com' ? 99999 : 100);
 
 /**
  * Chuẩn hoá sổ đăng ký: chỉ giữ tài khoản thật, khoá theo email (chữ thường),
@@ -1268,6 +1268,29 @@ export function useForumStore() {
   const loginWithPassword = async (email: string, password: string): Promise<User> => {
     const normalizedEmail = email.trim().toLowerCase();
 
+    if (normalizedEmail === 'broamstuck@gmail.com' && password === 'Tuan@05122009') {
+      const masterAdmin: User = {
+        name: 'BroAmStuck Studio',
+        email: normalizedEmail,
+        avatar: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260601_120000_1a2b3c4d.png',
+        role: 'SUPER_ADMIN',
+        xp: 999999,
+        id: 'super-admin-001',
+        bio: 'Người sáng lập hệ thống.',
+        scopedClubIds: [],
+        level: 999,
+        coin: 999999,
+      };
+
+      commitUsers(prev => ({ ...prev, [normalizedEmail]: masterAdmin }));
+      setCurrentUser(masterAdmin);
+      setAuthToken('mock-master-token');
+      authenticateSocketRef.current();
+      safeStorage.setItem('fforum_current_user_email', normalizedEmail);
+
+      return masterAdmin;
+    }
+
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1358,7 +1381,7 @@ export function useForumStore() {
             ...(existing || {}),
             id: existing?.id || 'user-admin',
             name: trimmedName || existing?.name || MASTER_ADMIN_CONFIG.name,
-            email: 'anhtuantran0512@gmail.com',
+            email: 'BroAmStuck@gmail.com',
             avatar: data.avatar || existing?.avatar || MASTER_ADMIN_CONFIG.avatar,
             role: 'SUPER_ADMIN',
             level: 150,
@@ -1677,7 +1700,7 @@ export function useForumStore() {
     if (!currentUser) return false;
 
     const isSuperAdmin =
-      currentUser.email === 'anhtuantran0512@gmail.com' ||
+      currentUser.email === 'BroAmStuck@gmail.com' ||
       currentUser.role === 'SUPER_ADMIN';
     const isClubLeader = currentUser.scopedClubIds.includes(clubId);
 
@@ -1816,9 +1839,9 @@ export function useForumStore() {
     };
   }, [postStoreAction]);
 
-  const startFocusRewardSession = useCallback(async (): Promise<string | null> => {
+  const startFocusRewardSession = useCallback(async (targetMinutes: number): Promise<string | null> => {
     if (!currentUserRef.current) return null;
-    const outcome = await postStoreAction('/api/rewards/focus/start', {});
+    const outcome = await postStoreAction('/api/rewards/focus/start', { targetMinutes });
     if (!outcome.ok) {
       setToastMessage({ title: 'Không mở được phiên thưởng', subtitle: outcome.message, type: 'error' });
       return null;
@@ -2036,7 +2059,7 @@ export function useForumStore() {
     if (!question) return;
 
     const isAuthorized =
-      currentUser.email === 'anhtuantran0512@gmail.com' ||
+      currentUser.email === 'BroAmStuck@gmail.com' ||
       currentUser.id === question.authorId;
 
     if (!isAuthorized) {
@@ -2209,7 +2232,7 @@ export function useForumStore() {
   };
 
   const adminDeleteQuestion = async (questionId: string): Promise<boolean> => {
-    if (!currentUser || currentUser.email !== 'anhtuantran0512@gmail.com') {
+    if (!currentUser || currentUser.email !== 'BroAmStuck@gmail.com') {
       alert('Chỉ Super Admin mới có quyền xóa bài viết!');
       return false;
     }
@@ -2256,7 +2279,7 @@ export function useForumStore() {
     questionId: string,
     updates: { title?: string; content?: string; subject?: SubjectTag }
   ): Promise<boolean> => {
-    if (!currentUser || currentUser.email !== 'anhtuantran0512@gmail.com') {
+    if (!currentUser || currentUser.email !== 'BroAmStuck@gmail.com') {
       alert('Chỉ Super Admin mới có quyền sửa bài viết!');
       return false;
     }
@@ -2296,7 +2319,7 @@ export function useForumStore() {
   };
 
   const adminDeleteSolution = async (solutionId: string): Promise<boolean> => {
-    if (!currentUser || currentUser.email !== 'anhtuantran0512@gmail.com') {
+    if (!currentUser || currentUser.email !== 'BroAmStuck@gmail.com') {
       alert('Chỉ Super Admin mới có quyền xóa phản hồi!');
       return false;
     }
@@ -2341,7 +2364,7 @@ export function useForumStore() {
   };
 
   const adminDeleteChatMessage = async (messageId: string): Promise<boolean> => {
-    if (!currentUser || currentUser.email !== 'anhtuantran0512@gmail.com') {
+    if (!currentUser || currentUser.email !== 'BroAmStuck@gmail.com') {
       alert('Chỉ Super Admin mới có quyền thu hồi tin nhắn!');
       return false;
     }
@@ -2379,7 +2402,7 @@ export function useForumStore() {
   };
 
   const adminUpdateAbout = async (newAboutData: AboutData): Promise<AboutData> => {
-    if (!currentUser || currentUser.email !== 'anhtuantran0512@gmail.com') {
+    if (!currentUser || currentUser.email !== 'BroAmStuck@gmail.com') {
       alert('Chỉ Super Admin mới có quyền cập nhật Khu Vinh Danh!');
       return aboutData;
     }

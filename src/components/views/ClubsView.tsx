@@ -100,7 +100,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
 
-  const isSuperAdmin = currentUser?.email === 'anhtuantran0512@gmail.com';
+  const isSuperAdmin = currentUser?.email === 'BroAmStuck@gmail.com';
 
   const approvedClubs = clubs.filter(
     c =>
@@ -327,7 +327,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
           </div>
         </div>
 
-        {/* Master Admin Approval Board (EXCLUSIVELY rendered for anhtuantran0512@gmail.com) */}
+        {/* Master Admin Approval Board (EXCLUSIVELY rendered for BroAmStuck@gmail.com) */}
         {isSuperAdmin && (
           <div className="mb-5 p-4 rounded-2xl liquid-glass bg-amber-950/40 border border-amber-500/40 shadow-xl shrink-0 animate-fade-up">
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-amber-500/20">
@@ -338,7 +338,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                 </h3>
               </div>
               <span className="text-[10px] text-amber-400/80 font-mono">
-                Scoped Admin Zone • anhtuantran0512@gmail.com
+                Scoped Admin Zone • BroAmStuck@gmail.com
               </span>
             </div>
 

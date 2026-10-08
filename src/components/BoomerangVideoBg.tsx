@@ -1,5 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useRef, useState } from 'react';
+import { safeStorage } from '../utils/storage';
 
 const VIDEO_URL =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260611_183632_c311af08-e4b7-458f-81e7-79847a49b3d3.mp4';
@@ -9,6 +10,13 @@ export const BoomerangVideoBg: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [useCanvas, setUseCanvas] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [potatoMode, setPotatoMode] = useState(() => safeStorage.getItem('fforum_potato_mode') === 'true');
+
+  useEffect(() => {
+    const handleSync = () => setPotatoMode(safeStorage.getItem('fforum_potato_mode') === 'true');
+    window.addEventListener('fforum_theme_sync', handleSync);
+    return () => window.removeEventListener('fforum_theme_sync', handleSync);
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -128,6 +136,25 @@ export const BoomerangVideoBg: React.FC = () => {
       frames.forEach(f => f.close?.());
     };
   }, []);
+
+  if (potatoMode) {
+    return (
+      <div className="absolute inset-0 z-0 bg-slate-950">
+        <div className="absolute inset-0" style={{
+          backgroundColor: '#0f172a',
+          backgroundImage: `
+            radial-gradient(at 40% 20%, hsla(253,86%,50%,0.3) 0px, transparent 50%),
+            radial-gradient(at 80% 0%, hsla(189,100%,56%,0.3) 0px, transparent 50%),
+            radial-gradient(at 0% 50%, hsla(335,100%,65%,0.3) 0px, transparent 50%),
+            radial-gradient(at 80% 50%, hsla(340,100%,76%,0.3) 0px, transparent 50%),
+            radial-gradient(at 0% 100%, hsla(22,100%,77%,0.3) 0px, transparent 50%),
+            radial-gradient(at 80% 100%, hsla(242,100%,70%,0.3) 0px, transparent 50%),
+            radial-gradient(at 0% 0%, hsla(343,100%,76%,0.3) 0px, transparent 50%)
+          `
+        }} />
+      </div>
+    );
+  }
 
   return (
     <div className="absolute inset-0 z-0 scale-[1.08] origin-center overflow-hidden pointer-events-none bg-neutral-950">

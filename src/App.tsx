@@ -66,7 +66,40 @@ const AdminConsoleModal = lazyWithRetry(() => import('./components/AdminConsoleM
 
 const ViewLoadingFallback = () => (
   <div className="w-full h-full min-h-[50vh] flex items-center justify-center" aria-busy="true" aria-label="Đang tải giao diện">
-    <div className="w-8 h-8 rounded-full border-2 border-amber-400/20 border-t-amber-400 animate-spin" />
+    <div className="la-08" data-state="loading">
+      <section className="la-08__card">
+        <div className="la-08__cal">
+          <div className="la-08__cal-top"><i /><i /></div>
+          <ul className="la-08__grid">
+            {Array.from({ length: 15 }).map((_, i) => (
+              <li
+                key={i}
+                className={`la-08__day ${i === 8 ? 'la-08__day--sel' : ''}`}
+                style={{ '--i': i } as React.CSSProperties}
+              >
+                {i + 1}
+              </li>
+            ))}
+          </ul>
+          <svg className="la-08__seal" viewBox="0 0 32 32">
+            <circle className="la-08__ring" cx="16" cy="16" r="14" />
+            <path className="la-08__check" d="M10 16l4 4 8-8" />
+          </svg>
+        </div>
+
+        <div className="la-08__copy">
+          <p className="la-08__title text-white font-bold text-sm mb-1">Đang tải phân khu</p>
+          <p className="la-08__state text-neutral-400 text-xs">Máy quét đang đồng bộ...</p>
+        </div>
+
+        <div className="la-08__vitals">
+          <svg className="la-08__ecg-wrap" viewBox="0 0 100 24">
+            <polyline className="la-08__base" points="0,12 100,12" />
+            <polyline className="la-08__ecg" points="0,12 30,12 35,4 43,20 48,12 100,12" />
+          </svg>
+        </div>
+      </section>
+    </div>
   </div>
 );
 
@@ -295,7 +328,7 @@ export const App: React.FC = () => {
           name: userToView.name,
           email: userToView.email || '',
           avatar: userToView.avatar,
-          role: userToView.email?.toLowerCase() === 'anhtuantran0512@gmail.com' ? 'SUPER_ADMIN' : 'STUDENT',
+          role: userToView.email?.toLowerCase() === 'BroAmStuck@gmail.com' ? 'SUPER_ADMIN' : 'STUDENT',
           level: userToView.level || 1,
           xp: 0,
           coin: 100,
@@ -1050,7 +1083,7 @@ export const App: React.FC = () => {
           onOpenNotes={() => setIsNotesOpen(true)}
           onOpenPalette={() => setIsPaletteOpen(true)}
           adminAccess={Boolean(currentUser && (
-            currentUser.email?.toLowerCase() === 'anhtuantran0512@gmail.com' ||
+            currentUser.email?.toLowerCase() === 'BroAmStuck@gmail.com' ||
             currentUser.role === 'SUPER_ADMIN' ||
             currentUser.staffRole === 'MODERATOR' ||
             currentUser.staffRole === 'TEACHER'
@@ -1209,7 +1242,7 @@ export const App: React.FC = () => {
       )}
 
       {/* Lối vào bảng điều khiển quản trị — chỉ hiện với Super Admin */}
-      {currentUser?.email === 'anhtuantran0512@gmail.com' && !isAdminConsoleOpen && (
+      {currentUser?.email === 'BroAmStuck@gmail.com' && !isAdminConsoleOpen && (
         <button
           type="button"
           onClick={() => setIsAdminConsoleOpen(true)}
@@ -1222,7 +1255,7 @@ export const App: React.FC = () => {
       )}
 
       {/* Lối vào hộp thư tố cáo — chỉ hiện với Super Admin */}
-      {currentUser?.email === 'anhtuantran0512@gmail.com' && !isReportInboxOpen && (
+      {currentUser?.email === 'BroAmStuck@gmail.com' && !isReportInboxOpen && (
         <button
           type="button"
           onClick={() => setIsReportInboxOpen(true)}
@@ -1241,7 +1274,7 @@ export const App: React.FC = () => {
 
       <Suspense fallback={<ViewLoadingFallback />}>
         {isAdminInsightsOpen && currentUser && (
-          currentUser.email?.toLowerCase() === 'anhtuantran0512@gmail.com' ||
+          currentUser.email?.toLowerCase() === 'BroAmStuck@gmail.com' ||
           currentUser.role === 'SUPER_ADMIN' ||
           currentUser.staffRole === 'MODERATOR' ||
           currentUser.staffRole === 'TEACHER'
@@ -1251,7 +1284,7 @@ export const App: React.FC = () => {
             currentUser={currentUser}
             onClose={() => setIsAdminInsightsOpen(false)}
             onOpenOperations={() => {
-              if (currentUser.email?.toLowerCase() !== 'anhtuantran0512@gmail.com' && currentUser.role !== 'SUPER_ADMIN') return;
+              if (currentUser.email?.toLowerCase() !== 'BroAmStuck@gmail.com' && currentUser.role !== 'SUPER_ADMIN') return;
               setIsAdminInsightsOpen(false);
               setIsAdminConsoleOpen(true);
             }}

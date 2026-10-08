@@ -127,7 +127,7 @@ test('Insights: thống kê bền vững, danh bạ có phân quyền và thao t
     assert.equal((await get(env.baseUrl, '/api/admin/members')).status, 403, 'khách không xem được danh bạ');
 
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
-      email: 'anhtuantran0512@gmail.com',
+      email: 'BroAmStuck@gmail.com',
       password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200);
@@ -261,7 +261,7 @@ test('Insights: thống kê bền vững, danh bạ có phân quyền và thao t
     }, adminToken)).status, 400);
 
     const protectedRole = await post(env.baseUrl, '/api/admin/role', {
-      email: 'anhtuantran0512@gmail.com',
+      email: 'BroAmStuck@gmail.com',
       staffRole: 'MODERATOR',
       reason: 'Thử sửa Super Admin.',
     }, adminToken);
@@ -317,7 +317,7 @@ test('Insights: thống kê bền vững, danh bạ có phân quyền và thao t
     assert.ok(stats.totals.registeredVisitors >= 1);
     assert.ok(stats.totals.anonymousBrowsers >= 1);
     assert.ok(Array.isArray(stats.series) && stats.series.length === 7);
-    assert.ok(stats.topMembers.some((member) => member.email === 'anhtuantran0512@gmail.com'));
+    assert.ok(stats.topMembers.some((member) => member.email === 'broamstuck@gmail.com'));
 
     const monthly = await get(env.baseUrl, '/api/admin/analytics?range=12m', adminToken);
     assert.equal(monthly.data.analytics.series.length, 12);
@@ -325,7 +325,7 @@ test('Insights: thống kê bền vững, danh bạ có phân quyền và thao t
     assert.ok(yearly.data.analytics.series.length >= 1);
 
     const superAdminBan = await post(env.baseUrl, '/api/admin/moderate', {
-      email: 'anhtuantran0512@gmail.com',
+      email: 'BroAmStuck@gmail.com',
       action: 'ban',
       durationMinutes: 60,
       reason: 'Thử cấm Super Admin.',

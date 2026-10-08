@@ -187,7 +187,7 @@ test('4. Invariants & Preserved Systems Integrity', () => {
 
   // Super Admin guard isolation
   assert.ok(
-    appContent.includes("currentUser?.email === 'anhtuantran0512@gmail.com' &&"),
+    appContent.includes("currentUser?.email === 'BroAmStuck@gmail.com' &&"),
     'App.tsx must strictly preserve Super Admin guard'
   );
 

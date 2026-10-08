@@ -41,7 +41,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
 
   if (!isOpen || !user) return null;
 
-  const isSuperAdmin = user.email === 'anhtuantran0512@gmail.com';
+  const isSuperAdmin = user.email === 'BroAmStuck@gmail.com';
   const tier = getTierForLevel(user.level);
   const userQuestions = questions.filter((q) => q.authorId === user.id);
   const userSolutions = solutions.filter((s) => s.authorId === user.id);

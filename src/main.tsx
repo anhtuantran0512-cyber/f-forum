@@ -116,6 +116,26 @@ export function initGoogleSdk(): Promise<void> {
 if (typeof window !== 'undefined') {
   initFacebookSdk().catch(() => {});
   initGoogleSdk().catch(() => {});
+
+  /* Cybersecurity Console Lock */
+  document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    alert('BroAmStuck Studio: Hành động này đã bị khóa để bảo mật (Cybersecurity).');
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i'))) {
+      e.preventDefault();
+      alert('BroAmStuck Studio: Console Developer đã bị khóa để bảo mật (Cybersecurity).');
+    }
+  });
+
+  /* Khóa console */
+  const noop = () => {};
+  console.log = noop;
+  console.warn = noop;
+  console.error = noop;
+  console.info = noop;
 }
 
 createRoot(document.getElementById('root')!).render(

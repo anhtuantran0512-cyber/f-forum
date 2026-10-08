@@ -19,7 +19,7 @@ import {
   type StudyTotals,
 } from '../../utils/studyLog';
 
-type Period = 'week' | 'month' | 'year' | 'all';
+type Period = 'day' | 'week' | 'month' | 'year' | 'all';
 type Metric = 'points' | 'hours';
 
 interface LeaderboardMember {
@@ -50,6 +50,7 @@ interface LeaderboardWidgetProps {
 }
 
 const PERIOD_LABELS: Record<Period, string> = {
+  day: 'Hôm nay',
   week: 'Tuần',
   month: 'Tháng',
   year: 'Năm',
@@ -63,6 +64,11 @@ const METRIC_LABELS: Record<Metric, string> = {
 
 const periodStart = (period: Period): number => {
   const now = new Date();
+  if (period === 'day') {
+    const d = new Date(now);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
   if (period === 'week') {
     const d = new Date(now);
     const day = (d.getDay() + 6) % 7; /* Monday = 0 */
@@ -281,7 +287,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
             <Trophy className="w-[18px] h-[18px]" />
           </span>
           <div className="min-w-0 flex-1">
-            <h3 className="ff-board__title">Bảng xếp hạng</h3>
+            <h3 className="ff-board__title">THÀNH VIÊN HĂNG HÁI NHẤT</h3>
             <p className="ff-board__sub">
               {metric === 'hours' ? 'Ai học nhiều nhất kỳ này' : 'Ai đóng góp nhiều nhất kỳ này'}
               <span className="ff-board__count">

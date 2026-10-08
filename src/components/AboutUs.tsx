@@ -75,7 +75,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
   onNavigate,
 }) => {
   const { currentUser } = useAuth();
-  const isSuperAdmin = currentUser?.email?.toLowerCase() === 'anhtuantran0512@gmail.com';
+  const isSuperAdmin = currentUser?.email?.toLowerCase() === 'BroAmStuck@gmail.com';
 
   const [localAboutData, setLocalAboutData] = useState<AboutData>(() => {
     return customAboutData || getSavedAboutData();

@@ -186,7 +186,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [editContent, setEditContent] = useState('');
   const [openMenuQuestionId, setOpenMenuQuestionId] = useState<string | null>(null);
 
-  const isSuperAdmin = currentUser?.email?.toLowerCase() === 'anhtuantran0512@gmail.com';
+  const isSuperAdmin = currentUser?.email?.toLowerCase() === 'BroAmStuck@gmail.com';
 
   const handleAdminDeletePost = (questionId: string) => {
     const q = questions.find(item => item.id === questionId);
@@ -336,13 +336,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   } | null>(null);
   const [authorAnchorPos, setAuthorAnchorPos] = useState<{ x: number; y: number }>({ x: 240, y: 180 });
 
-  useEffect(() => {
-    const onPointerDown = (e: PointerEvent) => {
-      setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener('pointerdown', onPointerDown, { passive: true });
-    return () => window.removeEventListener('pointerdown', onPointerDown);
-  }, []);
+
 
   const [reportModalUser, setReportModalUser] = useState<{ id: string; name: string } | null>(null);
   const [reportReason, setReportReason] = useState<string>('Toxic / Gây war / Xúc phạm bạn học');
@@ -1065,6 +1059,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
+                          setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
                           if (!q.isAnonymous) {
                             const existing = Object.values(users).find(u => u.id === q.authorId) ||
                               (currentUser && currentUser.id === q.authorId ? currentUser : null);
@@ -1138,6 +1133,35 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
           {/* Right Sidebar: Leaderboard & "Bạn muốn hỏi điều gì?" Widget */}
           <div className={`lg:col-span-4 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-4 pb-6`}>
+            
+            {/* Đặt câu hỏi CTA Widget */}
+            <div className="pc-12-shell p-4 rounded-2xl relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-blue-500/5 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative z-10 flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-full pc-12-well flex items-center justify-center">
+                  <HelpCircle className="w-6 h-6 text-cyan-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white mb-1">Bạn đang có thắc mắc?</h3>
+                  <p className="text-xs text-neutral-400">Đừng ngần ngại đặt câu hỏi, cộng đồng F-Forum luôn sẵn sàng hỗ trợ bạn!</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!currentUser) {
+                      onOpenLoginModal?.();
+                    } else {
+                      setIsAskModalOpen(true);
+                    }
+                  }}
+                  className="w-full mt-1 pc-12-btn py-2.5 rounded-xl text-cyan-50 font-bold text-xs flex items-center justify-center gap-2"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>Đặt câu hỏi ngay</span>
+                </button>
+              </div>
+            </div>
+
             <LeaderboardWidget
               currentUser={currentUser}
               users={users}
@@ -1451,7 +1475,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               <div className="flex items-center justify-between mb-2">
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
                     if (!selectedQuestion.isAnonymous) {
                       const existing = Object.values(users).find(u => u.id === selectedQuestion.authorId) ||
                         (currentUser && currentUser.id === selectedQuestion.authorId ? currentUser : null);
@@ -1539,7 +1564,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   .filter(s => s.questionId === selectedQuestion.id)
                   .sort((a, b) => (b.isBest ? 1 : 0) - (a.isBest ? 1 : 0))
                   .map(sol => {
-                    const isSuperAdminSolver = sol.authorEmail?.toLowerCase() === 'anhtuantran0512@gmail.com';
+                    const isSuperAdminSolver = sol.authorEmail?.toLowerCase() === 'BroAmStuck@gmail.com';
                     const solverName = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.name : sol.authorName;
                     const solverAvatar = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.avatar : sol.authorAvatar;
                     const canConfirmBest =
@@ -1557,7 +1582,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         <div className="flex items-center justify-between mb-2">
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
+                              setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
                               const existing = Object.values(users).find(u => u.id === sol.authorId || (sol.authorEmail && u.email?.toLowerCase() === sol.authorEmail.toLowerCase())) ||
                                 (currentUser && (currentUser.id === sol.authorId || (sol.authorEmail && currentUser.email?.toLowerCase() === sol.authorEmail.toLowerCase())) ? currentUser : null);
                               setActiveAuthorPopover({
@@ -1903,7 +1929,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               <div className="min-w-0 flex-1">
                 <h4 className="text-xs font-bold text-white flex items-center gap-1 truncate">
                   <span className="truncate">{activeAuthorPopover.name}</span>
-                  {activeAuthorPopover.email === 'anhtuantran0512@gmail.com' && <AdminVerifiedBadge size={12} />}
+                  {activeAuthorPopover.email === 'BroAmStuck@gmail.com' && <AdminVerifiedBadge size={12} />}
                 </h4>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[9.5px] font-mono font-bold">

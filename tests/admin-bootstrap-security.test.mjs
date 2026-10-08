@@ -12,13 +12,13 @@ process.env.FFORUM_ADMIN_PASSWORD = 'too-short';
 
 /* Mô phỏng một bản dữ liệu cũ: hash mật khẩu công khai từng có trong mã. */
 const { hashPassword } = await import('../server/authGuard.ts');
-const adminEmail = 'anhtuantran0512@gmail.com';
+const adminEmail = 'broamstuck@gmail.com';
 fs.writeFileSync(path.join(DATA_DIR, 'forum-data.json'), JSON.stringify({
   users: {
     [adminEmail]: {
       id: 'user-admin',
       name: 'Trần Văn Anh Tuấn',
-      email: adminEmail,
+      email: 'BroAmStuck@gmail.com',
       role: 'SUPER_ADMIN',
       level: 150,
       xp: 45000,
@@ -74,7 +74,7 @@ test('Bootstrap production: thu hồi credential mẫu, yêu cầu secret mạnh
     assert.equal((await login(firstServer.baseUrl, 'admin123')).status, 400,
       'credential từng công khai phải bị vô hiệu hoá');
     assert.equal((await login(firstServer.baseUrl, 'too-short')).status, 400,
-      'secret bootstrap ngắn hơn 16 ký tự không được chấp nhận');
+      'secret bootstrap ngắn hơn 12 ký tự không được chấp nhận');
 
     flushPendingSave();
     saved = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'forum-data.json'), 'utf8'));

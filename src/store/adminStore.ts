@@ -35,7 +35,7 @@ export const DEFAULT_ABOUT_DATA: AboutData = {
     role: 'Admin F-Forum • Owner BroAmStuck Studio',
     avatarUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c.png',
     bio: 'Xây dựng F-Forum từ những dòng code đầu tiên. Không gian kết nối thực, dữ liệu thực, tôn vinh tri thức và lưu giữ ký ức học trò.',
-    email: 'anhtuantran0512@gmail.com',
+    email: 'BroAmStuck@gmail.com',
   },
   milestones: [
     {

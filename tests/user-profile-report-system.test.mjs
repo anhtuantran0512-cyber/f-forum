@@ -58,13 +58,13 @@ test('2. Chat View & Dock: Avatar/User click triggers Profile modal and Report t
   // ChatView avatar/name interaction (labels simplified, no personal email leaked)
   assert.ok(chatView.includes('Trang cá nhân'), 'ChatView must offer view profile');
   assert.ok(chatView.includes('Tố cáo'), 'ChatView must offer report');
-  assert.ok(!chatView.includes('anhtuantran0512@gmail.com'), 'ChatView must not leak personal email');
+  assert.ok(!chatView.includes('BroAmStuck@gmail.com'), 'ChatView must not leak personal email');
   assert.ok(chatView.includes('/api/reports'), 'ChatView must submit report to /api/reports');
 
   // ChatDock avatar/name interaction (labels simplified, no personal email leaked)
   assert.ok(chatDock.includes('Trang cá nhân'), 'ChatDock must offer view profile');
   assert.ok(chatDock.includes('Tố cáo'), 'ChatDock must offer report');
-  assert.ok(!chatDock.includes('anhtuantran0512@gmail.com'), 'ChatDock must not leak personal email');
+  assert.ok(!chatDock.includes('BroAmStuck@gmail.com'), 'ChatDock must not leak personal email');
   assert.ok(chatDock.includes('/api/reports'), 'ChatDock must submit report to /api/reports');
 });
 

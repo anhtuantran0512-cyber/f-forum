@@ -62,6 +62,7 @@ const writeProfileLikes = (map: ProfileLikesMap): void => {
 import { BookshelfPanel } from './BookshelfPanel';
 import { TierRankSheet } from './TierRankSheet';
 import { useEscapeKey } from '../utils/useEscapeKey';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -309,7 +310,7 @@ const ProfileModalInner: React.FC<{
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [reportSuccess, setReportSuccess] = useState<string | null>(null);
 
-  const isSuperAdmin = (currentUser.email || '').toLowerCase() === 'anhtuantran0512@gmail.com' || currentUser.role === 'SUPER_ADMIN';
+  const isSuperAdmin = (currentUser.email || '').toLowerCase() === 'BroAmStuck@gmail.com' || currentUser.role === 'SUPER_ADMIN';
   const isOwnProfile = !viewerUser || viewerUser.id === currentUser.id;
 
   /* GUI nhỏ "Bảng rank · danh hiệu · yêu cầu" mở từ khối Danh hiệu */
@@ -454,29 +455,7 @@ const ProfileModalInner: React.FC<{
     }));
   }, [userQuestions, userSolutions, questions]);
 
-  const radarCx = 140;
-  const radarCy = 135;
-  const radarRadius = 80;
 
-  const dataPolygonPoints = radarAxes
-    .map((a) => {
-      const r = (a.score / 100) * radarRadius;
-      const x = radarCx + r * Math.cos(a.angle);
-      const y = radarCy + r * Math.sin(a.angle);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(' ');
-
-  const gridRings = [0.25, 0.5, 0.75, 1.0].map((level) => {
-    const points = radarAxes
-      .map((a) => {
-        const x = radarCx + level * radarRadius * Math.cos(a.angle);
-        const y = radarCy + level * radarRadius * Math.sin(a.angle);
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      })
-      .join(' ');
-    return { level, points };
-  });
 
   const handleBuyItem = async (item: ShopItem) => {
     if (userCoin < item.price) return;
@@ -529,7 +508,33 @@ const ProfileModalInner: React.FC<{
     const reader = new FileReader();
     reader.onload = (uploadEvent) => {
       if (typeof uploadEvent.target?.result === 'string') {
-        setAvatar(uploadEvent.target.result);
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 512;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const webpData = canvas.toDataURL('image/webp', 0.95); /* High quality WebP */
+            setAvatar(webpData);
+          } else {
+            setAvatar(uploadEvent.target!.result as string);
+          }
+        };
+        img.src = uploadEvent.target.result;
       }
     };
     reader.onerror = () => {
@@ -550,7 +555,7 @@ const ProfileModalInner: React.FC<{
       return;
     }
 
-    const maxSize = 15 * 1024 * 1024; // 15MB
+    const maxSize = 15 * 1024 * 1024; /* 15MB */
     if (file.size > maxSize) {
       setErrorMsg(
         `Kích thước ảnh bìa (${(file.size / (1024 * 1024)).toFixed(2)}MB) vượt quá giới hạn 15MB!`
@@ -1217,86 +1222,30 @@ const ProfileModalInner: React.FC<{
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
                       {/* Cột trái: Biểu đồ Radar đa giác 5 đỉnh trục */}
-                      <div className="md:col-span-6 flex flex-col items-center justify-center p-3 pc-12-well">
-                        <svg viewBox="0 0 280 270" className="w-full max-w-[260px] h-auto overflow-visible">
-                          {/* Concentric Grid Rings */}
-                          {gridRings.map((ring, idx) => (
-                            <polygon
-                              key={idx}
-                              points={ring.points}
-                              fill="none"
-                              stroke="rgba(255, 255, 255, 0.1)"
-                              strokeDasharray={ring.level === 1.0 ? 'none' : '3 3'}
-                              strokeWidth="1"
+                      <div className="md:col-span-6 flex flex-col items-center justify-center p-3 pc-12-well h-[270px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarAxes}>
+                            <PolarGrid stroke="rgba(255, 255, 255, 0.1)" />
+                            <PolarAngleAxis dataKey="name" tick={{ fill: '#e2e8f0', fontSize: 10, fontWeight: 'bold' }} />
+                            <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                            <Radar
+                              name="Thành tựu"
+                              dataKey="score"
+                              stroke="#EAB308"
+                              strokeWidth={2.5}
+                              fill="rgba(14, 165, 233, 0.25)"
+                              fillOpacity={1}
+                              dot={{ r: 4.5, fill: "#06b6d4", stroke: "#0c1218", strokeWidth: 2 }}
+                              activeDot={{ r: 6, fill: "#06b6d4", stroke: "#EAB308", strokeWidth: 2 }}
                             />
-                          ))}
-
-                          {/* Spoke Lines */}
-                          {radarAxes.map((axis, idx) => {
-                            const x2 = radarCx + radarRadius * Math.cos(axis.angle);
-                            const y2 = radarCy + radarRadius * Math.sin(axis.angle);
-                            return (
-                              <line
-                                key={idx}
-                                x1={radarCx}
-                                y1={radarCy}
-                                x2={x2}
-                                y2={y2}
-                                stroke="rgba(255, 255, 255, 0.15)"
-                                strokeWidth="1"
-                              />
-                            );
-                          })}
-
-                          {/* Data Polygon */}
-                          <polygon
-                            points={dataPolygonPoints}
-                            fill="rgba(14, 165, 233, 0.25)"
-                            stroke="#EAB308"
-                            strokeWidth="2.5"
-                          />
-
-                          {/* Axis Points */}
-                          {radarAxes.map((axis, idx) => {
-                            const r = (axis.score / 100) * radarRadius;
-                            const x = radarCx + r * Math.cos(axis.angle);
-                            const y = radarCy + r * Math.sin(axis.angle);
-                            return (
-                              <circle
-                                key={idx}
-                                cx={x}
-                                cy={y}
-                                r="4.5"
-                                fill="#06b6d4"
-                                stroke="#0c1218"
-                                strokeWidth="2"
-                              >
-                                <title>{`${axis.full}: ${axis.score}%`}</title>
-                              </circle>
-                            );
-                          })}
-
-                          {/* Axis Labels */}
-                          {radarAxes.map((axis, idx) => {
-                            const labelDist = radarRadius + 22;
-                            const lx = radarCx + labelDist * Math.cos(axis.angle);
-                            const ly = radarCy + labelDist * Math.sin(axis.angle);
-                            return (
-                              <text
-                                key={idx}
-                                x={lx}
-                                y={ly + 4}
-                                textAnchor="middle"
-                                fill="#e2e8f0"
-                                fontSize="9.5"
-                                fontWeight="bold"
-                                fontFamily="monospace"
-                              >
-                                {axis.name}
-                              </text>
-                            );
-                          })}
-                        </svg>
+                            <Tooltip
+                              contentStyle={{ backgroundColor: '#0c1218', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                              itemStyle={{ color: '#06b6d4', fontWeight: 'bold' }}
+                              labelStyle={{ color: '#e2e8f0', fontWeight: 'bold', marginBottom: '4px' }}
+                              formatter={(value: any, _name: any, props: any) => [`${value}%`, props.payload.full]}
+                            />
+                          </RadarChart>
+                        </ResponsiveContainer>
                       </div>
 
                       {/* Cột phải: Danh sách môn học chi tiết (100% dữ liệu thật từ câu trả lời của học sinh) */}

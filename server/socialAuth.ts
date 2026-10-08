@@ -5,7 +5,7 @@
    --------------------------------------------------------------------------
    Vì sao cần: `/api/auth/social` trước đây nhận `email` do client tự khai và
    cấp thẳng tài khoản. Nghĩa là một lệnh POST với
-   `{"provider":"google","email":"anhtuantran0512@gmail.com"}` là đủ để nhận
+   `{"provider":"google","email":"BroAmStuck@gmail.com"}` là đủ để nhận
    token SUPER_ADMIN — chiếm quyền quản trị mà không cần biết mật khẩu nào.
 
    Nguyên tắc sau khi vá:

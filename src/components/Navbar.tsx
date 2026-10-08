@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import type { DimensionView, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
-import { toggleAmbientAudio, isAmbientActive, playChime } from '../utils/audio';
+import { playChime, toggleAmbientAudio, isAmbientActive } from '../utils/audio';
 import { ProfileDropdown } from './ProfileDropdown';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { NotificationsModal } from './NotificationsModal';
@@ -92,7 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   eyeRestEnabled = false,
   onToggleEyeRest,
 }) => {
-  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+
   const [isFlyoutOpen, setIsFlyoutOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -107,7 +107,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [reducedMotion, setReducedMotion] = useState(() => {
     return safeStorage.getItem('fforum_reduced_motion') === 'true';
   });
-  const audioCtxRef = useRef<AudioContext | null>(null);
+  const [potatoMode, setPotatoMode] = useState(() => {
+    return safeStorage.getItem('fforum_potato_mode') === 'true';
+  });
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notifMenuRef = useRef<HTMLDivElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
@@ -150,8 +152,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [alwaysCompact, setAlwaysCompact] = useState<boolean>(() => {
     return safeStorage.getItem('fforum_nav_compact') === 'true';
   });
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isNavbarHovered, setIsNavbarHovered] = useState<boolean>(true);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   /* ============================================================ */
   /* iOS-26 compact capsule state machine                          */
@@ -503,7 +507,13 @@ export const Navbar: React.FC<NavbarProps> = ({
     } else {
       document.documentElement.classList.remove('reduce-motion');
     }
-  }, [theme, reducedMotion]);
+
+    if (potatoMode) {
+      document.documentElement.classList.add('potato-mode');
+    } else {
+      document.documentElement.classList.remove('potato-mode');
+    }
+  }, [theme, reducedMotion, potatoMode]);
 
   const handleToggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -528,7 +538,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       window.removeEventListener('fforum_toggle_theme', onToggleTheme);
       window.removeEventListener('fforum_open_daily', onOpenDaily);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [theme]);
 
   const handleToggleSoundEffects = () => {
@@ -552,7 +562,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     });
   };
 
-  const isSuperAdmin = currentUser?.email === 'anhtuantran0512@gmail.com';
+  const isSuperAdmin = currentUser?.email === 'BroAmStuck@gmail.com';
 
   useEffect(() => {
     if (!isFlyoutOpen) return;
@@ -641,6 +651,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
   }, [isSettingsOpen]);
 
+
+
   const toggleFocusAudio = async (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     try {
@@ -682,6 +694,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     onToggleTheme: handleToggleTheme,
     isAudioPlaying,
     onToggleAudio: toggleFocusAudio,
+
     onOpenFocusMode: () => {
       setIsSettingsOpen(false);
       onOpenFocusMode();
@@ -690,6 +703,13 @@ export const Navbar: React.FC<NavbarProps> = ({
     onToggleSoundEffects: handleToggleSoundEffects,
     reducedMotion,
     onToggleReducedMotion: handleToggleReducedMotion,
+    potatoMode,
+    onTogglePotatoMode: () => {
+      const next = !potatoMode;
+      setPotatoMode(next);
+      safeStorage.setItem('fforum_potato_mode', String(next));
+      window.dispatchEvent(new CustomEvent('fforum_theme_sync'));
+    },
     godrayPreset,
     onSelectGodray: (preset: string) => {
       setGodrayPreset(preset);

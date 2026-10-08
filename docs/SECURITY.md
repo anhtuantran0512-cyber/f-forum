@@ -82,7 +82,7 @@ Endpoint nhận `email` **do client tự khai** và cấp tài khoản tương �
 khoản Super Admin — mà không hề kiểm chứng với Google/Facebook.
 
 ```bash
-curl -X POST /api/auth/social -d '{"provider":"google","email":"anhtuantran0512@gmail.com"}'
+curl -X POST /api/auth/social -d '{"provider":"google","email":"BroAmStuck@gmail.com"}'
 # => 200 { user: { role: "SUPER_ADMIN", level: 150 }, token: "f_token_..." }  ← TRƯỚC KHI VÁ
 ```
 
@@ -101,7 +101,7 @@ thành công; tài khoản thường vẫn đăng nhập được ở chế đ�
 
 ```js
 // TRƯỚC
-if (adminEmail !== 'anhtuantran0512@gmail.com') return 403;
+if (adminEmail !== 'BroAmStuck@gmail.com') return 403;
 ```
 
 `adminEmail` nằm trong body — ai cũng gõ được chuỗi đó. Tương tự,
@@ -352,7 +352,7 @@ Server nhận `body.user` rồi `broadcastServerEvent('PRESENCE_PING', body.user
 // trên màn hình của MỌI người đang kết nối:
 fetch('/api/presence', { method: 'POST', headers: {'Content-Type':'application/json'},
   body: JSON.stringify({ user: { id: 'x', name: 'Admin Rởm',
-    email: 'anhtuantran0512@gmail.com', role: 'SUPER_ADMIN' } }) });
+    email: 'BroAmStuck@gmail.com', role: 'SUPER_ADMIN' } }) });
 ```
 
 `ChatView` tính `isMasterAdminOnline` từ `onlineUsers.some(u => isMasterAdmin(u.email))`,

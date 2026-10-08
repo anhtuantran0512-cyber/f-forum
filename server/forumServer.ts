@@ -157,7 +157,7 @@ const dataDir = (): string =>
     ? path.resolve(process.env.FFORUM_DATA_DIR)
     : path.resolve(process.cwd(), 'data');
 const dataFilePath = (): string => path.join(dataDir(), 'forum-data.json');
-const ADMIN_BOOTSTRAP_PASSWORD_MIN_LENGTH = 16;
+const ADMIN_BOOTSTRAP_PASSWORD_MIN_LENGTH = 12;
 
 /**
  * Mật khẩu quản trị chỉ được khởi tạo từ secret ngoài mã nguồn. Mật khẩu yếu
@@ -171,10 +171,10 @@ const configuredAdminBootstrapPassword = (): string | null => {
 
 let store: ForumDataStore = {
   users: {
-    'anhtuantran0512@gmail.com': {
+    'broamstuck@gmail.com': {
       id: 'user-admin',
       name: 'Trần Văn Anh Tuấn',
-      email: 'anhtuantran0512@gmail.com',
+      email: 'BroAmStuck@gmail.com',
       avatar: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c.png',
       role: 'SUPER_ADMIN',
       level: 150,
@@ -209,7 +209,7 @@ let store: ForumDataStore = {
       role: 'Admin F-Forum • Owner BroAmStuck Studio',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&h=600&fit=crop&crop=faces',
       bio: 'Xây dựng F-Forum từ những dòng code đầu tiên với mong muốn tạo nên một không gian số bình đẳng, nơi học sinh tự do kết nối tri thức, chia sẻ câu lạc bộ và lưu giữ ký ức tuổi học trò mà không bị rào cản bởi phán xét hay công nghệ phức tạp.',
-      email: 'anhtuantran0512@gmail.com',
+      email: 'BroAmStuck@gmail.com',
     },
     milestones: [
       {
@@ -615,11 +615,11 @@ const startedAtMs = Date.now();
  * cũ để tài khoản phải đăng nhập qua OAuth đã xác minh hoặc được bootstrap an toàn.
  */
 function retirePublicAdminPassword(): boolean {
-  const stored = store.passwords[MASTER_ADMIN_EMAIL];
+  const stored = store.passwords[MASTER_ADMIN_EMAIL.toLowerCase()];
   if (typeof stored !== 'string' || !stored) return false;
   if (!verifyPassword('admin123', stored).ok) return false;
 
-  delete store.passwords[MASTER_ADMIN_EMAIL];
+  delete store.passwords[MASTER_ADMIN_EMAIL.toLowerCase()];
   persistStoreToDisk();
   return true;
 }
@@ -631,9 +631,9 @@ function retirePublicAdminPassword(): boolean {
 function syncAdminPasswordFromEnvironment(): 'created' | 'rotated' | null {
   const configured = configuredAdminBootstrapPassword();
   if (!configured) return null;
-  const existing = store.passwords[MASTER_ADMIN_EMAIL];
+  const existing = store.passwords[MASTER_ADMIN_EMAIL.toLowerCase()];
   if (existing && verifyPassword(configured, existing).ok) return null;
-  store.passwords[MASTER_ADMIN_EMAIL] = hashPassword(configured);
+  store.passwords[MASTER_ADMIN_EMAIL.toLowerCase()] = hashPassword(configured);
   persistStoreToDisk();
   return existing ? 'rotated' : 'created';
 }
@@ -1048,7 +1048,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
   if (adminPasswordSync) {
     console.info(`[Forum Server] Đã ${adminPasswordSync === 'created' ? 'bootstrap' : 'xoay'} mật khẩu Super Admin từ secret máy chủ (chỉ lưu scrypt).`);
   } else if (String(process.env.FFORUM_ADMIN_PASSWORD || '').trim() && !configuredAdminBootstrapPassword()) {
-    console.warn('[Forum Server] Bỏ qua FFORUM_ADMIN_PASSWORD vì mật khẩu phải dài tối thiểu 16 ký tự.');
+    console.warn('[Forum Server] Bỏ qua FFORUM_ADMIN_PASSWORD vì mật khẩu phải dài tối thiểu 12 ký tự.');
   }
 
   delete store.users['hocsinhmoi@fpt.edu.vn'];
@@ -2391,7 +2391,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           ? {
               id: 'user-admin',
               name: name || 'Trần Văn Anh Tuấn',
-              email: 'anhtuantran0512@gmail.com',
+              email: 'BroAmStuck@gmail.com',
               avatar: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c.png',
               role: 'SUPER_ADMIN',
               level: 150,
@@ -3128,7 +3128,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
-        const session: FocusRewardSession = { id: randomId('focus'), startedAt: now };
+        const targetMinutes = typeof body.targetMinutes === 'number' ? body.targetMinutes : 25;
+        const session: FocusRewardSession = { id: randomId('focus'), startedAt: now, targetMinutes };
         store.focusRewardSessions[actor.user.email] = session;
         persistStoreToDisk();
         sendJson(res, 200, {
@@ -3175,8 +3176,11 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
         const now = Date.now();
         const elapsed = now - session.startedAt;
-        if (elapsed < FOCUS_REWARD_MINIMUM_MS) {
-          sendJson(res, 409, { success: false, message: 'Bạn cần hoàn thành đủ 25 phút tập trung mới nhận được thưởng.' });
+        const targetMinutes = session.targetMinutes || 25;
+        const requiredMs = Math.max(FOCUS_REWARD_MINIMUM_MS - 10000, targetMinutes * 60 * 1000 - 10000); /* grace 10s */
+
+        if (elapsed < requiredMs) {
+          sendJson(res, 409, { success: false, message: `Bạn cần hoàn thành đủ ${targetMinutes >= 25 ? targetMinutes : 25} phút tập trung mới nhận được thưởng.` });
           return;
         }
         if (elapsed > FOCUS_SESSION_MAX_AGE_MS) {
@@ -3186,16 +3190,31 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
-        grantCoinsAndExperience(actor.user, FOCUS_REWARD_AMOUNT);
+        let reward = targetMinutes;
+        let boxGranted: string | undefined;
+
+        if (targetMinutes >= 120) {
+          boxGranted = 'mystery';
+        } else if (targetMinutes >= 60) {
+          boxGranted = 'small';
+        }
+
+        grantCoinsAndExperience(actor.user, reward);
+        if (boxGranted) {
+          actor.user.inventory = actor.user.inventory || [];
+          actor.user.inventory.push(boxGranted);
+        }
+
         session.claimedAt = now;
-        session.reward = FOCUS_REWARD_AMOUNT;
+        session.reward = reward;
         persistStoreToDisk();
         broadcastServerEvent('SYNC_USER', actor.user);
         sendJson(res, 200, {
           success: true,
-          reward: FOCUS_REWARD_AMOUNT,
+          reward,
+          boxGranted,
           user: actor.user,
-          message: 'Đã ghi nhận 25 phút tập trung và phần thưởng tương ứng.',
+          message: `Đã ghi nhận ${targetMinutes} phút tập trung và phần thưởng tương ứng.`,
         });
       } catch (err: any) {
         handleApiError(res, err);
