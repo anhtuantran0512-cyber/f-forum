@@ -30,7 +30,7 @@ export const RoleBadge: FC<RoleBadgeProps> = ({
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const badgeRef = useRef<HTMLDivElement>(null);
 
-  // Hiển thị badge sau 1.5s khi component mount (tránh flash không cần thiết)
+  /* Hiển thị badge sau 1.5s khi component mount (tránh flash không cần thiết) */
   useEffect(() => {
     if (!userEmail) return;
     const t = setTimeout(() => {
@@ -39,7 +39,7 @@ export const RoleBadge: FC<RoleBadgeProps> = ({
     return () => clearTimeout(t);
   }, [userEmail]);
 
-  // Xử lý hover tooltip
+  /* Xử lý hover tooltip */
   const handleMouseEnter = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (isSuperAdmin) {

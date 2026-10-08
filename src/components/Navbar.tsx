@@ -384,9 +384,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   /* ============================================================ */
   /* Liquid Droplet active pill measurement (useLayoutEffect)      */
   /* ============================================================ */
+  const settleTimers = useRef<number | null>(null);
   useLayoutEffect(() => {
     if (isMorphBusy) return;
-    // Per-frame measuring burst stays short: performance.now() - startMs < 200 (was 550ms of layout reads)
+    /* Per-frame measuring burst stays short: performance.now() - startMs < 200 (was 550ms of layout reads) */
+    void settleTimers;
     const activeEl = tabRefs.current[currentView];
     const pill = liquidPillRef.current;
     if (!activeEl || !pill) return;

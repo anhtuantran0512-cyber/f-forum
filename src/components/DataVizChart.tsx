@@ -1,4 +1,5 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */import React, { useMemo, useState, useRef } from 'react';
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
+import React, { useMemo, useState, useRef, useId } from 'react';
 
 interface DataPoint {
   label: string;
@@ -42,7 +43,7 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Calculate chart geometry
+  /* Calculate chart geometry */
   const geometry = useMemo(() => {
     const padding = { top: 24, right: 24, bottom: 40, left: 48 };
     const chartWidth = width - padding.left - padding.right;
@@ -58,27 +59,27 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
     return { padding, chartWidth, chartHeight, maxValue, minValue, xScale, yScale };
   }, [width, height, data]);
 
-  // Generate smooth bezier path using Catmull-Rom to Bezier conversion
+  /* Generate smooth bezier path using Catmull-Rom to Bezier conversion */
   const pathData = useMemo(() => {
     if (data.length === 0) return '';
     
     const { xScale, yScale } = geometry;
     
-    // Build smooth curve
+    /* Build smooth curve */
     let path = '';
     const points = data.map((d, i) => ({ x: xScale(i), y: yScale(d.value) }));
     
-    // Move to first point
+    /* Move to first point */
     path += `M ${points[0].x} ${points[0].y}`;
     
-    // Catmull-Rom spline through points
+    /* Catmull-Rom spline through points */
     for (let i = 0; i < points.length - 1; i++) {
       const p0 = points[Math.max(0, i - 1)];
       const p1 = points[i];
       const p2 = points[i + 1];
       const p3 = points[Math.min(points.length - 1, i + 2)];
       
-      // Control points for smooth curve
+      /* Control points for smooth curve */
       const tension = 0.3;
       const cp1x = p1.x + (p2.x - p0.x) * tension;
       const cp1y = p1.y + (p2.y - p0.y) * tension;
@@ -91,16 +92,16 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
     return path;
   }, [data, geometry]);
 
-  // Generate gradient fill path (area under curve)
+  /* Generate gradient fill path (area under curve) */
   const areaPath = useMemo(() => {
     if (!pathData) return '';
     const { padding, chartHeight } = geometry;
     
-    // Close the path to bottom
+    /* Close the path to bottom */
     return `${pathData} L ${geometry.xScale(data.length - 1)} ${padding.top + chartHeight} L ${geometry.xScale(0)} ${padding.top + chartHeight} Z`;
   }, [pathData, geometry, data]);
 
-  // Grid lines
+  /* Grid lines */
   const gridLines = useMemo(() => {
     if (!showGrid) return [];
     const { chartHeight, chartWidth, padding } = geometry;
@@ -124,7 +125,7 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
     });
   }, [showGrid, geometry]);
 
-  // X-axis labels
+  /* X-axis labels */
   const xLabels = useMemo(() => {
     if (!showLabels) return [];
     const { xScale } = geometry;
@@ -151,7 +152,7 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
       });
   }, [data, showLabels, geometry, height]);
 
-  // Y-axis labels
+  /* Y-axis labels */
   const yLabels = useMemo(() => {
     if (!showLabels) return [];
     const { chartHeight, padding, maxValue, minValue } = geometry;
@@ -179,7 +180,7 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
     return items;
   }, [showLabels, geometry]);
 
-  // Handle hover interaction
+  /* Handle hover interaction */
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current || data.length === 0) return;
     
@@ -192,7 +193,7 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
       return;
     }
     
-    // Find nearest data point
+    /* Find nearest data point */
     const relativeX = (x - padding.left) / chartWidth;
     const index = Math.round(relativeX * (data.length - 1));
     const clampedIndex = Math.max(0, Math.min(data.length - 1, index));
@@ -213,8 +214,9 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
     setTooltip(prev => ({ ...prev, visible: false }));
   };
 
-  // SVG defs for gradient
-  const gradientId = `gradient-${Math.random().toString(36).slice(2, 9)}`;
+  /* SVG defs for gradient */
+  const rawId = useId();
+  const gradientId = `gradient-${rawId.replace(/:/g, '')}`;
 
   return (
     <div
@@ -414,7 +416,7 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
   );
 };
 
-// Mini sparkline variant for inline use
+/* Mini sparkline variant for inline use */
 interface MiniSparklineProps {
   data: number[];
   color?: string;

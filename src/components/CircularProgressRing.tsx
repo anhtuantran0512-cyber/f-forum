@@ -2,11 +2,11 @@
 import React, { useEffect, useRef } from 'react';
 
 interface CircularProgressRingProps {
-  progress: number;          // 0-100
-  size?: number;              // px, mặc định 280
-  strokeWidth?: number;       // mặc định 6
-  duration?: number;          // total seconds
-  elapsed?: number;           // elapsed seconds
+  progress: number; /* 0-100 */
+  size?: number; /* px, mặc định 280 */
+  strokeWidth?: number; /* mặc định 6 */
+  duration?: number; /* total seconds */
+  elapsed?: number; /* elapsed seconds */
   label?: string;
   milestone?: { reached: boolean; label: string; minutes: number };
   className?: string;
@@ -25,26 +25,26 @@ export const CircularProgressRing: React.FC<CircularProgressRingProps> = ({
   const offset = circumference - (progress / 100) * circumference;
   const center = size / 2;
   
-  // Gradient animation: rotate gradient angle based on progress
-  // Confetti burst trigger
+  /* Gradient animation: rotate gradient angle based on progress */
+  /* Confetti burst trigger */
   const burstRef = useRef(false);
   const prevProgressRef = useRef(0);
   
   useEffect(() => {
     if (milestone?.reached && prevProgressRef.current < 95 && progress >= 95 && !burstRef.current) {
       burstRef.current = true;
-      // Dispatch custom event for confetti
+      /* Dispatch custom event for confetti */
       window.dispatchEvent(new CustomEvent('fforum-milestone-reached', {
         detail: { minutes: milestone.minutes, label: milestone.label }
       }));
       
-      // Auto-reset burst flag after animation
+      /* Auto-reset burst flag after animation */
       setTimeout(() => { burstRef.current = false; }, 2000);
     }
     prevProgressRef.current = progress;
   }, [progress, milestone]);
 
-  // Breathing effect: subtle scale pulse
+  /* Breathing effect: subtle scale pulse */
   const breathClass = milestone?.reached 
     ? 'animate-[ringBreath_2s_ease-in-out_infinite]' 
     : '';
@@ -217,7 +217,7 @@ export const CircularProgressRing: React.FC<CircularProgressRingProps> = ({
   );
 };
 
-// Global keyframes for gradient animation (injected dynamically if not present)
+/* Global keyframes for gradient animation (injected dynamically if not present) */
 export const injectGradientAnimation = (): void => {
   if (document.getElementById('circular-ring-keyframes')) return;
   
