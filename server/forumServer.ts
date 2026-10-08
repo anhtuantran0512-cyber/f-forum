@@ -12,9 +12,11 @@ import {
   dailyRewardStatus,
   sanitizeDailyRewardProfiles,
   sanitizeFocusRewardSessions,
+  focusRewardForMinutes,
   FOCUS_REWARD_AMOUNT,
   FOCUS_REWARD_MINIMUM_MS,
   FOCUS_SESSION_MAX_AGE_MS,
+  normalizeFocusTargetMinutes,
   type DailyRewardProfile,
   type FocusRewardSession,
 } from './economy.ts';
@@ -3128,7 +3130,16 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
-        const targetMinutes = typeof body.targetMinutes === 'number' ? body.targetMinutes : 25;
+        const targetMinutes = body.targetMinutes === undefined ? 25 : normalizeFocusTargetMinutes(body.targetMinutes);
+        if (targetMinutes === null) {
+          sendJson(res, 400, { success: false, message: 'Thời lượng tập trung phải từ 5 đến 120 phút, theo bước 5 phút.' });
+          return;
+        }
+        const reward = focusRewardForMinutes(targetMinutes);
+        if (reward <= 0) {
+          sendJson(res, 400, { success: false, message: 'Phiên dưới 25 phút vẫn được ghi giờ học nhưng không có phần thưởng Coin.' });
+          return;
+        }
         const session: FocusRewardSession = { id: randomId('focus'), startedAt: now, targetMinutes };
         store.focusRewardSessions[actor.user.email] = session;
         persistStoreToDisk();
@@ -3136,6 +3147,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           success: true,
           sessionId: session.id,
           startedAt: session.startedAt,
+          targetMinutes,
+          reward,
           resumed: false,
         });
       } catch (err: any) {
@@ -3190,7 +3203,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
-        let reward = targetMinutes;
+        const reward = focusRewardForMinutes(targetMinutes);
         let boxGranted: string | undefined;
 
         if (targetMinutes >= 120) {

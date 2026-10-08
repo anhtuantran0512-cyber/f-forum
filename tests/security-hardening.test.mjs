@@ -27,7 +27,11 @@ const {
   SlidingWindowRateLimiter,
 } = await import('../server/authGuard.ts');
 const { setProviderLookupForTest } = await import('../server/socialAuth.ts');
-const { FOCUS_REWARD_MINIMUM_MS } = await import('../server/economy.ts');
+const {
+  FOCUS_REWARD_MINIMUM_MS,
+  FOCUS_TARGET_MINUTES_MAX,
+  FOCUS_TARGET_MINUTES_MIN,
+} = await import('../server/economy.ts');
 const { dailyTriviaForDate } = await import('../shared/dailyTrivia.ts');
 
 /* ==========================================================================
@@ -647,6 +651,16 @@ test('9d. Phiên tập trung chỉ thưởng sau đủ 25 phút do đồng hồ 
       sessionId: 'focus-forged', elapsedMs: 999999999, reward: 999999,
     }, account.token);
     assert.equal(forged.status, 409, 'Không thể tự khai một phiên chưa được server mở');
+
+    const tooShort = await post(env.baseUrl, '/api/rewards/focus/start', {
+      targetMinutes: FOCUS_TARGET_MINUTES_MIN,
+    }, account.token);
+    assert.equal(tooShort.status, 400, 'Phiên dưới 25 phút không được mở phần thưởng');
+
+    const malformedDuration = await post(env.baseUrl, '/api/rewards/focus/start', {
+      targetMinutes: FOCUS_TARGET_MINUTES_MAX + 5,
+    }, account.token);
+    assert.equal(malformedDuration.status, 400, 'Server từ chối thời lượng ngoài allowlist');
 
     const started = await post(env.baseUrl, '/api/rewards/focus/start', {
       durationMs: 1, reward: 999999,

@@ -28,6 +28,14 @@ export const GIFT_BOX_REWARDS: Record<GiftBoxType, number> = {
 export const FOCUS_REWARD_MINUTES = 25;
 export const FOCUS_REWARD_AMOUNT = 25;
 export const FOCUS_REWARD_MINIMUM_MS = FOCUS_REWARD_MINUTES * 60_000;
+export const FOCUS_TARGET_MINUTES_MIN = 5;
+export const FOCUS_TARGET_MINUTES_MAX = 120;
+export const FOCUS_TARGET_MINUTES_STEP = 5;
+export const FOCUS_REWARD_MILESTONES = [
+  { minutes: 25, reward: 25 },
+  { minutes: 60, reward: 60 },
+  { minutes: 120, reward: 120 },
+] as const;
 export const FOCUS_SESSION_MAX_AGE_MS = 2 * 60 * 60_000;
 export const DAILY_REWARD_DATES_LIMIT = 400;
 
@@ -40,6 +48,20 @@ const isDateKey = (value: unknown): value is string => {
 const safeCount = (value: unknown, max = 10_000): number => {
   const count = Number(value);
   return Number.isFinite(count) ? Math.min(max, Math.max(0, Math.floor(count))) : 0;
+};
+
+export const normalizeFocusTargetMinutes = (value: unknown): number | null => {
+  if (typeof value !== 'number' || !Number.isInteger(value)) return null;
+  if (value < FOCUS_TARGET_MINUTES_MIN || value > FOCUS_TARGET_MINUTES_MAX) return null;
+  return value % FOCUS_TARGET_MINUTES_STEP === 0 ? value : null;
+};
+
+export const focusRewardForMinutes = (minutes: number): number => {
+  let reward = 0;
+  for (const milestone of FOCUS_REWARD_MILESTONES) {
+    if (minutes >= milestone.minutes) reward = milestone.reward;
+  }
+  return reward;
 };
 
 export const createEmptyDailyRewardProfile = (): DailyRewardProfile => ({
@@ -94,11 +116,11 @@ export const sanitizeFocusRewardSessions = (
     if (!id || !Number.isFinite(startedAt) || startedAt > now + 60_000 || now - startedAt > FOCUS_SESSION_MAX_AGE_MS) continue;
     const claimedAt = Number(value.claimedAt);
     const reward = Number(value.reward);
-    const targetMinutes = Number(value.targetMinutes);
+    const targetMinutes = normalizeFocusTargetMinutes(value.targetMinutes);
     output[email] = {
       id,
       startedAt: Math.floor(startedAt),
-      ...(Number.isFinite(targetMinutes) ? { targetMinutes: Math.floor(targetMinutes) } : {}),
+      ...(targetMinutes !== null ? { targetMinutes } : {}),
       ...(Number.isFinite(claimedAt) && claimedAt >= startedAt && claimedAt <= now + 60_000
         ? { claimedAt: Math.floor(claimedAt), reward: Number.isInteger(reward) ? reward : FOCUS_REWARD_AMOUNT }
         : {}),

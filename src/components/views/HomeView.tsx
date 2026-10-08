@@ -93,7 +93,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <span className="font-['Playfair_Display'] italic font-semibold text-amber-300 drop-shadow-[0_0_18px_rgba(252,211,77,0.4)]">
               Tiềm Năng
             </span>{" "}
-            Tuổi Trẻ FPT.
+            Tuổi Trẻ Việt Nam.
           </h1>
         </div>
 

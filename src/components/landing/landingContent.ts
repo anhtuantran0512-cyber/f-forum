@@ -383,5 +383,5 @@ export const TRUST_PILLARS: { icon: LucideIcon; label: string }[] = [
   { icon: Moon, label: 'Dark mode chống mỏi mắt' },
   { icon: Bot, label: 'Presence & gợi ý thông minh' },
   { icon: Flame, label: 'Chuỗi ngày học tập' },
-  { icon: GraduationCap, label: 'Thiết kế cho sinh viên FPT' },
+  { icon: GraduationCap, label: 'Thiết kế cho sinh viên' },
 ];

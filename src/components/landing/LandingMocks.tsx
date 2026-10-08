@@ -75,7 +75,7 @@ export const AppWindowMock: React.FC = () => (
         <div className="mx-auto hidden max-w-[280px] flex-1 items-center gap-2 rounded-full border border-[var(--ff-border)] bg-[var(--ff-surface)] px-3 py-1 sm:flex">
           <Search className="h-3 w-3 text-[var(--ff-text-dim)]" />
           <span className="truncate font-mono text-[10px] text-[var(--ff-text-dim)]">
-            f-forum.fpt.edu.vn/hoi-dap
+            f-forum.edu.vn/hoi-dap
           </span>
         </div>
         <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 sm:ml-0">
