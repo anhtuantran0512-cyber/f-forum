@@ -63,6 +63,7 @@ const FocusSanctuary = lazyWithRetry(() => import('./components/FocusSanctuary')
 const AuthModal = lazyWithRetry(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const ReportInboxModal = lazyWithRetry(() => import('./components/ReportInboxModal').then(m => ({ default: m.ReportInboxModal })));
 const AdminConsoleModal = lazyWithRetry(() => import('./components/AdminConsoleModal').then(m => ({ default: m.AdminConsoleModal })));
+const RoleBadge = lazyWithRetry(() => import('./components/RoleBadge').then(m => ({ default: m.RoleBadge })));
 
 const ViewLoadingFallback = () => (
   <div className="w-full h-full min-h-[50vh] flex items-center justify-center" aria-busy="true" aria-label="Đang tải giao diện">
@@ -625,7 +626,7 @@ export const App: React.FC = () => {
       {
         id: 'act-focus',
         label: 'Vào không gian tập trung',
-        hint: 'Pomodoro 25 phút + âm thanh 432Hz',
+        hint: 'Pomodoro 25 phút · Không gian tập trung',
         group: 'Không gian',
         icon: <Headphones className="w-4 h-4" />,
         shortcut: '⌘⇧F',
@@ -902,11 +903,11 @@ export const App: React.FC = () => {
       <div
         className={`relative w-full ${
           isScrollableView ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'
-        } ${currentView === 'landing' ? 'bg-[var(--ff-bg)]' : 'bg-black'} text-white font-sans`}
+        } ff-app-shell ff-view-${currentView} ${currentView === 'landing' ? 'bg-[var(--ff-bg)]' : 'bg-black'} text-white font-sans`}
       >
         {/* Ambient Godray Gradient Lighting Overlay (Enhanced influence across viewport) */}
         <div
-          className="fixed inset-0 pointer-events-none z-[1] overflow-hidden transition-all duration-700"
+          className="ff-godray-layer fixed inset-0 pointer-events-none z-[1] overflow-hidden transition-all duration-700"
           style={{
             background: activeGodray.gradient,
             opacity: Math.min(0.95, (godrayIntensity / 100) * 0.92),
@@ -914,7 +915,7 @@ export const App: React.FC = () => {
           aria-hidden="true"
         />
         <div
-          className="fixed -top-24 inset-x-0 h-[360px] pointer-events-none z-[1] blur-3xl transition-all duration-700"
+          className="ff-godray-layer fixed -top-24 inset-x-0 h-[360px] pointer-events-none z-[1] blur-3xl transition-all duration-700"
           style={{
             background: `radial-gradient(ellipse at 50% 0%, ${activeGodray.accent}55 0%, transparent 72%)`,
             opacity: Math.min(0.9, (godrayIntensity / 100) * 0.85),
@@ -1279,6 +1280,7 @@ export const App: React.FC = () => {
           currentUser.staffRole === 'MODERATOR' ||
           currentUser.staffRole === 'TEACHER'
         ) && (
+          <>
           <AdminInsightsModal
             isOpen={isAdminInsightsOpen}
             currentUser={currentUser}
@@ -1289,6 +1291,12 @@ export const App: React.FC = () => {
               setIsAdminConsoleOpen(true);
             }}
           />
+          <RoleBadge
+            userEmail={currentUser.email}
+            staffRole={currentUser.staffRole}
+            isSuperAdmin={currentUser.role === 'SUPER_ADMIN' || currentUser.email?.toLowerCase() === 'broamstuck@gmail.com'}
+          />
+          </>
         )}
         {isReportInboxOpen && (
           <ReportInboxModal
