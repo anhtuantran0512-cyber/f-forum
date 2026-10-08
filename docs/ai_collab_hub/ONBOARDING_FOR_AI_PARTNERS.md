@@ -48,4 +48,4 @@ Mỗi kỹ năng là một thư mục chứa `SKILL.md`. Bất kỳ AI nào cầ
 1. Mở file [STUDIO_TEAM_KANBAN.md](file:///home/broamstuck/Documents/BroAmStuck%20Studio/ai_collab_hub/STUDIO_TEAM_KANBAN.md).
 2. Kiểm tra xem file nào đang có AI khác sửa (Locked).
 3. Đăng ký task của mình vào phần "Đang làm" và ghi danh sách file bạn sẽ chỉnh sửa.
-4. Sau khi hoàn thành: Chạy `npm test`, commit, cập nhật lại bảng Kanban và bàn giao cho AI khác review.
+4. Sau khi hoàn thành: Tự audit logic và biên dịch tĩnh sạch sẽ (tuân thủ Chính sách Tiết kiệm Tài nguyên: KHÔNG chạy `npm test` tràn lan trừ khi Sếp yêu cầu đích danh), commit, cập nhật lại bảng Kanban và bàn giao cho AI khác review.

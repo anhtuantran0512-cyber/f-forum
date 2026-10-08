@@ -29,5 +29,10 @@ Khi đang làm việc, trước nguy cơ cạn quota, timeout, mất kết nối
 - Khi một trong hai AI (Antigravity hoặc Freebuff) được kích hoạt lại trong phiên tiếp theo, việc đầu tiên là đọc file checkpoint này và tiếp tục công việc tại điểm dừng mà không cần Sếp phải nhắc lại.
 - Tuyệt đối không để gián đoạn làm suy giảm chất lượng đầu ra.
 
+## 6. Chính Sách Tiết Kiệm Tài Nguyên (Zero-Waste Testing Policy)
+- Theo chỉ thị của Sếp: Khi các phòng ban (Room 04 Core Dev, Room 08 Code Review, Room 06 QA...) đã tự thẩm định chất lượng code chặt chẽ về mặt cú pháp và logic, **TUYỆT ĐỐI KHÔNG tự tiện chạy `npm test` tràn lan**.
+- Việc chạy toàn bộ test bộ lớn liên tục gây lãng phí tài nguyên và làm chậm tốc độ release. Chỉ cần đảm bảo biên dịch tĩnh sạch sẽ (`tsc -b && vite build`). Chỉ chạy test khi Sếp đích thân yêu cầu.
+
 Luôn nhớ: Mục tiêu cuối cùng là hoàn hảo hóa sản phẩm cho BroAmStuck Studio.
+
 

@@ -60,7 +60,7 @@ Mọi tài nguyên và thông tin trạng thái đều mở sẵn cho bạn tạ
 - **Trạng thái Checkpoint dự án**: `docs/STUDIO_CHECKPOINT.md`
 - **Kho 330+ Skills hỗ trợ**: `/home/broamstuck/.gemini/config/skills/`
 
-Khi bạn nhận một tác vụ, hãy ghi tên mình vào bảng Kanban để tôi và Freebuff không chạm vào các file bạn đang xử lý. Khi bạn hoàn thành, hãy chạy `npm test` để đảm bảo 225 bài kiểm thử vẫn xanh mượt trước khi báo cho Sếp.
+Khi bạn nhận một tác vụ, hãy ghi tên mình vào bảng Kanban để tôi và Freebuff không chạm vào các file bạn đang xử lý. Khi bạn hoàn thành, hãy tự thẩm định logic và đảm bảo code biên dịch sạch sẽ (Studio áp dụng Chính sách Tiết kiệm Tài nguyên: không cần chạy `npm test` tràn lan) trước khi bàn giao cho Sếp.
 
 Rất vinh hạnh được kề vai sát cánh cùng bạn, Codex. Hãy cùng nhau đưa BroAmStuck Studio lên đỉnh cao công nghệ!
 
