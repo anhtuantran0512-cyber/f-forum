@@ -692,7 +692,12 @@ body.no-context-menu {
 .potator-mode-active .liquid-glass {
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+}/* Dark mode: Obsidian Liquid Glass */
+.liquid-glass {
+  background: rgba(15, 20, 26, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
+
 
 /* ==========================================================================
    Potator Mode — giảm lớp nền tốn kém ngoài màn hình chính, không tắt animation
@@ -832,6 +837,16 @@ html.potato-mode .ff-app-shell:not(.ff-view-home) .ff-godray-layer {
 /* Light mode: crystalline ultra-translucent glass */
 html.light .liquid-glass {
   background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+html.light div[role="dialog"].liquid-glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-color: rgba(255, 255, 255, 0.6);
+}
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -856,6 +871,27 @@ html.light .liquid-glass::before {
   mask-composite: exclude;
   pointer-events: none;
 }
+/* Signature gradient border với glowing amber specular highlights */
+.liquid-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.42) 0%,
+    rgba(251, 191, 36, 0.25) 20%,
+    rgba(255, 255, 255, 0) 42%,
+    rgba(255, 255, 255, 0) 62%,
+    rgba(255, 255, 255, 0.15) 82%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
 
 /* Dark mode: Obsidian liquid glass */
 /* (Giữ nguyên dark mode đã có — chỉ đảm bảo baseline đúng spec) */
@@ -928,19 +964,36 @@ html.light .liquid-glass::before {
 .ff-nav-loading__sheen {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255,255,255,0.08) 30%,
-    rgba(255,255,255,0.08) 70%,
-    transparent 100%
-  );
-  animation: ff-nav-sheen 0.78s ease-in-out;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 30%, rgba(255,255,255,0.08) 70%, transparent 100%);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  padding: 1px;
+  animation: ffNavLoadingSheen 0.9s ease-in-out infinite;
+  will-change: transform;
+  animation-play-state: paused;
 }
+
+@keyframes ffNavLoadingSheen {
+  0%, 100% { transform: translateX(-100%); animation-fill-mode: forwards; }
+  100% { transform: translateX(400%); }
+}
+html.light .ff-nav-loading__sheen { background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 30%, rgba(255,255,255,0.15) 70%, transparent 100%); }
+.reduce-motion .ff-nav-loading__sheen { animation: none; }
 
 @keyframes ff-nav-sheen {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
+}
+
+@keyframes ffNavMorph {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Base nav-tab-btn — min-width glides with the morph, not jumps */
+.nav-tab-btn {
+  transition: min-width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* ==========================================================================
@@ -1555,6 +1608,239 @@ html.light.reduce-motion .ff-cd__dial-fill {
   100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
+
+/* ==========================================================================
+   Màn hình chờ chuyển phân khu (la-09) — đúng tỉ lệ, bỏ nút demo
+   =============================================================== */
+.la-09__disc { width: 220px; height: 220px; border-radius: 50%; }
+.la-09__disc--inner { width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, #1b2735 0%, #0b1218 100%); position: relative; }
+.la-09__disc--groove { position: absolute; inset: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.06); }
+.la-09__disc--label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #fbbf24; letter-spacing: 0.2em; }
+.la-09__arm { position: absolute; width: 4px; height: 64px; background: #fbbf24; top: 100px; left: 92px; transform-origin: 50% 150%; transform: rotate(45deg); }
+.la-09__arm__tip { width: 10px; height: 10px; border-radius: 50%; background: #fbbf24; position: absolute; top: -5px; left: -3px; }
+.la-09__post { width: 40px; height: 10px; background: #fbbf24; position: absolute; top: 0; left: 0; border-radius: 999px; }
+.la-09__head { width: 8px; height: 8px; border-radius: 50%; background: #fff; position: absolute; top: -2px; left: -2px; }
+.la-09__eq { display: flex; gap: 2px; width: 100%; margin-top: 12px; }
+.la-09__eq__bar { width: 6px; height: 28px; background: rgba(251, 191, 36, 0.25); border-radius: 999px; }
+.la-09__eq__bar:nth-child(1) { height: 14px; }
+.la-09__eq__bar:nth-child(2) { height: 22px; }
+.la-09__eq__bar:nth-child(3) { height: 26px; }
+.la-09__eq__bar:nth-child(4) { height: 30px; }
+.la-09__eq__bar:nth-child(5) { height: 34px; }
+.la-09__eq__bar:nth-child(6) { height: 38px; }
+.la-09__eq__bar:nth-child(7) { height: 42px; }
+.la-09__eq__bar:nth-child(8) { height: 46px; }
+.la-09__eq__bar:nth-child(9) { height: 50px; }
+.la-09__eq__bar:nth-child(10) { height: 54px; }
+.la-09__eq__bar:nth-child(11) { height: 56px; }
+.la-09__eq__bar:nth-child(12) { height: 58px; }
+.la-09__bar { width: 100%; height: 3px; background: rgba(255,255,255,0.1); border-radius: 999px; margin-top: 24px; position: relative; overflow: hidden; }
+.la-09__bar-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; background: linear-gradient(90deg, #fbbf24, #f59e0b); border-radius: 999px; transition: width 0.3s ease; }
+.la-09__label { color: #fbbf24; font-weight: 700; font-size: 14px; margin-top: 10px; letter-spacing: 0.2em; }
+.la-09__label--small { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.3em; }
+.la-09__label--tiny { font-size: 8px; color: #64748b; text-transform: uppercase; letter-spacing: 0.4em; }
+.la-09__chrome--top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.la-09__chrome--bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
+.la-09__chrome--btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.04); color: #fff; font-size: 12px; cursor: pointer; transition: background 0.2s, border-color 0.2s; }
+.la-09__chrome--btn:hover { background: rgba(251, 191, 36, 0.12); border-color: rgba(251, 191, 36, 0.4); color: #fbbf24; }
+.la-09__chrome--btn:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
+.la-09__chrome--label { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: 0.3em; }
+.la-09__chrome--icon { width: 14px; height: 14px; opacity: 0.5; }
+
+@keyframes laVinylSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes laBarRun {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+.la-09 { display: flex; align-items: center; justify-content: center; }
+.la-09__card { width: 280px; max-width: 90vw; background: var(--ff-surface, rgba(15,20,26,0.9)); border: 1px solid rgba(255,255,255,0.12); border-radius: 2rem; padding: 2rem; text-align: center; backdrop-filter: blur(20px); box-shadow: 0 20px 50px rgba(0,0,0,0.6); position: relative; overflow: hidden; }
+.la-09__card::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 0%, rgba(251,191,36,0.06) 0%, transparent 70%); pointer-events: none; }
+html.light .la-09__card { background: rgba(255, 255, 255, 0.5); border-color: rgba(255, 255, 255, 0.8); }
+html.light .la-09__card::after { background: radial-gradient(circle at 50% 0%, rgba(251, 191, 36, 0.12) 0%, transparent 70%); }
+
+.la-09__icon { width: 64px; height: 64px; margin: 0 auto 1rem; border-radius: 50%; background: linear-gradient(135deg, #fbbf24, #f59e0b); display: flex; align-items: center; justify-content: center; animation: laVinylSpin 8s linear infinite; box-shadow: 0 0 30px rgba(251,191,36,0.4); }
+.la-09__icon svg { width: 32px; height: 32px; color: #0a0f14; }
+.la-09__title { font-size: 14px; font-weight: 700; color: #fbbf24; letter-spacing: 0.1em; margin-top: 1rem; }
+.la-09__sub { color: #94a3b8; font-size: 11px; margin-top: 0.25rem; letter-spacing: 0.1em; }
+.la-09__meta { display: flex; justify-content: space-between; margin-top: 1.5rem; padding: 0 0.25rem; }
+.la-09__meta__label { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: 0.3em; }
+.la-09__meta__value { font-size: 12px; color: #fff; font-weight: 600; }
+.la-09--dots .la-09__deck { display: none; }
+.la-09--dots .la-09__dots-track { display: flex; align-items: center; justify-content: center; gap: 6px; height: 64px; margin-top: 1rem; }
+.la-09--dots .la-09__dots-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(251,191,36,0.15); }
+.la-09--dots .la-09__dots-dot.active { background: #fbbf24; animation: laDotBounce 1.4s ease-in-out infinite; }
+.la-09--dots .la-09__dots-dot:nth-child(2) { animation-delay: 0.16s; }
+.la-09--dots .la-09__dots-dot:nth-child(3) { animation-delay: 0.32s; }
+@keyframes laDotBounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* ==========================================================================
+   Bong bóng "đang tải" trong phòng chat (la-05)
+   =============================================================== */
+.la-05__bubble { width: 64px; height: 64px; background: rgba(251,191,36,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(251,191,36,0.25); }
+.la-05__bubble__chrome { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(251,191,36,0.3) 0%, transparent 70%); pointer-events: none; }
+
+.la-05__dots { display: flex; align-items: center; justify-content: center; gap: 6px; height: 24px; }
+.la-05__dots-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fbbf24;
+}
+.reduce-motion .la-05__dot { animation: none; opacity: 0.4; }
+
+
+/* ==========================================================================
+   Bảng nhịp học tập (cnc-21) — nhịp đập và vệt quét từ dữ liệu thật
+   =============================================================== */
+.ff-pulse__heart {
+  width: 40px;
+  height: 40px;
+  position: relative;
+  animation: ffPulseHeart calc(60s / var(--ff-pulse, 72)) infinite;
+}
+
+.ff-pulse__heart__svg { width: 100%; height: 100%; fill: none; }
+@keyframes ffPulseHeart {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+.ff-pulse__sweep { width: 100%; height: 2px; position: absolute; top: 0; left: 0; background: linear-gradient(90deg, transparent, #fbbf24, transparent); animation: ffPulseSweep 3s linear infinite; opacity: 0; }
+@keyframes ffPulseSweep {
+  0% { left: 0; opacity: 0; }
+  30% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+.ff-pulse__zone { position: relative; background: rgba(255,255,255,0.05); border-radius: 1rem; padding: 1rem; }
+.ff-pulse { display: flex; align-items: center; gap: 1rem; padding: 1.5rem; border-radius: 1rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+html.light .ff-pulse { background: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.8); }
+html.light .ff-pulse__zone { background: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.7); }
+html.light .ff-pulse__heart { background: #101827; box-shadow: 0 0 0 1px rgba(0,0,0,0.25) inset; }
+
+
+
+/* ==========================================================================
+   Bảng xếp hạng giờ học — GUI mới, giữ nguyên hợp đồng giao diện cũ
+   =============================================================== */
+.ff-board { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.12); border-radius: 2rem; padding: 1.75rem; backdrop-filter: blur(20px); box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
+.ff-board__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+.ff-board__title { font-size: 16px; font-weight: 700; color: #fbbf24; letter-spacing: 0.05em; text-transform: uppercase; }
+.ff-board__sub { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.3em; margin-top: 0.25rem; }
+.ff-board__switch { display: flex; gap: 4px; background: rgba(255,255,255,0.05); border-radius: 999px; padding: 4px; }
+.ff-board__switch-btn { padding: 0.5rem 1rem; border-radius: 999px; font-size: 11px; font-weight: 600; color: #fff; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer; transition: background 0.2s, color 0.2s; border: none; background: transparent; }
+.ff-board__switch-btn:hover { color: #fff; }
+.ff-board__switch-btn.is-active { background: #fbbf24; color: #0a0f14; }
+.ff-board__leaderboard { position: relative; }
+.ff-board__rank { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-size: 100px; font-weight: 900; color: rgba(251,191,36,0.08); line-height: 1; letter-spacing: -0.08em; }
+.ff-board__total { font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 0.5rem; }
+.ff-board__total__unit { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.3em; }
+
+.ff-podium { position: relative; height: 160px; margin: 1.5rem 0; }
+.ff-podium__plinth { position: absolute; left: 50%; bottom: 0; width: 100%; height: 24px; background: rgba(255,255,255,0.06); border-radius: 2rem; transform: translateX(-50%); }
+.ff-podium__slot { position: absolute; bottom: 24px; display: flex; flex-direction: column; align-items: center; }
+@keyframes ffCrownBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.ff-podium__slot--1 { left: 50%; transform: translateX(-50%); }
+.ff-podium__slot--2 { left: 20%; }
+.ff-podium__slot--3 { right: 20%; }
+.ff-podium__medal { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: #fff; }
+.ff-podium__slot--1 .ff-podium__medal { background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 0 20px rgba(251,191,36,0.6); }
+.ff-podium__slot--2 .ff-podium__medal { background: linear-gradient(135deg, #94a3b8, #64748b); }
+.ff-podium__slot--3 .ff-podium__medal { background: linear-gradient(135deg, #b45309, #92400e); }
+.ff-podium__name { font-size: 11px; font-weight: 600; color: #fff; margin-top: 0.35rem; text-align: center; text-transform: uppercase; letter-spacing: 0.05em; }
+.ff-podium__hours { font-size: 10px; color: #94a3b8; text-align: center; margin-top: 0.1rem; }
+
+.ff-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.ff-row:last-child { border-bottom: none; }
+.ff-row__rank { width: 24px; font-size: 10px; font-weight: 700; color: #94a3b8; text-align: center; }
+.ff-row__avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(251,191,36,0.2); display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fbbf24; font-size: 11px; }
+.ff-row__name { flex: 1; font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ff-row__hours { font-size: 11px; color: #94a3b8; text-align: right; }
+
+.ff-row--you { background: rgba(251,191,36,0.08); margin: 0 -0.75rem; padding: 0.6rem 0.75rem; border-radius: 1rem; border: 1px solid rgba(251,191,36,0.3); margin-top: 0.5rem; }
+.ff-row--you .ff-row__name::after { content: ' (bạn)'; color: #fbbf24; font-weight: 600; }
+.ff-row__est { color: #94a3b8; font-size: 10px; }
+.ff-row__est::before { content: '~'; margin-right: 2px; }
+
+.ff-board__footer { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
+.ff-board__me { display: flex; align-items: center; gap: 0.5rem; font-size: 11px; color: #94a3b8; }
+.ff-board__me__rank { font-weight: 700; color: #fbbf24; }
+.ff-board__me__sep { color: #64748b; }
+.ff-board__me__hours { font-weight: 500; color: #fff; }
+
+.ff-board__cta { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem; border-radius: 0.75rem; background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #0a0f14; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; border: none; }
+.ff-board__cta:hover { opacity: 0.95; }
+
+html.light .ff-ladder__step { background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 100%); border-color: rgba(255,255,255,0.2); }
+html.light .ff-ladder__step--level-4 { background: linear-gradient(180deg, rgba(167,139,250,0.15) 0%, rgba(167,139,250,0) 100%); border-color: rgba(167,139,250,0.3); }
+html.light .ff-board__leaderboard { background: rgba(255, 255, 255, 0.4); }
+html.light .ff-board__title { color: #0a0f14; }
+html.light .ff-board__sub { color: #475569; }
+html.light .ff-board__switch-btn { color: #1e293b; }
+html.light .ff-podium__plinth { background: rgba(255, 255, 255, 0.2); }
+html.light .ff-podium__name { color: #0a0f14; }
+html.light .ff-podium__hours { color: #64748b; }
+html.light .ff-row__rank { color: #64748b; }
+html.light .ff-row__avatar { background: rgba(245, 158, 11, 0.25); color: #b45309; }
+html.light .ff-row__name { color: #1e293b; }
+html.light .ff-row__hours { color: #64748b; }
+html.light .ff-row--you { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.4); }
+html.light .ff-row--you .ff-row__name::after { color: #b45309; }
+html.light .ff-row__est { color: #94a3b8; }
+html.light .ff-board__footer { border-top-color: rgba(255, 255, 255, 0.15); }
+html.light .ff-board__me { color: #64748b; }
+html.light .ff-board__me__rank { color: #b45309; }
+html.light .ff-board__me__hours { color: #1e293b; }
+html.light .ff-board__cta { color: #0a0f14; }
+
+html.light .ff-ladder__step--level-5 { background: linear-gradient(180deg, rgba(245,158,11,0.2) 0%, rgba(245,158,11,0) 100%); border-color: rgba(245,158,11,0.4); }
+
+/* ==========================================================================
+   Navbar phóng to/thu nhỏ — bóng mờ + MỘT vệt sáng, không giật
+   =============================================================== */
+.ff-nav-loading__sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 30%, rgba(255,255,255,0.08) 70%, transparent 100%);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  padding: 1px;
+  animation: ffNavLoadingSheen 0.9s ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes ffNavLoadingSheen {
+  0%, 100% { transform: translateX(-100%); animation-fill-mode: forwards; }
+  100% { transform: translateX(400%); }
+}
+html.light .ff-nav-loading__sheen { background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 30%, rgba(255,255,255,0.15) 70%, transparent 100%); }
+.reduce-motion .ff-nav-loading__sheen { animation: none; }
+
+/* ==========================================================================
+   Vòng 11 — bảng xếp hạng chỉ còn tài khoản thật + thang rank 5 bậc
+   =============================================================== */
+.ff-ladder__step--b4 { background: linear-gradient(180deg, rgba(167,139,250,0.2) 0%, rgba(167,139,250,0) 100%); border-color: rgba(167,139,250,0.4); box-shadow: 0 0 16px rgba(167,139,250,0.3); }
+.ff-ladder__step--b5 { background: linear-gradient(180deg, rgba(245,158,11,0.25) 0%, rgba(245,158,11,0) 100%); border-color: rgba(245,158,11,0.5); box-shadow: 0 0 24px rgba(245,158,11,0.3); }
+.ff-ladder { display: flex; flex-direction: column; gap: 0.5rem; }
+.ff-ladder__step { position: relative; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; padding: 0.75rem 1rem; backdrop-filter: blur(14px); transition: background 0.25s, border-color 0.25s; }
+.ff-ladder__step--level-4 { background: linear-gradient(180deg, rgba(167,139,250,0.2) 0%, rgba(167,139,250,0) 100%); border-color: rgba(167,139,250,0.4); }
+.ff-ladder__step--level-5 { background: linear-gradient(180deg, rgba(245,158,11,0.25) 0%, rgba(245,158,11,0) 100%); border-color: rgba(245,158,11,0.5); box-shadow: 0 0 20px rgba(245,158,11,0.3); }
+.ff-ladder__rank { font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #64748b; }
+.ff-ladder__member { font-size: 11px; color: #fff; font-weight: 500; margin-top: 0.15rem; }
+.ff-ladder__count { display: inline-block; padding: 0.1rem 0.3rem; border-radius: 999px; background: rgba(255,255,255,0.08); font-size: 9px; color: #94a3b8; margin-left: 0.4rem; }
+html.light .ff-ladder__step { background: rgba(255,255,255,0.6); border-color: rgba(15,23,42,0.1); color: #0a1020; }
+html.light .ff-ladder__step--level-4 { background: rgba(167,139,250,0.15); border-color: rgba(167,139,250,0.3); color: #0a1020; }
+html.light .ff-ladder__step--level-5 { background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.3); color: #0a1020; }
+.ff-board__count { display: inline-block; padding: 0.1rem 0.35rem; border-radius: 999px; background: rgba(255,255,255,0.08); font-size: 9px; color: #94a3b8; margin-left: 0.4rem; }
 /* ==========================================================================
    Radial menu — hub 64px, item 53px (+20%)
    =============================================================== */
@@ -1689,7 +1975,28 @@ html.light .ff-focus-detail {
     rgba(255,255,255,0.08) 70%,
     transparent 100%
   );
-  animation: ff-nav-sheen 0.78s ease-in-out;
+  will-change: transform;
+  animation: ffNavLoadingSheen 0.9s ease-in-out infinite;
+  animation-play-state: paused;
+}
+
+@keyframes ffNavLoadingSheen {
+  0%, 100% { transform: translateX(-100%); animation-fill-mode: forwards; }
+  100% { transform: translateX(400%); }
+}
+
+html.light .ff-nav-loading__sheen {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.15) 30%,
+    rgba(255,255,255,0.15) 70%,
+    transparent 100%
+  );
+}
+
+.reduce-motion .ff-nav-loading__sheen {
+  animation: none;
 }
 
 @keyframes ff-nav-sheen {
@@ -3137,6 +3444,61 @@ html.light .ff-focus-detail {
   transition: background 0.3s ease;
 }
 
+/* ==========================================================================
+   Liquid Glass Component (Original Crystalline iOS Liquid Glass Baseline)
+   =============================================================== */
+.liquid-glass {
+  position: relative;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 20px 50px rgba(0, 0, 0, 0.5);
+  transition: background 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.liquid-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.42) 0%,
+    rgba(255, 255, 255, 0) 34%,
+    rgba(255, 255, 255, 0) 66%,
+    rgba(255, 255, 255, 0.14) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Signature gradient border với glowing amber specular highlights */
+.liquid-glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.42) 0%,
+    rgba(251, 191, 36, 0.25) 20%,
+    rgba(255, 255, 255, 0) 42%,
+    rgba(255, 255, 255, 0) 62%,
+    rgba(255, 255, 255, 0.15) 82%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
 .settings-option__toggle--active {
   background: linear-gradient(135deg, #f59e0b, #f472b6);
 }
@@ -3200,13 +3562,137 @@ html.light .ff-focus-detail {
   background: linear-gradient(
     160deg,
     rgba(255, 255, 255, 0.42) 0%,
+    rgba(255, 255, 255, 0.42) 0%,
     rgba(251, 191, 36, 0.25) 20%,
-    rgba(255, 255, 255, 0) 40%,
-    rgba(255, 255, 255, 0) 60%,
-    rgba(255, 255, 255, 0.14) 80%,
-    rgba(251, 191, 36, 0.2) 100%
+    rgba(255, 255, 255, 0) 42%,
+    rgba(255, 255, 255, 0) 62%,
+    rgba(255, 255, 255, 0.15) 82%
+  );
+}
+
+/* ==========================================================================
+   Liquid Glass Component (Original Crystalline iOS Liquid Glass Baseline)
+   =============================================================== */
+.liquid-glass {
+  position: relative;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 20px 50px rgba(0, 0, 0, 0.5);
+  transition: background 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.liquid-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.42) 0%,
+    rgba(255, 255, 255, 0) 34%,
+    rgba(255, 255, 255, 0) 66%,
+    rgba(255, 255, 255, 0.14) 100%
   );
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Signature gradient border với glowing amber specular highlights */
+.liquid-glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.42) 0%,
+    rgba(255, 255, 255, 0) 34%,
+    rgba(255, 255, 255, 0) 66%,
+    rgba(255, 255, 255, 0.14) 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Dialog popovers giữ crystalline liquid glass trong light mode */
+html.light div[role="dialog"].liquid-glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+/* ==========================================================================
+   Duplication guard: chỉ hoạt động khi Potator Mode bật
+   =============================================================== */
+.potator-mode-active video,
+.potator-mode-active .video-bg {
+  display: none !important;
+}
+
+/* Giảm blur nặng */
+
+.ff-nav-capsule--busy .ff-nav-loading {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: none;
+}
+
+.ff-view-slide-up {
+  animation: ffViewSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+@keyframes ffViewSlideUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ffNavLoadingSheen {
+  0%, 100% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+.ff-nav-capsule--busy > *:not(.ff-nav-aura):not(.ff-nav-loading) {
+  cursor: pointer;
+}
+
+.ff-nav-capsule--busy .ff-nav-aura::before {
+  opacity: 1;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   Radial menu — hub 64px, item 53px (+20%)
+   =============================================================== */
+.radial-menu-hub {
+  position: fixed;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(16, 22, 36, 0.78);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(245,  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
@@ -3230,3 +3716,302 @@ html.light div[role="dialog"].liquid-glass {
 }
 
 /* Giảm blur nặng */
+
+
+
+
+/* ==========================================================================
+   Settings entrance animation — mượt mà
+   =============================================================== */
+.ff-backdrop-out {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+  z-index: 40;
+}
+
+.ff-settings-layer {
+  position: relative;
+  pointer-events: none;
+}
+
+.ff-settings-panel--floating {
+  pointer-events: auto !important;
+}
+
+.ff-settings-panel--ghost {
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   Radial menu — hub 64px, item 53px (+20%)
+   =============================================================== */
+:root {
+  --ccm-r: 132px;
+  --ccm-r-alt: 164px;
+}
+
+.radial-menu-hub {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+}
+
+.radial-menu-item {
+  width: 53px;
+  height: 53px;
+  border-radius: 50%;
+}
+
+/* ==========================================================================
+   Study hours ranking — 5 bậc rank, icon đính đúng spec
+   =============================================================== */
+.ff-ladder__step--b4 {
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.2) 0%, rgba(167, 139, 250, 0) 100%);
+  border-color: rgba(167, 139, 250, 0.4);
+  box-shadow: 0 0 16px rgba(167, 139, 250, 0.3);
+}
+
+.ff-ladder__step--b5 {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0) 100%);
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.3);
+}
+
+.ff-hours__chart, .ff-hours__recent, .ff-hours__del {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--ff-text);
+}
+
+html.light .ff-hours {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(15, 23, 42, 0.1);
+  color: #0a1020;
+}
+
+.ff-hours__col.is-today {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+@keyframes ffFocusChipIn {
+  0% { opacity: 0; transform: translateY(-6px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes ffFocusToastIn {
+  0% { opacity: 0; transform: translateY(8px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.ff-focus-chip { animation: ffFocusChipIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.reduce-motion .ff-focus-chip { animation: none !important; }
+
+.ff-focus-toast { animation: ffFocusToastIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.reduce-motion .ff-focus-toast { animation: none !important; }
+
+/* ==========================================================================
+   Study hours UI — light mode chip, toast, chi tiết
+   =============================================================== */
+.ff-focus-chip,
+.ff-focus-toast,
+.ff-focus-detail {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--ff-text);
+}
+
+html.light .ff-focus-chip,
+html.light .ff-focus-toast,
+html.light .ff-focus-detail {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(15, 23, 42, 0.1);
+  color: #0a1020;
+}
+
+/* ==========================================================================
+   Study hours ranking — 5 bậc rank, icon đính đúng spec
+   =============================================================== */
+.ff-ladder__step--b4 {
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.2) 0%, rgba(167, 139, 250, 0) 100%);
+  border-color: rgba(167, 139, 250, 0.4);
+  box-shadow: 0 0 16px rgba(167, 139, 250, 0.3);
+}
+
+.ff-ladder__step--b5 {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0) 100%);
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.3);
+}
+
+.ff-hours__chart,
+.ff-hours__recent,
+.ff-hours__del {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--ff-text);
+}
+
+html.light .ff-hours {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(15, 23, 42, 0.1);
+  color: #0a1020;
+}
+
+.ff-hours__col.is-today {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+/* ==========================================================================
+   Màn hình chờ chuyển phân khu (la-09) — tỉ lệ đúng, bỏ nút demo
+   =============================================================== */
+.view-transition-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 7, 12, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.view-transition-loader__card {
+  width: 280px;
+  max-width: 90vw;
+  background: var(--ff-surface);
+  border: 1px solid var(--ff-border);
+  border-radius: 2rem;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: var(--ff-shadow);
+}
+
+.view-transition-loader__icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--ff-amber), var(--ff-cyan));
+  animation: view-transition-pulse 1.5s ease-in-out infinite;
+}
+
+.view-transition-loader__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ff-text);
+}
+
+.view-transition-loader__progress {
+  margin-top: 1rem;
+  height: 3px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.view-transition-loader__progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ff-amber), var(--ff-cyan));
+  width: 0%;
+  transition: width 0.3s var(--ff-ease);
+}
+
+@keyframes view-transition-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+
+/* ==========================================================================
+   Bong bóng "đang tải" trong phòng chat (la-05)
+   =============================================================== */
+.chat-loading-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 24px;
+}
+
+.chat-loading-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ff-amber);
+  animation: chat-loading-bounce 1.4s ease-in-out infinite;
+}
+
+.chat-loading-dot:nth-child(2) { animation-delay: 0.2s; }
+.chat-loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes chat-loading-bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* ==========================================================================
+   Bảng nhịp học tập (cnc-21) — nhịp đập và vệt quét từ dữ liệu thật
+   =============================================================== */
+.study-pulse-board {
+  position: relative;
+  overflow: hidden;
+  background: var(--ff-surface);
+  border: 1px solid var(--ff-border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.study-pulse-beat {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at var(--beat-x, 50%) var(--beat-y, 50%),
+    rgba(245, 158, 11, 0.2) 0%,
+    transparent 60%
+  );
+  animation: study-pulse-beat 2s ease-in-out infinite;
+  opacity: 0.6;
+}
+
+.study-pulse-sweep {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--ff-amber), transparent);
+  animation: study-pulse-sweep 3s linear infinite;
+}
+
+@keyframes study-pulse-beat {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.02); opacity: 1; }
+}
+
+@keyframes study-pulse-sweep {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* ==========================================================================
+   Đồng hồ cơ Odometer — hột lá chắt lưng mình
+   =============================================================== */
+.ff-odo__strip {
+  /* used by OdometerDigits column */
+}/* Liquid Glass Component (Original Crystalline iOS Liquid Glass Baseline) */
+
