@@ -1,7 +1,7 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useCallback } from 'react';
 import type { ShopItem } from '../types';
-import { getTierColorStyles } from '../utils/shopData';
+
 
 interface MasonryShopGridProps {
   items: ShopItem[];
@@ -62,8 +62,8 @@ export const MasonryShopGrid: React.FC<MasonryShopGridProps> = ({
       }}
     >
       {filteredItems.map((item) => {
-        const tierStyles = getTierColorStyles(item.tierColor as 'green' | 'blue' | 'red' | 'purple');
         const isEquipped = equippedBadge === item.id;
+
         const canAfford = userCoin >= item.price;
         const isHovered = hoveredId === item.id;
 

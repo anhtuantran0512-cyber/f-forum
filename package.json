@@ -13,7 +13,9 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "@types/bcryptjs": "^2.4.6",
     "@types/ws": "^8.18.1",
+    "bcryptjs": "^3.0.3",
     "lucide-react": "^1.48.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

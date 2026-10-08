@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface CircularProgressRingProps {
   progress: number;          // 0-100
@@ -9,7 +9,6 @@ interface CircularProgressRingProps {
   elapsed?: number;           // elapsed seconds
   label?: string;
   milestone?: { reached: boolean; label: string; minutes: number };
-  potatoMode?: boolean;
   className?: string;
 }
 
@@ -19,7 +18,6 @@ export const CircularProgressRing: React.FC<CircularProgressRingProps> = ({
   strokeWidth = 6,
   label,
   milestone,
-  potatoMode = false,
   className = '',
 }) => {
   const radius = (size - strokeWidth) / 2;
@@ -28,10 +26,6 @@ export const CircularProgressRing: React.FC<CircularProgressRingProps> = ({
   const center = size / 2;
   
   // Gradient animation: rotate gradient angle based on progress
-  const gradientOffset = useMemo(() => {
-    return (progress / 100) * 360;
-  }, [progress]);
-
   // Confetti burst trigger
   const burstRef = useRef(false);
   const prevProgressRef = useRef(0);

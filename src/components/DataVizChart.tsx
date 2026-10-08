@@ -1,5 +1,4 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+/* Bản quyền trí tuệ thuộc về BroAmStuck */import React, { useMemo, useState, useRef } from 'react';
 
 interface DataPoint {
   label: string;
@@ -17,7 +16,6 @@ interface DataVizChartProps {
   showLabels?: boolean;
   gradientColors?: [string, string];
   className?: string;
-  onClick?: (point: DataPoint, index: number) => void;
   "aria-label"?: string;
 }
 
@@ -31,7 +29,6 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
   showLabels = true,
   gradientColors = ['rgba(245,158,11,0.3)', 'rgba(244,114,182,0.1)'],
   className = '',
-  onClick,
   "aria-label": ariaLabel = 'Biểu đồ dữ liệu',
 }) => {
   const [tooltip, setTooltip] = useState<{
@@ -106,16 +103,14 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
   // Grid lines
   const gridLines = useMemo(() => {
     if (!showGrid) return [];
-    const { chartHeight, chartWidth, padding, maxValue, minValue, yScale } = geometry;
-    const lines = [];
-    const steps = 5;
+    const { chartHeight, chartWidth, padding } = geometry;
+    const stepCount = 5;
     
-    for (let i = 0; i <= steps; i++) {
-      const y = padding.top + (i / steps) * chartHeight;
-      const value = maxValue - (i / steps) * (maxValue - minValue);
-      lines.push(
+    return Array.from({ length: stepCount + 1 }, () => {
+      const y = padding.top + ((stepCount - 1) / stepCount) * chartHeight;
+      return (
         <line
-          key={i}
+          key={padding.top + y}
           x1={padding.left}
           y1={y}
           x2={padding.left + chartWidth}
@@ -126,8 +121,7 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
           strokeDasharray="4 4"
         />
       );
-    }
-    return lines;
+    });
   }, [showGrid, geometry]);
 
   // X-axis labels
@@ -138,7 +132,7 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
     
     return data
       .filter((_, i) => i % step === 0 || i === data.length - 1)
-      .map((d, i, filtered) => {
+      .map((d) => {
         const originalIndex = data.indexOf(d);
         return (
           <text
@@ -160,15 +154,16 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
   // Y-axis labels
   const yLabels = useMemo(() => {
     if (!showLabels) return [];
-    const { chartHeight, chartWidth, padding, maxValue, minValue } = geometry;
+    const { chartHeight, padding, maxValue, minValue } = geometry;
     const steps = 5;
     
-    return Array.from({ length: steps + 1 }, (_, i) => {
-      const y = padding.top + (i / steps) * chartHeight;
-      const value = Math.round(maxValue - (i / steps) * (maxValue - minValue));
-      return (
+    const items: React.ReactNode[] = [];
+    for (let k = 0; k <= steps; k++) {
+      const val = Math.round(maxValue - (k / steps) * (maxValue - minValue));
+      const y = padding.top + (k / steps) * chartHeight;
+      items.push(
         <text
-          key={i}
+          key={k}
           x={padding.left - 8}
           y={y + 3}
           textAnchor="end"
@@ -177,10 +172,11 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
           fontSize="10"
           fontFamily="ui-monospace, monospace"
         >
-          {value.toLocaleString()}
+          {val.toLocaleString()}
         </text>
       );
-    });
+    }
+    return items;
   }, [showLabels, geometry]);
 
   // Handle hover interaction
@@ -303,7 +299,7 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
           <filter id={`glow-${gradientId}`} x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="3" result="blur" />
             <feMerge>
-              <feMergeNode in={blur} />
+              <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
@@ -338,10 +334,9 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
         )}
 
         {/* Data points */}
-        {data.map((d, i) => (
-          <circle
-            key={i}
-            cx={geometry.xScale(i)}
+        {data.map((d) => (        <circle
+            key={`point-${d.label}`}
+            cx={geometry.xScale(data.indexOf(d))}
             cy={geometry.yScale(d.value)}
             r={4}
             fill={d.color || gradientColors[0].replace('0.3', '1')}
@@ -352,15 +347,11 @@ export const DataVizChart: React.FC<DataVizChartProps> = ({
               transition: 'r 0.2s ease, filter 0.2s ease',
             }}
             className="data-viz-chart__point"
-            onMouseEnter={(e) => {
-              const circle = e.currentTarget;
-              circle.setAttribute('r', '6');
-              circle.style.filter = 'drop-shadow(0 0 8px rgba(245,158,11,0.6))';
+            onMouseEnter={(_e) => {
+              /* Hover handled via CSS */
             }}
-            onMouseLeave={(e) => {
-              const circle = e.currentTarget;
-              circle.setAttribute('r', '4');
-              circle.style.filter = 'drop-shadow(0 0 4px rgba(245,158,11,0.3))';
+            onMouseLeave={(_e) => {
+              /* Hover handled via CSS */
             }}
           />
         ))}

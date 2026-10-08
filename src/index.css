@@ -1,3 +1,4 @@
+@import "tailwindcss";
 @import "./components/landing/landing.css";
 
 /* F-Forum Potator Mode — CSS Aurora Mesh + Bento Grid + Performance Layer
@@ -846,6 +847,8 @@ html.light div[role="dialog"].liquid-glass {
   -webkit-backdrop-filter: blur(24px);
   border-color: rgba(255, 255, 255, 0.6);
 }
+
+html.light .liquid-glass {
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -3690,8 +3693,8 @@ html.light div[role="dialog"].liquid-glass {
   background: rgba(16, 22, 36, 0.78);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
-  border: 1px solid rgba(245, 158, 11, 0.45);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(245,  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  border: 1px solid rgba(245, 158, 11, 0.45);  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(245, 158, 11, 0.45);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;

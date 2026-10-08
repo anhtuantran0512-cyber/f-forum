@@ -4,10 +4,10 @@ import React from 'react';
 interface ClaymorphismCardProps {
   children: React.ReactNode;
   className?: string;
+  onClick?: () => void;
   padding?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
   hover?: boolean;
   glowColor?: string;
-  onClick?: () => void;
   role?: string;
   "aria-label"?: string;
 }
@@ -56,7 +56,7 @@ export const ClaymorphismCard: React.FC<ClaymorphismCardProps> = ({
             inset 0 -3px 0 rgba(0,0,0,0.2),
             0 15px 35px rgba(0,0,0,0.3)
           `,
-        border: onClick ? '1px solid rgba(255,255,255,0.18)' : undefined,
+        border: onClick ? '1px solid rgba(255,255,255,0.18)' : '1px solid rgba(255,255,255,0.08)',
         backdropFilter: 'blur(10px)',
         WebkitBackdropFilter: 'blur(10px)',
         transition: hover 
@@ -122,6 +122,7 @@ interface ClayAvatarProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   borderColor?: string;
   className?: string;
+  onClick?: () => void;
 }
 
 const sizeMap = {
@@ -135,11 +136,10 @@ export const ClayAvatar: React.FC<ClayAvatarProps> = ({
   src,
   alt,
   size = 'lg',
-  borderColor,
   className = '',
 }) => {
   const { width, height, radius } = sizeMap[size];
-  const border = borderColor || 'rgba(255,255,255,0.18)';
+  const border = 'rgba(255,255,255,0.18)';
 
   return (
     <div
@@ -153,7 +153,7 @@ export const ClayAvatar: React.FC<ClayAvatarProps> = ({
           inset 0 2px 0 rgba(255,255,255,0.3),
           0 8px 20px rgba(0,0,0,0.3)
         `,
-        border: `2px solid ${border}`,
+        border: border ? `2px solid ${border}` : '2px solid rgba(255,255,255,0.08)',
         transition: 'box-shadow 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
       }}
     >
@@ -209,6 +209,7 @@ interface ClayStatProps {
   icon?: React.ReactNode;
   accentColor?: string;
   className?: string;
+  onClick?: () => void;
 }
 
 export const ClayStat: React.FC<ClayStatProps> = ({

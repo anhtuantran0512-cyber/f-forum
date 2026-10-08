@@ -111,7 +111,6 @@ const FocusSanctuaryInner: React.FC<{
 
   const isRunning = Boolean(session);
   const activeMode: FocusMode = session ? session.mode : mode;
-  const plannedSeconds = session ? (session.plannedMinutes * 60) : (activeMode === 'work' ? targetMinutes : FOCUS_BREAK_MINUTES) * 60;
   const remainingLabel = session ? focusRemainingLabel(session, now) : `${String(activeMode === 'work' ? targetMinutes : FOCUS_BREAK_MINUTES).padStart(2, '0')}:00`;
   const progressPercent = session ? focusProgressPercent(session, now) : 0;
   const sessionMinutes = session ? focusElapsedMinutes(session, now) : 0;
@@ -294,7 +293,6 @@ const FocusSanctuaryInner: React.FC<{
                   label: flash ? `Đã hoàn thành! +${flash.minutes}m` : rewardMilestone?.label || '',
                   minutes: flash?.minutes || rewardMilestone?.minutes || 0,
                 } : undefined}
-                potatoMode={false}
                 className="relative z-10"
               />
 

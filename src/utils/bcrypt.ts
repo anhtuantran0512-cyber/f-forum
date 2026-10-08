@@ -90,8 +90,6 @@ export async function verifyPassword(
     console.warn('⚠️ Bcrypt không có sẵn, đang dùng fallback verify');
     
     // Parse hash để lấy salt và original hash
-    const roundsStr = hashedPassword.slice(4, 6);
-    const rounds = parseInt(roundsStr, 10);
     const salt = hashedPassword.slice(6, 38);
     const originalHash = hashedPassword.slice(38);
     
@@ -118,16 +116,12 @@ export async function comparePassword(
 // chúng ta sẽ tính toán hash khi chạy hoặc use hardcoded demo hash
 
 // Cờ để xác định có dùng bcrypt thực hay fallback
-let bcryptAvailable = false;
-
 // Kiểm tra bcrypt availability
 export async function isBcryptAvailable(): Promise<boolean> {
   try {
     await import('bcryptjs');
-    bcryptAvailable = true;
     return true;
   } catch {
-    bcryptAvailable = false;
     return false;
   }
 }

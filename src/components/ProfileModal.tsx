@@ -32,9 +32,7 @@ import type { User, Question, Solution, ShopItem, ShopTierColor } from '../types
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { getTierForLevel } from '../utils/tier';
 import { HologramStudentCard } from './HologramStudentCard';
-import { ClaymorphismCard, ClayAvatar, ClayStat } from './ClaymorphismCard';
-import { MasonryShopGrid } from './MasonryShopGrid';
-import { DataVizChart } from './DataVizChart';
+import { ClaymorphismCard, ClayStat } from './ClaymorphismCard';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { SHOP_ITEMS, getTierColorStyles } from '../utils/shopData';
 import { ShopItemSvg } from './ShopItemSvg';
