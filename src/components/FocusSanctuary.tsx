@@ -23,6 +23,7 @@ import { computeStudyTotals, formatDuration, readStudySessions, sessionsForOwner
 import {
   FOCUS_BREAK_MINUTES,
   FOCUS_CREDITED_EVENT,
+  FOCUS_REWARD_MINIMUM_MINUTES,
   FOCUS_WORK_MINUTES,
   focusElapsedMinutes,
   focusProgressPercent,
@@ -118,7 +119,7 @@ const FocusSanctuaryInner: React.FC<{
     setIsStarting(true);
     let serverSessionId: string | null = null;
     try {
-      if (mode === 'work' && userEmail && onStartRewardSession) {
+      if (mode === 'work' && targetMinutes >= FOCUS_REWARD_MINIMUM_MINUTES && userEmail && onStartRewardSession) {
         serverSessionId = await onStartRewardSession(targetMinutes);
       }
     } catch {

@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { Fragment, useState, useRef, useEffect, useCallback } from 'react';
+import React, { Fragment, useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
 import {
   MessageSquare,
   X,
@@ -121,13 +121,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const mobileSettingsMenuRef = useRef<HTMLDivElement>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const [pillStyle, setPillStyle] = useState<{ left: number; width: number; top: number; height: number; opacity: number }>({
-    left: 0,
-    width: 0,
-    top: 0,
-    height: 0,
-    opacity: 0,
-  });
+
   const [isDailyModalOpen, setIsDailyModalOpen] = useState(false);
   const [godrayPreset, setGodrayPreset] = useState(() => {
     return safeStorage.getItem('fforum_godray_preset') || 'godray-gold';
@@ -289,7 +283,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       setIsNavbarHovered(true);
       return;
     }
-    const TRIGGER_DISTANCE = 96;
+    const TRIGGER_DISTANCE = 8;
     const handleMouseMove = (e: MouseEvent) => {
       if (anyPopoverOpenRef.current) {
         setIsNavbarHovered(true);
@@ -387,83 +381,37 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
   }, []);
 
+  const liquidPillRef = useRef<HTMLDivElement>(null);
+
   /* ============================================================ */
-  /* Robust active pill measurement (offset-based + rAF tracker)   */
+  /* Liquid Droplet active pill measurement (useLayoutEffect)      */
   /* ============================================================ */
-  useEffect(() => {
-    /* Đang ở nhịp morph thì pill bị làm mờ, không cần đo mỗi khung hình —
-       đo liên tục trong lúc thanh đổi kích thước chính là nguồn gây giật. */
+  useLayoutEffect(() => {
     if (isMorphBusy) return;
+    const activeEl = tabRefs.current[currentView];
+    const pill = liquidPillRef.current;
+    if (!activeEl || !pill) return;
 
-    let rafId: number | null = null;
-    const startMs = performance.now();
+    /* Use offsetLeft / offsetWidth directly on the pill */
+    const left = activeEl.offsetLeft;
+    const width = activeEl.offsetWidth;
 
-    const updatePill = () => {
-      const container = tabsContainerRef.current;
-      const activeEl = tabRefs.current[currentView];
-      if (!container || !activeEl) {
-        setPillStyle((prev) => ({ ...prev, opacity: 0 }));
-        return;
-      }
+    pill.style.setProperty('--liquid-pill-x', `${left}px`);
+    pill.style.setProperty('--liquid-pill-w', `${width}px`);
+    pill.style.opacity = width > 0 ? '1' : '0';
 
-      /* Use offsetLeft / offsetWidth which are strictly relative to tabsContainerRef
-         and unaffected by parent CSS transforms or scale animations */
-      const maxScrollW = Math.max(container.scrollWidth, container.clientWidth);
-      const maxScrollH = Math.max(container.scrollHeight, container.clientHeight);
-      const rawLeft = activeEl.offsetLeft;
-      const rawWidth = activeEl.offsetWidth;
-      const rawTop = activeEl.offsetTop;
-      const rawHeight = activeEl.offsetHeight;
-
-      const left = Math.max(0, Math.min(rawLeft, Math.max(0, maxScrollW - rawWidth)));
-      const width = Math.max(0, Math.min(rawWidth, maxScrollW - left));
-      const top = Math.max(0, Math.min(rawTop, Math.max(0, maxScrollH - rawHeight)));
-      const height = Math.max(0, Math.min(rawHeight, maxScrollH - top));
-
-      setPillStyle((prev) => {
-        if (
-          Math.abs(prev.left - left) < 0.5 &&
-          Math.abs(prev.width - width) < 0.5 &&
-          Math.abs(prev.top - top) < 0.5 &&
-          Math.abs(prev.height - height) < 0.5 &&
-          prev.opacity === 1
-        ) {
-          return prev;
-        }
-        return { left, width, top, height, opacity: width > 0 ? 1 : 0 };
-      });
-    };
-
-    const tick = () => {
-      updatePill();
-      if (performance.now() - startMs < 200) {
-        rafId = requestAnimationFrame(tick);
-      }
-    };
-
-    rafId = requestAnimationFrame(tick);
-    /* Morph xong mới là lúc bố cục đứng yên: đo lại vài nhịp để pill về đúng chỗ */
-    const settleTimers = [280, 620, 900].map((delay) => window.setTimeout(updatePill, delay));
-    window.addEventListener('resize', updatePill);
-
-    let ro: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== 'undefined' && tabsContainerRef.current) {
-      ro = new ResizeObserver(updatePill);
-      ro.observe(tabsContainerRef.current);
-      Object.values(tabRefs.current).forEach((el) => el && ro!.observe(el));
+    try {
+      pill.animate(
+        [
+          { transform: 'translateX(var(--liquid-pill-x)) scaleX(1)' },
+          { transform: 'translateX(var(--liquid-pill-x)) scaleX(1.2)' },
+          { transform: 'translateX(var(--liquid-pill-x)) scaleX(1)' }
+        ],
+        { duration: 350, easing: 'ease-in-out' }
+      );
+    } catch {
+      /* ignore if Web Animations API fails */
     }
-    const containerEl = tabsContainerRef.current;
-    containerEl?.addEventListener('scroll', updatePill, { passive: true });
-    containerEl?.addEventListener('transitionend', updatePill);
-
-    return () => {
-      if (rafId !== null) cancelAnimationFrame(rafId);
-      settleTimers.forEach((t) => window.clearTimeout(t));
-      window.removeEventListener('resize', updatePill);
-      ro?.disconnect();
-      containerEl?.removeEventListener('scroll', updatePill);
-      containerEl?.removeEventListener('transitionend', updatePill);
-    };
   }, [currentView, isVertical, effectiveCompact, navbarPosition, isMorphBusy]);
 
   /* Keep the active tab visible inside the scrollable strip */
@@ -793,12 +741,12 @@ export const Navbar: React.FC<NavbarProps> = ({
         style={{
           transform: isDockHidden
             ? navbarPosition === 'bottom'
-              ? 'translateY(120px)'
+              ? 'translateY(65px)'
               : navbarPosition === 'left'
-              ? 'translateX(-120px)'
+              ? 'translateX(-65px)'
               : navbarPosition === 'right'
-              ? 'translateX(120px)'
-              : 'translateY(-120px)'
+              ? 'translateX(65px)'
+              : 'translateY(-65px)'
             : undefined,
           opacity: isDockHidden ? 0 : 1,
         }}
@@ -859,15 +807,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             ref={tabsContainerRef}
             className="relative flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-1 min-w-0 nav-center-tabs"
           >
-            {/* Viên chỉ báo trượt: điểm nhấn DUY NHẤT khi thanh mở rộng ở màn rộng.
-                Không dùng thêm hạt droplet hay nền riêng cho tab để tránh chồng lớp. */}
-            {!isVertical && pillStyle.opacity > 0 && (
+            {!isVertical && (
               <div
-                className="absolute top-1 bottom-1 nav-liquid-pill pointer-events-none hidden lg:block"
+                ref={liquidPillRef}
+                className="absolute top-1 bottom-1 rounded-full bg-gradient-to-r from-amber-400/30 to-amber-500/20 border border-amber-400/40 backdrop-blur-sm pointer-events-none hidden lg:block transition-all duration-300"
                 style={{
-                  left: `${pillStyle.left}px`,
-                  width: `${pillStyle.width}px`,
-                  opacity: pillStyle.opacity,
+                  transform: 'translateX(var(--liquid-pill-x, 0px))',
+                  width: 'var(--liquid-pill-w, 0px)',
+                  opacity: 0,
                 }}
                 aria-hidden="true"
               />

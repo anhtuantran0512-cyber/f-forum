@@ -38,6 +38,7 @@ export interface FocusSessionState {
 
 export const FOCUS_WORK_MINUTES = 25;
 export const FOCUS_BREAK_MINUTES = 5;
+export const FOCUS_REWARD_MINIMUM_MINUTES = 25;
 /** Phiên kết thúc lúc app đóng thì không thể xác thực → không cộng giờ. */
 export const FOCUS_STALE_GRACE_MS = 90_000;
 

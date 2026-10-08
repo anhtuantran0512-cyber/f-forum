@@ -148,7 +148,7 @@ const ALL_SYSTEM_BADGES: SystemBadge[] = [
   },
   {
     id: 'b-genius',
-    name: 'Thần Đồng FPT',
+    name: 'Thần Đồng',
     desc: 'Đạt cấp độ 50',
     requirement: 'Đạt Level 50',
     IconComponent: Crown,

@@ -765,9 +765,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {/* 3. HIỂN THỊ */}
               <section>
                 <SectionTitle icon={<Sparkles className="w-3 h-3 text-cyan-300" />}>Hiển thị &amp; kính mờ</SectionTitle>
-                <Card className="space-y-2.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11.5px] font-semibold text-white">Cỡ chữ toàn hệ thống</span>
+                <Card className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-2 justify-center">
+                    <span className="text-[10px] font-semibold text-white/70">Cỡ chữ hệ thống</span>
                     <div className="flex items-center gap-1 bg-black/50 p-0.5 rounded-xl border border-white/10">
                       {(['sm', 'md', 'lg'] as const).map((sz) => (
                         <button
@@ -775,7 +775,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           type="button"
                           onClick={() => onChangeFontSize?.(sz)}
                           aria-pressed={fontSize === sz}
-                          className={`px-2.5 py-1 rounded-lg text-[10px] font-mono cursor-pointer transition-colors ${
+                          className={`px-2 py-1 flex-1 rounded-lg text-[10px] font-mono cursor-pointer transition-colors ${
                             fontSize === sz
                               ? 'bg-amber-500 text-black font-bold'
                               : 'text-neutral-400 hover:text-white'
@@ -787,21 +787,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-semibold text-white/70 shrink-0">Độ mờ kính</span>
-                    <input
-                      type="range"
-                      min={6}
-                      max={28}
-                      value={glassBlur}
-                      onChange={(e) => onChangeGlassBlur?.(parseInt(e.target.value, 10))}
-                      aria-label="Độ mờ kính"
-                      className="ff-range w-full"
-                      style={{
-                        background: `linear-gradient(90deg, #22d3ee ${((glassBlur - 6) / 22) * 100}%, rgba(255,255,255,0.16) ${((glassBlur - 6) / 22) * 100}%)`,
-                      }}
-                    />
-                    <span className="text-[10px] font-mono text-cyan-300 shrink-0 w-8 text-right">{glassBlur}px</span>
+                  <div className="flex flex-col gap-2 justify-center">
+                    <span className="text-[10px] font-semibold text-white/70">Độ mờ kính</span>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="range"
+                        min={6}
+                        max={28}
+                        value={glassBlur}
+                        onChange={(e) => onChangeGlassBlur?.(parseInt(e.target.value, 10))}
+                        aria-label="Độ mờ kính"
+                        className="ff-range w-full"
+                        style={{
+                          background: `linear-gradient(90deg, #22d3ee ${((glassBlur - 6) / 22) * 100}%, rgba(255,255,255,0.16) ${((glassBlur - 6) / 22) * 100}%)`,
+                        }}
+                      />
+                      <span className="text-[10px] font-mono text-cyan-300 shrink-0 w-6 text-right">{glassBlur}px</span>
+                    </div>
                   </div>
                 </Card>
               </section>
@@ -847,29 +849,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       {/* fake content blocks */}
                       <div className="absolute inset-4 rounded-xl border border-white/5 bg-white/[0.03]" />
 
-                      {/* 4 vùng cạnh */}
-                      {(
-                        [
-                          { id: 'top' as const, cls: 'top-1 left-1/2 -translate-x-1/2 w-[86px] h-3.5' },
-                          { id: 'bottom' as const, cls: 'bottom-1 left-1/2 -translate-x-1/2 w-[86px] h-3.5' },
-                          { id: 'left' as const, cls: 'left-1 top-1/2 -translate-y-1/2 h-[60px] w-3.5' },
-                          { id: 'right' as const, cls: 'right-1 top-1/2 -translate-y-1/2 h-[60px] w-3.5' },
-                        ]
-                      ).map((zone) => (
-                        <button
-                          key={zone.id}
-                          type="button"
-                          onClick={() => onSelectNavbarPosition?.(zone.id)}
-                          data-active={navbarPosition === zone.id ? 'true' : 'false'}
-                          aria-label={`Đặt thanh điều hướng ở cạnh ${zone.id}`}
-                          title={DOCK_LABEL[zone.id]}
-                          className={`ff-dock-zone ${zone.cls}`}
-                        >
-                          <span className="text-[8px] font-mono font-bold text-white/70 leading-none">
-                            {DOCK_LABEL[zone.id]}
-                          </span>
-                        </button>
-                      ))}
+                      {/* Segmented control for 4 vị trí */}
+                      <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 bg-black/60 backdrop-blur-md p-1 rounded-xl border border-white/10 flex items-center justify-between gap-1 z-10 shadow-xl">
+                        {(['top', 'bottom', 'left', 'right'] as const).map((pos) => (
+                          <button
+                            key={pos}
+                            type="button"
+                            onClick={() => onSelectNavbarPosition?.(pos)}
+                            data-active={navbarPosition === pos ? 'true' : 'false'}
+                            aria-label={`Đặt thanh điều hướng ở cạnh ${pos}`}
+                            title={DOCK_LABEL[pos]}
+                            className={`flex-1 py-1.5 text-[9px] font-bold uppercase transition-all rounded-lg ${
+                              navbarPosition === pos
+                                ? 'bg-amber-500 text-black shadow-md ring-2 ring-amber-400/60'
+                                : 'text-white/60 hover:text-white hover:bg-white/10'
+                            }`}
+                          >
+                            {DOCK_LABEL[pos]}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -913,21 +912,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     on={isAudioPlaying}
                     onToggle={() => onToggleAudio?.()}
                   />
-                  <SwitchRow
-                    icon={<Volume2 className="w-3.5 h-3.5 text-amber-400" />}
-                    title="Hiệu ứng âm thanh"
-                    desc="Tiếng chạm & thông báo"
-                    on={soundEffects}
-                    onToggle={onToggleSoundEffects}
-                  />
-                  <SwitchRow
-                    icon={<Zap className="w-3.5 h-3.5 text-cyan-400" />}
-                    title="Giảm chuyển động"
-                    desc="Tắt hiệu ứng nặng"
-                    on={reducedMotion}
-                    onToggle={onToggleReducedMotion}
-                    color="bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"
-                  />
+                  <div className="flex flex-col gap-2">
+                    <SwitchRow
+                      icon={<Volume2 className="w-3.5 h-3.5 text-amber-400" />}
+                      title="Hiệu ứng âm thanh"
+                      on={soundEffects}
+                      onToggle={onToggleSoundEffects}
+                    />
+                    <SwitchRow
+                      icon={<Zap className="w-3.5 h-3.5 text-cyan-400" />}
+                      title="Giảm chuyển động"
+                      on={reducedMotion}
+                      onToggle={onToggleReducedMotion}
+                      color="bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"
+                    />
+                  </div>
                   <SwitchRow
                     icon={<Zap className="w-3.5 h-3.5 text-orange-400" />}
                     title="Potato Mode"
