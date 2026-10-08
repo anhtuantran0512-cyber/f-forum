@@ -5,13 +5,15 @@
  * Chiến thuật đa lớp:
  * 1. Block F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
  * 2. Detect DevTools mở (via window.outerWidth/outerHeight discrepancy)
- * 3. Block context menu (chuôt phải)
+ * 3. Block context menu (chuột phải)
  * 4. Console.log interception
  * 5. XSS/CSRF vệ sinh
  * 
  * Lưu ý: Không thể chặn 100% người dùng có kinh nghiệm,
  * nhưng đủ ngăn 95% người dùng thông thường.
  */
+
+import { useEffect } from 'react';
 
 interface ConsoleBlockerProps {
   /** Bật/tắt chặn DevTools */
@@ -24,32 +26,12 @@ interface ConsoleBlockerProps {
   allowKeys?: string[];
 }
 
-export const ConsoleBlocker: React.FC<ConsoleBlockerProps> = ({
-  enabled = true,
-  showOverlay = true,
-  blockMessage = '⛔ DEVTOOLS ĐƯỢC KHÓA — Không cấp quyền debug cho tài khoản này.',
-  allowKeys = ['Ctrl+K', 'Ctrl+I', 'Escape'],
-}) => {
-  // This component returns null but sets up protections via useEffect
-  return (
-    <>
-      {enabled && showOverlay && (
-        <BlockingOverlay 
-          message={blockMessage} 
-          isActive={false} 
-        />
-      )}
-    </>
-  );
-};
+export const ConsoleBlocker: React.FC<ConsoleBlockerProps> = () => null;
 
 // Blocking overlay (hidden by default, shows when DevTools detected)
-interface BlockingOverlayProps {
-  message: string;
-  isActive: boolean;
-}
-
-const BlockingOverlay: React.FC<BlockingOverlayProps> = ({ message, isActive }) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-unused-expressions
+export const _BlockingOverlay = ({ message, isActive }: { message: string; isActive: boolean }) => {
   if (!isActive) return null;
 
   return (
@@ -120,7 +102,7 @@ export const useConsoleProtection = (enabled: boolean = true) => {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key;
-      const combo = `${e.control ? 'Control+' : ''}${e.shift ? 'Shift+' : ''}${key}`;
+      const combo = `${e.ctrlKey ? 'Control+' : ''}${e.shiftKey ? 'Shift+' : ''}${key}`;
       
       // Check if blocked
       if (blockedShortcuts.has(key) || blockedShortcuts.has(combo)) {
