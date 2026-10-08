@@ -32,6 +32,9 @@ import type { User, Question, Solution, ShopItem, ShopTierColor } from '../types
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { getTierForLevel } from '../utils/tier';
 import { HologramStudentCard } from './HologramStudentCard';
+import { ClaymorphismCard, ClayAvatar, ClayStat } from './ClaymorphismCard';
+import { MasonryShopGrid } from './MasonryShopGrid';
+import { DataVizChart } from './DataVizChart';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { SHOP_ITEMS, getTierColorStyles } from '../utils/shopData';
 import { ShopItemSvg } from './ShopItemSvg';
@@ -952,115 +955,72 @@ const ProfileModalInner: React.FC<{
                     </div>
                   </div>
 
-                  {/* Thanh 6 Chỉ Số Thành Tích Nhanh (3D Neumorphic Inset Wells - Interactive) */}
+                  {/* Thanh 6 Chỉ Số Thành Tích Nhanh — Claymorphism 2.0 */}
                   <div className="space-y-2 pb-4 border-b border-white/10">
                     <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center">
-                      {/* 1. Điểm số */}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSelectedStatNote(
-                            `Điểm số (XP): ${statsMetrics.xp.toLocaleString()} XP — tích lũy từ đặt câu hỏi (+50 XP) và giải bài tập (+100~300 XP).`
-                          )
-                        }
-                        className="pc-12-well p-2.5 flex flex-col items-center cursor-pointer"
-                      >
-                        <span className="text-[10px] text-neutral-400 font-semibold mb-0.5">Điểm số</span>
-                        <div className="flex items-center gap-1 font-bold font-mono text-xs text-amber-300">
-                          <span className="text-amber-400 font-black">H</span>
-                          <span>{statsMetrics.xp}</span>
-                        </div>
-                      </button>
+                      {/* Clay Stat 1: XP */}
+                      <ClayStat
+                        value={statsMetrics.xp.toLocaleString()}
+                        label="Điểm số"
+                        icon={<Sparkles className="w-4 h-4 text-amber-300" />}
+                        accentColor="#f59e0b"
+                        className="cursor-pointer transition-transform duration-200 hover:scale-105"
+                        onClick={() => setSelectedStatNote(`Điểm số (XP): ${statsMetrics.xp.toLocaleString()} XP — tích lũy từ đặt câu hỏi (+50 XP) và giải bài tập (+100~300 XP).`)}
+                      />
 
-                      {/* 2. Cảm ơn */}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSelectedStatNote(
-                            `Cảm ơn: ${statsMetrics.thanks} lượt — bình chọn hữu ích nhận được từ các lời giải của bạn.`
-                          )
-                        }
-                        className="pc-12-well p-2.5 flex flex-col items-center cursor-pointer"
-                      >
-                        <span className="text-[10px] text-neutral-400 font-semibold mb-0.5">Cảm ơn</span>
-                        <div className="flex items-center gap-1 font-bold font-mono text-xs text-rose-400">
-                          <Heart className="w-3.5 h-3.5 fill-rose-400 text-rose-400 shrink-0" />
-                          <span>{statsMetrics.thanks}</span>
-                        </div>
-                      </button>
+                      {/* Clay Stat 2: Cảm ơn */}
+                      <ClayStat
+                        value={statsMetrics.thanks}
+                        label="Cảm ơn"
+                        icon={<Heart className="w-4 h-4 text-rose-400" />}
+                        accentColor="#f43f5e"
+                        className="cursor-pointer transition-transform duration-200 hover:scale-105"
+                        onClick={() => setSelectedStatNote(`Cảm ơn: ${statsMetrics.thanks} lượt — bình chọn hữu ích nhận được từ các lời giải của bạn.`)}
+                      />
 
-                      {/* 3. Hay nhất */}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSelectedStatNote(
-                            `Hay nhất: ${statsMetrics.bestSolutions} câu trả lời được tác giả câu hỏi chứng nhận là Đáp Án Chuẩn.`
-                          )
-                        }
-                        className="pc-12-well p-2.5 flex flex-col items-center cursor-pointer"
-                      >
-                        <span className="text-[10px] text-neutral-400 font-semibold mb-0.5">Hay nhất</span>
-                        <div className="flex items-center gap-1 font-bold font-mono text-xs text-yellow-300">
-                          <Award className="w-3.5 h-3.5 text-yellow-300 shrink-0" />
-                          <span>{statsMetrics.bestSolutions}</span>
-                        </div>
-                      </button>
+                      {/* Clay Stat 3: Hay nhất */}
+                      <ClayStat
+                        value={statsMetrics.bestSolutions}
+                        label="Hay nhất"
+                        icon={<Award className="w-4 h-4 text-yellow-300" />}
+                        accentColor="#fbbf24"
+                        className="cursor-pointer transition-transform duration-200 hover:scale-105"
+                        onClick={() => setSelectedStatNote(`Hay nhất: ${statsMetrics.bestSolutions} câu trả lời được tác giả câu hỏi chứng nhận là Đáp Án Chuẩn.`)}
+                      />
 
-                      {/* 4. 5 Sao */}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSelectedStatNote(
-                            `5 Sao: ${statsMetrics.fiveStar} lời giải xuất sắc đạt đánh giá tối đa từ cộng đồng.`
-                          )
-                        }
-                        className="pc-12-well p-2.5 flex flex-col items-center cursor-pointer"
-                      >
-                        <span className="text-[10px] text-neutral-400 font-semibold mb-0.5">5 Sao</span>
-                        <div className="flex items-center gap-1 font-bold font-mono text-xs text-amber-300">
-                          <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300 shrink-0" />
-                          <span>{statsMetrics.fiveStar}</span>
-                        </div>
-                      </button>
+                      {/* Clay Stat 4: 5 Sao */}
+                      <ClayStat
+                        value={statsMetrics.fiveStar}
+                        label="5 Sao"
+                        icon={<Star className="w-4 h-4 text-amber-300" />}
+                        accentColor="#f59e0b"
+                        className="cursor-pointer transition-transform duration-200 hover:scale-105"
+                        onClick={() => setSelectedStatNote(`5 Sao: ${statsMetrics.fiveStar} lời giải xuất sắc đạt đánh giá tối đa từ cộng đồng.`)}
+                      />
 
-                      {/* 5. Xác thực */}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSelectedStatNote(
-                            `Xác thực: ${statsMetrics.verified} lời giải đã được xác minh tính chính xác học thuật.`
-                          )
-                        }
-                        className="pc-12-well p-2.5 flex flex-col items-center cursor-pointer"
-                      >
-                        <span className="text-[10px] text-neutral-400 font-semibold mb-0.5">Xác thực</span>
-                        <div className="flex items-center gap-1 font-bold font-mono text-xs text-emerald-400">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          <span>{statsMetrics.verified}</span>
-                        </div>
-                      </button>
+                      {/* Clay Stat 5: Xác thực */}
+                      <ClayStat
+                        value={statsMetrics.verified}
+                        label="Xác thực"
+                        icon={<CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                        accentColor="#10b981"
+                        className="cursor-pointer transition-transform duration-200 hover:scale-105"
+                        onClick={() => setSelectedStatNote(`Xác thực: ${statsMetrics.verified} lời giải đã được xác minh tính chính xác học thuật.`)}
+                      />
 
-                      {/* 6. Đã giúp */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedStatNote(
-                            `Đã giúp: ${statsMetrics.helped} lượt giải đáp hỗ trợ bạn bè trên sàn hỏi đáp.`
-                          );
-                          setActivitySubTab('solutions');
-                        }}
-                        className="pc-12-well p-2.5 flex flex-col items-center cursor-pointer"
-                      >
-                        <span className="text-[10px] text-neutral-400 font-semibold mb-0.5">Đã giúp</span>
-                        <div className="flex items-center gap-1 font-bold font-mono text-xs text-sky-400">
-                          <Users className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                          <span>{statsMetrics.helped}</span>
-                        </div>
-                      </button>
+                      {/* Clay Stat 6: Đã giúp */}
+                      <ClayStat
+                        value={statsMetrics.helped}
+                        label="Đã giúp"
+                        icon={<Users className="w-4 h-4 text-sky-400" />}
+                        accentColor="#38bdf8"
+                        className="cursor-pointer transition-transform duration-200 hover:scale-105"
+                        onClick={() => { setSelectedStatNote(`Đã giúp: ${statsMetrics.helped} lượt giải đáp hỗ trợ bạn bè trên sàn hỏi đáp.`); setActivitySubTab('solutions'); }}
+                      />
                     </div>
 
                     {selectedStatNote && (
-                      <div className="pc-12-well px-3 py-2 text-[11px] text-amber-200 flex items-center justify-between gap-2 animate-fade-up">
+                      <div className="clay-card p-3 text-[11px] text-amber-200 flex items-center justify-between gap-2 animate-fade-up">
                         <span>{selectedStatNote}</span>
                         <button
                           type="button"
@@ -1147,8 +1107,7 @@ const ProfileModalInner: React.FC<{
 
                     {/* CHILL BOX & KỆ SÁCH */}
                     <div className="space-y-3">
-                      {/* CHILL BOX (Kho đồ trang bị) */}
-                      <div className="pc-12-card p-3.5 space-y-2">
+                      <ClaymorphismCard padding="md" className="space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5 font-mono">
                             <ShoppingBag className="w-4 h-4 text-amber-400" />
@@ -1197,7 +1156,7 @@ const ProfileModalInner: React.FC<{
                             })}
                           </div>
                         )}
-                      </div>
+                      </ClaymorphismCard>
 
                       {/* KỆ SÁCH — kệ sách thật, lưu theo tài khoản */}
                       <BookshelfPanel

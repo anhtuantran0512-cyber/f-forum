@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import type { DimensionView, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
-import { playChime, toggleAmbientAudio, isAmbientActive } from '../utils/audio';
+import { playChime } from '../utils/audio';
 import { ProfileDropdown } from './ProfileDropdown';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { NotificationsModal } from './NotificationsModal';
@@ -146,10 +146,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [alwaysCompact, setAlwaysCompact] = useState<boolean>(() => {
     return safeStorage.getItem('fforum_nav_compact') === 'true';
   });
-  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isNavbarHovered, setIsNavbarHovered] = useState<boolean>(true);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
 
   /* ============================================================ */
   /* iOS-26 compact capsule state machine                          */
@@ -601,27 +599,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
 
 
-  const toggleFocusAudio = async (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    try {
-      if (!audioCtxRef.current && typeof window !== 'undefined') {
-        const AudioContextClass =
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-        if (AudioContextClass) {
-          audioCtxRef.current = new AudioContextClass();
-        }
-      }
-      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
-        await audioCtxRef.current.resume();
-      }
-    } catch {
-      /* ignore */
-    }
-    const active = toggleAmbientAudio(audioCtxRef.current);
-    setIsAudioPlaying(active || isAmbientActive());
-  };
-
   /* Nút F (logo) là lối vào trang Giới thiệu -> không còn tab chữ "GIỚI THIỆU".
      Miền Ký Ức / Khu Vinh Danh / Update luôn ở dạng icon cho thanh gọn và sang hơn. */
   const navItems: { id: DimensionView; label: string; iconOnly?: boolean }[] = [
@@ -640,9 +617,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     onClose: () => setIsSettingsOpen(false),
     theme,
     onToggleTheme: handleToggleTheme,
-    isAudioPlaying,
-    onToggleAudio: toggleFocusAudio,
-
     onOpenFocusMode: () => {
       setIsSettingsOpen(false);
       onOpenFocusMode();

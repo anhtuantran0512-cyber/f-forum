@@ -51,6 +51,7 @@ export interface AnalyticsStore {
   sessions: Record<string, AnalyticsSession>;
   daily: Record<string, AnalyticsBucket>;
   hourly: Record<string, AnalyticsBucket>;
+  reports?: Array<{ id: string; at: number; targetEmail: string; reason: string; status?: string; by?: string }>;
 }
 
 export type AnalyticsActivity = 'messages' | 'questions' | 'answers' | 'clubsCreated' | 'clubPosts';
@@ -527,6 +528,8 @@ function bucketAsRow(key: string, bucket: AnalyticsBucket | undefined, granulari
     clubsCreated: source.clubsCreated,
     clubPosts: source.clubPosts,
     newMembers: source.newMembers,
+    totalReports: 0,
+    resolvedReports: 0,
     visitorKeys: source.visitorKeys,
   };
 }
@@ -570,6 +573,8 @@ export interface AnalyticsReport {
     clubsCreated: number;
     clubPosts: number;
     newMembers: number;
+    totalReports: number;
+    resolvedReports: number;
   };
   period: {
     uniqueVisitors: number;
@@ -582,6 +587,8 @@ export interface AnalyticsReport {
     clubsCreated: number;
     clubPosts: number;
     newMembers: number;
+    totalReports: number;
+    resolvedReports: number;
   };
   series: Array<{
     key: string;
@@ -596,6 +603,8 @@ export interface AnalyticsReport {
     clubsCreated: number;
     clubPosts: number;
     newMembers: number;
+    totalReports: number;
+    resolvedReports: number;
   }>;
   topMembers: Array<{
     id: string;
@@ -688,6 +697,10 @@ export const buildAnalyticsReport = (
   });
   period.uniqueVisitors = selectedKeys.size;
 
+  const reports = (analytics.reports || []);
+  const totalReports = reports.length;
+  const resolvedReports = reports.filter((r: any) => r.status === 'resolved').length;
+
   const memberRows = Object.entries(analytics.members)
     .map(([email, metrics]) => {
       const user = users[email];
@@ -731,8 +744,14 @@ export const buildAnalyticsReport = (
       registeredVisitors,
       anonymousBrowsers,
       ...analytics.totals,
+      totalReports,
+      resolvedReports,
     },
-    period,
+    period: {
+      ...period,
+      totalReports,
+      resolvedReports,
+    },
     series,
     topMembers: memberRows,
   };

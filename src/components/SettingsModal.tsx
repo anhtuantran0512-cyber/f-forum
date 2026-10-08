@@ -35,9 +35,6 @@ export interface SettingsModalProps {
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
 
-  isAudioPlaying?: boolean;
-  onToggleAudio?: (e?: React.MouseEvent) => void;
-
   onOpenFocusMode: () => void;
   soundEffects: boolean;
   onToggleSoundEffects: () => void;
@@ -152,9 +149,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   theme,
   onToggleTheme,
-
-  isAudioPlaying = false,
-  onToggleAudio,
 
   onOpenFocusMode,
   soundEffects,
@@ -901,17 +895,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </Card>
               </section>
 
-              {/* 5. SFX & MOTION */}
+              {/* 5. MOTION & PERFORMANCE */}
               <section>
-                <SectionTitle icon={<Zap className="w-3 h-3 text-amber-300" />}>Âm thanh &amp; chuyển động</SectionTitle>
+                <SectionTitle icon={<Zap className="w-3 h-3 text-amber-300" />}>Chuyển động &amp; hiệu năng</SectionTitle>
                 <Card className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <SwitchRow
-                    icon={<Volume2 className="w-3.5 h-3.5 text-amber-400" />}
-                    title="Âm thanh Ambient (432Hz)"
-                    desc="Tập trung sâu & thư giãn"
-                    on={isAudioPlaying}
-                    onToggle={() => onToggleAudio?.()}
-                  />
                   <div className="flex flex-col gap-2">
                     <SwitchRow
                       icon={<Volume2 className="w-3.5 h-3.5 text-amber-400" />}
@@ -929,12 +916,58 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                   <SwitchRow
                     icon={<Zap className="w-3.5 h-3.5 text-orange-400" />}
-                    title="Potato Mode"
-                    desc="Tắt nền động, tối ưu 100%"
+                    title="Potator Mode"
+                    desc="Nền tĩnh, giảm blur nặng, giữ chuyển động"
                     on={potatoMode ?? false}
                     onToggle={() => onTogglePotatoMode?.()}
                     color="bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"
                   />
+
+                  {/* Potator Mode preview (khi bật) */}
+                  {potatoMode && (
+                    <div className="mt-3 rounded-xl overflow-hidden border border-white/10">
+                      <div className="relative h-20 w-full">
+                        {/* Potator Mesh Background inline */}
+                        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                          <div
+                            className="absolute rounded-full"
+                            style={{
+                              width: '60vmax',
+                              height: '60vmax',
+                              top: '-20%',
+                              left: '-10%',
+                              background: 'radial-gradient(circle at 30% 40%, rgba(245,158,11,0.4), transparent 60%), radial-gradient(circle at 70% 60%, rgba(244,114,182,0.3), transparent 55%)',
+                              filter: 'blur(100px)',
+                              opacity: 0.5,
+                              animation: 'potatorMeshDrift 22s ease-in-out infinite',
+                            }}
+                          />
+                          <div
+                            className="absolute rounded-full"
+                            style={{
+                              width: '50vmax',
+                              height: '50vmax',
+                              bottom: '-15%',
+                              right: '-5%',
+                              background: 'radial-gradient(circle at 60% 30%, rgba(167,139,250,0.35), transparent 55%), radial-gradient(circle at 40% 70%, rgba(34,211,238,0.25), transparent 50%)',
+                              filter: 'blur(90px)',
+                              opacity: 0.4,
+                              animation: 'potatorMeshDrift 24s ease-in-out infinite reverse',
+                            }}
+                          />
+                        </div>
+                        {/* Overlay text */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-amber-400 mb-1">Potator Mode đang hoạt động</div>
+                            <div className="text-[11px] text-neutral-400">CSS Aurora Mesh · Bento Grid · Liquid Glass</div>
+                          </div>
+                        </div>
+                        {/* Vignette */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+                      </div>
+                    </div>
+                  )}
                 </Card>
               </section>
 

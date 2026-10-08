@@ -733,7 +733,7 @@ test('9d2. Mốc Focus 60 và 120 phút dùng phần thưởng do server quyết
     assert.equal(oneHundredTwentyMinuteSession.status, 200);
     assert.equal(oneHundredTwentyMinuteSession.data.reward, 120, 'Mốc 120 phút chỉ do server chọn mức Coin');
 
-    offset = 180 * 60_000;
+    offset = 179 * 60_000 + 55_000;
     const oneHundredTwentyMinuteCompletion = await post(env.baseUrl, '/api/rewards/focus/complete', {
       sessionId: oneHundredTwentyMinuteSession.data.sessionId,
       reward: 999999,
