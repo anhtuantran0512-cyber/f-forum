@@ -23,4 +23,11 @@ Mỗi khi nhận được yêu cầu từ người dùng (Sếp), cả hai AI ph
 ## 4. Giao tiếp chéo (Cross-AI Communication)
 Nếu một AI phát hiện lỗi do AI kia gây ra, KHÔNG tự ý xóa code của nhau nếu không chắc chắn. Hãy để lại comment trong code dạng `// @Freebuff: [Tin nhắn]` hoặc `// @Antigravity: [Tin nhắn]` và cập nhật vào `docs/STUDIO_SYNC.md`.
 
+## 5. Cơ Chế Checkpoint Bất Tử (Crash Guard & Zero-Degradation State)
+Khi đang làm việc, trước nguy cơ cạn quota, timeout, mất kết nối mạng hoặc người dùng shutdown máy đột ngột:
+- Mọi bước trung gian (bước đã làm, bước còn thiếu, diff chưa commit) phải được ghi ngay vào `docs/STUDIO_CHECKPOINT.md` và `~/Documents/BroAmStuck Studio/checkpoints/ACTIVE_SESSION_STATE.md`.
+- Khi một trong hai AI (Antigravity hoặc Freebuff) được kích hoạt lại trong phiên tiếp theo, việc đầu tiên là đọc file checkpoint này và tiếp tục công việc tại điểm dừng mà không cần Sếp phải nhắc lại.
+- Tuyệt đối không để gián đoạn làm suy giảm chất lượng đầu ra.
+
 Luôn nhớ: Mục tiêu cuối cùng là hoàn hảo hóa sản phẩm cho BroAmStuck Studio.
+
