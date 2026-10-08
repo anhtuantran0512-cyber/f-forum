@@ -1,10 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 
 let audioCtx: AudioContext | null = null;
-let ambientGain: GainNode | null = null;
-let ambientOscillators: OscillatorNode[] = [];
-let ambientStopTimeout: ReturnType<typeof setTimeout> | null = null;
-let isAmbientPlaying = false;
 
 export function getAudioContext(preferredCtx?: AudioContext | null): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -30,228 +26,32 @@ export function getAudioContext(preferredCtx?: AudioContext | null): AudioContex
   }
 }
 
-export function toggleAmbientAudio(preferredCtx?: AudioContext | null): boolean {
-  try {
-    const ctx = getAudioContext(preferredCtx);
-    if (!ctx) return false;
-
-    if (ambientStopTimeout) {
-      clearTimeout(ambientStopTimeout);
-      ambientStopTimeout = null;
-    }
-
-    if (isAmbientPlaying) {
-      const oscsToStop = [...ambientOscillators];
-      const gainToStop = ambientGain;
-      ambientOscillators = [];
-
-      if (gainToStop) {
-        gainToStop.gain.setValueAtTime(gainToStop.gain.value, ctx.currentTime);
-        gainToStop.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.2);
-      }
-
-      ambientStopTimeout = setTimeout(() => {
-        oscsToStop.forEach(osc => {
-          try {
-            osc.stop();
-            osc.disconnect();
-          } catch {
-          }
-        });
-        if (ambientGain === gainToStop) {
-          ambientGain = null;
-        }
-        ambientStopTimeout = null;
-      }, 1300);
-      isAmbientPlaying = false;
-      return false;
-    } else {
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 2);
-      gain.connect(ctx.destination);
-      ambientGain = gain;
-
-      const freqs = [108, 114, 216, 324, 432];
-      ambientOscillators = freqs.map((f, i) => {
-        const osc = ctx.createOscillator();
-        const panner = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
-        osc.type = i % 2 === 0 ? 'sine' : 'triangle';
-        osc.frequency.setValueAtTime(f, ctx.currentTime);
-        
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(600, ctx.currentTime);
-
-        if (panner) {
-          panner.pan.value = (i % 2 === 0 ? -0.5 : 0.5) * (i / freqs.length);
-          osc.connect(filter);
-          filter.connect(panner);
-          panner.connect(gain);
-        } else {
-          osc.connect(filter);
-          filter.connect(gain);
-        }
-        osc.start();
-        return osc;
-      });
-
-      isAmbientPlaying = true;
-      return true;
-    }
-  } catch {
-    return false;
-  }
+export function toggleAmbientAudio(): boolean {
+  // Removed: ambient audio (was 432Hz + binaural beats) per user request.
+  // Kept as no-op stub so existing call sites compile without changes.
+  return false;
 }
 
 export function isAmbientActive(): boolean {
-  return isAmbientPlaying;
+  return false;
 }
 
-let focusGain: GainNode | null = null;
-let focusOscillators: OscillatorNode[] = [];
-let focusInterval: ReturnType<typeof setInterval> | null = null;
-let focusStopTimeout: ReturnType<typeof setTimeout> | null = null;
-let isFocusLofiPlaying = false;
-
-export function startFocusLofiAmbient(preferredCtx?: AudioContext | null): boolean {
-  try {
-    const ctx = getAudioContext(preferredCtx);
-    if (!ctx) return false;
-
-    if (focusStopTimeout) {
-      clearTimeout(focusStopTimeout);
-      focusStopTimeout = null;
-    }
-
-    if (isFocusLofiPlaying) return true;
-
-    const master = ctx.createGain();
-    master.gain.setValueAtTime(0.0001, ctx.currentTime);
-    master.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 2);
-    master.connect(ctx.destination);
-    focusGain = master;
-
-    const baseFreqs = [54, 108, 114, 216];
-    focusOscillators = baseFreqs.map((freq, i) => {
-      const osc = ctx.createOscillator();
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(320, ctx.currentTime);
-      osc.type = i % 2 === 0 ? 'sine' : 'triangle';
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      osc.connect(filter);
-      filter.connect(master);
-      osc.start();
-      return osc;
-    });
-
-    const chordProgression = [
-      [146.83, 220.0, 261.63, 329.63],
-      [130.81, 196.0, 246.94, 329.63],
-      [116.54, 174.61, 220.0, 261.63],
-      [130.81, 164.81, 196.0, 246.94],
-    ];
-    let chordIndex = 0;
-
-    const playNextChord = () => {
-      try {
-        if (!focusGain || !isFocusLofiPlaying) return;
-        const chord = chordProgression[chordIndex % chordProgression.length];
-        chordIndex++;
-
-        chord.forEach((freq, idx) => {
-          const padOsc = ctx.createOscillator();
-          const padGain = ctx.createGain();
-          const padFilter = ctx.createBiquadFilter();
-
-          padOsc.type = 'triangle';
-          padOsc.frequency.setValueAtTime(freq, ctx.currentTime);
-
-          padFilter.type = 'lowpass';
-          padFilter.frequency.setValueAtTime(450 + idx * 50, ctx.currentTime);
-
-          const now = ctx.currentTime;
-          padGain.gain.setValueAtTime(0.0001, now);
-          padGain.gain.exponentialRampToValueAtTime(0.04, now + 1.2);
-          padGain.gain.exponentialRampToValueAtTime(0.0001, now + 5.8);
-
-          padOsc.connect(padFilter);
-          padFilter.connect(padGain);
-          padGain.connect(master);
-
-          padOsc.start(now);
-          padOsc.stop(now + 6.0);
-        });
-      } catch {
-        /* ignore */
-      }
-    };
-
-    playNextChord();
-    focusInterval = setInterval(playNextChord, 6000);
-    isFocusLofiPlaying = true;
-    return true;
-  } catch {
-    return false;
-  }
+export function startFocusLofiAmbient(): boolean {
+  // Removed: chill lofi background per user request.
+  return false;
 }
 
 export function stopFocusLofiAmbient(): void {
-  try {
-    const ctx = getAudioContext();
-    if (!isFocusLofiPlaying) return;
-
-    if (focusStopTimeout) {
-      clearTimeout(focusStopTimeout);
-      focusStopTimeout = null;
-    }
-
-    if (focusInterval) {
-      clearInterval(focusInterval);
-      focusInterval = null;
-    }
-
-    const oscsToStop = [...focusOscillators];
-    const gainToStop = focusGain;
-    focusOscillators = [];
-
-    if (gainToStop && ctx) {
-      gainToStop.gain.setValueAtTime(gainToStop.gain.value, ctx.currentTime);
-      gainToStop.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1);
-    }
-
-    focusStopTimeout = setTimeout(() => {
-      oscsToStop.forEach(osc => {
-        try {
-          osc.stop();
-          osc.disconnect();
-        } catch {
-        }
-      });
-      if (focusGain === gainToStop) {
-        focusGain = null;
-      }
-      focusStopTimeout = null;
-    }, 1100);
-
-    isFocusLofiPlaying = false;
-  } catch {
-    isFocusLofiPlaying = false;
-  }
+  // No-op stub: lofi system removed.
 }
 
 export function toggleFocusLofiAmbient(): boolean {
-  if (isFocusLofiPlaying) {
-    stopFocusLofiAmbient();
-    return false;
-  } else {
-    return startFocusLofiAmbient();
-  }
+  // Removed: chill lofi background per user request.
+  return false;
 }
 
 export function isFocusLofiActive(): boolean {
-  return isFocusLofiPlaying;
+  return false;
 }
 
 export function playChime(type: 'xp' | 'level-up' | 'success' | 'send' = 'xp') {
