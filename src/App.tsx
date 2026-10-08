@@ -861,15 +861,15 @@ export const App: React.FC = () => {
      nó để giao diện không bao giờ rơi vào trạng thái "bấm gì cũng không mở". */
   useEffect(() => installInteractionWatchdog(), []);
 
-  // ========================================================
-  // SECURITY: Console/DevTools protection
-  // ========================================================
-  useConsoleProtection(true);
-  useRightClickBlock(true);
+  /* ======================================================== */
+  /* SECURITY: Console/DevTools protection */
+  /* ======================================================== */
+  useConsoleProtection(false);
+  useRightClickBlock(false);
 
-  // ========================================================
-  // Potator Mode: Aurora Mesh Background
-  // ========================================================
+  /* ======================================================== */
+  /* Potator Mode: Aurora Mesh Background */
+  /* ======================================================== */
   useEffect(() => {
     const key = 'fforum_potato_mode';
     const stored = safeStorage.getItem(key);
@@ -881,7 +881,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (potatoMode) {
       document.documentElement.classList.add('potator-mode-active');
-      // Show Aurora Mesh Background
+      /* Show Aurora Mesh Background */
   
       safeStorage.setItem('fforum_potato_mode', 'true');
     } else {

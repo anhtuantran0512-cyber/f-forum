@@ -46,7 +46,7 @@ export const ClaymorphismCard: React.FC<ClaymorphismCardProps> = ({
         ${className}
       `}
       style={{
-        // Claymorphism 2.0 — nhiều lớp bóng tạo chiều sâu đất sét
+        /* Claymorphism 2.0 — nhiều lớp bóng tạo chiều sâu đất sét */
         background: 'linear-gradient(145deg, rgba(255,255,255,0.12), rgba(0,0,0,0.25))',
         borderRadius: '2rem',
         boxShadow: hover 
@@ -115,7 +115,7 @@ export const ClaymorphismCard: React.FC<ClaymorphismCardProps> = ({
   );
 };
 
-// Clay Avatar sub-component
+/* Clay Avatar sub-component */
 interface ClayAvatarProps {
   src?: string;
   alt: string;
@@ -202,7 +202,7 @@ export const ClayAvatar: React.FC<ClayAvatarProps> = ({
   );
 };
 
-// Clay Stat Block sub-component
+/* Clay Stat Block sub-component */
 interface ClayStatProps {
   value: string | number;
   label: string;

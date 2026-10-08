@@ -843,26 +843,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       {/* fake content blocks */}
                       <div className="absolute inset-4 rounded-xl border border-white/5 bg-white/[0.03]" />
 
-                      {/* Segmented control for 4 vị trí */}
-                      <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 bg-black/60 backdrop-blur-md p-1 rounded-xl border border-white/10 flex items-center justify-between gap-1 z-10 shadow-xl">
-                        {(['top', 'bottom', 'left', 'right'] as const).map((pos) => (
-                          <button
-                            key={pos}
-                            type="button"
-                            onClick={() => onSelectNavbarPosition?.(pos)}
-                            data-active={navbarPosition === pos ? 'true' : 'false'}
-                            aria-label={`Đặt thanh điều hướng ở cạnh ${pos}`}
-                            title={DOCK_LABEL[pos]}
-                            className={`flex-1 py-1.5 text-[9px] font-bold uppercase transition-all rounded-lg ${
-                              navbarPosition === pos
-                                ? 'bg-amber-500 text-black shadow-md ring-2 ring-amber-400/60'
-                                : 'text-white/60 hover:text-white hover:bg-white/10'
-                            }`}
-                          >
-                            {DOCK_LABEL[pos]}
-                          </button>
-                        ))}
-                      </div>
+                      {/* 4 vùng cạnh mini screen */}
+                      {(
+                        [
+                          { id: 'top' as const, cls: 'top-1 left-1/2 -translate-x-1/2 w-[86px] h-3.5' },
+                          { id: 'bottom' as const, cls: 'bottom-1 left-1/2 -translate-x-1/2 w-[86px] h-3.5' },
+                          { id: 'left' as const, cls: 'left-1 top-1/2 -translate-y-1/2 h-[60px] w-3.5' },
+                          { id: 'right' as const, cls: 'right-1 top-1/2 -translate-y-1/2 h-[60px] w-3.5' },
+                        ]
+                      ).map((zone) => (
+                        <button
+                          key={zone.id}
+                          type="button"
+                          onClick={() => onSelectNavbarPosition?.(zone.id)}
+                          data-active={navbarPosition === zone.id ? 'true' : 'false'}
+                          aria-label={`Đặt thanh điều hướng ở cạnh ${zone.id}`}
+                          title={DOCK_LABEL[zone.id]}
+                          className={`ff-dock-zone ${zone.cls}`}
+                        >
+                          <span className="text-[8px] font-mono font-bold text-white/70 leading-none">
+                            {DOCK_LABEL[zone.id]}
+                          </span>
+                        </button>
+                      ))}
                     </div>
                   </div>
 

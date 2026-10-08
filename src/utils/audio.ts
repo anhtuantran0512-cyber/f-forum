@@ -27,8 +27,8 @@ export function getAudioContext(preferredCtx?: AudioContext | null): AudioContex
 }
 
 export function toggleAmbientAudio(): boolean {
-  // Removed: ambient audio (was 432Hz + binaural beats) per user request.
-  // Kept as no-op stub so existing call sites compile without changes.
+  /* Removed: ambient audio (was 432Hz + binaural beats) per user request. */
+  /* Kept as no-op stub so existing call sites compile without changes. */
   return false;
 }
 
@@ -37,16 +37,16 @@ export function isAmbientActive(): boolean {
 }
 
 export function startFocusLofiAmbient(): boolean {
-  // Removed: chill lofi background per user request.
+  /* Removed: chill lofi background per user request. */
   return false;
 }
 
 export function stopFocusLofiAmbient(): void {
-  // No-op stub: lofi system removed.
+  /* No-op stub: lofi system removed. */
 }
 
 export function toggleFocusLofiAmbient(): boolean {
-  // Removed: chill lofi background per user request.
+  /* Removed: chill lofi background per user request. */
   return false;
 }
 

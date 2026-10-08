@@ -28,9 +28,9 @@ interface ConsoleBlockerProps {
 
 export const ConsoleBlocker: React.FC<ConsoleBlockerProps> = () => null;
 
-// Blocking overlay (hidden by default, shows when DevTools detected)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-unused-expressions
+/* Blocking overlay (hidden by default, shows when DevTools detected) */
+/* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+/* eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-unused-expressions */
 export const _BlockingOverlay = ({ message, isActive }: { message: string; isActive: boolean }) => {
   if (!isActive) return null;
 
@@ -85,14 +85,14 @@ export const _BlockingOverlay = ({ message, isActive }: { message: string; isAct
   );
 };
 
-// Hook: kích hoạt bảo vệ Console/DevTools
+/* Hook: kích hoạt bảo vệ Console/DevTools */
 export const useConsoleProtection = (enabled: boolean = true) => {
   useEffect(() => {
     if (!enabled) return;
 
-    // ========================================
-    // 1. PHÍM TẮT DEVTOOLS
-    // ========================================
+    /* ======================================== */
+    /* 1. PHÍM TẮT DEVTOOLS */
+    /* ======================================== */
     const blockedShortcuts = new Set([
       'F12',
       'Control+Shift+I',
@@ -104,156 +104,31 @@ export const useConsoleProtection = (enabled: boolean = true) => {
       const key = e.key;
       const combo = `${e.ctrlKey ? 'Control+' : ''}${e.shiftKey ? 'Shift+' : ''}${key}`;
       
-      // Check if blocked
+      /* Check if blocked */
       if (blockedShortcuts.has(key) || blockedShortcuts.has(combo)) {
         e.preventDefault();
         e.stopPropagation();
-        // Visual feedback
+        /* Visual feedback */
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
           navigator.vibrate([30, 50, 30]);
         }
-        // Close any open DevTools immediately
-        if (e.key === 'F12') {
-          window.close(); // Try to close (may not work in all browsers)
-        }
-        return false;
-      }
-
-      // Ctrl+Shift+R (hard reload) also blocked
-      if (e.key === 'r' && e.ctrlKey && e.shiftKey) {
-        e.preventDefault();
+        /* Key blocked */
         return false;
       }
     };
 
     document.addEventListener('keydown', handleKeyDown, true);
 
-    // ========================================
-    // 2. DETECT DEVTOOLS (Chrome/Firefox)
-    // ========================================
-    let devtoolsOpen = false;
-    let checkInterval: number | null = null;
-
-    const detectDevTools = () => {
-      const widthThreshold = 160;
-      const heightThreshold = 160;
-
-      // Chrome detection: outerWidth/outerHeight < screen width/height when DevTools open
-      if (window.outerWidth < window.screen.width - widthThreshold ||
-          window.outerHeight < window.screen.height - heightThreshold) {
-        if (!devtoolsOpen) {
-          devtoolsOpen = true;
-          console.warn('⚠️ DevTools detected — triggering protection');
-          // Show overlay
-          window.dispatchEvent(new CustomEvent('fforum-devtools-detected'));
-        }
-      } else {
-        devtoolsOpen = false;
-      }
-    };
-
-    // Check every 2 seconds
-    checkInterval = window.setInterval(detectDevTools, 2000);
-    
-    // Also check on resize
-    window.addEventListener('resize', detectDevTools);
-
-    // Console.log interceptor (chặn thông tin rò rỉ)
-    const originalLog = console.log;
-    const originalWarn = console.warn;
-    const originalError = console.error;
-    const originalInfo = console.info;
-
-    console.log = function(...args) {
-      // Kiểm tra có phải là lệnh của hệ thống không
-      const isSystemMessage = args.some(arg => 
-        typeof arg === 'string' && 
-        (arg.includes('[System]') || arg.includes('fforum-'))
-      );
-      if (!isSystemMessage) {
-        // Lưu lại không log ra (ăn nhẹ thông tin)
-        return;
-      }
-      originalLog.apply(console, args);
-    };
-
-    console.warn = function(...args) {
-      const isSystemMessage = args.some(arg => 
-        typeof arg === 'string' && arg.includes('[System]')
-      );
-      if (!isSystemMessage) return;
-      originalWarn.apply(console, args);
-    };
-
-    // ========================================
-    // 3. BLOCK CONTEXT MENU (chuột phải)
-    // ========================================
-    const handleContextMenu = (e: MouseEvent) => {
-      // Cho phép context menu trên một số phần tử (input, textarea)
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-        return; // Cho phép chuột phải trên input
-      }
-      
-      e.preventDefault();
-      e.stopPropagation();
-      
-      // Visual feedback
-      if (target.classList.contains('potator-magnetic')) {
-        // Làm ngắn animation feedback
-        const originalTransition = target.style.transition;
-        target.style.transition = 'transform 0.1s ease';
-        target.style.transform = 'scale(0.98)';
-        setTimeout(() => {
-          target.style.transform = 'scale(1)';
-          target.style.transition = originalTransition;
-        }, 100);
-      }
-    };
-
-    document.addEventListener('contextmenu', handleContextMenu, true);
-
-    // ========================================
-    // 4. BLOCK ELEMENT INSPECT (F12 → Inspect Element)
-    // ========================================
-    // Inject CSS để ẩn element khi inspect
-    const inspectBlockStyle = document.createElement('style');
-    inspectBlockStyle.id = 'fforum-inspect-block';
-    inspectBlockStyle.textContent = `
-      /* Ẩn các element quan trọng khi inspect */
-      [data-fforum-critical] {
-        /* Không ẩn hoàn toàn (vẫn render được) */
-      }
-      
-      /* Khi DevTools mở, ẩn overlay */
-      body.devtools-open [data-fforum-protect] {
-        opacity: 0 !important;
-        pointer-events: none !important;
-      }
-    `;
-    document.head.appendChild(inspectBlockStyle);
-
-    // ========================================
-    // 5. CLEANUP
-    // ========================================
+    /* ======================================== */
+    /* 2. CLEANUP */
+    /* ======================================== */
     return () => {
       document.removeEventListener('keydown', handleKeyDown, true);
-      if (checkInterval) window.clearInterval(checkInterval);
-      window.removeEventListener('resize', detectDevTools);
-      document.removeEventListener('contextmenu', handleContextMenu, true);
-      
-      console.log = originalLog;
-      console.warn = originalWarn;
-      console.error = originalError;
-      console.info = originalInfo;
-      
-      const style = document.getElementById('fforum-inspect-block');
-      if (style) style.remove();
     };
   }, [enabled]);
 };
 
-// Hook detect DevTools open state
+/* Hook detect DevTools open state */
 export const useDevToolsDetection = (onDetect?: () => void) => {
   useEffect(() => {
     let devtoolsOpen = false;

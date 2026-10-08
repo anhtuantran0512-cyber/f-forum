@@ -53,32 +53,32 @@ export const RightClickBlocker: React.FC<RightClickBlockerProps> = ({
     if (!enabled) return;
 
     const handleContextMenu = (e: MouseEvent) => {
-      // Check nếu element được whitelist
+      /* Check nếu element được whitelist */
       const target = e.target as HTMLElement;
       
       for (const selector of allowedSelectors) {
         if (target.matches(selector)) {
-          return; // Cho phép chuột phải trên element này
+          return; /* Cho phép chuột phải trên element này */
         }
       }
 
-      // Chặn context menu
+      /* Chặn context menu */
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
 
-      // Hiện feedback
+      /* Hiện feedback */
       if (showFeedback) {
         showFeedbackEffect(e.clientX, e.clientY);
       }
 
-      // Haptic feedback (nếu có)
+      /* Haptic feedback (nếu có) */
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(30);
       }
     };
 
-    // Sử dụng capture: true để chặn trước khi propagate
+    /* Sử dụng capture: true để chặn trước khi propagate */
     document.addEventListener('contextmenu', handleContextMenu, true);
 
     return () => {
@@ -102,7 +102,7 @@ export const RightClickBlocker: React.FC<RightClickBlockerProps> = ({
   );
 };
 
-// Custom feedback UI
+/* Custom feedback UI */
 interface RightClickFeedbackProps {
   visible: boolean;
   x: number;
@@ -185,7 +185,7 @@ const RightClickFeedback: React.FC<RightClickFeedbackProps> = ({
   );
 };
 
-// Global keyframes for feedback animation
+/* Global keyframes for feedback animation */
 export const injectRightClickStyles = (): void => {
   if (document.getElementById('right-click-block-styles')) return;
 
@@ -223,7 +223,7 @@ export const injectRightClickStyles = (): void => {
   document.head.appendChild(style);
 };
 
-// Hook đơn giản hơn cho việc chặn chuột phải
+/* Hook đơn giản hơn cho việc chặn chuột phải */
 export const useRightClickBlock = (enabled: boolean = true) => {
   useEffect(() => {
     if (!enabled) return;
@@ -231,7 +231,7 @@ export const useRightClickBlock = (enabled: boolean = true) => {
     const handleContextMenu = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       
-      // Skip trên input/textarea
+      /* Skip trên input/textarea */
       if (target.tagName === 'INPUT' || 
           target.tagName === 'TEXTAREA' || 
           target.isContentEditable) {

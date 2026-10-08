@@ -20,7 +20,7 @@ export const AuroraMeshBackground: React.FC<AuroraMeshBackgroundProps> = ({
   opacity = 0.5,
   className = '',
 }) => {
-  // Không render nếu không active
+  /* Không render nếu không active */
   if (!active) return null;
 
   return (

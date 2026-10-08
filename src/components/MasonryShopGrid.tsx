@@ -37,7 +37,7 @@ export const MasonryShopGrid: React.FC<MasonryShopGridProps> = ({
 
   const handleBuy = useCallback((item: ShopItem) => {
     if (userCoin < item.price) {
-      // Haptic feedback for insufficient coins
+      /* Haptic feedback for insufficient coins */
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(50);
       }
