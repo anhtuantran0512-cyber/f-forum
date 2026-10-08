@@ -1,11 +1,10 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   X,
   Play,
   Pause,
-  Volume2,
-  VolumeX,
+
   NotebookPen,
   Copy,
   Check,
@@ -19,7 +18,6 @@ import {
   TrendingUp,
   Clock,
 } from 'lucide-react';
-import { startFocusLofiAmbient, stopFocusLofiAmbient } from '../utils/audio';
 import { safeStorage } from '../utils/storage';
 import { computeStudyTotals, formatDuration, readStudySessions, sessionsForOwner } from '../utils/studyLog';
 import {
@@ -40,7 +38,7 @@ import {
 interface FocusSanctuaryProps {
   isOpen: boolean;
   onClose: () => void;
-  onStartRewardSession?: () => Promise<string | null>;
+  onStartRewardSession?: (targetMinutes: number) => Promise<string | null>;
   /** Email người đang học — dùng để ghi giờ học vào đúng tài khoản. */
   userEmail?: string;
 }
@@ -54,28 +52,19 @@ interface FocusSanctuaryProps {
    -------------------------------------------------------------------------- */
 const FocusSanctuaryInner: React.FC<{
   onClose: () => void;
-  onStartRewardSession?: () => Promise<string | null>;
+  onStartRewardSession?: (targetMinutes: number) => Promise<string | null>;
   userEmail?: string;
 }> = ({ onClose, onStartRewardSession, userEmail }) => {
   const [mode, setMode] = useState<FocusMode>('work');
+  const [targetMinutes, setTargetMinutes] = useState(25);
   const [session, setSession] = useState<FocusSessionState | null>(() => readFocusSession());
   const [isStarting, setIsStarting] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [flash, setFlash] = useState<{ minutes: number; total: number } | null>(null);
 
-  const [isAudioPlaying, setIsAudioPlaying] = useState(true);
-  const audioCtxRef = useRef<AudioContext | null>(null);
   const [notes, setNotes] = useState(() => safeStorage.getItem('fforum_focus_scratchpad') || '');
   const [copied, setCopied] = useState(false);
   const [studyTick, setStudyTick] = useState(0);
-
-  /* Âm hưởng Lofi khi ở trong phòng */
-  useEffect(() => {
-    startFocusLofiAmbient();
-    return () => {
-      stopFocusLofiAmbient();
-    };
-  }, []);
 
   useEffect(() => {
     safeStorage.setItem('fforum_focus_scratchpad', notes);
@@ -119,8 +108,8 @@ const FocusSanctuaryInner: React.FC<{
 
   const isRunning = Boolean(session);
   const activeMode: FocusMode = session ? session.mode : mode;
-  const plannedSeconds = (activeMode === 'work' ? FOCUS_WORK_MINUTES : FOCUS_BREAK_MINUTES) * 60;
-  const remainingLabel = session ? focusRemainingLabel(session, now) : `${String(activeMode === 'work' ? FOCUS_WORK_MINUTES : FOCUS_BREAK_MINUTES).padStart(2, '0')}:00`;
+  const plannedSeconds = session ? (session.plannedMinutes * 60) : (activeMode === 'work' ? targetMinutes : FOCUS_BREAK_MINUTES) * 60;
+  const remainingLabel = session ? focusRemainingLabel(session, now) : `${String(activeMode === 'work' ? targetMinutes : FOCUS_BREAK_MINUTES).padStart(2, '0')}:00`;
   const progressPercent = session ? focusProgressPercent(session, now) : 0;
   const sessionMinutes = session ? focusElapsedMinutes(session, now) : 0;
 
@@ -130,12 +119,12 @@ const FocusSanctuaryInner: React.FC<{
     let serverSessionId: string | null = null;
     try {
       if (mode === 'work' && userEmail && onStartRewardSession) {
-        serverSessionId = await onStartRewardSession();
+        serverSessionId = await onStartRewardSession(targetMinutes);
       }
     } catch {
       serverSessionId = null;
     } finally {
-      startFocusSession(mode, userEmail, serverSessionId);
+      startFocusSession(mode, userEmail, serverSessionId, targetMinutes);
       setSession(readFocusSession());
       setNow(Date.now());
       setIsStarting(false);
@@ -153,30 +142,6 @@ const FocusSanctuaryInner: React.FC<{
     setSession(null);
     setMode(next);
     setNow(Date.now());
-  };
-
-  const handleToggleAudio = async (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    try {
-      if (!audioCtxRef.current && typeof window !== 'undefined') {
-        const AudioContextClass =
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-        if (AudioContextClass) audioCtxRef.current = new AudioContextClass();
-      }
-      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
-        await audioCtxRef.current.resume();
-      }
-    } catch {
-      /* Thiết bị không cho phát audio — bỏ qua, HUD vẫn chạy */
-    }
-    if (isAudioPlaying) {
-      stopFocusLofiAmbient();
-      setIsAudioPlaying(false);
-    } else {
-      const active = startFocusLofiAmbient(audioCtxRef.current);
-      setIsAudioPlaying(active);
-    }
   };
 
   const handleCopyNotes = () => {
@@ -221,7 +186,7 @@ const FocusSanctuaryInner: React.FC<{
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base sm:text-lg font-bold text-white tracking-wide">PHÒNG TẬP TRUNG</h2>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
-                  25 / 5 MIN
+                  {targetMinutes} / {FOCUS_BREAK_MINUTES} MIN
                 </span>
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
@@ -240,18 +205,6 @@ const FocusSanctuaryInner: React.FC<{
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            <button
-              onClick={handleToggleAudio}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-2 border transition-all ${
-                isAudioPlaying
-                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.4)]'
-                  : 'bg-white/5 text-neutral-400 border-white/10 hover:text-white'
-              }`}
-              title={isAudioPlaying ? 'Tắt âm hưởng Lofi' : 'Bật âm hưởng Lofi'}
-            >
-              {isAudioPlaying ? <Volume2 className="w-4 h-4 text-cyan-400" /> : <VolumeX className="w-4 h-4" />}
-              <span className="hidden sm:inline font-mono">{isAudioPlaying ? 'Lofi Playing' : 'Lofi Muted'}</span>
-            </button>
 
             <button
               onClick={onClose}
@@ -287,9 +240,12 @@ const FocusSanctuaryInner: React.FC<{
             ))}
           </div>
           {flash && (
-            <p className="ff-focus-flash mt-2.5 text-[11px] font-semibold text-emerald-300 inline-flex items-center gap-1.5">
-              <Check className="w-3.5 h-3.5" />
-              Đã ghi +{flash.minutes} phút vào nhật ký · hôm nay {formatDuration(flash.total)}. Nghỉ 5 phút rồi học tiếp nhé!
+            <p className="ff-focus-flash mt-2.5 text-[11px] font-semibold text-emerald-300 inline-flex items-center gap-1.5 flex-wrap">
+              <Check className="w-3.5 h-3.5 shrink-0" />
+              <span>Đã ghi +{flash.minutes} phút vào nhật ký · hôm nay {formatDuration(flash.total)}. Nghỉ 5 phút rồi học tiếp nhé!</span>
+              {flash.minutes >= 120 ? <span className="text-amber-300 font-bold ml-1">Thưởng mốc 120p: +120 XP & Rương Huyền Bí!</span> :
+               flash.minutes >= 60 ? <span className="text-amber-300 font-bold ml-1">Thưởng mốc 60p: +60 XP & Hộp Quà Nhỏ!</span> :
+               flash.minutes >= 25 ? <span className="text-amber-300 font-bold ml-1">Thưởng mốc 25p: +25 XP & 10 Coin!</span> : null}
             </p>
           )}
         </div>
@@ -306,7 +262,7 @@ const FocusSanctuaryInner: React.FC<{
                 }`}
               >
                 <Timer className="w-3.5 h-3.5" />
-                <span>Học Tập (25m)</span>
+                <span>Học Tập ({targetMinutes}m)</span>
               </button>
               <button
                 onClick={() => handleSwitchMode('break')}
@@ -319,23 +275,33 @@ const FocusSanctuaryInner: React.FC<{
               </button>
             </div>
 
-            <div className="relative w-56 h-56 sm:w-64 sm:h-64 flex items-center justify-center">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="42" className="stroke-neutral-800" strokeWidth="5" fill="none" />
+            <div className="relative w-56 h-56 sm:w-64 sm:h-64 flex flex-col items-center justify-center">
+              {isRunning && activeMode === 'work' && (
+                <div className="absolute inset-0 rounded-full animate-pulse blur-xl bg-cyan-500/20 pointer-events-none" />
+              )}
+              <svg className="absolute inset-0 w-full h-full animate-[spin_30s_linear_infinite] pointer-events-none opacity-50" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="46" className="stroke-neutral-700" strokeWidth="1.5" strokeDasharray="4 8" fill="none" />
+              </svg>
+              <svg className="absolute inset-0 w-full h-full animate-[spin_20s_linear_infinite_reverse] pointer-events-none opacity-30" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="38" className="stroke-neutral-600" strokeWidth="1" strokeDasharray="1 6" strokeLinecap="round" fill="none" />
+              </svg>
+              <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="42" className="stroke-neutral-800" strokeWidth="4" fill="none" />
                 <circle
                   cx="50"
                   cy="50"
                   r="42"
-                  className={`transition-all duration-500 ${activeMode === 'work' ? 'stroke-cyan-400' : 'stroke-purple-400'}`}
-                  strokeWidth="5"
+                  className={`transition-all duration-1000 ease-out ${activeMode === 'work' ? 'stroke-cyan-400' : 'stroke-purple-400'}`}
+                  strokeWidth="4.5"
                   strokeDasharray={264}
                   strokeDashoffset={264 - (264 * progressPercent) / 100}
                   strokeLinecap="round"
                   fill="none"
+                  style={{ filter: isRunning ? 'drop-shadow(0 0 10px currentColor) drop-shadow(0 0 4px currentColor)' : 'none' }}
                 />
               </svg>
 
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+              <div className="relative z-10 flex flex-col items-center justify-center text-center">
                 <span className="text-4xl sm:text-5xl font-extrabold tracking-tight font-mono text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]">
                   {remainingLabel}
                 </span>
@@ -347,6 +313,24 @@ const FocusSanctuaryInner: React.FC<{
                 </span>
               </div>
             </div>
+
+            {!isRunning && activeMode === 'work' && (
+              <div className="w-full px-4 flex flex-col gap-1.5 mt-[-10px] z-10">
+                <div className="flex justify-between text-[10px] font-mono text-cyan-300/80 font-semibold px-1">
+                  <span>5m</span>
+                  <span>120m</span>
+                </div>
+                <input
+                  type="range"
+                  min="5"
+                  max="120"
+                  step="5"
+                  value={targetMinutes}
+                  onChange={(e) => setTargetMinutes(Number(e.target.value))}
+                  className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 hover:accent-cyan-300"
+                />
+              </div>
+            )}
 
             <div className="w-full space-y-3">
               <button
@@ -373,8 +357,8 @@ const FocusSanctuaryInner: React.FC<{
               </button>
 
               <p className="text-[10.5px] text-neutral-400 text-center leading-relaxed font-mono">
-                Học đủ 25 phút → tự ghi <b className="text-emerald-300">+25 phút</b> vào nhật ký. Tài khoản đăng nhập nhận{' '}
-                <b className="text-amber-300">+25 XP và Coin</b> sau khi máy chủ xác thực phiên; dừng sớm không có thưởng.
+                Học đủ {targetMinutes} phút → tự ghi <b className="text-emerald-300">+{targetMinutes} phút</b> vào nhật ký. Tài khoản đăng nhập nhận{' '}
+                <b className="text-amber-300">+{targetMinutes} XP và Coin</b> sau khi máy chủ xác thực phiên; có thưởng thêm ở mốc 25p, 60p, 120p.
               </p>
             </div>
           </div>

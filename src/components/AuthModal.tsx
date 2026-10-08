@@ -156,7 +156,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (onLoginWithPassword) {
         await onLoginWithPassword(email, password);
       } else {
-        const isSuperAdmin = email === '253297990+broamstuck-cybr@users.noreply.github.com';
+        const isSuperAdmin = email === 'BroAmStuck@gmail.com';
         if (!isSuperAdmin) {
           throw new Error('Tài khoản không tồn tại. Vui lòng đăng ký trước!');
         }

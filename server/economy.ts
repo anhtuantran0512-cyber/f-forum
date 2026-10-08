@@ -12,6 +12,7 @@ export interface FocusRewardSession {
   startedAt: number;
   claimedAt?: number;
   reward?: number;
+  targetMinutes?: number;
 }
 
 export type GiftBoxType = keyof DailyRewardProfile['boxes'];
@@ -93,11 +94,13 @@ export const sanitizeFocusRewardSessions = (
     if (!id || !Number.isFinite(startedAt) || startedAt > now + 60_000 || now - startedAt > FOCUS_SESSION_MAX_AGE_MS) continue;
     const claimedAt = Number(value.claimedAt);
     const reward = Number(value.reward);
+    const targetMinutes = Number(value.targetMinutes);
     output[email] = {
       id,
       startedAt: Math.floor(startedAt),
+      ...(Number.isFinite(targetMinutes) ? { targetMinutes: Math.floor(targetMinutes) } : {}),
       ...(Number.isFinite(claimedAt) && claimedAt >= startedAt && claimedAt <= now + 60_000
-        ? { claimedAt: Math.floor(claimedAt), reward: Number.isInteger(reward) && reward === FOCUS_REWARD_AMOUNT ? reward : FOCUS_REWARD_AMOUNT }
+        ? { claimedAt: Math.floor(claimedAt), reward: Number.isInteger(reward) ? reward : FOCUS_REWARD_AMOUNT }
         : {}),
     };
   }

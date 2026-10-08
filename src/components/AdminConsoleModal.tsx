@@ -119,6 +119,7 @@ interface AdminConsoleModalProps {
   onOpenReports?: () => void;
   /** Nhảy sang phân khu CLB để duyệt hồ sơ đang chờ. */
   onOpenClubs?: () => void;
+  currentUserEmail?: string;
 }
 
 const LIMITER_LABELS: Record<string, string> = {

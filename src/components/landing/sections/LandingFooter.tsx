@@ -103,7 +103,7 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ onEnterApp, onOpen
                 <GithubMark className="h-4 w-4" />
               </a>
               <a
-                href="mailto:253297990+broamstuck-cybr@users.noreply.github.com"
+                href="mailto:BroAmStuck@gmail.com"
                 aria-label="Gửi email cho Ban Quản Trị"
                 className="ff-btn ff-btn-ghost h-9 w-9 !p-0"
               >

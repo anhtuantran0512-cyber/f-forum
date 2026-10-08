@@ -234,7 +234,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
   onNavigate,
   currentUser,
 }) => {
-  const isSuperAdmin = currentUser?.email?.toLowerCase() === '253297990+broamstuck-cybr@users.noreply.github.com';
+  const isSuperAdmin = currentUser?.email?.toLowerCase() === 'BroAmStuck@gmail.com';
 
   const [founderProfile, setFounderProfile] = useState<FounderProfileState>(() => {
     const saved = safeStorage.getItem('fforum_vinhdanh_founder');
@@ -608,7 +608,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         role: updatedFounder.role,
         avatarUrl: updatedFounder.avatarUrl,
         bio: updatedFounder.bio,
-        email: '253297990+broamstuck-cybr@users.noreply.github.com',
+        email: 'BroAmStuck@gmail.com',
       },
       milestones,
     }, currentUser.email).catch(() => {});

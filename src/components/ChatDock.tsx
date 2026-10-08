@@ -74,13 +74,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
   } | null>(null);
   const [authorAnchorPos, setAuthorAnchorPos] = useState<{ x: number; y: number }>({ x: 240, y: 180 });
 
-  useEffect(() => {
-    const onPointerDown = (e: PointerEvent) => {
-      setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener('pointerdown', onPointerDown, { passive: true });
-    return () => window.removeEventListener('pointerdown', onPointerDown);
-  }, []);
+
 
   const [reportUser, setReportUser] = useState<{ id: string; name: string } | null>(null);
   const [reportReason, setReportReason] = useState<string>('Toxic / Gây war / Xúc phạm bạn học');
@@ -262,7 +256,8 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                 >
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
                       if (isMe && currentUser) {
                         setActiveAuthorCard({
                           id: currentUser.id,
@@ -305,7 +300,8 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                     <div className="flex items-center gap-1.5 mb-1 text-[11px] text-neutral-400">
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
+                          setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
                           if (isMe && currentUser) {
                             setActiveAuthorCard({
                               id: currentUser.id,

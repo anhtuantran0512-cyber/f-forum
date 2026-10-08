@@ -115,11 +115,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
   useEffect(() => {
     const onPointerDown = (e: PointerEvent) => {
-      setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
+      setAuthorAnchorPos(prev => activeAuthorCard ? prev : { x: e.clientX, y: e.clientY });
     };
     window.addEventListener('pointerdown', onPointerDown, { passive: true });
     return () => window.removeEventListener('pointerdown', onPointerDown);
-  }, []);
+  }, [activeAuthorCard]);
 
   const [reportUser, setReportUser] = useState<{ id: string; name: string } | null>(null);
   const [reportReason, setReportReason] = useState<string>('Toxic / Gây war / Xúc phạm bạn học');

@@ -61,7 +61,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
 
   if (!isOpen) return null;
 
-  const isSuperAdmin = currentUser.email === '253297990+broamstuck-cybr@users.noreply.github.com';
+  const isSuperAdmin = currentUser.email === 'BroAmStuck@gmail.com';
   const tier = getTierForLevel(currentUser.level);
 
   const handleReportSubmit = async (e: React.FormEvent) => {

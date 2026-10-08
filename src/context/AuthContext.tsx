@@ -17,7 +17,7 @@ export const AuthProvider: React.FC<{
   currentUser: User | null;
   children: React.ReactNode;
 }> = ({ currentUser, children }) => {
-  const isSuperAdmin = currentUser?.email === '253297990+broamstuck-cybr@users.noreply.github.com';
+  const isSuperAdmin = currentUser?.email === 'BroAmStuck@gmail.com';
   return (
     <AuthContext.Provider value={{ currentUser, isSuperAdmin }}>
       {children}

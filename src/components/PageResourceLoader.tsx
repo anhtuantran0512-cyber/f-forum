@@ -269,7 +269,7 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
         </div>
 
         {/* Calendar Card (kept from original design) */}
-        <div className="la-08 w-full">
+        <div className={`la-08 w-full ${pct >= 100 ? 'is-ready' : ''}`}>
           <div className="la-08__card w-full">
             <div className="la-08__cal relative w-24 p-2 rounded-2xl">
               <span className="la-08__cal-top flex justify-center gap-6">

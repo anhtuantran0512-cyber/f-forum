@@ -97,9 +97,10 @@ export const clearStudyLog = (): void => {
 /* Khoảng thời gian                                                            */
 /* -------------------------------------------------------------------------- */
 
-export type StudyPeriod = 'week' | 'month' | 'year' | 'all';
+export type StudyPeriod = 'day' | 'week' | 'month' | 'year' | 'all';
 
 export const PERIOD_LABELS: Record<StudyPeriod, string> = {
+  day: 'Hôm nay',
   week: 'Tuần',
   month: 'Tháng',
   year: 'Năm',
@@ -109,6 +110,7 @@ export const PERIOD_LABELS: Record<StudyPeriod, string> = {
 const startOfDay = (d: Date): number => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
 export const periodStartMs = (period: StudyPeriod, now = new Date()): number => {
+  if (period === 'day') return startOfDay(now);
   if (period === 'week') {
     const day = (now.getDay() + 6) % 7; /* Thứ hai = 0 */
     const d = new Date(now);
@@ -185,6 +187,7 @@ export const computeStudyTotals = (
 };
 
 export const periodMinutes = (totals: StudyTotals, period: StudyPeriod): number => {
+  if (period === 'day') return totals.todayMinutes;
   if (period === 'week') return totals.weekMinutes;
   if (period === 'month') return totals.monthMinutes;
   if (period === 'year') return totals.yearMinutes;
@@ -252,7 +255,7 @@ export const estimateMinutesFromXp = (
   }
   const jitter = 0.72 + (hash % 57) / 100; /* 0.72 – 1.28 */
   const base = Math.max(0, xp) * 0.32; /* ~19 phút cho mỗi 60 XP */
-  const share: Record<StudyPeriod, number> = { week: 0.14, month: 0.42, year: 0.78, all: 1 };
+  const share: Record<StudyPeriod, number> = { day: 0.02, week: 0.14, month: 0.42, year: 0.78, all: 1 };
   return Math.round(base * share[period] * jitter);
 };
 

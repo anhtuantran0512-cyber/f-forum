@@ -77,8 +77,10 @@ export const startFocusSession = (
   mode: FocusMode,
   userEmail?: string | null,
   serverSessionId?: string | null,
+  customMinutes?: number
 ): FocusSessionState => {
-  const plannedMinutes = mode === 'work' ? FOCUS_WORK_MINUTES : FOCUS_BREAK_MINUTES;
+  const defaultMinutes = mode === 'work' ? FOCUS_WORK_MINUTES : FOCUS_BREAK_MINUTES;
+  const plannedMinutes = customMinutes !== undefined ? customMinutes : defaultMinutes;
   const startedAt = Date.now();
   const session: FocusSessionState = {
     mode,
