@@ -708,6 +708,45 @@ test('9d. Phiên tập trung chỉ thưởng sau đủ 25 phút do đồng hồ 
   }
 });
 
+test('9d2. Mốc Focus 60 và 120 phút dùng phần thưởng do server quyết định', async () => {
+  const env = await createTestServer();
+  const realNow = Date.now;
+  let offset = 0;
+  try {
+    const account = await register(env.baseUrl, 'Người Học Bền Bỉ', 'focus.milestone@example.com', 'mat-khau-focus-456');
+    Date.now = () => realNow() + offset;
+
+    const sixtyMinuteSession = await post(env.baseUrl, '/api/rewards/focus/start', { targetMinutes: 60 }, account.token);
+    assert.equal(sixtyMinuteSession.status, 200);
+    assert.equal(sixtyMinuteSession.data.reward, 60, 'Mốc 60 phút chỉ do server chọn mức Coin');
+
+    offset = 60 * 60_000;
+    const sixtyMinuteCompletion = await post(env.baseUrl, '/api/rewards/focus/complete', {
+      sessionId: sixtyMinuteSession.data.sessionId,
+      reward: 999999,
+    }, account.token);
+    assert.equal(sixtyMinuteCompletion.status, 200);
+    assert.equal(sixtyMinuteCompletion.data.reward, 60);
+    assert.equal(sixtyMinuteCompletion.data.boxGranted, 'small');
+
+    const oneHundredTwentyMinuteSession = await post(env.baseUrl, '/api/rewards/focus/start', { targetMinutes: 120 }, account.token);
+    assert.equal(oneHundredTwentyMinuteSession.status, 200);
+    assert.equal(oneHundredTwentyMinuteSession.data.reward, 120, 'Mốc 120 phút chỉ do server chọn mức Coin');
+
+    offset = 180 * 60_000;
+    const oneHundredTwentyMinuteCompletion = await post(env.baseUrl, '/api/rewards/focus/complete', {
+      sessionId: oneHundredTwentyMinuteSession.data.sessionId,
+      reward: 999999,
+    }, account.token);
+    assert.equal(oneHundredTwentyMinuteCompletion.status, 200);
+    assert.equal(oneHundredTwentyMinuteCompletion.data.reward, 120);
+    assert.equal(oneHundredTwentyMinuteCompletion.data.boxGranted, 'mystery');
+  } finally {
+    Date.now = realNow;
+    await env.close();
+  }
+});
+
 test('9e. Cửa hàng kiểm tra số dư/sở hữu phía server và chống trừ Coin lặp', async () => {
   const env = await createTestServer();
   try {
