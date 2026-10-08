@@ -27,6 +27,7 @@ import {
   Sparkles,
   UserRound,
   Users,
+  CheckCircle,
   X,
 } from 'lucide-react';
 import type { User } from '../types';
@@ -74,6 +75,8 @@ interface AdminAnalytics {
     clubsCreated: number;
     clubPosts: number;
     newMembers: number;
+    totalReports: number;
+    resolvedReports: number;
   };
   period: {
     uniqueVisitors: number;
@@ -86,6 +89,8 @@ interface AdminAnalytics {
     clubsCreated: number;
     clubPosts: number;
     newMembers: number;
+    totalReports: number;
+    resolvedReports: number;
   };
   series: AnalyticsPoint[];
   topMembers: Array<{
@@ -671,6 +676,8 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                         <ActivityRow label="Lời giải" value={analytics.totals.answers} icon={<Check size={14} />} />
                         <ActivityRow label="Câu lạc bộ thành lập" value={analytics.totals.clubsCreated} icon={<Users size={14} />} />
                         <ActivityRow label="Bài viết câu lạc bộ" value={analytics.totals.clubPosts} icon={<Award size={14} />} />
+                        <ActivityRow label="Tổng báo cáo" value={analytics.totals.totalReports} icon={<AlertTriangle size={14} />} />
+                        <ActivityRow label="Đã xử lý" value={analytics.totals.resolvedReports} icon={<CheckCircle size={14} />} />
                       </div>
                     </article>
 

@@ -47,8 +47,11 @@ import { PageResourceLoader } from './components/PageResourceLoader';
 import { UserQuickCard } from './components/UserQuickCard';
 import { RadialQuickMenu } from './components/RadialQuickMenu';
 import { AnalyticsTracker } from './components/AnalyticsTracker';
+import { ConsoleBlocker, useConsoleProtection } from './components/ConsoleBlocker';
+import { RightClickBlocker, useRightClickBlock } from './components/RightClickBlocker';
 
 const AdminInsightsModal = lazyWithRetry(() => import('./components/AdminInsightsModal').then(m => ({ default: m.AdminInsightsModal })));
+const AuroraMeshBackground = lazyWithRetry(() => import('./components/AuroraMeshBackground').then(m => ({ default: m.AuroraMeshBackground })));
 
 const LandingPage = lazyWithRetry(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
 const ClubsView = lazyWithRetry(() => import('./components/views/ClubsView').then(m => ({ default: m.ClubsView })));
@@ -244,6 +247,10 @@ export const App: React.FC = () => {
   const [eyeRestEnabled, setEyeRestEnabled] = useState<boolean>(() => {
     return safeStorage.getItem('fforum_eye_rest') === 'true';
   });
+  const [potatoMode, setPotatoMode] = useState<boolean>(() => {
+    return safeStorage.getItem('fforum_potato_mode') === 'true';
+  });
+  const [showAuroraMesh, setShowAuroraMesh] = useState(false);
   const [transition, setTransition] = useState<{ target: DimensionView; startedAt: number; revisit: boolean } | null>(null);
   const [readyView, setReadyView] = useState<DimensionView | null>(null);
   const visitedViewsRef = useRef<Set<DimensionView>>(new Set<DimensionView>([currentView]));
@@ -854,6 +861,40 @@ export const App: React.FC = () => {
      nó để giao diện không bao giờ rơi vào trạng thái "bấm gì cũng không mở". */
   useEffect(() => installInteractionWatchdog(), []);
 
+  // ========================================================
+  // SECURITY: Console/DevTools protection
+  // ========================================================
+  useConsoleProtection(true);
+  useRightClickBlock(true);
+
+  // ========================================================
+  // Potator Mode: Aurora Mesh Background
+  // ========================================================
+  useEffect(() => {
+    const key = 'fforum_potato_mode';
+    const stored = safeStorage.getItem(key);
+    if (stored !== null) {
+      setPotatoMode(stored === 'true');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (potatoMode) {
+      document.documentElement.classList.add('potator-mode-active');
+      // Show Aurora Mesh Background
+      setShowAuroraMesh(true);
+      safeStorage.setItem('fforum_potato_mode', 'true');
+    } else {
+      document.documentElement.classList.remove('potator-mode-active');
+      setShowAuroraMesh(false);
+      safeStorage.setItem('fforum_potato_mode', 'false');
+    }
+  }, [potatoMode]);
+
+  const togglePotatoMode = useCallback(() => {
+    setPotatoMode(prev => !prev);
+  }, []);
+
   const solvedQuestionsCount = questions.filter(q => q.isSolved).length;
   const isScrollableView =
     currentView === 'memory' || currentView === 'chronicles' || currentView === 'landing';
@@ -894,11 +935,15 @@ export const App: React.FC = () => {
     setCelebrationTick((n) => n + 1);
   }, [toastMessage]);
 
-  return (
-    <AuthProvider currentUser={currentUser}>
+  return (      <AuthProvider currentUser={currentUser}>
       <AnalyticsTracker accountKey={currentUser?.email || undefined} view={currentView} />
       {/* Global Radiant Cursor (Active across entire app on pointer devices) */}
       <GlobalCursor />
+      
+      {/* Potator Mode: Aurora Mesh Background (CSS-only, GPU-light) */}
+      {potatoMode && (
+        <AuroraMeshBackground active={true} blur={100} speed={22} opacity={0.5} />
+      )}
 
       <div
         className={`relative w-full ${

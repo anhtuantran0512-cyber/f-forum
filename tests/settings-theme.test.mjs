@@ -19,10 +19,10 @@ test('1. Settings button and iOS Liquid Glass Settings Modal Integration in Navb
     'Navbar must render Settings icon'
   );
 
-  // Verify AudioContext and toggleFocusAudio are preserved in Navbar
+  // Ambient 432Hz is intentionally removed from the navigation settings.
   assert.ok(
-    navbarContent.includes('toggleFocusAudio') && navbarContent.includes('audioCtxRef'),
-    'Navbar must preserve toggleFocusAudio and audioCtxRef'
+    !navbarContent.includes('toggleFocusAudio') && !navbarContent.includes('audioCtxRef'),
+    'Navbar must not retain the removed ambient audio controls'
   );
 
   // Verify SettingsModal is rendered
@@ -117,12 +117,13 @@ test('3. Apple iOS Light Glass & Dark Mode CSS Rules', () => {
   );
 });
 
-test('4. Settings Menu Options: Ambient Audio, SFX, and Reduced Motion', () => {
+test('4. Settings Menu Options: Potator Mode, SFX, and Reduced Motion', () => {
   const settingsModalContent = fs.readFileSync(path.resolve('src/components/SettingsModal.tsx'), 'utf8');
+  const cssContent = fs.readFileSync(path.resolve('src/index.css'), 'utf8');
 
   assert.ok(
-    settingsModalContent.includes('Âm thanh Ambient (432Hz)'),
-    'Settings must include Ambient Audio 432Hz option'
+    !settingsModalContent.includes('Âm thanh Ambient (432Hz)'),
+    'Settings must remove the ambient 432Hz option'
   );
   assert.ok(
     settingsModalContent.includes('Hiệu ứng âm thanh'),
@@ -135,6 +136,10 @@ test('4. Settings Menu Options: Ambient Audio, SFX, and Reduced Motion', () => {
   assert.ok(
     settingsModalContent.includes('Mở Focus Mode'),
     'Settings must provide direct Focus Sanctuary shortcut'
+  );
+  assert.ok(
+    settingsModalContent.includes('Potator Mode') && cssContent.includes('html.potato-mode .ff-app-shell:not(.ff-view-home) .ff-godray-layer'),
+    'Potator Mode must reduce expensive non-home backgrounds without disabling motion'
   );
 });
 
@@ -269,4 +274,3 @@ test('9. Cartoon Switch Knob Geometry, Travel Offset & Easing Physics', () => {
     'Theme indicator badge must use standard py-0.5 vertical padding'
   );
 });
-
