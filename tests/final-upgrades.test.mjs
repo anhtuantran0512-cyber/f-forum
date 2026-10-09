@@ -400,6 +400,9 @@ test('WebSocket: "đăng xuất mọi thiết bị" gỡ danh tính socket đang
     const out = await call(env.baseUrl, 'POST', '/api/auth/logout', { everywhere: true }, tokenB);
     assert.equal(out.data.revoked, true);
 
+    const sync = await call(env.baseUrl, 'GET', '/api/sync');
+    assert.equal(Object.keys(sync.data.data.users[email]).some((k) => /revok/i.test(k)), false, 'mốc thu hồi không lộ qua /api/sync');
+
     const notice = await deviceA.next('SESSION_REVOKED');
     assert.equal(notice.payload.reason, 'everywhere', 'socket của tài khoản nhận lệnh dọn phiên');
     await assert.rejects(bystander.next('SESSION_REVOKED', 250), /Hết giờ/, 'socket khách/người khác không nhận');
@@ -424,6 +427,55 @@ test('WebSocket: "đăng xuất mọi thiết bị" gỡ danh tính socket đang
   }
 });
 
+test('Mốc thu hồi cũ nằm trong bản ghi user được chuyển sang kho riêng khi khởi động, không lộ qua /api/sync', async () => {
+  const password = 'mat-khau-test-789';
+  const stamp = Date.now();
+  const victim = `legacy.revoke.${stamp}@example.test`;
+  const control = `legacy.control.${stamp}@example.test`;
+  let env = await createTestServer();
+  let victimToken;
+  let controlToken;
+  try {
+    for (const email of [victim, control]) {
+      const reg = await call(env.baseUrl, 'POST', '/api/auth/register', { name: 'Tài khoản thử', email, password });
+      assert.equal(reg.status, 200, JSON.stringify(reg.data));
+    }
+    victimToken = (await call(env.baseUrl, 'POST', '/api/auth/login', { email: victim, password })).data.token;
+    controlToken = (await call(env.baseUrl, 'POST', '/api/auth/login', { email: control, password })).data.token;
+  } finally {
+    await env.close();
+  }
+
+  // Chờ lượt ghi đĩa (debounce 200ms) rồi giả lập tệp dữ liệu định dạng CŨ.
+  await new Promise((r) => setTimeout(r, 400));
+  const file = path.join(DATA_DIR, 'forum-data.json');
+  const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+  assert.ok(data.users[victim], 'tài khoản thử đã được ghi xuống đĩa');
+  data.users[victim].sessionsRevokedAt = Date.now() + 1;
+  delete data.sessionRevocations;
+  fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+
+  env = await createTestServer(); // khởi động lại → loadStoreFromDisk đọc tệp cũ
+  try {
+    const stale = await call(env.baseUrl, 'GET', '/api/auth/session', undefined, victimToken);
+    assert.equal(stale.status, 401, 'token đã bị thu hồi theo định dạng cũ vẫn bị từ chối sau nâng cấp');
+    const untouched = await call(env.baseUrl, 'GET', '/api/auth/session', undefined, controlToken);
+    assert.equal(untouched.status, 200, 'đối chứng: token tài khoản khác vẫn hợp lệ (không phải do đổi khoá ký)');
+
+    const sync = await call(env.baseUrl, 'GET', '/api/sync');
+    assert.equal('sessionsRevokedAt' in sync.data.data.users[victim], false, 'trường cũ bị gỡ khỏi bản ghi công khai');
+
+    await new Promise((r) => setTimeout(r, 5));
+    const fresh = await call(env.baseUrl, 'POST', '/api/auth/login', { email: victim, password });
+    assert.equal(fresh.status, 200);
+    assert.equal('sessionsRevokedAt' in fresh.data.user, false);
+    const session = await call(env.baseUrl, 'GET', '/api/auth/session', undefined, fresh.data.token);
+    assert.equal(session.status, 200, 'đăng nhập mới sau mốc thu hồi vẫn dùng được');
+  } finally {
+    await env.close();
+  }
+});
+
 test('Client dọn phiên khi nhận SESSION_REVOKED, bỏ qua sự kiện dội về thiết bị khởi xướng', () => {
   const store = read('src/store/forumStore.ts');
   assert.match(store, /case 'SESSION_REVOKED': \{\n[\s\S]{0,400}?if \(everywherePendingRef\.current \|\| !currentUserRef\.current\) break;\n\s+sessionRevokedRef\.current\(\);/);
@@ -431,7 +483,15 @@ test('Client dọn phiên khi nhận SESSION_REVOKED, bỏ qua sự kiện dội
   assert.match(store, /sessionRevokedRef\.current = \(\) => \{\n\s+logout\(\{ skipServer: true \}\);/);
   const server = read('server/forumServer.ts');
   assert.match(server, /const sessionOf = \(ws: WebSocket\): SessionClaims \| null => \{[\s\S]{0,500}?if \(isSessionRevoked\(session\)\) \{/);
-  assert.match(server, /account\.sessionsRevokedAt = Date\.now\(\);\n\s+persistStoreToDisk\(\);\n\s+revokeAccountSockets\(claims\.email\);/);
+  assert.match(server, /store\.sessionRevocations = \{ \.\.\.\(store\.sessionRevocations \|\| \{\}\), \[claims\.email\]: Date\.now\(\) \};\n\s+persistStoreToDisk\(\);\n\s+revokeAccountSockets\(claims\.email\);/);
+});
+
+test('Mở lại app khi đang bị khoá: khôi phục phiên (Bearer lẫn cookie) cũng báo trạng thái khoá', () => {
+  const store = read('src/store/forumStore.ts');
+  assert.match(store, /setCurrentUser\(fresh\);\n\s+announceRestoredLock\(sessionJson\.moderation\);/);
+  assert.match(store, /setCurrentUser\(fresh\);\n\s+announceRestoredLock\(probed\.moderation\);/);
+  assert.match(store, /const notice = describeLoginModeration\(moderation as LoginModeration \| null \| undefined\);\n\s+if \(notice && isMounted\) setToastMessage/);
+  assert.match(read('src/utils/session.ts'), /return \{ user: data\.user, expiresAt: data\.expiresAt, moderation: data\.moderation \};/);
 });
 
 test('msn-10: bảng tổng quan quản trị là masonry lượng tử, xếp dense KÍN ở cả 4 cột và 2 cột', () => {

@@ -218,7 +218,7 @@ export const upgradeLegacySession = async (): Promise<boolean> => {
  * xoá localStorage). `probe=1` → máy chủ trả 200 `{ authenticated: false }` thay
  * cho 401 để khách vãng lai không thấy lỗi đỏ trong console mỗi lần tải trang.
  */
-export const probeCookieSession = async (): Promise<{ user: unknown; expiresAt: number } | null> => {
+export const probeCookieSession = async (): Promise<{ user: unknown; expiresAt: number; moderation?: unknown } | null> => {
   if (!canUseCookieSession() || hasStoredSession()) return null;
   try {
     const res = await fetch('/api/auth/session?probe=1', { cache: 'no-store', credentials: 'same-origin' });
@@ -226,7 +226,8 @@ export const probeCookieSession = async (): Promise<{ user: unknown; expiresAt: 
     const data = await res.json();
     if (data?.success && data.user && typeof data.expiresAt === 'number') {
       writeHint(data.expiresAt);
-      return { user: data.user, expiresAt: data.expiresAt };
+      /* `moderation`: trạng thái khoá máy chủ tính theo giờ hiện tại (báo khi mở app). */
+      return { user: data.user, expiresAt: data.expiresAt, moderation: data.moderation };
     }
   } catch {
     /* ngoại tuyến */

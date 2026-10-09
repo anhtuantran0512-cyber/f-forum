@@ -54,7 +54,7 @@ import { getTierForLevel } from '../utils/tier';
 import { pushNotification } from '../utils/notifications';
 import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
 import { readSharedQuestionId } from '../utils/shareLinks';
-import { describeLoginModeration } from '../utils/moderationNotice';
+import { describeLoginModeration, type LoginModeration } from '../utils/moderationNotice';
 
 const CURRENT_TAB_ID =
   typeof window !== 'undefined'
@@ -596,6 +596,13 @@ export function useForumStore() {
   useEffect(() => {
     let isMounted = true;
 
+    /* Đang bị khoá → nhắc ngay khi MỞ LẠI app (trước đây chỉ báo lúc đăng nhập), để
+       lần đăng kế tiếp không thành một lỗi khó hiểu. Máy chủ đã tính theo giờ hiện tại. */
+    const announceRestoredLock = (moderation: unknown) => {
+      const notice = describeLoginModeration(moderation as LoginModeration | null | undefined);
+      if (notice && isMounted) setToastMessage({ ...notice, type: 'level' });
+    };
+
     async function fetchServerState() {
       try {
         const res = await fetch('/api/sync');
@@ -702,6 +709,7 @@ export function useForumStore() {
                       const fresh = sessionJson.user as User;
                       safeStorage.setItem('fforum_current_user_email', fresh.email.toLowerCase());
                       setCurrentUser(fresh);
+                      announceRestoredLock(sessionJson.moderation);
                       /* Epic 5: phiên Bearer cũ → nâng lên cookie HttpOnly khi chạy HTTPS ở
                          cửa sổ chính, rồi xoá token khỏi localStorage. */
                       if (getAuthToken() && canUseCookieSession()) void upgradeLegacySession();
@@ -718,6 +726,7 @@ export function useForumStore() {
                 const fresh = probed.user as User;
                 safeStorage.setItem('fforum_current_user_email', fresh.email.toLowerCase());
                 setCurrentUser(fresh);
+                announceRestoredLock(probed.moderation);
               } else if (savedEmail && data.users && data.users[savedEmail.toLowerCase()] && isMounted) {
                 setCurrentUser(data.users[savedEmail.toLowerCase()]);
               }
