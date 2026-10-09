@@ -526,32 +526,32 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   </div>
 
                   <div className="ff-media-card__content">
-                  <div>
-                  <h3 className="font-bold text-sm text-white group-hover:text-amber-300 transition-colors">
-                    {club.name}
-                  </h3>
-                  <p className="text-xs text-neutral-400 italic line-clamp-1 mt-0.5">
-                    {club.slogan}
-                  </p>
-                  <p className="text-[11px] text-neutral-300 mt-2 line-clamp-2">
-                    {club.purpose}
-                  </p>
-                  </div>
+                    <div>
+                      <h3 className="font-bold text-sm text-white group-hover:text-amber-300 transition-colors">
+                        {club.name}
+                      </h3>
+                      <p className="text-xs text-neutral-400 italic line-clamp-1 mt-0.5">
+                        {club.slogan}
+                      </p>
+                      <p className="text-[11px] text-neutral-300 mt-2 line-clamp-2">
+                        {club.purpose}
+                      </p>
+                    </div>
 
-                <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
-                  <button
-                    onClick={() => setSelectedClub(club)}
-                    className="flex-1 py-1.5 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors"
-                  >
-                    Xem Chi Tiết
-                  </button>
-                  <button
-                    onClick={() => setApplicationSubmitted(club.id)}
-                    className="flex-1 py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold border border-amber-500/30 transition-colors"
-                  >
-                    {applicationSubmitted === club.id ? '✓ Đã Nộp' : 'Nộp Đơn'}
-                  </button>
-                </div>
+                    <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+                      <button
+                        onClick={() => setSelectedClub(club)}
+                        className="flex-1 py-1.5 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors"
+                      >
+                        Xem Chi Tiết
+                      </button>
+                      <button
+                        onClick={() => setApplicationSubmitted(club.id)}
+                        className="flex-1 py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold border border-amber-500/30 transition-colors"
+                      >
+                        {applicationSubmitted === club.id ? '✓ Đã Nộp' : 'Nộp Đơn'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
