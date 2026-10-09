@@ -106,8 +106,6 @@ export interface UserRecord {
   bannerUrl?: string;
   profileGradient?: string;
   scopedClubIds: string[];
-  /** Epic 5: mọi token phát hành TRƯỚC mốc này bị thu hồi ("đăng xuất mọi thiết bị"). */
-  sessionsRevokedAt?: number;
 }
 
 export interface AdminWarningRecord {
@@ -214,6 +212,9 @@ export interface ForumDataStore {
   dailyRewards?: Record<string, DailyRewardProfile>;
   /** Phiên Pomodoro đang mở, đối chiếu bằng đồng hồ máy chủ khi nhận thưởng. */
   focusRewardSessions?: Record<string, FocusRewardSession>;
+  /** Epic 5 — "đăng xuất mọi thiết bị": email → mốc (ms); token phát hành TRƯỚC mốc bị
+   *  thu hồi. Để NGOÀI bản ghi user vì `users` được phát công khai qua /api/sync. */
+  sessionRevocations?: Record<string, number>;
 }
 
 
@@ -375,6 +376,33 @@ const MAX_USER_XP = 100_000_000;
   vào store với trường `undefined`, và chỗ nào spread/cộng dồn trường ấy sẽ ném
   `TypeError` — làm dở dang cả một luồng đang mutate nhiều bước.
 */
+/**
+ * Mốc thu hồi phiên: chỉ giữ số hữu hạn > 0 của tài khoản còn tồn tại. Gộp cả giá trị
+ * cũ từng nằm trong bản ghi user (`sessionsRevokedAt`) để nâng cấp không làm "sống lại"
+ * những token người dùng đã chủ động thu hồi.
+ */
+function sanitizeSessionRevocations(raw: unknown, legacyUsers: unknown, known: Set<string>): Record<string, number> {
+  const out: Record<string, number> = {};
+  const take = (email: unknown, at: unknown) => {
+    const key = String(email || '').trim().toLowerCase();
+    const value = Number(at);
+    if (!known.has(key) || !Number.isFinite(value) || value <= 0) return;
+    out[key] = Math.max(out[key] || 0, Math.floor(value));
+  };
+  if (raw && typeof raw === 'object') {
+    Object.entries(raw as Record<string, unknown>).forEach(([email, at]) => take(email, at));
+  }
+  if (legacyUsers && typeof legacyUsers === 'object') {
+    Object.values(legacyUsers as Record<string, unknown>).forEach((user) => {
+      if (user && typeof user === 'object') {
+        const legacy = user as { email?: unknown; sessionsRevokedAt?: unknown };
+        take(legacy.email, legacy.sessionsRevokedAt);
+      }
+    });
+  }
+  return out;
+}
+
 function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
   const out: Record<string, UserRecord> = {};
   if (!rawUsers || typeof rawUsers !== 'object') return out;
@@ -395,6 +423,8 @@ function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
       : undefined;
     const safeRaw = { ...raw };
     delete safeRaw.premiumGrantedBy;
+    /* Mốc thu hồi phiên là dữ liệu nội bộ (đã chuyển sang store.sessionRevocations). */
+    delete safeRaw.sessionsRevokedAt;
     const xp = asBoundedCount(raw.xp, 0, MAX_USER_XP);
     const inventory = Array.isArray(raw.inventory)
       ? [...new Set(raw.inventory.filter((id: unknown) => typeof id === 'string' && SHOP_ITEM_BY_ID.has(id)))].slice(0, 500)
@@ -531,6 +561,13 @@ function loadStoreFromDisk() {
           dailyRewards: sanitizeDailyRewardProfiles(parsed.dailyRewards, new Set(Object.keys(cleanUsers))),
           focusRewardSessions: sanitizeFocusRewardSessions(
             parsed.focusRewardSessions,
+            new Set(Object.keys(cleanUsers)),
+          ),
+          /* PHẢI liệt kê ở đây (xem cảnh báo ở trên): thiếu dòng này thì mỗi lần khởi
+             động lại, mọi token đã bị "đăng xuất mọi thiết bị" sẽ hợp lệ trở lại. */
+          sessionRevocations: sanitizeSessionRevocations(
+            parsed.sessionRevocations,
+            parsed.users,
             new Set(Object.keys(cleanUsers)),
           ),
         };
@@ -1280,7 +1317,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
   /* Epic 5: token phát hành trước mốc "đăng xuất mọi thiết bị" của tài khoản bị từ chối. */
   setSessionRevocationCheck((claims) => {
-    const revokedAt = Number(store.users[claims.email]?.sessionsRevokedAt || 0);
+    const revokedAt = Number(store.sessionRevocations?.[claims.email] || 0);
     return revokedAt > 0 && claims.iat < revokedAt;
   });
 
@@ -2833,7 +2870,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         if (claims && body?.everywhere === true) {
           const account = store.users[claims.email];
           if (account) {
-            account.sessionsRevokedAt = Date.now();
+            store.sessionRevocations = { ...(store.sessionRevocations || {}), [claims.email]: Date.now() };
             persistStoreToDisk();
             revokeAccountSockets(claims.email);
             revoked = true;
