@@ -1,5 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { safeStorage } from './storage.ts';
+import { signalSessionSuspect } from './sessionWatch.ts';
 
 /* ==========================================================================
    Phiên đăng nhập phía client
@@ -139,6 +140,8 @@ export const postJson = async (
     headers: authHeaders(),
     body: JSON.stringify(body),
   });
+  /* 401 = token có thể đã bị thu hồi/hết hạn → nhờ bộ kiểm phiên xác minh lại. */
+  signalSessionSuspect(res.status);
   let data: any = null;
   try {
     data = await res.json();
