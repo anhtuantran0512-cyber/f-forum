@@ -29,6 +29,7 @@ import { GODRAY_MOODS, GODRAY_PRESETS } from '../utils/godrays';
 import { safeStorage } from '../utils/storage';
 import { AUTH_TOKEN_KEY, clearAuthToken, requestServerLogout } from '../utils/session';
 import { usePopoverPosition, type DockPosition } from '../utils/popover';
+import { PasswordChangeForm } from './settings/PasswordChangeForm';
 
 export interface SettingsModalProps {
   isOpen: boolean;
@@ -36,6 +37,10 @@ export interface SettingsModalProps {
   /** Đã đăng nhập → hiện mục "Phiên đăng nhập". */
   isAuthenticated?: boolean;
   onLogoutEverywhere?: () => Promise<boolean>;
+  /** Đổi mật khẩu (mặc định đăng xuất các thiết bị khác). */
+  onChangePassword?: (currentPassword: string, newPassword: string, signOutOthers: boolean) => Promise<{ ok: boolean; message: string }>;
+  /** Super Admin: mật khẩu do secret máy chủ quản lý → chỉ hiện hướng dẫn. */
+  passwordManagedByServer?: boolean;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
 
@@ -179,6 +184,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   isAuthenticated = false,
   onLogoutEverywhere,
+  onChangePassword,
+  passwordManagedByServer = false,
   theme,
   onToggleTheme,
 
@@ -1156,6 +1163,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {isAuthenticated && onLogoutEverywhere && (
                 <section>
                   <SectionTitle icon={<LogOut className="w-3 h-3 text-rose-300" />}>Phiên đăng nhập</SectionTitle>
+                  {onChangePassword && (
+                    <Card className="space-y-2 mb-2">
+                      {/* key theo lần mở: đóng Cài đặt là mật khẩu đã gõ bị xoá khỏi bộ nhớ. */}
+                      <PasswordChangeForm
+                        key={isOpen ? 'settings-open' : 'settings-closed'}
+                        onChangePassword={onChangePassword}
+                        managedByServer={passwordManagedByServer}
+                      />
+                    </Card>
+                  )}
                   <Card className="space-y-2">
                     <p className="text-[10.5px] text-white/60 leading-snug">
                       Nghi ngờ tài khoản bị dùng ở máy lạ? Thu hồi mọi phiên — mọi thiết bị (kể cả máy này) phải

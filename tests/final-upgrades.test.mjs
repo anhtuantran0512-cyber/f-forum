@@ -27,6 +27,7 @@ const { moderationForLogin } = await import('../server/moderation.ts');
 const delighters = await import('../src/utils/delighters.ts');
 const sessionWatch = await import('../src/utils/sessionWatch.ts');
 const sessionUtil = await import('../src/utils/session.ts');
+const passwordRules = await import('../src/utils/passwordRules.ts');
 const { setupForumServer } = await import('../server/forumServer.ts');
 
 test.after(() => fs.rmSync(DATA_DIR, { recursive: true, force: true }));
@@ -480,12 +481,13 @@ test('Mốc thu hồi cũ nằm trong bản ghi user được chuyển sang kho 
 
 test('Client dọn phiên khi nhận SESSION_REVOKED, bỏ qua sự kiện dội về thiết bị khởi xướng', () => {
   const store = read('src/store/forumStore.ts');
-  assert.match(store, /case 'SESSION_REVOKED': \{\n[\s\S]{0,400}?if \(everywherePendingRef\.current \|\| !currentUserRef\.current\) break;\n\s+sessionRevokedRef\.current\('everywhere'\);/);
+  assert.match(store, /case 'SESSION_REVOKED': \{\n[\s\S]{0,400}?if \(everywherePendingRef\.current \|\| !currentUserRef\.current\) break;[\s\S]{0,400}?sessionRevokedRef\.current\(revocation\?\.reason === 'password' \? 'password' : 'everywhere'\);/);
   assert.match(store, /everywherePendingRef\.current = true;\n\s+try \{[\s\S]{0,300}?\} finally \{\n\s+everywherePendingRef\.current = false;/);
   assert.match(store, /sessionRevokedRef\.current = \(reason\) => \{\n\s+if \(!currentUserRef\.current\) return;\n\s+logout\(\{ skipServer: true \}\);/);
   const server = read('server/forumServer.ts');
   assert.match(server, /const sessionOf = \(ws: WebSocket\): SessionClaims \| null => \{[\s\S]{0,500}?if \(isSessionRevoked\(session\)\) \{/);
-  assert.match(server, /store\.sessionRevocations = \{ \.\.\.\(store\.sessionRevocations \|\| \{\}\), \[claims\.email\]: Date\.now\(\) \};\n\s+persistStoreToDisk\(\);\n\s+revokeAccountSockets\(claims\.email\);/);
+  assert.match(server, /revokeAllSessionsOf\(claims\.email, 'everywhere'\);\n\s+persistStoreToDisk\(\);/);
+  assert.match(server, /store\.sessionRevocations = \{ \.\.\.\(store\.sessionRevocations \|\| \{\}\), \[key\]: revokedAt \};\n\s+revokeAccountSockets\(key, reason, revokedAt\);/);
 });
 
 test('Mở lại app khi đang bị khoá: khôi phục phiên (Bearer lẫn cookie) cũng báo trạng thái khoá', () => {
@@ -601,6 +603,146 @@ test('Store nối bộ kiểm phiên: tab hiện lại, có mạng lại, địn
   assert.match(store, /\}, SESSION_PERIODIC_MS\);/);
   assert.match(store, /checker\.dispose\(\);\n\s+sessionCheckRef\.current = \(\) => \{\};/, 'đổi tài khoản/đăng xuất → huỷ bộ kiểm cũ');
   assert.match(read('src/utils/session.ts'), /signalSessionSuspect\(res\.status\);/);
+});
+
+test('Đổi mật khẩu: kiểm mật khẩu cũ, thu hồi thiết bị khác (kèm socket), giữ đăng nhập máy này, chặn dò', async () => {
+  const env = await createTestServer();
+  const opened = [];
+  try {
+    const email = `doi.mk.${Date.now()}@example.test`;
+    const P1 = 'mat-khau-cu-111';
+    const P2 = 'mat-khau-moi-222';
+    const reg = await call(env.baseUrl, 'POST', '/api/auth/register', { name: 'Đổi mật khẩu', email, password: P1 });
+    assert.equal(reg.status, 200, JSON.stringify(reg.data));
+    const tokenA = (await call(env.baseUrl, 'POST', '/api/auth/login', { email, password: P1 })).data.token;
+    const deviceA = openSocket(env.baseUrl);
+    opened.push(deviceA.ws);
+    await deviceA.opened;
+    deviceA.send('AUTH', { token: tokenA });
+    await deviceA.next('AUTH_OK');
+
+    await new Promise((r) => setTimeout(r, 5));
+    const tokenB = (await call(env.baseUrl, 'POST', '/api/auth/login', { email, password: P1 })).data.token;
+    const change = (body, token = tokenB) => call(env.baseUrl, 'POST', '/api/auth/password', body, token);
+
+    const anonymous = await call(env.baseUrl, 'POST', '/api/auth/password', { currentPassword: P1, newPassword: P2 });
+    assert.equal(anonymous.status, 401, 'phải đăng nhập');
+    const wrong = await change({ currentPassword: 'sai-roi-000', newPassword: P2 });
+    assert.equal(wrong.status, 400);
+    assert.match(wrong.data.message, /hiện tại không đúng/);
+    assert.match((await change({ currentPassword: P1, newPassword: '123' })).data.message, /ít nhất 6/);
+    assert.match((await change({ currentPassword: P1, newPassword: `  ${P1}  ` })).data.message, /khác mật khẩu hiện tại/, 'so sánh sau khi trim như đăng nhập');
+
+    await new Promise((r) => setTimeout(r, 5));
+    const ok = await change({ currentPassword: P1, newPassword: P2 });
+    assert.equal(ok.status, 200, JSON.stringify(ok.data));
+    assert.equal(typeof ok.data.token, 'string');
+    assert.equal(typeof ok.data.revokedAt, 'number');
+
+    const notice = await deviceA.next('SESSION_REVOKED');
+    assert.deepEqual(notice.payload, { reason: 'password', revokedAt: ok.data.revokedAt }, 'kèm mốc để thiết bị khởi xướng bỏ qua tiếng vọng');
+
+    const session = (token) => call(env.baseUrl, 'GET', '/api/auth/session', undefined, token);
+    assert.equal((await session(tokenA)).status, 401, 'thiết bị khác bị đăng xuất');
+    assert.equal((await session(tokenB)).status, 401, 'token cũ của chính máy này cũng hết hiệu lực');
+    assert.equal((await session(ok.data.token)).status, 200, 'máy này dùng phiên mới cấp sau mốc thu hồi');
+    assert.equal((await call(env.baseUrl, 'POST', '/api/auth/login', { email, password: P1 })).status, 400, 'mật khẩu cũ hết dùng được');
+    const relogin = await call(env.baseUrl, 'POST', '/api/auth/login', { email, password: P2 });
+    assert.equal(relogin.status, 200);
+
+    // Không đăng xuất thiết bị khác khi người dùng bỏ chọn
+    const keep = await change({ currentPassword: P2, newPassword: 'mat-khau-ba-333', signOutOthers: false }, ok.data.token);
+    assert.equal(keep.status, 200, JSON.stringify(keep.data));
+    assert.equal(keep.data.revokedAt, null);
+    assert.equal((await session(relogin.data.token)).status, 200, 'thiết bị khác vẫn giữ phiên');
+
+    // Super Admin: mật khẩu do secret máy chủ quản lý
+    const admin = await call(env.baseUrl, 'POST', '/api/auth/login', { email: 'BroAmStuck@gmail.com', password: TEST_ADMIN_PASSWORD });
+    const adminChange = await change({ currentPassword: TEST_ADMIN_PASSWORD, newPassword: 'mat-khau-admin-moi-1' }, admin.data.token);
+    assert.equal(adminChange.status, 400);
+    assert.match(adminChange.data.message, /FFORUM_ADMIN_PASSWORD/);
+    assert.equal((await call(env.baseUrl, 'POST', '/api/auth/login', { email: 'BroAmStuck@gmail.com', password: TEST_ADMIN_PASSWORD })).status, 200);
+
+    // Nhập sai mật khẩu hiện tại dùng chung bộ đếm chống dò với đăng nhập (25 lần / tài khoản)
+    let limited = null;
+    for (let i = 0; i < 30 && !limited; i += 1) {
+      const attempt = await change({ currentPassword: `doan-mo-${i}`, newPassword: 'khong-quan-trong-1' }, keep.data.token);
+      if (attempt.status === 429) limited = attempt;
+    }
+    assert.ok(limited, 'bị chặn sau quá nhiều lần sai');
+    assert.equal((await call(env.baseUrl, 'POST', '/api/auth/login', { email, password: 'mat-khau-ba-333' })).status, 429, 'đăng nhập cũng bị khoá tạm cho tài khoản đó');
+  } finally {
+    for (const ws of opened) { try { ws.terminate(); } catch { /* đã đóng */ } }
+    await env.close();
+  }
+});
+
+test('Xoay secret Super Admin khi khởi động → thu hồi mọi phiên admin cũ, ghi nhật ký', async () => {
+  let env = await createTestServer();
+  let oldToken;
+  try {
+    const admin = await call(env.baseUrl, 'POST', '/api/auth/login', { email: 'BroAmStuck@gmail.com', password: TEST_ADMIN_PASSWORD });
+    assert.equal(admin.status, 200);
+    oldToken = admin.data.token;
+  } finally {
+    await env.close();
+  }
+  const ROTATED = 'test-only-rotated-admin-password-2';
+  await new Promise((r) => setTimeout(r, 400));
+  process.env.FFORUM_ADMIN_PASSWORD = ROTATED;
+  try {
+    await new Promise((r) => setTimeout(r, 5));
+    env = await createTestServer(); // khởi động lại với secret mới
+    try {
+      assert.equal((await call(env.baseUrl, 'GET', '/api/auth/session', undefined, oldToken)).status, 401, 'phiên phát bằng mật khẩu cũ bị thu hồi');
+      const fresh = await call(env.baseUrl, 'POST', '/api/auth/login', { email: 'BroAmStuck@gmail.com', password: ROTATED });
+      assert.equal(fresh.status, 200);
+      assert.equal((await call(env.baseUrl, 'GET', '/api/auth/session', undefined, fresh.data.token)).status, 200);
+      const audit = await call(env.baseUrl, 'GET', '/api/admin/audit?limit=20', undefined, fresh.data.token);
+      assert.equal(audit.status, 200, JSON.stringify(audit.data));
+      assert.ok(audit.data.auditLog.some((row) => row.action === 'auth:admin-secret'), 'có dòng nhật ký');
+    } finally {
+      await env.close();
+    }
+  } finally {
+    // Trả secret cũ để các test sau dùng chung tiến trình không bị ảnh hưởng
+    process.env.FFORUM_ADMIN_PASSWORD = TEST_ADMIN_PASSWORD;
+    await new Promise((r) => setTimeout(r, 400));
+    const restore = await createTestServer();
+    await restore.close();
+  }
+});
+
+test('Luật mật khẩu phía client khớp máy chủ; form đổi mật khẩu được nối đủ đường', () => {
+  const { validatePasswordChange, passwordStrength, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH } = passwordRules;
+  assert.equal(PASSWORD_MIN_LENGTH, 6);
+  assert.equal(PASSWORD_MAX_LENGTH, 200);
+  assert.match(validatePasswordChange('', 'abcdef', 'abcdef'), /hiện tại/);
+  assert.match(validatePasswordChange('cu-123', '12345', '12345'), /ít nhất 6/);
+  assert.match(validatePasswordChange('cu-123', 'x'.repeat(201), 'x'.repeat(201)), /tối đa 200/);
+  assert.match(validatePasswordChange('cu-123', 'moi-1234', 'moi-12345'), /không khớp/);
+  assert.match(validatePasswordChange('cu-1234', ' cu-1234 ', 'cu-1234'), /khác mật khẩu hiện tại/);
+  assert.equal(validatePasswordChange('cu-123', 'moi-1234', ' moi-1234 '), null);
+  assert.deepEqual(['abc', 'abcdef', 'abcdefghij', 'Abcdef12!xyz'].map(passwordStrength), [0, 1, 2, 3]);
+
+  const server = read('server/forumServer.ts');
+  assert.match(server, /const newPassword = String\(body\?\.newPassword \?\? ''\)\.trim\(\);/);
+  assert.match(server, /if \(newPassword\.length < 6\)/);
+  assert.match(server, /newPassword\.length > 200/);
+
+  const store = read('src/store/forumStore.ts');
+  assert.match(store, /if \(revokedAt > 0 && revokedAt <= ownRevocationAtRef\.current\) break;/, 'bỏ qua tiếng vọng của lần thu hồi chính mình');
+  assert.match(store, /headers: \{ \.\.\.authHeaders\(\), \.\.\.sessionRequestHeaders\(\) \},\n\s+body: JSON\.stringify\(\{ currentPassword, newPassword, signOutOthers \}\),/);
+  assert.match(store, /case 'SESSION_ROTATED': \{[\s\S]{0,700}?ownRevocationAtRef\.current = Math\.max/);
+  assert.match(store, /case 'USER_LOGOUT': \{\n[\s\S]{0,500}?if \(!currentUserRef\.current\) break;\n\s+setCurrentUser\(null\);/, 'tab khác đăng xuất → tab này cũng kết thúc phiên');
+  assert.match(read('src/App.tsx'), /onChangePassword=\{changePassword\}/);
+  assert.match(read('src/components/Navbar.tsx'), /onChangePassword,\n\s+\/\*[^\n]*\*\/\n\s+passwordManagedByServer: isMasterAdmin\(currentUser\?\.email\),/);
+  const settings = read('src/components/SettingsModal.tsx');
+  assert.match(settings, /<PasswordChangeForm\n\s+key=\{isOpen \? 'settings-open' : 'settings-closed'\}/, 'đóng Cài đặt là xoá mật khẩu đã gõ');
+  const form = read('src/components/settings/PasswordChangeForm.tsx');
+  assert.equal((form.match(/maxLength=\{PASSWORD_MAX_LENGTH\}/g) || []).length, 3);
+  assert.match(form, /autoComplete="current-password"/);
+  assert.equal((form.match(/autoComplete="new-password"/g) || []).length, 2);
 });
 
 test('msn-10: bảng tổng quan quản trị là masonry lượng tử, xếp dense KÍN ở cả 4 cột và 2 cột', () => {

@@ -1297,9 +1297,17 @@ function notifyUserSockets(email: string, type: string, payload: unknown): void 
  * rồi gỡ danh tính khỏi chúng. Duyệt wsSessions trực tiếp vì sau khi đặt mốc thu hồi,
  * sessionOf() đã coi các phiên này là vô hiệu nên notifyUserSockets() không thấy nữa.
  */
-function revokeAccountSockets(email: string): number {
+type SessionRevocationReason = 'everywhere' | 'password' | 'admin-secret';
+
+function revokeAccountSockets(
+  email: string,
+  reason: SessionRevocationReason = 'everywhere',
+  revokedAt: number = Date.now(),
+): number {
   const target = String(email || '').trim().toLowerCase();
-  const message = JSON.stringify({ type: 'SESSION_REVOKED', payload: { reason: 'everywhere' }, timestamp: Date.now() });
+  /* `revokedAt` để thiết bị vừa NHẬN phiên mới (đổi mật khẩu) nhận ra tiếng vọng của
+     chính lần thu hồi này và bỏ qua, thay vì tự đăng xuất phiên mới. */
+  const message = JSON.stringify({ type: 'SESSION_REVOKED', payload: { reason, revokedAt }, timestamp: Date.now() });
   let count = 0;
   wsClients.forEach((client) => {
     if (wsSessions.get(client)?.email !== target) return;
@@ -1309,6 +1317,19 @@ function revokeAccountSockets(email: string): number {
     try { client.send(message); } catch { /* kết nối vừa có thể đóng */ }
   });
   return count;
+}
+
+/**
+ * Thu hồi MỌI token đã phát cho tài khoản tính tới lúc này và gỡ danh tính khỏi
+ * socket đang mở. Token cấp SAU mốc (vd. phiên mới khi đổi mật khẩu) vẫn hợp lệ.
+ * Nơi gọi tự persistStoreToDisk().
+ */
+function revokeAllSessionsOf(email: string, reason: SessionRevocationReason): number {
+  const key = String(email || '').trim().toLowerCase();
+  const revokedAt = Date.now();
+  store.sessionRevocations = { ...(store.sessionRevocations || {}), [key]: revokedAt };
+  revokeAccountSockets(key, reason, revokedAt);
+  return revokedAt;
 }
 
 export function setupForumServer(httpServer: any, middlewares: any) {
@@ -1326,6 +1347,21 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     console.warn('[Forum Server] Đã thu hồi mật khẩu quản trị mẫu từng được phát hành công khai.');
   }
   const adminPasswordSync = syncAdminPasswordFromEnvironment();
+  /*
+    Mật khẩu Super Admin vừa bị thay (gỡ mật khẩu mẫu từng công khai, hoặc secret được
+    xoay — thường vì nghi bị lộ) → token phát bằng mật khẩu CŨ phải chết theo. Nếu
+    không, ai đã đăng nhập bằng mật khẩu cũ vẫn giữ quyền Super Admin tới 30 ngày.
+  */
+  if (retiredAdminPassword || adminPasswordSync === 'rotated') {
+    revokeAllSessionsOf(MASTER_ADMIN_EMAIL, 'admin-secret');
+    pushAuditLog({
+      action: 'auth:admin-secret',
+      targetEmail: MASTER_ADMIN_EMAIL.toLowerCase(),
+      reason: 'Mật khẩu Super Admin được thay → thu hồi mọi phiên cũ',
+      by: 'hệ thống',
+    });
+    persistStoreToDisk();
+  }
   if (adminPasswordSync) {
     console.info(`[Forum Server] Đã ${adminPasswordSync === 'created' ? 'bootstrap' : 'xoay'} mật khẩu Super Admin từ secret máy chủ (chỉ lưu scrypt).`);
   } else if (String(process.env.FFORUM_ADMIN_PASSWORD || '').trim() && !configuredAdminBootstrapPassword()) {
@@ -2870,9 +2906,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         if (claims && body?.everywhere === true) {
           const account = store.users[claims.email];
           if (account) {
-            store.sessionRevocations = { ...(store.sessionRevocations || {}), [claims.email]: Date.now() };
+            revokeAllSessionsOf(claims.email, 'everywhere');
             persistStoreToDisk();
-            revokeAccountSockets(claims.email);
             revoked = true;
           }
         }
@@ -2916,6 +2951,88 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         expiresAt: claims.exp,
         moderation: loginModerationStatus(claims.email),
       });
+      return;
+    }
+
+    /**
+     * Đổi mật khẩu (tài khoản đăng ký bằng email). Mặc định đăng xuất MỌI thiết bị
+     * khác — đổi mật khẩu thường là vì nghi bị lộ — rồi cấp phiên mới cho chính
+     * thiết bị này. Sai mật khẩu hiện tại dùng chung bộ đếm chống dò với đăng nhập.
+     */
+    if (method === 'POST' && url === '/api/auth/password') {
+      try {
+        const body = await parseJsonBody(req).catch(() => ({}));
+        const claims = authorizeRequest(req, null, null);
+        const account = claims ? store.users[claims.email] : undefined;
+        if (!claims || !account) {
+          sendJson(res, 401, { success: false, message: 'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.' });
+          return;
+        }
+        const email = claims.email;
+        if (isMasterAdminEmail(email)) {
+          sendJson(res, 400, {
+            success: false,
+            message: 'Mật khẩu Super Admin được quản lý bằng secret máy chủ FFORUM_ADMIN_PASSWORD — đổi secret rồi khởi động lại máy chủ.',
+          });
+          return;
+        }
+        /* Cùng cách chuẩn hoá với đăng ký/đăng nhập (trim) để mật khẩu mới đăng nhập được. */
+        const currentPassword = String(body?.currentPassword ?? '').trim();
+        const newPassword = String(body?.newPassword ?? '').trim();
+        if (newPassword.length < 6) {
+          sendJson(res, 400, { success: false, message: 'Mật khẩu mới phải có ít nhất 6 ký tự!' });
+          return;
+        }
+        if (newPassword.length > 200 || currentPassword.length > 200) {
+          sendJson(res, 400, { success: false, message: 'Mật khẩu tối đa 200 ký tự!' });
+          return;
+        }
+        const stored = store.passwords[email];
+        if (!stored) {
+          sendJson(res, 400, {
+            success: false,
+            message: 'Tài khoản này đăng nhập bằng Google/Facebook nên không có mật khẩu để đổi.',
+          });
+          return;
+        }
+
+        const ip = clientIpOf(req);
+        const failureKeys = { ip: `login-fail-ip:${ip}`, account: `login-fail-account:${email}` };
+        const failureGate = [
+          loginFailureIpLimiter.peek(failureKeys.ip),
+          loginFailureAccountLimiter.peek(failureKeys.account),
+        ].find((result) => !result.allowed);
+        if (failureGate) {
+          sendRateLimited(res, failureGate.retryAfterMs, 'nhập sai mật khẩu');
+          return;
+        }
+        if (!verifyPassword(currentPassword, stored).ok) {
+          loginFailureIpLimiter.record(failureKeys.ip);
+          loginFailureAccountLimiter.record(failureKeys.account);
+          sendJson(res, 400, { success: false, message: 'Mật khẩu hiện tại không đúng.' });
+          return;
+        }
+        if (verifyPassword(newPassword, stored).ok) {
+          sendJson(res, 400, { success: false, message: 'Mật khẩu mới phải khác mật khẩu hiện tại.' });
+          return;
+        }
+
+        store.passwords[email] = hashPassword(newPassword);
+        loginFailureAccountLimiter.reset(failureKeys.account);
+        const signOutOthers = body?.signOutOthers !== false;
+        const revokedAt = signOutOthers ? revokeAllSessionsOf(email, 'password') : null;
+        pushAuditLog({
+          action: 'auth:password',
+          targetEmail: email,
+          reason: signOutOthers ? 'Tự đổi mật khẩu · đăng xuất các thiết bị khác' : 'Tự đổi mật khẩu',
+          by: email,
+        });
+        persistStoreToDisk();
+        /* Phiên mới phát SAU mốc thu hồi nên chính thiết bị này vẫn đăng nhập. */
+        sendJson(res, 200, { success: true, revokedAt, ...issueSession(req, res, account) });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
       return;
     }
 
