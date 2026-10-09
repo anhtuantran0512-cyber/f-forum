@@ -42,6 +42,8 @@ export interface NavbarProps {
   onLogout: () => void;
   /** Đăng xuất mọi thiết bị (Cài đặt → Phiên đăng nhập). */
   onLogoutEverywhere?: () => Promise<boolean>;
+  /** Đổi mật khẩu (Cài đặt → Phiên đăng nhập). */
+  onChangePassword?: (currentPassword: string, newPassword: string, signOutOthers: boolean) => Promise<{ ok: boolean; message: string }>;
   isChatOpen: boolean;
   onToggleChat: () => void;
   unreadChatCount: number;
@@ -87,6 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenLoginModal,
   onLogout,
   onLogoutEverywhere,
+  onChangePassword,
   onToggleChat,
   unreadChatCount,
   onOpenProfile,
@@ -642,6 +645,9 @@ export const Navbar: React.FC<NavbarProps> = ({
     isOpen: isSettingsOpen,
     isAuthenticated: Boolean(currentUser),
     onLogoutEverywhere,
+    onChangePassword,
+    /* Mật khẩu Super Admin do secret máy chủ quản lý — chỉ để hiển thị; máy chủ mới là nơi chặn. */
+    passwordManagedByServer: isMasterAdmin(currentUser?.email),
     onClose: () => setIsSettingsOpen(false),
     theme,
     onToggleTheme: handleToggleTheme,

@@ -165,6 +165,7 @@ export const App: React.FC = () => {
     loginSocial,
     logout,
     logoutEverywhere,
+    changePassword,
     updateProfile,
     loadDailyRewardStatus,
     claimDailyReward,
@@ -949,6 +950,7 @@ export const App: React.FC = () => {
           onOpenLoginModal={() => handleOpenAuth('login')}
           onLogout={logout}
           onLogoutEverywhere={logoutEverywhere}
+          onChangePassword={changePassword}
           isChatOpen={isChatOpen}
           onToggleChat={handleToggleChat}
           unreadChatCount={unreadChatCount}

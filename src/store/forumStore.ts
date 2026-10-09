@@ -36,7 +36,7 @@ import {
   upgradeLegacySession,
   type SessionTransport,
 } from '../utils/session';
-import { createSessionChecker, SESSION_PERIODIC_MS, SESSION_SUSPECT_EVENT } from '../utils/sessionWatch';
+import { createSessionChecker, signalSessionSuspect, SESSION_PERIODIC_MS, SESSION_SUSPECT_EVENT } from '../utils/sessionWatch';
 import { DEFAULT_AVATAR } from '../utils/mediaFallback';
 import {
   type AboutData,
@@ -382,8 +382,14 @@ export function useForumStore() {
   /* SESSION_REVOKED: effect socket chỉ đăng ký một lần còn `logout` khai báo phía dưới
      → gọi qua ref. Cờ `everywherePendingRef` bỏ qua sự kiện dội về chính thiết bị vừa
      bấm "Đăng xuất mọi thiết bị" (luồng HTTP của thiết bị đó tự dọn phiên). */
-  const sessionRevokedRef = useRef<(reason: 'everywhere' | 'invalid') => void>(() => {});
+  const sessionRevokedRef = useRef<(reason: 'everywhere' | 'password' | 'invalid') => void>(() => {});
   const everywherePendingRef = useRef(false);
+  /* Đổi mật khẩu: máy chủ thu hồi mọi token rồi cấp phiên MỚI cho thiết bị này. Mốc
+     thu hồi của chính mình (và của tab khác cùng trình duyệt — phiên dùng chung) để
+     bỏ qua tiếng vọng SESSION_REVOKED tới muộn; `rotatingUntilRef` phủ quãng tab
+     khác đang chờ phản hồi đổi mật khẩu. */
+  const ownRevocationAtRef = useRef(0);
+  const rotatingUntilRef = useRef(0);
   /* Bộ kiểm phiên với máy chủ (gắn trong effect hạn phiên) — socket gọi khi AUTH_ERROR. */
   const sessionCheckRef = useRef<(force?: boolean) => void>(() => {});
   useEffect(() => {
@@ -788,7 +794,11 @@ export function useForumStore() {
              thu hồi ở thiết bị khác → dọn phiên cục bộ thay vì để giao diện "đăng
              nhập ảo" rồi gặp lỗi 401 khó hiểu ở thao tác kế tiếp. */
           if (everywherePendingRef.current || !currentUserRef.current) break;
-          sessionRevokedRef.current('everywhere');
+          const revocation = payload as { reason?: string; revokedAt?: number };
+          if (Date.now() < rotatingUntilRef.current) break;
+          const revokedAt = Number(revocation?.revokedAt) || 0;
+          if (revokedAt > 0 && revokedAt <= ownRevocationAtRef.current) break;
+          sessionRevokedRef.current(revocation?.reason === 'password' ? 'password' : 'everywhere');
           break;
         }
         case 'AUTH_ERROR': {
@@ -1228,6 +1238,40 @@ export function useForumStore() {
           break;
         }
         case 'USER_LOGOUT': {
+          /* Tab khác vừa đăng xuất → phiên dùng chung (token/cookie) đã bị xoá: tab này
+             kết thúc phiên NGAY thay vì hiện "đã đăng nhập" rồi vỡ 401 ở lần ghi kế
+             tiếp. Không gọi logout() để khỏi phát lại USER_LOGOUT (vòng lặp). */
+          if (!currentUserRef.current) break;
+          setCurrentUser(null);
+          try {
+            activeWsRef.current?.close();
+          } catch {
+            /* ignore */
+          }
+          setToastMessage({
+            title: 'Đã đăng xuất',
+            subtitle: 'Bạn vừa đăng xuất ở một tab khác của trình duyệt này.',
+            type: 'success',
+          });
+          break;
+        }
+        case 'SESSION_ROTATING': {
+          rotatingUntilRef.current = Date.now() + 20_000;
+          break;
+        }
+        case 'SESSION_ROTATED': {
+          const rotation = payload as { revokedAt?: number; transport?: string };
+          rotatingUntilRef.current = 0;
+          ownRevocationAtRef.current = Math.max(ownRevocationAtRef.current, Number(rotation?.revokedAt) || 0);
+          /* Tab kia đã ghi phiên mới vào bộ nhớ chung → gắn lại socket của tab này. */
+          if (currentUserRef.current) {
+            if (rotation?.transport === 'cookie') reconnectSocketRef.current();
+            else authenticateSocketRef.current();
+          }
+          break;
+        }
+        case 'SESSION_ROTATE_FAILED': {
+          rotatingUntilRef.current = 0;
           break;
         }
         case 'DELETE_QUESTION': {
@@ -1693,6 +1737,59 @@ export function useForumStore() {
     }
   };
 
+  /** Đổi mật khẩu; mặc định đăng xuất mọi thiết bị khác. Thiết bị này nhận phiên mới
+   *  (cookie HttpOnly nếu môi trường cho phép) và gắn lại socket. */
+  const changePassword = async (
+    currentPassword: string,
+    newPassword: string,
+    signOutOthers = true,
+  ): Promise<{ ok: boolean; message: string }> => {
+    try {
+      syncBroadcastChannel?.postMessage({ type: 'SESSION_ROTATING' });
+    } catch {
+      /* ignore */
+    }
+    everywherePendingRef.current = true;
+    let rotated = false;
+    try {
+      const res = await fetch('/api/auth/password', {
+        method: 'POST',
+        headers: { ...authHeaders(), ...sessionRequestHeaders() },
+        body: JSON.stringify({ currentPassword, newPassword, signOutOthers }),
+      });
+      signalSessionSuspect(res.status);
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) {
+        return { ok: false, message: data?.message || 'Không đổi được mật khẩu. Vui lòng thử lại.' };
+      }
+      const revokedAt = typeof data.revokedAt === 'number' ? data.revokedAt : 0;
+      ownRevocationAtRef.current = Math.max(ownRevocationAtRef.current, revokedAt);
+      const transport = await adoptSession(data);
+      bindSessionToSocket(transport);
+      rotated = true;
+      try {
+        syncBroadcastChannel?.postMessage({ type: 'SESSION_ROTATED', payload: { revokedAt, transport } });
+      } catch {
+        /* ignore */
+      }
+      return {
+        ok: true,
+        message: signOutOthers ? 'Đã đổi mật khẩu. Mọi thiết bị khác đã bị đăng xuất.' : 'Đã đổi mật khẩu.',
+      };
+    } catch {
+      return { ok: false, message: 'Lỗi kết nối. Vui lòng kiểm tra mạng rồi thử lại.' };
+    } finally {
+      everywherePendingRef.current = false;
+      if (!rotated) {
+        try {
+          syncBroadcastChannel?.postMessage({ type: 'SESSION_ROTATE_FAILED' });
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+  };
+
   /* Thiết bị KHÁC vừa "đăng xuất mọi thiết bị" → phiên ở đây đã vô hiệu phía máy chủ:
      dọn cục bộ (không gọi lại máy chủ) và nói rõ lý do, kèm lời khuyên an toàn. */
   useEffect(() => {
@@ -1702,7 +1799,13 @@ export function useForumStore() {
       setToastMessage(reason === 'everywhere'
         ? {
             title: 'Phiên đăng nhập đã kết thúc',
-            subtitle: 'Tài khoản vừa được đăng xuất khỏi mọi thiết bị từ một nơi khác. Hãy đăng nhập lại — nếu không phải bạn, hãy đổi mật khẩu ngay.',
+            subtitle: 'Tài khoản vừa được đăng xuất khỏi mọi thiết bị từ một nơi khác. Hãy đăng nhập lại — nếu không phải bạn, hãy đổi mật khẩu ngay (Cài đặt → Phiên đăng nhập).',
+            type: 'error',
+          }
+        : reason === 'password'
+        ? {
+            title: 'Mật khẩu vừa được đổi',
+            subtitle: 'Tài khoản đã đổi mật khẩu ở thiết bị khác. Đăng nhập lại bằng mật khẩu mới — nếu không phải bạn, hãy liên hệ Ban Quản Trị ngay.',
             type: 'error',
           }
         : {
@@ -2669,6 +2772,7 @@ export function useForumStore() {
     loginSocial,
     logout,
     logoutEverywhere,
+    changePassword,
     updateProfile,
     loadDailyRewardStatus,
     claimDailyReward,
