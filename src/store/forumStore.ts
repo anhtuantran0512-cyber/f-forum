@@ -20,7 +20,22 @@ import {
   getRandomGhibliMask,
 } from '../utils/ghibliMasks';
 import { safeStorage } from '../utils/storage';
-import { authHeaders, getAuthToken, postJson, setAuthToken, clearAuthToken } from '../utils/session';
+import {
+  adoptSession,
+  authHeaders,
+  canUseCookieSession,
+  clearAuthToken,
+  getAuthToken,
+  getSessionExpiry,
+  hasStoredSession,
+  isSessionExpired,
+  postJson,
+  probeCookieSession,
+  requestServerLogout,
+  sessionRequestHeaders,
+  upgradeLegacySession,
+  type SessionTransport,
+} from '../utils/session';
 import { DEFAULT_AVATAR } from '../utils/mediaFallback';
 import {
   type AboutData,
@@ -29,9 +44,17 @@ import {
   saveAboutDataToServer,
 } from './adminStore';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../config/admin';
+import { capsHas, getAdminCaps } from '../utils/adminCapabilities';
+
+/** Epic 3 — sửa/xoá nội dung: Super Admin hoặc vai trò tùy chỉnh có quyền edit_content.
+    Chỉ là chốt chặn giao diện; máy chủ (requireContentEditor) kiểm lại từng yêu cầu. */
+const canEditContentNow = (email?: string | null): boolean =>
+  isMasterAdmin(email) || capsHas(getAdminCaps(), 'edit_content');
 import { getTierForLevel } from '../utils/tier';
 import { pushNotification } from '../utils/notifications';
 import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
+import { readSharedQuestionId } from '../utils/shareLinks';
+import { describeLoginModeration } from '../utils/moderationNotice';
 
 const CURRENT_TAB_ID =
   typeof window !== 'undefined'
@@ -89,7 +112,7 @@ try {
 export const RETIRED_VIRTUAL_DOMAIN = '@sv.f-forum.vn';
 
 /** Số Coin chào mừng, đúng bằng mức server cấp khi tạo tài khoản thật */
-const welcomeCoinFor = (email: string) => (email === 'BroAmStuck@gmail.com' ? 99999 : 100);
+const welcomeCoinFor = (email: string) => (isMasterAdmin(email) ? 99999 : 100);
 
 /**
  * Chuẩn hoá sổ đăng ký: chỉ giữ tài khoản thật, khoá theo email (chữ thường),
@@ -192,6 +215,8 @@ export function useForumStore() {
   const [currentView, setCurrentView] = useState<DimensionView>(() => {
     const hasSession = Boolean(safeStorage.getItem('fforum_current_user_email'));
     const hasSeenLanding = safeStorage.getItem('fforum_landing_seen') === 'true';
+    // Liên kết chia sẻ câu hỏi (?q=<id>) đưa thẳng vào Sàn hỏi đáp.
+    if (typeof window !== 'undefined' && readSharedQuestionId(window.location.search)) return 'qa';
     return hasSession || hasSeenLanding ? 'home' : 'landing';
   });
 
@@ -347,6 +372,8 @@ export function useForumStore() {
   const activeWsRef = useRef<WebSocket | null>(null);
   /* Cầu nối để hàm login (khai báo sau) gọi được bước xác thực socket. */
   const authenticateSocketRef = useRef<() => void>(() => {});
+  /** Epic 5: mở lại WebSocket ngay (phiên cookie chỉ được đọc lúc bắt tay). */
+  const reconnectSocketRef = useRef<() => void>(() => {});
   /* Các ref "bản sao mới nhất" phải được đồng bộ trong effect, KHÔNG gán lúc
      render: gán ref khi render là side effect và cho kết quả sai khi React render
      thử nhiều lần (StrictMode) hoặc khi render bị vứt giữa chừng. */
@@ -626,41 +653,69 @@ export function useForumStore() {
 
 
             const savedEmail = safeStorage.getItem('fforum_current_user_email');
-            const savedToken = getAuthToken();
 
             /*
               Khôi phục phiên: token trong localStorage có thể đã hết hạn, hoặc
               tài khoản đã bị xoá / bị thu hồi quyền. Phải hỏi lại server — nếu
               không giao diện vẫn hiện "đã đăng nhập" trong khi mọi lệnh ghi đều
               bị từ chối 401 và người dùng không hiểu vì sao.
+
+              Epic 5: kiểm hạn token NGAY ở client trước (đọc `exp` trong token hoặc
+              gợi ý phiên cookie) — không cần chờ máy chủ, kể cả khi đang ngoại tuyến.
             */
+            /* Epic 5: "token" gồm cả phiên cookie HttpOnly (localStorage chỉ còn gợi ý hạn dùng). */
+            const savedToken = hasStoredSession();
             if (savedToken) {
-              try {
-                const sessionRes = await fetch('/api/auth/session', { headers: authHeaders() });
-                if (sessionRes.status === 401) {
-                  clearAuthToken();
-                  safeStorage.removeItem('fforum_current_user_email');
-                  if (isMounted) {
-                    setCurrentUser(null);
-                    setToastMessage({
-                      title: 'Phiên đăng nhập đã hết hạn',
-                      subtitle: 'Vui lòng đăng nhập lại để tiếp tục.',
-                      type: 'level',
-                    });
-                  }
-                } else if (sessionRes.ok) {
-                  const sessionJson = await sessionRes.json();
-                  if (sessionJson?.success && sessionJson.user && isMounted) {
-                    const fresh = sessionJson.user as User;
-                    safeStorage.setItem('fforum_current_user_email', fresh.email.toLowerCase());
-                    setCurrentUser(fresh);
-                  }
+              if (isSessionExpired()) {
+                clearAuthToken();
+                safeStorage.removeItem('fforum_current_user_email');
+                if (isMounted) {
+                  setCurrentUser(null);
+                  setToastMessage({
+                    title: 'Phiên đăng nhập đã hết hạn',
+                    subtitle: 'Vì an toàn, vui lòng đăng nhập lại để tiếp tục.',
+                    type: 'level',
+                  });
                 }
-              } catch {
-                /* Ngoại tuyến: giữ phiên cục bộ, thử lại lần mở kế tiếp. */
+              } else {
+                try {
+                  const sessionRes = await fetch('/api/auth/session', { headers: authHeaders(), cache: 'no-store' });
+                  if (sessionRes.status === 401) {
+                    clearAuthToken();
+                    safeStorage.removeItem('fforum_current_user_email');
+                    if (isMounted) {
+                      setCurrentUser(null);
+                      setToastMessage({
+                        title: 'Phiên đăng nhập đã hết hạn',
+                        subtitle: 'Vui lòng đăng nhập lại để tiếp tục.',
+                        type: 'level',
+                      });
+                    }
+                  } else if (sessionRes.ok) {
+                    const sessionJson = await sessionRes.json();
+                    if (sessionJson?.success && sessionJson.user && isMounted) {
+                      const fresh = sessionJson.user as User;
+                      safeStorage.setItem('fforum_current_user_email', fresh.email.toLowerCase());
+                      setCurrentUser(fresh);
+                      /* Epic 5: phiên Bearer cũ → nâng lên cookie HttpOnly khi chạy HTTPS ở
+                         cửa sổ chính, rồi xoá token khỏi localStorage. */
+                      if (getAuthToken() && canUseCookieSession()) void upgradeLegacySession();
+                    }
+                  }
+                } catch {
+                  /* Ngoại tuyến: giữ phiên cục bộ, thử lại lần mở kế tiếp. */
+                }
               }
-            } else if (savedEmail && data.users && data.users[savedEmail.toLowerCase()] && isMounted) {
-              setCurrentUser(data.users[savedEmail.toLowerCase()]);
+            } else {
+              /* Mất gợi ý cục bộ (vd. đã xoá localStorage) nhưng cookie HttpOnly còn hạn. */
+              const probed = await probeCookieSession();
+              if (probed && isMounted) {
+                const fresh = probed.user as User;
+                safeStorage.setItem('fforum_current_user_email', fresh.email.toLowerCase());
+                setCurrentUser(fresh);
+              } else if (savedEmail && data.users && data.users[savedEmail.toLowerCase()] && isMounted) {
+                setCurrentUser(data.users[savedEmail.toLowerCase()]);
+              }
             }
           }
         }
@@ -990,8 +1045,29 @@ export function useForumStore() {
 
     startWS();
 
+    /* Epic 5: đóng socket hiện tại KHÔNG qua nhánh onclose (tránh chờ 4 giây + bật
+       SSE thừa) rồi mở ngay socket mới — bước bắt tay mới mang theo cookie phiên. */
+    reconnectSocketRef.current = () => {
+      if (isDisposed) return;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      const previous = ws;
+      if (previous) {
+        previous.onclose = null;
+        previous.onerror = null;
+        try {
+          previous.close();
+        } catch {
+          /* ignore */
+        }
+      }
+      ws = null;
+      activeWsRef.current = null;
+      startWS();
+    };
+
     return () => {
       isDisposed = true;
+      reconnectSocketRef.current = () => {};
       if (reconnectTimer) clearTimeout(reconnectTimer);
       if (ws) {
         activeWsRef.current = null;
@@ -1220,13 +1296,69 @@ export function useForumStore() {
     }
   }, [toastMessage]);
 
+  /*
+    Epic 5 — kiểm tra hạn phiên (JWT expiry) ngay ở client.
+    Máy chủ đã từ chối token quá hạn, nhưng nếu chỉ dựa vào đó thì giao diện vẫn
+    hiện "đã đăng nhập" cho tới lần ghi kế tiếp mới vỡ 401. Hẹn giờ đúng mốc `exp`
+    (đọc từ token hoặc gợi ý phiên cookie) và kiểm lại mỗi khi tab hiện trở lại —
+    máy ngủ/tab nền có thể làm trễ setTimeout hàng giờ.
+  */
+  const sessionOwnerEmail = currentUser?.email || null;
+  useEffect(() => {
+    if (!sessionOwnerEmail || typeof window === 'undefined') return undefined;
+    let timer: number | null = null;
+    const expire = () => {
+      if (!isSessionExpired()) {
+        schedule();
+        return;
+      }
+      void requestServerLogout();
+      clearAuthToken();
+      safeStorage.removeItem('fforum_current_user_email');
+      setCurrentUser(null);
+      try {
+        activeWsRef.current?.close();
+      } catch {
+        /* ignore */
+      }
+      setToastMessage({
+        title: 'Phiên đăng nhập đã hết hạn',
+        subtitle: 'Vì an toàn, vui lòng đăng nhập lại để tiếp tục.',
+        type: 'level',
+      });
+    };
+    function schedule() {
+      if (timer) window.clearTimeout(timer);
+      const expiry = getSessionExpiry();
+      if (expiry === null) return;
+      /* Trần của setTimeout ~24,8 ngày: hẹn tối đa chừng đó rồi tự hẹn lại. */
+      const wait = Math.min(Math.max(0, expiry - Date.now()) + 250, 2_000_000_000);
+      timer = window.setTimeout(expire, wait);
+    }
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') schedule();
+    };
+    schedule();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      if (timer) window.clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [sessionOwnerEmail]);
+
+  /** Epic 5: phiên cookie → mở lại WS để bắt tay mang cookie; phiên Bearer → gửi gói AUTH. */
+  const bindSessionToSocket = (transport: SessionTransport) => {
+    if (transport === 'cookie') reconnectSocketRef.current();
+    else authenticateSocketRef.current();
+  };
+
   const registerWithPassword = async (name: string, email: string, password: string): Promise<User> => {
     const trimmedName = name.trim();
     const normalizedEmail = email.trim().toLowerCase();
 
     const res = await fetch('/api/auth/register', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: sessionRequestHeaders(),
       body: JSON.stringify({ name: trimmedName, email: normalizedEmail, password }),
     });
 
@@ -1242,8 +1374,7 @@ export function useForumStore() {
     }));
     setCurrentUser(user);
 
-    setAuthToken(data.token);
-    authenticateSocketRef.current();
+    bindSessionToSocket(await adoptSession(data));
     safeStorage.setItem('fforum_current_user_email', normalizedEmail);
 
     try {
@@ -1268,32 +1399,14 @@ export function useForumStore() {
   const loginWithPassword = async (email: string, password: string): Promise<User> => {
     const normalizedEmail = email.trim().toLowerCase();
 
-    if (normalizedEmail === 'broamstuck@gmail.com' && password === 'Tuan@05122009') {
-      const masterAdmin: User = {
-        name: 'BroAmStuck Studio',
-        email: normalizedEmail,
-        avatar: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260601_120000_1a2b3c4d.png',
-        role: 'SUPER_ADMIN',
-        xp: 999999,
-        id: 'super-admin-001',
-        bio: 'Người sáng lập hệ thống.',
-        scopedClubIds: [],
-        level: 999,
-        coin: 999999,
-      };
-
-      commitUsers(prev => ({ ...prev, [normalizedEmail]: masterAdmin }));
-      setCurrentUser(masterAdmin);
-      setAuthToken('mock-master-token');
-      authenticateSocketRef.current();
-      safeStorage.setItem('fforum_current_user_email', normalizedEmail);
-
-      return masterAdmin;
-    }
-
+    /* BẢO MẬT: từng có một "cửa hậu" ở đây — so khớp mật khẩu hardcode rồi tự tạo
+       phiên Super Admin GIẢ (token giả) mà không hỏi máy chủ. Giao diện tưởng là
+       Super Admin nhưng mọi API quản trị đều bị từ chối. Đã gỡ: mọi đăng nhập đều
+       phải qua /api/auth/login; mật khẩu Super Admin chỉ nằm ở secret máy chủ
+       (FFORUM_ADMIN_PASSWORD, lưu dạng scrypt) — Yeucau.md §16. */
     const res = await fetch('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: sessionRequestHeaders(),
       body: JSON.stringify({ email: normalizedEmail, password }),
     });
 
@@ -1309,8 +1422,7 @@ export function useForumStore() {
     }));
     setCurrentUser(user);
 
-    setAuthToken(data.token);
-    authenticateSocketRef.current();
+    bindSessionToSocket(await adoptSession(data));
     safeStorage.setItem('fforum_current_user_email', normalizedEmail);
 
     try {
@@ -1323,11 +1435,17 @@ export function useForumStore() {
     }
 
     playChime('success');
-    setToastMessage({
-      title: 'Đăng nhập thành công!',
-      subtitle: `Chào mừng ${user.name} quay trở lại F-Forum.`,
-      type: 'success',
-    });
+    /* R3 · máy chủ trả trạng thái khoá tính theo giờ hiện tại → báo ngay khi vào */
+    const moderationNotice = describeLoginModeration(data.moderation);
+    setToastMessage(
+      moderationNotice
+        ? { ...moderationNotice, type: 'level' }
+        : {
+            title: 'Đăng nhập thành công!',
+            subtitle: `Chào mừng ${user.name} quay trở lại F-Forum.`,
+            type: 'success',
+          },
+    );
 
     return user;
   };
@@ -1344,7 +1462,7 @@ export function useForumStore() {
     try {
       const res = await fetch('/api/auth/social', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: sessionRequestHeaders(),
         body: JSON.stringify({
           provider,
           name: trimmedName,
@@ -1372,6 +1490,12 @@ export function useForumStore() {
 
       if (!isNetworkError) {
         throw err;
+      }
+
+      /* Tài khoản quản trị KHÔNG BAO GIỜ được tạo phiên ngoại tuyến (token giả):
+         máy chủ sẽ từ chối mọi thao tác và người dùng chỉ thấy lỗi khó hiểu. */
+      if (isMasterAdmin(normalizedEmail)) {
+        throw new Error('Không kết nối được máy chủ để xác minh tài khoản quản trị. Vui lòng thử lại sau giây lát.');
       }
 
       const isSuperAdmin = isMasterAdmin(normalizedEmail);
@@ -1427,8 +1551,7 @@ export function useForumStore() {
     }));
     setCurrentUser(user);
 
-    setAuthToken(result.token);
-    authenticateSocketRef.current();
+    bindSessionToSocket(await adoptSession(result));
     safeStorage.setItem('fforum_current_user_email', normalizedEmail);
 
     try {
@@ -1463,8 +1586,10 @@ export function useForumStore() {
     });
   };
 
-  const logout = () => {
+  const logout = (options?: { skipServer?: boolean }) => {
     setCurrentUser(null);
+    /* Epic 5: nhờ máy chủ xoá cookie HttpOnly (gửi header trước khi xoá token cục bộ). */
+    if (!options?.skipServer) void requestServerLogout();
     clearAuthToken();
     safeStorage.removeItem('fforum_current_user_email');
     /* Đóng socket để máy chủ huỷ phiên WS vừa đăng nhập — socket tự mở lại
@@ -1487,6 +1612,15 @@ export function useForumStore() {
       subtitle: 'Bạn đang duyệt F-Forum ở chế độ Khách.',
       type: 'success',
     });
+  };
+
+  /** Đăng xuất MỌI thiết bị: máy chủ thu hồi toàn bộ token của tài khoản; chỉ khi
+   *  máy chủ xác nhận mới xoá phiên ở máy này (lỗi mạng → giữ nguyên để thử lại). */
+  const logoutEverywhere = async (): Promise<boolean> => {
+    const revoked = await requestServerLogout(true);
+    if (!revoked) return false;
+    logout({ skipServer: true });
+    return true;
   };
 
   const updateProfile = async (updates: Partial<User>) => {
@@ -1700,7 +1834,7 @@ export function useForumStore() {
     if (!currentUser) return false;
 
     const isSuperAdmin =
-      currentUser.email === 'BroAmStuck@gmail.com' ||
+      isMasterAdmin(currentUser.email) ||
       currentUser.role === 'SUPER_ADMIN';
     const isClubLeader = currentUser.scopedClubIds.includes(clubId);
 
@@ -2059,7 +2193,7 @@ export function useForumStore() {
     if (!question) return;
 
     const isAuthorized =
-      currentUser.email === 'BroAmStuck@gmail.com' ||
+      isMasterAdmin(currentUser.email) ||
       currentUser.id === question.authorId;
 
     if (!isAuthorized) {
@@ -2232,8 +2366,8 @@ export function useForumStore() {
   };
 
   const adminDeleteQuestion = async (questionId: string): Promise<boolean> => {
-    if (!currentUser || currentUser.email !== 'BroAmStuck@gmail.com') {
-      alert('Chỉ Super Admin mới có quyền xóa bài viết!');
+    if (!currentUser || !canEditContentNow(currentUser.email)) {
+      alert('Chỉ Super Admin hoặc vai trò có quyền sửa nội dung mới được xóa bài viết!');
       return false;
     }
 
@@ -2279,8 +2413,8 @@ export function useForumStore() {
     questionId: string,
     updates: { title?: string; content?: string; subject?: SubjectTag }
   ): Promise<boolean> => {
-    if (!currentUser || currentUser.email !== 'BroAmStuck@gmail.com') {
-      alert('Chỉ Super Admin mới có quyền sửa bài viết!');
+    if (!currentUser || !canEditContentNow(currentUser.email)) {
+      alert('Chỉ Super Admin hoặc vai trò có quyền sửa nội dung mới được sửa bài viết!');
       return false;
     }
 
@@ -2319,8 +2453,8 @@ export function useForumStore() {
   };
 
   const adminDeleteSolution = async (solutionId: string): Promise<boolean> => {
-    if (!currentUser || currentUser.email !== 'BroAmStuck@gmail.com') {
-      alert('Chỉ Super Admin mới có quyền xóa phản hồi!');
+    if (!currentUser || !canEditContentNow(currentUser.email)) {
+      alert('Chỉ Super Admin hoặc vai trò có quyền sửa nội dung mới được xóa phản hồi!');
       return false;
     }
 
@@ -2364,8 +2498,8 @@ export function useForumStore() {
   };
 
   const adminDeleteChatMessage = async (messageId: string): Promise<boolean> => {
-    if (!currentUser || currentUser.email !== 'BroAmStuck@gmail.com') {
-      alert('Chỉ Super Admin mới có quyền thu hồi tin nhắn!');
+    if (!currentUser || !canEditContentNow(currentUser.email)) {
+      alert('Chỉ Super Admin hoặc vai trò có quyền sửa nội dung mới được thu hồi tin nhắn!');
       return false;
     }
 
@@ -2402,7 +2536,7 @@ export function useForumStore() {
   };
 
   const adminUpdateAbout = async (newAboutData: AboutData): Promise<AboutData> => {
-    if (!currentUser || currentUser.email !== 'BroAmStuck@gmail.com') {
+    if (!currentUser || !isMasterAdmin(currentUser.email)) {
       alert('Chỉ Super Admin mới có quyền cập nhật Khu Vinh Danh!');
       return aboutData;
     }
@@ -2444,6 +2578,7 @@ export function useForumStore() {
     registerWithPassword,
     loginSocial,
     logout,
+    logoutEverywhere,
     updateProfile,
     loadDailyRewardStatus,
     claimDailyReward,

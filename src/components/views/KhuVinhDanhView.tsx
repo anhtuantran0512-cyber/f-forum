@@ -17,6 +17,8 @@ import {
   type MilestoneItem,
 } from '../../store/adminStore';
 import { DEFAULT_CLUB_COVER, DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
+import { isMasterAdmin } from '../../config/admin';
+import { rafThrottle } from '../../utils/rafThrottle';
 
 export interface VinhDanhRecord {
   id: string;
@@ -234,7 +236,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
   onNavigate,
   currentUser,
 }) => {
-  const isSuperAdmin = currentUser?.email?.toLowerCase() === 'BroAmStuck@gmail.com';
+  const isSuperAdmin = isMasterAdmin(currentUser?.email);
 
   const [founderProfile, setFounderProfile] = useState<FounderProfileState>(() => {
     const saved = safeStorage.getItem('fforum_vinhdanh_founder');
@@ -426,7 +428,9 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       applyCardLayout(nextDims.R, nextDims.cw);
     };
 
-    window.addEventListener('resize', handleResize);
+    /* R4: gộp resize về 1 lần/khung hình */
+    const handleResizeFrame = rafThrottle(handleResize);
+    window.addEventListener('resize', handleResizeFrame, { passive: true });
 
     const tick = () => {
       const state = engineState.current;
@@ -502,7 +506,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 
     return () => {
       cancelAnimationFrame(animId);
-      window.removeEventListener('resize', handleResize);
+      { window.removeEventListener('resize', handleResizeFrame); handleResizeFrame.cancel(); }
     };
   }, [applyCardLayout, activeLitRecord]);
 

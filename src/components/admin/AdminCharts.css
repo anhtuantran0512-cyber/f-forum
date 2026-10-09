@@ -1,0 +1,227 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
+/* ==========================================================================
+   Epic 3 — "Data Visualization Art" cho Bảng quản trị
+   Đường cong Bezier mượt + gradient fill + tooltip trượt; vòng trạng thái;
+   cung giữ chân. Tông glass tối cao cấp, đồng bộ palette .faa-*.
+   ========================================================================== */
+
+.ffc-area { position: relative; width: 100%; margin-top: 18px; }
+
+.ffc-area__plot {
+  position: relative;
+  width: 100%;
+  border-radius: 14px;
+  outline: none;
+  cursor: crosshair;
+  touch-action: pan-y;
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--ffc-from) 9%, transparent), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 60%);
+}
+.ffc-area__plot:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, var(--ffc-from) 60%, transparent); }
+
+.ffc-area__svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+.ffc-area__grid { stroke: rgba(148, 163, 184, 0.14); stroke-width: 1; stroke-dasharray: 3 7; }
+.ffc-area__baseline { stroke: rgba(148, 163, 184, 0.26); stroke-width: 1; }
+
+.ffc-area__fill { opacity: 1; }
+.ffc-area__halo { opacity: 0.22; filter: blur(5px); }
+.ffc-area__line { filter: drop-shadow(0 0 6px var(--ffc-glow)); }
+
+.ffc-area__ylabel {
+  position: absolute;
+  right: 6px;
+  transform: translateY(-120%);
+  color: #66778a;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* Dải đứng + chấm + tooltip: TRƯỢT mượt giữa các mốc thay vì nhảy cóc. */
+.ffc-area__guide {
+  position: absolute;
+  top: 6px;
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-0.5px);
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--ffc-from) 70%, transparent) 30%, transparent);
+  transition: left 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.ffc-area__dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  background: #0b1119;
+  border: 2px solid var(--ffc-from);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ffc-from) 22%, transparent), 0 0 16px var(--ffc-glow);
+  transition: left 260ms cubic-bezier(0.22, 1, 0.36, 1), top 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.ffc-area__tip {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  gap: 2px;
+  min-width: 124px;
+  padding: 9px 12px 10px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--ffc-from) 32%, rgba(255, 255, 255, 0.1));
+  background: linear-gradient(160deg, rgba(20, 30, 44, 0.94), rgba(10, 16, 25, 0.96));
+  box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.8), 0 0 24px -10px var(--ffc-glow), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  transform: translateX(var(--ffc-tip-shift, -50%));
+  transition:
+    left 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    top 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: ffcTipIn 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.ffc-area__tip small { color: #8b9aaa; font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.ffc-area__tip b { color: #f1f7fc; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.ffc-area__tip em { font-style: normal; font-size: 9.5px; font-weight: 700; }
+.ffc-area__tip em.is-up { color: #6ee7b7; }
+.ffc-area__tip em.is-down { color: #fda4af; }
+
+@keyframes ffcTipIn {
+  from { opacity: 0; filter: blur(3px); margin-top: 6px; }
+  to { opacity: 1; filter: blur(0); margin-top: 0; }
+}
+
+.ffc-area__live {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  background: var(--ffc-to);
+  box-shadow: 0 0 12px var(--ffc-glow);
+  pointer-events: none;
+}
+.ffc-area__live::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  border: 1.5px solid var(--ffc-to);
+  opacity: 0;
+  animation: ffcPulse 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+@keyframes ffcPulse {
+  0% { transform: scale(0.5); opacity: 0.85; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.ffc-area__peak {
+  position: absolute;
+  transform: translate(-50%, -150%);
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: #e6faff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--ffc-from) 20%, rgba(11, 17, 25, 0.85));
+  border: 1px solid color-mix(in srgb, var(--ffc-from) 40%, transparent);
+  pointer-events: none;
+  animation: ffcFadeUp 600ms 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes ffcFadeUp {
+  from { opacity: 0; translate: 0 6px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+.ffc-area__empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #66778a;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.ffc-area__xlabels { position: relative; height: 18px; margin-top: 6px; }
+.ffc-area__xlabels span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  color: #66778a;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transition: color 200ms ease;
+}
+.ffc-area__xlabels span.is-first { transform: none; }
+.ffc-area__xlabels span.is-last { transform: translateX(-100%); }
+.ffc-area__xlabels span.is-active { color: #c9f5fc; }
+
+/* ---------------------------- Status donut ---------------------------- */
+.ffc-donut { display: flex; align-items: center; gap: 18px; margin-top: 14px; }
+.ffc-donut__ring { position: relative; width: 132px; height: 132px; flex: 0 0 auto; }
+.ffc-donut__ring svg { width: 100%; height: 100%; }
+.ffc-donut__track { fill: none; stroke: rgba(148, 163, 184, 0.12); stroke-width: 12; }
+.ffc-donut__arc {
+  fill: none;
+  stroke-width: 12;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 5px var(--ffc-arc-glow));
+  transition: stroke-dasharray 1s cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease;
+}
+.ffc-donut__arc.is-dim { opacity: 0.28; }
+.ffc-donut__center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.ffc-donut__center b { color: #f1f7fc; font-size: 24px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.ffc-donut__center small { margin-top: 4px; color: #8b9aaa; font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.ffc-donut__legend { display: grid; flex: 1; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ffc-donut__legend li {
+  display: grid;
+  grid-template-columns: 10px 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  color: #b8c6d4;
+  font-size: 11px;
+  transition: background 200ms ease;
+}
+.ffc-donut__legend li.is-focus,
+.ffc-donut__legend li:hover { background: rgba(255, 255, 255, 0.045); }
+.ffc-donut__legend i { width: 8px; height: 8px; border-radius: 999px; }
+.ffc-donut__legend b { color: #eef5fb; font-variant-numeric: tabular-nums; }
+.ffc-donut__legend small { min-width: 32px; color: #6f8091; font-size: 9.5px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---------------------------- Retention gauge ---------------------------- */
+.ffc-gauge { position: relative; display: grid; justify-items: center; margin-top: 10px; }
+.ffc-gauge svg { width: min(100%, 190px); height: auto; overflow: visible; }
+.ffc-gauge__track { fill: none; stroke: rgba(148, 163, 184, 0.13); stroke-width: 9; stroke-linecap: round; }
+.ffc-gauge__value {
+  fill: none;
+  stroke-width: 9;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.45));
+  transition: stroke-dashoffset 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ffc-gauge__label { position: absolute; bottom: 0; display: grid; justify-items: center; }
+.ffc-gauge__label b { color: #f1f7fc; font-size: 22px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.ffc-gauge__label small { margin-top: 3px; color: #8b9aaa; font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ffc-area__tip, .ffc-area__peak, .ffc-area__live::after { animation: none; }
+  .ffc-area__guide, .ffc-area__dot, .ffc-area__tip, .ffc-donut__arc, .ffc-gauge__value { transition: none; }
+}
+html.reduce-motion .ffc-area__tip,
+html.reduce-motion .ffc-area__peak,
+html.reduce-motion .ffc-area__live::after { animation: none; }
+html.reduce-motion .ffc-area__guide,
+html.reduce-motion .ffc-area__dot,
+html.reduce-motion .ffc-area__tip,
+html.reduce-motion .ffc-donut__arc,
+html.reduce-motion .ffc-gauge__value { transition: none; }

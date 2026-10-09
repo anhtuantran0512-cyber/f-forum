@@ -246,13 +246,25 @@ test('13. Navbar surface: một viền sáng duy nhất, không xếp lớp grad
     'The single hairline must be masked to the border ring only',
   );
 
-  // Viên chỉ báo trượt là điểm nhấn duy nhất ở chế độ mở rộng
+  // Chỉ báo tab đang mở nằm TRONG nút — không đo bằng JS nên không bao giờ
+  // lệch khung hay "nhảy" khi navbar phóng to / thu nhỏ (pill cũ đã bị loại bỏ)
   assert.ok(!navbar.includes('nav-liquid-drop'), 'The overlapping droplet beads must be removed from the navbar');
   assert.ok(!css.includes('nav-liquid-glow'), 'The pulsing pill glow (double effect) must be removed');
-  assert.ok(css.includes(".ff-nav-capsule[data-compact='true'] .nav-liquid-pill"), 'Compact mode must hide the pill');
   assert.ok(
-    css.includes(".dock-pos-top .ff-nav-capsule[data-compact='false'] .nav-tab-btn--active"),
-    'Expanded lg+ mode must let the pill be the only highlight (no doubled background)',
+    !navbar.includes('liquidPillRef') && !navbar.includes('--liquid-pill-x') && !css.includes('.nav-liquid-pill'),
+    'The JS-measured sliding pill must be fully replaced by the in-button indicator',
+  );
+  assert.ok(
+    navbar.includes('nav-tab-btn__indicator') && navbar.includes('nav-tab-btn__indicator--on'),
+    'Each tab button must render its own active indicator layer',
+  );
+  assert.ok(
+    css.includes('.nav-tab-btn__indicator {') && css.includes('.nav-tab-btn__indicator--on'),
+    'CSS must animate the in-button indicator in when the tab is active',
+  );
+  assert.ok(
+    css.includes('.nav-tab-btn--active .ff-nav-tab-icon'),
+    'The active tab icon must be the single soft-glow highlight (no doubled background box)',
   );
 });
 

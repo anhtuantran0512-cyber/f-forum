@@ -1,6 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useRef, useState } from 'react';
-import { safeStorage } from '../utils/storage';
 
 const VIDEO_URL =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260611_183632_c311af08-e4b7-458f-81e7-79847a49b3d3.mp4';
@@ -10,13 +9,6 @@ export const BoomerangVideoBg: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [useCanvas, setUseCanvas] = useState(false);
   const [loadError, setLoadError] = useState(false);
-  const [potatoMode, setPotatoMode] = useState(() => safeStorage.getItem('fforum_potato_mode') === 'true');
-
-  useEffect(() => {
-    const handleSync = () => setPotatoMode(safeStorage.getItem('fforum_potato_mode') === 'true');
-    window.addEventListener('fforum_theme_sync', handleSync);
-    return () => window.removeEventListener('fforum_theme_sync', handleSync);
-  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -28,6 +20,12 @@ export const BoomerangVideoBg: React.FC = () => {
     const maxDimension = 960;
     let captureAnimId: number | null = null;
     let loopAnimId: number | null = null;
+    /* EPIC 5 — hiệu năng: vòng vẽ canvas 30fps chỉ chạy khi nền đang nằm trong
+       khung nhìn và tab đang hiện. Trước đây nó vẽ liên tục kể cả khi đã cuộn
+       xuống dưới (tốn GPU vô ích trên máy yếu). Hình ảnh không đổi. */
+    let inView = true;
+    let resumeLoop: (() => void) | null = null;
+    const isActive = () => inView && document.visibilityState === 'visible';
 
     const ctx = canvas.getContext('2d', { alpha: false });
 
@@ -97,6 +95,11 @@ export const BoomerangVideoBg: React.FC = () => {
 
       const renderLoop = (time: number) => {
         if (isCancelled || !ctx) return;
+        if (!isActive()) {
+          /* Dừng hẳn; observer/visibilitychange sẽ gọi resumeLoop khi hiện lại. */
+          loopAnimId = null;
+          return;
+        }
 
         if (time - lastTime >= frameInterval) {
           lastTime = time;
@@ -118,8 +121,27 @@ export const BoomerangVideoBg: React.FC = () => {
         loopAnimId = requestAnimationFrame(renderLoop);
       };
 
+      resumeLoop = () => {
+        if (isCancelled || loopAnimId !== null || !isActive()) return;
+        lastTime = performance.now();
+        loopAnimId = requestAnimationFrame(renderLoop);
+      };
       loopAnimId = requestAnimationFrame(renderLoop);
     };
+
+    const host = canvas.parentElement;
+    const observer =
+      typeof IntersectionObserver === 'function' && host
+        ? new IntersectionObserver(([entry]) => {
+            inView = entry ? entry.isIntersecting : true;
+            if (inView) resumeLoop?.();
+          })
+        : null;
+    if (observer && host) observer.observe(host);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') resumeLoop?.();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
 
     video.addEventListener('play', handlePlay);
     video.addEventListener('ended', handleEnded);
@@ -129,6 +151,8 @@ export const BoomerangVideoBg: React.FC = () => {
 
     return () => {
       isCancelled = true;
+      observer?.disconnect();
+      document.removeEventListener('visibilitychange', onVisibility);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('ended', handleEnded);
       if (captureAnimId) cancelAnimationFrame(captureAnimId);
@@ -137,27 +161,8 @@ export const BoomerangVideoBg: React.FC = () => {
     };
   }, []);
 
-  if (potatoMode) {
-    return (
-      <div className="absolute inset-0 z-0 bg-slate-950">
-        <div className="absolute inset-0" style={{
-          backgroundColor: '#0f172a',
-          backgroundImage: `
-            radial-gradient(at 40% 20%, hsla(253,86%,50%,0.3) 0px, transparent 50%),
-            radial-gradient(at 80% 0%, hsla(189,100%,56%,0.3) 0px, transparent 50%),
-            radial-gradient(at 0% 50%, hsla(335,100%,65%,0.3) 0px, transparent 50%),
-            radial-gradient(at 80% 50%, hsla(340,100%,76%,0.3) 0px, transparent 50%),
-            radial-gradient(at 0% 100%, hsla(22,100%,77%,0.3) 0px, transparent 50%),
-            radial-gradient(at 80% 100%, hsla(242,100%,70%,0.3) 0px, transparent 50%),
-            radial-gradient(at 0% 0%, hsla(343,100%,76%,0.3) 0px, transparent 50%)
-          `
-        }} />
-      </div>
-    );
-  }
-
   return (
-    <div className="absolute inset-0 z-0 scale-[1.08] origin-center overflow-hidden pointer-events-none bg-neutral-950">
+    <div className="ff-video-bg absolute inset-0 z-0 scale-[1.08] origin-center overflow-hidden pointer-events-none bg-neutral-950">
       <video
         ref={videoRef}
         src={VIDEO_URL}

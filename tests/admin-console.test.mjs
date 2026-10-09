@@ -10,7 +10,8 @@ const modal = read('src/components/AdminConsoleModal.tsx');
 const server = read('server/forumServer.ts');
 
 test('Admin UI 1. Lối vào và modal chỉ dành cho tài khoản Super Admin', () => {
-  assert.match(app, /currentUser\?\.email === 'BroAmStuck@gmail\.com'/);
+  /* Guard Super Admin không phân biệt hoa thường (record có thể lưu email chữ thường). */
+  assert.match(app, /isMasterAdmin\(currentUser\?\.email\) && !isAdminConsoleOpen/);
   assert.match(app, /AdminConsoleModal/);
   assert.match(app, /isAdminConsoleOpen/);
   assert.match(modal, /role="dialog"/);

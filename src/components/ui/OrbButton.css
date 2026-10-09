@@ -1,0 +1,244 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
+/* ==========================================================================
+   Nhiemvu_6 · (1) Nút ORB phát sáng
+   --------------------------------------------------------------------------
+   Chuyển thể từ mẫu orb-btn: quả cầu kính với quầng sáng theo biến
+   --glow-color, một vệt highlight (::before) và tia shimmer quét qua khi rê
+   (::after). Ba sắc gốc của mẫu: teal (tạo) · silver (xuất/chép) · mauve
+   (xác nhận) — thêm amber/rose cho ngữ nghĩa của F-Forum (cảnh báo/xoá).
+   Nhãn là phần tử anh em của nút nên không bị overflow:hidden của quả cầu cắt.
+   ========================================================================== */
+.ff-orb-wrap {
+  --glow-color: 52, 142, 150;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.ff-orb-tone--teal { --glow-color: 52, 142, 150; }
+.ff-orb-tone--silver { --glow-color: 180, 195, 210; }
+.ff-orb-tone--mauve { --glow-color: 188, 108, 148; }
+.ff-orb-tone--amber { --glow-color: 245, 158, 11; }
+.ff-orb-tone--rose { --glow-color: 244, 63, 94; }
+
+.ff-orb {
+  --orb-size: 3.25rem;
+  position: relative;
+  width: var(--orb-size);
+  height: var(--orb-size);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: 0;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.92);
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(0, 0, 0, 0.1) 0%,
+    rgba(var(--glow-color), 0.08) 50%,
+    rgba(var(--glow-color), 0.35) 100%
+  );
+  box-shadow:
+    inset 0 0 25px 2px rgba(var(--glow-color), 0.35),
+    inset 0 0 8px 1px rgba(var(--glow-color), 0.6),
+    0 0 35px 2px rgba(var(--glow-color), 0.25);
+  transition:
+    transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+  /* backwards: chỉ áp khung đầu trong lúc chờ, hết hiệu ứng thì trả transform
+     lại cho :hover/:active (fill "both" sẽ khoá transform vĩnh viễn). */
+  animation: ffOrbFloatIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: calc(var(--orb-i, 0) * 90ms);
+}
+.ff-orb--sm { --orb-size: 2.5rem; }
+.ff-orb--lg { --orb-size: 5rem; }
+
+/* Vệt highlight phía trên — mặt kính cong */
+.ff-orb::before {
+  content: '';
+  position: absolute;
+  top: 7%;
+  left: 18%;
+  width: 64%;
+  height: 40%;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0));
+  opacity: 0.75;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+/* Tia shimmer quét chéo khi rê/focus */
+.ff-orb::after {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.3) 50%, transparent 60%);
+  transform: translateX(-75%);
+  opacity: 0;
+  pointer-events: none;
+}
+.ff-orb:hover::after,
+.ff-orb:focus-visible::after {
+  animation: ffOrbShimmer 1.1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ff-orb:hover,
+.ff-orb:focus-visible {
+  transform: scale(1.06);
+  box-shadow:
+    inset 0 0 30px 4px rgba(var(--glow-color), 0.5),
+    inset 0 0 10px 2px rgba(var(--glow-color), 0.8),
+    0 0 45px 6px rgba(var(--glow-color), 0.4);
+}
+.ff-orb:hover::before { opacity: 1; }
+.ff-orb:focus-visible {
+  outline: 2px solid rgba(var(--glow-color), 0.9);
+  outline-offset: 3px;
+}
+.ff-orb:active {
+  transform: scale(0.92);
+  transition-duration: 0.12s;
+}
+.ff-orb:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none;
+}
+
+.ff-orb__icon {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  filter: drop-shadow(0 0 6px rgba(var(--glow-color), 0.7));
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* teal · tạo: icon xoay nửa vòng */
+.ff-orb--spin:hover .ff-orb__icon,
+.ff-orb--spin:focus-visible .ff-orb__icon {
+  transform: rotate(180deg);
+}
+/* silver · xuất/chép: mũi tên bay ra góc rồi quay lại từ góc đối diện */
+.ff-orb--fly:hover .ff-orb__icon,
+.ff-orb--fly:focus-visible .ff-orb__icon {
+  animation: ffOrbArrowFly 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* mauve · xác nhận: dấu ✓ tự vẽ nét (stroke-dasharray 40) ngay khi xuất hiện */
+.ff-orb--check .ff-orb__icon svg * {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 0;
+  animation: ffOrbDrawCheck 0.6s cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+
+/* Nhãn: trượt ra + nét chữ giãn 3px → 5px, mờ → nét */
+.ff-orb__label {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  z-index: 3;
+  margin-left: 0.55rem;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--glow-color), 0.35);
+  background: rgba(8, 11, 17, 0.86);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  filter: blur(8px);
+  transform: translate(-10px, -50%) scale(0.95);
+  pointer-events: none;
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ff-orb-wrap:hover .ff-orb__label,
+.ff-orb-wrap:focus-within .ff-orb__label {
+  opacity: 1;
+  letter-spacing: 5px;
+  filter: blur(0);
+  transform: translate(0, -50%) scale(1);
+}
+.ff-orb-wrap--left .ff-orb__label {
+  left: auto;
+  right: 100%;
+  margin-left: 0;
+  margin-right: 0.55rem;
+  transform: translate(10px, -50%) scale(0.95);
+}
+.ff-orb-wrap--left:hover .ff-orb__label,
+.ff-orb-wrap--left:focus-within .ff-orb__label {
+  transform: translate(0, -50%) scale(1);
+}
+.ff-orb-wrap--top .ff-orb__label {
+  top: auto;
+  bottom: 100%;
+  left: 50%;
+  margin: 0 0 0.5rem;
+  transform: translate(-50%, 8px) scale(0.95);
+}
+.ff-orb-wrap--top:hover .ff-orb__label,
+.ff-orb-wrap--top:focus-within .ff-orb__label {
+  transform: translate(-50%, 0) scale(1);
+}
+
+/* Chế độ sáng: quả cầu sữa + nhãn dùng bảng màu liquid (#3e3e3e / #f5f5f5) */
+html.light .ff-orb {
+  color: #3e3e3e;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(var(--glow-color), 0.14) 55%,
+    rgba(var(--glow-color), 0.42) 100%
+  );
+  box-shadow:
+    inset 0 0 18px 2px rgba(var(--glow-color), 0.3),
+    inset 0 0 6px 1px rgba(var(--glow-color), 0.5),
+    0 6px 18px -6px rgba(var(--glow-color), 0.45);
+}
+html.light .ff-orb__icon { filter: none; }
+html.light .ff-orb__label {
+  color: #f5f5f5;
+  background: #3e3e3e;
+  border-color: rgba(51, 51, 51, 0.08);
+  text-shadow: none;
+}
+
+@keyframes ffOrbFloatIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.8); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ffOrbShimmer {
+  0% { transform: translateX(-75%); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateX(75%); opacity: 0; }
+}
+@keyframes ffOrbArrowFly {
+  0% { transform: translate(0, 0); opacity: 1; }
+  44% { transform: translate(120%, -120%); opacity: 0; }
+  45% { transform: translate(-120%, 120%); opacity: 0; }
+  100% { transform: translate(0, 0); opacity: 1; }
+}
+@keyframes ffOrbDrawCheck {
+  from { stroke-dashoffset: 40; }
+  to { stroke-dashoffset: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-orb,
+  .ff-orb::after,
+  .ff-orb__icon,
+  .ff-orb__icon svg *,
+  .ff-orb__label {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { forumServerPlugin } from './server/forumPlugin.ts'
+import { forumServerPlugin, securityBootPlugin } from './server/forumPlugin.ts'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -21,6 +21,7 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
       forumServerPlugin(),
+      securityBootPlugin(),
     ],
     server: {
       host: '0.0.0.0', // Listen on all network interfaces
@@ -39,6 +40,15 @@ export default defineConfig(({ mode }) => {
             if (id.includes('node_modules/lucide-react')) {
               return 'vendor-lucide'
             }
+          },
+          /*
+           * EPIC 5 — khoá console ở bản production: minifier Oxc loại bỏ MỌI lệnh
+           * `console.*` và `debugger` khỏi bundle (Vite trải `output` sau giá trị
+           * minify mặc định nên cấu hình này được dùng). Bản dev không qua bước này.
+           */
+          minify: {
+            compress: { dropConsole: true, dropDebugger: true },
+            mangle: true,
           },
         },
       },

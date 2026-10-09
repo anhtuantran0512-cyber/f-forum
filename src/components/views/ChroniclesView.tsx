@@ -89,7 +89,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
   return (
     <section className={`relative w-full ${isEmbedded ? 'min-h-[850px]' : 'min-h-screen'} flex flex-col pt-20 sm:pt-24 pb-16 px-4 sm:px-8`}>
       {/* Background Cosmic Atmosphere Video Engine */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-neutral-950">
+      <div className="ff-video-bg absolute inset-0 z-0 pointer-events-none overflow-hidden bg-neutral-950">
         <video
           src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260627_094019_4214ea73-b963-46a4-8327-61489192de99.mp4"
           autoPlay

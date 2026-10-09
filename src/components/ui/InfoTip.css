@@ -1,0 +1,45 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
+/* InfoTip — bong bóng thông tin bo góc mềm, trượt vào (Zero-Clutter) */
+.ff-infotip { position: relative; display: inline-flex; vertical-align: middle; }
+.ff-infotip__btn {
+  display: inline-grid; place-items: center; width: 18px; height: 18px; margin-left: 4px; padding: 0; border-radius: 999px; cursor: pointer;
+  color: #cbd5e1; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2);
+  font: 800 11px/1 Georgia, 'Times New Roman', serif; font-style: italic;
+  transition: transform 0.3s cubic-bezier(0.34, 1.6, 0.5, 1), color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+.ff-infotip__btn:hover,
+.ff-infotip__btn:focus-visible,
+.ff-infotip.is-open .ff-infotip__btn { color: #0b1119; background: #fde68a; border-color: #fbbf24; transform: scale(1.12); outline: none; }
+/* code_yeucau · tpop-04 — công thức popover đủ 3 phần:
+   (1) giá trị VÀO đặt trong @starting-style (nổi lên từ dưới),
+   (2) display chuyển rời rạc nhờ transition-behavior: allow-discrete → bong bóng
+       thật sự rời khỏi cây hiển thị khi đóng nhưng vẫn kịp chạy hiệu ứng thoát,
+   (3) giá trị RA riêng (trôi lên + mờ, nhanh hơn) thay vì chạy ngược hiệu ứng vào. */
+.ff-infotip__bubble {
+  --tip-x: -50%;
+  position: absolute; top: calc(100% + 8px); left: 50%; z-index: 60; width: max-content; max-width: min(280px, 78vw); padding: 10px 12px; border-radius: 16px;
+  color: #e2e8f0; background: rgba(10, 15, 24, 0.95); border: 1px solid rgba(255, 255, 255, 0.14);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  box-shadow: 0 18px 38px -16px rgba(0, 0, 0, 0.85);
+  font: 600 11.5px/1.5 system-ui, sans-serif; letter-spacing: 0; text-align: left; text-transform: none; white-space: normal;
+  display: none; opacity: 0; transform: translate(var(--tip-x), -4px) scale(0.98); pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.2s cubic-bezier(0.4, 0, 1, 1), display 0.2s allow-discrete;
+}
+.ff-infotip--start .ff-infotip__bubble { left: 0; --tip-x: 0; }
+.ff-infotip--end .ff-infotip__bubble { left: auto; right: 0; --tip-x: 0; }
+.ff-infotip:hover .ff-infotip__bubble,
+.ff-infotip:focus-within .ff-infotip__bubble,
+.ff-infotip.is-open .ff-infotip__bubble {
+  display: block; opacity: 1; transform: translate(var(--tip-x), 0) scale(1); pointer-events: auto;
+  transition: opacity 0.2s ease, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), display 0.32s allow-discrete;
+}
+@starting-style {
+  .ff-infotip:hover .ff-infotip__bubble,
+  .ff-infotip:focus-within .ff-infotip__bubble,
+  .ff-infotip.is-open .ff-infotip__bubble { opacity: 0; transform: translate(var(--tip-x), 8px) scale(0.96); }
+}
+html.light .ff-infotip__btn { color: #334155; background: rgba(15, 23, 42, 0.06); border-color: rgba(15, 23, 42, 0.18); }
+html.light .ff-infotip__bubble { color: #1e293b; background: rgba(255, 255, 255, 0.95); border-color: rgba(148, 163, 184, 0.35); box-shadow: 0 18px 38px -18px rgba(30, 41, 59, 0.45); }
+@media (prefers-reduced-motion: reduce) { .ff-infotip__bubble, .ff-infotip__btn { transition: none; } }
+html.reduce-motion .ff-infotip__bubble,
+html.reduce-motion .ff-infotip__btn { transition: none; }

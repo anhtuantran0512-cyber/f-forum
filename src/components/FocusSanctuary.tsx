@@ -20,6 +20,7 @@ import {
   Target,
 } from 'lucide-react';
 import { CircularProgressRing } from './CircularProgressRing';
+import { CelebrationBurst } from './CelebrationBurst';
 import { safeStorage } from '../utils/storage';
 import { computeStudyTotals, formatDuration, readStudySessions, sessionsForOwner } from '../utils/studyLog';
 import {
@@ -37,6 +38,7 @@ import {
   type FocusMode,
   type FocusSessionState,
 } from '../utils/focusSession';
+import { OrbButton } from './ui/OrbButton';
 
 interface FocusSanctuaryProps {
   isOpen: boolean;
@@ -64,6 +66,9 @@ const FocusSanctuaryInner: React.FC<{
   const [isStarting, setIsStarting] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [flash, setFlash] = useState<{ minutes: number; total: number } | null>(null);
+  /* Hiệu ứng confetti (bể hạt ánh sáng) khi đạt mốc 25/60/120 phút */
+  const [burstTick, setBurstTick] = useState(0);
+  const [burstHeadline, setBurstHeadline] = useState('');
 
   const [notes, setNotes] = useState(() => safeStorage.getItem('fforum_focus_scratchpad') || '');
   const [copied, setCopied] = useState(false);
@@ -81,7 +86,8 @@ const FocusSanctuaryInner: React.FC<{
     return () => window.removeEventListener('fforum_study_sync', sync);
   }, []);
 
-  /* Khi FocusSessionWatcher ghi xong một phiên: hiện dải "đã ghi" và gợi ý nghỉ */
+  /* Khi FocusSessionWatcher ghi xong một phiên: hiện dải "đã ghi", gợi ý nghỉ
+     và BẮN CONFETTI nếu đạt mốc phần thưởng (25/60/120 phút). */
   useEffect(() => {
     const onCredited = (event: Event) => {
       const detail = (event as CustomEvent<{ minutes: number }>).detail;
@@ -89,6 +95,10 @@ const FocusSanctuaryInner: React.FC<{
       const total = computeStudyTotals(readStudySessions()).todayMinutes;
       setFlash({ minutes, total });
       setMode('break');
+      if (minutes >= 25) {
+        setBurstTick((n) => n + 1);
+        setBurstHeadline(`Mốc ${minutes} phút · +${minutes} Coin`);
+      }
       window.setTimeout(() => setFlash(null), 9000);
     };
     window.addEventListener(FOCUS_CREDITED_EVENT, onCredited);
@@ -183,6 +193,8 @@ const FocusSanctuaryInner: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[#06101c]/95 backdrop-blur-xl animate-fade-up">
+      {/* Confetti toàn màn hình khi hoàn thành phiên ở mốc 25/60/120 phút */}
+      <CelebrationBurst trigger={burstTick} tone="gold" headline={burstHeadline} />
       <div className="liquid-glass w-full max-w-5xl rounded-2xl bg-[linear-gradient(145deg,rgba(10,25,42,0.98),rgba(5,12,24,0.98))] border border-cyan-300/25 shadow-[0_24px_80px_rgba(0,0,0,0.48)] p-5 sm:p-7 relative flex flex-col max-h-[92vh] overflow-y-auto">
         {/* HUD Top Bar */}
         <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-5 shrink-0 gap-3">
@@ -287,7 +299,9 @@ const FocusSanctuaryInner: React.FC<{
                 progress={progressPercent}
                 size={isRunning ? 280 : 220}
                 strokeWidth={6}
+                breathing={isRunning && activeMode === 'work'}
                 label={remainingLabel}
+                flip
                 milestone={milestoneActive ? {
                   reached: flash !== null,
                   label: flash ? `Đã hoàn thành! +${flash.minutes}m` : rewardMilestone?.label || '',
@@ -305,7 +319,7 @@ const FocusSanctuaryInner: React.FC<{
                       background: 'radial-gradient(circle, rgba(6,182,212,0.2), transparent 70%)',
                       top: '-20%',
                       right: '-10%',
-                      animation: 'potatorMeshDrift 8s ease-in-out infinite',
+                      animation: 'ffOrbDrift 8s ease-in-out infinite',
                     }}
                   />
                   <div
@@ -315,7 +329,7 @@ const FocusSanctuaryInner: React.FC<{
                         background: 'radial-gradient(circle, rgba(168,85,247,0.15), transparent 70%)',
                         bottom: '-15%',
                         left: '-5%',
-                        animation: 'potatorMeshDrift 12s ease-in-out infinite reverse',
+                        animation: 'ffOrbDrift 12s ease-in-out infinite reverse',
                       }
                     }
                   />
@@ -338,11 +352,7 @@ const FocusSanctuaryInner: React.FC<{
             )}
 
             {!isRunning && activeMode === 'work' && (
-              <div className="w-full px-4 flex flex-col gap-1.5 mt-[-10px] z-10">
-                <div className="flex justify-between text-[10px] font-mono text-cyan-300/80 font-semibold px-1">
-                  <span>5m</span>
-                  <span>120m</span>
-                </div>
+              <div className="w-full px-4 flex items-center gap-3 mt-[-10px] z-10">
                 <input
                   type="range"
                   min="5"
@@ -350,8 +360,25 @@ const FocusSanctuaryInner: React.FC<{
                   step="5"
                   value={targetMinutes}
                   onChange={(e) => setTargetMinutes(Number(e.target.value))}
-                  className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 hover:accent-cyan-300"
+                  aria-label="Mục tiêu thời gian (phút)"
+                  className="flex-1 h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 hover:accent-cyan-300"
                 />
+                {/* Nhập số trực tiếp — tối thiểu 5 phút theo spec */}
+                <input
+                  type="number"
+                  min={5}
+                  max={120}
+                  step={5}
+                  maxLength={3}
+                  value={targetMinutes}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (Number.isFinite(v)) setTargetMinutes(Math.min(120, Math.max(5, v)));
+                  }}
+                  aria-label="Nhập số phút trực tiếp"
+                  className="w-14 px-2 py-1 rounded-lg bg-[#06101c] border border-white/10 text-center text-xs font-mono font-bold text-cyan-200 focus:outline-none focus:border-cyan-400"
+                />
+                <span className="text-[10px] font-mono text-cyan-300/80 font-semibold">phút</span>
               </div>
             )}
 
@@ -409,32 +436,30 @@ const FocusSanctuaryInner: React.FC<{
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleCopyNotes}
-                  className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-neutral-300 text-xs flex items-center gap-1 transition-colors"
+              <div className="flex items-center gap-2.5">
+                {/* Nhiemvu_6 · nút orb: silver chép (→ mauve vẽ dấu ✓) · rose xoá; nhãn trượt sang trái */}
+                <OrbButton
+                  size="sm"
+                  tone={copied ? 'mauve' : 'silver'}
+                  motion={copied ? 'check' : 'fly'}
+                  labelSide="left"
+                  index={0}
+                  label={copied ? 'Đã chép' : 'Sao chép'}
                   title="Sao chép nội dung"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-emerald-400 text-[10px]">Đã chép</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span className="text-[10px]">Sao chép</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={handleClearNotes}
-                  className="p-1 rounded-lg hover:bg-red-500/20 text-neutral-400 hover:text-red-400 transition-colors"
+                  icon={copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  onClick={handleCopyNotes}
+                />
+                <OrbButton
+                  size="sm"
+                  tone="rose"
+                  labelSide="left"
+                  index={1}
+                  label="Xóa ghi chú"
                   title="Xóa ghi chú"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                  icon={<Trash2 className="w-4 h-4" />}
+                  onClick={handleClearNotes}
+                  disabled={!notes}
+                />
               </div>
             </div>
 
@@ -443,7 +468,7 @@ const FocusSanctuaryInner: React.FC<{
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 maxLength={5000}
-                placeholder="Ghi nhanh công thức toán lý, ý tưởng bài giảng, link tham khảo hoặc kế hoạch học tập trong phiên Pomodoro này..."
+                placeholder="Ghi chú cho phiên học này…"
                 className="w-full flex-1 min-h-[160px] bg-black/40 border border-white/10 rounded-2xl p-3.5 text-xs text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-cyan-400 transition-colors resize-none font-mono leading-relaxed"
               />
               <div className="flex items-center justify-between text-[10px] text-neutral-400 font-mono pt-2">

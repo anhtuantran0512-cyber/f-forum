@@ -24,8 +24,8 @@ export const MODERATION_ACTIONS: ModerationAction[] = ['ban', 'mute', 'unban', '
 
 export const MODERATION_MAX_REASON = 500;
 
-/** Các mức thời hạn cho sẵn trong UI (phút). 0 = vĩnh viễn. */
-export const MODERATION_DURATIONS_MIN = [15, 60, 1440, 10080, 0] as const;
+/** Các mức thời hạn cho sẵn trong UI (phút). 0 = vĩnh viễn. Epic 3: thêm mốc 3 ngày theo spec. */
+export const MODERATION_DURATIONS_MIN = [15, 60, 1440, 4320, 10080, 0] as const;
 
 export interface ModerationRecord {
   /** Mốc hết hạn bị cấm (ms). 0 = vĩnh viễn. undefined = không bị cấm. */
@@ -81,6 +81,24 @@ export const moderationStatusOf = (
     mutedUntil: rec.mutedUntil,
     reason: rec.reason,
   };
+};
+
+/**
+ * Trạng thái áp chế trả kèm khi ĐĂNG NHẬP / KHÔI PHỤC PHIÊN (vòng nâng cấp R3 ·
+ * Nhiemvu_3: "kiểm tra logic ban có check đúng thời gian khi user đăng nhập lại").
+ * Tính tại thời điểm `now` → lệnh cấm có hạn đã qua được coi là ĐÃ GỠ; cấm vĩnh viễn
+ * (until = 0) vẫn còn. Bản ghi đã hết hạn hoàn toàn trả về `staleKey` để máy chủ dọn.
+ */
+export const moderationForLogin = (
+  map: ModerationMap | undefined,
+  email?: string | null,
+  now: number = Date.now(),
+): { status: ModerationStatus; staleKey: string | null } => {
+  const key = normalizeModerationKey(email);
+  const rec = key ? (map || {})[key] : undefined;
+  const status = moderationStatusOf(map, email, now);
+  if (status.banned || status.muted) return { status, staleKey: null };
+  return { status: { banned: false, muted: false }, staleKey: rec ? key : null };
 };
 
 /** Cắt lý do về trần và bỏ khoảng trắng thừa — dữ liệu vào store phải sạch. */

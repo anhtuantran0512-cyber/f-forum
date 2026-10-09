@@ -23,15 +23,19 @@ import {
   NotebookPen,
   Check,
   Info,
+  LogOut,
 } from 'lucide-react';
-import { GODRAY_PRESETS } from '../utils/godrays';
+import { GODRAY_MOODS, GODRAY_PRESETS } from '../utils/godrays';
 import { safeStorage } from '../utils/storage';
-import { AUTH_TOKEN_KEY, clearAuthToken } from '../utils/session';
+import { AUTH_TOKEN_KEY, clearAuthToken, requestServerLogout } from '../utils/session';
 import { usePopoverPosition, type DockPosition } from '../utils/popover';
 
 export interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Đã đăng nhập → hiện mục "Phiên đăng nhập". */
+  isAuthenticated?: boolean;
+  onLogoutEverywhere?: () => Promise<boolean>;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
 
@@ -40,8 +44,6 @@ export interface SettingsModalProps {
   onToggleSoundEffects: () => void;
   reducedMotion: boolean;
   onToggleReducedMotion: () => void;
-  potatoMode?: boolean;
-  onTogglePotatoMode?: () => void;
   godrayPreset?: string;
   onSelectGodray?: (preset: string) => void;
   godrayIntensity?: number;
@@ -57,6 +59,10 @@ export interface SettingsModalProps {
   onSelectNavbarPosition?: (pos: 'top' | 'bottom' | 'left' | 'right') => void;
   alwaysCompact?: boolean;
   onToggleAlwaysCompact?: () => void;
+  potatorMode?: boolean;
+  onTogglePotatorMode?: () => void;
+  potatorBg?: string;
+  onSelectPotatorBg?: (preset: string) => void;
   eyeRestEnabled?: boolean;
   onToggleEyeRest?: () => void;
   dockPosition?: DockPosition;
@@ -64,6 +70,30 @@ export interface SettingsModalProps {
 }
 
 type SettingsTab = 'appearance' | 'experience' | 'system';
+
+/* EPIC 2 — Potator Mode: 3 preset nền tĩnh thay video (chỉ trang không phải Trang chủ).
+   Preview ở đây phải khớp với CSS tương ứng trong index.css (html[data-potator-bg=...]). */
+const POTATOR_BG_PRESETS: { id: string; name: string; desc: string; preview: string }[] = [
+  {
+    id: 'gunmetal',
+    name: 'Gunmetal',
+    desc: 'Đen kim loại',
+    preview: 'linear-gradient(168deg, #161d26 0%, #0b1016 48%, #05070a 100%)',
+  },
+  {
+    id: 'aurora',
+    name: 'Deep Space',
+    desc: 'Lưới Aurora tĩnh',
+    preview:
+      'radial-gradient(circle at 28% 22%, rgba(34,211,238,0.85), transparent 58%), radial-gradient(circle at 76% 82%, rgba(245,158,11,0.7), transparent 55%), #04060b',
+  },
+  {
+    id: 'void',
+    name: 'Void',
+    desc: 'Solid gradient',
+    preview: 'radial-gradient(130% 100% at 50% -10%, #0e1420 0%, #05070b 55%, #020308 100%)',
+  },
+];
 
 const DOCK_LABEL: Record<'top' | 'bottom' | 'left' | 'right', string> = {
   top: 'TRÊN',
@@ -83,7 +113,7 @@ const SHORTCUTS: { keys: string[]; label: string }[] = [
 
 const SectionTitle: React.FC<{ icon: React.ReactNode; children: React.ReactNode }> = ({ icon, children }) => (
   <div className="flex items-center gap-2 mb-2">
-    <span className="w-5 h-5 rounded-md bg-gradient-to-tr from-amber-500/25 to-fuchsia-500/25 border border-amber-400/30 flex items-center justify-center">
+    <span className="ff-set-ico w-5 h-5 rounded-md bg-gradient-to-tr from-amber-500/25 to-fuchsia-500/25 border border-amber-400/30 flex items-center justify-center">
       {icon}
     </span>
     <span className="text-[11px] font-bold uppercase tracking-widest ff-aurora-text">{children}</span>
@@ -116,7 +146,7 @@ const MiniSwitch: React.FC<{ on: boolean; onToggle: () => void; color?: string; 
 /** Thẻ cao cấp dùng chung cho các mục cài đặt */
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
   <div
-    className={`rounded-2xl p-3 bg-black/30 border border-white/10 transition-colors hover:border-amber-400/25 ${className}`}
+    className={`ff-set-card rounded-2xl p-3 bg-black/30 border border-white/10 transition-colors hover:border-amber-400/25 ${className}`}
   >
     {children}
   </div>
@@ -147,6 +177,8 @@ const SwitchRow: React.FC<{
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
+  isAuthenticated = false,
+  onLogoutEverywhere,
   theme,
   onToggleTheme,
 
@@ -155,8 +187,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onToggleSoundEffects,
   reducedMotion,
   onToggleReducedMotion,
-  potatoMode,
-  onTogglePotatoMode,
   godrayPreset = 'godray-gold',
   onSelectGodray,
   godrayIntensity = 70,
@@ -172,6 +202,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onSelectNavbarPosition,
   alwaysCompact = false,
   onToggleAlwaysCompact,
+  potatorMode = false,
+  onTogglePotatorMode,
+  potatorBg = 'gunmetal',
+  onSelectPotatorBg,
   eyeRestEnabled = false,
   onToggleEyeRest,
   dockPosition,
@@ -182,6 +216,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
   const settledRafRef = useRef<number | null>(null);
   const [confirmReset, setConfirmReset] = useState<null | 'cache' | 'full'>(null);
+  const [logoutAllState, setLogoutAllState] = useState<'idle' | 'confirm' | 'busy' | 'error'>('idle');
   const [resetDone, setResetDone] = useState<string | null>(null);
   const [dataNotice, setDataNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -190,6 +225,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     () => GODRAY_PRESETS.find((p) => p.id === godrayPreset) || GODRAY_PRESETS[0],
     [godrayPreset],
   );
+
+  /* Epic 4 — xem thử gradient realtime: rê chuột/focus một ô là cả thẻ preview lẫn
+     NỀN TRANG THẬT (App nghe 'fforum_godray_preview') đổi theo; rời ô thì trả về
+     preset đang chọn. Không lưu gì cho tới khi bấm chọn. */
+  const [hoverPresetId, setHoverPresetId] = useState<string | null>(null);
+  const shownPreset = GODRAY_PRESETS.find((p) => p.id === hoverPresetId) || activePreset;
+  const previewGodray = (id: string | null) => {
+    setHoverPresetId(id);
+    window.dispatchEvent(new CustomEvent('fforum_godray_preview', { detail: { id } }));
+  };
+  useEffect(() => () => {
+    window.dispatchEvent(new CustomEvent('fforum_godray_preview', { detail: { id: null } }));
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -328,7 +376,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setTimeout(() => window.location.reload(), 700);
   };
 
+  /** Thu hồi mọi phiên của tài khoản trên máy chủ (mọi thiết bị, kể cả máy này). */
+  const handleLogoutEverywhere = async () => {
+    if (!onLogoutEverywhere) return;
+    setLogoutAllState('busy');
+    const ok = await onLogoutEverywhere();
+    if (ok) {
+      setLogoutAllState('idle');
+      onClose();
+    } else {
+      setLogoutAllState('error');
+    }
+  };
+
   const handleResetFull = () => {
+    /* EPIC 5: phiên cookie HttpOnly chỉ máy chủ xoá được — gửi trước khi xoá token cục bộ. */
+    void requestServerLogout();
     safeStorage.removeWithPrefix('fforum_');
     clearAuthToken();
     setResetDone('Đã đặt lại toàn bộ dữ liệu cục bộ.');
@@ -676,13 +739,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <Card className="space-y-3">
                   {/* Live preview */}
                   <div
-                    className="relative h-[74px] rounded-2xl overflow-hidden border border-white/15"
-                    style={{ background: activePreset.gradient }}
+                    className="relative h-[86px] rounded-2xl overflow-hidden border border-white/15 transition-[background] duration-300"
+                    style={{ background: `${shownPreset.gradient}, linear-gradient(160deg, #0b1220, #04060b)` }}
                   >
                     <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
                     <div className="absolute inset-0 px-3 py-2.5 flex flex-col justify-between">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold text-white drop-shadow">{activePreset.name}</span>
+                        <span className="text-[11px] font-bold text-white drop-shadow">{shownPreset.name}</span>
                         <span className="text-[10px] font-mono text-white/85 bg-black/40 border border-white/15 rounded-full px-2 py-0.5">
                           {godrayIntensity}% độ rực
                         </span>
@@ -690,48 +753,59 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <div className="flex items-center gap-1.5">
                         <span
                           className="w-5 h-5 rounded-full border-2 border-white/70 shadow-[0_0_12px_rgba(255,255,255,0.35)]"
-                          style={{ background: activePreset.accent }}
+                          style={{ background: shownPreset.accent }}
                         />
-                        <span className="text-[10px] font-mono text-white/80">{activePreset.accent}</span>
-                        <span className="ml-auto text-[10px] text-white/70">Xem trước trực tiếp</span>
+                        <span className="text-[10px] font-mono text-white/80">{shownPreset.accent}</span>
+                        <span className="ml-auto text-[10px] text-white/70">{hoverPresetId ? 'Đang xem thử · bấm để chọn' : 'Xem trước trực tiếp'}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Swatch grid */}
-                  <div role="radiogroup" aria-label="Bảng chọn Gradient" className="grid grid-cols-4 gap-2">
-                    {GODRAY_PRESETS.map((p) => {
-                      const on = godrayPreset === p.id;
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          role="radio"
-                          aria-checked={on}
-                          title={p.name}
-                          onClick={() => onSelectGodray?.(p.id)}
-                          className="group/sw flex flex-col items-center gap-1 cursor-pointer"
-                        >
-                          <span
-                            className="ff-grad-tile w-full h-7 flex items-center justify-center"
-                            style={{ background: `linear-gradient(135deg, ${p.accent}, ${p.accent}55)` }}
-                          >
-                            {on && (
-                              <span className="relative z-10 w-4 h-4 rounded-full bg-black/45 border border-white/70 flex items-center justify-center">
-                                <Check className="w-2.5 h-2.5 text-white" />
-                              </span>
-                            )}
-                          </span>
-                          <span
-                            className={`text-[9px] font-semibold leading-none ${
-                              on ? 'text-amber-300' : 'text-white/55 group-hover/sw:text-white/85'
-                            }`}
-                          >
-                            {p.name}
-                          </span>
-                        </button>
-                      );
-                    })}
+                  {/* Swatch grid — nhóm theo cảm xúc, mỗi ô vẽ đúng gradient thật */}
+                  <div role="radiogroup" aria-label="Bảng chọn Gradient" className="space-y-2.5" onMouseLeave={() => previewGodray(null)}>
+                    {GODRAY_MOODS.map((mood) => (
+                      <div key={mood.id} className="space-y-1.5">
+                        <span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-white/45">{mood.label}</span>
+                        <div className="grid grid-cols-6 gap-1.5">
+                          {GODRAY_PRESETS.filter((p) => p.mood === mood.id).map((p) => {
+                            const on = godrayPreset === p.id;
+                            return (
+                              <button
+                                key={p.id}
+                                type="button"
+                                role="radio"
+                                aria-checked={on}
+                                aria-label={p.name}
+                                title={p.name}
+                                onClick={() => { onSelectGodray?.(p.id); previewGodray(null); }}
+                                onMouseEnter={() => previewGodray(p.id)}
+                                onFocus={() => previewGodray(p.id)}
+                                onBlur={() => previewGodray(null)}
+                                className="group/sw flex flex-col items-center gap-1 cursor-pointer"
+                              >
+                                <span
+                                  className="ff-grad-tile w-full h-8 flex items-center justify-center"
+                                  style={{ background: `${p.gradient}, linear-gradient(160deg, #0b1220, #04060b)` }}
+                                >
+                                  {on && (
+                                    <span className="relative z-10 w-4 h-4 rounded-full bg-black/45 border border-white/70 flex items-center justify-center">
+                                      <Check className="w-2.5 h-2.5 text-white" />
+                                    </span>
+                                  )}
+                                </span>
+                                <span
+                                  className={`text-[9px] font-semibold leading-none whitespace-nowrap ${
+                                    on ? 'text-amber-300' : 'text-white/55 group-hover/sw:text-white/85'
+                                  }`}
+                                >
+                                  {p.name}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
                   {/* Intensity */}
@@ -901,77 +975,70 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {/* 5. MOTION & PERFORMANCE */}
               <section>
                 <SectionTitle icon={<Zap className="w-3 h-3 text-amber-300" />}>Chuyển động &amp; hiệu năng</SectionTitle>
-                <Card className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="flex flex-col gap-2">
-                    <SwitchRow
-                      icon={<Volume2 className="w-3.5 h-3.5 text-amber-400" />}
-                      title="Hiệu ứng âm thanh"
-                      on={soundEffects}
-                      onToggle={onToggleSoundEffects}
-                    />
-                    <SwitchRow
-                      icon={<Zap className="w-3.5 h-3.5 text-cyan-400" />}
-                      title="Giảm chuyển động"
-                      on={reducedMotion}
-                      onToggle={onToggleReducedMotion}
-                      color="bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"
-                    />
-                  </div>
+                <Card className="flex flex-col gap-2">
                   <SwitchRow
-                    icon={<Zap className="w-3.5 h-3.5 text-orange-400" />}
+                    icon={<Volume2 className="w-3.5 h-3.5 text-amber-400" />}
+                    title="Hiệu ứng âm thanh"
+                    on={soundEffects}
+                    onToggle={onToggleSoundEffects}
+                  />
+                  <SwitchRow
+                    icon={<Zap className="w-3.5 h-3.5 text-cyan-400" />}
+                    title="Giảm chuyển động"
+                    on={reducedMotion}
+                    onToggle={onToggleReducedMotion}
+                    color="bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]"
+                  />
+                  {/* EPIC 2 — Potator Mode bản mới: chỉ thay nền động, giữ 100% animation UI */}
+                  <SwitchRow
+                    icon={<span className="text-[13px] leading-none" role="img" aria-label="Khoai tây">🥔</span>}
                     title="Potator Mode"
-                    desc="Nền tĩnh, giảm blur nặng, giữ chuyển động"
-                    on={potatoMode ?? false}
-                    onToggle={() => onTogglePotatoMode?.()}
+                    desc="Tắt video nền (trừ Trang chủ), giữ nguyên mọi hiệu ứng"
+                    on={potatorMode}
+                    onToggle={() => onTogglePotatorMode?.()}
                     color="bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"
                   />
-
-                  {/* Potator Mode preview (khi bật) */}
-                  {potatoMode && (
-                    <div className="mt-3 rounded-xl overflow-hidden border border-white/10">
-                      <div className="relative h-20 w-full">
-                        {/* Potator Mesh Background inline */}
-                        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                          <div
-                            className="absolute rounded-full"
-                            style={{
-                              width: '60vmax',
-                              height: '60vmax',
-                              top: '-20%',
-                              left: '-10%',
-                              background: 'radial-gradient(circle at 30% 40%, rgba(245,158,11,0.4), transparent 60%), radial-gradient(circle at 70% 60%, rgba(244,114,182,0.3), transparent 55%)',
-                              filter: 'blur(100px)',
-                              opacity: 0.5,
-                              animation: 'potatorMeshDrift 22s ease-in-out infinite',
-                            }}
-                          />
-                          <div
-                            className="absolute rounded-full"
-                            style={{
-                              width: '50vmax',
-                              height: '50vmax',
-                              bottom: '-15%',
-                              right: '-5%',
-                              background: 'radial-gradient(circle at 60% 30%, rgba(167,139,250,0.35), transparent 55%), radial-gradient(circle at 40% 70%, rgba(34,211,238,0.25), transparent 50%)',
-                              filter: 'blur(90px)',
-                              opacity: 0.4,
-                              animation: 'potatorMeshDrift 24s ease-in-out infinite reverse',
-                            }}
-                          />
-                        </div>
-                        {/* Overlay text */}
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="text-center">
-                            <div className="text-[10px] font-bold uppercase tracking-widest text-amber-400 mb-1">Potator Mode đang hoạt động</div>
-                            <div className="text-[11px] text-neutral-400">CSS Aurora Mesh · Bento Grid · Liquid Glass</div>
-                          </div>
-                        </div>
-                        {/* Vignette */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-                      </div>
-                    </div>
-                  )}
                 </Card>
+                {potatorMode && (
+                  <Card className="mt-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-widest text-white/55 mb-2">
+                      Nền tĩnh thay thế video
+                    </div>
+                    <div role="radiogroup" aria-label="Chọn nền tĩnh cho Potator Mode" className="ff-potator-presets grid grid-cols-3 gap-2">
+                      {POTATOR_BG_PRESETS.map((p) => {
+                        const on = potatorBg === p.id;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={on}
+                            title={`${p.name} — ${p.desc}`}
+                            onClick={() => onSelectPotatorBg?.(p.id)}
+                            className="ff-potator-preset group/sw flex flex-col items-center gap-1 cursor-pointer"
+                          >
+                            <span
+                              className={`ff-grad-tile ff-potator-swatch w-full h-7 flex items-center justify-center transition-shadow ${on ? 'ring-2 ring-orange-400/70' : ''}`}
+                              style={{ background: p.preview }}
+                            >
+                              {on && (
+                                <span className="relative z-10 w-4 h-4 rounded-full bg-black/45 border border-white/70 flex items-center justify-center">
+                                  <Check className="w-2.5 h-2.5 text-white" />
+                                </span>
+                              )}
+                            </span>
+                            <span
+                              className={`ff-potator-name text-[9px] font-semibold leading-none ${on ? 'text-orange-300' : 'text-white/55 group-hover/sw:text-white/85'}`}
+                            >
+                              {p.name}
+                            </span>
+                            <span className="ff-potator-desc text-[8px] text-white/40 leading-none">{p.desc}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                )}
               </section>
 
               {/* 6. KHÔNG GIAN TẬP TRUNG */}
@@ -1086,6 +1153,54 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </section>
 
               {/* 9. XÓA DỮ LIỆU CỤC BỘ */}
+              {isAuthenticated && onLogoutEverywhere && (
+                <section>
+                  <SectionTitle icon={<LogOut className="w-3 h-3 text-rose-300" />}>Phiên đăng nhập</SectionTitle>
+                  <Card className="space-y-2">
+                    <p className="text-[10.5px] text-white/60 leading-snug">
+                      Nghi ngờ tài khoản bị dùng ở máy lạ? Thu hồi mọi phiên — mọi thiết bị (kể cả máy này) phải
+                      đăng nhập lại.
+                    </p>
+                    {logoutAllState === 'confirm' || logoutAllState === 'busy' ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setLogoutAllState('idle')}
+                          disabled={logoutAllState === 'busy'}
+                          className="px-2 py-2 rounded-xl text-[11px] font-semibold text-white/80 bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          Huỷ
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleLogoutEverywhere()}
+                          disabled={logoutAllState === 'busy'}
+                          aria-busy={logoutAllState === 'busy'}
+                          className="px-2 py-2 rounded-xl text-[11px] font-bold text-white bg-rose-600 hover:bg-rose-500 border border-rose-400/50 transition-colors cursor-pointer disabled:opacity-60"
+                        >
+                          {logoutAllState === 'busy' ? 'Đang thu hồi…' : 'Xác nhận đăng xuất'}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setLogoutAllState('confirm')}
+                        className="w-full px-2 py-2 rounded-xl text-[11px] font-semibold text-rose-300 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 hover:border-rose-400/50 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        Đăng xuất mọi thiết bị
+                      </button>
+                    )}
+                    {logoutAllState === 'error' && (
+                      <p className="text-[10.5px] text-rose-300" role="alert">
+                        Máy chủ chưa xác nhận thu hồi phiên (mất mạng hoặc phiên đã hết hạn). Phiên trên máy này vẫn
+                        được giữ — hãy thử lại.
+                      </p>
+                    )}
+                  </Card>
+                </section>
+              )}
+
               <section>
                 <SectionTitle icon={<Trash2 className="w-3 h-3 text-red-300" />}>Dữ liệu cục bộ</SectionTitle>
                 <Card className="space-y-2">

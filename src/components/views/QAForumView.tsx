@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useDraftAutosave } from '../../utils/useDraftAutosave';
 import {
@@ -41,7 +41,8 @@ import {
   getRandomGhibliMask,
 } from '../../utils/ghibliMasks';
 import { DEFAULT_AVATAR, handleImageError, handleVideoError } from '../../utils/mediaFallback';
-import { MASTER_ADMIN_CONFIG } from '../../config/admin';
+import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
+import { capsHas, useAdminCaps } from '../../utils/adminCapabilities';
 import { pushNotification } from '../../utils/notifications';
 import { safeStorage } from '../../utils/storage';
 import { useEscapeKey } from '../../utils/useEscapeKey';
@@ -65,6 +66,10 @@ import {
 } from '../../utils/savedQuestions';
 import { LeaderboardWidget } from './LeaderboardWidget';
 import { CommentSkeletonList } from '../Skeletons';
+import { postJson } from '../../utils/session';
+import { describeReportResult, settleReportRequest } from '../../utils/reports';
+import { ShareRow } from '../ui/ShareRow';
+import { buildQuestionShareUrl, readSharedQuestionId, stripSharedQuestionParam } from '../../utils/shareLinks';
 
 const MATH_SYMBOLS = [
   '√', 'π', '∑', '∫', '≤', '≥', 'α', 'β', '∞', '∆',
@@ -172,7 +177,31 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [selectedTag, setSelectedTag] = useState<SubjectTag | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isAskModalOpen, setIsAskModalOpen] = useState(false);
-  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
+  // Liên kết chia sẻ ?q=<id> mở thẳng câu hỏi (nếu dữ liệu đã có sẵn khi vào trang)
+  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(() => {
+    const sharedId = typeof window !== 'undefined' ? readSharedQuestionId(window.location.search) : null;
+    return sharedId ? questions.find(item => item.id === sharedId) ?? null : null;
+  });
+  const pendingSharedId = useRef<string | null>(
+    typeof window !== 'undefined' ? readSharedQuestionId(window.location.search) : null,
+  );
+  // Dữ liệu về muộn (đồng bộ máy chủ) → mở câu hỏi khi tìm thấy, chỉ một lần.
+  useEffect(() => {
+    const sharedId = pendingSharedId.current;
+    if (!sharedId) return;
+    const found = questions.find(item => item.id === sharedId);
+    if (!found) return;
+    pendingSharedId.current = null;
+    const timer = window.setTimeout(() => setSelectedQuestion(prev => prev ?? found), 0);
+    return () => window.clearTimeout(timer);
+  }, [questions]);
+  // Đóng câu hỏi → gỡ ?q= khỏi thanh địa chỉ để tải lại trang không bật lại modal.
+  useEffect(() => {
+    if (selectedQuestion || typeof window === 'undefined') return;
+    if (readSharedQuestionId(window.location.search)) {
+      window.history.replaceState(window.history.state, '', stripSharedQuestionParam(window.location.href));
+    }
+  }, [selectedQuestion]);
 
   const [askCooldown, setAskCooldown] = useState(0);
   const [isSubmittingAsk, setIsSubmittingAsk] = useState(false);
@@ -186,7 +215,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [editContent, setEditContent] = useState('');
   const [openMenuQuestionId, setOpenMenuQuestionId] = useState<string | null>(null);
 
-  const isSuperAdmin = currentUser?.email?.toLowerCase() === 'BroAmStuck@gmail.com';
+  /* CŨ: so sánh email đã lowercase với chuỗi có chữ hoa → luôn false, Super Admin mất
+     toàn bộ nút quản trị bài viết. MỚI: isMasterAdmin() không phân biệt hoa thường. */
+  const isSuperAdmin = isMasterAdmin(currentUser?.email);
+  /* Epic 3 — sửa/xoá nội dung: Super Admin hoặc vai trò tùy chỉnh có quyền edit_content. */
+  const adminCaps = useAdminCaps();
+  const canEditContent = isSuperAdmin || capsHas(adminCaps, 'edit_content');
 
   const handleAdminDeletePost = (questionId: string) => {
     const q = questions.find(item => item.id === questionId);
@@ -343,6 +377,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [reportDetails, setReportDetails] = useState<string>('');
   const [isSubmittingReport, setIsSubmittingReport] = useState<boolean>(false);
   const [reportSuccessMsg, setReportSuccessMsg] = useState<string | null>(null);
+  const [reportErrorMsg, setReportErrorMsg] = useState<string | null>(null);
 
   const handleImageUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -380,22 +415,24 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     e.preventDefault();
     if (!reportModalUser || isSubmittingReport) return;
     setIsSubmittingReport(true);
+    setReportErrorMsg(null);
     try {
-      const res = await fetch('/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reporterId: currentUser?.id || 'guest',
-          reporterName: currentUser?.name || 'Ẩn danh',
-          reporterEmail: currentUser?.email || '',
-          reportedUserId: reportModalUser.id,
-          reportedUserName: reportModalUser.name,
-          reason: reportReason,
-          details: reportDetails.trim(),
-        }),
-      });
-      const data = await res.json();
-      setReportSuccessMsg(data.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị.');
+      /* EPIC 5: máy chủ bắt buộc đăng nhập và tự lấy danh tính người tố cáo từ phiên. */
+      const outcome = describeReportResult(
+        await settleReportRequest(
+          postJson('/api/reports', {
+            reportedUserId: reportModalUser.id,
+            reportedUserName: reportModalUser.name,
+            reason: reportReason,
+            details: reportDetails.trim(),
+          }),
+        ),
+      );
+      if (!outcome.ok) {
+        setReportErrorMsg(outcome.message);
+        return;
+      }
+      setReportSuccessMsg(outcome.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị.');
       pushNotification({
         type: 'system',
         category: 'system',
@@ -404,7 +441,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         targetView: 'qa',
       });
     } catch {
-      setReportSuccessMsg('Đã ghi nhận tố cáo của bạn và chuyển tới Ban Quản Trị.');
+      setReportErrorMsg('Mất kết nối máy chủ — tố cáo CHƯA được gửi. Vui lòng thử lại.');
     } finally {
       setIsSubmittingReport(false);
     }
@@ -600,7 +637,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     <section className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8`}>
       
       {/* Triple Video Crossfade Switcher Background Engine */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+      <div className="ff-video-bg absolute inset-0 z-0 pointer-events-none overflow-hidden">
         {FORUM_VIDEOS.map((vid, idx) => (
           <video
             key={vid.id}
@@ -1007,8 +1044,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           )}
                         </button>
 
-                        {/* Super Admin 3-dots Menu Button */}
-                        {isSuperAdmin && (
+                        {/* Menu 3 chấm quản trị nội dung (Super Admin / quyền edit_content) */}
+                        {canEditContent && (
                           <div className="relative ml-1">
                             <button
                               type="button"
@@ -1122,7 +1159,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     postId={q.id}
                     onDeletePost={handleAdminDeletePost}
                     onEditPost={handleAdminEditPost}
-                    isSuperAdmin={isSuperAdmin}
+                    isSuperAdmin={canEditContent}
                   />
                 </div>
               );
@@ -1283,7 +1320,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 </label>
                 {askImage ? (
                   <div className="relative rounded-xl overflow-hidden border border-white/20 bg-black/40 p-2 max-w-xs">
-                    <img src={askImage} alt="Đính kèm câu hỏi" className="max-h-36 rounded-lg object-contain mx-auto" />
+                    <img loading="lazy" decoding="async" src={askImage} alt="Đính kèm câu hỏi" className="max-h-36 rounded-lg object-contain mx-auto" />
                     <button
                       type="button"
                       onClick={() => setAskImage(null)}
@@ -1460,6 +1497,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 <h3 className="font-bold text-base sm:text-lg text-white">
                   {selectedQuestion.title}
                 </h3>
+                <div className="pt-2">
+                  <ShareRow
+                    url={buildQuestionShareUrl(selectedQuestion.id, window.location.origin, window.location.pathname)}
+                    title={selectedQuestion.title}
+                  />
+                </div>
               </div>
 
               <button
@@ -1530,7 +1573,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
               {selectedQuestion.imageUrl && (
                 <div className="mt-3 rounded-xl overflow-hidden border border-white/15 max-w-md bg-black/40 p-1">
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={selectedQuestion.imageUrl}
                     alt="Đính kèm câu hỏi"
                     className="max-h-72 rounded-lg object-contain mx-auto"
@@ -1542,7 +1585,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 postId={selectedQuestion.id}
                 onDeletePost={handleAdminDeletePost}
                 onEditPost={handleAdminEditPost}
-                isSuperAdmin={isSuperAdmin}
+                isSuperAdmin={canEditContent}
               />
             </div>
 
@@ -1564,7 +1607,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   .filter(s => s.questionId === selectedQuestion.id)
                   .sort((a, b) => (b.isBest ? 1 : 0) - (a.isBest ? 1 : 0))
                   .map(sol => {
-                    const isSuperAdminSolver = sol.authorEmail?.toLowerCase() === 'BroAmStuck@gmail.com';
+                    const isSuperAdminSolver = isMasterAdmin(sol.authorEmail);
                     const solverName = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.name : sol.authorName;
                     const solverAvatar = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.avatar : sol.authorAvatar;
                     const canConfirmBest =
@@ -1644,7 +1687,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
                         {sol.imageUrl && (
                           <div className="mt-2.5 rounded-xl overflow-hidden border border-white/10 max-w-sm bg-black/40 p-1">
-                            <img
+                            <img loading="lazy" decoding="async"
                               src={sol.imageUrl}
                               alt="Hình ảnh lời giải"
                               className="max-h-56 rounded-lg object-contain mx-auto"
@@ -1656,8 +1699,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           <span className="text-[10px] font-mono">{sol.createdAt}</span>
 
                           <div className="flex items-center gap-2">
-                            {/* Super Admin Delete Solution */}
-                            {isSuperAdmin && (
+                            {/* Xoá lời giải (Super Admin / quyền edit_content) */}
+                            {canEditContent && (
                               <button
                                 type="button"
                                 onClick={() => onDeleteSolution?.(sol.id)}
@@ -1752,7 +1795,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       )}
 
       {/* Modal: Xác nhận xóa bài viết (Admin Only) */}
-      {isSuperAdmin && questionToDelete && (
+      {canEditContent && questionToDelete && (
         <div role="dialog" aria-modal="true" aria-label="Xác nhận xóa câu hỏi" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-up">
           <div className="w-full max-w-md rounded-2xl bg-neutral-950 border border-red-500/40 p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-2 text-red-400">
@@ -1783,7 +1826,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       )}
 
       {/* Modal: Chỉnh sửa bài viết (Admin Only) */}
-      {isSuperAdmin && questionToEdit && (
+      {canEditContent && questionToEdit && (
         <div role="dialog" aria-modal="true" aria-label="Chỉnh sửa câu hỏi" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-up">
           <div className="w-full max-w-lg rounded-2xl bg-neutral-950 border border-amber-500/40 p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
@@ -1913,7 +1956,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
             <div className="flex items-center gap-2.5 pb-2.5 border-b border-white/10 pr-5">
               <div className="relative shrink-0">
-                <img
+                <img loading="lazy" decoding="async"
                   src={activeAuthorPopover.avatar}
                   alt={activeAuthorPopover.name}
                   onError={e => handleImageError(e, DEFAULT_AVATAR)}
@@ -1929,7 +1972,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               <div className="min-w-0 flex-1">
                 <h4 className="text-xs font-bold text-white flex items-center gap-1 truncate">
                   <span className="truncate">{activeAuthorPopover.name}</span>
-                  {activeAuthorPopover.email === 'BroAmStuck@gmail.com' && <AdminVerifiedBadge size={12} />}
+                  {isMasterAdmin(activeAuthorPopover.email) && <AdminVerifiedBadge size={12} />}
                 </h4>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[9.5px] font-mono font-bold">
@@ -2025,6 +2068,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               </div>
             ) : (
               <form onSubmit={handleReportSubmit} className="space-y-3.5">
+                {reportErrorMsg && (
+                  <p role="alert" className="ff-report-error">{reportErrorMsg}</p>
+                )}
                 <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-neutral-300">
                   Đối tượng tố cáo: <strong className="text-white">{reportModalUser.name}</strong>
                 </div>

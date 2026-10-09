@@ -27,10 +27,14 @@ import { useChatCooldown } from '../../utils/chatCooldown';
 import { TriVideoCrossfadeBg } from '../TriVideoCrossfadeBg';
 import { TRI_CHAT_VIDEOS } from '../../utils/chatVideos';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
+import { capsHas, useAdminCaps } from '../../utils/adminCapabilities';
+import { InfoTip } from '../ui/InfoTip';
 import { getTierForLevel } from '../../utils/tier';
 import { pushNotification } from '../../utils/notifications';
 import { ChatCooldownBar } from '../ChatCooldownBar';
 import { ThinkingBubble } from '../ViewTransitionLoader';
+import { postJson } from '../../utils/session';
+import { describeReportResult, settleReportRequest } from '../../utils/reports';
 
 interface ChatViewProps {
   currentUser: User | null;
@@ -95,6 +99,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
   onOpenProfile,
   isSynced = true,
 }) => {
+  /* Epic 3 — thu hồi tin nhắn: Super Admin hoặc vai trò tùy chỉnh có quyền edit_content. */
+  const adminCaps = useAdminCaps();
+  const canRecallMessages = capsHas(adminCaps, 'edit_content');
   const [activeChannel, setActiveChannel] = useState<ChatChannelId>('hallway');
   const [isChannelDrawerOpen, setIsChannelDrawerOpen] = useState(false);
   const [isMembersDrawerOpen, setIsMembersDrawerOpen] = useState(false);
@@ -126,27 +133,30 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const [reportDetails, setReportDetails] = useState<string>('');
   const [isSubmittingReport, setIsSubmittingReport] = useState<boolean>(false);
   const [reportSuccessMsg, setReportSuccessMsg] = useState<string | null>(null);
+  const [reportErrorMsg, setReportErrorMsg] = useState<string | null>(null);
 
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reportUser || isSubmittingReport) return;
     setIsSubmittingReport(true);
+    setReportErrorMsg(null);
     try {
-      const res = await fetch('/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reporterId: currentUser?.id || 'guest',
-          reporterName: currentUser?.name || 'Ẩn danh',
-          reporterEmail: currentUser?.email || '',
-          reportedUserId: reportUser.id,
-          reportedUserName: reportUser.name,
-          reason: reportReason,
-          details: reportDetails.trim(),
-        }),
-      });
-      const data = await res.json();
-      setReportSuccessMsg(data.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị.');
+      /* EPIC 5: máy chủ bắt buộc đăng nhập và tự lấy danh tính người tố cáo từ phiên. */
+      const outcome = describeReportResult(
+        await settleReportRequest(
+          postJson('/api/reports', {
+            reportedUserId: reportUser.id,
+            reportedUserName: reportUser.name,
+            reason: reportReason,
+            details: reportDetails.trim(),
+          }),
+        ),
+      );
+      if (!outcome.ok) {
+        setReportErrorMsg(outcome.message);
+        return;
+      }
+      setReportSuccessMsg(outcome.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị.');
       pushNotification({
         type: 'system',
         category: 'system',
@@ -155,7 +165,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
         targetView: 'chat',
       });
     } catch {
-      setReportSuccessMsg('Đã ghi nhận tố cáo của bạn và chuyển tới Ban Quản Trị.');
+      setReportErrorMsg('Mất kết nối máy chủ — tố cáo CHƯA được gửi. Vui lòng thử lại.');
     } finally {
       setIsSubmittingReport(false);
     }
@@ -222,8 +232,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 LIVE DOCK
               </span>
             </h1>
-            <p className="text-xs text-neutral-300 mt-0.5">
-              Các hành vi toxic, kháy, khiêu khích, cô lập, cố ý gây war sẽ bị vô hiệu hóa tài khoản vĩnh viễn, thông tin sẽ được đưa thẳng về ban giám hiệu nhà trường.
+            <p className="text-xs text-neutral-300 mt-0.5 flex items-center">
+              Tôn trọng nhau — vi phạm sẽ bị khoá tài khoản.
+              <InfoTip label="Nội quy phòng chat" align="start">
+                Các hành vi toxic, kháy, khiêu khích, cô lập hay cố ý gây war sẽ bị vô hiệu hoá tài khoản vĩnh viễn và báo về ban giám hiệu nhà trường.
+              </InfoTip>
             </p>
           </div>
 
@@ -495,8 +508,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
                             • {msg.timestamp}
                           </span>
 
-                          {/* Super Admin Recall/Delete Button */}
-                          {isSuperAdmin && (
+                          {/* Thu hồi tin nhắn (Super Admin / quyền edit_content) */}
+                          {(isSuperAdmin || canRecallMessages) && (
                             <button
                               type="button"
                               onClick={() => onDeleteMessage?.(msg.id)}
@@ -720,7 +733,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   KÊNH PHÁT THANH NỘI BỘ
                 </span>
                 <p className="text-[10px] text-neutral-300 leading-relaxed">
-                  Nhấn vào biểu tượng 5 cột sóng âm trên thanh điều hướng để kích hoạt âm hưởng thiền định 432Hz binaural.
+                  Đổi nền động ở góc trên · âm thanh hiệu ứng bật/tắt trong ⚙️ Cài đặt.
                 </p>
               </div>
             )}
@@ -988,7 +1001,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
             <div className="flex items-center gap-2.5 pb-2.5 border-b border-white/10 pr-5">
               <div className="relative shrink-0">
-                <img
+                <img loading="lazy" decoding="async"
                   src={activeAuthorCard.avatar}
                   alt={activeAuthorCard.name}
                   onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
@@ -1100,6 +1113,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </div>
             ) : (
               <form onSubmit={handleReportSubmit} className="space-y-3.5">
+                {reportErrorMsg && (
+                  <p role="alert" className="ff-report-error">{reportErrorMsg}</p>
+                )}
                 <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-neutral-300">
                   Đối tượng tố cáo: <strong className="text-white">{reportUser.name}</strong>
                 </div>

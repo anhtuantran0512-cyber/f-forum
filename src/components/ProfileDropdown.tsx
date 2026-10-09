@@ -9,6 +9,9 @@ import { getXPForLevel } from '../store/forumStore';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { PremiumMark } from './PremiumMark';
 import { usePopoverPosition, type DockPosition } from '../utils/popover';
+import { isMasterAdmin } from '../config/admin';
+import { postJson } from '../utils/session';
+import { describeReportResult, settleReportRequest } from '../utils/reports';
 
 export interface ProfileDropdownProps {
   currentUser: User;
@@ -38,6 +41,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   const [reportDetails, setReportDetails] = useState('');
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [reportSuccess, setReportSuccess] = useState<string | null>(null);
+  const [reportErrorMsg, setReportErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -61,31 +65,33 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
 
   if (!isOpen) return null;
 
-  const isSuperAdmin = currentUser.email === 'BroAmStuck@gmail.com';
+  const isSuperAdmin = isMasterAdmin(currentUser.email);
   const tier = getTierForLevel(currentUser.level);
 
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmittingReport) return;
     setIsSubmittingReport(true);
+    setReportErrorMsg(null);
     try {
-      const res = await fetch('/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reporterId: currentUser.id,
-          reporterName: currentUser.name,
-          reporterEmail: currentUser.email,
-          reportedUserId: reportTarget.trim() || 'violation_report',
-          reportedUserName: reportTarget.trim() || 'Tài khoản vi phạm',
-          reason: reportReason,
-          details: reportDetails.trim(),
-        }),
-      });
-      const data = await res.json();
-      setReportSuccess(data.message || 'Đã gửi báo cáo vi phạm tới Ban Quản Trị.');
+      /* EPIC 5: máy chủ bắt buộc đăng nhập và tự lấy danh tính người tố cáo từ phiên. */
+      const outcome = describeReportResult(
+        await settleReportRequest(
+          postJson('/api/reports', {
+            reportedUserId: reportTarget.trim() || 'violation_report',
+            reportedUserName: reportTarget.trim() || 'Tài khoản vi phạm',
+            reason: reportReason,
+            details: reportDetails.trim(),
+          }),
+        ),
+      );
+      if (!outcome.ok) {
+        setReportErrorMsg(outcome.message);
+        return;
+      }
+      setReportSuccess(outcome.message || 'Đã gửi báo cáo vi phạm tới Ban Quản Trị.');
     } catch {
-      setReportSuccess('Đã gửi báo cáo vi phạm tới Ban Quản Trị.');
+      setReportErrorMsg('Mất kết nối máy chủ — tố cáo CHƯA được gửi. Vui lòng thử lại.');
     } finally {
       setIsSubmittingReport(false);
     }
@@ -314,6 +320,9 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
               </div>
             ) : (
               <form onSubmit={handleReportSubmit} className="space-y-3">
+                {reportErrorMsg && (
+                  <p role="alert" className="ff-report-error">{reportErrorMsg}</p>
+                )}
                 <div>
                   <label htmlFor="tai-khoan-hoac-noi-dung-nghi-van" className="block text-xs font-semibold text-neutral-300 mb-1">
                     Tài khoản hoặc nội dung nghi vấn:

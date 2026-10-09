@@ -1,0 +1,73 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
+/* code_yeucau · stk-02 — chồng thẻ: độ sâu theo data-depth thay cho :nth-last-child */
+.ff-deck { display: grid; gap: 0.45rem; }
+.ff-deck__stack {
+  position: relative;
+  display: grid;
+  min-height: 4.9rem;
+  border-radius: 1rem;
+  outline: none;
+}
+.ff-deck__stack:focus-visible { box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.7); }
+.ff-deck__card {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(251, 191, 36, 0.22);
+  background: linear-gradient(135deg, rgba(41, 30, 12, 0.96), rgba(17, 14, 9, 0.97));
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.7);
+  transform-origin: 50% 100%;
+  transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.26s ease;
+  user-select: none;
+  touch-action: pan-y;
+}
+.ff-deck__card.is-top { cursor: grab; z-index: 3; }
+.ff-deck__card.is-dragging { cursor: grabbing; transition: none; }
+.ff-deck__card[data-depth='1'] { z-index: 2; transform: translateY(6px) scale(0.96); opacity: 0.75; }
+.ff-deck__card[data-depth='2'] { z-index: 1; transform: translateY(12px) scale(0.92); opacity: 0.45; }
+.ff-deck__icon {
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  flex: none;
+  border-radius: 0.65rem;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.12);
+}
+.ff-deck__title { font-size: 11.5px; font-weight: 700; color: #fde68a; line-height: 1.25; }
+.ff-deck__body { margin-top: 2px; font-size: 11px; line-height: 1.45; color: rgba(255, 255, 255, 0.72); }
+.ff-deck__controls { display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem; padding-top: 0.35rem; }
+.ff-deck__btn {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.ff-deck__btn:hover { background: rgba(255, 255, 255, 0.12); }
+.ff-deck__btn:active { transform: scale(0.9); }
+.ff-deck__count { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: rgba(255, 255, 255, 0.5); }
+
+html.light .ff-deck__card {
+  border-color: rgba(146, 64, 14, 0.22);
+  background: linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(254, 243, 199, 0.96));
+  box-shadow: 0 10px 24px -14px rgba(120, 53, 15, 0.35);
+}
+html.light .ff-deck__icon { color: #92400e; background: rgba(146, 64, 14, 0.1); }
+html.light .ff-deck__title { color: #78350f; }
+html.light .ff-deck__body { color: #334155; }
+html.light .ff-deck__btn { color: #334155; border-color: rgba(15, 23, 42, 0.14); background: rgba(255, 255, 255, 0.7); }
+html.light .ff-deck__count { color: #475569; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-deck__card { transition: opacity 0.2s ease; }
+}

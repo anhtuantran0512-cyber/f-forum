@@ -175,7 +175,7 @@ test('7. CSS mới — có light mode + chế độ giảm chuyển động, kh�
   assert.ok(css.includes('.ff-view-slide-up') && css.includes('@keyframes ffViewSlideUp'), 'View slide animation must exist');
 });
 
-test('8. Cuộn chuột & màn hình chờ được nối vào App', () => {
+test('8. Màn hình chờ được nối vào App & wheel-nav đã bị xóa hoàn toàn', () => {
   const app = read('src/App.tsx');
 
   assert.ok(app.includes('<ViewTransitionLoader'), 'App must mount the vinyl transition loader');
@@ -183,13 +183,12 @@ test('8. Cuộn chuột & màn hình chờ được nối vào App', () => {
   assert.ok(app.includes('LOADER_MIN_MS') && app.includes('LOADER_REVISIT_MS'), 'First visit and revisit must have different waits');
   assert.ok(app.includes('LOADER_HARD_CAP_MS'), 'Loader must always terminate (no infinite spin)');
   assert.ok(app.includes('ViewReadySignal') && app.includes('setReadyView'), 'Loader must wait for the lazy chunk to be mounted');
-  assert.ok(app.includes('transitionActiveRef'), 'Wheel navigation must be paused while the loader runs');
   assert.ok(app.includes('ff-view-slide-up') && app.includes('ff-view-slide-down'), 'Tab changes must slide in the matching direction');
   assert.ok(app.includes('onOpenFocusMode={() => setIsFocusModeOpen(true)}'), 'Focus mode must be reachable from the board');
   assert.ok(app.includes('isSynced={isSynced}'), 'Sync flag must still be forwarded to chat + forum surfaces');
   assert.ok(
-    app.includes('isInsideScrollable') && app.includes('if (isInsideScrollable(target, deltaY)) return;'),
-    'Wheel navigation must yield to inner scroll areas (QA sidebar, long lists)',
+    !app.includes('isInsideScrollable') && !app.includes('transitionActiveRef') && !app.includes("addEventListener('wheel'"),
+    'Wheel navigation (scrollable-yield, transitionActiveRef, wheel listener) must be fully removed',
   );
   assert.ok(
     app.includes('if (v === currentView)') && app.includes("behavior: 'smooth'"),
@@ -215,6 +214,30 @@ test('9. Phòng Tập Trung — phiên học là mốc thời gian thật, sốn
   assert.ok(focus.includes('Đóng cửa sổ này vẫn KHÔNG mất phiên học'), 'HUD must tell the student the session keeps running');
   assert.ok(focus.includes('Nhật ký giờ học') && focus.includes('sessionsForOwner'), 'HUD must show the real study-hours log of this account');
   assert.ok(focus.includes('FOCUS_CREDITED_EVENT'), 'HUD must react when a session is credited');
+});
+
+test('9b. Focus Room EPIC 1 — ring gradient xoay + breathing + confetti mốc 25/60/120 + nhập số trực tiếp', () => {
+  const focus = read('src/components/FocusSanctuary.tsx');
+  const ring = read('src/components/CircularProgressRing.tsx');
+
+  // Confetti/particle burst khi đạt mốc (sự kiện credited được nối vào CelebrationBurst)
+  assert.ok(focus.includes('<CelebrationBurst'), 'Focus HUD must render the confetti burst layer');
+  assert.ok(focus.includes('minutes >= 25'), 'Milestone burst must fire at the 25-minute reward tier');
+  assert.ok(focus.includes('setBurstTick((n) => n + 1)'), 'Each milestone must trigger a fresh burst');
+
+  // Vòng ring: gradient xoay + breathing khi đang chạy
+  assert.ok(ring.includes('animateTransform') && ring.includes('gradientTransform'), 'Progress ring gradient must rotate (SMIL animateTransform)');
+  assert.ok(ring.includes('breathing'), 'Ring must support a breathing state while a session runs');
+  assert.ok(ring.includes('ringBreath'), 'Ring must use the breathing keyframes');
+  assert.ok(focus.includes("breathing={isRunning && activeMode === 'work'}"), 'Ring must breathe only during an active work session');
+
+  // Code chết đã được dọn: không còn sự kiện không listener / hàm inject không gọi
+  assert.ok(!ring.includes('fforum-milestone-reached'), 'The unlistened milestone event dispatch must be gone');
+  assert.ok(!ring.includes('injectGradientAnimation'), 'The never-called keyframe injector must be removed');
+
+  // Slider + nhập số trực tiếp, tối thiểu 5 phút
+  assert.ok(focus.includes('type="range"') && focus.includes('min="5"'), 'Target slider must keep a 5-minute minimum');
+  assert.ok(focus.includes('type="number"') && focus.includes('Math.max(5, v)'), 'Direct number input must clamp to the 5-minute minimum');
 });
 
 test('10. FocusSessionWatcher — giờ học được ghi cục bộ, phần thưởng do máy chủ xác nhận', () => {
@@ -328,15 +351,19 @@ test('12. Navbar phóng to/thu nhỏ — bóng mờ + MỘT vệt sáng, không 
   assert.ok(css.includes('.reduce-motion .ff-nav-loading__sheen'), 'Reduced-motion class must cover the sheen');
   assert.ok(/\.nav-tab-btn \{[\s\S]{0,200}min-width 0\.5s/.test(css), 'Tab min-width must glide with the morph');
 
-  /* Chống giật: không đo vị trí pill mỗi khung hình trong lúc thanh đang đổi kích thước */
+  /* Chống giật: chỉ báo tab nằm TRONG nút — không còn đo vị trí pill bằng JS,
+     nên không thể lệch hay "nhảy" trong lúc thanh đang đổi kích thước */
   assert.ok(
-    navbar.includes('if (isMorphBusy) return;'),
-    'Pill measurement must be skipped while the morph loading layer runs',
+    !navbar.includes('liquidPillRef') && !navbar.includes('settleTimers') && !navbar.includes('--liquid-pill-x'),
+    'The JS-measured pill must be gone (no per-frame layout reads while morphing)',
   );
-  assert.ok(navbar.includes('settleTimers'), 'Pill must be re-measured once the morph settles, not every frame');
   assert.ok(
-    navbar.includes('performance.now() - startMs < 200'),
-    'Per-frame measuring burst must stay short (was 550ms of layout reads)',
+    navbar.includes('nav-tab-btn__indicator') && navbar.includes('nav-tab-btn__indicator--on'),
+    'Active-tab indicator must live inside the tab button so it always matches the button box',
+  );
+  assert.ok(
+    css.includes('.nav-tab-btn__indicator--on') && css.includes('transform: scale(0.55)'),
+    'Indicator must animate in via CSS only (no JS measurement during morph)',
   );
 });
 

@@ -25,3 +25,8 @@ data/
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets — KHÔNG BAO GIỜ commit (Yeucau.md §16). Sao chép .env.example → .env rồi điền.
+.env
+.env.*
+!.env.example

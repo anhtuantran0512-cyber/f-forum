@@ -1,0 +1,81 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
+/* code_yeucau · cdt-16 — widget giữ chuỗi: lửa mờ dần theo --flame (0..1) */
+.ff-streak-cd {
+  --flame: 1;
+  --tone: 251, 146, 60;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.75rem 0.75rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(var(--tone), 0.28);
+  background: linear-gradient(135deg, rgba(var(--tone), 0.14), rgba(var(--tone), 0.04));
+  overflow: hidden;
+}
+.ff-streak-cd[data-urgency='warn'] { --tone: 245, 158, 11; }
+.ff-streak-cd[data-urgency='critical'] { --tone: 244, 63, 94; }
+.ff-streak-cd[data-urgency='done'] { --tone: 52, 211, 153; }
+
+.ff-streak-cd__flame {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: none;
+  border-radius: 0.85rem;
+  color: rgb(var(--tone));
+  background: radial-gradient(circle at 50% 65%, rgba(var(--tone), calc(0.18 + var(--flame) * 0.3)), transparent 70%);
+  opacity: calc(0.35 + var(--flame) * 0.65);
+  transform: scale(calc(0.78 + var(--flame) * 0.22));
+  filter: drop-shadow(0 0 calc(var(--flame) * 10px) rgba(var(--tone), 0.75)) saturate(calc(0.4 + var(--flame) * 0.6));
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.ff-streak-cd__flame svg { animation: ffStreakFlicker 1.8s ease-in-out infinite; transform-origin: 50% 90%; }
+.ff-streak-cd[data-urgency='critical'] .ff-streak-cd__flame svg { animation-duration: 0.9s; }
+
+.ff-streak-cd__body { min-width: 0; }
+.ff-streak-cd__title { font-size: 12px; font-weight: 700; color: #f8fafc; line-height: 1.2; }
+.ff-streak-cd__title b { color: rgb(var(--tone)); }
+.ff-streak-cd__copy { margin-top: 2px; font-size: 10.5px; color: rgba(255, 255, 255, 0.62); }
+.ff-streak-cd__time {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--tone));
+}
+.ff-streak-cd__meter {
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.4rem;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.ff-streak-cd__meter-fill {
+  display: block;
+  height: 100%;
+  width: calc(var(--flame) * 100%);
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(var(--tone), 0.6), rgb(var(--tone)));
+  transition: width 1s linear;
+}
+
+/* Chế độ sáng: chữ đậm bậc 800 để đạt AA trên nền tint */
+html.light .ff-streak-cd__title { color: #101827; }
+html.light .ff-streak-cd__copy { color: #475569; }
+html.light .ff-streak-cd { --tone: 194, 65, 12; }
+html.light .ff-streak-cd[data-urgency='warn'] { --tone: 146, 64, 14; }
+html.light .ff-streak-cd[data-urgency='critical'] { --tone: 159, 18, 57; }
+html.light .ff-streak-cd[data-urgency='done'] { --tone: 6, 95, 70; }
+
+@keyframes ffStreakFlicker {
+  0%, 100% { transform: scale(1) rotate(-2deg); }
+  50% { transform: scale(1.08, 0.96) rotate(2deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ff-streak-cd__flame svg { animation: none; }
+  .ff-streak-cd__meter-fill { transition: none; }
+}

@@ -1,0 +1,100 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
+/* code_yeucau · cdt-22 — đồng hồ lật: bản lề giữa mỗi thẻ + cú lật thật mỗi lần đổi số */
+.ff-flip {
+  --flip-size: 2rem;
+  display: inline-flex;
+  align-items: center;
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-size: var(--flip-size);
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #f1f5f9;
+  perspective: 320px;
+}
+.ff-flip--lg { --flip-size: 2.6rem; }
+.ff-flip__group { display: inline-flex; align-items: center; gap: 0.1em; }
+.ff-flip__sep { width: 0.42em; text-align: center; opacity: 0.75; transform: translateY(-0.04em); }
+.ff-flip.is-running .ff-flip__sep { animation: ffFlipBlink 1s steps(1, end) infinite; }
+
+.ff-flip__card {
+  position: relative;
+  display: inline-block;
+  width: 0.74em;
+  height: 1.16em;
+  border-radius: 0.12em;
+  background: #0d1420;
+  box-shadow: 0 0.12em 0.3em rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+/* Bản lề */
+.ff-flip__card::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  z-index: 4;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.7);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.ff-flip__half,
+.ff-flip__flap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  backface-visibility: hidden;
+}
+.ff-flip__half > span,
+.ff-flip__flap > span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 200%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ff-flip__half--top,
+.ff-flip__flap--top {
+  top: 0;
+  border-radius: 0.12em 0.12em 0 0;
+  background: linear-gradient(180deg, #1f2a3c, #172131);
+  transform-origin: 50% 100%;
+}
+.ff-flip__half--bottom,
+.ff-flip__flap--bottom {
+  bottom: 0;
+  border-radius: 0 0 0.12em 0.12em;
+  background: linear-gradient(180deg, #121a27, #0d1420);
+  transform-origin: 50% 0;
+}
+.ff-flip__half--top > span,
+.ff-flip__flap--top > span { top: 0; }
+.ff-flip__half--bottom > span,
+.ff-flip__flap--bottom > span { bottom: 0; }
+
+.ff-flip__flap { z-index: 3; }
+.ff-flip__flap--top { animation: ffFlipTop 0.26s cubic-bezier(0.55, 0, 0.8, 0.4) forwards; }
+.ff-flip__flap--bottom {
+  transform: rotateX(90deg);
+  animation: ffFlipBottom 0.26s cubic-bezier(0.2, 0.6, 0.45, 1) 0.26s forwards;
+}
+
+@keyframes ffFlipTop {
+  to { transform: rotateX(-90deg); }
+}
+@keyframes ffFlipBottom {
+  to { transform: rotateX(0deg); }
+}
+@keyframes ffFlipBlink {
+  50% { opacity: 0.2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Lật tức thì nhưng vẫn phát animationend để chốt số mới ở nửa dưới */
+  .ff-flip__flap { animation-duration: 1ms !important; animation-delay: 0s !important; }
+  .ff-flip.is-running .ff-flip__sep { animation: none; }
+}

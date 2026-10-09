@@ -109,7 +109,7 @@ test('4. Pricing, FAQ and copy data stay in one iterable source', () => {
   );
 });
 
-test('5. App integration: landing is the first-run route and the wheel engine ignores it', () => {
+test('5. App integration: landing is the first-run route and wheel navigation is fully removed', () => {
   const app = read('src/App.tsx');
   const store = read('src/store/forumStore.ts');
   const types = read('src/types/index.ts');
@@ -126,10 +126,6 @@ test('5. App integration: landing is the first-run route and the wheel engine ig
     'In-app chrome (navbar / chat dock) must be hidden on the landing page',
   );
   assert.ok(
-    app.includes("if (currentView === 'landing') {"),
-    'Wheel-scroll view switching must be disabled while the landing page scrolls',
-  );
-  assert.ok(
     app.includes("onOpenAuth={() => handleOpenAuth('register')}"),
     'Landing CTAs must open the auth dialog on the register tab',
   );
@@ -143,12 +139,16 @@ test('5. App integration: landing is the first-run route and the wheel engine ig
     'The F logo button must be the in-app way back to the landing page',
   );
 
-  // The wheel engine invariants asserted by the navigation test must survive.
+  // Wheel-scroll chuyển tab đã bị xóa hoàn toàn (EPIC 4) — landing không còn bị
+  // engine cuộn nào đụng tới, và App không còn giữ pipeline/cooldown cũ.
   assert.ok(
-    app.includes("const CORE_SCROLL_VIEWS: DimensionView[] = ['home', 'clubs', 'qa', 'coming-soon'];"),
-    'CORE_SCROLL_VIEWS pipeline must be unchanged',
+    !app.includes('CORE_SCROLL_VIEWS') && !app.includes('SCROLL_COOLDOWN_MS'),
+    'Wheel-navigation pipeline (CORE_SCROLL_VIEWS / SCROLL_COOLDOWN_MS) must be fully removed',
   );
-  assert.ok(app.includes('const SCROLL_COOLDOWN_MS = 650;'), 'SCROLL_COOLDOWN_MS must be unchanged');
+  assert.ok(
+    !app.includes("addEventListener('wheel'"),
+    'No wheel listener may switch views anywhere in App',
+  );
 });
 
 test('6. No fabricated social proof or placeholder copy in the landing surface', () => {

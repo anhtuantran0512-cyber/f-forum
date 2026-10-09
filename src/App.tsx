@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 import { installInteractionWatchdog } from './utils/interactionWatchdog';
 import { useForumStore } from './store/forumStore';
@@ -43,15 +43,19 @@ import { FocusSessionWatcher } from './components/FocusSessionWatcher';
 import { AuthProvider } from './context/AuthContext';
 import { GODRAY_PRESETS } from './utils/godrays';
 import { safeStorage } from './utils/storage';
+import { isMasterAdmin } from './config/admin';
+import { capsCanOpenAdminPanel, useAdminCapabilitiesLoader, useAdminCaps } from './utils/adminCapabilities';
 import { PageResourceLoader } from './components/PageResourceLoader';
 import { UserQuickCard } from './components/UserQuickCard';
 import { RadialQuickMenu } from './components/RadialQuickMenu';
 import { AnalyticsTracker } from './components/AnalyticsTracker';
-import { useConsoleProtection } from './components/ConsoleBlocker';
-import { useRightClickBlock } from './components/RightClickBlocker';
+import { SecurityNoticeToast } from './components/ConsoleBlocker';
+import { PotatoSuggestion } from './components/system/PotatoSuggestion';
+import { installDelighters } from './utils/delighters';
+import { useConsoleProtection, useDevToolsDetection, useRightClickBlock } from './security/devtoolsGuard';
+import { rafThrottle } from './utils/rafThrottle';
 
 const AdminInsightsModal = lazyWithRetry(() => import('./components/AdminInsightsModal').then(m => ({ default: m.AdminInsightsModal })));
-const AuroraMeshBackground = lazyWithRetry(() => import('./components/AuroraMeshBackground').then(m => ({ default: m.AuroraMeshBackground })));
 
 const LandingPage = lazyWithRetry(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
 const ClubsView = lazyWithRetry(() => import('./components/views/ClubsView').then(m => ({ default: m.ClubsView })));
@@ -107,9 +111,6 @@ const ViewLoadingFallback = () => (
   </div>
 );
 
-const CORE_SCROLL_VIEWS: DimensionView[] = ['home', 'clubs', 'qa', 'coming-soon'];
-const SCROLL_COOLDOWN_MS = 650;
-
 /* Thứ tự phân khu dùng để biết hướng trượt (lên/xuống) khi chuyển trang */
 const VIEW_ORDER: DimensionView[] = [
   'landing',
@@ -137,25 +138,9 @@ const VIEW_LOADERS: Partial<Record<DimensionView, { label: string; variant: 'vin
 const LOADER_MIN_MS = 950; /* lần đầu vào phân khu */
 const LOADER_REVISIT_MS = 520; /* quay lại phân khu đã tải rồi */
 const LOADER_HARD_CAP_MS = 2600;
-
-/**
- * Kiểm tra con trỏ có đang nằm trong một khung cuộn dọc còn cuộn được không.
- * Nếu có thì nhường cuộn cho khung đó, không nhảy phân khu (tránh cướp cuộn
- * ở sidebar Hỏi đáp, danh sách CLB…).
- */
-const isInsideScrollable = (el: HTMLElement | null, deltaY: number): boolean => {
-  let node: HTMLElement | null = el;
-  while (node && node !== document.body && node !== document.documentElement) {
-    const style = window.getComputedStyle(node);
-    if (/(auto|scroll|overlay)/.test(style.overflowY) && node.scrollHeight - node.clientHeight > 4) {
-      const atTop = node.scrollTop <= 1;
-      const atBottom = node.scrollTop + node.clientHeight >= node.scrollHeight - 1;
-      if (deltaY > 0 ? !atBottom : !atTop) return true;
-    }
-    node = node.parentElement;
-  }
-  return false;
-};
+/* Các trang được lớp chuyển đổi Light Mode thay nền video tối bằng nền kính sữa.
+   PHẢI khớp LIGHT_VIEWS trong scripts/generate-light-adapter.mjs (test kiểm tra). */
+const LIGHT_ADAPTED_VIEW_SELECTOR = '.ff-view-clubs, .ff-view-qa, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon';
 
 /** Báo cho App biết phân khu đã dựng xong (đã tải xong chunk lazy). */
 const ViewReadySignal: React.FC<{ view: DimensionView; onReady: (view: DimensionView) => void }> = ({
@@ -179,6 +164,7 @@ export const App: React.FC = () => {
     registerWithPassword,
     loginSocial,
     logout,
+    logoutEverywhere,
     updateProfile,
     loadDailyRewardStatus,
     claimDailyReward,
@@ -218,6 +204,9 @@ export const App: React.FC = () => {
     adminDeleteChatMessage,
   } = useForumStore();
 
+  /* R3 · Delighters: tick siêu nhẹ + gợn sóng — một listener uỷ quyền cho toàn app */
+  useEffect(() => installDelighters(), []);
+
   const [isResourceLoading, setIsResourceLoading] = useState(true);
 
   /* Vị trí dock điều hướng — nút "lên đầu trang" phải tránh đè lên thanh.
@@ -244,13 +233,23 @@ export const App: React.FC = () => {
   const [isAdminConsoleOpen, setIsAdminConsoleOpen] = useState(false);
   const [isAdminInsightsOpen, setIsAdminInsightsOpen] = useState(false);
   const [pendingReportCount, setPendingReportCount] = useState(0);
+  /* Epic 3 — RBAC: đồng bộ năng lực quản trị (Super Admin / GV / Mod / vai trò tùy chỉnh). */
+  useAdminCapabilitiesLoader(currentUser);
+  const adminCaps = useAdminCaps();
+  /* Epic 4 — nhãn "Hot" trong Gacha Boutique đếm từ kho đồ THẬT của các tài khoản. */
+  const shopOwnership = useMemo(() => {
+    const counts: Record<string, number> = {};
+    Object.values(users || {}).forEach((user) => {
+      new Set(Array.isArray(user?.inventory) ? user.inventory : []).forEach((itemId) => {
+        counts[itemId] = (counts[itemId] || 0) + 1;
+      });
+    });
+    return counts;
+  }, [users]);
+  const canOpenAdminPanel = Boolean(currentUser) && capsCanOpenAdminPanel(adminCaps);
   const [eyeRestEnabled, setEyeRestEnabled] = useState<boolean>(() => {
     return safeStorage.getItem('fforum_eye_rest') === 'true';
   });
-  const [potatoMode, setPotatoMode] = useState<boolean>(() => {
-    return safeStorage.getItem('fforum_potato_mode') === 'true';
-  });
-
   const [transition, setTransition] = useState<{ target: DimensionView; startedAt: number; revisit: boolean } | null>(null);
   const [readyView, setReadyView] = useState<DimensionView | null>(null);
   const visitedViewsRef = useRef<Set<DimensionView>>(new Set<DimensionView>([currentView]));
@@ -278,6 +277,71 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('fforum_theme_sync', handleSyncGodray);
   }, []);
 
+  /* Epic 4 — Settings phát 'fforum_godray_preview' khi rê chuột lên một preset:
+     nền trang đổi theo tức thì (xem thử), detail.id = null → về preset đã chọn. */
+  const [previewGodrayId, setPreviewGodrayId] = useState<string | null>(null);
+  useEffect(() => {
+    const handlePreview = (event: Event) => {
+      const id = (event as CustomEvent<{ id?: string | null }>).detail?.id;
+      setPreviewGodrayId(typeof id === 'string' && GODRAY_PRESETS.some((preset) => preset.id === id) ? id : null);
+    };
+    window.addEventListener('fforum_godray_preview', handlePreview);
+    return () => window.removeEventListener('fforum_godray_preview', handlePreview);
+  }, []);
+
+  /* EPIC 2 — Potator Mode (bản mới): chỉ thay nền động bằng gradient tĩnh,
+     GIỮ NGUYÊN 100% animation UI. Navbar phát sự kiện 'fforum_potator_sync'
+     mỗi lần bật/tắt hoặc đổi preset; class 'potator-mode' do Navbar tự áp lên <html>. */
+  const [potatorMode, setPotatorMode] = useState<boolean>(() => {
+    return safeStorage.getItem('fforum_potator_mode') === 'true';
+  });
+
+  useEffect(() => {
+    const handlePotatorSync = (e: Event) => {
+      const detail = (e as CustomEvent<{ mode?: boolean }>).detail;
+      setPotatorMode((prev) => (typeof detail?.mode === 'boolean' ? detail.mode : !prev));
+    };
+    window.addEventListener('fforum_potator_sync', handlePotatorSync);
+    return () => window.removeEventListener('fforum_potator_sync', handlePotatorSync);
+  }, []);
+
+  /* Light Mode: Navbar bật/tắt class `light` trên <html>. Theo dõi để tạm dừng các
+     video nền mà CSS đã ẩn ở các trang nội dung (lớp chuyển đổi sáng — xem
+     scripts/generate-light-adapter.mjs) thay vì để chúng giải mã ngầm tốn GPU/pin. */
+  const [isLightTheme, setIsLightTheme] = useState<boolean>(
+    () => typeof document !== 'undefined' && document.documentElement.classList.contains('light')
+  );
+  useEffect(() => {
+    const root = document.documentElement;
+    const observer = new MutationObserver(() => setIsLightTheme(root.classList.contains('light')));
+    observer.observe(root, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  /* Tạm dừng các video nền (đã bị CSS ẩn) khi Potator Mode bật ở trang không
+     phải Trang chủ — và phát lại khi tắt / về Trang chủ. Phim intro một lần ở
+     Khu Vinh Danh KHÔNG nằm trong wrapper .ff-video-bg nên không bị đụng tới. */
+  useEffect(() => {
+    const videos = document.querySelectorAll<HTMLVideoElement>(
+      '.ff-app-shell .ff-video-bg video, .ff-app-shell video.ff-video-bg'
+    );
+    videos.forEach((v) => {
+      const inHome = !!v.closest('.ff-view-home');
+      // Các trang mà lớp chuyển đổi sáng thay video bằng nền kính sữa (khớp LIGHT_VIEWS)
+      const hiddenByLight = isLightTheme && !!v.closest(LIGHT_ADAPTED_VIEW_SELECTOR);
+      if ((potatorMode && !inHome) || hiddenByLight) {
+        /* EPIC 5: đánh dấu để các nền tự quản (TriVideoCrossfadeBg) không phát lại video đang bị ẩn. */
+        v.dataset.ffSuspended = '1';
+        v.pause();
+      } else {
+        delete v.dataset.ffSuspended;
+        /* Video nền đang chờ lượt (data-ff-idle) do chính component quản lý — không đánh thức. */
+        if (v.dataset.ffIdle === '1') return;
+        v.play().catch(() => {});
+      }
+    });
+  }, [potatorMode, currentView, isLightTheme]);
+
   useEffect(() => {
     if (currentView !== 'memory') return;
 
@@ -292,14 +356,17 @@ export const App: React.FC = () => {
       }
     };
 
-    window.addEventListener('scroll', checkScroll, { passive: true });
-    window.addEventListener('resize', checkScroll, { passive: true });
+    /* R4: đo layout tối đa 1 lần/khung hình thay vì ở mọi sự kiện cuộn */
+    const onScrollFrame = rafThrottle(checkScroll);
+    window.addEventListener('scroll', onScrollFrame, { passive: true });
+    window.addEventListener('resize', onScrollFrame, { passive: true });
     const timer = setTimeout(checkScroll, 50);
 
     return () => {
       clearTimeout(timer);
-      window.removeEventListener('scroll', checkScroll);
-      window.removeEventListener('resize', checkScroll);
+      window.removeEventListener('scroll', onScrollFrame);
+      onScrollFrame.cancel();
+      window.removeEventListener('resize', onScrollFrame);
     };
   }, [currentView]);
 
@@ -336,7 +403,7 @@ export const App: React.FC = () => {
           name: userToView.name,
           email: userToView.email || '',
           avatar: userToView.avatar,
-          role: userToView.email?.toLowerCase() === 'BroAmStuck@gmail.com' ? 'SUPER_ADMIN' : 'STUDENT',
+          role: isMasterAdmin(userToView.email) ? 'SUPER_ADMIN' : 'STUDENT',
           level: userToView.level || 1,
           xp: 0,
           coin: 100,
@@ -465,88 +532,8 @@ export const App: React.FC = () => {
 
   const loaderMeta = transition ? VIEW_LOADERS[transition.target] : null;
 
-  const lastScrollTimeRef = useRef<number>(0);
-  const lastWheelTimeRef = useRef<number>(0);
-  const transitionActiveRef = useRef(false);
-
-  useEffect(() => {
-    transitionActiveRef.current = transition !== null;
-  }, [transition]);
-
-  useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      /* Đang chạy màn hình chờ thì bỏ qua cuộn, tránh nhảy hai phân khu một lúc */
-      if (transitionActiveRef.current) return;
-
-      if (currentView === 'chat' || currentView === 'memory' || currentView === 'chronicles') {
-        return;
-      }
-
-      if (currentView === 'landing') {
-        return;
-      }
-
-      if (
-        isLoginModalOpen ||
-        isProfileModalOpen ||
-        isFocusModeOpen ||
-        isChatOpen ||
-        isPaletteOpen ||
-        isNotesOpen
-      ) {
-        return;
-      }
-
-      const target = e.target as HTMLElement | null;
-      if (target && target.closest('input, textarea, select, [role="dialog"]')) {
-        return;
-      }
-
-      const currentIndex = CORE_SCROLL_VIEWS.indexOf(currentView);
-      if (currentIndex === -1) return;
-
-      const deltaY = e.deltaY;
-      if (Math.abs(deltaY) <= 30) return;
-
-      /* Đang cuộn trong một khung nội bộ (sidebar, danh sách dài) → nhường */
-      if (isInsideScrollable(target, deltaY)) return;
-
-      const now = Date.now();
-      const timeSinceLastScroll = now - lastScrollTimeRef.current;
-      if (timeSinceLastScroll < SCROLL_COOLDOWN_MS) {
-        lastWheelTimeRef.current = now;
-        return;
-      }
-
-      lastWheelTimeRef.current = now;
-
-      if (deltaY > 30) {
-        if (currentIndex < CORE_SCROLL_VIEWS.length - 1) {
-          lastScrollTimeRef.current = now;
-          handleViewChange(CORE_SCROLL_VIEWS[currentIndex + 1]);
-        }
-      } else if (deltaY < -30) {
-        if (currentIndex > 0) {
-          lastScrollTimeRef.current = now;
-          handleViewChange(CORE_SCROLL_VIEWS[currentIndex - 1]);
-        }
-      }
-    };
-
-    window.addEventListener('wheel', handleWheel, { passive: true });
-    return () => {
-      window.removeEventListener('wheel', handleWheel);
-    };
-  }, [
-    currentView,
-    isLoginModalOpen,
-    isProfileModalOpen,
-    isFocusModeOpen,
-    isChatOpen,
-    isPaletteOpen,
-    isNotesOpen,
-    handleViewChange,
-  ]);
+  /* Wheel-scroll chuyển tab đã bị XÓA theo spec (EPIC 4): cuộn chuột chỉ dùng
+     để cuộn nội dung, không bao giờ nhảy phân khu — hành vi này gây khó chịu. */
 
   /* ============================================================
      F-ID Hidden Layer — bảng lệnh (⌘K), sổ tay nhanh (⌘I) & phím tắt
@@ -864,38 +851,29 @@ export const App: React.FC = () => {
   /* ======================================================== */
   /* SECURITY: Console/DevTools protection */
   /* ======================================================== */
-  useConsoleProtection(false);
-  useRightClickBlock(false);
+  /* EPIC 5 — chặn F12 / Ctrl+Shift+I / chuột phải + cảnh báo khi mở DevTools: CHỈ ở
+     bản production (`vite build`). Bản dev giữ nguyên để còn debug. Đây là lớp răn
+     đe; quyền thật luôn được kiểm ở máy chủ. */
+  const productionGuard = import.meta.env.PROD;
+  useConsoleProtection(productionGuard);
+  useRightClickBlock(productionGuard);
+  useDevToolsDetection(productionGuard);
 
   /* ======================================================== */
-  /* Potator Mode: Aurora Mesh Background */
+  /* Potator Mode đã bị XOÁ HOÀN TOÀN khỏi dự án — dọn dẹp dấu vết
+     cũ (storage key + class trên <html>) của tài khoản từng bật,
+     để không còn style rác bám vào giao diện. */
   /* ======================================================== */
   useEffect(() => {
-    const key = 'fforum_potato_mode';
-    const stored = safeStorage.getItem(key);
-    if (stored !== null) {
-      setPotatoMode(stored === 'true');
-    }
+    safeStorage.removeItem('fforum_potato_mode');
+    document.documentElement.classList.remove('potato-mode', 'potator-mode-active');
   }, []);
-
-  useEffect(() => {
-    if (potatoMode) {
-      document.documentElement.classList.add('potator-mode-active');
-      /* Show Aurora Mesh Background */
-  
-      safeStorage.setItem('fforum_potato_mode', 'true');
-    } else {
-      document.documentElement.classList.remove('potator-mode-active');
-
-      safeStorage.setItem('fforum_potato_mode', 'false');
-    }
-  }, [potatoMode]);
 
   const solvedQuestionsCount = questions.filter(q => q.isSolved).length;
   const isScrollableView =
     currentView === 'memory' || currentView === 'chronicles' || currentView === 'landing';
 
-  const activeGodray = GODRAY_PRESETS.find(p => p.id === godrayPreset) || GODRAY_PRESETS[0];
+  const activeGodray = GODRAY_PRESETS.find(p => p.id === (previewGodrayId || godrayPreset)) || GODRAY_PRESETS[0];
 
   useEffect(() => {
     document.documentElement.style.setProperty('--ff-accent', activeGodray.accent);
@@ -936,16 +914,13 @@ export const App: React.FC = () => {
       {/* Global Radiant Cursor (Active across entire app on pointer devices) */}
       <GlobalCursor />
       
-      {/* Potator Mode: Aurora Mesh Background (CSS-only, GPU-light) */}
-      {potatoMode && (
-        <AuroraMeshBackground active={true} blur={100} speed={22} opacity={0.5} />
-      )}
-
       <div
         className={`relative w-full ${
           isScrollableView ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'
         } ff-app-shell ff-view-${currentView} ${currentView === 'landing' ? 'bg-[var(--ff-bg)]' : 'bg-black'} text-white font-sans`}
       >
+        {/* EPIC 2 — Potator Mode: lớp nền tĩnh theo preset (CSS chỉ hiện ở trang không phải Trang chủ) */}
+        <div className="ff-potator-bg" aria-hidden="true" />
         {/* Ambient Godray Gradient Lighting Overlay (Enhanced influence across viewport) */}
         <div
           className="ff-godray-layer fixed inset-0 pointer-events-none z-[1] overflow-hidden transition-all duration-700"
@@ -973,6 +948,7 @@ export const App: React.FC = () => {
           currentUser={currentUser}
           onOpenLoginModal={() => handleOpenAuth('login')}
           onLogout={logout}
+          onLogoutEverywhere={logoutEverywhere}
           isChatOpen={isChatOpen}
           onToggleChat={handleToggleChat}
           unreadChatCount={unreadChatCount}
@@ -1124,12 +1100,7 @@ export const App: React.FC = () => {
           onOpenStreak={() => window.dispatchEvent(new CustomEvent('fforum_open_daily'))}
           onOpenNotes={() => setIsNotesOpen(true)}
           onOpenPalette={() => setIsPaletteOpen(true)}
-          adminAccess={Boolean(currentUser && (
-            currentUser.email?.toLowerCase() === 'BroAmStuck@gmail.com' ||
-            currentUser.role === 'SUPER_ADMIN' ||
-            currentUser.staffRole === 'MODERATOR' ||
-            currentUser.staffRole === 'TEACHER'
-          ))}
+          adminAccess={canOpenAdminPanel}
           onOpenAdminPanel={() => setIsAdminInsightsOpen(true)}
           streakCount={currentUser?.streakCount ?? 0}
         />
@@ -1169,6 +1140,7 @@ export const App: React.FC = () => {
             initialTab={profileInitialTab}
             questions={questions}
             solutions={solutions}
+            shopOwnership={shopOwnership}
           />
         )}
 
@@ -1254,6 +1226,10 @@ export const App: React.FC = () => {
         />
       </Suspense>
 
+      {/* EPIC 5 — gợi ý Potato Mode trên máy yếu (không ép) + thông báo bảo mật */}
+      <PotatoSuggestion />
+      <SecurityNoticeToast />
+
       {/* Toast Notification Banner */}
       {toastMessage && (
         <div className="fixed top-20 sm:top-24 right-4 sm:right-6 z-50 animate-fade-up">
@@ -1284,7 +1260,7 @@ export const App: React.FC = () => {
       )}
 
       {/* Lối vào bảng điều khiển quản trị — chỉ hiện với Super Admin */}
-      {currentUser?.email === 'BroAmStuck@gmail.com' && !isAdminConsoleOpen && (
+      {isMasterAdmin(currentUser?.email) && !isAdminConsoleOpen && (
         <button
           type="button"
           onClick={() => setIsAdminConsoleOpen(true)}
@@ -1297,7 +1273,7 @@ export const App: React.FC = () => {
       )}
 
       {/* Lối vào hộp thư tố cáo — chỉ hiện với Super Admin */}
-      {currentUser?.email === 'BroAmStuck@gmail.com' && !isReportInboxOpen && (
+      {isMasterAdmin(currentUser?.email) && !isReportInboxOpen && (
         <button
           type="button"
           onClick={() => setIsReportInboxOpen(true)}
@@ -1315,19 +1291,19 @@ export const App: React.FC = () => {
       )}
 
       <Suspense fallback={<ViewLoadingFallback />}>
-        {isAdminInsightsOpen && currentUser && (
-          currentUser.email?.toLowerCase() === 'BroAmStuck@gmail.com' ||
-          currentUser.role === 'SUPER_ADMIN' ||
-          currentUser.staffRole === 'MODERATOR' ||
-          currentUser.staffRole === 'TEACHER'
-        ) && (
+        {isAdminInsightsOpen && currentUser && canOpenAdminPanel && (
           <>
           <AdminInsightsModal
             isOpen={isAdminInsightsOpen}
             currentUser={currentUser}
             onClose={() => setIsAdminInsightsOpen(false)}
+            onRelogin={() => {
+              setIsAdminInsightsOpen(false);
+              logout();
+              handleOpenAuth('login');
+            }}
             onOpenOperations={() => {
-              if (currentUser.email?.toLowerCase() !== 'BroAmStuck@gmail.com' && currentUser.role !== 'SUPER_ADMIN') return;
+              if (!adminCaps.isSuperAdmin) return;
               setIsAdminInsightsOpen(false);
               setIsAdminConsoleOpen(true);
             }}
@@ -1335,7 +1311,7 @@ export const App: React.FC = () => {
           <RoleBadge
             userEmail={currentUser.email}
             staffRole={currentUser.staffRole}
-            isSuperAdmin={currentUser.role === 'SUPER_ADMIN' || currentUser.email?.toLowerCase() === 'broamstuck@gmail.com'}
+            isSuperAdmin={currentUser.role === 'SUPER_ADMIN' || isMasterAdmin(currentUser.email)}
           />
           </>
         )}

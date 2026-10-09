@@ -1,6 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { HelpCircle, Headphones, Flame, Settings, Zap, NotebookPen, Command, Gauge } from 'lucide-react';
+import { HelpCircle, Headphones, Flame, Settings, Zap, NotebookPen, Command, ShieldCheck } from 'lucide-react';
 import type { DimensionView } from '../types';
 import { safeStorage } from '../utils/storage';
 
@@ -90,10 +90,10 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
   const actions: QuickAction[] = [
     ...(adminAccess && onOpenAdminPanel ? [{
       id: 'admin',
-      label: 'Thống kê & quản lý thành viên',
+      label: 'Bảng quản trị · thống kê, thành viên & vai trò',
       angle: '-96deg',
       tier: 'near' as const,
-      icon: <Gauge className="w-[21px] h-[21px] text-cyan-300" />,
+      icon: <ShieldCheck className="w-[21px] h-[21px] text-cyan-300" />,
       extraClass: 'ccm-02__item--admin',
       onSelect: onOpenAdminPanel,
     }] : []),

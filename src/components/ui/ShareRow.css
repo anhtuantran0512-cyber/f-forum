@@ -1,0 +1,74 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
+/* code_yeucau · social share — 44×44, màu thương hiệu khi rê, tooltip thuần CSS */
+.ff-share { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; }
+.ff-share__btn {
+  --brand: 148, 163, 184;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.6, 0.5, 1), box-shadow 0.25s ease;
+}
+.ff-share__btn--facebook { --brand: 24, 119, 242; }
+.ff-share__btn--x { --brand: 231, 233, 234; }
+.ff-share__btn--telegram { --brand: 34, 158, 217; }
+.ff-share__btn--email { --brand: 234, 67, 53; }
+.ff-share__btn--copy { --brand: 251, 191, 36; }
+.ff-share__btn--native { --brand: 52, 211, 153; }
+.ff-share__btn:hover,
+.ff-share__btn:focus-visible {
+  transform: translateY(-2px);
+  color: #fff;
+  border-color: rgba(var(--brand), 0.75);
+  background: rgba(var(--brand), 0.85);
+  box-shadow: 0 10px 22px -10px rgba(var(--brand), 0.8);
+  outline: none;
+}
+.ff-share__btn--x:hover,
+.ff-share__btn--x:focus-visible { color: #0f1419; }
+.ff-share__btn--copy:hover,
+.ff-share__btn--copy:focus-visible,
+.ff-share__btn--copy.is-copied { color: #1a1203; }
+.ff-share__btn--copy.is-copied { background: rgba(var(--brand), 0.9); border-color: rgba(var(--brand), 0.9); }
+.ff-share__btn:active { transform: scale(0.92); }
+
+/* Tooltip thuần CSS */
+.ff-share__btn::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: rgba(8, 11, 17, 0.92);
+  color: #f8fafc;
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.ff-share__btn:hover::after,
+.ff-share__btn:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
+
+html.light .ff-share__btn { color: #334155; border-color: rgba(15, 23, 42, 0.14); background: rgba(255, 255, 255, 0.75); }
+html.light .ff-share__btn:hover,
+html.light .ff-share__btn:focus-visible { color: #fff; }
+html.light .ff-share__btn--x:hover,
+html.light .ff-share__btn--x:focus-visible { --brand: 15, 20, 25; color: #fff; }
+html.light .ff-share__btn--copy:hover,
+html.light .ff-share__btn--copy.is-copied { color: #1a1203; }
+html.light .ff-share__btn::after { background: #3e3e3e; color: #f5f5f5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-share__btn,
+  .ff-share__btn::after { transition: none; }
+}

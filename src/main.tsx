@@ -117,25 +117,14 @@ if (typeof window !== 'undefined') {
   initFacebookSdk().catch(() => {});
   initGoogleSdk().catch(() => {});
 
-  /* Cybersecurity Console Lock */
-  document.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    alert('BroAmStuck Studio: Hành động này đã bị khóa để bảo mật (Cybersecurity).');
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i'))) {
-      e.preventDefault();
-      alert('BroAmStuck Studio: Console Developer đã bị khóa để bảo mật (Cybersecurity).');
-    }
-  });
-
-  /* Khóa console */
-  const noop = () => {};
-  console.log = noop;
-  console.warn = noop;
-  console.error = noop;
-  console.info = noop;
+  /* EPIC 5: "Console Lock" cũ ở đây đã được thay thế. Nó chạy cả ở bản dev, bật
+     hộp alert() chặn màn hình ở MỖI cú chuột phải (kể cả trong ô nhập liệu) và tắt
+     luôn console.error/warn — che mất lỗi thật. Nay:
+       • vite.config.ts  → loại bỏ mọi lệnh console.* / debugger khi build;
+       • public/security-boot.js → tắt cầu nối React DevTools + cảnh báo Self-XSS
+         (chỉ chèn vào bản build);
+       • src/security/devtoolsGuard.ts → chặn F12 / Ctrl+Shift+I / chuột phải và
+         cảnh báo khi mở DevTools bằng toast không chặn (chỉ production). */
 }
 
 createRoot(document.getElementById('root')!).render(

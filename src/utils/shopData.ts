@@ -98,6 +98,25 @@ export const SHOP_ITEMS: ShopItem[] = [
     description: 'Lăng kính quang phổ tối thượng hội tụ ánh sáng đa vũ trụ.',
     iconType: 'prism',
   },
+  /* Epic 4 — vật phẩm mới ra mắt (addedAt là ngày phát hành thật → nhãn "Mới" có cơ sở). */
+  {
+    id: 'lantern_firefly',
+    name: 'Đèn Lồng Đom Đóm',
+    price: 380,
+    tierColor: 'blue',
+    description: 'Bầy đom đóm tí hon thắp sáng góc học khuya.',
+    iconType: 'lantern',
+    addedAt: '2026-10-09',
+  },
+  {
+    id: 'owl_nightwatch',
+    name: 'Cú Mèo Canh Đêm',
+    price: 980,
+    tierColor: 'red',
+    description: 'Người bạn mắt vàng canh giữ mọi phiên học muộn.',
+    iconType: 'owl',
+    addedAt: '2026-10-09',
+  },
 ];
 
 export const getTierColorStyles = (tier: ShopTierColor) => {
@@ -139,4 +158,70 @@ export const getTierColorStyles = (tier: ShopTierColor) => {
         btn: 'bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white',
       };
   }
+};
+
+/* ==========================================================================
+   Epic 4 — Hệ độ hiếm (Nhiemvu_5): Thường · Hiếm · Sử thi · Huyền thoại.
+   Ánh xạ từ tierColor sẵn có nên KHÔNG đổi dữ liệu đã lưu của người dùng.
+   ========================================================================== */
+export type ShopRarity = 'common' | 'rare' | 'epic' | 'legendary';
+
+export const RARITY_OF_TIER: Record<ShopTierColor, ShopRarity> = {
+  green: 'common',
+  blue: 'rare',
+  red: 'epic',
+  purple: 'legendary',
+};
+
+export const RARITY_META: Record<ShopRarity, { label: string; en: string; order: number }> = {
+  common: { label: 'Thường', en: 'Common', order: 0 },
+  rare: { label: 'Hiếm', en: 'Rare', order: 1 },
+  epic: { label: 'Sử thi', en: 'Epic', order: 2 },
+  legendary: { label: 'Huyền thoại', en: 'Legendary', order: 3 },
+};
+
+export const rarityOf = (item: Pick<ShopItem, 'tierColor'>): ShopRarity => RARITY_OF_TIER[item.tierColor] || 'common';
+
+/** Vật phẩm "Mới": phát hành trong 30 ngày gần nhất (dựa vào addedAt thật). */
+export const SHOP_NEW_WINDOW_DAYS = 30;
+export const isNewItem = (item: Pick<ShopItem, 'addedAt'>, now: number = Date.now()): boolean => {
+  if (!item.addedAt) return false;
+  const added = Date.parse(`${item.addedAt}T00:00:00+07:00`);
+  if (!Number.isFinite(added) || added > now) return false;
+  return now - added < SHOP_NEW_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+};
+
+/* --------------------------------------------------------------------------
+   Ưu đãi tuần — hàm THUẦN dùng chung cho client (hiển thị) và server (tính tiền),
+   nên nhãn "Giảm giá" luôn khớp số Coin bị trừ thật. Tuần tính theo giờ Việt Nam
+   (UTC+7), bắt đầu thứ Hai 00:00. Chỉ áp cho hạng Sử thi/Huyền thoại.
+   -------------------------------------------------------------------------- */
+export const WEEKLY_DEAL_PERCENT = 20;
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+const FIRST_MONDAY_UTC = Date.UTC(1970, 0, 5);
+
+export interface WeeklyDeal {
+  itemId: string;
+  percent: number;
+  /** Mốc kết thúc (ms) — thứ Hai kế tiếp 00:00 giờ Việt Nam. */
+  endsAt: number;
+}
+
+export const getWeeklyDeal = (now: number = Date.now()): WeeklyDeal => {
+  const pool = SHOP_ITEMS.filter((item) => item.tierColor === 'red' || item.tierColor === 'purple')
+    .map((item) => item.id)
+    .sort();
+  const weekIndex = Math.floor((now + VN_OFFSET_MS - FIRST_MONDAY_UTC) / WEEK_MS);
+  return {
+    itemId: pool[((weekIndex % pool.length) + pool.length) % pool.length],
+    percent: WEEKLY_DEAL_PERCENT,
+    endsAt: FIRST_MONDAY_UTC + (weekIndex + 1) * WEEK_MS - VN_OFFSET_MS,
+  };
+};
+
+/** Giá thực trả tại thời điểm `now` (đã áp ưu đãi tuần nếu có). */
+export const effectivePrice = (item: Pick<ShopItem, 'id' | 'price'>, now: number = Date.now()): number => {
+  const deal = getWeeklyDeal(now);
+  return deal.itemId === item.id ? Math.round(item.price * (100 - deal.percent) / 100) : item.price;
 };

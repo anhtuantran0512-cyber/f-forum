@@ -531,7 +531,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
         {currentUser && meEntry && (
           <button type="button" onClick={() => openProfile(meEntry)} className="ff-board__me">
             <span className="ff-board__me-rank font-mono">#{meEntry.rank}</span>
-            <img
+            <img loading="lazy" decoding="async"
               src={currentUser.avatar || DEFAULT_AVATAR}
               alt={currentUser.name}
               onError={(e) => handleImageError(e, DEFAULT_AVATAR)}

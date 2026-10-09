@@ -1,0 +1,110 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
+/* ==========================================================================
+   code_yeucau · tcg-12 — Hero: lời kể bên trái + collage ảnh 5 ô bất đối xứng.
+   Mỗi ô tự khai báo vị trí của mình (grid-column / grid-row) thay vì phụ thuộc
+   thứ tự tự động → bố cục không bị xô lệch khi đổi kích thước.
+   ========================================================================== */
+.ff-collage-hero {
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+}
+.ff-collage-hero.is-solo { text-align: center; }
+.ff-collage-hero.is-solo .ff-collage-hero__copy p { margin-inline: auto; }
+@media (min-width: 900px) {
+  .ff-collage-hero:not(.is-solo) { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
+}
+.ff-collage {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-rows: 62px;
+  gap: 0.6rem;
+}
+@media (max-width: 640px) {
+  .ff-collage { grid-auto-rows: 42px; gap: 0.45rem; }
+}
+.ff-collage__tile--1 { grid-column: 1 / span 4; grid-row: 1 / span 4; }
+.ff-collage__tile--2 { grid-column: 5 / span 2; grid-row: 1 / span 2; }
+.ff-collage__tile--3 { grid-column: 5 / span 2; grid-row: 3 / span 4; }
+.ff-collage__tile--4 { grid-column: 1 / span 2; grid-row: 5 / span 2; }
+.ff-collage__tile--5 { grid-column: 3 / span 2; grid-row: 5 / span 2; }
+
+.ff-collage__tile {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  border-radius: 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0b0f17;
+  cursor: pointer;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s ease, border-color 0.3s ease;
+  animation: ffCollageIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 80ms);
+}
+.ff-collage__tile img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ff-collage__tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent 55%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.ff-collage__cap {
+  position: absolute;
+  left: 0.6rem;
+  right: 0.6rem;
+  bottom: 0.5rem;
+  z-index: 1;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: left;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.ff-collage__tile:hover,
+.ff-collage__tile:focus-visible {
+  transform: translateY(-3px);
+  border-color: rgba(34, 211, 238, 0.45);
+  box-shadow: 0 18px 40px -16px rgba(34, 211, 238, 0.45);
+  outline: none;
+}
+.ff-collage__tile:hover img { transform: scale(1.06); }
+.ff-collage__tile:hover::after,
+.ff-collage__tile:focus-visible::after { opacity: 1; }
+.ff-collage__tile:hover .ff-collage__cap,
+.ff-collage__tile:focus-visible .ff-collage__cap { opacity: 1; transform: none; }
+@keyframes ffCollageIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+}
+
+/* ==========================================================================
+   code_yeucau · masonry — lưới cột mốc theo cột: thẻ dọc 3:4 và ngang 16:9
+   xếp khít nhau thay vì để khoảng trống như lưới đều.
+   ========================================================================== */
+.ff-masonry { columns: 1; column-gap: 1rem; }
+@media (min-width: 640px) { .ff-masonry { columns: 2; } }
+@media (min-width: 768px) { .ff-masonry { columns: 3; } }
+@media (min-width: 1024px) { .ff-masonry { columns: 4; } }
+.ff-masonry > * {
+  display: block;
+  margin-bottom: 1rem;
+  break-inside: avoid;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-collage__tile { animation: none; }
+  .ff-collage__tile,
+  .ff-collage__tile img { transition: none; }
+}
