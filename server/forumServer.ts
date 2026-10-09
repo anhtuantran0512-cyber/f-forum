@@ -686,7 +686,18 @@ const wsSessions = new WeakMap<WebSocket, SessionClaims>();
 */
 const wsClientIps = new WeakMap<WebSocket, string>();
 
-const sessionOf = (ws: WebSocket): SessionClaims | null => wsSessions.get(ws) || null;
+const sessionOf = (ws: WebSocket): SessionClaims | null => {
+  const session = wsSessions.get(ws);
+  if (!session) return null;
+  /* Token đã bị thu hồi ("đăng xuất mọi thiết bị") → kết nối đang mở mất danh tính
+     NGAY ở tin nhắn kế tiếp, không đợi tới lần kết nối lại (trước đây socket đã AUTH
+     vẫn chat/đăng bài được bằng token đã bị thu hồi). */
+  if (isSessionRevoked(session)) {
+    wsSessions.delete(ws);
+    return null;
+  }
+  return session;
+};
 
 const isWsSuperAdmin = (ws: WebSocket): boolean =>
   isMasterAdminEmail(sessionOf(ws)?.email);
@@ -1242,6 +1253,25 @@ function notifyUserSockets(email: string, type: string, payload: unknown): void 
     if (client.readyState !== WebSocket.OPEN || sessionOf(client)?.email !== target) return;
     try { client.send(message); } catch { /* kết nối vừa có thể đóng */ }
   });
+}
+
+/**
+ * "Đăng xuất mọi thiết bị": báo mọi socket đang mở của tài khoản (SESSION_REVOKED)
+ * rồi gỡ danh tính khỏi chúng. Duyệt wsSessions trực tiếp vì sau khi đặt mốc thu hồi,
+ * sessionOf() đã coi các phiên này là vô hiệu nên notifyUserSockets() không thấy nữa.
+ */
+function revokeAccountSockets(email: string): number {
+  const target = String(email || '').trim().toLowerCase();
+  const message = JSON.stringify({ type: 'SESSION_REVOKED', payload: { reason: 'everywhere' }, timestamp: Date.now() });
+  let count = 0;
+  wsClients.forEach((client) => {
+    if (wsSessions.get(client)?.email !== target) return;
+    wsSessions.delete(client);
+    count += 1;
+    if (client.readyState !== WebSocket.OPEN) return;
+    try { client.send(message); } catch { /* kết nối vừa có thể đóng */ }
+  });
+  return count;
 }
 
 export function setupForumServer(httpServer: any, middlewares: any) {
@@ -2805,6 +2835,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           if (account) {
             account.sessionsRevokedAt = Date.now();
             persistStoreToDisk();
+            revokeAccountSockets(claims.email);
             revoked = true;
           }
         }
