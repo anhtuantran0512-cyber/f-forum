@@ -614,3 +614,40 @@
   display: flex;
   justify-content: flex-end;
 }
+
+/* ==========================================================================
+   code_yeucau · msn-10 — MASONRY LƯỢNG TỬ cho bảng tổng quan quản trị.
+   Mỗi ô chiếm 1–2 đơn vị của một lưới hàng cố định và grid-auto-flow: dense lấp
+   kín mọi khe khi bảng đổi số cột (4 → 2) → không còn lỗ trống như hàng auto cũ.
+   Đơn vị 132px (demo dùng 108px) vì 2 hàng + khe 12px = 276px — trùng đúng chiều
+   cao thiết kế sẵn của ô hero / biểu đồ. Hàng là minmax(đơn vị, auto): dữ liệu thật
+   dài hơn dự kiến thì ô giãn ra, không bao giờ bị cắt chữ.
+   Xếp kín 4 cột (7 hàng): hero 2×2 + 4 chỉ số · biểu đồ 2×2 + 3 chỉ số + giữ chân
+   · báo cáo 1×2 + CLB 1×2 + hoạt động 2×2 · thành viên nổi bật trải hết 1 hàng.
+   ========================================================================== */
+.faa-bento.cdl-01__board {
+  --faa-unit: 132px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: minmax(var(--faa-unit), auto);
+  grid-auto-flow: row dense;
+}
+.faa-bento .faa-tile--metric { grid-column: span 1; grid-row: span 1; }
+.faa-bento .faa-tile--hero,
+.faa-bento .faa-tile--chart { grid-column: span 2; grid-row: span 2; }
+.faa-bento .faa-tile--reports,
+.faa-bento .faa-tile--clubs { grid-column: span 1; grid-row: span 2; }
+.faa-bento .faa-tile--activity { grid-column: span 2; grid-row: span 2; }
+.faa-bento .faa-tile--top-members { grid-column: 1 / -1; grid-row: span 1; min-height: 0; }
+/* Ô trải hết hàng: danh sách thành viên xếp thành lưới thẻ ngang thay vì cột dọc dài */
+.faa-bento .faa-tile--top-members .faa-top-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
+  gap: 8px 16px;
+}
+@container (max-width: 900px) {
+  .faa-bento.cdl-01__board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .faa-bento .faa-tile--activity { grid-column: span 2; }
+}
+@container (max-width: 650px) {
+  .faa-bento.cdl-01__board { --faa-unit: 116px; gap: 8px; }
+}

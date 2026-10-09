@@ -338,3 +338,51 @@ test('Cài đặt có nút "Đăng xuất mọi thiết bị" chỉ xoá phiên 
   assert.match(store, /const revoked = await requestServerLogout\(true\);\n    if \(!revoked\) return false;\n    logout\(\{ skipServer: true \}\);/);
   assert.match(read('src/components/Navbar.tsx'), /isAuthenticated: Boolean\(currentUser\),\n    onLogoutEverywhere,/);
 });
+
+test('msn-10: bảng tổng quan quản trị là masonry lượng tử, xếp dense KÍN ở cả 4 cột và 2 cột', () => {
+  const css = read('src/components/AdminInsightsModal.css');
+  const block = css.slice(css.indexOf('code_yeucau · msn-10'));
+  assert.match(block, /grid-auto-rows: minmax\(var\(--faa-unit\), auto\);\n  grid-auto-flow: row dense;/);
+  assert.match(block, /--faa-unit: 132px;/);
+  // Bất biến cũ của test Admin Insights vẫn còn
+  assert.match(css, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(css, /@container \(max-width: 650px\)/);
+
+  // Thứ tự ô thật trong JSX (khớp với mô phỏng bên dưới)
+  const tsx = read('src/components/AdminInsightsModal.tsx');
+  const board = tsx.slice(tsx.indexOf('faa-bento cdl-01__board'), tsx.indexOf('faa-privacy-note'));
+  const order = [...board.matchAll(/faa-tile--(hero|chart|reports|clubs|activity|top-members)\b|<MetricTile|faa-tile--gauge/g)].map((m) => m[1] || (m[0] === '<MetricTile' ? 'metric' : 'gauge'));
+  assert.deepEqual(order, ['hero', 'metric', 'metric', 'metric', 'metric', 'chart', 'metric', 'metric', 'metric', 'gauge', 'reports', 'clubs', 'activity', 'top-members']);
+
+  // Mô phỏng thuật toán grid-auto-flow: row dense (mỗi ô tìm chỗ trống đầu tiên từ góc trên-trái)
+  const spans = (cols) => ({
+    hero: [2, 2], chart: [2, 2], metric: [1, 1], gauge: [1, 1], reports: [1, 2], clubs: [1, 2],
+    activity: [2, 2], 'top-members': [cols, 1],
+  });
+  const pack = (cols) => {
+    const grid = [];
+    const free = (r, c, w, h) => {
+      for (let y = r; y < r + h; y += 1) for (let x = c; x < c + w; x += 1) if (x >= cols || grid[y]?.[x]) return false;
+      return true;
+    };
+    for (const kind of order) {
+      const [w, h] = spans(cols)[kind];
+      let placed = false;
+      for (let r = 0; !placed; r += 1) {
+        for (let c = 0; c + w <= cols && !placed; c += 1) {
+          if (free(r, c, w, h)) {
+            for (let y = r; y < r + h; y += 1) { grid[y] = grid[y] || Array(cols).fill(null); for (let x = c; x < c + w; x += 1) grid[y][x] = kind; }
+            placed = true;
+          }
+        }
+      }
+    }
+    return grid;
+  };
+  for (const cols of [4, 2]) {
+    const grid = pack(cols);
+    const holes = grid.flat().filter((cell) => cell === null).length;
+    assert.equal(holes, 0, `${cols} cột: không còn ô trống`);
+    assert.equal(grid.length, cols === 4 ? 7 : 13, `${cols} cột: số hàng như thiết kế`);
+  }
+});
