@@ -1228,12 +1228,32 @@ Kiểm thử: `tests/epic5-perf-security.test.mjs` (21 bài, server thật qua H
 Lưu ý trung thực: lớp chặn DevTools/chuột phải chỉ là **răn đe** cho người dùng phổ
 thông — không thể ngăn người có kinh nghiệm. Mọi kiểm tra quyền thật đều ở máy chủ.
 
+---
+
+## 43. Phiên vẫn sống sau khi bị thu hồi; không có cách đổi mật khẩu
+
+Kiểm thử: `tests/final-upgrades.test.mjs` (server thật, WebSocket thật; các bản vá
+đều đã được thử đột biến — gỡ bản vá thì test tương ứng trượt).
+
+| Lỗ hổng | Trước | Sau |
+|---|---|---|
+| Socket đã AUTH sau "đăng xuất mọi thiết bị" | `sessionOf(ws)` trả danh tính gắn lúc AUTH, không kiểm thu hồi → tab đang mở ở máy khác vẫn chat/đăng bài bằng token đã bị thu hồi cho tới khi nối lại | `sessionOf` kiểm thu hồi ở MỌI tin nhắn; máy chủ đẩy `SESSION_REVOKED {reason, revokedAt}` tới mọi socket của tài khoản rồi gỡ danh tính |
+| Mốc thu hồi bị lộ | `sessionsRevokedAt` nằm trong bản ghi user — `/api/sync` phát cho cả khách | Chuyển sang `store.sessionRevocations` (chỉ máy chủ đọc); dữ liệu cũ được chuyển khi khởi động để token đã thu hồi không sống lại |
+| Thiết bị offline lúc bị thu hồi | Nối lại → `AUTH_ERROR` bị client bỏ qua → giao diện "đăng nhập ảo", mọi lệnh ghi lỗi | `src/utils/sessionWatch.ts` hỏi lại `GET /api/auth/session` khi tab hiện lại, có mạng lại, định kỳ 5 phút, khi `AUTH_ERROR` hoặc API trả 401. Chỉ 401 thật mới dọn phiên (lỗi mạng/5xx thì không) |
+| Đổi mật khẩu | Không tồn tại — tài khoản bị lộ không lấy lại được | `POST /api/auth/password`: cần phiên + mật khẩu hiện tại, chung bộ đếm chống dò với đăng nhập (429), mặc định thu hồi mọi thiết bị khác, cấp phiên mới cho máy này, ghi nhật ký `auth:password`. Super Admin bị từ chối (mật khẩu do secret quản lý) |
+| Xoay secret Super Admin | Đổi `FFORUM_ADMIN_PASSWORD` (hoặc gỡ mật khẩu mẫu `admin123`) không đụng tới phiên cũ → kẻ đã đăng nhập giữ quyền tới 30 ngày | Khi khởi động phát hiện xoay/gỡ → thu hồi mọi phiên Super Admin cũ + nhật ký `auth:admin-secret` |
+| Đăng xuất ở một tab | Các tab khác vẫn hiện "đã đăng nhập" dù token chung đã bị xoá | Tab khác nhận `USER_LOGOUT` → kết thúc phiên ngay; khi đổi mật khẩu, các tab cùng trình duyệt phối hợp qua `SESSION_ROTATING/ROTATED` để không tự đăng xuất phiên mới |
+
+Giới hạn còn lại: kênh dự phòng SSE không gắn danh tính nên không nhận
+`SESSION_REVOKED` tức thời — bộ kiểm phiên phát hiện ở lần kiểm kế tiếp, còn mọi
+lệnh ghi của thiết bị đó vẫn bị máy chủ chặn ngay (401).
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
 |---|---|
 | Mật khẩu | scrypt + salt, so khớp thời gian cố định, tự nâng cấp bản ghi cũ |
-| Phiên | Token HMAC-SHA256, hạn 30 ngày, gửi qua `Authorization: Bearer` |
+| Phiên | Token HMAC-SHA256, hạn 30 ngày, qua `Authorization: Bearer` hoặc cookie HttpOnly; thu hồi theo mốc (đăng xuất mọi thiết bị / đổi mật khẩu / xoay secret admin), kiểm cả HTTP lẫn từng tin nhắn WS |
 | WebSocket | Bắt tay `AUTH` → gắn `SessionClaims` cho từng kết nối |
 | Hồ sơ | Chỉ chủ tài khoản; `role`/`id`/`email` do server sở hữu; `level` tính lại từ `xp` |
 | Kiểm duyệt | Super Admin có token; cấm/khoá chat được thực thi trên cả HTTP + WS; audit tối đa 300 mục |
@@ -1253,13 +1273,16 @@ Xem `.env.example`. `FFORUM_SESSION_SECRET` có thể để trống vì server t
 lưu vào `data/session-key`. Không có OAuth phía máy chủ thì tài khoản thường vẫn
 đăng nhập social ở chế độ demo, nhưng quyền Super Admin không được cấp qua social.
 Cài mới muốn đăng nhập Super Admin bằng mật khẩu phải đặt `FFORUM_ADMIN_PASSWORD`
-riêng, dài tối thiểu 16 ký tự; không có secret này thì không tồn tại mật khẩu mặc
-định. Credential mẫu công khai từ bản cũ được tự động thu hồi.
+riêng — máy chủ bắt buộc tối thiểu 12 ký tự (khuyến nghị ≥ 16, ngẫu nhiên); không có
+secret này thì không tồn tại mật khẩu mặc định. Đổi secret rồi khởi động lại là xoay
+mật khẩu và thu hồi mọi phiên Super Admin cũ. Credential mẫu công khai từ bản cũ được
+tự động thu hồi (kèm mọi phiên đã phát bằng nó).
 
 ## Chạy kiểm thử bảo mật
 
 ```bash
 node --test tests/security-hardening.test.mjs   # chạy trên server thật
 node --test tests/epic5-perf-security.test.mjs  # Epic 5: CSP, cookie, rate limit, ảnh
-npm test                                        # toàn bộ 278 bài
+node --test tests/final-upgrades.test.mjs      # thu hồi phiên, đổi mật khẩu, xoay secret
+npm test                                        # toàn bộ 304 bài
 ```
