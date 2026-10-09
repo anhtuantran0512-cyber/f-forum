@@ -378,6 +378,11 @@ export function useForumStore() {
      render: gán ref khi render là side effect và cho kết quả sai khi React render
      thử nhiều lần (StrictMode) hoặc khi render bị vứt giữa chừng. */
   const currentUserRef = useRef(currentUser);
+  /* SESSION_REVOKED: effect socket chỉ đăng ký một lần còn `logout` khai báo phía dưới
+     → gọi qua ref. Cờ `everywherePendingRef` bỏ qua sự kiện dội về chính thiết bị vừa
+     bấm "Đăng xuất mọi thiết bị" (luồng HTTP của thiết bị đó tự dọn phiên). */
+  const sessionRevokedRef = useRef<() => void>(() => {});
+  const everywherePendingRef = useRef(false);
   useEffect(() => {
     currentUserRef.current = currentUser;
   }, [currentUser]);
@@ -764,6 +769,14 @@ export function useForumStore() {
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('fforum_reports_changed'));
           }
+          break;
+        }
+        case 'SESSION_REVOKED': {
+          /* Máy chủ chỉ gửi tới socket đã AUTH của đúng tài khoản, ngay khi token bị
+             thu hồi ở thiết bị khác → dọn phiên cục bộ thay vì để giao diện "đăng
+             nhập ảo" rồi gặp lỗi 401 khó hiểu ở thao tác kế tiếp. */
+          if (everywherePendingRef.current || !currentUserRef.current) break;
+          sessionRevokedRef.current();
           break;
         }
         case 'USER_MODERATED': {
@@ -1617,11 +1630,29 @@ export function useForumStore() {
   /** Đăng xuất MỌI thiết bị: máy chủ thu hồi toàn bộ token của tài khoản; chỉ khi
    *  máy chủ xác nhận mới xoá phiên ở máy này (lỗi mạng → giữ nguyên để thử lại). */
   const logoutEverywhere = async (): Promise<boolean> => {
-    const revoked = await requestServerLogout(true);
-    if (!revoked) return false;
-    logout({ skipServer: true });
-    return true;
+    everywherePendingRef.current = true;
+    try {
+      const revoked = await requestServerLogout(true);
+      if (!revoked) return false;
+      logout({ skipServer: true });
+      return true;
+    } finally {
+      everywherePendingRef.current = false;
+    }
   };
+
+  /* Thiết bị KHÁC vừa "đăng xuất mọi thiết bị" → phiên ở đây đã vô hiệu phía máy chủ:
+     dọn cục bộ (không gọi lại máy chủ) và nói rõ lý do, kèm lời khuyên an toàn. */
+  useEffect(() => {
+    sessionRevokedRef.current = () => {
+      logout({ skipServer: true });
+      setToastMessage({
+        title: 'Phiên đăng nhập đã kết thúc',
+        subtitle: 'Tài khoản vừa được đăng xuất khỏi mọi thiết bị từ một nơi khác. Hãy đăng nhập lại — nếu không phải bạn, hãy đổi mật khẩu ngay.',
+        type: 'error',
+      });
+    };
+  });
 
   const updateProfile = async (updates: Partial<User>) => {
     if (!currentUser) return;

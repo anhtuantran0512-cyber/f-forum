@@ -9,6 +9,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { WebSocket } from 'ws';
 
 const TEST_ADMIN_PASSWORD = 'test-only-super-admin-password-final';
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'fforum-final-'));
@@ -335,8 +336,102 @@ test('Cài đặt có nút "Đăng xuất mọi thiết bị" chỉ xoá phiên 
   assert.match(settings, /const ok = await onLogoutEverywhere\(\);/);
   assert.match(settings, /\{isAuthenticated && onLogoutEverywhere && \(/, 'khách không thấy mục này');
   const store = read('src/store/forumStore.ts');
-  assert.match(store, /const revoked = await requestServerLogout\(true\);\n    if \(!revoked\) return false;\n    logout\(\{ skipServer: true \}\);/);
+  assert.match(store, /const revoked = await requestServerLogout\(true\);\n\s+if \(!revoked\) return false;\n\s+logout\(\{ skipServer: true \}\);/);
   assert.match(read('src/components/Navbar.tsx'), /isAuthenticated: Boolean\(currentUser\),\n    onLogoutEverywhere,/);
+});
+
+/** Socket thử nghiệm: hộp thư + chờ đúng loại sự kiện (kể cả sự kiện đã tới trước). */
+function openSocket(baseUrl) {
+  const ws = new WebSocket(`${baseUrl.replace(/^http/, 'ws')}/ws`);
+  const inbox = [];
+  const waiters = [];
+  ws.on('message', (raw) => {
+    let msg;
+    try { msg = JSON.parse(raw.toString()); } catch { return; }
+    const waiter = waiters.find((w) => w.match(msg));
+    if (waiter) {
+      waiters.splice(waiters.indexOf(waiter), 1);
+      clearTimeout(waiter.timer);
+      waiter.resolve(msg);
+    } else {
+      inbox.push(msg);
+    }
+  });
+  const next = (match, label, timeoutMs = 3000) => new Promise((resolve, reject) => {
+    const index = inbox.findIndex(match);
+    if (index >= 0) { resolve(inbox.splice(index, 1)[0]); return; }
+    const waiter = { match, resolve, timer: setTimeout(() => reject(new Error(`Hết giờ chờ ${label}`)), timeoutMs) };
+    waiters.push(waiter);
+  });
+  return {
+    ws,
+    opened: new Promise((resolve, reject) => { ws.once('open', resolve); ws.once('error', reject); }),
+    send: (type, payload) => ws.send(JSON.stringify({ type, payload })),
+    next: (type, timeoutMs) => next((m) => m.type === type, type, timeoutMs),
+    nextWhere: (match, label, timeoutMs) => next(match, label, timeoutMs),
+  };
+}
+
+test('WebSocket: "đăng xuất mọi thiết bị" gỡ danh tính socket đang mở ở thiết bị khác ngay lập tức', async () => {
+  const env = await createTestServer();
+  const opened = [];
+  try {
+    const email = `ws.revoke.${Date.now()}@example.test`;
+    const password = 'mat-khau-test-456';
+    const reg = await call(env.baseUrl, 'POST', '/api/auth/register', { name: 'Thiết bị thử', email, password });
+    assert.equal(reg.status, 200, JSON.stringify(reg.data));
+    const tokenA = (await call(env.baseUrl, 'POST', '/api/auth/login', { email, password })).data.token;
+
+    const deviceA = openSocket(env.baseUrl);
+    const bystander = openSocket(env.baseUrl);
+    opened.push(deviceA.ws, bystander.ws);
+    await Promise.all([deviceA.opened, bystander.opened]);
+    deviceA.send('AUTH', { token: tokenA });
+    assert.equal((await deviceA.next('AUTH_OK')).payload.email, email);
+
+    // Đối chứng: trước khi thu hồi, socket đã AUTH gửi chat được.
+    const beforeId = `chat-before-${Date.now()}`;
+    deviceA.send('NEW_CHAT_MESSAGE', { id: beforeId, content: 'trước khi thu hồi', authorEmail: email });
+    await deviceA.nextWhere((m) => m.type === 'NEW_CHAT_MESSAGE' && m.payload?.id === beforeId, 'tin đối chứng');
+
+    // Thiết bị B đăng xuất mọi nơi.
+    await new Promise((r) => setTimeout(r, 5));
+    const tokenB = (await call(env.baseUrl, 'POST', '/api/auth/login', { email, password })).data.token;
+    const out = await call(env.baseUrl, 'POST', '/api/auth/logout', { everywhere: true }, tokenB);
+    assert.equal(out.data.revoked, true);
+
+    const notice = await deviceA.next('SESSION_REVOKED');
+    assert.equal(notice.payload.reason, 'everywhere', 'socket của tài khoản nhận lệnh dọn phiên');
+    await assert.rejects(bystander.next('SESSION_REVOKED', 250), /Hết giờ/, 'socket khách/người khác không nhận');
+
+    // Socket cũ mất quyền ngay, không đợi kết nối lại.
+    deviceA.send('NEW_CHAT_MESSAGE', { id: `chat-after-${Date.now()}`, content: 'sau khi thu hồi', authorEmail: email });
+    const denied = await deviceA.next('FORBIDDEN');
+    assert.equal(denied.payload.action, 'NEW_CHAT_MESSAGE');
+
+    deviceA.send('AUTH', { token: tokenA });
+    await deviceA.next('AUTH_ERROR');
+
+    // Mốc thu hồi không chặn lần đăng nhập mới.
+    await new Promise((r) => setTimeout(r, 5));
+    const fresh = await call(env.baseUrl, 'POST', '/api/auth/login', { email, password });
+    assert.equal((await call(env.baseUrl, 'GET', '/api/auth/session', undefined, fresh.data.token)).status, 200);
+    deviceA.send('AUTH', { token: fresh.data.token });
+    assert.equal((await deviceA.next('AUTH_OK')).payload.email, email);
+  } finally {
+    for (const ws of opened) { try { ws.terminate(); } catch { /* đã đóng */ } }
+    await env.close();
+  }
+});
+
+test('Client dọn phiên khi nhận SESSION_REVOKED, bỏ qua sự kiện dội về thiết bị khởi xướng', () => {
+  const store = read('src/store/forumStore.ts');
+  assert.match(store, /case 'SESSION_REVOKED': \{\n[\s\S]{0,400}?if \(everywherePendingRef\.current \|\| !currentUserRef\.current\) break;\n\s+sessionRevokedRef\.current\(\);/);
+  assert.match(store, /everywherePendingRef\.current = true;\n\s+try \{[\s\S]{0,300}?\} finally \{\n\s+everywherePendingRef\.current = false;/);
+  assert.match(store, /sessionRevokedRef\.current = \(\) => \{\n\s+logout\(\{ skipServer: true \}\);/);
+  const server = read('server/forumServer.ts');
+  assert.match(server, /const sessionOf = \(ws: WebSocket\): SessionClaims \| null => \{[\s\S]{0,500}?if \(isSessionRevoked\(session\)\) \{/);
+  assert.match(server, /account\.sessionsRevokedAt = Date\.now\(\);\n\s+persistStoreToDisk\(\);\n\s+revokeAccountSockets\(claims\.email\);/);
 });
 
 test('msn-10: bảng tổng quan quản trị là masonry lượng tử, xếp dense KÍN ở cả 4 cột và 2 cột', () => {
