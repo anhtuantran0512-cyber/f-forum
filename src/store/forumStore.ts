@@ -36,6 +36,7 @@ import {
   upgradeLegacySession,
   type SessionTransport,
 } from '../utils/session';
+import { createSessionChecker, SESSION_PERIODIC_MS, SESSION_SUSPECT_EVENT } from '../utils/sessionWatch';
 import { DEFAULT_AVATAR } from '../utils/mediaFallback';
 import {
   type AboutData,
@@ -381,8 +382,10 @@ export function useForumStore() {
   /* SESSION_REVOKED: effect socket chỉ đăng ký một lần còn `logout` khai báo phía dưới
      → gọi qua ref. Cờ `everywherePendingRef` bỏ qua sự kiện dội về chính thiết bị vừa
      bấm "Đăng xuất mọi thiết bị" (luồng HTTP của thiết bị đó tự dọn phiên). */
-  const sessionRevokedRef = useRef<() => void>(() => {});
+  const sessionRevokedRef = useRef<(reason: 'everywhere' | 'invalid') => void>(() => {});
   const everywherePendingRef = useRef(false);
+  /* Bộ kiểm phiên với máy chủ (gắn trong effect hạn phiên) — socket gọi khi AUTH_ERROR. */
+  const sessionCheckRef = useRef<(force?: boolean) => void>(() => {});
   useEffect(() => {
     currentUserRef.current = currentUser;
   }, [currentUser]);
@@ -785,7 +788,14 @@ export function useForumStore() {
              thu hồi ở thiết bị khác → dọn phiên cục bộ thay vì để giao diện "đăng
              nhập ảo" rồi gặp lỗi 401 khó hiểu ở thao tác kế tiếp. */
           if (everywherePendingRef.current || !currentUserRef.current) break;
-          sessionRevokedRef.current();
+          sessionRevokedRef.current('everywhere');
+          break;
+        }
+        case 'AUTH_ERROR': {
+          /* Máy chủ từ chối token khi socket (vừa nối lại sau lúc ngủ/mất mạng) gửi
+             AUTH — thường vì phiên đã bị thu hồi khi thiết bị không online. Hỏi lại
+             /api/auth/session: chỉ 401 thật mới dọn phiên, tránh đăng xuất nhầm. */
+          sessionCheckRef.current(true);
           break;
         }
         case 'USER_MODERATED': {
@@ -1357,14 +1367,47 @@ export function useForumStore() {
       const wait = Math.min(Math.max(0, expiry - Date.now()) + 250, 2_000_000_000);
       timer = window.setTimeout(expire, wait);
     }
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') schedule();
+    /*
+      Hạn `exp` chỉ là một nửa câu chuyện: máy chủ có thể đã VÔ HIỆU phiên trong lúc
+      tab ngủ / mất mạng (đăng xuất mọi thiết bị, tài khoản bị xoá) — khi đó không có
+      SESSION_REVOKED nào tới được, kênh SSE dự phòng cũng không gắn danh tính. Hỏi
+      lại máy chủ khi tab hiện lại, khi có mạng lại, định kỳ lúc tab đang mở, và ngay
+      khi socket/API báo token bị từ chối. Chỉ 401 mới dọn phiên (xem sessionWatch).
+    */
+    const checker = createSessionChecker({
+      fetchSession: () => fetch('/api/auth/session', { headers: authHeaders(), cache: 'no-store' }),
+      onInvalid: () => sessionRevokedRef.current('invalid'),
+      isOnline: () => typeof navigator === 'undefined' || navigator.onLine !== false,
+    });
+    sessionCheckRef.current = (force) => {
+      void checker.check(force);
     };
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      schedule();
+      void checker.check();
+    };
+    const onOnline = () => {
+      void checker.check();
+    };
+    const onSuspect = () => {
+      void checker.check(true);
+    };
+    const periodic = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void checker.check();
+    }, SESSION_PERIODIC_MS);
     schedule();
     document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('online', onOnline);
+    window.addEventListener(SESSION_SUSPECT_EVENT, onSuspect);
     return () => {
       if (timer) window.clearTimeout(timer);
+      window.clearInterval(periodic);
+      checker.dispose();
+      sessionCheckRef.current = () => {};
       document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener(SESSION_SUSPECT_EVENT, onSuspect);
     };
   }, [sessionOwnerEmail]);
 
@@ -1653,13 +1696,20 @@ export function useForumStore() {
   /* Thiết bị KHÁC vừa "đăng xuất mọi thiết bị" → phiên ở đây đã vô hiệu phía máy chủ:
      dọn cục bộ (không gọi lại máy chủ) và nói rõ lý do, kèm lời khuyên an toàn. */
   useEffect(() => {
-    sessionRevokedRef.current = () => {
+    sessionRevokedRef.current = (reason) => {
+      if (!currentUserRef.current) return;
       logout({ skipServer: true });
-      setToastMessage({
-        title: 'Phiên đăng nhập đã kết thúc',
-        subtitle: 'Tài khoản vừa được đăng xuất khỏi mọi thiết bị từ một nơi khác. Hãy đăng nhập lại — nếu không phải bạn, hãy đổi mật khẩu ngay.',
-        type: 'error',
-      });
+      setToastMessage(reason === 'everywhere'
+        ? {
+            title: 'Phiên đăng nhập đã kết thúc',
+            subtitle: 'Tài khoản vừa được đăng xuất khỏi mọi thiết bị từ một nơi khác. Hãy đăng nhập lại — nếu không phải bạn, hãy đổi mật khẩu ngay.',
+            type: 'error',
+          }
+        : {
+            title: 'Phiên đăng nhập không còn hiệu lực',
+            subtitle: 'Phiên đã hết hạn hoặc đã bị đăng xuất ở thiết bị khác. Vui lòng đăng nhập lại để tiếp tục.',
+            type: 'level',
+          });
     };
   });
 

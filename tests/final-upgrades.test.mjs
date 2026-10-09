@@ -25,6 +25,8 @@ const notice = await import('../src/utils/moderationNotice.ts');
 const { rafThrottle } = await import('../src/utils/rafThrottle.ts');
 const { moderationForLogin } = await import('../server/moderation.ts');
 const delighters = await import('../src/utils/delighters.ts');
+const sessionWatch = await import('../src/utils/sessionWatch.ts');
+const sessionUtil = await import('../src/utils/session.ts');
 const { setupForumServer } = await import('../server/forumServer.ts');
 
 test.after(() => fs.rmSync(DATA_DIR, { recursive: true, force: true }));
@@ -478,9 +480,9 @@ test('Mốc thu hồi cũ nằm trong bản ghi user được chuyển sang kho 
 
 test('Client dọn phiên khi nhận SESSION_REVOKED, bỏ qua sự kiện dội về thiết bị khởi xướng', () => {
   const store = read('src/store/forumStore.ts');
-  assert.match(store, /case 'SESSION_REVOKED': \{\n[\s\S]{0,400}?if \(everywherePendingRef\.current \|\| !currentUserRef\.current\) break;\n\s+sessionRevokedRef\.current\(\);/);
+  assert.match(store, /case 'SESSION_REVOKED': \{\n[\s\S]{0,400}?if \(everywherePendingRef\.current \|\| !currentUserRef\.current\) break;\n\s+sessionRevokedRef\.current\('everywhere'\);/);
   assert.match(store, /everywherePendingRef\.current = true;\n\s+try \{[\s\S]{0,300}?\} finally \{\n\s+everywherePendingRef\.current = false;/);
-  assert.match(store, /sessionRevokedRef\.current = \(\) => \{\n\s+logout\(\{ skipServer: true \}\);/);
+  assert.match(store, /sessionRevokedRef\.current = \(reason\) => \{\n\s+if \(!currentUserRef\.current\) return;\n\s+logout\(\{ skipServer: true \}\);/);
   const server = read('server/forumServer.ts');
   assert.match(server, /const sessionOf = \(ws: WebSocket\): SessionClaims \| null => \{[\s\S]{0,500}?if \(isSessionRevoked\(session\)\) \{/);
   assert.match(server, /store\.sessionRevocations = \{ \.\.\.\(store\.sessionRevocations \|\| \{\}\), \[claims\.email\]: Date\.now\(\) \};\n\s+persistStoreToDisk\(\);\n\s+revokeAccountSockets\(claims\.email\);/);
@@ -492,6 +494,113 @@ test('Mở lại app khi đang bị khoá: khôi phục phiên (Bearer lẫn coo
   assert.match(store, /setCurrentUser\(fresh\);\n\s+announceRestoredLock\(probed\.moderation\);/);
   assert.match(store, /const notice = describeLoginModeration\(moderation as LoginModeration \| null \| undefined\);\n\s+if \(notice && isMounted\) setToastMessage/);
   assert.match(read('src/utils/session.ts'), /return \{ user: data\.user, expiresAt: data\.expiresAt, moderation: data\.moderation \};/);
+});
+
+test('sessionWatch: chỉ 401 thật mới dọn phiên; có nhịp chống bão, gộp request, bỏ qua khi offline', async () => {
+  const { createSessionChecker, SESSION_RECHECK_MS, SESSION_FORCED_RECHECK_MS } = sessionWatch;
+  let clock = 1_000_000;
+  let online = true;
+  let calls = 0;
+  let invalid = 0;
+  let reply = { status: 200 };
+  const make = () => createSessionChecker({
+    fetchSession: async () => {
+      calls += 1;
+      if (reply instanceof Error) throw reply;
+      return reply;
+    },
+    onInvalid: () => { invalid += 1; },
+    now: () => clock,
+    isOnline: () => online,
+  });
+
+  const checker = make();
+  assert.equal(await checker.check(), true);
+  assert.equal(calls, 0, 'vừa đăng nhập/khôi phục → chưa hỏi lại ngay');
+  clock += SESSION_FORCED_RECHECK_MS;
+  await checker.check();
+  assert.equal(calls, 0, 'kiểm thụ động chờ đủ nhịp 60 giây');
+  await checker.check(true);
+  assert.equal(calls, 1, 'tín hiệu mạnh (AUTH_ERROR / 401) chỉ chờ nhịp chống bão');
+
+  clock += SESSION_RECHECK_MS;
+  reply = { status: 503 };
+  assert.equal(await checker.check(), true, '5xx ≠ phiên hỏng');
+  clock += SESSION_RECHECK_MS;
+  reply = new Error('mạng rớt');
+  assert.equal(await checker.check(), true, 'lỗi mạng ≠ phiên hỏng');
+  assert.equal(invalid, 0);
+
+  clock += SESSION_RECHECK_MS;
+  online = false;
+  await checker.check();
+  assert.equal(calls, 3, 'offline → không hỏi');
+  online = true;
+
+  reply = { status: 401 };
+  const [a, b, c] = await Promise.all([checker.check(true), checker.check(true), checker.check()]);
+  assert.deepEqual([a, b, c], [false, false, false]);
+  assert.equal(calls, 4, 'nhiều tín hiệu cùng lúc → MỘT request');
+  assert.equal(invalid, 1, 'dọn phiên đúng một lần');
+  clock += SESSION_RECHECK_MS;
+  assert.equal(await checker.check(true), false);
+  assert.equal(calls, 4, 'đã xác nhận hỏng → không hỏi thêm');
+
+  // dispose giữa chừng: phản hồi 401 về muộn không được đăng xuất phiên mới
+  let release;
+  const late = createSessionChecker({
+    fetchSession: () => new Promise((resolve) => { release = resolve; }),
+    onInvalid: () => { invalid += 1; },
+    now: () => clock,
+  });
+  clock += SESSION_RECHECK_MS;
+  const pending = late.check();
+  await new Promise((r) => setImmediate(r)); // để request thật sự bắt đầu
+  assert.equal(typeof release, 'function', 'request đang bay');
+  late.dispose();
+  release({ status: 401 });
+  assert.equal(await pending, true);
+  assert.equal(invalid, 1, 'bộ kiểm đã huỷ (đổi tài khoản) → bỏ qua');
+
+  // lỗi ném đồng bộ cũng là "chưa biết"
+  const sync = createSessionChecker({ fetchSession: () => { throw new Error('không có fetch'); }, onInvalid: () => { invalid += 1; }, now: () => clock });
+  clock += SESSION_RECHECK_MS;
+  assert.equal(await sync.check(), true);
+  assert.equal(invalid, 1);
+});
+
+test('postJson nhận 401 → phát tín hiệu nghi phiên hỏng cho bộ kiểm', async () => {
+  const savedWindow = globalThis.window;
+  const savedFetch = globalThis.fetch;
+  const target = new EventTarget();
+  let suspects = 0;
+  target.addEventListener(sessionWatch.SESSION_SUSPECT_EVENT, () => { suspects += 1; });
+  globalThis.window = target;
+  try {
+    globalThis.fetch = async () => new Response(JSON.stringify({ success: false }), { status: 401 });
+    const denied = await sessionUtil.postJson('/api/thu', {});
+    assert.equal(denied.status, 401);
+    assert.equal(suspects, 1);
+    globalThis.fetch = async () => new Response(JSON.stringify({ success: false }), { status: 403 });
+    await sessionUtil.postJson('/api/thu', {});
+    assert.equal(suspects, 1, '403 (thiếu quyền) không phải phiên hỏng');
+  } finally {
+    globalThis.fetch = savedFetch;
+    if (savedWindow === undefined) delete globalThis.window;
+    else globalThis.window = savedWindow;
+  }
+  assert.doesNotThrow(() => sessionWatch.signalSessionSuspect(401), 'ngoài trình duyệt là no-op');
+});
+
+test('Store nối bộ kiểm phiên: tab hiện lại, có mạng lại, định kỳ, AUTH_ERROR và tín hiệu 401', () => {
+  const store = read('src/store/forumStore.ts');
+  assert.match(store, /case 'AUTH_ERROR': \{\n[\s\S]{0,400}?sessionCheckRef\.current\(true\);/);
+  assert.match(store, /fetchSession: \(\) => fetch\('\/api\/auth\/session', \{ headers: authHeaders\(\), cache: 'no-store' \}\),\n\s+onInvalid: \(\) => sessionRevokedRef\.current\('invalid'\),/);
+  assert.match(store, /if \(document\.visibilityState !== 'visible'\) return;\n\s+schedule\(\);\n\s+void checker\.check\(\);/);
+  assert.match(store, /window\.addEventListener\('online', onOnline\);\n\s+window\.addEventListener\(SESSION_SUSPECT_EVENT, onSuspect\);/);
+  assert.match(store, /\}, SESSION_PERIODIC_MS\);/);
+  assert.match(store, /checker\.dispose\(\);\n\s+sessionCheckRef\.current = \(\) => \{\};/, 'đổi tài khoản/đăng xuất → huỷ bộ kiểm cũ');
+  assert.match(read('src/utils/session.ts'), /signalSessionSuspect\(res\.status\);/);
 });
 
 test('msn-10: bảng tổng quan quản trị là masonry lượng tử, xếp dense KÍN ở cả 4 cột và 2 cột', () => {
