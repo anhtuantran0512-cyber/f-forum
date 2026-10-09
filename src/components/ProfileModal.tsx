@@ -7,8 +7,6 @@ import {
   Check,
   AlertCircle,
   BarChart3,
-  ShoppingBag,
-  Coins,
   CheckCircle2,
   HelpCircle,
   Award,
@@ -28,14 +26,15 @@ import {
   Image as ImageIcon,
   Trash2,
 } from 'lucide-react';
-import type { User, Question, Solution, ShopItem, ShopTierColor } from '../types';
+import type { User, Question, Solution, ShopItem } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { getTierForLevel } from '../utils/tier';
 import { HologramStudentCard } from './HologramStudentCard';
-import { ClaymorphismCard, ClayStat } from './ClaymorphismCard';
+import { ClayStat } from './ClaymorphismCard';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
-import { SHOP_ITEMS, getTierColorStyles } from '../utils/shopData';
-import { ShopItemSvg } from './ShopItemSvg';
+import { SHOP_ITEMS, effectivePrice } from '../utils/shopData';
+import { GachaBoutique } from './shop/GachaBoutique';
+import { TrophyShelf } from './shop/TrophyShelf';
 import { pushNotification } from '../utils/notifications';
 import { LikeHeartButton } from './LikeHeartButton';
 import { safeStorage } from '../utils/storage';
@@ -63,7 +62,11 @@ const writeProfileLikes = (map: ProfileLikesMap): void => {
 import { BookshelfPanel } from './BookshelfPanel';
 import { TierRankSheet } from './TierRankSheet';
 import { useEscapeKey } from '../utils/useEscapeKey';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { RadarSpiderChart } from './charts/RadarSpiderChart';
+import { prepareImageForUpload, uploadProcessedImage } from '../utils/imagePipeline';
+import { isMasterAdmin } from '../config/admin';
+import { postJson } from '../utils/session';
+import { describeReportResult, settleReportRequest } from '../utils/reports';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -76,6 +79,8 @@ interface ProfileModalProps {
   initialTab?: 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit';
   questions?: Question[];
   solutions?: Solution[];
+  /** Số tài khoản sở hữu từng vật phẩm (dữ liệu thật) — nhãn "Hot" trong Boutique. */
+  shopOwnership?: Record<string, number>;
 }
 
 type TabType = 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit';
@@ -253,6 +258,7 @@ const ProfileModalInner: React.FC<{
   initialTab?: TabType;
   questions?: Question[];
   solutions?: Solution[];
+  shopOwnership?: Record<string, number>;
 }> = ({
   currentUser,
   viewerUser,
@@ -263,6 +269,7 @@ const ProfileModalInner: React.FC<{
   initialTab = 'overview',
   questions = [],
   solutions = [],
+  shopOwnership,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
@@ -271,7 +278,6 @@ const ProfileModalInner: React.FC<{
      nên người dùng bàn phím bị kẹt trong hộp thoại. */
   useEscapeKey(onClose);
 
-  const [shopFilter, setShopFilter] = useState<'all' | ShopTierColor>('all');
   const [activitySubTab, setActivitySubTab] = useState<'questions' | 'solutions'>('solutions');
   const [selectedStatNote, setSelectedStatNote] = useState<string | null>(null);
 
@@ -287,6 +293,8 @@ const ProfileModalInner: React.FC<{
   const [className, setClassName] = useState(currentUser.className || '');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  /** EPIC 5: ảnh đang được xử lý/tải lên — khoá nút Lưu để không lưu nhầm bản tạm. */
+  const [mediaBusy, setMediaBusy] = useState<null | 'avatar' | 'banner'>(null);
 
   /* Brief shimmer skeleton so the profile feels loaded, not popped */
   const [isBooting, setIsBooting] = useState(true);
@@ -310,8 +318,9 @@ const ProfileModalInner: React.FC<{
   const [reportDetails, setReportDetails] = useState('');
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [reportSuccess, setReportSuccess] = useState<string | null>(null);
+  const [reportErrorMsg, setReportErrorMsg] = useState<string | null>(null);
 
-  const isSuperAdmin = (currentUser.email || '').toLowerCase() === 'BroAmStuck@gmail.com' || currentUser.role === 'SUPER_ADMIN';
+  const isSuperAdmin = isMasterAdmin(currentUser.email) || currentUser.role === 'SUPER_ADMIN';
   const isOwnProfile = !viewerUser || viewerUser.id === currentUser.id;
 
   /* GUI nhỏ "Bảng rank · danh hiệu · yêu cầu" mở từ khối Danh hiệu */
@@ -458,16 +467,19 @@ const ProfileModalInner: React.FC<{
 
 
 
-  const handleBuyItem = async (item: ShopItem) => {
-    if (userCoin < item.price) return;
-    if (!(await onPurchaseItem(item.id))) return;
+  const handleBuyItem = async (item: ShopItem): Promise<boolean> => {
+    /* Giá thật (đã áp ưu đãi tuần) — máy chủ tính lại bằng đúng hàm này khi trừ Coin. */
+    const price = effectivePrice(item);
+    if (!isOwnProfile || userCoin < price) return false;
+    if (!(await onPurchaseItem(item.id))) return false;
     pushNotification({
       type: 'coin',
       category: 'system',
-      title: 'Mua Vật Phẩm Thành Công!',
-      body: `Đã mở khóa "${item.name}" với giá ${item.price} Coin từ Chill Box.`,
+      title: 'Mở khoá vật phẩm thành công!',
+      body: `Đã mở khoá "${item.name}" với giá ${price} Coin tại Gacha Boutique.`,
       targetView: 'home',
     });
+    return true;
   };
 
   const handleEquipItem = async (itemId: string) => {
@@ -486,102 +498,60 @@ const ProfileModalInner: React.FC<{
     });
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  /*
+    EPIC 5 — pipeline ảnh: thu nhỏ nhiều bước + unsharp mask nhẹ trên canvas
+    (src/utils/imagePipeline.ts), xem trước ngay, rồi tải lên máy chủ để sharp sinh
+    3 cỡ. Hồ sơ lưu URL ngắn của máy chủ — trước đây lưu data URL dài và bị máy chủ
+    cắt còn 2000 ký tự (ảnh hỏng ở mọi máy khác).
+  */
+  const processProfileImage = async (file: File, kind: 'avatar' | 'banner') => {
+    const limitMb = kind === 'avatar' ? 15 : 25;
     if (!file.type.startsWith('image/')) {
       setErrorMsg('Vui lòng chỉ chọn tệp hình ảnh (PNG, JPG, WebP, GIF)!');
-      e.target.value = '';
       return;
     }
-
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
+    if (file.size > limitMb * 1024 * 1024) {
       setErrorMsg(
-        `Kích thước ảnh đại diện (${(file.size / (1024 * 1024)).toFixed(2)}MB) vượt quá 5MB cho phép!`
+        `Kích thước ${kind === 'avatar' ? 'ảnh đại diện' : 'ảnh bìa'} (${(file.size / (1024 * 1024)).toFixed(2)}MB) vượt quá ${limitMb}MB cho phép!`
       );
-      e.target.value = '';
       return;
     }
-
     setErrorMsg(null);
-    const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
-      if (typeof uploadEvent.target?.result === 'string') {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          const maxDim = 512;
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            } else {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            const webpData = canvas.toDataURL('image/webp', 0.95); /* High quality WebP */
-            setAvatar(webpData);
-          } else {
-            setAvatar(uploadEvent.target!.result as string);
-          }
-        };
-        img.src = uploadEvent.target.result;
+    setMediaBusy(kind);
+    const apply = kind === 'avatar' ? setAvatar : setBannerUrl;
+    try {
+      const prepared = await prepareImageForUpload(file, { maxSide: kind === 'avatar' ? 1024 : 2400 });
+      apply(prepared.dataUrl);
+      if (isOwnProfile) {
+        try {
+          const uploaded = await uploadProcessedImage(kind, prepared.dataUrl);
+          apply(uploaded.url);
+        } catch (uploadErr) {
+          setErrorMsg(uploadErr instanceof Error ? uploadErr.message : 'Chưa tải được ảnh lên máy chủ.');
+        }
       }
-    };
-    reader.onerror = () => {
-      setErrorMsg('Đã xảy ra lỗi khi đọc tệp ảnh. Vui lòng thử lại!');
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Đã xảy ra lỗi khi xử lý ảnh. Vui lòng thử lại!');
+    } finally {
+      setMediaBusy(null);
+    }
   };
 
-  /* 15MB Profile Banner Upload Handler */
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) void processProfileImage(file, 'avatar');
+  };
+
   const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      setErrorMsg('Vui lòng chỉ chọn tệp hình ảnh cho ảnh bìa (PNG, JPG, WebP, GIF)!');
-      e.target.value = '';
-      return;
-    }
-
-    const maxSize = 15 * 1024 * 1024; /* 15MB */
-    if (file.size > maxSize) {
-      setErrorMsg(
-        `Kích thước ảnh bìa (${(file.size / (1024 * 1024)).toFixed(2)}MB) vượt quá giới hạn 15MB!`
-      );
-      e.target.value = '';
-      return;
-    }
-
-    setErrorMsg(null);
-    const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
-      if (typeof uploadEvent.target?.result === 'string') {
-        setBannerUrl(uploadEvent.target.result);
-      }
-    };
-    reader.onerror = () => {
-      setErrorMsg('Không thể đọc tệp ảnh bìa. Vui lòng thử lại!');
-    };
-    reader.readAsDataURL(file);
     e.target.value = '';
+    if (file) void processProfileImage(file, 'banner');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSaving) return;
+    if (isSaving || mediaBusy) return;
     if (!name.trim()) {
       setErrorMsg('Tên hiển thị không được để trống!');
       return;
@@ -609,22 +579,24 @@ const ProfileModalInner: React.FC<{
     e.preventDefault();
     if (isSubmittingReport) return;
     setIsSubmittingReport(true);
+    setReportErrorMsg(null);
     try {
-      const res = await fetch('/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reporterId: viewerUser?.id || 'guest',
-          reporterName: viewerUser?.name || 'Thành viên F-Forum',
-          reporterEmail: viewerUser?.email || '',
-          reportedUserId: currentUser.id,
-          reportedUserName: currentUser.name,
-          reason: reportReason,
-          details: reportDetails.trim(),
-        }),
-      });
-      const data = await res.json();
-      setReportSuccess(data.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị.');
+      /* EPIC 5: máy chủ bắt buộc đăng nhập và tự lấy danh tính người tố cáo từ phiên. */
+      const outcome = describeReportResult(
+        await settleReportRequest(
+          postJson('/api/reports', {
+            reportedUserId: currentUser.id,
+            reportedUserName: currentUser.name,
+            reason: reportReason,
+            details: reportDetails.trim(),
+          }),
+        ),
+      );
+      if (!outcome.ok) {
+        setReportErrorMsg(outcome.message);
+        return;
+      }
+      setReportSuccess(outcome.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị.');
       pushNotification({
         type: 'system',
         category: 'system',
@@ -633,16 +605,12 @@ const ProfileModalInner: React.FC<{
         targetView: 'home',
       });
     } catch {
-      setReportSuccess('Đã tiếp nhận tố cáo của bạn và chuyển tới Ban Quản Trị.');
+      setReportErrorMsg('Mất kết nối máy chủ — tố cáo CHƯA được gửi. Vui lòng thử lại.');
     } finally {
       setIsSubmittingReport(false);
     }
   };
 
-  const filteredShopItems = useMemo(() => {
-    if (shopFilter === 'all') return SHOP_ITEMS;
-    return SHOP_ITEMS.filter((it) => it.tierColor === shopFilter);
-  }, [shopFilter]);
 
   const effectiveBannerUrl = currentUser.bannerUrl || bannerUrl;
   const effectiveBannerGradient =
@@ -741,7 +709,7 @@ const ProfileModalInner: React.FC<{
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                Chill Box
+                Boutique
               </button>
 
               <button
@@ -824,7 +792,7 @@ const ProfileModalInner: React.FC<{
                   style={{ background: effectiveBannerGradient }}
                 >
                   {effectiveBannerUrl ? (
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={effectiveBannerUrl}
                       alt="Ảnh bìa hồ sơ"
                       className="w-full h-full object-cover"
@@ -1105,56 +1073,12 @@ const ProfileModalInner: React.FC<{
 
                     {/* CHILL BOX & KỆ SÁCH */}
                     <div className="space-y-3">
-                      <ClaymorphismCard padding="md" className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5 font-mono">
-                            <ShoppingBag className="w-4 h-4 text-amber-400" />
-                            Chill Box
-                          </span>
-                          <span className="pc-12-pill px-2 py-0.5 text-[10px] text-amber-300 font-mono">
-                            {userInventory.length} vật phẩm
-                          </span>
-                        </div>
-
-                        {userInventory.length === 0 ? (
-                          <div className="pc-12-well py-4 px-3 text-center">
-                            <p className="text-[11px] text-neutral-400">Chưa sở hữu trang bị nào.</p>
-                            <button
-                              type="button"
-                              onClick={() => setActiveTab('shop')}
-                              className="mt-1.5 text-[11px] font-bold text-amber-300 hover:text-amber-200 cursor-pointer underline underline-offset-2"
-                            >
-                              Ghé cửa hàng bằng Coin của bạn →
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-4 gap-2">
-                            {userInventory.map((itemId, index) => {
-                              const item = SHOP_ITEMS.find((s) => s.id === itemId);
-                              return (
-                                <div
-                                  key={itemId}
-                                  style={{ '--i': index } as React.CSSProperties}
-                                  className="ac-01__card pc-12-well relative p-2 flex flex-col items-center text-center"
-                                  title={item?.name || itemId}
-                                >
-                                  <span className="w-5 h-5 flex items-center justify-center">
-                                    <ShopItemSvg type={item?.iconType || 'sparkle'} size={20} />
-                                  </span>
-                                  <span className="text-[9px] font-semibold text-white/80 mt-1 truncate max-w-full">
-                                    {item?.name || itemId}
-                                  </span>
-                                  {currentUser.equippedBadge === itemId && (
-                                    <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-[8px] font-bold text-black border border-amber-200">
-                                      Đeo
-                                    </span>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </ClaymorphismCard>
+                      <TrophyShelf
+                        inventory={userInventory}
+                        items={SHOP_ITEMS}
+                        equippedId={currentUser.equippedBadge}
+                        onOpenShop={isOwnProfile ? () => setActiveTab('shop') : undefined}
+                      />
 
                       {/* KỆ SÁCH — kệ sách thật, lưu theo tài khoản */}
                       <BookshelfPanel
@@ -1180,29 +1104,15 @@ const ProfileModalInner: React.FC<{
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
                       {/* Cột trái: Biểu đồ Radar đa giác 5 đỉnh trục */}
                       <div className="md:col-span-6 flex flex-col items-center justify-center p-3 pc-12-well h-[270px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarAxes}>
-                            <PolarGrid stroke="rgba(255, 255, 255, 0.1)" />
-                            <PolarAngleAxis dataKey="name" tick={{ fill: '#e2e8f0', fontSize: 10, fontWeight: 'bold' }} />
-                            <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                            <Radar
-                              name="Thành tựu"
-                              dataKey="score"
-                              stroke="#EAB308"
-                              strokeWidth={2.5}
-                              fill="rgba(14, 165, 233, 0.25)"
-                              fillOpacity={1}
-                              dot={{ r: 4.5, fill: "#06b6d4", stroke: "#0c1218", strokeWidth: 2 }}
-                              activeDot={{ r: 6, fill: "#06b6d4", stroke: "#EAB308", strokeWidth: 2 }}
-                            />
-                            <Tooltip
-                              contentStyle={{ backgroundColor: '#0c1218', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                              itemStyle={{ color: '#06b6d4', fontWeight: 'bold' }}
-                              labelStyle={{ color: '#e2e8f0', fontWeight: 'bold', marginBottom: '4px' }}
-                              formatter={(value: any, _name: any, props: any) => [`${value}%`, props.payload.full]}
-                            />
-                          </RadarChart>
-                        </ResponsiveContainer>
+                        {/* EPIC 5: SVG thuần thay recharts (~300 kB) — cùng màu, cùng tooltip. */}
+                        <RadarSpiderChart
+                          data={radarAxes}
+                          max={100}
+                          stroke="#EAB308"
+                          fill="rgba(14, 165, 233, 0.25)"
+                          dotFill="#06b6d4"
+                          title="Các môn đã giúp đỡ bạn bè"
+                        />
                       </div>
 
                       {/* Cột phải: Danh sách môn học chi tiết (100% dữ liệu thật từ câu trả lời của học sinh) */}
@@ -1392,121 +1302,18 @@ const ProfileModalInner: React.FC<{
 
           {/* TAB 3: Chill Box Shop GUI (12 Custom SVG Items in 3D Rounded Cards) */}
           {activeTab === 'shop' && (
-            <div className="space-y-4 ff-tab-panel-enter">
-              {/* Shop Header Banner */}
-              <div className="pc-12-card p-4 flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-1.5">
-                    <ShoppingBag className="w-4 h-4 text-amber-400" />
-                    <span>CHILL BOX • TIỆM VẬT PHẨM HỌC ĐƯỜNG</span>
-                  </h3>
-                  <p className="text-[11px] text-neutral-300 mt-0.5">
-                    Dùng F-Coin tích lũy từ điểm danh và giải bài tập để mở khóa vật phẩm độc bản.
-                  </p>
-                </div>
-                <div className="pc-12-well flex items-center gap-1.5 px-3.5 py-2 text-amber-300 font-mono font-bold text-xs shrink-0">
-                  <Coins className="w-4 h-4 text-amber-400 animate-spin" style={{ animationDuration: '5s' }} />
-                  <span>{userCoin} Coin</span>
-                </div>
-              </div>
-
-              {/* Color Filter Tabs */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                {(
-                  [
-                    { id: 'all', label: 'Tất Cả (12)' },
-                    { id: 'green', label: '🟢 Lục' },
-                    { id: 'blue', label: '🔵 Lam' },
-                    { id: 'red', label: '🔴 Đỏ' },
-                    { id: 'purple', label: '🟣 Tím' },
-                  ] as const
-                ).map((f) => (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => setShopFilter(f.id)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                      shopFilter === f.id
-                        ? 'bg-amber-500 text-black font-bold shadow-md'
-                        : 'pc-12-pill text-neutral-300 hover:text-white'
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* 12 Items Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {filteredShopItems.map((item) => {
-                  const isOwned = userInventory.includes(item.id);
-                  const isEquipped = currentUser.equippedBadge === item.id;
-                  const canAfford = userCoin >= item.price;
-                  const styles = getTierColorStyles(item.tierColor);
-
-                  return (
-                    <div
-                      key={item.id}
-                      className={`pc-12-card p-4 border ${styles.border} flex flex-col justify-between transition-transform duration-200 hover:scale-[1.02]`}
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-start justify-between">
-                          <div className="w-12 h-12 rounded-2xl pc-12-well flex items-center justify-center p-1.5">
-                            <ShopItemSvg type={item.iconType} size={36} />
-                          </div>
-                          <div className="pc-12-pill flex items-center gap-1 px-2 py-1">
-                            <span className={`w-3 h-3 rounded-full ${styles.dot}`} />
-                          </div>
-                        </div>
-
-                        <div>
-                          <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
-                            <span>{item.name}</span>
-                            {isEquipped && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />}
-                          </h4>
-                          <p className="text-[11px] text-neutral-400 line-clamp-2 mt-0.5 leading-snug">
-                            {item.description}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="pt-3 mt-2 border-t border-white/10 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1 text-xs font-mono font-bold text-amber-300">
-                          <Coins className="w-3.5 h-3.5 text-amber-400" />
-                          <span>{item.price} Coin</span>
-                        </div>
-
-                        {isOwned ? (
-                          <button
-                            type="button"
-                            onClick={() => handleEquipItem(item.id)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                              isEquipped
-                                ? 'bg-amber-500 text-black shadow-md'
-                                : 'pc-12-btn text-white'
-                            }`}
-                          >
-                            {isEquipped ? 'Đang Dùng' : 'Trang Bị'}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleBuyItem(item)}
-                            disabled={!canAfford}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                              canAfford
-                                ? `${styles.btn} shadow-md cursor-pointer hover:opacity-90 active:scale-95`
-                                : 'pc-12-well text-neutral-500 cursor-not-allowed'
-                            }`}
-                          >
-                            {canAfford ? 'Mua Ngay' : 'Chưa Đủ Coin'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+            <div className="ff-tab-panel-enter">
+              <GachaBoutique
+                items={SHOP_ITEMS}
+                inventory={userInventory}
+                equippedId={currentUser.equippedBadge}
+                coin={userCoin}
+                ownership={shopOwnership}
+                userName={currentUser.name}
+                readOnly={!isOwnProfile}
+                onBuy={handleBuyItem}
+                onEquip={handleEquipItem}
+              />
             </div>
           )}
 
@@ -1591,7 +1398,7 @@ const ProfileModalInner: React.FC<{
                   style={{ background: profileGradient }}
                 >
                   {bannerUrl ? (
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={bannerUrl}
                       alt="Ảnh bìa xem trước"
                       className="w-full h-full object-cover"
@@ -1605,7 +1412,7 @@ const ProfileModalInner: React.FC<{
                       className="pc-12-btn px-3.5 py-1.5 rounded-full text-xs font-bold text-white hover:text-amber-300 flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
                     >
                       <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Tải ảnh bìa (tối đa 15MB)</span>
+                      <span>{mediaBusy === 'banner' ? 'Đang xử lý ảnh bìa…' : 'Tải ảnh bìa (tối đa 25MB)'}</span>
                     </label>
                     {bannerUrl && (
                       <button
@@ -1646,7 +1453,7 @@ const ProfileModalInner: React.FC<{
                         className="absolute inset-0 bg-black/65 rounded-2xl flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] text-white font-medium"
                       >
                         <Upload className="w-4 h-4 mb-0.5" />
-                        Đổi ảnh
+                        {mediaBusy === 'avatar' ? 'Đang xử lý…' : 'Đổi ảnh'}
                       </label>
                       <input
                         id="avatar-upload"
@@ -1802,11 +1609,11 @@ const ProfileModalInner: React.FC<{
                   </button>
                   <button
                     type="submit"
-                    disabled={isSaving}
+                    disabled={isSaving || mediaBusy !== null}
                     className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 hover:opacity-90 active:scale-95 text-neutral-950 font-bold text-xs flex items-center gap-1.5 shadow-[0_4px_16px_rgba(245,158,11,0.4)] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Check className="w-3.5 h-3.5" />
-                    <span>{isSaving ? 'Đang lưu...' : 'Lưu thay đổi F-ID'}</span>
+                    <span>{isSaving ? 'Đang lưu...' : mediaBusy ? 'Đang xử lý ảnh...' : 'Lưu thay đổi F-ID'}</span>
                   </button>
                 </div>
               </div>
@@ -1864,6 +1671,9 @@ const ProfileModalInner: React.FC<{
               </div>
             ) : (
               <form onSubmit={handleReportUserSubmit} className="space-y-3.5">
+                {reportErrorMsg && (
+                  <p role="alert" className="ff-report-error">{reportErrorMsg}</p>
+                )}
                 <div className="pc-12-well p-2.5 text-xs text-neutral-300">
                   Đối tượng tố cáo: <strong className="text-white">{currentUser.name}</strong>
                 </div>
@@ -1956,6 +1766,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   initialTab = 'overview',
   questions = [],
   solutions = [],
+  shopOwnership,
 }) => {
   if (!isOpen) return null;
   return (
@@ -1970,6 +1781,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       initialTab={initialTab}
       questions={questions}
       solutions={solutions}
+      shopOwnership={shopOwnership}
     />
   );
 };

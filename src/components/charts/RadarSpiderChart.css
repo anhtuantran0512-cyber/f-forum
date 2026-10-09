@@ -1,0 +1,139 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
+/* RadarSpiderChart — giữ đúng bảng màu của biểu đồ recharts cũ. */
+
+.ff-radar {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.ff-radar svg {
+  display: block;
+  overflow: visible;
+}
+
+.ff-radar__grid path,
+.ff-radar__grid line {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 1;
+}
+
+.ff-radar__labels text {
+  fill: #e2e8f0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.ff-radar__series {
+  animation: ffRadarBloom 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ff-radar__area {
+  fill: var(--radar-fill, rgba(14, 165, 233, 0.25));
+  stroke: var(--radar-stroke, #eab308);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+.ff-radar__dot {
+  fill: var(--radar-dot, #06b6d4);
+  stroke: #0c1218;
+  stroke-width: 2;
+  cursor: pointer;
+  transition: r 160ms ease, stroke 160ms ease;
+}
+
+.ff-radar__dot.is-active {
+  stroke: var(--radar-stroke, #eab308);
+}
+
+.ff-radar__dot:focus-visible {
+  outline: none;
+  stroke: #fde047;
+  stroke-width: 3;
+}
+
+.ff-radar__tooltip {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, calc(-100% - 12px));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background-color: #0c1218;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.ff-radar__tooltip-label {
+  color: #e2e8f0;
+  font-weight: 700;
+}
+
+.ff-radar__tooltip-value {
+  color: #06b6d4;
+  font-weight: 700;
+}
+
+@keyframes ffRadarBloom {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-radar__series {
+    animation: none;
+  }
+}
+
+.reduce-motion .ff-radar__series {
+  animation: none;
+}
+
+/* Light Mode (hồ sơ dùng vỏ .pc-12-shell kính sữa) — giữ tương phản WCAG AA. */
+html.light .pc-12-shell .ff-radar__grid path,
+html.light .pc-12-shell .ff-radar__grid line {
+  stroke: rgba(51, 65, 85, 0.22);
+}
+
+html.light .pc-12-shell .ff-radar__labels text {
+  fill: #334155;
+}
+
+html.light .pc-12-shell .ff-radar__area {
+  fill: rgba(14, 165, 233, 0.22);
+  stroke: #a16207;
+}
+
+html.light .pc-12-shell .ff-radar__dot {
+  fill: #0e7490;
+  stroke: #ffffff;
+}
+
+html.light .pc-12-shell .ff-radar__tooltip {
+  background-color: #ffffff;
+  border-color: rgba(51, 65, 85, 0.18);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+}
+
+html.light .pc-12-shell .ff-radar__tooltip-label {
+  color: #101827;
+}
+
+html.light .pc-12-shell .ff-radar__tooltip-value {
+  color: #0e7490;
+}

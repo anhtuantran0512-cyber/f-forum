@@ -618,14 +618,33 @@ export interface AnalyticsReport {
     answers: number;
     lastSeenAt: number;
   }>;
+  /** Epic 3 — mục 3.3: số liệu quản trị bổ sung cho dashboard. */
+  extras: {
+    /** Tổng báo cáo phân loại theo trạng thái (mới/chờ xử lý, đã xử lý, đã bỏ qua). */
+    reportsByStatus: { pending: number; resolved: number; dismissed: number };
+    /** Tổng số coin đang lưu hành trên các tài khoản (đã phát ra). */
+    coinsIssued: number;
+    /** Top CLB đông nhất theo số thành viên. */
+    topClubs: Array<{ name: string; membersCount: number; posts: number }>;
+    /** Tỷ lệ giữ chân 7 ngày: thành viên có hoạt động trong 7 ngày / tổng tài khoản (0..1). */
+    retention7d: number;
+  };
+}
+
+/** Nguồn dữ liệu mở rộng cho dashboard quản trị (server tự đọc, client không gửi lên). */
+export interface AnalyticsReportExtrasInput {
+  reports?: any[];
+  clubs?: any[];
+  clubPosts?: any[];
 }
 
 /** Tạo ảnh chụp thống kê theo giờ/ngày/tháng/năm, không lấy dữ liệu từ client. */
 export const buildAnalyticsReport = (
   analytics: AnalyticsStore,
-  users: Record<string, { id?: string; name?: string; avatar?: string }>,
+  users: Record<string, { id?: string; name?: string; avatar?: string; coin?: number }>,
   rangeValue: unknown,
   now: number = Date.now(),
+  extrasInput: AnalyticsReportExtrasInput = {},
 ): AnalyticsReport => {
   const validRanges: AnalyticsRange[] = ['24h', '7d', '30d', '12m', 'years'];
   const range = validRanges.includes(rangeValue as AnalyticsRange) ? rangeValue as AnalyticsRange : '7d';
@@ -731,6 +750,35 @@ export const buildAnalyticsReport = (
   ));
   const onlineMembers = new Set(online.flatMap((session) => session.email ? [session.email] : []));
 
+  /* --- Epic 3 — số liệu quản trị bổ sung (mục 3.3) --- */
+  const reportRows = Array.isArray(extrasInput.reports) ? extrasInput.reports : [];
+  const reportsByStatus = {
+    pending: reportRows.filter((r: any) => !r?.status || r.status === 'PENDING').length,
+    resolved: reportRows.filter((r: any) => r?.status === 'RESOLVED').length,
+    dismissed: reportRows.filter((r: any) => r?.status === 'DISMISSED').length,
+  };
+  const coinsIssued = Object.values(users).reduce((sum, user) => sum + Math.max(0, Number(user?.coin) || 0), 0);
+  const postsByClub = new Map<string, number>();
+  for (const post of (Array.isArray(extrasInput.clubPosts) ? extrasInput.clubPosts : [])) {
+    const clubId = String(post?.clubId || '');
+    if (!clubId) continue;
+    postsByClub.set(clubId, (postsByClub.get(clubId) || 0) + 1);
+  }
+  const topClubs = (Array.isArray(extrasInput.clubs) ? extrasInput.clubs : [])
+    .map((club: any) => ({
+      name: String(club?.name || 'CLB không tên'),
+      membersCount: Math.max(0, Number(club?.membersCount) || Number(club?.foundingMembers?.length) || 0),
+      posts: postsByClub.get(String(club?.id || '')) || 0,
+    }))
+    .sort((a, b) => b.membersCount - a.membersCount || b.posts - a.posts || a.name.localeCompare(b.name, 'vi'))
+    .slice(0, 5);
+  const totalMembersCount = Object.keys(users).length;
+  const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+  /* Chỉ đếm tài khoản còn tồn tại — số đo của tài khoản đã xoá không được đẩy tỷ lệ vượt 100%. */
+  const activeInWeek = Object.entries(analytics.members)
+    .filter(([email, member]) => Boolean(users[email]) && (member.lastSeenAt || 0) >= weekAgo).length;
+  const retention7d = totalMembersCount > 0 ? Math.min(1, activeInWeek / totalMembersCount) : 0;
+
   return {
     generatedAt: new Date(now).toISOString(),
     trackingStartedAt: new Date(analytics.trackingStartedAt).toISOString(),
@@ -754,6 +802,12 @@ export const buildAnalyticsReport = (
     },
     series,
     topMembers: memberRows,
+    extras: {
+      reportsByStatus,
+      coinsIssued,
+      topClubs,
+      retention7d,
+    },
   };
 };
 

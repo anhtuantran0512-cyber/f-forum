@@ -33,6 +33,9 @@ import {
 } from '../store/adminStore';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { safeStorage } from '../utils/storage';
+import { isMasterAdmin } from '../config/admin';
+import './about/AboutLayouts.css';
+import { rafThrottle } from '../utils/rafThrottle';
 
 export type { MilestoneItem };
 
@@ -75,7 +78,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
   onNavigate,
 }) => {
   const { currentUser } = useAuth();
-  const isSuperAdmin = currentUser?.email?.toLowerCase() === 'BroAmStuck@gmail.com';
+  const isSuperAdmin = isMasterAdmin(currentUser?.email);
 
   const [localAboutData, setLocalAboutData] = useState<AboutData>(() => {
     return customAboutData || getSavedAboutData();
@@ -238,7 +241,9 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     checkFinePointer();
 
     updateEngineDimensions();
-    window.addEventListener('resize', updateEngineDimensions);
+    /* R4: gộp resize về 1 lần/khung hình */
+    const updateEngineDimensionsFrame = rafThrottle(updateEngineDimensions);
+    window.addEventListener('resize', updateEngineDimensionsFrame, { passive: true });
 
     const tick = () => {
       const state = engineState.current;
@@ -312,7 +317,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
     return () => {
       cancelAnimationFrame(animId);
-      window.removeEventListener('resize', updateEngineDimensions);
+      { window.removeEventListener('resize', updateEngineDimensionsFrame); updateEngineDimensionsFrame.cancel(); }
     };
   }, [updateEngineDimensions]);
 
@@ -357,6 +362,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     const { R } = state;
     state.wheelCamZ = Math.max(-R * 0.35, Math.min(R * 0.5, state.wheelCamZ - e.deltaY * 0.22));
   };
+
+  const collageMilestones = aboutData.milestones.filter(ms => Boolean(ms.imageUrl)).slice(0, 5);
 
   const handleCardClick = (ms: MilestoneItem, index: number, e: React.MouseEvent<HTMLElement>) => {
     e.stopPropagation();
@@ -554,7 +561,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
   return (
     <div
-      className={`khu-vinh-danh-scope relative w-full bg-[#000000] text-[#f4f2ef] select-none ${
+      className={`khu-vinh-danh-scope ff-keep-dark relative w-full bg-[#000000] text-[#f4f2ef] select-none ${
         isFullscreenStage
           ? 'fixed inset-0 z-50 h-screen w-screen overflow-hidden'
           : isEmbedded
@@ -962,19 +969,53 @@ export const AboutUs: React.FC<AboutUsProps> = ({
       {/* Flat Bento Grid View Alternative */}
       {viewMode === 'grid' && (
         <div className="relative z-10 w-full max-w-6xl mx-auto px-4 py-24 sm:py-28 space-y-8 animate-fade-up">
-          <div className="text-center space-y-2 border-b border-white/10 pb-6">
-            <h1
-              className="text-2xl sm:text-4xl font-normal text-white font-playfair tracking-tight"
-              style={{ fontFamily: '"Playfair Display", serif' }}
-            >
-              {aboutData.headline}
-            </h1>
-            <p className="text-xs sm:text-sm text-[#8c8783] max-w-2xl mx-auto">
-              {aboutData.subtitle}
-            </p>
+          {/* Hero: lời kể bên trái + collage 5 ô bất đối xứng từ chính các cột mốc (code_yeucau · tcg-12) */}
+          <div className={`ff-collage-hero border-b border-white/10 pb-8 ${collageMilestones.length < 5 ? 'is-solo' : ''}`}>
+            <div className="ff-collage-hero__copy space-y-3">
+              <p className="text-[10.5px] font-mono uppercase tracking-[0.32em] text-cyan-300/80">Hành trình F-Forum</p>
+              <h1
+                className="text-2xl sm:text-4xl font-normal text-white font-playfair tracking-tight"
+                style={{ fontFamily: '"Playfair Display", serif' }}
+              >
+                {aboutData.headline}
+              </h1>
+              <p className="text-xs sm:text-sm text-[#8c8783] max-w-2xl">
+                {aboutData.subtitle}
+              </p>
+              <p className="text-[11px] font-mono text-[#8c8783]">
+                {aboutData.milestones.length} cột mốc · chạm vào ảnh để mở chi tiết
+              </p>
+            </div>
+            {collageMilestones.length >= 5 && (
+              <div className="ff-collage" role="list" aria-label="Ảnh nổi bật của các cột mốc">
+                {collageMilestones.map((ms, i) => (
+                  <button
+                    type="button"
+                    role="listitem"
+                    key={ms.id}
+                    className={`ff-collage__tile ff-collage__tile--${i + 1}`}
+                    style={{ '--i': i } as React.CSSProperties}
+                    onClick={e => handleCardClick(ms, aboutData.milestones.indexOf(ms), e)}
+                    aria-label={`Mở cột mốc: ${ms.title}`}
+                  >
+                    <img
+                      src={ms.imageUrl}
+                      alt=""
+                      onError={e => handleImageError(e, DEFAULT_AVATAR)}
+                      loading={i < 2 ? 'eager' : 'lazy'}
+                      decoding="async"
+                      width={480}
+                      height={360}
+                    />
+                    <span className="ff-collage__cap">{ms.title}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="bento-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {/* Masonry theo cột: thẻ cao (3:4) và thấp (16:9) xếp khít, không để hở như lưới đều */}
+          <div className="bento-grid ff-masonry">
             {aboutData.milestones.map((ms, idx) => (
               <button
                 type="button"

@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { Fragment, useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
+import React, { Fragment, useState, useRef, useEffect, useCallback } from 'react';
 import {
   MessageSquare,
   X,
@@ -31,6 +31,8 @@ import { DailyEngagementModal } from './DailyEngagementModal';
 import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
 import { ScrollProgressRail } from './ScrollProgressRail';
 import { spawnRipple } from '../utils/ripple';
+import { isMasterAdmin } from '../config/admin';
+import { rafThrottle } from '../utils/rafThrottle';
 
 export interface NavbarProps {
   currentView: DimensionView;
@@ -38,6 +40,8 @@ export interface NavbarProps {
   currentUser: User | null;
   onOpenLoginModal: () => void;
   onLogout: () => void;
+  /** Đăng xuất mọi thiết bị (Cài đặt → Phiên đăng nhập). */
+  onLogoutEverywhere?: () => Promise<boolean>;
   isChatOpen: boolean;
   onToggleChat: () => void;
   unreadChatCount: number;
@@ -82,6 +86,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   onOpenLoginModal,
   onLogout,
+  onLogoutEverywhere,
   onToggleChat,
   unreadChatCount,
   onOpenProfile,
@@ -105,10 +110,11 @@ export const Navbar: React.FC<NavbarProps> = ({
     return safeStorage.getItem('fforum_sfx') !== 'false';
   });
   const [reducedMotion, setReducedMotion] = useState(() => {
-    return safeStorage.getItem('fforum_reduced_motion') === 'true';
-  });
-  const [potatoMode, setPotatoMode] = useState(() => {
-    return safeStorage.getItem('fforum_potato_mode') === 'true';
+    /* EPIC 5: chưa từng tự chọn trong Cài đặt → theo thiết lập hệ điều hành
+       (prefers-reduced-motion). Trước đây bỏ qua hoàn toàn thiết lập này. */
+    const saved = safeStorage.getItem('fforum_reduced_motion');
+    if (saved === 'true' || saved === 'false') return saved === 'true';
+    return typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
   });
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notifMenuRef = useRef<HTMLDivElement>(null);
@@ -145,6 +151,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   });
   const [alwaysCompact, setAlwaysCompact] = useState<boolean>(() => {
     return safeStorage.getItem('fforum_nav_compact') === 'true';
+  });
+  /* EPIC 2 — Potator Mode (bản mới): chỉ thay nền động bằng gradient tĩnh,
+     giữ nguyên 100% animation UI. Trạng thái lưu localStorage. */
+  const [potatorMode, setPotatorMode] = useState<boolean>(() => {
+    return safeStorage.getItem('fforum_potator_mode') === 'true';
+  });
+  const [potatorBg, setPotatorBg] = useState<string>(() => {
+    return safeStorage.getItem('fforum_potator_bg') || 'gunmetal';
   });
   const [isNavbarHovered, setIsNavbarHovered] = useState<boolean>(true);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -237,8 +251,10 @@ export const Navbar: React.FC<NavbarProps> = ({
       }
     };
     onResize();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    /* R4: gộp resize về 1 lần/khung hình */
+    const onResizeFrame = rafThrottle(onResize);
+    window.addEventListener('resize', onResizeFrame, { passive: true });
+    return () => { window.removeEventListener('resize', onResizeFrame); onResizeFrame.cancel(); }
   }, [alwaysCompact]);
 
   /* Khi đổi vị trí dock (trên/dưới/trái/phải): chạy hoạt ảnh morph để việc
@@ -341,6 +357,35 @@ export const Navbar: React.FC<NavbarProps> = ({
   /* Thời gian chạy lớp loading = đúng nhịp bề rộng thanh co giãn (0.78s) để
      hiệu ứng "đang đổi hình dáng" phủ trọn vẹn cú morph, không tắt giữa chừng. */
   const NAV_MORPH_MS = 780;
+  /* EPIC 5: đổi thiết lập "giảm chuyển động" của hệ điều hành khi đang mở trang →
+     áp ngay, trừ khi người dùng đã tự chọn trong Cài đặt (lựa chọn đó được ưu tiên). */
+  useEffect(() => {
+    const query = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (!query || typeof query.addEventListener !== 'function') return undefined;
+    const onChange = (event: MediaQueryListEvent) => {
+      const saved = safeStorage.getItem('fforum_reduced_motion');
+      if (saved === 'true' || saved === 'false') return;
+      setReducedMotion(event.matches);
+    };
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  }, []);
+
+  /* EPIC 5: gợi ý Potato Mode (PotatoSuggestion) xin bật/tắt chế độ qua sự kiện này —
+     Navbar là nơi giữ trạng thái thật nên phải tự cập nhật, không chỉ App. */
+  useEffect(() => {
+    const onPotatorRequest = (event: Event) => {
+      const mode = (event as CustomEvent<{ mode?: boolean }>).detail?.mode;
+      if (typeof mode !== 'boolean') return;
+      setPotatorMode(mode);
+      safeStorage.setItem('fforum_potator_mode', String(mode));
+      document.documentElement.classList.toggle('potator-mode', mode);
+      window.dispatchEvent(new CustomEvent('fforum_potator_sync', { detail: { mode } }));
+    };
+    window.addEventListener('fforum_potator_request', onPotatorRequest);
+    return () => window.removeEventListener('fforum_potator_request', onPotatorRequest);
+  }, []);
+
   const [isMorphBusy, setIsMorphBusy] = useState(false);
   const morphBusyTimerRef = useRef<number | null>(null);
 
@@ -379,41 +424,14 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
   }, []);
 
-  const liquidPillRef = useRef<HTMLDivElement>(null);
-
   /* ============================================================ */
-  /* Liquid Droplet active pill measurement (useLayoutEffect)      */
+  /* Chỉ báo tab đang mở — KHÔNG còn đo bằng JS nữa.
+     Thay vì một viên pill riêng (đo offsetLeft/offsetWidth rồi trượt
+     theo), mỗi nút tab tự chứa một lớp chỉ báo (`.nav-tab-btn__indicator`)
+     bám sát 100% khung nút. Khi navbar phóng to / thu nhỏ, nhãn co giãn,
+     khung nút đổi kích thước thì chỉ báo đổi theo NGAY LẬP TỨC — không
+     còn cảnh pill bị lệch / nhảy cóc / biến mất giữa lúc morph. */
   /* ============================================================ */
-  const settleTimers = useRef<number | null>(null);
-  useLayoutEffect(() => {
-    if (isMorphBusy) return;
-    /* Per-frame measuring burst stays short: performance.now() - startMs < 200 (was 550ms of layout reads) */
-    void settleTimers;
-    const activeEl = tabRefs.current[currentView];
-    const pill = liquidPillRef.current;
-    if (!activeEl || !pill) return;
-
-    /* Use offsetLeft / offsetWidth directly on the pill */
-    const left = activeEl.offsetLeft;
-    const width = activeEl.offsetWidth;
-
-    pill.style.setProperty('--liquid-pill-x', `${left}px`);
-    pill.style.setProperty('--liquid-pill-w', `${width}px`);
-    pill.style.opacity = width > 0 ? '1' : '0';
-
-    try {
-      pill.animate(
-        [
-          { transform: 'translateX(var(--liquid-pill-x)) scaleX(1)' },
-          { transform: 'translateX(var(--liquid-pill-x)) scaleX(1.2)' },
-          { transform: 'translateX(var(--liquid-pill-x)) scaleX(1)' }
-        ],
-        { duration: 350, easing: 'ease-in-out' }
-      );
-    } catch {
-      /* ignore if Web Animations API fails */
-    }
-  }, [currentView, isVertical, effectiveCompact, navbarPosition, isMorphBusy]);
 
   /* Keep the active tab visible inside the scrollable strip */
   useEffect(() => {
@@ -457,12 +475,17 @@ export const Navbar: React.FC<NavbarProps> = ({
       document.documentElement.classList.remove('reduce-motion');
     }
 
-    if (potatoMode) {
-      document.documentElement.classList.add('potato-mode');
-    } else {
-      document.documentElement.classList.remove('potato-mode');
-    }
-  }, [theme, reducedMotion, potatoMode]);
+    /* Áp dụng NGAY khi tải trang cả độ mờ kính và cỡ chữ đã lưu — trước đây
+       hai thanh trượt này chỉ đổi khi bấm, reload là quay về mặc định
+       (chức năng "không hoạt động"). */
+    document.documentElement.style.setProperty('--glass-blur', `${glassBlur}px`);
+    document.documentElement.classList.remove('text-size-sm', 'text-size-md', 'text-size-lg');
+    document.documentElement.classList.add(`text-size-${fontSize}`);
+
+    /* EPIC 2 — Potator Mode: bật/tắt lớp nền tĩnh + chọn preset nền */
+    document.documentElement.classList.toggle('potator-mode', potatorMode);
+    document.documentElement.dataset.potatorBg = potatorBg;
+  }, [theme, reducedMotion, glassBlur, fontSize, potatorMode, potatorBg]);
 
   const handleToggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -511,7 +534,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     });
   };
 
-  const isSuperAdmin = currentUser?.email === 'BroAmStuck@gmail.com';
+  const isSuperAdmin = isMasterAdmin(currentUser?.email);
 
   useEffect(() => {
     if (!isFlyoutOpen) return;
@@ -617,6 +640,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const sharedSettingsProps = {
     isOpen: isSettingsOpen,
+    isAuthenticated: Boolean(currentUser),
+    onLogoutEverywhere,
     onClose: () => setIsSettingsOpen(false),
     theme,
     onToggleTheme: handleToggleTheme,
@@ -628,13 +653,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     onToggleSoundEffects: handleToggleSoundEffects,
     reducedMotion,
     onToggleReducedMotion: handleToggleReducedMotion,
-    potatoMode,
-    onTogglePotatoMode: () => {
-      const next = !potatoMode;
-      setPotatoMode(next);
-      safeStorage.setItem('fforum_potato_mode', String(next));
-      window.dispatchEvent(new CustomEvent('fforum_theme_sync'));
-    },
     godrayPreset,
     onSelectGodray: (preset: string) => {
       setGodrayPreset(preset);
@@ -659,6 +677,24 @@ export const Navbar: React.FC<NavbarProps> = ({
       safeStorage.setItem('fforum_font_size', sz);
       document.documentElement.classList.remove('text-size-sm', 'text-size-md', 'text-size-lg');
       document.documentElement.classList.add(`text-size-${sz}`);
+    },
+    /* EPIC 2 — Potator Mode (bản mới) */
+    potatorMode,
+    onTogglePotatorMode: () => {
+      setPotatorMode((prev) => {
+        const next = !prev;
+        safeStorage.setItem('fforum_potator_mode', String(next));
+        document.documentElement.classList.toggle('potator-mode', next);
+        window.dispatchEvent(new CustomEvent('fforum_potator_sync', { detail: { mode: next } }));
+        return next;
+      });
+    },
+    potatorBg,
+    onSelectPotatorBg: (preset: string) => {
+      setPotatorBg(preset);
+      safeStorage.setItem('fforum_potator_bg', preset);
+      document.documentElement.dataset.potatorBg = preset;
+      window.dispatchEvent(new CustomEvent('fforum_potator_sync', { detail: { bg: preset } }));
     },
     navbarAutoHide,
     onToggleNavbarAutoHide: () => {
@@ -784,19 +820,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             ref={tabsContainerRef}
             className="relative flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-1 min-w-0 nav-center-tabs"
           >
-            {!isVertical && (
-              <div
-                ref={liquidPillRef}
-                className="absolute top-1 bottom-1 rounded-full bg-gradient-to-r from-amber-400/30 to-amber-500/20 border border-amber-400/40 backdrop-blur-sm pointer-events-none hidden lg:block transition-all duration-300"
-                style={{
-                  transform: 'translateX(var(--liquid-pill-x, 0px))',
-                  width: 'var(--liquid-pill-w, 0px)',
-                  opacity: 0,
-                }}
-                aria-hidden="true"
-              />
-            )}
-
             {navItems.map((item, idx) => {
               const isActive = currentView === item.id;
 
@@ -828,6 +851,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                       isActive ? 'text-amber-100' : 'text-white/70 hover:text-white hover:bg-white/[0.07]'
                     }`}
                   >
+                    {/* Lớp chỉ báo tab đang mở — nằm TRONG nút nên tự co giãn
+                        theo khung nút khi navbar phóng to / thu nhỏ, không bao
+                        giờ bị lệch vị trí hay "nhảy" như viên pill cũ. */}
+                    <span
+                      className={`nav-tab-btn__indicator${isActive ? ' nav-tab-btn__indicator--on' : ''}`}
+                      aria-hidden="true"
+                    />
+
                     {/* Icon: hiện khi thu gọn, khi dock dọc, hoặc với các tab luôn-dạng-icon */}
                     <span className="dock-nav-icon ff-nav-tab-icon-wrap flex items-center justify-center ff-nav-tab-icon">
                       {NAV_ICONS[item.id]}
@@ -924,15 +955,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className={`nav-icon-btn group relative w-9 h-9 rounded-full flex items-center justify-center pointer-events-auto cursor-pointer ${
                   isNotificationsOpen ? 'nav-icon-btn--on text-amber-300' : 'text-white/80 hover:text-white'
                 }`}
-                aria-label="Thông báo"
+                aria-label={unreadNotifCount > 0 ? `Thông báo (${unreadNotifCount} chưa đọc)` : 'Thông báo'}
                 title="Thông báo"
               >
-                <Bell size={18} className={isNotificationsOpen ? 'text-amber-300' : 'text-amber-400'} />
-                {unreadNotifCount > 0 && (
-                  <span className="absolute top-0.5 right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-black ring-2 ring-[#0a0f14]">
-                    {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
-                  </span>
-                )}
+                {/* code_yeucau · ntf-13: icon bị khoét thật bằng clip-path, badge nổi trong hốc (không cần vòng giả màu nền) */}
+                <span className="ff-notif-glyph">
+                  <Bell size={18} className={`${isNotificationsOpen ? 'text-amber-300' : 'text-amber-400'}${unreadNotifCount > 0 ? ' ff-notif-notched' : ''}`} />
+                  {unreadNotifCount > 0 && (
+                    <span key={unreadNotifCount} className="ff-notif-badge" aria-hidden="true">
+                      {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
+                    </span>
+                  )}
+                </span>
               </button>
             </div>
 
@@ -1112,14 +1146,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 setIsSettingsOpen(false);
               }}
               className="relative p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors focus:outline-none pointer-events-auto cursor-pointer"
-              aria-label="Thông báo"
+              aria-label={unreadNotifCount > 0 ? `Thông báo (${unreadNotifCount} chưa đọc)` : 'Thông báo'}
             >
-              <Bell size={18} className={isNotificationsOpen ? 'text-amber-300' : 'text-amber-400'} />
-              {unreadNotifCount > 0 && (
-                <span className="absolute top-1 right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-black ring-2 ring-[#0a0f14]">
-                  {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
-                </span>
-              )}
+              <span className="ff-notif-glyph">
+                <Bell size={18} className={`${isNotificationsOpen ? 'text-amber-300' : 'text-amber-400'}${unreadNotifCount > 0 ? ' ff-notif-notched' : ''}`} />
+                {unreadNotifCount > 0 && (
+                  <span key={unreadNotifCount} className="ff-notif-badge" aria-hidden="true">
+                    {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
+                  </span>
+                )}
+              </span>
             </button>
 
             {/* Mobile anchored notification modal */}
@@ -1321,7 +1357,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             role="dialog"
             aria-modal="true"
             aria-label="Menu khám phá"
-            className="fixed bottom-[calc(56px+var(--safe-bottom)+8px)] inset-x-3 z-50 rounded-3xl bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 p-3.5 shadow-2xl animate-fade-up md:hidden pointer-events-auto"
+            className="ff-light-adapt fixed bottom-[calc(56px+var(--safe-bottom)+8px)] inset-x-3 z-50 rounded-3xl bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 p-3.5 shadow-2xl animate-fade-up md:hidden pointer-events-auto"
           >
             <div className="flex items-center justify-between pb-2.5 border-b border-white/10 mb-3">
               <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">

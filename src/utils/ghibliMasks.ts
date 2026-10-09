@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import type { SubjectTag } from '../types';
+import type { SubjectTag } from '../types/index.ts';
 
 export const GHIBLI_MASKS = [
   'data:image/svg+xml;utf8,' +

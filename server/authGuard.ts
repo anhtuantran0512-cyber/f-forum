@@ -201,14 +201,103 @@ export const readBearerToken = (req?: IncomingMessage | null): string | null => 
   return match ? match[1].trim() : null;
 };
 
+/* -------------------------------------------------------------------------- */
+/* Cookie phiên HttpOnly (Epic 5)                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Token trong localStorage đọc được bằng JavaScript — một lỗ XSS duy nhất là đủ
+ * lấy cắp phiên mang đi dùng nơi khác. Cookie `HttpOnly` thì script không đọc được.
+ *
+ * Tiền tố `__Host-` buộc trình duyệt chỉ nhận cookie khi có `Secure`, `Path=/` và
+ * KHÔNG có `Domain` → subdomain khác không ghi đè/đặt trước được (cookie tossing).
+ * `SameSite=Strict` → request từ site khác không mang cookie theo (chống CSRF).
+ * Server vẫn nhận `Authorization: Bearer` cho client cũ và công cụ dòng lệnh.
+ */
+export const SESSION_COOKIE_NAME = '__Host-ff_session';
+
+const headerValue = (value: string | string[] | undefined): string =>
+  (Array.isArray(value) ? value[0] : value || '').trim();
+
+export const parseCookies = (header?: string | string[]): Record<string, string> => {
+  const out: Record<string, string> = {};
+  headerValue(header)
+    .split(';')
+    .forEach((part) => {
+      const eq = part.indexOf('=');
+      if (eq <= 0) return;
+      const name = part.slice(0, eq).trim();
+      if (!name || name in out) return;
+      out[name] = part.slice(eq + 1).trim();
+    });
+  return out;
+};
+
+export const readSessionCookie = (req?: IncomingMessage | null): string | null => {
+  if (!req?.headers?.cookie) return null;
+  const value = parseCookies(req.headers.cookie)[SESSION_COOKIE_NAME];
+  return value ? value : null;
+};
+
+export const buildSessionCookie = (token: string, maxAgeMs: number = SESSION_TTL_MS): string =>
+  `${SESSION_COOKIE_NAME}=${token}; Path=/; Max-Age=${Math.max(0, Math.floor(maxAgeMs / 1000))}; HttpOnly; Secure; SameSite=Strict`;
+
+export const buildClearedSessionCookie = (): string =>
+  `${SESSION_COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`;
+
+/**
+ * Request có đến từ trang KHÁC nguồn không? Dùng để từ chối xác thực bằng cookie.
+ *
+ * Ưu tiên `Sec-Fetch-Site` (trình duyệt tự đặt, script không sửa được). Chỉ khi
+ * thiếu header này mới so Origin với Host — vì sau proxy, Host có thể bị viết lại.
+ * `same-site` cũng bị từ chối: subdomain anh em (vd. sandbox khác cùng tên miền
+ * gốc) vẫn là "cùng site" và SameSite=Strict không chặn được nó.
+ */
+export const isCrossSiteRequest = (req: IncomingMessage): boolean => {
+  const fetchSite = headerValue(req.headers['sec-fetch-site']).toLowerCase();
+  if (fetchSite) return fetchSite !== 'same-origin' && fetchSite !== 'none';
+  const origin = headerValue(req.headers.origin);
+  if (!origin) return false;
+  if (origin === 'null') return true;
+  try {
+    const host = headerValue(req.headers['x-forwarded-host']).split(',')[0].trim() || headerValue(req.headers.host);
+    return new URL(origin).host.toLowerCase() !== host.toLowerCase();
+  } catch {
+    return true;
+  }
+};
+
+/**
+ * Thu hồi phiên: forumServer đăng ký hàm kiểm tra (vd. token phát hành trước mốc
+ * "đăng xuất mọi thiết bị" của tài khoản). Tách thành hook để authGuard vẫn thuần,
+ * không phụ thuộc kho dữ liệu.
+ */
+type RevocationCheck = (claims: SessionClaims) => boolean;
+let revocationCheck: RevocationCheck | null = null;
+export const setSessionRevocationCheck = (fn: RevocationCheck | null): void => {
+  revocationCheck = fn;
+};
+export const isSessionRevoked = (claims: SessionClaims): boolean => {
+  try {
+    return Boolean(revocationCheck?.(claims));
+  } catch {
+    return false;
+  }
+};
+
+/** Token mà request đang dùng: Bearer → token trong body → cookie (chỉ cùng nguồn). */
+export const readRequestToken = (req: IncomingMessage, bodyToken?: string | null): string | null =>
+  readBearerToken(req) || bodyToken || (isCrossSiteRequest(req) ? null : readSessionCookie(req));
+
 /** Xác thực một request: token hợp lệ + email trong token khớp email đang thao tác. */
 export const authorizeRequest = (
   req: IncomingMessage,
   email?: string | null,
   bodyToken?: string | null,
 ): SessionClaims | null => {
-  const claims = verifySessionToken(readBearerToken(req) || bodyToken || null);
+  const claims = verifySessionToken(readRequestToken(req, bodyToken));
   if (!claims) return null;
+  if (isSessionRevoked(claims)) return null;
   if (email && claims.email !== String(email).trim().toLowerCase()) return null;
   return claims;
 };
@@ -244,6 +333,24 @@ export class SlidingWindowRateLimiter {
     recent.push(now);
     this.hits.set(key, recent);
     return { allowed: true, retryAfterMs: 0, remaining: Math.max(0, this.max - recent.length) };
+  }
+
+  /** Xem trạng thái mà KHÔNG tính thêm lượt — dùng cho bộ đếm "lần sai". */
+  peek(key: string, now: number = Date.now()): RateLimitResult {
+    const cutoff = now - this.windowMs;
+    const recent = (this.hits.get(key) || []).filter((t) => t > cutoff);
+    if (recent.length >= this.max) {
+      return { allowed: false, retryAfterMs: Math.max(0, recent[0] + this.windowMs - now), remaining: 0 };
+    }
+    return { allowed: true, retryAfterMs: 0, remaining: this.max - recent.length };
+  }
+
+  /** Ghi thêm một lượt mà không chặn (vd. một lần nhập sai mật khẩu). */
+  record(key: string, now: number = Date.now()): void {
+    const cutoff = now - this.windowMs;
+    const recent = (this.hits.get(key) || []).filter((t) => t > cutoff);
+    recent.push(now);
+    this.hits.set(key, recent);
   }
 
   reset(key?: string): void {
@@ -366,6 +473,80 @@ const CLIENT_EDITABLE_PROFILE_FIELD_LIMITS = new Map<string, number>([
   ['profileGradient', 500],
 ]);
 
+/* -------------------------------------------------------------------------- */
+/* Làm sạch đầu vào (XSS / giả mạo hiển thị) — Epic 5                          */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * React đã escape mọi chuỗi khi render nên không cần (và không nên) xoá ký tự `<`
+ * khỏi bài viết — học sinh vẫn gõ "a < b". Thứ cần chặn ở tầng dữ liệu là:
+ *  - ký tự điều khiển (NUL, ESC…) làm hỏng log/hiển thị;
+ *  - ký tự định hướng Unicode (U+202A–U+202E, U+2066–U+2069) dùng để đảo ngược
+ *    hiển thị tên/đường dẫn (giả mạo kiểu "Trojan Source");
+ *  - URL nguy hiểm trong trường ảnh: `javascript:`, `data:text/html`, SVG có script.
+ */
+/* Duyệt theo mã ký tự thay cho regex chứa ký tự điều khiển (dễ đọc, không cảnh báo lint). */
+const isBidiControl = (code: number): boolean =>
+  (code >= 0x202a && code <= 0x202e) || (code >= 0x2066 && code <= 0x2069);
+
+export const sanitizePlainText = (value: unknown, maxLength: number, multiline = false): string => {
+  if (typeof value !== 'string') return '';
+  let out = '';
+  for (const ch of value) {
+    const code = ch.codePointAt(0) ?? 0;
+    if (isBidiControl(code)) continue;
+    if (code <= 0x1f || code === 0x7f) {
+      /* Nhiều dòng: giữ tab / xuống dòng; một dòng: mọi ký tự điều khiển thành dấu cách. */
+      if (multiline) {
+        if (code === 0x09 || code === 0x0a || code === 0x0d) out += ch;
+      } else {
+        out += ' ';
+      }
+      continue;
+    }
+    out += ch;
+    if (out.length >= maxLength) break;
+  }
+  return out.slice(0, maxLength);
+};
+
+const SAFE_DATA_IMAGE = /^data:image\/(?:png|jpe?g|webp|gif|avif);base64,[a-z0-9+/=]+$/i;
+const SAFE_RELATIVE_MEDIA = /^\/(?!\/)[a-z0-9._~\-/%]+(?:\?[a-z0-9._~\-=&%]*)?$/i;
+
+/**
+ * URL ảnh an toàn hay `null` nếu phải từ chối. Từ chối thay vì cắt ngắn: cắt một
+ * data URL dài giữa chừng chỉ tạo ra ảnh hỏng (lỗi cũ: avatar 512px bị cắt còn
+ * 2000 ký tự rồi lưu luôn).
+ */
+export const sanitizeMediaUrl = (value: unknown, maxLength = 2000): string | null => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (trimmed.length > maxLength) return null;
+  if (SAFE_RELATIVE_MEDIA.test(trimmed)) return trimmed;
+  if (SAFE_DATA_IMAGE.test(trimmed)) return trimmed;
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol === 'https:' || url.protocol === 'http:') return url.href;
+  } catch {
+    /* không phải URL tuyệt đối hợp lệ */
+  }
+  return null;
+};
+
+/** Gradient hồ sơ được ghép vào `style` — chặn mọi thứ ngoài cú pháp gradient. */
+const SAFE_GRADIENT = /^(?:repeating-)?(?:linear|radial|conic)-gradient\([#a-z0-9.,%\s()+-]*\)$/i;
+export const sanitizeCssGradient = (value: unknown, maxLength = 500): string | null => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (trimmed.length > maxLength || /url\s*\(|expression|[;{}<>\\]/i.test(trimmed)) return null;
+  return SAFE_GRADIENT.test(trimmed) ? trimmed : null;
+};
+
+const MEDIA_FIELDS = new Set(['avatar', 'bannerUrl']);
+const MULTILINE_FIELDS = new Set(['bio']);
+
 /** Lọc theo allowlist hồ sơ: mọi quyền, tài nguyên và trường chưa được duyệt đều bị loại. */
 export const sanitizeUserUpdate = (updates: unknown): Record<string, unknown> => {
   if (!updates || typeof updates !== 'object' || Array.isArray(updates)) return {};
@@ -374,8 +555,19 @@ export const sanitizeUserUpdate = (updates: unknown): Record<string, unknown> =>
   Object.entries(updates as Record<string, unknown>).forEach(([key, value]) => {
     const maxLength = CLIENT_EDITABLE_PROFILE_FIELD_LIMITS.get(key);
     if (maxLength === undefined || SERVER_OWNED_USER_FIELDS.includes(key) || typeof value !== 'string') return;
-    if (key === 'name' && !value.trim()) return;
-    clean[key] = (key === 'name' ? value.trim() : value).slice(0, maxLength);
+    if (MEDIA_FIELDS.has(key)) {
+      const safe = sanitizeMediaUrl(value, maxLength);
+      if (safe !== null) clean[key] = safe;
+      return;
+    }
+    if (key === 'profileGradient') {
+      const safe = sanitizeCssGradient(value, maxLength);
+      if (safe !== null) clean[key] = safe;
+      return;
+    }
+    const text = sanitizePlainText(key === 'name' ? value.trim() : value, maxLength, MULTILINE_FIELDS.has(key));
+    if (key === 'name' && !text.trim()) return;
+    clean[key] = key === 'name' ? text.trim() : text;
   });
 
   return clean;

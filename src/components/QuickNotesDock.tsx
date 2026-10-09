@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { NotebookPen, Copy, Check, Trash2, X, Timer, Flame, Lightbulb, BookMarked } from 'lucide-react';
 import { safeStorage } from '../utils/storage';
+import { OrbButton } from './ui/OrbButton';
 
 export const QUICK_NOTES_KEY = 'fforum_focus_scratchpad';
 
@@ -165,36 +166,43 @@ export const QuickNotesDock: React.FC<QuickNotesDockProps> = ({ isOpen, onClose,
               {stats.words} từ · {notes.length}/5000 ký tự
               {stats.pending > 0 && <span className="text-amber-300"> · {stats.pending} hạn chót</span>}
             </span>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={handleCopy}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white transition-colors cursor-pointer"
-              >
-                {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                {copied ? 'Đã chép' : 'Sao chép'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setNotes('')}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/25 text-red-300 transition-colors cursor-pointer"
-              >
-                <Trash2 className="w-3 h-3" />
-                Xóa
-              </button>
+            <div className="flex items-center gap-2.5 pr-0.5">
+              {/* Nhiemvu_6 · nút orb: teal (vào Focus) · silver (chép) → mauve ✓ khi đã chép · rose (xoá) */}
               {onOpenFocusMode && (
-                <button
-                  type="button"
+                <OrbButton
+                  size="sm"
+                  tone="teal"
+                  motion="spin"
+                  labelSide="top"
+                  index={0}
+                  label="Vào Focus"
+                  icon={<Timer className="w-4 h-4" />}
                   onClick={() => {
                     onClose();
                     onOpenFocusMode();
                   }}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 text-amber-200 transition-colors cursor-pointer"
-                >
-                  <Timer className="w-3 h-3" />
-                  Vào Focus
-                </button>
+                />
               )}
+              <OrbButton
+                size="sm"
+                tone={copied ? 'mauve' : 'silver'}
+                motion={copied ? 'check' : 'fly'}
+                labelSide="top"
+                index={1}
+                label={copied ? 'Đã chép' : 'Sao chép'}
+                icon={copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                onClick={handleCopy}
+              />
+              <OrbButton
+                size="sm"
+                tone="rose"
+                labelSide="top"
+                index={2}
+                label="Xóa"
+                icon={<Trash2 className="w-4 h-4" />}
+                onClick={() => setNotes('')}
+                disabled={!notes}
+              />
             </div>
           </div>
         </div>

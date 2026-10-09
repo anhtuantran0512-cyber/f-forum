@@ -28,14 +28,21 @@ export function spawnRipple(target: HTMLElement, event?: { clientX: number; clie
   ripple.style.top = `${y - size / 2}px`;
   ripple.setAttribute('aria-hidden', 'true');
 
-  /* Nút tab cần `overflow: hidden` để gợn sóng không tràn ra ngoài viền tròn. */
+  /* Nút cần `overflow: hidden` để gợn sóng không tràn ra ngoài viền tròn, và phải là
+     khối định vị để gợn sóng (absolute) bám đúng nút thay vì tổ tiên gần nhất. */
   const previousOverflow = target.style.overflow;
+  const previousPosition = target.style.position;
   target.style.overflow = 'hidden';
+  if (window.getComputedStyle(target).position === 'static') target.style.position = 'relative';
 
   target.appendChild(ripple);
+  let removed = false;
   const remove = () => {
+    if (removed) return;
+    removed = true;
     ripple.remove();
     target.style.overflow = previousOverflow;
+    target.style.position = previousPosition;
   };
   ripple.addEventListener('animationend', remove, { once: true });
   /* Lưới an toàn: nếu animationend không bắn (tab bị ẩn giữa chừng) vẫn dọn. */

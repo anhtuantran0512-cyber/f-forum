@@ -11,6 +11,8 @@ import {
   Calendar,
 } from 'lucide-react';
 import { safeStorage } from '../utils/storage';
+import { SwipeDeck } from './ui/SwipeDeck';
+import { StreakCountdown } from './engagement/StreakCountdown';
 import { dailyTriviaForDate, dateKeyInTimeZone, shiftDateKey } from '../../shared/dailyTrivia';
 import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
 
@@ -24,11 +26,12 @@ interface DailyEngagementModalProps {
   onClaimReward?: (action: DailyRewardAction) => Promise<DailyRewardActionResult>;
 }
 
-const TIPS = [
-  'Hãy trả lời chỉn chu và đầy đủ các bước giải để dễ nhận được xác nhận Đáp Án Chuẩn!',
-  'Nên đặt câu hỏi một cách rõ ràng và cụ thể để nhận được câu trả lời nhanh nhất.',
-  'Điểm danh mỗi ngày tích lũy chuỗi streak và mở khóa hộp quà ở mốc 5, 10, 15 ngày.',
-  'Chia sẻ lời giải hay trên sàn hỏi đáp giúp bạn tích lũy Coin và thăng hạng danh hiệu.',
+/* Mẹo hằng ngày — hiển thị dạng chồng thẻ kéo-để-lướt (code_yeucau · stk-02). */
+const TIPS: { id: string; title: string; body: string }[] = [
+  { id: 'answer', title: 'Lời giải chỉn chu', body: 'Hãy trả lời chỉn chu và đầy đủ các bước giải để dễ nhận được xác nhận Đáp Án Chuẩn!' },
+  { id: 'ask', title: 'Hỏi rõ ràng', body: 'Nên đặt câu hỏi một cách rõ ràng và cụ thể để nhận được câu trả lời nhanh nhất.' },
+  { id: 'streak', title: 'Giữ lửa mỗi ngày', body: 'Điểm danh mỗi ngày tích lũy chuỗi streak và mở khóa hộp quà ở mốc 5, 10, 15 ngày.' },
+  { id: 'share', title: 'Chia sẻ để thăng hạng', body: 'Chia sẻ lời giải hay trên sàn hỏi đáp giúp bạn tích lũy Coin và thăng hạng danh hiệu.' },
 ];
 
 const todayISO = () => dateKeyInTimeZone();
@@ -69,7 +72,6 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
   onClaimReward,
 }) => {
   const [activeTab, setActiveTab] = useState<'attendance' | 'gifts' | 'quiz'>('attendance');
-  const [tipIndex, setTipIndex] = useState(0);
   const [rewardDate, setRewardDate] = useState(todayISO());
   const [attendanceLog, setAttendanceLog] = useState<string[]>(loadAttendanceLog);
   const [boxes, setBoxes] = useState<{ blue: number; gold: number; red: number }>(() => {
@@ -127,13 +129,6 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
       return result;
     }
   }, [isAuthenticated, onClaimReward, onOpenLogin, applyRewardStatus]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTipIndex((prev) => (prev + 1) % TIPS.length);
-    }, 6000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     if (!isOpen || !isAuthenticated || !onLoadRewardStatus) return;
@@ -259,13 +254,12 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
           </button>
         </div>
 
-        {/* Tips Carousel Banner */}
-        <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-400/20 mb-4 flex items-center gap-2.5">
-          <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
-          <p className="text-[11px] text-amber-200/90 italic leading-snug line-clamp-1">
-            <span className="font-semibold not-italic text-amber-300">Bạn có biết: </span>
-            {TIPS[tipIndex]}
-          </p>
+        {/* Mẹo hằng ngày: chồng thẻ kéo-để-lướt thay cho dải chữ tự chạy 1 dòng */}
+        <div className="mb-4">
+          <SwipeDeck
+            label="Mẹo hằng ngày"
+            items={TIPS.map((tip) => ({ ...tip, icon: <Lightbulb className="w-4 h-4" /> }))}
+          />
         </div>
 
         {actionError && (
@@ -333,6 +327,8 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
               })}
             </div>
 
+            <StreakCountdown streak={streak} claimedToday={hasClaimedToday} />
+
             <div className="pt-2 flex items-center justify-between">
               <span className="text-xs text-neutral-400">
                 {hasClaimedToday
@@ -356,10 +352,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
         {activeTab === 'gifts' && (
           <div className="space-y-4">
             <div className="p-3.5 rounded-2xl bg-black/40 border-l-4 border-l-neutral-400 border border-white/10 text-xs text-neutral-300 space-y-1.5">
-              <p className="font-semibold text-white">🎁 Quy đổi quà tặng:</p>
-              <p className="text-[11.5px] text-neutral-300 leading-relaxed">
-                Giữ chuỗi điểm danh để nhận hộp quà ở mốc 5, 10 và 15 ngày. Mở hộp để nhận Coin thật vào tài khoản của bạn.
-              </p>
+              <p className="font-semibold text-white">🎁 Chuỗi 5 · 10 · 15 ngày = 1 hộp quà Coin thật</p>
             </div>
 
             {/* 3 Isometric Gift Boxes */}

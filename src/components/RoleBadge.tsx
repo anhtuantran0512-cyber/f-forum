@@ -1,6 +1,7 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useState, useRef, type FC } from 'react';
 import { ShieldCheck, Shield, GraduationCap, Crown, CheckCircle } from 'lucide-react';
+import { isMasterAdmin } from '../config/admin';
 
 interface RoleBadgeProps {
   userEmail: string;
@@ -117,7 +118,7 @@ export const RoleManager: FC<RoleManagerProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const isSuperAdmin = currentUser.email.toLowerCase() === 'BroAmStuck@gmail.com' || currentUser.role === 'SUPER_ADMIN';
+  const isSuperAdmin = isMasterAdmin(currentUser.email) || currentUser.role === 'SUPER_ADMIN';
 
   useEffect(() => {
     if (!isOpen) {

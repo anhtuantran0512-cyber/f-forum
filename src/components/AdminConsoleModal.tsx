@@ -662,7 +662,7 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
                         <div key={user.email} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-black/20 border border-white/8">
                           <div className="flex items-center gap-3 min-w-0">
                             {user.avatar ? (
-                              <img src={user.avatar} alt="" className="w-9 h-9 rounded-full object-cover border border-white/10 shrink-0" />
+                              <img loading="lazy" decoding="async" src={user.avatar} alt="" className="w-9 h-9 rounded-full object-cover border border-white/10 shrink-0" />
                             ) : (
                               <span className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-neutral-500 shrink-0">
                                 <UserRound className="w-4 h-4" />

@@ -1208,6 +1208,26 @@ nhưng dò bằng email không token ở question/solution chỉ nhận 401 và 
 
 ---
 
+## 42. EPIC 5 — Rà soát bảo mật cơ bản (Nhiemvu_3)
+
+Kiểm thử: `tests/epic5-perf-security.test.mjs` (21 bài, server thật qua HTTP/WS).
+
+| Hạng mục | Trước | Sau |
+|---|---|---|
+| Header bảo mật | Không có CSP, nosniff, Referrer-Policy, chống clickjacking | `server/securityHeaders.ts` gắn cho MỌI response (plugin Vite dev + preview). CSP liệt kê đúng các nguồn ngoài đang dùng; production không có `'unsafe-inline'` cho script, `object-src 'none'`, `frame-ancestors 'self'` (+ `X-Frame-Options`), HSTS chỉ khi HTTPS. Dev nới script nội tuyến (React Refresh) và **không** chặn iframe (khung xem trước). |
+| CORS | `Access-Control-Allow-Origin: *` trên mọi API | Chỉ chính site (Origin trùng Host) hoặc `FFORUM_ALLOWED_ORIGINS`; JSON API `Cache-Control: no-store`. |
+| `POST /api/reports` | Không cần đăng nhập; `reporterId/Name/Email` tự khai (giả mạo được); gộp trùng theo ID tự khai; limiter chung 120/phút | Bắt buộc đăng nhập, danh tính lấy từ phiên; 6 lượt/10 phút mỗi tài khoản + 20/10 phút mỗi IP; bản trùng không tốn lượt; không tự tố cáo mình. |
+| Sự kiện realtime tố cáo | `NEW_REPORT` phát tới MỌI socket/SSE kèm tên/email người tố cáo | Chỉ socket đã xác thực của Super Admin, payload tối thiểu (không có danh tính người tố cáo). |
+| Đăng nhập | Chỉ đếm theo cặp (IP, email) → rải mật khẩu qua nhiều email / dò một tài khoản từ nhiều IP không bị chặn | Thêm bộ đếm LẦN SAI: 40/10 phút mỗi IP (mọi email), 25/10 phút mỗi tài khoản (mọi IP). Đăng nhập đúng chỉ xoá bộ đếm tài khoản (không "rửa" IP). |
+| Cookie | Token chỉ nằm trong localStorage (XSS đọc được) | Cookie `__Host-ff_session` `HttpOnly; Secure; SameSite=Strict` khi chạy HTTPS ở cửa sổ chính; client kiểm chứng cookie rồi mới bỏ token khỏi localStorage. Iframe khác site / HTTP thường tự quay về Bearer. Request khác site không được dùng cookie (`Sec-Fetch-Site`/Origin); WS chỉ nhận cookie khi bắt tay cùng nguồn (chống CSWSH). |
+| Hạn token (JWT expiry) | Server kiểm `exp`, client chỉ biết khi gặp 401 | Client giải mã `exp`, hẹn giờ tự đăng xuất đúng hạn (kiểm lại khi tab hiện trở lại). Thêm "đăng xuất mọi thiết bị": `POST /api/auth/logout {everywhere:true}` thu hồi mọi token phát trước mốc. |
+| XSS / dữ liệu đầu vào | Trường ảnh nhận chuỗi bất kỳ (kể cả `javascript:`), bị CẮT 2000 ký tự (ảnh hỏng) | `sanitizeMediaUrl` (chỉ https/http, `/media/...`, `data:image/<raster>;base64`; quá dài → từ chối, không cắt), `sanitizeCssGradient` (chặn `url(`, `;`, `{}`), `sanitizePlainText` (bỏ ký tự điều khiển + ký tự đảo chiều Unicode). Mặt nạ ẩn danh chỉ nhận mặt nạ chính thức. |
+| Ảnh đại diện | Data URL lưu thẳng vào hồ sơ rồi bị cắt hỏng | `POST /api/media/upload` (bắt buộc đăng nhập, 20 lượt/10 phút): kiểm magic bytes, giới hạn điểm ảnh, xoá EXIF/GPS, sharp sinh 3 cỡ WebP; `/media/...` phục vụ với `immutable`, `nosniff`, CSP `sandbox`, chặn path traversal. |
+| Console production | Khối "Console Lock" chạy cả ở dev: `alert()` mỗi cú chuột phải, tắt cả `console.error` | Build loại mọi `console.*`/`debugger` (Oxc `dropConsole`); `public/security-boot.js` (chỉ bản build) tắt cầu nối React DevTools + cảnh báo Self-XSS; chặn F12/Ctrl+Shift+I/chuột phải bằng toast không chặn, CHỈ ở production. |
+
+Lưu ý trung thực: lớp chặn DevTools/chuột phải chỉ là **răn đe** cho người dùng phổ
+thông — không thể ngăn người có kinh nghiệm. Mọi kiểm tra quyền thật đều ở máy chủ.
+
 ## Mô hình phân quyền hiện tại
 
 | Tầng | Cơ chế |
@@ -1239,6 +1259,7 @@ riêng, dài tối thiểu 16 ký tự; không có secret này thì không tồn
 ## Chạy kiểm thử bảo mật
 
 ```bash
-node --test tests/security-hardening.test.mjs   # 60 bài, chạy trên server thật
-npm test                                        # toàn bộ 225 bài
+node --test tests/security-hardening.test.mjs   # chạy trên server thật
+node --test tests/epic5-perf-security.test.mjs  # Epic 5: CSP, cookie, rate limit, ảnh
+npm test                                        # toàn bộ 278 bài
 ```

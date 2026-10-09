@@ -23,10 +23,13 @@ import { useEscapeKey } from '../utils/useEscapeKey';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { useChatCooldown } from '../utils/chatCooldown';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../config/admin';
+import { capsHas, useAdminCaps } from '../utils/adminCapabilities';
 import { getTierForLevel } from '../utils/tier';
 import { pushNotification } from '../utils/notifications';
 import { ChatCooldownBar } from './ChatCooldownBar';
 import { ThinkingBubble } from './ViewTransitionLoader';
+import { postJson } from '../utils/session';
+import { describeReportResult, settleReportRequest } from '../utils/reports';
 
 export interface ChatDockProps {
   isOpen: boolean;
@@ -60,6 +63,9 @@ export const ChatDock: React.FC<ChatDockProps> = ({
   onOpenProfile,
   isSynced = true,
 }) => {
+  /* Epic 3 — thu hồi tin nhắn: Super Admin hoặc vai trò tùy chỉnh có quyền edit_content. */
+  const adminCaps = useAdminCaps();
+  const canRecallMessages = capsHas(adminCaps, 'edit_content');
   const [activeChannel, setActiveChannel] = useState<ChatChannelId>('hallway');
   const [inputText, setInputText] = useState('');
   const cooldown = useChatCooldown();
@@ -81,6 +87,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
   const [reportDetails, setReportDetails] = useState('');
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [reportSuccessMsg, setReportSuccessMsg] = useState<string | null>(null);
+  const [reportErrorMsg, setReportErrorMsg] = useState<string | null>(null);
 
   /* Hộp thoại tố cáo khai báo aria-modal="true" mà không có đường thoát bằng
      phím. Chỉ bật khi hộp thoại đang mở để không giành phím Escape của lớp khác. */
@@ -93,19 +100,24 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     e.preventDefault();
     if (!reportUser || isSubmittingReport) return;
     setIsSubmittingReport(true);
+    setReportErrorMsg(null);
     try {
-      const res = await fetch('/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reportedUserId: reportUser.id,
-          reportedUserName: reportUser.name,
-          reason: reportReason,
-          details: reportDetails.trim(),
-        }),
-      });
-      const data = await res.json();
-      setReportSuccessMsg(data.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị.');
+      /* EPIC 5: máy chủ bắt buộc đăng nhập và tự lấy danh tính người tố cáo từ phiên. */
+      const outcome = describeReportResult(
+        await settleReportRequest(
+          postJson('/api/reports', {
+            reportedUserId: reportUser.id,
+            reportedUserName: reportUser.name,
+            reason: reportReason,
+            details: reportDetails.trim(),
+          }),
+        ),
+      );
+      if (!outcome.ok) {
+        setReportErrorMsg(outcome.message);
+        return;
+      }
+      setReportSuccessMsg(outcome.message || 'Đã gửi tố cáo tài khoản tới Ban Quản Trị.');
       pushNotification({
         type: 'system',
         category: 'system',
@@ -114,7 +126,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
         targetView: 'chat',
       });
     } catch {
-      setReportSuccessMsg('Đã ghi nhận tố cáo của bạn và chuyển tới Ban Quản Trị.');
+      setReportErrorMsg('Mất kết nối máy chủ — tố cáo CHƯA được gửi. Vui lòng thử lại.');
     } finally {
       setIsSubmittingReport(false);
     }
@@ -327,8 +339,8 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                       {isSuperAdminMsg && <AdminVerifiedBadge size={12} />}
                       <span className="text-[10px] text-neutral-500 font-mono">• {msg.timestamp}</span>
 
-                      {/* Super Admin Recall/Delete Button */}
-                      {isSuperAdmin && (
+                      {/* Thu hồi tin nhắn (Super Admin / quyền edit_content) */}
+                      {(isSuperAdmin || canRecallMessages) && (
                         <button
                           type="button"
                           onClick={() => onDeleteMessage?.(msg.id)}
@@ -441,7 +453,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
 
             <div className="flex items-center gap-2.5 pb-2.5 border-b border-white/10 pr-5">
               <div className="relative shrink-0">
-                <img
+                <img loading="lazy" decoding="async"
                   src={activeAuthorCard.avatar}
                   alt={activeAuthorCard.name}
                   onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
@@ -553,6 +565,9 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               </div>
             ) : (
               <form onSubmit={handleReportSubmit} className="space-y-3.5">
+                {reportErrorMsg && (
+                  <p role="alert" className="ff-report-error">{reportErrorMsg}</p>
+                )}
                 <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-neutral-300">
                   Đối tượng tố cáo: <strong className="text-white">{reportUser.name}</strong>
                 </div>

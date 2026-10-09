@@ -1,6 +1,7 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import './MemoryRealm.css';
+import { rafThrottle } from '../utils/rafThrottle';
 
 const SKY_IMG = "https://raft-blast-61784561.figma.site/_assets/v11/16b5007d9c93971e26ffe4e0e3e37946f6bd538c.png";
 const BACK_FOUR_IMG = "https://raft-blast-61784561.figma.site/_assets/v11/8a7f8af50e0ce92ec2e228e7b0b4112178c51cf1.png";
@@ -271,8 +272,10 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
         });
       }
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    /* R4: gộp resize về 1 lần/khung hình */
+    const handleResizeFrame = rafThrottle(handleResize);
+    window.addEventListener('resize', handleResizeFrame, { passive: true });
+    return () => { window.removeEventListener('resize', handleResizeFrame); handleResizeFrame.cancel(); }
   }, [activeSight, isJumping, updateSliderShift]);
 
   const moveSightSlider = (delta: number) => {

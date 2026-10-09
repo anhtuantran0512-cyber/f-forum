@@ -2,6 +2,7 @@
 import React from 'react';
 import type { DimensionView } from '../../types';
 import { handleVideoError } from '../../utils/mediaFallback';
+import { DepthLandscapeCard } from '../ui/DepthLandscapeCard';
 
 interface ComingSoonViewProps {
   onReturnHome: (view: DimensionView) => void;
@@ -22,7 +23,7 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
         preload="metadata"
         aria-hidden="true"
         onError={handleVideoError}
-        className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+        className="ff-video-bg absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
       />
 
       {/* Atmospheric Vignette & Depth Overlay */}
@@ -42,15 +43,14 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
           Comming soon!!!
         </h1>
 
-        {/* 425px 1px solid white line divider */}
-        <div
-          className="my-7 mx-auto bg-white"
-          style={{ width: '425px', maxWidth: '90vw', height: '1px' }}
-        />
+        {/* Thẻ phong cảnh bình minh nhiều lớp — rê chuột để thấy chiều sâu (code_yeucau · tch-15) */}
+        <div className="animate-fade-rise-delay my-8 mx-auto">
+          <DepthLandscapeCard eyebrow="Bình minh đang tới" title="Phân khu mới đang được dựng từng lớp" />
+        </div>
 
         {/* Body Copy */}
         <p className="animate-fade-rise-delay text-neutral-200 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed font-light">
-          Không gian số đang được tinh chỉnh và nâng cấp. Ban Quản Trị F-Forum đang chuẩn bị các phân khu học thuật và tính năng mới để mang đến trải nghiệm tốt nhất cho học sinh.
+          Phân khu này đang được nâng cấp — quay lại sớm nhé, Cú Bông hứa sẽ đáng chờ!
         </p>
 
         {/* Action Button: Liquid-glass pill button returning to Homepage */}

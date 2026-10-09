@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import type { Club, ClubPost, User, ClubCategory, ChatMessage } from '../../types';
 import { DEFAULT_CLUB_COVER, handleImageError, handleVideoError } from '../../utils/mediaFallback';
+import { isMasterAdmin } from '../../config/admin';
+import './ClubsView.css';
 
 interface ClubsViewProps {
   currentUser: User | null;
@@ -100,7 +102,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
 
-  const isSuperAdmin = currentUser?.email === 'BroAmStuck@gmail.com';
+  const isSuperAdmin = isMasterAdmin(currentUser?.email);
 
   const approvedClubs = clubs.filter(
     c =>
@@ -238,7 +240,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   return (
     <section className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8`}>
       {/* Background Video Engine */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+      <div className="ff-video-bg absolute inset-0 z-0 pointer-events-none overflow-hidden">
         <video
           src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260424_064411_9e9d7f84-9277-41f4-ab10-59172d89e6be.mp4"
           autoPlay
@@ -486,7 +488,8 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
           )}
 
           {/* Regular Club Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Thẻ ngang 2 cột — mỗi thẻ là một container query (code_yeucau · tcl-14) */}
+          <div className="ff-media-grid">
             {regularClubs.length === 0 && !spotlightClub ? (
               <div className="col-span-full text-center py-12 text-neutral-400 space-y-2">
                 <Users className="w-10 h-10 text-neutral-600 mx-auto" />
@@ -498,11 +501,11 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                 key={club.id}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
-                className="rounded-2xl liquid-glass bg-neutral-950/70 border border-white/10 hover:border-amber-400/40 p-4 shadow-xl transition-transform duration-200 flex flex-col justify-between group overflow-hidden"
+                className="ff-media-card rounded-2xl liquid-glass bg-neutral-950/70 border border-white/10 hover:border-amber-400/40 p-4 shadow-xl transition-transform duration-200  group overflow-hidden"
               >
-                <div>
+                <div className="ff-media-card__layout">
                   {/* Card Cover */}
-                  <div className="relative h-32 w-full rounded-xl overflow-hidden mb-3 border border-white/10">
+                  <div className="ff-media-card__cover relative h-32 w-full rounded-xl overflow-hidden mb-3 border border-white/10">
                     <img
                       src={club.coverImage}
                       alt={club.name}
@@ -522,6 +525,8 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     </span>
                   </div>
 
+                  <div className="ff-media-card__content">
+                  <div>
                   <h3 className="font-bold text-sm text-white group-hover:text-amber-300 transition-colors">
                     {club.name}
                   </h3>
@@ -531,7 +536,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   <p className="text-[11px] text-neutral-300 mt-2 line-clamp-2">
                     {club.purpose}
                   </p>
-                </div>
+                  </div>
 
                 <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
                   <button
@@ -546,6 +551,8 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   >
                     {applicationSubmitted === club.id ? '✓ Đã Nộp' : 'Nộp Đơn'}
                   </button>
+                </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -679,7 +686,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
               </div>
 
               <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 leading-relaxed">
-                ℹ️ Hồ sơ sẽ được chuyển trạng thái PENDING tới Ban Quản Trị. Khi được phê duyệt, bạn sẽ nhận huy hiệu Chủ nhiệm CLB scoped và +250 XP!
+                ⏳ Chờ Ban Quản Trị duyệt · 🎖️ Duyệt xong: huy hiệu Chủ nhiệm + 250 XP
               </div>
 
               <div className="pt-2 flex justify-end gap-2 border-t border-white/10">

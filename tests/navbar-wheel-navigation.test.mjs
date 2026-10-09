@@ -38,54 +38,32 @@ test('1. Navbar Architecture & Notification Center Isolation', () => {
   );
 });
 
-test('2. Wheel-Scroll Transition Controller & Pipeline Logic', () => {
+test('2. Wheel-Scroll Tab Switching must be REMOVED (EPIC 4 — cuộn chuột chỉ để cuộn nội dung)', () => {
   const appContent = fs.readFileSync(path.resolve('src/App.tsx'), 'utf8');
 
-  // Verify scroll sequence pipeline: home -> clubs -> qa -> coming-soon
+  // Tính năng lăn chuột tự chuyển tab gây khó chịu → đã xóa hoàn toàn theo spec.
   assert.ok(
-    appContent.includes("const CORE_SCROLL_VIEWS: DimensionView[] = ['home', 'clubs', 'qa', 'coming-soon'];"),
-    'App.tsx must define core scroll views pipeline: home, clubs, qa, coming-soon'
+    !appContent.includes('CORE_SCROLL_VIEWS'),
+    'App.tsx must not keep the wheel-navigation view pipeline'
+  );
+  assert.ok(
+    !appContent.includes('SCROLL_COOLDOWN_MS'),
+    'App.tsx must not keep the wheel cooldown constant'
+  );
+  assert.ok(
+    !appContent.includes('isInsideScrollable'),
+    'App.tsx must not keep the wheel scrollable-detection helper'
+  );
+  assert.ok(
+    !appContent.includes('lastWheelTimeRef') && !appContent.includes('lastScrollTimeRef'),
+    'App.tsx must not keep wheel timing refs'
+  );
+  assert.ok(
+    !appContent.includes("addEventListener('wheel'"),
+    'App.tsx must not register any wheel listener for view switching'
   );
 
-  // Verify 650ms cooldown lock
-  assert.ok(
-    appContent.includes('const SCROLL_COOLDOWN_MS = 650;'),
-    'App.tsx must define SCROLL_COOLDOWN_MS = 650'
-  );
-
-  // Verify wheel listener threshold of Math.abs(deltaY) > 30
-  assert.ok(
-    appContent.includes('Math.abs(deltaY) <= 30') || appContent.includes('Math.abs(deltaY) > 30'),
-    'Wheel controller must enforce 30px delta threshold'
-  );
-
-  // Verify strict single-page advancement in down direction
-  assert.ok(
-    appContent.includes('currentIndex < CORE_SCROLL_VIEWS.length - 1') &&
-    appContent.includes('handleViewChange(CORE_SCROLL_VIEWS[currentIndex + 1])'),
-    'Scrolling down must advance strictly to next index'
-  );
-
-  // Verify strict single-page return in up direction
-  assert.ok(
-    appContent.includes('currentIndex > 0') &&
-    appContent.includes('handleViewChange(CORE_SCROLL_VIEWS[currentIndex - 1])'),
-    'Scrolling up must return strictly to previous index'
-  );
-
-  // Verify exclusions for chat, memory, and chronicles
-  assert.ok(
-    appContent.includes("currentView === 'chat' || currentView === 'memory' || currentView === 'chronicles'"),
-    'Wheel transition must strictly bypass chat, memory, and chronicles'
-  );
-
-  // Verify modal and input scroll protection
-  assert.ok(
-    appContent.includes("target.closest('input, textarea, select, [role=\"dialog\"]')"),
-    'Wheel controller must ignore events inside inputs, textareas, and open dialogs'
-  );
-
-  // Verify Navbar visibility on UPDATE (coming-soon)
+  // Navbar vẫn phải hiện ở phân khu UPDATE (coming-soon) — không còn rule wheel cũ
   assert.ok(
     appContent.includes("currentView !== 'chronicles' && (") &&
     !appContent.includes("currentView !== 'coming-soon' && currentView !== 'chronicles' && ("),
@@ -93,102 +71,17 @@ test('2. Wheel-Scroll Transition Controller & Pipeline Logic', () => {
   );
 });
 
-test('3. Simulation of Transition State Machine & Edge Cases', () => {
-  const CORE_SCROLL_VIEWS = ['home', 'clubs', 'qa', 'coming-soon'];
-  const SCROLL_COOLDOWN = 650;
-
-  class ScrollEngine {
-    constructor() {
-      this.currentView = 'home';
-      this.lastScrollTime = 0;
-    }
-
-    onWheel(deltaY, time, targetTag = 'div', openModals = false) {
-      if (['chat', 'memory', 'chronicles'].includes(this.currentView)) {
-        return; // Excluded views
-      }
-      if (openModals) return;
-      if (['input', 'textarea', 'select'].includes(targetTag)) return;
-
-      const currentIndex = CORE_SCROLL_VIEWS.indexOf(this.currentView);
-      if (currentIndex === -1) return;
-      if (Math.abs(deltaY) <= 30) return;
-      if (time - this.lastScrollTime < SCROLL_COOLDOWN) return;
-
-      if (deltaY > 30) {
-        if (currentIndex < CORE_SCROLL_VIEWS.length - 1) {
-          this.lastScrollTime = time;
-          this.currentView = CORE_SCROLL_VIEWS[currentIndex + 1];
-        }
-      } else if (deltaY < -30) {
-        if (currentIndex > 0) {
-          this.lastScrollTime = time;
-          this.currentView = CORE_SCROLL_VIEWS[currentIndex - 1];
-        }
-      }
-    }
-  }
-
-  const engine = new ScrollEngine();
-
-  // Test Boundary: Scrolling up on home (index 0) should remain home
-  engine.onWheel(-50, 1000);
-  assert.equal(engine.currentView, 'home', 'Cannot scroll up past home');
-
-  // Test Down from home -> clubs
-  engine.onWheel(45, 2000);
-  assert.equal(engine.currentView, 'clubs', 'Wheel down from home switches to clubs');
-
-  // Test Rapid Inertia Flick: Events before 650ms must be rejected
-  engine.onWheel(55, 2200);
-  assert.equal(engine.currentView, 'clubs', 'Flick inertia within 650ms cooldown ignored');
-  engine.onWheel(65, 2500);
-  assert.equal(engine.currentView, 'clubs', 'Flick inertia within 650ms cooldown ignored');
-
-  // Test Down from clubs -> qa (after cooldown)
-  engine.onWheel(40, 2700);
-  assert.equal(engine.currentView, 'qa', 'Wheel down from clubs switches to qa');
-
-  // Test Down from qa -> coming-soon (UPDATE)
-  engine.onWheel(60, 3400);
-  assert.equal(engine.currentView, 'coming-soon', 'Wheel down from qa switches to coming-soon (UPDATE)');
-
-  // Test Boundary: Scrolling down on coming-soon (index 3) should remain coming-soon
-  engine.onWheel(80, 4100);
-  assert.equal(engine.currentView, 'coming-soon', 'Cannot scroll down past coming-soon');
-
-  // Test Up from coming-soon -> qa
-  engine.onWheel(-50, 4800);
-  assert.equal(engine.currentView, 'qa', 'Wheel up from coming-soon returns to qa');
-
-  // Test Up from qa -> clubs
-  engine.onWheel(-40, 5500);
-  assert.equal(engine.currentView, 'clubs', 'Wheel up from qa returns to clubs');
-
-  // Test Up from clubs -> home
-  engine.onWheel(-60, 6200);
-  assert.equal(engine.currentView, 'home', 'Wheel up from clubs returns to home');
-
-  // Test Input/Modal Protection
-  engine.onWheel(50, 7000, 'textarea');
-  assert.equal(engine.currentView, 'home', 'Wheel inside textarea must not advance page');
-
-  engine.onWheel(50, 8000, 'div', true);
-  assert.equal(engine.currentView, 'home', 'Wheel while modal is open must not advance page');
-
-  // Test Threshold: deltaY under 30 must not trigger
-  engine.onWheel(25, 9000);
-  assert.equal(engine.currentView, 'home', 'Sub-threshold wheel delta (25) ignored');
-});
-
-test('4. Invariants & Preserved Systems Integrity', () => {
+test('3. Invariants & Preserved Systems Integrity', () => {
   const appContent = fs.readFileSync(path.resolve('src/App.tsx'), 'utf8');
   const homeContent = fs.readFileSync(path.resolve('src/components/views/HomeView.tsx'), 'utf8');
 
-  // Super Admin guard isolation
+  // Super Admin guard isolation — so khớp KHÔNG phân biệt hoa thường (record có thể
+  // lưu email dạng chữ thường; so sánh chính xác với 'BroAmStuck@...' từng làm
+  // Super Admin mất các nút quản trị).
   assert.ok(
-    appContent.includes("currentUser?.email === 'BroAmStuck@gmail.com' &&"),
-    'App.tsx must strictly preserve Super Admin guard'
+    appContent.includes("isMasterAdmin(currentUser?.email) && !isAdminConsoleOpen") &&
+    appContent.includes("isMasterAdmin(currentUser?.email) && !isReportInboxOpen"),
+    'App.tsx must strictly preserve Super Admin guard (case-insensitive)'
   );
 
   // Dynamic Homepage Title with Diễn Đàn Học Sinh
@@ -208,7 +101,7 @@ test('4. Invariants & Preserved Systems Integrity', () => {
   );
 });
 
-test('5. Modal Dialog & Bell Trigger Toggle Isolation Verification', () => {
+test('4. Modal Dialog & Bell Trigger Toggle Isolation Verification', () => {
   const navbarContent = fs.readFileSync(path.resolve('src/components/Navbar.tsx'), 'utf8');
   const notifModalContent = fs.readFileSync(path.resolve('src/components/NotificationsModal.tsx'), 'utf8');
   const qaForumContent = fs.readFileSync(path.resolve('src/components/views/QAForumView.tsx'), 'utf8');
@@ -244,4 +137,3 @@ test('5. Modal Dialog & Bell Trigger Toggle Isolation Verification', () => {
     'ClubsView modals must have role="dialog" to prevent page switch while reading club posts'
   );
 });
-

@@ -1,0 +1,104 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
+/* ==========================================================================
+   Cú Bông — trạng thái & chuyển động (Epic 5). Mọi transform-origin tính theo
+   toạ độ viewBox 200×200 (transform-box mặc định của SVG là view-box).
+   ========================================================================== */
+.cb { overflow: visible; display: block; }
+.cb-shadow { fill: rgba(0, 0, 0, 0.28); transform-origin: 100px 188px; animation: cbShadow 3.2s ease-in-out infinite; }
+.cb-body { transform-origin: 100px 182px; animation: cbBob 3.2s ease-in-out infinite; transition: transform 0.45s cubic-bezier(0.34, 1.45, 0.5, 1); }
+.cb-eyes { transition: opacity 0.2s ease; }
+.cb-pupils { transform: translateX(var(--cb-look-x, 0px)); transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
+.cb-lid { transform: scaleY(0); transition: transform 0.25s ease; }
+.cb-lid--l { transform-origin: 78px 81px; }
+.cb-lid--r { transform-origin: 122px 81px; }
+.cb-eyes-happy,
+.cb-eyes-closed,
+.cb-glasses,
+.cb-cover,
+.cb-pen,
+.cb-sweat,
+.cb-sign,
+.cb-zzz { opacity: 0; transition: opacity 0.25s ease, transform 0.42s cubic-bezier(0.34, 1.45, 0.5, 1); }
+.cb-blush { opacity: 0.4; transition: opacity 0.3s ease; }
+.cb-wing { transition: transform 0.5s cubic-bezier(0.34, 1.45, 0.5, 1), opacity 0.25s ease; }
+.cb-wing--l { transform-origin: 58px 106px; }
+.cb-wing--r { transform-origin: 142px 106px; }
+.cb-cover--l { transform-origin: 78px 140px; transform: translateY(54px) rotate(-12deg); }
+.cb-cover--r { transform-origin: 122px 140px; transform: translateY(54px) rotate(12deg); }
+.cb-glasses { transform: translateY(-12px); }
+.cb-pen { transform-origin: 150px 146px; transform: translate(10px, 14px) rotate(14deg); }
+.cb-sign { transform-origin: 100px 147px; transform: translateY(16px) scale(0.55); }
+.cb-tassel { transform-origin: 100px 46px; animation: cbTassel 3.2s ease-in-out infinite; }
+
+@keyframes cbBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes cbShadow { 0%, 100% { transform: scaleX(1); opacity: 1; } 50% { transform: scaleX(0.93); opacity: 0.8; } }
+@keyframes cbBlink { 0%, 91%, 100% { transform: scaleY(0); } 94.5% { transform: scaleY(1); } }
+@keyframes cbTassel { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(7deg); } }
+
+/* idle / attentive: chớp mắt định kỳ */
+.cb--idle .cb-lid,
+.cb--attentive .cb-lid { animation: cbBlink 4.8s infinite; }
+
+/* attentive — nhỏm dậy, đeo kính, cầm bút */
+.cb--attentive .cb-body { animation: none; transform: translateY(-7px) scale(1.02, 1.045); }
+.cb--attentive .cb-glasses { opacity: 1; transform: none; }
+.cb--attentive .cb-pen { opacity: 1; transform: none; }
+
+/* shy — lấy cánh che mắt */
+.cb--shy .cb-cover { opacity: 1; transform: none; }
+.cb--shy .cb-wing { opacity: 0; }
+.cb--shy .cb-blush { opacity: 0.9; }
+.cb--shy .cb-body { animation: cbShy 2.6s ease-in-out infinite; }
+@keyframes cbShy { 0%, 100% { transform: rotate(0deg); } 30% { transform: rotate(-2.5deg); } 60% { transform: rotate(2deg); } }
+
+/* peek — hé một mắt nheo nheo */
+.cb--peek .cb-cover--l { opacity: 1; transform: none; }
+.cb--peek .cb-cover--r { opacity: 1; transform: translateY(22px) rotate(14deg); }
+.cb--peek .cb-wing { opacity: 0; }
+.cb--peek .cb-lid--r { transform: scaleY(0.45); }
+.cb--peek .cb-pupils { transform: translateX(calc(var(--cb-look-x, 0px) - 3px)) translateY(1.5px); }
+.cb--peek .cb-blush { opacity: 0.75; }
+.cb--peek .cb-body { animation: cbPeek 1.8s ease-in-out infinite; }
+@keyframes cbPeek { 0%, 100% { transform: translateX(0) rotate(0deg); } 50% { transform: translateX(2px) rotate(3deg); } }
+
+/* sad — lắc đầu, rũ mi, đổ mồ hôi */
+.cb--sad .cb-body { animation: cbShake 0.72s ease-in-out 2; }
+.cb--sad .cb-lid { transform: scaleY(0.4); }
+.cb--sad .cb-pupils { transform: translateY(3px); }
+.cb--sad .cb-sweat { opacity: 1; animation: cbSweat 1.4s ease-in infinite; }
+.cb--sad .cb-wing--l { transform: rotate(-6deg); }
+.cb--sad .cb-wing--r { transform: rotate(6deg); }
+@keyframes cbShake { 0%, 100% { transform: rotate(0deg); } 20% { transform: rotate(-7deg); } 40% { transform: rotate(6deg); } 60% { transform: rotate(-4deg); } 80% { transform: rotate(3deg); } }
+@keyframes cbSweat { 0% { transform: translate(0, -4px); opacity: 0; } 25% { opacity: 1; } 100% { transform: translate(3px, 18px); opacity: 0; } }
+
+/* celebrate — nhảy cẫng, giơ cánh, giơ bảng */
+.cb--celebrate .cb-body { animation: cbJump 0.72s cubic-bezier(0.3, 0.7, 0.4, 1) 3; }
+.cb--celebrate .cb-eyes { opacity: 0; }
+.cb--celebrate .cb-eyes-happy { opacity: 1; }
+.cb--celebrate .cb-sign { opacity: 1; transform: none; }
+.cb--celebrate .cb-wing--l { transform: rotate(125deg); }
+.cb--celebrate .cb-wing--r { transform: rotate(-125deg); }
+.cb--celebrate .cb-blush { opacity: 0.95; }
+.cb--celebrate .cb-tassel { animation: cbTassel 0.36s ease-in-out infinite; }
+@keyframes cbJump { 0%, 100% { transform: translateY(0) scale(1, 1); } 18% { transform: translateY(2px) scale(1.06, 0.92); } 50% { transform: translateY(-22px) scale(0.96, 1.05); } 80% { transform: translateY(0) scale(1.03, 0.97); } }
+
+/* sleepy — ngủ gật */
+.cb--sleepy .cb-eyes { opacity: 0; }
+.cb--sleepy .cb-eyes-closed { opacity: 1; }
+.cb--sleepy .cb-zzz { opacity: 1; }
+.cb--sleepy .cb-zzz text { opacity: 0; animation: cbZ 3s ease-in-out infinite; }
+.cb--sleepy .cb-zzz text:nth-child(2) { animation-delay: 0.45s; }
+.cb--sleepy .cb-zzz text:nth-child(3) { animation-delay: 0.9s; }
+.cb--sleepy .cb-body { animation: cbBreathe 3.6s ease-in-out infinite; }
+@keyframes cbZ { 0% { opacity: 0; transform: translate(0, 6px); } 30% { opacity: 1; } 80% { opacity: 0; transform: translate(8px, -10px); } 100% { opacity: 0; } }
+@keyframes cbBreathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.03, 0.975); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cb-body, .cb-shadow, .cb-lid, .cb-tassel, .cb-sweat, .cb-zzz text { animation: none !important; }
+}
+html.reduce-motion .cb-body,
+html.reduce-motion .cb-shadow,
+html.reduce-motion .cb-lid,
+html.reduce-motion .cb-tassel,
+html.reduce-motion .cb-sweat,
+html.reduce-motion .cb-zzz text { animation: none !important; }

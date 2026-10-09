@@ -1321,27 +1321,36 @@ test('22. Tố cáo vi phạm: không mất khi khởi động lại, chỉ admi
 
   let env = await createTestServer();
   try {
-    /* Gửi một tố cáo như người dùng thật. */
+    /* Epic 5: khách chưa đăng nhập không gửi được tố cáo. */
+    const anonymous = await post(env.baseUrl, '/api/reports', {
+      reportedUserId: 'u-spammer',
+      reason: 'Spam',
+    });
+    assert.equal(anonymous.status, 401, 'Tố cáo phải bắt buộc đăng nhập');
+
+    /* Gửi một tố cáo như người dùng thật (đã đăng nhập). Các trường reporter* tự
+       khai trong body phải bị bỏ qua — danh tính lấy từ token. */
+    const reporter = await register(env.baseUrl, 'Người Tố Cáo', 'reporter@example.com', 'mat-khau-reporter-9');
     const submitted = await post(env.baseUrl, '/api/reports', {
-      reporterId: 'u-reporter',
-      reporterName: 'Người Tố Cáo',
-      reporterEmail: 'reporter@example.com',
+      reporterId: 'u-gia-mao',
+      reporterName: 'Kẻ Mạo Danh',
+      reporterEmail: 'nan-nhan@example.com',
       reportedUserId: 'u-spammer',
       reportedUserName: 'Kẻ Spam',
       reason: 'Spam',
       details: 'Đăng lặp cùng một nội dung 20 lần trong 5 phút.',
-    });
+    }, reporter.token);
     assert.equal(submitted.status, 200);
     assert.ok(submitted.data.reportId, 'Phải trả về reportId');
     assert.equal(submitted.data.duplicated, undefined, 'Lần đầu không phải bản trùng');
 
-    /* Gửi y hệt lần nữa → gộp lại, không làm ngập hộp thư. */
+    /* Gửi y hệt lần nữa (dù đổi reporterId tự khai) → vẫn gộp lại. */
     const again = await post(env.baseUrl, '/api/reports', {
-      reporterId: 'u-reporter',
+      reporterId: 'u-khac-hoan-toan',
       reportedUserId: 'u-spammer',
       reason: 'Spam',
       details: 'Đăng lặp cùng một nội dung 20 lần trong 5 phút.',
-    });
+    }, reporter.token);
     assert.equal(again.data.duplicated, true, 'Tố cáo trùng phải được gộp');
 
     /* Chưa đăng nhập → không đọc được hộp thư. */
@@ -1361,6 +1370,8 @@ test('22. Tố cáo vi phạm: không mất khi khởi động lại, chỉ admi
     assert.equal(inbox.reports.length, 1, 'Hai lượt gửi trùng chỉ tạo một báo cáo');
     assert.equal(inbox.pending, 1);
     assert.equal(inbox.reports[0].status, 'PENDING');
+    assert.equal(inbox.reports[0].reporterEmail, 'reporter@example.com', 'Danh tính người tố cáo lấy từ phiên, không từ body');
+    assert.equal(inbox.reports[0].reporterId, reporter.user.id, 'reporterId tự khai bị bỏ qua');
     const reportId = inbox.reports[0].id;
 
     /* Học sinh có token hợp lệ vẫn không đọc được. */
@@ -2636,14 +2647,13 @@ test('44. Ghi atomic và giữ lại tệp dữ liệu hỏng thay vì ghi đè 
        store đã rơi về giá trị rỗng mặc định sau khi JSON.parse ném lỗi.
        Dùng /api/reports vì limiter của /api/chat đã bị test #23 làm cạn
        (limiter đặt ở cấp module nên dùng chung giữa các test trong cùng tiến trình). */
+    const atomicReporter = await register(env.baseUrl, 'Người Tố Cáo', `atomic.${Date.now()}@example.com`, 'mat-khau-atomic-9');
     const report = await post(env.baseUrl, '/api/reports', {
-      reporterId: 'u-atomic',
-      reporterName: 'Người Tố Cáo',
       reportedUserId: 'u-spam',
       reportedUserName: 'Kẻ Spam',
       reason: 'Spam',
       details: 'Kiểm tra tệp hỏng có bị ghi đè mất hay không.',
-    });
+    }, atomicReporter.token);
     assert.equal(report.status, 200, `gửi tố cáo: ${JSON.stringify(report.data)}`);
     await sleep(400); /* chờ persistStoreToDisk */
 
@@ -3267,15 +3277,13 @@ test('Bảo mật 56. Tra cứu và áp chế người dùng chỉ admin, dữ l
     const email = student.user.email;
 
     /* Báo cáo mục tiêu là người này; targetEmail trong record lại là admin nhận. */
+    const reporter56 = await register(env.baseUrl, 'Người Báo Cáo', `reporter56.${Date.now()}@example.com`, 'mat-khau-reporter56');
     const report = await post(env.baseUrl, '/api/reports', {
-      reporterId: `reporter56-${Date.now()}`,
-      reporterName: 'Người Báo Cáo',
-      reporterEmail: `reporter56.${Date.now()}@example.com`,
       reportedUserId: student.user.id,
       reportedUserName: student.user.name,
       reason: 'Spam',
       details: 'Tố cáo kiểm tra thống kê quản trị.',
-    });
+    }, reporter56.token);
     assert.equal(report.status, 200, 'tạo được báo cáo kiểm thử');
 
     /* Chat cho khách, nhưng không được giả danh tài khoản có thật qua HTTP/WS. */

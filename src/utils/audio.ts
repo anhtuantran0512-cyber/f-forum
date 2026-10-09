@@ -1,6 +1,13 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
+import { safeStorage } from './storage.ts';
 
 let audioCtx: AudioContext | null = null;
+
+/**
+ * Nút "Hiệu ứng âm thanh" trong Cài đặt lưu ở `fforum_sfx`. Trước đây không hàm âm
+ * thanh nào đọc khoá này nên tắt đi vẫn kêu — giờ mọi âm UI đều đi qua chốt này.
+ */
+export const isSfxEnabled = (): boolean => safeStorage.getItem('fforum_sfx') !== 'false';
 
 export function getAudioContext(preferredCtx?: AudioContext | null): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -55,6 +62,7 @@ export function isFocusLofiActive(): boolean {
 }
 
 export function playChime(type: 'xp' | 'level-up' | 'success' | 'send' = 'xp') {
+  if (!isSfxEnabled()) return;
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
@@ -122,5 +130,80 @@ export function playChime(type: 'xp' | 'level-up' | 'success' | 'send' = 'xp') {
     });
   }
   } catch {
+  }
+}
+
+/**
+ * Tiếng "tách" của công tắc đèn pin (Epic 5 — Flashlight Password Reveal):
+ * một xung bấm cao tần + tiếng "thịch" trầm rất ngắn; tắt đèn thấp giọng hơn.
+ */
+export function playFlashlightClick(on: boolean = true): void {
+  if (!isSfxEnabled()) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.55, now);
+    master.connect(ctx.destination);
+
+    const click = ctx.createOscillator();
+    const clickGain = ctx.createGain();
+    click.type = 'square';
+    click.frequency.setValueAtTime(on ? 2100 : 1500, now);
+    click.frequency.exponentialRampToValueAtTime(on ? 900 : 600, now + 0.025);
+    clickGain.gain.setValueAtTime(0.06, now);
+    clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+    click.connect(clickGain);
+    clickGain.connect(master);
+    click.start(now);
+    click.stop(now + 0.035);
+
+    const thump = ctx.createOscillator();
+    const thumpGain = ctx.createGain();
+    thump.type = 'sine';
+    thump.frequency.setValueAtTime(on ? 180 : 130, now);
+    thump.frequency.exponentialRampToValueAtTime(70, now + 0.06);
+    thumpGain.gain.setValueAtTime(0.09, now);
+    thumpGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
+    thump.connect(thumpGain);
+    thumpGain.connect(master);
+    thump.start(now);
+    thump.stop(now + 0.08);
+  } catch {
+    /* âm thanh chỉ là trang trí — lỗi thì bỏ qua */
+  }
+}
+
+let lastUiTick = 0;
+
+/**
+ * R3 · Delighter: tiếng "tick" siêu nhẹ khi bấm nút (~30ms, âm lượng 0.022).
+ * Đi qua chốt isSfxEnabled() như mọi âm UI khác; tự giãn cách ≥ 45ms để bấm
+ * liên tục không thành tiếng rè.
+ */
+export function playUiTick(): void {
+  if (!isSfxEnabled()) return;
+  const t = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  if (t - lastUiTick < 45) return;
+  lastUiTick = t;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(1850, now);
+    osc.frequency.exponentialRampToValueAtTime(1150, now + 0.018);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.022, now + 0.003);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.035);
+  } catch {
+    /* âm thanh chỉ là trang trí — lỗi thì bỏ qua */
   }
 }

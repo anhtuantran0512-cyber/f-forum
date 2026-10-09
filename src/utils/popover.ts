@@ -1,5 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useLayoutEffect, useState, type RefObject, type CSSProperties } from 'react';
+import { rafThrottle } from './rafThrottle';
 
 export type DockPosition = 'top' | 'bottom' | 'left' | 'right';
 
@@ -193,7 +194,8 @@ export function usePopoverPosition(
     const update = () => {
       const anchorEl = anchorRef?.current || null;
       const next = computePopoverPosition(anchorEl, dockPos, panelWidth, panelMaxHeight);
-      setPos(next);
+      /* Cùng vị trí → giữ nguyên object cũ, React bỏ qua render */
+      setPos(prev => (prev.ready === next.ready && JSON.stringify(prev.style) === JSON.stringify(next.style) ? prev : next));
     };
 
     update();
@@ -201,14 +203,18 @@ export function usePopoverPosition(
     const t1 = setTimeout(update, 60);
     const t2 = setTimeout(update, 220);
     const t3 = setTimeout(update, 440);
-    window.addEventListener('resize', update);
-    window.addEventListener('scroll', update, true);
+    /* R4: scroll ở pha capture bắn cho MỌI vùng cuộn trong trang → gộp về 1 lần/khung
+       hình và để passive (không chặn cuộn mượt). */
+    const onFrame = rafThrottle(update);
+    window.addEventListener('resize', onFrame, { passive: true });
+    window.addEventListener('scroll', onFrame, { capture: true, passive: true });
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
-      window.removeEventListener('resize', update);
-      window.removeEventListener('scroll', update, true);
+      onFrame.cancel();
+      window.removeEventListener('resize', onFrame);
+      window.removeEventListener('scroll', onFrame, true);
     };
   }, [isOpen, dockPos, panelWidth, panelMaxHeight, anchorRef]);
 

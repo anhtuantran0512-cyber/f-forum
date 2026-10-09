@@ -136,6 +136,47 @@ export const ShopItemSvg: React.FC<{ type: string; size?: number; className?: st
           <line x1="32" y1="26" x2="41" y2="27" stroke="#f59e0b" strokeWidth="1.8" />
         </svg>
       );
+    /* Epic 4 — vật phẩm mới (tự thiết kế, cùng ngôn ngữ hình khối với bộ cũ). */
+    case 'lantern':
+      return (
+        <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className}>
+          <circle cx="24" cy="24" r="22" fill="#0c1e3a" fillOpacity="0.78" stroke="#38bdf8" strokeWidth="1.5" />
+          <circle cx="24" cy="24" r="12" fill="#fbbf24" fillOpacity="0.1" />
+          <path d="M24 7.5 V11" stroke="#7dd3fc" strokeWidth="1.6" strokeLinecap="round" />
+          <path d="M19.5 11 H28.5 L30 14.2 H18 Z" fill="#0ea5e9" stroke="#bae6fd" strokeWidth="1.1" strokeLinejoin="round" />
+          <rect x="16.5" y="14.2" width="15" height="18.8" rx="6.2" fill="#fde68a" fillOpacity="0.2" stroke="#7dd3fc" strokeWidth="1.5" />
+          <ellipse cx="24" cy="23.6" rx="5.2" ry="6.6" fill="#fbbf24" fillOpacity="0.55" />
+          <ellipse cx="24" cy="23.6" rx="2.6" ry="3.4" fill="#fef3c7" fillOpacity="0.9" />
+          <path d="M18.6 33 H29.4 L27.9 36.2 H20.1 Z" fill="#0ea5e9" stroke="#bae6fd" strokeWidth="1.1" strokeLinejoin="round" />
+          <circle cx="21.2" cy="20.4" r="1.15" fill="#fef08a" />
+          <circle cx="26.8" cy="26.2" r="1" fill="#fef08a" />
+          <circle cx="11.5" cy="15.5" r="1.2" fill="#fde047" />
+          <circle cx="36.8" cy="18.6" r="1.4" fill="#fde047" />
+          <circle cx="35.2" cy="33.8" r="1" fill="#fde047" />
+          <circle cx="12.8" cy="31.4" r="0.85" fill="#fde047" />
+        </svg>
+      );
+    case 'owl':
+      return (
+        <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className}>
+          <circle cx="24" cy="24" r="22" fill="#3b0a1e" fillOpacity="0.78" stroke="#fb7185" strokeWidth="1.5" />
+          <path d="M34.5 8.6 a6.2 6.2 0 1 0 5.6 8.7 a5 5 0 1 1 -5.6 -8.7 Z" fill="#fde68a" fillOpacity="0.9" />
+          <path d="M14.2 12.6 L19.4 18.4 L15.4 20.2 Z" fill="#b45309" stroke="#fdba74" strokeWidth="1" strokeLinejoin="round" />
+          <path d="M33.8 12.6 L28.6 18.4 L32.6 20.2 Z" fill="#b45309" stroke="#fdba74" strokeWidth="1" strokeLinejoin="round" />
+          <ellipse cx="24" cy="26.6" rx="10.2" ry="11" fill="#92400e" stroke="#fdba74" strokeWidth="1.4" />
+          <ellipse cx="24" cy="30.4" rx="5.6" ry="6" fill="#fcd34d" fillOpacity="0.32" />
+          <path d="M21.4 30 q1.3 1.1 2.6 0 M24 31.6 q1.3 1.1 2.6 0" stroke="#fde68a" strokeWidth="0.9" strokeLinecap="round" opacity="0.7" />
+          <circle cx="20" cy="23" r="3.7" fill="#fef3c7" stroke="#fbbf24" strokeWidth="1.2" />
+          <circle cx="28" cy="23" r="3.7" fill="#fef3c7" stroke="#fbbf24" strokeWidth="1.2" />
+          <circle cx="20" cy="23" r="1.75" fill="#1c1917" />
+          <circle cx="28" cy="23" r="1.75" fill="#1c1917" />
+          <circle cx="20.65" cy="22.35" r="0.6" fill="#ffffff" />
+          <circle cx="28.65" cy="22.35" r="0.6" fill="#ffffff" />
+          <path d="M24 25.1 L22.6 26.9 H25.4 Z" fill="#f59e0b" />
+          <path d="M16.5 37 H31.5" stroke="#fdba74" strokeWidth="1.7" strokeLinecap="round" />
+          <path d="M21 36.6 V38.4 M27 36.6 V38.4" stroke="#fbbf24" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+      );
     default:
       return (
         <svg width={size} height={size} viewBox="0 0 48 48" fill="none" className={className}>

@@ -75,26 +75,34 @@ test('2. Playful Cartoon Light/Dark Theme Switch Specifications', () => {
 test('3. Apple iOS Light Glass & Dark Mode CSS Rules', () => {
   const cssContent = fs.readFileSync(path.resolve('src/index.css'), 'utf8');
 
-  // Verify html.light transforms .liquid-glass into original ultra-translucent crystalline liquid glass
+  // html.light biến .liquid-glass thành kính sữa "liquid" (Nhiemvu_3 Epic 4 — WCAG AA).
+  // Bản cũ 3% trắng cho chữ #101827 trên nền tối chỉ 1,13:1 nên đã được thay;
+  // tỷ lệ tương phản được tính đầy đủ trong tests/light-mode-contrast.test.mjs.
   assert.ok(
     cssContent.includes('html.light .liquid-glass'),
     'index.css must define html.light .liquid-glass'
   );
   assert.ok(
-    cssContent.includes('background: rgba(255, 255, 255, 0.03);'),
-    'Light liquid-glass must have ultra-translucent rgba(255, 255, 255, 0.03) background'
+    cssContent.includes('html.light .liquid-glass {\n  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(246, 248, 252, 0.88));'),
+    'Light liquid-glass must be milky liquid glass (≥ 0.88 alpha) so dark text stays AA even over dark backdrops'
   );
   assert.ok(
-    cssContent.includes('backdrop-filter: blur(14px);'),
-    'Light liquid-glass must use blur(14px)'
+    cssContent.includes('backdrop-filter: blur(var(--glass-blur, 14px));'),
+    'Light liquid-glass blur must be driven by the --glass-blur setting (default 14px)'
   );
   assert.ok(
-    cssContent.includes('border: 1px solid rgba(255, 255, 255, 0.2);'),
-    'Light liquid-glass must use border rgba(255, 255, 255, 0.2)'
+    cssContent.includes('html.text-size-sm') &&
+    cssContent.includes('html.text-size-md') &&
+    cssContent.includes('html.text-size-lg'),
+    'Font-size setting (Cài đặt → Giao diện) must have real html.text-size-* rules'
   );
   assert.ok(
-    cssContent.includes('box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 20px 50px rgba(0, 0, 0, 0.5);'),
-    'Light liquid-glass must define original crystalline specular box-shadow'
+    cssContent.includes('rgba(255, 255, 255, 0.42)') && cssContent.includes('rgba(241, 245, 249, 0.30)'),
+    'Light navbar must be translucent liquid glass (no opaque white glare)'
+  );
+  assert.ok(
+    cssContent.includes('box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 18px 44px rgba(15, 23, 42, 0.16);\n  border: 1px solid rgba(15, 23, 42, 0.08);'),
+    'Light liquid-glass must use a crisp specular top edge, soft slate shadow and hairline slate border'
   );
 
   // Verify dark mode defines deeper Obsidian Liquid Glass
@@ -137,9 +145,79 @@ test('4. Settings Menu Options: Potator Mode, SFX, and Reduced Motion', () => {
     settingsModalContent.includes('Mở Focus Mode'),
     'Settings must provide direct Focus Sanctuary shortcut'
   );
+  /* EPIC 2 — Potator Mode bản MỚI (chế độ hiệu năng: chỉ thay nền động bằng
+     gradient tĩnh, giữ nguyên 100% animation UI). Bản cũ đã xóa, bản mới phải
+     có đủ: toggle trong Settings + 3 preset nền + class html.potator-mode. */
   assert.ok(
-    settingsModalContent.includes('Potator Mode') && cssContent.includes('html.potato-mode .ff-app-shell:not(.ff-view-home) .ff-godray-layer'),
-    'Potator Mode must reduce expensive non-home backgrounds without disabling motion'
+    settingsModalContent.includes('Potator Mode') &&
+    settingsModalContent.includes('onTogglePotatorMode'),
+    'Settings must include the new Potator Mode toggle'
+  );
+  assert.ok(
+    settingsModalContent.includes('POTATOR_BG_PRESETS') &&
+    settingsModalContent.includes('onSelectPotatorBg'),
+    'Settings must offer selectable static-background presets for Potator Mode'
+  );
+  assert.ok(
+    cssContent.includes('html.potator-mode .ff-app-shell:not(.ff-view-home) .ff-video-bg'),
+    'Potator Mode must hide background videos on every view EXCEPT home'
+  );
+  assert.ok(
+    cssContent.includes("data-potator-bg='gunmetal'") &&
+    cssContent.includes("data-potator-bg='aurora'") &&
+    cssContent.includes("data-potator-bg='void'"),
+    'Potator Mode must ship 3 static background presets (gunmetal / aurora / void)'
+  );
+  assert.ok(
+    cssContent.includes('html.potator-mode .ff-nav-capsule .nav-tab-btn::after'),
+    'Potator Mode must enable the navbar inner-glow hover'
+  );
+  assert.ok(
+    !cssContent.includes('html.potato-mode') &&
+    !cssContent.includes('.potator-mode-active') &&
+    !settingsModalContent.includes('potatoMode'),
+    'The OLD potato mode (full animation kill) must stay removed'
+  );
+  /* QUAN TRỌNG: Potator Mode mới KHÔNG được tắt animation UI — nếu có rule
+     "animation: none" toàn cục dưới potator-mode là vi phạm spec. */
+  const potatorSection = cssContent.slice(cssContent.indexOf('EPIC 2 — POTATOR MODE'));
+  assert.ok(
+    !/html\.potator-mode[^{]*\{[^}]*animation:\s*none/.test(potatorSection),
+    'Potator Mode must NOT kill UI animations (only the video background is replaced)'
+  );
+});
+
+test('4b. Potator Mode wiring: persistence keys + App layer + video pause', () => {
+  const navbarContent = fs.readFileSync(path.resolve('src/components/Navbar.tsx'), 'utf8');
+  const appContent = fs.readFileSync(path.resolve('src/App.tsx'), 'utf8');
+  const cssContent = fs.readFileSync(path.resolve('src/index.css'), 'utf8');
+
+  assert.ok(
+    navbarContent.includes("safeStorage.getItem('fforum_potator_mode')") &&
+    navbarContent.includes("safeStorage.setItem('fforum_potator_mode'"),
+    'Potator Mode must persist to localStorage'
+  );
+  assert.ok(
+    navbarContent.includes("safeStorage.getItem('fforum_potator_bg')") &&
+    navbarContent.includes("document.documentElement.dataset.potatorBg"),
+    'Potator background preset must persist and apply to <html data-potator-bg>'
+  );
+  assert.ok(
+    navbarContent.includes("classList.toggle('potator-mode', potatorMode)"),
+    'Navbar must toggle the potator-mode class on <html>'
+  );
+  assert.ok(
+    appContent.includes("fforum_potator_sync") && appContent.includes('ff-potator-bg'),
+    'App must listen for potator sync and render the static background layer'
+  );
+  assert.ok(
+    appContent.includes("v.pause()") && appContent.includes('ff-video-bg video'),
+    'App must pause background videos while Potator Mode is on (except home)'
+  );
+  assert.ok(
+    cssContent.includes('html.potator-mode .liquid-glass') &&
+    cssContent.includes('--glass-blur: 10px'),
+    'Potator Mode must slim down glass blur (minimal aesthetic) without killing motion'
   );
 });
 

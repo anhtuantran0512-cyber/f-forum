@@ -2,8 +2,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomInt } from 'node:crypto';
-import { SHOP_ITEMS } from '../src/utils/shopData.ts';
+import { SHOP_ITEMS, effectivePrice } from '../src/utils/shopData.ts';
 import { dateKeyInTimeZone } from '../shared/dailyTrivia.ts';
+import { GHIBLI_MASKS, getRandomGhibliMask } from '../src/utils/ghibliMasks.ts';
 import {
   claimDailyAttendance,
   claimDailyTrivia,
@@ -28,6 +29,7 @@ import {
   applyModerationAction,
   isUntilActive,
   moderationStatusOf,
+  moderationForLogin,
   normalizeModerationReason,
   parseModerationMap,
   pruneModeration,
@@ -36,10 +38,20 @@ import {
 } from './moderation.ts';
 import {
   MASTER_ADMIN_EMAIL,
+  SESSION_TTL_MS,
   SlidingWindowRateLimiter,
   authorizeRequest,
+  buildClearedSessionCookie,
+  buildSessionCookie,
   clientIpOf,
   createSessionToken,
+  isCrossSiteRequest,
+  isSessionRevoked,
+  readBearerToken,
+  readSessionCookie,
+  sanitizeMediaUrl,
+  sanitizePlainText,
+  setSessionRevocationCheck,
   hashPassword,
   isHashedPassword,
   isMasterAdminEmail,
@@ -52,6 +64,8 @@ import {
   type SessionClaims,
 } from './authGuard.ts';
 import { decideSocialAccess } from './socialAuth.ts';
+import { applyCorsHeaders, requestIsHttps } from './securityHeaders.ts';
+import { handleMediaRequest, processUploadedImage, MediaUploadError, type MediaKind } from './mediaPipeline.ts';
 import {
   buildAnalyticsReport,
   createEmptyAnalytics,
@@ -72,6 +86,8 @@ export interface UserRecord {
   role: 'SUPER_ADMIN' | 'CLUB_LEADER' | 'STUDENT';
   /** Vai trò được Super Admin cấp riêng; không thay đổi quyền sở hữu CLB. */
   staffRole?: 'MODERATOR' | 'TEACHER';
+  /** ID vai trò tùy chỉnh do Super Admin tạo (xem customRoles trong store). */
+  customRole?: string;
   /** Mốc Premium (ms); 0 = vĩnh viễn, undefined = chưa được cấp. */
   premiumUntil?: number;
   premiumGrantedAt?: number;
@@ -90,6 +106,8 @@ export interface UserRecord {
   bannerUrl?: string;
   profileGradient?: string;
   scopedClubIds: string[];
+  /** Epic 5: mọi token phát hành TRƯỚC mốc này bị thu hồi ("đăng xuất mọi thiết bị"). */
+  sessionsRevokedAt?: number;
 }
 
 export interface AdminWarningRecord {
@@ -98,6 +116,77 @@ export interface AdminWarningRecord {
   targetEmail: string;
   reason: string;
   by: string;
+}
+
+/* Epic 3 — mục 3.5: vai trò tùy chỉnh. Danh sách quyền và icon là whitelist
+   duy nhất — client chỉ được gửi giá trị nằm trong hai danh sách này. */
+export type CustomRolePermission = 'ban' | 'warn' | 'mute' | 'give_role' | 'edit_content' | 'view_analytics';
+export const CUSTOM_ROLE_PERMISSIONS: readonly CustomRolePermission[] = [
+  'ban', 'warn', 'mute', 'give_role', 'edit_content', 'view_analytics',
+];
+export const CUSTOM_ROLE_MODERATION_PERMISSIONS: readonly CustomRolePermission[] = ['ban', 'warn', 'mute'];
+export const CUSTOM_ROLE_ICONS: readonly string[] = [
+  'shield', 'graduation-cap', 'star', 'zap', 'crown', 'sparkles', 'heart', 'swords', 'gem', 'flame',
+];
+
+export interface CustomRoleRecord {
+  id: string;
+  name: string;
+  icon: string;
+  /** Mã màu hex của badge, ví dụ #f59e0b. */
+  color: string;
+  /** Ký tự đặc biệt đi kèm tên (tối đa 2 ký tự). */
+  specialChar: string;
+  permissions: CustomRolePermission[];
+  createdAt: number;
+  createdBy: string;
+}
+
+const CUSTOM_ROLE_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+export function sanitizeCustomRoleInput(input: any): { ok: true; value: { name: string; icon: string; color: string; specialChar: string; permissions: CustomRolePermission[] } } | { ok: false; message: string } {
+  const name = String(input?.name || '').trim().slice(0, 24);
+  if (name.length < 2) return { ok: false, message: 'Tên vai trò cần ít nhất 2 ký tự (tối đa 24).' };
+  const icon = String(input?.icon || '').trim().toLowerCase();
+  if (!CUSTOM_ROLE_ICONS.includes(icon)) return { ok: false, message: 'Icon vai trò không nằm trong danh sách cho phép.' };
+  const color = String(input?.color || '').trim();
+  if (!CUSTOM_ROLE_COLOR_RE.test(color)) return { ok: false, message: 'Màu badge phải là mã hex (#rgb hoặc #rrggbb).' };
+  const specialChar = String(input?.specialChar || '').trim().slice(0, 2);
+  const rawPermissions: unknown[] = Array.isArray(input?.permissions) ? input.permissions : [];
+  const uniquePermissions = Array.from(new Set(
+    rawPermissions
+      .map((permission: unknown) => String(permission || '').trim())
+      .filter((permission): permission is CustomRolePermission => (CUSTOM_ROLE_PERMISSIONS as readonly string[]).includes(permission)),
+  ));
+  if (uniquePermissions.length === 0) return { ok: false, message: 'Vai trò cần ít nhất 1 quyền hợp lệ.' };
+  return { ok: true, value: { name, icon, color: color.toLowerCase(), specialChar, permissions: uniquePermissions } };
+}
+
+/** Nạp lại vai trò tùy chỉnh từ đĩa — dùng chung luật kiểm tra với API tạo role (tối đa 200 role). */
+export function sanitizeCustomRoles(raw: unknown): Record<string, CustomRoleRecord> {
+  const out: Record<string, CustomRoleRecord> = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  for (const [key, value] of Object.entries(raw as Record<string, any>).slice(0, 200)) {
+    if (!value || typeof value !== 'object') continue;
+    const id = String(value.id || '').trim();
+    if (!id || id !== key || id.length > 120 || !id.startsWith('role')) continue;
+    const checked = sanitizeCustomRoleInput(value);
+    if (!checked.ok) continue;
+    out[id] = {
+      id,
+      ...checked.value,
+      createdAt: Number.isFinite(value.createdAt) ? Math.max(0, Math.floor(value.createdAt)) : 0,
+      createdBy: String(value.createdBy || '').trim().toLowerCase().slice(0, 254),
+    };
+  }
+  return out;
+}
+
+/** Quyền của vai trò tùy chỉnh gắn với một user (đọc từ store hiện tại). */
+export function customRolePermissionsOf(user: UserRecord | undefined): CustomRolePermission[] {
+  if (!user?.customRole) return [];
+  const role = store.customRoles?.[user.customRole];
+  return role ? [...role.permissions] : [];
 }
 
 export interface ForumDataStore {
@@ -119,6 +208,8 @@ export interface ForumDataStore {
   analytics?: AnalyticsStore;
   /** Cảnh cáo riêng tư, tối đa 1.000 bản ghi mới nhất. */
   adminWarnings?: AdminWarningRecord[];
+  /** Vai trò tùy chỉnh do Super Admin tạo (Epic 3 — mục 3.5), kèm bộ quyền riêng. */
+  customRoles?: Record<string, CustomRoleRecord>;
   /** Điểm danh, lượt trả lời và kho hộp quà do máy chủ quản lý. */
   dailyRewards?: Record<string, DailyRewardProfile>;
   /** Phiên Pomodoro đang mở, đối chiếu bằng đồng hồ máy chủ khi nhận thưởng. */
@@ -148,6 +239,20 @@ export function calculateLevelFromXP(xp: number): number {
 }
 
 const DEFAULT_AVATAR = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%231a2332"/><circle cx="50" cy="38" r="20" fill="%234a5d78"/><path d="M20 90 Q50 65 80 90" fill="%234a5d78"/></svg>`;
+
+/* Epic 5 — ảnh do client gửi (khách / bản cũ) phải là URL ảnh an toàn; sai thì về mặc định. */
+const safeAvatarUrl = (value: unknown): string =>
+  (typeof value === 'string' ? sanitizeMediaUrl(value, 2000) : null) || DEFAULT_AVATAR;
+
+/*
+  Mặt nạ ẩn danh: chỉ nhận đúng các mặt nạ chính thức của app. Trước đây server lưu
+  chuỗi client gửi và CẮT còn 2000 ký tự — trong khi 4/5 mặt nạ dài 1918–2550 ký tự,
+  nên ảnh mặt nạ của câu hỏi ẩn danh bị hỏng. Allowlist vừa sửa lỗi đó vừa chặn
+  việc nhét dữ liệu tuỳ ý vào trường ảnh.
+*/
+const GHIBLI_MASK_SET = new Set<string>(GHIBLI_MASKS);
+const safeAnonymousMask = (value: unknown, seed: string): string =>
+  typeof value === 'string' && GHIBLI_MASK_SET.has(value) ? value : getRandomGhibliMask(seed);
 
 /**
  * Thư mục dữ liệu — đổi được qua `FFORUM_DATA_DIR` (hữu ích khi chạy test song
@@ -317,6 +422,8 @@ function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
         ? raw.scopedClubIds.slice(0, 500).map((c: unknown) => String(c))
         : [],
     };
+    /* Super Admin cố định theo email: không gắn kèm vai trò tùy chỉnh nào. */
+    if (role === 'SUPER_ADMIN') delete out[email].customRole;
   });
   return out;
 }
@@ -418,6 +525,9 @@ function loadStoreFromDisk() {
           auditLog: sanitizeAuditLog(parsed.auditLog),
           analytics: sanitizeAnalyticsStore(parsed.analytics),
           adminWarnings: sanitizeAdminWarnings(parsed.adminWarnings),
+          /* Epic 3 — vai trò tùy chỉnh. PHẢI liệt kê ở đây (xem cảnh báo ở trên):
+             thiếu dòng này thì mọi role biến mất sau mỗi lần khởi động lại. */
+          customRoles: sanitizeCustomRoles(parsed.customRoles),
           dailyRewards: sanitizeDailyRewardProfiles(parsed.dailyRewards, new Set(Object.keys(cleanUsers))),
           focusRewardSessions: sanitizeFocusRewardSessions(
             parsed.focusRewardSessions,
@@ -589,6 +699,21 @@ const loginLimiter = new SlidingWindowRateLimiter(AUTH_WINDOW_MS, 12);
 const registerLimiter = new SlidingWindowRateLimiter(AUTH_WINDOW_MS, 30);
 const socialLimiter = new SlidingWindowRateLimiter(AUTH_WINDOW_MS, 30);
 const writeLimiter = new SlidingWindowRateLimiter(60 * 1000, 120);
+/*
+  Epic 5 — hai lớp đếm LẦN ĐĂNG NHẬP SAI bổ sung cho loginLimiter (khoá theo cặp
+  IP + email). Thiếu chúng thì một IP có thể rải một mật khẩu qua hàng trăm email
+  (password spraying), hoặc một tài khoản bị dò từ nhiều IP mà không bị chặn.
+  Chỉ đếm lần SAI nên người dùng thật gõ đúng không bao giờ chạm trần.
+*/
+const loginFailureIpLimiter = new SlidingWindowRateLimiter(AUTH_WINDOW_MS, 40);
+const loginFailureAccountLimiter = new SlidingWindowRateLimiter(AUTH_WINDOW_MS, 25);
+/* Epic 5 — tố cáo: bắt buộc đăng nhập, giới hạn riêng theo tài khoản VÀ theo IP
+   (trước đây dùng chung limiter ghi 120 lượt/phút, không cần đăng nhập). */
+const REPORT_WINDOW_MS = 10 * 60 * 1000;
+const reportAccountLimiter = new SlidingWindowRateLimiter(REPORT_WINDOW_MS, 6);
+const reportIpLimiter = new SlidingWindowRateLimiter(REPORT_WINDOW_MS, 20);
+/* Epic 5 — tải ảnh đại diện / ảnh bìa (xử lý bằng sharp, tốn CPU). */
+const uploadLimiter = new SlidingWindowRateLimiter(10 * 60 * 1000, 20);
 
 /**
   Chỉ dành cho bộ kiểm thử.
@@ -604,6 +729,11 @@ export function resetRateLimitersForTest() {
   registerLimiter.reset();
   socialLimiter.reset();
   writeLimiter.reset();
+  loginFailureIpLimiter.reset();
+  loginFailureAccountLimiter.reset();
+  reportAccountLimiter.reset();
+  reportIpLimiter.reset();
+  uploadLimiter.reset();
   presenceLimiter.reset();
   analyticsLimiter.reset();
 }
@@ -659,6 +789,31 @@ function migratePlaintextPasswords(): number {
 
 /** Cấp token phiên cho một tài khoản (dùng chung register / login / social). */
 const issueTokenFor = (user: UserRecord): string => createSessionToken(user.email, user.role);
+
+/** Trình duyệt xin phiên bằng cookie HttpOnly qua header này (xem src/utils/session.ts). */
+const wantsCookieSession = (req: IncomingMessage): boolean =>
+  String(req.headers['x-fforum-session'] || '').trim().toLowerCase() === 'cookie';
+
+/**
+ * Epic 5 — cấp phiên cho một lần đăng nhập/đăng ký thành công.
+ *
+ * Luôn trả token trong JSON (client cũ, công cụ dòng lệnh, bộ test dùng Bearer).
+ * Nếu trình duyệt xin cookie VÀ kết nối là HTTPS VÀ request cùng nguồn, đặt thêm
+ * cookie `__Host-ff_session` (HttpOnly; Secure; SameSite=Strict). Client kiểm chứng
+ * cookie hoạt động rồi mới bỏ token khỏi bộ nhớ — trong iframe khác site (vd. khung
+ * xem trước) trình duyệt không lưu cookie Strict, khi đó client tự giữ Bearer.
+ */
+function issueSession(req: IncomingMessage, res: ServerResponse, user: UserRecord, existingToken?: string) {
+  const token = existingToken || issueTokenFor(user);
+  const claims = verifySessionToken(token);
+  const expiresAt = claims?.exp ?? Date.now() + SESSION_TTL_MS;
+  let sessionTransport: 'cookie' | 'bearer' = 'bearer';
+  if (wantsCookieSession(req) && requestIsHttps(req) && !isCrossSiteRequest(req)) {
+    res.setHeader('Set-Cookie', buildSessionCookie(token, expiresAt - Date.now()));
+    sessionTransport = 'cookie';
+  }
+  return { token, expiresAt, sessionTransport };
+}
 
 /**
  * Gộp dữ liệu Khu Vinh Danh thay vì thay nguyên khối.
@@ -802,9 +957,9 @@ function sendJson(res: ServerResponse, statusCode: number, data: any) {
   if (res.writableEnded || res.destroyed) return;
   res.statusCode = statusCode;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  /* Epic 5: bỏ CORS `*` (CORS giờ do applyCorsHeaders quyết theo Origin) và cấm
+     lưu đệm — phản hồi API chứa dữ liệu cá nhân, không được nằm trong cache chung. */
+  if (!res.hasHeader('Cache-Control')) res.setHeader('Cache-Control', 'no-store');
   res.end(JSON.stringify(data));
 }
 
@@ -853,7 +1008,7 @@ function sanitizePresence(payload: any, claims: SessionClaims | null) {
   const cleaned: Record<string, unknown> = {
     id,
     name: String(verifiedUser?.name ?? payload.name ?? 'Học sinh').slice(0, MAX_NAME_LENGTH),
-    avatar: String(verifiedUser?.avatar ?? payload.avatar ?? DEFAULT_AVATAR).slice(0, 2000),
+    avatar: verifiedUser?.avatar ? String(verifiedUser.avatar).slice(0, 4000) : safeAvatarUrl(payload.avatar),
   };
 
   const level = Number(verifiedUser?.level ?? payload.level);
@@ -898,6 +1053,19 @@ function sanitizeQuestionUpdates(updates: any) {
     clean.subject = updates.subject.trim().slice(0, 40);
   }
   return Object.keys(clean).length > 0 ? clean : null;
+}
+
+/**
+ * Trạng thái khoá trả kèm khi đăng nhập / khôi phục phiên — tính theo GIỜ HIỆN TẠI
+ * (lệnh cấm đã hết hạn = đã gỡ) và dọn luôn bản ghi đã hết hạn của tài khoản đó.
+ */
+function loginModerationStatus(email: string) {
+  const { status, staleKey } = moderationForLogin(store.moderation, email, Date.now());
+  if (staleKey && store.moderation?.[staleKey]) {
+    delete store.moderation[staleKey];
+    persistStoreToDisk();
+  }
+  return status;
 }
 
 /**
@@ -962,6 +1130,10 @@ interface AdminActor {
   claims: SessionClaims;
   user: UserRecord;
   role: 'SUPER_ADMIN' | 'MODERATOR' | 'TEACHER';
+  /** Quyền của vai trò tùy chỉnh (rỗng nếu actor dùng vai trò có sẵn). */
+  permissions: CustomRolePermission[];
+  /** true nếu quyền kiểm duyệt đến từ vai trò tùy chỉnh — từng endpoint phải đối chiếu quyền cụ thể. */
+  viaCustomRole: boolean;
 }
 
 /** Quyền luôn đọc từ hồ sơ server hiện tại, không tin role cũ trong token. */
@@ -970,17 +1142,51 @@ function requireModerationStaff(req: IncomingMessage, body: any): AdminActor | n
   if (!claims) return null;
   const user = store.users[claims.email];
   if (!user) return null;
-  const role: AdminActor['role'] = isMasterAdminEmail(claims.email) && user.role === 'SUPER_ADMIN'
-    ? 'SUPER_ADMIN'
-    : user.staffRole === 'MODERATOR' || user.staffRole === 'TEACHER'
-      ? user.staffRole
-      : 'SUPER_ADMIN';
-  if (role === 'SUPER_ADMIN') {
-    if (!isMasterAdminEmail(claims.email) || user.role !== 'SUPER_ADMIN') return null;
-  } else if (!['MODERATOR', 'TEACHER'].includes(role)) {
-    return null;
+  const isSuper = isMasterAdminEmail(claims.email) && user.role === 'SUPER_ADMIN';
+  const staffRole = user.staffRole === 'MODERATOR' || user.staffRole === 'TEACHER' ? user.staffRole : null;
+  const customPermissions = customRolePermissionsOf(user);
+  /* give_role cũng đủ để XEM danh bạ (cần chọn người để cấp vai trò); các endpoint
+     ghi (warn/moderate) vẫn đối chiếu quyền cụ thể khi actor.viaCustomRole. */
+  const hasCustomModeration = [...CUSTOM_ROLE_MODERATION_PERMISSIONS, 'give_role' as const]
+    .some((permission) => customPermissions.includes(permission));
+  if (!isSuper && !staffRole && !hasCustomModeration) return null;
+  const role: AdminActor['role'] = isSuper ? 'SUPER_ADMIN' : staffRole || 'MODERATOR';
+  return {
+    claims: { ...claims, role: user.role },
+    user,
+    role,
+    permissions: customPermissions,
+    viaCustomRole: !isSuper && !staffRole,
+  };
+}
+
+/** Super Admin hoặc vai trò tùy chỉnh có quyền edit_content — dùng cho sửa/xoá nội dung vi phạm. */
+function requireContentEditor(req: IncomingMessage, body: any): SessionClaims | null {
+  const superClaims = requireSuperAdmin(req, body);
+  if (superClaims) return superClaims;
+  const claims = authorizeRequest(req, null, body?.adminToken || body?.token || null);
+  if (!claims) return null;
+  return customRolePermissionsOf(store.users[claims.email]).includes('edit_content') ? claims : null;
+}
+
+/** Super Admin hoặc vai trò tùy chỉnh có quyền give_role — dùng cho cấp vai trò (mục 3.1/3.5). */
+function requireRoleGrantor(req: IncomingMessage, body: any): AdminActor | null {
+  const claims = authorizeRequest(req, null, body?.adminToken || body?.token || null);
+  if (!claims) return null;
+  const user = store.users[claims.email];
+  if (!user) return null;
+  if (isMasterAdminEmail(claims.email) && user.role === 'SUPER_ADMIN') {
+    return { claims: { ...claims, role: user.role }, user, role: 'SUPER_ADMIN', permissions: [...CUSTOM_ROLE_PERMISSIONS], viaCustomRole: false };
   }
-  return { claims: { ...claims, role: user.role }, user, role };
+  const customPermissions = customRolePermissionsOf(user);
+  if (!customPermissions.includes('give_role')) return null;
+  return {
+    claims: { ...claims, role: user.role },
+    user,
+    role: user.staffRole === 'MODERATOR' || user.staffRole === 'TEACHER' ? user.staffRole : 'MODERATOR',
+    permissions: customPermissions,
+    viaCustomRole: true,
+  };
 }
 
 function isPremiumActive(user: UserRecord | undefined, now: number = Date.now()): boolean {
@@ -1042,6 +1248,12 @@ export function setupForumServer(httpServer: any, middlewares: any) {
   loadStoreFromDisk();
   installShutdownFlush();
 
+  /* Epic 5: token phát hành trước mốc "đăng xuất mọi thiết bị" của tài khoản bị từ chối. */
+  setSessionRevocationCheck((claims) => {
+    const revokedAt = Number(store.users[claims.email]?.sessionsRevokedAt || 0);
+    return revokedAt > 0 && claims.iat < revokedAt;
+  });
+
   const retiredAdminPassword = retirePublicAdminPassword();
   if (retiredAdminPassword) {
     console.warn('[Forum Server] Đã thu hồi mật khẩu quản trị mẫu từng được phát hành công khai.');
@@ -1088,7 +1300,27 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       }
       wsClients.add(ws);
 
+      /*
+        Epic 5 — phiên cookie HttpOnly: JavaScript không đọc được token nên không gửi
+        được gói AUTH; trình duyệt tự kèm cookie trong bước bắt tay WebSocket. Chỉ
+        nhận khi bắt tay đến từ chính site (chống Cross-Site WebSocket Hijacking).
+      */
+      let cookieBound: SessionClaims | null = null;
+      if (req && !isCrossSiteRequest(req)) {
+        const cookieClaims = verifySessionToken(readSessionCookie(req));
+        const cookieAccount = cookieClaims && !isSessionRevoked(cookieClaims)
+          ? store.users[cookieClaims.email]
+          : undefined;
+        if (cookieClaims && cookieAccount) {
+          cookieBound = { ...cookieClaims, role: cookieAccount.role || 'STUDENT' };
+          wsSessions.set(ws, cookieBound);
+        }
+      }
+
       ws.send(JSON.stringify({ type: 'WS_CONNECTED', payload: { clientCount: wsClients.size } }));
+      if (cookieBound) {
+        ws.send(JSON.stringify({ type: 'AUTH_OK', payload: { email: cookieBound.email, role: cookieBound.role, via: 'cookie' } }));
+      }
 
       ws.on('message', (messageRaw) => {
         try {
@@ -1191,7 +1423,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               /* Gắn danh tính cho kết nối này. Không có bước này thì mọi thao tác
                  nhạy cảm bên dưới đều bị từ chối. */
               const token = typeof payload === 'string' ? payload : payload?.token;
-              const claims = verifySessionToken(token);
+              const verified = verifySessionToken(token);
+              const claims = verified && !isSessionRevoked(verified) ? verified : null;
               /* Không tin `role` trong token một cách mù quáng: đối chiếu bản ghi
                  thật trên server để token cũ không giữ được quyền đã bị thu hồi. */
               const account = claims ? store.users[claims.email] : undefined;
@@ -1287,9 +1520,9 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 ).slice(0, MAX_NAME_LENGTH),
                 authorEmail: asker.email,
                 authorLevel: asker.level ?? 1,
-                authorAvatar: String(
-                  (payload.isAnonymous ? payload.anonymousMask : asker.avatar) || DEFAULT_AVATAR
-                ).slice(0, 2000),
+                authorAvatar: payload.isAnonymous
+                  ? safeAnonymousMask(payload.anonymousMask, String(payload.id || asker.id))
+                  : String(asker.avatar || DEFAULT_AVATAR).slice(0, 4000),
                 isAnonymous: Boolean(payload.isAnonymous),
                 createdAt: 'Vừa xong',
                 createdAtMs: Date.now(),
@@ -1735,13 +1968,17 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     const url = req.url || '';
     const method = req.method || 'GET';
 
+    if (url.startsWith('/api/')) applyCorsHeaders(req, res);
+
     if (method === 'OPTIONS' && url.startsWith('/api/')) {
       res.statusCode = 204;
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
       res.end();
       return;
+    }
+
+    /* Epic 5 — ảnh đại diện/ảnh bìa đã xử lý bằng sharp (cache dài hạn, tên có hash). */
+    if ((method === 'GET' || method === 'HEAD') && url.startsWith('/media/')) {
+      if (handleMediaRequest(req, res)) return;
     }
 
     if (method === 'GET' && url.startsWith('/api/events')) {
@@ -1753,7 +1990,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
         'X-Accel-Buffering': 'no',
       });
       res.write(`data: ${JSON.stringify({ type: 'CONNECTED', clientCount: sseClients.size + 1 })}\n\n`);
@@ -1944,7 +2180,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           authorId: String(body.authorId || 'guest').slice(0, MAX_NAME_LENGTH),
           authorName: String(knownAuthor?.name || body.authorName || 'Học sinh').slice(0, MAX_NAME_LENGTH),
           authorEmail,
-          authorAvatar: String(knownAuthor?.avatar || body.authorAvatar || DEFAULT_AVATAR).slice(0, 2000),
+          authorAvatar: knownAuthor?.avatar ? String(knownAuthor.avatar).slice(0, 4000) : safeAvatarUrl(body.authorAvatar),
           /* Cấp bậc lấy từ bản ghi thật — client tự khai thì ai cũng tự phong cấp 150. */
           authorLevel: knownAuthor?.level ?? 1,
           content: content.slice(0, MAX_CHAT_CONTENT),
@@ -2090,14 +2326,16 @@ export function setupForumServer(httpServer: any, middlewares: any) {
              và không thể kiểm tra quyền "chọn đáp án chuẩn". */
           authorEmail: author?.email,
           authorLevel: author?.level ?? 1,
-          authorAvatar: String(
-            isAnonymousQuestion
-              ? (body.anonymousMask || body.authorAvatar || DEFAULT_AVATAR)
-              : (author?.avatar ?? body.authorAvatar ?? DEFAULT_AVATAR)
-          ).slice(0, 2000),
+          authorAvatar: isAnonymousQuestion
+            ? safeAnonymousMask(body.anonymousMask, String(body.id || body.title || Date.now()))
+            : author?.avatar
+              ? String(author.avatar).slice(0, 4000)
+              : safeAvatarUrl(body.authorAvatar),
           isAnonymous: isAnonymousQuestion,
           anonymousAlias: typeof body.anonymousAlias === 'string' ? body.anonymousAlias.slice(0, 40) : undefined,
-          anonymousMask: typeof body.anonymousMask === 'string' ? body.anonymousMask.slice(0, 2000) : undefined,
+          anonymousMask: isAnonymousQuestion && typeof body.anonymousMask === 'string' && GHIBLI_MASK_SET.has(body.anonymousMask)
+            ? body.anonymousMask
+            : undefined,
           createdAt: 'Vừa xong',
           createdAtMs: Date.now(),
           isSolved: false,
@@ -2195,7 +2433,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           authorId: String(author?.id ?? '').slice(0, MAX_NAME_LENGTH),
           authorName: String(author?.name ?? body.authorName ?? 'Học sinh').slice(0, MAX_NAME_LENGTH),
           authorEmail: author?.email,
-          authorAvatar: String(author?.avatar ?? body.authorAvatar ?? DEFAULT_AVATAR).slice(0, 2000),
+          authorAvatar: author?.avatar ? String(author.avatar).slice(0, 4000) : safeAvatarUrl(body.authorAvatar),
           authorLevel: author?.level ?? 1,
           content: content.slice(0, 20000),
           createdAt: 'Vừa xong',
@@ -2438,7 +2676,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
         broadcastServerEvent('SYNC_USER', newUser);
 
-        sendJson(res, 200, { success: true, user: newUser, token: issueTokenFor(newUser) });
+        sendJson(res, 200, { success: true, user: newUser, ...issueSession(req, res, newUser) });
       } catch (err: any) {
         handleApiError(res, err);
       }
@@ -2462,9 +2700,25 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           sendRateLimited(res, throttle.retryAfterMs, 'đăng nhập');
           return;
         }
+        /* Epic 5: đã sai quá nhiều lần từ IP này (mọi email) hoặc vào tài khoản này
+           (mọi IP) → chặn trước khi tốn công chạy scrypt. */
+        const failureKeys = { ip: `login-fail-ip:${ip}`, account: `login-fail-account:${email}` };
+        const failureGate = [
+          loginFailureIpLimiter.peek(failureKeys.ip),
+          loginFailureAccountLimiter.peek(failureKeys.account),
+        ].find((result) => !result.allowed);
+        if (failureGate) {
+          sendRateLimited(res, failureGate.retryAfterMs, 'đăng nhập sai');
+          return;
+        }
+        const recordLoginFailure = () => {
+          loginFailureIpLimiter.record(failureKeys.ip);
+          loginFailureAccountLimiter.record(failureKeys.account);
+        };
 
         const user = store.users[email];
         if (!user) {
+          recordLoginFailure();
           sendJson(res, 400, {
             success: false,
             message: 'Tài khoản không tồn tại. Vui lòng đăng ký trước!',
@@ -2488,6 +2742,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
         const check = verifyPassword(password, registeredPassword);
         if (!check.ok) {
+          recordLoginFailure();
           sendJson(res, 400, { success: false, message: 'Mật khẩu không chính xác. Vui lòng thử lại!' });
           return;
         }
@@ -2499,7 +2754,10 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         }
 
         loginLimiter.reset(`login:${ip}:${email}`);
-        sendJson(res, 200, { success: true, user, token: issueTokenFor(user) });
+        /* Chỉ xoá bộ đếm theo TÀI KHOẢN. Bộ đếm theo IP giữ nguyên: nếu không, kẻ rải
+           mật khẩu chỉ cần đăng nhập đúng một tài khoản của chính mình để "rửa" IP. */
+        loginFailureAccountLimiter.reset(failureKeys.account);
+        sendJson(res, 200, { success: true, user, moderation: loginModerationStatus(email), ...issueSession(req, res, user) });
       } catch (err: any) {
         handleApiError(res, err);
       }
@@ -2512,14 +2770,73 @@ export function setupForumServer(httpServer: any, middlewares: any) {
      * token hết hạn / tài khoản bị xoá / role bị thu hồi thì phải đăng xuất,
      * thay vì để giao diện tưởng đã đăng nhập trong khi mọi API đều trả 401.
      */
+    /**
+     * Epic 5 — nâng phiên Bearer cũ (token trong localStorage) lên cookie HttpOnly.
+     * Chỉ chấp nhận Bearer hợp lệ; cookie mang ĐÚNG token đó (cùng hạn dùng).
+     */
+    if (method === 'POST' && url === '/api/auth/session/cookie') {
+      const bearer = readBearerToken(req);
+      const claims = bearer ? authorizeRequest(req, null, null) : null;
+      const account = claims ? store.users[claims.email] : undefined;
+      if (!claims || !account || !bearer) {
+        sendJson(res, 401, { success: false, message: 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn.' });
+        return;
+      }
+      const session = issueSession(req, res, account, bearer);
+      sendJson(res, 200, {
+        success: true,
+        expiresAt: session.expiresAt,
+        sessionTransport: session.sessionTransport,
+      });
+      return;
+    }
+
+    /**
+     * Epic 5 — đăng xuất: xoá cookie HttpOnly (JavaScript không tự xoá được).
+     * `everywhere: true` → thu hồi MỌI token đã phát cho tài khoản (mọi thiết bị).
+     */
+    if (method === 'POST' && url === '/api/auth/logout') {
+      try {
+        const body = await parseJsonBody(req).catch(() => ({}));
+        const claims = authorizeRequest(req, null, null);
+        let revoked = false;
+        if (claims && body?.everywhere === true) {
+          const account = store.users[claims.email];
+          if (account) {
+            account.sessionsRevokedAt = Date.now();
+            persistStoreToDisk();
+            revoked = true;
+          }
+        }
+        if (readSessionCookie(req) || requestIsHttps(req)) {
+          res.setHeader('Set-Cookie', buildClearedSessionCookie());
+        }
+        sendJson(res, 200, { success: true, revoked });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
     if (method === 'GET' && url.startsWith('/api/auth/session')) {
+      /* Epic 5: `?probe=1` — client dò phiên cookie khi đã mất gợi ý cục bộ; trả 200
+         `authenticated: false` để khách vãng lai không thấy lỗi 401 mỗi lần tải trang. */
+      const probe = /[?&]probe=1(?:&|$)/.test(url);
       const claims = authorizeRequest(req, null, null);
       if (!claims) {
+        if (probe) {
+          sendJson(res, 200, { success: false, authenticated: false });
+          return;
+        }
         sendJson(res, 401, { success: false, message: 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn.' });
         return;
       }
       const account = store.users[claims.email];
       if (!account) {
+        if (probe) {
+          sendJson(res, 200, { success: false, authenticated: false });
+          return;
+        }
         sendJson(res, 401, { success: false, message: 'Tài khoản này không còn tồn tại.' });
         return;
       }
@@ -2529,6 +2846,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         user: account,
         role: account.role,
         expiresAt: claims.exp,
+        moderation: loginModerationStatus(claims.email),
       });
       return;
     }
@@ -2539,7 +2857,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const provider: 'google' | 'facebook' = body.provider === 'facebook' ? 'facebook' : 'google';
         const name = (body.name || '').trim();
         const email = (body.email || '').trim().toLowerCase();
-        const avatar = (body.avatar || '').trim();
+        /* Epic 5: ảnh từ nhà cung cấp OAuth vẫn phải là URL ảnh an toàn. */
+        const avatar = sanitizeMediaUrl(String(body.avatar || ''), 2000) || '';
         const accessToken = typeof body.accessToken === 'string' ? body.accessToken : null;
 
         if (!EMAIL_PATTERN.test(email)) {
@@ -2630,7 +2949,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           }
         }
 
-        sendJson(res, 200, { success: true, user, token: issueTokenFor(user) });
+        sendJson(res, 200, { success: true, user, ...issueSession(req, res, user) });
       } catch (err: any) {
         handleApiError(res, err);
       }
@@ -2948,52 +3267,90 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
+    /**
+     * Epic 5 — tải ảnh đại diện / ảnh bìa qua pipeline sharp (3 cỡ, WebP, hash).
+     * Trả URL ngắn để lưu vào hồ sơ thay cho data URL dài (trước đây bị cắt hỏng).
+     */
+    if (method === 'POST' && url === '/api/media/upload') {
+      try {
+        const body = await parseJsonBody(req);
+        const claims = authorizeRequest(req, null, typeof body?.token === 'string' ? body.token : null);
+        const account = claims ? store.users[claims.email] : undefined;
+        if (!claims || !account) {
+          sendJson(res, 401, { success: false, message: 'Bạn cần đăng nhập để tải ảnh lên.' });
+          return;
+        }
+        const kind: MediaKind = body?.kind === 'banner' ? 'banner' : 'avatar';
+        const throttle = uploadLimiter.check(`upload:${claims.email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'tải ảnh');
+          return;
+        }
+        const media = await processUploadedImage({
+          kind,
+          ownerEmail: claims.email,
+          dataUrl: body?.dataUrl,
+          keepUrls: [account.avatar, account.bannerUrl],
+        });
+        sendJson(res, 200, { success: true, ...media });
+      } catch (err: any) {
+        if (err instanceof MediaUploadError) {
+          sendJson(res, err.status, { success: false, message: err.message });
+          return;
+        }
+        handleApiError(res, err);
+      }
+      return;
+    }
+
     if (method === 'POST' && url === '/api/reports') {
       try {
         const body = await parseJsonBody(req);
-        const reporterId = (body.reporterId || '').trim();
-        const reporterName = (body.reporterName || '').trim();
-        const reporterEmail = (body.reporterEmail || '').trim();
-        const reportedUserId = (body.reportedUserId || '').trim();
-        const reportedUserName = (body.reportedUserName || '').trim();
-        const reason = (body.reason || '').trim();
-        const details = (body.details || '').trim();
+
+        /*
+          Epic 5 — BẮT BUỘC ĐĂNG NHẬP.
+          Trước đây endpoint này không xác thực: reporterId/Name/Email do client tự
+          khai nên ai cũng gửi tố cáo dưới tên người khác, và bước gộp trùng dựa trên
+          reporterId tự khai nên đổi ID là spam tiếp được. Nay danh tính lấy từ token
+          + hồ sơ trên server; các trường reporter* trong body bị bỏ qua.
+        */
+        const claims = authorizeRequest(req, null, typeof body?.token === 'string' ? body.token : null);
+        const reporter = claims ? store.users[claims.email] : undefined;
+        if (!claims || !reporter) {
+          sendJson(res, 401, { success: false, message: 'Bạn cần đăng nhập để gửi tố cáo.' });
+          return;
+        }
+
+        const reportedUserId = sanitizePlainText(String(body?.reportedUserId ?? '').trim(), 120);
+        const reportedUserName = sanitizePlainText(String(body?.reportedUserName ?? '').trim(), 120);
+        const reason = sanitizePlainText(String(body?.reason ?? '').trim(), 200);
+        const details = sanitizePlainText(String(body?.details ?? '').trim(), 2000, true);
 
         if (!reportedUserId || !reason) {
           sendJson(res, 400, { success: false, message: 'Vui lòng cung cấp lý do tố cáo!' });
           return;
         }
-
-        const throttle = writeLimiter.check(`report:${clientIpOf(req)}`);
-        if (!throttle.allowed) {
-          sendRateLimited(res, throttle.retryAfterMs, 'gửi tố cáo');
+        if (reportedUserId === reporter.id) {
+          sendJson(res, 400, { success: false, message: 'Bạn không thể tự tố cáo chính mình.' });
           return;
         }
 
-        const reportSubmission = {
-          id: randomId('rep'),
-          reporterId: reporterId.slice(0, 120),
-          reporterName: reporterName.slice(0, 120),
-          reporterEmail: reporterEmail.slice(0, 200).toLowerCase(),
-          reportedUserId: reportedUserId.slice(0, 120),
-          reportedUserName: reportedUserName.slice(0, 120),
-          reason: reason.slice(0, 200),
-          details: details.slice(0, 2000),
-          targetEmail: MASTER_ADMIN_EMAIL,
-          status: 'PENDING',
-          createdAt: new Date().toISOString(),
-        };
+        const ipThrottle = reportIpLimiter.check(`report-ip:${clientIpOf(req)}`);
+        if (!ipThrottle.allowed) {
+          sendRateLimited(res, ipThrottle.retryAfterMs, 'gửi tố cáo');
+          return;
+        }
 
         if (!store.reports) {
           store.reports = [];
         }
-        /* Cùng một người tố cùng một mục với cùng lý do trong thời gian ngắn thì
-           gộp lại, tránh một nút bấm spam làm ngập hộp thư ban quản trị. */
+        /* Cùng một người tố cùng một mục với cùng lý do khi bản cũ còn chờ xử lý thì
+           gộp lại (không tính vào hạn mức tài khoản), tránh ngập hộp thư quản trị. */
         const duplicate = store.reports.find(
           r =>
-            r.reporterId === reportSubmission.reporterId &&
-            r.reportedUserId === reportSubmission.reportedUserId &&
-            r.reason === reportSubmission.reason &&
+            r.reporterId === reporter.id &&
+            r.reportedUserId === reportedUserId &&
+            r.reason === reason &&
             r.status === 'PENDING',
         );
         if (duplicate) {
@@ -3005,9 +3362,39 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           });
           return;
         }
+
+        const accountThrottle = reportAccountLimiter.check(`report-account:${claims.email}`);
+        if (!accountThrottle.allowed) {
+          sendRateLimited(res, accountThrottle.retryAfterMs, 'gửi tố cáo');
+          return;
+        }
+
+        const reportSubmission = {
+          id: randomId('rep'),
+          reporterId: String(reporter.id || '').slice(0, 120),
+          reporterName: sanitizePlainText(String(reporter.name || ''), 120),
+          reporterEmail: String(reporter.email || claims.email).slice(0, 200).toLowerCase(),
+          reportedUserId,
+          reportedUserName,
+          reason,
+          details,
+          targetEmail: MASTER_ADMIN_EMAIL,
+          status: 'PENDING',
+          createdAt: new Date().toISOString(),
+        };
+
         store.reports = capTail([...store.reports, reportSubmission], MAX_REPORTS);
         persistStoreToDisk();
-        broadcastServerEvent('NEW_REPORT', reportSubmission);
+        /* Epic 5: KHÔNG phát cho mọi kết nối nữa — trước đây cả tên/email người tố cáo
+           đi tới mọi socket/SSE (người bị tố đọc được trong tab Network). Chỉ socket đã
+           xác thực của Super Admin nhận, và chỉ phần cần để hiện thông báo. */
+        notifyUserSockets(MASTER_ADMIN_EMAIL, 'NEW_REPORT', {
+          id: reportSubmission.id,
+          reportedUserId,
+          reportedUserName,
+          reason,
+          createdAt: reportSubmission.createdAt,
+        });
         sendJson(res, 200, {
           success: true,
           message: 'Báo cáo vi phạm đã được ghi nhận và chuyển tới Ban Quản Trị để xử lý theo nội quy.',
@@ -3282,18 +3669,20 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
         const balance = asBoundedCount(actor.user.coin, 100, MAX_USER_COIN);
-        if (balance < item.price) {
-          sendJson(res, 402, { success: false, message: `Bạn cần ${item.price} Coin; số dư hiện tại là ${balance} Coin.` });
+        /* Epic 4 — giá do catalog + ưu đãi tuần phía MÁY CHỦ quyết định (client không gửi giá). */
+        const price = effectivePrice(item, Date.now());
+        if (balance < price) {
+          sendJson(res, 402, { success: false, message: `Bạn cần ${price} Coin; số dư hiện tại là ${balance} Coin.` });
           return;
         }
-        actor.user.coin = balance - item.price;
+        actor.user.coin = balance - price;
         actor.user.inventory = [...inventory, itemId];
         persistStoreToDisk();
         broadcastServerEvent('SYNC_USER', actor.user);
         sendJson(res, 200, {
           success: true,
           user: actor.user,
-          item: { id: item.id, name: item.name, price: item.price },
+          item: { id: item.id, name: item.name, price, listPrice: item.price },
         });
       } catch (err: any) {
         handleApiError(res, err);
@@ -3418,7 +3807,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
         persistStoreToDisk();
         const updated = (store.reports || []).find((r) => r.id === reportId) || null;
-        broadcastServerEvent('REPORT_UPDATED', { reportId, action, report: updated });
+        /* Chỉ Super Admin xem được hộp thư → chỉ socket của Super Admin nhận cập nhật. */
+        notifyUserSockets(MASTER_ADMIN_EMAIL, 'REPORT_UPDATED', { reportId, action });
         sendJson(res, 200, { success: true, report: updated, reports: store.reports });
       } catch (err: any) {
         handleApiError(res, err);
@@ -3432,12 +3822,23 @@ export function setupForumServer(httpServer: any, middlewares: any) {
      * theo email đã xác thực để không đếm nhiều thiết bị của cùng một tài khoản.
      */
     if (method === 'GET' && url.split('?')[0] === '/api/admin/analytics') {
-      if (!requireSuperAdmin(req, {})) {
-        sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới xem được thống kê người dùng.' });
+      /* Super Admin hoặc vai trò tùy chỉnh có quyền view_analytics (mục 3.1/3.3). */
+      const claims = authorizeRequest(req, null, null);
+      const viewer = claims ? store.users[claims.email] : undefined;
+      const canView = Boolean(viewer && (
+        (isMasterAdminEmail(String(claims?.email || '')) && viewer.role === 'SUPER_ADMIN')
+        || customRolePermissionsOf(viewer).includes('view_analytics')
+      ));
+      if (!canView) {
+        sendJson(res, 403, { success: false, message: 'Chỉ Super Admin hoặc vai trò có quyền xem thống kê mới xem được báo cáo này.' });
         return;
       }
       const params = new URL(url, 'http://fforum.local').searchParams;
-      const report = buildAnalyticsReport(getAnalyticsStore(), store.users, params.get('range'), Date.now());
+      const report = buildAnalyticsReport(getAnalyticsStore(), store.users, params.get('range'), Date.now(), {
+        reports: store.reports,
+        clubs: store.clubs,
+        clubPosts: store.clubPosts,
+      });
       sendJson(res, 200, { success: true, analytics: report });
       return;
     }
@@ -3454,6 +3855,13 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       const roleFilter = String(params.get('role') || 'ALL').trim().toUpperCase();
       const allowedFilters = ['ALL', 'SUPER_ADMIN', 'MODERATOR', 'TEACHER', 'CLUB_LEADER', 'STUDENT', 'PREMIUM'];
       const role = allowedFilters.includes(roleFilter) ? roleFilter : 'ALL';
+      /* Epic 3 — lọc theo trạng thái kiểu ct-03 (All / Active / Banned / Muted / Warned). */
+      const statusFilterRaw = String(params.get('status') || 'ALL').trim().toUpperCase();
+      const statusFilter = ['ALL', 'ACTIVE', 'BANNED', 'MUTED', 'WARNED'].includes(statusFilterRaw) ? statusFilterRaw : 'ALL';
+      const warnedEmails = new Set((store.adminWarnings || []).map((warning) => warning.targetEmail));
+      /* Hồ sơ riêng tư (tiểu sử, khu vực, lớp…) chỉ dành cho Super Admin và Admin
+         (vai trò tùy chỉnh có give_role); Giáo viên/Moderator nhận dữ liệu thống kê tối thiểu. */
+      const canSeeFullProfiles = (actor.role === 'SUPER_ADMIN' && !actor.viaCustomRole) || actor.permissions.includes('give_role');
       const rawPage = Number(params.get('page'));
       const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1;
       const rawLimit = Number(params.get('limit'));
@@ -3472,15 +3880,20 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const moderation = moderationStatusOf(store.moderation, email, now);
         const premiumActive = isPremiumActive(user, now);
         return { email, user, displayRole, moderation, premiumActive };
-      }).filter(({ email, user, displayRole, premiumActive }) => {
-        const visibleSearchFields = actor.role === 'SUPER_ADMIN'
+      }).filter(({ email, user, displayRole, moderation, premiumActive }) => {
+        const visibleSearchFields = canSeeFullProfiles
           ? `${user.city || ''} ${user.className || ''} ${user.bio || ''}`
           : '';
         const queryMatch = !q || fold(`${email} ${user.name} ${user.id} ${visibleSearchFields}`).includes(q);
         const roleMatch = role === 'ALL' || (role === 'PREMIUM'
           ? premiumActive
           : displayRole === role || user.role === role);
-        return queryMatch && roleMatch;
+        const statusMatch = statusFilter === 'ALL'
+          || (statusFilter === 'ACTIVE' && !moderation.banned && !moderation.muted)
+          || (statusFilter === 'BANNED' && moderation.banned)
+          || (statusFilter === 'MUTED' && moderation.muted)
+          || (statusFilter === 'WARNED' && warnedEmails.has(email));
+        return queryMatch && roleMatch && statusMatch;
       }).sort((a, b) => {
         const aLast = getAnalyticsStore().members[a.email]?.lastSeenAt || 0;
         const bLast = getAnalyticsStore().members[b.email]?.lastSeenAt || 0;
@@ -3490,7 +3903,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       const entries = all.slice((page - 1) * limit, page * limit).map(({ email, user, displayRole, moderation, premiumActive }) => {
         const metrics = getAnalyticsStore().members[email];
         const warnings = (store.adminWarnings || []).filter((warning) => warning.targetEmail === email).slice(0, 5);
-        const fullProfile = actor.role === 'SUPER_ADMIN' ? {
+        const fullProfile = canSeeFullProfiles ? {
           bio: String(user.bio || '').slice(0, 1000),
           city: String(user.city || '').slice(0, 120),
           className: String(user.className || '').slice(0, 120),
@@ -3499,6 +3912,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           bannerUrl: String(user.bannerUrl || '').slice(0, 2000),
           profileGradient: String(user.profileGradient || '').slice(0, 120),
         } : undefined;
+        const customRoleDef = user.customRole ? store.customRoles?.[user.customRole] || null : null;
         return {
           id: String(user.id || '').slice(0, 120),
           email,
@@ -3507,6 +3921,9 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           role: displayRole,
           userRole: user.role,
           staffRole: user.staffRole || null,
+          customRole: user.customRole || null,
+          customRoleDef,
+          joinedAt: String(user.joinedAt || ''),
           level: Math.max(1, Math.min(150, Math.floor(Number(user.level) || 1))),
           moderation,
           premium: {
@@ -3538,21 +3955,24 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         limit,
         pages: Math.max(1, Math.ceil(total / limit)),
         role,
-        canAssignRoles: actor.role === 'SUPER_ADMIN',
+        status: statusFilter,
+        canAssignRoles: actor.role === 'SUPER_ADMIN' || actor.permissions.includes('give_role'),
         canManagePremium: actor.role === 'SUPER_ADMIN',
       });
       return;
     }
 
-    /** Vai trò do Super Admin cấp; không có API nào nhận lệnh cấp SUPER_ADMIN. */
+    /** Vai trò do Super Admin (hoặc vai trò tùy chỉnh có quyền give_role) cấp;
+       không có API nào nhận lệnh cấp SUPER_ADMIN. Hỗ trợ cả vai trò tùy chỉnh (mục 3.5). */
     if (method === 'POST' && url === '/api/admin/role') {
       try {
         const body = await parseJsonBody(req);
-        const claims = requireSuperAdmin(req, body);
-        if (!claims) {
-          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới được cấp hoặc thu hồi vai trò.' });
+        const actor = requireRoleGrantor(req, body);
+        if (!actor) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin hoặc vai trò có quyền give_role mới được cấp/thu hồi vai trò.' });
           return;
         }
+        const claims = actor.claims;
         const email = String(body?.email || '').trim().toLowerCase();
         const target = store.users[email];
         if (!target) {
@@ -3564,21 +3984,66 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
         const requestedRole = body?.staffRole;
-        if (requestedRole !== null && requestedRole !== 'MODERATOR' && requestedRole !== 'TEACHER') {
+        const requestedCustomRole = typeof body?.customRole === 'string' ? body.customRole : null;
+        const hasStaffRoleField = Object.prototype.hasOwnProperty.call(body || {}, 'staffRole');
+        const hasCustomRoleField = Object.prototype.hasOwnProperty.call(body || {}, 'customRole');
+        if (!hasStaffRoleField && !hasCustomRoleField) {
+          sendJson(res, 400, { success: false, message: 'Thiếu trường staffRole hoặc customRole.' });
+          return;
+        }
+        if (hasStaffRoleField && requestedRole !== null && requestedRole !== 'MODERATOR' && requestedRole !== 'TEACHER') {
           sendJson(res, 400, { success: false, message: 'Chỉ được cấp vai trò Giáo viên hoặc Moderator; vai trò Super Admin không thể cấp.' });
           return;
         }
+        /* Một tài khoản chỉ giữ MỘT vai trò quản trị tại một thời điểm:
+           chọn vai trò tùy chỉnh thì xoá staffRole cũ và ngược lại. */
+        let nextCustomRole: string | undefined;
+        if (hasCustomRoleField && requestedCustomRole) {
+          const roleDef = store.customRoles?.[requestedCustomRole];
+          if (!roleDef) {
+            sendJson(res, 404, { success: false, message: 'Không tìm thấy vai trò tùy chỉnh này.' });
+            return;
+          }
+          nextCustomRole = roleDef.id;
+        }
         const previousRole = target.staffRole || null;
-        if (previousRole === requestedRole) {
+        const previousCustomRole = target.customRole || null;
+        const nextStaffRole = hasCustomRoleField ? null : requestedRole;
+        if (actor.role !== 'SUPER_ADMIN' || actor.viaCustomRole) {
+          if (email === claims.email) {
+            sendJson(res, 400, { success: false, message: 'Không thể tự thay đổi vai trò của chính mình.' });
+            return;
+          }
+          if (customRolePermissionsOf(target).includes('give_role')) {
+            sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới được thay đổi vai trò của Admin khác.' });
+            return;
+          }
+          const grantedPermissions: readonly CustomRolePermission[] = nextCustomRole
+            ? store.customRoles?.[nextCustomRole]?.permissions || []
+            : nextStaffRole
+              ? CUSTOM_ROLE_MODERATION_PERMISSIONS
+              : [];
+          const exceeding = grantedPermissions.filter((permission) => !actor.permissions.includes(permission));
+          if (exceeding.length > 0) {
+            sendJson(res, 403, { success: false, message: `Không thể cấp vai trò vượt quyền của bạn (${exceeding.join(', ')}).` });
+            return;
+          }
+        }
+        if (previousRole === nextStaffRole && previousCustomRole === (nextCustomRole || null)) {
           sendJson(res, 200, { success: true, changed: false, member: target });
           return;
         }
-        if (requestedRole) target.staffRole = requestedRole;
+        if (nextStaffRole) target.staffRole = nextStaffRole;
         else delete target.staffRole;
+        if (nextCustomRole) target.customRole = nextCustomRole;
+        else delete target.customRole;
+        const assignedLabel = nextCustomRole
+          ? `vai trò tùy chỉnh ${store.customRoles?.[nextCustomRole]?.name || nextCustomRole}`
+          : nextStaffRole;
         pushAuditLog({
-          action: requestedRole ? `role:assign:${requestedRole}` : 'role:revoke',
+          action: assignedLabel ? `role:assign:${assignedLabel}` : 'role:revoke',
           targetEmail: email,
-          reason: String(body?.reason || (requestedRole ? 'Cấp vai trò quản trị cộng đồng.' : 'Thu hồi vai trò quản trị cộng đồng.')).trim().slice(0, 500),
+          reason: String(body?.reason || (assignedLabel ? 'Cấp vai trò quản trị cộng đồng.' : 'Thu hồi vai trò quản trị cộng đồng.')).trim().slice(0, 500),
           by: claims.email,
         });
         persistStoreToDisk();
@@ -3588,8 +4053,137 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           changed: true,
           previousRole,
           staffRole: target.staffRole || null,
+          customRole: target.customRole || null,
           member: target,
         });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /** Năng lực quản trị của chính người gọi — client dùng để ẩn/hiện nút,
+       server vẫn kiểm quyền độc lập ở từng endpoint. */
+    if (method === 'GET' && url.split('?')[0] === '/api/admin/me') {
+      const claims = authorizeRequest(req, null, null);
+      const me = claims ? store.users[claims.email] : undefined;
+      if (!claims || !me) {
+        sendJson(res, 401, { success: false, message: 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn.' });
+        return;
+      }
+      const isSuper = isMasterAdminEmail(claims.email) && me.role === 'SUPER_ADMIN';
+      const staffRole = me.staffRole === 'MODERATOR' || me.staffRole === 'TEACHER' ? me.staffRole : null;
+      const customRoleDef = me.customRole ? store.customRoles?.[me.customRole] || null : null;
+      const permissions: CustomRolePermission[] = isSuper
+        ? [...CUSTOM_ROLE_PERMISSIONS]
+        : staffRole
+          ? [...CUSTOM_ROLE_MODERATION_PERMISSIONS]
+          : customRolePermissionsOf(me);
+      sendJson(res, 200, {
+        success: true,
+        isSuperAdmin: isSuper,
+        staffRole,
+        customRoleDef,
+        permissions,
+        canCreateRole: isSuper || permissions.includes('give_role'),
+      });
+      return;
+    }
+
+    /** Danh sách vai trò tùy chỉnh (mục 3.5) — người có quyền give_role được xem để gán. */
+    if (method === 'GET' && url.split('?')[0] === '/api/admin/roles') {
+      const actor = requireRoleGrantor(req, {});
+      if (!actor) {
+        sendJson(res, 403, { success: false, message: 'Chỉ Super Admin hoặc vai trò có quyền give_role mới xem được danh sách vai trò.' });
+        return;
+      }
+      const roles = Object.values(store.customRoles || {})
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .map((role) => ({ ...role, memberCount: Object.values(store.users).filter((user) => user.customRole === role.id).length }));
+      sendJson(res, 200, { success: true, roles });
+      return;
+    }
+
+    /** Tạo vai trò tùy chỉnh (mục 3.5) — chỉ Admin/Super Admin (người có quyền give_role).
+       Chống leo thang quyền: Admin chỉ tạo được vai trò có quyền ⊆ quyền của chính mình. */
+    if (method === 'POST' && url.split('?')[0] === '/api/admin/roles') {
+      try {
+        const body = await parseJsonBody(req);
+        const actor = requireRoleGrantor(req, body);
+        if (!actor) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Admin/Super Admin mới được tạo vai trò tùy chỉnh.' });
+          return;
+        }
+        const claims = actor.claims;
+        const sanitized = sanitizeCustomRoleInput(body);
+        if (!sanitized.ok) {
+          sendJson(res, 400, { success: false, message: sanitized.message });
+          return;
+        }
+        const exceeding = sanitized.value.permissions.filter((permission) => !actor.permissions.includes(permission));
+        if (exceeding.length > 0) {
+          sendJson(res, 403, { success: false, message: `Không thể tạo vai trò vượt quyền của bạn (${exceeding.join(', ')}).` });
+          return;
+        }
+        if (!store.customRoles) store.customRoles = {};
+        const duplicate = Object.values(store.customRoles).some((role) => role.name.toLowerCase() === sanitized.value.name.toLowerCase());
+        if (duplicate) {
+          sendJson(res, 400, { success: false, message: 'Đã có vai trò trùng tên.' });
+          return;
+        }
+        const role: CustomRoleRecord = {
+          id: randomId('role'),
+          ...sanitized.value,
+          createdAt: Date.now(),
+          createdBy: claims.email,
+        };
+        store.customRoles[role.id] = role;
+        pushAuditLog({ action: 'role:create', targetEmail: '', reason: `Tạo vai trò tùy chỉnh "${role.name}"`, by: claims.email });
+        persistStoreToDisk();
+        sendJson(res, 200, { success: true, role });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /** Xoá vai trò tùy chỉnh — Super Admin xoá mọi vai trò; Admin chỉ xoá vai trò do chính mình tạo.
+       Gỡ luôn mọi lượt gán đang dùng vai trò đó. */
+    if (method === 'DELETE' && url.split('?')[0] === '/api/admin/roles') {
+      try {
+        const actor = requireRoleGrantor(req, {});
+        if (!actor) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Admin/Super Admin mới được xoá vai trò tùy chỉnh.' });
+          return;
+        }
+        const claims = actor.claims;
+        const params = new URL(url, 'http://fforum.local').searchParams;
+        const id = String(params.get('id') || '').trim();
+        const role = store.customRoles?.[id];
+        if (!role) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy vai trò tùy chỉnh này.' });
+          return;
+        }
+        if (actor.role !== 'SUPER_ADMIN' && role.createdBy !== claims.email) {
+          sendJson(res, 403, { success: false, message: 'Bạn chỉ được xoá vai trò do chính mình tạo.' });
+          return;
+        }
+        if (actor.role !== 'SUPER_ADMIN' && actor.user.customRole === id) {
+          sendJson(res, 400, { success: false, message: 'Không thể xoá vai trò bạn đang giữ.' });
+          return;
+        }
+        delete store.customRoles![id];
+        let cleared = 0;
+        for (const user of Object.values(store.users)) {
+          if (user.customRole === id) {
+            delete user.customRole;
+            cleared += 1;
+            broadcastServerEvent('SYNC_USER', user);
+          }
+        }
+        pushAuditLog({ action: 'role:delete', targetEmail: '', reason: `Xoá vai trò tùy chỉnh "${role.name}" (gỡ ${cleared} lượt gán)`, by: claims.email });
+        persistStoreToDisk();
+        sendJson(res, 200, { success: true, deleted: role.id, clearedAssignments: cleared });
       } catch (err: any) {
         handleApiError(res, err);
       }
@@ -3605,6 +4199,10 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           sendJson(res, 403, { success: false, message: 'Chỉ nhân sự kiểm duyệt mới được gửi cảnh cáo.' });
           return;
         }
+        if (actor.viaCustomRole && !actor.permissions.includes('warn')) {
+          sendJson(res, 403, { success: false, message: 'Vai trò tùy chỉnh của bạn không có quyền cảnh cáo.' });
+          return;
+        }
         const email = String(body?.email || '').trim().toLowerCase();
         const target = store.users[email];
         if (!target) {
@@ -3615,8 +4213,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           sendJson(res, 400, { success: false, message: 'Không thể cảnh cáo chính mình hoặc tài khoản Super Admin.' });
           return;
         }
-        if (actor.role !== 'SUPER_ADMIN' && target.staffRole) {
-          sendJson(res, 403, { success: false, message: 'Giáo viên/Moderator chỉ có thể cảnh cáo thành viên không giữ vai trò kiểm duyệt.' });
+        if (actor.role !== 'SUPER_ADMIN' && (target.staffRole || target.customRole)) {
+          sendJson(res, 403, { success: false, message: 'Nhân sự kiểm duyệt chỉ có thể cảnh cáo thành viên không giữ vai trò kiểm duyệt.' });
           return;
         }
         const reason = String(body?.reason || '').trim().slice(0, 500);
@@ -3896,6 +4494,14 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           });
           return;
         }
+        const requiredPermission: CustomRolePermission | null =
+          action === 'ban' || action === 'unban' ? 'ban'
+          : action === 'mute' || action === 'unmute' ? 'mute'
+          : null;
+        if (actor.viaCustomRole && requiredPermission && !actor.permissions.includes(requiredPermission)) {
+          sendJson(res, 403, { success: false, message: `Vai trò tùy chỉnh của bạn không có quyền ${requiredPermission === 'ban' ? 'cấm đăng' : 'khoá chat'}.` });
+          return;
+        }
 
         /* Email mục tiêu phải khớp một tài khoản thật trong store; không tạo bản
            ghi áp chế cho email tuỳ ý chưa đăng ký (vốn không thể truy vết/gỡ). */
@@ -3916,8 +4522,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           sendJson(res, 400, { success: false, message: 'Không thể áp chế chính mình hoặc tài khoản Super Admin.' });
           return;
         }
-        if (actor.role !== 'SUPER_ADMIN' && targetUser.staffRole) {
-          sendJson(res, 403, { success: false, message: 'Giáo viên/Moderator chỉ được kiểm duyệt thành viên không giữ vai trò kiểm duyệt.' });
+        if (actor.role !== 'SUPER_ADMIN' && (targetUser.staffRole || targetUser.customRole)) {
+          sendJson(res, 403, { success: false, message: 'Nhân sự kiểm duyệt chỉ được quản lý thành viên không giữ vai trò kiểm duyệt.' });
           return;
         }
 
@@ -4111,8 +4717,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const body = await parseJsonBody(req);
         /* `adminEmail` trong body là do client tự khai — phải kèm token hợp lệ
            của đúng tài khoản Super Admin, nếu không ai cũng giả được admin. */
-        if (!requireSuperAdmin(req, body)) {
-          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới có quyền xóa bài viết!' });
+        if (!requireContentEditor(req, body)) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin hoặc vai trò có quyền sửa nội dung mới được xóa bài viết!' });
           return;
         }
         const { questionId } = body;
@@ -4136,8 +4742,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const body = await parseJsonBody(req);
         /* `adminEmail` trong body là do client tự khai — phải kèm token hợp lệ
            của đúng tài khoản Super Admin, nếu không ai cũng giả được admin. */
-        if (!requireSuperAdmin(req, body)) {
-          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới có quyền sửa bài viết!' });
+        if (!requireContentEditor(req, body)) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin hoặc vai trò có quyền sửa nội dung mới được sửa bài viết!' });
           return;
         }
         const { questionId, updates } = body;
@@ -4175,8 +4781,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const body = await parseJsonBody(req);
         /* `adminEmail` trong body là do client tự khai — phải kèm token hợp lệ
            của đúng tài khoản Super Admin, nếu không ai cũng giả được admin. */
-        if (!requireSuperAdmin(req, body)) {
-          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới có quyền xóa phản hồi!' });
+        if (!requireContentEditor(req, body)) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin hoặc vai trò có quyền sửa nội dung mới được xóa phản hồi!' });
           return;
         }
         const { solutionId } = body;
@@ -4202,8 +4808,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const body = await parseJsonBody(req);
         /* `adminEmail` trong body là do client tự khai — phải kèm token hợp lệ
            của đúng tài khoản Super Admin, nếu không ai cũng giả được admin. */
-        if (!requireSuperAdmin(req, body)) {
-          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới có quyền thu hồi tin nhắn!' });
+        if (!requireContentEditor(req, body)) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin hoặc vai trò có quyền sửa nội dung mới được thu hồi tin nhắn!' });
           return;
         }
         const { messageId } = body;

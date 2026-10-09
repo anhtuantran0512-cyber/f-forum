@@ -16,6 +16,7 @@ import { getTierForLevel, getXPProgress } from '../utils/tier';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { PremiumMark } from './PremiumMark';
+import { isMasterAdmin } from '../config/admin';
 
 interface HologramStudentCardProps {
   user: User;
@@ -38,7 +39,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
   const progress = getXPProgress(user.xp, user.level);
   const fPoints = user.fPoints ?? user.xp;
   const streakCount = user.streakCount ?? 0;
-  const isSuperAdmin = user.email === 'BroAmStuck@gmail.com';
+  const isSuperAdmin = isMasterAdmin(user.email);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;

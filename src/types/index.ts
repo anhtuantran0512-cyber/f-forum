@@ -30,6 +30,8 @@ export interface User {
   role: UserRole;
   /** Vai trò kiểm duyệt được Super Admin cấp riêng, không thay quyền chủ nhiệm CLB. */
   staffRole?: 'MODERATOR' | 'TEACHER';
+  /** ID vai trò tùy chỉnh (Epic 3 — mục 3.5); quyền thật đọc qua /api/admin/me. */
+  customRole?: string;
   /** 0 = Premium vĩnh viễn; timestamp ms > 0 = ngày hết hạn. */
   premiumUntil?: number;
   premiumGrantedAt?: number;
@@ -189,6 +191,8 @@ export interface ShopItem {
   tierColor: ShopTierColor;
   description: string;
   iconType: string;
+  /** Ngày phát hành (YYYY-MM-DD, giờ VN) — dùng cho nhãn "Mới". */
+  addedAt?: string;
 }
 
 export interface ReportSubmission {

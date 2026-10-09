@@ -139,7 +139,7 @@ export const ThinkingBubble: React.FC<ThinkingBubbleProps> = ({
   <div className="la-05__row" role="status" aria-live="polite" aria-label="Đang tải tin nhắn">
     <span className="la-05__avatar" aria-hidden="true">
       {avatarUrl ? (
-        <img src={avatarUrl} alt="" width={32} height={32} className="w-full h-full rounded-full object-cover" />
+        <img decoding="async" src={avatarUrl} alt="" width={32} height={32} className="w-full h-full rounded-full object-cover" />
       ) : (
         <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
           <path d="M12 4.5 13.8 9l4.7 1.7-4.7 1.7L12 17l-1.8-4.6L5.5 10.7 10.2 9z" />

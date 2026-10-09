@@ -3,16 +3,16 @@
  * Bcrypt Utility — Mã hóa mật khẩu SuperAdmin
  * 
  * Sử dụng bcryptjs (lightweight, chạy trên browser & Node.js)
- * Độ mạnh mặc định: 12 rounds (t 고용노동 sufficient cho hầu hết trường hợp)
+ * Độ mạnh mặc định: 12 rounds (đủ cho hầu hết trường hợp)
  * 
  * Cách sử dụng:
  *   import { hashPassword, verifyPassword, comparePassword } from './utils/bcrypt';
  *   (Hash password mới)
- *   const hashed = await hashPassword('Tuan@05122009');
+ *   const hashed = await hashPassword(matKhauNguoiDungNhap);
  *   console.log(hashed);
  *   
  *   (Verify password)
- *   const isValid = await verifyPassword('Tuan@05122009', hashed);
+ *   const isValid = await verifyPassword(matKhauNguoiDungNhap, hashed);
  *   console.log(isValid);
  */
 
@@ -128,9 +128,10 @@ export async function isBcryptAvailable(): Promise<boolean> {
 /* ======================================== */
 /* Utility: Generate demo admin hash */
 /* ======================================== */
+/* Bảo mật: KHÔNG có mật khẩu mặc định trong mã nguồn — phải truyền vào từ secret máy chủ. */
 export async function generateDemoAdminHash(
-  email: string = 'BroAmStuck@gmail.com',
-  password: string = 'Tuan@05122009'
+  email: string,
+  password: string
 ): Promise<{ email: string; passwordHash: string; created: Date }> {
   const hash = await hashPassword(password);
   

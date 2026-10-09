@@ -1,6 +1,16 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState } from 'react';
-import { X, Mail, User as UserIcon, LogIn, UserPlus, Lock, CheckCircle, AlertCircle } from 'lucide-react';
+/**
+ * Đăng nhập / Đăng ký "điện ảnh" (Epic 5 · Nhiemvu_4 Task 3 · Nhiemvu_5 Phase D/E).
+ *  - Cú Bông phản ứng theo hành vi: gõ email → đeo kính cầm bút; gõ mật khẩu → che mắt;
+ *    bật đèn pin → hé mắt nheo nhìn; sai → lắc đầu đổ mồ hôi; thành công → nhảy mừng.
+ *  - Ô mật khẩu "đèn pin soi mật khẩu" (FlashlightPasswordField) + fallback trợ năng.
+ *  - Nền sân khấu đổi theo giờ trong ngày (sáng/trưa/hoàng hôn/đêm).
+ *  - Lời thoại theo Brand Voice: gần gũi, hài hước nhẹ, động viên (docs/BRAND_GUIDELINE.md).
+ * Logic xác thực giữ nguyên: mật khẩu qua máy chủ, Google/Facebook OAuth thật,
+ * form dự phòng khi môi trường chưa cấu hình OAuth.
+ */
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { X, LogIn, UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
 import type { User } from '../types';
 import {
   isGoogleConfigured,
@@ -9,6 +19,11 @@ import {
   loginWithFacebookPopup,
   type SocialUserProfile,
 } from '../utils/oauth';
+import { isMasterAdmin } from '../config/admin';
+import { CuBong, type CuBongMood } from './mascot/CuBong';
+import { FlashlightPasswordField, type FlashlightMode } from './auth/FlashlightPasswordField';
+import { CelebrationBurst } from './CelebrationBurst';
+import './auth/AuthExperience.css';
 
 /** Hồ sơ social kèm access token — server cần token để tự kiểm chứng danh tính. */
 export type SocialLoginPayload = SocialUserProfile;
@@ -26,6 +41,36 @@ export interface AuthModalProps {
 
 export type LoginModalProps = AuthModalProps;
 
+type DayPhase = 'morning' | 'day' | 'dusk' | 'night';
+type FocusField = 'name' | 'email' | 'password' | null;
+
+const dayPhaseOf = (hour: number): DayPhase => {
+  if (hour >= 5 && hour < 10) return 'morning';
+  if (hour >= 10 && hour < 16) return 'day';
+  if (hour >= 16 && hour < 19) return 'dusk';
+  return 'night';
+};
+
+/** Chuyển thông báo khô khan của máy chủ sang giọng Cú Bông (giữ nguyên nghĩa). */
+const friendlyError = (message: string): string => {
+  if (/Mật khẩu không chính xác/i.test(message)) return 'Ối, mật khẩu chưa đúng rồi. Soi đèn pin xem gõ nhầm chỗ nào nhé?';
+  if (/Tài khoản không tồn tại/i.test(message)) return 'Tớ chưa thấy email này đâu — cậu đăng ký mới nhé?';
+  if (/đã tồn tại|đã được sử dụng|đã đăng ký/i.test(message)) return 'Email này có chủ rồi nè — cậu thử đăng nhập xem?';
+  return message;
+};
+
+const STARS = Array.from({ length: 18 }, (_, index) => ({
+  left: `${(index * 53) % 100}%`,
+  top: `${(index * 37) % 62}%`,
+  delay: `${(index % 7) * 0.4}s`,
+}));
+const FIREFLIES = [
+  { left: '18%', bottom: '74px', delay: '0s' },
+  { left: '72%', bottom: '96px', delay: '-2.4s' },
+  { left: '46%', bottom: '120px', delay: '-4.6s' },
+  { left: '84%', bottom: '58px', delay: '-1.2s' },
+];
+
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
@@ -36,21 +81,35 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialTab = 'login',
 }) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>(initialTab);
-
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-
   const [registerName, setRegisterName] = useState('');
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
-
   const [fallbackProvider, setFallbackProvider] = useState<'google' | 'facebook' | null>(null);
   const [fallbackCustomName, setFallbackCustomName] = useState('');
   const [fallbackCustomEmail, setFallbackCustomEmail] = useState('');
-
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  /* --- Epic 5: trạng thái điều khiển Cú Bông --- */
+  const [focusField, setFocusField] = useState<FocusField>(null);
+  const [torchMode, setTorchMode] = useState<FlashlightMode>('off');
+  const [mascotFlash, setMascotFlash] = useState<'sad' | 'celebrate' | null>(null);
+  const [invalidField, setInvalidField] = useState<'name' | 'email' | 'password' | 'confirm' | null>(null);
+  const [burstTick, setBurstTick] = useState(0);
+  const [succeeded, setSucceeded] = useState(false);
+  const [phase] = useState<DayPhase>(() => dayPhaseOf(new Date().getHours()));
+  const flashTimer = useRef<number | null>(null);
+  const closeTimer = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    if (closeTimer.current) window.clearTimeout(closeTimer.current);
+  }, []);
+
+  const handleTorchChange = useCallback((mode: FlashlightMode) => setTorchMode(mode), []);
 
   if (!isOpen) return null;
 
@@ -63,8 +122,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   const handleClose = () => {
+    if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    if (closeTimer.current) window.clearTimeout(closeTimer.current);
     resetFormState();
     onClose();
+  };
+
+  const flashMascot = (next: 'sad' | 'celebrate', ms: number) => {
+    if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    setMascotFlash(next);
+    flashTimer.current = window.setTimeout(() => setMascotFlash(null), ms);
+  };
+
+  const fail = (message: string, field: typeof invalidField = null) => {
+    setErrorMsg(friendlyError(message));
+    setInvalidField(field);
+    flashMascot('sad', 2400);
+  };
+
+  /** Thành công: Cú Bông ăn mừng + pháo hoa, rồi mới đóng (đủ thấy "khoảnh khắc"). */
+  const succeed = () => {
+    setSucceeded(true);
+    setErrorMsg(null);
+    setInvalidField(null);
+    if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    setMascotFlash('celebrate');
+    setBurstTick((tick) => tick + 1);
+    closeTimer.current = window.setTimeout(() => handleClose(), 1300);
   };
 
   const handleExecuteSocialLogin = async (
@@ -79,9 +163,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       } else if (onLogin) {
         onLogin(provider, profile);
       }
-      handleClose();
+      succeed();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Xác thực tài khoản thất bại');
+      fail(err.message || 'Xác thực tài khoản thất bại');
     } finally {
       setIsSubmitting(false);
     }
@@ -106,7 +190,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (err.message === 'MISSING_GOOGLE_CLIENT_ID' || err.message === 'GOOGLE_SDK_UNAVAILABLE') {
         setFallbackProvider('google');
       } else {
-        setErrorMsg(err.message || 'Đăng nhập Google thất bại');
+        fail(err.message || 'Đăng nhập Google thất bại');
       }
     } finally {
       setIsSubmitting(false);
@@ -132,7 +216,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (err.message === 'MISSING_FACEBOOK_APP_ID' || err.message === 'FACEBOOK_SDK_UNAVAILABLE') {
         setFallbackProvider('facebook');
       } else {
-        setErrorMsg(err.message || 'Đăng nhập Facebook thất bại');
+        fail(err.message || 'Đăng nhập Facebook thất bại');
       }
     } finally {
       setIsSubmitting(false);
@@ -142,12 +226,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    setInvalidField(null);
 
     const email = loginEmail.trim().toLowerCase();
     const password = loginPassword.trim();
 
     if (!email || !password) {
-      setErrorMsg('Vui lòng nhập đầy đủ Email và Mật khẩu!');
+      fail('Thiếu email hoặc mật khẩu rồi nè!', !email ? 'email' : 'password');
       return;
     }
 
@@ -156,14 +241,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (onLoginWithPassword) {
         await onLoginWithPassword(email, password);
       } else {
-        const isSuperAdmin = email === 'BroAmStuck@gmail.com';
+        const isSuperAdmin = isMasterAdmin(email);
         if (!isSuperAdmin) {
           throw new Error('Tài khoản không tồn tại. Vui lòng đăng ký trước!');
         }
       }
-      handleClose();
+      succeed();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Tài khoản không tồn tại. Vui lòng đăng ký trước!');
+      const message = String(err?.message || 'Tài khoản không tồn tại. Vui lòng đăng ký trước!');
+      fail(message, /Mật khẩu/i.test(message) ? 'password' : 'email');
     } finally {
       setIsSubmitting(false);
     }
@@ -172,6 +258,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    setInvalidField(null);
 
     const name = registerName.trim();
     const email = registerEmail.trim().toLowerCase();
@@ -179,19 +266,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const confirm = registerConfirmPassword.trim();
 
     if (!name) {
-      setErrorMsg('Vui lòng nhập họ và tên của bạn!');
+      fail('Cho tớ biết tên cậu đã nha!', 'name');
       return;
     }
     if (!email || !email.includes('@')) {
-      setErrorMsg('Vui lòng nhập địa chỉ email hợp lệ!');
+      fail('Email này trông chưa đúng lắm…', 'email');
       return;
     }
     if (password.length < 6) {
-      setErrorMsg('Mật khẩu phải có tối thiểu 6 ký tự!');
+      fail('Mật khẩu cần ít nhất 6 ký tự cho an toàn nha.', 'password');
       return;
     }
     if (password !== confirm) {
-      setErrorMsg('Mật khẩu xác nhận không khớp! Vui lòng kiểm tra lại.');
+      fail('Hai mật khẩu chưa khớp — soi đèn pin kiểm tra thử?', 'confirm');
       return;
     }
 
@@ -202,9 +289,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       } else if (onLogin) {
         onLogin('google', { name, email });
       }
-      handleClose();
+      succeed();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Đăng ký không thành công. Vui lòng thử lại!');
+      fail(err.message || 'Đăng ký chưa thành công. Thử lại giúp tớ nha!', 'email');
     } finally {
       setIsSubmitting(false);
     }
@@ -218,7 +305,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const name = fallbackCustomName.trim();
 
     if (!email || !email.includes('@')) {
-      setErrorMsg('Vui lòng nhập địa chỉ email hợp lệ để kiểm thử!');
+      fail('Email này trông chưa đúng lắm…', 'email');
       return;
     }
 
@@ -228,334 +315,268 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md">
-      <div className="w-full max-w-md rounded-3xl bg-[#0c1218]/95 border border-white/15 p-6 shadow-[0_25px_60px_rgba(0,0,0,0.85)] relative overflow-hidden backdrop-blur-2xl animate-modal-pop">
-        {/* Glow ambient background aura */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-[80px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] pointer-events-none" />
+  const switchTab = (tab: 'login' | 'register') => {
+    setActiveTab(tab);
+    setErrorMsg(null);
+    setInvalidField(null);
+    setMascotFlash(null);
+  };
 
-        {/* Modal Header */}
-        <div className="relative z-10 flex items-center justify-between pb-4 border-b border-white/10 mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500/20 to-amber-600/20 border border-amber-400/30 flex items-center justify-center text-amber-300">
-              <LogIn className="w-4 h-4 text-amber-400" />
-            </div>
+  /* ---------- Cú Bông: biểu cảm + lời thoại theo hành vi ---------- */
+  const typingValue = focusField === 'email'
+    ? (activeTab === 'login' ? loginEmail : registerEmail)
+    : focusField === 'name' ? registerName : '';
+  const lookX = focusField === 'email' || focusField === 'name'
+    ? Math.min(1, typingValue.length / 26) * 2 - 1
+    : 0;
+  const mood: CuBongMood = mascotFlash
+    ?? (torchMode === 'beam' ? 'peek'
+      : torchMode === 'reveal' || focusField === 'password' ? 'shy'
+        : focusField ? 'attentive' : 'idle');
+  const bubble = mascotFlash === 'celebrate'
+    ? (activeTab === 'register' ? 'Chào thành viên mới! 🎉' : 'Chào mừng cậu quay lại! 🎉')
+    : mascotFlash === 'sad' ? 'Hic, chưa đúng rồi… Thử lại nha, tớ tin cậu!'
+      : torchMode === 'beam' ? 'Ơ kìa… soi đèn pin à? Tớ thấy hết rồi nha 👀'
+        : torchMode === 'reveal' ? 'Hiện hết luôn hả? Tớ nhắm mắt đây! 🙈'
+          : focusField === 'password' ? 'Tớ không nhìn đâu… thật mà! 🙈'
+            : focusField === 'email' ? (typingValue.includes('@') ? 'Ghi nhớ rồi nè ✍️' : 'Email của cậu là gì nhỉ?')
+              : focusField === 'name' ? 'Tên cậu đẹp ghê! Để tớ ghi lại ✍️'
+                : activeTab === 'register' ? 'Làm quen nhé! Tớ là Cú Bông 🦉' : 'Tớ là Cú Bông! Vào học tiếp thôi?';
+
+  const lightsOut = torchMode === 'beam';
+
+  return (
+    <div
+      className="auth-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="auth-title"
+      onKeyDown={(event) => { if (event.key === 'Escape') handleClose(); }}
+      onMouseDown={(event) => { if (event.target === event.currentTarget && !isSubmitting) handleClose(); }}
+    >
+      <div className={`auth-card ${lightsOut ? 'is-lights-out' : ''}`}>
+        {/* Sân khấu linh vật — bầu trời theo giờ trong ngày */}
+        <aside className={`auth-stage auth-stage--${phase}`} aria-hidden="true">
+          <div className="auth-sky">
+            {(phase === 'morning' || phase === 'day' || phase === 'dusk') && <span className="auth-sun" />}
+            {phase === 'night' && <span className="auth-moon" />}
+            {(phase === 'morning' || phase === 'day') && (
+              <>
+                <span className="auth-cloud auth-cloud--1" />
+                <span className="auth-cloud auth-cloud--2" />
+                <span className="auth-cloud auth-cloud--3" />
+              </>
+            )}
+            {(phase === 'night' || phase === 'dusk') && STARS.slice(0, phase === 'night' ? 18 : 8).map((star, index) => (
+              <span key={index} className="auth-star" style={{ left: star.left, top: star.top, animationDelay: star.delay }} />
+            ))}
+            {phase === 'night' && FIREFLIES.map((fly, index) => (
+              <span key={index} className="auth-firefly" style={{ left: fly.left, bottom: fly.bottom, animationDelay: fly.delay }} />
+            ))}
+          </div>
+          <p key={bubble} className="auth-bubble">{bubble}</p>
+          <CuBong mood={mood} lookX={lookX} size={150} className="auth-mascot" decorative />
+          <span className="auth-ground" />
+        </aside>
+
+        <section className="auth-panel">
+          <header className="auth-head">
             <div>
-              <h2 className="text-base font-bold text-white tracking-wide">
-                TÀI KHOẢN F-FORUM
+              <h2 id="auth-title">
+                {fallbackProvider
+                  ? `Liên kết ${fallbackProvider === 'google' ? 'Google' : 'Facebook'}`
+                  : activeTab === 'login' ? 'Mừng cậu quay lại!' : 'Làm quen nhé!'}
               </h2>
-              <p className="text-[11px] text-white/60">
-                Không gian kết nối và trao đổi bài học F-Forum
+              <p>
+                {fallbackProvider
+                  ? 'Môi trường này chưa bật đăng nhập mạng xã hội — điền nhanh để liên kết.'
+                  : activeTab === 'login' ? 'Kho kiến thức vẫn đang chờ cậu.' : 'Một tài khoản — mở khoá cả diễn đàn.'}
               </p>
             </div>
-          </div>
+            <button type="button" onClick={handleClose} className="auth-close" aria-label="Đóng">
+              <X className="w-4 h-4" />
+            </button>
+          </header>
 
-          <button
-            type="button"
-            onClick={handleClose}
-            className="p-1.5 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors cursor-pointer"
-            title="Đóng cửa sổ"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* GRACEFUL DEV FALLBACK PROMPT (Activated ONLY if OAuth env vars are unset) */}
-        {/* ========================================================================= */}
-        {fallbackProvider ? (
-          <div className="relative z-10 space-y-4">
-            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {fallbackProvider === 'google' ? (
-                    <svg className="w-4 h-4" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
-                      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24Z"/>
-                      <path fill="#FBBC05" d="M5.28 14.27a7.17 7.17 0 0 1 0-4.54V6.58H1.25a11.96 11.96 0 0 0 0 10.84l4.03-3.15Z"/>
-                      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98Z"/>
-                    </svg>
-                  ) : (
-                    <svg className="w-4 h-4 fill-[#1877F2]" viewBox="0 0 24 24">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
-                  )}
-                  <span className="text-xs font-bold text-amber-200 uppercase tracking-wider">
-                    {fallbackProvider === 'google' ? 'Xác Thực Google OAuth 2.0' : 'Xác Thực Facebook SDK'}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setFallbackProvider(null)}
-                  className="text-xs text-white/50 hover:text-white"
-                >
-                  Quay lại
-                </button>
-              </div>
-
-              <div className="flex items-start gap-2 text-xs text-white/80">
-                <p className="text-[12px] leading-relaxed text-white/80">
-                  Xác thực liên kết trực tiếp với tài khoản <span className="text-amber-300 font-semibold">{fallbackProvider === 'google' ? 'Google' : 'Facebook'}</span>. Vui lòng nhập thông tin của bạn để hoàn tất đăng nhập:
-                </p>
-              </div>
-            </div>
-
-            {errorMsg && (
-              <div className="p-2.5 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-red-300 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
-
-            {/* Account Linking Form */}
-            <form onSubmit={handleFallbackCustomSubmit} className="space-y-3 pt-1">
-              <div>
-                <label htmlFor="ho-va-ten-hien-thi" className="block text-xs font-semibold text-neutral-300 mb-1">
-                  Họ và tên hiển thị <span className="text-red-400">*</span>
-                </label>
-                <input id="ho-va-ten-hien-thi"
-                  type="text"
-                  required
-                  maxLength={60}
-                  value={fallbackCustomName}
-                  onChange={e => setFallbackCustomName(e.target.value)}
-                  placeholder="Ví dụ: Nguyễn Văn Nam"
-                  className="w-full bg-neutral-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-amber-400 transition-colors"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="dia-chi-email-fallbackprovider-g" className="block text-xs font-semibold text-neutral-300 mb-1">
-                  Địa chỉ Email {fallbackProvider === 'google' ? 'Google' : 'Facebook'} <span className="text-red-400">*</span>
-                </label>
-                <input id="dia-chi-email-fallbackprovider-g"
-                  type="email"
-                  required
-                  maxLength={120}
-                  value={fallbackCustomEmail}
-                  onChange={e => setFallbackCustomEmail(e.target.value)}
-                  placeholder={fallbackProvider === 'google' ? 'name@gmail.com' : 'name@facebook.com'}
-                  className="w-full bg-neutral-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-amber-400 transition-colors"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFallbackProvider(null)}
-                  className="w-1/3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium text-xs transition-colors cursor-pointer"
-                >
-                  Quay lại
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 py-2.5 rounded-xl bg-white text-neutral-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-transform hover:scale-102 active:scale-98 cursor-pointer disabled:opacity-50"
-                >
-                  <CheckCircle className="w-3.5 h-3.5" />
-                  <span>{isSubmitting ? 'Đang xác thực...' : 'Liên kết & Đăng nhập'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        ) : (
-          <>
-            {/* Primary Mode Tabs: [Đăng nhập] vs [Đăng ký] */}
-            <div className="relative z-10 grid grid-cols-2 gap-1.5 p-1 bg-black/40 rounded-2xl border border-white/10 mb-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('login');
-                  setErrorMsg(null);
-                }}
-                className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  activeTab === 'login'
-                    ? 'bg-white text-neutral-900 shadow-md font-bold'
-                    : 'text-white/60 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Đăng nhập</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('register');
-                  setErrorMsg(null);
-                }}
-                className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  activeTab === 'register'
-                    ? 'bg-white text-neutral-900 shadow-md font-bold'
-                    : 'text-white/60 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>Đăng ký</span>
-              </button>
-            </div>
-
-            {/* Error Message Alert */}
-            {errorMsg && (
-              <div className="relative z-10 mb-3.5 p-2.5 rounded-xl bg-red-500/15 border border-red-500/30 text-xs text-red-300 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
-
-            {/* Tab: ĐĂNG NHẬP */}
-            {activeTab === 'login' && (
-              <form onSubmit={handleLoginSubmit} className="relative z-10 space-y-3.5">
-                <div>
-                  <label htmlFor="field" className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Địa chỉ Email</span>
-                  </label>
-                  <input id="field"
-                    type="email"
-                    required
-                    maxLength={120}
-                    value={loginEmail}
-                    onChange={e => setLoginEmail(e.target.value)}
-                    placeholder="name@example.com"
-                    className="w-full bg-neutral-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-amber-400 transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="field-2" className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Mật khẩu</span>
-                  </label>
-                  <input id="field-2"
-                    type="password"
-                    required
-                    maxLength={60}
-                    value={loginPassword}
-                    onChange={e => setLoginPassword(e.target.value)}
-                    placeholder="Nhập mật khẩu..."
-                    className="w-full bg-neutral-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-amber-400 transition-colors"
-                  />
-                </div>
-
-                <div className="pt-1">
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-neutral-950 font-bold text-xs flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(245,158,11,0.35)] transition-all cursor-pointer active:scale-98 disabled:opacity-50"
-                  >
-                    <LogIn className="w-4 h-4" />
-                    <span>{isSubmitting ? 'Đang kiểm tra...' : 'Đăng nhập vào diễn đàn'}</span>
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Tab: ĐĂNG KÝ */}
-            {activeTab === 'register' && (
-              <form onSubmit={handleRegisterSubmit} className="relative z-10 space-y-3">
-                <div>
-                  <label htmlFor="field-3" className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
-                    <UserIcon className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Họ và tên hiển thị</span>
-                  </label>
-                  <input id="field-3"
+          {fallbackProvider ? (
+            <>
+              {errorMsg && (
+                <div className="auth-alert" role="alert"><AlertCircle className="w-4 h-4 shrink-0" /><span>{errorMsg}</span></div>
+              )}
+              <form onSubmit={handleFallbackCustomSubmit} className="auth-form" key="fallback">
+                <div className="auth-field">
+                  <label htmlFor="ho-va-ten-hien-thi" className="auth-label">Tên hiển thị</label>
+                  <input id="ho-va-ten-hien-thi"
                     type="text"
                     required
                     maxLength={60}
-                    value={registerName}
-                    onChange={e => setRegisterName(e.target.value)}
-                    placeholder="Ví dụ: Nguyễn Văn A"
-                    className="w-full bg-neutral-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-amber-400 transition-colors"
+                    value={fallbackCustomName}
+                    onChange={e => setFallbackCustomName(e.target.value)}
+                    onFocus={() => setFocusField('name')}
+                    onBlur={() => setFocusField(null)}
+                    placeholder="Ví dụ: Nguyễn Văn Nam"
+                    className="auth-input"
                   />
                 </div>
-
-                <div>
-                  <label htmlFor="field-4" className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Địa chỉ Email</span>
+                <div className="auth-field">
+                  <label htmlFor="dia-chi-email-fallbackprovider-g" className="auth-label">
+                    Email {fallbackProvider === 'google' ? 'Google' : 'Facebook'}
                   </label>
-                  <input id="field-4"
+                  <input id="dia-chi-email-fallbackprovider-g"
                     type="email"
                     required
                     maxLength={120}
-                    value={registerEmail}
-                    onChange={e => setRegisterEmail(e.target.value)}
-                    placeholder="youremail@example.com"
-                    className="w-full bg-neutral-900/90 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-amber-400 transition-colors"
+                    value={fallbackCustomEmail}
+                    onChange={e => setFallbackCustomEmail(e.target.value)}
+                    onFocus={() => setFocusField('email')}
+                    onBlur={() => setFocusField(null)}
+                    placeholder={fallbackProvider === 'google' ? 'name@gmail.com' : 'name@facebook.com'}
+                    aria-invalid={invalidField === 'email' || undefined}
+                    className="auth-input"
                   />
                 </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label htmlFor="field-5" className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Mật khẩu</span>
-                    </label>
-                    <input id="field-5"
-                      type="password"
-                      required
-                      maxLength={60}
-                      value={registerPassword}
-                      onChange={e => setRegisterPassword(e.target.value)}
-                      placeholder="Ít nhất 6 ký tự"
-                      className="w-full bg-neutral-900/90 border border-white/15 rounded-xl px-3 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-amber-400 transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="field-6" className="block text-xs font-medium text-white/70 mb-1 flex items-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Xác nhận</span>
-                    </label>
-                    <input id="field-6"
-                      type="password"
-                      required
-                      maxLength={60}
-                      value={registerConfirmPassword}
-                      onChange={e => setRegisterConfirmPassword(e.target.value)}
-                      placeholder="Nhập lại mật khẩu"
-                      className="w-full bg-neutral-900/90 border border-white/15 rounded-xl px-3 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-amber-400 transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-1">
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-neutral-950 font-bold text-xs flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(245,158,11,0.35)] transition-all cursor-pointer active:scale-98 disabled:opacity-50"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                    <span>{isSubmitting ? 'Đang tạo tài khoản...' : 'Tạo tài khoản mới'}</span>
+                <div className="auth-row">
+                  <button type="button" onClick={() => setFallbackProvider(null)} className="auth-ghost">Quay lại</button>
+                  <button type="submit" disabled={isSubmitting || succeeded} className="auth-submit">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>{isSubmitting ? 'Đang xác thực…' : 'Liên kết & vào lớp'}</span>
                   </button>
                 </div>
               </form>
-            )}
-
-            {/* ==================================================================== */}
-            {/* DUAL REAL OAUTH OPTIONS: Google OAuth 2.0 & Meta Facebook Login SDK */}
-            {/* ==================================================================== */}
-            <div className="relative z-10 pt-3">
-              <div className="flex items-center gap-2 my-2.5">
-                <div className="h-[1px] flex-1 bg-white/10" />
-                <span className="text-[10px] uppercase font-mono text-white/40 tracking-wider">
-                  HOẶC TIẾP TỤC VỚI
-                </span>
-                <div className="h-[1px] flex-1 bg-white/10" />
+            </>
+          ) : (
+            <>
+              <div className="auth-tabs" role="tablist" aria-label="Chọn đăng nhập hoặc đăng ký" data-tab={activeTab}>
+                <span className="auth-tabs__indicator" aria-hidden="true" />
+                <button type="button" role="tab" aria-selected={activeTab === 'login'} onClick={() => switchTab('login')}>
+                  <LogIn className="w-3.5 h-3.5" /> Đăng nhập
+                </button>
+                <button type="button" role="tab" aria-selected={activeTab === 'register'} onClick={() => switchTab('register')}>
+                  <UserPlus className="w-3.5 h-3.5" /> Đăng ký
+                </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                {/* 1. Google OAuth 2.0 Native Popup */}
+              {errorMsg && (
+                <div className="auth-alert" role="alert"><AlertCircle className="w-4 h-4 shrink-0" /><span>{errorMsg}</span></div>
+              )}
+
+              {activeTab === 'login' && (
+                <form onSubmit={handleLoginSubmit} className="auth-form" key="login" noValidate>
+                  <div className="auth-field">
+                    <label htmlFor="field" className="auth-label">Email</label>
+                    <input id="field"
+                      type="email"
+                      required
+                      autoFocus
+                      maxLength={120}
+                      autoComplete="email"
+                      value={loginEmail}
+                      onChange={e => setLoginEmail(e.target.value)}
+                      onFocus={() => setFocusField('email')}
+                      onBlur={() => setFocusField(null)}
+                      placeholder="ten.cua.cau@gmail.com"
+                      aria-invalid={invalidField === 'email' || undefined}
+                      className="auth-input"
+                    />
+                  </div>
+                  <FlashlightPasswordField
+                    id="field-2"
+                    label="Mật khẩu"
+                    value={loginPassword}
+                    onChange={setLoginPassword}
+                    placeholder="Chỉ cậu biết thôi nha"
+                    autoComplete="current-password"
+                    required
+                    invalid={invalidField === 'password'}
+                    onFocusChange={(focused) => setFocusField(focused ? 'password' : null)}
+                    onModeChange={handleTorchChange}
+                  />
+                  <button type="submit" disabled={isSubmitting || succeeded} className="auth-submit">
+                    {isSubmitting
+                      ? <><span className="auth-dots" aria-hidden="true"><i /><i /><i /></span> Cú Bông đang kiểm tra…</>
+                      : <><LogIn className="w-4 h-4" /> Vào lớp thôi!</>}
+                  </button>
+                </form>
+              )}
+
+              {activeTab === 'register' && (
+                <form onSubmit={handleRegisterSubmit} className="auth-form" key="register" noValidate>
+                  <div className="auth-field">
+                    <label htmlFor="field-3" className="auth-label">Tên hiển thị</label>
+                    <input id="field-3"
+                      type="text"
+                      required
+                      autoFocus
+                      maxLength={60}
+                      autoComplete="nickname"
+                      value={registerName}
+                      onChange={e => setRegisterName(e.target.value)}
+                      onFocus={() => setFocusField('name')}
+                      onBlur={() => setFocusField(null)}
+                      placeholder="Ví dụ: Nguyễn Văn A"
+                      aria-invalid={invalidField === 'name' || undefined}
+                      className="auth-input"
+                    />
+                  </div>
+                  <div className="auth-field">
+                    <label htmlFor="field-4" className="auth-label">Email</label>
+                    <input id="field-4"
+                      type="email"
+                      required
+                      maxLength={120}
+                      autoComplete="email"
+                      value={registerEmail}
+                      onChange={e => setRegisterEmail(e.target.value)}
+                      onFocus={() => setFocusField('email')}
+                      onBlur={() => setFocusField(null)}
+                      placeholder="ten.cua.cau@gmail.com"
+                      aria-invalid={invalidField === 'email' || undefined}
+                      className="auth-input"
+                    />
+                  </div>
+                  <div className="auth-row">
+                    <FlashlightPasswordField
+                      id="field-5"
+                      label="Mật khẩu"
+                      value={registerPassword}
+                      onChange={setRegisterPassword}
+                      placeholder="Ít nhất 6 ký tự"
+                      autoComplete="new-password"
+                      required
+                      invalid={invalidField === 'password'}
+                      onFocusChange={(focused) => setFocusField(focused ? 'password' : null)}
+                      onModeChange={handleTorchChange}
+                    />
+                    <FlashlightPasswordField
+                      id="field-6"
+                      label="Nhập lại"
+                      value={registerConfirmPassword}
+                      onChange={setRegisterConfirmPassword}
+                      placeholder="Gõ lại cho chắc"
+                      autoComplete="new-password"
+                      required
+                      invalid={invalidField === 'confirm'}
+                      onFocusChange={(focused) => setFocusField(focused ? 'password' : null)}
+                      onModeChange={handleTorchChange}
+                    />
+                  </div>
+                  <button type="submit" disabled={isSubmitting || succeeded} className="auth-submit">
+                    {isSubmitting
+                      ? <><span className="auth-dots" aria-hidden="true"><i /><i /><i /></span> Đang chuẩn bị chỗ ngồi…</>
+                      : <><UserPlus className="w-4 h-4" /> Tạo tài khoản</>}
+                  </button>
+                </form>
+              )}
+
+              <div className="auth-divider">hoặc đi đường tắt</div>
+              <div className="auth-social">
                 <button
                   type="button"
                   onClick={handleGoogleAuth}
-                  disabled={isSubmitting}
-                  className="py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/25 text-xs font-semibold text-white/90 flex items-center justify-center gap-2 transition-all cursor-pointer hover:scale-102 active:scale-98 disabled:opacity-50"
-                  title="Đăng nhập nhanh với Google OAuth 2.0 (Cửa sổ Popup)"
+                  disabled={isSubmitting || succeeded}
+                  title="Đăng nhập với Google"
                 >
-                  <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                     <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
                     <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24Z"/>
                     <path fill="#FBBC05" d="M5.28 14.27a7.17 7.17 0 0 1 0-4.54V6.58H1.25a11.96 11.96 0 0 0 0 10.84l4.03-3.15Z"/>
@@ -563,25 +584,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </svg>
                   <span>Google</span>
                 </button>
-
-                {/* 2. Facebook Login SDK Native Popup */}
                 <button
                   type="button"
                   onClick={handleFacebookAuth}
-                  disabled={isSubmitting}
-                  className="py-2.5 px-3 rounded-xl bg-[#1877F2]/20 hover:bg-[#1877F2]/30 border border-[#1877F2]/40 text-xs font-semibold text-blue-200 flex items-center justify-center gap-2 transition-all cursor-pointer hover:scale-102 active:scale-98 disabled:opacity-50"
-                  title="Đăng nhập nhanh với Facebook SDK (Cửa sổ Popup)"
+                  disabled={isSubmitting || succeeded}
+                  title="Đăng nhập với Facebook"
                 >
-                  <svg className="w-3.5 h-3.5 fill-[#1877F2] shrink-0" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 fill-[#1877F2] shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                   </svg>
                   <span>Facebook</span>
                 </button>
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </section>
       </div>
+      <CelebrationBurst trigger={burstTick} tone="gold" count={56} />
     </div>
   );
 };

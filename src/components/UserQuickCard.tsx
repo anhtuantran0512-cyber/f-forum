@@ -6,6 +6,7 @@ import { getTierForLevel } from '../utils/tier';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { PremiumMark } from './PremiumMark';
+import { isMasterAdmin } from '../config/admin';
 
 export interface UserQuickCardProps {
   user: User | null;
@@ -41,7 +42,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
 
   if (!isOpen || !user) return null;
 
-  const isSuperAdmin = user.email === 'BroAmStuck@gmail.com';
+  const isSuperAdmin = isMasterAdmin(user.email);
   const tier = getTierForLevel(user.level);
   const userQuestions = questions.filter((q) => q.authorId === user.id);
   const userSolutions = solutions.filter((s) => s.authorId === user.id);
@@ -71,7 +72,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
           }}
         >
           {user.bannerUrl ? (
-            <img src={user.bannerUrl} alt={user.name} className="w-full h-full object-cover" />
+            <img loading="lazy" decoding="async" src={user.bannerUrl} alt={user.name} className="w-full h-full object-cover" />
           ) : (
             <div
               className="absolute inset-0 opacity-30"
@@ -94,7 +95,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
         {/* Floating avatar + status dot + badge tray */}
         <div className="relative px-4">
           <div className="relative -mt-11 w-[78px] h-[78px] rounded-full bg-[#111214] p-[5px]">
-            <img
+            <img loading="lazy" decoding="async"
               src={user.avatar}
               alt={user.name}
               onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
