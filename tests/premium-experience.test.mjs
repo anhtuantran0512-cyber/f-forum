@@ -119,9 +119,9 @@ test('6. Settings: 3 tab cao cấp, bỏ hàng nút ▲▼◀▶ thô, gradient 
     settings.includes('onSelectNavbarPosition?.(zone.id)'),
     'Mockup edge zones must still commit the chosen navbar position',
   );
-  assert.ok(settings.includes('ff-grad-tile'), 'Gradient presets must render as premium tiles');
-  assert.ok(settings.includes('role="radiogroup"'), 'Gradient picker must stay an accessible radiogroup');
-  assert.ok(css.includes('.ff-grad-tile') && css.includes('.ff-dock-mock'), 'Premium CSS helpers must exist');
+  assert.ok(settings.includes('<GradientSwatchPicker'), 'Gradient presets must use the shared swatch component');
+  assert.ok(read('src/components/GradientSwatchPicker.tsx').includes('role="radiogroup"'), 'Gradient picker must stay an accessible radiogroup');
+  assert.ok(read('src/components/GradientSwatchPicker.css').includes('.gradient-swatch') && css.includes('.ff-dock-mock'), 'Premium CSS helpers must exist');
 
   // Các bất biến cũ của settings test vẫn phải được giữ
   assert.ok(settings.includes('w-[84px] h-[42px]'), 'Cartoon switch geometry must be preserved');
@@ -150,7 +150,7 @@ test('8. Giao diện "ôn tập" dư thừa đã bị gỡ khỏi DailyEngagemen
   assert.ok(!content.includes('ôn tập'), 'Landing copy must not advertise the redundant revision feature');
 });
 
-test('9. Nút F là lối vào Giới thiệu; tab chữ GIỚI THIỆU đã bị gỡ', () => {
+test('9. F-Forum về Trang chủ; Giới thiệu nằm trong Khám phá', () => {
   const navbar = read('src/components/Navbar.tsx');
   const app = read('src/App.tsx');
 
@@ -158,18 +158,14 @@ test('9. Nút F là lối vào Giới thiệu; tab chữ GIỚI THIỆU đã b�
     !navbar.includes("{ id: 'landing', label: 'GIỚI THIỆU' }"),
     'Navbar must not render the redundant "GIỚI THIỆU" text tab',
   );
-  assert.ok(
-    navbar.includes('aria-label="Mở trang Giới thiệu F-Forum"'),
-    'The F logo button must announce the landing page destination',
-  );
-  assert.ok(
-    navbar.includes("title=\"F-Forum — Trang Giới thiệu\""),
-    'The F logo tooltip must point at the landing page',
-  );
-
-  const landingNavCount = (navbar.match(/onViewChange\('landing'\)/g) || []).length;
-  assert.ok(landingNavCount >= 2, 'Both desktop F logo and mobile header logo must open the landing page');
-  assert.ok(app.includes("currentView === 'landing'"), 'Landing route must stay wired in App');
+  assert.equal((navbar.match(/aria-label="Về trang chủ F-Forum"/g) || []).length, 2,
+    'both desktop and mobile brand buttons announce Home');
+  assert.ok(navbar.includes('title="F-Forum — Trang chủ"'), 'brand tooltip points at Home');
+  assert.equal((navbar.match(/onViewChange\('home'\)/g) || []).length, 2,
+    'both F-Forum buttons navigate home');
+  assert.equal((navbar.match(/onViewChange\('landing'\)/g) || []).length, 1,
+    'Explore still contains the sole link to the introduction');
+  assert.ok(app.includes("currentView === 'landing'"), 'Landing route remains available');
 });
 
 test('10. Miền Ký Ức / Khu Vinh Danh / Update luôn ở dạng icon', () => {
@@ -332,4 +328,51 @@ test('16. Aura navbar tách lớp đúng: nằm sau nội dung, không đè ch�
     css.includes('.reduce-motion .ff-nav-aura::before') && css.includes('.reduce-motion .ff-nav-brand-title'),
     'Reduced-motion class must also disable the aura and brand sweep',
   );
+});
+
+test('Navbar, bảng phối màu và typography trang chủ giữ phân cấp rõ ràng', () => {
+  const nav = read('src/components/Navbar.tsx');
+  const settings = read('src/components/SettingsModal.tsx');
+  const home = read('src/components/views/HomeView.tsx');
+  const title = read('src/components/views/HomeHeroTitle.css');
+  assert.doesNotMatch(nav, /\{ id: 'home', label:/, 'desktop has no duplicate Home tab');
+  assert.doesNotMatch(nav, /aria-label="Trang Chủ"/, 'mobile dock has no duplicate Home button');
+  assert.match(nav, /type DockView = Exclude<DimensionView, 'landing' \| 'home'>/);
+  assert.match(nav, /\{ id: 'qa', label: 'Hỏi Đáp' \}/);
+  assert.match(settings, /<GradientSwatchPicker/, 'gradient picker uses the shared palette');
+  assert.match(settings, /label="Bảng chọn Gradient"/);
+  assert.match(read('src/components/GradientSwatchPicker.tsx'), /style=\{\{ background: g\.css \}\}/, 'swatches display the actual gradient');
+  const top = home.indexOf('home-hero-title__top');
+  const focus = home.indexOf('home-hero-title__focus');
+  const bottom = home.indexOf('home-hero-title__bottom');
+  assert.ok(top > 0 && focus > top && bottom > focus, 'hero reads top to bottom in deliberate lines');
+  assert.match(title, /\.home-hero-title \{[^}]*flex-direction:\s*column/);
+  assert.match(title, /\.home-hero-title__word \{[^}]*linear-gradient\(105deg,\s*#c2f1ff/);
+});
+
+test('Miền Ký Ức: dock trở lại mà không đổi containing block hoặc bóp méo lưới', () => {
+  const nav = read('src/components/Navbar.tsx');
+  const app = read('src/App.tsx');
+  const css = read('src/index.css');
+  assert.match(app, /rect\.bottom > window\.innerHeight/, 'cinema boundary still controls dock visibility');
+  const dock = nav.slice(nav.indexOf('className={`hidden md:block fixed inset-0'), nav.indexOf('<ScrollProgressRail position={navbarPosition} />'));
+  assert.match(dock, /transition-opacity/);
+  assert.match(dock, /inert=\{isDockHidden\}/, 'hidden dock cannot steal focus or pointer events');
+  assert.doesNotMatch(dock, /transform:\s*isDockHidden/, 'never transform the full-screen parent of fixed controls');
+  assert.match(css, /\.dock-pos-top \.ff-nav-capsule\[data-compact="true"\],[\s\S]*?width: min\(94vw, 700px\)/);
+  assert.doesNotMatch(css, /width: max-content !important/, 'no intrinsic-width reflow as labels expand');
+  assert.doesNotMatch(css.match(/\.dock-pos-top > nav \{[^}]+\}/)?.[0] || '', /transition: all/);
+});
+
+test('Tiềm Năng uốn lượn với chữ Việt nguyên vẹn, có phương án giảm chuyển động', () => {
+  const home = read('src/components/views/HomeView.tsx');
+  const css = read('src/components/views/HomeHeroTitle.css');
+  assert.match(home, /home-hero-title__word">Tiềm<\/span>\{' '\}[\s\S]*?home-hero-title__word">Năng<\/span>/,
+    'keep whole NFC Vietnamese words and their dấu together');
+  assert.match(home, /home-hero-title__wave[^>]*aria-hidden="true"/);
+  assert.match(css, /font-family: system-ui, "Segoe UI", "Noto Sans", Arial, sans-serif/);
+  assert.match(css, /@keyframes home-title-flow/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(css, /html\.reduce-motion \.home-hero-title__word/);
+  assert.match(css, /html\.potator-mode \.home-hero-title__word/);
 });

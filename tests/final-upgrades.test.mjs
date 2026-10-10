@@ -238,12 +238,11 @@ test('R4 · Hiệu năng: rafThrottle gộp nhiều lần gọi trong 1 khung, p
   assert.match(read('src/App.tsx'), /const onScrollFrame = rafThrottle\(checkScroll\);/);
 });
 
-test('R5 · Responsive: bộ chọn nền Potator chuyển danh sách dọc trên điện thoại', () => {
-  const css = read('src/index.css');
-  const block = css.slice(css.indexOf('VÒNG NÂNG CẤP R5'));
-  assert.match(block, /@media \(max-width: 640px\) \{\n  \.ff-potator-presets \{\n    grid-template-columns: minmax\(0, 1fr\);/);
-  assert.match(block, /min-height: 48px;/, 'vùng chạm đủ lớn');
-  assert.match(read('src/components/SettingsModal.tsx'), /className="ff-potator-presets grid grid-cols-3 gap-2"/);
+test('R5 · Swatch Potator giữ ô chạm 48px và tự xuống hàng trên điện thoại', () => {
+  const css = read('src/components/GradientSwatchPicker.css');
+  assert.match(css, /grid-template-columns: repeat\(auto-fill, minmax\(48px, 1fr\)\)/);
+  assert.match(css, /width: 48px; height: 48px/);
+  assert.match(read('src/components/SettingsModal.tsx'), /includeDarkMetal/);
 });
 
 /* --------------------------------------------- Tích hợp máy chủ: khoá + đăng xuất */

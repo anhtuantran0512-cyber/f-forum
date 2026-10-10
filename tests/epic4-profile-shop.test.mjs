@@ -15,7 +15,8 @@ const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'fforum-epic4-'));
 process.env.FFORUM_DATA_DIR = DATA_DIR;
 const { setupForumServer, resetRateLimitersForTest, flushPendingSave } = await import('../server/forumServer.ts');
 const shop = await import('../src/utils/shopData.ts');
-const { GODRAY_PRESETS, GODRAY_MOODS } = await import('../src/utils/godrays.ts');
+const { GODRAY_PRESETS } = await import('../src/utils/godrays.ts');
+const { GRADIENT_PRESETS, GRADIENT_GROUPS, resolveGodrayId } = await import('../src/utils/gradients.ts');
 
 const read = (rel) => fs.readFileSync(path.resolve(rel), 'utf8');
 const DAY = 24 * 60 * 60 * 1000;
@@ -173,21 +174,20 @@ test('Epic 4 · Clay 2.0 đồng bộ: cùng công thức 3 lớp cho mọi bề
   assert.ok(!clay.includes("boxShadow: `"), 'không còn inline shadow lệch tông');
 });
 
-test('Epic 4 · Preset gradient Settings: hài hoà nhiều chùm tia, nhóm cảm xúc, xem thử realtime', () => {
+test('Gradient Settings: 12 mã màu chuẩn, không hover thay nền toàn trang', () => {
   const settings = read('src/components/SettingsModal.tsx');
   const app = read('src/App.tsx');
-  const ids = ['godray-gold', 'godray-aurora', 'godray-cosmic', 'godray-cyber', 'godray-sunset', 'godray-crystal', 'godray-ocean', 'godray-emerald',
-    'godray-ember', 'godray-peach', 'godray-neon', 'godray-mint', 'godray-midnight', 'godray-solar', 'godray-twilight', 'godray-ruby'];
-  assert.deepEqual(GODRAY_PRESETS.map((preset) => preset.id).sort(), [...ids].sort(), 'giữ nguyên id → lựa chọn đã lưu không mất');
-  assert.deepEqual(GODRAY_MOODS.map((mood) => mood.id), ['warm', 'cool', 'mystic']);
+  const picker = read('src/components/GradientSwatchPicker.tsx');
+  assert.equal(GRADIENT_PRESETS.length, 12);
+  assert.deepEqual(GRADIENT_PRESETS.map(p => p.id), Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')));
+  assert.deepEqual(GRADIENT_GROUPS.map(g => g.id), ['analogous', 'complementary', 'monochrome', 'neutral']);
+  assert.equal(GODRAY_PRESETS.length, 11, 'metal black only offered inside Potator');
   for (const preset of GODRAY_PRESETS) {
-    assert.equal((preset.gradient.match(/radial-gradient\(/g) || []).length, 3, `${preset.id}: 3 chùm tia chồng lớp`);
-    assert.ok(GODRAY_MOODS.some((mood) => mood.id === preset.mood), `${preset.id} có nhóm cảm xúc`);
+    assert.equal(preset.gradient, GRADIENT_PRESETS.find(g => g.id === preset.id).css);
   }
-  assert.match(settings, /new CustomEvent\('fforum_godray_preview', \{ detail: \{ id \} \}\)/);
-  assert.match(settings, /onMouseEnter=\{\(\) => previewGodray\(p\.id\)\}/, 'hover xem thử');
-  assert.match(settings, /onFocus=\{\(\) => previewGodray\(p\.id\)\}/, 'bàn phím cũng xem thử được');
-  assert.match(settings, /style=\{\{ background: `\$\{p\.gradient\}, linear-gradient/, 'ô màu vẽ đúng gradient thật');
-  assert.match(app, /window\.addEventListener\('fforum_godray_preview', handlePreview\)/);
-  assert.match(app, /GODRAY_PRESETS\.find\(p => p\.id === \(previewGodrayId \|\| godrayPreset\)\)/, 'nền trang đổi theo bản xem thử');
+  assert.equal(resolveGodrayId('godray-gold'), '06', 'saved choices migrate');
+  assert.match(settings, /<GradientSwatchPicker/);
+  assert.match(picker, /onMouseEnter=\{\(\) => setHoverId\(g\.id\)\}/);
+  assert.doesNotMatch(app, /fforum_godray_preview/, 'hover must not repaint the entire page');
+  assert.match(app, /<GradientSurface[\s\S]*?gradient=\{activeGodray\.gradient\}/);
 });

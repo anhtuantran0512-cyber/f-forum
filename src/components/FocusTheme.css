@@ -1,0 +1,11 @@
+/* Trang bị Theme Focus thực sự đổi bề mặt phòng học, dữ liệu lấy từ server. */
+.focus-signature { --focus-top:#0c2135; --focus-bottom:#07101d; }
+.focus-signature:has(.focus-signature__theme) > .liquid-glass { background:linear-gradient(145deg,var(--focus-top),var(--focus-bottom)) !important; border-color:rgba(215,182,121,.3) !important; }
+.focus-signature--flask_energy { --focus-top:#223c48; --focus-bottom:#152b35; }
+.focus-signature--talisman_focus { --focus-top:#352c31; --focus-bottom:#201e2b; }
+.focus-signature--theme_cream { --focus-top:#594e40; --focus-bottom:#2a2b2c; }
+.focus-signature--theme_slate { --focus-top:#384651; --focus-bottom:#202c38; }
+.focus-signature--theme_moss { --focus-top:#35483e; --focus-bottom:#1c302d; }
+.focus-signature--theme_ink { --focus-top:#262c3c; --focus-bottom:#0c1423; }
+.focus-signature--theme_oak { --focus-top:#483b35; --focus-bottom:#25242a; }
+.focus-signature__theme { position:absolute; top:10px; right:20px; z-index:2; color:#e4c994; font-size:11px; letter-spacing:.06em; }

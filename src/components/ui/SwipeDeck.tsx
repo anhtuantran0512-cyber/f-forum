@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import './SwipeDeck.css';
 
@@ -13,6 +13,8 @@ export interface SwipeDeckItem {
 interface SwipeDeckProps {
   items: SwipeDeckItem[];
   label: string;
+  /** Rotate hints automatically while mounted; manual swipe/buttons still work. */
+  autoAdvanceMs?: number;
 }
 
 const DISMISS_PX = 90;
@@ -23,24 +25,40 @@ const VISIBLE = 3;
  * Kéo thẻ trên cùng quá 90px (hoặc vẩy nhanh) → thẻ bay ra và xuống cuối chồng.
  * Không chặn cuộn dọc (touch-action: pan-y); có nút ‹ › và phím ← → cho bàn phím.
  */
-export function SwipeDeck({ items, label }: SwipeDeckProps) {
+export function SwipeDeck({ items, label, autoAdvanceMs }: SwipeDeckProps) {
   const [order, setOrder] = useState(() => items.map((_, i) => i));
   const [dragX, setDragX] = useState(0);
   const [leaving, setLeaving] = useState<null | 'left' | 'right'>(null);
   const start = useRef<{ x: number; t: number; id: number } | null>(null);
+  const cycleRef = useRef<() => void>(() => {});
+  const transitionTimerRef = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (transitionTimerRef.current !== null) window.clearTimeout(transitionTimerRef.current);
+  }, []);
 
   const top = items[order[0]];
-  if (!top) return null;
 
   const cycle = (dir: 'left' | 'right') => {
     if (leaving) return;
     setLeaving(dir);
-    window.setTimeout(() => {
+    transitionTimerRef.current = window.setTimeout(() => {
+      transitionTimerRef.current = null;
       setOrder((prev) => (dir === 'left' ? [...prev.slice(1), prev[0]] : [prev[prev.length - 1], ...prev.slice(0, -1)]));
       setLeaving(null);
       setDragX(0);
     }, 260);
   };
+
+  useEffect(() => {
+    cycleRef.current = () => { if (!start.current) cycle('left'); };
+  });
+  useEffect(() => {
+    if (!autoAdvanceMs || items.length < 2) return;
+    const timer = window.setInterval(() => {
+      if (!document.hidden) cycleRef.current();
+    }, autoAdvanceMs);
+    return () => window.clearInterval(timer);
+  }, [autoAdvanceMs, items.length]);
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (leaving || (e.pointerType === 'mouse' && e.button !== 0)) return;
@@ -70,11 +88,16 @@ export function SwipeDeck({ items, label }: SwipeDeckProps) {
     }
   };
 
+  if (!top) return null;
   const position = items.findIndex((it) => it.id === top.id) + 1;
 
   return (
-    <div className="ff-deck" role="group" aria-roledescription="chồng thẻ" aria-label={label}>
-      <div className="ff-deck__stack" tabIndex={0} onKeyDown={onKeyDown} aria-live="polite">
+    <div
+      className={`ff-deck${autoAdvanceMs ? ' ff-deck--auto' : ''}`}
+      style={autoAdvanceMs ? { '--ff-deck-cycle': `${autoAdvanceMs}ms` } as CSSProperties : undefined}
+      role="group" aria-roledescription="chồng thẻ" aria-label={label}
+    >
+      <div className="ff-deck__stack" tabIndex={0} onKeyDown={onKeyDown} aria-live={autoAdvanceMs ? 'off' : 'polite'}>
         {order
           .slice(0, VISIBLE)
           .reverse()

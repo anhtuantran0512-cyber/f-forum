@@ -26,6 +26,8 @@ import {
   type PointerEvent,
 } from 'react';
 import { playFlashlightClick } from '../../utils/audio';
+import { flashlightCone, conePolygon, torchAimDegrees, continuousTorchAngle } from '../../utils/flashlightCone';
+import { createPortal } from 'react-dom';
 import './AuthExperience.css';
 
 export type FlashlightMode = 'off' | 'beam' | 'reveal';
@@ -40,11 +42,12 @@ interface FlashlightPasswordFieldProps {
   maxLength?: number;
   required?: boolean;
   invalid?: boolean;
+  /** Registration's first password stays a plain masked field; only confirmation has a torch. */
+  showTorch?: boolean;
   onFocusChange?: (focused: boolean) => void;
   onModeChange?: (mode: FlashlightMode) => void;
 }
 
-const TORCH_SPACE = 52;
 const DOUBLE_TAP_MS = 320;
 const QUICK_TAP_MS = 240;
 
@@ -74,6 +77,7 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
   maxLength = 60,
   required = false,
   invalid = false,
+  showTorch = true,
   onFocusChange,
   onModeChange,
 }) => {
@@ -84,6 +88,11 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
   const boxRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const torchRef = useRef<HTMLButtonElement>(null);
+  const beamRef = useRef<HTMLDivElement>(null);
+  const lastAim = useRef<{ x: number; y: number } | null>(null);
+  const aimFrame = useRef<number | null>(null);
+  const queuedAim = useRef<{ x: number; y: number } | null>(null);
+  const currentAngle = useRef(0);
   const press = useRef<{ id: number; t: number; x: number; y: number; moved: boolean; wasSticky: boolean } | null>(null);
   const lastTap = useRef(0);
 
@@ -105,25 +114,69 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
 
   const setSpot = (clientX: number, clientY: number, fromTorch = false) => {
     const box = boxRef.current;
-    if (!box) return;
+    const torch = torchRef.current;
+    if (!box || !torch) return;
     const rect = box.getBoundingClientRect();
-    let x = clientX - rect.left;
-    const y = Math.max(6, Math.min(rect.height - 6, clientY - rect.top));
-    if (fromTorch || x > rect.width - TORCH_SPACE) {
-      /* Đang đè ngay lên đèn pin → chiếu vào giữa phần chữ đang hiển thị. */
-      const fontSize = parseFloat(getComputedStyle(box).fontSize) || 15;
-      const textWidth = value.length * fontSize * 0.72;
-      x = Math.min(16 + Math.max(24, textWidth) / 2, rect.width - TORCH_SPACE - 24);
+    const lamp = torch.getBoundingClientRect();
+    // Lấy chính miệng icon làm gốc; con trỏ chỉ đổi hướng, không đổi độ dài tia.
+    // SVG 22px is centered in the 40px button; its lens is at viewBox x=10/32.
+    const source = { x: lamp.left + lamp.width / 2 - 11 + 22 * 10 / 32, y: lamp.top + lamp.height / 2 };
+    const target = fromTorch
+      ? { x: rect.left + Math.min(rect.width / 2, 100), y: rect.top + rect.height / 2 }
+      : { x: clientX, y: clientY };
+    lastAim.current = target;
+    currentAngle.current = continuousTorchAngle(currentAngle.current, torchAimDegrees(source, target));
+    torch.style.setProperty('--ffl-angle', `${currentAngle.current.toFixed(1)}deg`);
+    const reach = Math.hypot(window.innerWidth, window.innerHeight) * 2;
+    const points = flashlightCone(source, target, reach);
+    const polygon = conePolygon(points);
+    if (beamRef.current) {
+      beamRef.current.style.clipPath = polygon;
+      beamRef.current.style.setProperty('--ffl-x', `${source.x}px`);
+      beamRef.current.style.setProperty('--ffl-y', `${source.y}px`);
     }
-    x = Math.max(12, Math.min(rect.width - TORCH_SPACE, x));
-    box.style.setProperty('--ffl-x', `${x.toFixed(1)}px`);
-    box.style.setProperty('--ffl-y', `${y.toFixed(1)}px`);
-    const torch = torchRef.current?.getBoundingClientRect();
-    if (torch) {
-      box.style.setProperty('--ffl-tx', `${(torch.left - rect.left + torch.width * 0.28).toFixed(1)}px`);
-      box.style.setProperty('--ffl-ty', `${(torch.top - rect.top + torch.height / 2).toFixed(1)}px`);
-    }
+    box.style.setProperty('--ffl-cone', conePolygon(points, { x: rect.left, y: rect.top }));
+    box.style.setProperty('--ffl-tx', `${source.x - rect.left}px`);
+    box.style.setProperty('--ffl-ty', `${source.y - rect.top}px`);
+    box.style.setProperty('--ffl-x', `${target.x - rect.left}px`);
+    box.style.setProperty('--ffl-y', `${target.y - rect.top}px`);
   };
+
+  // Gộp mọi pointermove vào tối đa một lần đo layout/vẽ nón sáng mỗi frame.
+  const queueSpot = (x: number, y: number) => {
+    queuedAim.current = { x, y };
+    if (aimFrame.current !== null) return;
+    aimFrame.current = window.requestAnimationFrame(() => {
+      aimFrame.current = null;
+      const aim = queuedAim.current;
+      if (aim) setSpot(aim.x, aim.y);
+    });
+  };
+
+  // Khi đèn đã bật, chuột có thể đi BẤT KỲ đâu trong viewport, kể cả ngoài modal.
+  useEffect(() => {
+    if (mode !== 'beam') {
+      currentAngle.current = 0;
+      torchRef.current?.style.removeProperty('--ffl-angle');
+      return undefined;
+    }
+    const onMove = (event: globalThis.PointerEvent) => queueSpot(event.clientX, event.clientY);
+    const onResize = () => {
+      if (lastAim.current) queueSpot(lastAim.current.x, lastAim.current.y);
+    };
+    window.addEventListener('pointermove', onMove, { passive: true });
+    window.addEventListener('resize', onResize);
+    window.addEventListener('scroll', onResize, true);
+    onResize();
+    return () => {
+      if (aimFrame.current !== null) window.cancelAnimationFrame(aimFrame.current);
+      aimFrame.current = null;
+      queuedAim.current = null;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('scroll', onResize, true);
+    };
+  }, [mode]);
 
   const turnOff = (withSound = true) => {
     setSticky(false);
@@ -157,7 +210,7 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
     const current = press.current;
     if (!current || current.id !== event.pointerId) return;
     if (!current.moved && Math.hypot(event.clientX - current.x, event.clientY - current.y) > 6) current.moved = true;
-    if (current.moved) setSpot(event.clientX, event.clientY);
+    if (current.moved) queueSpot(event.clientX, event.clientY);
   };
 
   const finishPress = (event: PointerEvent<HTMLButtonElement>, cancelled = false) => {
@@ -202,17 +255,13 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
     }
   };
 
-  const onBoxPointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    if (mode === 'beam' && sticky && !press.current) setSpot(event.clientX, event.clientY);
-  };
-
   const chars = Array.from(value);
   const showLayers = mode === 'beam';
 
   return (
     <div
       ref={wrapRef}
-      className={`ffl ffl--${mode} ${invalid ? 'is-invalid' : ''}`}
+      className={`ffl ffl--${mode} ${showTorch ? '' : 'ffl--no-torch'} ${invalid ? 'is-invalid' : ''}`}
       onBlur={(event) => {
         if (!wrapRef.current?.contains(event.relatedTarget as Node | null)) {
           onFocusChange?.(false);
@@ -221,8 +270,9 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
       }}
       onFocus={() => onFocusChange?.(true)}
     >
+      {showLayers && createPortal(<div ref={beamRef} className="ffl__viewport-beam" aria-hidden="true" />, document.body)}
       <label htmlFor={id} className="auth-label">{label}</label>
-      <div ref={boxRef} className="ffl__box" onPointerMove={onBoxPointerMove}>
+      <div ref={boxRef} className="ffl__box">
         <input
           ref={inputRef}
           id={id}
@@ -237,7 +287,7 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
           spellCheck={false}
           placeholder={placeholder}
           aria-invalid={invalid || undefined}
-          aria-describedby={hintId}
+          aria-describedby={showTorch ? hintId : undefined}
           onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value.slice(0, maxLength))}
           onKeyDown={(event) => {
             if (event.key === 'Escape' && mode !== 'off') {
@@ -267,7 +317,7 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
           </div>
         )}
 
-        <button
+        {showTorch && <button
           ref={torchRef}
           type="button"
           data-silent
@@ -284,8 +334,8 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
           onContextMenu={(event) => event.preventDefault()}
         >
           <TorchIcon on={mode !== 'off'} />
-        </button>
-        <span className="ffl__hint" id={hintId}>Giữ &amp; rê đèn để soi · Space hoặc nhấn đúp để xem hết</span>
+        </button>}
+        {showTorch && <span className="ffl__hint" id={hintId}>Giữ &amp; rê để soi mọi nơi · Space / nhấn đúp để xem hết</span>}
       </div>
       <span className="sr-only" aria-live="polite">
         {mode === 'reveal' ? 'Đang hiện toàn bộ mật khẩu.' : mode === 'beam' ? 'Đèn pin đang bật.' : ''}

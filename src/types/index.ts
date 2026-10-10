@@ -191,6 +191,7 @@ export interface ShopItem {
   tierColor: ShopTierColor;
   description: string;
   iconType: string;
+  category?: 'Khung avatar' | 'Hiệu ứng' | 'Theme Focus' | 'Góc hồ sơ';
   /** Ngày phát hành (YYYY-MM-DD, giờ VN) — dùng cho nhãn "Mới". */
   addedAt?: string;
 }

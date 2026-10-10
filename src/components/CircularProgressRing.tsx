@@ -148,7 +148,7 @@ export const CircularProgressRing: React.FC<CircularProgressRingProps> = ({
           <span
             className="text-4xl sm:text-5xl font-extrabold tracking-tight"
             style={{
-              fontFamily: "'Geist Mono', ui-monospace, monospace",
+              fontFamily: "'Geist Mono Variable', ui-monospace, monospace",
               color: '#f1f5f9',
               lineHeight: 1,
               textShadow: isCelebrating

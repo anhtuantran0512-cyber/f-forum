@@ -1,0 +1,111 @@
+/* THE OWL'S WELCOME · storyboard
+ * 00–.66 Cú đáp xuống; .70–1.05 vỗ cánh; .17–.61 bảng trồi lên.
+ * Click: .00–.15 bảng nén; .15–.75 Cú FLIP theo cung; .20–.80
+ * ghost bảng mở thành panel, input stagger mỗi 80ms. Không có timer khoá form.
+ */
+.auth-overlay--welcome { background:radial-gradient(ellipse at 50% 52%,#2b3c4c,#0a111d 72%); animation:none; -webkit-backdrop-filter:none; backdrop-filter:none; }
+.auth-card--welcome { animation:none !important; background:transparent !important; border-color:transparent !important; box-shadow:none !important; overflow:visible; }
+.auth-card--welcome .auth-stage { background:transparent !important; overflow:visible; z-index:2; transform:translate(var(--welcome-x,0px),var(--welcome-y,0px)) scale(1.09); }
+.auth-card--welcome .auth-sky,.auth-card--welcome .auth-ground { opacity:0; }
+.auth-card--welcome .auth-panel { visibility:hidden; opacity:0; pointer-events:none; }
+/* Keep its geometry for FLIP measurement, but don't animate the invisible form. */
+.auth-card--welcome .auth-panel * { animation:none !important; transition:none !important; }
+.auth-welcome-owl { position:absolute; bottom:105px; left:50%; z-index:3; transform:translate3d(-50%,0,0); padding:0; border:0; background:none; cursor:pointer; animation:owlWelcomeLand .66s cubic-bezier(.16,1,.3,1) both; }
+.auth-welcome-owl:not(.is-landed) { will-change:transform,opacity; }
+.auth-welcome-owl:not(.is-landed) :is(.cb-body,.cb-shadow,.cb-tassel,.cb-lid) { animation-play-state:paused; }
+.auth-welcome-owl .auth-mascot { margin:0; } /* SVG already has its own shadow; per-frame SVG filter caused repaint. */
+.auth-welcome-owl .cb-wing--l { animation:owlWelcomeFlap .18s ease-in-out 2 alternate .7s; }
+.auth-welcome-owl .cb-wing--r { animation:owlWelcomeFlapRight .18s ease-in-out 2 alternate .7s; }
+.auth-welcome-owl:focus-visible { outline:2px solid #e1c28b; outline-offset:6px; border-radius:50%; }
+.auth-welcome-board { position:absolute; bottom:35px; left:50%; z-index:4; display:grid; place-items:center; gap:5px; width:226px; min-height:99px; padding:13px; transform:translateX(-50%); text-align:center; cursor:pointer; color:#f4e8ce; border:1px solid #c4a87d; border-radius:12px; background:linear-gradient(150deg,#394353,#1b2a38); box-shadow:0 12px 25px rgba(0,0,0,.35),inset 0 1px rgba(255,255,255,.13),0 0 16px rgba(221,190,134,.08); animation:owlBoardRise .44s .17s backwards; }
+.auth-welcome-board::after { content:''; position:absolute; inset:-2px; border-radius:inherit; pointer-events:none; box-shadow:0 0 24px rgba(221,190,134,.28); opacity:0; animation:owlBoardGlow 3s 1s ease-in-out infinite; }
+.auth-welcome-board:active { scale:.96; }
+.auth-welcome-board:hover,.auth-welcome-board:focus-visible { border-color:#ffe3aa; outline:none; }
+.auth-welcome-board:focus-visible { outline:2px solid #f1d298; outline-offset:3px; }
+.auth-welcome-board__eyebrow { font-size:9px; letter-spacing:.2em; color:#d8bb86; }
+.auth-welcome-board strong { font:500 23px/1.1 Georgia,serif; letter-spacing:.07em; }
+.auth-welcome-board__action { font-size:11px; color:#bfcbd1; }
+.auth-welcome-board__action span { display:inline-block; margin-left:3px; transition:transform .2s ease; }
+.auth-welcome-board:hover .auth-welcome-board__action span { transform:translate(2px,-2px); }
+.auth-welcome-skip { position:fixed; top:max(17px,env(safe-area-inset-top)); right:20px; z-index:5; cursor:pointer; color:#d9d3c7; background:rgba(21,31,42,.75); border:1px solid rgba(229,223,207,.3); border-radius:8px; padding:9px 13px; font-size:12px; }
+.auth-welcome-skip:hover,.auth-welcome-skip:focus-visible { color:#ffe6b4; border-color:#e3c58b; outline:none; }
+.auth-card--morphed { animation:none; background:transparent !important; border-color:transparent !important; box-shadow:none !important; overflow:visible; }
+.auth-card--morphed::before { content:''; position:absolute; inset:0; border-radius:20px; border:1px solid rgba(228,224,208,.16); background:#101a25; box-shadow:0 35px 95px rgba(0,0,0,.64); animation:owlPanelReveal .45s .16s both; }
+.auth-card--morphed .auth-stage { z-index:2; background:transparent !important; animation:owlFLIPArc .82s cubic-bezier(.76,0,.24,1) both; }
+.auth-card--morphed .auth-stage::before { content:''; position:absolute; inset:0; background:var(--owl-stage-bg); animation:owlPanelReveal .45s .22s both; }
+.auth-stage--morning { --owl-stage-bg:linear-gradient(180deg,#ffd6a5,#ffb3c7 46%,#9cc9ff); }
+.auth-stage--day { --owl-stage-bg:linear-gradient(180deg,#6fbfff,#a9dcff 58%,#e6f5ff); }
+.auth-stage--dusk { --owl-stage-bg:linear-gradient(180deg,#ff9966,#c96bb1 52%,#4a3a8e); }
+.auth-stage--night { --owl-stage-bg:radial-gradient(120% 80% at 50% 0%,#2c2470,#13133a 55%,#07081a); }
+.auth-card--morphed .auth-sky,.auth-card--morphed .auth-ground { animation:owlPanelReveal .45s .22s both; }
+.auth-card--morphed .auth-panel { position:relative; z-index:1; visibility:visible; pointer-events:auto; animation:owlPanelReveal .48s .3s both; }
+.auth-card--morphed .auth-head { animation:owlFieldRise .45s .31s both; }
+.auth-card--morphed .auth-tabs { animation:owlFieldRise .45s .36s both; }
+.auth-card--morphed .auth-form > :nth-child(1) { animation:owlFieldRise .45s .41s both; }
+.auth-card--morphed .auth-form > :nth-child(2) { animation:owlFieldRise .45s .49s both; }
+.auth-card--morphed .auth-form > :nth-child(3) { animation:owlFieldRise .45s .57s both; }
+.auth-card--morphed .auth-form > :nth-child(4) { animation:owlFieldRise .45s .65s both; }
+.auth-card--morphed .auth-divider,.auth-card--morphed .auth-social { animation:owlFieldRise .45s .72s both; }
+.auth-board-morph { position:fixed; z-index:55; pointer-events:none; display:grid; place-items:center; color:#f3e5c9; background:linear-gradient(145deg,#394353,#1b2a38); border:1px solid #c4a87d; border-radius:12px; box-shadow:0 12px 25px rgba(0,0,0,.35); transform-origin:center center; animation:owlBoardMorph .77s cubic-bezier(.22,1,.36,1) forwards; }
+.auth-board-morph span { font:500 21px Georgia,serif; animation:owlBoardTextOut .18s both; }
+@keyframes owlWelcomeLand { 0% {opacity:0;transform:translate3d(-50%,-82px,0) rotate(-5deg) scale(.86)} 9% {opacity:.32;transform:translate3d(-50%,-88px,0) rotate(-5deg) scale(.86)} 70% {opacity:1;transform:translate3d(-50%,5px,0) rotate(1deg) scale(1.035)} 87% {transform:translate3d(-50%,-1px,0) scale(.995)} 100% {opacity:1;transform:translate3d(-50%,0,0) scale(1)} }
+@keyframes owlWelcomeFlap { from {transform:rotate(-12deg)} to {transform:rotate(55deg)} }
+@keyframes owlWelcomeFlapRight { from {transform:rotate(12deg)} to {transform:rotate(-55deg)} }
+@keyframes owlBoardRise { from {opacity:0;transform:translate3d(-50%,28px,0)} to {opacity:1;transform:translate3d(-50%,0,0)} }
+@keyframes owlBoardGlow { 50% {opacity:1} }
+@keyframes owlFLIPArc { 0% {transform:translate(var(--welcome-x),var(--welcome-y)) scale(1.09)} 55% {transform:translate(var(--welcome-arc-x),var(--welcome-arc-y)) scale(.85)} 84% {transform:translate(0,6px) scale(1.02)} 100% {transform:none} }
+@keyframes owlPanelReveal { from {opacity:0} to {opacity:1} }
+@keyframes owlFieldRise { from {opacity:0;transform:translateY(13px)} to {opacity:1;transform:none} }
+@keyframes owlBoardMorph { 0% {opacity:1;transform:scale(.95)} 17% {opacity:1;transform:none} 78% {opacity:.9;transform:translate(var(--morph-x),var(--morph-y)) scale(var(--morph-sx),var(--morph-sy));border-radius:20px} 100% {opacity:0;transform:translate(var(--morph-x),var(--morph-y)) scale(var(--morph-sx),var(--morph-sy));border-radius:20px} }
+@keyframes owlBoardTextOut { 0% {opacity:1} 100% {opacity:0} }
+.auth-typewriter { display:inline-flex; align-items:center; justify-content:center; min-width:145px; white-space:nowrap; font-size:13px; }
+.auth-typewriter__caret { animation:owlCaret .55s step-end infinite; }
+.auth-typewriter__arrow { display:inline-block; margin-left:4px; animation:owlArrow 1.1s ease-in-out infinite; }
+@keyframes owlCaret { 50% {opacity:0} }
+@keyframes owlArrow { 50% {transform:translateX(4px)} }
+/* Focus ring traces a restrained brass highlight rather than a static color. */
+@property --owl-focus-angle { syntax:'<angle>'; inherits:false; initial-value:0deg; }
+.auth-card .auth-input:focus { border:1px solid transparent; background:linear-gradient(#0d1621,#0d1621) padding-box,conic-gradient(from var(--owl-focus-angle),#4a463e,#dfbe82,#4a463e) border-box; animation:owlFocusSpin 2.8s linear infinite; box-shadow:0 0 0 3px rgba(215,182,121,.12); }
+html.light .auth-card .auth-input:focus { background:linear-gradient(#fffdfa,#fffdfa) padding-box,conic-gradient(from var(--owl-focus-angle),#b4a796,#987046,#b4a796) border-box; }
+@keyframes owlFocusSpin { to {--owl-focus-angle:360deg} }
+@media(max-width:760px) { .auth-card--welcome .auth-stage { transform:translate(var(--welcome-x,0px),var(--welcome-y,0px)) scale(.95); } .auth-card--morphed .auth-stage { animation-name:owlFLIPArcMobile; } @keyframes owlFLIPArcMobile { from {transform:translate(var(--welcome-x),var(--welcome-y)) scale(.95)} 55% {transform:translate(var(--welcome-arc-x),var(--welcome-arc-y-mobile)) scale(.82)} to {transform:none} } .auth-welcome-owl { bottom:95px; } .auth-welcome-owl .auth-mascot { width:135px;height:135px; } .auth-welcome-board { bottom:20px; width:210px; min-height:88px; } }
+html.potator-mode .auth-welcome-owl { animation:owlWelcomeLite .34s cubic-bezier(.16,1,.3,1) both; }
+@keyframes owlWelcomeLite { from {opacity:0;transform:translate3d(-50%,-30px,0)} to {opacity:1;transform:translate3d(-50%,0,0)} }
+html.potator-mode .auth-card--morphed .auth-stage { animation:owlLiteMove .36s ease both; }
+html.potator-mode .auth-card--morphed .auth-panel { animation:owlPanelReveal .28s ease both; }
+html.potator-mode .auth-board-morph { display:none; }
+html.potator-mode .auth-welcome-board { animation:none; }
+html.potator-mode .auth-welcome-board::after { display:none; }
+@keyframes owlLiteMove { from {transform:translate(var(--welcome-x),var(--welcome-y)) scale(.94)} to {transform:none} }
+@media(prefers-reduced-motion:reduce) { .auth-welcome-owl,.auth-welcome-board,.auth-welcome-board::after,.auth-card--morphed .auth-stage,.auth-card--morphed .auth-panel,.auth-card--morphed .auth-panel *, .auth-card--morphed::before { animation:none !important; opacity:1; } .auth-board-morph { display:none; } .auth-card .auth-input:focus { animation:none; } }
+html.reduce-motion .auth-welcome-owl,html.reduce-motion .auth-welcome-board,html.reduce-motion .auth-welcome-board::after,html.reduce-motion .auth-card--morphed .auth-stage,html.reduce-motion .auth-card--morphed .auth-panel,html.reduce-motion .auth-card--morphed .auth-panel *,html.reduce-motion .auth-card--morphed::before { animation:none !important;opacity:1; }
+html.reduce-motion .auth-board-morph {display:none;}
+@media(prefers-reduced-motion:reduce) { .auth-welcome-owl { will-change:auto !important; } }
+html.reduce-motion .auth-welcome-owl { will-change:auto !important; }
+html.light .auth-overlay--welcome { background:radial-gradient(ellipse at 50% 53%,#d4cbbd,#8f9a9d 82%); }
+html.light .auth-card--morphed::before { background:#fbf7ef; border-color:#d2cec4; }
+/* Sau FLIP không chạy lại hiệu ứng pop khi form đã ổn định; lần mở sau vẫn bắt đầu ở welcome. */
+.auth-card--settled { animation:none; }
+
+html.potator-mode .auth-card--morphed :is(.auth-head,.auth-tabs,.auth-form > *,.auth-divider,.auth-social) { animation-duration:.2s; animation-delay:.12s; }
+.auth-welcome-close { position:fixed; top:max(17px,env(safe-area-inset-top)); left:20px; z-index:5; display:grid; place-items:center; width:38px; height:38px; cursor:pointer; color:#d9d3c7; background:rgba(21,31,42,.75); border:1px solid rgba(229,223,207,.3); border-radius:8px; }
+.auth-welcome-close:hover,.auth-welcome-close:focus-visible { color:#ffe6b4; border-color:#e3c58b; outline:none; }
+/* Welcome can change intent before opening the form; one board, two real flows. */
+.auth-welcome-switch { position:absolute; bottom:-10px; left:50%; z-index:4; transform:translateX(-50%); white-space:nowrap; cursor:pointer; color:#e1ccaa; background:rgba(15,25,36,.72); border:1px solid rgba(219,190,137,.32); border-radius:999px; padding:6px 12px; font:600 11px system-ui,sans-serif; }
+.auth-welcome-switch:hover,.auth-welcome-switch:focus-visible { color:#fff0d4; border-color:#e1c28b; outline:none; }
+.auth-head__actions { display:flex; align-items:center; gap:7px; flex:0 0 auto; }
+.auth-replay { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:36px; padding:0 10px; cursor:pointer; color:#c6b9a0; border:1px solid rgba(222,208,177,.18); background:rgba(255,255,255,.035); border-radius:9px; font:600 11px system-ui,sans-serif; transition:color .2s ease,border-color .2s ease; }
+.auth-replay:hover,.auth-replay:focus-visible { color:#ffdfa8; border-color:rgba(236,204,147,.55); outline:none; }
+.auth-replay:disabled { opacity:.45;cursor:default; }
+.auth-tabs button:focus-visible { outline:2px solid #e1c28b; outline-offset:2px; }
+.auth-password-guide { display:grid; gap:7px; padding:0 2px; color:#b8c0c5; font:600 11px system-ui,sans-serif; }
+.auth-password-guide__top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.auth-password-guide__top .is-match { color:#ddc08d; }
+.auth-password-guide__top .is-mismatch { color:#cfaba0; }
+.auth-password-guide__track { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; }
+.auth-password-guide__track i { height:3px; border-radius:4px; background:rgba(210,221,225,.18); transition:background .2s ease; }
+.auth-password-guide__track i.is-filled { background:#d7b679; }
+html.light .auth-replay { color:#584b3c; border-color:#b5aa98; background:rgba(46,47,49,.04); }
+html.light .auth-password-guide { color:#544b42; }
+html.light .auth-password-guide__track i:not(.is-filled) { background:rgba(50,56,61,.14); }
+@media(max-width:760px) { .auth-welcome-switch { bottom:-16px; } .auth-replay span { display:none; } .auth-replay { width:36px; padding:0; } }
