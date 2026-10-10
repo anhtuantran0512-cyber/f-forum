@@ -4,6 +4,7 @@ import { lazyWithRetry } from './utils/lazyWithRetry';
 import { installInteractionWatchdog } from './utils/interactionWatchdog';
 import { useForumStore } from './store/forumStore';
 import { Navbar } from './components/Navbar';
+import { OwlOutcome } from './components/auth/OwlOutcome';
 import { ScrollToTopDock } from './components/ScrollToTopDock';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { CelebrationBurst } from './components/CelebrationBurst';
@@ -42,6 +43,8 @@ import { ViewTransitionLoader } from './components/ViewTransitionLoader';
 import { FocusSessionWatcher } from './components/FocusSessionWatcher';
 import { AuthProvider } from './context/AuthContext';
 import { GODRAY_PRESETS } from './utils/godrays';
+import { getGradient, resolveGodrayId, resolvePotatorId } from './utils/gradients';
+import { GradientSurface } from './components/GradientSurface';
 import { safeStorage } from './utils/storage';
 import { isMasterAdmin } from './config/admin';
 import { capsCanOpenAdminPanel, useAdminCapabilitiesLoader, useAdminCaps } from './utils/adminCapabilities';
@@ -154,6 +157,19 @@ const ViewReadySignal: React.FC<{ view: DimensionView; onReady: (view: Dimension
 };
 
 export const App: React.FC = () => {
+  const [authOutcome, setAuthOutcome] = useState<'login' | 'register' | null>(null);
+  const outcomeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dismissAuthOutcome = useCallback(() => {
+    if (outcomeTimer.current) clearTimeout(outcomeTimer.current);
+    outcomeTimer.current = null;
+    setAuthOutcome(null);
+  }, []);
+  useEffect(() => () => { if (outcomeTimer.current) clearTimeout(outcomeTimer.current); }, []);
+  useEffect(() => {
+    const onHidden = () => { if (document.hidden) dismissAuthOutcome(); };
+    document.addEventListener('visibilitychange', onHidden);
+    return () => document.removeEventListener('visibilitychange', onHidden);
+  }, [dismissAuthOutcome]);
   const {
     currentView,
     setCurrentView,
@@ -260,7 +276,7 @@ export const App: React.FC = () => {
   const isInsideCinema = currentView === 'memory' && scrollInsideCinema;
 
   const [godrayPreset, setGodrayPreset] = useState<string>(() => {
-    return safeStorage.getItem('fforum_godray_preset') || 'godray-gold';
+    return resolveGodrayId(safeStorage.getItem('fforum_godray_preset'));
   });
   const [godrayIntensity, setGodrayIntensity] = useState<number>(() => {
     const val = safeStorage.getItem('fforum_godray_intensity');
@@ -269,7 +285,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     const handleSyncGodray = () => {
-      const p = safeStorage.getItem('fforum_godray_preset') || 'godray-gold';
+      const p = resolveGodrayId(safeStorage.getItem('fforum_godray_preset'));
       const i = safeStorage.getItem('fforum_godray_intensity');
       setGodrayPreset(p);
       if (i) setGodrayIntensity(parseInt(i, 10));
@@ -278,29 +294,21 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('fforum_theme_sync', handleSyncGodray);
   }, []);
 
-  /* Epic 4 — Settings phát 'fforum_godray_preview' khi rê chuột lên một preset:
-     nền trang đổi theo tức thì (xem thử), detail.id = null → về preset đã chọn. */
-  const [previewGodrayId, setPreviewGodrayId] = useState<string | null>(null);
-  useEffect(() => {
-    const handlePreview = (event: Event) => {
-      const id = (event as CustomEvent<{ id?: string | null }>).detail?.id;
-      setPreviewGodrayId(typeof id === 'string' && GODRAY_PRESETS.some((preset) => preset.id === id) ? id : null);
-    };
-    window.addEventListener('fforum_godray_preview', handlePreview);
-    return () => window.removeEventListener('fforum_godray_preview', handlePreview);
-  }, []);
-
   /* EPIC 2 — Potator Mode (bản mới): chỉ thay nền động bằng gradient tĩnh,
      GIỮ NGUYÊN 100% animation UI. Navbar phát sự kiện 'fforum_potator_sync'
      mỗi lần bật/tắt hoặc đổi preset; class 'potator-mode' do Navbar tự áp lên <html>. */
   const [potatorMode, setPotatorMode] = useState<boolean>(() => {
     return safeStorage.getItem('fforum_potator_mode') === 'true';
   });
+  const [potatorBg, setPotatorBg] = useState(() => resolvePotatorId(safeStorage.getItem('fforum_potator_bg')));
 
   useEffect(() => {
     const handlePotatorSync = (e: Event) => {
       const detail = (e as CustomEvent<{ mode?: boolean }>).detail;
-      setPotatorMode((prev) => (typeof detail?.mode === 'boolean' ? detail.mode : !prev));
+      if (typeof detail?.mode === 'boolean') setPotatorMode(detail.mode);
+      if (typeof (e as CustomEvent<{ bg?: string }>).detail?.bg === 'string') {
+        setPotatorBg(resolvePotatorId((e as CustomEvent<{ bg: string }>).detail.bg));
+      }
     };
     window.addEventListener('fforum_potator_sync', handlePotatorSync);
     return () => window.removeEventListener('fforum_potator_sync', handlePotatorSync);
@@ -375,12 +383,23 @@ export const App: React.FC = () => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [currentView]);
 
+  const handleAuthSuccess = useCallback((flow: 'login' | 'register') => {
+    // AuthModal already closes synchronously. Scene is decorative + dismissible;
+    // even throttled timers cannot trap the app (pointer-events: none).
+    dismissAuthOutcome();
+    setAuthOutcome(flow);
+    const lite = document.documentElement.classList.contains('potator-mode') ||
+      document.documentElement.classList.contains('reduce-motion') || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    outcomeTimer.current = setTimeout(dismissAuthOutcome, lite ? 850 : 1550);
+  }, [dismissAuthOutcome]);
+
   const handleOpenAuth = useCallback(
     (tab: 'login' | 'register' = 'login') => {
+      dismissAuthOutcome();
       setAuthInitialTab(tab);
       setIsLoginModalOpen(true);
     },
-    [setIsLoginModalOpen],
+    [dismissAuthOutcome, setIsLoginModalOpen],
   );
 
   const handleOpenProfile = useCallback((
@@ -874,7 +893,7 @@ export const App: React.FC = () => {
   const isScrollableView =
     currentView === 'memory' || currentView === 'chronicles' || currentView === 'landing';
 
-  const activeGodray = GODRAY_PRESETS.find(p => p.id === (previewGodrayId || godrayPreset)) || GODRAY_PRESETS[0];
+  const activeGodray = GODRAY_PRESETS.find(p => p.id === godrayPreset) || GODRAY_PRESETS[0];
 
   useEffect(() => {
     document.documentElement.style.setProperty('--ff-accent', activeGodray.accent);
@@ -921,23 +940,19 @@ export const App: React.FC = () => {
         } ff-app-shell ff-view-${currentView} ${currentView === 'landing' ? 'bg-[var(--ff-bg)]' : 'bg-black'} text-white font-sans`}
       >
         {/* EPIC 2 — Potator Mode: lớp nền tĩnh theo preset (CSS chỉ hiện ở trang không phải Trang chủ) */}
-        <div className="ff-potator-bg" aria-hidden="true" />
+        {potatorMode ? (
+          <GradientSurface gradient={getGradient(potatorBg).css} className="ff-potator-bg" />
+        ) : <div className="ff-potator-bg" aria-hidden="true" />}
         {/* Ambient Godray Gradient Lighting Overlay (Enhanced influence across viewport) */}
-        <div
-          className="ff-godray-layer fixed inset-0 pointer-events-none z-[1] overflow-hidden transition-all duration-700"
-          style={{
-            background: activeGodray.gradient,
-            opacity: Math.min(0.95, (godrayIntensity / 100) * 0.92),
-          }}
-          aria-hidden="true"
+        <GradientSurface
+          gradient={activeGodray.gradient}
+          className="ff-godray-layer fixed inset-0 z-[1]"
+          style={{ opacity: (godrayIntensity / 100) * 0.22 }}
         />
-        <div
-          className="ff-godray-layer fixed -top-24 inset-x-0 h-[360px] pointer-events-none z-[1] blur-3xl transition-all duration-700"
-          style={{
-            background: `radial-gradient(ellipse at 50% 0%, ${activeGodray.accent}55 0%, transparent 72%)`,
-            opacity: Math.min(0.9, (godrayIntensity / 100) * 0.85),
-          }}
-          aria-hidden="true"
+        <GradientSurface
+          gradient={`radial-gradient(ellipse at 50% 0%, ${activeGodray.accent}55 0%, transparent 72%)`}
+          className="ff-godray-layer fixed -top-24 inset-x-0 h-[360px] z-[1] blur-3xl"
+          style={{ opacity: (godrayIntensity / 100) * 0.58 }}
         />
       
       {/* Floating Global Navbar Dock (Viewport fixed wrapper with graceful transitions) */}
@@ -948,7 +963,7 @@ export const App: React.FC = () => {
           onViewChange={handleViewChange}
           currentUser={currentUser}
           onOpenLoginModal={() => handleOpenAuth('login')}
-          onLogout={logout}
+          onLogout={() => logout()}
           onLogoutEverywhere={logoutEverywhere}
           onChangePassword={changePassword}
           isChatOpen={isChatOpen}
@@ -1096,11 +1111,8 @@ export const App: React.FC = () => {
       {/* Radial quick actions (ccm-02 sin()/cos() fan at bottom-left below Streak) */}
       {currentView !== 'landing' && currentView !== 'chronicles' && !isChatOpen && (
         <RadialQuickMenu
-          onNavigate={(v) => handleNavigate(v as DimensionView)}
-          onToggleChat={handleToggleChat}
           onOpenFocusMode={() => setIsFocusModeOpen(true)}
           onOpenStreak={() => window.dispatchEvent(new CustomEvent('fforum_open_daily'))}
-          onOpenNotes={() => setIsNotesOpen(true)}
           onOpenPalette={() => setIsPaletteOpen(true)}
           adminAccess={canOpenAdminPanel}
           onOpenAdminPanel={() => setIsAdminInsightsOpen(true)}
@@ -1175,6 +1187,7 @@ export const App: React.FC = () => {
           onLoginSocial={loginSocial}
           onLoginWithPassword={loginWithPassword}
           onRegister={registerWithPassword}
+          onSuccess={handleAuthSuccess}
         />
 
         {/* Focus Sanctuary & Pomodoro HUD Mode */}
@@ -1182,6 +1195,7 @@ export const App: React.FC = () => {
           isOpen={isFocusModeOpen}
           onClose={() => setIsFocusModeOpen(false)}
           userEmail={currentUser?.email}
+          equippedItemId={currentUser?.inventory?.includes(currentUser.equippedBadge || '') ? currentUser.equippedBadge : undefined}
           onStartRewardSession={startFocusRewardSession}
         />
       </Suspense>
@@ -1343,6 +1357,7 @@ export const App: React.FC = () => {
         )}
       </Suspense>
 
+      {authOutcome && <OwlOutcome flow={authOutcome} onSkip={dismissAuthOutcome} />}
       {/* Hoa giấy ăn mừng khi lên cấp hoặc đạt mốc thành tích. */}
       <CelebrationBurst trigger={celebrationTick} tone="gold" headline={celebrationText} />
 

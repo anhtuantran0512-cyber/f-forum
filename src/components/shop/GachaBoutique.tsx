@@ -49,7 +49,7 @@ interface GachaBoutiqueProps {
   onEquip: (itemId: string) => Promise<void> | void;
 }
 
-type Filter = 'all' | ShopRarity | 'owned';
+type Filter = 'all' | ShopRarity | 'owned' | 'Khung avatar' | 'Hiệu ứng' | 'Theme Focus' | 'Góc hồ sơ';
 
 const FILTERS: Array<{ id: Filter; label: string }> = [
   { id: 'all', label: 'Tất cả' },
@@ -58,6 +58,10 @@ const FILTERS: Array<{ id: Filter; label: string }> = [
   { id: 'rare', label: 'Hiếm' },
   { id: 'common', label: 'Thường' },
   { id: 'owned', label: 'Đã sở hữu' },
+  { id: 'Khung avatar', label: 'Khung avatar' },
+  { id: 'Hiệu ứng', label: 'Hiệu ứng' },
+  { id: 'Theme Focus', label: 'Theme Focus' },
+  { id: 'Góc hồ sơ', label: 'Góc hồ sơ' },
 ];
 
 const ICON_SIZE: Record<ShopRarity, number> = { legendary: 92, epic: 74, rare: 62, common: 54 };
@@ -127,7 +131,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
   const visible = sorted.filter((item) => {
     if (filter === 'all') return true;
     if (filter === 'owned') return inventory.includes(item.id);
-    return rarityOf(item) === filter;
+    return item.category === filter || rarityOf(item) === filter;
   });
 
   const inspected = inspectId ? items.find((item) => item.id === inspectId) || null : null;
@@ -187,7 +191,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           <span className="gb-head__mark" aria-hidden="true"><Sparkles size={16} /></span>
           <div>
             <h3>Gacha Boutique</h3>
-            <p>Vật phẩm sưu tầm · mở khoá bằng F-Coin</p>
+            <p>35 dấu ấn góc học tập · F-Coin</p>
           </div>
         </div>
         {readOnly ? (
@@ -267,7 +271,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                     <ShopItemSvg type={item.iconType} size={ICON_SIZE[rarity]} className="gb-card__icon" />
                   </span>
                   <span className="gb-card__meta">
-                    <span className="gb-card__rarity">{RARITY_META[rarity].label}</span>
+                    <span className="gb-card__rarity">{item.category || RARITY_META[rarity].label}</span>
                     <span className="gb-card__name">{item.name}</span>
                     <span className="gb-card__price">
                       {owned ? (

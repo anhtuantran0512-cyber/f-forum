@@ -1,0 +1,34 @@
+/* New welcome conclusion — separate from the deleted SessionDoor. ~1.5 s, never blocks input. */
+.owl-outcome { position:fixed; inset:0; z-index:100; pointer-events:none; overflow:hidden; background:radial-gradient(ellipse at 52% 75%,#263547,#0b1420 70%); color:#eee5d5; animation:owlOutcomeFade 1.55s ease both; }
+.owl-outcome__scene { position:absolute; width:min(500px,100%); height:min(470px,90vh); left:50%; top:50%; transform:translate(-50%,-50%); }
+.owl-outcome__eyebrow,.owl-outcome__caption { position:absolute; left:0; right:0; text-align:center; }
+.owl-outcome__eyebrow { top:8%; font:600 10px system-ui,sans-serif; letter-spacing:.34em; color:#d6b57e; }
+.owl-outcome__caption { top:16%; font:500 clamp(23px,5vw,34px) Georgia,serif; }
+.owl-outcome__floor { position:absolute; left:8%; right:8%; top:85%; height:1px; background:linear-gradient(90deg,transparent,#c3a97d,transparent); }
+.owl-outcome__door { position:absolute; left:calc(50% - 50px); top:calc(85% - 200px); width:100px; height:200px; perspective:450px; border:7px solid #a18b69; border-bottom:0; background:#f2d8aa; box-shadow:0 0 0 2px #4d4234; }
+.owl-outcome__light { position:absolute; inset:0; background:#f2d9aa; box-shadow:0 0 45px 12px rgba(245,216,164,.35); animation:owlDoorLight 1.55s both; }
+.owl-outcome__leaf { position:absolute; inset:0; transform-origin:left; background:linear-gradient(110deg,#514534,#816c4f,#4b4031); box-shadow:inset 0 0 0 7px #5e4c38,inset 0 0 0 9px #b99b75; animation:owlDoorOpen 1.55s ease both; }
+.owl-outcome__leaf i { position:absolute; top:52%; right:12px; width:6px; height:6px; border-radius:50%; background:#ffe2a4; }
+.owl-outcome__student { position:absolute; left:50%; top:calc(85% - 151px); width:90px; height:158px; filter:drop-shadow(7px 7px 5px #0a1119); animation:owlStudentWalk 1.55s ease-in-out both; }
+.owl-outcome__leg { transform-origin:47px 105px; animation:owlStep .24s ease-in-out 5 alternate; }
+.owl-outcome__leg--back { animation-delay:-.12s; }
+.owl-outcome__owl { position:absolute; left:calc(50% + 81px); top:calc(85% - 142px); z-index:2; transform-origin:50% 85%; animation:owlGuideWave 1.55s ease both; }
+.owl-outcome__owl .cb-wing--l { animation:owlWave .21s ease-in-out 4 alternate .13s; }
+.owl-outcome__gift { position:absolute; left:calc(50% + 66px); top:46%; color:#f4d493; font-size:28px; text-shadow:0 0 18px #fae5bc; animation:owlGift 1.55s both; }
+.owl-outcome__confetti { position:absolute; left:50%; top:28%; width:3px; height:3px; border-radius:50%; color:#ebcd9a; box-shadow: -80px 0 currentColor, -40px -20px currentColor, 30px -14px currentColor, 85px 12px currentColor, 110px -40px currentColor; animation:owlConfetti 1.55s ease-out both; }
+.owl-outcome__skip { position:absolute; top:24px; right:25px; z-index:4; pointer-events:auto; cursor:pointer; padding:9px 12px; color:#eedcc1; border:1px solid rgba(230,212,177,.45); background:rgba(10,20,30,.68); border-radius:8px; font:600 12px system-ui,sans-serif; }
+.owl-outcome__skip:focus-visible { outline:2px solid #e3bd82; outline-offset:3px; }
+@keyframes owlOutcomeFade { 0% {opacity:0} 10%,85% {opacity:1} 100% {opacity:0} }
+@keyframes owlDoorOpen { 0%,10%,94%,100% {transform:rotateY(0)} 27%,77% {transform:rotateY(-78deg)} }
+@keyframes owlDoorLight { 0%,10%,94%,100% {opacity:.1} 28%,77% {opacity:1} }
+@keyframes owlStudentWalk { 0%,14% {transform:translateX(-240px);opacity:0} 23% {opacity:1} 53% {transform:translateX(-50px) scale(1)} 82%,100% {transform:translateX(-38px) scale(.38);opacity:0} }
+@keyframes owlStep { from {transform:rotate(-13deg)} to {transform:rotate(13deg)} }
+@keyframes owlGuideWave { 0% {transform:translateX(55px) scale(.74);opacity:0} 20%,72% {transform:translateX(0) scale(1);opacity:1} 82% {transform:translateX(0) rotate(8deg)} 100% {transform:translate(85px,-160px) scale(.5);opacity:0} }
+@keyframes owlWave { from {transform:rotate(0)} to {transform:rotate(50deg)} }
+@keyframes owlGift { 0%,18% {opacity:0;transform:scale(.2)} 39%,60% {opacity:1;transform:translate(-40px,24px) scale(1)} 85%,100% {opacity:0;transform:translate(-63px,66px) scale(.4)} }
+@keyframes owlConfetti { 0%,28% {opacity:0;transform:translateY(0)} 39% {opacity:1} 85%,100% {opacity:0;transform:translateY(160px)} }
+@media(max-width:580px) { .owl-outcome__scene { transform:translate(-50%,-50%) scale(.83); } .owl-outcome__student { animation-name:owlStudentWalkMobile; } @keyframes owlStudentWalkMobile { 0%,14% {transform:translateX(-150px);opacity:0} 23% {opacity:1} 53% {transform:translateX(-50px) scale(1)} 82%,100% {transform:translateX(-38px) scale(.38);opacity:0} } }
+@media(prefers-reduced-motion:reduce) { .owl-outcome { animation:none; background:rgba(10,20,30,.82); } .owl-outcome__scene > *, .owl-outcome__owl .cb-wing--l, .owl-outcome__leg { animation:none !important; } .owl-outcome__student,.owl-outcome__door,.owl-outcome__gift,.owl-outcome__confetti { display:none; } }
+html.reduce-motion .owl-outcome,html.potator-mode .owl-outcome { animation:none; background:rgba(10,20,30,.82); }
+html.reduce-motion .owl-outcome__scene > *,html.reduce-motion .owl-outcome__owl .cb-wing--l,html.potator-mode .owl-outcome__scene > *,html.potator-mode .owl-outcome__owl .cb-wing--l { animation:none !important; }
+html.reduce-motion .owl-outcome__student,html.reduce-motion .owl-outcome__door,html.reduce-motion .owl-outcome__gift,html.reduce-motion .owl-outcome__confetti,html.potator-mode .owl-outcome__student,html.potator-mode .owl-outcome__door,html.potator-mode .owl-outcome__gift,html.potator-mode .owl-outcome__confetti { display:none; }

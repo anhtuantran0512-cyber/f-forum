@@ -1,0 +1,44 @@
+/* Signature v1.1: midnight ink / parchment / one brass accent. Shared radius & depth. */
+.signature-profile { --signature-ink:#101925; --signature-paper:#e8e5de; --signature-muted:#a4afbc; --signature-gold:#d7b679; background: linear-gradient(155deg,#172330,#0c131d 80%) !important; border:1px solid rgba(220,221,218,.16) !important; border-radius: 22px !important; box-shadow: 0 28px 90px rgba(0,0,0,.56), inset 0 1px rgba(255,255,255,.09) !important; }
+.signature-profile .pc-12-card, .signature-profile .pc-12-well { border-radius: 15px !important; border: 1px solid rgba(211,218,223,.12) !important; background: linear-gradient(145deg,rgba(38,49,61,.65),rgba(18,27,38,.85)) !important; box-shadow: 0 12px 30px -18px rgba(0,0,0,.55), inset 0 1px rgba(255,255,255,.055) !important; }
+.signature-profile .pc-12-card--lift:hover { box-shadow: 0 17px 34px -18px rgba(0,0,0,.8) !important; }
+.signature-profile .pc-12-pill { border-radius: 7px !important; background: rgba(214,179,115,.1) !important; color: #e8d2aa !important; border: 1px solid rgba(214,179,115,.2) !important; }
+.signature-profile .ff-gradient-ring-sq { background: linear-gradient(135deg,#f0dfc0,#8a785c) !important; }
+.signature-profile .text-cyan-300,.signature-profile .text-cyan-400,.signature-profile .text-emerald-400,.signature-profile .text-sky-400,.signature-profile .text-rose-400 { color: #d7b679 !important; }
+.signature-profile .bg-amber-500, .signature-profile .bg-\[\#0284C7\] { background: #d7b679 !important; color: #17202b !important; box-shadow: none !important; }
+.signature-profile .pc-12-btn { border-radius: 9px !important; box-shadow: none !important; }
+.signature-stats-wrap { padding: 6px 0 18px; border-bottom: 1px solid rgba(228,225,213,.12); }
+.signature-stats-heading { display:flex; justify-content:space-between; gap:8px; margin-bottom:11px; font:600 10px/1.4 system-ui,sans-serif; letter-spacing:.11em; color:#d7b679; }
+.signature-stats-heading span+span { color:#a4afbc; font-weight:400; letter-spacing:0; }
+.signature-stats-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-auto-flow:row dense; gap:9px; }
+.signature-stat { position:relative; min-width:0; min-height:104px; display:flex; flex-direction:column; align-items:flex-start; justify-content:space-between; padding:13px; text-align:left; cursor:pointer; color:#e8e5de; background:linear-gradient(145deg,#273440,#17222f); border:1px solid rgba(219,223,218,.13); border-radius:15px; box-shadow:0 10px 22px -15px #000, inset 0 1px rgba(255,255,255,.07); transition:border-color .2s,transform .2s; }
+.signature-stat:hover,.signature-stat:focus-visible { border-color:rgba(215,182,121,.6); transform:translateY(-2px); outline:none; }
+.signature-stat--featured { grid-column:span 2; background:radial-gradient(circle at 90% 10%,rgba(218,181,112,.15),transparent 60%),linear-gradient(145deg,#304050,#192635); }
+.signature-stat__icon { color:#d7b679; opacity:.9; }
+.signature-stat__number { font:500 clamp(21px,2.5vw,30px)/1 Georgia,serif; font-variant-numeric:tabular-nums; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+.signature-stat__label { color:#acbac7; font-size:11px; }
+.signature-title-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+.signature-section-label { color:#d7b679; font-size:11px; letter-spacing:.07em; margin:12px 2px 8px; }
+.signature-title { display:flex; align-items:center; gap:8px; min-width:0; padding:7px; background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.1); border-radius:11px; }
+.signature-title.is-locked { opacity:.46; }
+.signature-title span:not(.signature-emblem) { min-width:0; display:grid; gap:2px; }
+.signature-title strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; color:#eee6d8; }
+.signature-title small { color:#b0b6bd; font-size:9px; }
+@media(max-width:580px) { .signature-stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .signature-stat--featured { grid-column:span 2; } .signature-title-grid { grid-template-columns:1fr; } }
+@media(prefers-reduced-motion:reduce) { .signature-stat { transition:none; } }
+html.reduce-motion .signature-stat { transition:none; }
+.signature-equipped { display:inline-flex; align-items:center; gap:7px; width:fit-content; max-width:100%; color:#e1c698; font-size:11px; }
+.signature-profile--frame .ff-gradient-ring-sq { padding:4px !important; background:linear-gradient(130deg,#e6d0a2,#645f58,#fff1ce,#9c8052) !important; box-shadow:0 0 0 2px rgba(232,204,155,.16),0 10px 22px rgba(0,0,0,.3); }
+.signature-profile--effect .signature-equipped .signature-emblem { animation: signatureGentlePulse 3s ease-in-out infinite; }
+@keyframes signatureGentlePulse { 50% { box-shadow:0 0 16px rgba(232,204,155,.35); } }
+@media(prefers-reduced-motion:reduce) { .signature-profile--effect .signature-equipped .signature-emblem { animation:none; } }
+html.reduce-motion .signature-profile--effect .signature-equipped .signature-emblem { animation:none; }
+/* Profile giữ nguyên bảng mực đêm khi site chuyển Light; tránh chữ tối trên nền tối. */
+html.light .signature-profile { color:#e8e5de; }
+html.light .signature-profile :is(.text-white,.text-neutral-200,.text-neutral-300) { color:#e8e5de; }
+html.light .signature-profile :is(.text-neutral-400,.text-neutral-500) { color:#aeb9c4; }
+html.light .signature-profile .pc-12-btn { color:#e8e5de; background:#283440; border-color:rgba(223,225,219,.18); }
+html.light .signature-profile .pc-12-btn:hover { color:#e7ca90; }
+html.light .signature-profile .signature-stat { color:#e8e5de; }
+html.light .signature-profile .signature-stat__label { color:#acbac7; }
+html.light .signature-profile .signature-equipped { color:#e1c698; }

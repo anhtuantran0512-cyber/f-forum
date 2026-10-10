@@ -147,14 +147,14 @@ test('4. Settings Menu Options: Potator Mode, SFX, and Reduced Motion', () => {
   );
   /* EPIC 2 — Potator Mode bản MỚI (chế độ hiệu năng: chỉ thay nền động bằng
      gradient tĩnh, giữ nguyên 100% animation UI). Bản cũ đã xóa, bản mới phải
-     có đủ: toggle trong Settings + 3 preset nền + class html.potator-mode. */
+     có đủ: toggle trong Settings + bảng swatch dùng chung + class html.potator-mode. */
   assert.ok(
     settingsModalContent.includes('Potator Mode') &&
     settingsModalContent.includes('onTogglePotatorMode'),
     'Settings must include the new Potator Mode toggle'
   );
   assert.ok(
-    settingsModalContent.includes('POTATOR_BG_PRESETS') &&
+    settingsModalContent.includes('<GradientSwatchPicker') &&
     settingsModalContent.includes('onSelectPotatorBg'),
     'Settings must offer selectable static-background presets for Potator Mode'
   );
@@ -163,10 +163,9 @@ test('4. Settings Menu Options: Potator Mode, SFX, and Reduced Motion', () => {
     'Potator Mode must hide background videos on every view EXCEPT home'
   );
   assert.ok(
-    cssContent.includes("data-potator-bg='gunmetal'") &&
-    cssContent.includes("data-potator-bg='aurora'") &&
-    cssContent.includes("data-potator-bg='void'"),
-    'Potator Mode must ship 3 static background presets (gunmetal / aurora / void)'
+    fs.readFileSync(path.resolve('src/utils/gradients.ts'), 'utf8').includes("id: '10'") &&
+    fs.readFileSync(path.resolve('src/App.tsx'), 'utf8').includes('getGradient(potatorBg).css'),
+    'Potator Mode must use the shared static gradient palette'
   );
   assert.ok(
     cssContent.includes('html.potator-mode .ff-nav-capsule .nav-tab-btn::after'),

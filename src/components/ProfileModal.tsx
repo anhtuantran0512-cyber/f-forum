@@ -30,7 +30,10 @@ import type { User, Question, Solution, ShopItem } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { getTierForLevel } from '../utils/tier';
 import { HologramStudentCard } from './HologramStudentCard';
-import { ClayStat } from './ClaymorphismCard';
+import { PremiumStat } from './PremiumStats';
+import { SignatureEmblem } from './SignatureEmblem';
+import { getTitleForLevel } from '../utils/titles';
+import './ProfileSignature.css';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { SHOP_ITEMS, effectivePrice } from '../utils/shopData';
 import { GachaBoutique } from './shop/GachaBoutique';
@@ -38,6 +41,9 @@ import { TrophyShelf } from './shop/TrophyShelf';
 import { pushNotification } from '../utils/notifications';
 import { LikeHeartButton } from './LikeHeartButton';
 import { safeStorage } from '../utils/storage';
+import { getGradient, resolveProfileGradientId } from '../utils/gradients';
+import { GradientSwatchPicker } from './GradientSwatchPicker';
+import { GradientSurface } from './GradientSurface';
 import {
   PROFILE_LIKES_KEY,
   isProfileLikedBy,
@@ -165,44 +171,6 @@ const ALL_SYSTEM_BADGES: SystemBadge[] = [
 ];
 
 /* Tim hồ sơ: lưu theo từng hồ sơ + người thả tim để mở lại vẫn đúng 1 tim */
-const PROFILE_BANNER_GRADIENTS = [
-  {
-    id: 'aurora-gold',
-    label: 'Hổ Phách',
-    css: 'linear-gradient(120deg, rgba(245,158,11,0.38), rgba(167,139,250,0.28), rgba(34,211,238,0.32))',
-    swatch: '#f59e0b',
-  },
-  {
-    id: 'ocean-cyan',
-    label: 'Băng Lam',
-    css: 'linear-gradient(120deg, rgba(6,182,212,0.42), rgba(59,130,246,0.35), rgba(16,185,129,0.28))',
-    swatch: '#06b6d4',
-  },
-  {
-    id: 'crimson-rose',
-    label: 'Hồng Ngọc',
-    css: 'linear-gradient(120deg, rgba(244,63,94,0.42), rgba(249,115,22,0.32), rgba(168,85,247,0.3))',
-    swatch: '#f43f5e',
-  },
-  {
-    id: 'emerald-jade',
-    label: 'Ngọc Lục',
-    css: 'linear-gradient(120deg, rgba(16,185,129,0.42), rgba(20,184,166,0.35), rgba(234,179,8,0.25))',
-    swatch: '#10b981',
-  },
-  {
-    id: 'nebula-violet',
-    label: 'Tinh Vân',
-    css: 'linear-gradient(120deg, rgba(139,92,246,0.45), rgba(236,72,153,0.35), rgba(56,189,248,0.3))',
-    swatch: '#8b5cf6',
-  },
-  {
-    id: 'midnight-gold',
-    label: 'Hoàng Kim',
-    css: 'linear-gradient(120deg, rgba(234,179,8,0.45), rgba(217,119,6,0.35), rgba(15,23,42,0.85))',
-    swatch: '#eab308',
-  },
-];
 
 function formatAccountJoinedInfo(joinedAt?: string): { joinedDateStr: string; ageStr: string } {
   const now = new Date();
@@ -285,7 +253,7 @@ const ProfileModalInner: React.FC<{
   const [avatar, setAvatar] = useState(currentUser.avatar);
   const [bannerUrl, setBannerUrl] = useState(currentUser.bannerUrl || '');
   const [profileGradient, setProfileGradient] = useState(
-    currentUser.profileGradient || PROFILE_BANNER_GRADIENTS[0].css
+    getGradient(resolveProfileGradientId(currentUser.profileGradient)).css
   );
   const [bio, setBio] = useState(currentUser.bio || '');
   const [gender, setGender] = useState(currentUser.gender || 'Nam');
@@ -354,6 +322,7 @@ const ProfileModalInner: React.FC<{
     }
   };
   const tier = getTierForLevel(currentUser.level);
+  const equippedItem = SHOP_ITEMS.find(item => item.id === currentUser.equippedBadge && currentUser.inventory?.includes(item.id));
 
   const userCoin = currentUser.coin ?? 0;
   const userInventory = useMemo(
@@ -614,7 +583,7 @@ const ProfileModalInner: React.FC<{
 
   const effectiveBannerUrl = currentUser.bannerUrl || bannerUrl;
   const effectiveBannerGradient =
-    currentUser.profileGradient || profileGradient || PROFILE_BANNER_GRADIENTS[0].css;
+    getGradient(resolveProfileGradientId(currentUser.profileGradient || profileGradient)).css;
 
   const earnedBadgesList = useMemo(
     () =>
@@ -661,16 +630,16 @@ const ProfileModalInner: React.FC<{
       />
 
       {/* Main Card Container — CodeFronts pc-12 Neumorphic Soft-Shadow Translucent Shell */}
-      <div className="pc-12-shell w-full max-w-3xl rounded-[32px] p-4 sm:p-6 relative z-10 overflow-hidden max-h-[94vh] flex flex-col">
+      <div className={`pc-12-shell ff-keep-dark signature-profile ${equippedItem?.category === 'Khung avatar' ? 'signature-profile--frame' : equippedItem?.category === 'Hiệu ứng' ? 'signature-profile--effect' : ''} w-full max-w-3xl rounded-[32px] p-4 sm:p-6 relative z-10 overflow-hidden max-h-[94vh] flex flex-col`}>
         {/* Navigation Tabs Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-white/10 mb-3 gap-2.5 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee] animate-pulse" />
             <h2 className="text-sm sm:text-base font-extrabold text-white tracking-wide truncate">
-              Cá nhân
+              Hồ sơ / F-Forum
             </h2>
             <span className="pc-12-pill text-[10px] font-mono px-2.5 py-0.5 text-cyan-300">
-              Lv.{currentUser.level} • {tier.titleVi}
+              Lv.{currentUser.level} • {getTitleForLevel(currentUser.level).name}
             </span>
           </div>
 
@@ -685,7 +654,7 @@ const ProfileModalInner: React.FC<{
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                Hồ Sơ Đầy Đủ
+                Hồ sơ
               </button>
 
               <button
@@ -697,7 +666,7 @@ const ProfileModalInner: React.FC<{
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                Thẻ F-Pass
+                F-Pass
               </button>
 
               <button
@@ -721,7 +690,7 @@ const ProfileModalInner: React.FC<{
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                Hoạt Động
+                Hoạt động
               </button>
 
               {isOwnProfile && (
@@ -734,7 +703,7 @@ const ProfileModalInner: React.FC<{
                       : 'text-neutral-400 hover:text-white'
                   }`}
                 >
-                  Sửa F-ID
+                  F-ID
                 </button>
               )}
             </div>
@@ -789,8 +758,8 @@ const ProfileModalInner: React.FC<{
                 {/* Banner Header (supports uploaded 15MB banner image or custom gradient) */}
                 <div
                   className="h-24 sm:h-28 ff-aurora-surface relative overflow-hidden"
-                  style={{ background: effectiveBannerGradient }}
                 >
+                  <GradientSurface gradient={effectiveBannerGradient} className="absolute inset-0" />
                   {effectiveBannerUrl ? (
                     <img loading="lazy" decoding="async"
                       src={effectiveBannerUrl}
@@ -815,6 +784,9 @@ const ProfileModalInner: React.FC<{
                 </div>
 
                 <div className="p-4 sm:p-5 space-y-4">
+                  {equippedItem && <span className="signature-equipped" title={`${equippedItem.category}: ${equippedItem.description}`}>
+                    <SignatureEmblem icon={equippedItem.iconType} size={26} /> Đang dùng · {equippedItem.name}
+                  </span>}
                   {/* A. Khối Đầu Trang (Header Thông Tin Cá Nhân) */}
                   <div className="flex flex-col sm:flex-row items-start justify-between gap-4 pb-4 border-b border-white/10">
                     <div className="flex items-start gap-3.5 min-w-0 flex-1">
@@ -921,70 +893,20 @@ const ProfileModalInner: React.FC<{
                     </div>
                   </div>
 
-                  {/* Thanh 6 Chỉ Số Thành Tích Nhanh — Claymorphism 2.0 */}
-                  <div className="space-y-2 pb-4 border-b border-white/10">
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center">
-                      {/* Clay Stat 1: XP */}
-                      <ClayStat
-                        value={statsMetrics.xp.toLocaleString()}
-                        label="Điểm số"
-                        icon={<Sparkles className="w-4 h-4 text-amber-300" />}
-                        accentColor="#f59e0b"
-                        className="cursor-pointer transition-transform duration-200 hover:scale-105"
-                        onClick={() => setSelectedStatNote(`Điểm số (XP): ${statsMetrics.xp.toLocaleString()} XP — tích lũy từ đặt câu hỏi (+50 XP) và giải bài tập (+100~300 XP).`)}
-                      />
-
-                      {/* Clay Stat 2: Cảm ơn */}
-                      <ClayStat
-                        value={statsMetrics.thanks}
-                        label="Cảm ơn"
-                        icon={<Heart className="w-4 h-4 text-rose-400" />}
-                        accentColor="#f43f5e"
-                        className="cursor-pointer transition-transform duration-200 hover:scale-105"
-                        onClick={() => setSelectedStatNote(`Cảm ơn: ${statsMetrics.thanks} lượt — bình chọn hữu ích nhận được từ các lời giải của bạn.`)}
-                      />
-
-                      {/* Clay Stat 3: Hay nhất */}
-                      <ClayStat
-                        value={statsMetrics.bestSolutions}
-                        label="Hay nhất"
-                        icon={<Award className="w-4 h-4 text-yellow-300" />}
-                        accentColor="#fbbf24"
-                        className="cursor-pointer transition-transform duration-200 hover:scale-105"
-                        onClick={() => setSelectedStatNote(`Hay nhất: ${statsMetrics.bestSolutions} câu trả lời được tác giả câu hỏi chứng nhận là Đáp Án Chuẩn.`)}
-                      />
-
-                      {/* Clay Stat 4: 5 Sao */}
-                      <ClayStat
-                        value={statsMetrics.fiveStar}
-                        label="5 Sao"
-                        icon={<Star className="w-4 h-4 text-amber-300" />}
-                        accentColor="#f59e0b"
-                        className="cursor-pointer transition-transform duration-200 hover:scale-105"
-                        onClick={() => setSelectedStatNote(`5 Sao: ${statsMetrics.fiveStar} lời giải xuất sắc đạt đánh giá tối đa từ cộng đồng.`)}
-                      />
-
-                      {/* Clay Stat 5: Xác thực */}
-                      <ClayStat
-                        value={statsMetrics.verified}
-                        label="Xác thực"
-                        icon={<CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-                        accentColor="#10b981"
-                        className="cursor-pointer transition-transform duration-200 hover:scale-105"
-                        onClick={() => setSelectedStatNote(`Xác thực: ${statsMetrics.verified} lời giải đã được xác minh tính chính xác học thuật.`)}
-                      />
-
-                      {/* Clay Stat 6: Đã giúp */}
-                      <ClayStat
-                        value={statsMetrics.helped}
-                        label="Đã giúp"
-                        icon={<Users className="w-4 h-4 text-sky-400" />}
-                        accentColor="#38bdf8"
-                        className="cursor-pointer transition-transform duration-200 hover:scale-105"
-                        onClick={() => { setSelectedStatNote(`Đã giúp: ${statsMetrics.helped} lượt giải đáp hỗ trợ bạn bè trên sàn hỏi đáp.`); setActivitySubTab('solutions'); }}
-                      />
+                  {/* Bento thành tích: 6 chỉ số thật, mở chi tiết bằng click. */}
+                  <div className="signature-stats-wrap">
+                    <div className="signature-stats-heading"><span>01 / THÀNH TÍCH</span><span>Ghi dấu hành trình học</span></div>
+                    <div className="signature-stats-grid">
+                      {([
+                        { label: 'Điểm số', value: statsMetrics.xp, icon: <Sparkles size={19} />, detail: 'XP từ hoạt động học tập.', featured: true },
+                        { label: 'Cảm ơn', value: statsMetrics.thanks, icon: <Heart size={19} />, detail: 'Lượt bình chọn hữu ích.' },
+                        { label: 'Hay nhất', value: statsMetrics.bestSolutions, icon: <Award size={19} />, detail: 'Đáp án chuẩn.', featured: true },
+                        { label: '5 Sao', value: statsMetrics.fiveStar, icon: <Star size={19} />, detail: 'Lời giải được đánh giá tối đa.' },
+                        { label: 'Xác thực', value: statsMetrics.verified, icon: <CheckCircle2 size={19} />, detail: 'Lời giải đã xác minh.' },
+                        { label: 'Đã giúp', value: statsMetrics.helped, icon: <Users size={19} />, detail: 'Lượt hỗ trợ bạn học.' },
+                      ] as const).map((metric) => <PremiumStat key={metric.label} {...metric}
+                        onClick={() => { setSelectedStatNote(`${metric.label}: ${metric.value.toLocaleString('vi-VN')} · ${metric.detail}`); if (metric.label === 'Đã giúp') setActivitySubTab('solutions'); }} />)}
                     </div>
-
                     {selectedStatNote && (
                       <div className="clay-card p-3 text-[11px] text-amber-200 flex items-center justify-between gap-2 animate-fade-up">
                         <span>{selectedStatNote}</span>
@@ -1020,10 +942,10 @@ const ProfileModalInner: React.FC<{
                         title="Xem bảng rank, danh hiệu và yêu cầu thăng hạng"
                         className="pc-12-well p-2.5 flex items-center gap-2.5 w-full text-left cursor-pointer transition-colors hover:border-amber-400/40"
                       >
-                        <TierBadge level={currentUser.level} size={26} showTooltip={false} />
+                        <SignatureEmblem icon={getTitleForLevel(currentUser.level).icon} rarity={getTitleForLevel(currentUser.level).rarity} size={34} />
                         <div className="min-w-0 flex-1">
                           <div className="text-xs font-bold text-white truncate">
-                            {isSuperAdmin ? 'Quản Trị Viên Tối Cao' : tier.titleVi}
+                            {isSuperAdmin ? 'Quản Trị Viên Tối Cao' : getTitleForLevel(currentUser.level).name}
                           </div>
                           <div className="text-[10px] text-neutral-400 font-mono">
                             Cấp {currentUser.level} • {statsMetrics.xp.toLocaleString()} XP
@@ -1395,8 +1317,8 @@ const ProfileModalInner: React.FC<{
                 {/* Banner Preview & Upload (Max 15MB) */}
                 <div
                   className="relative h-28 sm:h-32 overflow-hidden group"
-                  style={{ background: profileGradient }}
                 >
+                  <GradientSurface gradient={profileGradient} className="absolute inset-0" />
                   {bannerUrl ? (
                     <img loading="lazy" decoding="async"
                       src={bannerUrl}
@@ -1435,7 +1357,7 @@ const ProfileModalInner: React.FC<{
                 </div>
 
                 {/* Avatar & Horizontal Banner Gradient Picker */}
-                <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="p-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3.5">
                     <div className="relative group shrink-0 -mt-10">
                       <img
@@ -1483,27 +1405,17 @@ const ProfileModalInner: React.FC<{
                     </div>
                   </div>
 
-                  {/* Horizontal Banner Color Bar */}
-                  <div className="space-y-1">
+                  {/* Shared banner gradient swatches */}
+                  <div className="space-y-1 min-w-0 w-full sm:w-[300px]">
                     <span className="text-[10px] font-mono text-neutral-400 block">
                       Bảng màu nền hồ sơ:
                     </span>
-                    <div className="pc-12-well p-1.5 flex items-center gap-1.5 rounded-full">
-                      {PROFILE_BANNER_GRADIENTS.map((g) => {
-                        const active = profileGradient === g.css;
-                        return (
-                          <button
-                            key={g.id}
-                            type="button"
-                            onClick={() => setProfileGradient(g.css)}
-                            title={g.label}
-                            className={`w-6 h-6 rounded-full transition-transform cursor-pointer ${
-                              active ? 'scale-110 ring-2 ring-white shadow-md' : 'opacity-75 hover:opacity-100'
-                            }`}
-                            style={{ background: g.swatch }}
-                          />
-                        );
-                      })}
+                    <div className="pc-12-well p-2 rounded-2xl w-full">
+                      <GradientSwatchPicker
+                        label="Bảng màu nền hồ sơ"
+                        value={resolveProfileGradientId(profileGradient)}
+                        onChange={id => setProfileGradient(getGradient(id).css)}
+                      />
                     </div>
                   </div>
                 </div>

@@ -811,7 +811,8 @@ html.light .nav-actions-divider {
   left: 0;
   right: 0;
   margin-inline: auto;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Use .ff-nav-capsule's explicit width transition; `all` also animates
+     fixed offsets when the cinema dock reappears and scatters its columns. */
 }
 
 .dock-pos-bottom > nav {
@@ -820,7 +821,6 @@ html.light .nav-actions-divider {
   left: 0 !important;
   right: 0 !important;
   margin-inline: auto !important;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(245, 158, 11, 0.15) !important;
 }
 
@@ -1731,10 +1731,12 @@ html.light .nav-tab-btn--active .ff-nav-tab-icon {
   padding-left: 10px !important;
   padding-right: 10px !important;
 }
-/* Shrink-wrap the capsule tightly around icons when compact (horizontal docks) */
+/* A definite width keeps the three-column grid stable while labels morph.
+   max-content here used to make the fixed capsule remeasure its contents as
+   the cinema ends, squeezing the tab strip against the account controls. */
 .dock-pos-top .ff-nav-capsule[data-compact="true"],
 .dock-pos-bottom .ff-nav-capsule[data-compact="true"] {
-  width: max-content !important;
+  width: min(94vw, 700px) !important;
   max-width: 94vw !important;
   min-width: 0 !important;
 }
@@ -2366,35 +2368,6 @@ html.light .ff-palette .text-white\/45 {
   animation: ffEyeRestRing 18s linear infinite;
 }
 
-/* ---------- Thẻ gradient cao cấp (thay cho dải nút gradient cũ) ---------- */
-.ff-grad-tile {
-  position: relative;
-  overflow: hidden;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
-  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
-              box-shadow 0.24s ease, border-color 0.24s ease;
-}
-.ff-grad-tile::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(120deg, rgba(255, 255, 255, 0.22), transparent 45%);
-  opacity: 0.55;
-  pointer-events: none;
-}
-.ff-grad-tile:hover {
-  transform: translateY(-2px) scale(1.015);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
-}
-.ff-grad-tile[aria-checked='true'],
-[role='radio'][aria-checked='true'] > .ff-grad-tile {
-  border-color: rgba(255, 255, 255, 0.6);
-  box-shadow:
-    0 0 0 2px rgba(255, 255, 255, 0.35),
-    0 14px 34px rgba(0, 0, 0, 0.6);
-}
 .ff-range {
   -webkit-appearance: none;
   appearance: none;
@@ -4926,48 +4899,6 @@ html.potator-mode .ff-app-shell:not(.ff-view-home) .bg-\[\#001428\] {
 html.potator-mode .ff-app-shell:not(.ff-view-home) .ff-potator-bg {
   display: block;
 }
-/* Preset 1 — Gunmetal (đen kim loại, có vân sáng chéo rất nhẹ) */
-html.potator-mode[data-potator-bg='gunmetal'] .ff-potator-bg {
-  background: linear-gradient(168deg, #161d26 0%, #0b1016 48%, #05070a 100%);
-}
-html.potator-mode[data-potator-bg='gunmetal'] .ff-potator-bg::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.045) 50%, transparent 58%);
-}
-/* Preset 2 — Deep Space (lưới Aurora: 2 đốm màu khổng lồ blur 90px trôi cực chậm) */
-html.potator-mode[data-potator-bg='aurora'] .ff-potator-bg {
-  background: #04060b;
-}
-html.potator-mode[data-potator-bg='aurora'] .ff-potator-bg::before,
-html.potator-mode[data-potator-bg='aurora'] .ff-potator-bg::after {
-  content: '';
-  position: absolute;
-  width: 62vmax;
-  height: 62vmax;
-  border-radius: 9999px;
-  filter: blur(90px);
-  opacity: 0.5;
-  will-change: transform;
-}
-html.potator-mode[data-potator-bg='aurora'] .ff-potator-bg::before {
-  top: -28vmax;
-  left: -18vmax;
-  background: radial-gradient(closest-side, rgba(34, 211, 238, 0.55), transparent 70%);
-  animation: ffOrbDrift 26s ease-in-out infinite alternate;
-}
-html.potator-mode[data-potator-bg='aurora'] .ff-potator-bg::after {
-  bottom: -30vmax;
-  right: -16vmax;
-  background: radial-gradient(closest-side, rgba(245, 158, 11, 0.4), transparent 70%);
-  animation: ffOrbDrift 38s ease-in-out infinite alternate-reverse;
-}
-/* Preset 3 — Void (solid gradient tĩnh, sâu & phẳng nhất) */
-html.potator-mode[data-potator-bg='void'] .ff-potator-bg {
-  background: radial-gradient(130% 100% at 50% -10%, #0e1420 0%, #05070b 55%, #020308 100%);
-}
-
 /* --- 2.3 Giao diện tối giản: giảm độ nặng GPU nhưng KHÔNG tắt chuyển động --- */
 html.potator-mode .liquid-glass {
   /* Tái sử dụng đúng biến --glass-blur đang có: 28px -> 10px */
@@ -5187,32 +5118,6 @@ html.light .pc-12-stat__value {
   filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.75));
 }
 
-/* ==========================================================================
-   VÒNG NÂNG CẤP R5 · RESPONSIVE — Potator Mode trên điện thoại chuyển layout DỌC:
-   lưới 3 ô chữ 9px khó chạm → danh sách: ô màu trái, tên + mô tả phải, cao ≥ 48px.
-   ========================================================================== */
-@media (max-width: 640px) {
-  .ff-potator-presets {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.5rem;
-  }
-  .ff-potator-preset {
-    display: grid;
-    grid-template-columns: 64px minmax(0, 1fr);
-    grid-template-areas: 'sw name' 'sw desc';
-    align-items: center;
-    column-gap: 0.75rem;
-    row-gap: 0.2rem;
-    min-height: 48px;
-    padding: 0.35rem;
-    border-radius: 14px;
-    text-align: left;
-  }
-  .ff-potator-swatch { grid-area: sw; height: 40px; }
-  .ff-potator-name { grid-area: name; align-self: end; font-size: 12px; }
-  .ff-potator-desc { grid-area: desc; align-self: start; font-size: 10.5px; }
-}
-
 /* @generated light-adapter:start — sinh bởi scripts/generate-light-adapter.mjs (npm run gen:light). KHÔNG sửa tay. */
 html.light {
   --lv-ink: #101827;
@@ -5292,14 +5197,14 @@ html.light :is(.hover\:bg-white\/15:hover, .hover\:bg-white\/20:hover) { --lv-bg
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.hover\:bg-white\/10:hover, .hover\:bg-white\/15:hover, .hover\:bg-white\/20:hover, .hover\:bg-white\/5:hover):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *) { background-color: var(--lv-bg-h); }
 html.light :is(.border-white\/10, .border-white\/8) { --lv-bd: rgba(15, 23, 42, 0.1); }
 html.light :is(.border-white\/15, .border-white\/20) { --lv-bd: rgba(15, 23, 42, 0.14); }
-html.light :is(.border-white\/25, .border-white\/30, .border-white\/70) { --lv-bd: rgba(15, 23, 42, 0.2); }
+html.light :is(.border-white\/25, .border-white\/30) { --lv-bd: rgba(15, 23, 42, 0.2); }
 html.light :is(.border-white\/5) { --lv-bd: rgba(15, 23, 42, 0.07); }
 html.light :is(.hover\:border-white\/15:hover, .hover\:border-white\/20:hover) { --lv-bd: rgba(15, 23, 42, 0.14); }
-html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.border-white\/10, .border-white\/15, .border-white\/20, .border-white\/25, .border-white\/30, .border-white\/5, .border-white\/70, .border-white\/8, .hover\:border-white\/15:hover, .hover\:border-white\/20:hover):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *) { border-color: var(--lv-bd); }
+html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.border-white\/10, .border-white\/15, .border-white\/20, .border-white\/25, .border-white\/30, .border-white\/5, .border-white\/8, .hover\:border-white\/15:hover, .hover\:border-white\/20:hover):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *) { border-color: var(--lv-bd); }
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.divide-white\/5 > :not(:last-child)):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *) { border-color: rgba(15, 23, 42, 0.07); }
 html.light :is(.from-\[\#0a0f1d\], .from-\[\#131722\]\/95, .from-black, .from-black\/85, .from-black\/90, .from-neutral-950) { --lv-from: rgba(248, 250, 252, 0.94); }
-html.light :is(.from-\[\#0c1218\]\/80, .from-black\/55, .from-black\/80) { --lv-from: rgba(248, 250, 252, 0.75); }
-html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.from-\[\#0a0f1d\], .from-\[\#0c1218\]\/80, .from-\[\#131722\]\/95, .from-black, .from-black\/55, .from-black\/80, .from-black\/85, .from-black\/90, .from-neutral-950):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *) { --tw-gradient-from: var(--lv-from); }
+html.light :is(.from-\[\#0c1218\]\/80, .from-black\/80) { --lv-from: rgba(248, 250, 252, 0.75); }
+html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.from-\[\#0a0f1d\], .from-\[\#0c1218\]\/80, .from-\[\#131722\]\/95, .from-black, .from-black\/80, .from-black\/85, .from-black\/90, .from-neutral-950):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *) { --tw-gradient-from: var(--lv-from); }
 html.light :is(.via-\[\#0e121a\]\/95, .via-\[\#141b33\], .via-neutral-800, .via-neutral-950\/90) { --lv-via: rgba(248, 250, 252, 0.94); }
 html.light :is(.via-black\/30) { --lv-via: rgba(248, 250, 252, 0.45); }
 html.light :is(.via-black\/60, .via-neutral-950\/80) { --lv-via: rgba(248, 250, 252, 0.75); }

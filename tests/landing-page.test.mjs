@@ -129,15 +129,15 @@ test('5. App integration: landing is the first-run route and wheel navigation is
     app.includes("onOpenAuth={() => handleOpenAuth('register')}"),
     'Landing CTAs must open the auth dialog on the register tab',
   );
-  // Nút F (logo) là lối vào trang Giới thiệu — tab chữ "GIỚI THIỆU" đã được gỡ khỏi thanh điều hướng
-  assert.ok(
-    !navbar.includes("{ id: 'landing', label: 'GIỚI THIỆU' }"),
-    'The text tab "GIỚI THIỆU" must be removed from the navbar',
-  );
-  assert.ok(
-    navbar.includes("aria-label=\"Mở trang Giới thiệu F-Forum\"") && navbar.includes("onViewChange('landing')"),
-    'The F logo button must be the in-app way back to the landing page',
-  );
+  // Logo F đưa thẳng về Home; Giới thiệu vẫn còn trong menu Khám phá.
+  assert.ok(!navbar.includes("{ id: 'landing', label: 'GIỚI THIỆU' }"));
+  assert.equal((navbar.match(/onViewChange\('home'\)/g) || []).length, 2,
+    'desktop and mobile F-Forum logos both navigate home');
+  assert.ok(navbar.includes('aria-label="Giới thiệu F-Forum"') && navbar.includes("onViewChange('landing')"),
+    'the Explore menu still provides access to the landing page');
+  const landingBrand = read(`${LANDING_DIR}/LandingNav.tsx`).split('{/* Brand */}')[1].split('{/* Desktop links */}')[0];
+  assert.match(landingBrand, /aria-label="Về trang chủ F-Forum"/);
+  assert.match(landingBrand, /onEnterApp\(\)/, 'landing page F-Forum brand also goes home');
 
   // Wheel-scroll chuyển tab đã bị xóa hoàn toàn (EPIC 4) — landing không còn bị
   // engine cuộn nào đụng tới, và App không còn giữ pipeline/cooldown cũ.

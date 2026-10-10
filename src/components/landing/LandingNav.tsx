@@ -91,14 +91,14 @@ export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin
         </div>
 
         {/* Brand */}
-        <a
-          href="#top"
-          onClick={(event) => {
-            event.preventDefault();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+        <button
+          type="button"
+          onClick={() => {
+            setMenuOpen(false);
+            onEnterApp();
           }}
-          className="group flex shrink-0 items-center gap-2.5"
-          aria-label="F-Forum — về đầu trang"
+          className="group flex shrink-0 items-center gap-2.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300"
+          aria-label="Về trang chủ F-Forum"
         >
           <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-amber-500 to-yellow-200 p-[1.5px] transition-transform duration-500 group-hover:scale-105">
             <span className="flex h-full w-full items-center justify-center rounded-full bg-[var(--ff-bg)] text-sm font-bold text-amber-400">
@@ -109,7 +109,7 @@ export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin
           <span className="ff-brand-serif whitespace-nowrap bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-xl text-transparent">
             F-Forum
           </span>
-        </a>
+        </button>
 
         {/* Desktop links */}
         <nav aria-label="Điều hướng chính" className="hidden items-center gap-1 lg:flex">

@@ -39,6 +39,8 @@ import {
   type FocusSessionState,
 } from '../utils/focusSession';
 import { OrbButton } from './ui/OrbButton';
+import { SHOP_ITEMS } from '../utils/shopData';
+import './FocusTheme.css';
 
 interface FocusSanctuaryProps {
   isOpen: boolean;
@@ -46,6 +48,7 @@ interface FocusSanctuaryProps {
   onStartRewardSession?: (targetMinutes: number) => Promise<string | null>;
   /** Email người đang học — dùng để ghi giờ học vào đúng tài khoản. */
   userEmail?: string;
+  equippedItemId?: string;
 }
 
 /* --------------------------------------------------------------------------
@@ -59,7 +62,8 @@ const FocusSanctuaryInner: React.FC<{
   onClose: () => void;
   onStartRewardSession?: (targetMinutes: number) => Promise<string | null>;
   userEmail?: string;
-}> = ({ onClose, onStartRewardSession, userEmail }) => {
+  equippedItemId?: string;
+}> = ({ onClose, onStartRewardSession, userEmail, equippedItemId }) => {
   const [mode, setMode] = useState<FocusMode>('work');
   const [targetMinutes, setTargetMinutes] = useState(25);
   const [session, setSession] = useState<FocusSessionState | null>(() => readFocusSession());
@@ -191,8 +195,10 @@ const FocusSanctuaryInner: React.FC<{
     { id: 'streak', label: 'Chuỗi ngày học', value: `${totals.streakDays} ngày`, icon: <Flame className="w-3.5 h-3.5" />, tone: 'text-rose-300' },
   ];
 
+  const focusTheme = SHOP_ITEMS.find(item => item.id === equippedItemId && item.category === 'Theme Focus');
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[#06101c]/95 backdrop-blur-xl animate-fade-up">
+    <div className={`focus-signature ${focusTheme ? `focus-signature--${focusTheme.id}` : ''} fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[#06101c]/95 backdrop-blur-xl animate-fade-up`}>
+      {focusTheme && <span className="focus-signature__theme">{focusTheme.name}</span>}
       {/* Confetti toàn màn hình khi hoàn thành phiên ở mốc 25/60/120 phút */}
       <CelebrationBurst trigger={burstTick} tone="gold" headline={burstHeadline} />
       <div className="liquid-glass w-full max-w-5xl rounded-2xl bg-[linear-gradient(145deg,rgba(10,25,42,0.98),rgba(5,12,24,0.98))] border border-cyan-300/25 shadow-[0_24px_80px_rgba(0,0,0,0.48)] p-5 sm:p-7 relative flex flex-col max-h-[92vh] overflow-y-auto">
@@ -496,6 +502,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
   onClose,
   onStartRewardSession,
   userEmail,
+  equippedItemId,
 }) => {
   if (!isOpen) return null;
   return (
@@ -503,6 +510,7 @@ export const FocusSanctuary: React.FC<FocusSanctuaryProps> = ({
       onClose={onClose}
       onStartRewardSession={onStartRewardSession}
       userEmail={userEmail}
+      equippedItemId={equippedItemId}
     />
   );
 };
