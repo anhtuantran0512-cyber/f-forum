@@ -4,7 +4,7 @@
 .ff-deck__stack {
   position: relative;
   display: grid;
-  min-height: 4.9rem;
+  min-height: 5.2rem;
   border-radius: 1rem;
   outline: none;
 }
@@ -32,9 +32,9 @@
   gap: 0.65rem;
   padding: 0.7rem 0.8rem;
   border-radius: 1rem;
-  border: 1px solid rgba(251, 191, 36, 0.22);
-  background: linear-gradient(135deg, rgba(41, 30, 12, 0.96), rgba(17, 14, 9, 0.97));
-  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(201, 215, 231, 0.16);
+  background: linear-gradient(145deg, #202b3a, #141c29);
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.07);
   transform-origin: 50% 100%;
   transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.26s ease;
   user-select: none;
@@ -51,35 +51,37 @@
   height: 1.9rem;
   flex: none;
   border-radius: 0.65rem;
-  color: #fbbf24;
-  background: rgba(251, 191, 36, 0.12);
+  color: #f5ce87;
+  border: 1px solid rgba(251, 191, 36, 0.22);
+  background: rgba(251, 191, 36, 0.07);
 }
-.ff-deck__title { font-size: 11.5px; font-weight: 700; color: #fde68a; line-height: 1.25; }
+.ff-deck__title { font-size: 11.5px; font-weight: 700; color: #f4dbac; line-height: 1.25; }
 .ff-deck__body { margin-top: 2px; font-size: 11px; line-height: 1.45; color: rgba(255, 255, 255, 0.72); }
-.ff-deck__controls { display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem; padding-top: 0.35rem; }
+.ff-deck__controls { display: flex; align-items: center; justify-content: flex-end; gap: 0.55rem; padding-top: 0.25rem; }
 .ff-deck__btn {
   display: grid;
   place-items: center;
-  width: 1.6rem;
-  height: 1.6rem;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(201, 215, 231, 0.17);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.8);
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
 }
 .ff-deck__btn:hover { background: rgba(255, 255, 255, 0.12); }
-.ff-deck__btn:active { transform: scale(0.9); }
+.ff-deck__btn:active { transform: scale(0.96); }
+.ff-deck__btn:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
 .ff-deck__count { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: rgba(255, 255, 255, 0.5); }
 
 html.light .ff-deck__card {
-  border-color: rgba(146, 64, 14, 0.22);
-  background: linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(254, 243, 199, 0.96));
-  box-shadow: 0 10px 24px -14px rgba(120, 53, 15, 0.35);
+  border-color: rgba(76, 94, 115, 0.18);
+  background: linear-gradient(145deg, #fffefb, #f0f4f8);
+  box-shadow: 0 10px 24px -14px rgba(30, 55, 85, 0.24);
 }
 html.light .ff-deck__icon { color: #92400e; background: rgba(146, 64, 14, 0.1); }
-html.light .ff-deck__title { color: #78350f; }
+html.light .ff-deck__title { color: #6f4a16; }
 html.light .ff-deck__body { color: #334155; }
 html.light .ff-deck__btn { color: #334155; border-color: rgba(15, 23, 42, 0.14); background: rgba(255, 255, 255, 0.7); }
 html.light .ff-deck__count { color: #475569; }
@@ -88,5 +90,5 @@ html.light .ff-deck__count { color: #475569; }
   .ff-deck__card { transition: none; }
   .ff-deck--auto .ff-deck__stack::after { animation: none; transform: scaleX(1); }
 }
-.reduce-motion .ff-deck__card { transition: none; }
+.reduce-motion .ff-deck__card, .reduce-motion .ff-deck__btn { transition: none; }
 .reduce-motion .ff-deck--auto .ff-deck__stack::after { animation: none; transform: scaleX(1); }

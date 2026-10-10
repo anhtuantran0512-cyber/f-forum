@@ -16,6 +16,7 @@ import { SwipeDeck } from './ui/SwipeDeck';
 import { StreakCountdown } from './engagement/StreakCountdown';
 import { QUIZ_DURATION_SECONDS, quizSecondsLeft } from '../utils/dailyQuizClock';
 import './engagement/DailyQuiz.css';
+import './engagement/DailyEngagementModal.css';
 import { dailyTriviaForDate, dateKeyInTimeZone, shiftDateKey } from '../../shared/dailyTrivia';
 import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
 
@@ -260,44 +261,43 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
         onClick={onClose}
       />
 
-      <div className="liquid-glass w-full max-w-xl rounded-3xl bg-[#0c1218]/95 border border-white/15 shadow-[0_25px_60px_rgba(0,0,0,0.9)] p-4 sm:p-6 relative z-10 overflow-hidden max-h-[95vh] overflow-y-auto">
-        {/* Header Tabs */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-3">
-          <div className="flex items-center bg-white/10 backdrop-blur-md p-1 rounded-2xl border border-white/10 gap-1 sm:gap-2">
-            {(
-              [
-                { id: 'quiz', label: 'Câu hỏi vui' },
-                { id: 'attendance', label: 'Điểm danh' },
-                { id: 'gifts', label: 'Kho quà' },
-              ] as const
-            ).map((t) => {
-              const isActive = activeTab === t.id;
+      <div className="ff-daily-panel liquid-glass w-full max-w-xl rounded-3xl p-4 sm:p-6 relative z-10 overflow-hidden max-h-[95vh] overflow-y-auto">
+        <header className="ff-daily-header">
+          <div className="ff-daily-header__top">
+            <div className="ff-daily-heading">
+              <span className="ff-daily-mark" aria-hidden="true">F</span>
+              <div>
+                <span className="ff-daily-heading__eyebrow">F-FORUM / HOẠT ĐỘNG</span>
+                <h2 className="ff-daily-heading__title">Nhịp học mỗi ngày</h2>
+              </div>
+            </div>
+            <button type="button" onClick={onClose} className="ff-daily-close" aria-label="Đóng">
+              <X className="w-4 h-4" aria-hidden="true" />
+            </button>
+          </div>
+          <div className="ff-daily-tabs" role="group" aria-label="Chọn hoạt động hằng ngày">
+            {([
+              { id: 'quiz', label: 'Câu hỏi vui', icon: HelpCircle },
+              { id: 'attendance', label: 'Điểm danh', icon: Flame },
+              { id: 'gifts', label: 'Kho quà', icon: Gift },
+            ] as const).map((tab) => {
+              const isActive = activeTab === tab.id;
+              const Icon = tab.icon;
               return (
                 <button
-                  key={t.id}
+                  key={tab.id}
                   type="button"
-                  onClick={() => setActiveTab(t.id)}
-                  className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm transition-all relative cursor-pointer ${
-                    isActive
-                      ? 'bg-amber-400 text-neutral-950 font-black shadow-md border-b-4 border-amber-600'
-                      : 'text-neutral-300 hover:text-white font-medium hover:bg-white/5'
-                  }`}
+                  onClick={() => setActiveTab(tab.id)}
+                  aria-pressed={isActive}
+                  className={`ff-daily-tab${isActive ? ' ff-daily-tab--active' : ''}`}
                 >
-                  <span>{t.label}</span>
+                  <Icon size={14} aria-hidden="true" />
+                  <span>{tab.label}</span>
                 </button>
               );
             })}
           </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-            aria-label="Đóng"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+        </header>
 
         {/* Mẹo hằng ngày: chồng thẻ kéo-để-lướt thay cho dải chữ tự chạy 1 dòng */}
         <div className="mb-4">
@@ -337,9 +337,9 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                 return (
                   <div
                     key={day}
-                    className={`aspect-square rounded-2xl p-2 flex flex-col items-center justify-between relative transition-all ${
+                    className={`ff-daily-day aspect-square rounded-2xl p-2 flex flex-col items-center justify-between relative transition-all ${
                       isActive
-                        ? 'border-2 border-dashed border-amber-500 bg-amber-500/15 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                        ? 'ff-daily-day--active'
                         : isAttended
                         ? 'bg-emerald-500/20 border border-emerald-400/40 text-emerald-300'
                         : 'bg-white/5 border border-white/10 text-neutral-400'
@@ -584,21 +584,22 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
               /* Kết quả trong ngày (đã bỏ chế độ ôn tập/xem lại dư thừa) */
               <div className="space-y-3">
                 <div
-                  className={`p-4 rounded-2xl border text-center ${
-                    quizResult?.correct
-                      ? 'bg-emerald-500/20 border-emerald-400/40 text-emerald-300'
-                      : 'bg-white/5 border-white/10 text-neutral-300'
-                  }`}
+                  className="ff-daily-quiz-result ff-keep-dark"
+                  data-outcome={quizResult?.correct ? 'correct' : 'complete'}
+                  role="status"
                 >
-                  <p className="text-xs text-neutral-400">Bạn đã trả lời câu hỏi hôm nay</p>
-                  <p className="text-sm sm:text-base font-bold text-white mt-1">
+                  <span className="ff-daily-quiz-result__seal" aria-hidden="true">
+                    {quizResult?.correct ? <CheckCircle2 size={21} /> : <Sparkles size={21} />}
+                  </span>
+                  <p className="ff-daily-quiz-result__eyebrow">Bạn đã trả lời câu hỏi hôm nay</p>
+                  <p className="ff-daily-quiz-result__title">
                     {quizResult?.correct
                       ? `Trả lời đúng +${quizResult.reward} Coin`
                       : quizResult
                         ? 'Rất tiếc chưa chính xác. Hẹn bạn vào ngày mai nhé!'
                         : 'Hôm nay bạn đã hoàn thành câu hỏi vui.'}
                   </p>
-                  <p className="text-[10px] text-neutral-500 mt-2">
+                  <p className="ff-daily-quiz-result__copy">
                     Câu hỏi vui làm mới mỗi ngày — không cần ôn lại, cứ quay lại vào ngày mai là có câu mới.
                   </p>
                 </div>
