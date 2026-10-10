@@ -100,7 +100,13 @@ test('Câu hỏi: chỉ chạy sau Sẵn sàng, đồng hồ tiến theo thời 
         ? { ok: false, message: 'Thử lại' }
         : { ok: true, correct: true, reward: 5 }; } };
     await React.act(async () => root.render(React.createElement(DailyEngagementModal, props)));
+    assert.match(document.querySelector('.ff-daily-heading__title').textContent, /Nhịp học mỗi ngày/);
+    assert.equal(document.querySelectorAll('.ff-daily-tab').length, 3);
+    assert.equal(buttonWith('Điểm danh').getAttribute('aria-pressed'), 'true');
+    assert.ok(document.querySelector('.ff-daily-day--active'), 'current day has a visible marker');
     await React.act(async () => buttonWith('Câu hỏi vui').click());
+    assert.equal(buttonWith('Câu hỏi vui').getAttribute('aria-pressed'), 'true');
+    assert.equal(buttonWith('Điểm danh').getAttribute('aria-pressed'), 'false');
     assert.match(document.querySelector('.ff-daily-quiz-intro').textContent, /Câu hỏi vui mỗi ngày/);
     assert.equal(document.querySelector('[role="timer"]'), null);
     now += 10_000;
@@ -124,6 +130,7 @@ test('Câu hỏi: chỉ chạy sau Sẵn sàng, đồng hồ tiến theo thời 
     shouldFail = false;
     await React.act(async () => document.querySelector('.ff-daily-quiz-option').click());
     assert.match(document.querySelector('[role="dialog"]').textContent, /Trả lời đúng \+5 Coin/);
+    assert.equal(document.querySelector('.ff-daily-quiz-result[role="status"]').dataset.outcome, 'correct');
     assert.equal(document.querySelector('[role="timer"]'), null, 'clock stops when answer succeeds');
     assert.equal(claims.length, 2);
     const quizCss = fs.readFileSync('src/components/engagement/DailyQuiz.css', 'utf8');

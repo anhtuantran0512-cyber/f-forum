@@ -1828,6 +1828,7 @@ html.light .nav-tab-btn--active .ff-nav-tab-icon {
 .ccm-02__item {
   transform: translate(0, 0) scale(0.3);
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
   transition:
     transform 0.52s cubic-bezier(0.34, 1.56, 0.64, 1),
@@ -1843,6 +1844,7 @@ html.light .nav-tab-btn--active .ff-nav-tab-icon {
 }
 .ccm-02__toggle:checked ~ .ccm-02__item {
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
   transform: translate(
       calc(cos(var(--a)) * var(--ccm-r)),
@@ -1895,6 +1897,18 @@ html.light .nav-tab-btn--active .ff-nav-tab-icon {
 .ccm-02__item:focus-visible .ccm-02__tip {
   opacity: 1;
 }
+/* Keyboard users get the same clear affordance as pointer users on the radial fan. */
+.ccm-02__hub:focus-visible,
+.ccm-02__item:focus-visible {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 3px;
+  z-index: 6;
+}
+.ccm-02__toggle:focus-visible ~ .ccm-02__hub {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 3px;
+}
+
 /* Nhãn luôn mở về bên phải: các item đều nằm trong góc phần tư trên-phải
    nên nhãn không bao giờ tràn ra ngoài mép trái màn hình. */
 .ccm-02__badge {
