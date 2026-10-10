@@ -21,11 +21,12 @@ import {
   ShieldCheck,
   Command,
   NotebookPen,
-  Check,
   Info,
   LogOut,
 } from 'lucide-react';
-import { GODRAY_MOODS, GODRAY_PRESETS } from '../utils/godrays';
+import { GODRAY_PRESETS } from '../utils/godrays';
+import { resolveGodrayId, resolvePotatorId } from '../utils/gradients';
+import { GradientSwatchPicker } from './GradientSwatchPicker';
 import { safeStorage } from '../utils/storage';
 import { AUTH_TOKEN_KEY, clearAuthToken, requestServerLogout } from '../utils/session';
 import { usePopoverPosition, type DockPosition } from '../utils/popover';
@@ -75,30 +76,6 @@ export interface SettingsModalProps {
 }
 
 type SettingsTab = 'appearance' | 'experience' | 'system';
-
-/* EPIC 2 — Potator Mode: 3 preset nền tĩnh thay video (chỉ trang không phải Trang chủ).
-   Preview ở đây phải khớp với CSS tương ứng trong index.css (html[data-potator-bg=...]). */
-const POTATOR_BG_PRESETS: { id: string; name: string; desc: string; preview: string }[] = [
-  {
-    id: 'gunmetal',
-    name: 'Gunmetal',
-    desc: 'Đen kim loại',
-    preview: 'linear-gradient(168deg, #161d26 0%, #0b1016 48%, #05070a 100%)',
-  },
-  {
-    id: 'aurora',
-    name: 'Deep Space',
-    desc: 'Lưới Aurora tĩnh',
-    preview:
-      'radial-gradient(circle at 28% 22%, rgba(34,211,238,0.85), transparent 58%), radial-gradient(circle at 76% 82%, rgba(245,158,11,0.7), transparent 55%), #04060b',
-  },
-  {
-    id: 'void',
-    name: 'Void',
-    desc: 'Solid gradient',
-    preview: 'radial-gradient(130% 100% at 50% -10%, #0e1420 0%, #05070b 55%, #020308 100%)',
-  },
-];
 
 const DOCK_LABEL: Record<'top' | 'bottom' | 'left' | 'right', string> = {
   top: 'TRÊN',
@@ -194,7 +171,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onToggleSoundEffects,
   reducedMotion,
   onToggleReducedMotion,
-  godrayPreset = 'godray-gold',
+  godrayPreset = '06',
   onSelectGodray,
   godrayIntensity = 70,
   onChangeGodrayIntensity,
@@ -211,7 +188,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onToggleAlwaysCompact,
   potatorMode = false,
   onTogglePotatorMode,
-  potatorBg = 'gunmetal',
+  potatorBg = '09',
   onSelectPotatorBg,
   eyeRestEnabled = false,
   onToggleEyeRest,
@@ -229,22 +206,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activePreset = useMemo(
-    () => GODRAY_PRESETS.find((p) => p.id === godrayPreset) || GODRAY_PRESETS[0],
+    () => GODRAY_PRESETS.find((p) => p.id === resolveGodrayId(godrayPreset)) || GODRAY_PRESETS[0],
     [godrayPreset],
   );
-
-  /* Epic 4 — xem thử gradient realtime: rê chuột/focus một ô là cả thẻ preview lẫn
-     NỀN TRANG THẬT (App nghe 'fforum_godray_preview') đổi theo; rời ô thì trả về
-     preset đang chọn. Không lưu gì cho tới khi bấm chọn. */
-  const [hoverPresetId, setHoverPresetId] = useState<string | null>(null);
-  const shownPreset = GODRAY_PRESETS.find((p) => p.id === hoverPresetId) || activePreset;
-  const previewGodray = (id: string | null) => {
-    setHoverPresetId(id);
-    window.dispatchEvent(new CustomEvent('fforum_godray_preview', { detail: { id } }));
-  };
-  useEffect(() => () => {
-    window.dispatchEvent(new CustomEvent('fforum_godray_preview', { detail: { id: null } }));
-  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -740,99 +704,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </Card>
               </section>
 
-              {/* 2. GRADIENT — bảng chọn màu cao cấp (thay dải nút gradient cũ) */}
+              {/* Shared color-theory swatches; hover preview stays inside the picker. */}
               <section>
-                <SectionTitle icon={<Zap className="w-3 h-3 text-fuchsia-300" />}>Gradient không gian</SectionTitle>
+                <SectionTitle icon={<Zap className="w-3 h-3 text-fuchsia-300" />}>Chọn giao diện nền</SectionTitle>
                 <Card className="space-y-3">
-                  {/* Live preview */}
-                  <div
-                    className="relative h-[86px] rounded-2xl overflow-hidden border border-white/15 transition-[background] duration-300"
-                    style={{ background: `${shownPreset.gradient}, linear-gradient(160deg, #0b1220, #04060b)` }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
-                    <div className="absolute inset-0 px-3 py-2.5 flex flex-col justify-between">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold text-white drop-shadow">{shownPreset.name}</span>
-                        <span className="text-[10px] font-mono text-white/85 bg-black/40 border border-white/15 rounded-full px-2 py-0.5">
-                          {godrayIntensity}% độ rực
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className="w-5 h-5 rounded-full border-2 border-white/70 shadow-[0_0_12px_rgba(255,255,255,0.35)]"
-                          style={{ background: shownPreset.accent }}
-                        />
-                        <span className="text-[10px] font-mono text-white/80">{shownPreset.accent}</span>
-                        <span className="ml-auto text-[10px] text-white/70">{hoverPresetId ? 'Đang xem thử · bấm để chọn' : 'Xem trước trực tiếp'}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Swatch grid — nhóm theo cảm xúc, mỗi ô vẽ đúng gradient thật */}
-                  <div role="radiogroup" aria-label="Bảng chọn Gradient" className="space-y-2.5" onMouseLeave={() => previewGodray(null)}>
-                    {GODRAY_MOODS.map((mood) => (
-                      <div key={mood.id} className="space-y-1.5">
-                        <span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-white/45">{mood.label}</span>
-                        <div className="grid grid-cols-6 gap-1.5">
-                          {GODRAY_PRESETS.filter((p) => p.mood === mood.id).map((p) => {
-                            const on = godrayPreset === p.id;
-                            return (
-                              <button
-                                key={p.id}
-                                type="button"
-                                role="radio"
-                                aria-checked={on}
-                                aria-label={p.name}
-                                title={p.name}
-                                onClick={() => { onSelectGodray?.(p.id); previewGodray(null); }}
-                                onMouseEnter={() => previewGodray(p.id)}
-                                onFocus={() => previewGodray(p.id)}
-                                onBlur={() => previewGodray(null)}
-                                className="group/sw flex flex-col items-center gap-1 cursor-pointer"
-                              >
-                                <span
-                                  className="ff-grad-tile w-full h-8 flex items-center justify-center"
-                                  style={{ background: `${p.gradient}, linear-gradient(160deg, #0b1220, #04060b)` }}
-                                >
-                                  {on && (
-                                    <span className="relative z-10 w-4 h-4 rounded-full bg-black/45 border border-white/70 flex items-center justify-center">
-                                      <Check className="w-2.5 h-2.5 text-white" />
-                                    </span>
-                                  )}
-                                </span>
-                                <span
-                                  className={`text-[9px] font-semibold leading-none whitespace-nowrap ${
-                                    on ? 'text-amber-300' : 'text-white/55 group-hover/sw:text-white/85'
-                                  }`}
-                                >
-                                  {p.name}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Intensity */}
+                  <GradientSwatchPicker
+                    label="Bảng chọn Gradient"
+                    value={resolveGodrayId(godrayPreset)}
+                    onChange={id => onSelectGodray?.(id)}
+                  />
                   <div className="flex items-center gap-2 pt-1">
                     <span className="text-[10px] font-semibold text-white/70 shrink-0">Độ rực</span>
-                    <input
-                      type="range"
-                      min={20}
-                      max={100}
-                      value={godrayIntensity}
+                    <input type="range" min={20} max={100} value={godrayIntensity}
                       onChange={(e) => onChangeGodrayIntensity?.(parseInt(e.target.value, 10))}
-                      aria-label="Độ rực gradient"
-                      className="ff-range w-full"
-                      style={{
-                        background: `linear-gradient(90deg, ${activePreset.accent} ${godrayIntensity}%, rgba(255,255,255,0.16) ${godrayIntensity}%)`,
-                      }}
+                      aria-label="Độ rực gradient" className="ff-range w-full"
+                      style={{ background: `linear-gradient(90deg, ${activePreset.accent} ${godrayIntensity}%, rgba(255,255,255,0.16) ${godrayIntensity}%)` }}
                     />
-                    <span className="text-[10px] font-mono text-amber-300 shrink-0 w-8 text-right">
-                      {godrayIntensity}%
-                    </span>
+                    <span className="text-[10px] font-mono text-amber-300 shrink-0 w-8 text-right">{godrayIntensity}%</span>
                   </div>
                 </Card>
               </section>
@@ -1011,39 +899,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <div className="text-[10px] font-semibold uppercase tracking-widest text-white/55 mb-2">
                       Nền tĩnh thay thế video
                     </div>
-                    <div role="radiogroup" aria-label="Chọn nền tĩnh cho Potator Mode" className="ff-potator-presets grid grid-cols-3 gap-2">
-                      {POTATOR_BG_PRESETS.map((p) => {
-                        const on = potatorBg === p.id;
-                        return (
-                          <button
-                            key={p.id}
-                            type="button"
-                            role="radio"
-                            aria-checked={on}
-                            title={`${p.name} — ${p.desc}`}
-                            onClick={() => onSelectPotatorBg?.(p.id)}
-                            className="ff-potator-preset group/sw flex flex-col items-center gap-1 cursor-pointer"
-                          >
-                            <span
-                              className={`ff-grad-tile ff-potator-swatch w-full h-7 flex items-center justify-center transition-shadow ${on ? 'ring-2 ring-orange-400/70' : ''}`}
-                              style={{ background: p.preview }}
-                            >
-                              {on && (
-                                <span className="relative z-10 w-4 h-4 rounded-full bg-black/45 border border-white/70 flex items-center justify-center">
-                                  <Check className="w-2.5 h-2.5 text-white" />
-                                </span>
-                              )}
-                            </span>
-                            <span
-                              className={`ff-potator-name text-[9px] font-semibold leading-none ${on ? 'text-orange-300' : 'text-white/55 group-hover/sw:text-white/85'}`}
-                            >
-                              {p.name}
-                            </span>
-                            <span className="ff-potator-desc text-[8px] text-white/40 leading-none">{p.desc}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <GradientSwatchPicker
+                      label="Chọn nền tĩnh cho Potator Mode"
+                      value={resolvePotatorId(potatorBg)}
+                      onChange={id => onSelectPotatorBg?.(id)}
+                      includeDarkMetal
+                    />
                   </Card>
                 )}
               </section>

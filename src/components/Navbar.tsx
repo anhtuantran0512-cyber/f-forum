@@ -5,7 +5,6 @@ import {
   X,
   ChevronDown,
   Bell,
-  Home,
   Users,
   HelpCircle,
   Compass,
@@ -27,6 +26,7 @@ import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { NotificationsModal } from './NotificationsModal';
 import { SettingsModal } from './SettingsModal';
 import { safeStorage } from '../utils/storage';
+import { resolveGodrayId, resolvePotatorId } from '../utils/gradients';
 import { DailyEngagementModal } from './DailyEngagementModal';
 import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
 import { ScrollProgressRail } from './ScrollProgressRail';
@@ -56,9 +56,9 @@ export interface NavbarProps {
   onToggleEyeRest?: () => void;
 }
 
-const NAV_ICONS: Record<DimensionView, React.ReactNode> = {
-  landing: <Sparkles size={16} className="text-amber-300" />,
-  home: <Home size={16} className="text-amber-400" />,
+type DockView = Exclude<DimensionView, 'landing' | 'home'>;
+
+const NAV_ICONS: Record<DockView, React.ReactNode> = {
   clubs: <Users size={16} className="text-emerald-400" />,
   qa: <HelpCircle size={16} className="text-cyan-400" />,
   chat: <MessageSquare size={16} className="text-orange-400" />,
@@ -133,7 +133,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const [isDailyModalOpen, setIsDailyModalOpen] = useState(false);
   const [godrayPreset, setGodrayPreset] = useState(() => {
-    return safeStorage.getItem('fforum_godray_preset') || 'godray-gold';
+    return resolveGodrayId(safeStorage.getItem('fforum_godray_preset'));
   });
   const [godrayIntensity, setGodrayIntensity] = useState(() => {
     const val = safeStorage.getItem('fforum_godray_intensity');
@@ -161,7 +161,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     return safeStorage.getItem('fforum_potator_mode') === 'true';
   });
   const [potatorBg, setPotatorBg] = useState<string>(() => {
-    return safeStorage.getItem('fforum_potator_bg') || 'gunmetal';
+    return resolvePotatorId(safeStorage.getItem('fforum_potator_bg'));
   });
   const [isNavbarHovered, setIsNavbarHovered] = useState<boolean>(true);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -628,18 +628,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
 
 
-  /* Nút F (logo) là lối vào trang Giới thiệu -> không còn tab chữ "GIỚI THIỆU".
-     Miền Ký Ức / Khu Vinh Danh / Update luôn ở dạng icon cho thanh gọn và sang hơn. */
-  const navItems: { id: DimensionView; label: string; iconOnly?: boolean }[] = [
-    { id: 'home', label: 'TRANG CHỦ' },
-    { id: 'clubs', label: 'CÂU LẠC BỘ' },
-    { id: 'qa', label: 'HỎI ĐÁP' },
-    { id: 'chat', label: 'PHÒNG CHAT' },
+  /* Logo F/F-Forum đưa về Trang chủ; không cần thêm một tab Home trùng chức năng.
+     Miền Ký Ức / Khu Vinh Danh / Update vẫn ở dạng icon cho thanh gọn. */
+  const navItems: { id: DockView; label: string; iconOnly?: boolean }[] = [
+    { id: 'clubs', label: 'Club' },
+    { id: 'qa', label: 'Hỏi Đáp' },
+    { id: 'chat', label: 'Chat' },
     { id: 'memory', label: 'MIỀN KÝ ỨC', iconOnly: true },
     { id: 'chronicles', label: 'KHU VINH DANH', iconOnly: true },
     { id: 'coming-soon', label: 'UPDATE', iconOnly: true },
   ];
-  const firstIconOnlyIndex = navItems.findIndex((item) => item.iconOnly);
+  const firstIconOnlyIndex = navItems.findIndex((item) => item.id === 'memory');
 
   const sharedSettingsProps = {
     isOpen: isSettingsOpen,
@@ -754,21 +753,14 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div
         onMouseEnter={handleNavPointerEnter}
         onMouseLeave={handleNavPointerLeave}
-        className={`hidden md:block fixed inset-0 z-50 pointer-events-none transition-all duration-500 dock-container dock-pos-${navbarPosition} ${
+        className={`hidden md:block fixed inset-0 z-50 pointer-events-none transition-opacity duration-300 dock-container dock-pos-${navbarPosition} ${
           isMorphing ? 'ff-nav-morphing' : ''
         }`}
-        style={{
-          transform: isDockHidden
-            ? navbarPosition === 'bottom'
-              ? 'translateY(65px)'
-              : navbarPosition === 'left'
-              ? 'translateX(-65px)'
-              : navbarPosition === 'right'
-              ? 'translateX(65px)'
-              : 'translateY(-65px)'
-            : undefined,
-          opacity: isDockHidden ? 0 : 1,
-        }}
+        /* Never transform this full-screen wrapper: it is the containing block
+           of the fixed capsule/rail when hidden, which changes their geometry
+           mid-scroll as the cinematic section ends. */
+        inert={isDockHidden}
+        style={{ opacity: isDockHidden ? 0 : 1 }}
       >
         <nav
           data-compact={effectiveCompact && !isVertical ? 'true' : 'false'}
@@ -803,12 +795,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             type="button"
             onClick={() => {
-              onViewChange('landing');
+              onViewChange('home');
               setIsMobileMenuOpen(false);
             }}
-            className="ff-nav-brand group focus:outline-none cursor-pointer flex-shrink-0 pointer-events-auto"
-            title="F-Forum — Trang Giới thiệu"
-            aria-label="Mở trang Giới thiệu F-Forum"
+            className="ff-nav-brand group cursor-pointer flex-shrink-0 pointer-events-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300"
+            title="F-Forum — Trang chủ"
+            aria-label="Về trang chủ F-Forum"
+            aria-current={currentView === 'home' ? 'page' : undefined}
           >
             {/* Huy hiệu F: một vòng gradient duy nhất, không xếp lớp */}
             <span className="ff-nav-logo" aria-hidden="true">
@@ -849,6 +842,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       onViewChange(item.id);
                     }}
                     aria-label={item.label}
+                    title={item.label}
                     aria-current={isActive ? 'page' : undefined}
                     data-icon-only={item.iconOnly ? 'true' : 'false'}
                     className={`nav-tab-btn ${
@@ -1101,11 +1095,12 @@ export const Navbar: React.FC<NavbarProps> = ({
         <button
           type="button"
           onClick={() => {
-            onViewChange('landing');
+            onViewChange('home');
             setIsMobileMenuOpen(false);
           }}
-          className="flex items-center gap-2 flex-shrink-0 whitespace-nowrap select-none cursor-pointer focus:outline-none"
-          aria-label="Mở trang Giới thiệu F-Forum"
+          className="flex items-center gap-2 flex-shrink-0 whitespace-nowrap select-none cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300"
+          aria-label="Về trang chủ F-Forum"
+          aria-current={currentView === 'home' ? 'page' : undefined}
         >
           <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-200 p-[1px] flex-shrink-0">
             <div className="w-full h-full bg-[#0a0f14] rounded-full flex items-center justify-center text-amber-400 font-bold text-xs">
@@ -1238,27 +1233,8 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* 3. MOBILE BOTTOM NAVIGATION DOCK (Viewports < 768px)     */}
       {/* ======================================================== */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 h-[calc(56px+var(--safe-bottom))] pb-[var(--safe-bottom)] liquid-glass border-t border-white/10 px-2 flex items-center justify-around pointer-events-auto select-none">
-        {/* Tab 1: Trang Chủ */}
-        <button
-          type="button"
-          onClick={() => {
-            onViewChange('home');
-            setIsMobileMenuOpen(false);
-            setIsNotificationsOpen(false);
-            setIsFlyoutOpen(false);
-          }}
-          className={`flex flex-col items-center justify-center min-w-[48px] min-h-[44px] px-2 py-1 rounded-xl transition-all cursor-pointer ${
-            currentView === 'home' && !isMobileMenuOpen
-              ? 'text-amber-400 font-semibold'
-              : 'text-white/60 hover:text-white'
-          }`}
-          aria-label="Trang Chủ"
-        >
-          <Home className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] tracking-tight whitespace-nowrap">Trang Chủ</span>
-        </button>
-
-        {/* Tab 2: CLB */}
+        {/* Trang chủ nằm ở logo F trên header, không nhân đôi trong dock. */}
+        {/* Tab 1: CLB */}
         <button
           type="button"
           onClick={() => {
@@ -1278,7 +1254,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span className="text-[10px] tracking-tight whitespace-nowrap">CLB</span>
         </button>
 
-        {/* Tab 3: Hỏi Đáp */}
+        {/* Tab 2: Hỏi Đáp */}
         <button
           type="button"
           onClick={() => {
@@ -1298,7 +1274,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span className="text-[10px] tracking-tight whitespace-nowrap">Hỏi Đáp</span>
         </button>
 
-        {/* Tab 4: Chat */}
+        {/* Tab 3: Chat */}
         <button
           type="button"
           onClick={() => {
@@ -1323,7 +1299,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span className="text-[10px] tracking-tight whitespace-nowrap">Chat</span>
         </button>
 
-        {/* Tab 5: Menu / Khám Phá */}
+        {/* Tab 4: Menu / Khám Phá */}
         <button
           type="button"
           onClick={() => {

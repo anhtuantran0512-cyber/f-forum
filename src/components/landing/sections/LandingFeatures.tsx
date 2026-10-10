@@ -6,25 +6,25 @@ import { FEATURES } from '../landingContent';
 
 const ACCENTS: Record<string, { text: string; bg: string; ring: string; glow: string }> = {
   amber: {
-    text: 'text-amber-300',
+    text: 'ff-ink--amber',
     bg: 'bg-amber-500/12',
     ring: 'ring-amber-400/25',
     glow: 'shadow-[0_0_28px_rgba(251,191,36,0.22)]',
   },
   sky: {
-    text: 'text-sky-300',
+    text: 'ff-ink--blue',
     bg: 'bg-sky-500/12',
     ring: 'ring-sky-400/25',
     glow: 'shadow-[0_0_28px_rgba(56,189,248,0.2)]',
   },
   violet: {
-    text: 'text-violet-300',
+    text: 'ff-ink--violet',
     bg: 'bg-violet-500/12',
     ring: 'ring-violet-400/25',
     glow: 'shadow-[0_0_28px_rgba(167,139,250,0.2)]',
   },
   emerald: {
-    text: 'text-emerald-300',
+    text: 'ff-ink--green',
     bg: 'bg-emerald-500/12',
     ring: 'ring-emerald-400/25',
     glow: 'shadow-[0_0_28px_rgba(52,211,153,0.2)]',

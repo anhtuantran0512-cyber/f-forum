@@ -2,6 +2,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { X, Award, Trophy, Sparkles, Target, CheckCircle2, Lock, TrendingUp } from 'lucide-react';
 import { TIER_CONFIGS, getTierForLevel, xpThresholdForLevel } from '../utils/tier';
+import { TITLE_CONFIGS } from '../utils/titles';
+import { SignatureEmblem } from './SignatureEmblem';
+import './ProfileSignature.css';
 
 /* ==========================================================================
    BẢNG RANK & DANH HIỆU (GUI nhỏ mở từ khối "Danh hiệu" trong hồ sơ)
@@ -251,6 +254,14 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
 
           {tab === 'titles' && (
             <>
+              <p className="signature-section-label">30 danh hiệu · mỗi 5 cấp mở một dấu mốc</p>
+              <div className="signature-title-grid">
+                {TITLE_CONFIGS.map((title) => <div key={title.id} className={`signature-title ${level >= title.minLevel ? 'is-earned' : 'is-locked'}`} title={`${title.name} · ${title.iconDescription} · cấp ${title.minLevel}`}>
+                  <SignatureEmblem icon={title.icon} rarity={title.rarity} size={38} />
+                  <span><strong>{title.name}</strong><small>Lv.{title.minLevel} · {title.rarity === 'common' ? 'Thường' : title.rarity === 'rare' ? 'Hiếm' : title.rarity === 'epic' ? 'Sử thi' : 'Huyền thoại'}</small></span>
+                </div>)}
+              </div>
+              <p className="signature-section-label">Huy hiệu hoạt động</p>
               {badges.map((b) => (
                 <div
                   key={b.id}

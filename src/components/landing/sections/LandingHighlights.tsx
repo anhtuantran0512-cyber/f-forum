@@ -38,7 +38,7 @@ const HighlightCard: React.FC<{ item: (typeof HIGHLIGHTS)[number] }> = ({ item }
     <h3 className="mt-4 text-[14.5px] font-semibold leading-snug text-[var(--ff-text)]">{item.title}</h3>
     <p className="mt-2 flex-1 text-[13px] leading-relaxed text-[var(--ff-text-soft)]">{item.body}</p>
     <figcaption className="mt-5 flex items-center gap-2 border-t border-[var(--ff-border)] pt-4">
-      <span className="rounded-full bg-sky-500/12 px-2.5 py-1 font-mono text-[9.5px] font-semibold uppercase tracking-wider text-sky-300 ring-1 ring-sky-400/25">
+      <span className="rounded-full bg-sky-500/12 px-2.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider ff-ink--blue ring-1 ring-sky-400/25">
         {item.tag}
       </span>
       <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--ff-text-dim)]">
@@ -54,7 +54,7 @@ export const LandingHighlights: React.FC = () => {
   const secondRow = HIGHLIGHTS.slice(3);
 
   return (
-    <section id="tinh-nang" aria-label="Năng lực hệ thống" className="relative w-full py-20 sm:py-28">
+    <section id="nang-luc" aria-label="Năng lực hệ thống" className="relative w-full py-20 sm:py-28">
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div
           className="ff-aurora ff-aurora-anim"

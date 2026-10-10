@@ -24,6 +24,13 @@
   --ff-text-soft: #aab6cc;
   --ff-text-dim: #7f8ca4;
   --ff-amber: #fbbf24;
+  /* Semantic ink: warm = brand/action, blue = information, green = success,
+     violet = collections, rose = error. These are TEXT colors, not tints. */
+  --ff-amber-ink: #fcd47e;
+  --ff-blue-ink: #7dd3fc;
+  --ff-green-ink: #86efac;
+  --ff-violet-ink: #c4b5fd;
+  --ff-rose-ink: #fda4af;
   --ff-amber-soft: rgba(251, 191, 36, 0.14);
   --ff-cyan: #22d3ee;
   --ff-violet: #a78bfa;
@@ -53,7 +60,12 @@ html.light .ff-landing {
   --ff-text: #0a1020;
   --ff-text-soft: #4a5670;
   --ff-text-dim: #5a6678;
-  --ff-amber: #b45309;
+  --ff-amber: #92400e;
+  --ff-amber-ink: #92400e;
+  --ff-blue-ink: #075985;
+  --ff-green-ink: #065f46;
+  --ff-violet-ink: #6b21a8;
+  --ff-rose-ink: #9f1239;
   --ff-amber-soft: rgba(245, 158, 11, 0.16);
   --ff-cyan: #0e7490;
   --ff-violet: #6d28d9;
@@ -62,11 +74,18 @@ html.light .ff-landing {
   --ff-glow: 0 0 50px rgba(245, 158, 11, 0.14);
 }
 
+/* Deliberate, theme-aware accent roles. Avoid pale Tailwind text on milky glass. */
+.ff-ink--amber { color: var(--ff-amber-ink); }
+.ff-ink--blue { color: var(--ff-blue-ink); }
+.ff-ink--green { color: var(--ff-green-ink); }
+.ff-ink--violet { color: var(--ff-violet-ink); }
+.ff-ink--rose { color: var(--ff-rose-ink); }
+
 /* --------------------------------------------------------------------------
    Typography helpers
    -------------------------------------------------------------------------- */
 .ff-eyebrow {
-  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, 'Geist Mono:SemiBold', monospace;
+  font-family: 'Geist Mono Variable', ui-monospace, SFMono-Regular, monospace;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.22em;
@@ -95,16 +114,32 @@ html.light .ff-landing {
   background: linear-gradient(100deg, #fde68a 0%, var(--ff-amber) 42%, #fb923c 100%);
   -webkit-background-clip: text;
   background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
+  color: #fcd47e; /* readable fallback if background-clip is unavailable */
 }
 
 .ff-gradient-text-cool {
   background: linear-gradient(100deg, #67e8f9 0%, #a78bfa 55%, #f0abfc 100%);
   -webkit-background-clip: text;
   background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
+  color: #7dd3fc;
+}
+
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .ff-gradient-text, .ff-gradient-text-cool { -webkit-text-fill-color: transparent; }
+}
+
+/* Gold must remain text, not disappear against the light canvas. */
+html.light .ff-gradient-text {
+  color: #78350f;
+  background: linear-gradient(100deg, #78350f 0%, #92400e 52%, #7c2d12 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+html.light .ff-gradient-text-cool {
+  color: #155e75;
+  background: linear-gradient(100deg, #155e75, #1e40af 55%, #6b21a8);
+  -webkit-background-clip: text;
+  background-clip: text;
 }
 
 /* --------------------------------------------------------------------------
@@ -154,14 +189,29 @@ html.light .ff-glass::before {
 }
 
 .ff-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-2px);
   border-color: var(--ff-border-strong);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 34px 70px rgba(0, 0, 0, 0.45), var(--ff-glow);
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.26);
 }
 
 html.light .ff-card:hover {
-  box-shadow: 0 26px 60px rgba(15, 23, 42, 0.14), var(--ff-glow);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.1);
 }
+
+/* Free tiers should read as one system, not three unrelated neon buttons. */
+.ff-plan-card { border-color: var(--ff-border-strong); }
+.ff-plan-card--featured {
+  border-color: color-mix(in srgb, var(--ff-amber) 40%, transparent);
+  background: var(--ff-surface-2);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .18);
+}
+html.light .ff-plan-card--featured { box-shadow: 0 18px 44px rgba(15, 23, 42, .09); }
+.ff-plan-card__badge {
+  color: var(--ff-amber-ink);
+  background: var(--ff-amber-soft);
+  border: 1px solid color-mix(in srgb, var(--ff-amber) 35%, transparent);
+}
+.ff-plan-card__action { min-height: 44px; }
 
 /* Cursor spotlight used by feature cards */
 .ff-spotlight {
@@ -207,42 +257,25 @@ html.light .ff-card:hover {
   cursor: pointer;
   transition: transform 0.35s var(--ff-ease-spring), box-shadow 0.4s var(--ff-ease),
     background 0.4s var(--ff-ease), border-color 0.4s var(--ff-ease), color 0.3s ease;
-  will-change: transform;
 }
 
 .ff-btn:hover {
-  transform: translateY(-2px) scale(1.02);
+  transform: translateY(-1px);
 }
 
 .ff-btn:active {
-  transform: translateY(0) scale(0.97);
+  transform: translateY(0);
 }
 
 .ff-btn-primary {
   color: #1b1204;
-  background: linear-gradient(120deg, #fde68a 0%, #fbbf24 46%, #f59e0b 100%);
-  box-shadow: 0 14px 40px rgba(245, 158, 11, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  background: linear-gradient(120deg, #f9dc9e, #efb94f);
+  box-shadow: 0 8px 24px rgba(146, 85, 11, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.4);
   overflow: hidden;
 }
 
 .ff-btn-primary:hover {
-  box-shadow: 0 20px 54px rgba(245, 158, 11, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-}
-
-.ff-btn-primary::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -120%;
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.65), transparent);
-  transform: skewX(-18deg);
-  transition: left 0.75s var(--ff-ease);
-}
-
-.ff-btn-primary:hover::after {
-  left: 130%;
+  box-shadow: 0 12px 28px rgba(146, 85, 11, 0.23), inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 .ff-btn-ghost {

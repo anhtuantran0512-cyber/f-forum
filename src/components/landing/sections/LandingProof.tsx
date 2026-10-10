@@ -23,28 +23,28 @@ export const LandingProof: React.FC<LandingProofProps> = ({
       suffix: '',
       label: 'Sinh viên đang online',
       hint: 'Presence thời gian thực',
-      accent: 'text-emerald-300',
+      accent: 'ff-ink--green',
     },
     {
       id: 'questions',
       value: totalQuestions,
       label: 'Câu hỏi trên sàn hỏi đáp',
       hint: '13 chủ đề học thuật',
-      accent: 'text-amber-300',
+      accent: 'ff-ink--amber',
     },
     {
       id: 'solved',
       value: solvedQuestions,
       label: 'Câu hỏi đã có lời giải',
       hint: 'Bình chọn bởi cộng đồng',
-      accent: 'text-sky-300',
+      accent: 'ff-ink--blue',
     },
     {
       id: 'clubs',
       value: totalClubs,
       label: 'Câu lạc bộ đã duyệt',
       hint: 'Công nghệ · Nghệ thuật · Thể thao · Học thuật',
-      accent: 'text-violet-300',
+      accent: 'ff-ink--violet',
     },
   ];
 
