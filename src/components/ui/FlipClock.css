@@ -4,7 +4,7 @@
   --flip-size: 2rem;
   display: inline-flex;
   align-items: center;
-  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-family: 'Geist Mono Variable', ui-monospace, monospace;
   font-size: var(--flip-size);
   font-weight: 800;
   line-height: 1;

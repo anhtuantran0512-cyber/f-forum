@@ -9,7 +9,6 @@ interface LandingPricingProps {
 }
 
 export const LandingPricing: React.FC<LandingPricingProps> = ({ onOpenAuth }) => {
-  const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [copiedBank, setCopiedBank] = useState(false);
 
   const handleCopyBank = () => {
@@ -29,62 +28,33 @@ export const LandingPricing: React.FC<LandingPricingProps> = ({ onOpenAuth }) =>
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHeading
           eyebrow="Đặc Quyền Thành Viên"
-          title="Toàn Bộ Miễn Phí. Đồng Hành Cùng Sinh Viên."
-          description="F-Forum cam kết không thu phí, không phí ẩn. Toàn bộ gói thành viên cao cấp đều mở miễn phí 100% cho mọi học sinh, sinh viên FPT!"
+          title="Học tập miễn phí, rõ ràng từ đầu."
+          description="Các tính năng đang mở đều miễn phí. Những tiện ích nâng cao vẫn đang được phát triển và sẽ được ghi rõ trạng thái."
         />
 
-        {/* Billing cycle toggle */}
+        {/* One honest membership promise, no fake monthly/yearly discount on free access. */}
         <Reveal y={18} delay={200}>
-          <div className="mt-8 flex justify-center">
-            <div
-              role="group"
-              aria-label="Chọn chu kỳ thanh toán"
-              className="ff-chip relative grid w-full max-w-[330px] grid-cols-2 items-center !rounded-full p-1"
-            >
-              <span
-                aria-hidden="true"
-                className="absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-gradient-to-r from-amber-300 to-amber-500 transition-transform duration-500"
-                style={{ transform: cycle === 'monthly' ? 'translateX(0)' : 'translateX(100%)' }}
-              />
-              {(
-                [
-                  { id: 'monthly', label: 'Theo tháng' },
-                  { id: 'yearly', label: 'Theo năm · −20%' },
-                ] as const
-              ).map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => setCycle(option.id)}
-                  aria-pressed={cycle === option.id}
-                  className={`relative z-10 w-full rounded-full px-4 py-2 text-center text-[12.5px] font-semibold transition-colors duration-300 ${
-                    cycle === option.id ? 'text-[#1b1204]' : 'text-[var(--ff-text-soft)] hover:text-[var(--ff-text)]'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          <p className="ff-chip mx-auto mt-8 flex w-fit max-w-full items-center gap-2 px-4 py-2.5 text-center text-[12px] sm:text-[13px]">
+            <Check className="ff-ink--green h-4 w-4 shrink-0" aria-hidden="true" />
+            Tham gia miễn phí · Không cần thẻ ngân hàng
+          </p>
         </Reveal>
 
-        {/* Plans Grid with Metallic Gold Shimmer & 100% Free Guarantee */}
+        {/* Membership options: only available access has a working action. */}
         <div className="mt-12 grid gap-5 lg:grid-cols-3">
           {PRICING_PLANS.map((plan, index) => {
             return (
               <Reveal key={plan.id} y={32} delay={index * 90} className="h-full">
                 <div
-                  className={`ff-card relative flex h-full flex-col p-6 sm:p-7 rounded-3xl border transition-all duration-300 hover:scale-[1.02] ${
-                    plan.highlight
-                      ? 'border-amber-400/40 bg-[var(--ff-surface-2)] shadow-[0_30px_80px_rgba(251,191,36,0.18)]'
-                      : 'ff-glass border-white/15'
+                  className={`ff-glass ff-card ff-plan-card relative flex h-full flex-col rounded-3xl p-6 sm:p-7 ${
+                    plan.highlight ? 'ff-plan-card--featured' : ''
                   }`}
                 >
-                  {/* Luxury Gold Shimmer Top Bar */}
+                  {/* Clear availability badge */}
                   <div className="flex items-center justify-between mb-2">
                     <span className="tg-10__crown text-lg">✦</span>
-                    <span className="text-[10px] font-mono tracking-widest text-amber-400 uppercase font-bold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-400/30">
-                      MIỄN PHÍ 100%
+                    <span className="ff-plan-card__badge rounded-full px-2.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider">
+                      {plan.id === 'student' ? 'MIỄN PHÍ 100%' : plan.id === 'pro' ? 'ĐANG PHÁT TRIỂN' : 'DÀNH CHO CLB'}
                     </span>
                   </div>
 
@@ -94,20 +64,26 @@ export const LandingPricing: React.FC<LandingPricingProps> = ({ onOpenAuth }) =>
                     ) : (
                       <Sparkles className="h-4 w-4 text-amber-400" aria-hidden="true" />
                     )}
-                    <h3 className="text-[18px] font-bold tracking-tight text-white">{plan.name}</h3>
+                    <h3 className="text-[18px] font-bold tracking-tight text-[var(--ff-text)]">{plan.name}</h3>
                   </div>
 
                   <p className="mt-2 min-h-[40px] text-[13px] leading-relaxed text-[var(--ff-text-soft)]">
                     {plan.tagline}
                   </p>
 
-                  {/* Metallic Gold Price Display */}
+                  {/* Cost where available; planned tier has no invented price. */}
                   <div className="mt-5 flex items-baseline gap-2">
-                    <span className="tg-10__gold text-4xl sm:text-5xl font-black font-mono">0₫</span>
-                    <span className="pb-1 text-xs text-amber-300/80 font-mono font-semibold">/ Trọn đời</span>
+                    {plan.id === 'pro' ? (
+                      <span className="text-xl font-bold text-[var(--ff-text)]">Sắp ra mắt</span>
+                    ) : (
+                      <>
+                        <span className="tg-10__gold text-4xl font-black font-mono sm:text-5xl">0₫</span>
+                        <span className="ff-ink--amber pb-1 text-xs font-mono font-semibold">/ Trọn đời</span>
+                      </>
+                    )}
                   </div>
-                  <p className="mt-1 font-mono text-[11px] text-emerald-400 font-semibold">
-                    ✓ Miễn phí hoàn toàn cho sinh viên và câu lạc bộ
+                  <p className="ff-ink--green mt-1 font-mono text-[11px] font-semibold">
+                    {plan.id === 'pro' ? 'Chưa mở đăng ký gói này' : 'Không thu phí thành viên'}
                   </p>
 
                   <ul className="mt-6 flex-1 space-y-2.5 border-t border-[var(--ff-border)] pt-5">
@@ -119,18 +95,20 @@ export const LandingPricing: React.FC<LandingPricingProps> = ({ onOpenAuth }) =>
                     ))}
                   </ul>
 
-                  <button
-                    type="button"
-                    onClick={onOpenAuth}
-                    className={`ff-btn group mt-7 w-full px-6 py-3.5 text-sm font-bold rounded-2xl transition-all ${
-                      plan.highlight
-                        ? 'bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-neutral-950 shadow-[0_4px_20px_rgba(251,191,36,0.35)] hover:scale-[1.02]'
-                        : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
-                    }`}
-                  >
-                    <span>Kích Hoạt Miễn Phí</span>
-                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                  </button>
+                  {plan.id === 'pro' ? (
+                    <p className="ff-plan-card__action mt-7 flex items-center justify-center rounded-2xl border border-[var(--ff-border-strong)] px-6 py-3.5 text-center text-sm font-semibold text-[var(--ff-text-soft)]">
+                      Đang phát triển
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={onOpenAuth}
+                      className="ff-btn ff-btn-ghost ff-plan-card__action group mt-7 w-full rounded-2xl px-6 py-3.5 text-sm font-bold"
+                    >
+                      <span>Tạo tài khoản miễn phí</span>
+                      <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                    </button>
+                  )}
 
                   {plan.footnote && (
                     <p className="mt-3 text-center text-[11.5px] text-[var(--ff-text-dim)]">{plan.footnote}</p>

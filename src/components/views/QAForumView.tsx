@@ -81,18 +81,18 @@ const MATH_SYMBOLS = [
 const MathSymbolsBar: React.FC<{ onInsert: (symbol: string) => void }> = ({ onInsert }) => (
   <div className="flex flex-col gap-1 p-2 rounded-xl bg-white/5 border border-white/10 my-1.5">
     <div className="flex items-center justify-between">
-      <span className="text-[10px] font-mono font-semibold text-cyan-300 uppercase tracking-wider">
+      <span className="text-[11px] font-mono font-semibold text-cyan-300 uppercase tracking-wider">
         ∑ Ký Hiệu Toán Học & Khoa Học (38 ký tự)
       </span>
-      <span className="text-[9px] text-neutral-400 font-mono">Click để chèn</span>
+      <span className="text-[11px] text-neutral-400 font-mono">Chạm để chèn</span>
     </div>
-    <div className="flex items-center gap-1 flex-wrap max-h-20 overflow-y-auto pr-1">
+    <div className="flex items-center gap-1 flex-wrap max-h-36 overflow-y-auto pr-1">
       {MATH_SYMBOLS.map(sym => (
         <button
           key={sym}
           type="button"
           onClick={() => onInsert(sym)}
-          className="w-6 h-6 rounded-md bg-neutral-900 hover:bg-cyan-500/20 text-neutral-200 hover:text-cyan-300 border border-white/10 hover:border-cyan-400/40 text-xs font-mono font-bold flex items-center justify-center transition-all cursor-pointer active:scale-90"
+          className="w-11 h-11 rounded-lg bg-neutral-900 hover:bg-cyan-500/20 text-neutral-200 hover:text-cyan-300 border border-white/10 hover:border-cyan-400/40 text-sm font-mono font-bold flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
           title={`Chèn ${sym}`}
         >
           {sym}
