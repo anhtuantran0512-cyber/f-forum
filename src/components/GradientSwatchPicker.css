@@ -1,0 +1,18 @@
+.gradient-picker { display: grid; gap: 12px; min-width: 0; }
+.gradient-picker__preview { position: relative; height: 54px; overflow: hidden; border-radius: 14px; border: 1px solid rgba(255,255,255,.2); background: #111827; }
+.gradient-picker__preview-color { position: absolute; inset: 0; }
+.gradient-picker__preview-code { position: absolute; bottom: 6px; right: 8px; max-width: calc(100% - 16px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 3px 7px; border-radius: 6px; color: white; background: rgba(5,9,15,.75); font: 600 10px/1.3 ui-monospace, monospace; }
+.gradient-picker__groups { display: grid; gap: 12px; }
+.gradient-picker__group { display: grid; gap: 7px; }
+.gradient-picker__heading { color: #cbd5e1; font-size: 11px; font-weight: 650; letter-spacing: .035em; }
+.gradient-picker__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 10px; justify-items: center; }
+.gradient-swatch { position: relative; display: grid; place-items: center; width: 48px; height: 48px; border: 2px solid rgba(255,255,255,.16); border-radius: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.18); transition: transform .2s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease, border-color .2s ease; isolation: isolate; overflow: hidden; }
+.gradient-swatch:hover { transform: scale(1.12) translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.3); z-index: 1; }
+.gradient-swatch--active { border-color: #fbbf24; transform: scale(1.08); box-shadow: 0 0 0 2px rgba(0,0,0,.65), 0 0 0 4px #fbbf24; }
+.gradient-swatch--active:hover { transform: scale(1.12) translateY(-2px); }
+.gradient-swatch:focus-visible { outline: 2px solid white; outline-offset: 4px; z-index: 2; }
+.gradient-swatch__check { position: relative; z-index: 1; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: white; background: rgba(0,0,0,.7); font: 700 15px/1 system-ui, sans-serif; }
+.gradient-swatch__ripple { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: rgba(255,255,255,.6); animation: gradient-swatch-ripple .48s ease-out both; }
+@keyframes gradient-swatch-ripple { from { transform: scale(0); opacity: .65; } to { transform: scale(1.5); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .gradient-swatch, .gradient-swatch__ripple, .gradient-picker__preview-color { transition: none; animation: none; } }
+html.reduce-motion .gradient-swatch, html.reduce-motion .gradient-swatch__ripple, html.reduce-motion .gradient-picker__preview-color { transition: none; animation: none; }

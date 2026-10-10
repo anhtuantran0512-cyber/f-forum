@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   X,
   Lightbulb,
@@ -9,10 +9,13 @@ import {
   Clock,
   HelpCircle,
   Calendar,
+  Sparkles,
 } from 'lucide-react';
 import { safeStorage } from '../utils/storage';
 import { SwipeDeck } from './ui/SwipeDeck';
 import { StreakCountdown } from './engagement/StreakCountdown';
+import { QUIZ_DURATION_SECONDS, quizSecondsLeft } from '../utils/dailyQuizClock';
+import './engagement/DailyQuiz.css';
 import { dailyTriviaForDate, dateKeyInTimeZone, shiftDateKey } from '../../shared/dailyTrivia';
 import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
 
@@ -73,6 +76,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'attendance' | 'gifts' | 'quiz'>('attendance');
   const [rewardDate, setRewardDate] = useState(todayISO());
+  const rewardDateRef = useRef(rewardDate);
   const [attendanceLog, setAttendanceLog] = useState<string[]>(loadAttendanceLog);
   const [boxes, setBoxes] = useState<{ blue: number; gold: number; red: number }>(() => {
     try {
@@ -86,7 +90,11 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
   const [quizAnswered, setQuizAnswered] = useState<boolean>(() =>
     safeStorage.getItem('fforum_last_quiz_date') === todayISO(),
   );
-  const [quizTimer, setQuizTimer] = useState<number>(15);
+  const [quizTimer, setQuizTimer] = useState<number>(QUIZ_DURATION_SECONDS);
+  const [quizStarted, setQuizStarted] = useState(false);
+  const quizDeadlineRef = useRef<number | null>(null);
+  const timeoutSubmittedRef = useRef(false);
+  const quizSubmittingRef = useRef(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [quizResult, setQuizResult] = useState<{ correct: boolean; reward: number } | null>(null);
   const [openingBox, setOpeningBox] = useState<string | null>(null);
@@ -101,6 +109,16 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
 
   const applyRewardStatus = useCallback((status: DailyRewardStatus): void => {
     const date = status.date || todayISO();
+    if (rewardDateRef.current !== date) {
+      rewardDateRef.current = date;
+      quizDeadlineRef.current = null;
+      timeoutSubmittedRef.current = false;
+      quizSubmittingRef.current = false;
+      setQuizStarted(false);
+      setQuizTimer(QUIZ_DURATION_SECONDS);
+      setSelectedOption(null);
+      setQuizResult(null);
+    }
     setRewardDate(date);
     setAttendanceLog(status.attendanceDates);
     setBoxes(status.boxes);
@@ -147,35 +165,62 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
     return () => { active = false; };
   }, [isOpen, isAuthenticated, onLoadRewardStatus, applyRewardStatus]);
 
+  const startQuiz = () => {
+    if (quizAnswered || quizStarted) return;
+    quizDeadlineRef.current = Date.now() + QUIZ_DURATION_SECONDS * 1000;
+    timeoutSubmittedRef.current = false;
+    quizSubmittingRef.current = false;
+    setQuizTimer(QUIZ_DURATION_SECONDS);
+    setSelectedOption(null);
+    setActionError('');
+    setQuizStarted(true);
+  };
+
   const handleAnswerQuiz = useCallback(async (index: number) => {
-    if (quizAnswered || selectedOption !== null) return;
-    setSelectedOption(index);
-    const result = await performClaim({ action: 'quiz', answerIndex: index });
+    if (!quizStarted || quizAnswered || quizSubmittingRef.current) return;
+    quizSubmittingRef.current = true;
+    const answerIndex = quizDeadlineRef.current && quizSecondsLeft(quizDeadlineRef.current) === 0 ? -1 : index;
+    setSelectedOption(answerIndex);
+    const result = await performClaim({ action: 'quiz', answerIndex });
     if (!result.ok && !result.status?.quizAnswered) {
+      quizSubmittingRef.current = false;
       setSelectedOption(null);
+      /* Retry only when there is still time. An expired/unauthenticated attempt
+         goes back to the ready screen instead of looping forever at 0s. */
+      if (!isAuthenticated || answerIndex === -1 || !quizDeadlineRef.current ||
+          quizSecondsLeft(quizDeadlineRef.current) === 0) {
+        quizDeadlineRef.current = null;
+        setQuizTimer(QUIZ_DURATION_SECONDS);
+        setQuizStarted(false);
+      }
       return;
     }
     const correct = Boolean(result.correct);
     const reward = Math.max(0, Number(result.reward) || 0);
     setQuizResult({ correct, reward });
     setQuizAnswered(true);
-    safeStorage.setItem('fforum_last_quiz_date', rewardDate);
-  }, [quizAnswered, selectedOption, performClaim, rewardDate]);
+    safeStorage.setItem('fforum_last_quiz_date', result.status?.date || rewardDate);
+  }, [quizStarted, quizAnswered, performClaim, rewardDate, isAuthenticated]);
 
   useEffect(() => {
-    if (!isOpen || activeTab !== 'quiz' || quizAnswered || selectedOption !== null) return;
-    const timer = setInterval(() => {
-      setQuizTimer((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setTimeout(() => { void handleAnswerQuiz(-1); }, 0);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [isOpen, activeTab, quizAnswered, selectedOption, handleAnswerQuiz]);
+    if (!isOpen || activeTab !== 'quiz' || !quizStarted || quizAnswered || selectedOption !== null) return;
+    const tick = () => {
+      if (quizDeadlineRef.current === null) return;
+      const remaining = quizSecondsLeft(quizDeadlineRef.current);
+      setQuizTimer(remaining);
+      if (remaining === 0 && !timeoutSubmittedRef.current) {
+        timeoutSubmittedRef.current = true;
+        void handleAnswerQuiz(-1);
+      }
+    };
+    tick();
+    const timer = window.setInterval(tick, 250);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, [isOpen, activeTab, quizStarted, quizAnswered, selectedOption, handleAnswerQuiz]);
 
   if (!isOpen) return null;
 
@@ -258,6 +303,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
         <div className="mb-4">
           <SwipeDeck
             label="Mẹo hằng ngày"
+            autoAdvanceMs={2000}
             items={TIPS.map((tip) => ({ ...tip, icon: <Lightbulb className="w-4 h-4" /> }))}
           />
         </div>
@@ -487,27 +533,42 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
         {activeTab === 'quiz' && (
           <div className="space-y-4">
             {!quizAnswered ? (
-              <>
-                {/* Active Question with 15s Countdown */}
-                <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                  <h3 className="text-xs sm:text-sm font-bold text-white max-w-[80%] leading-snug">
+              !quizStarted ? (
+                <section className="ff-daily-quiz-intro ff-keep-dark" aria-label="Giới thiệu câu hỏi vui">
+                  <span className="ff-daily-quiz-intro__orbit" aria-hidden="true"><Sparkles size={27} /></span>
+                  <span className="ff-daily-quiz-intro__eyebrow">THỬ THÁCH MỖI NGÀY · 15 GIÂY</span>
+                  <h3>Câu hỏi vui mỗi ngày</h3>
+                  <p>Kiểm tra mức độ thông hiểu của bạn.</p>
+                  <button type="button" className="ff-daily-quiz-intro__start" onClick={startQuiz}>
+                    <span>Sẵn sàng</span><span aria-hidden="true">↗</span>
+                  </button>
+                  <span className="ff-daily-quiz-intro__caption">Đồng hồ chỉ chạy sau khi bạn bấm Sẵn sàng.</span>
+                </section>
+              ) : (
+              <div className="ff-daily-quiz-question ff-keep-dark" key={rewardDate}>
+                <div className="flex items-center justify-between gap-3 pb-3 border-b border-white/10">
+                  <h3 className="text-xs sm:text-sm font-bold text-white leading-snug">
                     {dailyTrivia.question}
                   </h3>
-                  <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-cyan-500/10 border border-cyan-400/40 text-cyan-300 font-mono font-bold text-xs shrink-0">
-                    <Clock className="w-3 h-3 absolute -top-1 -right-1 text-cyan-400" />
+                  <div
+                    className="ff-daily-quiz-clock shrink-0"
+                    role="timer"
+                    aria-label={`Còn ${quizTimer} giây`}
+                    style={{ '--quiz-progress': `${(quizTimer / QUIZ_DURATION_SECONDS) * 100}%` } as React.CSSProperties}
+                    data-urgent={quizTimer <= 5}
+                  >
+                    <Clock className="w-3 h-3 absolute -top-1 -right-1 text-cyan-400" aria-hidden="true" />
                     <span>{quizTimer}s</span>
                   </div>
                 </div>
-
-                {/* 4 Choices */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3">
                   {dailyTrivia.options.map((opt, idx) => (
                     <button
                       key={opt}
                       type="button"
                       onClick={() => { void handleAnswerQuiz(idx); }}
                       disabled={selectedOption !== null}
-                      className="p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 text-left text-xs font-medium text-white transition-all hover:border-amber-400/40 active:scale-98 disabled:opacity-50 cursor-pointer"
+                      className="ff-daily-quiz-option p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/15 text-left text-xs font-medium text-white transition-all hover:border-amber-400/40 active:scale-98 disabled:opacity-50 cursor-pointer"
                     >
                       <span className="w-5 h-5 rounded-full bg-white/10 inline-flex items-center justify-center text-[10px] font-mono mr-2 text-amber-300">
                         {String.fromCharCode(65 + idx)}
@@ -516,7 +577,9 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                     </button>
                   ))}
                 </div>
-              </>
+                {selectedOption !== null && <p className="text-xs text-cyan-200 pt-2" role="status">Đang ghi nhận câu trả lời…</p>}
+              </div>
+              )
             ) : (
               /* Kết quả trong ngày (đã bỏ chế độ ôn tập/xem lại dư thừa) */
               <div className="space-y-3">

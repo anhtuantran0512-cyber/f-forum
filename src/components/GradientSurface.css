@@ -1,0 +1,6 @@
+.gradient-surface { overflow: hidden; pointer-events: none; }
+.gradient-surface__image { position: absolute; inset: 0; display: block; }
+.gradient-surface__image--enter { animation: gradient-surface-crossfade .6s ease both; }
+@keyframes gradient-surface-crossfade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .gradient-surface__image--enter { animation: none; } }
+html.reduce-motion .gradient-surface__image--enter { animation: none; }

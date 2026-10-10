@@ -1,16 +1,12 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { HelpCircle, Headphones, Flame, Settings, Zap, NotebookPen, Command, ShieldCheck } from 'lucide-react';
-import type { DimensionView } from '../types';
+import { Headphones, Flame, Settings, Zap, Command, ChartNoAxesCombined } from 'lucide-react';
 import { safeStorage } from '../utils/storage';
 
 export interface RadialQuickMenuProps {
-  onNavigate: (view: DimensionView) => void;
-  onToggleChat?: () => void;
   onOpenFocusMode: () => void;
   onOpenSettings?: () => void;
   onOpenStreak?: () => void;
-  onOpenNotes?: () => void;
   onOpenPalette?: () => void;
   /** Lối vào bảng thống kê/quản lý, chỉ được truyền cho nhân sự quản trị. */
   onOpenAdminPanel?: () => void;
@@ -33,15 +29,13 @@ interface QuickAction {
 /**
  * CodeFronts ccm-02 v2 — Radial Submenu (pure CSS sin()/cos()).
  * Neo bên trái dưới màn hình, kích thước hub 64px & item 53px (+20% so với bản 53/44px),
- * bán kính so le 136/170px giúp 6 tác vụ xếp thành vòng cung thoáng, không chồng nhau.
+ * bán kính so le giúp các tác vụ xếp thành vòng cung thoáng, không chồng nhau.
  * Ngọn lửa Streak đã được đưa VÀO trong menu này (không còn nổi bên ngoài).
  */
 export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
-  onNavigate,
   onOpenFocusMode,
   onOpenSettings,
   onOpenStreak,
-  onOpenNotes,
   onOpenPalette,
   onOpenAdminPanel,
   adminAccess = false,
@@ -86,21 +80,12 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
 
   if (hidden) return null;
 
-  /* Quạt 6 tác vụ vào góc phần tư trên-phải: -90° (thẳng đứng) → 0° (ngang phải) */
+  /* Quạt 4/5 tác vụ vào góc phần tư trên-phải, không nhân đôi lối vào admin. */
   const actions: QuickAction[] = [
-    ...(adminAccess && onOpenAdminPanel ? [{
-      id: 'admin',
-      label: 'Bảng quản trị · thống kê, thành viên & vai trò',
-      angle: '-96deg',
-      tier: 'near' as const,
-      icon: <ShieldCheck className="w-[21px] h-[21px] text-cyan-300" />,
-      extraClass: 'ccm-02__item--admin',
-      onSelect: onOpenAdminPanel,
-    }] : []),
     {
       id: 'streak',
       label: streakCount > 0 ? `Điểm danh · ${streakCount} ngày` : 'Điểm danh & kho quà',
-      angle: adminAccess ? '-80deg' : '-90deg',
+      angle: '-90deg',
       tier: 'near',
       icon: <Flame className="w-[21px] h-[21px] text-rose-400" />,
       extraClass: 'ccm-02__item--hot ff-streak-red-aura',
@@ -116,37 +101,25 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
     {
       id: 'focus',
       label: 'Vào không gian tập trung',
-      angle: adminAccess ? '-64deg' : '-72deg',
+      angle: '-66deg',
       tier: 'far',
       icon: <Headphones className="w-[21px] h-[21px] text-emerald-300" />,
       onSelect: onOpenFocusMode,
     },
-    {
-      id: 'qa',
-      label: 'Hỏi bài',
-      angle: adminAccess ? '-48deg' : '-54deg',
-      tier: 'near',
-      icon: <HelpCircle className="w-[21px] h-[21px] text-cyan-300" />,
-      onSelect: () => onNavigate('qa'),
-    },
-    {
-      id: 'notes',
-      label: 'Sổ tay nhanh (Ctrl + I)',
-      angle: adminAccess ? '-32deg' : '-36deg',
-      tier: 'far',
-      icon: <NotebookPen className="w-[21px] h-[21px] text-sky-300" />,
-      onSelect: () => {
-        if (onOpenNotes) {
-          onOpenNotes();
-        } else if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('fforum_open_notes'));
-        }
-      },
-    },
+    /* Thống kê chiếm đúng ô Sổ tay cũ; chỉ người có quyền admin mới thấy. */
+    ...(adminAccess && onOpenAdminPanel ? [{
+      id: 'admin',
+      label: 'Bảng thống kê quản trị',
+      angle: '-38deg',
+      tier: 'far' as const,
+      icon: <ChartNoAxesCombined className="w-[21px] h-[21px] text-cyan-300" />,
+      extraClass: 'ccm-02__item--admin',
+      onSelect: onOpenAdminPanel,
+    }] : []),
     {
       id: 'palette',
       label: 'Bảng lệnh (Ctrl + K)',
-      angle: adminAccess ? '-16deg' : '-18deg',
+      angle: '-18deg',
       tier: 'near',
       icon: <Command className="w-[21px] h-[21px] text-violet-300" />,
       onSelect: () => {

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowRight, ArrowUpRight, ChevronDown, Compass, HelpCircle, MousePointerClick } from 'lucide-react';
 import type { DimensionView } from '../../types';
 import { BoomerangVideoBg } from '../BoomerangVideoBg';
+import './HomeHeroTitle.css';
 
 interface HomeViewProps {
   onNavigate: (view: DimensionView) => void;
@@ -60,7 +61,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
 
         {/* Headline with Alternating Phrases (3s / 4s) & Single-Line Styled F-Forum */}
-        <div className="relative min-h-[90px] sm:min-h-[140px] flex items-center justify-center w-full">
+        <div className="relative min-h-[180px] sm:min-h-[230px] flex items-center justify-center w-full">
           {/* Phase 1: Calligraphic Artistic F-FORUM */}
           <h1
             className={`text-4xl sm:text-6xl text-white font-normal tracking-tight text-center leading-tight max-w-4xl flex items-center justify-center ${
@@ -78,9 +79,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </span>
           </h1>
 
-          {/* Phase 2: Refined Calligraphic Vietnamese Tiềm Năng */}
+          {/* A deliberate vertical composition, not incidental line wrapping. */}
           <h1
-            className={`text-4xl sm:text-6xl text-white font-normal tracking-tight text-center leading-tight max-w-4xl flex items-center justify-center ${
+            className={`home-hero-title ${
               headlinePhase === 1
                 ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
                 : 'opacity-0 translate-y-2 scale-98 pointer-events-none absolute inset-0'
@@ -89,11 +90,15 @@ export const HomeView: React.FC<HomeViewProps> = ({
               transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s var(--ease, cubic-bezier(0.16, 1, 0.3, 1))',
             }}
           >
-            Nơi Khai Phóng{" "}
-            <span className="font-['Playfair_Display'] italic font-semibold text-amber-300 drop-shadow-[0_0_18px_rgba(252,211,77,0.4)]">
-              Tiềm Năng
-            </span>{" "}
-            Tuổi Trẻ Việt Nam.
+            <span className="home-hero-title__top">Nơi Khai Phóng</span>
+            <span className="home-hero-title__focus">
+              <span className="home-hero-title__word">Tiềm</span>{' '}
+              <span className="home-hero-title__word">Năng</span>
+              <svg className="home-hero-title__wave" viewBox="0 0 320 18" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                <path d="M1 10 C28 -1 52 -1 80 10 S132 21 160 10 S212 -1 240 10 S292 21 319 10" />
+              </svg>
+            </span>
+            <span className="home-hero-title__bottom"><i aria-hidden="true" />Tuổi Trẻ Việt Nam<i aria-hidden="true" /></span>
           </h1>
         </div>
 

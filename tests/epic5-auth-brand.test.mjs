@@ -11,20 +11,17 @@ import path from 'node:path';
 
 const read = (rel) => fs.readFileSync(path.resolve(rel), 'utf8');
 
-test('Epic 5 · Đèn pin: 2 lớp chữ cắt lộ bằng mask radial theo con trỏ, flicker, bụi sáng, nón sáng', () => {
+test('Epic 5 · Đèn pin: 2 lớp chữ cắt lộ bằng nón đèn theo hướng con trỏ, flicker, bụi sáng, nón sáng', () => {
   const field = read('src/components/auth/FlashlightPasswordField.tsx');
   const css = read('src/components/auth/AuthExperience.css');
   assert.match(field, /className="ffl__mask ffl__mask--dots"/, 'lớp chấm');
   assert.match(field, /className="ffl__mask ffl__mask--real"/, 'lớp chữ thật');
-  assert.match(css, /\.ffl__mask--real \{[\s\S]*?mask-image: radial-gradient\(circle var\(--ffl-r\) at var\(--ffl-x\) var\(--ffl-y\), #000 0 48%/,
-    'chỉ ký tự trong vùng sáng hiện chữ thật');
-  assert.match(css, /\.ffl__mask--dots \{[\s\S]*?mask-image: radial-gradient\(circle var\(--ffl-r\) at var\(--ffl-x\) var\(--ffl-y\), transparent 0 50%, #000 76%\)/,
-    'ngoài vùng sáng vẫn là chấm');
+  assert.match(css, /\.ffl__mask--real \{[\s\S]*?clip-path: var\(--ffl-cone/, 'chữ thật chỉ hiện trong nón');
+  assert.match(field, /flashlightCone\(source, target, reach\)/, 'nón bắt nguồn ở đèn, mở rộng tới mép màn hình');
   assert.match(css, /\.ffl__dot \{ display: inline-block; width: 1ch; margin-right: var\(--ffl-ls\);/, 'chấm trùng khít từng ô ký tự');
   assert.match(css, /@keyframes fflFlicker/, 'ánh sáng rung nhẹ như đèn pin thật');
   assert.match(css, /@keyframes fflMote/, 'bụi sáng bay trong vùng sáng');
-  assert.match(css, /\.ffl__cone \{[\s\S]*?clip-path: polygon\(/, 'nón sáng từ đèn tới vùng chiếu');
-  assert.match(css, /\.ffl__dark \{[\s\S]*?radial-gradient\(circle calc\(var\(--ffl-r\) \* 1\.4\)/, 'bóng tối có lỗ sáng');
+  assert.match(css, /\.ffl__viewport-beam \{[\s\S]*?filter: blur\(8px\)/, 'viền sáng mềm và phủ toàn màn hình');
   assert.match(field, /box\.style\.setProperty\('--ffl-x'/, 'cập nhật toạ độ bằng biến CSS (không re-render khi rê)');
   assert.match(field, /setPointerCapture\(event\.pointerId\)/, 'giữ-rê bằng chuột lẫn ngón tay');
   assert.match(css, /touch-action: none/, 'không cuộn trang khi kéo đèn trên cảm ứng');
@@ -66,16 +63,15 @@ test('Epic 5 · Cú Bông: 7 biểu cảm SVG + CSS, đủ trạng thái cho m�
   assert.ok(!/\.gif|lottie/i.test(mascot), 'SVG/CSS thuần, không GIF giật');
 });
 
-test('Epic 5 · Trang Auth kể chuyện: mascot phản ứng theo hành vi, nền theo giờ, ăn mừng trước khi đóng', () => {
+test('Epic 5 · Trang Auth: mascot phản ứng theo hành vi, nền theo giờ, đóng ngay khi xác thực thành công', () => {
   const auth = read('src/components/AuthModal.tsx');
   assert.match(auth, /<CuBong mood=\{mood\}/);
   assert.match(auth, /torchMode === 'beam' \? 'peek'/, 'bật đèn pin → hé mắt');
   assert.match(auth, /focusField === 'password' \? 'shy'/, 'gõ mật khẩu → che mắt');
   assert.match(auth, /focusField \? 'attentive'/, 'gõ email → đeo kính cầm bút');
   assert.match(auth, /flashMascot\('sad', 2400\)/, 'sai → buồn');
-  assert.match(auth, /setMascotFlash\('celebrate'\)/, 'thành công → ăn mừng');
-  assert.match(auth, /closeTimer\.current = window\.setTimeout\(\(\) => handleClose\(\), 1300\)/, 'đủ thời gian thấy khoảnh khắc ăn mừng');
-  assert.match(auth, /<CelebrationBurst/);
+  assert.match(auth, /handleClose\(\);\s*onSuccess\?\.\(/, 'thành công → đóng form trước khi chạy cảnh mới');
+  assert.doesNotMatch(auth, /SessionDoor|CelebrationBurst|closeTimer/, 'không chặn giao diện bằng lớp phủ hay timer');
   assert.match(auth, /const dayPhaseOf = \(hour: number\): DayPhase/, 'nền đồng bộ thời gian trong ngày');
   for (const phase of ['morning', 'day', 'dusk', 'night']) assert.ok(read('src/components/auth/AuthExperience.css').includes(`.auth-stage--${phase}`));
   assert.match(auth, /<FlashlightPasswordField\s+id="field-2"/, 'ô mật khẩu đăng nhập dùng đèn pin');
@@ -85,7 +81,7 @@ test('Epic 5 · Trang Auth kể chuyện: mascot phản ứng theo hành vi, n�
   assert.ok(!/password\s*===\s*['"]/.test(auth), 'không mật khẩu hardcode');
   /* Brand Voice */
   assert.match(auth, /Mừng cậu quay lại!/);
-  assert.match(auth, /Vào lớp thôi!/);
+  assert.match(auth, /Đăng nhập thôi!/);
   assert.match(auth, /Ối, mật khẩu chưa đúng rồi\. Soi đèn pin xem gõ nhầm chỗ nào nhé\?/);
   assert.ok(!auth.includes('Vui lòng nhập đầy đủ'), 'bỏ câu khô cứng');
 });
@@ -118,4 +114,19 @@ test('Epic 5 · Zero-Clutter: InfoTip, cắt tường chữ, bỏ chữ chết 4
     assert.ok(doc.includes(section), `Brand Guideline có mục "${section}"`);
   }
   assert.ok(!/Tuan@0512/.test(doc), 'không lộ mật khẩu cũ trong tài liệu');
+});
+
+test('Đèn pin: chỉ một nút ở ô nhập lại, hướng SVG quay theo tia không nhảy ±180°', async () => {
+  const auth = read('src/components/AuthModal.tsx');
+  const field = read('src/components/auth/FlashlightPasswordField.tsx');
+  assert.match(auth, /id="field-5"\s+label="Mật khẩu"\s+showTorch=\{false\}/);
+  assert.match(field, /\{showTorch && <button/);
+  assert.match(field, /currentAngle\.current = continuousTorchAngle/);
+  const { torchAimDegrees, continuousTorchAngle } = await import('../src/utils/flashlightCone.ts');
+  const lamp = { x: 100, y: 100 };
+  assert.equal(torchAimDegrees(lamp, { x: 0, y: 100 }), 0); // icon initially points left
+  assert.equal(torchAimDegrees(lamp, { x: 100, y: 0 }), 90);
+  assert.equal(torchAimDegrees(lamp, { x: 100, y: 200 }), -90);
+  assert.ok(Math.abs(continuousTorchAngle(179, -179) - 179) < 5);
+  assert.ok(Math.abs(continuousTorchAngle(-179, 179) + 179) < 5);
 });

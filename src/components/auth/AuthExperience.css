@@ -30,36 +30,21 @@
 }
 .ffl__text { display: inline-block; transform: translateX(calc(-1 * var(--ffl-scroll))); }
 .ffl__dot { display: inline-block; width: 1ch; margin-right: var(--ffl-ls); text-align: center; letter-spacing: 0; color: #64748b; }
-.ffl__mask--dots {
-  -webkit-mask-image: radial-gradient(circle var(--ffl-r) at var(--ffl-x) var(--ffl-y), transparent 0 50%, #000 76%);
-  mask-image: radial-gradient(circle var(--ffl-r) at var(--ffl-x) var(--ffl-y), transparent 0 50%, #000 76%);
-}
+/* Chùm sáng và chữ dùng cùng đa giác; tia vượt viewport nhưng chỉ khi giao ô mới lộ chữ. */
+.ffl__mask--dots { color: #8390a5; }
 .ffl__mask--real {
-  color: #fff7d6;
-  text-shadow: 0 0 10px rgba(253, 230, 138, 0.7);
-  -webkit-mask-image: radial-gradient(circle var(--ffl-r) at var(--ffl-x) var(--ffl-y), #000 0 48%, rgba(0, 0, 0, 0.55) 64%, transparent 78%);
-  mask-image: radial-gradient(circle var(--ffl-r) at var(--ffl-x) var(--ffl-y), #000 0 48%, rgba(0, 0, 0, 0.55) 64%, transparent 78%);
+  color: #fff8df; text-shadow: 0 0 8px rgba(253, 230, 138, .65);
+  background: #090e18; clip-path: var(--ffl-cone, polygon(0 0, 0 0, 0 0));
 }
-.ffl__dark {
-  position: absolute; inset: 0;
-  background: radial-gradient(circle calc(var(--ffl-r) * 1.4) at var(--ffl-x) var(--ffl-y), transparent 0 40%, rgba(1, 3, 8, 0.8) 100%);
-  animation: fflIn 0.16s ease both;
-}
-.ffl__glow {
-  position: absolute; inset: 0; mix-blend-mode: screen;
-  background: radial-gradient(circle var(--ffl-r) at var(--ffl-x) var(--ffl-y), rgba(255, 240, 190, 0.4), rgba(255, 214, 128, 0.12) 48%, transparent 72%);
-  animation: fflIn 0.2s ease both, fflFlicker 2.8s linear infinite;
-}
-.ffl__cone {
-  position: absolute; inset: 0; mix-blend-mode: screen; opacity: 0.85;
-  clip-path: polygon(
-    var(--ffl-tx) calc(var(--ffl-ty) - 5px),
-    var(--ffl-tx) calc(var(--ffl-ty) + 5px),
-    var(--ffl-x) calc(var(--ffl-y) + var(--ffl-r)),
-    var(--ffl-x) calc(var(--ffl-y) - var(--ffl-r))
-  );
-  background: linear-gradient(270deg, rgba(255, 240, 190, 0.42), rgba(255, 220, 140, 0.04));
-  animation: fflIn 0.22s ease both, fflFlicker 2.8s linear infinite;
+.ffl__dark { display: none; }
+.ffl__glow, .ffl__cone { position: absolute; inset: 0; pointer-events: none; clip-path: var(--ffl-cone, polygon(0 0, 0 0, 0 0)); }
+.ffl__glow { background: linear-gradient(100deg, rgba(255,224,143,.15), rgba(255,240,195,.02)); filter: blur(3px); animation: fflFlicker 2.8s linear infinite; }
+.ffl__cone { background: rgba(255,221,153,.05); }
+.ffl__viewport-beam {
+  position: fixed; inset: 0; z-index: 55; pointer-events: none;
+  background: radial-gradient(ellipse 90% 90% at var(--ffl-x, 70%) var(--ffl-y, 40%), rgba(255,244,207,.15), transparent 74%), rgba(255,231,171,.035);
+  box-shadow: inset 0 0 90px rgba(255,218,153,.04);
+  filter: blur(8px); animation: fflIn .24s ease both;
 }
 .ffl__dust { position: absolute; inset: 0; }
 .ffl__mote {
@@ -387,3 +372,53 @@ html.reduce-motion .auth-overlay, html.reduce-motion .auth-card, html.reduce-mot
 html.reduce-motion .auth-alert, html.reduce-motion .auth-cloud, html.reduce-motion .auth-star, html.reduce-motion .auth-firefly,
 html.reduce-motion .ffl__glow, html.reduce-motion .ffl__cone, html.reduce-motion .ffl__mote, html.reduce-motion .ffl__dark,
 html.reduce-motion .ffl__torch-rays, html.reduce-motion .auth-dots i { animation: none !important; }
+
+/* Đêm sâu: lớp trời chuyển opacity thay vì thay DOM đột ngột khi bật đèn. */
+.auth-night-sky { position: absolute; inset: 0; opacity: 0; pointer-events: none; background: radial-gradient(ellipse at 73% 19%, #303e65 0%, #141f38 38%, #090f22 80%); transition: opacity .7s cubic-bezier(.2,.65,.3,1); }
+.auth-night-sky.is-visible { opacity: 1; }
+.auth-stage--night { background: #090f22; }
+.auth-moon { top: 35px; right: 32px; width: 62px; height: 62px; background: radial-gradient(circle at 34% 28%, #fff8e6, #e9d9b7 64%, #b8b6bc); box-shadow: 0 0 0 11px rgba(249,226,186,.035), 0 0 50px 12px rgba(242,226,197,.27), 0 0 120px 22px rgba(167,182,220,.12); filter: none; }
+.auth-moon::after { content: ''; position: absolute; inset: -38px; border-radius: 50%; background: radial-gradient(circle, rgba(255,244,213,.14), transparent 68%); }
+.auth-moon i { position: absolute; z-index: 1; width: 9px; height: 9px; border-radius: 50%; box-shadow: inset 1px 1px 3px rgba(90,84,102,.22); background: rgba(160,150,147,.14); }
+.auth-moon i:nth-child(1) { top: 15px; left: 18px; } .auth-moon i:nth-child(2) { top: 31px; left: 34px; width: 12px; height: 12px; } .auth-moon i:nth-child(3) { top: 39px; left: 13px; width: 5px; height: 5px; }
+.auth-star { width: 1.5px; height: 1.5px; opacity: .7; box-shadow: 0 0 5px 1px rgba(215,227,255,.45); animation-duration: 4.8s; }
+.auth-star--0 { width: 3px; height: 3px; box-shadow: 0 0 8px 2px rgba(255,241,199,.7); }
+.auth-star--1 { width: 2px; height: 2px; background: #d0e8ff; }
+.auth-star--2::after { content: ''; position: absolute; left: -3px; top: 1px; width: 8px; height: 1px; background: linear-gradient(90deg,transparent,#fff,transparent); opacity: .6; }
+.auth-card.is-lights-out .auth-stage { filter: none; }
+@media (prefers-reduced-motion: reduce) { .auth-night-sky { transition: none; } }
+html.reduce-motion .auth-night-sky { transition: none; }
+/* Auth v1.1: bề mặt mực đêm + đồng xước, bỏ kính nhựa/steampunk. */
+.auth-overlay { background:rgba(6,12,19,.8); backdrop-filter:blur(9px); }
+.auth-card { border-radius:20px; grid-template-columns:290px minmax(0,1fr); background:#101a25; border:1px solid rgba(228,224,208,.16); box-shadow:0 35px 95px rgba(0,0,0,.64); }
+.auth-panel { padding:28px 30px 25px; }
+.auth-head h2 { font:500 26px/1.16 Georgia,serif; letter-spacing:-.025em; color:#f1eae0; }
+.auth-head p { color:#aeb9c4; }
+.auth-label { font-weight:600; color:#bdc6cb; }
+.auth-input { border-radius:10px; background:#0d1621; border:1px solid rgba(224,224,215,.18); }
+.auth-tabs { border-radius:10px; background:#0d1621; }
+.auth-tabs__indicator { border-radius:7px; background:#d7b679; box-shadow:none; }
+.auth-tabs button { border-radius:7px; font-weight:600; }
+.auth-tabs button[aria-selected='true'] { color:#16212d; }
+.auth-submit { border-radius:10px; background:#cba76b; color:#16202b; box-shadow:0 9px 22px -15px #000,inset 0 1px rgba(255,255,255,.4); font-weight:700; letter-spacing:0; }
+.auth-submit::before,.auth-submit::after { display:none; }
+.auth-submit > span { background:none; -webkit-text-fill-color:currentColor; filter:none; }
+.auth-submit > svg { color:#222c35; filter:none; }
+.auth-submit:hover:not(:disabled) { transform:translateY(-2px); background:#e1c189; box-shadow:0 12px 22px -14px #000; }
+.auth-submit:active:not(:disabled) { transform:translateY(1px); box-shadow:inset 0 2px 7px rgba(0,0,0,.17); }
+.auth-close,.auth-social button,.auth-ghost { border-radius:9px; background:#1b2835; box-shadow:none; }
+.auth-bubble { border-radius:10px; color:#243146; background:#f0e6d3; font-weight:600; box-shadow:0 10px 24px -14px #000; }
+html.light .auth-card { background:#fbf7ef; border-color:#d2cec4; backdrop-filter:none; box-shadow:0 25px 75px rgba(19,29,40,.3); }
+html.light .auth-tabs { background:#e9e4dc; }
+html.light .auth-tabs__indicator { background:#d7b679; }
+html.light .auth-input { background:#fffdfa; border-color:#c5c6c4; }
+html.light .auth-submit { background:#cba76b; color:#16202b; }
+@media(max-width:760px) { .auth-card { grid-template-columns:minmax(0,1fr); } .auth-panel { padding:18px; } }
+/* Registration uses one torch (confirmation); the first password is a regular masked input. */
+.ffl--no-torch .ffl__input.auth-input { padding-right:16px; }
+/* Rotate the flashlight around its lens, not its entire button. The cone and icon
+   are updated together in one RAF; the beam still reaches the entire viewport. */
+.ffl__torch-svg { transform-box:view-box; transform-origin:10px 16px; }
+.ffl--beam .ffl__torch[aria-pressed='true'] .ffl__torch-svg { transform:rotate(var(--ffl-angle,0deg)) scale(1.06); transition:transform .07s linear; }
+@media(prefers-reduced-motion:reduce) { .ffl--beam .ffl__torch[aria-pressed='true'] .ffl__torch-svg { transform:none; transition:none; } }
+html.reduce-motion .ffl--beam .ffl__torch[aria-pressed='true'] .ffl__torch-svg { transform:none; transition:none; }

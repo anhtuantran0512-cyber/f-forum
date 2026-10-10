@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "gen:light": "node scripts/generate-light-adapter.mjs",
-    "test": "node --test tests/audit-verification.test.mjs tests/edge-cases.test.mjs tests/multi-user-sync.test.mjs tests/oauth-integration.test.mjs tests/admin-moderation-about.test.mjs tests/navbar-wheel-navigation.test.mjs tests/settings-theme.test.mjs tests/landing-page.test.mjs tests/user-profile-report-system.test.mjs tests/premium-experience.test.mjs tests/admin-insights.test.mjs tests/admin-bootstrap-security.test.mjs tests/study-hours.test.mjs tests/like-heart.test.mjs tests/admin-console.test.mjs tests/user-moderation.test.mjs tests/format-ops.test.mjs tests/question-sort.test.mjs tests/saved-questions.test.mjs tests/security-hardening.test.mjs tests/admin-rbac-epic3.test.mjs tests/epic4-profile-shop.test.mjs tests/epic5-auth-brand.test.mjs tests/light-mode-contrast.test.mjs tests/epic5-perf-security.test.mjs tests/final-upgrades.test.mjs",
+    "test": "node --test tests/audit-verification.test.mjs tests/edge-cases.test.mjs tests/multi-user-sync.test.mjs tests/oauth-integration.test.mjs tests/admin-moderation-about.test.mjs tests/navbar-wheel-navigation.test.mjs tests/settings-theme.test.mjs tests/landing-page.test.mjs tests/user-profile-report-system.test.mjs tests/premium-experience.test.mjs tests/admin-insights.test.mjs tests/admin-bootstrap-security.test.mjs tests/study-hours.test.mjs tests/like-heart.test.mjs tests/admin-console.test.mjs tests/user-moderation.test.mjs tests/format-ops.test.mjs tests/question-sort.test.mjs tests/saved-questions.test.mjs tests/security-hardening.test.mjs tests/admin-rbac-epic3.test.mjs tests/epic4-profile-shop.test.mjs tests/epic5-auth-brand.test.mjs tests/light-mode-contrast.test.mjs tests/epic5-perf-security.test.mjs tests/final-upgrades.test.mjs tests/signature-v11.test.mjs tests/owl-welcome.test.mjs tests/owl-welcome-dom.test.mjs tests/gradient-picker.test.mjs tests/quick-actions-daily.test.mjs",
     "preview": "vite preview",
     "public": "node scripts/start-public.mjs"
   },
@@ -29,6 +29,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
+    "jsdom": "^30.1.2",
     "localtunnel": "^2.0.2",
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",

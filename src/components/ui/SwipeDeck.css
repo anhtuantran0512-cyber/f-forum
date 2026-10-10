@@ -9,6 +9,22 @@
   outline: none;
 }
 .ff-deck__stack:focus-visible { box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.7); }
+/* A thin signature trace marks the two-second rhythm without covering text. */
+.ff-deck--auto .ff-deck__stack::after {
+  content: '';
+  position: absolute;
+  z-index: 4;
+  left: 13px;
+  right: 13px;
+  bottom: 1px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #67e8f9, #fbbf24);
+  transform-origin: left center;
+  animation: ffDeckTrace var(--ff-deck-cycle, 2000ms) linear infinite;
+  pointer-events: none;
+}
+@keyframes ffDeckTrace { from { transform: scaleX(0); opacity: .4; } to { transform: scaleX(1); opacity: 1; } }
 .ff-deck__card {
   grid-area: 1 / 1;
   display: flex;
@@ -69,5 +85,8 @@ html.light .ff-deck__btn { color: #334155; border-color: rgba(15, 23, 42, 0.14);
 html.light .ff-deck__count { color: #475569; }
 
 @media (prefers-reduced-motion: reduce) {
-  .ff-deck__card { transition: opacity 0.2s ease; }
+  .ff-deck__card { transition: none; }
+  .ff-deck--auto .ff-deck__stack::after { animation: none; transform: scaleX(1); }
 }
+.reduce-motion .ff-deck__card { transition: none; }
+.reduce-motion .ff-deck--auto .ff-deck__stack::after { animation: none; transform: scaleX(1); }

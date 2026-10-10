@@ -168,6 +168,8 @@ export const CuBong: FC<CuBongProps> = ({
           <circle className="cb-tassel" cx="128.5" cy="64" r="3.4" fill="#fbbf24" />
         </g>
 
+        {/* Dấu sao đồng trên cánh: phụ kiện nhận diện xuyên suốt mọi phiên bản Cú Bông. */}
+        <path className="cb-signature-star" d="M150 126 l2.5 5.5 6 0.8 -4.5 4.2 1.2 5.8 -5.2 -3 -5.2 3 1.2 -5.8 -4.5 -4.2 6 -0.8Z" fill="#e9c57c" stroke="#55426d" strokeWidth="1.1" />
         {/* Chân */}
         <ellipse cx="86" cy="181" rx="9" ry="4.5" fill="#f59e0b" />
         <ellipse cx="114" cy="181" rx="9" ry="4.5" fill="#f59e0b" />
