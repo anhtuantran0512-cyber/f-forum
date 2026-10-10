@@ -11,7 +11,7 @@ interface ComingSoonViewProps {
 export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) => {
   return (
     <div
-      className="relative min-h-screen w-full bg-[#001428] text-white overflow-hidden select-none flex flex-col justify-between font-sans"
+      className="ff-keep-dark relative min-h-screen w-full bg-[#001428] text-white overflow-hidden select-none flex flex-col justify-between font-sans"
     >
       {/* Video Background: Fullscreen looping video */}
       <video
@@ -35,12 +35,9 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
 
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 pt-12 pb-24 max-w-4xl mx-auto my-auto">
-        {/* Heading: Comming soon!!! with clean gradient fill */}
-        <h1
-          className="animate-fade-rise text-3xl sm:text-5xl md:text-6xl font-['Geist_Mono:SemiBold'] font-semibold tracking-tight bg-gradient-to-r from-white via-neutral-100 to-amber-200 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(255,255,255,0.25)]"
-          style={{ fontFamily: '"Geist Mono", monospace' }}
-        >
-          Comming soon!!!
+        {/* A calm, legible promise rather than a placeholder headline. */}
+        <h1 className="animate-fade-rise font-geist-mono text-3xl font-semibold tracking-tight text-[#fff4d9] sm:text-5xl md:text-6xl">
+          Sắp ra mắt
         </h1>
 
         {/* Thẻ phong cảnh bình minh nhiều lớp — rê chuột để thấy chiều sâu (code_yeucau · tch-15) */}
@@ -56,7 +53,7 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
         {/* Action Button: Liquid-glass pill button returning to Homepage */}
         <button
           onClick={() => onReturnHome('home')}
-          className="animate-fade-rise-delay-2 liquid-glass rounded-full px-10 sm:px-12 py-3.5 sm:py-4 text-sm font-semibold text-white mt-9 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer shadow-2xl inline-flex items-center gap-2 border border-white/20 hover:border-amber-400/40"
+          className="animate-fade-rise-delay-2 liquid-glass rounded-full px-10 sm:px-12 py-3.5 sm:py-4 text-sm font-semibold text-white mt-9 hover:bg-white/10 transition-colors duration-200 cursor-pointer shadow-2xl inline-flex items-center gap-2 border border-white/20 hover:border-amber-400/40"
         >
           <span>Quay lại Trang Chủ</span>
         </button>
@@ -64,7 +61,7 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
 
       {/* Footer info */}
       <footer className="relative z-10 w-full py-4 text-center text-xs text-neutral-400 font-mono">
-        <span>F-Forum Platform • Bản nâng cấp 2.0 (2026)</span>
+        <span>F-Forum • Luôn có điều để khám phá</span>
       </footer>
     </div>
   );

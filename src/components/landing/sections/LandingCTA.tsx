@@ -123,7 +123,7 @@ export const LandingCTA: React.FC<LandingCTAProps> = ({ onOpenAuth }) => {
                   role="status"
                   aria-live="polite"
                   className={`mt-3 flex items-center justify-center gap-1.5 text-[12.5px] ${
-                    status === 'error' ? 'text-rose-300' : 'text-[var(--ff-text-dim)]'
+                    status === 'error' ? 'ff-ink--rose' : 'text-[var(--ff-text-dim)]'
                   }`}
                 >
                   {status === 'done' && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />}

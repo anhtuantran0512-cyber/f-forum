@@ -39,7 +39,7 @@
 .ff-streak-cd__title b { color: rgb(var(--tone)); }
 .ff-streak-cd__copy { margin-top: 2px; font-size: 10.5px; color: rgba(255, 255, 255, 0.62); }
 .ff-streak-cd__time {
-  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-family: 'Geist Mono Variable', ui-monospace, monospace;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: rgb(var(--tone));

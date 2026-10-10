@@ -45,7 +45,7 @@ export const LandingFAQ: React.FC<LandingFAQProps> = ({ onOpenAuth }) => {
                       >
                         <span
                           className={`text-[14.5px] font-semibold tracking-tight transition-colors duration-300 sm:text-[15.5px] ${
-                            isOpen ? 'text-amber-200' : 'text-[var(--ff-text)]'
+                            isOpen ? 'ff-ink--amber' : 'text-[var(--ff-text)]'
                           }`}
                         >
                           {item.question}
@@ -54,7 +54,7 @@ export const LandingFAQ: React.FC<LandingFAQProps> = ({ onOpenAuth }) => {
                           aria-hidden="true"
                           className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-1 transition-all duration-500 ${
                             isOpen
-                              ? 'rotate-180 bg-amber-500/18 text-amber-300 ring-amber-400/30'
+                              ? 'rotate-180 bg-amber-500/18 ff-ink--amber ring-amber-400/30'
                               : 'bg-[var(--ff-surface-2)] text-[var(--ff-text-dim)] ring-[var(--ff-border)]'
                           }`}
                         >
@@ -86,7 +86,7 @@ export const LandingFAQ: React.FC<LandingFAQProps> = ({ onOpenAuth }) => {
           <Reveal variant="right" y={22} delay={140}>
             <div className="ff-glass ff-card sticky top-28 flex h-full flex-col p-6">
               <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/12 ring-1 ring-amber-400/25">
-                <HelpCircle className="h-5 w-5 text-amber-300" aria-hidden="true" />
+                <HelpCircle className="ff-ink--amber h-5 w-5" aria-hidden="true" />
               </span>
               <h3 className="mt-5 text-[17px] font-semibold tracking-tight text-[var(--ff-text)]">
                 Vẫn còn thắc mắc?

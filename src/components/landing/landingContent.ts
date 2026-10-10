@@ -275,9 +275,6 @@ export const PRICING_PLANS: {
   id: string;
   name: string;
   tagline: string;
-  monthly: number;
-  yearly: number;
-  cta: string;
   highlight?: boolean;
   badge?: string;
   features: string[];
@@ -287,9 +284,7 @@ export const PRICING_PLANS: {
     id: 'student',
     name: 'Sinh viên',
     tagline: 'Dành cho mọi sinh viên, trọn đời miễn phí.',
-    monthly: 0,
-    yearly: 0,
-    cta: 'Tham gia miễn phí',
+    highlight: true,
     features: [
       'Hỏi đáp không giới hạn theo môn học',
       'Tham gia tất cả câu lạc bộ công khai',
@@ -303,11 +298,7 @@ export const PRICING_PLANS: {
   {
     id: 'pro',
     name: 'Pro Học tập',
-    tagline: 'Tăng tốc mùa thi với công cụ học sâu.',
-    monthly: 49000,
-    yearly: 470000,
-    cta: 'Nhận ưu đãi Early Access',
-    highlight: true,
+    tagline: 'Các công cụ học sâu đang được phát triển, chưa mở đăng ký.',
     badge: 'Sắp ra mắt',
     features: [
       'Tất cả quyền lợi gói Sinh viên',
@@ -317,15 +308,12 @@ export const PRICING_PLANS: {
       'Huy hiệu Pro & khung hồ sơ đặc biệt',
       'Hỗ trợ ưu tiên từ Ban Quản Trị',
     ],
-    footnote: 'Đăng ký để nhận 50% học phí 3 tháng đầu.',
+    footnote: 'Thông tin về các tiện ích này sẽ được cập nhật khi sẵn sàng.',
   },
   {
     id: 'org',
     name: 'Khoa & Câu lạc bộ',
     tagline: 'Không gian điều hành cho tổ chức sinh viên.',
-    monthly: -1,
-    yearly: -1,
-    cta: 'Liên hệ Ban Quản Trị',
     features: [
       'Tất cả quyền lợi gói Pro cho thành viên',
       'Trang quản trị câu lạc bộ & thành viên',
