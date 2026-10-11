@@ -1,8 +1,10 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 /* ==========================================================================
-   code_yeucau · tcl-14 — thẻ ngang (ảnh trái · nội dung + nút phải) xếp 2 cột.
-   Mỗi thẻ là một container: thẻ đủ rộng → bố cục ngang; bị bóp hẹp (cột đơn
-   trên điện thoại, sidebar…) → tự xếp dọc, không cần media query theo màn hình.
+   Lưới thẻ CLB gọn: 1 cột (< 768px) → 2 cột (≥ 768px) → 3 cột (≥ 1024px).
+   code_yeucau · tcl-14 — mỗi thẻ là một container: đủ rộng (≥ 420px, chẳng hạn cột
+   đơn trên điện thoại ngang / máy tính bảng nhỏ) → bố cục ngang (ảnh trái · nội dung
+   + nút phải); bị bóp hẹp (cột của lưới 2–3 cột, sidebar…) → tự xếp dọc, không cần
+   media query theo màn hình.
    ========================================================================== */
 .ff-media-grid {
   display: grid;
@@ -11,6 +13,9 @@
 }
 @media (min-width: 768px) {
   .ff-media-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .ff-media-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 .ff-media-card {
   container: ff-media / inline-size;

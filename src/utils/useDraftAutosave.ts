@@ -77,7 +77,9 @@ export function useDraftAutosave<T extends DraftPayload>(storageKey: string, ini
     };
   }, [fields, storageKey]);
 
-  /* Ghi nốt trước khi người dùng rời trang, vì nhịp ghi có thể chưa tới. */
+  /* Ghi nốt trước khi người dùng rời trang, vì nhịp ghi có thể chưa tới. Cũng ghi nốt khi component bị gỡ:
+     điều hướng trong app (nút Back, mở câu hỏi khác) không phát `pagehide`, và nhịp ghi bị huỷ lúc cleanup —
+     không ghi nốt thì gõ xong bấm Back trong vòng 600ms sẽ mất những ký tự cuối. */
   useEffect(() => {
     const flush = () => {
       const pending = pendingRef.current;
@@ -91,7 +93,10 @@ export function useDraftAutosave<T extends DraftPayload>(storageKey: string, ini
       safeStorage.setItem(storageKey, JSON.stringify(payload));
     };
     window.addEventListener('pagehide', flush);
-    return () => window.removeEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      flush();
+    };
   }, [storageKey]);
 
   const clearDraft = useCallback(() => {

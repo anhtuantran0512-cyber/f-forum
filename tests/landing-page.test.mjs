@@ -216,7 +216,7 @@ test('Design: pricing uses theme-aware foregrounds, unique anchors, and accessib
   assert.match(highlights, /id="nang-luc"/);
   assert.doesNotMatch(highlights, /id="tinh-nang"/, 'Năng lực must not shadow Tính năng anchor');
   assert.match(features, /id="tinh-nang"/);
-  assert.match(read('src/components/views/QAForumView.tsx'), /w-11 h-11 rounded-lg bg-neutral-900/);
+  assert.match(read('src/components/views/qa/MathSymbols.tsx'), /w-11 h-11 rounded-lg bg-neutral-900/);
 });
 
 test('Design: Vietnamese mono glyphs are self-hosted rather than blocked by CSP', () => {

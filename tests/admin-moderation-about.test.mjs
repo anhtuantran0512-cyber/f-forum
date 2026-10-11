@@ -101,7 +101,9 @@ test('1. Static Architecture & Security Audit: Khu Vinh Danh & Super Admin Moder
 
   const aboutUsContent = fs.readFileSync(aboutUsPath, 'utf8');
   const chroniclesContent = fs.readFileSync(chroniclesPath, 'utf8');
-  const qaForumContent = fs.readFileSync(qaForumPath, 'utf8');
+  /* Chi tiết câu hỏi nay là TRANG riêng (src/components/views/qa/): các nút quản trị lời giải nằm cùng thẻ lời giải. */
+  const qaSolutionCardContent = fs.readFileSync(path.resolve('src/components/views/qa/QASolutionCard.tsx'), 'utf8');
+  const qaForumContent = fs.readFileSync(qaForumPath, 'utf8') + qaSolutionCardContent;
   const chatViewContent = fs.readFileSync(chatViewPath, 'utf8');
   const chatDockContent = fs.readFileSync(chatDockPath, 'utf8');
 

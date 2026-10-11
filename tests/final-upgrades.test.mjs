@@ -142,9 +142,12 @@ test('social share + deep-link ?q=: id được lọc chặt', () => {
   assert.equal(share.readSharedQuestionId('?x=1'), null);
   assert.equal(share.buildQuestionShareUrl('q 1', 'https://f.forum', '/'), 'https://f.forum/?q=q%201');
   assert.equal(share.stripSharedQuestionParam('https://f.forum/app?q=abc&tab=2#top'), '/app?tab=2#top');
-  const qa = read('src/components/views/QAForumView.tsx');
-  assert.match(qa, /<ShareRow/);
-  assert.match(qa, /window\.history\.replaceState/, 'đóng câu hỏi thì gỡ ?q=');
+  /* Chi tiết câu hỏi là trang riêng /hoi-dap/<id>-<slug>: nút chia sẻ nằm ở trang đó, còn liên kết cũ `?q=`
+     được đổi sang đường dẫn mới bằng replaceState (không để lại ?q= trên thanh địa chỉ). */
+  assert.match(read('src/components/views/qa/QADetailPage.tsx'), /<ShareRow/);
+  const router = read('src/utils/qaRouter.ts');
+  assert.match(router, /window\.history\.replaceState/, 'liên kết cũ ?q= được chuẩn hoá bằng replaceState');
+  assert.match(router, /readSharedQuestionId\(search\)/, 'vẫn đọc liên kết cũ ?q=');
   assert.match(read('src/store/forumStore.ts'), /readSharedQuestionId\(window\.location\.search\)\) return 'qa'/);
   const row = read('src/components/ui/ShareRow.tsx');
   assert.match(row, /rel="noopener noreferrer"/);

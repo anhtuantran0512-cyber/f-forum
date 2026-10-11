@@ -4,6 +4,7 @@ import path from 'node:path';
 import { randomInt } from 'node:crypto';
 import { SHOP_ITEMS, effectivePrice } from '../src/utils/shopData.ts';
 import { dateKeyInTimeZone } from '../shared/dailyTrivia.ts';
+import { isReactionKind, sanitizeReactions, setReaction, type SolutionReactions } from '../shared/qaReactions.ts';
 import { GHIBLI_MASKS, getRandomGhibliMask } from '../src/utils/ghibliMasks.ts';
 import {
   claimDailyAttendance,
@@ -493,6 +494,21 @@ function sanitizeAdminWarnings(rawWarnings: unknown): AdminWarningRecord[] {
     .filter((entry) => entry.targetEmail && entry.reason);
 }
 
+/** Nạp một lời giải từ đĩa. */
+function sanitizeLoadedSolution(solution: any) {
+  if (!solution || typeof solution !== 'object') return solution;
+  const { reactions: rawReactions, ...rest } = solution;
+  /* Phản ứng nhanh phải qua cùng bộ lọc như khi nhận từ mạng (loại hợp lệ, ID duy nhất, có trần). */
+  const reactions = sanitizeReactions(rawReactions);
+  return {
+    ...rest,
+    /* Đáp án từng được chọn đã nhận +5 upvote từ logic cũ; khóa
+       bonus ở dữ liệu nạp để không cộng lại khi đổi rồi chọn lại. */
+    bestSelectionBonusGranted: solution.bestSelectionBonusGranted === true || Boolean(solution.isBest),
+    ...(reactions ? { reactions } : {}),
+  };
+}
+
 function loadStoreFromDisk() {
   try {
     if (fs.existsSync(dataFilePath())) {
@@ -533,14 +549,7 @@ function loadStoreFromDisk() {
               : question)
             : [],
           solutions: Array.isArray(parsed.solutions)
-            ? parsed.solutions.map((solution: any) => solution && typeof solution === 'object'
-              ? {
-                  ...solution,
-                  /* Đáp án từng được chọn đã nhận +5 upvote từ logic cũ; khóa
-                     bonus ở dữ liệu nạp để không cộng lại khi đổi rồi chọn lại. */
-                  bestSelectionBonusGranted: solution.bestSelectionBonusGranted === true || Boolean(solution.isBest),
-                }
-              : solution)
+            ? parsed.solutions.map(sanitizeLoadedSolution)
             : [],
           chatMessages: Array.isArray(parsed.chatMessages) ? parsed.chatMessages : [],
           feedbacks: Array.isArray(parsed.feedbacks) ? parsed.feedbacks : [],
@@ -762,6 +771,9 @@ const reportAccountLimiter = new SlidingWindowRateLimiter(REPORT_WINDOW_MS, 6);
 const reportIpLimiter = new SlidingWindowRateLimiter(REPORT_WINDOW_MS, 20);
 /* Epic 5 — tải ảnh đại diện / ảnh bìa (xử lý bằng sharp, tốn CPU). */
 const uploadLimiter = new SlidingWindowRateLimiter(10 * 60 * 1000, 20);
+/* Phản ứng nhanh dưới lời giải: theo TÀI KHOẢN (bắt buộc đăng nhập). Đủ rộng cho người thật bấm liên tục,
+   đủ chặt để một script không dội được hàng nghìn lượt đảo trạng thái (mỗi lượt đều ghi đĩa + phát cho mọi kết nối). */
+const reactionLimiter = new SlidingWindowRateLimiter(60 * 1000, 60);
 
 /**
   Chỉ dành cho bộ kiểm thử.
@@ -782,6 +794,7 @@ export function resetRateLimitersForTest() {
   reportAccountLimiter.reset();
   reportIpLimiter.reset();
   uploadLimiter.reset();
+  reactionLimiter.reset();
   presenceLimiter.reset();
   analyticsLimiter.reset();
 }
@@ -2680,6 +2693,69 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         });
       } catch (err: any) {
         sendJson(res, 500, { success: false, message: err.message });
+      }
+      return;
+    }
+
+    /*
+      Phản ứng nhanh (👍 Hữu ích · 🤯 Hay đó · 🙏 Cảm ơn) dưới một lời giải.
+
+      Chỉ là tín hiệu xã hội: KHÔNG cộng XP/Coin, KHÔNG đụng `upvotes` (con số đó đang nuôi thống kê hồ sơ và
+      thưởng đáp án chuẩn). Đặt/bỏ theo `active` nên idempotent — gửi lại không cộng dồn; thiếu `active` thì
+      đảo trạng thái hiện tại. Không tự bình chọn lời giải của chính mình (cùng tinh thần luật đáp án chuẩn).
+    */
+    if (method === 'POST' && url === '/api/solutions/react') {
+      try {
+        const body = await parseJsonBody(req);
+        const actor = authenticatedUser(req, body);
+        if (!actor) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để bày tỏ phản ứng.' });
+          return;
+        }
+        const gate = checkCanPost(actor.user.email, 'content');
+        if (!gate.ok) {
+          sendJson(res, gate.status, { success: false, message: gate.message });
+          return;
+        }
+        const throttle = reactionLimiter.check(`react:${actor.user.email.toLowerCase()}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'phản ứng');
+          return;
+        }
+
+        const solutionId = typeof body.solutionId === 'string' ? body.solutionId.trim() : '';
+        const kind = body.kind;
+        if (!solutionId || !isReactionKind(kind) || (body.active !== undefined && typeof body.active !== 'boolean')) {
+          sendJson(res, 400, { success: false, message: 'Phản ứng không hợp lệ.' });
+          return;
+        }
+        const target = store.solutions.find((solution) => solution.id === solutionId);
+        if (!target) {
+          sendJson(res, 404, { success: false, message: 'Lời giải này không còn tồn tại.' });
+          return;
+        }
+        const actorEmail = actor.user.email.toLowerCase();
+        const ownerEmail = String(target.authorEmail || '').trim().toLowerCase();
+        if ((ownerEmail && ownerEmail === actorEmail) || (target.authorId && target.authorId === actor.user.id)) {
+          sendJson(res, 409, { success: false, message: 'Bạn không thể tự bày tỏ phản ứng với lời giải của chính mình.' });
+          return;
+        }
+
+        const userId = String(actor.user.id);
+        const wasActive = Boolean(target.reactions?.[kind]?.includes(userId));
+        const wanted = typeof body.active === 'boolean' ? body.active : !wasActive;
+        const next: SolutionReactions = setReaction(target.reactions, kind, userId, wanted);
+        const nowActive = Boolean(next[kind]?.includes(userId));
+        const changed = nowActive !== wasActive;
+        if (changed) {
+          if (Object.keys(next).length > 0) target.reactions = next;
+          else delete target.reactions;
+          persistStoreToDisk();
+          broadcastServerEvent('SOLUTION_REACTIONS', { solutionId, reactions: next });
+        }
+        sendJson(res, 200, { success: true, solutionId, kind, active: nowActive, changed, reactions: next });
+      } catch (err: any) {
+        handleApiError(res, err);
       }
       return;
     }

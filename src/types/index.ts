@@ -1,4 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
+import type { SolutionReactions } from '../../shared/qaReactions.ts';
+
 export type DimensionView =
   | 'landing'
   | 'home'
@@ -137,6 +139,8 @@ export interface Solution {
   fiveStarCount?: number;
   rewardCoin?: number;
   imageUrl?: string;
+  /** Phản ứng nhanh (👍 Hữu ích · 🤯 Hay đó · 🙏 Cảm ơn) — ID người chọn theo từng loại. Chỉ là tín hiệu xã hội, không cộng XP. */
+  reactions?: SolutionReactions;
 }
 
 export type ChatChannelId = 'hallway' | 'quick-qa' | 'confessions' | 'club-hub';

@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { Suspense, useCallback, useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useDraftAutosave } from '../../utils/useDraftAutosave';
 import {
@@ -11,7 +11,6 @@ import {
   MessageSquare,
   Award,
   Sparkles,
-  Send,
   EyeOff,
   Filter,
   X,
@@ -33,6 +32,7 @@ import {
   ArrowUpDown,
 } from 'lucide-react';
 import type { Question, Solution, SubjectTag, User, ChatMessage } from '../../types';
+import type { ReactionKind } from '../../../shared/qaReactions';
 import { TierBadge, AdminVerifiedBadge } from '../Badges10Tier';
 import { getTierForLevel } from '../../utils/tier';
 import { ForumPostModeration } from '../ForumPost';
@@ -41,7 +41,7 @@ import {
   getRandomGhibliMask,
 } from '../../utils/ghibliMasks';
 import { DEFAULT_AVATAR, handleImageError, handleVideoError } from '../../utils/mediaFallback';
-import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
+import { isMasterAdmin } from '../../config/admin';
 import { capsHas, useAdminCaps } from '../../utils/adminCapabilities';
 import { pushNotification } from '../../utils/notifications';
 import { safeStorage } from '../../utils/storage';
@@ -68,39 +68,33 @@ import { LeaderboardWidget } from './LeaderboardWidget';
 import { CommentSkeletonList } from '../Skeletons';
 import { postJson } from '../../utils/session';
 import { describeReportResult, settleReportRequest } from '../../utils/reports';
-import { ShareRow } from '../ui/ShareRow';
-import { buildQuestionShareUrl, readSharedQuestionId, stripSharedQuestionParam } from '../../utils/shareLinks';
+import { lazyWithRetry } from '../../utils/lazyWithRetry';
+import { buildQuestionPath, resolveQuestionKey } from '../../utils/qaRoute';
+import {
+  getQaDepth,
+  isPlainLeftClick,
+  leaveQaDetail,
+  navigateTo,
+  readQaListMemory,
+  rememberQaList,
+  useQaRoute,
+} from '../../utils/qaRouter';
+import { handleImageUpload } from '../../utils/qaImage';
+import { runWithSharedElementTransition } from '../../utils/viewTransition';
+import { MathSymbolsBar } from './qa/MathSymbols';
+import { QADetailSkeleton, QA_DETAIL_FRAME_CLASS, QA_DETAIL_PADDING_CLASS } from './qa/QADetailStates';
+import type { OpenAuthor, QAAuthorInfo } from './qa/authors';
+import './qa/QADetail.css';
 
-const MATH_SYMBOLS = [
-  '√', 'π', '∑', '∫', '≤', '≥', 'α', 'β', '∞', '∆',
-  'θ', 'λ', 'µ', '±', '×', '÷', '≠', '≈', '≡', '∈',
-  '∉', '⊂', '⊃', '∪', '∩', '⊥', '∠', '°', '‰', '∂',
-  '∇', '∛', '∜', '²', '³', '½', '¼', '¾',
-];
-
-const MathSymbolsBar: React.FC<{ onInsert: (symbol: string) => void }> = ({ onInsert }) => (
-  <div className="flex flex-col gap-1 p-2 rounded-xl bg-white/5 border border-white/10 my-1.5">
-    <div className="flex items-center justify-between">
-      <span className="text-[11px] font-mono font-semibold text-cyan-300 uppercase tracking-wider">
-        ∑ Ký Hiệu Toán Học & Khoa Học (38 ký tự)
-      </span>
-      <span className="text-[11px] text-neutral-400 font-mono">Chạm để chèn</span>
-    </div>
-    <div className="flex items-center gap-1 flex-wrap max-h-36 overflow-y-auto pr-1">
-      {MATH_SYMBOLS.map(sym => (
-        <button
-          key={sym}
-          type="button"
-          onClick={() => onInsert(sym)}
-          className="w-11 h-11 rounded-lg bg-neutral-900 hover:bg-cyan-500/20 text-neutral-200 hover:text-cyan-300 border border-white/10 hover:border-cyan-400/40 text-sm font-mono font-bold flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
-          title={`Chèn ${sym}`}
-        >
-          {sym}
-        </button>
-      ))}
-    </div>
-  </div>
-);
+/* Trang chi tiết câu hỏi nằm ở chunk riêng: người chỉ đọc danh sách không phải tải thêm. Rê chuột / focus vào một
+   thẻ câu hỏi sẽ nạp sẵn chunk này (prefetch) nên lúc bấm vào gần như tức thì. */
+let qaDetailChunkReady = false;
+const loadQADetailPage = () =>
+  import('./qa/QADetailPage').then((module) => {
+    qaDetailChunkReady = true;
+    return module;
+  });
+const QADetailPage = lazyWithRetry(() => loadQADetailPage().then((m) => ({ default: m.QADetailPage })));
 
 interface QAForumViewProps {
   currentUser: User | null;
@@ -116,6 +110,7 @@ interface QAForumViewProps {
   }) => void;
   onAddSolution: (questionId: string, content: string, imageUrl?: string) => void;
   onMarkBestSolution: (questionId: string, solutionId: string) => void;
+  onReactSolution: (solutionId: string, kind: ReactionKind) => void;
   onDeleteQuestion?: (questionId: string) => void;
   onEditQuestion?: (questionId: string, updates: { title?: string; content?: string; subject?: SubjectTag }) => void;
   onDeleteSolution?: (solutionId: string) => void;
@@ -154,6 +149,19 @@ const SUBJECTS: { tag: SubjectTag | 'all'; label: string; group: 'academic' | 'l
   { tag: 'tamly', label: '#tamly', group: 'life' },
 ];
 
+/** Bộ nhớ danh sách lưu trên mục lịch sử hiện tại, chỉ nhận khi môn học trong đó còn hợp lệ. */
+const readInitialListMemory = (): { tag: SubjectTag | 'all'; search: string; savedOnly: boolean } | null => {
+  const memory = readQaListMemory();
+  if (!memory) return null;
+  const tag = SUBJECTS.find((subject) => subject.tag === memory.tag)?.tag;
+  return tag ? { tag, search: memory.search.slice(0, 100), savedOnly: memory.savedOnly } : null;
+};
+
+/** Nạp sẵn chunk trang chi tiết (lỗi mạng ở bước nạp sẵn không được phép gây gì — lúc bấm thật có cơ chế thử lại). */
+const prefetchQADetailPage = () => {
+  void loadQADetailPage().catch(() => undefined);
+};
+
 export const QAForumView: React.FC<QAForumViewProps> = ({
   currentUser,
   questions,
@@ -161,6 +169,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   onCreateQuestion,
   onAddSolution,
   onMarkBestSolution,
+  onReactSolution,
   onDeleteQuestion,
   onEditQuestion,
   onDeleteSolution,
@@ -174,39 +183,19 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 }) => {
   const [activeVideoIdx, setActiveVideoIdx] = useState(0);
   const [isAutoCycle, setIsAutoCycle] = useState(true);
-  const [selectedTag, setSelectedTag] = useState<SubjectTag | 'all'>('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  /* Mở lại trang (Back từ chi tiết sau khi tải lại, hoặc đi tới từ lịch sử) → bộ lọc cũ được trả về cùng vị trí cuộn. */
+  const [restoredList] = useState(readInitialListMemory);
+  const [selectedTag, setSelectedTag] = useState<SubjectTag | 'all'>(restoredList?.tag ?? 'all');
+  const [searchTerm, setSearchTerm] = useState(restoredList?.search ?? '');
   const [isAskModalOpen, setIsAskModalOpen] = useState(false);
-  // Liên kết chia sẻ ?q=<id> mở thẳng câu hỏi (nếu dữ liệu đã có sẵn khi vào trang)
-  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(() => {
-    const sharedId = typeof window !== 'undefined' ? readSharedQuestionId(window.location.search) : null;
-    return sharedId ? questions.find(item => item.id === sharedId) ?? null : null;
-  });
-  const pendingSharedId = useRef<string | null>(
-    typeof window !== 'undefined' ? readSharedQuestionId(window.location.search) : null,
-  );
-  // Dữ liệu về muộn (đồng bộ máy chủ) → mở câu hỏi khi tìm thấy, chỉ một lần.
-  useEffect(() => {
-    const sharedId = pendingSharedId.current;
-    if (!sharedId) return;
-    const found = questions.find(item => item.id === sharedId);
-    if (!found) return;
-    pendingSharedId.current = null;
-    const timer = window.setTimeout(() => setSelectedQuestion(prev => prev ?? found), 0);
-    return () => window.clearTimeout(timer);
-  }, [questions]);
-  // Đóng câu hỏi → gỡ ?q= khỏi thanh địa chỉ để tải lại trang không bật lại modal.
-  useEffect(() => {
-    if (selectedQuestion || typeof window === 'undefined') return;
-    if (readSharedQuestionId(window.location.search)) {
-      window.history.replaceState(window.history.state, '', stripSharedQuestionParam(window.location.href));
-    }
-  }, [selectedQuestion]);
+  /* Chi tiết câu hỏi là một TRANG có URL riêng (/hoi-dap/<id>-<slug>) chứ không còn là modal: có thể chia sẻ link,
+     nút Back của trình duyệt dùng được. Liên kết cũ `?q=<id>` được App đổi sang đường dẫn mới (xem utils/qaRouter). */
+  const route = useQaRoute();
+  const isDetail = route.kind === 'detail';
+  const feedRef = useRef<HTMLDivElement>(null);
 
   const [askCooldown, setAskCooldown] = useState(0);
   const [isSubmittingAsk, setIsSubmittingAsk] = useState(false);
-  const [solCooldown, setSolCooldown] = useState(0);
-  const [isSubmittingSol, setIsSubmittingSol] = useState(false);
 
   const [questionToDelete, setQuestionToDelete] = useState<Question | null>(null);
   const [questionToEdit, setQuestionToEdit] = useState<Question | null>(null);
@@ -230,8 +219,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const handleConfirmDelete = () => {
     if (questionToDelete && onDeleteQuestion) {
       onDeleteQuestion(questionToDelete.id);
-      if (selectedQuestion?.id === questionToDelete.id) {
-        setSelectedQuestion(null);
+      /* Đang đứng ở chính trang câu hỏi vừa xóa → về danh sách (không để người dùng nhìn trang "không tìm thấy"). */
+      if (route.kind === 'detail' && resolveQuestionKey(route.key, [questionToDelete.id])) {
+        leaveQaDetail();
       }
       setQuestionToDelete(null);
     }
@@ -255,18 +245,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         subject: editSubject,
         content: editContent.trim(),
       });
-      if (selectedQuestion?.id === questionToEdit.id) {
-        setSelectedQuestion(prev =>
-          prev
-            ? {
-                ...prev,
-                title: editTitle.trim(),
-                subject: editSubject,
-                content: editContent.trim(),
-              }
-            : null
-        );
-      }
       setQuestionToEdit(null);
     }
   };
@@ -280,43 +258,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   }, [askCooldown]);
 
   useEffect(() => {
-    if (solCooldown <= 0) return;
-    const timer = setInterval(() => {
-      setSolCooldown(prev => Math.max(0, prev - 1));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [solCooldown]);
-
-  useEffect(() => {
     if (!isAutoCycle) return;
     const interval = setInterval(() => {
       setActiveVideoIdx(prev => (prev + 1) % FORUM_VIDEOS.length);
     }, 20000);
     return () => clearInterval(interval);
   }, [isAutoCycle]);
-
-  /**
-   * Kênh để nơi khác (bảng lệnh, tìm kiếm toàn cục) bảo diễn đàn mở một câu hỏi
-   * cụ thể. `selectedQuestion` là state nội bộ của view này nên không thể điều
-   * khiển từ App bằng prop; dùng sự kiện window để giữ nguyên ranh giới đó.
-   *
-   * Kèm theo: đặt luôn từ khoá tìm kiếm thành tiêu đề câu hỏi để nếu câu hỏi đó
-   * vừa bị xoá, người dùng vẫn thấy ngữ cảnh thay vì một danh sách trống.
-   */
-  useEffect(() => {
-    const onOpenQuestion = (event: Event) => {
-      const detail = (event as CustomEvent).detail;
-      const questionId = typeof detail === 'string' ? detail : detail?.questionId;
-      if (!questionId) return;
-      const target = questions.find(q => q.id === questionId);
-      if (!target) return;
-      setSelectedTag(target.subject ?? 'all');
-      setSearchTerm('');
-      setSelectedQuestion(target);
-    };
-    window.addEventListener('fforum_open_question', onOpenQuestion);
-    return () => window.removeEventListener('fforum_open_question', onOpenQuestion);
-  }, [questions]);
 
   /*
     Ô soạn này trước đây giữ nội dung trong state thuần: reload trang, bấm nhầm
@@ -356,19 +303,13 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     [isAnonymous, newSubject]
   );
 
-  const [solutionText, setSolutionText] = useState('');
-  const [solImage, setSolImage] = useState<string | null>(null);
-  const [solImageError, setSolImageError] = useState<string | null>(null);
-
-  const [activeAuthorPopover, setActiveAuthorPopover] = useState<{
-    id: string;
-    name: string;
-    avatar: string;
-    email?: string;
-    level: number;
-    coin?: number;
-  } | null>(null);
+  const [activeAuthorPopover, setActiveAuthorPopover] = useState<QAAuthorInfo | null>(null);
   const [authorAnchorPos, setAuthorAnchorPos] = useState<{ x: number; y: number }>({ x: 240, y: 180 });
+  /* Thẻ tác giả dùng chung cho danh sách và trang chi tiết: bấm tên/ảnh → xem hồ sơ hoặc tố cáo. */
+  const openAuthorPopover: OpenAuthor = (author, anchor) => {
+    setAuthorAnchorPos(anchor);
+    setActiveAuthorPopover(author);
+  };
 
 
 
@@ -378,38 +319,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [isSubmittingReport, setIsSubmittingReport] = useState<boolean>(false);
   const [reportSuccessMsg, setReportSuccessMsg] = useState<string | null>(null);
   const [reportErrorMsg, setReportErrorMsg] = useState<string | null>(null);
-
-  const handleImageUpload = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    setImage: (img: string | null) => void,
-    setError: (err: string | null) => void
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setError('Vui lòng chỉ tải lên tệp hình ảnh (PNG, JPG, WebP)!');
-      e.target.value = '';
-      return;
-    }
-    const maxSize = 20 * 1024 * 1024;
-    if (file.size > maxSize) {
-      setError(`Kích thước ảnh (${(file.size / (1024 * 1024)).toFixed(1)}MB) vượt quá giới hạn cho phép 20MB!`);
-      e.target.value = '';
-      return;
-    }
-    setError(null);
-    const reader = new FileReader();
-    reader.onload = ev => {
-      if (typeof ev.target?.result === 'string') {
-        setImage(ev.target.result);
-      }
-    };
-    reader.onerror = () => {
-      setError('Lỗi khi đọc file ảnh. Vui lòng thử lại!');
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
 
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -457,7 +366,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [savedMap, setSavedMap] = useState(() =>
     parseSavedQuestions(safeStorage.getItem(SAVED_QUESTIONS_KEY)),
   );
-  const [showSavedOnly, setShowSavedOnly] = useState(false);
+  const [showSavedOnly, setShowSavedOnly] = useState(Boolean(restoredList?.savedOnly) && Boolean(savedOwnerKey));
 
   /*
     Chủ sở hữu đổi (đăng nhập / đăng xuất / đổi tài khoản) thì nạp lại đúng danh
@@ -485,10 +394,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       setSearchTerm('');
       setSelectedTag('all');
       setShowSavedOnly(true);
+      /* Đang đọc một câu hỏi thì phải về danh sách mới thấy kết quả lọc. */
+      if (isDetail) leaveQaDetail();
     };
     window.addEventListener('fforum_show_saved_questions', onShowSaved);
     return () => window.removeEventListener('fforum_show_saved_questions', onShowSaved);
-  }, [savedOwnerKey]);
+  }, [savedOwnerKey, isDetail]);
 
   const persistSavedMap = (next: typeof savedMap) => {
     setSavedMap(next);
@@ -579,6 +490,113 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     return sortQuestions(matched, sortMode, counts);
   }, [questions, solutions, selectedTag, searchTerm, showSavedOnly, mySavedIds, sortMode]);
 
+  /* Danh sách là cửa vào duy nhất của trang chi tiết → nạp sẵn chunk lúc trình duyệt rảnh, để lần bấm đầu tiên cũng mượt. */
+  useEffect(() => {
+    if (isDetail) return;
+    const handle = window.setTimeout(prefetchQADetailPage, 600);
+    return () => window.clearTimeout(handle);
+  }, [isDetail]);
+
+  /* Mở một câu hỏi = điều hướng sang TRANG của nó (pushState → có mục lịch sử riêng nên Back dùng được). */
+  const openQuestion = useCallback(
+    (question: Question, origin?: HTMLElement | null) => {
+      const goToQuestion = (depth: number) =>
+        navigateTo(buildQuestionPath(question.id, question.title), { state: depth > 0 ? { ffQaDepth: depth } : undefined });
+      if (route.kind === 'list') {
+        /* Ghi bộ lọc + vị trí cuộn lên chính mục lịch sử của danh sách → Back trả về đúng chỗ. */
+        rememberQaList({
+          tag: selectedTag,
+          search: searchTerm,
+          savedOnly: showSavedOnly,
+          scrollTop: isEmbedded ? window.scrollY : (feedRef.current?.scrollTop ?? 0),
+          focusId: question.id,
+        });
+        /* Thẻ trên danh sách "phóng to" thành phần đầu trang chi tiết. Chỉ khi chunk trang đã nạp xong: nếu chưa, khung
+           "sau" của chuyển cảnh sẽ chụp phải khung chờ (không có phần tử để khớp). Khi đó điều hướng ngay —
+           trang mới tự vào bằng hiệu ứng mờ + trượt nhẹ 250ms (trình duyệt không hỗ trợ cũng rơi về đây). */
+        if (qaDetailChunkReady) {
+          runWithSharedElementTransition(() => goToQuestion(1), {
+            element: origin,
+            until: () => Boolean(document.querySelector('.ff-qa-hero')),
+          });
+        } else {
+          goToQuestion(1);
+        }
+      } else {
+        /* Từ câu hỏi này sang câu liên quan: độ sâu +1 nếu phía sau vẫn là danh sách; vào thẳng bằng link thì không có danh sách để quay về. */
+        const depth = getQaDepth();
+        goToQuestion(depth > 0 ? depth + 1 : 0);
+      }
+    },
+    [route.kind, selectedTag, searchTerm, showSavedOnly, isEmbedded],
+  );
+
+  /**
+   * Kênh để nơi khác (bảng lệnh, tìm kiếm toàn cục) bảo diễn đàn mở một câu hỏi
+   * cụ thể. Bộ lọc/tìm kiếm là state nội bộ của view này nên không thể điều
+   * khiển từ App bằng prop; dùng sự kiện window để giữ nguyên ranh giới đó.
+   *
+   * Kèm theo: đặt luôn từ khoá tìm kiếm thành tiêu đề câu hỏi để nếu câu hỏi đó
+   * vừa bị xoá, người dùng vẫn thấy ngữ cảnh thay vì một danh sách trống.
+   */
+  useEffect(() => {
+    const onOpenQuestion = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      const questionId = typeof detail === 'string' ? detail : detail?.questionId;
+      if (!questionId) return;
+      const target = questions.find(q => q.id === questionId);
+      if (!target) return;
+      setSelectedTag(target.subject ?? 'all');
+      setSearchTerm('');
+      openQuestion(target);
+    };
+    window.addEventListener('fforum_open_question', onOpenQuestion);
+    return () => window.removeEventListener('fforum_open_question', onOpenQuestion);
+  }, [questions, openQuestion]);
+
+  /* Vừa quay về danh sách từ trang chi tiết → danh sách mờ dần vào (không trượt, để vị trí cuộn đã khôi phục không "nhảy").
+     Vào lại danh sách → quyết định MỘT lần có khôi phục vị trí cuộn không: chỉ khi bộ lọc hiện tại đúng là bộ lọc lúc rời đi
+     (vị trí cuộn của một danh sách khác thì vô nghĩa). Điều chỉnh state ngay lúc render, không qua effect → không nháy khung cũ. */
+  const [prevRouteKind, setPrevRouteKind] = useState(route.kind);
+  const [justReturned, setJustReturned] = useState(false);
+  const [restoreScroll, setRestoreScroll] = useState<number | null>(() =>
+    restoredList ? (readQaListMemory()?.scrollTop ?? null) : null,
+  );
+  if (prevRouteKind !== route.kind) {
+    setPrevRouteKind(route.kind);
+    setJustReturned(route.kind === 'list');
+    const memory = route.kind === 'list' ? readQaListMemory() : null;
+    setRestoreScroll(
+      memory && memory.tag === selectedTag && memory.search === searchTerm && memory.savedOnly === showSavedOnly
+        ? memory.scrollTop
+        : null,
+    );
+  }
+  /* Trả tiêu điểm bàn phím về đúng thẻ vừa mở (chỉ khi vào lại danh sách — gõ tìm kiếm sau đó không bị giành focus). */
+  useLayoutEffect(() => {
+    if (isDetail) return;
+    const focusId = readQaListMemory()?.focusId;
+    if (!focusId) return;
+    [...document.querySelectorAll<HTMLElement>('[data-qa-card-link]')]
+      .find((link) => link.dataset.qaCardLink === focusId)
+      ?.focus({ preventScroll: true });
+  }, [isDetail]);
+  /* Dữ liệu có thể về muộn (đồng bộ máy chủ) nên thử lại tới khi cuộn được tới đúng chỗ hoặc dữ liệu đã đầy đủ. */
+  useLayoutEffect(() => {
+    if (isDetail || restoreScroll === null) return;
+    let reached = isSynced;
+    if (isEmbedded) {
+      window.scrollTo(0, restoreScroll);
+      reached = true;
+    } else {
+      const feed = feedRef.current;
+      if (!feed) return;
+      feed.scrollTop = restoreScroll;
+      reached = reached || feed.scrollTop >= restoreScroll - 1;
+    }
+    if (reached) setRestoreScroll(null);
+  }, [isDetail, isEmbedded, isSynced, restoreScroll, filteredQuestions.length]);
+
   const handleAskSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (askCooldown > 0 || isSubmittingAsk) return;
@@ -615,26 +633,14 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     setAskCooldown(5);
   };
 
-  const handleSolutionSubmit = (questionId: string) => {
-    if (solCooldown > 0 || isSubmittingSol) return;
-    if (!solutionText.trim()) return;
-    if (!currentUser) {
-      alert('Vui lòng đăng nhập để gửi câu trả lời!');
-      onOpenLoginModal?.();
-      return;
-    }
-
-    setIsSubmittingSol(true);
-    onAddSolution(questionId, solutionText.trim().slice(0, 1500), solImage || undefined);
-    setSolutionText('');
-    setSolImage(null);
-    setSolImageError(null);
-    setIsSubmittingSol(false);
-    setSolCooldown(3);
-  };
-
   return (
-    <section className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8`}>
+    <section
+      className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} ${
+        isDetail
+          ? '' /* trang chi tiết tự đệm và tự cuộn (xem qa/QADetailPage) */
+          : 'flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8'
+      }`}
+    >
       
       {/* Triple Video Crossfade Switcher Background Engine */}
       <div className="ff-video-bg absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -657,8 +663,42 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
       </div>
 
-      {/* Main Container */}
-      <div className={`relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col ${isEmbedded ? '' : 'overflow-hidden'}`}>
+      {route.kind === 'detail' ? (
+        <Suspense
+          fallback={
+            <div className={`${QA_DETAIL_FRAME_CLASS} z-10`}>
+              <div className={QA_DETAIL_PADDING_CLASS}>
+                <QADetailSkeleton />
+              </div>
+            </div>
+          }
+        >
+          <QADetailPage
+            routeKey={route.key}
+            questions={questions}
+            solutions={solutions}
+            users={users}
+            currentUser={currentUser}
+            isSynced={isSynced}
+            isSuperAdmin={isSuperAdmin}
+            canEditContent={canEditContent}
+            savedIds={mySavedIds}
+            onToggleSave={handleToggleSaveQuestion}
+            onAddSolution={onAddSolution}
+            onMarkBestSolution={onMarkBestSolution}
+            onReactSolution={onReactSolution}
+            onDeleteSolution={onDeleteSolution}
+            onOpenLoginModal={onOpenLoginModal}
+            onOpenAuthor={openAuthorPopover}
+            onEditPost={handleAdminEditPost}
+            onDeletePost={handleAdminDeletePost}
+            onBack={leaveQaDetail}
+            onOpenQuestion={(question) => openQuestion(question)}
+          />
+        </Suspense>
+      ) : (
+      /* Danh sách (feed) */
+      <div className={`relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col ${isEmbedded ? '' : 'overflow-hidden'} ${justReturned ? 'ff-qa-list-return' : ''}`}>
         
         {/* Header Bar with Ambient Video Switcher Pills */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4 pb-3 border-b border-white/10 shrink-0">
@@ -854,7 +894,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         {/* Main Content Area: Questions Feed (Col 8) + Leaderboard & Ask CTA Widget (Col 4) */}
         <div className={`flex-1 ${isEmbedded ? '' : 'overflow-hidden'} grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0 pb-6`}>
           {/* Left: Questions Feed */}
-          <div className={`lg:col-span-8 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-3 pb-6`}>
+          <div ref={feedRef} className={`lg:col-span-8 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-3 pb-6`}>
           {!isSynced && filteredQuestions.length === 0 ? (
             <div className="rounded-2xl liquid-glass bg-white/5 border border-white/10 overflow-hidden">
               <CommentSkeletonList rows={4} />
@@ -937,19 +977,15 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               return (
                 <div
                   key={q.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setSelectedQuestion(q)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      const target = e.target as HTMLElement;
-                      if (!target.closest('button')) {
-                        e.preventDefault();
-                        setSelectedQuestion(q);
-                      }
-                    }
+                  /* Cả thẻ bấm được bằng chuột; bàn phím/trình đọc màn hình dùng link ở tiêu đề (link thật: Ctrl+click mở tab mới).
+                     Các nút con (lưu, quản trị, tác giả) tự chặn nổi bọt nên không kích hoạt thẻ. */
+                  onClick={(e) => {
+                    if (!isPlainLeftClick(e) || (e.target as HTMLElement).closest('button')) return;
+                    e.preventDefault();
+                    openQuestion(q, e.currentTarget);
                   }}
-                  aria-label={`Xem chi tiết câu hỏi: ${q.title}`}
+                  onPointerEnter={prefetchQADetailPage}
+                  onFocus={prefetchQADetailPage}
                   className={`cursor-pointer rounded-2xl liquid-glass p-4 border transition-all duration-200 group hover:scale-[1.008] ${
                     q.isSolved
                       ? 'bg-neutral-950/70 border-amber-500/40 hover:border-amber-400 shadow-[0_4px_20px_rgba(245,158,11,0.1)]'
@@ -986,7 +1022,13 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       </div>
 
                       <h3 className="text-sm sm:text-base font-bold text-white group-hover:text-cyan-300 transition-colors">
-                        {q.title}
+                        <a
+                          href={buildQuestionPath(q.id, q.title)}
+                          data-qa-card-link={q.id}
+                          className="rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300"
+                        >
+                          {q.title}
+                        </a>
                       </h3>
 
                       <p className="text-xs text-neutral-300 line-clamp-2 leading-relaxed">
@@ -1013,7 +1055,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           {qSolutions.length} lời giải
                         </span>
 
-                        {/* Nút lưu câu hỏi — stopPropagation vì cả thẻ là role="button" */}
+                        {/* Nút lưu câu hỏi — stopPropagation vì cả thẻ bấm được để mở câu hỏi */}
                         <button
                           type="button"
                           onClick={(e) => {
@@ -1218,6 +1260,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           </div>
         </div>
       </div>
+      )}
 
       {/* Modal: Đặt Câu Hỏi Mới (+50 XP) */}
       {isAskModalOpen && (
@@ -1466,330 +1509,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 </div>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Chi Tiết Câu Hỏi & Solutions Feed */}
-      {selectedQuestion && (
-        <div role="dialog" aria-modal="true" aria-label="Chi tiết câu hỏi" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up">
-          <div className="liquid-glass w-full max-w-2xl rounded-3xl bg-neutral-950/95 border border-white/20 shadow-2xl p-6 relative max-h-[92vh] overflow-y-auto">
-            
-            {/* Header */}
-            <div className="flex items-start justify-between pb-3 border-b border-white/10 mb-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                    #{selectedQuestion.subject}
-                  </span>
-                  {selectedQuestion.bountyCoin && (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 font-bold">
-                      <Coins className="w-3 h-3 text-amber-400" />
-                      +{selectedQuestion.bountyCoin} Coin Phần Thưởng
-                    </span>
-                  )}
-                  {selectedQuestion.isSolved && (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                      <Check className="w-3 h-3" /> Đã Giải Quyết
-                    </span>
-                  )}
-                </div>
-                <h3 className="font-bold text-base sm:text-lg text-white">
-                  {selectedQuestion.title}
-                </h3>
-                <div className="pt-2">
-                  <ShareRow
-                    url={buildQuestionShareUrl(selectedQuestion.id, window.location.origin, window.location.pathname)}
-                    title={selectedQuestion.title}
-                  />
-                </div>
-              </div>
-
-              <button
-                onClick={() => setSelectedQuestion(null)}
-                className="p-1 rounded-full text-neutral-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Author bar & Question Content */}
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 mb-5">
-              <div className="flex items-center justify-between mb-2">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-                    if (!selectedQuestion.isAnonymous) {
-                      const existing = Object.values(users).find(u => u.id === selectedQuestion.authorId) ||
-                        (currentUser && currentUser.id === selectedQuestion.authorId ? currentUser : null);
-                      setActiveAuthorPopover({
-                        id: selectedQuestion.authorId,
-                        name: existing?.name || selectedQuestion.authorName,
-                        avatar: existing?.avatar || selectedQuestion.authorAvatar,
-                        email: existing?.email,
-                        level: existing?.level || 1,
-                        coin: existing?.coin || 100,
-                      });
-                    }
-                  }}
-                  className="flex items-center gap-2 text-xs text-neutral-400 hover:opacity-80 transition-opacity cursor-pointer text-left"
-                  title={selectedQuestion.isAnonymous ? 'Tác giả ẩn danh' : 'Xem thông tin tác giả'}
-                >
-                  <img
-                    src={selectedQuestion.authorAvatar}
-                    alt={selectedQuestion.authorName}
-                    onError={e => handleImageError(e, DEFAULT_AVATAR)}
-                    loading="lazy"
-                    decoding="async"
-                    width={24}
-                    height={24}
-                    className={`w-6 h-6 rounded-full object-cover border ${
-                      selectedQuestion.isAnonymous
-                        ? 'border-purple-400 p-0.5 shadow-[0_0_8px_rgba(168,85,247,0.5)]'
-                        : 'border-white/20'
-                    }`}
-                  />
-                  <span
-                    className={`font-semibold ${
-                      selectedQuestion.isAnonymous ? 'text-purple-300' : 'text-white'
-                    }`}
-                  >
-                    {selectedQuestion.authorName}
-                  </span>
-                  {selectedQuestion.isAnonymous && (
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-purple-500/20 text-purple-200 border border-purple-400/30 flex items-center gap-1">
-                      <Wand2 className="w-3 h-3 text-purple-400" />
-                      Pháp sư Ghibli
-                    </span>
-                  )}
-                  <span>•</span>
-                  <span>{selectedQuestion.createdAt}</span>
-                </button>
-              </div>
-              <p className="text-xs sm:text-sm text-neutral-200 leading-relaxed whitespace-pre-line">
-                {selectedQuestion.content}
-              </p>
-
-              {selectedQuestion.imageUrl && (
-                <div className="mt-3 rounded-xl overflow-hidden border border-white/15 max-w-md bg-black/40 p-1">
-                  <img loading="lazy" decoding="async"
-                    src={selectedQuestion.imageUrl}
-                    alt="Đính kèm câu hỏi"
-                    className="max-h-72 rounded-lg object-contain mx-auto"
-                  />
-                </div>
-              )}
-
-              <ForumPostModeration
-                postId={selectedQuestion.id}
-                onDeletePost={handleAdminDeletePost}
-                onEditPost={handleAdminEditPost}
-                isSuperAdmin={canEditContent}
-              />
-            </div>
-
-            {/* Solutions Section */}
-            <div className="space-y-3 mb-5">
-              <h4 className="font-bold text-xs sm:text-sm text-white flex items-center justify-between">
-                <span>CÁC BÀI GIẢI ĐÃ ĐÓNG GÓP ({solutions.filter(s => s.questionId === selectedQuestion.id).length})</span>
-                <span className="text-[10px] text-neutral-400 font-normal">
-                  Chỉ tác giả hoặc Super Admin mới có quyền xác nhận đáp án chuẩn
-                </span>
-              </h4>
-
-              {solutions.filter(s => s.questionId === selectedQuestion.id).length === 0 ? (
-                <p className="text-neutral-500 text-xs italic text-center py-4">
-                  Chưa có bạn nào trợ giúp giải câu này. Hãy là người đầu tiên đưa ra đáp án chính xác!
-                </p>
-              ) : (
-                solutions
-                  .filter(s => s.questionId === selectedQuestion.id)
-                  .sort((a, b) => (b.isBest ? 1 : 0) - (a.isBest ? 1 : 0))
-                  .map(sol => {
-                    const isSuperAdminSolver = isMasterAdmin(sol.authorEmail);
-                    const solverName = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.name : sol.authorName;
-                    const solverAvatar = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.avatar : sol.authorAvatar;
-                    const canConfirmBest =
-                      isSuperAdmin || currentUser?.id === selectedQuestion.authorId;
-
-                    return (
-                      <div
-                        key={sol.id}
-                        className={`p-4 rounded-2xl transition-all ${
-                          sol.isBest
-                            ? 'bg-amber-950/30 border-2 border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.25)]'
-                            : 'bg-white/5 border border-white/10'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-                              const existing = Object.values(users).find(u => u.id === sol.authorId || (sol.authorEmail && u.email?.toLowerCase() === sol.authorEmail.toLowerCase())) ||
-                                (currentUser && (currentUser.id === sol.authorId || (sol.authorEmail && currentUser.email?.toLowerCase() === sol.authorEmail.toLowerCase())) ? currentUser : null);
-                              setActiveAuthorPopover({
-                                id: sol.authorId,
-                                name: isSuperAdminSolver ? MASTER_ADMIN_CONFIG.name : (existing?.name || solverName),
-                                avatar: isSuperAdminSolver ? MASTER_ADMIN_CONFIG.avatar : (existing?.avatar || solverAvatar),
-                                email: sol.authorEmail || existing?.email,
-                                level: isSuperAdminSolver ? 150 : (existing?.level || sol.authorLevel),
-                                coin: existing?.coin || 100,
-                              });
-                            }}
-                            className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer text-left"
-                            title="Xem hồ sơ người giải bài"
-                          >
-                            <div className="relative">
-                              <img
-                                src={solverAvatar}
-                                alt={solverName}
-                                onError={e => handleImageError(e, DEFAULT_AVATAR)}
-                                loading="lazy"
-                                decoding="async"
-                                width={28}
-                                height={28}
-                                className={`w-7 h-7 rounded-full object-cover ${
-                                  isSuperAdminSolver ? 'border border-amber-400' : ''
-                                }`}
-                              />
-                              <span className="absolute -bottom-1 -right-1">
-                                <TierBadge level={isSuperAdminSolver ? 150 : sol.authorLevel} size={14} showTooltip={false} />
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <span
-                                className={`text-xs ${
-                                  isSuperAdminSolver ? 'discord-admin-name' : 'font-bold text-white'
-                                }`}
-                              >
-                                {solverName}
-                              </span>
-                              {isSuperAdminSolver && <AdminVerifiedBadge size={13} />}
-                              <span className="text-[10px] text-neutral-500 font-mono">
-                                • Lv.{sol.authorLevel}
-                              </span>
-                            </div>
-                          </button>
-
-                          {sol.isBest && (
-                            <span className="px-2.5 py-1 rounded-full bg-amber-500 text-black text-[10px] font-extrabold flex items-center gap-1 shadow-md">
-                              <Award className="w-3 h-3" />
-                              ĐÁP ÁN CHUẨN (+{Math.floor((selectedQuestion.bountyCoin || 20) * 0.5) + 100} COIN)
-                            </span>
-                          )}
-                        </div>
-
-                        <p className="text-xs text-neutral-200 leading-relaxed whitespace-pre-line">
-                          {sol.content}
-                        </p>
-
-                        {sol.imageUrl && (
-                          <div className="mt-2.5 rounded-xl overflow-hidden border border-white/10 max-w-sm bg-black/40 p-1">
-                            <img loading="lazy" decoding="async"
-                              src={sol.imageUrl}
-                              alt="Hình ảnh lời giải"
-                              className="max-h-56 rounded-lg object-contain mx-auto"
-                            />
-                          </div>
-                        )}
-
-                        <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-xs text-neutral-400">
-                          <span className="text-[10px] font-mono">{sol.createdAt}</span>
-
-                          <div className="flex items-center gap-2">
-                            {/* Xoá lời giải (Super Admin / quyền edit_content) */}
-                            {canEditContent && (
-                              <button
-                                type="button"
-                                onClick={() => onDeleteSolution?.(sol.id)}
-                                className="inline-flex items-center gap-1 text-[11px] text-red-400 hover:text-red-300 transition-colors px-2 py-0.5 rounded bg-red-500/10 border border-red-500/20 cursor-pointer"
-                                title="Xóa phản hồi vi phạm"
-                              >
-                                <Trash2 size={11} /> Xóa phản hồi vi phạm
-                              </button>
-                            )}
-
-                            {/* Nút xác nhận Đáp Án Chuẩn */}
-                            {canConfirmBest && !sol.isBest && (
-                              <button
-                                onClick={() => onMarkBestSolution(selectedQuestion.id, sol.id)}
-                                className="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black font-bold text-[11px] border border-amber-400/40 transition-all flex items-center gap-1 cursor-pointer"
-                                title={`Xác nhận đáp án chính xác nhất để thưởng +${Math.floor((selectedQuestion.bountyCoin || 20) * 0.5) + 100} Coin`}
-                              >
-                                <Check className="w-3.5 h-3.5" />
-                                ✓ Xác nhận Đáp Án Chuẩn (+{Math.floor((selectedQuestion.bountyCoin || 20) * 0.5) + 100} Coin)
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-              )}
-            </div>
-
-            {/* Submit New Solution (+25 XP) */}
-            <div className="pt-3 border-t border-white/10">
-              <label htmlFor="field-2" className="block text-xs font-semibold text-neutral-300 mb-1.5 flex items-center justify-between">
-                <span>Đóng góp lời giải của bạn:</span>
-                <span className="text-[10px] font-mono text-cyan-300">+25 XP khi gửi lời giải</span>
-              </label>
-
-              <textarea id="field-2"
-                rows={3}
-                maxLength={1500}
-                value={solutionText}
-                onChange={e => setSolutionText(e.target.value)}
-                placeholder="Nhập chi tiết từng bước giải bài, định lý hoặc lời khuyên học tập..."
-                className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 resize-none mb-1.5"
-              />
-
-              <MathSymbolsBar onInsert={sym => setSolutionText(prev => prev + sym)} />
-
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-2">
-                <div>
-                  {solImage ? (
-                    <div className="relative inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white/10 border border-white/20 text-xs text-cyan-300">
-                      <ImageIcon className="w-3.5 h-3.5" />
-                      <span>Đã đính kèm ảnh</span>
-                      <button
-                        type="button"
-                        onClick={() => setSolImage(null)}
-                        className="p-0.5 rounded-full hover:bg-red-500/30 text-red-400 cursor-pointer"
-                        title="Gỡ ảnh"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label htmlFor="field-3" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
-                      <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Đính kèm ảnh lời giải (&le; 20MB)</span>
-                      <input id="field-3"
-                        type="file"
-                        accept="image/*"
-                        onChange={e => handleImageUpload(e, setSolImage, setSolImageError)}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-                  {solImageError && (
-                    <p className="text-[11px] text-red-400 mt-1">{solImageError}</p>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => handleSolutionSubmit(selectedQuestion.id)}
-                  disabled={!solutionText.trim() || solCooldown > 0 || isSubmittingSol}
-                  className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-neutral-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{solCooldown > 0 ? `Chờ ${solCooldown}s...` : isSubmittingSol ? 'Đang gửi...' : '+ Trợ Giúp Giải Bài (+25 XP)'}</span>
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}

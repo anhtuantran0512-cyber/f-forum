@@ -1,6 +1,8 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import { lazyWithRetry } from './utils/lazyWithRetry';
+import { parseQaPath } from './utils/qaRoute';
+import { leaveQaDetail, useQaUrlSync } from './utils/qaRouter';
 import { installInteractionWatchdog } from './utils/interactionWatchdog';
 import { useForumStore } from './store/forumStore';
 import { Navbar } from './components/Navbar';
@@ -43,7 +45,7 @@ import { ViewTransitionLoader } from './components/ViewTransitionLoader';
 import { FocusSessionWatcher } from './components/FocusSessionWatcher';
 import { AuthProvider } from './context/AuthContext';
 import { GODRAY_PRESETS } from './utils/godrays';
-import { getGradient, resolveGodrayId, resolvePotatorId } from './utils/gradients';
+import { getGradient, potatorScrim, resolveGodrayId, resolvePotatorId } from './utils/gradients';
 import { GradientSurface } from './components/GradientSurface';
 import { safeStorage } from './utils/storage';
 import { isMasterAdmin } from './config/admin';
@@ -201,6 +203,7 @@ export const App: React.FC = () => {
     createQuestion,
     addSolution,
     markBestSolution,
+    reactToSolution,
     chatMessages,
     sendChatMessage,
     onlineUsers,
@@ -515,6 +518,11 @@ export const App: React.FC = () => {
   const handleViewChange = useCallback(
     (v: DimensionView) => {
       if (v === currentView) {
+        /* Đang đọc một câu hỏi mà bấm lại tab Hỏi đáp → về danh sách, như bấm vào mục gốc của khu vực đó. */
+        if (v === 'qa' && parseQaPath(window.location.pathname)?.kind === 'detail') {
+          leaveQaDetail();
+          return;
+        }
         window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
         return;
       }
@@ -524,6 +532,9 @@ export const App: React.FC = () => {
     },
     [currentView, setCurrentView, beginTransition],
   );
+
+  /* Thanh địa chỉ luôn khớp phân khu (Hỏi đáp = /hoi-dap…), Back/Forward đi qua ranh giới Hỏi đáp hoạt động đúng. */
+  useQaUrlSync(currentView, handleViewChange);
 
   const handleViewReady = useCallback((view: DimensionView) => {
     setReadyView(view);
@@ -895,6 +906,8 @@ export const App: React.FC = () => {
 
   const activeGodray = GODRAY_PRESETS.find(p => p.id === godrayPreset) || GODRAY_PRESETS[0];
 
+  const potatorTint = potatorScrim(getGradient(potatorBg));
+
   useEffect(() => {
     document.documentElement.style.setProperty('--ff-accent', activeGodray.accent);
     document.documentElement.style.setProperty('--ff-godray-gradient', activeGodray.gradient);
@@ -935,23 +948,35 @@ export const App: React.FC = () => {
       <GlobalCursor />
       
       <div
-        className={`relative w-full ${
+        className={`relative isolate w-full ${
           isScrollableView ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'
         } ff-app-shell ff-view-${currentView} ${currentView === 'landing' ? 'bg-[var(--ff-bg)]' : 'bg-black'} text-white font-sans`}
       >
         {/* EPIC 2 — Potator Mode: lớp nền tĩnh theo preset (CSS chỉ hiện ở trang không phải Trang chủ) */}
         {potatorMode ? (
-          <GradientSurface gradient={getGradient(potatorBg).css} className="ff-potator-bg" />
+          <>
+            <GradientSurface gradient={getGradient(potatorBg).css} className="ff-potator-bg" />
+            {/* Preset là NỀN, chữ vẫn theo theme → phủ vừa đủ đục để chữ đạt AA (utils/gradients#potatorScrim) */}
+            <div
+              className="ff-potator-scrim"
+              aria-hidden="true"
+              style={{
+                '--ff-scrim-dark': potatorTint.dark,
+                '--ff-scrim-light': potatorTint.light,
+              } as React.CSSProperties}
+            />
+          </>
         ) : <div className="ff-potator-bg" aria-hidden="true" />}
-        {/* Ambient Godray Gradient Lighting Overlay (Enhanced influence across viewport) */}
+        {/* Ambient Godray Gradient Lighting — lớp NỀN: z âm nên luôn nằm DƯỚI nội dung (shell là `isolate`
+            nên nó chỉ nằm trên màu nền của shell, không bao giờ phủ/nhuộm màu chữ hay thẻ). */}
         <GradientSurface
           gradient={activeGodray.gradient}
-          className="ff-godray-layer fixed inset-0 z-[1]"
+          className="ff-godray-layer fixed inset-0 z-[-2]"
           style={{ opacity: (godrayIntensity / 100) * 0.22 }}
         />
         <GradientSurface
           gradient={`radial-gradient(ellipse at 50% 0%, ${activeGodray.accent}55 0%, transparent 72%)`}
-          className="ff-godray-layer fixed -top-24 inset-x-0 h-[360px] z-[1] blur-3xl"
+          className="ff-godray-layer fixed -top-24 inset-x-0 h-[360px] z-[-2] blur-3xl"
           style={{ opacity: (godrayIntensity / 100) * 0.58 }}
         />
       
@@ -1044,6 +1069,7 @@ export const App: React.FC = () => {
               onCreateQuestion={createQuestion}
               onAddSolution={addSolution}
               onMarkBestSolution={markBestSolution}
+              onReactSolution={reactToSolution}
               onDeleteQuestion={adminDeleteQuestion}
               onEditQuestion={adminEditQuestion}
               onDeleteSolution={adminDeleteSolution}

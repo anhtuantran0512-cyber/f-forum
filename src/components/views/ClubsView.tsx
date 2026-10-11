@@ -11,14 +11,14 @@ import {
   Sparkles,
   Send,
   Lock,
-  ExternalLink,
   X,
   FileText,
-  Filter,
+  ArrowRight,
 } from 'lucide-react';
 import type { Club, ClubPost, User, ClubCategory, ChatMessage } from '../../types';
 import { DEFAULT_CLUB_COVER, handleImageError, handleVideoError } from '../../utils/mediaFallback';
 import { isMasterAdmin } from '../../config/admin';
+import { CuBong } from '../mascot/CuBong';
 import './ClubsView.css';
 
 interface ClubsViewProps {
@@ -128,8 +128,39 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
     ? [...clubScores].sort((a, b) => b.score - a.score)[0]
     : null;
 
-  const spotlightClub = bestClubObj && bestClubObj.score > 0 ? bestClubObj.club : (approvedClubs.length > 0 && clubPosts.length > 0 ? approvedClubs[0] : null);
-  const regularClubs = approvedClubs.filter(c => c.id !== spotlightClub?.id);
+  /* Dải "CLB xuất sắc" chỉ hiện khi có số liệu thật: CLB dẫn đầu phải có hoạt động (điểm > 0).
+     Không còn "chọn đại CLB đầu tiên" — vinh danh một CLB chưa làm gì là sai sự thật. */
+  const spotlightClub = bestClubObj && bestClubObj.score > 0 ? bestClubObj.club : null;
+
+  /* "Đã có CLB chưa" tính trên TOÀN hệ thống, không phụ thuộc bộ lọc/ô tìm kiếm, để tách hai trạng
+     thái trống khác hẳn nhau: chưa ai lập CLB  ↔  bộ lọc hiện tại không khớp CLB nào. */
+  const hasAnyApprovedClub = clubs.some(c => c.status === 'APPROVED');
+  const resetFilters = () => {
+    setSelectedCategory('Tất cả');
+    setSearchTerm('');
+  };
+  const openCreateModal = () => {
+    if (!currentUser) {
+      onOpenLoginModal?.();
+    } else {
+      setIsCreateModalOpen(true);
+    }
+  };
+
+  /* NÚT DUY NHẤT "Đăng ký thành lập CLB" của cả trang. Luôn chỉ render đúng một nơi:
+     trên header khi đã có CLB, hoặc ngay giữa trạng thái trống khi chưa có CLB nào. */
+  const createClubButton = (large = false) => (
+    <button
+      type="button"
+      onClick={openCreateModal}
+      className={`inline-flex items-center justify-center gap-1.5 rounded-xl font-bold whitespace-nowrap cursor-pointer bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:opacity-95 active:scale-95 transition-all shadow-[0_0_20px_rgba(245,158,11,0.5)] ${
+        large ? 'px-6 py-3 text-sm' : 'px-4 py-2 text-xs'
+      }`}
+    >
+      <PlusCircle className={large ? 'w-5 h-5 text-black' : 'w-4 h-4 text-black'} />
+      <span>Đăng ký thành lập CLB</span>
+    </button>
+  );
 
   const handleCoverFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -259,14 +290,14 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
       {/* Main Container */}
       <div className={`relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col ${isEmbedded ? '' : 'overflow-hidden'}`}>
         
-        {/* Top Header Bar & Category Filter */}
+        {/* Header: tiêu đề · tìm kiếm · CTA (khi đã có CLB) + tab chuyên mục */}
         <div className="flex flex-col gap-3 mb-5 pb-3 border-b border-white/10 shrink-0">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-bold text-white flex flex-wrap items-center gap-x-2 gap-y-1">
                 <Trophy className="w-6 h-6 text-amber-400" />
                 <span>Quảng Trường Câu Lạc Bộ</span>
-                <span className="text-xs font-mono font-normal text-amber-300 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
+                <span className="text-xs font-mono font-normal text-amber-300 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 whitespace-nowrap">
                   CLUBS PLAZA
                 </span>
               </h1>
@@ -285,36 +316,25 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   placeholder="Tìm tên CLB, sở thích..."
+                  aria-label="Tìm câu lạc bộ"
                   className="w-full pl-9 pr-4 py-2 rounded-xl text-xs bg-neutral-900/80 border border-white/15 text-white placeholder-neutral-400 focus:outline-none focus:border-amber-400 transition-colors"
                 />
               </div>
 
-              {/* Glowing + Đăng Ký Thành Lập CLB Button */}
-              <button
-                onClick={() => {
-                  if (!currentUser) {
-                    onOpenLoginModal?.();
-                  } else {
-                    setIsCreateModalOpen(true);
-                  }
-                }}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:opacity-95 active:scale-95 transition-all shadow-[0_0_20px_rgba(245,158,11,0.5)] flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-              >
-                <PlusCircle className="w-4 h-4 text-black" />
-                <span>+ Đăng Ký Thành Lập CLB</span>
-              </button>
+              {/* Khi CHƯA có CLB nào, nút này nằm giữa trạng thái trống (không lặp hai nơi) */}
+              {hasAnyApprovedClub && createClubButton()}
             </div>
           </div>
 
-          {/* Filter by category: Công nghệ, Nghệ thuật, Thể thao, Học thuật */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <Filter className="w-3.5 h-3.5 text-neutral-400 shrink-0 mr-0.5" />
-            <span className="text-xs text-neutral-400 font-semibold mr-1 shrink-0">Chuyên mục:</span>
+          {/* Tab chuyên mục — nhãn "Chuyên mục:" thừa nên bỏ, chip đã tự giải thích */}
+          <div role="group" aria-label="Lọc theo chuyên mục" className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             {CATEGORIES.map(cat => {
               const isActive = selectedCategory === cat;
               return (
                 <button
                   key={cat}
+                  type="button"
+                  aria-pressed={isActive}
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all focus:outline-none ${
                     isActive
@@ -390,173 +410,139 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
           </div>
         )}
 
-        {/* Bento 3D Tilt Grid Container (Scrollable when standalone) */}
-        <div className={`flex-1 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-4 pb-12`}>
-          
-          {/* Spotlight Card (Top 1) or Authentic Empty State */}
-          {spotlightClub ? (
-            <div
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
-              className="relative w-full rounded-3xl liquid-glass bg-neutral-950/70 border border-amber-500/40 p-5 sm:p-6 shadow-2xl transition-transform duration-200 overflow-hidden group"
-            >
-              <div
-                className="absolute inset-0 bg-cover bg-center opacity-30 group-hover:opacity-40 transition-opacity duration-500"
-                style={{ backgroundImage: `url(${spotlightClub.coverImage})` }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-950/80 to-transparent" />
-
-              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="max-w-xl space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-[11px] font-bold text-amber-300">
-                      <Trophy className="w-3.5 h-3.5 text-amber-400 animate-bounce" />
-                      CLB XUẤT SẮC NHẤT THÁNG
-                    </div>
-                    <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-[10px] font-mono font-bold">
-                      {spotlightClub.category}
-                    </span>
-                  </div>
-
-                  <h2 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
-                    {spotlightClub.name}
-                  </h2>
-                  <p className="text-xs sm:text-sm text-neutral-300 italic font-serif">
-                    "{spotlightClub.slogan}"
-                  </p>
-                  <p className="text-xs text-neutral-400 line-clamp-2">
-                    {spotlightClub.purpose}
-                  </p>
-
-                  <div className="flex items-center gap-4 text-xs text-neutral-300 pt-2 font-mono">
-                    <span className="flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5 text-amber-400" />
-                      {spotlightClub.membersCount} Thành viên • {spotlightClub.followerCount} Theo dõi
-                    </span>
-                    <span>Chủ nhiệm: {spotlightClub.leaderName}</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-row md:flex-col gap-2.5 shrink-0">
-                  <button
-                    onClick={() => setSelectedClub(spotlightClub)}
-                    className="flex-1 md:flex-initial px-5 py-2.5 rounded-xl bg-white text-neutral-900 font-bold text-xs hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    Xem Chi Tiết
-                  </button>
-
-                  <button
-                    onClick={() => setApplicationSubmitted(spotlightClub.id)}
-                    className="flex-1 md:flex-initial px-5 py-2.5 rounded-xl liquid-glass bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    {applicationSubmitted === spotlightClub.id ? '✓ Đã Nộp Đơn' : 'Nộp Đơn Ứng Tuyển'}
-                  </button>
-                </div>
-              </div>
+        {/* Vùng nội dung (cuộn được khi đứng riêng). Mỗi lúc chỉ hiện MỘT trong ba trạng thái:
+            A) chưa có CLB nào → một trạng thái trống duy nhất, ở giữa trang
+            B) đã có CLB       → dải "CLB xuất sắc" (chỉ khi có số liệu thật) + lưới thẻ gọn
+            C) đã có CLB nhưng bộ lọc/tìm kiếm không khớp → thông báo nhỏ + nút xóa bộ lọc */}
+        <div className={`flex-1 flex flex-col gap-4 pb-12 ${isEmbedded ? '' : 'overflow-y-auto pr-1'}`}>
+          {!hasAnyApprovedClub ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-5 py-10 text-center">
+              <CuBong mood="sleepy" size={176} decorative />
+              <p className="max-w-md text-balance text-base sm:text-lg font-semibold leading-snug text-white">
+                Chưa có CLB nào — bạn sẽ là người đầu tiên khởi tạo! 🚀
+              </p>
+              {createClubButton(true)}
             </div>
           ) : (
-            <div className="relative w-full rounded-3xl liquid-glass bg-neutral-950/70 border border-white/10 p-6 sm:p-8 text-center space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-xs font-bold text-amber-300">
-                <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                CLB XUẤT SẮC NHẤT THÁNG
-              </div>
-              <h3 className="text-sm sm:text-base font-bold text-white max-w-lg mx-auto">
-                Chưa có CLB nào hoạt động trong tháng này. Hãy đăng ký thành lập CLB đầu tiên!
-              </h3>
-              <p className="text-xs text-neutral-400 max-w-md mx-auto">
-                Danh hiệu được tự động cập nhật theo số lượng bài viết và tin nhắn trao đổi thời gian thực.
-              </p>
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!currentUser) {
-                      onOpenLoginModal?.();
-                    } else {
-                      setIsCreateModalOpen(true);
-                    }
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 text-xs font-semibold transition-all cursor-pointer"
-                >
-                  <PlusCircle className="w-3.5 h-3.5" />
-                  <span>Đăng ký thành lập CLB</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Regular Club Cards Grid */}
-          {/* Thẻ ngang 2 cột — mỗi thẻ là một container query (code_yeucau · tcl-14) */}
-          <div className="ff-media-grid">
-            {regularClubs.length === 0 && !spotlightClub ? (
-              <div className="col-span-full text-center py-12 text-neutral-400 space-y-2">
-                <Users className="w-10 h-10 text-neutral-600 mx-auto" />
-                <p className="text-sm">Chưa có câu lạc bộ nào trong danh mục này.</p>
-              </div>
-            ) : null}
-            {regularClubs.map(club => (
-              <div
-                key={club.id}
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
-                className="ff-media-card rounded-2xl liquid-glass bg-neutral-950/70 border border-white/10 hover:border-amber-400/40 p-4 shadow-xl transition-transform duration-200  group overflow-hidden"
-              >
-                <div className="ff-media-card__layout">
-                  {/* Card Cover */}
-                  <div className="ff-media-card__cover relative h-32 w-full rounded-xl overflow-hidden mb-3 border border-white/10">
+            <>
+              {/* Dải CLB xuất sắc: avatar + tên + thành viên; ẩn hoàn toàn khi chưa có số liệu */}
+              {spotlightClub && (
+                <section aria-label="CLB xuất sắc nhất tháng" className="shrink-0">
+                  <h2 className="flex items-center gap-1.5 mb-2 text-[11px] font-bold uppercase tracking-wider text-amber-300">
+                    <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                    CLB xuất sắc nhất tháng
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedClub(spotlightClub)}
+                    className="group w-full flex items-center gap-3 sm:gap-4 p-3 rounded-2xl liquid-glass bg-neutral-950/70 border border-amber-500/40 hover:border-amber-400/70 text-left transition-colors cursor-pointer"
+                  >
                     <img
-                      src={club.coverImage}
-                      alt={club.name}
+                      src={spotlightClub.coverImage}
+                      alt=""
                       onError={e => handleImageError(e, DEFAULT_CLUB_COVER)}
                       loading="lazy"
                       decoding="async"
-                      width={480}
-                      height={128}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      width={48}
+                      height={48}
+                      className="w-12 h-12 rounded-xl object-cover border border-white/10 shrink-0"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
-                    <span className="absolute bottom-2 left-2 text-[10px] font-mono bg-black/60 px-2 py-0.5 rounded text-neutral-300 border border-white/10">
-                      {club.membersCount} thành viên
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold text-white group-hover:text-amber-300 transition-colors">
+                        {spotlightClub.name}
+                      </span>
+                      <span className="flex items-center gap-1.5 mt-0.5 text-xs text-neutral-300">
+                        <Users className="w-3.5 h-3.5 text-amber-400" />
+                        {spotlightClub.membersCount} thành viên
+                      </span>
                     </span>
-                    <span className="absolute top-2 right-2 text-[10px] font-mono font-bold bg-amber-500/80 text-black px-2 py-0.5 rounded-md shadow">
-                      {club.category}
+                    <span className="inline-flex items-center gap-1 shrink-0 text-xs font-semibold text-amber-300">
+                      <span className="hidden sm:inline">Xem</span>
+                      <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
                     </span>
-                  </div>
+                  </button>
+                </section>
+              )}
 
-                  <div className="ff-media-card__content">
-                    <div>
-                      <h3 className="font-bold text-sm text-white group-hover:text-amber-300 transition-colors">
-                        {club.name}
-                      </h3>
-                      <p className="text-xs text-neutral-400 italic line-clamp-1 mt-0.5">
-                        {club.slogan}
-                      </p>
-                      <p className="text-[11px] text-neutral-300 mt-2 line-clamp-2">
-                        {club.purpose}
-                      </p>
-                    </div>
-
-                    <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
-                      <button
-                        onClick={() => setSelectedClub(club)}
-                        className="flex-1 py-1.5 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors"
-                      >
-                        Xem Chi Tiết
-                      </button>
-                      <button
-                        onClick={() => setApplicationSubmitted(club.id)}
-                        className="flex-1 py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold border border-amber-500/30 transition-colors"
-                      >
-                        {applicationSubmitted === club.id ? '✓ Đã Nộp' : 'Nộp Đơn'}
-                      </button>
-                    </div>
-                  </div>
+              {approvedClubs.length === 0 ? (
+                <div className="flex flex-col items-center gap-3 py-14 text-center">
+                  <Search className="w-9 h-9 text-neutral-400" />
+                  <p className="text-sm text-neutral-300">Không có CLB nào khớp bộ lọc.</p>
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="text-xs font-semibold text-amber-300 hover:text-amber-200 underline underline-offset-4 cursor-pointer"
+                  >
+                    Xóa bộ lọc
+                  </button>
                 </div>
-              </div>
-            ))}
-          </div>
+              ) : (
+                /* Lưới thẻ gọn: 1 → 2 → 3 cột; mỗi thẻ là một container query (code_yeucau · tcl-14) */
+                <div className="ff-media-grid">
+                  {approvedClubs.map(club => (
+                    <div
+                      key={club.id}
+                      onMouseMove={handleMouseMove}
+                      onMouseLeave={handleMouseLeave}
+                      className="ff-media-card rounded-2xl liquid-glass bg-neutral-950/70 border border-white/10 hover:border-amber-400/40 p-4 shadow-xl transition-transform duration-200 group overflow-hidden"
+                    >
+                      <div className="ff-media-card__layout">
+                        {/* Ảnh bìa */}
+                        <div className="ff-media-card__cover relative h-32 w-full rounded-xl overflow-hidden mb-3 border border-white/10">
+                          <img
+                            src={club.coverImage}
+                            alt={club.name}
+                            onError={e => handleImageError(e, DEFAULT_CLUB_COVER)}
+                            loading="lazy"
+                            decoding="async"
+                            width={480}
+                            height={128}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                        </div>
+
+                        <div className="ff-media-card__content">
+                          {/* Tag chuyên mục · tên · thành viên — không mô tả dài (xem trong chi tiết) */}
+                          <div className="space-y-1.5">
+                            <span className="inline-block px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-400/30 text-[10px] font-mono font-bold text-amber-300">
+                              {club.category}
+                            </span>
+                            <h3 className="font-bold text-sm text-white group-hover:text-amber-300 transition-colors">
+                              {club.name}
+                            </h3>
+                            <p className="flex items-center gap-1.5 text-xs text-neutral-300">
+                              <Users className="w-3.5 h-3.5 text-amber-400" />
+                              {club.membersCount} thành viên
+                            </p>
+                          </div>
+
+                          <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setApplicationSubmitted(club.id)}
+                              aria-label={applicationSubmitted === club.id ? `Đã đăng ký ${club.name}` : `Tham gia ${club.name}`}
+                              className="flex-1 py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold border border-amber-500/30 transition-colors cursor-pointer"
+                            >
+                              {applicationSubmitted === club.id ? '✓ Đã đăng ký' : 'Tham gia'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedClub(club)}
+                              aria-label={`Xem chi tiết ${club.name}`}
+                              className="flex-1 inline-flex items-center justify-center gap-1 py-1.5 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors cursor-pointer"
+                            >
+                              Xem <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 

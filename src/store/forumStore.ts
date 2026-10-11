@@ -55,6 +55,8 @@ import { getTierForLevel } from '../utils/tier';
 import { pushNotification } from '../utils/notifications';
 import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
 import { readSharedQuestionId } from '../utils/shareLinks';
+import { isQaPath } from '../utils/qaRoute';
+import { hasReacted, isReactionKind, sanitizeReactions, setReaction, type ReactionKind } from '../../shared/qaReactions';
 import { describeLoginModeration, type LoginModeration } from '../utils/moderationNotice';
 
 const CURRENT_TAB_ID =
@@ -216,7 +218,8 @@ export function useForumStore() {
   const [currentView, setCurrentView] = useState<DimensionView>(() => {
     const hasSession = Boolean(safeStorage.getItem('fforum_current_user_email'));
     const hasSeenLanding = safeStorage.getItem('fforum_landing_seen') === 'true';
-    // Liên kết chia sẻ câu hỏi (?q=<id>) đưa thẳng vào Sàn hỏi đáp.
+    // Đường dẫn Hỏi đáp (/hoi-dap, /hoi-dap/<id>-<slug>) và liên kết cũ (?q=<id>) đưa thẳng vào Sàn hỏi đáp.
+    if (typeof window !== 'undefined' && isQaPath(window.location.pathname)) return 'qa';
     if (typeof window !== 'undefined' && readSharedQuestionId(window.location.search)) return 'qa';
     return hasSession || hasSeenLanding ? 'home' : 'landing';
   });
@@ -370,6 +373,8 @@ export function useForumStore() {
 
   const [onlineUsers, setOnlineUsers] = useState<OnlinePresenceUser[]>([]);
   const presenceMapRef = useRef<Map<string, { user: OnlinePresenceUser; lastSeen: number }>>(new Map());
+  /* Phản ứng nhanh đang chờ máy chủ, khoá theo `lời-giải:loại` → bấm đúp không gửi hai lần. Chỉ đổi trong event handler. */
+  const reactionsInFlightRef = useRef<Set<string>>(new Set());
   const activeWsRef = useRef<WebSocket | null>(null);
   /* Cầu nối để hàm login (khai báo sau) gọi được bước xác thực socket. */
   const authenticateSocketRef = useRef<() => void>(() => {});
@@ -920,6 +925,14 @@ export function useForumStore() {
           setSolutions(prev =>
             prev.map(s => (s.id === solutionId ? { ...s, isBest: true, upvotes: s.upvotes + 5 } : s))
           );
+          break;
+        }
+        case 'SOLUTION_REACTIONS': {
+          /* Ảnh chụp ĐẦY ĐỦ phản ứng của một lời giải (không phải "+1") → áp lại bao nhiêu lần cũng ra cùng kết quả. */
+          const { solutionId, reactions } = payload as { solutionId?: string; reactions?: unknown };
+          if (!solutionId) break;
+          const clean = sanitizeReactions(reactions);
+          setSolutions(prev => prev.map(s => (s.id === solutionId ? { ...s, reactions: clean } : s)));
           break;
         }
         case 'NEW_CLUB': {
@@ -2457,6 +2470,55 @@ export function useForumStore() {
     });
   };
 
+  /**
+    Phản ứng nhanh dưới một lời giải (👍 Hữu ích · 🤯 Hay đó · 🙏 Cảm ơn); bấm lần nữa để bỏ.
+
+    Cập nhật LẠC QUAN (thấy ngay) rồi để máy chủ xác nhận; lỗi thì trả lại đúng như cũ. Máy chủ phát lại ảnh chụp
+    đầy đủ qua WebSocket nên mọi người cùng thấy. Chỉ là tín hiệu xã hội — không cộng XP/Coin.
+  */
+  const reactToSolution = async (solutionId: string, kind: ReactionKind) => {
+    if (!currentUser || !isReactionKind(kind)) return;
+    const target = solutions.find((solution) => solution.id === solutionId);
+    if (!target) return;
+    /* Máy chủ cũng từ chối (409); chặn sớm để người dùng biết lý do thay vì thấy nút nhảy rồi bật lại. */
+    if (isAuthoredBy(target, currentUser, currentUser.email.toLowerCase())) {
+      setToastMessage({
+        title: 'Không thể tự phản ứng',
+        subtitle: 'Hãy để bạn học khác đánh giá lời giải của bạn nhé!',
+        type: 'error',
+      });
+      return;
+    }
+    const key = `${solutionId}:${kind}`;
+    if (reactionsInFlightRef.current.has(key)) return;
+    reactionsInFlightRef.current.add(key);
+
+    const userId = currentUser.id;
+    const setMine = (active: boolean) =>
+      setSolutions((prev) =>
+        prev.map((solution) =>
+          solution.id === solutionId
+            ? { ...solution, reactions: setReaction(solution.reactions, kind, userId, active) }
+            : solution,
+        ),
+      );
+    const active = !hasReacted(target.reactions, kind, userId);
+    setMine(active);
+    try {
+      const outcome = await runServerAction('/api/solutions/react', { solutionId, kind, active });
+      if (!outcome.ok) {
+        setMine(!active);
+        setToastMessage({ title: 'Chưa gửi được phản ứng', subtitle: outcome.message, type: 'error' });
+        return;
+      }
+      /* Chốt đúng trạng thái CỦA MÌNH theo máy chủ (có thể khác nếu lời giải đã đủ trần người chọn). Không ghi đè
+         phản ứng của người khác bằng phản hồi HTTP: nó có thể tới sau một sự kiện WebSocket mới hơn. */
+      setMine(Boolean(outcome.data?.active));
+    } finally {
+      reactionsInFlightRef.current.delete(key);
+    }
+  };
+
   const sendChatMessage = async (channelId: ChatChannelId, content: string) => {
     if (!currentUser) return;
 
@@ -2792,6 +2854,7 @@ export function useForumStore() {
     createQuestion,
     addSolution,
     markBestSolution,
+    reactToSolution,
     chatMessages,
     sendChatMessage,
     onlineUsers,

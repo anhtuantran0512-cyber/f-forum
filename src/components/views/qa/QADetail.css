@@ -1,0 +1,181 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
+
+/* ==========================================================================
+   TRANG CHI TIẾT HỎI ĐÁP (/hoi-dap/:id)
+   Màu chữ/nền/viền dùng class Tailwind (bộ chuyển đổi light-mode quét được);
+   tệp này chỉ giữ những gì Tailwind không diễn tả được: hoạt ảnh, chuyển cảnh,
+   thanh tiến độ, bottom sheet.
+   ========================================================================== */
+
+/* ── Chuyển trang: mờ + trượt nhẹ 250ms. Dùng `backwards` (KHÔNG phải `both`) để không để lại
+      transform/opacity sau khi chạy xong — transform còn sót biến mọi `position: fixed` bên trong
+      thành tương đối theo trang và làm hỏng backdrop-filter của lớp kính. ── */
+@keyframes ffQaPageIn {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+.ff-qa-page { animation: ffQaPageIn 250ms cubic-bezier(0.22, 0.85, 0.24, 1) backwards; }
+
+/* Quay về danh sách: chỉ mờ dần (vị trí cuộn đã được khôi phục sẵn, không trượt để khỏi "nhảy"). */
+@keyframes ffQaListIn { from { opacity: 0; } to { opacity: 1; } }
+.ff-qa-list-return { animation: ffQaListIn 200ms ease-out backwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-qa-page,
+  .ff-qa-list-return { animation: none; }
+}
+
+/* ── Chuyển cảnh phần tử dùng chung (View Transitions API): thẻ câu hỏi "phóng to" thành đầu trang chi tiết.
+      Mọi quy tắc nằm sau `html.ff-vt-qa` — lớp này chỉ tồn tại trong lúc chuyển cảnh do app bật (utils/viewTransition). ── */
+html.ff-vt-qa .ff-qa-hero { view-transition-name: qa-hero; }
+html.ff-vt-qa .ff-qa-page { animation: none; }
+
+/* Toàn trang: trang cũ mờ NHANH trước, trang mới hiện sau — không để chữ cũ chồng lên chữ mới (rối mắt).
+   Nền app đã tối nên đoạn "lõm" sáng ngắn giữa hai pha không thấy được. */
+@keyframes ffVtFadeOut { to { opacity: 0; } }
+@keyframes ffVtFadeIn { from { opacity: 0; } }
+html.ff-vt-qa::view-transition-old(root) { animation: ffVtFadeOut 140ms ease-in both; mix-blend-mode: normal; }
+html.ff-vt-qa::view-transition-new(root) { animation: ffVtFadeIn 220ms ease-out 70ms both; mix-blend-mode: normal; }
+
+/* Thẻ → đầu trang: khung đổi kích thước từ thẻ sang đầu trang còn nội dung bên trong GIỮ NGUYÊN tỉ lệ
+   (object-fit: none, neo góc trên trái). Không dùng `cover`/`fill`: thẻ chỉ cao ~140px nên bị phóng to
+   gấp nhiều lần thành chữ khổng lồ nhòe giữa màn hình. */
+html.ff-vt-qa::view-transition-group(qa-hero) {
+  animation-duration: 340ms;
+  animation-timing-function: cubic-bezier(0.22, 0.85, 0.24, 1);
+}
+html.ff-vt-qa::view-transition-old(qa-hero),
+html.ff-vt-qa::view-transition-new(qa-hero) {
+  height: 100%;
+  object-fit: none;
+  object-position: top left;
+  overflow: clip;
+  border-radius: 1.5rem;
+  mix-blend-mode: normal;
+}
+/* Thẻ cũ mờ trước, đầu trang mới hiện sau một nhịp: hai khối chữ không bao giờ chồng lên nhau. */
+html.ff-vt-qa::view-transition-old(qa-hero) { animation: ffVtFadeOut 130ms ease-in both; }
+html.ff-vt-qa::view-transition-new(qa-hero) { animation: ffVtFadeIn 240ms ease-out 90ms both; }
+
+/* ── Thanh tiến độ đọc: mỏng, ngang, cố định ở mép trên trang (kiểu Medium). Chỉ lộ ra khi đã cuộn. ── */
+.ff-qa-progress {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  z-index: 40;
+  pointer-events: none;
+  contain: strict;
+}
+.ff-qa-progress__bar {
+  height: 100%;
+  transform-origin: 0 50%;
+  transform: scaleX(var(--ff-qa-progress, 0));
+  background: linear-gradient(90deg, #22d3ee, #3b82f6 55%, #a78bfa);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.55);
+  opacity: 1;
+  transition: opacity 180ms ease;
+}
+.ff-qa-progress[data-active='false'] .ff-qa-progress__bar { opacity: 0; }
+
+/* ── Đáp án chính thức: nổi lên đầu danh sách, viền glow xanh lá nhẹ ── */
+.ff-qa-official {
+  border-color: rgba(52, 211, 153, 0.62) !important;
+  background-image: linear-gradient(180deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.025));
+  box-shadow:
+    0 0 0 1px rgba(52, 211, 153, 0.22),
+    0 0 34px -8px rgba(16, 185, 129, 0.5);
+}
+html.light .ff-qa-official {
+  border-color: rgba(5, 150, 105, 0.55) !important;
+  background-image: linear-gradient(180deg, rgba(16, 185, 129, 0.16), rgba(16, 185, 129, 0.04));
+  box-shadow:
+    0 0 0 1px rgba(5, 150, 105, 0.18),
+    0 10px 30px -14px rgba(5, 150, 105, 0.45);
+}
+
+/* Vừa được xác nhận NGAY LÚC đang xem: thẻ nổi lên và phát sáng một nhịp. */
+@keyframes ffQaRise {
+  from { opacity: 0.2; transform: translate3d(0, 28px, 0) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes ffQaGlowPulse {
+  0%   { box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.22), 0 0 0 0 rgba(16, 185, 129, 0.55); }
+  60%  { box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.5), 0 0 44px 6px rgba(16, 185, 129, 0.5); }
+  100% { box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.22), 0 0 34px -8px rgba(16, 185, 129, 0.5); }
+}
+.ff-qa-official--new {
+  animation:
+    ffQaRise 640ms cubic-bezier(0.22, 1, 0.36, 1) backwards,
+    ffQaGlowPulse 1800ms ease-out 1;
+}
+
+/* "+XP thưởng thêm" bay lên khỏi thẻ — chỉ hiện cho CHÍNH người có lời giải vừa được công nhận. */
+@keyframes ffQaXpPop {
+  0%   { opacity: 0; transform: translate3d(0, 10px, 0) scale(0.9); }
+  16%  { opacity: 1; transform: translate3d(0, 0, 0) scale(1.06); }
+  78%  { opacity: 1; transform: translate3d(0, -16px, 0) scale(1); }
+  100% { opacity: 0; transform: translate3d(0, -30px, 0) scale(1); }
+}
+.ff-qa-xp-pop { animation: ffQaXpPop 2600ms cubic-bezier(0.22, 1, 0.36, 1) forwards; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-qa-official--new { animation: none; }
+  .ff-qa-xp-pop { animation: none; opacity: 1; }
+}
+
+/* ── Bảng ký hiệu dạng Bottom Sheet (điện thoại): kéo lên khi cần, không chiếm chỗ cố định lúc đọc.
+      Được portal ra <body> nên phải tự chịu trách nhiệm cho cả hai theme (class `ff-light-adapt` gắn ở TSX). ── */
+.ff-qa-sheet {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  max-height: min(52dvh, 24rem);
+  padding: 0 0.75rem calc(var(--safe-bottom, 0px) + 0.75rem);
+  border-radius: 1.25rem 1.25rem 0 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom: 0;
+  background: rgba(8, 12, 20, 0.99);
+  color: #f4f6fa;
+  box-shadow: 0 -18px 48px rgba(0, 0, 0, 0.55);
+  animation: ffQaSheetIn 260ms cubic-bezier(0.22, 0.85, 0.24, 1) backwards;
+}
+html.light .ff-qa-sheet {
+  border-color: rgba(15, 23, 42, 0.14);
+  background: rgba(255, 255, 255, 0.995);
+  box-shadow: 0 -14px 40px rgba(15, 23, 42, 0.22);
+}
+@keyframes ffQaSheetIn {
+  from { transform: translate3d(0, 100%, 0); }
+  to   { transform: none; }
+}
+.ff-qa-sheet__grip {
+  display: grid;
+  place-items: center;
+  height: 1.75rem;
+  margin-inline: -0.75rem;
+  cursor: grab;
+  touch-action: none;
+}
+.ff-qa-sheet__grip > span {
+  width: 2.5rem;
+  height: 0.28rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.65);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ff-qa-sheet { animation: none; }
+}
+
+/* ── Phản ứng nhanh dưới lời giải: emoji nảy nhẹ khi bấm / khi đã chọn (thuần CSS, không JS). ── */
+.ff-qa-react__emoji {
+  display: inline-block;
+  line-height: 1;
+  transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ff-qa-react[aria-pressed='true'] .ff-qa-react__emoji { transform: scale(1.18); }
+.ff-qa-react:active .ff-qa-react__emoji { transform: scale(1.4); }
+@media (prefers-reduced-motion: reduce) {
+  .ff-qa-react__emoji { transition: none; }
+}

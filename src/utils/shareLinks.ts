@@ -1,6 +1,10 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
- * Liên kết chia sẻ câu hỏi: `?q=<id>` mở thẳng câu hỏi ở Sàn hỏi đáp.
+ * Liên kết chia sẻ câu hỏi KIỂU CŨ: `?q=<id>` mở thẳng câu hỏi ở Sàn hỏi đáp.
+ *
+ * Từ khi chi tiết câu hỏi là một trang riêng, địa chỉ chuẩn là `/hoi-dap/<id>-<slug>` (xem utils/qaRoute.ts).
+ * Những liên kết `?q=` đã lỡ chia sẻ vẫn dùng được: App đọc chúng bằng `readSharedQuestionId`, đổi sang đường dẫn
+ * mới bằng `replaceState` (utils/qaRouter.ts) nên người nhận không thấy `?q=` trên thanh địa chỉ.
  * Id được lọc chặt (chữ, số, gạch nối/gạch dưới, ≤ 80 ký tự) trước khi dùng.
  */
 export const SHARE_QUERY_KEY = 'q';
@@ -11,6 +15,7 @@ export const readSharedQuestionId = (search: string): string | null => {
   return id && SAFE_ID.test(id) ? id : null;
 };
 
+/** @deprecated Dùng `buildQuestionPageUrl` (utils/qaRoute.ts). Chỉ còn để dựng/kiểm thử định dạng liên kết cũ. */
 export const buildQuestionShareUrl = (id: string, origin: string, pathname: string): string =>
   `${origin}${pathname}?${SHARE_QUERY_KEY}=${encodeURIComponent(id)}`;
 
