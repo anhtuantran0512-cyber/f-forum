@@ -1,7 +1,7 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useEffect, useRef, type FC } from 'react';
 import type { DimensionView } from '../types';
-import { authHeaders } from '../utils/session';
+import { authHeaders, getAuthToken } from '../utils/session';
 import { safeStorage } from '../utils/storage';
 
 const VISITOR_KEY = 'fforum_analytics_visitor_v1';
@@ -74,11 +74,13 @@ export const AnalyticsTracker: FC<AnalyticsTrackerProps> = ({ accountKey, view }
 
     const send = (type: 'visit' | 'heartbeat' | 'page_view', details: Record<string, unknown> = {}) => {
       if (disposed) return;
+      const token = getAuthToken();
       const payload = {
         type,
         visitorId,
         sessionId,
         eventId: createId(),
+        ...(token ? { token } : {}),
         ...details,
       };
       void fetch('/api/analytics/track', {
@@ -134,6 +136,7 @@ export const AnalyticsTracker: FC<AnalyticsTrackerProps> = ({ accountKey, view }
     const sessionStorage = getSessionStorage();
     const sessionId = sessionStorage?.getItem(SESSION_KEY) || safeStorage.getItem(SESSION_FALLBACK_KEY);
     if (!visitorId || !sessionId) return;
+    const token = getAuthToken();
     void fetch('/api/analytics/track', {
       method: 'POST',
       headers: authHeaders(),
@@ -143,6 +146,7 @@ export const AnalyticsTracker: FC<AnalyticsTrackerProps> = ({ accountKey, view }
         sessionId,
         eventId: createId(),
         view,
+        ...(token ? { token } : {}),
       }),
       keepalive: true,
     }).catch(() => undefined);

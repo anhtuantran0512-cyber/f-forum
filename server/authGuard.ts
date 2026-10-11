@@ -192,13 +192,37 @@ export const verifySessionToken = (token?: string | null): SessionClaims | null 
   }
 };
 
+/** Đọc token từ header tùy chỉnh `X-FForum-Token` hoặc `X-User-Token` (dự phòng khi proxy lọc Authorization). */
+const readCustomTokenHeader = (req?: IncomingMessage | null): string | null => {
+  const raw = req?.headers?.['x-fforum-token'] || req?.headers?.['x-user-token'];
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+};
+
+/** Đọc token từ query string `?token=...` (nếu có). */
+const readQueryToken = (req?: IncomingMessage | null): string | null => {
+  const url = req?.url;
+  if (!url || typeof url !== 'string' || !url.includes('token=')) return null;
+  try {
+    const qIdx = url.indexOf('?');
+    if (qIdx < 0) return null;
+    const params = new URLSearchParams(url.slice(qIdx + 1));
+    const tok = params.get('token');
+    return tok && tok.trim() ? tok.trim() : null;
+  } catch {
+    return null;
+  }
+};
+
 /** Đọc token từ header `Authorization: Bearer <token>`. */
 export const readBearerToken = (req?: IncomingMessage | null): string | null => {
   const header = req?.headers?.authorization;
   const value = Array.isArray(header) ? header[0] : header;
-  if (!value || typeof value !== 'string') return null;
-  const match = /^Bearer\s+(.+)$/i.exec(value.trim());
-  return match ? match[1].trim() : null;
+  if (value && typeof value === 'string') {
+    const match = /^Bearer\s+(.+)$/i.exec(value.trim());
+    if (match && match[1].trim()) return match[1].trim();
+  }
+  return readCustomTokenHeader(req);
 };
 
 /* -------------------------------------------------------------------------- */
@@ -285,9 +309,21 @@ export const isSessionRevoked = (claims: SessionClaims): boolean => {
   }
 };
 
-/** Token mà request đang dùng: Bearer → token trong body → cookie (chỉ cùng nguồn). */
-export const readRequestToken = (req: IncomingMessage, bodyToken?: string | null): string | null =>
-  readBearerToken(req) || bodyToken || (isCrossSiteRequest(req) ? null : readSessionCookie(req));
+/** Token mà request đang dùng: Bearer / X-FForum-Token → token trong body → query → cookie (chỉ cùng nguồn). */
+export const readRequestToken = (req: IncomingMessage, bodyToken?: string | null): string | null => {
+  const candidates = [
+    readCustomTokenHeader(req),
+    readBearerToken(req),
+    typeof bodyToken === 'string' && bodyToken.trim() ? bodyToken.trim() : null,
+    readQueryToken(req),
+    isCrossSiteRequest(req) ? null : readSessionCookie(req),
+  ].filter((c): c is string => Boolean(c));
+  if (candidates.length === 0) return null;
+  for (const candidate of candidates) {
+    if (verifySessionToken(candidate)) return candidate;
+  }
+  return candidates[0];
+};
 
 /** Xác thực một request: token hợp lệ + email trong token khớp email đang thao tác. */
 export const authorizeRequest = (

@@ -564,3 +564,38 @@ test('17. Vòng 11 — bộ icon rank 8 bậc được vẽ lại, khớp màu c
   assert.ok(badges.includes('getTierForLevel'), 'Badge must resolve the tier from the user level');
   assert.ok(badges.includes('tier.description'), 'Tooltip must keep the tier description');
 });
+
+test('18. 🎋 "TRE VIỆT" — 8 cấp độ Măng Non → Lũy Tre Cổ Thụ, màu sắc, mốc điểm & hiệu ứng gió lay', async () => {
+  const { TIER_CONFIGS } = await import('../src/utils/tier.ts');
+  assert.equal(TIER_CONFIGS.length, 8);
+  assert.deepEqual(
+    TIER_CONFIGS.map((t) => t.name),
+    [
+      'Măng Non',
+      'Măng Vươn',
+      'Tre Non',
+      'Tre Vươn Mình',
+      'Tre Trưởng Thành',
+      'Bụi Tre',
+      'Lũy Tre Làng',
+      'Lũy Tre Cổ Thụ',
+    ],
+  );
+  assert.deepEqual(
+    TIER_CONFIGS.map((t) => t.minPoints),
+    [0, 100, 250, 500, 1000, 2000, 4000, 8000],
+  );
+  assert.deepEqual(
+    TIER_CONFIGS.map((t) => t.badgeColor),
+    ['#4ADE80', '#4ADE80', '#4ADE80', '#38BDF8', '#38BDF8', '#A78BFA', '#C084FC', '#FBBF24'],
+  );
+
+  const css = read('src/index.css');
+  for (const cls of ['.badge-tier-1-3', '.badge-tier-4-5', '.badge-tier-6', '.badge-tier-7', '.badge-tier-8']) {
+    assert.ok(css.includes(cls), `index.css defines ${cls}`);
+  }
+  for (const kf of ['@keyframes sway-soft', '@keyframes leaf-rustle', '@keyframes aura-breathe', '@keyframes rotate-rays']) {
+    assert.ok(css.includes(kf), `index.css defines ${kf}`);
+  }
+});
+

@@ -191,3 +191,104 @@ test('Gradient Settings: 12 mã màu chuẩn, không hover thay nền toàn tran
   assert.doesNotMatch(app, /fforum_godray_preview/, 'hover must not repaint the entire page');
   assert.match(app, /<GradientSurface[\s\S]*?gradient=\{activeGodray\.gradient\}/);
 });
+
+test('Phần 1 · Modal Đặt Câu Hỏi: 3 Card Sections, MathSymbolsBar thu gọn mặc định (nút ≥ 48px), Sticky Header/Footer', () => {
+  const qa = read('src/components/views/QAForumView.tsx');
+  const css = read('src/index.css');
+  assert.match(css, /\.ask2027-card-section \{/, 'có CSS cho 3 Card Sections');
+  assert.match(qa, /01 · THÔNG TIN CƠ BẢN/);
+  assert.match(qa, /02 · NỘI DUNG CHI TIẾT/);
+  assert.match(qa, /03 · CÔNG CỤ HỖ TRỢ/);
+  assert.match(qa, /defaultExpanded=\{false\}/, 'MathSymbolsBar thu gọn mặc định');
+  assert.match(qa, /min-w-\[48px\] min-h-\[48px\]/, 'nút ký hiệu toán học đạt kích thước 48px+');
+});
+
+test('Phần 2 & Phần 5 · Chống đăng xuất đột ngột: không dựng phiên ảo, có Silent Refresh /api/auth/refresh & Auto-save nháp lời giải', () => {
+  const store = read('src/store/forumStore.ts');
+  const session = read('src/utils/session.ts');
+  const server = read('server/forumServer.ts');
+  const qa = read('src/components/views/QAForumView.tsx');
+  assert.match(store, /if \(!savedEmail \|\| !hasStoredSession\(\)\) return null;/, 'không dựng phiên ảo khi thiếu token/cookie');
+  assert.match(session, /export const refreshSessionSilent = async/, 'có hàm Silent Token Refresh');
+  assert.match(server, /\/api\/auth\/refresh/, 'server hỗ trợ endpoint POST /api/auth/refresh');
+  assert.match(qa, /fforum_draft_solution_\$\{selectedQuestion\.id\}/, 'tự động lưu nháp lời giải theo câu hỏi');
+});
+
+test('Phần 3 & Phần 4 · Boutique Gacha (Pity 50/100, Mythic ≤ 5%), Giảm giá xoay vòng 6h (10%–90%) & Color Theory Tokens', () => {
+  const T0 = Date.UTC(2026, 9, 11, 0, 0, 0);
+  const snap1 = shop.getDynamicDiscounts(T0);
+  const snap2 = shop.getDynamicDiscounts(T0 + 6 * 3600 * 1000);
+  assert.equal(snap1.list.length, 9, '25.7% (9/35) vật phẩm giảm giá mỗi khung 6h');
+  assert.notDeepEqual(snap1.list.map(d => d.itemId), snap2.list.map(d => d.itemId), 'xoay vòng sau 6 giờ');
+  for (const entry of snap1.list) {
+    assert.ok(entry.percent >= 10 && entry.percent <= 90, 'mức giảm giá trong khoảng 10%–90%');
+    assert.equal(entry.isSuperSale, entry.percent >= 81, '81%–90% gắn cờ SIÊU SALE');
+  }
+
+  for (const pool of Object.values(shop.GACHA_POOLS)) {
+    assert.ok(pool.rates.legendary <= 5, `${pool.id}: tỷ lệ Mythic không bao giờ vượt quá 5%`);
+    assert.equal(pool.rates.common + pool.rates.rare + pool.rates.epic + pool.rates.legendary, 100);
+  }
+
+  /* Kiểm chứng bảo hiểm Pity 50 (chắc chắn Epic+) và Pity 100 (chắc chắn Mythic) */
+  const pull50 = shop.rollGachaPull('standard', { epicPity: 49, mythicPity: 49, totalPulls: 49 }, 0.99, 0.5);
+  assert.ok(pull50.rarity === 'epic' || pull50.rarity === 'legendary', 'Pity 50 đảm bảo từ Epic trở lên');
+  assert.equal(pull50.nextPity.epicPity, 0);
+
+  const pull100 = shop.rollGachaPull('standard', { epicPity: 10, mythicPity: 99, totalPulls: 99 }, 0.99, 0.5);
+  assert.equal(pull100.rarity, 'legendary', 'Pity 100 đảm bảo ra Mythic (legendary)');
+  assert.equal(pull100.pityTriggered, 'mythic_100');
+  assert.equal(pull100.nextPity.mythicPity, 0);
+
+  const css = read('src/index.css');
+  assert.match(css, /--ff-ct-primary: #5B8DEF;/);
+  assert.match(css, /--ff-ct-rarity-mythic: linear-gradient\(135deg, #F59E0B 0%, #EC4899 50%, #8B5CF6 100%\);/);
+});
+
+test('Discord-Style Boutique Visual System: 4-col grid, 51px icon, rarity-dot, ≤50 char desc, live CSS frame/aura & Profile combo showcase', () => {
+  const boutiqueCss = read('src/components/shop/Boutique.css');
+  const boutiqueTsx = read('src/components/shop/GachaBoutique.tsx');
+  const profileTsx = read('src/components/ProfileModal.tsx');
+
+  /* 1. Icon 51x51px (-20%), 4-column grid, 14px card padding */
+  assert.match(boutiqueCss, /\.shop-item-icon\s*\{[\s\S]*?width:\s*51px;\s*height:\s*51px;\s*border-radius:\s*12px;/);
+  assert.match(boutiqueCss, /\.shop-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(4,\s*1fr\);[\s\S]*?gap:\s*12px;/);
+  assert.match(boutiqueCss, /\.shop-card\s*\{[\s\S]*?padding:\s*14px;/);
+
+  /* 2. Rarity dot + corner category tooltip */
+  assert.match(boutiqueCss, /\.rarity-dot\s*\{[\s\S]*?width:\s*6px;\s*height:\s*6px;\s*border-radius:\s*50%;/);
+  assert.match(boutiqueCss, /\.rarity-dot\.mythic\s*\{[\s\S]*?box-shadow:\s*0 0 6px currentColor;/);
+  assert.match(boutiqueTsx, /gb-card__cat-corner/);
+
+  /* 3. Concise 1-line descriptions ≤ 50 chars */
+  for (const item of shop.SHOP_ITEMS) {
+    assert.ok(item.description.length <= 50, `${item.id} description <= 50 chars (${item.description.length})`);
+  }
+
+  /* 4 & 5. Real CSS Frame + Aura + Orbiting Mythic Particles & Live Avatar Preview */
+  for (const cls of ['.frame-common', '.frame-rare', '.frame-epic', '.frame-mythic', '.mythic-particle']) {
+    assert.ok(boutiqueCss.includes(cls), `Boutique.css defines ${cls}`);
+  }
+  for (const kf of ['@keyframes rotate-border', '@keyframes pulse-aura', '@keyframes hue-cycle', '@keyframes orbit']) {
+    assert.ok(boutiqueCss.includes(kf), `Boutique.css defines ${kf}`);
+  }
+  assert.match(boutiqueTsx, /gb-discord-preview/);
+  assert.match(boutiqueTsx, /Trang bị ngay/);
+
+  /* 6. Profile Showcase combo display (Frame + Aura + Theme + Mythic title) */
+  const combo = shop.resolveEquippedCombo(
+    ['crown_celestial', 'effect_moon', 'talisman_focus', 'profile_archive'],
+    'crown_celestial',
+    'test-combo-user',
+  );
+  assert.equal(combo.frame?.id, 'crown_celestial');
+  assert.equal(combo.aura?.id, 'effect_moon');
+  assert.equal(combo.theme?.id, 'talisman_focus');
+  assert.equal(combo.corner?.id, 'profile_archive');
+  assert.equal(combo.highestRarity, 'legendary');
+  assert.equal(combo.mythicTitle, 'Thần Thoại Tri Thức');
+  assert.match(profileTsx, /🎨 Đang trang bị:/);
+  assert.match(profileTsx, /openShopAtCategory/);
+});
+
+

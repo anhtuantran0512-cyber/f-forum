@@ -11,9 +11,9 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'compass_galaxy', name: 'La Bàn Nhóm Học', price: 650, tierColor: 'red', category: 'Góc hồ sơ', description: 'Dấu chỉ hướng bên hồ sơ.', iconType: 'Compass' },
   { id: 'hourglass_time', name: 'Nhịp Ôn Bài', price: 850, tierColor: 'red', category: 'Hiệu ứng', description: 'Cát chuyển động khi xem thẻ.', iconType: 'Hourglass' },
   { id: 'torch_victory', name: 'Đèn Đọc Khuya', price: 1200, tierColor: 'red', category: 'Hiệu ứng', description: 'Ánh đèn dịu trên thẻ học.', iconType: 'LampDesk' },
-  { id: 'crown_celestial', name: 'Viền Học Kỳ Vàng', price: 1800, tierColor: 'purple', category: 'Khung avatar', description: 'Nét đồng mảnh cho ảnh đại diện.', iconType: 'GraduationCap' },
-  { id: 'talisman_focus', name: 'Focus Đêm Ấm', price: 2500, tierColor: 'purple', category: 'Theme Focus', description: 'Nền ấm cho phiên học tối.', iconType: 'Moon' },
-  { id: 'prism_universe', name: 'Viền Lăng Kính', price: 4000, tierColor: 'purple', category: 'Khung avatar', description: 'Viền ánh sáng có tiết chế.', iconType: 'Gem' },
+  { id: 'crown_celestial', name: 'Viền Học Kỳ Vàng', price: 1800, tierColor: 'purple', category: 'Khung avatar', description: 'Viền Holographic + hạt sao thiên hà', iconType: 'GraduationCap' },
+  { id: 'talisman_focus', name: 'Focus Đêm Ấm', price: 2500, tierColor: 'purple', category: 'Theme Focus', description: 'Nền thiên hà ấm áp cho phiên học tối', iconType: 'Moon' },
+  { id: 'prism_universe', name: 'Viền Lăng Kính', price: 4000, tierColor: 'purple', category: 'Khung avatar', description: 'Viền cầu vồng lăng kính + hạt sao xoay', iconType: 'Gem' },
   { id: 'lantern_firefly', name: 'Đom Đóm Trang Sổ', price: 380, tierColor: 'blue', category: 'Hiệu ứng', description: 'Đốm sáng nhỏ bên ghi chú.', iconType: 'Lamp', addedAt: '2026-10-09' },
   { id: 'owl_nightwatch', name: 'Cú Bông Canh Giờ', price: 980, tierColor: 'red', category: 'Góc hồ sơ', description: 'Cú Bông nhắc nghỉ đúng lúc.', iconType: 'Bird', addedAt: '2026-10-09' },
   { id: 'frame_chalk', name: 'Viền Bảng Phấn', price: 110, tierColor: 'green', category: 'Khung avatar', description: 'Viền phấn mỏng trên bảng tối.', iconType: 'Square' },
@@ -145,3 +145,438 @@ export const effectivePrice = (item: Pick<ShopItem, 'id' | 'price'>, now: number
   const deal = getWeeklyDeal(now);
   return deal.itemId === item.id ? Math.round(item.price * (100 - deal.percent) / 100) : item.price;
 };
+
+/* ============================================================================
+   PHẦN 3 — BOUTIQUE SHOP PREMIUM REDESIGN: RARITY HIERARCHY, GACHA & 6H SALE
+   ============================================================================ */
+
+export interface RarityPremiumDetail {
+  tierCode: 'COMMON' | 'RARE' | 'EPIC' | 'MYTHIC';
+  badgeIcon: string;
+  badgeLabel: string;
+  borderDesc: string;
+  perks: string[];
+  flairTitle?: string;
+}
+
+export const RARITY_PREMIUM_META: Record<ShopRarity, RarityPremiumDetail> = {
+  common: {
+    tierCode: 'COMMON',
+    badgeIcon: '●',
+    badgeLabel: 'COMMON · Thường',
+    borderDesc: '2px solid #9CA3AF',
+    perks: ['Viền cơ bản thanh lịch', 'Hiển thị trên hồ sơ cá nhân'],
+  },
+  rare: {
+    tierCode: 'RARE',
+    badgeIcon: '●',
+    badgeLabel: 'RARE · Hiếm',
+    borderDesc: '3px gradient #3B82F6 → #06B6D4',
+    perks: ['Viền xanh lam phát sáng nhẹ', 'Hiệu ứng glow mờ quanh ảnh đại diện'],
+  },
+  epic: {
+    tierCode: 'EPIC',
+    badgeIcon: '●',
+    badgeLabel: 'EPIC · Sử thi',
+    borderDesc: 'Conic-gradient xoay #A855F7 → #EC4899',
+    perks: [
+      'Viền tím xoay động + Aura pulse',
+      'Tên người dùng đổi màu Gradient tím',
+      'Danh hiệu Học Giả Sử Thi',
+    ],
+    flairTitle: 'Học Giả Sử Thi',
+  },
+  legendary: {
+    tierCode: 'MYTHIC',
+    badgeIcon: '●',
+    badgeLabel: 'MYTHIC · Huyền thoại',
+    borderDesc: 'Holographic xoay + Hạt sao vàng quỹ đạo',
+    perks: [
+      'Viền cầu vồng Holographic + Hue-cycle',
+      'Hạt sao vàng bay quanh quỹ đạo Avatar',
+      'Aura đa sắc + Danh hiệu Thần Thoại Tri Thức',
+    ],
+    flairTitle: 'Thần Thoại Tri Thức',
+  },
+};
+
+export const rarityFrameClass = (rarity: ShopRarity): string => {
+  switch (rarity) {
+    case 'legendary':
+      return 'frame-mythic';
+    case 'epic':
+      return 'frame-epic';
+    case 'rare':
+      return 'frame-rare';
+    default:
+      return 'frame-common';
+  }
+};
+
+export const rarityDotClass = (rarity: ShopRarity): string =>
+  rarity === 'legendary' ? 'mythic' : rarity;
+
+export interface EquippedCombo {
+  frame: ShopItem | null;
+  aura: ShopItem | null;
+  theme: ShopItem | null;
+  corner: ShopItem | null;
+  highestRarity: ShopRarity;
+  mythicTitle: string | null;
+}
+
+const COMBO_STORAGE_PREFIX = 'fforum_equipped_combo_v1:';
+
+export function getStoredComboMap(userKey: string = 'default'): Record<string, string> {
+  const storage = (globalThis as { localStorage?: { getItem(k: string): string | null } }).localStorage;
+  if (!storage) return {};
+  try {
+    const raw = storage.getItem(`${COMBO_STORAGE_PREFIX}${userKey}`);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveEquippedComboSlot(category: string, itemId: string, userKey: string = 'default'): Record<string, string> {
+  const storage = (globalThis as { localStorage?: { setItem(k: string, v: string): void } }).localStorage;
+  if (!storage) return {};
+  try {
+    const current = getStoredComboMap(userKey);
+    const next = { ...current };
+    if (!itemId) {
+      delete next[category];
+    } else {
+      next[category] = itemId;
+    }
+    storage.setItem(`${COMBO_STORAGE_PREFIX}${userKey}`, JSON.stringify(next));
+    return next;
+  } catch {
+    return {};
+  }
+}
+
+export function resolveEquippedCombo(
+  inventory: string[] = [],
+  equippedBadge?: string,
+  userKey: string = 'default',
+): EquippedCombo {
+  const ownedSet = new Set(inventory);
+  if (equippedBadge) ownedSet.add(equippedBadge);
+  const stored = getStoredComboMap(userKey);
+  const activeItem = equippedBadge ? SHOP_ITEMS.find((i) => i.id === equippedBadge) || null : null;
+
+  const pickSlot = (category: string): ShopItem | null => {
+    if (activeItem && activeItem.category === category) return activeItem;
+    const storedId = stored[category];
+    if (storedId === '__none__') return null;
+    if (storedId && ownedSet.has(storedId)) {
+      const found = SHOP_ITEMS.find((i) => i.id === storedId && i.category === category);
+      if (found) return found;
+    }
+    const ownedInCat = SHOP_ITEMS.filter((i) => i.category === category && ownedSet.has(i.id));
+    if (ownedInCat.length === 0) return null;
+    return ownedInCat.sort((a, b) => {
+      const rDiff = RARITY_META[rarityOf(b)].order - RARITY_META[rarityOf(a)].order;
+      return rDiff !== 0 ? rDiff : b.price - a.price;
+    })[0];
+  };
+
+  const frame = pickSlot('Khung avatar');
+  const aura = pickSlot('Hiệu ứng');
+  const theme = pickSlot('Theme Focus');
+  const corner = pickSlot('Góc hồ sơ');
+
+  const equippedList = [frame, aura, theme, corner, activeItem].filter((x): x is ShopItem => Boolean(x));
+  let highestRarity: ShopRarity = 'common';
+  for (const it of equippedList) {
+    const r = rarityOf(it);
+    if (RARITY_META[r].order > RARITY_META[highestRarity].order) {
+      highestRarity = r;
+    }
+  }
+  const mythicTitle =
+    highestRarity === 'legendary'
+      ? RARITY_PREMIUM_META.legendary.flairTitle || 'Thần Thoại Tri Thức'
+      : highestRarity === 'epic'
+        ? RARITY_PREMIUM_META.epic.flairTitle || 'Học Giả Sử Thi'
+        : null;
+
+  return { frame, aura, theme, corner, highestRarity, mythicTitle };
+}
+
+/** Chu kỳ xoay vòng giảm giá động: mỗi 6 giờ (00:00, 06:00, 12:00, 18:00 giờ VN) */
+export const DYNAMIC_DISCOUNT_ROTATION_MS = 6 * 60 * 60 * 1000;
+
+export interface DynamicDiscountEntry {
+  itemId: string;
+  percent: number;
+  originalPrice: number;
+  discountedPrice: number;
+  isSuperSale: boolean; /* 81% - 90% → "SIÊU SALE!" */
+  tierBucket: '10-20' | '21-40' | '41-60' | '61-80' | '81-90';
+}
+
+export interface DynamicDiscountSnapshot {
+  slotIndex: number;
+  startsAt: number;
+  endsAt: number;
+  remainingMs: number;
+  deals: Record<string, DynamicDiscountEntry>;
+  list: DynamicDiscountEntry[];
+}
+
+/** Bộ sinh số giả ngẫu nhiên tất định (Mulberry32) để mọi tab/máy khách thấy cùng đợt giảm giá 6h */
+function createSeededRng(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Rút mức phần trăm giảm giá theo đúng phân phối xác suất Phần 3.E:
+ * - 10% – 20%: 40% xác suất
+ * - 21% – 40%: 30% xác suất
+ * - 41% – 60%: 18% xác suất
+ * - 61% – 80%:  9% xác suất
+ * - 81% – 90%:  3% xác suất (SIÊU SALE!)
+ */
+export function rollWeightedDiscountPercent(randBucket: number, randWithin: number): {
+  percent: number;
+  tierBucket: DynamicDiscountEntry['tierBucket'];
+  isSuperSale: boolean;
+} {
+  const r = Math.max(0, Math.min(0.999999, randBucket));
+  const w = Math.max(0, Math.min(0.999999, randWithin));
+  if (r < 0.40) {
+    const percent = 10 + Math.floor(w * 11); // 10..20
+    return { percent, tierBucket: '10-20', isSuperSale: false };
+  }
+  if (r < 0.70) {
+    const percent = 21 + Math.floor(w * 20); // 21..40
+    return { percent, tierBucket: '21-40', isSuperSale: false };
+  }
+  if (r < 0.88) {
+    const percent = 41 + Math.floor(w * 20); // 41..60
+    return { percent, tierBucket: '41-60', isSuperSale: false };
+  }
+  if (r < 0.97) {
+    const percent = 61 + Math.floor(w * 20); // 61..80
+    return { percent, tierBucket: '61-80', isSuperSale: false };
+  }
+  const percent = 81 + Math.floor(w * 10); // 81..90
+  return { percent, tierBucket: '81-90', isSuperSale: true };
+}
+
+/**
+ * Tính danh sách vật phẩm đang giảm giá trong khung 6h hiện tại (20–30% tổng số vật phẩm,
+ * tương đương 9/35 vật phẩm ~ 25.7%).
+ */
+export const getDynamicDiscounts = (now: number = Date.now()): DynamicDiscountSnapshot => {
+  const vnNow = now + VN_OFFSET_MS;
+  const slotIndex = Math.floor(vnNow / DYNAMIC_DISCOUNT_ROTATION_MS);
+  const startsAt = slotIndex * DYNAMIC_DISCOUNT_ROTATION_MS - VN_OFFSET_MS;
+  const endsAt = (slotIndex + 1) * DYNAMIC_DISCOUNT_ROTATION_MS - VN_OFFSET_MS;
+  const remainingMs = Math.max(0, endsAt - now);
+
+  const rng = createSeededRng(slotIndex * 2654435761 + 1013904223);
+  const pool = [...SHOP_ITEMS];
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    const tmp = pool[i];
+    pool[i] = pool[j];
+    pool[j] = tmp;
+  }
+
+  /* Chọn 9/35 vật phẩm (~25.7%, nằm chuẩn trong khoảng 20–30%) */
+  const count = 9;
+  const selected = pool.slice(0, count);
+  const deals: Record<string, DynamicDiscountEntry> = {};
+  const list: DynamicDiscountEntry[] = [];
+
+  selected.forEach((item, idx) => {
+    /* Đảm bảo mỗi khung 6h có ít nhất 1 vật phẩm chạm mốc cao hoặc dùng đúng phân phối chuẩn */
+    const bucketRoll = idx === 0 ? Math.max(0.89, rng()) : rng();
+    const withinRoll = rng();
+    const { percent, tierBucket, isSuperSale } = rollWeightedDiscountPercent(bucketRoll, withinRoll);
+    const discountedPrice = Math.max(5, Math.round((item.price * (100 - percent)) / 100));
+    const entry: DynamicDiscountEntry = {
+      itemId: item.id,
+      percent,
+      originalPrice: item.price,
+      discountedPrice,
+      isSuperSale,
+      tierBucket,
+    };
+    deals[item.id] = entry;
+    list.push(entry);
+  });
+
+  return { slotIndex, startsAt, endsAt, remainingMs, deals, list };
+};
+
+/** Định dạng đồng hồ đếm ngược HH:MM:SS cho đợt xoay vòng giảm giá 6h */
+export const formatCountdownHMS = (ms: number): string => {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+};
+
+/* ============================================================================
+   PHẦN 3.D — HỆ THỐNG GACHA (3 GÓI QUAY + BẢO HIỂM PITY 50 / 100)
+   ============================================================================ */
+
+export type GachaPoolId = 'standard' | 'epic_focus' | 'mythic_hunter';
+
+export interface GachaPoolConfig {
+  id: GachaPoolId;
+  name: string;
+  subtitle: string;
+  cost: number;
+  badge: string;
+  accentGradient: string;
+  rates: {
+    common: number;    /* % */
+    rare: number;      /* % */
+    epic: number;      /* % */
+    legendary: number; /* % (Mythic — KHÔNG BAO GIỜ vượt quá 5%) */
+  };
+}
+
+export const GACHA_POOLS: Record<GachaPoolId, GachaPoolConfig> = {
+  standard: {
+    id: 'standard',
+    name: 'Standard Pull',
+    subtitle: 'Triệu hồi tiêu chuẩn • Cơ hội sở hữu mọi bậc vật phẩm',
+    cost: 120,
+    badge: 'TIÊU CHUẨN',
+    accentGradient: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+    rates: {
+      common: 70,
+      rare: 22,
+      epic: 7,
+      legendary: 1,
+    },
+  },
+  epic_focus: {
+    id: 'epic_focus',
+    name: 'Epic Focus Pull',
+    subtitle: 'Nhân đôi tỷ lệ Sử Thi & Huyền Thoại • Tối ưu săn khung động',
+    cost: 350,
+    badge: 'TĂNG TỶ LỆ EPIC',
+    accentGradient: 'linear-gradient(135deg, #8B5CF6 0%, #D946EF 100%)',
+    rates: {
+      common: 45,
+      rare: 38,
+      epic: 15,
+      legendary: 2,
+    },
+  },
+  mythic_hunter: {
+    id: 'mythic_hunter',
+    name: 'Mythic Hunter Pull',
+    subtitle: 'Gói đại sứ tối thượng • Tỷ lệ Mythic chạm ngưỡng 4% (Tối đa ≤ 5%)',
+    cost: 850,
+    badge: 'SĂN MYTHIC 👑',
+    accentGradient: 'linear-gradient(135deg, #F59E0B 0%, #EC4899 50%, #8B5CF6 100%)',
+    rates: {
+      common: 26,
+      rare: 45,
+      epic: 25,
+      legendary: 4,
+    },
+  },
+};
+
+export const GACHA_EPIC_PITY_LIMIT = 50;
+export const GACHA_MYTHIC_PITY_LIMIT = 100;
+
+export interface GachaPityState {
+  epicPity: number;   /* số lần liên tiếp chưa ra Epic/Mythic (0..49) */
+  mythicPity: number; /* số lần liên tiếp chưa ra Mythic (0..99) */
+  totalPulls: number;
+}
+
+export interface GachaPullResult {
+  poolId: GachaPoolId;
+  rarity: ShopRarity;
+  item: ShopItem;
+  pityTriggered: 'mythic_100' | 'epic_50' | null;
+  nextPity: GachaPityState;
+}
+
+/**
+ * Thực hiện 1 lượt quay Gacha với tỷ lệ minh bạch & hệ thống Pity 50 (Epic+) / 100 (Mythic).
+ */
+export function rollGachaPull(
+  poolId: GachaPoolId,
+  currentPity: GachaPityState,
+  randRarity: number = Math.random(),
+  randItem: number = Math.random(),
+): GachaPullResult {
+  const pool = GACHA_POOLS[poolId] || GACHA_POOLS.standard;
+  const nextEpicCounter = (currentPity.epicPity || 0) + 1;
+  const nextMythicCounter = (currentPity.mythicPity || 0) + 1;
+
+  let rarity: ShopRarity;
+  let pityTriggered: GachaPullResult['pityTriggered'] = null;
+
+  /* 1. Kiểm tra bảo hiểm Pity 100 lượt (Chắc chắn ra Mythic / legendary) */
+  if (nextMythicCounter >= GACHA_MYTHIC_PITY_LIMIT) {
+    rarity = 'legendary';
+    pityTriggered = 'mythic_100';
+  } else if (nextEpicCounter >= GACHA_EPIC_PITY_LIMIT) {
+    /* 2. Kiểm tra bảo hiểm Pity 50 lượt (Chắc chắn ra từ Epic trở lên) */
+    const mythicShare = pool.rates.legendary / (pool.rates.epic + pool.rates.legendary);
+    rarity = randRarity * 100 < mythicShare * 100 ? 'legendary' : 'epic';
+    pityTriggered = 'epic_50';
+  } else {
+    /* 3. Quay theo bảng xác suất của Gói (Mythic luôn bị kẹp <= 5%) */
+    const mythicRate = Math.min(5, pool.rates.legendary);
+    const epicRate = pool.rates.epic;
+    const rareRate = pool.rates.rare;
+    const rollPct = Math.max(0, Math.min(99.9999, randRarity * 100));
+
+    if (rollPct < mythicRate) {
+      rarity = 'legendary';
+    } else if (rollPct < mythicRate + epicRate) {
+      rarity = 'epic';
+    } else if (rollPct < mythicRate + epicRate + rareRate) {
+      rarity = 'rare';
+    } else {
+      rarity = 'common';
+    }
+  }
+
+  const candidates = SHOP_ITEMS.filter(item => RARITY_OF_TIER[item.tierColor] === rarity);
+  const chosenPool = candidates.length > 0 ? candidates : SHOP_ITEMS;
+  const itemIndex = Math.min(chosenPool.length - 1, Math.max(0, Math.floor(randItem * chosenPool.length)));
+  const item = chosenPool[itemIndex];
+
+  const isMythic = rarity === 'legendary';
+  const isEpicOrAbove = rarity === 'epic' || rarity === 'legendary';
+
+  const nextPity: GachaPityState = {
+    epicPity: isEpicOrAbove ? 0 : nextEpicCounter,
+    mythicPity: isMythic ? 0 : nextMythicCounter,
+    totalPulls: (currentPity.totalPulls || 0) + 1,
+  };
+
+  return {
+    poolId: pool.id,
+    rarity,
+    item,
+    pityTriggered,
+    nextPity,
+  };
+}
+

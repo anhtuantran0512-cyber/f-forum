@@ -202,6 +202,10 @@ export const App: React.FC = () => {
     createClubPost,
     questions,
     solutions,
+    comments,
+    addComment,
+    reactQuestion,
+    reactSolution,
     threads,
     createThread,
     replyThread,
@@ -226,6 +230,9 @@ export const App: React.FC = () => {
     isSynced,
     toastMessage,
     setToastMessage,
+    sessionExpiryWarning,
+    extendSessionNow,
+    dismissSessionWarning,
     adminDeleteQuestion,
     adminEditQuestion,
     adminDeleteSolution,
@@ -947,25 +954,30 @@ export const App: React.FC = () => {
       <GlobalCursor />
       
       <div
-        className={`relative w-full ${
+        className={`relative isolate w-full ${
           isScrollableView ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'
-        } ff-app-shell ff-view-${currentView} ${currentView === 'landing' ? 'bg-[var(--ff-bg)]' : 'bg-black'} text-white font-sans`}
+        } ff-app-shell ff-view-${currentView} ${currentView === 'landing' ? 'bg-[var(--ff-bg)]' : 'bg-[var(--bg-base)]'} text-white font-sans`}
       >
-        {/* EPIC 2 — Potator Mode: lớp nền tĩnh theo preset (CSS chỉ hiện ở trang không phải Trang chủ) */}
-        {potatorMode ? (
-          <GradientSurface gradient={getGradient(potatorBg).css} className="ff-potator-bg" />
-        ) : <div className="ff-potator-bg" aria-hidden="true" />}
-        {/* Ambient Godray Gradient Lighting Overlay (Enhanced influence across viewport) */}
-        <GradientSurface
-          gradient={activeGodray.gradient}
-          className="ff-godray-layer fixed inset-0 z-[1]"
-          style={{ opacity: (godrayIntensity / 100) * 0.22 }}
-        />
-        <GradientSurface
-          gradient={`radial-gradient(ellipse at 50% 0%, ${activeGodray.accent}55 0%, transparent 72%)`}
-          className="ff-godray-layer fixed -top-24 inset-x-0 h-[360px] z-[1] blur-3xl"
-          style={{ opacity: (godrayIntensity / 100) * 0.58 }}
-        />
+        {/* Phase 1.2: Z-index Layering — Anti Gradient Bleeding */}
+        <div className="layer-base-color" aria-hidden="true" />
+        <div className="layer-gradient-aura" aria-hidden="true">
+          <div className="aura-blob aura-blob-1" />
+          {/* EPIC 2 — Potator Mode: lớp nền tĩnh theo preset (CSS chỉ hiện ở trang không phải Trang chủ) */}
+          {potatorMode ? (
+            <GradientSurface gradient={getGradient(potatorBg).css} className="ff-potator-bg" />
+          ) : <div className="ff-potator-bg" aria-hidden="true" />}
+          {/* Ambient Godray Gradient Lighting Overlay (Strictly behind content at z-[-2]) */}
+          <GradientSurface
+            gradient={activeGodray.gradient}
+            className="ff-godray-layer fixed inset-0 z-[-2] pointer-events-none"
+            style={{ opacity: (godrayIntensity / 100) * 0.22 }}
+          />
+          <GradientSurface
+            gradient={`radial-gradient(ellipse at 50% 0%, ${activeGodray.accent}55 0%, transparent 72%)`}
+            className="ff-godray-layer fixed -top-24 inset-x-0 h-[360px] z-[-2] blur-3xl pointer-events-none"
+            style={{ opacity: (godrayIntensity / 100) * 0.58 }}
+          />
+        </div>
       
       {/* Floating Global Navbar Dock (Viewport fixed wrapper with graceful transitions) */}
       {currentView !== 'chronicles' && (
@@ -993,7 +1005,7 @@ export const App: React.FC = () => {
       )}
 
       {/* Main Dimension View Routing (Single-Viewport Multi-View Architecture) */}
-      <main className={`w-full ${currentView === 'memory' || currentView === 'chronicles' ? 'min-h-[116vh]' : 'h-full'}`}>
+      <main className={`content-layer relative z-[1] w-full ${currentView === 'memory' || currentView === 'chronicles' ? 'min-h-[116vh]' : 'h-full'}`}>
         <Suspense fallback={<ViewLoadingFallback />}>
           {/* Bọc theo key để mỗi lần đổi phân khu chạy lại hoạt ảnh trượt */}
           <div
@@ -1053,8 +1065,12 @@ export const App: React.FC = () => {
               currentUser={currentUser}
               questions={questions}
               solutions={solutions}
+              comments={comments}
               onCreateQuestion={createQuestion}
               onAddSolution={addSolution}
+              onAddComment={addComment}
+              onReactQuestion={reactQuestion}
+              onReactSolution={reactSolution}
               onMarkBestSolution={markBestSolution}
               onDeleteQuestion={adminDeleteQuestion}
               onEditQuestion={adminEditQuestion}
@@ -1384,6 +1400,87 @@ export const App: React.FC = () => {
           />
         )}
       </Suspense>
+
+      {/* Phần 2 & Phần 5 — Graceful Session Expiry UX (Toast cảnh báo trước 2 phút & Modal đếm ngược 60s) */}
+      {sessionExpiryWarning && sessionExpiryWarning.mode === 'toast' && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-5 right-5 z-[120] max-w-md rounded-2xl border border-amber-400/45 bg-[#0D1326]/95 backdrop-blur-xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_24px_rgba(245,158,11,0.2)] animate-fade-up"
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-lg leading-none shrink-0">⚠️</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-bold text-amber-200">
+                Phiên làm việc sắp hết hạn (còn {Math.max(1, Math.ceil(sessionExpiryWarning.remainingSec / 60))} phút)
+              </p>
+              <p className="text-[11.5px] text-white/70 mt-1 leading-relaxed">
+                Bản nháp bài viết &amp; câu trả lời của bạn đã được lưu tự động. Bấm gia hạn để tiếp tục không gián đoạn.
+              </p>
+              <div className="flex items-center gap-2 mt-3">
+                <button
+                  type="button"
+                  onClick={() => void extendSessionNow(false)}
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 text-black font-bold text-xs shadow-md hover:brightness-110 transition cursor-pointer"
+                >
+                  Gia hạn ngay
+                </button>
+                <button
+                  type="button"
+                  onClick={dismissSessionWarning}
+                  className="px-3 py-1.5 rounded-xl bg-white/8 hover:bg-white/15 border border-white/15 text-xs font-medium text-white/80 transition cursor-pointer"
+                >
+                  Để sau
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {sessionExpiryWarning && sessionExpiryWarning.mode === 'modal' && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Cảnh báo phiên làm việc sắp hết hạn"
+          className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-up"
+        >
+          <div className="w-full max-w-md rounded-3xl border border-amber-400/50 bg-[#0D1326] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.9),0_0_32px_rgba(245,158,11,0.25)] space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-400/45 flex items-center justify-center text-xl shrink-0">
+                ⏳
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">
+                  Phiên làm việc còn {sessionExpiryWarning.remainingSec}s
+                </h3>
+                <p className="text-xs text-amber-200/85">
+                  Tự động bảo toàn dữ liệu đang nhập (Auto-save Draft)
+                </p>
+              </div>
+            </div>
+            <p className="text-xs sm:text-sm text-white/75 leading-relaxed">
+              Để bảo mật tài khoản, phiên làm việc sắp kết thúc. Bấm <strong>Gia hạn ngay</strong> để tiếp tục làm bài mà không phải đăng nhập lại.
+            </p>
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={dismissSessionWarning}
+                className="px-4 py-2 rounded-xl bg-white/8 hover:bg-white/15 border border-white/15 text-xs font-semibold text-white/80 cursor-pointer"
+              >
+                Để sau
+              </button>
+              <button
+                type="button"
+                onClick={() => void extendSessionNow(false)}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-purple-500 text-white font-bold text-xs shadow-[0_0_20px_rgba(0,245,255,0.35)] hover:brightness-110 cursor-pointer"
+              >
+                Gia hạn ngay (+30 ngày)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {authOutcome && <OwlOutcome flow={authOutcome} onSkip={dismissAuthOutcome} />}
       {/* Hoa giấy ăn mừng khi lên cấp hoặc đạt mốc thành tích. */}

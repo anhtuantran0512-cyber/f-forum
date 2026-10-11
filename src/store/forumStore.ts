@@ -15,6 +15,10 @@ import type {
   OnlinePresenceUser,
   Thread,
   ThreadReactionType,
+  QAComment,
+  QACommentableType,
+  QAReactionType,
+  ModerationReasonCode,
 } from '../types';
 import { playChime } from '../utils/audio';
 import {
@@ -29,12 +33,15 @@ import {
   clearAuthToken,
   getAuthToken,
   getSessionExpiry,
+  getSessionRemainingMs,
   hasStoredSession,
   isSessionExpired,
   postJson,
   probeCookieSession,
+  refreshSessionSilent,
   requestServerLogout,
   sessionRequestHeaders,
+  setAuthToken,
   upgradeLegacySession,
   type SessionTransport,
 } from '../utils/session';
@@ -237,7 +244,10 @@ export function useForumStore() {
 
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const savedEmail = safeStorage.getItem('fforum_current_user_email');
-    if (!savedEmail) return null;
+    /* Root Cause #1 Fix: Không khôi phục currentUser "ảo" nếu không có token/cookie
+       hợp lệ trong bộ nhớ. Tránh trạng thái tưởng đang đăng nhập nhưng khi bấm
+       "Gửi lời giải" lại bị máy chủ trả 401 và văng khỏi phiên đột ngột. */
+    if (!savedEmail || !hasStoredSession()) return null;
     const savedRegistry = safeStorage.getItem('fforum_users_registry');
     if (!savedRegistry) return null;
     try {
@@ -297,6 +307,19 @@ export function useForumStore() {
       }
     }
     return INITIAL_SOLUTIONS;
+  });
+
+  const [comments, setComments] = useState<QAComment[]>(() => {
+    const saved = safeStorage.getItem('fforum_comments');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        /* ignore */
+      }
+    }
+    return [];
   });
 
   /* Thread System v1.0 — feed mạng xã hội nội bộ; nguồn chân lý là máy chủ,
@@ -384,6 +407,14 @@ export function useForumStore() {
     subtitle?: string;
     type?: 'xp' | 'success' | 'level' | 'error';
   } | null>(null);
+
+  /* Phần 2 & Phần 5 — Graceful Session Expiry UX + Activity-Aware Auto-Extend */
+  const [sessionExpiryWarning, setSessionExpiryWarning] = useState<{
+    remainingSec: number;
+    mode: 'toast' | 'modal';
+  } | null>(null);
+  const sessionWarningDismissedRef = useRef(false);
+  const lastUserActivityRef = useRef<number>(0);
 
   const [onlineUsers, setOnlineUsers] = useState<OnlinePresenceUser[]>([]);
   const presenceMapRef = useRef<Map<string, { user: OnlinePresenceUser; lastSeen: number }>>(new Map());
@@ -580,7 +611,7 @@ export function useForumStore() {
   useEffect(() => {
     if (currentUser) {
       safeStorage.setItem('fforum_current_user_email', currentUser.email.toLowerCase());
-    } else {
+    } else if (!hasStoredSession()) {
       safeStorage.removeItem('fforum_current_user_email');
     }
   }, [currentUser]);
@@ -671,6 +702,10 @@ export function useForumStore() {
             if (Array.isArray(data.solutions)) {
               setSolutions(data.solutions.map((sol: Solution) => resolveOwner(sol)));
             }
+            if (Array.isArray(data.comments)) {
+              setComments(data.comments as QAComment[]);
+              safeStorage.setItem('fforum_comments', JSON.stringify(data.comments));
+            }
             /* Thread System v1.0 — feed đồng bộ từ máy chủ, localStorage KHÔNG lh là
                nguồn chân lý (tránh kẹt cache cũ sau khi moderator xoá bài). */
             if (Array.isArray(data.threads)) {
@@ -695,8 +730,6 @@ export function useForumStore() {
               saveAboutDataLocally(data.about);
             }
 
-
-            const savedEmail = safeStorage.getItem('fforum_current_user_email');
 
             /*
               Khôi phục phiên: token trong localStorage có thể đã hết hạn, hoặc
@@ -738,6 +771,9 @@ export function useForumStore() {
                   } else if (sessionRes.ok) {
                     const sessionJson = await sessionRes.json();
                     if (sessionJson?.success && sessionJson.user && isMounted) {
+                      if (!getAuthToken() && typeof sessionJson.token === 'string' && sessionJson.token) {
+                        setAuthToken(sessionJson.token);
+                      }
                       const fresh = sessionJson.user as User;
                       safeStorage.setItem('fforum_current_user_email', fresh.email.toLowerCase());
                       setCurrentUser(fresh);
@@ -759,8 +795,11 @@ export function useForumStore() {
                 safeStorage.setItem('fforum_current_user_email', fresh.email.toLowerCase());
                 setCurrentUser(fresh);
                 announceRestoredLock(probed.moderation);
-              } else if (savedEmail && data.users && data.users[savedEmail.toLowerCase()] && isMounted) {
-                setCurrentUser(data.users[savedEmail.toLowerCase()]);
+              } else if (isMounted && !hasStoredSession() && !currentUserRef.current) {
+                /* Root Cause #1 Fix: Không có cả token lẫn cookie hợp lệ → xoá email lưu sót
+                   thay vì gán một phiên đăng nhập ảo không có token. */
+                safeStorage.removeItem('fforum_current_user_email');
+                setCurrentUser(null);
               }
             }
           }
@@ -933,6 +972,60 @@ export function useForumStore() {
             if (prev.some(s => s.id === newSolution.id)) return prev;
             return [...prev, newSolution];
           });
+          break;
+        }
+        case 'NEW_COMMENT': {
+          const newComment = payload as QAComment;
+          if (!newComment || !newComment.id) break;
+          setComments(prev => {
+            if (prev.some(c => c.id === newComment.id)) return prev;
+            const next = [...prev, newComment];
+            safeStorage.setItem('fforum_comments', JSON.stringify(next));
+            return next;
+          });
+          break;
+        }
+        case 'REACT_QUESTION': {
+          const { targetId, reactions } = payload as { targetId: string; reactions: any };
+          setQuestions(prev => prev.map(q => (q.id === targetId ? { ...q, reactions } : q)));
+          break;
+        }
+        case 'REACT_SOLUTION': {
+          const { targetId, reactions } = payload as { targetId: string; reactions: any };
+          setSolutions(prev => prev.map(s => (s.id === targetId ? { ...s, reactions } : s)));
+          break;
+        }
+        case 'MODERATION_DELETE': {
+          const modPayload = payload as {
+            authorId?: string;
+            authorEmail?: string;
+            targetType?: 'question' | 'answer';
+            reasonCode?: string;
+            reasonNote?: string;
+          };
+          const me = currentUserRef.current;
+          const isMyContent =
+            me &&
+            ((modPayload.authorId && modPayload.authorId === me.id) ||
+              (modPayload.authorEmail && modPayload.authorEmail.toLowerCase() === me.email.toLowerCase()));
+          if (isMyContent) {
+            const reasonMap: Record<string, string> = {
+              inappropriate: 'Nội dung không phù hợp',
+              spam: 'Spam / Quảng cáo',
+              wrong_knowledge: 'Kiến thức sai lệch nghiêm trọng',
+              rule_violation: 'Vi phạm nội quy trường',
+              other: 'Lý do khác',
+            };
+            const label = reasonMap[modPayload.reasonCode || ''] || 'Vi phạm quy định';
+            const noteSuffix = modPayload.reasonNote ? ` (${modPayload.reasonNote})` : '';
+            pushNotification({
+              type: 'system',
+              category: 'system',
+              title: modPayload.targetType === 'question' ? 'Câu hỏi của bạn đã bị gỡ bởi BQT' : 'Lời giải của bạn đã bị gỡ bởi BQT',
+              body: `Lý do: ${label}${noteSuffix}`,
+              targetView: 'qa',
+            });
+          }
           break;
         }
         case 'MARK_BEST_SOLUTION': {
@@ -1479,10 +1572,112 @@ export function useForumStore() {
   }, [sessionOwnerEmail]);
 
   /** Epic 5: phiên cookie → mở lại WS để bắt tay mang cookie; phiên Bearer → gửi gói AUTH. */
-  const bindSessionToSocket = (transport: SessionTransport) => {
+  const bindSessionToSocket = useCallback((transport: SessionTransport) => {
     if (transport === 'cookie') reconnectSocketRef.current();
     else authenticateSocketRef.current();
-  };
+  }, []);
+
+  /**
+   * Phần 2 & Phần 5 — Gia hạn phiên chủ động (Silent Refresh hoặc khi bấm [Gia hạn ngay]).
+   */
+  const extendSessionNow = useCallback(async (silent = false): Promise<boolean> => {
+    const res = await refreshSessionSilent();
+    if (res.ok) {
+      sessionWarningDismissedRef.current = false;
+      setSessionExpiryWarning(null);
+      authenticateSocketRef.current();
+      if (!silent) {
+        playChime('success');
+        setToastMessage({
+          title: 'Đã gia hạn phiên làm việc!',
+          subtitle: 'Phiên đăng nhập của bạn đã được làm mới an toàn thêm 30 ngày.',
+          type: 'success',
+        });
+      }
+      return true;
+    }
+    if (!silent) {
+      setToastMessage({
+        title: 'Chưa thể gia hạn phiên',
+        subtitle: 'Bản nháp của bạn đã được lưu tự động. Vui lòng đăng nhập lại nếu phiên đã hết hạn.',
+        type: 'level',
+      });
+    }
+    return false;
+  }, []);
+
+  const dismissSessionWarning = useCallback(() => {
+    sessionWarningDismissedRef.current = true;
+    setSessionExpiryWarning(null);
+  }, []);
+
+  /* Theo dõi hoạt động gõ phím / chuột để tự động gia hạn ngầm khi người dùng đang làm bài */
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const markActivity = () => {
+      lastUserActivityRef.current = Date.now();
+    };
+    window.addEventListener('keydown', markActivity, { passive: true });
+    window.addEventListener('input', markActivity, { passive: true });
+    window.addEventListener('pointerdown', markActivity, { passive: true });
+    return () => {
+      window.removeEventListener('keydown', markActivity);
+      window.removeEventListener('input', markActivity);
+      window.removeEventListener('pointerdown', markActivity);
+    };
+  }, []);
+
+  /* Phần 2 & Phần 5 — Heartbeat 30s + Silent Token Refresh (trước khi hết hạn 5 phút)
+     + Cảnh báo sớm 2 phút (Toast) / 60 giây (Modal) */
+  useEffect(() => {
+    if (!sessionOwnerEmail || typeof window === 'undefined') {
+      return undefined;
+    }
+    const FIVE_MIN_MS = 5 * 60 * 1000;
+    const TWO_MIN_MS = 2 * 60 * 1000;
+    const ONE_MIN_MS = 60 * 1000;
+
+    const runHeartbeat = async () => {
+      const remainingMs = getSessionRemainingMs();
+      const recentlyActive =
+        lastUserActivityRef.current > 0 && Date.now() - lastUserActivityRef.current < 90_000;
+
+      /* Nếu còn <= 5 phút (hoặc đang gõ bài tích cực và còn <= 15 phút) → Silent Refresh tự động */
+      if (
+        remainingMs !== null &&
+        (remainingMs <= FIVE_MIN_MS || (recentlyActive && remainingMs <= 15 * 60 * 1000))
+      ) {
+        const refreshed = await refreshSessionSilent();
+        if (refreshed.ok) {
+          sessionWarningDismissedRef.current = false;
+          setSessionExpiryWarning(null);
+          authenticateSocketRef.current();
+          return;
+        }
+      }
+
+      /* Nếu không thể Silent Refresh (vd. mất mạng tạm thời) và còn <= 2 phút → hiện cảnh báo Graceful UX */
+      const afterMs = getSessionRemainingMs();
+      if (afterMs !== null && afterMs > 0 && afterMs <= TWO_MIN_MS) {
+        const remainingSec = Math.max(1, Math.ceil(afterMs / 1000));
+        if (afterMs <= ONE_MIN_MS) {
+          setSessionExpiryWarning({ remainingSec, mode: 'modal' });
+        } else if (!sessionWarningDismissedRef.current) {
+          setSessionExpiryWarning({ remainingSec, mode: 'toast' });
+        }
+      } else {
+        setSessionExpiryWarning(null);
+      }
+    };
+
+    const heartbeatTimer = window.setInterval(() => {
+      void runHeartbeat();
+    }, 30_000);
+
+    return () => {
+      window.clearInterval(heartbeatTimer);
+    };
+  }, [sessionOwnerEmail]);
 
   const registerWithPassword = async (name: string, email: string, password: string): Promise<User> => {
     const trimmedName = name.trim();
@@ -1500,14 +1695,16 @@ export function useForumStore() {
     }
 
     const user = data.user as User;
+    /* Root Cause #2 Fix: Lưu phiên (adoptSession) TRƯỚC khi setCurrentUser để mọi
+       effect chạy theo currentUser luôn đọc được token hợp lệ ngay lập tức. */
+    const transport = await adoptSession(data);
+    safeStorage.setItem('fforum_current_user_email', normalizedEmail);
     commitUsers(prev => ({
       ...prev,
       [normalizedEmail]: user,
     }));
     setCurrentUser(user);
-
-    bindSessionToSocket(await adoptSession(data));
-    safeStorage.setItem('fforum_current_user_email', normalizedEmail);
+    bindSessionToSocket(transport);
 
     try {
       syncBroadcastChannel?.postMessage({
@@ -1548,14 +1745,15 @@ export function useForumStore() {
     }
 
     const user = data.user as User;
+    /* Root Cause #2 Fix: adoptSession trước khi setCurrentUser để tránh race condition */
+    const transport = await adoptSession(data);
+    safeStorage.setItem('fforum_current_user_email', normalizedEmail);
     commitUsers(prev => ({
       ...prev,
       [normalizedEmail]: user,
     }));
     setCurrentUser(user);
-
-    bindSessionToSocket(await adoptSession(data));
-    safeStorage.setItem('fforum_current_user_email', normalizedEmail);
+    bindSessionToSocket(transport);
 
     try {
       syncBroadcastChannel?.postMessage({
@@ -1677,14 +1875,14 @@ export function useForumStore() {
     }
 
     const user = result.user;
+    const transport = await adoptSession(result);
+    safeStorage.setItem('fforum_current_user_email', normalizedEmail);
     commitUsers(prev => ({
       ...prev,
       [normalizedEmail]: user,
     }));
     setCurrentUser(user);
-
-    bindSessionToSocket(await adoptSession(result));
-    safeStorage.setItem('fforum_current_user_email', normalizedEmail);
+    bindSessionToSocket(transport);
 
     try {
       syncBroadcastChannel?.postMessage({
@@ -2121,7 +2319,23 @@ export function useForumStore() {
     body: unknown,
   ): Promise<{ ok: boolean; message: string; status: number; data: any }> => {
     try {
-      const { status, data } = await postJson(url, body);
+      let { status, data } = await postJson(url, body);
+      /* Nếu gặp 401 (vd. tab ngủ lâu vừa thức dậy khi bấm Gửi lời giải), thử làm mới
+         phiên ngầm (Silent Token Refresh) rồi gửi lại ngay lập tức 1 lần. */
+      if (status === 401) {
+        const refreshed = await refreshSessionSilent();
+        if (refreshed.ok) {
+          authenticateSocketRef.current();
+          const freshToken = getAuthToken();
+          const retryBody =
+            freshToken && body && typeof body === 'object' && !Array.isArray(body)
+              ? { ...(body as Record<string, unknown>), token: freshToken }
+              : body;
+          const retried = await postJson(url, retryBody);
+          status = retried.status;
+          data = retried.data;
+        }
+      }
       if (status >= 200 && status < 300) {
         return { ok: true, message: data?.message || '', status, data };
       }
@@ -2726,7 +2940,137 @@ export function useForumStore() {
     });
   };
 
-  const adminDeleteQuestion = async (questionId: string): Promise<boolean> => {
+  const addComment = async (
+    commentableType: QACommentableType,
+    commentableId: string,
+    content: string,
+  ): Promise<boolean> => {
+    if (!currentUser) {
+      setToastMessage({
+        title: 'Chưa đăng nhập',
+        subtitle: 'Vui lòng đăng nhập để bình luận!',
+        type: 'error',
+      });
+      return false;
+    }
+    const clean = content.trim().slice(0, 300);
+    if (!clean) return false;
+
+    const optimistic: QAComment = {
+      id: makeTempId('cmt'),
+      authorId: currentUser.id,
+      authorName: currentUser.name,
+      authorEmail: currentUser.email,
+      authorAvatar: currentUser.avatar,
+      authorLevel: currentUser.level || 1,
+      content: clean,
+      commentableType,
+      commentableId,
+      status: 'active',
+      createdAt: 'Vừa xong',
+      createdAtMs: Date.now(),
+    };
+
+    const prevComments = comments;
+    setComments((prev) => [...prev, optimistic]);
+
+    const outcome = await runServerAction('/api/comments', {
+      ...optimistic,
+      token: getAuthToken(),
+    });
+    if (!outcome.ok) {
+      setComments(prevComments);
+      setToastMessage({
+        title: 'Không gửi được bình luận',
+        subtitle: outcome.message,
+        type: 'error',
+      });
+      return false;
+    }
+
+    const saved = (outcome.data?.comment || optimistic) as QAComment;
+    setComments((prev) => {
+      const next = [...prev.filter((c) => c.id !== optimistic.id && c.id !== saved.id), saved];
+      safeStorage.setItem('fforum_comments', JSON.stringify(next));
+      return next;
+    });
+    playChime('send');
+    return true;
+  };
+
+  const reactQuestion = async (questionId: string, reactionType: QAReactionType): Promise<void> => {
+    if (!currentUser) {
+      setToastMessage({
+        title: 'Chưa đăng nhập',
+        subtitle: 'Vui lòng đăng nhập để thả cảm xúc!',
+        type: 'error',
+      });
+      return;
+    }
+    const userKey = currentUser.email.toLowerCase();
+    setQuestions((prev) =>
+      prev.map((q) => {
+        if (q.id !== questionId) return q;
+        const curr = { ...(q.reactions || {}) };
+        const list = Array.isArray(curr[reactionType]) ? [...(curr[reactionType] || [])] : [];
+        curr[reactionType] = list.includes(userKey)
+          ? list.filter((u) => u !== userKey)
+          : [...list, userKey];
+        return { ...q, reactions: curr };
+      }),
+    );
+    const outcome = await runServerAction('/api/questions/react', {
+      targetId: questionId,
+      reactionType,
+      authorEmail: currentUser.email,
+      token: getAuthToken(),
+    });
+    if (outcome.ok && outcome.data?.reactions) {
+      setQuestions((prev) =>
+        prev.map((q) => (q.id === questionId ? { ...q, reactions: outcome.data.reactions } : q)),
+      );
+    }
+  };
+
+  const reactSolution = async (solutionId: string, reactionType: QAReactionType): Promise<void> => {
+    if (!currentUser) {
+      setToastMessage({
+        title: 'Chưa đăng nhập',
+        subtitle: 'Vui lòng đăng nhập để thả cảm xúc!',
+        type: 'error',
+      });
+      return;
+    }
+    const userKey = currentUser.email.toLowerCase();
+    setSolutions((prev) =>
+      prev.map((s) => {
+        if (s.id !== solutionId) return s;
+        const curr = { ...(s.reactions || {}) };
+        const list = Array.isArray(curr[reactionType]) ? [...(curr[reactionType] || [])] : [];
+        curr[reactionType] = list.includes(userKey)
+          ? list.filter((u) => u !== userKey)
+          : [...list, userKey];
+        return { ...s, reactions: curr };
+      }),
+    );
+    const outcome = await runServerAction('/api/solutions/react', {
+      targetId: solutionId,
+      reactionType,
+      authorEmail: currentUser.email,
+      token: getAuthToken(),
+    });
+    if (outcome.ok && outcome.data?.reactions) {
+      setSolutions((prev) =>
+        prev.map((s) => (s.id === solutionId ? { ...s, reactions: outcome.data.reactions } : s)),
+      );
+    }
+  };
+
+  const adminDeleteQuestion = async (
+    questionId: string,
+    reasonCode?: ModerationReasonCode,
+    reasonNote?: string,
+  ): Promise<boolean> => {
     if (!currentUser || !canEditContentNow(currentUser.email)) {
       alert('Chỉ Super Admin hoặc vai trò có quyền sửa nội dung mới được xóa bài viết!');
       return false;
@@ -2740,7 +3084,11 @@ export function useForumStore() {
     setQuestions(prev => prev.filter(q => q.id !== questionId));
     setSolutions(prev => prev.filter(s => s.questionId !== questionId));
 
-    const outcome = await runServerAction('/api/questions/delete', { questionId });
+    const outcome = await runServerAction('/api/questions/delete', {
+      questionId,
+      reasonCode: reasonCode || 'rule_violation',
+      reasonNote,
+    });
     if (!outcome.ok) {
       setQuestions(prevQuestions);
       setSolutions(prevSolutions);
@@ -2764,7 +3112,7 @@ export function useForumStore() {
     playChime('send');
     setToastMessage({
       title: 'Đã xóa bài viết vi phạm',
-      subtitle: 'Nội dung và toàn bộ thảo luận đã bị xóa khỏi hệ thống.',
+      subtitle: 'Nội dung và nhật ký kiểm duyệt đã được lưu lại.',
       type: 'success',
     });
     return true;
@@ -2813,7 +3161,11 @@ export function useForumStore() {
     return true;
   };
 
-  const adminDeleteSolution = async (solutionId: string): Promise<boolean> => {
+  const adminDeleteSolution = async (
+    solutionId: string,
+    reasonCode?: ModerationReasonCode,
+    reasonNote?: string,
+  ): Promise<boolean> => {
     if (!currentUser || !canEditContentNow(currentUser.email)) {
       alert('Chỉ Super Admin hoặc vai trò có quyền sửa nội dung mới được xóa phản hồi!');
       return false;
@@ -2828,7 +3180,11 @@ export function useForumStore() {
       )
     );
 
-    const solOutcome = await runServerAction('/api/solutions/delete', { solutionId });
+    const solOutcome = await runServerAction('/api/solutions/delete', {
+      solutionId,
+      reasonCode: reasonCode || 'rule_violation',
+      reasonNote,
+    });
     if (!solOutcome.ok) {
       setSolutions(prevSols);
       setQuestions(prevQs);
@@ -2852,7 +3208,7 @@ export function useForumStore() {
     playChime('send');
     setToastMessage({
       title: 'Đã xóa phản hồi vi phạm',
-      subtitle: 'Câu trả lời không phù hợp đã bị gỡ bỏ.',
+      subtitle: 'Câu trả lời đã bị gỡ bỏ và ghi vào nhật ký kiểm duyệt.',
       type: 'success',
     });
     return true;
@@ -2957,6 +3313,10 @@ export function useForumStore() {
     createClubPost,
     questions,
     solutions,
+    comments,
+    addComment,
+    reactQuestion,
+    reactSolution,
     threads,
     createThread,
     replyThread,
@@ -2981,6 +3341,9 @@ export function useForumStore() {
     isSynced,
     toastMessage,
     setToastMessage,
+    sessionExpiryWarning,
+    extendSessionNow,
+    dismissSessionWarning,
     submitFeedback,
     aboutData,
     adminDeleteQuestion,

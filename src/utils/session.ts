@@ -70,7 +70,13 @@ export const clearAuthToken = (): void => {
 export const canUseCookieSession = (): boolean => {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
   try {
-    return window.location.protocol === 'https:' && navigator.cookieEnabled && window.self === window.top;
+    /* Giữ token trong localStorage xuyên suốt giữa tab độc lập và iframe xem trước
+       (nơi trình duyệt chặn cookie SameSite=Strict nhưng dùng chung BroadcastChannel/localStorage),
+       tránh việc iframe làm mất token của tab chính và phát tín hiệu USER_LOGOUT. */
+    if ((window as unknown as { __FFORUM_FORCE_COOKIE_SESSION__?: boolean }).__FFORUM_FORCE_COOKIE_SESSION__ === true) {
+      return window.location.protocol === 'https:' && navigator.cookieEnabled && window.self === window.top;
+    }
+    return false;
   } catch {
     return false;
   }
@@ -108,6 +114,13 @@ export const getSessionExpiry = (): number | null => {
   return decodeTokenExpiry(getAuthToken());
 };
 
+/** Thời gian còn lại của phiên (ms) hoặc null nếu không xác định được. */
+export const getSessionRemainingMs = (now: number = Date.now()): number | null => {
+  const expiry = getSessionExpiry();
+  if (expiry === null) return null;
+  return expiry - now;
+};
+
 /** Kiểm tra hạn token ngay ở client — không chờ máy chủ trả 401 mới biết. */
 export const isSessionExpired = (now: number = Date.now()): boolean => {
   const expiry = getSessionExpiry();
@@ -119,7 +132,13 @@ export const authHeaders = (extra?: Record<string, string>): Record<string, stri
   const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(token
+      ? {
+          Authorization: `Bearer ${token}`,
+          'X-FForum-Token': token,
+          'X-User-Token': token,
+        }
+      : {}),
     ...(extra || {}),
   };
 };
@@ -135,10 +154,15 @@ export const postJson = async (
   url: string,
   body: unknown,
 ): Promise<{ status: number; data: any }> => {
+  const token = getAuthToken();
+  const payload =
+    token && body && typeof body === 'object' && !Array.isArray(body)
+      ? { ...(body as Record<string, unknown>), token: (body as Record<string, unknown>).token || token }
+      : body;
   const res = await fetch(url, {
     method: 'POST',
     headers: authHeaders(),
-    body: JSON.stringify(body),
+    body: JSON.stringify(payload),
   });
   /* 401 = token có thể đã bị thu hồi/hết hạn → nhờ bộ kiểm phiên xác minh lại. */
   signalSessionSuspect(res.status);
@@ -177,6 +201,11 @@ export const adoptSession = async (data: {
   expiresAt?: number;
   sessionTransport?: string;
 } | null | undefined): Promise<SessionTransport> => {
+  /* Lưu token ngay lập tức trước khi chờ kiểm chứng cookie để không có khoảng trống
+     race condition nào khiến các request song song bị thiếu Authorization header. */
+  if (data?.token) {
+    setAuthToken(data.token);
+  }
   if (data?.sessionTransport === 'cookie' && typeof data.expiresAt === 'number' && (await cookieSessionWorks())) {
     safeStorage.removeItem(AUTH_TOKEN_KEY);
     writeHint(data.expiresAt);
@@ -185,6 +214,62 @@ export const adoptSession = async (data: {
   safeStorage.removeItem(SESSION_HINT_KEY);
   setAuthToken(data?.token);
   return 'bearer';
+};
+
+/**
+ * Phần 2 & Phần 5 — Silent Token Refresh (Tự động gia hạn phiên trong nền).
+ * Gọi `/api/auth/refresh` để nhận token/cookie mới hạn 30 ngày mà không làm gián đoạn
+ * thao tác gõ bài của người dùng.
+ */
+let inflightRefreshPromise: Promise<{
+  ok: boolean;
+  expiresAt?: number;
+  user?: unknown;
+  status?: number;
+}> | null = null;
+
+export const refreshSessionSilent = async (): Promise<{
+  ok: boolean;
+  expiresAt?: number;
+  user?: unknown;
+  status?: number;
+}> => {
+  if (inflightRefreshPromise) return inflightRefreshPromise;
+  inflightRefreshPromise = (async () => {
+    try {
+      const token = getAuthToken();
+      const res = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        headers: {
+          ...authHeaders(),
+          ...(canUseCookieSession() ? { [SESSION_TRANSPORT_HEADER]: 'cookie' } : {}),
+        },
+        credentials: 'same-origin',
+        cache: 'no-store',
+        body: JSON.stringify(token ? { token } : {}),
+      });
+      if (!res.ok) {
+        return { ok: false, status: res.status };
+      }
+      const data = await res.json().catch(() => null);
+      if (!data?.success) {
+        return { ok: false, status: res.status };
+      }
+      await adoptSession(data);
+      return {
+        ok: true,
+        expiresAt: typeof data.expiresAt === 'number' ? data.expiresAt : getSessionExpiry() ?? undefined,
+        user: data.user,
+        status: 200,
+      };
+    } catch {
+      /* Lỗi mạng tạm thời — giữ nguyên phiên hiện tại để thử lại ở nhịp heartbeat sau */
+      return { ok: false, status: 0 };
+    } finally {
+      inflightRefreshPromise = null;
+    }
+  })();
+  return inflightRefreshPromise;
 };
 
 /**
@@ -222,13 +307,18 @@ export const upgradeLegacySession = async (): Promise<boolean> => {
  * cho 401 để khách vãng lai không thấy lỗi đỏ trong console mỗi lần tải trang.
  */
 export const probeCookieSession = async (): Promise<{ user: unknown; expiresAt: number; moderation?: unknown } | null> => {
-  if (!canUseCookieSession() || hasStoredSession()) return null;
+  if (typeof window === 'undefined' || hasStoredSession()) return null;
   try {
     const res = await fetch('/api/auth/session?probe=1', { cache: 'no-store', credentials: 'same-origin' });
     if (!res.ok) return null;
     const data = await res.json();
     if (data?.success && data.user && typeof data.expiresAt === 'number') {
-      writeHint(data.expiresAt);
+      if (typeof data.token === 'string' && data.token) {
+        safeStorage.removeItem(SESSION_HINT_KEY);
+        setAuthToken(data.token);
+      } else {
+        writeHint(data.expiresAt);
+      }
       /* `moderation`: trạng thái khoá máy chủ tính theo giờ hiện tại (báo khi mở app). */
       return { user: data.user, expiresAt: data.expiresAt, moderation: data.moderation };
     }
@@ -245,10 +335,11 @@ export const probeCookieSession = async (): Promise<{ user: unknown; expiresAt: 
  */
 export const requestServerLogout = async (everywhere = false): Promise<boolean> => {
   try {
+    const token = getAuthToken();
     const res = await fetch('/api/auth/logout', {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ everywhere }),
+      body: JSON.stringify({ everywhere, ...(token ? { token } : {}) }),
       keepalive: true,
     });
     if (!res.ok) return false;
