@@ -9,7 +9,6 @@ import {
   Heart,
   Shield,
   Sparkles,
-  Radio,
   Trash2,
   MessageSquareDashed,
   X,
@@ -216,56 +215,15 @@ export const ChatView: React.FC<ChatViewProps> = ({
     CHANNELS.find(c => c.id === activeChannel) || CHANNELS[0];
 
   return (
-    <section className="relative w-full h-[100dvh] md:h-screen overflow-hidden flex flex-col pt-[calc(54px+var(--safe-top))] pb-[calc(56px+var(--safe-bottom))] md:pt-24 md:pb-6 px-2 sm:px-6">
+    <section className="relative w-full h-[100dvh] md:h-screen overflow-hidden flex flex-col pt-[calc(54px+var(--safe-top))] pb-[calc(56px+var(--safe-bottom))] md:pt-[var(--navbar-height)] md:pb-0">
       {/* Background Video Engine: TriVideoCrossfadeBg running at z-0 absolute inset-0 */}
       <TriVideoCrossfadeBg activeIdx={activeVideoIdx} onIdxChange={setActiveVideoIdx} />
 
-      {/* Main Container */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col overflow-hidden">
-        {/* Top Channel Bar (Desktop >= 768px) */}
-        <div className="hidden md:flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-white/10 shrink-0">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-              <Radio className="w-5 h-5 text-orange-400 animate-pulse" />
-              <span>Phòng Chat Đàm Thoại Thời Gian Thực</span>
-              <span className="text-xs font-mono font-normal text-orange-400 px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/30">
-                LIVE DOCK
-              </span>
-            </h1>
-            <p className="text-xs text-neutral-300 mt-0.5 flex items-center">
-              Phòng chat học sinh toàn trường.
-              <InfoTip label="Nội quy phòng chat" align="start">
-                Các hành vi toxic, kháy, khiêu khích, cô lập hay cố ý gây war sẽ bị vô hiệu hoá tài khoản vĩnh viễn và báo về ban giám hiệu nhà trường.
-              </InfoTip>
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Ambient Video Switcher Pills: Clean Icons (Waves, Grid, Sparkles) */}
-            <div className="hidden sm:flex items-center gap-1 bg-black/50 p-1 rounded-full border border-white/10">
-              {TRI_CHAT_VIDEOS.map((v, i) => (
-                <button
-                  key={v.id}
-                  onClick={() => setActiveVideoIdx(v.id)}
-                  className={`p-2 rounded-full transition-all cursor-pointer flex items-center justify-center ${
-                    activeVideoIdx === v.id
-                      ? 'bg-orange-500 text-black shadow-[0_0_10px_rgba(249,115,22,0.8)]'
-                      : 'text-neutral-400 hover:text-white'
-                  }`}
-                  title={`Chuyển phông nền: ${v.label}`}
-                >
-                  {i === 0 ? <Waves className="w-3.5 h-3.5" /> : i === 1 ? <Grid className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full liquid-glass bg-orange-500/10 border border-orange-500/30 text-xs font-mono text-orange-300">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-ping" />
-              <span>{dynamicOnlineCount} bạn đang trực tuyến</span>
-            </div>
-          </div>
-        </div>
-
+      {/* Phase 2: Sub-Layout Content Wrapper — height: calc(100vh - var(--navbar-height)), overflow: hidden, display: flex */}
+      <div
+        className="page-content-wrapper relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col overflow-hidden px-2 sm:px-6 py-2 md:py-4"
+        style={{ height: 'calc(100vh - var(--navbar-height))' }}
+      >
         {/* Mobile Subheader Bar with 2 Slide-in Drawer Buttons (< 768px) */}
         <div className="md:hidden flex items-center justify-between p-2 mb-2 rounded-2xl bg-black/40 border border-white/10 shrink-0">
           <button
@@ -295,20 +253,20 @@ export const ChatView: React.FC<ChatViewProps> = ({
           </button>
         </div>
 
-        {/* 3-Column Discord Layout */}
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 overflow-hidden pb-2">
+        {/* 3-Column Discord Layout (Channel Sidebar + Main Chat + Member List) */}
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 overflow-hidden min-h-0">
           
-          {/* Left Column: 4 Channels Selector (md:col-span-3) */}
-          <div className="hidden md:flex md:col-span-3 flex-col rounded-3xl liquid-glass bg-black/35 backdrop-blur-xl border border-white/10 p-3.5 shadow-2xl overflow-y-auto space-y-3">
-            <div className="flex items-center justify-between px-2 pb-2 border-b border-white/10">
+          {/* Left Column: 4 Channels Selector + Current User Card (md:col-span-3) */}
+          <div className="hidden md:flex md:col-span-3 flex-col rounded-3xl liquid-glass bg-black/35 backdrop-blur-xl border border-white/10 p-3.5 shadow-2xl overflow-hidden space-y-3">
+            <div className="flex items-center justify-between px-2 pb-2 border-b border-white/10 shrink-0">
               <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 font-mono">
                 <Hash className="w-3.5 h-3.5 text-orange-400" />
-                CHUYÊN KÊNH ĐÀM THOẠI
+                KÊNH
               </span>
               <span className="text-[10px] text-neutral-400 font-mono">4 KÊNH</span>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 flex-1 overflow-y-auto no-scrollbar">
               {CHANNELS.map(ch => {
                 const Icon = ch.icon;
                 const isActive = activeChannel === ch.id;
@@ -318,14 +276,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   <button
                     key={ch.id}
                     onClick={() => setActiveChannel(ch.id)}
-                    className={`w-full text-left p-3 rounded-2xl transition-all flex items-start gap-2.5 ${
+                    className={`channel-item w-full text-left rounded-xl transition-all flex items-center gap-2.5 cursor-pointer ${
                       isActive
-                        ? 'bg-gradient-to-r from-orange-500/25 to-amber-500/20 border border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.2)]'
+                        ? 'active bg-gradient-to-r from-orange-500/25 to-amber-500/20 border border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.2)]'
                         : 'hover:bg-white/5 border border-transparent text-neutral-400 hover:text-white'
                     }`}
                   >
                     <div
-                      className={`p-2 rounded-xl shrink-0 mt-0.5 ${
+                      className={`p-1.5 rounded-lg shrink-0 ${
                         isActive
                           ? 'bg-orange-500 text-black shadow-md'
                           : 'bg-white/5 text-neutral-400'
@@ -334,47 +292,100 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       <Icon className="w-4 h-4" />
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={`text-xs font-bold truncate ${
-                            isActive ? 'text-white' : 'text-neutral-300'
-                          }`}
-                        >
-                          #{ch.name}
-                        </span>
-                        <span className="text-[10px] font-mono text-neutral-500 ml-1">
-                          {count}
-                        </span>
-                      </div>
-                    </div>
+                    <span
+                      className={`text-xs font-bold truncate flex-1 ${
+                        isActive ? 'text-white' : 'text-neutral-300'
+                      }`}
+                    >
+                      #{ch.name}
+                    </span>
+
+                    {count > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-white/10 text-[10px] font-mono text-neutral-300 shrink-0">
+                        {count}
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
 
+            {/* Bottom Current User / Guest Mini Dock */}
+            {currentUser ? (
+              <div className="pt-2.5 border-t border-white/10 flex items-center gap-2.5 px-1 shrink-0">
+                <div className="relative shrink-0">
+                  <img
+                    src={currentUser.avatar || DEFAULT_AVATAR}
+                    alt={currentUser.name}
+                    onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                    loading="lazy"
+                    decoding="async"
+                    width={32}
+                    height={32}
+                    className="w-8 h-8 rounded-full object-cover border border-white/20"
+                  />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-[#0c1218]" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-bold text-white truncate">{currentUser.name}</div>
+                  <div className="text-[10px] text-emerald-400 font-mono truncate">Trực tuyến • Lv.{currentUser.level || 1}</div>
+                </div>
+              </div>
+            ) : (
+              <div className="pt-2.5 border-t border-white/10 flex items-center justify-between gap-2 px-1 shrink-0">
+                <span className="text-[11px] text-neutral-400 truncate">Chế độ Khách</span>
+                <button
+                  type="button"
+                  onClick={onOpenLoginModal}
+                  className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold cursor-pointer"
+                >
+                  Đăng nhập
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Center Column: Active Channel Messages & Input (md:col-span-6 lg:col-span-6) */}
-          <div className="col-span-1 md:col-span-9 lg:col-span-6 flex flex-col rounded-3xl liquid-glass bg-black/35 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden">
+          {/* Center Column: Active Channel Messages & Input (md:col-span-9 lg:col-span-6) */}
+          <div className="col-span-1 md:col-span-9 lg:col-span-6 flex flex-col rounded-3xl liquid-glass bg-black/35 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden min-h-0">
             
-
-
-            {/* Chat Room Subheader */}
-            <div className="px-4 py-2.5 bg-black/40 border-b border-white/10 flex items-center justify-between shrink-0">
+            {/* Chat Room Subheader — Compact with Rules Tooltip & Ambient Controls */}
+            <div className="px-4 py-2.5 bg-black/40 border-b border-white/10 flex items-center justify-between gap-2 shrink-0">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_8px_#f97316]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_8px_#f97316] shrink-0" />
                 <span className="font-bold text-xs sm:text-sm text-white truncate">
                   #{currentChannelObj.name}
                 </span>
+                <InfoTip label="Nội quy phòng chat" align="start">
+                  Tôn trọng nhau — các hành vi toxic, khiêu khích hoặc gây war sẽ bị khoá tài khoản.
+                </InfoTip>
               </div>
-              <span className="text-[11px] font-mono text-neutral-400 shrink-0 ml-2">
-                {currentMessages.length} tin nhắn
-              </span>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="hidden sm:flex items-center gap-1 bg-black/50 p-1 rounded-full border border-white/10">
+                  {TRI_CHAT_VIDEOS.map((v, i) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => setActiveVideoIdx(v.id)}
+                      className={`p-1.5 rounded-full transition-all cursor-pointer flex items-center justify-center ${
+                        activeVideoIdx === v.id
+                          ? 'bg-orange-500 text-black shadow-[0_0_8px_rgba(249,115,22,0.8)]'
+                          : 'text-neutral-400 hover:text-white'
+                      }`}
+                      title={`Chuyển phông nền: ${v.label}`}
+                    >
+                      {i === 0 ? <Waves className="w-3 h-3" /> : i === 1 ? <Grid className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
+                    </button>
+                  ))}
+                </div>
+                <span className="text-[11px] font-mono text-neutral-400">
+                  {currentMessages.length} tin
+                </span>
+              </div>
             </div>
 
             {/* Message Stream */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4" role="log" aria-live="polite" aria-relevant="additions" aria-label="Tin nhắn cuộc trò chuyện">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0" role="log" aria-live="polite" aria-relevant="additions" aria-label="Tin nhắn cuộc trò chuyện">
               {!isSynced && currentMessages.length === 0 ? (
                 <div className="max-w-xl mx-auto space-y-3" aria-busy="true">
                   <ThinkingBubble phase="Đang kết nối máy chủ F-Forum…" />
@@ -382,18 +393,16 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   <ThinkingBubble phase="Đang sắp xếp hội thoại…" />
                 </div>
               ) : currentMessages.length === 0 ? (
-                /* Clean High-Design Empty State with MessageSquareDashed */
-                <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-3.5 text-neutral-400 my-auto">
+                /* Clean 1-line Empty State */
+                <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-3 text-neutral-400 my-auto">
                   <div className="relative">
-                    <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.2)]">
-                      <MessageSquareDashed className="w-8 h-8 text-amber-300 animate-pulse" />
+                    <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400">
+                      <MessageSquareDashed className="w-7 h-7 text-amber-300" />
                     </div>
-                    <Sparkles className="w-4 h-4 text-amber-300 absolute -top-1.5 -right-1.5 animate-pulse" />
                   </div>
                   <h3 className="text-sm font-semibold text-white font-mono tracking-wide">
-                    Hãy là người mở đầu cuộc trò chuyện 👋
+                    Hãy là người mở đầu 👋
                   </h3>
-
                 </div>
               ) : (
                 currentMessages.map(msg => {
@@ -558,8 +567,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   onChange={e => setInputText(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder={`Nhắn tin vào #${currentChannelObj.name}...`}
-                  className="flex-1 bg-black/40 border border-white/15 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-orange-500 transition-colors disabled:opacity-50"
+                  className="message-input-bar flex-1 bg-black/40 border border-white/15 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-orange-500 transition-colors disabled:opacity-50"
                 />
+
+                {cooldown.isCooling && (
+                  <span className="px-2.5 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[11px] font-mono text-amber-300 shrink-0">
+                    Chờ {cooldown.secondsLeft}s
+                  </span>
+                )}
 
                 <button
                   onClick={handleSend}
@@ -580,7 +595,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
           <div className="hidden lg:flex lg:col-span-3 flex-col rounded-3xl liquid-glass bg-black/35 backdrop-blur-xl border border-white/10 p-3.5 shadow-2xl overflow-y-auto space-y-4">
             <div className="px-2 pb-2 border-b border-white/10 flex items-center justify-between">
               <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-                THÀNH VIÊN TRỰC TUYẾN
+                THÀNH VIÊN
               </span>
               <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -703,8 +718,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </div>
             </div>
 
-            {/* Guest Login Banner or Audio Visualizer Notice */}
-            {!currentUser ? (
+            {!currentUser && (
               <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 text-center space-y-2 mt-auto">
                 <p className="text-xs text-neutral-400 leading-snug">
                   Bạn đang xem với tư cách Khách.
@@ -716,12 +730,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 >
                   Đăng nhập ngay
                 </button>
-              </div>
-            ) : (
-              <div className="mt-auto px-2.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-[10px] text-orange-200 inline-flex items-center gap-1.5 self-start">
-                <Radio className="w-3 h-3 text-orange-400 animate-pulse" />
-                <span className="text-neutral-400">Bật tắt ở</span>
-                <span className="font-semibold text-orange-300">⚙️ Cài đặt</span>
               </div>
             )}
           </div>

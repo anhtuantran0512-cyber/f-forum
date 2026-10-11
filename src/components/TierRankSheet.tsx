@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { X, Award, Trophy, Sparkles, Target, CheckCircle2, Lock, TrendingUp } from 'lucide-react';
 import { TIER_CONFIGS, getTierForLevel, xpThresholdForLevel } from '../utils/tier';
 import { TITLE_CONFIGS } from '../utils/titles';
+import { TierSvg } from './Badges10Tier';
 import { SignatureEmblem } from './SignatureEmblem';
 import './ProfileSignature.css';
 
@@ -114,18 +115,17 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
         <div className="flex items-start justify-between gap-2 pb-3 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
             <span
-              className="w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-black font-mono shrink-0"
+              className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
               style={{
-                background: `linear-gradient(135deg, ${tier.badgeColor}44, ${tier.badgeColor}12)`,
+                background: `linear-gradient(135deg, ${tier.badgeColor}30, ${tier.badgeColor}0d)`,
                 border: `1px solid ${tier.badgeColor}66`,
-                color: tier.badgeColor,
               }}
             >
-              {tier.roman}
+              <TierSvg tierNumber={tier.tierNumber} size={34} />
             </span>
             <div className="min-w-0">
-              <h3 className="text-sm font-bold leading-tight truncate">
-                {isSuperAdmin ? 'Quản Trị Viên Tối Cao' : tier.titleVi}
+              <h3 className="text-sm font-bold leading-tight truncate flex items-center gap-1.5">
+                <span>{isSuperAdmin ? 'Quản Trị Viên Tối Cao' : `${tier.roman}. ${tier.titleVi}`}</span>
               </h3>
               <p className="text-[10.5px] text-neutral-400 leading-tight">
                 Cấp {level} • {xp.toLocaleString('vi-VN')} XP • {earnedCount}/{badges.length} danh hiệu
@@ -210,17 +210,22 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
                   >
                     <div className="flex items-center gap-2.5">
                       <span
-                        className="w-8 h-8 rounded-xl flex items-center justify-center text-[11px] font-black font-mono shrink-0"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                         style={{
-                          background: `${t.badgeColor}22`,
-                          border: `1px solid ${t.badgeColor}66`,
-                          color: t.badgeColor,
+                          background: `${t.badgeColor}18`,
+                          border: `1px solid ${t.badgeColor}55`,
                         }}
                       >
-                        {t.roman}
+                        <TierSvg tierNumber={t.tierNumber} size={30} />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span
+                            className="text-[10px] font-black font-mono px-1.5 py-0.5 rounded"
+                            style={{ background: `${t.badgeColor}22`, color: t.badgeColor }}
+                          >
+                            Cấp {t.tierNumber} · {t.roman}
+                          </span>
                           <span className="text-[12px] font-bold text-white truncate">{t.name}</span>
                           {isCurrent && (
                             <span className="text-[9.5px] font-bold px-1.5 py-px rounded-full bg-amber-400 text-neutral-950 shrink-0">
@@ -229,7 +234,10 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
                           )}
                         </div>
                         <p className="text-[10px] text-neutral-400 font-mono">
-                          Lv.{t.minLevel}–{t.maxLevel} • từ {startThreshold.toLocaleString('vi-VN')} XP
+                          {t.minPoints.toLocaleString('vi-VN')} điểm{t.minMedals ? ` · ${t.minMedals} 🏅` : ''} • Lv.{t.minLevel}–{t.maxLevel} • từ {startThreshold.toLocaleString('vi-VN')} XP
+                        </p>
+                        <p className="text-[10px] text-neutral-300/80 italic truncate">
+                          {t.description}
                         </p>
                       </div>
                     </div>

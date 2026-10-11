@@ -2,9 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
-import { setupForumServer } from '../server/forumServer.ts';
-import { isGoogleConfigured, isFacebookConfigured, loginWithGooglePopup, loginWithFacebookPopup } from '../src/utils/oauth.ts';
-import { setProviderLookupForTest } from '../server/socialAuth.ts';
+import os from 'node:os';
+import path from 'node:path';
+
+process.env.FFORUM_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'fforum-oauth-'));
+const { setupForumServer } = await import('../server/forumServer.ts');
+const { isGoogleConfigured, isFacebookConfigured, loginWithGooglePopup, loginWithFacebookPopup } = await import('../src/utils/oauth.ts');
+const { setProviderLookupForTest } = await import('../server/socialAuth.ts');
 
 // Test Helper to spin up a mock server
 function createTestServer() {
