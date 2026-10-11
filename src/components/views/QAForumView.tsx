@@ -2422,7 +2422,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           selectedQuestion.imageUrl && selectedQuestion.content.trim().length < 100
         );
 
-        // AI Tag-matching & keyword overlap for Related Questions (Phase 4.7)
+        /* AI Tag-matching & keyword overlap for Related Questions (Phase 4.7) */
         const titleWords = selectedQuestion.title
           .toLowerCase()
           .split(/\s+/)
@@ -2443,7 +2443,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           .slice(0, 5)
           .map(item => item.q);
 
-        // Top Solvers in this Subject (Phase 4.7)
+        /* Top Solvers in this Subject (Phase 4.7) */
         const subjectQuestionIds = new Set(
           questions.filter(q => q.subject === selectedQuestion.subject && q.status !== 'deleted').map(q => q.id)
         );

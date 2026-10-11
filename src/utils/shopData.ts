@@ -356,22 +356,22 @@ export function rollWeightedDiscountPercent(randBucket: number, randWithin: numb
   const r = Math.max(0, Math.min(0.999999, randBucket));
   const w = Math.max(0, Math.min(0.999999, randWithin));
   if (r < 0.40) {
-    const percent = 10 + Math.floor(w * 11); // 10..20
+    const percent = 10 + Math.floor(w * 11); /* 10..20 */
     return { percent, tierBucket: '10-20', isSuperSale: false };
   }
   if (r < 0.70) {
-    const percent = 21 + Math.floor(w * 20); // 21..40
+    const percent = 21 + Math.floor(w * 20); /* 21..40 */
     return { percent, tierBucket: '21-40', isSuperSale: false };
   }
   if (r < 0.88) {
-    const percent = 41 + Math.floor(w * 20); // 41..60
+    const percent = 41 + Math.floor(w * 20); /* 41..60 */
     return { percent, tierBucket: '41-60', isSuperSale: false };
   }
   if (r < 0.97) {
-    const percent = 61 + Math.floor(w * 20); // 61..80
+    const percent = 61 + Math.floor(w * 20); /* 61..80 */
     return { percent, tierBucket: '61-80', isSuperSale: false };
   }
-  const percent = 81 + Math.floor(w * 10); // 81..90
+  const percent = 81 + Math.floor(w * 10); /* 81..90 */
   return { percent, tierBucket: '81-90', isSuperSale: true };
 }
 
