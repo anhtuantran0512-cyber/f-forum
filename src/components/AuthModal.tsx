@@ -586,7 +586,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {introOpen ? <button ref={welcomeOwlRef} type="button" className="auth-welcome-owl" onClick={() => openForm()}
             onAnimationEnd={(event) => {
               if (event.target === event.currentTarget && /^(owlWelcomeLand|owlWelcomeLite)$/.test(event.animationName)) {
-                event.currentTarget.classList.add('is-landed'); // release will-change without a React render
+                event.currentTarget.classList.add('is-landed'); /* release will-change without a React render */
               }
             }}
             aria-label={`Chạm Cú Bông để ${activeTab === 'login' ? 'đăng nhập' : 'đăng ký'}`}>
