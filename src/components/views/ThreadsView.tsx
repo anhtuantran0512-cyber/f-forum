@@ -54,6 +54,8 @@ interface ThreadsViewProps {
 /* === Card Thread (dùng cho feed + reply lồng + repost-card) === */
 const ThreadCard: React.FC<{
   thread: Thread;
+  allThreads?: Thread[];
+  depth?: number;
   currentUser: User | null;
   replyingTo?: Thread | null;
   onCancelReply?: () => void;
@@ -70,7 +72,7 @@ const ThreadCard: React.FC<{
     onOpenLoginModal?: () => void;
   };
   showActions?: boolean;
-}> = ({ thread: rootThread, currentUser, replyText, onReplyTextChange, viewModel, showActions = true }) => {
+}> = ({ thread: rootThread, allThreads, depth = 0, currentUser, replyText, onReplyTextChange, viewModel, showActions = true }) => {
   const [isReplyOpen, setIsReplyOpen] = useState(false);
   const [repostMode, setRepostMode] = useState<'simple' | 'quote'>('simple');
   const [isRepostOpen, setIsRepostOpen] = useState(false);
@@ -84,6 +86,22 @@ const ThreadCard: React.FC<{
   const setReplyTextValue = onReplyTextChange ?? setLocalReplyText;
   const isSuperAdmin = isMasterAdmin(currentUser?.email);
   const isAuthor = currentUser ? rootThread.authorId === currentUser.id || rootThread.authorEmail === currentUser.email : false;
+
+  /* Quoted thread nếu đây là quote repost */
+  const quotedThread = useMemo(() => {
+    if (!rootThread.repostOfId) return null;
+    return allThreads?.find((t) => t.id === rootThread.repostOfId) || null;
+  }, [rootThread.repostOfId, allThreads]);
+
+  /* Các phản hồi lồng của thread này */
+  const childReplies = useMemo(() => {
+    if (!allThreads) return [];
+    return allThreads
+      .filter((t) => t.parentThreadId === rootThread.id)
+      .sort((a, b) => a.createdAtMs - b.createdAtMs);
+  }, [allThreads, rootThread.id]);
+
+  const [isRepliesExpanded, setIsRepliesExpanded] = useState(false);
 
   /* Đếm mỗi loại reaction từ map email → [type] */
   const reactionCounts = useMemo(() => {
@@ -185,6 +203,34 @@ const ThreadCard: React.FC<{
               className="thread-image"
               alt="Ảnh đính kèm thread"
             />
+          </div>
+        )}
+
+        {/* Khung trích dẫn Quote Repost theo spec */}
+        {quotedThread && (
+          <div className="repost-quote-box">
+            <div className="repost-quote-header">
+              <img
+                src={quotedThread.authorAvatar}
+                loading="lazy"
+                onError={(e) => handleImageError(e, '')}
+                className="repost-quote-avatar"
+                alt={quotedThread.authorName}
+              />
+              <span className="repost-quote-name">{quotedThread.authorName}</span>
+              <span className="repost-quote-level">Lv.{quotedThread.authorLevel}</span>
+              <span className="repost-quote-time">{formatRelativeTime(quotedThread.createdAtMs)}</span>
+            </div>
+            <p className="repost-quote-content">{quotedThread.content}</p>
+            {quotedThread.imageUrl && (
+              <img
+                src={quotedThread.imageUrl}
+                loading="lazy"
+                onError={(e) => handleImageError(e, '')}
+                className="repost-quote-image"
+                alt="Ảnh trích dẫn"
+              />
+            )}
           </div>
         )}
 
@@ -311,6 +357,80 @@ const ThreadCard: React.FC<{
           </div>
         )}
       </div>
+
+      {/* Phản hồi lồng đệ quy (Nested replies) tối đa 3 cấp theo spec Nhiemvu_8 */}
+      {showActions && depth < 3 && childReplies.length > 0 && (
+        <div className="thread-replies-container">
+          {childReplies.slice(0, isRepliesExpanded ? childReplies.length : 3).map((reply) => (
+            <ThreadReplyNode
+              key={reply.id}
+              reply={reply}
+              allThreads={allThreads || []}
+              currentUser={currentUser}
+              viewModel={viewModel}
+              depth={depth + 1}
+            />
+          ))}
+          {childReplies.length > 3 && !isRepliesExpanded && (
+            <button
+              type="button"
+              onClick={() => setIsRepliesExpanded(true)}
+              className="view-more-replies"
+            >
+              Xem thêm {childReplies.length - 3} phản hồi →
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Khi depth >= 3: Làm phẳng (flatten) và hiển thị nút "Xem thêm phản hồi" */}
+      {showActions && depth >= 3 && childReplies.length > 0 && (
+        <div className="thread-replies-container">
+          {!isRepliesExpanded ? (
+            <button
+              type="button"
+              onClick={() => setIsRepliesExpanded(true)}
+              className="view-more-replies"
+            >
+              Xem thêm {childReplies.length} phản hồi sâu hơn →
+            </button>
+          ) : (
+            childReplies.map((reply) => (
+              <ThreadCard
+                key={reply.id}
+                thread={reply}
+                allThreads={allThreads}
+                currentUser={currentUser}
+                viewModel={viewModel}
+                depth={depth}
+                showActions={true}
+              />
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* Component đệ quy cho reply lồng nhau (tối đa 3 cấp) theo spec Nhiemvu_8 */
+const ThreadReplyNode: React.FC<{
+  reply: Thread;
+  allThreads: Thread[];
+  currentUser: User | null;
+  viewModel: any;
+  depth: number;
+}> = ({ reply, allThreads, currentUser, viewModel, depth }) => {
+  return (
+    <div className="reply-node" style={{ marginLeft: Math.min(depth, 3) * 16 }}>
+      <ThreadCard
+        thread={reply}
+        allThreads={allThreads}
+        currentUser={currentUser}
+        viewModel={viewModel}
+        depth={depth}
+        showActions={true}
+      />
     </div>
   );
 };
@@ -506,6 +626,8 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
               <ThreadCard
                 key={t.id}
                 thread={t}
+                allThreads={threads}
+                depth={0}
                 currentUser={currentUser}
                 viewModel={viewModel}
               />
