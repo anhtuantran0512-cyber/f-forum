@@ -253,7 +253,6 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
         />
         {/* Amber / Orange Ambient Vignette */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/40" />
-        <div className="absolute inset-0 bg-amber-950/20 mix-blend-color" />
       </div>
 
       {/* Main Container */}
@@ -393,7 +392,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
         {/* Bento 3D Tilt Grid Container (Scrollable when standalone) */}
         <div className={`flex-1 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-4 pb-12`}>
           
-          {/* Spotlight Card (Top 1) or Authentic Empty State */}
+          {/* Spotlight Card (Top 1) — chỉ render khi có CLB; trạng thái trống gộp về grid bên dưới */}
           {spotlightClub ? (
             <div
               onMouseMove={handleMouseMove}
@@ -456,19 +455,20 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="relative w-full rounded-3xl liquid-glass bg-neutral-950/70 border border-white/10 p-6 sm:p-8 text-center space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-xs font-bold text-amber-300">
-                <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                CLB XUẤT SẮC NHẤT THÁNG
-              </div>
-              <h3 className="text-sm sm:text-base font-bold text-white max-w-lg mx-auto">
-                Chưa có CLB nào hoạt động trong tháng này. Hãy đăng ký thành lập CLB đầu tiên!
-              </h3>
-              <p className="text-xs text-neutral-400 max-w-md mx-auto">
-                Danh hiệu được tự động cập nhật theo số lượng bài viết và tin nhắn trao đổi thời gian thực.
-              </p>
-              <div className="pt-1">
+          ) : null}
+
+          {/* Regular Club Cards Grid */}
+          {/* Thẻ ngang 2 cột — mỗi thẻ là một container query (code_yeucau · tcl-14) */}
+          <div className="ff-media-grid">
+            {regularClubs.length === 0 ? (
+              <div className="col-span-full text-center py-16 space-y-4">
+                <div className="relative inline-block">
+                  <Users className="w-14 h-14 text-neutral-600 mx-auto" />
+                  <Sparkles className="w-5 h-5 text-amber-400/70 absolute -top-1 -right-2 animate-pulse" />
+                </div>
+                <h3 className="text-base font-bold text-white">
+                  Chưa có CLB nào — bạn sẽ là người đầu tiên khởi tạo! 🚀
+                </h3>
                 <button
                   type="button"
                   onClick={() => {
@@ -478,22 +478,11 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                       setIsCreateModalOpen(true);
                     }
                   }}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 text-xs font-semibold transition-all cursor-pointer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 text-xs font-semibold transition-all cursor-pointer shadow-[0_0_20px_rgba(245,158,11,0.25)]"
                 >
-                  <PlusCircle className="w-3.5 h-3.5" />
+                  <PlusCircle className="w-4 h-4" />
                   <span>Đăng ký thành lập CLB</span>
                 </button>
-              </div>
-            </div>
-          )}
-
-          {/* Regular Club Cards Grid */}
-          {/* Thẻ ngang 2 cột — mỗi thẻ là một container query (code_yeucau · tcl-14) */}
-          <div className="ff-media-grid">
-            {regularClubs.length === 0 && !spotlightClub ? (
-              <div className="col-span-full text-center py-12 text-neutral-400 space-y-2">
-                <Users className="w-10 h-10 text-neutral-600 mx-auto" />
-                <p className="text-sm">Chưa có câu lạc bộ nào trong danh mục này.</p>
               </div>
             ) : null}
             {regularClubs.map(club => (

@@ -31,6 +31,8 @@ import {
   Bookmark,
   BookmarkCheck,
   ArrowUpDown,
+  ArrowLeft,
+  Lightbulb,
 } from 'lucide-react';
 import type { Question, Solution, SubjectTag, User, ChatMessage } from '../../types';
 import { TierBadge, AdminVerifiedBadge } from '../Badges10Tier';
@@ -1470,15 +1472,35 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         </div>
       )}
 
-      {/* Modal: Chi Tiết Câu Hỏi & Solutions Feed */}
+      {/* TRANG RIÊNG: Chi Tiết Câu Hỏi & Solutions Feed — không còn modal popup, fullpage 2 cột (nội dung + sidebar gợi ý) theo spec Q&A Detail Page */}
       {selectedQuestion && (
-        <div role="dialog" aria-modal="true" aria-label="Chi tiết câu hỏi" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up">
-          <div className="liquid-glass w-full max-w-2xl rounded-3xl bg-neutral-950/95 border border-white/20 shadow-2xl p-6 relative max-h-[92vh] overflow-y-auto">
-            
-            {/* Header */}
-            <div className="flex items-start justify-between pb-3 border-b border-white/10 mb-4">
+        <div role="region" aria-label="Trang chi tiết câu hỏi" className="fixed inset-0 z-50 overflow-hidden bg-[#080d12] animate-fade-up flex flex-col md:flex-row">
+          {/* CỘT CHÍNH — Header cố định / Body cuộn / Footer cố định */}
+          <div className="flex-1 flex flex-col min-h-0 min-w-0 md:max-w-3xl lg:max-w-4xl md:mx-auto w-full">
+            {/* Header — CỐ ĐỊNH, có nút ← Quay lại (thay X của modal cũ) */}
+            <div className="px-4 sm:px-6 pt-[calc(54px+var(--safe-top)+8px)] pb-3 border-b border-white/10 shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectedQuestion(null)}
+                className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-white transition-colors mb-2 cursor-pointer"
+                title="Quay lại Sàn Hỏi Đáp"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Quay lại Hỏi đáp
+              </button>
               <div className="space-y-1">
+                {/* Status pill động theo trạng thái câu hỏi (spec Q&A Detail Page) */}
                 <div className="flex items-center gap-2 flex-wrap">
+                  {!selectedQuestion.isSolved && solutions.filter(s => s.questionId === selectedQuestion.id).length === 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-yellow-500/15 text-yellow-300 border border-yellow-500/30 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" /> Đang chờ giải đáp
+                    </span>
+                  )}
+                  {!selectedQuestion.isSolved && solutions.filter(s => s.questionId === selectedQuestion.id).length > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" /> Đang thảo luận
+                    </span>
+                  )}
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                     #{selectedQuestion.subject}
                   </span>
@@ -1513,6 +1535,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               </button>
             </div>
 
+            {/* Body — CUỘN duy nhất ở đây; header/footer cố định (px-6 thay p-6 toàn modal) */}
+            <div className="px-4 sm:px-6 pt-1 pb-5 overflow-y-auto flex-1 min-h-0">
             {/* Author bar & Question Content */}
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10 mb-5">
               <div className="flex items-center justify-between mb-2">
@@ -1590,7 +1614,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             </div>
 
             {/* Solutions Section */}
-            <div className="space-y-3 mb-5">
+            <div className="space-y-3">
               <h4 className="font-bold text-xs sm:text-sm text-white flex items-center justify-between">
                 <span>CÁC BÀI GIẢI ĐÃ ĐÓNG GÓP ({solutions.filter(s => s.questionId === selectedQuestion.id).length})</span>
                 <span className="text-[10px] text-neutral-400 font-normal">
@@ -1730,8 +1754,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               )}
             </div>
 
-            {/* Submit New Solution (+25 XP) */}
-            <div className="pt-3 border-t border-white/10">
+            </div>
+
+            {/* Footer — CỐ ĐỊNH, KHÔNG cuộn: Submit New Solution (+25 XP) */}
+            <div className="px-4 sm:px-6 py-3 border-t border-white/10 shrink-0 bg-[#0a0f14]/95">
               <label htmlFor="field-2" className="block text-xs font-semibold text-neutral-300 mb-1.5 flex items-center justify-between">
                 <span>Đóng góp lời giải của bạn:</span>
                 <span className="text-[10px] font-mono text-cyan-300">+25 XP khi gửi lời giải</span>
@@ -1791,6 +1817,35 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               </div>
             </div>
           </div>
+
+          {/* SIDEBAR PHẢI — Câu hỏi liên quan (desktop only, spec Q&A Detail Page) */}
+          <aside className="hidden lg:flex w-80 shrink-0 flex-col gap-3 border-l border-white/10 p-5 overflow-y-auto">
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 font-mono">
+              <Lightbulb className="w-4 h-4 text-amber-400" />
+              Câu hỏi liên quan
+            </h4>
+            {questions
+              .filter(q => q.id !== selectedQuestion?.id && q.subject === selectedQuestion?.subject)
+              .slice(0, 5)
+              .map(q => (
+                <button
+                  key={q.id}
+                  type="button"
+                  onClick={() => setSelectedQuestion(q)}
+                  className="text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-400/40 transition-all cursor-pointer"
+                >
+                  <span className="text-[10px] font-mono text-cyan-300">#{q.subject}</span>
+                  <p className="text-xs font-semibold text-white line-clamp-2 mt-1">{q.title}</p>
+                  <span className="text-[10px] text-neutral-400 font-mono mt-1 block">
+                    {solutions.filter(s => s.questionId === q.id).length} trả lời
+                    {q.isSolved ? ' • ✓ đã giải' : ''}
+                  </span>
+                </button>
+              ))}
+            {questions.filter(q => q.id !== selectedQuestion?.id && q.subject === selectedQuestion?.subject).length === 0 && (
+              <p className="text-[11px] text-neutral-500 italic">Chưa có câu hỏi cùng chủ đề.</p>
+            )}
+          </aside>
         </div>
       )}
 

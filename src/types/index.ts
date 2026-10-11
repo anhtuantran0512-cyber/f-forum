@@ -4,6 +4,7 @@ export type DimensionView =
   | 'home'
   | 'clubs'
   | 'qa'
+  | 'threads'
   | 'chat'
   | 'memory'
   | 'chronicles'
@@ -160,6 +161,29 @@ export interface ChatMessage {
   timestamp: string;
   timestampMs?: number;
   senderId?: string;
+}
+
+/* Thread System v1.0 — mạng xã hội nội bộ (khác Forum có duyệt bài). */
+export type ThreadReactionType = 'love' | 'haha' | 'fire' | 'wow' | 'support';
+export type ThreadStatus = 'active' | 'under_review' | 'hidden';
+
+export interface Thread {
+  id: string;
+  parentThreadId?: string;
+  repostOfId?: string;
+  repostType?: 'simple' | 'quote';
+  authorId: string;
+  authorEmail?: string;
+  authorName: string;
+  authorAvatar: string;
+  authorLevel: number;
+  content: string;
+  imageUrl?: string;
+  depthLevel: number;
+  status: ThreadStatus;
+  reactions: Record<string, ThreadReactionType[]>;
+  createdAtMs: number;
+  updatedAtMs: number;
 }
 
 export interface OnlinePresenceUser {

@@ -11,6 +11,7 @@ export interface AnalyticsBucket {
   answers: number;
   clubsCreated: number;
   clubPosts: number;
+  threads: number;
   newMembers: number;
 }
 
@@ -25,6 +26,7 @@ export interface AnalyticsAggregate {
   answers: number;
   clubsCreated: number;
   clubPosts: number;
+  threads: number;
   signups: number;
 }
 
@@ -54,7 +56,7 @@ export interface AnalyticsStore {
   reports?: Array<{ id: string; at: number; targetEmail: string; reason: string; status?: string; by?: string }>;
 }
 
-export type AnalyticsActivity = 'messages' | 'questions' | 'answers' | 'clubsCreated' | 'clubPosts';
+export type AnalyticsActivity = 'messages' | 'questions' | 'answers' | 'clubsCreated' | 'clubPosts' | 'threads';
 export type AnalyticsRange = '24h' | '7d' | '30d' | '12m' | 'years';
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -67,7 +69,7 @@ const MAX_STORED_SESSIONS = 20_000;
 const KEEP_STORED_SESSIONS = 18_000;
 const METRIC_KEYS = [
   'visits', 'activeSeconds', 'pageViews', 'messages', 'questions', 'answers',
-  'clubsCreated', 'clubPosts', 'newMembers',
+  'clubsCreated', 'clubPosts', 'threads', 'newMembers',
 ] as const;
 
 const cleanCount = (value: unknown): number => {
@@ -103,6 +105,7 @@ const emptyBucket = (): AnalyticsBucket => ({
   answers: 0,
   clubsCreated: 0,
   clubPosts: 0,
+  threads: 0,
   newMembers: 0,
 });
 
@@ -117,6 +120,7 @@ const emptyAggregate = (now: number): AnalyticsAggregate => ({
   answers: 0,
   clubsCreated: 0,
   clubPosts: 0,
+  threads: 0,
   signups: 0,
 });
 
@@ -136,6 +140,7 @@ export const createEmptyAnalytics = (now: number = Date.now()): AnalyticsStore =
     answers: 0,
     clubsCreated: 0,
     clubPosts: 0,
+    threads: 0,
     newMembers: 0,
   },
   visitors: {},
@@ -527,6 +532,7 @@ function bucketAsRow(key: string, bucket: AnalyticsBucket | undefined, granulari
     answers: source.answers,
     clubsCreated: source.clubsCreated,
     clubPosts: source.clubPosts,
+    threads: source.threads,
     newMembers: source.newMembers,
     totalReports: 0,
     resolvedReports: 0,
@@ -707,6 +713,7 @@ export const buildAnalyticsReport = (
     answers: 0,
     clubsCreated: 0,
     clubPosts: 0,
+    threads: 0,
     newMembers: 0,
   };
   entries.forEach(({ bucket }) => {
