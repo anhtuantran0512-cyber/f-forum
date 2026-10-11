@@ -27,15 +27,22 @@ import {
   Trash2,
 } from 'lucide-react';
 import type { User, Question, Solution, ShopItem } from '../types';
-import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
-import { getTierForLevel } from '../utils/tier';
+import { TierBadge, TierSvg, AdminVerifiedBadge } from './Badges10Tier';
+import { TIER_CONFIGS, getTierForLevel } from '../utils/tier';
 import { HologramStudentCard } from './HologramStudentCard';
 import { PremiumStat } from './PremiumStats';
 import { SignatureEmblem } from './SignatureEmblem';
 import { getTitleForLevel } from '../utils/titles';
 import './ProfileSignature.css';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
-import { SHOP_ITEMS, effectivePrice } from '../utils/shopData';
+import {
+  SHOP_ITEMS,
+  effectivePrice,
+  rarityDotClass,
+  rarityFrameClass,
+  rarityOf,
+  resolveEquippedCombo,
+} from '../utils/shopData';
 import { GachaBoutique } from './shop/GachaBoutique';
 import { TrophyShelf } from './shop/TrophyShelf';
 import { pushNotification } from '../utils/notifications';
@@ -329,6 +336,33 @@ const ProfileModalInner: React.FC<{
     () => currentUser.inventory || [],
     [currentUser.inventory]
   );
+
+  const [shopCategoryJump, setShopCategoryJump] = useState<string | null>(null);
+  const [comboTick, setComboTick] = useState(0);
+
+  const equippedCombo = useMemo(
+    () => {
+      void comboTick;
+      return resolveEquippedCombo(
+        userInventory,
+        currentUser.equippedBadge,
+        currentUser.email || currentUser.name || 'default',
+      );
+    },
+    [userInventory, currentUser.equippedBadge, currentUser.email, currentUser.name, comboTick],
+  );
+
+  const activeAvatarRarity = equippedCombo.frame
+    ? rarityOf(equippedCombo.frame)
+    : equippedItem
+      ? rarityOf(equippedItem)
+      : equippedCombo.highestRarity;
+  const activeAvatarFrameClass = rarityFrameClass(activeAvatarRarity);
+
+  const openShopAtCategory = (category: string) => {
+    setShopCategoryJump(category);
+    setActiveTab('shop');
+  };
 
   const userQuestions = useMemo(
     () => questions.filter((q) => q.authorId === currentUser.id),
@@ -755,26 +789,45 @@ const ProfileModalInner: React.FC<{
             <div className="space-y-4 ff-tab-panel-enter">
               {/* Main 3D Rounded Neumorphic Card with Custom Banner / Gradient */}
               <div className="pc-12-card overflow-hidden">
-                {/* Banner Header (supports uploaded 15MB banner image or custom gradient) */}
+                {/* Banner Header (supports uploaded 15MB banner image, custom gradient, or live CSS item banner) */}
                 <div
-                  className="h-24 sm:h-28 ff-aurora-surface relative overflow-hidden"
+                  className={`h-24 sm:h-28 ff-aurora-surface relative overflow-hidden discord-dynamic-banner--${equippedCombo.highestRarity === 'legendary' ? 'mythic' : equippedCombo.highestRarity}`}
                 >
-                  <GradientSurface gradient={effectiveBannerGradient} className="absolute inset-0" />
+                  <GradientSurface gradient={effectiveBannerGradient} className="absolute inset-0 opacity-80" />
                   {effectiveBannerUrl ? (
                     <img loading="lazy" decoding="async"
                       src={effectiveBannerUrl}
                       alt="Ảnh bìa hồ sơ"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover relative z-[1]"
                     />
                   ) : (
                     <div className="absolute inset-0 ff-aurora-bar opacity-25" aria-hidden="true" />
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0c1218]/80 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0c1218]/85 via-transparent to-transparent z-[2]" />
+                  {equippedItem && (
+                    <span
+                      className="signature-equipped absolute top-2.5 left-3 z-[3]"
+                      title={`${equippedItem.category}: ${equippedItem.description}`}
+                    >
+                      <SignatureEmblem icon={equippedItem.iconType} size={20} /> Đang dùng · {equippedItem.name}
+                    </span>
+                  )}
+                  {equippedCombo.theme && (
+                    <button
+                      type="button"
+                      onClick={() => isOwnProfile && openShopAtCategory('Theme Focus')}
+                      className="absolute bottom-2 right-3 z-[3] inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/55 backdrop-blur-md border border-white/15 text-[10px] font-mono text-white/90 hover:border-purple-400/50 transition cursor-pointer"
+                      title="Bấm để đổi Theme Focus trong Boutique"
+                    >
+                      <span className={`rarity-dot ${rarityDotClass(rarityOf(equippedCombo.theme))}`} aria-hidden="true" />
+                      <span>Banner: {equippedCombo.theme.name}</span>
+                    </button>
+                  )}
                   {isOwnProfile && (
                     <button
                       type="button"
                       onClick={() => setActiveTab('edit')}
-                      className="pc-12-btn absolute top-2.5 right-3 px-2.5 py-1 rounded-full text-[10px] font-mono text-white/90 hover:text-amber-300 flex items-center gap-1 cursor-pointer backdrop-blur-md"
+                      className="pc-12-btn absolute top-2.5 right-3 z-[3] px-2.5 py-1 rounded-full text-[10px] font-mono text-white/90 hover:text-amber-300 flex items-center gap-1 cursor-pointer backdrop-blur-md"
                       title="Đổi ảnh bìa (tối đa 15MB)"
                     >
                       <ImageIcon className="w-3 h-3 text-amber-400" />
@@ -784,15 +837,27 @@ const ProfileModalInner: React.FC<{
                 </div>
 
                 <div className="p-4 sm:p-5 space-y-4">
-                  {equippedItem && <span className="signature-equipped" title={`${equippedItem.category}: ${equippedItem.description}`}>
-                    <SignatureEmblem icon={equippedItem.iconType} size={26} /> Đang dùng · {equippedItem.name}
-                  </span>}
-                  {/* A. Khối Đầu Trang (Header Thông Tin Cá Nhân) */}
+                  {/* A. Khối Đầu Trang (Header Thông Tin Cá Nhân — Discord Profile Style) */}
                   <div className="flex flex-col sm:flex-row items-start justify-between gap-4 pb-4 border-b border-white/10">
-                    <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                      {/* Avatar với vòng gradient xoay */}
-                      <div className="relative shrink-0 -mt-12">
-                        <div className="ff-gradient-ring-sq p-[3px] rounded-[18px] shadow-xl">
+                    <div className="flex items-start gap-4 min-w-0 flex-1">
+                      {/* Avatar với Frame + Aura + Mythic Particles render LIVE bằng CSS thật */}
+                      <div
+                        className={`relative shrink-0 -mt-12 p-1 z-10 ${isOwnProfile ? 'cursor-pointer group' : ''}`}
+                        onClick={() => {
+                          if (isOwnProfile) openShopAtCategory('Khung avatar');
+                        }}
+                        title={isOwnProfile ? 'Bấm để đổi Khung Avatar trong Boutique' : currentUser.name}
+                      >
+                        <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center ${activeAvatarFrameClass}`}>
+                          {activeAvatarRarity === 'legendary' &&
+                            Array.from({ length: 6 }, (_, idx) => (
+                              <span
+                                key={idx}
+                                className="mythic-particle"
+                                style={{ animationDelay: `${(-idx * 4) / 6}s` }}
+                                aria-hidden="true"
+                              />
+                            ))}
                           <img
                             src={currentUser.avatar}
                             alt={currentUser.name}
@@ -801,21 +866,29 @@ const ProfileModalInner: React.FC<{
                             decoding="async"
                             width={68}
                             height={68}
-                            className="w-16 h-16 sm:w-20 sm:h-20 rounded-[14px] object-cover bg-[#0c1218] shadow-md"
+                            className="w-full h-full rounded-full object-cover bg-[#0c1218] shadow-md"
                           />
                         </div>
-                        <span className="absolute -bottom-1 -right-1">
+                        <span className="absolute -bottom-1 -right-1 z-10">
                           <TierBadge level={currentUser.level} size={22} showTooltip={false} />
                         </span>
                       </div>
 
-                      {/* Tên hiển thị, Huy hiệu nhóm & Châm ngôn (Bio) */}
-                      <div className="space-y-1 min-w-0 flex-1">
+                      {/* Tên hiển thị, Danh hiệu Mythic & Châm ngôn (Bio) */}
+                      <div className="space-y-1.5 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="text-base sm:text-xl font-bold text-[#0284C7] flex items-center gap-1.5 truncate">
                             <span>{currentUser.name}</span>
                             {isSuperAdmin && <AdminVerifiedBadge size={15} />}
                           </h3>
+
+                          {/* Danh hiệu Mythic / Epic nếu có */}
+                          {equippedCombo.mythicTitle && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-500/25 via-pink-500/25 to-purple-500/25 text-amber-200 border border-amber-400/40 shadow-sm">
+                              <span className={`rarity-dot ${rarityDotClass(equippedCombo.highestRarity)}`} aria-hidden="true" />
+                              <span>{equippedCombo.mythicTitle}</span>
+                            </span>
+                          )}
 
                           {/* Role Badge */}
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#0D9488] text-white text-[10px] font-bold tracking-wider uppercase shadow-sm">
@@ -841,6 +914,44 @@ const ProfileModalInner: React.FC<{
                           <span className="text-amber-400 font-bold">{userCoin} Coin</span>
                           <span>•</span>
                           <span className="text-cyan-300 font-semibold">{tier.titleVi}</span>
+                        </div>
+
+                        {/* 🎨 Đang trang bị — Showcase Khu Vực Trang Bị (Discord Profile Style) */}
+                        <div className="pt-2 space-y-1.5" aria-label="Khu vực trang bị đang đeo">
+                          <div className="text-[11px] font-bold text-white/80 flex items-center gap-1.5">
+                            <span>🎨 Đang trang bị:</span>
+                            {isOwnProfile && (
+                              <span className="text-[10px] font-normal text-white/45">
+                                (Bấm vào từng ô để đổi nhanh)
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {[
+                              { slotLabel: 'Frame', category: 'Khung avatar', item: equippedCombo.frame },
+                              { slotLabel: 'Aura', category: 'Hiệu ứng', item: equippedCombo.aura },
+                              { slotLabel: 'Theme', category: 'Theme Focus', item: equippedCombo.theme },
+                              { slotLabel: 'Góc hồ sơ', category: 'Góc hồ sơ', item: equippedCombo.corner },
+                            ].map((slot) => {
+                              const slotRarity = slot.item ? rarityOf(slot.item) : 'common';
+                              const dot = slot.item ? rarityDotClass(slotRarity) : 'common';
+                              return (
+                                <button
+                                  key={slot.category}
+                                  type="button"
+                                  onClick={() => openShopAtCategory(slot.category)}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] border border-white/12 hover:border-purple-400/45 text-[11px] text-white/90 transition cursor-pointer"
+                                  title={`Mở Boutique · Đổi ${slot.category}`}
+                                >
+                                  <span className={`rarity-dot ${dot}`} aria-hidden="true" />
+                                  <span className="text-white/55 font-mono">{slot.slotLabel}:</span>
+                                  <strong className="font-bold text-white">
+                                    {slot.item ? slot.item.name : 'Chưa gắn'}
+                                  </strong>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -942,17 +1053,58 @@ const ProfileModalInner: React.FC<{
                         title="Xem bảng rank, danh hiệu và yêu cầu thăng hạng"
                         className="pc-12-well p-2.5 flex items-center gap-2.5 w-full text-left cursor-pointer transition-colors hover:border-amber-400/40"
                       >
-                        <SignatureEmblem icon={getTitleForLevel(currentUser.level).icon} rarity={getTitleForLevel(currentUser.level).rarity} size={34} />
+                        <TierSvg tierNumber={tier.tierNumber} size={36} />
                         <div className="min-w-0 flex-1">
-                          <div className="text-xs font-bold text-white truncate">
-                            {isSuperAdmin ? 'Quản Trị Viên Tối Cao' : getTitleForLevel(currentUser.level).name}
+                          <div className="text-xs font-bold text-white truncate flex items-center gap-1.5">
+                            <span>{isSuperAdmin ? 'Quản Trị Viên Tối Cao' : `${tier.roman}. ${tier.name}`}</span>
+                            <span className="text-[9.5px] font-normal text-neutral-400 truncate">
+                              · {getTitleForLevel(currentUser.level).name}
+                            </span>
                           </div>
-                          <div className="text-[10px] text-neutral-400 font-mono">
-                            Cấp {currentUser.level} • {statsMetrics.xp.toLocaleString()} XP
+                          <div className="text-[10px] text-neutral-400 font-mono truncate">
+                            Cấp {currentUser.level} • {statsMetrics.xp.toLocaleString()} XP • {tier.description}
                           </div>
                         </div>
                         <Trophy className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                       </button>
+
+                      {/* 🎋 Hành Trình Tre Việt — 8 Cấp Độ (Măng Non → Lũy Tre Cổ Thụ) */}
+                      <div className="pc-12-well p-2.5 space-y-2" aria-label="Hành trình 8 cấp độ Tre Việt">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="font-bold text-emerald-300 uppercase tracking-wider font-mono">
+                            🎋 Hành Trình Tre Việt ({tier.tierNumber}/8)
+                          </span>
+                          <span className="text-neutral-400 font-mono">
+                            {tier.minPoints.toLocaleString('vi-VN')} điểm{tier.minMedals ? ` · ${tier.minMedals} 🏅` : ''}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {TIER_CONFIGS.map((t) => {
+                            const unlocked = currentUser.level >= t.minLevel;
+                            const isCurrentTier = t.tierNumber === tier.tierNumber;
+                            return (
+                              <button
+                                key={t.tierNumber}
+                                type="button"
+                                onClick={() => setIsRankSheetOpen(true)}
+                                title={`Cấp ${t.tierNumber} (${t.roman}) — ${t.name} (${t.minPoints} điểm${t.minMedals ? ` · ${t.minMedals} 🏅` : ''}): ${t.description}`}
+                                className={`flex flex-col items-center justify-center p-1.5 rounded-xl border transition cursor-pointer ${
+                                  isCurrentTier
+                                    ? 'bg-white/[0.09] border-amber-400/60 shadow-[0_0_12px_rgba(251,191,36,0.22)]'
+                                    : unlocked
+                                    ? 'bg-white/[0.04] border-white/15 hover:border-white/30'
+                                    : 'bg-black/25 border-white/5 opacity-45 hover:opacity-80'
+                                }`}
+                              >
+                                <TierSvg tierNumber={t.tierNumber} size={26} />
+                                <span className="text-[9px] font-bold text-white/90 truncate max-w-full mt-1">
+                                  {t.name}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
 
                       {earnedBadgesList.length === 0 ? (
                         <div className="pc-12-well py-3 px-3 text-center">
@@ -1232,6 +1384,10 @@ const ProfileModalInner: React.FC<{
                 coin={userCoin}
                 ownership={shopOwnership}
                 userName={currentUser.name}
+                userAvatar={currentUser.avatar}
+                userKey={currentUser.email || currentUser.name}
+                initialCategoryFilter={shopCategoryJump}
+                onComboUpdated={() => setComboTick((t) => t + 1)}
                 readOnly={!isOwnProfile}
                 onBuy={handleBuyItem}
                 onEquip={handleEquipItem}

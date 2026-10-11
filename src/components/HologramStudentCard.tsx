@@ -13,10 +13,12 @@ import {
 } from 'lucide-react';
 import type { User } from '../types';
 import { getTierForLevel, getXPProgress } from '../utils/tier';
+import { rarityDotClass, rarityFrameClass, rarityOf, resolveEquippedCombo } from '../utils/shopData';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { PremiumMark } from './PremiumMark';
 import { isMasterAdmin } from '../config/admin';
+import './shop/Boutique.css';
 
 interface HologramStudentCardProps {
   user: User;
@@ -40,6 +42,13 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
   const fPoints = user.fPoints ?? user.xp;
   const streakCount = user.streakCount ?? 0;
   const isSuperAdmin = isMasterAdmin(user.email);
+  const equippedCombo = resolveEquippedCombo(
+    user.inventory || [],
+    user.equippedBadge,
+    user.email || user.name || 'default',
+  );
+  const avatarRarity = equippedCombo.frame ? rarityOf(equippedCombo.frame) : equippedCombo.highestRarity;
+  const avatarFrameClass = rarityFrameClass(avatarRarity);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
@@ -177,11 +186,17 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
             <div className="relative z-10 flex items-center gap-4 mb-5">
               <div className="relative shrink-0 group/avatar">
                 <div
-                  className="w-20 h-20 rounded-2xl p-[2px] shadow-xl transition-transform duration-300 group-hover/avatar:scale-105"
-                  style={{
-                    background: `linear-gradient(135deg, ${tier.accentColor}, #38bdf8, #f59e0b)`,
-                  }}
+                  className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-transform duration-300 group-hover/avatar:scale-105 ${avatarFrameClass}`}
                 >
+                  {avatarRarity === 'legendary' &&
+                    Array.from({ length: 6 }, (_, idx) => (
+                      <span
+                        key={idx}
+                        className="mythic-particle"
+                        style={{ animationDelay: `${(-idx * 4) / 6}s` }}
+                        aria-hidden="true"
+                      />
+                    ))}
                   <img
                     src={user.avatar}
                     alt={user.name}
@@ -190,10 +205,10 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
                     decoding="async"
                     width={80}
                     height={80}
-                    className="w-full h-full rounded-[14px] object-cover bg-neutral-900"
+                    className="w-full h-full rounded-full object-cover bg-neutral-900"
                   />
                 </div>
-                <div className="absolute -bottom-2 -right-2 drop-shadow-lg">
+                <div className="absolute -bottom-2 -right-2 drop-shadow-lg z-10">
                   <TierBadge level={user.level} size={28} showTooltip={false} />
                 </div>
               </div>
@@ -213,6 +228,12 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
                     <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
                   )}
                   <PremiumMark user={user} compact />
+                  {equippedCombo.mythicTitle && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-extrabold bg-gradient-to-r from-amber-500/25 via-pink-500/25 to-purple-500/25 text-amber-200 border border-amber-400/40">
+                      <span className={`rarity-dot ${rarityDotClass(equippedCombo.highestRarity)}`} aria-hidden="true" />
+                      <span>{equippedCombo.mythicTitle}</span>
+                    </span>
+                  )}
                 </div>
 
                 <p className="text-xs text-neutral-400 truncate mb-2 font-mono">
@@ -222,7 +243,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider bg-amber-500/15 border border-amber-400/35 text-amber-300">
                   <Sparkles className="w-3 h-3" />
                   <span>
-                    Lv.{user.level} • {isSuperAdmin ? ' Quản Trị Viên Tối Cao' : tier.titleVi}
+                    Lv.{user.level} • {isSuperAdmin ? ' Quản Trị Viên Tối Cao' : `${tier.roman}. ${tier.titleVi}`}
                   </span>
                 </div>
               </div>
