@@ -27,7 +27,7 @@ export function torchAimDegrees(source: Point, target: Point): number {
   return angle < -180 ? angle + 360 : angle;
 }
 export function continuousTorchAngle(previous: number, next: number): number {
-  // Pick the nearest equivalent rotation so crossing ±180° never spins a full turn.
+  /* Pick the nearest equivalent rotation so crossing ±180° never spins a full turn. */
   return previous + (((next - previous + 540) % 360) - 180);
 }
 export function conePolygon(points: Point[], offset: Point = { x: 0, y: 0 }): string {

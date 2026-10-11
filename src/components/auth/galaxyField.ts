@@ -34,7 +34,7 @@ export function createGalaxyStars(random: () => number = Math.random): GalaxySta
 export const galaxyDpr = (value: number) => Math.min(1.5, Math.max(1, value || 1));
 export const nextShootingDelay = (random: () => number = Math.random) => 8000 + random() * 7000;
 
-// Single CSS box-shadow field for Lite: no canvas, no 60 independent elements.
+/* Single CSS box-shadow field for Lite: no canvas, no 60 independent elements. */
 export function liteGalaxyShadow(count = GALAXY_LITE_STARS): string {
   let seed = 9187;
   const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };

@@ -179,7 +179,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [selectedTag, setSelectedTag] = useState<SubjectTag | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isAskModalOpen, setIsAskModalOpen] = useState(false);
-  // Liên kết chia sẻ ?q=<id> mở thẳng câu hỏi (nếu dữ liệu đã có sẵn khi vào trang)
+  /* Liên kết chia sẻ ?q=<id> mở thẳng câu hỏi (nếu dữ liệu đã có sẵn khi vào trang) */
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(() => {
     const sharedId = typeof window !== 'undefined' ? readSharedQuestionId(window.location.search) : null;
     return sharedId ? questions.find(item => item.id === sharedId) ?? null : null;
@@ -187,7 +187,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const pendingSharedId = useRef<string | null>(
     typeof window !== 'undefined' ? readSharedQuestionId(window.location.search) : null,
   );
-  // Dữ liệu về muộn (đồng bộ máy chủ) → mở câu hỏi khi tìm thấy, chỉ một lần.
+  /* Dữ liệu về muộn (đồng bộ máy chủ) → mở câu hỏi khi tìm thấy, chỉ một lần. */
   useEffect(() => {
     const sharedId = pendingSharedId.current;
     if (!sharedId) return;
@@ -197,7 +197,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     const timer = window.setTimeout(() => setSelectedQuestion(prev => prev ?? found), 0);
     return () => window.clearTimeout(timer);
   }, [questions]);
-  // Đóng câu hỏi → gỡ ?q= khỏi thanh địa chỉ để tải lại trang không bật lại modal.
+  /* Đóng câu hỏi → gỡ ?q= khỏi thanh địa chỉ để tải lại trang không bật lại modal. */
   useEffect(() => {
     if (selectedQuestion || typeof window === 'undefined') return;
     if (readSharedQuestionId(window.location.search)) {
@@ -1526,13 +1526,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   />
                 </div>
               </div>
-
-              <button
-                onClick={() => setSelectedQuestion(null)}
-                className="p-1 rounded-full text-neutral-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
 
             {/* Body — CUỘN duy nhất ở đây; header/footer cố định (px-6 thay p-6 toàn modal) */}
@@ -1754,11 +1747,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               )}
             </div>
 
-            </div>
-
-            {/* Footer — CỐ ĐỊNH, KHÔNG cuộn: Submit New Solution (+25 XP) */}
-            <div className="px-4 sm:px-6 py-3 border-t border-white/10 shrink-0 bg-[#0a0f14]/95">
-              <label htmlFor="field-2" className="block text-xs font-semibold text-neutral-300 mb-1.5 flex items-center justify-between">
+            {/* Đóng góp lời giải (+25 XP) — Nằm trong vùng cuộn (spec Q&A Detail Page & Misplaced Border fix) */}
+            <div className="mt-6 pt-5 border-t border-white/10 space-y-2">
+              <label htmlFor="field-2" className="block text-xs font-semibold text-neutral-300 flex items-center justify-between">
                 <span>Đóng góp lời giải của bạn:</span>
                 <span className="text-[10px] font-mono text-cyan-300">+25 XP khi gửi lời giải</span>
               </label>
@@ -1769,52 +1760,54 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 value={solutionText}
                 onChange={e => setSolutionText(e.target.value)}
                 placeholder="Nhập chi tiết từng bước giải bài, định lý hoặc lời khuyên học tập..."
-                className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 resize-none mb-1.5"
+                className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 resize-none mb-1"
               />
 
               <MathSymbolsBar onInsert={sym => setSolutionText(prev => prev + sym)} />
+            </div>
+          </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-2">
-                <div>
-                  {solImage ? (
-                    <div className="relative inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white/10 border border-white/20 text-xs text-cyan-300">
-                      <ImageIcon className="w-3.5 h-3.5" />
-                      <span>Đã đính kèm ảnh</span>
-                      <button
-                        type="button"
-                        onClick={() => setSolImage(null)}
-                        className="p-0.5 rounded-full hover:bg-red-500/30 text-red-400 cursor-pointer"
-                        title="Gỡ ảnh"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label htmlFor="field-3" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
-                      <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Đính kèm ảnh lời giải (&le; 20MB)</span>
-                      <input id="field-3"
-                        type="file"
-                        accept="image/*"
-                        onChange={e => handleImageUpload(e, setSolImage, setSolImageError)}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-                  {solImageError && (
-                    <p className="text-[11px] text-red-400 mt-1">{solImageError}</p>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => handleSolutionSubmit(selectedQuestion.id)}
-                  disabled={!solutionText.trim() || solCooldown > 0 || isSubmittingSol}
-                  className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-neutral-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{solCooldown > 0 ? `Chờ ${solCooldown}s...` : isSubmittingSol ? 'Đang gửi...' : '+ Trợ Giúp Giải Bài (+25 XP)'}</span>
-                </button>
+            {/* Footer — CỐ ĐỊNH, KHÔNG cuộn: Action Bar (Đính kèm ảnh + Gửi lời giải) */}
+            <div className="px-4 sm:px-6 py-3 border-t border-white/10 shrink-0 bg-[#0a0f14]/95 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                {solImage ? (
+                  <div className="relative inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white/10 border border-white/20 text-xs text-cyan-300">
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span>Đã đính kèm ảnh</span>
+                    <button
+                      type="button"
+                      onClick={() => setSolImage(null)}
+                      className="p-0.5 rounded-full hover:bg-red-500/30 text-red-400 cursor-pointer"
+                      title="Gỡ ảnh"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <label htmlFor="field-3" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
+                    <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Đính kèm ảnh lời giải (&le; 20MB)</span>
+                    <input id="field-3"
+                      type="file"
+                      accept="image/*"
+                      onChange={e => handleImageUpload(e, setSolImage, setSolImageError)}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+                {solImageError && (
+                  <p className="text-[11px] text-red-400 mt-1">{solImageError}</p>
+                )}
               </div>
+
+              <button
+                onClick={() => handleSolutionSubmit(selectedQuestion.id)}
+                disabled={!solutionText.trim() || solCooldown > 0 || isSubmittingSol}
+                className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-neutral-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>{solCooldown > 0 ? `Chờ ${solCooldown}s...` : isSubmittingSol ? 'Đang gửi...' : '+ Trợ Giúp Giải Bài (+25 XP)'}</span>
+              </button>
             </div>
           </div>
 

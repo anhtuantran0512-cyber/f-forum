@@ -218,7 +218,7 @@ export function useForumStore() {
   const [currentView, setCurrentView] = useState<DimensionView>(() => {
     const hasSession = Boolean(safeStorage.getItem('fforum_current_user_email'));
     const hasSeenLanding = safeStorage.getItem('fforum_landing_seen') === 'true';
-    // Liên kết chia sẻ câu hỏi (?q=<id>) đưa thẳng vào Sàn hỏi đáp.
+    /* Liên kết chia sẻ câu hỏi (?q=<id>) đưa thẳng vào Sàn hỏi đáp. */
     if (typeof window !== 'undefined' && readSharedQuestionId(window.location.search)) return 'qa';
     return hasSession || hasSeenLanding ? 'home' : 'landing';
   });
