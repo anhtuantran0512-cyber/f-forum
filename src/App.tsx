@@ -347,7 +347,7 @@ export const App: React.FC = () => {
     );
     videos.forEach((v) => {
       const inHome = !!v.closest('.ff-view-home');
-      // Các trang mà lớp chuyển đổi sáng thay video bằng nền kính sữa (khớp LIGHT_VIEWS)
+      /* Các trang mà lớp chuyển đổi sáng thay video bằng nền kính sữa (khớp LIGHT_VIEWS) */
       const hiddenByLight = isLightTheme && !!v.closest(LIGHT_ADAPTED_VIEW_SELECTOR);
       if ((potatorMode && !inHome) || hiddenByLight) {
         /* EPIC 5: đánh dấu để các nền tự quản (TriVideoCrossfadeBg) không phát lại video đang bị ẩn. */
@@ -395,8 +395,8 @@ export const App: React.FC = () => {
   }, [currentView]);
 
   const handleAuthSuccess = useCallback((flow: 'login' | 'register') => {
-    // AuthModal already closes synchronously. Scene is decorative + dismissible;
-    // even throttled timers cannot trap the app (pointer-events: none).
+    /* AuthModal already closes synchronously. Scene is decorative + dismissible;
+       even throttled timers cannot trap the app (pointer-events: none). */
     dismissAuthOutcome();
     setAuthOutcome(flow);
     const lite = document.documentElement.classList.contains('potator-mode') ||

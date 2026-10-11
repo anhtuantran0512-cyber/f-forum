@@ -118,8 +118,8 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
     if (!box || !torch) return;
     const rect = box.getBoundingClientRect();
     const lamp = torch.getBoundingClientRect();
-    // Lấy chính miệng icon làm gốc; con trỏ chỉ đổi hướng, không đổi độ dài tia.
-    // SVG 22px is centered in the 40px button; its lens is at viewBox x=10/32.
+    /* Lấy chính miệng icon làm gốc; con trỏ chỉ đổi hướng, không đổi độ dài tia.
+       SVG 22px is centered in the 40px button; its lens is at viewBox x=10/32. */
     const source = { x: lamp.left + lamp.width / 2 - 11 + 22 * 10 / 32, y: lamp.top + lamp.height / 2 };
     const target = fromTorch
       ? { x: rect.left + Math.min(rect.width / 2, 100), y: rect.top + rect.height / 2 }
@@ -142,7 +142,7 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
     box.style.setProperty('--ffl-y', `${target.y - rect.top}px`);
   };
 
-  // Gộp mọi pointermove vào tối đa một lần đo layout/vẽ nón sáng mỗi frame.
+  /* Gộp mọi pointermove vào tối đa một lần đo layout/vẽ nón sáng mỗi frame. */
   const queueSpot = (x: number, y: number) => {
     queuedAim.current = { x, y };
     if (aimFrame.current !== null) return;
@@ -153,7 +153,7 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
     });
   };
 
-  // Khi đèn đã bật, chuột có thể đi BẤT KỲ đâu trong viewport, kể cả ngoài modal.
+  /* Khi đèn đã bật, chuột có thể đi BẤT KỲ đâu trong viewport, kể cả ngoài modal. */
   useEffect(() => {
     if (mode !== 'beam') {
       currentAngle.current = 0;

@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { forumServerPlugin, securityBootPlugin } from './server/forumPlugin.ts'
 
-// https://vite.dev/config/
+/* Vite config */
 export default defineConfig(({ mode }) => {
   /*
    * Vite does not automatically expose non-VITE_ variables through process.env.
@@ -24,10 +24,10 @@ export default defineConfig(({ mode }) => {
       securityBootPlugin(),
     ],
     server: {
-      host: '0.0.0.0', // Listen on all network interfaces
+      host: '0.0.0.0', /* Listen on all network interfaces */
       port: 5173,
       strictPort: true,
-      allowedHosts: true, // Allow any incoming tunnel hostname (localtunnel, cloudflare)
+      allowedHosts: true, /* Allow any incoming tunnel hostname (localtunnel, cloudflare) */
       cors: true,
     },
     build: {

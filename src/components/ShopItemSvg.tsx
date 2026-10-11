@@ -4,7 +4,7 @@ import { SignatureEmblem } from './SignatureEmblem';
 export const ShopItemSvg: FC<{ type: string; size?: number; className?: string }> = ({ type, size = 40, className = '' }) => (
   <span className={className} style={{ display: 'inline-flex' }}><SignatureEmblem icon={shopIconKnown(type) ? type : 'BookOpen'} size={size} /></span>
 );
-// Danh mục icon minh bạch: mỗi vật phẩm dùng một hình riêng trong bộ nét thống nhất.
+/* Danh mục icon minh bạch: mỗi vật phẩm dùng một hình riêng trong bộ nét thống nhất. */
 const shopIconKnown = (type: string): boolean => {
   switch (type) {
     case 'Frame':

@@ -87,7 +87,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialTab = 'login',
 }) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>(initialTab);
-  // Every opening starts with Cú Bông; Skip remains available for a quick entry.
+  /* Every opening starts with Cú Bông; Skip remains available for a quick entry. */
   const [introOpen, setIntroOpen] = useState(true);
   const [fromWelcome, setFromWelcome] = useState(false);
   const [introFinished, setIntroFinished] = useState(false);
@@ -131,8 +131,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     if (welcomeEyeFrame.current !== null) window.cancelAnimationFrame(welcomeEyeFrame.current);
   }, []);
 
-  // Dialog keeps keyboard focus inside, and returns it to the CTA on exit.
-  // Focus is scheduled rather than relying on autoFocus (which stole focus behind welcome).
+  /* Dialog keeps keyboard focus inside, and returns it to the CTA on exit.
+     Focus is scheduled rather than relying on autoFocus (which stole focus behind welcome). */
   useEffect(() => {
     if (!isOpen) return undefined;
     const origin = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -141,7 +141,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       focusFrame.current = null;
     });
     return () => {
-      // Also invalidate pending work when the parent closes/unmounts us directly.
+      /* Also invalidate pending work when the parent closes/unmounts us directly. */
       authRequestEpoch.current += 1;
       submitInFlight.current = false;
       if (focusFrame.current !== null) window.cancelAnimationFrame(focusFrame.current);
@@ -152,7 +152,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     };
   }, [isOpen]);
 
-  // Parent-controlled closure may bypass handleClose (route change, global auth reset).
+  /* Parent-controlled closure may bypass handleClose (route change, global auth reset). */
   useEffect(() => {
     if (isOpen) return undefined;
     let cancelled = false;
@@ -205,7 +205,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const openForm = (skip = false) => {
     if (introHandled.current || !introOpen) return;
-    introHandled.current = true; // guards double click / overlapping pointer + keyboard events
+    introHandled.current = true; /* guards double click / overlapping pointer + keyboard events */
     if (!skip && boardRef.current && panelRef.current && !document.documentElement.classList.contains('potator-mode') &&
       !document.documentElement.classList.contains('reduce-motion') && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       const from = boardRef.current.getBoundingClientRect();
@@ -260,8 +260,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       !window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     welcomePointerX.current = event.clientX;
     if (welcomeEyeFrame.current !== null) return;
-    // DOM-only eye movement: a React render on every pointer event restarted work
-    // across the full SVG + hidden form while the owl was landing.
+    /* DOM-only eye movement: a React render on every pointer event restarted work
+       across the full SVG + hidden form while the owl was landing. */
     welcomeEyeFrame.current = window.requestAnimationFrame(() => {
       welcomeEyeFrame.current = null;
       const stage = stageRef.current;
@@ -292,7 +292,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   const handleClose = () => {
-    authRequestEpoch.current += 1; // late auth responses cannot reopen a closed modal
+    authRequestEpoch.current += 1; /* late auth responses cannot reopen a closed modal */
     submitInFlight.current = false;
     if (focusFrame.current !== null) window.cancelAnimationFrame(focusFrame.current);
     focusFrame.current = null;
@@ -319,8 +319,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     flashMascot('sad', 2400);
   };
 
-  // Không giữ modal bằng timer: xác thực thành công là đóng ngay,
-  // không có lớp phủ nào có thể kẹt trước khi trở về ứng dụng.
+  /* Không giữ modal bằng timer: xác thực thành công là đóng ngay,
+     không có lớp phủ nào có thể kẹt trước khi trở về ứng dụng. */
   const succeed = () => {
     handleClose();
     onSuccess?.(fallbackProvider ? 'login' : activeTab);
