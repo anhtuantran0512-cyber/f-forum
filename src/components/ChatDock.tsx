@@ -16,6 +16,8 @@ import {
   Flag,
   User as UserIcon,
   CheckCircle2,
+  Settings,
+  Search,
 } from 'lucide-react';
 import type { ChatChannelId, ChatMessage, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
@@ -44,12 +46,11 @@ export interface ChatDockProps {
   isSynced?: boolean;
 }
 
-
-const CHANNELS: { id: ChatChannelId; name: string; desc: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'hallway', name: 'Kết bạn bốn phương', desc: 'Làm quen và kết nối bạn học toàn trường', icon: Users },
-  { id: 'quick-qa', name: 'Hỏi bài nhanh', desc: 'Hỏi đáp khẩn cấp, giải bài trong 5 phút', icon: HelpCircle },
-  { id: 'confessions', name: 'Góc tâm sự', desc: 'Áp lực học tập & suy tư tuổi học trò', icon: Heart },
-  { id: 'club-hub', name: 'Hội quán CLB', desc: 'Giao lưu điều phối giữa các Ban Chủ nhiệm', icon: Shield },
+const CHANNELS: { id: ChatChannelId; name: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'hallway', name: 'Kết bạn bốn phương', icon: Users },
+  { id: 'quick-qa', name: 'Hỏi bài nhanh', icon: HelpCircle },
+  { id: 'confessions', name: 'Góc tâm sự', icon: Heart },
+  { id: 'club-hub', name: 'Hội quán CLB', icon: Shield },
 ];
 
 export const ChatDock: React.FC<ChatDockProps> = ({
@@ -79,8 +80,6 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     level: number;
   } | null>(null);
   const [authorAnchorPos, setAuthorAnchorPos] = useState<{ x: number; y: number }>({ x: 240, y: 180 });
-
-
 
   const [reportUser, setReportUser] = useState<{ id: string; name: string } | null>(null);
   const [reportReason, setReportReason] = useState<string>('Toxic / Gây war / Xúc phạm bạn học');
@@ -165,257 +164,281 @@ export const ChatDock: React.FC<ChatDockProps> = ({
   return (
     <>
       <div
-      className={`fixed top-20 bottom-4 right-0 sm:right-4 z-40 w-full sm:w-[450px] md:w-[480px] p-2 sm:p-0 flex flex-col chat-dock-panel ${
-        isOpen
-          ? 'translate-x-0 opacity-100 pointer-events-auto'
-          : 'translate-x-full opacity-0 pointer-events-none'
-      }`}
-    >
-      {/* Background glass container */}
-      <div className="w-full h-full rounded-3xl liquid-glass bg-black/35 backdrop-blur-xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.9)] flex flex-col overflow-hidden">
-        
-        {/* Dock Header */}
-        <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-black/30">
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399] animate-pulse" />
-            <h2 className="text-sm font-bold text-white tracking-wide flex items-center gap-1.5">
-              <span>PHÒNG CHAT ĐÀM THOẠI</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                LIVE
-              </span>
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
-            title="Đóng Dock Chat"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Channel Switcher Pills: Organic non-clipping flex container */}
-        <div className="p-2 border-b border-white/10 bg-black/20">
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-1 bg-black/40 rounded-xl overflow-x-auto no-scrollbar">
-            {CHANNELS.map(ch => {
-              const Icon = ch.icon;
-              const isActive = activeChannel === ch.id;
-              return (
-                <button
-                  key={ch.id}
-                  type="button"
-                  onClick={() => setActiveChannel(ch.id)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shrink-0 transition-all font-medium focus:outline-none cursor-pointer ${
-                    isActive
-                      ? 'bg-white/15 text-white font-medium shadow-sm border border-white/20'
-                      : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
-                  }`}
-                >
-                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-amber-400' : 'text-neutral-400'}`} />
-                  <span className="whitespace-nowrap">#{ch.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Active Channel Subheader */}
-        <div className="px-4 py-2 bg-black/20 border-b border-white/5 flex items-center justify-between text-[11px] text-neutral-400">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <Hash className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="text-neutral-200 font-medium shrink-0">{currentChannelObj.name}</span>
-            <span className="text-neutral-600">—</span>
-            <span className="truncate">{currentChannelObj.desc}</span>
-          </div>
-          <span className="font-mono text-neutral-500 shrink-0 ml-2">{currentMessages.length} tin</span>
-        </div>
-
-        {/* Messages Feed Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3.5" role="log" aria-live="polite" aria-relevant="additions" aria-label="Danh sách tin nhắn">
-          {!isSynced && currentMessages.length === 0 ? (
-            /* Đang đồng bộ máy chủ → bong bóng suy nghĩ (CodeFronts la-05) */
-            <div className="space-y-3 pt-1" aria-busy="true">
-              <ThinkingBubble phase="Đang kết nối máy chủ F-Forum…" compact />
-              <ThinkingBubble phase={`Đang tải tin nhắn #${currentChannelObj.name}…`} compact />
+        className={`fixed top-20 bottom-4 right-0 sm:right-4 z-40 w-full sm:w-[450px] md:w-[480px] p-2 sm:p-0 flex flex-col chat-dock-panel ${
+          isOpen
+            ? 'translate-x-0 opacity-100 pointer-events-auto'
+            : 'translate-x-full opacity-0 pointer-events-none'
+        }`}
+      >
+        {/* Background glass container */}
+        <div className="w-full h-full rounded-3xl liquid-glass bg-black/35 backdrop-blur-xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.9)] flex flex-col overflow-hidden">
+          {/* Dock Header */}
+          <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-black/30">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399] animate-pulse" />
+              <h2 className="text-sm font-bold text-white tracking-wide flex items-center gap-1.5">
+                <span>PHÒNG CHAT</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  LIVE
+                </span>
+              </h2>
             </div>
-          ) : currentMessages.length === 0 ? (
-            /* Authentic Empty State with MessageSquareDashed */
-            <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3 text-neutral-400">
-              <div className="relative">
-                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-                  <MessageSquareDashed className="w-7 h-7 text-amber-300 animate-pulse" />
-                </div>
-                <Sparkles className="w-3.5 h-3.5 text-amber-300 absolute -top-1 -right-1 animate-pulse" />
-              </div>
-              <h3 className="text-xs font-semibold text-white font-mono">Chưa có tin nhắn nào trong kênh này</h3>
-              <p className="text-[11px] text-neutral-300 max-w-[260px] leading-relaxed font-light">
-                Chưa có tin nhắn nào trong kênh này. Hãy là người mở đầu cuộc trò chuyện!
-              </p>
-            </div>
-          ) : (
-            currentMessages.map(msg => {
-              const isMe = currentUser ? msg.authorId === currentUser.id : false;
-              const isSuperAdminMsg = isMasterAdmin(msg.authorEmail);
-              const isSuperAdmin = currentUser ? isMasterAdmin(currentUser.email) : false;
-              const authorDisplayName = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.name : msg.authorName;
-              const authorDisplayAvatar = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.avatar : msg.authorAvatar;
-
-              return (
-                <div
-                  key={msg.id}
-                  className={`flex items-start gap-2.5 group/msg ${isMe ? 'flex-row-reverse' : ''}`}
-                >
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-                      if (isMe && currentUser) {
-                        setActiveAuthorCard({
-                          id: currentUser.id,
-                          name: currentUser.name,
-                          avatar: currentUser.avatar,
-                          email: currentUser.email,
-                          level: currentUser.level || 1,
-                        });
-                      } else {
-                        setActiveAuthorCard({
-                          id: msg.authorId,
-                          name: authorDisplayName,
-                          avatar: authorDisplayAvatar,
-                          email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
-                          level: isSuperAdminMsg ? 150 : msg.authorLevel,
-                        });
-                      }
-                    }}
-                    className="relative shrink-0 cursor-pointer focus:outline-none"
-                    title={`Xem thông tin của ${authorDisplayName}`}
-                  >
-                    <img
-                      src={authorDisplayAvatar}
-                      alt={authorDisplayName}
-                      onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                      loading="lazy"
-                      decoding="async"
-                      width={32}
-                      height={32}
-                      className={`w-8 h-8 rounded-full object-cover shadow-md ${
-                        isSuperAdminMsg ? 'border-2 border-amber-400' : 'border border-white/20'
-                      }`}
-                    />
-                    <span className="absolute -bottom-1 -right-1">
-                      <TierBadge level={isSuperAdminMsg ? 150 : msg.authorLevel} size={15} showTooltip={false} />
-                    </span>
-                  </button>
-
-                  <div className={`max-w-[78%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                    <div className="flex items-center gap-1.5 mb-1 text-[11px] text-neutral-400">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-                          if (isMe && currentUser) {
-                            setActiveAuthorCard({
-                              id: currentUser.id,
-                              name: currentUser.name,
-                              avatar: currentUser.avatar,
-                              email: currentUser.email,
-                              level: currentUser.level || 1,
-                            });
-                          } else {
-                            setActiveAuthorCard({
-                              id: msg.authorId,
-                              name: authorDisplayName,
-                              avatar: authorDisplayAvatar,
-                              email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
-                              level: isSuperAdminMsg ? 150 : msg.authorLevel,
-                            });
-                          }
-                        }}
-                        className={`${isSuperAdminMsg ? 'discord-admin-name text-xs' : 'font-semibold text-neutral-200'} cursor-pointer hover:underline focus:outline-none`}
-                      >
-                        {authorDisplayName}
-                      </button>
-                      {isSuperAdminMsg && <AdminVerifiedBadge size={12} />}
-                      <span className="text-[10px] text-neutral-500 font-mono">• {msg.timestamp}</span>
-
-                      {/* Thu hồi tin nhắn (Super Admin / quyền edit_content) */}
-                      {(isSuperAdmin || canRecallMessages) && (
-                        <button
-                          type="button"
-                          onClick={() => onDeleteMessage?.(msg.id)}
-                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity ml-1.5 px-1.5 py-0.5 text-red-400 hover:text-red-300 rounded bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 cursor-pointer inline-flex items-center gap-1"
-                          title="Thu hồi tin nhắn vi phạm"
-                        >
-                          <Trash2 className="w-2.5 h-2.5" />
-                          <span className="text-[9px]">Thu hồi tin nhắn</span>
-                        </button>
-                      )}
-                    </div>
-
-                    <div
-                      className={`px-3.5 py-2 rounded-2xl text-xs leading-relaxed break-words shadow-sm ${
-                        isMe
-                          ? 'bg-amber-500/20 text-white border border-amber-400/30 rounded-tr-none'
-                          : 'bg-white/10 text-neutral-100 rounded-tl-none border border-white/10'
-                      }`}
-                    >
-                      {msg.content}
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        <ChatCooldownBar
-          isCooling={cooldown.isCooling}
-          remainingMs={cooldown.remainingMs}
-          nudgeKey={cooldown.nudgeKey}
-          variant="dock"
-        />
-
-        {/* Input Bar or Login Prompt */}
-        {!currentUser ? (
-          <div className="p-3 bg-black/35 border-t border-white/10 flex items-center justify-between gap-3">
-            <span className="text-xs text-neutral-400">Vui lòng đăng nhập để gửi tin nhắn</span>
             <button
               type="button"
-              onClick={onOpenLoginModal}
-              className="px-3.5 py-1.5 rounded-xl bg-white text-neutral-900 font-semibold text-xs hover:bg-neutral-200 transition-colors shadow-sm cursor-pointer shrink-0 flex items-center gap-1.5"
+              onClick={onClose}
+              className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              title="Đóng Dock Chat"
             >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Đăng nhập</span>
+              <X className="w-4 h-4" />
             </button>
           </div>
-        ) : (
-          <div className="p-3 bg-black/35 border-t border-white/10 flex items-center gap-2">
-            <input
-              type="text"
-              value={inputText}
-              maxLength={300}
-              onChange={e => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={`Nhắn vào #${currentChannelObj.name}...`}
-              className="flex-1 bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400 transition-colors disabled:opacity-50"
-            />
 
-            <button
-              onClick={handleSend}
-              disabled={!inputText.trim() || cooldown.isCooling}
-              className={`relative p-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 font-semibold active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md ${
-                cooldown.isCooling ? 'ff-cd-btn is-cooling' : ''
-              }`}
-              title={cooldown.isCooling ? `Còn ${cooldown.secondsLeft}s trước tin tiếp theo` : 'Gửi tin nhắn'}
-            >
-              <Send className="w-4 h-4" />
-            </button>
+          {/* Channel Switcher Pills */}
+          <div className="p-2 border-b border-white/10 bg-black/20">
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-1 bg-black/40 rounded-xl overflow-x-auto no-scrollbar">
+              {CHANNELS.map(ch => {
+                const Icon = ch.icon;
+                const isActive = activeChannel === ch.id;
+                const count = messages.filter(m => m.channelId === ch.id).length;
+                return (
+                  <button
+                    key={ch.id}
+                    type="button"
+                    onClick={() => setActiveChannel(ch.id)}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shrink-0 transition-all font-medium focus:outline-none cursor-pointer ${
+                      isActive
+                        ? 'bg-white/15 text-white font-medium shadow-sm border border-white/20'
+                        : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-amber-400' : 'text-neutral-400'}`} />
+                    <span className="whitespace-nowrap">#{ch.name}</span>
+                    {count > 0 && (
+                      <span className="text-[10px] font-mono text-neutral-500 bg-white/5 px-1.5 py-0.5 rounded-full">
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        )}
+
+          {/* Active Channel Header */}
+          <div className="px-4 py-2 bg-black/20 border-b border-white/5 flex items-center justify-between text-[11px] text-neutral-400">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Hash className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="text-neutral-200 font-medium shrink-0 truncate">{currentChannelObj.name}</span>
+            </div>
+            <div className="flex items-center gap-1 ml-auto">
+              <span className="font-mono text-neutral-500 shrink-0">{currentMessages.length} tin</span>
+              <button
+                type="button"
+                className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                title="Tìm tin nhắn"
+              >
+                <Search className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                title="Cài đặt"
+              >
+                <Settings className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Messages Feed Area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3.5" role="log" aria-live="polite" aria-relevant="additions" aria-label="Danh sách tin nhắn">
+            {!isSynced && currentMessages.length === 0 ? (
+              /* Đang đồng bộ máy chủ → bong bóng suy nghĩ */
+              <div className="space-y-3 pt-1" aria-busy="true">
+                <ThinkingBubble phase="Đang kết nối máy chủ F-Forum…" compact />
+                <ThinkingBubble phase={`Đang tải tin nhắn #${currentChannelObj.name}…`} compact />
+              </div>
+            ) : currentMessages.length === 0 ? (
+              /* Clean Empty State */
+              <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3 text-neutral-400">
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+                    <MessageSquareDashed className="w-7 h-7 text-amber-300 animate-pulse" />
+                  </div>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 absolute -top-1 -right-1 animate-pulse" />
+                </div>
+                <h3 className="text-xs font-semibold text-white font-mono">Chưa có tin nhắn nào</h3>
+                <p className="text-[11px] text-neutral-300 max-w-[260px] leading-relaxed font-light">
+                  Hãy là người mở đầu cuộc trò chuyện 👋
+                </p>
+              </div>
+            ) : (
+              currentMessages.map(msg => {
+                const isMe = currentUser ? msg.authorId === currentUser.id : false;
+                const isSuperAdminMsg = isMasterAdmin(msg.authorEmail);
+                const isSuperAdmin = currentUser ? isMasterAdmin(currentUser.email) : false;
+                const authorDisplayName = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.name : msg.authorName;
+                const authorDisplayAvatar = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.avatar : msg.authorAvatar;
+
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex items-start gap-2.5 group/msg ${isMe ? 'flex-row-reverse' : ''}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
+                        if (isMe && currentUser) {
+                          setActiveAuthorCard({
+                            id: currentUser.id,
+                            name: currentUser.name,
+                            avatar: currentUser.avatar,
+                            email: currentUser.email,
+                            level: currentUser.level || 1,
+                          });
+                        } else {
+                          setActiveAuthorCard({
+                            id: msg.authorId,
+                            name: authorDisplayName,
+                            avatar: authorDisplayAvatar,
+                            email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
+                            level: isSuperAdminMsg ? 150 : msg.authorLevel,
+                          });
+                        }
+                      }}
+                      className="relative shrink-0 cursor-pointer focus:outline-none"
+                      title={`Xem thông tin của ${authorDisplayName}`}
+                    >
+                      <img
+                        src={authorDisplayAvatar}
+                        alt={authorDisplayName}
+                        onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                        loading="lazy"
+                        decoding="async"
+                        width={32}
+                        height={32}
+                        className={`w-8 h-8 rounded-full object-cover shadow-md ${
+                          isSuperAdminMsg ? 'border-2 border-amber-400' : 'border border-white/20'
+                        }`}
+                      />
+                      <span className="absolute -bottom-1 -right-1">
+                        <TierBadge level={isSuperAdminMsg ? 150 : msg.authorLevel} size={15} showTooltip={false} />
+                      </span>
+                    </button>
+
+                    <div className={`max-w-[78%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                      <div className="flex items-center gap-1.5 mb-1 text-[11px] text-neutral-400">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
+                            if (isMe && currentUser) {
+                              setActiveAuthorCard({
+                                id: currentUser.id,
+                                name: currentUser.name,
+                                avatar: currentUser.avatar,
+                                email: currentUser.email,
+                                level: currentUser.level || 1,
+                              });
+                            } else {
+                              setActiveAuthorCard({
+                                id: msg.authorId,
+                                name: authorDisplayName,
+                                avatar: authorDisplayAvatar,
+                                email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
+                                level: isSuperAdminMsg ? 150 : msg.authorLevel,
+                              });
+                            }
+                          }}
+                          className={`${isSuperAdminMsg ? 'discord-admin-name text-xs' : 'font-semibold text-neutral-200'} cursor-pointer hover:underline focus:outline-none`}
+                        >
+                          {authorDisplayName}
+                        </button>
+                        {isSuperAdminMsg && <AdminVerifiedBadge size={12} />}
+                        <span className="text-[10px] text-neutral-500 font-mono">• {msg.timestamp}</span>
+
+                        {/* Thu hồi tin nhắn (Super Admin / quyền edit_content) */}
+                        {(isSuperAdmin || canRecallMessages) && (
+                          <button
+                            type="button"
+                            onClick={() => onDeleteMessage?.(msg.id)}
+                            className="opacity-0 group-hover/msg:opacity-100 transition-opacity ml-1.5 px-1.5 py-0.5 text-red-400 hover:text-red-300 rounded bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 cursor-pointer inline-flex items-center gap-1"
+                            title="Thu hồi tin nhắn vi phạm"
+                          >
+                            <Trash2 className="w-2.5 h-2.5" />
+                            <span className="text-[9px]">Thu hồi</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div
+                        className={`px-3.5 py-2 rounded-2xl text-xs leading-relaxed break-words shadow-sm ${
+                          isMe
+                            ? 'bg-amber-500/20 text-white border border-amber-400/30 rounded-tr-none'
+                            : 'bg-white/10 text-neutral-100 rounded-tl-none border border-white/10'
+                        }`}
+                      >
+                        {msg.content}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Cooldown Badge - Only show when actually cooling down */}
+          {cooldown.isCooling && (
+            <div className="px-3 pb-2 bg-black/35 border-t border-white/10 flex items-center justify-end shrink-0">
+              <ChatCooldownBar
+                isCooling={cooldown.isCooling}
+                remainingMs={cooldown.remainingMs}
+                nudgeKey={cooldown.nudgeKey}
+                variant="dock"
+              />
+            </div>
+          )}
+
+          {/* Input Bar or Login Prompt */}
+          {!currentUser ? (
+            <div className="p-3 bg-black/35 border-t border-white/10 flex items-center justify-between gap-3">
+              <span className="text-xs text-neutral-400">Vui lòng đăng nhập để gửi tin nhắn</span>
+              <button
+                type="button"
+                onClick={onOpenLoginModal}
+                className="px-3.5 py-1.5 rounded-xl bg-white text-neutral-900 font-semibold text-xs hover:bg-neutral-200 transition-colors shadow-sm cursor-pointer shrink-0 flex items-center gap-1.5"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Đăng nhập</span>
+              </button>
+            </div>
+          ) : (
+            <div className="p-3 bg-black/35 border-t border-white/10 flex items-center gap-2">
+              <input
+                type="text"
+                value={inputText}
+                maxLength={300}
+                onChange={e => setInputText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={`Nhắn vào #${currentChannelObj.name}...`}
+                className="flex-1 bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400 transition-colors disabled:opacity-50"
+              />
+
+              <button
+                onClick={handleSend}
+                disabled={!inputText.trim() || cooldown.isCooling}
+                className={`relative p-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 font-semibold active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md ${
+                  cooldown.isCooling ? 'ff-cd-btn is-cooling' : ''
+                }`}
+                title={cooldown.isCooling ? `Còn ${cooldown.secondsLeft}s trước tin tiếp theo` : 'Gửi tin nhắn'}
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
 
       {/* Compact Floating Author Context Popover — portaled to document.body */}
       {activeAuthorCard && typeof document !== 'undefined' && createPortal(

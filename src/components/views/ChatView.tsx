@@ -19,6 +19,8 @@ import {
   Flag,
   User as UserIcon,
   CheckCircle2,
+  Settings,
+  Search,
 } from 'lucide-react';
 import type { ChatChannelId, ChatMessage, User, OnlinePresenceUser } from '../../types';
 import { TierBadge, AdminVerifiedBadge } from '../Badges10Tier';
@@ -28,7 +30,6 @@ import { TriVideoCrossfadeBg } from '../TriVideoCrossfadeBg';
 import { TRI_CHAT_VIDEOS } from '../../utils/chatVideos';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
 import { capsHas, useAdminCaps } from '../../utils/adminCapabilities';
-import { InfoTip } from '../ui/InfoTip';
 import { getTierForLevel } from '../../utils/tier';
 import { pushNotification } from '../../utils/notifications';
 import { ChatCooldownBar } from '../ChatCooldownBar';
@@ -52,41 +53,13 @@ interface ChatViewProps {
 const CHANNELS: {
   id: ChatChannelId;
   name: string;
-  desc: string;
-  topic: string;
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
-  {
-    id: 'hallway',
-    name: 'Kết bạn bốn phương',
-    desc: 'Làm quen và kết nối bạn học toàn trường',
-    topic: 'Làm quen, kết nối và giao lưu cùng bạn học toàn trường',
-    icon: Users,
-  },
-  {
-    id: 'quick-qa',
-    name: 'Hỏi bài nhanh',
-    desc: 'Hỏi đáp khẩn cấp, giải bài trong 5 phút',
-    topic: 'Cứu cánh bài tập gấp, gỡ lỗi code và công thức toán lý',
-    icon: HelpCircle,
-  },
-  {
-    id: 'confessions',
-    name: 'Góc tâm sự',
-    desc: 'Áp lực học tập & suy tư tuổi học trò',
-    topic: 'Không gian lắng nghe, chia sẻ áp lực thi cử và chuyện trường lớp',
-    icon: Heart,
-  },
-  {
-    id: 'club-hub',
-    name: 'Hội quán CLB',
-    desc: 'Giao lưu điều phối giữa các Ban Chủ nhiệm',
-    topic: 'Phối hợp sự kiện liên CLB, mượn hội trường và tài trợ dự án',
-    icon: Shield,
-  },
+  { id: 'hallway', name: 'Kết bạn bốn phương', icon: Users },
+  { id: 'quick-qa', name: 'Hỏi bài nhanh', icon: HelpCircle },
+  { id: 'confessions', name: 'Góc tâm sự', icon: Heart },
+  { id: 'club-hub', name: 'Hội quán CLB', icon: Shield },
 ];
-
-
 
 export const ChatView: React.FC<ChatViewProps> = ({
   currentUser,
@@ -223,25 +196,17 @@ export const ChatView: React.FC<ChatViewProps> = ({
       {/* Main Container */}
       <div className="relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col overflow-hidden">
         {/* Top Channel Bar (Desktop >= 768px) */}
-        <div className="hidden md:flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-white/10 shrink-0">
-          <div>
+        <div className="hidden md:flex items-center justify-between gap-3 mb-4 pb-3 border-b border-white/10 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399] animate-pulse" />
             <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
               <Radio className="w-5 h-5 text-orange-400 animate-pulse" />
-              <span>Phòng Chat Đàm Thoại Thời Gian Thực</span>
-              <span className="text-xs font-mono font-normal text-orange-400 px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/30">
-                LIVE DOCK
-              </span>
+              <span>Phòng Chat Đàm Thoại</span>
             </h1>
-            <p className="text-xs text-neutral-300 mt-0.5 flex items-center">
-              Tôn trọng nhau — vi phạm sẽ bị khoá tài khoản.
-              <InfoTip label="Nội quy phòng chat" align="start">
-                Các hành vi toxic, kháy, khiêu khích, cô lập hay cố ý gây war sẽ bị vô hiệu hoá tài khoản vĩnh viễn và báo về ban giám hiệu nhà trường.
-              </InfoTip>
-            </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Ambient Video Switcher Pills: Clean Icons (Waves, Grid, Sparkles) */}
+          <div className="flex items-center gap-2">
+            {/* Ambient Video Switcher Pills */}
             <div className="hidden sm:flex items-center gap-1 bg-black/50 p-1 rounded-full border border-white/10">
               {TRI_CHAT_VIDEOS.map((v, i) => (
                 <button
@@ -297,18 +262,18 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
         {/* 3-Column Discord Layout */}
         <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 overflow-hidden pb-2">
-          
+
           {/* Left Column: 4 Channels Selector (md:col-span-3) */}
           <div className="hidden md:flex md:col-span-3 flex-col rounded-3xl liquid-glass bg-black/35 backdrop-blur-xl border border-white/10 p-3.5 shadow-2xl overflow-y-auto space-y-3">
             <div className="flex items-center justify-between px-2 pb-2 border-b border-white/10">
               <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 font-mono">
                 <Hash className="w-3.5 h-3.5 text-orange-400" />
-                CHUYÊN KÊNH ĐÀM THOẠI
+                CHUYÊN KÊNH
               </span>
               <span className="text-[10px] text-neutral-400 font-mono">4 KÊNH</span>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               {CHANNELS.map(ch => {
                 const Icon = ch.icon;
                 const isActive = activeChannel === ch.id;
@@ -318,14 +283,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   <button
                     key={ch.id}
                     onClick={() => setActiveChannel(ch.id)}
-                    className={`w-full text-left p-3 rounded-2xl transition-all flex items-start gap-2.5 ${
+                    className={`w-full text-left p-2.5 rounded-xl transition-all flex items-center gap-2.5 ${
                       isActive
-                        ? 'bg-gradient-to-r from-orange-500/25 to-amber-500/20 border border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.2)]'
+                        ? 'bg-white/10 text-white'
                         : 'hover:bg-white/5 border border-transparent text-neutral-400 hover:text-white'
                     }`}
                   >
                     <div
-                      className={`p-2 rounded-xl shrink-0 mt-0.5 ${
+                      className={`p-2 rounded-lg shrink-0 ${
                         isActive
                           ? 'bg-orange-500 text-black shadow-md'
                           : 'bg-white/5 text-neutral-400'
@@ -334,50 +299,60 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       <Icon className="w-4 h-4" />
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={`text-xs font-bold truncate ${
-                            isActive ? 'text-white' : 'text-neutral-300'
-                          }`}
-                        >
-                          #{ch.name}
-                        </span>
-                        <span className="text-[10px] font-mono text-neutral-500 ml-1">
+                    <div className="flex-1 min-w-0 flex items-center justify-between">
+                      <span
+                        className={`text-xs font-medium truncate ${
+                          isActive ? 'text-white' : 'text-neutral-300'
+                        }`}
+                      >
+                        #{ch.name}
+                      </span>
+                      {count > 0 && (
+                        <span className="text-[10px] font-mono text-neutral-500 ml-2 shrink-0 bg-white/5 px-1.5 py-0.5 rounded-full">
                           {count}
                         </span>
-                      </div>
-                      <p className="text-[11px] text-neutral-400 line-clamp-1 mt-0.5">
-                        {ch.desc}
-                      </p>
+                      )}
                     </div>
                   </button>
                 );
               })}
             </div>
-
           </div>
 
-          {/* Center Column: Active Channel Messages & Input (md:col-span-6 lg:col-span-6) */}
+          {/* Center Column: Active Channel Messages & Input (md:col-span-9 lg:col-span-6) */}
           <div className="col-span-1 md:col-span-9 lg:col-span-6 flex flex-col rounded-3xl liquid-glass bg-black/35 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden">
-            
-
-
-            {/* Chat Room Subheader */}
-            <div className="px-4 py-2.5 bg-black/40 border-b border-white/10 flex items-center justify-between shrink-0">
+            {/* Chat Room Header */}
+            <div className="px-4 py-3 bg-black/40 border-b border-white/10 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_8px_#f97316]" />
-                <span className="font-bold text-xs sm:text-sm text-white truncate">
+                <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
+                <span className="font-bold text-sm text-white truncate">
                   #{currentChannelObj.name}
                 </span>
-                <span className="hidden sm:inline text-neutral-400 text-xs">—</span>
-                <span className="hidden sm:inline text-xs text-neutral-400 truncate">
-                  {currentChannelObj.topic}
-                </span>
               </div>
-              <span className="text-[11px] font-mono text-neutral-400 shrink-0 ml-2">
-                {currentMessages.length} tin nhắn
-              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  className="p-1.5 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                  title="Tìm tin nhắn"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsMembersDrawerOpen(true)}
+                  className="p-1.5 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                  title="Danh sách thành viên"
+                >
+                  <Users className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  className="p-1.5 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                  title="Cài đặt kênh"
+                >
+                  <Settings className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Message Stream */}
@@ -389,8 +364,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   <ThinkingBubble phase="Đang sắp xếp hội thoại…" />
                 </div>
               ) : currentMessages.length === 0 ? (
-                /* Clean High-Design Empty State with MessageSquareDashed */
-                <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-3.5 text-neutral-400 my-auto">
+                /* Clean Empty State */
+                <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-3 text-neutral-400 my-auto">
                   <div className="relative">
                     <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.2)]">
                       <MessageSquareDashed className="w-8 h-8 text-amber-300 animate-pulse" />
@@ -398,10 +373,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     <Sparkles className="w-4 h-4 text-amber-300 absolute -top-1.5 -right-1.5 animate-pulse" />
                   </div>
                   <h3 className="text-sm font-semibold text-white font-mono tracking-wide">
-                    Chưa có tin nhắn nào trong kênh này
+                    Chưa có tin nhắn nào
                   </h3>
                   <p className="text-xs text-neutral-300 max-w-sm leading-relaxed font-light">
-                    Chưa có tin nhắn nào trong kênh này. Hãy là người mở đầu cuộc trò chuyện!
+                    Hãy là người mở đầu cuộc trò chuyện 👋
                   </p>
                 </div>
               ) : (
@@ -415,9 +390,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   return (
                     <div
                       key={msg.id}
-                      className={`flex items-start gap-3 group/msg ${
-                        isMe ? 'flex-row-reverse' : ''
-                      }`}
+                      className={`flex items-start gap-3 group/msg ${isMe ? 'flex-row-reverse' : ''}`}
                     >
                       {/* Avatar & Rank badge */}
                       <button
@@ -517,7 +490,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                               title="Thu hồi tin nhắn vi phạm"
                             >
                               <Trash2 className="w-2.5 h-2.5" />
-                              <span className="text-[9px]">Thu hồi tin nhắn</span>
+                              <span className="text-[9px]">Thu hồi</span>
                             </button>
                           )}
                         </div>
@@ -539,17 +512,22 @@ export const ChatView: React.FC<ChatViewProps> = ({
               <div ref={messagesEndRef} />
             </div>
 
-            <ChatCooldownBar
-              isCooling={cooldown.isCooling}
-              remainingMs={cooldown.remainingMs}
-              nudgeKey={cooldown.nudgeKey}
-              variant="view"
-            />
+            {/* Cooldown Badge - Only show when actually cooling down */}
+            {cooldown.isCooling && (
+              <div className="px-4 py-2 bg-black/40 border-t border-white/10 flex items-center justify-end shrink-0">
+                <ChatCooldownBar
+                  isCooling={cooldown.isCooling}
+                  remainingMs={cooldown.remainingMs}
+                  nudgeKey={cooldown.nudgeKey}
+                  variant="view"
+                />
+              </div>
+            )}
 
             {/* Input Bar or Login Prompt */}
             {!currentUser ? (
               <div className="p-3 bg-black/60 border-t border-white/10 flex items-center justify-between gap-3 shrink-0">
-                <span className="text-xs text-neutral-400">Vui lòng đăng nhập để gửi tin nhắn trong kênh</span>
+                <span className="text-xs text-neutral-400">Vui lòng đăng nhập để gửi tin nhắn</span>
                 <button
                   type="button"
                   onClick={onOpenLoginModal}
@@ -589,11 +567,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
           <div className="hidden lg:flex lg:col-span-3 flex-col rounded-3xl liquid-glass bg-black/35 backdrop-blur-xl border border-white/10 p-3.5 shadow-2xl overflow-y-auto space-y-4">
             <div className="px-2 pb-2 border-b border-white/10 flex items-center justify-between">
               <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-                THÀNH VIÊN TRỰC TUYẾN
+                THÀNH VIÊN
               </span>
               <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                {dynamicOnlineCount} TRỰC TUYẾN
+                {dynamicOnlineCount}
               </span>
             </div>
 
@@ -601,7 +579,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
             <div className="space-y-2">
               <div className="text-[10px] font-mono uppercase tracking-wider text-amber-400/90 font-bold px-1 flex items-center gap-1.5">
                 <Shield className="w-3 h-3 text-amber-400" />
-                <span>BAN QUẢN TRỊ (ADMIN)</span>
+                <span>BAN QUẢN TRỊ</span>
               </div>
               <button
                 type="button"
@@ -712,7 +690,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </div>
             </div>
 
-            {/* Guest Login Banner or Audio Visualizer Notice */}
+            {/* Guest Login Banner or Radio Status */}
             {!currentUser ? (
               <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 text-center space-y-2 mt-auto">
                 <p className="text-xs text-neutral-400 leading-snug">
@@ -727,14 +705,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="mt-auto p-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-xs text-orange-200">
-                <span className="font-bold flex items-center gap-1.5 text-orange-300 mb-1">
-                  <Radio className="w-3.5 h-3.5 text-orange-400 animate-pulse" />
-                  KÊNH PHÁT THANH NỘI BỘ
-                </span>
-                <p className="text-[10px] text-neutral-300 leading-relaxed">
-                  Đổi nền động ở góc trên · âm thanh hiệu ứng bật/tắt trong ⚙️ Cài đặt.
-                </p>
+              <div className="mt-auto p-2 rounded-xl bg-black/30 border border-white/5">
+                {/* Radio status pill - only show when active (placeholder for future) */}
               </div>
             )}
           </div>
@@ -761,7 +733,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
               <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 font-mono">
                 <Hash className="w-4 h-4 text-orange-400" />
-                CHUYÊN KÊNH ĐÀM THOẠI
+                CHUYÊN KÊNH
               </span>
               <button
                 type="button"
@@ -773,7 +745,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </button>
             </div>
 
-            <div className="space-y-2 flex-1">
+            <div className="space-y-1.5 flex-1">
               {CHANNELS.map((ch) => {
                 const Icon = ch.icon;
                 const isActive = activeChannel === ch.id;
@@ -786,33 +758,33 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       setActiveChannel(ch.id);
                       setIsChannelDrawerOpen(false);
                     }}
-                    className={`w-full text-left p-3 rounded-2xl transition-all flex items-start gap-2.5 cursor-pointer ${
+                    className={`w-full text-left p-2.5 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer ${
                       isActive
-                        ? 'bg-gradient-to-r from-orange-500/25 to-amber-500/20 border border-orange-500/50 text-white'
+                        ? 'bg-white/10 text-white'
                         : 'hover:bg-white/5 border border-transparent text-neutral-400 hover:text-white'
                     }`}
                   >
                     <div
-                      className={`p-2 rounded-xl shrink-0 mt-0.5 ${
+                      className={`p-2 rounded-lg shrink-0 mt-0.5 ${
                         isActive ? 'bg-orange-500 text-black' : 'bg-white/5 text-neutral-400'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className={`text-xs font-bold truncate ${isActive ? 'text-white' : 'text-neutral-300'}`}>
-                          #{ch.name}
+                    <div className="flex-1 min-w-0 flex items-center justify-between">
+                      <span className={`text-xs font-medium truncate ${isActive ? 'text-white' : 'text-neutral-300'}`}>
+                        #{ch.name}
+                      </span>
+                      {count > 0 && (
+                        <span className="text-[10px] font-mono text-neutral-500 ml-2 shrink-0 bg-white/5 px-1.5 py-0.5 rounded-full">
+                          {count}
                         </span>
-                        <span className="text-[10px] font-mono text-neutral-500 ml-1">{count}</span>
-                      </div>
-                      <p className="text-[11px] text-neutral-400 line-clamp-1 mt-0.5">{ch.desc}</p>
+                      )}
                     </div>
                   </button>
                 );
               })}
             </div>
-
           </div>
         </>
       )}
@@ -852,7 +824,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
             <div className="space-y-2 mb-4">
               <div className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold px-1 flex items-center gap-1.5">
                 <Shield className="w-3 h-3 text-amber-400" />
-                <span>BAN QUẢN TRỊ (ADMIN)</span>
+                <span>BAN QUẢN TRỊ</span>
               </div>
               <button
                 type="button"
