@@ -2,6 +2,7 @@
 import React, { Fragment, useState, useRef, useEffect, useCallback } from 'react';
 import {
   MessageSquare,
+  MessageCircleMore,
   X,
   ChevronDown,
   Bell,
@@ -56,12 +57,11 @@ export interface NavbarProps {
   onToggleEyeRest?: () => void;
 }
 
-type DockView = Exclude<DimensionView, 'landing' | 'home'>;
-
-const NAV_ICONS: Record<DockView, React.ReactNode> = {
+type DockView = Exclude<DimensionView, 'landing' | 'home'>;const NAV_ICONS: Record<DockView, React.ReactNode> = {
   clubs: <Users size={16} className="text-emerald-400" />,
   qa: <HelpCircle size={16} className="text-cyan-400" />,
-  chat: <MessageSquare size={16} className="text-orange-400" />,
+  threads: <MessageCircleMore size={16} className="text-fuchsia-300" />,
+  chat: <MessageSquare size={16} className="text-orange-400" />, 
   memory: (
     <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 ff-nav-tab-icon text-pink-300">
       <rect x="3" y="3" width="18" height="18" rx="4" />

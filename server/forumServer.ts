@@ -116,6 +116,36 @@ export interface AdminWarningRecord {
   by: string;
 }
 
+/* Thread System v1.0 — bản ghi thread. Lưu JSON store; content tối đa 480 ký tự
+   theo spec Final Lock. depth_level enforce ở server: reply sâu hơn 3 cấp bị từ
+   chối. status: active (public) / under_review (5+ report/1h) / hidden (admin). */
+export interface ThreadRecord {
+  id: string;
+  parentThreadId?: string;
+  repostOfId?: string;
+  repostType?: 'simple' | 'quote';
+  authorId: string;
+  authorEmail?: string;
+  authorName: string;
+  authorAvatar: string;
+  authorLevel: number;
+  content: string;
+  imageUrl?: string;
+  depthLevel: number;
+  status: 'active' | 'under_review' | 'hidden';
+  reactions: Record<string, string[]>;
+  createdAtMs: number;
+  updatedAtMs: number;
+}
+
+export interface ThreadReportRecord {
+  id: string;
+  threadId: string;
+  reporterEmail: string;
+  reason: string;
+  createdAtMs: number;
+}
+
 /* Epic 3 — mục 3.5: vai trò tùy chỉnh. Danh sách quyền và icon là whitelist
    duy nhất — client chỉ được gửi giá trị nằm trong hai danh sách này. */
 export type CustomRolePermission = 'ban' | 'warn' | 'mute' | 'give_role' | 'edit_content' | 'view_analytics';
@@ -215,6 +245,10 @@ export interface ForumDataStore {
   /** Epic 5 — "đăng xuất mọi thiết bị": email → mốc (ms); token phát hành TRƯỚC mốc bị
    *  thu hồi. Để NGOÀI bản ghi user vì `users` được phát công khai qua /api/sync. */
   sessionRevocations?: Record<string, number>;
+  /** Thread System v1.0 — mạng xã hội nội bộ, đăng tức thì không duyệt. */
+  threads?: ThreadRecord[];
+  /** Táo cáo thread cho auto-hide: ≥5 báo cáo/1h → Ẩn khoi feed public. */
+  threadReports?: ThreadReportRecord[];
 }
 
 
@@ -305,6 +339,8 @@ let store: ForumDataStore = {
   solutions: [],
   chatMessages: [],
   feedbacks: [],
+  threads: [],
+  threadReports: [],
   analytics: createEmptyAnalytics(),
   adminWarnings: [],
   dailyRewards: {},
@@ -401,6 +437,67 @@ function sanitizeSessionRevocations(raw: unknown, legacyUsers: unknown, known: S
     });
   }
   return out;
+}
+
+/* Thread System v1.0 — sanitize bản ghi thread từ đĩa. Giới hạn cứng: 480 ký tự
+   content, 3 ảnh URL, depth ≤ 3, reaction map Email → mã cảm xúc (allowlist). */
+const THREAD_REACTION_TYPES = new Set(['love', 'haha', 'fire', 'wow', 'support']);
+const MAX_THREADS = 5000;
+const THREAD_REACTIONS_PER_USER = 1;
+
+function sanitizeThreads(raw: unknown): ThreadRecord[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((t: any) => t && typeof t === 'object' && t.id && typeof t.content === 'string')
+    .slice(-MAX_THREADS)
+    .map((t: any) => {
+      const reactions: Record<string, string[]> = {};
+      if (t.reactions && typeof t.reactions === 'object') {
+        Object.entries(t.reactions).forEach(([email, list]) => {
+          const key = String(email || '').trim().toLowerCase();
+          const types = Array.isArray(list)
+            ? [...new Set(list.map(String).filter(x => THREAD_REACTION_TYPES.has(x)))]
+            : [];
+          if (key && types.length) reactions[key] = types.slice(0, THREAD_REACTIONS_PER_USER);
+        });
+      }
+      const status = ['active', 'under_review', 'hidden'].includes(t.status) ? t.status : 'active';
+      const createdAt = Number.isFinite(t.createdAtMs) ? Math.floor(t.createdAtMs) : Date.now();
+      return {
+        id: String(t.id).slice(0, 120),
+        parentThreadId: typeof t.parentThreadId === 'string' && t.parentThreadId ? t.parentThreadId.slice(0, 120) : undefined,
+        repostOfId: typeof t.repostOfId === 'string' && t.repostOfId ? t.repostOfId.slice(0, 120) : undefined,
+        repostType: ['simple', 'quote'].includes(t.repostType) ? t.repostType : undefined,
+        authorId: String(t.authorId || '').slice(0, 120),
+        authorEmail: typeof t.authorEmail === 'string' ? t.authorEmail.toLowerCase() : undefined,
+        authorName: String(t.authorName || 'Học sinh').slice(0, 80),
+        authorAvatar: typeof t.authorAvatar === 'string' ? t.authorAvatar.slice(0, 4000) : DEFAULT_AVATAR,
+        authorLevel: Number.isFinite(t.authorLevel) ? Math.max(1, Math.floor(t.authorLevel)) : 1,
+        content: String(t.content).slice(0, 480),
+        imageUrl: typeof t.imageUrl === 'string' ? t.imageUrl.slice(0, 2000) : undefined,
+        depthLevel: Math.min(3, Math.max(0, Number.isFinite(t.depthLevel) ? Math.floor(t.depthLevel) : 0)),
+        status: status as ThreadRecord['status'],
+        reactions,
+        createdAtMs: createdAt,
+        updatedAtMs: Number.isFinite(t.updatedAtMs) ? Math.floor(t.updatedAtMs) : createdAt,
+      } as ThreadRecord;
+    });
+}
+
+function sanitizeThreadReports(raw: unknown): ThreadReportRecord[] {
+  if (!Array.isArray(raw)) return [];
+  /* Chỉ cần báo cáo trong 2 giờ gần nhất cho quy tắc auto-hide; cũ hơn là rác. */
+  const cutoff = Date.now() - 2 * 60 * 60 * 1000;
+  return raw
+    .filter((r: any) => r && typeof r === 'object' && r.threadId && Number.isFinite(r.createdAtMs) && r.createdAtMs >= cutoff)
+    .slice(-2000)
+    .map((r: any) => ({
+      id: String(r.id).slice(0, 120),
+      threadId: String(r.threadId).slice(0, 120),
+      reporterEmail: String(r.reporterEmail || '').trim().toLowerCase(),
+      reason: String(r.reason || '').slice(0, 500),
+      createdAtMs: Math.floor(r.createdAtMs),
+    } as ThreadReportRecord));
 }
 
 function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
@@ -570,6 +667,10 @@ function loadStoreFromDisk() {
             parsed.users,
             new Set(Object.keys(cleanUsers)),
           ),
+          /* Thread System v1.0 — PHẢI liệt kê ở đây (cùng cảnh báo): thiếu thì toàn
+             bộ thread mất trắng sau mỗi lần restart. */
+          threads: sanitizeThreads(parsed.threads),
+          threadReports: sanitizeThreadReports(parsed.threadReports),
         };
       }
     }
@@ -2222,6 +2323,9 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           solutions: store.solutions,
           chatMessages: store.chatMessages,
           feedbacks: store.feedbacks,
+          /* Thread System v1.0 — chỉ trả thread public (active) cho client;
+             under_review/hidden chỉ Admin nhìn qua panel riêng. */
+          threads: (store.threads || []).filter((t) => t.status === 'active'),
           about: store.about,
         },
       });
@@ -4276,6 +4380,388 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     }
 
     /** Danh sách vai trò tùy chỉnh (mục 3.5) — người có quyền give_role được xem để gán. */
+    /* ============ Thread System v1.0 (mạng xã hội nội bộ) ============ */
+
+    /* GET /api/threads — feed public toàn trường, sort created_at DESC.
+       Chỉ trả thread status=active; reply lồng trả kèm parent.
+       every thin: page & limit để phân trang nếu cần. */
+    if (method === 'GET' && url.split('?')[0] === '/api/threads') {
+      const parseParams = new URLSearchParams(url.split('?')[1] || '');
+      const limit = Math.max(1, Math.min(100, Number(parseParams.get('limit')) || 40));
+      const page = Math.max(0, Number(parseParams.get('page')) || 0);
+      const activeThreads = store.threads || [];
+      const visible = activeThreads
+        .filter((t) => t.status === 'active')
+        .sort((a, b) => b.createdAtMs - a.createdAtMs);
+      const paged = visible.slice(page * limit, (page + 1) * limit);
+      /* Thread của ngày — tương tác cao nhất 24h qua (reaction ×1 + repost ×2). */
+      const since24h = Date.now() - 24 * 60 * 60 * 1000;
+      const scoreOf = (t: ThreadRecord) =>
+        Object.values(t.reactions).reduce((sum, list) => sum + list.length, 0)
+        + (visible.some((x) => x.repostOfId === t.id && x.createdAtMs >= since24h) ? 2 : 0);
+      const ofTheDay = visible
+        .filter((t) => !t.parentThreadId && t.createdAtMs >= since24h && scoreOf(t) > 0)
+        .sort((a, b) => scoreOf(b) - scoreOf(a))[0];
+      sendJson(res, 200, {
+        success: true,
+        threads: paged,
+        total: visible.length,
+        ofTheDay: ofTheDay || null,
+      });
+      return;
+    }
+
+    /* GET /api/threads/of-the-day — banner đặc biệt (Mascot Cú 🦉). */
+    if (method === 'GET' && url === '/api/threads/of-the-day') {
+      const since24h = Date.now() - 24 * 60 * 60 * 1000;
+      const visible = (store.threads || []).filter((t) => t.status === 'active');
+      const scoreOf = (t: ThreadRecord) =>
+        Object.values(t.reactions).reduce((sum, list) => sum + list.length, 0)
+        + (visible.some((x) => x.repostOfId === t.id && x.createdAtMs >= since24h) ? 2 : 0);
+      const top = visible
+        .filter((t) => !t.parentThreadId && t.createdAtMs >= since24h && scoreOf(t) > 0)
+        .sort((a, b) => scoreOf(b) - scoreOf(a))[0];
+      sendJson(res, 200, { success: true, thread: top || null });
+      return;
+    }
+
+    /* POST /api/threads — tạo thread mới (không qua duyệt).
+       Rate limit riêng 10 thread/giờ/user tạo chỗ yên tĩnh cho feed. */
+    if (method === 'POST' && url === '/api/threads') {
+      try {
+        const body = await parseJsonBody(req);
+        const authorEmail = String(body.authorEmail || '').trim().toLowerCase();
+        const author = authorEmail ? store.users[authorEmail] : undefined;
+        if (!author) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để đăng thread!' });
+          return;
+        }
+        const claims = authorizeRequest(req, authorEmail, body.token);
+        if (!claims) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập lại!' });
+          return;
+        }
+        const gate = checkCanPost(claims.email, 'content');
+        if (!gate.ok) {
+          sendJson(res, gate.status, { success: false, message: gate.message });
+          return;
+        }
+
+        /* Rate limit 10 thread/giờ — giá trị thân thiện theo Brand Voice. */
+        const hourKey = `thread:${claims.email}`;
+        const recentByUser = (store.threads || []).filter(
+          (t) => t.authorEmail === claims.email && t.createdAtMs >= Date.now() - 60 * 60 * 1000 && !t.parentThreadId,
+        );
+        if (recentByUser.length >= 10) {
+          sendJson(res, 429, { success: false, message: 'Bạn đã đăng hơi nhiều rồi, nghỉ chút nhé 😌' });
+          return;
+        }
+        void hourKey;
+
+        const content = String(body.content || '').trim();
+        if (!content) {
+          sendJson(res, 400, { success: false, message: 'Nội dung không được để trống!' });
+          return;
+        }
+        if (content.length > 480) {
+          sendJson(res, 400, { success: false, message: 'Thread chỉ được tối đa 480 ký tự!' });
+          return;
+        }
+
+        /* Lọc từ cấm: auto_block từ chối; flag_for_review cho đăng nhưng ẩn review. */
+        const bannedList = Array.isArray(body.bannedWords) ? body.bannedWords : [];
+        let status: ThreadRecord['status'] = 'active';
+        for (const word of bannedList) {
+          if (word && typeof word.text === 'string' && content.toLowerCase().includes(word.text.toLowerCase())) {
+            if (word.severity === 'auto_block') {
+              sendJson(res, 400, { success: false, message: 'Nội dung chứa từ không phù hợp với môi trường học đường.' });
+              return;
+            }
+            status = 'under_review';
+          }
+        }
+
+        /* 1 ảnh/thread (v1) — dùng chung giới hạn data URL 8MB của hệ thống. */
+        const imageUrl = typeof body.imageUrl === 'string' && body.imageUrl.length <= 8 * 1024 * 1024
+          ? body.imageUrl
+          : undefined;
+        const requestedId = typeof body.id === 'string' && body.id.trim() ? body.id.trim().slice(0, 120) : randomId('thread');
+        if ((store.threads || []).some((t) => t.id === requestedId)) {
+          sendJson(res, 200, { success: true, duplicate: true, message: 'Thread này đã được tiếp nhận trước đó.' });
+          return;
+        }
+
+        const now = Date.now();
+        const newThread: ThreadRecord = {
+          id: requestedId,
+          authorId: author.id,
+          authorEmail: author.email,
+          authorName: author.name,
+          authorAvatar: author.avatar || DEFAULT_AVATAR,
+          authorLevel: author.level ?? 1,
+          content,
+          imageUrl,
+          depthLevel: 0,
+          status,
+          reactions: {},
+          createdAtMs: now,
+          updatedAtMs: now,
+        };
+        (store.threads ||= []).push(newThread);
+        recordAnalyticsActivity(getAnalyticsStore(), 'threads', author.email);
+        persistStoreToDisk();
+        broadcastServerEvent('NEW_THREAD', newThread);
+        sendJson(res, 200, { success: true, thread: newThread, user: author });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /* POST /api/threads/:id/reply — reply lồng. depth = parent.depth + 1, tối đa 3. */
+    if (method === 'POST' && /^\/api\/threads\/[^/]+\/reply$/.test(url)) {
+      try {
+        const body = await parseJsonBody(req);
+        const parentId = url.split('/')[3];
+        const parent = (store.threads || []).find((t) => t.id === parentId);
+        if (!parent) {
+          sendJson(res, 404, { success: false, message: 'Thread gốc không còn tồn tại.' });
+          return;
+        }
+        if (parent.depthLevel >= 3) {
+          sendJson(res, 400, { success: false, message: 'Không thể phản hồi sâu hơn 3 cấp!' });
+          return;
+        }
+        const authorEmail = String(body.authorEmail || '').trim().toLowerCase();
+        const author = authorEmail ? store.users[authorEmail] : undefined;
+        if (!author) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để phản hồi!' });
+          return;
+        }
+        const claims = authorizeRequest(req, authorEmail, body.token);
+        if (!claims) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập lại!' });
+          return;
+        }
+        const replyGate = checkCanPost(claims.email, 'content');
+        if (!replyGate.ok) {
+          sendJson(res, replyGate.status, { success: false, message: replyGate.message });
+          return;
+        }
+        const content = String(body.content || '').trim();
+        if (!content || content.length > 480) {
+          sendJson(res, 400, { success: false, message: 'Phản hồi 1–480 ký tự.' });
+          return;
+        }
+        const now = Date.now();
+        const reply: ThreadRecord = {
+          id: randomId('thread'),
+          parentThreadId: parent.id,
+          authorId: author.id,
+          authorEmail: author.email,
+          authorName: author.name,
+          authorAvatar: author.avatar || DEFAULT_AVATAR,
+          authorLevel: author.level ?? 1,
+          content,
+          depthLevel: parent.depthLevel + 1,
+          status: 'active',
+          reactions: {},
+          createdAtMs: now,
+          updatedAtMs: now,
+        };
+        (store.threads ||= []).push(reply);
+        persistStoreToDisk();
+        broadcastServerEvent('NEW_THREAD', reply);
+        sendJson(res, 200, { success: true, thread: reply, user: author });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /* POST /api/threads/:id/repost — chia sẻ lại (simple hoặc quote). */
+    if (method === 'POST' && /^\/api\/threads\/[^/]+\/repost$/.test(url)) {
+      try {
+        const body = await parseJsonBody(req);
+        const original = (store.threads || []).find((t) => t.id === url.split('/')[3]);
+        if (!original || original.status !== 'active') {
+          sendJson(res, 404, { success: false, message: 'Thread gốc không còn tồn tại.' });
+          return;
+        }
+        const authorEmail = String(body.authorEmail || '').trim().toLowerCase();
+        const author = authorEmail ? store.users[authorEmail] : undefined;
+        if (!author) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để chia sẻ lại!' });
+          return;
+        }
+        const claims = authorizeRequest(req, authorEmail, body.token);
+        if (!claims) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập lại!' });
+          return;
+        }
+        const type = body.type === 'quote' ? 'quote' : 'simple';
+        const quote = String(body.content || '').trim();
+        if (type === 'quote' && (!quote || quote.length > 480)) {
+          sendJson(res, 400, { success: false, message: 'Lời trích dẫn 1–480 ký tự.' });
+          return;
+        }
+        const now = Date.now();
+        const repost: ThreadRecord = {
+          id: randomId('thread'),
+          repostOfId: original.id,
+          repostType: type,
+          authorId: author.id,
+          authorEmail: author.email,
+          authorName: author.name,
+          authorAvatar: author.avatar || DEFAULT_AVATAR,
+          authorLevel: author.level ?? 1,
+          content: type === 'quote' ? quote : '',
+          depthLevel: 0,
+          status: 'active',
+          reactions: {},
+          createdAtMs: now,
+          updatedAtMs: now,
+        };
+        (store.threads ||= []).push(repost);
+        persistStoreToDisk();
+        broadcastServerEvent('NEW_THREAD', repost);
+        sendJson(res, 200, { success: true, thread: repost, user: author });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /* POST /api/threads/:id/react — toggle cảm xúc (1 user 1 cảm xúc/thread). */
+    if (method === 'POST' && /^\/api\/threads\/[^/]+\/react$/.test(url)) {
+      try {
+        const body = await parseJsonBody(req);
+        const target = (store.threads || []).find((t) => t.id === url.split('/')[3]);
+        if (!target) {
+          sendJson(res, 404, { success: false, message: 'Thread không còn tồn tại.' });
+          return;
+        }
+        const email = String(body.authorEmail || '').trim().toLowerCase();
+        const actor = email ? store.users[email] : undefined;
+        if (!actor) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để thả cảm xúc!' });
+          return;
+        }
+        const claims = authorizeRequest(req, email, body.token);
+        if (!claims) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập lại!' });
+          return;
+        }
+        const type = String(body.type || '');
+        if (!THREAD_REACTION_TYPES.has(type)) {
+          sendJson(res, 400, { success: false, message: 'Loại cảm xúc không hợp lệ.' });
+          return;
+        }
+        const map = (store.threads || []).find((t) => t.id === target.id)!.reactions;
+        const current = map[claims.email] || [];
+        if (current.includes(type)) {
+          /* click lần 2 cùng emoji → bỏ reaction */
+          const remaining = current.filter((x) => x !== type);
+          if (remaining.length) {
+            map[claims.email] = remaining;
+          } else {
+            delete map[claims.email];
+          }
+        } else {
+          /* click emoji khác → đổi reaction (1 user 1 reaction) */
+          map[claims.email] = [type];
+        }
+        persistStoreToDisk();
+        broadcastServerEvent('SYNC_THREADS', { id: target.id });
+        sendJson(res, 200, { success: true, reactions: map, user: actor });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /* POST /api/threads/:id/report — báo cáo; ≥5 báo cáo/1h → ẩn khỏi feed. */
+    if (method === 'POST' && /^\/api\/threads\/[^/]+\/report$/.test(url)) {
+      try {
+        const body = await parseJsonBody(req);
+        const target = (store.threads || []).find((t) => t.id === url.split('/')[3]);
+        if (!target) {
+          sendJson(res, 404, { success: false, message: 'Thread không còn tồn tại.' });
+          return;
+        }
+        const email = String(body.authorEmail || '').trim().toLowerCase();
+        const reporter = email ? store.users[email] : undefined;
+        if (!reporter) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để báo cáo!' });
+          return;
+        }
+        const claims = authorizeRequest(req, email, body.token);
+        if (!claims) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập lại!' });
+          return;
+        }
+        const report: ThreadReportRecord = {
+          id: randomId('treport'),
+          threadId: target.id,
+          reporterEmail: claims.email,
+          reason: String(body.reason || '').slice(0, 500),
+          createdAtMs: Date.now(),
+        };
+        (store.threadReports ||= []).push(report);
+        const hourAgo = Date.now() - 60 * 60 * 1000;
+        const recentReports = (store.threadReports || []).filter(
+          (r) => r.threadId === target.id && r.createdAtMs >= hourAgo,
+        );
+        if (recentReports.length >= 5 && target.status === 'active') {
+          target.status = 'under_review';
+        }
+        persistStoreToDisk();
+        sendJson(res, 200, { success: true, message: 'Đã nhận báo cáo. Cảm ơn cậu đã giúp cộng đồng an toàn hơn! 🙏' });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /* DELETE /api/threads/:id — chỉ author hoặc Admin/Mod (Super Admin). */
+    if (method === 'DELETE' && /^\/api\/threads\/[^/]+$/.test(url)) {
+      const target = (store.threads || []).find((t) => t.id === url.split('/')[3]);
+      if (!target) {
+        sendJson(res, 404, { success: false, message: 'Thread không còn tồn tại.' });
+        return;
+      }
+      const email = String(req.headers['x-user-email'] || '').trim().toLowerCase();
+      const actor = email ? store.users[email] : undefined;
+      const token = String(req.headers['x-user-token'] || '');
+      const claims = actor ? authorizeRequest(req, email, token) : null;
+      const isOwner = Boolean(claims && claims.email === target.authorEmail);
+      const isSuperAdmin = Boolean(actor && isMasterAdminEmail(actor.email));
+      if (!claims || (!isOwner && !isSuperAdmin)) {
+        sendJson(res, 403, { success: false, message: 'Chỉ tác giả hoặc Admin mới xóa được thread này.' });
+        return;
+      }
+      store.threads = (store.threads || []).filter((t) => t.id !== target.id && t.parentThreadId !== target.id && t.repostOfId !== target.id);
+      store.threadReports = (store.threadReports || []).filter((r) => r.threadId !== target.id);
+      persistStoreToDisk();
+      broadcastServerEvent('SYNC_THREADS', { id: target.id, deleted: true });
+      sendJson(res, 200, { success: true, message: 'Đã xóa thread.' });
+      return;
+    }
+
+    /* GET /api/threads/:id — chi tiết + toàn bộ reply lồng nhau. */
+    if (method === 'GET' && /^\/api\/threads\/[^/]+$/.test(url)) {
+      const id = url.split('/')[3];
+      const root = (store.threads || []).find((t) => t.id === id && t.status === 'active');
+      if (!root) {
+        sendJson(res, 404, { success: false, message: 'Thread không còn tồn tại.' });
+        return;
+      }
+      const children = (store.threads || []).filter((t) => t.parentThreadId === id && t.status === 'active');
+      const reposts = (store.threads || []).filter((t) => t.repostOfId === id && t.status === 'active');
+      sendJson(res, 200, { success: true, thread: root, replies: children, reposts });
+      return;
+    }
+
     if (method === 'GET' && url.split('?')[0] === '/api/admin/roles') {
       const actor = requireRoleGrantor(req, {});
       if (!actor) {

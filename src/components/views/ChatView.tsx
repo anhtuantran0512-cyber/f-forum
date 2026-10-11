@@ -233,7 +233,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </span>
             </h1>
             <p className="text-xs text-neutral-300 mt-0.5 flex items-center">
-              Tôn trọng nhau — vi phạm sẽ bị khoá tài khoản.
+              Phòng chat học sinh toàn trường.
               <InfoTip label="Nội quy phòng chat" align="start">
                 Các hành vi toxic, kháy, khiêu khích, cô lập hay cố ý gây war sẽ bị vô hiệu hoá tài khoản vĩnh viễn và báo về ban giám hiệu nhà trường.
               </InfoTip>
@@ -347,9 +347,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
                           {count}
                         </span>
                       </div>
-                      <p className="text-[11px] text-neutral-400 line-clamp-1 mt-0.5">
-                        {ch.desc}
-                      </p>
                     </div>
                   </button>
                 );
@@ -369,10 +366,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_8px_#f97316]" />
                 <span className="font-bold text-xs sm:text-sm text-white truncate">
                   #{currentChannelObj.name}
-                </span>
-                <span className="hidden sm:inline text-neutral-400 text-xs">—</span>
-                <span className="hidden sm:inline text-xs text-neutral-400 truncate">
-                  {currentChannelObj.topic}
                 </span>
               </div>
               <span className="text-[11px] font-mono text-neutral-400 shrink-0 ml-2">
@@ -398,11 +391,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     <Sparkles className="w-4 h-4 text-amber-300 absolute -top-1.5 -right-1.5 animate-pulse" />
                   </div>
                   <h3 className="text-sm font-semibold text-white font-mono tracking-wide">
-                    Chưa có tin nhắn nào trong kênh này
+                    Hãy là người mở đầu cuộc trò chuyện 👋
                   </h3>
-                  <p className="text-xs text-neutral-300 max-w-sm leading-relaxed font-light">
-                    Chưa có tin nhắn nào trong kênh này. Hãy là người mở đầu cuộc trò chuyện!
-                  </p>
+
                 </div>
               ) : (
                 currentMessages.map(msg => {
@@ -727,14 +718,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="mt-auto p-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-xs text-orange-200">
-                <span className="font-bold flex items-center gap-1.5 text-orange-300 mb-1">
-                  <Radio className="w-3.5 h-3.5 text-orange-400 animate-pulse" />
-                  KÊNH PHÁT THANH NỘI BỘ
-                </span>
-                <p className="text-[10px] text-neutral-300 leading-relaxed">
-                  Đổi nền động ở góc trên · âm thanh hiệu ứng bật/tắt trong ⚙️ Cài đặt.
-                </p>
+              <div className="mt-auto px-2.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-[10px] text-orange-200 inline-flex items-center gap-1.5 self-start">
+                <Radio className="w-3 h-3 text-orange-400 animate-pulse" />
+                <span className="text-neutral-400">Bật tắt ở</span>
+                <span className="font-semibold text-orange-300">⚙️ Cài đặt</span>
               </div>
             )}
           </div>
@@ -806,7 +793,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         </span>
                         <span className="text-[10px] font-mono text-neutral-500 ml-1">{count}</span>
                       </div>
-                      <p className="text-[11px] text-neutral-400 line-clamp-1 mt-0.5">{ch.desc}</p>
+
                     </div>
                   </button>
                 );

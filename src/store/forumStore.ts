@@ -13,6 +13,8 @@ import type {
   SubjectTag,
   ClubCategory,
   OnlinePresenceUser,
+  Thread,
+  ThreadReactionType,
 } from '../types';
 import { playChime } from '../utils/audio';
 import {
@@ -295,6 +297,21 @@ export function useForumStore() {
       }
     }
     return INITIAL_SOLUTIONS;
+  });
+
+  /* Thread System v1.0 — feed mạng xã hội nội bộ; nguồn chân lý là máy chủ,
+     localStorage chỉ là bản nháp hiển thị trước lần sync đầu. */
+  const [threads, setThreads] = useState<Thread[]>(() => {
+    const saved = safeStorage.getItem('fforum_threads');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        /* ignore */
+      }
+    }
+    return [];
   });
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
@@ -653,6 +670,12 @@ export function useForumStore() {
             }
             if (Array.isArray(data.solutions)) {
               setSolutions(data.solutions.map((sol: Solution) => resolveOwner(sol)));
+            }
+            /* Thread System v1.0 — feed đồng bộ từ máy chủ, localStorage KHÔNG lh là
+               nguồn chân lý (tránh kẹt cache cũ sau khi moderator xoá bài). */
+            if (Array.isArray(data.threads)) {
+              setThreads(data.threads as Thread[]);
+              safeStorage.setItem('fforum_threads', JSON.stringify(data.threads));
             }
             if (Array.isArray(data.chatMessages)) {
               const cleanMsgs = data.chatMessages
@@ -2380,6 +2403,151 @@ export function useForumStore() {
     });
   };
 
+  /* =========== Thread System v1.0 (mạng xã hội nội bộ) =========== */
+
+  const createThread = async (payload: { id?: string; content: string; imageUrl?: string }) => {
+    if (!currentUser) {
+      setToastMessage({ title: 'Chưa đăng nhập', subtitle: 'Vui lòng đăng nhập để đăng thread!', type: 'error' });
+      return;
+    }
+    const optimistic: Thread = {
+      id: payload.id || `thread-${Date.now()}`,
+      authorId: currentUser.id,
+      authorEmail: currentUser.email,
+      authorName: currentUser.name,
+      authorAvatar: currentUser.avatar,
+      authorLevel: currentUser.level || 1,
+      content: payload.content,
+      imageUrl: payload.imageUrl,
+      depthLevel: 0,
+      status: 'active',
+      reactions: {},
+      createdAtMs: Date.now(),
+      updatedAtMs: Date.now(),
+    };
+    const prevThreads = threads;
+    setThreads((prev) => [optimistic, ...prev]);
+    const outcome = await runServerAction('/api/threads', {
+      id: optimistic.id,
+      content: payload.content,
+      imageUrl: payload.imageUrl,
+      authorEmail: currentUser.email,
+      token: getAuthToken(),
+    });
+    if (!outcome.ok) {
+      setThreads(prevThreads);
+      setToastMessage({ title: 'Không đăng được thread', subtitle: outcome.message, type: 'error' });
+      return;
+    }
+    const saved = outcome.data?.thread as Thread | undefined;
+    if (saved) {
+      setThreads((prev) => prev.map((t) => (t.id === optimistic.id ? saved : t)));
+      safeStorage.setItem('fforum_threads', JSON.stringify(threads));
+    }
+    if (outcome.data?.user) applyServerUser(outcome.data.user as User);
+    setToastMessage({ title: 'Đã đăng thread!', subtitle: 'Nội dung của cậu đang ở đầu feed 👍', type: 'success' });
+  };
+
+  const replyThread = async (parentId: string, content: string) => {
+    if (!currentUser) return;
+    const parent = threads.find((t) => t.id === parentId);
+    if (parent && parent.depthLevel >= 3) {
+      setToastMessage({ title: 'Không phản hồi sâu hơn được', subtitle: 'Giới hạn 3 cấp phản hồi để mọi người đọc được nhau.', type: 'error' });
+      return;
+    }
+    const outcome = await runServerAction(`/api/threads/${parentId}/reply`, {
+      content,
+      authorEmail: currentUser.email,
+      token: getAuthToken(),
+    });
+    if (!outcome.ok) {
+      setToastMessage({ title: 'Không gửi được phản hồi', subtitle: outcome.message, type: 'error' });
+      return;
+    }
+    const saved = outcome.data?.thread as Thread | undefined;
+    if (saved) {
+      setThreads((prev) => [saved, ...prev]);
+    }
+    if (outcome.data?.user) applyServerUser(outcome.data.user as User);
+  };
+
+  const repostThread = async (threadId: string, type: 'simple' | 'quote', content?: string) => {
+    if (!currentUser) return;
+    const outcome = await runServerAction(`/api/threads/${threadId}/repost`, {
+      type,
+      content: content || '',
+      authorEmail: currentUser.email,
+      token: getAuthToken(),
+    });
+    if (!outcome.ok) {
+      setToastMessage({ title: 'Không chia sẻ lại được', subtitle: outcome.message, type: 'error' });
+      return;
+    }
+    const saved = outcome.data?.thread as Thread | undefined;
+    if (saved) setThreads((prev) => [saved, ...prev]);
+    if (outcome.data?.user) applyServerUser(outcome.data.user as User);
+    setToastMessage({ title: type === 'quote' ? 'Đã đăng lời trích!' : 'Đã chia sẻ lại!', type: 'success' });
+  };
+
+  const reactThread = async (threadId: string, reactionType: ThreadReactionType) => {
+    if (!currentUser) return;
+    const outcome = await runServerAction(`/api/threads/${threadId}/react`, {
+      type: reactionType,
+      authorEmail: currentUser.email,
+      token: getAuthToken(),
+    });
+    if (!outcome.ok) {
+      setToastMessage({ title: 'Không thả được cảm xúc', subtitle: outcome.message, type: 'error' });
+      return;
+    }
+    const reactions = outcome.data?.reactions;
+    if (reactions && typeof reactions === 'object') {
+      setThreads((prev) => prev.map((t) => (t.id === threadId ? { ...t, reactions } : t)));
+    }
+  };
+
+  const reportThread = async (threadId: string, reason: string) => {
+    if (!currentUser) return;
+    const outcome = await runServerAction(`/api/threads/${threadId}/report`, {
+      reason,
+      authorEmail: currentUser.email,
+      token: getAuthToken(),
+    });
+    setToastMessage({
+      title: outcome.ok ? 'Đã nhận báo cáo 🙏' : 'Không gửi được báo cáo',
+      subtitle: outcome.message,
+      type: outcome.ok ? 'success' : 'error',
+    });
+  };
+
+  const deleteThread = async (threadId: string) => {
+    if (!currentUser) return;
+    const emailKey = currentUser.email.toLowerCase();
+    const target = threads.find((t) => t.id === threadId);
+    const isOwner = target && (target.authorId === currentUser.id || target.authorEmail?.toLowerCase() === emailKey);
+    if (!isOwner && !isMasterAdmin(currentUser.email)) {
+      setToastMessage({ title: 'Không có quyền', subtitle: 'Chỉ tác giả hoặc Admin mới xóa được thread này.', type: 'error' });
+      return;
+    }
+    const prevThreads = threads;
+    setThreads((prev) => prev.filter((t) => t.id !== threadId && t.parentThreadId !== threadId && t.repostOfId !== threadId));
+    try {
+      const { status, data } = await fetch(`/api/threads/${threadId}`, {
+        method: 'DELETE',
+        headers: { ...authHeaders(), 'X-User-Email': emailKey },
+      }).then((r) => r.json().then((d) => ({ status: r.status, data: d })), () => ({ status: 0, data: null }));
+      if (status < 200 || status >= 300) {
+        setThreads(prevThreads);
+        setToastMessage({ title: 'Không xóa được thread', subtitle: data?.message || 'Máy chủ từ chối xoá.', type: 'error' });
+      } else {
+        setToastMessage({ title: 'Đã xóa thread', type: 'success' });
+      }
+    } catch {
+      setThreads(prevThreads);
+      setToastMessage({ title: 'Không kết nối được máy chủ', type: 'error' });
+    }
+  };
+
   const markBestSolution = async (questionId: string, solutionId: string) => {
     if (!currentUser) return;
     const question = questions.find(q => q.id === questionId);
@@ -2789,6 +2957,13 @@ export function useForumStore() {
     createClubPost,
     questions,
     solutions,
+    threads,
+    createThread,
+    replyThread,
+    repostThread,
+    reactThread,
+    reportThread,
+    deleteThread,
     createQuestion,
     addSolution,
     markBestSolution,

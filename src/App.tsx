@@ -19,6 +19,7 @@ import {
   Home,
   Users,
   HelpCircle,
+  MessageCircleMore,
   MessageSquare,
   Compass,
   Award,
@@ -64,6 +65,7 @@ const LandingPage = lazyWithRetry(() => import('./components/landing/LandingPage
 const ClubsView = lazyWithRetry(() => import('./components/views/ClubsView').then(m => ({ default: m.ClubsView })));
 const QAForumView = lazyWithRetry(() => import('./components/views/QAForumView').then(m => ({ default: m.QAForumView })));
 const ChatView = lazyWithRetry(() => import('./components/views/ChatView').then(m => ({ default: m.ChatView })));
+const ThreadsView = lazyWithRetry(() => import('./components/views/ThreadsView').then(m => ({ default: m.ThreadsView })));
 const KhuVinhDanhView = lazyWithRetry(() => import('./components/views/KhuVinhDanhView').then(m => ({ default: m.KhuVinhDanhView })));
 const ComingSoonView = lazyWithRetry(() => import('./components/views/ComingSoonView').then(m => ({ default: m.ComingSoonView })));
 const MemoryRealm = lazyWithRetry(() => import('./components/MemoryRealm').then(m => ({ default: m.MemoryRealm })));
@@ -120,6 +122,7 @@ const VIEW_ORDER: DimensionView[] = [
   'home',
   'clubs',
   'qa',
+  'threads',
   'chat',
   'memory',
   'chronicles',
@@ -132,6 +135,7 @@ const VIEW_LOADERS: Partial<Record<DimensionView, { label: string; variant: 'vin
   landing: { label: 'Trang Giới thiệu', variant: 'vinyl' },
   clubs: { label: 'Câu lạc bộ', variant: 'vinyl' },
   qa: { label: 'Sàn Hỏi đáp', variant: 'vinyl' },
+  threads: { label: 'Luồng Cảm Xúc', variant: 'vinyl' },
   chat: { label: 'Phòng Chat', variant: 'dots' },
   memory: { label: 'Miền Ký Ức', variant: 'vinyl' },
   chronicles: { label: 'Khu Vinh Danh', variant: 'vinyl' },
@@ -198,6 +202,13 @@ export const App: React.FC = () => {
     createClubPost,
     questions,
     solutions,
+    threads,
+    createThread,
+    replyThread,
+    repostThread,
+    reactThread,
+    reportThread,
+    deleteThread,
     createQuestion,
     addSolution,
     markBestSolution,
@@ -589,6 +600,7 @@ export const App: React.FC = () => {
       { id: 'home', label: 'Trang chủ', hint: 'Bảng tin tổng hợp & thống kê', icon: <Home className="w-4 h-4" />, keywords: 'home bang tin' },
       { id: 'clubs', label: 'Câu lạc bộ', hint: 'CLB, sự kiện & bài đăng nhóm', icon: <Users className="w-4 h-4" />, keywords: 'clb club' },
       { id: 'qa', label: 'Hỏi đáp', hint: 'Sàn hỏi bài theo môn học', icon: <HelpCircle className="w-4 h-4" />, keywords: 'hoi bai qa' },
+      { id: 'threads', label: 'Thread', hint: 'Luồng cảm xúc tức thì — đăng không cần duyệt', icon: <MessageCircleMore className="w-4 h-4" />, keywords: 'thread luong cam xuc' },
       { id: 'chat', label: 'Phòng chat', hint: 'Trò chuyện thời gian thực', icon: <MessageSquare className="w-4 h-4" />, keywords: 'chat tin nhan' },
       { id: 'memory', label: 'Miền ký ức', hint: 'Chuyến cuộn phim thanh xuân', icon: <Compass className="w-4 h-4" />, keywords: 'ky uc memory' },
       { id: 'chronicles', label: 'Khu vinh danh', hint: 'Quả cầu 3D & cột mốc', icon: <Award className="w-4 h-4" />, keywords: 'vinh danh' },
@@ -1053,6 +1065,22 @@ export const App: React.FC = () => {
               chatMessages={chatMessages}
               isSynced={isSynced}
               onOpenFocusMode={() => setIsFocusModeOpen(true)}
+            />
+          )}
+
+          {currentView === 'threads' && (
+            <ThreadsView
+              currentUser={currentUser}
+              threads={threads}
+              onCreateThread={createThread}
+              onReplyThread={replyThread}
+              onRepost={repostThread}
+              onReact={reactThread as unknown as (a: string, b?: any) => any}
+              onReport={reportThread}
+              onDelete={deleteThread}
+              onOpenLoginModal={() => handleOpenAuth('login')}
+              onOpenProfile={handleOpenUserProfile}
+              isSynced={isSynced}
             />
           )}
 
