@@ -86,14 +86,21 @@ export const TrophyShelf: FC<TrophyShelfProps> = ({ inventory, items, equippedId
             const rarity = rarityOf(item);
             const equipped = equippedId === item.id;
             const hero = rarity === 'legendary' || rarity === 'epic';
+            const rpgTint =
+              rarity === 'legendary'
+                ? '#f59e0b'
+                : rarity === 'epic'
+                ? '#a855f7'
+                : rarity === 'rare'
+                ? '#38bdf8'
+                : '#94a3b8';
             return (
               <div
                 key={item.id}
                 className={`tsh-tile tsh-tile--${rarity} ${hero ? 'is-hero' : ''}`}
-                style={{ '--i': Math.min(index, 12) } as CSSProperties}
+                style={{ '--i': Math.min(index, 12), '--rpg': rpgTint } as CSSProperties}
                 tabIndex={0}
                 aria-label={`${item.name} — ${RARITY_META[rarity].label}${equipped ? ', đang đeo' : ''}`}
-                title={`${item.name} · ${RARITY_META[rarity].label}`}
               >
                 <span className="tsh-tile__frame" aria-hidden="true" />
                 <span className="tsh-tile__icon" aria-hidden="true">
@@ -102,6 +109,24 @@ export const TrophyShelf: FC<TrophyShelfProps> = ({ inventory, items, equippedId
                 <span className="tsh-tile__name">{item.name}</span>
                 <span className="tsh-tile__rarity">{RARITY_META[rarity].label}</span>
                 {equipped && <span className="tsh-tile__worn"><Check size={9} aria-hidden="true" /> Đeo</span>}
+
+                {/* ttp-06 RPG Inventory Tooltip Card (uses existing ShopItemSvg, no copied demo icons) */}
+                <div className="tsh-rpg-tip" role="tooltip">
+                  <div className="tsh-rpg-tip__head">
+                    <span className="tsh-rpg-tip__name">{item.name}</span>
+                    <span className="tsh-rpg-tip__rarity">
+                      {RARITY_META[rarity].label} · Vật phẩm danh hiệu
+                    </span>
+                  </div>
+                  <div className="tsh-rpg-tip__divider" />
+                  <div className="tsh-rpg-tip__stat">
+                    <span>Giá trị sưu tầm</span>
+                    <b>+{item.price} Coin</b>
+                  </div>
+                  {item.description && (
+                    <p className="tsh-rpg-tip__lore">"{item.description}"</p>
+                  )}
+                </div>
               </div>
             );
           })}

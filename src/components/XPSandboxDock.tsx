@@ -1,8 +1,8 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, ChevronUp, Zap } from 'lucide-react';
-import { TierBadge } from './Badges10Tier';
-import { getTierForLevel } from '../utils/tier';
+import { TierBadge, TierSvg } from './Badges10Tier';
+import { TIER_CONFIGS, getTierForLevel } from '../utils/tier';
 import { getXPForLevel } from '../store/forumStore';
 
 interface XPSandboxDockProps {
@@ -62,11 +62,11 @@ export const XPSandboxDock: React.FC<XPSandboxDockProps> = ({
               <TierBadge level={level} size={20} showTooltip={false} />
               <div>
                 <div className="text-xs font-bold text-white font-mono flex items-center gap-1.5">
-                  <span>{tier.name}</span>
+                  <span>{tier.roman}. {tier.name}</span>
                   <span className="text-amber-400">Lv.{level}</span>
                 </div>
-                <div className="text-[10px] text-white/50 font-mono truncate max-w-[150px]">
-                  {tier.name}
+                <div className="text-[10px] text-white/60 font-mono truncate max-w-[165px]">
+                  {tier.description}
                 </div>
               </div>
             </div>
@@ -74,6 +74,34 @@ export const XPSandboxDock: React.FC<XPSandboxDockProps> = ({
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/25 font-bold">
               {xp.toLocaleString()} Coin
             </span>
+          </div>
+
+          {/* 8 Cấp Độ Tre Việt Preview */}
+          <div className="space-y-1">
+            <span className="text-[9.5px] font-mono uppercase tracking-wider text-emerald-300/85 block">
+              🎋 8 Cấp Độ Tre Việt:
+            </span>
+            <div className="grid grid-cols-4 gap-1">
+              {TIER_CONFIGS.map((t) => {
+                const isCurrent = t.tierNumber === tier.tierNumber;
+                return (
+                  <div
+                    key={t.tierNumber}
+                    title={`Cấp ${t.tierNumber}: ${t.name} (${t.minPoints} điểm) — ${t.description}`}
+                    className={`flex flex-col items-center justify-center p-1 rounded-xl border ${
+                      isCurrent
+                        ? 'bg-white/10 border-amber-400/60'
+                        : 'bg-white/[0.03] border-white/10 opacity-75'
+                    }`}
+                  >
+                    <TierSvg tierNumber={t.tierNumber} size={22} />
+                    <span className="text-[8.5px] font-bold text-white/85 truncate max-w-full mt-0.5">
+                      {t.name}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Level Gauge Progress */}

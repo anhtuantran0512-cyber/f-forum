@@ -550,3 +550,645 @@ html.light .gb-inspect__panel { background:#fbf8f1; box-shadow:0 35px 80px rgba(
 html.light .signature-profile .gb-card__name { color:#f3ede2; }
 html.light .signature-profile .gb-card__price { color:#dfc086; }
 html.light .signature-profile .gb-card { color:#f3ede2; }
+
+/* ttp-06: RPG Inventory Tooltip Card on TrophyShelf tiles */
+.tsh-tile {
+  overflow: visible;
+}
+.tsh-rpg-tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  width: 210px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--rpg, #38bdf8) 16%, #0c1218) 0%, #090d12 72%);
+  border: 1px solid color-mix(in srgb, var(--rpg, #38bdf8) 45%, rgba(255, 255, 255, 0.14));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 24px -6px color-mix(in srgb, var(--rpg, #38bdf8) 38%, transparent),
+    0 16px 36px -8px rgba(0, 0, 0, 0.82);
+  color: #e4e4e7;
+  text-align: left;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-50%) translateY(6px) scale(0.96);
+  transition: opacity 0.16s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 40;
+}
+.tsh-tile:hover .tsh-rpg-tip,
+.tsh-tile:focus-visible .tsh-rpg-tip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+.tsh-rpg-tip__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tsh-rpg-tip__name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--rpg, #38bdf8);
+  line-height: 1.25;
+}
+.tsh-rpg-tip__rarity {
+  font-size: 10px;
+  color: #a1a1aa;
+}
+.tsh-rpg-tip__divider {
+  height: 1px;
+  margin: 7px 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--rpg, #38bdf8) 45%, transparent), rgba(255, 255, 255, 0.06));
+}
+.tsh-rpg-tip__stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: #cbd5e1;
+}
+.tsh-rpg-tip__stat b {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #fbbf24;
+}
+.tsh-rpg-tip__lore {
+  margin: 6px 0 0;
+  padding-top: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 10px;
+  font-style: italic;
+  line-height: 1.35;
+  color: #a1a1aa;
+}
+html.light .tsh-rpg-tip {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--rpg, #38bdf8) 14%, #ffffff) 0%, #f8fafc 75%);
+  color: #0f172a;
+  box-shadow: 0 16px 32px -12px rgba(15, 23, 42, 0.25);
+}
+html.light .tsh-rpg-tip__rarity,
+html.light .tsh-rpg-tip__lore {
+  color: #475569;
+}
+html.light .tsh-rpg-tip__stat {
+  color: #1e293b;
+}
+
+/* ============================================================================
+   PHẦN 3 — BOUTIQUE SHOP PREMIUM REDESIGN (HERO CAROUSEL, GACHA, 6H FLASH SALE)
+   ============================================================================ */
+
+/* 1. Top Mythic Hero Banner Carousel */
+.gb-hero-carousel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  background:
+    radial-gradient(120% 100% at 88% 15%, rgba(236, 72, 153, 0.22) 0%, rgba(139, 92, 246, 0.18) 42%, rgba(10, 14, 26, 0.96) 100%),
+    linear-gradient(135deg, #0D1224 0%, #151934 100%);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 18px 46px -14px rgba(0, 0, 0, 0.8),
+    0 0 36px -8px rgba(236, 72, 153, 0.35);
+}
+.gb-hero-carousel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(135deg, #F59E0B 0%, #EC4899 50%, #8B5CF6 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+}
+.gb-hero-carousel__stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.5px 1.5px at 14% 24%, rgba(255, 255, 255, 0.85) 50%, transparent 100%),
+    radial-gradient(2px 2px at 42% 72%, rgba(251, 191, 36, 0.85) 50%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 68% 18%, rgba(236, 72, 153, 0.85) 50%, transparent 100%),
+    radial-gradient(2px 2px at 84% 66%, rgba(168, 85, 247, 0.9) 50%, transparent 100%);
+  opacity: 0.7;
+  animation: gbTwinkle 4s ease-in-out infinite alternate;
+}
+@keyframes gbTwinkle {
+  0% { opacity: 0.45; transform: scale(1); }
+  100% { opacity: 0.9; transform: scale(1.02); }
+}
+
+.gb-hero-carousel__grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  align-items: center;
+}
+@media (max-width: 680px) {
+  .gb-hero-carousel__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gb-mythic-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, #F59E0B 0%, #EC4899 52%, #8B5CF6 100%);
+  box-shadow: 0 0 18px rgba(236, 72, 153, 0.45);
+}
+
+.gb-hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #5B8DEF 0%, #7C5CFC 55%, #EC4899 100%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 8px 24px -6px rgba(124, 92, 252, 0.65);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+.gb-hero-cta:hover {
+  transform: translateY(-2px) scale(1.02);
+  filter: brightness(1.08);
+  box-shadow: 0 12px 28px -4px rgba(236, 72, 153, 0.65);
+}
+
+/* 2. Rarity & Flash Sale Filter Pills Bar */
+.gb-rarity-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.gb-rarity-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.gb-rarity-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: rgba(241, 245, 249, 0.72);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+.gb-rarity-pill:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.09);
+}
+.gb-rarity-pill.is-active {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(91, 141, 239, 0.32), rgba(124, 92, 252, 0.34));
+  border-color: rgba(124, 92, 252, 0.65);
+  box-shadow: 0 0 16px rgba(124, 92, 252, 0.35);
+}
+.gb-rarity-pill--sale.is-active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.32), rgba(239, 68, 68, 0.35));
+  border-color: rgba(245, 158, 11, 0.7);
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.4);
+}
+
+/* 3. Dynamic Discount 6h Badges & SIÊU SALE Glow */
+.gb-sale-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+.gb-sale-tag--super {
+  background: linear-gradient(135deg, #FBBF24 0%, #F43F5E 50%, #A855F7 100%);
+  box-shadow: 0 0 18px rgba(244, 63, 94, 0.65);
+  animation: gbSuperSalePulse 1.6s ease-in-out infinite alternate;
+}
+@keyframes gbSuperSalePulse {
+  0% { transform: scale(1); filter: brightness(1); }
+  100% { transform: scale(1.05); filter: brightness(1.18); }
+}
+
+/* 4. Gacha Summon Sanctuary Deck */
+.gb-gacha-deck {
+  border-radius: 18px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  background:
+    radial-gradient(90% 90% at 15% 10%, rgba(124, 92, 252, 0.18), transparent 65%),
+    linear-gradient(160deg, rgba(16, 22, 42, 0.94), rgba(10, 14, 26, 0.96));
+  border: 1px solid rgba(168, 85, 247, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 16px 38px -14px rgba(0, 0, 0, 0.75);
+}
+.gb-gacha-pools {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+@media (max-width: 720px) {
+  .gb-gacha-pools {
+    grid-template-columns: 1fr;
+  }
+}
+.gb-gacha-pool-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.gb-gacha-pool-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(168, 85, 247, 0.5);
+  box-shadow: 0 14px 30px -10px rgba(124, 92, 252, 0.35);
+}
+.gb-gacha-pool-card--mythic {
+  border-color: rgba(245, 158, 11, 0.45);
+  background:
+    radial-gradient(100% 90% at 85% 15%, rgba(236, 72, 153, 0.16), transparent 60%),
+    rgba(255, 255, 255, 0.04);
+}
+.gb-pity-bar {
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.gb-pity-bar__fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes gbMythicScreenShake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(-5px, 3px, 0); }
+  40% { transform: translate3d(5px, -3px, 0); }
+  60% { transform: translate3d(-4px, -2px, 0); }
+  80% { transform: translate3d(4px, 2px, 0); }
+}
+.gb-unbox--mythic-shake {
+  animation: gbMythicScreenShake 0.48s ease-in-out 2;
+}
+
+/* ==========================================================================
+   🎮 DISCORD-STYLE BOUTIQUE VISUAL SYSTEM (4-Column Grid, Rarity Dot, Live Frame/Aura)
+   ========================================================================== */
+
+/* 1. Icon Grid — Giảm 20% (51x51px), 4 cột, padding gọn 14px */
+.shop-item-icon {
+  width: 51px;
+  height: 51px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  columns: unset;
+}
+@media (max-width: 860px) {
+  .shop-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 620px) {
+  .shop-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.shop-grid .gb-cell {
+  margin-bottom: 0;
+  display: flex;
+}
+
+.shop-card {
+  padding: 14px;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.shop-card .gb-card__tags {
+  max-width: calc(100% - 44px);
+}
+
+.shop-card .gb-card__stage {
+  height: 76px !important;
+  margin: 22px 0 8px;
+}
+
+.shop-card .gb-card__tip {
+  display: none;
+}
+
+/* 2. Rarity Badge — Chuẩn hóa [●EPIC], bỏ emoji rác */
+.rarity-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.rarity-dot.common {
+  background: #9CA3AF;
+  color: #9CA3AF;
+}
+.rarity-dot.rare {
+  background: #3B82F6;
+  color: #3B82F6;
+}
+.rarity-dot.epic {
+  background: #A855F7;
+  color: #A855F7;
+}
+.rarity-dot.mythic {
+  background: #F59E0B;
+  color: #F59E0B;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.gb-rarity-badge-clean {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Category icon nhỏ ở góc phải card + hover hiện tooltip tên loại */
+.gb-card__cat-corner {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 4;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: #94a3b8;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+.gb-card__cat-corner:hover {
+  color: #f8fafc;
+  background: rgba(30, 41, 59, 0.92);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+.gb-card__cat-tooltip {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #f8fafc;
+  background: rgba(9, 13, 22, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.65);
+  opacity: 0;
+  transform: translateY(-3px);
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+.gb-card__cat-corner:hover .gb-card__cat-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 3. Mô tả 1 dòng duy nhất ≤ 50 ký tự */
+.gb-card__desc-one-line {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  margin-top: 2px;
+}
+
+/* 4. CSS Thực thi Border + Aura theo Rarity (Discord Nitro Style) */
+/* COMMON - viền đơn giản, không hiệu ứng */
+.frame-common {
+  border: 2px solid #9CA3AF;
+  border-radius: 50%;
+}
+
+/* RARE - viền gradient nhẹ, glow mờ */
+.frame-rare {
+  border: 3px solid transparent;
+  background: linear-gradient(#1a1a2e, #1a1a2e) padding-box,
+              linear-gradient(135deg, #3B82F6, #06B6D4) border-box;
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+}
+
+/* EPIC - viền động xoay, aura pulse */
+.frame-epic {
+  position: relative;
+  border-radius: 50%;
+  isolation: isolate;
+}
+.frame-epic::before {
+  content: '';
+  position: absolute; inset: -4px;
+  background: conic-gradient(from 0deg, #A855F7, #EC4899, #A855F7);
+  border-radius: 50%;
+  animation: rotate-border 3s linear infinite;
+  z-index: -1;
+}
+.frame-epic::after {
+  content: '';
+  position: absolute; inset: -10px;
+  border-radius: 50%;
+  box-shadow: 0 0 20px 4px rgba(168, 85, 247, 0.35);
+  animation: pulse-aura 2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes rotate-border { to { transform: rotate(360deg); } }
+@keyframes pulse-aura {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+
+/* MYTHIC - holographic đổi màu + particle bay quanh */
+.frame-mythic {
+  position: relative;
+  border-radius: 50%;
+  isolation: isolate;
+}
+.frame-mythic::before {
+  content: '';
+  position: absolute; inset: -5px;
+  background: conic-gradient(from 0deg, #F59E0B, #EC4899, #8B5CF6, #06B6D4, #F59E0B);
+  border-radius: 50%;
+  animation: rotate-border 4s linear infinite, hue-cycle 6s linear infinite;
+  z-index: -1;
+}
+.frame-mythic::after {
+  content: '';
+  position: absolute; inset: -16px;
+  border-radius: 50%;
+  box-shadow: 0 0 30px 8px rgba(236, 72, 153, 0.4);
+  animation: pulse-aura 2.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes hue-cycle { to { filter: hue-rotate(360deg); } }
+
+/* Particle bay quanh Mythic - thêm 4-6 span nhỏ */
+.mythic-particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 3px;
+  margin-top: -1.5px;
+  margin-left: -1.5px;
+  background: #FFD700;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #FFD700, 0 0 12px #EC4899;
+  animation: orbit 4s linear infinite;
+  pointer-events: none;
+  z-index: 4;
+}
+@keyframes orbit {
+  from { transform: rotate(0deg) translateX(45px) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(45px) rotate(-360deg); }
+}
+
+/* 5. Discord Nitro Live Preview Dock in Shop */
+.gb-discord-preview {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 16px 20px;
+  background:
+    radial-gradient(90% 100% at 15% 0%, rgba(168, 85, 247, 0.16), transparent 60%),
+    linear-gradient(155deg, rgba(17, 24, 39, 0.95), rgba(9, 13, 22, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.85);
+}
+.gb-discord-preview--mythic {
+  border-color: rgba(245, 158, 11, 0.42);
+  background:
+    radial-gradient(85% 95% at 15% 15%, rgba(245, 158, 11, 0.18), transparent 58%),
+    radial-gradient(80% 90% at 85% 85%, rgba(236, 72, 153, 0.18), transparent 60%),
+    linear-gradient(155deg, rgba(20, 16, 36, 0.96), rgba(9, 12, 22, 0.98));
+}
+.gb-discord-preview--epic {
+  border-color: rgba(168, 85, 247, 0.4);
+}
+.gb-discord-preview--rare {
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+/* Dynamic Banner theo Theme/Rarity trên trang cá nhân & preview */
+.discord-dynamic-banner--mythic {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(245, 158, 11, 0.45), transparent 50%),
+    radial-gradient(circle at 80% 60%, rgba(236, 72, 153, 0.45), transparent 55%),
+    linear-gradient(125deg, #1e1b4b 0%, #3b0764 48%, #451a03 100%);
+  background-size: 200% 200%;
+  animation: gbBannerShift 8s ease-in-out infinite alternate;
+}
+.discord-dynamic-banner--epic {
+  background:
+    radial-gradient(circle at 25% 35%, rgba(168, 85, 247, 0.42), transparent 55%),
+    linear-gradient(125deg, #0f172a 0%, #2e1065 55%, #4a044e 100%);
+}
+.discord-dynamic-banner--rare {
+  background:
+    radial-gradient(circle at 30% 40%, rgba(59, 130, 246, 0.38), transparent 55%),
+    linear-gradient(125deg, #090d16 0%, #0c4a6e 60%, #1e1b4b 100%);
+}
+.discord-dynamic-banner--common {
+  background: linear-gradient(125deg, #111827 0%, #1e293b 100%);
+}
+@keyframes gbBannerShift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+/* Light mode adaptations for Discord-style Boutique */
+html.light .shop-item-icon {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.09);
+}
+html.light .gb-card__cat-corner {
+  color: #475569;
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(15, 23, 42, 0.12);
+}
+html.light .gb-card__cat-corner:hover {
+  color: #0f172a;
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.25);
+}
+html.light .gb-card__desc-one-line {
+  color: #64748b;
+}
+
+
+
+

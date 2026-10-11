@@ -48,6 +48,7 @@ import {
   isCrossSiteRequest,
   isSessionRevoked,
   readBearerToken,
+  readRequestToken,
   readSessionCookie,
   sanitizeMediaUrl,
   sanitizePlainText,
@@ -249,6 +250,10 @@ export interface ForumDataStore {
   threads?: ThreadRecord[];
   /** Táo cáo thread cho auto-hide: ≥5 báo cáo/1h → Ẩn khoi feed public. */
   threadReports?: ThreadReportRecord[];
+  /** Phase 4.4 — Polymorphic Comments (commentableType: 'question' | 'answer'). */
+  comments?: any[];
+  /** Phase 4.6 — Moderation Logs (snapshot & lý do xóa câu hỏi / lời giải). */
+  moderationLogs?: any[];
 }
 
 
@@ -316,7 +321,7 @@ let store: ForumDataStore = {
     'broamstuck@gmail.com': {
       id: 'user-admin',
       name: 'Trần Văn Anh Tuấn',
-      email: 'BroAmStuck@gmail.com',
+      email: 'broamstuck@gmail.com',
       avatar: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c.png',
       role: 'SUPER_ADMIN',
       level: 150,
@@ -341,6 +346,8 @@ let store: ForumDataStore = {
   feedbacks: [],
   threads: [],
   threadReports: [],
+  comments: [],
+  moderationLogs: [],
   analytics: createEmptyAnalytics(),
   adminWarnings: [],
   dailyRewards: {},
@@ -671,6 +678,8 @@ function loadStoreFromDisk() {
              bộ thread mất trắng sau mỗi lần restart. */
           threads: sanitizeThreads(parsed.threads),
           threadReports: sanitizeThreadReports(parsed.threadReports),
+          comments: Array.isArray(parsed.comments) ? parsed.comments : [],
+          moderationLogs: Array.isArray(parsed.moderationLogs) ? parsed.moderationLogs : [],
         };
       }
     }
@@ -771,9 +780,14 @@ type ShutdownHooks = {
 function installShutdownFlush() {
   const globalRef = globalThis as unknown as Record<symbol, ShutdownHooks | undefined>;
 
-  /* Gỡ bộ handler của lần nạp module trước, nếu có. */
+  /* Gỡ bộ handler của lần nạp module trước, nếu có, và ghi nốt dữ liệu đang chờ. */
   const previous = globalRef[SHUTDOWN_HOOKS_KEY];
   if (previous) {
+    try {
+      previous.exit();
+    } catch {
+      /* ignore */
+    }
     for (const { signal, handler } of previous.signals) {
       process.removeListener(signal, handler);
     }
@@ -2266,7 +2280,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
             visitorId, sessionId, eventId, email: analyticsEmail, activeSeconds,
           });
         } else if (body.type === 'page_view') {
-          const allowedViews = ['landing', 'home', 'clubs', 'qa', 'chat', 'memory', 'chronicles', 'coming-soon'];
+          const allowedViews = ['landing', 'home', 'clubs', 'qa', 'chat', 'memory', 'chronicles', 'coming-soon', 'threads', 'shop'];
           if (!allowedViews.includes(String(body.view || ''))) {
             sendJson(res, 400, { success: false, message: 'Phân khu thống kê không hợp lệ.' });
             return;
@@ -2321,6 +2335,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           clubPosts: store.clubPosts,
           questions: store.questions,
           solutions: store.solutions,
+          comments: (store.comments || []).filter((c: any) => c && c.status !== 'hidden'),
           chatMessages: store.chatMessages,
           feedbacks: store.feedbacks,
           /* Thread System v1.0 — chỉ trả thread public (active) cho client;
@@ -2633,6 +2648,21 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
+        /* Phase 4.5 — Giới hạn tối đa 3 lời giải active / câu hỏi */
+        const activeAnswerCount = store.solutions.filter(
+          (s: any) => s.questionId === questionId && s.status !== 'deleted'
+        ).length;
+        if (activeAnswerCount >= 3) {
+          sendJson(res, 409, {
+            ok: false,
+            success: false,
+            code: 'ANSWER_LIMIT_REACHED',
+            message: 'Câu hỏi này đã đủ 3 lời giải rồi, hãy thử câu khác nhé 😊',
+            error: 'Câu hỏi này đã đủ 3 lời giải rồi, hãy thử câu khác nhé 😊',
+          });
+          return;
+        }
+
         const newSolution = {
           id: requestedSolutionId,
           questionId,
@@ -2648,6 +2678,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           isBest: false,
           upvotes: 1,
           bestSelectionBonusGranted: false,
+          status: 'active',
+          reactions: {},
           imageUrl: typeof body.imageUrl === 'string' ? body.imageUrl.slice(0, 2000) : undefined,
         };
 
@@ -2667,6 +2699,124 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         persistStoreToDisk();
         broadcastServerEvent('NEW_SOLUTION', newSolution);
         sendJson(res, 200, { success: true, solution: newSolution, user: author, reward });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /* Phase 4.4 — Polymorphic Comments (GET & POST /api/comments) */
+    if (method === 'GET' && url.split('?')[0] === '/api/comments') {
+      const parsedUrl = new URL(url, 'http://localhost');
+      const commentableType = parsedUrl.searchParams.get('commentableType');
+      const commentableId = parsedUrl.searchParams.get('commentableId');
+      const allComments = (store.comments || []).filter((c: any) => c && c.status !== 'hidden');
+      const filtered = allComments.filter((c: any) => {
+        if (commentableType && c.commentableType !== commentableType) return false;
+        if (commentableId && c.commentableId !== commentableId) return false;
+        return true;
+      });
+      sendJson(res, 200, { ok: true, success: true, comments: filtered, count: filtered.length });
+      return;
+    }
+
+    if (method === 'POST' && url.split('?')[0] === '/api/comments') {
+      try {
+        const body = await parseJsonBody(req);
+        const commentableType = String(body.commentableType || '').trim();
+        const commentableId = String(body.commentableId || '').trim();
+        const content = String(body.content || '').trim();
+
+        if (!['question', 'answer'].includes(commentableType) || !commentableId || !content) {
+          sendJson(res, 400, { ok: false, success: false, message: 'Thông tin bình luận không hợp lệ.' });
+          return;
+        }
+        if (content.length > 300) {
+          sendJson(res, 400, { ok: false, success: false, message: 'Bình luận tối đa 300 ký tự.' });
+          return;
+        }
+
+        const claims = authorizeRequest(req, null, body.token);
+        const authorEmail = claims?.email || String(body.authorEmail || '').trim().toLowerCase();
+        const author = authorEmail ? store.users[authorEmail] : undefined;
+
+        if (!claims && !author) {
+          sendJson(res, 401, { ok: false, success: false, message: 'Vui lòng đăng nhập để bình luận.' });
+          return;
+        }
+
+        const commentGate = checkCanPost(claims?.email || authorEmail, 'content');
+        if (!commentGate.ok) {
+          sendJson(res, commentGate.status, { ok: false, success: false, message: commentGate.message });
+          return;
+        }
+
+        const newComment = {
+          id: typeof body.id === 'string' && body.id.trim() ? body.id.trim().slice(0, 80) : randomId('cmt'),
+          authorId: String(author?.id ?? body.authorId ?? 'student').slice(0, MAX_NAME_LENGTH),
+          authorName: String(author?.name ?? body.authorName ?? 'Học sinh').slice(0, MAX_NAME_LENGTH),
+          authorEmail: author?.email || authorEmail,
+          authorAvatar: author?.avatar ? String(author.avatar).slice(0, 4000) : safeAvatarUrl(body.authorAvatar),
+          authorLevel: author?.level ?? 1,
+          content: content.slice(0, 300),
+          commentableType: commentableType as 'question' | 'answer',
+          commentableId: commentableId.slice(0, 120),
+          status: 'active' as const,
+          createdAt: 'Vừa xong',
+          createdAtMs: Date.now(),
+        };
+
+        if (!Array.isArray(store.comments)) store.comments = [];
+        store.comments.push(newComment);
+        persistStoreToDisk();
+        broadcastServerEvent('NEW_COMMENT', newComment);
+        sendJson(res, 200, { ok: true, success: true, comment: newComment });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /* Phase 4.7 — Quick Reactions cho Question & Solution */
+    if (method === 'POST' && (url === '/api/questions/react' || url === '/api/solutions/react')) {
+      try {
+        const body = await parseJsonBody(req);
+        const targetId = String(body.targetId || body.questionId || body.solutionId || '').trim();
+        const reactionType = String(body.reactionType || body.type || '').trim();
+        if (!targetId || !['helpful', 'mindblown', 'thanks'].includes(reactionType)) {
+          sendJson(res, 400, { ok: false, success: false, message: 'Loại cảm xúc không hợp lệ.' });
+          return;
+        }
+        const claims = authorizeRequest(req, null, body.token);
+        const userKey = claims?.email || String(body.authorEmail || body.userId || '').trim().toLowerCase();
+        if (!userKey) {
+          sendJson(res, 401, { ok: false, success: false, message: 'Vui lòng đăng nhập để thả cảm xúc.' });
+          return;
+        }
+
+        const isQuestionTarget = url === '/api/questions/react';
+        const collection: any[] = isQuestionTarget ? store.questions : store.solutions;
+        const target = collection.find((item: any) => item.id === targetId);
+        if (!target) {
+          sendJson(res, 404, { ok: false, success: false, message: 'Không tìm thấy nội dung.' });
+          return;
+        }
+
+        const reactions: Record<string, string[]> =
+          target.reactions && typeof target.reactions === 'object' ? { ...target.reactions } : {};
+        const currentList = Array.isArray(reactions[reactionType]) ? [...reactions[reactionType]] : [];
+        if (currentList.includes(userKey)) {
+          reactions[reactionType] = currentList.filter((u) => u !== userKey);
+        } else {
+          reactions[reactionType] = [...currentList, userKey];
+        }
+        target.reactions = reactions;
+        persistStoreToDisk();
+        broadcastServerEvent(isQuestionTarget ? 'REACT_QUESTION' : 'REACT_SOLUTION', {
+          targetId,
+          reactions,
+        });
+        sendJson(res, 200, { ok: true, success: true, targetId, reactions });
       } catch (err: any) {
         handleApiError(res, err);
       }
@@ -2880,6 +3030,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         /* Không bao giờ lưu mật khẩu thô — chỉ giữ bản băm scrypt. */
         store.passwords[email] = hashPassword(password);
         persistStoreToDisk();
+        flushStoreToDisk();
 
         broadcastServerEvent('SYNC_USER', newUser);
 
@@ -3038,7 +3189,11 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         sendJson(res, 401, { success: false, message: 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn.' });
         return;
       }
-      const account = store.users[claims.email];
+      let account = store.users[claims.email];
+      if (!account) {
+        loadStoreFromDisk();
+        account = store.users[claims.email];
+      }
       if (!account) {
         if (probe) {
           sendJson(res, 200, { success: false, authenticated: false });
@@ -3047,14 +3202,52 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         sendJson(res, 401, { success: false, message: 'Tài khoản này không còn tồn tại.' });
         return;
       }
+      const activeToken = readRequestToken(req, null) || issueTokenFor(account);
       /* Role đọc từ bản ghi thật, không từ token — thu hồi quyền là có hiệu lực ngay. */
       sendJson(res, 200, {
         success: true,
         user: account,
         role: account.role,
         expiresAt: claims.exp,
+        token: activeToken,
         moderation: loginModerationStatus(claims.email),
       });
+      return;
+    }
+
+    /**
+     * Phần 2 & Phần 5 — Silent Token Refresh & Heartbeat Extension.
+     * Cho phép làm mới phiên đăng nhập trong nền (5 phút trước khi hết hạn hoặc khi
+     * người dùng đang gõ bài / bấm "Gia hạn ngay") mà không bị đăng xuất đột ngột.
+     */
+    if (
+      method === 'POST' &&
+      (url.split('?')[0] === '/api/auth/refresh' || url.split('?')[0] === '/api/auth/session/refresh')
+    ) {
+      try {
+        const body = await parseJsonBody(req).catch(() => ({}));
+        const claims = authorizeRequest(req, null, body?.token);
+        let account = claims ? store.users[claims.email] : undefined;
+        if (claims && !account) {
+          loadStoreFromDisk();
+          account = store.users[claims.email];
+        }
+        if (!claims || !account) {
+          sendJson(res, 401, {
+            success: false,
+            message: 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn.',
+          });
+          return;
+        }
+        const refreshed = issueSession(req, res, account);
+        sendJson(res, 200, {
+          success: true,
+          ...refreshed,
+          moderation: loginModerationStatus(claims.email),
+        });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
       return;
     }
 
@@ -5397,10 +5590,46 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           sendJson(res, 400, { success: false, message: 'Thiếu questionId' });
           return;
         }
+        if (body.requireReason && !body.reasonCode) {
+          sendJson(res, 400, { ok: false, success: false, code: 'REASON_REQUIRED', message: 'Bắt buộc chọn lý do xóa' });
+          return;
+        }
+        const targetQuestion = store.questions.find(q => q.id === questionId);
+        const reasonCode = ['inappropriate', 'spam', 'wrong_knowledge', 'rule_violation', 'other'].includes(String(body.reasonCode || ''))
+          ? String(body.reasonCode)
+          : 'rule_violation';
+        const reasonNote = typeof body.reasonNote === 'string' && body.reasonNote.trim()
+          ? body.reasonNote.trim().slice(0, 200)
+          : undefined;
+        const claims = authorizeRequest(req, null, body.token);
+        if (targetQuestion) {
+          if (!Array.isArray(store.moderationLogs)) store.moderationLogs = [];
+          const logEntry = {
+            id: randomId('modlog'),
+            moderatorId: claims?.email || String(body.adminEmail || 'admin').toLowerCase(),
+            moderatorEmail: claims?.email || String(body.adminEmail || 'admin').toLowerCase(),
+            targetType: 'question' as const,
+            targetId: String(questionId),
+            targetSnapshot: JSON.stringify(targetQuestion),
+            reasonCode,
+            reasonNote,
+            createdAt: new Date().toISOString(),
+            createdAtMs: Date.now(),
+          };
+          store.moderationLogs.unshift(logEntry);
+          broadcastServerEvent('MODERATION_DELETE', {
+            authorId: targetQuestion.authorId,
+            authorEmail: (targetQuestion as any).authorEmail,
+            targetType: 'question',
+            targetId: String(questionId),
+            reasonCode,
+            reasonNote,
+          });
+        }
         store.questions = store.questions.filter(q => q.id !== questionId);
         store.solutions = store.solutions.filter(s => s.questionId !== questionId);
         persistStoreToDisk();
-        broadcastServerEvent('DELETE_QUESTION', { questionId });
+        broadcastServerEvent('DELETE_QUESTION', { questionId, reasonCode, reasonNote });
         sendJson(res, 200, { success: true, message: 'Đã xóa bài viết thành công' });
       } catch (err: any) {
         sendJson(res, 500, { success: false, message: err.message });
@@ -5461,16 +5690,61 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           sendJson(res, 400, { success: false, message: 'Thiếu solutionId' });
           return;
         }
+        if (body.requireReason && !body.reasonCode) {
+          sendJson(res, 400, { ok: false, success: false, code: 'REASON_REQUIRED', message: 'Bắt buộc chọn lý do xóa' });
+          return;
+        }
+        const targetSolution = store.solutions.find(s => s.id === solutionId);
+        const reasonCode = ['inappropriate', 'spam', 'wrong_knowledge', 'rule_violation', 'other'].includes(String(body.reasonCode || ''))
+          ? String(body.reasonCode)
+          : 'rule_violation';
+        const reasonNote = typeof body.reasonNote === 'string' && body.reasonNote.trim()
+          ? body.reasonNote.trim().slice(0, 200)
+          : undefined;
+        const claims = authorizeRequest(req, null, body.token);
+        if (targetSolution) {
+          if (!Array.isArray(store.moderationLogs)) store.moderationLogs = [];
+          const logEntry = {
+            id: randomId('modlog'),
+            moderatorId: claims?.email || String(body.adminEmail || 'admin').toLowerCase(),
+            moderatorEmail: claims?.email || String(body.adminEmail || 'admin').toLowerCase(),
+            targetType: 'answer' as const,
+            targetId: String(solutionId),
+            targetSnapshot: JSON.stringify(targetSolution),
+            reasonCode,
+            reasonNote,
+            createdAt: new Date().toISOString(),
+            createdAtMs: Date.now(),
+          };
+          store.moderationLogs.unshift(logEntry);
+          broadcastServerEvent('MODERATION_DELETE', {
+            authorId: targetSolution.authorId,
+            authorEmail: targetSolution.authorEmail,
+            targetType: 'answer',
+            targetId: String(solutionId),
+            reasonCode,
+            reasonNote,
+          });
+        }
         store.solutions = store.solutions.filter(s => s.id !== solutionId);
         store.questions = store.questions.map(q =>
           q.bestSolutionId === solutionId ? { ...q, isSolved: false, bestSolutionId: undefined } : q
         );
         persistStoreToDisk();
-        broadcastServerEvent('DELETE_SOLUTION', { solutionId });
+        broadcastServerEvent('DELETE_SOLUTION', { solutionId, reasonCode, reasonNote });
         sendJson(res, 200, { success: true, message: 'Đã xóa phản hồi thành công' });
       } catch (err: any) {
         sendJson(res, 500, { success: false, message: err.message });
       }
+      return;
+    }
+
+    if (method === 'GET' && url.split('?')[0] === '/api/moderation/logs') {
+      if (!requireContentEditor(req, {})) {
+        sendJson(res, 403, { ok: false, success: false, message: 'Không có quyền xem nhật ký kiểm duyệt.' });
+        return;
+      }
+      sendJson(res, 200, { ok: true, success: true, logs: store.moderationLogs || [] });
       return;
     }
 

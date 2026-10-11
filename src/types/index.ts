@@ -102,6 +102,46 @@ export type SubjectTag =
   | 'tamsu'
   | 'tamly';
 
+export type QAReactionType = 'helpful' | 'mindblown' | 'thanks';
+export type QAReactions = Partial<Record<QAReactionType, string[]>>;
+
+export type QACommentableType = 'question' | 'answer';
+
+export interface QAComment {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorEmail?: string;
+  authorAvatar: string;
+  authorLevel?: number;
+  content: string;
+  commentableType: QACommentableType;
+  commentableId: string;
+  status: 'active' | 'hidden';
+  createdAt: string;
+  createdAtMs: number;
+}
+
+export type ModerationReasonCode =
+  | 'inappropriate'
+  | 'spam'
+  | 'wrong_knowledge'
+  | 'rule_violation'
+  | 'other';
+
+export interface ModerationLogEntry {
+  id: string;
+  moderatorId: string;
+  moderatorEmail?: string;
+  targetType: 'question' | 'answer';
+  targetId: string;
+  targetSnapshot: string;
+  reasonCode: ModerationReasonCode;
+  reasonNote?: string;
+  createdAt: string;
+  createdAtMs: number;
+}
+
 export interface Question {
   id: string;
   title: string;
@@ -120,6 +160,8 @@ export interface Question {
   views: number;
   bountyCoin?: number;
   imageUrl?: string;
+  status?: 'active' | 'deleted';
+  reactions?: QAReactions;
 }
 
 export interface Solution {
@@ -138,6 +180,8 @@ export interface Solution {
   fiveStarCount?: number;
   rewardCoin?: number;
   imageUrl?: string;
+  status?: 'active' | 'deleted';
+  reactions?: QAReactions;
 }
 
 export type ChatChannelId = 'hallway' | 'quick-qa' | 'confessions' | 'club-hub';

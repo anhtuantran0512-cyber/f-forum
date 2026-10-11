@@ -633,6 +633,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navItems: { id: DockView; label: string; iconOnly?: boolean }[] = [
     { id: 'clubs', label: 'Club' },
     { id: 'qa', label: 'Hỏi Đáp' },
+    { id: 'threads', label: 'Thread' },
     { id: 'chat', label: 'Chat' },
     { id: 'memory', label: 'MIỀN KÝ ỨC', iconOnly: true },
     { id: 'chronicles', label: 'KHU VINH DANH', iconOnly: true },
