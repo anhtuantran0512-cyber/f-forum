@@ -53,23 +53,23 @@ export const DecoratedAvatar = ({ user, size, animate = true, eager = false, cla
 interface DecoratedNameProps {
   user: Pick<User, 'inventory' | 'equippedDecorations'> | null | undefined;
   name: string;
-  /** Rộng vùng bảng tên (px). Mặc định 180. */
+  /** Rộng vùng bảng tên (px). Mặc định 224 (tỉ lệ chuẩn 448:84 ở cao 42px). */
   width?: number;
   animate?: boolean;
   className?: string;
 }
 
-export const DecoratedName = ({ user, name, width = 180, animate = true, className }: DecoratedNameProps) => {
+export const DecoratedName = ({ user, name, width = 224, animate = true, className }: DecoratedNameProps) => {
   const { nameplate } = useUserDecorations(user);
   const asset = shopItemToAsset(nameplate);
   if (!asset) return <span className={className}>{name}</span>;
   /*
-   * CHUẨN DISCORD: container height CỐ ĐỊNH theo tỉ lệ 448:84 (không giãn theo
-   * tên), overflow hidden — tên dài bao nhiêu cũng chỉ ellipsis, KHÔNG TRÀN.
-   * Background = asset thuần (fill, z1); tên = <span> HTML riêng (z2, ellipsis).
+   * CHUẨN DISCORD: container inline-flex căn giữa theo cả 2 trục, tỉ lệ 448:84
+   * cố định — tên luôn nằm chính giữa bảng tên, không lệch góc, không đè viền.
    */
+  const height = Math.round((width * 84) / 448);
   return (
-    <span className={`npd-np${className ? ` ${className}` : ''}`} style={{ width }}>
+    <span className={`npd-np${className ? ` ${className}` : ''}`} style={{ width, height }}>
       <NameplateDisplay asset={asset} size={width} animate={animate} fill className="npd-np__bg" />
       <span className="npd-np__text">{name}</span>
     </span>

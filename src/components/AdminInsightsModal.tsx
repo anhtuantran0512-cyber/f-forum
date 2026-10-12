@@ -25,6 +25,7 @@ import {
   RefreshCw,
   Search,
   Shield,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
   Trophy,
@@ -177,6 +178,9 @@ interface AdminInsightsModalProps {
   currentUser: User;
   onClose: () => void;
   onOpenOperations?: () => void;
+  /** Mở hộp thư Tố cáo ngay từ trong Bảng thống kê quản trị (Super Admin). */
+  onOpenReports?: () => void;
+  pendingReportCount?: number;
   /** Đăng xuất phiên hỏng rồi mở lại form đăng nhập (khi máy chủ từ chối token). */
   onRelogin?: () => void;
 }
@@ -268,6 +272,8 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
   currentUser,
   onClose,
   onOpenOperations,
+  onOpenReports,
+  pendingReportCount = 0,
   onRelogin,
 }) => {
   /* Epic 3 — quyền đọc từ ma trận RBAC tập trung (utils/adminCapabilities); máy chủ vẫn kiểm độc lập. */
@@ -683,9 +689,24 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
             <span className="faa-live"><i />{analytics ? `${numberFmt.format(analytics.activeNow)} đang hoạt động` : 'Trực tiếp'}</span>
           </div>
           <div className="faa-topbar__actions">
+            {isSuperAdmin && onOpenReports && (
+              <button
+                type="button"
+                className="faa-button faa-button--quiet faa-reports"
+                onClick={onOpenReports}
+                aria-label={`Tố cáo${pendingReportCount > 0 ? ` — ${pendingReportCount} báo cáo chờ xử lý` : ''}`}
+              >
+                <ShieldAlert size={15} /> Tố cáo
+                {pendingReportCount > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold leading-none">
+                    {pendingReportCount > 99 ? '99+' : pendingReportCount}
+                  </span>
+                )}
+              </button>
+            )}
             {isSuperAdmin && onOpenOperations && (
               <button type="button" className="faa-button faa-button--quiet faa-operations" onClick={onOpenOperations}>
-                <Database size={15} /> Vận hành
+                <Database size={15} /> Điều khiển
               </button>
             )}
             <button type="button" className="faa-button faa-button--quiet" onClick={refreshAll} disabled={manualRefreshing}>
@@ -711,6 +732,19 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
             <button type="button" className={tab === 'roles' ? 'is-active' : ''} onClick={() => setTab('roles')}>
               <Wand2 size={15} /> Vai trò
               <span>{numberFmt.format(customRoles.length)}</span>
+            </button>
+          )}
+          {isSuperAdmin && onOpenReports && (
+            <button type="button" onClick={onOpenReports}>
+              <ShieldAlert size={15} /> Tố cáo
+              {pendingReportCount > 0 && (
+                <span>{pendingReportCount > 99 ? '99+' : pendingReportCount}</span>
+              )}
+            </button>
+          )}
+          {isSuperAdmin && onOpenOperations && (
+            <button type="button" onClick={onOpenOperations}>
+              <Database size={15} /> Điều khiển
             </button>
           )}
           <div className="faa-tabs__right">
