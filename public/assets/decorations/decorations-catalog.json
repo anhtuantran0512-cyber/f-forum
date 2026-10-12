@@ -828,12 +828,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/earth/full.webp",
         "animated": null
       },
-      "description": "Hào quang toả sau ảnh đại diện (động), chủ đề đất.",
+      "description": "Hào quang toả sau ảnh đại diện (tĩnh), chủ đề đất.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "hào quang"
+        "hào quang",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -1717,13 +1718,14 @@
         "fullWebp": "/assets/decorations/avatar-frames/icicle-snowing/full.webp",
         "animated": null
       },
-      "description": "Hào quang toả sau ảnh đại diện (động), chủ đề băng giá.",
+      "description": "Hào quang toả sau ảnh đại diện (tĩnh), chủ đề băng giá.",
       "price": 2000,
       "originalPriceNote": "119.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "băng giá",
-        "hào quang"
+        "hào quang",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -1860,12 +1862,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/powered-by-shimmer/full.webp",
         "animated": null
       },
-      "description": "Hào quang toả sau ảnh đại diện (động), chủ đề powered by shimmer.",
+      "description": "Hào quang toả sau ảnh đại diện (tĩnh), chủ đề powered by shimmer.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "hào quang"
+        "hào quang",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -2604,12 +2607,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/a-real-fungi/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề a real fungi.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề a real fungi.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -3136,13 +3140,14 @@
         "fullWebp": "/assets/decorations/avatar-frames/sakura-scholar/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề hoa.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề hoa.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "hoa",
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -3209,13 +3214,14 @@
         "fullWebp": "/assets/decorations/avatar-frames/sakura-warrior/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề hoa.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề hoa.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "hoa",
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -4441,12 +4447,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/bubble-tea/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề bubble tea.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề bubble tea.",
       "price": 2000,
       "originalPriceNote": "119.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -4752,12 +4759,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/bread-doggy/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề bread doggy.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề bread doggy.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -4823,12 +4831,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/burnt-toast/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề burnt toast.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề burnt toast.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -5351,12 +5360,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/chicken-nugget/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề chicken nugget.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề chicken nugget.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -5387,12 +5397,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/chillet/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề chillet.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề chillet.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -5843,12 +5854,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/cosy-deer/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề cosy deer.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề cosy deer.",
       "price": 2000,
       "originalPriceNote": "79.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -6124,13 +6136,14 @@
         "fullWebp": "/assets/decorations/avatar-frames/crossbones/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề halloween.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề halloween.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "halloween",
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -6266,12 +6279,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/cypher-neural-theft/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề cypher neural theft.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề cypher neural theft.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -6372,12 +6386,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/deaths-edge/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề deaths edge.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề deaths edge.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -6443,12 +6458,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/depresso/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề depresso.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề depresso.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -6550,12 +6566,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/dewdrop/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề dewdrop.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề dewdrop.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -6831,12 +6848,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/donut/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề donut.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề donut.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -6867,12 +6885,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/donut-bear/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề donut bear.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề donut bear.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -6903,12 +6922,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/donut-cow/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề donut cow.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề donut cow.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -6939,12 +6959,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/donut-cat/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề donut cat.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề donut cat.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -7117,12 +7138,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/red-lantern/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề red lantern.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề red lantern.",
       "price": 2000,
       "originalPriceNote": "119.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -7893,12 +7915,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/feeling-cute/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề feeling cute.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề feeling cute.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -7929,12 +7952,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/finger-gun/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề finger gun.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề finger gun.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -8493,12 +8517,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/frog-1/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề frog 1.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề frog 1.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -8774,12 +8799,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/gary-the-snail/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề gary the snail.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề gary the snail.",
       "price": 2000,
       "originalPriceNote": "79.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -8950,12 +8976,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/git-gud/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề git gud.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề git gud.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -9091,12 +9118,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/golden-hex/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề golden hex.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề golden hex.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -9267,12 +9295,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/grass-toucher/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề grass toucher.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề grass toucher.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -9409,12 +9438,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/guile/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề guile.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề guile.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -9690,12 +9720,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/happy-harvest/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề happy harvest.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề happy harvest.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -10076,12 +10107,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/hex-tiles/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề hex tiles.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề hex tiles.",
       "price": 2000,
       "originalPriceNote": "79.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -10112,13 +10144,14 @@
         "fullWebp": "/assets/decorations/avatar-frames/lotus-flower/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề hoa.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề hoa.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "hoa",
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -11378,12 +11411,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/jelly-bear/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề jelly bear.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề jelly bear.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -11589,12 +11623,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/juri/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề juri.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề juri.",
       "price": 2000,
       "originalPriceNote": "79.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -11800,13 +11835,14 @@
         "fullWebp": "/assets/decorations/avatar-frames/spooky-cat-ears/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề halloween.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề halloween.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "halloween",
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -11837,13 +11873,14 @@
         "fullWebp": "/assets/decorations/avatar-frames/spooky-cat-ears-midnight/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề halloween.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề halloween.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "halloween",
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -12440,12 +12477,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/lovestruck/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề lovestruck.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề lovestruck.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -12547,12 +12585,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/lunar-lanterns/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề lunar lanterns.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề lunar lanterns.",
       "price": 2000,
       "originalPriceNote": "79.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -12653,12 +12692,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/m3gan-2-0/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề m3gan 2 0.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề m3gan 2 0.",
       "price": 2000,
       "originalPriceNote": "79.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -12725,12 +12765,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/mad-moxxi/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề mad moxxi.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề mad moxxi.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -12833,12 +12874,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/magical-girl/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề magical girl.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề magical girl.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -12905,12 +12947,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/malefic-crown/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề malefic crown.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề malefic crown.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -13047,12 +13090,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/cat-1/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề cat 1.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề cat 1.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -13083,12 +13127,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/cat-2/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề cat 2.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề cat 2.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -13119,12 +13164,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/cat-3/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề cat 3.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề cat 3.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -13155,12 +13201,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/cat-4/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề cat 4.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề cat 4.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -13401,12 +13448,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/cat-onesie/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề cat onesie.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề cat onesie.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -13437,12 +13485,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/cat-onesie-black/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề cat onesie black.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề cat onesie black.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -13473,12 +13522,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/cat-onesie-pink/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề cat onesie pink.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề cat onesie pink.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -13544,12 +13594,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/midnight-sorceress/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề midnight sorceress.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề midnight sorceress.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -14105,12 +14156,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/mochi-bunny-pink/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề mochi bunny pink.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề mochi bunny pink.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -14141,12 +14193,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/mochi-bunny-blue/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề mochi bunny blue.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề mochi bunny blue.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -14884,13 +14937,14 @@
         "fullWebp": "/assets/decorations/avatar-frames/neon-spike-choker/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề năng lượng.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề năng lượng.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "năng lượng",
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -14921,13 +14975,14 @@
         "fullWebp": "/assets/decorations/avatar-frames/neon-spike-choker-black/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề năng lượng.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề năng lượng.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "năng lượng",
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -15028,12 +15083,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/next-turn-button/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề next turn button.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề next turn button.",
       "price": 2000,
       "originalPriceNote": "119.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -15170,13 +15226,14 @@
         "fullWebp": "/assets/decorations/avatar-frames/icicle-gleaming/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề băng giá.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề băng giá.",
       "price": 2000,
       "originalPriceNote": "79.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "băng giá",
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -15207,12 +15264,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/nibbles/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề nibbles.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề nibbles.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -15489,12 +15547,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/owlbear-cub/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề owlbear cub.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề owlbear cub.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -15771,13 +15830,14 @@
         "fullWebp": "/assets/decorations/avatar-frames/patrick-star/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề vũ trụ.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề vũ trụ.",
       "price": 2000,
       "originalPriceNote": "79.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "vũ trụ",
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -16091,12 +16151,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/press-f-black/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề press f black.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề press f black.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -16617,13 +16678,14 @@
         "fullWebp": "/assets/decorations/avatar-frames/rose-bearer-pink/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề hoa.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề hoa.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "hoa",
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -16654,13 +16716,14 @@
         "fullWebp": "/assets/decorations/avatar-frames/rose-bearer-blue/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề hoa.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề hoa.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "hoa",
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -16904,12 +16967,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/sandy-cheeks/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề sandy cheeks.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề sandy cheeks.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -17081,12 +17145,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/shadow/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề shadow.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề shadow.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -17611,12 +17676,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/shy/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề shy.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề shy.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -17682,12 +17748,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/signal-from-tau-ceti/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề signal from tau ceti.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề signal from tau ceti.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -17999,12 +18066,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/snakes-hug/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề snakes hug.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề snakes hug.",
       "price": 2000,
       "originalPriceNote": "79.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -18531,12 +18599,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/spongebob/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề spongebob.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề spongebob.",
       "price": 2000,
       "originalPriceNote": "79.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -18882,12 +18951,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/straw-hat/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề straw hat.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề straw hat.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -19023,12 +19093,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/string-lights-aurora/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề string lights cực quang.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề string lights cực quang.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -19305,12 +19376,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/sushi-roll/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề sushi roll.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề sushi roll.",
       "price": 2000,
       "originalPriceNote": "79.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -19899,13 +19971,14 @@
         "fullWebp": "/assets/decorations/avatar-frames/the-conjuring-last-rites/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề halloween.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề halloween.",
       "price": 2000,
       "originalPriceNote": "79.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "halloween",
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -20147,12 +20220,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/the-thing/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề the thing.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề the thing.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -20536,12 +20610,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/toast/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề toast.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề toast.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -20782,12 +20857,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/trash/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề trash.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề trash.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -21249,12 +21325,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/uwu-xp/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề uwu xp.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề uwu xp.",
       "price": 2000,
       "originalPriceNote": "119.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -21355,12 +21432,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/gold-laurel-wreath/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề gold laurel wreath.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề gold laurel wreath.",
       "price": 2000,
       "originalPriceNote": "38.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -21496,12 +21574,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/warframe-clem/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề warframe clem.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề warframe clem.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -21567,12 +21646,13 @@
         "fullWebp": "/assets/decorations/avatar-frames/wendys-x-wednesday/full.webp",
         "animated": null
       },
-      "description": "Khung trang trí ôm quanh ảnh đại diện (động), chủ đề wendys x wednesday.",
+      "description": "Khung trang trí ôm quanh ảnh đại diện (tĩnh), chủ đề wendys x wednesday.",
       "price": 2000,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "khung avatar"
+        "khung avatar",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -22901,12 +22981,13 @@
         "fullWebp": "/assets/decorations/nameplates/badtz-maru/preview.webp",
         "animated": null
       },
-      "description": "Bảng tên chạy phía sau tên hiển thị (động), chủ đề badtz maru.",
+      "description": "Bảng tên chạy phía sau tên hiển thị (tĩnh), chủ đề badtz maru.",
       "price": 1550,
       "originalPriceNote": "29.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "bảng tên"
+        "bảng tên",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -26312,12 +26393,13 @@
         "fullWebp": "/assets/decorations/nameplates/lucky-bunny/preview.webp",
         "animated": null
       },
-      "description": "Bảng tên chạy phía sau tên hiển thị (động), chủ đề lucky bunny.",
+      "description": "Bảng tên chạy phía sau tên hiển thị (tĩnh), chủ đề lucky bunny.",
       "price": 1550,
       "originalPriceNote": "29.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "bảng tên"
+        "bảng tên",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -26724,12 +26806,13 @@
         "fullWebp": "/assets/decorations/nameplates/mini-goku/preview.webp",
         "animated": null
       },
-      "description": "Bảng tên chạy phía sau tên hiển thị (động), chủ đề mini goku.",
+      "description": "Bảng tên chạy phía sau tên hiển thị (tĩnh), chủ đề mini goku.",
       "price": 1550,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "bảng tên"
+        "bảng tên",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -27170,14 +27253,15 @@
         "fullWebp": "/assets/decorations/nameplates/spider-man-logo/preview.webp",
         "animated": null
       },
-      "description": "Bảng tên chạy phía sau tên hiển thị (động), chủ đề halloween, phim ảnh.",
+      "description": "Bảng tên chạy phía sau tên hiển thị (tĩnh), chủ đề halloween, phim ảnh.",
       "price": 1550,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "halloween",
         "phim ảnh",
-        "bảng tên"
+        "bảng tên",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -27207,14 +27291,15 @@
         "fullWebp": "/assets/decorations/nameplates/spider-man-no-logo/preview.webp",
         "animated": null
       },
-      "description": "Bảng tên chạy phía sau tên hiển thị (động), chủ đề halloween, phim ảnh.",
+      "description": "Bảng tên chạy phía sau tên hiển thị (tĩnh), chủ đề halloween, phim ảnh.",
       "price": 1550,
       "originalPriceNote": "58.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "halloween",
         "phim ảnh",
-        "bảng tên"
+        "bảng tên",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -27244,14 +27329,15 @@
         "fullWebp": "/assets/decorations/nameplates/spider-man-vs-venom/preview.webp",
         "animated": null
       },
-      "description": "Bảng tên chạy phía sau tên hiển thị (động), chủ đề halloween, phim ảnh.",
+      "description": "Bảng tên chạy phía sau tên hiển thị (tĩnh), chủ đề halloween, phim ảnh.",
       "price": 1550,
       "originalPriceNote": "29.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "halloween",
         "phim ảnh",
-        "bảng tên"
+        "bảng tên",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -28648,12 +28734,13 @@
         "fullWebp": "/assets/decorations/nameplates/spirit-of-spring/preview.webp",
         "animated": null
       },
-      "description": "Bảng tên chạy phía sau tên hiển thị (động), chủ đề spirit of spring.",
+      "description": "Bảng tên chạy phía sau tên hiển thị (tĩnh), chủ đề spirit of spring.",
       "price": 1550,
       "originalPriceNote": "88.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
-        "bảng tên"
+        "bảng tên",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -30117,13 +30204,14 @@
         "fullWebp": "/assets/decorations/nameplates/venom-logo/preview.webp",
         "animated": null
       },
-      "description": "Bảng tên chạy phía sau tên hiển thị (động), chủ đề phim ảnh.",
+      "description": "Bảng tên chạy phía sau tên hiển thị (tĩnh), chủ đề phim ảnh.",
       "price": 1550,
       "originalPriceNote": "88.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "phim ảnh",
-        "bảng tên"
+        "bảng tên",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
@@ -30153,13 +30241,14 @@
         "fullWebp": "/assets/decorations/nameplates/venom-no-logo/preview.webp",
         "animated": null
       },
-      "description": "Bảng tên chạy phía sau tên hiển thị (động), chủ đề phim ảnh.",
+      "description": "Bảng tên chạy phía sau tên hiển thị (tĩnh), chủ đề phim ảnh.",
       "price": 1550,
       "originalPriceNote": "88.000đ (tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin)",
       "isAnimated": false,
       "tags": [
         "phim ảnh",
-        "bảng tên"
+        "bảng tên",
+        "static-content"
       ],
       "isActive": true,
       "reviewStatus": "auto",
