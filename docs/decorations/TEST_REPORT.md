@@ -7,8 +7,8 @@ Ngày: 2026-10-12 · Branch: `arena/62613a87-f-forum` · Cơ sở: `670848e` (ma
 | Hạng mục | Kết quả |
 |---|---|
 | `npx tsc -b` | ✅ 0 lỗi |
-| `npx oxlint` | ✅ 0 warning / 0 error (220 files) |
-| `npm test` (29 file, Node test runner) | ✅ **347/347 pass** |
+| `npx oxlint` | ✅ 0 warning / 0 error (222 files) |
+| `npm test` (29 file, Node test runner) | ✅ **348/348 pass** |
 | Asset build | ✅ 3.878 file / ~122 MB · 0 lỗi ffmpeg · catalog 873 item |
 | Quality re-tiering | ✅ 873 item chấm điểm 0–100 · 768 động / 105 tĩnh · 0 lỗi cấu trúc · giá khớp bảng rarity 100% |
 | Migration | ✅ **ĐÃ CHỌN PHƯƠNG ÁN B** (Sếp chốt 12/10) — script nâng cấp (cùng hiếm thật, khớp loại, tự trang bị, payload ăn mừng) + demo end-to-end trong sandbox; marker KHÔNG commit (chạy khi triển khai) |
@@ -205,6 +205,23 @@ toàn, ARIA (aria-pressed, role=note, label).
 Kỹ thuật: đặt memo đúng thứ tự khai báo (bắt + tránh 1 lỗi TDZ thật trong
 lúc ghép), CSS co-located + reduced-motion, ARIA label.
 
+### 1.8 Đợt #5 — "Trong ngân sách + mua đúng giá trị" (bổ sung 2026-10-12) ✅
+1. **CHIP "TÔI MUA ĐƯỢC (N)"** — lọc chỉ hiện item có giá thực tế
+   (min weekly+flash) ≤ số Coin HIỆN TẠI; count live trên chip (mỗi lần
+   sale đổi giá / Coin đổi là tự cập nhật); lựa chọn lưu theo bộ lọc
+   (`afford` key, khôi phục khi mở lại Boutique).
+2. **SORT "GIÁ TRỊ TỐT NHẤT"** — xếp theo `qualityScore/price` giảm dần
+   (chất lượng cao nhất cho mỗi Coin), hoà → theo bậc hiếm; thêm vào
+   dropdown Sắp xếp + restore được.
+3. **EMPTY STATE YÊU THÍCH** — đang lọc "Yêu thích" mà wishlist trống
+   → CTA "bấm ♡ trên card để lưu" thay vì thông báo trống chung chung.
+4. **XOÁ "VỪA XEM"** — nút ✕ đầu cuối dải (xoá cả state lẫn
+   `fforum_boutique_recent_v1`), "Xoá bộ lọc" giờ gồm cả lọc ngân sách.
+
+Kỹ thuật: giá so Coin dùng đúng công thức giá thực tế của lưới
+(không lệch với số Coin hiển thị trên card), ARIA label/pressed,
+CSS accent xanh lá cho chip ngân sách + nút xoá, reduced-motion.
+
 ### Bước 2 — Schema ✅
 - [x] `ShopItem` += `assetType`, `previewUrl`, `fullAssetUrl`, `animatedAssetUrl`, `originalSource`
 - [x] Giữ rarity/price/category; 35 item SVG cũ gắn `svg_custom`/`fforum_svg`
@@ -293,10 +310,11 @@ Các test liên quan trực tiếp nhiệm vụ 10 (đều PASS trong run cuối
 | `decorations-task10` | 10.13 Đợt #3 | giá tối đa theo giá thực tế (min weekly+flash), chip Yêu thích (n), nút Xoá bộ lọc + reset đủ trạng thái |
 | `decorations-task10` | 10.14 Chuẩn Discord | nameplate 1 vị trí (gẹt prop ở avatar nhỏ), height cố định + ellipsis, safe zone translate/scale, 1 modal preview, filter 1 hàng, stacked bar, context 40px |
 | `decorations-task10` | 10.15 Đợt #4 | pushRecentItem pure (trật tự/trùng lặp/max/id rỗng), dải Vừa xem (8 item, lọc khỏi catalog), đếm wishlist đang sale + 1 chạm mở |
+| `decorations-task10` | 10.16 Đợt #5 | chip "Tôi mua được (N)" theo Coin hiện tại (giá thực tế), sort "Giá trị tốt nhất" (qualityScore/price), empty state yêu thích + CTA, xoá "Vừa xem" state+storage, reset đủ lọc ngân sách |
 | `multi-user-sync` | (toàn bộ) | `equippedDecorations` đồng bộ multi-user qua socket |
 | `light-mode-contrast` | (toàn bộ) | adapter light tái sinh (`npm run gen:light`) khớp class mới |
 
-Run cuối: `# tests 347 / pass 347 / fail 0` (xanh cả khi marker migration TỒN TẠI cục bộ —
+Run cuối: `# tests 348 / pass 348 / fail 0` (xanh cả khi marker migration TỒN TẠI cục bộ —
 test hermetic qua env `FFORUM_MIGRATION_MARKER`).
 
 ## 4. Kiểm tra thủ công cần làm trên máy thật (checklist)

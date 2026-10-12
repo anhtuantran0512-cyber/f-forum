@@ -93,7 +93,7 @@ interface GachaBoutiqueProps {
 type TypeFilter = 'all' | 'Avatar Frame' | 'Avatar Aura' | 'Nameplate';
 type RarityFilter = 'all' | 'common' | 'rare' | 'epic' | 'mythic';
 type MotionFilter = 'all' | 'animated' | 'static';
-type SortMode = 'featured' | 'price-asc' | 'price-desc' | 'newest';
+type SortMode = 'featured' | 'price-asc' | 'price-desc' | 'newest' | 'value';
 /* Giá tối đa: lọc theo GIÁ THỰC TẾ đang hiển thị (đã trừ flash + ưu đãi tuần). */
 type PriceMaxFilter = 'all' | '2500' | '3500' | '5000';
 
@@ -196,7 +196,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
 
   /* Bộ lọc: nhớ lựa chọn giữa các lần mở Boutique (localStorage). */
   const FILTERS_STORAGE_KEY = 'fforum_boutique_filters_v1';
-  const readSavedFilters = (): Partial<Record<'type' | 'rarity' | 'motion' | 'sort' | 'price', string>> => {
+  const readSavedFilters = (): Partial<Record<'type' | 'rarity' | 'motion' | 'sort' | 'price' | 'afford', string>> => {
     try {
       const raw = safeStorage.getItem(FILTERS_STORAGE_KEY);
       const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
@@ -239,14 +239,16 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
   );
   /* "Chỉ xem yêu thích": duyệt danh sách đã bookmark. */
   const [wishOnly, setWishOnly] = useState(false);
+  /* "Trong ngân sách": chỉ hiện item giá thực tế ≤ số Coin hiện tại. */
+  const [affordableOnly, setAffordableOnly] = useState(() => savedFilters.afford === '1');
   const [query, setQuery] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>(
-    savedFilters.sort === 'price-asc' || savedFilters.sort === 'price-desc' || savedFilters.sort === 'newest'
+    savedFilters.sort === 'price-asc' || savedFilters.sort === 'price-desc' || savedFilters.sort === 'newest' || savedFilters.sort === 'value'
       ? (savedFilters.sort as SortMode)
       : 'featured',
   );
   /* Lưu bộ lọc khi đổi (event-driven, không thêm effect riêng). */
-  const saveFilters = useCallback((next: Partial<Record<'type' | 'rarity' | 'motion' | 'sort' | 'price', string>>) => {
+  const saveFilters = useCallback((next: Partial<Record<'type' | 'rarity' | 'motion' | 'sort' | 'price' | 'afford', string>>) => {
     try {
       const cur = readSavedFilters();
       safeStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({ ...cur, ...next }));
@@ -323,6 +325,16 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
       return current < i.price ? acc + 1 : acc;
     }, 0);
   }, [activeItems, wishlist, dynamicDiscounts, now]);
+  /* Số item "mua được" ngay lúc này (giá thực tế ≤ số Coin hiện tại). */
+  const affordableCount = useMemo(
+    () =>
+      activeItems.reduce((acc, i) => {
+        const flash = dynamicDiscounts.deals[i.id];
+        const current = flash ? Math.min(effectivePrice(i, now), flash.discountedPrice) : effectivePrice(i, now);
+        return current <= coin ? acc + 1 : acc;
+      }, 0),
+    [activeItems, coin, dynamicDiscounts, now],
+  );
 
   /* Đại cập nhật — "Deal hôm nay": item chất lượng cao đang sale, xoay theo ngày VN. */
   const dailyDeal = useMemo(
@@ -385,6 +397,12 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         const current = flash ? Math.min(weekly, flash.discountedPrice) : weekly;
         if (current > Number(priceMax)) return false;
       }
+      if (affordableOnly) {
+        const weekly = effectivePrice(item, now);
+        const flash = dynamicDiscounts.deals[item.id];
+        const current = flash ? Math.min(weekly, flash.discountedPrice) : weekly;
+        if (current > coin) return false;
+      }
       if (q && !`${item.name} ${item.nameEn || ''} ${item.tags?.join(' ') || ''}`.toLowerCase().includes(q)) return false;
       return true;
     });
@@ -394,6 +412,9 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         return [...list].sort((a, b) => a.price - b.price || order(b) - order(a));
       case 'price-desc':
         return [...list].sort((a, b) => b.price - a.price || order(b) - order(a));
+      case 'value':
+        /* "Giá trị tốt nhất": chất lượng cao nhất cho mỗi Coin (qualityScore/price). */
+        return [...list].sort((a, b) => (b.qualityScore ?? 0) / b.price - (a.qualityScore ?? 0) / a.price || order(b) - order(a));
       case 'newest':
         return [...list].sort((a, b) => (b.addedAt || '').localeCompare(a.addedAt || '') || order(b) - order(a));
       default:
@@ -403,14 +424,14 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           (a, b) => order(b) - order(a) || (b.qualityScore ?? 0) - (a.qualityScore ?? 0) || b.price - a.price,
         );
     }
-  }, [activeItems, typeFilter, rarityFilter, motionFilter, ownedFilter, inventory, wishOnly, wishlist, priceMax, dynamicDiscounts, now, query, sortMode]);
+  }, [activeItems, typeFilter, rarityFilter, motionFilter, ownedFilter, inventory, wishOnly, wishlist, priceMax, affordableOnly, coin, dynamicDiscounts, now, query, sortMode]);
 
   /* Infinite scroll: chỉ render 24 item mỗi nhịp; đổi bộ lọc → reset ở handler (không setState trong effect). */
   const resetPagination = () => setVisibleCount(PAGE_SIZE);
   /* "Xoá bộ lọc": về mặc định (giữ nguyên sắp xếp), đồng bộ localStorage. */
   const hasActiveFilters =
     typeFilter !== 'all' || rarityFilter !== 'all' || motionFilter !== 'all' ||
-    ownedFilter !== 'all' || wishOnly || priceMax !== 'all' || query.trim() !== '';
+    ownedFilter !== 'all' || wishOnly || priceMax !== 'all' || affordableOnly || query.trim() !== '';
   const resetAllFilters = () => {
     setTypeFilter('all');
     setRarityFilter('all');
@@ -418,8 +439,9 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
     setOwnedFilter('all');
     setWishOnly(false);
     setPriceMax('all');
+    setAffordableOnly(false);
     setQuery('');
-    saveFilters({ type: 'all', rarity: 'all', motion: 'all', price: 'all' });
+    saveFilters({ type: 'all', rarity: 'all', motion: 'all', price: 'all', afford: '' });
     resetPagination();
   };
 
@@ -617,6 +639,18 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            className="gb-recent__clear"
+            aria-label="Xoá danh sách vừa xem"
+            title="Xoá danh sách vừa xem"
+            onClick={() => {
+              setRecentIds([]);
+              safeStorage.removeItem(RECENT_KEY);
+            }}
+          >
+            <X size={11} aria-hidden="true" />
+          </button>
         </div>
       )}
 
@@ -1188,6 +1222,15 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         >
           <TrendingUp size={12} aria-hidden="true" /> Giá thấp → cao
         </button>
+        <button
+          type="button"
+          aria-pressed={affordableOnly}
+          className={affordableOnly ? 'is-active is-affordable' : ''}
+          title={`Chỉ hiện item giá thực tế ≤ ${coin.toLocaleString('vi-VN')} Coin hiện tại của bạn (bấm lại để tắt)`}
+          onClick={() => { setAffordableOnly((cur) => !cur); saveFilters({ afford: affordableOnly ? '' : '1' }); resetPagination(); }}
+        >
+          <Coins size={12} aria-hidden="true" /> Tôi mua được ({affordableCount})
+        </button>
         {!readOnly && onToggleWishlist && (
           <button
             type="button"
@@ -1232,6 +1275,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           <option value="featured">Nổi bật</option>
           <option value="price-asc">Giá: thấp → cao</option>
           <option value="price-desc">Giá: cao → thấp</option>
+          <option value="value">Giá trị tốt nhất</option>
           <option value="newest">Mới nhất</option>
         </select>
         <span className="gb-searchbar__count">{filtered.length} trang trí</span>
@@ -1250,7 +1294,14 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
       {filtered.length === 0 ? (
         <div className="gb-empty">
           <CuBong mood="sleepy" size={96} decorative />
-          <p>Kệ này còn trống… Cú Bông ngủ gật luôn rồi. Thử bộ lọc khác nhé!</p>
+          {wishOnly && !readOnly && wishlist.length === 0 ? (
+            <p>
+              Chưa có item yêu thích nào. Bấm <Heart size={12} aria-hidden="true" /> trên bất kỳ card nào để lưu vào danh
+              sách, sau đó trở lại đây để xem nhanh!
+            </p>
+          ) : (
+            <p>Kệ này còn trống… Cú Bông ngủ gật luôn rồi. Thử bộ lọc khác nhé!</p>
+          )}
         </div>
       ) : (
         <div className="gb-masonry shop-grid" role="list" aria-label="Trang trí trong Gacha Boutique">

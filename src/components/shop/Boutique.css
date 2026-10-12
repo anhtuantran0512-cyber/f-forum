@@ -1569,6 +1569,18 @@ html.light .gb-card__desc-one-line {
   box-shadow: 0 0 14px rgba(251, 113, 133, 0.35);
 }
 
+/* ===== Đợt #5 — chip "Tôi mua được" (trong ngân sách Coin hiện tại) ===== */
+.gb-filters button.is-affordable {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.5);
+}
+.gb-filters button.is-affordable.is-active {
+  color: #07130b;
+  background: linear-gradient(90deg, #86efac, #4ade80);
+  border-color: transparent;
+  box-shadow: 0 0 14px rgba(74, 222, 128, 0.35);
+}
+
 .gb-searchbar__reset {
   display: inline-flex;
   align-items: center;
@@ -1677,6 +1689,22 @@ html.light .gb-card__desc-one-line {
   text-overflow: ellipsis;
   text-align: center;
 }
+/* Đợt #5 — nút xoá dải "Vừa xem". */
+.gb-recent__clear {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(11, 16, 25, 0.6);
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.gb-recent__clear:hover { color: #fb7185; border-color: rgba(244, 63, 94, 0.6); }
 
 .gb-wish-deal {
   display: inline-flex;
@@ -1698,6 +1726,7 @@ html.light .gb-card__desc-one-line {
 
 @media (prefers-reduced-motion: reduce) {
   .gb-recent__chip,
+  .gb-recent__clear,
   .gb-wish-deal {
     transition: none;
   }

@@ -623,7 +623,7 @@ test('10.13 Đợt #3: giá tối đa (giá thật), chip Yêu thích, nút Xoá
   assert.match(card, /const weekly = effectivePrice\(item, now\);/, 'dùng effectivePrice (khớp server)');
   assert.match(card, /const flash = dynamicDiscounts\.deals\[item\.id\];[\s\S]{0,160}current > Number\(priceMax\)/, 'áp cả flash sale, so với giới hạn');
   assert.match(card, /if \(wishOnly && !wishlist\.includes\(item\.id\)\) return false;/, 'chip Yêu thích lọc đúng wishlist');
-  assert.match(card, /priceMax, dynamicDiscounts, now/, 'deps memo đầy đủ (không stale)');
+  assert.match(card, /priceMax, affordableOnly, coin, dynamicDiscounts, now/, 'deps memo đầy đủ (không stale)');
 
   /* UI: 3 mức giá + chip yêu thích có số lượng + nút xoá. */
   assert.match(card, /<option value="2500">/, 'mức giá 2.500');
@@ -632,7 +632,7 @@ test('10.13 Đợt #3: giá tối đa (giá thật), chip Yêu thích, nút Xoá
   assert.match(card, /aria-pressed={wishOnly}/, 'trạng thái chip đọc được');
   assert.match(card, /\{hasActiveFilters && \([\s\S]{0,400}Xoá bộ lọc/, 'nút xoá chỉ hiện khi đang lọc');
   assert.match(card, /const resetAllFilters = \(\) => \{[\s\S]{0,500}setPriceMax\('all'\);[\s\S]{0,200}setQuery\(''\);/, 'reset đủ trạng thái');
-  assert.match(card, /saveFilters\(\{ type: 'all', rarity: 'all', motion: 'all', price: 'all' \}\)/, 'reset đồng bộ localStorage');
+  assert.match(card, /saveFilters\(\{ type: 'all', rarity: 'all', motion: 'all', price: 'all', afford: '' \}\)/, 'reset đồng bộ localStorage');
 
   /* Lưu giá tối đa cùng bộ lọc. */
   assert.match(card, /saveFilters\(\{ price: event\.target\.value \}\)/, 'đổi mức giá được lưu');
@@ -721,4 +721,41 @@ test('10.15 Đợt #4: dải "Vừa xem" + thông báo wishlist đang sale', asy
   assert.match(card, /\{!readOnly && wishOnDealCount > 0 && \([\s\S]{0,300}setWishOnly\(true\)/, '1 chạm mở danh sách yêu thích');
   assert.match(css, /\.gb-recent__chip \{/, 'CSS dải vừa xem');
   assert.match(css, /\.gb-wish-deal \{/, 'CSS thông báo sale');
+});
+
+/* ========================================================================== */
+/* 10.16 — Đợt #5: "Trong ngân sách" chip + sort giá trị + xoá "Vừa xem"     */
+/* ========================================================================== */
+test('10.16 Đợt #5: chip "Tôi mua được", sort "Giá trị tốt nhất", xoá "Vừa xem"', () => {
+  const card = fs.readFileSync(path.join(ROOT, 'src', 'components', 'shop', 'GachaBoutique.tsx'), 'utf8');
+  const css = fs.readFileSync(path.join(ROOT, 'src', 'components', 'shop', 'Boutique.css'), 'utf8');
+
+  /* "Trong ngân sách": giá thực tế (weekly + flash) ≤ số Coin HIỆN TẠI, count live trên chip. */
+  assert.match(card, /const affordableCount = useMemo\(/, 'đếm item mua được theo Coin hiện tại');
+  assert.match(card, /current <= coin \? acc \+ 1 : acc/, 'đếm bằng giá thực tế so với coin');
+  assert.match(card, /if \(affordableOnly\) \{[\s\S]{0,300}current > coin\) return false;/, 'lọc chỉ để item trong ngân sách');
+  assert.match(card, /aria-pressed={affordableOnly}/, 'trạng thái chip đọc được');
+  assert.match(card, /<Coins size=\{12\} aria-hidden="true" \/> Tôi mua được \(\{affordableCount\}\)/, 'chip icon + số lượng live');
+  assert.match(card, /saveFilters\(\{ afford: affordableOnly \? '' : '1' \}\)/, 'lựa chọn ngân sách được lưu');
+  assert.match(card, /savedFilters\.afford === '1'/, 'khôi phục lọc ngân sách khi mở lại');
+
+  /* Sort "Giá trị tốt nhất": chất lượng trên mỗi Coin (qualityScore/price) giảm dần. */
+  assert.match(card, /case 'value':[\s\S]{0,400}\(b\.qualityScore \?\? 0\) \/ b\.price - \(a\.qualityScore \?\? 0\) \/ a\.price/, 'chất lượng trên Coin');
+  assert.match(card, /<option value="value">Giá trị tốt nhất<\/option>/, 'mục sort trong dropdown');
+  assert.match(card, /savedFilters\.sort === 'price-asc' \|\| savedFilters\.sort === 'price-desc' \|\| savedFilters\.sort === 'newest' \|\| savedFilters\.sort === 'value'/, 'sort value được restore');
+
+  /* Empty state wishlist: chưa có item yêu thích → CTA bấm trái tim (chỉ khi đang lọc yêu thích). */
+  assert.match(card, /wishOnly && !readOnly && wishlist\.length === 0 \? \([\s\S]{0,400}Chưa có item yêu thích nào/, 'CTA khi wishlist trống');
+
+  /* "Vừa xem": nút xoá cả state lẫn storage. */
+  assert.match(card, /aria-label="Xoá danh sách vừa xem"/, 'nút xoá "Vừa xem" có label');
+  assert.match(card, /setRecentIds\(\[\]\);[\s\S]{0,80}safeStorage\.removeItem\(RECENT_KEY\)/, 'xoá state + localStorage cùng lúc');
+
+  /* "Xoá bộ lọc" bao gồm cả lọc ngân sách. */
+  assert.match(card, /const hasActiveFilters =[\s\S]{0,250}affordableOnly/, 'afford tính vào hasActiveFilters');
+  assert.match(card, /setAffordableOnly\(false\);/, 'reset tắt lọc ngân sách');
+
+  /* CSS: chip ngân sách + nút xoá vừa xem. */
+  assert.match(css, /\.gb-filters button\.is-affordable \{/, 'CSS chip ngân sách');
+  assert.match(css, /\.gb-recent__clear \{/, 'CSS nút xoá vừa xem');
 });
