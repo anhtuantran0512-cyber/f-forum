@@ -16,11 +16,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
+import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'fforum-deco10-'));
 process.env.FFORUM_DATA_DIR = DATA_DIR;
+/* Marker migration là artifact triển khai cục bộ (chưa migration) — test luôn
+   chạy với marker KHÔNG tồn tại để độc lập với môi trường dev đã apply. */
+process.env.FFORUM_MIGRATION_MARKER = path.join(DATA_DIR, 'decorations-migration.none.json');
 const { setupForumServer, resetRateLimitersForTest, flushPendingSave } = await import('../server/forumServer.ts');
 const shop = await import('../src/utils/shopData.ts');
 const registry = await import('../server/decorationRegistry.ts');
@@ -241,4 +245,149 @@ test('10.4 + 10.5 Equip theo slot & thông báo in-app', async () => {
     flushPendingSave();
     await b.close();
   }
+});
+
+/* ========================================================================== */
+/* 10.6 — Màn hình ăn mừng sau migration (MigrationCelebrationModal)         */
+/* ========================================================================== */
+test('10.6 Ăn mừng migration: modal + wiring store/App + overlay keep-dark', () => {
+  const modalSrc = fs.readFileSync('src/components/decorations/MigrationCelebrationModal.tsx', 'utf8');
+  assert.ok(modalSrc.includes("import './MigrationCelebrationModal.css'"), 'CSS co-located import');
+  assert.ok(modalSrc.includes('CelebrationBurst'), 'dùng confetti có sẵn (CelebrationBurst)');
+  assert.ok(modalSrc.includes('role="dialog"'), 'đúng ngữ nghĩa dialog');
+  assert.ok(modalSrc.includes('resolveAssetUrl'), 'preview asset qua resolveAssetUrl (BASE_URL)');
+  assert.ok(modalSrc.includes('loading="eager"'), 'img preview có loading=');
+  assert.ok(!/<video[\s>]/.test(modalSrc), 'KHÔNG có thẻ video trần trong modal');
+  assert.ok(!/[\u{1F300}-\u{1FAFF}]/u.test(modalSrc.replace(/aria-label=[^>]*>/g, '')), 'icon là SVG, không emoji');
+
+  const css = fs.readFileSync('src/components/decorations/MigrationCelebrationModal.css', 'utf8');
+  assert.ok(css.includes('ff-keep-dark') || modalSrc.includes('ff-keep-dark'), 'overlay giữ tối trong light mode');
+  assert.ok(css.includes('prefers-reduced-motion'), 'tôn trọng giảm chuyển động');
+
+  const storeSrc = fs.readFileSync('src/store/forumStore.ts', 'utf8');
+  assert.ok(storeSrc.includes('setMigrationCelebration'), 'store có state celebration');
+  assert.ok(storeSrc.includes("startsWith('server-migration-')"), 'lọc thông báo migration riêng khỏi feed');
+
+  const appSrc = fs.readFileSync('src/App.tsx', 'utf8');
+  assert.ok(appSrc.includes('<MigrationCelebrationModal'), 'App mount modal');
+  assert.ok(appSrc.includes('onExploreBoutique'), 'CTA mở Boutique (tab shop)');
+
+  const types = fs.readFileSync('src/types/index.ts', 'utf8');
+  assert.ok(types.includes('MigrationCelebrationPayload'), 'type payload có trong types');
+  assert.ok(types.includes('MigrationCelebrationGift'), 'type gift có trong types');
+});
+
+/* ========================================================================== */
+/* 10.7 — Migration script: payload ăn mừng + cùng hiếm + tự trang bị (e2e)  */
+/* ========================================================================== */
+test('10.7 Migration e2e: phương án B tặng ĐÚNG BẬC HIẾM, khớp loại, tự trang bị, payload preview', async () => {
+  const scriptSrc = fs.readFileSync('scripts/decorations/migrate-decorations.mjs', 'utf8');
+  assert.ok(scriptSrc.includes('RARITY_OF_TIER'), 'suy rarity legacy từ tierColor (bugfix: không còn gift common cho user mythic)');
+  assert.ok(scriptSrc.includes('TYPE_PRIORITY_BY_CATEGORY'), 'khớp loại item mới theo hạng mục item cũ');
+  assert.ok(scriptSrc.includes('FFORUM_MIGRATION_MARKER'), 'marker override được (artifact triển khai, không commit)');
+
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'fforum-migration-'));
+  const markerPath = path.join(tmp, 'marker.json');
+  const dataPath = path.join(tmp, 'forum-data.json');
+  /* 2 user giả: 1 giữ item MYTHIC + common (badge là mythic), 1 giữ item common. */
+  fs.writeFileSync(dataPath, JSON.stringify({
+    users: {
+      'boss@demo.dev': {
+        name: 'Boss', email: 'boss@demo.dev', role: 'member', avatar: '', level: 1, xp: 0,
+        fPoints: 0, coin: 5000, streakCount: 0,
+        inventory: ['prism_universe', 'pencil_starter'],
+        equippedDecorations: { avatar_frame: null, avatar_aura: null, nameplate: null },
+        equippedBadge: 'prism_universe',
+      },
+      'learner@demo.dev': {
+        name: 'Learner', email: 'learner@demo.dev', role: 'member', avatar: '', level: 1, xp: 0,
+        fPoints: 0, coin: 100, streakCount: 0,
+        inventory: ['theme_cream'],
+        equippedDecorations: null,
+        equippedBadge: '',
+      },
+    },
+    userNotices: [],
+  }, null, 2));
+
+  const env = { ...process.env, FFORUM_DATA_DIR: tmp, FFORUM_MIGRATION_MARKER: markerPath };
+  const run = (extra = []) =>
+    execFileSync('node', ['scripts/decorations/migrate-decorations.mjs', ...extra], {
+      env, encoding: 'utf8', cwd: process.cwd(),
+    });
+
+  /* Dry-run trước: chỉ báo cáo, không đổi data, không marker. */
+  const dry = run(['--plan=B']);
+  assert.ok(dry.includes('DRY-RUN'), 'dry-run chỉ báo cáo');
+  assert.ok(!fs.existsSync(markerPath), 'dry-run không ghi marker');
+
+  /* Apply phương án B. */
+  const out = run(['--apply', '--plan=B', '--confirm']);
+  assert.ok(out.includes('hoàn tất'), 'apply thành công');
+  assert.ok(fs.existsSync(markerPath), 'marker được ghi (override env)');
+  assert.equal(JSON.parse(fs.readFileSync(markerPath, 'utf8')).applied, true);
+
+  const after = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+  const boss = after.users['boss@demo.dev'];
+  const learner = after.users['learner@demo.dev'];
+  assert.ok(!boss.inventory.includes('prism_universe'), 'item mythic cũ bị gỡ');
+  assert.ok(!boss.inventory.includes('pencil_starter'), 'item common cũ bị gỡ');
+  assert.equal(boss.equippedBadge, '', 'badge cũ được gỡ');
+  assert.ok(boss.inventory.length >= 2, '2 gift được tặng');
+
+  /* GIFT ĐÚNG BẬC HIẾM (bugfix rarity) + khớp loại + là item active trong catalog. */
+  const giftIds = new Set(boss.inventory);
+  const bossGifts = CATALOG.items.filter((i) => giftIds.has(i.id));
+  assert.equal(bossGifts.length, 2, 'cả 2 gift đều là item catalog thật');
+  const rarities = bossGifts.map((g) => g.rarity).sort();
+  assert.deepEqual(rarities, ['common', 'mythic'], 'mythic legacy → gift mythic, common → common (KHÔNG phải common-all)');
+  for (const g of bossGifts) {
+    assert.ok(['avatar_frame', 'avatar_aura'].includes(g.type), 'legacy khung avatar → gift frame/aura');
+    assert.ok(g.isActive, 'gift là item đang bán');
+  }
+
+  /* TỰ TRANG BỊ vào slot trống. */
+  const deco = boss.equippedDecorations || {};
+  const equippedIds = [deco.avatar_frame, deco.avatar_aura, deco.nameplate].filter(Boolean);
+  assert.ok(equippedIds.length >= 1, 'ít nhất 1 slot được tự trang bị');
+  for (const id of equippedIds) assert.ok(giftIds.has(id), 'chỉ tự trang bị item đã tặng');
+  const giftFrame = bossGifts.find((g) => g.type === 'avatar_frame');
+  const giftAura = bossGifts.find((g) => g.type === 'avatar_aura');
+  if (giftFrame && giftAura) {
+    assert.ok(deco.avatar_frame === giftFrame.id || deco.avatar_aura === giftAura.id, 'khung hoặc hào quang được đeo');
+  }
+
+  /* Learner: theme common (Theme Focus) → gift aura common. */
+  const learnerGift = CATALOG.items.find((i) => learner.inventory.includes(i.id));
+  assert.ok(learnerGift, 'learner nhận gift');
+  assert.equal(learnerGift.rarity, 'common');
+  assert.equal(learnerGift.type, 'avatar_aura');
+
+  /* PAYLOAD thông báo: global (showcase 3 mythic) + cá nhân (gifts + equipped). */
+  const notices = after.userNotices;
+  const globalNotice = notices.find((n) => n.id === 'server-migration-decoration-replacement' && n.email === '');
+  assert.ok(globalNotice, 'thông báo toàn hệ thống');
+  assert.equal(globalNotice.payload.kind, 'migration-global');
+  assert.equal(globalNotice.payload.showcase.length, 3, 'showcase: top 1 mythic mỗi loại');
+  for (const s of globalNotice.payload.showcase) {
+    assert.equal(s.rarity, 'mythic');
+    assert.ok(s.previewUrl.startsWith('/assets/decorations/'), 'preview url chuẩn');
+  }
+  const bossNotice = notices.find((n) => n.id === 'server-migration-decoration-replacement-boss@demo.dev');
+  assert.ok(bossNotice, 'thông báo cá nhân cho user giữ item cũ');
+  assert.equal(bossNotice.payload.kind, 'migration-gift');
+  assert.equal(bossNotice.payload.gifts.length, 2);
+  for (const g of bossNotice.payload.gifts) {
+    assert.ok(g.id && g.name && g.previewUrl, 'gift payload đủ trường cho modal');
+  }
+  const equippedInPayload = bossNotice.payload.gifts.filter((g) => g.equipped);
+  assert.ok(equippedInPayload.length >= 1, 'payload đánh dấu item đã tự trang bị');
+  for (const g of equippedInPayload) {
+    assert.ok([deco.avatar_frame, deco.avatar_aura, deco.nameplate].includes(g.id), 'equipped khớp slot thật');
+  }
+
+  /* Idempotent: chạy lại — không làm gì thêm. */
+  const rerunOut = run(['--apply', '--plan=B', '--confirm']);
+  assert.ok(rerunOut.includes('idempotent') || rerunOut.includes('đã được áp dụng'), 'chạy lại không làm gì');
+  assert.equal(fs.readFileSync(dataPath, 'utf8'), JSON.stringify(after, null, 2), 'data không đổi sau re-run');
 });

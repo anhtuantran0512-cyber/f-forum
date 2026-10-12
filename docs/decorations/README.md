@@ -68,18 +68,36 @@ Kết quả đợt 2026-10-12: **common 336 · rare 268 · epic 192 · mythic 77
 Không thêm bảng DB mới: `server/decorationRegistry.ts` đọc catalog từ disk (cache theo mtime),
 ghép chung 35 item SVG cũ + 873 item mới thành 1 registry.
 
-### Migration (spec Bước 2.3) — **CHƯA CHẠY, ĐỢI USER CHỌN**
+### Migration (spec Bước 2.3) — **ĐÃ CHỌN PHƯƠNG ÁN B** (chạy khi triển khai)
 
-- 35 item SVG cũ **vẫn bán bình thường** cho đến khi migration chạy (test security 9e yêu cầu).
-- Script: `node scripts/decorations/migrate-decorations.mjs` — mặc định **DRY-RUN** (chỉ báo cáo
-  inventory đang giữ item cũ, tổng Coin hoàn, danh sách item đổi).
-- Apply (khi user đã chọn): `… --apply --plan=A --confirm` (hoàn 100% Coin theo giá catalog)
-  hoặc `… --apply --plan=B --confirm` (đổi 1 item Discord cùng độ hiếm, chọn tất định theo hash).
-- Apply sẽ: backup `forum-data.json` → đổi inventory/coin → gỡ `equippedBadge` cũ →
-  ghi thông báo in-app (`userNotices`, id `server-migration-…`) → ghi marker
-  `public/assets/decorations/decorations-migration.json` (server đọc marker để soft-delete item cũ)
-  + `store.migrations['decoration-replacement']` (idempotent, chạy trùng không làm gì).
-- **Không tự động chạy ở bất kỳ bước nào** — cần `--apply --plan=… --confirm` do người vận hành thực hiện.
+Sếp chốt 2026-10-12: chọn **phương án B — đổi item mới** (tạo điểm nhấn trực quan:
+avatar tự có trang trí mới ngay, thay vì chỉ nhận Coin) + màn hình ăn mừng.
+
+- 35 item SVG cũ **vẫn bán bình thường** cho đến khi migration chạy ở môi trường đó
+  (test security 9e yêu cầu; test hermetic qua env `FFORUM_MIGRATION_MARKER`).
+- Script: `node scripts/decorations/migrate-decorations.mjs` — mặc định **DRY-RUN**
+  (báo cáo: ai giữ item gì, sẽ đổi thành item nào, badge sẽ gỡ).
+- **Apply (tắt server trước khi chạy):**
+  `node scripts/decorations/migrate-decorations.mjs --apply --plan=B --confirm`
+  (phương án A hoàn 100% Coin vẫn còn trong script nếu cần).
+- Phương án B làm gì cho mỗi user giữ item cũ:
+  1. Gỡ item SVG cũ khỏi inventory, tặng **1 item Discord cùng bậc hiếm**
+     (`legendary`→`mythic`), **khớp loại** với hạng mục item cũ (khung → frame/aura,
+     hiệu ứng → aura, góc hồ sơ → nameplate…), **ưu tiên item ĐỘNG + chất lượng cao**,
+     chọn tất định theo `hash(email+id)` (chạy lại cho cùng kết quả).
+  2. **Tự động trang bị** gift vào slot CÒN TRỐNG (`equippedDecorations`) — không ghi
+     đè item mới user đã đeo → avatar mới ngay khi mở app.
+  3. Gỡ `equippedBadge` cũ.
+- **Điểm nhấn cho user — màn hình ăn mừng**: thông báo in-app `server-migration-…`
+  (toàn hệ thống + cá nhân) kèm `payload` (gifts/showcase có preview thật) → client mở
+  `MigrationCelebrationModal`: confetti (CelebrationBurst), card item được tặng kèm huy
+  hiệu "ĐÃ TRANG BỊ", CTA "Khám phá Boutique". Hiện 1 lần (notices đánh dấu đọc khi lấy).
+- Apply sẽ: backup `forum-data.json` → đổi data → ghi atomic → thông báo ăn mừng →
+  marker `public/assets/decorations/decorations-migration.json` (server đọc để
+  soft-delete item cũ) + `store.migrations['decoration-replacement']` (idempotent).
+- **Marker là artifact triển khai — KHÔNG commit** (đã gitignore). Mỗi môi trường
+  (dev/prod) chạy migration trên data của chính nó. Sandbox đã demo end-to-end:
+  2 user demo giữ 5 item cũ → nhận 5 gift (2 mythic), tự trang bị, 3 notices payload.
 
 ## 3. Component (spec Bước 3)
 

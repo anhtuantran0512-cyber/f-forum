@@ -8,10 +8,10 @@ Ngày: 2026-10-12 · Branch: `arena/62613a87-f-forum` · Cơ sở: `670848e` (ma
 |---|---|
 | `npx tsc -b` | ✅ 0 lỗi |
 | `npx oxlint` | ✅ 0 warning / 0 error (220 files) |
-| `npm test` (29 file, Node test runner) | ✅ **337/337 pass** |
+| `npm test` (29 file, Node test runner) | ✅ **339/339 pass** |
 | Asset build | ✅ 3.878 file / ~122 MB · 0 lỗi ffmpeg · catalog 873 item |
 | Quality re-tiering | ✅ 873 item chấm điểm 0–100 · 768 động / 105 tĩnh · 0 lỗi cấu trúc · giá khớp bảng rarity 100% |
-| Migration | ⏸ **CHƯA CHẠY** — chỉ dry-run (đợi user chọn phương án A/B) |
+| Migration | ✅ **ĐÃ CHỌN PHƯƠNG ÁN B** (Sếp chốt 12/10) — script nâng cấp (cùng hiếm thật, khớp loại, tự trang bị, payload ăn mừng) + demo end-to-end trong sandbox; marker KHÔNG commit (chạy khi triển khai) |
 
 ## 1. Checklist theo 6 bước của nhiệm vụ
 
@@ -49,6 +49,38 @@ tới mythic, đảm bảo chất lượng"*. Thực hiện bằng `scripts/deco
 - **Idempotent**: chạy lần 2 cho đúng phân bố (0 convert mới) — an toàn chạy lại sau
   mọi đợt thêm asset.
 - Ảnh demo (`screenshots/`) đã tái tạo theo top qualityScore mới.
+
+### 1.2 Migration — phương án B + màn hình ăn mừng (bổ sung 2026-10-12) ✅
+
+Sếp yêu cầu: *"chọn phương án tốt nhất, tạo điểm nhấn, ấn tượng cho người dùng"*.
+
+**Quyết định: PHƯƠNG ÁN B (đổi item mới)** — lý do:
+- Điểm nhấn TRỰC QUAN: avatar user tự đeo trang trí Discord mới ngay khi mở app
+  (phương án A chỉ hoàn Coin — vô hình, user phải tự mua lại).
+- Không phình kinh tế Coin; câu chuyện "nâng cấp miễn phí" mạnh hơn "hoàn tiền".
+
+**Nâng cấp script** (`migrate-decorations.mjs`):
+- **Bugfix 1**: `LEGACY_SVG_ITEMS` không có trường `rarity` — script cũ tặng **common
+  cho mọi user** (kể cả người giữ item top 4.000 Coin). Giờ suy từ `tierColor`
+  (`RARITY_OF_TIER`).
+- **Bugfix 2**: bậc cao nhất hệ cũ là `legendary`, catalog mới là `mythic` — chưa map
+  → user giữ item top nhận "KHÔNG có item cùng hiếm!". Đã map `legendary`→`mythic`.
+- **Khớp loại**: khung avatar → frame/aura · hiệu ứng/theme → aura · góc hồ sơ →
+  nameplate (hash tất định, ưu tiên item ĐỘNG, qualityScore cao).
+- **Tự trang bị** gift vào slot trống (`equippedDecorations`) — không ghi đè item mới.
+- **Payload thông báo** (global: showcase 3 viên ngọc mythic; cá nhân: gifts + cờ
+  `equipped`) → `MigrationCelebrationModal`: confetti + card preview thật + huy hiệu
+  "ĐÃ TRANG BỊ" + CTA Boutique. Hiện 1 lần, Escape/backdrop đóng, reduced-motion.
+
+**Test e2e (10.7)**: 2 user giả (1 giữ item top + common, 1 giữ 2 common) → apply →
+assert gift đúng bậc hiếm (mythic/common), đúng loại, item active thật, tự trang bị
+khớp slot, payload đủ trường, idempotent re-run. **Demo sandbox thật**: server đang
+chạy với data đã migrate (2 user demo, 5 gift, 3 notices) — registry verify: 35 legacy
+SVG → 0 active (soft-delete qua marker), 873 item mới active.
+
+**Triển khai (mỗi môi trường, server TẮT)**: chạy dry-run xem trước, rồi
+`node scripts/decorations/migrate-decorations.mjs --apply --plan=B --confirm`.
+Marker gitignore — không commit, không deploy nhầm.
 
 ### Bước 2 — Schema ✅
 - [x] `ShopItem` += `assetType`, `previewUrl`, `fullAssetUrl`, `animatedAssetUrl`, `originalSource`
@@ -128,10 +160,13 @@ Các test liên quan trực tiếp nhiệm vụ 10 (đều PASS trong run cuối
 | `decorations-task10` | 10.2 Registry: 873 active + slot đúng loại + item SVG cũ vẫn bán | slot frame/aura/nameplate; id decoration lạ đúng hình thức vẫn giữ; id rác bị loại |
 | `decorations-task10` | 10.3 Mua trang trí: 402 đúng giá effectivePrice | thông báo máy chủ khớp giá ưu đãi (tuần + flash), không phải giá niêm yết |
 | `decorations-task10` | 10.4 + 10.5 Equip theo slot & thông báo in-app | lẫn lộn slot → 400; đúng slot → 200 (frame+aura+nameplate song song); gỡ → null; không sở hữu → 403; notices chỉ của mình + read |
+| `decorations-task10` | 10.6 Modal ăn mừng migration | modal + wiring store/App, confetti (CelebrationBurst), keep-dark, reduced-motion, payload types |
+| `decorations-task10` | 10.7 Migration e2e (phương án B) | cùng hiếm thật (bugfix legendary→mythic), khớp loại, tự trang bị, payload preview, idempotent |
 | `multi-user-sync` | (toàn bộ) | `equippedDecorations` đồng bộ multi-user qua socket |
 | `light-mode-contrast` | (toàn bộ) | adapter light tái sinh (`npm run gen:light`) khớp class mới |
 
-Run cuối: `# tests 337 / pass 337 / fail 0`.
+Run cuối: `# tests 339 / pass 339 / fail 0` (xanh cả khi marker migration TỒN TẠI cục bộ —
+test hermetic qua env `FFORUM_MIGRATION_MARKER`).
 
 ## 4. Kiểm tra thủ công cần làm trên máy thật (checklist)
 

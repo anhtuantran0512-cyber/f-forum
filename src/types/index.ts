@@ -304,6 +304,31 @@ export interface ShopItem {
   qualityScore?: number;
 }
 
+/* ===== Nhiệm vụ 10: thông báo ăn mừng sau migration A/B ===== */
+/** Một item được tặng/hiển thị trong màn hình ăn mừng sau migration. */
+export interface MigrationCelebrationGift {
+  id: string;
+  name: string;
+  rarity: DecorationRarity;
+  isAnimated: boolean;
+  /** Preview 128px — url gốc /assets/... (client gắn BASE_URL). */
+  previewUrl: string;
+  /** Ảnh tĩnh full — url gốc /assets/... */
+  fullUrl: string;
+  /** Item này đã được tự động trang bị cho avatar. */
+  equipped: boolean;
+}
+
+/** Payload của thông báo `server-migration-*` — màn hình ăn mừng đọc trường này. */
+export interface MigrationCelebrationPayload {
+  kind: 'migration-gift' | 'migration-refund' | 'migration-global';
+  /** Item được tặng (phương án B) — có thể kèm slot đã trang bị. */
+  gifts?: MigrationCelebrationGift[];
+  /** Item trưng bày (thông báo toàn hệ thống / hoàn Coin). */
+  showcase?: MigrationCelebrationGift[];
+  plan?: 'A' | 'B';
+}
+
 export interface ReportSubmission {
   id: string;
   reporterId: string;

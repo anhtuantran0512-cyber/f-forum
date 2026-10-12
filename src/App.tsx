@@ -7,6 +7,7 @@ import { Navbar } from './components/Navbar';
 import { OwlOutcome } from './components/auth/OwlOutcome';
 import { ScrollToTopDock } from './components/ScrollToTopDock';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
+import { MigrationCelebrationModal } from './components/decorations/MigrationCelebrationModal';
 import { CelebrationBurst } from './components/CelebrationBurst';
 import { HomeView } from './components/views/HomeView';
 import { GlobalCursor } from './components/GlobalCursor';
@@ -226,6 +227,8 @@ export const App: React.FC = () => {
     setUnreadChatCount,
     isProfileModalOpen,
     setIsProfileModalOpen,
+    migrationCelebration,
+    dismissMigrationCelebration,
     isLoginModalOpen,
     setIsLoginModalOpen,
     isSynced,
@@ -1181,6 +1184,19 @@ export const App: React.FC = () => {
             isSynced={isSynced}
           />
           )
+        )}
+
+        {/* Nhiệm vụ 10 — ăn mừng sau migration A/B (1 lần, payload gifts/showcase). */}
+        {migrationCelebration && (
+          <MigrationCelebrationModal
+            notice={migrationCelebration}
+            onClose={dismissMigrationCelebration}
+            onExploreBoutique={() => {
+              dismissMigrationCelebration();
+              setProfileInitialTab('shop');
+              setIsProfileModalOpen(true);
+            }}
+          />
         )}
 
         {/* User Profile (F-ID Settings Modal) */}

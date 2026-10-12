@@ -65,6 +65,7 @@ import { pushNotification } from '../utils/notifications';
 import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
 import { readSharedQuestionId } from '../utils/shareLinks';
 import { describeLoginModeration, type LoginModeration } from '../utils/moderationNotice';
+import type { MigrationCelebrationPayload } from '../types';
 
 const CURRENT_TAB_ID =
   typeof window !== 'undefined'
@@ -816,6 +817,16 @@ export function useForumStore() {
     /* commitUsers là useCallback([]) nên identity không đổi — effect vẫn chỉ chạy 1 lần. */
   }, [commitUsers]);
 
+  /* Nhiệm vụ 10 — màn hình ăn mừng sau migration A/B (chỉ hiện 1 lần: thông báo
+     đã được đánh dấu đọc ngay khi lấy về). */
+  const [migrationCelebration, setMigrationCelebration] = useState<{
+    id: string;
+    title: string;
+    body: string;
+    payload?: MigrationCelebrationPayload | null;
+  } | null>(null);
+  const dismissMigrationCelebration = useCallback(() => setMigrationCelebration(null), []);
+
   /* Nhiệm vụ 10 — thông báo từ máy chủ (kết quả migration A/B…). Chỉ chạy khi
      có phiên đăng nhập; id ổn định (`server-...`) nên pushNotification tự chống lặp. */
   const currentEmail = currentUser?.email || null;
@@ -829,7 +840,28 @@ export function useForumStore() {
         const data = await res.json();
         const notices = Array.isArray(data?.notices) ? data.notices : [];
         const unread = notices.filter((n: any) => n && !n.readAt);
+        /* Thông báo migration → màn hình ăn mừng riêng (không trộn vào feed).
+           Ưu tiên thông báo cá nhân (có email khớp) trên thông báo toàn hệ thống. */
+        const migrationNotices = unread.filter(
+          (n: any) => String(n.id || '').startsWith('server-migration-') && n.email === currentEmail,
+        );
+        const globalMigration = unread.find(
+          (n: any) =>
+            String(n.id || '').startsWith('server-migration-') &&
+            !String(n.id || '').includes(currentEmail) &&
+            n.email === '',
+        );
+        const celebration = migrationNotices[migrationNotices.length - 1] || globalMigration || null;
+        if (celebration && !disposed) {
+          setMigrationCelebration({
+            id: String(celebration.id || ''),
+            title: String(celebration.title || ''),
+            body: String(celebration.body || ''),
+            payload: (celebration.payload as MigrationCelebrationPayload | null) || null,
+          });
+        }
         for (const notice of unread) {
+          if (String(notice.id || '').startsWith('server-migration-')) continue;
           pushNotification({
             id: `server-${notice.id}`,
             type: 'system',
@@ -3386,6 +3418,8 @@ export function useForumStore() {
     setUnreadChatCount,
     isProfileModalOpen,
     setIsProfileModalOpen,
+    migrationCelebration,
+    dismissMigrationCelebration,
     isLoginModalOpen,
     setIsLoginModalOpen,
     isSynced,
