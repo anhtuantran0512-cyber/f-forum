@@ -59,7 +59,7 @@ import {
   getRandomGhibliMask,
 } from '../../utils/ghibliMasks';
 import { DEFAULT_AVATAR, handleImageError, handleVideoError } from '../../utils/mediaFallback';
-import { DecoratedAvatar, UserNameplateBg } from '../decorations/DecoratedAvatar';
+import { DecoratedAvatar, DecoratedName, UserNameplateBg } from '../decorations/DecoratedAvatar';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
 import { capsHas, useAdminCaps } from '../../utils/adminCapabilities';
 import { pushNotification } from '../../utils/notifications';
@@ -352,8 +352,15 @@ const findDecorationOwner = (
 ): User | null => {
   if (!users) return null;
   if (authorEmail) {
-    const byEmail = users[authorEmail.toLowerCase()];
+    const clean = authorEmail.trim().toLowerCase();
+    const byEmail = users[clean];
     if (byEmail) return byEmail;
+    if (isMasterAdmin(clean) && users['broamstuck@gmail.com']) {
+      return users['broamstuck@gmail.com'];
+    }
+  }
+  if ((authorId === 'admin-master' || authorId === 'user-admin') && users['broamstuck@gmail.com']) {
+    return users['broamstuck@gmail.com'];
   }
   if (authorId) {
     for (const u of Object.values(users)) {
@@ -429,11 +436,19 @@ const CommentThread: React.FC<{
                     user={c.authorEmail ? findDecorationOwner(users, c.authorEmail, c.authorId) : null}
                     fallbackSrc={c.authorAvatar}
                     size={28}
+                    animate
                   />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-semibold text-slate-200 text-[11px]">{c.authorName}</span>
+                    <DecoratedName
+                      user={c.authorEmail ? findDecorationOwner(users, c.authorEmail, c.authorId) : null}
+                      name={c.authorName.replace(/ \(.*\)/, '')}
+                      width={136}
+                      height={26}
+                      animate
+                      showFallbackTag
+                    />
                     <span className="text-[10px] text-slate-500 font-mono">· {c.createdAt}</span>
                   </div>
                   <p className="text-slate-300 text-xs mt-0.5 break-words leading-relaxed">{c.content}</p>
@@ -1678,17 +1693,25 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               user={findDecorationOwner(users, undefined, q.authorId)}
                               fallbackSrc={q.authorAvatar}
                               size={24}
+                              animate
                               alt={q.authorName}
                             />
                           </span>
                         )}
-                        <span
-                          className={`text-xs font-medium truncate max-w-[160px] ${
-                            q.isAnonymous ? 'text-indigo-200' : 'text-slate-300'
-                          }`}
-                        >
-                          {q.authorName}
-                        </span>
+                        {q.isAnonymous ? (
+                          <span className="text-xs font-medium truncate max-w-[160px] text-indigo-200">
+                            {q.authorName}
+                          </span>
+                        ) : (
+                          <DecoratedName
+                            user={findDecorationOwner(users, undefined, q.authorId)}
+                            name={q.authorName.replace(/ \(.*\)/, '')}
+                            width={132}
+                            height={25}
+                            animate
+                            showFallbackTag
+                          />
+                        )}
                         {q.isAnonymous && (
                           <span className="px-1.5 py-0.5 rounded-md bg-indigo-500/15 border border-indigo-400/25 text-[10px] text-indigo-200 font-medium shrink-0">
                             Ẩn danh
@@ -2613,13 +2636,25 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                 user={findDecorationOwner(users, undefined, selectedQuestion.authorId)}
                                 fallbackSrc={selectedQuestion.authorAvatar}
                                 size={30}
+                                animate
                                 alt={selectedQuestion.authorName}
                               />
                             </span>
                           )}
-                          <span className={`font-semibold truncate ${selectedQuestion.isAnonymous ? 'text-indigo-200' : 'text-white'}`}>
-                            {selectedQuestion.authorName}
-                          </span>
+                          {selectedQuestion.isAnonymous ? (
+                            <span className="font-semibold truncate text-indigo-200">
+                              {selectedQuestion.authorName}
+                            </span>
+                          ) : (
+                            <DecoratedName
+                              user={findDecorationOwner(users, undefined, selectedQuestion.authorId)}
+                              name={selectedQuestion.authorName.replace(/ \(.*\)/, '')}
+                              width={142}
+                              height={27}
+                              animate
+                              showFallbackTag
+                            />
+                          )}
                           {selectedQuestion.isAnonymous && (
                             <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-indigo-500/15 text-indigo-200 border border-indigo-400/25 inline-flex items-center gap-1 shrink-0">
                               <Wand2 className="w-3 h-3 text-indigo-300" />
@@ -2775,6 +2810,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                     user={findDecorationOwner(users, isSuperAdminSolver ? MASTER_ADMIN_CONFIG.email : sol.authorEmail, sol.authorId)}
                                     fallbackSrc={solverAvatar}
                                     size={34}
+                                    animate
                                     className={isSuperAdminSolver ? 'ring-2 ring-amber-400 rounded-full' : 'rounded-full'}
                                   />
                                   <span className="absolute -bottom-1 -right-1 z-[4]">
@@ -2782,13 +2818,14 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span
-                                    className={`text-xs ${
-                                      isSuperAdminSolver ? 'discord-admin-name' : 'font-semibold text-white'
-                                    }`}
-                                  >
-                                    {solverName}
-                                  </span>
+                                  <DecoratedName
+                                    user={findDecorationOwner(users, isSuperAdminSolver ? MASTER_ADMIN_CONFIG.email : sol.authorEmail, sol.authorId)}
+                                    name={solverName.replace(/ \(.*\)/, '')}
+                                    width={142}
+                                    height={27}
+                                    animate
+                                    showFallbackTag
+                                  />
                                   {isSuperAdminSolver && <AdminVerifiedBadge size={13} />}
                                   <span className="px-1.5 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-[10px] text-slate-300 font-mono">
                                     Lv.{sol.authorLevel}
@@ -3345,39 +3382,40 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               position: 'fixed',
               left:
                 typeof window !== 'undefined'
-                  ? Math.max(12, Math.min(authorAnchorPos.x + 12, window.innerWidth - 264))
+                  ? Math.max(12, Math.min(authorAnchorPos.x + 12, window.innerWidth - 310))
                   : 24,
               top:
                 typeof window !== 'undefined'
-                  ? Math.max(12, Math.min(authorAnchorPos.y - 20, window.innerHeight - 230))
+                  ? Math.max(12, Math.min(authorAnchorPos.y - 20, window.innerHeight - 245))
                   : 120,
             }}
-            className="pc-12-shell w-[248px] rounded-2xl p-3.5 shadow-[0_18px_48px_rgba(0,0,0,0.85)] popover-morph-enter"
+            className="pc-12-shell w-[296px] rounded-2xl p-4 shadow-[0_18px_48px_rgba(0,0,0,0.85)] popover-morph-enter"
           >
             <button
               type="button"
               onClick={() => setActiveAuthorPopover(null)}
-              className="absolute top-2.5 right-2.5 p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer"
+              className="absolute top-2.5 right-2.5 z-[5] p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer"
               aria-label="Đóng"
             >
               <X className="w-3.5 h-3.5" />
             </button>
 
-            <div className="ff-discord-userbar flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/15 pr-6">
+            <div className="ff-discord-userbar flex items-center gap-3.5 p-3 rounded-xl bg-white/[0.04] border border-white/15 pr-6">
               <UserNameplateBg
                 user={findDecorationOwner(users, activeAuthorPopover.email, activeAuthorPopover.id)}
-                width={256}
+                width={268}
                 eager
                 animate
                 priority="high"
               />
               <div className="relative z-[2] shrink-0">
-                {/* Nhiệm vụ 10 — 42px + trang trí Discord (nếu tác giả có trang bị). */}
+                {/* Nhiệm vụ 10 — 44px + trang trí Discord (nếu tác giả có trang bị). */}
                 <DecoratedAvatar
                   user={findDecorationOwner(users, activeAuthorPopover.email, activeAuthorPopover.id)}
                   fallbackSrc={activeAuthorPopover.avatar}
-                  size={42}
+                  size={44}
                   eager
+                  animate
                   alt={activeAuthorPopover.name}
                   className="rounded-full ring-1 ring-amber-400/60 shadow-md"
                 />
@@ -3387,11 +3425,20 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               </div>
 
               <div className="relative z-[2] min-w-0 flex-1">
-                <h4 className="text-xs font-extrabold text-white flex items-center gap-1 truncate drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]">
-                  <span className="truncate">{activeAuthorPopover.name}</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <DecoratedName
+                    user={findDecorationOwner(users, activeAuthorPopover.email, activeAuthorPopover.id)}
+                    name={activeAuthorPopover.name.replace(/ \(.*\)/, '')}
+                    width={176}
+                    height={33}
+                    eager
+                    animate
+                    priority="high"
+                    showFallbackTag
+                  />
                   {isMasterAdmin(activeAuthorPopover.email) && <AdminVerifiedBadge size={12} />}
-                </h4>
-                <div className="flex items-center gap-1.5 mt-0.5">
+                </div>
+                <div className="flex items-center gap-1.5 mt-1">
                   <span className="px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-400/40 text-[9.5px] font-mono font-bold shadow-sm">
                     {getTierForLevel(activeAuthorPopover.level).titleVi}
                   </span>

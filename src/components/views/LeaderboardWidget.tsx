@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Trophy, ArrowRight, HelpCircle, Sparkles, Medal, Clock, Crown, Minus, Flame } from 'lucide-react';
 import type { User, Question, Solution, ChatMessage } from '../../types';
-import { DecoratedAvatar } from '../decorations/DecoratedAvatar';
+import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
 import { MagneticButton } from '../MagneticButton';
 import { OdometerDigits } from '../OdometerDigits';
 import { StudyPulsePanel } from '../StudyPulsePanel';
@@ -455,7 +455,16 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                       <Crown className="ff-podium__crown" aria-hidden="true" />
                     )}
                   </span>
-                  <span className="ff-podium__name">{m.name}</span>
+                  <span className="ff-podium__name">
+                    <DecoratedName
+                      user={ownerOf(m)}
+                      name={m.name.replace(/ \(.*\)/, '')}
+                      width={136}
+                      height={26}
+                      animate
+                      showFallbackTag
+                    />
+                  </span>
                   <span className="ff-podium__value font-mono">{formatValue(m)}</span>
                   <span className="ff-podium__plinth" aria-hidden="true">
                     <i style={{ height: `${place === 1 ? 58 : place === 2 ? 40 : 30}px` }} />
@@ -497,8 +506,15 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                   className="ff-ladder__avatar"
                 />
                 <span className="ff-ladder__body">
-                  <span className="ff-ladder__name">
-                    {m.name}
+                  <span className="ff-ladder__name flex items-center gap-1.5">
+                    <DecoratedName
+                      user={ownerOf(m)}
+                      name={m.name.replace(/ \(.*\)/, '')}
+                      width={136}
+                      height={26}
+                      animate
+                      showFallbackTag
+                    />
                     {m.isYou && <em className="ff-row__you">Bạn</em>}
                   </span>
                   <span className="ff-ladder__track" aria-hidden="true">
@@ -538,8 +554,15 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                     className="ff-row__avatar"
                   />
                   <span className="ff-row__body">
-                    <span className="ff-row__name">
-                      {m.name}
+                    <span className="ff-row__name flex items-center gap-1.5">
+                      <DecoratedName
+                        user={ownerOf(m)}
+                        name={m.name.replace(/ \(.*\)/, '')}
+                        width={136}
+                        height={26}
+                        animate
+                        showFallbackTag
+                      />
                       {m.isYou && <em className="ff-row__you">Bạn</em>}
                     </span>
                     <span className="ff-row__track" aria-hidden="true">

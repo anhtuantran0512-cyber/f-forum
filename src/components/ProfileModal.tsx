@@ -365,7 +365,7 @@ const ProfileModalInner: React.FC<{
      đang xem — hồ sơ người khác cũng hiển thị trang trí của họ qua /api/sync). */
   const userDecorations = useUserDecorations(currentUser);
   const { items: catalogItems } = useDecorationCatalog();
-  const [quickWardrobeSlot, setQuickWardrobeSlot] = useState<'nameplate' | 'avatar_frame' | 'avatar_aura' | null>(null);
+  const [quickWardrobeSlot, setQuickWardrobeSlot] = useState<'nameplate' | 'avatar_frame' | 'avatar_aura'>('nameplate');
 
   const ownedDecorationsBySlot = useMemo(() => {
     const ownedSet = new Set(userInventory);
@@ -952,7 +952,7 @@ const ProfileModalInner: React.FC<{
                         onClick={() => {
                           if (!isOwnProfile) return;
                           if (ownedDecorationsBySlot.avatar_frame.length > 0 || ownedDecorationsBySlot.avatar_aura.length > 0) {
-                            setQuickWardrobeSlot((cur) => (cur === 'avatar_frame' ? null : 'avatar_frame'));
+                            setQuickWardrobeSlot('avatar_frame');
                           } else {
                             openShopAtCategory('Avatar Frame');
                           }
@@ -1058,37 +1058,25 @@ const ProfileModalInner: React.FC<{
                         <div className="text-[11px] font-bold text-white/85 flex items-center gap-2 flex-wrap">
                           <span>🎨 Đang trang bị:</span>
                           <span className="px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/10 text-[10px] font-mono text-neutral-300">
-                            {[userDecorations.nameplate, userDecorations.frame, userDecorations.aura].filter(Boolean).length}/3 slot
+                            {[userDecorations.nameplate, userDecorations.frame, userDecorations.aura].filter(Boolean).length}/3 slot · Kho đồ:{' '}
+                            {ownedDecorationsBySlot.nameplate.length +
+                              ownedDecorationsBySlot.avatar_frame.length +
+                              ownedDecorationsBySlot.avatar_aura.length}{' '}
+                            món
                           </span>
                         </div>
                         {isOwnProfile && (
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setQuickWardrobeSlot((cur) => (cur ? null : 'nameplate'))
-                              }
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[10.5px] font-bold transition cursor-pointer ${
-                                quickWardrobeSlot
-                                  ? 'bg-cyan-500/25 border-cyan-400/50 text-cyan-200'
-                                  : 'bg-white/[0.06] hover:bg-white/[0.12] border-white/15 text-white/85'
-                              }`}
-                            >
-                              <Sparkles className="w-3 h-3 text-cyan-300" />
-                              <span>{quickWardrobeSlot ? 'Đóng tủ đồ nhanh' : 'Đổi nhanh 1 chạm'}</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openShopAtCategory(null)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/35 border border-purple-400/40 text-purple-200 text-[10.5px] font-bold transition cursor-pointer"
-                            >
-                              <PaletteIcon className="w-3 h-3" /> Thay đổi trang trí
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => openShopAtCategory(null)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/35 border border-purple-400/40 text-purple-200 text-xs font-bold transition cursor-pointer"
+                          >
+                            <PaletteIcon className="w-3.5 h-3.5" /> + Mua thêm tại Cửa hàng Boutique
+                          </button>
                         )}
                       </div>
 
-                      {/* 3 Slot chính: Bảng tên (Nametag) · Khung Avatar · Hào Quang */}
+                      {/* 3 Slot chính: Bảng tên (Nametag) · Khung Avatar · Hào Quang — Bấm vào mục nào sẽ lọc Kho đồ đã sở hữu của mục đó bên dưới */}
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         {[
                           {
@@ -1099,7 +1087,7 @@ const ProfileModalInner: React.FC<{
                             ownedCount: ownedDecorationsBySlot.nameplate.length,
                           },
                           {
-                            slotLabel: 'Khung',
+                            slotLabel: 'Khung Avatar',
                             slot: 'avatar_frame' as const,
                             shopCategory: 'Avatar Frame',
                             item: userDecorations.frame,
@@ -1115,13 +1103,13 @@ const ProfileModalInner: React.FC<{
                         ].map((slot) => {
                           const rarity = slot.item?.rarity || 'common';
                           const meta = DECORATION_RARITY_META[rarity];
-                          const isExpanded = quickWardrobeSlot === slot.slot;
+                          const isSelected = quickWardrobeSlot === slot.slot;
                           return (
                             <div
                               key={slot.slot}
-                              className={`flex items-center justify-between gap-2 p-2 rounded-xl border transition ${
-                                isExpanded
-                                  ? 'bg-cyan-500/10 border-cyan-400/45'
+                              className={`flex items-center justify-between gap-2 p-2.5 rounded-xl border transition ${
+                                isSelected
+                                  ? 'bg-cyan-500/15 border-cyan-400/60 shadow-[0_0_16px_rgba(34,211,238,0.16)]'
                                   : 'bg-white/[0.035] hover:bg-white/[0.07] border-white/12'
                               }`}
                             >
@@ -1132,18 +1120,12 @@ const ProfileModalInner: React.FC<{
                                     openShopAtCategory(slot.shopCategory);
                                     return;
                                   }
-                                  if (slot.ownedCount > 0) {
-                                    setQuickWardrobeSlot((cur) => (cur === slot.slot ? null : slot.slot));
-                                  } else {
-                                    openShopAtCategory(slot.shopCategory);
-                                  }
+                                  setQuickWardrobeSlot(slot.slot);
                                 }}
-                                className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer"
+                                className="flex items-center gap-2.5 min-w-0 flex-1 text-left cursor-pointer"
                                 title={
                                   isOwnProfile
-                                    ? slot.ownedCount > 0
-                                      ? `Bấm để chọn nhanh ${slot.slotLabel} đã sở hữu (${slot.ownedCount} món)`
-                                      : `Mở Boutique · Chọn ${slot.slotLabel}`
+                                    ? `Bấm để xem kho ${slot.slotLabel} đã sở hữu (${slot.ownedCount} món)`
                                     : slot.item?.name || slot.slotLabel
                                 }
                               >
@@ -1153,108 +1135,78 @@ const ProfileModalInner: React.FC<{
                                     alt=""
                                     loading="lazy"
                                     decoding="async"
-                                    width={28}
-                                    height={28}
-                                    className="w-7 h-7 rounded-lg object-cover bg-black/40 border border-white/15 shrink-0"
+                                    width={32}
+                                    height={32}
+                                    className="w-8 h-8 rounded-lg object-cover bg-black/40 border border-white/15 shrink-0"
                                   />
                                 ) : (
                                   <span
-                                    className="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 text-[10px] font-mono text-white/55"
+                                    className="w-8 h-8 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 text-[10px] font-mono text-white/55"
                                     aria-hidden="true"
                                   >
                                     {slot.slot === 'nameplate' ? 'TAG' : slot.slot === 'avatar_frame' ? 'FRM' : 'AUR'}
                                   </span>
                                 )}
                                 <span className="min-w-0 flex-1">
-                                  <span className="flex items-center gap-1.5 text-[10px] font-mono text-white/60">
+                                  <span className="flex items-center gap-1.5 text-[10.5px] font-mono text-white/70">
                                     <span className="rarity-dot" style={{ background: meta.color }} aria-hidden="true" />
-                                    <span>{slot.slotLabel}:</span>
-                                    {isOwnProfile && slot.ownedCount > 0 && (
-                                      <span className="text-cyan-300">({slot.ownedCount} đã có)</span>
+                                    <span>{slot.slotLabel}</span>
+                                    {isOwnProfile && (
+                                      <span className={isSelected ? 'text-cyan-300 font-bold' : 'text-white/50'}>
+                                        · {slot.ownedCount} món
+                                      </span>
                                     )}
                                   </span>
-                                  <strong className="block text-[11.5px] font-bold text-white truncate">
-                                    {slot.item ? slot.item.name : 'Chưa gắn'}
+                                  <strong className="block text-xs font-bold text-white truncate">
+                                    {slot.item ? `Đang dùng: ${slot.item.name}` : 'Chưa trang bị'}
                                   </strong>
                                 </span>
                               </button>
 
-                              <div className="flex items-center gap-1 shrink-0">
-                                {isOwnProfile && (
-                                  <button
-                                    type="button"
-                                    onClick={() => openShopAtCategory(slot.shopCategory)}
-                                    className="px-2 py-1 rounded-lg bg-white/[0.06] hover:bg-purple-500/25 border border-white/10 text-[10px] font-semibold text-purple-200 transition cursor-pointer"
-                                    title={`Mở kho ${slot.slotLabel} trong Boutique`}
-                                  >
-                                    Kho
-                                  </button>
-                                )}
-                                {isOwnProfile && slot.item && onEquipDecoration && (
-                                  <button
-                                    type="button"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      void handleEquipDecoration(slot.slot, null);
-                                    }}
-                                    className="px-1.5 py-1 rounded-lg bg-white/[0.06] hover:bg-red-500/25 border border-white/10 text-[10px] text-white/60 hover:text-red-300 transition cursor-pointer"
-                                    title={`Gỡ ${slot.slotLabel}`}
-                                  >
-                                    Gỡ
-                                  </button>
-                                )}
-                              </div>
+                              {isOwnProfile && slot.item && onEquipDecoration && (
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    void handleEquipDecoration(slot.slot, null);
+                                  }}
+                                  className="px-2 py-1 rounded-lg bg-white/[0.06] hover:bg-red-500/25 border border-white/10 text-[10.5px] font-semibold text-white/70 hover:text-red-300 transition cursor-pointer shrink-0"
+                                  title={`Gỡ ${slot.slotLabel}`}
+                                >
+                                  Gỡ
+                                </button>
+                              )}
                             </div>
                           );
                         })}
                       </div>
 
-                      {/* Khay Tủ Đồ Nhanh (Quick Wardrobe) ngay trên Trang Cá Nhân — Gắn/Đổi Nametag & Khung 1 chạm */}
-                      {isOwnProfile && quickWardrobeSlot && (
-                        <div className="pc-12-well p-3 rounded-2xl space-y-2.5 border border-cyan-400/30 animate-fade-up">
+                      {/* Kho Đồ Đã Sở Hữu Gộp Chung (1 bảng duy nhất — bấm 1 chạm để trang bị/đổi ngay) */}
+                      {isOwnProfile && (
+                        <div className="pc-12-well p-3 rounded-2xl space-y-2.5 border border-white/10">
                           <div className="flex items-center justify-between gap-2 flex-wrap">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              {(
-                                [
-                                  { id: 'nameplate', label: 'Bảng tên (Nametag)', count: ownedDecorationsBySlot.nameplate.length },
-                                  { id: 'avatar_frame', label: 'Khung Avatar', count: ownedDecorationsBySlot.avatar_frame.length },
-                                  { id: 'avatar_aura', label: 'Hào Quang', count: ownedDecorationsBySlot.avatar_aura.length },
-                                ] as const
-                              ).map((tab) => (
-                                <button
-                                  key={tab.id}
-                                  type="button"
-                                  onClick={() => setQuickWardrobeSlot(tab.id)}
-                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                                    quickWardrobeSlot === tab.id
-                                      ? 'bg-cyan-500 text-slate-950 shadow-sm'
-                                      : 'bg-white/[0.05] text-neutral-300 hover:text-white'
-                                  }`}
-                                >
-                                  {tab.label} ({tab.count})
-                                </button>
-                              ))}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openShopAtCategory(
-                                  quickWardrobeSlot === 'nameplate'
-                                    ? 'Nameplate'
-                                    : quickWardrobeSlot === 'avatar_aura'
-                                    ? 'Avatar Aura'
-                                    : 'Avatar Frame',
-                                )
-                              }
-                              className="text-[11px] font-semibold text-amber-300 hover:underline cursor-pointer"
-                            >
-                              Mở Boutique xem toàn bộ →
-                            </button>
+                            <span className="text-xs font-bold text-cyan-200 flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                              <span>
+                                Kho đồ của bạn:{' '}
+                                {quickWardrobeSlot === 'nameplate'
+                                  ? 'Bảng tên (Nametag)'
+                                  : quickWardrobeSlot === 'avatar_frame'
+                                  ? 'Khung Avatar'
+                                  : 'Hào Quang'}{' '}
+                                ({ownedDecorationsBySlot[quickWardrobeSlot].length} vật phẩm)
+                              </span>
+                            </span>
+                            <span className="text-[11px] text-white/60">
+                              Bấm trực tiếp vào vật phẩm bên dưới để sử dụng hoặc gỡ
+                            </span>
                           </div>
 
                           {ownedDecorationsBySlot[quickWardrobeSlot].length === 0 ? (
-                            <div className="py-3 text-center text-xs text-neutral-300 space-y-2">
-                              <p>Bạn chưa sở hữu vật phẩm nào ở mục này.</p>
+                            <div className="py-3 px-2 rounded-xl bg-black/25 border border-white/5 flex items-center justify-between gap-3 flex-wrap">
+                              <span className="text-xs text-neutral-300">
+                                Bạn chưa có vật phẩm nào ở mục này trong kho đồ.
+                              </span>
                               <button
                                 type="button"
                                 onClick={() =>
@@ -1266,13 +1218,13 @@ const ProfileModalInner: React.FC<{
                                       : 'Avatar Frame',
                                   )
                                 }
-                                className="px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 text-xs font-extrabold cursor-pointer"
+                                className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold cursor-pointer transition"
                               >
-                                Sắm ngay tại Boutique
+                                Sắm ngay tại Cửa hàng →
                               </button>
                             </div>
                           ) : quickWardrobeSlot === 'nameplate' ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 no-scrollbar">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1 no-scrollbar">
                               {ownedDecorationsBySlot.nameplate.map((npItem) => {
                                 const isEquipped = userDecorations.nameplate?.id === npItem.id;
                                 return (
@@ -1282,15 +1234,16 @@ const ProfileModalInner: React.FC<{
                                     onClick={() =>
                                       void handleEquipDecoration('nameplate', isEquipped ? null : npItem.id)
                                     }
-                                    className={`flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border transition cursor-pointer ${
+                                    className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition cursor-pointer ${
                                       isEquipped
-                                        ? 'bg-emerald-500/15 border-emerald-400/60'
-                                        : 'bg-black/30 hover:bg-white/[0.07] border-white/10'
+                                        ? 'bg-emerald-500/15 border-emerald-400/70 shadow-[0_0_16px_rgba(16,185,129,0.2)]'
+                                        : 'bg-black/35 hover:bg-white/[0.08] border-white/12 hover:border-cyan-400/40'
                                     }`}
                                   >
                                     <DecoratedName
-                                      name={currentUser.name}
-                                      width={216}
+                                      name={currentUser.name.replace(/ \(.*\)/, '')}
+                                      width={210}
+                                      height={38}
                                       animate={false}
                                       overrideAsset={{
                                         id: npItem.id,
@@ -1300,10 +1253,16 @@ const ProfileModalInner: React.FC<{
                                         isAnimated: !!npItem.isAnimated && !!npItem.animatedAssetUrl,
                                       }}
                                     />
-                                    <span className="w-full flex items-center justify-between text-[10.5px] px-1">
+                                    <span className="w-full flex items-center justify-between text-xs px-1">
                                       <strong className="text-white truncate">{npItem.name}</strong>
-                                      <span className={isEquipped ? 'text-emerald-300 font-bold' : 'text-cyan-300 font-semibold'}>
-                                        {isEquipped ? 'Đang gắn (Bấm để gỡ)' : 'Gắn tên lên bảng này'}
+                                      <span
+                                        className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold ${
+                                          isEquipped
+                                            ? 'bg-emerald-500/25 text-emerald-200 border border-emerald-400/40'
+                                            : 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/35'
+                                        }`}
+                                      >
+                                        {isEquipped ? '✓ Đang dùng (Bấm gỡ)' : 'Sử dụng ngay'}
                                       </span>
                                     </span>
                                   </button>
@@ -1311,7 +1270,7 @@ const ProfileModalInner: React.FC<{
                               })}
                             </div>
                           ) : (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1 no-scrollbar">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1 no-scrollbar">
                               {ownedDecorationsBySlot[quickWardrobeSlot].map((decoItem) => {
                                 const equippedId =
                                   quickWardrobeSlot === 'avatar_frame'
@@ -1328,10 +1287,10 @@ const ProfileModalInner: React.FC<{
                                         isEquipped ? null : decoItem.id,
                                       )
                                     }
-                                    className={`flex items-center gap-2 p-2 rounded-xl border text-left transition cursor-pointer ${
+                                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition cursor-pointer ${
                                       isEquipped
-                                        ? 'bg-emerald-500/15 border-emerald-400/60'
-                                        : 'bg-black/30 hover:bg-white/[0.07] border-white/10'
+                                        ? 'bg-emerald-500/15 border-emerald-400/70 shadow-[0_0_16px_rgba(16,185,129,0.2)]'
+                                        : 'bg-black/35 hover:bg-white/[0.08] border-white/12 hover:border-cyan-400/40'
                                     }`}
                                   >
                                     <img
@@ -1339,16 +1298,22 @@ const ProfileModalInner: React.FC<{
                                       alt=""
                                       loading="lazy"
                                       decoding="async"
-                                      width={36}
-                                      height={36}
-                                      className="w-9 h-9 rounded-lg object-contain bg-black/40 shrink-0"
+                                      width={44}
+                                      height={44}
+                                      className="w-11 h-11 rounded-xl object-contain bg-black/50 border border-white/10 shrink-0"
                                     />
-                                    <span className="min-w-0 flex-1">
-                                      <strong className="block text-[11px] text-white truncate">
+                                    <span className="min-w-0 flex-1 space-y-1">
+                                      <strong className="block text-xs text-white truncate">
                                         {decoItem.name}
                                       </strong>
-                                      <span className="text-[10px] font-semibold text-cyan-300">
-                                        {isEquipped ? 'Đang đeo' : 'Trang bị'}
+                                      <span
+                                        className={`inline-block px-2 py-0.5 rounded-md text-[10.5px] font-bold ${
+                                          isEquipped
+                                            ? 'bg-emerald-500/25 text-emerald-200 border border-emerald-400/40'
+                                            : 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/35'
+                                        }`}
+                                      >
+                                        {isEquipped ? '✓ Đang dùng' : 'Sử dụng ngay'}
                                       </span>
                                     </span>
                                   </button>
@@ -1546,12 +1511,14 @@ const ProfileModalInner: React.FC<{
 
                     {/* CHILL BOX & KỆ SÁCH */}
                     <div className="space-y-3">
-                      <TrophyShelf
-                        inventory={userInventory}
-                        items={SHOP_ITEMS}
-                        equippedId={currentUser.equippedBadge}
-                        onOpenShop={isOwnProfile ? () => setActiveTab('shop') : undefined}
-                      />
+                      {SHOP_ITEMS.some((i) => userInventory.includes(i.id)) && (
+                        <TrophyShelf
+                          inventory={userInventory}
+                          items={SHOP_ITEMS}
+                          equippedId={currentUser.equippedBadge}
+                          onOpenShop={isOwnProfile ? () => setActiveTab('shop') : undefined}
+                        />
+                      )}
 
                       {/* KỆ SÁCH — kệ sách thật, lưu theo tài khoản */}
                       <BookshelfPanel

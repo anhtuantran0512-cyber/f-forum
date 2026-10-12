@@ -23,7 +23,7 @@ import type { DimensionView, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { playChime } from '../utils/audio';
 import { ProfileDropdown } from './ProfileDropdown';
-import { DecoratedAvatar, UserNameplateBg } from './decorations/DecoratedAvatar';
+import { DecoratedAvatar, DecoratedName, UserNameplateBg } from './decorations/DecoratedAvatar';
 import { useUserDecorations, preloadDecorations } from '../utils/decorationStore';
 import { NotificationsModal } from './NotificationsModal';
 import { SettingsModal } from './SettingsModal';
@@ -543,7 +543,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const isSuperAdmin = isMasterAdmin(currentUser?.email);
 
-  /* Nhiệm vụ 10 — preload asset trang trí của chính user để avatar navbar hiện ngay. */
+  /* Nhiệm vụ 10 — preload asset trang trí của chính user để avatar & tag navbar hiện ngay. */
   const navDecorations = useUserDecorations(currentUser);
   useEffect(() => {
     preloadDecorations([
@@ -551,8 +551,10 @@ export const Navbar: React.FC<NavbarProps> = ({
       navDecorations.frame?.animatedAssetUrl,
       navDecorations.aura?.fullAssetUrl,
       navDecorations.aura?.animatedAssetUrl,
+      navDecorations.nameplate?.fullAssetUrl,
+      navDecorations.nameplate?.animatedAssetUrl,
     ]);
-  }, [navDecorations.frame, navDecorations.aura]);
+  }, [navDecorations.frame, navDecorations.aura, navDecorations.nameplate]);
 
   useEffect(() => {
     if (!isFlyoutOpen) return;
@@ -788,7 +790,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             cancelMorphLoading();
           }}
           aria-busy={isMorphBusy}
-          className={`ff-nav-capsule pointer-events-auto fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full px-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 shadow-2xl ${
+          className={`ff-nav-capsule pointer-events-auto fixed top-5 inset-x-0 mx-auto z-50 w-[95%] max-w-[1280px] h-[60px] liquid-glass rounded-full px-4 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 shadow-2xl ${
             isMorphBusy ? 'ff-nav-capsule--busy' : ''
           }`}
           aria-label="Điều hướng chính"
@@ -1009,7 +1011,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     setIsNotificationsOpen(false);
                     setIsSettingsOpen(false);
                   }}
-                  className={`nav-profile-trigger ff-discord-userbar cursor-pointer pointer-events-auto flex items-center gap-2 pl-2 pr-3 py-1 rounded-full transition-colors duration-200 group focus:outline-none flex-shrink-0 ${
+                  className={`nav-profile-trigger ff-discord-userbar cursor-pointer pointer-events-auto flex items-center gap-2.5 pl-2.5 pr-3 py-1.5 rounded-full transition-colors duration-200 group focus:outline-none flex-shrink-0 ${
                     isFlyoutOpen
                       ? 'bg-amber-500/15 border border-amber-400/50 shadow-[0_0_20px_rgba(245,158,11,0.28)]'
                       : 'bg-white/5 hover:bg-white/10 border border-white/15 hover:border-amber-400/40'
@@ -1020,15 +1022,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {/* Discord Nameplate nền trong thanh profile người dùng ở Navbar */}
                   <UserNameplateBg
                     user={currentUser}
-                    width={220}
+                    width={240}
                     eager
                     animate
                     priority="high"
                   />
 
-                  {/* Avatar with status ring — Nhiệm vụ 10: + khung/hào quang Discord (30px, eager, không bị cắt). */}
+                  {/* Avatar with status ring — Nhiệm vụ 10: + khung/hào quang Discord (32px, eager, không bị cắt). */}
                   <div className="relative z-[2] shrink-0">
-                    <DecoratedAvatar user={currentUser} fallbackSrc={currentUser.avatar} size={30} eager className="rounded-full ring-1 ring-amber-400/60 shadow-sm" alt={currentUser.name} />
+                    <DecoratedAvatar user={currentUser} fallbackSrc={currentUser.avatar} size={32} eager animate priority="high" className="rounded-full ring-1 ring-amber-400/60 shadow-sm" alt={currentUser.name} />
                     <span className="absolute -bottom-0.5 -right-0.5 z-[4] w-2.5 h-2.5 rounded-full bg-emerald-400 border border-[#0a0f14] shadow-[0_0_6px_#34d399]" />
                   </div>
 
@@ -1037,15 +1039,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <TierBadge level={currentUser.level} size={17} showTooltip={false} />
                   </div>
 
-                  {/* Name & Verified Tick */}
+                  {/* Nameplate Tag trực tiếp trên chỗ tên người dùng */}
                   <div className="relative z-[2] hidden sm:flex items-center gap-1.5 leading-none nav-user-text">
-                    <span
-                      className={`text-xs font-bold tracking-tight drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)] ${
-                        isSuperAdmin ? 'discord-admin-name' : 'text-white'
-                      }`}
-                    >
-                      {currentUser.name.replace(/ \(.*\)/, '')}
-                    </span>
+                    <DecoratedName
+                      user={currentUser}
+                      name={currentUser.name.replace(/ \(.*\)/, '')}
+                      width={168}
+                      height={32}
+                      eager
+                      animate
+                      priority="high"
+                      showFallbackTag
+                    />
                     {isSuperAdmin && (
                       <AdminVerifiedBadge size={13} tooltipPosition="bottom" />
                     )}
@@ -1222,10 +1227,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                 />
                 {/* Nhiệm vụ 10 — 24px + trang trí Discord (eager). */}
                 <span className="relative z-[2] shrink-0">
-                  <DecoratedAvatar user={currentUser} fallbackSrc={currentUser.avatar} size={24} eager className="rounded-full ring-1 ring-amber-400/60" alt={currentUser.name} />
+                  <DecoratedAvatar user={currentUser} fallbackSrc={currentUser.avatar} size={24} eager animate className="rounded-full ring-1 ring-amber-400/60" alt={currentUser.name} />
                 </span>
-                <span className="relative z-[2] text-xs font-bold text-white max-w-[78px] truncate whitespace-nowrap drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
-                  {currentUser.name.replace(/ \(.*\)/, '')}
+                <span className="relative z-[2] flex items-center">
+                  <DecoratedName
+                    user={currentUser}
+                    name={currentUser.name.replace(/ \(.*\)/, '')}
+                    width={124}
+                    height={24}
+                    eager
+                    animate
+                    priority="high"
+                    showFallbackTag
+                  />
                 </span>
                 <ChevronDown
                   className={`relative z-[2] w-3 h-3 text-neutral-300 transition-transform ${
