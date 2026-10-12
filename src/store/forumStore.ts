@@ -541,7 +541,23 @@ export function useForumStore() {
     }
 
     const unique = Array.from(new Map(active.map(u => [u.id, u])).values());
-    setOnlineUsers(unique);
+    setOnlineUsers(prev => {
+      if (
+        prev.length === unique.length &&
+        prev.every(
+          (u, idx) =>
+            u.id === unique[idx].id &&
+            u.name === unique[idx].name &&
+            u.avatar === unique[idx].avatar &&
+            u.level === unique[idx].level &&
+            u.rank === unique[idx].rank &&
+            u.email === unique[idx].email
+        )
+      ) {
+        return prev;
+      }
+      return unique;
+    });
   }, []);
 
   const handleIncomingPresencePing = useCallback(
@@ -638,23 +654,38 @@ export function useForumStore() {
   }, [users]);
 
   useEffect(() => {
-    safeStorage.setItem('fforum_clubs', JSON.stringify(clubs));
+    const t = window.setTimeout(() => {
+      safeStorage.setItem('fforum_clubs', JSON.stringify(clubs));
+    }, 120);
+    return () => window.clearTimeout(t);
   }, [clubs]);
 
   useEffect(() => {
-    safeStorage.setItem('fforum_club_posts', JSON.stringify(clubPosts));
+    const t = window.setTimeout(() => {
+      safeStorage.setItem('fforum_club_posts', JSON.stringify(clubPosts));
+    }, 120);
+    return () => window.clearTimeout(t);
   }, [clubPosts]);
 
   useEffect(() => {
-    safeStorage.setItem('fforum_questions', JSON.stringify(questions));
+    const t = window.setTimeout(() => {
+      safeStorage.setItem('fforum_questions', JSON.stringify(questions));
+    }, 120);
+    return () => window.clearTimeout(t);
   }, [questions]);
 
   useEffect(() => {
-    safeStorage.setItem('fforum_solutions', JSON.stringify(solutions));
+    const t = window.setTimeout(() => {
+      safeStorage.setItem('fforum_solutions', JSON.stringify(solutions));
+    }, 120);
+    return () => window.clearTimeout(t);
   }, [solutions]);
 
   useEffect(() => {
-    safeStorage.setItem('fforum_chat_messages', JSON.stringify(chatMessages));
+    const t = window.setTimeout(() => {
+      safeStorage.setItem('fforum_chat_messages', JSON.stringify(chatMessages));
+    }, 120);
+    return () => window.clearTimeout(t);
   }, [chatMessages]);
 
   const [aboutData, setAboutData] = useState<AboutData>(() => {

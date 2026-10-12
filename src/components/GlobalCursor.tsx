@@ -19,6 +19,61 @@ export const GlobalCursor: React.FC = () => {
     const isHoverCapable = window.matchMedia('(hover: hover)').matches;
     if (!isFinePointer || !isHoverCapable) return;
 
+    let animId = 0;
+    let lastTarget: EventTarget | null = null;
+    let lastOpacity = '';
+    let lastHaloScale = '';
+
+    const tick = () => {
+      animId = 0;
+      const state = stateRef.current;
+      const container = containerRef.current;
+      const halo = haloRef.current;
+
+      if (container && state.isVisible) {
+        const dx = state.mouseX - state.curX;
+        const dy = state.mouseY - state.curY;
+        const settled = Math.abs(dx) < 0.15 && Math.abs(dy) < 0.15;
+
+        if (settled) {
+          state.curX = state.mouseX;
+          state.curY = state.mouseY;
+        } else {
+          state.curX += dx * 0.2;
+          state.curY += dy * 0.2;
+        }
+
+        if (lastOpacity !== '1') {
+          container.style.opacity = '1';
+          lastOpacity = '1';
+        }
+        container.style.transform = `translate3d(${state.curX.toFixed(2)}px, ${state.curY.toFixed(2)}px, 0)`;
+
+        if (halo) {
+          const scale = state.isHovering ? '1.5' : '1';
+          if (lastHaloScale !== scale) {
+            halo.style.transform = `scale(${scale})`;
+            lastHaloScale = scale;
+          }
+        }
+
+        if (!settled) {
+          animId = requestAnimationFrame(tick);
+        }
+      } else if (container) {
+        if (lastOpacity !== '0') {
+          container.style.opacity = '0';
+          lastOpacity = '0';
+        }
+      }
+    };
+
+    const scheduleTick = () => {
+      if (animId === 0) {
+        animId = requestAnimationFrame(tick);
+      }
+    };
+
     const handleMouseMove = (e: MouseEvent) => {
       const state = stateRef.current;
       state.mouseX = e.clientX;
@@ -29,49 +84,30 @@ export const GlobalCursor: React.FC = () => {
         state.curY = e.clientY;
       }
 
-      const target = e.target as HTMLElement | null;
-      if (target) {
-        const isClickable = Boolean(
-          target.closest('button, a, input, textarea, select, [role="button"], .cursor-pointer')
-        );
-        state.isHovering = isClickable;
+      if (e.target !== lastTarget) {
+        lastTarget = e.target;
+        const target = e.target as HTMLElement | null;
+        if (target && typeof target.closest === 'function') {
+          state.isHovering = Boolean(
+            target.closest('button, a, input, textarea, select, [role="button"], .cursor-pointer')
+          );
+        } else {
+          state.isHovering = false;
+        }
       }
+      scheduleTick();
     };
 
     const handleMouseLeave = () => {
       stateRef.current.isVisible = false;
-    };
-
-    let animId: number;
-    const tick = () => {
-      const state = stateRef.current;
-      const container = containerRef.current;
-      const halo = haloRef.current;
-
-      if (container && state.isVisible) {
-        state.curX += (state.mouseX - state.curX) * 0.2;
-        state.curY += (state.mouseY - state.curY) * 0.2;
-
-        container.style.opacity = '1';
-        container.style.transform = `translate3d(${state.curX}px, ${state.curY}px, 0)`;
-
-        if (halo) {
-          const scale = state.isHovering ? 1.5 : 1.0;
-          halo.style.transform = `scale(${scale})`;
-        }
-      } else if (container) {
-        container.style.opacity = '0';
-      }
-
-      animId = requestAnimationFrame(tick);
+      scheduleTick();
     };
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
     document.addEventListener('mouseleave', handleMouseLeave);
-    animId = requestAnimationFrame(tick);
 
     return () => {
-      cancelAnimationFrame(animId);
+      if (animId !== 0) cancelAnimationFrame(animId);
       window.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseleave', handleMouseLeave);
     };
