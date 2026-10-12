@@ -2569,6 +2569,17 @@ export function useForumStore() {
     return true;
   }, [postStoreAction]);
 
+  /* Yêu thích (wishlist) — server broadcast SYNC_USER cập nhật state. */
+  const toggleWishlist = useCallback(async (itemId: string): Promise<boolean> => {
+    const outcome = await postStoreAction('/api/shop/wishlist', { itemId });
+    if (!outcome.ok) {
+      setToastMessage({ title: 'Không lưu được yêu thích', subtitle: outcome.message, type: 'error' });
+      return false;
+    }
+    playChime('send');
+    return true;
+  }, [postStoreAction]);
+
   const createQuestion = async (data: {
     title: string;
     subject: SubjectTag;
@@ -3430,6 +3441,8 @@ export function useForumStore() {
     migrationCelebration,
     dismissMigrationCelebration,
     decoEquipBurst,
+    wishlist: currentUser?.wishlist || [],
+    toggleWishlist,
     isLoginModalOpen,
     setIsLoginModalOpen,
     isSynced,

@@ -8,7 +8,7 @@ Ngày: 2026-10-12 · Branch: `arena/62613a87-f-forum` · Cơ sở: `670848e` (ma
 |---|---|
 | `npx tsc -b` | ✅ 0 lỗi |
 | `npx oxlint` | ✅ 0 warning / 0 error (220 files) |
-| `npm test` (29 file, Node test runner) | ✅ **342/342 pass** |
+| `npm test` (29 file, Node test runner) | ✅ **344/344 pass** |
 | Asset build | ✅ 3.878 file / ~122 MB · 0 lỗi ffmpeg · catalog 873 item |
 | Quality re-tiering | ✅ 873 item chấm điểm 0–100 · 768 động / 105 tĩnh · 0 lỗi cấu trúc · giá khớp bảng rarity 100% |
 | Migration | ✅ **ĐÃ CHỌN PHƯƠNG ÁN B** (Sếp chốt 12/10) — script nâng cấp (cùng hiếm thật, khớp loại, tự trang bị, payload ăn mừng) + demo end-to-end trong sandbox; marker KHÔNG commit (chạy khi triển khai) |
@@ -111,6 +111,31 @@ Kỹ thuật: hàm thuần trong `src/utils/decorations.ts` (import `effectivePr
 từ shopData — không vòng lặp import); Boutique tick 1s sẵn có điều khiển cả 3 đồng hồ;
 CSS co-located (Boutique.css), reduced-motion + mobile responsive.
 
+### 1.4 ĐẠI CẬP NHẬT #2 — "Tủ đồ của bạn" (bổ sung 2026-10-12) ✅
+
+Sếp yêu cầu: *"tiếp tục làm những đợt đại cập nhật toàn diện"* — đợt này tập
+trung vào **quản lý 873 item** (chức năng, không phải hiệu ứng):
+
+1. **YÊU THÍCH (wishlist)** — nút trái tim trên từng card, lưu SERVER
+   (`POST /api/shop/wishlist`, toggle, ≤100 item, validate id qua registry,
+   broadcast `SYNC_USER` cho cả nhà + tab mở khác). `User.wishlist` được
+   sanitize khi đọc từ disk (id hợp lệ, unique). Client: `toggleWishlist`
+   trong store; card là `div role=button` để nút trái tim (button thật) không
+   vi phạm HTML.
+2. **LỌC ĐÃ CÓ / CHƯA CÓ** — 2 nút trong panel Bộ sưu tập, đếm số thật
+   (collection.owned / total−owned), bấm lần 2 bỏ lọc. Ghép với bộ lọc
+   type/rarity/motion/sort có sẵn → ví dụ: chỉ xem Mythic chưa sở hữu.
+3. **DÒNG RARITY BẤM ĐƯỢC** — 4 thanh mini trong Bộ sưu tập giờ là nút:
+   bấm = lọc Boutique theo độ hiếm đó (bấm lại = bỏ), `aria-pressed` +
+   viền sáng rarity cho trạng thái active.
+4. **BỘ LỌC NHỚ QUA PHIÊN** — type/rarity/motion/sort tự lưu
+   `localStorage` (key `fforum_boutique_filters_v1`, 1 const dùng cho cả
+   đọc + ghi), khôi phục khi mở lại Boutique.
+
+Kỹ thuật: server persist + broadcast (đúng pattern `equip`); client ghi
+localStorage event-driven (khi bấm, không effect); phát hiện & sửa lỗi TDZ
+thực (`now` dùng trước khai báo khi ruy-băng hoạt động) trong lúc ghép.
+
 ### Bước 2 — Schema ✅
 - [x] `ShopItem` += `assetType`, `previewUrl`, `fullAssetUrl`, `animatedAssetUrl`, `originalSource`
 - [x] Giữ rarity/price/category; 35 item SVG cũ gắn `svg_custom`/`fforum_svg`
@@ -191,10 +216,15 @@ Các test liên quan trực tiếp nhiệm vụ 10 (đều PASS trong run cuối
 | `decorations-task10` | 10.4 + 10.5 Equip theo slot & thông báo in-app | lẫn lộn slot → 400; đúng slot → 200 (frame+aura+nameplate song song); gỡ → null; không sở hữu → 403; notices chỉ của mình + read |
 | `decorations-task10` | 10.6 Modal ăn mừng migration | modal + wiring store/App, confetti (CelebrationBurst), keep-dark, reduced-motion, payload types |
 | `decorations-task10` | 10.7 Migration e2e (phương án B) | cùng hiếm thật (bugfix legendary→mythic), khớp loại, tự trang bị, payload preview, idempotent |
+| `decorations-task10` | 10.8 Boutique khai trương | ruy-băng theo mốc migration (72h), confetti khi trang bị, wiring store/App |
+| `decorations-task10` | 10.9 Deal hôm nay | tất định theo ngày VN, ứng viên chỉ từ sale, giá = effectivePrice (khớp server) |
+| `decorations-task10` | 10.10 Bộ sưu tập | tiến độ theo rarity, mythic sở hữu top qualityScore, empty state |
+| `decorations-task10` | 10.11 Wishlist e2e | add/remove toggle, 400 id rác, 401 khách, persist lại disk đúng |
+| `decorations-task10` | 10.12 UI wishlist + lọc | trái tim SVG (không button lồng button), Đã có/Chưa có, rarity row bấm, localStorage 1 key đọc/ghi, modal chỉ profile mình |
 | `multi-user-sync` | (toàn bộ) | `equippedDecorations` đồng bộ multi-user qua socket |
 | `light-mode-contrast` | (toàn bộ) | adapter light tái sinh (`npm run gen:light`) khớp class mới |
 
-Run cuối: `# tests 339 / pass 339 / fail 0` (xanh cả khi marker migration TỒN TẠI cục bộ —
+Run cuối: `# tests 344 / pass 344 / fail 0` (xanh cả khi marker migration TỒN TẠI cục bộ —
 test hermetic qua env `FFORUM_MIGRATION_MARKER`).
 
 ## 4. Kiểm tra thủ công cần làm trên máy thật (checklist)

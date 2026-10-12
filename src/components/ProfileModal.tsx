@@ -96,6 +96,7 @@ interface ProfileModalProps {
   onEquipItem: (itemId: string) => Promise<boolean>;
   /** Nhiệm vụ 10 — trang bị/gỡ trang trí Discord theo slot (itemId null = gỡ). */
   onEquipDecoration?: (slot: 'avatar_frame' | 'avatar_aura' | 'nameplate', itemId: string | null) => Promise<boolean>;
+  onToggleWishlist?: (item: ShopItem) => void;
   initialTab?: 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit';
   questions?: Question[];
   solutions?: Solution[];
@@ -239,6 +240,7 @@ const ProfileModalInner: React.FC<{
   onEquipItem: (itemId: string) => Promise<boolean>;
   /** Nhiệm vụ 10 — trang bị/gỡ trang trí Discord theo slot (itemId null = gỡ). */
   onEquipDecoration?: (slot: 'avatar_frame' | 'avatar_aura' | 'nameplate', itemId: string | null) => Promise<boolean>;
+  onToggleWishlist?: (item: ShopItem) => void;
   initialTab?: TabType;
   questions?: Question[];
   solutions?: Solution[];
@@ -251,6 +253,7 @@ const ProfileModalInner: React.FC<{
   onPurchaseItem,
   onEquipItem,
   onEquipDecoration,
+  onToggleWishlist,
   initialTab = 'overview',
   questions = [],
   solutions = [],
@@ -1511,6 +1514,11 @@ const ProfileModalInner: React.FC<{
                   const slot = item.category === 'Nameplate' ? 'nameplate' : item.category === 'Avatar Aura' ? 'avatar_aura' : 'avatar_frame';
                   void handleEquipDecoration(slot, nextItemId);
                 }}
+                wishlist={currentUser.wishlist || []}
+                onToggleWishlist={(item) => {
+                  if (!isOwnProfile) return;
+                  onToggleWishlist?.(item);
+                }}
               />
             </div>
           )}
@@ -1952,6 +1960,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onPurchaseItem,
   onEquipItem,
   onEquipDecoration,
+  onToggleWishlist,
   initialTab = 'overview',
   questions = [],
   solutions = [],
@@ -1968,6 +1977,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       onPurchaseItem={onPurchaseItem}
       onEquipItem={onEquipItem}
       onEquipDecoration={onEquipDecoration}
+      onToggleWishlist={onToggleWishlist}
       initialTab={initialTab}
       questions={questions}
       solutions={solutions}

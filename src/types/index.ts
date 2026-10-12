@@ -58,6 +58,8 @@ export interface User {
    * id trong inventory của user, null/undefined = đang để trống slot.
    */
   equippedDecorations?: EquippedDecorations;
+  /** Trang trí yêu thích (wishlist) — id, tối đa 100. */
+  wishlist?: string[];
 }
 
 export type ClubCategory = 'Công nghệ' | 'Nghệ thuật' | 'Thể thao' | 'Học thuật';
