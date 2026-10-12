@@ -633,6 +633,7 @@ const ProfileModalInner: React.FC<{
             onSaveProfile({ bannerUrl: withLayout });
           } else {
             apply(uploaded.url);
+            onSaveProfile({ avatar: uploaded.url });
           }
         } catch (uploadErr) {
           setErrorMsg(uploadErr instanceof Error ? uploadErr.message : 'Chưa tải được ảnh lên máy chủ.');
@@ -1064,7 +1065,10 @@ const ProfileModalInner: React.FC<{
         )}
 
         {/* Tab Content Container */}
-        <div className="relative z-10 flex-1 overflow-y-auto pr-1 space-y-4 no-scrollbar">
+        <div
+          data-profile-scroll-container="true"
+          className="relative z-10 flex-1 overflow-y-auto pr-1 space-y-4 no-scrollbar"
+        >
           {/* Shimmer skeleton while the profile content boots (.ssc-01) */}
           {isBooting && (
             <div className="pc-12-card p-4 sm:p-5 space-y-4" role="status" aria-busy="true">
@@ -1668,37 +1672,35 @@ const ProfileModalInner: React.FC<{
                         )}
                       </div>
 
-                      {/* 3 Slot chính: Bảng tên (Nametag) · Khung Avatar · Hào Quang — Bấm vào mục nào sẽ lọc Kho đồ đã sở hữu của mục đó bên dưới */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {/* 2 Slot trang bị chính: Bảng tên (Nametag) · Viền Avatar (Khung / Hào Quang — chỉ đeo 1 viền duy nhất) */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {[
                           {
-                            slotLabel: 'Bảng tên',
+                            slotLabel: 'Bảng tên (Nametag)',
                             slot: 'nameplate' as const,
+                            filterSlot: 'nameplate' as const,
                             shopCategory: 'Nameplate',
                             item: userDecorations.nameplate,
                             ownedCount: ownedDecorationsBySlot.nameplate.length,
                           },
                           {
-                            slotLabel: 'Khung Avatar',
-                            slot: 'avatar_frame' as const,
+                            slotLabel: 'Viền Avatar (Khung / Hào quang)',
+                            slot: (userDecorations.frame ? 'avatar_frame' : 'avatar_aura') as 'avatar_frame' | 'avatar_aura',
+                            filterSlot: (userDecorations.aura && !userDecorations.frame ? 'avatar_aura' : 'avatar_frame') as 'avatar_frame' | 'avatar_aura',
                             shopCategory: 'Avatar Frame',
-                            item: userDecorations.frame,
-                            ownedCount: ownedDecorationsBySlot.avatar_frame.length,
-                          },
-                          {
-                            slotLabel: 'Hào quang',
-                            slot: 'avatar_aura' as const,
-                            shopCategory: 'Avatar Aura',
-                            item: userDecorations.aura,
-                            ownedCount: ownedDecorationsBySlot.avatar_aura.length,
+                            item: userDecorations.frame || userDecorations.aura,
+                            ownedCount: ownedDecorationsBySlot.avatar_frame.length + ownedDecorationsBySlot.avatar_aura.length,
                           },
                         ].map((slot) => {
                           const rarity = slot.item?.rarity || 'common';
                           const meta = DECORATION_RARITY_META[rarity];
-                          const isSelected = quickWardrobeSlot === slot.slot;
+                          const isSelected =
+                            slot.filterSlot === 'nameplate'
+                              ? quickWardrobeSlot === 'nameplate'
+                              : quickWardrobeSlot === 'avatar_frame' || quickWardrobeSlot === 'avatar_aura';
                           return (
                             <div
-                              key={slot.slot}
+                              key={slot.slotLabel}
                               className={`flex items-center justify-between gap-2 p-2.5 rounded-xl border transition ${
                                 isSelected
                                   ? 'bg-cyan-500/15 border-cyan-400/60 shadow-[0_0_16px_rgba(34,211,238,0.16)]'
@@ -1712,7 +1714,7 @@ const ProfileModalInner: React.FC<{
                                     openShopAtCategory(slot.shopCategory);
                                     return;
                                   }
-                                  setQuickWardrobeSlot(slot.slot);
+                                  setQuickWardrobeSlot(slot.filterSlot);
                                 }}
                                 className="flex items-center gap-2.5 min-w-0 flex-1 text-left cursor-pointer"
                                 title={
@@ -1736,7 +1738,7 @@ const ProfileModalInner: React.FC<{
                                     className="w-8 h-8 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 text-[10px] font-mono text-white/55"
                                     aria-hidden="true"
                                   >
-                                    {slot.slot === 'nameplate' ? 'TAG' : slot.slot === 'avatar_frame' ? 'FRM' : 'AUR'}
+                                    {slot.filterSlot === 'nameplate' ? 'TAG' : 'FRM'}
                                   </span>
                                 )}
                                 <span className="min-w-0 flex-1">
@@ -1806,6 +1808,7 @@ const ProfileModalInner: React.FC<{
                                 type="text"
                                 value={wardrobeSearch}
                                 onChange={(e) => setWardrobeSearch(e.target.value)}
+                                maxLength={80}
                                 placeholder="Tìm nhanh trong kho đồ..."
                                 className="bg-black/40 border border-white/15 rounded-lg px-2.5 py-1 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-cyan-400 w-44"
                               />
@@ -1888,7 +1891,7 @@ const ProfileModalInner: React.FC<{
                                           name={currentUser.name.replace(/ \(.*\)/, '')}
                                           width={204}
                                           height={38}
-                                          animate={false}
+                                          animate
                                           overrideAsset={{
                                             id: item.id,
                                             type: 'nameplate',
@@ -1931,15 +1934,21 @@ const ProfileModalInner: React.FC<{
                                           : 'bg-black/35 hover:bg-white/[0.08] border-white/12 hover:border-cyan-400/40'
                                       }`}
                                     >
-                                      <img
-                                        src={resolveAssetUrl(item.previewUrl) || undefined}
-                                        alt=""
-                                        loading="lazy"
-                                        decoding="async"
-                                        width={46}
-                                        height={46}
-                                        className="w-11 h-11 rounded-xl object-contain bg-black/50 border border-white/10 shrink-0"
-                                      />
+                                      <span className="w-12 h-12 rounded-xl bg-black/50 border border-white/10 shrink-0 flex items-center justify-center overflow-visible">
+                                        <AvatarWithDecoration
+                                          avatarUrl={currentUser.avatar || DEFAULT_AVATAR}
+                                          decorationAsset={{
+                                            id: item.id,
+                                            type: itemSlot,
+                                            fullAssetUrl: item.fullAssetUrl || item.previewUrl || null,
+                                            animatedAssetUrl: item.animatedAssetUrl || null,
+                                            isAnimated: Boolean(item.isAnimated && item.animatedAssetUrl),
+                                          }}
+                                          size={44}
+                                          animate
+                                          alt={item.name}
+                                        />
+                                      </span>
                                       <span className="min-w-0 flex-1 space-y-1">
                                         <span className="flex items-center gap-1.5">
                                           <span className="px-1.5 py-0.5 rounded bg-white/10 text-[9.5px] font-mono text-white/75 shrink-0">

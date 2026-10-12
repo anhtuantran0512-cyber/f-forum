@@ -18,26 +18,26 @@ export const ForumPostModeration: React.FC<ForumPostModerationProps> = ({
   if (!isSuperAdmin) return null;
 
   return (
-    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/10">
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDeletePost(postId);
-        }}
-        className="inline-flex items-center gap-1 text-[11px] text-red-400 hover:text-red-300 transition-colors cursor-pointer"
-      >
-        <Trash2 size={12} /> Xóa bài viết
-      </button>
+    <div className="flex items-center justify-end gap-2.5 mt-3 pt-3 border-t border-white/10 flex-wrap">
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
           onEditPost(postId);
         }}
-        className="inline-flex items-center gap-1 text-[11px] text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/12 hover:bg-amber-500/22 border border-amber-400/30 text-xs font-semibold text-amber-200 hover:text-amber-100 transition-colors cursor-pointer"
       >
-        <Edit3 size={12} /> Sửa nội dung
+        <Edit3 size={13} /> Sửa nội dung
+      </button>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDeletePost(postId);
+        }}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/12 hover:bg-rose-500/22 border border-rose-400/30 text-xs font-semibold text-rose-200 hover:text-rose-100 transition-colors cursor-pointer"
+      >
+        <Trash2 size={13} /> Xóa bài viết
       </button>
     </div>
   );

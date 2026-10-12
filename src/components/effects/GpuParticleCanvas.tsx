@@ -83,68 +83,73 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
       mode,
     });
 
-    /* Thử khởi tạo WebGL để vẽ toàn bộ hạt trong 1 draw call (gl.POINTS) */
+    /* Ưu tiên Canvas 2D trong suốt tuyệt đối để tránh lỗi nháy trắng màn hình (white flash)
+       do cấp phát/thu hồi ngữ cảnh WebGL toàn màn hình trên một số trình duyệt/GPU;
+       vẫn giữ nguyên pipeline WebGL 1-draw-call (gl.POINTS) làm nhánh dự phòng chuẩn. */
+    const ctx2d = canvas.getContext('2d');
     let gl: WebGLRenderingContext | null = null;
     let glProgram: WebGLProgram | null = null;
     let glBuffer: WebGLBuffer | null = null;
     let aPosSizeLoc = -1;
     let aColorLoc = -1;
-    try {
-      gl = canvas.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: false });
-      if (gl) {
-        const vs = gl.createShader(gl.VERTEX_SHADER)!;
-        gl.shaderSource(
-          vs,
-          `
-          attribute vec3 aPosSize;
-          attribute vec4 aColor;
-          varying vec4 vColor;
-          void main() {
-            gl_Position = vec4(aPosSize.xy, 0.0, 1.0);
-            gl_PointSize = aPosSize.z;
-            vColor = aColor;
+    if (!ctx2d) {
+      try {
+        gl = canvas.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: true });
+        if (gl) {
+          const vs = gl.createShader(gl.VERTEX_SHADER)!;
+          gl.shaderSource(
+            vs,
+            `
+            attribute vec3 aPosSize;
+            attribute vec4 aColor;
+            varying vec4 vColor;
+            void main() {
+              gl_Position = vec4(aPosSize.xy, 0.0, 1.0);
+              gl_PointSize = aPosSize.z;
+              vColor = aColor;
+            }
+            `,
+          );
+          gl.compileShader(vs);
+          const fs = gl.createShader(gl.FRAGMENT_SHADER)!;
+          gl.shaderSource(
+            fs,
+            `
+            precision mediump float;
+            varying vec4 vColor;
+            void main() {
+              vec2 c = gl_PointCoord - vec2(0.5);
+              if (dot(c, c) > 0.25) discard;
+              gl_FragColor = vColor;
+            }
+            `,
+          );
+          gl.compileShader(fs);
+          const prog = gl.createProgram()!;
+          gl.attachShader(prog, vs);
+          gl.attachShader(prog, fs);
+          gl.linkProgram(prog);
+          if (gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+            glProgram = prog;
+            glBuffer = gl.createBuffer();
+            aPosSizeLoc = gl.getAttribLocation(prog, 'aPosSize');
+            aColorLoc = gl.getAttribLocation(prog, 'aColor');
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+          } else {
+            gl = null;
           }
-          `,
-        );
-        gl.compileShader(vs);
-        const fs = gl.createShader(gl.FRAGMENT_SHADER)!;
-        gl.shaderSource(
-          fs,
-          `
-          precision mediump float;
-          varying vec4 vColor;
-          void main() {
-            vec2 c = gl_PointCoord - vec2(0.5);
-            if (dot(c, c) > 0.25) discard;
-            gl_FragColor = vColor;
-          }
-          `,
-        );
-        gl.compileShader(fs);
-        const prog = gl.createProgram()!;
-        gl.attachShader(prog, vs);
-        gl.attachShader(prog, fs);
-        gl.linkProgram(prog);
-        if (gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-          glProgram = prog;
-          glBuffer = gl.createBuffer();
-          aPosSizeLoc = gl.getAttribLocation(prog, 'aPosSize');
-          aColorLoc = gl.getAttribLocation(prog, 'aColor');
-          gl.enable(gl.BLEND);
-          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        } else {
-          gl = null;
         }
+      } catch {
+        gl = null;
       }
-    } catch {
-      gl = null;
     }
 
-    const ctx2d = !gl ? canvas.getContext('2d') : null;
     const rgbPalette = palette.map(hexToRgbFloat);
     const vertexData = new Float32Array(scaledCount * 7);
 
     /* Offload tính toán vật lý sang Web Worker nếu được phép (PHẦN 2.4) */
+    let workerAliveCount = scaledCount;
     const worker = capabilities.useOffscreenWorker ? createInlineParticleWorker() : null;
     if (worker) {
       const initCopy = new Float32Array(buffer);
@@ -155,6 +160,9 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
       worker.onmessage = (e) => {
         if (e.data?.type === 'FRAME' && e.data.buffer) {
           buffer = new Float32Array(e.data.buffer);
+          if (typeof e.data.alive === 'number') {
+            workerAliveCount = e.data.alive;
+          }
         }
       };
     }
@@ -168,7 +176,7 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
       const dtMs = Math.min(48, Math.max(4, now - lastTime));
       lastTime = now;
 
-      let aliveCount = scaledCount;
+      let aliveCount = workerAliveCount;
       if (worker) {
         worker.postMessage({ type: 'STEP', dtMs });
       } else {
@@ -222,7 +230,8 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
         }
       }
 
-      if (mode === 'confetti' && !worker && aliveCount === 0) {
+      if (mode === 'confetti' && aliveCount === 0) {
+        if (ctx2d) ctx2d.clearRect(0, 0, width, height);
         running = false;
         canvas.style.willChange = 'auto';
         return;
@@ -236,10 +245,8 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
       running = false;
       if (rafId) cancelAnimationFrame(rafId);
       if (worker) worker.terminate();
+      if (ctx2d) ctx2d.clearRect(0, 0, width, height);
       canvas.style.willChange = 'auto';
-      if (gl) {
-        gl.getExtension('WEBGL_lose_context')?.loseContext();
-      }
     };
   }, [trigger, palette, baseCount, mode, capabilities.particleScale, capabilities.useOffscreenWorker, profile.prefersReducedMotion]);
 

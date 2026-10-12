@@ -90,6 +90,10 @@ export const resolveUserDecorations = (
     const id = user.equippedDecorations?.[slot];
     if (id && owned.has(id) && isDecorationId(id)) out[slot] = id;
   }
+  /* Không cho phép mang 2 viền avatar (Khung + Hào quang) cùng một lúc. */
+  if (out.avatar_frame && out.avatar_aura) {
+    out.avatar_aura = null;
+  }
   void pool;
   return out;
 };
@@ -99,10 +103,12 @@ export const useUserDecorations = (user: Pick<User, 'inventory' | 'equippedDecor
   const { items, byId } = useDecorationCatalog();
   return useMemo(() => {
     const slots = resolveUserDecorations(user, items);
+    const frameItem = slots.avatar_frame ? byId.get(slots.avatar_frame) || null : null;
+    const auraItem = !frameItem && slots.avatar_aura ? byId.get(slots.avatar_aura) || null : null;
     return {
       slots,
-      frame: slots.avatar_frame ? byId.get(slots.avatar_frame) || null : null,
-      aura: slots.avatar_aura ? byId.get(slots.avatar_aura) || null : null,
+      frame: frameItem,
+      aura: auraItem,
       nameplate: slots.nameplate ? byId.get(slots.nameplate) || null : null,
     };
   }, [user, items, byId]);
@@ -110,12 +116,20 @@ export const useUserDecorations = (user: Pick<User, 'inventory' | 'equippedDecor
 
 /* ---- Năng lực trình duyệt ---- */
 
+const detectWebmAlphaSupport = (): boolean => {
+  if (typeof navigator === 'undefined') return true;
+  const ua = navigator.userAgent || '';
+  const isIOS = /iP(hone|ad|od)/i.test(ua) || /CriOS|FxiOS/i.test(ua);
+  const isRealSafari = /Safari/i.test(ua) && !/Chrome|Chromium|Edg|OPR|Brave|Vivaldi|Firefox/i.test(ua);
+  return !isIOS && !isRealSafari;
+};
+
 const cachedFeatures: { webp: boolean; webmAlpha: boolean } | null =
   typeof document !== 'undefined'
     ? {
         webp: typeof document.createElement !== 'function' ? false : document.createElement('canvas').toDataURL('image/webp').indexOf('data:image/webp') === 0,
-        /* VP9 alpha không có API chuẩn — Safari/iOS chắc chắn không hỗ trợ, Chrome/Firefox/Edge hỗ trợ. */
-        webmAlpha: !/iP(hone|ad|od)/.test(navigator.userAgent) && !/CriOS|FxiOS|Safari/.test(navigator.userAgent),
+        /* VP9 alpha: Chrome/Edge/Brave/Opera/Firefox hỗ trợ; Safari/iOS không hỗ trợ. */
+        webmAlpha: detectWebmAlphaSupport(),
       }
     : null;
 

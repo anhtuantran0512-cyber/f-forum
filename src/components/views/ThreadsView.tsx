@@ -4,10 +4,11 @@
    5 reaction toggle, repost simple/quote, report auto-hide (≥5/1h),
    rate limit 10 thread/giờ (server), Thread of the Day banner (Mascot Cú). */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Heart, Laugh, Flame, Zap, HandHeart, ImagePlus, Send,
   Repeat2, Flag, Trash2, MessageSquareQuote, X, Users,
-  AlertTriangle, Sparkles, Search, Hash, Image as ImageIcon, Clock, TrendingUp,
+  Sparkles, Search, Hash, Image as ImageIcon, Clock, TrendingUp,
   Bookmark, ZoomIn,
 } from 'lucide-react';
 import type { Thread, ThreadReactionType, User } from '../../types';
@@ -397,9 +398,13 @@ const ThreadCard: React.FC<{
         )}
 
         {showActions && isReplyOpen && (
-          <div className="reply-composer">
+          <div className="reply-composer mt-3 p-4 rounded-2xl bg-[#0b111d] border border-cyan-400/30 space-y-3 shadow-lg">
+            <div className="flex items-center justify-between text-xs text-slate-300">
+              <span className="font-bold text-cyan-300">Phản hồi bài viết của {rootThread.authorName.replace(/ \(.*\)/, '')}</span>
+              <span className="font-mono text-slate-400">{replyTextValue.length}/{THREAD_MAX_CHARS} ký tự</span>
+            </div>
             <textarea
-              rows={2}
+              rows={3}
               maxLength={THREAD_MAX_CHARS}
               value={replyTextValue}
               onChange={(e) => setReplyTextValue(e.target.value)}
@@ -410,81 +415,160 @@ const ThreadCard: React.FC<{
                 }
               }}
               placeholder="Viết phản hồi của cậu… (Ctrl + Enter để gửi nhanh)"
-              className="reply-input"
+              className="reply-input w-full min-h-[88px] rounded-xl bg-[#070b13] border border-white/15 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
             />
-            <div className="reply-composer-foot">
-              <span className="char-count">{replyTextValue.length}/{THREAD_MAX_CHARS}</span>
-              {replyError && <span className="reply-error">{replyError}</span>}
-              <button type="button" onClick={submitReply} className="small-btn cyan">Gửi phản hồi</button>
-              <button type="button" onClick={() => { setIsReplyOpen(false); setReplyError(''); }} className="small-btn subtle">Hủy</button>
+            <div className="reply-composer-foot flex items-center justify-between gap-2 flex-wrap pt-1">
+              {replyError ? <span className="reply-error text-xs text-rose-400">{replyError}</span> : <span className="text-[11px] text-slate-500">Nhấn Ctrl + Enter để đăng nhanh</span>}
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => { setIsReplyOpen(false); setReplyError(''); }} className="small-btn subtle px-3.5 py-1.5 rounded-xl text-xs font-semibold">Hủy</button>
+                <button type="button" onClick={submitReply} className="small-btn cyan px-4 py-1.5 rounded-xl text-xs font-bold">Gửi phản hồi</button>
+              </div>
             </div>
           </div>
         )}
 
         {showActions && isRepostOpen && (
-          <div className="repost-modal">
-            <div className="repost-modal-head">
-              <span className="repost-modal-title">Chọn kiểu chia sẻ lại</span>
-              <button type="button" onClick={() => setIsRepostOpen(false)} className="post-modal-close" title="Đóng">
+          <div className="repost-modal mt-3 p-4 sm:p-5 rounded-2xl bg-[#0b111d] border border-amber-400/35 space-y-3.5 shadow-xl">
+            <div className="repost-modal-head flex items-center justify-between">
+              <span className="repost-modal-title text-sm font-bold text-white">Chia sẻ lại bài viết</span>
+              <button type="button" onClick={() => setIsRepostOpen(false)} className="post-modal-close p-1 rounded-lg hover:bg-white/10" title="Đóng">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="repost-type-row">
-              <button type="button" onClick={() => setRepostMode('simple')} className={`repost-type-btn ${repostMode === 'simple' ? 'active' : ''}`}>
+            <div className="repost-type-row grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setRepostMode('simple')} className={`repost-type-btn py-2 px-3 rounded-xl text-xs font-bold ${repostMode === 'simple' ? 'active' : ''}`}>
                 Chia sẻ đơn giản
               </button>
-              <button type="button" onClick={() => setRepostMode('quote')} className={`repost-type-btn ${repostMode === 'quote' ? 'active' : ''}`}>
-                Trích dẫn + lời
+              <button type="button" onClick={() => setRepostMode('quote')} className={`repost-type-btn py-2 px-3 rounded-xl text-xs font-bold ${repostMode === 'quote' ? 'active' : ''}`}>
+                Trích dẫn kèm lời bình
               </button>
             </div>
             {repostMode === 'quote' && (
               <textarea
-                rows={2}
+                rows={3}
                 maxLength={THREAD_MAX_CHARS}
                 value={quoteText}
                 onChange={(e) => setQuoteText(e.target.value)}
                 placeholder="Thêm lời bình của cậu (tùy chọn)…"
-                className="quote-input"
+                className="quote-input w-full min-h-[88px] rounded-xl bg-[#070b13] border border-white/15 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
               />
             )}
-            <div className="repost-modal-foot">
-              <span className="repost-hint">
-                {repostMode === 'simple' ? 'Thread gốc cho vào feed của cậu nguyên vẹn.' : 'Kèm lời bình của cậu lên đầu.'}
+            <div className="repost-modal-foot flex items-center justify-between gap-3 pt-1">
+              <span className="repost-hint text-xs text-slate-400">
+                {repostMode === 'simple' ? 'Thread gốc cho vào bảng tin của cậu nguyên vẹn.' : 'Đính kèm lời bình của cậu lên đầu bài viết.'}
               </span>
-              <button type="button" onClick={repostMode === 'simple' ? submitSimpleRepost : submitQuoteRepost} className="small-btn amber">
-                {repostMode === 'simple' ? 'Đăng lại' : 'Đăng lời trích'}
+              <button type="button" onClick={repostMode === 'simple' ? submitSimpleRepost : submitQuoteRepost} className="small-btn amber px-4 py-2 rounded-xl text-xs font-bold shrink-0">
+                {repostMode === 'simple' ? 'Đăng lại ngay' : 'Đăng lời trích'}
               </button>
             </div>
           </div>
         )}
 
-        {isReportOpen && (
-          <div className="repost-modal">
-            <div className="repost-modal-head">
-              <span className="repost-modal-title"><AlertTriangle className="w-4 h-4 inline text-amber-400" /> Báo cáo vi phạm</span>
-              <button type="button" onClick={() => { setIsReportOpen(false); setReportReason(''); }} className="post-modal-close" title="Đóng">
-                <X className="w-4 h-4" />
-              </button>
+        {isReportOpen && typeof document !== 'undefined' && createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Báo cáo bài viết vi phạm"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setIsReportOpen(false);
+                setReportReason('');
+              }
+            }}
+            className="fixed inset-0 z-[130] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-fade-up"
+          >
+            <div className="w-full max-w-xl rounded-3xl bg-[#0b111e] border border-rose-500/40 shadow-[0_28px_80px_rgba(0,0,0,0.9)] overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/[0.02]">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-9 h-9 rounded-xl bg-rose-500/15 border border-rose-400/35 flex items-center justify-center text-rose-300">
+                    <Flag className="w-4 h-4" />
+                  </span>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white">Báo cáo bài viết vi phạm</h3>
+                    <p className="text-xs text-slate-400">Bài viết của {rootThread.authorName.replace(/ \(.*\)/, '')}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setIsReportOpen(false); setReportReason(''); }}
+                  className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] text-slate-300 hover:text-white cursor-pointer"
+                  title="Đóng"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-xs text-slate-300 line-clamp-2">
+                  <span className="text-slate-400 font-semibold mr-1.5">Nội dung bài viết:</span>
+                  "{rootThread.content}"
+                </div>
+
+                <div className="space-y-2">
+                  <span className="block text-xs font-bold text-slate-200">Chọn nhanh nhóm vi phạm:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      'Ngôn từ xúc phạm / Gây gổ bạn học',
+                      'Spam / Quảng cáo / Lừa đảo',
+                      'Nội dung phản cảm / Không phù hợp',
+                      'Thông tin sai sự thật / Quấy rối',
+                    ].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setReportReason(preset)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                          reportReason === preset
+                            ? 'bg-rose-500/20 border-rose-400 text-rose-100'
+                            : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-slate-300'
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <label className="font-bold text-slate-200">Mô tả chi tiết vi phạm (*):</label>
+                    <span className="font-mono text-slate-400">{reportReason.length}/500</span>
+                  </div>
+                  <textarea
+                    rows={4}
+                    maxLength={500}
+                    value={reportReason}
+                    onChange={(e) => setReportReason(e.target.value)}
+                    placeholder="Mô tả cụ thể vi phạm bạn nhìn thấy để Ban Quản Trị kiểm tra và xử lý..."
+                    className="w-full min-h-[110px] rounded-2xl bg-[#070b13] border border-white/15 px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-400 leading-relaxed resize-y"
+                  />
+                </div>
+
+                <p className="text-xs text-slate-400 bg-rose-500/10 border border-rose-500/25 rounded-xl px-3.5 py-2.5">
+                  Bài viết nhận từ 5 báo cáo hợp lệ trong 1 giờ sẽ tự động tạm ẩn khỏi bảng tin để chờ Ban Quản Trị xét duyệt.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 px-6 py-4 border-t border-white/10 bg-white/[0.02]">
+                <button
+                  type="button"
+                  onClick={() => { setIsReportOpen(false); setReportReason(''); }}
+                  className="px-4 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs font-bold text-slate-300 hover:text-white cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="button"
+                  disabled={!reportReason.trim()}
+                  onClick={() => { viewModel.onReport(rootThread.id, reportReason.trim()); setIsReportOpen(false); setReportReason(''); }}
+                  className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white text-xs font-extrabold shadow-lg cursor-pointer"
+                >
+                  Gửi báo cáo vi phạm
+                </button>
+              </div>
             </div>
-            <textarea
-              rows={2}
-              maxLength={500}
-              value={reportReason}
-              onChange={(e) => setReportReason(e.target.value)}
-              placeholder="Mô tả vi phạm cậu nhìn thấy (bắt buộc)…"
-              className="quote-input"
-            />
-            <div className="repost-modal-foot">
-              <span className="repost-hint">5 báo cáo trong 1 giờ → thread tự ẩn khỏi feed chờ Admin xử lý.</span>
-              <button
-                type="button"
-                onClick={() => { viewModel.onReport(rootThread.id, reportReason.trim()); setIsReportOpen(false); setReportReason(''); }}
-                className="small-btn red"
-              >
-                Gửi báo cáo
-              </button>
-            </div>
-          </div>
+          </div>,
+          document.body,
         )}
       </div>
 

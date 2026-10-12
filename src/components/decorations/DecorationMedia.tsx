@@ -41,15 +41,24 @@ export const DecorationMedia = ({
   const animated = !!asset.isAnimated && !!asset.animatedAssetUrl;
   const baseCanAnimate = animated && enabled && animate && !reducedMotion && supportsWebmAlpha();
   const withinBudget = useMemo(
-    () => (baseCanAnimate ? animationBudget.acquire(instanceId, isOwnPriority) : true),
-    [baseCanAnimate, instanceId, isOwnPriority],
+    () => (baseCanAnimate ? animationBudget.acquire(instanceId, true) : true),
+    [baseCanAnimate, instanceId],
   );
 
-  const useVideo = baseCanAnimate && (isOwnPriority || withinBudget);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const useVideo = baseCanAnimate && (isOwnPriority || withinBudget) && !videoFailed;
   const isActiveInViewport = useActiveInViewport(videoRef, useVideo);
 
+  const adaptiveSet = useVideo
+    ? buildAdaptiveVideoSources(asset.animatedAssetUrl, tier)
+    : null;
+  const videoUrl = adaptiveSet?.primaryUrl || null;
+  const directVideoUrl = asset.animatedAssetUrl ? resolveAssetUrl(asset.animatedAssetUrl) : null;
+  const [blobUrl] = useCachedAsset(directVideoUrl || videoUrl, Boolean(useVideo && (directVideoUrl || videoUrl)));
+  const activeVideoSrc = blobUrl || directVideoUrl || videoUrl;
+
   useEffect(() => {
-    if (!baseCanAnimate || !isActiveInViewport) {
+    if (!useVideo || !isActiveInViewport) {
       animationBudget.release(instanceId);
       const vid = videoRef.current;
       if (vid && !vid.paused) {
@@ -61,7 +70,7 @@ export const DecorationMedia = ({
       }
       return;
     }
-    const granted = animationBudget.acquire(instanceId, isOwnPriority);
+    const granted = animationBudget.acquire(instanceId, true);
     const vid = videoRef.current;
     if (vid && (isOwnPriority || granted) && vid.paused) {
       vid.play().catch(() => {});
@@ -69,56 +78,42 @@ export const DecorationMedia = ({
     return () => {
       animationBudget.release(instanceId);
     };
-  }, [baseCanAnimate, isActiveInViewport, instanceId, isOwnPriority, tier]);
-
-  const [videoFailed, setVideoFailed] = useState(false);
-  const adaptiveSet = useVideo && !videoFailed
-    ? buildAdaptiveVideoSources(asset.animatedAssetUrl, tier)
-    : null;
-  const videoUrl = adaptiveSet?.primaryUrl || null;
-  const [blobUrl] = useCachedAsset(videoUrl, !!videoUrl);
+  }, [useVideo, isActiveInViewport, activeVideoSrc, instanceId, isOwnPriority, tier]);
 
   if (!enabled) {
     return <div className={className} aria-hidden="true" />;
   }
-  /* Blob WebM CHƯA SẴN (đang tải) hoặc tải lỗi → hiện ảnh tĩnh chất lượng cao ngay:
-     không để thẻ video rỗng (src undefined) vô hình — asset luôn thấy được. */
-  if (useVideo && !blobUrl) {
-    const stillUrl = asset.fullAssetUrl ? resolveAssetUrl(asset.fullAssetUrl) : null;
-    if (!stillUrl) return null;
-    return (
-      <img
-        className={className}
-        src={stillUrl}
-        alt=""
-        aria-hidden="true"
-        decoding="async"
-        loading={isOwnPriority ? 'eager' : 'lazy'}
-        fetchPriority={fetchPriorityAttr}
-        style={{ width: '100%', height: '100%' }}
-      />
-    );
-  }
-  if (useVideo) {
+  const stillUrl = asset.fullAssetUrl ? resolveAssetUrl(asset.fullAssetUrl) : null;
+
+  const handleVideoLoadedData = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    if (isActiveInViewport && e.currentTarget.paused) {
+      e.currentTarget.play().catch(() => {});
+    }
+  };
+  const handleVideoError = () => setVideoFailed(true);
+
+  if (useVideo && activeVideoSrc) {
     return (
       <video
         ref={videoRef}
         className={className}
-        src={blobUrl || undefined}
+        src={activeVideoSrc}
+        poster={stillUrl || undefined}
         data-quality={capabilities.videoQuality}
         autoPlay
         loop
         muted
         playsInline
-        preload="metadata"
+        preload={isOwnPriority ? 'auto' : 'metadata'}
         aria-hidden="true"
         style={{ width: '100%', height: '100%' }}
-        onError={() => setVideoFailed(true)}
+        onError={handleVideoError}
+        onLoadedData={handleVideoLoadedData}
       >
         {adaptiveSet?.sources.map((source) => (
           <source
             key={source.quality}
-            src={blobUrl || source.src}
+            src={activeVideoSrc || source.src}
             media={source.media}
             type={source.type}
           />
@@ -126,7 +121,6 @@ export const DecorationMedia = ({
       </video>
     );
   }
-  const stillUrl = asset.fullAssetUrl ? resolveAssetUrl(asset.fullAssetUrl) : null;
   if (!stillUrl) return null;
   return (
     <img
