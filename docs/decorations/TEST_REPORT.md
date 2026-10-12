@@ -7,8 +7,8 @@ Ngày: 2026-10-12 · Branch: `arena/62613a87-f-forum` · Cơ sở: `670848e` (ma
 | Hạng mục | Kết quả |
 |---|---|
 | `npx tsc -b` | ✅ 0 lỗi |
-| `npx oxlint` | ✅ 0 warning / 0 error (218 files) |
-| `npm test` (28 file, Node test runner) | ✅ **333/333 pass** |
+| `npx oxlint` | ✅ 0 warning / 0 error (219 files) |
+| `npm test` (29 file, Node test runner) | ✅ **337/337 pass** |
 | Asset build | ✅ 3.878 file / ~122 MB · 0 lỗi ffmpeg · catalog 873 item |
 | Migration | ⏸ **CHƯA CHẠY** — chỉ dry-run (đợi user chọn phương án A/B) |
 
@@ -100,10 +100,14 @@ Các test liên quan trực tiếp nhiệm vụ 10 (đều PASS trong run cuối
 | `epic4-profile-shop` | Discord-Style Boutique Visual System | grid, rarity-dot, ≤50 char, frame/aura CSS, `gb-discord-preview`, “Trang bị ngay”, combo showcase |
 | `epic5-perf-security` | 19. Lazy-load | mọi `<img>` có `loading=` (kể cả preview unbox mới) |
 | `security-hardening` | 9e. Cửa hàng kiểm tra số dư/sở hữu phía server, chống trừ Coin lặp | mua legacy `pencil_starter` → 200, giá 50 do server quyết; trùng → không trừ lại; equip không sở hữu → 403; không đủ Coin → 402 |
+| `decorations-task10` | 10.1 Catalog: 873 item — schema, file trên disk, preview < 100KB, giá theo rarity | toàn bộ assetPath tồn tại thật, slug kebab-case, giá khớp bảng rarity, isAnimated ⇔ webm |
+| `decorations-task10` | 10.2 Registry: 873 active + slot đúng loại + item SVG cũ vẫn bán | slot frame/aura/nameplate; id decoration lạ đúng hình thức vẫn giữ; id rác bị loại |
+| `decorations-task10` | 10.3 Mua trang trí: 402 đúng giá effectivePrice | thông báo máy chủ khớp giá ưu đãi (tuần + flash), không phải giá niêm yết |
+| `decorations-task10` | 10.4 + 10.5 Equip theo slot & thông báo in-app | lẫn lộn slot → 400; đúng slot → 200 (frame+aura+nameplate song song); gỡ → null; không sở hữu → 403; notices chỉ của mình + read |
 | `multi-user-sync` | (toàn bộ) | `equippedDecorations` đồng bộ multi-user qua socket |
 | `light-mode-contrast` | (toàn bộ) | adapter light tái sinh (`npm run gen:light`) khớp class mới |
 
-Run cuối: `# tests 333 / pass 333 / fail 0`.
+Run cuối: `# tests 337 / pass 337 / fail 0`.
 
 ## 4. Kiểm tra thủ công cần làm trên máy thật (checklist)
 
@@ -166,5 +170,6 @@ src/components/shop/{GachaBoutique.tsx, Boutique.css}
 src/components/{ProfileModal.tsx, ProfileDropdown.tsx, Navbar.tsx, App.tsx}
 src/components/views/{QAForumView.tsx, LeaderboardWidget.tsx}
 src/store/forumStore.ts                     # notices + equipDecoration
+tests/decorations-task10.test.mjs           # hợp đồng riêng Nv10: catalog + registry + API equip/notices
 docs/decorations/{README.md, ASSET_AUDIT.md, TEST_REPORT.md, screenshots/*}
 ```
