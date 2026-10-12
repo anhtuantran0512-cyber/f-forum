@@ -184,17 +184,22 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
         /* Tự thích nghi theo số lượng nút thực tế (4 nút cho user thường, 5 nút cho Admin):
            chia đều cung 90° (-90° → 0°) và xen kẽ bán kính far/near để:
            1) Không bao giờ để trống hốc ở giữa khi ẩn Bảng thống kê quản trị,
-           2) Nút Streak lửa (idx = 0) luôn vươn lên tầng 'far' (-90°, r=164px), cao hơn hẳn
-              nút kế bên nên không bao giờ bị nút khác hay icon tia sét che khuất. */
+           2) Nút Streak lửa (idx = 0) luôn nằm trong quạt tia sét (ẩn hoàn toàn khi đóng,
+              và bung lên hướng -90° r=164px khi mở). */
         const spanDeg = 90;
         const stepDeg = actions.length > 1 ? spanDeg / (actions.length - 1) : 0;
-        const adaptiveAngle = `${(-90 + idx * stepDeg).toFixed(2)}deg`;
+        const deg = -90 + idx * stepDeg;
+        const adaptiveAngle = `${deg.toFixed(2)}deg`;
         const adaptiveTier: 'near' | 'far' =
           action.id === 'admin'
             ? ('far' as const)
             : idx % 2 === 0
             ? 'far'
             : 'near';
+        const radiusPx = adaptiveTier === 'far' ? 164 : 132;
+        const rad = (deg * Math.PI) / 180;
+        const txPx = `${Math.round(Math.cos(rad) * radiusPx)}px`;
+        const tyPx = `${Math.round(Math.sin(rad) * radiusPx)}px`;
 
         return (
           <button
@@ -205,6 +210,8 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
               {
                 '--i': idx,
                 '--a': adaptiveAngle,
+                '--tx': txPx,
+                '--ty': tyPx,
               } as React.CSSProperties
             }
             onClick={() => {
@@ -228,13 +235,6 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
         title="Tác vụ nhanh (Zap)"
       >
         <Zap className="w-6 h-6 transition-transform duration-300" />
-        <span
-          className="ccm-02__hub-streak pointer-events-none"
-          aria-hidden="true"
-        >
-          <Flame className="w-3.5 h-3.5 text-rose-400 drop-shadow-[0_0_6px_rgba(244,63,94,0.8)]" />
-          {streakCount > 0 && <span>{streakCount > 99 ? '99+' : streakCount}</span>}
-        </span>
       </label>
     </div>
   );

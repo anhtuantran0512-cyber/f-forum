@@ -2428,8 +2428,8 @@ html.light .nav-tab-btn--active .ff-nav-tab-icon {
   pointer-events: auto;
   z-index: 12;
   transform: translate(
-      calc(cos(var(--a)) * var(--ccm-r)),
-      calc(sin(var(--a)) * var(--ccm-r))
+      var(--tx, calc(cos(var(--a)) * var(--ccm-r))),
+      var(--ty, calc(sin(var(--a)) * var(--ccm-r)))
     )
     scale(1);
 }
@@ -2439,33 +2439,6 @@ html.light .nav-tab-btn--active .ff-nav-tab-icon {
 }
 .ccm-02__toggle:checked ~ .ccm-02__hub > svg {
   transform: rotate(135deg);
-}
-.ccm-02__hub-streak {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  min-width: 24px;
-  height: 22px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: linear-gradient(145deg, rgba(24, 13, 18, 0.96), rgba(45, 14, 24, 0.96));
-  border: 1px solid rgba(244, 63, 94, 0.55);
-  box-shadow:
-    0 4px 12px rgba(244, 63, 94, 0.38),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
-  color: #fecdd3;
-  font-size: 10px;
-  font-weight: 800;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  z-index: 14;
-  transition: opacity 0.22s ease, transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.ccm-02__toggle:checked ~ .ccm-02__hub .ccm-02__hub-streak {
-  opacity: 0;
-  transform: scale(0.65);
 }
 .ccm-02__toggle:checked ~ .ccm-02__hub {
   border-color: rgba(34, 211, 238, 0.55);
@@ -2795,7 +2768,7 @@ html.light .popover-morph-enter .bg-white\/10 {
     opacity: 0.9;
   }
   50% {
-    transform: scale(1.025);
+    transform: scale(1.08);
     opacity: 1;
   }
 }
@@ -2804,7 +2777,16 @@ html.light .popover-morph-enter .bg-white\/10 {
     0 0 18px rgba(239, 68, 68, 0.58),
     0 0 34px rgba(225, 29, 72, 0.34),
     inset 0 0 12px rgba(251, 113, 133, 0.28);
-  animation: ffRedFlameAura 2.4s ease-in-out infinite;
+}
+/* QUAN TRỌNG: Không chạy @keyframes transform/opacity trực tiếp lên nút .ccm-02__item,
+   vì animation CSS sẽ ghi đè transform: translate(cos, sin) và opacity: 0 của quạt radial,
+   khiến nút Streak bị kẹt tại tâm (0, 0) đè lên nút Tia Sét. Thay vào đó, chỉ animate
+   icon ngọn lửa SVG bên trong nút khi quạt mở. */
+.ccm-02__item.ff-streak-red-aura {
+  animation: none !important;
+}
+.ccm-02__toggle:checked ~ .ccm-02__item.ff-streak-red-aura > svg {
+  animation: ffRedFlameAura 2.2s ease-in-out infinite;
 }
 
 
