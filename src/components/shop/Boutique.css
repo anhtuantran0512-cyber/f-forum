@@ -1113,8 +1113,8 @@ html.light .tsh-rpg-tip__stat {
   z-index: 4;
 }
 @keyframes orbit {
-  from { transform: rotate(0deg) translateX(45px) rotate(0deg); }
-  to   { transform: rotate(360deg) translateX(45px) rotate(-360deg); }
+  from { transform: rotate(0deg) translateX(var(--orbit-r, 45px)) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(var(--orbit-r, 45px)) rotate(-360deg); }
 }
 
 /* 5. Discord Nitro Live Preview Dock in Shop */
@@ -1192,3 +1192,56 @@ html.light .gb-card__desc-one-line {
 
 
 
+
+/* ==========================================================================
+   Nhiệm vụ 10 — Boutique trang trí Discord import
+   (rarity màu: Common xám · Rare xanh · Epic tím · Mythic vàng; dark theme)
+   ========================================================================== */
+.gb-filters--sub { margin-top: 4px; }
+.gb-filters__divider { width: 1px; align-self: stretch; margin: 2px 4px; background: rgba(255, 255, 255, 0.14); }
+.gb-filters button[data-rarity='mythic'] i { background: #fbbf24; box-shadow: 0 0 8px #fbbf24; }
+
+/* Thẻ: media thật (preview webp + video hover) thay vì icon SVG vẽ tay */
+.gb-card__media {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: contain; pointer-events: none;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.45));
+}
+.gb-card__stage { overflow: visible; }
+
+/* Bộ lọc + tìm kiếm */
+.gb-searchbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 0 10px; }
+.gb-searchbar__field {
+  display: flex; align-items: center; gap: 6px; flex: 1 1 220px; max-width: 340px;
+  padding: 7px 10px; border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.6);
+}
+.gb-searchbar__field input {
+  flex: 1; border: 0; outline: 0; background: transparent;
+  color: #eef5fb; font-size: 12px; min-width: 0;
+}
+.gb-searchbar__field input::placeholder { color: rgba(255, 255, 255, 0.4); }
+.gb-searchbar__sort {
+  padding: 7px 10px; border-radius: 12px; font-size: 12px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); color: #eef5fb;
+}
+.gb-searchbar__count { font-size: 11px; font-family: ui-monospace, monospace; color: rgba(255, 255, 255, 0.5); }
+
+/* Infinite scroll */
+.gb-sentinel { height: 1px; }
+
+/* Nhãn "Động" cho item có animation */
+.gb-tag--anim { color: #ecfccb; background: linear-gradient(135deg, #a3e635, #4ade80); }
+
+/* Try-on dock + hero */
+.gb-discord-preview__avatar { line-height: 0; }
+.gb-hero__avatar { line-height: 0; }
+.gb-discord-preview--mythic .gb-discord-preview__avatar { filter: drop-shadow(0 0 22px rgba(251, 191, 36, 0.35)); }
+
+/* "Xem khi đeo" — mini preview tĩnh 36px */
+.gb-inspect__worn-media { width: 36px; height: 36px; display: block; }
+
+/* Modal 200px: để avatar + khung toả ra, không clip cánh */
+.gb-inspect__stage { overflow: visible; }
+.gb-inspect .awd { display: block; }

@@ -2,7 +2,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomInt } from 'node:crypto';
-import { SHOP_ITEMS, effectivePrice } from '../src/utils/shopData.ts';
+import { effectivePrice, getDynamicDiscounts } from '../src/utils/shopData.ts';
+import {
+  isKnownInventoryId,
+  getShopItemById,
+  getActiveDecorationItems,
+  decorationSlotForId,
+} from './decorationRegistry.ts';
+import { sanitizeEquippedDecorations } from '../src/utils/decorations.ts';
+import type { EquippedDecorations } from '../src/types/index.ts';
 import { dateKeyInTimeZone } from '../shared/dailyTrivia.ts';
 import { GHIBLI_MASKS, getRandomGhibliMask } from '../src/utils/ghibliMasks.ts';
 import {
@@ -99,6 +107,8 @@ export interface UserRecord {
   coin?: number;
   inventory?: string[];
   equippedBadge?: string;
+  /** Nhiệm vụ 10 — slot trang trí Discord {avatar_frame, avatar_aura, nameplate}. */
+  equippedDecorations?: EquippedDecorations;
   bio: string;
   gender?: string;
   city?: string;
@@ -115,6 +125,17 @@ export interface AdminWarningRecord {
   targetEmail: string;
   reason: string;
   by: string;
+}
+
+/** Nhiệm vụ 10 — thông báo in-app (migration, bảo trì…). */
+export interface UserNoticeRecord {
+  id: string;
+  /** email nhận; rỗng = tất cả user. */
+  email: string;
+  title: string;
+  body: string;
+  at: number;
+  readAt: number | null;
 }
 
 /* Thread System v1.0 — bản ghi thread. Lưu JSON store; content tối đa 480 ký tự
@@ -254,6 +275,11 @@ export interface ForumDataStore {
   comments?: any[];
   /** Phase 4.6 — Moderation Logs (snapshot & lý do xóa câu hỏi / lời giải). */
   moderationLogs?: any[];
+  /** Nhiệm vụ 10 — thông báo cho user (vd. kết quả migration). ĐỂ NGOÀI `users`
+   *  vì users được phát công khai qua /api/sync; chỉ đọc qua /api/notices. */
+  userNotices?: UserNoticeRecord[];
+  /** Nhiệm vụ 10 — marker migration đã áp (id → thời điểm ms), chống chạy 2 lần. */
+  migrations?: Record<string, number>;
 }
 
 
@@ -348,6 +374,8 @@ let store: ForumDataStore = {
   threadReports: [],
   comments: [],
   moderationLogs: [],
+  userNotices: [],
+  migrations: {},
   analytics: createEmptyAnalytics(),
   adminWarnings: [],
   dailyRewards: {},
@@ -407,7 +435,6 @@ const asCount = (value: unknown, fallback = 0): number => {
 const asBoundedCount = (value: unknown, fallback: number, max: number): number =>
   Math.min(max, asCount(value, fallback));
 
-const SHOP_ITEM_BY_ID = new Map(SHOP_ITEMS.map((item) => [item.id, item]));
 const MAX_USER_COIN = 10_000_000;
 const MAX_USER_XP = 100_000_000;
 
@@ -530,9 +557,12 @@ function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
     /* Mốc thu hồi phiên là dữ liệu nội bộ (đã chuyển sang store.sessionRevocations). */
     delete safeRaw.sessionsRevokedAt;
     const xp = asBoundedCount(raw.xp, 0, MAX_USER_XP);
+    /* Nhiệm vụ 10: inventory hợp lệ = item SVG cũ + id decoration đúng hình thức
+       (giữ id lạ có hình thức frame-…/nameplate-… để không mất data khi catalog mở rộng). */
     const inventory = Array.isArray(raw.inventory)
-      ? [...new Set(raw.inventory.filter((id: unknown) => typeof id === 'string' && SHOP_ITEM_BY_ID.has(id)))].slice(0, 500)
+      ? [...new Set(raw.inventory.filter((id: unknown) => typeof id === 'string' && id.length <= 96 && isKnownInventoryId(id)))].slice(0, 2000)
       : [];
+    const equippedDecorations = sanitizeEquippedDecorations(raw.equippedDecorations);
     out[email] = {
       ...safeRaw,
       email,
@@ -549,6 +579,7 @@ function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
       coin: asBoundedCount(raw.coin, 100, MAX_USER_COIN),
       streakCount: asBoundedCount(raw.streakCount, 0, 100_000),
       inventory,
+      equippedDecorations,
       equippedBadge: typeof raw.equippedBadge === 'string' && inventory.includes(raw.equippedBadge)
         ? raw.equippedBadge
         : '',
@@ -595,6 +626,41 @@ function sanitizeAdminWarnings(rawWarnings: unknown): AdminWarningRecord[] {
       by: typeof entry.by === 'string' ? entry.by.trim().toLowerCase().slice(0, 120) : '',
     }))
     .filter((entry) => entry.targetEmail && entry.reason);
+}
+
+/* Nhiệm vụ 10 — chuẩn hoá thông báo + marker migration khi nạp từ đĩa. */
+function sanitizeUserNotices(raw: unknown): UserNoticeRecord[] {
+  if (!Array.isArray(raw)) return [];
+  const out: UserNoticeRecord[] = [];
+  const seen = new Set<string>();
+  for (const r of raw) {
+    if (!r || typeof r !== 'object') continue;
+    const id = typeof r.id === 'string' && r.id ? r.id.slice(0, 120) : '';
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const email = typeof r.email === 'string' ? r.email.trim().toLowerCase() : '';
+    out.push({
+      id,
+      email: email.includes('@') ? email : '',
+      title: typeof r.title === 'string' ? r.title.slice(0, 200) : 'Thông báo',
+      body: typeof r.body === 'string' ? r.body.slice(0, 2000) : '',
+      at: typeof r.at === 'number' && Number.isFinite(r.at) && r.at >= 0 ? Math.floor(r.at) : 0,
+      readAt: typeof r.readAt === 'number' && Number.isFinite(r.readAt) && r.readAt >= 0 ? Math.floor(r.readAt) : null,
+    });
+    if (out.length >= 200) break;
+  }
+  return out;
+}
+
+function sanitizeMigrations(raw: unknown): Record<string, number> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out: Record<string, number> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+      out[key.slice(0, 120)] = Math.floor(value);
+    }
+  }
+  return out;
 }
 
 function loadStoreFromDisk() {
@@ -680,6 +746,9 @@ function loadStoreFromDisk() {
           threadReports: sanitizeThreadReports(parsed.threadReports),
           comments: Array.isArray(parsed.comments) ? parsed.comments : [],
           moderationLogs: Array.isArray(parsed.moderationLogs) ? parsed.moderationLogs : [],
+          /* Nhiệm vụ 10 — PHẢI liệt kê ở đây (cùng cảnh báo mất dữ liệu ở trên). */
+          userNotices: sanitizeUserNotices(parsed.userNotices),
+          migrations: sanitizeMigrations(parsed.migrations),
         };
       }
     }
@@ -4126,6 +4195,48 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
+    /* Nhiệm vụ 10 — thông báo in-app (vd. kết quả migration A/B). */
+    if (method === 'GET' && url === '/api/notices') {
+      const actor = authenticatedUser(req);
+      if (!actor) {
+        sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để xem thông báo.' });
+        return;
+      }
+      const notices = (store.userNotices || []).filter(
+        (n) => !n.email || n.email === actor.user.email,
+      );
+      sendJson(res, 200, { success: true, notices });
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/notices/read') {
+      try {
+        const body = await parseJsonBody(req) || {};
+        const actor = authenticatedUser(req, body);
+        if (!actor) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập.' });
+          return;
+        }
+        const ids = Array.isArray(body.ids)
+          ? body.ids.filter((id: unknown) => typeof id === 'string').map((id: string) => id.slice(0, 120))
+          : [];
+        const nowMs = Date.now();
+        let changed = 0;
+        for (const notice of store.userNotices || []) {
+          if (notice.readAt !== null) continue;
+          if (!ids.length || ids.includes(notice.id)) {
+            notice.readAt = nowMs;
+            changed += 1;
+          }
+        }
+        if (changed) persistStoreToDisk();
+        sendJson(res, 200, { success: true, read: changed });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
     if (method === 'POST' && url === '/api/shop/purchase') {
       try {
         const body = await parseJsonBody(req) || {};
@@ -4140,9 +4251,18 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
         const itemId = typeof body.itemId === 'string' ? body.itemId.trim() : '';
-        const item = SHOP_ITEM_BY_ID.get(itemId);
+        /* Nhiệm vụ 10: registry = 35 item SVG cũ (soft-delete) + catalog Discord import. */
+        const item = getShopItemById(itemId);
         if (!item) {
           sendJson(res, 404, { success: false, message: 'Vật phẩm không tồn tại trong cửa hàng.' });
+          return;
+        }
+        /* Epic 4 — giá do catalog + ưu đãi tuần phía MÁY CHỦ quyết định (client không gửi giá). */
+        const price = effectivePrice(item, Date.now());
+        /* Item SVG cũ đã bị soft-delete → ngừng bán, NGOẠI LỆ: item đang nằm trong
+           ưu đãi tuần của tuần hiện tại vẫn mua được đúng giá ưu đãi (khớp nhãn client). */
+        if (item.isActive === false && price === item.price) {
+          sendJson(res, 410, { success: false, message: 'Vật phẩm cũ đã ngừng bán. Xem mục Trang trí mới tại Boutique.' });
           return;
         }
         const inventory = Array.isArray(actor.user.inventory) ? actor.user.inventory : [];
@@ -4151,13 +4271,19 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
         const balance = asBoundedCount(actor.user.coin, 100, MAX_USER_COIN);
-        /* Epic 4 — giá do catalog + ưu đãi tuần phía MÁY CHỦ quyết định (client không gửi giá). */
-        const price = effectivePrice(item, Date.now());
-        if (balance < price) {
-          sendJson(res, 402, { success: false, message: `Bạn cần ${price} Coin; số dư hiện tại là ${balance} Coin.` });
+        /* Nhiệm vụ 10: khung flash 6h cho trang trí Discord import — effectivePrice
+           đã tính min(uưu đãi tuần, flash); khối này là lớp bảo vệ dự phòng. */
+        let chargePrice = price;
+        if (item.originalSource === 'discord_import') {
+          const flash = getDynamicDiscounts(Date.now(), getActiveDecorationItems());
+          const flashEntry = flash.deals[item.id];
+          if (flashEntry && flashEntry.discountedPrice < chargePrice) chargePrice = flashEntry.discountedPrice;
+        }
+        if (balance < chargePrice) {
+          sendJson(res, 402, { success: false, message: `Bạn cần ${chargePrice} Coin; số dư hiện tại là ${balance} Coin.` });
           return;
         }
-        actor.user.coin = balance - price;
+        actor.user.coin = balance - chargePrice;
         actor.user.inventory = [...inventory, itemId];
         persistStoreToDisk();
         broadcastServerEvent('SYNC_USER', actor.user);
@@ -4181,8 +4307,13 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
         const itemId = typeof body.itemId === 'string' ? body.itemId.trim() : '';
+        const slot = typeof body.slot === 'string' && ['avatar_frame', 'avatar_aura', 'nameplate'].includes(body.slot)
+          ? (body.slot as 'avatar_frame' | 'avatar_aura' | 'nameplate')
+          : null;
+
         if (itemId) {
-          if (!SHOP_ITEM_BY_ID.has(itemId)) {
+          const item = getShopItemById(itemId);
+          if (!item) {
             sendJson(res, 404, { success: false, message: 'Vật phẩm không tồn tại trong cửa hàng.' });
             return;
           }
@@ -4190,8 +4321,35 @@ export function setupForumServer(httpServer: any, middlewares: any) {
             sendJson(res, 403, { success: false, message: 'Bạn chưa sở hữu vật phẩm này.' });
             return;
           }
+          if (item.originalSource === 'discord_import') {
+            /* Nhiệm vụ 10 — trang trí Discord: trang bị theo SLOT (khung/hào quang/bảng tên). */
+            const itemSlot = decorationSlotForId(itemId);
+            if (!itemSlot) {
+              sendJson(res, 400, { success: false, message: 'Không xác định được loại trang trí.' });
+              return;
+            }
+            if (slot && slot !== itemSlot) {
+              sendJson(res, 400, { success: false, message: 'Loại trang trí không khớp với slot đã chọn.' });
+              return;
+            }
+            const current: EquippedDecorations = actor.user.equippedDecorations || { avatar_frame: null, avatar_aura: null, nameplate: null };
+            actor.user.equippedDecorations = { ...current, [itemSlot]: itemId };
+          } else {
+            /* Hệ SVG cũ — giữ nguyên hành vi equippedBadge (chưa migration). */
+            if (slot) {
+              sendJson(res, 400, { success: false, message: 'Vật phẩm cũ không dùng slot trang trí mới.' });
+              return;
+            }
+            actor.user.equippedBadge = itemId;
+          }
+        } else if (slot) {
+          /* Gỡ trang trí: { itemId: '', slot } */
+          const current: EquippedDecorations = actor.user.equippedDecorations || { avatar_frame: null, avatar_aura: null, nameplate: null };
+          actor.user.equippedDecorations = { ...current, [slot]: null };
+        } else {
+          /* Giữ tương thích client cũ: { itemId: '' } → gỡ badge. */
+          actor.user.equippedBadge = '';
         }
-        actor.user.equippedBadge = itemId;
         persistStoreToDisk();
         broadcastServerEvent('SYNC_USER', actor.user);
         sendJson(res, 200, { success: true, user: actor.user });

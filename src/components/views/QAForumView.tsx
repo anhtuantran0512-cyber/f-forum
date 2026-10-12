@@ -56,6 +56,7 @@ import {
   getRandomGhibliMask,
 } from '../../utils/ghibliMasks';
 import { DEFAULT_AVATAR, handleImageError, handleVideoError } from '../../utils/mediaFallback';
+import { DecoratedAvatar } from '../decorations/DecoratedAvatar';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
 import { capsHas, useAdminCaps } from '../../utils/adminCapabilities';
 import { pushNotification } from '../../utils/notifications';
@@ -338,6 +339,26 @@ const QuickReactionRow: React.FC<{
   );
 };
 
+/* Nhiệm vụ 10 — tìm user record (có inventory + equippedDecorations) để render
+   trang trí của người khác; không tìm thấy → null (không lộ trang trí). */
+const findDecorationOwner = (
+  users: Record<string, User> | undefined,
+  authorEmail: string | null | undefined,
+  authorId?: string,
+): User | null => {
+  if (!users) return null;
+  if (authorEmail) {
+    const byEmail = users[authorEmail.toLowerCase()];
+    if (byEmail) return byEmail;
+  }
+  if (authorId) {
+    for (const u of Object.values(users)) {
+      if (u.id === authorId) return u;
+    }
+  }
+  return null;
+};
+
 const CommentThread: React.FC<{
   commentableType: QACommentableType;
   commentableId: string;
@@ -345,7 +366,9 @@ const CommentThread: React.FC<{
   currentUser: User | null;
   onSubmitComment?: (commentableType: QACommentableType, commentableId: string, content: string) => void | Promise<boolean>;
   onOpenLoginModal?: () => void;
-}> = ({ commentableType, commentableId, comments, currentUser, onSubmitComment, onOpenLoginModal }) => {
+  /** Nhiệm vụ 10 — sổ đăng ký user (/api/sync) để resolve trang trí của tác giả. */
+  users?: Record<string, User>;
+}> = ({ commentableType, commentableId, comments, currentUser, onSubmitComment, onOpenLoginModal, users }) => {
   const [expanded, setExpanded] = useState(false);
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -396,16 +419,15 @@ const CommentThread: React.FC<{
           ) : (
             threadComments.map((c) => (
               <div key={c.id} className="p-2 rounded-xl bg-black/30 border border-white/5 text-xs flex items-start gap-2">
-                <img
-                  src={c.authorAvatar || DEFAULT_AVATAR}
-                  alt={c.authorName}
-                  onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                  loading="lazy"
-                  decoding="async"
-                  width={20}
-                  height={20}
-                  className="w-5 h-5 rounded-full object-cover border border-white/15 shrink-0 mt-0.5"
-                />
+                {/* Nhiệm vụ 10 — 32px, animation tắt (list dài, tiết kiệm CPU).
+                   Không có authorEmail (ẩn danh) → avatar thường, không lộ trang trí. */}
+                <span className="shrink-0 mt-0.5">
+                  <DecoratedAvatar
+                    user={c.authorEmail ? findDecorationOwner(users, c.authorEmail, c.authorId) : null}
+                    size={32}
+                    animate={false}
+                  />
+                </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-bold text-neutral-200 text-[11px]">{c.authorName}</span>
@@ -2650,6 +2672,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       currentUser={currentUser}
                       onSubmitComment={onAddComment}
                       onOpenLoginModal={onOpenLoginModal}
+                      users={users}
                     />
 
                     <ForumPostModeration
@@ -2739,17 +2762,13 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               title="Xem hồ sơ người giải bài"
                             >
                               <div className="relative">
-                                <img
-                                  src={solverAvatar}
-                                  alt={solverName}
-                                  onError={e => handleImageError(e, DEFAULT_AVATAR)}
-                                  loading="lazy"
-                                  decoding="async"
-                                  width={28}
-                                  height={28}
-                                  className={`w-7 h-7 rounded-full object-cover ${
-                                    isSuperAdminSolver ? 'border border-amber-400' : ''
-                                  }`}
+                                {/* Nhiệm vụ 10 — 32px + trang trí Discord (animation tắt);
+                                    Super Admin giả mạo → avatar thường. */}
+                                <DecoratedAvatar
+                                  user={isSuperAdminSolver ? null : findDecorationOwner(users, sol.authorEmail, sol.authorId)}
+                                  size={32}
+                                  animate={false}
+                                  className={isSuperAdminSolver ? 'ring-2 ring-amber-400' : undefined}
                                 />
                                 <span className="absolute -bottom-1 -right-1">
                                   <TierBadge level={isSuperAdminSolver ? 150 : sol.authorLevel} size={14} showTooltip={false} />
@@ -2861,6 +2880,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             currentUser={currentUser}
                             onSubmitComment={onAddComment}
                             onOpenLoginModal={onOpenLoginModal}
+                            users={users}
                           />
                         </div>
                       );
@@ -3305,13 +3325,13 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
             <div className="flex items-center gap-2.5 pb-2.5 border-b border-white/10 pr-5">
               <div className="relative shrink-0">
-                <img loading="lazy" decoding="async"
-                  src={activeAuthorPopover.avatar}
+                {/* Nhiệm vụ 10 — 40px + trang trí Discord (nếu tác giả có trang bị). */}
+                <DecoratedAvatar
+                  user={findDecorationOwner(users, activeAuthorPopover.email, activeAuthorPopover.id)}
+                  size={40}
+                  animate={false}
                   alt={activeAuthorPopover.name}
-                  onError={e => handleImageError(e, DEFAULT_AVATAR)}
-                  width={42}
-                  height={42}
-                  className="w-10 h-10 rounded-full object-cover border border-amber-400/60 shadow-md"
+                  className="rounded-full ring-1 ring-amber-400/60 shadow-md"
                 />
                 <span className="absolute -bottom-1 -right-1">
                   <TierBadge level={activeAuthorPopover.level} size={16} showTooltip={false} />

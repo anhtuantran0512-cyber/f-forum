@@ -53,6 +53,11 @@ export interface User {
   bannerUrl?: string;
   profileGradient?: string;
   stats?: UserStats;
+  /**
+   * Trang trí Discord (Nhiệm vụ 10) — 3 slot, server sở hữu:
+   * id trong inventory của user, null/undefined = đang để trống slot.
+   */
+  equippedDecorations?: EquippedDecorations;
 }
 
 export type ClubCategory = 'Công nghệ' | 'Nghệ thuật' | 'Thể thao' | 'Học thuật';
@@ -252,6 +257,21 @@ export interface FeedbackSubmission {
 
 export type ShopTierColor = 'green' | 'blue' | 'red' | 'purple';
 
+/** Loại asset của item shop (Nhiệm vụ 10). */
+export type ShopAssetType = 'svg_custom' | 'image_static' | 'image_animated';
+
+/** Loại trang trí Discord import. */
+export type DecorationType = 'avatar_frame' | 'avatar_aura' | 'nameplate';
+
+export type DecorationRarity = 'common' | 'rare' | 'epic' | 'mythic';
+
+/** 3 slot trang trí trên hồ sơ (server sở hữu, client không tự gán). */
+export interface EquippedDecorations {
+  avatar_frame?: string | null;
+  avatar_aura?: string | null;
+  nameplate?: string | null;
+}
+
 export interface ShopItem {
   id: string;
   name: string;
@@ -259,9 +279,27 @@ export interface ShopItem {
   tierColor: ShopTierColor;
   description: string;
   iconType: string;
-  category?: 'Khung avatar' | 'Hiệu ứng' | 'Theme Focus' | 'Góc hồ sơ';
+  category?: 'Khung avatar' | 'Hiệu ứng' | 'Theme Focus' | 'Góc hồ sơ' | 'Avatar Frame' | 'Avatar Aura' | 'Nameplate';
   /** Ngày phát hành (YYYY-MM-DD, giờ VN) — dùng cho nhãn "Mới". */
   addedAt?: string;
+  /* ===== Nhiệm vụ 10: asset thật (Discord import) ===== */
+  assetType?: ShopAssetType;
+  /** Preview 128px (webp/png) — url gốc tuyệt đối /assets/... (client gắn BASE_URL). */
+  previewUrl?: string | null;
+  /** Ảnh tĩnh full (webp) làm fallback cho bản động. */
+  fullAssetUrl?: string | null;
+  /** WebM VP9 alpha — null nếu item tĩnh. */
+  animatedAssetUrl?: string | null;
+  /** Nguồn gốc: 'discord_import' (Nhiệm vụ 10) hoặc 'fforum_svg' (hệ cũ). */
+  originalSource?: 'discord_import' | 'fforum_svg';
+  rarity?: DecorationRarity;
+  isAnimated?: boolean;
+  /** Item SVG cũ bị soft-delete sau migration — không bán, không hiển thị. */
+  isActive?: boolean;
+  tags?: string[];
+  nameEn?: string;
+  originalName?: string;
+  slug?: string;
 }
 
 export interface ReportSubmission {

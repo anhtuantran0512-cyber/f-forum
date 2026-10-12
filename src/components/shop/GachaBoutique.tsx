@@ -1,14 +1,16 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
- * Gacha Boutique — cửa hàng vật phẩm sưu tầm (Epic 4 · Nhiemvu_4 · Nhiemvu_5).
- *  - Masonry so le theo độ hiếm: Huyền thoại cao nhất → Thường gọn nhất.
- *  - Zero-clutter: thẻ chỉ có icon · tên · giá; mô tả nằm trong tooltip kính mờ trượt lên.
- *  - Nhãn THẬT: "Mới" (phát hành < 30 ngày), "Hot" (nhiều người sở hữu nhất),
- *    "−20%" (ưu đãi tuần — máy chủ trừ đúng giá này).
- *  - Xem trước trước khi mua (bệ xoay 3D theo con trỏ + "xem khi đeo"),
- *    nút Mua nhấn-nảy-bắn tia, hiệu ứng MỞ HỘP sau khi mua (Huyền thoại có âm thanh).
+ * Gacha Boutique — Nhiệm vụ 10: cửa hàng trang trí Discord import.
+ *  - 873 asset thật (khung/hào quang/bảng tên) từ decorations-catalog.json.
+ *  - Thẻ có preview ảnh + VIDEO phát khi hover (rarity: xám/xanh/tím/vàng).
+ *  - Lọc: loại (Avatar Frame | Avatar Aura | Nameplate) + độ hiếm + Có animation/Tĩnh,
+ *    tìm kiếm, sắp xếp; infinite scroll 24 item/lần (KHÔNG tải hết một lúc).
+ *  - Modal xem trước trên avatar THẬT của user (200px) + "Trang bị ngay".
+ *  - Gacha 3 gói, Pity 50/100, giá hiển thị trung thực theo khoảng giá pool.
+ *  - Giữ nguyên hiệu ứng mở hộp, confetti, âm thanh của Epic 4.
  */
 import {
+  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -17,90 +19,93 @@ import {
   type CSSProperties,
   type FC,
   type KeyboardEvent,
-  type PointerEvent,
 } from 'react';
 import {
-  Bookmark,
   Check,
   Clock3,
   Coins,
   Flame,
   Frame,
-  Palette,
+  Search,
   Sparkles,
   Tag,
   X,
 } from 'lucide-react';
-import type { ShopItem } from '../../types';
+import type { EquippedDecorations, ShopItem } from '../../types';
 import {
   GACHA_EPIC_PITY_LIMIT,
   GACHA_MYTHIC_PITY_LIMIT,
   GACHA_POOLS,
-  RARITY_META,
   RARITY_PREMIUM_META,
   effectivePrice,
   formatCountdownHMS,
   getDynamicDiscounts,
   getWeeklyDeal,
   isNewItem,
-  rarityDotClass,
-  rarityFrameClass,
-  rarityOf,
   rollGachaPull,
-  saveEquippedComboSlot,
   type GachaPityState,
   type GachaPoolId,
   type ShopRarity,
 } from '../../utils/shopData';
-import { DEFAULT_AVATAR } from '../../utils/mediaFallback';
+import {
+  DECORATION_RARITIES,
+  DECORATION_RARITY_META,
+  DECORATION_TYPE_META,
+  priceRange,
+  resolveAssetUrl,
+} from '../../utils/decorations';
+import { useDecorationCatalog } from '../../utils/decorationStore';
 import { safeStorage } from '../../utils/storage';
 import { playChime } from '../../utils/audio';
-import { ShopItemSvg } from '../ShopItemSvg';
+import { AvatarWithDecoration, type DecorationAssetRef } from '../decorations/AvatarWithDecoration';
+import { DecorationMedia } from '../decorations/DecorationMedia';
+import { NameplateDisplay } from '../decorations/NameplateDisplay';
+import { DEFAULT_AVATAR } from '../../utils/mediaFallback';
 import { CelebrationBurst } from '../CelebrationBurst';
 import { CuBong } from '../mascot/CuBong';
 import './Boutique.css';
 
 interface GachaBoutiqueProps {
-  items: ShopItem[];
   inventory: string[];
-  equippedId?: string;
+  /** Slot đã trang bị của user (từ server) — đánh dấu "Đang đeo". */
+  equippedDecorations?: EquippedDecorations;
   coin: number;
   /** Số tài khoản đang sở hữu từng vật phẩm (dữ liệu thật) — dùng cho nhãn "Hot". */
   ownership?: Record<string, number>;
   userName: string;
   userAvatar?: string;
-  userKey?: string;
   initialCategoryFilter?: string | null;
-  onComboUpdated?: () => void;
-  /** Xem hồ sơ người khác: chỉ trưng bày, không mua/đeo (máy chủ mua theo token người xem). */
+  /** Xem hồ sơ người khác: chỉ trưng bày, không mua/đeo. */
   readOnly?: boolean;
   onBuy: (item: ShopItem) => Promise<boolean>;
-  onEquip: (itemId: string) => Promise<void> | void;
+  /** Trang bị item vào slot của nó; nextItemId = null để Gỡ slot của item. */
+  onEquip: (item: ShopItem, nextItemId: string | null) => Promise<void> | void;
 }
 
-type Filter =
-  | 'all'
-  | ShopRarity
-  | 'discount'
-  | 'owned'
-  | 'Khung avatar'
-  | 'Hiệu ứng'
-  | 'Theme Focus'
-  | 'Góc hồ sơ';
+type TypeFilter = 'all' | 'Avatar Frame' | 'Avatar Aura' | 'Nameplate';
+type RarityFilter = 'all' | 'common' | 'rare' | 'epic' | 'mythic';
+type MotionFilter = 'all' | 'animated' | 'static';
+type SortMode = 'featured' | 'price-asc' | 'price-desc' | 'newest';
 
-const FILTERS: Array<{ id: Filter; label: string }> = [
+const PAGE_SIZE = 24;
+
+const TYPE_FILTERS: Array<{ id: TypeFilter; label: string }> = [
   { id: 'all', label: 'Tất cả' },
-  { id: 'common', label: 'Common' },
-  { id: 'rare', label: 'Rare' },
-  { id: 'epic', label: 'Epic' },
-  { id: 'legendary', label: 'Mythic' },
-  { id: 'discount', label: 'Đang giảm giá' },
-  { id: 'owned', label: 'Đã sở hữu' },
-  { id: 'Khung avatar', label: 'Khung avatar' },
-  { id: 'Hiệu ứng', label: 'Hiệu ứng' },
-  { id: 'Theme Focus', label: 'Theme Focus' },
-  { id: 'Góc hồ sơ', label: 'Góc hồ sơ' },
+  { id: 'Avatar Frame', label: 'Avatar Frame' },
+  { id: 'Avatar Aura', label: 'Avatar Aura' },
+  { id: 'Nameplate', label: 'Nameplate' },
 ];
+
+const decoRarity = (item: ShopItem): 'common' | 'rare' | 'epic' | 'mythic' => item.rarity || 'common';
+/* CSS Boutique.css dùng bộ class Epic 4 (common/rare/epic/legendary) — mythic map về legendary. */
+const legacyRarityClass = (rarity: 'common' | 'rare' | 'epic' | 'mythic'): 'common' | 'rare' | 'epic' | 'legendary' =>
+  rarity === 'mythic' ? 'legendary' : rarity;
+const itemToAsset = (item: ShopItem): DecorationAssetRef => ({
+  type: item.category === 'Nameplate' ? 'nameplate' : item.category === 'Avatar Aura' ? 'avatar_aura' : 'avatar_frame',
+  fullAssetUrl: item.fullAssetUrl,
+  animatedAssetUrl: item.animatedAssetUrl,
+  isAnimated: !!item.isAnimated && !!item.animatedAssetUrl,
+});
 
 interface GachaHistoryItem {
   id: string;
@@ -112,20 +117,6 @@ interface GachaHistoryItem {
   pulledAt: string;
 }
 
-const ICON_SIZE: Record<ShopRarity, number> = { legendary: 51, epic: 51, rare: 51, common: 51 };
-
-const renderCategoryIcon = (category?: string) => {
-  switch (category) {
-    case 'Khung avatar':
-      return <Frame size={12} />;
-    case 'Hiệu ứng':
-      return <Sparkles size={12} />;
-    case 'Theme Focus':
-      return <Palette size={12} />;
-    default:
-      return <Bookmark size={12} />;
-  }
-};
 const BURST_TONE: Record<ShopRarity, 'gold' | 'emerald' | 'violet' | 'rose'> = {
   common: 'emerald',
   rare: 'violet',
@@ -146,6 +137,17 @@ const formatCountdown = (ms: number): string => {
 const initialsOf = (name: string): string =>
   name.trim().split(/\s+/).slice(-2).map((part) => part[0] || '').join('').toUpperCase() || 'FF';
 
+const renderCategoryIcon = (category?: string) => {
+  switch (category) {
+    case 'Avatar Aura':
+      return <Sparkles size={12} />;
+    case 'Nameplate':
+      return <Tag size={12} />;
+    default:
+      return <Frame size={12} />;
+  }
+};
+
 const makeGachaHistoryEntry = (
   itemId: string,
   itemName: string,
@@ -163,33 +165,42 @@ const makeGachaHistoryEntry = (
 });
 
 export const GachaBoutique: FC<GachaBoutiqueProps> = ({
-  items,
   inventory,
-  equippedId,
+  equippedDecorations,
   coin,
   ownership = {},
   userName,
   userAvatar,
-  userKey,
   initialCategoryFilter = null,
-  onComboUpdated,
   readOnly = false,
   onBuy,
   onEquip,
 }) => {
   const uid = useId().replace(/:/g, '');
-  const [filter, setFilter] = useState<Filter>(() =>
-    initialCategoryFilter ? (initialCategoryFilter as Filter) : 'all',
+  /* Catalog Discord import (fetch + cache) — nguồn item duy nhất của Boutique mới. */
+  const { items, loading: catalogLoading } = useDecorationCatalog();
+  const activeItems = useMemo(() => items.filter((item) => item.isActive !== false), [items]);
+
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>(() =>
+    initialCategoryFilter === 'Avatar Frame' || initialCategoryFilter === 'Avatar Aura' || initialCategoryFilter === 'Nameplate'
+      ? (initialCategoryFilter as TypeFilter)
+      : 'all',
   );
   const [prevInitialFilter, setPrevInitialFilter] = useState<string | null>(initialCategoryFilter);
   if (initialCategoryFilter !== prevInitialFilter) {
     setPrevInitialFilter(initialCategoryFilter);
-    if (initialCategoryFilter) {
-      setFilter(initialCategoryFilter as Filter);
+    if (initialCategoryFilter === 'Avatar Frame' || initialCategoryFilter === 'Avatar Aura' || initialCategoryFilter === 'Nameplate') {
+      setTypeFilter(initialCategoryFilter as TypeFilter);
     }
   }
+  const [rarityFilter, setRarityFilter] = useState<RarityFilter>('all');
+  const [motionFilter, setMotionFilter] = useState<MotionFilter>('all');
+  const [query, setQuery] = useState('');
+  const [sortMode, setSortMode] = useState<SortMode>('featured');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [inspectId, setInspectId] = useState<string | null>(null);
-  const [previewItemId, setPreviewItemId] = useState<string | null>(() => equippedId || items[0]?.id || null);
+  const [previewItemId, setPreviewItemId] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [unboxed, setUnboxed] = useState<ShopItem | null>(null);
   const [burstTick, setBurstTick] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -197,14 +208,136 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
   const [heroIdx, setHeroIdx] = useState(0);
   const [isGachaOpen, setIsGachaOpen] = useState(false);
   const [showOddsModal, setShowOddsModal] = useState(false);
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+  const unboxCtaRef = useRef<HTMLButtonElement | null>(null);
 
-  const equipWithCombo = async (item: ShopItem) => {
-    const key = userKey || userName || 'default';
-    const isCurrentlyEquipped = equippedId === item.id;
-    saveEquippedComboSlot(item.category || 'Khung avatar', isCurrentlyEquipped ? '__none__' : item.id, key);
-    onComboUpdated?.();
-    await onEquip(item.id);
+  const equippedSlotOf = useCallback(
+    (item: ShopItem): string | null => {
+      const slot = item.category === 'Nameplate' ? 'nameplate' : item.category === 'Avatar Aura' ? 'avatar_aura' : 'avatar_frame';
+      return equippedDecorations?.[slot] === item.id ? item.id : null;
+    },
+    [equippedDecorations],
+  );
+
+  /* Đồng hồ đếm ngược 1 giây cho đợt xoay vòng giảm giá 6h (00h, 06h, 12h, 18h). */
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const deal = useMemo(() => getWeeklyDeal(now, activeItems), [now, activeItems]);
+  const dealItem = activeItems.find((item) => item.id === deal.itemId) || null;
+  const dynamicDiscounts = useMemo(() => getDynamicDiscounts(now, activeItems), [now, activeItems]);
+
+  /* Hero Carousel: 6 item Mythic tiêu điểm (xoay vòng hằng tuần theo pool). */
+  const mythicShowcaseItems = useMemo(
+    () => activeItems.filter((item) => decoRarity(item) === 'mythic').slice(0, 6),
+    [activeItems],
+  );
+
+  useEffect(() => {
+    if (mythicShowcaseItems.length <= 1) return undefined;
+    const rot = window.setInterval(() => {
+      setHeroIdx((prev) => (prev + 1) % mythicShowcaseItems.length);
+    }, 5_500);
+    return () => window.clearInterval(rot);
+  }, [mythicShowcaseItems.length]);
+
+  const currentHeroItem =
+    mythicShowcaseItems[heroIdx % Math.max(1, mythicShowcaseItems.length)] || activeItems[0] || null;
+
+  /* "Hot" = 2 vật phẩm được nhiều tài khoản sở hữu nhất (ít nhất 2 người) — không bịa số. */
+  const hotIds = useMemo(() => new Set(
+    Object.entries(ownership)
+      .filter(([, count]) => count >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2)
+      .map(([id]) => id),
+  ), [ownership]);
+
+  const priceRangeLabel = useMemo(() => priceRange(activeItems), [activeItems]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const list = activeItems.filter((item) => {
+      if (typeFilter !== 'all' && item.category !== typeFilter) return false;
+      if (rarityFilter !== 'all' && decoRarity(item) !== rarityFilter) return false;
+      if (motionFilter === 'animated' && !item.isAnimated) return false;
+      if (motionFilter === 'static' && item.isAnimated) return false;
+      if (q && !`${item.name} ${item.nameEn || ''} ${item.tags?.join(' ') || ''}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    const order = (item: ShopItem) => DECORATION_RARITY_META[decoRarity(item)].order;
+    switch (sortMode) {
+      case 'price-asc':
+        return [...list].sort((a, b) => a.price - b.price || order(b) - order(a));
+      case 'price-desc':
+        return [...list].sort((a, b) => b.price - a.price || order(b) - order(a));
+      case 'newest':
+        return [...list].sort((a, b) => (b.addedAt || '').localeCompare(a.addedAt || '') || order(b) - order(a));
+      default:
+        return [...list].sort((a, b) => order(b) - order(a) || b.price - a.price);
+    }
+  }, [activeItems, typeFilter, rarityFilter, motionFilter, query, sortMode]);
+
+  /* Infinite scroll: chỉ render 24 item mỗi nhịp; đổi bộ lọc → reset ở handler (không setState trong effect). */
+  const resetPagination = () => setVisibleCount(PAGE_SIZE);
+
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || visibleCount >= filtered.length) return undefined;
+    if (typeof IntersectionObserver === 'undefined') return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setVisibleCount((count) => count + PAGE_SIZE);
+        }
+      },
+      { rootMargin: '400px' },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [visibleCount, filtered.length]);
+
+  const paged = filtered.slice(0, visibleCount);
+
+  const inspected = inspectId ? activeItems.find((item) => item.id === inspectId) || null : null;
+
+  useEffect(() => {
+    if (!inspected) return undefined;
+    const timer = window.setTimeout(() => closeRef.current?.focus(), 80);
+    return () => window.clearTimeout(timer);
+  }, [inspected]);
+
+  useEffect(() => {
+    if (!unboxed) return undefined;
+    const timer = window.setTimeout(() => unboxCtaRef.current?.focus(), 1300);
+    return () => window.clearTimeout(timer);
+  }, [unboxed]);
+
+  /* Esc chỉ đóng lớp trên cùng của shop, không đóng luôn hồ sơ phía sau. */
+  const swallowEscape = (event: KeyboardEvent<HTMLElement>, close: () => void) => {
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.nativeEvent.stopImmediatePropagation();
+    close();
   };
+
+  const buy = async (item: ShopItem) => {
+    if (busy) return;
+    setBusy(true);
+    const ok = await onBuy(item);
+    setBusy(false);
+    if (!ok) return;
+    setInspectId(null);
+    setUnboxed(item);
+    setBurstTick((tick) => tick + 1);
+    /* Huyền thoại: thêm một tiếng "mở khoá" đúng lúc vật phẩm bay ra khỏi hộp. */
+    if (decoRarity(item) === 'mythic') window.setTimeout(() => playChime('level-up'), 850);
+  };
+
   const [pity, setPity] = useState<GachaPityState>(() => {
     const raw = safeStorage.getItem('fforum_gacha_pity_v1');
     if (raw) {
@@ -235,116 +368,16 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
     }
     return [];
   });
-  const stageRef = useRef<HTMLDivElement>(null);
-  const closeRef = useRef<HTMLButtonElement>(null);
-  const unboxCtaRef = useRef<HTMLButtonElement>(null);
 
-  /* Đồng hồ đếm ngược 1 giây cho đợt xoay vòng giảm giá 6h (00h, 06h, 12h, 18h). */
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1_000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const deal = useMemo(() => getWeeklyDeal(now), [now]);
-  const dealItem = items.find((item) => item.id === deal.itemId) || null;
-  const dynamicDiscounts = useMemo(() => getDynamicDiscounts(now), [now]);
-
-  /* Danh sách vật phẩm Mythic (legendary) cho Hero Banner Carousel xoay vòng */
-  const mythicShowcaseItems = useMemo(
-    () => items.filter((item) => rarityOf(item) === 'legendary'),
-    [items],
-  );
-
-  useEffect(() => {
-    if (mythicShowcaseItems.length <= 1) return undefined;
-    const rot = window.setInterval(() => {
-      setHeroIdx((prev) => (prev + 1) % mythicShowcaseItems.length);
-    }, 5_500);
-    return () => window.clearInterval(rot);
-  }, [mythicShowcaseItems.length]);
-
-  const currentHeroItem =
-    mythicShowcaseItems[heroIdx % Math.max(1, mythicShowcaseItems.length)] || items[0] || null;
-
-  /* "Hot" = 2 vật phẩm được nhiều tài khoản sở hữu nhất (ít nhất 2 người) — không bịa số. */
-  const hotIds = useMemo(() => new Set(
-    Object.entries(ownership)
-      .filter(([, count]) => count >= 2)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 2)
-      .map(([id]) => id),
-  ), [ownership]);
-
-  const sorted = useMemo(() => [...items].sort((a, b) =>
-    RARITY_META[rarityOf(b)].order - RARITY_META[rarityOf(a)].order || b.price - a.price), [items]);
-
-  const visible = sorted.filter((item) => {
-    if (filter === 'all') return true;
-    if (filter === 'owned') return inventory.includes(item.id);
-    if (filter === 'discount') {
-      return Boolean(dynamicDiscounts.deals[item.id]) || item.id === deal.itemId;
-    }
-    return item.category === filter || rarityOf(item) === filter;
-  });
-
-  const inspected = inspectId ? items.find((item) => item.id === inspectId) || null : null;
-
-  useEffect(() => {
-    if (!inspected) return undefined;
-    const timer = window.setTimeout(() => closeRef.current?.focus(), 80);
-    return () => window.clearTimeout(timer);
-  }, [inspected]);
-
-  useEffect(() => {
-    if (!unboxed) return undefined;
-    const timer = window.setTimeout(() => unboxCtaRef.current?.focus(), 1300);
-    return () => window.clearTimeout(timer);
-  }, [unboxed]);
-
-  /* Esc chỉ đóng lớp trên cùng của shop, không đóng luôn hồ sơ phía sau. */
-  const swallowEscape = (event: KeyboardEvent<HTMLElement>, close: () => void) => {
-    if (event.key !== 'Escape') return;
-    event.preventDefault();
-    event.stopPropagation();
-    event.nativeEvent.stopImmediatePropagation();
-    close();
-  };
-
-  const tilt = (event: PointerEvent<HTMLDivElement>) => {
-    const stage = stageRef.current;
-    if (!stage) return;
-    const rect = stage.getBoundingClientRect();
-    const x = (event.clientX - rect.left) / rect.width - 0.5;
-    const y = (event.clientY - rect.top) / rect.height - 0.5;
-    stage.style.setProperty('--gb-rx', `${(-y * 18).toFixed(2)}deg`);
-    stage.style.setProperty('--gb-ry', `${(x * 22).toFixed(2)}deg`);
-  };
-  const resetTilt = () => {
-    stageRef.current?.style.setProperty('--gb-rx', '0deg');
-    stageRef.current?.style.setProperty('--gb-ry', '0deg');
-  };
-
-  const buy = async (item: ShopItem) => {
-    if (busy) return;
-    setBusy(true);
-    const ok = await onBuy(item);
-    setBusy(false);
-    if (!ok) return;
-    setInspectId(null);
-    setUnboxed(item);
-    setBurstTick((tick) => tick + 1);
-    /* Huyền thoại: thêm một tiếng "mở khoá" đúng lúc vật phẩm bay ra khỏi hộp. */
-    if (rarityOf(item) === 'legendary') window.setTimeout(() => playChime('level-up'), 850);
-  };
-
-  /* Phần 3.D — Quay Gacha với hệ thống bảo hiểm Pity 50 (Epic+) / 100 (Mythic) */
+  /* Phần 3.D — Quay Gacha với bảo hiểm Pity 50 (Epic+) / 100 (Mythic) — rút từ pool Discord import. */
   const handleGachaPull = async (poolId: GachaPoolId) => {
     if (busy || readOnly) return;
     const pool = GACHA_POOLS[poolId];
     if (!pool || coin < pool.cost) return;
 
     setBusy(true);
-    const roll = rollGachaPull(poolId, pity);
+    // eslint-disable-next-line react/purity -- Math.random chỉ chạy khi người dùng bấm nút quay
+    const roll = rollGachaPull(poolId, pity, Math.random(), Math.random(), activeItems);
     const ok = await onBuy(roll.item);
     setBusy(false);
     if (!ok) return;
@@ -377,6 +410,13 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
   const remainingToEpic = Math.max(1, GACHA_EPIC_PITY_LIMIT - pity.epicPity);
   const remainingToMythic = Math.max(1, GACHA_MYTHIC_PITY_LIMIT - pity.mythicPity);
 
+  const activePreviewItem =
+    activeItems.find((item) => item.id === previewItemId) ||
+    activeItems.find((item) => equippedSlotOf(item)) ||
+    currentHeroItem ||
+    activeItems[0] ||
+    null;
+
   return (
     <div className="gb-root">
       <header className="gb-head">
@@ -384,7 +424,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           <span className="gb-head__mark" aria-hidden="true"><Sparkles size={16} /></span>
           <div>
             <h3>Gacha Boutique</h3>
-            <p>35 dấu ấn góc học tập · F-Coin</p>
+            <p>{activeItems.length} trang trí Discord import · F-Coin</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -409,9 +449,15 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </div>
       </header>
 
-      {/* PHẦN 3.C.1 — TOP HERO BANNER CAROUSEL SHOWCASING MYTHIC ITEMS */}
+      {catalogLoading && activeItems.length === 0 && (
+        <div className="gb-empty" role="status">
+          <p>Đang tải kho trang trí…</p>
+        </div>
+      )}
+
+      {/* TOP HERO BANNER — 6 MYTHIC TIÊU ĐIỂM */}
       {currentHeroItem && (
-        <section className="gb-hero-carousel" aria-label="Vật phẩm Mythic tiêu điểm">
+        <section className="gb-hero-carousel" aria-label="Trang trí Mythic tiêu điểm">
           <div className="gb-hero-carousel__stars" aria-hidden="true" />
           <div className="gb-hero-carousel__grid">
             <div className="space-y-2">
@@ -421,7 +467,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                   MYTHIC
                 </span>
                 <span className="text-[11px] font-mono text-amber-200/90 px-2.5 py-0.5 rounded-full bg-white/8 border border-white/15">
-                  Danh hiệu: {RARITY_PREMIUM_META.legendary.flairTitle}
+                  {DECORATION_TYPE_META[currentHeroItem.category === 'Nameplate' ? 'nameplate' : currentHeroItem.category === 'Avatar Aura' ? 'avatar_aura' : 'avatar_frame'].label}
                 </span>
               </div>
               <h4 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">
@@ -443,7 +489,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                   <span>Xem thử trên Avatar</span>
                 </button>
                 {mythicShowcaseItems.length > 1 && (
-                  <div className="flex items-center gap-1.5" role="tablist" aria-label="Chuyển vật phẩm Mythic">
+                  <div className="flex items-center gap-1.5" role="tablist" aria-label="Chuyển trang trí Mythic">
                     {mythicShowcaseItems.map((mItem, idx) => (
                       <button
                         key={mItem.id}
@@ -470,8 +516,13 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
               className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/[0.04] border border-white/15 cursor-pointer hover:scale-105 transition-transform"
               title="Bấm để xem trước trên Avatar"
             >
-              <div className="shop-item-icon">
-                <ShopItemSvg type={currentHeroItem.iconType} size={38} />
+              <div className="gb-hero__avatar">
+                <AvatarWithDecoration
+                  avatarUrl={userAvatar || DEFAULT_AVATAR}
+                  decorationAsset={itemToAsset(currentHeroItem)}
+                  size={84}
+                  eager
+                />
               </div>
               <span className="mt-1.5 text-[11px] font-mono font-bold text-amber-300 flex items-center gap-1">
                 <Coins size={12} /> {effectivePrice(currentHeroItem, now).toLocaleString('vi-VN')} Coin
@@ -481,80 +532,47 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </section>
       )}
 
-      {/* DISCORD NITRO-STYLE LIVE AVATAR PREVIEW DOCK */}
-      {(() => {
-        const activePreviewItem =
-          items.find((i) => i.id === previewItemId) ||
-          items.find((i) => i.id === equippedId) ||
-          currentHeroItem ||
-          items[0];
-        if (!activePreviewItem) return null;
-        const pRarity = rarityOf(activePreviewItem);
-        const pMeta = RARITY_PREMIUM_META[pRarity];
+      {/* DIỆN MẠO HIỆN TẠI — TRY-ON DOCK kiểu Discord Nitro */}
+      {activePreviewItem && (() => {
+        const pAsset = itemToAsset(activePreviewItem);
         const pOwned = inventory.includes(activePreviewItem.id);
-        const pEquipped = equippedId === activePreviewItem.id;
+        const pEquipped = !!equippedSlotOf(activePreviewItem);
         const pWeeklyPrice = effectivePrice(activePreviewItem, now);
         const pDynDeal = dynamicDiscounts.deals[activePreviewItem.id];
         const pPrice = pDynDeal ? Math.min(pWeeklyPrice, pDynDeal.discountedPrice) : pWeeklyPrice;
         const pCanAfford = coin >= pPrice;
-        const frameClass = rarityFrameClass(pRarity);
-        const dotClass = rarityDotClass(pRarity);
-
         return (
           <section
-            className={`gb-discord-preview gb-discord-preview--${pRarity === 'legendary' ? 'mythic' : pRarity}`}
-            aria-label="Live Avatar Preview kiểu Discord Nitro"
+            className={`gb-discord-preview gb-discord-preview--${decoRarity(activePreviewItem)}`}
+            aria-label="Diện mạo hiện tại (try-on)"
           >
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-5">
-                {/* Real CSS Frame + Aura + Mythic Orbiting Particles */}
-                <div className="relative flex items-center justify-center w-20 h-20 shrink-0">
-                  <div className={`relative w-16 h-16 rounded-full flex items-center justify-center ${frameClass}`}>
-                    {pRarity === 'legendary' &&
-                      Array.from({ length: 6 }, (_, idx) => (
-                        <span
-                          key={idx}
-                          className="mythic-particle"
-                          style={{ animationDelay: `${(-idx * 4) / 6}s` }}
-                          aria-hidden="true"
-                        />
-                      ))}
-                    <img
-                      src={userAvatar || DEFAULT_AVATAR}
-                      alt={userName}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                    <span
-                      className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#0B0F1A] border border-white/20 flex items-center justify-center shadow-md"
-                      title={activePreviewItem.name}
-                    >
-                      <ShopItemSvg type={activePreviewItem.iconType} size={15} />
-                    </span>
-                  </div>
+                <div className="relative flex items-center justify-center shrink-0">
+                  <AvatarWithDecoration
+                    avatarUrl={userAvatar || DEFAULT_AVATAR}
+                    decorationAsset={pAsset.type === 'nameplate' ? null : pAsset}
+                    size={84}
+                    eager
+                    nameplateAsset={pAsset.type === 'nameplate' ? pAsset : null}
+                    name={userName}
+                    className="gb-discord-preview__avatar"
+                  />
                 </div>
-
                 <div className="min-w-0 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] font-mono uppercase tracking-wider text-white/55">
-                      AVATAR PREVIEW
+                      DIỆN MẠO HIỆN TẠI
                     </span>
                     <span className="gb-rarity-badge-clean">
-                      <span className={`rarity-dot ${dotClass}`} aria-hidden="true" />
-                      {pMeta.tierCode}
+                      <span className="rarity-dot" style={{ background: DECORATION_RARITY_META[decoRarity(activePreviewItem)].color }} aria-hidden="true" />
+                      {DECORATION_RARITY_META[decoRarity(activePreviewItem)].en.toUpperCase()}
                     </span>
+                    {activePreviewItem.isAnimated && <span className="gb-tag gb-tag--anim">Động</span>}
                   </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <strong className="text-sm sm:text-base font-extrabold text-white truncate">
-                      {userName}
-                    </strong>
-                    {pMeta.flairTitle && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gradient-to-r from-amber-500/25 via-pink-500/25 to-purple-500/25 text-amber-200 border border-amber-400/35">
-                        {pMeta.flairTitle}
-                      </span>
-                    )}
-                  </div>
+                  <strong className="text-sm sm:text-base font-extrabold text-white truncate block">
+                    {userName}
+                  </strong>
                   <p className="text-xs text-white/75 truncate max-w-md">
                     Đang thử: <b className="text-white">{activePreviewItem.name}</b> — {activePreviewItem.description}
                   </p>
@@ -566,7 +584,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                   {pOwned ? (
                     <button
                       type="button"
-                      onClick={() => void equipWithCombo(activePreviewItem)}
+                      onClick={() => void onEquip(activePreviewItem, pEquipped ? null : activePreviewItem.id)}
                       className="px-3.5 py-2 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:brightness-110 transition cursor-pointer shadow-md"
                     >
                       {pEquipped ? 'Đang trang bị (Gỡ)' : 'Trang bị ngay'}
@@ -580,14 +598,14 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                     >
                       <Coins size={13} />
                       <span>
-                        {pCanAfford ? `Trang bị ngay (${pPrice.toLocaleString('vi-VN')}C)` : `Thiếu ${(pPrice - coin).toLocaleString('vi-VN')}C`}
+                        {pCanAfford ? `Mua & thử (${pPrice.toLocaleString('vi-VN')}C)` : `Thiếu ${(pPrice - coin).toLocaleString('vi-VN')}C`}
                       </span>
                     </button>
                   )}
-                  {previewItemId && previewItemId !== equippedId && (
+                  {previewItemId && previewItemId !== (equippedSlotOf(activePreviewItem) || '') && (
                     <button
                       type="button"
-                      onClick={() => setPreviewItemId(equippedId || null)}
+                      onClick={() => setPreviewItemId(null)}
                       className="px-3 py-2 rounded-xl text-xs font-semibold text-white/75 bg-white/6 hover:bg-white/12 border border-white/10 transition cursor-pointer"
                     >
                       Hủy
@@ -600,7 +618,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         );
       })()}
 
-      {/* PHẦN 3.D — GACHA SUMMON SANCTUARY & PITY SYSTEM (50 EPIC+ / 100 MYTHIC) */}
+      {/* GACHA SUMMON SANCTUARY & PITY SYSTEM (50 EPIC+ / 100 MYTHIC) */}
       {isGachaOpen && !readOnly && (
         <section className="gb-gacha-deck animate-fade-up" aria-label="Hệ thống quay Gacha và bảo hiểm Pity">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/10">
@@ -612,7 +630,8 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                 </span>
               </h4>
               <p className="text-xs text-white/65 mt-0.5">
-                Tích lũy lượt quay tự động: Đảm bảo từ <strong>Epic+ ở lượt 50</strong> và <strong>Mythic 👑 ở lượt 100</strong>.
+                Mỗi lượt quay trừ Coin đúng giá danh sách của vật phẩm trúng (khoảng giá {priceRangeLabel} Coin).
+                Đảm bảo từ <strong>Epic+ ở lượt 50</strong> và <strong>Mythic 👑 ở lượt 100</strong>.
               </p>
             </div>
             <button
@@ -755,12 +774,12 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </section>
       )}
 
-      {/* PHẦN 3.E — THANH ĐẾM NGƯỢC XOAY VÒNG GIẢM GIÁ 6H (00h, 06h, 12h, 18h) */}
+      {/* THANH ĐẾM NGƯỢC XOAY VÒNG GIẢM GIÁ 6H */}
       <div className="gb-rarity-bar" aria-label="Thông tin đợt giảm giá 6 giờ">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="gb-sale-tag gb-sale-tag--super">🔥 FLASH SALE 6H</span>
           <span className="text-xs text-white/80">
-            Đang giảm giá <b>{dynamicDiscounts.list.length} vật phẩm</b> (10% → 90% OFF)
+            Đang giảm giá <b>{dynamicDiscounts.list.length} trang trí</b> (10% → 90% OFF)
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs font-mono text-amber-300">
@@ -779,49 +798,118 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </button>
       )}
 
-      <div className="gb-filters" role="group" aria-label="Lọc vật phẩm theo độ hiếm">
-        {FILTERS.map((option) => (
+      {/* Bộ lọc: loại trang trí + độ hiếm + animation */}
+      <div className="gb-filters" role="group" aria-label="Lọc trang trí theo loại">
+        {TYPE_FILTERS.map((option) => (
           <button
             key={option.id}
             type="button"
             data-rarity={option.id}
-            aria-pressed={filter === option.id}
-            className={filter === option.id ? 'is-active' : ''}
-            onClick={() => setFilter(option.id)}
+            aria-pressed={typeFilter === option.id}
+            className={typeFilter === option.id ? 'is-active' : ''}
+            onClick={() => { setTypeFilter(option.id); resetPagination(); }}
           >
-            {option.id !== 'all' && option.id !== 'owned' && <i aria-hidden="true" />}
             {option.label}
           </button>
         ))}
       </div>
 
-      {visible.length === 0 ? (
+      <div className="gb-filters gb-filters--sub" role="group" aria-label="Lọc theo độ hiếm và chuyển động">
+        <button
+          type="button"
+          aria-pressed={rarityFilter === 'all'}
+          className={rarityFilter === 'all' ? 'is-active' : ''}
+          onClick={() => { setRarityFilter('all'); resetPagination(); }}
+        >
+          Mọi hiếm
+        </button>
+        {DECORATION_RARITIES.map((rarity) => (
+          <button
+            key={rarity}
+            type="button"
+            data-rarity={rarity}
+            aria-pressed={rarityFilter === rarity}
+            className={rarityFilter === rarity ? 'is-active' : ''}
+            style={{ '--gb-rarity-color': DECORATION_RARITY_META[rarity].color } as CSSProperties}
+            onClick={() => { setRarityFilter(rarity); resetPagination(); }}
+          >
+            <i aria-hidden="true" />
+            {DECORATION_RARITY_META[rarity].label}
+          </button>
+        ))}
+        <span className="gb-filters__divider" aria-hidden="true" />
+        <button type="button" aria-pressed={motionFilter === 'all'} className={motionFilter === 'all' ? 'is-active' : ''} onClick={() => { setMotionFilter('all'); resetPagination(); }}>
+          Mọi loại
+        </button>
+        <button type="button" aria-pressed={motionFilter === 'animated'} className={motionFilter === 'animated' ? 'is-active' : ''} onClick={() => { setMotionFilter('animated'); resetPagination(); }}>
+          Có animation
+        </button>
+        <button type="button" aria-pressed={motionFilter === 'static'} className={motionFilter === 'static' ? 'is-active' : ''} onClick={() => { setMotionFilter('static'); resetPagination(); }}>
+          Tĩnh
+        </button>
+      </div>
+
+      <div className="gb-searchbar" role="search">
+        <div className="gb-searchbar__field">
+          <Search size={13} aria-hidden="true" />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => { setQuery(event.target.value); resetPagination(); }}
+            placeholder="Tìm trang trí (tên, chủ đề…)"
+            aria-label="Tìm trang trí"
+          />
+        </div>
+        <select
+          value={sortMode}
+          onChange={(event) => { setSortMode(event.target.value as SortMode); resetPagination(); }}
+          aria-label="Sắp xếp"
+          className="gb-searchbar__sort"
+        >
+          <option value="featured">Nổi bật</option>
+          <option value="price-asc">Giá: thấp → cao</option>
+          <option value="price-desc">Giá: cao → thấp</option>
+          <option value="newest">Mới nhất</option>
+        </select>
+        <span className="gb-searchbar__count">{filtered.length} trang trí</span>
+      </div>
+
+      {filtered.length === 0 ? (
         <div className="gb-empty">
           <CuBong mood="sleepy" size={96} decorative />
           <p>Kệ này còn trống… Cú Bông ngủ gật luôn rồi. Thử bộ lọc khác nhé!</p>
         </div>
       ) : (
-        <div className="gb-masonry shop-grid" role="list" aria-label="Vật phẩm trong Gacha Boutique">
-          {visible.map((item, index) => {
-            const rarity = rarityOf(item);
-            const rarityPremium = RARITY_PREMIUM_META[rarity];
-            const dotClass = rarityDotClass(rarity);
+        <div className="gb-masonry shop-grid" role="list" aria-label="Trang trí trong Gacha Boutique">
+          {paged.map((item, index) => {
+            const rarity = decoRarity(item);
+            const rarityMeta = DECORATION_RARITY_META[rarity];
             const owned = inventory.includes(item.id);
-            const equipped = equippedId === item.id;
+            const equipped = !!equippedSlotOf(item);
             const weeklyPrice = effectivePrice(item, now);
             const dynDeal = dynamicDiscounts.deals[item.id];
             const price = dynDeal ? Math.min(weeklyPrice, dynDeal.discountedPrice) : weeklyPrice;
             const discountPercent = dynDeal ? dynDeal.percent : (weeklyPrice !== item.price ? deal.percent : 0);
             const onDeal = price !== item.price;
             const tipId = `gb-tip-${uid}-${item.id}`;
+            const showHoverVideo = hoveredId === item.id && item.isAnimated && !!item.animatedAssetUrl;
             return (
-              <div role="listitem" key={item.id} className="gb-cell" style={{ '--i': Math.min(index, 14) } as CSSProperties}>
+              <div role="listitem" key={item.id} className="gb-cell" style={{ '--i': Math.min(index, 14), '--gb-rarity-color': rarityMeta.color, '--gb-rarity-glow': rarityMeta.glow } as CSSProperties}>
                 <button
                   type="button"
-                  className={`gb-card shop-card gb-card--${rarity} ${owned ? 'is-owned' : ''}`}
+                  className={`gb-card gb-card--${legacyRarityClass(rarity)} ${owned ? 'is-owned' : ''}`}
                   aria-describedby={tipId}
-                  aria-label={`${item.name}, ${RARITY_META[rarity].label}, ${owned ? (equipped ? 'đang đeo' : 'đã sở hữu') : `${price} Coin`}. Mở xem trước`}
-                  onMouseEnter={() => setPreviewItemId(item.id)}
+                  aria-label={`${item.name}, ${rarityMeta.label}, ${owned ? (equipped ? 'đang đeo' : 'đã sở hữu') : `${price} Coin`}. Mở xem trước`}
+                  onMouseEnter={() => {
+                    setPreviewItemId(item.id);
+                    setHoveredId(item.id);
+                  }}
+                  onMouseLeave={() => setHoveredId((cur) => (cur === item.id ? null : cur))}
+                  onFocus={() => {
+                    setPreviewItemId(item.id);
+                    setHoveredId(item.id);
+                  }}
+                  onBlur={() => setHoveredId((cur) => (cur === item.id ? null : cur))}
                   onClick={() => {
                     setPreviewItemId(item.id);
                     setInspectId(item.id);
@@ -838,7 +926,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                       </em>
                     )}
                   </span>
-                  {/* Góc phải: 1 icon nhỏ category, hover mới hiện tooltip tên loại */}
+                  {/* Góc phải: icon loại trang trí, hover mới hiện tooltip tên loại */}
                   <span className="gb-card__cat-corner" aria-hidden="true">
                     {renderCategoryIcon(item.category)}
                     <span className="gb-card__cat-tooltip">{item.category}</span>
@@ -846,19 +934,37 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
 
                   <span className="gb-card__stage" aria-hidden="true">
                     <span className="gb-card__aura" />
-                    {rarity === 'legendary' && (
+                    {rarity === 'mythic' && (
                       <span className="gb-card__sparks">
                         {Array.from({ length: 6 }, (_, spark) => <i key={spark} style={{ '--s': spark } as CSSProperties} />)}
                       </span>
                     )}
-                    <span className="shop-item-icon">
-                      <ShopItemSvg type={item.iconType} size={ICON_SIZE[rarity]} className="gb-card__icon" />
-                    </span>
+                    {showHoverVideo && item.animatedAssetUrl ? (
+                      <video
+                        className="gb-card__media"
+                        src={resolveAssetUrl(item.animatedAssetUrl) || undefined}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        onError={(event) => {
+                          (event.currentTarget as HTMLVideoElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <img
+                        className="gb-card__media"
+                        src={resolveAssetUrl(item.previewUrl) || undefined}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    )}
                   </span>
                   <span className="gb-card__meta">
                     <span className="gb-card__rarity">
-                      <span className={`rarity-dot ${dotClass}`} aria-hidden="true" />
-                      {rarityPremium.tierCode}
+                      <span className="rarity-dot" style={{ background: rarityMeta.color }} aria-hidden="true" />
+                      {rarityMeta.en.toUpperCase()}
                     </span>
                     <span className="gb-card__name">{item.name}</span>
                     <span className="gb-card__desc-one-line">{item.description}</span>
@@ -886,16 +992,19 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </div>
       )}
 
+      {visibleCount < filtered.length && (
+        <div ref={sentinelRef} className="gb-sentinel" aria-hidden="true" />
+      )}
+
       {inspected && (() => {
-        const rarity = rarityOf(inspected);
-        const rarityPremium = RARITY_PREMIUM_META[rarity];
-        const dotClass = rarityDotClass(rarity);
-        const frameClass = rarityFrameClass(rarity);
+        const rarity = decoRarity(inspected);
+        const rarityMeta = DECORATION_RARITY_META[rarity];
         const owned = inventory.includes(inspected.id);
-        const equipped = equippedId === inspected.id;
+        const equipped = !!equippedSlotOf(inspected);
         const price = effectivePrice(inspected, now);
         const onDeal = price !== inspected.price;
         const canAfford = coin >= price;
+        const asset = itemToAsset(inspected);
         return (
           <div
             className="gb-inspect"
@@ -905,58 +1014,35 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
             onKeyDown={(event) => swallowEscape(event, () => setInspectId(null))}
           >
             <button type="button" className="gb-inspect__backdrop" aria-label="Đóng xem trước" tabIndex={-1} onClick={() => setInspectId(null)} />
-            <section className={`gb-inspect__panel gb-inspect__panel--${rarity}`}>
+            <section className={`gb-inspect__panel gb-inspect__panel--${legacyRarityClass(rarity)}`} style={{ '--gb-rarity-color': rarityMeta.color } as CSSProperties}>
               <button ref={closeRef} type="button" className="gb-inspect__close" aria-label="Đóng" onClick={() => setInspectId(null)}>
                 <X size={16} />
               </button>
-              <div
-                ref={stageRef}
-                className="gb-inspect__stage flex flex-col items-center justify-center p-4"
-                onPointerMove={tilt}
-                onPointerLeave={resetTilt}
-              >
+              <div className="gb-inspect__stage flex flex-col items-center justify-center p-4">
                 <span className="gb-inspect__halo" aria-hidden="true" />
                 <span className="text-[10px] font-mono uppercase tracking-widest text-white/60 mb-3 z-10">
-                  [AVATAR PREVIEW]
+                  [AVATAR PREVIEW · 200PX]
                 </span>
-                {/* Live Avatar Preview với Frame + Aura + Mythic Orbiting Particles thật */}
-                <div className="relative flex items-center justify-center my-2 z-10">
-                  <div className={`relative w-24 h-24 rounded-full flex items-center justify-center ${frameClass}`}>
-                    {rarity === 'legendary' &&
-                      Array.from({ length: 6 }, (_, spark) => (
-                        <span
-                          key={spark}
-                          className="mythic-particle"
-                          style={{ animationDelay: `${(-spark * 4) / 6}s` }}
-                          aria-hidden="true"
-                        />
-                      ))}
-                    <img
-                      src={userAvatar || DEFAULT_AVATAR}
-                      alt={userName}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                    <span className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#090D16] border border-white/25 flex items-center justify-center shadow-lg">
-                      <ShopItemSvg type={inspected.iconType} size={20} className="gb-inspect__icon" />
-                    </span>
-                  </div>
+                {/* Xem trên avatar THẬT của user, 200px (quy chuẩn 180–256px) */}
+                <div className="relative flex flex-col items-center justify-center my-2 z-10">
+                  <AvatarWithDecoration
+                    avatarUrl={userAvatar || DEFAULT_AVATAR}
+                    decorationAsset={asset.type === 'nameplate' ? null : asset}
+                    size={200}
+                    eager
+                    nameplateAsset={asset.type === 'nameplate' ? asset : null}
+                    name={userName}
+                  />
                 </div>
                 <div className="mt-3 text-center z-10 space-y-1">
                   <div className="text-sm font-extrabold text-white">{userName}</div>
-                  {rarityPremium.flairTitle && (
-                    <div className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gradient-to-r from-amber-500/25 via-pink-500/25 to-purple-500/25 text-amber-200 border border-amber-400/35">
-                      {rarityPremium.flairTitle}
-                    </div>
-                  )}
                 </div>
                 <span className="gb-inspect__pedestal" aria-hidden="true" />
               </div>
               <div className="gb-inspect__info">
-                <span className={`gb-rarity gb-rarity--${rarity}`}>
-                  <span className={`rarity-dot ${dotClass}`} aria-hidden="true" />
-                  {rarityPremium.tierCode} · {RARITY_META[rarity].label}
+                <span className={`gb-rarity gb-rarity--${legacyRarityClass(rarity)}`}>
+                  <span className="rarity-dot" style={{ background: rarityMeta.color }} aria-hidden="true" />
+                  {rarityMeta.en.toUpperCase()} · {rarityMeta.label}
                 </span>
                 <h3 id={`gb-inspect-title-${uid}`}>{inspected.name}</h3>
                 <p className="truncate">{inspected.description}</p>
@@ -966,7 +1052,9 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                   <div className="gb-inspect__chip">
                     <span className="gb-inspect__avatar" aria-hidden="true">{initialsOf(userName)}</span>
                     <b>{userName}</b>
-                    <span className="gb-inspect__worn"><ShopItemSvg type={inspected.iconType} size={20} /></span>
+                    <span className="gb-inspect__worn" aria-hidden="true">
+                      <DecorationMedia asset={asset} enabled className="gb-inspect__worn-media" animate={false} />
+                    </span>
                   </div>
                 </div>
 
@@ -980,14 +1068,14 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                     </div>
                   )}
                   {readOnly ? (
-                    <p className="gb-inspect__readonly">Chỉ chủ hồ sơ mới mua hoặc đeo được vật phẩm này.</p>
+                    <p className="gb-inspect__readonly">Chỉ chủ hồ sơ mới mua hoặc đeo được trang trí này.</p>
                   ) : (
                     <div className="flex items-center gap-2 flex-wrap">
                       {owned ? (
                         <button
                           type="button"
                           className={`gb-buy gb-buy--equip ${equipped ? 'is-on' : ''}`}
-                          onClick={() => void equipWithCombo(inspected)}
+                          onClick={() => void onEquip(inspected, equipped ? null : inspected.id)}
                         >
                           {equipped ? 'Gỡ trang bị' : 'Trang bị ngay'}
                         </button>
@@ -1019,10 +1107,11 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
       })()}
 
       {unboxed && (() => {
-        const rarity = rarityOf(unboxed);
+        const rarity = decoRarity(unboxed);
+        const unboxRarity = legacyRarityClass(rarity);
         return (
           <div
-            className={`gb-unbox gb-unbox--${rarity} ${rarity === 'legendary' ? 'gb-unbox--mythic-shake' : ''}`}
+            className={`gb-unbox gb-unbox--${unboxRarity} ${rarity === 'mythic' ? 'gb-unbox--mythic-shake' : ''}`}
             role="dialog"
             aria-modal="true"
             aria-label={`Đã mở khoá ${unboxed.name}`}
@@ -1035,17 +1124,29 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                 <span className="gb-unbox__body" />
                 <span className="gb-unbox__ribbon" />
               </span>
-              <span className="gb-unbox__item"><ShopItemSvg type={unboxed.iconType} size={118} /></span>
+              <span className="gb-unbox__item">
+                {unboxed.category === 'Nameplate' ? (
+                  <NameplateDisplay asset={itemToAsset(unboxed)} size={180} animate={false} />
+                ) : (
+                  <img
+                    src={resolveAssetUrl(unboxed.previewUrl) || undefined}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    style={{ width: 150, height: 150, objectFit: 'contain' }}
+                  />
+                )}
+              </span>
             </div>
             <p className="gb-unbox__title" role="status">Đã mở khoá!</p>
             <b className="gb-unbox__name">{unboxed.name}</b>
-            <span className={`gb-rarity gb-rarity--${rarity}`}>{RARITY_META[rarity].label}</span>
+            <span className={`gb-rarity gb-rarity--${unboxRarity}`}>{DECORATION_RARITY_META[rarity].label}</span>
             <div className="gb-unbox__actions">
               <button
                 ref={unboxCtaRef}
                 type="button"
                 className="gb-buy gb-buy--equip"
-                onClick={() => { void onEquip(unboxed.id); setUnboxed(null); }}
+                onClick={() => { void onEquip(unboxed, unboxed.id); setUnboxed(null); }}
               >
                 Đeo ngay
               </button>
@@ -1055,7 +1156,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         );
       })()}
 
-      <CelebrationBurst trigger={burstTick} tone={unboxed ? BURST_TONE[rarityOf(unboxed)] : 'gold'} count={unboxed && rarityOf(unboxed) === 'legendary' ? 70 : 44} />
+      <CelebrationBurst trigger={burstTick} tone={unboxed ? BURST_TONE[legacyRarityClass(decoRarity(unboxed))] : 'gold'} count={unboxed && decoRarity(unboxed) === 'mythic' ? 70 : 44} />
     </div>
   );
 };
