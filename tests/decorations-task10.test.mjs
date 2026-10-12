@@ -609,3 +609,33 @@ test('10.12 UI: nút yêu thích, bộ lọc Đã có/Chưa có, bộ lọc lưu
   assert.match(css, /\.gb-collection__switch/, 'CSS bộ lọc sở hữu');
   assert.match(css, /\.gb-collection__rar\[aria-pressed="true"\]/, 'rarity row có trạng thái active');
 });
+
+/* ========================================================================== */
+/* 10.13 — Đợt #3: lọc giá tối đa + chỉ xem yêu thích + xoá bộ lọc           */
+/* ========================================================================== */
+test('10.13 Đợt #3: giá tối đa (giá thật), chip Yêu thích, nút Xoá bộ lọc', () => {
+  const card = fs.readFileSync(path.join(ROOT, 'src', 'components', 'shop', 'GachaBoutique.tsx'), 'utf8');
+  const css = fs.readFileSync(path.join(ROOT, 'src', 'components', 'shop', 'Boutique.css'), 'utf8');
+
+  /* Giá tối đa: lọc theo giá HIỆN HÀNH (min weekly + flash) — khớp giá trên card. */
+  assert.match(card, /const weekly = effectivePrice\(item, now\);/, 'dùng effectivePrice (khớp server)');
+  assert.match(card, /const flash = dynamicDiscounts\.deals\[item\.id\];[\s\S]{0,160}current > Number\(priceMax\)/, 'áp cả flash sale, so với giới hạn');
+  assert.match(card, /if \(wishOnly && !wishlist\.includes\(item\.id\)\) return false;/, 'chip Yêu thích lọc đúng wishlist');
+  assert.match(card, /priceMax, dynamicDiscounts, now/, 'deps memo đầy đủ (không stale)');
+
+  /* UI: 3 mức giá + chip yêu thích có số lượng + nút xoá. */
+  assert.match(card, /<option value="2500">/, 'mức giá 2.500');
+  assert.match(card, /<option value="5000">/, 'mức giá 5.000');
+  assert.match(card, /Yêu thích \(\{wishlist\.length\}\)/, 'chip yêu thích hiện số item');
+  assert.match(card, /aria-pressed={wishOnly}/, 'trạng thái chip đọc được');
+  assert.match(card, /\{hasActiveFilters && \([\s\S]{0,400}Xoá bộ lọc/, 'nút xoá chỉ hiện khi đang lọc');
+  assert.match(card, /const resetAllFilters = \(\) => \{[\s\S]{0,500}setPriceMax\('all'\);[\s\S]{0,200}setQuery\(''\);/, 'reset đủ trạng thái');
+  assert.match(card, /saveFilters\(\{ type: 'all', rarity: 'all', motion: 'all', price: 'all' \}\)/, 'reset đồng bộ localStorage');
+
+  /* Lưu giá tối đa cùng bộ lọc. */
+  assert.match(card, /saveFilters\(\{ price: event\.target\.value \}\)/, 'đổi mức giá được lưu');
+
+  /* CSS: chip yêu thích + nút xoá. */
+  assert.match(css, /\.gb-filters button\.is-wished/, 'CSS chip yêu thích');
+  assert.match(css, /\.gb-searchbar__reset/, 'CSS nút xoá bộ lọc');
+});

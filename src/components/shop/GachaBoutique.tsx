@@ -92,6 +92,8 @@ type TypeFilter = 'all' | 'Avatar Frame' | 'Avatar Aura' | 'Nameplate';
 type RarityFilter = 'all' | 'common' | 'rare' | 'epic' | 'mythic';
 type MotionFilter = 'all' | 'animated' | 'static';
 type SortMode = 'featured' | 'price-asc' | 'price-desc' | 'newest';
+/* Giá tối đa: lọc theo GIÁ THỰC TẾ đang hiển thị (đã trừ flash + ưu đãi tuần). */
+type PriceMaxFilter = 'all' | '2500' | '3500' | '5000';
 
 const PAGE_SIZE = 24;
 
@@ -194,7 +196,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
 
   /* Bộ lọc: nhớ lựa chọn giữa các lần mở Boutique (localStorage). */
   const FILTERS_STORAGE_KEY = 'fforum_boutique_filters_v1';
-  const readSavedFilters = (): Partial<Record<'type' | 'rarity' | 'motion' | 'sort', string>> => {
+  const readSavedFilters = (): Partial<Record<'type' | 'rarity' | 'motion' | 'sort' | 'price', string>> => {
     try {
       const raw = safeStorage.getItem(FILTERS_STORAGE_KEY);
       const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
@@ -229,6 +231,14 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
   );
   /* Sở hữu: mọi item | đã có | chưa có — gắn với mục Bộ sưu tập. */
   const [ownedFilter, setOwnedFilter] = useState<'all' | 'owned' | 'unowned'>('all');
+  /* Giá tối đa (ngân sách Coin) — lưu cùng bộ lọc. */
+  const [priceMax, setPriceMax] = useState<PriceMaxFilter>(
+    savedFilters.price === '2500' || savedFilters.price === '3500' || savedFilters.price === '5000'
+      ? (savedFilters.price as PriceMaxFilter)
+      : 'all',
+  );
+  /* "Chỉ xem yêu thích": duyệt danh sách đã bookmark. */
+  const [wishOnly, setWishOnly] = useState(false);
   const [query, setQuery] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>(
     savedFilters.sort === 'price-asc' || savedFilters.sort === 'price-desc' || savedFilters.sort === 'newest'
@@ -236,7 +246,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
       : 'featured',
   );
   /* Lưu bộ lọc khi đổi (event-driven, không thêm effect riêng). */
-  const saveFilters = useCallback((next: Partial<Record<'type' | 'rarity' | 'motion' | 'sort', string>>) => {
+  const saveFilters = useCallback((next: Partial<Record<'type' | 'rarity' | 'motion' | 'sort' | 'price', string>>) => {
     try {
       const cur = readSavedFilters();
       safeStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({ ...cur, ...next }));
@@ -329,6 +339,13 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
       if (motionFilter === 'static' && item.isAnimated) return false;
       if (ownedFilter === 'owned' && !inventory.includes(item.id)) return false;
       if (ownedFilter === 'unowned' && inventory.includes(item.id)) return false;
+      if (wishOnly && !wishlist.includes(item.id)) return false;
+      if (priceMax !== 'all') {
+        const weekly = effectivePrice(item, now);
+        const flash = dynamicDiscounts.deals[item.id];
+        const current = flash ? Math.min(weekly, flash.discountedPrice) : weekly;
+        if (current > Number(priceMax)) return false;
+      }
       if (q && !`${item.name} ${item.nameEn || ''} ${item.tags?.join(' ') || ''}`.toLowerCase().includes(q)) return false;
       return true;
     });
@@ -347,10 +364,25 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           (a, b) => order(b) - order(a) || (b.qualityScore ?? 0) - (a.qualityScore ?? 0) || b.price - a.price,
         );
     }
-  }, [activeItems, typeFilter, rarityFilter, motionFilter, ownedFilter, inventory, query, sortMode]);
+  }, [activeItems, typeFilter, rarityFilter, motionFilter, ownedFilter, inventory, wishOnly, wishlist, priceMax, dynamicDiscounts, now, query, sortMode]);
 
   /* Infinite scroll: chỉ render 24 item mỗi nhịp; đổi bộ lọc → reset ở handler (không setState trong effect). */
   const resetPagination = () => setVisibleCount(PAGE_SIZE);
+  /* "Xoá bộ lọc": về mặc định (giữ nguyên sắp xếp), đồng bộ localStorage. */
+  const hasActiveFilters =
+    typeFilter !== 'all' || rarityFilter !== 'all' || motionFilter !== 'all' ||
+    ownedFilter !== 'all' || wishOnly || priceMax !== 'all' || query.trim() !== '';
+  const resetAllFilters = () => {
+    setTypeFilter('all');
+    setRarityFilter('all');
+    setMotionFilter('all');
+    setOwnedFilter('all');
+    setWishOnly(false);
+    setPriceMax('all');
+    setQuery('');
+    saveFilters({ type: 'all', rarity: 'all', motion: 'all', price: 'all' });
+    resetPagination();
+  };
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -1000,6 +1032,17 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
             {option.label}
           </button>
         ))}
+        {!readOnly && onToggleWishlist && (
+          <button
+            type="button"
+            aria-pressed={wishOnly}
+            className={wishOnly ? 'is-active is-wished' : ''}
+            onClick={() => { setWishOnly((cur) => !cur); resetPagination(); }}
+            title="Chỉ hiện item đã yêu thích"
+          >
+            <Heart size={11} aria-hidden="true" /> Yêu thích ({wishlist.length})
+          </button>
+        )}
       </div>
 
       <div className="gb-filters gb-filters--sub" role="group" aria-label="Lọc theo độ hiếm và chuyển động">
@@ -1049,6 +1092,17 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           />
         </div>
         <select
+          value={priceMax}
+          onChange={(event) => { setPriceMax(event.target.value as PriceMaxFilter); saveFilters({ price: event.target.value }); resetPagination(); }}
+          aria-label="Giá tối đa"
+          className="gb-searchbar__sort"
+        >
+          <option value="all">Mọi giá</option>
+          <option value="2500">≤ 2.500 Coin</option>
+          <option value="3500">≤ 3.500 Coin</option>
+          <option value="5000">≤ 5.000 Coin</option>
+        </select>
+        <select
           value={sortMode}
           onChange={(event) => { setSortMode(event.target.value as SortMode); saveFilters({ sort: event.target.value }); resetPagination(); }}
           aria-label="Sắp xếp"
@@ -1060,6 +1114,16 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           <option value="newest">Mới nhất</option>
         </select>
         <span className="gb-searchbar__count">{filtered.length} trang trí</span>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            className="gb-searchbar__reset"
+            onClick={resetAllFilters}
+            title="Xoá mọi bộ lọc (giữ nguyên sắp xếp)"
+          >
+            <X size={11} aria-hidden="true" /> Xoá bộ lọc
+          </button>
+        )}
       </div>
 
       {filtered.length === 0 ? (
