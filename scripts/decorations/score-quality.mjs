@@ -40,10 +40,13 @@ const limitFlag = process.argv.find((a) => a.startsWith('--limit='));
 const LIMIT = limitFlag ? Number(limitFlag.split('=')[1]) : 0;
 
 const catalog = JSON.parse(fs.readFileSync(CATALOG_PATH, 'utf8'));
-/* Idempotent: dọn tags do script này quản lý từ run cũ trước khi chấm lại. */
+/* Idempotent: dọn tags do script này quản lý từ run cũ trước khi chấm lại.
+   Ngoại lệ: 'static-content' trên item đã static là DANH SÁCH GỐC (item từng động
+   rồi bị chuyển tĩnh) — item static không được đo lại nên phải giữ tag. */
 const SCRIPT_TAGS = new Set(['static-content', 'low-quality', 'opaque-center']);
 for (const item of catalog.items) {
-  if (Array.isArray(item.tags)) item.tags = item.tags.filter((t) => !SCRIPT_TAGS.has(t));
+  if (!Array.isArray(item.tags)) continue;
+  item.tags = item.tags.filter((t) => !SCRIPT_TAGS.has(t) || (t === 'static-content' && !item.isAnimated));
 }
 const items = catalog.items.slice(0, LIMIT || undefined);
 const isDev = LIMIT > 0;
@@ -215,6 +218,8 @@ for (const item of items) {
     item.isAnimated = false;
     item.assetPath.animated = null;
     item.tags = [...new Set([...(item.tags || []), 'static-content'])];
+    /* Description của pipeline ghi "(động)" — cập nhật cho khớp thực tế. */
+    item.description = (item.description || '').replace(' (động)', ' (tĩnh)');
     staticConverted += 1;
   }
 }
