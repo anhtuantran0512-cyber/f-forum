@@ -231,7 +231,11 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
 
   /* Hero Carousel: 6 item Mythic tiêu điểm (xoay vòng hằng tuần theo pool). */
   const mythicShowcaseItems = useMemo(
-    () => activeItems.filter((item) => decoRarity(item) === 'mythic').slice(0, 6),
+    () =>
+      activeItems
+        .filter((item) => decoRarity(item) === 'mythic')
+        .sort((a, b) => (b.qualityScore ?? 0) - (a.qualityScore ?? 0))
+        .slice(0, 6),
     [activeItems],
   );
 
@@ -276,7 +280,11 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
       case 'newest':
         return [...list].sort((a, b) => (b.addedAt || '').localeCompare(a.addedAt || '') || order(b) - order(a));
       default:
-        return [...list].sort((a, b) => order(b) - order(a) || b.price - a.price);
+        /* Featured: nhóm theo rarity (mythic trên cùng), trong cùng rarity
+           item chất lượng cao hơn (qualityScore) lên trước. */
+        return [...list].sort(
+          (a, b) => order(b) - order(a) || (b.qualityScore ?? 0) - (a.qualityScore ?? 0) || b.price - a.price,
+        );
     }
   }, [activeItems, typeFilter, rarityFilter, motionFilter, query, sortMode]);
 
