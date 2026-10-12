@@ -79,7 +79,7 @@ export const DecorationMedia = ({
         aria-hidden="true"
         loading={isOwnPriority ? 'eager' : 'lazy'}
         fetchPriority={fetchPriorityAttr}
-        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        style={{ width: '100%', height: '100%' }}
       />
     );
   }
@@ -94,7 +94,7 @@ export const DecorationMedia = ({
         muted
         playsInline
         aria-hidden="true"
-        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        style={{ width: '100%', height: '100%' }}
         onError={() => setVideoFailed(true)}
       >
         {adaptiveSet?.sources.map((source) => (
@@ -118,7 +118,7 @@ export const DecorationMedia = ({
       aria-hidden="true"
       loading={isOwnPriority ? 'eager' : 'lazy'}
       fetchPriority={fetchPriorityAttr}
-      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+      style={{ width: '100%', height: '100%' }}
     />
   );
 };

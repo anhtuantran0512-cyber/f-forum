@@ -725,9 +725,18 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                     </span>
                     {activePreviewItem.isAnimated && <span className="gb-tag gb-tag--anim">Động</span>}
                   </div>
-                  <strong className="text-sm sm:text-base font-extrabold text-white truncate block">
-                    {userName}
-                  </strong>
+                  {pAsset.type === 'nameplate' ? (
+                    <div className="py-0.5">
+                      <span className="npd-np" style={{ width: 240, height: 45 }}>
+                        <NameplateDisplay asset={pAsset} size={240} animate eager fill className="npd-np__bg" />
+                        <span className="npd-np__text">{userName}</span>
+                      </span>
+                    </div>
+                  ) : (
+                    <strong className="text-sm sm:text-base font-extrabold text-white truncate block">
+                      {userName}
+                    </strong>
+                  )}
                   <p className="text-xs text-white/75 truncate max-w-md">
                     Đang thử: <b className="text-white">{activePreviewItem.name}</b>
                   </p>
@@ -1365,11 +1374,16 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                 </span>
                 {/* Xem trên avatar THẬT của user, 200px (quy chuẩn 180–256px — context lớn) */}
                 {asset.type === 'nameplate' ? (
-                  <div className="relative flex flex-col items-center justify-center my-2 z-10">
+                  <div className="relative flex flex-col items-center justify-center my-2 z-10 gap-3">
+                    <AvatarWithDecoration
+                      avatarUrl={userAvatar || DEFAULT_AVATAR}
+                      size={92}
+                      eager
+                    />
                     {/* CHUẨN DISCORD: nameplate chỉ tồn tại ở context "Hồ Sơ" —
-                       stage 200px mô phỏng đúng vị trí đó (bảng tên + tên, 1 lần). */}
-                    <span className="npd-np gb-inspect__np" style={{ width: 260 }}>
-                      <NameplateDisplay asset={asset} size={260} animate fill className="npd-np__bg" />
+                       stage 200px mô phỏng đúng vị trí đó (bảng tên + tên căn giữa). */}
+                    <span className="npd-np gb-inspect__np" style={{ width: 268, height: 50 }}>
+                      <NameplateDisplay asset={asset} size={268} animate eager fill className="npd-np__bg" />
                       <span className="npd-np__text">{userName}</span>
                     </span>
                   </div>
@@ -1491,7 +1505,10 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
               </span>
               <span className="gb-unbox__item">
                 {unboxed.category === 'Nameplate' ? (
-                  <NameplateDisplay asset={itemToAsset(unboxed)} size={180} animate={false} />
+                  <span className="npd-np" style={{ width: 212, height: 40 }}>
+                    <NameplateDisplay asset={itemToAsset(unboxed)} size={212} animate={false} eager fill className="npd-np__bg" />
+                    <span className="npd-np__text">{userName}</span>
+                  </span>
                 ) : (
                   <img
                     src={resolveAssetUrl(unboxed.previewUrl) || undefined}

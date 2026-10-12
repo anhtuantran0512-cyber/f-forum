@@ -19,6 +19,8 @@ import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { effectiveCoinBalance, formatCoinBalance } from '../utils/coinDisplay';
 import { PremiumMark } from './PremiumMark';
 import { isMasterAdmin } from '../config/admin';
+import { DecoratedAvatar, DecoratedName } from './decorations/DecoratedAvatar';
+import { useUserDecorations } from '../utils/decorationStore';
 import './shop/Boutique.css';
 
 interface HologramStudentCardProps {
@@ -50,6 +52,8 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
   );
   const avatarRarity = equippedCombo.frame ? rarityOf(equippedCombo.frame) : equippedCombo.highestRarity;
   const avatarFrameClass = rarityFrameClass(avatarRarity);
+  const userDecorations = useUserDecorations(user);
+  const hasDiscordAvatarDeco = !!(userDecorations.frame || userDecorations.aura);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
@@ -186,29 +190,39 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
             {/* Center: Student Avatar & Identity */}
             <div className="relative z-10 flex items-center gap-4 mb-5">
               <div className="relative shrink-0 group/avatar">
-                <div
-                  className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-transform duration-300 group-hover/avatar:scale-105 ${avatarFrameClass}`}
-                >
-                  {avatarRarity === 'legendary' &&
-                    Array.from({ length: 6 }, (_, idx) => (
-                      <span
-                        key={idx}
-                        className="mythic-particle"
-                        style={{ animationDelay: `${(-idx * 4) / 6}s` }}
-                        aria-hidden="true"
-                      />
-                    ))}
-                  <img
-                    src={user.avatar}
+                {hasDiscordAvatarDeco ? (
+                  <DecoratedAvatar
+                    user={user}
+                    size={80}
+                    eager
+                    priority="high"
                     alt={user.name}
-                    onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                    loading="lazy"
-                    decoding="async"
-                    width={80}
-                    height={80}
-                    className="w-full h-full rounded-full object-cover bg-neutral-900"
                   />
-                </div>
+                ) : (
+                  <div
+                    className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-transform duration-300 group-hover/avatar:scale-105 ${avatarFrameClass}`}
+                  >
+                    {avatarRarity === 'legendary' &&
+                      Array.from({ length: 6 }, (_, idx) => (
+                        <span
+                          key={idx}
+                          className="mythic-particle"
+                          style={{ animationDelay: `${(-idx * 4) / 6}s` }}
+                          aria-hidden="true"
+                        />
+                      ))}
+                    <img
+                      src={user.avatar}
+                      alt={user.name}
+                      onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                      loading="lazy"
+                      decoding="async"
+                      width={80}
+                      height={80}
+                      className="w-full h-full rounded-full object-cover bg-neutral-900"
+                    />
+                  </div>
+                )}
                 <div className="absolute -bottom-2 -right-2 drop-shadow-lg z-10">
                   <TierBadge level={user.level} size={28} showTooltip={false} />
                 </div>
@@ -216,12 +230,14 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <h3
-                    className={`text-lg font-bold truncate tracking-tight ${
-                      isSuperAdmin ? 'discord-admin-name' : 'text-white'
-                    }`}
-                  >
-                    {user.name.replace(/ \(.*\)/, '')}
+                  <h3 className="text-lg font-bold tracking-tight text-white flex items-center gap-1.5 min-w-0 max-w-full">
+                    <DecoratedName
+                      user={user}
+                      name={user.name.replace(/ \(.*\)/, '')}
+                      width={216}
+                      eager
+                      showFallbackTag
+                    />
                   </h3>
                   {isSuperAdmin ? (
                     <AdminVerifiedBadge size={16} />

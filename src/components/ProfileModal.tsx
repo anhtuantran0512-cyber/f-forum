@@ -48,8 +48,8 @@ import { GachaBoutique } from './shop/GachaBoutique';
 import { TrophyShelf } from './shop/TrophyShelf';
 import { AvatarWithDecoration, type DecorationAssetRef } from './decorations/AvatarWithDecoration';
 import { DecoratedName } from './decorations/DecoratedAvatar';
-import { useUserDecorations } from '../utils/decorationStore';
-import { DECORATION_RARITY_META } from '../utils/decorations';
+import { useDecorationCatalog, useUserDecorations } from '../utils/decorationStore';
+import { DECORATION_RARITY_META, resolveAssetUrl } from '../utils/decorations';
 import { pushNotification } from '../utils/notifications';
 import { LikeHeartButton } from './LikeHeartButton';
 import { safeStorage } from '../utils/storage';
@@ -367,8 +367,22 @@ const ProfileModalInner: React.FC<{
   /* Nhiệm vụ 10 — trang trí Discord đã trang bị (catalog + inventory của CHÍNH user
      đang xem — hồ sơ người khác cũng hiển thị trang trí của họ qua /api/sync). */
   const userDecorations = useUserDecorations(currentUser);
+  const { items: catalogItems } = useDecorationCatalog();
+  const [quickWardrobeSlot, setQuickWardrobeSlot] = useState<'nameplate' | 'avatar_frame' | 'avatar_aura' | null>(null);
+
+  const ownedDecorationsBySlot = useMemo(() => {
+    const ownedSet = new Set(userInventory);
+    const owned = catalogItems.filter((item) => item.isActive !== false && ownedSet.has(item.id));
+    return {
+      nameplate: owned.filter((item) => item.category === 'Nameplate'),
+      avatar_frame: owned.filter((item) => item.category === 'Avatar Frame'),
+      avatar_aura: owned.filter((item) => item.category === 'Avatar Aura'),
+    };
+  }, [catalogItems, userInventory]);
+
   const decoFrameAsset: DecorationAssetRef | null = userDecorations.frame
     ? {
+        id: userDecorations.frame.id,
         type: 'avatar_frame',
         fullAssetUrl: userDecorations.frame.fullAssetUrl,
         animatedAssetUrl: userDecorations.frame.animatedAssetUrl,
@@ -377,6 +391,7 @@ const ProfileModalInner: React.FC<{
     : null;
   const decoAuraAsset: DecorationAssetRef | null = userDecorations.aura
     ? {
+        id: userDecorations.aura.id,
         type: 'avatar_aura',
         fullAssetUrl: userDecorations.aura.fullAssetUrl,
         animatedAssetUrl: userDecorations.aura.animatedAssetUrl,
@@ -885,216 +900,21 @@ const ProfileModalInner: React.FC<{
                 </div>
 
                 <div className="p-4 sm:p-5 space-y-4">
-                  {/* A. Khối Đầu Trang (Header Thông Tin Cá Nhân — Discord Profile Style) */}
-                  <div className="flex flex-col sm:flex-row items-start justify-between gap-4 pb-4 border-b border-white/10">
-                    <div className="flex items-start gap-4 min-w-0 flex-1">
-                      {/* Avatar 150px — Nhiệm vụ 10: khung/hào quang Discord thật (động),
-                          chưa migration thì giữ render frame SVG cũ. */}
-                      <div
-                        className={`ff-profile__avatar-wrap relative shrink-0 -mt-16 p-1 z-10 ${isOwnProfile ? 'cursor-pointer group' : ''}`}
-                        onClick={() => {
-                          if (isOwnProfile) openShopAtCategory(null);
-                        }}
-                        title={isOwnProfile ? 'Bấm để đổi trang trí trong Boutique' : currentUser.name}
-                      >
-                        {activeDecoAsset ? (
-                          <AvatarWithDecoration
-                            avatarUrl={currentUser.avatar}
-                            frameAsset={decoFrameAsset}
-                            auraAsset={decoAuraAsset}
-                            size={150}
-                            className="ff-profile__avatar"
+                  {/* A. Khối Đầu Trang (Header Thông Tin Cá Nhân — Căn giữa Avatar & Nametag chuẩn chỉnh) */}
+                  <div className="space-y-4 pb-4 border-b border-white/10">
+                    {/* Thanh thao tác góc trên + Avatar 150px căn giữa nổi bật trên Banner */}
+                    <div className="relative flex flex-col items-center text-center">
+                      {/* Right Header Controls: Like Heart Button & Action Buttons */}
+                      <div className="w-full flex items-center justify-end gap-1.5 z-20">
+                        <div className="flex items-center gap-1.5" title="Thả tim cho thành viên này">
+                          <LikeHeartButton
+                            count={profileHeartCount}
+                            liked={likedByMe}
+                            onToggle={handleProfileLike}
+                            disabled={!viewerKey}
                           />
-                        ) : (
-                          <div
-                            className={`relative w-[150px] h-[150px] rounded-full flex items-center justify-center ${activeAvatarFrameClass}`}
-                            style={{ '--orbit-r': '82px' } as React.CSSProperties}
-                          >
-                            {activeAvatarRarity === 'legendary' &&
-                              Array.from({ length: 6 }, (_, idx) => (
-                                <span
-                                  key={idx}
-                                  className="mythic-particle"
-                                  style={{ animationDelay: `${(-idx * 4) / 6}s` }}
-                                  aria-hidden="true"
-                                />
-                              ))}
-                            <img
-                              src={currentUser.avatar}
-                              alt={currentUser.name}
-                              onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                              loading="lazy"
-                              decoding="async"
-                              width={150}
-                              height={150}
-                              className="w-full h-full rounded-full object-cover bg-[#0c1218] shadow-md"
-                            />
-                          </div>
-                        )}
-                        <span className="absolute -bottom-1 -right-1 z-10">
-                          <TierBadge level={currentUser.level} size={22} showTooltip={false} />
-                        </span>
-                      </div>
-
-                      {/* Tên hiển thị, Nhãn vai trò & Mô tả (Bio) — bố cục tách dòng rõ ràng, không đè lên bảng tên */}
-                      <div className="space-y-2 min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2 min-w-0 max-w-full">
-                            {userDecorations.nameplate ? (
-                              <DecoratedName user={currentUser} name={currentUser.name} width={228} />
-                            ) : (
-                              <span className="truncate">{currentUser.name}</span>
-                            )}
-                            {isSuperAdmin && <AdminVerifiedBadge size={16} />}
-                          </h3>
                         </div>
 
-                        {/* Hàng nhãn vai trò & cấp bậc — tách riêng khỏi bảng tên */}
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-teal-500/15 border border-teal-400/30 text-teal-200 text-[11px] font-semibold">
-                            <UserCheck className="w-3 h-3 text-teal-300 shrink-0" />
-                            <span>
-                              {currentUser.role === 'SUPER_ADMIN'
-                                ? 'Quản trị'
-                                : currentUser.role === 'CLUB_LEADER'
-                                ? 'Chủ nhiệm CLB'
-                                : 'Học sinh'}
-                            </span>
-                          </span>
-
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-cyan-500/12 border border-cyan-400/25 text-cyan-200 text-[11px] font-semibold">
-                            <span>{tier.titleVi}</span>
-                            <span className="text-white/40">·</span>
-                            <span className="font-mono text-[10.5px]">Lv.{currentUser.level}</span>
-                          </span>
-
-                          <span
-                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-500/12 border border-amber-400/25 text-amber-300 text-[11px] font-mono font-bold"
-                            title={Number.isFinite(userCoin) ? undefined : 'Siêu quản trị — Coin vô vùng'}
-                          >
-                            <span>{formatCoinBalance(userCoin)} Coin</span>
-                          </span>
-
-                          {equippedCombo.mythicTitle && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-500/15 text-amber-200 border border-amber-400/35">
-                              <span className={`rarity-dot ${rarityDotClass(equippedCombo.highestRarity)}`} aria-hidden="true" />
-                              <span>{equippedCombo.mythicTitle}</span>
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Mô tả cá nhân (Bio) */}
-                        <p className="text-xs text-neutral-300 leading-relaxed line-clamp-2 pt-0.5">
-                          {currentUser.bio || 'Chưa có mô tả'}
-                        </p>
-
-                        {/* 🎨 Đang trang bị — Showcase Khu Vực Trang Bị (Discord Profile Style) */}
-                        <div className="pt-1.5 space-y-1.5" aria-label="Khu vực trang bị đang đeo">
-                          <div className="text-[11px] font-bold text-white/80 flex items-center gap-1.5 flex-wrap">
-                            <span>🎨 Đang trang bị:</span>
-                            {isOwnProfile && (
-                              <button
-                                type="button"
-                                onClick={() => openShopAtCategory(null)}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/35 border border-purple-400/40 text-purple-200 text-[10px] font-bold transition cursor-pointer"
-                              >
-                                <PaletteIcon className="w-3 h-3" /> Thay đổi trang trí
-                              </button>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {/* Nhiệm vụ 10 — 3 slot Discord (Khung / Hào quang / Bảng tên) */}
-                            {[
-                              { slotLabel: 'Khung', slot: 'avatar_frame' as const, item: userDecorations.frame },
-                              { slotLabel: 'Hào quang', slot: 'avatar_aura' as const, item: userDecorations.aura },
-                              { slotLabel: 'Bảng tên', slot: 'nameplate' as const, item: userDecorations.nameplate },
-                            ].map((slot) => {
-                              const rarity = slot.item?.rarity || 'common';
-                              const meta = DECORATION_RARITY_META[rarity];
-                              return (
-                                <span key={slot.slot} className="inline-flex items-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => openShopAtCategory(null)}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] border border-white/12 hover:border-purple-400/45 text-[11px] text-white/90 transition cursor-pointer"
-                                    title={`Mở Boutique · Đổi ${slot.slotLabel}`}
-                                  >
-                                    <span className="rarity-dot" style={{ background: meta.color }} aria-hidden="true" />
-                                    <span className="text-white/55 font-mono">{slot.slotLabel}:</span>
-                                    <strong className="font-bold text-white">
-                                      {slot.item ? slot.item.name : 'Chưa gắn'}
-                                    </strong>
-                                  </button>
-                                  {isOwnProfile && slot.item && onEquipDecoration && (
-                                    <button
-                                      type="button"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        void handleEquipDecoration(slot.slot, null);
-                                      }}
-                                      className="px-1.5 py-1 rounded-lg bg-white/[0.06] hover:bg-red-500/25 border border-white/10 text-[10px] text-white/60 hover:text-red-300 transition cursor-pointer"
-                                      title={`Gỡ ${slot.slotLabel}`}
-                                    >
-                                      Gỡ
-                                    </button>
-                                  )}
-                                </span>
-                              );
-                            })}
-                            {/* Hệ SVG cũ — giữ tới khi migration A/B được áp dụng */}
-                            {[
-                              { slotLabel: 'Theme', category: 'Theme Focus', item: equippedCombo.theme },
-                              { slotLabel: 'Góc hồ sơ', category: 'Góc hồ sơ', item: equippedCombo.corner },
-                            ].map((slot) => {
-                              const slotRarity = slot.item ? rarityOf(slot.item) : 'common';
-                              const dot = slot.item ? rarityDotClass(slotRarity) : 'common';
-                              return (
-                                <span key={slot.category} className="inline-flex items-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => openShopAtCategory(null)}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] border border-white/12 hover:border-purple-400/45 text-[11px] text-white/90 transition cursor-pointer"
-                                    title={`Mở Boutique · Đổi ${slot.category}`}
-                                  >
-                                    <span className={`rarity-dot ${dot}`} aria-hidden="true" />
-                                    <span className="text-white/55 font-mono">{slot.slotLabel}:</span>
-                                    <strong className="font-bold text-white">
-                                      {slot.item ? slot.item.name : 'Chưa gắn'}
-                                    </strong>
-                                  </button>
-                                  {isOwnProfile && slot.item && (
-                                    <button
-                                      type="button"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        void handleEquipItem(slot.item!.id);
-                                      }}
-                                      className="px-1.5 py-1 rounded-lg bg-white/[0.06] hover:bg-red-500/25 border border-white/10 text-[10px] text-white/60 hover:text-red-300 transition cursor-pointer"
-                                      title={`Gỡ ${slot.category}`}
-                                    >
-                                      Gỡ
-                                    </button>
-                                  )}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right Header Controls: Like Heart Button & Action Buttons */}
-                    <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-start">
-                      <div className="flex items-center gap-1.5" title="Thả tim cho thành viên này">
-                        <LikeHeartButton
-                          count={profileHeartCount}
-                          liked={likedByMe}
-                          onToggle={handleProfileLike}
-                          disabled={!viewerKey}
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
                         {!isOwnProfile && (
                           <button
                             type="button"
@@ -1128,6 +948,478 @@ const ProfileModalInner: React.FC<{
                           <span>Chia sẻ</span>
                         </button>
                       </div>
+
+                      {/* Avatar 150px căn giữa — Nhiệm vụ 10: khung/hào quang Discord thật (động) */}
+                      <div
+                        className={`ff-profile__avatar-wrap relative shrink-0 -mt-16 sm:-mt-20 p-1 z-10 mx-auto ${isOwnProfile ? 'cursor-pointer group' : ''}`}
+                        onClick={() => {
+                          if (!isOwnProfile) return;
+                          if (ownedDecorationsBySlot.avatar_frame.length > 0 || ownedDecorationsBySlot.avatar_aura.length > 0) {
+                            setQuickWardrobeSlot((cur) => (cur === 'avatar_frame' ? null : 'avatar_frame'));
+                          } else {
+                            openShopAtCategory('Avatar Frame');
+                          }
+                        }}
+                        title={isOwnProfile ? 'Bấm để đổi nhanh Khung / Hào quang hoặc mở Boutique' : currentUser.name}
+                      >
+                        {activeDecoAsset ? (
+                          <AvatarWithDecoration
+                            avatarUrl={currentUser.avatar}
+                            frameAsset={decoFrameAsset}
+                            auraAsset={decoAuraAsset}
+                            size={150}
+                            eager
+                            priority="high"
+                            className="ff-profile__avatar"
+                          />
+                        ) : (
+                          <div
+                            className={`relative w-[150px] h-[150px] rounded-full flex items-center justify-center ${activeAvatarFrameClass}`}
+                            style={{ '--orbit-r': '82px' } as React.CSSProperties}
+                          >
+                            {activeAvatarRarity === 'legendary' &&
+                              Array.from({ length: 6 }, (_, idx) => (
+                                <span
+                                  key={idx}
+                                  className="mythic-particle"
+                                  style={{ animationDelay: `${(-idx * 4) / 6}s` }}
+                                  aria-hidden="true"
+                                />
+                              ))}
+                            <img
+                              src={currentUser.avatar}
+                              alt={currentUser.name}
+                              onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                              loading="lazy"
+                              decoding="async"
+                              width={150}
+                              height={150}
+                              className="w-full h-full rounded-full object-cover bg-[#0c1218] shadow-md"
+                            />
+                          </div>
+                        )}
+                        <span className="absolute -bottom-1 -right-1 z-10">
+                          <TierBadge level={currentUser.level} size={24} showTooltip={false} />
+                        </span>
+                      </div>
+
+                      {/* Nametag & Tên hiển thị — GÁN TÊN LÊN NAMETAG VÀ CĂN GIỮA TUYỆT ĐỐI */}
+                      <div className="mt-3 flex flex-col items-center justify-center gap-2 w-full max-w-xl mx-auto">
+                        <div className="flex items-center justify-center gap-2 flex-wrap max-w-full">
+                          <h3 className="text-base sm:text-lg font-bold text-white flex items-center justify-center gap-2 min-w-0 max-w-full mx-auto">
+                            <span
+                              onClick={() => {
+                                if (!isOwnProfile) return;
+                                if (ownedDecorationsBySlot.nameplate.length > 0) {
+                                  setQuickWardrobeSlot((cur) => (cur === 'nameplate' ? null : 'nameplate'));
+                                } else {
+                                  openShopAtCategory('Nameplate');
+                                }
+                              }}
+                              className={isOwnProfile ? 'cursor-pointer transition-transform hover:scale-[1.02] inline-flex items-center justify-center' : 'inline-flex items-center justify-center'}
+                              title={isOwnProfile ? 'Bấm vào Nametag để đổi nhanh Bảng tên đã có hoặc mở kho Bảng tên' : currentUser.name}
+                            >
+                              <DecoratedName
+                                user={currentUser}
+                                name={currentUser.name}
+                                width={276}
+                                eager
+                                showFallbackTag
+                              />
+                            </span>
+                            {isSuperAdmin && <AdminVerifiedBadge size={18} />}
+                          </h3>
+                        </div>
+
+                        {/* Hàng nhãn vai trò & cấp bậc — căn giữa đồng bộ dưới Nametag */}
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-teal-500/15 border border-teal-400/30 text-teal-200 text-[11px] font-semibold">
+                            <UserCheck className="w-3 h-3 text-teal-300 shrink-0" />
+                            <span>
+                              {currentUser.role === 'SUPER_ADMIN'
+                                ? 'Quản trị'
+                                : currentUser.role === 'CLUB_LEADER'
+                                ? 'Chủ nhiệm CLB'
+                                : 'Học sinh'}
+                            </span>
+                          </span>
+
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-cyan-500/12 border border-cyan-400/25 text-cyan-200 text-[11px] font-semibold">
+                            <span>{tier.titleVi}</span>
+                            <span className="text-white/40">·</span>
+                            <span className="font-mono text-[10.5px]">Lv.{currentUser.level}</span>
+                          </span>
+
+                          <span
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-500/12 border border-amber-400/25 text-amber-300 text-[11px] font-mono font-bold"
+                            title={Number.isFinite(userCoin) ? undefined : 'Siêu quản trị — Coin vô vùng'}
+                          >
+                            <span>{formatCoinBalance(userCoin)} Coin</span>
+                          </span>
+
+                          {equippedCombo.mythicTitle && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-500/15 text-amber-200 border border-amber-400/35">
+                              <span className={`rarity-dot ${rarityDotClass(equippedCombo.highestRarity)}`} aria-hidden="true" />
+                              <span>{equippedCombo.mythicTitle}</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Mô tả cá nhân (Bio) căn giữa */}
+                        <p className="text-xs text-neutral-300 leading-relaxed line-clamp-2 max-w-lg mx-auto text-center">
+                          {currentUser.bio || 'Chưa có mô tả'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* 🎨 Đang trang bị & Tủ đồ nhanh 1 chạm — Cách sử dụng trực quan */}
+                    <div className="pt-2 space-y-2.5" aria-label="Khu vực trang bị đang đeo">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="text-[11px] font-bold text-white/85 flex items-center gap-2 flex-wrap">
+                          <span>🎨 Đang trang bị:</span>
+                          <span className="px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/10 text-[10px] font-mono text-neutral-300">
+                            {[userDecorations.nameplate, userDecorations.frame, userDecorations.aura].filter(Boolean).length}/3 slot
+                          </span>
+                        </div>
+                        {isOwnProfile && (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setQuickWardrobeSlot((cur) => (cur ? null : 'nameplate'))
+                              }
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[10.5px] font-bold transition cursor-pointer ${
+                                quickWardrobeSlot
+                                  ? 'bg-cyan-500/25 border-cyan-400/50 text-cyan-200'
+                                  : 'bg-white/[0.06] hover:bg-white/[0.12] border-white/15 text-white/85'
+                              }`}
+                            >
+                              <Sparkles className="w-3 h-3 text-cyan-300" />
+                              <span>{quickWardrobeSlot ? 'Đóng tủ đồ nhanh' : 'Đổi nhanh 1 chạm'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openShopAtCategory(null)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/35 border border-purple-400/40 text-purple-200 text-[10.5px] font-bold transition cursor-pointer"
+                            >
+                              <PaletteIcon className="w-3 h-3" /> Thay đổi trang trí
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 3 Slot chính: Bảng tên (Nametag) · Khung Avatar · Hào Quang */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {[
+                          {
+                            slotLabel: 'Bảng tên',
+                            slot: 'nameplate' as const,
+                            shopCategory: 'Nameplate',
+                            item: userDecorations.nameplate,
+                            ownedCount: ownedDecorationsBySlot.nameplate.length,
+                          },
+                          {
+                            slotLabel: 'Khung',
+                            slot: 'avatar_frame' as const,
+                            shopCategory: 'Avatar Frame',
+                            item: userDecorations.frame,
+                            ownedCount: ownedDecorationsBySlot.avatar_frame.length,
+                          },
+                          {
+                            slotLabel: 'Hào quang',
+                            slot: 'avatar_aura' as const,
+                            shopCategory: 'Avatar Aura',
+                            item: userDecorations.aura,
+                            ownedCount: ownedDecorationsBySlot.avatar_aura.length,
+                          },
+                        ].map((slot) => {
+                          const rarity = slot.item?.rarity || 'common';
+                          const meta = DECORATION_RARITY_META[rarity];
+                          const isExpanded = quickWardrobeSlot === slot.slot;
+                          return (
+                            <div
+                              key={slot.slot}
+                              className={`flex items-center justify-between gap-2 p-2 rounded-xl border transition ${
+                                isExpanded
+                                  ? 'bg-cyan-500/10 border-cyan-400/45'
+                                  : 'bg-white/[0.035] hover:bg-white/[0.07] border-white/12'
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!isOwnProfile) {
+                                    openShopAtCategory(slot.shopCategory);
+                                    return;
+                                  }
+                                  if (slot.ownedCount > 0) {
+                                    setQuickWardrobeSlot((cur) => (cur === slot.slot ? null : slot.slot));
+                                  } else {
+                                    openShopAtCategory(slot.shopCategory);
+                                  }
+                                }}
+                                className="flex items-center gap-2 min-w-0 flex-1 text-left cursor-pointer"
+                                title={
+                                  isOwnProfile
+                                    ? slot.ownedCount > 0
+                                      ? `Bấm để chọn nhanh ${slot.slotLabel} đã sở hữu (${slot.ownedCount} món)`
+                                      : `Mở Boutique · Chọn ${slot.slotLabel}`
+                                    : slot.item?.name || slot.slotLabel
+                                }
+                              >
+                                {slot.item?.previewUrl ? (
+                                  <img
+                                    src={resolveAssetUrl(slot.item.previewUrl) || undefined}
+                                    alt=""
+                                    loading="lazy"
+                                    decoding="async"
+                                    width={28}
+                                    height={28}
+                                    className="w-7 h-7 rounded-lg object-cover bg-black/40 border border-white/15 shrink-0"
+                                  />
+                                ) : (
+                                  <span
+                                    className="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 text-[10px] font-mono text-white/55"
+                                    aria-hidden="true"
+                                  >
+                                    {slot.slot === 'nameplate' ? 'TAG' : slot.slot === 'avatar_frame' ? 'FRM' : 'AUR'}
+                                  </span>
+                                )}
+                                <span className="min-w-0 flex-1">
+                                  <span className="flex items-center gap-1.5 text-[10px] font-mono text-white/60">
+                                    <span className="rarity-dot" style={{ background: meta.color }} aria-hidden="true" />
+                                    <span>{slot.slotLabel}:</span>
+                                    {isOwnProfile && slot.ownedCount > 0 && (
+                                      <span className="text-cyan-300">({slot.ownedCount} đã có)</span>
+                                    )}
+                                  </span>
+                                  <strong className="block text-[11.5px] font-bold text-white truncate">
+                                    {slot.item ? slot.item.name : 'Chưa gắn'}
+                                  </strong>
+                                </span>
+                              </button>
+
+                              <div className="flex items-center gap-1 shrink-0">
+                                {isOwnProfile && (
+                                  <button
+                                    type="button"
+                                    onClick={() => openShopAtCategory(slot.shopCategory)}
+                                    className="px-2 py-1 rounded-lg bg-white/[0.06] hover:bg-purple-500/25 border border-white/10 text-[10px] font-semibold text-purple-200 transition cursor-pointer"
+                                    title={`Mở kho ${slot.slotLabel} trong Boutique`}
+                                  >
+                                    Kho
+                                  </button>
+                                )}
+                                {isOwnProfile && slot.item && onEquipDecoration && (
+                                  <button
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      void handleEquipDecoration(slot.slot, null);
+                                    }}
+                                    className="px-1.5 py-1 rounded-lg bg-white/[0.06] hover:bg-red-500/25 border border-white/10 text-[10px] text-white/60 hover:text-red-300 transition cursor-pointer"
+                                    title={`Gỡ ${slot.slotLabel}`}
+                                  >
+                                    Gỡ
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Khay Tủ Đồ Nhanh (Quick Wardrobe) ngay trên Trang Cá Nhân — Gắn/Đổi Nametag & Khung 1 chạm */}
+                      {isOwnProfile && quickWardrobeSlot && (
+                        <div className="pc-12-well p-3 rounded-2xl space-y-2.5 border border-cyan-400/30 animate-fade-up">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {(
+                                [
+                                  { id: 'nameplate', label: 'Bảng tên (Nametag)', count: ownedDecorationsBySlot.nameplate.length },
+                                  { id: 'avatar_frame', label: 'Khung Avatar', count: ownedDecorationsBySlot.avatar_frame.length },
+                                  { id: 'avatar_aura', label: 'Hào Quang', count: ownedDecorationsBySlot.avatar_aura.length },
+                                ] as const
+                              ).map((tab) => (
+                                <button
+                                  key={tab.id}
+                                  type="button"
+                                  onClick={() => setQuickWardrobeSlot(tab.id)}
+                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                                    quickWardrobeSlot === tab.id
+                                      ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                                      : 'bg-white/[0.05] text-neutral-300 hover:text-white'
+                                  }`}
+                                >
+                                  {tab.label} ({tab.count})
+                                </button>
+                              ))}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openShopAtCategory(
+                                  quickWardrobeSlot === 'nameplate'
+                                    ? 'Nameplate'
+                                    : quickWardrobeSlot === 'avatar_aura'
+                                    ? 'Avatar Aura'
+                                    : 'Avatar Frame',
+                                )
+                              }
+                              className="text-[11px] font-semibold text-amber-300 hover:underline cursor-pointer"
+                            >
+                              Mở Boutique xem toàn bộ →
+                            </button>
+                          </div>
+
+                          {ownedDecorationsBySlot[quickWardrobeSlot].length === 0 ? (
+                            <div className="py-3 text-center text-xs text-neutral-300 space-y-2">
+                              <p>Bạn chưa sở hữu vật phẩm nào ở mục này.</p>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openShopAtCategory(
+                                    quickWardrobeSlot === 'nameplate'
+                                      ? 'Nameplate'
+                                      : quickWardrobeSlot === 'avatar_aura'
+                                      ? 'Avatar Aura'
+                                      : 'Avatar Frame',
+                                  )
+                                }
+                                className="px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 text-xs font-extrabold cursor-pointer"
+                              >
+                                Sắm ngay tại Boutique
+                              </button>
+                            </div>
+                          ) : quickWardrobeSlot === 'nameplate' ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 no-scrollbar">
+                              {ownedDecorationsBySlot.nameplate.map((npItem) => {
+                                const isEquipped = userDecorations.nameplate?.id === npItem.id;
+                                return (
+                                  <button
+                                    key={npItem.id}
+                                    type="button"
+                                    onClick={() =>
+                                      void handleEquipDecoration('nameplate', isEquipped ? null : npItem.id)
+                                    }
+                                    className={`flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border transition cursor-pointer ${
+                                      isEquipped
+                                        ? 'bg-emerald-500/15 border-emerald-400/60'
+                                        : 'bg-black/30 hover:bg-white/[0.07] border-white/10'
+                                    }`}
+                                  >
+                                    <DecoratedName
+                                      name={currentUser.name}
+                                      width={216}
+                                      animate={false}
+                                      overrideAsset={{
+                                        id: npItem.id,
+                                        type: 'nameplate',
+                                        fullAssetUrl: npItem.fullAssetUrl,
+                                        animatedAssetUrl: npItem.animatedAssetUrl,
+                                        isAnimated: !!npItem.isAnimated && !!npItem.animatedAssetUrl,
+                                      }}
+                                    />
+                                    <span className="w-full flex items-center justify-between text-[10.5px] px-1">
+                                      <strong className="text-white truncate">{npItem.name}</strong>
+                                      <span className={isEquipped ? 'text-emerald-300 font-bold' : 'text-cyan-300 font-semibold'}>
+                                        {isEquipped ? 'Đang gắn (Bấm để gỡ)' : 'Gắn tên lên bảng này'}
+                                      </span>
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1 no-scrollbar">
+                              {ownedDecorationsBySlot[quickWardrobeSlot].map((decoItem) => {
+                                const equippedId =
+                                  quickWardrobeSlot === 'avatar_frame'
+                                    ? userDecorations.frame?.id
+                                    : userDecorations.aura?.id;
+                                const isEquipped = equippedId === decoItem.id;
+                                return (
+                                  <button
+                                    key={decoItem.id}
+                                    type="button"
+                                    onClick={() =>
+                                      void handleEquipDecoration(
+                                        quickWardrobeSlot,
+                                        isEquipped ? null : decoItem.id,
+                                      )
+                                    }
+                                    className={`flex items-center gap-2 p-2 rounded-xl border text-left transition cursor-pointer ${
+                                      isEquipped
+                                        ? 'bg-emerald-500/15 border-emerald-400/60'
+                                        : 'bg-black/30 hover:bg-white/[0.07] border-white/10'
+                                    }`}
+                                  >
+                                    <img
+                                      src={resolveAssetUrl(decoItem.previewUrl) || undefined}
+                                      alt=""
+                                      loading="lazy"
+                                      decoding="async"
+                                      width={36}
+                                      height={36}
+                                      className="w-9 h-9 rounded-lg object-contain bg-black/40 shrink-0"
+                                    />
+                                    <span className="min-w-0 flex-1">
+                                      <strong className="block text-[11px] text-white truncate">
+                                        {decoItem.name}
+                                      </strong>
+                                      <span className="text-[10px] font-semibold text-cyan-300">
+                                        {isEquipped ? 'Đang đeo' : 'Trang bị'}
+                                      </span>
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Hệ SVG cũ — giữ tới khi migration A/B được áp dụng */}
+                      {(equippedCombo.theme || equippedCombo.corner) && (
+                        <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                          {[
+                            { slotLabel: 'Theme', category: 'Theme Focus', item: equippedCombo.theme },
+                            { slotLabel: 'Góc hồ sơ', category: 'Góc hồ sơ', item: equippedCombo.corner },
+                          ].map((slot) => {
+                            const slotRarity = slot.item ? rarityOf(slot.item) : 'common';
+                            const dot = slot.item ? rarityDotClass(slotRarity) : 'common';
+                            return (
+                              <span key={slot.category} className="inline-flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => openShopAtCategory(null)}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] border border-white/12 hover:border-purple-400/45 text-[11px] text-white/90 transition cursor-pointer"
+                                  title={`Mở Boutique · Đổi ${slot.category}`}
+                                >
+                                  <span className={`rarity-dot ${dot}`} aria-hidden="true" />
+                                  <span className="text-white/55 font-mono">{slot.slotLabel}:</span>
+                                  <strong className="font-bold text-white">
+                                    {slot.item ? slot.item.name : 'Chưa gắn'}
+                                  </strong>
+                                </button>
+                                {isOwnProfile && slot.item && (
+                                  <button
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      void handleEquipItem(slot.item!.id);
+                                    }}
+                                    className="px-1.5 py-1 rounded-lg bg-white/[0.06] hover:bg-red-500/25 border border-white/10 text-[10px] text-white/60 hover:text-red-300 transition cursor-pointer"
+                                    title={`Gỡ ${slot.category}`}
+                                  >
+                                    Gỡ
+                                  </button>
+                                )}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1675,10 +1967,14 @@ const ProfileModalInner: React.FC<{
                     </div>
 
                     <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className={isSuperAdmin ? 'discord-admin-name text-sm' : 'text-sm font-bold text-white'}>
-                          {name || 'Học sinh'}
-                        </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <DecoratedName
+                          user={currentUser}
+                          name={name || 'Học sinh'}
+                          width={236}
+                          eager
+                          showFallbackTag
+                        />
                         {isSuperAdmin && <AdminVerifiedBadge size={14} />}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
