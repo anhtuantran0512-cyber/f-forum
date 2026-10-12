@@ -7,9 +7,10 @@ Ngày: 2026-10-12 · Branch: `arena/62613a87-f-forum` · Cơ sở: `670848e` (ma
 | Hạng mục | Kết quả |
 |---|---|
 | `npx tsc -b` | ✅ 0 lỗi |
-| `npx oxlint` | ✅ 0 warning / 0 error (219 files) |
+| `npx oxlint` | ✅ 0 warning / 0 error (220 files) |
 | `npm test` (29 file, Node test runner) | ✅ **337/337 pass** |
 | Asset build | ✅ 3.878 file / ~122 MB · 0 lỗi ffmpeg · catalog 873 item |
+| Quality re-tiering | ✅ 873 item chấm điểm 0–100 · 768 động / 105 tĩnh · 0 lỗi cấu trúc · giá khớp bảng rarity 100% |
 | Migration | ⏸ **CHƯA CHẠY** — chỉ dry-run (đợi user chọn phương án A/B) |
 
 ## 1. Checklist theo 6 bước của nhiệm vụ
@@ -24,7 +25,30 @@ Ngày: 2026-10-12 · Branch: `arena/62613a87-f-forum` · Cơ sở: `670848e` (ma
 - [x] Metadata từng item: `decorations-catalog.json`
       `{id, name, type, rarity, assetPath{preview,full,animated}, description, price, isAnimated, tags, …}`
 - [x] Catalog JSON để review: 873 item {frame 569, aura 68, nameplate 236} ·
-      {common 273, rare 301, epic 213, mythic 86}
+      {common 336, rare 268, epic 192, mythic 77} (sau quality re-tiering — xem mục 1.1)
+
+### 1.1 Quality review & re-tiering giá (bổ sung 2026-10-12) ✅
+
+User yêu cầu: *"xem xét chất lượng, animation các kiểu và sắp xếp hợp lý giá cả từ common
+tới mythic, đảm bảo chất lượng"*. Thực hiện bằng `scripts/decorations/score-quality.mjs`:
+
+- **Chấm điểm 0–100 từ chất lượng pixel thật** (sharp: vòng viền, tâm trống, Laplacian nét,
+  bão hoà, tương phản + ffmpeg: motion trung bình & max trên 14 frame 64px của webm),
+  percentile **trong từng nhóm** (frame·aura / nameplate) — điểm không so lệch giữa loại.
+- **Phân hạng**: animated top 10% mythic · +25% epic · +35% rare · còn common; item tĩnh
+  luôn common. Giá = bảng `pricing.coins[type][rarity]` (test 10.1 verify 100% khớp).
+- **Chốt chất lượng động**: 89 webm "animation" mà mọi frame giống nhau (max frame-diff
+  < 0.5/255) → chuyển **tĩnh** (`isAnimated:false`, webm bỏ khỏi catalog, tag
+  `static-content`) → 768 động / 105 tĩnh. Safari/iOS chạy được, payload nhẹ, filter
+  "Có animation" trung thực. (Ngưỡng bảo thủ: 43 item hiệu ứng nhỏ nhưng CÓ frame đổi
+  vẫn giữ animation — không cắt nhầm.)
+- **Lỗi cấu trúc**: rule frame tâm đặc (alpha tâm > 190) → `isActive:false`; đợt này
+  **0 item dính** (đã verify trên toàn 569 frame).
+- **Kết quả**: common 336 · rare 268 · epic 192 · mythic 77. Top mythic: nameplate
+  *Xanh Lá Mana* (84), *Xử Nữ* (80), frame *Travel Nhẫn* (77), *Mini Supreme Kai* (76).
+- **Idempotent**: chạy lần 2 cho đúng phân bố (0 convert mới) — an toàn chạy lại sau
+  mọi đợt thêm asset.
+- Ảnh demo (`screenshots/`) đã tái tạo theo top qualityScore mới.
 
 ### Bước 2 — Schema ✅
 - [x] `ShopItem` += `assetType`, `previewUrl`, `fullAssetUrl`, `animatedAssetUrl`, `originalSource`
@@ -87,7 +111,7 @@ Ngày: 2026-10-12 · Branch: `arena/62613a87-f-forum` · Cơ sở: `670848e` (ma
   0/42 static opaque). Trình duyệt thật (Chrome/Firefox) render WebM alpha bình thường;
   Safari/iOS tự fallback ảnh tĩnh qua `supportsWebmAlpha()`.
 
-## 3. Ma trận test tự động (333/333)
+## 3. Ma trận test tự động (337/337)
 
 Các test liên quan trực tiếp nhiệm vụ 10 (đều PASS trong run cuối):
 

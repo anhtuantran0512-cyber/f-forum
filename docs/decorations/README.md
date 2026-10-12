@@ -28,9 +28,31 @@ public/assets/decorations/
 ```
 
 Tổng 3.878 file, ~122 MB. Slug kebab-case không dấu (`black-mana`, `airona-fireworks`).
-Rarity: item tĩnh → `common`; item động theo điểm số (độ phong phú frame + độ phủ alpha) → top 10% `mythic`, 25% `epic`, 35% `rare`.
-Giá Coin quy từ giá VND tham khảo (×4100 / 79000 Coin/VND, làm tròn 50):
-Common 2.000 / Rare 3.050 / Epic 4.100 / Mythic 6.200 (frame·aura); nameplate giảm ~30%.
+
+### Chất lượng & phân hạng (rarity) — quy tắc hiện hành
+
+Rarity được `scripts/decorations/score-quality.mjs` chấm **từ chất lượng thực của asset**
+(chạy lại sau mọi đợt thêm asset; idempotent, ~40s):
+
+- **Điểm chất lượng 0–100** (percentile trong nhóm frame·aura / nameplate) từ các chỉ số đo:
+  - *Frame*: độ phủ vòng viền ngoài 30% · tâm trống (tỷ lệ alpha trung tâm — bắt buộc) 20% ·
+    độ nét (Laplacian) 15% · độ bão hoà màu 15% · độ chuyển động 20%.
+  - *Aura*: vòng sáng 30% · motion 25% · màu 25% · nét 10% · tương phản 10% (tâm không tính —
+    nằm sau avatar).
+  - *Nameplate*: nét 35% · màu 30% · motion 25% · tương phản 10%.
+- **Cắt hạng trong nhóm ANIMATED**: top 10% → `mythic`, tiếp 25% → `epic`, 35% → `rare`,
+  còn lại `common`.
+- **Item tĩnh → luôn `common`.**
+- **"Animation đứng hình"**: webm mà mọi frame giống nhau (max frame-diff < 0.5/255 trên
+  14 frame 64px) → chuyển về **static** (`isAnimated:false`, bỏ webm, tag `static-content`) —
+  Safari chạy được, payload nhẹ, filter "Có animation" trung thực.
+- **Lỗi cấu trúc**: frame có tâm đặc (alpha trung bình tâm > 190) → `isActive:false`
+  + tags `low-quality`/`opaque-center` (ngừng bán, chờ asset thay thế).
+- Giá Coin theo đúng bảng `pricing.coins[type][rarity]` — common→mythic tăng đều:
+  frame·aura 2.000 / 3.050 / 4.100 / 6.200 · nameplate 1.550 / 2.350 / 3.050 / 4.600.
+
+Kết quả đợt 2026-10-12: **common 336 · rare 268 · epic 192 · mythic 77** ·
+768 item động / 105 tĩnh (89 "animation đứng hình" đã chuyển tĩnh) · 0 lỗi cấu trúc.
 
 ## 2. Schema (spec Bước 2)
 
@@ -115,7 +137,9 @@ Equip: `POST /api/shop/equip { itemId, slot }` — server xác nhận item thu�
    đặt tên file tiếng Anh/Việt không quan trọng (pipeline tự slug + đặt tên tiếng Việt).
 2. `node scripts/decorations/pipeline.mjs` (chạy lại an toàn: giữ trường user đã sửa trong catalog,
    `--reset` để gán rarity/giá lại).
-3. Chạy `node scripts/decorations/make-demo-screenshots.mjs` (tùy chọn) + `npm test`.
+3. `node scripts/decorations/score-quality.mjs` — chấm chất lượng, phân hạng, gán giá
+   (idempotent; `--limit=30` để chạy nhanh khi dev).
+4. Chạy `node scripts/decorations/make-demo-screenshots.mjs` (tùy chọn) + `npm test`.
 
 Không cần sửa component/registry: mọi thứ đọc từ catalog; registry cache theo mtime
 (server khởi động lại hoặc catalog đổi là tự nhận).

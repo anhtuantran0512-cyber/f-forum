@@ -23,6 +23,7 @@ const FFMPEG =
   (fs.existsSync('/tmp/decor/ffmpeg') ? '/tmp/decor/ffmpeg' : 'ffmpeg');
 const RARITY_COLOR = { common: '#9CA3AF', rare: '#3B82F6', epic: '#A855F7', mythic: '#F59E0B' };
 const RARITY_LABEL = { common: 'COMMON', rare: 'RARE', epic: 'EPIC', mythic: 'MYTHIC' };
+const byScore = (a, b) => (b.qualityScore ?? 0) - (a.qualityScore ?? 0);
 
 fs.mkdirSync(OUT, { recursive: true });
 const catalog = JSON.parse(fs.readFileSync(path.join(DECOS, 'decorations-catalog.json'), 'utf8'));
@@ -73,9 +74,9 @@ const svgText = (text, size, color, weight) => {
 /* ===== 01 · Contact sheet catalog (16 mythic frame + 8 epic frame + 8 nameplate) ===== */
 const contactSheet = async () => {
   const cells = [];
-  const mythic = items.filter((i) => i.rarity === 'mythic' && i.type !== 'nameplate').slice(0, 16);
-  const epic = items.filter((i) => i.rarity === 'epic' && i.type !== 'nameplate').slice(0, 8);
-  const np = items.filter((i) => i.type === 'nameplate' && i.rarity !== 'common').slice(0, 8);
+  const mythic = items.filter((i) => i.rarity === 'mythic' && i.type !== 'nameplate').sort(byScore).slice(0, 16);
+  const epic = items.filter((i) => i.rarity === 'epic' && i.type !== 'nameplate').sort(byScore).slice(0, 8);
+  const np = items.filter((i) => i.type === 'nameplate' && i.rarity !== 'common').sort(byScore).slice(0, 8);
   for (const i of mythic) cells.push({ item: i, kind: 'frame' });
   for (const i of epic) cells.push({ item: i, kind: 'frame' });
   for (const i of np) cells.push({ item: i, kind: 'nameplate' });
@@ -127,8 +128,8 @@ const contactSheet = async () => {
 /* ===== 02 · Avatar 150px + khung / hào quang (đúng tỉ lệ CSS: frame 112%, aura 118%) ===== */
 const avatarDemo = async () => {
   const avatar = await makeAvatar('B', '#f59e0b', '#ef4444', 300);
-  const picks = items.filter((i) => i.rarity === 'mythic' && i.type !== 'nameplate' && i.isAnimated).slice(0, 4);
-  const auraPick = items.find((i) => i.rarity === 'mythic' && i.type === 'avatar_aura' && i.isAnimated) || items.find((i) => i.type === 'avatar_aura');
+  const picks = items.filter((i) => i.rarity === 'mythic' && i.type !== 'nameplate' && i.isAnimated).sort(byScore).slice(0, 4);
+  const auraPick = items.filter((i) => i.rarity === 'mythic' && i.type === 'avatar_aura' && i.isAnimated).sort(byScore)[0] || items.find((i) => i.type === 'avatar_aura');
   const colW = 380, pad = 30, headerH = 56, rowH = 434; /* card 360px ≥ canvas aura 354px */
   const n = picks.length + (auraPick ? 1 : 0) + 1;
   const W = pad * 2 + n * colW;
