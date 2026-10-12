@@ -283,43 +283,50 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
 
   /* Đồng hồ đếm ngược 1 giây cho đợt xoay vòng giảm giá 6h (00h, 06h, 12h, 18h). */
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1_000);
+    const timer = window.setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      setNow(Date.now());
+    }, 1_000);
     return () => window.clearInterval(timer);
   }, []);
 
-  const deal = useMemo(() => getWeeklyDeal(now, activeItems), [now, activeItems]);
+  /* Gom mốc thời gian theo từng phút cho các phép lọc/sắp xếp 873 vật phẩm để không
+     chạy lại toàn bộ useMemo mỗi giây khi đồng hồ đếm ngược nhảy nhịp. */
+  const dealWindowNow = Math.floor(now / 60_000) * 60_000;
+
+  const deal = useMemo(() => getWeeklyDeal(dealWindowNow, activeItems), [dealWindowNow, activeItems]);
   const dealItem = activeItems.find((item) => item.id === deal.itemId) || null;
-  const dynamicDiscounts = useMemo(() => getDynamicDiscounts(now, activeItems), [now, activeItems]);
+  const dynamicDiscounts = useMemo(() => getDynamicDiscounts(dealWindowNow, activeItems), [dealWindowNow, activeItems]);
   /* Item trong wishlist đang sale (giá thực tế < giá niêm yết). */
   const wishOnDealCount = useMemo(() => {
     if (!wishlist.length) return 0;
     return activeItems.reduce((acc, i) => {
       if (!wishlist.includes(i.id)) return acc;
       const flash = dynamicDiscounts.deals[i.id];
-      const current = flash ? Math.min(effectivePrice(i, now), flash.discountedPrice) : effectivePrice(i, now);
+      const current = flash ? Math.min(effectivePrice(i, dealWindowNow), flash.discountedPrice) : effectivePrice(i, dealWindowNow);
       return current < i.price ? acc + 1 : acc;
     }, 0);
-  }, [activeItems, wishlist, dynamicDiscounts, now]);
+  }, [activeItems, wishlist, dynamicDiscounts, dealWindowNow]);
   /* Số item "mua được" ngay lúc này (giá thực tế ≤ số Coin hiện tại). */
   const affordableCount = useMemo(
     () =>
       activeItems.reduce((acc, i) => {
         const flash = dynamicDiscounts.deals[i.id];
-        const current = flash ? Math.min(effectivePrice(i, now), flash.discountedPrice) : effectivePrice(i, now);
+        const current = flash ? Math.min(effectivePrice(i, dealWindowNow), flash.discountedPrice) : effectivePrice(i, dealWindowNow);
         return current <= coin ? acc + 1 : acc;
       }, 0),
-    [activeItems, coin, dynamicDiscounts, now],
+    [activeItems, coin, dynamicDiscounts, dealWindowNow],
   );
 
   /* Đại cập nhật — "Deal hôm nay": item chất lượng cao đang sale, xoay theo ngày VN. */
   const dailyDeal = useMemo(
     () =>
-      getDailyDeal(now, activeItems, {
+      getDailyDeal(dealWindowNow, activeItems, {
         flashList: dynamicDiscounts.list.map((d) => ({ itemId: d.itemId, percent: d.percent, isSuperSale: d.isSuperSale })),
         flashEndsAt: dynamicDiscounts.endsAt,
         weekly: deal,
       }),
-    [now, activeItems, dynamicDiscounts, deal],
+    [dealWindowNow, activeItems, dynamicDiscounts, deal],
   );
   /* Đại cập nhật — "Bộ sưu tập của bạn": tiến độ 873 item theo độ hiếm. */
   const collection = useMemo(() => getCollectionStats(activeItems, inventory), [activeItems, inventory]);
@@ -337,6 +344,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
   useEffect(() => {
     if (mythicShowcaseItems.length <= 1) return undefined;
     const rot = window.setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       setHeroIdx((prev) => (prev + 1) % mythicShowcaseItems.length);
     }, 5_500);
     return () => window.clearInterval(rot);
@@ -367,13 +375,13 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
       if (ownedFilter === 'unowned' && inventory.includes(item.id)) return false;
       if (wishOnly && !wishlist.includes(item.id)) return false;
       if (priceMax !== 'all') {
-        const weekly = effectivePrice(item, now);
+        const weekly = effectivePrice(item, dealWindowNow);
         const flash = dynamicDiscounts.deals[item.id];
         const current = flash ? Math.min(weekly, flash.discountedPrice) : weekly;
         if (current > Number(priceMax)) return false;
       }
       if (affordableOnly) {
-        const weekly = effectivePrice(item, now);
+        const weekly = effectivePrice(item, dealWindowNow);
         const flash = dynamicDiscounts.deals[item.id];
         const current = flash ? Math.min(weekly, flash.discountedPrice) : weekly;
         if (current > coin) return false;
@@ -399,7 +407,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           (a, b) => order(b) - order(a) || (b.qualityScore ?? 0) - (a.qualityScore ?? 0) || b.price - a.price,
         );
     }
-  }, [activeItems, typeFilter, rarityFilter, motionFilter, ownedFilter, inventory, wishOnly, wishlist, priceMax, affordableOnly, coin, dynamicDiscounts, now, query, sortMode]);
+  }, [activeItems, typeFilter, rarityFilter, motionFilter, ownedFilter, inventory, wishOnly, wishlist, priceMax, affordableOnly, coin, dynamicDiscounts, dealWindowNow, query, sortMode]);
 
   /* Infinite scroll: chỉ render 24 item mỗi nhịp; đổi bộ lọc → reset ở handler (không setState trong effect). */
   const resetPagination = () => setVisibleCount(PAGE_SIZE);

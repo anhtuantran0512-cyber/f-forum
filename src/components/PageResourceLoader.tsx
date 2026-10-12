@@ -24,7 +24,7 @@ const TOTAL_WEIGHT = STEPS.reduce((acc, s) => acc + s.weight, 0);
 
 export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
   onLoaded,
-  minDurationMs = 1800,
+  minDurationMs = 680,
 }) => {
   const [isExiting, setIsExiting] = useState(false);
   const [displayProgress, setDisplayProgress] = useState(0);
@@ -132,7 +132,14 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
         rtFinished = true;
         markDone('rt', line);
       };
-      ws.onopen = () => finishRt('> ws: kết nối thời gian thực ok');
+      ws.onopen = () => {
+        finishRt('> ws: kết nối thời gian thực ok');
+        try {
+          ws.close();
+        } catch {
+          /* ignore */
+        }
+      };
       ws.onerror = () => finishRt('> sse: dùng kênh dự phòng');
       setTimeout(() => {
         finishRt('> ws: sẵn sàng');
@@ -141,7 +148,7 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
         } catch {
           /* ignore */
         }
-      }, 3500);
+      }, 1500);
     } catch {
       markDone('rt', '> ws: sẵn sàng');
     }
@@ -156,7 +163,7 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
         if (allDone && minElapsed) target = 100;
         else target = Math.min(target, 97);
 
-        const next = prev + Math.max(0.4, (target - prev) * 0.14);
+        const next = prev + Math.max(2.2, (target - prev) * 0.28);
         const clamped = Math.min(next, target);
 
         if (clamped >= 100 && !finishedRef.current) {
@@ -167,12 +174,12 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
             setIsExiting(true);
             setTimeout(() => {
               if (mountedRef.current) onLoaded();
-            }, 480);
-          }, 700);
+            }, 260);
+          }, 220);
         }
         return clamped;
       });
-    }, 60);
+    }, 40);
 
     /* Lưới an toàn tuyệt đối: dù có bước nào treo (tab bị bóp nhịp, mạng đứng),
        màn hình chờ cũng tự đóng sau tối đa 5.2s — không bao giờ khoá trang. */

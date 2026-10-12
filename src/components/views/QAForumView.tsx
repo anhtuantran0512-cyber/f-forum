@@ -345,6 +345,22 @@ const QuickReactionRow: React.FC<{
 
 /* Nhiệm vụ 10 — tìm user record (có inventory + equippedDecorations) để render
    trang trí của người khác; không tìm thấy → null (không lộ trang trí). */
+const qaUsersByIdCache = new WeakMap<Record<string, User>, Map<string, User>>();
+const getQaUsersById = (users: Record<string, User>): Map<string, User> => {
+  let map = qaUsersByIdCache.get(users);
+  if (!map) {
+    map = new Map<string, User>();
+    for (const k in users) {
+      const u = users[k];
+      if (u?.id) map.set(u.id, u);
+    }
+    qaUsersByIdCache.set(users, map);
+  }
+  return map;
+};
+
+const EMPTY_QA_SOLUTIONS: Solution[] = [];
+
 const findDecorationOwner = (
   users: Record<string, User> | undefined,
   authorEmail: string | null | undefined,
@@ -363,9 +379,7 @@ const findDecorationOwner = (
     return users['broamstuck@gmail.com'];
   }
   if (authorId) {
-    for (const u of Object.values(users)) {
-      if (u.id === authorId) return u;
-    }
+    return getQaUsersById(users).get(authorId) || null;
   }
   return null;
 };
@@ -1141,6 +1155,16 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     safeStorage.setItem(SAVED_SORT_KEY, mode);
   };
 
+  const solutionsByQuestionId = useMemo(() => {
+    const map = new Map<string, Solution[]>();
+    for (const s of solutions) {
+      const list = map.get(s.questionId);
+      if (list) list.push(s);
+      else map.set(s.questionId, [s]);
+    }
+    return map;
+  }, [solutions]);
+
   const filteredQuestions = useMemo(() => {
     const matched = questions.filter(q => {
       const matchesTag = selectedTag === 'all' || q.subject === selectedTag;
@@ -1505,7 +1529,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             )
           ) : (
             filteredQuestions.map(q => {
-              const qSolutions = solutions.filter(s => s.questionId === q.id);
+              const qSolutions = solutionsByQuestionId.get(q.id) || EMPTY_QA_SOLUTIONS;
               const bestSol = qSolutions.find(s => s.isBest);
 
               return (

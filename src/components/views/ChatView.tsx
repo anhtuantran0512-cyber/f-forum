@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Send,
@@ -101,30 +101,40 @@ export const ChatView: React.FC<ChatViewProps> = ({
   onOpenProfile,
   isSynced = true,
 }) => {
-  const resolveChatUser = (email?: string | null, id?: string | null): User | null => {
-    const cleanEmail = email ? email.trim().toLowerCase() : '';
-    if (cleanEmail && users[cleanEmail]) return users[cleanEmail];
-    if (isMasterAdmin(cleanEmail) && users['broamstuck@gmail.com']) {
-      return users['broamstuck@gmail.com'];
+  const usersById = useMemo(() => {
+    const map = new Map<string, User>();
+    for (const k in users) {
+      const u = users[k];
+      if (u?.id) map.set(u.id, u);
     }
-    if (
-      currentUser &&
-      ((cleanEmail && currentUser.email.toLowerCase() === cleanEmail) ||
-        (id && currentUser.id === id) ||
-        ((id === 'admin-master' || id === 'user-admin') && isMasterAdmin(currentUser.email)))
-    ) {
-      return currentUser;
-    }
-    if ((id === 'admin-master' || id === 'user-admin') && users['broamstuck@gmail.com']) {
-      return users['broamstuck@gmail.com'];
-    }
-    if (id) {
-      for (const u of Object.values(users)) {
-        if (u.id === id) return u;
+    return map;
+  }, [users]);
+
+  const resolveChatUser = useCallback(
+    (email?: string | null, id?: string | null): User | null => {
+      const cleanEmail = email ? email.trim().toLowerCase() : '';
+      if (cleanEmail && users[cleanEmail]) return users[cleanEmail];
+      if (isMasterAdmin(cleanEmail) && users['broamstuck@gmail.com']) {
+        return users['broamstuck@gmail.com'];
       }
-    }
-    return null;
-  };
+      if (
+        currentUser &&
+        ((cleanEmail && currentUser.email.toLowerCase() === cleanEmail) ||
+          (id && currentUser.id === id) ||
+          ((id === 'admin-master' || id === 'user-admin') && isMasterAdmin(currentUser.email)))
+      ) {
+        return currentUser;
+      }
+      if ((id === 'admin-master' || id === 'user-admin') && users['broamstuck@gmail.com']) {
+        return users['broamstuck@gmail.com'];
+      }
+      if (id) {
+        return usersById.get(id) || null;
+      }
+      return null;
+    },
+    [users, usersById, currentUser],
+  );
   /* Epic 3 — thu hồi tin nhắn: Super Admin hoặc vai trò tùy chỉnh có quyền edit_content. */
   const adminCaps = useAdminCaps();
   const canRecallMessages = capsHas(adminCaps, 'edit_content');
@@ -145,14 +155,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
     coin?: number;
   } | null>(null);
   const [authorAnchorPos, setAuthorAnchorPos] = useState<{ x: number; y: number }>({ x: 240, y: 180 });
-
-  useEffect(() => {
-    const onPointerDown = (e: PointerEvent) => {
-      setAuthorAnchorPos(prev => activeAuthorCard ? prev : { x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener('pointerdown', onPointerDown, { passive: true });
-    return () => window.removeEventListener('pointerdown', onPointerDown);
-  }, [activeAuthorCard]);
 
   const [reportUser, setReportUser] = useState<{ id: string; name: string } | null>(null);
   const [reportReason, setReportReason] = useState<string>('Toxic / Gây war / Xúc phạm bạn học');
@@ -199,23 +201,36 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
   const dynamicOnlineCount =
     onlineUsers && onlineUsers.length > 0 ? onlineUsers.length : Math.max(1, onlineCount);
-  const isMasterAdminOnline =
-    (onlineUsers || []).some(u => isMasterAdmin(u.email)) ||
-    (currentUser ? isMasterAdmin(currentUser.email) : false);
-  const activeStudents = (onlineUsers || []).filter(u => !isMasterAdmin(u.email));
+  const isMasterAdminOnline = useMemo(
+    () =>
+      (onlineUsers || []).some(u => isMasterAdmin(u.email)) ||
+      (currentUser ? isMasterAdmin(currentUser.email) : false),
+    [onlineUsers, currentUser],
+  );
+  const activeStudents = useMemo(
+    () => (onlineUsers || []).filter(u => !isMasterAdmin(u.email)),
+    [onlineUsers],
+  );
 
   useEffect(() => {
     const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       setActiveVideoIdx(prev => (prev + 1) % TRI_CHAT_VIDEOS.length);
     }, 14000);
     return () => clearInterval(timer);
   }, []);
 
-  const currentMessages = messages.filter(m => m.channelId === activeChannel);
+  const currentMessages = useMemo(
+    () => messages.filter(m => m.channelId === activeChannel),
+    [messages, activeChannel],
+  );
 
+  const prevChannelRef = useRef<ChatChannelId>(activeChannel);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, activeChannel]);
+    const channelChanged = prevChannelRef.current !== activeChannel;
+    prevChannelRef.current = activeChannel;
+    messagesEndRef.current?.scrollIntoView({ behavior: channelChanged ? 'auto' : 'smooth' });
+  }, [currentMessages.length, activeChannel]);
 
   const handleSend = () => {
     if (!currentUser) return;

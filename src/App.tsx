@@ -141,9 +141,9 @@ const VIEW_LOADERS: Partial<Record<DimensionView, { label: string; variant: 'vin
   'coming-soon': { label: 'Bản nâng cấp', variant: 'vinyl' },
 };
 
-const LOADER_MIN_MS = 950; /* lần đầu vào phân khu */
-const LOADER_REVISIT_MS = 520; /* quay lại phân khu đã tải rồi */
-const LOADER_HARD_CAP_MS = 2600;
+const LOADER_MIN_MS = 220; /* lần đầu vào phân khu */
+const LOADER_REVISIT_MS = 90; /* quay lại phân khu đã tải rồi */
+const LOADER_HARD_CAP_MS = 950;
 /* Các trang được lớp chuyển đổi Light Mode thay nền video tối bằng nền kính sữa.
    PHẢI khớp LIGHT_VIEWS trong scripts/generate-light-adapter.mjs (test kiểm tra). */
 const LIGHT_ADAPTED_VIEW_SELECTOR = '.ff-view-clubs, .ff-view-qa, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon';
@@ -471,37 +471,70 @@ export const App: React.FC = () => {
     setIsProfileModalOpen(true);
   }, [users, currentUser, handleOpenAuth, setTargetProfileUser, setProfileInitialTab, setIsProfileModalOpen]);
 
-  const handleOpenUserProfile = (
-    userToView?: { id: string; name: string; avatar: string; email?: string; level?: number },
-    anchor?: { x: number; y: number } | null,
-  ) => {
-    if (!userToView) {
-      handleOpenProfile('overview');
-      return;
-    }
+  const handleOpenUserProfile = useCallback(
+    (
+      userToView?: { id: string; name: string; avatar: string; email?: string; level?: number },
+      anchor?: { x: number; y: number } | null,
+    ) => {
+      if (!userToView) {
+        handleOpenProfile('overview');
+        return;
+      }
 
-    /* If an explicit anchor is passed, open the quick card; otherwise ("Trang cá nhân" button),
-       open the full ProfileModal directly so no extra modal blocks the screen. */
-    if (anchor) {
-      const emailKey = userToView.email ? userToView.email.toLowerCase() : '';
-      const existing = (emailKey && users[emailKey]) || Object.values(users).find(u => u.id === userToView.id);
-      const resolved: User = existing || {
-        id: userToView.id,
-        name: userToView.name,
-        email: userToView.email || '',
-        avatar: userToView.avatar,
-        role: 'STUDENT',
-        level: userToView.level || 1,
-        xp: 0,
-        bio: '',
-        scopedClubIds: [],
-      };
-      setQuickProfile({ user: resolved, anchor });
-      return;
-    }
+      /* If an explicit anchor is passed, open the quick card; otherwise ("Trang cá nhân" button),
+         open the full ProfileModal directly so no extra modal blocks the screen. */
+      if (anchor) {
+        const emailKey = userToView.email ? userToView.email.toLowerCase() : '';
+        const existing = (emailKey && users[emailKey]) || Object.values(users).find(u => u.id === userToView.id);
+        const resolved: User = existing || {
+          id: userToView.id,
+          name: userToView.name,
+          email: userToView.email || '',
+          avatar: userToView.avatar,
+          role: 'STUDENT',
+          level: userToView.level || 1,
+          xp: 0,
+          bio: '',
+          scopedClubIds: [],
+        };
+        setQuickProfile({ user: resolved, anchor });
+        return;
+      }
 
-    handleOpenProfile('overview', userToView);
-  };
+      handleOpenProfile('overview', userToView);
+    },
+    [users, handleOpenProfile],
+  );
+
+  const [chatDockMounted, setChatDockMounted] = useState(false);
+  if (isChatOpen && !chatDockMounted) {
+    setChatDockMounted(true);
+  }
+
+  /* Nạp ấm (idle prefetch) các chunk phân khu & hộp thoại khi luồng chính rảnh
+     để chuyển tab và mở hồ sơ/cửa sổ nhanh tức thì mà không làm nghẽn lần tải đầu. */
+  useEffect(() => {
+    if (isResourceLoading) return undefined;
+    const warm = () => {
+      void import('./components/views/HomeView');
+      void import('./components/views/QAForumView');
+      void import('./components/views/ThreadsView');
+      void import('./components/views/ChatView');
+      void import('./components/views/ClubsView');
+      void import('./components/ProfileModal');
+      void import('./components/ChatDock');
+      void import('./components/CommandPalette');
+      void import('./components/FocusSanctuary');
+    };
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
+    const cic = (window as unknown as { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback;
+    if (typeof ric === 'function') {
+      const id = ric(warm, { timeout: 2200 });
+      return () => { if (typeof cic === 'function') cic(id); };
+    }
+    const timer = window.setTimeout(warm, 900);
+    return () => window.clearTimeout(timer);
+  }, [isResourceLoading]);
 
   /* useCallback với deps rỗng: chỉ dùng setter từ useState nên địa chỉ ổn định,
      nhờ đó paletteCommands (useMemo phụ thuộc nó) không tính lại mỗi lần render. */
@@ -571,7 +604,7 @@ export const App: React.FC = () => {
     const elapsed = Date.now() - transition.startedAt;
     const isReady = readyView === transition.target;
     const minMs = transition.revisit ? LOADER_REVISIT_MS : LOADER_MIN_MS;
-    const delay = isReady ? Math.max(0, minMs - elapsed) + 170 : Math.max(0, LOADER_HARD_CAP_MS - elapsed);
+    const delay = isReady ? Math.max(0, minMs - elapsed) + 40 : Math.max(0, LOADER_HARD_CAP_MS - elapsed);
     const timer = window.setTimeout(() => setTransition(null), delay);
     return () => window.clearTimeout(timer);
   }, [transition, readyView]);
@@ -1181,7 +1214,7 @@ export const App: React.FC = () => {
 
       <Suspense fallback={null}>
         {/* Slide-over Chat Dock (For quick chatting when browsing Home, Clubs, QA, Chronicles) */}
-        {currentView !== 'chat' && (
+        {currentView !== 'chat' && (isChatOpen || chatDockMounted) && (
           currentView === 'landing' ? null : (
           <ChatDock
             isOpen={isChatOpen}
@@ -1212,7 +1245,7 @@ export const App: React.FC = () => {
         )}
 
         {/* User Profile (F-ID Settings Modal) */}
-        {(targetProfileUser || currentUser) && (
+        {isProfileModalOpen && (targetProfileUser || currentUser) && (
           <ProfileModal
             isOpen={isProfileModalOpen}
             onClose={() => {
@@ -1234,6 +1267,7 @@ export const App: React.FC = () => {
         )}
 
         {/* Quick Profile Card (click a user → preview, then open full profile on demand) */}
+        {Boolean(quickProfile) && (
         <UserQuickCard
           user={quickProfile?.user || null}
           isOpen={Boolean(quickProfile)}
@@ -1251,8 +1285,10 @@ export const App: React.FC = () => {
           questions={questions}
           solutions={solutions}
         />
+        )}
 
         {/* Authentication Modal */}
+        {isLoginModalOpen && (
         <AuthModal
           key={authInitialTab}
           initialTab={authInitialTab}
@@ -1264,8 +1300,10 @@ export const App: React.FC = () => {
           onRegister={registerWithPassword}
           onSuccess={handleAuthSuccess}
         />
+        )}
 
         {/* Focus Sanctuary & Pomodoro HUD Mode */}
+        {isFocusModeOpen && (
         <FocusSanctuary
           isOpen={isFocusModeOpen}
           onClose={() => setIsFocusModeOpen(false)}
@@ -1273,6 +1311,7 @@ export const App: React.FC = () => {
           equippedItemId={currentUser?.inventory?.includes(currentUser.equippedBadge || '') ? currentUser.equippedBadge : undefined}
           onStartRewardSession={startFocusRewardSession}
         />
+        )}
       </Suspense>
 
       {/* Người giữ nhịp Phòng Tập Trung: đếm theo thời gian thật ở cấp App,
@@ -1289,27 +1328,33 @@ export const App: React.FC = () => {
       {/* HIDDEN PREMIUM LAYER: Bảng lệnh, Sổ tay nhanh, Nghỉ mắt  */}
       {/* ======================================================== */}
       <Suspense fallback={null}>
+        {isShortcutsOpen && (
         <KeyboardShortcutsModal
           isOpen={isShortcutsOpen}
           onClose={() => setIsShortcutsOpen(false)}
           onOpenPalette={() => setIsPaletteOpen(true)}
         />
+        )}
 
+        {isPaletteOpen && (
         <CommandPalette
           isOpen={isPaletteOpen}
           onClose={() => setIsPaletteOpen(false)}
           commands={paletteCommands}
           search={paletteSearch}
         />
+        )}
 
         {/* Nút cuộn về đầu trang, viền là vòng tiến trình đọc bài. */}
         <ScrollToTopDock navbarAtBottom={navbarAtBottom} />
 
+        {isNotesOpen && (
         <QuickNotesDock
           isOpen={isNotesOpen}
           onClose={() => setIsNotesOpen(false)}
           onOpenFocusMode={() => setIsFocusModeOpen(true)}
         />
+        )}
 
         <StudyCareCoach
           enabled={eyeRestEnabled}

@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Search,
   PlusCircle,
@@ -66,23 +66,36 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   onOpenLoginModal,
   isEmbedded = false,
 }) => {
-  const resolveClubUser = (id?: string | null, name?: string | null): User | null => {
-    if (id) {
-      if ((id === 'admin-master' || id === 'user-admin') && users['broamstuck@gmail.com']) {
-        return users['broamstuck@gmail.com'];
-      }
-      for (const u of Object.values(users)) {
-        if (u.id === id) return u;
-      }
+  const clubUsersLookup = useMemo(() => {
+    const byId = new Map<string, User>();
+    const byName = new Map<string, User>();
+    for (const k in users) {
+      const u = users[k];
+      if (!u) continue;
+      if (u.id) byId.set(u.id, u);
+      if (u.name) byName.set(u.name.trim().toLowerCase(), u);
     }
-    if (name) {
-      const clean = name.trim().toLowerCase();
-      for (const u of Object.values(users)) {
-        if (u.name.trim().toLowerCase() === clean) return u;
+    return { byId, byName };
+  }, [users]);
+
+  const resolveClubUser = useCallback(
+    (id?: string | null, name?: string | null): User | null => {
+      if (id) {
+        if ((id === 'admin-master' || id === 'user-admin') && users['broamstuck@gmail.com']) {
+          return users['broamstuck@gmail.com'];
+        }
+        const foundById = clubUsersLookup.byId.get(id);
+        if (foundById) return foundById;
       }
-    }
-    return null;
-  };
+      if (name) {
+        const clean = name.trim().toLowerCase();
+        const foundByName = clubUsersLookup.byName.get(clean);
+        if (foundByName) return foundByName;
+      }
+      return null;
+    },
+    [users, clubUsersLookup],
+  );
   const [selectedCategory, setSelectedCategory] = useState<'Tất cả' | ClubCategory>('Tất cả');
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -125,25 +138,33 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
 
   const isSuperAdmin = isMasterAdmin(currentUser?.email);
 
-  const approvedClubs = clubs.filter(
-    c =>
-      c.status === 'APPROVED' &&
-      (selectedCategory === 'Tất cả' || c.category === selectedCategory) &&
-      (c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.slogan.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.purpose.toLowerCase().includes(searchTerm.toLowerCase()))
+  const approvedClubs = useMemo(() => {
+    const q = searchTerm.toLowerCase();
+    return clubs.filter(
+      c =>
+        c.status === 'APPROVED' &&
+        (selectedCategory === 'Tất cả' || c.category === selectedCategory) &&
+        (!q ||
+          c.name.toLowerCase().includes(q) ||
+          c.slogan.toLowerCase().includes(q) ||
+          c.purpose.toLowerCase().includes(q))
+    );
+  }, [clubs, selectedCategory, searchTerm]);
+
+  const pendingClubs = useMemo(() => clubs.filter(c => c.status === 'PENDING'), [clubs]);
+
+  const clubScores = useMemo(
+    () =>
+      approvedClubs.map(club => {
+        const postCount = clubPosts.filter(p => p.clubId === club.id).length;
+        const msgCount = chatMessages.filter(
+          m => m.channelId === 'club-hub' && m.content.toLowerCase().includes(club.name.toLowerCase())
+        ).length;
+        const score = postCount * 2 + msgCount;
+        return { club, score };
+      }),
+    [approvedClubs, clubPosts, chatMessages],
   );
-
-  const pendingClubs = clubs.filter(c => c.status === 'PENDING');
-
-  const clubScores = approvedClubs.map(club => {
-    const postCount = clubPosts.filter(p => p.clubId === club.id).length;
-    const msgCount = chatMessages.filter(
-      m => m.channelId === 'club-hub' && m.content.toLowerCase().includes(club.name.toLowerCase())
-    ).length;
-    const score = postCount * 2 + msgCount;
-    return { club, score };
-  });
 
   const bestClubObj = clubScores.length > 0
     ? [...clubScores].sort((a, b) => b.score - a.score)[0]
