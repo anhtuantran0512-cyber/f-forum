@@ -8,7 +8,7 @@ Ngày: 2026-10-12 · Branch: `arena/62613a87-f-forum` · Cơ sở: `670848e` (ma
 |---|---|
 | `npx tsc -b` | ✅ 0 lỗi |
 | `npx oxlint` | ✅ 0 warning / 0 error (220 files) |
-| `npm test` (29 file, Node test runner) | ✅ **346/346 pass** |
+| `npm test` (29 file, Node test runner) | ✅ **347/347 pass** |
 | Asset build | ✅ 3.878 file / ~122 MB · 0 lỗi ffmpeg · catalog 873 item |
 | Quality re-tiering | ✅ 873 item chấm điểm 0–100 · 768 động / 105 tĩnh · 0 lỗi cấu trúc · giá khớp bảng rarity 100% |
 | Migration | ✅ **ĐÃ CHỌN PHƯƠNG ÁN B** (Sếp chốt 12/10) — script nâng cấp (cùng hiếm thật, khớp loại, tự trang bị, payload ăn mừng) + demo end-to-end trong sandbox; marker KHÔNG commit (chạy khi triển khai) |
@@ -191,6 +191,20 @@ chuẩn Discord, có test khoá (10.14):
 Kỹ thuật: CSS co-located (decorations.css + Boutique.css), reduced-motion an
 toàn, ARIA (aria-pressed, role=note, label).
 
+### 1.7 Đợt #4 — "Quay lại nhanh + không bỏ lỡ sale" (bổ sung 2026-10-12) ✅
+
+1. **"VỪA XEM"** — 8 item gần nhất mở preview (localStorage
+   `fforum_boutique_recent_v1`, helper pure `pushRecentItem`), dải thumbnail
+   ngay dưới header, bấm → mở lại modal. Mọi điểm mở preview (card, hero,
+   deal, gem mythic) đều đi qua 1 helper `inspectItem` → không sót, không
+   trùng; item đã khỏi catalog tự loại.
+2. **"ITEM YÊU THÍCH ĐANG SALE"** — đếm item wishlist có giá thực tế
+   (min weekly+flash) < giá niêm yết; note cam "N item yêu thích đang sale —
+   xem ngay" → 1 chạm bật filter Yêu thích. Tắt tự động khi hết sale.
+
+Kỹ thuật: đặt memo đúng thứ tự khai báo (bắt + tránh 1 lỗi TDZ thật trong
+lúc ghép), CSS co-located + reduced-motion, ARIA label.
+
 ### Bước 2 — Schema ✅
 - [x] `ShopItem` += `assetType`, `previewUrl`, `fullAssetUrl`, `animatedAssetUrl`, `originalSource`
 - [x] Giữ rarity/price/category; 35 item SVG cũ gắn `svg_custom`/`fforum_svg`
@@ -278,10 +292,11 @@ Các test liên quan trực tiếp nhiệm vụ 10 (đều PASS trong run cuối
 | `decorations-task10` | 10.12 UI wishlist + lọc | trái tim SVG (không button lồng button), Đã có/Chưa có, rarity row bấm, localStorage 1 key đọc/ghi, modal chỉ profile mình |
 | `decorations-task10` | 10.13 Đợt #3 | giá tối đa theo giá thực tế (min weekly+flash), chip Yêu thích (n), nút Xoá bộ lọc + reset đủ trạng thái |
 | `decorations-task10` | 10.14 Chuẩn Discord | nameplate 1 vị trí (gẹt prop ở avatar nhỏ), height cố định + ellipsis, safe zone translate/scale, 1 modal preview, filter 1 hàng, stacked bar, context 40px |
+| `decorations-task10` | 10.15 Đợt #4 | pushRecentItem pure (trật tự/trùng lặp/max/id rỗng), dải Vừa xem (8 item, lọc khỏi catalog), đếm wishlist đang sale + 1 chạm mở |
 | `multi-user-sync` | (toàn bộ) | `equippedDecorations` đồng bộ multi-user qua socket |
 | `light-mode-contrast` | (toàn bộ) | adapter light tái sinh (`npm run gen:light`) khớp class mới |
 
-Run cuối: `# tests 346 / pass 346 / fail 0` (xanh cả khi marker migration TỒN TẠI cục bộ —
+Run cuối: `# tests 347 / pass 347 / fail 0` (xanh cả khi marker migration TỒN TẠI cục bộ —
 test hermetic qua env `FFORUM_MIGRATION_MARKER`).
 
 ## 4. Kiểm tra thủ công cần làm trên máy thật (checklist)

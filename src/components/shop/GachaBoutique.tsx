@@ -57,6 +57,7 @@ import {
   getCollectionStats,
   getDailyDeal,
   priceRange,
+  pushRecentItem,
   resolveAssetUrl,
 } from '../../utils/decorations';
 import { useDecorationCatalog } from '../../utils/decorationStore';
@@ -228,7 +229,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
   const [motionFilter, setMotionFilter] = useState<MotionFilter>(
     savedFilters.motion === 'animated' || savedFilters.motion === 'static' ? (savedFilters.motion as MotionFilter) : 'all',
   );
-  /* Sở hữu: mọi item | đã có | chưa có — gắn với mục Bộ sưu tập. */
+  /* Sở hữu: mọi item | đã có | chưa có — 1 bộ lọc duy nhất trong hàng filter. */
   const [ownedFilter, setOwnedFilter] = useState<'all' | 'owned' | 'unowned'>('all');
   /* Giá tối đa (ngân sách Coin) — lưu cùng bộ lọc. */
   const [priceMax, setPriceMax] = useState<PriceMaxFilter>(
@@ -253,8 +254,37 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
       /* storage đầy/lỗi — bỏ qua */
     }
   }, []);
+
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [inspectId, setInspectId] = useState<string | null>(null);
+
+  /* "Vừa xem": 8 item gần nhất mở preview (localStorage) — quay lại nhanh. */
+  const RECENT_KEY = 'fforum_boutique_recent_v1';
+  const [recentIds, setRecentIds] = useState<string[]>(() => {
+    try {
+      const raw = safeStorage.getItem(RECENT_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'string').slice(0, 8) : [];
+    } catch {
+      return [];
+    }
+  });
+  const inspectItem = useCallback((id: string) => {
+    setInspectId(id);
+    setRecentIds((cur) => {
+      const next = pushRecentItem(cur, id, 8);
+      try {
+        safeStorage.setItem(RECENT_KEY, JSON.stringify(next));
+      } catch {
+        /* bỏ qua */
+      }
+      return next;
+    });
+  }, []);
+  const recentItems = useMemo(
+    () => recentIds.map((id) => activeItems.find((i) => i.id === id)).filter((x): x is ShopItem => Boolean(x)),
+    [recentIds, activeItems],
+  );
   const [previewItemId, setPreviewItemId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [unboxed, setUnboxed] = useState<ShopItem | null>(null);
@@ -283,6 +313,16 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
   const deal = useMemo(() => getWeeklyDeal(now, activeItems), [now, activeItems]);
   const dealItem = activeItems.find((item) => item.id === deal.itemId) || null;
   const dynamicDiscounts = useMemo(() => getDynamicDiscounts(now, activeItems), [now, activeItems]);
+  /* Item trong wishlist đang sale (giá thực tế < giá niêm yết). */
+  const wishOnDealCount = useMemo(() => {
+    if (!wishlist.length) return 0;
+    return activeItems.reduce((acc, i) => {
+      if (!wishlist.includes(i.id)) return acc;
+      const flash = dynamicDiscounts.deals[i.id];
+      const current = flash ? Math.min(effectivePrice(i, now), flash.discountedPrice) : effectivePrice(i, now);
+      return current < i.price ? acc + 1 : acc;
+    }, 0);
+  }, [activeItems, wishlist, dynamicDiscounts, now]);
 
   /* Đại cập nhật — "Deal hôm nay": item chất lượng cao đang sale, xoay theo ngày VN. */
   const dailyDeal = useMemo(
@@ -549,6 +589,44 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </div>
       </header>
 
+      {/* "Vừa xem": 8 item gần nhất mở preview (localStorage) — quay lại nhanh. */}
+      {recentItems.length > 0 && (
+        <div className="gb-recent" aria-label="Vừa xem">
+          <span className="gb-recent__label">Vừa xem</span>
+          <div className="gb-recent__row">
+            {recentItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="gb-recent__chip"
+                title={item.name}
+                onClick={() => inspectItem(item.id)}
+              >
+                <img
+                  src={resolveAssetUrl(item.previewUrl) ?? item.previewUrl ?? undefined}
+                  alt=""
+                  width={34}
+                  height={34}
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                  }}
+                />
+                <em>{item.name}</em>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Item yêu thích đang sale (flash + tuần) — 1 chạm vào danh sách yêu thích. */}
+      {!readOnly && wishOnDealCount > 0 && (
+        <button type="button" className="gb-wish-deal" onClick={() => setWishOnly(true)}>
+          <Flame size={11} aria-hidden="true" /> {wishOnDealCount} item yêu thích đang sale — xem ngay
+        </button>
+      )}
+
       {catalogLoading && activeItems.length === 0 && (
         <div className="gb-empty" role="status">
           <p>Đang tải kho trang trí…</p>
@@ -565,13 +643,13 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           tabIndex={0}
           onClick={() => {
             setPreviewItemId(currentHeroItem.id);
-            setInspectId(currentHeroItem.id);
+            inspectItem(currentHeroItem.id);
           }}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
               setPreviewItemId(currentHeroItem.id);
-              setInspectId(currentHeroItem.id);
+              inspectItem(currentHeroItem.id);
             }
           }}
         >
@@ -625,7 +703,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
             <div
               onClick={() => {
                 setPreviewItemId(currentHeroItem.id);
-                setInspectId(currentHeroItem.id);
+                inspectItem(currentHeroItem.id);
               }}
               className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/[0.04] border border-white/15 cursor-pointer hover:scale-105 transition-transform"
               title="Bấm để xem trước trên Avatar"
@@ -908,7 +986,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
       </div>
 
       {dealItem && (
-        <button type="button" className="gb-deal" onClick={() => setInspectId(dealItem.id)}>
+        <button type="button" className="gb-deal" onClick={() => inspectItem(dealItem.id)}>
           <span className="gb-deal__icon" aria-hidden="true"><Tag size={14} /></span>
           <span className="gb-deal__text">
             Ưu đãi tuần <b>−{deal.percent}%</b> · {dealItem.name}
@@ -919,7 +997,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
 
       {/* ĐẠI CẬP NHẬT — DEAL HÔM NAY: item chất lượng cao đang sale, xoay theo ngày */}
       {dailyDeal && (
-        <button type="button" className="gb-daily-deal" onClick={() => setInspectId(dailyDeal.item.id)}>
+        <button type="button" className="gb-daily-deal" onClick={() => inspectItem(dailyDeal.item.id)}>
           <span className="gb-daily-deal__media">
             <img
               src={resolveAssetUrl(dailyDeal.item.previewUrl) ?? dailyDeal.item.previewUrl ?? undefined}
@@ -1017,7 +1095,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                 type="button"
                 className="gb-collection__mythic-item"
                 title={item.name}
-                onClick={() => setInspectId(item.id)}
+                onClick={() => inspectItem(item.id)}
               >
                 <img
                   src={resolveAssetUrl(item.previewUrl) ?? item.previewUrl ?? undefined}
@@ -1208,13 +1286,13 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                   onBlur={() => setHoveredId((cur) => (cur === item.id ? null : cur))}
                   onClick={() => {
                     setPreviewItemId(item.id);
-                    setInspectId(item.id);
+                    inspectItem(item.id);
                   }}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault();
                       setPreviewItemId(item.id);
-                      setInspectId(item.id);
+                      inspectItem(item.id);
                     }
                   }}
                 >

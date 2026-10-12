@@ -675,7 +675,7 @@ test('10.14 Chuẩn Discord: nameplate chỉ ở Hồ Sơ, safe zone aura, 1 pre
   /* 3 — 1 modal preview duy nhất: hero banner không có nút riêng. */
   assert.ok(!boutique.includes('Xem thử trên Avatar'), 'bỏ nút "Xem thử trên Avatar" riêng');
   assert.ok(!boutique.includes('gb-hero-cta'), 'không còn CTA hero riêng');
-  assert.match(boutique, /className="gb-hero-carousel"[\s\S]{0,300}setInspectId\(currentHeroItem\.id\)/, 'bấm banner → mở modal preview chung');
+  assert.match(boutique, /className="gb-hero-carousel"[\s\S]{0,300}inspectItem\(currentHeroItem\.id\)/, 'bấm banner → mở modal preview chung');
 
   /* 4 — Gộp filter 1 hàng + không lặp số "873" ở header. */
   assert.ok(!boutique.includes('gb-filters--sub'), 'không còn 2 hàng filter');
@@ -687,4 +687,38 @@ test('10.14 Chuẩn Discord: nameplate chỉ ở Hồ Sơ, safe zone aura, 1 pre
   assert.match(boutique, /size=\{40\}[\s\S]{0,120}eager[\s\S]{0,120}alt=\{userName\}/, 'context nhỏ dùng AvatarWithDecoration 40px');
   assert.match(boutique, /Nameplate chỉ hiển thị trên <b>Hồ Sơ đầy đủ<\/b>/, 'nameplate ở context nhỏ → thông báo');
   assert.match(boutique, /gb-np-note/, 'try-on dock nameplate có note');
+});
+
+/* ========================================================================== */
+/* 10.15 — Đợt #4: "Vừa xem" (quay lại nhanh) + báo item yêu thích đang sale  */
+/* ========================================================================== */
+test('10.15 Đợt #4: dải "Vừa xem" + thông báo wishlist đang sale', async () => {
+  /* pushRecentItem: pure — mới nhất trước, khử trùng lặp, chặn max, bỏ id rỗng. */
+  const { pushRecentItem } = await import('../src/utils/decorations.ts');
+  assert.deepEqual(pushRecentItem([], 'a'), ['a']);
+  assert.deepEqual(pushRecentItem(['a', 'b'], 'c'), ['c', 'a', 'b'], 'mới nhất đứng trước');
+  assert.deepEqual(pushRecentItem(['a', 'b'], 'a'), ['a', 'b'], 'chuyển item cũ lên đầu, không trùng');
+  assert.deepEqual(pushRecentItem(['a', 'b', 'c'], 'd', 2), ['d', 'a'], 'chặn max');
+  assert.deepEqual(pushRecentItem(['a'], ''), ['a'], 'id rỗng bỏ qua');
+
+  const card = fs.readFileSync(path.join(ROOT, 'src', 'components', 'shop', 'GachaBoutique.tsx'), 'utf8');
+  const css = fs.readFileSync(path.join(ROOT, 'src', 'components', 'shop', 'Boutique.css'), 'utf8');
+
+  /* Mọi chỗ MỞ preview đều qua inspectItem (lưu "vừa xem"); đóng modal không. */
+  assert.match(card, /const inspectItem = useCallback\(\(id: string\)/, 'helper inspectItem tồn tại');
+  assert.match(card, /setRecentIds\(\(cur\) => \{[\s\S]{0,200}pushRecentItem\(cur, id, 8\)/, 'mỗi lần mở preview lưu lại (max 8)');
+  const openCalls = card.split('inspectItem(').length - 1;
+  assert.ok(openCalls >= 8, `mọi điểm mở preview dùng inspectItem (thấy ${openCalls} chỗ)`);
+  assert.match(card, /fforum_boutique_recent_v1/, 'key "vừa xem" riêng, không đụng bộ lọc');
+
+  /* Dải "Vừa xem" chỉ render khi có dữ liệu, item phải còn active trong catalog. */
+  assert.match(card, /\{recentItems\.length > 0 && \(/, 'ẩn khi chưa xem gì');
+  assert.match(card, /recentIds\.map\(\(id\) => activeItems\.find\(\(i\) => i\.id === id\)\)\.filter/, 'loại item đã khỏi catalog');
+
+  /* Báo "item yêu thích đang sale": giá thực tế < niêm yết, 1 chạm vào wishlist. */
+  assert.match(card, /const wishOnDealCount = useMemo\(/, 'đếm item wishlist đang sale');
+  assert.match(card, /current < i\.price \? acc \+ 1 : acc/, 'so giá thực tế với niêm yết');
+  assert.match(card, /\{!readOnly && wishOnDealCount > 0 && \([\s\S]{0,300}setWishOnly\(true\)/, '1 chạm mở danh sách yêu thích');
+  assert.match(css, /\.gb-recent__chip \{/, 'CSS dải vừa xem');
+  assert.match(css, /\.gb-wish-deal \{/, 'CSS thông báo sale');
 });
