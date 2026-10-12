@@ -133,7 +133,11 @@ export const resolveAssetUrl = (url: string | null | undefined): string | null =
   if (!url) return null;
   if (!url.startsWith('/')) return url;
   const base = typeof import.meta !== 'undefined' && (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL;
-  return `${base || ''}${url}`;
+  /* BASE_URL mặc định '/' của Vite: KHÔNG ghép base vào (ghép ra '//assets/…' —
+     URL protocol-relative, trình duyệt hiểu host là "assets" → mọi fetch/src chết,
+     Boutique rỗng và asset vô hình). Chỉ prepend base khác '/'. */
+  const prefix = base && base !== '/' ? base.replace(/\/+$/, '') : '';
+  return `${prefix}${url}`;
 };
 
 /** Chọn ảnh tĩnh làm fallback: ưu tiên WebP, sau đó PNG (theo thứ tự nguồn hợp lệ). */

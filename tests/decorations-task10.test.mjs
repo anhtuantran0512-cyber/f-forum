@@ -24,6 +24,7 @@ process.env.FFORUM_DATA_DIR = DATA_DIR;
 const { setupForumServer, resetRateLimitersForTest, flushPendingSave } = await import('../server/forumServer.ts');
 const shop = await import('../src/utils/shopData.ts');
 const registry = await import('../server/decorationRegistry.ts');
+const deco = await import('../src/utils/decorations.ts');
 
 const ROOT = path.resolve(new URL('.', import.meta.url).pathname, '..');
 const DECOS = path.join(ROOT, 'public', 'assets', 'decorations');
@@ -69,6 +70,13 @@ test('10.1 Catalog: 873 item — schema, file trên disk, preview < 100KB, giá 
 });
 
 test('10.2 Registry: 873 active + slot đúng loại + item SVG cũ vẫn bán (chưa migration)', () => {
+  /* resolveAssetUrl KHÔNG được sinh URL '//…' (protocol-relative) khi BASE_URL = '/' —
+     đó chính là lỗi khiến Boutique rỗng (fetch catalog chết). */
+  for (const p of ['/assets/decorations/decorations-catalog.json', '/assets/decorations/avatar-frames/black-mana/full.webp']) {
+    assert.equal(deco.resolveAssetUrl(p), p, `resolveAssetUrl giữ path gốc: ${p}`);
+  }
+  assert.equal(deco.resolveAssetUrl(null), null);
+  assert.equal(deco.resolveAssetUrl('https://cdn.example.com/x.webp'), 'https://cdn.example.com/x.webp');
   const items = registry.getDecorationItems();
   assert.equal(items.length, 873, 'registry nạp đủ catalog');
   assert.ok(items.every((i) => i.isActive && i.originalSource === 'discord_import'), 'tất cả active + discord_import');
