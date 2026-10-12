@@ -2311,7 +2311,7 @@ html.light .nav-tab-btn--active .ff-nav-tab-icon {
    the cinema ends, squeezing the tab strip against the account controls. */
 .dock-pos-top .ff-nav-capsule[data-compact="true"],
 .dock-pos-bottom .ff-nav-capsule[data-compact="true"] {
-  width: min(94vw, 700px) !important;
+  width: min(94vw, 920px) !important;
   max-width: 94vw !important;
   min-width: 0 !important;
 }
@@ -2328,8 +2328,6 @@ html.light .nav-tab-btn--active .ff-nav-tab-icon {
 .dock-pos-bottom .ff-nav-capsule[data-compact="true"] .dock-vertical-tooltip {
   display: block !important;
 }
-.dock-pos-top .ff-nav-capsule[data-compact="true"] .nav-user-text,
-.dock-pos-bottom .ff-nav-capsule[data-compact="true"] .nav-user-text,
 .dock-pos-top .ff-nav-capsule[data-compact="true"] .nav-user-extra,
 .dock-pos-bottom .ff-nav-capsule[data-compact="true"] .nav-user-extra {
   max-width: 0 !important;
@@ -2342,8 +2340,8 @@ html.light .nav-tab-btn--active .ff-nav-tab-icon {
 }
 .dock-pos-top .ff-nav-capsule[data-compact="true"] .nav-profile-trigger,
 .dock-pos-bottom .ff-nav-capsule[data-compact="true"] .nav-profile-trigger {
-  padding: 2px !important;
-  gap: 0 !important;
+  padding: 4px 10px 4px 8px !important;
+  gap: 8px !important;
 }
 .ff-nav-capsule[data-compact="true"] .ff-nav-label {
   max-width: 0;

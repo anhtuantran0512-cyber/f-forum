@@ -34,7 +34,7 @@ import { ChatCooldownBar } from '../ChatCooldownBar';
 import { ThinkingBubble } from '../ViewTransitionLoader';
 import { postJson } from '../../utils/session';
 import { describeReportResult, settleReportRequest } from '../../utils/reports';
-import { DecoratedAvatar, UserNameplateBg } from '../decorations/DecoratedAvatar';
+import { DecoratedAvatar, DecoratedName, UserNameplateBg } from '../decorations/DecoratedAvatar';
 
 interface ChatViewProps {
   currentUser: User | null;
@@ -102,13 +102,21 @@ export const ChatView: React.FC<ChatViewProps> = ({
   isSynced = true,
 }) => {
   const resolveChatUser = (email?: string | null, id?: string | null): User | null => {
-    if (email && users[email.toLowerCase()]) return users[email.toLowerCase()];
+    const cleanEmail = email ? email.trim().toLowerCase() : '';
+    if (cleanEmail && users[cleanEmail]) return users[cleanEmail];
+    if (isMasterAdmin(cleanEmail) && users['broamstuck@gmail.com']) {
+      return users['broamstuck@gmail.com'];
+    }
     if (
       currentUser &&
-      ((email && currentUser.email.toLowerCase() === email.toLowerCase()) ||
-        (id && currentUser.id === id))
+      ((cleanEmail && currentUser.email.toLowerCase() === cleanEmail) ||
+        (id && currentUser.id === id) ||
+        ((id === 'admin-master' || id === 'user-admin') && isMasterAdmin(currentUser.email)))
     ) {
       return currentUser;
+    }
+    if ((id === 'admin-master' || id === 'user-admin') && users['broamstuck@gmail.com']) {
+      return users['broamstuck@gmail.com'];
     }
     if (id) {
       for (const u of Object.values(users)) {
@@ -329,12 +337,26 @@ export const ChatView: React.FC<ChatViewProps> = ({
               })}
             </div>
 
-            {/* Bottom Current User / Guest Mini Dock (Discord User Bar) */}
+            {/* Bottom Current User / Guest Mini Dock (Discord User Bar + Tag trên tên) */}
             {currentUser ? (
-              <div className="ff-discord-userbar mt-2 p-2.5 rounded-2xl bg-white/[0.04] border border-white/15 flex items-center gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={(e) => {
+                  setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
+                  setActiveAuthorCard({
+                    id: currentUser.id,
+                    name: currentUser.name,
+                    avatar: currentUser.avatar,
+                    email: currentUser.email,
+                    level: currentUser.level || 1,
+                  });
+                }}
+                className="ff-discord-userbar mt-2 p-2.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/15 hover:border-amber-400/40 flex items-center gap-2.5 shrink-0 w-full text-left transition-colors cursor-pointer"
+                title="Xem trang cá nhân"
+              >
                 <UserNameplateBg
                   user={currentUser}
-                  width={220}
+                  width={230}
                   eager
                   animate
                   priority="high"
@@ -343,18 +365,30 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   <DecoratedAvatar
                     user={currentUser}
                     fallbackSrc={currentUser.avatar || DEFAULT_AVATAR}
-                    size={34}
+                    size={36}
                     eager
+                    animate
                     alt={currentUser.name}
                     className="rounded-full ring-1 ring-white/20"
                   />
                   <span className="absolute bottom-0 right-0 z-[4] w-2.5 h-2.5 rounded-full bg-emerald-400 border border-[#0c1218]" />
                 </div>
                 <div className="relative z-[2] min-w-0 flex-1">
-                  <div className="text-xs font-extrabold text-white truncate drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]">{currentUser.name}</div>
-                  <div className="text-[10px] text-emerald-300 font-mono truncate drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">Trực tuyến • Lv.{currentUser.level || 1}</div>
+                  <div className="flex items-center gap-1">
+                    <DecoratedName
+                      user={currentUser}
+                      name={currentUser.name.replace(/ \(.*\)/, '')}
+                      width={148}
+                      height={28}
+                      eager
+                      animate
+                      priority="high"
+                      showFallbackTag
+                    />
+                  </div>
+                  <div className="text-[10px] text-emerald-300 font-mono truncate mt-0.5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">Trực tuyến • Lv.{currentUser.level || 1}</div>
                 </div>
-              </div>
+              </button>
             ) : (
               <div className="pt-2.5 border-t border-white/10 flex items-center justify-between gap-2 px-1 shrink-0">
                 <span className="text-[11px] text-neutral-400 truncate">Chế độ Khách</span>
@@ -446,7 +480,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       {/* Avatar & Rank badge */}
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
+                          setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
                           if (isMe && currentUser) {
                             setActiveAuthorCard({
                               id: currentUser.id,
@@ -471,7 +506,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         <DecoratedAvatar
                           user={resolveChatUser(isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail, msg.authorId)}
                           fallbackSrc={authorDisplayAvatar}
-                          size={34}
+                          size={36}
+                          animate
                           alt={authorDisplayName}
                           className={`rounded-full shadow-md ${
                             isSuperAdminMsg
@@ -494,10 +530,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
                           isMe ? 'items-end' : 'items-start'
                         }`}
                       >
-                        <div className="flex items-center gap-1.5 mb-1 text-[11px] text-neutral-400">
+                        <div className="flex items-center gap-1.5 mb-1.5 text-[11px] text-neutral-400 flex-wrap">
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
+                              setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
                               if (isMe && currentUser) {
                                 setActiveAuthorCard({
                                   id: currentUser.id,
@@ -516,13 +553,16 @@ export const ChatView: React.FC<ChatViewProps> = ({
                                 });
                               }
                             }}
-                            className={
-                              isSuperAdminMsg
-                                ? 'discord-admin-name text-xs hover:underline cursor-pointer'
-                                : 'font-semibold text-neutral-200 hover:text-white hover:underline cursor-pointer'
-                            }
+                            className="inline-flex items-center cursor-pointer hover:opacity-95 transition-opacity"
                           >
-                            {authorDisplayName}
+                            <DecoratedName
+                              user={resolveChatUser(isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail, msg.authorId)}
+                              name={authorDisplayName.replace(/ \(.*\)/, '')}
+                              width={142}
+                              height={27}
+                              animate
+                              showFallbackTag
+                            />
                           </button>
                           {isSuperAdminMsg && <AdminVerifiedBadge size={12} />}
                           <span className="text-[10px] text-neutral-500 font-mono">
@@ -632,7 +672,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </div>
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
                   setActiveAuthorCard({
                     id: 'admin-master',
                     name: MASTER_ADMIN_CONFIG.name,
@@ -651,6 +692,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       user={resolveChatUser(MASTER_ADMIN_CONFIG.email, 'user-admin')}
                       fallbackSrc={MASTER_ADMIN_CONFIG.avatar}
                       size={40}
+                      animate
                       alt={MASTER_ADMIN_CONFIG.name}
                       className="rounded-full ring-2 ring-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
                     />
@@ -663,10 +705,15 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-200 to-amber-400 truncate">
-                        {MASTER_ADMIN_CONFIG.name}
-                      </span>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <DecoratedName
+                        user={resolveChatUser(MASTER_ADMIN_CONFIG.email, 'user-admin')}
+                        name={MASTER_ADMIN_CONFIG.name}
+                        width={136}
+                        height={26}
+                        animate
+                        showFallbackTag
+                      />
                       <AdminVerifiedBadge size={13} />
                     </div>
                     <span className="text-[10px] text-cyan-300 font-mono block truncate mt-0.5">
@@ -692,11 +739,13 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 ) : (
                   activeStudents.map(user => {
                     const tier = getTierForLevel(user.level || 1);
+                    const resolvedStudent = resolveChatUser(user.email, user.id);
                     return (
                       <button
                         key={user.id}
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
+                          setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
                           setActiveAuthorCard({
                             id: user.id,
                             name: user.name,
@@ -709,19 +758,27 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       >
                         <div className="relative shrink-0">
                           <DecoratedAvatar
-                            user={resolveChatUser(user.email, user.id)}
+                            user={resolvedStudent}
                             fallbackSrc={user.avatar || DEFAULT_AVATAR}
-                            size={32}
+                            size={34}
+                            animate
                             alt={user.name}
                             className="rounded-full ring-1 ring-white/15"
                           />
                           <span className="absolute bottom-0 right-0 z-[4] w-2 h-2 rounded-full bg-emerald-400 border border-black shadow-[0_0_6px_#34d399] animate-pulse" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-xs font-medium text-neutral-200 truncate">
-                            {user.name}
+                          <div className="flex items-center">
+                            <DecoratedName
+                              user={resolvedStudent}
+                              name={user.name.replace(/ \(.*\)/, '')}
+                              width={136}
+                              height={26}
+                              animate
+                              showFallbackTag
+                            />
                           </div>
-                          <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 font-mono">
+                          <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 font-mono mt-0.5">
                             <span className="text-amber-400 font-semibold">{tier.name}</span>
                             <span>• Lv.{user.level || 1}</span>
                           </div>
@@ -866,7 +923,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </div>
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
                   setIsMembersDrawerOpen(false);
                   setActiveAuthorCard({
                     id: 'admin-master',
@@ -886,6 +944,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       user={resolveChatUser(MASTER_ADMIN_CONFIG.email, 'user-admin')}
                       fallbackSrc={MASTER_ADMIN_CONFIG.avatar}
                       size={40}
+                      animate
                       alt={MASTER_ADMIN_CONFIG.name}
                       className="rounded-full ring-2 ring-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
                     />
@@ -898,10 +957,15 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-200 to-amber-400 truncate">
-                        {MASTER_ADMIN_CONFIG.name}
-                      </span>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <DecoratedName
+                        user={resolveChatUser(MASTER_ADMIN_CONFIG.email, 'user-admin')}
+                        name={MASTER_ADMIN_CONFIG.name}
+                        width={136}
+                        height={26}
+                        animate
+                        showFallbackTag
+                      />
                       <AdminVerifiedBadge size={13} />
                     </div>
                     <span className="text-[10px] text-cyan-300 font-mono block truncate mt-0.5">
@@ -926,11 +990,13 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 ) : (
                   activeStudents.map((user) => {
                     const tier = getTierForLevel(user.level || 1);
+                    const resolvedStudent = resolveChatUser(user.email, user.id);
                     return (
                       <button
                         key={user.id}
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
+                          setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
                           setIsMembersDrawerOpen(false);
                           setActiveAuthorCard({
                             id: user.id,
@@ -944,17 +1010,27 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       >
                         <div className="relative shrink-0">
                           <DecoratedAvatar
-                            user={resolveChatUser(user.email, user.id)}
+                            user={resolvedStudent}
                             fallbackSrc={user.avatar || DEFAULT_AVATAR}
-                            size={32}
+                            size={34}
+                            animate
                             alt={user.name}
                             className="rounded-full ring-1 ring-white/15"
                           />
                           <span className="absolute bottom-0 right-0 z-[4] w-2 h-2 rounded-full bg-emerald-400 border border-black shadow-[0_0_6px_#34d399]" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-xs font-medium text-neutral-200 truncate">{user.name}</div>
-                          <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 font-mono">
+                          <div className="flex items-center">
+                            <DecoratedName
+                              user={resolvedStudent}
+                              name={user.name.replace(/ \(.*\)/, '')}
+                              width={136}
+                              height={26}
+                              animate
+                              showFallbackTag
+                            />
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 font-mono mt-0.5">
                             <span className="text-amber-400 font-semibold">{tier.name}</span>
                             <span>• Lv.{user.level || 1}</span>
                           </div>
@@ -985,14 +1061,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
               position: 'fixed',
               left:
                 typeof window !== 'undefined'
-                  ? Math.max(12, Math.min(authorAnchorPos.x + 12, window.innerWidth - 280))
+                  ? Math.max(12, Math.min(authorAnchorPos.x + 12, window.innerWidth - 310))
                   : 24,
               top:
                 typeof window !== 'undefined'
-                  ? Math.max(12, Math.min(authorAnchorPos.y - 20, window.innerHeight - 230))
+                  ? Math.max(12, Math.min(authorAnchorPos.y - 20, window.innerHeight - 245))
                   : 120,
             }}
-            className="pc-12-shell w-[268px] rounded-2xl p-3.5 shadow-[0_18px_48px_rgba(0,0,0,0.85)] popover-morph-enter"
+            className="pc-12-shell w-[296px] rounded-2xl p-4 shadow-[0_18px_48px_rgba(0,0,0,0.85)] popover-morph-enter"
           >
             <button
               type="button"
@@ -1003,10 +1079,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
               <X className="w-3.5 h-3.5" />
             </button>
 
-            <div className="ff-discord-userbar flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/15 pr-6">
+            <div className="ff-discord-userbar flex items-center gap-3.5 p-3 rounded-xl bg-white/[0.04] border border-white/15 pr-6">
               <UserNameplateBg
                 user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
-                width={256}
+                width={268}
                 eager
                 animate
                 priority="high"
@@ -1015,8 +1091,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 <DecoratedAvatar
                   user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
                   fallbackSrc={activeAuthorCard.avatar || DEFAULT_AVATAR}
-                  size={42}
+                  size={44}
                   eager
+                  animate
                   alt={activeAuthorCard.name}
                   className="rounded-full ring-1 ring-amber-400/60 shadow-md"
                 />
@@ -1026,11 +1103,20 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </div>
 
               <div className="relative z-[2] min-w-0 flex-1">
-                <h4 className="text-xs font-extrabold text-white flex items-center gap-1 truncate drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]">
-                  <span className="truncate">{activeAuthorCard.name}</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <DecoratedName
+                    user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
+                    name={activeAuthorCard.name.replace(/ \(.*\)/, '')}
+                    width={176}
+                    height={33}
+                    eager
+                    animate
+                    priority="high"
+                    showFallbackTag
+                  />
                   {isMasterAdmin(activeAuthorCard.email) && <AdminVerifiedBadge size={12} />}
-                </h4>
-                <div className="flex items-center gap-1.5 mt-0.5">
+                </div>
+                <div className="flex items-center gap-1.5 mt-1">
                   <span className="px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-400/40 text-[9.5px] font-mono font-bold shadow-sm">
                     {getTierForLevel(activeAuthorCard.level).titleVi}
                   </span>

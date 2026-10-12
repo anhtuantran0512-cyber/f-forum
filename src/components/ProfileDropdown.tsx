@@ -6,7 +6,7 @@ import type { User, ShopItem } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { useUserDecorations } from '../utils/decorationStore';
 import { AvatarWithDecoration } from './decorations/AvatarWithDecoration';
-import { UserNameplateBg } from './decorations/DecoratedAvatar';
+import { DecoratedName, UserNameplateBg } from './decorations/DecoratedAvatar';
 import { getTierForLevel } from '../utils/tier';
 import { getXPForLevel } from '../store/forumStore';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
@@ -137,7 +137,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       {/* Top Section (Current Real User — Discord Nameplate User Bar) */}
       <div className="flex flex-col">
         {/* Avatar + Info */}
-        <div className="ff-discord-userbar flex items-center gap-3 p-3 rounded-2xl bg-white/[0.04] border border-white/15">
+        <div className="ff-discord-userbar flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/[0.04] border border-white/15">
           <UserNameplateBg
             user={currentUser}
             width={288}
@@ -155,6 +155,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
                 auraAsset={dropdownAuraAsset}
                 size={44}
                 eager
+                animate
                 className="rounded-full ring-2 ring-amber-400/50 shadow-md"
                 alt={currentUser.name}
               />
@@ -175,21 +176,23 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
 
           <div className="relative z-[2] flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span
-                className={`text-sm font-bold truncate drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)] ${
-                  isSuperAdmin ? 'discord-admin-name' : 'text-white'
-                }`}
-                title={currentUser.name}
-              >
-                {currentUser.name}
-              </span>
+              <DecoratedName
+                user={currentUser}
+                name={currentUser.name.replace(/ \(.*\)/, '')}
+                width={186}
+                height={34}
+                eager
+                animate
+                priority="high"
+                showFallbackTag
+              />
               {isSuperAdmin && (
                 <AdminVerifiedBadge size={14} tooltipPosition="bottom" />
               )}
               <PremiumMark user={currentUser} compact />
             </div>
 
-            <p className="text-[11px] text-white/75 truncate mt-0.5 font-mono drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
+            <p className="text-[11px] text-white/75 truncate mt-1 font-mono drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
               {currentUser.email}
             </p>
           </div>

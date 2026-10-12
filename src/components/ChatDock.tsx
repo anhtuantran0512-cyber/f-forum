@@ -30,7 +30,7 @@ import { ChatCooldownBar } from './ChatCooldownBar';
 import { ThinkingBubble } from './ViewTransitionLoader';
 import { postJson } from '../utils/session';
 import { describeReportResult, settleReportRequest } from '../utils/reports';
-import { DecoratedAvatar, UserNameplateBg } from './decorations/DecoratedAvatar';
+import { DecoratedAvatar, DecoratedName, UserNameplateBg } from './decorations/DecoratedAvatar';
 
 export interface ChatDockProps {
   isOpen: boolean;
@@ -67,13 +67,21 @@ export const ChatDock: React.FC<ChatDockProps> = ({
   isSynced = true,
 }) => {
   const resolveChatUser = (email?: string | null, id?: string | null): User | null => {
-    if (email && users[email.toLowerCase()]) return users[email.toLowerCase()];
+    const cleanEmail = email ? email.trim().toLowerCase() : '';
+    if (cleanEmail && users[cleanEmail]) return users[cleanEmail];
+    if (isMasterAdmin(cleanEmail) && users['broamstuck@gmail.com']) {
+      return users['broamstuck@gmail.com'];
+    }
     if (
       currentUser &&
-      ((email && currentUser.email.toLowerCase() === email.toLowerCase()) ||
-        (id && currentUser.id === id))
+      ((cleanEmail && currentUser.email.toLowerCase() === cleanEmail) ||
+        (id && currentUser.id === id) ||
+        ((id === 'admin-master' || id === 'user-admin') && isMasterAdmin(currentUser.email)))
     ) {
       return currentUser;
+    }
+    if ((id === 'admin-master' || id === 'user-admin') && users['broamstuck@gmail.com']) {
+      return users['broamstuck@gmail.com'];
     }
     if (id) {
       for (const u of Object.values(users)) {
@@ -314,6 +322,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                       user={resolveChatUser(isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail, msg.authorId)}
                       fallbackSrc={authorDisplayAvatar}
                       size={34}
+                      animate
                       alt={authorDisplayName}
                       className={`rounded-full shadow-md ${
                         isSuperAdminMsg ? 'ring-2 ring-amber-400' : 'ring-1 ring-white/20'
@@ -325,7 +334,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   </button>
 
                   <div className={`max-w-[78%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                    <div className="flex items-center gap-1.5 mb-1 text-[11px] text-neutral-400">
+                    <div className="flex items-center gap-1.5 mb-1.5 text-[11px] text-neutral-400 flex-wrap">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -348,9 +357,16 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                             });
                           }
                         }}
-                        className={`${isSuperAdminMsg ? 'discord-admin-name text-xs' : 'font-semibold text-neutral-200'} cursor-pointer hover:underline focus:outline-none`}
+                        className="inline-flex items-center cursor-pointer hover:opacity-95 focus:outline-none"
                       >
-                        {authorDisplayName}
+                        <DecoratedName
+                          user={resolveChatUser(isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail, msg.authorId)}
+                          name={authorDisplayName.replace(/ \(.*\)/, '')}
+                          width={136}
+                          height={26}
+                          animate
+                          showFallbackTag
+                        />
                       </button>
                       {isSuperAdminMsg && <AdminVerifiedBadge size={12} />}
                       <span className="text-[10px] text-neutral-500 font-mono">• {msg.timestamp}</span>
@@ -449,14 +465,14 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               position: 'fixed',
               left:
                 typeof window !== 'undefined'
-                  ? Math.max(12, Math.min(authorAnchorPos.x - 260, window.innerWidth - 264))
+                  ? Math.max(12, Math.min(authorAnchorPos.x - 280, window.innerWidth - 310))
                   : 24,
               top:
                 typeof window !== 'undefined'
-                  ? Math.max(12, Math.min(authorAnchorPos.y - 20, window.innerHeight - 230))
+                  ? Math.max(12, Math.min(authorAnchorPos.y - 20, window.innerHeight - 245))
                   : 120,
             }}
-            className="pc-12-shell w-[268px] rounded-2xl p-3.5 shadow-[0_18px_48px_rgba(0,0,0,0.85)] popover-morph-enter"
+            className="pc-12-shell w-[296px] rounded-2xl p-4 shadow-[0_18px_48px_rgba(0,0,0,0.85)] popover-morph-enter"
           >
             <button
               type="button"
@@ -467,10 +483,10 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               <X className="w-3.5 h-3.5" />
             </button>
 
-            <div className="ff-discord-userbar flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/15 pr-6">
+            <div className="ff-discord-userbar flex items-center gap-3.5 p-3 rounded-xl bg-white/[0.04] border border-white/15 pr-6">
               <UserNameplateBg
                 user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
-                width={256}
+                width={268}
                 eager
                 animate
                 priority="high"
@@ -479,8 +495,9 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                 <DecoratedAvatar
                   user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
                   fallbackSrc={activeAuthorCard.avatar || DEFAULT_AVATAR}
-                  size={42}
+                  size={44}
                   eager
+                  animate
                   alt={activeAuthorCard.name}
                   className="rounded-full ring-1 ring-amber-400/60 shadow-md"
                 />
@@ -490,11 +507,20 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               </div>
 
               <div className="relative z-[2] min-w-0 flex-1">
-                <h4 className="text-xs font-extrabold text-white flex items-center gap-1 truncate drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]">
-                  <span className="truncate">{activeAuthorCard.name}</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <DecoratedName
+                    user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
+                    name={activeAuthorCard.name.replace(/ \(.*\)/, '')}
+                    width={176}
+                    height={33}
+                    eager
+                    animate
+                    priority="high"
+                    showFallbackTag
+                  />
                   {isMasterAdmin(activeAuthorCard.email) && <AdminVerifiedBadge size={12} />}
-                </h4>
-                <div className="flex items-center gap-1.5 mt-0.5">
+                </div>
+                <div className="flex items-center gap-1.5 mt-1">
                   <span className="px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-400/40 text-[9.5px] font-mono font-bold shadow-sm">
                     {getTierForLevel(activeAuthorCard.level).titleVi}
                   </span>

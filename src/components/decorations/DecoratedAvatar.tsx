@@ -110,11 +110,13 @@ interface DecoratedNameProps {
   name: string;
   /** Rộng vùng bảng tên (px). Mặc định 240 (tỉ lệ chuẩn 448:84). */
   width?: number;
+  /** Chiều cao vùng bảng tên (px). Tự suy ra từ width nếu không truyền. */
+  height?: number;
   animate?: boolean;
   eager?: boolean;
   priority?: 'high' | 'low';
   className?: string;
-  /** Khi chưa gắn nameplate từ shop, vẫn hiển thị khung nametag mặc định để tên luôn căn giữa trên bảng tên ở Trang cá nhân. */
+  /** Khi chưa gắn nameplate từ shop, vẫn hiển thị khung nametag mặc định để tên luôn căn giữa trên bảng tên. */
   showFallbackTag?: boolean;
   /** Cho phép truyền trực tiếp asset để xem trước/đổi nhanh trên Trang cá nhân hoặc Boutique. */
   overrideAsset?: DecorationAssetRef | null;
@@ -124,6 +126,7 @@ export const DecoratedName = ({
   user,
   name,
   width = 240,
+  height: customHeight,
   animate = true,
   eager = true,
   priority = 'high',
@@ -133,7 +136,9 @@ export const DecoratedName = ({
 }: DecoratedNameProps) => {
   const { nameplate } = useUserDecorations(user);
   const asset = overrideAsset !== undefined ? overrideAsset : shopItemToAsset(nameplate);
-  const height = Math.max(36, Math.round((width * 84) / 448));
+  const height = customHeight ?? Math.max(24, Math.round((width * 84) / 448));
+  const fontSize = height <= 30 ? '11.5px' : height <= 35 ? '12.5px' : undefined;
+  const horizontalPad = height <= 30 ? '10px' : height <= 35 ? '12px' : undefined;
 
   if (!asset) {
     if (!showFallbackTag) {
@@ -142,9 +147,9 @@ export const DecoratedName = ({
     return (
       <span
         className={`npd-np npd-np--default${className ? ` ${className}` : ''}`}
-        style={{ width, height }}
+        style={{ width, height, paddingLeft: horizontalPad, paddingRight: horizontalPad }}
       >
-        <span className="npd-np__text">{name}</span>
+        <span className="npd-np__text" style={fontSize ? { fontSize } : undefined}>{name}</span>
       </span>
     );
   }
@@ -153,7 +158,10 @@ export const DecoratedName = ({
    * cố định — tên luôn nằm chính giữa bảng tên, không lệch góc, không đè viền.
    */
   return (
-    <span className={`npd-np${className ? ` ${className}` : ''}`} style={{ width, height }}>
+    <span
+      className={`npd-np${className ? ` ${className}` : ''}`}
+      style={{ width, height, paddingLeft: horizontalPad, paddingRight: horizontalPad }}
+    >
       <NameplateDisplay
         asset={asset}
         size={width}
@@ -163,7 +171,7 @@ export const DecoratedName = ({
         fill
         className="npd-np__bg"
       />
-      <span className="npd-np__text">{name}</span>
+      <span className="npd-np__text" style={fontSize ? { fontSize } : undefined}>{name}</span>
     </span>
   );
 };

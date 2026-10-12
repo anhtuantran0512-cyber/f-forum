@@ -8,7 +8,7 @@ import { DEFAULT_AVATAR } from '../utils/mediaFallback';
 import { effectiveCoinBalance, formatCoinBalance } from '../utils/coinDisplay';
 import { PremiumMark } from './PremiumMark';
 import { isMasterAdmin } from '../config/admin';
-import { DecoratedAvatar, UserNameplateBg } from './decorations/DecoratedAvatar';
+import { DecoratedAvatar, DecoratedName, UserNameplateBg } from './decorations/DecoratedAvatar';
 
 export interface UserQuickCardProps {
   user: User | null;
@@ -103,6 +103,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
               fallbackSrc={user.avatar || DEFAULT_AVATAR}
               size={68}
               eager
+              animate
               alt={user.name}
               className="rounded-full"
             />
@@ -122,7 +123,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
 
         {/* Inner surface body */}
         <div className="pc-12-card m-3 mt-2.5 p-3.5 rounded-2xl space-y-3">
-          {/* Identity — Discord Nameplate Bar */}
+          {/* Identity — Discord Nameplate Bar + Tag trên tên */}
           <div className="ff-discord-userbar relative rounded-xl p-2.5 border border-white/10">
             <UserNameplateBg
               user={user}
@@ -132,13 +133,20 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
               priority="high"
             />
             <div className="relative z-[2] flex items-center gap-1.5 flex-wrap">
-              <h3 className={`text-[17px] font-extrabold leading-tight drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)] ${isSuperAdmin ? 'discord-admin-name' : 'text-white'}`}>
-                {user.name.replace(/ \(.*\)/, '')}
-              </h3>
+              <DecoratedName
+                user={user}
+                name={user.name.replace(/ \(.*\)/, '')}
+                width={206}
+                height={38}
+                eager
+                animate
+                priority="high"
+                showFallbackTag
+              />
               {isSuperAdmin && <AdminVerifiedBadge size={15} />}
               <PremiumMark user={user} compact />
             </div>
-            <p className="relative z-[2] text-xs text-white/80 font-mono drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
+            <p className="relative z-[2] text-xs text-white/80 font-mono mt-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
               {tier.titleVi} • Lv.{user.level}
             </p>
           </div>
