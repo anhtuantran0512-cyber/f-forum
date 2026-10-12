@@ -9,6 +9,7 @@
  *  - Lazy load qua IntersectionObserver (eager=true bỏ qua — navbar).
  */
 import type { DecorationType } from '../../types/index';
+import './decorations.css';
 import { useInViewOnce } from './useDecorationMedia';
 import { NameplateDisplay } from './NameplateDisplay';
 import { DecorationMedia } from './DecorationMedia';
