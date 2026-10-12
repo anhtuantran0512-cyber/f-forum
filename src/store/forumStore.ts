@@ -140,6 +140,8 @@ export function sanitizeUsersRegistry(input: unknown): Record<string, User> {
     const u = raw as User;
     const email = typeof u.email === 'string' ? u.email.trim().toLowerCase() : '';
     if (!email || !email.includes('@') || email.endsWith(RETIRED_VIRTUAL_DOMAIN)) return;
+    if (/^(smoke\d*-|bot[-@_])/i.test(email) || email.endsWith('@bot.local') || email.endsWith('@mock.local')) return;
+    if (/^(smoke(\s*\d+)?\s+[ab]|bot\b)/i.test(String(u.name || '').trim())) return;
     if (!u.id || !u.name) return;
     out[email] = u.coin === undefined ? { ...u, email, coin: welcomeCoinFor(email) } : { ...u, email };
   });
@@ -697,6 +699,7 @@ export function useForumStore() {
             if (data.users && Object.keys(data.users).length > 0) {
               /* Server là nguồn chuẩn; vệ sinh để tài khoản mô phỏng cũ không quay lại */
               commitUsers(prev => sanitizeUsersRegistry({ ...prev, ...data.users }));
+              commitUsers(sanitizeUsersRegistry(data.users));
             }
             if (Array.isArray(data.clubs)) {
               setClubs(

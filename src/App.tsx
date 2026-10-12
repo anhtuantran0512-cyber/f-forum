@@ -1114,6 +1114,7 @@ export const App: React.FC = () => {
           {currentView === 'chat' && (
             <ChatView
               currentUser={currentUser}
+              users={users}
               messages={chatMessages}
               onSendMessage={sendChatMessage}
               onDeleteMessage={adminDeleteChatMessage}
@@ -1184,6 +1185,7 @@ export const App: React.FC = () => {
             isOpen={isChatOpen}
             onClose={() => setIsChatOpen(false)}
             currentUser={currentUser}
+            users={users}
             messages={chatMessages}
             onSendMessage={sendChatMessage}
             onDeleteMessage={adminDeleteChatMessage}

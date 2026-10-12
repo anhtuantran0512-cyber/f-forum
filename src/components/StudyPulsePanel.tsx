@@ -17,7 +17,10 @@ export interface StudyPulsePanelProps {
   weeklyGoalMinutes: number;
   dailyTargetMinutes: number;
   onOpenFocusMode?: () => void;
+  onAdjustWeeklyGoal?: (minutes: number) => void;
 }
+
+const WEEKLY_GOAL_PRESETS_MIN = [5 * 60, 10 * 60, 15 * 60, 25 * 60, 40 * 60];
 
 const ECG_PATH =
   'M0 60 H18 l5 -8 l5 16 l5 -8 H40 l4 -32 l5 58 l5 -32 H70 l7 -13 l7 13 H100';
@@ -27,6 +30,7 @@ export const StudyPulsePanel: React.FC<StudyPulsePanelProps> = ({
   weeklyGoalMinutes,
   dailyTargetMinutes,
   onOpenFocusMode,
+  onAdjustWeeklyGoal,
 }) => {
   /* Nhịp đập suy ra từ số phút học hôm nay: 56 bpm (nghỉ) → 148 bpm (học căng) */
   const todayRatio = Math.min(1, totals.todayMinutes / Math.max(1, dailyTargetMinutes));
@@ -37,6 +41,12 @@ export const StudyPulsePanel: React.FC<StudyPulsePanelProps> = ({
   const markerPercent = Math.max(3, Math.min(97, goalProgress * 100));
   const goalHours = (weeklyGoalMinutes / 60).toFixed(weeklyGoalMinutes % 60 === 0 ? 0 : 1);
   const weekHours = totals.weekMinutes / 60;
+  const cycleGoal = () => {
+    if (!onAdjustWeeklyGoal) return;
+    const idx = WEEKLY_GOAL_PRESETS_MIN.findIndex((m) => m === weeklyGoalMinutes);
+    const next = WEEKLY_GOAL_PRESETS_MIN[(idx + 1) % WEEKLY_GOAL_PRESETS_MIN.length];
+    onAdjustWeeklyGoal(next);
+  };
 
   const statItems: { id: string; label: string; value: string; icon: React.ReactNode; accent: string }[] = [
     {
@@ -101,7 +111,11 @@ export const StudyPulsePanel: React.FC<StudyPulsePanelProps> = ({
           />
         </p>
 
-        <p className="ff-pulse__zone">
+        <p
+          className={`ff-pulse__zone ${onAdjustWeeklyGoal ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''}`}
+          onClick={cycleGoal}
+          title={onAdjustWeeklyGoal ? 'Bấm để đổi mục tiêu tuần (5h / 10h / 15h / 25h / 40h)' : undefined}
+        >
           Mục tiêu
           <b>{goalHours} giờ</b>
           <span>{Math.round(goalProgress * 100)}% hoàn thành</span>

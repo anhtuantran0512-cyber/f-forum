@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import type { ChatChannelId, ChatMessage, User, OnlinePresenceUser } from '../../types';
 import { TierBadge, AdminVerifiedBadge } from '../Badges10Tier';
-import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
+import { DEFAULT_AVATAR } from '../../utils/mediaFallback';
 import { useChatCooldown } from '../../utils/chatCooldown';
 import { TriVideoCrossfadeBg } from '../TriVideoCrossfadeBg';
 import { TRI_CHAT_VIDEOS } from '../../utils/chatVideos';
@@ -34,9 +34,11 @@ import { ChatCooldownBar } from '../ChatCooldownBar';
 import { ThinkingBubble } from '../ViewTransitionLoader';
 import { postJson } from '../../utils/session';
 import { describeReportResult, settleReportRequest } from '../../utils/reports';
+import { DecoratedAvatar, UserNameplateBg } from '../decorations/DecoratedAvatar';
 
 interface ChatViewProps {
   currentUser: User | null;
+  users?: Record<string, User>;
   messages: ChatMessage[];
   onSendMessage: (channelId: ChatChannelId, content: string) => void;
   onDeleteMessage?: (messageId: string) => void;
@@ -89,6 +91,7 @@ const CHANNELS: {
 
 export const ChatView: React.FC<ChatViewProps> = ({
   currentUser,
+  users = {},
   messages,
   onSendMessage,
   onDeleteMessage,
@@ -98,6 +101,22 @@ export const ChatView: React.FC<ChatViewProps> = ({
   onOpenProfile,
   isSynced = true,
 }) => {
+  const resolveChatUser = (email?: string | null, id?: string | null): User | null => {
+    if (email && users[email.toLowerCase()]) return users[email.toLowerCase()];
+    if (
+      currentUser &&
+      ((email && currentUser.email.toLowerCase() === email.toLowerCase()) ||
+        (id && currentUser.id === id))
+    ) {
+      return currentUser;
+    }
+    if (id) {
+      for (const u of Object.values(users)) {
+        if (u.id === id) return u;
+      }
+    }
+    return null;
+  };
   /* Epic 3 — thu hồi tin nhắn: Super Admin hoặc vai trò tùy chỉnh có quyền edit_content. */
   const adminCaps = useAdminCaps();
   const canRecallMessages = capsHas(adminCaps, 'edit_content');
@@ -310,25 +329,30 @@ export const ChatView: React.FC<ChatViewProps> = ({
               })}
             </div>
 
-            {/* Bottom Current User / Guest Mini Dock */}
+            {/* Bottom Current User / Guest Mini Dock (Discord User Bar) */}
             {currentUser ? (
-              <div className="pt-2.5 border-t border-white/10 flex items-center gap-2.5 px-1 shrink-0">
-                <div className="relative shrink-0">
-                  <img
-                    src={currentUser.avatar || DEFAULT_AVATAR}
+              <div className="ff-discord-userbar mt-2 p-2.5 rounded-2xl bg-white/[0.04] border border-white/15 flex items-center gap-2.5 shrink-0">
+                <UserNameplateBg
+                  user={currentUser}
+                  width={220}
+                  eager
+                  animate
+                  priority="high"
+                />
+                <div className="relative z-[2] shrink-0">
+                  <DecoratedAvatar
+                    user={currentUser}
+                    fallbackSrc={currentUser.avatar || DEFAULT_AVATAR}
+                    size={34}
+                    eager
                     alt={currentUser.name}
-                    onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                    loading="lazy"
-                    decoding="async"
-                    width={32}
-                    height={32}
-                    className="w-8 h-8 rounded-full object-cover border border-white/20"
+                    className="rounded-full ring-1 ring-white/20"
                   />
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-[#0c1218]" />
+                  <span className="absolute bottom-0 right-0 z-[4] w-2.5 h-2.5 rounded-full bg-emerald-400 border border-[#0c1218]" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-white truncate">{currentUser.name}</div>
-                  <div className="text-[10px] text-emerald-400 font-mono truncate">Trực tuyến • Lv.{currentUser.level || 1}</div>
+                <div className="relative z-[2] min-w-0 flex-1">
+                  <div className="text-xs font-extrabold text-white truncate drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]">{currentUser.name}</div>
+                  <div className="text-[10px] text-emerald-300 font-mono truncate drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">Trực tuyến • Lv.{currentUser.level || 1}</div>
                 </div>
               </div>
             ) : (
@@ -444,21 +468,18 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         className="relative shrink-0 cursor-pointer focus:outline-none transition-transform hover:scale-105"
                         title={`Xem thông tin ${authorDisplayName}`}
                       >
-                        <img
-                          src={authorDisplayAvatar}
+                        <DecoratedAvatar
+                          user={resolveChatUser(isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail, msg.authorId)}
+                          fallbackSrc={authorDisplayAvatar}
+                          size={34}
                           alt={authorDisplayName}
-                          onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                          loading="lazy"
-                          decoding="async"
-                          width={32}
-                          height={32}
-                          className={`w-8 h-8 rounded-full object-cover shadow-md ${
+                          className={`rounded-full shadow-md ${
                             isSuperAdminMsg
-                              ? 'border-2 border-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.4)]'
-                              : 'border border-white/25'
+                              ? 'ring-2 ring-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.4)]'
+                              : 'ring-1 ring-white/25'
                           }`}
                         />
-                        <span className="absolute -bottom-1 -right-1">
+                        <span className="absolute -bottom-1 -right-1 z-[4]">
                           <TierBadge
                             level={isSuperAdminMsg ? 150 : msg.authorLevel}
                             size={15}
@@ -626,18 +647,15 @@ export const ChatView: React.FC<ChatViewProps> = ({
               >
                 <div className="relative flex items-center gap-2.5">
                   <div className="relative shrink-0">
-                    <img
-                      src={MASTER_ADMIN_CONFIG.avatar}
+                    <DecoratedAvatar
+                      user={resolveChatUser(MASTER_ADMIN_CONFIG.email, 'user-admin')}
+                      fallbackSrc={MASTER_ADMIN_CONFIG.avatar}
+                      size={40}
                       alt={MASTER_ADMIN_CONFIG.name}
-                      onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                      loading="lazy"
-                      decoding="async"
-                      width={40}
-                      height={40}
-                      className="w-10 h-10 rounded-full object-cover border-2 border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+                      className="rounded-full ring-2 ring-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
                     />
                     <span
-                      className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#0c1218] ${
+                      className={`absolute bottom-0 right-0 z-[4] w-3 h-3 rounded-full border-2 border-[#0c1218] ${
                         isMasterAdminOnline
                           ? 'bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse'
                           : 'bg-cyan-400 shadow-[0_0_8px_#22d3ee]'
@@ -690,17 +708,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         className="p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/5 hover:border-white/15 transition-all flex items-center gap-2.5 w-full text-left cursor-pointer"
                       >
                         <div className="relative shrink-0">
-                          <img
-                            src={user.avatar || DEFAULT_AVATAR}
+                          <DecoratedAvatar
+                            user={resolveChatUser(user.email, user.id)}
+                            fallbackSrc={user.avatar || DEFAULT_AVATAR}
+                            size={32}
                             alt={user.name}
-                            onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                            loading="lazy"
-                            decoding="async"
-                            width={32}
-                            height={32}
-                            className="w-8 h-8 rounded-full object-cover border border-white/15"
+                            className="rounded-full ring-1 ring-white/15"
                           />
-                          <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 border border-black shadow-[0_0_6px_#34d399] animate-pulse" />
+                          <span className="absolute bottom-0 right-0 z-[4] w-2 h-2 rounded-full bg-emerald-400 border border-black shadow-[0_0_6px_#34d399] animate-pulse" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="text-xs font-medium text-neutral-200 truncate">
@@ -867,18 +882,15 @@ export const ChatView: React.FC<ChatViewProps> = ({
               >
                 <div className="flex items-center gap-2.5">
                   <div className="relative shrink-0">
-                    <img
-                      src={MASTER_ADMIN_CONFIG.avatar}
+                    <DecoratedAvatar
+                      user={resolveChatUser(MASTER_ADMIN_CONFIG.email, 'user-admin')}
+                      fallbackSrc={MASTER_ADMIN_CONFIG.avatar}
+                      size={40}
                       alt={MASTER_ADMIN_CONFIG.name}
-                      onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                      loading="lazy"
-                      decoding="async"
-                      width={40}
-                      height={40}
-                      className="w-10 h-10 rounded-full object-cover border-2 border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+                      className="rounded-full ring-2 ring-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
                     />
                     <span
-                      className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#0c1218] ${
+                      className={`absolute bottom-0 right-0 z-[4] w-3 h-3 rounded-full border-2 border-[#0c1218] ${
                         isMasterAdminOnline
                           ? 'bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse'
                           : 'bg-cyan-400 shadow-[0_0_8px_#22d3ee]'
@@ -931,17 +943,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         className="p-2 rounded-xl bg-white/[0.03] border border-white/5 flex items-center gap-2.5 w-full text-left cursor-pointer"
                       >
                         <div className="relative shrink-0">
-                          <img
-                            src={user.avatar || DEFAULT_AVATAR}
+                          <DecoratedAvatar
+                            user={resolveChatUser(user.email, user.id)}
+                            fallbackSrc={user.avatar || DEFAULT_AVATAR}
+                            size={32}
                             alt={user.name}
-                            onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                            loading="lazy"
-                            decoding="async"
-                            width={32}
-                            height={32}
-                            className="w-8 h-8 rounded-full object-cover border border-white/15"
+                            className="rounded-full ring-1 ring-white/15"
                           />
-                          <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 border border-black shadow-[0_0_6px_#34d399]" />
+                          <span className="absolute bottom-0 right-0 z-[4] w-2 h-2 rounded-full bg-emerald-400 border border-black shadow-[0_0_6px_#34d399]" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="text-xs font-medium text-neutral-200 truncate">{user.name}</div>
@@ -976,49 +985,56 @@ export const ChatView: React.FC<ChatViewProps> = ({
               position: 'fixed',
               left:
                 typeof window !== 'undefined'
-                  ? Math.max(12, Math.min(authorAnchorPos.x + 12, window.innerWidth - 264))
+                  ? Math.max(12, Math.min(authorAnchorPos.x + 12, window.innerWidth - 280))
                   : 24,
               top:
                 typeof window !== 'undefined'
                   ? Math.max(12, Math.min(authorAnchorPos.y - 20, window.innerHeight - 230))
                   : 120,
             }}
-            className="pc-12-shell w-[248px] rounded-2xl p-3.5 shadow-[0_18px_48px_rgba(0,0,0,0.85)] popover-morph-enter"
+            className="pc-12-shell w-[268px] rounded-2xl p-3.5 shadow-[0_18px_48px_rgba(0,0,0,0.85)] popover-morph-enter"
           >
             <button
               type="button"
               onClick={() => setActiveAuthorCard(null)}
-              className="absolute top-2.5 right-2.5 p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer"
+              className="absolute top-2.5 right-2.5 z-[5] p-1 rounded-full text-neutral-300 hover:text-white cursor-pointer"
               aria-label="Đóng"
             >
               <X className="w-3.5 h-3.5" />
             </button>
 
-            <div className="flex items-center gap-2.5 pb-2.5 border-b border-white/10 pr-5">
-              <div className="relative shrink-0">
-                <img loading="lazy" decoding="async"
-                  src={activeAuthorCard.avatar}
+            <div className="ff-discord-userbar flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/15 pr-6">
+              <UserNameplateBg
+                user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
+                width={256}
+                eager
+                animate
+                priority="high"
+              />
+              <div className="relative z-[2] shrink-0">
+                <DecoratedAvatar
+                  user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
+                  fallbackSrc={activeAuthorCard.avatar || DEFAULT_AVATAR}
+                  size={42}
+                  eager
                   alt={activeAuthorCard.name}
-                  onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                  width={42}
-                  height={42}
-                  className="w-10 h-10 rounded-full object-cover border border-amber-400/60 shadow-md"
+                  className="rounded-full ring-1 ring-amber-400/60 shadow-md"
                 />
-                <span className="absolute -bottom-1 -right-1">
+                <span className="absolute -bottom-1 -right-1 z-[4]">
                   <TierBadge level={activeAuthorCard.level} size={16} showTooltip={false} />
                 </span>
               </div>
 
-              <div className="min-w-0 flex-1">
-                <h4 className="text-xs font-bold text-white flex items-center gap-1 truncate">
+              <div className="relative z-[2] min-w-0 flex-1">
+                <h4 className="text-xs font-extrabold text-white flex items-center gap-1 truncate drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]">
                   <span className="truncate">{activeAuthorCard.name}</span>
                   {isMasterAdmin(activeAuthorCard.email) && <AdminVerifiedBadge size={12} />}
                 </h4>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[9.5px] font-mono font-bold">
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-400/40 text-[9.5px] font-mono font-bold shadow-sm">
                     {getTierForLevel(activeAuthorCard.level).titleVi}
                   </span>
-                  <span className="text-[10px] text-neutral-400 font-mono">
+                  <span className="text-[10px] text-white/85 font-mono drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
                     Lv.{activeAuthorCard.level}
                   </span>
                 </div>

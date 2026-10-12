@@ -20,7 +20,7 @@ import {
 import type { ChatChannelId, ChatMessage, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { useEscapeKey } from '../utils/useEscapeKey';
-import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
+import { DEFAULT_AVATAR } from '../utils/mediaFallback';
 import { useChatCooldown } from '../utils/chatCooldown';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../config/admin';
 import { capsHas, useAdminCaps } from '../utils/adminCapabilities';
@@ -30,11 +30,13 @@ import { ChatCooldownBar } from './ChatCooldownBar';
 import { ThinkingBubble } from './ViewTransitionLoader';
 import { postJson } from '../utils/session';
 import { describeReportResult, settleReportRequest } from '../utils/reports';
+import { DecoratedAvatar, UserNameplateBg } from './decorations/DecoratedAvatar';
 
 export interface ChatDockProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: User | null;
+  users?: Record<string, User>;
   messages: ChatMessage[];
   onSendMessage: (channelId: ChatChannelId, content: string) => void;
   onDeleteMessage?: (messageId: string) => void;
@@ -56,6 +58,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
   isOpen,
   onClose,
   currentUser,
+  users = {},
   messages,
   onSendMessage,
   onDeleteMessage,
@@ -63,6 +66,22 @@ export const ChatDock: React.FC<ChatDockProps> = ({
   onOpenProfile,
   isSynced = true,
 }) => {
+  const resolveChatUser = (email?: string | null, id?: string | null): User | null => {
+    if (email && users[email.toLowerCase()]) return users[email.toLowerCase()];
+    if (
+      currentUser &&
+      ((email && currentUser.email.toLowerCase() === email.toLowerCase()) ||
+        (id && currentUser.id === id))
+    ) {
+      return currentUser;
+    }
+    if (id) {
+      for (const u of Object.values(users)) {
+        if (u.id === id) return u;
+      }
+    }
+    return null;
+  };
   /* Epic 3 — thu hồi tin nhắn: Super Admin hoặc vai trò tùy chỉnh có quyền edit_content. */
   const adminCaps = useAdminCaps();
   const canRecallMessages = capsHas(adminCaps, 'edit_content');
@@ -291,19 +310,16 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                     className="relative shrink-0 cursor-pointer focus:outline-none"
                     title={`Xem thông tin của ${authorDisplayName}`}
                   >
-                    <img
-                      src={authorDisplayAvatar}
+                    <DecoratedAvatar
+                      user={resolveChatUser(isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail, msg.authorId)}
+                      fallbackSrc={authorDisplayAvatar}
+                      size={34}
                       alt={authorDisplayName}
-                      onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                      loading="lazy"
-                      decoding="async"
-                      width={32}
-                      height={32}
-                      className={`w-8 h-8 rounded-full object-cover shadow-md ${
-                        isSuperAdminMsg ? 'border-2 border-amber-400' : 'border border-white/20'
+                      className={`rounded-full shadow-md ${
+                        isSuperAdminMsg ? 'ring-2 ring-amber-400' : 'ring-1 ring-white/20'
                       }`}
                     />
-                    <span className="absolute -bottom-1 -right-1">
+                    <span className="absolute -bottom-1 -right-1 z-[4]">
                       <TierBadge level={isSuperAdminMsg ? 150 : msg.authorLevel} size={15} showTooltip={false} />
                     </span>
                   </button>
@@ -440,42 +456,49 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   ? Math.max(12, Math.min(authorAnchorPos.y - 20, window.innerHeight - 230))
                   : 120,
             }}
-            className="pc-12-shell w-[248px] rounded-2xl p-3.5 shadow-[0_18px_48px_rgba(0,0,0,0.85)] popover-morph-enter"
+            className="pc-12-shell w-[268px] rounded-2xl p-3.5 shadow-[0_18px_48px_rgba(0,0,0,0.85)] popover-morph-enter"
           >
             <button
               type="button"
               onClick={() => setActiveAuthorCard(null)}
-              className="absolute top-2.5 right-2.5 p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer"
+              className="absolute top-2.5 right-2.5 z-[5] p-1 rounded-full text-neutral-300 hover:text-white cursor-pointer"
               aria-label="Đóng"
             >
               <X className="w-3.5 h-3.5" />
             </button>
 
-            <div className="flex items-center gap-2.5 pb-2.5 border-b border-white/10 pr-5">
-              <div className="relative shrink-0">
-                <img loading="lazy" decoding="async"
-                  src={activeAuthorCard.avatar}
+            <div className="ff-discord-userbar flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/15 pr-6">
+              <UserNameplateBg
+                user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
+                width={256}
+                eager
+                animate
+                priority="high"
+              />
+              <div className="relative z-[2] shrink-0">
+                <DecoratedAvatar
+                  user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
+                  fallbackSrc={activeAuthorCard.avatar || DEFAULT_AVATAR}
+                  size={42}
+                  eager
                   alt={activeAuthorCard.name}
-                  onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                  width={42}
-                  height={42}
-                  className="w-10 h-10 rounded-full object-cover border border-amber-400/60 shadow-md"
+                  className="rounded-full ring-1 ring-amber-400/60 shadow-md"
                 />
-                <span className="absolute -bottom-1 -right-1">
+                <span className="absolute -bottom-1 -right-1 z-[4]">
                   <TierBadge level={activeAuthorCard.level} size={16} showTooltip={false} />
                 </span>
               </div>
 
-              <div className="min-w-0 flex-1">
-                <h4 className="text-xs font-bold text-white flex items-center gap-1 truncate">
+              <div className="relative z-[2] min-w-0 flex-1">
+                <h4 className="text-xs font-extrabold text-white flex items-center gap-1 truncate drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]">
                   <span className="truncate">{activeAuthorCard.name}</span>
                   {isMasterAdmin(activeAuthorCard.email) && <AdminVerifiedBadge size={12} />}
                 </h4>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[9.5px] font-mono font-bold">
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-400/40 text-[9.5px] font-mono font-bold shadow-sm">
                     {getTierForLevel(activeAuthorCard.level).titleVi}
                   </span>
-                  <span className="text-[10px] text-neutral-400 font-mono">
+                  <span className="text-[10px] text-white/85 font-mono drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
                     Lv.{activeAuthorCard.level}
                   </span>
                 </div>
