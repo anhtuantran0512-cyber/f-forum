@@ -9,6 +9,7 @@
  * Đầu ra: docs/decorations/screenshots/*.png
  */
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -35,7 +36,7 @@ const webmFrameCache = new Map();
 const webmFrame = (webmPath) => {
   const key = webmPath;
   if (webmFrameCache.has(key)) return webmFrameCache.get(key);
-  const tmp = path.join(OUT, `.frame-${process.pid}-${Date.now()}-${Math.floor(Math.random() * 1e5)}.png`);
+  const tmp = path.join(os.tmpdir(), `.frame-${process.pid}-${Date.now()}-${Math.floor(Math.random() * 1e5)}.png`);
   try {
     execFileSync(FFMPEG, ['-y', '-loglevel', 'error', '-i', abs(webmPath), '-frames:v', '1', tmp], { timeout: 30000 });
     webmFrameCache.set(key, tmp);
@@ -264,6 +265,9 @@ try {
   await nameplateDemo();
   await shopGrid();
   console.log('\nXong — toàn bộ file ở docs/decorations/screenshots/');
+  for (const f of webmFrameCache.values()) {
+    try { fs.unlinkSync(f); } catch { /* đã xoá */ }
+  }
 } catch (err) {
   console.error('❌', err);
   process.exit(1);
