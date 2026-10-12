@@ -9,6 +9,7 @@ import { effectiveCoinBalance, formatCoinBalance } from '../utils/coinDisplay';
 import { PremiumMark } from './PremiumMark';
 import { isMasterAdmin } from '../config/admin';
 import { DecoratedAvatar, DecoratedName, UserNameplateBg } from './decorations/DecoratedAvatar';
+import { parseBannerUrl, bannerImageStyle } from '../utils/bannerLayout';
 
 export interface UserQuickCardProps {
   user: User | null;
@@ -51,6 +52,9 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
   const bestSolutions = userSolutions.filter((s) => s.isBest);
   /* Super Admin hiển thị Coin = ∞ (vô vùng). */
   const userCoin = formatCoinBalance(effectiveCoinBalance(user.role, user.coin));
+  const ownerKey = (user.email || user.id || '').toLowerCase();
+  const parsedBanner = parseBannerUrl(user.bannerUrl, ownerKey);
+  const bannerImgStyle = bannerImageStyle(parsedBanner.layout);
 
   return (
     <div
@@ -63,9 +67,29 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
       }}
     >
       <article className="pc-09 pc-12-shell relative w-full max-w-[340px] rounded-[24px] text-[#f2f3f5] overflow-hidden select-none">
+        {/* Ảnh nền người dùng kéo dài rộng xuống dưới toàn bộ thẻ nhanh */}
+        {parsedBanner.cleanSrc && (
+          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+            <img
+              loading="lazy"
+              decoding="async"
+              src={parsedBanner.cleanSrc}
+              alt=""
+              style={bannerImgStyle}
+              className="w-full h-full opacity-50"
+            />
+            <div
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(180deg, rgba(10, 14, 24, 0.08) 0%, rgba(10, 14, 24, 0.55) 120px, rgba(10, 14, 24, 0.85) 100%)`,
+              }}
+            />
+          </div>
+        )}
+
         {/* Banner with custom bannerUrl or profileGradient */}
         <div
-          className="relative h-[96px] overflow-hidden"
+          className="relative z-[1] h-[116px] overflow-hidden"
           style={{
             background:
               user.profileGradient ||
@@ -74,8 +98,15 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
                 : 'linear-gradient(125deg, #5865f2 0%, #9b59b6 55%, #06b6d4 100%)'),
           }}
         >
-          {user.bannerUrl ? (
-            <img loading="lazy" decoding="async" src={user.bannerUrl} alt={user.name} className="w-full h-full object-cover" />
+          {parsedBanner.cleanSrc ? (
+            <img
+              loading="lazy"
+              decoding="async"
+              src={parsedBanner.cleanSrc}
+              alt={user.name}
+              style={bannerImgStyle}
+              className="w-full h-full object-cover"
+            />
           ) : (
             <div
               className="absolute inset-0 opacity-30"
