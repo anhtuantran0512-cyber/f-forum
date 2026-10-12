@@ -32,6 +32,13 @@ export const DecorationMedia = ({
   if (!enabled) {
     return <div className={className} aria-hidden="true" />;
   }
+  /* Blob WebM CHƯA SẴN (đang tải) hoặc tải lỗi → hiện ảnh tĩnh ngay:
+     không để thẻ video rỗng (src undefined) vô hình — asset luôn thấy được. */
+  if (useVideo && !blobUrl) {
+    const stillUrl = asset.fullAssetUrl ? resolveAssetUrl(asset.fullAssetUrl) : null;
+    if (!stillUrl) return null;
+    return <img className={className} src={stillUrl} alt="" aria-hidden="true" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />;
+  }
   if (useVideo) {
     return (
       <video

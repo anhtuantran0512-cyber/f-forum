@@ -4,6 +4,7 @@
  * Độ tương phản do `text-shadow` phía CSS đảm nhận (bảng tên nền có thể rực màu).
  * Người dùng gọi overlay <span> tên lên trên (xem .npd trong decorations.css).
  */
+import './decorations.css';
 import { useInViewOnce } from './useDecorationMedia';
 import { DecorationMedia } from './DecorationMedia';
 import type { DecorationAssetRef } from './AvatarWithDecoration';
