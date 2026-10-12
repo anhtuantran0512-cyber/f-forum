@@ -1629,8 +1629,16 @@ html.light .gb-card__desc-one-line {
 .gb-np-note svg { flex-shrink: 0; }
 
 /* Stage nameplate trong modal preview (mô phỏng Hồ Sơ). */
-.gb-inspect__np { display: block; }
-.gb-inspect__np .npd-np__text { font-size: 16px; }
+.gb-inspect__np {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+.gb-inspect__np .npd-np__text {
+  font-size: 15.5px;
+  text-align: center;
+}
 
 /* ===== Đợt #4 — "Vừa xem" + item yêu thích đang sale ===== */
 .gb-recent {

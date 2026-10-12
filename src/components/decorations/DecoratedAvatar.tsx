@@ -61,37 +61,59 @@ export const DecoratedAvatar = ({
 };
 
 interface DecoratedNameProps {
-  user: Pick<User, 'inventory' | 'equippedDecorations'> | null | undefined;
+  user?: Pick<User, 'inventory' | 'equippedDecorations'> | null | undefined;
   name: string;
-  /** Rộng vùng bảng tên (px). Mặc định 224 (tỉ lệ chuẩn 448:84 ở cao 42px). */
+  /** Rộng vùng bảng tên (px). Mặc định 240 (tỉ lệ chuẩn 448:84). */
   width?: number;
   animate?: boolean;
+  eager?: boolean;
   priority?: 'high' | 'low';
   className?: string;
+  /** Khi chưa gắn nameplate từ shop, vẫn hiển thị khung nametag mặc định để tên luôn căn giữa trên bảng tên ở Trang cá nhân. */
+  showFallbackTag?: boolean;
+  /** Cho phép truyền trực tiếp asset để xem trước/đổi nhanh trên Trang cá nhân hoặc Boutique. */
+  overrideAsset?: DecorationAssetRef | null;
 }
 
 export const DecoratedName = ({
   user,
   name,
-  width = 224,
+  width = 240,
   animate = true,
+  eager = true,
   priority = 'high',
   className,
+  showFallbackTag = false,
+  overrideAsset,
 }: DecoratedNameProps) => {
   const { nameplate } = useUserDecorations(user);
-  const asset = shopItemToAsset(nameplate);
-  if (!asset) return <span className={className}>{name}</span>;
+  const asset = overrideAsset !== undefined ? overrideAsset : shopItemToAsset(nameplate);
+  const height = Math.max(36, Math.round((width * 84) / 448));
+
+  if (!asset) {
+    if (!showFallbackTag) {
+      return <span className={className}>{name}</span>;
+    }
+    return (
+      <span
+        className={`npd-np npd-np--default${className ? ` ${className}` : ''}`}
+        style={{ width, height }}
+      >
+        <span className="npd-np__text">{name}</span>
+      </span>
+    );
+  }
   /*
    * CHUẨN DISCORD: container inline-flex căn giữa theo cả 2 trục, tỉ lệ 448:84
    * cố định — tên luôn nằm chính giữa bảng tên, không lệch góc, không đè viền.
    */
-  const height = Math.round((width * 84) / 448);
   return (
     <span className={`npd-np${className ? ` ${className}` : ''}`} style={{ width, height }}>
       <NameplateDisplay
         asset={asset}
         size={width}
         animate={animate}
+        eager={eager}
         priority={priority}
         fill
         className="npd-np__bg"
