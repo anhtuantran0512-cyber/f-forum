@@ -8,7 +8,7 @@ Ngày: 2026-10-12 · Branch: `arena/62613a87-f-forum` · Cơ sở: `670848e` (ma
 |---|---|
 | `npx tsc -b` | ✅ 0 lỗi |
 | `npx oxlint` | ✅ 0 warning / 0 error (220 files) |
-| `npm test` (29 file, Node test runner) | ✅ **340/340 pass** |
+| `npm test` (29 file, Node test runner) | ✅ **342/342 pass** |
 | Asset build | ✅ 3.878 file / ~122 MB · 0 lỗi ffmpeg · catalog 873 item |
 | Quality re-tiering | ✅ 873 item chấm điểm 0–100 · 768 động / 105 tĩnh · 0 lỗi cấu trúc · giá khớp bảng rarity 100% |
 | Migration | ✅ **ĐÃ CHỌN PHƯƠNG ÁN B** (Sếp chốt 12/10) — script nâng cấp (cùng hiếm thật, khớp loại, tự trang bị, payload ăn mừng) + demo end-to-end trong sandbox; marker KHÔNG commit (chạy khi triển khai) |
@@ -89,6 +89,27 @@ SVG → 0 active (soft-delete qua marker), 873 item mới active.
 **Triển khai (mỗi môi trường, server TẮT)**: chạy dry-run xem trước, rồi
 `node scripts/decorations/migrate-decorations.mjs --apply --plan=B --confirm`.
 Marker gitignore — không commit, không deploy nhầm.
+
+### 1.3 ĐẠI CẬP NHẬT — Boutique "Sống động" (bổ sung 2026-10-12) ✅
+
+Sếp yêu cầu: *"tự update thêm, làm 1 update đại cập nhật"*. Ba khối mới trên Boutique
+(đều pure client, giá LUÔN khớp server vì dùng đúng `effectivePrice`):
+
+1. **DEAL HÔM NAY** (`getDailyDeal` — pure, test 10.9): item NỔI BẬT của ngày
+   từ nhóm đang sale (flash 6h + ưu đãi tuần), chỉ lấy TOP 12 CHẤT LƯỢNG
+   (qualityScore), chọn tất định theo NGÀY VIỆT NAM (cả hệ thống xem cùng 1 deal,
+   xoay mỗi ngày). Card riêng: preview + −X% + giá gạch/giá mới + đồng hồ đếm
+   ngược khung sale. Click → modal xem trên avatar thật.
+2. **BỘ SƯU TẬP CỦA BẠN** (`getCollectionStats` — pure, test 10.10): tổng
+   X/873 + thanh tiến độ, 4 thanh mini theo độ hiếm (màu rarity), "Vinh danh
+   Huyền thoại" — 6 viên ngọc mythic đã sưu tầm (top qualityScore, click xem).
+   Empty state: số mythic đang chờ khám phá.
+3. **SỰ KIỆN KHAI TRƯƠNG 72H**: ruy-băng đếm ngược từ mốc migration
+   (`at` trong marker) — "còn Xg Yp"; hết hạn chuyển thông điệp vĩnh viễn.
+
+Kỹ thuật: hàm thuần trong `src/utils/decorations.ts` (import `effectivePrice`
+từ shopData — không vòng lặp import); Boutique tick 1s sẵn có điều khiển cả 3 đồng hồ;
+CSS co-located (Boutique.css), reduced-motion + mobile responsive.
 
 ### Bước 2 — Schema ✅
 - [x] `ShopItem` += `assetType`, `previewUrl`, `fullAssetUrl`, `animatedAssetUrl`, `originalSource`
