@@ -3,37 +3,40 @@
 /**
  * Nhiệm vụ 10 — Migration thay item SVG cũ bằng trang trí Discord import.
  *
- * ⚠️ CHƯA BAO GIỜ tự chạy bước --apply. Mặc định là DRY-RUN: chỉ QUERRY và
- * BÁO CÁO inventory đang giữ item cũ — không chạm dữ liệu.
- *
- * Khi user đã CHỌN phương án (A hoặc B), lệnh apply là:
+ * ⚠️ Mặc định là DRY-RUN: chỉ QUERRY và BÁO CÁO inventory đang giữ item cũ —
+ * không chạm dữ liệu. Chạy apply KHI server ĐÃ TẮT:
  *   node scripts/decorations/migrate-decorations.mjs --apply --plan=A --confirm
  *   node scripts/decorations/migrate-decorations.mjs --apply --plan=B --confirm
  *
  *   Phương án A — hoàn 100% Coin: mỗi item cũ bị gỡ khỏi inventory được hoàn
  *     giá MUA THEO CATALOG (giá niêm yết, không phải giá đang giảm).
- *   Phương án B — đổi item mới cùng độ hiếm: mỗi item cũ được thay bằng MỘT
- *     item Discord import cùng bậc hiếm (chọn tất định theo hash(email+id)
- *     để chạy lại cho ra cùng kết quả).
+ *   Phương án B — đổi item mới cùng độ hiếm (PHƯƠNG ÁN ĐÃ CHỌN — tạo điểm
+ *     nhấn trực quan): mỗi item cũ được thay bằng MỘT item Discord import
+ *     CÙNG BẬC HIẾM (tierColor→rarity), khớp loại với hạng mục item cũ
+ *     (khung avatar → frame/aura, hiệu ứng → aura, góc hồ sơ → nameplate…),
+ *     ưu tiên item ĐỘNG và chất lượng cao (qualityScore), chọn tất định theo
+ *     hash(email+id) để chạy lại cho ra cùng kết quả. Item được tặng sẽ TỰ
+ *     ĐỘNG TRANG BỊ vào slot trống (equippedDecorations) — avatar mới ngay.
  *
  * Cả hai phương án:
  *   - equippedBadge nếu là item cũ → bỏ ('');
- *   - equippedDecorations (hệ slot mới) KHÔNG bị đụng;
- *   - ghi thông báo in-app (store.userNotices, id server-migration-…) để user
- *     thấy kết quả ngay khi mở app;
+ *   - equippedDecorations: chỉ chạm slot còn TRỐNG (không ghi đè item mới
+ *     user đã đeo);
+ *   - ghi thông báo in-app (store.userNotices, id server-migration-…) kèm
+ *     PAYLOAD (gifts/showcase) để client mở màn hình ăn mừng
+ *     (MigrationCelebrationModal) với preview thật của item;
  *   - backup file data TRƯỚC khi ghi; ghi atomic (tmp + rename);
  *   - idempotent: marker store.migrations['decoration-replacement'] + file
  *     public/assets/decorations/decorations-migration.json (server đọc marker
  *     để soft-delete item cũ sau migration).
  *
- * LƯU Ý: chạy --apply khi server ĐÃ TẮT (store in-memory có thể ghi đè file
- * khi thoát). Data path: FFORUM_DATA_DIR (mặc định ./data/forum-data.json)
- * — cùng công thức server dùng.
+ * LƯU Ý: data path FFORUM_DATA_DIR (mặc định ./data/forum-data.json) — cùng
+ * công thức server dùng. Marker là artifact triển khai: KHÔNG commit.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LEGACY_SVG_ITEMS, LEGACY_SHOP_ITEM_IDS } from '../../src/utils/shopData.ts';
+import { LEGACY_SVG_ITEMS, LEGACY_SHOP_ITEM_IDS, RARITY_OF_TIER } from '../../src/utils/shopData.ts';
 import { catalogToShopItems } from '../../src/utils/decorations.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -43,7 +46,11 @@ const DATA_DIR = process.env.FFORUM_DATA_DIR
   : path.resolve(PROJECT_ROOT, 'data');
 const DATA_PATH = path.join(DATA_DIR, 'forum-data.json');
 const CATALOG_PATH = path.resolve(PROJECT_ROOT, 'public/assets/decorations/decorations-catalog.json');
-const MARKER_PATH = path.resolve(PROJECT_ROOT, 'public/assets/decorations/decorations-migration.json');
+/* Marker mặc định nằm trong public/ (server đọc); test override bằng env để
+   không bẩn repo (marker là artifact triển khai — KHÔNG commit). */
+const MARKER_PATH = process.env.FFORUM_MIGRATION_MARKER
+  ? path.resolve(process.env.FFORUM_MIGRATION_MARKER)
+  : path.resolve(PROJECT_ROOT, 'public/assets/decorations/decorations-migration.json');
 const MIGRATION_KEY = 'decoration-replacement';
 /* Khớp MAX_USER_COIN của server/forumServer.ts. */
 const MAX_USER_COIN = 10_000_000;
@@ -91,19 +98,36 @@ try {
 }
 const newItems = catalogToShopItems(catalog);
 if (newItems.length === 0) fail('Catalog rỗng — không có item mới nào để đổi (phương án B).');
-const newItemById = new Map(newItems.map((item) => [item.id, item]));
 
-/* Pool item mới theo bậc hiếm (sort tên để chọn tất định). */
-const poolByRarity = new Map();
-for (const item of newItems) {
-  if (!item.isActive) continue;
-  const list = poolByRarity.get(item.rarity) || [];
-  list.push(item);
-  poolByRarity.set(item.rarity, list);
+/* Hạng mục item cũ → loại item mới ưu tiên (tạo điểm nhấn đúng ngữ cảnh). */
+const TYPE_PRIORITY_BY_CATEGORY = {
+  'Khung avatar': ['avatar_frame', 'avatar_aura'],
+  'Hiệu ứng': ['avatar_aura', 'avatar_frame'],
+  'Theme Focus': ['avatar_aura', 'avatar_frame'],
+  'Góc hồ sơ': ['nameplate', 'avatar_aura'],
+};
+const FALLBACK_TYPES = ['avatar_frame', 'avatar_aura', 'nameplate'];
+
+/* Pool item mới theo rarity → type (dùng entry NGUYÊN của catalog: có type,
+   isAnimated, qualityScore, assetPath). Sắp quality giảm → tên, tất định. */
+const poolByRarityType = new Map();
+for (const entry of catalog.items || []) {
+  if (!entry.isActive) continue;
+  const byType = poolByRarityType.get(entry.rarity) || new Map();
+  const list = byType.get(entry.type) || [];
+  list.push(entry);
+  byType.set(entry.type, list);
+  poolByRarityType.set(entry.rarity, byType);
 }
-for (const list of poolByRarity.values()) list.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+for (const byType of poolByRarityType.values()) {
+  for (const list of byType.values()) {
+    list.sort((a, b) => (b.qualityScore ?? 0) - (a.qualityScore ?? 0) || a.name.localeCompare(b.name, 'vi'));
+  }
+}
 
-/* Chọn tất định: hash FNV-1a(email + '|' + legacyId) mod độ dài pool. */
+/* Chọn tất định: hash FNV-1a(email + '|' + legacyId) mod độ dài pool.
+   Ưu tiên pool ĐỘNG (điểm nhấn animation); rỗng thì lấy pool tĩnh; rồi loại
+   tiếp theo theo TYPE_PRIORITY. */
 const fnv1a = (text) => {
   let hash = 0x811c9dc5;
   for (let i = 0; i < text.length; i += 1) {
@@ -112,10 +136,40 @@ const fnv1a = (text) => {
   }
   return hash >>> 0;
 };
-const pickReplacement = (email, legacyId, legacyRarity) => {
-  const pool = poolByRarity.get(legacyRarity) || [];
-  if (pool.length === 0) return null;
-  return pool[fnv1a(`${email}|${legacyId}`) % pool.length];
+const pickReplacement = (email, legacyId, legacyRarity, legacyCategory) => {
+  const order = TYPE_PRIORITY_BY_CATEGORY[legacyCategory] || FALLBACK_TYPES;
+  const byType = poolByRarityType.get(poolRarityOf(legacyRarity));
+  if (!byType) return null;
+  for (const type of order) {
+    const list = byType.get(type) || [];
+    if (list.length === 0) continue;
+    const animated = list.filter((item) => item.isAnimated);
+    const pool = animated.length > 0 ? animated : list;
+    return pool[fnv1a(`${email}|${legacyId}`) % pool.length];
+  }
+  return null;
+};
+
+/* Entry gift cho payload thông báo (client render preview thật). */
+const giftPayload = (entry) => ({
+  id: entry.id,
+  name: entry.name,
+  rarity: entry.rarity,
+  isAnimated: !!entry.isAnimated,
+  previewUrl: entry.assetPath.preview,
+  fullUrl: entry.assetPath.fullWebp,
+  equipped: false, /* cập nhật ở bước auto-equip */
+});
+
+/* Bộ trưng bày toàn hệ thống: top 1 MYTHIC mỗi loại (frame, aura, nameplate)
+   — điểm nhấn "những viên ngọc" của bộ sưu tập mới. */
+const buildShowcase = () => {
+  const out = [];
+  for (const type of ['avatar_frame', 'avatar_aura', 'nameplate']) {
+    const top = (poolByRarityType.get('mythic')?.get(type) || [])[0];
+    if (top) out.push(giftPayload(top));
+  }
+  return out;
 };
 
 /* ------------------------------------------------------------------ */
@@ -139,6 +193,15 @@ if (alreadyApplied) {
 /* Querry inventory giữ item cũ                                        */
 /* ------------------------------------------------------------------ */
 const legacyItemById = new Map(LEGACY_SVG_ITEMS.map((item) => [item.id, item]));
+/* BUGFIX 1: LEGACY_SVG_ITEMS không có trường rarity — suy ra từ tierColor
+   (green=common, blue=rare, red=epic, purple=legendary). Script cũ đọc
+   legacy?.rarity (undefined) → mọi gift đều common, kể cả user giữ item top.
+   BUGFIX 2: bậc cao nhất của hệ cũ là 'legendary', của catalog mới là
+   'mythic' — phải map khi tra pool, nếu không user giữ item top không nhận
+   được gì ("KHÔNG có item cùng hiếm!"). */
+const legacyRarityOf = (item) => (item ? RARITY_OF_TIER[item.tierColor] || 'common' : 'common');
+const poolRarityOf = (rarity) => (rarity === 'legendary' ? 'mythic' : rarity);
+
 const affected = [];
 for (const [email, user] of Object.entries(store.users)) {
   const inventory = Array.isArray(user.inventory) ? user.inventory : [];
@@ -147,12 +210,14 @@ for (const [email, user] of Object.entries(store.users)) {
   const refundTotal = held.reduce((sum, id) => sum + (legacyItemById.get(id)?.price || 0), 0);
   const gifts = held.map((id) => {
     const legacy = legacyItemById.get(id);
+    const rarity = legacyRarityOf(legacy);
     return {
       legacyId: id,
       legacyName: legacy?.name || id,
-      rarity: legacy?.rarity || 'common',
+      legacyCategory: legacy?.category || '',
+      rarity,
       refund: legacy?.price || 0,
-      gift: PLAN === 'B' || !PLAN ? pickReplacement(email, id, legacy?.rarity || 'common') : null,
+      gift: PLAN === 'B' || !PLAN ? pickReplacement(email, id, rarity, legacy?.category) : null,
     };
   });
   const badgeLost = typeof user.equippedBadge === 'string' && held.includes(user.equippedBadge);
@@ -181,14 +246,14 @@ if (affected.length === 0) {
 }
 
 const showPlan = (plan) => {
-  console.log(`— Phương án ${plan === 'A' ? 'A · Hoàn 100% Coin theo giá catalog' : 'B · Đổi 1 item Discord mới cùng độ hiếm'} —`);
+  console.log(`— Phương án ${plan === 'A' ? 'A · Hoàn 100% Coin theo giá catalog' : 'B · Đổi 1 item Discord mới cùng độ hiếm (động + chất lượng, tự trang bị)'} —`);
   for (const entry of affected) {
     console.log(`  • ${entry.email}`);
     for (const gift of entry.gifts) {
       const right =
         plan === 'A'
           ? `hoàn ${gift.refund.toLocaleString('vi-VN')} Coin`
-          : `→ ${gift.gift ? `${gift.gift.name} (${gift.gift.id}, ${gift.gift.rarity}, ${gift.gift.price.toLocaleString('vi-VN')} Coin)` : 'KHÔNG có item cùng hiếm!'}`;
+          : `→ ${gift.gift ? `${gift.gift.name} (${gift.gift.id}, ${gift.gift.rarity}, ${gift.gift.isAnimated ? 'động' : 'tĩnh'})` : 'KHÔNG có item cùng hiếm!'}`;
       console.log(`      - ${gift.legacyName} [${gift.rarity}]  ${right}`);
     }
     if (entry.badgeLost) console.log('      ⚠ badge đang đeo là item cũ → sẽ được gỡ (equippedBadge = "")');
@@ -204,7 +269,8 @@ if (!APPLY) {
     console.log('Để áp dụng (khi đã chọn): tắt server rồi chạy');
     console.log('  node scripts/decorations/migrate-decorations.mjs --apply --plan=A --confirm');
     console.log('  node scripts/decorations/migrate-decorations.mjs --apply --plan=B --confirm');
-    console.log('Script sẽ backup data, đổi inventory/coin, ghi thông báo in-app + marker.');
+    console.log('Script sẽ backup data, đổi inventory/coin, tự trang bị item mới, ghi thông báo');
+    console.log('ăn mừng (kèm payload preview) + marker. Marker KHÔNG commit (artifact triển khai).');
   }
   process.exit(0);
 }
@@ -218,41 +284,77 @@ fs.mkdirSync(DATA_DIR, { recursive: true });
 fs.copyFileSync(DATA_PATH, backupPath);
 console.log(`📦 Đã backup → ${backupPath}`);
 
+const showcase = buildShowcase();
+
+/* Thông báo TOÀN HỆ THỐNG — mọi user đều thấy màn hình ăn mừng (kèm showcase
+   3 viên ngọc mythic) kể cả user không giữ item cũ. */
 store.userNotices = Array.isArray(store.userNotices) ? [...store.userNotices] : [];
 store.userNotices.push({
   id: `server-migration-${MIGRATION_KEY}`,
   email: '',
-  title: 'Boutique đã làm mới — vật phẩm trang trí cũ được thay thế',
+  title: 'Khai trương 873 trang trí Discord — Boutique mới đã sẵn sàng',
   body:
-    PLAN === 'A'
-      ? 'Toàn bộ vật phẩm SVG cũ trong Boutique đã ngừng bán. Coin bạn đã trả cho những vật phẩm đó đã được HOÀN 100% theo giá catalog. Trang trí mới (khung / hào quang / bảng tên) đang chờ ở Boutique.'
-      : 'Toàn bộ vật phẩm SVG cũ trong Boutique đã ngừng bán và được ĐỔI bằng vật phẩm Discord cùng độ hiếm. Vào Boutique để xem và đeo trang trí mới.',
+    PLAN === 'B'
+      ? 'Hệ thống trang trí Discord (khung avatar, hào quang, bảng tên) chính thức mở cửa. Nếu bạn đang dùng vật phẩm SVG cũ, chúng đã được NÂNG CẤP MIỄN PHÍ thành trang trí Discord cùng độ hiếm và tự động đeo lên avatar. Xem những viên ngọc Huyền thoại mới nổi bật nhất ngay đây!'
+      : 'Hệ thống trang trí Discord (khung avatar, hào quang, bảng tên) chính thức mở cửa. Coin bạn đã trả cho vật phẩm SVG cũ được HOÀN 100%. Xem những viên ngọc Huyền thoại mới nổi bật nhất ngay đây!',
   at: NOW,
   readAt: null,
+  payload: { kind: 'migration-global', plan: PLAN, showcase },
 });
 
-const planLabel = PLAN === 'A' ? 'A (hoàn 100% Coin)' : 'B (đổi item cùng hiếm)';
+const planLabel = PLAN === 'A' ? 'A (hoàn 100% Coin)' : 'B (đổi item cùng hiếm, tự trang bị)';
 for (const entry of affected) {
   const kept = entry.user.inventory.filter((id) => !LEGACY_SHOP_ITEM_IDS.has(id));
-  const giftedIds = PLAN === 'B' ? entry.gifts.map((g) => g.gift?.id).filter(Boolean) : [];
+  const giftEntries = (PLAN === 'B' ? entry.gifts.map((g) => g.gift).filter(Boolean) : []);
+  const giftedIds = [...new Set(giftEntries.map((g) => g.id))];
   entry.user.inventory = [...new Set([...kept, ...giftedIds])];
   if (PLAN === 'A') {
     entry.user.coin = Math.min(MAX_USER_COIN, (Number.isFinite(entry.user.coin) ? entry.user.coin : 0) + entry.refundTotal);
   }
   if (entry.badgeLost) entry.user.equippedBadge = '';
+
+  /* Tự động trang bị (chỉ slot TRỐNG — không ghi đè item mới user đã đeo).
+     Mỗi loại chọn gift chất lượng cao nhất (qualityScore). */
+  const payloadGifts = giftEntries.map(giftPayload);
+  const equippedSet = new Set();
+  if (PLAN === 'B') {
+    const deco = { ...(entry.user.equippedDecorations || { avatar_frame: null, avatar_aura: null, nameplate: null }) };
+    for (const type of ['avatar_frame', 'avatar_aura', 'nameplate']) {
+      if (deco[type]) continue;
+      const candidates = giftEntries
+        .filter((g) => g.type === type)
+        .sort((a, b) => (b.qualityScore ?? 0) - (a.qualityScore ?? 0));
+      if (candidates.length > 0) {
+        deco[type] = candidates[0].id;
+        equippedSet.add(candidates[0].id);
+      }
+    }
+    entry.user.equippedDecorations = deco;
+    for (const g of payloadGifts) g.equipped = equippedSet.has(g.id);
+  }
   entry.user.inventory = entry.user.inventory.slice(0, 2000);
+
   store.userNotices.push({
     id: `server-migration-${MIGRATION_KEY}-${entry.email}`,
     email: entry.email,
-    title: PLAN === 'A' ? `Hoàn ${entry.refundTotal.toLocaleString('vi-VN')} Coin — Boutique làm mới` : 'Bạn có trang trí mới trong Boutique',
+    title:
+      PLAN === 'A'
+        ? `Hoàn ${entry.refundTotal.toLocaleString('vi-VN')} Coin — Boutique làm mới`
+        : equippedSet.size > 0
+          ? `Bạn có ${giftedIds.length} trang trí mới — đã tự động trang bị cho bạn`
+          : `Bạn có ${giftedIds.length} trang trí mới trong Boutique`,
     body:
       PLAN === 'A'
-        ? `Gỡ ${entry.held.length} vật phẩm cũ: ${entry.held.map((id) => legacyItemById.get(id)?.name || id).join(', ')} → hoàn ${entry.refundTotal.toLocaleString('vi-VN')} Coin.`
-        : `Đổi ${entry.held.length} vật phẩm cũ → ${giftedIds.map((id) => newItemById.get(id)?.name || id).join(', ')}.`,
+        ? `Gỡ ${entry.held.length} vật phẩm cũ: ${entry.held.map((id) => legacyItemById.get(id)?.name || id).join(', ')} → hoàn ${entry.refundTotal.toLocaleString('vi-VN')} Coin. 873 trang trí Discord đang chờ ở Boutique.`
+        : `Nâng cấp miễn phí — ${entry.held.length} vật phẩm SVG cũ được đổi thành: ${giftEntries.map((g) => g.name).join(', ')}. Mở Boutique để khám phá 800+ trang trí còn lại.`,
     at: NOW,
     readAt: null,
+    payload:
+      PLAN === 'A'
+        ? { kind: 'migration-refund', plan: 'A', showcase }
+        : { kind: 'migration-gift', plan: 'B', gifts: payloadGifts },
   });
-  console.log(`✔ ${entry.email}: gỡ ${entry.held.length} item${PLAN === 'A' ? `, hoàn ${entry.refundTotal.toLocaleString('vi-VN')} Coin` : `, tặng ${giftedIds.length} item`}${entry.badgeLost ? ', gỡ badge' : ''}`);
+  console.log(`✔ ${entry.email}: gỡ ${entry.held.length} item${PLAN === 'A' ? `, hoàn ${entry.refundTotal.toLocaleString('vi-VN')} Coin` : `, tặng ${giftedIds.length} item (tự trang bị ${equippedSet.size})`}${entry.badgeLost ? ', gỡ badge' : ''}`);
 }
 
 store.migrations = { ...(store.migrations || {}), [MIGRATION_KEY]: NOW };
@@ -269,3 +371,4 @@ fs.writeFileSync(
 console.log('');
 console.log(`✅ Migration ${planLabel} hoàn tất: ${affected.length} user, ${totalSwapped} item.`);
 console.log(`   Marker: ${path.relative(PROJECT_ROOT, MARKER_PATH)} — server sẽ soft-delete item cũ từ đây.`);
+console.log('   ⚠ Marker là artifact triển khai — KHÔNG commit vào git.');

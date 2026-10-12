@@ -19,7 +19,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CATALOG_PATH = path.resolve(__dirname, '..', 'public', 'assets', 'decorations', 'decorations-catalog.json');
 /* Marker do scripts/decorations/migrate-decorations.mjs ghi SAU khi user chọn kế hoạch A/B.
    Chưa có file → item SVG cũ vẫn bán bình thường (chưa migration). */
-const MIGRATION_MARKER_PATH = path.resolve(__dirname, '..', 'public', 'assets', 'decorations', 'decorations-migration.json');
+/* Marker migration là artifact triển khai (KHÔNG commit). Test override bằng
+   env để hermetic — không phụ thuộc marker cục bộ của môi trường dev. */
+const MIGRATION_MARKER_PATH = process.env.FFORUM_MIGRATION_MARKER
+  ? path.resolve(process.env.FFORUM_MIGRATION_MARKER)
+  : path.resolve(__dirname, '..', 'public', 'assets', 'decorations', 'decorations-migration.json');
 
 const readMigrationMarker = (): { mtimeMs: number | null; applied: boolean } => {
   try {

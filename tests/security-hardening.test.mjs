@@ -11,6 +11,8 @@ import { WebSocket } from 'ws';
    đọc tệp bên dưới không bị tiến trình khác ghi đè. */
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'fforum-sec-'));
 process.env.FFORUM_DATA_DIR = DATA_DIR;
+/* Item SVG cũ vẫn bán trong test (chưa migration) — marker test không tồn tại. */
+process.env.FFORUM_MIGRATION_MARKER = path.join(DATA_DIR, 'decorations-migration.none.json');
 const TEST_ADMIN_PASSWORD = 'test-only-super-admin-password-2026';
 process.env.FFORUM_ADMIN_PASSWORD = TEST_ADMIN_PASSWORD;
 
