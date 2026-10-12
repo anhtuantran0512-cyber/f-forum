@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
+import { resetChunkFlagsAfterAutoReload } from './utils/lazyWithRetry'
 
 declare global {
   interface Window {
@@ -116,6 +117,10 @@ export function initGoogleSdk(): Promise<void> {
 if (typeof window !== 'undefined') {
   initFacebookSdk().catch(() => {});
   initGoogleSdk().catch(() => {});
+
+  /* Nếu trang này boot lại sau một lần tự tải (budget còn "nóng") → xoá cờ
+     chunk cũ để các chunk khác được tự hồi phục tiếp (budget giữ chặn lặp). */
+  resetChunkFlagsAfterAutoReload();
 
   /* EPIC 5: "Console Lock" cũ ở đây đã được thay thế. Nó chạy cả ở bản dev, bật
      hộp alert() chặn màn hình ở MỖI cú chuột phải (kể cả trong ô nhập liệu) và tắt

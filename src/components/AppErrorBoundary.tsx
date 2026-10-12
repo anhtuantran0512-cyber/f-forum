@@ -1,5 +1,10 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
+import {
+  clearChunkReloadBudget,
+  isChunkLoadError,
+  takeChunkReloadBudget,
+} from '../utils/lazyWithRetry';
 
 /* ==========================================================================
    Lưới an toàn cuối cùng của giao diện.
@@ -8,6 +13,11 @@ import React from 'react';
    cây giao diện và người dùng chỉ thấy màn hình trống — bấm gì cũng không mở.
    Thay vì để trang "chết im lặng", boundary này hiện một màn hình khôi phục
    tử tế kèm nút tải lại (và nút tải lại kèm xoá cờ chunk lỗi).
+
+   Với lỗi "chunk không tải được" (Failed to fetch dynamically imported
+   module — mạng gián đoạn, dev server trả 500, module graph cũ sau khi app
+   cập nhật): tự tải lại 1 nhịp nếu còn ngân sách chung (lazyWithRetry
+   quản lý, tối đa 3 lần/60s chống lặp vô hạn) — người dùng không cần làm gì.
    ========================================================================== */
 
 interface AppErrorBoundaryProps {
@@ -16,20 +26,30 @@ interface AppErrorBoundaryProps {
 
 interface AppErrorBoundaryState {
   error: Error | null;
+  autoReloading: boolean;
 }
 
 export class AppErrorBoundary extends React.Component<
   AppErrorBoundaryProps,
   AppErrorBoundaryState
 > {
-  state: AppErrorBoundaryState = { error: null };
+  state: AppErrorBoundaryState = { error: null, autoReloading: false };
+
+  /* Chặn schedule tự tải lặp (StrictMode / lỗi ném nhiều lần). */
+  private autoReloadScheduled = false;
 
   static getDerivedStateFromError(error: Error): AppErrorBoundaryState {
-    return { error };
+    return { error, autoReloading: false };
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('[F-Forum] Lỗi giao diện — đã chặn để không khoá tương tác:', error, info);
+    /* Lỗi chunk: tự tải lại 1 nhịp (còn ngân sách chung) để khỏi phải bấm. */
+    if (isChunkLoadError(error) && !this.autoReloadScheduled && takeChunkReloadBudget()) {
+      this.autoReloadScheduled = true;
+      this.setState({ autoReloading: true });
+      window.setTimeout(() => this.reload(true), 500);
+    }
   }
 
   private reload = (clearChunkFlags = false) => {
@@ -41,6 +61,9 @@ export class AppErrorBoundary extends React.Component<
           if (key && key.startsWith('fforum_chunk_reload_')) keys.push(key);
         }
         keys.forEach((key) => window.sessionStorage.removeItem(key));
+        /* Bấm nút thủ công / tự tải sau màn báo lỗi = ý định mới → reset ngân
+           sách chung để các chunk khác không bị "cháy" lượt. */
+        clearChunkReloadBudget();
       }
     } catch {
       /* bỏ qua */
@@ -49,8 +72,13 @@ export class AppErrorBoundary extends React.Component<
   };
 
   render() {
-    const { error } = this.state;
+    const { error, autoReloading } = this.state;
     if (!error) return this.props.children;
+    const chunkError = isChunkLoadError(error);
+    const title = chunkError ? 'Mất kết nối khi tải giao diện' : 'Giao diện vừa gặp lỗi';
+    const subtitle = chunkError
+      ? 'Một phần của app không tải được (mạng gián đoạn, hoặc app vừa cập nhật phiên bản mới). Thường tự khỏi khi tải lại.'
+      : 'F-Forum đã dừng phần bị lỗi để phần còn lại không bị khoá.';
 
     return (
       <div
@@ -100,10 +128,10 @@ export class AppErrorBoundary extends React.Component<
             </span>
             <div>
               <h1 style={{ margin: 0, fontSize: 15, fontWeight: 700, lineHeight: 1.2 }}>
-                Giao diện vừa gặp lỗi
+                {title}
               </h1>
               <p style={{ margin: '3px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>
-                F-Forum đã dừng phần bị lỗi để phần còn lại không bị khoá.
+                {subtitle}
               </p>
             </div>
           </div>
@@ -127,6 +155,31 @@ export class AppErrorBoundary extends React.Component<
             {String(error?.message || error)}
           </pre>
 
+          {autoReloading && (
+            <p
+              style={{
+                margin: '0 0 10px',
+                fontSize: 12,
+                fontWeight: 700,
+                color: '#86efac',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7,
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 9,
+                  height: 9,
+                  borderRadius: 999,
+                  background: '#4ade80',
+                  animation: 'ff-err-pulse 1s ease-in-out infinite',
+                }}
+              />
+              Đang tự động tải lại trang…
+            </p>
+          )}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             <button
               type="button"

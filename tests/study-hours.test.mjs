@@ -476,6 +476,63 @@ test('15. Vòng 7 — không lớp phủ vô hình nào được phép khoá c�
   assert.ok(boundary.includes('getDerivedStateFromError'), 'Boundary must catch render errors');
   assert.ok(boundary.includes('window.location.reload()'), 'Boundary must offer a reload path');
   assert.ok(boundary.includes('fforum_chunk_reload_'), 'Boundary must be able to clear poisoned chunk flags');
+
+  /* 4b. Tự hồi phục "Failed to fetch dynamically imported module":
+     nhận diện lỗi chunk, tự tải lại có NGÂN SÁCH CHUNG chống lặp vô hạn. */
+  assert.match(retry, /export const isChunkLoadError = /, 'phân loại lỗi "chunk không tải được"');
+  assert.match(retry, /failed to fetch dynamically imported module/i, 'bắt thông báo lỗi của Chrome');
+  assert.match(retry, /error loading dynamically imported module/i, 'bắt thông báo lỗi của Firefox');
+  assert.match(retry, /takeChunkReloadBudget\(\)/, 'mỗi lần tự tải phải tiêu ngân sách chung');
+  assert.match(retry, /RELOAD_BUDGET_LIMIT = 3/, 'ngân sách chung có giới hạn (chống vòng lặp reload)');
+  assert.match(retry, /RELOAD_BUDGET_WINDOW_MS = 60_000/, 'ngân sách tính trong cửa sổ 60s');
+  assert.match(retry, /isChunkLoadError\(error\) && markReloadAttempt\(flagKey\) && takeChunkReloadBudget\(\)/, 'chỉ tự tải khi đúng lỗi chunk + còn cờ + còn ngân sách');
+  assert.match(retry, /export const resetChunkFlagsAfterAutoReload = /, 'boot lại phải xoá cờ chunk cũ sau tự tải');
+  assert.ok(main.includes('resetChunkFlagsAfterAutoReload()'), 'main boot gọi reset cờ chunk');
+
+  assert.ok(boundary.includes('isChunkLoadError'), 'boundary nhận diện lỗi chunk');
+  assert.ok(boundary.includes('takeChunkReloadBudget'), 'boundary tự tải cũng phải tiêu ngân sách');
+  assert.ok(boundary.includes('clearChunkReloadBudget'), 'bấm nút thủ công phải reset ngân sách');
+  assert.ok(boundary.includes('Mất kết nối khi tải giao diện'), 'màn lỗi chunk có thông báo tiếng Việt dễ hiểu');
+  assert.ok(boundary.includes('Đang tự động tải lại'), 'màn báo lỗi có dòng tự tải đang chạy');
+});
+
+test('15b. Nhận diện lỗi chunk — đúng các thông báo thật, không bắt nhầm runtime error', async () => {
+  const { isChunkLoadError } = await import('../src/utils/lazyWithRetry.ts');
+  assert.equal(
+    isChunkLoadError(new Error('Failed to fetch dynamically imported module: https://sbx-abc123.e2b.app/src/components/shop/Boutique.css')),
+    true,
+    'Chrome: chunk fetch fail',
+  );
+  assert.equal(
+    isChunkLoadError(new Error('error loading dynamically imported module: https://sbx-abc123.e2b.app/src/components/X.tsx')),
+    true,
+    'Firefox: chunk fetch fail',
+  );
+  assert.equal(isChunkLoadError(new Error('Failed to load url /src/a.css (passed file: /home/user/a.css)')), true, 'Vite dev: module con trả lỗi');
+  assert.equal(isChunkLoadError('Failed to fetch dynamically imported module: x'), true, 'message dạng string');
+  assert.equal(isChunkLoadError(new Error('Cannot read properties of undefined (reading map)')), false, 'runtime error KHÔNG phải lỗi chunk');
+  assert.equal(isChunkLoadError(new Error('402: Bạn cần 2000 Coin')), false, 'lỗi API KHÔNG phải lỗi chunk');
+  assert.equal(isChunkLoadError(null), false, 'error null an toàn');
+});
+
+test('15c. CSS không được vỡ cấu trúc (gốc lỗi "Failed to fetch dynamically imported module")', () => {
+  /* Sự cố thật: 1 dấu } thừa ở Boutique.css → Vite trả 500 cho file CSS →
+     mọi lazy chunk import nó (GachaBoutique → ProfileModal…) đều fetch fail
+     → người dùng thấy "Giao diện vừa gặp lỗi". Phòng vệ: mọi CSS trong src
+     phải cân bằng dấu ngoặc (không có content: '{' trong repo này). */
+  const walk = (dir) =>
+    fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) return walk(p);
+      return e.name.endsWith('.css') ? [p] : [];
+    });
+  const cssFiles = walk(path.resolve('src'));
+  assert.ok(cssFiles.length >= 30, `phải rà đủ CSS (thấy ${cssFiles.length} file)`);
+  const broken = cssFiles.filter((f) => {
+    const s = fs.readFileSync(f, 'utf8');
+    return s.split('{').length !== s.split('}').length;
+  });
+  assert.deepEqual(broken, [], `CSS không cân bằng { }: ${broken.join(', ')}`);
 });
 
 test('16. Vòng 11 — bảng xếp hạng chỉ còn tài khoản thật + thang rank 5 bậc', () => {
