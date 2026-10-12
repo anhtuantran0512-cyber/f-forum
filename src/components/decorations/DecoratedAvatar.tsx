@@ -5,6 +5,7 @@
  *  - DecoratedName: tên hiển thị nằm TRÊN bảng tên (contrast bằng text-shadow).
  * Catalog chưa tải xong → render avatar thường (không có khung) — không lỗi.
  */
+import { memo } from 'react';
 import type { User } from '../../types/index';
 import type { ShopItem, DecorationType } from '../../types/index';
 import { useUserDecorations } from '../../utils/decorationStore';
@@ -34,7 +35,7 @@ interface DecoratedAvatarProps {
   alt?: string;
 }
 
-export const DecoratedAvatar = ({
+export const DecoratedAvatar = memo(({
   user,
   fallbackSrc,
   size,
@@ -60,7 +61,7 @@ export const DecoratedAvatar = ({
       alt={alt}
     />
   );
-};
+});
 
 interface UserNameplateBgProps {
   user?: Pick<User, 'inventory' | 'equippedDecorations'> | null | undefined;
@@ -77,7 +78,7 @@ interface UserNameplateBgProps {
  * và Thẻ nhanh Trang cá nhân / Tố cáo). Đặt tuyệt đối bên trong thanh user bar với
  * overflow-hidden riêng để KHÔNG cắt mất cánh/tia sáng của khung viền Avatar (DecoratedAvatar).
  */
-export const UserNameplateBg = ({
+export const UserNameplateBg = memo(({
   user,
   width = 240,
   animate = true,
@@ -103,13 +104,15 @@ export const UserNameplateBg = ({
       <span className="ff-discord-np-layer__scrim" />
     </span>
   );
-};
+});
 
 interface DecoratedNameProps {
   user?: Pick<User, 'inventory' | 'equippedDecorations'> | null | undefined;
   name: string;
   /** Rộng vùng bảng tên (px). Mặc định 240 (tỉ lệ chuẩn 448:84). */
   width?: number;
+  /** Giới hạn bề rộng tối đa khi tên dài tự giãn (mặc định 340px). */
+  maxWidth?: number;
   /** Chiều cao vùng bảng tên (px). Tự suy ra từ width nếu không truyền. */
   height?: number;
   animate?: boolean;
@@ -122,10 +125,11 @@ interface DecoratedNameProps {
   overrideAsset?: DecorationAssetRef | null;
 }
 
-export const DecoratedName = ({
+export const DecoratedName = memo(({
   user,
   name,
   width = 240,
+  maxWidth = 340,
   height: customHeight,
   animate = true,
   eager = true,
@@ -139,9 +143,11 @@ export const DecoratedName = ({
   const height = customHeight ?? Math.max(24, Math.round((width * 84) / 448));
   const len = name.trim().length;
   const charPx = height <= 28 ? 7.6 : height <= 34 ? 8.3 : 9.0;
-  const adaptiveWidth = Math.max(width, Math.min(340, Math.ceil(len * charPx + 28)));
+  const adaptiveWidth = Math.max(width, Math.min(maxWidth, Math.ceil(len * charPx + 28)));
   const fontSize =
-    len > 24
+    len > 28
+      ? '10px'
+      : len > 24
       ? '10.5px'
       : len > 18
       ? '11px'
@@ -150,6 +156,9 @@ export const DecoratedName = ({
       : height <= 35
       ? '12.5px'
       : undefined;
+  const letterSpacing = len > 24 ? '-0.015em' : undefined;
+  const textStyle: React.CSSProperties | undefined =
+    fontSize || letterSpacing ? { fontSize, letterSpacing } : undefined;
   const horizontalPad = len > 18 ? '8px' : height <= 30 ? '10px' : height <= 35 ? '12px' : undefined;
   const boxStyle: React.CSSProperties = {
     minWidth: Math.min(width, 116),
@@ -171,7 +180,7 @@ export const DecoratedName = ({
         style={boxStyle}
         title={name}
       >
-        <span className="npd-np__text" style={fontSize ? { fontSize } : undefined}>{name}</span>
+        <span className="npd-np__text" style={textStyle}>{name}</span>
       </span>
     );
   }
@@ -195,7 +204,7 @@ export const DecoratedName = ({
         fill
         className="npd-np__bg"
       />
-      <span className="npd-np__text" style={fontSize ? { fontSize } : undefined}>{name}</span>
+      <span className="npd-np__text" style={textStyle}>{name}</span>
     </span>
   );
-};
+});

@@ -10,10 +10,10 @@
  *  - Priority Hints (PHẦN 3.2): fetchPriority="high" cho avatar & trang trí của chính user,
  *    "low" cho user khác.
  */
-import { useState, type CSSProperties } from 'react';
+import { memo, useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { DecorationType } from '../../types/index';
 import './decorations.css';
-import { useInViewOnce, useReducedMotion } from './useDecorationMedia';
+import { useActiveInViewport, useInViewOnce, useReducedMotion } from './useDecorationMedia';
 import { DecorationMedia } from './DecorationMedia';
 import { getDecorationSafeZone } from '../../utils/decorationSafeZones.ts';
 import { DEFAULT_AVATAR } from '../../utils/mediaFallback';
@@ -51,13 +51,35 @@ const AvatarMedia = ({
 }) => {
   const reducedMotion = useReducedMotion();
   const [videoFailed, setVideoFailed] = useState(false);
+  const avatarVideoRef = useRef<HTMLVideoElement | null>(null);
   const safeUrl = url || DEFAULT_AVATAR;
+  const isVideo = isVideoAvatarUrl(safeUrl) && !videoFailed;
+  const isActive = useActiveInViewport(avatarVideoRef, isVideo && !reducedMotion);
+
+  useEffect(() => {
+    if (!isVideo || reducedMotion) return;
+    const vid = avatarVideoRef.current;
+    if (!vid) return;
+    if (!isActive) {
+      if (!vid.paused) {
+        try {
+          vid.pause();
+        } catch {
+          /* ignore */
+        }
+      }
+    } else if (vid.paused) {
+      vid.play().catch(() => {});
+    }
+  }, [isActive, isVideo, reducedMotion]);
+
   if (!isVideoAvatarUrl(safeUrl)) {
     return (
       <img
         className="awd__avatar"
         src={safeUrl}
         alt={alt}
+        decoding="async"
         loading={eager ? 'eager' : 'lazy'}
         fetchPriority={priority}
         onError={(e) => {
@@ -76,6 +98,7 @@ const AvatarMedia = ({
         className="awd__avatar"
         src={DEFAULT_AVATAR}
         alt={alt}
+        decoding="async"
         loading={eager ? 'eager' : 'lazy'}
         fetchPriority={priority}
       />
@@ -83,6 +106,7 @@ const AvatarMedia = ({
   }
   return (
     <video
+      ref={avatarVideoRef}
       className="awd__avatar"
       src={url}
       aria-label={alt}
@@ -123,7 +147,7 @@ interface AvatarWithDecorationProps {
  * đi qua component này → nameplate không thể hiện ở size nhỏ.
  */
 
-export const AvatarWithDecoration = ({
+export const AvatarWithDecoration = memo(({
   avatarUrl,
   decorationAsset,
   frameAsset,
@@ -183,4 +207,4 @@ export const AvatarWithDecoration = ({
       )}
     </div>
   );
-};
+});

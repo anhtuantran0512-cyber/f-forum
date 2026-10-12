@@ -8,12 +8,16 @@ import {
   Heart, Laugh, Flame, Zap, HandHeart, ImagePlus, Send,
   Repeat2, Flag, Trash2, MessageSquareQuote, X, Users,
   AlertTriangle, Sparkles, Search, Hash, Image as ImageIcon, Clock, TrendingUp,
+  Bookmark, ZoomIn,
 } from 'lucide-react';
 import type { Thread, ThreadReactionType, User } from '../../types';
 import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
 import { isMasterAdmin } from '../../config/admin';
+import { safeStorage } from '../../utils/storage';
 import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
 import './ThreadsView.css';
+
+const SAVED_THREADS_KEY = 'fforum_saved_threads_v1';
 
 /* Giới hạn spec Final Lock */
 const THREAD_MAX_CHARS = 480;
@@ -133,6 +137,9 @@ const ThreadCard: React.FC<{
     onOpenProfile?: ThreadsViewProps['onOpenProfile'];
     onOpenLoginModal?: () => void;
     onSelectTag?: (tag: string) => void;
+    onToggleSave?: (id: string) => void;
+    isSaved?: (id: string) => boolean;
+    onOpenLightbox?: (url: string) => void;
   };
   showActions?: boolean;
 }> = ({ thread: rootThread, allThreads, depth = 0, currentUser, users, replyText, onReplyTextChange, viewModel, showActions = true }) => {
@@ -270,7 +277,19 @@ const ThreadCard: React.FC<{
         </p>
 
         {rootThread.imageUrl && (
-          <div className="thread-image-wrap">
+          <div
+            className="thread-image-wrap group cursor-zoom-in relative"
+            onClick={() => viewModel.onOpenLightbox?.(rootThread.imageUrl!)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                viewModel.onOpenLightbox?.(rootThread.imageUrl!);
+              }
+            }}
+            aria-label="Phóng to ảnh đính kèm"
+          >
             <img
               src={rootThread.imageUrl}
               loading="lazy"
@@ -279,6 +298,9 @@ const ThreadCard: React.FC<{
               className="thread-image"
               alt="Ảnh đính kèm thread"
             />
+            <span className="thread-image-zoom-badge" aria-hidden="true">
+              <ZoomIn className="w-3.5 h-3.5" />
+            </span>
           </div>
         )}
 
@@ -315,8 +337,9 @@ const ThreadCard: React.FC<{
                 src={quotedThread.imageUrl}
                 loading="lazy"
                 decoding="async"
+                onClick={() => viewModel.onOpenLightbox?.(quotedThread.imageUrl!)}
                 onError={(e) => handleImageError(e, '')}
-                className="repost-quote-image"
+                className="repost-quote-image cursor-zoom-in"
                 alt="Ảnh trích dẫn"
               />
             )}
@@ -357,6 +380,15 @@ const ThreadCard: React.FC<{
                 <Repeat2 className="w-4 h-4" />
                 Chia sẻ lại
               </button>
+              <button
+                type="button"
+                onClick={() => viewModel.onToggleSave?.(rootThread.id)}
+                className={`action-text-btn subtle ${viewModel.isSaved?.(rootThread.id) ? 'is-saved' : ''}`}
+                title={viewModel.isSaved?.(rootThread.id) ? 'Bỏ lưu bài viết' : 'Lưu bài viết'}
+                aria-pressed={Boolean(viewModel.isSaved?.(rootThread.id))}
+              >
+                <Bookmark className="w-4 h-4" />
+              </button>
               <button type="button" onClick={() => setIsReportOpen(true)} className="action-text-btn subtle" title="Báo cáo vi phạm">
                 <Flag className="w-4 h-4" />
               </button>
@@ -371,7 +403,13 @@ const ThreadCard: React.FC<{
               maxLength={THREAD_MAX_CHARS}
               value={replyTextValue}
               onChange={(e) => setReplyTextValue(e.target.value)}
-              placeholder="Cậu nghĩ sao? 💭"
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                  e.preventDefault();
+                  submitReply();
+                }
+              }}
+              placeholder="Viết phản hồi của cậu… (Ctrl + Enter để gửi nhanh)"
               className="reply-input"
             />
             <div className="reply-composer-foot">
@@ -552,10 +590,30 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
   const [draftImageError, setDraftImageError] = useState('');
   const [remainingChars, setRemainingChars] = useState(THREAD_MAX_CHARS);
   const [ofTheDay, setOfTheDay] = useState<Thread | null>(null);
-  const [feedMode, setFeedMode] = useState<'latest' | 'hot' | 'media' | 'mine'>('latest');
+  const [feedMode, setFeedMode] = useState<'latest' | 'hot' | 'media' | 'mine' | 'saved'>('latest');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [savedIds, setSavedIds] = useState<string[]>(() => {
+    try {
+      const raw = safeStorage.getItem(SAVED_THREADS_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
+    } catch {
+      return [];
+    }
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const toggleSaveThread = (threadId: string) => {
+    setSavedIds((prev) => {
+      const exists = prev.includes(threadId);
+      const next = exists ? prev.filter((id) => id !== threadId) : [threadId, ...prev];
+      safeStorage.setItem(SAVED_THREADS_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
 
   /* Tải Thread of the Day (cron server tính mỗi giờ, cache 1h) */
   useEffect(() => {
@@ -569,6 +627,25 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
     return () => { cancelled = true; };
   }, [threads.length]);
 
+  /* Tự động trích xuất chủ đề #hashtag đang thịnh hành trong toàn bộ mạch chuyện */
+  const trendingTags = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const tag of QUICK_TOPICS) counts.set(tag, 0);
+    if (Array.isArray(threads)) {
+      for (const t of threads) {
+        if (!t.content) continue;
+        const matches = t.content.match(/#[\p{L}\p{N}_]+/gu);
+        if (!matches) continue;
+        for (const m of matches) {
+          counts.set(m, (counts.get(m) || 0) + 1);
+        }
+      }
+    }
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6);
+  }, [threads]);
+
   /* Feed: thread gốc không phải reply + repost xếp cùng dòng thời gian + lọc/tìm kiếm thông minh */
   const visibleThreads = useMemo(() => {
     if (!Array.isArray(threads)) return [];
@@ -580,9 +657,11 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
     }
     const q = searchQuery.trim().toLowerCase();
     const tagLower = activeTag ? activeTag.toLowerCase() : null;
+    const savedSet = new Set(savedIds);
     const roots = threads.filter((t) => {
       if (t.parentThreadId) return false;
       if (feedMode === 'media' && !t.imageUrl) return false;
+      if (feedMode === 'saved' && !savedSet.has(t.id)) return false;
       if (
         feedMode === 'mine' &&
         (!currentUser ||
@@ -612,7 +691,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
       });
     }
     return [...roots].sort((a, b) => b.createdAtMs - a.createdAtMs);
-  }, [threads, feedMode, searchQuery, activeTag, currentUser]);
+  }, [threads, feedMode, searchQuery, activeTag, currentUser, savedIds]);
 
   const feedStats = useMemo(() => {
     if (!Array.isArray(threads)) return { roots: 0, replies: 0, reactions: 0 };
@@ -711,6 +790,9 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
     onOpenProfile,
     onOpenLoginModal,
     onSelectTag: (tag: string) => setActiveTag((prev) => (prev === tag ? null : tag)),
+    onToggleSave: toggleSaveThread,
+    isSaved: (id: string) => savedIds.includes(id),
+    onOpenLightbox: (url: string) => setLightboxImage(url),
   };
 
   return (
@@ -786,6 +868,16 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                 <ImageIcon className="w-3.5 h-3.5" />
                 Có ảnh
               </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={feedMode === 'saved'}
+                onClick={() => setFeedMode('saved')}
+                className={`threads-filter-pill ${feedMode === 'saved' ? 'is-active' : ''}`}
+              >
+                <Bookmark className="w-3.5 h-3.5" />
+                Đã lưu{savedIds.length > 0 ? ` (${savedIds.length})` : ''}
+              </button>
               {currentUser && (
                 <button
                   type="button"
@@ -812,6 +904,23 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
               </button>
             )}
           </div>
+
+          {trendingTags.length > 0 && (
+            <div className="threads-trending-strip">
+              <span className="threads-trending-label">Xu hướng:</span>
+              {trendingTags.map(([tag, count]) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setActiveTag((prev) => (prev === tag ? null : tag))}
+                  className={`threads-trending-chip ${activeTag === tag ? 'is-active' : ''}`}
+                >
+                  <span>{tag}</span>
+                  {count > 0 && <span className="threads-trending-count">{count}</span>}
+                </button>
+              ))}
+            </div>
+          )}
         </header>
 
         {/* Thread of the Day banner — Mascot Cú */}
@@ -880,7 +989,13 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
             maxLength={THREAD_MAX_CHARS}
             value={draftContent}
             onChange={handleContentChange}
-            placeholder={currentUser ? 'Cậu đang nghĩ gì thế? Chia sẻ câu chuyện hoặc gắn #chủđề…' : 'Đăng nhập để tham gia trò chuyện nhé!'}
+            onKeyDown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && canSubmit) {
+                e.preventDefault();
+                submitThread();
+              }
+            }}
+            placeholder={currentUser ? 'Cậu đang nghĩ gì thế? Chia sẻ câu chuyện hoặc gắn #chủđề… (Ctrl + Enter để đăng nhanh)' : 'Đăng nhập để tham gia trò chuyện nhé!'}
             className="thread-composer-input"
             onClick={() => { if (!currentUser) onOpenLoginModal?.(); }}
             readOnly={!currentUser}
@@ -985,6 +1100,34 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
           )}
         </div>
       </div>
+
+      {lightboxImage && (
+        <div
+          className="thread-lightbox-backdrop"
+          onClick={() => setLightboxImage(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Xem ảnh phóng to"
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxImage(null)}
+            className="thread-lightbox-close"
+            title="Đóng ảnh"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <img
+            src={lightboxImage}
+            alt="Ảnh phóng to"
+            loading="lazy"
+            decoding="async"
+            onClick={(e) => e.stopPropagation()}
+            onError={(e) => handleImageError(e, '')}
+            className="thread-lightbox-img"
+          />
+        </div>
+      )}
     </section>
   );
 };
