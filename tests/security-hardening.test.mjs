@@ -428,6 +428,8 @@ test('9. MARK_BEST_SOLUTION: phải có quyền, và gọi lại không phát th
     const solver = await register(env.baseUrl, 'Người Giải', 'best.solver@example.com', 'mat-khau-giai-123');
     const alternateSolver = await register(env.baseUrl, 'Người Giải Khác', 'best.solver2@example.com', 'mat-khau-giai-456');
 
+    /* AI Moderation: nội dung câu hỏi/lời giải phải liên quan thật để vượt bot
+       kiểm duyệt (test này xét thưởng/quyền, không xét việc moderation). */
     const question = await post(env.baseUrl, '/api/questions', {
       title: 'Chứng minh bất đẳng thức Cauchy-Schwarz',
       content: 'Cho dãy số thực, chứng minh BĐT.',
@@ -441,7 +443,7 @@ test('9. MARK_BEST_SOLUTION: phải có quyền, và gọi lại không phát th
 
     const solution = await post(env.baseUrl, '/api/solutions', {
       questionId: question.data.question.id,
-      content: 'Dùng tích vô hướng của hai vector.',
+      content: 'Dùng tích vô hướng của hai vector để chứng minh bất đẳng thức.',
       authorId: solver.user.id,
       authorName: solver.user.name,
       authorEmail: 'best.solver@example.com',
@@ -552,7 +554,9 @@ test('9b. Gửi lời giải qua HTTP/WS không phát lại XP khi dùng lại h
     const payload = {
       id: 'sol-idempotent-once',
       questionId: question.data.question.id,
-      content: 'Lời giải đầu tiên.',
+      /* AI Moderation: phải là lời giải liên quan (đủ dài + trùng từ khoá)
+         để được ACCEPT — test này xét idempotency thưởng, không xét bot. */
+      content: 'Lời giải đầu tiên: nêu cách làm từng bước cho bài này.',
       authorEmail: solver.user.email,
     };
     const first = await post(env.baseUrl, '/api/solutions', payload, solver.token);
@@ -567,7 +571,7 @@ test('9b. Gửi lời giải qua HTTP/WS không phát lại XP khi dùng lại h
     const second = await post(env.baseUrl, '/api/solutions', {
       ...payload,
       id: 'sol-idempotent-second',
-      content: 'Một cách trình bày bổ sung.',
+      content: 'Một cách trình bày bổ sung cho lời giải của bài này.',
     }, solver.token);
     assert.equal(second.status, 200, 'Có thể bổ sung lời giải, nhưng không lặp thưởng theo cùng câu hỏi');
     assert.equal(second.data.reward, 0, 'Mỗi tài khoản chỉ được thưởng lời giải một lần cho một câu hỏi');
@@ -577,7 +581,7 @@ test('9b. Gửi lời giải qua HTTP/WS không phát lại XP khi dùng lại h
       client.send('NEW_SOLUTION', {
         ...payload,
         id: 'sol-idempotent-ws',
-        content: 'Bản gửi qua WebSocket.',
+        content: 'Bản gửi qua WebSocket cho lời giải của bài này.',
       });
       await sleep(250);
     } finally {
@@ -2553,9 +2557,11 @@ test('42. fPoints không bị cộng đôi khi thiếu trường (thứ tự xp/
     }, asker.token);
     assert.equal(asked.status, 200);
 
+    /* AI Moderation: lời giải phải liên quan thật (trùng từ khoá câu hỏi)
+       để được ACCEPT — test này xét thứ tự cộng xp/fPoints, không xét bot. */
     const solved = await post(env.baseUrl, '/api/solutions', {
       questionId: asked.data.question.id,
-      content: 'Đáp án là 42.',
+      content: 'fPoints phải bằng xp, kiểm tra từng bước để không bị cộng đôi.',
       authorEmail: 'giai-f@example.com',
     }, solver.token);
     assert.equal(solved.status, 200);

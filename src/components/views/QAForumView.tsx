@@ -35,6 +35,7 @@ import {
   Lightbulb,
   ChevronDown,
   ChevronUp,
+  Clock,
 } from 'lucide-react';
 import type {
   Question,
@@ -477,7 +478,12 @@ interface QAForumViewProps {
     bountyCoin?: number;
     imageUrl?: string;
   }) => void;
-  onAddSolution: (questionId: string, content: string, imageUrl?: string) => void;
+  /* AI Moderation v1.0 — kết quả do máy chủ quyết định (bot không cho client
+     tự khai). 'rejected' giữ nội dung để sửa; 'review' chờ Admin. */
+  onAddSolution: (questionId: string, content: string, imageUrl?: string) => Promise<'accepted' | 'review' | 'rejected' | 'error'> | void;
+  /* Lý do bot giữ lại câu trả lời lần gửi gần nhất (inline bên ô trả lời). */
+  solutionRejection?: { questionId: string; feedback: string; reason: string; at: number } | null;
+  onDismissSolutionRejection?: () => void;
   onAddComment?: (commentableType: QACommentableType, commentableId: string, content: string) => void | Promise<boolean>;
   onReactQuestion?: (questionId: string, reactionType: QAReactionType) => void;
   onReactSolution?: (solutionId: string, reactionType: QAReactionType) => void;
@@ -546,6 +552,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   comments = [],
   onCreateQuestion,
   onAddSolution,
+  solutionRejection = null,
+  onDismissSolutionRejection,
   onAddComment,
   onReactQuestion,
   onReactSolution,
@@ -1164,7 +1172,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     setAskCooldown(5);
   };
 
-  const handleSolutionSubmit = (questionId: string) => {
+  const handleSolutionSubmit = async (questionId: string) => {
     if (solCooldown > 0 || isSubmittingSol) return;
     if (!solutionText.trim()) return;
     if (!currentUser) {
@@ -1174,12 +1182,19 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     }
 
     setIsSubmittingSol(true);
-    onAddSolution(questionId, solutionText.trim().slice(0, 1500), solImage || undefined);
-    safeStorage.removeItem(`fforum_draft_solution_${questionId}`);
-    setSolDraftRestoredAt(null);
-    setSolutionText('');
-    setSolImage(null);
-    setSolImageError(null);
+    const trimmed = solutionText.trim().slice(0, 1500);
+    const result = await onAddSolution(questionId, trimmed, solImage || undefined);
+    if (result === 'rejected') {
+      /* Bot chưa đăng (lạc đề/spam): GIỮ nguyên nội dung để học sinh đọc lý do,
+         chỉnh sửa rồi gửi lại — không xoá, không mất công viết. */
+      setSolutionText(trimmed);
+    } else {
+      safeStorage.removeItem(`fforum_draft_solution_${questionId}`);
+      setSolDraftRestoredAt(null);
+      setSolutionText('');
+      setSolImage(null);
+      setSolImageError(null);
+    }
     setIsSubmittingSol(false);
     setSolCooldown(3);
   };
@@ -2797,6 +2812,17 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                 ✓ LỜI GIẢI ĐƯỢC XÁC NHẬN (+{Math.floor((selectedQuestion.bountyCoin || 20) * 0.5) + 100} COIN)
                               </span>
                             )}
+                            {/* AI Moderation v1.0 — câu trả lời đang chờ Admin
+                                duyệt (chỉ tác giả / nhân sự mới thấy được). */}
+                            {sol.status === 'review' && (
+                              <span
+                                className="px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/40 text-amber-300 text-[10px] font-bold flex items-center gap-1"
+                                title={sol.moderation?.feedback || 'Bot kiểm duyệt chưa chắc chắn về mức độ liên quan, câu trả lời đã chuyển tới người quản trị để xem xét. Nội dung không bị mất.'}
+                              >
+                                <Clock className="w-3 h-3" />
+                                ⏳ Đang chờ xem xét
+                              </span>
+                            )}
                           </div>
 
                           <p className="text-xs text-neutral-200 leading-relaxed whitespace-pre-line">
@@ -2930,6 +2956,29 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         Còn {remainingSlots}/3 chỗ trống • Tự động lưu nháp mỗi 10s • +25 XP
                       </span>
                     </label>
+
+                    {/* AI Moderation v1.0 — bot giữ lại câu trả lời (lạc đề/spam):
+                        hiện lý do + gợi ý sửa, nội dung đã được giữ trong ô bên dưới.
+                        Không dùng thuật ngữ kỹ thuật; giọng văn thân thiện. */}
+                    {solutionRejection && solutionRejection.questionId === selectedQuestion.id && (
+                      <div className="mt-2 rounded-xl border border-amber-400/40 bg-amber-500/10 px-3 py-2.5 flex items-start gap-2 animate-fade-up">
+                        <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-amber-200">Câu trả lời cần chỉnh sửa</p>
+                          <p className="text-[11px] text-amber-100/90 mt-0.5 leading-snug">
+                            {solutionRejection.feedback ||
+                              'Câu trả lời này chưa liên quan rõ tới câu hỏi. Hãy trả lời đúng nội dung bài (dùng cách nói, ví dụ của bạn cũng được) rồi gửi lại nhé.'}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={onDismissSolutionRejection}
+                            className="mt-1.5 text-[10px] font-semibold text-amber-300/80 hover:text-amber-200 cursor-pointer"
+                          >
+                            Đã hiểu, tôi sẽ viết lại
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     <textarea
                       id="field-2"
