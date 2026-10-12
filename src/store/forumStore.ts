@@ -66,6 +66,7 @@ import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } fr
 import { readSharedQuestionId } from '../utils/shareLinks';
 import { describeLoginModeration, type LoginModeration } from '../utils/moderationNotice';
 import type { MigrationCelebrationPayload } from '../types';
+import { getDecorationPool } from '../utils/shopData';
 
 const CURRENT_TAB_ID =
   typeof window !== 'undefined'
@@ -826,6 +827,10 @@ export function useForumStore() {
     payload?: MigrationCelebrationPayload | null;
   } | null>(null);
   const dismissMigrationCelebration = useCallback(() => setMigrationCelebration(null), []);
+
+  /* Nhiệm vụ 10 — điểm nhấn: mỗi lần TRANG BỊ trang trí thành công, bắn confetti
+     (App đọc tick + tên item để hiện headline). Chỉ khi đeo (không khi gỡ). */
+  const [decoEquipBurst, setDecoEquipBurst] = useState<{ tick: number; name: string }>({ tick: 0, name: '' });
 
   /* Nhiệm vụ 10 — thông báo từ máy chủ (kết quả migration A/B…). Chỉ chạy khi
      có phiên đăng nhập; id ổn định (`server-...`) nên pushNotification tự chống lặp. */
@@ -2556,6 +2561,10 @@ export function useForumStore() {
       setToastMessage({ title: itemId ? 'Không trang bị được trang trí' : 'Không gỡ được trang trí', subtitle: outcome.message, type: 'error' });
       return false;
     }
+    if (itemId) {
+      const poolItem = getDecorationPool()?.find((i) => i.id === itemId);
+      setDecoEquipBurst((prev) => ({ tick: prev.tick + 1, name: poolItem?.name || 'trang trí mới' }));
+    }
     playChime('success');
     return true;
   }, [postStoreAction]);
@@ -3420,6 +3429,7 @@ export function useForumStore() {
     setIsProfileModalOpen,
     migrationCelebration,
     dismissMigrationCelebration,
+    decoEquipBurst,
     isLoginModalOpen,
     setIsLoginModalOpen,
     isSynced,

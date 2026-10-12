@@ -391,3 +391,26 @@ test('10.7 Migration e2e: phương án B tặng ĐÚNG BẬC HIẾM, khớp lo�
   assert.ok(rerunOut.includes('idempotent') || rerunOut.includes('đã được áp dụng'), 'chạy lại không làm gì');
   assert.equal(fs.readFileSync(dataPath, 'utf8'), JSON.stringify(after, null, 2), 'data không đổi sau re-run');
 });
+
+/* ========================================================================== */
+/* 10.8 — Điểm nhấn Boutique: ruy-băng Khai trương + confetti khi trang bị   */
+/* ========================================================================== */
+test('10.8 Boutique "khai trương": ruy-băng theo marker + confetti khi trang bị', () => {
+  const boutique = fs.readFileSync('src/components/shop/GachaBoutique.tsx', 'utf8');
+  assert.ok(boutique.includes('gb-grand-opening'), 'ruy-băng KHAI TRƯƠNG có trong Boutique');
+  assert.ok(boutique.includes('decorations-migration.json'), 'đọc marker migration (file tĩnh)');
+  assert.ok(boutique.includes('resolveAssetUrl'), 'marker qua resolveAssetUrl (BASE_URL)');
+
+  const css = fs.readFileSync('src/components/shop/Boutique.css', 'utf8');
+  assert.ok(css.includes('.gb-grand-opening'), 'CSS ruy-băng co-located');
+  assert.ok(css.includes('prefers-reduced-motion'), 'tôn trọng giảm chuyển động');
+
+  const storeSrc = fs.readFileSync('src/store/forumStore.ts', 'utf8');
+  assert.ok(storeSrc.includes('decoEquipBurst'), 'store có trigger confetti trang bị');
+  assert.ok(/if \(itemId\)\s*{[\s\S]{0,200}setDecoEquipBurst/.test(storeSrc), 'chỉ bắn khi đeo (không khi gỡ)');
+
+  const appSrc = fs.readFileSync('src/App.tsx', 'utf8');
+  const burstCount = appSrc.split('<CelebrationBurst').length - 1;
+  assert.ok(burstCount >= 2, 'App có burst riêng cho trang bị (không đụng burst hệ thống)');
+  assert.ok(appSrc.includes('decoEquipBurst.tick'), 'trigger đọc từ store');
+});

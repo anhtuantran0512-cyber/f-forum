@@ -8,7 +8,7 @@ Ngày: 2026-10-12 · Branch: `arena/62613a87-f-forum` · Cơ sở: `670848e` (ma
 |---|---|
 | `npx tsc -b` | ✅ 0 lỗi |
 | `npx oxlint` | ✅ 0 warning / 0 error (220 files) |
-| `npm test` (29 file, Node test runner) | ✅ **339/339 pass** |
+| `npm test` (29 file, Node test runner) | ✅ **340/340 pass** |
 | Asset build | ✅ 3.878 file / ~122 MB · 0 lỗi ffmpeg · catalog 873 item |
 | Quality re-tiering | ✅ 873 item chấm điểm 0–100 · 768 động / 105 tĩnh · 0 lỗi cấu trúc · giá khớp bảng rarity 100% |
 | Migration | ✅ **ĐÃ CHỌN PHƯƠNG ÁN B** (Sếp chốt 12/10) — script nâng cấp (cùng hiếm thật, khớp loại, tự trang bị, payload ăn mừng) + demo end-to-end trong sandbox; marker KHÔNG commit (chạy khi triển khai) |
@@ -77,6 +77,14 @@ assert gift đúng bậc hiếm (mythic/common), đúng loại, item active th�
 khớp slot, payload đủ trường, idempotent re-run. **Demo sandbox thật**: server đang
 chạy với data đã migrate (2 user demo, 5 gift, 3 notices) — registry verify: 35 legacy
 SVG → 0 active (soft-delete qua marker), 873 item mới active.
+
+**Điểm nhấn bổ sung (tự update thêm)**:
+- **Ruy-băng "KHAI TRƯƠNG"** trên Boutique — hiện khi migration đã chạy ở môi
+  trường đó (client đọc marker tĩnh qua `resolveAssetUrl`): shimmer vàng + spark,
+  reduced-motion an toàn.
+- **Confetti khi trang bị** — mỗi lần đeo trang trí thành công (bất kỳ đâu:
+  Boutique try-on, unbox gacha, hồ sơ) bắn CelebrationBurst gold + headline
+  "Đã trang bị: {tên item}" (chỉ khi đeo, không khi gỡ).
 
 **Triển khai (mỗi môi trường, server TẮT)**: chạy dry-run xem trước, rồi
 `node scripts/decorations/migrate-decorations.mjs --apply --plan=B --confirm`.

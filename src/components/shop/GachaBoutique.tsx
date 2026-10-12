@@ -181,6 +181,25 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
   const { items, loading: catalogLoading } = useDecorationCatalog();
   const activeItems = useMemo(() => items.filter((item) => item.isActive !== false), [items]);
 
+  /* Nhiệm vụ 10 — điểm nhấn "Khai trương": hiện ruy-băng khi migration đã chạy
+     ở môi trường này (marker là file tĩnh — fetch 1 lần, cache). */
+  const [grandOpening, setGrandOpening] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    const markerPath = resolveAssetUrl('/assets/decorations/decorations-migration.json');
+    fetch(markerPath || '/assets/decorations/decorations-migration.json', { cache: 'force-cache' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (alive && data && data.applied === true) setGrandOpening(true);
+      })
+      .catch(() => {
+        /* chưa migration — không có ruy-băng */
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(() =>
     initialCategoryFilter === 'Avatar Frame' || initialCategoryFilter === 'Avatar Aura' || initialCategoryFilter === 'Nameplate'
       ? (initialCategoryFilter as TypeFilter)
@@ -460,6 +479,20 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
       {catalogLoading && activeItems.length === 0 && (
         <div className="gb-empty" role="status">
           <p>Đang tải kho trang trí…</p>
+        </div>
+      )}
+
+      {/* Nhiệm vụ 10 — ruy-băng KHAI TRƯƠNG (chỉ khi migration đã chạy). */}
+      {grandOpening && (
+        <div className="gb-grand-opening" role="note">
+          <svg className="gb-grand-opening__spark" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4L12 2z" />
+          </svg>
+          <b>KHAI TRƯƠNG</b>
+          <span>873 trang trí Discord đã sẵn sàng — vật phẩm cũ đã được nâng cấp miễn phí</span>
+          <svg className="gb-grand-opening__spark" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4L12 2z" />
+          </svg>
         </div>
       )}
 
