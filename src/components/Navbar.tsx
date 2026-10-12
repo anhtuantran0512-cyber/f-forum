@@ -23,7 +23,8 @@ import type { DimensionView, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { playChime } from '../utils/audio';
 import { ProfileDropdown } from './ProfileDropdown';
-import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
+import { DecoratedAvatar } from './decorations/DecoratedAvatar';
+import { useUserDecorations, preloadDecorations } from '../utils/decorationStore';
 import { NotificationsModal } from './NotificationsModal';
 import { SettingsModal } from './SettingsModal';
 import { safeStorage } from '../utils/storage';
@@ -539,6 +540,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const isSuperAdmin = isMasterAdmin(currentUser?.email);
 
+  /* Nhiệm vụ 10 — preload asset trang trí của chính user để avatar navbar hiện ngay. */
+  const navDecorations = useUserDecorations(currentUser);
+  useEffect(() => {
+    preloadDecorations([
+      navDecorations.frame?.fullAssetUrl,
+      navDecorations.frame?.animatedAssetUrl,
+      navDecorations.aura?.fullAssetUrl,
+      navDecorations.aura?.animatedAssetUrl,
+    ]);
+  }, [navDecorations.frame, navDecorations.aura]);
+
   useEffect(() => {
     if (!isFlyoutOpen) return;
 
@@ -1001,18 +1013,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   title="Tài khoản"
                   aria-label="Tài khoản cá nhân"
                 >
-                  {/* Avatar with status ring */}
+                  {/* Avatar with status ring — Nhiệm vụ 10: + khung/hào quang Discord (28px, eager). */}
                   <div className="relative shrink-0">
-                    <img
-                      src={currentUser.avatar}
-                      alt={currentUser.name}
-                      onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                      loading="lazy"
-                      decoding="async"
-                      width={28}
-                      height={28}
-                      className="w-7 h-7 rounded-full object-cover ring-2 ring-amber-400/60 shadow-sm"
-                    />
+                    <DecoratedAvatar user={currentUser} size={28} eager className="rounded-full ring-2 ring-amber-400/60 shadow-sm" alt={currentUser.name} />
                     <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-[#0a0f14] shadow-[0_0_6px_#34d399]" />
                   </div>
 
@@ -1196,16 +1199,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="flex items-center gap-1.5 pl-1.5 pr-2 py-0.5 rounded-full bg-white/5 border border-white/10 hover:border-amber-400/30 transition-all cursor-pointer pointer-events-auto"
                 aria-label="Tài khoản cá nhân"
               >
-                <img
-                  src={currentUser.avatar}
-                  alt={currentUser.name}
-                  onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                  loading="lazy"
-                  decoding="async"
-                  width={24}
-                  height={24}
-                  className="w-6 h-6 rounded-full object-cover ring-1 ring-amber-400/60"
-                />
+                {/* Nhiệm vụ 10 — 24px + trang trí Discord (eager). */}
+                <DecoratedAvatar user={currentUser} size={24} eager className="rounded-full ring-1 ring-amber-400/60" alt={currentUser.name} />
                 <span className="text-xs font-medium text-white max-w-[70px] truncate whitespace-nowrap">
                   {currentUser.name.replace(/ \(.*\)/, '')}
                 </span>

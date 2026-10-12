@@ -42,3 +42,4 @@
 ## 📜 LỊCH SỬ CẬP NHẬT (CHANGELOG)
 - **[08/10/2026] - Antigravity**: Thiết lập thành công giao thức đồng bộ làm việc song song cho BroAmStuck Studio. Khởi tạo `STUDIO_SYNC.md` và `.agents/rules/studio-sync-protocol.md`.
 - **[08/10/2026] - Antigravity**: Hoàn tất đại cập nhật Giao diện (Profile, Radar Chart, Leaderboard, la-08).
+- **[12/10/2026] - Arena Agent**: Nhiệm vụ 10 — hệ thống trang trí Discord import (873 asset: 569 frame / 68 aura / 236 nameplate). Pipeline build asset + catalog, Boutique mới (filter/pagination/hover-video/try-on/gacha), AvatarWithDecoration + NameplateDisplay (lazy-load, cache, reduced-motion), đồng bộ profile/comment/leaderboard/navbar. Migration A/B đã viết nhưng **CHƯA CHẠY** — chờ Sếp chọn phương án. Chi tiết: `docs/decorations/{README.md, TEST_REPORT.md}`.

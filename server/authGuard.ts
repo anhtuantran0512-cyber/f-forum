@@ -495,6 +495,8 @@ export const SERVER_OWNED_USER_FIELDS: readonly string[] = [
   'streakCount',
   'inventory',
   'equippedBadge',
+  /* Nhiệm vụ 10 — trang trí Discord là quyền server (mua + equip qua /api/shop/*). */
+  'equippedDecorations',
   'joinedAt',
 ];
 

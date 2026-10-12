@@ -194,6 +194,7 @@ export const App: React.FC = () => {
     cancelFocusRewardSession,
     purchaseShopItem,
     equipShopItem,
+    equipDecoration,
     clubs,
     clubPosts,
     createClub,
@@ -1195,6 +1196,7 @@ export const App: React.FC = () => {
             onSaveProfile={updateProfile}
             onPurchaseItem={purchaseShopItem}
             onEquipItem={equipShopItem}
+            onEquipDecoration={equipDecoration}
             initialTab={profileInitialTab}
             questions={questions}
             solutions={solutions}

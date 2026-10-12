@@ -1,8 +1,8 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Trophy, ArrowRight, HelpCircle, Sparkles, Medal, Clock, Crown, Minus, Flame } from 'lucide-react';
 import type { User, Question, Solution, ChatMessage } from '../../types';
-import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
+import { DecoratedAvatar } from '../decorations/DecoratedAvatar';
 import { MagneticButton } from '../MagneticButton';
 import { OdometerDigits } from '../OdometerDigits';
 import { StudyPulsePanel } from '../StudyPulsePanel';
@@ -217,6 +217,17 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
 }) => {
   const [period, setPeriod] = useState<Period>('week');
   const [metric, setMetric] = useState<Metric>('points');
+  /* Nhiệm vụ 10 — resolve user record (inventory + equippedDecorations) của thành viên. */
+  const ownerOf = useCallback((m: LeaderboardMember): User | null => {
+    if (m.email) {
+      const byEmail = users[m.email.toLowerCase()];
+      if (byEmail) return byEmail;
+    }
+    for (const u of Object.values(users)) {
+      if (u.id === m.id) return u;
+    }
+    return null;
+  }, [users]);
   const [sessions, setSessions] = useState<StudySession[]>(() => readStudySessions());
   const [weeklyGoal, setWeeklyGoal] = useState<number>(() => readWeeklyGoalMinutes());
   const [dailyTarget, setDailyTarget] = useState<number>(() => readDailyTargetMinutes());
@@ -391,16 +402,16 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                     {RANK_MEDAL[slot]}
                   </span>
                   <span className="ff-podium__avatar-wrap">
-                    <img
-                      src={m.avatar || DEFAULT_AVATAR}
-                      alt={m.name}
-                      onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                      loading="lazy"
-                      decoding="async"
-                      width={place === 1 ? 60 : 50}
-                      height={place === 1 ? 60 : 50}
-                      className="ff-podium__avatar"
-                    />
+                    {/* Nhiệm vụ 10 — 58/46px + trang trí Discord (animation tắt). */}
+                    <span className="ff-podium__deco">
+                      <DecoratedAvatar
+                        user={ownerOf(m)}
+                        size={place === 1 ? 58 : 46}
+                        animate={false}
+                        alt={m.name}
+                        className="ff-podium__avatar"
+                      />
+                    </span>
                     {place === 1 && (
                       <Crown className="ff-podium__crown" aria-hidden="true" />
                     )}
@@ -438,14 +449,12 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                 className={`ff-ladder__step ff-ladder__step--b${m.rank} ${m.isYou ? 'is-you' : ''}`}
               >
                 <span className="ff-ladder__rank font-mono">{m.rank}</span>
-                <img
-                  src={m.avatar || DEFAULT_AVATAR}
+                {/* Nhiệm vụ 10 — 40/36px + trang trí (animation tắt). */}
+                <DecoratedAvatar
+                  user={ownerOf(m)}
+                  size={i === 0 ? 40 : 36}
+                  animate={false}
                   alt={m.name}
-                  onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                  loading="lazy"
-                  decoding="async"
-                  width={i === 0 ? 40 : 36}
-                  height={i === 0 ? 40 : 36}
                   className="ff-ladder__avatar"
                 />
                 <span className="ff-ladder__body">
@@ -481,14 +490,12 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                   title={`Xem hồ sơ của ${m.name}`}
                 >
                   <span className="ff-row__rank font-mono">{m.rank}</span>
-                  <img
-                    src={m.avatar || DEFAULT_AVATAR}
+                  {/* Nhiệm vụ 10 — 30px + trang trí (animation tắt). */}
+                  <DecoratedAvatar
+                    user={ownerOf(m)}
+                    size={30}
+                    animate={false}
                     alt={m.name}
-                    onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                    loading="lazy"
-                    decoding="async"
-                    width={30}
-                    height={30}
                     className="ff-row__avatar"
                   />
                   <span className="ff-row__body">
@@ -531,13 +538,13 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
         {currentUser && meEntry && (
           <button type="button" onClick={() => openProfile(meEntry)} className="ff-board__me">
             <span className="ff-board__me-rank font-mono">#{meEntry.rank}</span>
-            <img loading="lazy" decoding="async"
-              src={currentUser.avatar || DEFAULT_AVATAR}
+            {/* Nhiệm vụ 10 — 32px + trang trí của chính user (animation tắt). */}
+            <DecoratedAvatar
+              user={currentUser}
+              size={32}
+              animate={false}
               alt={currentUser.name}
-              onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-              width={32}
-              height={32}
-              className="w-8 h-8 rounded-full object-cover ring-2 ring-sky-400/70"
+              className="rounded-full ring-2 ring-sky-400/70"
             />
             <span className="ff-board__me-name truncate">{currentUser.name}</span>
             <span className="ff-board__me-value font-mono">{formatValue(meEntry)}</span>

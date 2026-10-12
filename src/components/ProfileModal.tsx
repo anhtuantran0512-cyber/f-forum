@@ -25,6 +25,7 @@ import {
   Sprout,
   Image as ImageIcon,
   Trash2,
+  Palette as PaletteIcon,
 } from 'lucide-react';
 import type { User, Question, Solution, ShopItem } from '../types';
 import { TierBadge, TierSvg, AdminVerifiedBadge } from './Badges10Tier';
@@ -45,6 +46,10 @@ import {
 } from '../utils/shopData';
 import { GachaBoutique } from './shop/GachaBoutique';
 import { TrophyShelf } from './shop/TrophyShelf';
+import { AvatarWithDecoration, type DecorationAssetRef } from './decorations/AvatarWithDecoration';
+import { DecoratedName } from './decorations/DecoratedAvatar';
+import { useUserDecorations } from '../utils/decorationStore';
+import { DECORATION_RARITY_META } from '../utils/decorations';
 import { pushNotification } from '../utils/notifications';
 import { LikeHeartButton } from './LikeHeartButton';
 import { safeStorage } from '../utils/storage';
@@ -89,6 +94,8 @@ interface ProfileModalProps {
   onSaveProfile: (updates: Partial<User>) => void;
   onPurchaseItem: (itemId: string) => Promise<boolean>;
   onEquipItem: (itemId: string) => Promise<boolean>;
+  /** Nhiệm vụ 10 — trang bị/gỡ trang trí Discord theo slot (itemId null = gỡ). */
+  onEquipDecoration?: (slot: 'avatar_frame' | 'avatar_aura' | 'nameplate', itemId: string | null) => Promise<boolean>;
   initialTab?: 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit';
   questions?: Question[];
   solutions?: Solution[];
@@ -230,6 +237,8 @@ const ProfileModalInner: React.FC<{
   onSaveProfile: (updates: Partial<User>) => void;
   onPurchaseItem: (itemId: string) => Promise<boolean>;
   onEquipItem: (itemId: string) => Promise<boolean>;
+  /** Nhiệm vụ 10 — trang bị/gỡ trang trí Discord theo slot (itemId null = gỡ). */
+  onEquipDecoration?: (slot: 'avatar_frame' | 'avatar_aura' | 'nameplate', itemId: string | null) => Promise<boolean>;
   initialTab?: TabType;
   questions?: Question[];
   solutions?: Solution[];
@@ -241,6 +250,7 @@ const ProfileModalInner: React.FC<{
   onSaveProfile,
   onPurchaseItem,
   onEquipItem,
+  onEquipDecoration,
   initialTab = 'overview',
   questions = [],
   solutions = [],
@@ -338,19 +348,36 @@ const ProfileModalInner: React.FC<{
   );
 
   const [shopCategoryJump, setShopCategoryJump] = useState<string | null>(null);
-  const [comboTick, setComboTick] = useState(0);
 
   const equippedCombo = useMemo(
-    () => {
-      void comboTick;
-      return resolveEquippedCombo(
-        userInventory,
-        currentUser.equippedBadge,
-        currentUser.email || currentUser.name || 'default',
-      );
-    },
-    [userInventory, currentUser.equippedBadge, currentUser.email, currentUser.name, comboTick],
+    () => resolveEquippedCombo(
+      userInventory,
+      currentUser.equippedBadge,
+      currentUser.email || currentUser.name || 'default',
+    ),
+    [userInventory, currentUser.equippedBadge, currentUser.email, currentUser.name],
   );
+
+  /* Nhiệm vụ 10 — trang trí Discord đã trang bị (catalog + inventory của CHÍNH user
+     đang xem — hồ sơ người khác cũng hiển thị trang trí của họ qua /api/sync). */
+  const userDecorations = useUserDecorations(currentUser);
+  const decoFrameAsset: DecorationAssetRef | null = userDecorations.frame
+    ? {
+        type: 'avatar_frame',
+        fullAssetUrl: userDecorations.frame.fullAssetUrl,
+        animatedAssetUrl: userDecorations.frame.animatedAssetUrl,
+        isAnimated: !!userDecorations.frame.isAnimated && !!userDecorations.frame.animatedAssetUrl,
+      }
+    : null;
+  const decoAuraAsset: DecorationAssetRef | null = userDecorations.aura
+    ? {
+        type: 'avatar_aura',
+        fullAssetUrl: userDecorations.aura.fullAssetUrl,
+        animatedAssetUrl: userDecorations.aura.animatedAssetUrl,
+        isAnimated: !!userDecorations.aura.isAnimated && !!userDecorations.aura.animatedAssetUrl,
+      }
+    : null;
+  const activeDecoAsset = decoFrameAsset || decoAuraAsset;
 
   const activeAvatarRarity = equippedCombo.frame
     ? rarityOf(equippedCombo.frame)
@@ -359,7 +386,22 @@ const ProfileModalInner: React.FC<{
       : equippedCombo.highestRarity;
   const activeAvatarFrameClass = rarityFrameClass(activeAvatarRarity);
 
-  const openShopAtCategory = (category: string) => {
+  const handleEquipDecoration = async (slot: 'avatar_frame' | 'avatar_aura' | 'nameplate', itemId: string | null): Promise<boolean> => {
+    if (!isOwnProfile || !onEquipDecoration) return false;
+    const ok = await onEquipDecoration(slot, itemId);
+    if (ok) {
+      pushNotification({
+        type: 'system',
+        category: 'system',
+        title: itemId ? 'Đã trang bị trang trí mới' : 'Đã gỡ trang trí',
+        body: itemId ? 'Trang trí mới đã được gắn vào hồ sơ của bạn.' : 'Slot trang trí đã được để trống.',
+        targetView: 'home',
+      });
+    }
+    return ok;
+  };
+
+  const openShopAtCategory = (category: string | null) => {
     setShopCategoryJump(category);
     setActiveTab('shop');
   };
@@ -840,35 +882,49 @@ const ProfileModalInner: React.FC<{
                   {/* A. Khối Đầu Trang (Header Thông Tin Cá Nhân — Discord Profile Style) */}
                   <div className="flex flex-col sm:flex-row items-start justify-between gap-4 pb-4 border-b border-white/10">
                     <div className="flex items-start gap-4 min-w-0 flex-1">
-                      {/* Avatar với Frame + Aura + Mythic Particles render LIVE bằng CSS thật */}
+                      {/* Avatar 150px — Nhiệm vụ 10: khung/hào quang Discord thật (động),
+                          chưa migration thì giữ render frame SVG cũ. */}
                       <div
-                        className={`relative shrink-0 -mt-12 p-1 z-10 ${isOwnProfile ? 'cursor-pointer group' : ''}`}
+                        className={`ff-profile__avatar-wrap relative shrink-0 -mt-16 p-1 z-10 ${isOwnProfile ? 'cursor-pointer group' : ''}`}
                         onClick={() => {
-                          if (isOwnProfile) openShopAtCategory('Khung avatar');
+                          if (isOwnProfile) openShopAtCategory(null);
                         }}
-                        title={isOwnProfile ? 'Bấm để đổi Khung Avatar trong Boutique' : currentUser.name}
+                        title={isOwnProfile ? 'Bấm để đổi trang trí trong Boutique' : currentUser.name}
                       >
-                        <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center ${activeAvatarFrameClass}`}>
-                          {activeAvatarRarity === 'legendary' &&
-                            Array.from({ length: 6 }, (_, idx) => (
-                              <span
-                                key={idx}
-                                className="mythic-particle"
-                                style={{ animationDelay: `${(-idx * 4) / 6}s` }}
-                                aria-hidden="true"
-                              />
-                            ))}
-                          <img
-                            src={currentUser.avatar}
-                            alt={currentUser.name}
-                            onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                            loading="lazy"
-                            decoding="async"
-                            width={68}
-                            height={68}
-                            className="w-full h-full rounded-full object-cover bg-[#0c1218] shadow-md"
+                        {activeDecoAsset ? (
+                          <AvatarWithDecoration
+                            avatarUrl={currentUser.avatar}
+                            frameAsset={decoFrameAsset}
+                            auraAsset={decoAuraAsset}
+                            size={150}
+                            className="ff-profile__avatar"
                           />
-                        </div>
+                        ) : (
+                          <div
+                            className={`relative w-[150px] h-[150px] rounded-full flex items-center justify-center ${activeAvatarFrameClass}`}
+                            style={{ '--orbit-r': '82px' } as React.CSSProperties}
+                          >
+                            {activeAvatarRarity === 'legendary' &&
+                              Array.from({ length: 6 }, (_, idx) => (
+                                <span
+                                  key={idx}
+                                  className="mythic-particle"
+                                  style={{ animationDelay: `${(-idx * 4) / 6}s` }}
+                                  aria-hidden="true"
+                                />
+                              ))}
+                            <img
+                              src={currentUser.avatar}
+                              alt={currentUser.name}
+                              onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                              loading="lazy"
+                              decoding="async"
+                              width={150}
+                              height={150}
+                              className="w-full h-full rounded-full object-cover bg-[#0c1218] shadow-md"
+                            />
+                          </div>
+                        )}
                         <span className="absolute -bottom-1 -right-1 z-10">
                           <TierBadge level={currentUser.level} size={22} showTooltip={false} />
                         </span>
@@ -878,7 +934,11 @@ const ProfileModalInner: React.FC<{
                       <div className="space-y-1.5 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="text-base sm:text-xl font-bold text-[#0284C7] flex items-center gap-1.5 truncate">
-                            <span>{currentUser.name}</span>
+                            {userDecorations.nameplate ? (
+                              <DecoratedName user={currentUser} name={currentUser.name} width={Math.min(260, Math.max(140, currentUser.name.length * 14))} />
+                            ) : (
+                              <span>{currentUser.name}</span>
+                            )}
                             {isSuperAdmin && <AdminVerifiedBadge size={15} />}
                           </h3>
 
@@ -918,37 +978,97 @@ const ProfileModalInner: React.FC<{
 
                         {/* 🎨 Đang trang bị — Showcase Khu Vực Trang Bị (Discord Profile Style) */}
                         <div className="pt-2 space-y-1.5" aria-label="Khu vực trang bị đang đeo">
-                          <div className="text-[11px] font-bold text-white/80 flex items-center gap-1.5">
+                          <div className="text-[11px] font-bold text-white/80 flex items-center gap-1.5 flex-wrap">
                             <span>🎨 Đang trang bị:</span>
                             {isOwnProfile && (
-                              <span className="text-[10px] font-normal text-white/45">
-                                (Bấm vào từng ô để đổi nhanh)
-                              </span>
+                              <>
+                                <span className="text-[10px] font-normal text-white/45">
+                                  (Bấm vào từng ô để đổi nhanh)
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => openShopAtCategory(null)}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/35 border border-purple-400/40 text-purple-200 text-[10px] font-bold transition cursor-pointer"
+                                >
+                                  <PaletteIcon className="w-3 h-3" /> Thay đổi trang trí
+                                </button>
+                              </>
                             )}
                           </div>
                           <div className="flex items-center gap-1.5 flex-wrap">
+                            {/* Nhiệm vụ 10 — 3 slot Discord (Khung / Hào quang / Bảng tên) */}
                             {[
-                              { slotLabel: 'Frame', category: 'Khung avatar', item: equippedCombo.frame },
-                              { slotLabel: 'Aura', category: 'Hiệu ứng', item: equippedCombo.aura },
+                              { slotLabel: 'Khung', slot: 'avatar_frame' as const, item: userDecorations.frame },
+                              { slotLabel: 'Hào quang', slot: 'avatar_aura' as const, item: userDecorations.aura },
+                              { slotLabel: 'Bảng tên', slot: 'nameplate' as const, item: userDecorations.nameplate },
+                            ].map((slot) => {
+                              const rarity = slot.item?.rarity || 'common';
+                              const meta = DECORATION_RARITY_META[rarity];
+                              return (
+                                <span key={slot.slot} className="inline-flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => openShopAtCategory(null)}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] border border-white/12 hover:border-purple-400/45 text-[11px] text-white/90 transition cursor-pointer"
+                                    title={`Mở Boutique · Đổi ${slot.slotLabel}`}
+                                  >
+                                    <span className="rarity-dot" style={{ background: meta.color }} aria-hidden="true" />
+                                    <span className="text-white/55 font-mono">{slot.slotLabel}:</span>
+                                    <strong className="font-bold text-white">
+                                      {slot.item ? slot.item.name : 'Chưa gắn'}
+                                    </strong>
+                                  </button>
+                                  {isOwnProfile && slot.item && onEquipDecoration && (
+                                    <button
+                                      type="button"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        void handleEquipDecoration(slot.slot, null);
+                                      }}
+                                      className="px-1.5 py-1 rounded-lg bg-white/[0.06] hover:bg-red-500/25 border border-white/10 text-[10px] text-white/60 hover:text-red-300 transition cursor-pointer"
+                                      title={`Gỡ ${slot.slotLabel}`}
+                                    >
+                                      Gỡ
+                                    </button>
+                                  )}
+                                </span>
+                              );
+                            })}
+                            {/* Hệ SVG cũ — giữ tới khi migration A/B được áp dụng */}
+                            {[
                               { slotLabel: 'Theme', category: 'Theme Focus', item: equippedCombo.theme },
                               { slotLabel: 'Góc hồ sơ', category: 'Góc hồ sơ', item: equippedCombo.corner },
                             ].map((slot) => {
                               const slotRarity = slot.item ? rarityOf(slot.item) : 'common';
                               const dot = slot.item ? rarityDotClass(slotRarity) : 'common';
                               return (
-                                <button
-                                  key={slot.category}
-                                  type="button"
-                                  onClick={() => openShopAtCategory(slot.category)}
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] border border-white/12 hover:border-purple-400/45 text-[11px] text-white/90 transition cursor-pointer"
-                                  title={`Mở Boutique · Đổi ${slot.category}`}
-                                >
-                                  <span className={`rarity-dot ${dot}`} aria-hidden="true" />
-                                  <span className="text-white/55 font-mono">{slot.slotLabel}:</span>
-                                  <strong className="font-bold text-white">
-                                    {slot.item ? slot.item.name : 'Chưa gắn'}
-                                  </strong>
-                                </button>
+                                <span key={slot.category} className="inline-flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => openShopAtCategory(null)}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] border border-white/12 hover:border-purple-400/45 text-[11px] text-white/90 transition cursor-pointer"
+                                    title={`Mở Boutique · Đổi ${slot.category}`}
+                                  >
+                                    <span className={`rarity-dot ${dot}`} aria-hidden="true" />
+                                    <span className="text-white/55 font-mono">{slot.slotLabel}:</span>
+                                    <strong className="font-bold text-white">
+                                      {slot.item ? slot.item.name : 'Chưa gắn'}
+                                    </strong>
+                                  </button>
+                                  {isOwnProfile && slot.item && (
+                                    <button
+                                      type="button"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        void handleEquipItem(slot.item!.id);
+                                      }}
+                                      className="px-1.5 py-1 rounded-lg bg-white/[0.06] hover:bg-red-500/25 border border-white/10 text-[10px] text-white/60 hover:text-red-300 transition cursor-pointer"
+                                      title={`Gỡ ${slot.category}`}
+                                    >
+                                      Gỡ
+                                    </button>
+                                  )}
+                                </span>
                               );
                             })}
                           </div>
@@ -1378,19 +1498,19 @@ const ProfileModalInner: React.FC<{
           {activeTab === 'shop' && (
             <div className="ff-tab-panel-enter">
               <GachaBoutique
-                items={SHOP_ITEMS}
                 inventory={userInventory}
-                equippedId={currentUser.equippedBadge}
+                equippedDecorations={currentUser.equippedDecorations}
                 coin={userCoin}
                 ownership={shopOwnership}
                 userName={currentUser.name}
                 userAvatar={currentUser.avatar}
-                userKey={currentUser.email || currentUser.name}
                 initialCategoryFilter={shopCategoryJump}
-                onComboUpdated={() => setComboTick((t) => t + 1)}
                 readOnly={!isOwnProfile}
                 onBuy={handleBuyItem}
-                onEquip={handleEquipItem}
+                onEquip={(item, nextItemId) => {
+                  const slot = item.category === 'Nameplate' ? 'nameplate' : item.category === 'Avatar Aura' ? 'avatar_aura' : 'avatar_frame';
+                  void handleEquipDecoration(slot, nextItemId);
+                }}
               />
             </div>
           )}
@@ -1831,6 +1951,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onSaveProfile,
   onPurchaseItem,
   onEquipItem,
+  onEquipDecoration,
   initialTab = 'overview',
   questions = [],
   solutions = [],
@@ -1846,6 +1967,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       onSaveProfile={onSaveProfile}
       onPurchaseItem={onPurchaseItem}
       onEquipItem={onEquipItem}
+      onEquipDecoration={onEquipDecoration}
       initialTab={initialTab}
       questions={questions}
       solutions={solutions}

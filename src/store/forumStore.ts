@@ -816,6 +816,43 @@ export function useForumStore() {
     /* commitUsers là useCallback([]) nên identity không đổi — effect vẫn chỉ chạy 1 lần. */
   }, [commitUsers]);
 
+  /* Nhiệm vụ 10 — thông báo từ máy chủ (kết quả migration A/B…). Chỉ chạy khi
+     có phiên đăng nhập; id ổn định (`server-...`) nên pushNotification tự chống lặp. */
+  const currentEmail = currentUser?.email || null;
+  useEffect(() => {
+    if (!currentEmail || typeof window === 'undefined' || !hasStoredSession()) return;
+    let disposed = false;
+    const load = async () => {
+      try {
+        const res = await fetch('/api/notices', { headers: authHeaders() });
+        if (!res.ok || disposed) return;
+        const data = await res.json();
+        const notices = Array.isArray(data?.notices) ? data.notices : [];
+        const unread = notices.filter((n: any) => n && !n.readAt);
+        for (const notice of unread) {
+          pushNotification({
+            id: `server-${notice.id}`,
+            type: 'system',
+            category: 'system',
+            title: String(notice.title || 'Thông báo từ F-Forum'),
+            body: String(notice.body || ''),
+            targetView: 'home',
+          });
+        }
+        if (unread.length) {
+          const readIds = unread.map((n: any) => n.id).filter(Boolean);
+          await postJson('/api/notices/read', { ids: readIds });
+        }
+      } catch {
+        /* offline/lỗi — bỏ qua, lần login sau sẽ lấy lại */
+      }
+    };
+    void load();
+    return () => {
+      disposed = true;
+    };
+  }, [currentEmail]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -2479,6 +2516,18 @@ export function useForumStore() {
     return true;
   }, [postStoreAction]);
 
+  /** Nhiệm vụ 10 — trang bị/gỡ trang trí Discord theo slot.
+      itemId rỗng = gỡ slot. Máy chủ là nguồn sự thật (kiểm sở hữu + slot khớp loại). */
+  const equipDecoration = useCallback(async (slot: 'avatar_frame' | 'avatar_aura' | 'nameplate', itemId: string | null): Promise<boolean> => {
+    const outcome = await postStoreAction('/api/shop/equip', { itemId: itemId || '', slot });
+    if (!outcome.ok) {
+      setToastMessage({ title: itemId ? 'Không trang bị được trang trí' : 'Không gỡ được trang trí', subtitle: outcome.message, type: 'error' });
+      return false;
+    }
+    playChime('success');
+    return true;
+  }, [postStoreAction]);
+
   const createQuestion = async (data: {
     title: string;
     subject: SubjectTag;
@@ -3305,6 +3354,7 @@ export function useForumStore() {
     cancelFocusRewardSession,
     purchaseShopItem,
     equipShopItem,
+    equipDecoration,
     clubs,
     clubPosts,
     createClub,

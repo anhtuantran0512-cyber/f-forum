@@ -1,7 +1,15 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import type { ShopItem, ShopTierColor } from '../types/index.ts';
 
-export const SHOP_ITEMS: ShopItem[] = [
+/* ============================================================================
+   Nhiệm vụ 10 — asset thật (Discord import).
+   35 item SVG cũ giữ nguyên và VẪN BÁN ĐƯỢC (chưa migration) — chỉ gắn
+   assetType/originalSource. Soft-delete chỉ kích hoạt khi marker
+   decorations-migration.json xuất hiện (server/decorationRegistry.ts đọc).
+   Sau khi user chọn phương án migration A/B, scripts/decorations/migrate-decorations.mjs
+   sẽ xử lý coin / đổi mới — KHÔNG tự chạy.
+   ============================================================================ */
+export const LEGACY_SVG_ITEMS: ShopItem[] = [
   { id: 'pencil_starter', name: 'Viền Trang Vở', price: 50, tierColor: 'green', category: 'Khung avatar', description: 'Viền giấy kẻ ô cho ảnh đại diện.', iconType: 'Frame' },
   { id: 'seed_wisdom', name: 'Ghim Ghi Nhớ', price: 80, tierColor: 'green', category: 'Góc hồ sơ', description: 'Ghim một dấu nhỏ bên hồ sơ.', iconType: 'Pin' },
   { id: 'journal_memories', name: 'Sổ Học Kỳ', price: 120, tierColor: 'green', category: 'Góc hồ sơ', description: 'Trang sổ lưu dấu chặng học.', iconType: 'NotebookPen' },
@@ -38,6 +46,8 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'profile_stamp', name: 'Dấu Bài Tốt', price: 1050, tierColor: 'red', category: 'Góc hồ sơ', description: 'Con dấu trên thẻ thành tích.', iconType: 'Stamp' },
   { id: 'profile_archive', name: 'Hộp Lưu Trữ', price: 2200, tierColor: 'purple', category: 'Góc hồ sơ', description: 'Hộp kỷ niệm cuối học kỳ.', iconType: 'Archive' },
 ];
+
+export const LEGACY_SHOP_ITEM_IDS: ReadonlySet<string> = new Set(LEGACY_SVG_ITEMS.map((item) => item.id));
 
 export const getTierColorStyles = (tier: ShopTierColor) => {
   switch (tier) {
@@ -102,6 +112,33 @@ export const RARITY_META: Record<ShopRarity, { label: string; en: string; order:
 
 export const rarityOf = (item: Pick<ShopItem, 'tierColor'>): ShopRarity => RARITY_OF_TIER[item.tierColor] || 'common';
 
+/** SHOP_ITEMS = 35 item SVG cũ, gắn assetType (Nhiệm vụ 10).
+ *  LƯU Ý: item cũ VẪN BÁN ĐƯỢC — soft-delete chỉ kích hoạt khi migration
+ *  (kế hoạch A/B) được chạy và ghi file decorations-migration.json
+ *  (registry phía server đọc marker đó — xem server/decorationRegistry.ts). */
+export const SHOP_ITEMS: ShopItem[] = LEGACY_SVG_ITEMS.map((item) => ({
+  ...item,
+  assetType: 'svg_custom' as const,
+  previewUrl: null,
+  fullAssetUrl: null,
+  animatedAssetUrl: null,
+  originalSource: 'fforum_svg' as const,
+  rarity: RARITY_OF_TIER[item.tierColor] as ShopItem['rarity'],
+}));
+
+/* Pool trang trí Discord import — server (registry) và client (fetch catalog)
+   cùng `setDecorationPool` để giá ưu đãi / gacha đồng bộ hai phía. */
+let decorationPool: ShopItem[] | null = null;
+
+export const setDecorationPool = (items: ShopItem[]): void => {
+  decorationPool = items;
+};
+
+export const getDecorationPool = (): ShopItem[] => decorationPool || [];
+
+/** Giá danh sách của item (trước ưu đãi) — dùng chung client/server. */
+export const decorationPrice = (item: Pick<ShopItem, 'price'>): number => item.price;
+
 /** Vật phẩm "Mới": phát hành trong 30 ngày gần nhất (dựa vào addedAt thật). */
 export const SHOP_NEW_WINDOW_DAYS = 30;
 export const isNewItem = (item: Pick<ShopItem, 'addedAt'>, now: number = Date.now()): boolean => {
@@ -128,10 +165,21 @@ export interface WeeklyDeal {
   endsAt: number;
 }
 
-export const getWeeklyDeal = (now: number = Date.now()): WeeklyDeal => {
-  const pool = SHOP_ITEMS.filter((item) => item.tierColor === 'red' || item.tierColor === 'purple')
-    .map((item) => item.id)
-    .sort();
+/**
+ * Chọn pool item cho ưu đãi tuần.
+ * - Pool legacy (mặc định): hạng red/purple theo tierColor.
+ * - Pool decoration (discord_import): hạng epic/mythic theo rarity.
+ */
+const weeklyDealPoolIds = (items: ShopItem[]): string[] => {
+  const isDecoration = items.some((item) => item.originalSource === 'discord_import');
+  const filtered = isDecoration
+    ? items.filter((item) => item.rarity === 'epic' || item.rarity === 'mythic')
+    : items.filter((item) => item.tierColor === 'red' || item.tierColor === 'purple');
+  return filtered.map((item) => item.id).sort();
+};
+
+export const getWeeklyDeal = (now: number = Date.now(), items: ShopItem[] | null = null): WeeklyDeal => {
+  const pool = weeklyDealPoolIds(items ?? SHOP_ITEMS);
   const weekIndex = Math.floor((now + VN_OFFSET_MS - FIRST_MONDAY_UTC) / WEEK_MS);
   return {
     itemId: pool[((weekIndex % pool.length) + pool.length) % pool.length],
@@ -140,10 +188,18 @@ export const getWeeklyDeal = (now: number = Date.now()): WeeklyDeal => {
   };
 };
 
-/** Giá thực trả tại thời điểm `now` (đã áp ưu đãi tuần nếu có). */
-export const effectivePrice = (item: Pick<ShopItem, 'id' | 'price'>, now: number = Date.now()): number => {
-  const deal = getWeeklyDeal(now);
-  return deal.itemId === item.id ? Math.round(item.price * (100 - deal.percent) / 100) : item.price;
+/** Giá thực trả tại thời điểm `now` — ưu đãi tuần (cả pool legacy lẫn decoration),
+ *  với trang trí Discord import còn áp luôn khung flash 6h (lấy giá THẤP hơn)
+ *  để nhãn "Giảm giá" trên client LUÔN khớp số Coin máy chủ thực thu. */
+export const effectivePrice = (item: Pick<ShopItem, 'id' | 'price' | 'originalSource'>, now: number = Date.now()): number => {
+  const pool = item.originalSource === 'discord_import' ? getDecorationPool() : [];
+  const deal = getWeeklyDeal(now, pool.length ? pool : null);
+  let price = deal.itemId === item.id ? Math.round(item.price * (100 - deal.percent) / 100) : item.price;
+  if (item.originalSource === 'discord_import' && pool.length > 0) {
+    const flashEntry = getDynamicDiscounts(now, pool).deals[item.id];
+    if (flashEntry && flashEntry.discountedPrice < price) price = flashEntry.discountedPrice;
+  }
+  return price;
 };
 
 /* ============================================================================
@@ -379,15 +435,16 @@ export function rollWeightedDiscountPercent(randBucket: number, randWithin: numb
  * Tính danh sách vật phẩm đang giảm giá trong khung 6h hiện tại (20–30% tổng số vật phẩm,
  * tương đương 9/35 vật phẩm ~ 25.7%).
  */
-export const getDynamicDiscounts = (now: number = Date.now()): DynamicDiscountSnapshot => {
+export const getDynamicDiscounts = (now: number = Date.now(), items: ShopItem[] | null = null): DynamicDiscountSnapshot => {
   const vnNow = now + VN_OFFSET_MS;
   const slotIndex = Math.floor(vnNow / DYNAMIC_DISCOUNT_ROTATION_MS);
   const startsAt = slotIndex * DYNAMIC_DISCOUNT_ROTATION_MS - VN_OFFSET_MS;
   const endsAt = (slotIndex + 1) * DYNAMIC_DISCOUNT_ROTATION_MS - VN_OFFSET_MS;
   const remainingMs = Math.max(0, endsAt - now);
 
+  const source = items ?? SHOP_ITEMS;
   const rng = createSeededRng(slotIndex * 2654435761 + 1013904223);
-  const pool = [...SHOP_ITEMS];
+  const pool = [...source];
   for (let i = pool.length - 1; i > 0; i -= 1) {
     const j = Math.floor(rng() * (i + 1));
     const tmp = pool[i];
@@ -395,8 +452,8 @@ export const getDynamicDiscounts = (now: number = Date.now()): DynamicDiscountSn
     pool[j] = tmp;
   }
 
-  /* Chọn 9/35 vật phẩm (~25.7%, nằm chuẩn trong khoảng 20–30%) */
-  const count = 9;
+  /* Pool legacy: 9/35 (~25.7%). Pool decoration: cùng tỉ lệ 9/35, tối thiểu 1. */
+  const count = items ? Math.max(1, Math.round((source.length * 9) / 35)) : 9;
   const selected = pool.slice(0, count);
   const deals: Record<string, DynamicDiscountEntry> = {};
   const list: DynamicDiscountEntry[] = [];
@@ -522,6 +579,7 @@ export function rollGachaPull(
   currentPity: GachaPityState,
   randRarity: number = Math.random(),
   randItem: number = Math.random(),
+  items: ShopItem[] | null = null,
 ): GachaPullResult {
   const pool = GACHA_POOLS[poolId] || GACHA_POOLS.standard;
   const nextEpicCounter = (currentPity.epicPity || 0) + 1;
@@ -557,8 +615,14 @@ export function rollGachaPull(
     }
   }
 
-  const candidates = SHOP_ITEMS.filter(item => RARITY_OF_TIER[item.tierColor] === rarity);
-  const chosenPool = candidates.length > 0 ? candidates : SHOP_ITEMS;
+  const source = items ?? SHOP_ITEMS;
+  /* Decoration dùng field `rarity` (mythic thay vì legendary); legacy dùng tierColor. */
+  const itemRarity = (item: ShopItem): ShopRarity =>
+    item.originalSource === 'discord_import'
+      ? (item.rarity === 'mythic' ? 'legendary' : (item.rarity as ShopRarity))
+      : RARITY_OF_TIER[item.tierColor];
+  const candidates = source.filter(item => itemRarity(item) === rarity);
+  const chosenPool = candidates.length > 0 ? candidates : source;
   const itemIndex = Math.min(chosenPool.length - 1, Math.max(0, Math.floor(randItem * chosenPool.length)));
   const item = chosenPool[itemIndex];
 

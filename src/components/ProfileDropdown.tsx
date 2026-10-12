@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom';
 import { CreditCard, UserPen, Award, LogOut, Sparkles, ChevronRight, Flag, X, Shield, CheckCircle2 } from 'lucide-react';
 import type { User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
+import { useUserDecorations } from '../utils/decorationStore';
+import { AvatarWithDecoration } from './decorations/AvatarWithDecoration';
 import { getTierForLevel } from '../utils/tier';
 import { getXPForLevel } from '../store/forumStore';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
@@ -63,6 +65,24 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
     };
   }, [isOpen, onClose, isReportModalOpen]);
 
+  /* Nhiệm vụ 10 — PHẢI gọi trước early-return (rules of hooks). */
+  const dropdownDecorations = useUserDecorations(currentUser);
+  const dropdownDecoAsset = dropdownDecorations.frame
+    ? {
+        type: 'avatar_frame' as const,
+        fullAssetUrl: dropdownDecorations.frame.fullAssetUrl,
+        animatedAssetUrl: dropdownDecorations.frame.animatedAssetUrl,
+        isAnimated: !!dropdownDecorations.frame.isAnimated && !!dropdownDecorations.frame.animatedAssetUrl,
+      }
+    : dropdownDecorations.aura
+      ? {
+          type: 'avatar_aura' as const,
+          fullAssetUrl: dropdownDecorations.aura.fullAssetUrl,
+          animatedAssetUrl: dropdownDecorations.aura.animatedAssetUrl,
+          isAnimated: !!dropdownDecorations.aura.isAnimated && !!dropdownDecorations.aura.animatedAssetUrl,
+        }
+      : null;
+
   if (!isOpen) return null;
 
   const isSuperAdmin = isMasterAdmin(currentUser.email);
@@ -120,16 +140,28 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         {/* Avatar + Info */}
         <div className="flex items-start gap-3">
           <div className="relative shrink-0">
-            <img
-              src={currentUser.avatar}
-              alt={currentUser.name}
-              onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-              loading="lazy"
-              decoding="async"
-              width={44}
-              height={44}
-              className="w-11 h-11 rounded-xl object-cover ring-2 ring-amber-400/50 shadow-md"
-            />
+            {/* Nhiệm vụ 10 — 44px; có khung/hào quang Discord → avatar tròn + trang trí thật. */}
+            {dropdownDecoAsset ? (
+              <AvatarWithDecoration
+                avatarUrl={currentUser.avatar}
+                decorationAsset={dropdownDecoAsset}
+                size={44}
+                eager
+                className="rounded-full ring-2 ring-amber-400/50 shadow-md"
+                alt={currentUser.name}
+              />
+            ) : (
+              <img
+                src={currentUser.avatar}
+                alt={currentUser.name}
+                onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                loading="lazy"
+                decoding="async"
+                width={44}
+                height={44}
+                className="w-11 h-11 rounded-xl object-cover ring-2 ring-amber-400/50 shadow-md"
+              />
+            )}
             <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0c1218] shadow-[0_0_6px_#34d399]" />
           </div>
 
