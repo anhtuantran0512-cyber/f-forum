@@ -20,6 +20,7 @@ import {
   type FC,
   type KeyboardEvent,
 } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Check,
   Clock3,
@@ -27,6 +28,7 @@ import {
   Flame,
   Frame,
   Heart,
+  Lock,
   Search,
   TrendingUp,
   Sparkles,
@@ -375,13 +377,13 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
       if (ownedFilter === 'unowned' && inventory.includes(item.id)) return false;
       if (wishOnly && !wishlist.includes(item.id)) return false;
       if (priceMax !== 'all') {
-        const weekly = effectivePrice(item, dealWindowNow);
+        const weekly = effectivePrice(item, now);
         const flash = dynamicDiscounts.deals[item.id];
         const current = flash ? Math.min(weekly, flash.discountedPrice) : weekly;
         if (current > Number(priceMax)) return false;
       }
       if (affordableOnly) {
-        const weekly = effectivePrice(item, dealWindowNow);
+        const weekly = effectivePrice(item, now);
         const flash = dynamicDiscounts.deals[item.id];
         const current = flash ? Math.min(weekly, flash.discountedPrice) : weekly;
         if (current > coin) return false;
@@ -407,7 +409,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           (a, b) => order(b) - order(a) || (b.qualityScore ?? 0) - (a.qualityScore ?? 0) || b.price - a.price,
         );
     }
-  }, [activeItems, typeFilter, rarityFilter, motionFilter, ownedFilter, inventory, wishOnly, wishlist, priceMax, affordableOnly, coin, dynamicDiscounts, dealWindowNow, query, sortMode]);
+  }, [activeItems, typeFilter, rarityFilter, motionFilter, ownedFilter, inventory, wishOnly, wishlist, priceMax, affordableOnly, coin, dynamicDiscounts, now, query, sortMode]);
 
   /* Infinite scroll: chỉ render 24 item mỗi nhịp; đổi bộ lọc → reset ở handler (không setState trong effect). */
   const resetPagination = () => setVisibleCount(PAGE_SIZE);
@@ -461,6 +463,29 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
     return () => window.clearTimeout(timer);
   }, [unboxed]);
 
+  const [buyingItemId, setBuyingItemId] = useState<string | null>(null);
+
+  /* Khóa cuộn nền tuyệt đối (cả body lẫn khung cuộn của ProfileModal) khi đang mở Xem trước hoặc Mở hộp quà. */
+  useEffect(() => {
+    if (!inspected && !unboxed) return undefined;
+    if (typeof document === 'undefined') return undefined;
+    const prevBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const scrollContainers = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-profile-scroll-container], .modal-body'),
+    );
+    const prevContainerOverflows = scrollContainers.map((el) => el.style.overflowY);
+    for (const el of scrollContainers) {
+      el.style.overflowY = 'hidden';
+    }
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      scrollContainers.forEach((el, idx) => {
+        el.style.overflowY = prevContainerOverflows[idx] || '';
+      });
+    };
+  }, [inspected, unboxed]);
+
   /* Esc chỉ đóng lớp trên cùng của shop, không đóng luôn hồ sơ phía sau. */
   const swallowEscape = (event: KeyboardEvent<HTMLElement>, close: () => void) => {
     if (event.key !== 'Escape') return;
@@ -471,16 +496,21 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
   };
 
   const buy = async (item: ShopItem) => {
-    if (busy) return;
+    if (busy || buyingItemId) return;
     setBusy(true);
-    const ok = await onBuy(item);
-    setBusy(false);
-    if (!ok) return;
-    setInspectId(null);
-    setUnboxed(item);
-    setBurstTick((tick) => tick + 1);
-    /* Huyền thoại: thêm một tiếng "mở khoá" đúng lúc vật phẩm bay ra khỏi hộp. */
-    if (decoRarity(item) === 'mythic') window.setTimeout(() => playChime('level-up'), 850);
+    setBuyingItemId(item.id);
+    try {
+      const ok = await onBuy(item);
+      if (!ok) return;
+      setInspectId(null);
+      setUnboxed(item);
+      setBurstTick((tick) => tick + 1);
+      /* Huyền thoại: thêm một tiếng "mở khoá" đúng lúc vật phẩm bay ra khỏi hộp. */
+      if (decoRarity(item) === 'mythic') window.setTimeout(() => playChime('level-up'), 850);
+    } finally {
+      setBusy(false);
+      setBuyingItemId(null);
+    }
   };
 
   const [pity, setPity] = useState<GachaPityState>(() => {
@@ -1362,17 +1392,34 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         const onDeal = price !== inspected.price;
         const canAfford = coin >= price;
         const asset = itemToAsset(inspected);
-        return (
+        const isBuyingThis = busy || buyingItemId === inspected.id;
+        const inspectNode = (
           <div
             className="gb-inspect"
             role="dialog"
             aria-modal="true"
             aria-labelledby={`gb-inspect-title-${uid}`}
-            onKeyDown={(event) => swallowEscape(event, () => setInspectId(null))}
+            onKeyDown={(event) => swallowEscape(event, () => { if (!isBuyingThis) setInspectId(null); })}
+            onWheel={(event) => event.stopPropagation()}
+            onTouchMove={(event) => event.stopPropagation()}
           >
-            <button type="button" className="gb-inspect__backdrop" aria-label="Đóng xem trước" tabIndex={-1} onClick={() => setInspectId(null)} />
+            <button
+              type="button"
+              className="gb-inspect__backdrop"
+              aria-label="Đóng xem trước"
+              tabIndex={-1}
+              disabled={isBuyingThis}
+              onClick={() => { if (!isBuyingThis) setInspectId(null); }}
+            />
             <section className={`gb-inspect__panel gb-inspect__panel--${legacyRarityClass(rarity)}`} style={{ '--gb-rarity-color': rarityMeta.color } as CSSProperties}>
-              <button ref={closeRef} type="button" className="gb-inspect__close" aria-label="Đóng" onClick={() => setInspectId(null)}>
+              <button
+                ref={closeRef}
+                type="button"
+                className="gb-inspect__close"
+                aria-label="Đóng"
+                disabled={isBuyingThis}
+                onClick={() => { if (!isBuyingThis) setInspectId(null); }}
+              >
                 <X size={16} />
               </button>
               <div className="gb-inspect__stage flex flex-col items-center justify-center p-4">
@@ -1388,8 +1435,6 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                       size={92}
                       eager
                     />
-                    {/* CHUẨN DISCORD: nameplate chỉ tồn tại ở context "Hồ Sơ" —
-                       stage 200px mô phỏng đúng vị trí đó (bảng tên + tên căn giữa). */}
                     <span className="npd-np gb-inspect__np" style={{ width: 268, height: 50 }}>
                       <NameplateDisplay asset={asset} size={268} animate eager fill className="npd-np__bg" />
                       <span className="npd-np__text">{userName}</span>
@@ -1422,7 +1467,6 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                 <div className="gb-inspect__preview">
                   <span>Xem khi đeo</span>
                   {asset.type === 'nameplate' ? (
-                    /* CHUẨN DISCORD: nameplate KHÔNG tồn tại ở context nhỏ. */
                     <div className="gb-inspect__np-ctx">
                       <Info size={13} aria-hidden="true" />
                       <span>
@@ -1470,16 +1514,28 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                         <button
                           type="button"
                           className={`gb-buy gb-buy--${rarity}`}
-                          disabled={!canAfford || busy}
+                          disabled={!canAfford || isBuyingThis}
                           onClick={() => void buy(inspected)}
                         >
                           <span className="gb-buy__rays" aria-hidden="true" />
-                          {canAfford ? (busy ? 'Đang mở khoá…' : 'Mua ngay') : `Thiếu ${(price - coin).toLocaleString('vi-VN')} Coin`}
+                          {canAfford ? (
+                            isBuyingThis ? (
+                              <>
+                                <Lock size={14} aria-hidden="true" />
+                                <span>Đang khóa &amp; mở hộp…</span>
+                              </>
+                            ) : (
+                              'Mua ngay'
+                            )
+                          ) : (
+                            `Thiếu ${(price - coin).toLocaleString('vi-VN')} Coin`
+                          )}
                         </button>
                       )}
                       <button
                         type="button"
                         className="gb-ghost"
+                        disabled={isBuyingThis}
                         onClick={() => setInspectId(null)}
                       >
                         Hủy
@@ -1491,59 +1547,82 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
             </section>
           </div>
         );
+        return typeof document !== 'undefined' ? createPortal(inspectNode, document.body) : inspectNode;
       })()}
 
       {unboxed && (() => {
         const rarity = decoRarity(unboxed);
         const unboxRarity = legacyRarityClass(rarity);
-        return (
+        const unboxedAsset = itemToAsset(unboxed);
+        const unboxNode = (
           <div
             className={`gb-unbox gb-unbox--${unboxRarity} ${rarity === 'mythic' ? 'gb-unbox--mythic-shake' : ''}`}
             role="dialog"
             aria-modal="true"
             aria-label={`Đã mở khoá ${unboxed.name}`}
             onKeyDown={(event) => swallowEscape(event, () => setUnboxed(null))}
+            onWheel={(event) => event.stopPropagation()}
+            onTouchMove={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              if (event.target === event.currentTarget) setUnboxed(null);
+            }}
           >
-            <div className="gb-unbox__scene" aria-hidden="true">
-              <span className="gb-unbox__rays" />
-              <span className="gb-unbox__box">
-                <span className="gb-unbox__lid" />
-                <span className="gb-unbox__body" />
-                <span className="gb-unbox__ribbon" />
-              </span>
-              <span className="gb-unbox__item">
-                {unboxed.category === 'Nameplate' ? (
-                  <span className="npd-np" style={{ width: 212, height: 40 }}>
-                    <NameplateDisplay asset={itemToAsset(unboxed)} size={212} animate={false} eager fill className="npd-np__bg" />
-                    <span className="npd-np__text">{userName}</span>
-                  </span>
-                ) : (
-                  <img
-                    src={resolveAssetUrl(unboxed.previewUrl) || undefined}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    style={{ width: 150, height: 150, objectFit: 'contain' }}
-                  />
-                )}
-              </span>
-            </div>
-            <p className="gb-unbox__title" role="status">Đã mở khoá!</p>
-            <b className="gb-unbox__name">{unboxed.name}</b>
-            <span className={`gb-rarity gb-rarity--${unboxRarity}`}>{DECORATION_RARITY_META[rarity].label}</span>
-            <div className="gb-unbox__actions">
+            <div className="gb-unbox__card">
               <button
-                ref={unboxCtaRef}
                 type="button"
-                className="gb-buy gb-buy--equip"
-                onClick={() => { void onEquip(unboxed, unboxed.id); setUnboxed(null); }}
+                className="gb-unbox__close"
+                aria-label="Đóng hộp mở khóa"
+                onClick={() => setUnboxed(null)}
               >
-                Đeo ngay
+                <X size={16} />
               </button>
-              <button type="button" className="gb-ghost" onClick={() => setUnboxed(null)}>Để sau</button>
+              <span className="gb-unbox__vault-pill">
+                <Lock size={11} aria-hidden="true" />
+                <span>VẬT PHẨM ĐÃ KHÓA VÀO TỦ ĐỒ CÁ NHÂN</span>
+              </span>
+              <div className="gb-unbox__scene" aria-hidden="true">
+                <span className="gb-unbox__rays" />
+                <span className="gb-unbox__box">
+                  <span className="gb-unbox__lid" />
+                  <span className="gb-unbox__body" />
+                  <span className="gb-unbox__ribbon" />
+                </span>
+                <span className="gb-unbox__item">
+                  {unboxed.category === 'Nameplate' ? (
+                    <span className="npd-np" style={{ width: 236, height: 44 }}>
+                      <NameplateDisplay asset={unboxedAsset} size={236} animate eager fill className="npd-np__bg" />
+                      <span className="npd-np__text">{userName}</span>
+                    </span>
+                  ) : (
+                    <AvatarWithDecoration
+                      avatarUrl={userAvatar || DEFAULT_AVATAR}
+                      decorationAsset={unboxedAsset}
+                      size={148}
+                      eager
+                      animate
+                      priority="high"
+                    />
+                  )}
+                </span>
+              </div>
+              <p className="gb-unbox__title" role="status">Đã mở khoá thành công!</p>
+              <b className="gb-unbox__name">{unboxed.name}</b>
+              <span className={`gb-rarity gb-rarity--${unboxRarity}`}>{DECORATION_RARITY_META[rarity].label}</span>
+              <div className="gb-unbox__actions">
+                <button
+                  ref={unboxCtaRef}
+                  type="button"
+                  className="gb-buy gb-buy--equip"
+                  onClick={() => { void onEquip(unboxed, unboxed.id); setUnboxed(null); }}
+                >
+                  Đeo ngay
+                </button>
+                <button type="button" className="gb-ghost" onClick={() => setUnboxed(null)}>Để sau</button>
+              </div>
             </div>
           </div>
         );
+        return typeof document !== 'undefined' ? createPortal(unboxNode, document.body) : unboxNode;
       })()}
 
       <CelebrationBurst trigger={burstTick} tone={unboxed ? BURST_TONE[legacyRarityClass(decoRarity(unboxed))] : 'gold'} count={unboxed && decoRarity(unboxed) === 'mythic' ? 70 : 44} />

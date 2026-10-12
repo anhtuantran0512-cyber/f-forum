@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { GpuParticleCanvas } from './effects/GpuParticleCanvas';
 import { useAdaptiveQuality } from '../utils/adaptiveQuality';
 
@@ -92,12 +93,20 @@ export const CelebrationBurst: React.FC<CelebrationBurstProps> = ({
     }));
   }, [active, capabilities.particleScale, count, tone, trigger]);
 
+  useEffect(() => {
+    if (!active) return;
+    const timer = window.setTimeout(() => {
+      setFinishedTick(trigger);
+    }, 1750);
+    return () => window.clearTimeout(timer);
+  }, [active, trigger]);
+
   if (!active) return null;
 
   const reducedMotion = particles.length === 0;
 
-  return (
-    <div className="ff-celebrate" aria-live="polite" role="status">
+  const content = (
+    <div key={trigger} className="ff-celebrate" aria-live="polite" role="status">
       {!reducedMotion && (
         <GpuParticleCanvas
           trigger={trigger}
@@ -136,12 +145,18 @@ export const CelebrationBurst: React.FC<CelebrationBurstProps> = ({
       {/* Phần tử canh giờ vô hình: hoạt ảnh của nó dài hơn mọi hạt, nên khi nó
           kết thúc là cả đợt bắn đã xong — dọn một lần, đúng một lần. */}
       <i
+        key={`sentinel-${trigger}`}
         className="ff-celebrate__sentinel"
         aria-hidden="true"
         onAnimationEnd={() => setFinishedTick(trigger)}
       />
     </div>
   );
+
+  if (typeof document !== 'undefined') {
+    return createPortal(content, document.body);
+  }
+  return content;
 };
 
 export default CelebrationBurst;

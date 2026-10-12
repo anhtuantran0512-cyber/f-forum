@@ -2632,7 +2632,8 @@ export function useForumStore() {
   }, [postStoreAction]);
 
   /** Nhiệm vụ 10 — trang bị/gỡ trang trí Discord theo slot.
-      itemId rỗng = gỡ slot. Máy chủ là nguồn sự thật (kiểm sở hữu + slot khớp loại). */
+      itemId rỗng = gỡ slot. Máy chủ là nguồn sự thật (kiểm sở hữu + slot khớp loại).
+      Khi trang bị Khung Avatar sẽ tự gỡ Hào Quang (và ngược lại) để không bị chồng 2 viền. */
   const equipDecoration = useCallback(async (slot: 'avatar_frame' | 'avatar_aura' | 'nameplate', itemId: string | null): Promise<boolean> => {
     const outcome = await postStoreAction('/api/shop/equip', { itemId: itemId || '', slot });
     if (!outcome.ok) {
@@ -2642,6 +2643,12 @@ export function useForumStore() {
     if (itemId) {
       const poolItem = getDecorationPool()?.find((i) => i.id === itemId);
       setDecoEquipBurst((prev) => ({ tick: prev.tick + 1, name: poolItem?.name || 'trang trí mới' }));
+      if (slot === 'avatar_frame' || slot === 'avatar_aura') {
+        const otherSlot = slot === 'avatar_frame' ? 'avatar_aura' : 'avatar_frame';
+        if (currentUserRef.current?.equippedDecorations?.[otherSlot]) {
+          await postStoreAction('/api/shop/equip', { itemId: '', slot: otherSlot });
+        }
+      }
     }
     playChime('success');
     return true;
