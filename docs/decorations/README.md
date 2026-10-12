@@ -126,8 +126,13 @@ Luật phát video: `isAnimated && animatedAssetUrl && animate && !reducedMotion
 - Dark theme; màu rarity: Common xám · Rare xanh · Epic tím · Mythic vàng (giữ class CSS cũ
   `.frame-common/rare/epic/mythic` + `.mythic-particle` cho showcase hồ sơ).
 - Filter: **Avatar Frame | Avatar Aura | Nameplate** · rarity · **Có animation | Tĩnh** · tìm kiếm ·
-  sort · **pagination vô hạn 24 item/niềm** (sentinel; đổi filter → reset ở event handler).
+  sort · **pagination vô hạn 24 item/mặt** (sentinel; đổi filter → reset ở event handler).
 - Modal xem trước: avatar THẬT của user 200px + trang trí + nút **“Trang bị ngay”** (try-on).
+- **Đại cập nhật — Boutique "Sống động"**: **DEAL HÔM NAY** (item sale chất lượng cao, xoay
+  theo ngày VN — `getDailyDeal`, giá = `effectivePrice` khớp server) · **BỘ SƯU TẬP CỦA BẠN**
+  (tiến độ X/873 + thanh theo rarity + vinh danh 6 mythic — `getCollectionStats`) · ruy-băng
+  **SỰ KIỆN KHAI TRƯƠNG 72H** đếm ngược (hiện khi migration đã chạy) · confetti khi trang bị.
+  Xem chi tiết: TEST_REPORT §1.2–1.3.
 - Gacha 100 Coin/lượt, pity 50/100, mythic ≤ 5% (chạy trên pool decoration, map mythic→legendary).
 - `readOnly` khi xem hồ sơ người khác (chỉ chủ hồ sơ mua/đeo được).
 

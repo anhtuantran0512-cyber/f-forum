@@ -1314,3 +1314,277 @@ html.light .gb-card__desc-one-line {
     animation: none;
   }
 }
+
+/* ===== ĐẠI CẬP NHẬT — ruy-băng: đồng hồ sự kiện 72h ===== */
+.gb-grand-opening__timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  background: rgba(251, 191, 36, 0.16);
+  border: 1px solid rgba(251, 191, 36, 0.5);
+}
+
+/* ===== ĐẠI CẬP NHẬT — DEAL HÔM NAY ===== */
+.gb-daily-deal {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin: 12px 0;
+  padding: 12px 16px;
+  text-align: left;
+  border-radius: 16px;
+  cursor: pointer;
+  color: #fff;
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(245, 158, 11, 0.22), transparent 55%),
+    linear-gradient(120deg, rgba(41, 30, 8, 0.95), rgba(14, 12, 24, 0.95) 60%);
+  border: 1px solid rgba(251, 191, 36, 0.55);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35), 0 0 26px rgba(251, 191, 36, 0.12);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.gb-daily-deal:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 34px rgba(251, 191, 36, 0.22);
+}
+
+.gb-daily-deal__media {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 14px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.02) 65%, transparent 80%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.gb-daily-deal__media img {
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+}
+
+.gb-daily-deal__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gb-daily-deal__kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  color: #fbbf24;
+  text-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+}
+
+.gb-daily-deal__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 15.5px;
+  font-weight: 800;
+}
+.gb-daily-deal__name .gb-rarity-badge-clean {
+  font-size: 9.5px;
+}
+
+.gb-daily-deal__price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gb-daily-deal__price s {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12.5px;
+}
+.gb-daily-deal__price b {
+  font-size: 16px;
+  color: #fde68a;
+  font-variant-numeric: tabular-nums;
+}
+.gb-daily-deal__off {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  color: #1c1400;
+  background: linear-gradient(90deg, #fde68a, #fbbf24);
+}
+
+.gb-daily-deal__timer {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #fde68a;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+/* ===== ĐẠI CẬP NHẬT — BỘ SƯU TẬP CỦA BẠN ===== */
+.gb-collection {
+  margin: 12px 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.gb-collection__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.gb-collection__head b {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: #fff;
+}
+.gb-collection__count {
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #a5b4fc;
+}
+
+.gb-collection__bar {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  margin-bottom: 10px;
+}
+.gb-collection__bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #818cf8, #c084fc 55%, #fbbf24);
+  box-shadow: 0 0 12px rgba(192, 132, 252, 0.5);
+  transition: width 0.5s ease;
+}
+
+.gb-collection__rars {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.gb-collection__rar {
+  position: relative;
+  display: block;
+  height: 20px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.gb-collection__rar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  background: color-mix(in srgb, var(--rar-color, #9CA3AF) 55%, transparent);
+  transition: width 0.5s ease;
+}
+.gb-collection__rar em {
+  position: relative;
+  z-index: 1;
+  display: block;
+  padding: 3px 7px;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gb-collection__mythic {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.14);
+}
+.gb-collection__mythic-label {
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: #fbbf24;
+}
+.gb-collection__mythic-item {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(251, 191, 36, 0.18), rgba(255, 255, 255, 0.03) 70%);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.gb-collection__mythic-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 18px rgba(251, 191, 36, 0.4);
+}
+.gb-collection__mythic-item img {
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+}
+
+.gb-collection__empty {
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.14);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+@media (max-width: 560px) {
+  .gb-collection__rars {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .gb-daily-deal__timer {
+    display: none;
+  }
+  .gb-daily-deal__name {
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-collection__bar span,
+  .gb-collection__rar i {
+    transition: none;
+  }
+}

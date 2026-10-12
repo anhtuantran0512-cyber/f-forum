@@ -182,3 +182,110 @@ export const priceRange = (items: Pick<ShopItem, 'price'>[]): string => {
   const fmt = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1).replace(/\.0$/, '')}K` : String(v));
   return min === max ? fmt(min) : `${fmt(min)}–${fmt(max)}`;
 };
+
+/* --------------------------------------------------------------------------
+   Đại cập nhật — "Deal hôm nay" + "Bộ sưu tập" (hàm THUẦN, test được,
+   client dùng trực tiếp — giá luôn khớp server vì dùng effectivePrice).
+   -------------------------------------------------------------------------- */
+import { effectivePrice } from './shopData.ts';
+
+const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+export interface DailyDeal {
+  item: ShopItem;
+  /** % giảm EFFECTIVE (khớp đúng số Coin server thu). */
+  percent: number;
+  price: number;
+  /** Hết hạn của khung ưu đãi đang áp dụng (ms). */
+  endsAt: number;
+  isWeekly: boolean;
+  isSuperSale: boolean;
+}
+
+export interface DailyDealInputs {
+  /** Item đang trong khung flash 6h (id + percent + super sale). */
+  flashList: Array<{ itemId: string; percent: number; isSuperSale?: boolean }>;
+  /** Mốc kết thúc khung flash hiện tại (ms). */
+  flashEndsAt: number;
+  weekly: { itemId: string; percent: number; endsAt: number };
+}
+
+/**
+ * "Deal hôm nay" — item nổi bật của ngày:
+ *  - ứng viên = item đang flash sale 6h + item ưu đãi tuần (nếu chưa trong flash);
+ *  - chỉ lấy TOP 12 CHẤT LƯỢNG (qualityScore) — deal phải là điểm nhấn;
+ *  - chọn tất định theo NGÀY VIỆT NAM (cả hệ thống xem cùng 1 deal, xoay mỗi ngày).
+ */
+export const getDailyDeal = (
+  now: number,
+  items: ShopItem[],
+  input: DailyDealInputs,
+): DailyDeal | null => {
+  const byId = new Map(items.map((i) => [i.id, i]));
+  const candidates: Array<{ item: ShopItem; percent: number; isSuperSale: boolean; endsAt: number }> = [];
+  for (const deal of input.flashList) {
+    const item = byId.get(deal.itemId);
+    if (item) {
+      candidates.push({ item, percent: deal.percent, isSuperSale: !!deal.isSuperSale, endsAt: input.flashEndsAt });
+    }
+  }
+  const weeklyItem = byId.get(input.weekly.itemId);
+  if (weeklyItem && !candidates.some((c) => c.item.id === weeklyItem.id)) {
+    candidates.push({ item: weeklyItem, percent: input.weekly.percent, isSuperSale: false, endsAt: input.weekly.endsAt });
+  }
+  if (candidates.length === 0) return null;
+  candidates.sort(
+    (a, b) => (b.item.qualityScore ?? 0) - (a.item.qualityScore ?? 0) || a.item.name.localeCompare(b.item.name, 'vi'),
+  );
+  const dayIndex = Math.floor((now + VN_OFFSET_MS) / (24 * 60 * 60 * 1000));
+  const top = candidates.slice(0, 12);
+  const pick = top[dayIndex % top.length];
+  /* Giá EFFECTIVE — cùng hàm server tính tiền → nhãn bao giờ cũng khớp. */
+  const price = effectivePrice(pick.item, now);
+  const percent = Math.max(0, Math.round((1 - price / pick.item.price) * 100));
+  return { item: pick.item, percent, price, endsAt: pick.endsAt, isWeekly: pick.item.id === input.weekly.itemId, isSuperSale: pick.isSuperSale };
+};
+
+export interface CollectionRarityProgress {
+  rarity: DecorationRarity;
+  total: number;
+  owned: number;
+}
+
+export interface CollectionStats {
+  total: number;
+  owned: number;
+  /** Phần trăm hoàn thành 0–100. */
+  percent: number;
+  byRarity: CollectionRarityProgress[];
+  /** Item Mythic đã sở hữu (top 6 theo qualityScore) — "vinh danh". */
+  mythicOwned: ShopItem[];
+}
+
+/** Thống kê "Bộ sưu tập của bạn": tiến độ theo độ hiếm + mythic đã sưu tầm. */
+export const getCollectionStats = (items: ShopItem[], ownedIds: Iterable<string>): CollectionStats => {
+  const owned = new Set(ownedIds);
+  const order: DecorationRarity[] = ['common', 'rare', 'epic', 'mythic'];
+  const byRarity: CollectionRarityProgress[] = order.map((rarity) => ({ rarity, total: 0, owned: 0 }));
+  const mythicOwned: ShopItem[] = [];
+  let ownedCount = 0;
+  for (const item of items) {
+    const rarity = item.rarity || 'common';
+    const row = byRarity.find((r) => r.rarity === rarity);
+    if (!row) continue;
+    row.total += 1;
+    if (owned.has(item.id)) {
+      row.owned += 1;
+      ownedCount += 1;
+      if (rarity === 'mythic') mythicOwned.push(item);
+    }
+  }
+  mythicOwned.sort((a, b) => (b.qualityScore ?? 0) - (a.qualityScore ?? 0) || a.name.localeCompare(b.name, 'vi'));
+  return {
+    total: items.length,
+    owned: ownedCount,
+    percent: items.length ? Math.min(100, Math.round((ownedCount / items.length) * 1000) / 10) : 0,
+    byRarity,
+    mythicOwned: mythicOwned.slice(0, 6),
+  };
+};

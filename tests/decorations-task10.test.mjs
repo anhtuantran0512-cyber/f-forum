@@ -414,3 +414,97 @@ test('10.8 Boutique "khai trương": ruy-băng theo marker + confetti khi trang 
   assert.ok(burstCount >= 2, 'App có burst riêng cho trang bị (không đụng burst hệ thống)');
   assert.ok(appSrc.includes('decoEquipBurst.tick'), 'trigger đọc từ store');
 });
+
+/* ========================================================================== */
+/* 10.9 — "Deal hôm nay": tất định theo ngày, giá khớp server, top chất lượng */
+/* ========================================================================== */
+test('10.9 Deal hôm nay: tất định theo ngày VN, ứng viên từ sale, giá = effectivePrice', () => {
+  /* 16 item decoration (8 epic + 8 mythic, qualityScore khác nhau). */
+  const mk = (i, rarity, q) => ({
+    id: `deco-item-${i}`,
+    name: `Item ${i}`,
+    price: rarity === 'mythic' ? 6200 : 4100,
+    tierColor: rarity === 'mythic' ? 'purple' : 'red',
+    description: 'test',
+    iconType: 'Decoration',
+    category: 'Avatar Frame',
+    rarity,
+    isAnimated: true,
+    previewUrl: `/assets/decorations/avatar-frames/t${i}/preview.webp`,
+    fullAssetUrl: `/assets/decorations/avatar-frames/t${i}/full.webp`,
+    animatedAssetUrl: `/assets/decorations/avatar-frames/t${i}/animated.webm`,
+    originalSource: 'discord_import',
+    qualityScore: q,
+    addedAt: '2026-09-01',
+  });
+  const items = [];
+  for (let i = 0; i < 8; i += 1) items.push(mk(i, 'epic', 60 + i));
+  for (let i = 8; i < 16; i += 1) items.push(mk(i, 'mythic', 70 + i * 2));
+  shop.setDecorationPool(items);
+  try {
+    const now = Date.UTC(2026, 9, 12, 18, 0, 0); /* 01:00 ngày 13/10/2026 giờ VN */
+    const weekly = shop.getWeeklyDeal(now, items);
+    const flash = shop.getDynamicDiscounts(now, items);
+    assert.ok(flash.list.length > 0, 'khung 6h luôn có item sale');
+    const input = {
+      flashList: flash.list.map((d) => ({ itemId: d.itemId, percent: d.percent, isSuperSale: d.isSuperSale })),
+      flashEndsAt: flash.endsAt,
+      weekly,
+    };
+    const deal = deco.getDailyDeal(now, items, input);
+    assert.ok(deal, 'có deal hôm nay');
+    assert.ok(items.some((i) => i.id === deal.item.id), 'deal là item thật trong catalog');
+    /* Ứng viên chỉ gồm item đang sale (flash hoặc ưu đãi tuần). */
+    const inFlash = flash.list.some((d) => d.itemId === deal.item.id);
+    assert.ok(inFlash || deal.isWeekly, 'deal phải đang flash sale hoặc là ưu đãi tuần');
+    /* Giá LUÔN khớp effectivePrice (cùng hàm server tính tiền). */
+    assert.equal(deal.price, shop.effectivePrice(deal.item, now), 'giá deal = effectivePrice');
+    assert.ok(deal.percent >= 0 && deal.percent <= 90, 'percent hợp lý');
+    assert.ok(deal.endsAt > now, 'endsAt trong tương lai');
+    /* Tất định: cùng ngày VN + cùng snapshot → cùng item. */
+    const again = deco.getDailyDeal(now + 3_600_000, items, input);
+    assert.equal(again.item.id, deal.item.id, 'cùng ngày → cùng deal');
+    /* Ngày VN khác (cùng snapshot) → deal khác. */
+    const nextDay = deco.getDailyDeal(now + 24 * 3600_000, items, input);
+    assert.notEqual(nextDay.item.id, deal.item.id, 'ngày sau → deal xoay');
+    /* Không có sale nào → null. */
+    assert.equal(deco.getDailyDeal(now, items, { flashList: [], flashEndsAt: flash.endsAt, weekly: { itemId: 'chưa-tồn-tại', percent: 20, endsAt: flash.endsAt } }), null);
+  } finally {
+    shop.setDecorationPool([]);
+  }
+});
+
+/* ========================================================================== */
+/* 10.10 — "Bộ sưu tập": tiến độ theo độ hiếm + vinh danh mythic             */
+/* ========================================================================== */
+test('10.10 Bộ sưu tập: tiến độ theo rarity, mythic sở hữu top chất lượng', () => {
+  const mk = (id, rarity, q) => ({
+    id, name: id, price: 100, tierColor: 'green', description: 't', iconType: 'Decoration',
+    category: 'Avatar Frame', rarity, isAnimated: false,
+    previewUrl: '/x.webp', fullAssetUrl: '/y.webp', animatedAssetUrl: null,
+    originalSource: 'discord_import', qualityScore: q,
+  });
+  const items = [
+    mk('c1', 'common', 20), mk('c2', 'common', 30),
+    mk('r1', 'rare', 40),
+    mk('e1', 'epic', 55), mk('e2', 'epic', 65),
+    mk('m1', 'mythic', 80), mk('m2', 'mythic', 90), mk('m3', 'mythic', 70),
+  ];
+  const stats = deco.getCollectionStats(items, new Set(['c2', 'e2', 'm3', 'm1']));
+  assert.equal(stats.total, 8);
+  assert.equal(stats.owned, 4);
+  assert.equal(stats.percent, 50);
+  const row = (r) => stats.byRarity.find((x) => x.rarity === r);
+  assert.deepEqual([row('common').total, row('common').owned], [2, 1]);
+  assert.deepEqual([row('rare').total, row('rare').owned], [1, 0]);
+  assert.deepEqual([row('epic').total, row('epic').owned], [2, 1]);
+  assert.deepEqual([row('mythic').total, row('mythic').owned], [3, 2]);
+  /* Vinh danh: 2 mythic đã sở hữu (m1 q80, m3 q70) — SẮP XẾP qualityScore giảm. */
+  assert.deepEqual(stats.mythicOwned.map((i) => i.id), ['m1', 'm3']);
+  assert.ok(stats.mythicOwned.length <= 6, 'tối đa 6 viên ngọc');
+  /* Trống: 0 sở hữu. */
+  const empty = deco.getCollectionStats(items, new Set());
+  assert.equal(empty.owned, 0);
+  assert.equal(empty.percent, 0);
+  assert.deepEqual(empty.mythicOwned, []);
+});

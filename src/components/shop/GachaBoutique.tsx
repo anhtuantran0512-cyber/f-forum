@@ -51,6 +51,8 @@ import {
   DECORATION_RARITIES,
   DECORATION_RARITY_META,
   DECORATION_TYPE_META,
+  getCollectionStats,
+  getDailyDeal,
   priceRange,
   resolveAssetUrl,
 } from '../../utils/decorations';
@@ -183,14 +185,16 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
 
   /* Nhiệm vụ 10 — điểm nhấn "Khai trương": hiện ruy-băng khi migration đã chạy
      ở môi trường này (marker là file tĩnh — fetch 1 lần, cache). */
-  const [grandOpening, setGrandOpening] = useState(false);
+  const [opening, setOpening] = useState<{ applied: boolean; at: number } | null>(null);
   useEffect(() => {
     let alive = true;
     const markerPath = resolveAssetUrl('/assets/decorations/decorations-migration.json');
     fetch(markerPath || '/assets/decorations/decorations-migration.json', { cache: 'force-cache' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (alive && data && data.applied === true) setGrandOpening(true);
+        if (alive && data && data.applied === true) {
+          setOpening({ applied: true, at: Number.isFinite(data.at) ? data.at : 0 });
+        }
       })
       .catch(() => {
         /* chưa migration — không có ruy-băng */
@@ -199,6 +203,9 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
       alive = false;
     };
   }, []);
+  /* Sự kiện KHAI TRƯƠNG: 72h kể từ mốc migration — ruy-băng đếm ngược. */
+  const OPENING_MS = 72 * 60 * 60 * 1000;
+  const openingRemainingMs = opening ? Math.max(0, opening.at + OPENING_MS - now) : 0;
 
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(() =>
     initialCategoryFilter === 'Avatar Frame' || initialCategoryFilter === 'Avatar Aura' || initialCategoryFilter === 'Nameplate'
@@ -247,6 +254,19 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
   const deal = useMemo(() => getWeeklyDeal(now, activeItems), [now, activeItems]);
   const dealItem = activeItems.find((item) => item.id === deal.itemId) || null;
   const dynamicDiscounts = useMemo(() => getDynamicDiscounts(now, activeItems), [now, activeItems]);
+
+  /* Đại cập nhật — "Deal hôm nay": item chất lượng cao đang sale, xoay theo ngày VN. */
+  const dailyDeal = useMemo(
+    () =>
+      getDailyDeal(now, activeItems, {
+        flashList: dynamicDiscounts.list.map((d) => ({ itemId: d.itemId, percent: d.percent, isSuperSale: d.isSuperSale })),
+        flashEndsAt: dynamicDiscounts.endsAt,
+        weekly: deal,
+      }),
+    [now, activeItems, dynamicDiscounts, deal],
+  );
+  /* Đại cập nhật — "Bộ sưu tập của bạn": tiến độ 873 item theo độ hiếm. */
+  const collection = useMemo(() => getCollectionStats(activeItems, inventory), [activeItems, inventory]);
 
   /* Hero Carousel: 6 item Mythic tiêu điểm (xoay vòng hằng tuần theo pool). */
   const mythicShowcaseItems = useMemo(
@@ -482,14 +502,21 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </div>
       )}
 
-      {/* Nhiệm vụ 10 — ruy-băng KHAI TRƯƠNG (chỉ khi migration đã chạy). */}
-      {grandOpening && (
+      {/* Nhiệm vụ 10 — ruy-băng KHAI TRƯƠNG + sự kiện 72h đếm ngược (chỉ khi migration đã chạy). */}
+      {opening && (
         <div className="gb-grand-opening" role="note">
           <svg className="gb-grand-opening__spark" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4L12 2z" />
           </svg>
-          <b>KHAI TRƯƠNG</b>
-          <span>873 trang trí Discord đã sẵn sàng — vật phẩm cũ đã được nâng cấp miễn phí</span>
+          <b>SỰ KIỆN KHAI TRƯƠNG</b>
+          <span>873 trang trí Discord đã sẵn sàng — vật phẩm cũ được nâng cấp miễn phí</span>
+          {openingRemainingMs > 0 ? (
+            <span className="gb-grand-opening__timer">
+              <Clock3 size={12} aria-hidden="true" /> còn {Math.floor(openingRemainingMs / 3600000)}g {Math.floor((openingRemainingMs % 3600000) / 60000)}p
+            </span>
+          ) : (
+            <span className="gb-grand-opening__timer">miễn phí nâng cấp vĩnh viễn</span>
+          )}
           <svg className="gb-grand-opening__spark" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4L12 2z" />
           </svg>
@@ -838,6 +865,95 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           <span className="gb-deal__timer"><Clock3 size={12} aria-hidden="true" /> còn {formatCountdown(deal.endsAt - now)}</span>
         </button>
       )}
+
+      {/* ĐẠI CẬP NHẬT — DEAL HÔM NAY: item chất lượng cao đang sale, xoay theo ngày */}
+      {dailyDeal && (
+        <button type="button" className="gb-daily-deal" onClick={() => setInspectId(dailyDeal.item.id)}>
+          <span className="gb-daily-deal__media">
+            <img
+              src={resolveAssetUrl(dailyDeal.item.previewUrl) || dailyDeal.item.previewUrl}
+              alt={`Deal hôm nay: ${dailyDeal.item.name}`}
+              width={72}
+              height={72}
+              loading="eager"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+              }}
+            />
+          </span>
+          <span className="gb-daily-deal__body">
+            <span className="gb-daily-deal__kicker">
+              <Tag size={11} aria-hidden="true" /> DEAL HÔM NAY{dailyDeal.isSuperSale ? ' · SIÊU SALE' : ''}
+            </span>
+            <span className="gb-daily-deal__name">
+              {dailyDeal.item.name}
+              <em className="gb-rarity-badge-clean">
+                <span className="rarity-dot" style={{ background: DECORATION_RARITY_META[decoRarity(dailyDeal.item)].color }} aria-hidden="true" />
+                {DECORATION_RARITY_META[decoRarity(dailyDeal.item)].en}
+              </em>
+            </span>
+            <span className="gb-daily-deal__price">
+              <s>{dailyDeal.item.price.toLocaleString('vi-VN')}</s>
+              <b>{dailyDeal.price.toLocaleString('vi-VN')} Coin</b>
+              <span className="gb-daily-deal__off">−{dailyDeal.percent}%</span>
+            </span>
+          </span>
+          <span className="gb-daily-deal__timer">
+            <Clock3 size={13} aria-hidden="true" />
+            {formatCountdownHMS(dailyDeal.endsAt - now)}
+          </span>
+        </button>
+      )}
+
+      {/* ĐẠI CẬP NHẬT — BỘ SƯU TẬP CỦA BẠN: tiến độ 873 item theo độ hiếm */}
+      <section className="gb-collection" aria-label="Bộ sưu tập của bạn">
+        <div className="gb-collection__head">
+          <b>Bộ sưu tập của bạn</b>
+          <span className="gb-collection__count">
+            {collection.owned}/{collection.total} · {collection.percent}%
+          </span>
+        </div>
+        <div className="gb-collection__bar" aria-hidden="true">
+          <span style={{ width: `${Math.max(1.5, collection.percent)}%` }} />
+        </div>
+        <div className="gb-collection__rars">
+          {collection.byRarity.map((row) => (
+            <span key={row.rarity} className="gb-collection__rar" style={{ '--rar-color': DECORATION_RARITY_META[row.rarity].color } as React.CSSProperties}>
+              <i aria-hidden="true" style={{ width: row.total ? `${(row.owned / row.total) * 100}%` : '0%' }} />
+              <em>{DECORATION_RARITY_META[row.rarity].en} {row.owned}/{row.total}</em>
+            </span>
+          ))}
+        </div>
+        {collection.mythicOwned.length > 0 ? (
+          <div className="gb-collection__mythic">
+            <span className="gb-collection__mythic-label">Vinh danh Huyền thoại</span>
+            {collection.mythicOwned.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="gb-collection__mythic-item"
+                title={item.name}
+                onClick={() => setInspectId(item.id)}
+              >
+                <img
+                  src={resolveAssetUrl(item.previewUrl) || item.previewUrl}
+                  alt={item.name}
+                  width={52}
+                  height={52}
+                  loading="lazy"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                  }}
+                />
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="gb-collection__empty">
+            Chưa có Huyền thoại nào — {activeItems.filter((i) => decoRarity(i) === 'mythic').length} viên ngọc đang chờ bạn khám phá
+          </p>
+        )}
+      </section>
 
       {/* Bộ lọc: loại trang trí + độ hiếm + animation */}
       <div className="gb-filters" role="group" aria-label="Lọc trang trí theo loại">
