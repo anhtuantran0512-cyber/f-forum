@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1400" fill="none">
+  <defs>
+    <linearGradient id="nebulaBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0726"/>
+      <stop offset="38%" stop-color="#1e1b4b"/>
+      <stop offset="72%" stop-color="#2e1065"/>
+      <stop offset="100%" stop-color="#090d16"/>
+    </linearGradient>
+    <radialGradient id="nebulaPink" cx="72%" cy="24%" r="55%">
+      <stop offset="0%" stop-color="#ec4899" stop-opacity="0.48"/>
+      <stop offset="50%" stop-color="#8b5cf6" stop-opacity="0.24"/>
+      <stop offset="100%" stop-color="#1e1b4b" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebulaCyan" cx="25%" cy="62%" r="58%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.42"/>
+      <stop offset="55%" stop-color="#6366f1" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#0b0726" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebulaGold" cx="65%" cy="88%" r="50%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.32"/>
+      <stop offset="60%" stop-color="#ec4899" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#090d16" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="1400" fill="url(#nebulaBg)"/>
+  <rect width="1200" height="1400" fill="url(#nebulaPink)"/>
+  <rect width="1200" height="1400" fill="url(#nebulaCyan)"/>
+  <rect width="1200" height="1400" fill="url(#nebulaGold)"/>
+
+  <!-- Sacred Geometry & Star Rings Spanning Top to Bottom -->
+  <g stroke="#a78bfa" stroke-opacity="0.22" stroke-width="1.5">
+    <circle cx="600" cy="300" r="210"/>
+    <circle cx="600" cy="300" r="290" stroke-dasharray="8 8"/>
+    <circle cx="600" cy="820" r="260"/>
+    <circle cx="600" cy="820" r="350" stroke-dasharray="10 10"/>
+    <path d="M180 180 L420 320 L780 210 L1040 360"/>
+    <path d="M150 740 L460 620 L820 790 L1060 660"/>
+    <path d="M220 1180 L540 1040 L890 1210 L1080 1080"/>
+  </g>
+
+  <g fill="#f8fafc">
+    <circle cx="180" cy="180" r="4" fill-opacity="0.9"/>
+    <circle cx="420" cy="320" r="5" fill-opacity="0.85"/>
+    <circle cx="780" cy="210" r="4.5" fill-opacity="0.9"/>
+    <circle cx="1040" cy="360" r="4" fill-opacity="0.8"/>
+    <circle cx="150" cy="740" r="4" fill-opacity="0.85"/>
+    <circle cx="460" cy="620" r="5" fill-opacity="0.9"/>
+    <circle cx="820" cy="790" r="4.5" fill-opacity="0.85"/>
+    <circle cx="1060" cy="660" r="4" fill-opacity="0.8"/>
+    <circle cx="220" cy="1180" r="4.5" fill-opacity="0.85"/>
+    <circle cx="540" cy="1040" r="5" fill-opacity="0.9"/>
+    <circle cx="890" cy="1210" r="4" fill-opacity="0.85"/>
+  </g>
+</svg>

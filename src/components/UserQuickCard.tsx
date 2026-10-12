@@ -9,7 +9,7 @@ import { effectiveCoinBalance, formatCoinBalance } from '../utils/coinDisplay';
 import { PremiumMark } from './PremiumMark';
 import { isMasterAdmin } from '../config/admin';
 import { DecoratedAvatar, DecoratedName, UserNameplateBg } from './decorations/DecoratedAvatar';
-import { parseBannerUrl, bannerImageStyle } from '../utils/bannerLayout';
+import { parseBannerUrl, bannerImageStyle, DEFAULT_PROFILE_BANNER_URL } from '../utils/bannerLayout';
 
 export interface UserQuickCardProps {
   user: User | null;
@@ -67,29 +67,10 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
       }}
     >
       <article className="pc-09 pc-12-shell relative w-full max-w-[340px] rounded-[24px] text-[#f2f3f5] overflow-hidden select-none">
-        {/* Ảnh nền người dùng kéo dài rộng xuống dưới toàn bộ thẻ nhanh */}
-        {parsedBanner.cleanSrc && (
-          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
-            <img
-              loading="lazy"
-              decoding="async"
-              src={parsedBanner.cleanSrc}
-              alt=""
-              style={bannerImgStyle}
-              className="w-full h-full opacity-50"
-            />
-            <div
-              className="absolute inset-0"
-              style={{
-                background: `linear-gradient(180deg, rgba(10, 14, 24, 0.08) 0%, rgba(10, 14, 24, 0.55) 120px, rgba(10, 14, 24, 0.85) 100%)`,
-              }}
-            />
-          </div>
-        )}
-
-        {/* Banner with custom bannerUrl or profileGradient */}
+        {/* Ảnh nền người dùng liền mạch 1 lớp kéo dài rộng từ đỉnh xuống tận đáy thẻ nhanh */}
         <div
-          className="relative z-[1] h-[116px] overflow-hidden"
+          className="absolute inset-0 pointer-events-none z-0 overflow-hidden"
+          aria-hidden="true"
           style={{
             background:
               user.profileGradient ||
@@ -98,24 +79,24 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
                 : 'linear-gradient(125deg, #5865f2 0%, #9b59b6 55%, #06b6d4 100%)'),
           }}
         >
-          {parsedBanner.cleanSrc ? (
-            <img
-              loading="lazy"
-              decoding="async"
-              src={parsedBanner.cleanSrc}
-              alt={user.name}
-              style={bannerImgStyle}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div
-              className="absolute inset-0 opacity-30"
-              style={{
-                background:
-                  'radial-gradient(circle at 22% 30%, rgba(255,255,255,0.45), transparent 45%), radial-gradient(circle at 78% 70%, rgba(0,0,0,0.35), transparent 55%)',
-              }}
-            />
-          )}
+          <img
+            loading="lazy"
+            decoding="async"
+            src={parsedBanner.cleanSrc || DEFAULT_PROFILE_BANNER_URL}
+            alt={user.name}
+            style={bannerImgStyle}
+            className="w-full h-full"
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(180deg, rgba(8, 12, 22, 0.04) 0%, rgba(8, 12, 22, ${Math.max(0.18, (parsedBanner.layout.dim - 8) / 100)}) 125px, rgba(8, 12, 22, ${Math.min(0.76, (parsedBanner.layout.dim + 18) / 100)}) 100%)`,
+            }}
+          />
+        </div>
+
+        {/* Vùng đỉnh thẻ trong suốt hoàn toàn để ảnh nền chảy liền mạch xuống dưới */}
+        <div className="relative z-[1] h-[124px] overflow-hidden bg-transparent">
           <button
             type="button"
             onClick={onClose}
@@ -127,8 +108,8 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
         </div>
 
         {/* Floating avatar + status dot + badge tray */}
-        <div className="relative px-4">
-          <div className="relative -mt-11 w-[78px] h-[78px] rounded-full bg-[#111214] p-[5px] flex items-center justify-center">
+        <div className="relative z-[2] px-4">
+          <div className="relative -mt-11 w-[78px] h-[78px] rounded-full bg-[#111214]/85 backdrop-blur-md p-[5px] flex items-center justify-center">
             <DecoratedAvatar
               user={user}
               fallbackSrc={user.avatar || DEFAULT_AVATAR}
@@ -145,15 +126,18 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
           </div>
 
           {/* Badge tray */}
-          <div className="pc-12-well absolute right-4 top-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-lg">
+          <div className="pc-12-well absolute right-4 top-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/45 backdrop-blur-md">
             <TierBadge level={user.level} size={16} showTooltip={false} />
             {isSuperAdmin && <AdminVerifiedBadge size={14} />}
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
           </div>
         </div>
 
-        {/* Inner surface body */}
-        <div className="pc-12-card m-3 mt-2.5 p-3.5 rounded-2xl space-y-3">
+        {/* Inner surface body — kính mờ trong suốt để ảnh nền phía sau hiện rõ xuống tận đáy */}
+        <div
+          className="pc-12-card relative z-[2] m-3 mt-2.5 p-3.5 rounded-2xl space-y-3 backdrop-blur-md border border-white/15"
+          style={{ background: 'rgba(11, 17, 28, 0.52)' }}
+        >
           {/* Identity — Discord Nameplate Bar + Tag trên tên */}
           <div className="ff-discord-userbar relative rounded-xl p-2.5 border border-white/10">
             <UserNameplateBg

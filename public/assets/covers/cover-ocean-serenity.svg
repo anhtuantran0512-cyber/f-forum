@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1400" fill="none">
+  <defs>
+    <linearGradient id="oceanBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#041527"/>
+      <stop offset="35%" stop-color="#0c3c5f"/>
+      <stop offset="70%" stop-color="#082f49"/>
+      <stop offset="100%" stop-color="#03111f"/>
+    </linearGradient>
+    <radialGradient id="oceanGlow" cx="50%" cy="28%" r="58%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.48"/>
+      <stop offset="50%" stop-color="#0284c7" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#041527" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="1400" fill="url(#oceanBg)"/>
+  <rect width="1200" height="1400" fill="url(#oceanGlow)"/>
+  <path d="M-60 360 C240 280, 520 440, 840 340 C1040 280, 1160 360, 1260 320 L1260 1400 L-60 1400 Z" fill="#0369a1" fill-opacity="0.24"/>
+  <path d="M-60 660 C260 560, 580 740, 900 620 C1080 560, 1180 640, 1260 600 L1260 1400 L-60 1400 Z" fill="#075985" fill-opacity="0.34"/>
+  <path d="M-60 980 C280 880, 620 1060, 940 940 C1100 880, 1180 960, 1260 920 L1260 1400 L-60 1400 Z" fill="#0c4a6e" fill-opacity="0.45"/>
+</svg>
