@@ -30,3 +30,4 @@ data/
 .env
 .env.*
 !.env.example
+docs/decorations/screenshots/.frame-*.png
