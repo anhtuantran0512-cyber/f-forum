@@ -31,6 +31,7 @@ import {
   TrendingUp,
   Sparkles,
   Tag,
+  Info,
   X,
 } from 'lucide-react';
 import type { EquippedDecorations, ShopItem } from '../../types';
@@ -62,7 +63,6 @@ import { useDecorationCatalog } from '../../utils/decorationStore';
 import { safeStorage } from '../../utils/storage';
 import { playChime } from '../../utils/audio';
 import { AvatarWithDecoration, type DecorationAssetRef } from '../decorations/AvatarWithDecoration';
-import { DecorationMedia } from '../decorations/DecorationMedia';
 import { NameplateDisplay } from '../decorations/NameplateDisplay';
 import { DEFAULT_AVATAR } from '../../utils/mediaFallback';
 import { CelebrationBurst } from '../CelebrationBurst';
@@ -111,6 +111,7 @@ const legacyRarityClass = (rarity: 'common' | 'rare' | 'epic' | 'mythic'): 'comm
   rarity === 'mythic' ? 'legendary' : rarity;
 const itemToAsset = (item: ShopItem): DecorationAssetRef => ({
   type: item.category === 'Nameplate' ? 'nameplate' : item.category === 'Avatar Aura' ? 'avatar_aura' : 'avatar_frame',
+  id: item.id,
   fullAssetUrl: item.fullAssetUrl,
   animatedAssetUrl: item.animatedAssetUrl,
   isAnimated: !!item.isAnimated && !!item.animatedAssetUrl,
@@ -142,9 +143,6 @@ const formatCountdown = (ms: number): string => {
   if (hours > 0) return `${hours} giờ ${minutes} phút`;
   return `${Math.max(1, minutes)} phút`;
 };
-
-const initialsOf = (name: string): string =>
-  name.trim().split(/\s+/).slice(-2).map((part) => part[0] || '').join('').toUpperCase() || 'FF';
 
 const renderCategoryIcon = (category?: string) => {
   switch (category) {
@@ -526,7 +524,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           <span className="gb-head__mark" aria-hidden="true"><Sparkles size={16} /></span>
           <div>
             <h3>Gacha Boutique</h3>
-            <p>{activeItems.length} trang trí · F-Coin</p>
+            <p>Frame · Aura · Nameplate — F-Coin</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -557,9 +555,26 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </div>
       )}
 
-      {/* TOP HERO BANNER — 6 MYTHIC TIÊU ĐIỂM */}
+      {/* TOP HERO BANNER — 6 MYTHIC TIÊU ĐIỂM. Bấm BẤT KỲ ĐÂU trên banner
+          → mở CÙNG 1 modal preview chuẩn (gb-inspect) — không có nút riêng. */}
       {currentHeroItem && (
-        <section className="gb-hero-carousel" aria-label="Trang trí Mythic tiêu điểm">
+        <section
+          className="gb-hero-carousel"
+          aria-label={`Trang trí Mythic tiêu điểm: ${currentHeroItem.name}. Bấm để xem trước`}
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            setPreviewItemId(currentHeroItem.id);
+            setInspectId(currentHeroItem.id);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              setPreviewItemId(currentHeroItem.id);
+              setInspectId(currentHeroItem.id);
+            }
+          }}
+        >
           <div className="gb-hero-carousel__stars" aria-hidden="true" />
           <div className="gb-hero-carousel__grid">
             <div className="space-y-2">
@@ -579,19 +594,16 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                 {currentHeroItem.description}
               </p>
               <div className="flex items-center gap-3 pt-1 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPreviewItemId(currentHeroItem.id);
-                    setInspectId(currentHeroItem.id);
-                  }}
-                  className="gb-hero-cta"
-                >
-                  <Sparkles size={14} />
-                  <span>Xem thử trên Avatar</span>
-                </button>
+                <span className="gb-hero__hint" aria-hidden="true">
+                  <Sparkles size={13} /> Bấm để xem trước trên avatar
+                </span>
                 {mythicShowcaseItems.length > 1 && (
-                  <div className="flex items-center gap-1.5" role="tablist" aria-label="Chuyển trang trí Mythic">
+                  <div
+                    className="flex items-center gap-1.5"
+                    role="tablist"
+                    aria-label="Chuyển trang trí Mythic"
+                    onClick={(event) => event.stopPropagation()}
+                  >
                     {mythicShowcaseItems.map((mItem, idx) => (
                       <button
                         key={mItem.id}
@@ -651,13 +663,13 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-5">
                 <div className="relative flex items-center justify-center shrink-0">
+                  {/* CHUẨN DISCORD: preview shop KHÔNG render nameplate (chỉ có
+                     ở Profile Card đầy đủ) — avatar nhỏ chỉ nhận frame/aura. */}
                   <AvatarWithDecoration
                     avatarUrl={userAvatar || DEFAULT_AVATAR}
                     decorationAsset={pAsset.type === 'nameplate' ? null : pAsset}
                     size={84}
                     eager
-                    nameplateAsset={pAsset.type === 'nameplate' ? pAsset : null}
-                    name={userName}
                     className="gb-discord-preview__avatar"
                   />
                 </div>
@@ -678,6 +690,11 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                   <p className="text-xs text-white/75 truncate max-w-md">
                     Đang thử: <b className="text-white">{activePreviewItem.name}</b> — {activePreviewItem.description}
                   </p>
+                  {pAsset.type === 'nameplate' && (
+                    <p className="gb-np-note" role="note">
+                      <Info size={11} aria-hidden="true" /> Nameplate chỉ hiển thị trên Hồ Sơ đầy đủ
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -947,36 +964,21 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
             {collection.owned}/{collection.total} · {collection.percent}%
           </span>
         </div>
-        <div className="gb-collection__switch" role="group" aria-label="Lọc theo sở hữu">
-          <button
-            type="button"
-            aria-pressed={ownedFilter === 'owned'}
-            className={ownedFilter === 'owned' ? 'is-active' : ''}
-            onClick={() => { setOwnedFilter((cur) => (cur === 'owned' ? 'all' : 'owned')); resetPagination(); }}
-          >
-            <Check size={12} aria-hidden="true" /> Đã có ({collection.owned})
-          </button>
-          <button
-            type="button"
-            aria-pressed={ownedFilter === 'unowned'}
-            className={ownedFilter === 'unowned' ? 'is-active' : ''}
-            onClick={() => { setOwnedFilter((cur) => (cur === 'unowned' ? 'all' : 'unowned')); resetPagination(); }}
-          >
-            Chưa có ({collection.total - collection.owned})
-          </button>
-        </div>
-        <div className="gb-collection__bar" aria-hidden="true">
-          <span style={{ width: `${Math.max(1.5, collection.percent)}%` }} />
-        </div>
-        <div className="gb-collection__rars">
+        {/* 4.3: 1 stacked bar compact (màu = rarity, fill = phần đã sở hữu)
+            + legend 1 dòng — thay cho 4 khối pill chiếm chỗ dọc. */}
+        <div className="gb-collection__stack" aria-label="Phân bổ theo độ hiếm (bấm để lọc)">
           {collection.byRarity.map((row) => (
             <button
               key={row.rarity}
               type="button"
-              className="gb-collection__rar"
-              style={{ '--rar-color': DECORATION_RARITY_META[row.rarity].color } as React.CSSProperties}
+              className="gb-collection__seg"
+              style={{
+                width: collection.total ? `${(row.total / collection.total) * 100}%` : '25%',
+                '--rar-color': DECORATION_RARITY_META[row.rarity].color,
+              } as React.CSSProperties}
               aria-pressed={rarityFilter === row.rarity}
-              title={`Lọc ${DECORATION_RARITY_META[row.rarity].en} trong Boutique`}
+              aria-label={`${DECORATION_RARITY_META[row.rarity].label}: đã có ${row.owned}/${row.total} — bấm để lọc`}
+              title={`${DECORATION_RARITY_META[row.rarity].label} ${row.owned}/${row.total} — bấm để lọc`}
               onClick={() => {
                 setRarityFilter((cur) => (cur === row.rarity ? 'all' : row.rarity));
                 saveFilters({ rarity: rarityFilter === row.rarity ? 'all' : row.rarity });
@@ -984,7 +986,25 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
               }}
             >
               <i aria-hidden="true" style={{ width: row.total ? `${(row.owned / row.total) * 100}%` : '0%' }} />
-              <em>{DECORATION_RARITY_META[row.rarity].en} {row.owned}/{row.total}</em>
+            </button>
+          ))}
+        </div>
+        <div className="gb-collection__legend" role="group" aria-label="Đếm theo độ hiếm">
+          {collection.byRarity.map((row) => (
+            <button
+              key={row.rarity}
+              type="button"
+              className="gb-collection__lg"
+              style={{ '--rar-color': DECORATION_RARITY_META[row.rarity].color } as React.CSSProperties}
+              aria-pressed={rarityFilter === row.rarity}
+              onClick={() => {
+                setRarityFilter((cur) => (cur === row.rarity ? 'all' : row.rarity));
+                saveFilters({ rarity: rarityFilter === row.rarity ? 'all' : row.rarity });
+                resetPagination();
+              }}
+            >
+              <i aria-hidden="true" />
+              {DECORATION_RARITY_META[row.rarity].label} {row.owned}/{row.total}
             </button>
           ))}
         </div>
@@ -1019,67 +1039,63 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         )}
       </section>
 
-      {/* Bộ lọc: loại trang trí + độ hiếm + animation */}
-      <div className="gb-filters" role="group" aria-label="Lọc trang trí theo loại">
-        {TYPE_FILTERS.map((option) => (
-          <button
-            key={option.id}
-            type="button"
-            data-rarity={option.id}
-            aria-pressed={typeFilter === option.id}
-            className={typeFilter === option.id ? 'is-active' : ''}
-            onClick={() => { setTypeFilter(option.id); saveFilters({ type: option.id }); resetPagination(); }}
-          >
-            {option.label}
-          </button>
-        ))}
-        {!readOnly && onToggleWishlist && (
-          <button
-            type="button"
-            aria-pressed={wishOnly}
-            className={wishOnly ? 'is-active is-wished' : ''}
-            onClick={() => { setWishOnly((cur) => !cur); resetPagination(); }}
-            title="Chỉ hiện item đã yêu thích"
-          >
-            <Heart size={11} aria-hidden="true" /> Yêu thích ({wishlist.length})
-          </button>
-        )}
-      </div>
-
-      <div className="gb-filters gb-filters--sub" role="group" aria-label="Lọc theo độ hiếm và chuyển động">
-        <button
-          type="button"
-          aria-pressed={rarityFilter === 'all'}
-          className={rarityFilter === 'all' ? 'is-active' : ''}
-          onClick={() => { setRarityFilter('all'); saveFilters({ rarity: 'all' }); resetPagination(); }}
+      {/* Bộ lọc GỘP 1 HÀNG (fix lặp 2 hàng): Loại (dropdown) + Rarity + Sở hữu
+          + Chuyển động + Giá — flex-wrap, không chồng chéo. */}
+      <div className="gb-filters" role="group" aria-label="Bộ lọc trang trí">
+        <select
+          value={typeFilter}
+          onChange={(event) => { setTypeFilter(event.target.value as TypeFilter); saveFilters({ type: event.target.value }); resetPagination(); }}
+          aria-label="Loại trang trí"
+          className="gb-filters__type"
         >
-          Mọi hiếm
-        </button>
+          {TYPE_FILTERS.map((option) => (
+            <option key={option.id} value={option.id}>{option.label}</option>
+          ))}
+        </select>
+        <span className="gb-filters__divider" aria-hidden="true" />
         {DECORATION_RARITIES.map((rarity) => (
           <button
             key={rarity}
             type="button"
-            data-rarity={rarity}
+            data-rarity={legacyRarityClass(rarity)}
             aria-pressed={rarityFilter === rarity}
             className={rarityFilter === rarity ? 'is-active' : ''}
             style={{ '--gb-rarity-color': DECORATION_RARITY_META[rarity].color } as CSSProperties}
-            onClick={() => { setRarityFilter(rarity); saveFilters({ rarity }); resetPagination(); }}
+            onClick={() => {
+              setRarityFilter((cur) => (cur === rarity ? 'all' : rarity));
+              saveFilters({ rarity: rarityFilter === rarity ? 'all' : rarity });
+              resetPagination();
+            }}
           >
             <i aria-hidden="true" />
             {DECORATION_RARITY_META[rarity].label}
           </button>
         ))}
         <span className="gb-filters__divider" aria-hidden="true" />
-        <button type="button" aria-pressed={motionFilter === 'all'} className={motionFilter === 'all' ? 'is-active' : ''} onClick={() => { setMotionFilter('all'); saveFilters({ motion: 'all' }); resetPagination(); }}>
-          Mọi loại
+        {/* Sở hữu: 1 bộ lọc duy nhất (gộp với toggle "Đã có/Chưa có" cũ). */}
+        <button
+          type="button"
+          aria-pressed={ownedFilter === 'owned'}
+          className={ownedFilter === 'owned' ? 'is-active' : ''}
+          onClick={() => { setOwnedFilter((cur) => (cur === 'owned' ? 'all' : 'owned')); resetPagination(); }}
+        >
+          <Check size={11} aria-hidden="true" /> Đã có ({collection.owned})
         </button>
-        <button type="button" aria-pressed={motionFilter === 'animated'} className={motionFilter === 'animated' ? 'is-active' : ''} onClick={() => { setMotionFilter('animated'); saveFilters({ motion: 'animated' }); resetPagination(); }}>
-          Có animation
-        </button>
-        <button type="button" aria-pressed={motionFilter === 'static'} className={motionFilter === 'static' ? 'is-active' : ''} onClick={() => { setMotionFilter('static'); saveFilters({ motion: 'static' }); resetPagination(); }}>
-          Tĩnh
+        <button
+          type="button"
+          aria-pressed={ownedFilter === 'unowned'}
+          className={ownedFilter === 'unowned' ? 'is-active' : ''}
+          onClick={() => { setOwnedFilter((cur) => (cur === 'unowned' ? 'all' : 'unowned')); resetPagination(); }}
+        >
+          Chưa có ({collection.total - collection.owned})
         </button>
         <span className="gb-filters__divider" aria-hidden="true" />
+        <button type="button" aria-pressed={motionFilter === 'animated'} className={motionFilter === 'animated' ? 'is-active' : ''} onClick={() => { setMotionFilter((cur) => (cur === 'animated' ? 'all' : 'animated')); saveFilters({ motion: motionFilter === 'animated' ? 'all' : 'animated' }); resetPagination(); }}>
+          Có animation
+        </button>
+        <button type="button" aria-pressed={motionFilter === 'static'} className={motionFilter === 'static' ? 'is-active' : ''} onClick={() => { setMotionFilter((cur) => (cur === 'static' ? 'all' : 'static')); saveFilters({ motion: motionFilter === 'static' ? 'all' : 'static' }); resetPagination(); }}>
+          Tĩnh
+        </button>
         <button
           type="button"
           aria-pressed={sortMode === 'price-asc'}
@@ -1094,6 +1110,17 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         >
           <TrendingUp size={12} aria-hidden="true" /> Giá thấp → cao
         </button>
+        {!readOnly && onToggleWishlist && (
+          <button
+            type="button"
+            aria-pressed={wishOnly}
+            className={wishOnly ? 'is-active is-wished' : ''}
+            onClick={() => { setWishOnly((cur) => !cur); resetPagination(); }}
+            title="Chỉ hiện item đã yêu thích"
+          >
+            <Heart size={11} aria-hidden="true" /> Yêu thích ({wishlist.length})
+          </button>
+        )}
       </div>
 
       <div className="gb-searchbar" role="search">
@@ -1314,20 +1341,31 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                 <span className="text-[10px] font-mono uppercase tracking-widest text-white/60 mb-3 z-10">
                   [AVATAR PREVIEW · 200PX]
                 </span>
-                {/* Xem trên avatar THẬT của user, 200px (quy chuẩn 180–256px) */}
-                <div className="relative flex flex-col items-center justify-center my-2 z-10">
-                  <AvatarWithDecoration
-                    avatarUrl={userAvatar || DEFAULT_AVATAR}
-                    decorationAsset={asset.type === 'nameplate' ? null : asset}
-                    size={200}
-                    eager
-                    nameplateAsset={asset.type === 'nameplate' ? asset : null}
-                    name={userName}
-                  />
-                </div>
-                <div className="mt-3 text-center z-10 space-y-1">
-                  <div className="text-sm font-extrabold text-white">{userName}</div>
-                </div>
+                {/* Xem trên avatar THẬT của user, 200px (quy chuẩn 180–256px — context lớn) */}
+                {asset.type === 'nameplate' ? (
+                  <div className="relative flex flex-col items-center justify-center my-2 z-10">
+                    {/* CHUẨN DISCORD: nameplate chỉ tồn tại ở context "Hồ Sơ" —
+                       stage 200px mô phỏng đúng vị trí đó (bảng tên + tên, 1 lần). */}
+                    <span className="npd-np gb-inspect__np" style={{ width: 260 }}>
+                      <NameplateDisplay asset={asset} size={260} animate fill className="npd-np__bg" />
+                      <span className="npd-np__text">{userName}</span>
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="relative flex flex-col items-center justify-center my-2 z-10">
+                      <AvatarWithDecoration
+                        avatarUrl={userAvatar || DEFAULT_AVATAR}
+                        decorationAsset={asset}
+                        size={200}
+                        eager
+                      />
+                    </div>
+                    <div className="mt-3 text-center z-10 space-y-1">
+                      <div className="text-sm font-extrabold text-white">{userName}</div>
+                    </div>
+                  </>
+                )}
                 <span className="gb-inspect__pedestal" aria-hidden="true" />
               </div>
               <div className="gb-inspect__info">
@@ -1339,14 +1377,29 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                 <p className="truncate">{inspected.description}</p>
 
                 <div className="gb-inspect__preview">
-                  <span>Xem khi đeo</span>
-                  <div className="gb-inspect__chip">
-                    <span className="gb-inspect__avatar" aria-hidden="true">{initialsOf(userName)}</span>
-                    <b>{userName}</b>
-                    <span className="gb-inspect__worn" aria-hidden="true">
-                      <DecorationMedia asset={asset} enabled className="gb-inspect__worn-media" animate={false} />
-                    </span>
-                  </div>
+                  <span>Xem khi đeo · trong ngữ cảnh nhỏ (comment, list)</span>
+                  {asset.type === 'nameplate' ? (
+                    /* CHUẨN DISCORD: nameplate KHÔNG tồn tại ở context nhỏ. */
+                    <div className="gb-inspect__np-ctx">
+                      <Info size={13} aria-hidden="true" />
+                      <span>
+                        Nameplate chỉ hiển thị trên <b>Hồ Sơ đầy đủ</b>. Trang bị để xem trực tiếp trên thẻ hồ sơ.
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="gb-inspect__chip">
+                      <span className="gb-inspect__avatar" aria-hidden="true">
+                        <AvatarWithDecoration
+                          avatarUrl={userAvatar || DEFAULT_AVATAR}
+                          decorationAsset={asset}
+                          size={40}
+                          eager
+                          alt={userName}
+                        />
+                      </span>
+                      <b>{userName}</b>
+                    </div>
+                  )}
                 </div>
 
                 <div className="gb-inspect__buy">

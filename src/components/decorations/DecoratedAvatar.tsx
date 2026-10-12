@@ -16,6 +16,7 @@ const shopItemToAsset = (item: ShopItem | null | undefined): DecorationAssetRef 
   const type: DecorationType = item.category === 'Nameplate' ? 'nameplate' : item.category === 'Avatar Aura' ? 'avatar_aura' : 'avatar_frame';
   return {
     type,
+    id: item.id,
     fullAssetUrl: item.fullAssetUrl,
     animatedAssetUrl: item.animatedAssetUrl,
     isAnimated: !!item.isAnimated && !!item.animatedAssetUrl,
@@ -60,9 +61,14 @@ export const DecoratedName = ({ user, name, width = 180, animate = true, classNa
   const { nameplate } = useUserDecorations(user);
   const asset = shopItemToAsset(nameplate);
   if (!asset) return <span className={className}>{name}</span>;
+  /*
+   * CHUẨN DISCORD: container height CỐ ĐỊNH theo tỉ lệ 448:84 (không giãn theo
+   * tên), overflow hidden — tên dài bao nhiêu cũng chỉ ellipsis, KHÔNG TRÀN.
+   * Background = asset thuần (fill, z1); tên = <span> HTML riêng (z2, ellipsis).
+   */
   return (
     <span className={`npd-np${className ? ` ${className}` : ''}`} style={{ width }}>
-      <NameplateDisplay asset={asset} size={width} animate={animate} />
+      <NameplateDisplay asset={asset} size={width} animate={animate} fill className="npd-np__bg" />
       <span className="npd-np__text">{name}</span>
     </span>
   );

@@ -8,7 +8,7 @@ Ngày: 2026-10-12 · Branch: `arena/62613a87-f-forum` · Cơ sở: `670848e` (ma
 |---|---|
 | `npx tsc -b` | ✅ 0 lỗi |
 | `npx oxlint` | ✅ 0 warning / 0 error (220 files) |
-| `npm test` (29 file, Node test runner) | ✅ **345/345 pass** |
+| `npm test` (29 file, Node test runner) | ✅ **346/346 pass** |
 | Asset build | ✅ 3.878 file / ~122 MB · 0 lỗi ffmpeg · catalog 873 item |
 | Quality re-tiering | ✅ 873 item chấm điểm 0–100 · 768 động / 105 tĩnh · 0 lỗi cấu trúc · giá khớp bảng rarity 100% |
 | Migration | ✅ **ĐÃ CHỌN PHƯƠNG ÁN B** (Sếp chốt 12/10) — script nâng cấp (cùng hiếm thật, khớp loại, tự trang bị, payload ăn mừng) + demo end-to-end trong sandbox; marker KHÔNG commit (chạy khi triển khai) |
@@ -156,6 +156,41 @@ Ba thêm nhỏ, đều phục vụ vòng lặp mua (873 item, coin hữu hạn):
 Kỹ thuật: mở rộng `filtered` memo 1 chỗ (deps đầy đủ — kiểm tra bằng test),
 CSS co-located, reduced-motion an toàn.
 
+### 1.6 FIX CHUẨN DISCORD — nameplate / aura / preview / filter (bổ sung 2026-10-12) ✅
+
+Sếp chỉ ra code hiểu sai cơ chế Nameplate (tràn chữ, lặp chữ) — sửa đúng
+chuẩn Discord, có test khoá (10.14):
+
+1. **NAMEPLATE** — asset là ẢNH NỀN THUẦN TÚY; tên user = lớp HTML riêng
+   (z2) trên nền (z1). Container height CỐ ĐỊNH (aspect-ratio 448:84,
+   overflow hidden) + `nowrap/ellipsis/max-width` → tên dài không bao giờ
+   tràn. Nameplate CHỈ render ở Profile Card đầy đủ (`DecoratedName`);
+   `AvatarWithDecoration` bị GIẸT prop nameplate → mọi context nhỏ
+   (navbar 24px, comment, leaderboard, shop preview) không thể lẫn nameplate.
+   Shop preview nameplate → note "chỉ hiển thị trên Hồ Sơ đầy đủ".
+2. **SAFE ZONE (aura/frame)** — `decorationSafeZones.ts`: config theo id
+   `{dx, dy, scale}` % (mặc định 1.0) vì artwork mỗi file lệch tâm khác nhau;
+   `AvatarWithDecoration` áp `translate+scale` cho slot aura (z1, SAU ảnh,
+   overflow visible). Entry đầu: `frame-air` (vòng sáng lệch → re-center).
+3. **1 MODAL PREVIEW DUY NHẤT** — bỏ nút "Xem thử trên Avatar" riêng ở banner
+   Mythic; bấm BẤT KỲ ĐÂU banner → mở modal `gb-inspect` chung.
+4. **GỌN FILTER & STATS** — 2 hàng filter gộp 1 hàng (Loại = dropdown +
+   pill Rarity/Sở hữu/Motion/Gia, flex + scroll ngang); header không còn
+   "873 trang trí" (chỉ "Bộ sưu tập" hiển thị tổng); 4 khối rarity →
+   **1 stacked bar** compact (màu=rarity, fill=đã sở hữu, bấm được) + legend
+   1 dòng; toggle "Đã có/Chưa có" gộp thành pill trong hàng filter (1 bộ lọc
+   sở hữu duy nhất).
+5. **"XEM KHI ĐEO"** — preview context THẬT: avatar 40px chuẩn
+   `AvatarWithDecoration` (comment/list); nameplate ở context nhỏ → thông
+   báo, không render.
+6. **Typo "Trận→Trần"** — rà toàn bộ nguồn: data + mọi string hardcode đều
+   đúng "Trần Văn Anh Tuấn", không có slice/substring cắt hỏng unicode
+   (slice JS an toàn code-unit với tiếng Việt); thêm font smoothing +
+   text-rendering cho lớp tên nameplate.
+
+Kỹ thuật: CSS co-located (decorations.css + Boutique.css), reduced-motion an
+toàn, ARIA (aria-pressed, role=note, label).
+
 ### Bước 2 — Schema ✅
 - [x] `ShopItem` += `assetType`, `previewUrl`, `fullAssetUrl`, `animatedAssetUrl`, `originalSource`
 - [x] Giữ rarity/price/category; 35 item SVG cũ gắn `svg_custom`/`fforum_svg`
@@ -242,10 +277,11 @@ Các test liên quan trực tiếp nhiệm vụ 10 (đều PASS trong run cuối
 | `decorations-task10` | 10.11 Wishlist e2e | add/remove toggle, 400 id rác, 401 khách, persist lại disk đúng |
 | `decorations-task10` | 10.12 UI wishlist + lọc | trái tim SVG (không button lồng button), Đã có/Chưa có, rarity row bấm, localStorage 1 key đọc/ghi, modal chỉ profile mình |
 | `decorations-task10` | 10.13 Đợt #3 | giá tối đa theo giá thực tế (min weekly+flash), chip Yêu thích (n), nút Xoá bộ lọc + reset đủ trạng thái |
+| `decorations-task10` | 10.14 Chuẩn Discord | nameplate 1 vị trí (gẹt prop ở avatar nhỏ), height cố định + ellipsis, safe zone translate/scale, 1 modal preview, filter 1 hàng, stacked bar, context 40px |
 | `multi-user-sync` | (toàn bộ) | `equippedDecorations` đồng bộ multi-user qua socket |
 | `light-mode-contrast` | (toàn bộ) | adapter light tái sinh (`npm run gen:light`) khớp class mới |
 
-Run cuối: `# tests 345 / pass 345 / fail 0` (xanh cả khi marker migration TỒN TẠI cục bộ —
+Run cuối: `# tests 346 / pass 346 / fail 0` (xanh cả khi marker migration TỒN TẠI cục bộ —
 test hermetic qua env `FFORUM_MIGRATION_MARKER`).
 
 ## 4. Kiểm tra thủ công cần làm trên máy thật (checklist)

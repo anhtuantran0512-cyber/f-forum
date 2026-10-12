@@ -17,16 +17,20 @@ interface NameplateDisplayProps {
   animate?: boolean;
   eager?: boolean;
   className?: string;
+  /** true = KHÔNG tự đặt width/height — parent quyết định kích thước (dùng làm
+   *  background layer absolute trong .npd-np). Asset là ẢNH NỀN THUẦN TÚY,
+   *  KHÔNG chứa text — tên user luôn là lớp HTML riêng đè lên (z-index 2). */
+  fill?: boolean;
 }
 
-export const NameplateDisplay = ({ asset, size = 160, animate = true, eager = false, className }: NameplateDisplayProps) => {
+export const NameplateDisplay = ({ asset, size = 160, animate = true, eager = false, className, fill = false }: NameplateDisplayProps) => {
   const [inViewRef, inView] = useInViewOnce<HTMLSpanElement>();
   const ref = eager ? undefined : inViewRef;
   return (
     <span
       ref={ref}
       className={`npd${className ? ` ${className}` : ''}`}
-      style={{ width: size, height: Math.round((size * 84) / 448) }}
+      style={fill ? undefined : { width: size, height: Math.round((size * 84) / 448) }}
       aria-hidden="true"
     >
       <DecorationMedia asset={asset} enabled={eager || inView} animate={animate} className="npd__media" />

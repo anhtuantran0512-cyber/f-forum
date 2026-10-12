@@ -585,14 +585,16 @@ test('10.12 UI: nút yêu thích, bộ lọc Đã có/Chưa có, bộ lọc lưu
   assert.match(card, /Chưa có \(\{collection\.total - collection\.owned\}\)/, 'nút Chưa có hiện số lượng');
   assert.match(card, /setRarityFilter\(\(cur\) => \(cur === row\.rarity \? 'all' : row\.rarity\)\)/, 'd Rarity row bấm để lọc');
 
+  /* Bộ lọc GỘP 1 hàng: loại = dropdown, sở hữu = pill, rarity = pill toggle. */
+  assert.match(card, /<select[\s\S]{0,400}value={typeFilter}[\s\S]{0,400}gb-filters__type/, 'loại trang trí = dropdown trong hàng filter');
+  assert.match(card, /aria-pressed={ownedFilter === 'owned'}[\s\S]{0,400}Đã có \(\{collection\.owned\}\)/, 'pill "Đã có" trong hàng filter (gộp với toggle)');
+  assert.match(card, /saveFilters\(\{ type: event\.target\.value \}\)/, 'đổi type được lưu');
+  assert.match(card, /saveFilters\(\{ rarity: rarityFilter === rarity \? 'all' : rarity \}\)/, 'đổi rarity được lưu');
+
   /* Bộ lọc lưu localStorage: 1 key (const), dùng cho cả đọc lẫn ghi. */
   assert.match(card, /const FILTERS_STORAGE_KEY = 'fforum_boutique_filters_v1'/, 'key lưu bộ lọc được khai báo 1 lần');
   assert.match(card, /safeStorage\.getItem\(FILTERS_STORAGE_KEY\)/, 'đọc bộ lọc từ localStorage');
   assert.match(card, /safeStorage\.setItem\(FILTERS_STORAGE_KEY, JSON\.stringify/, 'ghi bộ lọc vào localStorage');
-  /* Mỗi hướng đổi bộ lọc đều đi kèm ghi: type/rarity/motion/sort. */
-  assert.match(card, /saveFilters\(\{ type: option\.id \}\)/, 'đổi type được lưu');
-  assert.match(card, /saveFilters\(\{ rarity \}\)/, 'đổi rarity được lưu');
-  assert.match(card, /saveFilters\(\{ motion: 'animated' \}\)/, 'đổi motion được lưu');
   assert.match(card, /saveFilters\(\{ sort: event\.target\.value \}\)/, 'đổi sort được lưu');
 
   /* Store: action gọi đúng endpoint của server. */
@@ -604,10 +606,10 @@ test('10.12 UI: nút yêu thích, bộ lọc Đã có/Chưa có, bộ lọc lưu
   assert.match(modal, /wishlist=\{currentUser\.wishlist \|\| \[\]\}/, 'modal truyền wishlist');
   assert.match(modal, /if \(!isOwnProfile\) return;/, 'khách xem profile không đổi yêu thích');
 
-  /* CSS cho nút yêu thích + switch sở hữu + rarity row bấm được. */
+  /* CSS cho nút yêu thích + dropdown loại + stacked bar rarity bấm được. */
   assert.match(css, /\.gb-card__wish \{/, 'CSS nút yêu thích');
-  assert.match(css, /\.gb-collection__switch/, 'CSS bộ lọc sở hữu');
-  assert.match(css, /\.gb-collection__rar\[aria-pressed="true"\]/, 'rarity row có trạng thái active');
+  assert.match(css, /\.gb-filters__type \{/, 'CSS dropdown loại trong hàng filter');
+  assert.match(css, /\.gb-collection__seg\[aria-pressed="true"\]/, 'stacked bar rarity có trạng thái active');
 });
 
 /* ========================================================================== */
@@ -641,4 +643,48 @@ test('10.13 Đợt #3: giá tối đa (giá thật), chip Yêu thích, nút Xoá
   /* CSS: chip yêu thích + nút xoá. */
   assert.match(css, /\.gb-filters button\.is-wished/, 'CSS chip yêu thích');
   assert.match(css, /\.gb-searchbar__reset/, 'CSS nút xoá bộ lọc');
+});
+
+/* ========================================================================== */
+/* 10.14 — Chuẩn Discord: nameplate 1 vị trí + safe zone + 1 modal preview    */
+/* ========================================================================== */
+test('10.14 Chuẩn Discord: nameplate chỉ ở Hồ Sơ, safe zone aura, 1 preview, filter 1 hàng', () => {
+  const awd = fs.readFileSync(path.join(ROOT, 'src', 'components', 'decorations', 'AvatarWithDecoration.tsx'), 'utf8');
+  const boutique = fs.readFileSync(path.join(ROOT, 'src', 'components', 'shop', 'GachaBoutique.tsx'), 'utf8');
+  const decoCss = fs.readFileSync(path.join(ROOT, 'src', 'components', 'decorations', 'decorations.css'), 'utf8');
+  const zones = fs.readFileSync(path.join(ROOT, 'src', 'utils', 'decorationSafeZones.ts'), 'utf8');
+
+  /* 1.2 — Nameplate KHÔNG thể render qua AvatarWithDecoration (mọi context nhỏ). */
+  assert.ok(!awd.includes('<NameplateDisplay'), 'AvatarWithDecoration không render NameplateDisplay');
+  assert.ok(!awd.includes('import { NameplateDisplay }'), 'không import NameplateDisplay');
+  assert.ok(!awd.includes('nameplateAsset'), 'không còn prop nameplateAsset');
+
+  /* 1.1 — Nameplate = background thuần + text HTML riêng, height cố định, ellipsis. */
+  assert.match(decoCss, /\.npd-np \{[\s\S]{0,300}aspect-ratio: 448 \/ 84;/, 'height cố định theo tỉ lệ asset (không giãn theo tên)');
+  assert.match(decoCss, /\.npd-np \{[\s\S]{0,300}overflow: hidden;/, 'khung nameplate overflow hidden');
+  assert.match(decoCss, /\.npd-np__text \{[\s\S]{0,400}white-space: nowrap;[\s\S]{0,200}text-overflow: ellipsis;/, 'tên dài chỉ ellipsis, không tràn');
+  assert.match(decoCss, /\.npd-np__text \{[\s\S]{0,200}z-index: 2;/, 'text là lớp riêng z2 trên nền z1');
+  assert.match(decoCss, /object-fit: cover;/, 'background layer cover khung');
+
+  /* 2 — Safe zone: config theo id, áp dụng transform cho slot aura/frame. */
+  assert.match(zones, /'frame-air': \{ dx: 3, dy: -3 \}/, 'Air có config căn tâm riêng');
+  assert.match(zones, /export const getDecorationSafeZone = /, 'trợ lý tra safe zone');
+  assert.match(awd, /getDecorationSafeZone/, 'slot aura/frame tra safe zone');
+  assert.match(awd, /transform: `translate\(\$\{z\.dx \|\| 0\}%, \$\{z\.dy \|\| 0\}%\) scale\(\$\{z\.scale \?\? 1\}\)`/, 'áp dụng translate+scale theo config');
+
+  /* 3 — 1 modal preview duy nhất: hero banner không có nút riêng. */
+  assert.ok(!boutique.includes('Xem thử trên Avatar'), 'bỏ nút "Xem thử trên Avatar" riêng');
+  assert.ok(!boutique.includes('gb-hero-cta'), 'không còn CTA hero riêng');
+  assert.match(boutique, /className="gb-hero-carousel"[\s\S]{0,300}setInspectId\(currentHeroItem\.id\)/, 'bấm banner → mở modal preview chung');
+
+  /* 4 — Gộp filter 1 hàng + không lặp số "873" ở header. */
+  assert.ok(!boutique.includes('gb-filters--sub'), 'không còn 2 hàng filter');
+  assert.ok(!boutique.includes('trang trí · F-Coin'), 'header không còn count lặp');
+  assert.match(boutique, /<span className="gb-collection__count">/, 'chỉ "Bộ sưu tập" hiển thị tổng');
+  assert.match(boutique, /gb-collection__stack/, 'rarity breakdown = 1 stacked bar compact');
+
+  /* 5 — "Xem khi đeo": context nhỏ 40px chuẩn; nameplate = thông báo (không render). */
+  assert.match(boutique, /size=\{40\}[\s\S]{0,120}eager[\s\S]{0,120}alt=\{userName\}/, 'context nhỏ dùng AvatarWithDecoration 40px');
+  assert.match(boutique, /Nameplate chỉ hiển thị trên <b>Hồ Sơ đầy đủ<\/b>/, 'nameplate ở context nhỏ → thông báo');
+  assert.match(boutique, /gb-np-note/, 'try-on dock nameplate có note');
 });
