@@ -301,10 +301,23 @@
   background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: inset 0 6px 10px -8px rgba(255, 255, 255, 0.12), 0 10px 20px -14px rgba(0, 0, 0, 0.9);
 }
-.gb-inspect__avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; color: #fff; background: linear-gradient(135deg, #6c63ff, #00d4ff); font-size: 10px; font-weight: 900; }
+.gb-inspect__avatar { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 999px; overflow: visible; }
 .gb-inspect__chip b { font-size: 12px; }
-.gb-inspect__worn { display: inline-flex; animation: gbWorn 2.6s ease-in-out infinite; filter: drop-shadow(0 0 8px var(--glow)); }
-@keyframes gbWorn { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-2px) rotate(-6deg); } }
+.gb-inspect__np-ctx {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 7px;
+  justify-self: start;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(96, 165, 250, 0.08);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  color: #bfdbfe;
+  font-size: 11.5px;
+  line-height: 1.45;
+  max-width: 340px;
+}
+.gb-inspect__np-ctx svg { flex-shrink: 0; margin-top: 2px; }
 .gb-inspect__buy { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
 .gb-inspect__price { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 6px; color: #fde68a; }
 .gb-inspect__price svg { align-self: center; }
@@ -504,14 +517,14 @@ html.light .tsh-empty p { color: #334155; }
 /* --------------------------- Giảm chuyển động --------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .gb-cell, .tsh-tile, .gb-card__shine, .gb-card__frame, .tsh-tile__frame, .gb-card__aura, .gb-card__icon, .gb-card__sparks i,
-  .gb-inspect__icon, .gb-inspect__halo, .gb-inspect__orbit i, .gb-inspect__worn, .tsh-tile__icon,
+  .gb-inspect__icon, .gb-inspect__halo, .gb-inspect__orbit i, .tsh-tile__icon,
   .tsh-chest__body, .tsh-chest__lid, .tsh-chest__shadow, .tsh-chest__zzz text { animation: none !important; }
   .gb-unbox__box, .gb-unbox__lid, .gb-unbox__ribbon { animation: none !important; opacity: 0; }
   .gb-unbox__item, .gb-unbox__rays, .gb-unbox__title, .gb-unbox__name, .gb-unbox .gb-rarity, .gb-unbox__actions { animation: none !important; opacity: 1; }
 }
 html.reduce-motion .gb-cell, html.reduce-motion .tsh-tile, html.reduce-motion .gb-card__shine, html.reduce-motion .gb-card__frame,
 html.reduce-motion .tsh-tile__frame, html.reduce-motion .gb-card__aura, html.reduce-motion .gb-card__icon, html.reduce-motion .gb-card__sparks i,
-html.reduce-motion .gb-inspect__icon, html.reduce-motion .gb-inspect__halo, html.reduce-motion .gb-inspect__orbit i, html.reduce-motion .gb-inspect__worn,
+html.reduce-motion .gb-inspect__icon, html.reduce-motion .gb-inspect__halo, html.reduce-motion .gb-inspect__orbit i,
 html.reduce-motion .tsh-tile__icon, html.reduce-motion .tsh-chest__body, html.reduce-motion .tsh-chest__lid, html.reduce-motion .tsh-chest__shadow,
 html.reduce-motion .tsh-chest__zzz text { animation: none !important; }
 html.reduce-motion .gb-unbox__box, html.reduce-motion .gb-unbox__lid, html.reduce-motion .gb-unbox__ribbon { animation: none !important; opacity: 0; }
@@ -713,25 +726,21 @@ html.light .tsh-rpg-tip__stat {
   box-shadow: 0 0 18px rgba(236, 72, 153, 0.45);
 }
 
-.gb-hero-cta {
+.gb-hero-carousel { cursor: pointer; }
+.gb-hero-carousel:focus-visible { outline: 2px solid rgba(192, 132, 252, 0.8); outline-offset: 3px; }
+.gb-hero-carousel:hover { filter: brightness(1.06); }
+.gb-hero__hint {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 18px;
-  border-radius: 12px;
-  font-size: 12.5px;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 10px;
+  font-size: 11.5px;
   font-weight: 800;
   color: #fff;
-  background: linear-gradient(135deg, #5B8DEF 0%, #7C5CFC 55%, #EC4899 100%);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  box-shadow: 0 8px 24px -6px rgba(124, 92, 252, 0.65);
-  cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
-}
-.gb-hero-cta:hover {
-  transform: translateY(-2px) scale(1.02);
-  filter: brightness(1.08);
-  box-shadow: 0 12px 28px -4px rgba(236, 72, 153, 0.65);
+  background: linear-gradient(135deg, rgba(91, 141, 239, 0.85), rgba(236, 72, 153, 0.85));
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 6px 18px -6px rgba(124, 92, 252, 0.6);
 }
 
 /* 2. Rarity & Flash Sale Filter Pills Bar */
@@ -1197,7 +1206,6 @@ html.light .gb-card__desc-one-line {
    Nhiệm vụ 10 — Boutique trang trí Discord import
    (rarity màu: Common xám · Rare xanh · Epic tím · Mythic vàng; dark theme)
    ========================================================================== */
-.gb-filters--sub { margin-top: 4px; }
 .gb-filters__divider { width: 1px; align-self: stretch; margin: 2px 4px; background: rgba(255, 255, 255, 0.14); }
 .gb-filters button[data-rarity='mythic'] i { background: #fbbf24; box-shadow: 0 0 8px #fbbf24; }
 
@@ -1238,9 +1246,6 @@ html.light .gb-card__desc-one-line {
 .gb-discord-preview__avatar { line-height: 0; }
 .gb-hero__avatar { line-height: 0; }
 .gb-discord-preview--mythic .gb-discord-preview__avatar { filter: drop-shadow(0 0 22px rgba(251, 191, 36, 0.35)); }
-
-/* "Xem khi đeo" — mini preview tĩnh 36px */
-.gb-inspect__worn-media { width: 36px; height: 36px; display: block; }
 
 /* Modal 200px: để avatar + khung toả ra, không clip cánh */
 .gb-inspect__stage { overflow: visible; }
@@ -1386,58 +1391,68 @@ html.light .gb-card__desc-one-line {
   color: #a5b4fc;
 }
 
-.gb-collection__bar {
-  height: 8px;
+.gb-collection__stack {
+  display: flex;
+  gap: 3px;
+  height: 14px;
   border-radius: 999px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.08);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
-.gb-collection__bar span {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #818cf8, #c084fc 55%, #fbbf24);
-  box-shadow: 0 0 12px rgba(192, 132, 252, 0.5);
-  transition: width 0.5s ease;
-}
-
-.gb-collection__rars {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-.gb-collection__rar {
+.gb-collection__seg {
   position: relative;
-  display: block;
-  height: 20px;
-  border-radius: 8px;
-  overflow: hidden;
+  padding: 0;
+  border: 0;
+  min-width: 10px;
   background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 2px solid rgba(11, 16, 25, 0.9);
+  cursor: pointer;
+  transition: filter 0.15s ease;
 }
-.gb-collection__rar i {
+.gb-collection__seg:last-child { border-right: 0; }
+.gb-collection__seg i {
   position: absolute;
   inset: 0 auto 0 0;
   width: 0%;
-  background: color-mix(in srgb, var(--rar-color, #9CA3AF) 55%, transparent);
+  background: color-mix(in srgb, var(--rar-color, #9CA3AF) 60%, transparent);
+  box-shadow: inset 0 0 8px color-mix(in srgb, var(--rar-color, #9CA3AF) 40%, transparent);
   transition: width 0.5s ease;
 }
-.gb-collection__rar em {
-  position: relative;
+.gb-collection__seg:hover { filter: brightness(1.35); }
+.gb-collection__seg[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 2px var(--rar-color, #9CA3AF), 0 0 12px color-mix(in srgb, var(--rar-color, #9CA3AF) 45%, transparent);
   z-index: 1;
-  display: block;
-  padding: 3px 7px;
-  font-style: normal;
-  font-size: 10px;
+}
+.gb-collection__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-bottom: 10px;
+}
+.gb-collection__lg {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.02em;
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  cursor: pointer;
+  border-radius: 6px;
 }
+.gb-collection__lg i {
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  background: var(--rar-color, #9CA3AF);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--rar-color, #9CA3AF) 60%, transparent);
+}
+.gb-collection__lg:hover { color: #fff; background: rgba(255, 255, 255, 0.06); }
+.gb-collection__lg[aria-pressed="true"] { color: #fff; text-shadow: 0 0 8px var(--rar-color, #9CA3AF); }
+
 
 .gb-collection__mythic {
   display: flex;
@@ -1487,9 +1502,6 @@ html.light .gb-card__desc-one-line {
 }
 
 @media (max-width: 560px) {
-  .gb-collection__rars {
-    grid-template-columns: repeat(2, 1fr);
-  }
   .gb-daily-deal__timer {
     display: none;
   }
@@ -1499,8 +1511,7 @@ html.light .gb-card__desc-one-line {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .gb-collection__bar span,
-  .gb-collection__rar i {
+  .gb-collection__seg i {
     transition: none;
   }
 }
@@ -1543,56 +1554,7 @@ html.light .gb-card__desc-one-line {
   background: rgba(66, 10, 22, 0.82);
 }
 
-.gb-collection__switch {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-.gb-collection__switch button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.75);
-  font-size: 11.5px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.gb-collection__switch button:hover {
-  background: rgba(255, 255, 255, 0.09);
-  color: #fff;
-}
-.gb-collection__switch button.is-active {
-  color: #101320;
-  background: linear-gradient(90deg, #c7d2fe, #a5b4fc);
-  border-color: transparent;
-  box-shadow: 0 0 14px rgba(165, 180, 252, 0.35);
-}
 
-/* Rarity row giờ là button — reset + affordance. */
-.gb-collection__rar {
-  padding: 0;
-  cursor: pointer;
-  color: inherit;
-  font: inherit;
-}
-.gb-collection__rar:hover {
-  border-color: color-mix(in srgb, var(--rar-color, #9CA3AF) 60%, transparent);
-}
-.gb-collection__rar[aria-pressed="true"] {
-  border-color: var(--rar-color, #9CA3AF);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--rar-color, #9CA3AF) 35%, transparent);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .gb-card__wish,
-  .gb-collection__switch button {
-    transition: none;
-  }
 }
 
 /* ===== Đợt #3 — chip Yêu thích + giá tối đa + xoá bộ lọc ===== */
@@ -1627,3 +1589,36 @@ html.light .gb-card__desc-one-line {
   border-color: rgba(255, 255, 255, 0.4);
   background: rgba(255, 255, 255, 0.1);
 }
+
+
+/* ===== Fix chuẩn Discord — bộ lọc 1 hàng + nameplate ===== */
+.gb-filters__type {
+  padding: 5px 26px 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(255,255,255,0.6)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+}
+.gb-filters__type:focus { outline: none; border-color: rgba(192, 132, 252, 0.7); }
+
+.gb-np-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 0;
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 600;
+}
+.gb-np-note svg { flex-shrink: 0; }
+
+/* Stage nameplate trong modal preview (mô phỏng Hồ Sơ). */
+.gb-inspect__np { display: block; }
+.gb-inspect__np .npd-np__text { font-size: 16px; }
