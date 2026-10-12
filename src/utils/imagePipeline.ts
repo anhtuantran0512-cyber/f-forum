@@ -23,6 +23,8 @@ export interface PreparedImage {
   mime: string;
   /** Dung lượng ước tính sau khi giải mã base64. */
   bytes: number;
+  /** PHẦN 3.3 — Ảnh mờ 20px (< 1KB) tức thì cho Progressive Image Loading (LQIP). */
+  lqipDataUrl?: string;
 }
 
 export interface PrepareOptions {
@@ -184,7 +186,24 @@ export const prepareImageForUpload = async (file: Blob, options: PrepareOptions)
     } else {
       dataUrl = canvas.toDataURL('image/jpeg', 0.9);
     }
-    return { dataUrl, width: canvas.width, height: canvas.height, mime, bytes: estimateBytes(dataUrl) };
+
+    /* PHẦN 3.3 — Sinh LQIP 20px (< 1KB) để hiển thị tức thì trong lúc tải ảnh full. */
+    const lqipScale = Math.min(1, 20 / Math.max(canvas.width, canvas.height));
+    const lqipCanvas = stepDownResize(
+      canvas,
+      Math.max(1, Math.round(canvas.width * lqipScale)),
+      Math.max(1, Math.round(canvas.height * lqipScale)),
+    );
+    const lqipDataUrl = lqipCanvas.toDataURL('image/jpeg', 0.45);
+
+    return {
+      dataUrl,
+      width: canvas.width,
+      height: canvas.height,
+      mime,
+      bytes: estimateBytes(dataUrl),
+      lqipDataUrl,
+    };
   } finally {
     if ('close' in source && typeof source.close === 'function') source.close();
   }

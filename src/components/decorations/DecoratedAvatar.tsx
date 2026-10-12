@@ -13,7 +13,7 @@ import { NameplateDisplay } from './NameplateDisplay';
 
 const shopItemToAsset = (item: ShopItem | null | undefined): DecorationAssetRef | null => {
   if (!item) return null;
-  const type: DecorationType = item.category === 'Nameplate' ? 'nameplate' : item.category === 'Avatar Aura' ? 'avatar_aura' : 'avatar_frame';
+  const type: DecorationType = item.category === 'Nameplate' ? 'nameplate' : item.category === 'Avatar Aura' ? 'Avatar Aura' === item.category ? 'avatar_aura' : 'avatar_frame' : 'avatar_frame';
   return {
     type,
     id: item.id,
@@ -28,11 +28,20 @@ interface DecoratedAvatarProps {
   size: number;
   animate?: boolean;
   eager?: boolean;
+  priority?: 'high' | 'low';
   className?: string;
   alt?: string;
 }
 
-export const DecoratedAvatar = ({ user, size, animate = true, eager = false, className, alt }: DecoratedAvatarProps) => {
+export const DecoratedAvatar = ({
+  user,
+  size,
+  animate = true,
+  eager = false,
+  priority,
+  className,
+  alt,
+}: DecoratedAvatarProps) => {
   const { frame, aura } = useUserDecorations(user);
   /* KHUNG và HÀO QUANG là 2 slot độc lập — truyền CẢ HAI (trước đây chỉ gộp
      1 slot → user đeo đủ 2 chỉ thấy khung, mất hào quang — gãy trải nghiệm). */
@@ -44,6 +53,7 @@ export const DecoratedAvatar = ({ user, size, animate = true, eager = false, cla
       size={size}
       animate={animate}
       eager={eager}
+      priority={priority || (eager ? 'high' : 'low')}
       className={className}
       alt={alt}
     />
@@ -56,10 +66,18 @@ interface DecoratedNameProps {
   /** Rộng vùng bảng tên (px). Mặc định 224 (tỉ lệ chuẩn 448:84 ở cao 42px). */
   width?: number;
   animate?: boolean;
+  priority?: 'high' | 'low';
   className?: string;
 }
 
-export const DecoratedName = ({ user, name, width = 224, animate = true, className }: DecoratedNameProps) => {
+export const DecoratedName = ({
+  user,
+  name,
+  width = 224,
+  animate = true,
+  priority = 'high',
+  className,
+}: DecoratedNameProps) => {
   const { nameplate } = useUserDecorations(user);
   const asset = shopItemToAsset(nameplate);
   if (!asset) return <span className={className}>{name}</span>;
@@ -70,7 +88,14 @@ export const DecoratedName = ({ user, name, width = 224, animate = true, classNa
   const height = Math.round((width * 84) / 448);
   return (
     <span className={`npd-np${className ? ` ${className}` : ''}`} style={{ width, height }}>
-      <NameplateDisplay asset={asset} size={width} animate={animate} fill className="npd-np__bg" />
+      <NameplateDisplay
+        asset={asset}
+        size={width}
+        animate={animate}
+        priority={priority}
+        fill
+        className="npd-np__bg"
+      />
       <span className="npd-np__text">{name}</span>
     </span>
   );

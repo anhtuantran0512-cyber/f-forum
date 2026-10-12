@@ -47,6 +47,7 @@ import { CustomRoleBadge } from './admin/CustomRoleBadge';
 import { MemberQuickAction, type ActionResult, type QuickActionKind, type RoleChoice } from './admin/MemberQuickAction';
 import { QUICK_DURATIONS } from './admin/adminConstants';
 import { RoleStudio, type CustomRoleRow } from './admin/RoleStudio';
+import { PerformanceTiersDashboard } from './admin/PerformanceTiersDashboard';
 import './AdminInsightsModal.css';
 import './admin/AdminStudio.css';
 
@@ -283,7 +284,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
   const canAssignRoles = capsHas(caps, 'give_role');
   const canModerate = caps.isSuperAdmin || Boolean(caps.staffRole)
     || (['ban', 'warn', 'mute', 'give_role'] as AdminPermission[]).some((permission) => capsHas(caps, permission));
-  const [tab, setTab] = useState<'overview' | 'members' | 'roles'>(canSeeAnalytics ? 'overview' : 'members');
+  const [tab, setTab] = useState<'overview' | 'members' | 'roles' | 'performance'>(canSeeAnalytics ? 'overview' : 'members');
   const [range, setRange] = useState<AdminInsightsRange>('7d');
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
@@ -734,6 +735,11 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
               <span>{numberFmt.format(customRoles.length)}</span>
             </button>
           )}
+          {canSeeAnalytics && (
+            <button type="button" className={tab === 'performance' ? 'is-active' : ''} onClick={() => setTab('performance')}>
+              <Sparkles size={15} /> Hiệu năng Đa tầng
+            </button>
+          )}
           {isSuperAdmin && onOpenReports && (
             <button type="button" onClick={onOpenReports}>
               <ShieldAlert size={15} /> Tố cáo
@@ -1182,6 +1188,10 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
               error={rolesError}
               onRolesChanged={() => setRolesTick((tick) => tick + 1)}
             />
+          )}
+
+          {tab === 'performance' && canSeeAnalytics && (
+            <PerformanceTiersDashboard />
           )}
         </div>
 

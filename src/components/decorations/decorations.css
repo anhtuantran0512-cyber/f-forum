@@ -138,6 +138,17 @@
   transform: scale(1.08);
 }
 
+/* ===== GPU Compositor Layer (PHẦN 2.2: will-change có chủ đích) ===== */
+.decoration-mythic,
+.awd--animating .awd__slot {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+.decoration-mythic.is-idle,
+.awd:not(.awd--animating) .awd__slot {
+  will-change: auto;
+}
+
 /* ===== Giảm chuyển động: tắt mọi video trang trí (dự phòng ngoài logic JS) ===== */
 @media (prefers-reduced-motion: reduce) {
   .awd video,

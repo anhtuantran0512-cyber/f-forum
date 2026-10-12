@@ -13,6 +13,13 @@ import {
 import { isDecorationId, sanitizeEquippedDecorations } from '../src/utils/decorations.ts';
 import type { EquippedDecorations } from '../src/types/index.ts';
 import { moderateAnswer, type ModerationVerdict } from './answerModeration.ts';
+import {
+  adaptivePerfMonitor,
+  multiLayerCache,
+  readWriteDataPlane,
+  respondWithEdgeCache,
+  serviceAndQueue,
+} from './adaptiveScale.ts';
 import { dateKeyInTimeZone } from '../shared/dailyTrivia.ts';
 import { GHIBLI_MASKS, getRandomGhibliMask } from '../src/utils/ghibliMasks.ts';
 import {
@@ -4453,7 +4460,19 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         }
         if (!infiniteCoins) actor.user.coin = balance - chargePrice;
         actor.user.inventory = [...inventory, itemId];
-        persistStoreToDisk();
+        serviceAndQueue.runInShopGachaService(() => {
+          readWriteDataPlane.executeWrite(
+            multiLayerCache,
+            [`profile:${actor.user.email}`, 'leaderboard:top'],
+            () => persistStoreToDisk(),
+          );
+        });
+        serviceAndQueue.enqueueTask(
+          'gacha.pull',
+          { email: actor.user.email, itemId: item.id, price: chargePrice },
+          (p) => ({ rewarded: true, ...p }),
+          (job) => broadcastServerEvent('QUEUE_JOB_COMPLETED', { jobId: job.jobId, topic: job.topic }),
+        );
         broadcastServerEvent('SYNC_USER', actor.user);
         sendJson(res, 200, {
           success: true,
@@ -4518,7 +4537,13 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           /* Giữ tương thích client cũ: { itemId: '' } → gỡ badge. */
           actor.user.equippedBadge = '';
         }
-        persistStoreToDisk();
+        serviceAndQueue.runInShopGachaService(() => {
+          readWriteDataPlane.executeWrite(
+            multiLayerCache,
+            [`profile:${actor.user.email}`],
+            () => persistStoreToDisk(),
+          );
+        });
         broadcastServerEvent('SYNC_USER', actor.user);
         sendJson(res, 200, { success: true, user: actor.user });
       } catch (err: any) {
@@ -4674,6 +4699,69 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         clubPosts: store.clubPosts,
       });
       sendJson(res, 200, { success: true, analytics: report });
+      return;
+    }
+
+    /** PHẦN 6.2 — Nhận số liệu Real User Monitoring (RUM) phân theo Device Tier (A / B / C). */
+    if (method === 'POST' && url === '/api/analytics/performance') {
+      try {
+        const body = (await parseJsonBody(req)) || {};
+        const recordedTier = adaptivePerfMonitor.recordSample(body);
+        sendJson(res, 200, { success: true, tier: recordedTier });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /** PHẦN 4 & 6 — Dashboard giám sát Hiệu năng Đa tầng (Tier A/B/C), Cache, Read Replica & Queue. */
+    if (method === 'GET' && url.split('?')[0] === '/api/admin/performance-tiers') {
+      const claims = authorizeRequest(req, null, null);
+      const viewer = claims ? store.users[claims.email] : undefined;
+      const canView = Boolean(
+        viewer &&
+          ((isMasterAdminEmail(String(claims?.email || '')) && viewer.role === 'SUPER_ADMIN') ||
+            customRolePermissionsOf(viewer).includes('view_analytics')),
+      );
+      if (!canView) {
+        sendJson(res, 403, {
+          success: false,
+          message: 'Chỉ Super Admin hoặc vai trò có quyền xem thống kê mới truy cập được báo cáo hiệu năng đa tầng.',
+        });
+        return;
+      }
+      sendJson(res, 200, {
+        success: true,
+        generatedAt: new Date().toISOString(),
+        tiers: adaptivePerfMonitor.getTierReport(),
+        cache: multiLayerCache.getStats(),
+        dataPlane: readWriteDataPlane.getStats(),
+        services: serviceAndQueue.getStats(),
+        abQualityExperiments: adaptivePerfMonitor.getABQualityExperiments(),
+      });
+      return;
+    }
+
+    /** PHẦN 4.1 & 4.2 — Edge-cached Shop Catalog & Leaderboard snapshot (ETag + Stale-While-Revalidate). */
+    if (method === 'GET' && url.split('?')[0] === '/api/edge/catalog') {
+      try {
+        const cached = await multiLayerCache.getOrLoad(
+          'shop:catalog',
+          () =>
+            readWriteDataPlane.executeRead(() => ({
+              count: getActiveDecorationItems().length,
+              discounts: getDynamicDiscounts(Date.now(), getActiveDecorationItems()),
+            })).result,
+          { ttlMs: 60_000, tags: ['shop:catalog'] },
+        );
+        if (respondWithEdgeCache(req, res, cached.etag, 60, 300)) return;
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.setHeader('X-Cache-Layer', cached.layer);
+        res.end(JSON.stringify({ success: true, layer: cached.layer, ...cached.value }));
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
       return;
     }
 

@@ -106,3 +106,54 @@ export async function extractFrameRgba(filePath, { index, width, height, inputAr
   if (stdout.length < expected) throw new Error(`Không trích được frame ${index} từ ${filePath}`);
   return stdout.subarray(0, expected);
 }
+
+/**
+ * PHẦN 3.1 — Cấu hình encode 3 phiên bản chất lượng cho mỗi Video Decoration
+ * (tương tự YouTube Adaptive Bitrate):
+ *  - '4k': dành cho Tier A (màn lớn, GPU mạnh, giữ trọn chi tiết và FPS gốc)
+ *  - 'hd': dành cho Tier B (tầm trung, cân bằng độ nét và bitrate)
+ *  - 'sd': dành cho Tier C (máy yếu/mạng chậm — VẪN CÓ ANIMATION mượt mà, không cắt thành ảnh tĩnh)
+ */
+export const MULTI_QUALITY_WEBM_PROFILES = {
+  '4k': { label: '4K Ultra (Tier A)', maxSide: 448, crf: 32, maxFps: 60 },
+  hd: { label: 'HD Balanced (Tier B)', maxSide: 288, crf: 40, maxFps: 30 },
+  sd: { label: 'SD Smooth (Tier C)', maxSide: 192, crf: 47, maxFps: 24 },
+};
+
+/**
+ * Sinh đồng thời 3 phiên bản WebM VP9 có kênh alpha (4K / HD / SD) từ file gốc.
+ */
+export async function encodeMultiQualityWebm(inputPath, outputDir, { baseName = 'decoration', inputArgs = [] } = {}) {
+  const results = {};
+  for (const [tierKey, cfg] of Object.entries(MULTI_QUALITY_WEBM_PROFILES)) {
+    const outPath = `${outputDir}/${baseName}-${tierKey}.webm`;
+    const vf = `fps='min(${cfg.maxFps},source_fps)',scale='min(${cfg.maxSide},iw)':'min(${cfg.maxSide},ih)':force_original_aspect_ratio=decrease:flags=lanczos,format=yuva420p`;
+    await runFfmpeg([
+      '-y',
+      '-loglevel',
+      'error',
+      ...inputArgs,
+      '-i',
+      inputPath,
+      '-vf',
+      vf,
+      '-an',
+      '-c:v',
+      'libvpx-vp9',
+      '-pix_fmt',
+      'yuva420p',
+      '-b:v',
+      '0',
+      '-crf',
+      String(cfg.crf),
+      '-row-mt',
+      '1',
+      '-auto-alt-ref',
+      '0',
+      outPath,
+    ]);
+    results[tierKey] = outPath;
+  }
+  return results;
+}
+

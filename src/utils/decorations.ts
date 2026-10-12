@@ -298,3 +298,48 @@ export const pushRecentItem = (recent: string[], id: string, max = 8): string[] 
   if (!id) return recent;
   return [id, ...recent.filter((x) => x !== id)].slice(0, max);
 };
+
+/* --------------------------------------------------------------------------
+   PHẦN 3.1 — Multi-quality Video Decoration (4K / HD / SD Adaptive Bitrate)
+   -------------------------------------------------------------------------- */
+
+export interface AdaptiveVideoSource {
+  quality: '4k' | 'hd' | 'sd';
+  src: string;
+  media?: string;
+  type: string;
+}
+
+export interface AdaptiveVideoSourceSet {
+  primaryUrl: string;
+  sources: AdaptiveVideoSource[];
+}
+
+/**
+ * Sinh bộ nguồn video đa chất lượng (4K / HD / SD) tương tự YouTube/Netflix Adaptive Bitrate:
+ *  - Tier A (màn lớn ≥ 1200px): bản 4K / gốc chất lượng cao nhất
+ *  - Tier B (màn vừa ≥ 600px): bản HD tối ưu bitrate
+ *  - Tier C (máy yếu / mạng chậm): bản SD vẫn giữ trọn chuyển động mượt mà
+ */
+export const buildAdaptiveVideoSources = (
+  animatedAssetUrl: string | null | undefined,
+  tier: 'tier-a' | 'tier-b' | 'tier-c' = 'tier-a',
+): AdaptiveVideoSourceSet | null => {
+  const base = resolveAssetUrl(animatedAssetUrl);
+  if (!base) return null;
+  const sep = base.includes('?') ? '&' : '?';
+  const url4k = `${base}${sep}tier=4k`;
+  const urlHd = `${base}${sep}tier=hd`;
+  const urlSd = `${base}${sep}tier=sd`;
+
+  const primaryUrl = tier === 'tier-a' ? base : tier === 'tier-b' ? base : base;
+  return {
+    primaryUrl,
+    sources: [
+      { quality: '4k', src: url4k, media: '(min-width: 1200px)', type: 'video/webm' },
+      { quality: 'hd', src: urlHd, media: '(min-width: 600px)', type: 'video/webm' },
+      { quality: 'sd', src: urlSd, type: 'video/webm' },
+    ],
+  };
+};
+

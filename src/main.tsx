@@ -4,6 +4,8 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
+import { AdaptiveQualityProvider } from './context/AdaptiveQualityContext'
+import { registerAdaptiveServiceWorker } from './utils/backgroundSyncQueue'
 import { resetChunkFlagsAfterAutoReload } from './utils/lazyWithRetry'
 
 declare global {
@@ -117,6 +119,7 @@ export function initGoogleSdk(): Promise<void> {
 if (typeof window !== 'undefined') {
   initFacebookSdk().catch(() => {});
   initGoogleSdk().catch(() => {});
+  registerAdaptiveServiceWorker();
 
   /* Nếu trang này boot lại sau một lần tự tải (budget còn "nóng") → xoá cờ
      chunk cũ để các chunk khác được tự hồi phục tiếp (budget giữ chặn lặp). */
@@ -135,7 +138,9 @@ if (typeof window !== 'undefined') {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppErrorBoundary>
-      <App />
+      <AdaptiveQualityProvider>
+        <App />
+      </AdaptiveQualityProvider>
     </AppErrorBoundary>
   </StrictMode>,
 )
