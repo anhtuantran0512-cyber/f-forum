@@ -1554,9 +1554,6 @@ html.light .gb-card__desc-one-line {
   background: rgba(66, 10, 22, 0.82);
 }
 
-
-}
-
 /* ===== Đợt #3 — chip Yêu thích + giá tối đa + xoá bộ lọc ===== */
 .gb-filters button.is-wished {
   color: #fb7185;

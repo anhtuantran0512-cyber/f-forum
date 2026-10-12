@@ -8,7 +8,7 @@ Ngày: 2026-10-12 · Branch: `arena/62613a87-f-forum` · Cơ sở: `670848e` (ma
 |---|---|
 | `npx tsc -b` | ✅ 0 lỗi |
 | `npx oxlint` | ✅ 0 warning / 0 error (222 files) |
-| `npm test` (29 file, Node test runner) | ✅ **348/348 pass** |
+| `npm test` (29 file, Node test runner) | ✅ **350/350 pass** |
 | Asset build | ✅ 3.878 file / ~122 MB · 0 lỗi ffmpeg · catalog 873 item |
 | Quality re-tiering | ✅ 873 item chấm điểm 0–100 · 768 động / 105 tĩnh · 0 lỗi cấu trúc · giá khớp bảng rarity 100% |
 | Migration | ✅ **ĐÃ CHỌN PHƯƠNG ÁN B** (Sếp chốt 12/10) — script nâng cấp (cùng hiếm thật, khớp loại, tự trang bị, payload ăn mừng) + demo end-to-end trong sandbox; marker KHÔNG commit (chạy khi triển khai) |
@@ -222,6 +222,28 @@ Kỹ thuật: giá so Coin dùng đúng công thức giá thực tế của lư�
 (không lệch với số Coin hiển thị trên card), ARIA label/pressed,
 CSS accent xanh lá cho chip ngân sách + nút xoá, reduced-motion.
 
+### 1.9 FIX "Giao diện vừa gặp lỗi / Failed to fetch dynamically imported module" (bổ sung 2026-10-12) ✅
+1. **GỐC LỖI (đã fix)**: `Boutique.css` để sót 1 dấu `}` thừa (dòng 1558,
+   còn lại từ thao tác xoá khối cũ) → Vite trả **500** cho file CSS → mọi
+   lazy chunk import nó (`GachaBoutique` → `ProfileModal`…) fetch fail →
+   màn "Giao diện vừa gặp lỗi". Đã xoá; thêm test 15c rà cân bằng ngoặc
+   TẤT CẢ CSS trong `src/` (sai một dấu là đỏ — không thể bị lại).
+2. **Lớp tự hồi phục** cho lỗi chunk nhất thời (mạng gián đoạn qua proxy
+   preview, dev server trả 500 khi file đang sửa dở, module graph cũ sau
+   cập nhật phiên bản):
+   - `isChunkLoadError()` (test 15b): nhận diện đúng message của
+     Chrome/Firefox/Vite, không bắt nhầm runtime/API error.
+   - **Ngân sách reload chung** `fforum_chunk_err_budget`: tối đa 3 lần
+     tự tải trong 60s, cả `lazyWithRetry` lẫn error boundary cùng tiêu —
+     chống vòng lặp reload vô hạn khi lỗi là THẬT SỰ; bấm nút thủ công
+     reset ngân sách (ý định rõ ràng).
+   - Error boundary: lỗi chunk → màn "Mất kết nối khi tải giao diện"
+     (thay message tiếng Anh khó hiểu) + **tự tải lại 1 nhịp** kèm dòng
+     "Đang tự động tải lại…" — user không cần bấm gì.
+   - `main.tsx`: boot xong xoá cờ chunk cũ nếu ngân sách còn "nóng"
+     (vừa tự tải) → các chunk khác được hồi phục tiếp, ngân sách vẫn giữ
+     vai trò chặn lặp.
+
 ### Bước 2 — Schema ✅
 - [x] `ShopItem` += `assetType`, `previewUrl`, `fullAssetUrl`, `animatedAssetUrl`, `originalSource`
 - [x] Giữ rarity/price/category; 35 item SVG cũ gắn `svg_custom`/`fforum_svg`
@@ -314,7 +336,7 @@ Các test liên quan trực tiếp nhiệm vụ 10 (đều PASS trong run cuối
 | `multi-user-sync` | (toàn bộ) | `equippedDecorations` đồng bộ multi-user qua socket |
 | `light-mode-contrast` | (toàn bộ) | adapter light tái sinh (`npm run gen:light`) khớp class mới |
 
-Run cuối: `# tests 348 / pass 348 / fail 0` (xanh cả khi marker migration TỒN TẠI cục bộ —
+Run cuối: `# tests 350 / pass 350 / fail 0` (xanh cả khi marker migration TỒN TẠI cục bộ —
 test hermetic qua env `FFORUM_MIGRATION_MARKER`).
 
 ## 4. Kiểm tra thủ công cần làm trên máy thật (checklist)

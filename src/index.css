@@ -5898,3 +5898,9 @@ html.light :is(.to-black\/40) { --lv-to: rgba(248, 250, 252, 0.45); }
 html.light :is(.to-black\/50, .to-black\/55, .to-black\/60, .to-black\/70) { --lv-to: rgba(248, 250, 252, 0.75); }
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.to-\[\#080b10\]\/95, .to-\[\#1e1b4b\], .to-black, .to-black\/40, .to-black\/50, .to-black\/55, .to-black\/60, .to-black\/70, .to-neutral-950):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *) { --tw-gradient-to: var(--lv-to); }
 /* @generated light-adapter:end */
+
+/* AppErrorBoundary — chấm xanh nhấp nháy "Đang tự động tải lại…" */
+@keyframes ff-err-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.72); }
+}
