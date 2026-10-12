@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Trophy, ArrowRight, HelpCircle, Sparkles, Medal, Clock, Crown, Minus, Flame } from 'lucide-react';
 import type { User, Question, Solution, ChatMessage } from '../../types';
-import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
+import { DecoratedAvatar, DecoratedName, UserNameplateBg } from '../decorations/DecoratedAvatar';
 import { MagneticButton } from '../MagneticButton';
 import { OdometerDigits } from '../OdometerDigits';
 import { StudyPulsePanel } from '../StudyPulsePanel';
@@ -598,18 +598,44 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
 
         {/* Vị trí của bạn */}
         {currentUser && meEntry && (
-          <button type="button" onClick={() => openProfile(meEntry)} className="ff-board__me">
-            <span className="ff-board__me-rank font-mono">#{meEntry.rank}</span>
-            {/* Nhiệm vụ 10 — 32px + trang trí của chính user (animation tắt). */}
-            <DecoratedAvatar
+          <button
+            type="button"
+            onClick={() => openProfile(meEntry)}
+            className="ff-board__me ff-discord-userbar"
+          >
+            <UserNameplateBg
               user={currentUser}
-              fallbackSrc={currentUser.avatar}
-              size={32}
-              alt={currentUser.name}
-              className="rounded-full ring-2 ring-sky-400/70"
+              width={280}
+              eager
+              animate
+              priority="high"
             />
-            <span className="ff-board__me-name truncate">{currentUser.name}</span>
-            <span className="ff-board__me-value font-mono">{formatValue(meEntry)}</span>
+            <span className="relative z-[2] ff-board__me-rank font-mono">#{meEntry.rank}</span>
+            {/* Nhiệm vụ 10 — 34px + trang trí của chính user. */}
+            <span className="relative z-[2] shrink-0">
+              <DecoratedAvatar
+                user={currentUser}
+                fallbackSrc={currentUser.avatar}
+                size={34}
+                eager
+                animate
+                alt={currentUser.name}
+                className="rounded-full ring-2 ring-sky-400/70"
+              />
+            </span>
+            <span className="relative z-[2] ff-board__me-name flex items-center min-w-0">
+              <DecoratedName
+                user={currentUser}
+                name={currentUser.name.replace(/ \(.*\)/, '')}
+                width={144}
+                height={27}
+                eager
+                animate
+                priority="high"
+                showFallbackTag
+              />
+            </span>
+            <span className="relative z-[2] ff-board__me-value font-mono">{formatValue(meEntry)}</span>
           </button>
         )}
 

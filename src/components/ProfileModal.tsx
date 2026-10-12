@@ -365,12 +365,14 @@ const ProfileModalInner: React.FC<{
      đang xem — hồ sơ người khác cũng hiển thị trang trí của họ qua /api/sync). */
   const userDecorations = useUserDecorations(currentUser);
   const { items: catalogItems } = useDecorationCatalog();
-  const [quickWardrobeSlot, setQuickWardrobeSlot] = useState<'nameplate' | 'avatar_frame' | 'avatar_aura'>('nameplate');
+  const [quickWardrobeSlot, setQuickWardrobeSlot] = useState<'all' | 'nameplate' | 'avatar_frame' | 'avatar_aura'>('all');
+  const [wardrobeSearch, setWardrobeSearch] = useState('');
 
   const ownedDecorationsBySlot = useMemo(() => {
     const ownedSet = new Set(userInventory);
     const owned = catalogItems.filter((item) => item.isActive !== false && ownedSet.has(item.id));
     return {
+      all: owned,
       nameplate: owned.filter((item) => item.category === 'Nameplate'),
       avatar_frame: owned.filter((item) => item.category === 'Avatar Frame'),
       avatar_aura: owned.filter((item) => item.category === 'Avatar Aura'),
@@ -1181,146 +1183,198 @@ const ProfileModalInner: React.FC<{
                         })}
                       </div>
 
-                      {/* Kho Đồ Đã Sở Hữu Gộp Chung (1 bảng duy nhất — bấm 1 chạm để trang bị/đổi ngay) */}
+                      {/* Kho Đồ Đã Sở Hữu Gộp Chung (1 bảng duy nhất — lọc Tất cả / Bảng tên / Khung / Hào quang & bấm 1 chạm để trang bị/đổi ngay) */}
                       {isOwnProfile && (
-                        <div className="pc-12-well p-3 rounded-2xl space-y-2.5 border border-white/10">
+                        <div className="pc-12-well p-3.5 rounded-2xl space-y-3 border border-white/10">
                           <div className="flex items-center justify-between gap-2 flex-wrap">
-                            <span className="text-xs font-bold text-cyan-200 flex items-center gap-1.5">
-                              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                              <span>
-                                Kho đồ của bạn:{' '}
-                                {quickWardrobeSlot === 'nameplate'
-                                  ? 'Bảng tên (Nametag)'
-                                  : quickWardrobeSlot === 'avatar_frame'
-                                  ? 'Khung Avatar'
-                                  : 'Hào Quang'}{' '}
-                                ({ownedDecorationsBySlot[quickWardrobeSlot].length} vật phẩm)
-                              </span>
-                            </span>
-                            <span className="text-[11px] text-white/60">
-                              Bấm trực tiếp vào vật phẩm bên dưới để sử dụng hoặc gỡ
-                            </span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {(
+                                [
+                                  { id: 'all', label: 'Tất cả đã sở hữu', count: ownedDecorationsBySlot.all.length },
+                                  { id: 'nameplate', label: 'Bảng tên', count: ownedDecorationsBySlot.nameplate.length },
+                                  { id: 'avatar_frame', label: 'Khung Avatar', count: ownedDecorationsBySlot.avatar_frame.length },
+                                  { id: 'avatar_aura', label: 'Hào Quang', count: ownedDecorationsBySlot.avatar_aura.length },
+                                ] as const
+                              ).map((tab) => (
+                                <button
+                                  key={tab.id}
+                                  type="button"
+                                  onClick={() => setQuickWardrobeSlot(tab.id)}
+                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                                    quickWardrobeSlot === tab.id
+                                      ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                                      : 'bg-white/[0.06] text-neutral-300 hover:text-white'
+                                  }`}
+                                >
+                                  {tab.label} ({tab.count})
+                                </button>
+                              ))}
+                            </div>
+
+                            {ownedDecorationsBySlot.all.length >= 4 && (
+                              <input
+                                type="text"
+                                value={wardrobeSearch}
+                                onChange={(e) => setWardrobeSearch(e.target.value)}
+                                placeholder="Tìm nhanh trong kho đồ..."
+                                className="bg-black/40 border border-white/15 rounded-lg px-2.5 py-1 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-cyan-400 w-44"
+                              />
+                            )}
                           </div>
 
-                          {ownedDecorationsBySlot[quickWardrobeSlot].length === 0 ? (
-                            <div className="py-3 px-2 rounded-xl bg-black/25 border border-white/5 flex items-center justify-between gap-3 flex-wrap">
-                              <span className="text-xs text-neutral-300">
-                                Bạn chưa có vật phẩm nào ở mục này trong kho đồ.
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  openShopAtCategory(
-                                    quickWardrobeSlot === 'nameplate'
-                                      ? 'Nameplate'
-                                      : quickWardrobeSlot === 'avatar_aura'
-                                      ? 'Avatar Aura'
-                                      : 'Avatar Frame',
-                                  )
-                                }
-                                className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold cursor-pointer transition"
-                              >
-                                Sắm ngay tại Cửa hàng →
-                              </button>
-                            </div>
-                          ) : quickWardrobeSlot === 'nameplate' ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1 no-scrollbar">
-                              {ownedDecorationsBySlot.nameplate.map((npItem) => {
-                                const isEquipped = userDecorations.nameplate?.id === npItem.id;
-                                return (
+                          {(() => {
+                            const q = wardrobeSearch.trim().toLowerCase();
+                            const sourceList = ownedDecorationsBySlot[quickWardrobeSlot];
+                            const filteredList = q
+                              ? sourceList.filter((item) => item.name.toLowerCase().includes(q))
+                              : sourceList;
+
+                            if (filteredList.length === 0) {
+                              return (
+                                <div className="py-3 px-3 rounded-xl bg-black/25 border border-white/5 flex items-center justify-between gap-3 flex-wrap">
+                                  <span className="text-xs text-neutral-300">
+                                    {q
+                                      ? `Không tìm thấy vật phẩm nào khớp với "${wardrobeSearch}".`
+                                      : 'Bạn chưa có vật phẩm nào ở mục này trong kho đồ.'}
+                                  </span>
                                   <button
-                                    key={npItem.id}
                                     type="button"
                                     onClick={() =>
-                                      void handleEquipDecoration('nameplate', isEquipped ? null : npItem.id)
-                                    }
-                                    className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition cursor-pointer ${
-                                      isEquipped
-                                        ? 'bg-emerald-500/15 border-emerald-400/70 shadow-[0_0_16px_rgba(16,185,129,0.2)]'
-                                        : 'bg-black/35 hover:bg-white/[0.08] border-white/12 hover:border-cyan-400/40'
-                                    }`}
-                                  >
-                                    <DecoratedName
-                                      name={currentUser.name.replace(/ \(.*\)/, '')}
-                                      width={210}
-                                      height={38}
-                                      animate={false}
-                                      overrideAsset={{
-                                        id: npItem.id,
-                                        type: 'nameplate',
-                                        fullAssetUrl: npItem.fullAssetUrl,
-                                        animatedAssetUrl: npItem.animatedAssetUrl,
-                                        isAnimated: !!npItem.isAnimated && !!npItem.animatedAssetUrl,
-                                      }}
-                                    />
-                                    <span className="w-full flex items-center justify-between text-xs px-1">
-                                      <strong className="text-white truncate">{npItem.name}</strong>
-                                      <span
-                                        className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold ${
-                                          isEquipped
-                                            ? 'bg-emerald-500/25 text-emerald-200 border border-emerald-400/40'
-                                            : 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/35'
-                                        }`}
-                                      >
-                                        {isEquipped ? '✓ Đang dùng (Bấm gỡ)' : 'Sử dụng ngay'}
-                                      </span>
-                                    </span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1 no-scrollbar">
-                              {ownedDecorationsBySlot[quickWardrobeSlot].map((decoItem) => {
-                                const equippedId =
-                                  quickWardrobeSlot === 'avatar_frame'
-                                    ? userDecorations.frame?.id
-                                    : userDecorations.aura?.id;
-                                const isEquipped = equippedId === decoItem.id;
-                                return (
-                                  <button
-                                    key={decoItem.id}
-                                    type="button"
-                                    onClick={() =>
-                                      void handleEquipDecoration(
-                                        quickWardrobeSlot,
-                                        isEquipped ? null : decoItem.id,
+                                      openShopAtCategory(
+                                        quickWardrobeSlot === 'nameplate'
+                                          ? 'Nameplate'
+                                          : quickWardrobeSlot === 'avatar_aura'
+                                          ? 'Avatar Aura'
+                                          : quickWardrobeSlot === 'avatar_frame'
+                                          ? 'Avatar Frame'
+                                          : null,
                                       )
                                     }
-                                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition cursor-pointer ${
-                                      isEquipped
-                                        ? 'bg-emerald-500/15 border-emerald-400/70 shadow-[0_0_16px_rgba(16,185,129,0.2)]'
-                                        : 'bg-black/35 hover:bg-white/[0.08] border-white/12 hover:border-cyan-400/40'
-                                    }`}
+                                    className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold cursor-pointer transition"
                                   >
-                                    <img
-                                      src={resolveAssetUrl(decoItem.previewUrl) || undefined}
-                                      alt=""
-                                      loading="lazy"
-                                      decoding="async"
-                                      width={44}
-                                      height={44}
-                                      className="w-11 h-11 rounded-xl object-contain bg-black/50 border border-white/10 shrink-0"
-                                    />
-                                    <span className="min-w-0 flex-1 space-y-1">
-                                      <strong className="block text-xs text-white truncate">
-                                        {decoItem.name}
-                                      </strong>
-                                      <span
-                                        className={`inline-block px-2 py-0.5 rounded-md text-[10.5px] font-bold ${
+                                    Sắm ngay tại Cửa hàng →
+                                  </button>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-60 overflow-y-auto pr-1 no-scrollbar">
+                                {filteredList.map((item) => {
+                                  const itemSlot: 'nameplate' | 'avatar_frame' | 'avatar_aura' =
+                                    item.category === 'Nameplate'
+                                      ? 'nameplate'
+                                      : item.category === 'Avatar Aura'
+                                      ? 'avatar_aura'
+                                      : 'avatar_frame';
+                                  const isEquipped =
+                                    itemSlot === 'nameplate'
+                                      ? userDecorations.nameplate?.id === item.id
+                                      : itemSlot === 'avatar_frame'
+                                      ? userDecorations.frame?.id === item.id
+                                      : userDecorations.aura?.id === item.id;
+                                  const slotBadgeLabel =
+                                    itemSlot === 'nameplate'
+                                      ? 'Bảng tên'
+                                      : itemSlot === 'avatar_frame'
+                                      ? 'Khung Avatar'
+                                      : 'Hào Quang';
+
+                                  if (itemSlot === 'nameplate') {
+                                    return (
+                                      <button
+                                        key={item.id}
+                                        type="button"
+                                        onClick={() =>
+                                          void handleEquipDecoration('nameplate', isEquipped ? null : item.id)
+                                        }
+                                        className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition cursor-pointer ${
                                           isEquipped
-                                            ? 'bg-emerald-500/25 text-emerald-200 border border-emerald-400/40'
-                                            : 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/35'
+                                            ? 'bg-emerald-500/15 border-emerald-400/70 shadow-[0_0_16px_rgba(16,185,129,0.2)]'
+                                            : 'bg-black/35 hover:bg-white/[0.08] border-white/12 hover:border-cyan-400/40'
                                         }`}
                                       >
-                                        {isEquipped ? '✓ Đang dùng' : 'Sử dụng ngay'}
+                                        <DecoratedName
+                                          name={currentUser.name.replace(/ \(.*\)/, '')}
+                                          width={204}
+                                          height={38}
+                                          animate={false}
+                                          overrideAsset={{
+                                            id: item.id,
+                                            type: 'nameplate',
+                                            fullAssetUrl: item.fullAssetUrl,
+                                            animatedAssetUrl: item.animatedAssetUrl,
+                                            isAnimated: !!item.isAnimated && !!item.animatedAssetUrl,
+                                          }}
+                                        />
+                                        <span className="w-full flex items-center justify-between text-xs px-1 gap-2">
+                                          <span className="min-w-0 flex items-center gap-1.5 truncate">
+                                            <span className="px-1.5 py-0.5 rounded bg-white/10 text-[9.5px] font-mono text-white/75 shrink-0">
+                                              {slotBadgeLabel}
+                                            </span>
+                                            <strong className="text-white truncate">{item.name}</strong>
+                                          </span>
+                                          <span
+                                            className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold shrink-0 ${
+                                              isEquipped
+                                                ? 'bg-emerald-500/25 text-emerald-200 border border-emerald-400/40'
+                                                : 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/35'
+                                            }`}
+                                          >
+                                            {isEquipped ? '✓ Đang dùng' : 'Sử dụng ngay'}
+                                          </span>
+                                        </span>
+                                      </button>
+                                    );
+                                  }
+
+                                  return (
+                                    <button
+                                      key={item.id}
+                                      type="button"
+                                      onClick={() =>
+                                        void handleEquipDecoration(itemSlot, isEquipped ? null : item.id)
+                                      }
+                                      className={`flex items-center gap-3 p-2.5 rounded-xl border text-left transition cursor-pointer ${
+                                        isEquipped
+                                          ? 'bg-emerald-500/15 border-emerald-400/70 shadow-[0_0_16px_rgba(16,185,129,0.2)]'
+                                          : 'bg-black/35 hover:bg-white/[0.08] border-white/12 hover:border-cyan-400/40'
+                                      }`}
+                                    >
+                                      <img
+                                        src={resolveAssetUrl(item.previewUrl) || undefined}
+                                        alt=""
+                                        loading="lazy"
+                                        decoding="async"
+                                        width={46}
+                                        height={46}
+                                        className="w-11 h-11 rounded-xl object-contain bg-black/50 border border-white/10 shrink-0"
+                                      />
+                                      <span className="min-w-0 flex-1 space-y-1">
+                                        <span className="flex items-center gap-1.5">
+                                          <span className="px-1.5 py-0.5 rounded bg-white/10 text-[9.5px] font-mono text-white/75 shrink-0">
+                                            {slotBadgeLabel}
+                                          </span>
+                                          <strong className="block text-xs text-white truncate">
+                                            {item.name}
+                                          </strong>
+                                        </span>
+                                        <span
+                                          className={`inline-block px-2 py-0.5 rounded-md text-[10.5px] font-bold ${
+                                            isEquipped
+                                              ? 'bg-emerald-500/25 text-emerald-200 border border-emerald-400/40'
+                                              : 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/35'
+                                          }`}
+                                        >
+                                          {isEquipped ? '✓ Đang dùng (Bấm gỡ)' : 'Sử dụng ngay'}
+                                        </span>
                                       </span>
-                                    </span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
 

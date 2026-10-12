@@ -10,8 +10,9 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import type { Thread, ThreadReactionType, User } from '../../types';
-import { handleImageError } from '../../utils/mediaFallback';
+import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
 import { isMasterAdmin } from '../../config/admin';
+import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
 import './ThreadsView.css';
 
 /* Giới hạn spec Final Lock */
@@ -38,6 +39,7 @@ const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
 interface ThreadsViewProps {
   currentUser: User | null;
+  users?: Record<string, User>;
   threads: Thread[];
   onCreateThread: (payload: { id?: string; content: string; imageUrl?: string }) => void | Promise<void>;
   onReplyThread: (parentId: string, content: string) => void | Promise<void>;
@@ -51,12 +53,44 @@ interface ThreadsViewProps {
   isSynced?: boolean;
 }
 
+const resolveThreadUser = (
+  users: Record<string, User> | undefined,
+  currentUser: User | null,
+  email?: string | null,
+  id?: string | null,
+): User | null => {
+  const cleanEmail = email ? email.trim().toLowerCase() : '';
+  if (users) {
+    if (cleanEmail && users[cleanEmail]) return users[cleanEmail];
+    if (isMasterAdmin(cleanEmail) && users['broamstuck@gmail.com']) {
+      return users['broamstuck@gmail.com'];
+    }
+    if ((id === 'admin-master' || id === 'user-admin') && users['broamstuck@gmail.com']) {
+      return users['broamstuck@gmail.com'];
+    }
+    if (id) {
+      for (const u of Object.values(users)) {
+        if (u.id === id) return u;
+      }
+    }
+  }
+  if (
+    currentUser &&
+    ((cleanEmail && currentUser.email.toLowerCase() === cleanEmail) ||
+      (id && currentUser.id === id))
+  ) {
+    return currentUser;
+  }
+  return null;
+};
+
 /* === Card Thread (dùng cho feed + reply lồng + repost-card) === */
 const ThreadCard: React.FC<{
   thread: Thread;
   allThreads?: Thread[];
   depth?: number;
   currentUser: User | null;
+  users?: Record<string, User>;
   replyingTo?: Thread | null;
   onCancelReply?: () => void;
   replyText?: string;
@@ -72,7 +106,7 @@ const ThreadCard: React.FC<{
     onOpenLoginModal?: () => void;
   };
   showActions?: boolean;
-}> = ({ thread: rootThread, allThreads, depth = 0, currentUser, replyText, onReplyTextChange, viewModel, showActions = true }) => {
+}> = ({ thread: rootThread, allThreads, depth = 0, currentUser, users, replyText, onReplyTextChange, viewModel, showActions = true }) => {
   const [isReplyOpen, setIsReplyOpen] = useState(false);
   const [repostMode, setRepostMode] = useState<'simple' | 'quote'>('simple');
   const [isRepostOpen, setIsRepostOpen] = useState(false);
@@ -156,16 +190,26 @@ const ThreadCard: React.FC<{
             className="author-button"
             title="Xem hồ sơ"
           >
-            <img
-              src={rootThread.authorAvatar}
-              loading="lazy"
-              onError={(e) => handleImageError(e, '')}
-              className="author-avatar"
+            <DecoratedAvatar
+              user={resolveThreadUser(users, currentUser, rootThread.authorEmail, rootThread.authorId)}
+              fallbackSrc={rootThread.authorAvatar || DEFAULT_AVATAR}
+              size={38}
+              animate
+              className="author-avatar rounded-full"
               alt={rootThread.authorName}
             />
             <div className="author-info">
               <div className="author-line">
-                <span className="author-name">{rootThread.authorName}</span>
+                <span className="author-name inline-flex items-center">
+                  <DecoratedName
+                    user={resolveThreadUser(users, currentUser, rootThread.authorEmail, rootThread.authorId)}
+                    name={rootThread.authorName.replace(/ \(.*\)/, '')}
+                    width={142}
+                    height={27}
+                    animate
+                    showFallbackTag
+                  />
+                </span>
                 {rootThread.authorLevel >= 150 && isSuperAdmin && <span className="author-level-badge">ADMIN</span>}
                 {/* Streak badge — 🔥{n} bằng chữ chỉ khi > 0 */}
                 {typeof currentUser?.streakCount === 'number' && currentUser.streakCount > 0 && rootThread.authorEmail === currentUser.email && (
@@ -210,14 +254,24 @@ const ThreadCard: React.FC<{
         {quotedThread && (
           <div className="repost-quote-box">
             <div className="repost-quote-header">
-              <img
-                src={quotedThread.authorAvatar}
-                loading="lazy"
-                onError={(e) => handleImageError(e, '')}
-                className="repost-quote-avatar"
+              <DecoratedAvatar
+                user={resolveThreadUser(users, currentUser, quotedThread.authorEmail, quotedThread.authorId)}
+                fallbackSrc={quotedThread.authorAvatar || DEFAULT_AVATAR}
+                size={24}
+                animate
+                className="repost-quote-avatar rounded-full"
                 alt={quotedThread.authorName}
               />
-              <span className="repost-quote-name">{quotedThread.authorName}</span>
+              <span className="repost-quote-name inline-flex items-center">
+                <DecoratedName
+                  user={resolveThreadUser(users, currentUser, quotedThread.authorEmail, quotedThread.authorId)}
+                  name={quotedThread.authorName.replace(/ \(.*\)/, '')}
+                  width={126}
+                  height={24}
+                  animate
+                  showFallbackTag
+                />
+              </span>
               <span className="repost-quote-level">Lv.{quotedThread.authorLevel}</span>
               <span className="repost-quote-time">{formatRelativeTime(quotedThread.createdAtMs)}</span>
             </div>
@@ -367,6 +421,7 @@ const ThreadCard: React.FC<{
               reply={reply}
               allThreads={allThreads || []}
               currentUser={currentUser}
+              users={users}
               viewModel={viewModel}
               depth={depth + 1}
             />
@@ -401,6 +456,7 @@ const ThreadCard: React.FC<{
                 thread={reply}
                 allThreads={allThreads}
                 currentUser={currentUser}
+                users={users}
                 viewModel={viewModel}
                 depth={depth}
                 showActions={true}
@@ -418,15 +474,17 @@ const ThreadReplyNode: React.FC<{
   reply: Thread;
   allThreads: Thread[];
   currentUser: User | null;
+  users?: Record<string, User>;
   viewModel: any;
   depth: number;
-}> = ({ reply, allThreads, currentUser, viewModel, depth }) => {
+}> = ({ reply, allThreads, currentUser, users, viewModel, depth }) => {
   return (
     <div className="reply-node" style={{ marginLeft: Math.min(depth, 3) * 16 }}>
       <ThreadCard
         thread={reply}
         allThreads={allThreads}
         currentUser={currentUser}
+        users={users}
         viewModel={viewModel}
         depth={depth}
         showActions={true}
@@ -438,6 +496,7 @@ const ThreadReplyNode: React.FC<{
 /* === View chính === */
 export const ThreadsView: React.FC<ThreadsViewProps> = ({
   currentUser,
+  users,
   threads,
   onCreateThread,
   onReplyThread,
@@ -557,7 +616,17 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
             <div>
               <div className="totd-label">Cú tâm đắc hôm nay</div>
               <p className="totd-content">{ofTheDay.content}</p>
-              <span className="totd-author">✍️ {ofTheDay.authorName}</span>
+              <span className="totd-author inline-flex items-center gap-1.5 mt-1">
+                <span>✍️</span>
+                <DecoratedName
+                  user={resolveThreadUser(users, currentUser, ofTheDay.authorEmail, ofTheDay.authorId)}
+                  name={ofTheDay.authorName.replace(/ \(.*\)/, '')}
+                  width={136}
+                  height={26}
+                  animate
+                  showFallbackTag
+                />
+              </span>
             </div>
           </div>
         )}
@@ -629,6 +698,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                 allThreads={threads}
                 depth={0}
                 currentUser={currentUser}
+                users={users}
                 viewModel={viewModel}
               />
             ))
