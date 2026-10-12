@@ -17,13 +17,15 @@ import {
   Filter,
 } from 'lucide-react';
 import type { Club, ClubPost, User, ClubCategory, ChatMessage } from '../../types';
-import { DEFAULT_CLUB_COVER, handleImageError, handleVideoError } from '../../utils/mediaFallback';
+import { DEFAULT_AVATAR, DEFAULT_CLUB_COVER, handleImageError, handleVideoError } from '../../utils/mediaFallback';
 import { isMasterAdmin } from '../../config/admin';
+import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
 import { InfoTip } from '../ui/InfoTip';
 import './ClubsView.css';
 
 interface ClubsViewProps {
   currentUser: User | null;
+  users?: Record<string, User>;
   clubs: Club[];
   clubPosts: ClubPost[];
   onCreateClub: (clubData: {
@@ -53,6 +55,7 @@ const CATEGORIES: ('Tất cả' | ClubCategory)[] = [
 
 export const ClubsView: React.FC<ClubsViewProps> = ({
   currentUser,
+  users = {},
   clubs,
   clubPosts,
   onCreateClub,
@@ -63,6 +66,23 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   onOpenLoginModal,
   isEmbedded = false,
 }) => {
+  const resolveClubUser = (id?: string | null, name?: string | null): User | null => {
+    if (id) {
+      if ((id === 'admin-master' || id === 'user-admin') && users['broamstuck@gmail.com']) {
+        return users['broamstuck@gmail.com'];
+      }
+      for (const u of Object.values(users)) {
+        if (u.id === id) return u;
+      }
+    }
+    if (name) {
+      const clean = name.trim().toLowerCase();
+      for (const u of Object.values(users)) {
+        if (u.name.trim().toLowerCase() === clean) return u;
+      }
+    }
+    return null;
+  };
   const [selectedCategory, setSelectedCategory] = useState<'Tất cả' | ClubCategory>('Tất cả');
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -425,12 +445,28 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     {spotlightClub.name}
                   </h2>
 
-                  <div className="flex items-center gap-4 text-xs text-neutral-300 pt-1 font-mono">
+                  <div className="flex items-center gap-4 text-xs text-neutral-300 pt-1 font-mono flex-wrap">
                     <span className="flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5 text-amber-400" />
                       {spotlightClub.membersCount} thành viên
                     </span>
-                    <span>Chủ nhiệm: {spotlightClub.leaderName}</span>
+                    <span className="inline-flex items-center gap-2">
+                      <span>Chủ nhiệm:</span>
+                      <DecoratedAvatar
+                        user={resolveClubUser(spotlightClub.leaderId, spotlightClub.leaderName)}
+                        fallbackSrc={DEFAULT_AVATAR}
+                        size={24}
+                        animate
+                      />
+                      <DecoratedName
+                        user={resolveClubUser(spotlightClub.leaderId, spotlightClub.leaderName)}
+                        name={spotlightClub.leaderName.replace(/ \(.*\)/, '')}
+                        width={136}
+                        height={26}
+                        animate
+                        showFallbackTag
+                      />
+                    </span>
                   </div>
                 </div>
 
@@ -741,10 +777,22 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
               {/* Member Roster */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-                  <span className="font-bold text-white block mb-1">Chủ nhiệm & Trưởng ban:</span>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                    <span className="text-amber-300 font-bold">{selectedClub.leaderName}</span>
+                  <span className="font-bold text-white block mb-1.5">Chủ nhiệm & Trưởng ban:</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <DecoratedAvatar
+                      user={resolveClubUser(selectedClub.leaderId, selectedClub.leaderName)}
+                      fallbackSrc={DEFAULT_AVATAR}
+                      size={26}
+                      animate
+                    />
+                    <DecoratedName
+                      user={resolveClubUser(selectedClub.leaderId, selectedClub.leaderName)}
+                      name={selectedClub.leaderName.replace(/ \(.*\)/, '')}
+                      width={136}
+                      height={26}
+                      animate
+                      showFallbackTag
+                    />
                     <span className="text-[10px] text-neutral-400 font-mono">(Trưởng CLB)</span>
                   </div>
                 </div>
@@ -836,7 +884,23 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                             <span className="text-[10px] text-neutral-500">{post.createdAt}</span>
                           </div>
                           <p className="text-neutral-300 text-xs leading-relaxed">{post.content}</p>
-                          <div className="text-[10px] text-neutral-400 pt-1">Người đăng: {post.authorName}</div>
+                          <div className="text-[10px] text-neutral-400 pt-1.5 flex items-center gap-2">
+                            <span>Người đăng:</span>
+                            <DecoratedAvatar
+                              user={resolveClubUser(post.authorId, post.authorName)}
+                              fallbackSrc={DEFAULT_AVATAR}
+                              size={22}
+                              animate
+                            />
+                            <DecoratedName
+                              user={resolveClubUser(post.authorId, post.authorName)}
+                              name={post.authorName.replace(/ \(.*\)/, '')}
+                              width={126}
+                              height={24}
+                              animate
+                              showFallbackTag
+                            />
+                          </div>
                         </div>
                       ))
                   )}

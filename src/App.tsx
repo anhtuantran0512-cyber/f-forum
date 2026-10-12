@@ -1057,6 +1057,7 @@ export const App: React.FC = () => {
           {currentView === 'clubs' && (
             <ClubsView
               currentUser={currentUser}
+              users={users}
               clubs={clubs}
               clubPosts={clubPosts}
               onCreateClub={createClub}
@@ -1098,6 +1099,7 @@ export const App: React.FC = () => {
           {currentView === 'threads' && (
             <ThreadsView
               currentUser={currentUser}
+              users={users}
               threads={threads}
               onCreateThread={createThread}
               onReplyThread={replyThread}
