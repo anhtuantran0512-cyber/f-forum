@@ -70,7 +70,14 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) close();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close();
+      if (e.key === 'Escape') {
+        close();
+        return;
+      }
+      if (e.altKey && (e.key === 'z' || e.key === 'Z') && inputRef.current) {
+        e.preventDefault();
+        inputRef.current.checked = !inputRef.current.checked;
+      }
     };
     document.addEventListener('mousedown', onDocDown);
     document.addEventListener('keydown', onKey);
