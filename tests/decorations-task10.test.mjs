@@ -393,16 +393,18 @@ test('10.7 Migration e2e: phương án B tặng ĐÚNG BẬC HIẾM, khớp lo�
 });
 
 /* ========================================================================== */
-/* 10.8 — Điểm nhấn Boutique: ruy-băng Khai trương + confetti khi trang bị   */
+/* 10.8 — Điểm nhấn Boutique: confetti khi trang bị (ruy-băng khai trương đã gỡ) */
 /* ========================================================================== */
-test('10.8 Boutique "khai trương": ruy-băng theo marker + confetti khi trang bị', () => {
+test('10.8 Boutique: confetti khi trang bị + ruy-băng khai trương/chữ Discord đã gỡ (yêu cầu sếp)', () => {
   const boutique = fs.readFileSync('src/components/shop/GachaBoutique.tsx', 'utf8');
-  assert.ok(boutique.includes('gb-grand-opening'), 'ruy-băng KHAI TRƯƠNG có trong Boutique');
-  assert.ok(boutique.includes('decorations-migration.json'), 'đọc marker migration (file tĩnh)');
-  assert.ok(boutique.includes('resolveAssetUrl'), 'marker qua resolveAssetUrl (BASE_URL)');
+  /* Ruy-băng KHAI TRƯƠNG + nội dung sự kiện đã gỡ theo yêu cầu — không được mọc lại. */
+  assert.ok(!boutique.includes('gb-grand-opening'), 'ruy-băng KHAI TRƯƠNG đã gỡ khỏi Boutique');
+  assert.ok(!boutique.includes('decorations-migration.json'), 'Boutique không còn đọc marker để hiện sự kiện');
+  /* Chữ "trang trí Discord" thừa đã gỡ khỏi văn bản hiển thị. */
+  assert.ok(!boutique.includes('trang trí Discord import'), 'không còn chữ "trang trí Discord import" trong UI');
 
   const css = fs.readFileSync('src/components/shop/Boutique.css', 'utf8');
-  assert.ok(css.includes('.gb-grand-opening'), 'CSS ruy-băng co-located');
+  assert.ok(!css.includes('.gb-grand-opening'), 'CSS ruy-băng đã gỡ');
   assert.ok(css.includes('prefers-reduced-motion'), 'tôn trọng giảm chuyển động');
 
   const storeSrc = fs.readFileSync('src/store/forumStore.ts', 'utf8');
