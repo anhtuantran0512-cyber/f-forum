@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -26,6 +26,11 @@ import {
   Image as ImageIcon,
   Trash2,
   Palette as PaletteIcon,
+  Move,
+  ZoomIn,
+  ZoomOut,
+  Crop,
+  RotateCcw,
 } from 'lucide-react';
 import type { User, Question, Solution, ShopItem } from '../types';
 import { TierBadge, TierSvg, AdminVerifiedBadge } from './Badges10Tier';
@@ -57,6 +62,14 @@ import { effectiveCoinBalance, formatCoinBalance } from '../utils/coinDisplay';
 import { getGradient, resolveProfileGradientId } from '../utils/gradients';
 import { GradientSwatchPicker } from './GradientSwatchPicker';
 import { GradientSurface } from './GradientSurface';
+import {
+  parseBannerUrl,
+  serializeBannerUrl,
+  bannerImageStyle,
+  cropBannerToDataUrl,
+  DEFAULT_BANNER_LAYOUT,
+  type BannerLayoutConfig,
+} from '../utils/bannerLayout';
 import {
   PROFILE_LIKES_KEY,
   isProfileLikedBy,
@@ -319,6 +332,19 @@ const ProfileModalInner: React.FC<{
   const viewerKey = (viewerUser?.email || viewerUser?.id || '').toLowerCase();
   const profileLikers = profileLikersOf(likesMap, profileKey);
   const likedByMe = isProfileLikedBy(likesMap, profileKey, viewerKey);
+
+  /* Cấu hình vị trí / thu phóng / cắt ảnh nền kiểu Facebook */
+  const [bannerLayout, setBannerLayout] = useState<BannerLayoutConfig>(
+    () => parseBannerUrl(currentUser.bannerUrl || '', profileKey).layout,
+  );
+  const [isAdjustingBanner, setIsAdjustingBanner] = useState(false);
+  const [isCroppingBanner, setIsCroppingBanner] = useState(false);
+  const bannerDragRef = useRef<{
+    startX: number;
+    startY: number;
+    origX: number;
+    origY: number;
+  } | null>(null);
 
   const handleProfileLike = (next: boolean) => {
     if (!viewerKey) return;
@@ -587,10 +613,20 @@ const ProfileModalInner: React.FC<{
     try {
       const prepared = await prepareImageForUpload(file, { maxSide: kind === 'avatar' ? 1024 : 2400 });
       apply(prepared.dataUrl);
+      if (kind === 'banner') {
+        setBannerLayout(DEFAULT_BANNER_LAYOUT);
+        setIsAdjustingBanner(true);
+      }
       if (isOwnProfile) {
         try {
           const uploaded = await uploadProcessedImage(kind, prepared.dataUrl);
-          apply(uploaded.url);
+          if (kind === 'banner') {
+            const withLayout = serializeBannerUrl(uploaded.url, DEFAULT_BANNER_LAYOUT, profileKey);
+            apply(withLayout);
+            onSaveProfile({ bannerUrl: withLayout });
+          } else {
+            apply(uploaded.url);
+          }
         } catch (uploadErr) {
           setErrorMsg(uploadErr instanceof Error ? uploadErr.message : 'Chưa tải được ảnh lên máy chủ.');
         }
@@ -614,6 +650,100 @@ const ProfileModalInner: React.FC<{
     if (file) void processProfileImage(file, 'banner');
   };
 
+  const beginBannerDrag = (e: React.PointerEvent<HTMLElement>) => {
+    if (!isOwnProfile || (!isAdjustingBanner && activeTab !== 'edit')) return;
+    if ((e.target as HTMLElement).closest('button, label, input')) return;
+    e.preventDefault();
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    bannerDragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      origX: bannerLayout.x,
+      origY: bannerLayout.y,
+    };
+    const onMove = (ev: PointerEvent) => {
+      if (!bannerDragRef.current) return;
+      const dx = ev.clientX - bannerDragRef.current.startX;
+      const dy = ev.clientY - bannerDragRef.current.startY;
+      const sensitivity = 100 / Math.max(180, rect.height * bannerLayout.zoom);
+      const nextX = Math.max(0, Math.min(100, Math.round(bannerDragRef.current.origX - dx * sensitivity)));
+      const nextY = Math.max(0, Math.min(100, Math.round(bannerDragRef.current.origY - dy * sensitivity)));
+      setBannerLayout((prev) => ({ ...prev, x: nextX, y: nextY }));
+    };
+    const onUp = () => {
+      bannerDragRef.current = null;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+  };
+
+  const handleBannerWheel = (e: React.WheelEvent<HTMLElement>) => {
+    if (!isOwnProfile || !isAdjustingBanner) return;
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.08 : -0.08;
+    setBannerLayout((prev) => ({
+      ...prev,
+      zoom: Math.round(Math.max(1, Math.min(2.5, prev.zoom + delta)) * 100) / 100,
+    }));
+  };
+
+  const handleSaveBannerLayout = () => {
+    if (!isOwnProfile) return;
+    const raw = bannerUrl || currentUser.bannerUrl || '';
+    const nextUrl = raw ? serializeBannerUrl(raw, bannerLayout, profileKey) : '';
+    setBannerUrl(nextUrl);
+    onSaveProfile({ bannerUrl: nextUrl });
+    setIsAdjustingBanner(false);
+    pushNotification({
+      type: 'system',
+      category: 'system',
+      title: 'Đã lưu vị trí ảnh nền',
+      body: 'Bố cục và vị trí ảnh nền hồ sơ đã được cập nhật.',
+      targetView: 'home',
+    });
+  };
+
+  const handleCropBanner = async () => {
+    const raw = bannerUrl || currentUser.bannerUrl || '';
+    const { cleanSrc } = parseBannerUrl(raw, profileKey);
+    if (!cleanSrc || isCroppingBanner || mediaBusy) return;
+    setIsCroppingBanner(true);
+    setErrorMsg(null);
+    try {
+      const croppedDataUrl = await cropBannerToDataUrl(cleanSrc, bannerLayout);
+      const resetCfg: BannerLayoutConfig = { ...DEFAULT_BANNER_LAYOUT, dim: bannerLayout.dim };
+      setBannerLayout(resetCfg);
+      setBannerUrl(croppedDataUrl);
+      if (isOwnProfile) {
+        try {
+          const uploaded = await uploadProcessedImage('banner', croppedDataUrl);
+          const finalUrl = serializeBannerUrl(uploaded.url, resetCfg, profileKey);
+          setBannerUrl(finalUrl);
+          onSaveProfile({ bannerUrl: finalUrl });
+        } catch {
+          onSaveProfile({ bannerUrl: croppedDataUrl });
+        }
+      }
+      setIsAdjustingBanner(false);
+      pushNotification({
+        type: 'system',
+        category: 'system',
+        title: 'Đã cắt & lưu ảnh nền!',
+        body: 'Ảnh nền đã được cắt theo đúng khung bạn căn chỉnh.',
+        targetView: 'home',
+      });
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Không thể cắt ảnh nền.');
+    } finally {
+      setIsCroppingBanner(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving || mediaBusy) return;
@@ -623,10 +753,11 @@ const ProfileModalInner: React.FC<{
     }
 
     setIsSaving(true);
+    const finalBannerUrl = bannerUrl ? serializeBannerUrl(bannerUrl, bannerLayout, profileKey) : '';
     onSaveProfile({
       name: name.trim().slice(0, 50),
       avatar,
-      bannerUrl,
+      bannerUrl: finalBannerUrl,
       profileGradient,
       bio: bio.trim().slice(0, 100),
       gender,
@@ -677,7 +808,13 @@ const ProfileModalInner: React.FC<{
   };
 
 
-  const effectiveBannerUrl = currentUser.bannerUrl || bannerUrl;
+  const rawEffectiveBanner = isOwnProfile
+    ? bannerUrl || currentUser.bannerUrl || ''
+    : currentUser.bannerUrl || bannerUrl || '';
+  const parsedEffectiveBanner = parseBannerUrl(rawEffectiveBanner, profileKey);
+  const effectiveBannerUrl = parsedEffectiveBanner.cleanSrc;
+  const activeBannerLayout = isOwnProfile ? bannerLayout : parsedEffectiveBanner.layout;
+  const activeBannerImgStyle = bannerImageStyle(activeBannerLayout);
   const effectiveBannerGradient =
     getGradient(resolveProfileGradientId(currentUser.profileGradient || profileGradient)).css;
 
@@ -727,8 +864,29 @@ const ProfileModalInner: React.FC<{
 
       {/* Main Card Container — CodeFronts pc-12 Neumorphic Soft-Shadow Translucent Shell */}
       <div className={`pc-12-shell ff-keep-dark signature-profile ${equippedItem?.category === 'Khung avatar' ? 'signature-profile--frame' : equippedItem?.category === 'Hiệu ứng' ? 'signature-profile--effect' : ''} w-full max-w-3xl rounded-[32px] p-4 sm:p-6 relative z-10 overflow-hidden max-h-[94vh] flex flex-col`}>
+        {/* Lớp nền toàn khung Modal kéo dài từ đỉnh xuống đáy */}
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-[32px]" aria-hidden="true">
+          <GradientSurface gradient={effectiveBannerGradient} className="absolute inset-0 opacity-35" />
+          {effectiveBannerUrl && (
+            <img
+              loading="lazy"
+              decoding="async"
+              src={effectiveBannerUrl}
+              alt=""
+              style={activeBannerImgStyle}
+              className="w-full h-full opacity-35 transition-transform duration-150"
+            />
+          )}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(180deg, rgba(8, 12, 22, 0.45) 0%, rgba(8, 12, 22, ${Math.min(0.92, (activeBannerLayout.dim + 25) / 100)}) 100%)`,
+            }}
+          />
+        </div>
+
         {/* Navigation Tabs Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-white/10 mb-3 gap-2.5 shrink-0">
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-white/10 mb-3 gap-2.5 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee] animate-pulse" />
             <h2 className="text-sm sm:text-base font-extrabold text-white tracking-wide truncate">
@@ -815,14 +973,14 @@ const ProfileModalInner: React.FC<{
         </div>
 
         {errorMsg && (
-          <div className="mb-3 p-2.5 rounded-xl bg-red-950/50 border border-red-500/30 text-xs text-red-300 flex items-center gap-2 shrink-0">
+          <div className="relative z-10 mb-3 p-2.5 rounded-xl bg-red-950/50 border border-red-500/30 text-xs text-red-300 flex items-center gap-2 shrink-0">
             <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {/* Tab Content Container */}
-        <div className="flex-1 overflow-y-auto pr-1 space-y-4 no-scrollbar">
+        <div className="relative z-10 flex-1 overflow-y-auto pr-1 space-y-4 no-scrollbar">
           {/* Shimmer skeleton while the profile content boots (.ssc-01) */}
           {isBooting && (
             <div className="pc-12-card p-4 sm:p-5 space-y-4" role="status" aria-busy="true">
@@ -849,23 +1007,63 @@ const ProfileModalInner: React.FC<{
 
           {!isBooting && activeTab === 'overview' && (
             <div className="space-y-4 ff-tab-panel-enter">
-              {/* Main 3D Rounded Neumorphic Card with Custom Banner / Gradient */}
-              <div className="pc-12-card overflow-hidden">
-                {/* Banner Header (supports uploaded 15MB banner image, custom gradient, or live CSS item banner) */}
-                <div
-                  className={`h-24 sm:h-28 ff-aurora-surface relative overflow-hidden discord-dynamic-banner--${equippedCombo.highestRarity === 'legendary' ? 'mythic' : equippedCombo.highestRarity}`}
-                >
-                  <GradientSurface gradient={effectiveBannerGradient} className="absolute inset-0 opacity-80" />
+              {/* Main 3D Rounded Neumorphic Card with Full-Height Extended Banner / Gradient */}
+              <div className="pc-12-card relative overflow-hidden">
+                {/* Ảnh nền người dùng kéo dài suốt toàn bộ thẻ hồ sơ từ đỉnh xuống tận đáy */}
+                <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
+                  <GradientSurface gradient={effectiveBannerGradient} className="absolute inset-0 opacity-85" />
                   {effectiveBannerUrl ? (
-                    <img loading="lazy" decoding="async"
+                    <img
+                      loading="lazy"
+                      decoding="async"
                       src={effectiveBannerUrl}
-                      alt="Ảnh bìa hồ sơ"
-                      className="w-full h-full object-cover relative z-[1]"
+                      alt=""
+                      style={activeBannerImgStyle}
+                      className="w-full h-full transition-transform duration-150"
                     />
                   ) : (
-                    <div className="absolute inset-0 ff-aurora-bar opacity-25" aria-hidden="true" />
+                    <div className="absolute inset-0 ff-aurora-bar opacity-25" />
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0c1218]/85 via-transparent to-transparent z-[2]" />
+                  <div
+                    className="absolute inset-0 transition-opacity duration-200"
+                    style={{
+                      background: `linear-gradient(180deg, rgba(6, 10, 18, 0.04) 0%, rgba(8, 12, 20, ${Math.max(0.12, (activeBannerLayout.dim - 18) / 100)}) 210px, rgba(8, 12, 20, ${activeBannerLayout.dim / 100}) 420px, rgba(8, 12, 20, ${Math.min(0.88, (activeBannerLayout.dim + 12) / 100)}) 100%)`,
+                    }}
+                  />
+                </div>
+
+                {/* Vùng Hero Ảnh Nền Mở Rộng (Tương tác kéo-thả & thu phóng như ảnh bìa Facebook) */}
+                <div
+                  onPointerDown={beginBannerDrag}
+                  onWheel={handleBannerWheel}
+                  className={`${
+                    isAdjustingBanner ? 'h-48 sm:h-60 cursor-grab active:cursor-grabbing ring-2 ring-cyan-400/70' : 'h-40 sm:h-52'
+                  } relative overflow-hidden transition-all duration-200 select-none discord-dynamic-banner--${
+                    equippedCombo.highestRarity === 'legendary' ? 'mythic' : equippedCombo.highestRarity
+                  }`}
+                >
+                  {/* Hiển thị sắc nét phần đỉnh ảnh nền + hỗ trợ kéo đặt vị trí trực tiếp */}
+                  {effectiveBannerUrl && (
+                    <img
+                      loading="lazy"
+                      decoding="async"
+                      src={effectiveBannerUrl}
+                      alt="Ảnh bìa hồ sơ"
+                      style={activeBannerImgStyle}
+                      className="w-full h-full relative z-[1] pointer-events-none"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#090d16]/55 via-transparent to-black/20 z-[2] pointer-events-none" />
+
+                  {isAdjustingBanner && (
+                    <div className="absolute inset-x-0 top-12 z-[4] flex justify-center pointer-events-none px-3">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 border border-cyan-400/50 text-[11px] font-semibold text-cyan-200 shadow-lg backdrop-blur-md">
+                        <Move className="w-3.5 h-3.5 text-cyan-300" />
+                        <span>Giữ chuột và kéo để căn vị trí ảnh nền · Lăn chuột để thu phóng</span>
+                      </span>
+                    </div>
+                  )}
+
                   {equippedItem && (
                     <span
                       className="signature-equipped absolute top-2.5 left-3 z-[3]"
@@ -886,19 +1084,169 @@ const ProfileModalInner: React.FC<{
                     </button>
                   )}
                   {isOwnProfile && (
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('edit')}
-                      className="pc-12-btn absolute top-2.5 right-3 z-[3] px-2.5 py-1 rounded-full text-[10px] font-mono text-white/90 hover:text-amber-300 flex items-center gap-1 cursor-pointer backdrop-blur-md"
-                      title="Đổi ảnh bìa (tối đa 15MB)"
-                    >
-                      <ImageIcon className="w-3 h-3 text-amber-400" />
-                      <span>Đổi ảnh bìa</span>
-                    </button>
+                    <div className="absolute top-2.5 right-3 z-[4] flex items-center gap-1.5 flex-wrap justify-end">
+                      <label
+                        htmlFor="overview-banner-upload"
+                        className="pc-12-btn px-2.5 py-1 rounded-full text-[10px] font-mono text-white/95 hover:text-amber-300 flex items-center gap-1 cursor-pointer backdrop-blur-md bg-black/55"
+                        title="Tải ảnh nền mới (tối đa 25MB)"
+                      >
+                        <ImageIcon className="w-3 h-3 text-amber-400" />
+                        <span>{mediaBusy === 'banner' ? 'Đang tải…' : 'Đổi ảnh bìa'}</span>
+                      </label>
+                      <input
+                        id="overview-banner-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBannerChange}
+                        className="hidden"
+                      />
+                      {effectiveBannerUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setIsAdjustingBanner((v) => !v)}
+                          className={`pc-12-btn px-2.5 py-1 rounded-full text-[10px] font-mono flex items-center gap-1 cursor-pointer backdrop-blur-md ${
+                            isAdjustingBanner
+                              ? 'bg-cyan-500 text-slate-950 font-bold border-cyan-300'
+                              : 'bg-black/55 text-cyan-200 hover:text-white'
+                          }`}
+                          title="Chỉnh vị trí, thu phóng hoặc cắt ảnh nền như Facebook"
+                        >
+                          <Crop className="w-3 h-3" />
+                          <span>{isAdjustingBanner ? 'Đang chỉnh ảnh' : 'Chỉnh vị trí / Crop'}</span>
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
 
-                <div className="p-4 sm:p-5 space-y-4">
+                {/* Thanh công cụ chỉnh vị trí, thu phóng & cắt ảnh nền kiểu Facebook */}
+                {isOwnProfile && isAdjustingBanner && effectiveBannerUrl && (
+                  <div className="relative z-20 mx-3 sm:mx-5 mt-2 p-3 rounded-2xl bg-[#0b111e]/92 border border-cyan-400/40 backdrop-blur-xl shadow-2xl space-y-2.5 animate-fade-up">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                      <span className="font-bold text-cyan-200 flex items-center gap-1.5">
+                        <Move className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Căn chỉnh &amp; Cắt ảnh nền (Tâm: {bannerLayout.x}% · {bannerLayout.y}%)</span>
+                      </span>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => setBannerLayout((prev) => ({ ...prev, fit: 'cover' }))}
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold cursor-pointer border transition ${
+                            bannerLayout.fit === 'cover'
+                              ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200'
+                              : 'bg-white/5 border-white/10 text-neutral-300 hover:text-white'
+                          }`}
+                        >
+                          Phủ kín xuống dưới
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBannerLayout((prev) => ({ ...prev, fit: 'contain' }))}
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold cursor-pointer border transition ${
+                            bannerLayout.fit === 'contain'
+                              ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200'
+                              : 'bg-white/5 border-white/10 text-neutral-300 hover:text-white'
+                          }`}
+                        >
+                          Vừa trọn khung
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBannerLayout((prev) => ({ ...prev, x: 50, y: 0 }))}
+                          className="px-2 py-0.5 rounded-lg text-[10px] bg-white/5 hover:bg-white/12 border border-white/10 text-neutral-300 cursor-pointer"
+                        >
+                          Căn đỉnh
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBannerLayout((prev) => ({ ...prev, x: 50, y: 50 }))}
+                          className="px-2 py-0.5 rounded-lg text-[10px] bg-white/5 hover:bg-white/12 border border-white/10 text-neutral-300 cursor-pointer"
+                        >
+                          Căn giữa
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBannerLayout((prev) => ({ ...prev, x: 50, y: 100 }))}
+                          className="px-2 py-0.5 rounded-lg text-[10px] bg-white/5 hover:bg-white/12 border border-white/10 text-neutral-300 cursor-pointer"
+                        >
+                          Căn đáy
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
+                      <label className="flex items-center gap-2 text-neutral-300">
+                        <ZoomOut className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
+                        <span className="shrink-0 w-20 font-mono text-[10.5px]">
+                          Phóng: {Math.round(bannerLayout.zoom * 100)}%
+                        </span>
+                        <input
+                          type="range"
+                          min={100}
+                          max={250}
+                          step={2}
+                          value={Math.round(bannerLayout.zoom * 100)}
+                          onChange={(e) =>
+                            setBannerLayout((prev) => ({ ...prev, zoom: Number(e.target.value) / 100 }))
+                          }
+                          className="flex-1 accent-cyan-400 cursor-pointer"
+                        />
+                        <ZoomIn className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
+                      </label>
+
+                      <label className="flex items-center gap-2 text-neutral-300">
+                        <span className="shrink-0 w-28 font-mono text-[10.5px]">
+                          Độ rõ nền dưới: {100 - bannerLayout.dim}%
+                        </span>
+                        <input
+                          type="range"
+                          min={15}
+                          max={90}
+                          step={5}
+                          value={100 - bannerLayout.dim}
+                          onChange={(e) =>
+                            setBannerLayout((prev) => ({ ...prev, dim: 100 - Number(e.target.value) }))
+                          }
+                          className="flex-1 accent-amber-400 cursor-pointer"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/10 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setBannerLayout(DEFAULT_BANNER_LAYOUT)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/12 border border-white/10 text-[11px] text-neutral-300 cursor-pointer"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>Đặt lại mặc định</span>
+                      </button>
+
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => void handleCropBanner()}
+                          disabled={isCroppingBanner || mediaBusy === 'banner'}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/45 text-[11px] font-bold text-amber-200 cursor-pointer disabled:opacity-50"
+                          title="Cắt ảnh thật theo đúng khung đang hiển thị và lưu lên máy chủ"
+                        >
+                          <Crop className="w-3.5 h-3.5" />
+                          <span>{isCroppingBanner ? 'Đang cắt ảnh…' : 'Cắt ảnh theo khung (Crop)'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveBannerLayout}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-[11px] font-extrabold shadow-md cursor-pointer"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Lưu vị trí</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="relative z-10 p-4 sm:p-5 space-y-4">
                   {/* A. Khối Đầu Trang (Header Thông Tin Cá Nhân — Căn giữa Avatar & Nametag chuẩn chỉnh) */}
                   <div className="space-y-4 pb-4 border-b border-white/10">
                     {/* Thanh thao tác góc trên + Avatar 150px căn giữa nổi bật trên Banner */}
@@ -1894,51 +2242,156 @@ const ProfileModalInner: React.FC<{
           {activeTab === 'edit' && isOwnProfile && (
             <form onSubmit={handleSubmit} className="space-y-4 ff-tab-panel-enter">
               {/* Banner & Avatar Live Preview Card */}
-              <div className="pc-12-card overflow-hidden">
-                {/* Banner Preview & Upload (Max 15MB) */}
+              <div className="pc-12-card relative overflow-hidden">
+                {/* Ảnh nền xem trước kéo dài xuống toàn bộ thẻ chỉnh sửa */}
+                <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
+                  <GradientSurface gradient={profileGradient} className="absolute inset-0 opacity-85" />
+                  {effectiveBannerUrl && (
+                    <img
+                      loading="lazy"
+                      decoding="async"
+                      src={effectiveBannerUrl}
+                      alt=""
+                      style={activeBannerImgStyle}
+                      className="w-full h-full opacity-55 transition-transform duration-150"
+                    />
+                  )}
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: `linear-gradient(180deg, rgba(6, 10, 18, 0.1) 0%, rgba(8, 12, 20, ${activeBannerLayout.dim / 100}) 210px, rgba(8, 12, 20, 0.85) 100%)`,
+                    }}
+                  />
+                </div>
+
+                {/* Banner Preview & Upload (Max 25MB + Kéo chuột đặt vị trí kiểu Facebook) */}
                 <div
-                  className="relative h-28 sm:h-32 overflow-hidden group"
+                  onPointerDown={beginBannerDrag}
+                  onWheel={handleBannerWheel}
+                  className="relative h-40 sm:h-52 overflow-hidden group cursor-grab active:cursor-grabbing select-none"
                 >
                   <GradientSurface gradient={profileGradient} className="absolute inset-0" />
-                  {bannerUrl ? (
-                    <img loading="lazy" decoding="async"
-                      src={bannerUrl}
+                  {effectiveBannerUrl ? (
+                    <img
+                      loading="lazy"
+                      decoding="async"
+                      src={effectiveBannerUrl}
                       alt="Ảnh bìa xem trước"
-                      className="w-full h-full object-cover"
+                      style={activeBannerImgStyle}
+                      className="w-full h-full pointer-events-none"
                     />
                   ) : (
                     <div className="absolute inset-0 ff-aurora-bar opacity-25" aria-hidden="true" />
                   )}
-                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/45 transition-colors flex items-center justify-center gap-2">
-                    <label
-                      htmlFor="banner-upload"
-                      className="pc-12-btn px-3.5 py-1.5 rounded-full text-xs font-bold text-white hover:text-amber-300 flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
-                    >
-                      <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
-                      <span>{mediaBusy === 'banner' ? 'Đang xử lý ảnh bìa…' : 'Tải ảnh bìa (tối đa 25MB)'}</span>
-                    </label>
-                    {bannerUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setBannerUrl('')}
-                        className="pc-12-btn p-1.5 rounded-full text-rose-300 hover:text-rose-200 cursor-pointer"
-                        title="Gỡ ảnh bìa"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                  <div className="absolute inset-0 bg-black/25 group-hover:bg-black/40 transition-colors flex flex-col items-center justify-center gap-2 px-3">
+                    {effectiveBannerUrl && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/70 border border-cyan-400/45 text-[11px] font-medium text-cyan-200 pointer-events-none">
+                        <Move className="w-3.5 h-3.5 text-cyan-300" />
+                        <span>Giữ chuột kéo để căn vị trí ảnh nền ({bannerLayout.x}% · {bannerLayout.y}%)</span>
+                      </span>
                     )}
-                    <input
-                      id="banner-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleBannerChange}
-                      className="hidden"
-                    />
+                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                      <label
+                        htmlFor="banner-upload"
+                        className="pc-12-btn px-3.5 py-1.5 rounded-full text-xs font-bold text-white hover:text-amber-300 flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
+                      >
+                        <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
+                        <span>{mediaBusy === 'banner' ? 'Đang xử lý ảnh bìa…' : 'Tải ảnh bìa (tối đa 25MB)'}</span>
+                      </label>
+                      {effectiveBannerUrl && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => void handleCropBanner()}
+                            disabled={isCroppingBanner || mediaBusy === 'banner'}
+                            className="pc-12-btn px-3 py-1.5 rounded-full text-xs font-bold text-amber-200 hover:text-amber-100 flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
+                            title="Cắt ảnh theo vùng đang căn chỉnh"
+                          >
+                            <Crop className="w-3.5 h-3.5 text-amber-300" />
+                            <span>{isCroppingBanner ? 'Đang cắt…' : 'Cắt ảnh (Crop)'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBannerUrl('');
+                              setBannerLayout(DEFAULT_BANNER_LAYOUT);
+                            }}
+                            className="pc-12-btn p-1.5 rounded-full text-rose-300 hover:text-rose-200 cursor-pointer"
+                            title="Gỡ ảnh bìa"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      )}
+                      <input
+                        id="banner-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBannerChange}
+                        className="hidden"
+                      />
+                    </div>
                   </div>
                 </div>
 
+                {/* Thanh điều chỉnh thu phóng & chế độ hiển thị ảnh nền trong tab F-ID */}
+                {effectiveBannerUrl && (
+                  <div className="relative z-10 px-4 py-2.5 bg-black/45 border-b border-white/10 flex flex-wrap items-center justify-between gap-3 text-[11px]">
+                    <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                      <ZoomOut className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
+                      <span className="font-mono text-[10.5px] text-neutral-300 w-20 shrink-0">
+                        Zoom {Math.round(bannerLayout.zoom * 100)}%
+                      </span>
+                      <input
+                        type="range"
+                        min={100}
+                        max={250}
+                        step={2}
+                        value={Math.round(bannerLayout.zoom * 100)}
+                        onChange={(e) =>
+                          setBannerLayout((prev) => ({ ...prev, zoom: Number(e.target.value) / 100 }))
+                        }
+                        className="flex-1 accent-cyan-400 cursor-pointer"
+                      />
+                      <ZoomIn className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setBannerLayout((prev) => ({ ...prev, fit: 'cover' }))}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border cursor-pointer ${
+                          bannerLayout.fit === 'cover'
+                            ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200'
+                            : 'bg-white/5 border-white/10 text-neutral-300'
+                        }`}
+                      >
+                        Phủ kín xuống dưới
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBannerLayout((prev) => ({ ...prev, fit: 'contain' }))}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border cursor-pointer ${
+                          bannerLayout.fit === 'contain'
+                            ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200'
+                            : 'bg-white/5 border-white/10 text-neutral-300'
+                        }`}
+                      >
+                        Vừa khung
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBannerLayout(DEFAULT_BANNER_LAYOUT)}
+                        className="px-2 py-0.5 rounded-lg text-[10px] bg-white/5 hover:bg-white/12 border border-white/10 text-neutral-300 cursor-pointer"
+                      >
+                        Đặt lại
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Avatar & Horizontal Banner Gradient Picker */}
-                <div className="p-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-4">
+                <div className="relative z-10 p-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3.5">
                     <div className="relative group shrink-0 -mt-10">
                       <img
