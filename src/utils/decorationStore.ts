@@ -19,9 +19,13 @@ import {
 const CATALOG_PATH = '/assets/decorations/decorations-catalog.json';
 
 let catalogPromise: Promise<DecorationCatalog | null> | null = null;
+let resolvedCatalog: DecorationCatalog | null = null;
+let resolvedItems: ShopItem[] = [];
+let resolvedByIdMap: Map<string, ShopItem> = new Map();
 
 /** Fetch catalog (cache bộ nhớ). Lỗi → null (shop tự động chỉ hiện item SVG cũ). */
 export const loadDecorationCatalog = (): Promise<DecorationCatalog | null> => {
+  if (resolvedCatalog) return Promise.resolve(resolvedCatalog);
   if (!catalogPromise) {
     catalogPromise = fetch(resolveAssetUrl(CATALOG_PATH) || CATALOG_PATH, { cache: 'force-cache' })
       .then((res) => (res.ok ? (res.json() as Promise<DecorationCatalog>) : null))
@@ -29,6 +33,9 @@ export const loadDecorationCatalog = (): Promise<DecorationCatalog | null> => {
       .then((catalog) => {
         if (catalog && Array.isArray(catalog.items) && catalog.items.length) {
           const items = catalogToShopItems(catalog);
+          resolvedCatalog = catalog;
+          resolvedItems = items;
+          resolvedByIdMap = new Map(items.map((item) => [item.id, item]));
           setDecorationPool(items);
         }
         return catalog;
@@ -37,11 +44,12 @@ export const loadDecorationCatalog = (): Promise<DecorationCatalog | null> => {
   return catalogPromise;
 };
 
-/** Hook: catalog + danh sách item decoration đã map sang ShopItem. */
+/** Hook: catalog + danh sách item decoration đã map sang ShopItem (singleton O(1) map). */
 export const useDecorationCatalog = () => {
-  const [catalog, setCatalog] = useState<DecorationCatalog | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [catalog, setCatalog] = useState<DecorationCatalog | null>(() => resolvedCatalog);
+  const [loading, setLoading] = useState<boolean>(() => !resolvedCatalog);
   useEffect(() => {
+    if (resolvedCatalog) return;
     let alive = true;
     loadDecorationCatalog().then((c) => {
       if (!alive) return;
@@ -52,8 +60,19 @@ export const useDecorationCatalog = () => {
       alive = false;
     };
   }, []);
-  const items = useMemo(() => (catalog ? catalogToShopItems(catalog) : []), [catalog]);
-  return { catalog, items, loading, setDecorationPool };
+  const activeCatalog = catalog ?? resolvedCatalog;
+  const items = useMemo(
+    () => (activeCatalog ? (activeCatalog === resolvedCatalog ? resolvedItems : catalogToShopItems(activeCatalog)) : []),
+    [activeCatalog],
+  );
+  const byId = useMemo(
+    () =>
+      activeCatalog === resolvedCatalog && resolvedByIdMap.size > 0
+        ? resolvedByIdMap
+        : new Map(items.map((item) => [item.id, item])),
+    [activeCatalog, items],
+  );
+  return { catalog: activeCatalog, items, byId, loading: !activeCatalog && loading, setDecorationPool };
 };
 
 /**
@@ -77,17 +96,16 @@ export const resolveUserDecorations = (
 
 /** Hook tiện dụng: slot → ShopItem của user hiện tại (catalog chưa có → null). */
 export const useUserDecorations = (user: Pick<User, 'inventory' | 'equippedDecorations'> | null | undefined) => {
-  const { items } = useDecorationCatalog();
+  const { items, byId } = useDecorationCatalog();
   return useMemo(() => {
     const slots = resolveUserDecorations(user, items);
-    const byId = new Map(items.map((item) => [item.id, item]));
     return {
       slots,
       frame: slots.avatar_frame ? byId.get(slots.avatar_frame) || null : null,
       aura: slots.avatar_aura ? byId.get(slots.avatar_aura) || null : null,
       nameplate: slots.nameplate ? byId.get(slots.nameplate) || null : null,
     };
-  }, [user, items]);
+  }, [user, items, byId]);
 };
 
 /* ---- Năng lực trình duyệt ---- */
@@ -107,11 +125,12 @@ export const supportsWebmAlpha = (): boolean => cachedFeatures?.webmAlpha ?? fal
 /* ---- Cache blob URL (RAM) — video WebM alpha không chạy được qua HTTP cache của <video> ---- */
 
 const blobCache = new Map<string, string>();
+const inflightBlobPromises = new Map<string, Promise<string | null>>();
 let blobCount = 0;
 const MAX_BLOBS = 80;
 
 const revokeIfNotUsed = () => {
-  /* Không revoke ngay: <video> có thể đang đọc. Revoked khi vượt trần. */
+  /* Không revoke ngay: phần tử phát media có thể đang đọc. Revoked khi vượt trần. */
   if (blobCount > MAX_BLOBS && blobCache.size) {
     const first = blobCache.keys().next().value as string | undefined;
     if (first) {
@@ -126,24 +145,32 @@ const revokeIfNotUsed = () => {
   }
 };
 
-/** Tải asset (webm/webp/png) về blob URL, cache RAM — dùng cho <video>/<img> ổn định. */
+/** Tải asset (webm/webp/png) về blob URL, cache RAM + deduplicate in-flight request. */
 export const loadCachedAsset = async (url: string | null): Promise<string | null> => {
   if (!url) return null;
   const absolute = resolveAssetUrl(url) || url;
   if (blobCache.has(absolute)) return blobCache.get(absolute) || null;
-  try {
-    const res = await fetch(absolute, { cache: 'force-cache' });
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    if (!blob.size) return null;
-    const objectUrl = URL.createObjectURL(blob);
-    blobCache.set(absolute, objectUrl);
-    blobCount += 1;
-    revokeIfNotUsed();
-    return objectUrl;
-  } catch {
-    return null;
-  }
+  const inflight = inflightBlobPromises.get(absolute);
+  if (inflight) return inflight;
+  const request = (async (): Promise<string | null> => {
+    try {
+      const res = await fetch(absolute, { cache: 'force-cache' });
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      if (!blob.size) return null;
+      const objectUrl = URL.createObjectURL(blob);
+      blobCache.set(absolute, objectUrl);
+      blobCount += 1;
+      revokeIfNotUsed();
+      return objectUrl;
+    } catch {
+      return null;
+    } finally {
+      inflightBlobPromises.delete(absolute);
+    }
+  })();
+  inflightBlobPromises.set(absolute, request);
+  return request;
 };
 
 /** Preload một vài asset (dùng cho avatar của chính user — hiện ngay khi mở tab). */
@@ -160,12 +187,14 @@ export const preloadDecorations = (urls: Array<string | null | undefined>): void
  *  hết phiên mà không bao giờ thử lại. Tự retry tối đa 3 lần, cách nhau 2s. */
 export const useCachedAsset = (url: string | null, enabled: boolean = true): readonly [string | null, () => void] => {
   const target = enabled ? url : null;
+  const resolvedTarget = target ? resolveAssetUrl(target) || target : null;
+  const syncHit = resolvedTarget ? blobCache.get(resolvedTarget) ?? null : null;
   const [cache, setCache] = useState<Record<string, string | null>>({});
   const [attempt, setAttempt] = useState(0);
   const failCountRef = useRef<Record<string, number>>({});
   useEffect(() => {
     if (!target) return;
-    if (target in cache) return;
+    if (syncHit || target in cache) return;
     let alive = true;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     loadCachedAsset(target).then((objectUrl) => {
@@ -186,7 +215,7 @@ export const useCachedAsset = (url: string | null, enabled: boolean = true): rea
       alive = false;
       if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [target, attempt, cache]);
+  }, [target, syncHit, attempt, cache]);
   const retry = useCallback(() => {
     if (target) setCache((prev) => {
       const next = { ...prev };
@@ -195,7 +224,7 @@ export const useCachedAsset = (url: string | null, enabled: boolean = true): rea
     });
     setAttempt((n) => n + 1);
   }, [target]);
-  return [target ? (target in cache ? cache[target] : null) : null, retry] as const;
+  return [target ? syncHit ?? (target in cache ? cache[target] : null) : null, retry] as const;
 };
 
 export { getDecorationPool };

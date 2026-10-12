@@ -137,34 +137,58 @@ export const DecoratedName = ({
   const { nameplate } = useUserDecorations(user);
   const asset = overrideAsset !== undefined ? overrideAsset : shopItemToAsset(nameplate);
   const height = customHeight ?? Math.max(24, Math.round((width * 84) / 448));
-  const fontSize = height <= 30 ? '11.5px' : height <= 35 ? '12.5px' : undefined;
-  const horizontalPad = height <= 30 ? '10px' : height <= 35 ? '12px' : undefined;
+  const len = name.trim().length;
+  const charPx = height <= 28 ? 7.6 : height <= 34 ? 8.3 : 9.0;
+  const adaptiveWidth = Math.max(width, Math.min(340, Math.ceil(len * charPx + 28)));
+  const fontSize =
+    len > 24
+      ? '10.5px'
+      : len > 18
+      ? '11px'
+      : height <= 30
+      ? '11.5px'
+      : height <= 35
+      ? '12.5px'
+      : undefined;
+  const horizontalPad = len > 18 ? '8px' : height <= 30 ? '10px' : height <= 35 ? '12px' : undefined;
+  const boxStyle: React.CSSProperties = {
+    minWidth: Math.min(width, 116),
+    width: adaptiveWidth,
+    maxWidth: '100%',
+    height,
+    aspectRatio: 'auto',
+    paddingLeft: horizontalPad,
+    paddingRight: horizontalPad,
+  };
 
   if (!asset) {
     if (!showFallbackTag) {
-      return <span className={className}>{name}</span>;
+      return <span className={className} title={name}>{name}</span>;
     }
     return (
       <span
         className={`npd-np npd-np--default${className ? ` ${className}` : ''}`}
-        style={{ width, height, paddingLeft: horizontalPad, paddingRight: horizontalPad }}
+        style={boxStyle}
+        title={name}
       >
         <span className="npd-np__text" style={fontSize ? { fontSize } : undefined}>{name}</span>
       </span>
     );
   }
   /*
-   * CHUẨN DISCORD: container inline-flex căn giữa theo cả 2 trục, tỉ lệ 448:84
-   * cố định — tên luôn nằm chính giữa bảng tên, không lệch góc, không đè viền.
+   * CHUẨN DISCORD: container inline-flex căn giữa theo cả 2 trục, tự mở rộng
+   * bề ngang theo độ dài tên (tới tối đa khung chứa) để tên dài không bị cắt "..."
+   * trong phòng chat.
    */
   return (
     <span
       className={`npd-np${className ? ` ${className}` : ''}`}
-      style={{ width, height, paddingLeft: horizontalPad, paddingRight: horizontalPad }}
+      style={boxStyle}
+      title={name}
     >
       <NameplateDisplay
         asset={asset}
-        size={width}
+        size={adaptiveWidth}
         animate={animate}
         eager={eager}
         priority={priority}

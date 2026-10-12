@@ -161,7 +161,8 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
   return (
     <div
       ref={rootRef}
-      className={`ccm-02 ${adminAccess ? 'block' : 'hidden md:block'} fixed ${posClass} z-40 select-none`}
+      className={`ccm-02 block fixed ${posClass} z-40 select-none`}
+      data-count={actions.length}
       aria-label="Menu tác vụ nhanh"
     >
       <input
@@ -172,30 +173,47 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
         aria-label="Mở menu tác vụ nhanh"
       />
 
-      {actions.map((action, idx) => (
-        <button
-          key={action.id}
-          type="button"
-          data-tier={action.tier}
-          style={
-            {
-              '--i': idx,
-              '--a': action.angle,
-            } as React.CSSProperties
-          }
-          onClick={() => {
-            close();
-            action.onSelect();
-          }}
-          className={`ccm-02__item group absolute inset-0 m-auto w-[53px] h-[53px] rounded-full bg-[#131926]/95 border border-white/15 text-slate-200 flex items-center justify-center shadow-[0_14px_34px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.1)] hover:border-cyan-400/50 hover:text-cyan-300 cursor-pointer ${action.extraClass ?? ''}`}
-          aria-label={action.label}
-          title={action.label}
-        >
-          {action.icon}
-          {action.badge}
-          <span className="ccm-02__tip">{action.label}</span>
-        </button>
-      ))}
+      {actions.map((action, idx) => {
+        /* Tự thích nghi theo số lượng nút thực tế (4 nút cho user thường, 5 nút cho Admin):
+           chia đều cung 90° (-90° → 0°) và xen kẽ bán kính far/near để:
+           1) Không bao giờ để trống hốc ở giữa khi ẩn Bảng thống kê quản trị,
+           2) Nút Streak lửa (idx = 0) luôn vươn lên tầng 'far' (-90°, r=164px), cao hơn hẳn
+              nút kế bên nên không bao giờ bị nút khác hay icon tia sét che khuất. */
+        const spanDeg = 90;
+        const stepDeg = actions.length > 1 ? spanDeg / (actions.length - 1) : 0;
+        const adaptiveAngle = `${(-90 + idx * stepDeg).toFixed(2)}deg`;
+        const adaptiveTier: 'near' | 'far' =
+          action.id === 'admin'
+            ? ('far' as const)
+            : idx % 2 === 0
+            ? 'far'
+            : 'near';
+
+        return (
+          <button
+            key={action.id}
+            type="button"
+            data-tier={adaptiveTier}
+            style={
+              {
+                '--i': idx,
+                '--a': adaptiveAngle,
+              } as React.CSSProperties
+            }
+            onClick={() => {
+              close();
+              action.onSelect();
+            }}
+            className={`ccm-02__item group absolute inset-0 m-auto w-[53px] h-[53px] rounded-full bg-[#131926]/95 border border-white/15 text-slate-200 flex items-center justify-center shadow-[0_14px_34px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.1)] hover:border-cyan-400/50 hover:text-cyan-300 cursor-pointer ${action.extraClass ?? ''}`}
+            aria-label={action.label}
+            title={action.label}
+          >
+            {action.icon}
+            {action.badge}
+            <span className="ccm-02__tip">{action.label}</span>
+          </button>
+        );
+      })}
 
       <label
         htmlFor={toggleId}
@@ -203,6 +221,13 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
         title="Tác vụ nhanh (Zap)"
       >
         <Zap className="w-6 h-6 transition-transform duration-300" />
+        <span
+          className="ccm-02__hub-streak pointer-events-none"
+          aria-hidden="true"
+        >
+          <Flame className="w-3.5 h-3.5 text-rose-400 drop-shadow-[0_0_6px_rgba(244,63,94,0.8)]" />
+          {streakCount > 0 && <span>{streakCount > 99 ? '99+' : streakCount}</span>}
+        </span>
       </label>
     </div>
   );
