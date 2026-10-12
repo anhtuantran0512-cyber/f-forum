@@ -300,6 +300,8 @@ export interface ShopItem {
   nameEn?: string;
   originalName?: string;
   slug?: string;
+  /** Điểm chất lượng 0–100 (Nhiệm vụ 10 — score-quality.mjs). */
+  qualityScore?: number;
 }
 
 export interface ReportSubmission {

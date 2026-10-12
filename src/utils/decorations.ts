@@ -15,6 +15,8 @@ export interface DecorationCatalogEntry {
   originalName: string;
   type: DecorationType;
   rarity: DecorationRarity;
+  /** Điểm chất lượng 0–100 (score-quality.mjs) — xếp hạng trong Boutique. */
+  qualityScore?: number;
   assetPath: {
     /** preview.webp (~128px) — url gốc tuyệt đối /assets/decorations/... */
     preview: string;
@@ -91,6 +93,7 @@ export const catalogEntryToShopItem = (entry: DecorationCatalogEntry): ShopItem 
     isAnimated: entry.isAnimated,
     isActive: entry.isActive,
     tags: entry.tags,
+    qualityScore: entry.qualityScore,
   };
 };
 
