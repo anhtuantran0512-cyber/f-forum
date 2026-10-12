@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1400" fill="none">
+  <defs>
+    <linearGradient id="goldSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1c1026"/>
+      <stop offset="28%" stop-color="#451a3e"/>
+      <stop offset="56%" stop-color="#7c2d12"/>
+      <stop offset="82%" stop-color="#431407"/>
+      <stop offset="100%" stop-color="#14090e"/>
+    </linearGradient>
+    <radialGradient id="sunGlow" cx="50%" cy="32%" r="52%">
+      <stop offset="0%" stop-color="#fde047" stop-opacity="0.62"/>
+      <stop offset="38%" stop-color="#f97316" stop-opacity="0.34"/>
+      <stop offset="100%" stop-color="#7c2d12" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="1400" fill="url(#goldSky)"/>
+  <rect width="1200" height="1400" fill="url(#sunGlow)"/>
+  <circle cx="600" cy="390" r="140" fill="#fde047" fill-opacity="0.24"/>
+  <circle cx="600" cy="390" r="88" fill="#fef08a" fill-opacity="0.78"/>
+  <path d="M0 490 L210 380 L430 470 L640 350 L870 460 L1060 370 L1200 440 L1200 1400 L0 1400 Z" fill="#2e1022" fill-opacity="0.62"/>
+  <path d="M0 820 L250 700 L520 810 L790 670 L1020 790 L1200 710 L1200 1400 L0 1400 Z" fill="#1f0b18" fill-opacity="0.72"/>
+  <path d="M0 1130 L280 1010 L590 1120 L890 990 L1200 1090 L1200 1400 L0 1400 Z" fill="#12060e" fill-opacity="0.82"/>
+</svg>

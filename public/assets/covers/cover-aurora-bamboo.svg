@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1400" fill="none">
+  <defs>
+    <linearGradient id="sky" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#041b2d"/>
+      <stop offset="32%" stop-color="#06394c"/>
+      <stop offset="68%" stop-color="#0a2e36"/>
+      <stop offset="100%" stop-color="#05131d"/>
+    </linearGradient>
+    <radialGradient id="aurora1" cx="30%" cy="22%" r="60%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.52"/>
+      <stop offset="45%" stop-color="#06b6d4" stop-opacity="0.24"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="aurora2" cx="78%" cy="48%" r="55%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.34"/>
+      <stop offset="50%" stop-color="#10b981" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#041b2d" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="aurora3" cx="50%" cy="82%" r="55%">
+      <stop offset="0%" stop-color="#2dd4bf" stop-opacity="0.32"/>
+      <stop offset="60%" stop-color="#0ea5e9" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#05131d" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="mountain1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0f4c5c" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#071e26" stop-opacity="0.95"/>
+    </linearGradient>
+    <linearGradient id="mountain2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0b3842" stop-opacity="0.88"/>
+      <stop offset="100%" stop-color="#041218" stop-opacity="0.98"/>
+    </linearGradient>
+    <linearGradient id="bambooGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#6ee7b7" stop-opacity="0.65"/>
+      <stop offset="50%" stop-color="#10b981" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#064e3b" stop-opacity="0.7"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="1400" fill="url(#sky)"/>
+  <rect width="1200" height="1400" fill="url(#aurora1)"/>
+  <rect width="1200" height="1400" fill="url(#aurora2)"/>
+  <rect width="1200" height="1400" fill="url(#aurora3)"/>
+
+  <!-- Flowing Aurora Ribbons -->
+  <path d="M-100 220 C240 80, 520 360, 880 180 C1040 100, 1180 210, 1300 150 L1300 420 C1060 470, 840 280, 520 430 C240 550, 80 330, -100 420 Z" fill="#34d399" fill-opacity="0.16"/>
+  <path d="M-80 520 C260 390, 620 670, 960 480 C1120 390, 1210 480, 1300 440 L1300 720 C1040 760, 760 580, 440 710 C180 820, 40 650, -80 700 Z" fill="#38bdf8" fill-opacity="0.12"/>
+  <path d="M-80 920 C280 790, 640 1060, 980 880 C1130 800, 1220 890, 1300 840 L1300 1140 C1040 1180, 760 980, 440 1120 C180 1230, 40 1050, -80 1100 Z" fill="#fbbf24" fill-opacity="0.1"/>
+
+  <!-- Full Moon & Halo -->
+  <circle cx="920" cy="240" r="145" fill="#fef3c7" fill-opacity="0.08"/>
+  <circle cx="920" cy="240" r="95" fill="#fde68a" fill-opacity="0.16"/>
+  <circle cx="920" cy="240" r="56" fill="#fef9c3" fill-opacity="0.82"/>
+
+  <!-- Distant Layered Mountains across upper, mid, and lower canvas -->
+  <path d="M0 460 L180 340 L370 430 L590 290 L810 420 L1020 310 L1200 410 L1200 1400 L0 1400 Z" fill="url(#mountain1)" fill-opacity="0.55"/>
+  <path d="M0 780 L230 650 L450 760 L710 610 L940 740 L1200 620 L1200 1400 L0 1400 Z" fill="url(#mountain2)" fill-opacity="0.65"/>
+  <path d="M0 1120 L260 990 L520 1090 L820 960 L1060 1070 L1200 980 L1200 1400 L0 1400 Z" fill="#031017" fill-opacity="0.72"/>
+
+  <!-- Tall Vietnamese Bamboo Stalks Spanning Full Height -->
+  <g stroke="url(#bambooGlow)" stroke-linecap="round">
+    <path d="M96 1400 C104 1050, 82 680, 128 80" stroke-width="12"/>
+    <path d="M154 1400 C166 1080, 148 720, 198 160" stroke-width="8"/>
+    <path d="M1110 1400 C1094 1040, 1118 660, 1068 60" stroke-width="13"/>
+    <path d="M1048 1400 C1032 1080, 1052 740, 1004 190" stroke-width="8.5"/>
+  </g>
+
+  <!-- Bamboo Leaves & Fireflies -->
+  <g fill="#6ee7b7" fill-opacity="0.48">
+    <path d="M118 240 C162 225, 195 245, 224 275 C182 272, 148 258, 118 240 Z"/>
+    <path d="M112 390 C68 375, 42 392, 14 422 C54 418, 86 406, 112 390 Z"/>
+    <path d="M178 520 C222 505, 255 525, 284 555 C242 552, 208 538, 178 520 Z"/>
+    <path d="M1082 280 C1038 265, 1005 285, 976 315 C1018 312, 1052 298, 1082 280 Z"/>
+    <path d="M1086 470 C1130 455, 1158 472, 1186 502 C1146 498, 1112 486, 1086 470 Z"/>
+    <path d="M1022 690 C978 675, 945 695, 916 725 C958 722, 992 708, 1022 690 Z"/>
+  </g>
+
+  <!-- Glowing Fireflies Distributed Top to Bottom -->
+  <g fill="#fde68a">
+    <circle cx="260" cy="180" r="4" fill-opacity="0.85"/>
+    <circle cx="480" cy="260" r="3" fill-opacity="0.7"/>
+    <circle cx="720" cy="160" r="4.5" fill-opacity="0.8"/>
+    <circle cx="340" cy="490" r="5" fill-opacity="0.75"/>
+    <circle cx="840" cy="540" r="3.5" fill-opacity="0.8"/>
+    <circle cx="610" cy="690" r="4" fill-opacity="0.75"/>
+    <circle cx="230" cy="840" r="4.5" fill-opacity="0.8"/>
+    <circle cx="920" cy="880" r="5" fill-opacity="0.75"/>
+    <circle cx="470" cy="1040" r="3.5" fill-opacity="0.7"/>
+    <circle cx="780" cy="1180" r="4.5" fill-opacity="0.85"/>
+    <circle cx="310" cy="1260" r="4" fill-opacity="0.75"/>
+  </g>
+</svg>

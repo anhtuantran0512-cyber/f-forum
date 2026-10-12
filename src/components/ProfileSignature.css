@@ -1,6 +1,6 @@
 /* Signature v1.1: midnight ink / parchment / one brass accent. Shared radius & depth. */
 .signature-profile { --signature-ink:#101925; --signature-paper:#e8e5de; --signature-muted:#a4afbc; --signature-gold:#d7b679; background: linear-gradient(155deg,#172330,#0c131d 80%) !important; border:1px solid rgba(220,221,218,.16) !important; border-radius: 22px !important; box-shadow: 0 28px 90px rgba(0,0,0,.56), inset 0 1px rgba(255,255,255,.09) !important; }
-.signature-profile .pc-12-card, .signature-profile .pc-12-well { border-radius: 15px !important; border: 1px solid rgba(211,218,223,.12) !important; background: linear-gradient(145deg,rgba(38,49,61,.65),rgba(18,27,38,.85)) !important; box-shadow: 0 12px 30px -18px rgba(0,0,0,.55), inset 0 1px rgba(255,255,255,.055) !important; }
+.signature-profile .pc-12-card, .signature-profile .pc-12-well { border-radius: 15px !important; border: 1px solid rgba(211,218,223,.16) !important; background: linear-gradient(145deg,rgba(22,31,44,.42),rgba(10,16,26,.54)) !important; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 12px 30px -18px rgba(0,0,0,.55), inset 0 1px rgba(255,255,255,.08) !important; }
 .signature-profile .pc-12-card--lift:hover { box-shadow: 0 17px 34px -18px rgba(0,0,0,.8) !important; }
 .signature-profile .pc-12-pill { border-radius: 7px !important; background: rgba(214,179,115,.1) !important; color: #e8d2aa !important; border: 1px solid rgba(214,179,115,.2) !important; }
 .signature-profile .ff-gradient-ring-sq { background: linear-gradient(135deg,#f0dfc0,#8a785c) !important; }
@@ -11,9 +11,9 @@
 .signature-stats-heading { display:flex; justify-content:space-between; gap:8px; margin-bottom:11px; font:600 10px/1.4 system-ui,sans-serif; letter-spacing:.11em; color:#d7b679; }
 .signature-stats-heading span+span { color:#a4afbc; font-weight:400; letter-spacing:0; }
 .signature-stats-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-auto-flow:row dense; gap:9px; }
-.signature-stat { position:relative; min-width:0; min-height:104px; display:flex; flex-direction:column; align-items:flex-start; justify-content:space-between; padding:13px; text-align:left; cursor:pointer; color:#e8e5de; background:linear-gradient(145deg,#273440,#17222f); border:1px solid rgba(219,223,218,.13); border-radius:15px; box-shadow:0 10px 22px -15px #000, inset 0 1px rgba(255,255,255,.07); transition:border-color .2s,transform .2s; }
+.signature-stat { position:relative; min-width:0; min-height:104px; display:flex; flex-direction:column; align-items:flex-start; justify-content:space-between; padding:13px; text-align:left; cursor:pointer; color:#e8e5de; background:linear-gradient(145deg,rgba(32,44,58,.46),rgba(15,23,34,.58)); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border:1px solid rgba(219,223,218,.16); border-radius:15px; box-shadow:0 10px 22px -15px #000, inset 0 1px rgba(255,255,255,.09); transition:border-color .2s,transform .2s; }
 .signature-stat:hover,.signature-stat:focus-visible { border-color:rgba(215,182,121,.6); transform:translateY(-2px); outline:none; }
-.signature-stat--featured { grid-column:span 2; background:radial-gradient(circle at 90% 10%,rgba(218,181,112,.15),transparent 60%),linear-gradient(145deg,#304050,#192635); }
+.signature-stat--featured { grid-column:span 2; background:radial-gradient(circle at 90% 10%,rgba(218,181,112,.16),transparent 60%),linear-gradient(145deg,rgba(38,52,68,.5),rgba(18,28,42,.62)); }
 .signature-stat__icon { color:#d7b679; opacity:.9; }
 .signature-stat__number { font:500 clamp(21px,2.5vw,30px)/1 Georgia,serif; font-variant-numeric:tabular-nums; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
 .signature-stat__label { color:#acbac7; font-size:11px; }
