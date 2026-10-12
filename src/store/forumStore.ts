@@ -26,6 +26,7 @@ import {
   getRandomGhibliMask,
 } from '../utils/ghibliMasks';
 import { safeStorage } from '../utils/storage';
+import { enqueueOfflineAction } from '../utils/backgroundSyncQueue';
 import {
   adoptSession,
   authHeaders,
@@ -2461,6 +2462,9 @@ export function useForumStore() {
         : 'Máy chủ không thực hiện được yêu cầu. Vui lòng thử lại.';
       return { ok: false, message: data?.message || fallback, status, data };
     } catch {
+      if (body && typeof body === 'object' && !Array.isArray(body)) {
+        enqueueOfflineAction(url, body as Record<string, unknown>);
+      }
       return { ok: false, message: 'Không kết nối được máy chủ. Vui lòng kiểm tra mạng.', status: 0, data: null };
     }
   }, []);

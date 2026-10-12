@@ -16,6 +16,7 @@ interface NameplateDisplayProps {
   /** false = chỉ ảnh tĩnh (kích thước nhỏ 32–40px tiết kiệm CPU). */
   animate?: boolean;
   eager?: boolean;
+  priority?: 'high' | 'low';
   className?: string;
   /** true = KHÔNG tự đặt width/height — parent quyết định kích thước (dùng làm
    *  background layer absolute trong .npd-np). Asset là ẢNH NỀN THUẦN TÚY,
@@ -23,7 +24,15 @@ interface NameplateDisplayProps {
   fill?: boolean;
 }
 
-export const NameplateDisplay = ({ asset, size = 160, animate = true, eager = false, className, fill = false }: NameplateDisplayProps) => {
+export const NameplateDisplay = ({
+  asset,
+  size = 160,
+  animate = true,
+  eager = false,
+  priority = 'high',
+  className,
+  fill = false,
+}: NameplateDisplayProps) => {
   const [inViewRef, inView] = useInViewOnce<HTMLSpanElement>();
   const ref = eager ? undefined : inViewRef;
   return (
@@ -33,7 +42,13 @@ export const NameplateDisplay = ({ asset, size = 160, animate = true, eager = fa
       style={fill ? undefined : { width: size, height: Math.round((size * 84) / 448) }}
       aria-hidden="true"
     >
-      <DecorationMedia asset={asset} enabled={eager || inView} animate={animate} className="npd__media" />
+      <DecorationMedia
+        asset={asset}
+        enabled={eager || inView}
+        animate={animate}
+        priority={priority}
+        className="npd__media"
+      />
     </span>
   );
 };

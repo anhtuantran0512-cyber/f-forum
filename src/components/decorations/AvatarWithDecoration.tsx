@@ -7,6 +7,8 @@
  *  - Đeo ĐƯỢC CẢ HAI: hào quang nằm SAU ảnh (z1), khung nằm TRÊN ảnh (z3);
  *    cả hai overflow visible (cánh, tia sáng… không bị cắt).
  *  - Lazy load qua IntersectionObserver (eager=true bỏ qua — navbar).
+ *  - Priority Hints (PHẦN 3.2): fetchPriority="high" cho avatar & trang trí của chính user,
+ *    "low" cho user khác.
  */
 import { useState, type CSSProperties } from 'react';
 import type { DecorationType } from '../../types/index';
@@ -36,16 +38,42 @@ const AVATAR_VIDEO_EXT = /\.(webm|mp4|m4v|ogv)(\?|#|$)/i;
 
 const isVideoAvatarUrl = (url: string): boolean => AVATAR_VIDEO_EXT.test(url);
 
-const AvatarMedia = ({ url, alt, eager }: { url: string; alt: string; eager: boolean }) => {
+const AvatarMedia = ({
+  url,
+  alt,
+  eager,
+  priority,
+}: {
+  url: string;
+  alt: string;
+  eager: boolean;
+  priority: 'high' | 'low';
+}) => {
   const reducedMotion = useReducedMotion();
   const [videoFailed, setVideoFailed] = useState(false);
   if (!isVideoAvatarUrl(url)) {
-    return <img className="awd__avatar" src={url} alt={alt} loading={eager ? 'eager' : 'lazy'} />;
+    return (
+      <img
+        className="awd__avatar"
+        src={url}
+        alt={alt}
+        loading={eager ? 'eager' : 'lazy'}
+        fetchPriority={priority}
+      />
+    );
   }
   if (videoFailed) {
     /* Video hỏng (404/host không cho phép) → avatar mặc định, KHÔNG để chỗ
        trống/ảnh lỗi — không mất thành phần avatar. */
-    return <img className="awd__avatar" src={DEFAULT_AVATAR} alt={alt} loading={eager ? 'eager' : 'lazy'} />;
+    return (
+      <img
+        className="awd__avatar"
+        src={DEFAULT_AVATAR}
+        alt={alt}
+        loading={eager ? 'eager' : 'lazy'}
+        fetchPriority={priority}
+      />
+    );
   }
   return (
     <video
@@ -76,6 +104,8 @@ interface AvatarWithDecorationProps {
   animate?: boolean;
   /** Bỏ qua lazy-load (avatar navbar — luôn thấy). Mặc định false. */
   eager?: boolean;
+  /** Ưu tiên tải và chạy animation cho chính user ('high') so với user khác ('low'). */
+  priority?: 'high' | 'low';
   className?: string;
   alt?: string;
 }
@@ -95,14 +125,17 @@ export const AvatarWithDecoration = ({
   size,
   animate = true,
   eager = false,
+  priority,
   className,
   alt = 'Ảnh đại diện',
 }: AvatarWithDecorationProps) => {
   const [inViewRef, inView] = useInViewOnce<HTMLDivElement>();
   const enabled = eager || inView;
+  const effectivePriority: 'high' | 'low' = priority || (eager ? 'high' : 'low');
   const frame = frameAsset || (decorationAsset && decorationAsset.type !== 'avatar_aura' ? decorationAsset : null) || null;
   const aura = auraAsset || (decorationAsset && decorationAsset.type === 'avatar_aura' ? decorationAsset : null) || null;
   const frameRef = eager ? undefined : inViewRef;
+  const isAnimating = enabled && animate && Boolean(frame?.isAnimated || aura?.isAnimated);
   /* Safe zone: dịch + scale từng slot theo config của asset (mặc định không đổi). */
   const zoneStyle = (id?: string): CSSProperties | undefined => {
     const z = getDecorationSafeZone(id);
@@ -114,19 +147,32 @@ export const AvatarWithDecoration = ({
   return (
     <div
       ref={frameRef}
-      className={`awd${className ? ` ${className}` : ''}`}
+      className={`awd${isAnimating ? ' awd--animating' : ''}${className ? ` ${className}` : ''}`}
       style={{ width: size, height: size }}
       data-size={size}
+      data-priority={effectivePriority}
     >
       {aura && (
         <div className="awd__slot awd__slot--aura" style={zoneStyle(aura?.id)}>
-          <DecorationMedia asset={aura} enabled={enabled} animate={animate} className="awd__deco awd__deco--aura" />
+          <DecorationMedia
+            asset={aura}
+            enabled={enabled}
+            animate={animate}
+            priority={effectivePriority}
+            className="awd__deco awd__deco--aura"
+          />
         </div>
       )}
-      <AvatarMedia url={avatarUrl} alt={alt} eager={eager} />
+      <AvatarMedia url={avatarUrl} alt={alt} eager={eager} priority={effectivePriority} />
       {frame && (
         <div className="awd__slot awd__slot--frame" style={zoneStyle(frame?.id)}>
-          <DecorationMedia asset={frame} enabled={enabled} animate={animate} className="awd__deco awd__deco--frame" />
+          <DecorationMedia
+            asset={frame}
+            enabled={enabled}
+            animate={animate}
+            priority={effectivePriority}
+            className="awd__deco awd__deco--frame"
+          />
         </div>
       )}
     </div>

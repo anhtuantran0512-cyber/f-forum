@@ -30,7 +30,7 @@ html.reduce-motion .signature-stat { transition:none; }
 .signature-equipped { display:inline-flex; align-items:center; gap:7px; width:fit-content; max-width:100%; color:#e1c698; font-size:11px; }
 .signature-profile--frame .ff-gradient-ring-sq { padding:4px !important; background:linear-gradient(130deg,#e6d0a2,#645f58,#fff1ce,#9c8052) !important; box-shadow:0 0 0 2px rgba(232,204,155,.16),0 10px 22px rgba(0,0,0,.3); }
 .signature-profile--effect .signature-equipped .signature-emblem { animation: signatureGentlePulse 3s ease-in-out infinite; }
-@keyframes signatureGentlePulse { 50% { box-shadow:0 0 16px rgba(232,204,155,.35); } }
+@keyframes signatureGentlePulse { 50% { transform: scale(1.06); opacity: .92; } }
 @media(prefers-reduced-motion:reduce) { .signature-profile--effect .signature-equipped .signature-emblem { animation:none; } }
 html.reduce-motion .signature-profile--effect .signature-equipped .signature-emblem { animation:none; }
 /* Profile giữ nguyên bảng mực đêm khi site chuyển Light; tránh chữ tối trên nền tối. */

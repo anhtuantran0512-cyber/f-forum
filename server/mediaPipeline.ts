@@ -193,6 +193,8 @@ export interface ProcessedMedia {
   url: string;
   variants: Record<MediaVariantName, { url: string; width: number; height: number; bytes: number }>;
   engine: 'sharp' | 'passthrough';
+  /** PHẦN 3.3 — LQIP 20px (< 1KB) base64 data URL giúp hiển thị tức thì blur-to-sharp. */
+  lqip?: string;
 }
 
 export interface ProcessOptions {
@@ -213,6 +215,7 @@ export const processUploadedImage = async ({ kind, ownerEmail, dataUrl, keepUrls
   const variants = {} as ProcessedMedia['variants'];
   let hash: string;
   let engine: ProcessedMedia['engine'];
+  let lqip: string | undefined;
 
   if (sharp) {
     const inputOptions = { failOn: 'error' as const, limitInputPixels: LIMIT_INPUT_PIXELS, animated: false };
@@ -249,6 +252,20 @@ export const processUploadedImage = async ({ kind, ownerEmail, dataUrl, keepUrls
       outputs.push({ plan, data, width: info.width, height: info.height });
     }
 
+    /* PHẦN 3.3 — Sinh ảnh LQIP 20px (< 1KB) cho Progressive Image Loading */
+    try {
+      const lqipBuf = await sharp(buffer, inputOptions)
+        .rotate()
+        .resize({ width: 20, height: 20, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 40, effort: 2 })
+        .toBuffer();
+      if (lqipBuf.length <= 1024) {
+        lqip = `data:image/webp;base64,${lqipBuf.toString('base64')}`;
+      }
+    } catch {
+      lqip = undefined;
+    }
+
     hash = crypto.createHash('sha256').update(outputs.map((o) => o.data.toString('base64')).join('|')).digest('hex').slice(0, 16);
     outputs.forEach(({ plan, data, width: w, height: h }) => {
       const file = `${owner}-${hash}-${plan.name}.webp`;
@@ -278,7 +295,7 @@ export const processUploadedImage = async ({ kind, ownerEmail, dataUrl, keepUrls
   });
   pruneOwnerFiles(dir, owner, keep);
 
-  return { kind, url: variants.medium.url, variants, engine };
+  return { kind, url: variants.medium.url, variants, engine, ...(lqip ? { lqip } : {}) };
 };
 
 /* -------------------------------------------------------------------------- */

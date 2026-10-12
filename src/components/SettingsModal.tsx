@@ -31,6 +31,7 @@ import { safeStorage } from '../utils/storage';
 import { AUTH_TOKEN_KEY, clearAuthToken, requestServerLogout } from '../utils/session';
 import { usePopoverPosition, type DockPosition } from '../utils/popover';
 import { PasswordChangeForm } from './settings/PasswordChangeForm';
+import { useAdaptiveQuality, type AdaptiveQualityTier } from '../utils/adaptiveQuality';
 
 export interface SettingsModalProps {
   isOpen: boolean;
@@ -196,6 +197,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   anchorRef,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
+  const { detectedTier, overrideTier, setOverrideTier, capabilities } = useAdaptiveQuality();
   const activeDockPos: DockPosition = dockPosition || navbarPosition;
   const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
   const settledRafRef = useRef<number | null>(null);
@@ -893,6 +895,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     onToggle={() => onTogglePotatorMode?.()}
                     color="bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"
                   />
+                  {/* Adaptive Quality Architecture — tự động nhận diện Tier A/B/C */}
+                  <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/5 border border-white/5">
+                    <div className="min-w-0">
+                      <div className="text-[11.5px] font-semibold text-white truncate">
+                        Chất lượng Thích ứng ({capabilities.badgeText})
+                      </div>
+                      <div className="text-[10px] text-white/55 truncate">
+                        Tự động chọn Video 4K / HD / SD &amp; mật độ hạt GPU theo máy
+                      </div>
+                    </div>
+                    <select
+                      value={overrideTier}
+                      onChange={(e) => setOverrideTier(e.target.value as AdaptiveQualityTier | 'auto')}
+                      aria-label="Chọn phân tầng chất lượng thích ứng"
+                      className="rounded-lg border border-white/15 bg-black/50 px-2 py-1 text-[10.5px] font-bold text-amber-300 focus:outline-none"
+                    >
+                      <option value="auto">Tự động ({detectedTier.toUpperCase()})</option>
+                      <option value="tier-a">Tier A · 4K</option>
+                      <option value="tier-b">Tier B · HD</option>
+                      <option value="tier-c">Tier C · SD</option>
+                    </select>
+                  </div>
                 </Card>
                 {potatorMode && (
                   <Card className="mt-2">

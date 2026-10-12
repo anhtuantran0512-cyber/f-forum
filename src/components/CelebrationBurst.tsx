@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import { GpuParticleCanvas } from './effects/GpuParticleCanvas';
+import { useAdaptiveQuality } from '../utils/adaptiveQuality';
 
 export type CelebrationTone = 'gold' | 'emerald' | 'violet' | 'rose';
 
@@ -53,11 +55,13 @@ export const CelebrationBurst: React.FC<CelebrationBurstProps> = ({
 }) => {
   /* Lượt bắn nào đã chạy xong — cập nhật từ event handler, không phải effect. */
   const [finishedTick, setFinishedTick] = useState(0);
+  const { capabilities } = useAdaptiveQuality();
 
   const active = trigger !== 0 && trigger !== finishedTick;
 
   /* Hạt sinh từ `trigger` để mỗi lượt có bố cục khác nhau mà vẫn tái lập được
-     (không đổi giữa các lần render), và không gọi Math.random lúc render. */
+     (không đổi giữa các lần render), và không gọi Math.random lúc render.
+     Tự động điều chỉnh mật độ hạt theo Device Tier (Tier A 100%, Tier B 65%, Tier C 35%). */
   const particles = useMemo<Particle[]>(() => {
     if (!active) return [];
     if (typeof window === 'undefined') return [];
@@ -74,7 +78,8 @@ export const CelebrationBurst: React.FC<CelebrationBurstProps> = ({
       x = (x * 9301 + 49297) % 233280;
       return x / 233280;
     };
-    return Array.from({ length: count }, (_, i) => ({
+    const tierCount = Math.max(8, Math.round(count * capabilities.particleScale));
+    return Array.from({ length: tierCount }, (_, i) => ({
       id: i,
       left: rnd() * 100,
       delay: rnd() * 260,
@@ -85,7 +90,7 @@ export const CelebrationBurst: React.FC<CelebrationBurstProps> = ({
       spin: (rnd() - 0.5) * 720,
       shape: shapes[Math.floor(rnd() * shapes.length)],
     }));
-  }, [active, count, tone, trigger]);
+  }, [active, capabilities.particleScale, count, tone, trigger]);
 
   if (!active) return null;
 
@@ -93,6 +98,14 @@ export const CelebrationBurst: React.FC<CelebrationBurstProps> = ({
 
   return (
     <div className="ff-celebrate" aria-live="polite" role="status">
+      {!reducedMotion && (
+        <GpuParticleCanvas
+          trigger={trigger}
+          palette={PALETTES[tone]}
+          baseCount={count}
+          mode="confetti"
+        />
+      )}
       <span className="ff-celebrate__field" aria-hidden="true">
         {particles.map((p) => (
           <i
