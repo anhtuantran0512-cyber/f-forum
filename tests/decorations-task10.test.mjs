@@ -508,3 +508,102 @@ test('10.10 Bộ sưu tập: tiến độ theo rarity, mythic sở hữu top ch�
   assert.equal(empty.percent, 0);
   assert.deepEqual(empty.mythicOwned, []);
 });
+
+/* ========================================================================== */
+/* 10.11 — "Yêu thích" (wishlist): toggle server-persisted + bảo vệ          */
+/* ========================================================================== */
+test('10.11 Wishlist: add/remove qua API, 400 id rác, 401 khách, persist lại disk', async () => {
+  const a = await boot();
+  let email;
+  try {
+    const reg = await post(a.baseUrl, '/api/auth/register', {
+      name: 'Wish Tester', email: `deco10.wish.${Date.now()}@example.test`, password: 'mat-khau-deco-10',
+    });
+    assert.equal(reg.status, 200, JSON.stringify(reg.data));
+    const token = reg.data.token;
+    email = reg.data.user.email;
+    const frame = CATALOG.items.find((i) => i.type === 'avatar_frame');
+    const aura = CATALOG.items.find((i) => i.type === 'avatar_aura');
+
+    /* Khách (không token) → 401. */
+    const anon = await post(a.baseUrl, '/api/shop/wishlist', { itemId: frame.id });
+    assert.equal(anon.status, 401, 'khách không được lưu yêu thích');
+
+    /* Id không phải trang trí → 400. */
+    const bad = await post(a.baseUrl, '/api/shop/wishlist', { itemId: 'không-tồn-tại-12345' }, token);
+    assert.equal(bad.status, 400, 'id rác phải bị từ chối');
+
+    /* Thêm 2 item. */
+    const add1 = await post(a.baseUrl, '/api/shop/wishlist', { itemId: frame.id }, token);
+    assert.equal(add1.status, 200, JSON.stringify(add1.data));
+    assert.equal(add1.data.added, true);
+    assert.deepEqual(add1.data.wishlist, [frame.id]);
+    const add2 = await post(a.baseUrl, '/api/shop/wishlist', { itemId: aura.id }, token);
+    assert.equal(add2.data.added, true);
+    assert.deepEqual(add2.data.wishlist, [frame.id, aura.id]);
+
+    /* Thêm lần nữa = bỏ (toggle) → 200, added=false. */
+    const rm = await post(a.baseUrl, '/api/shop/wishlist', { itemId: frame.id }, token);
+    assert.equal(rm.status, 200);
+    assert.equal(rm.data.added, false);
+    assert.deepEqual(rm.data.wishlist, [aura.id]);
+  } finally {
+    flushPendingSave();
+    await a.close();
+  }
+
+  /* Persist: disk giữ đúng wishlist cuối. */
+  const store = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+  const user = store.users[email];
+  const aura = CATALOG.items.find((i) => i.type === 'avatar_aura');
+  assert.deepEqual(user.wishlist, [aura.id], 'wishlist được ghi xuống disk');
+});
+
+/* ========================================================================== */
+/* 10.12 — UI: nút yêu thích + lọc sở hữu + lưu bộ lọc (khớp server)         */
+/* ========================================================================== */
+test('10.12 UI: nút yêu thích, bộ lọc Đã có/Chưa có, bộ lọc lưu localStorage khớp server', () => {
+  const card = fs.readFileSync(path.join(ROOT, 'src', 'components', 'shop', 'GachaBoutique.tsx'), 'utf8');
+  const css = fs.readFileSync(path.join(ROOT, 'src', 'components', 'shop', 'Boutique.css'), 'utf8');
+  const store = fs.readFileSync(path.join(ROOT, 'src', 'store', 'forumStore.ts'), 'utf8');
+  const server = fs.readFileSync(path.join(ROOT, 'server', 'forumServer.ts'), 'utf8');
+  const modal = fs.readFileSync(path.join(ROOT, 'src', 'components', 'ProfileModal.tsx'), 'utf8');
+
+  /* Card là div role=button (tránh button lồng button) + nút trái tim thật. */
+  assert.match(card, /<div\s+role="button"\s+tabIndex={0}[^]*?gb-card gb-card--/, 'card root = div role=button');
+  assert.match(card, /gb-card__wish/, 'nút yêu thích có class riêng');
+  assert.match(card, /<Heart size=\{13\}/, 'trái tim là SVG (không emoji)');
+  assert.match(card, /event\.stopPropagation\(\);\s*onToggleWishlist\(item\);/, 'nhấn trái tim không mở card');
+  assert.match(card, /aria-pressed={wishlist\.includes\(item\.id\)}/, 'trạng thái yêu thích đọc được');
+
+  /* Bộ lọc sở hữu từ panel Bộ sưu tập + áp dụng vào lưới. */
+  assert.match(card, /ownedFilter === 'owned' && !inventory\.includes\(item\.id\)/, 'lọc "Đã có" đúng nghĩa');
+  assert.match(card, /ownedFilter === 'unowned' && inventory\.includes\(item\.id\)/, 'lọc "Chưa có" đúng nghĩa');
+  assert.match(card, /Đã có \(\{collection\.owned\}\)/, 'nút Đã có hiện số lượng');
+  assert.match(card, /Chưa có \(\{collection\.total - collection\.owned\}\)/, 'nút Chưa có hiện số lượng');
+  assert.match(card, /setRarityFilter\(\(cur\) => \(cur === row\.rarity \? 'all' : row\.rarity\)\)/, 'd Rarity row bấm để lọc');
+
+  /* Bộ lọc lưu localStorage: 1 key (const), dùng cho cả đọc lẫn ghi. */
+  assert.match(card, /const FILTERS_STORAGE_KEY = 'fforum_boutique_filters_v1'/, 'key lưu bộ lọc được khai báo 1 lần');
+  assert.match(card, /safeStorage\.getItem\(FILTERS_STORAGE_KEY\)/, 'đọc bộ lọc từ localStorage');
+  assert.match(card, /safeStorage\.setItem\(FILTERS_STORAGE_KEY, JSON\.stringify/, 'ghi bộ lọc vào localStorage');
+  /* Mỗi hướng đổi bộ lọc đều đi kèm ghi: type/rarity/motion/sort. */
+  assert.match(card, /saveFilters\(\{ type: option\.id \}\)/, 'đổi type được lưu');
+  assert.match(card, /saveFilters\(\{ rarity \}\)/, 'đổi rarity được lưu');
+  assert.match(card, /saveFilters\(\{ motion: 'animated' \}\)/, 'đổi motion được lưu');
+  assert.match(card, /saveFilters\(\{ sort: event\.target\.value \}\)/, 'đổi sort được lưu');
+
+  /* Store: action gọi đúng endpoint của server. */
+  assert.match(store, /postStoreAction\('\/api\/shop\/wishlist', \{ itemId \}\)/, 'store gọi đúng endpoint');
+  assert.match(server, /url === '\/api\/shop\/wishlist'/, 'server có endpoint wishlist');
+  assert.match(server, /isDecorationId\(itemId\)/, 'server validate id qua isDecorationId');
+
+  /* ProfileModal truyền wishlist + handler; chỉ profile mình mới bấm được. */
+  assert.match(modal, /wishlist=\{currentUser\.wishlist \|\| \[\]\}/, 'modal truyền wishlist');
+  assert.match(modal, /if \(!isOwnProfile\) return;/, 'khách xem profile không đổi yêu thích');
+
+  /* CSS cho nút yêu thích + switch sở hữu + rarity row bấm được. */
+  assert.match(css, /\.gb-card__wish \{/, 'CSS nút yêu thích');
+  assert.match(css, /\.gb-collection__switch/, 'CSS bộ lọc sở hữu');
+  assert.match(css, /\.gb-collection__rar\[aria-pressed="true"\]/, 'rarity row có trạng thái active');
+});

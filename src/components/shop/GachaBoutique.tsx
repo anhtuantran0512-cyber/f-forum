@@ -26,6 +26,7 @@ import {
   Coins,
   Flame,
   Frame,
+  Heart,
   Search,
   Sparkles,
   Tag,
@@ -79,6 +80,9 @@ interface GachaBoutiqueProps {
   initialCategoryFilter?: string | null;
   /** Xem hồ sơ người khác: chỉ trưng bày, không mua/đeo. */
   readOnly?: boolean;
+  /** Id trang trí user đã yêu thích (wishlist). */
+  wishlist?: string[];
+  onToggleWishlist?: (item: ShopItem) => void;
   onBuy: (item: ShopItem) => Promise<boolean>;
   /** Trang bị item vào slot của nó; nextItemId = null để Gỡ slot của item. */
   onEquip: (item: ShopItem, nextItemId: string | null) => Promise<void> | void;
@@ -183,6 +187,22 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
   const { items, loading: catalogLoading } = useDecorationCatalog();
   const activeItems = useMemo(() => items.filter((item) => item.isActive !== false), [items]);
 
+  /* Đồng hồ 1s — dùng chung cho giá sale, đếm ngược, ruy-băng sự kiện. */
+  const [now, setNow] = useState(() => Date.now());
+
+  /* Bộ lọc: nhớ lựa chọn giữa các lần mở Boutique (localStorage). */
+  const FILTERS_STORAGE_KEY = 'fforum_boutique_filters_v1';
+  const readSavedFilters = (): Partial<Record<'type' | 'rarity' | 'motion' | 'sort', string>> => {
+    try {
+      const raw = safeStorage.getItem(FILTERS_STORAGE_KEY);
+      const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+      return typeof parsed === 'object' && parsed ? parsed : {};
+    } catch {
+      return {};
+    }
+  };
+  const savedFilters = useMemo(() => readSavedFilters(), []);
+
   /* Nhiệm vụ 10 — điểm nhấn "Khai trương": hiện ruy-băng khi migration đã chạy
      ở môi trường này (marker là file tĩnh — fetch 1 lần, cache). */
   const [opening, setOpening] = useState<{ applied: boolean; at: number } | null>(null);
@@ -210,7 +230,9 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(() =>
     initialCategoryFilter === 'Avatar Frame' || initialCategoryFilter === 'Avatar Aura' || initialCategoryFilter === 'Nameplate'
       ? (initialCategoryFilter as TypeFilter)
-      : 'all',
+      : (savedFilters.type === 'Avatar Frame' || savedFilters.type === 'Avatar Aura' || savedFilters.type === 'Nameplate'
+        ? (savedFilters.type as TypeFilter)
+        : 'all'),
   );
   const [prevInitialFilter, setPrevInitialFilter] = useState<string | null>(initialCategoryFilter);
   if (initialCategoryFilter !== prevInitialFilter) {
@@ -219,10 +241,31 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
       setTypeFilter(initialCategoryFilter as TypeFilter);
     }
   }
-  const [rarityFilter, setRarityFilter] = useState<RarityFilter>('all');
-  const [motionFilter, setMotionFilter] = useState<MotionFilter>('all');
+  const [rarityFilter, setRarityFilter] = useState<RarityFilter>(
+    savedFilters.rarity === 'common' || savedFilters.rarity === 'rare' || savedFilters.rarity === 'epic' || savedFilters.rarity === 'mythic'
+      ? (savedFilters.rarity as RarityFilter)
+      : 'all',
+  );
+  const [motionFilter, setMotionFilter] = useState<MotionFilter>(
+    savedFilters.motion === 'animated' || savedFilters.motion === 'static' ? (savedFilters.motion as MotionFilter) : 'all',
+  );
+  /* Sở hữu: mọi item | đã có | chưa có — gắn với mục Bộ sưu tập. */
+  const [ownedFilter, setOwnedFilter] = useState<'all' | 'owned' | 'unowned'>('all');
   const [query, setQuery] = useState('');
-  const [sortMode, setSortMode] = useState<SortMode>('featured');
+  const [sortMode, setSortMode] = useState<SortMode>(
+    savedFilters.sort === 'price-asc' || savedFilters.sort === 'price-desc' || savedFilters.sort === 'newest'
+      ? (savedFilters.sort as SortMode)
+      : 'featured',
+  );
+  /* Lưu bộ lọc khi đổi (event-driven, không thêm effect riêng). */
+  const saveFilters = useCallback((next: Partial<Record<'type' | 'rarity' | 'motion' | 'sort', string>>) => {
+    try {
+      const cur = readSavedFilters();
+      safeStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({ ...cur, ...next }));
+    } catch {
+      /* storage đầy/lỗi — bỏ qua */
+    }
+  }, []);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [inspectId, setInspectId] = useState<string | null>(null);
   const [previewItemId, setPreviewItemId] = useState<string | null>(null);
@@ -230,7 +273,6 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
   const [unboxed, setUnboxed] = useState<ShopItem | null>(null);
   const [burstTick, setBurstTick] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
   const [heroIdx, setHeroIdx] = useState(0);
   const [isGachaOpen, setIsGachaOpen] = useState(false);
   const [showOddsModal, setShowOddsModal] = useState(false);
@@ -307,6 +349,8 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
       if (rarityFilter !== 'all' && decoRarity(item) !== rarityFilter) return false;
       if (motionFilter === 'animated' && !item.isAnimated) return false;
       if (motionFilter === 'static' && item.isAnimated) return false;
+      if (ownedFilter === 'owned' && !inventory.includes(item.id)) return false;
+      if (ownedFilter === 'unowned' && inventory.includes(item.id)) return false;
       if (q && !`${item.name} ${item.nameEn || ''} ${item.tags?.join(' ') || ''}`.toLowerCase().includes(q)) return false;
       return true;
     });
@@ -325,7 +369,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           (a, b) => order(b) - order(a) || (b.qualityScore ?? 0) - (a.qualityScore ?? 0) || b.price - a.price,
         );
     }
-  }, [activeItems, typeFilter, rarityFilter, motionFilter, query, sortMode]);
+  }, [activeItems, typeFilter, rarityFilter, motionFilter, ownedFilter, inventory, query, sortMode]);
 
   /* Infinite scroll: chỉ render 24 item mỗi nhịp; đổi bộ lọc → reset ở handler (không setState trong effect). */
   const resetPagination = () => setVisibleCount(PAGE_SIZE);
@@ -913,15 +957,45 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
             {collection.owned}/{collection.total} · {collection.percent}%
           </span>
         </div>
+        <div className="gb-collection__switch" role="group" aria-label="Lọc theo sở hữu">
+          <button
+            type="button"
+            aria-pressed={ownedFilter === 'owned'}
+            className={ownedFilter === 'owned' ? 'is-active' : ''}
+            onClick={() => { setOwnedFilter((cur) => (cur === 'owned' ? 'all' : 'owned')); resetPagination(); }}
+          >
+            <Check size={12} aria-hidden="true" /> Đã có ({collection.owned})
+          </button>
+          <button
+            type="button"
+            aria-pressed={ownedFilter === 'unowned'}
+            className={ownedFilter === 'unowned' ? 'is-active' : ''}
+            onClick={() => { setOwnedFilter((cur) => (cur === 'unowned' ? 'all' : 'unowned')); resetPagination(); }}
+          >
+            Chưa có ({collection.total - collection.owned})
+          </button>
+        </div>
         <div className="gb-collection__bar" aria-hidden="true">
           <span style={{ width: `${Math.max(1.5, collection.percent)}%` }} />
         </div>
         <div className="gb-collection__rars">
           {collection.byRarity.map((row) => (
-            <span key={row.rarity} className="gb-collection__rar" style={{ '--rar-color': DECORATION_RARITY_META[row.rarity].color } as React.CSSProperties}>
+            <button
+              key={row.rarity}
+              type="button"
+              className="gb-collection__rar"
+              style={{ '--rar-color': DECORATION_RARITY_META[row.rarity].color } as React.CSSProperties}
+              aria-pressed={rarityFilter === row.rarity}
+              title={`Lọc ${DECORATION_RARITY_META[row.rarity].en} trong Boutique`}
+              onClick={() => {
+                setRarityFilter((cur) => (cur === row.rarity ? 'all' : row.rarity));
+                saveFilters({ rarity: rarityFilter === row.rarity ? 'all' : row.rarity });
+                resetPagination();
+              }}
+            >
               <i aria-hidden="true" style={{ width: row.total ? `${(row.owned / row.total) * 100}%` : '0%' }} />
               <em>{DECORATION_RARITY_META[row.rarity].en} {row.owned}/{row.total}</em>
-            </span>
+            </button>
           ))}
         </div>
         {collection.mythicOwned.length > 0 ? (
@@ -964,7 +1038,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
             data-rarity={option.id}
             aria-pressed={typeFilter === option.id}
             className={typeFilter === option.id ? 'is-active' : ''}
-            onClick={() => { setTypeFilter(option.id); resetPagination(); }}
+            onClick={() => { setTypeFilter(option.id); saveFilters({ type: option.id }); resetPagination(); }}
           >
             {option.label}
           </button>
@@ -976,7 +1050,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           type="button"
           aria-pressed={rarityFilter === 'all'}
           className={rarityFilter === 'all' ? 'is-active' : ''}
-          onClick={() => { setRarityFilter('all'); resetPagination(); }}
+          onClick={() => { setRarityFilter('all'); saveFilters({ rarity: 'all' }); resetPagination(); }}
         >
           Mọi hiếm
         </button>
@@ -988,20 +1062,20 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
             aria-pressed={rarityFilter === rarity}
             className={rarityFilter === rarity ? 'is-active' : ''}
             style={{ '--gb-rarity-color': DECORATION_RARITY_META[rarity].color } as CSSProperties}
-            onClick={() => { setRarityFilter(rarity); resetPagination(); }}
+            onClick={() => { setRarityFilter(rarity); saveFilters({ rarity }); resetPagination(); }}
           >
             <i aria-hidden="true" />
             {DECORATION_RARITY_META[rarity].label}
           </button>
         ))}
         <span className="gb-filters__divider" aria-hidden="true" />
-        <button type="button" aria-pressed={motionFilter === 'all'} className={motionFilter === 'all' ? 'is-active' : ''} onClick={() => { setMotionFilter('all'); resetPagination(); }}>
+        <button type="button" aria-pressed={motionFilter === 'all'} className={motionFilter === 'all' ? 'is-active' : ''} onClick={() => { setMotionFilter('all'); saveFilters({ motion: 'all' }); resetPagination(); }}>
           Mọi loại
         </button>
-        <button type="button" aria-pressed={motionFilter === 'animated'} className={motionFilter === 'animated' ? 'is-active' : ''} onClick={() => { setMotionFilter('animated'); resetPagination(); }}>
+        <button type="button" aria-pressed={motionFilter === 'animated'} className={motionFilter === 'animated' ? 'is-active' : ''} onClick={() => { setMotionFilter('animated'); saveFilters({ motion: 'animated' }); resetPagination(); }}>
           Có animation
         </button>
-        <button type="button" aria-pressed={motionFilter === 'static'} className={motionFilter === 'static' ? 'is-active' : ''} onClick={() => { setMotionFilter('static'); resetPagination(); }}>
+        <button type="button" aria-pressed={motionFilter === 'static'} className={motionFilter === 'static' ? 'is-active' : ''} onClick={() => { setMotionFilter('static'); saveFilters({ motion: 'static' }); resetPagination(); }}>
           Tĩnh
         </button>
       </div>
@@ -1019,7 +1093,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </div>
         <select
           value={sortMode}
-          onChange={(event) => { setSortMode(event.target.value as SortMode); resetPagination(); }}
+          onChange={(event) => { setSortMode(event.target.value as SortMode); saveFilters({ sort: event.target.value }); resetPagination(); }}
           aria-label="Sắp xếp"
           className="gb-searchbar__sort"
         >
@@ -1052,8 +1126,9 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
             const showHoverVideo = hoveredId === item.id && item.isAnimated && !!item.animatedAssetUrl;
             return (
               <div role="listitem" key={item.id} className="gb-cell" style={{ '--i': Math.min(index, 14), '--gb-rarity-color': rarityMeta.color, '--gb-rarity-glow': rarityMeta.glow } as CSSProperties}>
-                <button
-                  type="button"
+                <div
+                  role="button"
+                  tabIndex={0}
                   className={`gb-card gb-card--${legacyRarityClass(rarity)} ${owned ? 'is-owned' : ''}`}
                   aria-describedby={tipId}
                   aria-label={`${item.name}, ${rarityMeta.label}, ${owned ? (equipped ? 'đang đeo' : 'đã sở hữu') : `${price} Coin`}. Mở xem trước`}
@@ -1070,6 +1145,13 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                   onClick={() => {
                     setPreviewItemId(item.id);
                     setInspectId(item.id);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setPreviewItemId(item.id);
+                      setInspectId(item.id);
+                    }
                   }}
                 >
                   <span className="gb-card__frame" aria-hidden="true" />
@@ -1137,12 +1219,27 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                       )}
                     </span>
                   </span>
+                  {!readOnly && onToggleWishlist && (
+                    <button
+                      type="button"
+                      className={`gb-card__wish${wishlist.includes(item.id) ? ' is-wished' : ''}`}
+                      aria-pressed={wishlist.includes(item.id)}
+                      aria-label={wishlist.includes(item.id) ? `Bỏ yêu thích ${item.name}` : `Yêu thích ${item.name}`}
+                      title={wishlist.includes(item.id) ? 'Bỏ yêu thích' : 'Yêu thích'}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onToggleWishlist(item);
+                      }}
+                    >
+                      <Heart size={13} fill={wishlist.includes(item.id) ? 'currentColor' : 'none'} aria-hidden="true" />
+                    </button>
+                  )}
                   <span className="gb-card__tip" id={tipId} role="tooltip">
                     <b>{item.name}</b>
                     <span><Coins size={11} aria-hidden="true" /> {price.toLocaleString('vi-VN')} Coin</span>
                     <em>{item.description}</em>
                   </span>
-                </button>
+                </div>
               </div>
             );
           })}

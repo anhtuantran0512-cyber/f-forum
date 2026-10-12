@@ -71,9 +71,10 @@ Hệ thống được thiết kế theo giao diện kính mờ hiện đại, h�
 - **Câu hỏi vui (Trivia Quiz)**: Mỗi ngày có một câu đố kiến thức ngắn trong 15 giây. Trả lời đúng được thưởng Coin ngay trong ngày (không cần chế độ ôn lại — hôm sau đã có câu mới).
 - **Ngọn lửa Streak** nằm trong menu tia sét ở góc dưới bên trái, hiển thị số ngày điểm danh liên tiếp.
 
-### 5. Cửa Hàng Vật Phẩm Ảo (Chill Box)
-- Sử dụng điểm Coin tích lũy được từ việc giải bài tập và điểm danh để đổi vật phẩm trang trí.
-- 12 vật phẩm ảo thiết kế riêng được chia theo các cấp độ màu sắc: Xanh lá, Xanh lam, Đỏ và Tím.
+### 5. Boutique Trang Trí (Gacha Boutique)
+- Sử dụng điểm Coin tích lũy được từ việc giải bài tập và điểm danh để mở 3 gói gacha hoặc mua riêng 873 trang trí (khung avatar / hiệu ứng / bảng tên) chia 4 bậc hiếm: Thường, Hiếm, Épic, Huyền Thoại.
+- Ưu đãi: khung flash sale 6 giờ + ưu đãi chủ nhật + "Deal hôm nay" (item nổi bật, đổi theo ngày, giá luôn khớp máy chủ).
+- Quản lý tủ đồ: lọc theo loại/độ hiếm/chuyển động/sắp xếp (bộ lọc tự nhớ), lọc Đã có/Chưa có, dòng độ hiếm bấm được, danh sách yêu thích (wishlist) lưu trên máy chủ.
 - Các vật phẩm đã sở hữu có thể trang bị trực tiếp lên trang cá nhân.
 
 ### 6. Lớp Tiện Ích Ẩn (Premium Layer)

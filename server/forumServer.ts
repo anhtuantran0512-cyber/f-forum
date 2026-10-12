@@ -8,8 +8,9 @@ import {
   getShopItemById,
   getActiveDecorationItems,
   decorationSlotForId,
+  getDecorationRegistry,
 } from './decorationRegistry.ts';
-import { sanitizeEquippedDecorations } from '../src/utils/decorations.ts';
+import { isDecorationId, sanitizeEquippedDecorations } from '../src/utils/decorations.ts';
 import type { EquippedDecorations } from '../src/types/index.ts';
 import { dateKeyInTimeZone } from '../shared/dailyTrivia.ts';
 import { GHIBLI_MASKS, getRandomGhibliMask } from '../src/utils/ghibliMasks.ts';
@@ -563,6 +564,10 @@ function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
       ? [...new Set(raw.inventory.filter((id: unknown) => typeof id === 'string' && id.length <= 96 && isKnownInventoryId(id)))].slice(0, 2000)
       : [];
     const equippedDecorations = sanitizeEquippedDecorations(raw.equippedDecorations);
+    /* Yêu thích (wishlist) — chỉ giữ id trang trí hợp lệ, tối đa 100. */
+    const wishlist = Array.isArray(raw.wishlist)
+      ? [...new Set(raw.wishlist.filter((id: unknown) => typeof id === 'string' && isDecorationId(id)))].slice(0, 100)
+      : [];
     out[email] = {
       ...safeRaw,
       email,
@@ -580,6 +585,7 @@ function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
       streakCount: asBoundedCount(raw.streakCount, 0, 100_000),
       inventory,
       equippedDecorations,
+      wishlist,
       equippedBadge: typeof raw.equippedBadge === 'string' && inventory.includes(raw.equippedBadge)
         ? raw.equippedBadge
         : '',
@@ -4353,6 +4359,32 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         persistStoreToDisk();
         broadcastServerEvent('SYNC_USER', actor.user);
         sendJson(res, 200, { success: true, user: actor.user });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/shop/wishlist') {
+      try {
+        const body = await parseJsonBody(req) || {};
+        const actor = authenticatedUser(req, body);
+        if (!actor) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để lưu yêu thích.' });
+          return;
+        }
+        const itemId = typeof body.itemId === 'string' ? body.itemId.trim() : '';
+        if (!isDecorationId(itemId) || !getDecorationRegistry().items.has(itemId)) {
+          sendJson(res, 400, { success: false, message: 'Không phải trang trí hợp lệ.' });
+          return;
+        }
+        const current = Array.isArray(actor.user.wishlist) ? actor.user.wishlist : [];
+        const added = !current.includes(itemId);
+        const next = added ? [...current, itemId].slice(0, 100) : current.filter((id) => id !== itemId);
+        actor.user.wishlist = next;
+        persistStoreToDisk();
+        broadcastServerEvent('SYNC_USER', actor.user);
+        sendJson(res, 200, { success: true, added, wishlist: next });
       } catch (err: any) {
         handleApiError(res, err);
       }

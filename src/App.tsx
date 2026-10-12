@@ -230,6 +230,7 @@ export const App: React.FC = () => {
     migrationCelebration,
     dismissMigrationCelebration,
     decoEquipBurst,
+    toggleWishlist,
     isLoginModalOpen,
     setIsLoginModalOpen,
     isSynced,
@@ -1214,6 +1215,7 @@ export const App: React.FC = () => {
             onPurchaseItem={purchaseShopItem}
             onEquipItem={equipShopItem}
             onEquipDecoration={equipDecoration}
+            onToggleWishlist={toggleWishlist}
             initialTab={profileInitialTab}
             questions={questions}
             solutions={solutions}
