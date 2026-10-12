@@ -36,6 +36,8 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  ThumbsUp,
+  Heart,
 } from 'lucide-react';
 import type {
   Question,
@@ -181,34 +183,29 @@ const MathSymbolsBar: React.FC<{
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl bg-white/[0.03] border border-white/10 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+    <div className="flex flex-col gap-2.5 rounded-xl bg-white/[0.025] border border-white/[0.08] p-3">
       {/* Collapsible Header Bar */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <button
           type="button"
           onClick={() => setIsExpanded(prev => !prev)}
           aria-expanded={isExpanded}
-          className="flex items-center gap-2.5 text-left cursor-pointer group"
+          className="flex items-center gap-2 text-left cursor-pointer group"
         >
-          <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-400/25 to-purple-500/25 border border-cyan-400/40 text-sm font-mono font-bold text-cyan-300 shadow-[0_0_14px_rgba(0,245,255,0.2)]">
+          <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-cyan-500/15 border border-cyan-400/30 text-xs font-mono font-bold text-cyan-300">
             ∑
           </span>
-          <div>
-            <span className="text-xs sm:text-[13px] font-semibold text-white group-hover:text-cyan-200 transition-colors block">
-              {isExpanded ? 'Bảng Ký Hiệu Toán Học & Khoa Học' : 'Mở công cụ ký hiệu toán học & khoa học'}
-            </span>
-            <span className="text-[11px] text-white/55 block">
-              {MATH_SYMBOLS.length} ký tự chuyên ngành • Hy Lạp, Giải tích, Logic, Hình học
-            </span>
-          </div>
+          <span className="text-xs font-semibold text-slate-200 group-hover:text-cyan-200 transition-colors">
+            Bảng ký hiệu toán &amp; khoa học ({MATH_SYMBOLS.length})
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => setIsExpanded(prev => !prev)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-cyan-500/15 border border-white/12 hover:border-cyan-400/40 text-xs font-medium text-cyan-200 transition-all cursor-pointer"
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.05] hover:bg-cyan-500/15 border border-white/10 hover:border-cyan-400/35 text-[11px] font-medium text-cyan-200 transition-all cursor-pointer"
         >
-          <span>{isExpanded ? 'Thu gọn' : 'Mở công cụ ký hiệu'}</span>
+          <span>{isExpanded ? 'Thu gọn' : 'Mở bảng'}</span>
           {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         </button>
       </div>
@@ -302,10 +299,14 @@ const MODERATION_REASON_OPTIONS: { code: ModerationReasonCode; label: string }[]
   { code: 'other', label: 'Lý do khác' },
 ];
 
-const QUICK_REACTION_META: { type: QAReactionType; emoji: string; label: string }[] = [
-  { type: 'helpful', emoji: '👍', label: 'Hữu ích' },
-  { type: 'mindblown', emoji: '🤯', label: 'Hay đó' },
-  { type: 'thanks', emoji: '🙏', label: 'Cảm ơn' },
+const QUICK_REACTION_META: {
+  type: QAReactionType;
+  label: string;
+  Icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { type: 'helpful', label: 'Hữu ích', Icon: ThumbsUp },
+  { type: 'mindblown', label: 'Sáng tạo', Icon: Sparkles },
+  { type: 'thanks', label: 'Cảm ơn', Icon: Heart },
 ];
 
 const QuickReactionRow: React.FC<{
@@ -320,20 +321,21 @@ const QuickReactionRow: React.FC<{
         const list = reactions?.[item.type] || [];
         const count = list.length;
         const active = Boolean(userKey && list.includes(userKey));
+        const IconComp = item.Icon;
         return (
           <button
             key={item.type}
             type="button"
             onClick={() => onReact?.(item.type)}
-            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer ${
               active
-                ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-200 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
-                : 'bg-white/5 hover:bg-white/10 border-white/10 text-neutral-300 hover:text-white'
+                ? 'bg-cyan-500/15 border-cyan-400/45 text-cyan-200'
+                : 'bg-white/[0.03] hover:bg-white/[0.07] border-white/[0.08] text-slate-300 hover:text-white'
             }`}
           >
-            <span>{item.emoji}</span>
+            <IconComp className="w-3.5 h-3.5 shrink-0" />
             <span>{item.label}</span>
-            {count > 0 && <span className="font-mono text-[10px] font-bold ml-0.5">{count}</span>}
+            {count > 0 && <span className="font-mono text-[10px] font-bold ml-0.5 text-cyan-300">{count}</span>}
           </button>
         );
       })}
@@ -401,41 +403,40 @@ const CommentThread: React.FC<{
   };
 
   return (
-    <div className="comment-thread mt-3 pt-2.5 border-t border-white/10">
+    <div className="comment-thread mt-2.5 pt-2.5 border-t border-white/[0.07]">
       <button
         type="button"
         onClick={() => setExpanded((prev) => !prev)}
-        className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-cyan-300 transition-colors font-medium cursor-pointer"
+        className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-cyan-300 transition-colors font-medium cursor-pointer"
       >
-        <span>💬 {threadComments.length} bình luận</span>
-        <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 inline-flex items-center gap-0.5">
-          {expanded ? 'Thu gọn' : 'Mở rộng'}
+        <MessageSquare className="w-3.5 h-3.5" />
+        <span>{threadComments.length} bình luận</span>
+        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] inline-flex items-center gap-0.5">
+          {expanded ? 'Thu gọn' : 'Mở'}
           {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </span>
       </button>
 
       {expanded && (
-        <div className="mt-2.5 space-y-2 pl-3 border-l-2 border-white/10 animate-fade-up">
+        <div className="mt-2.5 space-y-2 pl-3 border-l border-white/10 animate-fade-up">
           {threadComments.length === 0 ? (
-            <p className="text-[11px] text-neutral-500 italic">Chưa có bình luận nào. Hãy để lại trao đổi ngắn (tối đa 300 ký tự).</p>
+            <p className="text-[11px] text-slate-500">Chưa có bình luận.</p>
           ) : (
             threadComments.map((c) => (
-              <div key={c.id} className="p-2 rounded-xl bg-black/30 border border-white/5 text-xs flex items-start gap-2">
-                {/* Nhiệm vụ 10 — 32px, animation tắt (list dài, tiết kiệm CPU).
-                   Không có authorEmail (ẩn danh) → avatar thường, không lộ trang trí. */}
+              <div key={c.id} className="p-2.5 rounded-xl bg-white/[0.025] border border-white/[0.06] text-xs flex items-start gap-2.5">
                 <span className="shrink-0 mt-0.5">
                   <DecoratedAvatar
                     user={c.authorEmail ? findDecorationOwner(users, c.authorEmail, c.authorId) : null}
-                    size={32}
+                    size={28}
                     animate={false}
                   />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-bold text-neutral-200 text-[11px]">{c.authorName}</span>
-                    <span className="text-[10px] text-neutral-500 font-mono">• {c.createdAt}</span>
+                    <span className="font-semibold text-slate-200 text-[11px]">{c.authorName}</span>
+                    <span className="text-[10px] text-slate-500 font-mono">· {c.createdAt}</span>
                   </div>
-                  <p className="text-neutral-300 text-xs mt-0.5 break-words">{c.content}</p>
+                  <p className="text-slate-300 text-xs mt-0.5 break-words leading-relaxed">{c.content}</p>
                 </div>
               </div>
             ))
@@ -447,14 +448,14 @@ const CommentThread: React.FC<{
               value={text}
               maxLength={300}
               onChange={(e) => setText(e.target.value)}
-              placeholder={currentUser ? 'Viết bình luận trao đổi nhanh (tối đa 300 ký tự)...' : 'Đăng nhập để bình luận...'}
-              className="flex-1 bg-neutral-900/90 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-cyan-400"
+              placeholder={currentUser ? 'Viết bình luận...' : 'Đăng nhập để bình luận...'}
+              className="flex-1 bg-[#0b1019] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400/60"
             />
-            <span className="text-[10px] font-mono text-neutral-500 shrink-0">{text.length}/300</span>
+            <span className="text-[10px] font-mono text-slate-500 shrink-0">{text.length}/300</span>
             <button
               type="submit"
               disabled={!text.trim() || submitting}
-              className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-xs font-semibold disabled:opacity-40 cursor-pointer shrink-0"
+              className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/35 text-cyan-200 text-xs font-semibold disabled:opacity-40 cursor-pointer shrink-0"
             >
               Gửi
             </button>
@@ -500,6 +501,8 @@ interface QAForumViewProps {
   isSynced?: boolean;
   /** Mở Phòng Tập Trung (Pomodoro) từ widget xếp hạng giờ học. */
   onOpenFocusMode?: () => void;
+  /** Báo cho App biết đang mở chi tiết câu hỏi để ẩn thanh Navbar. */
+  onDetailOpenChange?: (open: boolean) => void;
 }
 
 
@@ -568,6 +571,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   chatMessages = [],
   isSynced = true,
   onOpenFocusMode,
+  onDetailOpenChange,
 }) => {
   const [activeVideoIdx, setActiveVideoIdx] = useState(0);
   const [isAutoCycle, setIsAutoCycle] = useState(true);
@@ -579,6 +583,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     const sharedId = typeof window !== 'undefined' ? readSharedQuestionId(window.location.search) : null;
     return sharedId ? questions.find(item => item.id === sharedId) ?? null : null;
   });
+  useEffect(() => {
+    onDetailOpenChange?.(Boolean(selectedQuestion));
+    return () => onDetailOpenChange?.(false);
+  }, [selectedQuestion, onDetailOpenChange]);
   const pendingSharedId = useRef<string | null>(
     typeof window !== 'undefined' ? readSharedQuestionId(window.location.search) : null,
   );
@@ -1200,9 +1208,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   };
 
   return (
-    <section className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8`}>
+    <section className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-22 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-6 px-4 sm:px-6 lg:px-8`}>
       
-      {/* Triple Video Crossfade Switcher Background Engine */}
+      {/* Triple Video Crossfade Switcher Background Engine — matte overlay prevents color bleed */}
       <div className="ff-video-bg absolute inset-0 z-0 pointer-events-none overflow-hidden">
         {FORUM_VIDEOS.map((vid, idx) => (
           <video
@@ -1215,250 +1223,238 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             preload="metadata"
             onError={handleVideoError}
             className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[1200ms] ease-in-out ${
-              activeVideoIdx === idx ? 'opacity-100' : 'opacity-0'
+              activeVideoIdx === idx ? 'opacity-65' : 'opacity-0'
             }`}
           />
         ))}
-        {/* Subtle Dark 40% Overlay */}
-        <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
+        <div className="absolute inset-0 bg-[#080d16]/82 backdrop-blur-[4px]" />
       </div>
 
       {/* Main Container */}
       <div className={`relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col ${isEmbedded ? '' : 'overflow-hidden'}`}>
         
-        {/* Header Bar with Ambient Video Switcher Pills */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4 pb-3 border-b border-white/10 shrink-0">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-              <HelpCircle className="w-6 h-6 text-cyan-400" />
-              <span>Sàn Giao Lưu Tri Thức Q&A</span>
-            </h1>
-            <p className="text-xs text-neutral-300 mt-0.5">
-              Hỏi bài tập ẩn danh, thảo luận học thuật chuyên sâu và nhận huy hiệu đáp án chuẩn.
-            </p>
+        {/* Top Toolbar: Title + Search + Sort/Saved + Ask CTA (Sort menu is outside overflow-x-auto so it never clips) */}
+        <div className="flex flex-col gap-3 mb-3.5 pb-3 border-b border-white/[0.08] shrink-0">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-cyan-500/12 border border-cyan-400/25 flex items-center justify-center shrink-0">
+                <HelpCircle className="w-5 h-5 text-cyan-300" />
+              </div>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                  Hỏi đáp
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[11px] font-mono text-slate-300">
+                  {questions.length} câu hỏi · {questions.filter(q => q.isSolved).length} đã giải
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Ambient Video Switcher Pills */}
+              <div className="hidden md:flex items-center gap-1 bg-[#0b111c]/90 p-1 rounded-xl border border-white/[0.08]">
+                {FORUM_VIDEOS.map(v => {
+                  const VideoIcon = v.id === 0 ? Waves : v.id === 1 ? Grid3X3 : Sparkles;
+                  return (
+                    <button
+                      key={v.id}
+                      onClick={() => setActiveVideoIdx(v.id)}
+                      className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
+                        activeVideoIdx === v.id
+                          ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/35'
+                          : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                      }`}
+                      title={`Chuyển phông nền: ${v.label}`}
+                      aria-label={`Chuyển phông nền: ${v.label}`}
+                    >
+                      <VideoIcon className="w-3.5 h-3.5" />
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => setIsAutoCycle(prev => !prev)}
+                  className={`px-2 py-1 text-[10px] font-mono rounded-lg border transition-colors cursor-pointer ${
+                    isAutoCycle
+                      ? 'border-cyan-400/30 text-cyan-200 bg-cyan-500/10'
+                      : 'border-white/[0.08] text-slate-400'
+                  }`}
+                  title={isAutoCycle ? 'Tự động đổi nền (20s)' : 'Giữ nguyên nền'}
+                >
+                  {isAutoCycle ? 'Auto' : 'Tĩnh'}
+                </button>
+              </div>
+
+              {/* Bộ lọc "Đã lưu" */}
+              {savedOwnerKey && (
+                <button
+                  type="button"
+                  onClick={() => setShowSavedOnly(prev => !prev)}
+                  aria-pressed={showSavedOnly}
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
+                    showSavedOnly
+                      ? 'bg-amber-500/20 border-amber-400/45 text-amber-200 font-semibold'
+                      : 'bg-[#0c1320]/90 text-slate-300 hover:text-white border-white/[0.08] hover:border-white/20'
+                  }`}
+                  title={showSavedOnly ? 'Bấm để xem tất cả câu hỏi' : 'Chỉ hiện câu hỏi đã lưu'}
+                >
+                  <Bookmark className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Đã lưu</span>
+                  {mySavedIds.length > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-md bg-amber-500/25 text-amber-200 text-[10px] font-mono font-bold">
+                      {mySavedIds.length}
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {/* Menu sắp xếp — nằm ngoài overflow-x-auto nên không bao giờ bị cắt góc */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsSortMenuOpen(prev => !prev)}
+                  aria-expanded={isSortMenuOpen}
+                  aria-haspopup="menu"
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
+                    sortMode !== DEFAULT_QUESTION_SORT
+                      ? 'bg-cyan-500/15 border-cyan-400/40 text-cyan-200 font-semibold'
+                      : 'bg-[#0c1320]/90 text-slate-300 hover:text-white border-white/[0.08] hover:border-white/20'
+                  }`}
+                  title="Sắp xếp danh sách câu hỏi"
+                >
+                  <ArrowUpDown className="w-3.5 h-3.5 text-cyan-300" />
+                  <span>{QUESTION_SORT_OPTIONS.find(o => o.id === sortMode)?.label ?? 'Sắp xếp'}</span>
+                </button>
+
+                {isSortMenuOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-full mt-1.5 w-56 rounded-xl bg-[#0d1422] border border-white/15 shadow-2xl p-1.5 z-40 space-y-0.5 animate-fade-up"
+                  >
+                    {QUESTION_SORT_OPTIONS.map(opt => {
+                      const isActive = opt.id === sortMode;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={isActive}
+                          onClick={() => chooseSortMode(opt.id)}
+                          className={`w-full px-2.5 py-2 text-left rounded-lg transition-colors cursor-pointer ${
+                            isActive ? 'bg-cyan-500/15' : 'hover:bg-white/[0.06]'
+                          }`}
+                        >
+                          <span
+                            className={`flex items-center gap-2 text-xs font-semibold ${
+                              isActive ? 'text-cyan-300' : 'text-slate-200'
+                            }`}
+                          >
+                            {isActive ? <Check size={12} /> : <span className="w-3" />}
+                            {opt.label}
+                          </span>
+                          <span className="block text-[10px] text-slate-400 pl-5 mt-0.5">{opt.hint}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Đặt câu hỏi CTA */}
+              <button
+                onClick={() => {
+                  if (!currentUser) {
+                    onOpenLoginModal?.();
+                  } else {
+                    setIsAskModalOpen(true);
+                  }
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-cyan-500 hover:bg-cyan-400 text-slate-950 transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-sm"
+              >
+                <PlusCircle className="w-4 h-4 text-slate-950" />
+                <span>Đặt câu hỏi</span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            {/* Ambient Video Switcher Pills */}
-            <div className="hidden sm:flex items-center gap-1 bg-black/50 p-1 rounded-full border border-white/10">
-              {FORUM_VIDEOS.map(v => {
-                const VideoIcon = v.id === 0 ? Waves : v.id === 1 ? Grid3X3 : Sparkles;
+          {/* Search & Subject Filter Row */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            <div className="relative sm:w-72 md:w-80 shrink-0">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                maxLength={100}
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Tìm tiêu đề, nội dung, môn học..."
+                className="w-full pl-9 pr-8 py-2 rounded-xl text-xs bg-[#0b111c]/90 border border-white/[0.09] text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400/50 transition-colors"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                  aria-label="Xóa tìm kiếm"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* 14 Subject Pills scrollable strip */}
+            <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none min-w-0 flex-1">
+              <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0 mr-0.5" />
+              {SUBJECTS.map(subj => {
+                const isActive = selectedTag === subj.tag;
+                const isAcademic = subj.group === 'academic';
                 return (
                   <button
-                    key={v.id}
-                    onClick={() => setActiveVideoIdx(v.id)}
-                    className={`p-1.5 rounded-full transition-all cursor-pointer flex items-center justify-center ${
-                      activeVideoIdx === v.id
-                        ? 'bg-cyan-500 text-black shadow-[0_0_10px_rgba(6,182,212,0.8)]'
-                        : 'text-neutral-400 hover:text-white hover:bg-white/10'
+                    key={subj.tag}
+                    onClick={() => setSelectedTag(subj.tag)}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-mono whitespace-nowrap transition-colors cursor-pointer ${
+                      isActive
+                        ? 'bg-cyan-500/20 text-cyan-200 font-semibold border border-cyan-400/45'
+                        : isAcademic
+                        ? 'bg-white/[0.03] text-slate-300 hover:bg-white/[0.08] hover:text-white border border-white/[0.07]'
+                        : 'bg-indigo-500/[0.07] text-indigo-200/90 hover:bg-indigo-500/15 border border-indigo-400/20'
                     }`}
-                    title={`Chuyển phông nền: ${v.label}`}
-                    aria-label={`Chuyển phông nền: ${v.label}`}
                   >
-                    <VideoIcon className="w-3.5 h-3.5" />
+                    {subj.label}
                   </button>
                 );
               })}
-              <button
-                onClick={() => setIsAutoCycle(prev => !prev)}
-                className={`px-2 py-1 text-[9px] font-mono rounded-full border transition-all ${
-                  isAutoCycle
-                    ? 'border-cyan-500/40 text-cyan-300 bg-cyan-950/40'
-                    : 'border-white/10 text-neutral-400'
-                }`}
-                title={
-                  isAutoCycle
-                    ? 'Đang bật tự động đổi nền sau 20s'
-                    : 'Đã tạm dừng tự động đổi nền'
-                }
-              >
-                {isAutoCycle ? 'Auto' : 'Static'}
-              </button>
-            </div>
-
-            {/* Glowing + Đặt Câu Hỏi Mới (+50 XP) Button */}
-            <button
-              onClick={() => {
-                if (!currentUser) {
-                  onOpenLoginModal?.();
-                } else {
-                  setIsAskModalOpen(true);
-                }
-              }}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-400 to-blue-500 text-black hover:opacity-95 active:scale-95 transition-all shadow-[0_0_20px_rgba(6,182,212,0.5)] flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-            >
-              <PlusCircle className="w-4 h-4 text-black" />
-              <span>+ Đặt Câu Hỏi Mới (+50 XP)</span>
-            </button>
-          </div>
-        </div>
-
-        {/* 14 Subject & Life Filter Pills + Search */}
-        <div className="shrink-0 mb-4 space-y-2">
-          {/* Search bar */}
-          <div className="relative w-full">
-            <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              maxLength={100}
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              placeholder="Tìm kiếm câu hỏi theo tiêu đề, nội dung, chủ đề #toan, #tin, #tamly..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs bg-neutral-950/80 border border-white/15 text-white placeholder-neutral-400 focus:outline-none focus:border-cyan-400 transition-colors shadow-inner"
-            />
-          </div>
-
-          {/* 14 Subject Pills scrollable row */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-            <Filter className="w-3.5 h-3.5 text-neutral-400 shrink-0 mr-1" />
-            {SUBJECTS.map(subj => {
-              const isActive = selectedTag === subj.tag;
-              const isAcademic = subj.group === 'academic';
-              return (
-                <button
-                  key={subj.tag}
-                  onClick={() => setSelectedTag(subj.tag)}
-                  className={`px-3 py-1 rounded-full text-xs font-mono font-medium whitespace-nowrap transition-all focus:outline-none ${
-                    isActive
-                      ? 'bg-cyan-400 text-neutral-950 font-bold shadow-[0_0_12px_rgba(6,182,212,0.6)]'
-                      : isAcademic
-                      ? 'bg-white/5 text-neutral-300 hover:bg-white/15 border border-white/10'
-                      : 'bg-purple-950/40 text-purple-300 hover:bg-purple-900/60 border border-purple-500/20'
-                  }`}
-                >
-                  {subj.label}
-                </button>
-              );
-            })}
-
-            {/* Bộ lọc "Đã lưu" — tắt nếu chưa đăng nhập vì danh sách theo từng người */}
-            {savedOwnerKey && (
-              <button
-                type="button"
-                onClick={() => setShowSavedOnly(prev => !prev)}
-                aria-pressed={showSavedOnly}
-                className={`shrink-0 inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-mono font-medium whitespace-nowrap transition-all focus:outline-none ${
-                  showSavedOnly
-                    ? 'bg-amber-400 text-neutral-950 font-bold shadow-[0_0_12px_rgba(245,158,11,0.6)]'
-                    : 'bg-white/5 text-neutral-300 hover:bg-white/15 border border-white/10'
-                }`}
-                title={
-                  showSavedOnly
-                    ? 'Đang chỉ hiện câu hỏi đã lưu — bấm để xem tất cả'
-                    : 'Chỉ hiện các câu hỏi bạn đã lưu'
-                }
-              >
-                <Bookmark className="w-3 h-3" />
-                Đã lưu
-                {mySavedIds.length > 0 && (
-                  <span
-                    className={`px-1.5 rounded-full text-[10px] font-bold ${
-                      showSavedOnly ? 'bg-neutral-950/20 text-neutral-900' : 'bg-amber-500/25 text-amber-300'
-                    }`}
-                  >
-                    {mySavedIds.length}
-                  </span>
-                )}
-              </button>
-            )}
-
-            {/* Menu sắp xếp */}
-            <div className="relative shrink-0 ml-auto">
-              <button
-                type="button"
-                onClick={() => setIsSortMenuOpen(prev => !prev)}
-                aria-expanded={isSortMenuOpen}
-                aria-haspopup="menu"
-                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-mono font-medium whitespace-nowrap transition-all focus:outline-none ${
-                  sortMode !== DEFAULT_QUESTION_SORT
-                    ? 'bg-cyan-400 text-neutral-950 font-bold shadow-[0_0_12px_rgba(6,182,212,0.6)]'
-                    : 'bg-white/5 text-neutral-300 hover:bg-white/15 border border-white/10'
-                }`}
-                title="Sắp xếp danh sách câu hỏi"
-              >
-                <ArrowUpDown className="w-3 h-3" />
-                {QUESTION_SORT_OPTIONS.find(o => o.id === sortMode)?.label ?? 'Sắp xếp'}
-              </button>
-
-              {isSortMenuOpen && (
-                <div
-                  role="menu"
-                  className="absolute right-0 top-full mt-1.5 w-56 rounded-xl obsidian-glass bg-[#0c1218] border border-cyan-500/30 shadow-2xl p-1.5 z-30 space-y-0.5 animate-fade-up"
-                >
-                  {QUESTION_SORT_OPTIONS.map(opt => {
-                    const isActive = opt.id === sortMode;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        role="menuitemradio"
-                        aria-checked={isActive}
-                        onClick={() => chooseSortMode(opt.id)}
-                        className={`w-full px-2.5 py-1.5 text-left rounded-lg transition-colors cursor-pointer ${
-                          isActive ? 'bg-cyan-500/20' : 'hover:bg-white/10'
-                        }`}
-                      >
-                        <span
-                          className={`flex items-center gap-2 text-xs font-semibold ${
-                            isActive ? 'text-cyan-300' : 'text-neutral-200'
-                          }`}
-                        >
-                          {isActive && <Check size={12} />}
-                          {!isActive && <span className="w-3" />}
-                          {opt.label}
-                        </span>
-                        <span className="block text-[10px] text-neutral-500 pl-5">{opt.hint}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
             </div>
           </div>
         </div>
 
-        {/* Main Content Area: Questions Feed (Col 8) + Leaderboard & Ask CTA Widget (Col 4) */}
-        <div className={`flex-1 ${isEmbedded ? '' : 'overflow-hidden'} grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0 pb-6`}>
+        {/* Main Content Area: Questions Feed (Col 8) + Leaderboard (Col 4) */}
+        <div className={`flex-1 ${isEmbedded ? '' : 'overflow-hidden'} grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0 pb-4`}>
           {/* Left: Questions Feed */}
-          <div ref={listScrollRef} className={`lg:col-span-8 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-3 pb-6`}>
+          <div ref={listScrollRef} className={`lg:col-span-8 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-2.5 pb-6`}>
           {!isSynced && filteredQuestions.length === 0 ? (
-            <div className="rounded-2xl liquid-glass bg-white/5 border border-white/10 overflow-hidden">
+            <div className="rounded-2xl bg-[#0e1522]/90 border border-white/[0.08] overflow-hidden">
               <CommentSkeletonList rows={4} />
             </div>
           ) : filteredQuestions.length === 0 ? (
-            /*
-              Trạng thái trống phải nói đúng LÝ DO trống. Bản cũ luôn hiện "hãy là
-              người đầu tiên đặt câu hỏi" — sai hẳn khi người dùng chỉ vừa bật bộ
-              lọc hay gõ từ khoá làm danh sách rỗng; họ cần nút gỡ lọc, không phải
-              lời rủ đặt câu hỏi.
-            */
             showSavedOnly && mySavedIds.length === 0 ? (
-              <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-neutral-400 rounded-2xl liquid-glass bg-white/5 border border-white/10 space-y-2">
-                <Bookmark className="w-10 h-10 text-amber-500/60 mb-1" />
+              <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-slate-400 rounded-2xl bg-[#0e1522]/90 border border-white/[0.08] space-y-2">
+                <Bookmark className="w-8 h-8 text-amber-400/70 mb-1" />
                 <p className="text-sm font-semibold text-white">Chưa lưu câu hỏi nào</p>
-                <p className="text-xs text-neutral-400 max-w-sm">
-                  Bấm biểu tượng đánh dấu trên bất kỳ thẻ câu hỏi nào để giữ lại đọc sau.
-                  Danh sách này là của riêng bạn.
+                <p className="text-xs text-slate-400 max-w-sm">
+                  Bấm biểu tượng đánh dấu trên thẻ câu hỏi để lưu đọc lại.
                 </p>
                 <button
                   type="button"
                   onClick={() => setShowSavedOnly(false)}
-                  className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-neutral-200 border border-white/15 text-xs font-semibold transition-all cursor-pointer"
+                  className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 border border-white/10 text-xs font-semibold transition-colors cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
                   <span>Xem tất cả câu hỏi</span>
                 </button>
               </div>
             ) : showSavedOnly || searchTerm || selectedTag !== 'all' ? (
-              <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-neutral-400 rounded-2xl liquid-glass bg-white/5 border border-white/10 space-y-2">
-                <Search className="w-10 h-10 text-neutral-500 mb-1" />
-                <p className="text-sm font-semibold text-white">Không có câu hỏi nào khớp bộ lọc</p>
-                <p className="text-xs text-neutral-400 max-w-sm">
-                  {searchTerm
-                    ? `Không tìm thấy kết quả cho "${searchTerm}".`
-                    : 'Không có câu hỏi nào trong mục này.'}{' '}
-                  Thử bỏ bớt điều kiện lọc để xem nhiều hơn.
-                </p>
+              <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-slate-400 rounded-2xl bg-[#0e1522]/90 border border-white/[0.08] space-y-2">
+                <Search className="w-8 h-8 text-slate-500 mb-1" />
+                <p className="text-sm font-semibold text-white">Không có câu hỏi khớp bộ lọc</p>
                 <button
                   type="button"
                   onClick={() => {
@@ -1466,19 +1462,16 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     setSearchTerm('');
                     setSelectedTag('all');
                   }}
-                  className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/30 text-xs font-semibold transition-all cursor-pointer"
+                  className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-200 border border-cyan-400/30 text-xs font-semibold transition-colors cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
-                  <span>Xoá toàn bộ bộ lọc</span>
+                  <X className="w-3.5 h-3.5" />
+                  <span>Xoá bộ lọc</span>
                 </button>
               </div>
             ) : (
-              <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-neutral-400 rounded-2xl liquid-glass bg-white/5 border border-white/10 space-y-2">
-                <HelpCircle className="w-10 h-10 text-neutral-500 mb-1" />
-                <p className="text-sm font-semibold text-white">Chưa có câu hỏi nào trên sàn thảo luận</p>
-                <p className="text-xs text-neutral-400 max-w-sm">
-                  Hãy là người đầu tiên đặt câu hỏi để cùng thảo luận bài học và nhận giải đáp từ cộng đồng!
-                </p>
+              <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-slate-400 rounded-2xl bg-[#0e1522]/90 border border-white/[0.08] space-y-2">
+                <HelpCircle className="w-8 h-8 text-slate-500 mb-1" />
+                <p className="text-sm font-semibold text-white">Chưa có câu hỏi nào</p>
                 <button
                   type="button"
                   onClick={() => {
@@ -1488,9 +1481,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       setIsAskModalOpen(true);
                     }
                   }}
-                  className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/30 text-xs font-semibold transition-all cursor-pointer"
+                  className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-200 border border-cyan-400/30 text-xs font-semibold transition-colors cursor-pointer"
                 >
-                  <PlusCircle className="w-4 h-4" />
+                  <PlusCircle className="w-3.5 h-3.5" />
                   <span>Đặt câu hỏi đầu tiên</span>
                 </button>
               </div>
@@ -1517,148 +1510,136 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     }
                   }}
                   aria-label={`Xem chi tiết câu hỏi: ${q.title}`}
-                  className={`cursor-pointer rounded-2xl liquid-glass p-4 border transition-all duration-200 group hover:scale-[1.008] ${
+                  className={`cursor-pointer rounded-2xl p-4 sm:p-5 border transition-colors duration-150 group ${
                     q.isSolved
-                      ? 'bg-neutral-950/70 border-amber-500/40 hover:border-amber-400 shadow-[0_4px_20px_rgba(245,158,11,0.1)]'
-                      : 'bg-neutral-950/60 border-white/10 hover:border-cyan-400/50'
+                      ? 'bg-[#0e1722]/92 hover:bg-[#121e2c]/95 border-emerald-500/25 hover:border-emerald-400/45'
+                      : 'bg-[#0e1522]/90 hover:bg-[#121c2c]/95 border-white/[0.08] hover:border-cyan-400/35'
                   }`}
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                    <div className="space-y-1.5 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {/* Solved Badge */}
-                        {q.isSolved ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-[10px] font-bold text-amber-300 font-mono">
-                            <CheckCircle2 className="w-3 h-3 text-amber-400" />
-                            ĐÃ GIẢI QUYẾT
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-[10px] font-bold text-cyan-300 font-mono">
-                            ĐANG CHỜ LỜI GIẢI
-                          </span>
-                        )}
+                  {/* Hàng 1: Nhãn môn học, Trạng thái, Tiền thưởng & Công cụ */}
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                      <span className="px-2 py-0.5 rounded-lg text-[11px] font-mono font-semibold bg-cyan-500/12 text-cyan-200 border border-cyan-400/25">
+                        #{q.subject}
+                      </span>
 
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-white/10 text-neutral-300 border border-white/10">
-                          #{q.subject}
+                      {q.isSolved ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-400/30 text-[11px] font-semibold text-emerald-300">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                          <span>Đã giải</span>
                         </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[11px] font-medium text-slate-300">
+                          <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span>Chờ giải</span>
+                        </span>
+                      )}
 
-                        {q.bountyCoin && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-[10px] font-mono font-bold text-amber-300">
-                            <Coins className="w-3 h-3 text-amber-400" />
-                            +{q.bountyCoin} Coin
-                          </span>
-                        )}
-
-                        <span className="text-[10px] text-neutral-500 font-mono">{q.createdAt}</span>
-                      </div>
-
-                      <h3 className="text-sm sm:text-base font-bold text-white group-hover:text-cyan-300 transition-colors">
-                        {q.title}
-                      </h3>
-
-                      <p className="text-xs text-neutral-300 line-clamp-2 leading-relaxed">
-                        {q.content}
-                      </p>
+                      {q.bountyCoin && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/12 border border-amber-400/25 text-[11px] font-mono font-semibold text-amber-300">
+                          <Coins className="w-3 h-3 text-amber-400 shrink-0" />
+                          <span>+{q.bountyCoin} Coin</span>
+                        </span>
+                      )}
 
                       {q.imageUrl && (
-                        <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-cyan-300 font-mono">
-                          <ImageIcon className="w-3 h-3 text-cyan-400" />
-                          <span>Đính kèm hình ảnh</span>
-                        </div>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[10.5px] text-slate-300">
+                          <ImageIcon className="w-3 h-3 text-cyan-300 shrink-0" />
+                          <span>Có ảnh</span>
+                        </span>
                       )}
                     </div>
 
-                    <div className="flex items-center sm:flex-col sm:items-end gap-2 shrink-0">
-                      <div className="flex items-center gap-1.5 text-xs text-neutral-400 font-mono">
-                        <span className="flex items-center gap-1">
-                          <Eye className="w-3.5 h-3.5" />
-                          {q.views}
-                        </span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1 text-cyan-400 font-bold">
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          {qSolutions.length} lời giải
-                        </span>
-
-                        {/* Nút lưu câu hỏi — stopPropagation vì cả thẻ là role="button" */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleSaveQuestion(q.id);
-                          }}
-                          aria-pressed={isQuestionSaved(savedMap, savedOwnerKey, q.id)}
-                          className={`p-1 rounded-md border transition-colors cursor-pointer ${
-                            isQuestionSaved(savedMap, savedOwnerKey, q.id)
-                              ? 'bg-amber-500/20 border-amber-400/40 text-amber-300'
-                              : 'bg-white/5 border-white/10 text-neutral-400 hover:bg-white/15 hover:text-white'
-                          }`}
-                          title={
-                            isQuestionSaved(savedMap, savedOwnerKey, q.id)
-                              ? 'Bỏ lưu câu hỏi này'
-                              : 'Lưu câu hỏi này để xem lại sau'
-                          }
-                          aria-label={
-                            isQuestionSaved(savedMap, savedOwnerKey, q.id)
-                              ? `Bỏ lưu câu hỏi: ${q.title}`
-                              : `Lưu câu hỏi: ${q.title}`
-                          }
-                        >
-                          {isQuestionSaved(savedMap, savedOwnerKey, q.id) ? (
-                            <BookmarkCheck size={13} />
-                          ) : (
-                            <Bookmark size={13} />
-                          )}
-                        </button>
-
-                        {/* Menu 3 chấm quản trị nội dung (Super Admin / quyền edit_content) */}
-                        {canEditContent && (
-                          <div className="relative ml-1">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenMenuQuestionId(prev => (prev === q.id ? null : q.id));
-                              }}
-                              className="p-1 rounded-md bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white border border-white/10 transition-colors cursor-pointer"
-                              title="Tùy chọn quản trị bài viết"
-                              aria-label="Tùy chọn quản trị bài viết"
-                            >
-                              <MoreVertical size={13} />
-                            </button>
-
-                            {openMenuQuestionId === q.id && (
-                              <div className="absolute right-0 top-full mt-1.5 w-44 rounded-xl obsidian-glass bg-[#0c1218] border border-cyan-500/30 shadow-2xl p-1.5 z-30 space-y-1 animate-fade-up">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setOpenMenuQuestionId(null);
-                                    handleAdminEditPost(q.id);
-                                  }}
-                                  className="w-full px-2.5 py-1.5 text-left text-xs text-amber-300 hover:bg-amber-500/20 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
-                                >
-                                  <Edit3 size={12} />
-                                  <span>[Chỉnh sửa bài viết]</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setOpenMenuQuestionId(null);
-                                    handleAdminDeletePost(q.id);
-                                  }}
-                                  className="w-full px-2.5 py-1.5 text-left text-xs text-red-400 hover:bg-red-500/20 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
-                                >
-                                  <Trash2 size={12} />
-                                  <span>[Xóa bài viết]</span>
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleSaveQuestion(q.id);
+                        }}
+                        aria-pressed={isQuestionSaved(savedMap, savedOwnerKey, q.id)}
+                        className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                          isQuestionSaved(savedMap, savedOwnerKey, q.id)
+                            ? 'bg-amber-500/15 border-amber-400/35 text-amber-300'
+                            : 'bg-white/[0.03] border-white/[0.07] text-slate-400 hover:bg-white/[0.08] hover:text-white'
+                        }`}
+                        title={
+                          isQuestionSaved(savedMap, savedOwnerKey, q.id)
+                            ? 'Bỏ lưu câu hỏi này'
+                            : 'Lưu câu hỏi này'
+                        }
+                        aria-label={
+                          isQuestionSaved(savedMap, savedOwnerKey, q.id)
+                            ? `Bỏ lưu câu hỏi: ${q.title}`
+                            : `Lưu câu hỏi: ${q.title}`
+                        }
+                      >
+                        {isQuestionSaved(savedMap, savedOwnerKey, q.id) ? (
+                          <BookmarkCheck size={13} />
+                        ) : (
+                          <Bookmark size={13} />
                         )}
-                      </div>
+                      </button>
 
+                      {canEditContent && (
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuQuestionId(prev => (prev === q.id ? null : q.id));
+                            }}
+                            className="p-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.07] transition-colors cursor-pointer"
+                            title="Tùy chọn quản trị bài viết"
+                            aria-label="Tùy chọn quản trị bài viết"
+                          >
+                            <MoreVertical size={13} />
+                          </button>
+
+                          {openMenuQuestionId === q.id && (
+                            <div className="absolute right-0 top-full mt-1.5 w-44 rounded-xl bg-[#0d1422] border border-white/15 shadow-2xl p-1.5 z-30 space-y-1 animate-fade-up">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuQuestionId(null);
+                                  handleAdminEditPost(q.id);
+                                }}
+                                className="w-full px-2.5 py-1.5 text-left text-xs text-amber-300 hover:bg-amber-500/15 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
+                              >
+                                <Edit3 size={12} />
+                                <span>Chỉnh sửa bài viết</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuQuestionId(null);
+                                  handleAdminDeletePost(q.id);
+                                }}
+                                className="w-full px-2.5 py-1.5 text-left text-xs text-rose-300 hover:bg-rose-500/15 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
+                              >
+                                <Trash2 size={12} />
+                                <span>Xóa bài viết</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Hàng 2: Tiêu đề & Nội dung tóm tắt */}
+                  <h3 className="text-[15px] sm:text-base font-bold text-slate-100 group-hover:text-cyan-200 transition-colors leading-snug">
+                    {q.title}
+                  </h3>
+                  <p className="text-xs sm:text-[13px] text-slate-400 line-clamp-2 leading-relaxed mt-1">
+                    {q.content}
+                  </p>
+
+                  {/* Hàng 3: Tác giả & Số liệu tương tác */}
+                  <div className="flex items-center justify-between gap-3 mt-3 pt-2.5 border-t border-white/[0.06]">
+                    <div className="flex items-center gap-2 min-w-0">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -1677,7 +1658,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             });
                           }
                         }}
-                        className="flex items-center gap-1.5 mt-1 hover:opacity-80 transition-opacity cursor-pointer text-left"
+                        className="inline-flex items-center gap-2 hover:opacity-85 transition-opacity cursor-pointer text-left min-w-0"
                         title={q.isAnonymous ? 'Tác giả ẩn danh' : 'Xem thông tin tác giả'}
                       >
                         <img
@@ -1688,40 +1669,47 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           decoding="async"
                           width={20}
                           height={20}
-                          className={`w-5 h-5 rounded-full object-cover border ${
-                            q.isAnonymous
-                              ? 'border-purple-400 p-0.5 shadow-[0_0_8px_rgba(168,85,247,0.5)]'
-                              : 'border-white/20'
-                          }`}
+                          className="w-5 h-5 rounded-full object-cover border border-white/15 shrink-0"
                         />
                         <span
-                          className={`text-xs truncate max-w-[140px] ${
-                            q.isAnonymous
-                              ? 'text-purple-300 font-medium'
-                              : 'text-neutral-400 hover:text-white'
+                          className={`text-xs font-medium truncate max-w-[160px] ${
+                            q.isAnonymous ? 'text-indigo-200' : 'text-slate-300'
                           }`}
                         >
                           {q.authorName}
                         </span>
+                        {q.isAnonymous && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-indigo-500/15 border border-indigo-400/25 text-[10px] text-indigo-200 font-medium shrink-0">
+                            Ẩn danh
+                          </span>
+                        )}
                       </button>
+                      <span className="text-[11px] text-slate-500 font-mono">· {q.createdAt}</span>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-xs font-mono text-slate-400 shrink-0">
+                      <span className="inline-flex items-center gap-1" title="Lượt xem">
+                        <Eye className="w-3.5 h-3.5 text-slate-500" />
+                        <span>{q.views}</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-cyan-300 font-semibold">
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>{qSolutions.length}/3 lời giải</span>
+                      </span>
                     </div>
                   </div>
 
-                  {/* Best Answer Preview Callout */}
+                  {/* Đáp án chuẩn tóm tắt */}
                   {bestSol && (
-                    <div className="mt-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs text-amber-200">
-                      <div className="flex items-center gap-2 truncate">
-                        <Award className="w-4 h-4 text-amber-400 shrink-0" />
-                        <span className="font-bold text-amber-300">Đáp Án Chuẩn:</span>
-                        <span className="truncate italic text-neutral-200">{bestSol.content}</span>
+                    <div className="mt-2.5 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between gap-2 text-xs text-emerald-100">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Award className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span className="font-semibold text-emerald-300 shrink-0">Đáp án chuẩn:</span>
+                        <span className="truncate text-slate-200">{bestSol.content}</span>
                       </div>
-                      <span className="text-[10px] font-mono text-amber-400 font-bold ml-2 shrink-0">
-                        ✓ ĐÁP ÁN CHUẨN
-                      </span>
                     </div>
                   )}
 
-                  {/* Super Admin Moderation Bar on Question Card */}
                   <ForumPostModeration
                     postId={q.id}
                     onDeletePost={handleAdminDeletePost}
@@ -1730,42 +1718,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   />
                 </div>
               );
-
             })
           )}
           </div>
 
-          {/* Right Sidebar: Leaderboard & "Bạn muốn hỏi điều gì?" Widget */}
+          {/* Right Sidebar: Leaderboard */}
           <div className={`lg:col-span-4 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-4 pb-6`}>
-            
-            {/* Đặt câu hỏi CTA Widget */}
-            <div className="pc-12-shell p-4 rounded-2xl relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-blue-500/5 opacity-50 group-hover:opacity-100 transition-opacity"></div>
-              <div className="relative z-10 flex flex-col items-center text-center gap-3">
-                <div className="w-12 h-12 rounded-full pc-12-well flex items-center justify-center">
-                  <HelpCircle className="w-6 h-6 text-cyan-400" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white mb-1">Bạn đang có thắc mắc?</h3>
-                  <p className="text-xs text-neutral-400">Đừng ngần ngại đặt câu hỏi, cộng đồng F-Forum luôn sẵn sàng hỗ trợ bạn!</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!currentUser) {
-                      onOpenLoginModal?.();
-                    } else {
-                      setIsAskModalOpen(true);
-                    }
-                  }}
-                  className="w-full mt-1 pc-12-btn py-2.5 rounded-xl text-cyan-50 font-bold text-xs flex items-center justify-center gap-2"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>Đặt câu hỏi ngay</span>
-                </button>
-              </div>
-            </div>
-
             <LeaderboardWidget
               currentUser={currentUser}
               users={users}
@@ -2450,7 +2408,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         );
       })()}
 
-      {/* Phase 4.1–4.7: TRANG RIÊNG Chi Tiết Câu Hỏi & Solutions Feed — Sub-layout dưới Navbar (calc(100vh - var(--navbar-height))), không che Navbar */}
+      {/* Giao diện Chi Tiết Câu Hỏi & Trả Lời — Full-screen (ẩn Navbar), bố cục gọn, không emoji thừa, khung trả lời liền mạch */}
       {selectedQuestion && (() => {
         const activeSolutions = solutions
           .filter(s => s.questionId === selectedQuestion.id && s.status !== 'deleted')
@@ -2461,7 +2419,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           selectedQuestion.imageUrl && selectedQuestion.content.trim().length < 100
         );
 
-        /* AI Tag-matching & keyword overlap for Related Questions (Phase 4.7) */
         const titleWords = selectedQuestion.title
           .toLowerCase()
           .split(/\s+/)
@@ -2482,7 +2439,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           .slice(0, 5)
           .map(item => item.q);
 
-        /* Top Solvers in this Subject (Phase 4.7) */
         const subjectQuestionIds = new Set(
           questions.filter(q => q.subject === selectedQuestion.subject && q.status !== 'deleted').map(q => q.id)
         );
@@ -2508,144 +2464,215 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           <div
             role="region"
             aria-label="Trang chi tiết câu hỏi"
-            className="page-content-wrapper fixed inset-x-0 top-[var(--navbar-height)] bottom-0 z-40 overflow-hidden bg-[#080d12] animate-fade-up flex flex-col md:flex-row"
+            className="page-content-wrapper fixed inset-0 z-50 h-[100dvh] overflow-hidden bg-[#090d15] animate-fade-up flex flex-col"
           >
-            {/* Sticky 2px Reading Progress Bar (Phase 4.1) */}
+            {/* Thanh tiến trình đọc 2px trên cùng */}
             <div
               aria-hidden="true"
               className="pointer-events-none absolute top-0 left-0 right-0 h-[2px] bg-white/5 z-50 overflow-hidden"
             >
               <div
-                className="h-full bg-gradient-to-r from-cyan-400 via-blue-500 to-amber-400 transition-[width] duration-150 ease-out"
+                className="h-full bg-gradient-to-r from-cyan-400 via-blue-500 to-emerald-400 transition-[width] duration-150 ease-out"
                 style={{ width: `${readingProgress}%` }}
               />
             </div>
 
-            {/* CỘT CHÍNH — Header cố định / Body cuộn / Footer cố định */}
-            <div className="flex-1 flex flex-col min-h-0 min-w-0 md:max-w-3xl lg:max-w-4xl md:mx-auto w-full">
-              {/* Header — CỐ ĐỊNH, có nút ← Quay lại */}
-              <div className="px-4 sm:px-6 pt-4 pb-3 border-b border-white/10 shrink-0">
+            {/* Thanh điều hướng riêng của trang Câu Hỏi (thay thế Navbar toàn cục) */}
+            <header className="px-4 sm:px-8 h-14 border-b border-white/[0.08] bg-[#0c121e]/95 backdrop-blur-md flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <button
                   type="button"
                   onClick={handleCloseQuestionDetail}
-                  className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-white transition-colors mb-2 cursor-pointer"
-                  title="Quay lại Sàn Hỏi Đáp"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] text-xs font-semibold text-slate-200 hover:text-white transition-colors cursor-pointer shrink-0"
+                  title="Quay lại Hỏi đáp"
                 >
-                  <ArrowLeft className="w-4 h-4" />
-                  Quay lại Hỏi đáp
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Quay lại</span>
                 </button>
-                <div className="space-y-1">
-                  {/* Status pill động theo trạng thái câu hỏi (Phase 4.7) */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {selectedQuestion.isSolved ? (
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 font-bold">
-                        <span>🟢 Đã có đáp án đúng</span>
-                      </span>
-                    ) : activeSolutions.length === 0 ? (
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-yellow-500/15 text-yellow-300 border border-yellow-500/30 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
-                        <span>🟡 Đang chờ giải đáp</span>
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                        <span>🔵 Đang thảo luận</span>
-                      </span>
-                    )}
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                      #{selectedQuestion.subject}
+
+                <span className="h-4 w-px bg-white/10 hidden sm:block" aria-hidden="true" />
+
+                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                  <span className="px-2 py-0.5 rounded-lg text-[11px] font-mono font-semibold bg-cyan-500/12 text-cyan-200 border border-cyan-400/25">
+                    #{selectedQuestion.subject}
+                  </span>
+
+                  {selectedQuestion.isSolved ? (
+                    <span className="px-2.5 py-0.5 rounded-lg text-[11px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 inline-flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                      <span>Đã giải</span>
                     </span>
-                    {selectedQuestion.bountyCoin && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 font-bold">
-                        <Coins className="w-3 h-3 text-amber-400" />
-                        +{selectedQuestion.bountyCoin} Coin Phần Thưởng
-                      </span>
-                    )}
-                    {selectedQuestion.isSolved && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                        <Check className="w-3 h-3" /> Đã Giải Quyết
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="font-bold text-base sm:text-lg text-white">
-                    {selectedQuestion.title}
-                  </h3>
-                  <div className="pt-2">
-                    <ShareRow
-                      url={buildQuestionShareUrl(selectedQuestion.id, window.location.origin, window.location.pathname)}
-                      title={selectedQuestion.title}
-                    />
-                  </div>
+                  ) : activeSolutions.length === 0 ? (
+                    <span className="px-2.5 py-0.5 rounded-lg text-[11px] font-medium bg-amber-500/12 text-amber-200 border border-amber-400/25 inline-flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-amber-300 shrink-0" />
+                      <span>Chờ lời giải</span>
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-lg text-[11px] font-medium bg-cyan-500/12 text-cyan-200 border border-cyan-400/25 inline-flex items-center gap-1">
+                      <MessageSquare className="w-3 h-3 text-cyan-300 shrink-0" />
+                      <span>Đang thảo luận</span>
+                    </span>
+                  )}
+
+                  {selectedQuestion.bountyCoin && (
+                    <span className="px-2 py-0.5 rounded-lg text-[11px] font-mono font-semibold bg-amber-500/12 text-amber-300 border border-amber-400/25 inline-flex items-center gap-1">
+                      <Coins className="w-3 h-3 text-amber-400 shrink-0" />
+                      <span>+{selectedQuestion.bountyCoin} Coin</span>
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {/* Body — CUỘN duy nhất ở đây (Phase 4.1) */}
-              <div
-                ref={detailScrollRef}
-                onScroll={handleDetailScroll}
-                className="px-4 sm:px-6 pt-4 pb-6 overflow-y-auto flex-1 min-h-0"
-              >
-                {/* Question Card (Phase 4.2 & 4.3) */}
-                <div className={`question-card ${isCompactQuestionWithImage ? 'compact-with-image' : ''}`}>
-                  <div className="question-text min-w-0">
-                    <div className="flex items-center justify-between mb-2">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-                          if (!selectedQuestion.isAnonymous) {
-                            const existing = Object.values(users).find(u => u.id === selectedQuestion.authorId) ||
-                              (currentUser && currentUser.id === selectedQuestion.authorId ? currentUser : null);
-                            setActiveAuthorPopover({
-                              id: selectedQuestion.authorId,
-                              name: existing?.name || selectedQuestion.authorName,
-                              avatar: existing?.avatar || selectedQuestion.authorAvatar,
-                              email: existing?.email,
-                              level: existing?.level || 1,
-                              coin: existing?.coin || 100,
-                            });
-                          }
-                        }}
-                        className="flex items-center gap-2 text-xs text-neutral-400 hover:opacity-80 transition-opacity cursor-pointer text-left"
-                        title={selectedQuestion.isAnonymous ? 'Tác giả ẩn danh' : 'Xem thông tin tác giả'}
-                      >
-                        <img
-                          src={selectedQuestion.authorAvatar}
-                          alt={selectedQuestion.authorName}
-                          onError={e => handleImageError(e, DEFAULT_AVATAR)}
-                          loading="lazy"
-                          decoding="async"
-                          width={24}
-                          height={24}
-                          className={`w-6 h-6 rounded-full object-cover border ${
-                            selectedQuestion.isAnonymous
-                              ? 'border-purple-400 p-0.5 shadow-[0_0_8px_rgba(168,85,247,0.5)]'
-                              : 'border-white/20'
-                          }`}
-                        />
-                        <span
-                          className={`font-semibold ${
-                            selectedQuestion.isAnonymous ? 'text-purple-300' : 'text-white'
-                          }`}
+              <div className="flex items-center gap-2 shrink-0">
+                <ShareRow
+                  url={buildQuestionShareUrl(selectedQuestion.id, window.location.origin, window.location.pathname)}
+                  title={selectedQuestion.title}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleToggleSaveQuestion(selectedQuestion.id)}
+                  aria-pressed={isQuestionSaved(savedMap, savedOwnerKey, selectedQuestion.id)}
+                  className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+                    isQuestionSaved(savedMap, savedOwnerKey, selectedQuestion.id)
+                      ? 'bg-amber-500/15 border-amber-400/35 text-amber-300'
+                      : 'bg-white/[0.04] border-white/[0.08] text-slate-300 hover:bg-white/[0.09] hover:text-white'
+                  }`}
+                  title={
+                    isQuestionSaved(savedMap, savedOwnerKey, selectedQuestion.id)
+                      ? 'Bỏ lưu câu hỏi'
+                      : 'Lưu câu hỏi'
+                  }
+                >
+                  {isQuestionSaved(savedMap, savedOwnerKey, selectedQuestion.id) ? (
+                    <BookmarkCheck size={15} />
+                  ) : (
+                    <Bookmark size={15} />
+                  )}
+                </button>
+              </div>
+            </header>
+
+            {/* Vùng nội dung cuộn: Cột chính (Đề bài + Lời giải + Ô trả lời) & Sidebar */}
+            <div
+              ref={detailScrollRef}
+              onScroll={handleDetailScroll}
+              className="flex-1 overflow-y-auto min-h-0"
+            >
+              <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* CỘT CHÍNH (8/12) */}
+                <div className="lg:col-span-8 min-w-0 space-y-5">
+                  {/* Khối câu hỏi */}
+                  <div className={`question-card ${isCompactQuestionWithImage ? 'compact-with-image' : ''}`}>
+                    <div className="question-text min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
+                            if (!selectedQuestion.isAnonymous) {
+                              const existing = Object.values(users).find(u => u.id === selectedQuestion.authorId) ||
+                                (currentUser && currentUser.id === selectedQuestion.authorId ? currentUser : null);
+                              setActiveAuthorPopover({
+                                id: selectedQuestion.authorId,
+                                name: existing?.name || selectedQuestion.authorName,
+                                avatar: existing?.avatar || selectedQuestion.authorAvatar,
+                                email: existing?.email,
+                                level: existing?.level || 1,
+                                coin: existing?.coin || 100,
+                              });
+                            }
+                          }}
+                          className="inline-flex items-center gap-2 text-xs text-slate-300 hover:opacity-85 transition-opacity cursor-pointer text-left min-w-0"
+                          title={selectedQuestion.isAnonymous ? 'Tác giả ẩn danh' : 'Xem thông tin tác giả'}
                         >
-                          {selectedQuestion.authorName}
-                        </span>
-                        {selectedQuestion.isAnonymous && (
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-purple-500/20 text-purple-200 border border-purple-400/30 flex items-center gap-1">
-                            <Wand2 className="w-3 h-3 text-purple-400" />
-                            Pháp sư Ghibli
+                          <img
+                            src={selectedQuestion.authorAvatar}
+                            alt={selectedQuestion.authorName}
+                            onError={e => handleImageError(e, DEFAULT_AVATAR)}
+                            loading="lazy"
+                            decoding="async"
+                            width={28}
+                            height={28}
+                            className="w-7 h-7 rounded-full object-cover border border-white/15 shrink-0"
+                          />
+                          <span className={`font-semibold truncate ${selectedQuestion.isAnonymous ? 'text-indigo-200' : 'text-white'}`}>
+                            {selectedQuestion.authorName}
                           </span>
-                        )}
-                        <span>•</span>
-                        <span>{selectedQuestion.createdAt}</span>
-                      </button>
+                          {selectedQuestion.isAnonymous && (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-indigo-500/15 text-indigo-200 border border-indigo-400/25 inline-flex items-center gap-1 shrink-0">
+                              <Wand2 className="w-3 h-3 text-indigo-300" />
+                              <span>Ẩn danh</span>
+                            </span>
+                          )}
+                        </button>
+                        <span className="text-[11px] font-mono text-slate-500 shrink-0">{selectedQuestion.createdAt}</span>
+                      </div>
+
+                      <h2 className="font-bold text-base sm:text-lg text-white leading-snug mb-2.5">
+                        {selectedQuestion.title}
+                      </h2>
+
+                      <p className="text-xs sm:text-sm text-slate-200 leading-relaxed whitespace-pre-line mb-3">
+                        {selectedQuestion.content}
+                      </p>
+
+                      {!isCompactQuestionWithImage && selectedQuestion.imageUrl && (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setLightboxImageUrl(selectedQuestion.imageUrl || null)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setLightboxImageUrl(selectedQuestion.imageUrl || null);
+                            }
+                          }}
+                          className="image-wrapper my-3"
+                          title="Bấm để phóng to ảnh"
+                        >
+                          <img
+                            loading="lazy"
+                            decoding="async"
+                            src={selectedQuestion.imageUrl}
+                            alt="Đính kèm câu hỏi"
+                            className="rounded-lg object-contain mx-auto"
+                          />
+                        </div>
+                      )}
+
+                      <div className="pt-2">
+                        <QuickReactionRow
+                          reactions={selectedQuestion.reactions}
+                          currentUserEmail={currentUser?.email}
+                          onReact={type => {
+                            if (!currentUser) {
+                              onOpenLoginModal?.();
+                            } else {
+                              onReactQuestion?.(selectedQuestion.id, type);
+                            }
+                          }}
+                        />
+                      </div>
+
+                      <CommentThread
+                        commentableType="question"
+                        commentableId={selectedQuestion.id}
+                        comments={comments}
+                        currentUser={currentUser}
+                        onSubmitComment={onAddComment}
+                        onOpenLoginModal={onOpenLoginModal}
+                        users={users}
+                      />
+
+                      <ForumPostModeration
+                        postId={selectedQuestion.id}
+                        onDeletePost={handleAdminDeletePost}
+                        onEditPost={handleAdminEditPost}
+                        isSuperAdmin={canEditContent}
+                      />
                     </div>
 
-                    <p className="text-xs sm:text-sm text-neutral-200 leading-relaxed whitespace-pre-line">
-                      {selectedQuestion.content}
-                    </p>
-
-                    {!isCompactQuestionWithImage && selectedQuestion.imageUrl && (
+                    {isCompactQuestionWithImage && selectedQuestion.imageUrl && (
                       <div
                         role="button"
                         tabIndex={0}
@@ -2656,8 +2683,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             setLightboxImageUrl(selectedQuestion.imageUrl || null);
                           }
                         }}
-                        className="image-wrapper mt-3"
-                        title="Bấm để phóng to ảnh (Lightbox)"
+                        className="image-wrapper"
+                        title="Bấm để phóng to ảnh"
                       >
                         <img
                           loading="lazy"
@@ -2668,454 +2695,394 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         />
                       </div>
                     )}
-
-                    {/* Quick Reactions & Polymorphic Comments on Question (Phase 4.4 & 4.7) */}
-                    <QuickReactionRow
-                      reactions={selectedQuestion.reactions}
-                      currentUserEmail={currentUser?.email}
-                      onReact={type => {
-                        if (!currentUser) {
-                          onOpenLoginModal?.();
-                        } else {
-                          onReactQuestion?.(selectedQuestion.id, type);
-                        }
-                      }}
-                    />
-
-                    <CommentThread
-                      commentableType="question"
-                      commentableId={selectedQuestion.id}
-                      comments={comments}
-                      currentUser={currentUser}
-                      onSubmitComment={onAddComment}
-                      onOpenLoginModal={onOpenLoginModal}
-                      users={users}
-                    />
-
-                    <ForumPostModeration
-                      postId={selectedQuestion.id}
-                      onDeletePost={handleAdminDeletePost}
-                      onEditPost={handleAdminEditPost}
-                      isSuperAdmin={canEditContent}
-                    />
                   </div>
 
-                  {isCompactQuestionWithImage && selectedQuestion.imageUrl && (
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setLightboxImageUrl(selectedQuestion.imageUrl || null)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          setLightboxImageUrl(selectedQuestion.imageUrl || null);
-                        }
-                      }}
-                      className="image-wrapper"
-                      title="Bấm để phóng to ảnh (Lightbox)"
-                    >
-                      <img
-                        loading="lazy"
-                        decoding="async"
-                        src={selectedQuestion.imageUrl}
-                        alt="Đính kèm câu hỏi"
-                        className="rounded-lg object-contain mx-auto"
+                  {/* Tiêu đề danh sách lời giải (1 dòng gọn, không lặp) */}
+                  <div className="answer-section-label">
+                    <span className="inline-flex items-center gap-2 text-sm font-bold text-white">
+                      <MessageSquare className="w-4 h-4 text-cyan-400" />
+                      <span>Lời giải ({activeSolutions.length}/3)</span>
+                    </span>
+                    <span className="text-xs font-mono text-slate-400">
+                      {remainingSlots > 0 ? `Còn ${remainingSlots} vị trí` : 'Đã đủ 3/3'}
+                    </span>
+                  </div>
+
+                  {/* Danh sách lời giải */}
+                  <div className="space-y-3">
+                    {activeSolutions.length === 0 ? (
+                      <div className="rounded-2xl bg-[#0e1522]/70 border border-white/[0.06] py-6 px-4 text-center">
+                        <p className="text-slate-400 text-xs">
+                          Chưa có lời giải nào. Hãy gửi lời giải đầu tiên ở khung bên dưới.
+                        </p>
+                      </div>
+                    ) : (
+                      activeSolutions.map(sol => {
+                        const isSuperAdminSolver = isMasterAdmin(sol.authorEmail);
+                        const solverName = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.name : sol.authorName;
+                        const solverAvatar = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.avatar : sol.authorAvatar;
+                        const canConfirmBest =
+                          isSuperAdmin || currentUser?.id === selectedQuestion.authorId;
+
+                        return (
+                          <div
+                            key={sol.id}
+                            className={`answer-card ${sol.isBest ? 'verified' : ''}`}
+                          >
+                            <div className="flex items-center justify-between mb-2.5 flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
+                                  const existing = Object.values(users).find(u => u.id === sol.authorId || (sol.authorEmail && u.email?.toLowerCase() === sol.authorEmail.toLowerCase())) ||
+                                    (currentUser && (currentUser.id === sol.authorId || (sol.authorEmail && currentUser.email?.toLowerCase() === sol.authorEmail.toLowerCase())) ? currentUser : null);
+                                  setActiveAuthorPopover({
+                                    id: sol.authorId,
+                                    name: isSuperAdminSolver ? MASTER_ADMIN_CONFIG.name : (existing?.name || solverName),
+                                    avatar: isSuperAdminSolver ? MASTER_ADMIN_CONFIG.avatar : (existing?.avatar || solverAvatar),
+                                    email: sol.authorEmail || existing?.email,
+                                    level: isSuperAdminSolver ? 150 : (existing?.level || sol.authorLevel),
+                                    coin: existing?.coin || 100,
+                                  });
+                                }}
+                                className="inline-flex items-center gap-2.5 hover:opacity-85 transition-opacity cursor-pointer text-left"
+                                title="Xem hồ sơ người giải bài"
+                              >
+                                <div className="relative shrink-0">
+                                  <DecoratedAvatar
+                                    user={isSuperAdminSolver ? null : findDecorationOwner(users, sol.authorEmail, sol.authorId)}
+                                    size={32}
+                                    animate={false}
+                                    className={isSuperAdminSolver ? 'ring-2 ring-amber-400' : undefined}
+                                  />
+                                  <span className="absolute -bottom-1 -right-1">
+                                    <TierBadge level={isSuperAdminSolver ? 150 : sol.authorLevel} size={14} showTooltip={false} />
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span
+                                    className={`text-xs ${
+                                      isSuperAdminSolver ? 'discord-admin-name' : 'font-semibold text-white'
+                                    }`}
+                                  >
+                                    {solverName}
+                                  </span>
+                                  {isSuperAdminSolver && <AdminVerifiedBadge size={13} />}
+                                  <span className="px-1.5 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-[10px] text-slate-300 font-mono">
+                                    Lv.{sol.authorLevel}
+                                  </span>
+                                  <span className="text-[10.5px] text-slate-500 font-mono">
+                                    · {sol.createdAt}
+                                  </span>
+                                </div>
+                              </button>
+
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {sol.isBest && (
+                                  <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 text-[11px] font-bold inline-flex items-center gap-1">
+                                    <Award className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                                    <span>Đáp án chuẩn (+{Math.floor((selectedQuestion.bountyCoin || 20) * 0.5) + 100} Coin)</span>
+                                  </span>
+                                )}
+                                {sol.status === 'review' && (
+                                  <span
+                                    className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-400/35 text-amber-200 text-[11px] font-semibold inline-flex items-center gap-1"
+                                    title={sol.moderation?.feedback || 'Câu trả lời đang chờ người quản trị xem xét.'}
+                                  >
+                                    <Clock className="w-3 h-3 text-amber-300 shrink-0" />
+                                    <span>Đang chờ xem xét</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <p className="text-xs sm:text-sm text-slate-200 leading-relaxed whitespace-pre-line">
+                              {sol.content}
+                            </p>
+
+                            {sol.imageUrl && (
+                              <div
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setLightboxImageUrl(sol.imageUrl || null)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    setLightboxImageUrl(sol.imageUrl || null);
+                                  }
+                                }}
+                                className="image-wrapper mt-3"
+                                title="Bấm để phóng to ảnh lời giải"
+                              >
+                                <img
+                                  loading="lazy"
+                                  decoding="async"
+                                  src={sol.imageUrl}
+                                  alt="Hình ảnh lời giải"
+                                  className="rounded-lg object-contain mx-auto"
+                                />
+                              </div>
+                            )}
+
+                            <div className="mt-3 pt-2.5 border-t border-white/[0.07] flex items-center justify-between flex-wrap gap-2">
+                              <QuickReactionRow
+                                reactions={sol.reactions}
+                                currentUserEmail={currentUser?.email}
+                                onReact={type => {
+                                  if (!currentUser) {
+                                    onOpenLoginModal?.();
+                                  } else {
+                                    onReactSolution?.(sol.id, type);
+                                  }
+                                }}
+                              />
+
+                              <div className="flex items-center gap-2">
+                                {canEditContent && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setDeleteReasonCode('rule_violation');
+                                      setDeleteReasonNote('');
+                                      setSolutionToDelete(sol);
+                                    }}
+                                    className="inline-flex items-center gap-1 text-[11px] text-rose-300 hover:text-rose-200 transition-colors px-2.5 py-1 rounded-lg bg-rose-500/10 border border-rose-500/25 cursor-pointer"
+                                    title="Xóa phản hồi vi phạm"
+                                  >
+                                    <Trash2 size={11} />
+                                    <span>Xóa phản hồi vi phạm</span>
+                                  </button>
+                                )}
+
+                                {canConfirmBest && !sol.isBest && (
+                                  <button
+                                    onClick={() => onMarkBestSolution(selectedQuestion.id, sol.id)}
+                                    className="px-3 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 font-semibold text-[11px] border border-emerald-400/35 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                                    title={`Chọn làm đáp án chuẩn (+${Math.floor((selectedQuestion.bountyCoin || 20) * 0.5) + 100} Coin)`}
+                                  >
+                                    <Check className="w-3.5 h-3.5 text-emerald-300" />
+                                    <span>Chọn đáp án chuẩn (+{Math.floor((selectedQuestion.bountyCoin || 20) * 0.5) + 100} Coin)</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            <CommentThread
+                              commentableType="answer"
+                              commentableId={sol.id}
+                              comments={comments}
+                              currentUser={currentUser}
+                              onSubmitComment={onAddComment}
+                              onOpenLoginModal={onOpenLoginModal}
+                              users={users}
+                            />
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Khung soạn câu trả lời liền mạch (không tách rời nút gửi xuống đáy màn hình) */}
+                  {isAnswerLimitReached ? (
+                    <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center gap-2 text-xs font-medium text-emerald-200">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Câu hỏi đã đủ 3/3 lời giải. Bạn có thể trao đổi thêm ở phần bình luận.</span>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl bg-[#101826] border border-white/[0.09] p-4 sm:p-5 space-y-3 shadow-lg">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <label htmlFor="field-2" className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                          <span>Viết lời giải</span>
+                        </label>
+                        <div className="flex items-center gap-2">
+                          {solDraftRestoredAt && (
+                            <button
+                              type="button"
+                              onClick={discardSolutionDraft}
+                              className="inline-flex items-center gap-1 rounded-lg border border-amber-400/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-200 hover:bg-amber-500/20 cursor-pointer"
+                            >
+                              <span>Bỏ nháp đã lưu</span>
+                            </button>
+                          )}
+                          <span className="px-2 py-0.5 rounded-md bg-cyan-500/12 border border-cyan-400/25 text-[11px] font-mono text-cyan-200">
+                            +25 Coin · +25 XP
+                          </span>
+                        </div>
+                      </div>
+
+                      {solutionRejection && solutionRejection.questionId === selectedQuestion.id && (
+                        <div className="rounded-xl border border-amber-400/35 bg-amber-500/10 px-3.5 py-2.5 flex items-start gap-2.5 animate-fade-up">
+                          <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-amber-200">Câu trả lời cần chỉnh sửa</p>
+                            <p className="text-[11px] text-amber-100/90 mt-0.5 leading-snug">
+                              {solutionRejection.feedback ||
+                                'Câu trả lời này chưa liên quan rõ tới câu hỏi. Hãy trả lời đúng nội dung bài rồi gửi lại nhé.'}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={onDismissSolutionRejection}
+                              className="mt-1.5 text-[11px] font-semibold text-amber-300 hover:text-amber-200 cursor-pointer"
+                            >
+                              Đã hiểu
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <textarea
+                        id="field-2"
+                        rows={4}
+                        maxLength={1500}
+                        value={solutionText}
+                        onChange={e => setSolutionText(e.target.value)}
+                        placeholder="Trình bày các bước giải, công thức hoặc gợi ý của bạn..."
+                        className="w-full min-h-[108px] bg-[#0a0f18] border border-white/10 rounded-xl px-3.5 py-3 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400/60 resize-y leading-relaxed"
                       />
+
+                      <MathSymbolsBar onInsert={sym => setSolutionText(prev => prev + sym)} />
+
+                      <div className="pt-2 border-t border-white/[0.07] flex flex-wrap items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          {solImage ? (
+                            <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-cyan-500/12 border border-cyan-400/30 text-xs text-cyan-200">
+                              <ImageIcon className="w-3.5 h-3.5 text-cyan-300" />
+                              <span>Đã đính kèm ảnh</span>
+                              <button
+                                type="button"
+                                onClick={() => setSolImage(null)}
+                                className="p-0.5 rounded-md hover:bg-rose-500/25 text-rose-300 cursor-pointer"
+                                title="Gỡ ảnh"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <label
+                              htmlFor="field-3"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 hover:border-cyan-400/40 bg-white/[0.03] hover:bg-white/[0.07] text-xs text-slate-300 hover:text-white cursor-pointer transition-colors"
+                            >
+                              <ImageIcon className="w-3.5 h-3.5 text-cyan-300" />
+                              <span>Đính kèm ảnh</span>
+                              <input
+                                id="field-3"
+                                type="file"
+                                accept="image/*"
+                                onChange={e => handleImageUpload(e, setSolImage, setSolImageError)}
+                                className="hidden"
+                              />
+                            </label>
+                          )}
+                          <span className="text-[11px] font-mono text-slate-500">
+                            {solutionText.length}/1500
+                          </span>
+                          {solImageError && (
+                            <span className="text-[11px] text-rose-400">{solImageError}</span>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSolutionSubmit(selectedQuestion.id)}
+                          disabled={!solutionText.trim() || solCooldown > 0 || isSubmittingSol}
+                          className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-xs inline-flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>
+                            {solCooldown > 0
+                              ? `Chờ ${solCooldown}s...`
+                              : isSubmittingSol
+                              ? 'Đang gửi...'
+                              : 'Gửi lời giải'}
+                          </span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
 
-                {/* Phase 4.2 Visual Divider: ───── X/3 LỜI GIẢI ĐÃ GỬI ───── */}
-                <div className="answer-section-label">
-                  <span>{activeSolutions.length}/3 LỜI GIẢI ĐÃ GỬI</span>
-                  <span className="text-[10px] font-mono text-cyan-300/90 normal-case tracking-normal">
-                    ({remainingSlots > 0 ? `Còn ${remainingSlots}/3 chỗ trống` : 'Đã đủ 3/3 lời giải'})
-                  </span>
-                </div>
-
-                {/* Solutions Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between text-[11px] text-neutral-400">
-                    <span className="font-semibold text-neutral-300">
-                      CÁC BÀI GIẢI ĐÃ ĐÓNG GÓP ({activeSolutions.length})
-                    </span>
-                    <span>Chỉ tác giả hoặc Super Admin mới có quyền xác nhận đáp án chuẩn</span>
-                  </div>
-
-                  {activeSolutions.length === 0 ? (
-                    <p className="text-neutral-500 text-xs italic text-center py-4">
-                      Chưa có bạn nào trợ giúp giải câu này. Hãy là người đầu tiên đưa ra đáp án chính xác!
-                    </p>
-                  ) : (
-                    activeSolutions.map(sol => {
-                      const isSuperAdminSolver = isMasterAdmin(sol.authorEmail);
-                      const solverName = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.name : sol.authorName;
-                      const solverAvatar = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.avatar : sol.authorAvatar;
-                      const canConfirmBest =
-                        isSuperAdmin || currentUser?.id === selectedQuestion.authorId;
-
+                {/* SIDEBAR PHẢI (4/12) — Câu hỏi liên quan & Bảng xếp hạng môn */}
+                <aside className="lg:col-span-4 space-y-4 lg:sticky lg:top-6">
+                  <div className="rounded-2xl bg-[#0e1522]/90 border border-white/[0.08] p-4 space-y-2.5">
+                    <h4 className="text-xs font-bold text-slate-200 flex items-center gap-2">
+                      <Lightbulb className="w-4 h-4 text-amber-300 shrink-0" />
+                      <span>Câu hỏi liên quan</span>
+                    </h4>
+                    {relatedQuestions.map(q => {
+                      const qSols = solutions.filter(s => s.questionId === q.id && s.status !== 'deleted');
                       return (
-                        <div
-                          key={sol.id}
-                          className={`answer-card transition-all ${sol.isBest ? 'verified' : ''}`}
-                        >
-                          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-                                const existing = Object.values(users).find(u => u.id === sol.authorId || (sol.authorEmail && u.email?.toLowerCase() === sol.authorEmail.toLowerCase())) ||
-                                  (currentUser && (currentUser.id === sol.authorId || (sol.authorEmail && currentUser.email?.toLowerCase() === sol.authorEmail.toLowerCase())) ? currentUser : null);
-                                setActiveAuthorPopover({
-                                  id: sol.authorId,
-                                  name: isSuperAdminSolver ? MASTER_ADMIN_CONFIG.name : (existing?.name || solverName),
-                                  avatar: isSuperAdminSolver ? MASTER_ADMIN_CONFIG.avatar : (existing?.avatar || solverAvatar),
-                                  email: sol.authorEmail || existing?.email,
-                                  level: isSuperAdminSolver ? 150 : (existing?.level || sol.authorLevel),
-                                  coin: existing?.coin || 100,
-                                });
-                              }}
-                              className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer text-left"
-                              title="Xem hồ sơ người giải bài"
-                            >
-                              <div className="relative">
-                                {/* Nhiệm vụ 10 — 32px + trang trí Discord (animation tắt);
-                                    Super Admin giả mạo → avatar thường. */}
-                                <DecoratedAvatar
-                                  user={isSuperAdminSolver ? null : findDecorationOwner(users, sol.authorEmail, sol.authorId)}
-                                  size={32}
-                                  animate={false}
-                                  className={isSuperAdminSolver ? 'ring-2 ring-amber-400' : undefined}
-                                />
-                                <span className="absolute -bottom-1 -right-1">
-                                  <TierBadge level={isSuperAdminSolver ? 150 : sol.authorLevel} size={14} showTooltip={false} />
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <span
-                                  className={`text-xs ${
-                                    isSuperAdminSolver ? 'discord-admin-name' : 'font-bold text-white'
-                                  }`}
-                                >
-                                  {solverName}
-                                </span>
-                                {isSuperAdminSolver && <AdminVerifiedBadge size={13} />}
-                                <span className="text-[10px] text-neutral-500 font-mono">
-                                  • Lv.{sol.authorLevel}
-                                </span>
-                              </div>
-                            </button>
-
-                            {sol.isBest && (
-                              <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-black text-[10px] font-extrabold flex items-center gap-1 shadow-md">
-                                <Award className="w-3 h-3" />
-                                ✓ LỜI GIẢI ĐƯỢC XÁC NHẬN (+{Math.floor((selectedQuestion.bountyCoin || 20) * 0.5) + 100} COIN)
-                              </span>
-                            )}
-                            {/* AI Moderation v1.0 — câu trả lời đang chờ Admin
-                                duyệt (chỉ tác giả / nhân sự mới thấy được). */}
-                            {sol.status === 'review' && (
-                              <span
-                                className="px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-400/40 text-amber-300 text-[10px] font-bold flex items-center gap-1"
-                                title={sol.moderation?.feedback || 'Bot kiểm duyệt chưa chắc chắn về mức độ liên quan, câu trả lời đã chuyển tới người quản trị để xem xét. Nội dung không bị mất.'}
-                              >
-                                <Clock className="w-3 h-3" />
-                                ⏳ Đang chờ xem xét
-                              </span>
-                            )}
-                          </div>
-
-                          <p className="text-xs text-neutral-200 leading-relaxed whitespace-pre-line">
-                            {sol.content}
-                          </p>
-
-                          {sol.imageUrl && (
-                            <div
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => setLightboxImageUrl(sol.imageUrl || null)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault();
-                                  setLightboxImageUrl(sol.imageUrl || null);
-                                }
-                              }}
-                              className="image-wrapper mt-2.5"
-                              title="Bấm để phóng to ảnh lời giải"
-                            >
-                              <img
-                                loading="lazy"
-                                decoding="async"
-                                src={sol.imageUrl}
-                                alt="Hình ảnh lời giải"
-                                className="rounded-lg object-contain mx-auto"
-                              />
-                            </div>
-                          )}
-
-                          {/* Quick Reactions on Answer (Phase 4.7) */}
-                          <QuickReactionRow
-                            reactions={sol.reactions}
-                            currentUserEmail={currentUser?.email}
-                            onReact={type => {
-                              if (!currentUser) {
-                                onOpenLoginModal?.();
-                              } else {
-                                onReactSolution?.(sol.id, type);
-                              }
-                            }}
-                          />
-
-                          <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between text-xs text-neutral-400">
-                            <span className="text-[10px] font-mono">{sol.createdAt}</span>
-
-                            <div className="flex items-center gap-2">
-                              {/* Xoá lời giải với Lý do bắt buộc (Phase 4.6) */}
-                              {canEditContent && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setDeleteReasonCode('rule_violation');
-                                    setDeleteReasonNote('');
-                                    setSolutionToDelete(sol);
-                                  }}
-                                  className="inline-flex items-center gap-1 text-[11px] text-red-400 hover:text-red-300 transition-colors px-2 py-0.5 rounded bg-red-500/10 border border-red-500/20 cursor-pointer"
-                                  title="Xóa phản hồi vi phạm"
-                                >
-                                  <Trash2 size={11} /> Xóa phản hồi vi phạm
-                                </button>
-                              )}
-
-                              {/* Nút xác nhận Đáp Án Chuẩn */}
-                              {canConfirmBest && !sol.isBest && (
-                                <button
-                                  onClick={() => onMarkBestSolution(selectedQuestion.id, sol.id)}
-                                  className="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black font-bold text-[11px] border border-amber-400/40 transition-all flex items-center gap-1 cursor-pointer"
-                                  title={`Xác nhận đáp án chính xác nhất để thưởng +${Math.floor((selectedQuestion.bountyCoin || 20) * 0.5) + 100} Coin`}
-                                >
-                                  <Check className="w-3.5 h-3.5" />
-                                  ✓ Xác nhận Đáp Án Chuẩn (+{Math.floor((selectedQuestion.bountyCoin || 20) * 0.5) + 100} Coin)
-                                </button>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Polymorphic Comment Thread on Answer (Phase 4.4) */}
-                          <CommentThread
-                            commentableType="answer"
-                            commentableId={sol.id}
-                            comments={comments}
-                            currentUser={currentUser}
-                            onSubmitComment={onAddComment}
-                            onOpenLoginModal={onOpenLoginModal}
-                            users={users}
-                          />
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {/* Phase 4.5: Giới hạn 3 câu trả lời / câu hỏi */}
-                {isAnswerLimitReached ? (
-                  <div className="mt-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-1">
-                    <p className="text-xs font-bold text-emerald-300">
-                      ✅ Đã đủ 3 lời giải — Hãy bình luận vào các lời giải có sẵn nếu bạn muốn bổ sung ý kiến
-                    </p>
-                    <p className="text-[11px] text-neutral-400">
-                      Nếu một lời giải bị xóa do vi phạm hoặc không chính xác, ô đóng góp lời giải sẽ tự động mở lại.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="mt-6 pt-5 border-t border-white/10 space-y-2.5">
-                    {solDraftRestoredAt && (
-                      <div className="flex items-center justify-between gap-2.5 rounded-xl border border-amber-400/35 bg-amber-400/10 px-3 py-2 text-xs text-amber-100">
-                        <span className="flex items-center gap-1.5 min-w-0 truncate">
-                          <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                          <span>
-                            Đã khôi phục bản nháp lời giải (lưu tự động lúc{' '}
-                            {new Date(solDraftRestoredAt).toLocaleTimeString('vi-VN', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                            )
-                          </span>
-                        </span>
                         <button
+                          key={q.id}
                           type="button"
-                          onClick={discardSolutionDraft}
-                          className="shrink-0 rounded-lg border border-amber-300/35 px-2.5 py-0.5 text-[11px] font-bold text-amber-200 hover:bg-amber-400/20 cursor-pointer"
+                          onClick={() => handleOpenQuestionDetail(q)}
+                          className="w-full text-left p-2.5 rounded-xl bg-white/[0.025] hover:bg-white/[0.06] border border-white/[0.07] hover:border-cyan-400/35 transition-colors cursor-pointer block"
                         >
-                          Bỏ nháp
-                        </button>
-                      </div>
-                    )}
-                    <label htmlFor="field-2" className="block text-xs font-semibold text-neutral-300 flex items-center justify-between flex-wrap gap-2">
-                      <span>Đóng góp lời giải của bạn:</span>
-                      <span className="text-[10px] font-mono text-cyan-300">
-                        Còn {remainingSlots}/3 chỗ trống • Tự động lưu nháp mỗi 10s • +25 XP
-                      </span>
-                    </label>
-
-                    {/* AI Moderation v1.0 — bot giữ lại câu trả lời (lạc đề/spam):
-                        hiện lý do + gợi ý sửa, nội dung đã được giữ trong ô bên dưới.
-                        Không dùng thuật ngữ kỹ thuật; giọng văn thân thiện. */}
-                    {solutionRejection && solutionRejection.questionId === selectedQuestion.id && (
-                      <div className="mt-2 rounded-xl border border-amber-400/40 bg-amber-500/10 px-3 py-2.5 flex items-start gap-2 animate-fade-up">
-                        <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-amber-200">Câu trả lời cần chỉnh sửa</p>
-                          <p className="text-[11px] text-amber-100/90 mt-0.5 leading-snug">
-                            {solutionRejection.feedback ||
-                              'Câu trả lời này chưa liên quan rõ tới câu hỏi. Hãy trả lời đúng nội dung bài (dùng cách nói, ví dụ của bạn cũng được) rồi gửi lại nhé.'}
-                          </p>
-                          <button
-                            type="button"
-                            onClick={onDismissSolutionRejection}
-                            className="mt-1.5 text-[10px] font-semibold text-amber-300/80 hover:text-amber-200 cursor-pointer"
-                          >
-                            Đã hiểu, tôi sẽ viết lại
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    <textarea
-                      id="field-2"
-                      rows={3}
-                      maxLength={1500}
-                      value={solutionText}
-                      onChange={e => setSolutionText(e.target.value)}
-                      placeholder="Nhập chi tiết từng bước giải bài, định lý hoặc lời khuyên học tập..."
-                      className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 resize-none mb-1"
-                    />
-
-                    <MathSymbolsBar onInsert={sym => setSolutionText(prev => prev + sym)} />
-                  </div>
-                )}
-              </div>
-
-              {/* Footer — CỐ ĐỊNH, chỉ hiện khi chưa đạt giới hạn 3 lời giải (Phase 1.1 & 4.5) */}
-              {!isAnswerLimitReached && (
-                <div className="modal-footer px-4 sm:px-6 py-3 shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    {solImage ? (
-                      <div className="relative inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white/10 border border-white/20 text-xs text-cyan-300">
-                        <ImageIcon className="w-3.5 h-3.5" />
-                        <span>Đã đính kèm ảnh</span>
-                        <button
-                          type="button"
-                          onClick={() => setSolImage(null)}
-                          className="p-0.5 rounded-full hover:bg-red-500/30 text-red-400 cursor-pointer"
-                          title="Gỡ ảnh"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ) : (
-                      <label htmlFor="field-3" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-dashed border-white/20 hover:border-cyan-400/50 bg-white/5 hover:bg-white/10 text-xs text-neutral-300 cursor-pointer transition-all">
-                        <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
-                        <span>Đính kèm ảnh lời giải (&le; 20MB)</span>
-                        <input
-                          id="field-3"
-                          type="file"
-                          accept="image/*"
-                          onChange={e => handleImageUpload(e, setSolImage, setSolImageError)}
-                          className="hidden"
-                        />
-                      </label>
-                    )}
-                    {solImageError && (
-                      <p className="text-[11px] text-red-400 mt-1">{solImageError}</p>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() => handleSolutionSubmit(selectedQuestion.id)}
-                    disabled={!solutionText.trim() || solCooldown > 0 || isSubmittingSol}
-                    className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-neutral-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>{solCooldown > 0 ? `Chờ ${solCooldown}s...` : isSubmittingSol ? 'Đang gửi...' : '+ Trợ Giúp Giải Bài (+25 XP)'}</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* SIDEBAR PHẢI — Câu hỏi liên quan (AI Tag-matching) + Top giải bài môn này tuần qua (Phase 4.7) */}
-            <aside className="hidden lg:flex w-80 shrink-0 flex-col gap-5 border-l border-white/10 p-5 overflow-y-auto">
-              <div className="space-y-2.5">
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 font-mono">
-                  <Lightbulb className="w-4 h-4 text-amber-400" />
-                  💡 CÂU HỎI LIÊN QUAN
-                </h4>
-                {relatedQuestions.map(q => {
-                  const qSols = solutions.filter(s => s.questionId === q.id && s.status !== 'deleted');
-                  return (
-                    <button
-                      key={q.id}
-                      type="button"
-                      onClick={() => handleOpenQuestionDetail(q)}
-                      className="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-400/40 transition-all cursor-pointer block"
-                    >
-                      <span className="text-[10px] font-mono text-cyan-300">#{q.subject}</span>
-                      <p className="text-xs font-semibold text-white line-clamp-2 mt-1">{q.title}</p>
-                      <span className="text-[10px] text-neutral-400 font-mono mt-1 block">
-                        {qSols.length}/3 trả lời
-                        {q.isSolved ? ' • ✓ đã có đáp án' : ''}
-                      </span>
-                    </button>
-                  );
-                })}
-                {relatedQuestions.length === 0 && (
-                  <p className="text-[11px] text-neutral-500 italic">Chưa có câu hỏi cùng chủ đề.</p>
-                )}
-              </div>
-
-              <div className="pt-4 border-t border-white/10 space-y-2.5">
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 font-mono">
-                  <Award className="w-4 h-4 text-amber-400" />
-                  🏆 TOP GIẢI BÀI MÔN #{selectedQuestion.subject.toUpperCase()}
-                </h4>
-                {topSubjectSolvers.length === 0 ? (
-                  <p className="text-[11px] text-neutral-500 italic">
-                    Chưa có bảng xếp hạng cho môn này. Hãy giải bài để dẫn đầu!
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {topSubjectSolvers.map((solver, idx) => {
-                      const medals = ['🥇', '🥈', '🥉'];
-                      return (
-                        <div
-                          key={solver.id}
-                          className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-white/5 border border-white/10"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-sm shrink-0">{medals[idx] || '🏅'}</span>
-                            <img
-                              src={solver.avatar}
-                              alt={solver.name}
-                              onError={e => handleImageError(e, DEFAULT_AVATAR)}
-                              loading="lazy"
-                              decoding="async"
-                              width={24}
-                              height={24}
-                              className="w-6 h-6 rounded-full object-cover border border-white/15 shrink-0"
-                            />
-                            <span className="text-xs font-semibold text-white truncate">
-                              {solver.name}
-                            </span>
+                          <div className="flex items-center justify-between gap-2 text-[10px] font-mono text-slate-400">
+                            <span className="text-cyan-300">#{q.subject}</span>
+                            <span>{qSols.length}/3 lời giải</span>
                           </div>
-                          <span className="text-[10px] font-mono text-amber-300 shrink-0">
-                            {solver.count} bài{solver.verified > 0 ? ` (${solver.verified}✓)` : ''}
-                          </span>
-                        </div>
+                          <p className="text-xs font-semibold text-slate-100 line-clamp-2 mt-1 leading-snug">{q.title}</p>
+                        </button>
                       );
                     })}
+                    {relatedQuestions.length === 0 && (
+                      <p className="text-xs text-slate-500">Chưa có câu hỏi cùng chủ đề.</p>
+                    )}
                   </div>
-                )}
+
+                  <div className="rounded-2xl bg-[#0e1522]/90 border border-white/[0.08] p-4 space-y-2.5">
+                    <h4 className="text-xs font-bold text-slate-200 flex items-center gap-2">
+                      <Award className="w-4 h-4 text-amber-300 shrink-0" />
+                      <span>Tích cực môn #{selectedQuestion.subject}</span>
+                    </h4>
+                    {topSubjectSolvers.length === 0 ? (
+                      <p className="text-xs text-slate-500">
+                        Chưa có thống kê cho môn này.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {topSubjectSolvers.map((solver, idx) => (
+                          <div
+                            key={solver.id}
+                            className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/[0.025] border border-white/[0.07]"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span
+                                className={`w-5 h-5 rounded-md text-[10px] font-mono font-bold flex items-center justify-center shrink-0 ${
+                                  idx === 0
+                                    ? 'bg-amber-500/20 text-amber-300 border border-amber-400/35'
+                                    : idx === 1
+                                    ? 'bg-slate-400/20 text-slate-200 border border-slate-300/30'
+                                    : 'bg-orange-500/15 text-orange-300 border border-orange-400/30'
+                                }`}
+                              >
+                                {idx + 1}
+                              </span>
+                              <img
+                                src={solver.avatar}
+                                alt={solver.name}
+                                onError={e => handleImageError(e, DEFAULT_AVATAR)}
+                                loading="lazy"
+                                decoding="async"
+                                width={24}
+                                height={24}
+                                className="w-6 h-6 rounded-full object-cover border border-white/15 shrink-0"
+                              />
+                              <span className="text-xs font-medium text-slate-100 truncate">
+                                {solver.name}
+                              </span>
+                            </div>
+                            <span className="text-[11px] font-mono text-amber-300 shrink-0">
+                              {solver.count} bài{solver.verified > 0 ? ` · ${solver.verified} chuẩn` : ''}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </aside>
               </div>
-            </aside>
+            </div>
           </div>
         );
       })()}

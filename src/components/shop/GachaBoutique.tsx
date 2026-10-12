@@ -57,7 +57,6 @@ import {
   getCollectionStats,
   getDailyDeal,
   priceRange,
-  pushRecentItem,
   resolveAssetUrl,
 } from '../../utils/decorations';
 import { useDecorationCatalog } from '../../utils/decorationStore';
@@ -260,34 +259,9 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
 
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [inspectId, setInspectId] = useState<string | null>(null);
-
-  /* "Vừa xem": 8 item gần nhất mở preview (localStorage) — quay lại nhanh. */
-  const RECENT_KEY = 'fforum_boutique_recent_v1';
-  const [recentIds, setRecentIds] = useState<string[]>(() => {
-    try {
-      const raw = safeStorage.getItem(RECENT_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'string').slice(0, 8) : [];
-    } catch {
-      return [];
-    }
-  });
   const inspectItem = useCallback((id: string) => {
     setInspectId(id);
-    setRecentIds((cur) => {
-      const next = pushRecentItem(cur, id, 8);
-      try {
-        safeStorage.setItem(RECENT_KEY, JSON.stringify(next));
-      } catch {
-        /* bỏ qua */
-      }
-      return next;
-    });
   }, []);
-  const recentItems = useMemo(
-    () => recentIds.map((id) => activeItems.find((i) => i.id === id)).filter((x): x is ShopItem => Boolean(x)),
-    [recentIds, activeItems],
-  );
   const [previewItemId, setPreviewItemId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [unboxed, setUnboxed] = useState<ShopItem | null>(null);
@@ -612,49 +586,6 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </div>
       </header>
 
-      {/* "Vừa xem": 8 item gần nhất mở preview (localStorage) — quay lại nhanh. */}
-      {recentItems.length > 0 && (
-        <div className="gb-recent" aria-label="Vừa xem">
-          <span className="gb-recent__label">Vừa xem</span>
-          <div className="gb-recent__row">
-            {recentItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className="gb-recent__chip"
-                title={item.name}
-                onClick={() => inspectItem(item.id)}
-              >
-                <img
-                  src={resolveAssetUrl(item.previewUrl) ?? item.previewUrl ?? undefined}
-                  alt=""
-                  width={34}
-                  height={34}
-                  loading="lazy"
-                  decoding="async"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
-                  }}
-                />
-                <em>{item.name}</em>
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            className="gb-recent__clear"
-            aria-label="Xoá danh sách vừa xem"
-            title="Xoá danh sách vừa xem"
-            onClick={() => {
-              setRecentIds([]);
-              safeStorage.removeItem(RECENT_KEY);
-            }}
-          >
-            <X size={11} aria-hidden="true" />
-          </button>
-        </div>
-      )}
-
       {/* Item yêu thích đang sale (flash + tuần) — 1 chạm vào danh sách yêu thích. */}
       {!readOnly && wishOnDealCount > 0 && (
         <button type="button" className="gb-wish-deal" onClick={() => setWishOnly(true)}>
@@ -703,9 +634,6 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
               <h4 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">
                 {currentHeroItem.name}
               </h4>
-              <p className="text-xs sm:text-sm text-white/75 max-w-xl truncate">
-                {currentHeroItem.description}
-              </p>
               <div className="flex items-center gap-3 pt-1 flex-wrap">
                 <span className="gb-hero__hint" aria-hidden="true">
                   <Sparkles size={13} /> Bấm để xem trước trên avatar
@@ -801,13 +729,8 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                     {userName}
                   </strong>
                   <p className="text-xs text-white/75 truncate max-w-md">
-                    Đang thử: <b className="text-white">{activePreviewItem.name}</b> — {activePreviewItem.description}
+                    Đang thử: <b className="text-white">{activePreviewItem.name}</b>
                   </p>
-                  {pAsset.type === 'nameplate' && (
-                    <p className="gb-np-note" role="note">
-                      <Info size={11} aria-hidden="true" /> Nameplate chỉ hiển thị trên Hồ Sơ đầy đủ
-                    </p>
-                  )}
                 </div>
               </div>
 
@@ -1121,35 +1044,6 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
             </button>
           ))}
         </div>
-        {collection.mythicOwned.length > 0 ? (
-          <div className="gb-collection__mythic">
-            <span className="gb-collection__mythic-label">Vinh danh Huyền thoại</span>
-            {collection.mythicOwned.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className="gb-collection__mythic-item"
-                title={item.name}
-                onClick={() => inspectItem(item.id)}
-              >
-                <img
-                  src={resolveAssetUrl(item.previewUrl) ?? item.previewUrl ?? undefined}
-                  alt={item.name}
-                  width={52}
-                  height={52}
-                  loading="lazy"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
-                  }}
-                />
-              </button>
-            ))}
-          </div>
-        ) : (
-          <p className="gb-collection__empty">
-            Chưa có Huyền thoại nào — {activeItems.filter((i) => decoRarity(i) === 'mythic').length} viên ngọc đang chờ bạn khám phá
-          </p>
-        )}
       </section>
 
       {/* Bộ lọc GỘP 1 HÀNG (fix lặp 2 hàng): Loại (dropdown) + Rarity + Sở hữu
@@ -1400,7 +1294,6 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                       {rarityMeta.en.toUpperCase()}
                     </span>
                     <span className="gb-card__name">{item.name}</span>
-                    <span className="gb-card__desc-one-line">{item.description}</span>
                     <span className="gb-card__price">
                       {owned ? (
                         <span className="gb-owned">{equipped ? <><Check size={11} aria-hidden="true" /> Đang đeo</> : 'Đã sở hữu'}</span>
@@ -1431,7 +1324,6 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                   <span className="gb-card__tip" id={tipId} role="tooltip">
                     <b>{item.name}</b>
                     <span><Coins size={11} aria-hidden="true" /> {price.toLocaleString('vi-VN')} Coin</span>
-                    <em>{item.description}</em>
                   </span>
                 </div>
               </div>
@@ -1504,16 +1396,15 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                   {rarityMeta.en.toUpperCase()} · {rarityMeta.label}
                 </span>
                 <h3 id={`gb-inspect-title-${uid}`}>{inspected.name}</h3>
-                <p className="truncate">{inspected.description}</p>
 
                 <div className="gb-inspect__preview">
-                  <span>Xem khi đeo · trong ngữ cảnh nhỏ (comment, list)</span>
+                  <span>Xem khi đeo</span>
                   {asset.type === 'nameplate' ? (
                     /* CHUẨN DISCORD: nameplate KHÔNG tồn tại ở context nhỏ. */
                     <div className="gb-inspect__np-ctx">
                       <Info size={13} aria-hidden="true" />
                       <span>
-                        Nameplate chỉ hiển thị trên <b>Hồ Sơ đầy đủ</b>. Trang bị để xem trực tiếp trên thẻ hồ sơ.
+                        Hiển thị trên <b>Hồ Sơ đầy đủ</b>.
                       </span>
                     </div>
                   ) : (

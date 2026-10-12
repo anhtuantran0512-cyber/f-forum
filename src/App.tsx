@@ -32,9 +32,7 @@ import {
   Settings as SettingsIcon,
   Flame,
   User as UserIcon,
-  ShieldAlert,
   AlertCircle,
-  Gauge,
 } from 'lucide-react';
 import type { DimensionView, User } from './types';
 import { CommandPalette, type PaletteCommand } from './components/CommandPalette';
@@ -271,22 +269,13 @@ export const App: React.FC = () => {
   const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>('login');
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [isNotesOpen, setIsNotesOpen] = useState(false);
-  /* Hộp thư tố cáo — chỉ Super Admin mở được. */
+  /* Hộp thư tố cáo & Bảng điều khiển — mở từ trong Bảng thống kê quản trị (tia sét). */
   const [isReportInboxOpen, setIsReportInboxOpen] = useState(false);
   const [isAdminConsoleOpen, setIsAdminConsoleOpen] = useState(false);
-  /* Menu gộp "Tố cáo & Điều khiển" (1 nút → chọn 1 trong 2). */
-  const [isModToolsOpen, setIsModToolsOpen] = useState(false);
   const [isAdminInsightsOpen, setIsAdminInsightsOpen] = useState(false);
   const [pendingReportCount, setPendingReportCount] = useState(0);
-  /* Escape đóng menu "Tố cáo & Điều khiển". */
-  useEffect(() => {
-    if (!isModToolsOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsModToolsOpen(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isModToolsOpen]);
+  /* Ẩn thanh Navbar khi đang ở giao diện chi tiết / trả lời câu hỏi Hỏi đáp. */
+  const [isQADetailOpen, setIsQADetailOpen] = useState(false);
   /* Epic 3 — RBAC: đồng bộ năng lực quản trị (Super Admin / GV / Mod / vai trò tùy chỉnh). */
   useAdminCapabilitiesLoader(currentUser);
   const adminCaps = useAdminCaps();
@@ -998,8 +987,8 @@ export const App: React.FC = () => {
           />
         </div>
       
-      {/* Floating Global Navbar Dock (Viewport fixed wrapper with graceful transitions) */}
-      {currentView !== 'chronicles' && (
+      {/* Floating Global Navbar Dock — ẩn khi đang ở giao diện chi tiết câu hỏi Hỏi đáp */}
+      {currentView !== 'chronicles' && !(currentView === 'qa' && isQADetailOpen) && (
         currentView === 'landing' ? null : (
         <Navbar
           currentView={currentView}
@@ -1102,6 +1091,7 @@ export const App: React.FC = () => {
               chatMessages={chatMessages}
               isSynced={isSynced}
               onOpenFocusMode={() => setIsFocusModeOpen(true)}
+              onDetailOpenChange={setIsQADetailOpen}
             />
           )}
 
@@ -1174,13 +1164,14 @@ export const App: React.FC = () => {
       />
 
       {/* Radial quick actions (ccm-02 sin()/cos() fan at bottom-left below Streak) */}
-      {currentView !== 'landing' && currentView !== 'chronicles' && !isChatOpen && (
+      {currentView !== 'landing' && currentView !== 'chronicles' && !isChatOpen && !(currentView === 'qa' && isQADetailOpen) && (
         <RadialQuickMenu
           onOpenFocusMode={() => setIsFocusModeOpen(true)}
           onOpenStreak={() => window.dispatchEvent(new CustomEvent('fforum_open_daily'))}
           onOpenPalette={() => setIsPaletteOpen(true)}
           adminAccess={canOpenAdminPanel}
           onOpenAdminPanel={() => setIsAdminInsightsOpen(true)}
+          pendingReportCount={isMasterAdmin(currentUser?.email) ? pendingReportCount : 0}
           streakCount={currentUser?.streakCount ?? 0}
         />
       )}
@@ -1355,68 +1346,7 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Lối vào "Tố cáo & Điều khiển" — GỘP 1 NÚT (trước là 2 nút riêng):
-          bấm mở menu nhỏ, chọn Tố cáo hoặc Điều khiển. Chỉ Super Admin. */}
-      {isMasterAdmin(currentUser?.email) && !isReportInboxOpen && !isAdminConsoleOpen && (
-        <div className="fixed bottom-4 left-24 z-40">
-          {isModToolsOpen && (
-            <>
-              {/* Lớp phủ trong suốt: bấm ngoài → đóng menu */}
-              <div
-                className="fixed inset-0 z-40"
-                aria-hidden="true"
-                onClick={() => setIsModToolsOpen(false)}
-              />
-              <div
-                role="menu"
-                aria-label="Chọn Tố cáo hoặc Điều khiển"
-                className="absolute bottom-[54px] left-0 z-50 w-56 rounded-2xl liquid-glass bg-[#0c1218]/95 border border-white/15 p-1.5 shadow-[0_18px_45px_rgba(0,0,0,0.7)]"
-              >
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => { setIsModToolsOpen(false); setIsReportInboxOpen(true); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[11px] font-medium text-neutral-200 hover:bg-rose-500/15 hover:text-white transition-colors cursor-pointer"
-                >
-                  <ShieldAlert className="w-4 h-4 text-rose-300 shrink-0" />
-                  <span className="flex-1 text-left">Tố cáo</span>
-                  {pendingReportCount > 0 && (
-                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500/90 text-white text-[10px] font-bold flex items-center justify-center">
-                      {pendingReportCount > 99 ? '99+' : pendingReportCount}
-                    </span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => { setIsModToolsOpen(false); setIsAdminConsoleOpen(true); }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[11px] font-medium text-neutral-200 hover:bg-cyan-500/15 hover:text-white transition-colors cursor-pointer"
-                >
-                  <Gauge className="w-4 h-4 text-cyan-300 shrink-0" />
-                  <span className="flex-1 text-left">Điều khiển</span>
-                </button>
-              </div>
-            </>
-          )}
-          <button
-            type="button"
-            onClick={() => setIsModToolsOpen((open) => !open)}
-            aria-haspopup="menu"
-            aria-expanded={isModToolsOpen}
-            aria-label={`Tố cáo và Điều khiển${pendingReportCount > 0 ? ` — ${pendingReportCount} báo cáo chờ xử lý` : ''}`}
-            className="flex items-center gap-2 pl-3 pr-4 py-2.5 rounded-2xl liquid-glass bg-[#0c1218]/95 border border-rose-400/25 text-neutral-200 hover:border-rose-400/50 hover:text-white transition-colors shadow-[0_18px_45px_rgba(0,0,0,0.7)]"
-          >
-            <ShieldAlert className="w-4 h-4 text-rose-300" />
-            <span className="text-[11px] font-medium">Tố cáo &amp; Điều khiển</span>
-            {pendingReportCount > 0 && (
-              <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500/90 text-white text-[10px] font-bold flex items-center justify-center">
-                {pendingReportCount > 99 ? '99+' : pendingReportCount}
-              </span>
-            )}
-          </button>
-        </div>
-      )}
-
+      {/* Tố cáo & Điều khiển đã đưa vào trong Bảng thống kê quản trị (nút tia sét). */}
       <Suspense fallback={<ViewLoadingFallback />}>
         {isAdminInsightsOpen && currentUser && canOpenAdminPanel && (
           <>
@@ -1429,8 +1359,17 @@ export const App: React.FC = () => {
               logout();
               handleOpenAuth('login');
             }}
+            onOpenReports={
+              isMasterAdmin(currentUser?.email)
+                ? () => {
+                    setIsAdminInsightsOpen(false);
+                    setIsReportInboxOpen(true);
+                  }
+                : undefined
+            }
+            pendingReportCount={pendingReportCount}
             onOpenOperations={() => {
-              if (!adminCaps.isSuperAdmin) return;
+              if (!adminCaps.isSuperAdmin && !isMasterAdmin(currentUser?.email)) return;
               setIsAdminInsightsOpen(false);
               setIsAdminConsoleOpen(true);
             }}

@@ -56,19 +56,40 @@
 }
 /*
  * CHUẨN DISCORD: height CỐ ĐỊNH theo tỉ lệ 448:84 (aspect-ratio) — không đổi
- * theo độ dài tên. Tên là LỚP HTML RIÊNG (z2), white-space nowrap +
- * text-overflow ellipsis + max-width → không bao giờ tràn khỏi khung,
- * text-shadow dày đảm bảo đọc được trên mọi nền ảnh.
+ * theo độ dài tên. Tên là LỚP HTML RIÊNG (z2), căn giữa tuyệt đối bằng flex,
+ * white-space nowrap + text-overflow ellipsis + max-width → không bao giờ tràn
+ * hoặc lệch góc khỏi khung, lớp phủ tối nhẹ (z1) giúp chữ nổi rõ trên mọi nền.
  */
 .npd-np {
   position: relative;
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   aspect-ratio: 448 / 84;
+  height: 40px;
+  min-width: 212px;
   max-width: 100%;
-  min-width: 0;
   overflow: hidden;
-  border-radius: 12px;
-  line-height: 1.4;
+  border-radius: 10px;
+  padding: 0 18px;
+  box-sizing: border-box;
+  line-height: 1.2;
+  vertical-align: middle;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+.npd-np::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: radial-gradient(
+    ellipse 78% 88% at 50% 50%,
+    rgba(8, 12, 20, 0.54) 0%,
+    rgba(8, 12, 20, 0.24) 65%,
+    rgba(8, 12, 20, 0.06) 100%
+  );
+  pointer-events: none;
 }
 .npd-np .npd-np__bg,
 .npd-np .npd {
@@ -81,16 +102,20 @@
   position: relative;
   z-index: 2;
   display: block;
-  max-width: calc(100% - 28px);
+  max-width: 100%;
   margin: 0 auto;
-  padding: 0 14px;
+  padding: 0 8px;
+  font-size: 13.5px;
+  line-height: 1.25;
   font-weight: 700;
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: #f8fafc;
+  text-align: center;
+  letter-spacing: 0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.85), 0 0 2px rgba(0, 0, 0, 0.9), 0 0 12px rgba(0, 0, 0, 0.55);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9), 0 0 3px rgba(0, 0, 0, 0.95);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }

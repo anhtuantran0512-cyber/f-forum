@@ -11,6 +11,7 @@ export interface RadialQuickMenuProps {
   /** Lối vào bảng thống kê/quản lý, chỉ được truyền cho nhân sự quản trị. */
   onOpenAdminPanel?: () => void;
   adminAccess?: boolean;
+  pendingReportCount?: number;
   streakCount?: number;
   hidden?: boolean;
 }
@@ -39,6 +40,7 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
   onOpenPalette,
   onOpenAdminPanel,
   adminAccess = false,
+  pendingReportCount = 0,
   streakCount = 0,
   hidden = false,
 }) => {
@@ -106,7 +108,7 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
       icon: <Headphones className="w-[21px] h-[21px] text-emerald-300" />,
       onSelect: onOpenFocusMode,
     },
-    /* Thống kê chiếm đúng ô Sổ tay cũ; chỉ người có quyền admin mới thấy. */
+    /* Thống kê & Quản trị (bao gồm Tố cáo + Điều khiển bên trong) */
     ...(adminAccess && onOpenAdminPanel ? [{
       id: 'admin',
       label: 'Bảng thống kê quản trị',
@@ -114,6 +116,9 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
       tier: 'far' as const,
       icon: <ChartNoAxesCombined className="w-[21px] h-[21px] text-cyan-300" />,
       extraClass: 'ccm-02__item--admin',
+      badge: pendingReportCount > 0 ? (
+        <span className="ccm-02__badge">{pendingReportCount > 99 ? '99+' : pendingReportCount}</span>
+      ) : undefined,
       onSelect: onOpenAdminPanel,
     }] : []),
     {

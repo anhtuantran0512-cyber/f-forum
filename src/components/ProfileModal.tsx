@@ -936,29 +936,23 @@ const ProfileModalInner: React.FC<{
                         </span>
                       </div>
 
-                      {/* Tên hiển thị, Danh hiệu Mythic & Châm ngôn (Bio) */}
-                      <div className="space-y-1.5 min-w-0 flex-1">
+                      {/* Tên hiển thị, Nhãn vai trò & Mô tả (Bio) — bố cục tách dòng rõ ràng, không đè lên bảng tên */}
+                      <div className="space-y-2 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-base sm:text-xl font-bold text-[#0284C7] flex items-center gap-1.5 truncate">
+                          <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2 min-w-0 max-w-full">
                             {userDecorations.nameplate ? (
-                              <DecoratedName user={currentUser} name={currentUser.name} width={Math.min(260, Math.max(140, currentUser.name.length * 14))} />
+                              <DecoratedName user={currentUser} name={currentUser.name} width={228} />
                             ) : (
-                              <span>{currentUser.name}</span>
+                              <span className="truncate">{currentUser.name}</span>
                             )}
-                            {isSuperAdmin && <AdminVerifiedBadge size={15} />}
+                            {isSuperAdmin && <AdminVerifiedBadge size={16} />}
                           </h3>
+                        </div>
 
-                          {/* Danh hiệu Mythic / Epic nếu có */}
-                          {equippedCombo.mythicTitle && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-500/25 via-pink-500/25 to-purple-500/25 text-amber-200 border border-amber-400/40 shadow-sm">
-                              <span className={`rarity-dot ${rarityDotClass(equippedCombo.highestRarity)}`} aria-hidden="true" />
-                              <span>{equippedCombo.mythicTitle}</span>
-                            </span>
-                          )}
-
-                          {/* Role Badge */}
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#0D9488] text-white text-[10px] font-bold tracking-wider uppercase shadow-sm">
-                            <UserCheck className="w-3 h-3 text-white inline shrink-0" />
+                        {/* Hàng nhãn vai trò & cấp bậc — tách riêng khỏi bảng tên */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-teal-500/15 border border-teal-400/30 text-teal-200 text-[11px] font-semibold">
+                            <UserCheck className="w-3 h-3 text-teal-300 shrink-0" />
                             <span>
                               {currentUser.role === 'SUPER_ADMIN'
                                 ? 'Quản trị'
@@ -967,38 +961,45 @@ const ProfileModalInner: React.FC<{
                                 : 'Học sinh'}
                             </span>
                           </span>
+
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-cyan-500/12 border border-cyan-400/25 text-cyan-200 text-[11px] font-semibold">
+                            <span>{tier.titleVi}</span>
+                            <span className="text-white/40">·</span>
+                            <span className="font-mono text-[10.5px]">Lv.{currentUser.level}</span>
+                          </span>
+
+                          <span
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-500/12 border border-amber-400/25 text-amber-300 text-[11px] font-mono font-bold"
+                            title={Number.isFinite(userCoin) ? undefined : 'Siêu quản trị — Coin vô vùng'}
+                          >
+                            <span>{formatCoinBalance(userCoin)} Coin</span>
+                          </span>
+
+                          {equippedCombo.mythicTitle && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-500/15 text-amber-200 border border-amber-400/35">
+                              <span className={`rarity-dot ${rarityDotClass(equippedCombo.highestRarity)}`} aria-hidden="true" />
+                              <span>{equippedCombo.mythicTitle}</span>
+                            </span>
+                          )}
                         </div>
 
-                        {/* Châm ngôn cá nhân (Bio) */}
-                        <p className="text-xs italic text-neutral-300 leading-snug line-clamp-2">
-                          ❝ {currentUser.bio || 'Chưa có mô tả'} ❞
+                        {/* Mô tả cá nhân (Bio) */}
+                        <p className="text-xs text-neutral-300 leading-relaxed line-clamp-2 pt-0.5">
+                          {currentUser.bio || 'Chưa có mô tả'}
                         </p>
 
-                        <div className="flex items-center gap-2 flex-wrap text-[10px] text-neutral-400 font-mono pt-0.5">
-                          <span>Cấp độ: Lv.{currentUser.level}</span>
-                          <span>•</span>
-                          <span className="text-amber-400 font-bold" title={Number.isFinite(userCoin) ? undefined : 'Siêu quản trị — Coin vô vùng'}>{formatCoinBalance(userCoin)} Coin</span>
-                          <span>•</span>
-                          <span className="text-cyan-300 font-semibold">{tier.titleVi}</span>
-                        </div>
-
                         {/* 🎨 Đang trang bị — Showcase Khu Vực Trang Bị (Discord Profile Style) */}
-                        <div className="pt-2 space-y-1.5" aria-label="Khu vực trang bị đang đeo">
+                        <div className="pt-1.5 space-y-1.5" aria-label="Khu vực trang bị đang đeo">
                           <div className="text-[11px] font-bold text-white/80 flex items-center gap-1.5 flex-wrap">
                             <span>🎨 Đang trang bị:</span>
                             {isOwnProfile && (
-                              <>
-                                <span className="text-[10px] font-normal text-white/45">
-                                  (Bấm vào từng ô để đổi nhanh)
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => openShopAtCategory(null)}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/35 border border-purple-400/40 text-purple-200 text-[10px] font-bold transition cursor-pointer"
-                                >
-                                  <PaletteIcon className="w-3 h-3" /> Thay đổi trang trí
-                                </button>
-                              </>
+                              <button
+                                type="button"
+                                onClick={() => openShopAtCategory(null)}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/35 border border-purple-400/40 text-purple-200 text-[10px] font-bold transition cursor-pointer"
+                              >
+                                <PaletteIcon className="w-3 h-3" /> Thay đổi trang trí
+                              </button>
                             )}
                           </div>
                           <div className="flex items-center gap-1.5 flex-wrap">

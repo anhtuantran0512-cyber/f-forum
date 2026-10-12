@@ -683,50 +683,38 @@ test('10.14 Chuẩn Discord: nameplate chỉ ở Hồ Sơ, safe zone aura, 1 pre
   assert.match(boutique, /<span className="gb-collection__count">/, 'chỉ "Bộ sưu tập" hiển thị tổng');
   assert.match(boutique, /gb-collection__stack/, 'rarity breakdown = 1 stacked bar compact');
 
-  /* 5 — "Xem khi đeo": context nhỏ 40px chuẩn; nameplate = thông báo (không render). */
+  /* 5 — "Xem khi đeo": context nhỏ 40px chuẩn; nameplate = thông báo ngắn gọn (không render). */
   assert.match(boutique, /size=\{40\}[\s\S]{0,120}eager[\s\S]{0,120}alt=\{userName\}/, 'context nhỏ dùng AvatarWithDecoration 40px');
-  assert.match(boutique, /Nameplate chỉ hiển thị trên <b>Hồ Sơ đầy đủ<\/b>/, 'nameplate ở context nhỏ → thông báo');
-  assert.match(boutique, /gb-np-note/, 'try-on dock nameplate có note');
+  assert.match(boutique, /Hiển thị trên <b>Hồ Sơ đầy đủ<\/b>/, 'nameplate ở context nhỏ → thông báo');
+  assert.ok(!boutique.includes('gb-card__desc-one-line'), 'đã xoá dòng mô tả thừa trên card');
 });
 
 /* ========================================================================== */
-/* 10.15 — Đợt #4: "Vừa xem" (quay lại nhanh) + báo item yêu thích đang sale  */
+/* 10.15 — Đợt #4: báo item yêu thích đang sale & xoá "Vừa xem" / "Vinh danh" */
 /* ========================================================================== */
-test('10.15 Đợt #4: dải "Vừa xem" + thông báo wishlist đang sale', async () => {
-  /* pushRecentItem: pure — mới nhất trước, khử trùng lặp, chặn max, bỏ id rỗng. */
+test('10.15 Đợt #4: thông báo wishlist đang sale + đã xoá GUI Vừa xem & Vinh danh Huyền thoại', async () => {
   const { pushRecentItem } = await import('../src/utils/decorations.ts');
   assert.deepEqual(pushRecentItem([], 'a'), ['a']);
   assert.deepEqual(pushRecentItem(['a', 'b'], 'c'), ['c', 'a', 'b'], 'mới nhất đứng trước');
-  assert.deepEqual(pushRecentItem(['a', 'b'], 'a'), ['a', 'b'], 'chuyển item cũ lên đầu, không trùng');
-  assert.deepEqual(pushRecentItem(['a', 'b', 'c'], 'd', 2), ['d', 'a'], 'chặn max');
-  assert.deepEqual(pushRecentItem(['a'], ''), ['a'], 'id rỗng bỏ qua');
 
   const card = fs.readFileSync(path.join(ROOT, 'src', 'components', 'shop', 'GachaBoutique.tsx'), 'utf8');
   const css = fs.readFileSync(path.join(ROOT, 'src', 'components', 'shop', 'Boutique.css'), 'utf8');
 
-  /* Mọi chỗ MỞ preview đều qua inspectItem (lưu "vừa xem"); đóng modal không. */
-  assert.match(card, /const inspectItem = useCallback\(\(id: string\)/, 'helper inspectItem tồn tại');
-  assert.match(card, /setRecentIds\(\(cur\) => \{[\s\S]{0,200}pushRecentItem\(cur, id, 8\)/, 'mỗi lần mở preview lưu lại (max 8)');
-  const openCalls = card.split('inspectItem(').length - 1;
-  assert.ok(openCalls >= 8, `mọi điểm mở preview dùng inspectItem (thấy ${openCalls} chỗ)`);
-  assert.match(card, /fforum_boutique_recent_v1/, 'key "vừa xem" riêng, không đụng bộ lọc');
-
-  /* Dải "Vừa xem" chỉ render khi có dữ liệu, item phải còn active trong catalog. */
-  assert.match(card, /\{recentItems\.length > 0 && \(/, 'ẩn khi chưa xem gì');
-  assert.match(card, /recentIds\.map\(\(id\) => activeItems\.find\(\(i\) => i\.id === id\)\)\.filter/, 'loại item đã khỏi catalog');
+  /* GUI "Vừa xem" và "Vinh danh Huyền thoại" đã xoá theo yêu cầu sếp. */
+  assert.ok(!card.includes('aria-label="Vừa xem"'), 'đã xoá GUI Vừa xem');
+  assert.ok(!card.includes('Vinh danh Huyền thoại'), 'đã xoá Vinh danh Huyền thoại');
 
   /* Báo "item yêu thích đang sale": giá thực tế < niêm yết, 1 chạm vào wishlist. */
   assert.match(card, /const wishOnDealCount = useMemo\(/, 'đếm item wishlist đang sale');
   assert.match(card, /current < i\.price \? acc \+ 1 : acc/, 'so giá thực tế với niêm yết');
   assert.match(card, /\{!readOnly && wishOnDealCount > 0 && \([\s\S]{0,300}setWishOnly\(true\)/, '1 chạm mở danh sách yêu thích');
-  assert.match(css, /\.gb-recent__chip \{/, 'CSS dải vừa xem');
   assert.match(css, /\.gb-wish-deal \{/, 'CSS thông báo sale');
 });
 
 /* ========================================================================== */
-/* 10.16 — Đợt #5: "Trong ngân sách" chip + sort giá trị + xoá "Vừa xem"     */
+/* 10.16 — Đợt #5: "Trong ngân sách" chip + sort giá trị                      */
 /* ========================================================================== */
-test('10.16 Đợt #5: chip "Tôi mua được", sort "Giá trị tốt nhất", xoá "Vừa xem"', () => {
+test('10.16 Đợt #5: chip "Tôi mua được", sort "Giá trị tốt nhất"', () => {
   const card = fs.readFileSync(path.join(ROOT, 'src', 'components', 'shop', 'GachaBoutique.tsx'), 'utf8');
   const css = fs.readFileSync(path.join(ROOT, 'src', 'components', 'shop', 'Boutique.css'), 'utf8');
 
@@ -747,17 +735,12 @@ test('10.16 Đợt #5: chip "Tôi mua được", sort "Giá trị tốt nhất",
   /* Empty state wishlist: chưa có item yêu thích → CTA bấm trái tim (chỉ khi đang lọc yêu thích). */
   assert.match(card, /wishOnly && !readOnly && wishlist\.length === 0 \? \([\s\S]{0,400}Chưa có item yêu thích nào/, 'CTA khi wishlist trống');
 
-  /* "Vừa xem": nút xoá cả state lẫn storage. */
-  assert.match(card, /aria-label="Xoá danh sách vừa xem"/, 'nút xoá "Vừa xem" có label');
-  assert.match(card, /setRecentIds\(\[\]\);[\s\S]{0,80}safeStorage\.removeItem\(RECENT_KEY\)/, 'xoá state + localStorage cùng lúc');
-
   /* "Xoá bộ lọc" bao gồm cả lọc ngân sách. */
   assert.match(card, /const hasActiveFilters =[\s\S]{0,250}affordableOnly/, 'afford tính vào hasActiveFilters');
   assert.match(card, /setAffordableOnly\(false\);/, 'reset tắt lọc ngân sách');
 
-  /* CSS: chip ngân sách + nút xoá vừa xem. */
+  /* CSS: chip ngân sách. */
   assert.match(css, /\.gb-filters button\.is-affordable \{/, 'CSS chip ngân sách');
-  assert.match(css, /\.gb-recent__clear \{/, 'CSS nút xoá vừa xem');
 });
 
 /* ========================================================================== */
@@ -839,23 +822,18 @@ test('10.18 Đợt #6: trang trí không làm mất ảnh động, không mất 
 });
 
 /* ========================================================================== */
-/* 10.19 — Đợt #6: gộp nút Tố cáo + Điều khiển thành 1 lối vào                 */
+/* 10.19 — Đợt #6: đưa Tố cáo + Điều khiển vào trong Bảng thống kê quản trị  */
 /* ========================================================================== */
-test('10.19 Đợt #6: 1 nút "Tố cáo & Điều khiển" mở menu chọn, chỉ Super Admin', () => {
+test('10.19 Đợt #6: Tố cáo & Điều khiển nằm trong Bảng thống kê quản trị (tia sét)', () => {
   const app = fs.readFileSync(path.join(ROOT, 'src', 'App.tsx'), 'utf8');
+  const insights = fs.readFileSync(path.join(ROOT, 'src', 'components', 'AdminInsightsModal.tsx'), 'utf8');
 
-  /* Nút gộp + menu 2 lựa chọn. */
-  assert.match(app, /Tố cáo &amp; Điều khiển/, 'nút gộp có nhãn đúng');
-  assert.match(app, /role="menu"[\s\S]{0,400}aria-label="Chọn Tố cáo hoặc Điều khiển"/, 'menu có ngữ nghĩa');
-  assert.ok((app.match(/role="menuitem"/g) || []).length >= 2, 'menu có 2 mục chọn');
-  assert.match(app, /setIsModToolsOpen\(false\); setIsReportInboxOpen\(true\)/, 'chọn Tố cáo → mở hộp thư tố cáo');
-  assert.match(app, /setIsModToolsOpen\(false\); setIsAdminConsoleOpen\(true\)/, 'chọn Điều khiển → mở bảng điều khiển');
-
-  /* Nút "Điều khiển" rời riêng (bottom left-56) đã GỌP — không mọc lại. */
-  assert.ok(!app.includes('left-56'), 'không còn nút Điều khiển rời bên trái');
-  assert.match(app, /isMasterAdmin\(currentUser\?\.email\) && !isReportInboxOpen && !isAdminConsoleOpen/, 'chỉ hiện với Super Admin, ẩn khi modal đang mở');
-
-  /* Badge số tố cáo chờ xử lý vẫn còn trên nút gộp. */
-  assert.match(app, /pendingReportCount > 99 \? '99\+' : pendingReportCount/, 'badge 99+ giữ nguyên');
-  assert.match(app, /if \(e\.key === 'Escape'\) setIsModToolsOpen\(false\)/, 'Escape đóng menu');
+  /* Không còn nút nổi Tố cáo & Điều khiển rời ngoài màn hình. */
+  assert.ok(!app.includes('Tố cáo &amp; Điều khiển'), 'đã bỏ nút nổi rời bên ngoài');
+  assert.match(app, /onOpenReports=/, 'App truyền onOpenReports vào AdminInsightsModal');
+  assert.match(app, /setIsAdminInsightsOpen\(false\);\s*setIsReportInboxOpen\(true\)/, 'mở hộp thư tố cáo từ bảng thống kê');
+  assert.match(app, /setIsAdminInsightsOpen\(false\);\s*setIsAdminConsoleOpen\(true\)/, 'mở bảng điều khiển từ bảng thống kê');
+  assert.match(insights, /onOpenReports/, 'AdminInsightsModal có nút Tố cáo');
+  assert.match(insights, /onOpenOperations/, 'AdminInsightsModal có nút Điều khiển');
+  assert.match(insights, /pendingReportCount > 99 \? '99\+' : pendingReportCount/, 'badge 99+ giữ nguyên');
 });
