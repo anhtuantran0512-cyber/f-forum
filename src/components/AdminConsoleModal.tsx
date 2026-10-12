@@ -104,6 +104,27 @@ interface AdminAuditRecord {
   by?: string;
 }
 
+/* AI Moderation v1.0 — một câu trả lời đang chờ xem xét (từ GET
+   /api/admin/moderation/answers). */
+interface AnswerQueueItem {
+  id: string;
+  questionId: string;
+  questionTitle: string;
+  questionSubject: string;
+  authorName: string;
+  authorEmail: string;
+  content: string;
+  createdAt: string;
+  createdAtMs: number;
+  moderation?: {
+    status?: string;
+    relevance?: string;
+    reason?: string;
+    feedback?: string;
+    engine?: string;
+  };
+}
+
 const MODERATION_DURATIONS = [
   { value: 15, label: '15 phút' },
   { value: 60, label: '1 giờ' },
@@ -162,6 +183,47 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
   const [auditRows, setAuditRows] = useState<AdminAuditRecord[]>([]);
   const [auditError, setAuditError] = useState<string | null>(null);
   const [auditRefreshTick, setAuditRefreshTick] = useState(0);
+
+  /* AI Moderation v1.0 — hàng chờ câu trả lời (bot chuyển sang "chờ xem xét").
+     Quản trị xem lý do bot đưa ra rồi Duyệt (đăng) hoặc Từ chối (ẩn). */
+  const [answerQueue, setAnswerQueue] = useState<AnswerQueueItem[]>([]);
+  const [answerQueueLoaded, setAnswerQueueLoaded] = useState(false);
+  const [answerQueueError, setAnswerQueueError] = useState<string | null>(null);
+  const [answerBusyId, setAnswerBusyId] = useState<string | null>(null);
+  const [answerNotice, setAnswerNotice] = useState<string | null>(null);
+
+  const fetchAnswerQueue = useCallback(async (): Promise<void> => {
+    try {
+      const res = await fetch('/api/admin/moderation/answers', { headers: authHeaders() });
+      const data = await res.json().catch(() => null);
+      if (res.status !== 200 || !data?.success) {
+        setAnswerQueueError(data?.message || `Không tải được hàng chờ (HTTP ${res.status}).`);
+        return;
+      }
+      setAnswerQueue(Array.isArray(data.queue) ? data.queue : []);
+      setAnswerQueueError(null);
+    } catch {
+      setAnswerQueueError('Không kết nối được máy chủ để lấy hàng chờ câu trả lời.');
+    } finally {
+      setAnswerQueueLoaded(true);
+    }
+  }, []);
+
+  const handleAnswerModeration = useCallback(async (
+    solutionId: string,
+    action: 'approve' | 'reject',
+  ) => {
+    setAnswerBusyId(solutionId);
+    setAnswerNotice(null);
+    const { status, data } = await postJson('/api/admin/moderation/answers', { solutionId, action });
+    if (status >= 200 && status < 300) {
+      setAnswerNotice(String(data?.message || 'Đã xử lý câu trả lời.'));
+      setAnswerQueue(prev => prev.filter(item => item.id !== solutionId));
+    } else {
+      setAnswerNotice(String(data?.message || 'Không xử lý được, vui lòng thử lại.'));
+    }
+    setAnswerBusyId(null);
+  }, []);
 
   /**
    * Chỉ làm phần mạng + bóc tách dữ liệu, KHÔNG đụng tới state — nhờ vậy gọi
@@ -355,6 +417,20 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
       cancelled = true;
     };
   }, [isOpen, fetchOverview, applyResult]);
+
+  /* AI Moderation v1.0 — tải hàng chờ câu trả lời khi mở panel (một lần;
+     sau khi duyệt/từ chối là cập nhật local, không cần tự làm mới). */
+  useEffect(() => {
+    if (!isOpen || answerQueueLoaded) return undefined;
+    let cancelled = false;
+    (async () => {
+      if (cancelled) return;
+      await fetchAnswerQueue();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, answerQueueLoaded, fetchAnswerQueue]);
 
   /*
     Tự làm mới mỗi 20 giây khi đang mở. Bảng điều khiển mà số liệu đứng yên thì
@@ -853,6 +929,95 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
                   </div>
                 </section>
               )}
+
+              {/* AI Moderation v1.0 — HANG CHỌ CÂU TRẢ LỜI (bot chuyển REVIEW) */}
+              <section>
+                <h3 className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-2">
+                  <ShieldAlert className="w-3.5 h-3.5 text-amber-300" />
+                  Câu trả lời chờ xem xét
+                  {answerQueue.length > 0 && (
+                    <span className="rounded-full bg-amber-500/20 border border-amber-400/40 px-1.5 text-[10px] font-bold text-amber-300">
+                      {answerQueue.length}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => { setAnswerQueueLoaded(false); void fetchAnswerQueue(); }}
+                    className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold text-neutral-400 hover:text-cyan-300 cursor-pointer"
+                    title="Tải lại hàng chờ"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Làm mới
+                  </button>
+                </h3>
+                <p className="text-[10px] text-neutral-500 mb-2">
+                  Bot kiểm duyệt không chắc chắn về mức độ liên quan của các câu trả lời này.
+                  Bạn là người quyết định cuối: <span className="text-emerald-300 font-semibold">Duyệt</span> để đăng,
+                  hoặc <span className="text-rose-300 font-semibold">Từ chối</span> để ẩn. Không câu trả lời nào bị xoá tự động.
+                </p>
+                {answerQueueError ? (
+                  <p role="alert" className="text-[11px] text-rose-300">{answerQueueError}</p>
+                ) : !answerQueueLoaded ? (
+                  <p className="rounded-xl border border-dashed border-white/10 p-3 text-center text-[11px] text-neutral-500">
+                    Đang tải hàng chờ...
+                  </p>
+                ) : answerQueue.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-white/10 p-3 text-center text-[11px] text-neutral-500">
+                    Không có câu trả lời nào đang chờ xem xét.
+                  </p>
+                ) : (
+                  <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                    {answerQueue.map((item) => (
+                      <div key={item.id} className="rounded-xl border border-amber-400/25 bg-amber-500/[0.06] p-3">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1.5">
+                          <span className="text-[11px] font-bold text-white truncate max-w-full">
+                            {item.questionTitle || '(không có tiêu đề câu hỏi)'}
+                          </span>
+                          <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-mono text-neutral-300">
+                            #{item.questionSubject || 'khác'}
+                          </span>
+                          {item.moderation?.relevance && (
+                            <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-mono text-amber-300">
+                              liên quan: {item.moderation.relevance}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-neutral-200 whitespace-pre-line line-clamp-4">
+                          {item.content}
+                        </p>
+                        <p className="mt-1 text-[10px] text-neutral-400">
+                          bởi <span className="text-cyan-300 font-semibold">{item.authorName || 'Học sinh'}</span>
+                          {item.moderation?.reason && (
+                            <> · bot: {item.moderation.reason}</>
+                          )}
+                        </p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={answerBusyId === item.id}
+                            onClick={() => void handleAnswerModeration(item.id, 'approve')}
+                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 px-2.5 py-1 text-[11px] font-bold text-emerald-300 disabled:opacity-40 cursor-pointer"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            {answerBusyId === item.id ? 'Đang xử lý...' : 'Duyệt & đăng'}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={answerBusyId === item.id}
+                            onClick={() => void handleAnswerModeration(item.id, 'reject')}
+                            className="inline-flex items-center gap-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-400/40 px-2.5 py-1 text-[11px] font-bold text-rose-300 disabled:opacity-40 cursor-pointer"
+                          >
+                            <Ban className="w-3.5 h-3.5" />
+                            Từ chối
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {answerNotice && (
+                  <p className="mt-2 text-[11px] text-emerald-300">{answerNotice}</p>
+                )}
+              </section>
 
               {/* NHẬT KÝ QUẢN TRỊ — truy vết ai quyết định gì */}
               <section>

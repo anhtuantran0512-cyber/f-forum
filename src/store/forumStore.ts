@@ -407,7 +407,18 @@ export function useForumStore() {
   const [toastMessage, setToastMessage] = useState<{
     title: string;
     subtitle?: string;
-    type?: 'xp' | 'success' | 'level' | 'error';
+    /* 'warning' = cần chú ý (vd. câu trả lời cần chỉnh sửa); 'info' = thông tin
+       trung lập (vd. câu trả lời đang chờ xem xét). */
+    type?: 'xp' | 'success' | 'level' | 'error' | 'warning' | 'info';
+  } | null>(null);
+
+  /* AI Moderation v1.0 — lý do bot giữ lại câu trả lời để học sinh chỉnh sửa
+     (hiển thị inline ngay ô trả lời của câu hỏi đó). */
+  const [solutionRejection, setSolutionRejection] = useState<{
+    questionId: string;
+    feedback: string;
+    reason: string;
+    at: number;
   } | null>(null);
 
   /* Phần 2 & Phần 5 — Graceful Session Expiry UX + Activity-Aware Auto-Extend */
@@ -1042,10 +1053,27 @@ export function useForumStore() {
         }
         case 'NEW_SOLUTION': {
           const newSolution = payload as Solution;
+          /* AI Moderation: nội dung "review" không bao giờ phát ra công khai;
+             nếu nhận được thì bỏ qua (tác giả đã có từ bản nháp optimistic). */
+          if (!newSolution || newSolution.status === 'review') break;
           setSolutions(prev => {
             if (prev.some(s => s.id === newSolution.id)) return prev;
             return [...prev, newSolution];
           });
+          break;
+        }
+        case 'NEW_SOLUTION_REVIEWED': {
+          /* Sự kiện MASKED (không kèm nội dung) cho câu trả lời chờ duyệt.
+             Tác giả đã thấy lời giải của mình ở trạng thái "Chờ xem xét"
+             từ phản hồi HTTP, nên không cần cập nhật gì thêm. */
+          break;
+        }
+        case 'SOLUTION_REMOVED': {
+          /* Admin từ chối câu trả lời đang chờ: gỡ khỏi danh sách (kể cả
+             tab của chính tác giả để đồng bộ trạng thái). */
+          const removedId = (payload as { solutionId?: string } | undefined)?.solutionId;
+          if (!removedId) break;
+          setSolutions(prev => prev.filter(s => s.id !== removedId));
           break;
         }
         case 'NEW_COMMENT': {
@@ -1385,10 +1413,22 @@ export function useForumStore() {
         }
         case 'NEW_SOLUTION': {
           const newSolution = payload as Solution;
+          /* AI Moderation: nội dung "review" không bao giờ phát ra công khai. */
+          if (!newSolution || newSolution.status === 'review') break;
           setSolutions(prev => {
             if (prev.some(s => s.id === newSolution.id)) return prev;
             return [...prev, newSolution];
           });
+          break;
+        }
+        case 'NEW_SOLUTION_REVIEWED': {
+          /* Sự kiện MASKED (không nội dung) — tác giả đã thấy từ phản hồi HTTP. */
+          break;
+        }
+        case 'SOLUTION_REMOVED': {
+          const removedId = (payload as { solutionId?: string } | undefined)?.solutionId;
+          if (!removedId) break;
+          setSolutions(prev => prev.filter(s => s.id !== removedId));
           break;
         }
         case 'MARK_BEST_SOLUTION': {
@@ -2654,8 +2694,30 @@ export function useForumStore() {
     });
   };
 
-  const addSolution = async (questionId: string, content: string, imageUrl?: string) => {
-    if (!currentUser) return;
+  /* AI Moderation v1.0 — bot giữ lại câu lạc đề/spam (422 ANSWER_REJECTED):
+     lưu lý do để hiển thị inline + toast thân thiện; nội dung ĐƯỢC GIỮ để sửa. */
+  const applySolutionModerationReject = (questionId: string, data: any) => {
+    const verdict = data?.moderation || {};
+    setSolutionRejection({
+      questionId,
+      feedback: String(verdict.feedback || ''),
+      reason: String(verdict.reason || ''),
+      at: Date.now(),
+    });
+    setToastMessage({
+      title: 'Câu trả lời cần chỉnh sửa',
+      subtitle: String(verdict.feedback || 'Trả lời đúng nội dung câu hỏi rồi gửi lại nhé.'),
+      type: 'warning',
+    });
+  };
+
+  /* AI Moderation v1.0 — kết quả gửi lời giải.
+     'rejected' = bot thấy lạc đề/spam, KHÔNG đăng, giữ nội dung để sửa lại.
+     'review' = bot không chắc, câu trả lời vào hàng chờ Admin (không mất). */
+  const addSolution = async (questionId: string, content: string, imageUrl?: string): Promise<'accepted' | 'review' | 'rejected' | 'error'> => {
+    if (!currentUser) return 'error';
+    /* Bỏ cảnh báo từ lần gửi trước khi bắt đầu lần gửi mới. */
+    setSolutionRejection(null);
 
     const newSolution: Solution = {
       id: `sol-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -2679,12 +2741,13 @@ export function useForumStore() {
     const solutionOutcome = await runServerAction('/api/solutions', newSolution);
     if (!solutionOutcome.ok) {
       setSolutions(prevSolutions);
-      setToastMessage({
-        title: 'Không gửi được lời giải',
-        subtitle: solutionOutcome.message,
-        type: 'error',
-      });
-      return;
+      /* AI Moderation: 422 ANSWER_REJECTED = bot giữ lại câu lạc đề/spam. */
+      if (solutionOutcome.status === 422 && solutionOutcome.data?.code === 'ANSWER_REJECTED') {
+        applySolutionModerationReject(questionId, solutionOutcome.data);
+        return 'rejected';
+      }
+      setToastMessage({ title: 'Không gửi được lời giải', subtitle: solutionOutcome.message, type: 'error' });
+      return 'error';
     }
 
     const persistedSolution = (solutionOutcome.data?.solution || newSolution) as Solution;
@@ -2693,6 +2756,18 @@ export function useForumStore() {
       persistedSolution,
     ]);
     if (solutionOutcome.data?.user) applyServerUser(solutionOutcome.data.user as User);
+
+    /* Bot chuyển sang hàng chờ: câu trả lời ĐÃ LƯU, chỉ chờ Admin duyệt.
+       Phần thưởng nhận khi được duyệt. */
+    if (persistedSolution.status === 'review') {
+      playChime('success');
+      setToastMessage({
+        title: 'Câu trả lời đang chờ xem xét',
+        subtitle: 'Bot chưa chắc chắn về mức độ liên quan nên chuyển bạn qua người quản trị xem. Nội dung an toàn, không bị mất nhé.',
+        type: 'info',
+      });
+      return 'review';
+    }
 
     const targetQ = questions.find(q => q.id === questionId);
     if (targetQ && targetQ.authorId !== currentUser.id) {
@@ -2710,12 +2785,31 @@ export function useForumStore() {
     setToastMessage({
       title: reward > 0
         ? `Đã gửi lời giải · +${reward} XP và Coin`
-        : solutionOutcome.data?.duplicate ? 'Lời giải đã được tiếp nhận trước đó' : 'Đã gửi lời giải',
+        : solutionOutcome.data?.duplicate ? 'Lời giải đã được tiếp nhận trước đó' : 'Câu trả lời đã được đăng',
       subtitle: reward > 0
         ? 'Phần thưởng đã được máy chủ xác nhận.'
         : 'Bạn đã nhận phần thưởng cho câu hỏi này trước đó; không phát thưởng lặp.',
       type: reward > 0 ? 'xp' : 'success',
     });
+    return 'accepted';
+  };
+
+  /* AI Moderation v1.0 — nhân sự kiểm duyệt xử lý hàng chờ (Duyệt/Từ chối).
+     Máy chủ là nguồn chân lý; client chỉ gọi API và nhận kết quả. */
+  const adminReviewAnswer = async (
+    solutionId: string,
+    action: 'approve' | 'reject',
+    note?: string,
+  ): Promise<{ ok: boolean; message: string }> => {
+    try {
+      const { status, data } = await postJson('/api/admin/moderation/answers', { solutionId, action, note });
+      if (status >= 200 && status < 300) {
+        return { ok: true, message: String(data?.message || '') };
+      }
+      return { ok: false, message: String(data?.message || 'Không xử lý được câu trả lời. Vui lòng thử lại.') };
+    } catch {
+      return { ok: false, message: 'Máy chủ không phản hồi. Vui lòng thử lại.' };
+    }
   };
 
   /* =========== Thread System v1.0 (mạng xã hội nội bộ) =========== */
@@ -3429,6 +3523,10 @@ export function useForumStore() {
     createQuestion,
     addSolution,
     markBestSolution,
+    /* AI Moderation v1.0 */
+    solutionRejection,
+    setSolutionRejection,
+    adminReviewAnswer,
     chatMessages,
     sendChatMessage,
     onlineUsers,

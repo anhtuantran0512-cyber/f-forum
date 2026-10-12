@@ -581,12 +581,14 @@ test('7. REST Endpoint: Best Solution Award authorization & single-best invarian
   const testEnv = await createTestServer();
 
   try {
+    /* AI Moderation: câu hỏi/lời giải dưới đây liên quan thật để vượt bot kiểm
+       duyệt (test này xét thưởng đáp án chuẩn & quyền, không xét việc moderation). */
     const createQRes = await fetch(`${testEnv.baseUrl}/api/questions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: 'Câu hỏi kiểm tra đáp án chuẩn',
-        content: 'Nội dung câu hỏi...',
+        content: 'Cần tìm nghiệm của phương trình bậc hai dạng ax^2+bx+c=0.',
         subject: 'toan',
         authorId: 'original-author-id',
         authorName: 'Tác Giả Gốc',
@@ -604,7 +606,7 @@ test('7. REST Endpoint: Best Solution Award authorization & single-best invarian
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         questionId,
-        content: 'Lời giải số 1',
+        content: 'Dùng công thức nghiệm để tìm nghiệm của phương trình.',
         authorId: 'solver-1',
         authorName: 'Học sinh 1',
         authorEmail: 'student1@fpt.edu.vn',
@@ -621,7 +623,7 @@ test('7. REST Endpoint: Best Solution Award authorization & single-best invarian
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         questionId,
-        content: 'Lời giải số 2 xuất sắc hơn',
+        content: 'Phân tích thành nhân tử rồi tìm nghiệm của phương trình.',
         authorId: 'solver-2',
         authorName: 'Học sinh 2',
         authorEmail: 'student2@fpt.edu.vn',

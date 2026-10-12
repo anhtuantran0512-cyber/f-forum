@@ -12,6 +12,7 @@ import {
 } from './decorationRegistry.ts';
 import { isDecorationId, sanitizeEquippedDecorations } from '../src/utils/decorations.ts';
 import type { EquippedDecorations } from '../src/types/index.ts';
+import { moderateAnswer, type ModerationVerdict } from './answerModeration.ts';
 import { dateKeyInTimeZone } from '../shared/dailyTrivia.ts';
 import { GHIBLI_MASKS, getRandomGhibliMask } from '../src/utils/ghibliMasks.ts';
 import {
@@ -1617,7 +1618,9 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         ws.send(JSON.stringify({ type: 'AUTH_OK', payload: { email: cookieBound.email, role: cookieBound.role, via: 'cookie' } }));
       }
 
-      ws.on('message', (messageRaw) => {
+      /* async: AI Moderation v1.0 kiểm duyệt lời giải qua WS cần await; mọi
+         lỗi vẫn được try/catch bên dưới giữ (không rơi thành unhandled rejection). */
+      ws.on('message', async (messageRaw) => {
         try {
           const { type, payload } = JSON.parse(messageRaw.toString());
           if (!type) return;
@@ -1858,6 +1861,45 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               if (!targetQuestion) break;
               if (store.solutions.some(s => s.id === requestedSolutionId)) break;
 
+              /* AI Moderation v1.0 — cùng đường HTTP: bot tự quyết, client
+                 không thể tự khai ACCEPT. */
+              let wsModeration: ModerationVerdict;
+              try {
+                wsModeration = await moderateAnswer({
+                  questionTitle: targetQuestion.title,
+                  questionContent: targetQuestion.content,
+                  questionSubject: targetQuestion.subject,
+                  answerContent: String(payload.content),
+                });
+              } catch (wsModErr: any) {
+                pushAuditLog({ action: 'answer:moderation-error', questionId: targetQId, error: String(wsModErr?.message || wsModErr) });
+                wsModeration = {
+                  status: 'REVIEW',
+                  relevance: 'LOW',
+                  reason: 'Bot kiểm duyệt gặp sự nên chuyển câu trả lời vào hàng chờ xem xét thủ công.',
+                  feedback: 'Câu trả lời đang chờ người quản trị xem xét — bạn cứ yên tâm, không mất dữ liệu.',
+                  engine: 'heuristic',
+                  safety: { ok: true, flags: [] },
+                  at: Date.now(),
+                };
+              }
+              if (wsModeration.status === 'REJECT') {
+                pushAuditLog({
+                  action: 'answer:rejected',
+                  questionId: targetQId,
+                  authorEmail: solver.email,
+                  relevance: wsModeration.relevance,
+                  reason: wsModeration.reason,
+                  engine: wsModeration.engine,
+                  via: 'ws',
+                });
+                ws.send(JSON.stringify({
+                  type: 'SOLUTION_REJECTED',
+                  payload: { questionId: targetQId, solutionId: requestedSolutionId, moderation: wsModeration },
+                }));
+                break;
+              }
+
               const relayedSolution = {
                 id: requestedSolutionId,
                 questionId: targetQId.slice(0, 80),
@@ -1872,12 +1914,15 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 isBest: false,
                 upvotes: 1,
                 bestSelectionBonusGranted: false,
+                status: wsModeration.status === 'REVIEW' ? 'review' : 'active',
+                moderation: wsModeration,
                 imageUrl: typeof payload.imageUrl === 'string' ? payload.imageUrl.slice(0, 2000) : undefined,
               };
               const rewardedEmails: string[] = Array.isArray(targetQuestion.solutionRewardedEmails)
                 ? targetQuestion.solutionRewardedEmails
                 : [];
-              if (!rewardedEmails.includes(solver.email)) {
+              /* Thưởng chỉ khi câu trả lời đã đăng (ACCEPT). */
+              if (wsModeration.status === 'ACCEPT' && !rewardedEmails.includes(solver.email)) {
                 targetQuestion.solutionRewardedEmails = [...rewardedEmails, solver.email].slice(-1000);
                 grantCoinsAndExperience(solver, 25);
                 broadcastServerEvent('SYNC_USER', solver);
@@ -1885,7 +1930,20 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               store.solutions.push(relayedSolution);
               recordAnalyticsActivity(getAnalyticsStore(), 'answers', solver.email);
               persistStoreToDisk();
-              broadcastServerEvent('NEW_SOLUTION', relayedSolution);
+              if (relayedSolution.status === 'review') {
+                /* Chỉ thông báo riêng cho tác giả, không phát nội dung ra hệ thống. */
+                ws.send(JSON.stringify({
+                  type: 'NEW_SOLUTION_REVIEWED',
+                  payload: {
+                    questionId: targetQId,
+                    solutionId: relayedSolution.id,
+                    authorEmail: solver.email,
+                    relevance: wsModeration.relevance,
+                  },
+                }));
+              } else {
+                broadcastServerEvent('NEW_SOLUTION', relayedSolution);
+              }
               break;
             }
             case 'MARK_BEST_SOLUTION': {
@@ -2406,6 +2464,20 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     }
 
     if (method === 'GET' && url.startsWith('/api/sync')) {
+      /* AI Moderation v1.0 — lời giải status "review" CHỈ hiện với tác giả
+         (để thấy trạng thái "Chờ xem xét") và nhân sự kiểm duyệt (để xem
+         hàng chờ); người khác không nhận nội dung đang chờ duyệt. */
+      const syncClaims = authorizeRequest(req, null, null);
+      const syncEmailLower = syncClaims ? String(syncClaims.email).toLowerCase() : '';
+      const isSyncStaff = Boolean(requireModerationStaff(req, {}));
+      const visibleSolutions = store.solutions.filter((s: any) => {
+        /* Lời giải đã bị xoá (gồm Admin từ chối hàng chờ) không phát ra nữa —
+           client trước đây tự lọc, giờ lọc luôn ở nguồn để payload gọn. */
+        if (!s || s.status === 'deleted') return false;
+        if (s.status !== 'review') return true;
+        const authorMatch = s.authorEmail && String(s.authorEmail).toLowerCase() === syncEmailLower;
+        return Boolean(authorMatch) || isSyncStaff;
+      });
       sendJson(res, 200, {
         success: true,
         data: {
@@ -2413,7 +2485,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           clubs: store.clubs,
           clubPosts: store.clubPosts,
           questions: store.questions,
-          solutions: store.solutions,
+          solutions: visibleSolutions,
           comments: (store.comments || []).filter((c: any) => c && c.status !== 'hidden'),
           chatMessages: store.chatMessages,
           feedbacks: store.feedbacks,
@@ -2744,6 +2816,53 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
+        /* AI Moderation v1.0 — máy chủ TỰ kiểm duyệt; mọi field client gửi
+           (body.moderation, body.status...) đều bị bỏ qua. Bot chỉ xét độ
+           LIÊN QUAN, không chấm đúng/sai; khi không chắc chắn => REVIEW
+           (hàng chờ Admin), không bao giờ tự xoá. */
+        let moderation: ModerationVerdict;
+        try {
+          moderation = await moderateAnswer({
+            questionTitle: targetQuestion.title,
+            questionContent: targetQuestion.content,
+            questionSubject: targetQuestion.subject,
+            answerContent: content,
+          });
+        } catch (modErr: any) {
+          /* Bot lỗi không được làm mất câu trả lời của học sinh: hạ xuống
+             REVIEW để người thật xem (tuân thủ "không tự động loại bỏ"). */
+          pushAuditLog({ action: 'answer:moderation-error', questionId, error: String(modErr?.message || modErr) });
+          moderation = {
+            status: 'REVIEW',
+            relevance: 'LOW',
+            reason: 'Bot kiểm duyệt gặp sự nên chuyển câu trả lời vào hàng chờ xem xét thủ công.',
+            feedback: 'Câu trả lời đang chờ người quản trị xem xét — bạn cứ yên tâm, không mất dữ liệu.',
+            engine: 'heuristic',
+            safety: { ok: true, flags: [] },
+            at: Date.now(),
+          };
+        }
+
+        if (moderation.status === 'REJECT') {
+          /* Không đăng, không lưu: trả lời 422 kèm lý do + gợi ý sửa để học
+             sinh chỉnh sửa rồi gửi lại (không tạo bản ghi chết). */
+          pushAuditLog({
+            action: 'answer:rejected',
+            questionId,
+            authorEmail: author?.email,
+            relevance: moderation.relevance,
+            reason: moderation.reason,
+            engine: moderation.engine,
+          });
+          sendJson(res, 422, {
+            success: false,
+            code: 'ANSWER_REJECTED',
+            message: 'Câu trả lời cần chỉnh sửa trước khi đăng.',
+            moderation,
+          });
+          return;
+        }
+
         const newSolution = {
           id: requestedSolutionId,
           questionId,
@@ -2759,7 +2878,9 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           isBest: false,
           upvotes: 1,
           bestSelectionBonusGranted: false,
-          status: 'active',
+          /* REVIEW => ẩn khỏi danh sách công khai cho đến khi Admin duyệt. */
+          status: moderation.status === 'REVIEW' ? 'review' : 'active',
+          moderation,
           reactions: {},
           imageUrl: typeof body.imageUrl === 'string' ? body.imageUrl.slice(0, 2000) : undefined,
         };
@@ -2770,16 +2891,48 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const rewardedEmails: string[] = Array.isArray(targetQuestion.solutionRewardedEmails)
           ? targetQuestion.solutionRewardedEmails
           : [];
-        const reward = author && !rewardedEmails.includes(author.email) ? 25 : 0;
+        /* Phần thưởng chỉ cấp khi câu trả lời ĐÃ đăng (ACCEPT); câu đang chờ
+           xem xét nhận thưởng khi Admin duyệt. */
+        const reward = moderation.status === 'ACCEPT' && author && !rewardedEmails.includes(author.email) ? 25 : 0;
         if (author && reward > 0) {
           targetQuestion.solutionRewardedEmails = [...rewardedEmails, author.email].slice(-1000);
           grantCoinsAndExperience(author, reward);
           broadcastServerEvent('SYNC_USER', author);
         }
 
+        pushAuditLog({
+          action: moderation.status === 'REVIEW' ? 'answer:review-queued' : 'answer:accepted',
+          questionId,
+          solutionId: newSolution.id,
+          authorEmail: author?.email,
+          relevance: moderation.relevance,
+          reason: moderation.reason,
+          engine: moderation.engine,
+        });
+
         persistStoreToDisk();
-        broadcastServerEvent('NEW_SOLUTION', newSolution);
-        sendJson(res, 200, { success: true, solution: newSolution, user: author, reward });
+        if (newSolution.status === 'review') {
+          /* Không phát nội dung chờ duyệt ra toàn hệ thống: chỉ thông báo sự
+             tồn tại (không kèm content) — tác giả vẫn thấy lời giải của mình
+             ở trạng thái "Chờ xem xét". */
+          broadcastServerEvent('NEW_SOLUTION_REVIEWED', {
+            questionId,
+            solutionId: newSolution.id,
+            authorEmail: newSolution.authorEmail,
+            relevance: moderation.relevance,
+          });
+          sendJson(res, 200, {
+            success: true,
+            solution: newSolution,
+            moderation,
+            user: author,
+            reward: 0,
+            message: 'Câu trả lời đang chờ xem xét.',
+          });
+        } else {
+          broadcastServerEvent('NEW_SOLUTION', newSolution);
+          sendJson(res, 200, { success: true, solution: newSolution, moderation, user: author, reward });
+        }
       } catch (err: any) {
         handleApiError(res, err);
       }
@@ -5527,6 +5680,121 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           rateLimits: limiters,
           topReported,
         });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    /**
+     * AI Moderation v1.0 — Hàng chờ câu trả lời (REVIEW).
+     *
+     * Super Admin, Giáo viên hoặc Moderator xem danh sách câu trả lời bị bot
+     * chuyển sang "chờ xem xét" rồi DUYỆT (đăng) hoặc TỪ CHỐI (ẩn). Không bao
+     * giờ xoá vĩnh viễn nội dung học sinh — chỉ đổi trạng thái, giữ lại audit.
+     */
+    if (method === 'GET' && url === '/api/admin/moderation/answers') {
+      try {
+        const actor = requireModerationStaff(req, {});
+        if (!actor) {
+          sendJson(res, 403, { success: false, message: 'Chỉ nhân sự kiểm duyệt mới xem được hàng chờ câu trả lời.' });
+          return;
+        }
+        const queue = store.solutions
+          .filter((s: any) => s.status === 'review')
+          .map((s: any) => {
+            const q = store.questions.find((qq: any) => qq.id === s.questionId);
+            return {
+              id: s.id,
+              questionId: s.questionId,
+              questionTitle: q?.title || '',
+              questionSubject: q?.subject || '',
+              authorName: s.authorName,
+              authorEmail: s.authorEmail,
+              content: s.content,
+              createdAt: s.createdAt,
+              createdAtMs: s.createdAtMs,
+              moderation: s.moderation,
+            };
+          })
+          .sort((a: any, b: any) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
+        sendJson(res, 200, { success: true, queue, count: queue.length });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    if (method === 'POST' && url === '/api/admin/moderation/answers') {
+      try {
+        const body = await parseJsonBody(req);
+        const actor = requireModerationStaff(req, body);
+        if (!actor) {
+          sendJson(res, 403, { success: false, message: 'Chỉ nhân sự kiểm duyệt mới xử lý được câu trả lời chờ xem xét.' });
+          return;
+        }
+        const solutionId = String(body?.solutionId || '').trim().slice(0, 80);
+        const action = body?.action === 'approve' ? 'approve' : body?.action === 'reject' ? 'reject' : null;
+        const note = typeof body?.note === 'string' ? body.note.trim().slice(0, 300) : undefined;
+        if (!solutionId || !action) {
+          sendJson(res, 400, { success: false, message: 'Thiếu solutionId hoặc action (approve|reject).' });
+          return;
+        }
+        const target = store.solutions.find((s: any) => s.id === solutionId && s.status === 'review');
+        if (!target) {
+          sendJson(res, 404, { success: false, message: 'Câu trả lời này không còn trong hàng chờ xem xét.' });
+          return;
+        }
+        const now = Date.now();
+        const by = actor.claims.email;
+        if (action === 'approve') {
+          target.status = 'active';
+          target.moderation = {
+            ...(target.moderation || { status: 'REVIEW', relevance: 'LOW', reason: '', feedback: '', engine: 'heuristic', safety: { ok: true, flags: [] }, at: now }),
+            review: { by, at: now, action: 'approve', note },
+          };
+          /* Cấp thưởng 25 nếu tác giả chưa nhận cho câu hỏi này. */
+          const q = store.questions.find((qq: any) => qq.id === target.questionId);
+          const author = target.authorEmail ? store.users[target.authorEmail] : undefined;
+          let reward = 0;
+          if (q && author && !Array.isArray(q.solutionRewardedEmails)) q.solutionRewardedEmails = [];
+          if (q && author && !(q.solutionRewardedEmails || []).includes(author.email)) {
+            q.solutionRewardedEmails = [...(q.solutionRewardedEmails || []), author.email].slice(-1000);
+            grantCoinsAndExperience(author, 25);
+            broadcastServerEvent('SYNC_USER', author);
+            reward = 25;
+          }
+          pushAuditLog({
+            action: 'answer:approved',
+            questionId: target.questionId,
+            solutionId: target.id,
+            authorEmail: target.authorEmail,
+            by,
+            note,
+            engine: target.moderation?.engine,
+          });
+          persistStoreToDisk();
+          broadcastServerEvent('NEW_SOLUTION', target);
+          sendJson(res, 200, { success: true, solution: target, reward, message: 'Đã duyệt, câu trả lời được đăng.' });
+        } else {
+          target.status = 'deleted';
+          target.moderation = {
+            ...(target.moderation || { status: 'REVIEW', relevance: 'LOW', reason: '', feedback: '', engine: 'heuristic', safety: { ok: true, flags: [] }, at: now }),
+            review: { by, at: now, action: 'reject', note },
+          };
+          pushAuditLog({
+            action: 'answer:admin-rejected',
+            questionId: target.questionId,
+            solutionId: target.id,
+            authorEmail: target.authorEmail,
+            by,
+            note,
+            engine: target.moderation?.engine,
+          });
+          persistStoreToDisk();
+          broadcastServerEvent('SOLUTION_REMOVED', { solutionId: target.id, reason: 'admin-reject' });
+          sendJson(res, 200, { success: true, solutionId: target.id, message: 'Đã từ chối, câu trả lời được ẩn.' });
+        }
       } catch (err: any) {
         handleApiError(res, err);
       }

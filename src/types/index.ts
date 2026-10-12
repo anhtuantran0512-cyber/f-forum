@@ -171,6 +171,23 @@ export interface Question {
   reactions?: QAReactions;
 }
 
+/* AI Moderation v1.0 — phán quyết kiểm duyệt câu trả lời (xem
+   server/answerModeration.ts). LuÔN do máy chủ sinh — client không thể tự
+   khai ACCEPT. */
+export type ModerationStatus = 'ACCEPT' | 'REJECT' | 'REVIEW';
+export type RelevanceLevel = 'HIGH' | 'MEDIUM' | 'LOW';
+
+export interface ModerationVerdict {
+  status: ModerationStatus;
+  relevance: RelevanceLevel;
+  reason: string;
+  feedback: string;
+  engine: 'ai' | 'heuristic';
+  safety: { ok: boolean; flags: string[] };
+  at: number;
+  review?: { by: string; at: number; action: 'approve' | 'reject'; note?: string };
+}
+
 export interface Solution {
   id: string;
   questionId: string;
@@ -187,8 +204,10 @@ export interface Solution {
   fiveStarCount?: number;
   rewardCoin?: number;
   imageUrl?: string;
-  status?: 'active' | 'deleted';
+  status?: 'active' | 'deleted' | 'review';
   reactions?: QAReactions;
+  /** Phán quyết AI kiểm duyệt (lưu lại cho audit + hàng chờ quản trị). */
+  moderation?: ModerationVerdict;
 }
 
 export type ChatChannelId = 'hallway' | 'quick-qa' | 'confessions' | 'club-hub';
