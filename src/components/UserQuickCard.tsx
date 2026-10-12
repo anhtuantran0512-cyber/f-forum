@@ -4,10 +4,11 @@ import { Award, Coins, Flame, HelpCircle, CheckCircle2, Sparkles, User as UserIc
 import type { User, Question, Solution } from '../types';
 import { getTierForLevel } from '../utils/tier';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
-import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
+import { DEFAULT_AVATAR } from '../utils/mediaFallback';
 import { effectiveCoinBalance, formatCoinBalance } from '../utils/coinDisplay';
 import { PremiumMark } from './PremiumMark';
 import { isMasterAdmin } from '../config/admin';
+import { DecoratedAvatar, UserNameplateBg } from './decorations/DecoratedAvatar';
 
 export interface UserQuickCardProps {
   user: User | null;
@@ -96,17 +97,17 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
 
         {/* Floating avatar + status dot + badge tray */}
         <div className="relative px-4">
-          <div className="relative -mt-11 w-[78px] h-[78px] rounded-full bg-[#111214] p-[5px]">
-            <img loading="lazy" decoding="async"
-              src={user.avatar}
+          <div className="relative -mt-11 w-[78px] h-[78px] rounded-full bg-[#111214] p-[5px] flex items-center justify-center">
+            <DecoratedAvatar
+              user={user}
+              fallbackSrc={user.avatar || DEFAULT_AVATAR}
+              size={68}
+              eager
               alt={user.name}
-              onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-              width={68}
-              height={68}
-              className="w-full h-full rounded-full object-cover bg-[#1e1f22]"
+              className="rounded-full"
             />
             <span
-              className="absolute right-1 bottom-1 w-4 h-4 rounded-full bg-[#23a55a] border-[3px] border-[#111214]"
+              className="absolute right-1 bottom-1 z-[4] w-4 h-4 rounded-full bg-[#23a55a] border-[3px] border-[#111214]"
               title="Đang hoạt động"
             />
           </div>
@@ -121,16 +122,23 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
 
         {/* Inner surface body */}
         <div className="pc-12-card m-3 mt-2.5 p-3.5 rounded-2xl space-y-3">
-          {/* Identity */}
-          <div>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h3 className={`text-[17px] font-extrabold leading-tight ${isSuperAdmin ? 'discord-admin-name' : 'text-white'}`}>
+          {/* Identity — Discord Nameplate Bar */}
+          <div className="ff-discord-userbar relative rounded-xl p-2.5 border border-white/10">
+            <UserNameplateBg
+              user={user}
+              width={296}
+              eager
+              animate
+              priority="high"
+            />
+            <div className="relative z-[2] flex items-center gap-1.5 flex-wrap">
+              <h3 className={`text-[17px] font-extrabold leading-tight drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)] ${isSuperAdmin ? 'discord-admin-name' : 'text-white'}`}>
                 {user.name.replace(/ \(.*\)/, '')}
               </h3>
               {isSuperAdmin && <AdminVerifiedBadge size={15} />}
               <PremiumMark user={user} compact />
             </div>
-            <p className="text-xs text-[#949ba4] font-mono">
+            <p className="relative z-[2] text-xs text-white/80 font-mono drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
               {tier.titleVi} • Lv.{user.level}
             </p>
           </div>

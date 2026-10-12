@@ -51,14 +51,20 @@ const AvatarMedia = ({
 }) => {
   const reducedMotion = useReducedMotion();
   const [videoFailed, setVideoFailed] = useState(false);
-  if (!isVideoAvatarUrl(url)) {
+  const safeUrl = url || DEFAULT_AVATAR;
+  if (!isVideoAvatarUrl(safeUrl)) {
     return (
       <img
         className="awd__avatar"
-        src={url}
+        src={safeUrl}
         alt={alt}
         loading={eager ? 'eager' : 'lazy'}
         fetchPriority={priority}
+        onError={(e) => {
+          if (e.currentTarget.src !== DEFAULT_AVATAR) {
+            e.currentTarget.src = DEFAULT_AVATAR;
+          }
+        }}
       />
     );
   }

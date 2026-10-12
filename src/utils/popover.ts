@@ -189,8 +189,6 @@ export function usePopoverPosition(
   });
 
   useLayoutEffect(() => {
-    if (!isOpen) return;
-
     const update = () => {
       const anchorEl = anchorRef?.current || null;
       const next = computePopoverPosition(anchorEl, dockPos, panelWidth, panelMaxHeight);
@@ -198,7 +196,11 @@ export function usePopoverPosition(
       setPos(prev => (prev.ready === next.ready && JSON.stringify(prev.style) === JSON.stringify(next.style) ? prev : next));
     };
 
+    /* Pre-measure ngay từ lúc mount (kể cả khi chưa mở) để lần bấm ĐẦU TIÊN
+       đã có sẵn toạ độ thật (pos.ready === true), không bị giật từ giữa màn hình. */
     update();
+    if (!isOpen) return;
+
     /* Recompute after dock transition frames */
     const t1 = setTimeout(update, 60);
     const t2 = setTimeout(update, 220);

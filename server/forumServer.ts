@@ -433,6 +433,14 @@ let store: ForumDataStore = {
 /** Miền email của lớp tài khoản mô phỏng đã bị xoá — chặn vĩnh viễn ở tầng server */
 const RETIRED_VIRTUAL_DOMAIN = '@sv.f-forum.vn';
 
+const isBotOrSmokeEmail = (email: string, name?: unknown): boolean => {
+  if (!email || !email.includes('@') || email.endsWith(RETIRED_VIRTUAL_DOMAIN)) return true;
+  if (/^(smoke\d*-|bot[-@_])/i.test(email) || email.endsWith('@bot.local') || email.endsWith('@mock.local')) return true;
+  const cleanName = String(name || '').trim();
+  if (/^(smoke(\s*\d+)?\s+[ab]|bot\b)/i.test(cleanName)) return true;
+  return false;
+};
+
 /** Email hợp lệ (kiểm tra thực dụng, không cần RFC 5322 đầy đủ). */
 const EMAIL_PATTERN = /^[^\s@,;:]+@[^\s@,;:.]+(\.[^\s@,;:.]+)+$/;
 
@@ -552,6 +560,7 @@ function sanitizeUsers(rawUsers: any): Record<string, UserRecord> {
     if (!raw || typeof raw !== 'object') return;
     const email = typeof raw.email === 'string' ? raw.email.trim().toLowerCase() : '';
     if (!email || !email.includes('@') || email.endsWith(RETIRED_VIRTUAL_DOMAIN)) return;
+    if (isBotOrSmokeEmail(email, raw.name)) return;
     if (!raw.id || !raw.name) return;
     const allowedRole = ['SUPER_ADMIN', 'CLUB_LEADER', 'STUDENT'].includes(raw.role)
       ? raw.role as UserRecord['role']
@@ -706,7 +715,9 @@ function loadStoreFromDisk() {
             : [],
           clubPosts: Array.isArray(parsed.clubPosts) ? parsed.clubPosts : [],
           questions: Array.isArray(parsed.questions)
-            ? parsed.questions.map((question: any) => question && typeof question === 'object'
+            ? parsed.questions
+                .filter((question: any) => question && typeof question === 'object' && !/^q-smoke\b|^q-smoke\d*-/i.test(String(question.id || '')) && !isBotOrSmokeEmail(String(question.authorEmail || ''), question.authorName))
+                .map((question: any) => question && typeof question === 'object'
               ? {
                   ...question,
                   /* Với bản ghi cũ, đã có đáp án chuẩn nghĩa là thưởng có thể
@@ -719,7 +730,9 @@ function loadStoreFromDisk() {
               : question)
             : [],
           solutions: Array.isArray(parsed.solutions)
-            ? parsed.solutions.map((solution: any) => solution && typeof solution === 'object'
+            ? parsed.solutions
+                .filter((solution: any) => solution && typeof solution === 'object' && !/^sol-smoke\b|^sol-smoke\d*-/i.test(String(solution.id || '')) && !isBotOrSmokeEmail(String(solution.authorEmail || ''), solution.authorName))
+                .map((solution: any) => solution && typeof solution === 'object'
               ? {
                   ...solution,
                   /* Đáp án từng được chọn đã nhận +5 upvote từ logic cũ; khóa
@@ -728,7 +741,9 @@ function loadStoreFromDisk() {
                 }
               : solution)
             : [],
-          chatMessages: Array.isArray(parsed.chatMessages) ? parsed.chatMessages : [],
+          chatMessages: Array.isArray(parsed.chatMessages)
+            ? parsed.chatMessages.filter((msg: any) => msg && typeof msg === 'object' && !isBotOrSmokeEmail(String(msg.authorEmail || ''), msg.authorName))
+            : [],
           feedbacks: Array.isArray(parsed.feedbacks) ? parsed.feedbacks : [],
           /* LỖI MẤT DỮ LIỆU: bản cũ dựng lại store mà bỏ quên `reports`, nên mọi
              báo cáo vi phạm đã ghi xuống đĩa bị vứt đi mỗi lần khởi động lại. */

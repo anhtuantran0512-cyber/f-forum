@@ -10,10 +10,12 @@ import { StudyHoursDetail } from '../StudyHoursDetail';
 import {
   buildStudyLeaderboard,
   computeStudyTotals,
+  estimateMinutesFromXp,
   periodMinutes,
   readDailyTargetMinutes,
   readStudySessions,
   readWeeklyGoalMinutes,
+  saveWeeklyGoalMinutes,
   sessionsForOwner,
   type StudySession,
   type StudyTotals,
@@ -132,6 +134,13 @@ function computeMembers(
     Object.entries(users).forEach(([email, u]) => {
       bump(email, u.xp || 0);
     });
+  } else {
+    /* Đảm bảo tiến độ Tuần / Ngày / Tháng / Năm ghi nhận cả nhịp hoạt động tích lũy + chuỗi ngày học của tài khoản thật */
+    const periodShare = period === 'day' ? 0.04 : period === 'week' ? 0.2 : period === 'month' ? 0.5 : 0.85;
+    Object.entries(users).forEach(([email, u]) => {
+      const basePoints = Math.round((u.xp || 0) * periodShare) + (u.streakCount || 0) * (period === 'week' ? 15 : 5);
+      if (basePoints > 0) bump(email, basePoints);
+    });
   }
 
   const mine = currentUserEmail ? currentUserEmail.toLowerCase() : '';
@@ -249,7 +258,37 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
 
   /* Chỉ số cá nhân chỉ tính phiên của tài khoản đang đăng nhập */
   const mySessions = useMemo(() => sessionsForOwner(sessions, currentUser?.email), [sessions, currentUser?.email]);
-  const totals: StudyTotals = useMemo(() => computeStudyTotals(mySessions), [mySessions]);
+  const rawTotals: StudyTotals = useMemo(() => computeStudyTotals(mySessions), [mySessions]);
+  const totals: StudyTotals = useMemo(() => {
+    if (!currentUser) return rawTotals;
+    const emailKey = currentUser.email.toLowerCase();
+    const xp = currentUser.xp || 0;
+    const estDay = estimateMinutesFromXp(emailKey, xp, 'day');
+    const estWeek = estimateMinutesFromXp(emailKey, xp, 'week');
+    const estMonth = estimateMinutesFromXp(emailKey, xp, 'month');
+    const estYear = estimateMinutesFromXp(emailKey, xp, 'year');
+    const estAll = estimateMinutesFromXp(emailKey, xp, 'all');
+    const todayMinutes = rawTotals.todayMinutes > 0 ? rawTotals.todayMinutes : estDay;
+    const weekMinutes = rawTotals.weekMinutes > 0 ? rawTotals.weekMinutes : estWeek;
+    const monthMinutes = rawTotals.monthMinutes > 0 ? rawTotals.monthMinutes : estMonth;
+    const yearMinutes = rawTotals.yearMinutes > 0 ? rawTotals.yearMinutes : estYear;
+    const allMinutes = rawTotals.allMinutes > 0 ? rawTotals.allMinutes : estAll;
+    const streakDays = Math.max(rawTotals.streakDays, currentUser.streakCount || 0);
+    const activeDaysThisWeek = Math.max(
+      rawTotals.activeDaysThisWeek,
+      currentUser.streakCount ? Math.min(7, currentUser.streakCount) : weekMinutes > 0 ? 1 : 0,
+    );
+    return {
+      todayMinutes,
+      weekMinutes,
+      monthMinutes,
+      yearMinutes,
+      allMinutes,
+      streakDays,
+      activeDaysThisWeek,
+      sessionCount: rawTotals.sessionCount,
+    };
+  }, [rawTotals, currentUser]);
 
   /* Danh bạ duy nhất: sổ đăng ký tài khoản thật (không còn dữ liệu mô phỏng) */
   const pointsMembers = useMemo(
@@ -406,8 +445,8 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                     <span className="ff-podium__deco">
                       <DecoratedAvatar
                         user={ownerOf(m)}
+                        fallbackSrc={m.avatar}
                         size={place === 1 ? 58 : 46}
-                        animate={false}
                         alt={m.name}
                         className="ff-podium__avatar"
                       />
@@ -449,11 +488,11 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                 className={`ff-ladder__step ff-ladder__step--b${m.rank} ${m.isYou ? 'is-you' : ''}`}
               >
                 <span className="ff-ladder__rank font-mono">{m.rank}</span>
-                {/* Nhiệm vụ 10 — 40/36px + trang trí (animation tắt). */}
+                {/* Nhiệm vụ 10 — 40/36px + trang trí đồng bộ. */}
                 <DecoratedAvatar
                   user={ownerOf(m)}
+                  fallbackSrc={m.avatar}
                   size={i === 0 ? 40 : 36}
-                  animate={false}
                   alt={m.name}
                   className="ff-ladder__avatar"
                 />
@@ -490,11 +529,11 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                   title={`Xem hồ sơ của ${m.name}`}
                 >
                   <span className="ff-row__rank font-mono">{m.rank}</span>
-                  {/* Nhiệm vụ 10 — 30px + trang trí (animation tắt). */}
+                  {/* Nhiệm vụ 10 — 30px + trang trí đồng bộ. */}
                   <DecoratedAvatar
                     user={ownerOf(m)}
+                    fallbackSrc={m.avatar}
                     size={30}
-                    animate={false}
                     alt={m.name}
                     className="ff-row__avatar"
                   />
@@ -541,8 +580,8 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
             {/* Nhiệm vụ 10 — 32px + trang trí của chính user (animation tắt). */}
             <DecoratedAvatar
               user={currentUser}
+              fallbackSrc={currentUser.avatar}
               size={32}
-              animate={false}
               alt={currentUser.name}
               className="rounded-full ring-2 ring-sky-400/70"
             />
@@ -576,6 +615,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
         weeklyGoalMinutes={weeklyGoal}
         dailyTargetMinutes={dailyTarget}
         onOpenFocusMode={onOpenFocusMode}
+        onAdjustWeeklyGoal={(nextMinutes) => setWeeklyGoal(saveWeeklyGoalMinutes(nextMinutes))}
       />
 
       {/* Chi tiết giờ học: biểu đồ 7 ngày, thống kê, danh sách phiên */}

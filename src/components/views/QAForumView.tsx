@@ -59,7 +59,7 @@ import {
   getRandomGhibliMask,
 } from '../../utils/ghibliMasks';
 import { DEFAULT_AVATAR, handleImageError, handleVideoError } from '../../utils/mediaFallback';
-import { DecoratedAvatar } from '../decorations/DecoratedAvatar';
+import { DecoratedAvatar, UserNameplateBg } from '../decorations/DecoratedAvatar';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
 import { capsHas, useAdminCaps } from '../../utils/adminCapabilities';
 import { pushNotification } from '../../utils/notifications';
@@ -427,8 +427,8 @@ const CommentThread: React.FC<{
                 <span className="shrink-0 mt-0.5">
                   <DecoratedAvatar
                     user={c.authorEmail ? findDecorationOwner(users, c.authorEmail, c.authorId) : null}
+                    fallbackSrc={c.authorAvatar}
                     size={28}
-                    animate={false}
                   />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -1661,16 +1661,27 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         className="inline-flex items-center gap-2 hover:opacity-85 transition-opacity cursor-pointer text-left min-w-0"
                         title={q.isAnonymous ? 'Tác giả ẩn danh' : 'Xem thông tin tác giả'}
                       >
-                        <img
-                          src={q.authorAvatar}
-                          alt={q.authorName}
-                          onError={e => handleImageError(e, DEFAULT_AVATAR)}
-                          loading="lazy"
-                          decoding="async"
-                          width={20}
-                          height={20}
-                          className="w-5 h-5 rounded-full object-cover border border-white/15 shrink-0"
-                        />
+                        {q.isAnonymous ? (
+                          <img
+                            src={q.authorAvatar}
+                            alt={q.authorName}
+                            onError={e => handleImageError(e, DEFAULT_AVATAR)}
+                            loading="lazy"
+                            decoding="async"
+                            width={22}
+                            height={22}
+                            className="w-5 h-5 rounded-full object-cover border border-white/15 shrink-0"
+                          />
+                        ) : (
+                          <span className="shrink-0">
+                            <DecoratedAvatar
+                              user={findDecorationOwner(users, undefined, q.authorId)}
+                              fallbackSrc={q.authorAvatar}
+                              size={24}
+                              alt={q.authorName}
+                            />
+                          </span>
+                        )}
                         <span
                           className={`text-xs font-medium truncate max-w-[160px] ${
                             q.isAnonymous ? 'text-indigo-200' : 'text-slate-300'
@@ -2585,16 +2596,27 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           className="inline-flex items-center gap-2 text-xs text-slate-300 hover:opacity-85 transition-opacity cursor-pointer text-left min-w-0"
                           title={selectedQuestion.isAnonymous ? 'Tác giả ẩn danh' : 'Xem thông tin tác giả'}
                         >
-                          <img
-                            src={selectedQuestion.authorAvatar}
-                            alt={selectedQuestion.authorName}
-                            onError={e => handleImageError(e, DEFAULT_AVATAR)}
-                            loading="lazy"
-                            decoding="async"
-                            width={28}
-                            height={28}
-                            className="w-7 h-7 rounded-full object-cover border border-white/15 shrink-0"
-                          />
+                          {selectedQuestion.isAnonymous ? (
+                            <img
+                              src={selectedQuestion.authorAvatar}
+                              alt={selectedQuestion.authorName}
+                              onError={e => handleImageError(e, DEFAULT_AVATAR)}
+                              loading="lazy"
+                              decoding="async"
+                              width={28}
+                              height={28}
+                              className="w-7 h-7 rounded-full object-cover border border-white/15 shrink-0"
+                            />
+                          ) : (
+                            <span className="shrink-0">
+                              <DecoratedAvatar
+                                user={findDecorationOwner(users, undefined, selectedQuestion.authorId)}
+                                fallbackSrc={selectedQuestion.authorAvatar}
+                                size={30}
+                                alt={selectedQuestion.authorName}
+                              />
+                            </span>
+                          )}
                           <span className={`font-semibold truncate ${selectedQuestion.isAnonymous ? 'text-indigo-200' : 'text-white'}`}>
                             {selectedQuestion.authorName}
                           </span>
@@ -2750,12 +2772,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               >
                                 <div className="relative shrink-0">
                                   <DecoratedAvatar
-                                    user={isSuperAdminSolver ? null : findDecorationOwner(users, sol.authorEmail, sol.authorId)}
-                                    size={32}
-                                    animate={false}
-                                    className={isSuperAdminSolver ? 'ring-2 ring-amber-400' : undefined}
+                                    user={findDecorationOwner(users, isSuperAdminSolver ? MASTER_ADMIN_CONFIG.email : sol.authorEmail, sol.authorId)}
+                                    fallbackSrc={solverAvatar}
+                                    size={34}
+                                    className={isSuperAdminSolver ? 'ring-2 ring-amber-400 rounded-full' : 'rounded-full'}
                                   />
-                                  <span className="absolute -bottom-1 -right-1">
+                                  <span className="absolute -bottom-1 -right-1 z-[4]">
                                     <TierBadge level={isSuperAdminSolver ? 150 : sol.authorLevel} size={14} showTooltip={false} />
                                   </span>
                                 </div>
@@ -3341,31 +3363,39 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               <X className="w-3.5 h-3.5" />
             </button>
 
-            <div className="flex items-center gap-2.5 pb-2.5 border-b border-white/10 pr-5">
-              <div className="relative shrink-0">
-                {/* Nhiệm vụ 10 — 40px + trang trí Discord (nếu tác giả có trang bị). */}
+            <div className="ff-discord-userbar flex items-center gap-3 p-3 rounded-xl bg-white/[0.04] border border-white/15 pr-6">
+              <UserNameplateBg
+                user={findDecorationOwner(users, activeAuthorPopover.email, activeAuthorPopover.id)}
+                width={256}
+                eager
+                animate
+                priority="high"
+              />
+              <div className="relative z-[2] shrink-0">
+                {/* Nhiệm vụ 10 — 42px + trang trí Discord (nếu tác giả có trang bị). */}
                 <DecoratedAvatar
                   user={findDecorationOwner(users, activeAuthorPopover.email, activeAuthorPopover.id)}
-                  size={40}
-                  animate={false}
+                  fallbackSrc={activeAuthorPopover.avatar}
+                  size={42}
+                  eager
                   alt={activeAuthorPopover.name}
                   className="rounded-full ring-1 ring-amber-400/60 shadow-md"
                 />
-                <span className="absolute -bottom-1 -right-1">
+                <span className="absolute -bottom-1 -right-1 z-[4]">
                   <TierBadge level={activeAuthorPopover.level} size={16} showTooltip={false} />
                 </span>
               </div>
 
-              <div className="min-w-0 flex-1">
-                <h4 className="text-xs font-bold text-white flex items-center gap-1 truncate">
+              <div className="relative z-[2] min-w-0 flex-1">
+                <h4 className="text-xs font-extrabold text-white flex items-center gap-1 truncate drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]">
                   <span className="truncate">{activeAuthorPopover.name}</span>
                   {isMasterAdmin(activeAuthorPopover.email) && <AdminVerifiedBadge size={12} />}
                 </h4>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-[9.5px] font-mono font-bold">
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-400/40 text-[9.5px] font-mono font-bold shadow-sm">
                     {getTierForLevel(activeAuthorPopover.level).titleVi}
                   </span>
-                  <span className="text-[10px] text-neutral-400 font-mono">
+                  <span className="text-[10px] text-white/85 font-mono drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
                     Lv.{activeAuthorPopover.level}
                   </span>
                 </div>

@@ -25,6 +25,7 @@ const shopItemToAsset = (item: ShopItem | null | undefined): DecorationAssetRef 
 
 interface DecoratedAvatarProps {
   user: Pick<User, 'inventory' | 'equippedDecorations' | 'avatar'> | null | undefined;
+  fallbackSrc?: string;
   size: number;
   animate?: boolean;
   eager?: boolean;
@@ -35,6 +36,7 @@ interface DecoratedAvatarProps {
 
 export const DecoratedAvatar = ({
   user,
+  fallbackSrc,
   size,
   animate = true,
   eager = false,
@@ -47,7 +49,7 @@ export const DecoratedAvatar = ({
      1 slot → user đeo đủ 2 chỉ thấy khung, mất hào quang — gãy trải nghiệm). */
   return (
     <AvatarWithDecoration
-      avatarUrl={user?.avatar || ''}
+      avatarUrl={user?.avatar || fallbackSrc || ''}
       frameAsset={shopItemToAsset(frame)}
       auraAsset={shopItemToAsset(aura)}
       size={size}
@@ -57,6 +59,49 @@ export const DecoratedAvatar = ({
       className={className}
       alt={alt}
     />
+  );
+};
+
+interface UserNameplateBgProps {
+  user?: Pick<User, 'inventory' | 'equippedDecorations'> | null | undefined;
+  width?: number;
+  animate?: boolean;
+  eager?: boolean;
+  priority?: 'high' | 'low';
+  className?: string;
+  overrideAsset?: DecorationAssetRef | null;
+}
+
+/**
+ * Lớp nền Nameplate chuẩn Discord cho Thanh Profile Người Dùng (Navbar, Menu Tài Khoản,
+ * và Thẻ nhanh Trang cá nhân / Tố cáo). Đặt tuyệt đối bên trong thanh user bar với
+ * overflow-hidden riêng để KHÔNG cắt mất cánh/tia sáng của khung viền Avatar (DecoratedAvatar).
+ */
+export const UserNameplateBg = ({
+  user,
+  width = 240,
+  animate = true,
+  eager = true,
+  priority = 'high',
+  className,
+  overrideAsset,
+}: UserNameplateBgProps) => {
+  const { nameplate } = useUserDecorations(user);
+  const asset = overrideAsset !== undefined ? overrideAsset : shopItemToAsset(nameplate);
+  if (!asset) return null;
+  return (
+    <span className={`ff-discord-np-layer${className ? ` ${className}` : ''}`} aria-hidden="true">
+      <NameplateDisplay
+        asset={asset}
+        size={width}
+        animate={animate}
+        eager={eager}
+        priority={priority}
+        fill
+        className="npd-np__bg"
+      />
+      <span className="ff-discord-np-layer__scrim" />
+    </span>
   );
 };
 

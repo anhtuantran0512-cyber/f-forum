@@ -6,6 +6,7 @@ import type { User, ShopItem } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { useUserDecorations } from '../utils/decorationStore';
 import { AvatarWithDecoration } from './decorations/AvatarWithDecoration';
+import { UserNameplateBg } from './decorations/DecoratedAvatar';
 import { getTierForLevel } from '../utils/tier';
 import { getXPForLevel } from '../store/forumStore';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
@@ -128,16 +129,23 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       ref={dropdownRef}
       role="menu"
       aria-label="Menu tài khoản"
-      className={`z-[70] bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] popover-morph-enter select-none pointer-events-auto transition-all overflow-y-auto no-scrollbar ${
+      className={`z-[70] bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] popover-morph-enter select-none pointer-events-auto overflow-y-auto no-scrollbar ${
         !anchorRef || !pop.ready ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] max-w-[calc(100vw-28px)]' : ''
       }`}
       style={anchorRef ? pop.style : undefined}
     >
-      {/* Top Section (Current Real User) */}
+      {/* Top Section (Current Real User — Discord Nameplate User Bar) */}
       <div className="flex flex-col">
         {/* Avatar + Info */}
-        <div className="flex items-start gap-3">
-          <div className="relative shrink-0">
+        <div className="ff-discord-userbar flex items-center gap-3 p-3 rounded-2xl bg-white/[0.04] border border-white/15">
+          <UserNameplateBg
+            user={currentUser}
+            width={288}
+            eager
+            animate
+            priority="high"
+          />
+          <div className="relative z-[2] shrink-0">
             {/* Nhiệm vụ 10 — 44px; có khung/hào quang Discord → avatar tròn + trang trí thật.
                 Truyền CẢ HAI slot (khung + hào quang) — không gộp 1. */}
             {hasDropdownDeco ? (
@@ -162,13 +170,13 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
                 className="w-11 h-11 rounded-xl object-cover ring-2 ring-amber-400/50 shadow-md"
               />
             )}
-            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0c1218] shadow-[0_0_6px_#34d399]" />
+            <span className="absolute -bottom-0.5 -right-0.5 z-[4] w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0c1218] shadow-[0_0_6px_#34d399]" />
           </div>
 
-          <div className="flex-1 min-w-0">
+          <div className="relative z-[2] flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span
-                className={`text-sm font-semibold truncate ${
+                className={`text-sm font-bold truncate drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)] ${
                   isSuperAdmin ? 'discord-admin-name' : 'text-white'
                 }`}
                 title={currentUser.name}
@@ -181,7 +189,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
               <PremiumMark user={currentUser} compact />
             </div>
 
-            <p className="text-[11px] text-white/50 truncate mt-0.5 font-mono">
+            <p className="text-[11px] text-white/75 truncate mt-0.5 font-mono drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
               {currentUser.email}
             </p>
           </div>

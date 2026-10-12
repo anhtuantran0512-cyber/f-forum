@@ -285,15 +285,12 @@ const ProfileModalInner: React.FC<{
   /** EPIC 5: ảnh đang được xử lý/tải lên — khoá nút Lưu để không lưu nhầm bản tạm. */
   const [mediaBusy, setMediaBusy] = useState<null | 'avatar' | 'banner'>(null);
 
-  /* Brief shimmer skeleton so the profile feels loaded, not popped */
-  const [isBooting, setIsBooting] = useState(true);
+  /* Mở ngay lập tức — không giữ skeleton nhân tạo gây giật bố cục */
+  const [isBooting, setIsBooting] = useState(false);
 
-  /* Đổi sang hồ sơ khác thì chạy lại skeleton. Phần "bật skeleton" được suy ra
-     lúc render (mẫu điều chỉnh state khi prop đổi); effect chỉ giữ phần hẹn giờ. */
   const [bootingForId, setBootingForId] = useState(currentUser.id);
   if (bootingForId !== currentUser.id) {
     setBootingForId(currentUser.id);
-    setIsBooting(true);
   }
 
   useEffect(() => {
@@ -1003,29 +1000,12 @@ const ProfileModalInner: React.FC<{
                         </span>
                       </div>
 
-                      {/* Nametag & Tên hiển thị — GÁN TÊN LÊN NAMETAG VÀ CĂN GIỮA TUYỆT ĐỐI */}
+                      {/* Tên hiển thị tại Hồ Sơ (không gắn nametag trong hồ sơ, nametag dùng ở thanh profile Navbar / Menu / Thẻ tương tác) */}
                       <div className="mt-3 flex flex-col items-center justify-center gap-2 w-full max-w-xl mx-auto">
                         <div className="flex items-center justify-center gap-2 flex-wrap max-w-full">
-                          <h3 className="text-base sm:text-lg font-bold text-white flex items-center justify-center gap-2 min-w-0 max-w-full mx-auto">
-                            <span
-                              onClick={() => {
-                                if (!isOwnProfile) return;
-                                if (ownedDecorationsBySlot.nameplate.length > 0) {
-                                  setQuickWardrobeSlot((cur) => (cur === 'nameplate' ? null : 'nameplate'));
-                                } else {
-                                  openShopAtCategory('Nameplate');
-                                }
-                              }}
-                              className={isOwnProfile ? 'cursor-pointer transition-transform hover:scale-[1.02] inline-flex items-center justify-center' : 'inline-flex items-center justify-center'}
-                              title={isOwnProfile ? 'Bấm vào Nametag để đổi nhanh Bảng tên đã có hoặc mở kho Bảng tên' : currentUser.name}
-                            >
-                              <DecoratedName
-                                user={currentUser}
-                                name={currentUser.name}
-                                width={276}
-                                eager
-                                showFallbackTag
-                              />
+                          <h3 className="text-xl sm:text-2xl font-extrabold text-white flex items-center justify-center gap-2 min-w-0 max-w-full mx-auto tracking-tight">
+                            <span className={`truncate ${isSuperAdmin ? 'discord-admin-name' : 'text-white'}`}>
+                              {currentUser.name}
                             </span>
                             {isSuperAdmin && <AdminVerifiedBadge size={18} />}
                           </h3>
@@ -1968,13 +1948,9 @@ const ProfileModalInner: React.FC<{
 
                     <div>
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <DecoratedName
-                          user={currentUser}
-                          name={name || 'Học sinh'}
-                          width={236}
-                          eager
-                          showFallbackTag
-                        />
+                        <h5 className={`text-lg font-extrabold leading-tight ${isSuperAdmin ? 'discord-admin-name' : 'text-white'}`}>
+                          {name || 'Học sinh'}
+                        </h5>
                         {isSuperAdmin && <AdminVerifiedBadge size={14} />}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">

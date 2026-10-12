@@ -19,7 +19,7 @@ import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import { effectiveCoinBalance, formatCoinBalance } from '../utils/coinDisplay';
 import { PremiumMark } from './PremiumMark';
 import { isMasterAdmin } from '../config/admin';
-import { DecoratedAvatar, DecoratedName } from './decorations/DecoratedAvatar';
+import { DecoratedAvatar } from './decorations/DecoratedAvatar';
 import { useUserDecorations } from '../utils/decorationStore';
 import './shop/Boutique.css';
 
@@ -230,14 +230,8 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <h3 className="text-lg font-bold tracking-tight text-white flex items-center gap-1.5 min-w-0 max-w-full">
-                    <DecoratedName
-                      user={user}
-                      name={user.name.replace(/ \(.*\)/, '')}
-                      width={216}
-                      eager
-                      showFallbackTag
-                    />
+                  <h3 className={`text-lg font-bold tracking-tight flex items-center gap-1.5 min-w-0 max-w-full ${isSuperAdmin ? 'discord-admin-name' : 'text-white'}`}>
+                    <span className="truncate">{user.name.replace(/ \(.*\)/, '')}</span>
                   </h3>
                   {isSuperAdmin ? (
                     <AdminVerifiedBadge size={16} />
