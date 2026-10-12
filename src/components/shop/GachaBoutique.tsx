@@ -62,6 +62,7 @@ import {
 } from '../../utils/decorations';
 import { useDecorationCatalog } from '../../utils/decorationStore';
 import { safeStorage } from '../../utils/storage';
+import { formatCoinBalance } from '../../utils/coinDisplay';
 import { playChime } from '../../utils/audio';
 import { AvatarWithDecoration, type DecorationAssetRef } from '../decorations/AvatarWithDecoration';
 import { NameplateDisplay } from '../decorations/NameplateDisplay';
@@ -602,9 +603,9 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           {readOnly ? (
             <span className="gb-viewonly">Chế độ trưng bày</span>
           ) : (
-            <div className="gb-wallet" aria-label={`Số dư ${coin} Coin`}>
+            <div className="gb-wallet" aria-label={`Số dư ${formatCoinBalance(coin)} Coin`}>
               <Coins size={15} aria-hidden="true" />
-              <b>{coin.toLocaleString('vi-VN')}</b>
+              <b>{formatCoinBalance(coin)}</b>
               <span>Coin</span>
             </div>
           )}
@@ -1226,7 +1227,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           type="button"
           aria-pressed={affordableOnly}
           className={affordableOnly ? 'is-active is-affordable' : ''}
-          title={`Chỉ hiện item giá thực tế ≤ ${coin.toLocaleString('vi-VN')} Coin hiện tại của bạn (bấm lại để tắt)`}
+          title={`Chỉ hiện item giá thực tế ≤ ${formatCoinBalance(coin)} Coin hiện tại của bạn (bấm lại để tắt)`}
           onClick={() => { setAffordableOnly((cur) => !cur); saveFilters({ afford: affordableOnly ? '' : '1' }); resetPagination(); }}
         >
           <Coins size={12} aria-hidden="true" /> Tôi mua được ({affordableCount})

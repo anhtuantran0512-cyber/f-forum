@@ -8,12 +8,13 @@
  *    cả hai overflow visible (cánh, tia sáng… không bị cắt).
  *  - Lazy load qua IntersectionObserver (eager=true bỏ qua — navbar).
  */
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import type { DecorationType } from '../../types/index';
 import './decorations.css';
-import { useInViewOnce } from './useDecorationMedia';
+import { useInViewOnce, useReducedMotion } from './useDecorationMedia';
 import { DecorationMedia } from './DecorationMedia';
 import { getDecorationSafeZone } from '../../utils/decorationSafeZones.ts';
+import { DEFAULT_AVATAR } from '../../utils/mediaFallback';
 
 export interface DecorationAssetRef {
   type: DecorationType;
@@ -23,6 +24,43 @@ export interface DecorationAssetRef {
   animatedAssetUrl?: string | null;
   isAnimated?: boolean;
 }
+
+/* Ảnh đại diện CHÍNH CỦA USER có thể là video động (webm/mp4). Trước đây luôn
+   render bằng thẻ ảnh tĩnh → avatar động bị "chết" thành ảnh lỗi/hình tĩnh ngay
+   khi đeo trang trí (vì mọi context đều đi qua component này). Nay:
+   - bình thường: thẻ video (autoplay loop muted playsInline) giữ nguyên chuyển động;
+   - prefers-reduced-motion: chỉ lấy khung hình đầu (preload metadata, KHÔNG
+     autoplay) — theo đúng phép "giảm chuyển động được quyền tắt ảnh động";
+   - video lỗi → tự về ảnh tĩnh fallback (không để avatar biến mất). */
+const AVATAR_VIDEO_EXT = /\.(webm|mp4|m4v|ogv)(\?|#|$)/i;
+
+const isVideoAvatarUrl = (url: string): boolean => AVATAR_VIDEO_EXT.test(url);
+
+const AvatarMedia = ({ url, alt, eager }: { url: string; alt: string; eager: boolean }) => {
+  const reducedMotion = useReducedMotion();
+  const [videoFailed, setVideoFailed] = useState(false);
+  if (!isVideoAvatarUrl(url)) {
+    return <img className="awd__avatar" src={url} alt={alt} loading={eager ? 'eager' : 'lazy'} />;
+  }
+  if (videoFailed) {
+    /* Video hỏng (404/host không cho phép) → avatar mặc định, KHÔNG để chỗ
+       trống/ảnh lỗi — không mất thành phần avatar. */
+    return <img className="awd__avatar" src={DEFAULT_AVATAR} alt={alt} loading={eager ? 'eager' : 'lazy'} />;
+  }
+  return (
+    <video
+      className="awd__avatar"
+      src={url}
+      aria-label={alt}
+      muted
+      playsInline
+      preload={reducedMotion ? 'metadata' : 'auto'}
+      autoPlay={!reducedMotion}
+      loop={!reducedMotion}
+      onError={() => setVideoFailed(true)}
+    />
+  );
+};
 
 interface AvatarWithDecorationProps {
   avatarUrl: string;
@@ -85,7 +123,7 @@ export const AvatarWithDecoration = ({
           <DecorationMedia asset={aura} enabled={enabled} animate={animate} className="awd__deco awd__deco--aura" />
         </div>
       )}
-      <img className="awd__avatar" src={avatarUrl} alt={alt} loading={eager ? 'eager' : 'lazy'} />
+      <AvatarMedia url={avatarUrl} alt={alt} eager={eager} />
       {frame && (
         <div className="awd__slot awd__slot--frame" style={zoneStyle(frame?.id)}>
           <DecorationMedia asset={frame} enabled={enabled} animate={animate} className="awd__deco awd__deco--frame" />
