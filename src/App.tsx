@@ -272,8 +272,19 @@ export const App: React.FC = () => {
   /* Hộp thư tố cáo — chỉ Super Admin mở được. */
   const [isReportInboxOpen, setIsReportInboxOpen] = useState(false);
   const [isAdminConsoleOpen, setIsAdminConsoleOpen] = useState(false);
+  /* Menu gộp "Tố cáo & Điều khiển" (1 nút → chọn 1 trong 2). */
+  const [isModToolsOpen, setIsModToolsOpen] = useState(false);
   const [isAdminInsightsOpen, setIsAdminInsightsOpen] = useState(false);
   const [pendingReportCount, setPendingReportCount] = useState(0);
+  /* Escape đóng menu "Tố cáo & Điều khiển". */
+  useEffect(() => {
+    if (!isModToolsOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsModToolsOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isModToolsOpen]);
   /* Epic 3 — RBAC: đồng bộ năng lực quản trị (Super Admin / GV / Mod / vai trò tùy chỉnh). */
   useAdminCapabilitiesLoader(currentUser);
   const adminCaps = useAdminCaps();
@@ -1340,35 +1351,66 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Lối vào bảng điều khiển quản trị — chỉ hiện với Super Admin */}
-      {isMasterAdmin(currentUser?.email) && !isAdminConsoleOpen && (
-        <button
-          type="button"
-          onClick={() => setIsAdminConsoleOpen(true)}
-          aria-label="Bảng điều khiển quản trị"
-          className="fixed bottom-4 left-56 z-40 flex items-center gap-2 pl-3 pr-4 py-2.5 rounded-2xl liquid-glass bg-[#0c1218]/95 border border-cyan-400/25 text-neutral-200 hover:border-cyan-400/50 hover:text-white transition-colors shadow-[0_18px_45px_rgba(0,0,0,0.7)]"
-        >
-          <Gauge className="w-4 h-4 text-cyan-300" />
-          <span className="text-[11px] font-medium">Điều khiển</span>
-        </button>
-      )}
-
-      {/* Lối vào hộp thư tố cáo — chỉ hiện với Super Admin */}
-      {isMasterAdmin(currentUser?.email) && !isReportInboxOpen && (
-        <button
-          type="button"
-          onClick={() => setIsReportInboxOpen(true)}
-          aria-label={`Hộp thư tố cáo${pendingReportCount > 0 ? ` — ${pendingReportCount} báo cáo chờ xử lý` : ''}`}
-          className="fixed bottom-4 left-24 z-40 flex items-center gap-2 pl-3 pr-4 py-2.5 rounded-2xl liquid-glass bg-[#0c1218]/95 border border-rose-400/25 text-neutral-200 hover:border-rose-400/50 hover:text-white transition-colors shadow-[0_18px_45px_rgba(0,0,0,0.7)]"
-        >
-          <ShieldAlert className="w-4 h-4 text-rose-300" />
-          <span className="text-[11px] font-medium">Tố cáo</span>
-          {pendingReportCount > 0 && (
-            <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500/90 text-white text-[10px] font-bold flex items-center justify-center">
-              {pendingReportCount > 99 ? '99+' : pendingReportCount}
-            </span>
+      {/* Lối vào "Tố cáo & Điều khiển" — GỘP 1 NÚT (trước là 2 nút riêng):
+          bấm mở menu nhỏ, chọn Tố cáo hoặc Điều khiển. Chỉ Super Admin. */}
+      {isMasterAdmin(currentUser?.email) && !isReportInboxOpen && !isAdminConsoleOpen && (
+        <div className="fixed bottom-4 left-24 z-40">
+          {isModToolsOpen && (
+            <>
+              {/* Lớp phủ trong suốt: bấm ngoài → đóng menu */}
+              <div
+                className="fixed inset-0 z-40"
+                aria-hidden="true"
+                onClick={() => setIsModToolsOpen(false)}
+              />
+              <div
+                role="menu"
+                aria-label="Chọn Tố cáo hoặc Điều khiển"
+                className="absolute bottom-[54px] left-0 z-50 w-56 rounded-2xl liquid-glass bg-[#0c1218]/95 border border-white/15 p-1.5 shadow-[0_18px_45px_rgba(0,0,0,0.7)]"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => { setIsModToolsOpen(false); setIsReportInboxOpen(true); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[11px] font-medium text-neutral-200 hover:bg-rose-500/15 hover:text-white transition-colors cursor-pointer"
+                >
+                  <ShieldAlert className="w-4 h-4 text-rose-300 shrink-0" />
+                  <span className="flex-1 text-left">Tố cáo</span>
+                  {pendingReportCount > 0 && (
+                    <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500/90 text-white text-[10px] font-bold flex items-center justify-center">
+                      {pendingReportCount > 99 ? '99+' : pendingReportCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => { setIsModToolsOpen(false); setIsAdminConsoleOpen(true); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[11px] font-medium text-neutral-200 hover:bg-cyan-500/15 hover:text-white transition-colors cursor-pointer"
+                >
+                  <Gauge className="w-4 h-4 text-cyan-300 shrink-0" />
+                  <span className="flex-1 text-left">Điều khiển</span>
+                </button>
+              </div>
+            </>
           )}
-        </button>
+          <button
+            type="button"
+            onClick={() => setIsModToolsOpen((open) => !open)}
+            aria-haspopup="menu"
+            aria-expanded={isModToolsOpen}
+            aria-label={`Tố cáo và Điều khiển${pendingReportCount > 0 ? ` — ${pendingReportCount} báo cáo chờ xử lý` : ''}`}
+            className="flex items-center gap-2 pl-3 pr-4 py-2.5 rounded-2xl liquid-glass bg-[#0c1218]/95 border border-rose-400/25 text-neutral-200 hover:border-rose-400/50 hover:text-white transition-colors shadow-[0_18px_45px_rgba(0,0,0,0.7)]"
+          >
+            <ShieldAlert className="w-4 h-4 text-rose-300" />
+            <span className="text-[11px] font-medium">Tố cáo &amp; Điều khiển</span>
+            {pendingReportCount > 0 && (
+              <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500/90 text-white text-[10px] font-bold flex items-center justify-center">
+                {pendingReportCount > 99 ? '99+' : pendingReportCount}
+              </span>
+            )}
+          </button>
+        </div>
       )}
 
       <Suspense fallback={<ViewLoadingFallback />}>

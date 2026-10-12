@@ -16,6 +16,7 @@ import { getTierForLevel, getXPProgress } from '../utils/tier';
 import { rarityDotClass, rarityFrameClass, rarityOf, resolveEquippedCombo } from '../utils/shopData';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
+import { effectiveCoinBalance, formatCoinBalance } from '../utils/coinDisplay';
 import { PremiumMark } from './PremiumMark';
 import { isMasterAdmin } from '../config/admin';
 import './shop/Boutique.css';
@@ -274,7 +275,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
                   <span>Coin</span>
                 </div>
                 <div className="text-sm font-bold font-mono text-yellow-300">
-                  {(user.coin ?? 0).toLocaleString()}
+                  {formatCoinBalance(effectiveCoinBalance(user.role, user.coin))}
                 </div>
               </div>
 
@@ -362,7 +363,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
                 </div>
                 <div className="text-neutral-300 text-[11px] font-mono">
                   Tích lũy: <span className="text-emerald-300 font-bold">{fPoints.toLocaleString()} XP</span> •{' '}
-                  <span className="text-yellow-300 font-bold">{(user.coin ?? 0).toLocaleString()} Coin</span>
+                  <span className="text-yellow-300 font-bold">{formatCoinBalance(effectiveCoinBalance(user.role, user.coin))} Coin</span>
                 </div>
                 <div className="text-neutral-400 text-[10px] leading-relaxed pt-1">
                   Thẻ định danh học thuật dùng để tham gia CLB, hỏi đáp tích điểm và mở khóa đặc quyền trên F-Forum.

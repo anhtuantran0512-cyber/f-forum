@@ -34,11 +34,13 @@ interface DecoratedAvatarProps {
 
 export const DecoratedAvatar = ({ user, size, animate = true, eager = false, className, alt }: DecoratedAvatarProps) => {
   const { frame, aura } = useUserDecorations(user);
-  const slotAsset = shopItemToAsset(frame) || shopItemToAsset(aura) || null;
+  /* KHUNG và HÀO QUANG là 2 slot độc lập — truyền CẢ HAI (trước đây chỉ gộp
+     1 slot → user đeo đủ 2 chỉ thấy khung, mất hào quang — gãy trải nghiệm). */
   return (
     <AvatarWithDecoration
       avatarUrl={user?.avatar || ''}
-      decorationAsset={slotAsset}
+      frameAsset={shopItemToAsset(frame)}
+      auraAsset={shopItemToAsset(aura)}
       size={size}
       animate={animate}
       eager={eager}

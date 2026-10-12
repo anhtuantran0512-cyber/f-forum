@@ -34,6 +34,7 @@ import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } fr
 import { ScrollProgressRail } from './ScrollProgressRail';
 import { spawnRipple } from '../utils/ripple';
 import { isMasterAdmin } from '../config/admin';
+import { effectiveCoinBalance } from '../utils/coinDisplay';
 import { rafThrottle } from '../utils/rafThrottle';
 
 export interface NavbarProps {
@@ -1516,7 +1517,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         isOpen={isDailyModalOpen}
         onClose={() => setIsDailyModalOpen(false)}
         isAuthenticated={Boolean(currentUser)}
-        currentUserCoin={currentUser?.coin ?? 0}
+        currentUserCoin={effectiveCoinBalance(currentUser?.role, currentUser?.coin)}
         onOpenLogin={onOpenLoginModal}
         onLoadRewardStatus={onLoadDailyRewardStatus}
         onClaimReward={onClaimDailyReward}

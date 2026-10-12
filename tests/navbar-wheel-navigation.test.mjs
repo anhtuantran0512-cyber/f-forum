@@ -79,9 +79,8 @@ test('3. Invariants & Preserved Systems Integrity', () => {
   // lưu email dạng chữ thường; so sánh chính xác với 'BroAmStuck@...' từng làm
   // Super Admin mất các nút quản trị).
   assert.ok(
-    appContent.includes("isMasterAdmin(currentUser?.email) && !isAdminConsoleOpen") &&
-    appContent.includes("isMasterAdmin(currentUser?.email) && !isReportInboxOpen"),
-    'App.tsx must strictly preserve Super Admin guard (case-insensitive)'
+    appContent.includes("isMasterAdmin(currentUser?.email) && !isReportInboxOpen && !isAdminConsoleOpen"),
+    'App.tsx must strictly preserve Super Admin guard (case-insensitive, gộp 1 lối vào)'
   );
 
   // Dynamic Homepage Title with Diễn Đàn Học Sinh

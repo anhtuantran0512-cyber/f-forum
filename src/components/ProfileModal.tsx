@@ -53,6 +53,7 @@ import { DECORATION_RARITY_META } from '../utils/decorations';
 import { pushNotification } from '../utils/notifications';
 import { LikeHeartButton } from './LikeHeartButton';
 import { safeStorage } from '../utils/storage';
+import { effectiveCoinBalance, formatCoinBalance } from '../utils/coinDisplay';
 import { getGradient, resolveProfileGradientId } from '../utils/gradients';
 import { GradientSwatchPicker } from './GradientSwatchPicker';
 import { GradientSurface } from './GradientSurface';
@@ -344,7 +345,9 @@ const ProfileModalInner: React.FC<{
   const tier = getTierForLevel(currentUser.level);
   const equippedItem = SHOP_ITEMS.find(item => item.id === currentUser.equippedBadge && currentUser.inventory?.includes(item.id));
 
-  const userCoin = currentUser.coin ?? 0;
+  /* Super Admin: quyền lợi VÔ VÙNG COIN — số dư hiệu dụng = ∞ (server cũng
+     không chặn/trừ Coin). Mọi chỗ mua/gacha/đều dùng giá trị này. */
+  const userCoin = effectiveCoinBalance(currentUser.role, currentUser.coin);
   const userInventory = useMemo(
     () => currentUser.inventory || [],
     [currentUser.inventory]
@@ -974,7 +977,7 @@ const ProfileModalInner: React.FC<{
                         <div className="flex items-center gap-2 flex-wrap text-[10px] text-neutral-400 font-mono pt-0.5">
                           <span>Cấp độ: Lv.{currentUser.level}</span>
                           <span>•</span>
-                          <span className="text-amber-400 font-bold">{userCoin} Coin</span>
+                          <span className="text-amber-400 font-bold" title={Number.isFinite(userCoin) ? undefined : 'Siêu quản trị — Coin vô vùng'}>{formatCoinBalance(userCoin)} Coin</span>
                           <span>•</span>
                           <span className="text-cyan-300 font-semibold">{tier.titleVi}</span>
                         </div>

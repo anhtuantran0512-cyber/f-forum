@@ -1793,7 +1793,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 
               const requestedBounty = normalizeBounty(payload.bountyCoin);
               const balance = asker.coin ?? 100;
-              if (balance < requestedBounty) {
+              /* Siêu quản trị: vô vùng Coin — treo thưởng không cần số dư. */
+              if (asker.role !== 'SUPER_ADMIN' && balance < requestedBounty) {
                 ws.send(JSON.stringify({
                   type: 'FORBIDDEN',
                   payload: { action: type, reason: 'Số dư không đủ để treo thưởng.' },
@@ -1829,8 +1830,9 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 imageUrl: typeof payload.imageUrl === 'string' ? payload.imageUrl.slice(0, 2000) : undefined,
               };
 
-              /* Cùng sổ cái với HTTP: trừ bounty rồi phát thưởng do server tính. */
-              asker.coin = Math.max(0, balance - requestedBounty);
+              /* Cùng sổ cái với HTTP: trừ bounty rồi phát thưởng do server tính.
+                 Siêu quản trị (vô vùng Coin) giữ nguyên số dư. */
+              if (asker.role !== 'SUPER_ADMIN') asker.coin = Math.max(0, balance - requestedBounty);
               grantCoinsAndExperience(asker, 50);
               broadcastServerEvent('SYNC_USER', asker);
 
@@ -2587,7 +2589,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         }
 
         const balance = author?.coin ?? 100;
-        if (author && balance < bountyCoin) {
+        /* Siêu quản trị: vô vùng Coin — không chặn số dư khi treo thưởng. */
+        if (author && author.role !== 'SUPER_ADMIN' && balance < bountyCoin) {
           sendJson(res, 402, {
             success: false,
             message: `Số dư không đủ để treo thưởng ${bountyCoin} Coin. Hiện có ${balance} Coin.`,
@@ -2649,7 +2652,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         recordAnalyticsActivity(getAnalyticsStore(), 'questions', author?.email);
 
         if (author) {
-          author.coin = Math.max(0, (author.coin ?? 100) - bountyCoin);
+          /* Siêu quản trị (vô vùng Coin) giữ nguyên số dư khi treo thưởng. */
+          if (author.role !== 'SUPER_ADMIN') author.coin = Math.max(0, (author.coin ?? 100) - bountyCoin);
           grantCoinsAndExperience(author, 50);
           broadcastServerEvent('SYNC_USER', author);
         }
@@ -4287,11 +4291,14 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           const flashEntry = flash.deals[item.id];
           if (flashEntry && flashEntry.discountedPrice < chargePrice) chargePrice = flashEntry.discountedPrice;
         }
-        if (balance < chargePrice) {
+        /* SIÊU QUẢN TRỊ: quyền lợi VÔ VÙNG COIN — không kiểm số dư, không trừ
+           (client hiển thị ∞). Mọi item/gacha đều mua được. */
+        const infiniteCoins = actor.user.role === 'SUPER_ADMIN';
+        if (!infiniteCoins && balance < chargePrice) {
           sendJson(res, 402, { success: false, message: `Bạn cần ${chargePrice} Coin; số dư hiện tại là ${balance} Coin.` });
           return;
         }
-        actor.user.coin = balance - chargePrice;
+        if (!infiniteCoins) actor.user.coin = balance - chargePrice;
         actor.user.inventory = [...inventory, itemId];
         persistStoreToDisk();
         broadcastServerEvent('SYNC_USER', actor.user);

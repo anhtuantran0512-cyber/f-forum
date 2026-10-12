@@ -5,6 +5,7 @@ import type { User, Question, Solution } from '../types';
 import { getTierForLevel } from '../utils/tier';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
+import { effectiveCoinBalance, formatCoinBalance } from '../utils/coinDisplay';
 import { PremiumMark } from './PremiumMark';
 import { isMasterAdmin } from '../config/admin';
 
@@ -47,7 +48,8 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
   const userQuestions = questions.filter((q) => q.authorId === user.id);
   const userSolutions = solutions.filter((s) => s.authorId === user.id);
   const bestSolutions = userSolutions.filter((s) => s.isBest);
-  const userCoin = user.coin ?? 0;
+  /* Super Admin hiển thị Coin = ∞ (vô vùng). */
+  const userCoin = formatCoinBalance(effectiveCoinBalance(user.role, user.coin));
 
   return (
     <div

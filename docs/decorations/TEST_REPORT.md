@@ -7,8 +7,8 @@ Ngày: 2026-10-12 · Branch: `arena/62613a87-f-forum` · Cơ sở: `670848e` (ma
 | Hạng mục | Kết quả |
 |---|---|
 | `npx tsc -b` | ✅ 0 lỗi |
-| `npx oxlint` | ✅ 0 warning / 0 error (222 files) |
-| `npm test` (29 file, Node test runner) | ✅ **350/350 pass** |
+| `npx oxlint` | ✅ 0 warning / 0 error (223 files) |
+| `npm test` (29 file, Node test runner) | ✅ **353/353 pass** |
 | Asset build | ✅ 3.878 file / ~122 MB · 0 lỗi ffmpeg · catalog 873 item |
 | Quality re-tiering | ✅ 873 item chấm điểm 0–100 · 768 động / 105 tĩnh · 0 lỗi cấu trúc · giá khớp bảng rarity 100% |
 | Migration | ✅ **ĐÃ CHỌN PHƯƠNG ÁN B** (Sếp chốt 12/10) — script nâng cấp (cùng hiếm thật, khớp loại, tự trang bị, payload ăn mừng) + demo end-to-end trong sandbox; marker KHÔNG commit (chạy khi triển khai) |
@@ -244,6 +244,34 @@ CSS accent xanh lá cho chip ngân sách + nút xoá, reduced-motion.
      (vừa tự tải) → các chunk khác được hồi phục tiếp, ngân sách vẫn giữ
      vai trò chặn lặp.
 
+### 1.10 Đợt #6 — "Vô vùng Coin + giữ trọn trải nghiệm + gọn nút quản trị" (bổ sung 2026-10-12) ✅
+1. **SÚP-ER ADMIN VÔ VÙNG COIN** (yêu cầu sếp):
+   - Server: `/api/shop/purchase` (mua trực tiếp + gacha) và treo thưởng
+     (WS + HTTP) — role `SUPER_ADMIN` KHÔNG bị chặn số dư, KHÔNG trừ Coin.
+     User thường vẫn bị 402 như cũ (quyền lợi riêng super admin).
+   - Client: `coinDisplay.ts` — `effectiveCoinBalance(role, coin)` → ∞ cho
+     SUPER_ADMIN; `formatCoinBalance()` → "∞" (không "Infinity"). Áp dụng
+     mọi chỗ hiển thị: ví Boutique, profile header, F-Pass card, UserQuickCard,
+     modal quà hằng ngày, modal treo thưởng.
+   - Test 10.17 (e2e): admin số dư 100 mua frame mythic 6.200 Coin → 200,
+     Coin KHÔNG đổi; user thường tình huống giống → 402.
+2. **ICON KHÔNG ĐƯỢC LÀM MẤT ẢNH ĐỘNG / MẤT THÀNH PHẦN** (yêu cầu sếp):
+   - Webm trang trí tải lỗi (mạng, server restart) KHÔNG được cache "null
+     vĩnh viễn" — `useCachedAsset` tự retry 3 lần × 2s (icon động không bao
+     giờ "chết" thành ảnh tĩnh hết phiên).
+   - **KHUNG + HÀO QUANG là 2 slot độc lập**: `DecoratedAvatar` +
+     `ProfileDropdown` trước đây gộp 1 slot → user đeo đủ 2 MẤT hào quang.
+     Đã sửa: mọi context truyền cả `frameAsset` + `auraAsset`.
+   - **Avatar động của user** (webm/mp4): `AvatarWithDecoration` render
+     `<video autoplay loop muted>`; reduced-motion → chỉ khung hình đầu
+     (preload metadata, không autoplay) — đúng phép "giảm chuyển động được
+     quyền tắt ảnh động"; video lỗi → `DEFAULT_AVATAR`, không mất avatar.
+   - Test 10.18.
+3. **GỘP NÚT TỐ CÁO + ĐIỀU KHIỂN THÀNH 1** (yêu cầu sếp): 2 nút nổi riêng
+   (Tố cáo / Điều khiển) → 1 nút "Tố cáo & Điều khiển" mở menu 2 lựa chọn
+   (badge N tố cáo chờ giữ nguyên, Escape/bấm ngoài đóng, chỉ Super Admin,
+   ẩn khi modal đang mở). Test 10.19 + cập nhật 2 assertion guard cũ.
+
 ### Bước 2 — Schema ✅
 - [x] `ShopItem` += `assetType`, `previewUrl`, `fullAssetUrl`, `animatedAssetUrl`, `originalSource`
 - [x] Giữ rarity/price/category; 35 item SVG cũ gắn `svg_custom`/`fforum_svg`
@@ -333,10 +361,13 @@ Các test liên quan trực tiếp nhiệm vụ 10 (đều PASS trong run cuối
 | `decorations-task10` | 10.14 Chuẩn Discord | nameplate 1 vị trí (gẹt prop ở avatar nhỏ), height cố định + ellipsis, safe zone translate/scale, 1 modal preview, filter 1 hàng, stacked bar, context 40px |
 | `decorations-task10` | 10.15 Đợt #4 | pushRecentItem pure (trật tự/trùng lặp/max/id rỗng), dải Vừa xem (8 item, lọc khỏi catalog), đếm wishlist đang sale + 1 chạm mở |
 | `decorations-task10` | 10.16 Đợt #5 | chip "Tôi mua được (N)" theo Coin hiện tại (giá thực tế), sort "Giá trị tốt nhất" (qualityScore/price), empty state yêu thích + CTA, xoá "Vừa xem" state+storage, reset đủ lọc ngân sách |
+| `decorations-task10` | 10.17 Đợt #6 | Super Admin VÔ VÙNG COIN: mua mythic 6200C với số dư 100 → 200, Coin không đổi; user thường vẫn 402; hiển thị ∞ (effectiveCoinBalance/formatCoinBalance) |
+| `decorations-task10` | 10.18 Đợt #6 | icon không mất ảnh động/thành phần: webm retry 3 lần (không cache lỗi), khung+hào quang 2 slot độc lập (khỏi mất aura), avatar video động + reduced-motion chỉ khung đầu + fallback DEFAULT_AVATAR |
+| `decorations-task10` | 10.19 Đợt #6 | gộp nút "Tố cáo & Điều khiển": 1 lối vào mở menu 2 mục, badge giữ, Escape/bấm ngoài đóng, chỉ Super Admin, không mọc lại nút rời |
 | `multi-user-sync` | (toàn bộ) | `equippedDecorations` đồng bộ multi-user qua socket |
 | `light-mode-contrast` | (toàn bộ) | adapter light tái sinh (`npm run gen:light`) khớp class mới |
 
-Run cuối: `# tests 350 / pass 350 / fail 0` (xanh cả khi marker migration TỒN TẠI cục bộ —
+Run cuối: `# tests 353 / pass 353 / fail 0` (xanh cả khi marker migration TỒN TẠI cục bộ —
 test hermetic qua env `FFORUM_MIGRATION_MARKER`).
 
 ## 4. Kiểm tra thủ công cần làm trên máy thật (checklist)

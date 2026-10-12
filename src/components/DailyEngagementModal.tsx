@@ -12,6 +12,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { safeStorage } from '../utils/storage';
+import { formatCoinBalance } from '../utils/coinDisplay';
 import { SwipeDeck } from './ui/SwipeDeck';
 import { StreakCountdown } from './engagement/StreakCountdown';
 import { QUIZ_DURATION_SECONDS, quizSecondsLeft } from '../utils/dailyQuizClock';
@@ -623,7 +624,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
         <div className="mt-5 pt-3 border-t border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs font-mono text-amber-300">
             <span>Số dư:</span>
-            <span className="font-bold text-white">{currentUserCoin} Coin</span>
+            <span className="font-bold text-white">{formatCoinBalance(currentUserCoin)} Coin</span>
           </div>
 
           <button

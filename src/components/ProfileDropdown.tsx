@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CreditCard, UserPen, Award, LogOut, Sparkles, ChevronRight, Flag, X, Shield, CheckCircle2 } from 'lucide-react';
-import type { User } from '../types';
+import type { User, ShopItem } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { useUserDecorations } from '../utils/decorationStore';
 import { AvatarWithDecoration } from './decorations/AvatarWithDecoration';
@@ -65,23 +65,21 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
     };
   }, [isOpen, onClose, isReportModalOpen]);
 
-  /* Nhiệm vụ 10 — PHẢI gọi trước early-return (rules of hooks). */
+  /* Nhiệm vụ 10 — PHẢI gọi trước early-return (rules of hooks).
+     KHUNG + HÀO QUANG là 2 slot độc lập — truyền cả hai (không gộp 1). */
   const dropdownDecorations = useUserDecorations(currentUser);
-  const dropdownDecoAsset = dropdownDecorations.frame
-    ? {
-        type: 'avatar_frame' as const,
-        fullAssetUrl: dropdownDecorations.frame.fullAssetUrl,
-        animatedAssetUrl: dropdownDecorations.frame.animatedAssetUrl,
-        isAnimated: !!dropdownDecorations.frame.isAnimated && !!dropdownDecorations.frame.animatedAssetUrl,
-      }
-    : dropdownDecorations.aura
+  const toAsset = (item: ShopItem | null | undefined, type: 'avatar_frame' | 'avatar_aura') =>
+    item
       ? {
-          type: 'avatar_aura' as const,
-          fullAssetUrl: dropdownDecorations.aura.fullAssetUrl,
-          animatedAssetUrl: dropdownDecorations.aura.animatedAssetUrl,
-          isAnimated: !!dropdownDecorations.aura.isAnimated && !!dropdownDecorations.aura.animatedAssetUrl,
+          type,
+          fullAssetUrl: item.fullAssetUrl,
+          animatedAssetUrl: item.animatedAssetUrl,
+          isAnimated: !!item.isAnimated && !!item.animatedAssetUrl,
         }
       : null;
+  const dropdownFrameAsset = toAsset(dropdownDecorations.frame, 'avatar_frame');
+  const dropdownAuraAsset = toAsset(dropdownDecorations.aura, 'avatar_aura');
+  const hasDropdownDeco = !!(dropdownFrameAsset || dropdownAuraAsset);
 
   if (!isOpen) return null;
 
@@ -140,11 +138,13 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         {/* Avatar + Info */}
         <div className="flex items-start gap-3">
           <div className="relative shrink-0">
-            {/* Nhiệm vụ 10 — 44px; có khung/hào quang Discord → avatar tròn + trang trí thật. */}
-            {dropdownDecoAsset ? (
+            {/* Nhiệm vụ 10 — 44px; có khung/hào quang Discord → avatar tròn + trang trí thật.
+                Truyền CẢ HAI slot (khung + hào quang) — không gộp 1. */}
+            {hasDropdownDeco ? (
               <AvatarWithDecoration
                 avatarUrl={currentUser.avatar}
-                decorationAsset={dropdownDecoAsset}
+                frameAsset={dropdownFrameAsset}
+                auraAsset={dropdownAuraAsset}
                 size={44}
                 eager
                 className="rounded-full ring-2 ring-amber-400/50 shadow-md"

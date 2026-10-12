@@ -6,7 +6,7 @@
  *  - phát hiện năng lực trình duyệt (WebP / VP9 alpha — Safari, iOS dùng ảnh tĩnh);
  *  - cache blob URL trong RAM + preload cho avatar của chính user.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { EquippedDecorations, ShopItem, User } from '../types/index.ts';
 import { setDecorationPool, getDecorationPool } from './shopData';
 import {
@@ -154,20 +154,37 @@ export const preloadDecorations = (urls: Array<string | null | undefined>): void
   }
 };
 
-/** Hook: URL blob (hoặc null khi chưa tải xong / không có). Retry = tải lại 1 url. */
+/** Hook: URL blob (hoặc null khi chưa tải xong / không có). Retry = tải lại 1 url.
+ *  Tải LỖI (mất mạng, dev server vừa restart, proxy preview gián đoạn) KHÔNG được
+ *  cache thành "null vĩnh viễn" — nếu không, icon động sẽ biến thành ảnh tĩnh
+ *  hết phiên mà không bao giờ thử lại. Tự retry tối đa 3 lần, cách nhau 2s. */
 export const useCachedAsset = (url: string | null, enabled: boolean = true): readonly [string | null, () => void] => {
   const target = enabled ? url : null;
   const [cache, setCache] = useState<Record<string, string | null>>({});
   const [attempt, setAttempt] = useState(0);
+  const failCountRef = useRef<Record<string, number>>({});
   useEffect(() => {
     if (!target) return;
     if (target in cache) return;
     let alive = true;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
     loadCachedAsset(target).then((objectUrl) => {
-      if (alive) setCache((prev) => ({ ...prev, [target]: objectUrl }));
+      if (!alive) return;
+      if (objectUrl) {
+        setCache((prev) => ({ ...prev, [target]: objectUrl }));
+        return;
+      }
+      const fails = (failCountRef.current[target] ?? 0) + 1;
+      failCountRef.current[target] = fails;
+      if (fails <= 3) {
+        retryTimer = setTimeout(() => {
+          if (alive) setAttempt((n) => n + 1);
+        }, 2000);
+      }
     });
     return () => {
       alive = false;
+      if (retryTimer) clearTimeout(retryTimer);
     };
   }, [target, attempt, cache]);
   const retry = useCallback(() => {

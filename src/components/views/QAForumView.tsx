@@ -61,6 +61,7 @@ import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
 import { capsHas, useAdminCaps } from '../../utils/adminCapabilities';
 import { pushNotification } from '../../utils/notifications';
 import { safeStorage } from '../../utils/storage';
+import { effectiveCoinBalance, formatCoinBalance } from '../../utils/coinDisplay';
 import { useEscapeKey } from '../../utils/useEscapeKey';
 import {
   DEFAULT_QUESTION_SORT,
@@ -1773,7 +1774,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       {/* Modal: Đặt Câu Hỏi Học Thuật Mới — Futuristic UI/UX 2027 Redesign (Phần 1: 780px Width + 3 Card Sections + Visual Breathing Room) */}
       {isAskModalOpen && (() => {
         const currentSubjectMeta = SUBJECT_2027_META[newSubject] || SUBJECT_2027_META.toan;
-        const userBalance = currentUser?.coin ?? 100;
+        /* Super Admin: Coin vô vùng (∞) — không chặn mức treo thưởng. */
+        const userBalance = effectiveCoinBalance(currentUser?.role, currentUser?.coin ?? 100);
 
         return (
           <div
@@ -2329,7 +2331,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       <div className="ask2027-coin-badge px-2.5 py-1 rounded-full flex items-center gap-1.5">
                         <Coins className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                         <span className="text-[11px] font-mono font-bold text-amber-200">
-                          Số dư: {userBalance.toLocaleString()} Coin
+                          Số dư: {formatCoinBalance(userBalance)} Coin
                         </span>
                       </div>
                     </div>

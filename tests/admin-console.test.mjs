@@ -10,8 +10,9 @@ const modal = read('src/components/AdminConsoleModal.tsx');
 const server = read('server/forumServer.ts');
 
 test('Admin UI 1. Lối vào và modal chỉ dành cho tài khoản Super Admin', () => {
-  /* Guard Super Admin không phân biệt hoa thường (record có thể lưu email chữ thường). */
-  assert.match(app, /isMasterAdmin\(currentUser\?\.email\) && !isAdminConsoleOpen/);
+  /* Guard Super Admin không phân biệt hoa thường (record có thể lưu email chữ thường).
+     Lối vào đã GỘP 1 nút "Tố cáo & Điều khiển" → guard kèm cả 2 modal. */
+  assert.match(app, /isMasterAdmin\(currentUser\?\.email\) && !isReportInboxOpen && !isAdminConsoleOpen/);
   assert.match(app, /AdminConsoleModal/);
   assert.match(app, /isAdminConsoleOpen/);
   assert.match(modal, /role="dialog"/);

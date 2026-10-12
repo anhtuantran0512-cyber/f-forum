@@ -759,3 +759,103 @@ test('10.16 Đợt #5: chip "Tôi mua được", sort "Giá trị tốt nhất",
   assert.match(css, /\.gb-filters button\.is-affordable \{/, 'CSS chip ngân sách');
   assert.match(css, /\.gb-recent__clear \{/, 'CSS nút xoá vừa xem');
 });
+
+/* ========================================================================== */
+/* 10.17 — Đợt #6: Super Admin VÔ VÙNG COIN (mua/gacha không chặn, không trừ) */
+/* ========================================================================== */
+test('10.17 Đợt #6: Super Admin mua item đắt nhất không cần Coin, số dư không đổi', async () => {
+  const { effectiveCoinBalance, formatCoinBalance } = await import('../src/utils/coinDisplay.ts');
+
+  /* Client: ∞ chỉ cho role SUPER_ADMIN; hiển thị "∞" thay "Infinity". */
+  assert.equal(effectiveCoinBalance('SUPER_ADMIN', 100), Infinity, 'super admin → ∞');
+  assert.equal(effectiveCoinBalance('SUPER_ADMIN', undefined), Infinity, '∞ kể cả khi coin chưa init');
+  assert.equal(effectiveCoinBalance('STUDENT', 100), 100, 'user thường giữ số Coin thật');
+  assert.equal(effectiveCoinBalance(null, null), 0, 'khách → 0');
+  assert.equal(formatCoinBalance(Infinity), '∞');
+  assert.equal(formatCoinBalance(12345), '12.345');
+
+  /* Server: SUPER_ADMIN (số dư 100) mua mythic (6200 Coin) → 200, không trừ.
+     Admin user được seed sẵn trong store → bootstrap mật khẩu qua env rồi LOGIN. */
+  const adminPw = 'mat-khau-super-admin-deco10';
+  process.env.FFORUM_ADMIN_PASSWORD = adminPw;
+  const a = await boot();
+  try {
+    const login = await post(a.baseUrl, '/api/auth/login', { email: 'broamstuck@gmail.com', password: adminPw });
+    assert.equal(login.status, 200, JSON.stringify(login.data));
+    assert.equal(login.data.user.role, 'SUPER_ADMIN', 'email chủ → role SUPER_ADMIN');
+    const token = login.data.token;
+    const coinBefore = login.data.user.coin;
+
+    const mythic = CATALOG.items.find((i) => i.rarity === 'mythic' && i.type === 'avatar_frame');
+    assert.ok(mythic.price >= 6000, 'chọn item thật sự đắt (mythic)');
+    const buy = await post(a.baseUrl, '/api/shop/purchase', { itemId: mythic.id, price: 1 }, token);
+    assert.equal(buy.status, 200, `super admin phải mua được dù Coin thiếu: ${JSON.stringify(buy.data)}`);
+    assert.ok(buy.data.user.inventory.includes(mythic.id), 'item vào inventory');
+    assert.equal(buy.data.user.coin, coinBefore, 'VÔ VÙNG: số dư Coin KHÔNG đổi sau khi mua');
+
+    /* User thường cùng tình huống → vẫn bị chặn 402 (quyền lợi riêng super admin). */
+    const reg2 = await post(a.baseUrl, '/api/auth/register', {
+      name: 'Coin Poor', email: `poorcoin.${Date.now()}@example.test`, password: 'mat-khau-deco-10',
+    });
+    const buy2 = await post(a.baseUrl, '/api/shop/purchase', { itemId: mythic.id, price: 1 }, reg2.data.token);
+    assert.equal(buy2.status, 402, 'user thường vẫn phải đủ Coin');
+  } finally {
+    delete process.env.FFORUM_ADMIN_PASSWORD;
+    flushPendingSave();
+    await a.close();
+  }
+});
+
+/* ========================================================================== */
+/* 10.18 — Đợt #6: icon không được làm mất ảnh động / mất thành phần avatar   */
+/* ========================================================================== */
+test('10.18 Đợt #6: trang trí không làm mất ảnh động, không mất slot khung/hào quang', () => {
+  const awd = fs.readFileSync(path.join(ROOT, 'src', 'components', 'decorations', 'AvatarWithDecoration.tsx'), 'utf8');
+  const decoAvatar = fs.readFileSync(path.join(ROOT, 'src', 'components', 'decorations', 'DecoratedAvatar.tsx'), 'utf8');
+  const dropdown = fs.readFileSync(path.join(ROOT, 'src', 'components', 'ProfileDropdown.tsx'), 'utf8');
+  const store = fs.readFileSync(path.join(ROOT, 'src', 'utils', 'decorationStore.ts'), 'utf8');
+
+  /* 1) Avatar động (webm/mp4) của user: render <video>, reduced-motion chỉ
+     giữ khung hình đầu (preload metadata, không autoplay), lỗi → DEFAULT_AVATAR. */
+  assert.match(awd, /AVATAR_VIDEO_EXT = .*webm.*mp4.*ogv/, 'nhận diện avatar video động');
+  assert.match(awd, /autoPlay=\{!reducedMotion\}/, 'giảm chuyển động → không autoplay');
+  assert.match(awd, /preload=\{reducedMotion \? 'metadata' : 'auto'\}/, 'giảm chuyển động → chỉ khung đầu');
+  assert.match(awd, /setVideoFailed\(true\)/, 'video lỗi có fallback');
+  assert.match(awd, /src=\{DEFAULT_AVATAR\}/, 'fallback = avatar mặc định, không mất avatar');
+
+  /* 2) Webm trang trí tải lỗi KHÔNG được cache "null vĩnh viễn" (biến icon
+     động thành ảnh tĩnh hết phiên) — tự retry tối đa 3 lần. */
+  assert.match(store, /failCountRef/, 'đếm số lần tải lỗi');
+  assert.match(store, /fails <= 3/, 'tự retry tối đa 3 lần');
+  assert.match(store, /if \(objectUrl\) \{[\s\S]{0,120}setCache/, 'chỉ cache thành công');
+
+  /* 3) KHUNG + HÀO QUANG là 2 slot độc lập — mọi context truyền CẢ HAI
+     (trước đây gộp 1 → mất hào quang khi đeo đủ 2). */
+  assert.match(decoAvatar, /frameAsset=\{shopItemToAsset\(frame\)\}/, 'DecoratedAvatar truyền slot khung');
+  assert.match(decoAvatar, /auraAsset=\{shopItemToAsset\(aura\)\}/, 'DecoratedAvatar truyền slot hào quang');
+  assert.ok(!decoAvatar.includes('decorationAsset={slotAsset}'), 'không còn cách gộp 1 slot ở DecoratedAvatar');
+  assert.match(dropdown, /frameAsset=\{dropdownFrameAsset\}/, 'dropdown truyền slot khung');
+  assert.match(dropdown, /auraAsset=\{dropdownAuraAsset\}/, 'dropdown truyền slot hào quang');
+});
+
+/* ========================================================================== */
+/* 10.19 — Đợt #6: gộp nút Tố cáo + Điều khiển thành 1 lối vào                 */
+/* ========================================================================== */
+test('10.19 Đợt #6: 1 nút "Tố cáo & Điều khiển" mở menu chọn, chỉ Super Admin', () => {
+  const app = fs.readFileSync(path.join(ROOT, 'src', 'App.tsx'), 'utf8');
+
+  /* Nút gộp + menu 2 lựa chọn. */
+  assert.match(app, /Tố cáo &amp; Điều khiển/, 'nút gộp có nhãn đúng');
+  assert.match(app, /role="menu"[\s\S]{0,400}aria-label="Chọn Tố cáo hoặc Điều khiển"/, 'menu có ngữ nghĩa');
+  assert.ok((app.match(/role="menuitem"/g) || []).length >= 2, 'menu có 2 mục chọn');
+  assert.match(app, /setIsModToolsOpen\(false\); setIsReportInboxOpen\(true\)/, 'chọn Tố cáo → mở hộp thư tố cáo');
+  assert.match(app, /setIsModToolsOpen\(false\); setIsAdminConsoleOpen\(true\)/, 'chọn Điều khiển → mở bảng điều khiển');
+
+  /* Nút "Điều khiển" rời riêng (bottom left-56) đã GỌP — không mọc lại. */
+  assert.ok(!app.includes('left-56'), 'không còn nút Điều khiển rời bên trái');
+  assert.match(app, /isMasterAdmin\(currentUser\?\.email\) && !isReportInboxOpen && !isAdminConsoleOpen/, 'chỉ hiện với Super Admin, ẩn khi modal đang mở');
+
+  /* Badge số tố cáo chờ xử lý vẫn còn trên nút gộp. */
+  assert.match(app, /pendingReportCount > 99 \? '99\+' : pendingReportCount/, 'badge 99+ giữ nguyên');
+  assert.match(app, /if \(e\.key === 'Escape'\) setIsModToolsOpen\(false\)/, 'Escape đóng menu');
+});
