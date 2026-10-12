@@ -149,6 +149,9 @@ Ba thêm nhỏ, đều phục vụ vòng lặp mua (873 item, coin hữu hạn):
 3. **XOÁ BỘ LỌC** — nút chỉ hiện khi đang có lọc (type/hiếm/chuyển động/
    sở hữu/giá/yêu thích/từ khoá); về mặc định, giữ nguyên sắp xếp,
    đồng bộ localStorage.
+4. **CHIP "GIÁ THẤP → CAO"** (bổ sung theo yêu cầu sếp) — 1 chạm bật/tắt
+   sắp xếp giá tăng ngay hàng filter (không phải mở dropdown), active
+   đồng bộ 2 chiều với ô sắp xếp, lưu cùng bộ lọc.
 
 Kỹ thuật: mở rộng `filtered` memo 1 chỗ (deps đầy đủ — kiểm tra bằng test),
 CSS co-located, reduced-motion an toàn.

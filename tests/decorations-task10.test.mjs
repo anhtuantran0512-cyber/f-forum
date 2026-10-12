@@ -634,6 +634,9 @@ test('10.13 Đợt #3: giá tối đa (giá thật), chip Yêu thích, nút Xoá
 
   /* Lưu giá tối đa cùng bộ lọc. */
   assert.match(card, /saveFilters\(\{ price: event\.target\.value \}\)/, 'đổi mức giá được lưu');
+  /* Chip nhanh "Giá thấp → cao": 1 chạm bật/tắt sắp xếp giá, đồng bộ với dropdown. */
+  assert.match(card, /<TrendingUp size={12} aria-hidden="true" \/> Giá thấp → cao/, 'chip sắp xếp giá nhanh tồn tại');
+  assert.match(card, /aria-pressed={sortMode === 'price-asc'}/, 'chip active khớp sortMode');
 
   /* CSS: chip yêu thích + nút xoá. */
   assert.match(css, /\.gb-filters button\.is-wished/, 'CSS chip yêu thích');

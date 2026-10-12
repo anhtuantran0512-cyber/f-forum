@@ -28,6 +28,7 @@ import {
   Frame,
   Heart,
   Search,
+  TrendingUp,
   Sparkles,
   Tag,
   X,
@@ -1077,6 +1078,21 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </button>
         <button type="button" aria-pressed={motionFilter === 'static'} className={motionFilter === 'static' ? 'is-active' : ''} onClick={() => { setMotionFilter('static'); saveFilters({ motion: 'static' }); resetPagination(); }}>
           Tĩnh
+        </button>
+        <span className="gb-filters__divider" aria-hidden="true" />
+        <button
+          type="button"
+          aria-pressed={sortMode === 'price-asc'}
+          className={sortMode === 'price-asc' ? 'is-active' : ''}
+          title="Sắp xếp giá: thấp → cao (bấm lại về Nổi bật)"
+          onClick={() => {
+            const next = sortMode === 'price-asc' ? 'featured' : 'price-asc';
+            setSortMode(next);
+            saveFilters({ sort: next });
+            resetPagination();
+          }}
+        >
+          <TrendingUp size={12} aria-hidden="true" /> Giá thấp → cao
         </button>
       </div>
 
