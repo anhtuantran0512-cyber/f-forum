@@ -289,3 +289,12 @@ export const getCollectionStats = (items: ShopItem[], ownedIds: Iterable<string>
     mythicOwned: mythicOwned.slice(0, 6),
   };
 };
+
+/**
+ * "Vừa xem" (Boutique): giữ tối đa `max` id, mới nhất trước, khử trùng lặp.
+ * Pure — test được.
+ */
+export const pushRecentItem = (recent: string[], id: string, max = 8): string[] => {
+  if (!id) return recent;
+  return [id, ...recent.filter((x) => x !== id)].slice(0, max);
+};
