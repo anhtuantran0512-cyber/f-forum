@@ -45,7 +45,18 @@ export const TriVideoCrossfadeBg: React.FC<TriVideoCrossfadeBgProps> = ({
   }, [currentIdx]);
 
   useEffect(() => {
+    const onVisibility = () => {
+      const current = videoRefs.current[currentIdx];
+      if (!current) return;
+      if (document.hidden) {
+        if (!current.paused) current.pause();
+      } else if (current.dataset.ffSuspended !== '1' && current.paused) {
+        current.play().catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility, { passive: true });
     const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       const next = (currentIdx + 1) % TRI_CHAT_VIDEOS.length;
       if (isControlled && onIdxChange) {
         onIdxChange(next);
@@ -53,7 +64,10 @@ export const TriVideoCrossfadeBg: React.FC<TriVideoCrossfadeBgProps> = ({
         setInternalIdx(next);
       }
     }, cycleIntervalMs);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [currentIdx, isControlled, onIdxChange, cycleIntervalMs]);
 
   return (

@@ -3382,14 +3382,14 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               position: 'fixed',
               left:
                 typeof window !== 'undefined'
-                  ? Math.max(12, Math.min(authorAnchorPos.x + 12, window.innerWidth - 310))
+                  ? Math.max(12, Math.min(authorAnchorPos.x + 12, window.innerWidth - 332))
                   : 24,
               top:
                 typeof window !== 'undefined'
                   ? Math.max(12, Math.min(authorAnchorPos.y - 20, window.innerHeight - 245))
                   : 120,
             }}
-            className="pc-12-shell w-[296px] rounded-2xl p-4 shadow-[0_18px_48px_rgba(0,0,0,0.85)] popover-morph-enter"
+            className="pc-12-shell w-[320px] max-w-[calc(100vw-24px)] rounded-2xl p-4 shadow-[0_18px_48px_rgba(0,0,0,0.85)] popover-morph-enter"
           >
             <button
               type="button"

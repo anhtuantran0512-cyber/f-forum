@@ -8,11 +8,11 @@
  *    frame tĩnh chất lượng cao fullAssetUrl — không bao giờ cắt bỏ tính năng hay làm mất icon).
  *  - onError của thẻ video → tự chuyển về ảnh tĩnh (file hỏng, trình duyệt kén).
  */
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { buildAdaptiveVideoSources, resolveAssetUrl } from '../../utils/decorations';
 import { supportsWebmAlpha, useCachedAsset } from '../../utils/decorationStore';
 import { animationBudget, useAdaptiveQuality } from '../../utils/adaptiveQuality';
-import { useReducedMotion } from './useDecorationMedia';
+import { useActiveInViewport, useReducedMotion } from './useDecorationMedia';
 import type { DecorationAssetRef } from './AvatarWithDecoration';
 
 export const DecorationMedia = ({
@@ -31,6 +31,7 @@ export const DecorationMedia = ({
   priority?: 'high' | 'low' | 'auto';
 }) => {
   const instanceId = useId();
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const reducedMotion = useReducedMotion();
   const { tier, capabilities } = useAdaptiveQuality();
   const isOwnPriority = priority === 'high';
@@ -44,18 +45,32 @@ export const DecorationMedia = ({
     [baseCanAnimate, instanceId, isOwnPriority],
   );
 
+  const useVideo = baseCanAnimate && (isOwnPriority || withinBudget);
+  const isActiveInViewport = useActiveInViewport(videoRef, useVideo);
+
   useEffect(() => {
-    if (!baseCanAnimate) {
+    if (!baseCanAnimate || !isActiveInViewport) {
       animationBudget.release(instanceId);
+      const vid = videoRef.current;
+      if (vid && !vid.paused) {
+        try {
+          vid.pause();
+        } catch {
+          /* ignore */
+        }
+      }
       return;
     }
-    animationBudget.acquire(instanceId, isOwnPriority);
+    const granted = animationBudget.acquire(instanceId, isOwnPriority);
+    const vid = videoRef.current;
+    if (vid && (isOwnPriority || granted) && vid.paused) {
+      vid.play().catch(() => {});
+    }
     return () => {
       animationBudget.release(instanceId);
     };
-  }, [baseCanAnimate, instanceId, isOwnPriority, tier]);
+  }, [baseCanAnimate, isActiveInViewport, instanceId, isOwnPriority, tier]);
 
-  const useVideo = baseCanAnimate && (isOwnPriority || withinBudget);
   const [videoFailed, setVideoFailed] = useState(false);
   const adaptiveSet = useVideo && !videoFailed
     ? buildAdaptiveVideoSources(asset.animatedAssetUrl, tier)
@@ -77,6 +92,7 @@ export const DecorationMedia = ({
         src={stillUrl}
         alt=""
         aria-hidden="true"
+        decoding="async"
         loading={isOwnPriority ? 'eager' : 'lazy'}
         fetchPriority={fetchPriorityAttr}
         style={{ width: '100%', height: '100%' }}
@@ -86,6 +102,7 @@ export const DecorationMedia = ({
   if (useVideo) {
     return (
       <video
+        ref={videoRef}
         className={className}
         src={blobUrl || undefined}
         data-quality={capabilities.videoQuality}
@@ -93,6 +110,7 @@ export const DecorationMedia = ({
         loop
         muted
         playsInline
+        preload="metadata"
         aria-hidden="true"
         style={{ width: '100%', height: '100%' }}
         onError={() => setVideoFailed(true)}
@@ -116,6 +134,7 @@ export const DecorationMedia = ({
       src={stillUrl}
       alt=""
       aria-hidden="true"
+      decoding="async"
       loading={isOwnPriority ? 'eager' : 'lazy'}
       fetchPriority={fetchPriorityAttr}
       style={{ width: '100%', height: '100%' }}

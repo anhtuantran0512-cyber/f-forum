@@ -2311,7 +2311,7 @@ html.light .nav-tab-btn--active .ff-nav-tab-icon {
    the cinema ends, squeezing the tab strip against the account controls. */
 .dock-pos-top .ff-nav-capsule[data-compact="true"],
 .dock-pos-bottom .ff-nav-capsule[data-compact="true"] {
-  width: min(94vw, 920px) !important;
+  width: min(94vw, 700px) !important;
   max-width: 94vw !important;
   min-width: 0 !important;
 }
@@ -2426,14 +2426,46 @@ html.light .nav-tab-btn--active .ff-nav-tab-icon {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
+  z-index: 12;
   transform: translate(
       calc(cos(var(--a)) * var(--ccm-r)),
       calc(sin(var(--a)) * var(--ccm-r))
     )
     scale(1);
 }
+.ccm-02__toggle:checked ~ .ccm-02__item:hover,
+.ccm-02__toggle:checked ~ .ccm-02__item:focus-visible {
+  z-index: 22;
+}
 .ccm-02__toggle:checked ~ .ccm-02__hub > svg {
   transform: rotate(135deg);
+}
+.ccm-02__hub-streak {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: linear-gradient(145deg, rgba(24, 13, 18, 0.96), rgba(45, 14, 24, 0.96));
+  border: 1px solid rgba(244, 63, 94, 0.55);
+  box-shadow:
+    0 4px 12px rgba(244, 63, 94, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  color: #fecdd3;
+  font-size: 10px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  z-index: 14;
+  transition: opacity 0.22s ease, transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ccm-02__toggle:checked ~ .ccm-02__hub .ccm-02__hub-streak {
+  opacity: 0;
+  transform: scale(0.65);
 }
 .ccm-02__toggle:checked ~ .ccm-02__hub {
   border-color: rgba(34, 211, 238, 0.55);
@@ -2510,10 +2542,15 @@ html.light .nav-tab-btn--active .ff-nav-tab-icon {
   border: 1px solid rgba(0, 0, 0, 0.5);
 }
 .ccm-02__item--hot {
-  border-color: rgba(244, 63, 94, 0.45) !important;
+  border-color: rgba(244, 63, 94, 0.55) !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.72), 0 0 18px rgba(244, 63, 94, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+.ccm-02__toggle:checked ~ .ccm-02__item--hot {
+  z-index: 16;
 }
 .ccm-02__item--hot:hover {
-  border-color: rgba(248, 113, 113, 0.85) !important;
+  border-color: rgba(248, 113, 113, 0.9) !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.72), 0 0 24px rgba(244, 63, 94, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 .ccm-02__item--admin {
   border-color: rgba(34, 211, 238, 0.42);
