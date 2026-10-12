@@ -229,6 +229,7 @@ export const App: React.FC = () => {
     setIsProfileModalOpen,
     migrationCelebration,
     dismissMigrationCelebration,
+    decoEquipBurst,
     isLoginModalOpen,
     setIsLoginModalOpen,
     isSynced,
@@ -1503,6 +1504,12 @@ export const App: React.FC = () => {
       {authOutcome && <OwlOutcome flow={authOutcome} onSkip={dismissAuthOutcome} />}
       {/* Hoa giấy ăn mừng khi lên cấp hoặc đạt mốc thành tích. */}
       <CelebrationBurst trigger={celebrationTick} tone="gold" headline={celebrationText} />
+      {/* Nhiệm vụ 10 — điểm nhấn: confetti khi trang bị thành công trang trí Discord. */}
+      <CelebrationBurst
+        trigger={decoEquipBurst.tick}
+        tone="gold"
+        headline={decoEquipBurst.tick > 0 ? `Đã trang bị: ${decoEquipBurst.name}` : undefined}
+      />
 
       {/* CodeFronts .la-08 Healthcare Appointment & Resource Loading Animation */}
       {isResourceLoading && (
