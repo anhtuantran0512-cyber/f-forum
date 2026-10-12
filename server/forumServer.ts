@@ -110,6 +110,8 @@ export interface UserRecord {
   equippedBadge?: string;
   /** Nhiệm vụ 10 — slot trang trí Discord {avatar_frame, avatar_aura, nameplate}. */
   equippedDecorations?: EquippedDecorations;
+  /** Id trang trí user đã yêu thích (wishlist) — tối đa 100, validate khi ghi. */
+  wishlist?: string[];
   bio: string;
   gender?: string;
   city?: string;

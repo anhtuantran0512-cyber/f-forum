@@ -60,7 +60,7 @@ const GiftCard: React.FC<{ gift: MigrationCelebrationGift; highlight?: boolean }
     >
       <div className="mcm__media">
         <img
-          src={resolveAssetUrl(gift.previewUrl)}
+          src={resolveAssetUrl(gift.previewUrl) ?? undefined}
           alt={`Trang trí ${gift.name}`}
           width={96}
           height={96}

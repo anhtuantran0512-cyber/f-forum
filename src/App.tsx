@@ -1215,7 +1215,7 @@ export const App: React.FC = () => {
             onPurchaseItem={purchaseShopItem}
             onEquipItem={equipShopItem}
             onEquipDecoration={equipDecoration}
-            onToggleWishlist={toggleWishlist}
+            onToggleWishlist={(item) => { void toggleWishlist(item.id); }}
             initialTab={profileInitialTab}
             questions={questions}
             solutions={solutions}

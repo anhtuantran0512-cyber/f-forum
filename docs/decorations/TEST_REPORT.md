@@ -104,8 +104,8 @@ Sếp yêu cầu: *"tự update thêm, làm 1 update đại cập nhật"*. Ba k
    X/873 + thanh tiến độ, 4 thanh mini theo độ hiếm (màu rarity), "Vinh danh
    Huyền thoại" — 6 viên ngọc mythic đã sưu tầm (top qualityScore, click xem).
    Empty state: số mythic đang chờ khám phá.
-3. **SỰ KIỆN KHAI TRƯƠNG 72H**: ruy-băng đếm ngược từ mốc migration
-   (`at` trong marker) — "còn Xg Yp"; hết hạn chuyển thông điệp vĩnh viễn.
+3. **SỰ KIỆN KHAI TRƯƠNG 72H** *(đã gỡ 2026-10-12 theo yêu cầu sếp — thừa, không cần thiết)*:
+   ruy-băng đếm ngược từ mốc migration (`at` trong marker).
 
 Kỹ thuật: hàm thuần trong `src/utils/decorations.ts` (import `effectivePrice`
 từ shopData — không vòng lặp import); Boutique tick 1s sẵn có điều khiển cả 3 đồng hồ;
@@ -216,7 +216,7 @@ Các test liên quan trực tiếp nhiệm vụ 10 (đều PASS trong run cuối
 | `decorations-task10` | 10.4 + 10.5 Equip theo slot & thông báo in-app | lẫn lộn slot → 400; đúng slot → 200 (frame+aura+nameplate song song); gỡ → null; không sở hữu → 403; notices chỉ của mình + read |
 | `decorations-task10` | 10.6 Modal ăn mừng migration | modal + wiring store/App, confetti (CelebrationBurst), keep-dark, reduced-motion, payload types |
 | `decorations-task10` | 10.7 Migration e2e (phương án B) | cùng hiếm thật (bugfix legendary→mythic), khớp loại, tự trang bị, payload preview, idempotent |
-| `decorations-task10` | 10.8 Boutique khai trương | ruy-băng theo mốc migration (72h), confetti khi trang bị, wiring store/App |
+| `decorations-task10` | 10.8 Boutique: confetti khi trang bị | chỉ bắn khi đeo (không khi gỡ); ruy-băng KHAI TRƯƠNG + chữ "trang trí Discord" đã Gỡ theo yêu cầu — kiểm tra âm không cho mọc lại |
 | `decorations-task10` | 10.9 Deal hôm nay | tất định theo ngày VN, ứng viên chỉ từ sale, giá = effectivePrice (khớp server) |
 | `decorations-task10` | 10.10 Bộ sưu tập | tiến độ theo rarity, mythic sở hữu top qualityScore, empty state |
 | `decorations-task10` | 10.11 Wishlist e2e | add/remove toggle, 400 id rác, 401 khách, persist lại disk đúng |
