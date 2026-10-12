@@ -1594,3 +1594,36 @@ html.light .gb-card__desc-one-line {
     transition: none;
   }
 }
+
+/* ===== Đợt #3 — chip Yêu thích + giá tối đa + xoá bộ lọc ===== */
+.gb-filters button.is-wished {
+  color: #fb7185;
+  border-color: rgba(244, 63, 94, 0.55);
+}
+.gb-filters button.is-wished.is-active {
+  color: #101320;
+  background: linear-gradient(90deg, #fda4af, #fb7185);
+  border-color: transparent;
+  box-shadow: 0 0 14px rgba(251, 113, 133, 0.35);
+}
+
+.gb-searchbar__reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.gb-searchbar__reset:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.1);
+}

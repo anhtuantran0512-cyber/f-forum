@@ -8,7 +8,7 @@ Ngày: 2026-10-12 · Branch: `arena/62613a87-f-forum` · Cơ sở: `670848e` (ma
 |---|---|
 | `npx tsc -b` | ✅ 0 lỗi |
 | `npx oxlint` | ✅ 0 warning / 0 error (220 files) |
-| `npm test` (29 file, Node test runner) | ✅ **344/344 pass** |
+| `npm test` (29 file, Node test runner) | ✅ **345/345 pass** |
 | Asset build | ✅ 3.878 file / ~122 MB · 0 lỗi ffmpeg · catalog 873 item |
 | Quality re-tiering | ✅ 873 item chấm điểm 0–100 · 768 động / 105 tĩnh · 0 lỗi cấu trúc · giá khớp bảng rarity 100% |
 | Migration | ✅ **ĐÃ CHỌN PHƯƠNG ÁN B** (Sếp chốt 12/10) — script nâng cấp (cùng hiếm thật, khớp loại, tự trang bị, payload ăn mừng) + demo end-to-end trong sandbox; marker KHÔNG commit (chạy khi triển khai) |
@@ -136,6 +136,23 @@ Kỹ thuật: server persist + broadcast (đúng pattern `equip`); client ghi
 localStorage event-driven (khi bấm, không effect); phát hiện & sửa lỗi TDZ
 thực (`now` dùng trước khai báo khi ruy-băng hoạt động) trong lúc ghép.
 
+### 1.5 Đợt #3 — "Mua đúng túi tiền" (bổ sung 2026-10-12) ✅
+
+Ba thêm nhỏ, đều phục vụ vòng lặp mua (873 item, coin hữu hạn):
+
+1. **GIÁ TỐI ĐA** — select trong thanh tìm: ≤2.500 / ≤3.500 / ≤5.000 Coin.
+   Lọc theo **giá thực tế đang hiển thị** (min của ưu đãi tuần + flash 6h,
+   cùng `effectivePrice` với card/server) — item đang sale rớt xuống ngưỡng
+   xuất hiện đúng lúc. Lưu cùng bộ lọc.
+2. **CHIP YÊU THÍCH** — "Yêu thích (n)" cạnh filter loại: chỉ hiện item đã
+   bookmark (hoàn tất vòng lặp wishlist: đánh dấu → duyệt lại → xoá).
+3. **XOÁ BỘ LỌC** — nút chỉ hiện khi đang có lọc (type/hiếm/chuyển động/
+   sở hữu/giá/yêu thích/từ khoá); về mặc định, giữ nguyên sắp xếp,
+   đồng bộ localStorage.
+
+Kỹ thuật: mở rộng `filtered` memo 1 chỗ (deps đầy đủ — kiểm tra bằng test),
+CSS co-located, reduced-motion an toàn.
+
 ### Bước 2 — Schema ✅
 - [x] `ShopItem` += `assetType`, `previewUrl`, `fullAssetUrl`, `animatedAssetUrl`, `originalSource`
 - [x] Giữ rarity/price/category; 35 item SVG cũ gắn `svg_custom`/`fforum_svg`
@@ -221,10 +238,11 @@ Các test liên quan trực tiếp nhiệm vụ 10 (đều PASS trong run cuối
 | `decorations-task10` | 10.10 Bộ sưu tập | tiến độ theo rarity, mythic sở hữu top qualityScore, empty state |
 | `decorations-task10` | 10.11 Wishlist e2e | add/remove toggle, 400 id rác, 401 khách, persist lại disk đúng |
 | `decorations-task10` | 10.12 UI wishlist + lọc | trái tim SVG (không button lồng button), Đã có/Chưa có, rarity row bấm, localStorage 1 key đọc/ghi, modal chỉ profile mình |
+| `decorations-task10` | 10.13 Đợt #3 | giá tối đa theo giá thực tế (min weekly+flash), chip Yêu thích (n), nút Xoá bộ lọc + reset đủ trạng thái |
 | `multi-user-sync` | (toàn bộ) | `equippedDecorations` đồng bộ multi-user qua socket |
 | `light-mode-contrast` | (toàn bộ) | adapter light tái sinh (`npm run gen:light`) khớp class mới |
 
-Run cuối: `# tests 344 / pass 344 / fail 0` (xanh cả khi marker migration TỒN TẠI cục bộ —
+Run cuối: `# tests 345 / pass 345 / fail 0` (xanh cả khi marker migration TỒN TẠI cục bộ —
 test hermetic qua env `FFORUM_MIGRATION_MARKER`).
 
 ## 4. Kiểm tra thủ công cần làm trên máy thật (checklist)
