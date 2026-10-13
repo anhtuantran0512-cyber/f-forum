@@ -23,13 +23,17 @@ export const ScrollProgressRail: React.FC<ScrollProgressRailProps> = ({ position
   const vertical = position === 'left' || position === 'right';
 
   /* Dock nằm trên → vạch ở mép dưới; nằm dưới → mép trên; dọc → mép trong. */
-  const edgeStyle: React.CSSProperties = vertical
-    ? position === 'left'
-      ? { right: 2, top: 14, bottom: 14, width: 2 }
-      : { left: 2, top: 14, bottom: 14, width: 2 }
-    : position === 'bottom'
-      ? { top: 2, left: 18, right: 18, height: 2 }
-      : { bottom: 2, left: 18, right: 18, height: 2 };
+  const edgeStyle: React.CSSProperties = {
+    position: 'absolute',
+    pointerEvents: 'none',
+    ...(vertical
+      ? position === 'left'
+        ? { right: 2, top: 14, bottom: 14, width: 2 }
+        : { left: 2, top: 14, bottom: 14, width: 2 }
+      : position === 'bottom'
+        ? { top: 2, left: 18, right: 18, height: 2 }
+        : { bottom: 2, left: 18, right: 18, height: 2 }),
+  };
 
   const pct = Math.round(progress * 100);
 
