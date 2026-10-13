@@ -437,8 +437,8 @@ html.light .ff-plan-card--featured { box-shadow: 0 18px 44px rgba(15, 23, 42, .0
    -------------------------------------------------------------------------- */
 .ff-reveal {
   opacity: 0;
-  transform: translate3d(0, var(--ff-reveal-y, 30px), 0) scale(var(--ff-reveal-scale, 1));
-  transition: opacity 0.95s var(--ff-ease), transform 1.05s var(--ff-ease);
+  transform: translate3d(0, var(--ff-reveal-y, 16px), 0) scale(var(--ff-reveal-scale, 1));
+  transition: opacity 0.4s var(--ff-ease), transform 0.45s var(--ff-ease);
   transition-delay: var(--ff-reveal-delay, 0ms);
 }
 
@@ -453,17 +453,17 @@ html.light .ff-plan-card--featured { box-shadow: 0 18px 44px rgba(15, 23, 42, .0
 
 .ff-reveal-left {
   --ff-reveal-y: 0px;
-  transform: translate3d(-38px, 0, 0);
+  transform: translate3d(-20px, 0, 0);
 }
 
 .ff-reveal-right {
   --ff-reveal-y: 0px;
-  transform: translate3d(38px, 0, 0);
+  transform: translate3d(20px, 0, 0);
 }
 
 .ff-reveal-scale {
-  --ff-reveal-y: 14px;
-  --ff-reveal-scale: 0.96;
+  --ff-reveal-y: 10px;
+  --ff-reveal-scale: 0.98;
 }
 
 /* --------------------------------------------------------------------------

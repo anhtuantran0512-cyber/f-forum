@@ -31,11 +31,11 @@ export const Reveal: React.FC<RevealProps> = ({
   children,
   className = '',
   delay = 0,
-  y = 30,
+  y = 16,
   scale,
   variant = 'up',
   as,
-  threshold = 0.16,
+  threshold = 0.02,
 }) => {
   const { ref, inView } = useInView<HTMLDivElement>({ threshold });
   const Tag = (as ?? 'div') as React.ElementType;

@@ -8,13 +8,10 @@ import {
   HelpCircle,
   Heart,
   Shield,
-  Sparkles,
   Trash2,
   MessageSquareDashed,
   X,
   ChevronDown,
-  Waves,
-  Grid,
   Flag,
   User as UserIcon,
   CheckCircle2,
@@ -23,8 +20,6 @@ import type { ChatChannelId, ChatMessage, User, OnlinePresenceUser } from '../..
 import { TierBadge, AdminVerifiedBadge } from '../Badges10Tier';
 import { DEFAULT_AVATAR } from '../../utils/mediaFallback';
 import { useChatCooldown } from '../../utils/chatCooldown';
-import { TriVideoCrossfadeBg } from '../TriVideoCrossfadeBg';
-import { TRI_CHAT_VIDEOS } from '../../utils/chatVideos';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
 import { capsHas, useAdminCaps } from '../../utils/adminCapabilities';
 import { InfoTip } from '../ui/InfoTip';
@@ -143,7 +138,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const [isMembersDrawerOpen, setIsMembersDrawerOpen] = useState(false);
   const [inputText, setInputText] = useState('');
   const cooldown = useChatCooldown();
-  const [activeVideoIdx, setActiveVideoIdx] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const [activeAuthorCard, setActiveAuthorCard] = useState<{
@@ -212,14 +206,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
     [onlineUsers],
   );
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      if (typeof document !== 'undefined' && document.hidden) return;
-      setActiveVideoIdx(prev => (prev + 1) % TRI_CHAT_VIDEOS.length);
-    }, 14000);
-    return () => clearInterval(timer);
-  }, []);
-
   const currentMessages = useMemo(
     () => messages.filter(m => m.channelId === activeChannel),
     [messages, activeChannel],
@@ -258,8 +244,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
   return (
     <section className="relative w-full h-[100dvh] md:h-screen overflow-hidden flex flex-col pt-[calc(54px+var(--safe-top))] pb-[calc(56px+var(--safe-bottom))] md:pt-[var(--navbar-height)] md:pb-0">
-      {/* Background Video Engine: TriVideoCrossfadeBg running at z-0 absolute inset-0 */}
-      <TriVideoCrossfadeBg activeIdx={activeVideoIdx} onIdxChange={setActiveVideoIdx} />
+      {/* Nền phong cách Forum Hiện Đại: Tối ưu triệt để dung lượng và GPU, không dùng video nền trong phòng chat */}
+      <div className="ff-chat-bg absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#070b13] via-[#09101c] to-[#060a12]" />
+        <div className="absolute top-[-20%] left-[15%] w-[600px] h-[600px] rounded-full bg-amber-500/[0.035] blur-[140px]" />
+        <div className="absolute bottom-[-15%] right-[10%] w-[650px] h-[650px] rounded-full bg-orange-600/[0.03] blur-[150px]" />
+      </div>
 
       {/* Phase 2: Sub-Layout Content Wrapper — height: calc(100vh - var(--navbar-height)), overflow: hidden, display: flex */}
       <div
@@ -434,24 +424,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <div className="hidden sm:flex items-center gap-1 bg-black/50 p-1 rounded-full border border-white/10">
-                  {TRI_CHAT_VIDEOS.map((v, i) => (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => setActiveVideoIdx(v.id)}
-                      className={`p-1.5 rounded-full transition-all cursor-pointer flex items-center justify-center ${
-                        activeVideoIdx === v.id
-                          ? 'bg-orange-500 text-black shadow-[0_0_8px_rgba(249,115,22,0.8)]'
-                          : 'text-neutral-400 hover:text-white'
-                      }`}
-                      title={`Chuyển phông nền: ${v.label}`}
-                    >
-                      {i === 0 ? <Waves className="w-3 h-3" /> : i === 1 ? <Grid className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
-                    </button>
-                  ))}
-                </div>
-                <span className="text-[11px] font-mono text-neutral-400">
+                <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] font-mono text-neutral-400">
                   {currentMessages.length} tin
                 </span>
               </div>

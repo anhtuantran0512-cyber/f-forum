@@ -28,8 +28,6 @@ import {
   User as UserIcon,
   Coins,
   Shield,
-  Waves,
-  Grid3X3,
   Bookmark,
   BookmarkCheck,
   ArrowUpDown,
@@ -60,7 +58,7 @@ import {
   generateGhibliAlias,
   getRandomGhibliMask,
 } from '../../utils/ghibliMasks';
-import { DEFAULT_AVATAR, handleImageError, handleVideoError } from '../../utils/mediaFallback';
+import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
 import { DecoratedAvatar, DecoratedName, UserNameplateBg } from '../decorations/DecoratedAvatar';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
 import { capsHas, useAdminCaps } from '../../utils/adminCapabilities';
@@ -537,13 +535,6 @@ interface QAForumViewProps {
   onDetailOpenChange?: (open: boolean) => void;
 }
 
-
-const FORUM_VIDEOS = [
-  { id: 0, label: '01 / WATER WAVE', url: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260629_030107_874273ea-684a-4e90-bb96-8fdfde48d53d.mp4' },
-  { id: 1, label: '02 / GRIDWAVE', url: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260629_032424_3c9c2a9d-807b-4482-80e6-dd6d9dfd4545.mp4' },
-  { id: 2, label: '03 / LIGHT TUNNEL', url: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260627_094019_4214ea73-b963-46a4-8327-61489192de99.mp4' },
-];
-
 const SUBJECTS: { tag: SubjectTag | 'all'; label: string; group: 'academic' | 'life' }[] = [
   { tag: 'all', label: 'Tất cả', group: 'academic' },
   { tag: 'toan', label: '#toan', group: 'academic' },
@@ -666,8 +657,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   onOpenFocusMode,
   onDetailOpenChange,
 }) => {
-  const [activeVideoIdx, setActiveVideoIdx] = useState(0);
-  const [isAutoCycle, setIsAutoCycle] = useState(true);
   const [selectedTag, setSelectedTag] = useState<SubjectTag | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'unsolved' | 'solved' | 'with_image'>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -864,14 +853,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     }, 1000);
     return () => clearInterval(timer);
   }, [solCooldown]);
-
-  useEffect(() => {
-    if (!isAutoCycle) return;
-    const interval = setInterval(() => {
-      setActiveVideoIdx(prev => (prev + 1) % FORUM_VIDEOS.length);
-    }, 20000);
-    return () => clearInterval(interval);
-  }, [isAutoCycle]);
 
   /**
    * Kênh để nơi khác (bảng lệnh, tìm kiếm toàn cục) bảo diễn đàn mở một câu hỏi
@@ -1364,24 +1345,11 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   return (
     <section className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-22 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-6 px-4 sm:px-6 lg:px-8`}>
       
-      {/* Triple Video Crossfade Switcher Background Engine — matte overlay prevents color bleed */}
-      <div className="ff-video-bg absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        {FORUM_VIDEOS.map((vid, idx) => (
-          <video
-            key={vid.id}
-            src={vid.url}
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="metadata"
-            onError={handleVideoError}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[1200ms] ease-in-out ${
-              activeVideoIdx === idx ? 'opacity-65' : 'opacity-0'
-            }`}
-          />
-        ))}
-        <div className="absolute inset-0 bg-[#080d16]/82 backdrop-blur-[4px]" />
+      {/* Nền phong cách Forum Hiện Đại: Tối ưu triệt để dung lượng và GPU, không dùng video nền trong sảnh Hỏi đáp */}
+      <div className="ff-qa-bg absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#080d17] via-[#091120] to-[#060a13]" />
+        <div className="absolute top-[-15%] left-[20%] w-[600px] h-[600px] rounded-full bg-cyan-500/[0.035] blur-[140px]" />
+        <div className="absolute bottom-[-10%] right-[10%] w-[650px] h-[650px] rounded-full bg-blue-600/[0.03] blur-[150px]" />
       </div>
 
       {/* Main Container */}
@@ -1405,39 +1373,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Ambient Video Switcher Pills */}
-              <div className="hidden md:flex items-center gap-1 bg-[#0b111c]/90 p-1 rounded-xl border border-white/[0.08]">
-                {FORUM_VIDEOS.map(v => {
-                  const VideoIcon = v.id === 0 ? Waves : v.id === 1 ? Grid3X3 : Sparkles;
-                  return (
-                    <button
-                      key={v.id}
-                      onClick={() => setActiveVideoIdx(v.id)}
-                      className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
-                        activeVideoIdx === v.id
-                          ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/35'
-                          : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
-                      }`}
-                      title={`Chuyển phông nền: ${v.label}`}
-                      aria-label={`Chuyển phông nền: ${v.label}`}
-                    >
-                      <VideoIcon className="w-3.5 h-3.5" />
-                    </button>
-                  );
-                })}
-                <button
-                  onClick={() => setIsAutoCycle(prev => !prev)}
-                  className={`px-2 py-1 text-[10px] font-mono rounded-lg border transition-colors cursor-pointer ${
-                    isAutoCycle
-                      ? 'border-cyan-400/30 text-cyan-200 bg-cyan-500/10'
-                      : 'border-white/[0.08] text-slate-400'
-                  }`}
-                  title={isAutoCycle ? 'Tự động đổi nền (20s)' : 'Giữ nguyên nền'}
-                >
-                  {isAutoCycle ? 'Auto' : 'Tĩnh'}
-                </button>
-              </div>
-
               {/* Bộ lọc "Đã lưu" */}
               {savedOwnerKey && (
                 <button
