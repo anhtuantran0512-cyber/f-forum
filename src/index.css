@@ -1101,7 +1101,7 @@ html.light .ff-nav-capsule.liquid-glass::after {
 
 /* Aura chuyển động bên trong thanh: một dải sáng mờ lướt qua, nằm dưới nội dung
    (z-index 0) nên tuyệt đối không đè lên chữ hay icon. */
-.ff-nav-capsule.liquid-glass > * {
+.ff-nav-capsule.liquid-glass > *:not(.ff-nav-aura):not(.ff-nav-loading):not(.ff-scroll-rail) {
   position: relative;
   z-index: 1;
 }
@@ -4862,8 +4862,8 @@ html.light .ff-cd.is-ready .ff-cd__value { color: #047857; }
 /* Thanh tiến trình cuộn trên navbar                                          */
 /* ========================================================================== */
 .ff-scroll-rail {
-  position: absolute;
-  z-index: 3;
+  position: absolute !important;
+  z-index: 3 !important;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.10);
   overflow: visible;
