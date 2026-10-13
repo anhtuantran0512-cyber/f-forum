@@ -9,16 +9,17 @@
  */
 
 export const PARTICLE_STRIDE = 9;
-// Layout mỗi hạt trong Float32Array:
-// [0]: x (0..width)
-// [1]: y (0..height)
-// [2]: vx (px/s)
-// [3]: vy (px/s)
-// [4]: size (px)
-// [5]: rotation (rad)
-// [6]: angularVelocity (rad/s)
-// [7]: alpha (0..1)
-// [8]: colorIndex (0..palette.length-1)
+/* Layout mỗi hạt trong Float32Array:
+ * [0]: x (0..width)
+ * [1]: y (0..height)
+ * [2]: vx (px/s)
+ * [3]: vy (px/s)
+ * [4]: size (px)
+ * [5]: rotation (rad)
+ * [6]: angularVelocity (rad/s)
+ * [7]: alpha (0..1)
+ * [8]: colorIndex (0..palette.length-1)
+ */
 
 export interface ParticleSeedOptions {
   count: number;
@@ -106,7 +107,7 @@ export const stepParticleBuffer = (
       const dx = x - cx;
       const dy = y - cy;
       const dist = Math.max(8, Math.hypot(dx, dy));
-      // Lực hướng tâm giữ hạt bay quanh tâm trang trí Mythic
+      /* Lực hướng tâm giữ hạt bay quanh tâm trang trí Mythic */
       const pull = 36 / dist;
       vx += (-dy / dist) * 14 * dt - (dx / dist) * pull;
       vy += (dx / dist) * 14 * dt - (dy / dist) * pull;
@@ -116,7 +117,7 @@ export const stepParticleBuffer = (
       alpha = 0.4 + 0.55 * Math.abs(Math.sin(rot));
       alive += 1;
     } else {
-      // Trọng lực + lực cản không khí + gió xoáy nhẹ
+      /* Trọng lực + lực cản không khí + gió xoáy nhẹ */
       vy += 320 * dt;
       vx *= 0.992;
       x += vx * dt + Math.sin(rot * 1.7) * 0.6;

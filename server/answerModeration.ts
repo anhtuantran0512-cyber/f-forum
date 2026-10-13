@@ -76,25 +76,25 @@ export function checkAnswerSafety(content: string): { ok: boolean; flags: string
   const text = String(content || '');
   const lower = text.toLowerCase();
 
-  // Spam: quá nhiều liên kết.
+  /* Spam: quá nhiều liên kết. */
   const links = text.match(/https?:\/\/\S+/gi) || [];
   if (links.length >= 3) flags.push('spam-links');
 
-  // Spam: từ khoá quảng cáo / chốt đơn / bán hàng.
+  /* Spam: từ khoá quảng cáo / chốt đơn / bán hàng. */
   const promoPattern =
     /shopee|lazada|tiktok\s*shop|aliexpress|đặt\s*hàng|ship\s*cod|giá\s*rẻ|hàng\s*xịn|deal\s*hot|ưu\s*đãi\s*dành\s*cho|hotline|giao\s*thông\s*toàn\s*quốc|đặt\s*liền|bấm\s*vào\s*link/i;
   if (promoPattern.test(lower)) flags.push('spam-promo');
 
-  // Spam: viết hoa toàn bộ câu dài (shouting).
+  /* Spam: viết hoa toàn bộ câu dài (shouting). */
   const capsWords = text.split(/\s+/).filter((w) => /^[A-ZÀ-Ý]{4,}$/.test(w));
   if (capsWords.length >= 5) flags.push('spam-caps');
 
-  // PII: số điện thoại Việt Nam (10 chữ số: 0 + 9 + 8 số, hoặc +84 + 9 số).
+  /* PII: số điện thoại Việt Nam (10 chữ số: 0 + 9 + 8 số, hoặc +84 + 9 số). */
   if (/(^|\D)(0|\+84)[\s-]?(3|5|7|8|9)\d{8}(\D|$)/.test(text)) flags.push('pii-phone');
-  // PII: email.
+  /* PII: email. */
   if (/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(text)) flags.push('pii-email');
 
-  // Xúc phạm (bộ từ vựng tối thiểu, không dấu để bắt cả gõ tắt/lỗi chính tả).
+  /* Xúc phạm (bộ từ vựng tối thiểu, không dấu để bắt cả gõ tắt/lỗi chính tả). */
   const norm = normalizeVi(text);
   const insultBigrams = [
     'do ngu', 'ngu vo', 'ngu nhap', 'cai de', 'cai cho', 'dam vo', 'dam ngu',
@@ -105,8 +105,8 @@ export function checkAnswerSafety(content: string): { ok: boolean; flags: string
   for (const phrase of insultBigrams) {
     if (norm.includes(phrase)) { insulted = true; break; }
   }
-  // KHÔNG dùng "ngu" đứng một mình: bỏ dấu của "ngủ" (to sleep) cũng ra "ngu",
-  // sẽ chặn oan câu trả lời học tập. Chỉ chặn khi là cụm rõ ràng.
+  /* KHÔNG dùng "ngu" đứng một mình: bỏ dấu của "ngủ" (to sleep) cũng ra "ngu",
+     sẽ chặn oan câu trả lời học tập. Chỉ chặn khi là cụm rõ ràng. */
   if (insulted) flags.push('insult');
 
   return { ok: flags.length === 0, flags };
@@ -127,11 +127,11 @@ export function normalizeVi(s: string): string {
    "do" = đó/độ, "de" = để/đề, "van" = vẫn/văn) — danh sách stopword PHẢI cực
    ngắn, chỉ giữ từ chức năng rõ ràng. Lọc sai một nội dung từ là hỏng điểm. */
 const STOP_WORDS = new Set([
-  // Vietnamese function words (an toàn khi bỏ dấu).
+  /* Vietnamese function words (an toàn khi bỏ dấu). */
   'va', 'voi', 'la', 'co', 'di', 'vi', 'ma', 'thi', 'the', 'neu', 'nhung',
   'nhe', 'minh', 'toi', 'no', 'ho', 'ay', 'nay', 'nhu', 'rat', 'cung',
   'luon', 'se', 'roi', 'vay', 'chua', 'vao', 'ra', 'khong', 'lam', 'cua',
-  // English function words.
+  /* English function words. */
   'the', 'a', 'an', 'and', 'or', 'of', 'to', 'in', 'on', 'for', 'is', 'are',
   'was', 'were', 'be', 'been', 'with', 'that', 'this', 'it', 'i', 'you',
   'we', 'they', 'he', 'she', 'me', 'my', 'your', 'so', 'but', 'if', 'not',
@@ -245,27 +245,27 @@ export function classifyRelevance(input: ModerationInput): RelevanceResult {
   const aTokenSet = new Set(aTokens);
   const qTokenSet = new Set(qTokens);
 
-  // Chồng lấp: mỗi từ khoá của câu hỏi xuất hiện trong câu trả lời → điểm.
+  /* Chồng lấp: mỗi từ khoá của câu hỏi xuất hiện trong câu trả lời → điểm. */
   let hit = 0;
   for (const t of qTokenSet) if (aTokenSet.has(t)) hit++;
   const qSample = Math.min(qTokenSet.size, 8);
   const overlap = qSample > 0 ? hit / qSample : 0;
 
-  // Gần đúng (lỗi chính tả / không dấu): trigram trên chuỗi từ NỘI DUNG
-  // (đã lọc stopword) — trigram trên toàn văn bản bị nhiễu bởi chức năng từ.
+  /* Gần đúng (lỗi chính tả / không dấu): trigram trên chuỗi từ NỘI DUNG
+     (đã lọc stopword) — trigram trên toàn văn bản bị nhiễu bởi chức năng từ. */
   const trigramSim = jaccard(
     charTrigrams(aTokens.length ? aTokens.join('') : ''),
     charTrigrams(qTokens.length ? qTokens.join('') : ''),
   );
 
-  // Từ khoá môn học: đề thuộc môn (chạm từ vựng môn) + câu trả lời dùng từ
-  // chuyên ngành của môn đó → cộng điểm (bắt được định luật/ví dụ không lặp
-  // từ khoá của đề).
+  /* Từ khoá môn học: đề thuộc môn (chạm từ vựng môn) + câu trả lời dùng từ
+     chuyên ngành của môn đó → cộng điểm (bắt được định luật/ví dụ không lặp
+     từ khoá của đề). */
   const subjectKeys = SUBJECT_KEYWORDS_NORM[String(input.questionSubject || '')] || [];
   const qNorm = normalizeVi(questionText);
   const aNorm = normalizeVi(answer);
-  // Từ đơn: khớp theo ranh giới từ (tránh "tu" (tử) dính vào "tuan" (tuần)).
-  // Cụm nhiều từ: khớp chuỗi con.
+  /* Từ đơn: khớp theo ranh giới từ (tránh "tu" (tử) dính vào "tuan" (tuần)).
+     Cụm nhiều từ: khớp chuỗi con. */
   const qWords = new Set(qNorm.split(/\s+/));
   const aWords = new Set(aNorm.split(/\s+/));
   const keyIn = (key: string, words: Set<string>, packed: string) =>
@@ -278,16 +278,16 @@ export function classifyRelevance(input: ModerationInput): RelevanceResult {
     : qSubjectHits >= 1 && aSubjectHits === 1 ? 0.08
     : 0;
 
-  // Đề "mở" (ngắn, ít từ khoá nội dung) → không đủ bằng chứng để REJECT:
-  // kẹp điểm vào vùng REVIEW để người quản trị quyết.
+  /* Đề "mở" (ngắn, ít từ khoá nội dung) → không đủ bằng chứng để REJECT:
+     kẹp điểm vào vùng REVIEW để người quản trị quyết. */
   const ambiguousQuestion = qTokenSet.size <= 6 && questionText.length < 60;
 
-  // Trigram chỉ là tín hiệu phụ (bắt lỗi chính tả): trọng số thấp để câu
-  // lạc đề rõ ràng không bị "cứu" bởi trùng trigram ngẫu nhiên.
+  /* Trigram chỉ là tín hiệu phụ (bắt lỗi chính tả): trọng số thấp để câu
+     lạc đề rõ ràng không bị "cứu" bởi trùng trigram ngẫu nhiên. */
   let score = 0.6 * overlap + 0.12 * trigramSim + subjectScore;
   if (ambiguousQuestion && overlap === 0) score = Math.max(score, 0.05, Math.min(score, 0.13));
 
-  // Ngắn dưới 24 ký tự: KHÔNG bao giờ tự REJECT (ngắn ≠ lỗi) — không rõ thì REVIEW.
+  /* Ngắn dưới 24 ký tự: KHÔNG bao giờ tự REJECT (ngắn ≠ lỗi) — không rõ thì REVIEW. */
   const veryShort = answer.length < 24;
 
   if (score >= 0.3) {
@@ -306,7 +306,7 @@ export function classifyRelevance(input: ModerationInput): RelevanceResult {
   }
   if (score < 0.05) {
     if (veryShort) {
-      // Ngắn + không liên quan rõ: KHÔNG kết án vì ngắn — để người xem xét.
+      /* Ngắn + không liên quan rõ: KHÔNG kết án vì ngắn — để người xem xét. */
       return {
         status: 'REVIEW', relevance: 'LOW', score,
         reason: 'Câu trả lời rất ngắn và chưa thấy dấu hiệu liên quan tới câu hỏi — cần người xem xét (không tự động từ chối vì ngắn).',
@@ -369,7 +369,7 @@ function readAiConfig(): AiConfig | null {
 
 function parseAiVerdict(raw: string): { status: ModerationStatus; relevance: RelevanceLevel; reason: string; feedback: string } | null {
   const text = String(raw || '').trim();
-  // Bỏ fence markdown nếu model vẫn bọc ```json ... ```.
+  /* Bỏ fence markdown nếu model vẫn bọc ```json ... ```. */
   const cleaned = text.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
   const start = cleaned.indexOf('{');
   const end = cleaned.lastIndexOf('}');
@@ -385,11 +385,11 @@ function parseAiVerdict(raw: string): { status: ModerationStatus; relevance: Rel
   const relevance = obj.relevance;
   if (!['ACCEPT', 'REJECT', 'REVIEW'].includes(status)) return null;
   if (!['HIGH', 'MEDIUM', 'LOW'].includes(relevance)) return null;
-  // Bảo vệ logic: LOW + không lạc đề rõ => REVIEW (không tự kết án).
+  /* Bảo vệ logic: LOW + không lạc đề rõ => REVIEW (không tự kết án). */
   let finalStatus: ModerationStatus = status;
   if (relevance === 'LOW' && status === 'REJECT') {
-    // Giữ REJECT của AI khi LOW — nhưng chỉ khi AI nói rõ "off-topic".
-    // Nếu không rõ, hạ xuống REVIEW (nguyên tắc "khi không chắc => REVIEW").
+    /* Giữ REJECT của AI khi LOW — nhưng chỉ khi AI nói rõ "off-topic".
+       Nếu không rõ, hạ xuống REVIEW (nguyên tắc "khi không chắc => REVIEW"). */
     const reasonLower = String(obj.reason || '').toLowerCase();
     if (!/off[-\s]?topic|lạc đề|không liên quan|chủ đề khác/i.test(reasonLower)) {
       finalStatus = 'REVIEW';
@@ -445,7 +445,7 @@ export async function callAiModerator(input: ModerationInput): Promise<{ status:
       const raw = await callAiOnce(cfg, prompt, controller.signal);
       const parsed = parseAiVerdict(raw);
       if (parsed) return parsed;
-      return null; // Không parse được => coi như AI lỗi.
+      return null; /* Không parse được => coi như AI lỗi. */
     } catch (e: any) {
       const status = e?.status;
       const retryable = !status || status >= 500 || e?.name === 'AbortError';
@@ -483,7 +483,7 @@ export async function moderateAnswer(input: ModerationInput): Promise<Moderation
     };
   }
 
-  // Có key AI thì hỏi AI trước; không thì heuristic.
+  /* Có key AI thì hỏi AI trước; không thì heuristic. */
   const ai = await callAiModerator(input);
   if (ai) {
     return {

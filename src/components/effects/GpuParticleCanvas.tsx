@@ -83,66 +83,68 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
       mode,
     });
 
-    /* Ưu tiên Canvas 2D trong suốt tuyệt đối để tránh lỗi nháy trắng màn hình (white flash)
-       do cấp phát/thu hồi ngữ cảnh WebGL toàn màn hình trên một số trình duyệt/GPU;
-       vẫn giữ nguyên pipeline WebGL 1-draw-call (gl.POINTS) làm nhánh dự phòng chuẩn. */
-    const ctx2d = canvas.getContext('2d');
+    /* Khởi tạo WebGL 1 draw call trước (gl.POINTS) để tận dụng GPU phần cứng;
+       nếu trình duyệt/thiết bị không hỗ trợ thì fallback sang Canvas 2D mượt mà. */
     let gl: WebGLRenderingContext | null = null;
     let glProgram: WebGLProgram | null = null;
     let glBuffer: WebGLBuffer | null = null;
     let aPosSizeLoc = -1;
     let aColorLoc = -1;
-    if (!ctx2d) {
-      try {
-        gl = canvas.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: true });
-        if (gl) {
-          const vs = gl.createShader(gl.VERTEX_SHADER)!;
-          gl.shaderSource(
-            vs,
-            `
-            attribute vec3 aPosSize;
-            attribute vec4 aColor;
-            varying vec4 vColor;
-            void main() {
-              gl_Position = vec4(aPosSize.xy, 0.0, 1.0);
-              gl_PointSize = aPosSize.z;
-              vColor = aColor;
-            }
-            `,
-          );
-          gl.compileShader(vs);
-          const fs = gl.createShader(gl.FRAGMENT_SHADER)!;
-          gl.shaderSource(
-            fs,
-            `
-            precision mediump float;
-            varying vec4 vColor;
-            void main() {
-              vec2 c = gl_PointCoord - vec2(0.5);
-              if (dot(c, c) > 0.25) discard;
-              gl_FragColor = vColor;
-            }
-            `,
-          );
-          gl.compileShader(fs);
-          const prog = gl.createProgram()!;
-          gl.attachShader(prog, vs);
-          gl.attachShader(prog, fs);
-          gl.linkProgram(prog);
-          if (gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-            glProgram = prog;
-            glBuffer = gl.createBuffer();
-            aPosSizeLoc = gl.getAttribLocation(prog, 'aPosSize');
-            aColorLoc = gl.getAttribLocation(prog, 'aColor');
-            gl.enable(gl.BLEND);
-            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-          } else {
-            gl = null;
+    let ctx2d: CanvasRenderingContext2D | null = null;
+
+    try {
+      gl = canvas.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: false });
+      if (gl) {
+        const vs = gl.createShader(gl.VERTEX_SHADER)!;
+        gl.shaderSource(
+          vs,
+          `
+          attribute vec3 aPosSize;
+          attribute vec4 aColor;
+          varying vec4 vColor;
+          void main() {
+            gl_Position = vec4(aPosSize.xy, 0.0, 1.0);
+            gl_PointSize = aPosSize.z;
+            vColor = aColor;
           }
+          `,
+        );
+        gl.compileShader(vs);
+        const fs = gl.createShader(gl.FRAGMENT_SHADER)!;
+        gl.shaderSource(
+          fs,
+          `
+          precision mediump float;
+          varying vec4 vColor;
+          void main() {
+            vec2 c = gl_PointCoord - vec2(0.5);
+            if (dot(c, c) > 0.25) discard;
+            gl_FragColor = vColor;
+          }
+          `,
+        );
+        gl.compileShader(fs);
+        const prog = gl.createProgram()!;
+        gl.attachShader(prog, vs);
+        gl.attachShader(prog, fs);
+        gl.linkProgram(prog);
+        if (gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+          glProgram = prog;
+          glBuffer = gl.createBuffer();
+          aPosSizeLoc = gl.getAttribLocation(prog, 'aPosSize');
+          aColorLoc = gl.getAttribLocation(prog, 'aColor');
+          gl.enable(gl.BLEND);
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        } else {
+          gl = null;
         }
-      } catch {
-        gl = null;
       }
+    } catch {
+      gl = null;
+    }
+
+    if (!gl) {
+      ctx2d = canvas.getContext('2d');
     }
 
     const rgbPalette = palette.map(hexToRgbFloat);
@@ -245,6 +247,16 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
       running = false;
       if (rafId) cancelAnimationFrame(rafId);
       if (worker) worker.terminate();
+      if (gl) {
+        try {
+          gl.viewport(0, 0, width, height);
+          gl.clearColor(0, 0, 0, 0);
+          gl.clear(gl.COLOR_BUFFER_BIT);
+          gl.getExtension('WEBGL_lose_context')?.loseContext();
+        } catch {
+          /* ignore */
+        }
+      }
       if (ctx2d) ctx2d.clearRect(0, 0, width, height);
       canvas.style.willChange = 'auto';
     };

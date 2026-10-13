@@ -551,7 +551,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
     if (!pool || coin < pool.cost) return;
 
     setBusy(true);
-    // eslint-disable-next-line react/purity -- Math.random chỉ chạy khi người dùng bấm nút quay
+    /* eslint-disable-next-line react/purity -- Math.random chỉ chạy khi người dùng bấm nút quay */
     const roll = rollGachaPull(poolId, pity, Math.random(), Math.random(), activeItems);
     const ok = await onBuy(roll.item);
     setBusy(false);

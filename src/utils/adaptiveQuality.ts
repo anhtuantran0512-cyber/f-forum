@@ -409,7 +409,7 @@ export const computeSSIM = (
 
   for (let i = 0; i < totalPixels; i += 1) {
     const idx = i * 4;
-    // Độ chói cảm nhận chuẩn ITU-R BT.601
+    /* Độ chói cảm nhận chuẩn ITU-R BT.601 */
     const y1 =
       0.299 * referenceRgba[idx] +
       0.587 * referenceRgba[idx + 1] +
