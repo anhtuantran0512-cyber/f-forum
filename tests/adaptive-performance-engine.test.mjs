@@ -14,14 +14,49 @@ const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 test('Round 1: Virtual Windowing & Node Recycling Architecture', async () => {
   const virtModule = await import('../src/utils/virtualWindow.ts');
   assert.ok(virtModule.useVirtualWindow, 'useVirtualWindow hook phải được export');
+  assert.ok(virtModule.calculateVirtualRange, 'calculateVirtualRange phải được export');
+  assert.ok(virtModule.getScrollContainer, 'getScrollContainer phải được export');
 
-  /* Kiểm chứng file Boutique.css, QAForumView.tsx và ThreadsView.tsx có tích hợp virtual stub */
+  /* 1. Kiểm chứng thuật toán tính toán cửa sổ ảo theo dòng và cột */
+  const singleColRange = virtModule.calculateVirtualRange({
+    scrolledPast: 480,
+    viewportHeight: 800,
+    itemHeight: 160,
+    columns: 1,
+    totalItems: 100,
+    overscan: 2,
+  });
+  /* 480 / 160 = 3 rows scrolled. startRow = max(0, 3 - 2) = 1. startIndex = 1 */
+  assert.equal(singleColRange.startRow, 1, 'Hàng bắt đầu phải lùi lại 2 hàng đệm overscan');
+  assert.equal(singleColRange.startIndex, 1, 'Index bắt đầu khớp với cột 1');
+  /* (480 + 800) / 160 = 8 rows. endRow = min(100, 8 + 2) = 10. endIndex = 10 */
+  assert.equal(singleColRange.endRow, 10, 'Hàng kết thúc phải cộng thêm overscan');
+  assert.equal(singleColRange.endIndex, 10, 'Index kết thúc khớp với cột 1');
+
+  /* 2. Kiểm chứng thuật toán cho lưới 3 cột (Boutique Shop) */
+  const gridRange = virtModule.calculateVirtualRange({
+    scrolledPast: 720,
+    viewportHeight: 720,
+    itemHeight: 240,
+    columns: 3,
+    totalItems: 300,
+    overscan: 1,
+  });
+  /* 720 / 240 = 3 rows scrolled. startRow = max(0, 3 - 1) = 2. startIndex = 2 * 3 = 6 */
+  assert.equal(gridRange.startRow, 2, 'Lưới 3 cột: hàng bắt đầu lùi lại overscan');
+  assert.equal(gridRange.startIndex, 6, 'Lưới 3 cột: index bắt đầu là 6');
+  /* (720 + 720) / 240 = 6 rows. endRow = 6 + 1 = 7. endIndex = 7 * 3 = 21 */
+  assert.equal(gridRange.endRow, 7, 'Lưới 3 cột: hàng kết thúc tính đúng overscan');
+  assert.equal(gridRange.endIndex, 21, 'Lưới 3 cột: index kết thúc là 21');
+
+  /* 3. Kiểm chứng file Boutique.css, QAForumView.tsx và ThreadsView.tsx có tích hợp virtual stub & refs */
   const boutiqueCss = read('src/components/shop/Boutique.css');
   assert.match(boutiqueCss, /\.gb-cell--virtual-stub[\s\S]*?contain:\s*strict/, 'Boutique CSS có class recycled stub với contain: strict');
 
   const gachaBoutique = read('src/components/shop/GachaBoutique.tsx');
   assert.match(gachaBoutique, /useVirtualWindow/, 'GachaBoutique tích hợp useVirtualWindow');
   assert.match(gachaBoutique, /gb-cell--virtual-stub/, 'GachaBoutique sử dụng recycled node stub khi thẻ ngoài viewport');
+  assert.match(gachaBoutique, /boutiqueGridRef/, 'GachaBoutique gắn boutiqueGridRef để đo đạc chính xác container cuộn');
   assert.match(gachaBoutique, /useInteractionDebounce/, 'GachaBoutique tích hợp useInteractionDebounce cho ô tìm kiếm');
 
   const qaView = read('src/components/views/QAForumView.tsx');
@@ -32,6 +67,7 @@ test('Round 1: Virtual Windowing & Node Recycling Architecture', async () => {
   const threadsView = read('src/components/views/ThreadsView.tsx');
   assert.match(threadsView, /useVirtualWindow/, 'ThreadsView tích hợp useVirtualWindow');
   assert.match(threadsView, /thread-card--virtual-stub/, 'ThreadsView tái sử dụng recycled stub cho thread ngoài viewport');
+  assert.match(threadsView, /feedScrollRef/, 'ThreadsView gắn feedScrollRef để kết nối trực tiếp với scroll container');
   assert.match(threadsView, /useInteractionDebounce/, 'ThreadsView tích hợp useInteractionDebounce cho thanh tìm kiếm');
 
   const threadsCss = read('src/components/views/ThreadsView.css');
@@ -48,6 +84,7 @@ test('Round 2: Adaptive RAF Scheduler, Task Priorities & 0ms Latency', async () 
   assert.ok(sched.yieldToMain, 'yieldToMain phải được export');
   assert.ok(sched.markUserInteraction, 'markUserInteraction phải được export');
   assert.ok(sched.isUserInteracting, 'isUserInteracting phải được export');
+  assert.ok(sched.isScrollActive, 'isScrollActive phải được export');
   assert.ok(sched.runWhenIdle, 'runWhenIdle phải được export');
 
   /* 1. Kiểm tra ưu tiên user-blocking thực thi ngay lập tức */
@@ -74,6 +111,9 @@ test('Round 2: Adaptive RAF Scheduler, Task Priorities & 0ms Latency', async () 
     idleRan = true;
   }, 50);
   assert.equal(typeof cancelIdle, 'function', 'runWhenIdle trả về hàm huỷ');
+
+  /* 5. Kiểm tra isScrollActive trả về boolean an toàn */
+  assert.equal(typeof sched.isScrollActive(), 'boolean', 'isScrollActive trả về boolean an toàn');
 });
 
 /* ========================================================================== */
@@ -184,11 +224,15 @@ test('Round 4: Proactive LRU Media Cache Eviction & Garbage Collection', async (
     assert.ok(u4, 'Asset 4 nạp thành công');
     assert.ok(revokedUrls.includes(u1), 'Mục inactive cũ nhất (u1) phải bị URL.revokeObjectURL giải phóng RAM');
 
-    /* Kiểm tra hàm thu hồi thủ công / khi tab chạy nền */
+    /* Bảo vệ tài nguyên đang active: item2 và item3 KHÔNG bị thu hồi */
+    assert.equal(revokedUrls.includes(u2), false, 'Asset 2 đang active không được phép bị thu hồi');
+    assert.equal(revokedUrls.includes(u3), false, 'Asset 3 đang active không được phép bị thu hồi');
+
+    /* Unregister item2 -> evictInactiveMediaBlobs giải phóng mục khi không còn ai dùng */
     store.unregisterMediaReference('/assets/decorations/item2.webm');
     const evicted = store.evictInactiveMediaBlobs(0);
-    assert.ok(evicted >= 1, 'evictInactiveMediaBlobs phải giải phóng ít nhất 1 mục không còn component nào dùng');
-    assert.ok(revokedUrls.includes(u2), 'u2 sau khi unregister phải bị giải phóng bộ nhớ');
+    assert.ok(evicted >= 1, 'evictInactiveMediaBlobs phải giải phóng ít nhất 1 mục');
+    assert.ok(revokedUrls.includes(u2), 'u2 sau khi unregister về 0 refCount phải bị giải phóng bộ nhớ');
 
     /* Dọn sạch cache */
     store.clearMediaCache(true);
@@ -200,3 +244,4 @@ test('Round 4: Proactive LRU Media Cache Eviction & Garbage Collection', async (
     globalThis.fetch = origFetch;
   }
 });
+

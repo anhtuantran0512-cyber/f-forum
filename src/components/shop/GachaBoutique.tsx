@@ -452,11 +452,14 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
 
   const paged = filtered.slice(0, visibleCount);
 
+  const boutiqueGridRef = useRef<HTMLDivElement | null>(null);
+
   const { isItemVisible } = useVirtualWindow({
     totalItems: paged.length,
     itemHeight: 240,
     columns: 3,
     overscan: 6,
+    rootRef: boutiqueGridRef,
   });
 
   const inspected = inspectId ? activeItems.find((item) => item.id === inspectId) || null : null;
@@ -1256,7 +1259,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           )}
         </div>
       ) : (
-        <div className="gb-masonry shop-grid" role="list" aria-label="Trang trí trong Gacha Boutique">
+        <div ref={boutiqueGridRef} className="gb-masonry shop-grid" role="list" aria-label="Trang trí trong Gacha Boutique">
           {paged.map((item, index) => {
             if (!isItemVisible(index)) {
               return (

@@ -173,6 +173,10 @@ export const unregisterMediaReference = (url: string | null): void => {
   const meta = blobMeta.get(absolute);
   if (meta) {
     meta.refCount = Math.max(0, meta.refCount - 1);
+    /* Nếu mục trở thành inactive và bộ nhớ cache đang vượt ngưỡng limit, giải phóng ngay */
+    if (meta.refCount === 0 && blobCache.size > blobLimit) {
+      revokeIfNotUsed();
+    }
   }
 };
 
@@ -236,6 +240,7 @@ const revokeIfNotUsed = () => {
   if (blobCache.size > blobLimit) {
     for (const [key, objectUrl] of Array.from(blobCache.entries())) {
       const meta = blobMeta.get(key);
+      /* Chỉ thu hồi các tài nguyên inactive (không còn thẻ UI nào trên màn hình sử dụng) */
       if (!meta || meta.refCount <= 0) {
         blobCache.delete(key);
         blobMeta.delete(key);
@@ -246,23 +251,6 @@ const revokeIfNotUsed = () => {
         }
         totalEvictedCount += 1;
         if (blobCache.size <= blobLimit) return;
-      }
-    }
-
-    if (blobCache.size > blobLimit) {
-      const oldestKey = blobCache.keys().next().value as string | undefined;
-      if (oldestKey) {
-        const objectUrl = blobCache.get(oldestKey);
-        blobCache.delete(oldestKey);
-        blobMeta.delete(oldestKey);
-        if (objectUrl) {
-          try {
-            URL.revokeObjectURL(objectUrl);
-          } catch {
-            /* đã revoked */
-          }
-        }
-        totalEvictedCount += 1;
       }
     }
   }
