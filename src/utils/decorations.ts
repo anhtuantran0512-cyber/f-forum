@@ -332,7 +332,7 @@ export const buildAdaptiveVideoSources = (
   const urlHd = `${base}${sep}tier=hd`;
   const urlSd = `${base}${sep}tier=sd`;
 
-  const primaryUrl = tier === 'tier-a' ? base : tier === 'tier-b' ? base : base;
+  const primaryUrl = tier === 'tier-c' ? urlSd : tier === 'tier-b' ? urlHd : url4k;
   return {
     primaryUrl,
     sources: [

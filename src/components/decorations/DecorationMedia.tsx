@@ -41,8 +41,8 @@ export const DecorationMedia = ({
   const animated = !!asset.isAnimated && !!asset.animatedAssetUrl;
   const baseCanAnimate = animated && enabled && animate && !reducedMotion && supportsWebmAlpha();
   const withinBudget = useMemo(
-    () => (baseCanAnimate ? animationBudget.acquire(instanceId, true) : true),
-    [baseCanAnimate, instanceId],
+    () => (baseCanAnimate ? animationBudget.acquire(instanceId, isOwnPriority) : true),
+    [baseCanAnimate, instanceId, isOwnPriority],
   );
 
   const [videoFailed, setVideoFailed] = useState(false);
@@ -52,10 +52,9 @@ export const DecorationMedia = ({
   const adaptiveSet = useVideo
     ? buildAdaptiveVideoSources(asset.animatedAssetUrl, tier)
     : null;
-  const videoUrl = adaptiveSet?.primaryUrl || null;
-  const directVideoUrl = asset.animatedAssetUrl ? resolveAssetUrl(asset.animatedAssetUrl) : null;
-  const [blobUrl] = useCachedAsset(directVideoUrl || videoUrl, Boolean(useVideo && (directVideoUrl || videoUrl)));
-  const activeVideoSrc = blobUrl || directVideoUrl || videoUrl;
+  const targetVideoUrl = adaptiveSet?.primaryUrl || (asset.animatedAssetUrl ? resolveAssetUrl(asset.animatedAssetUrl) : null);
+  const [blobUrl] = useCachedAsset(targetVideoUrl, Boolean(useVideo && targetVideoUrl));
+  const activeVideoSrc = blobUrl || targetVideoUrl;
 
   useEffect(() => {
     if (!useVideo || !isActiveInViewport) {
@@ -70,7 +69,7 @@ export const DecorationMedia = ({
       }
       return;
     }
-    const granted = animationBudget.acquire(instanceId, true);
+    const granted = animationBudget.acquire(instanceId, isOwnPriority);
     const vid = videoRef.current;
     if (vid && (isOwnPriority || granted) && vid.paused) {
       vid.play().catch(() => {});
@@ -113,7 +112,7 @@ export const DecorationMedia = ({
         {adaptiveSet?.sources.map((source) => (
           <source
             key={source.quality}
-            src={activeVideoSrc || source.src}
+            src={source.src}
             media={source.media}
             type={source.type}
           />

@@ -132,12 +132,19 @@ test('2. GPU-Safe Animation Audit: 0 @keyframes gây Layout Reflow trong toàn b
 });
 
 test('3. Adaptive Media Delivery: Multi-quality Video (4K/HD/SD), Priority Hints, LQIP & Resource Hints', () => {
-  const sources = buildAdaptiveVideoSources('/assets/decorations/avatar-frames/cyber-katana/animated.webm', 'tier-a');
-  assert.ok(sources);
-  assert.equal(sources.sources.length, 3);
-  assert.deepEqual(sources.sources.map((s) => s.quality), ['4k', 'hd', 'sd']);
-  assert.equal(sources.sources[0].media, '(min-width: 1200px)');
-  assert.equal(sources.sources[1].media, '(min-width: 600px)');
+  const sourcesA = buildAdaptiveVideoSources('/assets/decorations/avatar-frames/cyber-katana/animated.webm', 'tier-a');
+  assert.ok(sourcesA);
+  assert.equal(sourcesA.sources.length, 3);
+  assert.deepEqual(sourcesA.sources.map((s) => s.quality), ['4k', 'hd', 'sd']);
+  assert.equal(sourcesA.sources[0].media, '(min-width: 1200px)');
+  assert.equal(sourcesA.sources[1].media, '(min-width: 600px)');
+  assert.match(sourcesA.primaryUrl, /tier=4k/, 'Tier A nhận primaryUrl chất lượng 4K');
+
+  const sourcesB = buildAdaptiveVideoSources('/assets/decorations/avatar-frames/cyber-katana/animated.webm', 'tier-b');
+  assert.match(sourcesB.primaryUrl, /tier=hd/, 'Tier B nhận primaryUrl chất lượng HD');
+
+  const sourcesC = buildAdaptiveVideoSources('/assets/decorations/avatar-frames/cyber-katana/animated.webm', 'tier-c');
+  assert.match(sourcesC.primaryUrl, /tier=sd/, 'Tier C nhận primaryUrl chất lượng SD');
 
   assert.ok(MULTI_QUALITY_WEBM_PROFILES['4k']);
   assert.ok(MULTI_QUALITY_WEBM_PROFILES.hd);
@@ -146,6 +153,9 @@ test('3. Adaptive Media Delivery: Multi-quality Video (4K/HD/SD), Priority Hints
   const decoMedia = read('src/components/decorations/DecorationMedia.tsx');
   assert.match(decoMedia, /fetchPriority=\{fetchPriorityAttr\}/);
   assert.match(decoMedia, /<source/);
+  assert.match(decoMedia, /animationBudget\.acquire\(instanceId,\s*isOwnPriority\)/, 'Chỉ ưu tiên slot animation cho chính user, user khác phải qua ngân sách Tier');
+  assert.doesNotMatch(decoMedia, /animationBudget\.acquire\(instanceId,\s*true\)/, 'Không được hardcode true làm mất hiệu lực điều phối ngân sách');
+  assert.match(decoMedia, /src=\{source\.src\}/, 'Từng thẻ source video phải giữ đúng URL chất lượng của nó');
 
   const html = read('index.html');
   assert.match(html, /rel="preconnect"/);
@@ -161,7 +171,9 @@ test('4. Canvas/WebGL + Offscreen Worker Particle System: Float32Array physics &
   assert.equal(alive, 32);
 
   const canvasSrc = read('src/components/effects/GpuParticleCanvas.tsx');
+  assert.match(canvasSrc, /canvas\.getContext\('webgl'/, 'Phải ưu tiên khởi tạo WebGL context trước 2D');
   assert.match(canvasSrc, /gl\.drawArrays\(gl\.POINTS,\s*0,\s*count\)/, 'vẽ toàn bộ hạt trong 1 draw call WebGL');
+  assert.match(canvasSrc, /loseContext/, 'Giải phóng WebGL context khi unmount tránh rò rỉ VRAM');
   assert.match(read('src/components/CelebrationBurst.tsx'), /<GpuParticleCanvas/);
 });
 
@@ -285,3 +297,33 @@ test('6. SSIM Quality Gate (SSIM ≥ 0.95) & Admin Performance by Device Tier AP
   assert.ok(fs.existsSync(path.join(ROOT, 'docs/ADAPTIVE_QUALITY_ARCHITECTURE.md')));
   assert.ok(fs.existsSync(path.join(ROOT, 'public/sw.js')));
 });
+
+test('7. Clean Code Discipline & Virtual Card Rendering: 0 single-line // comments in functional code', () => {
+  const walkTs = (dir) => {
+    const out = [];
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, entry.name);
+      if (entry.isDirectory()) out.push(...walkTs(p));
+      else if (p.endsWith('.ts') || p.endsWith('.tsx')) out.push(p);
+    }
+    return out;
+  };
+
+  const violations = [];
+  for (const dir of ['src', 'server']) {
+    for (const file of walkTs(path.join(ROOT, dir))) {
+      const lines = fs.readFileSync(file, 'utf8').split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (/^\s*\/\//.test(line)) {
+          violations.push(`${path.relative(ROOT, file)}:${i + 1}: ${line.trim()}`);
+        }
+      }
+    }
+  }
+  assert.deepEqual(violations, [], 'Kỷ luật tuyệt đối: 0 dòng single-line // comment trong code chức năng TypeScript');
+
+  const css = read('src/index.css');
+  assert.match(css, /\.ff-virtual-card[\s\S]*?content-visibility:\s*auto/, 'Virtual card phải hỗ trợ content-visibility: auto');
+});
+
