@@ -125,7 +125,7 @@ export const LandingShowcase: React.FC = () => {
       </div>
 
       {/* ---------- Desktop: pinned scroll-scrubbed tour ---------- */}
-      <div ref={trackRef} className="relative hidden lg:block" style={{ height: '320vh' }}>
+      <div ref={trackRef} className="relative hidden lg:block" style={{ height: '180vh' }}>
         <div className="sticky top-24 flex h-[calc(100vh-7rem)] items-center">
           <div className="mx-auto grid w-full max-w-6xl grid-cols-[minmax(0,0.82fr)_minmax(0,1fr)] gap-12 px-6">
             {/* Copy column */}
@@ -226,10 +226,10 @@ export const LandingShowcase: React.FC = () => {
                 <div
                   key={index}
                   aria-hidden={index !== activeIndex}
-                  className={`absolute inset-0 transition-all duration-700 ${
+                  className={`absolute inset-0 transition-all duration-300 ${
                     index === activeIndex
                       ? 'pointer-events-auto translate-y-0 scale-100 opacity-100 blur-0'
-                      : 'pointer-events-none translate-y-4 scale-[0.97] opacity-0 blur-[2px]'
+                      : 'pointer-events-none translate-y-3 scale-[0.98] opacity-0 blur-[1px]'
                   }`}
                   style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
                 >

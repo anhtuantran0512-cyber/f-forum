@@ -173,7 +173,6 @@ export const BoomerangVideoBg: React.FC = () => {
     <div className="ff-video-bg absolute inset-0 z-0 scale-[1.06] origin-center overflow-hidden pointer-events-none bg-neutral-950">
       <video
         ref={videoRef}
-        src={VIDEO_URL}
         autoPlay
         muted
         playsInline

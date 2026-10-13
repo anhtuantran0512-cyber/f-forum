@@ -5877,6 +5877,67 @@ html.light .answer-card.verified {
   border-left-color: #10b981 !important;
 }
 
+/* Modern Forum Premium Cards (Dark Obsidian & Crystalline Light) */
+.ff-qa-card {
+  position: relative;
+  background: linear-gradient(160deg, rgba(15, 23, 38, 0.94), rgba(10, 16, 27, 0.97));
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.34);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.ff-qa-card:hover {
+  transform: translateY(-2px);
+}
+.ff-qa-card.is-solved {
+  border-left: 4px solid #34d399;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+.ff-qa-card.is-solved:hover {
+  border-color: rgba(52, 211, 153, 0.55);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(16, 185, 129, 0.15);
+}
+.ff-qa-card.is-unsolved {
+  border-left: 4px solid rgba(34, 211, 238, 0.7);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.ff-qa-card.is-unsolved:hover {
+  border-color: rgba(34, 211, 238, 0.45);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(34, 211, 238, 0.12);
+}
+
+html.light .ff-qa-card {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.94), rgba(246, 248, 252, 0.96)) !important;
+  border: 1px solid rgba(15, 23, 42, 0.09) !important;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+html.light .ff-qa-card:hover {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 254, 0.99)) !important;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+}
+html.light .ff-qa-card.is-solved {
+  border-left: 4px solid #059669 !important;
+}
+html.light .ff-qa-card.is-solved:hover {
+  border-color: rgba(5, 150, 105, 0.45) !important;
+}
+html.light .ff-qa-card.is-unsolved {
+  border-left: 4px solid #0891b2 !important;
+}
+html.light .ff-qa-card.is-unsolved:hover {
+  border-color: rgba(8, 145, 178, 0.45) !important;
+}
+
+html.light .ff-media-card {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.94)) !important;
+  border-color: rgba(15, 23, 42, 0.09) !important;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+html.light .ff-media-card:hover {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(250, 252, 255, 0.99)) !important;
+  border-color: rgba(245, 158, 11, 0.45) !important;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08) !important;
+}
+
 /* @generated light-adapter:start — sinh bởi scripts/generate-light-adapter.mjs (npm run gen:light). KHÔNG sửa tay. */
 html.light {
   --lv-ink: #101827;
@@ -5967,17 +6028,17 @@ html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.divide-white\/6 > :not(:last-child)):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *) { border-color: rgba(15, 23, 42, 0.1); }
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.ring-white\/15, .ring-white\/20):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *) { --tw-ring-color: rgba(15, 23, 42, 0.14); }
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.ring-white\/25):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *) { --tw-ring-color: rgba(15, 23, 42, 0.2); }
-html.light :is(.from-\[\#070b13\], .from-\[\#080d15\], .from-\[\#080d17\], .from-\[\#0a0f1d\], .from-\[\#0e1b26\]\/95, .from-\[\#0f1726\]\/95, .from-\[\#131722\]\/95, .from-black, .from-black\/85, .from-black\/95, .from-neutral-950) { --lv-from: rgba(248, 250, 252, 0.94); }
+html.light :is(.from-\[\#070b13\], .from-\[\#080d15\], .from-\[\#080d17\], .from-\[\#0a0f1d\], .from-\[\#131722\]\/95, .from-black, .from-black\/85, .from-black\/95, .from-neutral-950) { --lv-from: rgba(248, 250, 252, 0.94); }
 html.light :is(.from-black\/80) { --lv-from: rgba(248, 250, 252, 0.75); }
-html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.from-\[\#070b13\], .from-\[\#080d15\], .from-\[\#080d17\], .from-\[\#0a0f1d\], .from-\[\#0e1b26\]\/95, .from-\[\#0f1726\]\/95, .from-\[\#131722\]\/95, .from-black, .from-black\/80, .from-black\/85, .from-black\/95, .from-neutral-950):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *) { --tw-gradient-from: var(--lv-from); }
+html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.from-\[\#070b13\], .from-\[\#080d15\], .from-\[\#080d17\], .from-\[\#0a0f1d\], .from-\[\#131722\]\/95, .from-black, .from-black\/80, .from-black\/85, .from-black\/95, .from-neutral-950):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *) { --tw-gradient-from: var(--lv-from); }
 html.light :is(.via-\[\#09101c\], .via-\[\#09111e\], .via-\[\#091120\], .via-\[\#0e121a\]\/95, .via-\[\#141b33\], .via-neutral-800, .via-neutral-950\/85, .via-neutral-950\/90) { --lv-via: rgba(248, 250, 252, 0.94); }
 html.light :is(.via-black\/30) { --lv-via: rgba(248, 250, 252, 0.45); }
 html.light :is(.via-black\/60) { --lv-via: rgba(248, 250, 252, 0.75); }
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.via-\[\#09101c\], .via-\[\#09111e\], .via-\[\#091120\], .via-\[\#0e121a\]\/95, .via-\[\#141b33\], .via-black\/30, .via-black\/60, .via-neutral-800, .via-neutral-950\/85, .via-neutral-950\/90):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *) { --tw-gradient-via: var(--lv-via); }
-html.light :is(.to-\[\#060a12\], .to-\[\#060a13\], .to-\[\#080b10\]\/95, .to-\[\#0a101b\]\/98, .to-\[\#0b131d\]\/98, .to-\[\#1e1b4b\], .to-black, .to-neutral-950) { --lv-to: rgba(248, 250, 252, 0.94); }
+html.light :is(.to-\[\#060a12\], .to-\[\#060a13\], .to-\[\#080b10\]\/95, .to-\[\#1e1b4b\], .to-black, .to-neutral-950) { --lv-to: rgba(248, 250, 252, 0.94); }
 html.light :is(.to-black\/40) { --lv-to: rgba(248, 250, 252, 0.45); }
 html.light :is(.to-black\/50, .to-black\/60, .to-black\/70) { --lv-to: rgba(248, 250, 252, 0.75); }
-html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.to-\[\#060a12\], .to-\[\#060a13\], .to-\[\#080b10\]\/95, .to-\[\#0a101b\]\/98, .to-\[\#0b131d\]\/98, .to-\[\#1e1b4b\], .to-black, .to-black\/40, .to-black\/50, .to-black\/60, .to-black\/70, .to-neutral-950):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *) { --tw-gradient-to: var(--lv-to); }
+html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.to-\[\#060a12\], .to-\[\#060a13\], .to-\[\#080b10\]\/95, .to-\[\#1e1b4b\], .to-black, .to-black\/40, .to-black\/50, .to-black\/60, .to-black\/70, .to-neutral-950):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *) { --tw-gradient-to: var(--lv-to); }
 /* @generated light-adapter:end */
 
 /* AppErrorBoundary — chấm xanh nhấp nháy "Đang tự động tải lại…" */
