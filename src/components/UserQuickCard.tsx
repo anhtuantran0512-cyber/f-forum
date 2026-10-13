@@ -147,16 +147,17 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
               animate
               priority="high"
             />
-            <div className="relative z-[2] flex items-center gap-1.5 flex-wrap">
+            <div className="relative z-[2] flex items-center gap-1.5 flex-nowrap min-w-0">
               <DecoratedName
                 user={user}
                 name={user.name.replace(/ \(.*\)/, '')}
-                width={206}
+                width={186}
                 height={38}
                 eager
                 animate
                 priority="high"
                 showFallbackTag
+                className="min-w-0 shrink"
               />
               {isSuperAdmin && <AdminVerifiedBadge size={15} />}
               <PremiumMark user={user} compact />

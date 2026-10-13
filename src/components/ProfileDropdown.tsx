@@ -36,7 +36,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   anchorRef,
 }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const pop = usePopoverPosition(isOpen, anchorRef, dockPosition, 320, 540);
+  const pop = usePopoverPosition(isOpen, anchorRef, dockPosition, 340, 540);
 
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState('');
@@ -130,7 +130,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       role="menu"
       aria-label="Menu tài khoản"
       className={`z-[70] bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] popover-morph-enter select-none pointer-events-auto overflow-y-auto no-scrollbar ${
-        !anchorRef || !pop.ready ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] max-w-[calc(100vw-28px)]' : ''
+        !anchorRef || !pop.ready ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] max-w-[calc(100vw-28px)]' : ''
       }`}
       style={anchorRef ? pop.style : undefined}
     >
@@ -140,7 +140,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         <div className="ff-discord-userbar flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/[0.04] border border-white/15">
           <UserNameplateBg
             user={currentUser}
-            width={288}
+            width={308}
             eager
             animate
             priority="high"
@@ -175,16 +175,17 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
           </div>
 
           <div className="relative z-[2] flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-nowrap min-w-0">
               <DecoratedName
                 user={currentUser}
                 name={currentUser.name.replace(/ \(.*\)/, '')}
-                width={186}
+                width={168}
                 height={34}
                 eager
                 animate
                 priority="high"
                 showFallbackTag
+                className="min-w-0 shrink"
               />
               {isSuperAdmin && (
                 <AdminVerifiedBadge size={14} tooltipPosition="bottom" />

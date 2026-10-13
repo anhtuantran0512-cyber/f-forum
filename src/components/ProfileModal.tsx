@@ -1598,8 +1598,8 @@ const ProfileModalInner: React.FC<{
 
                       {/* Tên hiển thị tại Hồ Sơ (không gắn nametag trong hồ sơ, nametag dùng ở thanh profile Navbar / Menu / Thẻ tương tác) */}
                       <div className="mt-3 flex flex-col items-center justify-center gap-2 w-full max-w-xl mx-auto">
-                        <div className="flex items-center justify-center gap-2 flex-wrap max-w-full">
-                          <h3 className="text-xl sm:text-2xl font-extrabold text-white flex items-center justify-center gap-2 min-w-0 max-w-full mx-auto tracking-tight">
+                        <div className="flex items-center justify-center gap-2 flex-nowrap max-w-full">
+                          <h3 className="text-xl sm:text-2xl font-extrabold text-white inline-flex items-center justify-center gap-2 min-w-0 max-w-full mx-auto tracking-tight">
                             <span className={`truncate ${isSuperAdmin ? 'discord-admin-name' : 'text-white'}`}>
                               {currentUser.name}
                             </span>
@@ -2658,9 +2658,9 @@ const ProfileModalInner: React.FC<{
                       />
                     </div>
 
-                    <div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <h5 className={`text-lg font-extrabold leading-tight ${isSuperAdmin ? 'discord-admin-name' : 'text-white'}`}>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-nowrap min-w-0">
+                        <h5 className={`text-lg font-extrabold leading-tight truncate ${isSuperAdmin ? 'discord-admin-name' : 'text-white'}`}>
                           {name || 'Học sinh'}
                         </h5>
                         {isSuperAdmin && <AdminVerifiedBadge size={14} />}
