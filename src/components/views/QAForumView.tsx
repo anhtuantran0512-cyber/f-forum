@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useDraftAutosave } from '../../utils/useDraftAutosave';
+import { useVirtualWindow } from '../../utils/virtualWindow';
+import { useInteractionDebounce } from '../../utils/interactionScheduler';
 import {
   Search,
   PlusCircle,
@@ -669,6 +671,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [selectedTag, setSelectedTag] = useState<SubjectTag | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'unsolved' | 'solved' | 'with_image'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useInteractionDebounce(searchTerm, 120);
   const [isAskModalOpen, setIsAskModalOpen] = useState(false);
   /* Liên kết chia sẻ ?q=<id> mở thẳng câu hỏi (nếu dữ liệu đã có sẵn khi vào trang) */
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(() => {
@@ -1260,9 +1263,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     const matched = questions.filter(q => {
       const matchesTag = selectedTag === 'all' || q.subject === selectedTag;
       const matchesSearch =
-        q.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        q.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        q.subject.toLowerCase().includes(searchTerm.toLowerCase());
+        q.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        q.content.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        q.subject.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
       const matchesSaved = !showSavedOnly || mySavedIds.includes(q.id);
       const qImages = getQuestionAttachedImages(q);
       const matchesStatus =
@@ -1281,7 +1284,15 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     */
     const counts = buildSolutionCounts(solutions);
     return sortQuestions(matched, sortMode, counts);
-  }, [questions, solutions, selectedTag, statusFilter, searchTerm, showSavedOnly, mySavedIds, sortMode]);
+  }, [questions, solutions, selectedTag, statusFilter, debouncedSearchTerm, showSavedOnly, mySavedIds, sortMode]);
+
+  const { isItemVisible: isQuestionVisible } = useVirtualWindow({
+    totalItems: filteredQuestions.length,
+    itemHeight: 180,
+    columns: 1,
+    overscan: 6,
+    containerRef: isEmbedded ? undefined : listScrollRef,
+  });
 
   const handleAskSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1663,7 +1674,17 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               </div>
             )
           ) : (
-            filteredQuestions.map(q => {
+            filteredQuestions.map((q, qIndex) => {
+              if (!isQuestionVisible(qIndex)) {
+                return (
+                  <div
+                    key={q.id}
+                    className="ff-virtual-card ff-virtual-card--recycled rounded-3xl border border-white/[0.04] bg-[#0c121d]/40"
+                    style={{ minHeight: '160px', height: '160px', contain: 'strict' }}
+                    aria-hidden="true"
+                  />
+                );
+              }
               const qSolutions = solutionsByQuestionId.get(q.id) || EMPTY_QA_SOLUTIONS;
               const bestSol = qSolutions.find(s => s.isBest);
               const subjectLabel = SUBJECTS.find(s => s.tag === q.subject)?.label || q.subject;

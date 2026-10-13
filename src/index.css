@@ -5918,7 +5918,7 @@ html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-chat, .ff-
 html.light :is(.bg-\[\#000000\], .bg-\[\#001428\], .bg-\[\#03070c\]\/92, .bg-\[\#04070d\], .bg-\[\#050505\], .bg-\[\#060911\], .bg-\[\#06101c\], .bg-\[\#06101c\]\/95, .bg-\[\#070b13\], .bg-\[\#080C1C\]\/95, .bg-\[\#080C22\]\/90, .bg-\[\#090e18\], .bg-\[\#090f1c\]\/95, .bg-\[\#0A0E1A\]\/90, .bg-\[\#0A0E1A\]\/95, .bg-\[\#0A0E24\], .bg-\[\#0D1230\]\/95, .bg-\[\#0D1326\], .bg-\[\#0D1326\]\/95, .bg-\[\#0a0a0a\], .bg-\[\#0a0f14\], .bg-\[\#0a0f14\]\/90, .bg-\[\#0a0f14\]\/95, .bg-\[\#0b0b0b\], .bg-\[\#0b1017\]\/95, .bg-\[\#0b1017\]\/96, .bg-\[\#0b1018\], .bg-\[\#0b1019\], .bg-\[\#0b111c\]\/90, .bg-\[\#0b111d\], .bg-\[\#0b111e\], .bg-\[\#0b111e\]\/95, .bg-\[\#0c1218\], .bg-\[\#0c1218\]\/90, .bg-\[\#0c1218\]\/95, .bg-\[\#0c1320\]\/90, .bg-\[\#0d1420\], .bg-\[\#0d1422\], .bg-\[\#0e1522\]\/90, .bg-\[\#0e1624\], .bg-\[\#0e1624\]\/95, .bg-\[\#111923\], .bg-\[\#131926\]\/95, .bg-\[\#131b24\], .bg-black, .bg-black\/92, .bg-black\/95, .bg-neutral-800, .bg-neutral-900, .bg-neutral-900\/95, .bg-neutral-950, .bg-neutral-950\/95, .bg-slate-900, .bg-slate-900\/90, .bg-slate-950\/90) { --lv-bg: rgba(255, 255, 255, 0.92); }
 html.light :is(.bg-\[\#071727\]\/75, .bg-\[\#080d16\]\/82, .bg-\[\#0d2034\]\/70, .bg-\[\#0e1522\]\/85, .bg-\[\#111214\]\/85, .bg-black\/70, .bg-black\/75, .bg-black\/80, .bg-black\/85, .bg-black\/88, .bg-neutral-900\/80, .bg-neutral-950\/75, .bg-neutral-950\/80, .bg-neutral-950\/85, .bg-slate-900\/70, .bg-slate-900\/80, .bg-white\/12, .bg-white\/15, .bg-white\/20, .bg-white\/25) { --lv-bg: rgba(255, 255, 255, 0.84); }
 html.light :is(.bg-\[\#0c1218\]\/60, .bg-black\/45, .bg-black\/50, .bg-black\/55, .bg-black\/60, .bg-black\/65) { --lv-bg: rgba(255, 255, 255, 0.72); }
-html.light :is(.bg-black\/15, .bg-black\/20, .bg-black\/25, .bg-black\/30, .bg-black\/35, .bg-black\/40) { --lv-bg: rgba(255, 255, 255, 0.6); }
+html.light :is(.bg-\[\#0c121d\]\/40, .bg-black\/15, .bg-black\/20, .bg-black\/25, .bg-black\/30, .bg-black\/35, .bg-black\/40) { --lv-bg: rgba(255, 255, 255, 0.6); }
 html.light :is(.bg-cyan-950\/30) { --lv-bg: rgba(207, 250, 254, 0.78); }
 html.light :is(.bg-emerald-950\/30, .bg-emerald-950\/40) { --lv-bg: rgba(209, 250, 229, 0.78); }
 html.light :is(.bg-purple-950\/35, .bg-purple-950\/40) { --lv-bg: rgba(243, 232, 255, 0.78); }
@@ -5926,7 +5926,7 @@ html.light :is(.bg-red-950\/30, .bg-red-950\/50) { --lv-bg: rgba(254, 226, 226, 
 html.light :is(.bg-rose-950\/30, .bg-rose-950\/35) { --lv-bg: rgba(255, 228, 230, 0.78); }
 html.light :is(.bg-white\/10, .bg-white\/6, .bg-white\/8) { --lv-bg: rgba(255, 255, 255, 0.74); }
 html.light :is(.bg-white\/5) { --lv-bg: rgba(255, 255, 255, 0.62); }
-html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *, .ff-light-adapt):is(.bg-\[\#000000\], .bg-\[\#001428\], .bg-\[\#03070c\]\/92, .bg-\[\#04070d\], .bg-\[\#050505\], .bg-\[\#060911\], .bg-\[\#06101c\], .bg-\[\#06101c\]\/95, .bg-\[\#070b13\], .bg-\[\#071727\]\/75, .bg-\[\#080C1C\]\/95, .bg-\[\#080C22\]\/90, .bg-\[\#080d16\]\/82, .bg-\[\#090e18\], .bg-\[\#090f1c\]\/95, .bg-\[\#0A0E1A\]\/90, .bg-\[\#0A0E1A\]\/95, .bg-\[\#0A0E24\], .bg-\[\#0D1230\]\/95, .bg-\[\#0D1326\], .bg-\[\#0D1326\]\/95, .bg-\[\#0a0a0a\], .bg-\[\#0a0f14\], .bg-\[\#0a0f14\]\/90, .bg-\[\#0a0f14\]\/95, .bg-\[\#0b0b0b\], .bg-\[\#0b1017\]\/95, .bg-\[\#0b1017\]\/96, .bg-\[\#0b1018\], .bg-\[\#0b1019\], .bg-\[\#0b111c\]\/90, .bg-\[\#0b111d\], .bg-\[\#0b111e\], .bg-\[\#0b111e\]\/95, .bg-\[\#0c1218\], .bg-\[\#0c1218\]\/60, .bg-\[\#0c1218\]\/90, .bg-\[\#0c1218\]\/95, .bg-\[\#0c1320\]\/90, .bg-\[\#0d1420\], .bg-\[\#0d1422\], .bg-\[\#0d2034\]\/70, .bg-\[\#0e1522\]\/85, .bg-\[\#0e1522\]\/90, .bg-\[\#0e1624\], .bg-\[\#0e1624\]\/95, .bg-\[\#111214\]\/85, .bg-\[\#111923\], .bg-\[\#131926\]\/95, .bg-\[\#131b24\], .bg-black, .bg-black\/15, .bg-black\/20, .bg-black\/25, .bg-black\/30, .bg-black\/35, .bg-black\/40, .bg-black\/45, .bg-black\/50, .bg-black\/55, .bg-black\/60, .bg-black\/65, .bg-black\/70, .bg-black\/75, .bg-black\/80, .bg-black\/85, .bg-black\/88, .bg-black\/92, .bg-black\/95, .bg-cyan-950\/30, .bg-emerald-950\/30, .bg-emerald-950\/40, .bg-neutral-800, .bg-neutral-900, .bg-neutral-900\/80, .bg-neutral-900\/95, .bg-neutral-950, .bg-neutral-950\/75, .bg-neutral-950\/80, .bg-neutral-950\/85, .bg-neutral-950\/95, .bg-purple-950\/35, .bg-purple-950\/40, .bg-red-950\/30, .bg-red-950\/50, .bg-rose-950\/30, .bg-rose-950\/35, .bg-slate-900, .bg-slate-900\/70, .bg-slate-900\/80, .bg-slate-900\/90, .bg-slate-950\/90, .bg-white\/10, .bg-white\/12, .bg-white\/15, .bg-white\/20, .bg-white\/25, .bg-white\/5, .bg-white\/6, .bg-white\/8):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *):not(.fixed.inset-0, .inset-0[class*="backdrop-blur"], .inset-0.opacity-0) { background-color: var(--lv-bg); }
+html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *, .ff-light-adapt):is(.bg-\[\#000000\], .bg-\[\#001428\], .bg-\[\#03070c\]\/92, .bg-\[\#04070d\], .bg-\[\#050505\], .bg-\[\#060911\], .bg-\[\#06101c\], .bg-\[\#06101c\]\/95, .bg-\[\#070b13\], .bg-\[\#071727\]\/75, .bg-\[\#080C1C\]\/95, .bg-\[\#080C22\]\/90, .bg-\[\#080d16\]\/82, .bg-\[\#090e18\], .bg-\[\#090f1c\]\/95, .bg-\[\#0A0E1A\]\/90, .bg-\[\#0A0E1A\]\/95, .bg-\[\#0A0E24\], .bg-\[\#0D1230\]\/95, .bg-\[\#0D1326\], .bg-\[\#0D1326\]\/95, .bg-\[\#0a0a0a\], .bg-\[\#0a0f14\], .bg-\[\#0a0f14\]\/90, .bg-\[\#0a0f14\]\/95, .bg-\[\#0b0b0b\], .bg-\[\#0b1017\]\/95, .bg-\[\#0b1017\]\/96, .bg-\[\#0b1018\], .bg-\[\#0b1019\], .bg-\[\#0b111c\]\/90, .bg-\[\#0b111d\], .bg-\[\#0b111e\], .bg-\[\#0b111e\]\/95, .bg-\[\#0c1218\], .bg-\[\#0c1218\]\/60, .bg-\[\#0c1218\]\/90, .bg-\[\#0c1218\]\/95, .bg-\[\#0c121d\]\/40, .bg-\[\#0c1320\]\/90, .bg-\[\#0d1420\], .bg-\[\#0d1422\], .bg-\[\#0d2034\]\/70, .bg-\[\#0e1522\]\/85, .bg-\[\#0e1522\]\/90, .bg-\[\#0e1624\], .bg-\[\#0e1624\]\/95, .bg-\[\#111214\]\/85, .bg-\[\#111923\], .bg-\[\#131926\]\/95, .bg-\[\#131b24\], .bg-black, .bg-black\/15, .bg-black\/20, .bg-black\/25, .bg-black\/30, .bg-black\/35, .bg-black\/40, .bg-black\/45, .bg-black\/50, .bg-black\/55, .bg-black\/60, .bg-black\/65, .bg-black\/70, .bg-black\/75, .bg-black\/80, .bg-black\/85, .bg-black\/88, .bg-black\/92, .bg-black\/95, .bg-cyan-950\/30, .bg-emerald-950\/30, .bg-emerald-950\/40, .bg-neutral-800, .bg-neutral-900, .bg-neutral-900\/80, .bg-neutral-900\/95, .bg-neutral-950, .bg-neutral-950\/75, .bg-neutral-950\/80, .bg-neutral-950\/85, .bg-neutral-950\/95, .bg-purple-950\/35, .bg-purple-950\/40, .bg-red-950\/30, .bg-red-950\/50, .bg-rose-950\/30, .bg-rose-950\/35, .bg-slate-900, .bg-slate-900\/70, .bg-slate-900\/80, .bg-slate-900\/90, .bg-slate-950\/90, .bg-white\/10, .bg-white\/12, .bg-white\/15, .bg-white\/20, .bg-white\/25, .bg-white\/5, .bg-white\/6, .bg-white\/8):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *):not(.fixed.inset-0, .inset-0[class*="backdrop-blur"], .inset-0.opacity-0) { background-color: var(--lv-bg); }
 html.light :is(.hover\:bg-white\/10:hover, .hover\:bg-white\/5:hover) { --lv-bg-h: rgba(15, 23, 42, 0.06); }
 html.light :is(.hover\:bg-white\/12:hover, .hover\:bg-white\/15:hover, .hover\:bg-white\/20:hover) { --lv-bg-h: rgba(15, 23, 42, 0.09); }
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.hover\:bg-white\/10:hover, .hover\:bg-white\/12:hover, .hover\:bg-white\/15:hover, .hover\:bg-white\/20:hover, .hover\:bg-white\/5:hover):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *) { background-color: var(--lv-bg-h); }
@@ -5968,3 +5968,80 @@ html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-chat, .ff-
   content-visibility: auto;
   contain-intrinsic-size: auto 200px;
 }
+
+/* ==========================================================================
+   ROUND 3: ZERO-OVERHEAD GLASSMORPHISM & GPU COMPOSITE LAYERS
+   (Kiến trúc đồ họa Web hiệu năng cao Discord & Facebook)
+   ========================================================================== */
+
+/* 1. Phần cứng tăng tốc (Hardware Acceleration / GPU Layer Promotion):
+   Cách ly bề mặt kính, thanh điều hướng và thẻ danh sách vào layer GPU riêng biệt
+   với translateZ(0) và backface-visibility: hidden. Tránh repainting toàn trang khi cuộn. */
+.liquid-glass,
+.obsidian-glass,
+.ff-virtual-card,
+.ff-media-card,
+.gb-card,
+.thread-card,
+.ff-nav-capsule,
+.clay-card {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* 2. Tối ưu khi cuộn tích cực (Active Scroll Optimization):
+   Tạm dừng các hiệu ứng hover đắt đỏ khi đang cuộn nhanh để giữ vững 60 FPS */
+body.is-scrolling .gb-card:hover,
+body.is-scrolling .ff-virtual-card:hover,
+body.is-scrolling .thread-card:hover {
+  pointer-events: none;
+}
+
+/* 3. Zero-Overhead Glassmorphism khi GPU Fill-Rate suy giảm:
+   Trên Tier C (máy yếu / GPU onboard) hoặc khi bật Tiết kiệm pin (battery-saver),
+   thay thế bộ lọc backdrop-filter (blur) đa tầng ngốn fill-rate bằng bảng màu hòa trộn
+   độ mờ cao cấp (flat high-fidelity color blending).
+   Vừa giữ nguyên tính thẩm mỹ bóng bẩy sang trọng, vừa giải phóng 100% GPU fill-rate. */
+[data-quality-tier="tier-c"] .liquid-glass,
+[data-battery-saver="true"] .liquid-glass {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: rgba(15, 23, 42, 0.96) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-quality-tier="tier-c"] .obsidian-glass,
+[data-battery-saver="true"] .obsidian-glass {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: rgba(10, 16, 26, 0.97) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-quality-tier="tier-c"] :is(.backdrop-blur-sm, .backdrop-blur, .backdrop-blur-md, .backdrop-blur-lg, .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur-3xl),
+[data-battery-saver="true"] :is(.backdrop-blur-sm, .backdrop-blur, .backdrop-blur-md, .backdrop-blur-lg, .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur-3xl) {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Phối màu cho giao diện sáng (Light Mode) khi tắt backdrop-filter */
+html.light[data-quality-tier="tier-c"] .liquid-glass,
+html.light[data-battery-saver="true"] .liquid-glass {
+  background-color: rgba(248, 250, 252, 0.97) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+html.light[data-quality-tier="tier-c"] .obsidian-glass,
+html.light[data-battery-saver="true"] .obsidian-glass {
+  background-color: rgba(241, 245, 249, 0.98) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Thẻ ảo recycled stub: giữ chỗ chiều cao mà không tốn chi phí render */
+.ff-virtual-card--recycled {
+  content-visibility: auto;
+  pointer-events: none;
+  opacity: 0.15;
+}
+
