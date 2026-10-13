@@ -497,6 +497,42 @@ function sanitizeSessionRevocations(raw: unknown, legacyUsers: unknown, known: S
 const THREAD_REACTION_TYPES = new Set(['love', 'haha', 'fire', 'wow', 'support']);
 const MAX_THREADS = 5000;
 const THREAD_REACTIONS_PER_USER = 1;
+const MAX_ATTACHMENT_DATA_URL_CHARS = 8 * 1024 * 1024;
+const MAX_QUESTION_ATTACHED_IMAGES = 6;
+
+/**
+ * Chuẩn hóa URL hoặc Data URL ảnh đính kèm câu hỏi / lời giải / bài đăng:
+ * - Nếu là Data URL hợp lệ (`data:image/...;base64,...`) từ thiết bị học sinh tải lên:
+ *   cho phép tối đa 8MB (không cắt cụt ở 2000 ký tự gây hỏng ảnh).
+ * - Nếu là chuỗi URL thông thường: giới hạn ≤ 2000 ký tự.
+ */
+function sanitizeMediaAttachmentUrl(raw: unknown): string | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  if (/^data:image\/(?:png|jpe?g|webp|gif|avif|svg\+xml);base64,/i.test(trimmed)) {
+    return trimmed.slice(0, MAX_ATTACHMENT_DATA_URL_CHARS);
+  }
+  return trimmed.slice(0, 2000);
+}
+
+function sanitizeMediaAttachmentList(rawImages: unknown, fallbackSingle?: unknown): string[] | undefined {
+  const list: string[] = [];
+  if (Array.isArray(rawImages)) {
+    for (const item of rawImages) {
+      const clean = sanitizeMediaAttachmentUrl(item);
+      if (clean && !list.includes(clean)) {
+        list.push(clean);
+        if (list.length >= MAX_QUESTION_ATTACHED_IMAGES) break;
+      }
+    }
+  }
+  const single = sanitizeMediaAttachmentUrl(fallbackSingle);
+  if (single && !list.includes(single) && list.length < MAX_QUESTION_ATTACHED_IMAGES) {
+    list.unshift(single);
+  }
+  return list.length > 0 ? list : undefined;
+}
 
 function sanitizeThreads(raw: unknown): ThreadRecord[] {
   if (!Array.isArray(raw)) return [];
@@ -527,7 +563,7 @@ function sanitizeThreads(raw: unknown): ThreadRecord[] {
         authorAvatar: typeof t.authorAvatar === 'string' ? t.authorAvatar.slice(0, 4000) : DEFAULT_AVATAR,
         authorLevel: Number.isFinite(t.authorLevel) ? Math.max(1, Math.floor(t.authorLevel)) : 1,
         content: String(t.content).slice(0, 480),
-        imageUrl: typeof t.imageUrl === 'string' ? t.imageUrl.slice(0, 2000) : undefined,
+        imageUrl: sanitizeMediaAttachmentUrl(t.imageUrl),
         depthLevel: Math.min(3, Math.max(0, Number.isFinite(t.depthLevel) ? Math.floor(t.depthLevel) : 0)),
         status: status as ThreadRecord['status'],
         reactions,
@@ -720,6 +756,13 @@ function loadStoreFromDisk() {
                 .map((question: any) => question && typeof question === 'object'
               ? {
                   ...question,
+                  /* Nếu dữ liệu cũ có data URL bị cắt cụt đúng 2000 ký tự thì gỡ để tránh ảnh hỏng. */
+                  imageUrl:
+                    typeof question.imageUrl === 'string' &&
+                    question.imageUrl.startsWith('data:image/') &&
+                    question.imageUrl.length === 2000
+                      ? undefined
+                      : question.imageUrl,
                   /* Với bản ghi cũ, đã có đáp án chuẩn nghĩa là thưởng có thể
                      đã được trả; giữ khóa chống phát lại sau khi xóa/chọn lại. */
                   bountyRewardClaimed: question.bountyRewardClaimed === true || Boolean(question.bestSolutionId),
@@ -1315,6 +1358,11 @@ function sanitizeQuestionUpdates(updates: any) {
   if (typeof updates.subject === 'string' && updates.subject.trim()) {
     clean.subject = updates.subject.trim().slice(0, 40);
   }
+  if ('imageUrl' in updates || 'images' in updates) {
+    const cleanList = sanitizeMediaAttachmentList(updates.images, updates.imageUrl);
+    clean.images = cleanList;
+    clean.imageUrl = sanitizeMediaAttachmentUrl(updates.imageUrl) ?? cleanList?.[0];
+  }
   return Object.keys(clean).length > 0 ? clean : null;
 }
 
@@ -1852,7 +1900,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 bountyCoin: requestedBounty,
                 bountyRewardClaimed: false,
                 solutionRewardedEmails: [],
-                imageUrl: typeof payload.imageUrl === 'string' ? payload.imageUrl.slice(0, 2000) : undefined,
+                images: sanitizeMediaAttachmentList(payload.images, payload.imageUrl),
+                imageUrl: sanitizeMediaAttachmentUrl(payload.imageUrl) ?? sanitizeMediaAttachmentList(payload.images)?.[0],
               };
 
               /* Cùng sổ cái với HTTP: trừ bounty rồi phát thưởng do server tính.
@@ -1938,7 +1987,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 bestSelectionBonusGranted: false,
                 status: wsModeration.status === 'REVIEW' ? 'review' : 'active',
                 moderation: wsModeration,
-                imageUrl: typeof payload.imageUrl === 'string' ? payload.imageUrl.slice(0, 2000) : undefined,
+                imageUrl: sanitizeMediaAttachmentUrl(payload.imageUrl),
               };
               const rewardedEmails: string[] = Array.isArray(targetQuestion.solutionRewardedEmails)
                 ? targetQuestion.solutionRewardedEmails
@@ -2739,7 +2788,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           bountyCoin,
           bountyRewardClaimed: false,
           solutionRewardedEmails: [],
-          imageUrl: typeof body.imageUrl === 'string' ? body.imageUrl.slice(0, 2000) : undefined,
+          images: sanitizeMediaAttachmentList(body.images, body.imageUrl),
+          imageUrl: sanitizeMediaAttachmentUrl(body.imageUrl) ?? sanitizeMediaAttachmentList(body.images)?.[0],
         };
 
         store.questions.unshift(newQuestion);
@@ -2904,7 +2954,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           status: moderation.status === 'REVIEW' ? 'review' : 'active',
           moderation,
           reactions: {},
-          imageUrl: typeof body.imageUrl === 'string' ? body.imageUrl.slice(0, 2000) : undefined,
+          imageUrl: sanitizeMediaAttachmentUrl(body.imageUrl),
         };
 
         store.solutions.push(newSolution);

@@ -2672,6 +2672,7 @@ export function useForumStore() {
     isAnonymous: boolean;
     bountyCoin?: number;
     imageUrl?: string;
+    images?: string[];
   }) => {
     if (!currentUser) return;
 
@@ -2683,6 +2684,12 @@ export function useForumStore() {
     const ghibliMask = data.isAnonymous
       ? getRandomGhibliMask(data.title + Date.now().toString())
       : currentUser.avatar;
+
+    const cleanImages = Array.isArray(data.images)
+      ? data.images.filter((u): u is string => typeof u === 'string' && u.trim().length > 0).slice(0, 6)
+      : data.imageUrl
+        ? [data.imageUrl]
+        : undefined;
 
     const newQuestion: Question = {
       id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -2700,7 +2707,8 @@ export function useForumStore() {
       isSolved: false,
       views: 1,
       bountyCoin,
-      imageUrl: data.imageUrl,
+      imageUrl: data.imageUrl || cleanImages?.[0],
+      images: cleanImages,
     };
 
     const prevQuestions = questions;
