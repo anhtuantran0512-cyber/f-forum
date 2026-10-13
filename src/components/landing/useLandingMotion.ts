@@ -68,13 +68,23 @@ function observeVisibility(
 export function useInView<T extends HTMLElement>(
   options: { threshold?: number; rootMargin?: string; once?: boolean } = {},
 ) {
-  const { threshold = 0.02, rootMargin = '0px 0px 40px 0px', once = true } = options;
+  const { threshold = 0.02, rootMargin = '320px 0px 160px 0px', once = true } = options;
+  const effectiveThreshold = Math.min(threshold, 0.05);
   const ref = useRef<T | null>(null);
   const [inView, setInView] = useState(() => typeof IntersectionObserver === 'undefined');
 
   useEffect(() => {
     const node = ref.current;
     if (!node || typeof IntersectionObserver === 'undefined') return;
+
+    if (typeof window !== 'undefined' && typeof node.getBoundingClientRect === 'function') {
+      const rect = node.getBoundingClientRect();
+      const vh = window.innerHeight || 900;
+      if (rect.top <= vh + 320 && rect.bottom >= -160) {
+        setInView(true);
+        if (once) return;
+      }
+    }
 
     let seen = false;
     return observeVisibility(
@@ -90,10 +100,10 @@ export function useInView<T extends HTMLElement>(
           setInView(false);
         }
       },
-      threshold,
+      effectiveThreshold,
       rootMargin,
     );
-  }, [threshold, rootMargin, once]);
+  }, [effectiveThreshold, rootMargin, once]);
 
   return { ref, inView };
 }

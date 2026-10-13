@@ -174,8 +174,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isCompact, setIsCompact] = useState<boolean>(() => {
     return safeStorage.getItem('fforum_nav_compact') === 'true';
   });
+  const [isScrolled, setIsScrolled] = useState<boolean>(() => {
+    return typeof window !== 'undefined' && window.scrollY > 24;
+  });
   const compactTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastScrollYRef = useRef<number>(0);
   const anyPopoverOpen = isFlyoutOpen || isNotificationsOpen || isSettingsOpen || isDailyModalOpen || isMobileMenuOpen;
   const anyPopoverOpenRef = useRef(anyPopoverOpen);
@@ -211,33 +213,31 @@ export const Navbar: React.FC<NavbarProps> = ({
     }, delay);
   }, [alwaysCompact]);
 
-  /* Scroll direction drives compact/expand (like the iOS 26 tab bar) */
+  /* Scroll direction drives compact/expand & dark surface (rAF throttled, 120/144Hz native) */
   useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY;
+    const syncScroll = () => {
+      const y = window.scrollY || 0;
       const last = lastScrollYRef.current;
       lastScrollYRef.current = y;
+      setIsScrolled((prev) => (prev ? y > 14 : y > 28));
       if (anyPopoverOpenRef.current) return;
       if (alwaysCompact) {
         setIsCompact(true);
         return;
       }
 
-      if (y > last + 10 && y > 50) {
+      if (y > last + 14 && y > 64) {
         setIsCompact(true);
-      } else if (y < last - 10) {
+      } else if (y < 32 || y < last - 28) {
         forceExpand();
       }
-
-      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-      idleTimerRef.current = setTimeout(() => {
-        if (!anyPopoverOpenRef.current && !alwaysCompact) forceExpand();
-      }, 1200);
     };
+    const onScroll = rafThrottle(syncScroll);
+    syncScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', onScroll);
-      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      onScroll.cancel();
     };
   }, [alwaysCompact, forceExpand]);
 
@@ -361,7 +361,7 @@ export const Navbar: React.FC<NavbarProps> = ({
      --------------------------------------------------------------------- */
   /* Thời gian chạy lớp loading = đúng nhịp bề rộng thanh co giãn (0.78s) để
      hiệu ứng "đang đổi hình dáng" phủ trọn vẹn cú morph, không tắt giữa chừng. */
-  const NAV_MORPH_MS = 780;
+  const NAV_MORPH_MS = 220;
   /* EPIC 5: đổi thiết lập "giảm chuyển động" của hệ điều hành khi đang mở trang →
      áp ngay, trừ khi người dùng đã tự chọn trong Cài đặt (lựa chọn đó được ưu tiên). */
   useEffect(() => {
@@ -415,7 +415,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     setIsMorphBusy(false);
   }, []);
 
-  const layoutKey = `${effectiveCompact && !isVertical ? 'compact' : 'expanded'}-${navbarPosition}`;
+  const layoutKey = `${navbarPosition}`;
   const prevLayoutKeyRef = useRef(layoutKey);
   useEffect(() => {
     if (prevLayoutKeyRef.current === layoutKey) return;
@@ -783,6 +783,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       >
         <nav
           data-compact={effectiveCompact && !isVertical ? 'true' : 'false'}
+          data-scrolled={isScrolled ? 'true' : 'false'}
           data-morph={isMorphBusy ? 'loading' : 'ready'}
           onPointerEnter={forceExpand}
           onPointerDownCapture={cancelMorphLoading}

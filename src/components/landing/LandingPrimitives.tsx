@@ -31,7 +31,7 @@ export const Reveal: React.FC<RevealProps> = ({
   children,
   className = '',
   delay = 0,
-  y = 16,
+  y = 12,
   scale,
   variant = 'up',
   as,
@@ -43,8 +43,8 @@ export const Reveal: React.FC<RevealProps> = ({
   const style = useMemo(
     () =>
       ({
-        '--ff-reveal-delay': `${delay}ms`,
-        '--ff-reveal-y': `${y}px`,
+        '--ff-reveal-delay': `${Math.min(delay, 120)}ms`,
+        '--ff-reveal-y': `${Math.min(y, 14)}px`,
         ...(scale !== undefined ? { '--ff-reveal-scale': `${scale}` } : {}),
       }) as React.CSSProperties,
     [delay, y, scale],

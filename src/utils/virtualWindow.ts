@@ -90,23 +90,26 @@ export function useVirtualWindow({
   totalItems,
   itemHeight,
   columns = 1,
-  overscan = 6,
+  overscan = 10,
   containerRef,
   rootRef,
   disabled = false,
 }: VirtualWindowOptions): VirtualWindowResult {
+  const activeColumns = Math.max(1, columns);
   const [range, setRange] = useState<{ start: number; end: number }>(() => ({
     start: 0,
-    end: disabled ? totalItems : Math.min(totalItems, Math.max(12, overscan * 3)),
+    end:
+      disabled || totalItems <= 36
+        ? totalItems
+        : Math.min(totalItems, Math.max(36, overscan * 4 * activeColumns)),
   }));
 
-  const activeColumns = Math.max(1, columns);
   const totalRows = Math.ceil(totalItems / activeColumns);
   const totalEstimatedHeight = totalRows * itemHeight;
 
   const updateRange = useCallback(() => {
-    if (disabled || typeof window === 'undefined') {
-      setRange({ start: 0, end: totalItems });
+    if (disabled || totalItems <= 36 || typeof window === 'undefined') {
+      setRange((prev) => (prev.start === 0 && prev.end === totalItems ? prev : { start: 0, end: totalItems }));
       return;
     }
 
@@ -115,7 +118,7 @@ export function useVirtualWindow({
     const scrollTarget = containerEl || (rootEl ? getScrollContainer(rootEl) : null);
 
     let scrolledPast = 0;
-    let viewportHeight = window.innerHeight || 800;
+    let viewportHeight = window.innerHeight || 900;
 
     if (scrollTarget && scrollTarget !== window && 'clientHeight' in scrollTarget) {
       const container = scrollTarget as HTMLElement;
@@ -136,7 +139,7 @@ export function useVirtualWindow({
       }
     } else {
       /* Cuộn theo Window / Document */
-      viewportHeight = window.innerHeight || 800;
+      viewportHeight = window.innerHeight || 900;
       if (rootEl && typeof rootEl.getBoundingClientRect === 'function') {
         const listRect = rootEl.getBoundingClientRect();
         scrolledPast = Math.max(0, -listRect.top);
@@ -152,7 +155,7 @@ export function useVirtualWindow({
 
     const { startIndex, endIndex } = calculateVirtualRange({
       scrolledPast,
-      viewportHeight,
+      viewportHeight: viewportHeight + 640,
       itemHeight,
       columns: activeColumns,
       totalItems,
