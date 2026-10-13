@@ -58,7 +58,7 @@ export const FAMILY_TINT = {
 const FAMILIES = Object.keys(FAMILY_SHADE);
 const NEUTRALS = ['neutral', 'gray', 'slate', 'zinc', 'stone'];
 
-export const LIGHT_VIEWS = ['clubs', 'qa', 'chat', 'chronicles', 'coming-soon'];
+export const LIGHT_VIEWS = ['clubs', 'qa', 'threads', 'chat', 'chronicles', 'coming-soon'];
 const VIEW_SHELL = `.ff-app-shell:is(${LIGHT_VIEWS.map((v) => `.ff-view-${v}`).join(', ')})`;
 /* Navbar có nền kính sáng từ Epic 0 nhưng chữ/icon vẫn là text-white/70, text-amber-300…
    → phải nằm TRONG phạm vi, nếu không chữ trắng sẽ nằm trên kính sáng. */

@@ -68,7 +68,7 @@ function observeVisibility(
 export function useInView<T extends HTMLElement>(
   options: { threshold?: number; rootMargin?: string; once?: boolean } = {},
 ) {
-  const { threshold = 0.18, rootMargin = '0px 0px -8% 0px', once = true } = options;
+  const { threshold = 0.02, rootMargin = '0px 0px 40px 0px', once = true } = options;
   const ref = useRef<T | null>(null);
   const [inView, setInView] = useState(() => typeof IntersectionObserver === 'undefined');
 

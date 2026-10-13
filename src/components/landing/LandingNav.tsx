@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowRight, LogIn, Menu, Sparkles, X } from 'lucide-react';
 import type { User } from '../../types';
 import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
-import { scrollToSection, useScrollProgress, useScrollY } from './useLandingMotion';
+import { scrollToSection, useScrollProgress } from './useLandingMotion';
 
 export interface LandingNavProps {
   currentUser: User | null;
@@ -20,15 +20,43 @@ const NAV_LINKS: { id: string; label: string }[] = [
   { id: 'faq', label: 'Hỏi đáp' },
 ];
 
-export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin, onEnterApp }) => {
-  const scrollY = useScrollY();
+const ReadingProgressRail: React.FC = () => {
   const progress = useScrollProgress();
+  return (
+    <div className="h-[3px] w-full bg-transparent" aria-hidden="true">
+      <div
+        className="h-full origin-left bg-gradient-to-r from-amber-200 via-amber-400 to-orange-500 transition-[width] duration-150 ease-out"
+        style={{ width: `${Math.max(progress * 100, 0)}%` }}
+      />
+    </div>
+  );
+};
+
+export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin, onEnterApp }) => {
+  const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('');
 
-  const scrolled = scrollY > 24;
+  /* Theo dõi cuộn có ngưỡng chốt (latch) để tránh re-render liên tục trên từng frame cuộn */
+  useEffect(() => {
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const isPast = window.scrollY > 20;
+        setScrolled((prev) => (prev !== isPast ? isPast : prev));
+      });
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, []);
 
-  /** Smooth-scroll to a section while closing the mobile drawer first. */
+  /* Smooth-scroll to a section while closing the mobile drawer first. */
   const goToSection = useCallback((id: string) => {
     setMenuOpen(false);
     scrollToSection(id);
@@ -69,22 +97,14 @@ export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin
   return (
     <header className="fixed inset-x-0 top-0 z-50">
       {/* Reading progress rail */}
-      <div className="h-[3px] w-full bg-transparent" aria-hidden="true">
-        <div
-          className="h-full origin-left bg-gradient-to-r from-amber-200 via-amber-400 to-orange-500 transition-[width] duration-150 ease-out"
-          style={{ width: `${Math.max(progress * 100, 0)}%` }}
-        />
-      </div>
+      <ReadingProgressRail />
 
-      <div
-        className={`mx-auto flex items-center justify-between gap-3 px-4 transition-all duration-500 sm:px-6 ${
-          scrolled ? 'py-2.5' : 'py-4'
-        }`}
-      >
+      <div className="mx-auto flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <div
-          className={`pointer-events-none absolute inset-x-0 top-0 -z-10 h-full transition-all duration-500 ${
+          className={`pointer-events-none absolute inset-x-0 top-0 -z-10 h-full transition-opacity duration-200 ease-out will-change-[opacity] ${
             scrolled ? 'opacity-100' : 'opacity-0'
           }`}
+          style={{ transform: 'translateZ(0)' }}
           aria-hidden="true"
         >
           <div className="h-full w-full border-b border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-bg)_82%,transparent)] backdrop-blur-xl" />

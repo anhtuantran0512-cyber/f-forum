@@ -19,7 +19,7 @@ import {
   Upload,
 } from 'lucide-react';
 import type { Club, ClubPost, User, ClubCategory, ChatMessage } from '../../types';
-import { DEFAULT_AVATAR, DEFAULT_CLUB_COVER, handleImageError, handleVideoError } from '../../utils/mediaFallback';
+import { DEFAULT_AVATAR, DEFAULT_CLUB_COVER, handleImageError } from '../../utils/mediaFallback';
 import { isMasterAdmin } from '../../config/admin';
 import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
 import { InfoTip } from '../ui/InfoTip';
@@ -268,38 +268,17 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
     setIsSubmittingPost(false);
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const card = e.currentTarget;
-    const rect = card.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const rotateX = ((y - centerY) / centerY) * -5;
-    const rotateY = ((x - centerX) / centerX) * 5;
-    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.01, 1.01, 1.01)`;
-  };
-
-  const handleMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
-  };
+  /* Tối ưu hiệu năng: dùng CSS micro-lift thay vì tính ma trận góc xoay trực tiếp trên DOM */
+  const handleMouseMove = () => {};
+  const handleMouseLeave = () => {};
 
   return (
     <section className={`club-plaza-page relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-[var(--navbar-height)] pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-6 px-4 sm:px-8`}>
-      {/* Background Video Engine */}
-      <div className="ff-video-bg absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        <video
-          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260424_064411_9e9d7f84-9277-41f4-ab10-59172d89e6be.mp4"
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="metadata"
-          onError={handleVideoError}
-          className="w-full h-full object-cover scale-[1.05]"
-        />
-        {/* Dark Contrast Overlay (WCAG AA >= 4.5:1) */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#080d12] via-[#080d12]/75 to-black/55" />
+      {/* Nền phong cách Forum Hiện Đại: Tối ưu triệt để dung lượng và GPU, không dùng video nền trong sảnh CLB */}
+      <div className="ff-clubs-bg absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#080d15] via-[#09111e] to-[#060a12]" />
+        <div className="absolute top-[-15%] right-[10%] w-[550px] h-[550px] rounded-full bg-emerald-500/[0.035] blur-[140px]" />
+        <div className="absolute bottom-[-10%] left-[5%] w-[650px] h-[650px] rounded-full bg-amber-500/[0.03] blur-[150px]" />
       </div>
 
       {/* Main Container */}

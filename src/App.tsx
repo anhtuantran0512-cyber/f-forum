@@ -146,7 +146,7 @@ const LOADER_REVISIT_MS = 90; /* quay lại phân khu đã tải rồi */
 const LOADER_HARD_CAP_MS = 950;
 /* Các trang được lớp chuyển đổi Light Mode thay nền video tối bằng nền kính sữa.
    PHẢI khớp LIGHT_VIEWS trong scripts/generate-light-adapter.mjs (test kiểm tra). */
-const LIGHT_ADAPTED_VIEW_SELECTOR = '.ff-view-clubs, .ff-view-qa, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon';
+const LIGHT_ADAPTED_VIEW_SELECTOR = '.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon';
 
 /** Báo cho App biết phân khu đã dựng xong (đã tải xong chunk lazy). */
 const ViewReadySignal: React.FC<{ view: DimensionView; onReady: (view: DimensionView) => void }> = ({

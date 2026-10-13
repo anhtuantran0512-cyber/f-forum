@@ -91,7 +91,8 @@ export const BoomerangVideoBg: React.FC = () => {
       let currentIdx = 0;
       let direction = 1;
       let lastTime = performance.now();
-      const frameInterval = 1000 / 30;
+      /* Tối ưu hiệu năng: giới hạn 18 FPS (khoảng 15-20 FPS) giảm tải GPU/pin và tiết kiệm bộ nhớ */
+      const frameInterval = 1000 / 18;
 
       const renderLoop = (time: number) => {
         if (isCancelled || !ctx) return;
@@ -176,7 +177,7 @@ export const BoomerangVideoBg: React.FC = () => {
           setLoadError(true);
           (e.currentTarget as HTMLElement).style.display = 'none';
         }}
-        className={`w-full h-full object-cover transition-opacity duration-700 ${
+        className={`w-full h-full object-cover blur-[1.5px] transition-opacity duration-700 ${
           useCanvas ? 'opacity-0 absolute pointer-events-none' : 'opacity-100'
         }`}
       />
@@ -184,7 +185,7 @@ export const BoomerangVideoBg: React.FC = () => {
       {/* Ping-pong Canvas */}
       <canvas
         ref={canvasRef}
-        className={`w-full h-full object-cover transition-opacity duration-700 ${
+        className={`w-full h-full object-cover blur-[1.5px] transition-opacity duration-700 ${
           useCanvas ? 'opacity-100' : 'opacity-0 absolute pointer-events-none'
         }`}
       />
