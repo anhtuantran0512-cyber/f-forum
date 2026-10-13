@@ -1,5 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Search,
   PlusCircle,
@@ -15,6 +16,7 @@ import {
   X,
   FileText,
   Filter,
+  Upload,
 } from 'lucide-react';
 import type { Club, ClubPost, User, ClubCategory, ChatMessage } from '../../types';
 import { DEFAULT_AVATAR, DEFAULT_CLUB_COVER, handleImageError, handleVideoError } from '../../utils/mediaFallback';
@@ -603,369 +605,417 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
         </div>
       </div>
 
-      {/* Modal: Thành Lập CLB Mới */}
-      {isCreateModalOpen && (
-        <div role="dialog" aria-modal="true" aria-label="Đăng ký thành lập CLB" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-up">
-          <div className="liquid-glass w-full max-w-lg rounded-3xl bg-neutral-950/95 border border-amber-500/40 shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-amber-400" />
-                <h3 className="font-bold text-base text-white">Đăng Ký Thành Lập CLB Mới</h3>
-              </div>
-              <button
-                onClick={() => setIsCreateModalOpen(false)}
-                className="p-1 rounded-full text-neutral-400 hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateSubmit} className="space-y-3.5">
-              <div>
-                <label htmlFor="ten-cau-lac-bo" className="block text-xs font-semibold text-neutral-300 mb-1">
-                  Tên Câu Lạc Bộ (*):
-                </label>
-                <input id="ten-cau-lac-bo"
-                  type="text"
-                  required
-                  maxLength={60}
-                  value={newClubName}
-                  onChange={e => setNewClubName(e.target.value)}
-                  placeholder="VD: CLB Lập Trình Game F-Dev..."
-                  className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
-                  Chuyên mục hoạt động (*):
-                </label>
-                <select
-                  value={newCategory}
-                  onChange={e => setNewCategory(e.target.value as ClubCategory)}
-                  className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                >
-                  <option value="Công nghệ">Công nghệ</option>
-                  <option value="Nghệ thuật">Nghệ thuật</option>
-                  <option value="Thể thao">Thể thao</option>
-                  <option value="Học thuật">Học thuật</option>
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="khau-hieu-slogan" className="block text-xs font-semibold text-neutral-300 mb-1">
-                  Khẩu hiệu / Slogan (*):
-                </label>
-                <input id="khau-hieu-slogan"
-                  type="text"
-                  required
-                  maxLength={120}
-                  value={newSlogan}
-                  onChange={e => setNewSlogan(e.target.value)}
-                  placeholder="VD: Kết nối đam mê, vươn tầm công nghệ..."
-                  className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-neutral-300">
-                    Ảnh bìa URL hoặc tải ảnh (&lt; 5MB):
-                  </label>
-                  <label
-                    htmlFor="club-cover-upload"
-                    className="text-[11px] text-amber-400 hover:text-amber-300 cursor-pointer font-medium"
-                  >
-                    + Tải tệp ảnh
-                  </label>
-                  <input
-                    id="club-cover-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleCoverFileUpload}
-                    className="hidden"
-                  />
+      {/* Modal: Thành Lập CLB Mới — Portaled & Rộng rãi */}
+      {isCreateModalOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div role="dialog" aria-modal="true" aria-label="Đăng ký thành lập CLB" className="fixed inset-0 z-[130] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-fade-up">
+            <div className="liquid-glass w-full max-w-2xl rounded-3xl bg-[#0b111e] border border-amber-500/45 shadow-[0_30px_90px_rgba(0,0,0,0.95)] p-6 sm:p-8 relative max-h-[92vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-400/35 flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base sm:text-lg text-white">Đăng Ký Thành Lập CLB Mới</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">Hoàn thiện hồ sơ rõ ràng để Ban Quản Trị xét duyệt nhanh chóng</p>
+                  </div>
                 </div>
-                <input
-                  type="url"
-                  maxLength={500}
-                  value={newCover}
-                  onChange={e => setNewCover(e.target.value)}
-                  placeholder="https://images.unsplash.com/... hoặc chọn tệp ảnh"
-                  className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                />
-                {coverUploadError && (
-                  <p className="text-[11px] text-red-400 mt-1">{coverUploadError}</p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="danh-sach-thanh-vien-sang-lap-ca" className="block text-xs font-semibold text-neutral-300 mb-1">
-                  Danh sách thành viên sáng lập (cách nhau bởi dấu phẩy):
-                </label>
-                <input id="danh-sach-thanh-vien-sang-lap-ca"
-                  type="text"
-                  maxLength={200}
-                  value={newFounders}
-                  onChange={e => setNewFounders(e.target.value)}
-                  placeholder="Nguyễn Văn A, Trần Thị B..."
-                  className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="ton-chi-hoat-dong" className="block text-xs font-semibold text-neutral-300 mb-1">
-                  Tôn chỉ hoạt động (*):
-                </label>
-                <textarea id="ton-chi-hoat-dong"
-                  required
-                  rows={3}
-                  maxLength={500}
-                  value={newPurpose}
-                  onChange={e => setNewPurpose(e.target.value)}
-                  placeholder="Mô tả mục tiêu, lộ trình sinh hoạt định kỳ và kế hoạch tổ chức sự kiện..."
-                  className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 resize-none"
-                />
-              </div>
-
-              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 leading-relaxed">
-                ⏳ Chờ Ban Quản Trị duyệt · 🎖️ Duyệt xong: huy hiệu Chủ nhiệm + 250 XP
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2 border-t border-white/10">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs text-neutral-400 hover:text-white"
+                  className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white cursor-pointer"
                 >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={createCooldown > 0 || isSubmittingClub}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-bold text-xs shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  {createCooldown > 0
-                    ? `Chờ ${createCooldown}s...`
-                    : isSubmittingClub
-                    ? 'Đang gửi...'
-                    : 'Gửi Hồ Sơ Xét Duyệt'}
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {/* Modal: Xem Chi Tiết CLB & Scoped Discussion Board */}
-      {selectedClub && (
-        <div role="dialog" aria-modal="true" aria-label="Chi tiết câu lạc bộ" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up">
-          <div className="liquid-glass w-full max-w-2xl rounded-3xl bg-neutral-950/95 border border-white/20 shadow-2xl p-6 relative max-h-[92vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
-              <div>
-                <h3 className="font-bold text-lg text-white">{selectedClub.name}</h3>
-                <p className="text-xs text-neutral-400 italic">"{selectedClub.slogan}"</p>
-              </div>
-              <button
-                onClick={() => setSelectedClub(null)}
-                className="p-1 rounded-full text-neutral-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="h-44 w-full rounded-2xl overflow-hidden mb-4 border border-white/15">
-              <img
-                src={selectedClub.coverImage}
-                alt={selectedClub.name}
-                onError={e => handleImageError(e, DEFAULT_CLUB_COVER)}
-                loading="lazy"
-                decoding="async"
-                width={640}
-                height={176}
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            <div className="space-y-3 text-xs text-neutral-300">
-              {/* Founding Manifesto */}
-              <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-                <span className="font-bold text-white block">Tuyên Ngôn Sáng Lập & Tôn Chỉ (Founding Manifesto):</span>
-                <p className="italic text-amber-200">"{selectedClub.slogan}"</p>
-                <p className="text-neutral-300 leading-relaxed pt-1">{selectedClub.purpose}</p>
-              </div>
-
-              {/* Member Roster */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-                  <span className="font-bold text-white block mb-1.5">Chủ nhiệm & Trưởng ban:</span>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <DecoratedAvatar
-                      user={resolveClubUser(selectedClub.leaderId, selectedClub.leaderName)}
-                      fallbackSrc={DEFAULT_AVATAR}
-                      size={26}
-                      animate
+              <form onSubmit={handleCreateSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="ten-cau-lac-bo" className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                      Tên Câu Lạc Bộ (*):
+                    </label>
+                    <input
+                      id="ten-cau-lac-bo"
+                      type="text"
+                      required
+                      maxLength={60}
+                      value={newClubName}
+                      onChange={e => setNewClubName(e.target.value)}
+                      placeholder="VD: CLB Lập Trình Game F-Dev..."
+                      className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
                     />
-                    <DecoratedName
-                      user={resolveClubUser(selectedClub.leaderId, selectedClub.leaderName)}
-                      name={selectedClub.leaderName.replace(/ \(.*\)/, '')}
-                      width={136}
-                      height={26}
-                      animate
-                      showFallbackTag
-                    />
-                    <span className="text-[10px] text-neutral-400 font-mono">(Trưởng CLB)</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                      Chuyên mục hoạt động (*):
+                    </label>
+                    <select
+                      value={newCategory}
+                      onChange={e => setNewCategory(e.target.value as ClubCategory)}
+                      className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400 cursor-pointer"
+                    >
+                      <option value="Công nghệ">Công nghệ</option>
+                      <option value="Nghệ thuật">Nghệ thuật</option>
+                      <option value="Thể thao">Thể thao</option>
+                      <option value="Học thuật">Học thuật</option>
+                    </select>
                   </div>
                 </div>
-                <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-                  <span className="font-bold text-white block mb-1">Hội đồng Sáng Lập (Founding Roster):</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {selectedClub.foundingMembers && selectedClub.foundingMembers.length > 0 ? (
-                      selectedClub.foundingMembers.map((m, idx) => (
-                        <span
-                          key={`${m}-${idx}`}
-                          className="px-2 py-0.5 rounded-md bg-white/10 text-neutral-200 text-[11px] font-mono border border-white/10"
-                        >
-                          {m}
-                        </span>
-                      ))
+
+                <div>
+                  <label htmlFor="khau-hieu-slogan" className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                    Khẩu hiệu / Slogan (*):
+                  </label>
+                  <input
+                    id="khau-hieu-slogan"
+                    type="text"
+                    required
+                    maxLength={120}
+                    value={newSlogan}
+                    onChange={e => setNewSlogan(e.target.value)}
+                    placeholder="VD: Kết nối đam mê, vươn tầm công nghệ..."
+                    className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                {/* Khung chọn & xem trước ảnh bìa CLB */}
+                <div className="rounded-2xl bg-[#070b13] border border-white/15 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs sm:text-sm font-bold text-amber-300">
+                      Ảnh bìa CLB (Dán URL hoặc tải ảnh từ máy &lt; 5MB)
+                    </label>
+                  </div>
+                  {newCover && (
+                    <div className="relative w-full h-36 rounded-xl overflow-hidden bg-black border border-white/10">
+                      <img
+                        src={newCover}
+                        alt="Xem trước ảnh bìa CLB"
+                        loading="lazy"
+                        decoding="async"
+                        onError={e => handleImageError(e, DEFAULT_CLUB_COVER)}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                    <input
+                      type="url"
+                      maxLength={500}
+                      value={newCover}
+                      onChange={e => setNewCover(e.target.value)}
+                      placeholder="https://images.unsplash.com/... hoặc chọn tệp ảnh"
+                      className="flex-1 bg-[#0b111e] border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                    />
+                    <label
+                      htmlFor="club-cover-upload"
+                      className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>+ Tải tệp ảnh</span>
+                    </label>
+                    <input
+                      id="club-cover-upload"
+                      type="file"
+                      accept="image/*"
+                      maxLength={200}
+                      onChange={handleCoverFileUpload}
+                      className="hidden"
+                    />
+                  </div>
+                  {coverUploadError && (
+                    <p className="text-xs text-red-400 mt-1">{coverUploadError}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="danh-sach-thanh-vien-sang-lap-ca" className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                    Danh sách thành viên sáng lập (cách nhau bởi dấu phẩy):
+                  </label>
+                  <input
+                    id="danh-sach-thanh-vien-sang-lap-ca"
+                    type="text"
+                    maxLength={200}
+                    value={newFounders}
+                    onChange={e => setNewFounders(e.target.value)}
+                    placeholder="Nguyễn Văn A, Trần Thị B..."
+                    className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="ton-chi-hoat-dong" className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                    Tôn chỉ hoạt động (*):
+                  </label>
+                  <textarea
+                    id="ton-chi-hoat-dong"
+                    required
+                    rows={4}
+                    maxLength={500}
+                    value={newPurpose}
+                    onChange={e => setNewPurpose(e.target.value)}
+                    placeholder="Mô tả mục tiêu, lộ trình sinh hoạt định kỳ và kế hoạch tổ chức sự kiện..."
+                    className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400 leading-relaxed resize-y"
+                  />
+                </div>
+
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-300 leading-relaxed">
+                  ⏳ Chờ Ban Quản Trị duyệt · 🎖️ Duyệt xong: huy hiệu Chủ nhiệm + 250 XP
+                </div>
+
+                <div className="pt-3 flex justify-end gap-3 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-slate-300 hover:text-white cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={createCooldown > 0 || isSubmittingClub}
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-extrabold text-xs sm:text-sm shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {createCooldown > 0
+                      ? `Chờ ${createCooldown}s...`
+                      : isSubmittingClub
+                      ? 'Đang gửi...'
+                      : 'Gửi Hồ Sơ Xét Duyệt'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* Modal: Xem Chi Tiết CLB & Scoped Discussion Board — Portaled & Rộng rãi */}
+      {selectedClub &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div role="dialog" aria-modal="true" aria-label="Chi tiết câu lạc bộ" className="fixed inset-0 z-[130] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-fade-up">
+            <div className="liquid-glass w-full max-w-3xl rounded-3xl bg-[#0b111e] border border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.95)] p-6 sm:p-8 relative max-h-[92vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-4">
+                <div>
+                  <h3 className="font-extrabold text-lg sm:text-xl text-white">{selectedClub.name}</h3>
+                  <p className="text-xs sm:text-sm text-amber-200/90 italic mt-0.5">"{selectedClub.slogan}"</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedClub(null)}
+                  className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="h-52 w-full rounded-2xl overflow-hidden mb-5 border border-white/15">
+                <img
+                  src={selectedClub.coverImage}
+                  alt={selectedClub.name}
+                  onError={e => handleImageError(e, DEFAULT_CLUB_COVER)}
+                  loading="lazy"
+                  decoding="async"
+                  width={640}
+                  height={208}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              <div className="space-y-4 text-xs sm:text-sm text-neutral-300">
+                {/* Founding Manifesto */}
+                <div className="p-4 rounded-2xl bg-[#070b13] border border-white/10 space-y-1.5">
+                  <span className="font-bold text-white block">Tuyên Ngôn Sáng Lập &amp; Tôn Chỉ (Founding Manifesto):</span>
+                  <p className="italic text-amber-200">"{selectedClub.slogan}"</p>
+                  <p className="text-neutral-300 leading-relaxed pt-1">{selectedClub.purpose}</p>
+                </div>
+
+                {/* Member Roster */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div className="p-4 rounded-2xl bg-[#070b13] border border-white/10">
+                    <span className="font-bold text-white block mb-2">Chủ nhiệm &amp; Trưởng ban:</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <DecoratedAvatar
+                        user={resolveClubUser(selectedClub.leaderId, selectedClub.leaderName)}
+                        fallbackSrc={DEFAULT_AVATAR}
+                        size={28}
+                        animate
+                      />
+                      <DecoratedName
+                        user={resolveClubUser(selectedClub.leaderId, selectedClub.leaderName)}
+                        name={selectedClub.leaderName.replace(/ \(.*\)/, '')}
+                        width={136}
+                        height={26}
+                        animate
+                        showFallbackTag
+                      />
+                      <span className="text-[11px] text-neutral-400 font-mono">(Trưởng CLB)</span>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-[#070b13] border border-white/10">
+                    <span className="font-bold text-white block mb-2">Hội đồng Sáng Lập (Founding Roster):</span>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {selectedClub.foundingMembers && selectedClub.foundingMembers.length > 0 ? (
+                        selectedClub.foundingMembers.map((m, idx) => (
+                          <span
+                            key={`${m}-${idx}`}
+                            className="px-2.5 py-1 rounded-lg bg-white/10 text-neutral-200 text-xs font-mono border border-white/10"
+                          >
+                            {m}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-neutral-400">Đang cập nhật danh sách...</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Scoped Posting Board Section */}
+                <div className="pt-4 border-t border-white/10">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-extrabold text-white text-sm flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-cyan-400" />
+                      BẢNG TIN THÔNG BÁO NỘI BỘ
+                    </h4>
+                    {/* Scoped permission indicator */}
+                    {isSuperAdmin || currentUser?.scopedClubIds?.includes(selectedClub.id) ? (
+                      <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        Quyền Đăng Bài: ĐÃ CẤP
+                      </span>
                     ) : (
-                      <span className="text-neutral-400">Đang cập nhật danh sách...</span>
+                      <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-neutral-800 text-neutral-400 flex items-center gap-1">
+                        <Lock className="w-3 h-3" /> Chỉ Xem
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Form to post: visible/scoped only to leader or Super Admin */}
+                  {isSuperAdmin || currentUser?.scopedClubIds?.includes(selectedClub.id) ? (
+                    <div className="p-4 sm:p-5 rounded-2xl bg-[#070b13] border border-cyan-400/35 mb-4 space-y-3">
+                      <div>
+                        <label className="block text-xs font-bold text-cyan-300 mb-1.5">Tiêu đề thông báo (*):</label>
+                        <input
+                          type="text"
+                          maxLength={100}
+                          value={postTitle}
+                          onChange={e => setPostTitle(e.target.value)}
+                          placeholder="Tiêu đề thông báo mới..."
+                          className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-cyan-300 mb-1.5">Nội dung chi tiết (*):</label>
+                        <textarea
+                          rows={4}
+                          maxLength={1000}
+                          value={postContent}
+                          onChange={e => setPostContent(e.target.value)}
+                          placeholder="Nội dung bài viết..."
+                          className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400 leading-relaxed resize-y"
+                        />
+                      </div>
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleNewPost(selectedClub.id)}
+                          disabled={postCooldown > 0 || isSubmittingPost}
+                          className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs sm:text-sm flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-lg"
+                        >
+                          <Send className="w-4 h-4" />
+                          <span>{postCooldown > 0 ? `Chờ ${postCooldown}s...` : isSubmittingPost ? 'Đang gửi...' : 'Đăng bài thông báo'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-neutral-500 italic mb-3">
+                      * Quy tắc scoped permission: Bạn đang ở chế độ xem. Chỉ Chủ nhiệm của CLB này hoặc Super Admin mới có quyền đăng thông báo.
+                    </p>
+                  )}
+
+                  {/* Posts List */}
+                  <div className="space-y-2.5">
+                    {clubPosts.filter(p => p.clubId === selectedClub.id).length === 0 ? (
+                      <p className="text-neutral-500 text-center py-5">Chưa có thông báo nào được đăng.</p>
+                    ) : (
+                      clubPosts
+                        .filter(p => p.clubId === selectedClub.id)
+                        .map(post => (
+                          <div key={post.id} className="p-4 rounded-2xl bg-[#070b13] border border-white/10 space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-white text-sm">{post.title}</span>
+                              <span className="text-xs text-neutral-500">{post.createdAt}</span>
+                            </div>
+                            <p className="text-neutral-300 text-xs sm:text-sm leading-relaxed">{post.content}</p>
+                            <div className="text-xs text-neutral-400 pt-2 flex items-center gap-2">
+                              <span>Người đăng:</span>
+                              <DecoratedAvatar
+                                user={resolveClubUser(post.authorId, post.authorName)}
+                                fallbackSrc={DEFAULT_AVATAR}
+                                size={22}
+                                animate
+                              />
+                              <DecoratedName
+                                user={resolveClubUser(post.authorId, post.authorName)}
+                                name={post.authorName.replace(/ \(.*\)/, '')}
+                                width={126}
+                                height={24}
+                                animate
+                                showFallbackTag
+                              />
+                            </div>
+                          </div>
+                        ))
                     )}
                   </div>
                 </div>
               </div>
-
-              {/* Scoped Posting Board Section */}
-              <div className="pt-3 border-t border-white/10">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-bold text-white text-xs flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-cyan-400" />
-                    BẢNG TIN THÔNG BÁO NỘI BỘ
-                  </h4>
-                  {/* Scoped permission indicator */}
-                  {isSuperAdmin || currentUser?.scopedClubIds?.includes(selectedClub.id) ? (
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      Quyền Đăng Bài: ĐÃ CẤP
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-neutral-800 text-neutral-400 flex items-center gap-1">
-                      <Lock className="w-3 h-3" /> Chỉ Xem
-                    </span>
-                  )}
-                </div>
-
-                {/* Form to post: visible/scoped only to leader or Super Admin */}
-                {isSuperAdmin || currentUser?.scopedClubIds?.includes(selectedClub.id) ? (
-                  <div className="p-3 rounded-xl bg-white/5 border border-cyan-400/30 mb-3 space-y-2">
-                    <input
-                      type="text"
-                      maxLength={100}
-                      value={postTitle}
-                      onChange={e => setPostTitle(e.target.value)}
-                      placeholder="Tiêu đề thông báo mới..."
-                      className="w-full bg-neutral-900 border border-white/15 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400"
-                    />
-                    <textarea
-                      rows={2}
-                      maxLength={1000}
-                      value={postContent}
-                      onChange={e => setPostContent(e.target.value)}
-                      placeholder="Nội dung bài viết..."
-                      className="w-full bg-neutral-900 border border-white/15 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400 resize-none"
-                    />
-                    <div className="flex justify-end">
-                      <button
-                        onClick={() => handleNewPost(selectedClub.id)}
-                        disabled={postCooldown > 0 || isSubmittingPost}
-                        className="px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                      >
-                        <Send className="w-3 h-3" />
-                        <span>{postCooldown > 0 ? `Chờ ${postCooldown}s...` : isSubmittingPost ? 'Đang gửi...' : 'Đăng bài'}</span>
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-neutral-500 italic mb-3">
-                    * Quy tắc scoped permission: Bạn đang ở chế độ xem. Chỉ Chủ nhiệm của CLB này hoặc Super Admin mới có quyền đăng thông báo.
-                  </p>
-                )}
-
-                {/* Posts List */}
-                <div className="space-y-2">
-                  {clubPosts.filter(p => p.clubId === selectedClub.id).length === 0 ? (
-                    <p className="text-neutral-500 text-center py-4">Chưa có thông báo nào được đăng.</p>
-                  ) : (
-                    clubPosts
-                      .filter(p => p.clubId === selectedClub.id)
-                      .map(post => (
-                        <div key={post.id} className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-white text-xs">{post.title}</span>
-                            <span className="text-[10px] text-neutral-500">{post.createdAt}</span>
-                          </div>
-                          <p className="text-neutral-300 text-xs leading-relaxed">{post.content}</p>
-                          <div className="text-[10px] text-neutral-400 pt-1.5 flex items-center gap-2">
-                            <span>Người đăng:</span>
-                            <DecoratedAvatar
-                              user={resolveClubUser(post.authorId, post.authorName)}
-                              fallbackSrc={DEFAULT_AVATAR}
-                              size={22}
-                              animate
-                            />
-                            <DecoratedName
-                              user={resolveClubUser(post.authorId, post.authorName)}
-                              name={post.authorName.replace(/ \(.*\)/, '')}
-                              width={126}
-                              height={24}
-                              animate
-                              showFallbackTag
-                            />
-                          </div>
-                        </div>
-                      ))
-                  )}
-                </div>
-              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
 
       {/* Reject Reason Prompt */}
-      {rejectPromptClubId && (
-        <div role="dialog" aria-modal="true" aria-label="Từ chối duyệt CLB" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up">
-          <div className="liquid-glass w-full max-w-sm rounded-2xl bg-neutral-950 p-5 border border-red-500/30">
-            <h4 className="font-bold text-white text-sm mb-2">Lý do từ chối hồ sơ CLB:</h4>
-            <textarea
-              rows={3}
-              maxLength={200}
-              value={rejectReason}
-              onChange={e => setRejectReason(e.target.value)}
-              placeholder="VD: Cần bổ sung thêm danh sách thành viên sáng lập..."
-              className="w-full bg-neutral-900 border border-white/15 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-red-400 mb-3"
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setRejectPromptClubId(null)}
-                className="px-3 py-1.5 rounded-lg text-xs text-neutral-400"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={() => {
-                  void onRejectClub(rejectPromptClubId, rejectReason || 'Không đủ điều kiện theo quy chế.');
-                  setRejectPromptClubId(null);
-                  setRejectReason('');
-                }}
-                className="px-4 py-1.5 rounded-lg bg-red-500 hover:bg-red-400 text-white font-bold text-xs"
-              >
-                Xác nhận từ chối
-              </button>
+      {rejectPromptClubId &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div role="dialog" aria-modal="true" aria-label="Từ chối duyệt CLB" className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up">
+            <div className="liquid-glass w-full max-w-md rounded-2xl bg-[#0b111e] p-6 border border-red-500/35 shadow-2xl">
+              <h4 className="font-bold text-white text-base mb-3">Lý do từ chối hồ sơ CLB:</h4>
+              <textarea
+                rows={4}
+                maxLength={200}
+                value={rejectReason}
+                onChange={e => setRejectReason(e.target.value)}
+                placeholder="VD: Cần bổ sung thêm danh sách thành viên sáng lập..."
+                className="w-full bg-[#070b13] border border-white/20 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-red-400 mb-4"
+              />
+              <div className="flex justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setRejectPromptClubId(null)}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs sm:text-sm font-semibold text-neutral-300 cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void onRejectClub(rejectPromptClubId, rejectReason || 'Không đủ điều kiện theo quy chế.');
+                    setRejectPromptClubId(null);
+                    setRejectReason('');
+                  }}
+                  className="px-5 py-2 rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold text-xs sm:text-sm cursor-pointer"
+                >
+                  Xác nhận từ chối
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </section>
   );
 };

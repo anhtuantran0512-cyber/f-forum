@@ -230,3 +230,15 @@ export const uploadProcessedImage = async (kind: 'avatar' | 'banner', dataUrl: s
   }
   return { url: data.url, variants: data.variants, engine: data.engine };
 };
+
+/** Chuẩn bị và tải trực tiếp tệp ảnh từ máy lên máy chủ (dùng cho Admin CMS, Vinh Danh, Khu Kỷ Niệm, Bài viết). */
+export const uploadImageToServer = async (
+  file: File,
+  kind: 'avatar' | 'banner' | 'post' = 'banner',
+): Promise<{ url: string }> => {
+  const prepared = await prepareImageForUpload(file, {
+    maxSide: kind === 'avatar' ? 768 : 1600,
+  });
+  const uploaded = await uploadProcessedImage(kind === 'avatar' ? 'avatar' : 'banner', prepared.dataUrl);
+  return { url: uploaded.url };
+};

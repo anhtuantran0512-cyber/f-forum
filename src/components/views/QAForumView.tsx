@@ -1849,13 +1849,13 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         </div>
       </div>
 
-      {/* Modal: Đặt Câu Hỏi Học Thuật Mới — Futuristic UI/UX 2027 Redesign (Phần 1: 780px Width + 3 Card Sections + Visual Breathing Room) */}
-      {isAskModalOpen && (() => {
+      {/* Modal: Đặt Câu Hỏi Học Thuật Mới — Portaled Full-bleed Studio Modal */}
+      {isAskModalOpen && typeof document !== 'undefined' && (() => {
         const currentSubjectMeta = SUBJECT_2027_META[newSubject] || SUBJECT_2027_META.toan;
         /* Super Admin: Coin vô vùng (∞) — không chặn mức treo thưởng. */
         const userBalance = effectiveCoinBalance(currentUser?.role, currentUser?.coin ?? 100);
 
-        return (
+        return createPortal(
           <div
             role="dialog"
             aria-modal="true"
@@ -1866,9 +1866,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 setIsAskModalOpen(false);
               }
             }}
-            className="ask2027-backdrop fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-5 animate-fade-up"
+            className="ask2027-backdrop fixed inset-0 z-[130] flex items-center justify-center p-0 sm:p-5 animate-fade-up"
           >
-            <div className="modal-container ask2027-modal w-full h-full sm:h-auto sm:max-w-[780px] rounded-none sm:rounded-[24px] relative">
+            <div className="modal-container ask2027-modal w-full h-full sm:h-auto sm:max-w-[860px] rounded-none sm:rounded-[28px] relative">
               {/* Background Mesh Gradient & Floating Particles Layer */}
               <div className="ask2027-mesh-layer" aria-hidden="true">
                 <div className="ask2027-mesh-blob-cyan" />
@@ -2509,7 +2509,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 </div>
               </form>
             </div>
-          </div>
+          </div>,
+          document.body,
         );
       })()}
 

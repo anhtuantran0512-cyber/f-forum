@@ -8,17 +8,23 @@ import {
   Settings,
   Compass,
   ArrowRight,
+  Image as ImageIcon,
+  RotateCcw,
 } from 'lucide-react';
 import type { User, DimensionView } from '../../types';
 import { AdminVerifiedBadge } from '../Badges10Tier';
 import { safeStorage } from '../../utils/storage';
 import {
+  getSavedAboutData,
+  fetchAboutDataFromServer,
   saveAboutDataToServer,
   type MilestoneItem,
+  type AboutData,
 } from '../../store/adminStore';
 import { DEFAULT_CLUB_COVER, DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
 import { isMasterAdmin } from '../../config/admin';
 import { rafThrottle } from '../../utils/rafThrottle';
+import { uploadImageToServer } from '../../utils/imagePipeline';
 
 export interface VinhDanhRecord {
   id: string;
@@ -231,6 +237,41 @@ function computeRadiusAndCardWidth(width: number, height: number) {
   return { R, cw };
 }
 
+function normalizeVinhDanhRecords(raw: unknown): VinhDanhRecord[] {
+  if (!Array.isArray(raw) || raw.length === 0) return INITIAL_VINHDANH_RECORDS;
+  return INITIAL_VINHDANH_RECORDS.map((fallback, idx) => {
+    const item = (raw[idx] || {}) as Record<string, any>;
+    const rawImgUrl = typeof item.customImgUrl === 'string' && item.customImgUrl.trim()
+      ? item.customImgUrl.trim()
+      : typeof item.imageUrl === 'string' && item.imageUrl.trim()
+      ? item.imageUrl.trim()
+      : undefined;
+    const defaultPng = `${CDN_BASE}${fallback.imgId}.png`;
+    return {
+      id: fallback.id,
+      imgId: typeof item.imgId === 'string' && item.imgId.trim() ? item.imgId.trim() : fallback.imgId,
+      title: typeof item.title === 'string' && item.title.trim() ? item.title : fallback.title,
+      place:
+        typeof item.place === 'string' && item.place.trim()
+          ? item.place
+          : typeof item.category === 'string' && item.category.trim()
+          ? item.category
+          : fallback.place,
+      note:
+        typeof item.note === 'string' && item.note.trim()
+          ? item.note
+          : typeof item.notes === 'string' && item.notes.trim()
+          ? item.notes
+          : fallback.note,
+      customImgUrl: rawImgUrl && rawImgUrl !== defaultPng ? rawImgUrl : undefined,
+      isTall: typeof item.isTall === 'boolean' ? item.isTall : Boolean(fallback.isTall),
+    };
+  });
+}
+
+const DEFAULT_HEADLINE_WORDS = ['BroAmStuck', 'Studio', '•', 'Trần', 'Tuấn'];
+const DEFAULT_COLOPHON = 'BroAmStuck Studio • 2026';
+
 export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
   onExit,
   onNavigate,
@@ -261,13 +302,29 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length === N) return parsed;
+        if (Array.isArray(parsed) && parsed.length === N) return normalizeVinhDanhRecords(parsed);
       } catch {
         /* ignore */
       }
     }
     return INITIAL_VINHDANH_RECORDS;
   });
+
+  const [headlineWords, setHeadlineWords] = useState<string[]>(() => {
+    const about = getSavedAboutData();
+    return Array.isArray(about.headlineWords) && about.headlineWords.length === 5
+      ? about.headlineWords
+      : DEFAULT_HEADLINE_WORDS;
+  });
+  const [colophonText, setColophonText] = useState<string>(() => {
+    const about = getSavedAboutData();
+    return about.colophon || DEFAULT_COLOPHON;
+  });
+  const [introFilmUrl, setIntroFilmUrl] = useState<string>(() => {
+    const about = getSavedAboutData();
+    return about.introFilmUrl || INTRO_FILM_URL;
+  });
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
 
   const [isRevealed, setIsRevealed] = useState(false);
   const [isSplashDone, setIsSplashDone] = useState(false);
@@ -314,23 +371,61 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     }
   }, [isIntroFilmPlaying]);
 
+  const [isEditRecordModalOpen, setIsEditRecordModalOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<VinhDanhRecord | null>(null);
+  const [isEditBioModalOpen, setIsEditBioModalOpen] = useState(false);
+  const [editBioForm, setEditBioForm] = useState(founderProfile);
+  const [adminModalTab, setAdminModalTab] = useState<'bio' | 'milestones' | 'scene'>('bio');
+  const [adminSelectedMilestoneIdx, setAdminSelectedMilestoneIdx] = useState(0);
+  const milestoneFileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
+    let cancelled = false;
+    const applyServerAboutPayload = (payload: Partial<AboutData> | null | undefined) => {
+      if (!payload) return;
+      if (payload.founder) {
+        const nextFounder: FounderProfileState = {
+          name: payload.founder.name || 'Trần Văn Anh Tuấn',
+          role: payload.founder.role || 'Admin F-Forum • Owner BroAmStuck Studio',
+          avatarUrl: payload.founder.avatarUrl || `${CDN_BASE}${FOUNDER_AVATAR_ID}.png`,
+          bio: payload.founder.bio || '',
+        };
+        setFounderProfile(nextFounder);
+        setEditBioForm(nextFounder);
+      }
+      if (Array.isArray(payload.milestones) && payload.milestones.length > 0) {
+        setRecords(normalizeVinhDanhRecords(payload.milestones));
+      }
+      if (Array.isArray(payload.headlineWords) && payload.headlineWords.length === 5) {
+        setHeadlineWords(payload.headlineWords);
+      }
+      if (typeof payload.colophon === 'string' && payload.colophon.trim()) {
+        setColophonText(payload.colophon);
+      }
+      if (typeof payload.introFilmUrl === 'string' && payload.introFilmUrl.trim()) {
+        setIntroFilmUrl(payload.introFilmUrl);
+      }
+    };
+
+    fetchAboutDataFromServer()
+      .then((serverAbout) => {
+        if (!cancelled) applyServerAboutPayload(serverAbout);
+      })
+      .catch(() => {});
+
+    const onLocalSync = (e: Event) => {
+      const detail = (e as CustomEvent<AboutData>).detail;
+      if (detail) applyServerAboutPayload(detail);
+    };
+    window.addEventListener('fforum_about_sync', onLocalSync);
+
     let bc: BroadcastChannel | null = null;
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {
         bc = new BroadcastChannel('fforum_sync');
         bc.onmessage = (event) => {
           if (event.data?.type === 'SYNC_ABOUT' && event.data?.payload) {
-            const payload = event.data.payload;
-            if (payload.founder) {
-              setFounderProfile((prev: FounderProfileState) => ({
-                ...prev,
-                name: payload.founder.name || prev.name,
-                role: payload.founder.role || prev.role,
-                avatarUrl: payload.founder.avatarUrl || prev.avatarUrl,
-                bio: payload.founder.bio || prev.bio,
-              }));
-            }
+            applyServerAboutPayload(event.data.payload);
           }
         };
       } catch {
@@ -338,16 +433,11 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       }
     }
     return () => {
+      cancelled = true;
+      window.removeEventListener('fforum_about_sync', onLocalSync);
       bc?.close();
     };
   }, []);
-
-  const [isEditRecordModalOpen, setIsEditRecordModalOpen] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<VinhDanhRecord | null>(null);
-  const [isEditBioModalOpen, setIsEditBioModalOpen] = useState(false);
-  const [editBioForm, setEditBioForm] = useState(founderProfile);
-  const [adminModalTab, setAdminModalTab] = useState<'bio' | 'milestones'>('bio');
-  const [adminSelectedMilestoneIdx, setAdminSelectedMilestoneIdx] = useState(0);
 
   const stageRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -592,21 +682,37 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     setIsEditRecordModalOpen(true);
   };
 
-  const syncToServer = useCallback((updatedFounder: typeof founderProfile, updatedRecords: VinhDanhRecord[]) => {
+  const syncToServer = useCallback((
+    updatedFounder: typeof founderProfile,
+    updatedRecords: VinhDanhRecord[],
+    extra?: { headlineWords?: string[]; colophon?: string; introFilmUrl?: string },
+  ) => {
     if (!currentUser || !isSuperAdmin) return;
+    const currentAbout = getSavedAboutData();
     const milestones: MilestoneItem[] = updatedRecords.map((r, idx) => ({
       id: `ms-${idx + 1}`,
+      imgId: r.imgId,
       title: r.title,
       category: r.place,
       place: r.place,
       imageUrl: r.customImgUrl || `${CDN_BASE}${r.imgId}.png`,
+      customImgUrl: r.customImgUrl || undefined,
       notes: r.note,
+      note: r.note,
       isTall: Boolean(r.isTall),
     }));
 
+    const nextHeadlineWords = extra?.headlineWords || headlineWords;
+    const nextColophon = extra?.colophon ?? colophonText;
+    const nextIntroFilmUrl = extra?.introFilmUrl ?? introFilmUrl;
+
     saveAboutDataToServer({
-      headline: 'BroAmStuck Studio • Trần Văn Anh Tuấn',
+      ...currentAbout,
+      headline: nextHeadlineWords.join(' '),
       subtitle: 'Khu Vinh Danh • 3D Fibonacci Sphere Chronicles & System Archive',
+      headlineWords: nextHeadlineWords,
+      colophon: nextColophon,
+      introFilmUrl: nextIntroFilmUrl,
       founder: {
         name: updatedFounder.name,
         role: updatedFounder.role,
@@ -616,7 +722,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       },
       milestones,
     }, currentUser.email).catch(() => {});
-  }, [currentUser, isSuperAdmin]);
+  }, [currentUser, isSuperAdmin, headlineWords, colophonText, introFilmUrl]);
 
   const handleSaveRecord = (e: React.FormEvent) => {
     e.preventDefault();
@@ -640,20 +746,41 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     setIsEditBioModalOpen(false);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isAvatar = false) => {
+  const handleFileUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    mode: 'avatar' | 'record' | 'milestone-tab' = 'record',
+  ) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith('image/')) return;
+    e.target.value = '';
 
+    const applyUrl = (url: string) => {
+      if (mode === 'avatar') {
+        setEditBioForm((prev: FounderProfileState) => ({ ...prev, avatarUrl: url }));
+      } else if (mode === 'milestone-tab') {
+        setRecords((prev) =>
+          prev.map((r, i) => (i === adminSelectedMilestoneIdx ? { ...r, customImgUrl: url } : r)),
+        );
+      } else {
+        setEditingRecord((prev: VinhDanhRecord | null) => (prev ? { ...prev, customImgUrl: url } : null));
+      }
+    };
+
+    /* Hiển thị xem trước ngay lập tức, đồng thời tải lên máy chủ để lưu bền vững (.webp) */
     const reader = new FileReader();
     reader.onload = (evt) => {
       const dataUrl = evt.target?.result as string;
-      if (isAvatar) {
-        setEditBioForm((prev: { name: string; role: string; avatarUrl: string; bio: string }) => ({ ...prev, avatarUrl: dataUrl }));
-      } else if (editingRecord) {
-        setEditingRecord((prev: VinhDanhRecord | null) => (prev ? { ...prev, customImgUrl: dataUrl } : null));
-      }
+      if (dataUrl) applyUrl(dataUrl);
     };
     reader.readAsDataURL(file);
+
+    setIsUploadingMedia(true);
+    uploadImageToServer(file, 'post')
+      .then((uploaded) => {
+        if (uploaded.url) applyUrl(uploaded.url);
+      })
+      .catch(() => {})
+      .finally(() => setIsUploadingMedia(false));
   };
 
   return (
@@ -893,11 +1020,11 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             className="absolute top-0 left-0 w-[var(--hw)] -ml-[calc(var(--hw)/2)] text-center font-['Playfair_Display'] text-white select-none pointer-events-none font-playfair tracking-tight"
           >
             <span className="inner absolute top-0 left-0 w-full -translate-y-1/2">
-              <span style={{ '--i': 0 } as React.CSSProperties}>BroAmStuck</span>{' '}
-              <span style={{ '--i': 1 } as React.CSSProperties}>Studio</span>{' '}
-              <span style={{ '--i': 2 } as React.CSSProperties}>•</span>{' '}
-              <span style={{ '--i': 3 } as React.CSSProperties}>Trần</span>{' '}
-              <span style={{ '--i': 4 } as React.CSSProperties}>Tuấn</span>
+              <span style={{ '--i': 0 } as React.CSSProperties}>{headlineWords[0] ?? 'BroAmStuck'}</span>{' '}
+              <span style={{ '--i': 1 } as React.CSSProperties}>{headlineWords[1] ?? 'Studio'}</span>{' '}
+              <span style={{ '--i': 2 } as React.CSSProperties}>{headlineWords[2] ?? '•'}</span>{' '}
+              <span style={{ '--i': 3 } as React.CSSProperties}>{headlineWords[3] ?? 'Trần'}</span>{' '}
+              <span style={{ '--i': 4 } as React.CSSProperties}>{headlineWords[4] ?? 'Tuấn'}</span>
             </span>
           </h1>
         </div>
@@ -922,12 +1049,12 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         }`}
       >
         <div className="grid-rows grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-w-[1680px] mx-auto">
-          {records.map((rec) => {
+          {records.map((rec, idx) => {
             const thumbUrl = rec.customImgUrl || `${CDN_BASE}${rec.imgId}_min.webp`;
             return (
               <figure
                 key={rec.id}
-                className="group relative aspect-[3/2] rounded-[3px] overflow-hidden bg-[#0b0b0b]"
+                className="group relative aspect-[3/2] rounded-xl overflow-hidden bg-[#0b0b0b] border border-white/10"
               >
                 <button
                   type="button"
@@ -945,11 +1072,24 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                     width={360}
                     height={240}
                   />
-                  <figcaption className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 to-transparent flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                    <span className="font-['Playfair_Display'] text-sm text-white">{rec.title}</span>
-                    <span className="text-[11px] text-[#8c8783] font-mono">{rec.place}</span>
+                  <figcaption className="absolute inset-x-0 bottom-0 p-3.5 bg-gradient-to-t from-black/95 via-black/60 to-transparent flex flex-col justify-end pointer-events-none">
+                    <span className="text-[10px] font-mono text-amber-300/90">#{String(idx + 1).padStart(2, '0')} · {rec.place}</span>
+                    <span className="font-['Playfair_Display'] text-sm sm:text-base text-white font-semibold">{rec.title}</span>
                   </figcaption>
                 </button>
+                {isSuperAdmin && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenEditRecord(rec);
+                    }}
+                    className="absolute top-2.5 right-2.5 z-10 px-3 py-1.5 rounded-lg bg-black/80 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-400/50 text-xs font-bold flex items-center gap-1.5 shadow-lg transition-all cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Thay ảnh &amp; Sửa</span>
+                  </button>
+                )}
               </figure>
             );
           })}
@@ -1043,7 +1183,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 
       {/* Photographer Card .bio */}
       <div
-        className={`bio-card bio chrome fixed left-[var(--pad)] bottom-[var(--pad)] z-55 max-w-[min(340px,46vw)] transition-all duration-700 ${
+        className={`bio-card bio chrome fixed left-[var(--pad)] bottom-[var(--pad)] z-55 max-w-[min(360px,48vw)] transition-all duration-700 ${
           isGridView || activeLitRecord ? 'opacity-0 translate-y-3 pointer-events-none' : 'opacity-100'
         }`}
       >
@@ -1062,10 +1202,14 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             {isSuperAdmin && (
               <button
                 type="button"
-                onClick={() => setIsEditBioModalOpen(true)}
-                className="absolute inset-0 bg-black/60 rounded-[3px] opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] text-white transition-opacity cursor-pointer"
+                onClick={() => {
+                  setEditBioForm(founderProfile);
+                  setAdminModalTab('bio');
+                  setIsEditBioModalOpen(true);
+                }}
+                className="absolute inset-0 bg-black/70 rounded-[3px] opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] font-bold text-amber-300 transition-opacity cursor-pointer"
               >
-                Sửa
+                Đổi ảnh
               </button>
             )}
           </div>
@@ -1082,21 +1226,47 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         <p className="bio-p text-[12.5px] leading-[1.62] text-[#f4f2ef]/75 font-light">
           {founderProfile.bio}
         </p>
+        {isSuperAdmin && (
+          <button
+            type="button"
+            onClick={() => {
+              setEditBioForm(founderProfile);
+              setAdminModalTab('bio');
+              setIsEditBioModalOpen(true);
+            }}
+            className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/45 text-amber-200 text-[11px] font-semibold cursor-pointer transition-colors"
+          >
+            <Edit3 className="w-3 h-3" />
+            <span>Sửa Hồ sơ &amp; Ảnh Founder</span>
+          </button>
+        )}
       </div>
 
       {/* Colophon .colophon */}
       <div
-        className={`colophon-card colophon chrome fixed right-[var(--pad)] bottom-[var(--pad)] z-55 text-[12.5px] text-[#f4f2ef]/70 transition-opacity duration-500 ${
+        className={`colophon-card colophon chrome fixed right-[var(--pad)] bottom-[var(--pad)] z-55 text-[12.5px] text-[#f4f2ef]/70 flex items-center gap-2 transition-opacity duration-500 ${
           isGridView || activeLitRecord ? 'opacity-0' : 'opacity-100'
         }`}
       >
-        BroAmStuck Studio • 2026
+        <span>{colophonText}</span>
+        {isSuperAdmin && (
+          <button
+            type="button"
+            onClick={() => {
+              setAdminModalTab('scene');
+              setIsEditBioModalOpen(true);
+            }}
+            className="px-2 py-0.5 rounded bg-white/10 hover:bg-amber-500/30 text-[10px] text-amber-300 border border-amber-400/35 cursor-pointer"
+          >
+            Sửa tiêu đề
+          </button>
+        )}
       </div>
 
       {/* Grid Toggle Button button#gridBtn */}
       <button
         id="gridBtn"
-        className={`gridbtn fixed left-[var(--pad)] bottom-[calc(var(--pad)+130px)] z-56 w-[44px] h-[44px] p-2.5 grid grid-cols-2 gap-1 rounded-lg bg-black/60 border border-white/15 backdrop-blur-md cursor-pointer ${
+        className={`gridbtn fixed left-[var(--pad)] bottom-[calc(var(--pad)+150px)] z-56 w-[44px] h-[44px] p-2.5 grid grid-cols-2 gap-1 rounded-lg bg-black/60 border border-white/15 backdrop-blur-md cursor-pointer ${
           isGridView ? 'is-grid' : ''
         }`}
         onClick={() => setIsGridView(!isGridView)}
@@ -1123,14 +1293,18 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 
       {/* Super Admin Floating Quick Trigger */}
       {isSuperAdmin && (
-        <div className="fixed right-[var(--pad)] bottom-[calc(var(--pad)+36px)] z-56">
+        <div className="fixed right-[var(--pad)] bottom-[calc(var(--pad)+36px)] z-56 flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setIsEditBioModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-mono font-semibold shadow-lg hover:bg-amber-500/30 transition-all cursor-pointer backdrop-blur-md"
+            onClick={() => {
+              setEditBioForm(founderProfile);
+              setAdminModalTab('milestones');
+              setIsEditBioModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-amber-500 hover:bg-amber-400 text-black text-xs font-extrabold shadow-[0_12px_32px_rgba(245,158,11,0.45)] transition-all cursor-pointer"
           >
-            <Settings className="w-3.5 h-3.5 text-amber-400" />
-            <span>Sửa Vinh Danh (Admin)</span>
+            <Settings className="w-4 h-4 text-black" />
+            <span>Quản Trị Ảnh &amp; Nội Dung Vinh Danh (Admin)</span>
           </button>
         </div>
       )}
@@ -1162,7 +1336,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
               e.preventDefault();
               setIsMenuOpen(false);
               if (onNavigate) {
-                onNavigate('home');
+                onNavigate('memory');
               } else {
                 onExit();
               }
@@ -1222,20 +1396,20 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             onClick={closeLightbox}
           />
           <div
-            className="lit-dialog relative z-10 w-full max-w-[min(72vw,860px)] rounded-2xl bg-[#0c1218] border border-white/20 p-5 sm:p-6 shadow-[0_30px_90px_rgba(0,0,0,0.95)]"
+            className="lit-dialog relative z-10 w-full max-w-[min(78vw,920px)] rounded-3xl bg-[#0b111d] border border-white/20 p-5 sm:p-7 shadow-[0_30px_90px_rgba(0,0,0,0.95)]"
           >
             {/* Close Button */}
             <button
               type="button"
               onClick={closeLightbox}
-              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/60 border border-white/20 text-white/70 hover:text-white hover:bg-black/90 transition-all cursor-pointer"
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/70 border border-white/20 text-white/80 hover:text-white hover:bg-black/90 transition-all cursor-pointer"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
             </button>
 
             {/* Photo Container */}
-            <div className="relative w-full aspect-[3/2] rounded-xl overflow-hidden bg-black border border-white/10 shadow-2xl">
+            <div className="relative w-full aspect-[3/2] rounded-2xl overflow-hidden bg-black border border-white/15 shadow-2xl">
               <img
                 src={
                   fullImgLoaded
@@ -1250,6 +1424,16 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 height={640}
                 className="w-full h-full object-cover"
               />
+              {isSuperAdmin && (
+                <button
+                  type="button"
+                  onClick={() => handleOpenEditRecord(activeLitRecord)}
+                  className="absolute bottom-3.5 right-3.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs flex items-center gap-1.5 shadow-xl cursor-pointer transition-all"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span>Thay ảnh &amp; Sửa nội dung</span>
+                </button>
+              )}
             </div>
 
             {/* Meta Row */}
@@ -1267,7 +1451,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                   <button
                     type="button"
                     onClick={() => handleOpenEditRecord(activeLitRecord)}
-                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-mono font-medium hover:bg-amber-500/30 transition-all cursor-pointer"
+                    className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-400/45 text-amber-300 text-xs font-semibold hover:bg-amber-500/30 transition-all cursor-pointer"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                     <span>Sửa cột mốc này</span>
@@ -1309,7 +1493,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         >
           <video
             ref={filmVideoRef}
-            src={INTRO_FILM_URL}
+            src={introFilmUrl}
             preload="auto"
             onError={finishIntroFilm}
             onEnded={finishIntroFilm}
@@ -1342,111 +1526,146 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         className="hidden"
       />
 
-      {/* Admin Edit Record Modal */}
+      {/* Admin Edit Record Modal — Rộng rãi, rõ ràng, xem trước ảnh trực tiếp */}
       {isEditRecordModalOpen && editingRecord && isSuperAdmin && (
-        <div className="fixed inset-0 z-[100] grid place-items-center p-4 bg-black/80 backdrop-blur-md">
+        <div className="fixed inset-0 z-[140] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md">
           <form
             onSubmit={handleSaveRecord}
-            className="w-full max-w-lg rounded-2xl bg-[#0e141a] border border-white/20 p-6 space-y-4 shadow-2xl"
+            className="w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-3xl bg-[#0b111e] border border-amber-400/45 p-6 sm:p-8 space-y-5 shadow-[0_30px_90px_rgba(0,0,0,0.95)]"
           >
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-base font-bold text-white font-mono">Chỉnh sửa Cột mốc Vinh danh</h3>
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div>
+                <h3 className="text-lg font-extrabold text-white">Chỉnh Sửa Cột Mốc &amp; Thay Thế Hình Ảnh</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Thay đổi được lưu trực tiếp lên máy chủ và đồng bộ cho toàn bộ thành viên</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsEditRecordModalOpen(false)}
-                className="text-white/60 hover:text-white"
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div>
-              <label htmlFor="tieu-de-cot-moc" className="text-xs text-white/70 block mb-1">Tiêu đề cột mốc</label>
-              <input id="tieu-de-cot-moc"
-                type="text"
-                required
-                maxLength={100}
-                value={editingRecord.title}
-                onChange={(e) => setEditingRecord({ ...editingRecord, title: e.target.value })}
-                className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="dia-diem-danh-muc" className="text-xs text-white/70 block mb-1">Địa điểm / Danh mục</label>
-              <input id="dia-diem-danh-muc"
-                type="text"
-                required
-                maxLength={80}
-                value={editingRecord.place}
-                onChange={(e) => setEditingRecord({ ...editingRecord, place: e.target.value })}
-                className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="anh-dan-url-hoac-tai-tep" className="text-xs text-white/70 block mb-1">Ảnh (Dán URL hoặc Tải tệp)</label>
-              <div className="flex items-center gap-2">
-                <input id="anh-dan-url-hoac-tai-tep"
+            {/* Khung xem trước ảnh trực quan */}
+            <div className="rounded-2xl bg-[#070b13] border border-white/15 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs sm:text-sm font-bold text-amber-300">Hình ảnh cột mốc hiện tại</span>
+                {editingRecord.customImgUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setEditingRecord({ ...editingRecord, customImgUrl: undefined })}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Khôi phục ảnh gốc</span>
+                  </button>
+                )}
+              </div>
+              <div className="relative w-full aspect-[16/9] max-h-56 rounded-xl overflow-hidden bg-black border border-white/10">
+                <img
+                  src={editingRecord.customImgUrl || `${CDN_BASE}${editingRecord.imgId}.png`}
+                  alt={editingRecord.title}
+                  onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                <input
+                  id="anh-dan-url-hoac-tai-tep"
                   type="text"
-                  placeholder="https://..."
+                  placeholder="Dán đường dẫn ảnh (https://... hoặc /uploads/...)"
                   maxLength={500}
                   value={editingRecord.customImgUrl || ''}
                   onChange={(e) => setEditingRecord({ ...editingRecord, customImgUrl: e.target.value })}
-                  className="flex-1 bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                  className="flex-1 bg-[#0b111e] border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
                 />
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs text-white flex items-center gap-1 cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-md"
                 >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>Tải ảnh</span>
+                  <Upload className="w-4 h-4" />
+                  <span>{isUploadingMedia ? 'Đang tải...' : 'Tải ảnh từ máy'}</span>
                 </button>
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                  onChange={(e) => handleFileUpload(e, false)}
+                  maxLength={200}
+                  onChange={(e) => handleFileUpload(e, 'record')}
                   className="hidden"
                 />
               </div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="tieu-de-cot-moc" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Tiêu đề cột mốc (*)</label>
+                <input
+                  id="tieu-de-cot-moc"
+                  type="text"
+                  required
+                  maxLength={100}
+                  value={editingRecord.title}
+                  onChange={(e) => setEditingRecord({ ...editingRecord, title: e.target.value })}
+                  className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="dia-diem-danh-muc" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Địa điểm / Danh mục (*)</label>
+                <input
+                  id="dia-diem-danh-muc"
+                  type="text"
+                  required
+                  maxLength={80}
+                  value={editingRecord.place}
+                  onChange={(e) => setEditingRecord({ ...editingRecord, place: e.target.value })}
+                  className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                />
+              </div>
+            </div>
+
             <div>
-              <label htmlFor="noi-dung-ghi-chu" className="text-xs text-white/70 block mb-1">Nội dung ghi chú</label>
-              <textarea id="noi-dung-ghi-chu"
+              <label htmlFor="noi-dung-ghi-chu" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Nội dung mô tả chi tiết (*)</label>
+              <textarea
+                id="noi-dung-ghi-chu"
                 required
-                rows={3}
+                rows={4}
                 maxLength={400}
                 value={editingRecord.note}
                 onChange={(e) => setEditingRecord({ ...editingRecord, note: e.target.value })}
-                className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 resize-none"
+                className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400 leading-relaxed resize-y"
               />
             </div>
 
-            <div className="flex items-center justify-between pt-2">
-              <label htmlFor="field" className="flex items-center gap-2 text-xs text-white/80 cursor-pointer">
-                <input id="field"
+            <div className="flex items-center justify-between pt-3 border-t border-white/10">
+              <label htmlFor="field" className="flex items-center gap-2.5 text-xs sm:text-sm text-slate-200 font-semibold cursor-pointer">
+                <input
+                  id="field"
                   type="checkbox"
+                  maxLength={10}
                   checked={Boolean(editingRecord.isTall)}
                   onChange={(e) => setEditingRecord({ ...editingRecord, isTall: e.target.checked })}
-                  className="rounded border-white/20"
+                  className="w-4 h-4 rounded accent-amber-500"
                 />
-                <span>Thẻ đứng (Tall portrait)</span>
+                <span>Hiển thị khung ảnh dọc (Tall Portrait)</span>
               </label>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setIsEditRecordModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs text-white/60 hover:text-white"
+                  className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-slate-300 hover:text-white cursor-pointer"
                 >
-                  Hủy
+                  Hủy bỏ
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-500 text-black font-semibold text-xs hover:bg-amber-400 transition-colors"
+                  className="px-6 py-2.5 rounded-xl bg-amber-500 text-black font-extrabold text-xs sm:text-sm hover:bg-amber-400 transition-colors shadow-lg cursor-pointer"
                 >
                   Lưu thay đổi
                 </button>
@@ -1456,178 +1675,311 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         </div>
       )}
 
-      {/* Admin Edit Bio & Milestones Modal */}
+      {/* Admin Edit Bio, 21 Milestones & Scene Studio Modal */}
       {isEditBioModalOpen && isSuperAdmin && (
-        <div className="fixed inset-0 z-[100] grid place-items-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="w-full max-w-lg rounded-2xl bg-[#0e141a] border border-white/20 p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-base font-bold text-white font-mono">Quản Trị Vinh Danh F-Forum</h3>
+        <div className="fixed inset-0 z-[140] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md">
+          <div className="w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-3xl bg-[#0b111e] border border-amber-400/45 p-6 sm:p-8 space-y-5 shadow-[0_30px_90px_rgba(0,0,0,0.95)]">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div>
+                <h3 className="text-lg sm:text-xl font-extrabold text-white">Quản Trị Khu Vinh Danh Toàn Diện</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Thay thế hình ảnh, hồ sơ Founder, 21 cột mốc và tiêu đề 3D ở mọi nơi</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsEditBioModalOpen(false)}
-                className="text-white/60 hover:text-white"
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Tab switchers: Founder Bio vs 21 Milestones */}
-            <div className="flex border-b border-white/10">
+            {/* Tab switchers: Founder Bio | 21 Milestones | Scene & Headlines */}
+            <div className="grid grid-cols-3 gap-2 p-1.5 rounded-2xl bg-[#070b13] border border-white/10">
               <button
                 type="button"
                 onClick={() => setAdminModalTab('bio')}
-                className={`flex-1 py-2 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
+                className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   adminModalTab === 'bio'
-                    ? 'border-amber-400 text-amber-300'
-                    : 'border-transparent text-neutral-400 hover:text-white'
+                    ? 'bg-amber-500 text-black shadow-md'
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
                 }`}
               >
-                Hồ sơ Founder & Bio
+                1. Hồ sơ Founder &amp; Ảnh
               </button>
               <button
                 type="button"
                 onClick={() => setAdminModalTab('milestones')}
-                className={`flex-1 py-2 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
+                className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   adminModalTab === 'milestones'
-                    ? 'border-amber-400 text-amber-300'
-                    : 'border-transparent text-neutral-400 hover:text-white'
+                    ? 'bg-amber-500 text-black shadow-md'
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
                 }`}
               >
-                Cột mốc Vinh danh (21)
+                2. Cột mốc Vinh danh (21)
+              </button>
+              <button
+                type="button"
+                onClick={() => setAdminModalTab('scene')}
+                className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  adminModalTab === 'scene'
+                    ? 'bg-amber-500 text-black shadow-md'
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                3. Tiêu đề 3D &amp; Giao diện
               </button>
             </div>
 
             {adminModalTab === 'bio' ? (
               <form onSubmit={handleSaveBio} className="space-y-4">
-                <div>
-                  <label htmlFor="ho-va-ten" className="text-xs text-white/70 block mb-1">Họ và tên</label>
-                  <input id="ho-va-ten"
-                    type="text"
-                    required
-                    maxLength={80}
-                    value={editBioForm.name}
-                    onChange={(e) => setEditBioForm({ ...editBioForm, name: e.target.value })}
-                    className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                <div className="rounded-2xl bg-[#070b13] border border-white/15 p-4 flex flex-col sm:flex-row items-center gap-4">
+                  <img
+                    src={editBioForm.avatarUrl}
+                    alt={editBioForm.name}
+                    onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-20 h-20 rounded-2xl object-cover border border-amber-400/50 shrink-0"
                   />
-                </div>
-
-                <div>
-                  <label htmlFor="chuc-danh-vai-tro" className="text-xs text-white/70 block mb-1">Chức danh / Vai trò</label>
-                  <input id="chuc-danh-vai-tro"
-                    type="text"
-                    required
-                    maxLength={100}
-                    value={editBioForm.role}
-                    onChange={(e) => setEditBioForm({ ...editBioForm, role: e.target.value })}
-                    className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="anh-dai-dien-url-hoac-tai-tep" className="text-xs text-white/70 block mb-1">Ảnh đại diện (URL hoặc Tải tệp)</label>
-                  <div className="flex items-center gap-2">
-                    <input id="anh-dai-dien-url-hoac-tai-tep"
-                      type="text"
-                      maxLength={500}
-                      value={editBioForm.avatarUrl}
-                      onChange={(e) => setEditBioForm({ ...editBioForm, avatarUrl: e.target.value })}
-                      className="flex-1 bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                    />
-                    <label htmlFor="field-2" className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs text-white flex items-center gap-1 cursor-pointer">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Tải ảnh</span>
-                      <input id="field-2"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileUpload(e, true)}
-                        className="hidden"
-                      />
+                  <div className="flex-1 w-full space-y-2">
+                    <label htmlFor="anh-dai-dien-url-hoac-tai-tep" className="text-xs sm:text-sm font-bold text-amber-300 block">
+                      Ảnh đại diện Founder (Dán URL hoặc tải ảnh từ máy)
                     </label>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                      <input
+                        id="anh-dai-dien-url-hoac-tai-tep"
+                        type="text"
+                        maxLength={500}
+                        value={editBioForm.avatarUrl}
+                        onChange={(e) => setEditBioForm({ ...editBioForm, avatarUrl: e.target.value })}
+                        className="flex-1 bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                      />
+                      <label htmlFor="field-2" className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
+                        <Upload className="w-4 h-4" />
+                        <span>{isUploadingMedia ? 'Đang tải...' : 'Tải ảnh'}</span>
+                        <input
+                          id="field-2"
+                          type="file"
+                          accept="image/*"
+                          maxLength={200}
+                          onChange={(e) => handleFileUpload(e, 'avatar')}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="ho-va-ten" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Họ và tên (*)</label>
+                    <input
+                      id="ho-va-ten"
+                      type="text"
+                      required
+                      maxLength={80}
+                      value={editBioForm.name}
+                      onChange={(e) => setEditBioForm({ ...editBioForm, name: e.target.value })}
+                      className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="chuc-danh-vai-tro" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Chức danh / Vai trò (*)</label>
+                    <input
+                      id="chuc-danh-vai-tro"
+                      type="text"
+                      required
+                      maxLength={100}
+                      value={editBioForm.role}
+                      onChange={(e) => setEditBioForm({ ...editBioForm, role: e.target.value })}
+                      className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                    />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="loi-ngo-tieu-su" className="text-xs text-white/70 block mb-1">Lời ngỏ / Tiểu sử</label>
-                  <textarea id="loi-ngo-tieu-su"
+                  <label htmlFor="loi-ngo-tieu-su" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Lời ngỏ / Tiểu sử (*)</label>
+                  <textarea
+                    id="loi-ngo-tieu-su"
                     required
                     rows={4}
                     maxLength={400}
                     value={editBioForm.bio}
                     onChange={(e) => setEditBioForm({ ...editBioForm, bio: e.target.value })}
-                    className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 resize-none"
+                    className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400 leading-relaxed resize-y"
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
+                <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
                   <button
                     type="button"
                     onClick={() => setIsEditBioModalOpen(false)}
-                    className="px-4 py-2 rounded-xl text-xs text-white/60 hover:text-white"
+                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-slate-300 hover:text-white cursor-pointer"
                   >
                     Hủy
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-amber-500 text-black font-semibold text-xs hover:bg-amber-400 transition-colors"
+                    className="px-6 py-2.5 rounded-xl bg-amber-500 text-black font-extrabold text-xs sm:text-sm hover:bg-amber-400 transition-colors shadow-lg cursor-pointer"
                   >
                     Lưu hồ sơ Founder
                   </button>
                 </div>
               </form>
-            ) : (
+            ) : adminModalTab === 'milestones' ? (
               <div className="space-y-4">
+                {/* Lưới chọn nhanh 21 cột mốc bằng ảnh thu nhỏ */}
                 <div>
-                  <label className="text-xs text-white/70 block mb-1">Chọn cột mốc cần chỉnh sửa (1 - 21)</label>
-                  <select
-                    value={adminSelectedMilestoneIdx}
-                    onChange={(e) => setAdminSelectedMilestoneIdx(Number(e.target.value))}
-                    className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 cursor-pointer"
-                  >
-                    {records.map((r, i) => (
-                      <option key={r.id} value={i} className="bg-neutral-900 text-white">
-                        {`Cột mốc ${i + 1}: ${r.title} (${r.place})`}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="tieu-de-cot-moc-2" className="text-xs text-white/70 block mb-1">Tiêu đề cột mốc</label>
-                  <input id="tieu-de-cot-moc-2"
-                    type="text"
-                    required
-                    maxLength={100}
-                    value={records[adminSelectedMilestoneIdx]?.title || ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setRecords((prev) =>
-                        prev.map((r, i) => (i === adminSelectedMilestoneIdx ? { ...r, title: val } : r))
+                  <label className="text-xs sm:text-sm font-bold text-slate-200 block mb-2">
+                    Chọn cột mốc cần thay ảnh / sửa nội dung ({adminSelectedMilestoneIdx + 1}/21):
+                  </label>
+                  <div className="grid grid-cols-7 gap-1.5 p-2 rounded-2xl bg-[#070b13] border border-white/10 max-h-36 overflow-y-auto">
+                    {records.map((r, i) => {
+                      const active = i === adminSelectedMilestoneIdx;
+                      const thumb = r.customImgUrl || `${CDN_BASE}${r.imgId}_min.webp`;
+                      return (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => setAdminSelectedMilestoneIdx(i)}
+                          className={`relative aspect-[4/3] rounded-lg overflow-hidden border transition-all cursor-pointer ${
+                            active ? 'border-amber-400 ring-2 ring-amber-400/60 scale-[1.03]' : 'border-white/15 opacity-70 hover:opacity-100'
+                          }`}
+                          title={`#${i + 1}: ${r.title}`}
+                        >
+                          <img
+                            src={thumb}
+                            alt={r.title}
+                            loading="lazy"
+                            decoding="async"
+                            onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
+                            className="w-full h-full object-cover"
+                          />
+                          <span className="absolute bottom-0.5 right-1 px-1 rounded bg-black/80 text-[9px] font-mono text-white">
+                            {i + 1}
+                          </span>
+                        </button>
                       );
-                    }}
-                    className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                  />
+                    })}
+                  </div>
+                </div>
+
+                {/* Khung xem trước & thay thế ảnh cột mốc đang chọn */}
+                {records[adminSelectedMilestoneIdx] && (
+                  <div className="rounded-2xl bg-[#070b13] border border-white/15 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs sm:text-sm font-bold text-amber-300">
+                        Ảnh Cột mốc #{adminSelectedMilestoneIdx + 1}: {records[adminSelectedMilestoneIdx].title}
+                      </span>
+                      {records[adminSelectedMilestoneIdx].customImgUrl && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setRecords((prev) =>
+                              prev.map((r, i) =>
+                                i === adminSelectedMilestoneIdx ? { ...r, customImgUrl: undefined } : r,
+                              ),
+                            )
+                          }
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 cursor-pointer"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Khôi phục ảnh gốc</span>
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative w-full aspect-[16/9] max-h-48 rounded-xl overflow-hidden bg-black border border-white/10">
+                      <img
+                        src={
+                          records[adminSelectedMilestoneIdx].customImgUrl ||
+                          `${CDN_BASE}${records[adminSelectedMilestoneIdx].imgId}.png`
+                        }
+                        alt={records[adminSelectedMilestoneIdx].title}
+                        onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                      <input
+                        type="text"
+                        maxLength={500}
+                        placeholder="Dán URL ảnh mới (https://... hoặc /uploads/...)"
+                        value={records[adminSelectedMilestoneIdx]?.customImgUrl || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setRecords((prev) =>
+                            prev.map((r, i) =>
+                              i === adminSelectedMilestoneIdx ? { ...r, customImgUrl: val } : r,
+                            ),
+                          );
+                        }}
+                        className="flex-1 bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => milestoneFileInputRef.current?.click()}
+                        className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                      >
+                        <Upload className="w-4 h-4" />
+                        <span>{isUploadingMedia ? 'Đang tải...' : 'Tải ảnh từ máy'}</span>
+                      </button>
+                      <input
+                        ref={milestoneFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        maxLength={200}
+                        onChange={(e) => handleFileUpload(e, 'milestone-tab')}
+                        className="hidden"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="tieu-de-cot-moc-2" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Tiêu đề cột mốc (*)</label>
+                    <input
+                      id="tieu-de-cot-moc-2"
+                      type="text"
+                      required
+                      maxLength={100}
+                      value={records[adminSelectedMilestoneIdx]?.title || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setRecords((prev) =>
+                          prev.map((r, i) => (i === adminSelectedMilestoneIdx ? { ...r, title: val } : r))
+                        );
+                      }}
+                      className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="dia-diem-danh-muc-2" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Địa điểm / Danh mục (*)</label>
+                    <input
+                      id="dia-diem-danh-muc-2"
+                      type="text"
+                      required
+                      maxLength={80}
+                      value={records[adminSelectedMilestoneIdx]?.place || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setRecords((prev) =>
+                          prev.map((r, i) => (i === adminSelectedMilestoneIdx ? { ...r, place: val } : r))
+                        );
+                      }}
+                      className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label htmlFor="dia-diem-danh-muc-2" className="text-xs text-white/70 block mb-1">Địa điểm / Danh mục</label>
-                  <input id="dia-diem-danh-muc-2"
-                    type="text"
-                    required
-                    maxLength={80}
-                    value={records[adminSelectedMilestoneIdx]?.place || ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setRecords((prev) =>
-                        prev.map((r, i) => (i === adminSelectedMilestoneIdx ? { ...r, place: val } : r))
-                      );
-                    }}
-                    className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="noi-dung-ghi-chu-2" className="text-xs text-white/70 block mb-1">Nội dung ghi chú</label>
-                  <textarea id="noi-dung-ghi-chu-2"
+                  <label htmlFor="noi-dung-ghi-chu-2" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Nội dung ghi chú (*)</label>
+                  <textarea
+                    id="noi-dung-ghi-chu-2"
                     required
                     rows={3}
                     maxLength={400}
@@ -1638,29 +1990,136 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                         prev.map((r, i) => (i === adminSelectedMilestoneIdx ? { ...r, note: val } : r))
                       );
                     }}
-                    className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 resize-none"
+                    className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400 leading-relaxed resize-y"
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditBioModalOpen(false)}
-                    className="px-4 py-2 rounded-xl text-xs text-white/60 hover:text-white"
-                  >
-                    Hủy
-                  </button>
+                <div className="flex items-center justify-between pt-3 border-t border-white/10">
+                  <label className="flex items-center gap-2.5 text-xs sm:text-sm text-slate-200 font-semibold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      maxLength={10}
+                      checked={Boolean(records[adminSelectedMilestoneIdx]?.isTall)}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setRecords((prev) =>
+                          prev.map((r, i) =>
+                            i === adminSelectedMilestoneIdx ? { ...r, isTall: checked } : r,
+                          ),
+                        );
+                      }}
+                      className="w-4 h-4 rounded accent-amber-500"
+                    />
+                    <span>Hiển thị khung ảnh dọc (Tall Portrait)</span>
+                  </label>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditBioModalOpen(false)}
+                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-slate-300 hover:text-white cursor-pointer"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        safeStorage.setItem('fforum_vinhdanh_records', JSON.stringify(records));
+                        syncToServer(founderProfile, records);
+                        setIsEditBioModalOpen(false);
+                      }}
+                      className="px-6 py-2.5 rounded-xl bg-amber-500 text-black font-extrabold text-xs sm:text-sm hover:bg-amber-400 transition-colors shadow-lg cursor-pointer"
+                    >
+                      Lưu ghi chú cột mốc
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs sm:text-sm font-bold text-slate-200 block mb-2">
+                    5 Cụm từ Tiêu đề Trung tâm Quả cầu 3D (#headline):
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    {headlineWords.map((word, idx) => (
+                      <input
+                        key={idx}
+                        type="text"
+                        maxLength={40}
+                        value={word}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setHeadlineWords((prev) => prev.map((w, i) => (i === idx ? val : w)));
+                        }}
+                        className="bg-[#070b13] border border-white/20 rounded-xl px-3 py-2.5 text-sm text-white text-center focus:outline-none focus:border-amber-400"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">
+                    Dòng chữ Chân trang góc phải (Colophon):
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={100}
+                    value={colophonText}
+                    onChange={(e) => setColophonText(e.target.value)}
+                    className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">
+                    Đường dẫn Video Mở đầu (Intro Film URL):
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={500}
+                    value={introFilmUrl}
+                    onChange={(e) => setIntroFilmUrl(e.target.value)}
+                    className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-white/10">
                   <button
                     type="button"
                     onClick={() => {
-                      safeStorage.setItem('fforum_vinhdanh_records', JSON.stringify(records));
-                      syncToServer(founderProfile, records);
-                      setIsEditBioModalOpen(false);
+                      setHeadlineWords(DEFAULT_HEADLINE_WORDS);
+                      setColophonText(DEFAULT_COLOPHON);
+                      setIntroFilmUrl(INTRO_FILM_URL);
                     }}
-                    className="px-5 py-2 rounded-xl bg-amber-500 text-black font-semibold text-xs hover:bg-amber-400 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300 cursor-pointer"
                   >
-                    Lưu ghi chú cột mốc
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Khôi phục mặc định</span>
                   </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditBioModalOpen(false)}
+                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-slate-300 hover:text-white cursor-pointer"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        syncToServer(founderProfile, records, {
+                          headlineWords,
+                          colophon: colophonText,
+                          introFilmUrl,
+                        });
+                        setIsEditBioModalOpen(false);
+                      }}
+                      className="px-6 py-2.5 rounded-xl bg-amber-500 text-black font-extrabold text-xs sm:text-sm hover:bg-amber-400 transition-colors shadow-lg cursor-pointer"
+                    >
+                      Lưu Tiêu đề &amp; Giao diện
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

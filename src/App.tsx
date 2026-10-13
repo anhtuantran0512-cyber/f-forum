@@ -1165,6 +1165,7 @@ export const App: React.FC = () => {
           {currentView === 'memory' && (
             <div className="w-full min-h-screen bg-black">
               <MemoryRealm
+                currentUser={currentUser}
                 onNavigateSection={(sectionId) => {
                   if (sectionId === 'clubs' || sectionId === 'qa' || sectionId === 'chronicles') {
                     handleViewChange(sectionId as DimensionView);

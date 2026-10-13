@@ -1087,9 +1087,24 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
           {draftImage && (
             <div className="draft-image-preview">
               <img src={draftImage} alt="Xem trước ảnh" loading="lazy" decoding="async" className="draft-image" />
-              <button type="button" onClick={cancelDraftImage} className="draft-image-remove" title="Gỡ ảnh">
-                <X className="w-3.5 h-3.5" />
-              </button>
+              <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={firePickImage}
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-950/90 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-400/50 text-xs font-extrabold transition-colors cursor-pointer"
+                >
+                  Đổi ảnh
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelDraftImage}
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-950/90 hover:bg-rose-500/80 text-rose-300 hover:text-white border border-rose-400/40 text-xs font-extrabold flex items-center gap-1 transition-colors cursor-pointer"
+                  title="Gỡ ảnh"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Gỡ</span>
+                </button>
+              </div>
             </div>
           )}
           {draftImageError && <p className="image-error">{draftImageError}</p>}
