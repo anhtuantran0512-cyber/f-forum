@@ -63,36 +63,50 @@ export const enqueueOfflineAction = (
   return item;
 };
 
-/** Phát lại toàn bộ hành động đang chờ khi mạng khôi phục. */
+let activeFlushPromise: Promise<{ sent: number; remaining: number }> | null = null;
+
+/** Phát lại toàn bộ hành động đang chờ khi mạng khôi phục (khóa chống gửi trùng lặp). */
 export const flushOfflineQueue = async (
   sender: (endpoint: string, body: Record<string, unknown>) => Promise<{ status: number; data: any }> = postJson,
 ): Promise<{ sent: number; remaining: number }> => {
-  const queue = readOfflineQueue();
-  if (!queue.length) return { sent: 0, remaining: 0 };
+  if (activeFlushPromise) {
+    return activeFlushPromise;
+  }
 
-  const remaining: QueuedOfflineAction[] = [];
-  let sent = 0;
-
-  for (const item of queue) {
+  activeFlushPromise = (async () => {
     try {
-      const res = await sender(item.endpoint, item.body);
-      if (res.status >= 200 && res.status < 500) {
-        sent += 1;
-      } else if (item.attempts < 3) {
-        remaining.push({ ...item, attempts: item.attempts + 1 });
-      }
-    } catch {
-      if (item.attempts < 3) {
-        remaining.push({ ...item, attempts: item.attempts + 1 });
-      }
-    }
-  }
+      const queue = readOfflineQueue();
+      if (!queue.length) return { sent: 0, remaining: 0 };
 
-  writeOfflineQueue(remaining);
-  if (sent > 0 && typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('fforum_bg_sync_flushed', { detail: { sent } }));
-  }
-  return { sent, remaining: remaining.length };
+      const remaining: QueuedOfflineAction[] = [];
+      let sent = 0;
+
+      for (const item of queue) {
+        try {
+          const res = await sender(item.endpoint, item.body);
+          if (res.status >= 200 && res.status < 500) {
+            sent += 1;
+          } else if (item.attempts < 3) {
+            remaining.push({ ...item, attempts: item.attempts + 1 });
+          }
+        } catch {
+          if (item.attempts < 3) {
+            remaining.push({ ...item, attempts: item.attempts + 1 });
+          }
+        }
+      }
+
+      writeOfflineQueue(remaining);
+      if (sent > 0 && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('fforum_bg_sync_flushed', { detail: { sent } }));
+      }
+      return { sent, remaining: remaining.length };
+    } finally {
+      activeFlushPromise = null;
+    }
+  })();
+
+  return activeFlushPromise;
 };
 
 /** Đăng ký Service Worker Stale-While-Revalidate + lắng nghe sự kiện khôi phục mạng. */

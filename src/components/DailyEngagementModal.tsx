@@ -175,6 +175,14 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
       if (rewardDateRef.current !== currentIso) {
         rewardDateRef.current = currentIso;
         setRewardDate(currentIso);
+        quizDeadlineRef.current = null;
+        timeoutSubmittedRef.current = false;
+        quizSubmittingRef.current = false;
+        setQuizStarted(false);
+        setQuizTimer(QUIZ_DURATION_SECONDS);
+        setSelectedOption(null);
+        setQuizResult(null);
+        setQuizAnswered(safeStorage.getItem('fforum_last_quiz_date') === currentIso);
         if (isAuthenticated && onLoadRewardStatus) {
           void onLoadRewardStatus().then((result) => {
             if (result.ok && result.status) applyRewardStatus(result.status);
