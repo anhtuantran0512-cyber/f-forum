@@ -1041,7 +1041,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </div>
 
                   {/* Nameplate Tag trực tiếp trên chỗ tên người dùng */}
-                  <div className="relative z-[2] hidden sm:flex items-center gap-1.5 leading-none nav-user-text">
+                  <div className="relative z-[2] hidden sm:flex items-center gap-1.5 flex-nowrap leading-none nav-user-text">
                     <DecoratedName
                       user={currentUser}
                       name={currentUser.name.replace(/ \(.*\)/, '')}
@@ -1051,6 +1051,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       animate
                       priority="high"
                       showFallbackTag
+                      className="min-w-0 shrink"
                     />
                     {isSuperAdmin && (
                       <AdminVerifiedBadge size={13} tooltipPosition="bottom" />

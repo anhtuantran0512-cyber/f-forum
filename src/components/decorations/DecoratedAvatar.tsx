@@ -161,7 +161,7 @@ export const DecoratedName = memo(({
     fontSize || letterSpacing ? { fontSize, letterSpacing } : undefined;
   const horizontalPad = len > 18 ? '8px' : height <= 30 ? '10px' : height <= 35 ? '12px' : undefined;
   const boxStyle: React.CSSProperties = {
-    minWidth: Math.min(width, 116),
+    minWidth: 0,
     width: adaptiveWidth,
     maxWidth: '100%',
     height,

@@ -610,7 +610,7 @@ export const AdminVerifiedBadge: React.FC<{
   className?: string;
 }> = ({ size = 18, tooltipPosition = 'top', className = '' }) => {
   return (
-    <div className={`relative group inline-flex items-center ${className}`}>
+    <span className={`relative group inline-flex items-center shrink-0 align-middle leading-none ${className}`}>
       <span
         style={{ width: size, height: size }}
         className="admin-verified-badge shrink-0"
@@ -628,7 +628,7 @@ export const AdminVerifiedBadge: React.FC<{
           <polyline points="20 6 9 17 4 12" />
         </svg>
       </span>
-      <div
+      <span
         className={`pointer-events-none absolute left-1/2 -translate-x-1/2 z-50 opacity-0 group-hover:opacity-100 transition-all duration-200 text-xs font-semibold text-white px-2.5 py-1 rounded-md bg-neutral-900/95 border border-cyan-400/40 whitespace-nowrap shadow-xl ${
           tooltipPosition === 'bottom'
             ? 'top-full mt-2'
@@ -636,15 +636,15 @@ export const AdminVerifiedBadge: React.FC<{
         }`}
       >
         Super Admin F-Forum
-        <div
-          className={`absolute left-1/2 -translate-x-1/2 border-4 border-transparent ${
+        <span
+          className={`block absolute left-1/2 -translate-x-1/2 border-4 border-transparent ${
             tooltipPosition === 'bottom'
               ? 'bottom-full -mb-1 border-b-neutral-900'
               : 'top-full -mt-1 border-t-neutral-900'
           }`}
         />
-      </div>
-    </div>
+      </span>
+    </span>
   );
 };
 

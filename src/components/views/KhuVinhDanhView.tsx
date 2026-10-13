@@ -1213,9 +1213,9 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
               </button>
             )}
           </div>
-          <div>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <b className="font-['Playfair_Display'] text-[18px] text-white font-normal">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-nowrap min-w-0">
+              <b className="font-['Playfair_Display'] text-[18px] text-white font-normal truncate">
                 {founderProfile.name}
               </b>
               <AdminVerifiedBadge size={14} />
