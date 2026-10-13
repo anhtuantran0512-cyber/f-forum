@@ -375,27 +375,16 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
           </div>
         </div>
 
-        {/* Master Admin Approval Board (EXCLUSIVELY rendered for BroAmStuck@gmail.com) */}
+        {/* Duyệt đơn CLB (Admin) — gọn, không khoa trương */}
         {isSuperAdmin && (
-          <div className="mb-5 p-4 rounded-2xl liquid-glass bg-amber-950/40 border border-amber-500/40 shadow-xl shrink-0 animate-fade-up">
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-amber-500/20">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-amber-400" />
-                <h3 className="text-xs sm:text-sm font-bold text-amber-300 uppercase tracking-wider">
-                  MASTER ADMIN APPROVAL BOARD ({pendingClubs.length} ĐƠN ĐANG CHỜ DUYỆT)
-                </h3>
-              </div>
-              <span className="text-[10px] text-amber-400/80 font-mono">
-                Scoped Admin Zone • BroAmStuck@gmail.com
-              </span>
+          <div className="mb-4 px-3.5 py-2.5 rounded-xl bg-neutral-900/80 border border-white/10 shrink-0">
+            <div className="flex items-center gap-2 text-xs text-neutral-300 font-medium">
+              <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>{pendingClubs.length} đơn đang chờ duyệt</span>
             </div>
 
-            {pendingClubs.length === 0 ? (
-              <div className="p-3 text-center text-xs text-amber-200/70 font-mono bg-black/40 rounded-xl border border-amber-500/20">
-                ✓ Hiện không có đơn thành lập CLB nào đang chờ duyệt. Toàn bộ hồ sơ đã hoàn tất!
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-1">
+            {pendingClubs.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-1 mt-3 pt-3 border-t border-white/10">
                 {pendingClubs.map(pClub => (
                   <div
                     key={pClub.id}
@@ -416,14 +405,14 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     <div className="flex items-center gap-2 mt-3 pt-2 border-t border-white/10">
                       <button
                         onClick={() => void onApproveClub(pClub.id)}
-                        className="flex-1 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs flex items-center justify-center gap-1 shadow-md"
+                        className="flex-1 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs flex items-center justify-center gap-1 shadow-md cursor-pointer"
                       >
                         <CheckCircle className="w-3.5 h-3.5" />
                         Phê Duyệt (+250 XP)
                       </button>
                       <button
                         onClick={() => setRejectPromptClubId(pClub.id)}
-                        className="py-1.5 px-3 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 font-medium text-xs flex items-center justify-center gap-1 border border-red-500/30"
+                        className="py-1.5 px-3 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 font-medium text-xs flex items-center justify-center gap-1 border border-red-500/30 cursor-pointer"
                       >
                         <XCircle className="w-3.5 h-3.5" />
                         Từ Chối
