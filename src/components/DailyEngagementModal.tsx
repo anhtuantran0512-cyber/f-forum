@@ -167,6 +167,32 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
     return () => { active = false; };
   }, [isOpen, isAuthenticated, onLoadRewardStatus, applyRewardStatus]);
 
+  /* Tự động làm mới trạng thái điểm danh & câu hỏi khi bước qua 0h đêm */
+  useEffect(() => {
+    if (!isOpen) return;
+    const checkDateTransition = () => {
+      const currentIso = todayISO();
+      if (rewardDateRef.current !== currentIso) {
+        rewardDateRef.current = currentIso;
+        setRewardDate(currentIso);
+        if (isAuthenticated && onLoadRewardStatus) {
+          void onLoadRewardStatus().then((result) => {
+            if (result.ok && result.status) applyRewardStatus(result.status);
+          });
+        }
+      }
+    };
+    const interval = window.setInterval(checkDateTransition, 10000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') checkDateTransition();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [isOpen, isAuthenticated, onLoadRewardStatus, applyRewardStatus]);
+
   const startQuiz = () => {
     if (quizAnswered || quizStarted) return;
     quizDeadlineRef.current = Date.now() + QUIZ_DURATION_SECONDS * 1000;

@@ -197,7 +197,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   anchorRef,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
-  const { detectedTier, overrideTier, setOverrideTier, capabilities } = useAdaptiveQuality();
+  const { detectedTier, overrideTier, setOverrideTier, capabilities, profile } = useAdaptiveQuality();
   const activeDockPos: DockPosition = dockPosition || navbarPosition;
   const [activeTab, setActiveTab] = useState<SettingsTab>('appearance');
   const settledRafRef = useRef<number | null>(null);
@@ -898,8 +898,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   {/* Adaptive Quality Architecture — tự động nhận diện Tier A/B/C */}
                   <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/5 border border-white/5">
                     <div className="min-w-0">
-                      <div className="text-[11.5px] font-semibold text-white truncate">
-                        Chất lượng Thích ứng ({capabilities.badgeText})
+                      <div className="text-[11.5px] font-semibold text-white truncate flex items-center gap-1.5">
+                        <span>Chất lượng Thích ứng ({capabilities.badgeText})</span>
+                        {profile?.batteryLow && (
+                          <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            Tiết kiệm pin (&lt; 20%)
+                          </span>
+                        )}
                       </div>
                       <div className="text-[10px] text-white/55 truncate">
                         Tự động chọn Video 4K / HD / SD &amp; mật độ hạt GPU theo máy

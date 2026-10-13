@@ -26,7 +26,7 @@ import {
   getRandomGhibliMask,
 } from '../utils/ghibliMasks';
 import { safeStorage } from '../utils/storage';
-import { enqueueOfflineAction } from '../utils/backgroundSyncQueue';
+import { enqueueOfflineAction, flushOfflineQueue } from '../utils/backgroundSyncQueue';
 import {
   adoptSession,
   authHeaders,
@@ -399,14 +399,26 @@ export function useForumStore() {
 
     Hàm chỉ đọc ref nên hai effect deps rỗng bắt được bản cũ vẫn cho kết quả đúng.
   */
+  const MAX_CLIENT_CHAT_MESSAGES = 500;
+
   const noteChatMessage = (id: string): boolean => {
     if (!seenChatIdsRef.current) {
       seenChatIdsRef.current = new Set(chatMessagesRef.current.map((m) => m.id));
     }
     if (seenChatIdsRef.current.has(id)) return true;
+    if (seenChatIdsRef.current.size >= 1000) {
+      /* Cắt bớt id cũ để chống rò rỉ bộ nhớ khi chat kéo dài nhiều giờ */
+      const arr = Array.from(seenChatIdsRef.current);
+      seenChatIdsRef.current = new Set(arr.slice(-500));
+    }
     seenChatIdsRef.current.add(id);
     return false;
   };
+  const [isNetworkOnline, setIsNetworkOnline] = useState<boolean>(() =>
+    typeof navigator !== 'undefined' ? navigator.onLine !== false : true,
+  );
+  const wasOfflineRef = useRef<boolean>(false);
+  const fetchServerStateRef = useRef<(() => Promise<void>) | null>(null);
   const [toastMessage, setToastMessage] = useState<{
     title: string;
     subtitle?: string;
@@ -857,9 +869,11 @@ export function useForumStore() {
       }
     }
 
+    fetchServerStateRef.current = fetchServerState;
     fetchServerState();
     return () => {
       isMounted = false;
+      fetchServerStateRef.current = null;
     };
     /* commitUsers là useCallback([]) nên identity không đổi — effect vẫn chỉ chạy 1 lần. */
   }, [commitUsers]);
@@ -1049,7 +1063,8 @@ export function useForumStore() {
           if (!alreadySeen) {
             setChatMessages(prev => {
               if (prev.some(m => m.id === newMsg.id)) return prev;
-              return [...prev, newMsg];
+              const next = [...prev, newMsg];
+              return next.length > MAX_CLIENT_CHAT_MESSAGES ? next.slice(-MAX_CLIENT_CHAT_MESSAGES) : next;
             });
           }
 
@@ -1082,7 +1097,8 @@ export function useForumStore() {
           const newQuestion = payload as Question;
           setQuestions(prev => {
             if (prev.some(q => q.id === newQuestion.id)) return prev;
-            return [newQuestion, ...prev];
+            const next = [newQuestion, ...prev];
+            return next.length > 500 ? next.slice(0, 500) : next;
           });
           break;
         }
@@ -1365,10 +1381,19 @@ export function useForumStore() {
       reconnectSocketRef.current = () => {};
       if (reconnectTimer) clearTimeout(reconnectTimer);
       if (ws) {
+        ws.onopen = null;
+        ws.onmessage = null;
+        ws.onerror = null;
+        ws.onclose = null;
         activeWsRef.current = null;
         ws.close();
       }
-      if (sse) sse.close();
+      if (sse) {
+        sse.onmessage = null;
+        sse.onerror = null;
+        sse.close();
+        sse = null;
+      }
     };
     /* commitUsers có deps rỗng nên địa chỉ không bao giờ đổi: liệt kê vào đây
        không khiến effect kết nối chạy lại (và do đó không gây reconnect). */
@@ -1392,7 +1417,8 @@ export function useForumStore() {
           if (!alreadySeen) {
             setChatMessages(prev => {
               if (prev.some(m => m.id === newMsg.id)) return prev;
-              return [...prev, newMsg];
+              const next = [...prev, newMsg];
+              return next.length > MAX_CLIENT_CHAT_MESSAGES ? next.slice(-MAX_CLIENT_CHAT_MESSAGES) : next;
             });
           }
           const me = currentUserRef.current;
@@ -1719,6 +1745,58 @@ export function useForumStore() {
       window.removeEventListener(SESSION_SUSPECT_EVENT, onSuspect);
     };
   }, [sessionOwnerEmail]);
+
+  /* Cơ chế chống đứt đoạn kết nối & tự động đồng bộ khi có mạng trở lại. */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const onOffline = () => {
+      wasOfflineRef.current = true;
+      setIsNetworkOnline(false);
+      setToastMessage({
+        title: 'Mất kết nối mạng',
+        subtitle: 'Bạn đang dùng chế độ ngoại tuyến. Thao tác sẽ được lưu vào hàng đợi và tự động đồng bộ khi có mạng.',
+        type: 'warning',
+      });
+    };
+
+    const onOnline = () => {
+      setIsNetworkOnline(true);
+      if (wasOfflineRef.current) {
+        wasOfflineRef.current = false;
+        reconnectSocketRef.current();
+        void flushOfflineQueue().then((flushed) => {
+          if (flushed.sent > 0) {
+            setToastMessage({
+              title: 'Đã gửi thao tác ngoại tuyến',
+              subtitle: `Đã tự động gửi lại ${flushed.sent} thao tác đang chờ trong hàng đợi.`,
+              type: 'success',
+            });
+          }
+        });
+        void fetchServerStateRef.current?.();
+        playChime('success');
+        setToastMessage({
+          title: 'Đã khôi phục kết nối',
+          subtitle: 'Dữ liệu diễn đàn và kết nối trực tuyến đã được đồng bộ.',
+          type: 'success',
+        });
+      }
+    };
+
+    const onBgSyncFlushed = () => {
+      void fetchServerStateRef.current?.();
+    };
+
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('fforum_bg_sync_flushed', onBgSyncFlushed);
+    return () => {
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('fforum_bg_sync_flushed', onBgSyncFlushed);
+    };
+  }, []);
 
   /** Epic 5: phiên cookie → mở lại WS để bắt tay mang cookie; phiên Bearer → gửi gói AUTH. */
   const bindSessionToSocket = useCallback((transport: SessionTransport) => {
@@ -3115,7 +3193,8 @@ export function useForumStore() {
     const prevChat = chatMessages;
     setChatMessages(prev => {
       if (prev.some(m => m.id === newMsg.id)) return prev;
-      return [...prev, newMsg];
+      const next = [...prev, newMsg];
+      return next.length > MAX_CLIENT_CHAT_MESSAGES ? next.slice(-MAX_CLIENT_CHAT_MESSAGES) : next;
     });
 
     /* Gửi kèm token để máy chủ gắn đúng cấp bậc từ bản ghi thật. Thất bại thì rút
@@ -3597,6 +3676,7 @@ export function useForumStore() {
     isLoginModalOpen,
     setIsLoginModalOpen,
     isSynced,
+    isNetworkOnline,
     toastMessage,
     setToastMessage,
     sessionExpiryWarning,

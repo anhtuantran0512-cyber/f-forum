@@ -18,9 +18,12 @@ export const pushNotification = (item: NotificationInput) => {
 
   const id = item.id || `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   if (item.id && list.some((notification) => notification?.id === item.id)) return;
+  if (!item.id && list.length > 0 && list[0]?.title === item.title && list[0]?.body === item.body) return;
 
+  const defaultTime = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   const newNotif: NotificationItem = {
     ...item,
+    time: item.time || defaultTime,
     id,
     isRead: false,
   };

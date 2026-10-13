@@ -327,3 +327,37 @@ test('7. Clean Code Discipline & Virtual Card Rendering: 0 single-line // commen
   assert.match(css, /\.ff-virtual-card[\s\S]*?content-visibility:\s*auto/, 'Virtual card phải hỗ trợ content-visibility: auto');
 });
 
+test('8. Battery-Saver Auto-Fallback & Network Reconnect Resilience Verification', () => {
+  const highEndOnLowBattery = classifyDeviceProfile({
+    memory: 16,
+    cores: 12,
+    connection: '4g',
+    downlinkMbps: 45,
+    rttMs: 20,
+    saveData: false,
+    gpu: { tier: 3, renderer: 'ANGLE (NVIDIA GeForce RTX 4080)', webgl: true, webgl2: true, isSoftware: false, estimatedFps: 120 },
+    screenSize: 2560 * 1440,
+    devicePixelRatio: 2,
+    prefersReducedMotion: false,
+    batteryLow: true,
+  });
+  assert.equal(highEndOnLowBattery.tier, 'tier-c', 'Khi pin < 20% đang xả pin, tự động chuyển về Tier C để tiết kiệm năng lượng');
+  assert.ok(highEndOnLowBattery.reasons.some((r) => r.includes('Pin yếu')), 'Phải có lý do về pin yếu trong báo cáo');
+
+  const highEndOnCharging = classifyDeviceProfile({
+    memory: 16,
+    cores: 12,
+    connection: '4g',
+    downlinkMbps: 45,
+    rttMs: 20,
+    saveData: false,
+    gpu: { tier: 3, renderer: 'ANGLE (NVIDIA GeForce RTX 4080)', webgl: true, webgl2: true, isSoftware: false, estimatedFps: 120 },
+    screenSize: 2560 * 1440,
+    devicePixelRatio: 2,
+    prefersReducedMotion: false,
+    batteryLow: false,
+    batteryCharging: true,
+  });
+  assert.equal(highEndOnCharging.tier, 'tier-a', 'Khi đang cắm sạc hoặc pin đủ, giữ nguyên Tier A');
+});
+
