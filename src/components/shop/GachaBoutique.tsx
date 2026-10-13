@@ -70,6 +70,8 @@ import { NameplateDisplay } from '../decorations/NameplateDisplay';
 import { DEFAULT_AVATAR } from '../../utils/mediaFallback';
 import { CelebrationBurst } from '../CelebrationBurst';
 import { CuBong } from '../mascot/CuBong';
+import { useVirtualWindow } from '../../utils/virtualWindow';
+import { useInteractionDebounce } from '../../utils/interactionScheduler';
 import './Boutique.css';
 
 interface GachaBoutiqueProps {
@@ -244,6 +246,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
   /* "Trong ngân sách": chỉ hiện item giá thực tế ≤ số Coin hiện tại. */
   const [affordableOnly, setAffordableOnly] = useState(() => savedFilters.afford === '1');
   const [query, setQuery] = useState('');
+  const debouncedQuery = useInteractionDebounce(query, 120);
   const [sortMode, setSortMode] = useState<SortMode>(
     savedFilters.sort === 'price-asc' || savedFilters.sort === 'price-desc' || savedFilters.sort === 'newest' || savedFilters.sort === 'value'
       ? (savedFilters.sort as SortMode)
@@ -367,7 +370,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
   const priceRangeLabel = useMemo(() => priceRange(activeItems), [activeItems]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     const list = activeItems.filter((item) => {
       if (typeFilter !== 'all' && item.category !== typeFilter) return false;
       if (rarityFilter !== 'all' && decoRarity(item) !== rarityFilter) return false;
@@ -409,7 +412,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           (a, b) => order(b) - order(a) || (b.qualityScore ?? 0) - (a.qualityScore ?? 0) || b.price - a.price,
         );
     }
-  }, [activeItems, typeFilter, rarityFilter, motionFilter, ownedFilter, inventory, wishOnly, wishlist, priceMax, affordableOnly, coin, dynamicDiscounts, now, query, sortMode]);
+  }, [activeItems, typeFilter, rarityFilter, motionFilter, ownedFilter, inventory, wishOnly, wishlist, priceMax, affordableOnly, coin, dynamicDiscounts, now, debouncedQuery, sortMode]);
 
   /* Infinite scroll: chỉ render 24 item mỗi nhịp; đổi bộ lọc → reset ở handler (không setState trong effect). */
   const resetPagination = () => setVisibleCount(PAGE_SIZE);
@@ -448,6 +451,13 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
   }, [visibleCount, filtered.length]);
 
   const paged = filtered.slice(0, visibleCount);
+
+  const { isItemVisible } = useVirtualWindow({
+    totalItems: paged.length,
+    itemHeight: 240,
+    columns: 3,
+    overscan: 6,
+  });
 
   const inspected = inspectId ? activeItems.find((item) => item.id === inspectId) || null : null;
 
@@ -1248,6 +1258,20 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
       ) : (
         <div className="gb-masonry shop-grid" role="list" aria-label="Trang trí trong Gacha Boutique">
           {paged.map((item, index) => {
+            if (!isItemVisible(index)) {
+              return (
+                <div
+                  role="listitem"
+                  key={item.id}
+                  className="gb-cell gb-cell--virtual-stub"
+                  style={{
+                    height: '240px',
+                    contain: 'strict',
+                  } as CSSProperties}
+                  aria-hidden="true"
+                />
+              );
+            }
             const rarity = decoRarity(item);
             const rarityMeta = DECORATION_RARITY_META[rarity];
             const owned = inventory.includes(item.id);

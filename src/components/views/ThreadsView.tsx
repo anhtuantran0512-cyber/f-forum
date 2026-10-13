@@ -16,6 +16,8 @@ import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
 import { isMasterAdmin } from '../../config/admin';
 import { safeStorage } from '../../utils/storage';
 import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
+import { useVirtualWindow } from '../../utils/virtualWindow';
+import { useInteractionDebounce } from '../../utils/interactionScheduler';
 import './ThreadsView.css';
 
 const SAVED_THREADS_KEY = 'fforum_saved_threads_v1';
@@ -676,6 +678,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
   const [ofTheDay, setOfTheDay] = useState<Thread | null>(null);
   const [feedMode, setFeedMode] = useState<'latest' | 'hot' | 'media' | 'mine' | 'saved'>('latest');
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useInteractionDebounce(searchQuery, 120);
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [savedIds, setSavedIds] = useState<string[]>(() => {
@@ -739,7 +742,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
         replyCountByParent.set(t.parentThreadId, (replyCountByParent.get(t.parentThreadId) || 0) + 1);
       }
     }
-    const q = searchQuery.trim().toLowerCase();
+    const q = debouncedSearchQuery.trim().toLowerCase();
     const tagLower = activeTag ? activeTag.toLowerCase() : null;
     const savedSet = new Set(savedIds);
     const roots = threads.filter((t) => {
@@ -775,7 +778,14 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
       });
     }
     return [...roots].sort((a, b) => b.createdAtMs - a.createdAtMs);
-  }, [threads, feedMode, searchQuery, activeTag, currentUser, savedIds]);
+  }, [threads, feedMode, debouncedSearchQuery, activeTag, currentUser, savedIds]);
+
+  const { isItemVisible: isThreadVisible } = useVirtualWindow({
+    totalItems: visibleThreads.length,
+    itemHeight: 160,
+    columns: 1,
+    overscan: 6,
+  });
 
   const feedStats = useMemo(() => {
     if (!Array.isArray(threads)) return { roots: 0, replies: 0, reactions: 0 };
@@ -1185,17 +1195,29 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
               </p>
             </div>
           ) : (
-            visibleThreads.map((t) => (
-              <ThreadCard
-                key={t.id}
-                thread={t}
-                allThreads={threads}
-                depth={0}
-                currentUser={currentUser}
-                users={users}
-                viewModel={viewModel}
-              />
-            ))
+            visibleThreads.map((t, tIndex) => {
+              if (!isThreadVisible(tIndex)) {
+                return (
+                  <div
+                    key={t.id}
+                    className="thread-card thread-card--virtual-stub"
+                    style={{ minHeight: '140px', height: '140px', contain: 'strict' }}
+                    aria-hidden="true"
+                  />
+                );
+              }
+              return (
+                <ThreadCard
+                  key={t.id}
+                  thread={t}
+                  allThreads={threads}
+                  depth={0}
+                  currentUser={currentUser}
+                  users={users}
+                  viewModel={viewModel}
+                />
+              );
+            })
           )}
         </div>
       </div>

@@ -14,6 +14,7 @@ import {
   saveTierOverride,
 } from '../utils/adaptiveQuality';
 import { postJson } from '../utils/session';
+import { setMediaCacheLimit, evictInactiveMediaBlobs } from '../utils/decorationStore';
 
 export const AdaptiveQualityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [detectedTier, setDetectedTier] = useState<AdaptiveQualityTier>('tier-a');
@@ -121,13 +122,22 @@ export const AdaptiveQualityProvider: React.FC<{ children: React.ReactNode }> = 
     };
   }, []);
 
-  /* Đồng bộ thuộc tính data-quality-tier, data-battery-saver và ngân sách concurrent animation. */
+  /* Đồng bộ thuộc tính data-quality-tier, data-battery-saver, bộ nhớ media LRU và ngân sách concurrent animation. */
   useEffect(() => {
     animationBudget.setMaxConcurrentOther(capabilities.maxConcurrentOtherAnimations);
     if (typeof document !== 'undefined') {
       document.documentElement.dataset.qualityTier = effectiveTier;
       document.documentElement.dataset.videoQuality = capabilities.videoQuality;
       document.documentElement.dataset.batterySaver = profile.batteryLow ? 'true' : 'false';
+    }
+    if (effectiveTier === 'tier-c' || profile.batteryLow) {
+      setMediaCacheLimit(16);
+      evictInactiveMediaBlobs(5000);
+    } else if (effectiveTier === 'tier-b') {
+      setMediaCacheLimit(40);
+      evictInactiveMediaBlobs(15000);
+    } else {
+      setMediaCacheLimit(80);
     }
   }, [effectiveTier, capabilities, profile.batteryLow]);
 

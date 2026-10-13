@@ -8,13 +8,13 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { EquippedDecorations, ShopItem, User } from '../types/index.ts';
-import { setDecorationPool, getDecorationPool } from './shopData';
+import { setDecorationPool, getDecorationPool } from './shopData.ts';
 import {
   type DecorationCatalog,
   catalogToShopItems,
   isDecorationId,
   resolveAssetUrl,
-} from './decorations';
+} from './decorations.ts';
 
 const CATALOG_PATH = '/assets/decorations/decorations-catalog.json';
 
@@ -138,32 +138,166 @@ export const supportsWebmAlpha = (): boolean => cachedFeatures?.webmAlpha ?? fal
 
 /* ---- Cache blob URL (RAM) — video WebM alpha không chạy được qua HTTP cache của <video> ---- */
 
-const blobCache = new Map<string, string>();
-const inflightBlobPromises = new Map<string, Promise<string | null>>();
-let blobCount = 0;
-const MAX_BLOBS = 80;
+interface BlobMeta {
+  lastAccessed: number;
+  refCount: number;
+}
 
-const revokeIfNotUsed = () => {
-  /* Không revoke ngay: phần tử phát media có thể đang đọc. Revoked khi vượt trần. */
-  if (blobCount > MAX_BLOBS && blobCache.size) {
-    const first = blobCache.keys().next().value as string | undefined;
-    if (first) {
-      blobCache.delete(first);
+const blobCache = new Map<string, string>();
+const blobMeta = new Map<string, BlobMeta>();
+const inflightBlobPromises = new Map<string, Promise<string | null>>();
+let blobLimit = 80;
+let totalEvictedCount = 0;
+let cacheHitCount = 0;
+let cacheMissCount = 0;
+
+export const setMediaCacheLimit = (limit: number): void => {
+  blobLimit = Math.max(1, limit);
+};
+
+export const registerMediaReference = (url: string | null): void => {
+  if (!url) return;
+  const absolute = resolveAssetUrl(url) || url;
+  const meta = blobMeta.get(absolute);
+  if (meta) {
+    meta.refCount += 1;
+    meta.lastAccessed = Date.now();
+  } else {
+    blobMeta.set(absolute, { lastAccessed: Date.now(), refCount: 1 });
+  }
+};
+
+export const unregisterMediaReference = (url: string | null): void => {
+  if (!url) return;
+  const absolute = resolveAssetUrl(url) || url;
+  const meta = blobMeta.get(absolute);
+  if (meta) {
+    meta.refCount = Math.max(0, meta.refCount - 1);
+  }
+};
+
+export const evictInactiveMediaBlobs = (maxAgeMs = 15000): number => {
+  if (!blobCache.size) return 0;
+  const now = Date.now();
+  let evicted = 0;
+
+  for (const [key, objectUrl] of Array.from(blobCache.entries())) {
+    const meta = blobMeta.get(key);
+    const isInactive = !meta || meta.refCount <= 0;
+    const isStale = meta ? now - meta.lastAccessed >= maxAgeMs : true;
+
+    if (isInactive && isStale) {
+      blobCache.delete(key);
+      blobMeta.delete(key);
       try {
-        URL.revokeObjectURL(first);
+        URL.revokeObjectURL(objectUrl);
       } catch {
         /* đã revoked */
       }
-      blobCount = Math.max(0, blobCount - 1);
+      evicted += 1;
+      totalEvictedCount += 1;
+    }
+  }
+  return evicted;
+};
+
+export const clearMediaCache = (force = false): void => {
+  for (const [key, objectUrl] of Array.from(blobCache.entries())) {
+    const meta = blobMeta.get(key);
+    if (force || !meta || meta.refCount <= 0) {
+      blobCache.delete(key);
+      blobMeta.delete(key);
+      try {
+        URL.revokeObjectURL(objectUrl);
+      } catch {
+        /* đã revoked */
+      }
+      totalEvictedCount += 1;
     }
   }
 };
+
+export const getMediaCacheStats = () => {
+  let active = 0;
+  for (const meta of blobMeta.values()) {
+    if (meta.refCount > 0) active += 1;
+  }
+  return {
+    totalEntries: blobCache.size,
+    activeEntries: active,
+    evictedCount: totalEvictedCount,
+    hitCount: cacheHitCount,
+    missCount: cacheMissCount,
+    limit: blobLimit,
+  };
+};
+
+const revokeIfNotUsed = () => {
+  if (blobCache.size > blobLimit) {
+    for (const [key, objectUrl] of Array.from(blobCache.entries())) {
+      const meta = blobMeta.get(key);
+      if (!meta || meta.refCount <= 0) {
+        blobCache.delete(key);
+        blobMeta.delete(key);
+        try {
+          URL.revokeObjectURL(objectUrl);
+        } catch {
+          /* đã revoked */
+        }
+        totalEvictedCount += 1;
+        if (blobCache.size <= blobLimit) return;
+      }
+    }
+
+    if (blobCache.size > blobLimit) {
+      const oldestKey = blobCache.keys().next().value as string | undefined;
+      if (oldestKey) {
+        const objectUrl = blobCache.get(oldestKey);
+        blobCache.delete(oldestKey);
+        blobMeta.delete(oldestKey);
+        if (objectUrl) {
+          try {
+            URL.revokeObjectURL(objectUrl);
+          } catch {
+            /* đã revoked */
+          }
+        }
+        totalEvictedCount += 1;
+      }
+    }
+  }
+};
+
+if (typeof document !== 'undefined') {
+  document.addEventListener(
+    'visibilitychange',
+    () => {
+      if (document.hidden) {
+        evictInactiveMediaBlobs(5000);
+      }
+    },
+    { passive: true },
+  );
+}
 
 /** Tải asset (webm/webp/png) về blob URL, cache RAM + deduplicate in-flight request. */
 export const loadCachedAsset = async (url: string | null): Promise<string | null> => {
   if (!url) return null;
   const absolute = resolveAssetUrl(url) || url;
-  if (blobCache.has(absolute)) return blobCache.get(absolute) || null;
+  if (blobCache.has(absolute)) {
+    cacheHitCount += 1;
+    const objectUrl = blobCache.get(absolute)!;
+    blobCache.delete(absolute);
+    blobCache.set(absolute, objectUrl);
+    const meta = blobMeta.get(absolute);
+    if (meta) {
+      meta.lastAccessed = Date.now();
+    } else {
+      blobMeta.set(absolute, { lastAccessed: Date.now(), refCount: 0 });
+    }
+    return objectUrl;
+  }
+  cacheMissCount += 1;
   const inflight = inflightBlobPromises.get(absolute);
   if (inflight) return inflight;
   const request = (async (): Promise<string | null> => {
@@ -174,7 +308,7 @@ export const loadCachedAsset = async (url: string | null): Promise<string | null
       if (!blob.size) return null;
       const objectUrl = URL.createObjectURL(blob);
       blobCache.set(absolute, objectUrl);
-      blobCount += 1;
+      blobMeta.set(absolute, { lastAccessed: Date.now(), refCount: 0 });
       revokeIfNotUsed();
       return objectUrl;
     } catch {
@@ -206,6 +340,15 @@ export const useCachedAsset = (url: string | null, enabled: boolean = true): rea
   const [cache, setCache] = useState<Record<string, string | null>>({});
   const [attempt, setAttempt] = useState(0);
   const failCountRef = useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!target) return;
+    registerMediaReference(target);
+    return () => {
+      unregisterMediaReference(target);
+    };
+  }, [target]);
+
   useEffect(() => {
     if (!target) return;
     if (syncHit || target in cache) return;
@@ -242,3 +385,4 @@ export const useCachedAsset = (url: string | null, enabled: boolean = true): rea
 };
 
 export { getDecorationPool };
+

@@ -600,10 +600,23 @@
     0 12px 30px rgba(0, 0, 0, 0.36),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(12px);
+  transform: translateZ(0);
+  backface-visibility: hidden;
   contain: layout style;
   content-visibility: auto;
   contain-intrinsic-size: auto 240px;
   transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
+}
+
+.thread-card--virtual-stub {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  contain: strict !important;
+  min-height: 140px;
+  height: 140px;
+  content-visibility: auto;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 .thread-card:hover {
