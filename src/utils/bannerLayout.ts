@@ -28,11 +28,32 @@ export interface CropBoxRect {
   h: number;
 }
 
+export interface FacebookCropConfig {
+  /** Độ phóng đại (1 = 100% .. 3 = 300%) */
+  zoom: number;
+  /** Độ dịch ngang trực tiếp theo kiểu kéo ảnh dưới mặt nạ Facebook (-100 .. 100) */
+  panX: number;
+  /** Độ dịch dọc trực tiếp theo kiểu kéo ảnh dưới mặt nạ Facebook (-100 .. 100) */
+  panY: number;
+  /** Góc xoay (0 | 90 | 180 | 270) */
+  rotation: number;
+  /** Lật ngang ảnh */
+  flipH: boolean;
+}
+
+export const DEFAULT_FB_CROP_CONFIG: FacebookCropConfig = {
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+  rotation: 0,
+  flipH: false,
+};
+
 export const DEFAULT_CROP_BOX: CropBoxRect = {
-  x: 6,
-  y: 6,
-  w: 88,
-  h: 88,
+  x: 0,
+  y: 0,
+  w: 100,
+  h: 100,
 };
 
 export const DEFAULT_PROFILE_BANNER_URL = '/assets/covers/cover-aurora-bamboo.svg';
@@ -214,16 +235,118 @@ export const serializeBannerUrl = (
   return `${cleanSrc}${sep}x=${norm.x}&y=${norm.y}&z=${norm.zoom}&fit=${norm.fit}&dim=${norm.dim}`;
 };
 
-export const bannerImageStyle = (layout: BannerLayoutConfig): React.CSSProperties => ({
-  objectFit: layout.fit,
-  objectPosition: `${layout.x}% ${layout.y}%`,
-  transform: layout.zoom !== 1 ? `scale(${layout.zoom})` : undefined,
-  transformOrigin: `${layout.x}% ${layout.y}%`,
-});
+/**
+ * Kiểu đặt lại vị trí ảnh bìa chuẩn Facebook:
+ * dịch chuyển trực tiếp bằng `translate3d` kết hợp độ phóng bù tự động khi lệch tâm
+ * để kéo ngang/dọc mượt 1:1 trên mọi tỷ lệ ảnh mà không bao giờ hở viền đen.
+ */
+export const bannerImageStyle = (layout: BannerLayoutConfig): React.CSSProperties => {
+  const hasOffset = Math.abs(layout.x - 50) > 0.5 || Math.abs(layout.y - 50) > 0.5;
+  const effectiveScale =
+    layout.fit === 'contain'
+      ? layout.zoom
+      : hasOffset
+        ? Math.max(1.26, layout.zoom)
+        : layout.zoom;
+  const maxPanPct =
+    layout.fit === 'contain'
+      ? 36
+      : ((effectiveScale - 1) / Math.max(1, effectiveScale * 2)) * 100;
+  const tx = ((50 - layout.x) / 50) * maxPanPct;
+  const ty = ((50 - layout.y) / 50) * maxPanPct;
+
+  return {
+    objectFit: layout.fit,
+    objectPosition: `${layout.x}% ${layout.y}%`,
+    transform:
+      effectiveScale !== 1 || hasOffset
+        ? `translate3d(${tx.toFixed(2)}%, ${ty.toFixed(2)}%, 0) scale(${effectiveScale.toFixed(3)})`
+        : undefined,
+    transformOrigin: '50% 50%',
+  };
+};
 
 /**
- * Cắt (crop) ảnh nền thật trên HTML5 Canvas theo đúng vùng người dùng đã kéo & phóng to
- * hoặc theo khung cắt trực quan `cropBox` (0..100%).
+ * Style hiển thị trực tiếp trong khung cắt ảnh kiểu Facebook (kéo ảnh dưới mặt nạ cố định).
+ */
+export const facebookCropImageStyle = (config: FacebookCropConfig): React.CSSProperties => {
+  const zoom = clamp(config.zoom, 1, 3);
+  const hasPan = Math.abs(config.panX) > 0.2 || Math.abs(config.panY) > 0.2;
+  const effectiveScale = hasPan ? Math.max(1.18, zoom) : zoom;
+  const maxShiftPct = Math.max(8, ((effectiveScale - 1) / (effectiveScale * 2)) * 100 + 18);
+  const tx = (clamp(config.panX, -100, 100) / 100) * maxShiftPct;
+  const ty = (clamp(config.panY, -100, 100) / 100) * maxShiftPct;
+  const flipScaleX = config.flipH ? -1 : 1;
+  const rot = ((config.rotation % 360) + 360) % 360;
+
+  return {
+    objectFit: 'cover',
+    objectPosition: '50% 50%',
+    transform: `translate3d(${tx.toFixed(2)}%, ${ty.toFixed(2)}%, 0) scale(${(effectiveScale * flipScaleX).toFixed(3)}, ${effectiveScale.toFixed(3)}) rotate(${rot}deg)`,
+    transformOrigin: '50% 50%',
+  };
+};
+
+/**
+ * Xuất ảnh từ bộ công cụ cắt & đặt vị trí kiểu Facebook (Avatar hình tròn/vuông 512x512 hoặc Cover 1440x1200).
+ */
+export const cropFacebookPhotoToDataUrl = (
+  imageSrc: string,
+  config: FacebookCropConfig,
+  kind: 'avatar' | 'banner',
+): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const targetWidth = kind === 'avatar' ? 512 : 1440;
+        const targetHeight = kind === 'avatar' ? 512 : 1200;
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Trình duyệt không hỗ trợ xử lý ảnh Canvas.'));
+          return;
+        }
+
+        ctx.fillStyle = '#090d16';
+        ctx.fillRect(0, 0, targetWidth, targetHeight);
+
+        const srcW = Math.max(1, img.naturalWidth || img.width);
+        const srcH = Math.max(1, img.naturalHeight || img.height);
+        const zoom = clamp(config.zoom, 1, 3);
+        const hasPan = Math.abs(config.panX) > 0.2 || Math.abs(config.panY) > 0.2;
+        const effectiveScale = hasPan ? Math.max(1.18, zoom) : zoom;
+        const maxShiftPct = Math.max(8, ((effectiveScale - 1) / (effectiveScale * 2)) * 100 + 18);
+        const txPx = ((clamp(config.panX, -100, 100) / 100) * maxShiftPct * targetWidth) / 100;
+        const tyPx = ((clamp(config.panY, -100, 100) / 100) * maxShiftPct * targetHeight) / 100;
+
+        const baseScale = Math.max(targetWidth / srcW, targetHeight / srcH);
+        const drawW = srcW * baseScale;
+        const drawH = srcH * baseScale;
+        const rotRad = ((((config.rotation % 360) + 360) % 360) * Math.PI) / 180;
+
+        ctx.save();
+        ctx.translate(targetWidth / 2 + txPx, targetHeight / 2 + tyPx);
+        ctx.scale(config.flipH ? -effectiveScale : effectiveScale, effectiveScale);
+        ctx.rotate(rotRad);
+        ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+        ctx.restore();
+
+        const out = canvas.toDataURL('image/webp', 0.92);
+        resolve(out.startsWith('data:image/webp') ? out : canvas.toDataURL('image/jpeg', 0.92));
+      } catch (err) {
+        reject(err instanceof Error ? err : new Error('Không thể cắt ảnh.'));
+      }
+    };
+    img.onerror = () => reject(new Error('Không tải được ảnh để cắt.'));
+    img.src = imageSrc;
+  });
+
+/**
+ * Cắt (crop) ảnh nền thật trên HTML5 Canvas theo đúng vùng người dùng đã kéo & phóng to.
  */
 export const cropBannerToDataUrl = (
   imageSrc: string,
@@ -252,30 +375,29 @@ export const cropBannerToDataUrl = (
         const srcW = Math.max(1, img.naturalWidth || img.width);
         const srcH = Math.max(1, img.naturalHeight || img.height);
         const zoom = clamp(layout.zoom, 1, 3);
-        const posX = clamp(layout.x, 0, 100) / 100;
-        const posY = clamp(layout.y, 0, 100) / 100;
+        const hasOffset = Math.abs(layout.x - 50) > 0.5 || Math.abs(layout.y - 50) > 0.5;
+        const effectiveScale =
+          layout.fit === 'contain'
+            ? zoom
+            : hasOffset
+              ? Math.max(1.26, zoom)
+              : zoom;
+        const maxPanPct =
+          layout.fit === 'contain'
+            ? 36
+            : ((effectiveScale - 1) / Math.max(1, effectiveScale * 2)) * 100;
+        const txPx = (((50 - layout.x) / 50) * maxPanPct * targetWidth) / 100;
+        const tyPx = (((50 - layout.y) / 50) * maxPanPct * targetHeight) / 100;
 
-        if (layout.fit === 'fill') {
-          const drawW = targetWidth * zoom;
-          const drawH = targetHeight * zoom;
-          const dx = (targetWidth - drawW) * posX;
-          const dy = (targetHeight - drawH) * posY;
-          stageCtx.drawImage(img, dx, dy, drawW, drawH);
-        } else if (layout.fit === 'contain') {
-          const baseScale = Math.min(targetWidth / srcW, targetHeight / srcH) * zoom;
-          const drawW = srcW * baseScale;
-          const drawH = srcH * baseScale;
-          const dx = (targetWidth - drawW) * posX;
-          const dy = (targetHeight - drawH) * posY;
-          stageCtx.drawImage(img, dx, dy, drawW, drawH);
-        } else {
-          const baseScale = Math.max(targetWidth / srcW, targetHeight / srcH) * zoom;
-          const drawW = srcW * baseScale;
-          const drawH = srcH * baseScale;
-          const dx = (targetWidth - drawW) * posX;
-          const dy = (targetHeight - drawH) * posY;
-          stageCtx.drawImage(img, dx, dy, drawW, drawH);
-        }
+        const baseScale =
+          layout.fit === 'contain'
+            ? Math.min(targetWidth / srcW, targetHeight / srcH)
+            : Math.max(targetWidth / srcW, targetHeight / srcH);
+        const drawW = srcW * baseScale * effectiveScale;
+        const drawH = srcH * baseScale * effectiveScale;
+        const dx = (targetWidth - drawW) / 2 + txPx;
+        const dy = (targetHeight - drawH) / 2 + tyPx;
+        stageCtx.drawImage(img, dx, dy, drawW, drawH);
 
         let finalCanvas = stageCanvas;
         if (

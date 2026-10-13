@@ -167,6 +167,7 @@ export interface Question {
   views: number;
   bountyCoin?: number;
   imageUrl?: string;
+  images?: string[];
   status?: 'active' | 'deleted';
   reactions?: QAReactions;
 }

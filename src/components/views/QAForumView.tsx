@@ -507,6 +507,7 @@ interface QAForumViewProps {
     isAnonymous: boolean;
     bountyCoin?: number;
     imageUrl?: string;
+    images?: string[];
   }) => void;
   /* AI Moderation v1.0 — kết quả do máy chủ quyết định (bot không cho client
      tự khai). 'rejected' giữ nội dung để sửa; 'review' chờ Admin. */
@@ -577,6 +578,67 @@ const SUBJECT_2027_META: Record<
   tamly: { emoji: '🧠', title: 'Tâm Lý & Cân Bằng', color: '#F43F5E', groupLabel: 'Đời sống' },
 };
 
+function getQuestionAttachedImages(q?: Question | null): string[] {
+  if (!q) return [];
+  const out: string[] = [];
+  if (Array.isArray(q.images)) {
+    for (const item of q.images) {
+      if (typeof item === 'string' && item.trim() && !out.includes(item.trim())) {
+        out.push(item.trim());
+      }
+    }
+  }
+  if (typeof q.imageUrl === 'string' && q.imageUrl.trim() && !out.includes(q.imageUrl.trim())) {
+    out.unshift(q.imageUrl.trim());
+  }
+  return out;
+}
+
+function compressQuestionImageFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Lỗi khi đọc file ảnh.'));
+    reader.onload = (ev) => {
+      const rawDataUrl = typeof ev.target?.result === 'string' ? ev.target.result : '';
+      if (!rawDataUrl) {
+        reject(new Error('Không đọc được nội dung ảnh.'));
+        return;
+      }
+      if (typeof document === 'undefined' || typeof Image === 'undefined' || file.size <= 350 * 1024) {
+        resolve(rawDataUrl);
+        return;
+      }
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const maxSide = 1600;
+          const srcW = Math.max(1, img.naturalWidth || img.width);
+          const srcH = Math.max(1, img.naturalHeight || img.height);
+          const scale = Math.min(1, maxSide / Math.max(srcW, srcH));
+          const targetW = Math.max(1, Math.round(srcW * scale));
+          const targetH = Math.max(1, Math.round(srcH * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = targetW;
+          canvas.height = targetH;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(rawDataUrl);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, targetW, targetH);
+          const webp = canvas.toDataURL('image/webp', 0.88);
+          resolve(webp.startsWith('data:image/webp') ? webp : canvas.toDataURL('image/jpeg', 0.88));
+        } catch {
+          resolve(rawDataUrl);
+        }
+      };
+      img.onerror = () => resolve(rawDataUrl);
+      img.src = rawDataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export const QAForumView: React.FC<QAForumViewProps> = ({
   currentUser,
   questions,
@@ -605,6 +667,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [activeVideoIdx, setActiveVideoIdx] = useState(0);
   const [isAutoCycle, setIsAutoCycle] = useState(true);
   const [selectedTag, setSelectedTag] = useState<SubjectTag | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'unsolved' | 'solved' | 'with_image'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isAskModalOpen, setIsAskModalOpen] = useState(false);
   /* Liên kết chia sẻ ?q=<id> mở thẳng câu hỏi (nếu dữ liệu đã có sẵn khi vào trang) */
@@ -612,6 +675,13 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     const sharedId = typeof window !== 'undefined' ? readSharedQuestionId(window.location.search) : null;
     return sharedId ? questions.find(item => item.id === sharedId) ?? null : null;
   });
+  /* Đồng bộ selectedQuestion mỗi khi danh sách questions cập nhật (ảnh đính kèm, lượt thích, đáp án chuẩn, chỉnh sửa) */
+  if (selectedQuestion) {
+    const latest = questions.find(item => item.id === selectedQuestion.id);
+    if (latest && latest !== selectedQuestion) {
+      setSelectedQuestion(latest);
+    }
+  }
   useEffect(() => {
     onDetailOpenChange?.(Boolean(selectedQuestion));
     if (typeof document !== 'undefined' && selectedQuestion) {
@@ -850,45 +920,58 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [bountyCoin, setBountyCoin] = useState<number>(20);
   const [askImage, setAskImage] = useState<string | null>(null);
+  const [askImages, setAskImages] = useState<string[]>([]);
   const [askImageError, setAskImageError] = useState<string | null>(null);
   const [isSubjectDropdownOpen, setIsSubjectDropdownOpen] = useState(false);
   const [isDraggingAskImage, setIsDraggingAskImage] = useState(false);
   const [askUploadProgress, setAskUploadProgress] = useState<number>(0);
   const [askImageFileName, setAskImageFileName] = useState<string | null>(null);
 
-  const processAskImageFile = (file: File | undefined) => {
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setAskImageError('Vui lòng chỉ tải lên tệp hình ảnh (PNG, JPG, WebP)!');
+  const processAskImageFiles = async (fileList: FileList | File[] | undefined | null) => {
+    if (!fileList) return;
+    const files = Array.from(fileList).filter(Boolean);
+    if (files.length === 0) return;
+    if (askImages.length >= 6) {
+      setAskImageError('Tối đa 6 ảnh đính kèm cho mỗi câu hỏi!');
       return;
     }
     const maxSize = 20 * 1024 * 1024;
-    if (file.size > maxSize) {
-      setAskImageError(`Kích thước ảnh (${(file.size / (1024 * 1024)).toFixed(1)}MB) vượt quá giới hạn cho phép 20MB!`);
-      return;
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        setAskImageError('Vui lòng chỉ tải lên tệp hình ảnh (PNG, JPG, WebP)!');
+        return;
+      }
+      if (file.size > maxSize) {
+        setAskImageError(`Kích thước ảnh (${(file.size / (1024 * 1024)).toFixed(1)}MB) vượt quá giới hạn cho phép 20MB!`);
+        return;
+      }
     }
+
     setAskImageError(null);
-    setAskImageFileName(`${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)`);
-    setAskUploadProgress(18);
-    const reader = new FileReader();
-    reader.onprogress = ev => {
-      if (ev.lengthComputable) {
-        const pct = Math.min(95, Math.max(25, Math.round((ev.loaded / ev.total) * 100)));
-        setAskUploadProgress(pct);
+    const toProcess = files.slice(0, Math.max(1, 6 - askImages.length));
+    setAskImageFileName(
+      toProcess.length === 1
+        ? `${toProcess[0].name} (${Math.max(1, Math.round(toProcess[0].size / 1024))} KB)`
+        : `Đã chọn thêm ${toProcess.length} ảnh`,
+    );
+    setAskUploadProgress(35);
+    try {
+      const processedUrls: string[] = [];
+      for (const file of toProcess) {
+        const dataUrl = await compressQuestionImageFile(file);
+        if (dataUrl) processedUrls.push(dataUrl);
       }
-    };
-    reader.onload = ev => {
-      if (typeof ev.target?.result === 'string') {
-        setAskUploadProgress(100);
-        setAskImage(ev.target.result);
-        window.setTimeout(() => setAskUploadProgress(0), 650);
-      }
-    };
-    reader.onerror = () => {
+      setAskUploadProgress(100);
+      setAskImages((prev) => {
+        const next = [...prev, ...processedUrls].slice(0, 6);
+        setAskImage(next[0] ?? null);
+        return next;
+      });
+      window.setTimeout(() => setAskUploadProgress(0), 500);
+    } catch {
       setAskUploadProgress(0);
-      setAskImageError('Lỗi khi đọc file ảnh. Vui lòng thử lại!');
-    };
-    reader.readAsDataURL(file);
+      setAskImageError('Lỗi khi xử lý file ảnh. Vui lòng thử lại!');
+    }
   };
 
   const previewAlias = useMemo(
@@ -1181,7 +1264,16 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         q.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
         q.subject.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesSaved = !showSavedOnly || mySavedIds.includes(q.id);
-      return matchesTag && matchesSearch && matchesSaved;
+      const qImages = getQuestionAttachedImages(q);
+      const matchesStatus =
+        statusFilter === 'all'
+          ? true
+          : statusFilter === 'unsolved'
+            ? !q.isSolved
+            : statusFilter === 'solved'
+              ? Boolean(q.isSolved)
+              : qImages.length > 0;
+      return matchesTag && matchesSearch && matchesSaved && matchesStatus;
     });
     /*
       Đếm số lời giải MỘT lần cho cả danh sách thay vì đếm lại trong mỗi lần so
@@ -1189,7 +1281,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     */
     const counts = buildSolutionCounts(solutions);
     return sortQuestions(matched, sortMode, counts);
-  }, [questions, solutions, selectedTag, searchTerm, showSavedOnly, mySavedIds, sortMode]);
+  }, [questions, solutions, selectedTag, statusFilter, searchTerm, showSavedOnly, mySavedIds, sortMode]);
 
   const handleAskSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1206,6 +1298,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     }
 
     setIsSubmittingAsk(true);
+    const finalImages = askImages.length > 0 ? askImages : askImage ? [askImage] : [];
 
     onCreateQuestion({
       title: newTitle.trim().slice(0, 150),
@@ -1213,13 +1306,16 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       content: newContent.trim().slice(0, 1500),
       isAnonymous,
       bountyCoin,
-      imageUrl: askImage || undefined,
+      imageUrl: finalImages[0] || undefined,
+      images: finalImages.length > 0 ? finalImages : undefined,
     });
 
     setNewTitle('');
     setNewContent('');
     clearAskDraft();
     setAskImage(null);
+    setAskImages([]);
+    setAskImageFileName(null);
     setAskImageError(null);
     setIsAnonymous(false);
     setIsAskModalOpen(false);
@@ -1471,6 +1567,37 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               })}
             </div>
           </div>
+
+          {/* Thanh lọc trạng thái câu hỏi nhanh (Tất cả · Chờ giải · Đã giải · Đính kèm ảnh) */}
+          <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {([
+                { id: 'all', label: 'Tất cả câu hỏi', count: questions.length },
+                { id: 'unsolved', label: 'Đang chờ giải', count: questions.filter(q => !q.isSolved).length },
+                { id: 'solved', label: 'Đã có đáp án chuẩn', count: questions.filter(q => q.isSolved).length },
+                { id: 'with_image', label: 'Có đính kèm ảnh', count: questions.filter(q => getQuestionAttachedImages(q).length > 0).length },
+              ] as const).map(tab => {
+                const active = statusFilter === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setStatusFilter(tab.id)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold border transition-colors cursor-pointer ${
+                      active
+                        ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-100 shadow-sm'
+                        : 'bg-white/[0.03] hover:bg-white/[0.07] border-white/[0.08] text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${active ? 'bg-cyan-400/25 text-cyan-100' : 'bg-white/[0.06] text-slate-400'}`}>
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Main Content Area: Questions Feed (Col 8) + Leaderboard (Col 4) */}
@@ -1541,6 +1668,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               const bestSol = qSolutions.find(s => s.isBest);
               const subjectLabel = SUBJECTS.find(s => s.tag === q.subject)?.label || q.subject;
               const remainingCardSlots = Math.max(0, 3 - qSolutions.length);
+              const attachedImages = getQuestionAttachedImages(q);
 
               return (
                 <div
@@ -1565,7 +1693,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       : 'bg-gradient-to-br from-[#0f1726]/95 to-[#0a101b]/98 hover:from-[#131e31]/98 hover:to-[#0d1422]/98 border-white/[0.1] hover:border-cyan-400/45 border-l-4 border-l-cyan-400/70'
                   }`}
                 >
-                  {/* Hàng 1: Nhãn môn học, Trạng thái, Tiền thưởng & Công cụ */}
+                  {/* Hàng 1: Nhãn môn học, Trạng thái, Tiền thưởng, Số ảnh đính kèm & Công cụ */}
                   <div className="flex items-center justify-between gap-2.5 mb-3">
                     <div className="flex items-center gap-2 flex-wrap min-w-0">
                       <span className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-cyan-500/15 text-cyan-200 border border-cyan-400/30 inline-flex items-center gap-1.5">
@@ -1590,10 +1718,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         <span>+{q.bountyCoin || 20} Coin</span>
                       </span>
 
-                      {q.imageUrl && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/[0.05] border border-white/10 text-xs text-slate-300">
-                          <ImageIcon className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
-                          <span>Đính kèm ảnh</span>
+                      {attachedImages.length > 0 && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-sky-500/15 border border-sky-400/35 text-xs font-semibold text-sky-200">
+                          <ImageIcon className="w-3.5 h-3.5 text-sky-300 shrink-0" />
+                          <span>Đính kèm {attachedImages.length} ảnh</span>
                         </span>
                       )}
                     </div>
@@ -1697,28 +1825,18 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Hàng 2: Tiêu đề, Nội dung tóm tắt & Thumbnail ảnh đề bài (nếu có) */}
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <h3 className="text-base sm:text-[17px] font-extrabold text-white group-hover:text-cyan-200 transition-colors leading-snug">
-                        {q.title}
-                      </h3>
-                      <p className="text-[13.5px] sm:text-sm text-slate-300 line-clamp-3 leading-relaxed">
-                        {q.content}
-                      </p>
-                    </div>
-
-                    {q.imageUrl && (
-                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-black/40 border border-white/15 shrink-0">
-                        <img
-                          src={q.imageUrl}
-                          alt="Ảnh minh họa đề bài"
-                          loading="lazy"
-                          decoding="async"
-                          width={96}
-                          height={96}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                        />
+                  {/* Hàng 2: Tiêu đề & Nội dung tóm tắt (Không hiển thị ảnh thu nhỏ ở ngoài để tránh phồng thẻ — chỉ báo số lượng ảnh đính kèm) */}
+                  <div className="min-w-0 space-y-1.5">
+                    <h3 className="text-base sm:text-[17px] font-extrabold text-white group-hover:text-cyan-200 transition-colors leading-snug">
+                      {q.title}
+                    </h3>
+                    <p className="text-[13.5px] sm:text-sm text-slate-300 line-clamp-3 leading-relaxed">
+                      {q.content}
+                    </p>
+                    {attachedImages.length > 0 && (
+                      <div className="pt-1 flex items-center gap-1.5 text-xs text-sky-300/95 font-medium">
+                        <ImageIcon className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                        <span>Đính kèm {attachedImages.length} ảnh minh họa · Nhấn vào câu hỏi để xem đầy đủ</span>
                       </div>
                     )}
                   </div>
@@ -2289,10 +2407,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <label className="text-[13.5px] font-medium text-white/90">
-                          Đính kèm ảnh đề bài / sơ đồ (Tối đa 20MB)
+                          Đính kèm ảnh đề bài / sơ đồ (Tối đa 6 ảnh · &le; 20MB/ảnh)
                         </label>
                         <span className="text-[11px] font-mono text-cyan-300/80">
-                          PNG • JPG • WEBP
+                          {askImages.length > 0 ? `Đã đính kèm ${askImages.length}/6 ảnh` : 'PNG • JPG • WEBP'}
                         </span>
                       </div>
 
@@ -2311,34 +2429,86 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         </div>
                       )}
 
-                      {askImage ? (
-                        <div className="relative rounded-[20px] overflow-hidden border border-cyan-400/35 bg-[#080C22]/90 p-3.5 shadow-[0_16px_40px_rgba(0,0,0,0.65),0_0_24px_rgba(0,245,255,0.14)]">
-                          <img
-                            loading="lazy"
-                            decoding="async"
-                            src={askImage}
-                            alt="Đính kèm câu hỏi"
-                            className="max-h-52 rounded-2xl object-contain mx-auto shadow-lg"
-                          />
-                          {askImageFileName && (
-                            <div className="mt-2.5 text-center">
-                              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/[0.06] border border-white/10 text-[11px] font-mono text-white/75">
-                                <ImageIcon className="w-3 h-3 text-cyan-300" />
-                                {askImageFileName}
-                              </span>
+                      {askImages.length > 0 ? (
+                        <div className="rounded-[20px] border border-cyan-400/35 bg-[#080C22]/90 p-3.5 shadow-[0_16px_40px_rgba(0,0,0,0.65)] space-y-3">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {askImages.map((imgUrl, idx) => (
+                              <div
+                                key={`${idx}-${imgUrl.slice(0, 24)}`}
+                                className="relative rounded-2xl overflow-hidden bg-black/50 border border-white/15 aspect-[4/3] group"
+                              >
+                                <img
+                                  loading="lazy"
+                                  decoding="async"
+                                  src={imgUrl}
+                                  alt={`Đính kèm câu hỏi ${idx + 1}`}
+                                  onClick={() => setLightboxImageUrl(imgUrl)}
+                                  className="w-full h-full object-contain cursor-zoom-in"
+                                />
+                                <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-black/75 border border-white/15 text-[10px] font-mono text-cyan-200">
+                                  Ảnh {idx + 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAskImages((prev) => {
+                                      const next = prev.filter((_, i) => i !== idx);
+                                      setAskImage(next[0] ?? null);
+                                      if (next.length === 0) setAskImageFileName(null);
+                                      return next;
+                                    });
+                                  }}
+                                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/75 hover:bg-red-500/35 border border-white/25 hover:border-red-400 text-white hover:text-red-200 flex items-center justify-center cursor-pointer transition-all"
+                                  title="Gỡ ảnh này"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 flex-wrap pt-1 border-t border-white/10">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-200">
+                              <ImageIcon className="w-3.5 h-3.5 text-cyan-300" />
+                              <span>Đính kèm {askImages.length} ảnh{askImageFileName ? ` · ${askImageFileName}` : ''}</span>
+                            </span>
+
+                            <div className="flex items-center gap-2">
+                              {askImages.length < 6 && (
+                                <label
+                                  htmlFor="field-more-images"
+                                  className="px-3 py-1 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/35 text-xs font-bold text-cyan-200 inline-flex items-center gap-1.5 cursor-pointer"
+                                >
+                                  <PlusCircle className="w-3.5 h-3.5" />
+                                  <span>Thêm ảnh ({askImages.length}/6)</span>
+                                  <input
+                                    id="field-more-images"
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={(e) => {
+                                      if (e.target.files?.length) {
+                                        void processAskImageFiles(e.target.files);
+                                        e.target.value = '';
+                                      }
+                                    }}
+                                    className="hidden"
+                                  />
+                                </label>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAskImages([]);
+                                  setAskImage(null);
+                                  setAskImageFileName(null);
+                                }}
+                                className="px-3 py-1 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-400/35 text-xs font-semibold text-rose-200 cursor-pointer"
+                              >
+                                Xóa tất cả ảnh
+                              </button>
                             </div>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setAskImage(null);
-                              setAskImageFileName(null);
-                            }}
-                            className="absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-black/65 hover:bg-red-500/25 backdrop-blur-md border border-white/20 hover:border-red-400 text-white hover:text-red-200 flex items-center justify-center cursor-pointer transition-all hover:shadow-[0_0_18px_rgba(239,68,68,0.65)] active:scale-95"
-                            title="Gỡ ảnh đính kèm"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                          </div>
                         </div>
                       ) : (
                         <label
@@ -2351,8 +2521,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           onDrop={e => {
                             e.preventDefault();
                             setIsDraggingAskImage(false);
-                            const droppedFile = e.dataTransfer?.files?.[0];
-                            processAskImageFile(droppedFile);
+                            if (e.dataTransfer?.files?.length) {
+                              void processAskImageFiles(e.dataTransfer.files);
+                            }
                           }}
                           className={`ask2027-dropzone flex flex-col sm:flex-row items-center justify-center gap-3.5 p-5 cursor-pointer ${
                             isDraggingAskImage ? 'is-dragging' : ''
@@ -2366,17 +2537,17 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               Kéo &amp; thả ảnh vào đây hoặc <span className="text-cyan-300 underline decoration-cyan-400/50">chọn tệp từ thiết bị</span>
                             </span>
                             <span className="text-[11.5px] text-white/55 block mt-0.5">
-                              Hỗ trợ ảnh chụp đề bài, nháp giải tay hoặc hình vẽ minh họa (&le; 20MB)
+                              Có thể chọn 1 hoặc nhiều ảnh đề bài, nháp giải tay, hình vẽ minh họa (tối đa 6 ảnh)
                             </span>
                           </div>
                           <input
                             id="field"
                             type="file"
                             accept="image/*"
+                            multiple
                             onChange={e => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                processAskImageFile(file);
+                              if (e.target.files?.length) {
+                                void processAskImageFiles(e.target.files);
                                 e.target.value = '';
                               } else {
                                 handleImageUpload(e, setAskImage, setAskImageError);
@@ -2521,9 +2692,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           .sort((a, b) => (b.isBest ? 1 : 0) - (a.isBest ? 1 : 0));
         const remainingSlots = Math.max(0, 3 - activeSolutions.length);
         const isAnswerLimitReached = activeSolutions.length >= 3;
-        const isCompactQuestionWithImage = Boolean(
-          selectedQuestion.imageUrl && selectedQuestion.content.trim().length < 100
-        );
+        const detailImages = getQuestionAttachedImages(selectedQuestion);
 
         const titleWords = selectedQuestion.title
           .toLowerCase()
@@ -2716,7 +2885,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 {/* CỘT CHÍNH (8/12) */}
                 <div className="lg:col-span-8 min-w-0 space-y-6">
                   {/* Khối câu hỏi chính */}
-                  <div className={`question-card ${isCompactQuestionWithImage ? 'compact-with-image' : ''}`}>
+                  <div className="question-card">
                     <div className="question-text min-w-0">
                       <div className="flex items-center justify-between gap-3 pb-4 mb-4 border-b border-white/10 flex-wrap">
                         <button
@@ -2805,27 +2974,48 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         </p>
                       </div>
 
-                      {!isCompactQuestionWithImage && selectedQuestion.imageUrl && (
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => setLightboxImageUrl(selectedQuestion.imageUrl || null)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              setLightboxImageUrl(selectedQuestion.imageUrl || null);
-                            }
-                          }}
-                          className="image-wrapper my-4"
-                          title="Bấm để phóng to ảnh"
-                        >
-                          <img
-                            loading="lazy"
-                            decoding="async"
-                            src={selectedQuestion.imageUrl}
-                            alt="Đính kèm câu hỏi"
-                            className="rounded-lg object-contain mx-auto"
-                          />
+                      {detailImages.length > 0 && (
+                        <div className="my-4 space-y-2.5">
+                          <div className="flex items-center justify-between gap-2 text-xs text-sky-200 font-semibold">
+                            <span className="inline-flex items-center gap-1.5">
+                              <ImageIcon className="w-3.5 h-3.5 text-sky-300" />
+                              <span>Đính kèm {detailImages.length} ảnh đề bài</span>
+                            </span>
+                            <span className="text-[11px] text-slate-400">
+                              Nhấn vào ảnh để phóng to
+                            </span>
+                          </div>
+                          <div className={`grid gap-3 ${detailImages.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+                            {detailImages.map((imgUrl, idx) => (
+                              <div
+                                key={`${idx}-${imgUrl.slice(0, 24)}`}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setLightboxImageUrl(imgUrl)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    setLightboxImageUrl(imgUrl);
+                                  }
+                                }}
+                                className="relative rounded-2xl overflow-hidden bg-black/55 border border-white/15 hover:border-cyan-400/55 p-2 transition-all cursor-zoom-in group"
+                                title="Bấm để phóng to ảnh"
+                              >
+                                <img
+                                  loading="lazy"
+                                  decoding="async"
+                                  src={imgUrl}
+                                  alt={`Đính kèm câu hỏi ${idx + 1}`}
+                                  className="max-h-[440px] w-full rounded-xl object-contain mx-auto"
+                                />
+                                {detailImages.length > 1 && (
+                                  <span className="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-black/75 border border-white/15 text-[10.5px] font-mono text-cyan-200">
+                                    Ảnh {idx + 1}/{detailImages.length}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
 
@@ -2875,30 +3065,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         isSuperAdmin={canEditContent}
                       />
                     </div>
-
-                    {isCompactQuestionWithImage && selectedQuestion.imageUrl && (
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setLightboxImageUrl(selectedQuestion.imageUrl || null)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            setLightboxImageUrl(selectedQuestion.imageUrl || null);
-                          }
-                        }}
-                        className="image-wrapper"
-                        title="Bấm để phóng to ảnh"
-                      >
-                        <img
-                          loading="lazy"
-                          decoding="async"
-                          src={selectedQuestion.imageUrl}
-                          alt="Đính kèm câu hỏi"
-                          className="rounded-lg object-contain mx-auto"
-                        />
-                      </div>
-                    )}
                   </div>
 
                   {/* Tiêu đề danh sách lời giải */}
