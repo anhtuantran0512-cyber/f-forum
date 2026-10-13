@@ -34,7 +34,7 @@
   --ink: #111411; --paper: #fdf1e1; --shadow: rgba(0, 0, 0, 0.32);
 }
 
-.cinema-scroll { position: relative; height: calc(100vh + 3700px); }
+.cinema-scroll { position: relative; height: calc(100vh + 2200px); }
 .stage { position: sticky; top: 0; height: 100vh; min-height: 620px; overflow: hidden; isolation: isolate; background: #7fb4d4; }
 .world { position: absolute; inset: 0; overflow: hidden; background: #79b7dd; }
 
@@ -43,7 +43,7 @@
 }
 
 .site-header {
-  top: 86px; left: 0; right: 0; z-index: 10;
+  top: 84px; left: 0; right: 0; z-index: 12;
   display: grid; grid-template-columns: minmax(220px,1fr) auto minmax(220px,1fr);
   align-items: center; gap: 24px; padding: 12px 32px; color: rgba(253,241,225,0.86); pointer-events: auto;
 }
@@ -52,22 +52,22 @@
 .site-nav a { color: rgba(253,241,225,0.86); font-size: 20px; font-weight: 400; text-decoration: none; text-shadow: 0 2px 16px rgba(0,0,0,0.2); }
 .language-switcher { justify-self: end; background: transparent; color: rgba(253,241,225,0.86); font-weight: 700; font-size: 16px; cursor: pointer; display: inline-flex; gap: 5px; border: none; }
 
-.scene-img { display: block; user-select: none; will-change: transform, opacity, filter; pointer-events: none; }
-.sky-img { z-index: 0; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(var(--blur-px)) brightness(var(--back-brightness)); }
+.scene-img { display: block; user-select: none; will-change: transform, opacity; pointer-events: none; }
+.sky-img { z-index: 0; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(var(--back-brightness)); }
 
 .back-stack {
   z-index: 1; top: 0; bottom: 0; left: -3vw; right: -3vw;
   opacity: var(--back-opacity);
   transform: translate3d(var(--back-x), var(--back-y), 0) scale(var(--back-scale));
-  transform-origin: 50% 100%; will-change: transform, filter, opacity;
+  transform-origin: 50% 100%; will-change: transform, opacity;
 }
-.back-img { inset: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(var(--blur-px)) brightness(var(--back-brightness)); }
+.back-img { inset: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(var(--back-brightness)); }
 .back-bazaar, .back-four { top: auto; bottom: 0; left: 48%; right: auto; width: 112%; height: auto; object-fit: contain; }
-.back-bazaar { z-index: 3; opacity: 1; filter: blur(var(--bazaar-blur-px)) brightness(var(--bazaar-brightness)) saturate(var(--bazaar-saturation)); transform: translate3d(-50%, var(--bazaar-y), 0) scale(0.86); }
+.back-bazaar { z-index: 3; opacity: 1; filter: brightness(var(--bazaar-brightness)) saturate(var(--bazaar-saturation)); transform: translate3d(-50%, var(--bazaar-y), 0) scale(0.86); }
 .back-four { z-index: 1; opacity: 0.72; mix-blend-mode: screen; transform: translate3d(-50%, calc(var(--four-y) - 110px), 0) scale(var(--four-scale)); }
 
 .sights-slider {
-  z-index: 2; left: 0; right: 0; top: var(--sights-top); padding: 0; opacity: 1;
+  z-index: 7; left: 0; right: 0; top: var(--sights-screen-top); padding: 0; opacity: 1;
   visibility: var(--sights-visibility);
   transform: translate3d(var(--sights-enter-x), var(--sights-y), 0) scale(var(--sights-scale));
   transform-origin: 0 0; pointer-events: auto; will-change: transform;
@@ -99,7 +99,7 @@
 }
 
 .sights-controls {
-  z-index: 5; left: 48px; right: auto; top: calc(var(--sights-screen-top) + 220px + 16px);
+  z-index: 8; left: 48px; right: auto; top: calc(var(--sights-screen-top) + 220px + 16px);
   display: flex; gap: 14px; opacity: var(--sights-controls-opacity);
   transform: translate3d(0, var(--sights-y), 0); pointer-events: none; will-change: transform, opacity;
 }

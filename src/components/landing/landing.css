@@ -370,7 +370,6 @@ html.light .ff-plan-card--featured { box-shadow: 0 18px 44px rgba(15, 23, 42, .0
   background-image: linear-gradient(to right, var(--ff-border) 1px, transparent 1px),
     linear-gradient(to bottom, var(--ff-border) 1px, transparent 1px);
   background-size: 56px 56px;
-  animation: ffGridPan 24s linear infinite;
   -webkit-mask-image: radial-gradient(ellipse 75% 60% at 50% 40%, #000 20%, transparent 78%);
   mask-image: radial-gradient(ellipse 75% 60% at 50% 40%, #000 20%, transparent 78%);
   opacity: 0.7;
@@ -401,14 +400,13 @@ html.light .ff-plan-card--featured { box-shadow: 0 18px 44px rgba(15, 23, 42, .0
 }
 
 @keyframes ffGradientPan {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(0, 0, 0); }
 }
 
 .ff-gradient-pan {
-  background-size: 220% 220%;
-  animation: ffGradientPan 12s ease infinite;
+  background-size: 100% 100%;
 }
 
 /* Scroll-to-explore indicator */
@@ -437,8 +435,8 @@ html.light .ff-plan-card--featured { box-shadow: 0 18px 44px rgba(15, 23, 42, .0
    -------------------------------------------------------------------------- */
 .ff-reveal {
   opacity: 0;
-  transform: translate3d(0, var(--ff-reveal-y, 16px), 0) scale(var(--ff-reveal-scale, 1));
-  transition: opacity 0.4s var(--ff-ease), transform 0.45s var(--ff-ease);
+  transform: translate3d(0, var(--ff-reveal-y, 12px), 0) scale(var(--ff-reveal-scale, 1));
+  transition: opacity 0.28s var(--ff-ease), transform 0.32s var(--ff-ease);
   transition-delay: var(--ff-reveal-delay, 0ms);
 }
 
@@ -453,17 +451,17 @@ html.light .ff-plan-card--featured { box-shadow: 0 18px 44px rgba(15, 23, 42, .0
 
 .ff-reveal-left {
   --ff-reveal-y: 0px;
-  transform: translate3d(-20px, 0, 0);
+  transform: translate3d(-16px, 0, 0);
 }
 
 .ff-reveal-right {
   --ff-reveal-y: 0px;
-  transform: translate3d(20px, 0, 0);
+  transform: translate3d(16px, 0, 0);
 }
 
 .ff-reveal-scale {
-  --ff-reveal-y: 10px;
-  --ff-reveal-scale: 0.98;
+  --ff-reveal-y: 8px;
+  --ff-reveal-scale: 0.985;
 }
 
 /* --------------------------------------------------------------------------

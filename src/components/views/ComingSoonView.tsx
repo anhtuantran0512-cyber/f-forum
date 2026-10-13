@@ -13,7 +13,7 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
     <div
       className="ff-keep-dark relative min-h-screen w-full bg-[#001428] text-white overflow-hidden select-none flex flex-col justify-between font-sans"
     >
-      {/* Video Background: Fullscreen looping video */}
+      {/* Video Background: Fullscreen looping video (WebM + 18fps + soft blur optimization) */}
       <video
         src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4"
         autoPlay
@@ -23,11 +23,23 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
         preload="metadata"
         aria-hidden="true"
         onError={handleVideoError}
-        className="ff-video-bg absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
-      />
+        onLoadedMetadata={(e) => {
+          e.currentTarget.playbackRate = 0.72;
+        }}
+        className="ff-video-bg absolute inset-0 w-full h-full object-cover scale-[1.04] blur-[3px] z-0 pointer-events-none"
+      >
+        <source
+          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.webm"
+          type="video/webm"
+        />
+        <source
+          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4"
+          type="video/mp4"
+        />
+      </video>
 
       {/* Atmospheric Vignette & Depth Overlay */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] z-0 pointer-events-none" />
+      <div className="absolute inset-0 bg-black/52 z-0 pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/70 z-0 pointer-events-none" />
 
       {/* Top Spacer for Global Fixed Navbar */}
