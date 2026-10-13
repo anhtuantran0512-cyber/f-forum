@@ -280,7 +280,7 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
   useEffect(() => {
     let currentSmoothScroll = 0;
     let targetScroll = 0;
-    let rafId: number;
+    let rafId = 0;
     let isInitialized = false;
 
     const getScrollDistance = () => {
@@ -288,40 +288,41 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
       return clamp(
         -sectionRef.current.getBoundingClientRect().top,
         0,
-        sectionRef.current.offsetHeight - window.innerHeight
+        Math.max(1, sectionRef.current.offsetHeight - window.innerHeight)
       );
     };
 
     const update = () => {
+      rafId = 0;
       targetScroll = getScrollDistance();
       if (!isInitialized) {
         currentSmoothScroll = targetScroll;
         isInitialized = true;
       } else {
-        currentSmoothScroll += (targetScroll - currentSmoothScroll) * 0.14;
-        if (Math.abs(targetScroll - currentSmoothScroll) < 0.05) {
+        currentSmoothScroll += (targetScroll - currentSmoothScroll) * 0.22;
+        if (Math.abs(targetScroll - currentSmoothScroll) < 0.15) {
           currentSmoothScroll = targetScroll;
         }
       }
       const smoothScroll = currentSmoothScroll;
 
-      const frame2 = segmentInOut(smoothScroll, 560, 900, 1300, 1620);
-      const frame3 = segmentInOut(smoothScroll, 1760, 2140, 2540, 2700);
-      const progress = clamp(smoothScroll / 2700);
-      const introExit = smoothstep(90, 650, smoothScroll);
-      const sightsEnterRaw = smoothstep(2760, 3560, smoothScroll);
-      const sightsEnter = Math.pow(sightsEnterRaw, 1.55);
-      const sightsControlsEnter = smoothstep(3360, 3660, smoothScroll);
+      const frame2 = segmentInOut(smoothScroll, 280, 520, 820, 1040);
+      const frame3 = segmentInOut(smoothScroll, 1080, 1320, 1580, 1740);
+      const progress = clamp(smoothScroll / 1740);
+      const introExit = smoothstep(50, 360, smoothScroll);
+      const sightsEnterRaw = smoothstep(1380, 1960, smoothScroll);
+      const sightsEnter = Math.pow(sightsEnterRaw, 1.35);
+      const sightsControlsEnter = smoothstep(1780, 2100, smoothScroll);
       const blurActive = clamp(frame2.active + frame3.active);
       const frame2Opacity = frame2.active * (1 - frame3.enter);
-      const splitDrift = Math.pow(frame2.enter, 1.5);
+      const splitDrift = Math.pow(frame2.enter, 1.4);
       const panel2Opacity = frame2.active * (1 - frame2.exit);
       const panel3Opacity = frame3.active * (1 - frame3.exit);
       const backScale = 0.76 + progress * 0.2 + frame2.enter * 0.18 + frame3.enter * 0.16;
       const sharedHeroY = progress * -74;
       const sharedHeroScale = progress * 0.23;
       const sightsScreenTop = Math.min(220, Math.max(112, window.innerHeight * 0.19)) - 50;
-      const sightsParentTop = window.innerHeight - (window.innerHeight - sightsScreenTop) / backScale;
+      const sightsParentTop = sightsScreenTop;
 
       const el = sectionRef.current;
       if (el) {
@@ -330,9 +331,9 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
         el.style.setProperty('--four-y', `${(10 - progress * 8).toFixed(2)}vh`);
         el.style.setProperty('--four-scale', `${(0.78 + progress * 0.12).toFixed(4)}`);
         el.style.setProperty('--bazaar-y', `${(20 - progress * 16).toFixed(2)}vh`);
-        el.style.setProperty('--blur-px', `${(blurActive * 4).toFixed(2)}px`);
+        el.style.setProperty('--blur-px', '0px');
         el.style.setProperty('--back-brightness', (1 - blurActive * 0.15).toFixed(3));
-        el.style.setProperty('--bazaar-blur-px', `${((1 - frame3.active) * 2).toFixed(2)}px`);
+        el.style.setProperty('--bazaar-blur-px', '0px');
         el.style.setProperty('--bazaar-brightness', (1 + frame3.active * 0.1).toFixed(3));
         el.style.setProperty('--bazaar-saturation', (1 + blurActive * 0.2).toFixed(3));
 
@@ -384,11 +385,25 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
         }
       }
 
-      rafId = requestAnimationFrame(update);
+      if (Math.abs(targetScroll - currentSmoothScroll) >= 0.15) {
+        rafId = requestAnimationFrame(update);
+      }
     };
 
-    rafId = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(rafId);
+    const scheduleUpdate = () => {
+      if (!rafId) {
+        rafId = requestAnimationFrame(update);
+      }
+    };
+
+    update();
+    window.addEventListener('scroll', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', scheduleUpdate, { passive: true });
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
+    };
   }, []);
 
   useEffect(() => {
@@ -548,10 +563,10 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
               <a href="#cinema" onClick={(e) => scrollToScrubPoint(e, 0)}>
                 {language === 'VIE' ? 'Khởi nguyên' : 'Origin'}
               </a>
-              <a href="#bridge" onClick={(e) => scrollToScrubPoint(e, 950)}>
+              <a href="#bridge" onClick={(e) => scrollToScrubPoint(e, 520)}>
                 {language === 'VIE' ? 'Nhịp cầu' : 'The Bridge'}
               </a>
-              <a href="#bazaar" onClick={(e) => scrollToScrubPoint(e, 2150)}>
+              <a href="#bazaar" onClick={(e) => scrollToScrubPoint(e, 1320)}>
                 {language === 'VIE' ? 'Góc quán' : 'The Bazaar'}
               </a>
               <a href="#routes" onClick={scrollToChronicles}>
@@ -594,51 +609,6 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
               height={1080}
               onError={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0'; }}
             />
-            <section className="sights-slider" aria-label="Mostar sights slider">
-              <div
-                className={`sights-track ${isJumping ? 'is-jumping' : ''}`}
-                ref={trackRef}
-                onTransitionEnd={handleTransitionEnd}
-              >
-                {allSightCards.map((card, idx) => {
-                  const baseIdx = idx % 5;
-                  return (
-                    <div className="sight-card relative group" key={idx}>
-                      {isSuperAdmin && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedSightIdx(baseIdx);
-                            setAdminTab('sights');
-                            setIsAdminModalOpen(true);
-                          }}
-                          className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-[11px] font-extrabold flex items-center gap-1 shadow-lg cursor-pointer transition-all"
-                        >
-                          <Edit3 className="w-3 h-3" />
-                          <span>Thay ảnh &amp; Sửa</span>
-                        </button>
-                      )}
-                      <span className="sight-kicker">
-                        {language === 'VIE' ? card.kicker.vie : card.kicker.eng}
-                      </span>
-                      <img
-                        className="sight-pin"
-                        src={card.pin}
-                        alt={language === 'VIE' ? card.h3.vie : card.h3.eng}
-                        loading="lazy"
-                        decoding="async"
-                        width={320}
-                        height={420}
-                        onError={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0'; }}
-                      />
-                      <h3>{language === 'VIE' ? card.h3.vie : card.h3.eng}</h3>
-                      <p>{language === 'VIE' ? card.p.vie : card.p.eng}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
             <img
               className="scene-img back-img back-bazaar"
               src={cmsData.bazaarImg}
@@ -650,6 +620,52 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
               onError={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0'; }}
             />
           </div>
+
+          <section className="sights-slider" aria-label="Mostar sights slider">
+            <div
+              className={`sights-track ${isJumping ? 'is-jumping' : ''}`}
+              ref={trackRef}
+              onTransitionEnd={handleTransitionEnd}
+            >
+              {allSightCards.map((card, idx) => {
+                const baseIdx = idx % 5;
+                return (
+                  <div className="sight-card relative group" key={idx}>
+                    {isSuperAdmin && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedSightIdx(baseIdx);
+                          setAdminTab('sights');
+                          setIsAdminModalOpen(true);
+                        }}
+                        className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-[11px] font-extrabold flex items-center gap-1 shadow-lg cursor-pointer transition-all"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        <span>Thay ảnh &amp; Sửa</span>
+                      </button>
+                    )}
+                    <span className="sight-kicker">
+                      {language === 'VIE' ? card.kicker.vie : card.kicker.eng}
+                    </span>
+                    <img
+                      className="sight-pin"
+                      src={card.pin}
+                      alt={language === 'VIE' ? card.h3.vie : card.h3.eng}
+                      loading="lazy"
+                      decoding="async"
+                      width={320}
+                      height={420}
+                      onError={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0'; }}
+                    />
+                    <h3>{language === 'VIE' ? card.h3.vie : card.h3.eng}</h3>
+                    <p>{language === 'VIE' ? card.p.vie : card.p.eng}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
 
           <div className="sights-controls" ref={controlsRef} aria-label="Slider controls">
             <button

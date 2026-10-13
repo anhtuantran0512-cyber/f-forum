@@ -519,10 +519,24 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     };
 
     /* R4: gộp resize về 1 lần/khung hình */
-    const handleResizeFrame = rafThrottle(handleResize);
+    let cachedScrollY = window.scrollY || 0;
+    let cachedInnerHeight = Math.max(1, window.innerHeight || 800);
+    const onPassiveScroll = () => {
+      cachedScrollY = window.scrollY || 0;
+    };
+    const handleResizeWithCache = () => {
+      cachedInnerHeight = Math.max(1, window.innerHeight || 800);
+      handleResize();
+    };
+    const handleResizeFrame = rafThrottle(handleResizeWithCache);
     window.addEventListener('resize', handleResizeFrame, { passive: true });
+    window.addEventListener('scroll', onPassiveScroll, { passive: true });
 
     const tick = () => {
+      if (typeof document !== 'undefined' && document.hidden) {
+        animId = requestAnimationFrame(tick);
+        return;
+      }
       const state = engineState.current;
       const { R } = state;
 
@@ -537,7 +551,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         }
       }
 
-      const p = Math.max(0, Math.min(1, window.scrollY / (Math.max(1, window.innerHeight) * 0.16)));
+      const p = Math.max(0, Math.min(1, cachedScrollY / (cachedInnerHeight * 0.16)));
       const camZTarget = p * Math.min(64, R * 0.12);
       state.camZ += (camZTarget + state.wheelCamZ - state.camZ) * 0.075;
 
@@ -596,6 +610,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 
     return () => {
       cancelAnimationFrame(animId);
+      window.removeEventListener('scroll', onPassiveScroll);
       { window.removeEventListener('resize', handleResizeFrame); handleResizeFrame.cancel(); }
     };
   }, [applyCardLayout, activeLitRecord]);
@@ -1097,8 +1112,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       </div>
 
       {/* Layer 5: Chrome Elements */}
-      {/* Header.chrome */}
-      <header className="chrome fixed top-0 inset-x-0 z-60 flex items-start justify-between pt-[calc(var(--pad)*0.8)] px-[var(--pad)] pb-[calc(var(--pad)*0.35)] mix-blend-difference pointer-events-none">
+      {/* Header.chrome — Sub-header layer (z-40) cleanly positioned below Global Navbar (z-50) */}
+      <header className="chrome fixed top-[74px] sm:top-[78px] inset-x-0 z-40 flex items-center justify-between py-2 px-[var(--pad)] pointer-events-none">
         <a
           href="#"
           onClick={(e) => {
@@ -1183,8 +1198,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 
       {/* Photographer Card .bio */}
       <div
-        className={`bio-card bio chrome fixed left-[var(--pad)] bottom-[var(--pad)] z-55 max-w-[min(360px,48vw)] transition-all duration-700 ${
-          isGridView || activeLitRecord ? 'opacity-0 translate-y-3 pointer-events-none' : 'opacity-100'
+        className={`bio-card bio chrome fixed left-[var(--pad)] bottom-[var(--pad)] z-40 max-w-[min(360px,48vw)] transition-opacity duration-300 ${
+          isGridView || activeLitRecord ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
         <div className="who flex items-center gap-3.5 mb-3">
@@ -1244,7 +1259,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 
       {/* Colophon .colophon */}
       <div
-        className={`colophon-card colophon chrome fixed right-[var(--pad)] bottom-[var(--pad)] z-55 text-[12.5px] text-[#f4f2ef]/70 flex items-center gap-2 transition-opacity duration-500 ${
+        className={`colophon-card colophon chrome fixed right-[var(--pad)] bottom-[var(--pad)] z-40 text-[12.5px] text-[#f4f2ef]/70 flex items-center gap-2 transition-opacity duration-300 ${
           isGridView || activeLitRecord ? 'opacity-0' : 'opacity-100'
         }`}
       >
@@ -1263,10 +1278,10 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         )}
       </div>
 
-      {/* Grid Toggle Button button#gridBtn */}
+      {/* Grid Toggle Button button#gridBtn — cleanly stacked above .bio-card */}
       <button
         id="gridBtn"
-        className={`gridbtn fixed left-[var(--pad)] bottom-[calc(var(--pad)+150px)] z-56 w-[44px] h-[44px] p-2.5 grid grid-cols-2 gap-1 rounded-lg bg-black/60 border border-white/15 backdrop-blur-md cursor-pointer ${
+        className={`gridbtn fixed left-[var(--pad)] bottom-[calc(var(--pad)+210px)] z-40 w-[44px] h-[44px] p-2.5 grid grid-cols-2 gap-1 rounded-lg bg-black/60 border border-white/15 backdrop-blur-md cursor-pointer ${
           isGridView ? 'is-grid' : ''
         }`}
         onClick={() => setIsGridView(!isGridView)}

@@ -22,7 +22,7 @@ const sharedObservers = new Map<string, SharedObserverBucket>();
 const observeShared = (
   element: Element,
   callback: IntersectionCallback,
-  rootMargin: string = '120px',
+  rootMargin: string = '640px 0px',
 ): (() => void) => {
   if (typeof IntersectionObserver === 'undefined') {
     callback(true);
@@ -96,6 +96,14 @@ export const useInViewOnce = <T extends Element>(): readonly [React.RefObject<T 
     if (inView) return;
     const node = ref.current;
     if (!node) return;
+    if (typeof window !== 'undefined' && typeof node.getBoundingClientRect === 'function') {
+      const rect = node.getBoundingClientRect();
+      const vh = window.innerHeight || 900;
+      if (rect.top <= vh + 640 && rect.bottom >= -640) {
+        setInView(true);
+        return;
+      }
+    }
     if (typeof IntersectionObserver === 'undefined') return;
     return observeShared(
       node,
@@ -104,7 +112,7 @@ export const useInViewOnce = <T extends Element>(): readonly [React.RefObject<T 
           setInView(true);
         }
       },
-      '120px',
+      '640px 0px',
     );
   }, [inView]);
   return [ref, inView] as const;
@@ -140,7 +148,7 @@ export const useActiveInViewport = (
       (isIntersecting: boolean) => {
         setInViewport(isIntersecting);
       },
-      '100px',
+      '480px 0px',
     );
   }, [ref, enabled]);
 

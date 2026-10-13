@@ -286,7 +286,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
 
   return (
     <section className={`club-plaza-page relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-[var(--navbar-height)] pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-6 px-4 sm:px-8`}>
-      {/* Background Video Engine */}
+      {/* Background Video Engine (WebM + 18fps + soft blur optimization) */}
       <div className="ff-video-bg absolute inset-0 z-0 pointer-events-none overflow-hidden">
         <video
           src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260424_064411_9e9d7f84-9277-41f4-ab10-59172d89e6be.mp4"
@@ -296,10 +296,22 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
           playsInline
           preload="metadata"
           onError={handleVideoError}
-          className="w-full h-full object-cover scale-[1.05]"
-        />
+          onLoadedMetadata={(e) => {
+            e.currentTarget.playbackRate = 0.72;
+          }}
+          className="w-full h-full object-cover scale-[1.05] blur-[3px]"
+        >
+          <source
+            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260424_064411_9e9d7f84-9277-41f4-ab10-59172d89e6be.webm"
+            type="video/webm"
+          />
+          <source
+            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260424_064411_9e9d7f84-9277-41f4-ab10-59172d89e6be.mp4"
+            type="video/mp4"
+          />
+        </video>
         {/* Dark Contrast Overlay (WCAG AA >= 4.5:1) */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#080d12] via-[#080d12]/75 to-black/55" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#080d12] via-[#080d12]/78 to-black/60" />
       </div>
 
       {/* Main Container */}

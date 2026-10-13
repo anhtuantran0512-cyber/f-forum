@@ -1,8 +1,10 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useRef, useState } from 'react';
+import { LOW_FPS_PLAYBACK_RATE, VIDEO_TARGET_FPS, toWebmVideoUrl } from '../utils/chatVideos';
 
 const VIDEO_URL =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260611_183632_c311af08-e4b7-458f-81e7-79847a49b3d3.mp4';
+const WEBM_VIDEO_URL = toWebmVideoUrl(VIDEO_URL);
 
 export const BoomerangVideoBg: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -17,10 +19,12 @@ export const BoomerangVideoBg: React.FC = () => {
 
     let isCancelled = false;
     const frames: ImageBitmap[] = [];
-    const maxDimension = 960;
+    const maxDimension = 540;
+    const frameInterval = 1000 / VIDEO_TARGET_FPS;
+    let lastCaptureTime = 0;
     let captureAnimId: number | null = null;
     let loopAnimId: number | null = null;
-    /* EPIC 5 — hiệu năng: vòng vẽ canvas 30fps chỉ chạy khi nền đang nằm trong
+    /* EPIC 5 — hiệu năng: vòng vẽ canvas 18fps chỉ chạy khi nền đang nằm trong
        khung nhìn và tab đang hiện. Trước đây nó vẽ liên tục kể cả khi đã cuộn
        xuống dưới (tốn GPU vô ích trên máy yếu). Hình ảnh không đổi. */
     let inView = true;
@@ -30,8 +34,8 @@ export const BoomerangVideoBg: React.FC = () => {
     const ctx = canvas.getContext('2d', { alpha: false });
 
     const setupCanvas = () => {
-      const w = video.videoWidth || 960;
-      const h = video.videoHeight || 540;
+      const w = video.videoWidth || 540;
+      const h = video.videoHeight || 304;
       const aspect = w / h;
       let targetW = w;
       let targetH = h;
@@ -46,22 +50,26 @@ export const BoomerangVideoBg: React.FC = () => {
     const captureFrame = async () => {
       if (isCancelled || video.paused || video.ended) return;
 
-      try {
-        if (video.videoWidth > 0 && video.videoHeight > 0) {
-          if (canvas.width === 0 || canvas.height === 0) {
-            setupCanvas();
+      const now = performance.now();
+      if (now - lastCaptureTime >= frameInterval && frames.length < 90) {
+        lastCaptureTime = now;
+        try {
+          if (video.videoWidth > 0 && video.videoHeight > 0) {
+            if (canvas.width === 0 || canvas.height === 0) {
+              setupCanvas();
+            }
+            const bitmap = await createImageBitmap(video, {
+              resizeWidth: canvas.width || 540,
+              resizeHeight: canvas.height || 304,
+              resizeQuality: 'low',
+            });
+            frames.push(bitmap);
           }
-          const bitmap = await createImageBitmap(video, {
-            resizeWidth: canvas.width || 960,
-            resizeHeight: canvas.height || 540,
-            resizeQuality: 'medium',
-          });
-          frames.push(bitmap);
+        } catch {
+          setLoadError(true);
+          video.loop = true;
+          return;
         }
-      } catch {
-        setLoadError(true);
-        video.loop = true;
-        return;
       }
 
       const rvfc = (video as unknown as { requestVideoFrameCallback?: (cb: () => void) => number }).requestVideoFrameCallback;
@@ -73,6 +81,7 @@ export const BoomerangVideoBg: React.FC = () => {
     };
 
     const handlePlay = () => {
+      video.playbackRate = LOW_FPS_PLAYBACK_RATE;
       setupCanvas();
       captureFrame();
     };
@@ -91,7 +100,6 @@ export const BoomerangVideoBg: React.FC = () => {
       let currentIdx = 0;
       let direction = 1;
       let lastTime = performance.now();
-      const frameInterval = 1000 / 30;
 
       const renderLoop = (time: number) => {
         if (isCancelled || !ctx) return;
@@ -162,29 +170,32 @@ export const BoomerangVideoBg: React.FC = () => {
   }, []);
 
   return (
-    <div className="ff-video-bg absolute inset-0 z-0 scale-[1.08] origin-center overflow-hidden pointer-events-none bg-neutral-950">
+    <div className="ff-video-bg absolute inset-0 z-0 scale-[1.06] origin-center overflow-hidden pointer-events-none bg-neutral-950">
       <video
         ref={videoRef}
         src={VIDEO_URL}
         autoPlay
         muted
         playsInline
-        preload="auto"
+        preload="metadata"
         crossOrigin="anonymous"
         loop={loadError}
         onError={(e) => {
           setLoadError(true);
           (e.currentTarget as HTMLElement).style.display = 'none';
         }}
-        className={`w-full h-full object-cover transition-opacity duration-700 ${
+        className={`w-full h-full object-cover blur-[3px] transition-opacity duration-500 ${
           useCanvas ? 'opacity-0 absolute pointer-events-none' : 'opacity-100'
         }`}
-      />
+      >
+        <source src={WEBM_VIDEO_URL} type="video/webm" />
+        <source src={VIDEO_URL} type="video/mp4" />
+      </video>
 
-      {/* Ping-pong Canvas */}
+      {/* Ping-pong Canvas (18 FPS + soft blur optimization) */}
       <canvas
         ref={canvasRef}
-        className={`w-full h-full object-cover transition-opacity duration-700 ${
+        className={`w-full h-full object-cover blur-[3px] transition-opacity duration-500 ${
           useCanvas ? 'opacity-100' : 'opacity-0 absolute pointer-events-none'
         }`}
       />

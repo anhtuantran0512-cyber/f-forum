@@ -1,7 +1,7 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useRef } from 'react';
 import { handleVideoError } from '../utils/mediaFallback';
-import { TRI_CHAT_VIDEOS } from '../utils/chatVideos';
+import { LOW_FPS_PLAYBACK_RATE, TRI_CHAT_VIDEOS, toWebmVideoUrl } from '../utils/chatVideos';
 
 /** Thời lượng pha mờ dần giữa hai video (khớp duration-[1400ms] bên dưới). */
 const FADE_MS = 1400;
@@ -81,16 +81,22 @@ export const TriVideoCrossfadeBg: React.FC<TriVideoCrossfadeBgProps> = ({
           loop
           muted
           playsInline
-          preload={idx === currentIdx || idx === (currentIdx + 1) % TRI_CHAT_VIDEOS.length ? 'auto' : 'metadata'}
+          preload={idx === currentIdx ? 'metadata' : 'none'}
           data-ff-idle={idx === currentIdx ? undefined : '1'}
           onError={handleVideoError}
-          className={`absolute inset-0 w-full h-full object-cover scale-[1.04] transition-opacity duration-[1400ms] ease-in-out ${
+          onLoadedMetadata={(e) => {
+            e.currentTarget.playbackRate = LOW_FPS_PLAYBACK_RATE;
+          }}
+          className={`absolute inset-0 w-full h-full object-cover scale-[1.04] blur-[3px] transition-opacity duration-[1400ms] ease-in-out ${
             currentIdx === idx ? 'opacity-100' : 'opacity-0'
           }`}
-        />
+        >
+          <source src={toWebmVideoUrl(v.url)} type="video/webm" />
+          <source src={v.url} type="video/mp4" />
+        </video>
       ))}
       {/* Semi-transparent dark wash allowing video to shine through */}
-      <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px]" />
+      <div className="absolute inset-0 bg-black/50" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/60" />
     </div>
   );

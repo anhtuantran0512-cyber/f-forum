@@ -1290,7 +1290,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     totalItems: filteredQuestions.length,
     itemHeight: 180,
     columns: 1,
-    overscan: 6,
+    overscan: 12,
     containerRef: isEmbedded ? undefined : listScrollRef,
   });
 
@@ -1364,24 +1364,34 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   return (
     <section className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-22 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-6 px-4 sm:px-6 lg:px-8`}>
       
-      {/* Triple Video Crossfade Switcher Background Engine — matte overlay prevents color bleed */}
+      {/* Triple Video Crossfade Switcher Background Engine — WebM + 18fps + direct blur optimization */}
       <div className="ff-video-bg absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        {FORUM_VIDEOS.map((vid, idx) => (
-          <video
-            key={vid.id}
-            src={vid.url}
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="metadata"
-            onError={handleVideoError}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[1200ms] ease-in-out ${
-              activeVideoIdx === idx ? 'opacity-65' : 'opacity-0'
-            }`}
-          />
-        ))}
-        <div className="absolute inset-0 bg-[#080d16]/82 backdrop-blur-[4px]" />
+        {FORUM_VIDEOS.map((vid, idx) => {
+          const webmUrl = vid.url.endsWith('.mp4') ? `${vid.url.slice(0, -4)}.webm` : vid.url;
+          return (
+            <video
+              key={vid.id}
+              src={vid.url}
+              autoPlay={activeVideoIdx === idx}
+              loop
+              muted
+              playsInline
+              preload={activeVideoIdx === idx ? 'metadata' : 'none'}
+              data-ff-idle={activeVideoIdx === idx ? undefined : '1'}
+              onError={handleVideoError}
+              onLoadedMetadata={(e) => {
+                e.currentTarget.playbackRate = 0.72;
+              }}
+              className={`absolute inset-0 w-full h-full object-cover scale-[1.03] blur-[3px] transition-opacity duration-[900ms] ease-in-out ${
+                activeVideoIdx === idx ? 'opacity-65' : 'opacity-0'
+              }`}
+            >
+              <source src={webmUrl} type="video/webm" />
+              <source src={vid.url} type="video/mp4" />
+            </video>
+          );
+        })}
+        <div className="absolute inset-0 bg-[#080d16]/84" />
       </div>
 
       {/* Main Container */}
