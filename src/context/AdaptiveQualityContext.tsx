@@ -58,14 +58,68 @@ export const AdaptiveQualityProvider: React.FC<{ children: React.ReactNode }> = 
     };
   }, []);
 
-  /* Đồng bộ thuộc tính data-quality-tier và ngân sách concurrent animation. */
+  /* Lắng nghe thay đổi mức pin & trạng thái cắm sạc trong thời gian thực. */
+  useEffect(() => {
+    if (typeof navigator === 'undefined') return;
+    const navAny = navigator as any;
+    if (typeof navAny.getBattery !== 'function') return;
+
+    let activeBattery: any = null;
+    let alive = true;
+
+    const handleBatteryUpdate = () => {
+      if (!activeBattery || !alive) return;
+      const isLow = !activeBattery.charging && activeBattery.level < 0.2;
+      setProfile((prev) => {
+        if (
+          prev.batteryLow === isLow &&
+          prev.batteryLevel === activeBattery.level &&
+          prev.batteryCharging === activeBattery.charging
+        ) {
+          return prev;
+        }
+        const nextProfile: DeviceProfile = {
+          ...prev,
+          batteryLow: isLow,
+          batteryLevel: activeBattery.level,
+          batteryCharging: activeBattery.charging,
+        };
+        const assessment = classifyDeviceProfile(nextProfile);
+        setDetectedTier(assessment.tier);
+        setReasons(assessment.reasons);
+        return nextProfile;
+      });
+    };
+
+    navAny
+      .getBattery()
+      .then((battery: any) => {
+        if (!alive || !battery) return;
+        activeBattery = battery;
+        battery.addEventListener('levelchange', handleBatteryUpdate);
+        battery.addEventListener('chargingchange', handleBatteryUpdate);
+        handleBatteryUpdate();
+      })
+      .catch(() => {});
+
+    return () => {
+      alive = false;
+      if (activeBattery) {
+        activeBattery.removeEventListener('levelchange', handleBatteryUpdate);
+        activeBattery.removeEventListener('chargingchange', handleBatteryUpdate);
+      }
+    };
+  }, []);
+
+  /* Đồng bộ thuộc tính data-quality-tier, data-battery-saver và ngân sách concurrent animation. */
   useEffect(() => {
     animationBudget.setMaxConcurrentOther(capabilities.maxConcurrentOtherAnimations);
     if (typeof document !== 'undefined') {
       document.documentElement.dataset.qualityTier = effectiveTier;
       document.documentElement.dataset.videoQuality = capabilities.videoQuality;
+      document.documentElement.dataset.batterySaver = profile.batteryLow ? 'true' : 'false';
     }
-  }, [effectiveTier, capabilities]);
+  }, [effectiveTier, capabilities, profile.batteryLow]);
 
   /* Real User Monitoring (RUM) phân theo Device Tier (PHẦN 6.2). */
   useEffect(() => {
@@ -118,6 +172,7 @@ export const AdaptiveQualityProvider: React.FC<{ children: React.ReactNode }> = 
       capabilities,
       reasons,
       isReady,
+      isBatterySaverActive: Boolean(profile.batteryLow),
     }),
     [effectiveTier, detectedTier, overrideTier, setOverrideTier, profile, capabilities, reasons, isReady],
   );

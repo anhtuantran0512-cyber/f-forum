@@ -64,6 +64,12 @@ export interface DeviceProfile {
   devicePixelRatio: number;
   /** Hệ điều hành hoặc người dùng bật giảm chuyển động */
   prefersReducedMotion: boolean;
+  /** Trạng thái pin yếu (< 20% và đang xả pin) để tự động hạ mức tiêu thụ */
+  batteryLow?: boolean;
+  /** Mức pin hiện tại (0.0 .. 1.0) nếu trình duyệt hỗ trợ */
+  batteryLevel?: number;
+  /** Đang cắm sạc pin */
+  batteryCharging?: boolean;
 }
 
 export interface TierCapabilities {
@@ -170,6 +176,25 @@ export const collectDeviceProfile = async (sampleFpsMs = 240): Promise<DevicePro
     win?.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches,
   );
 
+  let batteryLow = false;
+  let batteryLevel: number | undefined;
+  let batteryCharging: boolean | undefined;
+  const navAny = nav as any;
+  if (typeof navAny !== 'undefined' && typeof navAny.getBattery === 'function') {
+    try {
+      const b = await navAny.getBattery();
+      if (b && typeof b.level === 'number') {
+        batteryLevel = b.level;
+        batteryCharging = Boolean(b.charging);
+        if (!b.charging && b.level < 0.20) {
+          batteryLow = true;
+        }
+      }
+    } catch {
+      /* Bỏ qua nếu trình duyệt không hỗ trợ hoặc chặn quyền Battery API */
+    }
+  }
+
   return {
     memory,
     cores,
@@ -181,6 +206,9 @@ export const collectDeviceProfile = async (sampleFpsMs = 240): Promise<DevicePro
     screenSize: screenW * screenH,
     devicePixelRatio: win?.devicePixelRatio || 1,
     prefersReducedMotion,
+    batteryLow,
+    batteryLevel,
+    batteryCharging,
   };
 };
 
@@ -257,6 +285,7 @@ export const classifyDeviceProfile = (profile: DeviceProfile): AdaptiveQualityAs
     );
   }
   if (profile.saveData) reasons.push('Đang bật chế độ Tiết kiệm dữ liệu (Save-Data)');
+  if (profile.batteryLow) reasons.push('Pin yếu (< 20% đang xả pin) — tự động chuyển sang chế độ tiết kiệm năng lượng');
   if (slowNetwork) reasons.push(`Kết nối mạng ${profile.connection.toUpperCase()} băng thông thấp`);
 
   let tier: AdaptiveQualityTier;
@@ -265,6 +294,7 @@ export const classifyDeviceProfile = (profile: DeviceProfile): AdaptiveQualityAs
     profile.cores <= 2 ||
     profile.gpu.tier === 1 ||
     profile.saveData ||
+    profile.batteryLow ||
     slowNetwork
   ) {
     tier = 'tier-c';
@@ -583,6 +613,7 @@ export interface AdaptiveQualityContextValue {
   capabilities: TierCapabilities;
   reasons: string[];
   isReady: boolean;
+  isBatterySaverActive?: boolean;
 }
 
 export const DEFAULT_DEVICE_PROFILE: DeviceProfile = {
@@ -603,6 +634,7 @@ export const DEFAULT_DEVICE_PROFILE: DeviceProfile = {
   screenSize: 1920 * 1080,
   devicePixelRatio: 1,
   prefersReducedMotion: false,
+  batteryLow: false,
 };
 
 export const DEFAULT_ADAPTIVE_CONTEXT: AdaptiveQualityContextValue = {
@@ -614,6 +646,7 @@ export const DEFAULT_ADAPTIVE_CONTEXT: AdaptiveQualityContextValue = {
   capabilities: getCapabilitiesForTier('tier-a'),
   reasons: [],
   isReady: false,
+  isBatterySaverActive: false,
 };
 
 export const AdaptiveQualityContext = createContext<AdaptiveQualityContextValue>(

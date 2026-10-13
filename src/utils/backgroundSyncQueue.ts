@@ -89,6 +89,9 @@ export const flushOfflineQueue = async (
   }
 
   writeOfflineQueue(remaining);
+  if (sent > 0 && typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('fforum_bg_sync_flushed', { detail: { sent } }));
+  }
   return { sent, remaining: remaining.length };
 };
 
