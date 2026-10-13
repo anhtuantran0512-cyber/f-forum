@@ -757,7 +757,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     onToggleEyeRest,
   };
 
-  const isDockHidden = isInsideCinema || (navbarAutoHide && !isNavbarHovered && !anyPopoverOpen);
+  void isInsideCinema;
+  const isDockHidden = navbarAutoHide && !isNavbarHovered && !anyPopoverOpen;
 
   return (
     <>

@@ -299,7 +299,8 @@ export const App: React.FC = () => {
   const [slideDir, setSlideDir] = useState<'up' | 'down' | 'none'>('none');
   const prevViewIndexRef = useRef<number>(VIEW_ORDER.indexOf(currentView));
 
-  const isInsideCinema = currentView === 'memory' && scrollInsideCinema;
+  const isInsideCinema = false;
+  void scrollInsideCinema;
 
   const [godrayPreset, setGodrayPreset] = useState<string>(() => {
     return resolveGodrayId(safeStorage.getItem('fforum_godray_preset'));
@@ -1021,8 +1022,8 @@ export const App: React.FC = () => {
         </div>
       
       {/* Floating Global Navbar Dock — ẩn khi đang ở giao diện chi tiết câu hỏi Hỏi đáp */}
-      {currentView !== 'chronicles' && !(currentView === 'qa' && isQADetailOpen) && (
-        currentView === 'landing' ? null : (
+      {currentView !== 'chronicles' && (
+        currentView === 'landing' || (currentView === 'qa' && isQADetailOpen) ? null : (
         <Navbar
           currentView={currentView}
           onViewChange={handleViewChange}

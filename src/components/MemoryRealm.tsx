@@ -328,7 +328,7 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
   const scrollToChronicles = (e: React.MouseEvent) => {
     e.preventDefault();
     if (onNavigateSection) {
-      onNavigateSection('chronicles-section');
+      onNavigateSection('chronicles');
       return;
     }
     const el = document.getElementById('chronicles-section') || document.getElementById('routes');
