@@ -39,7 +39,13 @@ export function isUserInteracting(): boolean {
   return Date.now() - lastInteractionTimestamp < INTERACTION_COOLDOWN_MS;
 }
 
-/* Tự động cài đặt bộ theo dõi tương tác người dùng toàn cục */
+/* Kiểm tra xem trạng thái cuộn nhanh đang kích hoạt hay không */
+export function isScrollActive(): boolean {
+  if (typeof document === 'undefined' || !document.body) return false;
+  return document.body.classList.contains('is-scrolling');
+}
+
+/* Tự động cài đặt bộ theo dõi tương tác người dùng toàn cục và kiểm soát trạng thái cuộn 60 FPS */
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   const onInteraction = () => {
     lastInteractionTimestamp = Date.now();
@@ -47,6 +53,22 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   window.addEventListener('pointerdown', onInteraction, { passive: true, capture: true });
   window.addEventListener('keydown', onInteraction, { passive: true, capture: true });
   window.addEventListener('touchstart', onInteraction, { passive: true, capture: true });
+
+  let scrollEndTimer: ReturnType<typeof setTimeout> | null = null;
+  const onScroll = () => {
+    lastInteractionTimestamp = Date.now();
+    if (document.body && !document.body.classList.contains('is-scrolling')) {
+      document.body.classList.add('is-scrolling');
+    }
+    if (scrollEndTimer) clearTimeout(scrollEndTimer);
+    scrollEndTimer = setTimeout(() => {
+      if (document.body) {
+        document.body.classList.remove('is-scrolling');
+      }
+      scrollEndTimer = null;
+    }, 120);
+  };
+  window.addEventListener('scroll', onScroll, { passive: true, capture: true });
 }
 
 /* Nhường quyền điều khiển cho Main Thread (cooperative multitasking) */

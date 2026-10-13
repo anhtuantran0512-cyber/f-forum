@@ -9,6 +9,7 @@
  *  - Các thẻ ngoài vùng nhìn được thay thế bằng thẻ vỏ rỗng (recycled stub) giữ nguyên
  *    chiều cao chính xác (contain: strict), giúp thanh cuộn ổn định 100%, không giật khung hình
  *    và không gây dịch chuyển giao diện (Zero CLS).
+ *  - Tương thích liền mạch với cả Window scroll lẫn inner scroll containers (overflow-y: auto).
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -20,6 +21,7 @@ export interface VirtualWindowOptions {
   columns?: number;
   overscan?: number;
   containerRef?: React.RefObject<HTMLElement | null>;
+  rootRef?: React.RefObject<HTMLElement | null>;
   disabled?: boolean;
 }
 
@@ -33,12 +35,64 @@ export interface VirtualWindowResult {
   visibleCount: number;
 }
 
+export interface VirtualRangeCalculation {
+  startIndex: number;
+  endIndex: number;
+  startRow: number;
+  endRow: number;
+}
+
+/* Tính toán thuần túy vùng hiển thị ảo (dùng cho cả runtime và kiểm thử tự động) */
+export function calculateVirtualRange({
+  scrolledPast,
+  viewportHeight,
+  itemHeight,
+  columns = 1,
+  totalItems,
+  overscan = 6,
+}: {
+  scrolledPast: number;
+  viewportHeight: number;
+  itemHeight: number;
+  columns?: number;
+  totalItems: number;
+  overscan?: number;
+}): VirtualRangeCalculation {
+  const activeColumns = Math.max(1, columns);
+  const totalRows = Math.ceil(totalItems / activeColumns);
+  if (totalItems <= 0 || viewportHeight <= 0) {
+    return { startIndex: 0, endIndex: totalItems, startRow: 0, endRow: totalRows };
+  }
+  const safeScrolled = Math.max(0, scrolledPast);
+  const startRow = Math.max(0, Math.floor(safeScrolled / itemHeight) - overscan);
+  const endRow = Math.min(totalRows, Math.ceil((safeScrolled + viewportHeight) / itemHeight) + overscan);
+  const startIndex = Math.max(0, startRow * activeColumns);
+  const endIndex = Math.min(totalItems, endRow * activeColumns);
+  return { startIndex, endIndex, startRow, endRow };
+}
+
+/* Tìm phần tử cuộn gần nhất (scroll container) bao bọc một node */
+export function getScrollContainer(element: HTMLElement | null): HTMLElement | Window {
+  if (!element || typeof window === 'undefined') return window;
+  let curr = element.parentElement;
+  while (curr && curr !== document.body && curr !== document.documentElement) {
+    const style = window.getComputedStyle(curr);
+    const overflowY = style.overflowY || style.overflow;
+    if (overflowY === 'auto' || overflowY === 'scroll') {
+      return curr;
+    }
+    curr = curr.parentElement;
+  }
+  return window;
+}
+
 export function useVirtualWindow({
   totalItems,
   itemHeight,
   columns = 1,
   overscan = 6,
   containerRef,
+  rootRef,
   disabled = false,
 }: VirtualWindowOptions): VirtualWindowResult {
   const [range, setRange] = useState<{ start: number; end: number }>(() => ({
@@ -56,28 +110,54 @@ export function useVirtualWindow({
       return;
     }
 
-    const container = containerRef?.current;
-    let scrollTop = 0;
+    const containerEl = containerRef?.current;
+    const rootEl = rootRef?.current;
+    const scrollTarget = containerEl || (rootEl ? getScrollContainer(rootEl) : null);
+
+    let scrolledPast = 0;
     let viewportHeight = window.innerHeight || 800;
 
-    if (container) {
-      scrollTop = container.scrollTop;
+    if (scrollTarget && scrollTarget !== window && 'clientHeight' in scrollTarget) {
+      const container = scrollTarget as HTMLElement;
       viewportHeight = container.clientHeight || viewportHeight;
+
+      if (viewportHeight <= 0) {
+        setRange({ start: 0, end: totalItems });
+        return;
+      }
+
+      if (rootEl && typeof rootEl.getBoundingClientRect === 'function' && typeof container.getBoundingClientRect === 'function') {
+        /* Tính toán khoảng cách đã cuộn dựa trên chênh lệch vị trí DOM thực tế */
+        const listRect = rootEl.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        scrolledPast = Math.max(0, containerRect.top - listRect.top);
+      } else {
+        scrolledPast = Math.max(0, container.scrollTop);
+      }
     } else {
-      scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+      /* Cuộn theo Window / Document */
+      viewportHeight = window.innerHeight || 800;
+      if (rootEl && typeof rootEl.getBoundingClientRect === 'function') {
+        const listRect = rootEl.getBoundingClientRect();
+        scrolledPast = Math.max(0, -listRect.top);
+      } else {
+        scrolledPast = Math.max(0, window.scrollY || document.documentElement?.scrollTop || 0);
+      }
     }
 
-    /* Nếu container có kích thước = 0 (môi trường test JSDOM hoặc chưa mount), render toàn bộ an toàn */
     if (viewportHeight <= 0) {
       setRange({ start: 0, end: totalItems });
       return;
     }
 
-    const startRow = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
-    const endRow = Math.min(totalRows, Math.ceil((scrollTop + viewportHeight) / itemHeight) + overscan);
-
-    const startIndex = Math.max(0, startRow * activeColumns);
-    const endIndex = Math.min(totalItems, endRow * activeColumns);
+    const { startIndex, endIndex } = calculateVirtualRange({
+      scrolledPast,
+      viewportHeight,
+      itemHeight,
+      columns: activeColumns,
+      totalItems,
+      overscan,
+    });
 
     setRange((prev) => {
       if (prev.start === startIndex && prev.end === endIndex) {
@@ -85,35 +165,35 @@ export function useVirtualWindow({
       }
       return { start: startIndex, end: endIndex };
     });
-  }, [containerRef, disabled, totalItems, itemHeight, overscan, activeColumns, totalRows]);
+  }, [containerRef, rootRef, disabled, totalItems, itemHeight, overscan, activeColumns]);
 
   useEffect(() => {
     if (disabled || typeof window === 'undefined') {
       return;
     }
 
-    const rafId =
-      typeof requestAnimationFrame === 'function'
-        ? requestAnimationFrame(() => {
-            updateRange();
-          })
-        : 0;
-
     const throttledUpdate = rafThrottle(updateRange);
-    const target: EventTarget = containerRef?.current || window;
+    throttledUpdate();
 
-    target.addEventListener('scroll', throttledUpdate, { passive: true });
+    const targetContainer = containerRef?.current || (rootRef?.current ? getScrollContainer(rootRef.current) : null);
+
+    /* Bắt sự kiện scroll toàn cục với capture: true để xử lý mọi container cuộn bên trong (modal, feed tabs) */
+    window.addEventListener('scroll', throttledUpdate, { passive: true, capture: true });
     window.addEventListener('resize', throttledUpdate, { passive: true });
 
+    if (targetContainer && targetContainer !== window && 'addEventListener' in targetContainer) {
+      (targetContainer as HTMLElement).addEventListener('scroll', throttledUpdate, { passive: true });
+    }
+
     return () => {
-      if (rafId && typeof cancelAnimationFrame === 'function') {
-        cancelAnimationFrame(rafId);
-      }
       throttledUpdate.cancel();
-      target.removeEventListener('scroll', throttledUpdate);
+      window.removeEventListener('scroll', throttledUpdate, { capture: true } as EventListenerOptions);
       window.removeEventListener('resize', throttledUpdate);
+      if (targetContainer && targetContainer !== window && 'removeEventListener' in targetContainer) {
+        (targetContainer as HTMLElement).removeEventListener('scroll', throttledUpdate);
+      }
     };
-  }, [containerRef, disabled, totalItems, updateRange]);
+  }, [containerRef, rootRef, disabled, totalItems, updateRange]);
 
   const isItemVisible = useCallback(
     (index: number) => {

@@ -780,11 +780,14 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
     return [...roots].sort((a, b) => b.createdAtMs - a.createdAtMs);
   }, [threads, feedMode, debouncedSearchQuery, activeTag, currentUser, savedIds]);
 
+  const feedScrollRef = useRef<HTMLElement | null>(null);
+
   const { isItemVisible: isThreadVisible } = useVirtualWindow({
     totalItems: visibleThreads.length,
     itemHeight: 160,
     columns: 1,
     overscan: 6,
+    containerRef: isEmbedded ? undefined : feedScrollRef,
   });
 
   const feedStats = useMemo(() => {
@@ -890,7 +893,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
   };
 
   return (
-    <section className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-y-auto'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8 threads-bg`}>
+    <section ref={feedScrollRef} className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-y-auto'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8 threads-bg`}>
       <div className="relative z-10 w-full max-w-2xl mx-auto flex-1 flex flex-col">
         {/* Thanh đầu trang hiện đại: Tiêu đề + Thống kê + Tìm kiếm & Bộ lọc */}
         <header className="threads-hero-bar">
