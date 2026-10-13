@@ -4,11 +4,14 @@ import { authHeaders } from '../utils/session';
 
 export interface MilestoneItem {
   id: string;
+  imgId?: string;
   title: string;
   category: string;
   place?: string;
   imageUrl: string;
+  customImgUrl?: string;
   notes: string;
+  note?: string;
   isTall?: boolean;
 }
 
@@ -20,11 +23,59 @@ export interface FounderProfile {
   email: string;
 }
 
+export interface MemorySightCMSItem {
+  kickerVie: string;
+  kickerEng: string;
+  titleVie: string;
+  titleEng: string;
+  descVie: string;
+  descEng: string;
+  pinUrl: string;
+}
+
+export interface MemoryRealmCMSData {
+  heroTitleVie?: string;
+  heroTitleEng?: string;
+  introCopyVie?: string;
+  introCopyEng?: string;
+  heroTagsVie?: string[];
+  heroTagsEng?: string[];
+  bridgeTitleVie?: string;
+  bridgeTitleEng?: string;
+  bridgeBodyVie?: string;
+  bridgeBodyEng?: string;
+  fact1Title?: string;
+  fact1DescVie?: string;
+  fact1DescEng?: string;
+  fact2TitleVie?: string;
+  fact2TitleEng?: string;
+  fact2DescVie?: string;
+  fact2DescEng?: string;
+  bazaarTitleVie?: string;
+  bazaarTitleEng?: string;
+  bazaarBodyVie?: string;
+  bazaarBodyEng?: string;
+  bazaarButtonVie?: string;
+  bazaarButtonEng?: string;
+  skyImg?: string;
+  backFourImg?: string;
+  bazaarImg?: string;
+  splitLeftImg?: string;
+  splitRightImg?: string;
+  bridgeImg?: string;
+  frameTwoImg?: string;
+  sights?: MemorySightCMSItem[];
+}
+
 export interface AboutData {
   headline: string;
   subtitle: string;
+  colophon?: string;
+  headlineWords?: string[];
+  introFilmUrl?: string;
   founder: FounderProfile;
   milestones: MilestoneItem[];
+  memoryRealm?: MemoryRealmCMSData;
 }
 
 export const DEFAULT_ABOUT_DATA: AboutData = {
@@ -249,12 +300,33 @@ export function getSavedAboutData(): AboutData {
 
 export function saveAboutDataLocally(data: AboutData): void {
   safeStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  safeStorage.setItem('fforum_vinhdanh_records', JSON.stringify(data.milestones));
+  if (Array.isArray(data.milestones) && data.milestones.length > 0) {
+    const normalizedMilestones = data.milestones.map((m, idx) => ({
+      ...m,
+      id: m.id || `vd-${idx + 1}`,
+      place: m.place || m.category || '',
+      category: m.category || m.place || '',
+      note: m.note || m.notes || '',
+      notes: m.notes || m.note || '',
+      customImgUrl: m.customImgUrl || m.imageUrl || undefined,
+      imageUrl: m.imageUrl || m.customImgUrl || '',
+    }));
+    safeStorage.setItem('fforum_vinhdanh_records', JSON.stringify(normalizedMilestones));
+  }
+  if (data.founder) {
+    safeStorage.setItem('fforum_vinhdanh_founder', JSON.stringify(data.founder));
+  }
+  if (data.memoryRealm) {
+    safeStorage.setItem('fforum_memory_realm_data', JSON.stringify(data.memoryRealm));
+  }
   try {
-    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-      const bc = new BroadcastChannel('fforum_sync');
-      bc.postMessage({ type: 'SYNC_ABOUT', payload: data });
-      bc.close();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fforum_about_sync', { detail: data }));
+      if ('BroadcastChannel' in window) {
+        const bc = new BroadcastChannel('fforum_sync');
+        bc.postMessage({ type: 'SYNC_ABOUT', payload: data });
+        bc.close();
+      }
     }
   } catch {
     /* ignore */

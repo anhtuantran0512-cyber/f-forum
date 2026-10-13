@@ -1,7 +1,22 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { Edit3, Upload, X, Settings, RotateCcw, Image as ImageIcon } from 'lucide-react';
 import './MemoryRealm.css';
 import { rafThrottle } from '../utils/rafThrottle';
+import type { User } from '../types';
+import { isMasterAdmin } from '../config/admin';
+import { safeStorage } from '../utils/storage';
+import {
+  getSavedAboutData,
+  fetchAboutDataFromServer,
+  saveAboutDataToServer,
+  type MemoryRealmCMSData,
+  type MemorySightCMSItem,
+  type AboutData,
+} from '../store/adminStore';
+import { uploadImageToServer } from '../utils/imagePipeline';
+import { DEFAULT_CLUB_COVER, handleImageError } from '../utils/mediaFallback';
 
 const SKY_IMG = "https://raft-blast-61784561.figma.site/_assets/v11/16b5007d9c93971e26ffe4e0e3e37946f6bd538c.png";
 const BACK_FOUR_IMG = "https://raft-blast-61784561.figma.site/_assets/v11/8a7f8af50e0ce92ec2e228e7b0b4112178c51cf1.png";
@@ -70,11 +85,82 @@ const ORIGINAL_SIGHTS_DATA: LocalizedSightCard[] = [
   },
 ];
 
-const ALL_SIGHT_CARDS: LocalizedSightCard[] = [
-  ...ORIGINAL_SIGHTS_DATA,
-  ...ORIGINAL_SIGHTS_DATA,
-  ...ORIGINAL_SIGHTS_DATA,
-];
+const DEFAULT_MEMORY_CMS: Required<MemoryRealmCMSData> = {
+  heroTitleVie: 'KÝ ỨC',
+  heroTitleEng: 'MEMORY',
+  introCopyVie:
+    'Một nhịp cầu đá, dòng nước xanh ngọc và miền ký ức trường xưa đọng lại qua từng khoảnh khắc không thể nào quên.',
+  introCopyEng:
+    'A stone bridge, emerald waters, and memories of campus life etched into every unforgettable moment.',
+  heroTagsVie: ['Cây Cầu Tri Thức', 'Dòng Sông Tuổi Trẻ', 'Di Sản F-Forum'],
+  heroTagsEng: ['Bridge of Knowledge', 'River of Youth', 'F-Forum Heritage'],
+  bridgeTitleVie: 'Cây cầu kết nối ngàn thế hệ.',
+  bridgeTitleEng: 'The bridge connecting generations.',
+  bridgeBodyVie:
+    'Nhịp cầu nối đôi bờ sông quá khứ và tương lai, nâng đỡ những ước mơ học trò vươn ra biển lớn.',
+  bridgeBodyEng:
+    'A span bridging the rivers of past and future, carrying student dreams out into the wider world.',
+  fact1Title: '2026',
+  fact1DescVie: 'Dấu ấn F-Forum khởi sinh kỷ nguyên tri thức',
+  fact1DescEng: 'F-Forum milestone marks the dawn of a knowledge era',
+  fact2TitleVie: 'VÔ HẠN',
+  fact2TitleEng: 'INFINITE',
+  fact2DescVie: 'Những tình bạn và kỷ niệm lưu dấu ngàn sau',
+  fact2DescEng: 'Friendships and memories preserved forever',
+  bazaarTitleVie: 'Góc phố lưu giữ bước chân xưa.',
+  bazaarTitleEng: 'Streets echoing past footsteps.',
+  bazaarBodyVie:
+    'Những góc hành lang, quán nước thân thương và tiếng cười bạn bè vẫn vẹn nguyên trong từng nhịp thở của thời gian.',
+  bazaarBodyEng:
+    'Familiar corridors, cozy hangout corners, and laughter of friends remain vivid in every breath of time.',
+  bazaarButtonVie: 'Khám phá biên niên sử',
+  bazaarButtonEng: 'Explore Chronicles',
+  skyImg: SKY_IMG,
+  backFourImg: BACK_FOUR_IMG,
+  bazaarImg: BAZAAR_IMG,
+  splitLeftImg: SPLIT_LEFT_IMG,
+  splitRightImg: SPLIT_RIGHT_IMG,
+  bridgeImg: BRIDGE_IMG,
+  frameTwoImg: FRAME_TWO_IMG,
+  sights: ORIGINAL_SIGHTS_DATA.map((item) => ({
+    kickerVie: item.kicker.vie,
+    kickerEng: item.kicker.eng,
+    titleVie: item.h3.vie,
+    titleEng: item.h3.eng,
+    descVie: item.p.vie,
+    descEng: item.p.eng,
+    pinUrl: item.pin,
+  })),
+};
+
+function mergeMemoryCMS(raw?: MemoryRealmCMSData | null): Required<MemoryRealmCMSData> {
+  if (!raw || typeof raw !== 'object') return DEFAULT_MEMORY_CMS;
+  const mergedSights: MemorySightCMSItem[] = DEFAULT_MEMORY_CMS.sights.map((def, i) => {
+    const s = Array.isArray(raw.sights) ? raw.sights[i] : undefined;
+    return {
+      kickerVie: s?.kickerVie || def.kickerVie,
+      kickerEng: s?.kickerEng || def.kickerEng,
+      titleVie: s?.titleVie || def.titleVie,
+      titleEng: s?.titleEng || def.titleEng,
+      descVie: s?.descVie || def.descVie,
+      descEng: s?.descEng || def.descEng,
+      pinUrl: s?.pinUrl || def.pinUrl,
+    };
+  });
+  return {
+    ...DEFAULT_MEMORY_CMS,
+    ...raw,
+    heroTagsVie:
+      Array.isArray(raw.heroTagsVie) && raw.heroTagsVie.length === 3
+        ? raw.heroTagsVie
+        : DEFAULT_MEMORY_CMS.heroTagsVie,
+    heroTagsEng:
+      Array.isArray(raw.heroTagsEng) && raw.heroTagsEng.length === 3
+        ? raw.heroTagsEng
+        : DEFAULT_MEMORY_CMS.heroTagsEng,
+    sights: mergedSights,
+  };
+}
 
 const clamp = (v: number, min = 0, max = 1) => Math.min(max, Math.max(min, v));
 const smoothstep = (e0: number, e1: number, v: number) => {
@@ -89,9 +175,11 @@ const segmentInOut = (s: number, a: number, b: number, c: number, d: number) => 
 
 export interface MemoryRealmProps {
   onNavigateSection?: (sectionId: string) => void;
+  currentUser?: User | null;
 }
 
-export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) => {
+export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, currentUser }) => {
+  const isSuperAdmin = isMasterAdmin(currentUser?.email);
   const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
@@ -99,6 +187,95 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
   const [isJumping, setIsJumping] = useState(false);
   const [language, setLanguage] = useState<'VIE' | 'ENG'>('VIE');
   const isTransitioningRef = useRef(false);
+
+  const [cmsData, setCmsData] = useState<Required<MemoryRealmCMSData>>(() => {
+    const savedAbout = getSavedAboutData();
+    if (savedAbout.memoryRealm) return mergeMemoryCMS(savedAbout.memoryRealm);
+    const localSaved = safeStorage.getItem('fforum_memory_realm_data');
+    if (localSaved) {
+      try {
+        return mergeMemoryCMS(JSON.parse(localSaved));
+      } catch {
+        /* ignore */
+      }
+    }
+    return DEFAULT_MEMORY_CMS;
+  });
+
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [adminTab, setAdminTab] = useState<'sights' | 'copy' | 'layers'>('sights');
+  const [selectedSightIdx, setSelectedSightIdx] = useState(0);
+  const [isUploadingImg, setIsUploadingImg] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchAboutDataFromServer()
+      .then((about) => {
+        if (!cancelled && about?.memoryRealm) {
+          setCmsData(mergeMemoryCMS(about.memoryRealm));
+        }
+      })
+      .catch(() => {});
+
+    const onLocalSync = (e: Event) => {
+      const detail = (e as CustomEvent<AboutData>).detail;
+      if (detail?.memoryRealm) setCmsData(mergeMemoryCMS(detail.memoryRealm));
+    };
+    window.addEventListener('fforum_about_sync', onLocalSync);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('fforum_about_sync', onLocalSync);
+    };
+  }, []);
+
+  const allSightCards = useMemo<LocalizedSightCard[]>(() => {
+    const base: LocalizedSightCard[] = cmsData.sights.map((s) => ({
+      kicker: { vie: s.kickerVie, eng: s.kickerEng },
+      h3: { vie: s.titleVie, eng: s.titleEng },
+      p: { vie: s.descVie, eng: s.descEng },
+      pin: s.pinUrl,
+    }));
+    return [...base, ...base, ...base];
+  }, [cmsData.sights]);
+
+  const handleSaveMemoryCMS = useCallback(() => {
+    safeStorage.setItem('fforum_memory_realm_data', JSON.stringify(cmsData));
+    if (currentUser && isSuperAdmin) {
+      const currentAbout = getSavedAboutData();
+      saveAboutDataToServer(
+        {
+          ...currentAbout,
+          memoryRealm: cmsData,
+        },
+        currentUser.email,
+      ).catch(() => {});
+    }
+    setIsAdminModalOpen(false);
+  }, [cmsData, currentUser, isSuperAdmin]);
+
+  const handleUploadMemoryImage = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    applyUrl: (url: string) => void,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    e.target.value = '';
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const dataUrl = evt.target?.result as string;
+      if (dataUrl) applyUrl(dataUrl);
+    };
+    reader.readAsDataURL(file);
+
+    setIsUploadingImg(true);
+    uploadImageToServer(file, 'post')
+      .then((uploaded) => {
+        if (uploaded.url) applyUrl(uploaded.url);
+      })
+      .catch(() => {})
+      .finally(() => setIsUploadingImg(false));
+  };
 
   useEffect(() => {
     let currentSmoothScroll = 0;
@@ -350,7 +527,7 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
         <div className="world">
           <img
             className="scene-img sky-img"
-            src={SKY_IMG}
+            src={cmsData.skyImg}
             alt="Sky layer"
             loading="lazy"
             decoding="async"
@@ -381,20 +558,35 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
                 {language === 'VIE' ? 'Biên niên sử' : 'Chronicles'}
               </a>
             </nav>
-            <button
-              className="language-switcher"
-              aria-label="Change language"
-              onClick={toggleLanguage}
-            >
-              <span>{language}</span>
-              <span aria-hidden="true">⌄</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {isSuperAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdminTab('layers');
+                    setIsAdminModalOpen(true);
+                  }}
+                  className="px-3 py-1.5 rounded-full bg-amber-500 hover:bg-amber-400 text-black text-xs font-extrabold flex items-center gap-1.5 shadow-lg cursor-pointer transition-all"
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  <span>Đổi ảnh nền</span>
+                </button>
+              )}
+              <button
+                className="language-switcher"
+                aria-label="Change language"
+                onClick={toggleLanguage}
+              >
+                <span>{language}</span>
+                <span aria-hidden="true">⌄</span>
+              </button>
+            </div>
           </header>
 
           <div className="back-stack">
             <img
               className="scene-img back-img back-four"
-              src={BACK_FOUR_IMG}
+              src={cmsData.backFourImg}
               alt="Back layer four"
               loading="lazy"
               decoding="async"
@@ -408,30 +600,48 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
                 ref={trackRef}
                 onTransitionEnd={handleTransitionEnd}
               >
-                {ALL_SIGHT_CARDS.map((card, idx) => (
-                  <div className="sight-card" key={idx}>
-                    <span className="sight-kicker">
-                      {language === 'VIE' ? card.kicker.vie : card.kicker.eng}
-                    </span>
-                    <img
-                      className="sight-pin"
-                      src={card.pin}
-                      alt={language === 'VIE' ? card.h3.vie : card.h3.eng}
-                      loading="lazy"
-                      decoding="async"
-                      width={320}
-                      height={420}
-                      onError={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0'; }}
-                    />
-                    <h3>{language === 'VIE' ? card.h3.vie : card.h3.eng}</h3>
-                    <p>{language === 'VIE' ? card.p.vie : card.p.eng}</p>
-                  </div>
-                ))}
+                {allSightCards.map((card, idx) => {
+                  const baseIdx = idx % 5;
+                  return (
+                    <div className="sight-card relative group" key={idx}>
+                      {isSuperAdmin && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedSightIdx(baseIdx);
+                            setAdminTab('sights');
+                            setIsAdminModalOpen(true);
+                          }}
+                          className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-[11px] font-extrabold flex items-center gap-1 shadow-lg cursor-pointer transition-all"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          <span>Thay ảnh &amp; Sửa</span>
+                        </button>
+                      )}
+                      <span className="sight-kicker">
+                        {language === 'VIE' ? card.kicker.vie : card.kicker.eng}
+                      </span>
+                      <img
+                        className="sight-pin"
+                        src={card.pin}
+                        alt={language === 'VIE' ? card.h3.vie : card.h3.eng}
+                        loading="lazy"
+                        decoding="async"
+                        width={320}
+                        height={420}
+                        onError={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0'; }}
+                      />
+                      <h3>{language === 'VIE' ? card.h3.vie : card.h3.eng}</h3>
+                      <p>{language === 'VIE' ? card.p.vie : card.p.eng}</p>
+                    </div>
+                  );
+                })}
               </div>
             </section>
             <img
               className="scene-img back-img back-bazaar"
-              src={BAZAAR_IMG}
+              src={cmsData.bazaarImg}
               alt="Bazaar layer"
               loading="lazy"
               decoding="async"
@@ -458,11 +668,11 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
             </button>
           </div>
 
-          <h1 className="hero-title">{language === 'VIE' ? 'KÝ ỨC' : 'MEMORY'}</h1>
+          <h1 className="hero-title">{language === 'VIE' ? cmsData.heroTitleVie : cmsData.heroTitleEng}</h1>
 
           <img
             className="scene-img splitframe-img splitframe-left"
-            src={SPLIT_LEFT_IMG}
+            src={cmsData.splitLeftImg}
             alt="Split frame left"
             loading="lazy"
             decoding="async"
@@ -472,7 +682,7 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
           />
           <img
             className="scene-img splitframe-img splitframe-right"
-            src={SPLIT_RIGHT_IMG}
+            src={cmsData.splitRightImg}
             alt="Split frame right"
             loading="lazy"
             decoding="async"
@@ -482,7 +692,7 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
           />
           <img
             className="scene-img bridge-img"
-            src={BRIDGE_IMG}
+            src={cmsData.bridgeImg}
             alt="Bridge layer"
             loading="lazy"
             decoding="async"
@@ -492,7 +702,7 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
           />
           <img
             className="scene-img frame-two-img"
-            src={FRAME_TWO_IMG}
+            src={cmsData.frameTwoImg}
             alt="Frame two layer"
             loading="lazy"
             decoding="async"
@@ -505,68 +715,630 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection }) =
         </div>
 
         <section className="intro-copy" aria-label="Mostar overview">
-          <p>
-            {language === 'VIE'
-              ? 'Một nhịp cầu đá, dòng nước xanh ngọc và miền ký ức trường xưa đọng lại qua từng khoảnh khắc không thể nào quên.'
-              : 'A stone bridge, emerald waters, and memories of campus life etched into every unforgettable moment.'}
-          </p>
+          <p>{language === 'VIE' ? cmsData.introCopyVie : cmsData.introCopyEng}</p>
           <div className="hero-tags" aria-label="Mostar highlights">
-            <span>{language === 'VIE' ? 'Cây Cầu Tri Thức' : 'Bridge of Knowledge'}</span>
-            <span>{language === 'VIE' ? 'Dòng Sông Tuổi Trẻ' : 'River of Youth'}</span>
-            <span>{language === 'VIE' ? 'Di Sản F-Forum' : 'F-Forum Heritage'}</span>
+            {(language === 'VIE' ? cmsData.heroTagsVie : cmsData.heroTagsEng).map((tag, i) => (
+              <span key={i}>{tag}</span>
+            ))}
           </div>
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                setAdminTab('copy');
+                setIsAdminModalOpen(true);
+              }}
+              className="mt-3 pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-500/25 hover:bg-amber-500/40 border border-amber-400/50 text-amber-200 text-xs font-bold cursor-pointer transition-all"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>Sửa Mở Đầu &amp; Từ Khóa</span>
+            </button>
+          )}
         </section>
 
         <section className="story-panel story-panel-bridge" id="bridge" aria-label="Old Bridge details">
-          <h2>
-            {language === 'VIE'
-              ? 'Cây cầu kết nối ngàn thế hệ.'
-              : 'The bridge connecting generations.'}
-          </h2>
-          <p>
-            {language === 'VIE'
-              ? 'Nhịp cầu nối đôi bờ sông quá khứ và tương lai, nâng đỡ những ước mơ học trò vươn ra biển lớn.'
-              : 'A span bridging the rivers of past and future, carrying student dreams out into the wider world.'}
-          </p>
+          <h2>{language === 'VIE' ? cmsData.bridgeTitleVie : cmsData.bridgeTitleEng}</h2>
+          <p>{language === 'VIE' ? cmsData.bridgeBodyVie : cmsData.bridgeBodyEng}</p>
           <dl className="facts">
             <div>
-              <dt>2026</dt>
-              <dd>
-                {language === 'VIE'
-                  ? 'Dấu ấn F-Forum khởi sinh kỷ nguyên tri thức'
-                  : 'F-Forum milestone marks the dawn of a knowledge era'}
-              </dd>
+              <dt>{cmsData.fact1Title}</dt>
+              <dd>{language === 'VIE' ? cmsData.fact1DescVie : cmsData.fact1DescEng}</dd>
             </div>
             <div>
-              <dt>{language === 'VIE' ? 'VÔ HẠN' : 'INFINITE'}</dt>
-              <dd>
-                {language === 'VIE'
-                  ? 'Những tình bạn và kỷ niệm lưu dấu ngàn sau'
-                  : 'Friendships and memories preserved forever'}
-              </dd>
+              <dt>{language === 'VIE' ? cmsData.fact2TitleVie : cmsData.fact2TitleEng}</dt>
+              <dd>{language === 'VIE' ? cmsData.fact2DescVie : cmsData.fact2DescEng}</dd>
             </div>
           </dl>
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                setAdminTab('copy');
+                setIsAdminModalOpen(true);
+              }}
+              className="mt-3 pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-500/25 hover:bg-amber-500/40 border border-amber-400/50 text-amber-200 text-xs font-bold cursor-pointer transition-all"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>Sửa Nội Dung Nhịp Cầu</span>
+            </button>
+          )}
         </section>
 
         <section className="story-panel story-panel-bazaar" id="bazaar" aria-label="Old town details">
-          <h2>
-            {language === 'VIE'
-              ? 'Góc phố lưu giữ bước chân xưa.'
-              : 'Streets echoing past footsteps.'}
-          </h2>
-          <p>
-            {language === 'VIE'
-              ? 'Những góc hành lang, quán nước thân thương và tiếng cười bạn bè vẫn vẹn nguyên trong từng nhịp thở của thời gian.'
-              : 'Familiar corridors, cozy hangout corners, and laughter of friends remain vivid in every breath of time.'}
-          </p>
-          <button className="note-button" onClick={scrollToChronicles}>
-            <span aria-hidden="true">↗</span>
-            <span>
-              {language === 'VIE' ? 'Khám phá biên niên sử' : 'Explore Chronicles'}
-            </span>
-          </button>
+          <h2>{language === 'VIE' ? cmsData.bazaarTitleVie : cmsData.bazaarTitleEng}</h2>
+          <p>{language === 'VIE' ? cmsData.bazaarBodyVie : cmsData.bazaarBodyEng}</p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button className="note-button" onClick={scrollToChronicles}>
+              <span aria-hidden="true">↗</span>
+              <span>{language === 'VIE' ? cmsData.bazaarButtonVie : cmsData.bazaarButtonEng}</span>
+            </button>
+            {isSuperAdmin && (
+              <button
+                type="button"
+                onClick={() => {
+                  setAdminTab('copy');
+                  setIsAdminModalOpen(true);
+                }}
+                className="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-500/25 hover:bg-amber-500/40 border border-amber-400/50 text-amber-200 text-xs font-bold cursor-pointer transition-all"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Sửa Nội Dung Góc Quán</span>
+              </button>
+            )}
+          </div>
         </section>
+
+        {isSuperAdmin && (
+          <div className="fixed right-6 bottom-6 z-[95]">
+            <button
+              type="button"
+              onClick={() => setIsAdminModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-amber-500 hover:bg-amber-400 text-black text-xs sm:text-sm font-extrabold shadow-[0_12px_36px_rgba(245,158,11,0.5)] cursor-pointer transition-all"
+            >
+              <Settings className="w-4 h-4 text-black" />
+              <span>Quản Trị Ảnh &amp; Nội Dung Khu Kỷ Niệm (Admin)</span>
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Portaled Admin Studio Modal for MemoryRealm */}
+      {isAdminModalOpen &&
+        isSuperAdmin &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[140] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md">
+            <div className="w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-3xl bg-[#0b111e] border border-amber-400/45 p-6 sm:p-8 space-y-5 shadow-[0_30px_90px_rgba(0,0,0,0.95)] text-white">
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div>
+                  <h3 className="text-lg sm:text-xl font-extrabold text-white">
+                    Quản Trị Khu Kỷ Niệm (Miền Ký Ức) Toàn Diện
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Thay thế hình ảnh và nội dung ở tất cả thẻ cột mốc, phân đoạn câu chuyện và 7 lớp cảnh nền Parallax
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAdminModalOpen(false)}
+                  className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* 3 Tabs */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1.5 rounded-2xl bg-[#070b13] border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setAdminTab('sights')}
+                  className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                    adminTab === 'sights'
+                      ? 'bg-amber-500 text-black shadow-md'
+                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  1. 5 Thẻ Cột Mốc Kỷ Niệm (Ảnh &amp; Chữ)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAdminTab('copy')}
+                  className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                    adminTab === 'copy'
+                      ? 'bg-amber-500 text-black shadow-md'
+                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  2. Nội Dung Chữ Ở Mọi Phân Đoạn
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAdminTab('layers')}
+                  className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                    adminTab === 'layers'
+                      ? 'bg-amber-500 text-black shadow-md'
+                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  3. Thay Thế 7 Lớp Ảnh Cảnh Nền
+                </button>
+              </div>
+
+              {adminTab === 'sights' && (
+                <div className="space-y-4">
+                  {/* Chọn 1 trong 5 thẻ cột mốc */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    {cmsData.sights.map((s, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setSelectedSightIdx(i)}
+                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                          selectedSightIdx === i
+                            ? 'bg-amber-500/20 border-amber-400 text-amber-200'
+                            : 'bg-[#070b13] border-white/10 text-slate-300 hover:border-white/25'
+                        }`}
+                      >
+                        <div className="text-[10px] font-mono text-amber-300">{s.kickerVie}</div>
+                        <div className="text-xs font-bold truncate mt-0.5">{s.titleVie}</div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {cmsData.sights[selectedSightIdx] && (
+                    <div className="rounded-2xl bg-[#070b13] border border-white/15 p-4 sm:p-5 space-y-4">
+                      {/* Ảnh thẻ cột mốc */}
+                      <div className="flex flex-col sm:flex-row items-center gap-4 pb-4 border-b border-white/10">
+                        <img
+                          src={cmsData.sights[selectedSightIdx].pinUrl}
+                          alt={cmsData.sights[selectedSightIdx].titleVie}
+                          loading="lazy"
+                          decoding="async"
+                          onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
+                          className="w-28 h-32 rounded-xl object-contain bg-black/60 border border-white/15 p-2 shrink-0"
+                        />
+                        <div className="flex-1 w-full space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs sm:text-sm font-bold text-amber-300">
+                              Hình ảnh / Biểu tượng Thẻ #{selectedSightIdx + 1}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const defPin = DEFAULT_MEMORY_CMS.sights[selectedSightIdx].pinUrl;
+                                setCmsData((prev) => ({
+                                  ...prev,
+                                  sights: prev.sights.map((it, idx) =>
+                                    idx === selectedSightIdx ? { ...it, pinUrl: defPin } : it,
+                                  ),
+                                }));
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-slate-300 cursor-pointer"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Ảnh gốc</span>
+                            </button>
+                          </div>
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                            <input
+                              type="text"
+                              maxLength={500}
+                              value={cmsData.sights[selectedSightIdx].pinUrl}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setCmsData((prev) => ({
+                                  ...prev,
+                                  sights: prev.sights.map((it, idx) =>
+                                    idx === selectedSightIdx ? { ...it, pinUrl: val } : it,
+                                  ),
+                                }));
+                              }}
+                              placeholder="Dán URL ảnh hoặc tải ảnh từ máy..."
+                              className="flex-1 bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                            />
+                            <label className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
+                              <Upload className="w-4 h-4" />
+                              <span>{isUploadingImg ? 'Đang tải...' : 'Tải ảnh từ máy'}</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                maxLength={200}
+                                onChange={(e) =>
+                                  handleUploadMemoryImage(e, (url) => {
+                                    setCmsData((prev) => ({
+                                      ...prev,
+                                      sights: prev.sights.map((it, idx) =>
+                                        idx === selectedSightIdx ? { ...it, pinUrl: url } : it,
+                                      ),
+                                    }));
+                                  })
+                                }
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-bold text-slate-300 block mb-1">Nhãn phụ (Tiếng Việt)</label>
+                          <input
+                            type="text"
+                            maxLength={80}
+                            value={cmsData.sights[selectedSightIdx].kickerVie}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setCmsData((prev) => ({
+                                ...prev,
+                                sights: prev.sights.map((it, idx) =>
+                                  idx === selectedSightIdx ? { ...it, kickerVie: val } : it,
+                                ),
+                              }));
+                            }}
+                            className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-300 block mb-1">Nhãn phụ (English)</label>
+                          <input
+                            type="text"
+                            maxLength={80}
+                            value={cmsData.sights[selectedSightIdx].kickerEng}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setCmsData((prev) => ({
+                                ...prev,
+                                sights: prev.sights.map((it, idx) =>
+                                  idx === selectedSightIdx ? { ...it, kickerEng: val } : it,
+                                ),
+                              }));
+                            }}
+                            className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-300 block mb-1">Tiêu đề thẻ (Tiếng Việt)</label>
+                          <input
+                            type="text"
+                            maxLength={120}
+                            value={cmsData.sights[selectedSightIdx].titleVie}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setCmsData((prev) => ({
+                                ...prev,
+                                sights: prev.sights.map((it, idx) =>
+                                  idx === selectedSightIdx ? { ...it, titleVie: val } : it,
+                                ),
+                              }));
+                            }}
+                            className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-300 block mb-1">Tiêu đề thẻ (English)</label>
+                          <input
+                            type="text"
+                            maxLength={120}
+                            value={cmsData.sights[selectedSightIdx].titleEng}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setCmsData((prev) => ({
+                                ...prev,
+                                sights: prev.sights.map((it, idx) =>
+                                  idx === selectedSightIdx ? { ...it, titleEng: val } : it,
+                                ),
+                              }));
+                            }}
+                            className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-bold text-slate-300 block mb-1">Mô tả chi tiết (Tiếng Việt)</label>
+                          <textarea
+                            rows={3}
+                            maxLength={350}
+                            value={cmsData.sights[selectedSightIdx].descVie}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setCmsData((prev) => ({
+                                ...prev,
+                                sights: prev.sights.map((it, idx) =>
+                                  idx === selectedSightIdx ? { ...it, descVie: val } : it,
+                                ),
+                              }));
+                            }}
+                            className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 resize-y"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-300 block mb-1">Mô tả chi tiết (English)</label>
+                          <textarea
+                            rows={3}
+                            maxLength={350}
+                            value={cmsData.sights[selectedSightIdx].descEng}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setCmsData((prev) => ({
+                                ...prev,
+                                sights: prev.sights.map((it, idx) =>
+                                  idx === selectedSightIdx ? { ...it, descEng: val } : it,
+                                ),
+                              }));
+                            }}
+                            className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 resize-y"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {adminTab === 'copy' && (
+                <div className="space-y-5">
+                  {/* Phần 1: Hero & Intro */}
+                  <div className="rounded-2xl bg-[#070b13] border border-white/15 p-4 space-y-3">
+                    <h4 className="text-sm font-extrabold text-amber-300">Phân đoạn 1: Tiêu đề lớn &amp; Mở đầu</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-slate-300 block mb-1">Chữ nền khổng lồ (VIE)</label>
+                        <input
+                          type="text"
+                          maxLength={40}
+                          value={cmsData.heroTitleVie}
+                          onChange={(e) => setCmsData({ ...cmsData, heroTitleVie: e.target.value })}
+                          className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2 text-sm text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-300 block mb-1">Chữ nền khổng lồ (ENG)</label>
+                        <input
+                          type="text"
+                          maxLength={40}
+                          value={cmsData.heroTitleEng}
+                          onChange={(e) => setCmsData({ ...cmsData, heroTitleEng: e.target.value })}
+                          className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2 text-sm text-white"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-300 block mb-1">Đoạn văn mở đầu (Tiếng Việt)</label>
+                      <textarea
+                        rows={2}
+                        maxLength={350}
+                        value={cmsData.introCopyVie}
+                        onChange={(e) => setCmsData({ ...cmsData, introCopyVie: e.target.value })}
+                        className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2 text-sm text-white"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {cmsData.heroTagsVie.map((tag, idx) => (
+                        <input
+                          key={idx}
+                          type="text"
+                          maxLength={60}
+                          value={tag}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCmsData((prev) => ({
+                              ...prev,
+                              heroTagsVie: prev.heroTagsVie.map((t, i) => (i === idx ? val : t)),
+                            }));
+                          }}
+                          className="bg-[#0b111e] border border-white/20 rounded-xl px-3 py-2 text-xs text-white"
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Phần 2: Nhịp cầu (#bridge) */}
+                  <div className="rounded-2xl bg-[#070b13] border border-white/15 p-4 space-y-3">
+                    <h4 className="text-sm font-extrabold text-amber-300">Phân đoạn 2: Nhịp Cầu (#bridge)</h4>
+                    <div>
+                      <label className="text-xs text-slate-300 block mb-1">Tiêu đề Nhịp cầu (Tiếng Việt)</label>
+                      <input
+                        type="text"
+                        maxLength={120}
+                        value={cmsData.bridgeTitleVie}
+                        onChange={(e) => setCmsData({ ...cmsData, bridgeTitleVie: e.target.value })}
+                        className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2 text-sm text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-300 block mb-1">Nội dung Nhịp cầu (Tiếng Việt)</label>
+                      <textarea
+                        rows={2}
+                        maxLength={350}
+                        value={cmsData.bridgeBodyVie}
+                        onChange={(e) => setCmsData({ ...cmsData, bridgeBodyVie: e.target.value })}
+                        className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2 text-sm text-white"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-slate-300 block mb-1">Cột mốc số 1 &amp; Mô tả</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            maxLength={30}
+                            value={cmsData.fact1Title}
+                            onChange={(e) => setCmsData({ ...cmsData, fact1Title: e.target.value })}
+                            className="w-24 bg-[#0b111e] border border-white/20 rounded-xl px-3 py-2 text-sm text-white"
+                          />
+                          <input
+                            type="text"
+                            maxLength={150}
+                            value={cmsData.fact1DescVie}
+                            onChange={(e) => setCmsData({ ...cmsData, fact1DescVie: e.target.value })}
+                            className="flex-1 bg-[#0b111e] border border-white/20 rounded-xl px-3 py-2 text-sm text-white"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-300 block mb-1">Cột mốc số 2 &amp; Mô tả</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            maxLength={30}
+                            value={cmsData.fact2TitleVie}
+                            onChange={(e) => setCmsData({ ...cmsData, fact2TitleVie: e.target.value })}
+                            className="w-28 bg-[#0b111e] border border-white/20 rounded-xl px-3 py-2 text-sm text-white"
+                          />
+                          <input
+                            type="text"
+                            maxLength={150}
+                            value={cmsData.fact2DescVie}
+                            onChange={(e) => setCmsData({ ...cmsData, fact2DescVie: e.target.value })}
+                            className="flex-1 bg-[#0b111e] border border-white/20 rounded-xl px-3 py-2 text-sm text-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Phần 3: Góc quán (#bazaar) */}
+                  <div className="rounded-2xl bg-[#070b13] border border-white/15 p-4 space-y-3">
+                    <h4 className="text-sm font-extrabold text-amber-300">Phân đoạn 3: Góc Quán (#bazaar)</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-slate-300 block mb-1">Tiêu đề Góc quán (Tiếng Việt)</label>
+                        <input
+                          type="text"
+                          maxLength={120}
+                          value={cmsData.bazaarTitleVie}
+                          onChange={(e) => setCmsData({ ...cmsData, bazaarTitleVie: e.target.value })}
+                          className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2 text-sm text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-300 block mb-1">Nhãn nút hành động</label>
+                        <input
+                          type="text"
+                          maxLength={80}
+                          value={cmsData.bazaarButtonVie}
+                          onChange={(e) => setCmsData({ ...cmsData, bazaarButtonVie: e.target.value })}
+                          className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2 text-sm text-white"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-300 block mb-1">Nội dung Góc quán (Tiếng Việt)</label>
+                      <textarea
+                        rows={2}
+                        maxLength={350}
+                        value={cmsData.bazaarBodyVie}
+                        onChange={(e) => setCmsData({ ...cmsData, bazaarBodyVie: e.target.value })}
+                        className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2 text-sm text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {adminTab === 'layers' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {(
+                    [
+                      { key: 'skyImg', label: '1. Bầu trời nền (Sky Layer)', def: SKY_IMG },
+                      { key: 'backFourImg', label: '2. Núi & Thành cổ xa (Back Layer)', def: BACK_FOUR_IMG },
+                      { key: 'bazaarImg', label: '3. Phố cổ & Hội quán (Bazaar Layer)', def: BAZAAR_IMG },
+                      { key: 'bridgeImg', label: '4. Nhịp cầu chính (Bridge Layer)', def: BRIDGE_IMG },
+                      { key: 'frameTwoImg', label: '5. Tiền cảnh vòm đá (Frame Two Layer)', def: FRAME_TWO_IMG },
+                      { key: 'splitLeftImg', label: '6. Vách đá trái (Split Left)', def: SPLIT_LEFT_IMG },
+                      { key: 'splitRightImg', label: '7. Vách đá phải (Split Right)', def: SPLIT_RIGHT_IMG },
+                    ] as const
+                  ).map((layer) => (
+                    <div
+                      key={layer.key}
+                      className="rounded-2xl bg-[#070b13] border border-white/15 p-3.5 space-y-2.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-amber-300">{layer.label}</span>
+                        <button
+                          type="button"
+                          onClick={() => setCmsData((prev) => ({ ...prev, [layer.key]: layer.def }))}
+                          className="text-[11px] text-slate-400 hover:text-white inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>Mặc định</span>
+                        </button>
+                      </div>
+                      <div className="w-full aspect-[16/9] rounded-xl overflow-hidden bg-black border border-white/10">
+                        <img
+                          src={cmsData[layer.key]}
+                          alt={layer.label}
+                          loading="lazy"
+                          decoding="async"
+                          onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          maxLength={500}
+                          value={cmsData[layer.key]}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCmsData((prev) => ({ ...prev, [layer.key]: val }));
+                          }}
+                          className="flex-1 bg-[#0b111e] border border-white/20 rounded-xl px-3 py-2 text-xs text-white"
+                        />
+                        <label className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs flex items-center gap-1 cursor-pointer shrink-0">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Tải ảnh</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            maxLength={200}
+                            onChange={(e) =>
+                              handleUploadMemoryImage(e, (url) => {
+                                setCmsData((prev) => ({ ...prev, [layer.key]: url }));
+                              })
+                            }
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setCmsData(DEFAULT_MEMORY_CMS)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-semibold text-slate-300 cursor-pointer"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Khôi phục toàn bộ mặc định</span>
+                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsAdminModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-slate-300 hover:text-white cursor-pointer"
+                  >
+                    Đóng
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveMemoryCMS}
+                    className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs sm:text-sm shadow-lg cursor-pointer transition-all"
+                  >
+                    Lưu &amp; Đồng bộ Khu Kỷ Niệm
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </section>
   );
 };
