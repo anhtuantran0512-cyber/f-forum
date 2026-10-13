@@ -66,10 +66,10 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
           width: '100%',
           height: '100%',
           objectFit: 'cover',
-          filter: 'blur(8px)',
-          transform: isLoaded ? 'scale(1)' : 'scale(1.06)',
+          filter: 'blur(6px)',
+          transform: isLoaded ? 'scale(1)' : 'scale(1.04)',
           opacity: isLoaded ? 0 : 1,
-          transition: 'opacity 260ms ease-out, transform 260ms ease-out',
+          transition: 'opacity 160ms ease-out, transform 160ms ease-out',
           pointerEvents: 'none',
         }}
       />
@@ -86,8 +86,8 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
           height: '100%',
           objectFit: 'cover',
           opacity: isLoaded ? 1 : 0,
-          transform: isLoaded ? 'scale(1)' : 'scale(1.015)',
-          transition: 'opacity 260ms ease-out, transform 260ms ease-out',
+          transform: isLoaded ? 'scale(1)' : 'scale(1.01)',
+          transition: 'opacity 160ms ease-out, transform 160ms ease-out',
         }}
       />
     </span>

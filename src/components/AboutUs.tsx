@@ -241,11 +241,24 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     checkFinePointer();
 
     updateEngineDimensions();
+    let cachedScrollY = typeof window !== 'undefined' ? window.scrollY || 0 : 0;
+    let cachedInnerHeight = typeof window !== 'undefined' ? Math.max(1, window.innerHeight || 800) : 800;
+    const onPassiveScroll = () => {
+      cachedScrollY = window.scrollY || 0;
+    };
     /* R4: gộp resize về 1 lần/khung hình */
-    const updateEngineDimensionsFrame = rafThrottle(updateEngineDimensions);
+    const updateEngineDimensionsFrame = rafThrottle(() => {
+      cachedInnerHeight = Math.max(1, window.innerHeight || 800);
+      updateEngineDimensions();
+    });
     window.addEventListener('resize', updateEngineDimensionsFrame, { passive: true });
+    window.addEventListener('scroll', onPassiveScroll, { passive: true });
 
     const tick = () => {
+      if (typeof document !== 'undefined' && document.hidden) {
+        animId = requestAnimationFrame(tick);
+        return;
+      }
       const state = engineState.current;
       const { R } = state;
 
@@ -260,11 +273,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
         }
       }
 
-      let scrollDolly = 0;
-      if (typeof window !== 'undefined') {
-        const scrollProg = Math.max(0, Math.min(1, window.scrollY / (Math.max(1, window.innerHeight) * 0.16)));
-        scrollDolly = scrollProg * (R * 0.35);
-      }
+      const scrollProg = Math.max(0, Math.min(1, cachedScrollY / (cachedInnerHeight * 0.16)));
+      const scrollDolly = scrollProg * (R * 0.35);
       state.camZ = Math.max(-R * 0.35, Math.min(R * 0.65, state.wheelCamZ + scrollDolly));
 
       const sx = state.tilt;
@@ -317,6 +327,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
     return () => {
       cancelAnimationFrame(animId);
+      window.removeEventListener('scroll', onPassiveScroll);
       { window.removeEventListener('resize', updateEngineDimensionsFrame); updateEngineDimensionsFrame.cancel(); }
     };
   }, [updateEngineDimensions]);

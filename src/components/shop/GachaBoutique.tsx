@@ -444,7 +444,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           setVisibleCount((count) => count + PAGE_SIZE);
         }
       },
-      { rootMargin: '400px' },
+      { rootMargin: '800px' },
     );
     observer.observe(node);
     return () => observer.disconnect();
@@ -456,9 +456,9 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
 
   const { isItemVisible } = useVirtualWindow({
     totalItems: paged.length,
-    itemHeight: 240,
-    columns: 3,
-    overscan: 6,
+    itemHeight: 180,
+    columns: 4,
+    overscan: 12,
     rootRef: boutiqueGridRef,
   });
 

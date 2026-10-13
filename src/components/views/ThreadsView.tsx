@@ -786,7 +786,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
     totalItems: visibleThreads.length,
     itemHeight: 160,
     columns: 1,
-    overscan: 6,
+    overscan: 12,
     containerRef: isEmbedded ? undefined : feedScrollRef,
   });
 

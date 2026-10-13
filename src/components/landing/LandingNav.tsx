@@ -1,9 +1,9 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowRight, LogIn, Menu, Sparkles, X } from 'lucide-react';
 import type { User } from '../../types';
 import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
-import { scrollToSection, useScrollProgress, useScrollY } from './useLandingMotion';
+import { scrollToSection } from './useLandingMotion';
 
 export interface LandingNavProps {
   currentUser: User | null;
@@ -21,12 +21,38 @@ const NAV_LINKS: { id: string; label: string }[] = [
 ];
 
 export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin, onEnterApp }) => {
-  const scrollY = useScrollY();
-  const progress = useScrollProgress();
+  const [scrolled, setScrolled] = useState(false);
+  const progressBarRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('');
 
-  const scrolled = scrollY > 24;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let rafId = 0;
+    const syncScroll = () => {
+      rafId = 0;
+      const y = window.scrollY || 0;
+      setScrolled((prev) => (prev ? y > 14 : y > 28));
+      if (progressBarRef.current) {
+        const doc = document.documentElement;
+        const max = Math.max(1, doc.scrollHeight - window.innerHeight);
+        const pct = Math.min(1, Math.max(0, y / max));
+        progressBarRef.current.style.transform = `scaleX(${pct.toFixed(4)})`;
+      }
+    };
+    const onScroll = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(syncScroll);
+    };
+    syncScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, []);
 
   /** Smooth-scroll to a section while closing the mobile drawer first. */
   const goToSection = useCallback((id: string) => {
@@ -67,27 +93,28 @@ export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin
   }, []);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50">
-      {/* Reading progress rail */}
-      <div className="h-[3px] w-full bg-transparent" aria-hidden="true">
+    <header className="fixed inset-x-0 top-0 z-50 transform-gpu">
+      {/* Reading progress rail (GPU scaleX, 0 layout reflow) */}
+      <div className="h-[3px] w-full bg-transparent overflow-hidden" aria-hidden="true">
         <div
-          className="h-full origin-left bg-gradient-to-r from-amber-200 via-amber-400 to-orange-500 transition-[width] duration-150 ease-out"
-          style={{ width: `${Math.max(progress * 100, 0)}%` }}
+          ref={progressBarRef}
+          className="h-full w-full origin-left bg-gradient-to-r from-amber-200 via-amber-400 to-orange-500 will-change-transform"
+          style={{ transform: 'scaleX(0)' }}
         />
       </div>
 
       <div
-        className={`mx-auto flex items-center justify-between gap-3 px-4 transition-all duration-500 sm:px-6 ${
-          scrolled ? 'py-2.5' : 'py-4'
+        className={`relative mx-auto flex items-center justify-between gap-3 px-4 py-3 sm:px-6 transition-transform duration-200 ease-out transform-gpu ${
+          scrolled ? 'translate-y-0' : 'translate-y-0.5'
         }`}
       >
         <div
-          className={`pointer-events-none absolute inset-x-0 top-0 -z-10 h-full transition-all duration-500 ${
+          className={`pointer-events-none absolute inset-0 -z-10 transition-opacity duration-200 ease-out will-change-[opacity] transform-gpu ${
             scrolled ? 'opacity-100' : 'opacity-0'
           }`}
           aria-hidden="true"
         >
-          <div className="h-full w-full border-b border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-bg)_82%,transparent)] backdrop-blur-xl" />
+          <div className="h-full w-full border-b border-[var(--ff-border)] bg-[#060911]/92 backdrop-blur-md" />
         </div>
 
         {/* Brand */}

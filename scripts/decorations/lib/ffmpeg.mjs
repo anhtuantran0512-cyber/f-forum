@@ -115,10 +115,53 @@ export async function extractFrameRgba(filePath, { index, width, height, inputAr
  *  - 'sd': dành cho Tier C (máy yếu/mạng chậm — VẪN CÓ ANIMATION mượt mà, không cắt thành ảnh tĩnh)
  */
 export const MULTI_QUALITY_WEBM_PROFILES = {
-  '4k': { label: '4K Ultra (Tier A)', maxSide: 448, crf: 32, maxFps: 60 },
-  hd: { label: 'HD Balanced (Tier B)', maxSide: 288, crf: 40, maxFps: 30 },
-  sd: { label: 'SD Smooth (Tier C)', maxSide: 192, crf: 47, maxFps: 24 },
+  '4k': { label: '4K Ultra (Tier A)', maxSide: 448, crf: 34, maxFps: 20 },
+  hd: { label: 'HD Balanced (Tier B)', maxSide: 288, crf: 41, maxFps: 18 },
+  sd: { label: 'SD Smooth (Tier C)', maxSide: 192, crf: 47, maxFps: 15 },
 };
+
+export const BACKGROUND_WEBM_LOW_FPS_PROFILE = {
+  label: 'WebM Low-FPS Blurred Background (15-20 FPS)',
+  maxWidth: 960,
+  crf: 38,
+  fps: 18,
+  blurLumaRadius: 2,
+  blurLumaPower: 1,
+};
+
+export async function convertMp4ToOptimizedWebm(
+  inputMp4Path,
+  outputWebmPath,
+  { fps = 18, crf = 38, maxWidth = 960, blur = true } = {},
+) {
+  const safeFps = Math.max(15, Math.min(20, Number(fps) || 18));
+  const blurFilter = blur ? ',boxblur=2:1' : '';
+  const vf = `fps=${safeFps},scale='min(${maxWidth},iw)':-2:flags=area${blurFilter},format=yuv420p`;
+  await runFfmpeg([
+    '-y',
+    '-loglevel',
+    'error',
+    '-i',
+    inputMp4Path,
+    '-vf',
+    vf,
+    '-an',
+    '-c:v',
+    'libvpx-vp9',
+    '-pix_fmt',
+    'yuv420p',
+    '-b:v',
+    '0',
+    '-crf',
+    String(crf),
+    '-row-mt',
+    '1',
+    '-cpu-used',
+    '4',
+    outputWebmPath,
+  ]);
+  return { outputWebmPath, fps: safeFps, crf, blurred: blur };
+}
 
 /**
  * Sinh đồng thời 3 phiên bản WebM VP9 có kênh alpha (4K / HD / SD) từ file gốc.
