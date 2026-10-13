@@ -601,6 +601,8 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(12px);
   contain: layout style;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
   transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
 }
 
