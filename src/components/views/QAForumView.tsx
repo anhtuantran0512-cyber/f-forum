@@ -1643,10 +1643,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     }
                   }}
                   aria-label={`Xem chi tiết câu hỏi: ${q.title}`}
-                  className={`ff-virtual-card cursor-pointer rounded-3xl p-5 sm:p-6 border transition-all duration-150 group shadow-[0_14px_34px_rgba(0,0,0,0.34)] ${
-                    q.isSolved
-                      ? 'bg-gradient-to-br from-[#0e1b26]/95 to-[#0b131d]/98 hover:from-[#122230]/98 hover:to-[#0d1724]/98 border-emerald-500/30 hover:border-emerald-400/55 border-l-4 border-l-emerald-400'
-                      : 'bg-gradient-to-br from-[#0f1726]/95 to-[#0a101b]/98 hover:from-[#131e31]/98 hover:to-[#0d1422]/98 border-white/[0.1] hover:border-cyan-400/45 border-l-4 border-l-cyan-400/70'
+                  className={`ff-virtual-card ff-qa-card cursor-pointer rounded-3xl p-5 sm:p-6 group ${
+                    q.isSolved ? 'is-solved' : 'is-unsolved'
                   }`}
                 >
                   {/* Hàng 1: Nhãn môn học, Trạng thái, Tiền thưởng, Số ảnh đính kèm & Công cụ */}

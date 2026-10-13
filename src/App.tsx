@@ -314,7 +314,21 @@ export const App: React.FC = () => {
   });
 
   useEffect(() => {
+    /* Đảm bảo chế độ sáng/tối được đồng bộ tức thì trên thẻ html ngay từ App root */
+    const applySavedTheme = () => {
+      const savedTheme = safeStorage.getItem('fforum_theme') as 'dark' | 'light' | null;
+      if (savedTheme === 'light') {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      } else if (savedTheme === 'dark') {
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+      }
+    };
+    applySavedTheme();
+
     const handleSyncGodray = () => {
+      applySavedTheme();
       const p = resolveGodrayId(safeStorage.getItem('fforum_godray_preset'));
       const i = safeStorage.getItem('fforum_godray_intensity');
       setGodrayPreset(p);

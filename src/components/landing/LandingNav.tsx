@@ -103,19 +103,15 @@ export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin
         />
       </div>
 
-      <div
-        className={`relative mx-auto flex items-center justify-between gap-3 px-4 py-3 sm:px-6 transition-transform duration-200 ease-out transform-gpu ${
-          scrolled ? 'translate-y-0' : 'translate-y-0.5'
-        }`}
-      >
+      <div className="relative mx-auto flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <div
-          className={`pointer-events-none absolute inset-0 -z-10 transition-opacity duration-200 ease-out will-change-[opacity] transform-gpu ${
-            scrolled ? 'opacity-100' : 'opacity-0'
+          className={`pointer-events-none absolute inset-0 -z-10 backdrop-blur-md transition-colors duration-300 ease-out ${
+            scrolled
+              ? 'bg-[#060911]/92 border-b border-[var(--ff-border)]'
+              : 'bg-transparent border-b border-transparent'
           }`}
           aria-hidden="true"
-        >
-          <div className="h-full w-full border-b border-[var(--ff-border)] bg-[#060911]/92 backdrop-blur-md" />
-        </div>
+        />
 
         {/* Brand */}
         <button

@@ -91,7 +91,6 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
       {/* Background Cosmic Atmosphere Video Engine (WebM + 18fps + soft blur optimization) */}
       <div className="ff-video-bg absolute inset-0 z-0 pointer-events-none overflow-hidden bg-neutral-950">
         <video
-          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260627_094019_4214ea73-b963-46a4-8327-61489192de99.mp4"
           autoPlay
           loop
           muted
