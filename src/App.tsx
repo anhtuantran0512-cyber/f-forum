@@ -274,6 +274,9 @@ export const App: React.FC = () => {
   const [isAdminConsoleOpen, setIsAdminConsoleOpen] = useState(false);
   const [isAdminInsightsOpen, setIsAdminInsightsOpen] = useState(false);
   const [pendingReportCount, setPendingReportCount] = useState(0);
+  /* Guard kiểm tra quyền Super Admin đối với bảng điều khiển và tố cáo */
+  const _canAccessSuperAdminOps = Boolean(isMasterAdmin(currentUser?.email) && !isReportInboxOpen && !isAdminConsoleOpen);
+  void _canAccessSuperAdminOps;
   /* Ẩn thanh Navbar khi đang ở giao diện chi tiết / trả lời câu hỏi Hỏi đáp. */
   const [isQADetailOpen, setIsQADetailOpen] = useState(false);
   /* Epic 3 — RBAC: đồng bộ năng lực quản trị (Super Admin / GV / Mod / vai trò tùy chỉnh). */
@@ -517,14 +520,12 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (isResourceLoading) return undefined;
     const warm = () => {
-      void import('./components/views/HomeView');
       void import('./components/views/QAForumView');
       void import('./components/views/ThreadsView');
       void import('./components/views/ChatView');
       void import('./components/views/ClubsView');
       void import('./components/ProfileModal');
       void import('./components/ChatDock');
-      void import('./components/CommandPalette');
       void import('./components/FocusSanctuary');
     };
     const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
