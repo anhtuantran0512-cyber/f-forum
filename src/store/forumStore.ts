@@ -417,7 +417,9 @@ export function useForumStore() {
   const [isNetworkOnline, setIsNetworkOnline] = useState<boolean>(() =>
     typeof navigator !== 'undefined' ? navigator.onLine !== false : true,
   );
-  const wasOfflineRef = useRef<boolean>(false);
+  const wasOfflineRef = useRef<boolean>(
+    typeof navigator !== 'undefined' ? navigator.onLine === false : false,
+  );
   const fetchServerStateRef = useRef<(() => Promise<void>) | null>(null);
   const [toastMessage, setToastMessage] = useState<{
     title: string;
@@ -1133,8 +1135,9 @@ export function useForumStore() {
           setComments(prev => {
             if (prev.some(c => c.id === newComment.id)) return prev;
             const next = [...prev, newComment];
-            safeStorage.setItem('fforum_comments', JSON.stringify(next));
-            return next;
+            const trimmed = next.length > 500 ? next.slice(-500) : next;
+            safeStorage.setItem('fforum_comments', JSON.stringify(trimmed));
+            return trimmed;
           });
           break;
         }
@@ -1363,6 +1366,8 @@ export function useForumStore() {
       if (reconnectTimer) clearTimeout(reconnectTimer);
       const previous = ws;
       if (previous) {
+        previous.onopen = null;
+        previous.onmessage = null;
         previous.onclose = null;
         previous.onerror = null;
         try {
@@ -1468,7 +1473,8 @@ export function useForumStore() {
           const newQuestion = payload as Question;
           setQuestions(prev => {
             if (prev.some(q => q.id === newQuestion.id)) return prev;
-            return [newQuestion, ...prev];
+            const next = [newQuestion, ...prev];
+            return next.length > 500 ? next.slice(0, 500) : next;
           });
           break;
         }
@@ -1768,19 +1774,20 @@ export function useForumStore() {
         void flushOfflineQueue().then((flushed) => {
           if (flushed.sent > 0) {
             setToastMessage({
-              title: 'Đã gửi thao tác ngoại tuyến',
-              subtitle: `Đã tự động gửi lại ${flushed.sent} thao tác đang chờ trong hàng đợi.`,
+              title: 'Đã khôi phục kết nối',
+              subtitle: `Đã tự động gửi lại ${flushed.sent} thao tác ngoại tuyến và đồng bộ dữ liệu.`,
               type: 'success',
             });
+          } else {
+            setToastMessage({
+              title: 'Đã khôi phục kết nối',
+              subtitle: 'Dữ liệu diễn đàn và kết nối trực tuyến đã được đồng bộ.',
+              type: 'success',
+            });
+            void fetchServerStateRef.current?.();
           }
         });
-        void fetchServerStateRef.current?.();
         playChime('success');
-        setToastMessage({
-          title: 'Đã khôi phục kết nối',
-          subtitle: 'Dữ liệu diễn đàn và kết nối trực tuyến đã được đồng bộ.',
-          type: 'success',
-        });
       }
     };
 

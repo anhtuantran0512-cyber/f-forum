@@ -44,10 +44,18 @@ export const AdaptiveQualityProvider: React.FC<{ children: React.ReactNode }> = 
     collectDeviceProfile(280)
       .then((detectedProfile) => {
         if (!alive) return;
-        const assessment = classifyDeviceProfile(detectedProfile);
-        setProfile(detectedProfile);
-        setDetectedTier(assessment.tier);
-        setReasons(assessment.reasons);
+        setProfile((prev) => {
+          const merged: DeviceProfile = {
+            ...detectedProfile,
+            batteryLow: typeof prev.batteryLow === 'boolean' ? prev.batteryLow : detectedProfile.batteryLow,
+            batteryLevel: typeof prev.batteryLevel === 'number' ? prev.batteryLevel : detectedProfile.batteryLevel,
+            batteryCharging: typeof prev.batteryCharging === 'boolean' ? prev.batteryCharging : detectedProfile.batteryCharging,
+          };
+          const assessment = classifyDeviceProfile(merged);
+          setDetectedTier(assessment.tier);
+          setReasons(assessment.reasons);
+          return merged;
+        });
         setIsReady(true);
       })
       .catch(() => {
@@ -69,7 +77,7 @@ export const AdaptiveQualityProvider: React.FC<{ children: React.ReactNode }> = 
 
     const handleBatteryUpdate = () => {
       if (!activeBattery || !alive) return;
-      const isLow = !activeBattery.charging && activeBattery.level < 0.2;
+      const isLow = !activeBattery.charging && typeof activeBattery.level === 'number' && activeBattery.level < 0.2;
       setProfile((prev) => {
         if (
           prev.batteryLow === isLow &&
@@ -82,7 +90,7 @@ export const AdaptiveQualityProvider: React.FC<{ children: React.ReactNode }> = 
           ...prev,
           batteryLow: isLow,
           batteryLevel: activeBattery.level,
-          batteryCharging: activeBattery.charging,
+          batteryCharging: Boolean(activeBattery.charging),
         };
         const assessment = classifyDeviceProfile(nextProfile);
         setDetectedTier(assessment.tier);
@@ -96,15 +104,17 @@ export const AdaptiveQualityProvider: React.FC<{ children: React.ReactNode }> = 
       .then((battery: any) => {
         if (!alive || !battery) return;
         activeBattery = battery;
-        battery.addEventListener('levelchange', handleBatteryUpdate);
-        battery.addEventListener('chargingchange', handleBatteryUpdate);
+        if (typeof battery.addEventListener === 'function') {
+          battery.addEventListener('levelchange', handleBatteryUpdate);
+          battery.addEventListener('chargingchange', handleBatteryUpdate);
+        }
         handleBatteryUpdate();
       })
       .catch(() => {});
 
     return () => {
       alive = false;
-      if (activeBattery) {
+      if (activeBattery && typeof activeBattery.removeEventListener === 'function') {
         activeBattery.removeEventListener('levelchange', handleBatteryUpdate);
         activeBattery.removeEventListener('chargingchange', handleBatteryUpdate);
       }

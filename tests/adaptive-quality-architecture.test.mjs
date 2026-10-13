@@ -327,7 +327,7 @@ test('7. Clean Code Discipline & Virtual Card Rendering: 0 single-line // commen
   assert.match(css, /\.ff-virtual-card[\s\S]*?content-visibility:\s*auto/, 'Virtual card phải hỗ trợ content-visibility: auto');
 });
 
-test('8. Battery-Saver Auto-Fallback & Network Reconnect Resilience Verification', () => {
+test('8. Battery-Saver Auto-Fallback & Network Reconnect Resilience Verification', async () => {
   const highEndOnLowBattery = classifyDeviceProfile({
     memory: 16,
     cores: 12,
@@ -359,5 +359,18 @@ test('8. Battery-Saver Auto-Fallback & Network Reconnect Resilience Verification
     batteryCharging: true,
   });
   assert.equal(highEndOnCharging.tier, 'tier-a', 'Khi đang cắm sạc hoặc pin đủ, giữ nguyên Tier A');
+
+  /* Kiểm chứng chống gửi đúp khi nhiều luồng cùng gọi flushOfflineQueue đồng thời */
+  enqueueOfflineAction('/api/test/concurrent-sync', { action: 'test-1' });
+  let sendCount = 0;
+  const mockSender = async () => {
+    sendCount += 1;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    return { status: 200, data: { ok: true } };
+  };
+  const [res1, res2] = await Promise.all([flushOfflineQueue(mockSender), flushOfflineQueue(mockSender)]);
+  assert.equal(sendCount, 1, 'Hàng đợi ngoại tuyến không bị gửi đôi khi nhiều luồng online cùng kích hoạt');
+  assert.equal(res1.sent, 1);
+  assert.equal(res2.sent, 1);
 });
 
