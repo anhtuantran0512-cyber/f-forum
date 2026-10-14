@@ -33,6 +33,7 @@ import {
   Flame,
   User as UserIcon,
   AlertCircle,
+  BookOpen,
 } from 'lucide-react';
 import type { DimensionView, User } from './types';
 import { CommandPalette, type PaletteCommand } from './components/CommandPalette';
@@ -67,6 +68,7 @@ const ChatView = lazyWithRetry(() => import('./components/views/ChatView').then(
 const ThreadsView = lazyWithRetry(() => import('./components/views/ThreadsView').then(m => ({ default: m.ThreadsView })));
 const KhuVinhDanhView = lazyWithRetry(() => import('./components/views/KhuVinhDanhView').then(m => ({ default: m.KhuVinhDanhView })));
 const ComingSoonView = lazyWithRetry(() => import('./components/views/ComingSoonView').then(m => ({ default: m.ComingSoonView })));
+const ExamVaultView = lazyWithRetry(() => import('./components/views/ExamVaultView').then(m => ({ default: m.ExamVaultView })));
 const MemoryRealm = lazyWithRetry(() => import('./components/MemoryRealm').then(m => ({ default: m.MemoryRealm })));
 const ChatDock = lazyWithRetry(() => import('./components/ChatDock').then(m => ({ default: m.ChatDock })));
 const ProfileModal = lazyWithRetry(() => import('./components/ProfileModal').then(m => ({ default: m.ProfileModal })));
@@ -126,6 +128,7 @@ const VIEW_ORDER: DimensionView[] = [
   'memory',
   'chronicles',
   'coming-soon',
+  'exam-vault',
 ];
 
 /* Phân khu cần màn hình chờ (CodeFronts la-09 vinyl / la-05 dots).
@@ -139,6 +142,7 @@ const VIEW_LOADERS: Partial<Record<DimensionView, { label: string; variant: 'vin
   memory: { label: 'Miền Ký Ức', variant: 'vinyl' },
   chronicles: { label: 'Khu Vinh Danh', variant: 'vinyl' },
   'coming-soon': { label: 'Bản nâng cấp', variant: 'vinyl' },
+  'exam-vault': { label: 'Kho Đề Thi', variant: 'vinyl' },
 };
 
 const LOADER_MIN_MS = 220; /* lần đầu vào phân khu */
@@ -668,6 +672,7 @@ export const App: React.FC = () => {
       { id: 'chronicles', label: 'Khu vinh danh', hint: '', icon: <Award className="w-4 h-4" />, keywords: 'vinh danh' },
       { id: 'coming-soon', label: 'Bản nâng cấp', hint: '', icon: <Rocket className="w-4 h-4" />, keywords: 'update' },
       { id: 'landing', label: 'Giới thiệu', hint: '', icon: <Sparkles className="w-4 h-4" />, keywords: 'gioi thieu landing' },
+      { id: 'exam-vault', label: 'Kho Đề thi & Đề cương', hint: '', icon: <BookOpen className="w-4 h-4 text-cyan-400" />, keywords: 'de thi de cuong on tap kiem tra' },
     ];
 
     const viewCommands: PaletteCommand[] = views.map((v) => ({
@@ -1202,6 +1207,14 @@ export const App: React.FC = () => {
 
           {currentView === 'coming-soon' && (
             <ComingSoonView onReturnHome={handleViewChange} />
+          )}
+
+          {currentView === 'exam-vault' && (
+            <ExamVaultView
+              currentUser={currentUser}
+              onNavigate={handleViewChange}
+              onOpenLoginModal={() => handleOpenAuth('login')}
+            />
           )}
           </div>
         </Suspense>

@@ -783,6 +783,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       id="field-5"
                       label="Mật khẩu"
                       showTorch={false}
+                      mode={torchMode}
                       value={registerPassword}
                       onChange={setRegisterPassword}
                       placeholder="Ít nhất 6 ký tự"
@@ -795,6 +796,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <FlashlightPasswordField
                       id="field-6"
                       label="Nhập lại"
+                      mode={torchMode}
                       value={registerConfirmPassword}
                       onChange={setRegisterConfirmPassword}
                       placeholder="Gõ lại cho chắc"

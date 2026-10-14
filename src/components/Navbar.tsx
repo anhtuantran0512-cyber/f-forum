@@ -18,6 +18,7 @@ import {
   NotebookPen,
   Command,
   Timer,
+  BookOpen,
 } from 'lucide-react';
 import type { DimensionView, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
@@ -82,6 +83,7 @@ type DockView = Exclude<DimensionView, 'landing' | 'home'>;const NAV_ICONS: Reco
     </svg>
   ),
   'coming-soon': <Rocket size={16} className="text-yellow-400" />,
+  'exam-vault': <BookOpen size={16} className="text-cyan-400" />,
 };
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -651,6 +653,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navItems: { id: DockView; label: string; iconOnly?: boolean }[] = [
     { id: 'qa', label: 'Hỏi Đáp' },
     { id: 'threads', label: 'Thread' },
+    { id: 'exam-vault', label: 'Đề Thi' },
     { id: 'memory', label: 'MIỀN KÝ ỨC', iconOnly: true },
     { id: 'chronicles', label: 'KHU VINH DANH', iconOnly: true },
   ];
@@ -1456,6 +1459,25 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
                 <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
                   Vinh danh
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onViewChange('exam-vault');
+                  setIsMobileMenuOpen(false);
+                }}
+                data-active={currentView === 'exam-vault' ? 'true' : 'false'}
+                className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
+                aria-label="Kho Đề Thi"
+                title="Kho Đề Thi"
+              >
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-cyan-400/25 to-blue-500/10 border border-cyan-300/30 flex items-center justify-center">
+                  <BookOpen className="w-4 h-4 text-cyan-300" />
+                </span>
+                <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
+                  Đề Thi
                 </span>
               </button>
 
