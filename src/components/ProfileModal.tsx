@@ -291,8 +291,6 @@ const ProfileModalInner: React.FC<{
      nên người dùng bàn phím bị kẹt trong hộp thoại. */
   useEscapeKey(onClose);
 
-  const [activitySubTab, setActivitySubTab] = useState<'questions' | 'solutions'>('solutions');
-
   const [name, setName] = useState(currentUser.name);
   const [avatar, setAvatar] = useState(currentUser.avatar);
   const [bannerUrl, setBannerUrl] = useState(currentUser.bannerUrl || '');
@@ -986,29 +984,8 @@ const ProfileModalInner: React.FC<{
         onClick={onClose}
       />
 
-      {/* Main Card Container — CodeFronts pc-12 Neumorphic Soft-Shadow Translucent Shell */}
-      <div className={`pc-12-shell ff-keep-dark signature-profile ${equippedItem?.category === 'Khung avatar' ? 'signature-profile--frame' : equippedItem?.category === 'Hiệu ứng' ? 'signature-profile--effect' : ''} w-full max-w-3xl rounded-[32px] p-4 sm:p-6 relative z-10 overflow-hidden max-h-[94vh] flex flex-col`}>
-        {/* Lớp nền toàn khung Modal kéo dài từ đỉnh xuống đáy */}
-        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden rounded-[32px]" aria-hidden="true">
-          <GradientSurface gradient={effectiveBannerGradient} className="absolute inset-0 opacity-35" />
-          {effectiveBannerUrl && (
-            <img
-              loading="lazy"
-              decoding="async"
-              src={effectiveBannerUrl}
-              alt=""
-              style={activeBannerImgStyle}
-              className="w-full h-full opacity-35 transition-transform duration-150"
-            />
-          )}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `linear-gradient(180deg, rgba(8, 12, 22, 0.45) 0%, rgba(8, 12, 22, ${Math.min(0.92, (activeBannerLayout.dim + 25) / 100)}) 100%)`,
-            }}
-          />
-        </div>
-
+      {/* Main Card Container — Spacious max-w-5xl Academic Shell */}
+      <div className={`pc-12-shell ff-keep-dark signature-profile ${equippedItem?.category === 'Khung avatar' ? 'signature-profile--frame' : equippedItem?.category === 'Hiệu ứng' ? 'signature-profile--effect' : ''} w-full max-w-5xl rounded-[26px] p-4 sm:p-6 relative z-10 overflow-hidden max-h-[94vh] flex flex-col`}>
         {/* Navigation Tabs Header */}
         <div className="relative z-10 flex items-center justify-between pb-3 border-b border-dashed border-[#f4f1de]/15 mb-3 gap-2.5 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
@@ -1148,7 +1125,6 @@ const ProfileModalInner: React.FC<{
 
           {!isBooting && activeTab === 'overview' && (
             <div className="space-y-4 ff-tab-panel-enter">
-              {/* Main 3D Rounded Neumorphic Card with Continuous Full-Height Extended Banner */}
               <div
                 ref={bannerCardRef}
                 onPointerDown={beginBannerDrag}
@@ -1158,37 +1134,32 @@ const ProfileModalInner: React.FC<{
                     : ''
                 }`}
               >
-                {/* Ảnh nền người dùng liền mạch 1 lớp duy nhất kéo dài rộng từ đỉnh xuống tận đáy thẻ hồ sơ */}
-                <div
-                  className={`absolute inset-0 z-0 pointer-events-none overflow-hidden discord-dynamic-banner--${
-                    equippedCombo.highestRarity === 'legendary' ? 'mythic' : equippedCombo.highestRarity
-                  }`}
-                  aria-hidden="true"
-                >
-                  <GradientSurface gradient={effectiveBannerGradient} className="absolute inset-0 opacity-75" />
-                  <img
-                    loading="lazy"
-                    decoding="async"
-                    src={effectiveBannerUrl}
-                    alt="Ảnh bìa hồ sơ"
-                    style={activeBannerImgStyle}
-                    className="w-full h-full transition-transform duration-150"
-                  />
-                  <div
-                    className="absolute inset-0 transition-opacity duration-200"
-                    style={{
-                      background: `linear-gradient(180deg, rgba(6, 10, 18, 0.02) 0%, rgba(8, 12, 20, ${Math.max(0.08, (activeBannerLayout.dim - 16) / 100)}) 220px, rgba(8, 12, 20, ${activeBannerLayout.dim / 100}) 480px, rgba(8, 12, 20, ${Math.min(0.82, (activeBannerLayout.dim + 12) / 100)}) 100%)`,
-                    }}
-                  />
-                </div>
-
-                {/* Vùng Hero Đỉnh Thẻ Trong Suốt (Không cắt ngang ảnh — để ảnh nền chảy thẳng xuống dưới) */}
+                {/* Vùng Banner Đỉnh Thẻ Độc Lập — gọn gàng, không tràn xuống làm đục chữ bên dưới */}
                 <div
                   ref={cropStageRef}
                   className={`${
-                    isAdjustingBanner ? 'h-56 sm:h-72' : 'h-44 sm:h-56'
-                  } relative z-[2] bg-transparent overflow-hidden transition-all duration-200 select-none`}
+                    isAdjustingBanner ? 'h-52 sm:h-64' : 'h-36 sm:h-44'
+                  } relative z-[2] overflow-hidden border-b border-white/10 transition-all duration-200 select-none discord-dynamic-banner--${
+                    equippedCombo.highestRarity === 'legendary' ? 'mythic' : equippedCombo.highestRarity
+                  }`}
                 >
+                  <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
+                    <GradientSurface gradient={effectiveBannerGradient} className="absolute inset-0 opacity-85" />
+                    <img
+                      loading="lazy"
+                      decoding="async"
+                      src={effectiveBannerUrl}
+                      alt="Ảnh bìa hồ sơ"
+                      style={activeBannerImgStyle}
+                      className="w-full h-full transition-transform duration-150"
+                    />
+                    <div
+                      className="absolute inset-0 transition-opacity duration-200"
+                      style={{
+                        background: `linear-gradient(180deg, rgba(6, 10, 18, 0.08) 0%, rgba(8, 12, 20, ${Math.min(0.72, activeBannerLayout.dim / 100)}) 100%)`,
+                      }}
+                    />
+                  </div>
                   {/* Chế độ đặt lại vị trí trực tiếp kiểu Facebook: kéo ảnh tự do & lăn chuột phóng to (không cuộn trang) */}
                   {isAdjustingBanner && (
                     <div className="absolute inset-0 z-[5] pointer-events-none">
@@ -1440,13 +1411,153 @@ const ProfileModalInner: React.FC<{
                   </div>
                 )}
 
-                <div className="relative z-10 p-4 sm:p-5 space-y-4">
-                  {/* A. Khối Đầu Trang (Header Thông Tin Cá Nhân — Căn giữa Avatar & Nametag chuẩn chỉnh) */}
-                  <div className="space-y-4 pb-4 border-b border-white/10">
-                    {/* Thanh thao tác góc trên + Avatar 150px căn giữa nổi bật trên Banner */}
-                    <div className="relative flex flex-col items-center text-center">
-                      {/* Right Header Controls: Like Heart Button & Action Buttons */}
-                      <div className="w-full flex items-center justify-end gap-1.5 z-20">
+                <div className="relative z-10 p-4 sm:p-6 space-y-5">
+                  {/* A. Thanh Định Danh Ngang (Avatar Trái · Thông Tin Giữa · Thao Tác Phải — Không đè lấp) */}
+                  <div className="space-y-4 pb-5 border-b border-white/10">
+                    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-end gap-4 min-w-0">
+                        <div className="flex flex-col items-start gap-2 shrink-0">
+                          <div
+                            className={`ff-profile__avatar-wrap relative shrink-0 -mt-14 sm:-mt-16 p-1.5 rounded-full bg-[#0d1420] border border-white/15 z-10 ${isOwnProfile ? 'cursor-pointer group' : ''}`}
+                            onClick={() => {
+                              if (!isOwnProfile) return;
+                              if (ownedDecorationsBySlot.avatar_frame.length > 0 || ownedDecorationsBySlot.avatar_aura.length > 0) {
+                                setQuickWardrobeSlot('avatar_frame');
+                              } else {
+                                openShopAtCategory('Avatar Frame');
+                              }
+                            }}
+                            title={isOwnProfile ? 'Đổi trang trí Avatar' : currentUser.name}
+                          >
+                            {activeDecoAsset ? (
+                              <AvatarWithDecoration
+                                avatarUrl={currentUser.avatar}
+                                frameAsset={decoFrameAsset}
+                                auraAsset={decoAuraAsset}
+                                size={112}
+                                eager
+                                priority="high"
+                                className="ff-profile__avatar"
+                              />
+                            ) : (
+                              <div
+                                className={`relative w-[112px] h-[112px] rounded-full flex items-center justify-center ${activeAvatarFrameClass}`}
+                                style={{ '--orbit-r': '62px' } as React.CSSProperties}
+                              >
+                                {activeAvatarRarity === 'legendary' &&
+                                  Array.from({ length: 6 }, (_, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="mythic-particle"
+                                      style={{ animationDelay: `${(-idx * 4) / 6}s` }}
+                                      aria-hidden="true"
+                                    />
+                                  ))}
+                                <img
+                                  src={currentUser.avatar}
+                                  alt={currentUser.name}
+                                  onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
+                                  loading="lazy"
+                                  decoding="async"
+                                  width={112}
+                                  height={112}
+                                  className="w-full h-full rounded-full object-cover bg-[#0b0d12] shadow-md"
+                                />
+                              </div>
+                            )}
+                            <span className="absolute -bottom-1 -right-1 z-10">
+                              <TierBadge level={currentUser.level} size={22} showTooltip={false} />
+                            </span>
+                          </div>
+
+                          {isOwnProfile && (
+                            <div className="flex items-center gap-1.5 pl-1">
+                              <label
+                                htmlFor="overview-avatar-upload"
+                                className="px-2.5 py-0.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-[10px] font-semibold text-neutral-200 hover:text-amber-300 inline-flex items-center gap-1 cursor-pointer transition"
+                                title="Đổi ảnh"
+                              >
+                                <Upload className="w-3 h-3 text-amber-400" />
+                                <span>Đổi ảnh</span>
+                              </label>
+                              <input
+                                id="overview-avatar-upload"
+                                type="file"
+                                accept="image/*"
+                                onChange={handleAvatarChange}
+                                className="hidden"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => openFacebookCropper('avatar', avatar || currentUser.avatar)}
+                                className="px-2.5 py-0.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-[#f2cc8f]/40 text-[10px] font-semibold text-[#f2cc8f] hover:text-[#f4f1de] inline-flex items-center gap-1 cursor-pointer transition"
+                                title="Cắt ảnh"
+                              >
+                                <Crop className="w-3 h-3 text-[#f2cc8f]" />
+                                <span>Cắt</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="min-w-0 space-y-2 pb-0.5">
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <h3 className="text-lg sm:text-2xl font-extrabold text-white inline-flex items-center gap-2 min-w-0 tracking-tight">
+                              <span className={`truncate ${isSuperAdmin ? 'discord-admin-name' : 'text-white'}`}>
+                                {currentUser.name}
+                              </span>
+                              {isSuperAdmin && <AdminVerifiedBadge size={18} />}
+                            </h3>
+                            {userDecorations.nameplate && (
+                              <DecoratedName
+                                user={currentUser}
+                                name={currentUser.name.replace(/ \(.*\)/, '')}
+                                width={176}
+                                height={32}
+                                animate
+                              />
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-[#81b29a]/18 border border-[#81b29a]/40 text-[#d8f3dc] text-[11px] font-semibold">
+                              <UserCheck className="w-3 h-3 text-[#81b29a] shrink-0" />
+                              <span>
+                                {currentUser.role === 'SUPER_ADMIN'
+                                  ? 'Quản trị'
+                                  : currentUser.role === 'CLUB_LEADER'
+                                  ? 'Chủ nhiệm CLB'
+                                  : 'Học sinh'}
+                              </span>
+                            </span>
+
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-[#e07a5f]/15 border border-[#e07a5f]/40 text-[#f4f1de] text-[11px] font-semibold">
+                              <span>{tier.titleVi}</span>
+                              <span className="text-white/40">·</span>
+                              <span className="font-mono text-[10.5px]">Lv.{currentUser.level}</span>
+                            </span>
+
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-500/12 border border-amber-400/25 text-amber-300 text-[11px] font-mono font-bold">
+                              <span>{formatCoinBalance(userCoin)} Coin</span>
+                            </span>
+
+                            {equippedCombo.mythicTitle && (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-500/15 text-amber-200 border border-amber-400/35">
+                                <span className={`rarity-dot ${rarityDotClass(equippedCombo.highestRarity)}`} aria-hidden="true" />
+                                <span>{equippedCombo.mythicTitle}</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {currentUser.bio && (
+                            <p className="text-xs text-neutral-300 leading-relaxed line-clamp-2 max-w-xl">
+                              {currentUser.bio}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0 self-start sm:self-end">
                         <div className="flex items-center gap-1.5" title="Thả tim cho thành viên này">
                           <LikeHeartButton
                             count={profileHeartCount}
@@ -1460,7 +1571,7 @@ const ProfileModalInner: React.FC<{
                           <button
                             type="button"
                             onClick={() => setIsReporting(true)}
-                            className="pc-12-btn px-2.5 py-1 rounded-xl text-red-300 text-[11px] font-semibold inline-flex items-center gap-1 transition-colors cursor-pointer"
+                            className="pc-12-btn px-2.5 py-1.5 rounded-xl text-red-300 text-[11px] font-semibold inline-flex items-center gap-1 transition-colors cursor-pointer"
                             title="Tố cáo người dùng này"
                           >
                             <Flag className="w-3.5 h-3.5 text-red-400" />
@@ -1482,154 +1593,21 @@ const ProfileModalInner: React.FC<{
                               });
                             }
                           }}
-                          className="pc-12-btn px-2.5 py-1 rounded-xl text-neutral-200 text-[11px] font-medium inline-flex items-center gap-1 transition-colors cursor-pointer"
+                          className="pc-12-btn px-2.5 py-1.5 rounded-xl text-neutral-200 text-[11px] font-medium inline-flex items-center gap-1 transition-colors cursor-pointer"
                           title="Chia sẻ hồ sơ"
                         >
                           <Share2 className="w-3.5 h-3.5" />
                           <span>Chia sẻ</span>
                         </button>
                       </div>
-
-                      {/* Avatar 150px căn giữa — Nhiệm vụ 10: khung/hào quang Discord thật (động) */}
-                      <div
-                        className={`ff-profile__avatar-wrap relative shrink-0 -mt-16 sm:-mt-20 p-1 z-10 mx-auto ${isOwnProfile ? 'cursor-pointer group' : ''}`}
-                        onClick={() => {
-                          if (!isOwnProfile) return;
-                          if (ownedDecorationsBySlot.avatar_frame.length > 0 || ownedDecorationsBySlot.avatar_aura.length > 0) {
-                            setQuickWardrobeSlot('avatar_frame');
-                          } else {
-                            openShopAtCategory('Avatar Frame');
-                          }
-                        }}
-                        title={isOwnProfile ? 'Bấm để đổi nhanh Khung / Hào quang hoặc mở Boutique' : currentUser.name}
-                      >
-                        {activeDecoAsset ? (
-                          <AvatarWithDecoration
-                            avatarUrl={currentUser.avatar}
-                            frameAsset={decoFrameAsset}
-                            auraAsset={decoAuraAsset}
-                            size={150}
-                            eager
-                            priority="high"
-                            className="ff-profile__avatar"
-                          />
-                        ) : (
-                          <div
-                            className={`relative w-[150px] h-[150px] rounded-full flex items-center justify-center ${activeAvatarFrameClass}`}
-                            style={{ '--orbit-r': '82px' } as React.CSSProperties}
-                          >
-                            {activeAvatarRarity === 'legendary' &&
-                              Array.from({ length: 6 }, (_, idx) => (
-                                <span
-                                  key={idx}
-                                  className="mythic-particle"
-                                  style={{ animationDelay: `${(-idx * 4) / 6}s` }}
-                                  aria-hidden="true"
-                                />
-                              ))}
-                            <img
-                              src={currentUser.avatar}
-                              alt={currentUser.name}
-                              onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                              loading="lazy"
-                              decoding="async"
-                              width={150}
-                              height={150}
-                              className="w-full h-full rounded-full object-cover bg-[#0b0d12] shadow-md"
-                            />
-                          </div>
-                        )}
-                        <span className="absolute -bottom-1 -right-1 z-10">
-                          <TierBadge level={currentUser.level} size={24} showTooltip={false} />
-                        </span>
-                      </div>
-
-                      {isOwnProfile && (
-                        <div className="mt-1.5 flex items-center justify-center gap-1.5 flex-wrap">
-                          <label
-                            htmlFor="overview-avatar-upload"
-                            className="px-2.5 py-0.5 rounded-full bg-black/55 hover:bg-black/75 border border-white/15 text-[10px] font-semibold text-neutral-200 hover:text-amber-300 inline-flex items-center gap-1 cursor-pointer transition"
-                            title="Đổi ảnh"
-                          >
-                            <Upload className="w-3 h-3 text-amber-400" />
-                            <span>Đổi ảnh</span>
-                          </label>
-                          <input
-                            id="overview-avatar-upload"
-                            type="file"
-                            accept="image/*"
-                            onChange={handleAvatarChange}
-                            className="hidden"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => openFacebookCropper('avatar', avatar || currentUser.avatar)}
-                            className="px-2.5 py-0.5 rounded-full bg-black/55 hover:bg-black/75 border border-[#f2cc8f]/45 text-[10px] font-semibold text-[#f2cc8f] hover:text-[#f4f1de] inline-flex items-center gap-1 cursor-pointer transition"
-                            title="Cắt ảnh"
-                          >
-                            <Crop className="w-3 h-3 text-[#f2cc8f]" />
-                            <span>Cắt</span>
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Tên hiển thị tại Hồ Sơ */}
-                      <div className="mt-3 flex flex-col items-center justify-center gap-2 w-full max-w-xl mx-auto">
-                        <div className="flex items-center justify-center gap-2 flex-nowrap max-w-full">
-                          <h3 className="text-xl sm:text-2xl font-extrabold text-white inline-flex items-center justify-center gap-2 min-w-0 max-w-full mx-auto tracking-tight">
-                            <span className={`truncate ${isSuperAdmin ? 'discord-admin-name' : 'text-white'}`}>
-                              {currentUser.name}
-                            </span>
-                            {isSuperAdmin && <AdminVerifiedBadge size={18} />}
-                          </h3>
-                        </div>
-
-                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-[#81b29a]/18 border border-[#81b29a]/40 text-[#d8f3dc] text-[11px] font-semibold">
-                            <UserCheck className="w-3 h-3 text-[#81b29a] shrink-0" />
-                            <span>
-                              {currentUser.role === 'SUPER_ADMIN'
-                                ? 'Quản trị'
-                                : currentUser.role === 'CLUB_LEADER'
-                                ? 'Chủ nhiệm CLB'
-                                : 'Học sinh'}
-                            </span>
-                          </span>
-
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-[#e07a5f]/15 border border-[#e07a5f]/40 text-[#f4f1de] text-[11px] font-semibold">
-                            <span>{tier.titleVi}</span>
-                            <span className="text-white/40">·</span>
-                            <span className="font-mono text-[10.5px]">Lv.{currentUser.level}</span>
-                          </span>
-
-                          <span
-                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-500/12 border border-amber-400/25 text-amber-300 text-[11px] font-mono font-bold"
-                          >
-                            <span>{formatCoinBalance(userCoin)} Coin</span>
-                          </span>
-
-                          {equippedCombo.mythicTitle && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-500/15 text-amber-200 border border-amber-400/35">
-                              <span className={`rarity-dot ${rarityDotClass(equippedCombo.highestRarity)}`} aria-hidden="true" />
-                              <span>{equippedCombo.mythicTitle}</span>
-                            </span>
-                          )}
-                        </div>
-
-                        {currentUser.bio && (
-                          <p className="text-xs text-neutral-300 leading-relaxed line-clamp-2 max-w-lg mx-auto text-center">
-                            {currentUser.bio}
-                          </p>
-                        )}
-                      </div>
                     </div>
 
-                    {/* Đang trang bị & Tủ đồ nhanh */}
-                    <div className="pt-2 space-y-2.5" aria-label="Khu vực trang bị đang đeo">
+                    {/* Đang trang bị & Tủ đồ nhanh — Bố cục 3 cột rộng rãi, không chồng lấp */}
+                    <div className="pt-2 space-y-3" aria-label="Khu vực trang bị đang đeo">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div className="text-[11px] font-bold text-white/85 flex items-center gap-2" title="🎨 Đang trang bị:">
+                        <div className="text-xs font-bold text-white/90 flex items-center gap-2" title="🎨 Đang trang bị:">
                           <span>Trang bị</span>
-                          <span className="px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/10 text-[10px] font-mono text-neutral-300">
+                          <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 text-[10px] font-mono text-neutral-300">
                             {[userDecorations.nameplate, userDecorations.frame, userDecorations.aura].filter(Boolean).length}/3
                           </span>
                         </div>
@@ -1644,7 +1622,7 @@ const ProfileModalInner: React.FC<{
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         {[
                           {
                             slotLabel: 'Bảng tên',
@@ -1655,24 +1633,29 @@ const ProfileModalInner: React.FC<{
                             ownedCount: ownedDecorationsBySlot.nameplate.length,
                           },
                           {
-                            slotLabel: 'Viền Avatar',
-                            slot: (userDecorations.frame ? 'avatar_frame' : 'avatar_aura') as 'avatar_frame' | 'avatar_aura',
-                            filterSlot: (userDecorations.aura && !userDecorations.frame ? 'avatar_aura' : 'avatar_frame') as 'avatar_frame' | 'avatar_aura',
+                            slotLabel: 'Khung',
+                            slot: 'avatar_frame' as const,
+                            filterSlot: 'avatar_frame' as const,
                             shopCategory: 'Avatar Frame',
-                            item: userDecorations.frame || userDecorations.aura,
-                            ownedCount: ownedDecorationsBySlot.avatar_frame.length + ownedDecorationsBySlot.avatar_aura.length,
+                            item: userDecorations.frame,
+                            ownedCount: ownedDecorationsBySlot.avatar_frame.length,
+                          },
+                          {
+                            slotLabel: 'Hào quang',
+                            slot: 'avatar_aura' as const,
+                            filterSlot: 'avatar_aura' as const,
+                            shopCategory: 'Avatar Aura',
+                            item: userDecorations.aura,
+                            ownedCount: ownedDecorationsBySlot.avatar_aura.length,
                           },
                         ].map((slot) => {
                           const rarity = slot.item?.rarity || 'common';
                           const meta = DECORATION_RARITY_META[rarity];
-                          const isSelected =
-                            slot.filterSlot === 'nameplate'
-                              ? quickWardrobeSlot === 'nameplate'
-                              : quickWardrobeSlot === 'avatar_frame' || quickWardrobeSlot === 'avatar_aura';
+                          const isSelected = quickWardrobeSlot === slot.filterSlot;
                           return (
                             <div
                               key={slot.slotLabel}
-                              className={`flex items-center justify-between gap-2 p-2.5 rounded-xl border transition ${
+                              className={`flex items-center justify-between gap-2.5 p-3 rounded-xl border transition ${
                                 isSelected
                                   ? 'bg-[#e07a5f]/20 border-[#e07a5f]/60 shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
                                   : 'bg-white/[0.035] hover:bg-white/[0.07] border-white/12'
@@ -1687,25 +1670,27 @@ const ProfileModalInner: React.FC<{
                                   }
                                   setQuickWardrobeSlot(slot.filterSlot);
                                 }}
-                                className="flex items-center gap-2.5 min-w-0 flex-1 text-left cursor-pointer"
+                                className="flex items-center gap-3 min-w-0 flex-1 text-left cursor-pointer"
                                 title={slot.item?.name || slot.slotLabel}
                               >
                                 {slot.item?.previewUrl ? (
-                                  <img
-                                    src={resolveAssetUrl(slot.item.previewUrl) || undefined}
-                                    alt=""
-                                    loading="lazy"
-                                    decoding="async"
-                                    width={32}
-                                    height={32}
-                                    className="w-8 h-8 rounded-lg object-cover bg-black/40 border border-white/15 shrink-0"
-                                  />
+                                  <span className="w-10 h-10 rounded-xl bg-black/50 border border-white/12 p-1 flex items-center justify-center shrink-0">
+                                    <img
+                                      src={resolveAssetUrl(slot.item.previewUrl) || undefined}
+                                      alt=""
+                                      loading="lazy"
+                                      decoding="async"
+                                      width={32}
+                                      height={32}
+                                      className="w-full h-full object-contain"
+                                    />
+                                  </span>
                                 ) : (
                                   <span
-                                    className="w-8 h-8 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 text-[10px] font-mono text-white/55"
+                                    className="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center shrink-0 text-[10px] font-mono text-white/55"
                                     aria-hidden="true"
                                   >
-                                    {slot.filterSlot === 'nameplate' ? 'TAG' : 'FRM'}
+                                    {slot.filterSlot === 'nameplate' ? 'TAG' : slot.filterSlot === 'avatar_frame' ? 'FRM' : 'AUR'}
                                   </span>
                                 )}
                                 <span className="min-w-0 flex-1">
@@ -1718,7 +1703,7 @@ const ProfileModalInner: React.FC<{
                                       </span>
                                     )}
                                   </span>
-                                  <strong className="block text-xs font-bold text-white truncate">
+                                  <strong className="block text-xs font-bold text-white truncate mt-0.5">
                                     {slot.item ? slot.item.name : 'Trống'}
                                   </strong>
                                 </span>
@@ -1731,7 +1716,7 @@ const ProfileModalInner: React.FC<{
                                     event.stopPropagation();
                                     void handleEquipDecoration(slot.slot, null);
                                   }}
-                                  className="px-2 py-1 rounded-lg bg-white/[0.06] hover:bg-red-500/25 border border-white/10 text-[10.5px] font-semibold text-white/70 hover:text-red-300 transition cursor-pointer shrink-0"
+                                  className="px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-red-500/25 border border-white/10 text-[10.5px] font-semibold text-white/75 hover:text-red-300 transition cursor-pointer shrink-0"
                                   title="Gỡ"
                                 >
                                   Gỡ
@@ -1776,7 +1761,7 @@ const ProfileModalInner: React.FC<{
                                 onChange={(e) => setWardrobeSearch(e.target.value)}
                                 maxLength={80}
                                 placeholder="Tìm..."
-                                className="bg-black/40 border border-[#f4f1de]/18 rounded-lg px-2.5 py-1 text-xs text-[#f4f1de] placeholder-neutral-500 focus:outline-none focus:border-[#f2cc8f] w-36"
+                                className="bg-black/40 border border-[#f4f1de]/18 rounded-lg px-2.5 py-1 text-xs text-[#f4f1de] placeholder-neutral-500 focus:outline-none focus:border-[#f2cc8f] w-40"
                               />
                             )}
                           </div>
@@ -1816,7 +1801,7 @@ const ProfileModalInner: React.FC<{
                             }
 
                             return (
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-60 overflow-y-auto pr-1 no-scrollbar">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-0.5 no-scrollbar">
                                 {filteredList.map((item) => {
                                   const itemSlot: 'nameplate' | 'avatar_frame' | 'avatar_aura' =
                                     item.category === 'Nameplate'
@@ -1845,32 +1830,29 @@ const ProfileModalInner: React.FC<{
                                         onClick={() =>
                                           void handleEquipDecoration('nameplate', isEquipped ? null : item.id)
                                         }
-                                        className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition cursor-pointer ${
+                                        className={`flex flex-col justify-between gap-2.5 p-3 rounded-xl border transition cursor-pointer ${
                                           isEquipped
-                                            ? 'bg-emerald-500/15 border-emerald-400/70 shadow-[0_0_16px_rgba(16,185,129,0.2)]'
-                                            : 'bg-black/35 hover:bg-white/[0.08] border-white/12 hover:border-[#f2cc8f]/45'
+                                            ? 'bg-emerald-500/15 border-emerald-400/70'
+                                            : 'bg-black/40 hover:bg-white/[0.07] border-white/12 hover:border-[#f2cc8f]/45'
                                         }`}
                                       >
-                                        <DecoratedName
-                                          name={currentUser.name.replace(/ \(.*\)/, '')}
-                                          width={204}
-                                          height={38}
-                                          animate
-                                          overrideAsset={{
-                                            id: item.id,
-                                            type: 'nameplate',
-                                            fullAssetUrl: item.fullAssetUrl,
-                                            animatedAssetUrl: item.animatedAssetUrl,
-                                            isAnimated: !!item.isAnimated && !!item.animatedAssetUrl,
-                                          }}
-                                        />
-                                        <span className="w-full flex items-center justify-between text-xs px-1 gap-2">
-                                          <span className="min-w-0 flex items-center gap-1.5 truncate">
-                                            <span className="px-1.5 py-0.5 rounded bg-white/10 text-[9.5px] font-mono text-white/75 shrink-0">
-                                              {slotBadgeLabel}
-                                            </span>
-                                            <strong className="text-white truncate">{item.name}</strong>
-                                          </span>
+                                        <span className="w-full h-12 rounded-lg bg-black/55 border border-white/10 flex items-center justify-center px-2 overflow-hidden">
+                                          <DecoratedName
+                                            name={currentUser.name.replace(/ \(.*\)/, '')}
+                                            width={172}
+                                            height={32}
+                                            animate
+                                            overrideAsset={{
+                                              id: item.id,
+                                              type: 'nameplate',
+                                              fullAssetUrl: item.fullAssetUrl,
+                                              animatedAssetUrl: item.animatedAssetUrl,
+                                              isAnimated: !!item.isAnimated && !!item.animatedAssetUrl,
+                                            }}
+                                          />
+                                        </span>
+                                        <span className="w-full flex items-center justify-between text-xs gap-2">
+                                          <strong className="text-white truncate">{item.name}</strong>
                                           <span
                                             className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold shrink-0 ${
                                               isEquipped
@@ -1878,7 +1860,7 @@ const ProfileModalInner: React.FC<{
                                                 : 'bg-[#f2cc8f]/20 text-[#f2cc8f] border border-[#f2cc8f]/40'
                                             }`}
                                           >
-                                            {isEquipped ? 'Đang dùng' : 'Dùng'}
+                                            {isEquipped ? 'Đang đeo' : 'Đeo'}
                                           </span>
                                         </span>
                                       </button>
@@ -1892,13 +1874,13 @@ const ProfileModalInner: React.FC<{
                                       onClick={() =>
                                         void handleEquipDecoration(itemSlot, isEquipped ? null : item.id)
                                       }
-                                      className={`flex items-center gap-3 p-2.5 rounded-xl border text-left transition cursor-pointer ${
+                                      className={`flex items-center gap-3 p-3 rounded-xl border text-left transition cursor-pointer ${
                                         isEquipped
-                                          ? 'bg-emerald-500/15 border-emerald-400/70 shadow-[0_0_16px_rgba(16,185,129,0.2)]'
-                                          : 'bg-black/35 hover:bg-white/[0.08] border-white/12 hover:border-[#f2cc8f]/45'
+                                          ? 'bg-emerald-500/15 border-emerald-400/70'
+                                          : 'bg-black/40 hover:bg-white/[0.07] border-white/12 hover:border-[#f2cc8f]/45'
                                       }`}
                                     >
-                                      <span className="w-12 h-12 rounded-xl bg-black/50 border border-white/10 shrink-0 flex items-center justify-center overflow-visible">
+                                      <span className="w-14 h-14 rounded-xl bg-black/55 border border-white/10 shrink-0 flex items-center justify-center p-1.5 overflow-hidden">
                                         <AvatarWithDecoration
                                           avatarUrl={currentUser.avatar || DEFAULT_AVATAR}
                                           decorationAsset={{
@@ -1908,20 +1890,18 @@ const ProfileModalInner: React.FC<{
                                             animatedAssetUrl: item.animatedAssetUrl || null,
                                             isAnimated: Boolean(item.isAnimated && item.animatedAssetUrl),
                                           }}
-                                          size={44}
+                                          size={38}
                                           animate
                                           alt={item.name}
                                         />
                                       </span>
-                                      <span className="min-w-0 flex-1 space-y-1">
-                                        <span className="flex items-center gap-1.5">
-                                          <span className="px-1.5 py-0.5 rounded bg-white/10 text-[9.5px] font-mono text-white/75 shrink-0">
-                                            {slotBadgeLabel}
-                                          </span>
-                                          <strong className="block text-xs text-white truncate">
-                                            {item.name}
-                                          </strong>
+                                      <span className="min-w-0 flex-1 space-y-1.5">
+                                        <span className="px-1.5 py-0.5 rounded bg-white/10 text-[9.5px] font-mono text-white/75 inline-block">
+                                          {slotBadgeLabel}
                                         </span>
+                                        <strong className="block text-xs text-white truncate">
+                                          {item.name}
+                                        </strong>
                                         <span
                                           className={`inline-block px-2 py-0.5 rounded-md text-[10.5px] font-bold ${
                                             isEquipped
@@ -1929,7 +1909,7 @@ const ProfileModalInner: React.FC<{
                                               : 'bg-[#f2cc8f]/20 text-[#f2cc8f] border border-[#f2cc8f]/40'
                                           }`}
                                         >
-                                          {isEquipped ? 'Đang dùng' : 'Dùng'}
+                                          {isEquipped ? 'Đang đeo' : 'Đeo'}
                                         </span>
                                       </span>
                                     </button>
@@ -2144,31 +2124,31 @@ const ProfileModalInner: React.FC<{
                         />
                       </div>
 
-                      <div className="md:col-span-6 space-y-2.5">
-                        <div className="pc-12-well p-2.5 space-y-1">
+                      <div className="md:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="pc-12-well p-3 space-y-1.5">
                           <span className="text-xs font-bold text-white block">KHTN</span>
-                          <div className="text-amber-400/90 text-xs font-mono">
+                          <div className="text-amber-400/90 text-xs font-mono leading-relaxed">
                             Toán ({subjectCounts.toan || 0}) · Lý ({subjectCounts.ly || 0}) · Hóa ({subjectCounts.hoa || 0}) · Sinh ({subjectCounts.sinh || 0})
                           </div>
                         </div>
 
-                        <div className="pc-12-well p-2.5 space-y-1">
+                        <div className="pc-12-well p-3 space-y-1.5">
                           <span className="text-xs font-bold text-white block">KHXH</span>
-                          <div className="text-amber-400 text-xs font-mono">
+                          <div className="text-amber-400 text-xs font-mono leading-relaxed">
                             Văn ({subjectCounts.van || 0}) · Sử ({subjectCounts.su || 0}) · Địa ({subjectCounts.dia || 0})
                           </div>
                         </div>
 
-                        <div className="pc-12-well p-2.5 space-y-1">
+                        <div className="pc-12-well p-3 space-y-1.5">
                           <span className="text-xs font-bold text-white block">KHCN</span>
-                          <div className="text-amber-400 text-xs font-mono">
+                          <div className="text-amber-400 text-xs font-mono leading-relaxed">
                             Tin ({subjectCounts.tin || 0}) · Công nghệ ({(subjectCounts.congnghe || 0) + (subjectCounts.hotro || 0)})
                           </div>
                         </div>
 
-                        <div className="pc-12-well p-2.5 space-y-1">
+                        <div className="pc-12-well p-3 space-y-1.5">
                           <span className="text-xs font-bold text-white block">Ngoại Ngữ &amp; Nghệ Thuật</span>
-                          <div className="text-amber-300 text-xs font-mono">
+                          <div className="text-amber-300 text-xs font-mono leading-relaxed">
                             Anh ({subjectCounts.anh || 0}) · Nghệ thuật ({(subjectCounts.tamsu || 0) + (subjectCounts.share || 0) + (subjectCounts.kinhnghiem || 0) + (subjectCounts.tamly || 0)})
                           </div>
                         </div>
@@ -2176,105 +2156,31 @@ const ProfileModalInner: React.FC<{
                     </div>
                   </div>
 
-                  {/* D. Lịch Sử Câu Hỏi & Trả Lời */}
-                  <div className="space-y-3">
-                    <div className="pc-12-well flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 text-xs">
-                      <div className="flex items-center gap-2 flex-wrap text-neutral-300">
-                        <span className="text-neutral-400">Tham gia:</span>
-                        <span className="text-white font-mono font-semibold">{accountJoinedInfo.joinedDateStr}</span>
-                        <span>·</span>
-                        <span className="text-white font-mono font-semibold">{accountJoinedInfo.ageStr}</span>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <div>
-                          <span className="text-neutral-400">Trả lời: </span>
-                          <span className="text-[#f2cc8f] font-bold font-mono">{statsMetrics.answersCount}</span>
-                        </div>
-                        <span>·</span>
-                        <div>
-                          <span className="text-neutral-400">Cảnh báo: </span>
-                          <span className="text-emerald-400 font-bold font-mono">0</span>
-                        </div>
-                      </div>
+                  {/* D. Thanh Tóm Tắt Tài Khoản & Lối Tắt Hoạt Động */}
+                  <div className="pc-12-well flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 text-xs">
+                    <div className="flex items-center gap-2.5 flex-wrap text-neutral-300">
+                      <span className="text-neutral-400">Tham gia:</span>
+                      <span className="text-white font-mono font-semibold">{accountJoinedInfo.joinedDateStr}</span>
+                      <span>·</span>
+                      <span className="text-white font-mono font-semibold">{accountJoinedInfo.ageStr}</span>
+                      <span>·</span>
+                      <span>
+                        Trả lời: <b className="text-[#f2cc8f] font-mono">{statsMetrics.answersCount}</b>
+                      </span>
+                      <span>·</span>
+                      <span>
+                        Câu hỏi: <b className="text-white font-mono">{userQuestions.length}</b>
+                      </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setActivitySubTab('questions')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                          activitySubTab === 'questions'
-                            ? 'bg-[#e07a5f] text-[#0b0d12] shadow-sm'
-                            : 'pc-12-btn text-neutral-400 hover:text-white'
-                        }`}
-                      >
-                        Câu hỏi ({userQuestions.length})
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setActivitySubTab('solutions')}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                          activitySubTab === 'solutions'
-                            ? 'bg-[#e07a5f] text-[#0b0d12] shadow-sm'
-                            : 'pc-12-btn text-neutral-400 hover:text-white'
-                        }`}
-                      >
-                        Trả lời ({statsMetrics.answersCount})
-                      </button>
-                    </div>
-
-                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1 no-scrollbar">
-                      {activitySubTab === 'solutions' ? (
-                        userSolutions.length === 0 ? (
-                          <div className="pc-12-well py-5 text-center text-xs text-neutral-400">
-                            Chưa có câu trả lời.
-                          </div>
-                        ) : (
-                          userSolutions.map((s, idx) => {
-                            const parentQ = questions.find((q) => q.id === s.questionId);
-                            return (
-                              <div
-                                key={s.id}
-                                style={{ '--i': idx } as React.CSSProperties}
-                                className="ac-01__card pc-12-well p-3 space-y-1 transition-colors"
-                              >
-                                <div className="flex items-center justify-between text-[11px] text-neutral-400 font-mono">
-                                  <span className="text-[#f2cc8f] font-bold truncate max-w-[65%]">
-                                    {parentQ ? parentQ.title : 'Câu hỏi'}
-                                  </span>
-                                  <span>{s.createdAt}</span>
-                                </div>
-                                <p className="text-xs text-neutral-200 leading-relaxed font-light line-clamp-2">
-                                  {s.content}
-                                </p>
-                                {s.isBest && (
-                                  <span className="inline-block text-[9px] font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-400/30 rounded-full px-2 py-0.5">
-                                    ✓ Đáp án chuẩn
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })
-                        )
-                      ) : userQuestions.length === 0 ? (
-                        <div className="pc-12-well py-5 text-center text-xs text-neutral-400">
-                          Chưa có câu hỏi.
-                        </div>
-                      ) : (
-                        userQuestions.map((q) => (
-                          <div key={q.id} className="pc-12-well p-3 space-y-1">
-                            <div className="flex items-center justify-between text-[11px] font-mono text-neutral-400">
-                              <span className="text-amber-400 font-bold">#{q.subject}</span>
-                              <span>{q.createdAt}</span>
-                            </div>
-                            <h5 className="text-xs font-bold text-white">{q.title}</h5>
-                            <p className="text-xs text-neutral-300 line-clamp-1">{q.content}</p>
-                          </div>
-                        ))
-                      )}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('activity')}
+                      className="pc-12-btn px-3 py-1.5 rounded-xl text-xs font-bold text-[#f2cc8f] hover:text-white inline-flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+                    >
+                      <Activity className="w-3.5 h-3.5" />
+                      <span>Hoạt động →</span>
+                    </button>
                   </div>
                 </div>
               </div>
