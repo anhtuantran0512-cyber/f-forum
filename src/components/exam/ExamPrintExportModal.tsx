@@ -165,7 +165,7 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
 
           {/* Paper Live Preview Container (Will be targeted by @media print) */}
           <div className="border border-white/15 rounded-2xl p-4 sm:p-6 bg-white text-slate-900 shadow-xl overflow-x-auto select-text">
-            <div id="ff-printable-exam-paper" className="w-full max-w-3xl mx-auto space-y-4">
+            <div id="ff-printable-exam-paper" data-columns={columns} className="w-full max-w-3xl mx-auto space-y-4">
               {/* Official Academic Header */}
               {includeStudentHeader && (
                 <div className="border-b-2 border-slate-800 pb-3">
@@ -208,7 +208,7 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
 
               {/* Exam Content Questions */}
               <div
-                className={`gap-4 ${columns === 2 ? 'columns-1 md:columns-2' : 'columns-1'} ${
+                className={`ff-print-columns gap-4 ${columns === 2 ? 'columns-1 sm:columns-2' : 'columns-1'} ${
                   fontSize === 'sm' ? 'text-xs' : fontSize === 'lg' ? 'text-base' : 'text-sm'
                 }`}
               >

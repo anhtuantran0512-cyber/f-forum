@@ -124,23 +124,28 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
     return result;
   }, [questions, answers, totalQuestions, initialDurationSeconds, secondsLeft, paper.id, paper.title]);
 
+  /* Kết thúc và nộp bài thi */
+  const finalizeSubmit = useCallback(() => {
+    const res = calculateResult();
+    setCbtResult(res);
+    setIsSubmitted(true);
+    setShowConfirmSubmit(false);
+    onComplete?.(res);
+    try {
+      playChime();
+    } catch {
+      /* Bỏ qua lỗi phát âm thanh */
+    }
+  }, [calculateResult, onComplete]);
+
   /* Tự động nộp bài khi hết giờ */
   useEffect(() => {
     if (secondsLeft === 0 && !isSubmitted) {
       requestAnimationFrame(() => {
-        const res = calculateResult();
-        setCbtResult(res);
-        setIsSubmitted(true);
-        setShowConfirmSubmit(false);
-        onComplete?.(res);
-        try {
-          playChime();
-        } catch {
-          /* Bỏ qua lỗi phát âm thanh */
-        }
+        finalizeSubmit();
       });
     }
-  }, [secondsLeft, isSubmitted, calculateResult, onComplete]);
+  }, [secondsLeft, isSubmitted, finalizeSubmit]);
 
   /* Xử lý chọn đáp án */
   const handleSelectOption = (qNumber: number, optionId: 'A' | 'B' | 'C' | 'D') => {
@@ -167,17 +172,7 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
       setShowConfirmSubmit(true);
       return;
     }
-
-    const res = calculateResult();
-    setCbtResult(res);
-    setIsSubmitted(true);
-    setShowConfirmSubmit(false);
-    onComplete?.(res);
-    try {
-      playChime();
-    } catch {
-      /* Bỏ qua */
-    }
+    finalizeSubmit();
   };
 
   /* Làm lại đề thi */
@@ -433,7 +428,7 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
                       <Layers className="w-3.5 h-3.5 text-amber-400" /> Bảng câu hỏi ({answeredCount}/{totalQuestions})
                     </span>
                     <span className="text-[11px] font-mono text-white/50">
-                      {Math.round((answeredCount / totalQuestions) * 100)}%
+                      {totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0}%
                     </span>
                   </div>
 
@@ -441,7 +436,7 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
                   <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden mb-4">
                     <div
                       className="h-full bg-gradient-to-r from-amber-400 to-emerald-400 transition-all duration-300"
-                      style={{ width: `${(answeredCount / totalQuestions) * 100}%` }}
+                      style={{ width: `${totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0}%` }}
                     />
                   </div>
 
@@ -455,11 +450,12 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
 
                       let btnStyle = 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white';
                       if (isSubmitted) {
-                        if (isCorrect) {
-                          btnStyle = 'bg-emerald-500/25 border-emerald-500/50 text-emerald-300 font-bold';
-                        } else {
-                          btnStyle = 'bg-rose-500/25 border-rose-500/50 text-rose-300 font-bold';
-                        }
+                        const baseStyle = isCorrect
+                          ? 'bg-emerald-500/25 border-emerald-500/50 text-emerald-300 font-bold'
+                          : 'bg-rose-500/25 border-rose-500/50 text-rose-300 font-bold';
+                        btnStyle = isCurrent
+                          ? `${baseStyle} ring-2 ring-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.4)]`
+                          : baseStyle;
                       } else if (isCurrent) {
                         btnStyle = 'border-amber-400 bg-amber-400/30 text-amber-200 font-extrabold ring-2 ring-amber-400/40';
                       } else if (isAnswered) {
@@ -672,13 +668,7 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    const res = calculateResult();
-                    setCbtResult(res);
-                    setIsSubmitted(true);
-                    setShowConfirmSubmit(false);
-                    onComplete?.(res);
-                  }}
+                  onClick={finalizeSubmit}
                   className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold cursor-pointer"
                 >
                   Xác nhận nộp bài

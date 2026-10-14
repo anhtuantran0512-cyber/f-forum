@@ -195,16 +195,23 @@ test('12. Interactive CBT Practice Mode: Ngân hàng câu hỏi, chọn A/B/C/D,
   assert.ok(cbtData.includes('SEED_CBT_QUESTIONS'), 'Must define seed CBT questions for curriculum exams');
   assert.ok(cbtData.includes('getExamCBTQuestions'), 'Must export getExamCBTQuestions helper');
 
+  /* Check that all 10 seed exams (ex-01 to ex-10) are defined in SEED_CBT_QUESTIONS */
+  ['ex-01', 'ex-02', 'ex-03', 'ex-04', 'ex-05', 'ex-06', 'ex-07', 'ex-08', 'ex-09', 'ex-10'].forEach((id) => {
+    assert.ok(cbtData.includes(`'${id}': [`), `SEED_CBT_QUESTIONS must cover seed exam ${id}`);
+  });
+
   /* Modal capabilities */
   assert.ok(cbtModal.includes('CBT_HISTORY_KEY'), 'Must define CBT history storage key');
   assert.ok(cbtModal.includes('secondsLeft'), 'Must track countdown timer in seconds');
   assert.ok(cbtModal.includes('topicBreakdown'), 'Must compute knowledge topic breakdown');
   assert.ok(cbtModal.includes('difficultyBreakdown'), 'Must compute cognitive level difficulty breakdown');
   assert.ok(cbtModal.includes('calculateResult'), 'Must calculate 10-point scale result');
+  assert.ok(cbtModal.includes('finalizeSubmit'), 'Must use unified finalizeSubmit helper');
   assert.ok(cbtModal.includes('showReviewMode'), 'Must provide answer review with detailed explanations');
+  assert.ok(cbtModal.includes('ring-2 ring-amber-400'), 'Must highlight active question button in review mode palette');
 
   /* Functional verification using node import */
-  const { getExamCBTQuestions } = await import('../src/components/exam/cbtData.ts');
+  const { getExamCBTQuestions, SEED_CBT_QUESTIONS } = await import('../src/components/exam/cbtData.ts');
   const mockPaper = {
     id: 'ex-01',
     title: 'Đề thi Toán 12',
@@ -220,6 +227,19 @@ test('12. Interactive CBT Practice Mode: Ngân hàng câu hỏi, chọn A/B/C/D,
     assert.ok(['A', 'B', 'C', 'D'].includes(q.correctAnswer), 'Correct answer must be A, B, C, or D');
     assert.ok(q.topic && q.difficulty, 'Question must have topic and cognitive difficulty');
   });
+
+  /* Verify fallback question generator distributes answers across A, B, C, D */
+  const fallbackPaper = {
+    id: 'custom-unseeded-exam',
+    title: 'Đề thi tuỳ biến',
+    subject: 'Vật lý',
+    grade: 11,
+    examType: 'Khảo sát chất lượng',
+    sampleQuestions: ['Câu 1: Câu hỏi 1', 'Câu 2: Câu hỏi 2', 'Câu 3: Câu hỏi 3', 'Câu 4: Câu hỏi 4'],
+  };
+  const fallbackQs = getExamCBTQuestions(fallbackPaper);
+  const distinctAnswers = new Set(fallbackQs.map((q) => q.correctAnswer));
+  assert.ok(distinctAnswers.size > 1, 'Fallback question generator must diversify answers across options (not always A)');
 });
 
 test('13. Exam Bookmarking / Yêu Thích Drawer: Quản lý đề đã lưu, lọc tìm kiếm & thi thử trực tiếp', () => {
@@ -231,6 +251,7 @@ test('13. Exam Bookmarking / Yêu Thích Drawer: Quản lý đề đã lưu, l�
   assert.ok(vault.includes('isBookmarkDrawerOpen'), 'ExamVaultView must manage isBookmarkDrawerOpen state');
   assert.ok(vault.includes('handleClearAllBookmarks'), 'ExamVaultView must provide clear all bookmarks action');
   assert.ok(vault.includes('handleRemoveBookmark'), 'ExamVaultView must provide remove single bookmark action');
+  assert.ok(vault.includes('cachedExamIds={cachedExamIds}'), 'ExamVaultView must pass cachedExamIds to drawer');
 
   /* Drawer UI components */
   assert.ok(drawer.includes('onStartCBT'), 'Drawer must support launching CBT practice directly');
@@ -238,6 +259,7 @@ test('13. Exam Bookmarking / Yêu Thích Drawer: Quản lý đề đã lưu, l�
   assert.ok(drawer.includes('onOpenPrint'), 'Drawer must support print modal trigger');
   assert.ok(drawer.includes('filteredSavedPapers'), 'Drawer must support search and filtering within saved list');
   assert.ok(drawer.includes('animate-slide-left'), 'Drawer must use silky smooth 60 FPS slide-left animation');
+  assert.ok(drawer.includes('cachedExamIds'), 'Drawer must support showing offline cached status');
 });
 
 test('14. Offline / Cache Indicators & Export / Print Formatting Options for Study Papers', async () => {
@@ -252,15 +274,20 @@ test('14. Offline / Cache Indicators & Export / Print Formatting Options for Stu
   assert.ok(offlineModule.includes('isExamCachedOffline'), 'Must export isExamCachedOffline');
   assert.ok(offlineModule.includes('removeExamFromOfflineCache'), 'Must export removeExamFromOfflineCache');
 
-  /* Offline UI Indicators */
+  /* Offline UI Indicators & Multi-tab Storage Sync */
   assert.ok(vaultTsx.includes('cachedExamIds'), 'Must track cachedExamIds state in Vault');
   assert.ok(vaultTsx.includes('handleToggleOfflineCache'), 'Must handle offline cache toggling');
   assert.ok(vaultTsx.includes('isOnline'), 'Must monitor online/offline network status');
+  assert.ok(vaultTsx.includes('OFFLINE_EXAMS_CACHE_KEY'), 'Must synchronize OFFLINE_EXAMS_CACHE_KEY across tabs');
+  assert.ok(vaultTsx.includes("activeTab === 'cached'"), 'Must support filtering to offline cached exams');
+  assert.ok(vaultTsx.includes('hasHandledDeepLinkRef'), 'Must prevent deep link repeated trigger loop');
+  assert.ok(vaultTsx.includes('document.body.style.overflow'), 'Must lock body scroll during modal open to avoid layout shift');
   assert.ok(vaultCss.includes('.ff-cached-pill'), 'CSS must define .ff-cached-pill styles');
 
   /* Print and Export Options Modal */
   assert.ok(printModal.includes('window.print()'), 'Must trigger native window.print()');
   assert.ok(printModal.includes('columns'), 'Must support 1-column and 2-column layout options');
+  assert.ok(printModal.includes('data-columns'), 'Must mark data-columns for print layout enforcement');
   assert.ok(printModal.includes('fontSize'), 'Must support font size adjustments');
   assert.ok(printModal.includes('includeSolutions'), 'Must support hiding/showing answers and solutions');
   assert.ok(printModal.includes('includeStudentHeader'), 'Must support official student header & score box');
@@ -268,6 +295,8 @@ test('14. Offline / Cache Indicators & Export / Print Formatting Options for Stu
   /* Printable CSS styling */
   assert.ok(vaultCss.includes('@media print'), 'CSS must include @media print stylesheet rules');
   assert.ok(vaultCss.includes('#ff-printable-exam-paper'), 'CSS must isolate #ff-printable-exam-paper during print');
+  assert.ok(vaultCss.includes('break-inside-avoid'), 'CSS must define break-inside-avoid to prevent page break clipping');
+  assert.ok(vaultCss.includes('data-columns="2"'), 'CSS must style 2-column layout for print');
 });
 
 test('15. Kỷ luật mã nguồn tuyệt đối: Zero // Comments, Bản quyền BroAmStuck & Zero Emojis', () => {

@@ -267,6 +267,306 @@ export const SEED_CBT_QUESTIONS: Record<string, ExamCBTQuestion[]> = {
       keyFormula: 'Not only + Aux + S + V, but S also + V.',
     },
   ],
+  'ex-05': [
+    {
+      id: 'q-ex05-1',
+      number: 1,
+      question: 'Số điểm cực trị của hàm số y = |x^3 - 3x^2 + 2| là:',
+      options: [
+        { id: 'A', text: '3 điểm cực trị' },
+        { id: 'B', text: '5 điểm cực trị' },
+        { id: 'C', text: '2 điểm cực trị' },
+        { id: 'D', text: '4 điểm cực trị' },
+      ],
+      correctAnswer: 'B',
+      topic: 'Cực trị hàm trị tuyệt đối y = |f(x)|',
+      difficulty: 'Thông hiểu',
+      explanation: 'Xét u(x) = x^3 - 3x^2 + 2. Đạo hàm u\'(x) = 3x^2 - 6x = 0 <=> x = 0 (u = 2) hoặc x = 2 (u = -2). Đồ thị có 2 cực trị nằm về 2 phía trục hoành nên u(x) = 0 có đúng 3 nghiệm phân biệt. Số điểm cực trị của y = |u(x)| bằng 2 + 3 = 5.',
+      keyFormula: 'Số cực trị của y = |u(x)| = (số cực trị của u) + (số nghiệm đơn của u(x) = 0).',
+    },
+    {
+      id: 'q-ex05-2',
+      number: 2,
+      question: 'Cho hàm số bậc ba y = f(x) có 2 điểm cực trị dương x1 > 0, x2 > 0. Số điểm cực trị của hàm số g(x) = f(|x|) là:',
+      options: [
+        { id: 'A', text: '5 điểm cực trị' },
+        { id: 'B', text: '3 điểm cực trị' },
+        { id: 'C', text: '4 điểm cực trị' },
+        { id: 'D', text: '7 điểm cực trị' },
+      ],
+      correctAnswer: 'A',
+      topic: 'Cực trị hàm số chẵn y = f(|x|)',
+      difficulty: 'Vận dụng',
+      explanation: 'Hàm số y = f(|x|) là hàm số chẵn, đồ thị đối xứng qua Oy. Với k là số điểm cực trị dương của f(x), số cực trị của f(|x|) bằng 2k + 1. Ở đây k = 2 nên số cực trị là 2*2 + 1 = 5 điểm cực trị.',
+      keyFormula: 'Số cực trị của y = f(|x|) = 2k + 1 (với k là số điểm cực trị dương của f(x)).',
+    },
+    {
+      id: 'q-ex05-3',
+      number: 3,
+      question: 'Tìm tất cả các giá trị của tham số m để đồ thị hàm số y = |x^3 - 3x + m| có đúng 3 điểm cực trị:',
+      options: [
+        { id: 'A', text: '-2 < m < 2' },
+        { id: 'B', text: 'm = 2 hoặc m = -2' },
+        { id: 'C', text: '-2 <= m <= 2' },
+        { id: 'D', text: 'm > 2 hoặc m < -2' },
+      ],
+      correctAnswer: 'D',
+      topic: 'Tham số cực trị hàm trị tuyệt đối',
+      difficulty: 'Vận dụng cao',
+      explanation: 'Hàm u(x) = x^3 - 3x + m có 2 cực trị là u(-1) = m + 2 và u(1) = m - 2. Hàm |u(x)| có 3 cực trị khi u(x) = 0 có đúng 1 nghiệm đơn, tức là đồ thị u(x) nằm hoàn toàn về một phía trục hoành (không cắt giữa 2 cực trị): (m + 2)(m - 2) > 0 <=> m > 2 hoặc m < -2.',
+      keyFormula: '|u(x)| có 3 cực trị <=> u(x_CD) * u(x_CT) > 0.',
+    },
+  ],
+  'ex-06': [
+    {
+      id: 'q-ex06-1',
+      number: 1,
+      question: 'Trong văn bản nghị luận xã hội, thao tác lập luận nào đóng vai trò nòng cốt giúp làm rõ bản chất đối tượng bằng cách chia tách thành từng khía cạnh?',
+      options: [
+        { id: 'A', text: 'Thao tác phân tích' },
+        { id: 'B', text: 'Thao tác so sánh' },
+        { id: 'C', text: 'Thao tác bác bỏ' },
+        { id: 'D', text: 'Thao tác bình luận' },
+      ],
+      correctAnswer: 'A',
+      topic: 'Thao tác lập luận văn học',
+      difficulty: 'Nhận biết',
+      explanation: 'Phân tích là thao tác chia tách đối tượng thành các yếu tố, bộ phận để nhận thức toàn diện, sâu sắc bản chất và các mối quan hệ bên trong của đối tượng nghị luận.',
+      keyFormula: 'Phân tích: chia nhỏ đối tượng để thấu thị bản chất và luận giải logic.',
+    },
+    {
+      id: 'q-ex06-2',
+      number: 2,
+      question: 'Xác định biện pháp tu từ độc đáo trong câu thơ hiện đại: "Tiếng rơi rất mỏng như là rơi nghiêng":',
+      options: [
+        { id: 'A', text: 'Hoán dụ và lặp từ' },
+        { id: 'B', text: 'Nhân hoá hành động' },
+        { id: 'C', text: 'Ẩn dụ chuyển đổi cảm giác kết hợp so sánh' },
+        { id: 'D', text: 'Nói giảm nói tránh' },
+      ],
+      correctAnswer: 'C',
+      topic: 'Đọc hiểu Thơ Hiện Đại',
+      difficulty: 'Thông hiểu',
+      explanation: '"Tiếng rơi" (thính giác) được cảm nhận qua độ dày "rất mỏng" (xúc giác/thị giác) và hình dáng "rơi nghiêng" (thị giác) tạo nên ẩn dụ chuyển đổi cảm giác giàu sức gợi.',
+      keyFormula: 'Ẩn dụ chuyển đổi cảm giác: chuyển đổi cảm thụ giữa thính giác -> xúc giác -> thị giác.',
+    },
+    {
+      id: 'q-ex06-3',
+      number: 3,
+      question: 'Khi triển khai bài văn nghị luận xã hội 600 chữ về "Bản lĩnh bước ra khỏi vùng an toàn của Gen Z", cấu trúc lập luận chuẩn mực cần đảm bảo:',
+      options: [
+        { id: 'A', text: 'Chỉ kể câu chuyện cá nhân và không cần bài học hành động' },
+        { id: 'B', text: 'Giải thích khái niệm -> Phân tích lợi ích & dẫn chứng -> Phản biện lật ngược -> Bài học nhận thức & hành động' },
+        { id: 'C', text: 'Liệt kê danh ngôn của người nổi tiếng mà không phân tích dẫn chứng' },
+        { id: 'D', text: 'Tập trung phê phán xã hội và né tránh giải pháp cụ thể' },
+      ],
+      correctAnswer: 'B',
+      topic: 'Kỹ năng làm văn NLXH 600 chữ',
+      difficulty: 'Vận dụng',
+      explanation: 'Cấu trúc bài nghị luận xã hội chuẩn ma trận kỳ thi THPT gồm 4 trụ cột: Giải thích rõ nghĩa (10%) -> Bàn luận & Dẫn chứng đa chiều (60%) -> Phản đề/Mở rộng góc nhìn (15%) -> Bài học nhận thức và hành động thực tế (15%).',
+      keyFormula: 'Cấu trúc NLXH: Giải thích -> Bàn luận/Dẫn chứng -> Phản đề -> Bài học cá nhân.',
+    },
+  ],
+  'ex-07': [
+    {
+      id: 'q-ex07-1',
+      number: 1,
+      question: 'Một phân tử ADN mạch kép có 3000 nuclêôtit và có số nuclêôtit loại A chiếm 20% tổng số nuclêôtit. Số liên kết hiđrô của phân tử ADN này là:',
+      options: [
+        { id: 'A', text: '3600 liên kết' },
+        { id: 'B', text: '3900 liên kết' },
+        { id: 'C', text: '3000 liên kết' },
+        { id: 'D', text: '4200 liên kết' },
+      ],
+      correctAnswer: 'B',
+      topic: 'Cấu trúc ADN & Di truyền phân tử',
+      difficulty: 'Thông hiểu',
+      explanation: 'Tổng số nuclêôtit N = 3000. Số nuclêôtit loại A = T = 3000 * 20% = 600 nu. Theo nguyên tắc bổ sung: G = X = (3000 - 2*600)/2 = 900 nu. Số liên kết hiđrô H = 2A + 3G = 2*600 + 3*900 = 1200 + 2700 = 3900 liên kết.',
+      keyFormula: 'N = 2A + 2G; H = 2A + 3G.',
+    },
+    {
+      id: 'q-ex07-2',
+      number: 2,
+      question: 'Đặc điểm nào sau đây thể hiện tính "thoái hoá" (dư thừa) của mã di truyền sinh học?',
+      options: [
+        { id: 'A', text: 'Tất cả các loài sinh vật đều sử dụng chung một bảng mã di truyền chuẩn' },
+        { id: 'B', text: 'Một bộ ba nuclêôtit có thể mã hoá cho nhiều axit amin khác nhau' },
+        { id: 'C', text: 'Mã di truyền được đọc liên tục từ một điểm xác định không gối lên nhau' },
+        { id: 'D', text: 'Nhiều bộ ba nuclêôtit khác nhau có thể cùng mã hoá cho một loại axit amin' },
+      ],
+      correctAnswer: 'D',
+      topic: 'Cơ chế phiên mã & Dịch mã',
+      difficulty: 'Nhận biết',
+      explanation: 'Tính thoái hoá của mã di truyền có nghĩa là nhiều côđon (bộ ba) khác nhau cùng xác định một axit amin (trừ AUG mã hoá Met và UGG mã hoá Trp).',
+      keyFormula: 'Tính thoái hoá: nhiều bộ ba mã hoá cho 1 axit amin (bảo vệ chuỗi pôlipeptit trước đột biến).',
+    },
+    {
+      id: 'q-ex07-3',
+      number: 3,
+      question: 'Ở đậu Hà Lan, gen A quy định hạt vàng trội hoàn toàn so với gen a quy định hạt xanh. Cho cây hạt vàng dị hợp Aa tự thụ phấn, tỉ lệ kiểu hình ở đời con F1 là:',
+      options: [
+        { id: 'A', text: '3 hạt vàng : 1 hạt xanh' },
+        { id: 'B', text: '1 hạt vàng : 1 hạt xanh' },
+        { id: 'C', text: '100% hạt vàng' },
+        { id: 'D', text: '9 hạt vàng : 7 hạt xanh' },
+      ],
+      correctAnswer: 'A',
+      topic: 'Quy luật di truyền phân ly Mendel',
+      difficulty: 'Thông hiểu',
+      explanation: 'Phép lai Aa x Aa cho tỉ lệ kiểu gen 1 AA : 2 Aa : 1 aa. Vì A trội hoàn toàn so với a, kiểu gen AA và Aa đều biểu hiện hạt vàng (tổng 3/4), aa biểu hiện hạt xanh (1/4). Tỉ lệ kiểu hình là 3 vàng : 1 xanh.',
+      keyFormula: 'P: Aa x Aa => F1 kiểu hình: 3 trội : 1 lặn.',
+    },
+  ],
+  'ex-08': [
+    {
+      id: 'q-ex08-1',
+      number: 1,
+      question: 'Hội nghị Ianta (tháng 2/1945) được triệu tập tại Liên Xô với sự tham gia của nguyên thủ ba cường quốc trụ cột trong phe Đồng minh là:',
+      options: [
+        { id: 'A', text: 'Liên Xô, Mỹ, Anh' },
+        { id: 'B', text: 'Liên Xô, Mỹ, Pháp' },
+        { id: 'C', text: 'Mỹ, Anh, Trung Quốc' },
+        { id: 'D', text: 'Liên Xô, Pháp, Đức' },
+      ],
+      correctAnswer: 'A',
+      topic: 'Trật tự hai cực Ianta',
+      difficulty: 'Nhận biết',
+      explanation: 'Hội nghị Ianta (Crimea, Liên Xô) diễn ra từ 4 đến 11/2/1945 với sự tham dự của I. Stalin (Liên Xô), F. Roosevelt (Mỹ) và W. Churchill (Anh) để định đoạt cục diện thế giới sau chiến tranh.',
+      keyFormula: 'Tam cường Ianta: I. Stalin (Liên Xô), F. Roosevelt (Mỹ), W. Churchill (Anh).',
+    },
+    {
+      id: 'q-ex08-2',
+      number: 2,
+      question: 'Theo quyết định của Hội nghị Ianta, việc phân chia khu vực chiếm đóng và phạm vi ảnh hưởng ở châu Á được thoả thuận như thế nào đối với bán đảo Triều Tiên?',
+      options: [
+        { id: 'A', text: 'Bán đảo Triều Tiên do quân đội Trung Quốc và Mỹ cùng quản lý' },
+        { id: 'B', text: 'Liên Hợp Quốc cử lực lượng gìn giữ hoà bình tiếp quản' },
+        { id: 'C', text: 'Quân đội Liên Xô chiếm đóng phía Bắc và quân đội Mỹ chiếm đóng phía Nam vĩ tuyến 38' },
+        { id: 'D', text: 'Trao trả độc lập thống nhất ngay lập tức cho nhân dân Triều Tiên' },
+      ],
+      correctAnswer: 'C',
+      topic: 'Quan hệ quốc tế thời kỳ Chiến tranh lạnh',
+      difficulty: 'Thông hiểu',
+      explanation: 'Hội nghị Ianta quyết định lấy vĩ tuyến 38 làm ranh giới phân chia quân sự tạm thời: Liên Xô giải giáp quân Nhật ở phía Bắc và Mỹ giải giáp ở phía Nam, đặt tiền đề cho sự phân chia bán đảo sau này.',
+      keyFormula: 'Vĩ tuyến 38: Ranh giới chiếm đóng giữa Liên Xô (Bắc) và Mỹ (Nam).',
+    },
+    {
+      id: 'q-ex08-3',
+      number: 3,
+      question: 'Sự kiện nào sau đây được xem là mốc mở đầu cho phong trào giải phóng dân tộc ở châu Phi sau Chiến tranh thế giới thứ hai?',
+      options: [
+        { id: 'A', text: 'Chiến thắng Điện Biên Phủ tại Việt Nam' },
+        { id: 'B', text: 'Sự sụp đổ của chế độ phân biệt chủng tộc Apacthai năm 1993' },
+        { id: 'C', text: 'Năm châu Phi 1960 với 17 quốc gia tuyên bố độc lập' },
+        { id: 'D', text: 'Cuộc binh biến của các sĩ quan yêu nước Ai Cập lật đổ vương triều Faruk năm 1952' },
+      ],
+      correctAnswer: 'D',
+      topic: 'Phong trào giải phóng dân tộc châu Phi',
+      difficulty: 'Vận dụng',
+      explanation: 'Cuộc cách mạng tháng 7/1952 do tổ chức "Sĩ quan tự do" đứng đầu là Gamal Abdel Nasser lật đổ chế độ quân chủ Faruk, thành lập nước Cộng hoà Ai Cập (1953), mở đầu phong trào đấu tranh giành độc lập ở lục địa đen.',
+      keyFormula: 'Ai Cập 1952: Phát súng hiệu mở đầu phong trào giải phóng dân tộc tại châu Phi.',
+    },
+  ],
+  'ex-09': [
+    {
+      id: 'q-ex09-1',
+      number: 1,
+      question: 'Điều kiện xác định của biểu thức chứa căn bậc hai P = sqrt(x - 3) / (x - 5) là:',
+      options: [
+        { id: 'A', text: 'x >= 3 và x != 5' },
+        { id: 'B', text: 'x > 3' },
+        { id: 'C', text: 'x >= 3' },
+        { id: 'D', text: 'x != 5' },
+      ],
+      correctAnswer: 'A',
+      topic: 'Căn thức bậc hai & Rút gọn',
+      difficulty: 'Nhận biết',
+      explanation: 'Biểu thức xác định khi biểu thức dưới dấu căn không âm: x - 3 >= 0 <=> x >= 3; và mẫu thức khác 0: x - 5 != 0 <=> x != 5. Kết hợp lại ta có x >= 3 và x != 5.',
+      keyFormula: 'ĐKXĐ: Biểu thức dưới căn >= 0 và Mẫu thức != 0.',
+    },
+    {
+      id: 'q-ex09-2',
+      number: 2,
+      question: 'Cho tam giác ABC vuông tại A có đường cao AH. Biết hình chiếu BH = 4 cm và CH = 9 cm. Độ dài đường cao AH bằng:',
+      options: [
+        { id: 'A', text: '13 cm' },
+        { id: 'B', text: '6 cm' },
+        { id: 'C', text: '36 cm' },
+        { id: 'D', text: '6.5 cm' },
+      ],
+      correctAnswer: 'B',
+      topic: 'Hệ thức lượng trong tam giác vuông',
+      difficulty: 'Thông hiểu',
+      explanation: 'Áp dụng hệ thức lượng trong tam giác vuông ABC: AH^2 = BH * CH = 4 * 9 = 36. Do AH > 0 nên AH = sqrt(36) = 6 cm.',
+      keyFormula: 'AH^2 = BH * CH (Bình phương đường cao bằng tích hai hình chiếu).',
+    },
+    {
+      id: 'q-ex09-3',
+      number: 3,
+      question: 'Cho các số thực dương a, b thoả mãn tích ab = 1. Giá trị nhỏ nhất của biểu thức S = (a + 1)(b + 1) bằng:',
+      options: [
+        { id: 'A', text: '2' },
+        { id: 'B', text: '8' },
+        { id: 'C', text: '4' },
+        { id: 'D', text: '1' },
+      ],
+      correctAnswer: 'C',
+      topic: 'Bất đẳng thức AM-GM',
+      difficulty: 'Vận dụng cao',
+      explanation: 'Khai triển S = ab + a + b + 1 = 1 + (a + b) + 1 = 2 + (a + b). Áp dụng bất đẳng thức Cauchy (AM-GM) cho hai số dương a, b: a + b >= 2*sqrt(ab) = 2*1 = 2. Do đó S >= 2 + 2 = 4. Dấu "=" xảy ra khi a = b = 1.',
+      keyFormula: 'a + b >= 2*sqrt(ab); Dấu bằng xảy ra khi a = b.',
+    },
+  ],
+  'ex-10': [
+    {
+      id: 'q-ex10-1',
+      number: 1,
+      question: 'Trong trường hợp trung bình, thuật toán sắp xếp nhanh QuickSort có độ phức tạp thời gian là:',
+      options: [
+        { id: 'A', text: 'O(n log n)' },
+        { id: 'B', text: 'O(n^2)' },
+        { id: 'C', text: 'O(n)' },
+        { id: 'D', text: 'O(log n)' },
+      ],
+      correctAnswer: 'A',
+      topic: 'Độ phức tạp thuật toán QuickSort',
+      difficulty: 'Nhận biết',
+      explanation: 'QuickSort hoạt động theo nguyên lý chia để trị (Divide and Conquer), chia mảng thành hai nửa và sắp xếp đệ quy. Trong trường hợp trung bình và tốt nhất, độ phức tạp đạt O(n log n). Trường hợp xấu nhất xảy ra khi pivot phân chia lệch hoàn toàn, đạt O(n^2).',
+      keyFormula: 'QuickSort trung bình: T(n) = 2T(n/2) + O(n) => O(n log n).',
+    },
+    {
+      id: 'q-ex10-2',
+      number: 2,
+      question: 'Cấu trúc dữ liệu nào sau đây hoạt động theo nguyên lý LIFO (Last In, First Out — Vào sau, Ra trước)?',
+      options: [
+        { id: 'A', text: 'Hàng đợi (Queue)' },
+        { id: 'B', text: 'Mảng tĩnh (Static Array)' },
+        { id: 'C', text: 'Danh sách liên kết đơn (Linked List)' },
+        { id: 'D', text: 'Ngăn xếp (Stack)' },
+      ],
+      correctAnswer: 'D',
+      topic: 'Cấu trúc dữ liệu Ngăn xếp (Stack)',
+      difficulty: 'Nhận biết',
+      explanation: 'Ngăn xếp (Stack) lưu trữ các phần tử theo nguyên tắc LIFO, phần tử được nạp vào sau cùng (push) sẽ là phần tử đầu tiên được lấy ra (pop). Ngược lại, Hàng đợi (Queue) tuân theo nguyên tắc FIFO.',
+      keyFormula: 'Stack: LIFO (Push / Pop ở đỉnh); Queue: FIFO (Enqueue ở đuôi / Dequeue ở đầu).',
+    },
+    {
+      id: 'q-ex10-3',
+      number: 3,
+      question: 'Thành phần bắt buộc phải có trong một hàm đệ quy để ngăn chương trình rơi vào vòng lặp vô hạn và tràn bộ nhớ Stack (Stack Overflow) là:',
+      options: [
+        { id: 'A', text: 'Vòng lặp while kiểm tra điều kiện' },
+        { id: 'B', text: 'Điều kiện dừng / Trường hợp cơ sở (Base case)' },
+        { id: 'C', text: 'Cấp phát bộ nhớ động bằng con trỏ' },
+        { id: 'D', text: 'Khối lệnh bắt ngoại lệ try-catch' },
+      ],
+      correctAnswer: 'B',
+      topic: 'Thuật toán đệ quy & Điều kiện dừng',
+      difficulty: 'Thông hiểu',
+      explanation: 'Mỗi hàm đệ quy bắt buộc phải có trường hợp cơ sở (base case) để kết thúc chuỗi gọi đệ quy và trả về giá trị trực tiếp, tránh tiêu tốn toàn bộ không gian ngăn xếp của bộ nhớ thực thi.',
+      keyFormula: 'Hàm đệ quy = Base Case (điều kiện dừng) + Recursive Step (bước đệ quy thu nhỏ bài toán).',
+    },
+  ],
 };
 
 /* Sinh câu hỏi thi thử CBT tự động từ mẫu đề thi cho các đề chưa cấu hình */
@@ -279,7 +579,7 @@ export function getExamCBTQuestions(paper: ExamPaper): ExamCBTQuestion[] {
     return SEED_CBT_QUESTIONS[paper.id];
   }
 
-  /* Fallback: sinh từ sampleQuestions và sampleSolutions */
+  /* Fallback: sinh từ sampleQuestions và sampleSolutions với đáp án phân bổ đa dạng */
   const results: ExamCBTQuestion[] = [];
   const sampleList = paper.sampleQuestions || [];
   const solutions = paper.sampleSolutions || [];
@@ -291,17 +591,28 @@ export function getExamCBTQuestions(paper: ExamPaper): ExamCBTQuestion[] {
       const diffLevels: ExamDifficulty[] = ['Nhận biết', 'Thông hiểu', 'Vận dụng', 'Vận dụng cao'];
       const assignedDiff = diffLevels[idx % diffLevels.length];
 
+      /* Phân bổ đáp án đúng luân phiên giữa A, B, C, D thay vì luôn chọn A */
+      const targetAnswer = (['A', 'B', 'C', 'D'] as const)[idx % 4];
+      const correctText = sol ? sol.solution.slice(0, 70) + '...' : 'Khẳng định chính xác theo chuẩn chương trình.';
+      const distractors = [
+        'Phương án gây nhiễu loại 1 (sai về điều kiện xác định biên).',
+        'Phương án gây nhiễu loại 2 (nhầm lẫn dấu phép toán biến đổi).',
+        'Phương án gây nhiễu loại 3 (chưa tối giản biểu thức cuối cùng).',
+      ];
+      let distIdx = 0;
+      const options = (['A', 'B', 'C', 'D'] as const).map((letter) => {
+        if (letter === targetAnswer) {
+          return { id: letter, text: correctText };
+        }
+        return { id: letter, text: distractors[distIdx++] };
+      });
+
       results.push({
         id: `cbt-gen-${paper.id}-${qNum}`,
         number: qNum,
-        question: qText.replace(/^Câu \d+:\s*/, ''),
-        options: [
-          { id: 'A', text: sol ? sol.solution.slice(0, 65) + '...' : 'Phương án chính xác theo cấu trúc đề thi chuẩn.' },
-          { id: 'B', text: 'Phương án gây nhiễu loại 1 (sai về điều kiện xác định).' },
-          { id: 'C', text: 'Phương án gây nhiễu loại 2 (nhầm lẫn dấu phép toán).' },
-          { id: 'D', text: 'Phương án gây nhiễu loại 3 (chưa rút gọn biểu thức).' },
-        ],
-        correctAnswer: 'A',
+        question: qText.replace(/^Câu \d+:\s*/, '').replace(/^Bài \d+:\s*/, ''),
+        options,
+        correctAnswer: targetAnswer,
         topic: `${paper.subject} - Lớp ${paper.grade}`,
         difficulty: assignedDiff,
         explanation: sol ? sol.solution : 'Xem chi tiết trong hướng dẫn chấm thi của Sở GD&ĐT.',
@@ -309,26 +620,37 @@ export function getExamCBTQuestions(paper: ExamPaper): ExamCBTQuestion[] {
       });
     });
   } else {
-    /* Mặc định tối thiểu 4 câu chuẩn */
+    /* Mặc định tối thiểu 4 câu chuẩn phân bổ cân bằng A, B, C, D */
     const defaultTopics = ['Lý thuyết trọng tâm', 'Kỹ năng vận dụng cơ bản', 'Phân tích dữ liệu', 'Bài toán tổng hợp'];
     defaultTopics.forEach((tp, i) => {
+      const targetAnswer = (['A', 'B', 'C', 'D'] as const)[i % 4];
+      const correctText = 'Khẳng định đúng theo định lý và kiến thức chuẩn sách giáo khoa.';
+      const distractors = [
+        'Khẳng định sai do thiếu điều kiện biên.',
+        'Khẳng định chưa đủ cơ sở chứng minh khoa học.',
+        'Phương án không liên quan đến phạm vi bài học.',
+      ];
+      let distIdx = 0;
+      const options = (['A', 'B', 'C', 'D'] as const).map((letter) => {
+        if (letter === targetAnswer) {
+          return { id: letter, text: correctText };
+        }
+        return { id: letter, text: distractors[distIdx++] };
+      });
+
       results.push({
         id: `cbt-def-${paper.id}-${i + 1}`,
         number: i + 1,
         question: `Câu hỏi kiểm tra kiến thức ${tp} thuộc chương trình môn ${paper.subject} lớp ${paper.grade}:`,
-        options: [
-          { id: 'A', text: 'Khẳng định đúng theo định lý và kiến thức chuẩn sách giáo khoa.' },
-          { id: 'B', text: 'Khẳng định sai do thiếu điều kiện biên.' },
-          { id: 'C', text: 'Khẳng định chưa đủ cơ sở chứng minh.' },
-          { id: 'D', text: 'Phương án không liên quan đến phạm vi bài học.' },
-        ],
-        correctAnswer: 'A',
+        options,
+        correctAnswer: targetAnswer,
         topic: tp,
         difficulty: (['Nhận biết', 'Thông hiểu', 'Vận dụng', 'Vận dụng cao'] as ExamDifficulty[])[i % 4],
-        explanation: `Lời giải chuẩn: Vận dụng kiến thức bài học môn ${paper.subject} để loại trừ các đáp án B, C, D.`,
+        explanation: `Lời giải chuẩn: Vận dụng kiến thức bài học môn ${paper.subject} để xác định phương án ${targetAnswer} là chính xác.`,
       });
     });
   }
 
   return results;
 }
+
