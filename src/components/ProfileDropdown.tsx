@@ -250,13 +250,13 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             onClose();
             onOpenProfile('overview');
           }}
-          className="w-full mt-3 py-2 px-3 rounded-xl text-xs font-bold text-white hover:text-cyan-300 bg-gradient-to-r from-cyan-500/15 via-blue-500/10 to-indigo-500/15 hover:from-cyan-500/25 hover:to-indigo-500/25 border border-cyan-400/30 hover:border-cyan-400/50 transition-all flex items-center justify-between group cursor-pointer active:scale-98 shadow-sm"
+          className="ff-tactile-btn w-full mt-3 py-2 px-3 rounded-xl text-xs font-bold text-[#f4f1de] hover:text-[#f2cc8f] bg-[#e07a5f]/20 hover:bg-[#e07a5f]/30 border border-[#e07a5f]/45 transition-all flex items-center justify-between group cursor-pointer shadow-sm"
         >
           <div className="flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400 group-hover:rotate-12 transition-transform" />
+            <Sparkles className="w-3.5 h-3.5 text-[#f2cc8f] group-hover:rotate-12 transition-transform" />
             <span>Trang cá nhân</span>
           </div>
-          <ChevronRight className="w-3.5 h-3.5 text-white/50 group-hover:text-cyan-300 group-hover:translate-x-0.5 transition-all" />
+          <ChevronRight className="w-3.5 h-3.5 text-[#f4f1de]/60 group-hover:text-[#f2cc8f] group-hover:translate-x-0.5 transition-all" />
         </button>
 
         {/* Action Buttons: F-Pass Card & Profile Edit */}

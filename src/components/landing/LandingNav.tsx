@@ -225,7 +225,7 @@ export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin
           className="ff-fade-in fixed inset-0 -z-10 bg-black/60 backdrop-blur-sm border-none outline-none cursor-default"
           onClick={() => setMenuOpen(false)}
         />
-        <div className="ff-drawer-in mx-4 mt-2 max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-3xl border border-[var(--ff-border)] bg-[var(--ff-bg-soft)]/95 p-5 shadow-2xl backdrop-blur-2xl">
+        <div className="ff-drawer-in mx-4 mt-2 max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-bg-soft)]/95 p-5 shadow-2xl backdrop-blur-2xl">
           <nav aria-label="Điều hướng di động" className="grid gap-1">
             {NAV_LINKS.map((link, index) => (
               <button

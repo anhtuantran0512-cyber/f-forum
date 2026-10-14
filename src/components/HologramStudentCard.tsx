@@ -97,7 +97,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
         <button
           type="button"
           onClick={triggerCardFlip}
-          className="pc-12-btn px-3 py-1 rounded-full flex items-center gap-1.5 text-[10px] font-mono font-bold text-cyan-300 hover:text-white cursor-pointer"
+          className="pc-12-btn ff-tactile-btn px-3 py-1 rounded-full flex items-center gap-1.5 text-[10px] font-mono font-bold text-[#f2cc8f] hover:text-[#f4f1de] cursor-pointer"
         >
           <RotateCw className={`w-3 h-3 transition-transform duration-500 ${isFlipped ? 'rotate-180' : ''}`} />
           <span>{isFlipped ? 'Mặt trước' : 'Lật mặt sau'}</span>
@@ -136,7 +136,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
               className="pointer-events-none absolute inset-0 transition-opacity duration-300 z-20"
               style={{
                 opacity: glare.opacity,
-                background: `radial-gradient(circle at ${glare.x}% ${glare.y}%, rgba(255, 255, 255, 0.45) 0%, rgba(251, 191, 36, 0.22) 28%, rgba(34, 211, 238, 0.14) 52%, transparent 72%)`,
+                background: `radial-gradient(circle at ${glare.x}% ${glare.y}%, rgba(255, 255, 255, 0.45) 0%, rgba(251, 191, 36, 0.22) 28%, rgba(224, 122, 95, 0.14) 52%, transparent 72%)`,
                 mixBlendMode: 'overlay',
               }}
             />
@@ -155,13 +155,13 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
               className="pointer-events-none absolute -top-20 -right-20 w-48 h-48 rounded-full blur-3xl opacity-35 transition-all duration-500"
               style={{ background: tier.accentColor }}
             />
-            <div className="pointer-events-none absolute -bottom-20 -left-20 w-48 h-48 rounded-full bg-cyan-500/20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-20 -left-20 w-48 h-48 rounded-full bg-[#81b29a]/20 blur-3xl" />
 
             {/* Top Header: Institutional Crest & Hologram Chip */}
             <div className="relative z-10 flex items-center justify-between mb-5">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500 via-yellow-300 to-cyan-400 p-[1px] shadow-[0_0_16px_rgba(245,158,11,0.4)]">
-                  <div className="w-full h-full bg-[#0a0f14]/90 rounded-[15px] flex items-center justify-center text-amber-400 font-bold text-sm font-['Playfair_Display'] italic">
+                <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500 via-[#f2cc8f] to-[#e07a5f] p-[1px] shadow-[0_0_16px_rgba(245,158,11,0.4)]">
+                  <div className="w-full h-full bg-[#0b0d12]/90 rounded-[15px] flex items-center justify-center text-amber-400 font-bold text-sm font-['Playfair_Display'] italic">
                     F
                   </div>
                 </div>
@@ -175,13 +175,13 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
                 </div>
               </div>
 
-              {/* Blue Flame Streak Indicator inside Neumorphic Pill */}
+              {/* Streak Indicator inside Neumorphic Pill */}
               <div
-                className="pc-12-pill flex items-center gap-1.5 px-3 py-1 border border-cyan-400/35"
+                className="pc-12-pill flex items-center gap-1.5 px-3 py-1 border border-[#f2cc8f]/40"
                 title={`Chuỗi hoạt động liên tiếp: ${streakCount} ngày`}
               >
-                <Flame className="w-4 h-4 text-cyan-400 fill-cyan-400/40 animate-blue-flame" />
-                <span className="text-xs font-mono font-bold text-cyan-300">
+                <Flame className="w-4 h-4 text-[#e07a5f] fill-[#e07a5f]/40 animate-blue-flame" />
+                <span className="text-xs font-mono font-bold text-[#f2cc8f]">
                   {streakCount}d
                 </span>
               </div>

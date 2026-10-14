@@ -65,7 +65,7 @@ export const MagneticButton: React.FC<MagneticButtonProps> = ({
       case 'gold':
         return 'bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 text-neutral-950 font-bold border border-amber-300 shadow-[0_4px_20px_rgba(245,158,11,0.35)] hover:shadow-[0_8px_30px_rgba(245,158,11,0.5)]';
       case 'cyan':
-        return 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold border border-cyan-300/40 shadow-[0_4px_20px_rgba(6,182,212,0.35)] hover:shadow-[0_8px_30px_rgba(6,182,212,0.5)]';
+        return 'bg-[#81b29a] hover:bg-[#95c4ae] text-[#0b0d12] font-bold border border-[#f4f1de]/40 shadow-[2px_2px_0px_rgba(4,6,11,0.85)]';
       case 'ghost':
         return 'bg-white/5 hover:bg-white/10 text-neutral-200 border border-white/15';
       case 'primary':

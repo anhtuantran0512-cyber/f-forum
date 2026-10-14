@@ -162,7 +162,7 @@ const ALL_SYSTEM_BADGES: SystemBadge[] = [
     IconComponent: Rocket,
     isEarned: (l) => l >= 5,
     progress: (l) => ({ current: l, target: 5, unit: 'cấp' }),
-    color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
+    color: 'text-[#81b29a] bg-[#81b29a]/15 border-[#81b29a]/40',
   },
   {
     id: 'b-mentor',
@@ -1006,26 +1006,26 @@ const ProfileModalInner: React.FC<{
         </div>
 
         {/* Navigation Tabs Header */}
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-white/10 mb-3 gap-2.5 shrink-0">
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-dashed border-[#f4f1de]/15 mb-3 gap-2.5 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee] animate-pulse" />
-            <h2 className="text-sm sm:text-base font-extrabold text-white tracking-wide truncate">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#e07a5f] shadow-[0_0_8px_#e07a5f] animate-pulse" />
+            <h2 className="text-sm sm:text-base font-extrabold text-[#f4f1de] tracking-wide truncate">
               Hồ sơ / F-Forum
             </h2>
-            <span className="pc-12-pill text-[10px] font-mono px-2.5 py-0.5 text-cyan-300">
+            <span className="pc-12-pill text-[10px] font-mono px-2.5 py-0.5 text-[#f2cc8f]">
               Lv.{currentUser.level} • {getTitleForLevel(currentUser.level).name}
             </span>
           </div>
 
           <div className="flex items-center justify-between sm:justify-end gap-2 overflow-x-auto no-scrollbar">
-            <div className="pc-12-well flex items-center p-1 rounded-full shrink-0 gap-1">
+            <div className="pc-12-well flex items-center p-1 rounded-xl shrink-0 gap-1">
               <button
                 type="button"
                 onClick={() => setActiveTab('overview')}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'overview'
-                    ? 'bg-[#0284C7] text-white shadow-[0_4px_12px_rgba(2,132,199,0.45)]'
-                    : 'text-neutral-400 hover:text-white'
+                    ? 'bg-[#e07a5f] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
+                    : 'text-[#9a978e] hover:text-[#f4f1de]'
                 }`}
               >
                 Hồ sơ
@@ -1034,10 +1034,10 @@ const ProfileModalInner: React.FC<{
               <button
                 type="button"
                 onClick={() => setActiveTab('card')}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'card'
-                    ? 'bg-amber-500 text-black shadow-[0_4px_12px_rgba(245,158,11,0.4)]'
-                    : 'text-neutral-400 hover:text-white'
+                    ? 'bg-[#f2cc8f] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
+                    : 'text-[#9a978e] hover:text-[#f4f1de]'
                 }`}
               >
                 F-Pass
@@ -1046,10 +1046,10 @@ const ProfileModalInner: React.FC<{
               <button
                 type="button"
                 onClick={() => setActiveTab('shop')}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'shop'
-                    ? 'bg-amber-500 text-black shadow-[0_4px_12px_rgba(245,158,11,0.4)]'
-                    : 'text-neutral-400 hover:text-white'
+                    ? 'bg-[#f2cc8f] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
+                    : 'text-[#9a978e] hover:text-[#f4f1de]'
                 }`}
               >
                 Boutique
@@ -1058,10 +1058,10 @@ const ProfileModalInner: React.FC<{
               <button
                 type="button"
                 onClick={() => setActiveTab('activity')}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'activity'
-                    ? 'bg-amber-500 text-black shadow-[0_4px_12px_rgba(245,158,11,0.4)]'
-                    : 'text-neutral-400 hover:text-white'
+                    ? 'bg-[#f2cc8f] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
+                    : 'text-[#9a978e] hover:text-[#f4f1de]'
                 }`}
               >
                 Hoạt động
@@ -1071,10 +1071,10 @@ const ProfileModalInner: React.FC<{
                 <button
                   type="button"
                   onClick={() => setActiveTab('edit')}
-                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     activeTab === 'edit'
-                      ? 'bg-amber-500 text-black shadow-[0_4px_12px_rgba(245,158,11,0.4)]'
-                      : 'text-neutral-400 hover:text-white'
+                      ? 'bg-[#f2cc8f] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
+                      : 'text-[#9a978e] hover:text-[#f4f1de]'
                   }`}
                 >
                   F-ID
@@ -1084,7 +1084,7 @@ const ProfileModalInner: React.FC<{
 
             <button
               onClick={onClose}
-              className="pc-12-btn p-1.5 rounded-full text-neutral-300 hover:text-white transition-colors cursor-pointer shrink-0"
+              className="pc-12-btn p-1.5 rounded-lg text-[#d8d5ce] hover:text-[#f4f1de] transition-colors cursor-pointer shrink-0"
               aria-label="Đóng cửa sổ"
             >
               <X className="w-4 h-4" />
@@ -1140,7 +1140,7 @@ const ProfileModalInner: React.FC<{
                 onPointerDown={beginBannerDrag}
                 className={`pc-12-card relative overflow-hidden ${
                   isAdjustingBanner
-                    ? 'cursor-grab active:cursor-grabbing ring-2 ring-cyan-400/80'
+                    ? 'cursor-grab active:cursor-grabbing ring-2 ring-[#f2cc8f]/80'
                     : ''
                 }`}
               >
@@ -1191,8 +1191,8 @@ const ProfileModalInner: React.FC<{
                         <div />
                       </div>
                       <div className="absolute inset-x-0 top-12 flex justify-center px-3">
-                        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/80 border border-cyan-400/65 text-[11px] font-bold text-white shadow-xl backdrop-blur-md">
-                          <Move className="w-3.5 h-3.5 text-cyan-300" />
+                        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/80 border border-[#f2cc8f]/65 text-[11px] font-bold text-[#f4f1de] shadow-xl backdrop-blur-md">
+                          <Move className="w-3.5 h-3.5 text-[#f2cc8f]" />
                           <span>Kéo ảnh để đặt lại vị trí · Lăn chuột để phóng to ({Math.round(bannerLayout.zoom * 100)}%)</span>
                         </span>
                       </div>
@@ -1252,8 +1252,8 @@ const ProfileModalInner: React.FC<{
                         }}
                         className={`pc-12-btn px-2.5 py-1 rounded-full text-[10px] font-mono flex items-center gap-1 cursor-pointer backdrop-blur-md border ${
                           isAdjustingBanner
-                            ? 'bg-cyan-500 text-slate-950 font-bold border-cyan-300 shadow-[0_0_14px_rgba(34,211,238,0.45)]'
-                            : 'bg-black/65 text-cyan-200 border-cyan-400/35 hover:text-white'
+                            ? 'bg-[#f2cc8f] text-[#0b0d12] font-bold border-[#f4f1de]'
+                            : 'bg-black/65 text-[#f2cc8f] border-[#f2cc8f]/45 hover:text-[#f4f1de]'
                         }`}
                         title="Đặt lại vị trí ảnh bìa trực tiếp bằng thao tác kéo & lăn chuột kiểu Facebook"
                       >
@@ -1266,10 +1266,10 @@ const ProfileModalInner: React.FC<{
 
                 {/* Thanh đặt lại vị trí & thu phóng kiểu Facebook (Gọn, trực quan, không cuộn trang khi lăn chuột) */}
                 {isOwnProfile && isAdjustingBanner && (
-                  <div className="relative z-20 mx-3 sm:mx-5 mt-1 p-3.5 rounded-2xl bg-[#090f1c]/95 border border-cyan-400/45 backdrop-blur-xl shadow-2xl space-y-3 animate-fade-up">
-                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-white/10">
-                      <span className="text-[11px] font-bold text-cyan-200 inline-flex items-center gap-1.5">
-                        <Move className="w-3.5 h-3.5 text-cyan-300" />
+                  <div className="relative z-20 mx-3 sm:mx-5 mt-1 p-3.5 rounded-xl bg-[#0b0d12]/95 border-[1.5px] border-[#f2cc8f]/45 backdrop-blur-xl shadow-2xl space-y-3 animate-fade-up">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-dashed border-[#f4f1de]/15">
+                      <span className="text-[11px] font-bold text-[#f2cc8f] inline-flex items-center gap-1.5">
+                        <Move className="w-3.5 h-3.5 text-[#f2cc8f]" />
                         <span>Đặt lại vị trí ảnh bìa (Kéo ảnh trực tiếp hoặc dùng thanh trượt)</span>
                       </span>
 
@@ -1279,7 +1279,7 @@ const ProfileModalInner: React.FC<{
                           onClick={() => setBannerLayout((prev) => ({ ...prev, fit: 'cover' }))}
                           className={`px-2.5 py-0.5 rounded-lg text-[10px] font-semibold cursor-pointer border transition ${
                             bannerLayout.fit === 'cover'
-                              ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200'
+                              ? 'bg-[#e07a5f]/25 border-[#e07a5f] text-[#f4f1de]'
                               : 'bg-white/5 border-white/10 text-neutral-300 hover:text-white'
                           }`}
                         >
@@ -1290,7 +1290,7 @@ const ProfileModalInner: React.FC<{
                           onClick={() => setBannerLayout((prev) => ({ ...prev, fit: 'contain' }))}
                           className={`px-2.5 py-0.5 rounded-lg text-[10px] font-semibold cursor-pointer border transition ${
                             bannerLayout.fit === 'contain'
-                              ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200'
+                              ? 'bg-[#e07a5f]/25 border-[#e07a5f] text-[#f4f1de]'
                               : 'bg-white/5 border-white/10 text-neutral-300 hover:text-white'
                           }`}
                         >
@@ -1318,7 +1318,7 @@ const ProfileModalInner: React.FC<{
                               zoom: Math.max(1, Math.round((prev.zoom - 0.1) * 100) / 100),
                             }))
                           }
-                          className="p-1 rounded-lg hover:bg-white/10 text-cyan-300 cursor-pointer"
+                          className="p-1 rounded-lg hover:bg-white/10 text-[#f2cc8f] cursor-pointer"
                           title="Thu nhỏ"
                         >
                           <ZoomOut className="w-3.5 h-3.5" />
@@ -1331,7 +1331,7 @@ const ProfileModalInner: React.FC<{
                           step={2}
                           value={Math.round(bannerLayout.zoom * 100)}
                           onChange={(e) => setBannerLayout((prev) => ({ ...prev, zoom: Number(e.target.value) / 100 }))}
-                          className="flex-1 accent-cyan-400 cursor-pointer"
+                          className="flex-1 accent-[#f2cc8f] cursor-pointer"
                         />
                         <button
                           type="button"
@@ -1341,12 +1341,12 @@ const ProfileModalInner: React.FC<{
                               zoom: Math.min(3, Math.round((prev.zoom + 0.1) * 100) / 100),
                             }))
                           }
-                          className="p-1 rounded-lg hover:bg-white/10 text-cyan-300 cursor-pointer"
+                          className="p-1 rounded-lg hover:bg-white/10 text-[#f2cc8f] cursor-pointer"
                           title="Phóng to"
                         >
                           <ZoomIn className="w-3.5 h-3.5" />
                         </button>
-                        <span className="shrink-0 w-11 text-right font-mono text-[10.5px] text-cyan-200">
+                        <span className="shrink-0 w-11 text-right font-mono text-[10.5px] text-[#f2cc8f]">
                           {Math.round(bannerLayout.zoom * 100)}%
                         </span>
                       </div>
@@ -1418,7 +1418,7 @@ const ProfileModalInner: React.FC<{
                         <button
                           type="button"
                           onClick={handleSaveBannerLayout}
-                          className="inline-flex items-center gap-1.5 px-4 py-1 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-[11px] font-extrabold shadow-md cursor-pointer"
+                          className="ff-tactile-btn inline-flex items-center gap-1.5 px-4 py-1 rounded-lg bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border border-[#f4f1de] text-[11px] font-extrabold cursor-pointer"
                         >
                           <Check className="w-3.5 h-3.5" />
                           <span>Lưu thay đổi</span>
@@ -1523,7 +1523,7 @@ const ProfileModalInner: React.FC<{
                               decoding="async"
                               width={150}
                               height={150}
-                              className="w-full h-full rounded-full object-cover bg-[#0c1218] shadow-md"
+                              className="w-full h-full rounded-full object-cover bg-[#0b0d12] shadow-md"
                             />
                           </div>
                         )}
@@ -1552,10 +1552,10 @@ const ProfileModalInner: React.FC<{
                           <button
                             type="button"
                             onClick={() => openFacebookCropper('avatar', avatar || currentUser.avatar)}
-                            className="px-2.5 py-0.5 rounded-full bg-black/55 hover:bg-black/75 border border-cyan-400/35 text-[10px] font-semibold text-cyan-200 hover:text-white inline-flex items-center gap-1 cursor-pointer transition"
+                            className="px-2.5 py-0.5 rounded-full bg-black/55 hover:bg-black/75 border border-[#f2cc8f]/45 text-[10px] font-semibold text-[#f2cc8f] hover:text-[#f4f1de] inline-flex items-center gap-1 cursor-pointer transition"
                             title="Mở khung cắt tròn kiểu Facebook cho ảnh đại diện hiện tại"
                           >
-                            <Crop className="w-3 h-3 text-cyan-300" />
+                            <Crop className="w-3 h-3 text-[#f2cc8f]" />
                             <span>Cắt ảnh đại diện</span>
                           </button>
                         </div>
@@ -1574,8 +1574,8 @@ const ProfileModalInner: React.FC<{
 
                         {/* Hàng nhãn vai trò & cấp bậc — căn giữa đồng bộ dưới Nametag */}
                         <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-teal-500/15 border border-teal-400/30 text-teal-200 text-[11px] font-semibold">
-                            <UserCheck className="w-3 h-3 text-teal-300 shrink-0" />
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-[#81b29a]/18 border border-[#81b29a]/40 text-[#d8f3dc] text-[11px] font-semibold">
+                            <UserCheck className="w-3 h-3 text-[#81b29a] shrink-0" />
                             <span>
                               {currentUser.role === 'SUPER_ADMIN'
                                 ? 'Quản trị'
@@ -1585,7 +1585,7 @@ const ProfileModalInner: React.FC<{
                             </span>
                           </span>
 
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-cyan-500/12 border border-cyan-400/25 text-cyan-200 text-[11px] font-semibold">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-[#e07a5f]/15 border border-[#e07a5f]/40 text-[#f4f1de] text-[11px] font-semibold">
                             <span>{tier.titleVi}</span>
                             <span className="text-white/40">·</span>
                             <span className="font-mono text-[10.5px]">Lv.{currentUser.level}</span>
@@ -1668,7 +1668,7 @@ const ProfileModalInner: React.FC<{
                               key={slot.slotLabel}
                               className={`flex items-center justify-between gap-2 p-2.5 rounded-xl border transition ${
                                 isSelected
-                                  ? 'bg-cyan-500/15 border-cyan-400/60 shadow-[0_0_16px_rgba(34,211,238,0.16)]'
+                                  ? 'bg-[#e07a5f]/20 border-[#e07a5f]/60 shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
                                   : 'bg-white/[0.035] hover:bg-white/[0.07] border-white/12'
                               }`}
                             >
@@ -1711,7 +1711,7 @@ const ProfileModalInner: React.FC<{
                                     <span className="rarity-dot" style={{ background: meta.color }} aria-hidden="true" />
                                     <span>{slot.slotLabel}</span>
                                     {isOwnProfile && (
-                                      <span className={isSelected ? 'text-cyan-300 font-bold' : 'text-white/50'}>
+                                      <span className={isSelected ? 'text-[#f2cc8f] font-bold' : 'text-white/50'}>
                                         · {slot.ownedCount} món
                                       </span>
                                     )}
@@ -1759,7 +1759,7 @@ const ProfileModalInner: React.FC<{
                                   onClick={() => setQuickWardrobeSlot(tab.id)}
                                   className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
                                     quickWardrobeSlot === tab.id
-                                      ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                                      ? 'bg-[#e07a5f] text-[#0b0d12] shadow-sm'
                                       : 'bg-white/[0.06] text-neutral-300 hover:text-white'
                                   }`}
                                 >
@@ -1775,7 +1775,7 @@ const ProfileModalInner: React.FC<{
                                 onChange={(e) => setWardrobeSearch(e.target.value)}
                                 maxLength={80}
                                 placeholder="Tìm nhanh trong kho đồ..."
-                                className="bg-black/40 border border-white/15 rounded-lg px-2.5 py-1 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-cyan-400 w-44"
+                                className="bg-black/40 border border-[#f4f1de]/18 rounded-lg px-2.5 py-1 text-xs text-[#f4f1de] placeholder-neutral-500 focus:outline-none focus:border-[#f2cc8f] w-44"
                               />
                             )}
                           </div>
@@ -1849,7 +1849,7 @@ const ProfileModalInner: React.FC<{
                                         className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition cursor-pointer ${
                                           isEquipped
                                             ? 'bg-emerald-500/15 border-emerald-400/70 shadow-[0_0_16px_rgba(16,185,129,0.2)]'
-                                            : 'bg-black/35 hover:bg-white/[0.08] border-white/12 hover:border-cyan-400/40'
+                                            : 'bg-black/35 hover:bg-white/[0.08] border-white/12 hover:border-[#f2cc8f]/45'
                                         }`}
                                       >
                                         <DecoratedName
@@ -1876,7 +1876,7 @@ const ProfileModalInner: React.FC<{
                                             className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold shrink-0 ${
                                               isEquipped
                                                 ? 'bg-emerald-500/25 text-emerald-200 border border-emerald-400/40'
-                                                : 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/35'
+                                                : 'bg-[#f2cc8f]/20 text-[#f2cc8f] border border-[#f2cc8f]/40'
                                             }`}
                                           >
                                             {isEquipped ? '✓ Đang dùng' : 'Sử dụng ngay'}
@@ -1896,7 +1896,7 @@ const ProfileModalInner: React.FC<{
                                       className={`flex items-center gap-3 p-2.5 rounded-xl border text-left transition cursor-pointer ${
                                         isEquipped
                                           ? 'bg-emerald-500/15 border-emerald-400/70 shadow-[0_0_16px_rgba(16,185,129,0.2)]'
-                                          : 'bg-black/35 hover:bg-white/[0.08] border-white/12 hover:border-cyan-400/40'
+                                          : 'bg-black/35 hover:bg-white/[0.08] border-white/12 hover:border-[#f2cc8f]/45'
                                       }`}
                                     >
                                       <span className="w-12 h-12 rounded-xl bg-black/50 border border-white/10 shrink-0 flex items-center justify-center overflow-visible">
@@ -1927,7 +1927,7 @@ const ProfileModalInner: React.FC<{
                                           className={`inline-block px-2 py-0.5 rounded-md text-[10.5px] font-bold ${
                                             isEquipped
                                               ? 'bg-emerald-500/25 text-emerald-200 border border-emerald-400/40'
-                                              : 'bg-cyan-500/20 text-cyan-200 border border-cyan-400/35'
+                                              : 'bg-[#f2cc8f]/20 text-[#f2cc8f] border border-[#f2cc8f]/40'
                                           }`}
                                         >
                                           {isEquipped ? '✓ Đang dùng (Bấm gỡ)' : 'Sử dụng ngay'}
@@ -2222,7 +2222,7 @@ const ProfileModalInner: React.FC<{
                       <div className="flex items-center gap-3">
                         <div>
                           <span className="text-neutral-400">Số câu trả lời: </span>
-                          <span className="text-cyan-300 font-bold font-mono">{statsMetrics.answersCount}</span>
+                          <span className="text-[#f2cc8f] font-bold font-mono">{statsMetrics.answersCount}</span>
                         </div>
                         <span>|</span>
                         <div>
@@ -2237,9 +2237,9 @@ const ProfileModalInner: React.FC<{
                       <button
                         type="button"
                         onClick={() => setActivitySubTab('questions')}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                           activitySubTab === 'questions'
-                            ? 'bg-[#0284C7] text-white shadow-sm'
+                            ? 'bg-[#e07a5f] text-[#0b0d12] shadow-sm'
                             : 'pc-12-btn text-neutral-400 hover:text-white'
                         }`}
                       >
@@ -2249,9 +2249,9 @@ const ProfileModalInner: React.FC<{
                       <button
                         type="button"
                         onClick={() => setActivitySubTab('solutions')}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                           activitySubTab === 'solutions'
-                            ? 'bg-[#0284C7] text-white shadow-sm'
+                            ? 'bg-[#e07a5f] text-[#0b0d12] shadow-sm'
                             : 'pc-12-btn text-neutral-400 hover:text-white'
                         }`}
                       >
@@ -2276,7 +2276,7 @@ const ProfileModalInner: React.FC<{
                                 className="ac-01__card pc-12-well p-3 space-y-1 transition-colors"
                               >
                                 <div className="flex items-center justify-between text-[11px] text-neutral-400 font-mono">
-                                  <span className="text-sky-400 font-bold truncate max-w-[65%]">
+                                  <span className="text-[#f2cc8f] font-bold truncate max-w-[65%]">
                                     {parentQ ? parentQ.title : 'Câu hỏi'}
                                   </span>
                                   <span>{s.createdAt}</span>
@@ -2392,7 +2392,7 @@ const ProfileModalInner: React.FC<{
                   <span>•</span>
                   <div className="flex items-center gap-1.5">
                     <span className="text-neutral-400">Số câu trả lời:</span>
-                    <span className="text-cyan-300 font-mono font-bold">{statsMetrics.answersCount}</span>
+                    <span className="text-[#81b29a] font-mono font-bold">{statsMetrics.answersCount}</span>
                   </div>
                   <span>•</span>
                   <div className="flex items-center gap-1.5">
@@ -2428,7 +2428,7 @@ const ProfileModalInner: React.FC<{
                       return (
                         <div key={s.id} className="pc-12-card p-3.5 space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="pc-12-pill px-2.5 py-0.5 text-cyan-300 text-[10px] font-mono font-bold">
+                            <span className="pc-12-pill px-2.5 py-0.5 text-[#81b29a] text-[10px] font-mono font-bold">
                               Lời giải • {parentQ ? parentQ.title : 'Hỏi đáp'}
                             </span>
                             <span className="text-[10px] text-neutral-400 font-mono">{s.createdAt}</span>
@@ -2477,8 +2477,8 @@ const ProfileModalInner: React.FC<{
                 >
                   <div className="absolute inset-0 bg-black/15 group-hover:bg-black/30 transition-colors flex flex-col items-center justify-center gap-2 px-3">
                     {effectiveBannerUrl && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/70 border border-cyan-400/45 text-[11px] font-medium text-cyan-200 pointer-events-none">
-                        <Move className="w-3.5 h-3.5 text-cyan-300" />
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/70 border border-[#f2cc8f]/45 text-[11px] font-medium text-[#f2cc8f] pointer-events-none">
+                        <Move className="w-3.5 h-3.5 text-[#f2cc8f]" />
                         <span>Giữ chuột kéo để căn vị trí ảnh nền ({bannerLayout.x}% · {bannerLayout.y}%)</span>
                       </span>
                     )}
@@ -2530,7 +2530,7 @@ const ProfileModalInner: React.FC<{
                 {effectiveBannerUrl && (
                   <div className="relative z-10 px-4 py-2.5 bg-black/45 border-b border-white/10 flex flex-wrap items-center justify-between gap-3 text-[11px]">
                     <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                      <ZoomOut className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
+                      <ZoomOut className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
                       <span className="font-mono text-[10.5px] text-neutral-300 w-20 shrink-0">
                         Zoom {Math.round(bannerLayout.zoom * 100)}%
                       </span>
@@ -2543,9 +2543,9 @@ const ProfileModalInner: React.FC<{
                         onChange={(e) =>
                           setBannerLayout((prev) => ({ ...prev, zoom: Number(e.target.value) / 100 }))
                         }
-                        className="flex-1 accent-cyan-400 cursor-pointer"
+                        className="flex-1 accent-[#f2cc8f] cursor-pointer"
                       />
-                      <ZoomIn className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
+                      <ZoomIn className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
                     </div>
 
                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -2554,7 +2554,7 @@ const ProfileModalInner: React.FC<{
                         onClick={() => setBannerLayout((prev) => ({ ...prev, fit: 'cover' }))}
                         className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border cursor-pointer ${
                           bannerLayout.fit === 'cover'
-                            ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200'
+                            ? 'bg-[#e07a5f]/25 border-[#e07a5f] text-[#f4f1de]'
                             : 'bg-white/5 border-white/10 text-neutral-300'
                         }`}
                       >
@@ -2565,7 +2565,7 @@ const ProfileModalInner: React.FC<{
                         onClick={() => setBannerLayout((prev) => ({ ...prev, fit: 'contain' }))}
                         className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border cursor-pointer ${
                           bannerLayout.fit === 'contain'
-                            ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200'
+                            ? 'bg-[#e07a5f]/25 border-[#e07a5f] text-[#f4f1de]'
                             : 'bg-white/5 border-white/10 text-neutral-300'
                         }`}
                       >
@@ -2594,7 +2594,7 @@ const ProfileModalInner: React.FC<{
                         decoding="async"
                         width={68}
                         height={68}
-                        className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-400/70 shadow-xl bg-[#0c1218]"
+                        className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-400/70 shadow-xl bg-[#0b0d12]"
                       />
                       <label
                         htmlFor="avatar-upload"
@@ -2774,7 +2774,7 @@ const ProfileModalInner: React.FC<{
           }}
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-up"
         >
-          <div className="pc-12-shell w-full max-w-md rounded-3xl border border-red-500/40 shadow-2xl p-6 relative">
+          <div className="pc-12-shell w-full max-w-md rounded-2xl border border-red-500/40 shadow-2xl p-6 relative">
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
               <div className="flex items-center gap-2 text-red-400">
                 <Flag className="w-5 h-5 text-red-400" />
@@ -2894,22 +2894,22 @@ const ProfileModalInner: React.FC<{
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-2xl rounded-3xl bg-[#0b111e] border border-cyan-400/40 shadow-[0_28px_80px_rgba(0,0,0,0.92)] overflow-hidden flex flex-col"
+            className="modal-container w-full max-w-2xl overflow-hidden flex flex-col"
           >
             {/* Header chuẩn Facebook */}
-            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/10 bg-white/[0.02]">
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-dashed border-[#f4f1de]/15 bg-[#0b0d12]/60">
               <div>
-                <h3 className="text-base sm:text-lg font-extrabold text-white">
+                <h3 className="text-base sm:text-lg font-extrabold text-[#f4f1de]">
                   {fbCropModal.kind === 'avatar' ? 'Chọn & Cắt Ảnh Đại Diện' : 'Đặt Vị Trí & Cắt Ảnh Bìa'}
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-[#9a978e] mt-0.5">
                   Kéo ảnh trực tiếp trong khung cố định · Lăn chuột hoặc kéo thanh trượt để thu phóng
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => !isSavingFbCrop && setFbCropModal(null)}
-                className="p-2 rounded-full bg-white/[0.06] hover:bg-white/[0.14] text-slate-300 hover:text-white cursor-pointer"
+                className="p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
                 aria-label="Đóng trình cắt ảnh"
               >
                 <X className="w-4 h-4" />
@@ -2917,11 +2917,11 @@ const ProfileModalInner: React.FC<{
             </div>
 
             {/* Sân khấu kéo ảnh dưới mặt nạ cố định kiểu Facebook (Kèm native wheel listener chống cuộn trang) */}
-            <div className="p-4 sm:p-6 bg-[#060911] flex flex-col items-center justify-center">
+            <div className="p-4 sm:p-6 bg-[#0b0d12] flex flex-col items-center justify-center">
               <div
                 ref={fbCropStageRef}
                 onPointerDown={beginFbCropDrag}
-                className={`relative overflow-hidden bg-[#04070d] border border-white/15 shadow-2xl cursor-grab active:cursor-grabbing ${
+                className={`relative overflow-hidden bg-[#04070d] border border-[#f4f1de]/20 shadow-2xl cursor-grab active:cursor-grabbing ${
                   fbCropModal.kind === 'avatar'
                     ? 'w-[280px] h-[280px] sm:w-[330px] sm:h-[330px] rounded-2xl'
                     : 'w-full max-w-[580px] aspect-[12/10] sm:aspect-[14/10] rounded-2xl'
@@ -2939,14 +2939,14 @@ const ProfileModalInner: React.FC<{
                 {/* Mặt nạ (Mask) chuẩn Facebook: hình tròn cho Avatar, khung chữ nhật cho Ảnh bìa */}
                 {fbCropModal.kind === 'avatar' ? (
                   <div
-                    className="absolute inset-4 sm:inset-5 rounded-full border-2 border-cyan-300/90 pointer-events-none"
+                    className="absolute inset-4 sm:inset-5 rounded-full border-2 border-[#f2cc8f] pointer-events-none"
                     style={{
                       boxShadow: '0 0 0 9999px rgba(4, 7, 13, 0.68)',
                     }}
                   />
                 ) : (
                   <div
-                    className="absolute inset-3 sm:inset-4 rounded-xl border-2 border-cyan-300/85 pointer-events-none flex flex-col items-center justify-center"
+                    className="absolute inset-3 sm:inset-4 rounded-xl border-2 border-[#f2cc8f] pointer-events-none flex flex-col items-center justify-center"
                     style={{
                       boxShadow: '0 0 0 9999px rgba(4, 7, 13, 0.58)',
                     }}
@@ -2978,7 +2978,7 @@ const ProfileModalInner: React.FC<{
                 {/* Nhãn nhắc kéo như trên Facebook */}
                 <div className="absolute bottom-3 inset-x-0 flex justify-center pointer-events-none px-3">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 border border-white/15 text-[11px] font-semibold text-white shadow-lg backdrop-blur-md">
-                    <Move className="w-3.5 h-3.5 text-cyan-300" />
+                    <Move className="w-3.5 h-3.5 text-[#f2cc8f]" />
                     <span>Kéo để đặt lại vị trí · Lăn chuột để thu phóng</span>
                   </span>
                 </div>
@@ -2986,7 +2986,7 @@ const ProfileModalInner: React.FC<{
 
               {/* Thanh trượt Zoom chuẩn Facebook (− [════●════] +) + Xoay 90° & Lật ngang */}
               <div className="w-full max-w-[520px] mt-4 space-y-3">
-                <div className="flex items-center gap-3 px-3.5 py-2 rounded-2xl bg-white/[0.04] border border-white/10">
+                <div className="flex items-center gap-3 px-3.5 py-2 rounded-xl bg-[#151a26] border border-[#f4f1de]/15">
                   <button
                     type="button"
                     onClick={() =>
@@ -3002,7 +3002,7 @@ const ProfileModalInner: React.FC<{
                           : null,
                       )
                     }
-                    className="p-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] text-cyan-300 cursor-pointer"
+                    className="p-1.5 rounded-lg bg-[#0b0d12] hover:bg-[#f2cc8f]/20 text-[#f2cc8f] cursor-pointer"
                     title="Thu nhỏ"
                   >
                     <ZoomOut className="w-4 h-4" />
@@ -3027,7 +3027,7 @@ const ProfileModalInner: React.FC<{
                           : null,
                       )
                     }
-                    className="flex-1 accent-cyan-400 cursor-pointer"
+                    className="flex-1 accent-[#f2cc8f] cursor-pointer"
                   />
                   <button
                     type="button"
@@ -3044,12 +3044,12 @@ const ProfileModalInner: React.FC<{
                           : null,
                       )
                     }
-                    className="p-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] text-cyan-300 cursor-pointer"
+                    className="p-1.5 rounded-lg bg-[#0b0d12] hover:bg-[#f2cc8f]/20 text-[#f2cc8f] cursor-pointer"
                     title="Phóng to"
                   >
                     <ZoomIn className="w-4 h-4" />
                   </button>
-                  <span className="w-12 text-right font-mono text-xs font-bold text-cyan-200">
+                  <span className="w-12 text-right font-mono text-xs font-bold text-[#f2cc8f]">
                     {Math.round(fbCropModal.config.zoom * 100)}%
                   </span>
                 </div>
@@ -3070,9 +3070,9 @@ const ProfileModalInner: React.FC<{
                           : null,
                       )
                     }
-                    className="px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-slate-200 inline-flex items-center gap-1.5 cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg bg-[#151a26] hover:bg-[#f4f1de]/10 border border-[#f4f1de]/15 text-xs font-semibold text-[#f4f1de] inline-flex items-center gap-1.5 cursor-pointer"
                   >
-                    <RotateCw className="w-3.5 h-3.5 text-cyan-300" />
+                    <RotateCw className="w-3.5 h-3.5 text-[#f2cc8f]" />
                     <span>Xoay 90°</span>
                   </button>
 
@@ -3091,13 +3091,13 @@ const ProfileModalInner: React.FC<{
                           : null,
                       )
                     }
-                    className={`px-3 py-1.5 rounded-xl border text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer ${
                       fbCropModal.config.flipH
-                        ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200'
-                        : 'bg-white/[0.05] hover:bg-white/[0.12] border-white/10 text-slate-200'
+                        ? 'bg-[#e07a5f]/25 border-[#e07a5f] text-[#f4f1de]'
+                        : 'bg-[#151a26] hover:bg-[#f4f1de]/10 border-[#f4f1de]/15 text-[#f4f1de]'
                     }`}
                   >
-                    <FlipHorizontal className="w-3.5 h-3.5 text-cyan-300" />
+                    <FlipHorizontal className="w-3.5 h-3.5 text-[#f2cc8f]" />
                     <span>Lật ngang</span>
                   </button>
 
@@ -3113,7 +3113,7 @@ const ProfileModalInner: React.FC<{
                           : null,
                       )
                     }
-                    className="px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-slate-300 inline-flex items-center gap-1.5 cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg bg-[#151a26] hover:bg-[#f4f1de]/10 border border-[#f4f1de]/15 text-xs font-semibold text-[#d8d5ce] inline-flex items-center gap-1.5 cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Đặt lại giữa khung</span>
@@ -3123,12 +3123,12 @@ const ProfileModalInner: React.FC<{
             </div>
 
             {/* Footer nút Hủy & Lưu */}
-            <div className="px-5 sm:px-6 py-4 border-t border-white/10 bg-white/[0.02] flex items-center justify-end gap-2.5">
+            <div className="px-5 sm:px-6 py-4 border-t border-dashed border-[#f4f1de]/15 bg-[#0b0d12]/60 flex items-center justify-end gap-2.5">
               <button
                 type="button"
                 disabled={isSavingFbCrop}
                 onClick={() => setFbCropModal(null)}
-                className="px-4 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 text-xs sm:text-sm font-bold text-slate-300 hover:text-white cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-[#0b0d12] hover:bg-[#f4f1de]/10 border border-[#f4f1de]/18 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
               >
                 Hủy
               </button>
@@ -3136,7 +3136,7 @@ const ProfileModalInner: React.FC<{
                 type="button"
                 disabled={isSavingFbCrop}
                 onClick={() => void handleConfirmFacebookCrop()}
-                className="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs sm:text-sm shadow-lg inline-flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                className="ff-tactile-btn px-5 py-2 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border border-[#f4f1de] font-extrabold text-xs sm:text-sm inline-flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
               >
                 <Check className="w-4 h-4" />
                 <span>

@@ -722,10 +722,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       className="rounded-full ring-2 ring-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
                     />
                     <span
-                      className={`absolute bottom-0 right-0 z-[4] w-3 h-3 rounded-full border-2 border-[#0c1218] ${
+                      className={`absolute bottom-0 right-0 z-[4] w-3 h-3 rounded-full border-2 border-[#0b0d12] ${
                         isMasterAdminOnline
                           ? 'bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse'
-                          : 'bg-cyan-400 shadow-[0_0_8px_#22d3ee]'
+                          : 'bg-[#81b29a] shadow-[0_0_8px_#81b29a]'
                       }`}
                     />
                   </div>
@@ -741,7 +741,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       />
                       <AdminVerifiedBadge size={13} />
                     </div>
-                    <span className="text-[10px] text-cyan-300 font-mono block truncate mt-0.5">
+                    <span className="text-[10px] text-[#f2cc8f] font-mono block truncate mt-0.5">
                       {MASTER_ADMIN_CONFIG.role}
                     </span>
                   </div>
@@ -974,10 +974,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       className="rounded-full ring-2 ring-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
                     />
                     <span
-                      className={`absolute bottom-0 right-0 z-[4] w-3 h-3 rounded-full border-2 border-[#0c1218] ${
+                      className={`absolute bottom-0 right-0 z-[4] w-3 h-3 rounded-full border-2 border-[#0b0d12] ${
                         isMasterAdminOnline
                           ? 'bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse'
-                          : 'bg-cyan-400 shadow-[0_0_8px_#22d3ee]'
+                          : 'bg-[#81b29a] shadow-[0_0_8px_#81b29a]'
                       }`}
                     />
                   </div>
@@ -993,7 +993,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       />
                       <AdminVerifiedBadge size={13} />
                     </div>
-                    <span className="text-[10px] text-cyan-300 font-mono block truncate mt-0.5">
+                    <span className="text-[10px] text-[#f2cc8f] font-mono block truncate mt-0.5">
                       {MASTER_ADMIN_CONFIG.role}
                     </span>
                   </div>
@@ -1161,9 +1161,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     setActiveAuthorCard(null);
                     onOpenProfile(user);
                   }}
-                  className="pc-12-btn w-full py-2 px-3 rounded-xl text-cyan-200 hover:text-white text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                  className="pc-12-btn ff-tactile-btn w-full py-2 px-3 rounded-xl text-[#f4f1de] hover:text-[#f2cc8f] text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <UserIcon className="w-3.5 h-3.5 text-cyan-400" />
+                  <UserIcon className="w-3.5 h-3.5 text-[#f2cc8f]" />
                   <span>Trang cá nhân</span>
                 </button>
               )}

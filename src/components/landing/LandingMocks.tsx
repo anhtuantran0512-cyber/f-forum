@@ -123,7 +123,7 @@ export const AppWindowMock: React.FC = () => (
               <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold text-amber-300 ring-1 ring-amber-400/25">
                 #toán
               </span>
-              <span className="rounded-full bg-sky-500/15 px-2.5 py-1 text-[10px] font-semibold text-sky-300 ring-1 ring-sky-400/25">
+              <span className="rounded-full bg-[#81b29a]/15 px-2.5 py-1 text-[10px] font-semibold text-[#81b29a] ring-1 ring-[#81b29a]/35">
                 #tin-học
               </span>
               <span className="hidden rounded-full bg-[var(--ff-surface)] px-2.5 py-1 text-[10px] text-[var(--ff-text-dim)] ring-1 ring-[var(--ff-border)] sm:inline-flex">
@@ -139,7 +139,7 @@ export const AppWindowMock: React.FC = () => (
               <div className="min-w-0">
                 <p className="flex items-center gap-1 text-[11px] font-semibold text-[var(--ff-text)]">
                   Bút danh Ghibli
-                  <span className="rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[8.5px] font-semibold uppercase tracking-wide text-sky-300 ring-1 ring-sky-400/25">
+                  <span className="rounded-full bg-[#81b29a]/15 px-1.5 py-0.5 text-[8.5px] font-semibold uppercase tracking-wide text-[#81b29a] ring-1 ring-[#81b29a]/35">
                     Ẩn danh
                   </span>
                 </p>
@@ -264,7 +264,7 @@ export const QAMock: React.FC = () => (
 export const ClubsMock: React.FC = () => (
   <div className="ff-glass ff-card h-full rounded-[22px] p-4">
     <div className="flex items-center gap-2">
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/15 px-2.5 py-1 text-[10px] font-semibold text-sky-300 ring-1 ring-sky-400/25">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#81b29a]/15 px-2.5 py-1 text-[10px] font-semibold text-[#81b29a] ring-1 ring-[#81b29a]/35">
         <Users className="h-3 w-3" /> Câu lạc bộ
       </span>
       <span className="font-mono text-[10px] text-[var(--ff-text-dim)]">Công nghệ · Nghệ thuật · Thể thao</span>

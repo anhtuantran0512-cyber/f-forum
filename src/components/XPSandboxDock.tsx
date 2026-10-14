@@ -55,7 +55,7 @@ export const XPSandboxDock: React.FC<XPSandboxDockProps> = ({
     <div ref={containerRef} className="fixed bottom-4 left-4 z-40 select-none">
       {/* Expanded XP Booster Panel (Upward Expansion) */}
       {isExpanded && (
-        <div className="absolute bottom-[calc(100%+10px)] left-0 w-72 liquid-glass rounded-3xl bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 p-4 shadow-[0_25px_60px_rgba(0,0,0,0.85)] animate-fade-up space-y-3">
+        <div className="modal-container absolute bottom-[calc(100%+10px)] left-0 w-72 liquid-glass backdrop-blur-2xl p-4 animate-fade-up space-y-3">
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-white/10">
             <div className="flex items-center gap-2">

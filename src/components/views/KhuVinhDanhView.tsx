@@ -1234,12 +1234,12 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 onExit();
               }
             }}
-            className="ff-enter-forum-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-600 hover:from-cyan-400 hover:via-indigo-400 hover:to-purple-500 border border-cyan-300/40 shadow-[0_0_18px_rgba(34,211,238,0.35)] hover:shadow-[0_0_24px_rgba(168,85,247,0.5)] transition-all transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
+            className="ff-enter-forum-btn ff-tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold text-[#0b0d12] bg-[#e07a5f] hover:bg-[#f2cc8f] border border-[#f4f1de] shadow-[2px_2px_0px_rgba(4,6,11,0.9)] transition-all cursor-pointer"
             title="Chuyển đến Diễn đàn F-Forum Q&A"
           >
-            <Compass className="w-3.5 h-3.5 text-cyan-200" />
+            <Compass className="w-3.5 h-3.5 text-[#0b0d12]" />
             <span>Vào Forum</span>
-            <ArrowRight className="w-3 h-3 text-purple-200" />
+            <ArrowRight className="w-3 h-3 text-[#0b0d12]" />
           </button>
         </div>
 
@@ -1479,7 +1479,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             onClick={closeLightbox}
           />
           <div
-            className="lit-dialog relative z-10 w-full max-w-[min(78vw,920px)] rounded-3xl bg-[#0b111d] border border-white/20 p-5 sm:p-7 shadow-[0_30px_90px_rgba(0,0,0,0.95)]"
+            className="lit-dialog modal-container relative z-10 w-full max-w-[min(78vw,920px)] p-5 sm:p-7"
           >
             {/* Close Button */}
             <button
@@ -1614,31 +1614,31 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         <div className="fixed inset-0 z-[140] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md">
           <form
             onSubmit={handleSaveRecord}
-            className="w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-3xl bg-[#0b111e] border border-amber-400/45 p-6 sm:p-8 space-y-5 shadow-[0_30px_90px_rgba(0,0,0,0.95)]"
+            className="modal-container w-full max-w-2xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 space-y-5"
           >
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="flex items-center justify-between border-b border-dashed border-[#f4f1de]/15 pb-4">
               <div>
-                <h3 className="text-lg font-extrabold text-white">Chỉnh Sửa Cột Mốc &amp; Thay Thế Hình Ảnh</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Thay đổi được lưu trực tiếp lên máy chủ và đồng bộ cho toàn bộ thành viên</p>
+                <h3 className="text-lg font-extrabold text-[#f4f1de]">Chỉnh Sửa Cột Mốc &amp; Thay Thế Hình Ảnh</h3>
+                <p className="text-xs text-[#9a978e] mt-0.5">Thay đổi được lưu trực tiếp lên máy chủ và đồng bộ cho toàn bộ thành viên</p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsEditRecordModalOpen(false)}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white cursor-pointer"
+                className="p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Khung xem trước ảnh trực quan */}
-            <div className="rounded-2xl bg-[#070b13] border border-white/15 p-4 space-y-3">
+            <div className="rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15 p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs sm:text-sm font-bold text-amber-300">Hình ảnh cột mốc hiện tại</span>
+                <span className="text-xs sm:text-sm font-bold text-[#f2cc8f]">Hình ảnh cột mốc hiện tại</span>
                 {editingRecord.customImgUrl && (
                   <button
                     type="button"
                     onClick={() => setEditingRecord({ ...editingRecord, customImgUrl: undefined })}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-[#d8d5ce] cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Khôi phục ảnh gốc</span>
@@ -1663,12 +1663,12 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                   maxLength={500}
                   value={editingRecord.customImgUrl || ''}
                   onChange={(e) => setEditingRecord({ ...editingRecord, customImgUrl: e.target.value })}
-                  className="flex-1 bg-[#0b111e] border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                  className="flex-1 bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-4 py-2.5 text-sm text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f]"
                 />
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-md"
+                  className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-md"
                 >
                   <Upload className="w-4 h-4" />
                   <span>{isUploadingMedia ? 'Đang tải...' : 'Tải ảnh từ máy'}</span>
@@ -1686,7 +1686,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="tieu-de-cot-moc" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Tiêu đề cột mốc (*)</label>
+                <label htmlFor="tieu-de-cot-moc" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Tiêu đề cột mốc (*)</label>
                 <input
                   id="tieu-de-cot-moc"
                   type="text"
@@ -1694,12 +1694,12 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                   maxLength={100}
                   value={editingRecord.title}
                   onChange={(e) => setEditingRecord({ ...editingRecord, title: e.target.value })}
-                  className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                  className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                 />
               </div>
 
               <div>
-                <label htmlFor="dia-diem-danh-muc" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Địa điểm / Danh mục (*)</label>
+                <label htmlFor="dia-diem-danh-muc" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Địa điểm / Danh mục (*)</label>
                 <input
                   id="dia-diem-danh-muc"
                   type="text"
@@ -1707,13 +1707,13 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                   maxLength={80}
                   value={editingRecord.place}
                   onChange={(e) => setEditingRecord({ ...editingRecord, place: e.target.value })}
-                  className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                  className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="noi-dung-ghi-chu" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Nội dung mô tả chi tiết (*)</label>
+              <label htmlFor="noi-dung-ghi-chu" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Nội dung mô tả chi tiết (*)</label>
               <textarea
                 id="noi-dung-ghi-chu"
                 required
@@ -1721,19 +1721,19 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 maxLength={400}
                 value={editingRecord.note}
                 onChange={(e) => setEditingRecord({ ...editingRecord, note: e.target.value })}
-                className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400 leading-relaxed resize-y"
+                className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f] leading-relaxed resize-y"
               />
             </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-white/10">
-              <label htmlFor="field" className="flex items-center gap-2.5 text-xs sm:text-sm text-slate-200 font-semibold cursor-pointer">
+            <div className="flex items-center justify-between pt-3 border-t border-dashed border-[#f4f1de]/15">
+              <label htmlFor="field" className="flex items-center gap-2.5 text-xs sm:text-sm text-[#f4f1de] font-semibold cursor-pointer">
                 <input
                   id="field"
                   type="checkbox"
                   maxLength={10}
                   checked={Boolean(editingRecord.isTall)}
                   onChange={(e) => setEditingRecord({ ...editingRecord, isTall: e.target.checked })}
-                  className="w-4 h-4 rounded accent-amber-500"
+                  className="w-4 h-4 rounded accent-[#e07a5f]"
                 />
                 <span>Hiển thị khung ảnh dọc (Tall Portrait)</span>
               </label>
@@ -1742,13 +1742,13 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsEditRecordModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-slate-300 hover:text-white cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
                 >
                   Hủy bỏ
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-amber-500 text-black font-extrabold text-xs sm:text-sm hover:bg-amber-400 transition-colors shadow-lg cursor-pointer"
+                  className="ff-tactile-btn px-6 py-2.5 rounded-xl bg-[#e07a5f] text-[#0b0d12] font-extrabold text-xs sm:text-sm hover:bg-[#f2cc8f] transition-colors cursor-pointer"
                 >
                   Lưu thay đổi
                 </button>
@@ -1761,30 +1761,30 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       {/* Admin Edit Bio, 21 Milestones & Scene Studio Modal */}
       {isEditBioModalOpen && isSuperAdmin && (
         <div className="fixed inset-0 z-[140] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md">
-          <div className="w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-3xl bg-[#0b111e] border border-amber-400/45 p-6 sm:p-8 space-y-5 shadow-[0_30px_90px_rgba(0,0,0,0.95)]">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="modal-container w-full max-w-3xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 space-y-5">
+            <div className="flex items-center justify-between border-b border-dashed border-[#f4f1de]/15 pb-4">
               <div>
-                <h3 className="text-lg sm:text-xl font-extrabold text-white">Quản Trị Khu Vinh Danh Toàn Diện</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Thay thế hình ảnh, hồ sơ Founder, 21 cột mốc và tiêu đề 3D ở mọi nơi</p>
+                <h3 className="text-lg sm:text-xl font-extrabold text-[#f4f1de]">Quản Trị Khu Vinh Danh Toàn Diện</h3>
+                <p className="text-xs text-[#9a978e] mt-0.5">Thay thế hình ảnh, hồ sơ Founder, 21 cột mốc và tiêu đề 3D ở mọi nơi</p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsEditBioModalOpen(false)}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white cursor-pointer"
+                className="p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Tab switchers: Founder Bio | 21 Milestones | Scene & Headlines */}
-            <div className="grid grid-cols-3 gap-2 p-1.5 rounded-2xl bg-[#070b13] border border-white/10">
+            <div className="grid grid-cols-3 gap-2 p-1.5 rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15">
               <button
                 type="button"
                 onClick={() => setAdminModalTab('bio')}
-                className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                className={`py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   adminModalTab === 'bio'
-                    ? 'bg-amber-500 text-black shadow-md'
-                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                    ? 'bg-[#e07a5f] text-[#0b0d12] shadow-md'
+                    : 'text-[#d8d5ce] hover:text-[#f4f1de] hover:bg-white/5'
                 }`}
               >
                 1. Hồ sơ Founder &amp; Ảnh
@@ -1792,10 +1792,10 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
               <button
                 type="button"
                 onClick={() => setAdminModalTab('milestones')}
-                className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                className={`py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   adminModalTab === 'milestones'
-                    ? 'bg-amber-500 text-black shadow-md'
-                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                    ? 'bg-[#e07a5f] text-[#0b0d12] shadow-md'
+                    : 'text-[#d8d5ce] hover:text-[#f4f1de] hover:bg-white/5'
                 }`}
               >
                 2. Cột mốc Vinh danh (21)
@@ -1803,10 +1803,10 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
               <button
                 type="button"
                 onClick={() => setAdminModalTab('scene')}
-                className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                className={`py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   adminModalTab === 'scene'
-                    ? 'bg-amber-500 text-black shadow-md'
-                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                    ? 'bg-[#e07a5f] text-[#0b0d12] shadow-md'
+                    : 'text-[#d8d5ce] hover:text-[#f4f1de] hover:bg-white/5'
                 }`}
               >
                 3. Tiêu đề 3D &amp; Giao diện
@@ -1815,17 +1815,17 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 
             {adminModalTab === 'bio' ? (
               <form onSubmit={handleSaveBio} className="space-y-4">
-                <div className="rounded-2xl bg-[#070b13] border border-white/15 p-4 flex flex-col sm:flex-row items-center gap-4">
+                <div className="rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15 p-4 flex flex-col sm:flex-row items-center gap-4">
                   <img
                     src={editBioForm.avatarUrl}
                     alt={editBioForm.name}
                     onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
                     loading="lazy"
                     decoding="async"
-                    className="w-20 h-20 rounded-2xl object-cover border border-amber-400/50 shrink-0"
+                    className="w-20 h-20 rounded-2xl object-cover border border-[#f2cc8f]/50 shrink-0"
                   />
                   <div className="flex-1 w-full space-y-2">
-                    <label htmlFor="anh-dai-dien-url-hoac-tai-tep" className="text-xs sm:text-sm font-bold text-amber-300 block">
+                    <label htmlFor="anh-dai-dien-url-hoac-tai-tep" className="text-xs sm:text-sm font-bold text-[#f2cc8f] block">
                       Ảnh đại diện Founder (Dán URL hoặc tải ảnh từ máy)
                     </label>
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
@@ -1835,9 +1835,9 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                         maxLength={500}
                         value={editBioForm.avatarUrl}
                         onChange={(e) => setEditBioForm({ ...editBioForm, avatarUrl: e.target.value })}
-                        className="flex-1 bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                        className="flex-1 bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2.5 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                       />
-                      <label htmlFor="field-2" className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
+                      <label htmlFor="field-2" className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
                         <Upload className="w-4 h-4" />
                         <span>{isUploadingMedia ? 'Đang tải...' : 'Tải ảnh'}</span>
                         <input
@@ -1855,7 +1855,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="ho-va-ten" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Họ và tên (*)</label>
+                    <label htmlFor="ho-va-ten" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Họ và tên (*)</label>
                     <input
                       id="ho-va-ten"
                       type="text"
@@ -1863,12 +1863,12 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                       maxLength={80}
                       value={editBioForm.name}
                       onChange={(e) => setEditBioForm({ ...editBioForm, name: e.target.value })}
-                      className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                      className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="chuc-danh-vai-tro" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Chức danh / Vai trò (*)</label>
+                    <label htmlFor="chuc-danh-vai-tro" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Chức danh / Vai trò (*)</label>
                     <input
                       id="chuc-danh-vai-tro"
                       type="text"
@@ -1876,13 +1876,13 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                       maxLength={100}
                       value={editBioForm.role}
                       onChange={(e) => setEditBioForm({ ...editBioForm, role: e.target.value })}
-                      className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                      className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="loi-ngo-tieu-su" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Lời ngỏ / Tiểu sử (*)</label>
+                  <label htmlFor="loi-ngo-tieu-su" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Lời ngỏ / Tiểu sử (*)</label>
                   <textarea
                     id="loi-ngo-tieu-su"
                     required
@@ -1890,21 +1890,21 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                     maxLength={400}
                     value={editBioForm.bio}
                     onChange={(e) => setEditBioForm({ ...editBioForm, bio: e.target.value })}
-                    className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400 leading-relaxed resize-y"
+                    className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f] leading-relaxed resize-y"
                   />
                 </div>
 
-                <div className="flex justify-end gap-3 pt-3 border-t border-white/10">
+                <div className="flex justify-end gap-3 pt-3 border-t border-dashed border-[#f4f1de]/15">
                   <button
                     type="button"
                     onClick={() => setIsEditBioModalOpen(false)}
-                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-slate-300 hover:text-white cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
                   >
                     Hủy
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-amber-500 text-black font-extrabold text-xs sm:text-sm hover:bg-amber-400 transition-colors shadow-lg cursor-pointer"
+                    className="ff-tactile-btn px-6 py-2.5 rounded-xl bg-[#e07a5f] text-[#0b0d12] font-extrabold text-xs sm:text-sm hover:bg-[#f2cc8f] transition-colors cursor-pointer"
                   >
                     Lưu hồ sơ Founder
                   </button>
@@ -1914,10 +1914,10 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
               <div className="space-y-4">
                 {/* Lưới chọn nhanh 21 cột mốc bằng ảnh thu nhỏ */}
                 <div>
-                  <label className="text-xs sm:text-sm font-bold text-slate-200 block mb-2">
+                  <label className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-2">
                     Chọn cột mốc cần thay ảnh / sửa nội dung ({adminSelectedMilestoneIdx + 1}/21):
                   </label>
-                  <div className="grid grid-cols-7 gap-1.5 p-2 rounded-2xl bg-[#070b13] border border-white/10 max-h-36 overflow-y-auto">
+                  <div className="grid grid-cols-7 gap-1.5 p-2 rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15 max-h-36 overflow-y-auto">
                     {records.map((r, i) => {
                       const active = i === adminSelectedMilestoneIdx;
                       const thumb = r.customImgUrl || `${CDN_BASE}${r.imgId}_min.webp`;
@@ -1927,7 +1927,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                           type="button"
                           onClick={() => setAdminSelectedMilestoneIdx(i)}
                           className={`relative aspect-[4/3] rounded-lg overflow-hidden border transition-all cursor-pointer ${
-                            active ? 'border-amber-400 ring-2 ring-amber-400/60 scale-[1.03]' : 'border-white/15 opacity-70 hover:opacity-100'
+                            active ? 'border-[#f2cc8f] ring-2 ring-[#f2cc8f]/60 scale-[1.03]' : 'border-white/15 opacity-70 hover:opacity-100'
                           }`}
                           title={`#${i + 1}: ${r.title}`}
                         >
@@ -1950,9 +1950,9 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 
                 {/* Khung xem trước & thay thế ảnh cột mốc đang chọn */}
                 {records[adminSelectedMilestoneIdx] && (
-                  <div className="rounded-2xl bg-[#070b13] border border-white/15 p-4 space-y-3">
+                  <div className="rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15 p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs sm:text-sm font-bold text-amber-300">
+                      <span className="text-xs sm:text-sm font-bold text-[#f2cc8f]">
                         Ảnh Cột mốc #{adminSelectedMilestoneIdx + 1}: {records[adminSelectedMilestoneIdx].title}
                       </span>
                       {records[adminSelectedMilestoneIdx].customImgUrl && (
@@ -1965,7 +1965,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                               ),
                             )
                           }
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 cursor-pointer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-[#d8d5ce] cursor-pointer"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
                           <span>Khôi phục ảnh gốc</span>
@@ -1999,12 +1999,12 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                             ),
                           );
                         }}
-                        className="flex-1 bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                        className="flex-1 bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2.5 text-sm text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f]"
                       />
                       <button
                         type="button"
                         onClick={() => milestoneFileInputRef.current?.click()}
-                        className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                        className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
                       >
                         <Upload className="w-4 h-4" />
                         <span>{isUploadingMedia ? 'Đang tải...' : 'Tải ảnh từ máy'}</span>
@@ -2023,7 +2023,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="tieu-de-cot-moc-2" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Tiêu đề cột mốc (*)</label>
+                    <label htmlFor="tieu-de-cot-moc-2" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Tiêu đề cột mốc (*)</label>
                     <input
                       id="tieu-de-cot-moc-2"
                       type="text"
@@ -2036,12 +2036,12 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                           prev.map((r, i) => (i === adminSelectedMilestoneIdx ? { ...r, title: val } : r))
                         );
                       }}
-                      className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                      className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="dia-diem-danh-muc-2" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Địa điểm / Danh mục (*)</label>
+                    <label htmlFor="dia-diem-danh-muc-2" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Địa điểm / Danh mục (*)</label>
                     <input
                       id="dia-diem-danh-muc-2"
                       type="text"
@@ -2054,13 +2054,13 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                           prev.map((r, i) => (i === adminSelectedMilestoneIdx ? { ...r, place: val } : r))
                         );
                       }}
-                      className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                      className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="noi-dung-ghi-chu-2" className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">Nội dung ghi chú (*)</label>
+                  <label htmlFor="noi-dung-ghi-chu-2" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Nội dung ghi chú (*)</label>
                   <textarea
                     id="noi-dung-ghi-chu-2"
                     required
@@ -2073,12 +2073,12 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                         prev.map((r, i) => (i === adminSelectedMilestoneIdx ? { ...r, note: val } : r))
                       );
                     }}
-                    className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400 leading-relaxed resize-y"
+                    className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f] leading-relaxed resize-y"
                   />
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-white/10">
-                  <label className="flex items-center gap-2.5 text-xs sm:text-sm text-slate-200 font-semibold cursor-pointer">
+                <div className="flex items-center justify-between pt-3 border-t border-dashed border-[#f4f1de]/15">
+                  <label className="flex items-center gap-2.5 text-xs sm:text-sm text-[#f4f1de] font-semibold cursor-pointer">
                     <input
                       type="checkbox"
                       maxLength={10}
@@ -2091,7 +2091,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                           ),
                         );
                       }}
-                      className="w-4 h-4 rounded accent-amber-500"
+                      className="w-4 h-4 rounded accent-[#e07a5f]"
                     />
                     <span>Hiển thị khung ảnh dọc (Tall Portrait)</span>
                   </label>
@@ -2100,7 +2100,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setIsEditBioModalOpen(false)}
-                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-slate-300 hover:text-white cursor-pointer"
+                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
                     >
                       Hủy
                     </button>
@@ -2111,7 +2111,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                         syncToServer(founderProfile, records);
                         setIsEditBioModalOpen(false);
                       }}
-                      className="px-6 py-2.5 rounded-xl bg-amber-500 text-black font-extrabold text-xs sm:text-sm hover:bg-amber-400 transition-colors shadow-lg cursor-pointer"
+                      className="ff-tactile-btn px-6 py-2.5 rounded-xl bg-[#e07a5f] text-[#0b0d12] font-extrabold text-xs sm:text-sm hover:bg-[#f2cc8f] transition-colors cursor-pointer"
                     >
                       Lưu ghi chú cột mốc
                     </button>
@@ -2121,7 +2121,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             ) : (
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs sm:text-sm font-bold text-slate-200 block mb-2">
+                  <label className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-2">
                     5 Cụm từ Tiêu đề Trung tâm Quả cầu 3D (#headline):
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
@@ -2135,14 +2135,14 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                           const val = e.target.value;
                           setHeadlineWords((prev) => prev.map((w, i) => (i === idx ? val : w)));
                         }}
-                        className="bg-[#070b13] border border-white/20 rounded-xl px-3 py-2.5 text-sm text-white text-center focus:outline-none focus:border-amber-400"
+                        className="bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-3 py-2.5 text-sm text-[#f4f1de] text-center focus:outline-none focus:border-[#f2cc8f]"
                       />
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">
+                  <label className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">
                     Dòng chữ Chân trang góc phải (Colophon):
                   </label>
                   <input
@@ -2150,12 +2150,12 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                     maxLength={100}
                     value={colophonText}
                     onChange={(e) => setColophonText(e.target.value)}
-                    className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                    className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs sm:text-sm font-bold text-slate-200 block mb-1.5">
+                  <label className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">
                     Đường dẫn Video Mở đầu (Intro Film URL):
                   </label>
                   <input
@@ -2163,7 +2163,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                     maxLength={500}
                     value={introFilmUrl}
                     onChange={(e) => setIntroFilmUrl(e.target.value)}
-                    className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                    className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                   />
                 </div>
 

@@ -852,7 +852,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
             <button
               type="button"
               onClick={() => setShowOddsModal((prev) => !prev)}
-              className="px-3 py-1.5 rounded-xl bg-white/8 hover:bg-white/15 border border-white/15 text-xs font-semibold text-cyan-200 cursor-pointer shrink-0"
+              className="ff-tactile-btn px-3 py-1.5 rounded-xl bg-[#0b0d12]/80 hover:bg-[#1e2636] border border-[#f2cc8f]/40 text-xs font-semibold text-[#f2cc8f] cursor-pointer shrink-0"
             >
               {showOddsModal ? 'Ẩn bảng tỷ lệ %' : '📊 Xem bảng tỷ lệ minh bạch'}
             </button>
@@ -899,8 +899,8 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
 
           {/* Bảng tỷ lệ rơi vật phẩm minh bạch */}
           {showOddsModal && (
-            <div className="mb-3 p-3.5 rounded-2xl bg-[#0A0E1A]/90 border border-cyan-400/30 text-xs space-y-2 animate-fade-up">
-              <div className="font-bold text-cyan-200">
+            <div className="mb-3 p-3.5 rounded-xl bg-[#0b0d12]/90 border border-[#f2cc8f]/40 text-xs space-y-2 animate-fade-up">
+              <div className="font-bold text-[#f2cc8f]">
                 📐 Bảng Tỷ Lệ Rơi Vật Phẩm Chính Thức (Cam kết Mythic không vượt quá 5%):
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">

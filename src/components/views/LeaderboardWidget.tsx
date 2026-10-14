@@ -406,7 +406,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
               {totals.streakDays} ngày liên tiếp
             </span>
             <span className="ff-board__total-chip inline-flex items-center gap-1">
-              <Clock className="w-3 h-3 text-cyan-300" />
+              <Clock className="w-3 h-3 text-[#81b29a]" />
               Hôm nay {totals.todayMinutes}′
             </span>
           </div>

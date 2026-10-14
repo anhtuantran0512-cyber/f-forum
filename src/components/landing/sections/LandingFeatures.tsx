@@ -13,9 +13,9 @@ const ACCENTS: Record<string, { text: string; bg: string; ring: string; glow: st
   },
   sky: {
     text: 'ff-ink--blue',
-    bg: 'bg-sky-500/12',
-    ring: 'ring-sky-400/25',
-    glow: 'shadow-[0_0_28px_rgba(56,189,248,0.2)]',
+    bg: 'bg-[#81b29a]/15',
+    ring: 'ring-[#81b29a]/35',
+    glow: 'shadow-[0_0_28px_rgba(129,178,154,0.2)]',
   },
   violet: {
     text: 'ff-ink--violet',

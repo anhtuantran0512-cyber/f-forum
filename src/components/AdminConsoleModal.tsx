@@ -477,17 +477,17 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label="Bảng điều khiển quản trị"
-        className="relative w-full max-w-5xl max-h-[88vh] overflow-hidden rounded-3xl liquid-glass bg-[#0c1218]/95 border border-cyan-400/25 shadow-[0_30px_80px_rgba(0,0,0,0.85)] flex flex-col"
+        className="modal-container relative w-full max-w-5xl max-h-[88vh] overflow-hidden liquid-glass flex flex-col"
       >
         {/* Đầu hộp */}
-        <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-white/10 bg-gradient-to-r from-cyan-500/10 via-transparent to-transparent">
+        <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-dashed border-[#f4f1de]/15 bg-[#0b0d12]/60">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="p-2 rounded-xl bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 shrink-0">
+            <span className="p-2 rounded-xl bg-[#e07a5f]/20 border border-[#e07a5f]/45 text-[#f2cc8f] shrink-0">
               <ShieldAlert className="w-5 h-5" />
             </span>
             <div className="min-w-0">
-              <h2 className="text-base font-bold text-white truncate">Bảng Điều Khiển Quản Trị</h2>
-              <p className="text-[11px] text-neutral-400 font-mono truncate">
+              <h2 className="text-base font-bold text-[#f4f1de] truncate">Bảng Điều Khiển Quản Trị</h2>
+              <p className="text-[11px] text-[#9a978e] font-mono truncate">
                 {lastLoadedAt
                   ? `Cập nhật lúc ${new Date(lastLoadedAt).toLocaleTimeString('vi-VN')} · tự làm mới mỗi 20 giây`
                   : 'Đang tải số liệu vận hành…'}
@@ -609,7 +609,7 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
                 </h3>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   <StatTile
-                    icon={<Activity className="w-4 h-4 text-cyan-400" />}
+                    icon={<Activity className="w-4 h-4 text-[#81b29a]" />}
                     label="Tỉ lệ đã giải"
                     value={`${overview.contentHealth.solvedRate}%`}
                     tone={overview.contentHealth.solvedRate >= 60 ? 'good' : 'warn'}
@@ -636,14 +636,14 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
               </section>
 
               {/* QUẢN LÝ THÀNH VIÊN — thứ admin cần để xử lý ngay một tài khoản */}
-              <section className="rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-500/[0.07] to-transparent p-4 space-y-3">
+              <section className="rounded-xl border border-[#f2cc8f]/25 bg-[#0b0d12]/70 p-4 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                   <div>
-                    <h3 className="flex items-center gap-2 text-sm font-bold text-white">
-                      <Users className="w-4 h-4 text-cyan-300" />
+                    <h3 className="flex items-center gap-2 text-sm font-bold text-[#f4f1de]">
+                      <Users className="w-4 h-4 text-[#f2cc8f]" />
                       Quản lý thành viên
                     </h3>
-                    <p className="mt-1 text-[11px] text-neutral-400">
+                    <p className="mt-1 text-[11px] text-[#9a978e]">
                       {overview.moderation.banned} tài khoản bị cấm đăng · {overview.moderation.muted} tài khoản bị khoá chat
                     </p>
                   </div>
@@ -662,7 +662,7 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
                       onChange={(event) => setUserQuery(event.target.value.slice(0, 120))}
                       placeholder="Nhập tên hoặc email… (từ 2 ký tự)"
                       aria-label="Tìm thành viên theo tên, email, mã hoặc lớp"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-black/25 border border-white/10 focus:border-cyan-400/45 focus:outline-none text-xs text-white placeholder:text-neutral-600"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-[#151a26] border border-[#f4f1de]/15 focus:border-[#f2cc8f] focus:outline-none text-xs text-[#f4f1de] placeholder:text-neutral-600"
                     />
                   </span>
                 </label>
@@ -673,7 +673,7 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
                     <select
                       value={moderationDuration}
                       onChange={(event) => setModerationDuration(Number(event.target.value))}
-                      className="w-full px-2.5 py-2 rounded-lg bg-[#111923] border border-white/10 text-xs text-neutral-200 focus:border-cyan-400/45 focus:outline-none"
+                      className="w-full px-2.5 py-2 rounded-lg bg-[#151a26] border border-[#f4f1de]/15 text-xs text-[#f4f1de] focus:border-[#f2cc8f] focus:outline-none"
                     >
                       {MODERATION_DURATIONS.map((option) => (
                         <option key={option.value} value={option.value}>{option.label}</option>
@@ -688,7 +688,7 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
                       onChange={(event) => setModerationReason(event.target.value.slice(0, 500))}
                       maxLength={500}
                       placeholder="Ví dụ: spam liên tục sau khi đã được nhắc nhở"
-                      className="w-full px-2.5 py-2 rounded-lg bg-black/25 border border-white/10 text-xs text-neutral-200 placeholder:text-neutral-600 focus:border-cyan-400/45 focus:outline-none"
+                      className="w-full px-2.5 py-2 rounded-lg bg-[#151a26] border border-[#f4f1de]/15 text-xs text-[#f4f1de] placeholder:text-neutral-600 focus:border-[#f2cc8f] focus:outline-none"
                     />
                   </label>
                 </div>
@@ -943,7 +943,7 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
                   <button
                     type="button"
                     onClick={() => { setAnswerQueueLoaded(false); void fetchAnswerQueue(); }}
-                    className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold text-neutral-400 hover:text-cyan-300 cursor-pointer"
+                    className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold text-neutral-400 hover:text-[#f2cc8f] cursor-pointer"
                     title="Tải lại hàng chờ"
                   >
                     <RefreshCw className="w-3 h-3" /> Làm mới
@@ -985,7 +985,7 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
                           {item.content}
                         </p>
                         <p className="mt-1 text-[10px] text-neutral-400">
-                          bởi <span className="text-cyan-300 font-semibold">{item.authorName || 'Học sinh'}</span>
+                          bởi <span className="text-[#f2cc8f] font-semibold">{item.authorName || 'Học sinh'}</span>
                           {item.moderation?.reason && (
                             <> · bot: {item.moderation.reason}</>
                           )}
@@ -1042,7 +1042,7 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
                         <div className="min-w-0">
                           <p className="text-[11px] text-neutral-200">
                             <span className="font-semibold">{entry.action.replace('moderate:', '')}</span>
-                            {entry.targetEmail && <span className="ml-1.5 font-mono text-cyan-300">{entry.targetEmail}</span>}
+                            {entry.targetEmail && <span className="ml-1.5 font-mono text-[#f2cc8f]">{entry.targetEmail}</span>}
                           </p>
                           <p className="text-[10px] text-neutral-500 truncate">
                             {entry.reason || 'Không có lý do'} · bởi {entry.by || 'quản trị'}

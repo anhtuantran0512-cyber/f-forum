@@ -968,7 +968,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                     </article>
 
                     <article className="faa-tile faa-tile--top-members cdl-01__tile cdl-01__wide" style={{ '--i': 9 } as CSSProperties}>
-                      <div className="faa-chart-head"><div><h3>Thành viên hoạt động nổi bật</h3><p>Sắp theo tổng thời gian truy cập đã ghi nhận</p></div><Users size={16} className="text-cyan-300" /></div>
+                      <div className="faa-chart-head"><div><h3>Thành viên hoạt động nổi bật</h3><p>Sắp theo tổng thời gian truy cập đã ghi nhận</p></div><Users size={16} className="text-[#81b29a]" /></div>
                       {analytics.topMembers.length === 0 ? (
                         <p className="faa-muted-empty">Chưa có phiên tài khoản trong giai đoạn đo lường.</p>
                       ) : (

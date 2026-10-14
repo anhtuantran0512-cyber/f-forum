@@ -30,7 +30,7 @@ export const LandingFAQ: React.FC<LandingFAQProps> = ({ onOpenAuth }) => {
               return (
                 <Reveal key={item.id} y={22} delay={index * 60}>
                   <div
-                    className={`ff-glass overflow-hidden rounded-3xl transition-colors duration-500 ${
+                    className={`ff-glass overflow-hidden rounded-2xl transition-colors duration-500 ${
                       isOpen ? 'border-[var(--ff-border-strong)]' : ''
                     }`}
                   >

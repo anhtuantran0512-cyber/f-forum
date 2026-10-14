@@ -38,8 +38,8 @@ const TAGS: {
   {
     id: 'study',
     label: 'Học tập',
-    spine: 'from-sky-400/80 to-cyan-300/40',
-    chip: 'text-sky-300 bg-sky-500/10 border-sky-400/30',
+    spine: 'from-[#e07a5f]/80 to-[#f2cc8f]/40',
+    chip: 'text-[#f2cc8f] bg-[#e07a5f]/15 border-[#e07a5f]/40',
   },
   {
     id: 'skill',
