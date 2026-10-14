@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRight, Check, Sparkles, Users, Copy, CheckCircle2, HeartHandshake } from 'lucide-react';
 import { Reveal, SectionHeading } from '../LandingPrimitives';
 import { PRICING_PLANS } from '../landingContent';
@@ -10,6 +10,15 @@ interface LandingPricingProps {
 
 export const LandingPricing: React.FC<LandingPricingProps> = ({ onOpenAuth }) => {
   const [copiedBank, setCopiedBank] = useState(false);
+  const [showDonateBox, setShowDonateBox] = useState(false);
+
+  useEffect(() => {
+    const onToggleDonate = () => {
+      setShowDonateBox((prev) => !prev);
+    };
+    window.addEventListener('fforum_toggle_donate_box', onToggleDonate);
+    return () => window.removeEventListener('fforum_toggle_donate_box', onToggleDonate);
+  }, []);
 
   const handleCopyBank = () => {
     if (navigator?.clipboard) {
@@ -120,97 +129,99 @@ export const LandingPricing: React.FC<LandingPricingProps> = ({ onOpenAuth }) =>
         </div>
 
         {/* Dedicated Luxury Donate Card Section */}
-        <Reveal y={24} delay={300} className="mt-16">
-          <div className="relative rounded-2xl bg-[#151a26]/95 border-[1.5px] border-[#f2cc8f]/45 p-6 sm:p-10 shadow-[4px_4px_0px_rgba(4,6,11,0.9)] max-w-4xl mx-auto overflow-hidden">
-            {/* Background Glow */}
-            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        {showDonateBox && (
+          <Reveal y={24} delay={100} className="mt-12">
+            <div className="relative rounded-2xl bg-[#151a26]/95 border-[1.5px] border-[#f2cc8f]/45 p-6 sm:p-10 shadow-[4px_4px_0px_rgba(4,6,11,0.9)] max-w-4xl mx-auto overflow-hidden">
+              {/* Background Glow */}
+              <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-              {/* Left Column: QR Code & Transfer Slip */}
-              <div className="md:col-span-5 flex flex-col items-center text-center">
-                <div className="relative group max-w-[230px] rounded-2xl overflow-hidden border-2 border-amber-400/50 shadow-[0_0_30px_rgba(245,158,11,0.3)] bg-black/60 p-2">
-                  <img
-                    src="/chuyentien.jpeg"
-                    alt="Mã QR chuyển khoản ngân hàng ủng hộ F-Forum"
-                    loading="lazy"
-                    decoding="async"
-                    width={230}
-                    height={300}
-                    className="w-full h-auto rounded-xl object-contain"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-3 text-white text-xs font-semibold">
-                    Quét VietQR chuyển tiền nhanh
+              <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+                {/* Left Column: QR Code & Transfer Slip */}
+                <div className="md:col-span-5 flex flex-col items-center text-center">
+                  <div className="relative group max-w-[230px] rounded-2xl overflow-hidden border-2 border-amber-400/50 shadow-[0_0_30px_rgba(245,158,11,0.3)] bg-black/60 p-2">
+                    <img
+                      src="/chuyentien.jpeg"
+                      alt="Mã QR chuyển khoản ngân hàng ủng hộ F-Forum"
+                      loading="lazy"
+                      decoding="async"
+                      width={230}
+                      height={300}
+                      className="w-full h-auto rounded-xl object-contain"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-3 text-white text-xs font-semibold">
+                      Quét VietQR chuyển tiền nhanh
+                    </div>
                   </div>
-                </div>
-                <span className="mt-2 text-[11px] font-mono text-amber-300 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  VietQR Chuyển Khoản Trực Tiếp
-                </span>
-              </div>
-
-              {/* Right Column: Information & Copy Button */}
-              <div className="md:col-span-7 space-y-4">
-                <div className="flex items-center gap-2">
-                  <span className="tg-10__crown text-2xl">✦</span>
-                  <span className="text-xs font-mono font-bold tracking-widest text-amber-400 uppercase">
-                    GÓC ỦNG HỘ PHÁT TRIỂN F-FORUM
+                  <span className="mt-2 text-[11px] font-mono text-amber-300 flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    VietQR Chuyển Khoản Trực Tiếp
                   </span>
                 </div>
 
-                <h3 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-snug">
-                  Đồng Hành Cùng <span className="tg-10__gold">BroAmStuck Studio</span>
-                </h3>
+                {/* Right Column: Information & Copy Button */}
+                <div className="md:col-span-7 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="tg-10__crown text-2xl">✦</span>
+                    <span className="text-xs font-mono font-bold tracking-widest text-amber-400 uppercase">
+                      GÓC ỦNG HỘ PHÁT TRIỂN F-FORUM
+                    </span>
+                  </div>
 
-                <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed font-light">
-                  Mọi tài nguyên và tính năng thành viên F-Forum đều hoàn toàn miễn phí. Nếu bạn thấy diễn đàn hữu ích cho việc học tập, bạn có thể ủng hộ tác giả ly cà phê để duy trì máy chủ Cloudflare và chi phí vận hành!
-                </p>
+                  <h3 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-snug">
+                    Ủng Hộ Duy Trì <span className="tg-10__gold">F-Forum</span>
+                  </h3>
 
-                {/* Account Details Box */}
-                <div className="p-4 rounded-2xl bg-white/[0.04] border border-amber-400/25 space-y-2.5 font-mono text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-neutral-400">Số tài khoản:</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-amber-300 font-bold text-sm sm:text-base">87905122009</span>
-                      <button
-                        type="button"
-                        onClick={handleCopyBank}
-                        className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                        title="Sao chép số tài khoản"
-                      >
-                        {copiedBank ? (
-                          <>
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-emerald-300">Đã chép!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5" />
-                            <span>Chép STK</span>
-                          </>
-                        )}
-                      </button>
+                  <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed font-light">
+                    Mọi tài nguyên và tính năng thành viên F-Forum đều hoàn toàn miễn phí. Nếu bạn thấy diễn đàn hữu ích cho việc học tập, bạn có thể ủng hộ tác giả ly cà phê để duy trì máy chủ Cloudflare và chi phí vận hành!
+                  </p>
+
+                  {/* Account Details Box */}
+                  <div className="p-4 rounded-2xl bg-white/[0.04] border border-amber-400/25 space-y-2.5 font-mono text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-neutral-400">Số tài khoản:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-amber-300 font-bold text-sm sm:text-base">87905122009</span>
+                        <button
+                          type="button"
+                          onClick={handleCopyBank}
+                          className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Sao chép số tài khoản"
+                        >
+                          {copiedBank ? (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              <span className="text-emerald-300">Đã chép!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>Chép STK</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-white/10 pt-2">
+                      <span className="text-neutral-400">Chủ tài khoản:</span>
+                      <span className="text-white font-bold">TRAN VAN ANH TUAN</span>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-white/10 pt-2">
+                      <span className="text-neutral-400">Nội dung chuyển:</span>
+                      <span className="text-amber-200">Ủng hộ F-Forum</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-white/10 pt-2">
-                    <span className="text-neutral-400">Chủ tài khoản:</span>
-                    <span className="text-white font-bold">TRAN VAN ANH TUAN</span>
+                  <div className="flex items-center gap-2 text-xs text-neutral-400 italic">
+                    <HeartHandshake className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>Trân trọng cảm ơn sự ủng hộ và đóng góp quý báu từ cộng đồng học sinh, sinh viên!</span>
                   </div>
-
-                  <div className="flex items-center justify-between border-t border-white/10 pt-2">
-                    <span className="text-neutral-400">Nội dung chuyển:</span>
-                    <span className="text-amber-200">Ủng hộ F-Forum</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs text-neutral-400 italic">
-                  <HeartHandshake className="w-4 h-4 text-rose-400 shrink-0" />
-                  <span>Trân trọng cảm ơn sự ủng hộ và đóng góp quý báu từ cộng đồng học sinh, sinh viên!</span>
                 </div>
               </div>
             </div>
-          </div>
-        </Reveal>
+          </Reveal>
+        )}
 
         {/* Free Promise Badges */}
         <Reveal y={18} delay={120}>
@@ -223,6 +234,20 @@ export const LandingPricing: React.FC<LandingPricingProps> = ({ onOpenAuth }) =>
             ))}
           </ul>
         </Reveal>
+
+        {/* Icon chữ F nhỏ độ mờ trung ở góc cuối trang — bấm vào mới hiển thị lại khung trên */}
+        <div className="mt-8 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowDonateBox((prev) => !prev)}
+            aria-expanded={showDonateBox}
+            aria-label={showDonateBox ? 'Ẩn góc ủng hộ F-Forum' : 'Hiện góc ủng hộ F-Forum'}
+            title={showDonateBox ? 'Ẩn góc ủng hộ F-Forum' : 'Mở góc ủng hộ F-Forum'}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-amber-400/40 bg-[var(--ff-bg)] text-xs font-extrabold text-amber-400 opacity-45 hover:opacity-90 transition-opacity cursor-pointer"
+          >
+            F
+          </button>
+        </div>
       </div>
     </section>
   );

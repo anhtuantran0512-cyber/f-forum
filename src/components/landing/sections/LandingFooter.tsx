@@ -156,10 +156,24 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ onEnterApp, onOpen
             <Heart className="inline h-3 w-3 -translate-y-[1px] text-rose-400" aria-label="tình yêu" /> bởi sinh
             viên, cho sinh viên.
           </p>
-          <p className="flex items-center gap-1.5 text-[12px] text-[var(--ff-text-dim)]">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
-            Bản 2.0 · Liquid Glass 2026
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="flex items-center gap-1.5 text-[12px] text-[var(--ff-text-dim)]">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
+              Bản 2.0 · Liquid Glass 2026
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('fforum_toggle_donate_box'));
+                scrollToSection('bang-gia');
+              }}
+              aria-label="Mở góc ủng hộ F-Forum"
+              title="Mở góc ủng hộ F-Forum"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-amber-400/40 bg-[var(--ff-bg)] text-[11px] font-extrabold text-amber-400 opacity-45 hover:opacity-90 transition-opacity cursor-pointer"
+            >
+              F
+            </button>
+          </div>
         </div>
       </div>
     </footer>
