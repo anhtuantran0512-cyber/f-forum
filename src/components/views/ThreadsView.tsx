@@ -143,6 +143,7 @@ const ThreadCard = React.memo<{
     onToggleSave?: (id: string) => void;
     isSaved?: (id: string) => boolean;
     onOpenLightbox?: (url: string) => void;
+    onOpenReader?: (id: string) => void;
   };
   showActions?: boolean;
 }>(({ thread: rootThread, allThreads, depth = 0, currentUser, users, replyText, onReplyTextChange, viewModel, showActions = true }) => {
@@ -213,9 +214,24 @@ const ThreadCard = React.memo<{
     setQuoteText('');
   };
 
+  /* Tách dòng đầu tiên thành câu dẫn Serif (Style 1: Typography-Led) nếu bài viết nhiều dòng hoặc dài */
+  const { editorialLead, bodyRemainder } = useMemo(() => {
+    const raw = (rootThread.content || '').trim();
+    const lines = raw.split(/\r?\n/).filter(Boolean);
+    if (lines.length >= 2 && lines[0].length <= 130) {
+      return {
+        editorialLead: lines[0],
+        bodyRemainder: lines.slice(1).join('\n'),
+      };
+    }
+    return { editorialLead: '', bodyRemainder: raw };
+  }, [rootThread.content]);
+
+  const isFeaturedCard = totalReactionCount + childReplies.length >= 3;
+
   return (
     <div>
-      <div className="thread-card">
+      <div className={`thread-card ${isFeaturedCard ? 'is-featured' : ''}`}>
         <div className="thread-author">
           <button
             type="button"
@@ -250,13 +266,18 @@ const ThreadCard = React.memo<{
                   />
                 </span>
                 {rootThread.authorLevel >= 150 && isSuperAdmin && <span className="author-level-badge">ADMIN</span>}
+                {isFeaturedCard && (
+                  <span className="ff-holo-badge inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-[#d8f3dc]">
+                    ✦ Nổi bật
+                  </span>
+                )}
                 {/* Streak badge — 🔥{n} bằng chữ chỉ khi > 0 */}
                 {typeof currentUser?.streakCount === 'number' && currentUser.streakCount > 0 && rootThread.authorEmail === currentUser.email && (
                   <span className="streak-badge">🔥 {currentUser.streakCount}</span>
                 )}
                 <span className="author-level">Lv.{rootThread.authorLevel}</span>
               </div>
-              <span className="author-time">{formatRelativeTime(rootThread.createdAtMs)}</span>
+              <span className="author-time">{formatRelativeTime(rootThread.createdAtMs)} · #{rootThread.id.slice(-4).toUpperCase()}</span>
             </div>
           </button>
           {showActions && (
@@ -275,8 +296,13 @@ const ThreadCard = React.memo<{
           )}
         </div>
 
+        {editorialLead && (
+          <h3 className="thread-editorial-lead">
+            {renderContentWithHashtags(editorialLead, viewModel.onSelectTag)}
+          </h3>
+        )}
         <p className="thread-content">
-          {renderContentWithHashtags(rootThread.content, viewModel.onSelectTag)}
+          {renderContentWithHashtags(bodyRemainder, viewModel.onSelectTag)}
         </p>
 
         {rootThread.imageUrl && (
@@ -383,6 +409,16 @@ const ThreadCard = React.memo<{
                 <Repeat2 className="w-4 h-4" />
                 Chia sẻ lại
               </button>
+              {viewModel.onOpenReader && (
+                <button
+                  type="button"
+                  onClick={() => viewModel.onOpenReader?.(rootThread.id)}
+                  className="action-text-btn subtle"
+                  title="Đọc toàn bộ câu chuyện & phản hồi"
+                >
+                  <span>Đọc chi tiết</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => viewModel.onToggleSave?.(rootThread.id)}
@@ -680,6 +716,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
   const debouncedSearchQuery = useInteractionDebounce(searchQuery, 120);
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [activeReaderThreadId, setActiveReaderThreadId] = useState<string | null>(null);
   const [savedIds, setSavedIds] = useState<string[]>(() => {
     try {
       const raw = safeStorage.getItem(SAVED_THREADS_KEY);
@@ -867,6 +904,32 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
 
   const savedSet = useMemo(() => new Set(savedIds), [savedIds]);
 
+  const featuredThread = useMemo(() => {
+    if (!Array.isArray(threads)) return null;
+    const roots = threads.filter((t) => !t.parentThreadId);
+    if (roots.length === 0) return null;
+    const replyMap = new Map<string, number>();
+    for (const t of threads) {
+      if (t.parentThreadId) {
+        replyMap.set(t.parentThreadId, (replyMap.get(t.parentThreadId) || 0) + 1);
+      }
+    }
+    return [...roots].sort((a, b) => {
+      const score = (item: Thread) => {
+        const rx = Object.values(item.reactions || {}).reduce((s, arr) => s + arr.length, 0);
+        const rep = replyMap.get(item.id) || 0;
+        return rx * 2 + rep * 3;
+      };
+      const diff = score(b) - score(a);
+      return diff !== 0 ? diff : b.createdAtMs - a.createdAtMs;
+    })[0] || null;
+  }, [threads]);
+
+  const activeReaderThread = useMemo(
+    () => (activeReaderThreadId ? threads.find((t) => t.id === activeReaderThreadId) || null : null),
+    [threads, activeReaderThreadId],
+  );
+
   const viewModel = useMemo(
     () => ({
       onReply: (parentId: string, content: string) => void onReplyThread(parentId, content),
@@ -880,6 +943,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
       onToggleSave: toggleSaveThread,
       isSaved: (id: string) => savedSet.has(id),
       onOpenLightbox: (url: string) => setLightboxImage(url),
+      onOpenReader: (id: string) => setActiveReaderThreadId(id),
     }),
     [onReplyThread, onReact, onRepost, onReport, onDelete, onOpenProfile, onOpenLoginModal, toggleSaveThread, savedSet],
   );
@@ -887,8 +951,12 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
   return (
     <section ref={feedScrollRef} className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-y-auto'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8 threads-bg ff-raw-grid-surface`}>
       <div className="relative z-10 w-full max-w-2xl mx-auto flex-1 flex flex-col">
-        {/* Thanh đầu trang Editorial: Tiêu đề + Hand-Drawn Squiggle + Thống kê + Tìm kiếm & Bộ lọc */}
+        {/* Thanh đầu trang Editorial Zine: Masthead + Tiêu đề + Hand-Drawn Squiggle + Thống kê + Tìm kiếm & Bộ lọc */}
         <header className="threads-hero-bar">
+          <div className="thread-zine-masthead">
+            <span>ZINE // ISSUE 2026 · EDITORIAL DIARY</span>
+            <span>LIVE_STREAM · {feedStats.roots} BÀI VIẾT</span>
+          </div>
           <div className="threads-hero-top">
             <div className="threads-hero-brand">
               <div>
@@ -1016,6 +1084,27 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
               ))}
             </div>
           )}
+
+          {featuredThread && (
+            <button
+              type="button"
+              onClick={() => setActiveReaderThreadId(featuredThread.id)}
+              className="thread-featured-spotlight"
+              title="Đọc bài viết tâm điểm"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="ff-holo-badge px-2 py-0.5 rounded-md text-[10px] font-bold text-[#d8f3dc] shrink-0">
+                  ✦ ĐÁNG ĐỌC
+                </span>
+                <span className="text-xs font-bold text-[#f4f1de] truncate">
+                  {featuredThread.authorName.replace(/ \(.*\)/, '')}: “{featuredThread.content.slice(0, 72)}{featuredThread.content.length > 72 ? '…' : ''}”
+                </span>
+              </div>
+              <span className="text-[11px] font-mono font-bold text-[#f2cc8f] shrink-0">
+                Mở đọc →
+              </span>
+            </button>
+          )}
         </header>
 
         {/* Composer — "Cậu đang nghĩ gì thế?" */}
@@ -1123,7 +1212,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                   cy="11"
                   r="9"
                   fill="none"
-                  stroke={remainingChars < 20 ? '#f87171' : remainingChars < 80 ? '#fbbf24' : '#22d3ee'}
+                  stroke={remainingChars < 20 ? '#f87171' : remainingChars < 80 ? '#fbbf24' : '#81b29a'}
                   strokeWidth="2.2"
                   strokeDasharray={ringCircumference}
                   strokeDashoffset={ringOffset}
@@ -1189,6 +1278,52 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
           )}
         </div>
       </div>
+
+      {activeReaderThread && (
+        <div
+          className="fixed inset-0 z-[180] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6"
+          onClick={() => setActiveReaderThreadId(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Chi tiết bài viết"
+        >
+          <div
+            className="w-full max-w-2xl max-h-[88dvh] overflow-y-auto rounded-2xl bg-[#111520] border-[1.5px] border-[#f4f1de]/22 shadow-[6px_6px_0px_#04060a] p-5 sm:p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 pb-3 border-b border-dashed border-[#f4f1de]/16">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="ff-holo-badge px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold text-[#d8f3dc]">
+                  ZINE READER // #{activeReaderThread.id.slice(-5).toUpperCase()}
+                </span>
+                <span className="text-xs font-mono text-[#9a978e]">
+                  {formatRelativeTime(activeReaderThread.createdAtMs)}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveReaderThreadId(null)}
+                className="ff-tactile-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-xs font-bold text-[#f4f1de] hover:border-[#f2cc8f]/50 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Đóng</span>
+              </button>
+            </div>
+
+            <ThreadCard
+              thread={activeReaderThread}
+              allThreads={threads}
+              depth={0}
+              currentUser={currentUser}
+              users={users}
+              viewModel={{
+                ...viewModel,
+                onOpenReader: undefined,
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {lightboxImage && (
         <div

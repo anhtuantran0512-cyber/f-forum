@@ -437,11 +437,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
           </button>
         </div>
 
-        {/* 3-Column Bento Editorial Chat Layout */}
+        {/* 3-Column Glassmorphic Depth-Layered Chat Layout (Style 4 + Style 6 + Style 7 + Style 8) */}
         <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 overflow-hidden min-h-0">
           
           {/* Left Column: 4 Channels Selector + Current User Card (md:col-span-3) */}
-          <div className="hidden md:flex md:col-span-3 flex-col ff-bento-cell !p-3.5 overflow-hidden space-y-3">
+          <div className="hidden md:flex md:col-span-3 flex-col ff-chat-glass-sidebar p-3.5 overflow-hidden space-y-3">
             <div className="px-1.5 pb-2.5 border-b border-dashed border-[#f4f1de]/14 shrink-0">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-extrabold text-[#f4f1de] uppercase tracking-wider flex items-center gap-1.5 font-mono">
@@ -572,14 +572,21 @@ export const ChatView: React.FC<ChatViewProps> = ({
           </div>
 
           {/* Center Column: Active Channel Messages & Input (md:col-span-9 lg:col-span-6) */}
-          <div className="col-span-1 md:col-span-9 lg:col-span-6 flex flex-col ff-bento-cell !p-0 overflow-hidden min-h-0">
+          <div className="col-span-1 md:col-span-9 lg:col-span-6 flex flex-col ff-chat-glass-stage overflow-hidden min-h-0">
             
+            {/* Style 7: Raw Monospace Telemetry Strip */}
+            <div className="ff-chat-telemetry-bar shrink-0">
+              <span>CHANNEL // #{currentChannelObj.id.toUpperCase()}</span>
+              <span className="text-[#81b29a] font-bold">● SYNC: LIVE</span>
+              <span className="hidden sm:inline">NODES: {dynamicOnlineCount} ONLINE</span>
+            </div>
+
             {/* Chat Room Subheader — Editorial Channel Header */}
-            <div className="px-4 py-3 bg-[#0b0d12]/75 border-b border-dashed border-[#f4f1de]/14 flex items-center justify-between gap-2 shrink-0">
+            <div className="px-4 py-3 bg-[#0b0d12]/65 border-b border-dashed border-[#f4f1de]/14 flex items-center justify-between gap-2 shrink-0">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#e07a5f] shadow-[0_0_8px_rgba(224,122,95,0.8)] shrink-0" />
-                  <span className="font-extrabold text-sm sm:text-base text-[#f4f1de] truncate">
+                  <span className="ff-typo-thread-title font-extrabold text-sm sm:text-base text-[#f4f1de] truncate">
                     #{currentChannelObj.name}
                   </span>
                   <InfoTip label="Nội quy phòng chat" align="start">
@@ -632,9 +639,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
               variant="view"
             />
 
-            {/* Input Bar or Login Prompt */}
+            {/* Floating Glass Composer Dock or Login Prompt */}
             {!currentUser ? (
-              <div className="p-3 bg-[#0b0d12]/85 border-t border-dashed border-[#f4f1de]/15 flex items-center justify-between gap-3 shrink-0">
+              <div className="ff-chat-floating-composer flex items-center justify-between gap-3 shrink-0">
                 <span className="text-xs text-[#d8d5ce]">Đăng nhập để trò chuyện cùng mọi người</span>
                 <button
                   type="button"
@@ -645,7 +652,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="p-3 bg-[#0b0d12]/85 border-t border-dashed border-[#f4f1de]/15 flex items-center gap-2.5 shrink-0">
+              <div className="ff-chat-floating-composer flex items-center gap-2.5 shrink-0">
                 <input
                   type="text"
                   value={inputText}
@@ -678,7 +685,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
           </div>
 
           {/* Right Column: Active Members Roster (hidden on mobile, lg:col-span-3) */}
-          <div className="hidden lg:flex lg:col-span-3 flex-col ff-bento-cell !p-3.5 overflow-y-auto space-y-4">
+          <div className="hidden lg:flex lg:col-span-3 flex-col ff-chat-glass-sidebar p-3.5 overflow-y-auto space-y-4">
             <div className="px-1.5 pb-2.5 border-b border-dashed border-[#f4f1de]/14 flex items-center justify-between">
               <span className="text-xs font-extrabold text-[#f4f1de] uppercase tracking-wider font-mono">
                 THÀNH VIÊN
@@ -1003,13 +1010,13 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
             {/* Active Students */}
             <div className="space-y-2 flex-1 flex flex-col min-h-0">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-400 font-semibold px-1 flex items-center justify-between">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[#9a978e] font-semibold px-1 flex items-center justify-between">
                 <span>HỌC SINH & HỘI VIÊN</span>
-                <span className="text-[9px] text-neutral-500 font-mono">{activeStudents.length}</span>
+                <span className="text-[9px] text-[#f2cc8f] font-mono">{activeStudents.length}</span>
               </div>
               <div className="space-y-1.5 overflow-y-auto pr-0.5 flex-1">
                 {activeStudents.length === 0 ? (
-                  <div className="py-3 px-2 text-center text-xs text-neutral-400 italic">
+                  <div className="py-3 px-2 text-center text-xs text-[#9a978e] italic">
                     Chưa có hội viên khác trực tuyến
                   </div>
                 ) : (
@@ -1031,7 +1038,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                             level: user.level || 1,
                           });
                         }}
-                        className="p-2 rounded-xl bg-white/[0.03] border border-white/5 flex items-center gap-2.5 w-full text-left cursor-pointer"
+                        className="p-2 rounded-xl bg-[#0b0d12]/70 border border-[#f4f1de]/10 hover:border-[#f2cc8f]/45 flex items-center gap-2.5 w-full text-left cursor-pointer"
                       >
                         <div className="relative shrink-0">
                           <DecoratedAvatar
@@ -1040,9 +1047,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                             size={34}
                             animate
                             alt={user.name}
-                            className="rounded-full ring-1 ring-white/15"
+                            className="rounded-full ring-1 ring-[#f4f1de]/15"
                           />
-                          <span className="absolute bottom-0 right-0 z-[4] w-2 h-2 rounded-full bg-emerald-400 border border-black shadow-[0_0_6px_#34d399]" />
+                          <span className="absolute bottom-0 right-0 z-[4] w-2 h-2 rounded-full bg-[#81b29a] border border-black shadow-[0_0_6px_#81b29a]" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center">
@@ -1055,8 +1062,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
                               showFallbackTag
                             />
                           </div>
-                          <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 font-mono mt-0.5">
-                            <span className="text-amber-400 font-semibold">{tier.name}</span>
+                          <div className="flex items-center gap-1.5 text-[10px] text-[#9a978e] font-mono mt-0.5">
+                            <span className="text-[#f2cc8f] font-semibold">{tier.name}</span>
                             <span>• Lv.{user.level || 1}</span>
                           </div>
                         </div>

@@ -419,33 +419,76 @@ html.light .ff-raw-grid-surface {
 }
 
 /* ========================================================================== */
-/* KIẾN TRÚC THẺ HỎI ĐÁP & BONG BÓNG CHAT (Editorial + Neo-Brutalist Craft)   */
+/* KIẾN TRÚC THẺ HỎI ĐÁP (Style 3 Neo-Brutalism + Style 7 Exposed Grid)      */
 /* ========================================================================== */
+
+.ff-qa-dispatch-board {
+  position: relative;
+  border-radius: 6px !important;
+  background: linear-gradient(165deg, rgba(20, 25, 36, 0.98), rgba(12, 16, 24, 0.99)) !important;
+  border: 2px solid rgba(244, 241, 222, 0.24) !important;
+  box-shadow:
+    5px 5px 0px #04060a,
+    inset 0 1px 0 rgba(244, 241, 222, 0.1) !important;
+}
+
+.ff-qa-telemetry-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-bottom: 1.5px dashed rgba(244, 241, 222, 0.16);
+  background: rgba(8, 10, 15, 0.72);
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 10.5px;
+  color: #9a978e;
+}
+
+@media (min-width: 768px) {
+  .ff-qa-telemetry-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.ff-qa-telemetry-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  border-right: 1px dashed rgba(244, 241, 222, 0.12);
+}
+
+.ff-qa-telemetry-cell:last-child {
+  border-right: none;
+}
+
+.ff-qa-telemetry-cell b {
+  color: #f2cc8f;
+  font-weight: 800;
+}
 
 .ff-qa-card {
   position: relative;
-  border-radius: 0.95rem !important;
-  background: linear-gradient(165deg, rgba(22, 27, 39, 0.95), rgba(15, 19, 28, 0.98)) !important;
-  border: 1.5px solid rgba(244, 241, 222, 0.14) !important;
+  border-radius: 6px !important;
+  background: linear-gradient(165deg, rgba(21, 26, 38, 0.97), rgba(13, 17, 26, 0.99)) !important;
+  border: 2px solid rgba(244, 241, 222, 0.22) !important;
   box-shadow:
-    4px 4px 0px rgba(4, 6, 11, 0.9),
+    4px 4px 0px #04060a,
     inset 0 1px 0 rgba(244, 241, 222, 0.08) !important;
   transition:
-    transform 0.2s var(--ff-ds-smooth),
-    border-color 0.2s ease,
-    box-shadow 0.2s ease !important;
+    transform 0.18s var(--ff-ds-smooth),
+    border-color 0.18s ease,
+    box-shadow 0.18s ease !important;
 }
 
 .ff-qa-card::before {
   content: "";
   position: absolute;
   left: 0;
-  top: 14px;
-  bottom: 14px;
-  width: 3.5px;
-  border-radius: 0 3px 3px 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
   background: var(--ff-ds-organic-terracotta);
-  opacity: 0.85;
+  opacity: 0.92;
 }
 
 .ff-qa-card.is-solved::before {
@@ -454,18 +497,140 @@ html.light .ff-raw-grid-surface {
 
 .ff-qa-card:hover {
   transform: translate3d(-2px, -2px, 0) !important;
-  border-color: rgba(242, 204, 143, 0.45) !important;
+  border-color: rgba(242, 204, 143, 0.62) !important;
   box-shadow:
-    6px 6px 0px rgba(4, 6, 11, 0.95),
-    inset 0 1px 0 rgba(244, 241, 222, 0.14) !important;
+    6px 6px 0px #04060a,
+    inset 0 1px 0 rgba(244, 241, 222, 0.15) !important;
 }
 
-html.light .ff-qa-card {
+html.light .ff-qa-card,
+html.light .ff-qa-dispatch-board {
   background: #fffdf8 !important;
-  border-color: rgba(28, 25, 23, 0.18) !important;
+  border-color: rgba(28, 25, 23, 0.32) !important;
   box-shadow:
-    4px 4px 0px rgba(28, 25, 23, 0.14),
+    4px 4px 0px rgba(28, 25, 23, 0.22),
     inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+}
+
+/* ========================================================================== */
+/* KIẾN TRÚC PHÒNG CHAT (Style 4 Glassmorphism + Depth Layering + Style 6)    */
+/* ========================================================================== */
+
+.ff-chat-glass-sidebar {
+  position: relative;
+  border-radius: 1.15rem;
+  background: linear-gradient(170deg, rgba(19, 24, 36, 0.82), rgba(11, 14, 22, 0.9));
+  border: 1px solid rgba(244, 241, 222, 0.16);
+  box-shadow:
+    0 22px 54px rgba(0, 0, 0, 0.62),
+    inset 0 1px 0 rgba(244, 241, 222, 0.18),
+    inset 0 -1px 0 rgba(129, 178, 154, 0.08);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+.ff-chat-glass-stage {
+  position: relative;
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(224, 122, 95, 0.07), transparent 60%),
+    radial-gradient(90% 60% at 85% 100%, rgba(129, 178, 154, 0.07), transparent 60%),
+    linear-gradient(175deg, rgba(16, 20, 30, 0.86), rgba(10, 13, 20, 0.94));
+  border: 1px solid rgba(244, 241, 222, 0.18);
+  box-shadow:
+    0 26px 64px rgba(0, 0, 0, 0.68),
+    inset 0 1px 0 rgba(244, 241, 222, 0.2);
+  backdrop-filter: blur(20px) saturate(145%);
+  -webkit-backdrop-filter: blur(20px) saturate(145%);
+}
+
+.ff-chat-telemetry-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(8, 10, 15, 0.68);
+  border-bottom: 1px solid rgba(244, 241, 222, 0.1);
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 10px;
+  color: #9a978e;
+  letter-spacing: 0.04em;
+}
+
+.ff-chat-floating-composer {
+  margin: 0 12px 12px;
+  padding: 10px 12px;
+  border-radius: 1rem;
+  background: rgba(14, 18, 27, 0.88);
+  border: 1.5px solid rgba(244, 241, 222, 0.18);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(244, 241, 222, 0.14);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* ========================================================================== */
+/* KIẾN TRÚC QUẢNG TRƯỜNG CLB (Style 2 Bento + Style 10 Organic Hand-Drawn)   */
+/* ========================================================================== */
+
+.ff-club-realm-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (min-width: 768px) {
+  .ff-club-realm-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.ff-club-realm-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px 6px 14px 6px;
+  background: linear-gradient(155deg, rgba(24, 29, 41, 0.94), rgba(15, 19, 28, 0.98));
+  border: 1.5px dashed rgba(244, 241, 222, 0.22);
+  box-shadow: 3px 3px 0px rgba(4, 6, 11, 0.88);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.16s var(--ff-ds-spring), border-color 0.18s ease, background 0.18s ease;
+}
+
+.ff-club-realm-card:hover,
+.ff-club-realm-card.is-active {
+  transform: translate3d(-1.5px, -1.5px, 0);
+  border-style: solid;
+  border-color: rgba(242, 204, 143, 0.6);
+  background: linear-gradient(155deg, rgba(224, 122, 95, 0.18), rgba(20, 25, 36, 0.96));
+}
+
+/* Warm Editorial override for Home Hero Title while keeping HomeHeroTitle.css test-intact */
+.home-hero-title__focus {
+  color: #f2cc8f !important;
+  filter: drop-shadow(0 5px 14px rgba(224, 122, 95, 0.28)) !important;
+}
+
+.home-hero-title__word {
+  color: #f2cc8f !important;
+  background: linear-gradient(105deg, #f4f1de 4%, #f2cc8f 38%, #e07a5f 72%, #81b29a 96%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+}
+
+.home-hero-title__wave {
+  stroke: #e07a5f !important;
+  filter: drop-shadow(0 0 5px rgba(224, 122, 95, 0.55)) !important;
+}
+
+.home-hero-title__bottom i {
+  background: linear-gradient(90deg, transparent, #f2cc8f) !important;
 }
 
 .ff-chat-bubble-me {
@@ -507,45 +672,45 @@ html.light .ff-chat-bubble-peer {
 /* UNIVERSAL GUI, BUTTON, MODAL, DETAIL CARD & LEADERBOARD ARCHITECTURE       */
 /* ========================================================================== */
 
-/* 1. Trang Chi Tiết Câu Hỏi & Lời Giải (.question-card & .answer-card) */
+/* 1. Trang Chi Tiết Câu Hỏi & Lời Giải (.question-card & .answer-card — Style 3 Neo-Brutalism) */
 .question-card {
-  background: linear-gradient(165deg, rgba(22, 27, 39, 0.96), rgba(15, 19, 28, 0.98)) !important;
-  border-radius: 1rem !important;
+  background: linear-gradient(165deg, rgba(22, 27, 39, 0.97), rgba(14, 18, 27, 0.99)) !important;
+  border-radius: 6px !important;
   padding: 1.5rem 1.75rem !important;
-  border: 1.5px solid rgba(244, 241, 222, 0.16) !important;
+  border: 2px solid rgba(244, 241, 222, 0.24) !important;
   box-shadow:
-    4px 4px 0px rgba(4, 6, 11, 0.92),
-    inset 0 1px 0 rgba(244, 241, 222, 0.08) !important;
+    5px 5px 0px #04060a,
+    inset 0 1px 0 rgba(244, 241, 222, 0.1) !important;
 }
 
 .answer-section-label {
-  border-bottom: 1.5px dashed rgba(244, 241, 222, 0.14) !important;
+  border-bottom: 1.5px dashed rgba(244, 241, 222, 0.16) !important;
   color: var(--ff-ds-text-primary) !important;
 }
 
 .answer-card {
-  background: linear-gradient(165deg, rgba(21, 26, 38, 0.95), rgba(14, 18, 27, 0.98)) !important;
-  border-radius: 0.95rem !important;
+  background: linear-gradient(165deg, rgba(21, 26, 38, 0.96), rgba(13, 17, 26, 0.99)) !important;
+  border-radius: 6px !important;
   padding: 1.25rem 1.5rem !important;
-  border: 1.5px solid rgba(244, 241, 222, 0.14) !important;
-  border-left: 4px solid var(--ff-ds-organic-terracotta) !important;
+  border: 2px solid rgba(244, 241, 222, 0.18) !important;
+  border-left: 5px solid var(--ff-ds-organic-terracotta) !important;
   box-shadow:
-    4px 4px 0px rgba(4, 6, 11, 0.9),
-    inset 0 1px 0 rgba(244, 241, 222, 0.07) !important;
+    4px 4px 0px #04060a,
+    inset 0 1px 0 rgba(244, 241, 222, 0.08) !important;
 }
 
 .answer-card:hover {
-  border-color: rgba(242, 204, 143, 0.42) !important;
+  border-color: rgba(242, 204, 143, 0.5) !important;
   border-left-color: var(--ff-ds-organic-sand) !important;
 }
 
 .answer-card.verified {
   border-left-color: var(--ff-ds-organic-sage) !important;
-  border-color: rgba(129, 178, 154, 0.45) !important;
-  background: linear-gradient(165deg, rgba(20, 33, 31, 0.95), rgba(13, 22, 23, 0.98)) !important;
+  border-color: rgba(129, 178, 154, 0.55) !important;
+  background: linear-gradient(165deg, rgba(20, 33, 31, 0.96), rgba(13, 22, 23, 0.99)) !important;
   box-shadow:
-    4px 4px 0px rgba(4, 6, 11, 0.92),
-    inset 0 1px 0 rgba(129, 178, 154, 0.16) !important;
+    4px 4px 0px #04060a,
+    inset 0 1px 0 rgba(129, 178, 154, 0.18) !important;
 }
 
 /* 2. Modal Đặt Câu Hỏi & Toàn Bộ Hộp Thoại (.ask2027-* & .modal-container) */

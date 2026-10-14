@@ -507,13 +507,14 @@
 
 .thread-card {
   position: relative;
-  padding: 16px 18px;
-  border-radius: 14px;
-  background: linear-gradient(165deg, rgba(22, 27, 39, 0.95), rgba(15, 19, 28, 0.98));
-  border: 1.5px solid rgba(244, 241, 222, 0.14);
+  padding: 18px 20px;
+  border-radius: 4px 18px 16px 4px;
+  background: linear-gradient(165deg, rgba(22, 27, 39, 0.96), rgba(14, 18, 27, 0.99));
+  border: 1.5px solid rgba(244, 241, 222, 0.16);
+  border-left: 4px solid #e07a5f;
   box-shadow:
-    4px 4px 0px rgba(4, 6, 11, 0.9),
-    inset 0 1px 0 rgba(244, 241, 222, 0.08);
+    4px 4px 0px rgba(4, 6, 11, 0.92),
+    inset 0 1px 0 rgba(244, 241, 222, 0.09);
   transform: translateZ(0);
   backface-visibility: hidden;
   contain: layout style;
@@ -522,16 +523,67 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
+.thread-card.is-featured {
+  border-left-color: #81b29a;
+  border-color: rgba(129, 178, 154, 0.42);
+}
+
 .thread-card::before {
   content: "";
   position: absolute;
-  left: 0;
-  top: 14px;
-  bottom: 14px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: linear-gradient(180deg, #e07a5f, #f2cc8f, #81b29a);
-  opacity: 0.75;
+  right: 16px;
+  top: -1px;
+  width: 34px;
+  height: 5px;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(90deg, rgba(224, 122, 95, 0.55), rgba(242, 204, 143, 0.55));
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.thread-editorial-lead {
+  font-family: "Fraunces", "Playfair Display", Georgia, serif;
+  font-size: 16.5px;
+  font-weight: 700;
+  line-height: 1.42;
+  color: #f4f1de;
+  letter-spacing: -0.015em;
+  margin-bottom: 6px;
+}
+
+.thread-zine-masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  border-bottom: 1.5px dashed rgba(244, 241, 222, 0.14);
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 10px;
+  color: #9a978e;
+  letter-spacing: 0.04em;
+}
+
+.thread-featured-spotlight {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: linear-gradient(125deg, rgba(224, 122, 95, 0.14), rgba(242, 204, 143, 0.1), rgba(129, 178, 154, 0.14));
+  border: 1.5px solid rgba(242, 204, 143, 0.35);
+  box-shadow: 2.5px 2.5px 0px rgba(4, 6, 11, 0.88);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.16s ease, border-color 0.16s ease;
+}
+
+.thread-featured-spotlight:hover {
+  transform: translate3d(-1px, -1px, 0);
+  border-color: rgba(242, 204, 143, 0.65);
 }
 
 .thread-card--virtual-stub {
