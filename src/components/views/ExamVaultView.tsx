@@ -829,6 +829,15 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     }
   });
 
+  /* Trạng thái tính năng học thuật mới: CBT Practice, Bookmark Drawer, Print Modal, Offline Cache */
+  const [cbtExam, setCbtExam] = useState<ExamPaper | null>(null);
+  const [isBookmarkDrawerOpen, setIsBookmarkDrawerOpen] = useState(false);
+  const [printExam, setPrintExam] = useState<ExamPaper | null>(null);
+  const [cachedExamIds, setCachedExamIds] = useState<string[]>(() => getCachedExamIds());
+  const [isOnline, setIsOnline] = useState<boolean>(() =>
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+
   /* Đồng bộ thời gian thực đa tab qua storage event */
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
@@ -882,15 +891,6 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     return () => clearTimeout(t);
   }, []);
 
-  /* Trạng thái tính năng học thuật mới: CBT Practice, Bookmark Drawer, Print Modal, Offline Cache */
-  const [cbtExam, setCbtExam] = useState<ExamPaper | null>(null);
-  const [isBookmarkDrawerOpen, setIsBookmarkDrawerOpen] = useState(false);
-  const [printExam, setPrintExam] = useState<ExamPaper | null>(null);
-  const [cachedExamIds, setCachedExamIds] = useState<string[]>(() => getCachedExamIds());
-  const [isOnline, setIsOnline] = useState<boolean>(() =>
-    typeof navigator !== 'undefined' ? navigator.onLine : true
-  );
-
   /* Lắng nghe trạng thái mạng Online / Offline */
   useEffect(() => {
     const handleOnline = () => {
@@ -927,7 +927,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         /* Bỏ qua */
       }
     }
-  }, [cachedExamIds, showToast]);
+  }, [cachedExamIds, showToast, setCachedExamIds]);
 
   /* Xoá tất cả đề đã lưu trong Bookmark Drawer */
   const handleClearAllBookmarks = useCallback(() => {
@@ -1386,6 +1386,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     sortBy,
     savedExams,
     submissions,
+    cachedExamIds,
   ]);
 
   /* Keyboard shortcut Escape to close modals */
@@ -1444,21 +1445,21 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       if (cbtId) {
         const found = allPapers.find((p) => p.id === cbtId);
         if (found) {
-          setCbtExam(found);
           handled = true;
+          window.requestAnimationFrame(() => setCbtExam(found));
         }
       }
 
       if (showSavedDrawer) {
-        setIsBookmarkDrawerOpen(true);
         handled = true;
+        window.requestAnimationFrame(() => setIsBookmarkDrawerOpen(true));
       }
 
       if (examId && !handled) {
         const found = allPapers.find((p) => p.id === examId);
         if (found) {
-          setPreviewExam(found);
           handled = true;
+          window.requestAnimationFrame(() => setPreviewExam(found));
         }
       }
 
