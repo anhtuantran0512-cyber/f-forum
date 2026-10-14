@@ -737,20 +737,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
           )}
           {canSeeAnalytics && (
             <button type="button" className={tab === 'performance' ? 'is-active' : ''} onClick={() => setTab('performance')}>
-              <Sparkles size={15} /> Hiệu năng Đa tầng
-            </button>
-          )}
-          {isSuperAdmin && onOpenReports && (
-            <button type="button" onClick={onOpenReports}>
-              <ShieldAlert size={15} /> Tố cáo
-              {pendingReportCount > 0 && (
-                <span>{pendingReportCount > 99 ? '99+' : pendingReportCount}</span>
-              )}
-            </button>
-          )}
-          {isSuperAdmin && onOpenOperations && (
-            <button type="button" onClick={onOpenOperations}>
-              <Database size={15} /> Điều khiển
+              <Sparkles size={15} /> Hiệu năng
             </button>
           )}
           <div className="faa-tabs__right">

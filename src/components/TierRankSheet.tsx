@@ -46,12 +46,12 @@ const TABS: { id: SheetTab; label: string; icon: React.ReactNode }[] = [
 ];
 
 const REQUIREMENT_ROWS: { action: string; reward: string; note: string }[] = [
-  { action: 'Đặt câu hỏi cho cộng đồng', reward: '+50 XP · +50 điểm', note: 'Bảng xếp hạng đóng góp' },
-  { action: 'Gửi lời giải cho một câu hỏi', reward: '+25 XP · +25 điểm', note: 'Mỗi lời giải được duyệt' },
-  { action: 'Được xác nhận Đáp án chuẩn', reward: '+100 XP · +50% Coin thưởng', note: 'Cộng thêm khi tác giả xác nhận' },
-  { action: 'Nhắn tin trong cộng đồng', reward: '+2 điểm', note: 'Tính vào bảng đóng góp' },
-  { action: 'Hoàn thành phiên tập trung 25′', reward: '+25 XP · ghi 25′ giờ học', note: 'Bảng xếp hạng giờ học' },
-  { action: 'Điểm danh mỗi ngày', reward: '+25 Coin', note: 'Chuỗi ngày mốc 5 · 10 · 15 mở hộp quà' },
+  { action: 'Đặt câu hỏi', reward: '+50 XP · +50 điểm', note: '' },
+  { action: 'Gửi lời giải', reward: '+25 XP · +25 điểm', note: '' },
+  { action: 'Đáp án chuẩn', reward: '+100 XP · +50% Coin', note: '' },
+  { action: 'Nhắn tin cộng đồng', reward: '+2 điểm', note: '' },
+  { action: 'Phiên tập trung 25′', reward: '+25 XP · +25′ học', note: '' },
+  { action: 'Điểm danh mỗi ngày', reward: '+25 Coin', note: '' },
 ];
 
 export const TierRankSheet: React.FC<TierRankSheetProps> = ({
@@ -110,7 +110,7 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
         className="absolute inset-0 bg-transparent border-none outline-none cursor-default"
       />
 
-      <div className="relative w-full max-w-[440px] max-h-[86vh] flex flex-col rounded-[26px] pc-12-shell p-3.5 text-white shadow-[0_40px_120px_rgba(0,0,0,0.8)] overflow-hidden">
+      <div className="relative w-full max-w-[540px] max-h-[86vh] flex flex-col rounded-[26px] pc-12-shell p-4 sm:p-5 text-white shadow-[0_40px_120px_rgba(0,0,0,0.8)] overflow-hidden">
         {/* Header */}
         <div className="flex items-start justify-between gap-2 pb-3 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -124,11 +124,11 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
               <TierSvg tierNumber={tier.tierNumber} size={34} />
             </span>
             <div className="min-w-0">
-              <h3 className="text-sm font-bold leading-tight truncate flex items-center gap-1.5">
+              <h3 className="text-sm font-extrabold uppercase tracking-wide leading-tight truncate flex items-center gap-1.5 text-[#f4f1de]">
                 <span>{isSuperAdmin ? 'Quản Trị Viên Tối Cao' : `${tier.roman}. ${tier.titleVi}`}</span>
               </h3>
-              <p className="text-[10.5px] text-neutral-400 leading-tight">
-                Cấp {level} • {xp.toLocaleString('vi-VN')} XP • {earnedCount}/{badges.length} danh hiệu
+              <p className="text-[10.5px] font-mono text-[#9a978e] leading-tight mt-0.5">
+                Lv.{level} · {xp.toLocaleString('vi-VN')} XP · {earnedCount}/{badges.length} huy hiệu
               </p>
             </div>
           </div>
@@ -136,7 +136,7 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Đóng"
-            className="p-1.5 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer shrink-0"
+            className="ff-tactile-btn p-1.5 rounded-xl bg-[#0b0d12] border border-white/15 text-white/70 hover:text-white transition-colors cursor-pointer shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
@@ -148,7 +148,7 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
             <span className="font-mono">
               {levelProgress.into.toLocaleString('vi-VN')} / {levelProgress.span.toLocaleString('vi-VN')} XP
             </span>
-            <span className="text-amber-300 font-semibold">
+            <span className="text-[#f2cc8f] font-semibold font-mono">
               {levelProgress.percent}% → Lv.{Math.min(150, level + 1)}
             </span>
           </div>
@@ -161,13 +161,10 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
               }}
             />
           </div>
-          <p className="text-[10px] text-neutral-500 mt-1">
-            Còn {levelProgress.remaining.toLocaleString('vi-VN')} XP để lên cấp tiếp theo
-          </p>
         </div>
 
         {/* Tabs */}
-        <div className="grid grid-cols-3 gap-1 mt-3 p-1 rounded-2xl bg-black/40 border border-white/10 shrink-0">
+        <div className="grid grid-cols-3 gap-1.5 mt-3 p-1 rounded-2xl bg-[#0b0d12] border border-white/12 shrink-0">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -175,10 +172,10 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
               onClick={() => setTab(t.id)}
               aria-selected={tab === t.id}
               role="tab"
-              className={`flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+              className={`ff-tactile-btn flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer ${
                 tab === t.id
-                  ? 'bg-gradient-to-r from-amber-400/90 to-yellow-300/80 text-neutral-950 shadow-md'
-                  : 'text-neutral-300 hover:text-white hover:bg-white/5'
+                  ? 'bg-[#f4f1de] text-[#0b0d12] border border-[#0b0d12]'
+                  : 'text-neutral-300 hover:text-white hover:bg-white/5 border border-transparent'
               }`}
             >
               {t.icon}
