@@ -309,7 +309,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   return (
     <section className={`club-plaza-page relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-[var(--navbar-height)] pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-6 px-4 sm:px-8`}>
       {/* Nền phong cách Forum Hiện Đại: Tối ưu triệt để dung lượng và GPU, không dùng video nền trong sảnh CLB */}
-      <div className="ff-clubs-bg absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
+      <div className="ff-clubs-bg ff-raw-grid-surface absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
         <div className="absolute inset-0 bg-gradient-to-b from-[#080d15] via-[#09111e] to-[#060a12]" />
         <div className="absolute top-[-15%] right-[10%] w-[550px] h-[550px] rounded-full bg-emerald-500/[0.035] blur-[140px]" />
         <div className="absolute bottom-[-10%] left-[5%] w-[650px] h-[650px] rounded-full bg-amber-500/[0.03] blur-[150px]" />
@@ -321,11 +321,14 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
         {/* Top Header Bar & Category Filter */}
         <div className="flex flex-col gap-3 mb-5 pb-3 border-b border-white/10 shrink-0">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2.5 flex-wrap">
               <Trophy className="club-badge-accent w-6 h-6 text-amber-400 shrink-0" />
-              <h1 className="text-xl sm:text-2xl font-bold text-white">
+              <h1 className="ff-typo-poster !text-xl sm:!text-2xl text-white">
                 Quảng Trường Câu Lạc Bộ
               </h1>
+              <span className="ff-brutal-index">
+                {approvedClubs.length} CLB HOẠT ĐỘNG
+              </span>
               <InfoTip label="Cách tính danh hiệu CLB xuất sắc" align="start">
                 Danh hiệu CLB Xuất Sắc Nhất Tháng được tổng hợp tự động dựa trên tần suất đăng bài hoạt động và mức độ thảo luận thực tế của thành viên.
               </InfoTip>
@@ -590,7 +593,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   {/* Card Content: tên + slogan + số thành viên + 2 nút ('Tham gia' / 'Xem →') */}
                   <div className="ff-media-card__content">
                     <div>
-                      <h3 className="font-bold text-sm text-white group-hover:text-amber-300 transition-colors line-clamp-1">
+                      <h3 className="font-bold text-sm text-white group-hover:text-amber-300 transition-colors line-clamp-1 ff-kinetic-title ff-kinetic-underline">
                         {club.name}
                       </h3>
                       {club.slogan && (
@@ -624,7 +627,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
                       <button
                         onClick={() => setApplicationSubmitted(club.id)}
-                        className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                        className={`ff-tactile-btn flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
                           applicationSubmitted === club.id
                             ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40'
                             : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/30'
@@ -634,7 +637,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                       </button>
                       <button
                         onClick={() => setSelectedClub(club)}
-                        className="flex-1 py-1.5 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/10 transition-colors cursor-pointer"
+                        className="ff-tactile-btn flex-1 py-1.5 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/10 transition-colors cursor-pointer"
                       >
                         Xem →
                       </button>
