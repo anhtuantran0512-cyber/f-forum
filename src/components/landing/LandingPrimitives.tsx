@@ -103,10 +103,16 @@ export const Counter: React.FC<CounterProps> = ({
       return () => cancelAnimationFrame(id);
     }
     let raf = 0;
+    let lastStateEmit = 0;
     const start = performance.now();
     const tick = (now: number) => {
       const elapsed = now - start;
       const t = Math.min(1, elapsed / duration);
+      if (t < 1 && now - lastStateEmit < 42) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      lastStateEmit = now;
       const eased = 1 - Math.pow(2, -10 * t);
       const currentVal = value * (t === 1 ? 1 : eased);
       setDisplay(currentVal);
@@ -393,6 +399,7 @@ export const ScrambleText: React.FC<{
     }
     const glyphs = 'ABCDEFGHJKLNOPQRSTUVWXYZ0123456789#%&*+~';
     let frame = 0;
+    let lastEmit = 0;
     const startTime = performance.now() + delay;
     const duration = 1200;
 
@@ -402,6 +409,11 @@ export const ScrambleText: React.FC<{
         return;
       }
       const progress = Math.min(1, (now - startTime) / duration);
+      if (progress < 1 && now - lastEmit < 45) {
+        frame = requestAnimationFrame(tick);
+        return;
+      }
+      lastEmit = now;
       const lockedLength = Math.floor(progress * text.length);
 
       const result = text
