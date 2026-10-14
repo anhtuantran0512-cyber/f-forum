@@ -658,21 +658,21 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
         typeof document !== 'undefined' &&
         createPortal(
           <div role="dialog" aria-modal="true" aria-label="Đăng ký thành lập CLB" className="fixed inset-0 z-[130] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-fade-up">
-            <div className="liquid-glass w-full max-w-2xl rounded-3xl bg-[#0b111e] border border-amber-500/45 shadow-[0_30px_90px_rgba(0,0,0,0.95)] p-6 sm:p-8 relative max-h-[92vh] overflow-y-auto">
-              <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-5">
+            <div className="modal-container w-full max-w-2xl p-6 sm:p-8 relative max-h-[92vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-4 border-b border-dashed border-[#f4f1de]/15 mb-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-400/35 flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-amber-400" />
+                  <div className="w-10 h-10 rounded-xl bg-[#e07a5f]/18 border-[1.5px] border-[#e07a5f]/45 flex items-center justify-center shadow-[2px_2px_0px_rgba(4,6,11,0.9)]">
+                    <Sparkles className="w-5 h-5 text-[#f2cc8f]" />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-base sm:text-lg text-white">Đăng Ký Thành Lập CLB Mới</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">Hoàn thiện hồ sơ rõ ràng để Ban Quản Trị xét duyệt nhanh chóng</p>
+                    <h3 className="font-extrabold text-base sm:text-lg text-[#f4f1de]">Đăng Ký Thành Lập CLB Mới</h3>
+                    <p className="text-xs text-[#9a978e] mt-0.5">Hoàn thiện hồ sơ để Ban Quản Trị xét duyệt</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white cursor-pointer"
+                  className="ff-tactile-btn p-2 rounded-lg bg-[#0b0d12] hover:bg-[#f4f1de]/10 border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -681,7 +681,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
               <form onSubmit={handleCreateSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="ten-cau-lac-bo" className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                    <label htmlFor="ten-cau-lac-bo" className="block text-xs sm:text-sm font-bold text-[#f4f1de] mb-1.5">
                       Tên Câu Lạc Bộ (*):
                     </label>
                     <input
@@ -692,18 +692,18 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                       value={newClubName}
                       onChange={e => setNewClubName(e.target.value)}
                       placeholder="VD: CLB Lập Trình Game F-Dev..."
-                      className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                      className="w-full bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/18 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                    <label className="block text-xs sm:text-sm font-bold text-[#f4f1de] mb-1.5">
                       Chuyên mục hoạt động (*):
                     </label>
                     <select
                       value={newCategory}
                       onChange={e => setNewCategory(e.target.value as ClubCategory)}
-                      className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400 cursor-pointer"
+                      className="w-full bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/18 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f] cursor-pointer"
                     >
                       <option value="Công nghệ">Công nghệ</option>
                       <option value="Nghệ thuật">Nghệ thuật</option>
@@ -714,7 +714,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                 </div>
 
                 <div>
-                  <label htmlFor="khau-hieu-slogan" className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                  <label htmlFor="khau-hieu-slogan" className="block text-xs sm:text-sm font-bold text-[#f4f1de] mb-1.5">
                     Khẩu hiệu / Slogan (*):
                   </label>
                   <input
@@ -725,19 +725,19 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     value={newSlogan}
                     onChange={e => setNewSlogan(e.target.value)}
                     placeholder="VD: Kết nối đam mê, vươn tầm công nghệ..."
-                    className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                    className="w-full bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/18 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                   />
                 </div>
 
                 {/* Khung chọn & xem trước ảnh bìa CLB */}
-                <div className="rounded-2xl bg-[#070b13] border border-white/15 p-4 space-y-3">
+                <div className="rounded-xl bg-[#0b0d12]/80 border-[1.5px] border-[#f4f1de]/15 p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs sm:text-sm font-bold text-amber-300">
+                    <label className="text-xs sm:text-sm font-bold text-[#f2cc8f]">
                       Ảnh bìa CLB (Dán URL hoặc tải ảnh từ máy &lt; 5MB)
                     </label>
                   </div>
                   {newCover && (
-                    <div className="relative w-full h-36 rounded-xl overflow-hidden bg-black border border-white/10">
+                    <div className="relative w-full h-36 rounded-xl overflow-hidden bg-black border border-[#f4f1de]/15">
                       <img
                         src={newCover}
                         alt="Xem trước ảnh bìa CLB"
@@ -755,11 +755,11 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                       value={newCover}
                       onChange={e => setNewCover(e.target.value)}
                       placeholder="https://images.unsplash.com/... hoặc chọn tệp ảnh"
-                      className="flex-1 bg-[#0b111e] border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                      className="flex-1 bg-[#151a26] border-[1.5px] border-[#f4f1de]/18 rounded-xl px-4 py-2.5 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                     />
                     <label
                       htmlFor="club-cover-upload"
-                      className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                      className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#f2cc8f] hover:bg-[#e07a5f] text-[#0b0d12] border-[1.5px] border-[#f4f1de] font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
                     >
                       <Upload className="w-4 h-4" />
                       <span>+ Tải tệp ảnh</span>
@@ -779,7 +779,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                 </div>
 
                 <div>
-                  <label htmlFor="danh-sach-thanh-vien-sang-lap-ca" className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                  <label htmlFor="danh-sach-thanh-vien-sang-lap-ca" className="block text-xs sm:text-sm font-bold text-[#f4f1de] mb-1.5">
                     Danh sách thành viên sáng lập (cách nhau bởi dấu phẩy):
                   </label>
                   <input
@@ -789,12 +789,12 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     value={newFounders}
                     onChange={e => setNewFounders(e.target.value)}
                     placeholder="Nguyễn Văn A, Trần Thị B..."
-                    className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400"
+                    className="w-full bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/18 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="ton-chi-hoat-dong" className="block text-xs sm:text-sm font-bold text-slate-200 mb-1.5">
+                  <label htmlFor="ton-chi-hoat-dong" className="block text-xs sm:text-sm font-bold text-[#f4f1de] mb-1.5">
                     Tôn chỉ hoạt động (*):
                   </label>
                   <textarea
@@ -805,26 +805,26 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     value={newPurpose}
                     onChange={e => setNewPurpose(e.target.value)}
                     placeholder="Mô tả mục tiêu, lộ trình sinh hoạt định kỳ và kế hoạch tổ chức sự kiện..."
-                    className="w-full bg-[#070b13] border border-white/20 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400 leading-relaxed resize-y"
+                    className="w-full bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/18 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f] leading-relaxed resize-y"
                   />
                 </div>
 
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-300 leading-relaxed">
-                  ⏳ Chờ Ban Quản Trị duyệt · 🎖️ Duyệt xong: huy hiệu Chủ nhiệm + 250 XP
+                <div className="p-3 rounded-xl bg-[#f2cc8f]/12 border-[1.5px] border-[#f2cc8f]/35 text-xs text-[#f2cc8f] font-mono leading-relaxed">
+                  Chờ Ban Quản Trị duyệt · Duyệt xong: huy hiệu Chủ nhiệm + 250 XP
                 </div>
 
-                <div className="pt-3 flex justify-end gap-3 border-t border-white/10">
+                <div className="pt-3 flex justify-end gap-3 border-t border-dashed border-[#f4f1de]/15">
                   <button
                     type="button"
                     onClick={() => setIsCreateModalOpen(false)}
-                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-slate-300 hover:text-white cursor-pointer"
+                    className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#0b0d12] hover:bg-[#f4f1de]/10 border-[1.5px] border-[#f4f1de]/18 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
                   >
                     Hủy
                   </button>
                   <button
                     type="submit"
                     disabled={createCooldown > 0 || isSubmittingClub}
-                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-extrabold text-xs sm:text-sm shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className="ff-tactile-btn px-6 py-2.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border-[1.5px] border-[#f4f1de] font-extrabold text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {createCooldown > 0
                       ? `Chờ ${createCooldown}s...`
@@ -844,22 +844,22 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
         typeof document !== 'undefined' &&
         createPortal(
           <div role="dialog" aria-modal="true" aria-label="Chi tiết câu lạc bộ" className="fixed inset-0 z-[130] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-fade-up">
-            <div className="liquid-glass w-full max-w-3xl rounded-3xl bg-[#0b111e] border border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.95)] p-6 sm:p-8 relative max-h-[92vh] overflow-y-auto">
-              <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-4">
+            <div className="modal-container w-full max-w-3xl p-6 sm:p-8 relative max-h-[92vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-4 border-b border-dashed border-[#f4f1de]/15 mb-4">
                 <div>
-                  <h3 className="font-extrabold text-lg sm:text-xl text-white">{selectedClub.name}</h3>
-                  <p className="text-xs sm:text-sm text-amber-200/90 italic mt-0.5">"{selectedClub.slogan}"</p>
+                  <h3 className="ff-typo-poster !text-lg sm:!text-2xl text-[#f4f1de]">{selectedClub.name}</h3>
+                  <p className="text-xs sm:text-sm text-[#f2cc8f] italic mt-0.5">"{selectedClub.slogan}"</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSelectedClub(null)}
-                  className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white cursor-pointer"
+                  className="ff-tactile-btn p-2 rounded-lg bg-[#0b0d12] hover:bg-[#f4f1de]/10 border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="h-52 w-full rounded-2xl overflow-hidden mb-5 border border-white/15">
+              <div className="h-52 w-full rounded-xl overflow-hidden mb-5 border-[1.5px] border-[#f4f1de]/18 shadow-[4px_4px_0px_rgba(4,6,11,0.9)]">
                 <img
                   src={selectedClub.coverImage}
                   alt={selectedClub.name}
@@ -872,18 +872,18 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                 />
               </div>
 
-              <div className="space-y-4 text-xs sm:text-sm text-neutral-300">
+              <div className="space-y-4 text-xs sm:text-sm text-[#d8d5ce]">
                 {/* Founding Manifesto */}
-                <div className="p-4 rounded-2xl bg-[#070b13] border border-white/10 space-y-1.5">
-                  <span className="font-bold text-white block">Tuyên Ngôn Sáng Lập &amp; Tôn Chỉ (Founding Manifesto):</span>
-                  <p className="italic text-amber-200">"{selectedClub.slogan}"</p>
-                  <p className="text-neutral-300 leading-relaxed pt-1">{selectedClub.purpose}</p>
+                <div className="p-4 rounded-xl bg-[#0b0d12]/80 border-[1.5px] border-[#f4f1de]/14 space-y-1.5">
+                  <span className="font-bold text-[#f4f1de] block">Tuyên Ngôn Sáng Lập &amp; Tôn Chỉ (Founding Manifesto):</span>
+                  <p className="italic text-[#f2cc8f]">"{selectedClub.slogan}"</p>
+                  <p className="text-[#d8d5ce] leading-relaxed pt-1">{selectedClub.purpose}</p>
                 </div>
 
                 {/* Member Roster */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div className="p-4 rounded-2xl bg-[#070b13] border border-white/10">
-                    <span className="font-bold text-white block mb-2">Chủ nhiệm &amp; Trưởng ban:</span>
+                  <div className="p-4 rounded-xl bg-[#0b0d12]/80 border-[1.5px] border-[#f4f1de]/14">
+                    <span className="font-bold text-[#f4f1de] block mb-2">Chủ nhiệm &amp; Trưởng ban:</span>
                     <div className="flex items-center gap-2 flex-wrap">
                       <DecoratedAvatar
                         user={resolveClubUser(selectedClub.leaderId, selectedClub.leaderName)}
@@ -899,42 +899,42 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                         animate
                         showFallbackTag
                       />
-                      <span className="text-[11px] text-neutral-400 font-mono">(Trưởng CLB)</span>
+                      <span className="text-[11px] text-[#9a978e] font-mono">(Trưởng CLB)</span>
                     </div>
                   </div>
-                  <div className="p-4 rounded-2xl bg-[#070b13] border border-white/10">
-                    <span className="font-bold text-white block mb-2">Hội đồng Sáng Lập (Founding Roster):</span>
+                  <div className="p-4 rounded-xl bg-[#0b0d12]/80 border-[1.5px] border-[#f4f1de]/14">
+                    <span className="font-bold text-[#f4f1de] block mb-2">Hội đồng Sáng Lập (Founding Roster):</span>
                     <div className="flex flex-wrap gap-1.5 mt-1">
                       {selectedClub.foundingMembers && selectedClub.foundingMembers.length > 0 ? (
                         selectedClub.foundingMembers.map((m, idx) => (
                           <span
                             key={`${m}-${idx}`}
-                            className="px-2.5 py-1 rounded-lg bg-white/10 text-neutral-200 text-xs font-mono border border-white/10"
+                            className="px-2.5 py-1 rounded-md bg-[#151a26] text-[#f4f1de] text-xs font-mono border border-[#f4f1de]/15"
                           >
                             {m}
                           </span>
                         ))
                       ) : (
-                        <span className="text-neutral-400">Đang cập nhật danh sách...</span>
+                        <span className="text-[#9a978e]">Đang cập nhật danh sách...</span>
                       )}
                     </div>
                   </div>
                 </div>
 
                 {/* Scoped Posting Board Section */}
-                <div className="pt-4 border-t border-white/10">
+                <div className="pt-4 border-t border-dashed border-[#f4f1de]/15">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-extrabold text-white text-sm flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-cyan-400" />
+                    <h4 className="font-extrabold text-[#f4f1de] text-sm flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-[#f2cc8f]" />
                       BẢNG TIN THÔNG BÁO NỘI BỘ
                     </h4>
                     {/* Scoped permission indicator */}
                     {isSuperAdmin || currentUser?.scopedClubIds?.includes(selectedClub.id) ? (
-                      <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      <span className="text-[11px] font-mono px-2.5 py-1 rounded-md bg-[#81b29a]/20 text-[#d8f3dc] border border-[#81b29a]/40">
                         Quyền Đăng Bài: ĐÃ CẤP
                       </span>
                     ) : (
-                      <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-neutral-800 text-neutral-400 flex items-center gap-1">
+                      <span className="text-[11px] font-mono px-2.5 py-1 rounded-md bg-[#0b0d12] text-[#9a978e] border border-[#f4f1de]/12 flex items-center gap-1">
                         <Lock className="w-3 h-3" /> Chỉ Xem
                       </span>
                     )}
@@ -942,27 +942,27 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
 
                   {/* Form to post: visible/scoped only to leader or Super Admin */}
                   {isSuperAdmin || currentUser?.scopedClubIds?.includes(selectedClub.id) ? (
-                    <div className="p-4 sm:p-5 rounded-2xl bg-[#070b13] border border-cyan-400/35 mb-4 space-y-3">
+                    <div className="p-4 sm:p-5 rounded-xl bg-[#0b0d12]/85 border-[1.5px] border-[#f2cc8f]/40 mb-4 space-y-3">
                       <div>
-                        <label className="block text-xs font-bold text-cyan-300 mb-1.5">Tiêu đề thông báo (*):</label>
+                        <label className="block text-xs font-bold text-[#f2cc8f] mb-1.5">Tiêu đề thông báo (*):</label>
                         <input
                           type="text"
                           maxLength={100}
                           value={postTitle}
                           onChange={e => setPostTitle(e.target.value)}
                           placeholder="Tiêu đề thông báo mới..."
-                          className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400"
+                          className="w-full bg-[#151a26] border-[1.5px] border-[#f4f1de]/18 rounded-xl px-4 py-2.5 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-cyan-300 mb-1.5">Nội dung chi tiết (*):</label>
+                        <label className="block text-xs font-bold text-[#f2cc8f] mb-1.5">Nội dung chi tiết (*):</label>
                         <textarea
                           rows={4}
                           maxLength={1000}
                           value={postContent}
                           onChange={e => setPostContent(e.target.value)}
                           placeholder="Nội dung bài viết..."
-                          className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400 leading-relaxed resize-y"
+                          className="w-full bg-[#151a26] border-[1.5px] border-[#f4f1de]/18 rounded-xl px-4 py-2.5 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f] leading-relaxed resize-y"
                         />
                       </div>
                       <div className="flex justify-end">
@@ -970,34 +970,34 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                           type="button"
                           onClick={() => handleNewPost(selectedClub.id)}
                           disabled={postCooldown > 0 || isSubmittingPost}
-                          className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs sm:text-sm flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-lg"
+                          className="ff-tactile-btn px-5 py-2.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border-[1.5px] border-[#f4f1de] font-extrabold text-xs sm:text-sm flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
-                          <Send className="w-4 h-4" />
+                          <Send className="w-4 h-4 text-[#0b0d12]" />
                           <span>{postCooldown > 0 ? `Chờ ${postCooldown}s...` : isSubmittingPost ? 'Đang gửi...' : 'Đăng bài thông báo'}</span>
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-xs text-neutral-500 italic mb-3">
-                      * Quy tắc scoped permission: Bạn đang ở chế độ xem. Chỉ Chủ nhiệm của CLB này hoặc Super Admin mới có quyền đăng thông báo.
+                    <p className="text-xs text-[#9a978e] italic mb-3">
+                      * Chỉ Chủ nhiệm của CLB này hoặc Super Admin mới có quyền đăng thông báo.
                     </p>
                   )}
 
                   {/* Posts List */}
                   <div className="space-y-2.5">
                     {clubPosts.filter(p => p.clubId === selectedClub.id).length === 0 ? (
-                      <p className="text-neutral-500 text-center py-5">Chưa có thông báo nào được đăng.</p>
+                      <p className="text-[#9a978e] text-center py-5">Chưa có thông báo nào được đăng.</p>
                     ) : (
                       clubPosts
                         .filter(p => p.clubId === selectedClub.id)
                         .map(post => (
-                          <div key={post.id} className="p-4 rounded-2xl bg-[#070b13] border border-white/10 space-y-1.5">
+                          <div key={post.id} className="p-4 rounded-xl bg-[#0b0d12]/80 border-[1.5px] border-[#f4f1de]/14 space-y-1.5">
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-white text-sm">{post.title}</span>
-                              <span className="text-xs text-neutral-500">{post.createdAt}</span>
+                              <span className="font-bold text-[#f4f1de] text-sm">{post.title}</span>
+                              <span className="text-xs text-[#9a978e] font-mono">{post.createdAt}</span>
                             </div>
-                            <p className="text-neutral-300 text-xs sm:text-sm leading-relaxed">{post.content}</p>
-                            <div className="text-xs text-neutral-400 pt-2 flex items-center gap-2">
+                            <p className="text-[#d8d5ce] text-xs sm:text-sm leading-relaxed">{post.content}</p>
+                            <div className="text-xs text-[#9a978e] pt-2 flex items-center gap-2">
                               <span>Người đăng:</span>
                               <DecoratedAvatar
                                 user={resolveClubUser(post.authorId, post.authorName)}
@@ -1030,21 +1030,21 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
         typeof document !== 'undefined' &&
         createPortal(
           <div role="dialog" aria-modal="true" aria-label="Từ chối duyệt CLB" className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up">
-            <div className="liquid-glass w-full max-w-md rounded-2xl bg-[#0b111e] p-6 border border-red-500/35 shadow-2xl">
-              <h4 className="font-bold text-white text-base mb-3">Lý do từ chối hồ sơ CLB:</h4>
+            <div className="modal-container w-full max-w-md p-6">
+              <h4 className="font-bold text-[#f4f1de] text-base mb-3">Lý do từ chối hồ sơ CLB:</h4>
               <textarea
                 rows={4}
                 maxLength={200}
                 value={rejectReason}
                 onChange={e => setRejectReason(e.target.value)}
                 placeholder="VD: Cần bổ sung thêm danh sách thành viên sáng lập..."
-                className="w-full bg-[#070b13] border border-white/20 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-red-400 mb-4"
+                className="w-full bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/18 rounded-xl p-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#e07a5f] mb-4"
               />
               <div className="flex justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setRejectPromptClubId(null)}
-                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs sm:text-sm font-semibold text-neutral-300 cursor-pointer"
+                  className="ff-tactile-btn px-4 py-2 rounded-xl bg-[#0b0d12] border border-[#f4f1de]/18 text-xs sm:text-sm font-bold text-[#d8d5ce] cursor-pointer"
                 >
                   Hủy
                 </button>
@@ -1055,7 +1055,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     setRejectPromptClubId(null);
                     setRejectReason('');
                   }}
-                  className="px-5 py-2 rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold text-xs sm:text-sm cursor-pointer"
+                  className="ff-tactile-btn px-5 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-white border border-rose-300 font-bold text-xs sm:text-sm cursor-pointer"
                 >
                   Xác nhận từ chối
                 </button>

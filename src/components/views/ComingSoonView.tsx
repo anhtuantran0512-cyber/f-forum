@@ -61,9 +61,9 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
 
         <button
           onClick={() => onReturnHome('home')}
-          className="ff-tactile-btn liquid-glass rounded-full px-9 py-3.5 text-sm font-semibold text-white mt-8 hover:bg-white/10 transition-colors duration-200 cursor-pointer shadow-2xl inline-flex items-center gap-2 border border-white/20 hover:border-amber-400/40"
+          className="ff-tactile-btn rounded-xl px-8 py-3.5 text-sm font-extrabold bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] mt-8 transition-colors duration-200 cursor-pointer shadow-[4px_4px_0px_rgba(4,6,11,0.95)] inline-flex items-center gap-2 border-2 border-[#f4f1de]"
         >
-          <Compass className="w-4 h-4 text-amber-300" />
+          <Compass className="w-4 h-4 text-[#0b0d12]" />
           <span>Quay lại Trang Chủ</span>
         </button>
       </main>

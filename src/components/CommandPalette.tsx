@@ -171,17 +171,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
         role="dialog"
         aria-modal="true"
         aria-label="Bảng lệnh nhanh F-Forum"
-        className="ff-palette relative w-full max-w-[620px] overflow-hidden rounded-[26px] border border-white/15 bg-[#0b1017]/95 text-white shadow-[0_50px_140px_rgba(0,0,0,0.85)] backdrop-blur-2xl"
+        className="ff-palette modal-container relative w-full max-w-[620px] overflow-hidden text-[#f4f1de]"
       >
-        {/* Aurora header strip */}
-        <div className="h-[3px] w-full ff-aurora-bar" aria-hidden="true" />
+        {/* Warm Editorial header strip */}
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#e07a5f] via-[#f2cc8f] to-[#81b29a]" aria-hidden="true" />
 
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/10">
-          <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-amber-500/25 to-fuchsia-500/20 border border-amber-400/30 flex items-center justify-center shrink-0">
-            <Sparkles className="w-4 h-4 text-amber-300" />
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-dashed border-[#f4f1de]/15">
+          <span className="w-9 h-9 rounded-xl bg-[#e07a5f]/20 border-[1.5px] border-[#e07a5f]/50 flex items-center justify-center shrink-0 shadow-[2px_2px_0px_rgba(4,6,11,0.9)]">
+            <Sparkles className="w-4 h-4 text-[#f2cc8f]" />
           </span>
           <div className="relative flex-1 min-w-0">
-            <Search className="w-4 h-4 text-white/40 absolute left-0 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[#9a978e] absolute left-0 top-1/2 -translate-y-1/2" />
             <input
               ref={inputRef}
               value={query}
@@ -192,7 +192,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
               }}
               placeholder="Tìm phân khu, tác vụ… (ví dụ: hỏi đáp, theme, điểm danh)"
               aria-label="Tìm lệnh"
-              className="w-full bg-transparent pl-6 pr-2 py-1.5 text-sm text-white placeholder-white/35 focus:outline-none"
+              className="w-full bg-transparent pl-6 pr-2 py-1.5 text-sm text-[#f4f1de] placeholder-[#84817a] focus:outline-none"
             />
           </div>
           {query ? (
@@ -202,29 +202,29 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
                 setQuery('');
                 inputRef.current?.focus();
               }}
-              className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-[#9a978e] hover:text-[#f4f1de] hover:bg-[#f4f1de]/10 transition-colors cursor-pointer"
               aria-label="Xóa từ khóa"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           ) : (
-            <span className="hidden sm:flex items-center gap-1 text-[10px] font-mono text-white/45 border border-white/15 rounded-lg px-2 py-1">
+            <span className="hidden sm:flex items-center gap-1 text-[10px] font-mono text-[#d8d5ce] border border-[#f4f1de]/20 bg-[#0b0d12] rounded-md px-2 py-1">
               <CommandIcon className="w-3 h-3" /> K
             </span>
           )}
         </div>
 
-        <div ref={listRef} className="max-h-[52vh] overflow-y-auto ff-scroll px-2 py-2">
+        <div ref={listRef} className="max-h-[52vh] overflow-y-auto ff-scroll px-2.5 py-2.5">
           {grouped.length === 0 && (
             <div className="px-4 py-10 text-center">
-              <p className="text-sm text-white/70 font-semibold">Không tìm thấy lệnh phù hợp</p>
-              <p className="text-[11px] text-white/40 mt-1">Thử gõ “trang chủ”, “câu lạc bộ”, “sổ tay”…</p>
+              <p className="text-sm text-[#f4f1de] font-bold">Không tìm thấy lệnh phù hợp</p>
+              <p className="text-[11px] text-[#9a978e] mt-1">Thử gõ “trang chủ”, “câu lạc bộ”, “sổ tay”…</p>
             </div>
           )}
 
           {grouped.map(([group, items]) => (
-            <div key={group} className="mb-1.5">
-              <div className="px-3 pt-2 pb-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">
+            <div key={group} className="mb-2">
+              <div className="px-3 pt-2 pb-1.5 text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-[#f2cc8f]">
                 {group}
               </div>
               {items.map((cmd) => {
@@ -237,33 +237,33 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
                     data-palette-index={index}
                     onMouseEnter={() => setActiveIndex(index)}
                     onClick={() => runCommand(cmd)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-all cursor-pointer border ${
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all cursor-pointer border-[1.5px] ${
                       isActive
-                        ? 'bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent border-amber-400/35 shadow-[0_10px_30px_rgba(245,158,11,0.16)]'
-                        : 'border-transparent hover:bg-white/5'
+                        ? 'bg-[#e07a5f]/20 border-[#e07a5f]/55 shadow-[3px_3px_0px_rgba(4,6,11,0.9)]'
+                        : 'border-transparent hover:bg-[#f4f1de]/5'
                     }`}
                   >
                     <span
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border transition-colors ${
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
                         isActive
-                          ? 'bg-amber-500/20 border-amber-400/40 text-amber-200'
-                          : 'bg-white/5 border-white/10 text-white/70'
+                          ? 'bg-[#e07a5f] border-[#f4f1de]/60 text-[#0b0d12]'
+                          : 'bg-[#0b0d12] border-[#f4f1de]/15 text-[#d8d5ce]'
                       }`}
                     >
                       {cmd.icon}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[13px] font-semibold text-white truncate">{cmd.label}</span>
+                      <span className="block text-[13px] font-bold text-[#f4f1de] truncate">{cmd.label}</span>
                       {cmd.hint && (
-                        <span className="block text-[11px] text-white/45 truncate">{cmd.hint}</span>
+                        <span className="block text-[11px] text-[#9a978e] truncate">{cmd.hint}</span>
                       )}
                     </span>
                     {cmd.shortcut && (
-                      <span className="hidden sm:inline-flex items-center gap-0.5 text-[10px] font-mono text-white/55 border border-white/15 rounded-md px-1.5 py-0.5 shrink-0">
+                      <span className="hidden sm:inline-flex items-center gap-0.5 text-[10px] font-mono text-[#d8d5ce] bg-[#0b0d12] border border-[#f4f1de]/18 rounded-md px-1.5 py-0.5 shrink-0">
                         {cmd.shortcut}
                       </span>
                     )}
-                    {isActive && <CornerDownLeft className="w-3.5 h-3.5 text-amber-300 shrink-0" />}
+                    {isActive && <CornerDownLeft className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />}
                   </button>
                 );
               })}
@@ -271,7 +271,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
           ))}
         </div>
 
-        <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-t border-white/10 bg-black/40 text-[10px] text-white/45">
+        <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-t border-dashed border-[#f4f1de]/15 bg-[#0b0d12]/80 text-[10px] text-[#9a978e]">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <ArrowUp className="w-3 h-3" />
@@ -282,7 +282,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
             </span>
             <span className="hidden sm:inline">Esc để đóng</span>
           </div>
-          <span className="font-mono text-white/35">{flat.length} lệnh</span>
+          <span className="font-mono text-[#f2cc8f]">{flat.length} lệnh</span>
         </div>
       </div>
     </div>

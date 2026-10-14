@@ -503,13 +503,246 @@ html.light .ff-chat-bubble-peer {
   box-shadow: 2px 2px 0px rgba(28, 25, 23, 0.12) !important;
 }
 
+/* ========================================================================== */
+/* UNIVERSAL GUI, BUTTON, MODAL, DETAIL CARD & LEADERBOARD ARCHITECTURE       */
+/* ========================================================================== */
+
+/* 1. Trang Chi Tiết Câu Hỏi & Lời Giải (.question-card & .answer-card) */
+.question-card {
+  background: linear-gradient(165deg, rgba(22, 27, 39, 0.96), rgba(15, 19, 28, 0.98)) !important;
+  border-radius: 1rem !important;
+  padding: 1.5rem 1.75rem !important;
+  border: 1.5px solid rgba(244, 241, 222, 0.16) !important;
+  box-shadow:
+    4px 4px 0px rgba(4, 6, 11, 0.92),
+    inset 0 1px 0 rgba(244, 241, 222, 0.08) !important;
+}
+
+.answer-section-label {
+  border-bottom: 1.5px dashed rgba(244, 241, 222, 0.14) !important;
+  color: var(--ff-ds-text-primary) !important;
+}
+
+.answer-card {
+  background: linear-gradient(165deg, rgba(21, 26, 38, 0.95), rgba(14, 18, 27, 0.98)) !important;
+  border-radius: 0.95rem !important;
+  padding: 1.25rem 1.5rem !important;
+  border: 1.5px solid rgba(244, 241, 222, 0.14) !important;
+  border-left: 4px solid var(--ff-ds-organic-terracotta) !important;
+  box-shadow:
+    4px 4px 0px rgba(4, 6, 11, 0.9),
+    inset 0 1px 0 rgba(244, 241, 222, 0.07) !important;
+}
+
+.answer-card:hover {
+  border-color: rgba(242, 204, 143, 0.42) !important;
+  border-left-color: var(--ff-ds-organic-sand) !important;
+}
+
+.answer-card.verified {
+  border-left-color: var(--ff-ds-organic-sage) !important;
+  border-color: rgba(129, 178, 154, 0.45) !important;
+  background: linear-gradient(165deg, rgba(20, 33, 31, 0.95), rgba(13, 22, 23, 0.98)) !important;
+  box-shadow:
+    4px 4px 0px rgba(4, 6, 11, 0.92),
+    inset 0 1px 0 rgba(129, 178, 154, 0.16) !important;
+}
+
+/* 2. Modal Đặt Câu Hỏi & Toàn Bộ Hộp Thoại (.ask2027-* & .modal-container) */
+.ask2027-backdrop {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(224, 122, 95, 0.14), transparent 46%),
+    radial-gradient(circle at 82% 82%, rgba(129, 178, 154, 0.14), transparent 48%),
+    rgba(6, 8, 13, 0.84) !important;
+}
+
+.ask2027-modal,
+.modal-container {
+  background: linear-gradient(165deg, #161b27 0%, #10141e 55%, #0c0f17 100%) !important;
+  border: 1.5px solid rgba(244, 241, 222, 0.2) !important;
+  border-radius: 1.15rem !important;
+  box-shadow:
+    6px 6px 0px rgba(4, 6, 11, 0.95),
+    0 24px 64px rgba(0, 0, 0, 0.78),
+    inset 0 1px 0 rgba(244, 241, 222, 0.12) !important;
+  color: var(--ff-ds-text-primary) !important;
+}
+
+.ask2027-mesh-blob-cyan {
+  background: radial-gradient(circle, rgba(224, 122, 95, 0.18) 0%, transparent 70%) !important;
+}
+
+.ask2027-mesh-blob-purple {
+  background: radial-gradient(circle, rgba(129, 178, 154, 0.18) 0%, transparent 70%) !important;
+}
+
+.ask2027-title-gradient {
+  background: linear-gradient(92deg, #f4f1de 0%, #f2cc8f 52%, #e07a5f 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+.ask2027-card-section {
+  background: rgba(11, 13, 18, 0.65) !important;
+  border-radius: 0.85rem !important;
+  border: 1.5px solid rgba(244, 241, 222, 0.13) !important;
+  box-shadow: 3px 3px 0px rgba(4, 6, 11, 0.88) !important;
+}
+
+.ask2027-field-shell {
+  border-radius: 0.75rem !important;
+  background: #0b0d12 !important;
+  border: 1.5px solid rgba(244, 241, 222, 0.16) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5) !important;
+}
+
+.ask2027-field-shell:hover,
+.ask2027-field-shell:focus-within {
+  border-color: rgba(242, 204, 143, 0.65) !important;
+  background: #0e1118 !important;
+  box-shadow:
+    2px 2px 0px rgba(4, 6, 11, 0.9),
+    0 0 0 2px rgba(224, 122, 95, 0.18) !important;
+  animation: none !important;
+}
+
+.ask2027-submit-btn {
+  background: var(--ff-ds-organic-terracotta) !important;
+  color: #0b0d12 !important;
+  border: 1.5px solid #f4f1de !important;
+  border-radius: 0.75rem !important;
+  font-weight: 800 !important;
+  box-shadow: 3px 3px 0px rgba(4, 6, 11, 0.92) !important;
+  transition: transform 0.14s var(--ff-ds-spring), background-color 0.18s ease, box-shadow 0.14s ease !important;
+}
+
+.ask2027-submit-btn:hover:not(:disabled) {
+  background: var(--ff-ds-organic-sand) !important;
+  transform: translate3d(-1px, -1px, 0) !important;
+  box-shadow: 4px 4px 0px rgba(4, 6, 11, 0.95) !important;
+}
+
+.ask2027-submit-btn:active:not(:disabled) {
+  transform: translate3d(2px, 2px, 0) scale(0.96) !important;
+  box-shadow: 1px 1px 0px rgba(4, 6, 11, 0.95) !important;
+}
+
+.ask2027-ghost-btn {
+  background: rgba(244, 241, 222, 0.05) !important;
+  color: var(--ff-ds-text-secondary) !important;
+  border: 1.5px solid rgba(244, 241, 222, 0.16) !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 2px 2px 0px rgba(4, 6, 11, 0.85) !important;
+}
+
+.ask2027-ghost-btn:hover {
+  background: rgba(244, 241, 222, 0.1) !important;
+  color: var(--ff-ds-text-primary) !important;
+  border-color: rgba(242, 204, 143, 0.45) !important;
+}
+
+.ask2027-sym-btn {
+  background: #151a26 !important;
+  border: 1.5px solid rgba(244, 241, 222, 0.15) !important;
+  color: var(--ff-ds-text-primary) !important;
+  box-shadow: 2px 2px 0px rgba(4, 6, 11, 0.88) !important;
+}
+
+.ask2027-sym-btn:hover,
+.ask2027-sym-btn:focus-visible {
+  border-color: var(--ff-ds-organic-sand) !important;
+  background: rgba(224, 122, 95, 0.2) !important;
+  color: var(--ff-ds-organic-sand) !important;
+  transform: translate3d(-1px, -1px, 0) !important;
+  box-shadow: 3px 3px 0px rgba(4, 6, 11, 0.95) !important;
+}
+
+/* 3. Bảng Xếp Hạng & Nhịp Học Tập (.ff-board, .ff-pulse, .ff-hours) */
+.ff-board,
+.ff-pulse,
+.ff-hours {
+  background: linear-gradient(165deg, rgba(22, 27, 39, 0.95), rgba(14, 18, 26, 0.98)) !important;
+  border: 1.5px solid rgba(244, 241, 222, 0.15) !important;
+  border-radius: 1rem !important;
+  box-shadow:
+    4px 4px 0px rgba(4, 6, 11, 0.92),
+    inset 0 1px 0 rgba(244, 241, 222, 0.08) !important;
+}
+
+.ff-board__switch-btn.is-active,
+.ff-board__pill.is-active {
+  background: rgba(224, 122, 95, 0.22) !important;
+  border-color: rgba(224, 122, 95, 0.55) !important;
+  color: #f4f1de !important;
+  box-shadow: 2px 2px 0px rgba(4, 6, 11, 0.88) !important;
+}
+
+/* 4. Author Quick Card (.pc-12-shell & .pc-12-btn), Radial Quick Menu (.ccm-02), & Popovers (.ff-pop) */
+.pc-12-shell {
+  background: linear-gradient(165deg, #161b27, #0e121b) !important;
+  border: 1.5px solid rgba(244, 241, 222, 0.2) !important;
+  border-radius: 0.95rem !important;
+  box-shadow:
+    5px 5px 0px rgba(4, 6, 11, 0.95),
+    0 20px 48px rgba(0, 0, 0, 0.78) !important;
+}
+
+.pc-12-btn {
+  background: rgba(11, 13, 18, 0.8) !important;
+  border: 1.5px solid rgba(244, 241, 222, 0.14) !important;
+  border-radius: 0.65rem !important;
+  box-shadow: 2px 2px 0px rgba(4, 6, 11, 0.88) !important;
+}
+
+.pc-12-btn:hover {
+  border-color: rgba(242, 204, 143, 0.5) !important;
+  background: rgba(224, 122, 95, 0.16) !important;
+  transform: translate3d(-1px, -1px, 0);
+}
+
+.ccm-02__hub {
+  border: 1.5px solid rgba(244, 241, 222, 0.28) !important;
+  box-shadow:
+    4px 4px 0px rgba(4, 6, 11, 0.92),
+    0 12px 28px rgba(0, 0, 0, 0.6) !important;
+}
+
+.ccm-02__item {
+  border: 1.5px solid rgba(244, 241, 222, 0.22) !important;
+  box-shadow: 3px 3px 0px rgba(4, 6, 11, 0.9) !important;
+}
+
+.ff-pop {
+  background: linear-gradient(165deg, rgba(22, 27, 39, 0.97), rgba(13, 17, 25, 0.99)) !important;
+  border: 1.5px solid rgba(244, 241, 222, 0.18) !important;
+  box-shadow:
+    5px 5px 0px rgba(4, 6, 11, 0.95),
+    0 24px 60px rgba(0, 0, 0, 0.78) !important;
+}
+
+/* 5. Universal Tactile Squishy Feel cho toàn bộ nút bấm trong diễn đàn */
+button:not(:disabled) {
+  transition:
+    transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.14s ease;
+}
+
+button:not(:disabled):active {
+  transform: translate3d(1px, 1px, 0) scale(0.97);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ff-bento-cell,
   .ff-brutal-tag,
   .ff-kinetic-title,
   .ff-kinetic-underline,
   .ff-tactile-btn,
-  .ff-qa-card {
+  .ff-qa-card,
+  button:not(:disabled) {
     transition: none !important;
     transform: none !important;
   }
