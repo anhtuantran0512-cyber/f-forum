@@ -283,10 +283,12 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               </div>
 
               <div
-                className={`px-3.5 py-2 rounded-2xl text-xs leading-relaxed break-words shadow-sm ${
+                className={`px-3.5 py-2 text-xs leading-relaxed break-words shadow-sm ${
                   isMe
-                    ? 'bg-amber-500/20 text-white border border-amber-400/30 rounded-tr-none'
-                    : 'bg-white/10 text-neutral-100 rounded-tl-none border border-white/10'
+                    ? 'ff-chat-bubble-me'
+                    : isSuperAdminMsg
+                    ? 'ff-chat-bubble-peer ff-chat-bubble-admin'
+                    : 'ff-chat-bubble-peer'
                 }`}
               >
                 {msg.content}
@@ -335,16 +337,16 @@ export const ChatDock: React.FC<ChatDockProps> = ({
           : 'translate-x-full opacity-0 pointer-events-none'
       }`}
     >
-      {/* Background glass container */}
-      <div className="w-full h-full rounded-3xl liquid-glass bg-black/35 backdrop-blur-xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.9)] flex flex-col overflow-hidden">
+      {/* Editorial Bento Dock Container */}
+      <div className="w-full h-full ff-bento-cell !p-0 flex flex-col overflow-hidden">
         
         {/* Dock Header */}
-        <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-black/30">
+        <div className="px-4 py-3 border-b border-dashed border-[#f4f1de]/15 flex items-center justify-between bg-[#0b0d12]/80">
           <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399] animate-pulse" />
-            <h2 className="text-sm font-bold text-white tracking-wide flex items-center gap-1.5">
-              <span>PHÒNG CHAT ĐÀM THOẠI</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <div className="w-2.5 h-2.5 rounded-full bg-[#81b29a] shadow-[0_0_8px_#81b29a] animate-pulse" />
+            <h2 className="text-sm font-extrabold text-[#f4f1de] tracking-wide flex items-center gap-1.5">
+              <span>PHÒNG CHAT NHANH</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#81b29a]/20 text-[#d8f3dc] border border-[#81b29a]/40">
                 LIVE
               </span>
             </h2>
@@ -352,16 +354,16 @@ export const ChatDock: React.FC<ChatDockProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+            className="ff-tactile-btn p-1.5 rounded-lg bg-[#151a26] hover:bg-[#f4f1de]/10 border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] transition-colors cursor-pointer"
             title="Đóng Dock Chat"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Channel Switcher Pills: Organic non-clipping flex container */}
-        <div className="p-2 border-b border-white/10 bg-black/20">
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-1 bg-black/40 rounded-xl overflow-x-auto no-scrollbar">
+        {/* Channel Switcher Pills */}
+        <div className="p-2 border-b border-dashed border-[#f4f1de]/12 bg-[#0b0d12]/50">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-1 bg-[#0b0d12]/80 rounded-xl overflow-x-auto no-scrollbar">
             {CHANNELS.map(ch => {
               const Icon = ch.icon;
               const isActive = activeChannel === ch.id;
@@ -370,13 +372,13 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   key={ch.id}
                   type="button"
                   onClick={() => setActiveChannel(ch.id)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shrink-0 transition-all font-medium focus:outline-none cursor-pointer ${
+                  className={`px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shrink-0 transition-all font-bold border cursor-pointer ${
                     isActive
-                      ? 'bg-white/15 text-white font-medium shadow-sm border border-white/20'
-                      : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
+                      ? 'bg-[#e07a5f]/22 text-[#f4f1de] border-[#e07a5f]/55 shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
+                      : 'text-[#b5b2a9] hover:text-[#f4f1de] hover:bg-[#f4f1de]/5 border-transparent'
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-amber-400' : 'text-neutral-400'}`} />
+                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#f2cc8f]' : 'text-[#9a978e]'}`} />
                   <span className="whitespace-nowrap">#{ch.name}</span>
                 </button>
               );
@@ -385,33 +387,29 @@ export const ChatDock: React.FC<ChatDockProps> = ({
         </div>
 
         {/* Active Channel Subheader */}
-        <div className="px-4 py-2 bg-black/20 border-b border-white/5 flex items-center justify-between text-[11px] text-neutral-400">
+        <div className="px-4 py-2 bg-[#0b0d12]/40 border-b border-dashed border-[#f4f1de]/10 flex items-center justify-between text-[11px] text-[#b5b2a9]">
           <div className="flex items-center gap-1.5 min-w-0">
-            <Hash className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="text-neutral-200 font-medium shrink-0">{currentChannelObj.name}</span>
-            <span className="text-neutral-600">—</span>
+            <Hash className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
+            <span className="text-[#f4f1de] font-bold shrink-0">{currentChannelObj.name}</span>
+            <span className="text-[#84817a]">—</span>
             <span className="truncate">{currentChannelObj.desc}</span>
           </div>
-          <span className="font-mono text-neutral-500 shrink-0 ml-2">{currentMessages.length} tin</span>
+          <span className="ff-brutal-index shrink-0 ml-2">{currentMessages.length} tin</span>
         </div>
 
         {/* Messages Feed Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3.5" role="log" aria-live="polite" aria-relevant="additions" aria-label="Danh sách tin nhắn">
           {!isSynced && currentMessages.length === 0 ? (
-            /* Đang đồng bộ máy chủ → bong bóng suy nghĩ (CodeFronts la-05) */
             <div className="space-y-3 pt-1" aria-busy="true">
               <ThinkingBubble phase="Đang kết nối máy chủ F-Forum…" compact />
               <ThinkingBubble phase={`Đang tải tin nhắn #${currentChannelObj.name}…`} compact />
             </div>
           ) : currentMessages.length === 0 ? (
-            /* Authentic Empty State with MessageSquareDashed */
-            <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2.5 text-neutral-400">
-              <div className="relative">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                  <MessageSquareDashed className="w-6 h-6 text-amber-300" />
-                </div>
+            <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2.5 text-[#b5b2a9]">
+              <div className="w-12 h-12 rounded-xl bg-[#e07a5f]/15 border-[1.5px] border-[#e07a5f]/40 flex items-center justify-center shadow-[3px_3px_0px_rgba(4,6,11,0.9)]">
+                <MessageSquareDashed className="w-6 h-6 text-[#f2cc8f]" />
               </div>
-              <h3 className="text-xs font-semibold text-white font-mono">Hãy là người mở đầu cuộc trò chuyện</h3>
+              <h3 className="text-xs font-bold text-[#f4f1de] font-mono">Hãy là người mở đầu cuộc trò chuyện</h3>
             </div>
           ) : (
             renderedDockMessages
@@ -428,19 +426,19 @@ export const ChatDock: React.FC<ChatDockProps> = ({
 
         {/* Input Bar or Login Prompt */}
         {!currentUser ? (
-          <div className="p-3 bg-black/35 border-t border-white/10 flex items-center justify-between gap-3">
-            <span className="text-xs text-neutral-400">Vui lòng đăng nhập để gửi tin nhắn</span>
+          <div className="p-3 bg-[#0b0d12]/85 border-t border-dashed border-[#f4f1de]/15 flex items-center justify-between gap-3">
+            <span className="text-xs text-[#d8d5ce]">Đăng nhập để gửi tin nhắn</span>
             <button
               type="button"
               onClick={onOpenLoginModal}
-              className="px-3.5 py-1.5 rounded-xl bg-white text-neutral-900 font-semibold text-xs hover:bg-neutral-200 transition-colors shadow-sm cursor-pointer shrink-0 flex items-center gap-1.5"
+              className="ff-tactile-btn px-3.5 py-1.5 rounded-lg bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border border-[#f4f1de] font-extrabold text-xs transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
             >
               <LogIn className="w-3.5 h-3.5" />
               <span>Đăng nhập</span>
             </button>
           </div>
         ) : (
-          <div className="p-3 bg-black/35 border-t border-white/10 flex items-center gap-2">
+          <div className="p-3 bg-[#0b0d12]/85 border-t border-dashed border-[#f4f1de]/15 flex items-center gap-2">
             <input
               type="text"
               value={inputText}
@@ -448,18 +446,18 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               onChange={e => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={`Nhắn vào #${currentChannelObj.name}...`}
-              className="flex-1 bg-black/40 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-amber-400 transition-colors disabled:opacity-50"
+              className="flex-1 bg-[#151a26] border-[1.5px] border-[#f4f1de]/18 rounded-xl px-3.5 py-2.5 text-xs text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f] transition-colors disabled:opacity-50"
             />
 
             <button
               onClick={handleSend}
               disabled={!inputText.trim() || cooldown.isCooling}
-              className={`relative p-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 font-semibold active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-md ${
+              className={`ff-tactile-btn relative p-2.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border-[1.5px] border-[#f4f1de] font-extrabold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
                 cooldown.isCooling ? 'ff-cd-btn is-cooling' : ''
               }`}
               title={cooldown.isCooling ? `Còn ${cooldown.secondsLeft}s trước tin tiếp theo` : 'Gửi tin nhắn'}
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-4 h-4 text-[#0b0d12]" />
             </button>
           </div>
         )}

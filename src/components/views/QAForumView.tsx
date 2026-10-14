@@ -327,15 +327,15 @@ const QuickReactionRow: React.FC<{
             key={item.type}
             type="button"
             onClick={() => onReact?.(item.type)}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors cursor-pointer ${
+            className={`ff-tactile-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border-[1.5px] transition-colors cursor-pointer ${
               active
-                ? 'bg-cyan-500/15 border-cyan-400/45 text-cyan-200'
-                : 'bg-white/[0.03] hover:bg-white/[0.07] border-white/[0.08] text-slate-300 hover:text-white'
+                ? 'bg-[#e07a5f]/22 border-[#e07a5f]/55 text-[#f4f1de]'
+                : 'bg-[#f4f1de]/[0.04] hover:bg-[#f4f1de]/[0.09] border-[#f4f1de]/14 text-[#d8d5ce] hover:text-[#f4f1de]'
             }`}
           >
             <IconComp className="w-3.5 h-3.5 shrink-0" />
             <span>{item.label}</span>
-            {count > 0 && <span className="font-mono text-[10px] font-bold ml-0.5 text-cyan-300">{count}</span>}
+            {count > 0 && <span className="font-mono text-[10px] font-bold ml-0.5 text-[#f2cc8f]">{count}</span>}
           </button>
         );
       })}
@@ -424,27 +424,27 @@ const CommentThread: React.FC<{
   };
 
   return (
-    <div className="comment-thread mt-2.5 pt-2.5 border-t border-white/[0.07]">
+    <div className="comment-thread mt-2.5 pt-2.5 border-t border-dashed border-[#f4f1de]/12">
       <button
         type="button"
         onClick={() => setExpanded((prev) => !prev)}
-        className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-cyan-300 transition-colors font-medium cursor-pointer"
+        className="inline-flex items-center gap-1.5 text-xs text-[#d8d5ce] hover:text-[#f2cc8f] transition-colors font-bold cursor-pointer"
       >
-        <MessageSquare className="w-3.5 h-3.5" />
+        <MessageSquare className="w-3.5 h-3.5 text-[#81b29a]" />
         <span>{threadComments.length} bình luận</span>
-        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] inline-flex items-center gap-0.5">
+        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#f4f1de]/[0.05] border border-[#f4f1de]/14 inline-flex items-center gap-0.5 font-mono">
           {expanded ? 'Thu gọn' : 'Mở'}
           {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </span>
       </button>
 
       {expanded && (
-        <div className="mt-2.5 space-y-2 pl-3 border-l border-white/10 animate-fade-up">
+        <div className="mt-2.5 space-y-2 pl-3 border-l-2 border-[#e07a5f]/35 animate-fade-up">
           {threadComments.length === 0 ? (
-            <p className="text-[11px] text-slate-500">Chưa có bình luận.</p>
+            <p className="text-[11px] text-[#9a978e]">Chưa có bình luận.</p>
           ) : (
             threadComments.map((c) => (
-              <div key={c.id} className="p-2.5 rounded-xl bg-white/[0.025] border border-white/[0.06] text-xs flex items-start gap-2.5">
+              <div key={c.id} className="p-2.5 rounded-lg bg-[#0b0d12]/70 border border-[#f4f1de]/12 text-xs flex items-start gap-2.5">
                 <span className="shrink-0 mt-0.5">
                   <DecoratedAvatar
                     user={c.authorEmail ? findDecorationOwner(users, c.authorEmail, c.authorId) : null}
@@ -463,9 +463,9 @@ const CommentThread: React.FC<{
                       animate
                       showFallbackTag
                     />
-                    <span className="text-[10px] text-slate-500 font-mono">· {c.createdAt}</span>
+                    <span className="text-[10px] text-[#9a978e] font-mono">· {c.createdAt}</span>
                   </div>
-                  <p className="text-slate-300 text-xs mt-0.5 break-words leading-relaxed">{c.content}</p>
+                  <p className="text-[#f4f1de] text-xs mt-0.5 break-words leading-relaxed">{c.content}</p>
                 </div>
               </div>
             ))
@@ -478,13 +478,13 @@ const CommentThread: React.FC<{
               maxLength={300}
               onChange={(e) => setText(e.target.value)}
               placeholder={currentUser ? 'Viết bình luận...' : 'Đăng nhập để bình luận...'}
-              className="flex-1 bg-[#0b1019] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400/60"
+              className="flex-1 bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/16 rounded-lg px-3 py-1.5 text-xs text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f]/65"
             />
-            <span className="text-[10px] font-mono text-slate-500 shrink-0">{text.length}/300</span>
+            <span className="text-[10px] font-mono text-[#9a978e] shrink-0">{text.length}/300</span>
             <button
               type="submit"
               disabled={!text.trim() || submitting}
-              className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/35 text-cyan-200 text-xs font-semibold disabled:opacity-40 cursor-pointer shrink-0"
+              className="ff-tactile-btn px-3 py-1.5 rounded-lg bg-[#e07a5f] hover:bg-[#f2cc8f] border border-[#f4f1de] text-[#0b0d12] text-xs font-extrabold disabled:opacity-40 cursor-pointer shrink-0"
             >
               Gửi
             </button>
@@ -2715,62 +2715,58 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           <div
             role="region"
             aria-label="Trang chi tiết câu hỏi"
-            className="fixed inset-0 z-[75] w-screen h-[100dvh] overflow-hidden bg-[#070b13] animate-fade-up flex flex-col"
+            className="fixed inset-0 z-[75] w-screen h-[100dvh] overflow-hidden bg-[#0b0d12] ff-raw-grid-surface animate-fade-up flex flex-col"
           >
             {/* Thanh tiến trình đọc 2px trên cùng */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute top-0 left-0 right-0 h-[2px] bg-white/5 z-50 overflow-hidden"
+              className="pointer-events-none absolute top-0 left-0 right-0 h-[2.5px] bg-[#f4f1de]/10 z-50 overflow-hidden"
             >
               <div
-                className="h-full bg-gradient-to-r from-cyan-400 via-blue-500 to-emerald-400 transition-[width] duration-150 ease-out"
+                className="h-full bg-gradient-to-r from-[#e07a5f] via-[#f2cc8f] to-[#81b29a] transition-[width] duration-150 ease-out"
                 style={{ width: `${readingProgress}%` }}
               />
             </div>
 
-            {/* Thanh điều hướng riêng của Trang Câu Hỏi (kiểu Hoidap247 / Diễn đàn học thuật toàn màn hình) */}
-            <header className="px-4 sm:px-8 lg:px-12 h-16 border-b border-white/10 bg-[#0b111e]/95 backdrop-blur-xl flex items-center justify-between gap-3 shrink-0 shadow-[0_10px_30px_rgba(0,0,0,0.45)]">
+            {/* Thanh điều hướng riêng của Trang Câu Hỏi */}
+            <header className="px-4 sm:px-8 lg:px-12 h-16 border-b border-dashed border-[#f4f1de]/15 bg-[#151a26]/95 backdrop-blur-xl flex items-center justify-between gap-3 shrink-0 shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
               <div className="flex items-center gap-3 min-w-0">
                 <button
                   type="button"
                   onClick={handleCloseQuestionDetail}
-                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/12 text-xs sm:text-sm font-bold text-slate-100 hover:text-white transition-colors cursor-pointer shrink-0"
+                  className="ff-tactile-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[#0b0d12] hover:bg-[#f4f1de]/[0.08] border-[1.5px] border-[#f4f1de]/20 text-xs sm:text-sm font-bold text-[#f4f1de] transition-colors cursor-pointer shrink-0"
                   title="Quay lại danh sách câu hỏi"
                 >
-                  <ArrowLeft className="w-4 h-4 text-cyan-300" />
+                  <ArrowLeft className="w-4 h-4 text-[#f2cc8f]" />
                   <span>Diễn đàn Hỏi đáp</span>
                 </button>
 
-                <span className="h-5 w-px bg-white/12 hidden sm:block" aria-hidden="true" />
+                <span className="h-5 w-px bg-[#f4f1de]/15 hidden sm:block" aria-hidden="true" />
 
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
-                  <span className={`px-3 py-1 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 border shadow-xs ${getSubjectBadgeStyle(selectedQuestion.subject)}`}>
-                    {SUBJECT_2027_META[selectedQuestion.subject as SubjectTag]?.emoji && (
-                      <span>{SUBJECT_2027_META[selectedQuestion.subject as SubjectTag].emoji}</span>
-                    )}
+                  <span className={`ff-brutal-tag ${getSubjectBadgeStyle(selectedQuestion.subject)}`}>
                     <span>{detailSubjectLabel}</span>
-                    <span className="font-mono text-[11px] opacity-80">#{selectedQuestion.subject}</span>
                   </span>
 
                   {selectedQuestion.isSolved ? (
-                    <span className="px-3 py-1 rounded-xl text-xs font-bold bg-emerald-500/15 text-emerald-200 border border-emerald-400/35 inline-flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span className="ff-holo-badge px-2.5 py-0.5 rounded-md text-xs font-bold text-[#d8f3dc] inline-flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
                       <span>Đã có đáp án chuẩn</span>
                     </span>
                   ) : activeSolutions.length === 0 ? (
-                    <span className="px-3 py-1 rounded-xl text-xs font-semibold bg-amber-500/12 text-amber-200 border border-amber-400/25 inline-flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span className="ff-organic-badge !py-0.5 !px-2.5 !rounded-md inline-flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-[#e07a5f] shrink-0" />
                       <span>Đang chờ lời giải</span>
                     </span>
                   ) : (
-                    <span className="px-3 py-1 rounded-xl text-xs font-semibold bg-cyan-500/12 text-cyan-200 border border-cyan-400/25 inline-flex items-center gap-1.5">
-                      <MessageSquare className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
+                    <span className="ff-organic-sage-badge !py-0.5 !px-2.5 !rounded-md inline-flex items-center gap-1.5">
+                      <MessageSquare className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
                       <span>Đang thảo luận ({activeSolutions.length}/3)</span>
                     </span>
                   )}
 
-                  <span className="px-3 py-1 rounded-xl text-xs font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-400/30 inline-flex items-center gap-1.5">
-                    <Coins className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="px-2.5 py-0.5 rounded-md text-xs font-mono font-bold bg-[#f2cc8f]/15 text-[#f2cc8f] border-[1.5px] border-[#f2cc8f]/40 shadow-[2px_2px_0px_rgba(4,6,11,0.85)] inline-flex items-center gap-1.5">
+                    <Coins className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
                     <span>+{selectedQuestion.bountyCoin || 20} Coin</span>
                   </span>
                 </div>
@@ -2785,10 +2781,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   type="button"
                   onClick={() => handleToggleSaveQuestion(selectedQuestion.id)}
                   aria-pressed={isQuestionSaved(savedMap, savedOwnerKey, selectedQuestion.id)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-colors cursor-pointer ${
+                  className={`ff-tactile-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border-[1.5px] text-xs font-bold transition-colors cursor-pointer ${
                     isQuestionSaved(savedMap, savedOwnerKey, selectedQuestion.id)
-                      ? 'bg-amber-500/15 border-amber-400/35 text-amber-200'
-                      : 'bg-white/[0.05] border-white/10 text-slate-200 hover:bg-white/[0.1] hover:text-white'
+                      ? 'bg-[#f2cc8f]/20 border-[#f2cc8f]/55 text-[#f4f1de]'
+                      : 'bg-[#0b0d12] border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de]'
                   }`}
                   title={
                     isQuestionSaved(savedMap, savedOwnerKey, selectedQuestion.id)
@@ -2797,7 +2793,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   }
                 >
                   {isQuestionSaved(savedMap, savedOwnerKey, selectedQuestion.id) ? (
-                    <BookmarkCheck size={15} />
+                    <BookmarkCheck size={15} className="text-[#f2cc8f]" />
                   ) : (
                     <Bookmark size={15} />
                   )}
@@ -2818,7 +2814,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       name: `${selectedQuestion.authorName} — Bài hỏi: "${selectedQuestion.title.slice(0, 48)}"`,
                     });
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/12 hover:bg-rose-500/22 border border-rose-400/30 text-xs font-semibold text-rose-200 hover:text-rose-100 transition-colors cursor-pointer"
+                  className="ff-tactile-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#e07a5f]/15 hover:bg-[#e07a5f]/28 border-[1.5px] border-[#e07a5f]/40 text-xs font-bold text-[#ffedd5] transition-colors cursor-pointer"
                   title="Báo cáo bài viết vi phạm"
                 >
                   <Flag size={14} />
@@ -2830,7 +2826,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     <button
                       type="button"
                       onClick={() => handleAdminEditPost(selectedQuestion.id)}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/35 text-xs font-bold text-amber-200 cursor-pointer"
+                      className="ff-tactile-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#f2cc8f]/20 hover:bg-[#f2cc8f]/30 border-[1.5px] border-[#f2cc8f]/45 text-xs font-bold text-[#f4f1de] cursor-pointer"
                       title="Chỉnh sửa nội dung câu hỏi"
                     >
                       <Edit3 size={14} />
@@ -2839,7 +2835,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     <button
                       type="button"
                       onClick={() => handleAdminDeletePost(selectedQuestion.id)}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-400/35 text-xs font-bold text-rose-200 cursor-pointer"
+                      className="ff-tactile-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border-[1.5px] border-rose-400/45 text-xs font-bold text-rose-200 cursor-pointer"
                       title="Xóa câu hỏi vi phạm"
                     >
                       <Trash2 size={14} />
@@ -3015,9 +3011,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               box?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                               box?.focus();
                             }}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/35 text-xs font-bold text-cyan-200 cursor-pointer transition-colors"
+                            className="ff-tactile-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#e07a5f] hover:bg-[#f2cc8f] border-[1.5px] border-[#f4f1de] text-xs font-extrabold text-[#0b0d12] cursor-pointer transition-colors"
                           >
-                            <Send className="w-3.5 h-3.5 text-cyan-300" />
+                            <Send className="w-3.5 h-3.5 text-[#0b0d12]" />
                             <span>Giải bài ngay (+25 Coin)</span>
                           </button>
                         )}
@@ -3044,11 +3040,11 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
                   {/* Tiêu đề danh sách lời giải */}
                   <div className="answer-section-label">
-                    <span className="inline-flex items-center gap-2 text-base font-extrabold text-white">
-                      <MessageSquare className="w-4 h-4 text-cyan-400" />
+                    <span className="inline-flex items-center gap-2 text-base font-extrabold text-[#f4f1de]">
+                      <MessageSquare className="w-4 h-4 text-[#81b29a]" />
                       <span>Lời giải từ cộng đồng ({activeSolutions.length}/3)</span>
                     </span>
-                    <span className="text-xs font-mono text-cyan-200 px-2.5 py-1 rounded-lg bg-cyan-500/12 border border-cyan-400/25">
+                    <span className="ff-brutal-index">
                       {remainingSlots > 0 ? `Còn ${remainingSlots} vị trí trả lời` : 'Đã đủ 3/3 lời giải'}
                     </span>
                   </div>
@@ -3056,12 +3052,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   {/* Danh sách lời giải */}
                   <div className="space-y-4">
                     {activeSolutions.length === 0 ? (
-                      <div className="rounded-3xl bg-[#0e1522]/85 border border-white/10 py-8 px-6 text-center space-y-2">
-                        <p className="text-slate-200 text-sm font-semibold">
+                      <div className="ff-bento-cell py-8 px-6 text-center space-y-2">
+                        <p className="text-[#f4f1de] text-sm font-bold">
                           Chưa có lời giải nào cho câu hỏi này.
                         </p>
-                        <p className="text-slate-400 text-xs">
-                          Hãy là người đầu tiên gửi lời giải ở khung bên dưới để nhận ngay +25 Coin, +25 XP và cơ hội đạt thưởng Đáp án chuẩn (+{bestBonusCoin} Coin).
+                        <p className="text-[#9a978e] text-xs">
+                          Gửi lời giải đầu tiên ở bên dưới để nhận +25 Coin, +25 XP và thưởng Đáp án chuẩn (+{bestBonusCoin} Coin).
                         </p>
                       </div>
                     ) : (
@@ -3231,10 +3227,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                 {canConfirmBest && !sol.isBest && (
                                   <button
                                     onClick={() => onMarkBestSolution(selectedQuestion.id, sol.id)}
-                                    className="px-3.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 font-bold text-xs border border-emerald-400/40 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                                    className="ff-tactile-btn px-3.5 py-1.5 rounded-lg bg-[#81b29a]/22 hover:bg-[#81b29a]/35 text-[#d8f3dc] font-bold text-xs border-[1.5px] border-[#81b29a]/55 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                                     title={`Chọn làm đáp án chuẩn (+${bestBonusCoin} Coin)`}
                                   >
-                                    <Check className="w-3.5 h-3.5 text-emerald-300" />
+                                    <Check className="w-3.5 h-3.5 text-[#81b29a]" />
                                     <span>Chọn đáp án chuẩn (+{bestBonusCoin} Coin)</span>
                                   </button>
                                 )}
@@ -3258,14 +3254,14 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
                   {/* Khung soạn câu trả lời rộng rãi, liền mạch */}
                   {isAnswerLimitReached ? (
-                    <div className="p-5 rounded-3xl bg-emerald-500/12 border border-emerald-500/30 flex items-center justify-center gap-2.5 text-sm font-semibold text-emerald-200">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div className="p-5 rounded-xl bg-[#81b29a]/15 border-[1.5px] border-[#81b29a]/45 flex items-center justify-center gap-2.5 text-sm font-bold text-[#d8f3dc]">
+                      <CheckCircle2 className="w-4 h-4 text-[#81b29a] shrink-0" />
                       <span>Câu hỏi đã đủ 3/3 lời giải. Bạn có thể trao đổi thêm ở phần bình luận.</span>
                     </div>
                   ) : (
-                    <div className="rounded-3xl bg-[#0e1624] border border-cyan-400/25 p-5 sm:p-7 space-y-4 shadow-[0_18px_48px_rgba(0,0,0,0.45)]">
+                    <div className="ff-bento-cell !p-5 sm:!p-6 space-y-4">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <label htmlFor="field-2" className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+                        <label htmlFor="field-2" className="text-sm sm:text-base font-extrabold text-[#f4f1de] flex items-center gap-2">
                           <span>Viết lời giải của bạn</span>
                         </label>
                         <div className="flex items-center gap-2">
@@ -3273,30 +3269,30 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             <button
                               type="button"
                               onClick={discardSolutionDraft}
-                              className="inline-flex items-center gap-1 rounded-xl border border-amber-400/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-200 hover:bg-amber-500/20 cursor-pointer"
+                              className="ff-tactile-btn inline-flex items-center gap-1 rounded-lg border border-[#f2cc8f]/40 bg-[#f2cc8f]/15 px-2.5 py-1 text-xs font-bold text-[#f2cc8f] cursor-pointer"
                             >
                               <span>Bỏ nháp đã lưu</span>
                             </button>
                           )}
-                          <span className="px-2.5 py-1 rounded-xl bg-cyan-500/15 border border-cyan-400/30 text-xs font-mono font-bold text-cyan-200">
+                          <span className="px-2.5 py-1 rounded-md bg-[#81b29a]/18 border-[1.5px] border-[#81b29a]/45 text-xs font-mono font-bold text-[#d8f3dc]">
                             +25 Coin · +25 XP
                           </span>
                         </div>
                       </div>
 
                       {solutionRejection && solutionRejection.questionId === selectedQuestion.id && (
-                        <div className="rounded-2xl border border-amber-400/40 bg-amber-500/12 px-4 py-3.5 flex items-start gap-3 animate-fade-up">
-                          <AlertTriangle className="w-5 h-5 text-amber-300 shrink-0 mt-0.5" />
+                        <div className="rounded-xl border-[1.5px] border-[#e07a5f]/50 bg-[#e07a5f]/15 px-4 py-3.5 flex items-start gap-3 animate-fade-up">
+                          <AlertTriangle className="w-5 h-5 text-[#f2cc8f] shrink-0 mt-0.5" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs sm:text-sm font-bold text-amber-200">Câu trả lời cần chỉnh sửa thêm</p>
-                            <p className="text-xs text-amber-100/90 mt-1 leading-relaxed">
+                            <p className="text-xs sm:text-sm font-bold text-[#f4f1de]">Câu trả lời cần chỉnh sửa thêm</p>
+                            <p className="text-xs text-[#d8d5ce] mt-1 leading-relaxed">
                               {solutionRejection.feedback ||
                                 'Câu trả lời này chưa liên quan rõ tới câu hỏi. Hãy trả lời đúng nội dung bài rồi gửi lại nhé.'}
                             </p>
                             <button
                               type="button"
                               onClick={onDismissSolutionRejection}
-                              className="mt-2 px-3 py-1 rounded-lg bg-amber-500/20 border border-amber-400/35 text-xs font-bold text-amber-200 hover:text-white cursor-pointer"
+                              className="ff-tactile-btn mt-2 px-3 py-1 rounded-lg bg-[#f2cc8f]/20 border border-[#f2cc8f]/45 text-xs font-bold text-[#f4f1de] cursor-pointer"
                             >
                               Đã hiểu
                             </button>
@@ -3311,21 +3307,21 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         value={solutionText}
                         onChange={e => setSolutionText(e.target.value)}
                         placeholder="Trình bày rõ các bước biến đổi, công thức hoặc lập luận giải bài của bạn..."
-                        className="w-full min-h-[150px] bg-[#090e18] border border-white/15 rounded-2xl px-4 py-3.5 text-sm sm:text-[15px] text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 resize-y leading-relaxed"
+                        className="w-full min-h-[150px] bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/18 rounded-xl px-4 py-3.5 text-sm sm:text-[15px] text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f] resize-y leading-relaxed"
                       />
 
                       <MathSymbolsBar onInsert={sym => setSolutionText(prev => prev + sym)} />
 
-                      <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
+                      <div className="pt-3 border-t border-dashed border-[#f4f1de]/15 flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-3 flex-wrap">
                           {solImage ? (
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-500/15 border border-cyan-400/35 text-xs font-semibold text-cyan-200">
-                              <ImageIcon className="w-4 h-4 text-cyan-300" />
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#81b29a]/18 border-[1.5px] border-[#81b29a]/45 text-xs font-bold text-[#d8f3dc]">
+                              <ImageIcon className="w-4 h-4 text-[#81b29a]" />
                               <span>Đã đính kèm ảnh lời giải</span>
                               <button
                                 type="button"
                                 onClick={() => setSolImage(null)}
-                                className="p-0.5 rounded-md hover:bg-rose-500/25 text-rose-300 cursor-pointer"
+                                className="p-0.5 rounded hover:bg-rose-500/25 text-rose-300 cursor-pointer"
                                 title="Gỡ ảnh"
                               >
                                 <X className="w-3.5 h-3.5" />
@@ -3334,9 +3330,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           ) : (
                             <label
                               htmlFor="field-3"
-                              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-white/15 hover:border-cyan-400/45 bg-white/[0.04] hover:bg-white/[0.09] text-xs font-semibold text-slate-200 hover:text-white cursor-pointer transition-colors"
+                              className="ff-tactile-btn inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border-[1.5px] border-[#f4f1de]/18 hover:border-[#f2cc8f]/55 bg-[#0b0d12] text-xs font-bold text-[#f4f1de] cursor-pointer transition-colors"
                             >
-                              <ImageIcon className="w-4 h-4 text-cyan-300" />
+                              <ImageIcon className="w-4 h-4 text-[#f2cc8f]" />
                               <span>Đính kèm ảnh bài giải</span>
                               <input
                                 id="field-3"
@@ -3348,7 +3344,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               />
                             </label>
                           )}
-                          <span className="text-xs font-mono text-slate-400">
+                          <span className="text-xs font-mono text-[#9a978e]">
                             {solutionText.length}/1500 ký tự
                           </span>
                           {solImageError && (
@@ -3360,9 +3356,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           type="button"
                           onClick={() => handleSolutionSubmit(selectedQuestion.id)}
                           disabled={!solutionText.trim() || solCooldown > 0 || isSubmittingSol}
-                          className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs sm:text-sm inline-flex items-center justify-center gap-2 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                          className="ff-tactile-btn px-5 py-2.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] font-extrabold text-xs sm:text-sm border-[1.5px] border-[#f4f1de] inline-flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
                         >
-                          <Send className="w-4 h-4" />
+                          <Send className="w-4 h-4 text-[#0b0d12]" />
                           <span>
                             {solCooldown > 0
                               ? `Chờ ${solCooldown}s...`
@@ -3376,31 +3372,31 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   )}
                 </div>
 
-                {/* SIDEBAR PHẢI (4/12) — Tóm tắt thông tin bài hỏi, Câu hỏi liên quan & Bảng xếp hạng môn */}
+                {/* SIDEBAR PHẢI (4/12) — Bento Cards: Tóm tắt thông tin bài hỏi, Câu hỏi liên quan & Bảng xếp hạng môn */}
                 <aside className="lg:col-span-4 space-y-5 lg:sticky lg:top-6">
-                  <div className="rounded-3xl bg-[#0e1624]/95 border border-white/10 p-5 space-y-3.5 shadow-xl">
-                    <h4 className="text-xs font-mono uppercase tracking-wider text-cyan-300 font-bold">
+                  <div className="ff-bento-cell !p-5 space-y-3.5">
+                    <h4 className="text-xs font-mono uppercase tracking-wider text-[#f2cc8f] font-bold">
                       Thông tin câu hỏi
                     </h4>
                     <div className="grid grid-cols-2 gap-2.5 text-xs">
-                      <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/[0.08]">
-                        <span className="text-slate-400 block text-[11px]">Thưởng trả lời</span>
-                        <strong className="text-cyan-300 font-mono text-sm mt-0.5 block">+25 Coin · +25 XP</strong>
+                      <div className="p-3 rounded-xl bg-[#0b0d12]/75 border border-[#f4f1de]/12">
+                        <span className="text-[#9a978e] block text-[11px]">Thưởng trả lời</span>
+                        <strong className="text-[#81b29a] font-mono text-sm mt-0.5 block">+25 Coin · +25 XP</strong>
                       </div>
-                      <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/[0.08]">
-                        <span className="text-slate-400 block text-[11px]">Thưởng Đáp án chuẩn</span>
-                        <strong className="text-amber-300 font-mono text-sm mt-0.5 block">+{bestBonusCoin} Coin</strong>
+                      <div className="p-3 rounded-xl bg-[#0b0d12]/75 border border-[#f4f1de]/12">
+                        <span className="text-[#9a978e] block text-[11px]">Thưởng Đáp án chuẩn</span>
+                        <strong className="text-[#f2cc8f] font-mono text-sm mt-0.5 block">+{bestBonusCoin} Coin</strong>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-slate-300 pt-1 border-t border-white/10">
+                    <div className="flex items-center justify-between text-xs text-[#d8d5ce] pt-2 border-t border-dashed border-[#f4f1de]/12">
                       <span>Số lời giải hiện có:</span>
-                      <strong className="font-mono text-white">{activeSolutions.length}/3 lời giải</strong>
+                      <strong className="font-mono text-[#f4f1de]">{activeSolutions.length}/3 lời giải</strong>
                     </div>
                   </div>
 
-                  <div className="rounded-3xl bg-[#0e1624]/95 border border-white/10 p-5 space-y-3 shadow-xl">
-                    <h4 className="text-sm font-extrabold text-white flex items-center gap-2">
-                      <Lightbulb className="w-4 h-4 text-amber-300 shrink-0" />
+                  <div className="ff-bento-cell !p-5 space-y-3">
+                    <h4 className="text-sm font-extrabold text-[#f4f1de] flex items-center gap-2">
+                      <Lightbulb className="w-4 h-4 text-[#f2cc8f] shrink-0" />
                       <span>Câu hỏi liên quan</span>
                     </h4>
                     {relatedQuestions.map(q => {
@@ -3410,24 +3406,24 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           key={q.id}
                           type="button"
                           onClick={() => handleOpenQuestionDetail(q)}
-                          className="w-full text-left p-3 rounded-2xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.08] hover:border-cyan-400/40 transition-colors cursor-pointer block"
+                          className="w-full text-left p-3 rounded-xl bg-[#0b0d12]/70 hover:bg-[#f4f1de]/[0.06] border border-[#f4f1de]/12 hover:border-[#f2cc8f]/45 transition-colors cursor-pointer block"
                         >
-                          <div className="flex items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
-                            <span className="text-cyan-300 font-semibold">#{q.subject}</span>
+                          <div className="flex items-center justify-between gap-2 text-[11px] font-mono text-[#9a978e]">
+                            <span className="text-[#f2cc8f] font-bold">#{q.subject}</span>
                             <span>{qSols.length}/3 lời giải</span>
                           </div>
-                          <p className="text-xs sm:text-sm font-bold text-slate-100 line-clamp-2 mt-1 leading-snug">{q.title}</p>
+                          <p className="text-xs sm:text-sm font-bold text-[#f4f1de] line-clamp-2 mt-1 leading-snug">{q.title}</p>
                         </button>
                       );
                     })}
                     {relatedQuestions.length === 0 && (
-                      <p className="text-xs text-slate-400">Chưa có câu hỏi cùng chủ đề.</p>
+                      <p className="text-xs text-[#9a978e]">Chưa có câu hỏi cùng chủ đề.</p>
                     )}
                   </div>
 
-                  <div className="rounded-3xl bg-[#0e1624]/95 border border-white/10 p-5 space-y-3 shadow-xl">
-                    <h4 className="text-sm font-extrabold text-white flex items-center gap-2">
-                      <Award className="w-4 h-4 text-amber-300 shrink-0" />
+                  <div className="ff-bento-cell !p-5 space-y-3">
+                    <h4 className="text-sm font-extrabold text-[#f4f1de] flex items-center gap-2">
+                      <Award className="w-4 h-4 text-[#f2cc8f] shrink-0" />
                       <span>Tích cực môn #{selectedQuestion.subject}</span>
                     </h4>
                     {topSubjectSolvers.length === 0 ? (

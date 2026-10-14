@@ -113,24 +113,24 @@ export const QuickNotesDock: React.FC<QuickNotesDockProps> = ({ isOpen, onClose,
         role="dialog"
         aria-modal="false"
         aria-label="Sổ tay nhanh"
-        className="ff-notes-panel relative overflow-hidden rounded-[24px] border border-white/15 bg-[#0b1017]/95 text-white shadow-[0_40px_110px_rgba(0,0,0,0.8)] backdrop-blur-2xl"
+        className="ff-notes-panel modal-container relative overflow-hidden text-[#f4f1de]"
       >
-        <div className="h-[3px] w-full ff-aurora-bar" aria-hidden="true" />
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#81b29a] via-[#f2cc8f] to-[#e07a5f]" aria-hidden="true" />
 
-        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-white/10">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500/25 to-emerald-500/20 border border-cyan-400/30 flex items-center justify-center shrink-0">
-              <NotebookPen className="w-4 h-4 text-cyan-300" />
+        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-dashed border-[#f4f1de]/15">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="w-8 h-8 rounded-lg bg-[#81b29a]/20 border-[1.5px] border-[#81b29a]/50 flex items-center justify-center shrink-0 shadow-[2px_2px_0px_rgba(4,6,11,0.9)]">
+              <NotebookPen className="w-4 h-4 text-[#81b29a]" />
             </span>
             <div className="min-w-0">
-              <p className="text-[13px] font-bold leading-tight">Sổ tay nhanh</p>
-              <p className="text-[10px] text-white/45 truncate">{savedLabel} · dùng chung với Focus Sanctuary</p>
+              <p className="text-[13px] font-extrabold leading-tight text-[#f4f1de]">Sổ tay nhanh</p>
+              <p className="text-[10px] text-[#9a978e] truncate">{savedLabel} · dùng chung với Focus Sanctuary</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+            className="ff-tactile-btn p-1.5 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] transition-colors cursor-pointer shrink-0"
             aria-label="Đóng sổ tay nhanh"
           >
             <X className="w-4 h-4" />
@@ -144,7 +144,7 @@ export const QuickNotesDock: React.FC<QuickNotesDockProps> = ({ isOpen, onClose,
                 key={tpl.id}
                 type="button"
                 onClick={() => insertTemplate(tpl.text)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-400/40 text-white/75 hover:text-white transition-all cursor-pointer"
+                className="ff-tactile-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold bg-[#0b0d12] hover:bg-[#e07a5f]/20 border border-[#f4f1de]/18 hover:border-[#f2cc8f]/50 text-[#d8d5ce] hover:text-[#f4f1de] transition-all cursor-pointer"
               >
                 {tpl.icon}
                 {tpl.label}
@@ -158,7 +158,7 @@ export const QuickNotesDock: React.FC<QuickNotesDockProps> = ({ isOpen, onClose,
             maxLength={5000}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Ghi nhanh công thức, deadline, ý tưởng bài tập… Nội dung được lưu ngay trên trình duyệt này."
-            className="ff-scroll w-full h-[150px] sm:h-[190px] resize-none rounded-2xl bg-black/45 border border-white/10 focus:border-cyan-400/50 p-3 text-xs leading-relaxed text-neutral-100 placeholder-neutral-500 focus:outline-none transition-colors font-mono"
+            className="ff-scroll w-full h-[150px] sm:h-[190px] resize-none rounded-xl bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/18 focus:border-[#f2cc8f] p-3 text-xs leading-relaxed text-[#f4f1de] placeholder-[#84817a] focus:outline-none transition-colors font-mono"
           />
 
           <div className="flex items-center justify-between gap-2 text-[10px] text-white/45">
