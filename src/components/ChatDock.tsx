@@ -300,6 +300,9 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                       Lv.{msg.authorLevel || 1}
                     </span>
                   )}
+                  <span className="px-1.5 py-0.2 rounded bg-[#090c10] border border-dashed border-[#334155] text-[9px] font-mono text-[#38bdf8]">
+                    [#ANON-712 · Khối 12]
+                  </span>
                   <span className="text-[9.5px] text-[#a39f96] font-mono">
                     {msg.timestamp}
                   </span>
@@ -466,6 +469,36 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   </button>
                 );
               })}
+            </div>
+
+            {/* Nhãn phòng thảo luận theo môn & thẻ câu hỏi nhanh (Section 4.5) */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
+              {(['#toán-12', '#vật-lý-11', '#ôn-thi-cuối-kỳ'] as const).map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => {
+                    setActiveChannel('quick-qa');
+                    setInputText((prev) => (prev.includes(tag) ? prev : `${tag} ${prev}`));
+                  }}
+                  className="px-2 py-0.5 rounded bg-[#11161f] hover:bg-[#171e2b] border border-dashed border-[#334155] text-[10.5px] font-mono text-[#38bdf8] whitespace-nowrap cursor-pointer"
+                >
+                  {tag}
+                </button>
+              ))}
+              {(['@Câu-14-Đề-GK1', '@Câu-09-Đề-15P'] as const).map((qRef) => (
+                <button
+                  key={qRef}
+                  type="button"
+                  onClick={() => {
+                    setActiveChannel('quick-qa');
+                    setInputText((prev) => (prev.includes(qRef) ? prev : `${qRef} ${prev}`));
+                  }}
+                  className="px-2 py-0.5 rounded bg-[#ff6b2b]/15 hover:bg-[#ff6b2b]/25 border border-[#ff6b2b]/40 text-[10.5px] font-mono font-bold text-[#ff6b2b] whitespace-nowrap cursor-pointer"
+                >
+                  {qRef}
+                </button>
+              ))}
             </div>
           </div>
 

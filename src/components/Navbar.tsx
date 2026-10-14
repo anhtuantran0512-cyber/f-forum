@@ -32,6 +32,7 @@ import { resolveGodrayId, resolvePotatorId } from '../utils/gradients';
 import { DailyEngagementModal } from './DailyEngagementModal';
 import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
 import { ScrollProgressRail } from './ScrollProgressRail';
+import { ClubSlideDrawer } from './ClubSlideDrawer';
 import { spawnRipple } from '../utils/ripple';
 import { isMasterAdmin } from '../config/admin';
 import { effectiveCoinBalance } from '../utils/coinDisplay';
@@ -107,6 +108,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isClubDrawerOpen, setIsClubDrawerOpen] = useState(false);
   const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     return (safeStorage.getItem('fforum_theme') as 'dark' | 'light') || 'dark';
@@ -917,6 +919,37 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Side: Quick Dock (cụm tiện ích + vạch phân cách với tài khoản) */}
           <div className="flex items-center gap-1.5 flex-shrink-0 nav-actions-dock">
+            {/* Nút mở Góc CLB ẩn (Slide-over Drawer — Organic #10) */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsClubDrawerOpen(true);
+              }}
+              className="hidden xl:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#1c1917] hover:bg-[#292524] border border-[#e07a5f]/45 text-[11px] font-bold text-[#f4f1de] cursor-pointer pointer-events-auto transition"
+              title="🏕️ Góc CLB & Sự kiện trường (Mở khi cần)"
+              aria-label="🏕️ Góc CLB & Sự kiện trường (Mở khi cần)"
+            >
+              <span>🏕️ Góc CLB</span>
+            </button>
+
+            {/* Nút CTA chính: + Đóng góp đề / Hỏi bài (Tactile Squishy #8) */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewChange('qa');
+                window.setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('fforum_open_ask_modal'));
+                }, 60);
+              }}
+              className="ff-2027-squishy-cta hidden xl:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] cursor-pointer pointer-events-auto"
+              title="+ Hỏi bài ẩn danh (Miễn phí)"
+              aria-label="+ Đóng góp đề / Hỏi bài"
+            >
+              <span>+ Hỏi bài</span>
+            </button>
+
             {/* Settings Trigger */}
             <div ref={settingsTriggerRef} className="relative inline-flex items-center justify-center flex-shrink-0">
               <button
@@ -1560,6 +1593,13 @@ export const Navbar: React.FC<NavbarProps> = ({
         onOpenLogin={onOpenLoginModal}
         onLoadRewardStatus={onLoadDailyRewardStatus}
         onClaimReward={onClaimDailyReward}
+      />
+
+      <ClubSlideDrawer
+        isOpen={isClubDrawerOpen}
+        onClose={() => setIsClubDrawerOpen(false)}
+        clubs={[]}
+        onNavigateClubsView={onViewChange}
       />
     </>
   );
