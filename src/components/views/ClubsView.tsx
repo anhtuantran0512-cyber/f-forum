@@ -312,9 +312,9 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
     <section className={`club-plaza-page relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-[var(--navbar-height)] pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-6 px-4 sm:px-8`}>
       {/* Nền phong cách Forum Hiện Đại: Tối ưu triệt để dung lượng và GPU, không dùng video nền trong sảnh CLB */}
       <div className="ff-clubs-bg ff-raw-grid-surface absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#080d15] via-[#09111e] to-[#060a12]" />
-        <div className="absolute top-[-15%] right-[10%] w-[550px] h-[550px] rounded-full bg-emerald-500/[0.035] blur-[140px]" />
-        <div className="absolute bottom-[-10%] left-[5%] w-[650px] h-[650px] rounded-full bg-amber-500/[0.03] blur-[150px]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0b0d12] via-[#10141d] to-[#080a0f]" />
+        <div className="absolute top-[-15%] right-[10%] w-[550px] h-[550px] rounded-full bg-[#81b29a]/[0.05] blur-[140px]" />
+        <div className="absolute bottom-[-10%] left-[5%] w-[650px] h-[650px] rounded-full bg-[#e07a5f]/[0.05] blur-[150px]" />
       </div>
 
       {/* Main Container */}
@@ -332,6 +332,9 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   <h1 className="ff-typo-poster !text-xl sm:!text-2xl text-[#f4f1de]">
                     Câu Lạc Bộ
                   </h1>
+                  <span className="ff-brutal-index">
+                    {approvedClubs.length} CLB hoạt động
+                  </span>
                   <InfoTip label="Cách tính danh hiệu CLB xuất sắc" align="start">
                     Danh hiệu CLB Xuất Sắc Nhất Tháng được tổng hợp tự động dựa trên tần suất đăng bài hoạt động và mức độ thảo luận thực tế của thành viên.
                   </InfoTip>
@@ -373,6 +376,60 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Style 2 Bento Grid + Style 10 Organic Hand-Drawn Realm Showcase */}
+          <div className="ff-club-realm-grid pt-1">
+            {([
+              {
+                cat: 'Công nghệ' as ClubCategory,
+                sub: 'Lập trình & AI',
+                color: '#81b29a',
+                doodle: 'M3 12 L9 6 L15 12 L21 6 M6 18 H18',
+              },
+              {
+                cat: 'Nghệ thuật' as ClubCategory,
+                sub: 'Âm nhạc & Sáng tạo',
+                color: '#e07a5f',
+                doodle: 'M4 16 C8 6, 16 6, 20 16 M8 13 C10 10, 14 10, 16 13',
+              },
+              {
+                cat: 'Thể thao' as ClubCategory,
+                sub: 'Vận động & Giải đấu',
+                color: '#f2cc8f',
+                doodle: 'M4 17 L10 9 L14 13 L20 5 M15 5 H20 V10',
+              },
+              {
+                cat: 'Học thuật' as ClubCategory,
+                sub: 'Nghiên cứu & Ôn luyện',
+                color: '#d8f3dc',
+                doodle: 'M4 7 H20 M4 12 H16 M4 17 H12',
+              },
+            ]).map((realm) => {
+              const count = approvedClubs.filter(c => c.category === realm.cat).length;
+              const isSelected = selectedCategory === realm.cat;
+              return (
+                <button
+                  key={realm.cat}
+                  type="button"
+                  onClick={() => setSelectedCategory(isSelected ? 'Tất cả' : realm.cat)}
+                  className={`ff-club-realm-card ${isSelected ? 'is-active' : ''}`}
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-extrabold text-[#f4f1de] truncate">{realm.cat}</span>
+                      <span className="px-1.5 py-0.2 rounded bg-[#0b0d12]/80 border border-[#f4f1de]/15 text-[10px] font-mono font-bold text-[#f2cc8f]">
+                        {count}
+                      </span>
+                    </div>
+                    <p className="text-[10.5px] text-[#9a978e] truncate mt-0.5">{realm.sub}</p>
+                  </div>
+                  <svg className="w-6 h-6 shrink-0 opacity-85" viewBox="0 0 24 24" fill="none" stroke={realm.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d={realm.doodle} />
+                  </svg>
+                </button>
+              );
+            })}
           </div>
 
           {/* Filter by category: Neo-Brutalist Tags */}
@@ -573,11 +630,11 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                 key={club.id}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
-                className="ff-media-card rounded-2xl liquid-glass bg-neutral-950/75 border border-white/10 hover:border-amber-400/40 p-4 shadow-xl transition-transform duration-200 group overflow-hidden"
+                className="ff-media-card p-4 transition-transform duration-200 group overflow-hidden"
               >
                 <div className="ff-media-card__layout">
                   {/* Card Cover: ảnh + tag category + số thành viên */}
-                  <div className="ff-media-card__cover relative h-32 w-full rounded-xl overflow-hidden mb-3 border border-white/10">
+                  <div className="ff-media-card__cover relative h-32 w-full rounded-xl overflow-hidden mb-3 border border-[#f4f1de]/15">
                     <img
                       src={club.coverImage}
                       alt={club.name}
@@ -588,8 +645,8 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                       height={128}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                    <span className="absolute bottom-2 left-2 text-[10px] font-mono bg-black/70 px-2 py-0.5 rounded text-neutral-200 border border-white/10">
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0b0d12]/85 via-[#0b0d12]/30 to-transparent" />
+                    <span className="absolute bottom-2 left-2 text-[10px] font-mono bg-[#0b0d12]/85 px-2 py-0.5 rounded text-[#f4f1de] border border-[#f4f1de]/18">
                       {club.membersCount} thành viên
                     </span>
                     <span className={`absolute top-2 right-2 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-md shadow border ${getCategoryBadgeClass(club.category)}`}>
@@ -600,11 +657,11 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   {/* Card Content: tên + slogan + chủ nhiệm + 2 nút ('Tham gia' / 'Xem →') */}
                   <div className="ff-media-card__content">
                     <div>
-                      <h3 className="font-bold text-sm text-white group-hover:text-amber-300 transition-colors line-clamp-1 ff-kinetic-title ff-kinetic-underline">
+                      <h3 className="ff-typo-thread-title font-bold text-base text-[#f4f1de] group-hover:text-[#f2cc8f] transition-colors line-clamp-1 ff-kinetic-title ff-kinetic-underline">
                         {club.name}
                       </h3>
                       {club.slogan && (
-                        <p className="text-[11.5px] text-amber-200/80 italic line-clamp-1 mt-0.5 font-sans">
+                        <p className="text-[11.5px] text-[#f2cc8f]/85 italic line-clamp-1 mt-0.5 font-sans">
                           "{club.slogan}"
                         </p>
                       )}

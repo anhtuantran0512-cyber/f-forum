@@ -1382,11 +1382,32 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       {/* Main Container */}
       <div className={`relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col ${isEmbedded ? '' : 'overflow-hidden'}`}>
         
-        {/* Top Editorial Bento Header: Typography-Led + Neo-Brutalist Controls + Organic Hand-Drawn Accent */}
-        <div className="ff-bento-cell !p-4 sm:!p-5 mb-4 shrink-0 flex flex-col gap-3">
+        {/* Top Neo-Brutalist Academic Dispatch Header: Exposed Grid Telemetry + Typography-Led + Tactile Controls */}
+        <div className="ff-qa-dispatch-board overflow-hidden mb-4 shrink-0 flex flex-col">
+          {/* Style 7: Raw Aesthetic (Monospace + Exposed Grid Telemetry Strip) */}
+          <div className="ff-qa-telemetry-strip">
+            <div className="ff-qa-telemetry-cell">
+              <span>ZONE //</span>
+              <b>01_ACADEMIC_QA</b>
+            </div>
+            <div className="ff-qa-telemetry-cell">
+              <span>DISPLAY_NODES //</span>
+              <b>{String(filteredQuestions.length).padStart(2, '0')} CÂU</b>
+            </div>
+            <div className="ff-qa-telemetry-cell">
+              <span>SOLVED_STATE //</span>
+              <b>{questions.filter(q => q.isSolved).length}/{questions.length} ĐÃ GIẢI</b>
+            </div>
+            <div className="ff-qa-telemetry-cell">
+              <span>BOUNTY_POOL //</span>
+              <b>+{questions.reduce((sum, item) => sum + (item.bountyCoin || 20), 0)} COIN</b>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-5 flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-[#e07a5f]/15 border-[1.5px] border-[#e07a5f]/45 flex items-center justify-center shrink-0 shadow-[2px_2px_0px_rgba(4,6,11,0.9)]">
+              <div className="w-10 h-10 rounded-[6px] bg-[#e07a5f]/18 border-2 border-[#e07a5f]/55 flex items-center justify-center shrink-0 shadow-[3px_3px_0px_#04060a]">
                 <HelpCircle className="w-5 h-5 text-[#f2cc8f]" />
               </div>
               <div className="min-w-0">
@@ -1570,6 +1591,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               })}
             </div>
           </div>
+          </div>
         </div>
 
         {/* Main Content Area: Questions Feed (Col 8) + Leaderboard (Col 4) */}
@@ -1668,242 +1690,279 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     }
                   }}
                   aria-label={`Xem chi tiết câu hỏi: ${q.title}`}
-                  className={`ff-virtual-card ff-qa-card cursor-pointer rounded-2xl p-5 sm:p-6 group ${
+                  className={`ff-virtual-card ff-qa-card cursor-pointer p-4 sm:p-5 group ${
                     q.isSolved ? 'is-solved' : 'is-unsolved'
                   }`}
                 >
-                  {/* Hàng 1: Nhãn môn học (Neo-Brutalist), Trạng thái (Holographic / Organic), Tiền thưởng & Công cụ */}
-                  <div className="flex items-center justify-between gap-2.5 mb-3">
-                    <div className="flex items-center gap-2 flex-wrap min-w-0">
-                      <span className={`ff-brutal-tag ${getSubjectBadgeStyle(q.subject)}`}>
-                        <span>{subjectLabel}</span>
+                  <div className="flex items-stretch">
+                    {/* Cột Trái (Style 3 Neo-Brutalism + Style 7 Raw Exposed Grid): Mã thứ tự, Ô đếm lời giải & Mức thưởng */}
+                    <div className="hidden sm:flex flex-col items-center justify-between w-[84px] shrink-0 pr-4 mr-4 border-r-[1.5px] border-dashed border-[#f4f1de]/18 select-none">
+                      <span className="w-full text-center py-0.5 rounded-[4px] bg-[#0b0d12] border border-[#f4f1de]/15 text-[10px] font-mono font-extrabold text-[#9a978e]">
+                        #{String(qIndex + 1).padStart(2, '0')}
                       </span>
 
-                      {q.isSolved ? (
-                        <span className="ff-holo-badge inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold text-[#d8f3dc]">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
-                          <span>Đã giải</span>
-                        </span>
-                      ) : (
-                        <span className="ff-organic-badge !py-0.5 !px-2.5 !rounded-md inline-flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-[#e07a5f] shrink-0" />
-                          <span>Chờ giải</span>
-                        </span>
-                      )}
+                      <div
+                        className={`w-full my-2 py-2 px-1.5 rounded-[5px] border-[1.5px] text-center shadow-[2px_2px_0px_#04060a] transition-colors ${
+                          q.isSolved
+                            ? 'bg-[#81b29a]/20 border-[#81b29a]/60 text-[#d8f3dc]'
+                            : qSolutions.length > 0
+                            ? 'bg-[#f2cc8f]/15 border-[#f2cc8f]/50 text-[#f2cc8f]'
+                            : 'bg-[#0b0d12]/80 border-[#f4f1de]/18 text-[#9a978e]'
+                        }`}
+                      >
+                        <div className="text-base font-mono font-extrabold leading-none">
+                          {qSolutions.length}/3
+                        </div>
+                        <div className="text-[9px] font-mono font-bold uppercase tracking-wider mt-1 opacity-85">
+                          {q.isSolved ? 'ĐÃ GIẢI' : 'LỜI GIẢI'}
+                        </div>
+                      </div>
 
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#f2cc8f]/15 border-[1.5px] border-[#f2cc8f]/40 text-xs font-mono font-bold text-[#f2cc8f] shadow-[2px_2px_0px_rgba(4,6,11,0.85)]">
-                        <Coins className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
-                        <span>+{q.bountyCoin || 20} Coin</span>
+                      <span className="w-full text-center py-0.5 px-1 rounded-[4px] bg-[#f2cc8f]/15 border border-[#f2cc8f]/45 text-[10px] font-mono font-extrabold text-[#f2cc8f]">
+                        +{q.bountyCoin || 20}C
                       </span>
-
-                      {attachedImages.length > 0 && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#81b29a]/15 border-[1.5px] border-[#81b29a]/40 text-xs font-semibold text-[#d8f3dc]">
-                          <ImageIcon className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
-                          <span>Đính kèm {attachedImages.length} ảnh</span>
-                        </span>
-                      )}
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleSaveQuestion(q.id);
-                        }}
-                        aria-pressed={isQuestionSaved(savedMap, savedOwnerKey, q.id)}
-                        className={`p-2 rounded-xl border transition-colors cursor-pointer ${
-                          isQuestionSaved(savedMap, savedOwnerKey, q.id)
-                            ? 'bg-amber-500/15 border-amber-400/35 text-amber-300'
-                            : 'bg-white/[0.04] border-white/[0.08] text-slate-300 hover:bg-white/[0.09] hover:text-white'
-                        }`}
-                        title={
-                          isQuestionSaved(savedMap, savedOwnerKey, q.id)
-                            ? 'Bỏ lưu câu hỏi này'
-                            : 'Lưu câu hỏi này'
-                        }
-                        aria-label={
-                          isQuestionSaved(savedMap, savedOwnerKey, q.id)
-                            ? `Bỏ lưu câu hỏi: ${q.title}`
-                            : `Lưu câu hỏi: ${q.title}`
-                        }
-                      >
-                        {isQuestionSaved(savedMap, savedOwnerKey, q.id) ? (
-                          <BookmarkCheck size={14} />
-                        ) : (
-                          <Bookmark size={14} />
-                        )}
-                      </button>
+                    {/* Cột Phải: Nội dung câu hỏi (Typography-Led + Kinetic Underline + Raw Telemetry Footer) */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between">
+                      {/* Hàng 1: Nhãn môn học (Neo-Brutalist), Trạng thái (Holographic / Organic), Mã câu hỏi & Công cụ */}
+                      <div className="flex items-center justify-between gap-2.5 mb-2.5">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          <span className={`ff-brutal-tag ${getSubjectBadgeStyle(q.subject)}`}>
+                            <span>{subjectLabel}</span>
+                          </span>
 
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!currentUser) {
-                            onOpenLoginModal?.();
-                            return;
-                          }
-                          setReportModalUser({
-                            id: q.authorId,
-                            name: `${q.authorName} — Bài hỏi: "${q.title.slice(0, 48)}"`,
-                          });
-                        }}
-                        className="p-2 rounded-xl bg-white/[0.04] hover:bg-rose-500/15 border border-white/[0.08] hover:border-rose-400/35 text-slate-300 hover:text-rose-200 transition-colors cursor-pointer"
-                        title="Báo cáo bài viết vi phạm"
-                        aria-label={`Báo cáo bài viết: ${q.title}`}
-                      >
-                        <Flag size={14} />
-                      </button>
+                          {q.isSolved ? (
+                            <span className="ff-holo-badge inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] text-xs font-bold text-[#d8f3dc]">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
+                              <span>Đã giải</span>
+                            </span>
+                          ) : (
+                            <span className="ff-organic-badge !py-0.5 !px-2.5 !rounded-[5px] inline-flex items-center gap-1.5">
+                              <Clock className="w-3.5 h-3.5 text-[#e07a5f] shrink-0" />
+                              <span>Chờ giải</span>
+                            </span>
+                          )}
 
-                      {canEditContent && (
-                        <div className="relative">
+                          <span className="sm:hidden inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[5px] bg-[#f2cc8f]/15 border-[1.5px] border-[#f2cc8f]/40 text-xs font-mono font-bold text-[#f2cc8f] shadow-[2px_2px_0px_rgba(4,6,11,0.85)]">
+                            <Coins className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
+                            <span>+{q.bountyCoin || 20} Coin</span>
+                          </span>
+
+                          <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[#0b0d12]/70 border border-[#f4f1de]/12 text-[10px] font-mono text-[#9a978e]">
+                            ID:{q.id.slice(-5).toUpperCase()}
+                          </span>
+
+                          {attachedImages.length > 0 && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] bg-[#81b29a]/15 border-[1.5px] border-[#81b29a]/40 text-xs font-semibold text-[#d8f3dc]">
+                              <ImageIcon className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
+                              <span>Đính kèm {attachedImages.length} ảnh</span>
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setOpenMenuQuestionId(prev => (prev === q.id ? null : q.id));
+                              handleToggleSaveQuestion(q.id);
                             }}
-                            className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.09] text-slate-300 hover:text-white border border-white/[0.08] transition-colors cursor-pointer"
-                            title="Tùy chọn quản trị bài viết"
-                            aria-label="Tùy chọn quản trị bài viết"
+                            aria-pressed={isQuestionSaved(savedMap, savedOwnerKey, q.id)}
+                            className={`ff-tactile-btn p-2 rounded-[6px] border transition-colors cursor-pointer ${
+                              isQuestionSaved(savedMap, savedOwnerKey, q.id)
+                                ? 'bg-[#f2cc8f]/20 border-[#f2cc8f]/55 text-[#f2cc8f]'
+                                : 'bg-[#0b0d12]/70 border-[#f4f1de]/15 text-[#b5b2a9] hover:bg-[#f4f1de]/10 hover:text-[#f4f1de]'
+                            }`}
+                            title={
+                              isQuestionSaved(savedMap, savedOwnerKey, q.id)
+                                ? 'Bỏ lưu câu hỏi này'
+                                : 'Lưu câu hỏi này'
+                            }
+                            aria-label={
+                              isQuestionSaved(savedMap, savedOwnerKey, q.id)
+                                ? `Bỏ lưu câu hỏi: ${q.title}`
+                                : `Lưu câu hỏi: ${q.title}`
+                            }
                           >
-                            <MoreVertical size={14} />
+                            {isQuestionSaved(savedMap, savedOwnerKey, q.id) ? (
+                              <BookmarkCheck size={14} />
+                            ) : (
+                              <Bookmark size={14} />
+                            )}
                           </button>
 
-                          {openMenuQuestionId === q.id && (
-                            <div className="absolute right-0 top-full mt-1.5 w-48 rounded-2xl bg-[#0d1422] border border-white/15 shadow-2xl p-2 z-30 space-y-1 animate-fade-up">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!currentUser) {
+                                onOpenLoginModal?.();
+                                return;
+                              }
+                              setReportModalUser({
+                                id: q.authorId,
+                                name: `${q.authorName} — Bài hỏi: "${q.title.slice(0, 48)}"`,
+                              });
+                            }}
+                            className="ff-tactile-btn p-2 rounded-[6px] bg-[#0b0d12]/70 hover:bg-rose-500/15 border border-[#f4f1de]/15 hover:border-rose-400/40 text-[#b5b2a9] hover:text-rose-200 transition-colors cursor-pointer"
+                            title="Báo cáo bài viết vi phạm"
+                            aria-label={`Báo cáo bài viết: ${q.title}`}
+                          >
+                            <Flag size={14} />
+                          </button>
+
+                          {canEditContent && (
+                            <div className="relative">
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setOpenMenuQuestionId(null);
-                                  handleAdminEditPost(q.id);
+                                  setOpenMenuQuestionId(prev => (prev === q.id ? null : q.id));
                                 }}
-                                className="w-full px-3 py-2 text-left text-xs font-semibold text-amber-200 hover:bg-amber-500/15 rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
+                                className="ff-tactile-btn p-2 rounded-[6px] bg-[#0b0d12]/70 hover:bg-[#f4f1de]/10 text-[#b5b2a9] hover:text-[#f4f1de] border border-[#f4f1de]/15 transition-colors cursor-pointer"
+                                title="Tùy chọn quản trị bài viết"
+                                aria-label="Tùy chọn quản trị bài viết"
                               >
-                                <Edit3 size={13} />
-                                <span>Chỉnh sửa bài viết</span>
+                                <MoreVertical size={14} />
                               </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenMenuQuestionId(null);
-                                  handleAdminDeletePost(q.id);
-                                }}
-                                className="w-full px-3 py-2 text-left text-xs font-semibold text-rose-200 hover:bg-rose-500/15 rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
-                              >
-                                <Trash2 size={13} />
-                                <span>Xóa bài viết</span>
-                              </button>
+
+                              {openMenuQuestionId === q.id && (
+                                <div className="absolute right-0 top-full mt-1.5 w-48 rounded-xl bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/20 shadow-[4px_4px_0px_#04060a] p-2 z-30 space-y-1 animate-fade-up">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenMenuQuestionId(null);
+                                      handleAdminEditPost(q.id);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-xs font-semibold text-[#f2cc8f] hover:bg-[#f2cc8f]/15 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
+                                  >
+                                    <Edit3 size={13} />
+                                    <span>Chỉnh sửa bài viết</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenMenuQuestionId(null);
+                                      handleAdminDeletePost(q.id);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-xs font-semibold text-rose-200 hover:bg-rose-500/15 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
+                                  >
+                                    <Trash2 size={13} />
+                                    <span>Xóa bài viết</span>
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           )}
+                        </div>
+                      </div>
+
+                      {/* Hàng 2: Tiêu đề (Typography-Led + Kinetic Underline) & Nội dung tóm tắt */}
+                      <div className="min-w-0 space-y-1.5">
+                        <h3 className="ff-typo-thread-title ff-kinetic-title ff-kinetic-underline text-base sm:text-[18.5px] font-extrabold text-[#f4f1de] group-hover:text-[#f2cc8f] transition-colors leading-snug">
+                          {q.title}
+                        </h3>
+                        <p className="ff-typo-measure text-[13.5px] sm:text-sm text-[#d8d5ce] line-clamp-2 leading-relaxed">
+                          {q.content}
+                        </p>
+                      </div>
+
+                      {/* Hàng 3: Tác giả & Nút mở câu hỏi (Exposed Grid Footer) */}
+                      <div className="flex items-center justify-between gap-3 mt-3.5 pt-2.5 border-t-[1.5px] border-dashed border-[#f4f1de]/14 flex-wrap">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
+                              if (!q.isAnonymous) {
+                                const existing = Object.values(users).find(u => u.id === q.authorId) ||
+                                  (currentUser && currentUser.id === q.authorId ? currentUser : null);
+                                setActiveAuthorPopover({
+                                  id: q.authorId,
+                                  name: existing?.name || q.authorName,
+                                  avatar: existing?.avatar || q.authorAvatar,
+                                  email: existing?.email,
+                                  level: existing?.level || 1,
+                                  coin: existing?.coin || 100,
+                                });
+                              }
+                            }}
+                            className="inline-flex items-center gap-2 hover:opacity-85 transition-opacity cursor-pointer text-left min-w-0"
+                            title={q.isAnonymous ? 'Tác giả ẩn danh' : 'Xem thông tin tác giả'}
+                          >
+                            {q.isAnonymous ? (
+                              <img
+                                src={q.authorAvatar}
+                                alt={q.authorName}
+                                onError={e => handleImageError(e, DEFAULT_AVATAR)}
+                                loading="lazy"
+                                decoding="async"
+                                width={28}
+                                height={28}
+                                className="w-7 h-7 rounded-full object-cover border border-[#f4f1de]/20 shrink-0"
+                              />
+                            ) : (
+                              <span className="shrink-0">
+                                <DecoratedAvatar
+                                  user={findDecorationOwner(users, undefined, q.authorId)}
+                                  fallbackSrc={q.authorAvatar}
+                                  size={28}
+                                  animate
+                                  alt={q.authorName}
+                                />
+                              </span>
+                            )}
+                            {q.isAnonymous ? (
+                              <span className="text-xs font-semibold truncate max-w-[160px] text-[#f2cc8f]">
+                                {q.authorName}
+                              </span>
+                            ) : (
+                              <DecoratedName
+                                user={findDecorationOwner(users, undefined, q.authorId)}
+                                name={q.authorName.replace(/ \(.*\)/, '')}
+                                width={136}
+                                height={26}
+                                animate
+                                showFallbackTag
+                              />
+                            )}
+                            {q.isAnonymous && (
+                              <span className="px-1.5 py-0.5 rounded-[4px] bg-[#e07a5f]/18 border border-[#e07a5f]/40 text-[10px] text-[#f2cc8f] font-mono font-bold shrink-0">
+                                Ẩn danh
+                              </span>
+                            )}
+                          </button>
+                          <span className="text-xs text-[#9a978e] font-mono">· {q.createdAt}</span>
+                        </div>
+
+                        <div className="flex items-center gap-3 text-xs font-mono text-[#d8d5ce] shrink-0">
+                          <span className="inline-flex items-center gap-1" title="Lượt xem">
+                            <Eye className="w-3.5 h-3.5 text-[#9a978e]" />
+                            <span>{q.views}</span>
+                          </span>
+                          <span className="ff-tactile-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-[5px] bg-[#81b29a]/18 group-hover:bg-[#81b29a]/30 border-[1.5px] border-[#81b29a]/50 text-[#f4f1de] font-bold transition-colors">
+                            <MessageSquare className="w-3.5 h-3.5 text-[#81b29a]" />
+                            <span>{qSolutions.length}/3 lời giải →</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Đáp án chuẩn tóm tắt (Style 9: Holographic Iridescent Verified Banner) */}
+                      {bestSol && (
+                        <div className="ff-holo-card mt-3 px-3.5 py-2 rounded-[6px] flex items-center justify-between gap-2 text-xs text-[#f4f1de]">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Award className="w-4 h-4 text-[#81b29a] shrink-0" />
+                            <span className="font-bold text-[#d8f3dc] shrink-0">Đáp án chuẩn:</span>
+                            <span className="truncate text-[#f4f1de]">{bestSol.content}</span>
+                          </div>
                         </div>
                       )}
                     </div>
                   </div>
-
-                  {/* Hàng 2: Tiêu đề (Typography-Led + Kinetic Underline) & Nội dung tóm tắt */}
-                  <div className="min-w-0 space-y-1.5">
-                    <h3 className="ff-typo-thread-title ff-kinetic-title ff-kinetic-underline text-base sm:text-[18px] font-extrabold text-[#f4f1de] group-hover:text-[#f2cc8f] transition-colors leading-snug">
-                      {q.title}
-                    </h3>
-                    <p className="ff-typo-measure text-[13.5px] sm:text-sm text-[#d8d5ce] line-clamp-3 leading-relaxed">
-                      {q.content}
-                    </p>
-                  </div>
-
-                  {/* Hàng 3: Tác giả & Nút mở câu hỏi */}
-                  <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-dashed border-[#f4f1de]/10 flex-wrap">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-                          if (!q.isAnonymous) {
-                            const existing = Object.values(users).find(u => u.id === q.authorId) ||
-                              (currentUser && currentUser.id === q.authorId ? currentUser : null);
-                            setActiveAuthorPopover({
-                              id: q.authorId,
-                              name: existing?.name || q.authorName,
-                              avatar: existing?.avatar || q.authorAvatar,
-                              email: existing?.email,
-                              level: existing?.level || 1,
-                              coin: existing?.coin || 100,
-                            });
-                          }
-                        }}
-                        className="inline-flex items-center gap-2 hover:opacity-85 transition-opacity cursor-pointer text-left min-w-0"
-                        title={q.isAnonymous ? 'Tác giả ẩn danh' : 'Xem thông tin tác giả'}
-                      >
-                        {q.isAnonymous ? (
-                          <img
-                            src={q.authorAvatar}
-                            alt={q.authorName}
-                            onError={e => handleImageError(e, DEFAULT_AVATAR)}
-                            loading="lazy"
-                            decoding="async"
-                            width={28}
-                            height={28}
-                            className="w-7 h-7 rounded-full object-cover border border-white/15 shrink-0"
-                          />
-                        ) : (
-                          <span className="shrink-0">
-                            <DecoratedAvatar
-                              user={findDecorationOwner(users, undefined, q.authorId)}
-                              fallbackSrc={q.authorAvatar}
-                              size={28}
-                              animate
-                              alt={q.authorName}
-                            />
-                          </span>
-                        )}
-                        {q.isAnonymous ? (
-                          <span className="text-xs font-semibold truncate max-w-[160px] text-indigo-200">
-                            {q.authorName}
-                          </span>
-                        ) : (
-                          <DecoratedName
-                            user={findDecorationOwner(users, undefined, q.authorId)}
-                            name={q.authorName.replace(/ \(.*\)/, '')}
-                            width={136}
-                            height={26}
-                            animate
-                            showFallbackTag
-                          />
-                        )}
-                        {q.isAnonymous && (
-                          <span className="px-1.5 py-0.5 rounded-md bg-indigo-500/15 border border-indigo-400/25 text-[10px] text-indigo-200 font-medium shrink-0">
-                            Ẩn danh
-                          </span>
-                        )}
-                      </button>
-                      <span className="text-xs text-slate-400 font-mono">· {q.createdAt}</span>
-                    </div>
-
-                    <div className="flex items-center gap-3 text-xs font-mono text-[#d8d5ce] shrink-0">
-                      <span className="inline-flex items-center gap-1" title="Lượt xem">
-                        <Eye className="w-3.5 h-3.5 text-[#9a978e]" />
-                        <span>{q.views}</span>
-                      </span>
-                      <span className="ff-tactile-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#81b29a]/18 group-hover:bg-[#81b29a]/30 border-[1.5px] border-[#81b29a]/45 text-[#f4f1de] font-bold transition-colors">
-                        <MessageSquare className="w-3.5 h-3.5 text-[#81b29a]" />
-                        <span>{qSolutions.length}/3 lời giải →</span>
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Đáp án chuẩn tóm tắt */}
-                  {bestSol && (
-                    <div className="mt-3 px-3.5 py-2.5 rounded-xl bg-[#81b29a]/14 border-[1.5px] border-[#81b29a]/40 flex items-center justify-between gap-2 text-xs text-[#f4f1de]">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Award className="w-4 h-4 text-[#81b29a] shrink-0" />
-                        <span className="font-bold text-[#d8f3dc] shrink-0">Đáp án chuẩn:</span>
-                        <span className="truncate text-[#f4f1de]">{bestSol.content}</span>
-                      </div>
-                    </div>
-                  )}
 
                   <ForumPostModeration
                     postId={q.id}

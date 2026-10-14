@@ -14,14 +14,26 @@
 .ff-media-card {
   container: ff-media / inline-size;
   position: relative;
-  border-radius: 0.95rem;
-  background: linear-gradient(165deg, rgba(22, 27, 39, 0.95), rgba(15, 19, 28, 0.98));
-  border: 1.5px solid rgba(244, 241, 222, 0.15);
+  border-radius: 16px 6px 16px 6px;
+  background: linear-gradient(165deg, rgba(22, 27, 39, 0.96), rgba(14, 18, 27, 0.99));
+  border: 1.5px solid rgba(244, 241, 222, 0.16);
   box-shadow:
-    4px 4px 0px rgba(4, 6, 11, 0.9),
-    inset 0 1px 0 rgba(244, 241, 222, 0.08);
+    4px 4px 0px rgba(4, 6, 11, 0.92),
+    inset 0 1px 0 rgba(244, 241, 222, 0.09);
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease;
   overflow: hidden;
+}
+.ff-media-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 18px;
+  width: 28px;
+  height: 4px;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(90deg, #e07a5f, #f2cc8f);
+  opacity: 0.75;
+  pointer-events: none;
 }
 .ff-media-card:hover {
   transform: translate3d(-2px, -2px, 0);
