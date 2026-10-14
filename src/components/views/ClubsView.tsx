@@ -146,21 +146,23 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   const [isSubmittingPost, setIsSubmittingPost] = useState(false);
   const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
 
+  const isCreateCooling = createCooldown > 0;
   useEffect(() => {
-    if (createCooldown <= 0) return;
+    if (!isCreateCooling) return;
     const timer = setInterval(() => {
       setCreateCooldown(prev => Math.max(0, prev - 1));
     }, 1000);
     return () => clearInterval(timer);
-  }, [createCooldown]);
+  }, [isCreateCooling]);
 
+  const isPostCooling = postCooldown > 0;
   useEffect(() => {
-    if (postCooldown <= 0) return;
+    if (!isPostCooling) return;
     const timer = setInterval(() => {
       setPostCooldown(prev => Math.max(0, prev - 1));
     }, 1000);
     return () => clearInterval(timer);
-  }, [postCooldown]);
+  }, [isPostCooling]);
 
   const [newClubName, setNewClubName] = useState('');
   const [newSlogan, setNewSlogan] = useState('');

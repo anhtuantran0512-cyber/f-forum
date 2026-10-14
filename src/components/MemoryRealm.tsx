@@ -407,15 +407,29 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
   }, []);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    let mouseRaf = 0;
+    let clientX = 0;
+    let clientY = 0;
+    const flushMouse = () => {
+      mouseRaf = 0;
       if (!sectionRef.current) return;
-      const mx = (e.clientX / window.innerWidth - 0.5) * 2;
-      const my = (e.clientY / window.innerHeight - 0.5) * 2;
+      const mx = (clientX / Math.max(1, window.innerWidth) - 0.5) * 2;
+      const my = (clientY / Math.max(1, window.innerHeight) - 0.5) * 2;
       sectionRef.current.style.setProperty('--mx', mx.toFixed(3));
       sectionRef.current.style.setProperty('--my', my.toFixed(3));
     };
+    const handleMouseMove = (e: MouseEvent) => {
+      clientX = e.clientX;
+      clientY = e.clientY;
+      if (!mouseRaf) {
+        mouseRaf = requestAnimationFrame(flushMouse);
+      }
+    };
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    return () => {
+      if (mouseRaf) cancelAnimationFrame(mouseRaf);
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
   }, []);
 
   const getCardStep = useCallback(() => {
