@@ -181,4 +181,128 @@ test('11. Hoàn thiện Kho Đề Thi: Đồng bộ đa tab, Deep link URL, Nhá
   assert.ok(tsx.includes('grid-cols-1 sm:grid-cols-3'), 'Submission modal must use responsive 3-column grid');
 });
 
+test('12. Interactive CBT Practice Mode: Ngân hàng câu hỏi, chọn A/B/C/D, ma trận kiến thức & tính điểm tức thì', async () => {
+  const cbtData = read('src/components/exam/cbtData.ts');
+  const cbtModal = read('src/components/exam/CbtPracticeModal.tsx');
+  const types = read('src/types/index.ts');
+
+  /* Type contracts */
+  assert.ok(types.includes('export interface ExamCBTOption'), 'Must define ExamCBTOption');
+  assert.ok(types.includes('export interface ExamCBTQuestion'), 'Must define ExamCBTQuestion');
+  assert.ok(types.includes('export interface CBTResult'), 'Must define CBTResult');
+
+  /* CBT Data and fallback generation */
+  assert.ok(cbtData.includes('SEED_CBT_QUESTIONS'), 'Must define seed CBT questions for curriculum exams');
+  assert.ok(cbtData.includes('getExamCBTQuestions'), 'Must export getExamCBTQuestions helper');
+
+  /* Modal capabilities */
+  assert.ok(cbtModal.includes('CBT_HISTORY_KEY'), 'Must define CBT history storage key');
+  assert.ok(cbtModal.includes('secondsLeft'), 'Must track countdown timer in seconds');
+  assert.ok(cbtModal.includes('topicBreakdown'), 'Must compute knowledge topic breakdown');
+  assert.ok(cbtModal.includes('difficultyBreakdown'), 'Must compute cognitive level difficulty breakdown');
+  assert.ok(cbtModal.includes('calculateResult'), 'Must calculate 10-point scale result');
+  assert.ok(cbtModal.includes('showReviewMode'), 'Must provide answer review with detailed explanations');
+
+  /* Functional verification using node import */
+  const { getExamCBTQuestions } = await import('../src/components/exam/cbtData.ts');
+  const mockPaper = {
+    id: 'ex-01',
+    title: 'Đề thi Toán 12',
+    subject: 'Toán học',
+    grade: 12,
+    examType: 'Đề giữa kỳ 1',
+    duration: 90,
+  };
+  const qs = getExamCBTQuestions(mockPaper);
+  assert.ok(Array.isArray(qs) && qs.length >= 4, 'Must return at least 4 CBT questions for mock exam');
+  qs.forEach((q) => {
+    assert.ok(q.question && q.options.length === 4, 'Each question must have 4 options');
+    assert.ok(['A', 'B', 'C', 'D'].includes(q.correctAnswer), 'Correct answer must be A, B, C, or D');
+    assert.ok(q.topic && q.difficulty, 'Question must have topic and cognitive difficulty');
+  });
+});
+
+test('13. Exam Bookmarking / Yêu Thích Drawer: Quản lý đề đã lưu, lọc tìm kiếm & thi thử trực tiếp', () => {
+  const drawer = read('src/components/exam/ExamBookmarkDrawer.tsx');
+  const vault = read('src/components/views/ExamVaultView.tsx');
+
+  /* Drawer integration in ExamVaultView */
+  assert.ok(vault.includes('ExamBookmarkDrawer'), 'ExamVaultView must import and render ExamBookmarkDrawer');
+  assert.ok(vault.includes('isBookmarkDrawerOpen'), 'ExamVaultView must manage isBookmarkDrawerOpen state');
+  assert.ok(vault.includes('handleClearAllBookmarks'), 'ExamVaultView must provide clear all bookmarks action');
+  assert.ok(vault.includes('handleRemoveBookmark'), 'ExamVaultView must provide remove single bookmark action');
+
+  /* Drawer UI components */
+  assert.ok(drawer.includes('onStartCBT'), 'Drawer must support launching CBT practice directly');
+  assert.ok(drawer.includes('onSelectPreview'), 'Drawer must support quick preview');
+  assert.ok(drawer.includes('onOpenPrint'), 'Drawer must support print modal trigger');
+  assert.ok(drawer.includes('filteredSavedPapers'), 'Drawer must support search and filtering within saved list');
+  assert.ok(drawer.includes('animate-slide-left'), 'Drawer must use silky smooth 60 FPS slide-left animation');
+});
+
+test('14. Offline / Cache Indicators & Export / Print Formatting Options for Study Papers', async () => {
+  const offlineModule = read('src/components/exam/offlineStorage.ts');
+  const printModal = read('src/components/exam/ExamPrintExportModal.tsx');
+  const vaultCss = read('src/components/views/ExamVaultView.css');
+  const vaultTsx = read('src/components/views/ExamVaultView.tsx');
+
+  /* Offline Storage logic */
+  assert.ok(offlineModule.includes('OFFLINE_EXAMS_CACHE_KEY'), 'Must define offline cache key');
+  assert.ok(offlineModule.includes('cacheExamOffline'), 'Must export cacheExamOffline');
+  assert.ok(offlineModule.includes('isExamCachedOffline'), 'Must export isExamCachedOffline');
+  assert.ok(offlineModule.includes('removeExamFromOfflineCache'), 'Must export removeExamFromOfflineCache');
+
+  /* Offline UI Indicators */
+  assert.ok(vaultTsx.includes('cachedExamIds'), 'Must track cachedExamIds state in Vault');
+  assert.ok(vaultTsx.includes('handleToggleOfflineCache'), 'Must handle offline cache toggling');
+  assert.ok(vaultTsx.includes('isOnline'), 'Must monitor online/offline network status');
+  assert.ok(vaultCss.includes('.ff-cached-pill'), 'CSS must define .ff-cached-pill styles');
+
+  /* Print and Export Options Modal */
+  assert.ok(printModal.includes('window.print()'), 'Must trigger native window.print()');
+  assert.ok(printModal.includes('columns'), 'Must support 1-column and 2-column layout options');
+  assert.ok(printModal.includes('fontSize'), 'Must support font size adjustments');
+  assert.ok(printModal.includes('includeSolutions'), 'Must support hiding/showing answers and solutions');
+  assert.ok(printModal.includes('includeStudentHeader'), 'Must support official student header & score box');
+
+  /* Printable CSS styling */
+  assert.ok(vaultCss.includes('@media print'), 'CSS must include @media print stylesheet rules');
+  assert.ok(vaultCss.includes('#ff-printable-exam-paper'), 'CSS must isolate #ff-printable-exam-paper during print');
+});
+
+test('15. Kỷ luật mã nguồn tuyệt đối: Zero // Comments, Bản quyền BroAmStuck & Zero Emojis', () => {
+  const files = [
+    'src/components/views/ExamVaultView.tsx',
+    'src/components/views/ExamVaultView.css',
+    'src/components/exam/cbtData.ts',
+    'src/components/exam/offlineStorage.ts',
+    'src/components/exam/CbtPracticeModal.tsx',
+    'src/components/exam/ExamBookmarkDrawer.tsx',
+    'src/components/exam/ExamPrintExportModal.tsx',
+  ];
+
+  files.forEach((file) => {
+    const content = read(file);
+    assert.ok(
+      content.startsWith('/* Bản quyền trí tuệ thuộc về BroAmStuck */'),
+      `${file} must have intellectual property copyright header`,
+    );
+
+    /* Zero single line // comments in functional code */
+    const lines = content.split('\n');
+    lines.forEach((line, idx) => {
+      const trimmed = line.trim();
+      assert.ok(
+        !trimmed.startsWith('//'),
+        `${file} line ${idx + 1} must not contain single-line comment: ${line}`,
+      );
+    });
+
+    /* Zero emojis in component files */
+    const emojiRegex = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
+    assert.ok(!emojiRegex.test(content), `${file} must not contain emoji characters (use Lucide icons)`);
+  });
+});
+
+
 

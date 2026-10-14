@@ -39,6 +39,45 @@ export interface ExamPeerReview {
   content: string;
 }
 
+export interface ExamCBTOption {
+  id: 'A' | 'B' | 'C' | 'D';
+  text: string;
+}
+
+export interface ExamCBTQuestion {
+  id: string;
+  number: number;
+  question: string;
+  options: ExamCBTOption[];
+  correctAnswer: 'A' | 'B' | 'C' | 'D';
+  topic: string;
+  difficulty: ExamDifficulty;
+  explanation: string;
+  keyFormula?: string;
+}
+
+export interface CBTResult {
+  examId: string;
+  examTitle: string;
+  totalQuestions: number;
+  correctCount: number;
+  score: number; /* Thang điểm 10 */
+  timeSpentSeconds: number;
+  submittedAt: string;
+  topicBreakdown: Record<string, { total: number; correct: number }>;
+  difficultyBreakdown: Record<string, { total: number; correct: number }>;
+  answers: Record<number, 'A' | 'B' | 'C' | 'D'>;
+}
+
+export interface ExamPrintOptions {
+  columns: 1 | 2;
+  fontSize: 'sm' | 'md' | 'lg';
+  includeSolutions: 'none' | 'full' | 'answer-key';
+  includeStudentHeader: boolean;
+  schoolName: string;
+  customWatermark: string;
+}
+
 export interface ExamPaper {
   id: string;
   title: string;
@@ -66,6 +105,8 @@ export interface ExamPaper {
   summary: string;
   sampleQuestions?: string[];
   sampleSolutions?: ExamSolutionItem[];
+  cbtQuestions?: ExamCBTQuestion[];
+  isCachedOffline?: boolean;
   difficulty?: ExamDifficulty;
   rating?: number;
   ratingCount?: number;
