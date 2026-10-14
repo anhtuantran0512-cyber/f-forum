@@ -49,7 +49,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <path d="M12 2 C13.5 7.5, 16.5 10.5, 22 12 C16.5 13.5, 13.5 16.5, 12 22 C10.5 16.5, 7.5 13.5, 2 12 C7.5 10.5, 10.5 7.5, 12 2 Z" />
             </svg>
             <span className="font-mono text-xs tracking-wide text-[#f4f1de]">
-              Góc học tập &amp; kết nối học sinh
+              Kho đề nội bộ &amp; Cấp cứu bài tập trước giờ G
             </span>
           </div>
         </div>
@@ -95,27 +95,30 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
 
         {/* Subtext */}
-        <p className="animate-fade-up delay-3 mt-4 sm:mt-5 max-w-xl text-[#d8d5ce] text-sm sm:text-base leading-relaxed px-2 font-['Inter']">
-          Không gian trao đổi bài học, giao lưu câu lạc bộ và kết nối bạn bè.
+        <p className="animate-fade-up delay-3 mt-4 sm:mt-5 max-w-2xl text-[#d8d5ce] text-sm sm:text-base leading-relaxed px-2 font-['Inter']">
+          Đề thật của trường qua các năm. Bí câu nào hỏi ẩn danh ngay câu đó.{' '}
+          <span className="text-white/75">
+            Không gian trao đổi bài học, giao lưu câu lạc bộ và kết nối bạn bè.
+          </span>
         </p>
 
         {/* Style 3 + 8: Neo-Brutalist & Tactile Squishy Action Buttons */}
         <div className="animate-fade-up delay-4 mt-7 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full sm:w-auto">
           <button
-            onClick={() => onNavigate('clubs')}
-            className="ff-tactile-btn group w-full sm:w-auto rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] px-6 py-3 text-sm font-extrabold text-[#0b0d12] border-2 border-[#0b0d12] inline-flex items-center justify-center gap-2 cursor-pointer"
+            onClick={() => onNavigate('qa')}
+            className="ff-2027-squishy-cta group w-full sm:w-auto rounded-xl px-6 py-3 text-sm font-extrabold text-white inline-flex items-center justify-center gap-2 cursor-pointer"
           >
-            <Compass className="w-4 h-4 text-[#e07a5f]" />
-            <span>Câu Lạc Bộ</span>
+            <HelpCircle className="w-4 h-4 text-white" />
+            <span>+ Hỏi bài ẩn danh (Miễn phí)</span>
             <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
           </button>
 
           <button
-            onClick={() => onNavigate('qa')}
-            className="ff-tactile-btn w-full sm:w-auto ff-glass-depth-1 rounded-xl px-6 py-3 text-sm font-bold text-[#f4f1de] inline-flex items-center justify-center gap-2 hover:border-[#81b29a]/60 cursor-pointer"
+            onClick={() => onNavigate('clubs')}
+            className="ff-tactile-btn w-full sm:w-auto ff-glass-depth-1 rounded-xl px-5 py-3 text-sm font-bold text-[#f4f1de] inline-flex items-center justify-center gap-2 hover:border-[#e07a5f]/60 cursor-pointer"
           >
-            <HelpCircle className="w-4 h-4 text-[#81b29a]" />
-            <span>Hỏi Đáp Bài Tập</span>
+            <Compass className="w-4 h-4 text-[#e07a5f]" />
+            <span>🏕️ Góc CLB &amp; Sự kiện trường (Mở khi cần)</span>
           </button>
         </div>
 
