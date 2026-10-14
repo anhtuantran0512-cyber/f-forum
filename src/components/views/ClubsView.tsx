@@ -602,9 +602,9 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
             {approvedClubs.length === 0 ? (
               /* Fix 3: Gộp thành 1 Empty State DUY NHẤT khi chưa có CLB nào (Illustration + 1 câu + 1 nút, giữa màn hình) */
               <div className="col-span-full flex flex-col items-center justify-center text-center py-20 space-y-4">
-                <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-amber-500/10 border border-amber-500/25 shadow-[0_0_30px_rgba(245,158,11,0.18)]">
+                <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-amber-500/10 border border-amber-500/25">
                   <Users className="w-10 h-10 text-amber-300" />
-                  <Sparkles className="w-4 h-4 text-amber-400 absolute -top-1.5 -right-1.5 animate-pulse" />
+                  <Sparkles className="w-4 h-4 text-amber-400 absolute -top-1.5 -right-1.5" />
                 </div>
                 <h3 className="text-base font-bold text-white max-w-md">
                   Chưa có CLB nào — bạn sẽ là người đầu tiên khởi tạo! 🚀

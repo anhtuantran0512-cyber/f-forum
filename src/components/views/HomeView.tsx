@@ -28,7 +28,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const [headlinePhase, setHeadlinePhase] = useState<0 | 1>(0);
 
   useEffect(() => {
-    const duration = headlinePhase === 0 ? 3000 : 4000;
+    const duration = 12000;
     const timer = setTimeout(() => {
       setHeadlinePhase((prev) => (prev === 0 ? 1 : 0));
     }, duration);
@@ -57,17 +57,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
         {/* Style 1 + 5: Typography-Led Hero with Alternating Phrases */}
         <div className="relative min-h-[180px] sm:min-h-[230px] flex items-center justify-center w-full">
           <h1
-            className={`ff-typo-hero text-4xl sm:text-6xl text-[#f4f1de] font-normal tracking-tight text-center leading-tight max-w-4xl flex items-center justify-center ${
+            className={`ff-typo-hero text-4xl sm:text-6xl text-[#f8f7f4] font-normal tracking-tight text-center leading-tight max-w-4xl flex items-center justify-center ${
               headlinePhase === 0
-                ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
-                : 'opacity-0 -translate-y-2 scale-98 pointer-events-none absolute inset-0'
+                ? 'opacity-100 pointer-events-auto'
+                : 'opacity-0 pointer-events-none absolute inset-0'
             }`}
             style={{
-              transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s var(--ease, cubic-bezier(0.16, 1, 0.3, 1))',
+              transition: 'opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1)',
             }}
           >
             Diễn Đàn Học Sinh{" "}
-            <span className="font-['Playfair_Display'] italic font-bold tracking-wider text-[110%] bg-gradient-to-r from-[#f4f1de] via-[#f2cc8f] to-[#e07a5f] bg-clip-text text-transparent drop-shadow-[0_4px_20px_rgba(224,122,95,0.35)] whitespace-nowrap">
+            <span className="font-['Playfair_Display'] italic font-bold tracking-wider text-[110%] bg-gradient-to-r from-[#f8f7f4] to-[#e9c46a] bg-clip-text text-transparent whitespace-nowrap">
               F-Forum
             </span>
           </h1>
@@ -75,11 +75,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <h1
             className={`home-hero-title ${
               headlinePhase === 1
-                ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
-                : 'opacity-0 translate-y-2 scale-98 pointer-events-none absolute inset-0'
+                ? 'opacity-100 pointer-events-auto'
+                : 'opacity-0 pointer-events-none absolute inset-0'
             }`}
             style={{
-              transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s var(--ease, cubic-bezier(0.16, 1, 0.3, 1))',
+              transition: 'opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1)',
             }}
           >
             <span className="home-hero-title__top">Nơi Khai Phóng</span>

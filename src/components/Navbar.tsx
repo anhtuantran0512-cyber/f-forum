@@ -907,7 +907,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </span>
 
                     {item.id === 'chat' && unreadChatCount > 0 && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0 ml-1" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 ml-1" />
                     )}
                   </button>
                 </Fragment>
@@ -955,7 +955,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <MessageSquare className="w-4 h-4 text-amber-400" />
               {unreadChatCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-gradient-to-r from-amber-500 to-amber-600 text-[10px] font-bold text-black rounded-full w-4 h-4 flex items-center justify-center shadow-lg border border-black animate-pulse">
+                <span className="absolute -top-1 -right-1 bg-gradient-to-r from-amber-500 to-amber-600 text-[10px] font-bold text-black rounded-full w-4 h-4 flex items-center justify-center shadow-lg border border-black">
                   {unreadChatCount}
                 </span>
               )}
@@ -1329,7 +1329,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="relative">
             <MessageSquare className="w-5 h-5 mb-0.5" />
             {unreadChatCount > 0 && (
-              <span className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              <span className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-amber-400" />
             )}
           </div>
           <span className="text-[10px] tracking-tight whitespace-nowrap">Chat</span>

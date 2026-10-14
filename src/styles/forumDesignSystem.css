@@ -24,29 +24,32 @@
   --ff-ds-bg-deep: #0b0d12;
   --ff-ds-bg-elevated: #121620;
   --ff-ds-bg-card: #151a26;
-  --ff-ds-ink-primary: #f4f1de;
-  --ff-ds-ink-secondary: #d8d5ce;
-  --ff-ds-ink-muted: #9a978e;
+  --ff-ds-ink-primary: #f8f7f4;
+  --ff-ds-ink-secondary: #dad7d0;
+  --ff-ds-ink-muted: #a39f96;
+  --ff-ds-text-primary: #f8f7f4;
+  --ff-ds-text-secondary: #dad7d0;
+  --ff-ds-text-muted: #a39f96;
 
-  /* 10. Organic Warm Palette (Terracotta, Sage, Warm Cream, Sand Gold) */
-  --ff-ds-organic-terracotta: #e07a5f;
+  /* 10. Academic Library Palette (Warm Ivory, Library Sage, Academic Gold, Muted Terracotta) */
+  --ff-ds-organic-terracotta: #d97757;
   --ff-ds-organic-sage: #81b29a;
-  --ff-ds-organic-cream: #f4f1de;
-  --ff-ds-organic-sand: #f2cc8f;
+  --ff-ds-organic-cream: #f8f7f4;
+  --ff-ds-organic-sand: #e9c46a;
 
-  /* 6. Sci-Fi Gradient Accents (Restrained, Eye-Safe) */
-  --ff-ds-scifi-cyan: #38bdf8;
-  --ff-ds-scifi-violet: #a78bfa;
+  /* 6. Clean Digital Library Accents (Zero Rainbow Gradients) */
+  --ff-ds-scifi-cyan: #81b29a;
+  --ff-ds-scifi-violet: #e9c46a;
   --ff-ds-scifi-emerald: #81b29a;
-  --ff-ds-scifi-gradient: linear-gradient(135deg, rgba(224, 122, 95, 0.2) 0%, rgba(167, 139, 250, 0.18) 52%, rgba(129, 178, 154, 0.2) 100%);
+  --ff-ds-scifi-gradient: linear-gradient(135deg, rgba(129, 178, 154, 0.16) 0%, rgba(233, 196, 106, 0.14) 100%);
 
-  /* 3. Neo-Brutalism Architectural Border & Offset Shadow */
-  --ff-ds-brutal-shadow: 3px 3px 0px rgba(4, 6, 11, 0.92);
-  --ff-ds-brutal-shadow-sm: 2px 2px 0px rgba(4, 6, 11, 0.9);
-  --ff-ds-brutal-border: rgba(244, 241, 222, 0.2);
+  /* 3. Structured Academic Border & Composed Shadow */
+  --ff-ds-brutal-shadow: 0 6px 22px -6px rgba(0, 0, 0, 0.45), 2px 2px 0px rgba(4, 6, 11, 0.75);
+  --ff-ds-brutal-shadow-sm: 1.5px 1.5px 0px rgba(4, 6, 11, 0.72);
+  --ff-ds-brutal-border: rgba(248, 247, 244, 0.16);
 
-  /* 8. Tactile Squishy Spring Curve */
-  --ff-ds-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* 8. Apple / Notion Calm Micro-Interaction Curves */
+  --ff-ds-spring: cubic-bezier(0.22, 1, 0.36, 1);
   --ff-ds-smooth: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -132,11 +135,12 @@ html.light {
 }
 
 .ff-bento-cell:hover {
-  transform: translate3d(-1px, -2px, 0);
-  border-color: rgba(224, 122, 95, 0.48);
+  transform: translate3d(0, -1px, 0);
+  border-color: rgba(233, 196, 106, 0.38);
   box-shadow:
-    4px 4px 0px rgba(4, 6, 11, 0.95),
-    inset 0 1px 0 rgba(244, 241, 222, 0.14);
+    0 10px 28px -8px rgba(0, 0, 0, 0.52),
+    2.5px 2.5px 0px rgba(4, 6, 11, 0.8),
+    inset 0 1px 0 rgba(248, 247, 244, 0.12);
 }
 
 html.light .ff-bento-cell {
@@ -235,30 +239,25 @@ html.light .ff-brutal-index {
 }
 
 /* ========================================================================== */
-/* 5. KINETIC TYPOGRAPHY + SCROLL STORY (Phản hồi chữ tinh tế, có mục đích)   */
+/* 5. KINETIC TYPOGRAPHY + SCROLL STORY (Phản hồi chữ tinh tế kiểu Apple/Notion)*/
 /* ========================================================================== */
 
 .ff-kinetic-title {
   position: relative;
-  transition: transform 0.2s var(--ff-ds-smooth), color 0.2s ease;
-}
-
-.group:hover .ff-kinetic-title,
-.ff-kinetic-title:hover {
-  transform: translate3d(2px, 0, 0);
+  transition: color 0.18s ease;
 }
 
 .ff-kinetic-underline {
-  background-image: linear-gradient(90deg, var(--ff-ds-organic-terracotta), var(--ff-ds-organic-sand), var(--ff-ds-organic-sage));
-  background-size: 0% 2px;
+  background-image: linear-gradient(90deg, rgba(233, 196, 106, 0.85), rgba(129, 178, 154, 0.85));
+  background-size: 0% 1.5px;
   background-repeat: no-repeat;
   background-position: 0 100%;
-  transition: background-size 0.26s var(--ff-ds-smooth);
+  transition: background-size 0.22s var(--ff-ds-smooth);
 }
 
 .group:hover .ff-kinetic-underline,
 .ff-kinetic-underline:hover {
-  background-size: 100% 2px;
+  background-size: 100% 1.5px;
 }
 
 /* ========================================================================== */
@@ -273,15 +272,15 @@ html.light .ff-brutal-index {
   content: "";
   position: absolute;
   inset: 0 auto 0 0;
-  width: 3.5px;
+  width: 3px;
   border-radius: 3px 0 0 3px;
-  background: linear-gradient(180deg, var(--ff-ds-organic-terracotta), var(--ff-ds-organic-sand), var(--ff-ds-organic-sage));
-  opacity: 0.88;
+  background: var(--ff-ds-organic-sage);
+  opacity: 0.9;
 }
 
 .ff-scifi-progress {
-  background: linear-gradient(90deg, #e07a5f 0%, #f2cc8f 50%, #81b29a 100%);
-  box-shadow: 0 0 12px rgba(224, 122, 95, 0.28);
+  background: linear-gradient(90deg, #81b29a 0%, #e9c46a 100%);
+  box-shadow: none;
 }
 
 /* ========================================================================== */
@@ -290,15 +289,15 @@ html.light .ff-brutal-index {
 
 .ff-raw-grid-surface {
   background-image:
-    linear-gradient(to right, rgba(244, 241, 222, 0.032) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(244, 241, 222, 0.032) 1px, transparent 1px);
-  background-size: 32px 32px;
+    linear-gradient(to right, rgba(248, 247, 244, 0.024) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(248, 247, 244, 0.024) 1px, transparent 1px);
+  background-size: 36px 36px;
 }
 
 html.light .ff-raw-grid-surface {
   background-image:
-    linear-gradient(to right, rgba(28, 25, 23, 0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(28, 25, 23, 0.045) 1px, transparent 1px);
+    linear-gradient(to right, rgba(28, 25, 23, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(28, 25, 23, 0.04) 1px, transparent 1px);
 }
 
 .ff-raw-meta {
@@ -310,71 +309,57 @@ html.light .ff-raw-grid-surface {
 }
 
 /* ========================================================================== */
-/* 8. TACTILE MAXIMALISM: SQUISHY UI (Nút bấm có độ lún vật lý & độ nảy)      */
+/* 8. TACTILE MICRO-INTERACTIONS (Nút bấm êm, chuẩn xác kiểu Apple/Notion)    */
 /* ========================================================================== */
 
 .ff-tactile-btn {
   position: relative;
   transform: translateZ(0);
   transition:
-    transform 0.16s var(--ff-ds-spring),
+    transform 0.16s var(--ff-ds-smooth),
     box-shadow 0.16s var(--ff-ds-smooth),
     background-color 0.16s ease,
     border-color 0.16s ease;
   box-shadow:
-    2.5px 2.5px 0px rgba(4, 6, 11, 0.85),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    0 2px 6px rgba(0, 0, 0, 0.28),
+    1.5px 1.5px 0px rgba(4, 6, 11, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 .ff-tactile-btn:hover:not(:disabled) {
-  transform: translate3d(-1px, -1.5px, 0);
+  transform: translate3d(0, -1px, 0);
   box-shadow:
-    3.5px 3.5px 0px rgba(4, 6, 11, 0.92),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    0 4px 12px rgba(0, 0, 0, 0.34),
+    2px 2px 0px rgba(4, 6, 11, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .ff-tactile-btn:active:not(:disabled),
 .ff-squishy:active:not(:disabled) {
-  transform: translate3d(1.5px, 1.5px, 0) scale(0.96);
+  transform: translate3d(0, 0.5px, 0) scale(0.985);
   box-shadow:
-    0px 0px 0px rgba(4, 6, 11, 0.9),
-    inset 0 1px 2px rgba(0, 0, 0, 0.35);
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    inset 0 1px 2px rgba(0, 0, 0, 0.28);
 }
 
 /* ========================================================================== */
-/* 9. HOLOGRAPHIC / IRIDESCENT ACCENT (Hiệu ứng tem Hologram đa sắc góc nhìn) */
+/* 9. ACADEMIC VERIFIED SEAL (Thay thế gradient cầu vồng bằng dấu xác thực)   */
 /* ========================================================================== */
 
 .ff-holo-badge {
   position: relative;
-  background:
-    linear-gradient(
-      125deg,
-      rgba(224, 122, 95, 0.22) 0%,
-      rgba(242, 204, 143, 0.22) 32%,
-      rgba(129, 178, 154, 0.24) 66%,
-      rgba(167, 139, 250, 0.22) 100%
-    );
-  border: 1.5px solid rgba(242, 204, 143, 0.42);
-  box-shadow:
-    2px 2px 0px rgba(4, 6, 11, 0.85),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  background: linear-gradient(135deg, rgba(129, 178, 154, 0.2) 0%, rgba(233, 196, 106, 0.14) 100%);
+  border: 1px solid rgba(129, 178, 154, 0.48);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .ff-holo-card {
   position: relative;
-  background:
-    linear-gradient(165deg, rgba(22, 27, 39, 0.95), rgba(15, 19, 28, 0.98)) padding-box,
-    conic-gradient(
-      from 45deg,
-      rgba(224, 122, 95, 0.55),
-      rgba(242, 204, 143, 0.55),
-      rgba(129, 178, 154, 0.55),
-      rgba(167, 139, 250, 0.5),
-      rgba(224, 122, 95, 0.55)
-    ) border-box;
-  border: 1.5px solid transparent;
-  box-shadow: 4px 4px 0px rgba(4, 6, 11, 0.9);
+  background: linear-gradient(165deg, rgba(20, 26, 36, 0.96), rgba(14, 19, 27, 0.99));
+  border: 1.5px solid rgba(129, 178, 154, 0.42);
+  box-shadow:
+    0 8px 24px -8px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(248, 247, 244, 0.1);
 }
 
 /* ========================================================================== */
@@ -496,11 +481,12 @@ html.light .ff-raw-grid-surface {
 }
 
 .ff-qa-card:hover {
-  transform: translate3d(-2px, -2px, 0) !important;
-  border-color: rgba(242, 204, 143, 0.62) !important;
+  transform: translate3d(0, -1px, 0) !important;
+  border-color: rgba(233, 196, 106, 0.45) !important;
   box-shadow:
-    6px 6px 0px #04060a,
-    inset 0 1px 0 rgba(244, 241, 222, 0.15) !important;
+    0 8px 24px -8px rgba(0, 0, 0, 0.48),
+    3px 3px 0px #04060a,
+    inset 0 1px 0 rgba(248, 247, 244, 0.14) !important;
 }
 
 html.light .ff-qa-card,
@@ -611,26 +597,50 @@ html.light .ff-qa-dispatch-board {
   background: linear-gradient(155deg, rgba(224, 122, 95, 0.18), rgba(20, 25, 36, 0.96));
 }
 
-/* Warm Editorial override for Home Hero Title while keeping HomeHeroTitle.css test-intact */
+/* Academic Digital Library override for Home Hero Title, Navbar & Global Calm Motion */
 .home-hero-title__focus {
-  color: #f2cc8f !important;
-  filter: drop-shadow(0 5px 14px rgba(224, 122, 95, 0.28)) !important;
+  color: #f4f1de !important;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35)) !important;
 }
 
 .home-hero-title__word {
-  color: #f2cc8f !important;
-  background: linear-gradient(105deg, #f4f1de 4%, #f2cc8f 38%, #e07a5f 72%, #81b29a 96%) !important;
+  color: #f4f1de !important;
+  background: linear-gradient(105deg, #f8f7f4 0%, #f4f1de 58%, #e9c46a 100%) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
+  animation: none !important;
 }
 
 .home-hero-title__wave {
-  stroke: #e07a5f !important;
-  filter: drop-shadow(0 0 5px rgba(224, 122, 95, 0.55)) !important;
+  stroke: #e9c46a !important;
+  filter: none !important;
+  opacity: 0.65 !important;
+}
+
+.home-hero-title__wave path {
+  animation: none !important;
 }
 
 .home-hero-title__bottom i {
-  background: linear-gradient(90deg, transparent, #f2cc8f) !important;
+  background: linear-gradient(90deg, transparent, rgba(233, 196, 106, 0.7)) !important;
+}
+
+/* Navbar Brand: Clean Academic Seal (No rainbow conic-gradient, no infinite sweep) */
+.ff-nav-logo {
+  background: linear-gradient(135deg, #f4f1de 0%, #e9c46a 55%, #81b29a 100%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+}
+
+.ff-nav-brand-title {
+  background: linear-gradient(96deg, #f8f7f4 0%, #e9c46a 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  animation: none !important;
+}
+
+.ff-nav-aura::before {
+  animation: none !important;
+  opacity: 0 !important;
 }
 
 .ff-chat-bubble-me {
@@ -734,18 +744,39 @@ html.light .ff-chat-bubble-peer {
 }
 
 .ask2027-mesh-blob-cyan {
-  background: radial-gradient(circle, rgba(224, 122, 95, 0.18) 0%, transparent 70%) !important;
+  background: radial-gradient(circle, rgba(233, 196, 106, 0.1) 0%, transparent 70%) !important;
+  animation: none !important;
 }
 
 .ask2027-mesh-blob-purple {
-  background: radial-gradient(circle, rgba(129, 178, 154, 0.18) 0%, transparent 70%) !important;
+  background: radial-gradient(circle, rgba(129, 178, 154, 0.1) 0%, transparent 70%) !important;
+  animation: none !important;
+}
+
+.ask2027-particles,
+.gb-card__sparks,
+.mythic-particle {
+  display: none !important;
+  animation: none !important;
+}
+
+.ask2027-orb-icon,
+.ask2027-progress-fill::after,
+.ask2027-bounty-pill,
+.ask2027-xp-badge,
+.tg-10__gold,
+.gb-card--epic .gb-card__shine,
+.gb-card--legendary .gb-card__shine,
+.gb-card--legendary::before {
+  animation: none !important;
 }
 
 .ask2027-title-gradient {
-  background: linear-gradient(92deg, #f4f1de 0%, #f2cc8f 52%, #e07a5f 100%) !important;
+  background: linear-gradient(92deg, #f8f7f4 0%, #e9c46a 100%) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   color: transparent !important;
+  animation: none !important;
 }
 
 .ask2027-card-section {
@@ -886,18 +917,18 @@ html.light .ff-chat-bubble-peer {
     0 24px 60px rgba(0, 0, 0, 0.78) !important;
 }
 
-/* 5. Universal Tactile Squishy Feel cho toàn bộ nút bấm trong diễn đàn */
+/* 5. Universal Calm Apple/Notion Micro-Interactions cho toàn bộ nút bấm trong diễn đàn */
 button:not(:disabled) {
   transition:
-    transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1),
+    transform 0.16s cubic-bezier(0.22, 1, 0.36, 1),
     background-color 0.18s ease,
     border-color 0.18s ease,
     color 0.18s ease,
-    box-shadow 0.14s ease;
+    box-shadow 0.16s ease;
 }
 
 button:not(:disabled):active {
-  transform: translate3d(1px, 1px, 0) scale(0.97);
+  transform: translate3d(0, 0.5px, 0) scale(0.985);
 }
 
 @media (prefers-reduced-motion: reduce) {

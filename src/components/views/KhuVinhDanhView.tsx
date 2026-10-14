@@ -1559,7 +1559,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             BroAmStuck<em className="not-italic font-normal">Studio</em>
           </div>
           <div className="w-[clamp(120px,17vw,210px)] h-[1px] bg-[#f4f2ef]/20 relative overflow-hidden">
-            <span className="absolute inset-y-0 left-0 bg-[#f4f2ef] w-full animate-pulse" />
+            <span className="absolute inset-y-0 left-0 bg-[#f4f2ef] w-full" />
           </div>
           <div className="text-[10px] tracking-[0.26em] uppercase text-[#f4f2ef]/40">
             F-FORUM HALL OF FAME 2026

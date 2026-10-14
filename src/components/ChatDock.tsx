@@ -343,7 +343,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
         {/* Dock Header */}
         <div className="px-4 py-3 border-b border-dashed border-[#f4f1de]/15 flex items-center justify-between bg-[#0b0d12]/80">
           <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#81b29a] shadow-[0_0_8px_#81b29a] animate-pulse" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[#81b29a]" />
             <h2 className="text-sm font-extrabold text-[#f4f1de] tracking-wide flex items-center gap-1.5">
               <span>PHÒNG CHAT NHANH</span>
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#81b29a]/20 text-[#d8f3dc] border border-[#81b29a]/40">

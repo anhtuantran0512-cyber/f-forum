@@ -36,11 +36,12 @@
   pointer-events: none;
 }
 .ff-media-card:hover {
-  transform: translate3d(-2px, -2px, 0);
-  border-color: rgba(224, 122, 95, 0.52);
+  transform: translate3d(0, -1px, 0);
+  border-color: rgba(233, 196, 106, 0.42);
   box-shadow:
-    6px 6px 0px rgba(4, 6, 11, 0.95),
-    inset 0 1px 0 rgba(244, 241, 222, 0.14);
+    0 8px 24px -8px rgba(0, 0, 0, 0.45),
+    3px 3px 0px rgba(4, 6, 11, 0.85),
+    inset 0 1px 0 rgba(248, 247, 244, 0.12);
 }
 .ff-media-card__layout {
   display: grid;

@@ -431,7 +431,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
             className="ff-tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#81b29a]/18 border-[1.5px] border-[#81b29a]/45 text-[#d8f3dc] text-xs font-mono font-bold cursor-pointer"
             aria-label="Xem thành viên trực tuyến"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#81b29a] animate-pulse shrink-0" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#81b29a] shrink-0" />
             <span>{dynamicOnlineCount} Online</span>
             <Users className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
           </button>
@@ -691,7 +691,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 THÀNH VIÊN
               </span>
               <span className="text-[10px] text-[#81b29a] font-mono font-bold flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#81b29a] animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#81b29a]" />
                 {dynamicOnlineCount} ONLINE
               </span>
             </div>
@@ -726,13 +726,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       size={40}
                       animate
                       alt={MASTER_ADMIN_CONFIG.name}
-                      className="rounded-full ring-2 ring-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+                      className="rounded-full ring-1 ring-[#e9c46a]/60"
                     />
                     <span
                       className={`absolute bottom-0 right-0 z-[4] w-3 h-3 rounded-full border-2 border-[#0b0d12] ${
-                        isMasterAdminOnline
-                          ? 'bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse'
-                          : 'bg-[#81b29a] shadow-[0_0_8px_#81b29a]'
+                        isMasterAdminOnline ? 'bg-emerald-400' : 'bg-[#81b29a]'
                       }`}
                     />
                   </div>
@@ -797,7 +795,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                             alt={user.name}
                             className="rounded-full ring-1 ring-[#f4f1de]/15"
                           />
-                          <span className="absolute bottom-0 right-0 z-[4] w-2 h-2 rounded-full bg-[#81b29a] border border-black shadow-[0_0_6px_#81b29a] animate-pulse" />
+                          <span className="absolute bottom-0 right-0 z-[4] w-2 h-2 rounded-full bg-[#81b29a] border border-black" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center">
@@ -982,9 +980,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     />
                     <span
                       className={`absolute bottom-0 right-0 z-[4] w-3 h-3 rounded-full border-2 border-[#0b0d12] ${
-                        isMasterAdminOnline
-                          ? 'bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse'
-                          : 'bg-[#81b29a] shadow-[0_0_8px_#81b29a]'
+                        isMasterAdminOnline ? 'bg-emerald-400' : 'bg-[#81b29a]'
                       }`}
                     />
                   </div>
