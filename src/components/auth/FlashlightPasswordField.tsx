@@ -211,11 +211,13 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
     const onMove = (event: globalThis.PointerEvent) => queueSpot(event.clientX, event.clientY);
     const onResize = () => {
       if (lastAim.current) queueSpot(lastAim.current.x, lastAim.current.y);
+      else setSpot(0, 0, true);
     };
     window.addEventListener('pointermove', onMove, { passive: true });
     window.addEventListener('resize', onResize);
     window.addEventListener('scroll', onResize, true);
-    onResize();
+    /* Soi sáng ngay lập tức từ khung hình đầu tiên (cả ô mật khẩu 1 và 2 đều sáng cùng lúc) */
+    setSpot(0, 0, true);
     return () => {
       if (aimFrame.current !== null) window.cancelAnimationFrame(aimFrame.current);
       aimFrame.current = null;
@@ -313,12 +315,14 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
       onBlur={(event) => {
         if (!wrapRef.current?.contains(event.relatedTarget as Node | null)) {
           onFocusChange?.(false);
-          if (mode !== 'off') turnOff(false);
+          const nextTarget = event.relatedTarget as HTMLElement | null;
+          const isRelatedAuthRow = nextTarget?.closest?.('.auth-row');
+          if (!isRelatedAuthRow && mode !== 'off') turnOff(false);
         }
       }}
       onFocus={() => onFocusChange?.(true)}
     >
-      {showLayers && createPortal(<div ref={beamRef} className="ffl__viewport-beam" aria-hidden="true" />, document.body)}
+      {showLayers && showTorch && createPortal(<div ref={beamRef} className="ffl__viewport-beam" aria-hidden="true" />, document.body)}
       <label htmlFor={id} className="auth-label">{label}</label>
       <div ref={boxRef} className="ffl__box">
         <input

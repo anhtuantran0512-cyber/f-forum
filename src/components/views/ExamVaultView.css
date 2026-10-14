@@ -13,6 +13,49 @@
   padding-bottom: calc(96px + var(--safe-bottom, 0px));
 }
 
+html.light .ff-exam-vault {
+  background: var(--lv-page, #eef2f8);
+  color: var(--lv-ink, #101827);
+}
+
+/* Form controls for both themes */
+.ff-exam-select,
+.ff-exam-input {
+  background: #0e1420;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.2s ease;
+}
+
+.ff-exam-select:focus,
+.ff-exam-input:focus {
+  border-color: rgba(251, 191, 36, 0.7);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+html.light .ff-exam-select,
+html.light .ff-exam-input {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
+html.light .ff-exam-select:focus,
+html.light .ff-exam-input:focus {
+  border-color: #d97706;
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
+}
+
+html.light .ff-exam-select option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+html.light .ff-exam-filter-label {
+  color: #475569;
+}
+
 /* Calligraphic flourish: Chữ viết nét uốn lượn nghệ thuật (thay cho all-caps thô cứng) */
 .ff-calligraphic-flourish {
   font-family: 'Playfair Display', 'Cormorant Garamond', 'Times New Roman', Georgia, serif;
