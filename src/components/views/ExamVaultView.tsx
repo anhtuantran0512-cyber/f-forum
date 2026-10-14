@@ -816,8 +816,39 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     }
   });
 
+  /* Đồng bộ thời gian thực đa tab qua storage event */
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (!e.newValue) return;
+      try {
+        if (e.key === SAVED_EXAMS_KEY) setSavedExams(JSON.parse(e.newValue));
+        if (e.key === SUBMISSIONS_KEY) setSubmissions(JSON.parse(e.newValue));
+        if (e.key === DOWNLOAD_COUNTS_KEY) setDownloadOverrides(JSON.parse(e.newValue));
+        if (e.key === USER_RATINGS_KEY) setUserRatings(JSON.parse(e.newValue));
+        if (e.key === PEER_REVIEWS_KEY) setPeerReviewsMap(JSON.parse(e.newValue));
+        if (e.key === EXAM_LIKES_KEY) setLikesOverrides(JSON.parse(e.newValue));
+      } catch {
+        /* Bỏ qua lỗi phân tích chuỗi lưu trữ */
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   /* Modals */
-  const [previewExam, setPreviewExam] = useState<ExamPaper | null>(null);
+  const [previewExam, setPreviewExam] = useState<ExamPaper | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const examId = params.get('id') || params.get('exam');
+      if (examId) {
+        return SEED_EXAMS.find((p) => p.id === examId) || null;
+      }
+    } catch {
+      /* Bỏ qua lỗi URL */
+    }
+    return null;
+  });
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -867,7 +898,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       }
       return next;
     });
-  }, [showToast]);
+  }, [showToast, setSavedExams]);
 
   /* Heart / Like toggle */
   const handleToggleLike = useCallback((examId: string, baseLikes: number, event: React.MouseEvent) => {
@@ -884,7 +915,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       }
       return next;
     });
-  }, [showToast]);
+  }, [showToast, setLikesOverrides]);
 
   /* Simulated Download with Real-Time Counter Increment */
   const handleDownload = useCallback((exam: ExamPaper, event?: React.MouseEvent) => {
@@ -922,7 +953,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         setDownloadProgress(progress);
       }
     }, 120);
-  }, [downloadingId, showToast]);
+  }, [downloadingId, setDownloadingId, setDownloadProgress, setDownloadOverrides, showToast]);
 
   /* User Rating Handler */
   const handleRateExam = useCallback((examId: string, stars: number) => {
@@ -937,7 +968,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       }
       return next;
     });
-  }, [showToast]);
+  }, [showToast, setUserRatings]);
 
   /* Peer Review Submission */
   const handleAddPeerReview = useCallback((examId: string, e: React.FormEvent) => {
@@ -966,6 +997,9 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       return nextMap;
     });
 
+    /* Ghi nhận đánh giá sao trực tiếp vào bài thi */
+    handleRateExam(examId, newReviewRating);
+
     setNewReviewText('');
     setNewReviewRating(5);
     showToast('Đã đăng nhận xét đề thi thành công! Nhận ngay +10 XP học tập.');
@@ -974,7 +1008,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     } catch {
       /* Bỏ qua */
     }
-  }, [newReviewText, newReviewRating, currentUser, showToast]);
+  }, [newReviewText, newReviewRating, currentUser, handleRateExam, setPeerReviewsMap, setNewReviewText, setNewReviewRating, showToast]);
 
   /* Solution Index Accordion Toggle */
   const toggleSolutionIndex = useCallback((idx: number) => {
@@ -985,7 +1019,20 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
   /* Cross Navigation to Q&A */
   const handleDiscussInQA = useCallback((exam: ExamPaper) => {
-    showToast(`Đang mở Diễn Đàn Hỏi Đáp cho đề: ${exam.title}...`);
+    try {
+      /* Tạo sẵn nội dung câu hỏi thảo luận vào bản nháp Hỏi Đáp */
+      safeStorage.setItem(
+        'fforum_draft_ask',
+        JSON.stringify({
+          title: `Thảo luận đề thi: ${exam.title}`,
+          content: `Mình đang giải đề thi "${exam.title}" (${exam.school} - ${exam.schoolYear}). Bạn nào có lời giải hay cho các câu vận dụng hoặc mẹo phòng thi thì chia sẻ cùng mình nhé!`,
+          subject: exam.subject,
+        }),
+      );
+    } catch {
+      /* Bỏ qua lỗi lưu nháp */
+    }
+    showToast(`Đang chuyển sang Diễn Đàn Hỏi Đáp cho đề: ${exam.title}...`);
     setTimeout(() => {
       onNavigate('qa');
     }, 350);
@@ -997,13 +1044,16 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     if (navigator?.clipboard?.writeText) {
       navigator.clipboard.writeText(url).catch(() => {});
     }
-    showToast('Đã sao chép liên kết đề thi! Hãy chia sẻ vào CLB của bạn để cùng ôn tập.');
+    showToast('Đã sao chép liên kết đề thi! Đang chuyển sang Câu Lạc Bộ để bạn chia sẻ...');
     try {
       playChime();
     } catch {
       /* Bỏ qua */
     }
-  }, [showToast]);
+    setTimeout(() => {
+      onNavigate('clubs');
+    }, 450);
+  }, [onNavigate, showToast]);
 
   /* Handle Student Submission */
   const handleSubmitExam = useCallback((e: React.FormEvent) => {
@@ -1053,9 +1103,11 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         status: 'pending',
       };
 
-      const updated = [newSubmission, ...submissions];
-      setSubmissions(updated);
-      safeStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(updated));
+      setSubmissions((prev) => {
+        const updated = [newSubmission, ...prev];
+        safeStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(updated));
+        return updated;
+      });
 
       setIsUploading(false);
       setIsSubmitModalOpen(false);
@@ -1085,7 +1137,14 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     submitFileSize,
     currentUser,
     submitNotes,
-    submissions,
+    setSubmissions,
+    setIsUploading,
+    setIsSubmitModalOpen,
+    setSubmitTitle,
+    setSubmitNotes,
+    setSubmitFileName,
+    setSubmitFileSize,
+    setSubmitError,
     showToast,
   ]);
 
@@ -1098,7 +1157,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       showToast('Đã duyệt đề thi thành công! Đề đã được đưa vào kho công khai.');
       return updated;
     });
-  }, [showToast]);
+  }, [showToast, setSubmissions]);
 
   const handleRejectSubmission = useCallback((examId: string, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -1108,7 +1167,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       showToast('Đã từ chối duyệt đề thi.');
       return updated;
     });
-  }, [showToast]);
+  }, [showToast, setSubmissions]);
 
   /* Combine Seed Exams + Verified Submissions with Overrides */
   const allPapers = useMemo(() => {
@@ -1124,11 +1183,12 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       const allRevs = [...extraReviews, ...baseReviews];
 
       /* Calculate effective rating */
-      let effectiveRating = p.rating ?? 4.8;
-      let effectiveRatingCount = (p.ratingCount ?? 50) + (userRating ? 1 : 0);
-      if (userRating && p.rating && p.ratingCount) {
-        effectiveRating = Number(((p.rating * p.ratingCount + userRating) / effectiveRatingCount).toFixed(1));
-      }
+      const baseRating = p.rating ?? 4.8;
+      const baseCount = p.ratingCount ?? 50;
+      const effectiveRatingCount = baseCount + (userRating ? 1 : 0);
+      const effectiveRating = userRating
+        ? Number(((baseRating * baseCount + userRating) / effectiveRatingCount).toFixed(1))
+        : baseRating;
 
       return {
         ...p,
@@ -1248,6 +1308,23 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     if (!previewExam) return null;
     return allPapers.find((p) => p.id === previewExam.id) || previewExam;
   }, [previewExam, allPapers]);
+
+  /* Deep link: tự động mở xem thử đề thi khi URL có query ?id= hoặc ?exam= */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const examId = params.get('id') || params.get('exam');
+      if (examId) {
+        const found = allPapers.find((p) => p.id === examId);
+        if (found) {
+          requestAnimationFrame(() => setPreviewExam(found));
+        }
+      }
+    } catch {
+      /* Bỏ qua lỗi đọc query URL */
+    }
+  }, [allPapers]);
 
   return (
     <div className="ff-exam-vault ff-light-adapt w-full flex flex-col items-center select-text">
@@ -2182,18 +2259,19 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                     </button>
                   ))}
                 </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <textarea
+                    rows={2}
+                    maxLength={1000}
                     value={newReviewText}
                     onChange={(e) => setNewReviewText(e.target.value)}
                     placeholder="Viết nhận xét hoặc chia sẻ mẹo làm đề này (+10 XP)..."
-                    className="w-full ff-exam-input rounded-xl px-3 py-2 text-xs placeholder-white/40 focus:outline-none"
+                    className="w-full ff-exam-input rounded-xl px-3 py-2 text-xs placeholder-white/40 focus:outline-none resize-none"
                   />
                   <button
                     type="submit"
                     disabled={!newReviewText.trim()}
-                    className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0b0d12] text-xs font-bold shrink-0 flex items-center gap-1 cursor-pointer disabled:opacity-40 transition-colors"
+                    className="px-4 py-2 sm:py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0b0d12] text-xs font-bold shrink-0 flex items-center justify-center gap-1 cursor-pointer disabled:opacity-40 transition-colors"
                   >
                     <Send className="w-3 h-3" /> Gửi
                   </button>
@@ -2202,10 +2280,10 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
               {/* Reviews list */}
               {activePreview.peerReviews && activePreview.peerReviews.length > 0 ? (
-                <div className="space-y-2.5 max-h-48 overflow-y-auto no-scrollbar pr-1">
+                <div className="space-y-2.5 max-h-60 overflow-y-auto no-scrollbar pr-1">
                   {activePreview.peerReviews.map((rev) => (
-                    <div key={rev.id} className="p-2.5 rounded-lg bg-white/[0.03] border border-white/5 text-xs">
-                      <div className="flex items-center justify-between mb-1">
+                    <div key={rev.id} className="p-3 rounded-lg bg-white/[0.03] border border-white/5 text-xs">
+                      <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-amber-200">{rev.authorName}</span>
                           <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/10 text-white/70">
@@ -2221,7 +2299,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                           </div>
                         </div>
                       </div>
-                      <p className="text-white/80 leading-relaxed text-[11px]">{rev.content}</p>
+                      <p className="text-white/80 leading-relaxed text-xs whitespace-pre-line break-words">{rev.content}</p>
                     </div>
                   ))}
                 </div>
@@ -2351,7 +2429,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
               </div>
 
               {/* Grid selectors */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block ff-exam-filter-label text-white/70 font-semibold mb-1">Khối lớp</label>
                   <select
@@ -2383,7 +2461,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block ff-exam-filter-label text-white/70 font-semibold mb-1">Loại đề</label>
                   <select
@@ -2430,7 +2508,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block ff-exam-filter-label text-white/70 font-semibold mb-1">Tỉnh / Thành phố</label>
                   <select

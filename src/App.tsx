@@ -33,6 +33,7 @@ import {
   Flame,
   User as UserIcon,
   AlertCircle,
+  Clock,
   BookOpen,
 } from 'lucide-react';
 import type { DimensionView, User } from './types';
@@ -970,7 +971,7 @@ export const App: React.FC = () => {
     [clubs],
   );
   const isScrollableView =
-    currentView === 'memory' || currentView === 'chronicles' || currentView === 'landing';
+    currentView === 'memory' || currentView === 'chronicles' || currentView === 'landing' || currentView === 'exam-vault';
 
   const activeGodray = GODRAY_PRESETS.find(p => p.id === godrayPreset) || GODRAY_PRESETS[0];
 
@@ -1501,7 +1502,7 @@ export const App: React.FC = () => {
           className="fixed bottom-5 right-5 z-[120] max-w-md rounded-2xl border border-amber-400/45 bg-[#0D1326]/95 backdrop-blur-xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_24px_rgba(245,158,11,0.2)] animate-fade-up"
         >
           <div className="flex items-start gap-3">
-            <span className="text-lg leading-none shrink-0">⚠️</span>
+            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <p className="text-xs sm:text-sm font-bold text-amber-200">
                 Phiên làm việc sắp hết hạn (còn {Math.max(1, Math.ceil(sessionExpiryWarning.remainingSec / 60))} phút)
@@ -1539,8 +1540,8 @@ export const App: React.FC = () => {
         >
           <div className="modal-container w-full max-w-md p-6 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-400/45 flex items-center justify-center text-xl shrink-0">
-                ⏳
+              <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-400/45 flex items-center justify-center shrink-0">
+                <Clock className="w-5 h-5 text-amber-300" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-[#f8f7f4]">
