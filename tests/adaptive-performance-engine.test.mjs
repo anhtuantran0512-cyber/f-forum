@@ -326,4 +326,14 @@ test('Round 5: P0 -> P4 GPU Render Engine (DPR Cap, On-Demand Loop, Batching, Cu
   assert.equal(dropUnder15.lowPolyStep, 2, 'Chế độ Low-Poly giảm mật độ đối tượng 3D (LOD step = 2)');
 });
 
-
+test('Round 6: 3D render loops sleep while hidden or inactive and resume on visibility', () => {
+  for (const file of ['src/components/AboutUs.tsx', 'src/components/views/KhuVinhDanhView.tsx']) {
+    const source = read(file);
+    assert.match(source, /const shouldRunAnimation = \(\) =>[\s\S]{0,140}!document\.hidden/);
+    assert.match(source, /if \(!shouldRunAnimation\(\)\) return;/);
+    assert.match(source, /if \(animId \|\| !shouldRunAnimation\(\)\) return;/);
+    assert.match(source, /document\.addEventListener\('visibilitychange', onVisibilityChange\)/);
+    assert.match(source, /if \(animId\) cancelAnimationFrame\(animId\)/);
+    assert.doesNotMatch(source, /animId = requestAnimationFrame\(tick\);\s*return;/);
+  }
+});
