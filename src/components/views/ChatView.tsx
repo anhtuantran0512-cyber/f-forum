@@ -245,7 +245,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   return (
     <section className="relative w-full h-[100dvh] md:h-screen overflow-hidden flex flex-col pt-[calc(54px+var(--safe-top))] pb-[calc(56px+var(--safe-bottom))] md:pt-[var(--navbar-height)] md:pb-0">
       {/* Nền phong cách Forum Hiện Đại: Tối ưu triệt để dung lượng và GPU, không dùng video nền trong phòng chat */}
-      <div className="ff-chat-bg absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
+      <div className="ff-chat-bg ff-raw-grid-surface absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
         <div className="absolute inset-0 bg-gradient-to-b from-[#070b13] via-[#09101c] to-[#060a12]" />
         <div className="absolute top-[-20%] left-[15%] w-[600px] h-[600px] rounded-full bg-amber-500/[0.035] blur-[140px]" />
         <div className="absolute bottom-[-15%] right-[10%] w-[650px] h-[650px] rounded-full bg-orange-600/[0.03] blur-[150px]" />

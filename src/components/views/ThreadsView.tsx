@@ -893,17 +893,17 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
   };
 
   return (
-    <section ref={feedScrollRef} className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-y-auto'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8 threads-bg`}>
+    <section ref={feedScrollRef} className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-y-auto'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8 threads-bg ff-raw-grid-surface`}>
       <div className="relative z-10 w-full max-w-2xl mx-auto flex-1 flex flex-col">
         {/* Thanh đầu trang hiện đại: Tiêu đề + Thống kê + Tìm kiếm & Bộ lọc */}
         <header className="threads-hero-bar">
           <div className="threads-hero-top">
             <div className="threads-hero-brand">
-              <span className="threads-hero-badge">
+              <span className="threads-hero-badge ff-holo-badge">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 Góc Tâm Sự
               </span>
-              <span className="threads-hero-stats">
+              <span className="threads-hero-stats ff-raw-meta">
                 <b>{feedStats.roots}</b> mạch chuyện · <b>{feedStats.replies}</b> phản hồi · <b>{feedStats.reactions}</b> cảm xúc
               </span>
             </div>
