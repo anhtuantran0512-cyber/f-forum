@@ -1,11 +1,8 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
- * HỆ THỐNG ĐA PHONG CÁCH F-FORUM (10-STYLE HARMONIZED FORUM DESIGN SYSTEM)
+ * HỆ THỐNG ĐA PHONG CÁCH F-FORUM (10-STYLE HARMONIZED EDITORIAL & HUMAN FORUM DESIGN SYSTEM)
  *
- * Kết hợp hài hòa 10 ngôn ngữ thiết kế hiện đại vào đúng vị trí kiến trúc,
- * tuân thủ nghiêm ngặt quy tắc Color Theory 60-30-10 (WCAG AAA, chống mỏi mắt 24/7)
- * và kỷ luật GPU P0-P4 (100% animation bằng transform/opacity, 0 layout reflow):
- *
+ * Tổng hợp 10 phong cách thiết kế thành một ngôn ngữ kiến trúc thống nhất, ấm áp, có hồn ("Humanized"):
  *  1. Typography-Led Forum (.ff-typo-*)
  *  2. Bento Grid + Community Cards (.ff-bento-*)
  *  3. Neo-Brutalism + Forum (.ff-brutal-*)
@@ -16,32 +13,37 @@
  *  8. Tactile Maximalism: Squishy UI (.ff-tactile-*, .ff-squishy)
  *  9. Holographic / Iridescent Accent (.ff-holo-*)
  * 10. Organic + Hand-Drawn Accents (.ff-organic-*)
+ *
+ * Quy tắc Color Theory 60-30-10 chống mỏi mắt 24/7 (Zero AI-Slop):
+ *  - 60% Nền chính: Warm Obsidian Carbon (#0b0d12 -> #10141d) kèm lưới kỹ thuật mảnh (Exposed Grid).
+ *  - 30% Bề mặt đọc & Chữ: Warm Alabaster Cream (#f4f1de) & Soft Parchment (#d8d5ce) trên bề mặt #141923.
+ *  - 10% Điểm nhấn: Organic Terracotta (#e07a5f), Botanical Sage (#81b29a), Warm Sand (#f2cc8f) & Holographic Iris/Cyan.
  */
 
 :root {
-  /* Bảng màu 60-30-10 chuẩn thị giác (Chống mỏi mắt khi đọc đêm & tương phản cao) */
-  --ff-ds-bg-deep: #080c14;
-  --ff-ds-bg-elevated: #0d1422;
-  --ff-ds-bg-card: rgba(14, 21, 35, 0.88);
-  --ff-ds-ink-primary: #f8fafc;
-  --ff-ds-ink-secondary: #cbd5e1;
-  --ff-ds-ink-muted: #94a3b8;
+  --ff-ds-bg-deep: #0b0d12;
+  --ff-ds-bg-elevated: #121620;
+  --ff-ds-bg-card: #151a26;
+  --ff-ds-ink-primary: #f4f1de;
+  --ff-ds-ink-secondary: #d8d5ce;
+  --ff-ds-ink-muted: #9a978e;
 
-  /* 6. Sci-Fi Gradient Accents (Đã cân chỉnh độ bão hòa để không gây chói mắt) */
-  --ff-ds-scifi-cyan: #38bdf8;
-  --ff-ds-scifi-violet: #a78bfa;
-  --ff-ds-scifi-emerald: #34d399;
-  --ff-ds-scifi-gradient: linear-gradient(135deg, rgba(56, 189, 248, 0.22) 0%, rgba(167, 139, 250, 0.22) 52%, rgba(52, 211, 153, 0.18) 100%);
-
-  /* 10. Organic Warm Palette (Terracotta, Sage, Warm Cream) */
+  /* 10. Organic Warm Palette (Terracotta, Sage, Warm Cream, Sand Gold) */
   --ff-ds-organic-terracotta: #e07a5f;
   --ff-ds-organic-sage: #81b29a;
   --ff-ds-organic-cream: #f4f1de;
   --ff-ds-organic-sand: #f2cc8f;
 
-  /* 3. Neo-Brutalism Offset Shadow */
-  --ff-ds-brutal-shadow: 2px 2px 0px rgba(2, 6, 23, 0.92);
-  --ff-ds-brutal-border: rgba(226, 232, 240, 0.26);
+  /* 6. Sci-Fi Gradient Accents (Restrained, Eye-Safe) */
+  --ff-ds-scifi-cyan: #38bdf8;
+  --ff-ds-scifi-violet: #a78bfa;
+  --ff-ds-scifi-emerald: #81b29a;
+  --ff-ds-scifi-gradient: linear-gradient(135deg, rgba(224, 122, 95, 0.2) 0%, rgba(167, 139, 250, 0.18) 52%, rgba(129, 178, 154, 0.2) 100%);
+
+  /* 3. Neo-Brutalism Architectural Border & Offset Shadow */
+  --ff-ds-brutal-shadow: 3px 3px 0px rgba(4, 6, 11, 0.92);
+  --ff-ds-brutal-shadow-sm: 2px 2px 0px rgba(4, 6, 11, 0.9);
+  --ff-ds-brutal-border: rgba(244, 241, 222, 0.2);
 
   /* 8. Tactile Squishy Spring Curve */
   --ff-ds-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -49,58 +51,61 @@
 }
 
 html.light {
-  --ff-ds-bg-deep: #fbf9f5;
-  --ff-ds-bg-elevated: #f3efe6;
-  --ff-ds-bg-card: rgba(255, 253, 249, 0.94);
-  --ff-ds-ink-primary: #18181b;
-  --ff-ds-ink-secondary: #3f3f46;
-  --ff-ds-ink-muted: #52525b;
-  --ff-ds-brutal-shadow: 2px 2px 0px rgba(24, 24, 27, 0.18);
-  --ff-ds-brutal-border: rgba(24, 24, 27, 0.22);
+  --ff-ds-bg-deep: #f8f5ec;
+  --ff-ds-bg-elevated: #f0ece1;
+  --ff-ds-bg-card: #fffdf8;
+  --ff-ds-ink-primary: #1c1917;
+  --ff-ds-ink-secondary: #44403c;
+  --ff-ds-ink-muted: #78716c;
+  --ff-ds-brutal-shadow: 3px 3px 0px rgba(28, 25, 23, 0.18);
+  --ff-ds-brutal-shadow-sm: 2px 2px 0px rgba(28, 25, 23, 0.16);
+  --ff-ds-brutal-border: rgba(28, 25, 23, 0.24);
 }
 
 /* ========================================================================== */
-/* 1. TYPOGRAPHY-LED FORUM (Chữ là thiết kế chủ đạo)                          */
+/* 1. TYPOGRAPHY-LED FORUM (Chữ là thiết kế chủ đạo, giàu cảm xúc)             */
 /* ========================================================================== */
 
 .ff-typo-hero {
   font-family: "Playfair Display", Georgia, serif;
   font-weight: 700;
   letter-spacing: -0.03em;
-  line-height: 1.08;
+  line-height: 1.06;
   color: var(--ff-ds-ink-primary);
   text-wrap: balance;
 }
 
 .ff-typo-poster {
-  font-size: clamp(1.65rem, 3vw, 2.55rem);
-  font-weight: 800;
-  letter-spacing: -0.028em;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(1.65rem, 2.8vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: -0.024em;
   line-height: 1.12;
   color: var(--ff-ds-ink-primary);
 }
 
 .ff-typo-thread-title {
-  font-size: clamp(1.02rem, 1.35vw, 1.2rem);
+  font-size: clamp(1.06rem, 1.4vw, 1.24rem);
   font-weight: 800;
-  letter-spacing: -0.016em;
+  letter-spacing: -0.018em;
   line-height: 1.38;
   color: var(--ff-ds-ink-primary);
 }
 
 .ff-typo-measure {
   max-width: 68ch;
-  line-height: 1.65;
+  line-height: 1.68;
   color: var(--ff-ds-ink-secondary);
 }
 
 .ff-typo-author-display {
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 800;
+  letter-spacing: -0.012em;
+  color: var(--ff-ds-ink-primary);
 }
 
 /* ========================================================================== */
-/* 2. BENTO GRID + COMMUNITY CARDS (Hộp Bento tổ chức dữ liệu đa tầng)         */
+/* 2. BENTO GRID + COMMUNITY CARDS (Hộp Bento kiến trúc, không chắp vá)        */
 /* ========================================================================== */
 
 .ff-bento-grid {
@@ -112,48 +117,52 @@ html.light {
 .ff-bento-cell {
   position: relative;
   overflow: hidden;
-  border-radius: 1.25rem;
-  background: var(--ff-ds-bg-card);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  padding: 0.9rem 1.05rem;
+  border-radius: 0.875rem;
+  background: linear-gradient(165deg, rgba(22, 27, 39, 0.94), rgba(16, 20, 29, 0.98));
+  border: 1.5px solid rgba(244, 241, 222, 0.13);
+  padding: 0.95rem 1.1rem;
   box-shadow:
-    0 10px 28px -10px rgba(2, 6, 23, 0.65),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    var(--ff-ds-brutal-shadow),
+    inset 0 1px 0 rgba(244, 241, 222, 0.08);
   transition:
-    transform 0.22s var(--ff-ds-smooth),
-    border-color 0.22s ease;
+    transform 0.2s var(--ff-ds-smooth),
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
   transform: translateZ(0);
 }
 
 .ff-bento-cell:hover {
-  transform: translate3d(0, -2px, 0);
-  border-color: rgba(56, 189, 248, 0.34);
+  transform: translate3d(-1px, -2px, 0);
+  border-color: rgba(224, 122, 95, 0.48);
+  box-shadow:
+    4px 4px 0px rgba(4, 6, 11, 0.95),
+    inset 0 1px 0 rgba(244, 241, 222, 0.14);
 }
 
 html.light .ff-bento-cell {
-  background: rgba(255, 253, 249, 0.95);
-  border-color: rgba(24, 24, 27, 0.1);
+  background: #fffdf8;
+  border-color: rgba(28, 25, 23, 0.16);
   box-shadow:
-    0 8px 22px -10px rgba(24, 24, 27, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    3px 3px 0px rgba(28, 25, 23, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 /* ========================================================================== */
-/* 3. NEO-BRUTALISM + FORUM (Thô mộc, trung thực cho Tag kỹ thuật & chỉ mục)  */
+/* 3. NEO-BRUTALISM + FORUM (Góc sắc gọn, viền rõ, đổ bóng khối trung thực)    */
 /* ========================================================================== */
 
 .ff-brutal-tag {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.22rem 0.6rem;
-  border-radius: 0.42rem;
+  padding: 0.24rem 0.62rem;
+  border-radius: 0.38rem;
   font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.015em;
   border: 1.5px solid var(--ff-ds-brutal-border);
-  box-shadow: var(--ff-ds-brutal-shadow);
+  box-shadow: var(--ff-ds-brutal-shadow-sm);
   transition:
     transform 0.14s var(--ff-ds-smooth),
     background-color 0.14s ease,
@@ -173,22 +182,22 @@ html.light .ff-bento-cell {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.15rem 0.48rem;
+  padding: 0.18rem 0.52rem;
   border-radius: 0.35rem;
   font-family: "JetBrains Mono", ui-monospace, monospace;
   font-size: 0.68rem;
   font-weight: 800;
-  background: rgba(15, 23, 42, 0.9);
-  color: #e2e8f0;
-  border: 1.5px solid rgba(148, 163, 184, 0.32);
-  box-shadow: 1.5px 1.5px 0px rgba(2, 6, 23, 0.85);
+  background: rgba(224, 122, 95, 0.14);
+  color: #f4f1de;
+  border: 1.5px solid rgba(224, 122, 95, 0.42);
+  box-shadow: 2px 2px 0px rgba(4, 6, 11, 0.88);
 }
 
 html.light .ff-brutal-index {
   background: #f4f1de;
-  color: #18181b;
-  border-color: rgba(24, 24, 27, 0.35);
-  box-shadow: 1.5px 1.5px 0px rgba(24, 24, 27, 0.2);
+  color: #1c1917;
+  border-color: rgba(28, 25, 23, 0.32);
+  box-shadow: 2px 2px 0px rgba(28, 25, 23, 0.18);
 }
 
 /* ========================================================================== */
@@ -196,235 +205,312 @@ html.light .ff-brutal-index {
 /* ========================================================================== */
 
 .ff-glass-depth-1 {
-  background: rgba(12, 18, 30, 0.76);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(16, 20, 29, 0.82);
+  backdrop-filter: blur(14px) saturate(135%);
+  -webkit-backdrop-filter: blur(14px) saturate(135%);
+  border: 1.5px solid rgba(244, 241, 222, 0.12);
   box-shadow:
-    0 12px 32px -8px rgba(0, 0, 0, 0.52),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 14px 34px -8px rgba(4, 6, 11, 0.72),
+    inset 0 1px 0 rgba(244, 241, 222, 0.09);
 }
 
 .ff-glass-depth-2 {
-  background: rgba(17, 25, 40, 0.84);
-  backdrop-filter: blur(18px) saturate(150%);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(22, 27, 39, 0.88);
+  backdrop-filter: blur(18px) saturate(145%);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  border: 1.5px solid rgba(244, 241, 222, 0.16);
   box-shadow:
-    0 20px 48px -12px rgba(0, 0, 0, 0.68),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    0 20px 46px -10px rgba(4, 6, 11, 0.82),
+    inset 0 1px 0 rgba(244, 241, 222, 0.12);
 }
 
-html.light .ff-glass-depth-1,
-html.light .ff-glass-depth-2 {
-  background: rgba(255, 253, 249, 0.9);
-  border-color: rgba(24, 24, 27, 0.1);
+.ff-glass-depth-3 {
+  background: rgba(27, 33, 47, 0.94);
+  backdrop-filter: blur(22px) saturate(155%);
+  -webkit-backdrop-filter: blur(22px) saturate(155%);
+  border: 1.5px solid rgba(242, 204, 143, 0.28);
   box-shadow:
-    0 12px 30px -10px rgba(24, 24, 27, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
-}
-
-[data-postprocess="off"] .ff-glass-depth-1,
-[data-postprocess="off"] .ff-glass-depth-2,
-[data-quality-tier="tier-c"] .ff-glass-depth-1,
-[data-quality-tier="tier-c"] .ff-glass-depth-2,
-[data-battery-saver="true"] .ff-glass-depth-1,
-[data-battery-saver="true"] .ff-glass-depth-2 {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  background: rgba(13, 20, 34, 0.96) !important;
+    0 26px 56px -12px rgba(4, 6, 11, 0.9),
+    inset 0 1px 0 rgba(244, 241, 222, 0.18);
 }
 
 /* ========================================================================== */
-/* 5. KINETIC TYPOGRAPHY + SCROLL STORY (Chữ phản hồi tinh tế, có mục đích)   */
+/* 5. KINETIC TYPOGRAPHY + SCROLL STORY (Phản hồi chữ tinh tế, có mục đích)   */
 /* ========================================================================== */
 
 .ff-kinetic-title {
   position: relative;
-  display: inline;
-  transition:
-    color 0.2s ease,
-    transform 0.22s var(--ff-ds-smooth);
+  transition: transform 0.2s var(--ff-ds-smooth), color 0.2s ease;
 }
 
 .group:hover .ff-kinetic-title,
-.ff-kinetic-card:hover .ff-kinetic-title {
-  color: #bae6fd;
-}
-
-html.light .group:hover .ff-kinetic-title,
-html.light .ff-kinetic-card:hover .ff-kinetic-title {
-  color: #0369a1;
+.ff-kinetic-title:hover {
+  transform: translate3d(2px, 0, 0);
 }
 
 .ff-kinetic-underline {
-  position: relative;
+  background-image: linear-gradient(90deg, var(--ff-ds-organic-terracotta), var(--ff-ds-organic-sand), var(--ff-ds-organic-sage));
+  background-size: 0% 2px;
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  transition: background-size 0.26s var(--ff-ds-smooth);
 }
 
-.ff-kinetic-underline::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -2px;
-  width: 100%;
-  height: 1.5px;
-  background: linear-gradient(90deg, #38bdf8, #a78bfa, #f59e0b);
-  transform: scaleX(0);
-  transform-origin: left center;
-  transition: transform 0.28s var(--ff-ds-smooth);
-}
-
-.group:hover .ff-kinetic-underline::after,
-.ff-kinetic-underline:hover::after {
-  transform: scaleX(1);
+.group:hover .ff-kinetic-underline,
+.ff-kinetic-underline:hover {
+  background-size: 100% 2px;
 }
 
 /* ========================================================================== */
-/* 6. SCI-FI GRADIENT + DARK MODE DEFAULT (Năng lượng dịu mắt ban đêm)        */
+/* 6. SCI-FI GRADIENT + DARK MODE DEFAULT (Dải năng lượng dịu mắt ban đêm)    */
 /* ========================================================================== */
 
 .ff-scifi-accent-bar {
   position: relative;
-  overflow: hidden;
 }
 
 .ff-scifi-accent-bar::before {
   content: "";
   position: absolute;
   inset: 0 auto 0 0;
-  width: 3px;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #38bdf8 0%, #818cf8 50%, #34d399 100%);
-  opacity: 0.85;
+  width: 3.5px;
+  border-radius: 3px 0 0 3px;
+  background: linear-gradient(180deg, var(--ff-ds-organic-terracotta), var(--ff-ds-organic-sand), var(--ff-ds-organic-sage));
+  opacity: 0.88;
 }
 
-.ff-scifi-pill {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.14) 0%, rgba(129, 140, 248, 0.14) 100%);
-  border: 1px solid rgba(56, 189, 248, 0.32);
-  color: #e0f2fe;
-}
-
-html.light .ff-scifi-pill {
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
-  border-color: rgba(2, 132, 199, 0.28);
-  color: #0c4a6e;
+.ff-scifi-progress {
+  background: linear-gradient(90deg, #e07a5f 0%, #f2cc8f 50%, #81b29a 100%);
+  box-shadow: 0 0 12px rgba(224, 122, 95, 0.28);
 }
 
 /* ========================================================================== */
-/* 7. RAW AESTHETIC (Monospace + Lưới cấu trúc lộ diện)                        */
+/* 7. RAW AESTHETIC: MONOSPACE + GRID EXPOSED (Lưới kiến trúc & dữ liệu thô)  */
 /* ========================================================================== */
 
 .ff-raw-grid-surface {
   background-image:
-    linear-gradient(to right, rgba(148, 163, 184, 0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(148, 163, 184, 0.045) 1px, transparent 1px);
-  background-size: 28px 28px;
+    linear-gradient(to right, rgba(244, 241, 222, 0.032) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(244, 241, 222, 0.032) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
 html.light .ff-raw-grid-surface {
   background-image:
-    linear-gradient(to right, rgba(24, 24, 27, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(24, 24, 27, 0.04) 1px, transparent 1px);
+    linear-gradient(to right, rgba(28, 25, 23, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(28, 25, 23, 0.045) 1px, transparent 1px);
 }
 
 .ff-raw-meta {
-  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
-  font-size: 0.7rem;
-  letter-spacing: 0.03em;
   color: var(--ff-ds-ink-muted);
 }
 
 /* ========================================================================== */
-/* 8. TACTILE MAXIMALISM (Squishy UI — Cảm giác chạm vật lý thỏa mãn)         */
+/* 8. TACTILE MAXIMALISM: SQUISHY UI (Nút bấm có độ lún vật lý & độ nảy)      */
 /* ========================================================================== */
 
 .ff-tactile-btn {
   position: relative;
   transform: translateZ(0);
   transition:
-    transform 0.18s var(--ff-ds-spring),
-    background-color 0.18s ease,
-    border-color 0.18s ease;
+    transform 0.16s var(--ff-ds-spring),
+    box-shadow 0.16s var(--ff-ds-smooth),
+    background-color 0.16s ease,
+    border-color 0.16s ease;
   box-shadow:
-    0 4px 12px -2px rgba(2, 6, 23, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    2.5px 2.5px 0px rgba(4, 6, 11, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
-.ff-tactile-btn:hover {
-  transform: translate3d(0, -1.5px, 0) scale3d(1.015, 1.015, 1);
+.ff-tactile-btn:hover:not(:disabled) {
+  transform: translate3d(-1px, -1.5px, 0);
+  box-shadow:
+    3.5px 3.5px 0px rgba(4, 6, 11, 0.92),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
-.ff-tactile-btn:active {
-  transform: translate3d(0, 1px, 0) scale3d(0.95, 0.95, 1);
+.ff-tactile-btn:active:not(:disabled),
+.ff-squishy:active:not(:disabled) {
+  transform: translate3d(1.5px, 1.5px, 0) scale(0.96);
+  box-shadow:
+    0px 0px 0px rgba(4, 6, 11, 0.9),
+    inset 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 /* ========================================================================== */
-/* 9. HOLOGRAPHIC / IRIDESCENT ACCENT (Gamification Visual không cần 3D)      */
+/* 9. HOLOGRAPHIC / IRIDESCENT ACCENT (Hiệu ứng tem Hologram đa sắc góc nhìn) */
 /* ========================================================================== */
 
 .ff-holo-badge {
   position: relative;
-  background: linear-gradient(
-    125deg,
-    rgba(56, 189, 248, 0.2) 0%,
-    rgba(167, 139, 250, 0.22) 34%,
-    rgba(244, 114, 182, 0.18) 68%,
-    rgba(52, 211, 153, 0.2) 100%
-  );
-  border: 1px solid rgba(196, 181, 253, 0.42);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  background:
+    linear-gradient(
+      125deg,
+      rgba(224, 122, 95, 0.22) 0%,
+      rgba(242, 204, 143, 0.22) 32%,
+      rgba(129, 178, 154, 0.24) 66%,
+      rgba(167, 139, 250, 0.22) 100%
+    );
+  border: 1.5px solid rgba(242, 204, 143, 0.42);
+  box-shadow:
+    2px 2px 0px rgba(4, 6, 11, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
-html.light .ff-holo-badge {
-  background: linear-gradient(
-    125deg,
-    rgba(186, 230, 253, 0.55) 0%,
-    rgba(221, 214, 254, 0.6) 40%,
-    rgba(254, 215, 170, 0.55) 75%,
-    rgba(167, 243, 208, 0.55) 100%
-  );
-  border-color: rgba(124, 58, 237, 0.28);
-  color: #1e1b4b;
-}
-
-.ff-holo-card-border {
-  border-color: rgba(167, 139, 250, 0.36);
-  background-image: linear-gradient(
-    145deg,
-    rgba(56, 189, 248, 0.06) 0%,
-    rgba(167, 139, 250, 0.06) 50%,
-    rgba(251, 191, 36, 0.05) 100%
-  );
+.ff-holo-card {
+  position: relative;
+  background:
+    linear-gradient(165deg, rgba(22, 27, 39, 0.95), rgba(15, 19, 28, 0.98)) padding-box,
+    conic-gradient(
+      from 45deg,
+      rgba(224, 122, 95, 0.55),
+      rgba(242, 204, 143, 0.55),
+      rgba(129, 178, 154, 0.55),
+      rgba(167, 139, 250, 0.5),
+      rgba(224, 122, 95, 0.55)
+    ) border-box;
+  border: 1.5px solid transparent;
+  box-shadow: 4px 4px 0px rgba(4, 6, 11, 0.9);
 }
 
 /* ========================================================================== */
-/* 10. ORGANIC + HAND-DRAWN ACCENTS (Ấm áp, gần gũi, con người)               */
+/* 10. ORGANIC + HAND-DRAWN ACCENTS (Nét vẽ tay thủ công, ấm áp, gần gũi)     */
 /* ========================================================================== */
 
 .ff-organic-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.65rem;
-  border-radius: 999px;
-  background: rgba(224, 122, 95, 0.14);
-  border: 1px solid rgba(224, 122, 95, 0.36);
-  color: #fed7aa;
+  gap: 0.35rem;
+  padding: 0.22rem 0.65rem;
+  border-radius: 0.42rem;
+  background: rgba(224, 122, 95, 0.16);
+  border: 1.5px solid rgba(224, 122, 95, 0.42);
+  color: var(--ff-ds-organic-sand);
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 2px 2px 0px rgba(4, 6, 11, 0.85);
 }
 
-html.light .ff-organic-badge {
-  background: rgba(224, 122, 95, 0.14);
-  border-color: rgba(194, 65, 12, 0.3);
-  color: #9a3412;
+.ff-organic-sage-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.65rem;
+  border-radius: 0.42rem;
+  background: rgba(129, 178, 154, 0.16);
+  border: 1.5px solid rgba(129, 178, 154, 0.42);
+  color: #bbf7d0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  box-shadow: 2px 2px 0px rgba(4, 6, 11, 0.85);
 }
 
 .ff-organic-squiggle {
   stroke: var(--ff-ds-organic-sand);
   stroke-width: 2.2;
   stroke-linecap: round;
+  stroke-linejoin: round;
   fill: none;
   opacity: 0.85;
+}
+
+/* ========================================================================== */
+/* KIẾN TRÚC THẺ HỎI ĐÁP & BONG BÓNG CHAT (Editorial + Neo-Brutalist Craft)   */
+/* ========================================================================== */
+
+.ff-qa-card {
+  position: relative;
+  border-radius: 0.95rem !important;
+  background: linear-gradient(165deg, rgba(22, 27, 39, 0.95), rgba(15, 19, 28, 0.98)) !important;
+  border: 1.5px solid rgba(244, 241, 222, 0.14) !important;
+  box-shadow:
+    4px 4px 0px rgba(4, 6, 11, 0.9),
+    inset 0 1px 0 rgba(244, 241, 222, 0.08) !important;
+  transition:
+    transform 0.2s var(--ff-ds-smooth),
+    border-color 0.2s ease,
+    box-shadow 0.2s ease !important;
+}
+
+.ff-qa-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 3.5px;
+  border-radius: 0 3px 3px 0;
+  background: var(--ff-ds-organic-terracotta);
+  opacity: 0.85;
+}
+
+.ff-qa-card.is-solved::before {
+  background: var(--ff-ds-organic-sage);
+}
+
+.ff-qa-card:hover {
+  transform: translate3d(-2px, -2px, 0) !important;
+  border-color: rgba(242, 204, 143, 0.45) !important;
+  box-shadow:
+    6px 6px 0px rgba(4, 6, 11, 0.95),
+    inset 0 1px 0 rgba(244, 241, 222, 0.14) !important;
+}
+
+html.light .ff-qa-card {
+  background: #fffdf8 !important;
+  border-color: rgba(28, 25, 23, 0.18) !important;
+  box-shadow:
+    4px 4px 0px rgba(28, 25, 23, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+}
+
+.ff-chat-bubble-me {
+  border-radius: 0.85rem 0.85rem 0.2rem 0.85rem !important;
+  background: linear-gradient(135deg, rgba(224, 122, 95, 0.28), rgba(242, 204, 143, 0.18)) !important;
+  border: 1.5px solid rgba(224, 122, 95, 0.48) !important;
+  color: #f4f1de !important;
+  box-shadow: 2.5px 2.5px 0px rgba(4, 6, 11, 0.85) !important;
+}
+
+.ff-chat-bubble-peer {
+  border-radius: 0.85rem 0.85rem 0.85rem 0.2rem !important;
+  background: rgba(22, 27, 39, 0.94) !important;
+  border: 1.5px solid rgba(244, 241, 222, 0.14) !important;
+  color: #f4f1de !important;
+  box-shadow: 2.5px 2.5px 0px rgba(4, 6, 11, 0.85) !important;
+}
+
+.ff-chat-bubble-admin {
+  background: linear-gradient(135deg, rgba(242, 204, 143, 0.2), rgba(129, 178, 154, 0.16)) !important;
+  border: 1.5px solid rgba(242, 204, 143, 0.5) !important;
+}
+
+html.light .ff-chat-bubble-me {
+  background: linear-gradient(135deg, rgba(224, 122, 95, 0.22), rgba(242, 204, 143, 0.25)) !important;
+  border-color: rgba(224, 122, 95, 0.45) !important;
+  color: #1c1917 !important;
+  box-shadow: 2px 2px 0px rgba(28, 25, 23, 0.15) !important;
+}
+
+html.light .ff-chat-bubble-peer {
+  background: #fffdf8 !important;
+  border-color: rgba(28, 25, 23, 0.18) !important;
+  color: #1c1917 !important;
+  box-shadow: 2px 2px 0px rgba(28, 25, 23, 0.12) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-bento-cell,
+  .ff-brutal-tag,
+  .ff-kinetic-title,
+  .ff-kinetic-underline,
+  .ff-tactile-btn,
+  .ff-qa-card {
+    transition: none !important;
+    transform: none !important;
+  }
 }
