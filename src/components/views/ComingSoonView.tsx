@@ -2,6 +2,7 @@
 import React from 'react';
 import type { DimensionView } from '../../types';
 import { handleVideoError } from '../../utils/mediaFallback';
+import { COMING_SOON_VIDEO_URL, toWebmVideoUrl } from '../../utils/chatVideos';
 import { DepthLandscapeCard } from '../ui/DepthLandscapeCard';
 
 interface ComingSoonViewProps {
@@ -9,6 +10,8 @@ interface ComingSoonViewProps {
 }
 
 export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) => {
+  const webmUrl = toWebmVideoUrl(COMING_SOON_VIDEO_URL);
+
   return (
     <div
       className="ff-keep-dark relative min-h-screen w-full bg-[#001428] text-white overflow-hidden select-none flex flex-col justify-between font-sans"
@@ -25,16 +28,10 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
         onLoadedMetadata={(e) => {
           e.currentTarget.playbackRate = 0.72;
         }}
-        className="ff-video-bg absolute inset-0 w-full h-full object-cover scale-[1.04] blur-[3px] z-0 pointer-events-none"
+        className={`ff-video-bg absolute inset-0 w-full h-full object-cover scale-[1.04] ${webmUrl ? '' : 'blur-[3px]'} z-0 pointer-events-none`}
       >
-        <source
-          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.webm"
-          type="video/webm"
-        />
-        <source
-          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4"
-          type="video/mp4"
-        />
+        {webmUrl ? <source src={webmUrl} type="video/webm" /> : null}
+        <source src={COMING_SOON_VIDEO_URL} type="video/mp4" />
       </video>
 
       {/* Atmospheric Vignette & Depth Overlay */}

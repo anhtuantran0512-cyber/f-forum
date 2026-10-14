@@ -298,8 +298,21 @@ export function getSavedAboutData(): AboutData {
   return DEFAULT_ABOUT_DATA;
 }
 
-export function saveAboutDataLocally(data: AboutData): void {
-  safeStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+/*
+  `broadcast: false` bắt buộc khi dữ liệu vừa NHẬN từ BroadcastChannel hoặc từ
+  server push: BroadcastChannel giao tin cho mọi đối tượng cùng tên (kể cả trong
+  cùng tab), nên phát lại ở nơi nhận tạo vòng lặp SYNC_ABOUT vô hạn — mỗi vòng
+  ghi localStorage + setAboutData + render lại toàn App, làm web tụt dần về ~10fps.
+*/
+export function saveAboutDataLocally(data: AboutData, options: { broadcast?: boolean } = {}): void {
+  const broadcast = options.broadcast !== false;
+  const serialized = JSON.stringify(data);
+  const current = safeStorage.getItem(STORAGE_KEY);
+  if (current === serialized) {
+    /* Dữ liệu không đổi — bỏ qua để chống bão render và I/O đĩa */
+    return;
+  }
+  safeStorage.setItem(STORAGE_KEY, serialized);
   if (Array.isArray(data.milestones) && data.milestones.length > 0) {
     const normalizedMilestones = data.milestones.map((m, idx) => ({
       ...m,
@@ -322,7 +335,7 @@ export function saveAboutDataLocally(data: AboutData): void {
   try {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('fforum_about_sync', { detail: data }));
-      if ('BroadcastChannel' in window) {
+      if (broadcast && 'BroadcastChannel' in window) {
         const bc = new BroadcastChannel('fforum_sync');
         bc.postMessage({ type: 'SYNC_ABOUT', payload: data });
         bc.close();
@@ -339,7 +352,7 @@ export async function fetchAboutDataFromServer(): Promise<AboutData> {
     if (res.ok) {
       const json = await res.json();
       if (json.success && json.about) {
-        saveAboutDataLocally(json.about);
+        saveAboutDataLocally(json.about, { broadcast: false });
         return json.about as AboutData;
       }
     }
@@ -360,7 +373,7 @@ export async function saveAboutDataToServer(data: AboutData, adminEmail: string)
     if (res.ok) {
       const json = await res.json();
       if (json.success && json.about) {
-        saveAboutDataLocally(json.about);
+        saveAboutDataLocally(json.about, { broadcast: false });
         return json.about as AboutData;
       }
     }

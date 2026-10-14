@@ -7,6 +7,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { handleVideoError } from '../../utils/mediaFallback';
+import { LIGHT_TUNNEL_VIDEO_URL, toWebmVideoUrl } from '../../utils/chatVideos';
 import type { User } from '../../types';
 import { AboutUs } from '../AboutUs';
 import type { AboutData } from '../../store/adminStore';
@@ -86,6 +87,8 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
     }, 400);
   };
 
+  const webmUrl = toWebmVideoUrl(LIGHT_TUNNEL_VIDEO_URL);
+
   return (
     <section className={`relative w-full ${isEmbedded ? 'min-h-[850px]' : 'min-h-screen'} flex flex-col pt-20 sm:pt-24 pb-16 px-4 sm:px-8`}>
       {/* Background Cosmic Atmosphere Video Engine (WebM + 18fps + soft blur optimization) */}
@@ -100,16 +103,10 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
           onLoadedMetadata={(e) => {
             e.currentTarget.playbackRate = 0.72;
           }}
-          className="w-full h-full object-cover scale-[1.05] blur-[3px] opacity-45"
+          className={`w-full h-full object-cover scale-[1.05] ${webmUrl ? '' : 'blur-[3px]'} opacity-45`}
         >
-          <source
-            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260627_094019_4214ea73-b963-46a4-8327-61489192de99.webm"
-            type="video/webm"
-          />
-          <source
-            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260627_094019_4214ea73-b963-46a4-8327-61489192de99.mp4"
-            type="video/mp4"
-          />
+          {webmUrl ? <source src={webmUrl} type="video/webm" /> : null}
+          <source src={LIGHT_TUNNEL_VIDEO_URL} type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-neutral-950/82" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-indigo-950/60 via-neutral-950/90 to-black" />

@@ -55,18 +55,23 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   window.addEventListener('touchstart', onInteraction, { passive: true, capture: true });
 
   let scrollEndTimer: ReturnType<typeof setTimeout> | null = null;
+  let scrollRafId = 0;
   const onScroll = () => {
     lastInteractionTimestamp = Date.now();
-    if (document.body && !document.body.classList.contains('is-scrolling')) {
-      document.body.classList.add('is-scrolling');
-    }
-    if (scrollEndTimer) clearTimeout(scrollEndTimer);
-    scrollEndTimer = setTimeout(() => {
-      if (document.body) {
-        document.body.classList.remove('is-scrolling');
+    if (scrollRafId) return;
+    scrollRafId = requestAnimationFrame(() => {
+      scrollRafId = 0;
+      if (document.body && !document.body.classList.contains('is-scrolling')) {
+        document.body.classList.add('is-scrolling');
       }
-      scrollEndTimer = null;
-    }, 120);
+      if (scrollEndTimer) clearTimeout(scrollEndTimer);
+      scrollEndTimer = setTimeout(() => {
+        if (document.body) {
+          document.body.classList.remove('is-scrolling');
+        }
+        scrollEndTimer = null;
+      }, 120);
+    });
   };
   window.addEventListener('scroll', onScroll, { passive: true, capture: true });
 }
