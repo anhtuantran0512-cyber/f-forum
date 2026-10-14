@@ -190,7 +190,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
                 setQuery(e.target.value);
                 setActiveIndex(0);
               }}
-              placeholder="Tìm phân khu, tác vụ… (ví dụ: hỏi đáp, theme, điểm danh)"
+              placeholder="Tìm phân khu, câu hỏi, CLB..."
               aria-label="Tìm lệnh"
               className="w-full bg-transparent pl-6 pr-2 py-1.5 text-sm text-[#f4f1de] placeholder-[#84817a] focus:outline-none"
             />
@@ -217,8 +217,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
         <div ref={listRef} className="max-h-[52vh] overflow-y-auto ff-scroll px-2.5 py-2.5">
           {grouped.length === 0 && (
             <div className="px-4 py-10 text-center">
-              <p className="text-sm text-[#f4f1de] font-bold">Không tìm thấy lệnh phù hợp</p>
-              <p className="text-[11px] text-[#9a978e] mt-1">Thử gõ “trang chủ”, “câu lạc bộ”, “sổ tay”…</p>
+              <p className="text-sm text-[#f4f1de] font-bold">Không tìm thấy kết quả</p>
             </div>
           )}
 

@@ -22,6 +22,7 @@ import {
   Command,
   Info,
   LogOut,
+  Rocket,
 } from 'lucide-react';
 import { GODRAY_PRESETS } from '../utils/godrays';
 import { resolveGodrayId, resolvePotatorId } from '../utils/gradients';
@@ -46,6 +47,7 @@ export interface SettingsModalProps {
   onToggleTheme: () => void;
 
   onOpenFocusMode: () => void;
+  onOpenUpdate?: () => void;
   soundEffects: boolean;
   onToggleSoundEffects: () => void;
   reducedMotion: boolean;
@@ -167,6 +169,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onToggleTheme,
 
   onOpenFocusMode,
+  onOpenUpdate,
   soundEffects,
   onToggleSoundEffects,
   reducedMotion,
@@ -465,7 +468,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         }
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-white/10">
+        <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-white/10">
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-amber-400/25 to-fuchsia-500/20 border border-amber-300/30 flex items-center justify-center shrink-0">
               <Settings className="w-4 h-4 text-amber-300" />
@@ -474,14 +477,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <h3 className="text-sm font-bold leading-tight">Trung tâm điều khiển</h3>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer shrink-0"
-            aria-label="Đóng cài đặt"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onOpenUpdate && (
+              <button
+                type="button"
+                onClick={onOpenUpdate}
+                className="ff-tactile-btn px-2.5 py-1 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] text-[10.5px] font-extrabold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                title="Mở trang Bản nâng cấp (Update)"
+              >
+                <Rocket className="w-3 h-3 text-[#e07a5f]" />
+                <span>Update</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer shrink-0"
+              aria-label="Đóng cài đặt"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Premium segmented tabs */}
@@ -1099,18 +1115,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </Card>
               </section>
 
-              {/* 10. THÔNG TIN */}
+              {/* 10. THÔNG TIN & BẢN NÂNG CẤP */}
               <section>
                 <SectionTitle icon={<Info className="w-3 h-3 text-amber-300" />}>Về F-Forum</SectionTitle>
-                <Card className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-[11.5px] font-semibold text-white">F-Forum Platform</p>
-                    <p className="text-[10px] text-white/50">Bản nâng cấp 2.0 · 2026</p>
+                <Card className="space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-[11.5px] font-semibold text-white">F-Forum Platform</p>
+                      <p className="text-[10px] text-white/50">Bản nâng cấp 2.0 · 2026</p>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-300 bg-emerald-500/12 border border-emerald-400/30 rounded-full px-2 py-0.5">
+                      <Command className="w-3 h-3" />
+                      Ctrl + K
+                    </span>
                   </div>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-300 bg-emerald-500/12 border border-emerald-400/30 rounded-full px-2 py-0.5">
-                    <Command className="w-3 h-3" />
-                    Ctrl + K
-                  </span>
+                  {onOpenUpdate && (
+                    <button
+                      type="button"
+                      onClick={onOpenUpdate}
+                      className="ff-tactile-btn w-full px-3 py-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <Rocket className="w-3.5 h-3.5 text-[#e07a5f]" />
+                      <span>Xem Bản nâng cấp (Update)</span>
+                    </button>
+                  )}
                 </Card>
               </section>
             </>

@@ -591,7 +591,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
               >
                 <div className="ff-media-card__layout">
                   {/* Card Cover: ảnh + tag category + số thành viên */}
-                  <div className="ff-media-card__cover relative h-32 w-full rounded-xl overflow-hidden mb-3 border border-[#f4f1de]/15">
+                  <div className="ff-media-card__cover relative w-full rounded-xl overflow-hidden border border-[#f4f1de]/15">
                     <img
                       src={club.coverImage}
                       alt={club.name}
@@ -599,14 +599,14 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                       loading="lazy"
                       decoding="async"
                       width={480}
-                      height={128}
+                      height={184}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0b0d12]/85 via-[#0b0d12]/30 to-transparent" />
-                    <span className="absolute bottom-2 left-2 text-[10px] font-mono bg-[#0b0d12]/85 px-2 py-0.5 rounded text-[#f4f1de] border border-[#f4f1de]/18">
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0b0d12]/88 via-[#0b0d12]/25 to-transparent" />
+                    <span className="absolute bottom-2.5 left-2.5 text-[10.5px] font-mono bg-[#0b0d12]/85 px-2.5 py-0.5 rounded-md text-[#f4f1de] border border-[#f4f1de]/18">
                       {club.membersCount} thành viên
                     </span>
-                    <span className={`absolute top-2 right-2 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-md shadow border ${getCategoryBadgeClass(club.category)}`}>
+                    <span className={`absolute top-2.5 right-2.5 text-[10.5px] font-mono font-bold px-2.5 py-0.5 rounded-md shadow border ${getCategoryBadgeClass(club.category)}`}>
                       {club.category}
                     </span>
                   </div>
@@ -614,11 +614,11 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   {/* Card Content: tên + slogan + chủ nhiệm + 2 nút ('Tham gia' / 'Xem →') */}
                   <div className="ff-media-card__content">
                     <div>
-                      <h3 className="ff-typo-thread-title font-bold text-base text-[#f4f1de] group-hover:text-[#f2cc8f] transition-colors line-clamp-1 ff-kinetic-title ff-kinetic-underline">
+                      <h3 className="ff-typo-thread-title font-bold text-base sm:text-lg text-[#f4f1de] group-hover:text-[#f2cc8f] transition-colors line-clamp-1 ff-kinetic-title ff-kinetic-underline">
                         {club.name}
                       </h3>
                       {club.slogan && (
-                        <p className="text-[11.5px] text-[#f2cc8f]/85 italic line-clamp-1 mt-0.5 font-sans">
+                        <p className="text-xs text-[#f2cc8f]/85 italic line-clamp-1 mt-1 font-sans">
                           "{club.slogan}"
                         </p>
                       )}
@@ -634,30 +634,29 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                             level: u?.level || 1,
                           });
                         }}
-                        className="flex items-center gap-1.5 text-[11px] text-neutral-400 mt-2 pt-2 border-t border-white/[0.06] hover:text-[#f8f7f4] cursor-pointer w-full text-left"
+                        className="flex items-center gap-2 text-xs text-neutral-300 mt-2.5 pt-2.5 border-t border-white/[0.06] hover:text-[#f8f7f4] cursor-pointer w-full text-left"
                       >
-                        <span className="text-neutral-400">Chủ nhiệm:</span>
                         <DecoratedAvatar
                           user={resolveClubUser(club.leaderId, club.leaderName)}
                           fallbackSrc={DEFAULT_AVATAR}
-                          size={18}
+                          size={22}
                           animate
                         />
                         <DecoratedName
                           user={resolveClubUser(club.leaderId, club.leaderName)}
                           name={club.leaderName.replace(/ \(.*\)/, '')}
-                          width={112}
-                          height={22}
+                          width={136}
+                          height={24}
                           animate
                           showFallbackTag
                         />
                       </button>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-dashed border-[#f4f1de]/12 flex items-center justify-between gap-2">
+                    <div className="mt-3.5 pt-3 border-t border-dashed border-[#f4f1de]/12 flex items-center justify-between gap-2.5">
                       <button
                         onClick={() => setApplicationSubmitted(club.id)}
-                        className={`ff-tactile-btn flex-1 py-1.5 px-3 rounded-lg text-xs font-bold border-[1.5px] transition-colors cursor-pointer ${
+                        className={`ff-tactile-btn flex-1 py-2 px-3 rounded-lg text-xs font-bold border-[1.5px] transition-colors cursor-pointer ${
                           applicationSubmitted === club.id
                             ? 'bg-[#81b29a]/25 text-[#d8f3dc] border-[#81b29a]/55'
                             : 'bg-[#e07a5f]/20 hover:bg-[#e07a5f]/35 text-[#f4f1de] border-[#e07a5f]/45'
@@ -667,7 +666,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                       </button>
                       <button
                         onClick={() => setSelectedClub(club)}
-                        className="ff-tactile-btn flex-1 py-1.5 px-3 rounded-lg bg-[#f4f1de]/[0.08] hover:bg-[#f4f1de]/[0.16] text-[#f4f1de] text-xs font-bold border-[1.5px] border-[#f4f1de]/18 transition-colors cursor-pointer"
+                        className="ff-tactile-btn flex-1 py-2 px-3 rounded-lg bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] text-xs font-extrabold border-2 border-[#0b0d12] transition-colors cursor-pointer"
                       >
                         Xem →
                       </button>

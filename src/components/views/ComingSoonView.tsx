@@ -1,6 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
-import { Compass } from 'lucide-react';
+import { Compass, BookOpen, Trophy, Users } from 'lucide-react';
 import type { DimensionView } from '../../types';
 import { handleVideoError } from '../../utils/mediaFallback';
 import { COMING_SOON_VIDEO_URL, toWebmVideoUrl } from '../../utils/chatVideos';
@@ -9,6 +9,12 @@ import { DepthLandscapeCard } from '../ui/DepthLandscapeCard';
 interface ComingSoonViewProps {
   onReturnHome: (view: DimensionView) => void;
 }
+
+const ROADMAP_MODULES = [
+  { id: 'vault', code: '01', title: 'KHO ĐỀ THI', status: 'Đang phát triển', icon: BookOpen },
+  { id: 'arena', code: '02', title: 'ĐẤU TRƯỜNG', status: 'Thử nghiệm', icon: Trophy },
+  { id: 'archive', code: '03', title: 'THƯ VIỆN CLB', status: 'Hoàn thiện', icon: Users },
+];
 
 export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) => {
   const webmUrl = toWebmVideoUrl(COMING_SOON_VIDEO_URL);
@@ -40,37 +46,51 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
 
       <div className="h-20 shrink-0" />
 
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pt-4 pb-16 max-w-3xl mx-auto w-full">
-        <div className="text-center max-w-xl mx-auto space-y-2.5">
-          <h1 className="ff-typo-hero text-3xl sm:text-5xl md:text-6xl text-[#fff4d9]">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pt-4 pb-16 max-w-4xl mx-auto w-full">
+        <div className="text-center max-w-xl mx-auto space-y-2">
+          <span className="inline-block px-3 py-1 rounded-full bg-[#13161f] border border-[#f2cc8f]/40 text-[10.5px] font-mono uppercase tracking-[0.22em] text-[#f2cc8f] font-bold">
+            BẢN NÂNG CẤP 2.0
+          </span>
+          <h1 className="ff-typo-hero text-3xl sm:text-5xl md:text-6xl text-[#fff4d9] uppercase tracking-tight">
             Sắp ra mắt
           </h1>
-
-          <svg className="mx-auto w-36 h-3 ff-organic-squiggle" viewBox="0 0 180 12" aria-hidden="true">
-            <path d="M2 7 C32 1, 62 12, 92 6 S148 1, 178 7" />
-          </svg>
-
-          <p className="ff-typo-measure text-slate-300 text-sm sm:text-base mx-auto">
-            Phân khu mới đang được hoàn thiện. Hãy quay lại sau để trải nghiệm nhé!
-          </p>
         </div>
 
-        <div className="mt-7 flex items-center justify-center">
-          <DepthLandscapeCard eyebrow="Bình minh đang tới" title="Phân khu mới đang được dựng từng lớp" />
+        <div className="mt-6 flex items-center justify-center w-full">
+          <DepthLandscapeCard eyebrow="F-FORUM 2.0" title="Không gian học tập thế hệ mới" />
+        </div>
+
+        <div className="mt-6 w-full grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          {ROADMAP_MODULES.map((mod) => {
+            const Icon = mod.icon;
+            return (
+              <div
+                key={mod.id}
+                className="p-4 rounded-2xl bg-[#13161f]/90 border-[1.5px] border-[#f4f1de]/16 shadow-[3px_3px_0px_rgba(4,6,11,0.9)] flex items-center justify-between gap-3"
+              >
+                <div>
+                  <span className="text-[10px] font-mono font-bold text-[#f2cc8f]">#{mod.code}</span>
+                  <h3 className="text-xs sm:text-sm font-extrabold tracking-wider uppercase text-[#f4f1de] mt-0.5">
+                    {mod.title}
+                  </h3>
+                  <span className="text-[10.5px] font-mono text-[#81b29a]">{mod.status}</span>
+                </div>
+                <span className="w-9 h-9 rounded-xl bg-[#f4f1de]/[0.06] border border-[#f4f1de]/15 flex items-center justify-center shrink-0">
+                  <Icon className="w-4 h-4 text-[#f2cc8f]" />
+                </span>
+              </div>
+            );
+          })}
         </div>
 
         <button
           onClick={() => onReturnHome('home')}
-          className="ff-tactile-btn rounded-xl px-8 py-3.5 text-sm font-extrabold bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] mt-8 transition-colors duration-200 cursor-pointer shadow-[4px_4px_0px_rgba(4,6,11,0.95)] inline-flex items-center gap-2 border-2 border-[#f4f1de]"
+          className="ff-tactile-btn rounded-xl px-7 py-3 text-xs sm:text-sm font-extrabold bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] mt-7 transition-colors duration-200 cursor-pointer shadow-[4px_4px_0px_rgba(4,6,11,0.95)] inline-flex items-center gap-2 border-2 border-[#0b0d12]"
         >
-          <Compass className="w-4 h-4 text-[#0b0d12]" />
-          <span>Quay lại Trang Chủ</span>
+          <Compass className="w-4 h-4 text-[#e07a5f]" />
+          <span>Về Trang Chủ</span>
         </button>
       </main>
-
-      <footer className="relative z-10 w-full py-4 text-center text-xs text-neutral-400 font-mono">
-        <span>F-Forum • Luôn có điều để khám phá</span>
-      </footer>
     </div>
   );
 };
