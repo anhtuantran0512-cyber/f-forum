@@ -1,6 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
-import { Compass, HelpCircle, MessageSquare, Sparkles, Users } from 'lucide-react';
+import { Compass } from 'lucide-react';
 import type { DimensionView } from '../../types';
 import { handleVideoError } from '../../utils/mediaFallback';
 import { COMING_SOON_VIDEO_URL, toWebmVideoUrl } from '../../utils/chatVideos';
@@ -40,8 +40,8 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
 
       <div className="h-20 shrink-0" />
 
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pt-4 pb-16 max-w-5xl mx-auto w-full">
-        <div className="text-center max-w-2xl mx-auto space-y-2.5">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pt-4 pb-16 max-w-3xl mx-auto w-full">
+        <div className="text-center max-w-xl mx-auto space-y-2.5">
           <h1 className="ff-typo-hero text-3xl sm:text-5xl md:text-6xl text-[#fff4d9]">
             Sắp ra mắt
           </h1>
@@ -51,100 +51,12 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
           </svg>
 
           <p className="ff-typo-measure text-slate-300 text-sm sm:text-base mx-auto">
-            Phân khu mới đang được hoàn thiện. Trong lúc chờ đợi, bạn có thể khám phá ngay các không gian hoạt động sôi nổi bên dưới.
+            Phân khu mới đang được hoàn thiện. Hãy quay lại sau để trải nghiệm nhé!
           </p>
         </div>
 
-        <div className="w-full mt-7 grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-          <div className="lg:col-span-5 ff-bento-cell ff-glass-depth-1 flex flex-col items-center justify-center p-5">
-            <DepthLandscapeCard eyebrow="Bình minh đang tới" title="Phân khu mới đang được dựng từng lớp" />
-          </div>
-
-          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <button
-              type="button"
-              onClick={() => onReturnHome('qa')}
-              className="ff-bento-cell ff-scifi-accent-bar ff-tactile-btn group text-left cursor-pointer flex flex-col justify-between"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-mono text-cyan-300 font-semibold">Hỏi đáp</span>
-                <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-400/35 flex items-center justify-center text-cyan-300">
-                  <HelpCircle className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <p className="text-base font-bold text-white ff-kinetic-title ff-kinetic-underline">
-                  Sàn Hỏi Đáp Tri Thức
-                </p>
-                <p className="text-xs text-slate-300 mt-1">
-                  Đặt câu hỏi, giải bài tập và tích lũy Coin
-                </p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onReturnHome('clubs')}
-              className="ff-bento-cell ff-tactile-btn group text-left cursor-pointer flex flex-col justify-between"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-mono text-amber-300 font-semibold">Cộng đồng</span>
-                <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-400/35 flex items-center justify-center text-amber-300">
-                  <Users className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <p className="text-base font-bold text-white ff-kinetic-title ff-kinetic-underline">
-                  Quảng Trường CLB
-                </p>
-                <p className="text-xs text-slate-300 mt-1">
-                  Tham gia các câu lạc bộ học thuật, nghệ thuật &amp; thể thao
-                </p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onReturnHome('threads')}
-              className="ff-bento-cell ff-tactile-btn group text-left cursor-pointer flex flex-col justify-between"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-mono text-violet-300 font-semibold">Chia sẻ</span>
-                <div className="w-8 h-8 rounded-xl bg-violet-500/15 border border-violet-400/35 flex items-center justify-center text-violet-300">
-                  <Sparkles className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <p className="text-base font-bold text-white ff-kinetic-title ff-kinetic-underline">
-                  Luồng Cảm Xúc
-                </p>
-                <p className="text-xs text-slate-300 mt-1">
-                  Góc tâm sự, chia sẻ khoảnh khắc học đường
-                </p>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onReturnHome('chat')}
-              className="ff-bento-cell ff-tactile-btn group text-left cursor-pointer flex flex-col justify-between"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-mono text-emerald-300 font-semibold">Trực tuyến</span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-400/35 flex items-center justify-center text-emerald-300">
-                  <MessageSquare className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <p className="text-base font-bold text-white ff-kinetic-title ff-kinetic-underline">
-                  Phòng Đàm Thoại
-                </p>
-                <p className="text-xs text-slate-300 mt-1">
-                  Trò chuyện trực tiếp cùng bạn bè theo từng chuyên kênh
-                </p>
-              </div>
-            </button>
-          </div>
+        <div className="mt-7 flex items-center justify-center">
+          <DepthLandscapeCard eyebrow="Bình minh đang tới" title="Phân khu mới đang được dựng từng lớp" />
         </div>
 
         <button

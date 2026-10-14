@@ -24,13 +24,6 @@ interface HomeViewProps {
 export const HomeView: React.FC<HomeViewProps> = ({
   onNavigate,
   onOpenLanding,
-  totalClubs,
-  solvedQuestionsCount,
-  onlineCount = 1,
-  onlineUsersCount = onlineCount,
-  resolvedQuestionsCount = solvedQuestionsCount,
-  totalClubsCount = totalClubs,
-  chatMessagesTodayCount = 0,
 }) => {
   const [headlinePhase, setHeadlinePhase] = useState<0 | 1>(0);
 
@@ -49,7 +42,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
       {/* Hero Foreground Content */}
       <div className="relative z-10 w-full max-w-4xl mx-auto px-4 sm:px-6 flex flex-col items-center text-center pt-16 sm:pt-10">
-        
         {/* Tag Badge */}
         <div className="animate-fade-up delay-1 mb-6 flex items-center justify-center gap-3 flex-wrap">
           <div className="liquid-glass rounded-full px-4 py-1.5 text-xs sm:text-sm text-amber-300 inline-flex items-center gap-2 border border-amber-400/25 shadow-[0_0_15px_rgba(245,158,11,0.15)] bg-[#0c1218]/60 backdrop-blur-xl">
@@ -107,7 +99,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           Không gian trao đổi bài học, giao lưu câu lạc bộ và kết nối bạn bè.
         </p>
 
-        {/* Dual Action Buttons (Style 8: Tactile Squishy UI) */}
+        {/* Dual Action Buttons */}
         <div className="animate-fade-up delay-4 mt-7 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto">
           <button
             onClick={() => onNavigate('clubs')}
@@ -138,86 +130,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </button>
         )}
-
-        {/* Style 2 + 5 + 8 + 9: Interactive Bento Community Dock (Gọn gàng, không lặp thông tin) */}
-        <div className="w-full max-w-3xl mt-7 sm:mt-8 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 text-left">
-          <button
-            type="button"
-            onClick={() => onNavigate('qa')}
-            className="ff-bento-cell ff-scifi-accent-bar group cursor-pointer text-left"
-          >
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <span className="text-[11px] font-mono text-cyan-300 font-semibold">Hỏi đáp</span>
-              <span className="ff-holo-badge px-2 py-0.5 rounded-full text-[10px] font-mono font-bold text-cyan-200">
-                {resolvedQuestionsCount} đã giải
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm font-bold text-white ff-kinetic-title ff-kinetic-underline">
-              Sàn Hỏi Đáp
-            </p>
-            <p className="text-[11px] text-slate-400 mt-1 truncate">
-              Giải bài &amp; trao đổi kiến thức
-            </p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigate('clubs')}
-            className="ff-bento-cell group cursor-pointer text-left"
-          >
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <span className="text-[11px] font-mono text-amber-300 font-semibold">Cộng đồng</span>
-              <span className="ff-organic-badge !py-0.5 !px-2 !text-[10px] font-mono">
-                {totalClubsCount} CLB
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm font-bold text-white ff-kinetic-title ff-kinetic-underline">
-              Quảng Trường CLB
-            </p>
-            <p className="text-[11px] text-slate-400 mt-1 truncate">
-              Hoạt động &amp; dự án học sinh
-            </p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigate('threads')}
-            className="ff-bento-cell group cursor-pointer text-left"
-          >
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <span className="text-[11px] font-mono text-violet-300 font-semibold">Tâm sự</span>
-              <span className="px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-400/35 text-[10px] font-mono font-semibold text-violet-200">
-                Mới
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm font-bold text-white ff-kinetic-title ff-kinetic-underline">
-              Luồng Cảm Xúc
-            </p>
-            <p className="text-[11px] text-slate-400 mt-1 truncate">
-              Góc chia sẻ mỗi ngày
-            </p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigate('chat')}
-            className="ff-bento-cell group cursor-pointer text-left"
-          >
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <span className="text-[11px] font-mono text-emerald-300 font-semibold">Trực tuyến</span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/35 text-[10px] font-mono font-semibold text-emerald-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                {onlineUsersCount}
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm font-bold text-white ff-kinetic-title ff-kinetic-underline">
-              Phòng Đàm Thoại
-            </p>
-            <p className="text-[11px] text-slate-400 mt-1 truncate">
-              {chatMessagesTodayCount} thảo luận hôm nay
-            </p>
-          </button>
-        </div>
       </div>
     </section>
   );
