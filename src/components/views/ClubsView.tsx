@@ -48,6 +48,7 @@ interface ClubsViewProps {
   onCreateClubPost: (clubId: string, title: string, content: string) => boolean | Promise<boolean>;
   chatMessages?: ChatMessage[];
   onOpenLoginModal?: () => void;
+  onOpenProfile?: (user?: { id: string; name: string; avatar: string; email?: string; level?: number }) => void;
   isEmbedded?: boolean;
 }
 
@@ -100,6 +101,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   onCreateClubPost,
   chatMessages = [],
   onOpenLoginModal,
+  onOpenProfile,
   isEmbedded = false,
 }) => {
   const clubUsersLookup = useMemo(() => {
@@ -556,7 +558,20 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                       <Users className="w-3.5 h-3.5 text-[#81b29a]" />
                       {spotlightClub.membersCount} thành viên
                     </span>
-                    <span className="inline-flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const u = resolveClubUser(spotlightClub.leaderId, spotlightClub.leaderName);
+                        onOpenProfile?.({
+                          id: u?.id || spotlightClub.leaderId,
+                          name: u?.name || spotlightClub.leaderName,
+                          avatar: u?.avatar || DEFAULT_AVATAR,
+                          email: u?.email,
+                          level: u?.level || 1,
+                        });
+                      }}
+                      className="inline-flex items-center gap-2 hover:underline cursor-pointer"
+                    >
                       <span>Chủ nhiệm:</span>
                       <DecoratedAvatar
                         user={resolveClubUser(spotlightClub.leaderId, spotlightClub.leaderName)}
@@ -572,7 +587,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                         animate
                         showFallbackTag
                       />
-                    </span>
+                    </button>
                   </div>
                 </div>
 
@@ -665,7 +680,20 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                           "{club.slogan}"
                         </p>
                       )}
-                      <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 mt-2 pt-2 border-t border-white/[0.06]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const u = resolveClubUser(club.leaderId, club.leaderName);
+                          onOpenProfile?.({
+                            id: u?.id || club.leaderId,
+                            name: u?.name || club.leaderName,
+                            avatar: u?.avatar || DEFAULT_AVATAR,
+                            email: u?.email,
+                            level: u?.level || 1,
+                          });
+                        }}
+                        className="flex items-center gap-1.5 text-[11px] text-neutral-400 mt-2 pt-2 border-t border-white/[0.06] hover:text-[#f8f7f4] cursor-pointer w-full text-left"
+                      >
                         <span className="text-neutral-400">Chủ nhiệm:</span>
                         <DecoratedAvatar
                           user={resolveClubUser(club.leaderId, club.leaderName)}
@@ -681,7 +709,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                           animate
                           showFallbackTag
                         />
-                      </div>
+                      </button>
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-dashed border-[#f4f1de]/12 flex items-center justify-between gap-2">
@@ -941,7 +969,20 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div className="p-4 rounded-xl bg-[#0b0d12]/80 border-[1.5px] border-[#f4f1de]/14">
                     <span className="font-bold text-[#f4f1de] block mb-2">Chủ nhiệm &amp; Trưởng ban:</span>
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const u = resolveClubUser(selectedClub.leaderId, selectedClub.leaderName);
+                        onOpenProfile?.({
+                          id: u?.id || selectedClub.leaderId,
+                          name: u?.name || selectedClub.leaderName,
+                          avatar: u?.avatar || DEFAULT_AVATAR,
+                          email: u?.email,
+                          level: u?.level || 1,
+                        });
+                      }}
+                      className="flex items-center gap-2 flex-wrap hover:underline cursor-pointer text-left"
+                    >
                       <DecoratedAvatar
                         user={resolveClubUser(selectedClub.leaderId, selectedClub.leaderName)}
                         fallbackSrc={DEFAULT_AVATAR}
@@ -957,7 +998,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                         showFallbackTag
                       />
                       <span className="text-[11px] text-[#9a978e] font-mono">(Trưởng CLB)</span>
-                    </div>
+                    </button>
                   </div>
                   <div className="p-4 rounded-xl bg-[#0b0d12]/80 border-[1.5px] border-[#f4f1de]/14">
                     <span className="font-bold text-[#f4f1de] block mb-2">Hội đồng Sáng Lập (Founding Roster):</span>

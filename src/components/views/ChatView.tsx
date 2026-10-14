@@ -15,6 +15,9 @@ import {
   Flag,
   User as UserIcon,
   CheckCircle2,
+  Search,
+  CornerUpLeft,
+  PanelRight,
 } from 'lucide-react';
 import type { ChatChannelId, ChatMessage, User, OnlinePresenceUser } from '../../types';
 import { TierBadge, AdminVerifiedBadge } from '../Badges10Tier';
@@ -50,39 +53,58 @@ const CHANNELS: {
   name: string;
   desc: string;
   topic: string;
+  prompts: string[];
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
   {
     id: 'hallway',
     name: 'Kết bạn bốn phương',
-    desc: 'Làm quen và kết nối bạn học toàn trường',
-    topic: 'Làm quen, kết nối và giao lưu cùng bạn học toàn trường',
+    desc: 'Giao lưu & kết nối bạn học toàn trường',
+    topic: 'Làm quen, chia sẻ tài liệu học tập và kết nối bạn học các khối lớp',
+    prompts: [
+      'Chào mọi người, mình đang tìm bạn cùng ôn thi học kỳ!',
+      'Có bạn nào đang học nhóm môn Toán tối nay không?',
+      'Mọi người chia sẻ kinh nghiệm phân bổ thời gian tự học với nhé!',
+    ],
     icon: Users,
   },
   {
     id: 'quick-qa',
     name: 'Hỏi bài nhanh',
-    desc: 'Hỏi đáp khẩn cấp, giải bài trong 5 phút',
-    topic: 'Cứu cánh bài tập gấp, gỡ lỗi code và công thức toán lý',
+    desc: 'Trao đổi nhanh công thức & bài tập ngắn',
+    topic: 'Hỏi nhanh đáp gọn các bước biến đổi công thức, định lý và bài tập trên lớp',
+    prompts: [
+      'Nhờ mọi người gợi ý hướng biến đổi bài toán này với ạ:',
+      'Cho mình hỏi công thức tính nhanh phần này:',
+      'Mình đang vướng ở bước suy ra kết quả, ai giải thích giúp mình nhé!',
+    ],
     icon: HelpCircle,
   },
   {
     id: 'confessions',
     name: 'Góc tâm sự',
-    desc: 'Áp lực học tập & suy tư tuổi học trò',
-    topic: 'Không gian lắng nghe, chia sẻ áp lực thi cử và chuyện trường lớp',
+    desc: 'Lắng nghe & chia sẻ chuyện học đường',
+    topic: 'Không gian văn minh để sẻ chia áp lực thi cử, động viên nhau tiến bộ',
+    prompts: [
+      'Hôm nay hoàn thành xong đề cương ôn tập, cảm thấy nhẹ nhõm hẳn!',
+      'Chúc cả trường một tuần học tập thật tập trung và hiệu quả nhé.',
+      'Mọi người thường làm gì để giữ bình tĩnh trước phòng thi?',
+    ],
     icon: Heart,
   },
   {
     id: 'club-hub',
     name: 'Hội quán CLB',
-    desc: 'Giao lưu điều phối giữa các Ban Chủ nhiệm',
-    topic: 'Phối hợp sự kiện liên CLB, mượn hội trường và tài trợ dự án',
+    desc: 'Điều phối hoạt động & sự kiện các CLB',
+    topic: 'Trao đổi lịch sinh hoạt, tuyển thành viên và phối hợp sự kiện giữa các CLB',
+    prompts: [
+      'CLB mình tuần này có buổi sinh hoạt chuyên đề, mời các bạn tham gia!',
+      'Ban chủ nhiệm các CLB ơi, mình cùng thống nhất lịch sự kiện tháng này nhé.',
+      'Mình muốn tìm hiểu thông tin đăng ký tham gia CLB học thuật.',
+    ],
     icon: Shield,
   },
 ];
-
-
 
 export const ChatView: React.FC<ChatViewProps> = ({
   currentUser,
@@ -130,15 +152,20 @@ export const ChatView: React.FC<ChatViewProps> = ({
     },
     [users, usersById, currentUser],
   );
+
   /* Epic 3 — thu hồi tin nhắn: Super Admin hoặc vai trò tùy chỉnh có quyền edit_content. */
   const adminCaps = useAdminCaps();
   const canRecallMessages = capsHas(adminCaps, 'edit_content');
   const [activeChannel, setActiveChannel] = useState<ChatChannelId>('hallway');
   const [isChannelDrawerOpen, setIsChannelDrawerOpen] = useState(false);
   const [isMembersDrawerOpen, setIsMembersDrawerOpen] = useState(false);
+  const [isDesktopRosterVisible, setIsDesktopRosterVisible] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string; excerpt: string } | null>(null);
   const [inputText, setInputText] = useState('');
   const cooldown = useChatCooldown();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const [activeAuthorCard, setActiveAuthorCard] = useState<{
     id: string;
@@ -163,7 +190,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
     setIsSubmittingReport(true);
     setReportErrorMsg(null);
     try {
-      /* EPIC 5: máy chủ bắt buộc đăng nhập và tự lấy danh tính người tố cáo từ phiên. */
       const outcome = describeReportResult(
         await settleReportRequest(
           postJson('/api/reports', {
@@ -214,153 +240,203 @@ export const ChatView: React.FC<ChatViewProps> = ({
     return counts;
   }, [messages]);
 
-  const currentMessages = useMemo(
-    () => messages.filter(m => m.channelId === activeChannel),
-    [messages, activeChannel],
+  const currentMessages = useMemo(() => {
+    const list = messages.filter(m => m.channelId === activeChannel);
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter(
+      m =>
+        m.content.toLowerCase().includes(q) ||
+        m.authorName.toLowerCase().includes(q),
+    );
+  }, [messages, activeChannel, searchQuery]);
+
+  const openAuthorCardFromEvent = useCallback(
+    (
+      e: React.MouseEvent,
+      payload: { id: string; name: string; avatar: string; email?: string; level: number; coin?: number },
+    ) => {
+      setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
+      setActiveAuthorCard(payload);
+    },
+    [],
   );
 
   const renderedMessageItems = useMemo(
     () =>
-      currentMessages.map(msg => {
+      currentMessages.map((msg, idx) => {
         const isMe = currentUser ? msg.authorId === currentUser.id : false;
         const isSuperAdminMsg = isMasterAdmin(msg.authorEmail);
         const isSuperAdmin = currentUser ? isMasterAdmin(currentUser.email) : false;
-        const authorDisplayName = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.name : msg.authorName;
+        const authorDisplayName = (isSuperAdminMsg ? MASTER_ADMIN_CONFIG.name : msg.authorName).replace(/ \(.*\)/, '');
         const authorDisplayAvatar = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.avatar : msg.authorAvatar;
         const resolvedMsgUser = resolveChatUser(
           isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
           msg.authorId,
         );
+        const prevMsg = idx > 0 ? currentMessages[idx - 1] : null;
+        const isContinuation = Boolean(prevMsg && prevMsg.authorId === msg.authorId);
+
+        const authorPayload =
+          isMe && currentUser
+            ? {
+                id: currentUser.id,
+                name: currentUser.name,
+                avatar: currentUser.avatar,
+                email: currentUser.email,
+                level: currentUser.level || 1,
+              }
+            : {
+                id: msg.authorId,
+                name: authorDisplayName,
+                avatar: authorDisplayAvatar,
+                email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
+                level: isSuperAdminMsg ? 150 : msg.authorLevel || 1,
+              };
 
         return (
           <div
             key={msg.id}
-            className={`flex items-start gap-3 group/msg ${
+            className={`group/msg flex items-start gap-3 px-2 py-1 rounded-xl hover:bg-[#f8f7f4]/[0.02] transition-colors ${
               isMe ? 'flex-row-reverse' : ''
-            }`}
+            } ${isContinuation ? 'mt-0.5' : 'mt-3'}`}
           >
-            {/* Avatar & Rank badge */}
-            <button
-              type="button"
-              onClick={(e) => {
-                setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-                if (isMe && currentUser) {
-                  setActiveAuthorCard({
-                    id: currentUser.id,
-                    name: currentUser.name,
-                    avatar: currentUser.avatar,
-                    email: currentUser.email,
-                    level: currentUser.level || 1,
-                  });
-                } else {
-                  setActiveAuthorCard({
-                    id: msg.authorId,
-                    name: authorDisplayName,
-                    avatar: authorDisplayAvatar,
-                    email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
-                    level: isSuperAdminMsg ? 150 : (msg.authorLevel || 1),
-                  });
-                }
-              }}
-              className="relative shrink-0 cursor-pointer focus:outline-none transition-transform hover:scale-105"
-              title={`Xem thông tin ${authorDisplayName}`}
-            >
-              <DecoratedAvatar
-                user={resolvedMsgUser}
-                fallbackSrc={authorDisplayAvatar}
-                size={36}
-                animate
-                alt={authorDisplayName}
-                className={`rounded-full shadow-md ${
-                  isSuperAdminMsg
-                    ? 'ring-2 ring-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.4)]'
-                    : 'ring-1 ring-white/25'
-                }`}
-              />
-              <span className="absolute -bottom-1 -right-1 z-[4]">
-                <TierBadge
-                  level={isSuperAdminMsg ? 150 : msg.authorLevel}
-                  size={15}
-                  showTooltip={false}
+            {/* Cột Avatar hoặc khoảng đệm căn lề khi gộp tin nhắn liên tiếp */}
+            {!isContinuation ? (
+              <button
+                type="button"
+                onClick={(e) => openAuthorCardFromEvent(e, authorPayload)}
+                className="relative shrink-0 mt-0.5 cursor-pointer focus:outline-none"
+                title={`Xem thông tin ${authorDisplayName}`}
+              >
+                <DecoratedAvatar
+                  user={resolvedMsgUser}
+                  fallbackSrc={authorDisplayAvatar}
+                  size={36}
+                  animate
+                  alt={authorDisplayName}
+                  className={`rounded-full ${
+                    isSuperAdminMsg
+                      ? 'ring-1 ring-[#e9c46a]/70'
+                      : 'ring-1 ring-[#f8f7f4]/15'
+                  }`}
                 />
-              </span>
-            </button>
+                <span className="absolute -bottom-1 -right-1 z-[4]">
+                  <TierBadge
+                    level={isSuperAdminMsg ? 150 : msg.authorLevel}
+                    size={14}
+                    showTooltip={false}
+                  />
+                </span>
+              </button>
+            ) : (
+              <div className="w-9 shrink-0 select-none text-[9.5px] font-mono text-[#a39f96]/0 group-hover/msg:text-[#a39f96]/70 text-center pt-2 transition-colors">
+                {msg.timestamp.slice(0, 5)}
+              </div>
+            )}
 
-            {/* Message Content */}
+            {/* Nội dung tin nhắn */}
             <div
-              className={`max-w-[82%] sm:max-w-[76%] flex flex-col ${
+              className={`max-w-[82%] sm:max-w-[74%] flex flex-col ${
                 isMe ? 'items-end' : 'items-start'
               }`}
             >
-              <div className={`flex items-center gap-1.5 mb-1.5 text-[11px] text-neutral-400 flex-wrap ${isMe ? 'justify-end flex-row-reverse' : ''}`}>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-                    if (isMe && currentUser) {
-                      setActiveAuthorCard({
-                        id: currentUser.id,
-                        name: currentUser.name,
-                        avatar: currentUser.avatar,
-                        email: currentUser.email,
-                        level: currentUser.level || 1,
-                      });
-                    } else {
-                      setActiveAuthorCard({
-                        id: msg.authorId,
-                        name: authorDisplayName,
-                        avatar: authorDisplayAvatar,
-                        email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
-                        level: isSuperAdminMsg ? 150 : (msg.authorLevel || 1),
-                      });
-                    }
-                  }}
-                  className="inline-flex items-center cursor-pointer hover:opacity-95 transition-opacity"
+              {!isContinuation && (
+                <div
+                  className={`flex items-center gap-2 mb-1 text-xs flex-wrap ${
+                    isMe ? 'justify-end flex-row-reverse' : ''
+                  }`}
                 >
-                  <DecoratedName
-                    user={resolvedMsgUser}
-                    name={authorDisplayName.replace(/ \(.*\)/, '')}
-                    width={142}
-                    height={27}
-                    animate
-                    showFallbackTag
-                  />
-                </button>
-                {isSuperAdminMsg && <AdminVerifiedBadge size={12} />}
-                <span className="text-[10px] text-neutral-500 font-mono">
-                  • {msg.timestamp}
-                </span>
-
-                {/* Thu hồi tin nhắn (Super Admin / quyền edit_content) */}
-                {(isSuperAdmin || canRecallMessages) && (
                   <button
                     type="button"
-                    onClick={() => onDeleteMessage?.(msg.id)}
-                    className="opacity-0 group-hover/msg:opacity-100 transition-opacity ml-1.5 px-1.5 py-0.5 text-red-400 hover:text-red-300 rounded bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 cursor-pointer inline-flex items-center gap-1"
-                    title="Thu hồi tin nhắn vi phạm"
+                    onClick={(e) => openAuthorCardFromEvent(e, authorPayload)}
+                    className="inline-flex items-center gap-1.5 cursor-pointer hover:underline text-left"
                   >
-                    <Trash2 className="w-2.5 h-2.5" />
-                    <span className="text-[9px]">Thu hồi tin nhắn</span>
+                    <DecoratedName
+                      user={resolvedMsgUser}
+                      name={authorDisplayName}
+                      width={132}
+                      height={24}
+                      animate
+                      className={`text-[13px] font-semibold ${
+                        isSuperAdminMsg
+                          ? 'text-[#e9c46a]'
+                          : isMe
+                          ? 'text-[#81b29a]'
+                          : 'text-[#f8f7f4]'
+                      }`}
+                    />
                   </button>
-                )}
-              </div>
 
-              <div
-                className={`w-fit px-4 py-2.5 text-xs sm:text-sm leading-relaxed break-words shadow-md ${
-                  isMe
-                    ? 'ff-chat-bubble-me'
-                    : isSuperAdminMsg
-                    ? 'ff-chat-bubble-peer ff-chat-bubble-admin'
-                    : 'ff-chat-bubble-peer'
-                }`}
-              >
-                {msg.content}
+                  {isSuperAdminMsg ? (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-[#e9c46a]/15 border border-[#e9c46a]/40 text-[10px] font-mono font-semibold text-[#e9c46a]">
+                      <AdminVerifiedBadge size={11} />
+                      <span>Quản trị</span>
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-mono text-[#a39f96] px-1.5 py-0.2 rounded bg-[#f8f7f4]/[0.04] border border-[#f8f7f4]/[0.07]">
+                      Lv.{msg.authorLevel || 1}
+                    </span>
+                  )}
+
+                  <span className="text-[10.5px] text-[#a39f96] font-mono">
+                    {msg.timestamp}
+                  </span>
+                </div>
+              )}
+
+              <div className={`flex items-center gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
+                <div
+                  className={`w-fit px-3.5 py-2 text-[13.5px] leading-relaxed break-words ${
+                    isMe
+                      ? 'ff-chat-bubble-me'
+                      : isSuperAdminMsg
+                      ? 'ff-chat-bubble-peer ff-chat-bubble-admin'
+                      : 'ff-chat-bubble-peer'
+                  }`}
+                >
+                  {msg.content}
+                </div>
+
+                {/* Cụm nút tương tác nhanh khi rê chuột: Trả lời & Thu hồi */}
+                <div className="opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
+                  {currentUser && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReplyingTo({
+                          id: msg.id,
+                          authorName: authorDisplayName,
+                          excerpt: msg.content.slice(0, 64),
+                        });
+                        inputRef.current?.focus();
+                      }}
+                      className="p-1.5 rounded-lg bg-[#161d2b] hover:bg-[#1f293d] border border-[#f8f7f4]/12 text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
+                      title="Trả lời tin nhắn này"
+                      aria-label="Trả lời tin nhắn"
+                    >
+                      <CornerUpLeft className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+
+                  {(isSuperAdmin || canRecallMessages) && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteMessage?.(msg.id)}
+                      className="px-2 py-1 text-rose-300 hover:text-rose-200 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 cursor-pointer inline-flex items-center gap-1"
+                      title="Thu hồi tin nhắn vi phạm"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span className="text-[10px] font-medium">Thu hồi tin nhắn</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         );
       }),
-    [currentMessages, currentUser, canRecallMessages, resolveChatUser, onDeleteMessage],
+    [currentMessages, currentUser, canRecallMessages, resolveChatUser, onDeleteMessage, openAuthorCardFromEvent],
   );
 
   const prevChannelRef = useRef<ChatChannelId>(activeChannel);
@@ -372,15 +448,17 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
   const handleSend = () => {
     if (!currentUser) return;
-    /* Đang trong nhịp chờ → rung nhẹ thanh nhịp thay vì im lặng bỏ qua */
     if (cooldown.isCooling) {
       cooldown.nudge();
       return;
     }
-    const text = inputText.trim();
-    if (!text) return;
-    onSendMessage(activeChannel, text);
+    const raw = inputText.trim();
+    if (!raw) return;
+    const prefix = replyingTo ? `@${replyingTo.authorName}: ` : '';
+    const finalContent = `${prefix}${raw}`.slice(0, 300);
+    onSendMessage(activeChannel, finalContent);
     setInputText('');
+    setReplyingTo(null);
     cooldown.startCooldown();
   };
 
@@ -388,74 +466,81 @@ export const ChatView: React.FC<ChatViewProps> = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    } else if (e.key === 'Escape' && replyingTo) {
+      setReplyingTo(null);
     }
   };
 
   const currentChannelObj =
     CHANNELS.find(c => c.id === activeChannel) || CHANNELS[0];
+  const CurrentChannelIcon = currentChannelObj.icon;
 
   return (
     <section className="relative w-full h-[100dvh] md:h-screen overflow-hidden flex flex-col pt-[calc(54px+var(--safe-top))] pb-[calc(56px+var(--safe-bottom))] md:pt-[var(--navbar-height)] md:pb-0">
-      {/* Nền phong cách Warm Editorial Obsidian: Tối ưu triệt để dung lượng và GPU */}
+      {/* Nền Thư Viện Số Học Thuật: Tĩnh, sạch sẽ, độ tương phản cao */}
       <div className="ff-chat-bg ff-raw-grid-surface absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0b0d12] via-[#10141d] to-[#090b10]" />
-        <div className="absolute top-[-20%] left-[15%] w-[600px] h-[600px] rounded-full bg-[#e07a5f]/[0.045] blur-[140px]" />
-        <div className="absolute bottom-[-15%] right-[10%] w-[650px] h-[650px] rounded-full bg-[#81b29a]/[0.04] blur-[150px]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0b0d12] via-[#0e121a] to-[#090b10]" />
       </div>
 
-      {/* Sub-Layout Content Wrapper */}
+      {/* Khung chính */}
       <div
         className="page-content-wrapper relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col overflow-hidden px-2 sm:px-6 py-2 md:py-4"
         style={{ height: 'calc(100vh - var(--navbar-height))' }}
       >
-        {/* Mobile Subheader Bar with 2 Slide-in Drawer Buttons (< 768px) */}
-        <div className="md:hidden flex items-center justify-between p-2.5 mb-2 rounded-xl bg-[#151a26]/95 border-[1.5px] border-[#f4f1de]/15 shadow-[3px_3px_0px_rgba(4,6,11,0.9)] shrink-0">
+        {/* Thanh điều hướng rút gọn trên Mobile (< 768px) */}
+        <div className="md:hidden flex items-center justify-between p-2 mb-2 rounded-xl bg-[#0e131d] border border-[#f8f7f4]/12 shrink-0">
           <button
             type="button"
             onClick={() => setIsChannelDrawerOpen(true)}
-            className="ff-tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#e07a5f]/20 border-[1.5px] border-[#e07a5f]/45 text-[#f4f1de] text-xs font-bold cursor-pointer max-w-[48%]"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#81b29a]/15 border border-[#81b29a]/35 text-[#f8f7f4] text-xs font-semibold cursor-pointer max-w-[54%]"
             aria-label="Chọn chuyên kênh đàm thoại"
           >
-            <Hash className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
+            <Hash className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
             <span className="truncate">{currentChannelObj.name}</span>
-            <ChevronDown className="w-3 h-3 text-[#d8d5ce] shrink-0" />
+            <ChevronDown className="w-3.5 h-3.5 text-[#a39f96] shrink-0" />
           </button>
 
-          <span className="ff-brutal-index">
+          <span className="text-[11px] font-mono text-[#a39f96]">
             {currentMessages.length} tin
           </span>
 
           <button
             type="button"
             onClick={() => setIsMembersDrawerOpen(true)}
-            className="ff-tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#81b29a]/18 border-[1.5px] border-[#81b29a]/45 text-[#d8f3dc] text-xs font-mono font-bold cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#161d2b] border border-[#f8f7f4]/12 text-[#dad7d0] text-xs font-mono font-semibold cursor-pointer"
             aria-label="Xem thành viên trực tuyến"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#81b29a] shrink-0" />
-            <span>{dynamicOnlineCount} Online</span>
+            <span className="w-2 h-2 rounded-full bg-[#81b29a] shrink-0" />
+            <span>{dynamicOnlineCount}</span>
             <Users className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
           </button>
         </div>
 
-        {/* 3-Column Glassmorphic Depth-Layered Chat Layout (Style 4 + Style 6 + Style 7 + Style 8) */}
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 overflow-hidden min-h-0">
+        {/* Khung Không Gian Làm Việc Hợp Nhất 3 Cột (Unified Split-Pane Academic Workspace) */}
+        <div className="ff-chat-workspace flex-1 min-h-0">
           
-          {/* Left Column: 4 Channels Selector + Current User Card (md:col-span-3) */}
-          <div className="hidden md:flex md:col-span-3 flex-col ff-chat-glass-sidebar p-3.5 overflow-hidden space-y-3">
-            <div className="px-1.5 pb-2.5 border-b border-dashed border-[#f4f1de]/14 shrink-0">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold text-[#f4f1de] uppercase tracking-wider flex items-center gap-1.5 font-mono">
-                  <Hash className="w-3.5 h-3.5 text-[#e07a5f]" />
-                  PHÒNG CHAT
-                </span>
-                <span className="ff-brutal-index">4 KÊNH</span>
+          {/* CỘT TRÁI: Danh mục kênh thảo luận & Hồ sơ cá nhân */}
+          <aside className="hidden md:flex w-[256px] lg:w-[272px] shrink-0 ff-chat-sidebar-pane">
+            <div className="h-14 px-4 border-b border-[#f8f7f4]/10 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#81b29a]/15 border border-[#81b29a]/35 flex items-center justify-center">
+                  <Hash className="w-3.5 h-3.5 text-[#81b29a]" />
+                </div>
+                <div>
+                  <h2 className="text-xs font-bold text-[#f8f7f4] tracking-wide uppercase">
+                    Phòng Thảo Luận
+                  </h2>
+                  <p className="text-[10px] font-mono text-[#a39f96]">
+                    4 chuyên kênh học tập
+                  </p>
+                </div>
               </div>
-              <svg className="w-20 h-1.5 mt-1 ff-organic-squiggle" viewBox="0 0 100 8" aria-hidden="true">
-                <path d="M2 5 C22 1, 44 8, 66 4 S86 1, 98 5" />
-              </svg>
             </div>
 
-            <div className="space-y-2 flex-1 overflow-y-auto no-scrollbar pr-0.5">
+            <div className="p-2.5 space-y-1 flex-1 overflow-y-auto no-scrollbar">
+              <div className="px-2 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-[#a39f96]">
+                Danh sách kênh
+              </div>
               {CHANNELS.map(ch => {
                 const Icon = ch.icon;
                 const isActive = activeChannel === ch.id;
@@ -464,18 +549,21 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 return (
                   <button
                     key={ch.id}
-                    onClick={() => setActiveChannel(ch.id)}
-                    className={`channel-item w-full text-left p-2.5 rounded-xl transition-all flex items-start gap-2.5 cursor-pointer border-[1.5px] ${
-                      isActive
-                        ? 'active bg-[#e07a5f]/20 border-[#e07a5f]/60 shadow-[3px_3px_0px_rgba(4,6,11,0.92)] translate-x-[-1px] translate-y-[-1px]'
-                        : 'bg-[#0b0d12]/45 hover:bg-[#f4f1de]/[0.05] border-[#f4f1de]/10 text-[#b5b2a9] hover:text-[#f4f1de]'
+                    type="button"
+                    onClick={() => {
+                      setActiveChannel(ch.id);
+                      setSearchQuery('');
+                      setReplyingTo(null);
+                    }}
+                    className={`channel-item ff-chat-channel-btn cursor-pointer ${
+                      isActive ? 'active is-active' : ''
                     }`}
                   >
                     <div
-                      className={`p-1.5 rounded-lg shrink-0 border ${
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
                         isActive
-                          ? 'bg-[#e07a5f] text-[#0b0d12] border-[#f4f1de]/60'
-                          : 'bg-[#f4f1de]/[0.05] text-[#9a978e] border-[#f4f1de]/10'
+                          ? 'bg-[#81b29a]/20 text-[#81b29a] border-[#81b29a]/40'
+                          : 'bg-[#141a26] text-[#a39f96] border-[#f8f7f4]/08'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -484,19 +572,25 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-1.5">
                         <span
-                          className={`text-xs font-extrabold truncate ${
-                            isActive ? 'text-[#f4f1de]' : 'text-[#d8d5ce]'
+                          className={`text-[13px] truncate ${
+                            isActive ? 'font-bold text-[#f8f7f4]' : 'font-medium text-[#dad7d0]'
                           }`}
                         >
                           {ch.name}
                         </span>
                         {count > 0 && (
-                          <span className="px-1.5 py-0.2 rounded bg-[#0b0d12]/80 border border-[#f4f1de]/15 text-[10px] font-mono font-bold text-[#f2cc8f] shrink-0">
+                          <span
+                            className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold shrink-0 ${
+                              isActive
+                                ? 'bg-[#81b29a]/25 text-[#f8f7f4]'
+                                : 'bg-[#141a26] text-[#a39f96]'
+                            }`}
+                          >
                             {count}
                           </span>
                         )}
                       </div>
-                      <p className="text-[10.5px] text-[#9a978e] line-clamp-1 mt-0.5 leading-snug">
+                      <p className="text-[11px] text-[#a39f96] truncate mt-0.5">
                         {ch.desc}
                       </p>
                     </div>
@@ -505,129 +599,216 @@ export const ChatView: React.FC<ChatViewProps> = ({
               })}
             </div>
 
-            {/* Bottom Current User / Guest Mini Dock */}
-            {currentUser ? (
-              <button
-                type="button"
-                onClick={(e) => {
-                  setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-                  setActiveAuthorCard({
-                    id: currentUser.id,
-                    name: currentUser.name,
-                    avatar: currentUser.avatar,
-                    email: currentUser.email,
-                    level: currentUser.level || 1,
-                  });
-                }}
-                className="ff-discord-userbar mt-2 p-2.5 rounded-xl bg-[#0b0d12]/85 hover:bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/18 hover:border-[#f2cc8f]/50 flex items-center gap-2.5 shrink-0 w-full text-left transition-colors cursor-pointer shadow-[2px_2px_0px_rgba(4,6,11,0.9)]"
-                title="Xem trang cá nhân"
-              >
-                <UserNameplateBg
-                  user={currentUser}
-                  width={230}
-                  eager
-                  animate
-                  priority="high"
-                />
-                <div className="relative z-[2] shrink-0">
-                  <DecoratedAvatar
+            {/* Thanh thông tin tài khoản đang đăng nhập */}
+            <div className="p-2.5 border-t border-[#f8f7f4]/10 bg-[#090c13]">
+              {currentUser ? (
+                <button
+                  type="button"
+                  onClick={(e) =>
+                    openAuthorCardFromEvent(e, {
+                      id: currentUser.id,
+                      name: currentUser.name,
+                      avatar: currentUser.avatar,
+                      email: currentUser.email,
+                      level: currentUser.level || 1,
+                    })
+                  }
+                  className="ff-discord-userbar w-full p-2 rounded-xl bg-[#121723] hover:bg-[#171e2d] border border-[#f8f7f4]/10 flex items-center gap-2.5 text-left transition-colors cursor-pointer"
+                  title="Xem trang cá nhân"
+                >
+                  <UserNameplateBg
                     user={currentUser}
-                    fallbackSrc={currentUser.avatar || DEFAULT_AVATAR}
-                    size={36}
+                    width={230}
                     eager
                     animate
-                    alt={currentUser.name}
-                    className="rounded-full ring-1 ring-[#f4f1de]/25"
+                    priority="high"
                   />
-                  <span className="absolute bottom-0 right-0 z-[4] w-2.5 h-2.5 rounded-full bg-[#81b29a] border border-[#0b0d12]" />
-                </div>
-                <div className="relative z-[2] min-w-0 flex-1">
-                  <div className="flex items-center gap-1">
+                  <div className="relative z-[2] shrink-0">
+                    <DecoratedAvatar
+                      user={currentUser}
+                      fallbackSrc={currentUser.avatar || DEFAULT_AVATAR}
+                      size={34}
+                      eager
+                      animate
+                      alt={currentUser.name}
+                      className="rounded-full ring-1 ring-[#f8f7f4]/20"
+                    />
+                    <span className="absolute bottom-0 right-0 z-[4] w-2.5 h-2.5 rounded-full bg-[#81b29a] border-2 border-[#090c13]" />
+                  </div>
+                  <div className="relative z-[2] min-w-0 flex-1">
                     <DecoratedName
                       user={currentUser}
                       name={currentUser.name.replace(/ \(.*\)/, '')}
-                      width={148}
-                      height={28}
+                      width={140}
+                      height={24}
                       eager
                       animate
                       priority="high"
-                      showFallbackTag
+                      className="text-xs font-bold text-[#f8f7f4] truncate block"
                     />
+                    <div className="text-[10.5px] text-[#81b29a] font-mono truncate">
+                      Trực tuyến · Lv.{currentUser.level || 1}
+                    </div>
                   </div>
-                  <div className="text-[10px] text-[#81b29a] font-mono truncate mt-0.5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">Trực tuyến • Lv.{currentUser.level || 1}</div>
-                </div>
-              </button>
-            ) : (
-              <div className="pt-2.5 border-t border-dashed border-[#f4f1de]/15 flex items-center justify-between gap-2 px-1 shrink-0">
-                <span className="text-[11px] text-[#9a978e] truncate">Chế độ Khách</span>
-                <button
-                  type="button"
-                  onClick={onOpenLoginModal}
-                  className="ff-tactile-btn px-3 py-1 rounded-lg bg-[#e07a5f] text-[#0b0d12] border border-[#f4f1de] text-[11px] font-bold cursor-pointer"
-                >
-                  Đăng nhập
                 </button>
-              </div>
-            )}
-          </div>
-
-          {/* Center Column: Active Channel Messages & Input (md:col-span-9 lg:col-span-6) */}
-          <div className="col-span-1 md:col-span-9 lg:col-span-6 flex flex-col ff-chat-glass-stage overflow-hidden min-h-0">
-            
-            {/* Style 7: Raw Monospace Telemetry Strip */}
-            <div className="ff-chat-telemetry-bar shrink-0">
-              <span>CHANNEL // #{currentChannelObj.id.toUpperCase()}</span>
-              <span className="text-[#81b29a] font-bold">● SYNC: LIVE</span>
-              <span className="hidden sm:inline">NODES: {dynamicOnlineCount} ONLINE</span>
-            </div>
-
-            {/* Chat Room Subheader — Editorial Channel Header */}
-            <div className="px-4 py-3 bg-[#0b0d12]/65 border-b border-dashed border-[#f4f1de]/14 flex items-center justify-between gap-2 shrink-0">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#e07a5f] shadow-[0_0_8px_rgba(224,122,95,0.8)] shrink-0" />
-                  <span className="ff-typo-thread-title font-extrabold text-sm sm:text-base text-[#f4f1de] truncate">
-                    #{currentChannelObj.name}
-                  </span>
-                  <InfoTip label="Nội quy phòng chat" align="start">
-                    Tôn trọng nhau — các hành vi toxic, khiêu khích hoặc gây war sẽ bị khoá tài khoản.
-                  </InfoTip>
+              ) : (
+                <div className="p-2 rounded-xl bg-[#121723] border border-[#f8f7f4]/10 flex items-center justify-between gap-2">
+                  <span className="text-xs text-[#a39f96] truncate">Chế độ Khách</span>
+                  <button
+                    type="button"
+                    onClick={onOpenLoginModal}
+                    className="px-3 py-1.5 rounded-lg bg-[#81b29a] hover:bg-[#95c4ad] text-[#0b0d12] text-xs font-bold cursor-pointer shrink-0"
+                  >
+                    Đăng nhập
+                  </button>
                 </div>
-                <p className="text-[11px] text-[#9a978e] truncate mt-0.5">
-                  {currentChannelObj.topic}
-                </p>
+              )}
+            </div>
+          </aside>
+
+          {/* CỘT GIỮA: Luồng hội thoại & khung soạn tin nhắn */}
+          <div className="ff-chat-main-pane">
+            
+            {/* Thanh tiêu đề kênh + Tìm kiếm nhanh + Bật/tắt danh bạ */}
+            <header className="h-14 px-4 sm:px-5 border-b border-[#f8f7f4]/10 bg-[#0d111a]/90 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-[#81b29a]/15 border border-[#81b29a]/35 flex items-center justify-center shrink-0">
+                  <CurrentChannelIcon className="w-4 h-4 text-[#81b29a]" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h1 className="font-bold text-sm sm:text-[15px] text-[#f8f7f4] truncate">
+                      #{currentChannelObj.name}
+                    </h1>
+                    <InfoTip label="Nội quy phòng chat" align="start">
+                      Tôn trọng bạn học và thầy cô — trao đổi văn minh, không spam hoặc dùng từ ngữ thiếu chuẩn mực.
+                    </InfoTip>
+                  </div>
+                  <p className="text-[11px] text-[#a39f96] truncate hidden sm:block">
+                    {currentChannelObj.topic}
+                  </p>
+                </div>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <span className="ff-brutal-index">
-                  {currentMessages.length} tin
-                </span>
-              </div>
-            </div>
+                <div className="relative hidden sm:flex items-center">
+                  <Search className="w-3.5 h-3.5 text-[#a39f96] absolute left-2.5 pointer-events-none" />
+                  <input
+                    type="text"
+                    maxLength={80}
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Tìm trong kênh..."
+                    aria-label="Tìm tin nhắn trong kênh"
+                    className="w-40 lg:w-48 pl-8 pr-6 py-1.5 rounded-lg bg-[#151b28] border border-[#f8f7f4]/12 text-xs text-[#f8f7f4] placeholder-[#a39f96] focus:outline-none focus:border-[#81b29a]/60 transition-colors"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2 text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
+                      aria-label="Xóa từ khóa tìm kiếm"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
 
-            {/* Message Stream */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0" role="log" aria-live="polite" aria-relevant="additions" aria-label="Tin nhắn cuộc trò chuyện">
+                <button
+                  type="button"
+                  onClick={() => setIsDesktopRosterVisible(v => !v)}
+                  className={`hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer ${
+                    isDesktopRosterVisible
+                      ? 'bg-[#81b29a]/15 border-[#81b29a]/35 text-[#f8f7f4]'
+                      : 'bg-[#151b28] border-[#f8f7f4]/12 text-[#a39f96] hover:text-[#f8f7f4]'
+                  }`}
+                  title="Ẩn/hiện danh sách thành viên"
+                >
+                  <PanelRight className="w-3.5 h-3.5 text-[#81b29a]" />
+                  <span className="font-mono">{dynamicOnlineCount}</span>
+                </button>
+              </div>
+            </header>
+
+            {/* Khu vực hiển thị tin nhắn */}
+            <div
+              className="flex-1 overflow-y-auto px-3 sm:px-5 py-4 min-h-0"
+              role="log"
+              aria-live="polite"
+              aria-relevant="additions"
+              aria-label="Tin nhắn cuộc trò chuyện"
+            >
               {!isSynced && currentMessages.length === 0 ? (
-                <div className="max-w-xl mx-auto space-y-3" aria-busy="true">
+                <div className="max-w-xl mx-auto space-y-3 py-6" aria-busy="true">
                   <ThinkingBubble phase="Đang kết nối máy chủ F-Forum…" />
                   <ThinkingBubble phase="Đang tải tin nhắn kênh này…" />
                   <ThinkingBubble phase="Đang sắp xếp hội thoại…" />
                 </div>
               ) : currentMessages.length === 0 ? (
-                /* Style 10: Organic Hand-Drawn Illustration Empty State */
-                <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-3 text-[#b5b2a9] my-auto">
-                  <div className="w-16 h-16 rounded-2xl bg-[#e07a5f]/12 border-[1.5px] border-[#e07a5f]/40 flex items-center justify-center shadow-[3px_3px_0px_rgba(4,6,11,0.9)]">
-                    <MessageSquareDashed className="w-7 h-7 text-[#f2cc8f]" />
+                <div className="h-full flex flex-col items-center justify-center text-center p-6 max-w-md mx-auto space-y-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#81b29a]/12 border border-[#81b29a]/30 flex items-center justify-center">
+                    <MessageSquareDashed className="w-6 h-6 text-[#81b29a]" />
                   </div>
-                  <h3 className="text-sm font-bold text-[#f4f1de] tracking-wide">
-                    Chưa có tin nhắn nào trong #{currentChannelObj.name}
-                  </h3>
-                  <p className="text-xs text-[#9a978e] max-w-xs">
-                    Gửi lời chào mở đầu để bắt chuyện cùng mọi người nhé.
-                  </p>
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-[#f8f7f4]">
+                      {searchQuery
+                        ? 'Không tìm thấy tin nhắn phù hợp'
+                        : `Mở đầu cuộc trò chuyện tại #${currentChannelObj.name}`}
+                    </h3>
+                    <p className="text-xs text-[#a39f96] leading-relaxed">
+                      {searchQuery
+                        ? 'Hãy thử từ khóa khác hoặc xóa bộ lọc tìm kiếm.'
+                        : currentChannelObj.topic}
+                    </p>
+                  </div>
+
+                  {!searchQuery && currentUser && (
+                    <div className="w-full space-y-1.5 pt-1">
+                      <span className="text-[10.5px] font-mono uppercase tracking-wider text-[#a39f96] block">
+                        Gợi ý mở lời nhanh:
+                      </span>
+                      <div className="flex flex-col gap-1.5">
+                        {currentChannelObj.prompts.map((promptText, pIdx) => (
+                          <button
+                            key={pIdx}
+                            type="button"
+                            onClick={() => {
+                              setInputText(promptText);
+                              inputRef.current?.focus();
+                            }}
+                            className="px-3 py-2 rounded-xl bg-[#151b28] hover:bg-[#1b2334] border border-[#f8f7f4]/10 hover:border-[#81b29a]/40 text-xs text-[#dad7d0] hover:text-[#f8f7f4] text-left transition-colors cursor-pointer"
+                          >
+                            “{promptText}”
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
-                renderedMessageItems
+                <div className="space-y-0.5">
+                  {/* Banner chào mừng đầu kênh */}
+                  <div className="px-2 pb-4 mb-3 border-b border-[#f8f7f4]/08 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-[#81b29a]/12 border border-[#81b29a]/30 flex items-center justify-center shrink-0">
+                        <CurrentChannelIcon className="w-4 h-4 text-[#81b29a]" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-[#f8f7f4]">
+                          Chào mừng tới #{currentChannelObj.name}
+                        </div>
+                        <div className="text-[11px] text-[#a39f96] truncate">
+                          {currentChannelObj.desc}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-[10.5px] font-mono text-[#a39f96] px-2 py-0.5 rounded bg-[#151b28] border border-[#f8f7f4]/08">
+                      {currentMessages.length} tin nhắn
+                    </span>
+                  </div>
+
+                  {renderedMessageItems}
+                </div>
               )}
               <div ref={messagesEndRef} />
             </div>
@@ -639,207 +820,219 @@ export const ChatView: React.FC<ChatViewProps> = ({
               variant="view"
             />
 
-            {/* Floating Glass Composer Dock or Login Prompt */}
-            {!currentUser ? (
-              <div className="ff-chat-floating-composer flex items-center justify-between gap-3 shrink-0">
-                <span className="text-xs text-[#d8d5ce]">Đăng nhập để trò chuyện cùng mọi người</span>
-                <button
-                  type="button"
-                  onClick={onOpenLoginModal}
-                  className="ff-tactile-btn px-4 py-2 rounded-lg bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] font-extrabold text-xs border-[1.5px] border-[#f4f1de] transition-colors cursor-pointer shrink-0"
-                >
-                  Đăng nhập
-                </button>
-              </div>
-            ) : (
-              <div className="ff-chat-floating-composer flex items-center gap-2.5 shrink-0">
-                <input
-                  type="text"
-                  value={inputText}
-                  maxLength={300}
-                  onChange={e => setInputText(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={`Nhắn tin vào #${currentChannelObj.name}...`}
-                  className="message-input-bar flex-1 bg-[#151a26] border-[1.5px] border-[#f4f1de]/18 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f] transition-colors disabled:opacity-50 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)]"
-                />
-
-                {cooldown.isCooling && (
-                  <span className="px-2.5 py-1.5 rounded-lg bg-[#f2cc8f]/15 border border-[#f2cc8f]/35 text-[11px] font-mono text-[#f2cc8f] shrink-0">
-                    Chờ {cooldown.secondsLeft}s
-                  </span>
-                )}
-
-                <button
-                  onClick={handleSend}
-                  disabled={!inputText.trim()}
-                  className={`ff-tactile-btn relative p-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] font-extrabold text-xs sm:text-sm border-[1.5px] border-[#f4f1de] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer ${
-                    cooldown.isCooling ? 'ff-cd-btn is-cooling' : ''
-                  }`}
-                  title={cooldown.isCooling ? `Còn ${cooldown.secondsLeft}s trước tin tiếp theo` : 'Gửi tin nhắn'}
-                >
-                  <Send className="w-4 h-4 text-[#0b0d12]" />
-                  <span className="hidden sm:inline">Gửi</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column: Active Members Roster (hidden on mobile, lg:col-span-3) */}
-          <div className="hidden lg:flex lg:col-span-3 flex-col ff-chat-glass-sidebar p-3.5 overflow-y-auto space-y-4">
-            <div className="px-1.5 pb-2.5 border-b border-dashed border-[#f4f1de]/14 flex items-center justify-between">
-              <span className="text-xs font-extrabold text-[#f4f1de] uppercase tracking-wider font-mono">
-                THÀNH VIÊN
-              </span>
-              <span className="text-[10px] text-[#81b29a] font-mono font-bold flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#81b29a]" />
-                {dynamicOnlineCount} ONLINE
-              </span>
-            </div>
-
-            {/* SECTION 1: BAN QUẢN TRỊ (ADMIN) */}
-            <div className="space-y-2">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-[#f2cc8f] font-bold px-1 flex items-center gap-1.5">
-                <Shield className="w-3 h-3 text-[#f2cc8f]" />
-                <span>BAN QUẢN TRỊ (ADMIN)</span>
-              </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-                  setActiveAuthorCard({
-                    id: 'admin-master',
-                    name: MASTER_ADMIN_CONFIG.name,
-                    avatar: MASTER_ADMIN_CONFIG.avatar,
-                    email: MASTER_ADMIN_CONFIG.email,
-                    level: 150,
-                    coin: 99999,
-                  });
-                }}
-                className="ff-holo-card w-full text-left p-3 rounded-xl relative overflow-hidden group cursor-pointer transition-all active:scale-98"
-                title={`Xem hồ sơ hoặc tương tác với ${MASTER_ADMIN_CONFIG.name}`}
-              >
-                <div className="relative flex items-center gap-2.5">
-                  <div className="relative shrink-0">
-                    <DecoratedAvatar
-                      user={resolveChatUser(MASTER_ADMIN_CONFIG.email, 'user-admin')}
-                      fallbackSrc={MASTER_ADMIN_CONFIG.avatar}
-                      size={40}
-                      animate
-                      alt={MASTER_ADMIN_CONFIG.name}
-                      className="rounded-full ring-1 ring-[#e9c46a]/60"
-                    />
-                    <span
-                      className={`absolute bottom-0 right-0 z-[4] w-3 h-3 rounded-full border-2 border-[#0b0d12] ${
-                        isMasterAdminOnline ? 'bg-emerald-400' : 'bg-[#81b29a]'
-                      }`}
-                    />
+            {/* Khung nhập tin nhắn ở đáy */}
+            <div className="px-3 sm:px-5 py-3 bg-[#0c1018] border-t border-[#f8f7f4]/10 shrink-0">
+              {replyingTo && (
+                <div className="mb-2 px-3 py-1.5 rounded-lg bg-[#151b28] border border-[#81b29a]/35 flex items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <CornerUpLeft className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
+                    <span className="text-[#a39f96] shrink-0">Đang trả lời</span>
+                    <strong className="text-[#f8f7f4] shrink-0">@{replyingTo.authorName}</strong>
+                    <span className="text-[#a39f96] truncate">“{replyingTo.excerpt}”</span>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1 flex-wrap">
-                      <DecoratedName
-                        user={resolveChatUser(MASTER_ADMIN_CONFIG.email, 'user-admin')}
-                        name={MASTER_ADMIN_CONFIG.name}
-                        width={136}
-                        height={26}
-                        animate
-                        showFallbackTag
-                      />
-                      <AdminVerifiedBadge size={13} />
-                    </div>
-                    <span className="text-[10px] text-[#f2cc8f] font-mono block truncate mt-0.5">
-                      {MASTER_ADMIN_CONFIG.role}
-                    </span>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setReplyingTo(null)}
+                    className="p-0.5 text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer shrink-0"
+                    aria-label="Hủy trả lời"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-              </button>
+              )}
+
+              {!currentUser ? (
+                <div className="px-4 py-2.5 rounded-xl bg-[#151b28] border border-[#f8f7f4]/12 flex items-center justify-between gap-3">
+                  <span className="text-xs text-[#dad7d0]">
+                    Đăng nhập để tham gia thảo luận cùng bạn học trong #{currentChannelObj.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={onOpenLoginModal}
+                    className="px-4 py-1.5 rounded-lg bg-[#81b29a] hover:bg-[#95c4ad] text-[#0b0d12] font-bold text-xs transition-colors cursor-pointer shrink-0"
+                  >
+                    Đăng nhập
+                  </button>
+                </div>
+              ) : (
+                <div className="ff-chat-composer-shell">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={inputText}
+                    maxLength={300}
+                    onChange={e => setInputText(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={`Nhắn tin vào #${currentChannelObj.name}... (Enter để gửi)`}
+                    className="message-input-bar flex-1 bg-transparent border-none text-xs sm:text-sm text-[#f8f7f4] placeholder-[#a39f96] focus:outline-none"
+                  />
+
+                  <span className="hidden sm:inline text-[10.5px] font-mono text-[#a39f96] shrink-0">
+                    {inputText.length}/300
+                  </span>
+
+                  {cooldown.isCooling && (
+                    <span className="px-2 py-1 rounded-md bg-[#e9c46a]/15 border border-[#e9c46a]/35 text-[11px] font-mono text-[#e9c46a] shrink-0">
+                      {cooldown.secondsLeft}s
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleSend}
+                    disabled={!inputText.trim()}
+                    className={`px-3.5 py-2 rounded-lg bg-[#81b29a] hover:bg-[#95c4ad] text-[#0b0d12] font-bold text-xs sm:text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                      cooldown.isCooling ? 'ff-cd-btn is-cooling' : ''
+                    }`}
+                    title={cooldown.isCooling ? `Còn ${cooldown.secondsLeft}s trước tin tiếp theo` : 'Gửi tin nhắn'}
+                  >
+                    <Send className="w-3.5 h-3.5 text-[#0b0d12]" />
+                    <span className="hidden sm:inline">Gửi</span>
+                  </button>
+                </div>
+              )}
             </div>
-
-            {/* SECTION 2: HỌC SINH & HỘI VIÊN */}
-            <div className="space-y-2 flex-1 flex flex-col min-h-0">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-[#9a978e] font-bold px-1 flex items-center justify-between">
-                <span>HỌC SINH & HỘI VIÊN</span>
-                <span className="text-[9px] text-[#f2cc8f] font-mono">{activeStudents.length}</span>
-              </div>
-
-              <div className="space-y-1.5 overflow-y-auto pr-0.5 flex-1 max-h-[300px] no-scrollbar">
-                {activeStudents.length === 0 ? (
-                  <div className="py-3 px-2 text-center text-xs text-[#9a978e] italic">
-                    Chưa có hội viên khác trực tuyến
-                  </div>
-                ) : (
-                  activeStudents.map(user => {
-                    const tier = getTierForLevel(user.level || 1);
-                    const resolvedStudent = resolveChatUser(user.email, user.id);
-                    return (
-                      <button
-                        key={user.id}
-                        type="button"
-                        onClick={(e) => {
-                          setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-                          setActiveAuthorCard({
-                            id: user.id,
-                            name: user.name,
-                            avatar: user.avatar,
-                            email: user.email,
-                            level: user.level || 1,
-                          });
-                        }}
-                        className="p-2 rounded-xl bg-[#0b0d12]/70 hover:bg-[#f4f1de]/[0.06] border border-[#f4f1de]/10 hover:border-[#f2cc8f]/45 transition-all flex items-center gap-2.5 w-full text-left cursor-pointer"
-                      >
-                        <div className="relative shrink-0">
-                          <DecoratedAvatar
-                            user={resolvedStudent}
-                            fallbackSrc={user.avatar || DEFAULT_AVATAR}
-                            size={34}
-                            animate
-                            alt={user.name}
-                            className="rounded-full ring-1 ring-[#f4f1de]/15"
-                          />
-                          <span className="absolute bottom-0 right-0 z-[4] w-2 h-2 rounded-full bg-[#81b29a] border border-black" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center">
-                            <DecoratedName
-                              user={resolvedStudent}
-                              name={user.name.replace(/ \(.*\)/, '')}
-                              width={136}
-                              height={26}
-                              animate
-                              showFallbackTag
-                            />
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[10px] text-[#9a978e] font-mono mt-0.5">
-                            <span className="text-[#f2cc8f] font-semibold">{tier.name}</span>
-                            <span>• Lv.{user.level || 1}</span>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            {!currentUser && (
-              <div className="p-3 rounded-xl bg-[#0b0d12]/80 border border-dashed border-[#f4f1de]/15 text-center space-y-2 mt-auto">
-                <p className="text-xs text-[#9a978e] leading-snug">
-                  Bạn đang xem với tư cách Khách.
-                </p>
-                <button
-                  type="button"
-                  onClick={onOpenLoginModal}
-                  className="ff-tactile-btn w-full py-1.5 rounded-lg bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border border-[#f4f1de] text-xs font-extrabold transition-colors cursor-pointer"
-                >
-                  Đăng nhập ngay
-                </button>
-              </div>
-            )}
           </div>
 
+          {/* CỘT PHẢI: Danh bạ thành viên trực tuyến */}
+          {isDesktopRosterVisible && (
+            <aside className="hidden lg:flex w-[248px] xl:w-[264px] shrink-0 ff-chat-roster-pane">
+              <div className="h-14 px-4 border-b border-[#f8f7f4]/10 flex items-center justify-between shrink-0">
+                <span className="text-xs font-bold text-[#f8f7f4] uppercase tracking-wide">
+                  Thành Viên
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#81b29a]/15 border border-[#81b29a]/35 text-[10.5px] font-mono font-semibold text-[#81b29a]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#81b29a]" />
+                  {dynamicOnlineCount} trực tuyến
+                </span>
+              </div>
+
+              <div className="p-3 space-y-4 flex-1 overflow-y-auto no-scrollbar">
+                {/* Ban Quản Trị */}
+                <div className="space-y-1.5">
+                  <div className="px-1.5 text-[10px] font-mono uppercase tracking-wider text-[#e9c46a] font-semibold flex items-center gap-1.5">
+                    <Shield className="w-3 h-3 text-[#e9c46a]" />
+                    <span>Ban Quản Trị</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) =>
+                      openAuthorCardFromEvent(e, {
+                        id: 'admin-master',
+                        name: MASTER_ADMIN_CONFIG.name,
+                        avatar: MASTER_ADMIN_CONFIG.avatar,
+                        email: MASTER_ADMIN_CONFIG.email,
+                        level: 150,
+                        coin: 99999,
+                      })
+                    }
+                    className="w-full text-left p-2.5 rounded-xl bg-[#141a26] hover:bg-[#192130] border border-[#e9c46a]/30 transition-colors cursor-pointer flex items-center gap-2.5"
+                    title={`Xem hồ sơ ${MASTER_ADMIN_CONFIG.name}`}
+                  >
+                    <div className="relative shrink-0">
+                      <DecoratedAvatar
+                        user={resolveChatUser(MASTER_ADMIN_CONFIG.email, 'user-admin')}
+                        fallbackSrc={MASTER_ADMIN_CONFIG.avatar}
+                        size={36}
+                        animate
+                        alt={MASTER_ADMIN_CONFIG.name}
+                        className="rounded-full ring-1 ring-[#e9c46a]/60"
+                      />
+                      <span
+                        className={`absolute bottom-0 right-0 z-[4] w-2.5 h-2.5 rounded-full border-2 border-[#141a26] ${
+                          isMasterAdminOnline ? 'bg-emerald-400' : 'bg-[#81b29a]'
+                        }`}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1">
+                        <DecoratedName
+                          user={resolveChatUser(MASTER_ADMIN_CONFIG.email, 'user-admin')}
+                          name={MASTER_ADMIN_CONFIG.name}
+                          width={132}
+                          height={22}
+                          animate
+                          className="text-xs font-bold text-[#f8f7f4] truncate"
+                        />
+                        <AdminVerifiedBadge size={12} />
+                      </div>
+                      <span className="text-[10.5px] text-[#e9c46a] font-mono block truncate">
+                        {MASTER_ADMIN_CONFIG.role}
+                      </span>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Học Sinh & Hội Viên */}
+                <div className="space-y-1.5">
+                  <div className="px-1.5 text-[10px] font-mono uppercase tracking-wider text-[#a39f96] font-semibold flex items-center justify-between">
+                    <span>Học Sinh &amp; Hội Viên</span>
+                    <span>{activeStudents.length}</span>
+                  </div>
+
+                  {activeStudents.length === 0 ? (
+                    <div className="py-4 px-2 text-center text-xs text-[#a39f96]">
+                      Chưa có hội viên khác trực tuyến
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {activeStudents.map(user => {
+                        const tier = getTierForLevel(user.level || 1);
+                        const resolvedStudent = resolveChatUser(user.email, user.id);
+                        const cleanName = user.name.replace(/ \(.*\)/, '');
+                        return (
+                          <button
+                            key={user.id}
+                            type="button"
+                            onClick={(e) =>
+                              openAuthorCardFromEvent(e, {
+                                id: user.id,
+                                name: user.name,
+                                avatar: user.avatar,
+                                email: user.email,
+                                level: user.level || 1,
+                              })
+                            }
+                            className="w-full p-2 rounded-lg hover:bg-[#f8f7f4]/[0.04] transition-colors flex items-center gap-2.5 text-left cursor-pointer"
+                          >
+                            <div className="relative shrink-0">
+                              <DecoratedAvatar
+                                user={resolvedStudent}
+                                fallbackSrc={user.avatar || DEFAULT_AVATAR}
+                                size={32}
+                                animate
+                                alt={cleanName}
+                                className="rounded-full ring-1 ring-[#f8f7f4]/15"
+                              />
+                              <span className="absolute bottom-0 right-0 z-[4] w-2 h-2 rounded-full bg-[#81b29a] border border-[#0b0f17]" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <DecoratedName
+                                user={resolvedStudent}
+                                name={cleanName}
+                                width={128}
+                                height={22}
+                                animate
+                                className="text-xs font-medium text-[#f8f7f4] truncate block"
+                              />
+                              <div className="flex items-center gap-1.5 text-[10px] text-[#a39f96] font-mono">
+                                <span className="text-[#dad7d0] truncate">{tier.name}</span>
+                                <span>· Lv.{user.level || 1}</span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </aside>
+          )}
         </div>
       </div>
 
-      {/* Mobile Channel Selector Drawer (< 768px) */}
+      {/* Ngăn kéo chọn Kênh trên Mobile (< 768px) */}
       {isChannelDrawerOpen && (
         <>
           <button
@@ -853,25 +1046,25 @@ export const ChatView: React.FC<ChatViewProps> = ({
             role="dialog"
             aria-modal="true"
             aria-label="Kênh đàm thoại"
-            className="fixed top-0 bottom-0 left-0 z-50 w-[300px] max-w-[85vw] bg-[#151a26]/98 backdrop-blur-2xl border-r-[1.5px] border-[#f4f1de]/18 p-4 flex flex-col shadow-2xl animate-fade-up md:hidden overflow-y-auto"
+            className="fixed top-0 bottom-0 left-0 z-50 w-[290px] max-w-[85vw] bg-[#0e131d] border-r border-[#f8f7f4]/15 p-4 flex flex-col shadow-2xl animate-fade-up md:hidden overflow-y-auto"
           >
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-dashed border-[#f4f1de]/15">
-              <span className="text-xs font-extrabold text-[#f4f1de] uppercase tracking-wider flex items-center gap-1.5 font-mono">
-                <Hash className="w-4 h-4 text-[#e07a5f]" />
-                PHÒNG CHAT
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#f8f7f4]/10">
+              <span className="text-xs font-bold text-[#f8f7f4] uppercase tracking-wider flex items-center gap-1.5">
+                <Hash className="w-4 h-4 text-[#81b29a]" />
+                Chọn Kênh Thảo Luận
               </span>
               <button
                 type="button"
                 onClick={() => setIsChannelDrawerOpen(false)}
-                className="p-1.5 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/15 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
+                className="p-1.5 rounded-lg bg-[#151b28] border border-[#f8f7f4]/12 text-[#dad7d0] hover:text-[#f8f7f4] cursor-pointer"
                 aria-label="Đóng bảng chọn kênh"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-2 flex-1">
-              {CHANNELS.map((ch) => {
+            <div className="space-y-1.5 flex-1">
+              {CHANNELS.map(ch => {
                 const Icon = ch.icon;
                 const isActive = activeChannel === ch.id;
                 const count = channelMessageCounts[ch.id] || 0;
@@ -883,80 +1076,75 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       setActiveChannel(ch.id);
                       setIsChannelDrawerOpen(false);
                     }}
-                    className={`w-full text-left p-3 rounded-xl transition-all flex items-start gap-2.5 cursor-pointer border-[1.5px] ${
-                      isActive
-                        ? 'bg-[#e07a5f]/20 border-[#e07a5f]/60 text-[#f4f1de] shadow-[3px_3px_0px_rgba(4,6,11,0.9)]'
-                        : 'bg-[#0b0d12]/60 hover:bg-[#f4f1de]/[0.05] border-[#f4f1de]/10 text-[#b5b2a9] hover:text-[#f4f1de]'
-                    }`}
+                    className={`ff-chat-channel-btn cursor-pointer ${isActive ? 'is-active' : ''}`}
                   >
                     <div
-                      className={`p-2 rounded-lg shrink-0 mt-0.5 border ${
-                        isActive ? 'bg-[#e07a5f] text-[#0b0d12] border-[#f4f1de]/60' : 'bg-[#f4f1de]/[0.05] text-[#9a978e] border-[#f4f1de]/10'
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
+                        isActive
+                          ? 'bg-[#81b29a]/20 text-[#81b29a] border-[#81b29a]/40'
+                          : 'bg-[#141a26] text-[#a39f96] border-[#f8f7f4]/08'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className={`text-xs font-extrabold truncate ${isActive ? 'text-[#f4f1de]' : 'text-[#d8d5ce]'}`}>
-                          #{ch.name}
-                        </span>
-                        <span className="text-[10px] font-mono text-[#f2cc8f] ml-1">{count}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="text-xs font-bold text-[#f8f7f4] truncate">{ch.name}</span>
+                        {count > 0 && (
+                          <span className="px-1.5 py-0.2 rounded bg-[#141a26] text-[10px] font-mono text-[#a39f96]">
+                            {count}
+                          </span>
+                        )}
                       </div>
-                      <p className="text-[10.5px] text-[#9a978e] line-clamp-1 mt-0.5">{ch.desc}</p>
+                      <p className="text-[11px] text-[#a39f96] truncate mt-0.5">{ch.desc}</p>
                     </div>
                   </button>
                 );
               })}
             </div>
-
           </div>
         </>
       )}
 
-      {/* Mobile Active Members Drawer (< 768px) */}
+      {/* Ngăn kéo Thành viên trên Mobile (< 768px) */}
       {isMembersDrawerOpen && (
         <>
           <button
             type="button"
-            aria-label="Đóng danh sách thành viên"
             tabIndex={-1}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden border-none p-0 cursor-default"
+            aria-label="Đóng danh sách thành viên"
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden border-none outline-none cursor-default"
             onClick={() => setIsMembersDrawerOpen(false)}
           />
           <div
             role="dialog"
             aria-modal="true"
             aria-label="Thành viên trực tuyến"
-            className="fixed top-0 bottom-0 right-0 z-50 w-[300px] max-w-[85vw] bg-[#151a26]/98 backdrop-blur-2xl border-l-[1.5px] border-[#f4f1de]/18 p-4 flex flex-col shadow-2xl animate-fade-up md:hidden overflow-y-auto"
+            className="fixed top-0 bottom-0 right-0 z-50 w-[290px] max-w-[85vw] bg-[#0e131d] border-l border-[#f8f7f4]/15 p-4 flex flex-col shadow-2xl animate-fade-up md:hidden overflow-y-auto space-y-4"
           >
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-dashed border-[#f4f1de]/15">
-              <span className="text-xs font-extrabold text-[#f4f1de] uppercase tracking-wider font-mono flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-[#81b29a]" />
-                THÀNH VIÊN ONLINE
+            <div className="flex items-center justify-between pb-3 border-b border-[#f8f7f4]/10">
+              <span className="text-xs font-bold text-[#f8f7f4] uppercase tracking-wider">
+                Thành Viên ({dynamicOnlineCount})
               </span>
               <button
                 type="button"
                 onClick={() => setIsMembersDrawerOpen(false)}
-                className="p-1.5 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/15 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
-                aria-label="Đóng danh sách thành viên"
+                className="p-1.5 rounded-lg bg-[#151b28] border border-[#f8f7f4]/12 text-[#dad7d0] hover:text-[#f8f7f4] cursor-pointer"
+                aria-label="Đóng bảng thành viên"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Admin Card */}
-            <div className="space-y-2 mb-4">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-[#f2cc8f] font-bold px-1 flex items-center gap-1.5">
-                <Shield className="w-3 h-3 text-[#f2cc8f]" />
-                <span>BAN QUẢN TRỊ (ADMIN)</span>
+            <div className="space-y-2">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[#e9c46a] font-semibold px-1">
+                Ban Quản Trị
               </div>
               <button
                 type="button"
                 onClick={(e) => {
-                  setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
                   setIsMembersDrawerOpen(false);
-                  setActiveAuthorCard({
+                  openAuthorCardFromEvent(e, {
                     id: 'admin-master',
                     name: MASTER_ADMIN_CONFIG.name,
                     avatar: MASTER_ADMIN_CONFIG.avatar,
@@ -965,115 +1153,96 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     coin: 99999,
                   });
                 }}
-                className="ff-holo-card w-full text-left p-3 rounded-xl relative overflow-hidden cursor-pointer active:scale-98"
-                title={`Xem hồ sơ ${MASTER_ADMIN_CONFIG.name}`}
+                className="w-full text-left p-2.5 rounded-xl bg-[#141a26] border border-[#e9c46a]/30 flex items-center gap-2.5 cursor-pointer"
               >
-                <div className="flex items-center gap-2.5">
-                  <div className="relative shrink-0">
-                    <DecoratedAvatar
+                <DecoratedAvatar
+                  user={resolveChatUser(MASTER_ADMIN_CONFIG.email, 'user-admin')}
+                  fallbackSrc={MASTER_ADMIN_CONFIG.avatar}
+                  size={36}
+                  animate
+                  alt={MASTER_ADMIN_CONFIG.name}
+                  className="rounded-full ring-1 ring-[#e9c46a]/60"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1">
+                    <DecoratedName
                       user={resolveChatUser(MASTER_ADMIN_CONFIG.email, 'user-admin')}
-                      fallbackSrc={MASTER_ADMIN_CONFIG.avatar}
-                      size={40}
+                      name={MASTER_ADMIN_CONFIG.name}
+                      width={132}
+                      height={22}
                       animate
-                      alt={MASTER_ADMIN_CONFIG.name}
-                      className="rounded-full ring-2 ring-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+                      className="text-xs font-bold text-[#f8f7f4] truncate"
                     />
-                    <span
-                      className={`absolute bottom-0 right-0 z-[4] w-3 h-3 rounded-full border-2 border-[#0b0d12] ${
-                        isMasterAdminOnline ? 'bg-emerald-400' : 'bg-[#81b29a]'
-                      }`}
-                    />
+                    <AdminVerifiedBadge size={12} />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1 flex-wrap">
-                      <DecoratedName
-                        user={resolveChatUser(MASTER_ADMIN_CONFIG.email, 'user-admin')}
-                        name={MASTER_ADMIN_CONFIG.name}
-                        width={136}
-                        height={26}
-                        animate
-                        showFallbackTag
-                      />
-                      <AdminVerifiedBadge size={13} />
-                    </div>
-                    <span className="text-[10px] text-[#f2cc8f] font-mono block truncate mt-0.5">
-                      {MASTER_ADMIN_CONFIG.role}
-                    </span>
-                  </div>
+                  <span className="text-[10px] text-[#e9c46a] font-mono block truncate">
+                    {MASTER_ADMIN_CONFIG.role}
+                  </span>
                 </div>
               </button>
             </div>
 
-            {/* Active Students */}
-            <div className="space-y-2 flex-1 flex flex-col min-h-0">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-[#9a978e] font-semibold px-1 flex items-center justify-between">
-                <span>HỌC SINH & HỘI VIÊN</span>
-                <span className="text-[9px] text-[#f2cc8f] font-mono">{activeStudents.length}</span>
+            <div className="space-y-1.5 flex-1">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[#a39f96] font-semibold px-1 flex items-center justify-between">
+                <span>Học Sinh &amp; Hội Viên</span>
+                <span>{activeStudents.length}</span>
               </div>
-              <div className="space-y-1.5 overflow-y-auto pr-0.5 flex-1">
-                {activeStudents.length === 0 ? (
-                  <div className="py-3 px-2 text-center text-xs text-[#9a978e] italic">
-                    Chưa có hội viên khác trực tuyến
-                  </div>
-                ) : (
-                  activeStudents.map((user) => {
-                    const tier = getTierForLevel(user.level || 1);
-                    const resolvedStudent = resolveChatUser(user.email, user.id);
-                    return (
-                      <button
-                        key={user.id}
-                        type="button"
-                        onClick={(e) => {
-                          setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-                          setIsMembersDrawerOpen(false);
-                          setActiveAuthorCard({
-                            id: user.id,
-                            name: user.name,
-                            avatar: user.avatar,
-                            email: user.email,
-                            level: user.level || 1,
-                          });
-                        }}
-                        className="p-2 rounded-xl bg-[#0b0d12]/70 border border-[#f4f1de]/10 hover:border-[#f2cc8f]/45 flex items-center gap-2.5 w-full text-left cursor-pointer"
-                      >
-                        <div className="relative shrink-0">
-                          <DecoratedAvatar
-                            user={resolvedStudent}
-                            fallbackSrc={user.avatar || DEFAULT_AVATAR}
-                            size={34}
-                            animate
-                            alt={user.name}
-                            className="rounded-full ring-1 ring-[#f4f1de]/15"
-                          />
-                          <span className="absolute bottom-0 right-0 z-[4] w-2 h-2 rounded-full bg-[#81b29a] border border-black shadow-[0_0_6px_#81b29a]" />
+              {activeStudents.length === 0 ? (
+                <div className="py-3 px-2 text-center text-xs text-[#a39f96]">
+                  Chưa có hội viên khác trực tuyến
+                </div>
+              ) : (
+                activeStudents.map((user) => {
+                  const tier = getTierForLevel(user.level || 1);
+                  const resolvedStudent = resolveChatUser(user.email, user.id);
+                  const cleanName = user.name.replace(/ \(.*\)/, '');
+                  return (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onClick={(e) => {
+                        setIsMembersDrawerOpen(false);
+                        openAuthorCardFromEvent(e, {
+                          id: user.id,
+                          name: user.name,
+                          avatar: user.avatar,
+                          email: user.email,
+                          level: user.level || 1,
+                        });
+                      }}
+                      className="p-2 rounded-lg hover:bg-[#f8f7f4]/[0.04] flex items-center gap-2.5 w-full text-left cursor-pointer"
+                    >
+                      <DecoratedAvatar
+                        user={resolvedStudent}
+                        fallbackSrc={user.avatar || DEFAULT_AVATAR}
+                        size={32}
+                        animate
+                        alt={cleanName}
+                        className="rounded-full ring-1 ring-[#f8f7f4]/15"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <DecoratedName
+                          user={resolvedStudent}
+                          name={cleanName}
+                          width={128}
+                          height={22}
+                          animate
+                          className="text-xs font-medium text-[#f8f7f4] truncate block"
+                        />
+                        <div className="text-[10px] text-[#a39f96] font-mono">
+                          {tier.name} · Lv.{user.level || 1}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center">
-                            <DecoratedName
-                              user={resolvedStudent}
-                              name={user.name.replace(/ \(.*\)/, '')}
-                              width={136}
-                              height={26}
-                              animate
-                              showFallbackTag
-                            />
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[10px] text-[#9a978e] font-mono mt-0.5">
-                            <span className="text-[#f2cc8f] font-semibold">{tier.name}</span>
-                            <span>• Lv.{user.level || 1}</span>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
         </>
       )}
 
-      {/* Compact Floating Author Context Popover — portaled to document.body */}
+      {/* Thẻ thông tin nhanh người dùng (Popover) */}
       {activeAuthorCard && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
@@ -1096,21 +1265,21 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   ? Math.max(12, Math.min(authorAnchorPos.y - 20, window.innerHeight - 245))
                   : 120,
             }}
-            className="pc-12-shell w-[320px] max-w-[calc(100vw-24px)] rounded-2xl p-4 shadow-[0_18px_48px_rgba(0,0,0,0.85)] popover-morph-enter"
+            className="pc-12-shell w-[310px] max-w-[calc(100vw-24px)] rounded-2xl p-4 shadow-2xl popover-morph-enter"
           >
             <button
               type="button"
               onClick={() => setActiveAuthorCard(null)}
-              className="absolute top-2.5 right-2.5 z-[5] p-1 rounded-full text-neutral-300 hover:text-white cursor-pointer"
+              className="absolute top-2.5 right-2.5 z-[5] p-1 rounded-full text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
               aria-label="Đóng"
             >
               <X className="w-3.5 h-3.5" />
             </button>
 
-            <div className="ff-discord-userbar flex items-center gap-3.5 p-3 rounded-xl bg-white/[0.04] border border-white/15 pr-6">
+            <div className="ff-discord-userbar flex items-center gap-3 p-3 rounded-xl bg-[#141a26] border border-[#f8f7f4]/12 pr-6">
               <UserNameplateBg
                 user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
-                width={268}
+                width={260}
                 eager
                 animate
                 priority="high"
@@ -1119,14 +1288,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 <DecoratedAvatar
                   user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
                   fallbackSrc={activeAuthorCard.avatar || DEFAULT_AVATAR}
-                  size={44}
+                  size={42}
                   eager
                   animate
                   alt={activeAuthorCard.name}
-                  className="rounded-full ring-1 ring-amber-400/60 shadow-md"
+                  className="rounded-full ring-1 ring-[#e9c46a]/50"
                 />
                 <span className="absolute -bottom-1 -right-1 z-[4]">
-                  <TierBadge level={activeAuthorCard.level} size={16} showTooltip={false} />
+                  <TierBadge level={activeAuthorCard.level} size={15} showTooltip={false} />
                 </span>
               </div>
 
@@ -1135,20 +1304,20 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   <DecoratedName
                     user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
                     name={activeAuthorCard.name.replace(/ \(.*\)/, '')}
-                    width={176}
-                    height={33}
+                    width={160}
+                    height={26}
                     eager
                     animate
                     priority="high"
-                    showFallbackTag
+                    className="text-sm font-bold text-[#f8f7f4] truncate"
                   />
                   {isMasterAdmin(activeAuthorCard.email) && <AdminVerifiedBadge size={12} />}
                 </div>
                 <div className="flex items-center gap-1.5 mt-1">
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-400/40 text-[9.5px] font-mono font-bold shadow-sm">
+                  <span className="px-2 py-0.5 rounded-md bg-[#e9c46a]/15 text-[#e9c46a] border border-[#e9c46a]/35 text-[10px] font-mono font-semibold">
                     {getTierForLevel(activeAuthorCard.level).titleVi}
                   </span>
-                  <span className="text-[10px] text-white/85 font-mono drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
+                  <span className="text-[10.5px] text-[#dad7d0] font-mono">
                     Lv.{activeAuthorCard.level}
                   </span>
                 </div>
@@ -1164,9 +1333,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     setActiveAuthorCard(null);
                     onOpenProfile(user);
                   }}
-                  className="pc-12-btn ff-tactile-btn w-full py-2 px-3 rounded-xl text-[#f4f1de] hover:text-[#f2cc8f] text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                  className="pc-12-btn w-full py-2 px-3 rounded-xl text-[#f8f7f4] hover:text-[#e9c46a] text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <UserIcon className="w-3.5 h-3.5 text-[#f2cc8f]" />
+                  <UserIcon className="w-3.5 h-3.5 text-[#81b29a]" />
                   <span>Trang cá nhân</span>
                 </button>
               )}
@@ -1178,9 +1347,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   setActiveAuthorCard(null);
                   setReportUser({ id: user.id, name: user.name });
                 }}
-                className="pc-12-btn w-full py-2 px-3 rounded-xl text-red-200 hover:text-red-100 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                className="pc-12-btn w-full py-2 px-3 rounded-xl text-rose-200 hover:text-rose-100 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
               >
-                <Flag className="w-3.5 h-3.5 text-red-400" />
+                <Flag className="w-3.5 h-3.5 text-rose-400" />
                 <span>Tố cáo</span>
               </button>
             </div>
@@ -1189,7 +1358,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
         document.body
       )}
 
-      {/* Modal: Tố cáo tài khoản — portaled to document.body */}
+      {/* Hộp thoại Tố cáo tài khoản */}
       {reportUser && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
@@ -1201,13 +1370,13 @@ export const ChatView: React.FC<ChatViewProps> = ({
               setReportSuccessMsg(null);
             }
           }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-up"
         >
           <div className="modal-container w-full max-w-md p-6 relative">
-            <div className="flex items-center justify-between pb-3 border-b border-dashed border-[#f4f1de]/15 mb-4">
-              <div className="flex items-center gap-2 text-[#e07a5f]">
-                <Flag className="w-5 h-5 text-[#e07a5f]" />
-                <h3 className="font-extrabold text-sm sm:text-base text-[#f4f1de]">Tố Cáo Tài Khoản Vi Phạm</h3>
+            <div className="flex items-center justify-between pb-3 border-b border-[#f8f7f4]/12 mb-4">
+              <div className="flex items-center gap-2 text-[#d97757]">
+                <Flag className="w-5 h-5 text-[#d97757]" />
+                <h3 className="font-bold text-sm sm:text-base text-[#f8f7f4]">Tố Cáo Tài Khoản Vi Phạm</h3>
               </div>
               <button
                 type="button"
@@ -1215,7 +1384,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   setReportUser(null);
                   setReportSuccessMsg(null);
                 }}
-                className="p-1.5 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/15 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
+                className="p-1.5 rounded-lg bg-[#141a26] border border-[#f8f7f4]/12 text-[#dad7d0] hover:text-[#f8f7f4] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1241,18 +1410,18 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 {reportErrorMsg && (
                   <p role="alert" className="ff-report-error">{reportErrorMsg}</p>
                 )}
-                <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-neutral-300">
-                  Đối tượng tố cáo: <strong className="text-white">{reportUser.name}</strong>
+                <div className="p-2.5 rounded-xl bg-[#141a26] border border-[#f8f7f4]/10 text-xs text-[#dad7d0]">
+                  Đối tượng tố cáo: <strong className="text-[#f8f7f4]">{reportUser.name}</strong>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                  <label className="block text-xs font-semibold text-[#dad7d0] mb-1">
                     Lý do vi phạm (*):
                   </label>
                   <select
                     value={reportReason}
                     onChange={e => setReportReason(e.target.value)}
-                    className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-400 cursor-pointer"
+                    className="w-full bg-[#141a26] border border-[#f8f7f4]/15 rounded-xl px-3 py-2 text-xs text-[#f8f7f4] focus:outline-none focus:border-[#d97757] cursor-pointer"
                   >
                     <option value="Toxic / Gây war / Xúc phạm bạn học">Toxic / Gây war / Xúc phạm bạn học</option>
                     <option value="Spam / Quảng cáo / Lừa đảo">Spam / Quảng cáo / Lừa đảo</option>
@@ -1263,41 +1432,42 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 </div>
 
                 <div>
-                  <label htmlFor="chi-tiet-vi-pham" className="block text-xs font-semibold text-neutral-300 mb-1">
+                  <label htmlFor="chi-tiet-vi-pham" className="block text-xs font-semibold text-[#dad7d0] mb-1">
                     Chi tiết vi phạm:
                   </label>
-                  <textarea id="chi-tiet-vi-pham"
-                    value={reportDetails}
-                    onChange={e => setReportDetails(e.target.value)}
+                  <textarea
+                    id="chi-tiet-vi-pham"
                     maxLength={500}
                     rows={3}
+                    value={reportDetails}
+                    onChange={e => setReportDetails(e.target.value)}
                     placeholder="Mô tả cụ thể hành vi hoặc bằng chứng vi phạm..."
-                    className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-400 resize-none"
+                    className="w-full bg-[#141a26] border border-[#f8f7f4]/15 rounded-xl px-3 py-2 text-xs text-[#f8f7f4] focus:outline-none focus:border-[#d97757] resize-none"
                   />
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-red-950/30 border border-red-500/20 text-[10px] text-red-300 space-y-1">
+                <div className="p-2.5 rounded-xl bg-rose-950/30 border border-rose-500/20 text-[10px] text-rose-300 space-y-1">
                   <span className="font-bold flex items-center gap-1">
-                    <Shield className="w-3.5 h-3.5 text-red-400" />
-                    Kỷ luật trường học nghiêm ngặt:
+                    <Shield className="w-3.5 h-3.5 text-rose-400" />
+                    Kỷ luật học đường:
                   </span>
                   <p>
                     Báo cáo vi phạm sẽ được chuyển tới Ban Quản Trị để xử lý theo nội quy.
                   </p>
                 </div>
 
-                <div className="pt-2 flex items-center justify-end gap-2 border-t border-white/10">
+                <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#f8f7f4]/10">
                   <button
                     type="button"
                     onClick={() => setReportUser(null)}
-                    className="px-4 py-2 rounded-xl text-xs text-neutral-400 hover:text-white cursor-pointer"
+                    className="px-4 py-2 rounded-xl text-xs text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
                   >
                     Hủy
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmittingReport}
-                    className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer"
+                    className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer"
                   >
                     {isSubmittingReport ? 'Đang gửi...' : 'Gửi Tố Cáo'}
                   </button>
