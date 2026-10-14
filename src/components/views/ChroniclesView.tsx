@@ -151,7 +151,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
                 href="https://www.facebook.com/TuanNotTun/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[#d8d5ce] hover:text-white transition-colors"
+                className="ff-tactile-btn px-3 py-1.5 rounded-lg bg-[#0b0d12] hover:bg-white/[0.08] border border-[#f4f1de]/18 text-[#f4f1de] font-bold transition-colors"
               >
                 Facebook
               </a>
@@ -159,7 +159,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
                 href="https://discord.gg/GMDCnxxJwX"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[#d8d5ce] hover:text-white transition-colors"
+                className="ff-tactile-btn px-3 py-1.5 rounded-lg bg-[#0b0d12] hover:bg-white/[0.08] border border-[#f4f1de]/18 text-[#f4f1de] font-bold transition-colors"
               >
                 Discord
               </a>
@@ -176,7 +176,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
                 <label htmlFor="f-1-ho-va-ten-nguoi-gui" className="block text-xs font-semibold text-[#f4f1de] mb-1.5">
-                  1. Họ và tên người gửi <span className="text-red-400">*</span>
+                  Họ tên <span className="text-red-400">*</span>
                 </label>
                 <input id="f-1-ho-va-ten-nguoi-gui"
                   type="text"
@@ -184,14 +184,14 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
                   maxLength={80}
                   value={name}
                   onChange={e => setUserNameInput(e.target.value)}
-                  placeholder="Ví dụ: Trần Văn Nam"
+                  placeholder="Nhập họ tên..."
                   className="w-full bg-[#0b0d12] border border-[#f4f1de]/18 rounded-xl px-3.5 py-2.5 text-xs text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f] transition-colors"
                 />
               </div>
 
               <div>
                 <label htmlFor="f-2-email-lien-he" className="block text-xs font-semibold text-[#f4f1de] mb-1.5">
-                  2. Email liên hệ <span className="text-red-400">*</span>
+                  Email <span className="text-red-400">*</span>
                 </label>
                 <input id="f-2-email-lien-he"
                   type="email"
@@ -207,7 +207,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-[#f4f1de] mb-1.5">
-                3. Phân loại góp ý <span className="text-red-400">*</span>
+                Phân loại <span className="text-red-400">*</span>
               </label>
               <select
                 value={category}
@@ -224,10 +224,10 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label htmlFor="f-4-noi-dung-chi-tiet-toi-thieu-20" className="text-xs font-semibold text-[#f4f1de]">
-                  4. Nội dung chi tiết (tối thiểu 20 ký tự) <span className="text-red-400">*</span>
+                  Nội dung <span className="text-red-400">*</span>
                 </label>
                 <span className="text-[10px] font-mono text-[#9a978e]">
-                  {content.length}/1000 ký tự
+                  {content.length}/1000
                 </span>
               </div>
               <textarea id="f-4-noi-dung-chi-tiet-toi-thieu-20"
@@ -236,24 +236,25 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
                 maxLength={1000}
                 value={content}
                 onChange={e => setContent(e.target.value)}
-                placeholder="Mô tả cụ thể ý kiến đóng góp, vị trí phát sinh lỗi hoặc đề xuất tính năng hữu ích cho diễn đàn..."
+                placeholder="Nhập nội dung góp ý..."
                 className="w-full bg-[#0b0d12] border border-[#f4f1de]/18 rounded-xl p-3.5 text-xs text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f] transition-colors resize-none leading-relaxed"
               />
             </div>
 
             <div className="flex items-center justify-between pt-2">
               <span className="text-[11px] text-[#9a978e] font-mono">
-                {cooldown > 0 ? `Vui lòng đợi ${cooldown}s để gửi tiếp...` : 'Phản hồi sẽ được xem xét trong 24h'}
+                {cooldown > 0 ? `Chờ ${cooldown}s...` : ''}
               </span>
 
+              {/* Gửi ý kiến đóng góp */}
               <button
                 type="submit"
                 disabled={isSubmitting || cooldown > 0}
-                className="ff-tactile-btn bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border border-[#f4f1de] font-extrabold px-6 py-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-xs"
+                className="ff-tactile-btn bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold px-6 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-xs"
               >
-                <Send className="w-4 h-4 text-[#0b0d12]" />
+                <Send className="w-4 h-4 text-[#e07a5f]" />
                 <span>
-                  {isSubmitting ? 'Đang gửi ý kiến...' : 'Gửi ý kiến đóng góp'}
+                  {isSubmitting ? 'Đang gửi...' : 'Gửi góp ý'}
                 </span>
               </button>
             </div>

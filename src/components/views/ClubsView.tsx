@@ -387,13 +387,13 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold border-[1.5px] whitespace-nowrap transition-colors focus:outline-none cursor-pointer ${
+                  className={`ff-tactile-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-extrabold border whitespace-nowrap transition-colors focus:outline-none cursor-pointer ${
                     isActive
-                      ? 'bg-[#f2cc8f] text-[#0b0d12] border-[#f4f1de] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
-                      : 'bg-[#f4f1de]/[0.04] text-[#d8d5ce] hover:bg-[#f4f1de]/[0.1] border-[#f4f1de]/14'
+                      ? 'bg-[#f4f1de] text-[#0b0d12] border-[#0b0d12]'
+                      : 'bg-[#0b0d12] text-[#d8d5ce] hover:bg-[#f4f1de]/[0.08] border-[#f4f1de]/16'
                   }`}
                 >
-                  <CatIcon className={`w-3.5 h-3.5 ${isActive ? 'text-[#0b0d12]' : 'text-[#9a978e]'}`} />
+                  <CatIcon className={`w-3.5 h-3.5 ${isActive ? 'text-[#e07a5f]' : 'text-[#9a978e]'}`} />
                   <span>{cat}</span>
                 </button>
               );
@@ -420,7 +420,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                       <div className="flex items-center justify-between">
                         <h4 className="font-bold text-white text-xs">{pClub.name}</h4>
                         <span className="text-[10px] font-mono text-neutral-400">
-                          Người nộp: {pClub.leaderName}
+                          {pClub.leaderName}
                         </span>
                       </div>
                       <p className="text-[11px] text-neutral-300 mt-1 line-clamp-2">
@@ -431,17 +431,17 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     <div className="flex items-center gap-2 mt-3 pt-2 border-t border-white/10">
                       <button
                         onClick={() => void onApproveClub(pClub.id)}
-                        className="flex-1 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs flex items-center justify-center gap-1 shadow-md cursor-pointer"
+                        className="ff-tactile-btn flex-1 py-1.5 rounded-lg bg-[#81b29a] hover:bg-[#95c4ae] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs flex items-center justify-center gap-1 cursor-pointer"
                       >
                         <CheckCircle className="w-3.5 h-3.5" />
-                        Phê Duyệt (+250 XP)
+                        Duyệt (+250 XP)
                       </button>
                       <button
                         onClick={() => setRejectPromptClubId(pClub.id)}
-                        className="py-1.5 px-3 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 font-medium text-xs flex items-center justify-center gap-1 border border-red-500/30 cursor-pointer"
+                        className="ff-tactile-btn py-1.5 px-3 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 font-bold text-xs flex items-center justify-center gap-1 border border-rose-400/40 cursor-pointer"
                       >
                         <XCircle className="w-3.5 h-3.5" />
-                        Từ Chối
+                        Từ chối
                       </button>
                     </div>
                   </div>
@@ -575,9 +575,9 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                       setIsCreateModalOpen(true);
                     }
                   }}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-bold text-xs hover:opacity-95 active:scale-95 transition-all cursor-pointer shadow-[0_0_20px_rgba(245,158,11,0.4)]"
+                  className="ff-tactile-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs transition-all cursor-pointer"
                 >
-                  <PlusCircle className="w-4 h-4" />
+                  <PlusCircle className="w-4 h-4 text-[#e07a5f]" />
                   <span>Tạo CLB</span>
                 </button>
               </div>
@@ -691,8 +691,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     <Sparkles className="w-5 h-5 text-[#f2cc8f]" />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-base sm:text-lg text-[#f4f1de]">Đăng Ký Thành Lập CLB Mới</h3>
-                    <p className="text-xs text-[#9a978e] mt-0.5">Hoàn thiện hồ sơ để Ban Quản Trị xét duyệt</p>
+                    <h3 className="font-extrabold text-base sm:text-lg text-[#f4f1de]">Tạo CLB</h3>
                   </div>
                 </div>
                 <button
@@ -964,25 +963,25 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-extrabold text-[#f4f1de] text-sm flex items-center gap-2">
                       <FileText className="w-4 h-4 text-[#f2cc8f]" />
-                      BẢNG TIN THÔNG BÁO NỘI BỘ
+                      BẢNG TIN
                     </h4>
                     {/* Scoped permission indicator */}
                     {isSuperAdmin || currentUser?.scopedClubIds?.includes(selectedClub.id) ? (
                       <span className="text-[11px] font-mono px-2.5 py-1 rounded-md bg-[#81b29a]/20 text-[#d8f3dc] border border-[#81b29a]/40">
-                        Quyền Đăng Bài: ĐÃ CẤP
+                        Được đăng
                       </span>
                     ) : (
                       <span className="text-[11px] font-mono px-2.5 py-1 rounded-md bg-[#0b0d12] text-[#9a978e] border border-[#f4f1de]/12 flex items-center gap-1">
-                        <Lock className="w-3 h-3" /> Chỉ Xem
+                        <Lock className="w-3 h-3" /> Chỉ xem
                       </span>
                     )}
                   </div>
 
                   {/* Form to post: visible/scoped only to leader or Super Admin */}
-                  {isSuperAdmin || currentUser?.scopedClubIds?.includes(selectedClub.id) ? (
+                  {(isSuperAdmin || currentUser?.scopedClubIds?.includes(selectedClub.id)) && (
                     <div className="p-4 sm:p-5 rounded-xl bg-[#0b0d12]/85 border-[1.5px] border-[#f2cc8f]/40 mb-4 space-y-3">
                       <div>
-                        <label className="block text-xs font-bold text-[#f2cc8f] mb-1.5">Tiêu đề thông báo (*):</label>
+                        <label className="block text-xs font-bold text-[#f2cc8f] mb-1.5">Tiêu đề (*):</label>
                         <input
                           type="text"
                           maxLength={100}
@@ -993,7 +992,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-[#f2cc8f] mb-1.5">Nội dung chi tiết (*):</label>
+                        <label className="block text-xs font-bold text-[#f2cc8f] mb-1.5">Nội dung (*):</label>
                         <textarea
                           rows={4}
                           maxLength={1000}
@@ -1008,17 +1007,13 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                           type="button"
                           onClick={() => handleNewPost(selectedClub.id)}
                           disabled={postCooldown > 0 || isSubmittingPost}
-                          className="ff-tactile-btn px-5 py-2.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border-[1.5px] border-[#f4f1de] font-extrabold text-xs sm:text-sm flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                          className="ff-tactile-btn px-5 py-2.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs sm:text-sm flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
-                          <Send className="w-4 h-4 text-[#0b0d12]" />
-                          <span>{postCooldown > 0 ? `Chờ ${postCooldown}s...` : isSubmittingPost ? 'Đang gửi...' : 'Đăng bài thông báo'}</span>
+                          <Send className="w-4 h-4 text-[#e07a5f]" />
+                          <span>{postCooldown > 0 ? `Chờ ${postCooldown}s...` : isSubmittingPost ? 'Đang gửi...' : 'Đăng bài'}</span>
                         </button>
                       </div>
                     </div>
-                  ) : (
-                    <p className="text-xs text-[#9a978e] italic mb-3">
-                      * Chỉ Chủ nhiệm của CLB này hoặc Super Admin mới có quyền đăng thông báo.
-                    </p>
                   )}
 
                   {/* Posts List */}

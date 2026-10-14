@@ -254,16 +254,16 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
             <button
               type="button"
               onClick={markAllAsRead}
-              className="text-[11px] text-white/50 hover:text-amber-300 transition-colors cursor-pointer flex items-center gap-1"
+              className="ff-tactile-btn px-2.5 py-1 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[11px] font-bold text-[#d8d5ce] hover:text-[#f2cc8f] transition-colors cursor-pointer flex items-center gap-1"
               title="Đánh dấu tất cả là đã đọc"
             >
-              <CheckCheck className="w-3.5 h-3.5" />
+              <CheckCheck className="w-3.5 h-3.5 text-[#81b29a]" />
               <span>Đã đọc</span>
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="p-1 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="ff-tactile-btn p-1.5 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] transition-colors cursor-pointer"
               aria-label="Đóng thông báo"
             >
               <X size={15} />
@@ -272,7 +272,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         </div>
 
         {/* Tab Filters: Tất cả | Hệ thống | Tương tác */}
-        <div className="grid grid-cols-3 gap-1 p-1 bg-black/50 rounded-2xl mb-3 border border-white/10">
+        <div className="grid grid-cols-3 gap-1.5 p-1 bg-[#0b0d12]/80 rounded-2xl mb-3 border border-[#f4f1de]/15">
           {(['all', 'system', 'interactive'] as const).map((tab) => {
             const isActive = notifTab === tab;
             return (
@@ -283,10 +283,10 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
                   e.stopPropagation();
                   setNotifTab(tab);
                 }}
-                className={`py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                className={`ff-tactile-btn py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer border ${
                   isActive
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
-                    : 'text-white/60 hover:text-white border border-transparent'
+                    ? 'bg-[#f4f1de] text-[#0b0d12] border-[#0b0d12]'
+                    : 'bg-transparent text-[#d8d5ce] hover:text-[#f4f1de] border-transparent'
                 }`}
               >
                 {tab === 'all' ? 'Tất cả' : tab === 'system' ? 'Hệ thống' : 'Tương tác'}

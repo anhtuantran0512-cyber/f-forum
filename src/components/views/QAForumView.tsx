@@ -27,7 +27,6 @@ import {
   Flag,
   User as UserIcon,
   Coins,
-  Shield,
   Bookmark,
   BookmarkCheck,
   ArrowUpDown,
@@ -998,7 +997,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [solImageError, setSolImageError] = useState<string | null>(null);
   const [solDraftRestoredAt, setSolDraftRestoredAt] = useState<number | null>(null);
   const [isAskModalScrolled, setIsAskModalScrolled] = useState(false);
-  const [isAskContentFocused, setIsAskContentFocused] = useState(false);
 
   /* Phần 2.2b — Auto-save Draft cho câu trả lời (lưu mỗi khi gõ & định kỳ mỗi 10s,
      khôi phục tự động khi mở lại câu hỏi hoặc sau khi đăng nhập lại) */
@@ -2331,21 +2329,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         rows={5}
                         maxLength={1500}
                         value={newContent}
-                        onFocus={() => setIsAskContentFocused(true)}
-                        onBlur={() => setIsAskContentFocused(false)}
                         onChange={e => setNewContent(e.target.value)}
                         placeholder="Ghi rõ đề bài, dữ kiện đã cho và bước biến đổi đang vướng mắc..."
                         className="w-full min-h-[152px] bg-transparent text-[15px] text-[#f4f1de] placeholder-[#84817a] focus:outline-none resize-y leading-[1.7] ask2027-scrollbar"
                       />
-
-                      {isAskContentFocused && (
-                        <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-dashed border-[#f4f1de]/12 text-[11.5px] animate-fade-up">
-                          <span className="text-[#f2cc8f] flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-[#e07a5f] shrink-0" />
-                            <span>Mẹo: Mở "Bảng ký hiệu toán" ở mục 03 bên dưới để chèn nhanh ∫, ∑, √, π...</span>
-                          </span>
-                        </div>
-                      )}
                     </div>
                   </div>
 
@@ -3508,9 +3495,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 </span>
                 <div>
                   <h3 className="font-extrabold text-base sm:text-lg text-[#f4f1de]">
-                    {questionToDelete ? 'Xác nhận xóa bài viết' : 'Xác nhận xóa lời giải vi phạm'}
+                    {questionToDelete ? 'Xóa câu hỏi' : 'Xóa lời giải'}
                   </h3>
-                  <p className="text-xs text-[#9a978e]">Lưu nhật ký kiểm duyệt &amp; gửi thông báo tới tác giả</p>
                 </div>
               </div>
               <button
@@ -3520,7 +3506,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   setSolutionToDelete(null);
                   setDeleteReasonNote('');
                 }}
-                className="p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
+                className="ff-tactile-btn p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
                 aria-label="Đóng"
               >
                 <X className="w-4 h-4" />
@@ -3531,18 +3517,18 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               <div className="p-4 rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15 text-xs sm:text-sm text-[#d8d5ce] leading-relaxed">
                 {questionToDelete ? (
                   <>
-                    Bạn sắp xóa câu hỏi <strong className="text-[#f4f1de]">"{questionToDelete.title}"</strong>. Hệ thống sẽ lưu bản chụp vào <code>ModerationLogs</code> và gửi thông báo kèm lý do cho tác giả.
+                    Xóa câu hỏi <strong className="text-[#f4f1de]">"{questionToDelete.title}"</strong>.
                   </>
                 ) : (
                   <>
-                    Bạn sắp xóa lời giải của <strong className="text-[#f4f1de]">{solutionToDelete?.authorName}</strong>. Số slot trả lời của câu hỏi sẽ tự động giảm xuống để mở lại chỗ trống.
+                    Xóa lời giải của <strong className="text-[#f4f1de]">{solutionToDelete?.authorName}</strong>.
                   </>
                 )}
               </div>
 
               <div className="space-y-2.5">
                 <span className="block text-xs sm:text-sm font-bold text-[#f4f1de]">
-                  Chọn lý do xóa bài (Bắt buộc *):
+                  Lý do (*):
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {MODERATION_REASON_OPTIONS.map(opt => (
@@ -3571,7 +3557,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs sm:text-sm font-bold text-[#f4f1de]">
-                    Ghi chú hướng dẫn thêm cho tác giả (Tùy chọn):
+                    Ghi chú:
                   </label>
                   <span className="text-xs font-mono text-[#9a978e]">{deleteReasonNote.length}/200</span>
                 </div>
@@ -3580,7 +3566,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   maxLength={200}
                   value={deleteReasonNote}
                   onChange={e => setDeleteReasonNote(e.target.value)}
-                  placeholder="VD: Vui lòng trình bày rõ đề bài và các bước biến đổi..."
+                  placeholder="Ghi chú thêm (nếu có)..."
                   className="w-full bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-rose-400"
                 />
               </div>
@@ -3594,16 +3580,16 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   setSolutionToDelete(null);
                   setDeleteReasonNote('');
                 }}
-                className="px-4 py-2.5 rounded-xl bg-[#0b0d12] hover:bg-[#f4f1de]/10 border border-[#f4f1de]/18 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-[#f4f1de] transition-colors cursor-pointer"
+                className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#0b0d12] hover:bg-[#f4f1de]/10 border border-[#f4f1de]/18 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-[#f4f1de] transition-colors cursor-pointer"
               >
-                Hủy bỏ
+                Hủy
               </button>
               <button
                 type="button"
                 onClick={questionToDelete ? handleConfirmDelete : handleConfirmDeleteSolution}
                 className="ff-tactile-btn px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs sm:text-sm transition-all cursor-pointer"
               >
-                Xác nhận xóa &amp; Gửi thông báo
+                Xóa
               </button>
             </div>
           </div>
@@ -3629,14 +3615,13 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   <Edit3 className="w-5 h-5" />
                 </span>
                 <div>
-                  <h3 className="font-extrabold text-base sm:text-lg text-[#f4f1de]">Chỉnh sửa bài viết &amp; nội dung Q&amp;A</h3>
-                  <p className="text-xs text-[#9a978e]">Cập nhật môn học, tiêu đề và nội dung chi tiết của câu hỏi</p>
+                  <h3 className="font-extrabold text-base sm:text-lg text-[#f4f1de]">Chỉnh sửa câu hỏi</h3>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setQuestionToEdit(null)}
-                className="p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
+                className="ff-tactile-btn p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
                 aria-label="Đóng"
               >
                 <X className="w-4 h-4" />
@@ -3872,8 +3857,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   <Flag className="w-5 h-5" />
                 </span>
                 <div>
-                  <h3 className="font-extrabold text-base sm:text-lg text-[#f4f1de]">Báo Cáo Bài Viết / Tài Khoản Vi Phạm</h3>
-                  <p className="text-xs text-[#9a978e]">Chuyển trực tiếp tới Ban Quản Trị F-Forum để kiểm duyệt</p>
+                  <h3 className="font-extrabold text-base sm:text-lg text-[#f4f1de]">Báo cáo vi phạm</h3>
                 </div>
               </div>
               <button
@@ -3882,7 +3866,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   setReportModalUser(null);
                   setReportSuccessMsg(null);
                 }}
-                className="p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
+                className="ff-tactile-btn p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -3898,9 +3882,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     setReportModalUser(null);
                     setReportSuccessMsg(null);
                   }}
-                  className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-extrabold cursor-pointer"
+                  className="ff-tactile-btn px-6 py-2.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] text-xs sm:text-sm font-extrabold cursor-pointer"
                 >
-                  Đóng cửa sổ
+                  Đóng
                 </button>
               </div>
             ) : (
@@ -3909,12 +3893,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   <p role="alert" className="ff-report-error">{reportErrorMsg}</p>
                 )}
                 <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-xs sm:text-sm text-slate-300">
-                  Đối tượng báo cáo: <strong className="text-white">{reportModalUser.name}</strong>
+                  Đối tượng: <strong className="text-white">{reportModalUser.name}</strong>
                 </div>
 
                 <div className="space-y-2.5">
                   <label className="block text-xs sm:text-sm font-bold text-slate-200">
-                    Lý do vi phạm (*):
+                    Lý do (*):
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {[
@@ -3927,7 +3911,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         key={reasonOpt}
                         type="button"
                         onClick={() => setReportReason(reasonOpt)}
-                        className={`px-3.5 py-2.5 rounded-xl text-left text-xs font-semibold border transition cursor-pointer ${
+                        className={`ff-tactile-btn px-3.5 py-2.5 rounded-xl text-left text-xs font-semibold border transition cursor-pointer ${
                           reportReason === reasonOpt
                             ? 'bg-rose-500/20 border-rose-400 text-rose-100 shadow-sm'
                             : 'bg-white/[0.03] hover:bg-white/[0.07] border-white/10 text-slate-300'
@@ -3953,7 +3937,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label htmlFor="chi-tiet-vi-pham" className="block text-xs sm:text-sm font-bold text-[#f4f1de]">
-                      Chi tiết vi phạm &amp; dẫn chứng:
+                      Chi tiết:
                     </label>
                     <span className="text-xs font-mono text-[#9a978e]">{reportDetails.length}/500</span>
                   </div>
@@ -3963,32 +3947,25 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     onChange={e => setReportDetails(e.target.value)}
                     maxLength={500}
                     rows={4}
-                    placeholder="Mô tả cụ thể nội dung bài viết hoặc hành vi vi phạm để Ban Quản Trị xử lý..."
+                    placeholder="Mô tả nội dung vi phạm..."
                     className="w-full min-h-[115px] bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-rose-400 leading-relaxed resize-y"
                   />
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-rose-950/35 border border-rose-500/25 text-xs text-rose-200 flex items-start gap-2.5">
-                  <Shield className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                  <span>
-                    Báo cáo vi phạm sẽ được chuyển tới Ban Quản Trị để xem xét và xử lý theo nội quy trường học.
-                  </span>
                 </div>
 
                 <div className="pt-3 flex items-center justify-end gap-3 border-t border-white/10">
                   <button
                     type="button"
                     onClick={() => setReportModalUser(null)}
-                    className="px-4 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs sm:text-sm font-bold text-slate-300 hover:text-white cursor-pointer"
+                    className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 text-xs sm:text-sm font-bold text-slate-300 hover:text-white cursor-pointer"
                   >
-                    Hủy bỏ
+                    Hủy
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmittingReport}
-                    className="px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs sm:text-sm shadow-lg disabled:opacity-50 cursor-pointer"
+                    className="ff-tactile-btn px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs sm:text-sm disabled:opacity-50 cursor-pointer"
                   >
-                    {isSubmittingReport ? 'Đang gửi...' : 'Gửi Báo Cáo Vi Phạm'}
+                    {isSubmittingReport ? 'Đang gửi...' : 'Gửi báo cáo'}
                   </button>
                 </div>
               </form>

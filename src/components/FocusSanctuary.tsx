@@ -224,9 +224,7 @@ const FocusSanctuaryInner: React.FC<{
                   {isRunning ? 'ĐANG HỌC' : 'SẴN SÀNG'}
                 </span>
               </div>
-              <p className="text-xs text-[#9a978e] font-mono truncate">
-                Đóng cửa sổ này vẫn KHÔNG mất phiên học — đồng hồ chạy theo thời gian thật
-              </p>
+              {/* Đóng cửa sổ này vẫn KHÔNG mất phiên học — đồng hồ chạy theo thời gian thật */}
             </div>
           </div>
 
@@ -234,7 +232,7 @@ const FocusSanctuaryInner: React.FC<{
 
             <button
               onClick={onClose}
-              className="p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] transition-colors"
+              className="ff-tactile-btn p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] transition-colors cursor-pointer"
               title="Đóng HUD (phiên học vẫn tiếp tục)"
             >
               <X className="w-5 h-5" />
@@ -267,10 +265,10 @@ const FocusSanctuaryInner: React.FC<{
           </div>              {flash && (
             <p className="ff-focus-flash mt-2.5 text-[11px] font-semibold text-emerald-300 inline-flex items-center gap-1.5 flex-wrap">
               <Check className="w-3.5 h-3.5 shrink-0" />
-              <span>Đã ghi +{flash.minutes} phút vào nhật ký · hôm nay {formatDuration(flash.total)}. Nghỉ 5 phút rồi học tiếp nhé!</span>
-              {flash.minutes >= 120 ? <span className="text-amber-300 font-bold ml-1">Mốc 120p: +120 Coin và Rương Huyền Bí. 🎉</span> :
-               flash.minutes >= 60 ? <span className="text-amber-300 font-bold ml-1">Mốc 60p: +60 Coin và Hộp Quà Nhỏ. 🎁</span> :
-               flash.minutes >= 25 ? <span className="text-amber-300 font-bold ml-1">Mốc 25p: +25 Coin. ⚡</span> : null}
+              <span>Đã ghi +{flash.minutes} phút ({formatDuration(flash.total)} hôm nay).</span>
+              {flash.minutes >= 120 ? <span className="text-amber-300 font-bold ml-1">+120 Coin &amp; Rương Huyền Bí</span> :
+               flash.minutes >= 60 ? <span className="text-amber-300 font-bold ml-1">+60 Coin &amp; Hộp Quà Nhỏ</span> :
+               flash.minutes >= 25 ? <span className="text-amber-300 font-bold ml-1">+25 Coin</span> : null}
             </p>
           )}
         </div>
@@ -279,20 +277,20 @@ const FocusSanctuaryInner: React.FC<{
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-stretch">
           {/* Left: Pomodoro */}
           <div className="lg:col-span-7 flex flex-col items-center justify-between p-6 rounded-xl bg-[#0b0d12]/80 border-[1.5px] border-[#f4f1de]/14 space-y-6">
-            <div className="flex items-center bg-[#151a26] p-1.5 rounded-xl border border-[#f4f1de]/14 w-full max-w-xs justify-center">
+            <div className="flex items-center gap-1.5 bg-[#151a26] p-1.5 rounded-xl border border-[#f4f1de]/14 w-full max-w-xs justify-center">
               <button
                 onClick={() => handleSwitchMode('work')}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                  activeMode === 'work' ? 'bg-[#e07a5f] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]' : 'text-[#9a978e] hover:text-[#f4f1de]'
+                className={`ff-tactile-btn flex-1 py-1.5 px-3 rounded-lg text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer border ${
+                  activeMode === 'work' ? 'bg-[#f4f1de] text-[#0b0d12] border-[#0b0d12]' : 'text-[#9a978e] hover:text-[#f4f1de] border-transparent'
                 }`}
               >
-                <Timer className="w-3.5 h-3.5" />
+                <Timer className="w-3.5 h-3.5 text-[#e07a5f]" />
                 <span>Học ({targetMinutes}m)</span>
               </button>
               <button
                 onClick={() => handleSwitchMode('break')}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                  activeMode === 'break' ? 'bg-[#81b29a] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]' : 'text-[#9a978e] hover:text-[#f4f1de]'
+                className={`ff-tactile-btn flex-1 py-1.5 px-3 rounded-lg text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer border ${
+                  activeMode === 'break' ? 'bg-[#81b29a] text-[#0b0d12] border-[#0b0d12]' : 'text-[#9a978e] hover:text-[#f4f1de] border-transparent'
                 }`}
               >
                 <Coffee className="w-3.5 h-3.5" />

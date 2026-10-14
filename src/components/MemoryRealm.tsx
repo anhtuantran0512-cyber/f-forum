@@ -829,16 +829,13 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
               <div className="flex items-center justify-between border-b border-dashed border-[#f4f1de]/15 pb-4">
                 <div>
                   <h3 className="text-lg sm:text-xl font-extrabold text-[#f4f1de]">
-                    Quản Trị Khu Kỷ Niệm (Miền Ký Ức) Toàn Diện
+                    Quản Trị Miền Ký Ức
                   </h3>
-                  <p className="text-xs text-[#9a978e] mt-0.5">
-                    Thay thế hình ảnh và nội dung ở tất cả thẻ cột mốc, phân đoạn câu chuyện và 7 lớp cảnh nền Parallax
-                  </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsAdminModalOpen(false)}
-                  className="p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
+                  className="ff-tactile-btn p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -849,35 +846,35 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                 <button
                   type="button"
                   onClick={() => setAdminTab('sights')}
-                  className={`py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  className={`ff-tactile-btn py-2.5 px-3 rounded-lg text-xs sm:text-sm font-extrabold transition-all cursor-pointer border ${
                     adminTab === 'sights'
-                      ? 'bg-[#e07a5f] text-[#0b0d12] shadow-md'
-                      : 'text-[#d8d5ce] hover:text-[#f4f1de] hover:bg-white/5'
+                      ? 'bg-[#f4f1de] text-[#0b0d12] border-[#0b0d12]'
+                      : 'text-[#d8d5ce] hover:text-[#f4f1de] border-transparent'
                   }`}
                 >
-                  1. 5 Thẻ Cột Mốc Kỷ Niệm (Ảnh &amp; Chữ)
+                  1. Cột mốc
                 </button>
                 <button
                   type="button"
                   onClick={() => setAdminTab('copy')}
-                  className={`py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  className={`ff-tactile-btn py-2.5 px-3 rounded-lg text-xs sm:text-sm font-extrabold transition-all cursor-pointer border ${
                     adminTab === 'copy'
-                      ? 'bg-[#e07a5f] text-[#0b0d12] shadow-md'
-                      : 'text-[#d8d5ce] hover:text-[#f4f1de] hover:bg-white/5'
+                      ? 'bg-[#f4f1de] text-[#0b0d12] border-[#0b0d12]'
+                      : 'text-[#d8d5ce] hover:text-[#f4f1de] border-transparent'
                   }`}
                 >
-                  2. Nội Dung Chữ Ở Mọi Phân Đoạn
+                  2. Nội dung
                 </button>
                 <button
                   type="button"
                   onClick={() => setAdminTab('layers')}
-                  className={`py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  className={`ff-tactile-btn py-2.5 px-3 rounded-lg text-xs sm:text-sm font-extrabold transition-all cursor-pointer border ${
                     adminTab === 'layers'
-                      ? 'bg-[#e07a5f] text-[#0b0d12] shadow-md'
-                      : 'text-[#d8d5ce] hover:text-[#f4f1de] hover:bg-white/5'
+                      ? 'bg-[#f4f1de] text-[#0b0d12] border-[#0b0d12]'
+                      : 'text-[#d8d5ce] hover:text-[#f4f1de] border-transparent'
                   }`}
                 >
-                  3. Thay Thế 7 Lớp Ảnh Cảnh Nền
+                  3. Cảnh nền
                 </button>
               </div>
 
@@ -1330,25 +1327,25 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                 <button
                   type="button"
                   onClick={() => setCmsData(DEFAULT_MEMORY_CMS)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-semibold text-slate-300 cursor-pointer"
+                  className="ff-tactile-btn inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#0b0d12] hover:bg-white/10 border border-[#f4f1de]/18 text-xs sm:text-sm font-semibold text-[#d8d5ce] cursor-pointer"
                 >
                   <RotateCcw className="w-4 h-4" />
-                  <span>Khôi phục toàn bộ mặc định</span>
+                  <span>Khôi phục</span>
                 </button>
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => setIsAdminModalOpen(false)}
-                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-slate-300 hover:text-white cursor-pointer"
+                    className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#0b0d12] hover:bg-white/10 border border-[#f4f1de]/18 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-white cursor-pointer"
                   >
                     Đóng
                   </button>
                   <button
                     type="button"
                     onClick={handleSaveMemoryCMS}
-                    className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs sm:text-sm shadow-lg cursor-pointer transition-all"
+                    className="ff-tactile-btn px-6 py-2.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs sm:text-sm cursor-pointer transition-all"
                   >
-                    Lưu &amp; Đồng bộ Khu Kỷ Niệm
+                    Lưu
                   </button>
                 </div>
               </div>
