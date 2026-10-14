@@ -584,15 +584,13 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
 
         {list.length > 0 && (
           <p className="ff-board__micro">
-            Bảng chỉ gồm tài khoản thật đã đăng ký, xếp theo hoạt động thật (XP, giờ học) — ai bằng điểm thì xếp theo tên.
-            {metric === 'hours' && ' Dấu ≈ là số giờ quy đổi từ XP tích luỹ của người chưa mở phòng tập trung.'}
-            {metric === 'points' && ' Thành viên chưa đăng nhập không xuất hiện trên bảng.'}
+            Bảng chỉ gồm tài khoản thật, xếp theo hoạt động thực tế (XP & giờ học).
           </p>
         )}
 
         {metric === 'hours' && list.length === 0 && podium.length > 0 && (
           <p className="ff-board__micro">
-            <Minus className="w-3 h-3" /> Chưa có thêm thành viên nào khác trong kỳ này.
+            <Minus className="w-3 h-3" /> Chưa có thêm thành viên trong kỳ này.
           </p>
         )}
 
@@ -611,7 +609,6 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
               priority="high"
             />
             <span className="relative z-[2] ff-board__me-rank font-mono">#{meEntry.rank}</span>
-            {/* Nhiệm vụ 10 — 34px + trang trí của chính user. */}
             <span className="relative z-[2] shrink-0">
               <DecoratedAvatar
                 user={currentUser}
@@ -620,7 +617,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                 eager
                 animate
                 alt={currentUser.name}
-                className="rounded-full ring-2 ring-sky-400/70"
+                className="rounded-full ring-2 ring-[#f2cc8f]/70"
               />
             </span>
             <span className="relative z-[2] ff-board__me-name flex items-center min-w-0">
@@ -639,18 +636,11 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
           </button>
         )}
 
-        {metric === 'hours' && (
-          <p className="ff-board__note">
-            Số giờ của bạn lấy từ nhật ký Phòng Tập Trung (phiên 25 phút, dừng sớm vẫn tính phần đã học); thành
-            viên khác được quy đổi từ XP tích luỹ.
-          </p>
-        )}
-
         <div className="pt-0.5 flex justify-end">
           <button
             type="button"
             onClick={() => setPeriod('all')}
-            className="text-xs text-[#38bdf8] hover:text-sky-300 font-semibold inline-flex items-center gap-1 transition-colors cursor-pointer"
+            className="text-xs text-[#f2cc8f] hover:text-[#f4f1de] font-semibold inline-flex items-center gap-1 transition-colors cursor-pointer"
           >
             <span>Toàn thời gian</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -672,28 +662,23 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
         <StudyHoursDetail sessions={mySessions} onOpenFocusMode={onOpenFocusMode} />
       )}
 
-      {/* Ask CTA */}
-      <div className="rounded-3xl bg-[#0c1218]/90 backdrop-blur-2xl border border-amber-400/30 p-5 shadow-xl flex flex-col items-center text-center gap-3 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-transparent to-orange-500/10 pointer-events-none" />
-
-        <div className="relative z-10 flex items-center justify-center gap-1.5 text-amber-400 font-bold text-xs uppercase font-mono tracking-wider">
-          <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-          <span>Cần trợ giúp bài tập?</span>
+      {/* Ask CTA (Bento + Neo-Brutalist + Tactile Squishy) */}
+      <div className="ff-bento-cell !p-4 flex flex-col items-start gap-2.5 relative overflow-hidden">
+        <div className="flex items-center gap-1.5 text-[#f2cc8f] font-bold text-xs font-sans">
+          <Sparkles className="w-3.5 h-3.5 text-[#e07a5f]" />
+          <span>Bạn muốn hỏi điều gì?</span>
         </div>
 
-        <h3 className="relative z-10 text-sm sm:text-base font-extrabold text-white tracking-tight">
-          Bạn muốn hỏi điều gì?
-        </h3>
-        <p className="relative z-10 text-xs text-neutral-300 max-w-xs leading-relaxed">
-          Đăng bài tập toán, lý, hóa, văn, ngoại ngữ hay lập trình để nhận giải đáp từ cộng đồng.
+        <p className="text-xs text-[#d8d5ce] leading-relaxed">
+          Kẹt bài tập khó? Đăng câu hỏi kèm ảnh đề bài để cùng giải với mọi người.
         </p>
 
         <MagneticButton
           variant="gold"
           onClick={onOpenAskModal}
-          className="relative z-10 w-full py-3 px-6 rounded-2xl !bg-gradient-to-r !from-[#EAB308] !to-[#F59E0B] text-neutral-950 font-black text-xs sm:text-sm tracking-wider uppercase shadow-[0_6px_25px_rgba(234,179,8,0.4)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.6)] cursor-pointer"
+          className="ff-tactile-btn w-full py-2.5 px-4 rounded-xl !bg-[#e07a5f] hover:!bg-[#f2cc8f] text-[#0b0d12] font-extrabold text-xs border-[1.5px] border-[#f4f1de] cursor-pointer"
         >
-          <HelpCircle className="w-4 h-4 text-neutral-950" />
+          <HelpCircle className="w-4 h-4 text-[#0b0d12]" />
           <span>Đặt câu hỏi</span>
         </MagneticButton>
       </div>

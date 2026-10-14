@@ -320,34 +320,42 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
       {/* Main Container */}
       <div className={`relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col pt-3 ${isEmbedded ? '' : 'overflow-hidden'}`}>
         
-        {/* Top Header Bar & Category Filter */}
-        <div className="flex flex-col gap-3 mb-5 pb-3 border-b border-white/10 shrink-0">
+        {/* Top Editorial Bento Header & Category Filter */}
+        <div className="ff-bento-cell !p-4 sm:!p-5 mb-5 shrink-0 flex flex-col gap-3">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <Trophy className="club-badge-accent w-6 h-6 text-amber-400 shrink-0" />
-              <h1 className="ff-typo-poster !text-xl sm:!text-2xl text-white">
-                Quảng Trường Câu Lạc Bộ
-              </h1>
-              <InfoTip label="Cách tính danh hiệu CLB xuất sắc" align="start">
-                Danh hiệu CLB Xuất Sắc Nhất Tháng được tổng hợp tự động dựa trên tần suất đăng bài hoạt động và mức độ thảo luận thực tế của thành viên.
-              </InfoTip>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="w-10 h-10 rounded-xl bg-[#f2cc8f]/15 border-[1.5px] border-[#f2cc8f]/45 flex items-center justify-center shrink-0 shadow-[2px_2px_0px_rgba(4,6,11,0.9)]">
+                <Trophy className="club-badge-accent w-5 h-5 text-[#f2cc8f] shrink-0" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="ff-typo-poster !text-xl sm:!text-2xl text-[#f4f1de]">
+                    Câu Lạc Bộ
+                  </h1>
+                  <InfoTip label="Cách tính danh hiệu CLB xuất sắc" align="start">
+                    Danh hiệu CLB Xuất Sắc Nhất Tháng được tổng hợp tự động dựa trên tần suất đăng bài hoạt động và mức độ thảo luận thực tế của thành viên.
+                  </InfoTip>
+                </div>
+                <svg className="w-24 h-2 mt-0.5 ff-organic-squiggle" viewBox="0 0 120 8" aria-hidden="true">
+                  <path d="M2 5 C24 1, 48 8, 72 4 S98 1, 118 5" />
+                </svg>
+              </div>
             </div>
 
-            <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="flex items-center gap-2.5 w-full sm:w-auto">
               {/* Search Input */}
               <div className="relative flex-1 sm:w-64">
-                <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-[#9a978e] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   maxLength={100}
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   placeholder="Tìm tên CLB, sở thích..."
-                  className="w-full pl-9 pr-4 py-2 rounded-xl text-xs bg-neutral-900/80 border border-white/15 text-white placeholder-neutral-400 focus:outline-none focus:border-amber-400 transition-colors"
+                  className="w-full pl-8 pr-4 py-2 rounded-lg text-xs bg-[#0b0d12]/85 border-[1.5px] border-[#f4f1de]/15 text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f]/60 transition-colors"
                 />
               </div>
 
-              {/* Fix 2: Chỉ giữ 1 nút "Đăng ký thành lập CLB" duy nhất ở góc trên phải khi đã có CLB */}
               {approvedClubs.length > 0 && (
                 <button
                   type="button"
@@ -358,19 +366,19 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                       setIsCreateModalOpen(true);
                     }
                   }}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:opacity-95 active:scale-95 transition-all shadow-[0_0_20px_rgba(245,158,11,0.5)] flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                  className="ff-tactile-btn px-4 py-2 rounded-lg text-xs font-extrabold bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border-[1.5px] border-[#f4f1de] transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
                 >
-                  <PlusCircle className="w-4 h-4 text-black" />
+                  <PlusCircle className="w-4 h-4 text-[#0b0d12]" />
                   <span>Đăng ký thành lập CLB</span>
                 </button>
               )}
             </div>
           </div>
 
-          {/* Filter by category: Công nghệ, Nghệ thuật, Thể thao, Học thuật */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <Filter className="w-3.5 h-3.5 text-neutral-400 shrink-0 mr-0.5" />
-            <span className="text-xs text-neutral-400 font-semibold mr-1 shrink-0">Chuyên mục:</span>
+          {/* Filter by category: Neo-Brutalist Tags */}
+          <div className="flex items-center gap-2 overflow-x-auto pt-2 border-t border-dashed border-[#f4f1de]/10 pb-0.5 scrollbar-none">
+            <Filter className="w-3.5 h-3.5 text-[#9a978e] shrink-0 mr-0.5" />
+            <span className="text-xs text-[#9a978e] font-mono font-bold mr-1 shrink-0">Nhóm:</span>
             {CATEGORIES.map(cat => {
               const isActive = selectedCategory === cat;
               const CatIcon = getCategoryIcon(cat);
@@ -378,13 +386,13 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all focus:outline-none cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold border-[1.5px] whitespace-nowrap transition-colors focus:outline-none cursor-pointer ${
                     isActive
-                      ? 'bg-amber-400 text-black font-bold shadow-[0_0_12px_rgba(251,191,36,0.6)]'
-                      : 'bg-white/5 text-neutral-300 hover:bg-white/15 border border-white/10'
+                      ? 'bg-[#f2cc8f] text-[#0b0d12] border-[#f4f1de] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
+                      : 'bg-[#f4f1de]/[0.04] text-[#d8d5ce] hover:bg-[#f4f1de]/[0.1] border-[#f4f1de]/14'
                   }`}
                 >
-                  <CatIcon className={`w-3.5 h-3.5 ${isActive ? 'text-black' : 'text-neutral-400'}`} />
+                  <CatIcon className={`w-3.5 h-3.5 ${isActive ? 'text-[#0b0d12]' : 'text-[#9a978e]'}`} />
                   <span>{cat}</span>
                 </button>
               );
@@ -450,25 +458,25 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
             <div
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
-              className="relative w-full rounded-3xl liquid-glass bg-neutral-950/75 border border-amber-500/40 p-5 sm:p-6 shadow-2xl transition-transform duration-200 overflow-hidden group"
+              className="ff-holo-card relative w-full rounded-2xl p-5 sm:p-6 transition-transform duration-200 overflow-hidden group"
             >
               <div
-                className="absolute inset-0 bg-cover bg-center opacity-30 group-hover:opacity-40 transition-opacity duration-500"
+                className="absolute inset-0 bg-cover bg-center opacity-25 group-hover:opacity-35 transition-opacity duration-500"
                 style={{ backgroundImage: `url(${spotlightClub.coverImage})` }}
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-950/85 to-black/50" />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#0b0d12] via-[#0b0d12]/88 to-[#0b0d12]/55" />
 
               <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="max-w-xl space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <div className="club-badge-accent inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-[11px] font-bold text-amber-300">
-                      <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                      CLB XUẤT SẮC NHẤT THÁNG
+                    <div className="club-badge-accent ff-holo-badge inline-flex items-center gap-2 px-3 py-1 rounded-md text-[11px] font-bold text-[#f4f1de]">
+                      <Trophy className="w-3.5 h-3.5 text-[#f2cc8f]" />
+                      CLB TIÊU BIỂU THÁNG
                     </div>
                     {(() => {
                       const SpotIcon = getCategoryIcon(spotlightClub.category);
                       return (
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold shadow-xs border inline-flex items-center gap-1 ${getCategoryBadgeClass(spotlightClub.category)}`}>
+                        <span className={`ff-brutal-tag ${getCategoryBadgeClass(spotlightClub.category)}`}>
                           <SpotIcon className="w-3 h-3 shrink-0" />
                           <span>{spotlightClub.category}</span>
                         </span>
@@ -476,19 +484,19 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     })()}
                   </div>
 
-                  <h2 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
+                  <h2 className="ff-typo-poster !text-xl sm:!text-3xl text-[#f4f1de]">
                     {spotlightClub.name}
                   </h2>
 
                   {spotlightClub.slogan && (
-                    <p className="text-xs sm:text-sm text-amber-200/90 italic line-clamp-2 max-w-xl font-sans">
+                    <p className="text-xs sm:text-sm text-[#f2cc8f] italic line-clamp-2 max-w-xl font-sans">
                       "{spotlightClub.slogan}"
                     </p>
                   )}
 
-                  <div className="flex items-center gap-4 text-xs text-neutral-300 pt-1 font-mono flex-wrap">
+                  <div className="flex items-center gap-4 text-xs text-[#d8d5ce] pt-1 font-mono flex-wrap">
                     <span className="flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5 text-amber-400" />
+                      <Users className="w-3.5 h-3.5 text-[#81b29a]" />
                       {spotlightClub.membersCount} thành viên
                     </span>
                     <span className="inline-flex items-center gap-2">
@@ -514,15 +522,15 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                 <div className="flex flex-row md:flex-col gap-2.5 shrink-0">
                   <button
                     onClick={() => setApplicationSubmitted(spotlightClub.id)}
-                    className="flex-1 md:flex-initial px-5 py-2.5 rounded-xl liquid-glass bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 font-semibold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="ff-tactile-btn flex-1 md:flex-initial px-5 py-2.5 rounded-lg bg-[#81b29a]/20 hover:bg-[#81b29a]/35 border-[1.5px] border-[#81b29a]/50 text-[#f4f1de] font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <ExternalLink className="w-3.5 h-3.5" />
+                    <ExternalLink className="w-3.5 h-3.5 text-[#81b29a]" />
                     {applicationSubmitted === spotlightClub.id ? '✓ Đã Tham Gia' : 'Tham gia'}
                   </button>
 
                   <button
                     onClick={() => setSelectedClub(spotlightClub)}
-                    className="flex-1 md:flex-initial px-5 py-2.5 rounded-xl bg-white text-neutral-900 font-bold text-xs hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="ff-tactile-btn flex-1 md:flex-initial px-5 py-2.5 rounded-lg bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] font-extrabold text-xs border-[1.5px] border-[#0b0d12] flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <FileText className="w-3.5 h-3.5" />
                     Xem →
@@ -619,20 +627,20 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+                    <div className="mt-4 pt-3 border-t border-dashed border-[#f4f1de]/12 flex items-center justify-between gap-2">
                       <button
                         onClick={() => setApplicationSubmitted(club.id)}
-                        className={`ff-tactile-btn flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                        className={`ff-tactile-btn flex-1 py-1.5 px-3 rounded-lg text-xs font-bold border-[1.5px] transition-colors cursor-pointer ${
                           applicationSubmitted === club.id
-                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40'
-                            : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/30'
+                            ? 'bg-[#81b29a]/25 text-[#d8f3dc] border-[#81b29a]/55'
+                            : 'bg-[#e07a5f]/20 hover:bg-[#e07a5f]/35 text-[#f4f1de] border-[#e07a5f]/45'
                         }`}
                       >
                         {applicationSubmitted === club.id ? '✓ Đã tham gia' : 'Tham gia'}
                       </button>
                       <button
                         onClick={() => setSelectedClub(club)}
-                        className="ff-tactile-btn flex-1 py-1.5 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/10 transition-colors cursor-pointer"
+                        className="ff-tactile-btn flex-1 py-1.5 px-3 rounded-lg bg-[#f4f1de]/[0.08] hover:bg-[#f4f1de]/[0.16] text-[#f4f1de] text-xs font-bold border-[1.5px] border-[#f4f1de]/18 transition-colors cursor-pointer"
                       >
                         Xem →
                       </button>

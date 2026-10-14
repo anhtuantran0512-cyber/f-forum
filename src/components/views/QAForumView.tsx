@@ -537,71 +537,62 @@ interface QAForumViewProps {
 
 const SUBJECTS: { tag: SubjectTag | 'all'; label: string; group: 'academic' | 'life' }[] = [
   { tag: 'all', label: 'Tất cả', group: 'academic' },
-  { tag: 'toan', label: '#toan', group: 'academic' },
-  { tag: 'ly', label: '#ly', group: 'academic' },
-  { tag: 'hoa', label: '#hoa', group: 'academic' },
-  { tag: 'sinh', label: '#sinh', group: 'academic' },
-  { tag: 'anh', label: '#anh', group: 'academic' },
-  { tag: 'tin', label: '#tin', group: 'academic' },
-  { tag: 'van', label: '#van', group: 'academic' },
-  { tag: 'su', label: '#su', group: 'academic' },
-  { tag: 'hotro', label: '#hotro', group: 'life' },
-  { tag: 'kinhnghiem', label: '#kinhnghiem', group: 'life' },
-  { tag: 'share', label: '#share', group: 'life' },
-  { tag: 'tamsu', label: '#tamsu', group: 'life' },
-  { tag: 'tamly', label: '#tamly', group: 'life' },
+  { tag: 'toan', label: 'Toán học', group: 'academic' },
+  { tag: 'ly', label: 'Vật lý', group: 'academic' },
+  { tag: 'hoa', label: 'Hóa học', group: 'academic' },
+  { tag: 'sinh', label: 'Sinh học', group: 'academic' },
+  { tag: 'anh', label: 'Tiếng Anh', group: 'academic' },
+  { tag: 'tin', label: 'Tin học', group: 'academic' },
+  { tag: 'van', label: 'Ngữ văn', group: 'academic' },
+  { tag: 'su', label: 'Sử - Địa', group: 'academic' },
+  { tag: 'hotro', label: 'Hỗ trợ', group: 'life' },
+  { tag: 'kinhnghiem', label: 'Ôn thi', group: 'life' },
+  { tag: 'share', label: 'Tài liệu', group: 'life' },
+  { tag: 'tamsu', label: 'Tâm sự', group: 'life' },
+  { tag: 'tamly', label: 'Tâm lý', group: 'life' },
 ];
 
 const SUBJECT_2027_META: Record<
   SubjectTag,
   { emoji: string; title: string; color: string; groupLabel: string }
 > = {
-  toan: { emoji: '📐', title: 'Toán Học & Giải Tích', color: '#00F5FF', groupLabel: 'Học thuật' },
-  ly: { emoji: '⚡', title: 'Vật Lý & Cơ Điện Tử', color: '#38BDF8', groupLabel: 'Học thuật' },
-  hoa: { emoji: '🧪', title: 'Hóa Học Phân Tử', color: '#34D399', groupLabel: 'Học thuật' },
-  sinh: { emoji: '🧬', title: 'Sinh Học & Di Truyền', color: '#4ADE80', groupLabel: 'Học thuật' },
-  anh: { emoji: '🌐', title: 'Ngoại Ngữ & IELTS', color: '#F472B6', groupLabel: 'Học thuật' },
-  tin: { emoji: '💻', title: 'Tin Học & Thuật Toán', color: '#818CF8', groupLabel: 'Học thuật' },
-  van: { emoji: '✒️', title: 'Ngữ Văn & Nghị Luận', color: '#FBBF24', groupLabel: 'Học thuật' },
-  su: { emoji: '🏛️', title: 'Lịch Sử & Địa Lý', color: '#FB923C', groupLabel: 'Học thuật' },
-  hotro: { emoji: '🧭', title: 'Hỗ Trợ Học Vụ & CLB', color: '#2DD4BF', groupLabel: 'Đời sống' },
-  kinhnghiem: { emoji: '🚀', title: 'Kinh Nghiệm Ôn Thi', color: '#A78BFA', groupLabel: 'Đời sống' },
-  share: { emoji: '📚', title: 'Chia Sẻ Tài Liệu & Đề', color: '#60A5FA', groupLabel: 'Đời sống' },
-  tamsu: { emoji: '🌙', title: 'Tâm Sự Tuổi Học Trò', color: '#C084FC', groupLabel: 'Đời sống' },
-  tamly: { emoji: '🧠', title: 'Tâm Lý & Cân Bằng', color: '#F43F5E', groupLabel: 'Đời sống' },
+  toan: { emoji: '', title: 'Toán Học & Giải Tích', color: '#81b29a', groupLabel: 'Học thuật' },
+  ly: { emoji: '', title: 'Vật Lý & Cơ Điện Tử', color: '#81b29a', groupLabel: 'Học thuật' },
+  hoa: { emoji: '', title: 'Hóa Học Phân Tử', color: '#81b29a', groupLabel: 'Học thuật' },
+  sinh: { emoji: '', title: 'Sinh Học & Di Truyền', color: '#81b29a', groupLabel: 'Học thuật' },
+  anh: { emoji: '', title: 'Ngoại Ngữ & IELTS', color: '#f2cc8f', groupLabel: 'Học thuật' },
+  tin: { emoji: '', title: 'Tin Học & Thuật Toán', color: '#a78bfa', groupLabel: 'Học thuật' },
+  van: { emoji: '', title: 'Ngữ Văn & Nghị Luận', color: '#f2cc8f', groupLabel: 'Học thuật' },
+  su: { emoji: '', title: 'Lịch Sử & Địa Lý', color: '#f2cc8f', groupLabel: 'Học thuật' },
+  hotro: { emoji: '', title: 'Hỗ Trợ Học Vụ & CLB', color: '#e07a5f', groupLabel: 'Đời sống' },
+  kinhnghiem: { emoji: '', title: 'Kinh Nghiệm Ôn Thi', color: '#e07a5f', groupLabel: 'Đời sống' },
+  share: { emoji: '', title: 'Chia Sẻ Tài Liệu & Đề', color: '#a78bfa', groupLabel: 'Đời sống' },
+  tamsu: { emoji: '', title: 'Tâm Sự Tuổi Học Trò', color: '#e07a5f', groupLabel: 'Đời sống' },
+  tamly: { emoji: '', title: 'Tâm Lý & Cân Bằng', color: '#e07a5f', groupLabel: 'Đời sống' },
 };
 
-/* Bản đồ màu sắc chuyên mục theo Color Theory cao cấp */
+/* Bản đồ màu sắc 4 nhóm hài hòa theo Color Theory 60-30-10 (Sage · Sand · Terracotta · Iris) */
 const getSubjectBadgeStyle = (subjectTag: string): string => {
   switch (subjectTag) {
     case 'toan':
-      return 'bg-cyan-500/15 text-cyan-200 border-cyan-400/35';
     case 'ly':
-      return 'bg-sky-500/15 text-sky-200 border-sky-400/35';
     case 'hoa':
-      return 'bg-emerald-500/15 text-emerald-200 border-emerald-400/35';
     case 'sinh':
-      return 'bg-green-500/15 text-green-200 border-green-400/35';
-    case 'anh':
-      return 'bg-pink-500/15 text-pink-200 border-pink-400/35';
-    case 'tin':
-      return 'bg-indigo-500/15 text-indigo-200 border-indigo-400/35';
+      return 'bg-[#81b29a]/18 text-[#d8f3dc] border-[#81b29a]/45';
     case 'van':
-      return 'bg-amber-500/15 text-amber-200 border-amber-400/35';
     case 'su':
-      return 'bg-orange-500/15 text-orange-200 border-orange-400/35';
-    case 'hotro':
-      return 'bg-teal-500/15 text-teal-200 border-teal-400/35';
-    case 'kinhnghiem':
-      return 'bg-purple-500/15 text-purple-200 border-purple-400/35';
+    case 'anh':
+      return 'bg-[#f2cc8f]/18 text-[#f4f1de] border-[#f2cc8f]/45';
+    case 'tin':
     case 'share':
-      return 'bg-blue-500/15 text-blue-200 border-blue-400/35';
+      return 'bg-[#a78bfa]/18 text-[#ede9fe] border-[#a78bfa]/45';
+    case 'hotro':
+    case 'kinhnghiem':
     case 'tamsu':
-      return 'bg-fuchsia-500/15 text-fuchsia-200 border-fuchsia-400/35';
     case 'tamly':
-      return 'bg-rose-500/15 text-rose-200 border-rose-400/35';
+      return 'bg-[#e07a5f]/18 text-[#ffedd5] border-[#e07a5f]/45';
     default:
-      return 'bg-slate-500/15 text-slate-200 border-slate-400/30';
+      return 'bg-white/[0.06] text-[#f4f1de] border-white/20';
   }
 };
 
@@ -1391,20 +1382,25 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       {/* Main Container */}
       <div className={`relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col ${isEmbedded ? '' : 'overflow-hidden'}`}>
         
-        {/* Top Toolbar: Title + Search + Sort/Saved + Ask CTA (Sort menu is outside overflow-x-auto so it never clips) */}
-        <div className="flex flex-col gap-3 mb-3.5 pb-3 border-b border-white/[0.08] shrink-0">
+        {/* Top Editorial Bento Header: Typography-Led + Neo-Brutalist Controls + Organic Hand-Drawn Accent */}
+        <div className="ff-bento-cell !p-4 sm:!p-5 mb-4 shrink-0 flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-cyan-500/12 border border-cyan-400/25 flex items-center justify-center shrink-0">
-                <HelpCircle className="w-5 h-5 text-cyan-300" />
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-[#e07a5f]/15 border-[1.5px] border-[#e07a5f]/45 flex items-center justify-center shrink-0 shadow-[2px_2px_0px_rgba(4,6,11,0.9)]">
+                <HelpCircle className="w-5 h-5 text-[#f2cc8f]" />
               </div>
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="ff-typo-poster !text-lg sm:!text-2xl text-white tracking-tight">
-                  Hỏi đáp
-                </h1>
-                <span className="px-2.5 py-0.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[11px] font-mono text-slate-300">
-                  {questions.length} câu hỏi · {questions.filter(q => q.isSolved).length} đã giải
-                </span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h1 className="ff-typo-poster !text-xl sm:!text-2xl text-[#f4f1de]">
+                    Hỏi Đáp Bài Tập
+                  </h1>
+                  <span className="ff-brutal-index">
+                    {questions.length} câu · {questions.filter(q => q.isSolved).length} đã giải
+                  </span>
+                </div>
+                <svg className="w-28 h-2 mt-0.5 ff-organic-squiggle" viewBox="0 0 140 8" aria-hidden="true">
+                  <path d="M2 5 C28 1, 56 8, 84 4 S118 1, 138 5" />
+                </svg>
               </div>
             </div>
 
@@ -1415,45 +1411,45 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   type="button"
                   onClick={() => setShowSavedOnly(prev => !prev)}
                   aria-pressed={showSavedOnly}
-                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
+                  className={`ff-tactile-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border-[1.5px] transition-colors cursor-pointer ${
                     showSavedOnly
-                      ? 'bg-amber-500/20 border-amber-400/45 text-amber-200 font-semibold'
-                      : 'bg-[#0c1320]/90 text-slate-300 hover:text-white border-white/[0.08] hover:border-white/20'
+                      ? 'bg-[#f2cc8f]/20 border-[#f2cc8f]/55 text-[#f4f1de]'
+                      : 'bg-[#0b0d12]/80 text-[#d8d5ce] hover:text-[#f4f1de] border-[#f4f1de]/15'
                   }`}
                   title={showSavedOnly ? 'Bấm để xem tất cả câu hỏi' : 'Chỉ hiện câu hỏi đã lưu'}
                 >
-                  <Bookmark className="w-3.5 h-3.5 text-amber-300" />
+                  <Bookmark className="w-3.5 h-3.5 text-[#f2cc8f]" />
                   <span>Đã lưu</span>
                   {mySavedIds.length > 0 && (
-                    <span className="px-1.5 py-0.2 rounded-md bg-amber-500/25 text-amber-200 text-[10px] font-mono font-bold">
+                    <span className="px-1.5 py-0.2 rounded bg-[#f2cc8f]/25 text-[#f4f1de] text-[10px] font-mono font-bold">
                       {mySavedIds.length}
                     </span>
                   )}
                 </button>
               )}
 
-              {/* Menu sắp xếp — nằm ngoài overflow-x-auto nên không bao giờ bị cắt góc */}
+              {/* Menu sắp xếp */}
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setIsSortMenuOpen(prev => !prev)}
                   aria-expanded={isSortMenuOpen}
                   aria-haspopup="menu"
-                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
+                  className={`ff-tactile-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border-[1.5px] transition-colors cursor-pointer ${
                     sortMode !== DEFAULT_QUESTION_SORT
-                      ? 'bg-cyan-500/15 border-cyan-400/40 text-cyan-200 font-semibold'
-                      : 'bg-[#0c1320]/90 text-slate-300 hover:text-white border-white/[0.08] hover:border-white/20'
+                      ? 'bg-[#81b29a]/20 border-[#81b29a]/50 text-[#f4f1de]'
+                      : 'bg-[#0b0d12]/80 text-[#d8d5ce] hover:text-[#f4f1de] border-[#f4f1de]/15'
                   }`}
                   title="Sắp xếp danh sách câu hỏi"
                 >
-                  <ArrowUpDown className="w-3.5 h-3.5 text-cyan-300" />
+                  <ArrowUpDown className="w-3.5 h-3.5 text-[#81b29a]" />
                   <span>{QUESTION_SORT_OPTIONS.find(o => o.id === sortMode)?.label ?? 'Sắp xếp'}</span>
                 </button>
 
                 {isSortMenuOpen && (
                   <div
                     role="menu"
-                    className="absolute right-0 top-full mt-1.5 w-56 rounded-xl bg-[#0d1422] border border-white/15 shadow-2xl p-1.5 z-40 space-y-0.5 animate-fade-up"
+                    className="absolute right-0 top-full mt-1.5 w-56 rounded-xl ff-glass-depth-2 p-1.5 z-40 space-y-0.5 animate-fade-up"
                   >
                     {QUESTION_SORT_OPTIONS.map(opt => {
                       const isActive = opt.id === sortMode;
@@ -1465,18 +1461,18 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           aria-checked={isActive}
                           onClick={() => chooseSortMode(opt.id)}
                           className={`w-full px-2.5 py-2 text-left rounded-lg transition-colors cursor-pointer ${
-                            isActive ? 'bg-cyan-500/15' : 'hover:bg-white/[0.06]'
+                            isActive ? 'bg-[#e07a5f]/20' : 'hover:bg-white/[0.06]'
                           }`}
                         >
                           <span
                             className={`flex items-center gap-2 text-xs font-semibold ${
-                              isActive ? 'text-cyan-300' : 'text-slate-200'
+                              isActive ? 'text-[#f2cc8f]' : 'text-[#f4f1de]'
                             }`}
                           >
                             {isActive ? <Check size={12} /> : <span className="w-3" />}
                             {opt.label}
                           </span>
-                          <span className="block text-[10px] text-slate-400 pl-5 mt-0.5">{opt.hint}</span>
+                          <span className="block text-[10px] text-[#9a978e] pl-5 mt-0.5">{opt.hint}</span>
                         </button>
                       );
                     })}
@@ -1484,7 +1480,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 )}
               </div>
 
-              {/* Đặt câu hỏi CTA (Style 8: Tactile Squishy UI) */}
+              {/* Đặt câu hỏi CTA (Style 3 Neo-Brutalist + Style 8 Tactile Squishy) */}
               <button
                 onClick={() => {
                   if (!currentUser) {
@@ -1493,31 +1489,31 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     setIsAskModalOpen(true);
                   }
                 }}
-                className="ff-tactile-btn px-4 py-2 rounded-xl text-xs font-semibold bg-cyan-500 hover:bg-cyan-400 text-slate-950 transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-sm"
+                className="ff-tactile-btn px-4 py-2 rounded-lg text-xs font-extrabold bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border-[1.5px] border-[#f4f1de] transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
               >
-                <PlusCircle className="w-4 h-4 text-slate-950" />
+                <PlusCircle className="w-4 h-4 text-[#0b0d12]" />
                 <span>Đặt câu hỏi</span>
               </button>
             </div>
           </div>
 
-          {/* Search & Subject Filter Row */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-            <div className="relative sm:w-72 md:w-80 shrink-0">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          {/* Search, Status & Subject Filter Row */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-2 border-t border-dashed border-[#f4f1de]/10">
+            <div className="relative sm:w-64 md:w-72 shrink-0">
+              <Search className="w-3.5 h-3.5 text-[#9a978e] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 maxLength={100}
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                placeholder="Tìm tiêu đề, nội dung, môn học..."
-                className="w-full pl-9 pr-8 py-2 rounded-xl text-xs bg-[#0b111c]/90 border border-white/[0.09] text-white placeholder-slate-400 focus:outline-none focus:border-cyan-400/50 transition-colors"
+                placeholder="Tìm bài tập, môn học..."
+                className="w-full pl-8 pr-8 py-1.5 rounded-lg text-xs bg-[#0b0d12]/85 border-[1.5px] border-[#f4f1de]/15 text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f]/60 transition-colors"
               />
               {searchTerm && (
                 <button
                   type="button"
                   onClick={() => setSearchTerm('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9a978e] hover:text-[#f4f1de] cursor-pointer"
                   aria-label="Xóa tìm kiếm"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -1525,43 +1521,13 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               )}
             </div>
 
-            {/* 14 Subject Pills scrollable strip */}
-            <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none min-w-0 flex-1">
-              <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0 mr-0.5" />
-              {SUBJECTS.map(subj => {
-                const isActive = selectedTag === subj.tag;
-                const isAcademic = subj.group === 'academic';
-                const meta = subj.tag !== 'all' ? SUBJECT_2027_META[subj.tag as SubjectTag] : null;
-                return (
-                  <button
-                    key={subj.tag}
-                    onClick={() => setSelectedTag(subj.tag)}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-mono whitespace-nowrap transition-colors cursor-pointer inline-flex items-center gap-1 ${
-                      isActive
-                        ? subj.tag === 'all'
-                          ? 'bg-cyan-500/20 text-cyan-200 font-semibold border border-cyan-400/45'
-                          : `${getSubjectBadgeStyle(subj.tag)} font-semibold shadow-xs`
-                        : isAcademic
-                        ? 'bg-white/[0.03] text-slate-300 hover:bg-white/[0.08] hover:text-white border border-white/[0.07]'
-                        : 'bg-indigo-500/[0.07] text-indigo-200/90 hover:bg-indigo-500/15 border border-indigo-400/20'
-                    }`}
-                  >
-                    {meta?.emoji && <span>{meta.emoji}</span>}
-                    <span>{subj.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Thanh lọc trạng thái câu hỏi nhanh (Tất cả · Chờ giải · Đã giải · Đính kèm ảnh) */}
-          <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5">
-            <div className="flex items-center gap-1.5 flex-wrap">
+            {/* Status Filter Tabs */}
+            <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
               {([
-                { id: 'all', label: 'Tất cả câu hỏi', count: questions.length },
-                { id: 'unsolved', label: 'Đang chờ giải', count: questions.filter(q => !q.isSolved).length },
-                { id: 'solved', label: 'Đã có đáp án chuẩn', count: questions.filter(q => q.isSolved).length },
-                { id: 'with_image', label: 'Có đính kèm ảnh', count: questions.filter(q => getQuestionAttachedImages(q).length > 0).length },
+                { id: 'all', label: 'Tất cả' },
+                { id: 'unsolved', label: 'Chờ giải' },
+                { id: 'solved', label: 'Đã giải' },
+                { id: 'with_image', label: 'Có ảnh' },
               ] as const).map(tab => {
                 const active = statusFilter === tab.id;
                 return (
@@ -1569,16 +1535,36 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     key={tab.id}
                     type="button"
                     onClick={() => setStatusFilter(tab.id)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold border transition-colors cursor-pointer ${
+                    className={`px-2.5 py-1.5 rounded-md text-xs font-bold border-[1.5px] transition-colors cursor-pointer ${
                       active
-                        ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-100 shadow-sm'
-                        : 'bg-white/[0.03] hover:bg-white/[0.07] border-white/[0.08] text-slate-300 hover:text-white'
+                        ? 'bg-[#e07a5f]/22 border-[#e07a5f]/55 text-[#f4f1de] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
+                        : 'bg-[#f4f1de]/[0.04] hover:bg-[#f4f1de]/[0.09] border-[#f4f1de]/12 text-[#b5b2a9] hover:text-[#f4f1de]'
                     }`}
                   >
-                    <span>{tab.label}</span>
-                    <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${active ? 'bg-cyan-400/25 text-cyan-100' : 'bg-white/[0.06] text-slate-400'}`}>
-                      {tab.count}
-                    </span>
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Subject Tags Scrollable Strip (Neo-Brutalist Tags) */}
+            <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none min-w-0 flex-1">
+              <Filter className="w-3.5 h-3.5 text-[#9a978e] shrink-0 mr-0.5" />
+              {SUBJECTS.map(subj => {
+                const isActive = selectedTag === subj.tag;
+                return (
+                  <button
+                    key={subj.tag}
+                    onClick={() => setSelectedTag(subj.tag)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold whitespace-nowrap border-[1.5px] transition-colors cursor-pointer inline-flex items-center gap-1 ${
+                      isActive
+                        ? subj.tag === 'all'
+                          ? 'bg-[#f2cc8f]/22 text-[#f4f1de] border-[#f2cc8f]/55 shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
+                          : `${getSubjectBadgeStyle(subj.tag)} shadow-[2px_2px_0px_rgba(4,6,11,0.9)]`
+                        : 'bg-[#f4f1de]/[0.03] text-[#b5b2a9] hover:bg-[#f4f1de]/[0.08] hover:text-[#f4f1de] border-[#f4f1de]/12'
+                    }`}
+                  >
+                    <span>{subj.label}</span>
                   </button>
                 );
               })}
@@ -1686,36 +1672,33 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     q.isSolved ? 'is-solved' : 'is-unsolved'
                   }`}
                 >
-                  {/* Hàng 1: Nhãn môn học, Trạng thái, Tiền thưởng, Số ảnh đính kèm & Công cụ */}
+                  {/* Hàng 1: Nhãn môn học (Neo-Brutalist), Trạng thái (Holographic / Organic), Tiền thưởng & Công cụ */}
                   <div className="flex items-center justify-between gap-2.5 mb-3">
                     <div className="flex items-center gap-2 flex-wrap min-w-0">
                       <span className={`ff-brutal-tag ${getSubjectBadgeStyle(q.subject)}`}>
-                        {SUBJECT_2027_META[q.subject as SubjectTag]?.emoji && (
-                          <span>{SUBJECT_2027_META[q.subject as SubjectTag].emoji}</span>
-                        )}
                         <span>{subjectLabel}</span>
                       </span>
 
                       {q.isSolved ? (
-                        <span className="ff-holo-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold text-emerald-200 shadow-xs">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span className="ff-holo-badge inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold text-[#d8f3dc]">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
                           <span>Đã giải</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-500/15 border border-cyan-400/35 text-xs font-semibold text-cyan-200 shadow-xs">
-                          <Clock className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
+                        <span className="ff-organic-badge !py-0.5 !px-2.5 !rounded-md inline-flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-[#e07a5f] shrink-0" />
                           <span>Chờ giải</span>
                         </span>
                       )}
 
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-400/30 text-xs font-mono font-bold text-amber-300">
-                        <Coins className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-[#f2cc8f]/15 border-[1.5px] border-[#f2cc8f]/40 text-xs font-mono font-bold text-[#f2cc8f] shadow-[2px_2px_0px_rgba(4,6,11,0.85)]">
+                        <Coins className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
                         <span>+{q.bountyCoin || 20} Coin</span>
                       </span>
 
                       {attachedImages.length > 0 && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-sky-500/15 border border-sky-400/35 text-xs font-semibold text-sky-200">
-                          <ImageIcon className="w-3.5 h-3.5 text-sky-300 shrink-0" />
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#81b29a]/15 border-[1.5px] border-[#81b29a]/40 text-xs font-semibold text-[#d8f3dc]">
+                          <ImageIcon className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
                           <span>Đính kèm {attachedImages.length} ảnh</span>
                         </span>
                       )}
@@ -1822,16 +1805,16 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
                   {/* Hàng 2: Tiêu đề (Typography-Led + Kinetic Underline) & Nội dung tóm tắt */}
                   <div className="min-w-0 space-y-1.5">
-                    <h3 className="ff-typo-thread-title ff-kinetic-title ff-kinetic-underline text-base sm:text-[17.5px] font-extrabold text-white group-hover:text-cyan-200 transition-colors leading-snug">
+                    <h3 className="ff-typo-thread-title ff-kinetic-title ff-kinetic-underline text-base sm:text-[18px] font-extrabold text-[#f4f1de] group-hover:text-[#f2cc8f] transition-colors leading-snug">
                       {q.title}
                     </h3>
-                    <p className="ff-typo-measure text-[13.5px] sm:text-sm text-slate-300 line-clamp-3 leading-relaxed">
+                    <p className="ff-typo-measure text-[13.5px] sm:text-sm text-[#d8d5ce] line-clamp-3 leading-relaxed">
                       {q.content}
                     </p>
                   </div>
 
-                  {/* Hàng 3: Tác giả & Nút mở trang câu hỏi rộng rãi kiểu Hoidap247 */}
-                  <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-white/[0.08] flex-wrap">
+                  {/* Hàng 3: Tác giả & Nút mở câu hỏi */}
+                  <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-dashed border-[#f4f1de]/10 flex-wrap">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <button
                         type="button"
@@ -1899,25 +1882,25 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       <span className="text-xs text-slate-400 font-mono">· {q.createdAt}</span>
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs font-mono text-slate-300 shrink-0">
+                    <div className="flex items-center gap-3 text-xs font-mono text-[#d8d5ce] shrink-0">
                       <span className="inline-flex items-center gap-1" title="Lượt xem">
-                        <Eye className="w-3.5 h-3.5 text-slate-400" />
+                        <Eye className="w-3.5 h-3.5 text-[#9a978e]" />
                         <span>{q.views}</span>
                       </span>
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/15 group-hover:bg-cyan-500/25 border border-cyan-400/30 text-cyan-200 font-bold transition-colors">
-                        <MessageSquare className="w-3.5 h-3.5 text-cyan-300" />
-                        <span>{qSolutions.length}/3 lời giải · Mở câu hỏi →</span>
+                      <span className="ff-tactile-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#81b29a]/18 group-hover:bg-[#81b29a]/30 border-[1.5px] border-[#81b29a]/45 text-[#f4f1de] font-bold transition-colors">
+                        <MessageSquare className="w-3.5 h-3.5 text-[#81b29a]" />
+                        <span>{qSolutions.length}/3 lời giải →</span>
                       </span>
                     </div>
                   </div>
 
                   {/* Đáp án chuẩn tóm tắt */}
                   {bestSol && (
-                    <div className="mt-3 px-3.5 py-2.5 rounded-2xl bg-emerald-500/12 border border-emerald-500/30 flex items-center justify-between gap-2 text-xs text-emerald-100">
+                    <div className="mt-3 px-3.5 py-2.5 rounded-xl bg-[#81b29a]/14 border-[1.5px] border-[#81b29a]/40 flex items-center justify-between gap-2 text-xs text-[#f4f1de]">
                       <div className="flex items-center gap-2 min-w-0">
-                        <Award className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <span className="font-bold text-emerald-300 shrink-0">Đáp án chuẩn:</span>
-                        <span className="truncate text-slate-100">{bestSol.content}</span>
+                        <Award className="w-4 h-4 text-[#81b29a] shrink-0" />
+                        <span className="font-bold text-[#d8f3dc] shrink-0">Đáp án chuẩn:</span>
+                        <span className="truncate text-[#f4f1de]">{bestSol.content}</span>
                       </div>
                     </div>
                   )}

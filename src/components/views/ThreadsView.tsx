@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import {
   Heart, Laugh, Flame, Zap, HandHeart, ImagePlus, Send,
   Repeat2, Flag, Trash2, MessageSquareQuote, X, Users,
-  Sparkles, Search, Hash, Image as ImageIcon, Clock, TrendingUp,
+  Search, Hash, Image as ImageIcon, Clock, TrendingUp,
   Bookmark, ZoomIn,
 } from 'lucide-react';
 import type { Thread, ThreadReactionType, User } from '../../types';
@@ -887,25 +887,31 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
   return (
     <section ref={feedScrollRef} className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-y-auto'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8 threads-bg ff-raw-grid-surface`}>
       <div className="relative z-10 w-full max-w-2xl mx-auto flex-1 flex flex-col">
-        {/* Thanh đầu trang hiện đại: Tiêu đề + Thống kê + Tìm kiếm & Bộ lọc */}
+        {/* Thanh đầu trang Editorial: Tiêu đề + Hand-Drawn Squiggle + Thống kê + Tìm kiếm & Bộ lọc */}
         <header className="threads-hero-bar">
           <div className="threads-hero-top">
             <div className="threads-hero-brand">
-              <span className="threads-hero-badge ff-holo-badge">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                Góc Tâm Sự
-              </span>
-              <span className="threads-hero-stats ff-raw-meta">
-                <b>{feedStats.roots}</b> mạch chuyện · <b>{feedStats.replies}</b> phản hồi · <b>{feedStats.reactions}</b> cảm xúc
-              </span>
+              <div>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h1 className="ff-typo-poster !text-xl sm:!text-2xl text-[#f4f1de]">
+                    Góc Tâm Sự
+                  </h1>
+                  <span className="threads-hero-stats ff-raw-meta">
+                    <b>{feedStats.roots}</b> bài · <b>{feedStats.replies}</b> phản hồi · <b>{feedStats.reactions}</b> cảm xúc
+                  </span>
+                </div>
+                <svg className="w-24 h-2 mt-0.5 ff-organic-squiggle" viewBox="0 0 120 8" aria-hidden="true">
+                  <path d="M2 5 C24 1, 48 8, 72 4 S98 1, 118 5" />
+                </svg>
+              </div>
             </div>
             <div className="threads-search-box">
-              <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <Search className="w-3.5 h-3.5 text-[#9a978e] shrink-0" />
               <input
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm tâm sự, tác giả, #chủđề…"
+                placeholder="Tìm bài viết, #chủđề…"
                 className="threads-search-input"
                 aria-label="Tìm kiếm trong Góc Tâm Sự"
               />

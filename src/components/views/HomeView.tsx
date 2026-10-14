@@ -42,21 +42,22 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
       {/* Hero Foreground Content */}
       <div className="relative z-10 w-full max-w-4xl mx-auto px-4 sm:px-6 flex flex-col items-center text-center pt-16 sm:pt-10">
-        {/* Tag Badge */}
-        <div className="animate-fade-up delay-1 mb-6 flex items-center justify-center gap-3 flex-wrap">
-          <div className="liquid-glass rounded-full px-4 py-1.5 text-xs sm:text-sm text-amber-300 inline-flex items-center gap-2 border border-amber-400/25 shadow-[0_0_15px_rgba(245,158,11,0.15)] bg-[#0c1218]/60 backdrop-blur-xl">
-            <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_#f59e0b] animate-ping" />
-            <span className="font-semibold tracking-wider uppercase font-mono">
-              F-FORUM • HỆ THỐNG GIAO LƯU TRI THỨC TOÀN TRƯỜNG
+        {/* Style 10: Organic + Hand-Drawn Warm Eyebrow */}
+        <div className="animate-fade-up delay-1 mb-5 flex items-center justify-center gap-2.5 flex-wrap">
+          <div className="ff-organic-badge !px-3.5 !py-1.5 !rounded-lg backdrop-blur-md">
+            <svg className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 2 C13.5 7.5, 16.5 10.5, 22 12 C16.5 13.5, 13.5 16.5, 12 22 C10.5 16.5, 7.5 13.5, 2 12 C7.5 10.5, 10.5 7.5, 12 2 Z" />
+            </svg>
+            <span className="font-mono text-xs tracking-wide text-[#f4f1de]">
+              Góc học tập &amp; kết nối học sinh
             </span>
           </div>
         </div>
 
-        {/* Headline with Alternating Phrases (3s / 4s) & Single-Line Styled F-Forum */}
+        {/* Style 1 + 5: Typography-Led Hero with Alternating Phrases */}
         <div className="relative min-h-[180px] sm:min-h-[230px] flex items-center justify-center w-full">
-          {/* Phase 1: Calligraphic Artistic F-FORUM */}
           <h1
-            className={`text-4xl sm:text-6xl text-white font-normal tracking-tight text-center leading-tight max-w-4xl flex items-center justify-center ${
+            className={`ff-typo-hero text-4xl sm:text-6xl text-[#f4f1de] font-normal tracking-tight text-center leading-tight max-w-4xl flex items-center justify-center ${
               headlinePhase === 0
                 ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
                 : 'opacity-0 -translate-y-2 scale-98 pointer-events-none absolute inset-0'
@@ -66,12 +67,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
             }}
           >
             Diễn Đàn Học Sinh{" "}
-            <span className="font-['Playfair_Display'] italic font-bold tracking-wider text-[110%] bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-500 bg-clip-text text-transparent drop-shadow-[0_0_25px_rgba(245,158,11,0.5)] whitespace-nowrap">
+            <span className="font-['Playfair_Display'] italic font-bold tracking-wider text-[110%] bg-gradient-to-r from-[#f4f1de] via-[#f2cc8f] to-[#e07a5f] bg-clip-text text-transparent drop-shadow-[0_4px_20px_rgba(224,122,95,0.35)] whitespace-nowrap">
               F-Forum
             </span>
           </h1>
 
-          {/* A deliberate vertical composition, not incidental line wrapping. */}
           <h1
             className={`home-hero-title ${
               headlinePhase === 1
@@ -95,39 +95,38 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
 
         {/* Subtext */}
-        <p className="animate-fade-up delay-3 mt-5 sm:mt-6 max-w-xl text-neutral-300 text-sm sm:text-base leading-relaxed px-2 font-['Inter']">
+        <p className="animate-fade-up delay-3 mt-4 sm:mt-5 max-w-xl text-[#d8d5ce] text-sm sm:text-base leading-relaxed px-2 font-['Inter']">
           Không gian trao đổi bài học, giao lưu câu lạc bộ và kết nối bạn bè.
         </p>
 
-        {/* Dual Action Buttons */}
-        <div className="animate-fade-up delay-4 mt-7 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto">
+        {/* Style 3 + 8: Neo-Brutalist & Tactile Squishy Action Buttons */}
+        <div className="animate-fade-up delay-4 mt-7 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full sm:w-auto">
           <button
             onClick={() => onNavigate('clubs')}
-            className="ff-tactile-btn group w-full sm:w-auto rounded-full bg-white px-7 py-3 text-sm font-semibold text-neutral-900 inline-flex items-center justify-center gap-2 shadow-[0_4px_24px_rgba(255,255,255,0.25)] cursor-pointer"
+            className="ff-tactile-btn group w-full sm:w-auto rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] px-6 py-3 text-sm font-extrabold text-[#0b0d12] border-2 border-[#0b0d12] inline-flex items-center justify-center gap-2 cursor-pointer"
           >
-            <Compass className="w-4 h-4 text-amber-600" />
-            <span>Khám Phá Câu Lạc Bộ</span>
-            <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:rotate-45" />
+            <Compass className="w-4 h-4 text-[#e07a5f]" />
+            <span>Câu Lạc Bộ</span>
+            <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
           </button>
 
           <button
             onClick={() => onNavigate('qa')}
-            className="ff-tactile-btn w-full sm:w-auto liquid-glass rounded-full px-7 py-3 text-sm font-medium text-white inline-flex items-center justify-center gap-2 border border-white/20 hover:border-amber-400/40 shadow-lg cursor-pointer"
+            className="ff-tactile-btn w-full sm:w-auto ff-glass-depth-1 rounded-xl px-6 py-3 text-sm font-bold text-[#f4f1de] inline-flex items-center justify-center gap-2 hover:border-[#81b29a]/60 cursor-pointer"
           >
-            <HelpCircle className="w-4 h-4 text-amber-400" />
-            <span>Sàn Hỏi Đáp Tri Thức</span>
+            <HelpCircle className="w-4 h-4 text-[#81b29a]" />
+            <span>Hỏi Đáp Bài Tập</span>
           </button>
         </div>
 
-        {/* Tertiary: marketing landing page */}
         {onOpenLanding && (
           <button
             type="button"
             onClick={onOpenLanding}
-            className="animate-fade-up delay-5 group mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-neutral-300 hover:text-amber-300 transition-colors cursor-pointer"
+            className="animate-fade-up delay-5 group mt-4 inline-flex items-center gap-1.5 text-xs font-mono text-[#d8d5ce] hover:text-[#f2cc8f] transition-colors cursor-pointer"
           >
-            <span className="ff-kinetic-underline">Tìm hiểu về F-Forum</span>
-            <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            <span className="ff-kinetic-underline">Giới thiệu dự án</span>
+            <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </button>
         )}
       </div>
