@@ -1167,10 +1167,10 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                       e.stopPropagation();
                       handleOpenEditRecord(rec);
                     }}
-                    className="absolute top-2.5 right-2.5 z-10 px-3 py-1.5 rounded-lg bg-black/80 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-400/50 text-xs font-bold flex items-center gap-1.5 shadow-lg transition-all cursor-pointer"
+                    className="ff-tactile-btn absolute top-2.5 right-2.5 z-10 px-3 py-1.5 rounded-lg bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] text-[#0b0d12] text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer"
                   >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span>Thay ảnh &amp; Sửa</span>
+                    <Edit3 className="w-3.5 h-3.5 text-[#e07a5f]" />
+                    <span>Sửa</span>
                   </button>
                 )}
               </figure>
@@ -1349,45 +1349,12 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
               setAdminModalTab('bio');
               setIsEditBioModalOpen(true);
             }}
-            className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/45 text-amber-200 text-[10.5px] font-semibold cursor-pointer transition-colors"
+            className="ff-tactile-btn mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] text-[#0b0d12] text-[10.5px] font-extrabold cursor-pointer transition-colors"
           >
-            <Edit3 className="w-3 h-3" />
-            <span>Sửa hồ sơ</span>
+            <Edit3 className="w-3 h-3 text-[#e07a5f]" />
+            <span>Sửa</span>
           </button>
         )}
-      </div>
-
-      {/* Colophon .colophon — anchored cleanly at bottom-right */}
-      <div
-        className={`colophon-card colophon chrome fixed right-[var(--pad)] bottom-6 z-30 text-[11.5px] text-[#f4f2ef]/65 flex items-center gap-2 transition-opacity duration-300 ${
-          isGridView || activeLitRecord ? 'opacity-0' : 'opacity-100'
-        }`}
-      >
-        <span>{colophonText}</span>
-        {isSuperAdmin && (
-          <button
-            type="button"
-            onClick={() => {
-              setAdminModalTab('scene');
-              setIsEditBioModalOpen(true);
-            }}
-            className="px-2 py-0.5 rounded bg-white/10 hover:bg-amber-500/30 text-[10px] text-amber-300 border border-amber-400/35 cursor-pointer"
-          >
-            Sửa tiêu đề
-          </button>
-        )}
-      </div>
-
-      {/* Scroll Cue .cue */}
-      <div
-        className={`cue-card cue chrome fixed left-1/2 bottom-[calc(var(--pad)+6px)] -translate-x-1/2 z-30 flex items-center gap-2.5 text-[10px] uppercase tracking-[0.24em] text-[#f4f2ef]/45 whitespace-nowrap pointer-events-none transition-opacity duration-500 ${
-          isGridView || activeLitRecord ? 'opacity-0' : 'opacity-100'
-        }`}
-      >
-        <s className="cue-line w-[44px] h-[1px] bg-[#f4f2ef]/25 overflow-hidden relative block">
-          <span />
-        </s>
-        <span>KÉO ĐỂ XOAY QUẢ CẦU 3D</span>
       </div>
 
       {/* Layer 6: #menu (Full-screen Drawer) */}
@@ -1483,7 +1450,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             <button
               type="button"
               onClick={closeLightbox}
-              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/70 border border-white/20 text-white/80 hover:text-white hover:bg-black/90 transition-all cursor-pointer"
+              className="ff-tactile-btn absolute top-4 right-4 z-10 p-2 rounded-xl bg-[#0b0d12] border border-[#f4f1de]/20 text-[#d8d5ce] hover:text-white transition-all cursor-pointer"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
@@ -1509,10 +1476,10 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 <button
                   type="button"
                   onClick={() => handleOpenEditRecord(activeLitRecord)}
-                  className="absolute bottom-3.5 right-3.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs flex items-center gap-1.5 shadow-xl cursor-pointer transition-all"
+                  className="ff-tactile-btn absolute bottom-3.5 right-3.5 px-3.5 py-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] text-[#0b0d12] font-extrabold text-xs flex items-center gap-1.5 cursor-pointer transition-all"
                 >
-                  <ImageIcon className="w-4 h-4" />
-                  <span>Thay ảnh &amp; Sửa nội dung</span>
+                  <ImageIcon className="w-4 h-4 text-[#e07a5f]" />
+                  <span>Sửa</span>
                 </button>
               )}
             </div>
@@ -1532,10 +1499,10 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                   <button
                     type="button"
                     onClick={() => handleOpenEditRecord(activeLitRecord)}
-                    className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-400/45 text-amber-300 text-xs font-semibold hover:bg-amber-500/30 transition-all cursor-pointer"
+                    className="ff-tactile-btn mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] text-[#0b0d12] text-xs font-extrabold transition-all cursor-pointer"
                   >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span>Sửa cột mốc này</span>
+                    <Edit3 className="w-3.5 h-3.5 text-[#e07a5f]" />
+                    <span>Sửa</span>
                   </button>
                 )}
               </div>
@@ -1616,13 +1583,12 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
           >
             <div className="flex items-center justify-between border-b border-dashed border-[#f4f1de]/15 pb-4">
               <div>
-                <h3 className="text-lg font-extrabold text-[#f4f1de]">Chỉnh Sửa Cột Mốc &amp; Thay Thế Hình Ảnh</h3>
-                <p className="text-xs text-[#9a978e] mt-0.5">Thay đổi được lưu trực tiếp lên máy chủ và đồng bộ cho toàn bộ thành viên</p>
+                <h3 className="text-lg font-extrabold text-[#f4f1de]">Chỉnh Sửa Cột Mốc</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsEditRecordModalOpen(false)}
-                className="p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
+                className="ff-tactile-btn p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1740,15 +1706,15 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsEditRecordModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
+                  className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#0b0d12] hover:bg-white/10 border border-[#f4f1de]/18 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
                 >
-                  Hủy bỏ
+                  Hủy
                 </button>
                 <button
                   type="submit"
-                  className="ff-tactile-btn px-6 py-2.5 rounded-xl bg-[#e07a5f] text-[#0b0d12] font-extrabold text-xs sm:text-sm hover:bg-[#f2cc8f] transition-colors cursor-pointer"
+                  className="ff-tactile-btn px-6 py-2.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] text-[#0b0d12] font-extrabold text-xs sm:text-sm transition-colors cursor-pointer"
                 >
-                  Lưu thay đổi
+                  Lưu
                 </button>
               </div>
             </div>
@@ -1762,13 +1728,12 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
           <div className="modal-container w-full max-w-3xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 space-y-5">
             <div className="flex items-center justify-between border-b border-dashed border-[#f4f1de]/15 pb-4">
               <div>
-                <h3 className="text-lg sm:text-xl font-extrabold text-[#f4f1de]">Quản Trị Khu Vinh Danh Toàn Diện</h3>
-                <p className="text-xs text-[#9a978e] mt-0.5">Thay thế hình ảnh, hồ sơ Founder, 21 cột mốc và tiêu đề 3D ở mọi nơi</p>
+                <h3 className="text-lg sm:text-xl font-extrabold text-[#f4f1de]">Quản Trị Khu Vinh Danh</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsEditBioModalOpen(false)}
-                className="p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
+                className="ff-tactile-btn p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1779,35 +1744,35 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
               <button
                 type="button"
                 onClick={() => setAdminModalTab('bio')}
-                className={`py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                className={`ff-tactile-btn py-2.5 px-3 rounded-lg text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
                   adminModalTab === 'bio'
-                    ? 'bg-[#e07a5f] text-[#0b0d12] shadow-md'
-                    : 'text-[#d8d5ce] hover:text-[#f4f1de] hover:bg-white/5'
+                    ? 'bg-[#f4f1de] text-[#0b0d12] border-2 border-[#0b0d12]'
+                    : 'bg-[#151a26] text-[#d8d5ce] border border-[#f4f1de]/15 hover:text-[#f4f1de]'
                 }`}
               >
-                1. Hồ sơ Founder &amp; Ảnh
+                1. Hồ sơ
               </button>
               <button
                 type="button"
                 onClick={() => setAdminModalTab('milestones')}
-                className={`py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                className={`ff-tactile-btn py-2.5 px-3 rounded-lg text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
                   adminModalTab === 'milestones'
-                    ? 'bg-[#e07a5f] text-[#0b0d12] shadow-md'
-                    : 'text-[#d8d5ce] hover:text-[#f4f1de] hover:bg-white/5'
+                    ? 'bg-[#f4f1de] text-[#0b0d12] border-2 border-[#0b0d12]'
+                    : 'bg-[#151a26] text-[#d8d5ce] border border-[#f4f1de]/15 hover:text-[#f4f1de]'
                 }`}
               >
-                2. Cột mốc Vinh danh (21)
+                2. Cột mốc (21)
               </button>
               <button
                 type="button"
                 onClick={() => setAdminModalTab('scene')}
-                className={`py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                className={`ff-tactile-btn py-2.5 px-3 rounded-lg text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
                   adminModalTab === 'scene'
-                    ? 'bg-[#e07a5f] text-[#0b0d12] shadow-md'
-                    : 'text-[#d8d5ce] hover:text-[#f4f1de] hover:bg-white/5'
+                    ? 'bg-[#f4f1de] text-[#0b0d12] border-2 border-[#0b0d12]'
+                    : 'bg-[#151a26] text-[#d8d5ce] border border-[#f4f1de]/15 hover:text-[#f4f1de]'
                 }`}
               >
-                3. Tiêu đề 3D &amp; Giao diện
+                3. Giao diện
               </button>
             </div>
 
@@ -2173,7 +2138,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                       setColophonText(DEFAULT_COLOPHON);
                       setIntroFilmUrl(INTRO_FILM_URL);
                     }}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300 cursor-pointer"
+                    className="ff-tactile-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0b0d12] hover:bg-white/10 border border-[#f4f1de]/18 text-xs font-semibold text-[#d8d5ce] cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Khôi phục mặc định</span>
@@ -2182,7 +2147,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setIsEditBioModalOpen(false)}
-                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-slate-300 hover:text-white cursor-pointer"
+                      className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#0b0d12] hover:bg-white/10 border border-[#f4f1de]/18 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-white cursor-pointer"
                     >
                       Hủy
                     </button>
@@ -2196,9 +2161,9 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                         });
                         setIsEditBioModalOpen(false);
                       }}
-                      className="px-6 py-2.5 rounded-xl bg-amber-500 text-black font-extrabold text-xs sm:text-sm hover:bg-amber-400 transition-colors shadow-lg cursor-pointer"
+                      className="ff-tactile-btn px-6 py-2.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] text-[#0b0d12] font-extrabold text-xs sm:text-sm transition-colors cursor-pointer"
                     >
-                      Lưu Tiêu đề &amp; Giao diện
+                      Lưu
                     </button>
                   </div>
                 </div>

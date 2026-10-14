@@ -125,7 +125,7 @@ export const MemberQuickAction: FC<MemberQuickActionProps> = ({
             <h4 id={titleId}>{meta.title}</h4>
             <p>{member.name} · <span>{member.email}</span></p>
           </div>
-          <button type="button" className="faa-icon-button" aria-label="Đóng" onClick={onClose} disabled={busy}><X size={16} /></button>
+          <button type="button" className="faa-icon-button ff-tactile-btn" aria-label="Đóng" onClick={onClose} disabled={busy}><X size={16} /></button>
         </header>
 
         {(kind === 'ban' || kind === 'mute') && !lifting && (
@@ -139,7 +139,7 @@ export const MemberQuickAction: FC<MemberQuickActionProps> = ({
                   type="button"
                   role="radio"
                   aria-checked={duration === option.value}
-                  className={`${duration === option.value ? 'is-on' : ''} ${option.value === 0 ? 'is-forever' : ''}`}
+                  className={`ff-tactile-btn ${duration === option.value ? 'is-on' : ''} ${option.value === 0 ? 'is-forever' : ''}`}
                   onClick={() => setDuration(option.value)}
                 >
                   {option.label}
@@ -159,7 +159,7 @@ export const MemberQuickAction: FC<MemberQuickActionProps> = ({
         {needsReason && (
           <label className="ffq-block">
             <span className="ffq-label">
-              {kind === 'warn' ? 'Nội dung cảnh cáo' : 'Lý do'} <small>(bắt buộc, 3–500 ký tự{kind === 'warn' ? ' · gửi riêng cho thành viên' : ''})</small>
+              {kind === 'warn' ? 'Nội dung cảnh cáo' : 'Lý do'} <small>*</small>
             </span>
             <textarea
               ref={kind === 'warn' ? (node) => { firstFocusRef.current = node; } : undefined}
@@ -167,7 +167,7 @@ export const MemberQuickAction: FC<MemberQuickActionProps> = ({
               maxLength={500}
               rows={3}
               onChange={(event) => setReason(event.target.value.slice(0, 500))}
-              placeholder={kind === 'warn' ? 'Trích dẫn hành vi và yêu cầu khắc phục cụ thể…' : 'Nêu rõ hành vi và nội dung vi phạm…'}
+              placeholder={kind === 'warn' ? 'Nội dung cảnh cáo…' : 'Lý do vi phạm…'}
             />
             <small className="ffq-counter">{reason.trim().length}/500</small>
           </label>
@@ -209,8 +209,8 @@ export const MemberQuickAction: FC<MemberQuickActionProps> = ({
         {error && <p className="faa-alert faa-alert--error" role="alert"><AlertTriangle size={15} aria-hidden="true" />{error}</p>}
 
         <footer className="ffq-sheet__foot">
-          <button type="button" className="ffq-ghost" onClick={onClose} disabled={busy}>Huỷ</button>
-          <button type="button" className="ffq-cta" onClick={() => void submit()} disabled={busy || !reasonValid || !roleChanged}>
+          <button type="button" className="ffq-ghost ff-tactile-btn" onClick={onClose} disabled={busy}>Huỷ</button>
+          <button type="button" className="ffq-cta ff-tactile-btn" onClick={() => void submit()} disabled={busy || !reasonValid || !roleChanged}>
             {busy ? <LoaderCircle className="faa-spin" size={14} aria-hidden="true" /> : <meta.Icon size={14} aria-hidden="true" />}
             {meta.cta}
           </button>
