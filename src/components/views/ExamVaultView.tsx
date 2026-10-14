@@ -22,6 +22,9 @@ import {
   GraduationCap,
   Layers,
   FileCheck,
+  Sun,
+  Moon,
+  LogIn,
 } from 'lucide-react';
 import type { DimensionView, User, ExamPaper, ExamType } from '../../types';
 import { safeStorage } from '../../utils/storage';
@@ -32,6 +35,7 @@ export interface ExamVaultViewProps {
   currentUser: User | null;
   onNavigate: (view: DimensionView) => void;
   onOpenLoginModal?: () => void;
+  onOpenProfile?: (user?: { id: string; name: string; avatar: string; email?: string; level?: number }) => void;
   initialSearchQuery?: string;
 }
 
@@ -419,8 +423,28 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   currentUser,
   onNavigate,
   onOpenLoginModal,
+  onOpenProfile,
   initialSearchQuery = '',
 }) => {
+  /* Theme tracking */
+  const [isLightMode, setIsLightMode] = useState<boolean>(() => {
+    if (typeof document === 'undefined') return false;
+    return document.documentElement.classList.contains('light');
+  });
+
+  useEffect(() => {
+    const onClassChange = () => {
+      setIsLightMode(document.documentElement.classList.contains('light'));
+    };
+    const observer = new MutationObserver(onClassChange);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  const handleToggleTheme = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('fforum_toggle_theme'));
+  }, []);
+
   /* Search & Filter States */
   const [searchTerm, setSearchTerm] = useState(initialSearchQuery);
   const [selectedGrade, setSelectedGrade] = useState<number>(0);
@@ -721,7 +745,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   const isStaffOrAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.staffRole === 'MODERATOR' || currentUser?.staffRole === 'TEACHER';
 
   return (
-    <div className="ff-exam-vault w-full flex flex-col items-center select-text">
+    <div className="ff-exam-vault ff-light-adapt w-full flex flex-col items-center select-text">
       {/* ======================================================== */}
       {/* 1. TOP HEADER BAR: Back to Home + Brand Logo + Actions  */}
       {/* ======================================================== */}
@@ -755,6 +779,33 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
         {/* Top-right Actions */}
         <div className="flex items-center gap-2">
+          {/* Quick nav links */}
+          <button
+            type="button"
+            onClick={() => onNavigate('qa')}
+            className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+          >
+            Hỏi Đáp
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigate('clubs')}
+            className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+          >
+            Câu Lạc Bộ
+          </button>
+
+          {/* Theme Toggle Sun / Moon */}
+          <button
+            type="button"
+            onClick={handleToggleTheme}
+            className="p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+            aria-label={isLightMode ? 'Chuyển sang chế độ tối' : 'Chuyển sang chế độ sáng'}
+            title={isLightMode ? 'Chuyển sang chế độ tối' : 'Chuyển sang chế độ sáng'}
+          >
+            {isLightMode ? <Moon className="w-4 h-4 text-amber-500" /> : <Sun className="w-4 h-4 text-amber-300" />}
+          </button>
+
           {/* Nút Đóng góp đề cương */}
           <button
             type="button"
@@ -772,6 +823,36 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             <span className="hidden sm:inline">Đóng Góp Đề Thi</span>
             <span className="sm:hidden">Gửi đề</span>
           </button>
+
+          {/* Profile Avatar or Login CTA */}
+          {currentUser ? (
+            <button
+              type="button"
+              onClick={() => onOpenProfile?.(currentUser)}
+              className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 transition-colors cursor-pointer"
+              aria-label={`Trang cá nhân của ${currentUser.name}`}
+            >
+              <img
+                src={currentUser.avatar}
+                alt={currentUser.name}
+                loading="lazy"
+                className="w-6 h-6 rounded-lg object-cover ring-1 ring-amber-400/40"
+              />
+              <span className="hidden sm:inline text-xs font-semibold text-white/90 max-w-[100px] truncate">
+                {currentUser.name}
+              </span>
+            </button>
+          ) : onOpenLoginModal ? (
+            <button
+              type="button"
+              onClick={onOpenLoginModal}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-white text-xs font-semibold border border-white/15 transition-colors cursor-pointer"
+              aria-label="Đăng nhập"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Đăng nhập</span>
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -887,13 +968,13 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 mt-3.5">
           {/* Filter Khối lớp */}
           <div className="flex flex-col">
-            <label className="text-[10px] font-mono uppercase tracking-wider text-white/50 mb-1 flex items-center gap-1">
+            <label className="ff-exam-filter-label text-[10px] font-mono uppercase tracking-wider text-white/50 mb-1 flex items-center gap-1">
               <Layers className="w-2.5 h-2.5" /> Khối lớp
             </label>
             <select
               value={selectedGrade}
               onChange={(e) => setSelectedGrade(Number(e.target.value))}
-              className="bg-[#0e1420] text-white text-xs rounded-xl px-2.5 py-2 border border-white/15 focus:outline-none focus:border-amber-400 cursor-pointer"
+              className="ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
             >
               {GRADE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -905,13 +986,13 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
           {/* Filter Loại đề */}
           <div className="flex flex-col">
-            <label className="text-[10px] font-mono uppercase tracking-wider text-white/50 mb-1 flex items-center gap-1">
+            <label className="ff-exam-filter-label text-[10px] font-mono uppercase tracking-wider text-white/50 mb-1 flex items-center gap-1">
               <FileCheck className="w-2.5 h-2.5" /> Loại đề
             </label>
             <select
               value={selectedExamType}
               onChange={(e) => setSelectedExamType(e.target.value)}
-              className="bg-[#0e1420] text-white text-xs rounded-xl px-2.5 py-2 border border-white/15 focus:outline-none focus:border-amber-400 cursor-pointer"
+              className="ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
             >
               {EXAM_TYPE_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
@@ -923,13 +1004,13 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
           {/* Filter Môn học */}
           <div className="flex flex-col">
-            <label className="text-[10px] font-mono uppercase tracking-wider text-white/50 mb-1 flex items-center gap-1">
+            <label className="ff-exam-filter-label text-[10px] font-mono uppercase tracking-wider text-white/50 mb-1 flex items-center gap-1">
               <BookOpen className="w-2.5 h-2.5" /> Môn học
             </label>
             <select
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
-              className="bg-[#0e1420] text-white text-xs rounded-xl px-2.5 py-2 border border-white/15 focus:outline-none focus:border-amber-400 cursor-pointer"
+              className="ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
             >
               {SUBJECT_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
@@ -941,13 +1022,13 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
           {/* Filter Tỉnh thành */}
           <div className="flex flex-col">
-            <label className="text-[10px] font-mono uppercase tracking-wider text-white/50 mb-1 flex items-center gap-1">
+            <label className="ff-exam-filter-label text-[10px] font-mono uppercase tracking-wider text-white/50 mb-1 flex items-center gap-1">
               <MapPin className="w-2.5 h-2.5" /> Tỉnh thành
             </label>
             <select
               value={selectedProvince}
               onChange={(e) => setSelectedProvince(e.target.value)}
-              className="bg-[#0e1420] text-white text-xs rounded-xl px-2.5 py-2 border border-white/15 focus:outline-none focus:border-amber-400 cursor-pointer"
+              className="ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
             >
               {PROVINCE_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
@@ -959,13 +1040,13 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
           {/* Filter Trường học */}
           <div className="flex flex-col">
-            <label className="text-[10px] font-mono uppercase tracking-wider text-white/50 mb-1 flex items-center gap-1">
+            <label className="ff-exam-filter-label text-[10px] font-mono uppercase tracking-wider text-white/50 mb-1 flex items-center gap-1">
               <School className="w-2.5 h-2.5" /> Trường học
             </label>
             <select
               value={selectedSchool}
               onChange={(e) => setSelectedSchool(e.target.value)}
-              className="bg-[#0e1420] text-white text-xs rounded-xl px-2.5 py-2 border border-white/15 focus:outline-none focus:border-amber-400 cursor-pointer truncate"
+              className="ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer truncate"
             >
               {SCHOOL_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
@@ -977,13 +1058,13 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
           {/* Filter Năm học */}
           <div className="flex flex-col">
-            <label className="text-[10px] font-mono uppercase tracking-wider text-white/50 mb-1 flex items-center gap-1">
+            <label className="ff-exam-filter-label text-[10px] font-mono uppercase tracking-wider text-white/50 mb-1 flex items-center gap-1">
               <Calendar className="w-2.5 h-2.5" /> Năm học
             </label>
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
-              className="bg-[#0e1420] text-white text-xs rounded-xl px-2.5 py-2 border border-white/15 focus:outline-none focus:border-amber-400 cursor-pointer"
+              className="ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
             >
               {YEAR_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
@@ -995,13 +1076,13 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
           {/* Sắp xếp */}
           <div className="flex flex-col">
-            <label className="text-[10px] font-mono uppercase tracking-wider text-white/50 mb-1 flex items-center gap-1">
+            <label className="ff-exam-filter-label text-[10px] font-mono uppercase tracking-wider text-white/50 mb-1 flex items-center gap-1">
               <Clock className="w-2.5 h-2.5" /> Sắp xếp
             </label>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              className="bg-[#0e1420] text-white text-xs rounded-xl px-2.5 py-2 border border-white/15 focus:outline-none focus:border-amber-400 cursor-pointer"
+              className="ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
             >
               <option value="newest">Mới nhất</option>
               <option value="downloads">Tải nhiều nhất</option>
@@ -1450,7 +1531,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             <form onSubmit={handleSubmitExam} className="space-y-3.5 text-left text-xs">
               {/* Tên đề */}
               <div>
-                <label className="block text-white/70 font-semibold mb-1">
+                <label className="block ff-exam-filter-label text-white/70 font-semibold mb-1">
                   Tên đề thi / Đề cương <span className="text-amber-400">*</span>
                 </label>
                 <input
@@ -1460,18 +1541,18 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                   value={submitTitle}
                   onChange={(e) => setSubmitTitle(e.target.value)}
                   placeholder="VD: Đề thi Giữa kỳ 1 Toán 12 — THPT Chuyên..."
-                  className="w-full bg-[#0b0e14] border border-white/20 rounded-xl px-3.5 py-2.5 text-white placeholder-white/35 focus:outline-none focus:border-amber-400"
+                  className="w-full ff-exam-input rounded-xl px-3.5 py-2.5 placeholder-white/35 focus:outline-none"
                 />
               </div>
 
               {/* Grid selectors */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-white/70 font-semibold mb-1">Khối lớp</label>
+                  <label className="block ff-exam-filter-label text-white/70 font-semibold mb-1">Khối lớp</label>
                   <select
                     value={submitGrade}
                     onChange={(e) => setSubmitGrade(Number(e.target.value))}
-                    className="w-full bg-[#0b0e14] border border-white/20 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-400"
+                    className="w-full ff-exam-select rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
                   >
                     {[12, 11, 10, 9, 8, 7, 6].map((g) => (
                       <option key={g} value={g}>
@@ -1482,11 +1563,11 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-white/70 font-semibold mb-1">Môn học</label>
+                  <label className="block ff-exam-filter-label text-white/70 font-semibold mb-1">Môn học</label>
                   <select
                     value={submitSubject}
                     onChange={(e) => setSubmitSubject(e.target.value)}
-                    className="w-full bg-[#0b0e14] border border-white/20 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-400"
+                    className="w-full ff-exam-select rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
                   >
                     {SUBJECT_OPTIONS.filter((s) => s !== 'Tất cả môn').map((s) => (
                       <option key={s} value={s}>
@@ -1499,11 +1580,11 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-white/70 font-semibold mb-1">Loại đề</label>
+                  <label className="block ff-exam-filter-label text-white/70 font-semibold mb-1">Loại đề</label>
                   <select
                     value={submitExamType}
                     onChange={(e) => setSubmitExamType(e.target.value as ExamType)}
-                    className="w-full bg-[#0b0e14] border border-white/20 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-400"
+                    className="w-full ff-exam-select rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
                   >
                     {EXAM_TYPE_OPTIONS.filter((t) => t !== 'Tất cả loại').map((t) => (
                       <option key={t} value={t}>
@@ -1514,11 +1595,11 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-white/70 font-semibold mb-1">Năm học</label>
+                  <label className="block ff-exam-filter-label text-white/70 font-semibold mb-1">Năm học</label>
                   <select
                     value={submitYear}
                     onChange={(e) => setSubmitYear(e.target.value)}
-                    className="w-full bg-[#0b0e14] border border-white/20 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-400"
+                    className="w-full ff-exam-select rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
                   >
                     <option value="2026-2027">2026-2027</option>
                     <option value="2025-2026">2025-2026</option>
@@ -1529,11 +1610,11 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-white/70 font-semibold mb-1">Tỉnh / Thành phố</label>
+                  <label className="block ff-exam-filter-label text-white/70 font-semibold mb-1">Tỉnh / Thành phố</label>
                   <select
                     value={submitProvince}
                     onChange={(e) => setSubmitProvince(e.target.value)}
-                    className="w-full bg-[#0b0e14] border border-white/20 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-400"
+                    className="w-full ff-exam-select rounded-xl px-3 py-2 focus:outline-none cursor-pointer"
                   >
                     {PROVINCE_OPTIONS.filter((p) => p !== 'Toàn quốc').map((p) => (
                       <option key={p} value={p}>
@@ -1544,20 +1625,20 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-white/70 font-semibold mb-1">Tên trường THPT / THCS</label>
+                  <label className="block ff-exam-filter-label text-white/70 font-semibold mb-1">Tên trường THPT / THCS</label>
                   <input
                     type="text"
                     value={submitSchool}
                     onChange={(e) => setSubmitSchool(e.target.value)}
                     placeholder="VD: THPT Chuyên Lam Sơn"
-                    className="w-full bg-[#0b0e14] border border-white/20 rounded-xl px-3 py-2 text-white placeholder-white/35 focus:outline-none focus:border-amber-400"
+                    className="w-full ff-exam-input rounded-xl px-3 py-2 placeholder-white/35 focus:outline-none"
                   />
                 </div>
               </div>
 
               {/* File Attachment Dropzone */}
               <div>
-                <label className="block text-white/70 font-semibold mb-1">
+                <label className="block ff-exam-filter-label text-white/70 font-semibold mb-1">
                   Tệp đính kèm (PDF, DOCX, Ảnh) <span className="text-amber-400">*</span>
                 </label>
                 <div className="w-full p-4 rounded-xl border-2 border-dashed border-white/20 hover:border-amber-400/50 bg-white/[0.02] flex flex-col items-center justify-center text-center cursor-pointer relative">
@@ -1597,13 +1678,13 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
               {/* Notes */}
               <div>
-                <label className="block text-white/70 font-semibold mb-1">Ghi chú cho BQT (tuỳ chọn)</label>
+                <label className="block ff-exam-filter-label text-white/70 font-semibold mb-1">Ghi chú cho BQT (tuỳ chọn)</label>
                 <textarea
                   rows={2}
                   value={submitNotes}
                   onChange={(e) => setSubmitNotes(e.target.value)}
                   placeholder="Ghi rõ nguồn đề, đáp án trang nào, hoặc lưu ý giải bài..."
-                  className="w-full bg-[#0b0e14] border border-white/20 rounded-xl px-3 py-2 text-white placeholder-white/35 focus:outline-none focus:border-amber-400 resize-none"
+                  className="w-full ff-exam-input rounded-xl px-3 py-2 placeholder-white/35 focus:outline-none resize-none"
                 />
               </div>
 

@@ -1039,9 +1039,9 @@ export const App: React.FC = () => {
           />
         </div>
       
-      {/* Floating Global Navbar Dock — ẩn khi đang ở giao diện chi tiết câu hỏi Hỏi đáp */}
+      {/* Floating Global Navbar Dock — ẩn khi đang ở giao diện chi tiết câu hỏi Hỏi đáp hoặc Khu Đề Thi riêng biệt */}
       {currentView !== 'chronicles' && (
-        currentView === 'landing' || (currentView === 'qa' && isQADetailOpen) ? null : (
+        currentView === 'landing' || currentView === 'exam-vault' || (currentView === 'qa' && isQADetailOpen) ? null : (
         <Navbar
           currentView={currentView}
           onViewChange={handleViewChange}
@@ -1214,6 +1214,7 @@ export const App: React.FC = () => {
               currentUser={currentUser}
               onNavigate={handleViewChange}
               onOpenLoginModal={() => handleOpenAuth('login')}
+              onOpenProfile={(u) => handleOpenProfile('overview', u)}
             />
           )}
           </div>
