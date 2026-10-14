@@ -5907,12 +5907,12 @@ html.light .answer-card.verified {
 
 html.light .ff-qa-card {
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.94), rgba(246, 248, 252, 0.96)) !important;
-  border: 1px solid rgba(15, 23, 42, 0.09) !important;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(16, 24, 39, 0.09) !important;
+  box-shadow: 0 10px 28px rgba(16, 24, 39, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
 }
 html.light .ff-qa-card:hover {
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 254, 0.99)) !important;
-  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+  box-shadow: 0 14px 36px rgba(16, 24, 39, 0.08), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
 }
 html.light .ff-qa-card.is-solved {
   border-left: 4px solid #059669 !important;
@@ -5925,17 +5925,6 @@ html.light .ff-qa-card.is-unsolved {
 }
 html.light .ff-qa-card.is-unsolved:hover {
   border-color: rgba(8, 145, 178, 0.45) !important;
-}
-
-html.light .ff-media-card {
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.94)) !important;
-  border-color: rgba(15, 23, 42, 0.09) !important;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
-}
-html.light .ff-media-card:hover {
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(250, 252, 255, 0.99)) !important;
-  border-color: rgba(245, 158, 11, 0.45) !important;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08) !important;
 }
 
 /* Premium Chat View Architecture (Discord x Linear) */
@@ -5967,9 +5956,9 @@ html.light .ff-chat-bubble-me {
 }
 html.light .ff-chat-bubble-peer {
   background: rgba(255, 255, 255, 0.95) !important;
-  border: 1px solid rgba(15, 23, 42, 0.1) !important;
+  border: 1px solid rgba(16, 24, 39, 0.1) !important;
   color: #101827 !important;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05) !important;
+  box-shadow: 0 4px 14px rgba(16, 24, 39, 0.05) !important;
 }
 html.light .ff-chat-bubble-admin {
   background: rgba(254, 243, 199, 0.85) !important;
@@ -5989,7 +5978,7 @@ html.light .ff-chat-bubble-admin {
 }
 html.light .ff-discord-userbar {
   background: rgba(255, 255, 255, 0.9) !important;
-  border-color: rgba(15, 23, 42, 0.1) !important;
+  border-color: rgba(16, 24, 39, 0.1) !important;
 }
 
 /* @generated light-adapter:start — sinh bởi scripts/generate-light-adapter.mjs (npm run gen:light). KHÔNG sửa tay. */
@@ -6023,6 +6012,7 @@ html.light :is(.text-orange-200, .text-orange-300, .text-orange-400) { --lv-c: #
 html.light :is(.text-rose-100, .text-rose-200, .text-rose-300, .text-rose-400) { --lv-c: #9f1239; }
 html.light :is(.text-red-200, .text-red-300, .text-red-400) { --lv-c: #991b1b; }
 html.light :is(.text-emerald-100, .text-emerald-200, .text-emerald-300, .text-emerald-300\/80, .text-emerald-300\/85, .text-emerald-400) { --lv-c: #065f46; }
+html.light :is(.text-green-200) { --lv-c: #166534; }
 html.light :is(.text-teal-200, .text-teal-300) { --lv-c: #115e59; }
 html.light :is(.text-cyan-100, .text-cyan-200, .text-cyan-200\/80, .text-cyan-300, .text-cyan-300\/80, .text-cyan-300\/90, .text-cyan-400, .text-cyan-400\/80, .text-cyan-400\/85) { --lv-c: #155e75; }
 html.light :is(.text-\[\#38bdf8\], .text-sky-200, .text-sky-300, .text-sky-300\/95, .text-sky-400) { --lv-c: #075985; }
@@ -6045,7 +6035,7 @@ html.light :is(.group:hover .group-hover\:text-amber-300) { --lv-c: #92400e; }
 html.light :is(.group:hover .group-hover\:text-rose-400) { --lv-c: #9f1239; }
 html.light :is(.group:hover .group-hover\:text-cyan-200, .group:hover .group-hover\:text-cyan-300) { --lv-c: #155e75; }
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *, .liquid-glass, .obsidian-glass, .ff-nav-capsule, .pc-12-shell, .ff-light-adapt):is(.hover\:text-\[\#f4f2ef\]:hover, .hover\:text-white:hover, .text-\[\#8c8783\], .text-\[\#949ba4\], .text-\[\#dbdee1\], .text-\[\#f2f3f5\], .text-\[\#f4f2ef\], .text-\[\#f4f2ef\]\/40, .text-\[\#f4f2ef\]\/45, .text-\[\#f4f2ef\]\/60, .text-\[\#f4f2ef\]\/70, .text-\[\#f4f2ef\]\/75, .text-\[\#f4f2ef\]\/90, .text-\[\#fff4d9\], .text-neutral-100, .text-neutral-200, .text-neutral-300, .text-neutral-300\/80, .text-neutral-400, .text-neutral-400\/80, .text-neutral-500, .text-neutral-600, .text-slate-100, .text-slate-200, .text-slate-300, .text-slate-400, .text-slate-500, .text-white, .text-white\/20, .text-white\/25, .text-white\/30, .text-white\/35, .text-white\/40, .text-white\/45, .text-white\/50, .text-white\/55, .text-white\/60, .text-white\/65, .text-white\/70, .text-white\/75, .text-white\/80, .text-white\/85, .text-white\/90, .text-white\/95):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:is([class~="bg-amber-400"], [class~="bg-amber-400/80"], [class~="bg-amber-500"], [class~="bg-cyan-400"], [class~="bg-cyan-500"], [class~="bg-emerald-400"], [class~="bg-emerald-400/80"], [class~="bg-emerald-500"], [class~="bg-orange-400"], [class~="bg-orange-500"], [class~="bg-purple-400"], [class~="bg-purple-500"], [class~="bg-red-500"], [class~="bg-red-600"], [class~="bg-rose-400"], [class~="bg-rose-400/80"], [class~="bg-rose-500"], [class~="bg-rose-600"], [class~="bg-sky-400"], [class~="bg-teal-400"], [class~="from-amber-400"], [class~="from-amber-400/70"], [class~="from-amber-400/80"], [class~="from-amber-400/90"], [class~="from-amber-500"], [class~="from-amber-500/85"], [class~="from-cyan-400"], [class~="from-cyan-500"], [class~="from-emerald-400/80"], [class~="from-fuchsia-400/80"], [class~="from-indigo-500"], [class~="from-orange-500"], [class~="from-purple-500"], [class~="from-red-600"], [class~="from-sky-400"], [class~="from-sky-400/80"]), :is([class~="bg-amber-400"], [class~="bg-amber-400/80"], [class~="bg-amber-500"], [class~="bg-cyan-400"], [class~="bg-cyan-500"], [class~="bg-emerald-400"], [class~="bg-emerald-400/80"], [class~="bg-emerald-500"], [class~="bg-orange-400"], [class~="bg-orange-500"], [class~="bg-purple-400"], [class~="bg-purple-500"], [class~="bg-red-500"], [class~="bg-red-600"], [class~="bg-rose-400"], [class~="bg-rose-400/80"], [class~="bg-rose-500"], [class~="bg-rose-600"], [class~="bg-sky-400"], [class~="bg-teal-400"], [class~="from-amber-400"], [class~="from-amber-400/70"], [class~="from-amber-400/80"], [class~="from-amber-400/90"], [class~="from-amber-500"], [class~="from-amber-500/85"], [class~="from-cyan-400"], [class~="from-cyan-500"], [class~="from-emerald-400/80"], [class~="from-fuchsia-400/80"], [class~="from-indigo-500"], [class~="from-orange-500"], [class~="from-purple-500"], [class~="from-red-600"], [class~="from-sky-400"], [class~="from-sky-400/80"]) *) { color: var(--lv-c); }
-html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *, .liquid-glass, .obsidian-glass, .ff-nav-capsule, .pc-12-shell, .ff-light-adapt):is(.group:hover .group-hover\:text-amber-300, .group:hover .group-hover\:text-cyan-200, .group:hover .group-hover\:text-cyan-300, .group:hover .group-hover\:text-rose-400, .hover\:text-amber-100:hover, .hover\:text-amber-200:hover, .hover\:text-amber-300:hover, .hover\:text-blue-400:hover, .hover\:text-cyan-300:hover, .hover\:text-indigo-400:hover, .hover\:text-red-100:hover, .hover\:text-red-200:hover, .hover\:text-red-300:hover, .hover\:text-rose-100:hover, .hover\:text-rose-200:hover, .hover\:text-rose-300:hover, .hover\:text-sky-300:hover, .text-\[\#38bdf8\], .text-amber-100, .text-amber-100\/90, .text-amber-200, .text-amber-200\/80, .text-amber-200\/85, .text-amber-200\/90, .text-amber-300, .text-amber-300\/80, .text-amber-300\/90, .text-amber-400, .text-amber-400\/70, .text-amber-400\/80, .text-amber-400\/90, .text-blue-200, .text-blue-300, .text-blue-400, .text-cyan-100, .text-cyan-200, .text-cyan-200\/80, .text-cyan-300, .text-cyan-300\/80, .text-cyan-300\/90, .text-cyan-400, .text-cyan-400\/80, .text-cyan-400\/85, .text-emerald-100, .text-emerald-200, .text-emerald-300, .text-emerald-300\/80, .text-emerald-300\/85, .text-emerald-400, .text-fuchsia-200, .text-fuchsia-300, .text-indigo-200, .text-indigo-200\/90, .text-indigo-300, .text-indigo-400\/35, .text-orange-200, .text-orange-300, .text-orange-400, .text-pink-200, .text-pink-300, .text-purple-200, .text-purple-300, .text-purple-400, .text-red-200, .text-red-300, .text-red-400, .text-rose-100, .text-rose-200, .text-rose-300, .text-rose-400, .text-sky-200, .text-sky-300, .text-sky-300\/95, .text-sky-400, .text-teal-200, .text-teal-300, .text-violet-300, .text-violet-400, .text-yellow-100, .text-yellow-300, .text-yellow-400):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *) { color: var(--lv-c); }
+html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *, .liquid-glass, .obsidian-glass, .ff-nav-capsule, .pc-12-shell, .ff-light-adapt):is(.group:hover .group-hover\:text-amber-300, .group:hover .group-hover\:text-cyan-200, .group:hover .group-hover\:text-cyan-300, .group:hover .group-hover\:text-rose-400, .hover\:text-amber-100:hover, .hover\:text-amber-200:hover, .hover\:text-amber-300:hover, .hover\:text-blue-400:hover, .hover\:text-cyan-300:hover, .hover\:text-indigo-400:hover, .hover\:text-red-100:hover, .hover\:text-red-200:hover, .hover\:text-red-300:hover, .hover\:text-rose-100:hover, .hover\:text-rose-200:hover, .hover\:text-rose-300:hover, .hover\:text-sky-300:hover, .text-\[\#38bdf8\], .text-amber-100, .text-amber-100\/90, .text-amber-200, .text-amber-200\/80, .text-amber-200\/85, .text-amber-200\/90, .text-amber-300, .text-amber-300\/80, .text-amber-300\/90, .text-amber-400, .text-amber-400\/70, .text-amber-400\/80, .text-amber-400\/90, .text-blue-200, .text-blue-300, .text-blue-400, .text-cyan-100, .text-cyan-200, .text-cyan-200\/80, .text-cyan-300, .text-cyan-300\/80, .text-cyan-300\/90, .text-cyan-400, .text-cyan-400\/80, .text-cyan-400\/85, .text-emerald-100, .text-emerald-200, .text-emerald-300, .text-emerald-300\/80, .text-emerald-300\/85, .text-emerald-400, .text-fuchsia-200, .text-fuchsia-300, .text-green-200, .text-indigo-200, .text-indigo-200\/90, .text-indigo-300, .text-indigo-400\/35, .text-orange-200, .text-orange-300, .text-orange-400, .text-pink-200, .text-pink-300, .text-purple-200, .text-purple-300, .text-purple-400, .text-red-200, .text-red-300, .text-red-400, .text-rose-100, .text-rose-200, .text-rose-300, .text-rose-400, .text-sky-200, .text-sky-300, .text-sky-300\/95, .text-sky-400, .text-teal-200, .text-teal-300, .text-violet-300, .text-violet-400, .text-yellow-100, .text-yellow-300, .text-yellow-400):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *) { color: var(--lv-c); }
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *).placeholder-\[\#949ba4\]::placeholder,
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *).placeholder-neutral-400::placeholder,
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *).placeholder-neutral-500::placeholder,

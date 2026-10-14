@@ -463,14 +463,26 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                       <Trophy className="w-3.5 h-3.5 text-amber-400" />
                       CLB XUẤT SẮC NHẤT THÁNG
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 text-[10px] font-mono font-bold">
-                      {spotlightClub.category}
-                    </span>
+                    {(() => {
+                      const SpotIcon = getCategoryIcon(spotlightClub.category);
+                      return (
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold shadow-xs border inline-flex items-center gap-1 ${getCategoryBadgeClass(spotlightClub.category)}`}>
+                          <SpotIcon className="w-3 h-3 shrink-0" />
+                          <span>{spotlightClub.category}</span>
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   <h2 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight">
                     {spotlightClub.name}
                   </h2>
+
+                  {spotlightClub.slogan && (
+                    <p className="text-xs sm:text-sm text-amber-200/90 italic line-clamp-2 max-w-xl font-sans">
+                      "{spotlightClub.slogan}"
+                    </p>
+                  )}
 
                   <div className="flex items-center gap-4 text-xs text-neutral-300 pt-1 font-mono flex-wrap">
                     <span className="flex items-center gap-1.5">
