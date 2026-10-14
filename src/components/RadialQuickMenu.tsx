@@ -235,7 +235,7 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
       label: 'Bảng thống kê quản trị',
       angle: '-38deg',
       tier: 'far' as const,
-      icon: <ChartNoAxesCombined className="w-[21px] h-[21px] text-cyan-300" />,
+      icon: <ChartNoAxesCombined className="w-[21px] h-[21px] text-[#81b29a]" />,
       extraClass: 'ccm-02__item--admin',
       badge: pendingReportCount > 0 ? (
         <span className="ccm-02__badge">{pendingReportCount > 99 ? '99+' : pendingReportCount}</span>
@@ -337,7 +337,7 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
               close();
               action.onSelect();
             }}
-            className={`ccm-02__item group absolute inset-0 m-auto w-[53px] h-[53px] rounded-full bg-[#131926]/95 border border-white/15 text-slate-200 flex items-center justify-center shadow-[0_14px_34px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.1)] hover:border-cyan-400/50 hover:text-cyan-300 cursor-pointer ${action.extraClass ?? ''}`}
+            className={`ccm-02__item group absolute inset-0 m-auto w-[53px] h-[53px] rounded-full bg-[#151a26]/95 border border-[#f4f1de]/25 text-[#f4f1de] flex items-center justify-center shadow-[0_14px_34px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.1)] hover:border-[#f2cc8f] hover:text-[#f2cc8f] cursor-pointer ${action.extraClass ?? ''}`}
             aria-label={action.label}
             title={action.label}
           >

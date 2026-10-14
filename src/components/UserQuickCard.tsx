@@ -186,7 +186,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
                 <div className="text-[9.5px] text-[#949ba4]">Coin</div>
               </div>
               <div className="pc-12-well p-1.5">
-                <div className="text-xs font-extrabold text-cyan-300 font-mono flex items-center justify-center gap-1">
+                <div className="text-xs font-extrabold text-[#f2cc8f] font-mono flex items-center justify-center gap-1">
                   <HelpCircle className="w-3 h-3" />
                   {userSolutions.length}
                 </div>
@@ -213,7 +213,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
                 {tier.titleVi}
               </span>
               <span className="pc-12-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-semibold text-[#dbdee1]">
-                <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                <span className="w-2 h-2 rounded-full bg-[#81b29a]" />
                 {user.role === 'SUPER_ADMIN'
                   ? 'Quản trị'
                   : user.role === 'CLUB_LEADER'

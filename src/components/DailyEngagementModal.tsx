@@ -296,7 +296,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
         onClick={onClose}
       />
 
-      <div className="ff-daily-panel liquid-glass w-full max-w-xl rounded-3xl p-4 sm:p-6 relative z-10 overflow-hidden max-h-[95vh] overflow-y-auto">
+      <div className="ff-daily-panel modal-container liquid-glass w-full max-w-xl p-4 sm:p-6 relative z-10 overflow-hidden max-h-[95vh] overflow-y-auto">
         <header className="ff-daily-header">
           <div className="ff-daily-header__top">
             <div className="ff-daily-heading">
@@ -391,7 +391,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                         <Gift
                           className={`w-3.5 h-3.5 ${
                             day === 5
-                              ? 'text-cyan-400'
+                              ? 'text-[#81b29a]'
                               : day === 10
                               ? 'text-amber-400'
                               : 'text-rose-400'
@@ -439,39 +439,39 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
             {/* 3 Isometric Gift Boxes */}
             <div className="grid grid-cols-3 gap-3">
               {/* Blue Box */}
-              <div className="rounded-2xl p-3 bg-gradient-to-b from-cyan-950/40 to-black/60 border border-cyan-500/30 flex flex-col items-center text-center relative group">
+              <div className="rounded-xl p-3 bg-[#0b0d12]/80 border border-[#81b29a]/40 flex flex-col items-center text-center relative group">
                 <div className="relative w-16 h-16 flex items-center justify-center mb-2">
-                  <svg viewBox="0 0 64 64" className="w-14 h-14 drop-shadow-[0_0_12px_rgba(6,182,212,0.5)]">
+                  <svg viewBox="0 0 64 64" className="w-14 h-14 drop-shadow-[0_0_12px_rgba(129,178,154,0.45)]">
                     <defs>
                       <linearGradient id="blueBoxTop" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#38bdf8" />
-                        <stop offset="100%" stopColor="#0284c7" />
+                        <stop offset="0%" stopColor="#81b29a" />
+                        <stop offset="100%" stopColor="#52796f" />
                       </linearGradient>
                       <linearGradient id="blueBoxLeft" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#0284c7" />
-                        <stop offset="100%" stopColor="#0369a1" />
+                        <stop offset="0%" stopColor="#52796f" />
+                        <stop offset="100%" stopColor="#354f52" />
                       </linearGradient>
                       <linearGradient id="blueBoxRight" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#0ea5e9" />
-                        <stop offset="100%" stopColor="#0284c7" />
+                        <stop offset="0%" stopColor="#6b9080" />
+                        <stop offset="100%" stopColor="#52796f" />
                       </linearGradient>
                     </defs>
-                    <polygon points="32,8 54,20 32,32 10,20" fill="url(#blueBoxTop)" stroke="#7dd3fc" strokeWidth="1" />
-                    <polygon points="10,20 32,32 32,54 10,42" fill="url(#blueBoxLeft)" stroke="#38bdf8" strokeWidth="1" />
-                    <polygon points="32,32 54,20 54,42 32,54" fill="url(#blueBoxRight)" stroke="#38bdf8" strokeWidth="1" />
-                    <path d="M26 12 C24 6 30 6 32 10 C34 6 40 6 38 12 C34 16 30 16 26 12 Z" fill="#e0f2fe" stroke="#38bdf8" strokeWidth="1" />
+                    <polygon points="32,8 54,20 32,32 10,20" fill="url(#blueBoxTop)" stroke="#a3c9b8" strokeWidth="1" />
+                    <polygon points="10,20 32,32 32,54 10,42" fill="url(#blueBoxLeft)" stroke="#81b29a" strokeWidth="1" />
+                    <polygon points="32,32 54,20 54,42 32,54" fill="url(#blueBoxRight)" stroke="#81b29a" strokeWidth="1" />
+                    <path d="M26 12 C24 6 30 6 32 10 C34 6 40 6 38 12 C34 16 30 16 26 12 Z" fill="#f4f1de" stroke="#81b29a" strokeWidth="1" />
                   </svg>
                   <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 text-neutral-950 font-black font-mono text-[10px] flex items-center justify-center border border-amber-200 shadow-md">
                     {boxes.blue}
                   </span>
                 </div>
-                <span className="text-xs font-bold text-white">Hộp Xanh Lam</span>
-                <span className="text-[10px] text-cyan-300 font-mono mt-0.5">Sở hữu: {boxes.blue}</span>
+                <span className="text-xs font-bold text-[#f4f1de]">Hộp Xanh Lam</span>
+                <span className="text-[10px] text-[#81b29a] font-mono mt-0.5">Sở hữu: {boxes.blue}</span>
                 <button
                   type="button"
                   onClick={() => handleOpenBox('blue')}
                   disabled={boxes.blue <= 0 || openingBox !== null}
-                  className="mt-3 w-full py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-black text-xs font-bold transition-all cursor-pointer"
+                  className="ff-tactile-btn mt-3 w-full py-1.5 rounded-lg bg-[#81b29a] hover:bg-[#95c4ae] disabled:opacity-40 text-[#0b0d12] text-xs font-bold transition-all cursor-pointer"
                 >
                   {openingBox === 'blue' ? 'Đang mở...' : 'Mở hộp'}
                 </button>
@@ -592,7 +592,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                     style={{ '--quiz-progress': `${(quizTimer / QUIZ_DURATION_SECONDS) * 100}%` } as React.CSSProperties}
                     data-urgent={quizTimer <= 5}
                   >
-                    <Clock className="w-3 h-3 absolute -top-1 -right-1 text-cyan-400" aria-hidden="true" />
+                    <Clock className="w-3 h-3 absolute -top-1 -right-1 text-[#f2cc8f]" aria-hidden="true" />
                     <span>{quizTimer}s</span>
                   </div>
                 </div>
@@ -612,7 +612,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                     </button>
                   ))}
                 </div>
-                {selectedOption !== null && <p className="text-xs text-cyan-200 pt-2" role="status">Đang ghi nhận câu trả lời…</p>}
+                {selectedOption !== null && <p className="text-xs text-[#f2cc8f] pt-2" role="status">Đang ghi nhận câu trả lời…</p>}
               </div>
               )
             ) : (

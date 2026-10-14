@@ -555,9 +555,9 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                     setActiveAuthorCard(null);
                     onOpenProfile(user);
                   }}
-                  className="pc-12-btn w-full py-2 px-3 rounded-xl text-cyan-200 hover:text-white text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                  className="pc-12-btn ff-tactile-btn w-full py-2 px-3 rounded-xl text-[#f4f1de] hover:text-[#f2cc8f] text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <UserIcon className="w-3.5 h-3.5 text-cyan-400" />
+                  <UserIcon className="w-3.5 h-3.5 text-[#f2cc8f]" />
                   <span>Trang cá nhân</span>
                 </button>
               )}
@@ -594,7 +594,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
           }}
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
         >
-          <div className="liquid-glass w-full max-w-md rounded-3xl bg-neutral-950/95 border border-red-500/40 shadow-2xl p-6 relative">
+          <div className="modal-container liquid-glass w-full max-w-md !border-red-500/45 p-6 relative">
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
               <div className="flex items-center gap-2 text-red-400">
                 <Flag className="w-5 h-5 text-red-400" />

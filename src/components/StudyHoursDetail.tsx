@@ -48,7 +48,7 @@ export const StudyHoursDetail: React.FC<StudyHoursDetailProps> = ({ sessions, on
       value: `${(stats.totalMinutes / 60).toFixed(1)} giờ`,
       hint: `${stats.sessionCount} phiên`,
       icon: <Clock className="w-3.5 h-3.5" />,
-      tone: 'text-cyan-300',
+      tone: 'text-[#81b29a]',
     },
     {
       id: 'avg',
@@ -72,7 +72,7 @@ export const StudyHoursDetail: React.FC<StudyHoursDetailProps> = ({ sessions, on
       value: formatDuration(stats.longestSessionMinutes),
       hint: 'mỗi phiên tối đa 25 phút',
       icon: <Timer className="w-3.5 h-3.5" />,
-      tone: 'text-sky-300',
+      tone: 'text-[#f2cc8f]',
     },
   ];
 

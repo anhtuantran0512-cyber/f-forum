@@ -838,34 +838,34 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
         typeof document !== 'undefined' &&
         createPortal(
           <div className="fixed inset-0 z-[140] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md">
-            <div className="w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-3xl bg-[#0b111e] border border-amber-400/45 p-6 sm:p-8 space-y-5 shadow-[0_30px_90px_rgba(0,0,0,0.95)] text-white">
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="modal-container w-full max-w-4xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 space-y-5 text-[#f4f1de]">
+              <div className="flex items-center justify-between border-b border-dashed border-[#f4f1de]/15 pb-4">
                 <div>
-                  <h3 className="text-lg sm:text-xl font-extrabold text-white">
+                  <h3 className="text-lg sm:text-xl font-extrabold text-[#f4f1de]">
                     Quản Trị Khu Kỷ Niệm (Miền Ký Ức) Toàn Diện
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-[#9a978e] mt-0.5">
                     Thay thế hình ảnh và nội dung ở tất cả thẻ cột mốc, phân đoạn câu chuyện và 7 lớp cảnh nền Parallax
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsAdminModalOpen(false)}
-                  className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white cursor-pointer"
+                  className="p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* 3 Tabs */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1.5 rounded-2xl bg-[#070b13] border border-white/10">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1.5 rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15">
                 <button
                   type="button"
                   onClick={() => setAdminTab('sights')}
-                  className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  className={`py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                     adminTab === 'sights'
-                      ? 'bg-amber-500 text-black shadow-md'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                      ? 'bg-[#e07a5f] text-[#0b0d12] shadow-md'
+                      : 'text-[#d8d5ce] hover:text-[#f4f1de] hover:bg-white/5'
                   }`}
                 >
                   1. 5 Thẻ Cột Mốc Kỷ Niệm (Ảnh &amp; Chữ)
@@ -873,10 +873,10 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                 <button
                   type="button"
                   onClick={() => setAdminTab('copy')}
-                  className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  className={`py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                     adminTab === 'copy'
-                      ? 'bg-amber-500 text-black shadow-md'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                      ? 'bg-[#e07a5f] text-[#0b0d12] shadow-md'
+                      : 'text-[#d8d5ce] hover:text-[#f4f1de] hover:bg-white/5'
                   }`}
                 >
                   2. Nội Dung Chữ Ở Mọi Phân Đoạn
@@ -884,10 +884,10 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                 <button
                   type="button"
                   onClick={() => setAdminTab('layers')}
-                  className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  className={`py-2.5 px-3 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                     adminTab === 'layers'
-                      ? 'bg-amber-500 text-black shadow-md'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                      ? 'bg-[#e07a5f] text-[#0b0d12] shadow-md'
+                      : 'text-[#d8d5ce] hover:text-[#f4f1de] hover:bg-white/5'
                   }`}
                 >
                   3. Thay Thế 7 Lớp Ảnh Cảnh Nền
@@ -905,31 +905,31 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                         onClick={() => setSelectedSightIdx(i)}
                         className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                           selectedSightIdx === i
-                            ? 'bg-amber-500/20 border-amber-400 text-amber-200'
-                            : 'bg-[#070b13] border-white/10 text-slate-300 hover:border-white/25'
+                            ? 'bg-[#e07a5f]/20 border-[#e07a5f] text-[#f2cc8f]'
+                            : 'bg-[#0b0d12] border-[#f4f1de]/12 text-[#d8d5ce] hover:border-[#f2cc8f]/40'
                         }`}
                       >
-                        <div className="text-[10px] font-mono text-amber-300">{s.kickerVie}</div>
+                        <div className="text-[10px] font-mono text-[#f2cc8f]">{s.kickerVie}</div>
                         <div className="text-xs font-bold truncate mt-0.5">{s.titleVie}</div>
                       </button>
                     ))}
                   </div>
 
                   {cmsData.sights[selectedSightIdx] && (
-                    <div className="rounded-2xl bg-[#070b13] border border-white/15 p-4 sm:p-5 space-y-4">
+                    <div className="rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15 p-4 sm:p-5 space-y-4">
                       {/* Ảnh thẻ cột mốc */}
-                      <div className="flex flex-col sm:flex-row items-center gap-4 pb-4 border-b border-white/10">
+                      <div className="flex flex-col sm:flex-row items-center gap-4 pb-4 border-b border-dashed border-[#f4f1de]/15">
                         <img
                           src={cmsData.sights[selectedSightIdx].pinUrl}
                           alt={cmsData.sights[selectedSightIdx].titleVie}
                           loading="lazy"
                           decoding="async"
                           onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
-                          className="w-28 h-32 rounded-xl object-contain bg-black/60 border border-white/15 p-2 shrink-0"
+                          className="w-28 h-32 rounded-xl object-contain bg-black/60 border border-[#f4f1de]/15 p-2 shrink-0"
                         />
                         <div className="flex-1 w-full space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs sm:text-sm font-bold text-amber-300">
+                            <span className="text-xs sm:text-sm font-bold text-[#f2cc8f]">
                               Hình ảnh / Biểu tượng Thẻ #{selectedSightIdx + 1}
                             </span>
                             <button
@@ -943,7 +943,7 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                                   ),
                                 }));
                               }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-slate-300 cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-[#d8d5ce] cursor-pointer"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
                               <span>Ảnh gốc</span>
@@ -964,9 +964,9 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                                 }));
                               }}
                               placeholder="Dán URL ảnh hoặc tải ảnh từ máy..."
-                              className="flex-1 bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                              className="flex-1 bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2.5 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                             />
-                            <label className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
+                            <label className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
                               <Upload className="w-4 h-4" />
                               <span>{isUploadingImg ? 'Đang tải...' : 'Tải ảnh từ máy'}</span>
                               <input
@@ -992,7 +992,7 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="text-xs font-bold text-slate-300 block mb-1">Nhãn phụ (Tiếng Việt)</label>
+                          <label className="text-xs font-bold text-[#d8d5ce] block mb-1">Nhãn phụ (Tiếng Việt)</label>
                           <input
                             type="text"
                             maxLength={80}
@@ -1006,11 +1006,11 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                                 ),
                               }));
                             }}
-                            className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                            className="w-full bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2.5 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-bold text-slate-300 block mb-1">Nhãn phụ (English)</label>
+                          <label className="text-xs font-bold text-[#d8d5ce] block mb-1">Nhãn phụ (English)</label>
                           <input
                             type="text"
                             maxLength={80}
@@ -1024,11 +1024,11 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                                 ),
                               }));
                             }}
-                            className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                            className="w-full bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2.5 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-bold text-slate-300 block mb-1">Tiêu đề thẻ (Tiếng Việt)</label>
+                          <label className="text-xs font-bold text-[#d8d5ce] block mb-1">Tiêu đề thẻ (Tiếng Việt)</label>
                           <input
                             type="text"
                             maxLength={120}
@@ -1042,11 +1042,11 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                                 ),
                               }));
                             }}
-                            className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                            className="w-full bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2.5 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-bold text-slate-300 block mb-1">Tiêu đề thẻ (English)</label>
+                          <label className="text-xs font-bold text-[#d8d5ce] block mb-1">Tiêu đề thẻ (English)</label>
                           <input
                             type="text"
                             maxLength={120}
@@ -1060,14 +1060,14 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                                 ),
                               }));
                             }}
-                            className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                            className="w-full bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2.5 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                           />
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="text-xs font-bold text-slate-300 block mb-1">Mô tả chi tiết (Tiếng Việt)</label>
+                          <label className="text-xs font-bold text-[#d8d5ce] block mb-1">Mô tả chi tiết (Tiếng Việt)</label>
                           <textarea
                             rows={3}
                             maxLength={350}
@@ -1081,11 +1081,11 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                                 ),
                               }));
                             }}
-                            className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 resize-y"
+                            className="w-full bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2.5 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f] resize-y"
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-bold text-slate-300 block mb-1">Mô tả chi tiết (English)</label>
+                          <label className="text-xs font-bold text-[#d8d5ce] block mb-1">Mô tả chi tiết (English)</label>
                           <textarea
                             rows={3}
                             maxLength={350}
@@ -1099,7 +1099,7 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                                 ),
                               }));
                             }}
-                            className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 resize-y"
+                            className="w-full bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2.5 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f] resize-y"
                           />
                         </div>
                       </div>
@@ -1111,38 +1111,38 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
               {adminTab === 'copy' && (
                 <div className="space-y-5">
                   {/* Phần 1: Hero & Intro */}
-                  <div className="rounded-2xl bg-[#070b13] border border-white/15 p-4 space-y-3">
-                    <h4 className="text-sm font-extrabold text-amber-300">Phân đoạn 1: Tiêu đề lớn &amp; Mở đầu</h4>
+                  <div className="rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15 p-4 space-y-3">
+                    <h4 className="text-sm font-extrabold text-[#f2cc8f]">Phân đoạn 1: Tiêu đề lớn &amp; Mở đầu</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-slate-300 block mb-1">Chữ nền khổng lồ (VIE)</label>
+                        <label className="text-xs text-[#d8d5ce] block mb-1">Chữ nền khổng lồ (VIE)</label>
                         <input
                           type="text"
                           maxLength={40}
                           value={cmsData.heroTitleVie}
                           onChange={(e) => setCmsData({ ...cmsData, heroTitleVie: e.target.value })}
-                          className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2 text-sm text-white"
+                          className="w-full bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2 text-sm text-[#f4f1de]"
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-slate-300 block mb-1">Chữ nền khổng lồ (ENG)</label>
+                        <label className="text-xs text-[#d8d5ce] block mb-1">Chữ nền khổng lồ (ENG)</label>
                         <input
                           type="text"
                           maxLength={40}
                           value={cmsData.heroTitleEng}
                           onChange={(e) => setCmsData({ ...cmsData, heroTitleEng: e.target.value })}
-                          className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2 text-sm text-white"
+                          className="w-full bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2 text-sm text-[#f4f1de]"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs text-slate-300 block mb-1">Đoạn văn mở đầu (Tiếng Việt)</label>
+                      <label className="text-xs text-[#d8d5ce] block mb-1">Đoạn văn mở đầu (Tiếng Việt)</label>
                       <textarea
                         rows={2}
                         maxLength={350}
                         value={cmsData.introCopyVie}
                         onChange={(e) => setCmsData({ ...cmsData, introCopyVie: e.target.value })}
-                        className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2 text-sm text-white"
+                        className="w-full bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2 text-sm text-[#f4f1de]"
                       />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -1159,71 +1159,71 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                               heroTagsVie: prev.heroTagsVie.map((t, i) => (i === idx ? val : t)),
                             }));
                           }}
-                          className="bg-[#0b111e] border border-white/20 rounded-xl px-3 py-2 text-xs text-white"
+                          className="bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3 py-2 text-xs text-[#f4f1de]"
                         />
                       ))}
                     </div>
                   </div>
 
                   {/* Phần 2: Nhịp cầu (#bridge) */}
-                  <div className="rounded-2xl bg-[#070b13] border border-white/15 p-4 space-y-3">
-                    <h4 className="text-sm font-extrabold text-amber-300">Phân đoạn 2: Nhịp Cầu (#bridge)</h4>
+                  <div className="rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15 p-4 space-y-3">
+                    <h4 className="text-sm font-extrabold text-[#f2cc8f]">Phân đoạn 2: Nhịp Cầu (#bridge)</h4>
                     <div>
-                      <label className="text-xs text-slate-300 block mb-1">Tiêu đề Nhịp cầu (Tiếng Việt)</label>
+                      <label className="text-xs text-[#d8d5ce] block mb-1">Tiêu đề Nhịp cầu (Tiếng Việt)</label>
                       <input
                         type="text"
                         maxLength={120}
                         value={cmsData.bridgeTitleVie}
                         onChange={(e) => setCmsData({ ...cmsData, bridgeTitleVie: e.target.value })}
-                        className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2 text-sm text-white"
+                        className="w-full bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2 text-sm text-[#f4f1de]"
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-slate-300 block mb-1">Nội dung Nhịp cầu (Tiếng Việt)</label>
+                      <label className="text-xs text-[#d8d5ce] block mb-1">Nội dung Nhịp cầu (Tiếng Việt)</label>
                       <textarea
                         rows={2}
                         maxLength={350}
                         value={cmsData.bridgeBodyVie}
                         onChange={(e) => setCmsData({ ...cmsData, bridgeBodyVie: e.target.value })}
-                        className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2 text-sm text-white"
+                        className="w-full bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2 text-sm text-[#f4f1de]"
                       />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-slate-300 block mb-1">Cột mốc số 1 &amp; Mô tả</label>
+                        <label className="text-xs text-[#d8d5ce] block mb-1">Cột mốc số 1 &amp; Mô tả</label>
                         <div className="flex gap-2">
                           <input
                             type="text"
                             maxLength={30}
                             value={cmsData.fact1Title}
                             onChange={(e) => setCmsData({ ...cmsData, fact1Title: e.target.value })}
-                            className="w-24 bg-[#0b111e] border border-white/20 rounded-xl px-3 py-2 text-sm text-white"
+                            className="w-24 bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3 py-2 text-sm text-[#f4f1de]"
                           />
                           <input
                             type="text"
                             maxLength={150}
                             value={cmsData.fact1DescVie}
                             onChange={(e) => setCmsData({ ...cmsData, fact1DescVie: e.target.value })}
-                            className="flex-1 bg-[#0b111e] border border-white/20 rounded-xl px-3 py-2 text-sm text-white"
+                            className="flex-1 bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3 py-2 text-sm text-[#f4f1de]"
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="text-xs text-slate-300 block mb-1">Cột mốc số 2 &amp; Mô tả</label>
+                        <label className="text-xs text-[#d8d5ce] block mb-1">Cột mốc số 2 &amp; Mô tả</label>
                         <div className="flex gap-2">
                           <input
                             type="text"
                             maxLength={30}
                             value={cmsData.fact2TitleVie}
                             onChange={(e) => setCmsData({ ...cmsData, fact2TitleVie: e.target.value })}
-                            className="w-28 bg-[#0b111e] border border-white/20 rounded-xl px-3 py-2 text-sm text-white"
+                            className="w-28 bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3 py-2 text-sm text-[#f4f1de]"
                           />
                           <input
                             type="text"
                             maxLength={150}
                             value={cmsData.fact2DescVie}
                             onChange={(e) => setCmsData({ ...cmsData, fact2DescVie: e.target.value })}
-                            className="flex-1 bg-[#0b111e] border border-white/20 rounded-xl px-3 py-2 text-sm text-white"
+                            className="flex-1 bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3 py-2 text-sm text-[#f4f1de]"
                           />
                         </div>
                       </div>
@@ -1231,38 +1231,38 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                   </div>
 
                   {/* Phần 3: Góc quán (#bazaar) */}
-                  <div className="rounded-2xl bg-[#070b13] border border-white/15 p-4 space-y-3">
-                    <h4 className="text-sm font-extrabold text-amber-300">Phân đoạn 3: Góc Quán (#bazaar)</h4>
+                  <div className="rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15 p-4 space-y-3">
+                    <h4 className="text-sm font-extrabold text-[#f2cc8f]">Phân đoạn 3: Góc Quán (#bazaar)</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-slate-300 block mb-1">Tiêu đề Góc quán (Tiếng Việt)</label>
+                        <label className="text-xs text-[#d8d5ce] block mb-1">Tiêu đề Góc quán (Tiếng Việt)</label>
                         <input
                           type="text"
                           maxLength={120}
                           value={cmsData.bazaarTitleVie}
                           onChange={(e) => setCmsData({ ...cmsData, bazaarTitleVie: e.target.value })}
-                          className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2 text-sm text-white"
+                          className="w-full bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2 text-sm text-[#f4f1de]"
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-slate-300 block mb-1">Nhãn nút hành động</label>
+                        <label className="text-xs text-[#d8d5ce] block mb-1">Nhãn nút hành động</label>
                         <input
                           type="text"
                           maxLength={80}
                           value={cmsData.bazaarButtonVie}
                           onChange={(e) => setCmsData({ ...cmsData, bazaarButtonVie: e.target.value })}
-                          className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2 text-sm text-white"
+                          className="w-full bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2 text-sm text-[#f4f1de]"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs text-slate-300 block mb-1">Nội dung Góc quán (Tiếng Việt)</label>
+                      <label className="text-xs text-[#d8d5ce] block mb-1">Nội dung Góc quán (Tiếng Việt)</label>
                       <textarea
                         rows={2}
                         maxLength={350}
                         value={cmsData.bazaarBodyVie}
                         onChange={(e) => setCmsData({ ...cmsData, bazaarBodyVie: e.target.value })}
-                        className="w-full bg-[#0b111e] border border-white/20 rounded-xl px-3.5 py-2 text-sm text-white"
+                        className="w-full bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2 text-sm text-[#f4f1de]"
                       />
                     </div>
                   </div>
@@ -1284,14 +1284,14 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                   ).map((layer) => (
                     <div
                       key={layer.key}
-                      className="rounded-2xl bg-[#070b13] border border-white/15 p-3.5 space-y-2.5"
+                      className="rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15 p-3.5 space-y-2.5"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-amber-300">{layer.label}</span>
+                        <span className="text-xs font-bold text-[#f2cc8f]">{layer.label}</span>
                         <button
                           type="button"
                           onClick={() => setCmsData((prev) => ({ ...prev, [layer.key]: layer.def }))}
-                          className="text-[11px] text-slate-400 hover:text-white inline-flex items-center gap-1 cursor-pointer"
+                          className="text-[11px] text-[#9a978e] hover:text-[#f4f1de] inline-flex items-center gap-1 cursor-pointer"
                         >
                           <RotateCcw className="w-3 h-3" />
                           <span>Mặc định</span>
@@ -1316,7 +1316,7 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                             const val = e.target.value;
                             setCmsData((prev) => ({ ...prev, [layer.key]: val }));
                           }}
-                          className="flex-1 bg-[#0b111e] border border-white/20 rounded-xl px-3 py-2 text-xs text-white"
+                          className="flex-1 bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3 py-2 text-xs text-[#f4f1de]"
                         />
                         <label className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs flex items-center gap-1 cursor-pointer shrink-0">
                           <Upload className="w-3.5 h-3.5" />

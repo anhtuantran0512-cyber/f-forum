@@ -178,7 +178,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
   const getIcon = (type: NotificationItem['type']) => {
     switch (type) {
       case 'qa':
-        return <HelpCircle size={16} className="text-cyan-400" />;
+        return <HelpCircle size={16} className="text-[#e07a5f]" />;
       case 'chat':
         return <MessageSquare size={16} className="text-orange-400" />;
       case 'achievement':
@@ -219,7 +219,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label="Trung tâm thông báo"
-        className={`z-[70] liquid-glass rounded-3xl p-4 shadow-[0_25px_60px_rgba(0,0,0,0.92)] border border-white/20 pointer-events-auto select-none popover-morph-enter bg-[#0c1218]/95 ${
+        className={`z-[70] modal-container liquid-glass p-4 pointer-events-auto select-none popover-morph-enter ${
           !anchorRef || !pop.ready ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] max-w-[calc(100vw-28px)]' : ''
         }`}
         style={anchorRef ? pop.style : undefined}
@@ -228,11 +228,11 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         }}
       >
         {/* Header: Brand F-Forum Icon & Actions */}
-        <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
+        <div className="flex items-center justify-between pb-3 mb-3 border-b border-dashed border-[#f4f1de]/15">
           <div className="flex items-center gap-2.5">
             {/* Stylized Brand F Icon */}
-            <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-500 to-cyan-400 p-[1.5px] shadow-[0_0_12px_rgba(245,158,11,0.4)]">
-              <div className="w-full h-full bg-[#0a0f14] rounded-[9px] flex items-center justify-center font-black text-xs text-amber-300 font-mono">
+            <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-500 to-[#e07a5f] p-[1.5px] shadow-[0_0_12px_rgba(245,158,11,0.4)]">
+              <div className="w-full h-full bg-[#0b0d12] rounded-[9px] flex items-center justify-center font-black text-xs text-amber-300 font-mono">
                 F
               </div>
             </div>
@@ -328,7 +328,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
                           </strong>
                         )}
                         {n.systemName && (
-                          <span className="text-cyan-400 font-bold mr-1">
+                          <span className="text-[#f2cc8f] font-bold mr-1">
                             [{n.systemName}]
                           </span>
                         )}
@@ -357,14 +357,14 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         </div>
 
         {/* Footer Action: "Xem tất cả" button as in design specification */}
-        <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between">
+        <div className="mt-3 pt-2.5 border-t border-dashed border-[#f4f1de]/15 flex items-center justify-between">
           <button
             type="button"
             onClick={() => {
               onNavigate('home');
               onClose();
             }}
-            className="text-xs text-sky-400 hover:text-sky-300 font-medium transition-colors cursor-pointer"
+            className="text-xs text-[#f2cc8f] hover:text-[#f4f1de] font-medium transition-colors cursor-pointer"
           >
             Xem tất cả thông báo
           </button>

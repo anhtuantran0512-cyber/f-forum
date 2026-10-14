@@ -60,9 +60,9 @@ export interface NavbarProps {
 }
 
 type DockView = Exclude<DimensionView, 'landing' | 'home'>;const NAV_ICONS: Record<DockView, React.ReactNode> = {
-  clubs: <Users size={16} className="text-emerald-400" />,
-  qa: <HelpCircle size={16} className="text-cyan-400" />,
-  threads: <MessageCircleMore size={16} className="text-fuchsia-300" />,
+  clubs: <Users size={16} className="text-[#81b29a]" />,
+  qa: <HelpCircle size={16} className="text-[#e07a5f]" />,
+  threads: <MessageCircleMore size={16} className="text-[#f2cc8f]" />,
   chat: <MessageSquare size={16} className="text-orange-400" />, 
   memory: (
     <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 ff-nav-tab-icon text-pink-300">
@@ -1301,8 +1301,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           }}
           className={`flex flex-col items-center justify-center min-w-[48px] min-h-[44px] px-2 py-1 rounded-xl transition-all cursor-pointer ${
             currentView === 'qa' && !isMobileMenuOpen
-              ? 'text-cyan-400 font-semibold'
-              : 'text-white/60 hover:text-white'
+              ? 'text-[#f2cc8f] font-semibold'
+              : 'text-[#f4f1de]/60 hover:text-[#f4f1de]'
           }`}
           aria-label="Hỏi Đáp"
         >
@@ -1375,9 +1375,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             role="dialog"
             aria-modal="true"
             aria-label="Menu khám phá"
-            className="ff-light-adapt fixed bottom-[calc(56px+var(--safe-bottom)+8px)] inset-x-3 z-50 rounded-3xl bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 p-3.5 shadow-2xl animate-fade-up md:hidden pointer-events-auto"
+            className="ff-light-adapt modal-container fixed bottom-[calc(56px+var(--safe-bottom)+8px)] inset-x-3 z-50 backdrop-blur-2xl p-3.5 animate-fade-up md:hidden pointer-events-auto"
           >
-            <div className="flex items-center justify-between pb-2.5 border-b border-white/10 mb-3">
+            <div className="flex items-center justify-between pb-2.5 border-b border-dashed border-[#f4f1de]/15 mb-3">
               <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
                 <Compass className="w-3.5 h-3.5 text-amber-400" />
                 Khám phá
@@ -1462,8 +1462,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 aria-label="Bản nâng cấp"
                 title="Bản nâng cấp"
               >
-                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-cyan-400/25 to-blue-500/10 border border-cyan-300/30 flex items-center justify-center">
-                  <Rocket className="w-4 h-4 text-cyan-300" />
+                <span className="w-9 h-9 rounded-2xl bg-[#81b29a]/20 border border-[#81b29a]/40 flex items-center justify-center">
+                  <Rocket className="w-4 h-4 text-[#81b29a]" />
                 </span>
                 <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
                   Update
@@ -1503,8 +1503,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 aria-label="Sổ tay nhanh"
                 title="Sổ tay nhanh"
               >
-                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-sky-400/25 to-cyan-500/10 border border-sky-300/30 flex items-center justify-center">
-                  <NotebookPen className="w-4 h-4 text-sky-300" />
+                <span className="w-9 h-9 rounded-2xl bg-[#e07a5f]/20 border border-[#e07a5f]/40 flex items-center justify-center">
+                  <NotebookPen className="w-4 h-4 text-[#f2cc8f]" />
                 </span>
                 <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
                   Sổ tay

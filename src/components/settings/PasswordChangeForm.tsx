@@ -20,7 +20,7 @@ export interface PasswordChangeFormProps {
 type Status = { kind: 'idle' | 'busy' | 'error' | 'done'; message?: string };
 
 const STRENGTH_LABEL = ['Quá ngắn', 'Tạm được', 'Khá', 'Mạnh'] as const;
-const STRENGTH_TONE = ['bg-rose-400', 'bg-amber-400', 'bg-sky-400', 'bg-emerald-400'] as const;
+const STRENGTH_TONE = ['bg-rose-400', 'bg-amber-400', 'bg-[#81b29a]', 'bg-emerald-400'] as const;
 
 const inputClass =
   'w-full px-2.5 py-1.5 rounded-lg bg-black/40 border border-white/10 text-[11px] text-white placeholder:text-white/40 ' +

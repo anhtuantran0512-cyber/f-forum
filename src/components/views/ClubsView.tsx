@@ -62,7 +62,7 @@ const CATEGORIES: ('Tất cả' | ClubCategory)[] = [
 const getCategoryBadgeClass = (category?: ClubCategory): string => {
   switch (category) {
     case 'Công nghệ':
-      return 'bg-cyan-500/25 text-cyan-200 border-cyan-400/40';
+      return 'bg-[#81b29a]/25 text-[#f4f1de] border-[#81b29a]/45';
     case 'Nghệ thuật':
       return 'bg-purple-500/25 text-purple-200 border-purple-400/40';
     case 'Thể thao':
@@ -545,7 +545,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
             {approvedClubs.length === 0 ? (
               /* Fix 3: Gộp thành 1 Empty State DUY NHẤT khi chưa có CLB nào (Illustration + 1 câu + 1 nút, giữa màn hình) */
               <div className="col-span-full flex flex-col items-center justify-center text-center py-20 space-y-4">
-                <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-amber-500/10 border border-amber-500/25 shadow-[0_0_30px_rgba(245,158,11,0.18)]">
+                <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-amber-500/10 border border-amber-500/25 shadow-[0_0_30px_rgba(245,158,11,0.18)]">
                   <Users className="w-10 h-10 text-amber-300" />
                   <Sparkles className="w-4 h-4 text-amber-400 absolute -top-1.5 -right-1.5 animate-pulse" />
                 </div>

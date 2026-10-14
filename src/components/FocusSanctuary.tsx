@@ -189,7 +189,7 @@ const FocusSanctuaryInner: React.FC<{
   };
 
   const studyStats = [
-    { id: 'today', label: 'Hôm nay', value: formatDuration(totals.todayMinutes), icon: <Timer className="w-3.5 h-3.5" />, tone: 'text-cyan-300' },
+    { id: 'today', label: 'Hôm nay', value: formatDuration(totals.todayMinutes), icon: <Timer className="w-3.5 h-3.5" />, tone: 'text-[#81b29a]' },
     { id: 'week', label: 'Tuần này', value: `${(totals.weekMinutes / 60).toFixed(1)} giờ`, icon: <CalendarDays className="w-3.5 h-3.5" />, tone: 'text-amber-300' },
     { id: 'month', label: 'Tháng này', value: `${(totals.monthMinutes / 60).toFixed(1)} giờ`, icon: <TrendingUp className="w-3.5 h-3.5" />, tone: 'text-emerald-300' },
     { id: 'streak', label: 'Chuỗi ngày học', value: `${totals.streakDays} ngày`, icon: <Flame className="w-3.5 h-3.5" />, tone: 'text-rose-300' },
@@ -197,34 +197,34 @@ const FocusSanctuaryInner: React.FC<{
 
   const focusTheme = SHOP_ITEMS.find(item => item.id === equippedItemId && item.category === 'Theme Focus');
   return (
-    <div className={`focus-signature ${focusTheme ? `focus-signature--${focusTheme.id}` : ''} fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[#06101c]/95 backdrop-blur-xl animate-fade-up`}>
+    <div className={`focus-signature ${focusTheme ? `focus-signature--${focusTheme.id}` : ''} fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[#0b0d12]/90 backdrop-blur-xl animate-fade-up`}>
       {focusTheme && <span className="focus-signature__theme">{focusTheme.name}</span>}
       {/* Confetti toàn màn hình khi hoàn thành phiên ở mốc 25/60/120 phút */}
       <CelebrationBurst trigger={burstTick} tone="gold" headline={burstHeadline} />
-      <div className="liquid-glass w-full max-w-5xl rounded-2xl bg-[linear-gradient(145deg,rgba(10,25,42,0.98),rgba(5,12,24,0.98))] border border-cyan-300/25 shadow-[0_24px_80px_rgba(0,0,0,0.48)] p-5 sm:p-7 relative flex flex-col max-h-[92vh] overflow-y-auto">
+      <div className="liquid-glass modal-container w-full max-w-5xl rounded-2xl p-5 sm:p-7 relative flex flex-col max-h-[92vh] overflow-y-auto">
         {/* HUD Top Bar */}
-        <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-5 shrink-0 gap-3">
+        <div className="flex items-center justify-between pb-4 border-b border-dashed border-[#f4f1de]/15 mb-5 shrink-0 gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-cyan-400/10 border border-cyan-300/30 flex items-center justify-center text-cyan-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">
+            <div className="w-10 h-10 rounded-xl bg-[#e07a5f]/20 border-[1.5px] border-[#e07a5f]/50 flex items-center justify-center text-[#f2cc8f] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]">
               <BrainCircuit className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-lg font-bold text-white tracking-wide">PHÒNG TẬP TRUNG</h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+                <h2 className="ff-typo-poster !text-base sm:!text-lg text-[#f4f1de] tracking-wide">PHÒNG TẬP TRUNG</h2>
+                <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-[#f2cc8f]/20 text-[#f2cc8f] border border-[#f2cc8f]/40">
                   {targetMinutes} / {FOCUS_BREAK_MINUTES} MIN
                 </span>
                 <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold border ${
                     isRunning
-                      ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/40'
-                      : 'bg-white/5 text-neutral-400 border-white/10'
+                      ? 'bg-[#81b29a]/20 text-[#d8f3dc] border-[#81b29a]/45'
+                      : 'bg-white/5 text-[#9a978e] border-white/10'
                   }`}
                 >
                   {isRunning ? 'ĐANG HỌC' : 'SẴN SÀNG'}
                 </span>
               </div>
-              <p className="text-xs text-neutral-400 font-mono truncate">
+              <p className="text-xs text-[#9a978e] font-mono truncate">
                 Đóng cửa sổ này vẫn KHÔNG mất phiên học — đồng hồ chạy theo thời gian thật
               </p>
             </div>
@@ -234,7 +234,7 @@ const FocusSanctuaryInner: React.FC<{
 
             <button
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors"
+              className="p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] transition-colors"
               title="Đóng HUD (phiên học vẫn tiếp tục)"
             >
               <X className="w-5 h-5" />
@@ -243,9 +243,9 @@ const FocusSanctuaryInner: React.FC<{
         </div>
 
         {/* Dải liên kết với NHẬT KÝ GIỜ HỌC — số giờ thật, cập nhật ngay khi ghi */}
-        <div className="shrink-0 mb-5 rounded-xl border border-cyan-300/15 bg-[#0d2034]/70 p-3">
+        <div className="shrink-0 mb-5 rounded-xl border-[1.5px] border-[#f4f1de]/14 bg-[#0b0d12]/80 p-3">
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-cyan-300">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#f2cc8f]">
               <Clock className="w-3.5 h-3.5" /> Nhật ký giờ học
             </span>
             {session && session.mode === 'work' && (
@@ -256,12 +256,12 @@ const FocusSanctuaryInner: React.FC<{
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2.5">
             {studyStats.map((s) => (
-              <div key={s.id} className="rounded-xl bg-black/30 border border-white/8 px-3 py-2">
+              <div key={s.id} className="rounded-xl bg-[#151a26] border border-[#f4f1de]/12 px-3 py-2">
                 <span className={`inline-flex items-center gap-1 text-[9.5px] font-semibold uppercase tracking-wide ${s.tone}`}>
                   {s.icon}
                   {s.label}
                 </span>
-                <p className="text-sm font-extrabold text-white mt-1 font-mono">{s.value}</p>
+                <p className="text-sm font-extrabold text-[#f4f1de] mt-1 font-mono">{s.value}</p>
               </div>
             ))}
           </div>              {flash && (
@@ -278,12 +278,12 @@ const FocusSanctuaryInner: React.FC<{
         {/* HUD Center: Pomodoro + Scratchpad */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-stretch">
           {/* Left: Pomodoro */}
-          <div className="lg:col-span-7 flex flex-col items-center justify-between p-6 rounded-2xl bg-[#071727]/75 border border-white/10 shadow-inner space-y-6">
-            <div className="flex items-center bg-[#06101c] p-1.5 rounded-xl border border-white/10 w-full max-w-xs justify-center">
+          <div className="lg:col-span-7 flex flex-col items-center justify-between p-6 rounded-xl bg-[#0b0d12]/80 border-[1.5px] border-[#f4f1de]/14 space-y-6">
+            <div className="flex items-center bg-[#151a26] p-1.5 rounded-xl border border-[#f4f1de]/14 w-full max-w-xs justify-center">
               <button
                 onClick={() => handleSwitchMode('work')}
-                className={`flex-1 py-1.5 px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                  activeMode === 'work' ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.6)]' : 'text-neutral-400 hover:text-white'
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                  activeMode === 'work' ? 'bg-[#e07a5f] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]' : 'text-[#9a978e] hover:text-[#f4f1de]'
                 }`}
               >
                 <Timer className="w-3.5 h-3.5" />
@@ -291,8 +291,8 @@ const FocusSanctuaryInner: React.FC<{
               </button>
               <button
                 onClick={() => handleSwitchMode('break')}
-                className={`flex-1 py-1.5 px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                  activeMode === 'break' ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.6)]' : 'text-neutral-400 hover:text-white'
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                  activeMode === 'break' ? 'bg-[#81b29a] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]' : 'text-[#9a978e] hover:text-[#f4f1de]'
                 }`}
               >
                 <Coffee className="w-3.5 h-3.5" />
@@ -322,7 +322,7 @@ const FocusSanctuaryInner: React.FC<{
                   <div
                     className="absolute w-40 h-40 rounded-full blur-3xl pointer-events-none"
                     style={{
-                      background: 'radial-gradient(circle, rgba(6,182,212,0.2), transparent 70%)',
+                      background: 'radial-gradient(circle, rgba(224,122,95,0.2), transparent 70%)',
                       top: '-20%',
                       right: '-10%',
                       animation: 'ffOrbDrift 8s ease-in-out infinite',
@@ -332,7 +332,7 @@ const FocusSanctuaryInner: React.FC<{
                     className="absolute w-32 h-32 rounded-full blur-3xl pointer-events-none"
                     style={
                       {
-                        background: 'radial-gradient(circle, rgba(168,85,247,0.15), transparent 70%)',
+                        background: 'radial-gradient(circle, rgba(129,178,154,0.15), transparent 70%)',
                         bottom: '-15%',
                         left: '-5%',
                         animation: 'ffOrbDrift 12s ease-in-out infinite reverse',
@@ -346,13 +346,13 @@ const FocusSanctuaryInner: React.FC<{
             {/* Milestone reward display */}
             {milestoneActive && flash && (
               <div className="w-full max-w-sm mx-auto animate-[fadeRise_0.5s_ease-out_forwards]">
-                <div className="rounded-2xl bg-gradient-to-r from-amber-500/20 via-pink-500/15 to-violet-500/20 border border-amber-400/30 p-4 text-center backdrop-blur-md">
-                  <div className="flex items-center justify-center gap-2 text-amber-300 font-bold">
+                <div className="rounded-xl bg-[#151a26] border border-[#f2cc8f]/40 p-4 text-center">
+                  <div className="flex items-center justify-center gap-2 text-[#f2cc8f] font-bold">
                     <Sparkles className="w-5 h-5" />
                     <span className="text-sm uppercase tracking-widest">{flash.minutes} phút — {rewardMilestone?.label}</span>
                   </div>
-                  <p className="text-2xl font-extrabold text-white mt-1">+{flash.minutes} Coin</p>
-                  <p className="text-xs text-neutral-400 mt-1">Đã ghi vào nhật ký giờ học</p>
+                  <p className="text-2xl font-extrabold text-[#f4f1de] mt-1">+{flash.minutes} Coin</p>
+                  <p className="text-xs text-[#9a978e] mt-1">Đã ghi vào nhật ký giờ học</p>
                 </div>
               </div>
             )}
@@ -367,7 +367,7 @@ const FocusSanctuaryInner: React.FC<{
                   value={targetMinutes}
                   onChange={(e) => setTargetMinutes(Number(e.target.value))}
                   aria-label="Mục tiêu thời gian (phút)"
-                  className="flex-1 h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 hover:accent-cyan-300"
+                  className="flex-1 h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-[#e07a5f] hover:accent-[#f2cc8f]"
                 />
                 {/* Nhập số trực tiếp — tối thiểu 5 phút theo spec */}
                 <input
@@ -382,9 +382,9 @@ const FocusSanctuaryInner: React.FC<{
                     if (Number.isFinite(v)) setTargetMinutes(Math.min(120, Math.max(5, v)));
                   }}
                   aria-label="Nhập số phút trực tiếp"
-                  className="w-14 px-2 py-1 rounded-lg bg-[#06101c] border border-white/10 text-center text-xs font-mono font-bold text-cyan-200 focus:outline-none focus:border-cyan-400"
+                  className="w-14 px-2 py-1 rounded-lg bg-[#151a26] border border-[#f4f1de]/18 text-center text-xs font-mono font-bold text-[#f2cc8f] focus:outline-none focus:border-[#f2cc8f]"
                 />
-                <span className="text-[10px] font-mono text-cyan-300/80 font-semibold">phút</span>
+                <span className="text-[10px] font-mono text-[#f2cc8f] font-semibold">phút</span>
               </div>
             )}
 
@@ -393,7 +393,7 @@ const FocusSanctuaryInner: React.FC<{
                 {[25, 60, 120].map((minutes) => {
                   const active = targetMinutes >= minutes;
                   return (
-                    <div key={minutes} className={`rounded-xl border px-2 py-2 text-center transition-colors ${active ? 'border-amber-300/45 bg-amber-400/10 text-amber-200' : 'border-white/10 bg-white/[0.03] text-white/45'}`}>
+                    <div key={minutes} className={`rounded-xl border px-2 py-2 text-center transition-colors ${active ? 'border-[#f2cc8f]/45 bg-[#f2cc8f]/12 text-[#f2cc8f]' : 'border-white/10 bg-white/[0.03] text-white/45'}`}>
                       <div className="flex items-center justify-center gap-1 text-[10px] font-bold"><Target className="w-3 h-3" />{minutes}m</div>
                       <div className="mt-0.5 text-[11px] font-extrabold">+{minutes} Coin</div>
                     </div>
@@ -407,10 +407,10 @@ const FocusSanctuaryInner: React.FC<{
                 onClick={isRunning ? handleStop : () => { void handleStart(); }}
                 disabled={!isRunning && isStarting}
                 aria-busy={!isRunning && isStarting}
-                className={`w-full px-8 py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-xl active:scale-[0.98] disabled:opacity-60 ${
+                className={`ff-tactile-btn w-full px-8 py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all border border-[#f4f1de] disabled:opacity-60 ${
                   isRunning
-                    ? 'bg-amber-500 text-black hover:bg-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.5)]'
-                    : 'bg-gradient-to-r from-cyan-400 to-blue-500 text-black hover:opacity-95 shadow-[0_0_20px_rgba(6,182,212,0.5)]'
+                    ? 'bg-[#f2cc8f] text-[#0b0d12] hover:bg-amber-300'
+                    : 'bg-[#e07a5f] text-[#0b0d12] hover:bg-[#f2cc8f]'
                 }`}
               >
                 {isRunning ? (
@@ -426,18 +426,18 @@ const FocusSanctuaryInner: React.FC<{
                 )}
               </button>
 
-              <p className="text-[10.5px] text-neutral-400 text-center leading-relaxed font-mono">
-                Học đủ {targetMinutes} phút sẽ ghi vào nhật ký. {rewardMilestone ? <><b className="text-amber-300"> Mốc hiện tại: +{rewardMilestone.reward} Coin</b> · {rewardMilestone.label}.</> : ' Từ 25 phút sẽ mở phần thưởng Coin.'}
+              <p className="text-[10.5px] text-[#9a978e] text-center leading-relaxed font-mono">
+                Học đủ {targetMinutes} phút sẽ ghi vào nhật ký. {rewardMilestone ? <><b className="text-[#f2cc8f]"> Mốc hiện tại: +{rewardMilestone.reward} Coin</b> · {rewardMilestone.label}.</> : ' Từ 25 phút sẽ mở phần thưởng Coin.'}
               </p>
             </div>
           </div>
 
           {/* Right: Scratchpad */}
-          <div className="lg:col-span-5 flex flex-col p-5 rounded-2xl bg-[#071727]/75 border border-white/10 shadow-inner">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3 shrink-0">
+          <div className="lg:col-span-5 flex flex-col p-5 rounded-xl bg-[#0b0d12]/80 border-[1.5px] border-[#f4f1de]/14">
+            <div className="flex items-center justify-between pb-3 border-b border-dashed border-[#f4f1de]/15 mb-3 shrink-0">
               <div className="flex items-center gap-2">
-                <NotebookPen className="w-4 h-4 text-cyan-400" />
-                <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                <NotebookPen className="w-4 h-4 text-[#f2cc8f]" />
+                <span className="text-xs font-bold text-[#f4f1de] uppercase tracking-wider font-mono">
                   SỔ TAY NHANH · DÙNG CHUNG VỚI CTRL + I
                 </span>
               </div>
@@ -475,19 +475,19 @@ const FocusSanctuaryInner: React.FC<{
                 onChange={(e) => setNotes(e.target.value)}
                 maxLength={5000}
                 placeholder="Ghi chú cho phiên học này…"
-                className="w-full flex-1 min-h-[160px] bg-black/40 border border-white/10 rounded-2xl p-3.5 text-xs text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-cyan-400 transition-colors resize-none font-mono leading-relaxed"
+                className="w-full flex-1 min-h-[160px] bg-[#151a26] border border-[#f4f1de]/15 rounded-xl p-3.5 text-xs text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f] transition-colors resize-none font-mono leading-relaxed"
               />
-              <div className="flex items-center justify-between text-[10px] text-neutral-400 font-mono pt-2">
+              <div className="flex items-center justify-between text-[10px] text-[#9a978e] font-mono pt-2">
                 <span>Tự động lưu vào bộ nhớ trình duyệt</span>
                 <span>{notes.length} ký tự</span>
               </div>
             </div>
 
-            <div className="mt-4 p-3 rounded-2xl bg-cyan-950/30 border border-cyan-500/20 text-xs text-cyan-200 flex items-center gap-2.5">
-              <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+            <div className="mt-4 p-3 rounded-xl bg-[#151a26] border border-[#f2cc8f]/25 text-xs text-[#d8d5ce] flex items-center gap-2.5">
+              <Sparkles className="w-4 h-4 text-[#f2cc8f] shrink-0" />
               <span className="text-[11px] leading-relaxed">
                 Giờ học chỉ đến từ phòng này — hoàn thành phiên 25 phút để leo{' '}
-                <b className="text-white">bảng xếp hạng Giờ học</b> và giữ chuỗi ngày học.
+                <b className="text-[#f4f1de]">bảng xếp hạng Giờ học</b> và giữ chuỗi ngày học.
               </span>
             </div>
           </div>

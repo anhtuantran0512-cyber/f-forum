@@ -601,8 +601,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
         isFullscreenStage
           ? 'fixed inset-0 z-50 h-screen w-screen overflow-hidden'
           : isEmbedded
-          ? 'h-[750px] sm:h-[820px] rounded-3xl border border-white/15 shadow-2xl overflow-hidden'
-          : 'h-[780px] sm:h-[860px] rounded-3xl border border-white/15 shadow-2xl overflow-hidden'
+          ? 'h-[750px] sm:h-[820px] rounded-2xl border border-[#f4f1de]/18 shadow-2xl overflow-hidden'
+          : 'h-[780px] sm:h-[860px] rounded-2xl border border-[#f4f1de]/18 shadow-2xl overflow-hidden'
       } ${viewMode === 'grid' ? '!h-auto !min-h-0 !overflow-visible' : ''} ${className}`}
       style={{
         fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
@@ -749,12 +749,12 @@ export const AboutUs: React.FC<AboutUsProps> = ({
               window.dispatchEvent(new CustomEvent('fforum_navigate', { detail: 'qa' }));
             }
           }}
-          className="ff-enter-forum-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-600 hover:from-cyan-400 hover:via-indigo-400 hover:to-purple-500 border border-cyan-300/40 shadow-[0_0_18px_rgba(34,211,238,0.35)] hover:shadow-[0_0_24px_rgba(168,85,247,0.5)] transition-all transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
+          className="ff-enter-forum-btn ff-tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold text-[#0b0d12] bg-[#e07a5f] hover:bg-[#f2cc8f] border border-[#f4f1de] shadow-[2px_2px_0px_rgba(4,6,11,0.9)] transition-all cursor-pointer"
           title="Chuyển đến Diễn đàn F-Forum Q&A"
         >
-          <Compass className="w-3.5 h-3.5 text-cyan-200" />
+          <Compass className="w-3.5 h-3.5 text-[#0b0d12]" />
           <span>Vào Forum</span>
-          <ArrowRight className="w-3 h-3 text-purple-200" />
+          <ArrowRight className="w-3 h-3 text-[#0b0d12]" />
         </button>
 
         <div className="flex items-center rounded-full bg-black/60 border border-white/20 p-1 backdrop-blur-md">
@@ -810,7 +810,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 decoding="async"
                 width={56}
                 height={56}
-                className="bio-avatar w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border border-cyan-400/50 shadow-lg"
+                className="bio-avatar w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border border-[#f2cc8f]/60 shadow-lg"
               />
               {isSuperAdmin && (
                 <button
@@ -819,7 +819,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                     setAvatarInputUrl(aboutData.founder.avatarUrl);
                     setIsAvatarPromptOpen(true);
                   }}
-                  className="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center text-cyan-300 transition-opacity cursor-pointer"
+                  className="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center text-[#f2cc8f] transition-opacity cursor-pointer"
                   title="Thay đổi ảnh đại diện Admin"
                 >
                   <Camera className="w-4 h-4" />
@@ -847,15 +847,15 @@ export const AboutUs: React.FC<AboutUsProps> = ({
               </div>
 
               <div className="flex items-center gap-1 mt-0.5">
-                <p className="text-[11px] font-mono text-cyan-300 truncate flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <p className="text-[11px] font-mono text-[#f2cc8f] truncate flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
                   <span>{aboutData.founder.role}</span>
                 </p>
                 {isSuperAdmin && (
                   <button
                     type="button"
                     onClick={() => handleOpenQuickField('role')}
-                    className="text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer"
+                    className="text-[10px] text-[#f2cc8f] hover:text-[#f4f1de] cursor-pointer"
                     title="Sửa chức danh"
                   >
                     <Edit3 className="w-3 h-3" />
@@ -903,7 +903,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
               Discord
             </a>
             <span>•</span>
-            <span className="text-cyan-400 truncate">F-Forum Founder</span>
+            <span className="text-[#f2cc8f] truncate">F-Forum Founder</span>
           </div>
         </div>
       </div>
@@ -967,13 +967,13 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                     />
 
                     {/* Milestone Index Pill */}
-                    <span className="absolute top-2 left-2 z-10 px-1.5 py-0.5 rounded text-[9px] font-mono bg-black/75 text-cyan-300 border border-cyan-400/40 backdrop-blur-md">
+                    <span className="absolute top-2 left-2 z-10 px-1.5 py-0.5 rounded text-[9px] font-mono bg-black/75 text-[#f2cc8f] border border-[#f2cc8f]/40 backdrop-blur-md">
                       {String(i + 1).padStart(2, '0')}
                     </span>
 
                     {/* Gradient Overlay & Title */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex flex-col justify-end p-2 pointer-events-none">
-                      <span className="text-[8px] font-mono text-cyan-300 uppercase tracking-wider truncate">
+                      <span className="text-[8px] font-mono text-[#f2cc8f] uppercase tracking-wider truncate">
                         {ms?.category}
                       </span>
                       <p className="text-[10px] font-bold text-white truncate leading-tight mt-0.5">
@@ -1009,7 +1009,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
           {/* Hero: lời kể bên trái + collage 5 ô bất đối xứng từ chính các cột mốc (code_yeucau · tcg-12) */}
           <div className={`ff-collage-hero border-b border-white/10 pb-8 ${collageMilestones.length < 5 ? 'is-solo' : ''}`}>
             <div className="ff-collage-hero__copy space-y-3">
-              <p className="text-[10.5px] font-mono uppercase tracking-[0.32em] text-cyan-300/80">Hành trình F-Forum</p>
+              <p className="text-[10.5px] font-mono uppercase tracking-[0.32em] text-[#f2cc8f]">Hành trình F-Forum</p>
               <h1
                 className="text-2xl sm:text-4xl font-normal text-white font-playfair tracking-tight"
                 style={{ fontFamily: '"Playfair Display", serif' }}
@@ -1060,7 +1060,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 onClick={e => handleCardClick(ms, idx, e)}
                 onMouseMove={handleGridCardMouseMove}
                 onMouseLeave={handleGridCardMouseLeave}
-                className="tch-01 tch-30 text-left w-full group cursor-pointer rounded-2xl obsidian-glass border border-white/10 p-3.5 transition-all duration-300 hover:border-cyan-400/50 hover:shadow-[0_15px_40px_rgba(6,182,212,0.18)] flex flex-col justify-between"
+                className="tch-01 tch-30 text-left w-full group cursor-pointer rounded-2xl obsidian-glass border border-white/10 p-3.5 transition-all duration-300 hover:border-[#f2cc8f]/50 flex flex-col justify-between"
               >
                 <div className="space-y-2.5 tch-01__parallax">
                   <div className={`relative w-full ${ms.isTall ? 'aspect-[3/4]' : 'aspect-video'} rounded-xl overflow-hidden bg-neutral-900 border border-white/10`}>
@@ -1074,16 +1074,16 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                       width={360}
                       height={200}
                     />
-                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-mono bg-black/75 text-cyan-300 border border-cyan-400/30 backdrop-blur-md">
+                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-mono bg-black/75 text-[#f2cc8f] border border-[#f2cc8f]/35 backdrop-blur-md">
                       {String(idx + 1).padStart(2, '0')}
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider block">
+                    <span className="text-[10px] font-mono text-[#e07a5f] uppercase tracking-wider block">
                       {ms.category}
                     </span>
-                    <h3 className="text-xs sm:text-sm font-bold text-white group-hover:text-cyan-300 transition-colors mt-0.5">
+                    <h3 className="text-xs sm:text-sm font-bold text-white group-hover:text-[#f2cc8f] transition-colors mt-0.5">
                       {ms.title}
                     </h3>
                     {ms.place && (
@@ -1101,7 +1101,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
                 <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[10px] text-neutral-400 font-mono">
                   <span>Chi tiết</span>
-                  <span className="text-cyan-400 group-hover:translate-x-1 transition-transform">→</span>
+                  <span className="text-[#f2cc8f] group-hover:translate-x-1 transition-transform">→</span>
                 </div>
               </button>
             ))}
@@ -1114,7 +1114,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
         <p className="text-[11px] font-mono text-[#8c8783] tracking-widest uppercase">
           Kéo để xoay • Cuộn để phóng to
         </p>
-        <p className="text-[9px] font-mono text-cyan-400/80 mt-0.5">
+        <p className="text-[9px] font-mono text-[#f2cc8f]/85 mt-0.5">
           21 Fibonacci Coordinates • 3D Optical Invariance
         </p>
       </div>
@@ -1146,7 +1146,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
             }}
           />
           <div
-            className="plate lightbox-dialog relative z-10 w-full max-w-3xl rounded-3xl obsidian-glass border border-cyan-400/40 p-6 sm:p-8 shadow-[0_30px_90px_rgba(0,0,0,0.95)] max-h-[92vh] overflow-y-auto"
+            className="plate lightbox-dialog relative z-10 w-full max-w-3xl rounded-2xl obsidian-glass border border-[#f2cc8f]/40 p-6 sm:p-8 shadow-[0_30px_90px_rgba(0,0,0,0.95)] max-h-[92vh] overflow-y-auto"
             style={{
               transition: isLightboxEntering
                 ? 'none'
@@ -1190,7 +1190,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent pointer-events-none" />
                   <div className="absolute bottom-4 left-4 right-4">
                     <div className="flex items-center gap-2 flex-wrap mb-2">
-                      <span className="text-xs font-mono text-cyan-300 uppercase tracking-widest px-2.5 py-1 rounded bg-black/60 border border-cyan-400/30 backdrop-blur-md">
+                      <span className="text-xs font-mono text-[#f2cc8f] uppercase tracking-widest px-2.5 py-1 rounded bg-black/60 border border-[#f2cc8f]/35 backdrop-blur-md">
                         {activeLightboxMilestone.category}
                       </span>
                       {activeLightboxMilestone.place && (
@@ -1210,7 +1210,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-mono font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-2">
-                      <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                      <Sparkles className="w-3.5 h-3.5 text-[#f2cc8f]" />
                       <span>Ghi Chú Phát Triển & Kiến Trúc — Field Notes</span>
                     </h4>
 
@@ -1246,7 +1246,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
                   <div className="pt-2 flex items-center justify-between text-xs text-neutral-400 font-mono border-t border-white/10">
                     <span>BroAmStuck Studio Archive</span>
-                    <span className="text-cyan-400">Verified System Chronicle</span>
+                    <span className="text-[#81b29a]">Verified System Chronicle</span>
                   </div>
                 </div>
               </div>
@@ -1307,7 +1307,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs text-neutral-300">URL hình ảnh hoặc Tải ảnh từ máy (*):</label>
-                    <label htmlFor="field" className="text-[11px] text-cyan-400 hover:text-cyan-300 cursor-pointer inline-flex items-center gap-1 font-mono">
+                    <label htmlFor="field" className="text-[11px] text-[#f2cc8f] hover:text-[#f4f1de] cursor-pointer inline-flex items-center gap-1 font-mono">
                       <Upload size={12} />
                       <span>Chọn file từ máy</span>
                       <input id="field"
@@ -1408,7 +1408,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
       {/* Master Content Editor Modal (Admin Only) */}
       {isSuperAdmin && isEditorOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-up">
-          <div className="relative w-full max-w-3xl rounded-3xl obsidian-glass border border-amber-400/40 p-6 sm:p-8 shadow-2xl max-h-[92vh] overflow-y-auto">
+          <div className="relative w-full max-w-3xl rounded-2xl obsidian-glass border border-amber-400/40 p-6 sm:p-8 shadow-2xl max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
               <div className="flex items-center gap-2">
                 <Settings className="w-5 h-5 text-amber-400" />
@@ -1502,7 +1502,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs text-neutral-300">URL hoặc Tải lên Ảnh Đại Diện (*):</label>
-                    <label htmlFor="field-2" className="text-[11px] text-cyan-400 hover:text-cyan-300 cursor-pointer inline-flex items-center gap-1 font-mono">
+                    <label htmlFor="field-2" className="text-[11px] text-[#f2cc8f] hover:text-[#f4f1de] cursor-pointer inline-flex items-center gap-1 font-mono">
                       <Upload size={12} />
                       <span>Chọn file từ máy</span>
                       <input id="field-2"
@@ -1566,7 +1566,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                   <button
                     type="button"
                     onClick={handleAddMilestone}
-                    className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 text-xs font-semibold transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-[#e07a5f]/20 text-[#f2cc8f] hover:bg-[#e07a5f]/35 text-xs font-semibold transition-colors cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Thêm cột mốc</span>
@@ -1580,7 +1580,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                       className="p-3.5 rounded-xl bg-black/40 border border-white/10 space-y-3 relative group/item"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-mono text-cyan-300 font-bold">
+                        <span className="text-[11px] font-mono text-[#f2cc8f] font-bold">
                           Cột mốc #{index + 1}
                         </span>
                         {editFormData.milestones.length > 1 && (
@@ -1651,7 +1651,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                       <div>
                         <div className="flex items-center justify-between mb-0.5">
                           <label className="text-[11px] text-neutral-400">URL hoặc Tải lên Hình ảnh:</label>
-                          <label htmlFor="field-3" className="text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer inline-flex items-center gap-1 font-mono">
+                          <label htmlFor="field-3" className="text-[10px] text-[#f2cc8f] hover:text-[#f4f1de] cursor-pointer inline-flex items-center gap-1 font-mono">
                             <Upload size={11} />
                             <span>Tải ảnh từ máy</span>
                             <input id="field-3"
@@ -1732,9 +1732,9 @@ export const AboutUs: React.FC<AboutUsProps> = ({
       {/* Quick Avatar URL / File Upload Modal (Admin Only) */}
       {isSuperAdmin && isAvatarPromptOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-up">
-          <div className="w-full max-w-md rounded-2xl obsidian-glass border border-cyan-400/40 p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-2xl obsidian-glass border border-[#f2cc8f]/40 p-6 shadow-2xl">
             <h3 className="font-bold text-sm text-white mb-2 flex items-center gap-2">
-              <Camera className="w-4 h-4 text-cyan-400" />
+              <Camera className="w-4 h-4 text-[#f2cc8f]" />
               <span>Cập Nhật Ảnh Đại Diện Admin</span>
             </h3>
             <p className="text-xs text-neutral-400 mb-4">
@@ -1751,7 +1751,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                   value={avatarInputUrl}
                   onChange={e => setAvatarInputUrl(e.target.value)}
                   placeholder="https://..."
-                  className="w-full bg-neutral-900 border border-white/20 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono"
+                  className="w-full bg-neutral-900 border border-white/20 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#f2cc8f] font-mono"
                 />
               </div>
 
@@ -1773,7 +1773,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 <button
                   type="button"
                   onClick={() => avatarFileInputRef.current?.click()}
-                  className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-xs text-cyan-300 font-mono flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-xs text-[#f2cc8f] font-mono flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <Upload className="w-3.5 h-3.5" />
                   <span>Hoặc Tải ảnh lên từ máy tính</span>
@@ -1790,7 +1790,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                     decoding="async"
                     width={48}
                     height={48}
-                    className="w-12 h-12 rounded-full object-cover border border-cyan-400/40"
+                    className="w-12 h-12 rounded-full object-cover border border-[#f2cc8f]/40"
                   />
                   <span className="text-[11px] text-neutral-300 truncate">Ảnh xem trước</span>
                 </div>
@@ -1807,7 +1807,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 <button
                   type="submit"
                   disabled={isSaving || !avatarInputUrl.trim()}
-                  className="px-4 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer"
+                  className="ff-tactile-btn px-4 py-1.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer"
                 >
                   {isSaving ? 'Đang lưu...' : 'Cập nhật ảnh'}
                 </button>
@@ -1875,8 +1875,8 @@ export const AboutUs: React.FC<AboutUsProps> = ({
       {/* Save Success Toast Banner */}
       {saveToast && (
         <div className="fixed top-20 right-6 z-50 animate-fade-up">
-          <div className="px-4 py-3 rounded-2xl bg-neutral-950/95 border border-cyan-400/40 text-cyan-300 text-xs font-semibold shadow-2xl backdrop-blur-xl flex items-center gap-2">
-            <Check className="w-4 h-4 text-cyan-400" />
+          <div className="px-4 py-3 rounded-xl bg-[#151a26] border border-[#81b29a]/50 text-[#d8f3dc] text-xs font-semibold shadow-2xl backdrop-blur-xl flex items-center gap-2">
+            <Check className="w-4 h-4 text-[#81b29a]" />
             <span>Nội dung Khu Vinh Danh đã được lưu và đồng bộ thành công!</span>
           </div>
         </div>

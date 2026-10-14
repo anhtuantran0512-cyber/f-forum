@@ -108,26 +108,26 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
           {webmUrl ? <source src={webmUrl} type="video/webm" /> : null}
           <source src={LIGHT_TUNNEL_VIDEO_URL} type="video/mp4" />
         </video>
-        <div className="absolute inset-0 bg-neutral-950/82" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-indigo-950/60 via-neutral-950/90 to-black" />
-        <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-purple-600/15 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-cyan-600/15 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute inset-0 bg-[#0b0d12]/88" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#151a26]/80 via-[#0b0d12]/90 to-[#0b0d12]" />
+        <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-[#e07a5f]/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-[#81b29a]/10 rounded-full blur-[140px] pointer-events-none" />
       </div>
 
       {/* Main Container */}
       <div className="relative z-10 w-full max-w-5xl mx-auto flex-1 flex flex-col space-y-8 pb-16">
         
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-white/10 shrink-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-dashed border-[#f4f1de]/15 shrink-0">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-              <BookOpen className="w-6 h-6 text-purple-400" />
+            <h1 className="ff-typo-poster !text-xl sm:!text-2xl text-[#f4f1de] flex items-center gap-2 flex-wrap">
+              <BookOpen className="w-6 h-6 text-[#f2cc8f]" />
               <span>Khu Vinh Danh & Biên Niên Sử F-Forum</span>
-              <span className="text-xs font-mono font-normal text-purple-300 px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30">
+              <span className="ff-brutal-tag bg-[#e07a5f]/20 border-[#e07a5f]/50 text-[#f2cc8f]">
                 KHU VINH DANH • CHRONICLES
               </span>
             </h1>
-            <p className="text-xs text-neutral-300 mt-1">
+            <p className="text-xs text-[#9a978e] mt-1">
               Không gian tôn vinh tri thức, nhà sáng lập Trần Văn Anh Tuấn, BroAmStuck Studio và 21 cột mốc lịch sử F-Forum.
             </p>
           </div>
@@ -158,7 +158,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
               aria-label="Discord F-Forum"
             >
               <div className="absolute inset-0 pointer-events-none animate-meteor-orbit flex items-center justify-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_#22d3ee]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#f2cc8f] shadow-[0_0_8px_#f2cc8f]" />
               </div>
               <svg className="w-5 h-5 fill-[#5865F2] group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
                 <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
@@ -173,12 +173,12 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
                   window.dispatchEvent(new CustomEvent('fforum_navigate', { detail: 'qa' }));
                 }
               }}
-              className="ff-enter-forum-btn flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-600 hover:from-cyan-400 hover:via-indigo-400 hover:to-purple-500 border border-cyan-300/40 shadow-[0_0_20px_rgba(34,211,238,0.35)] hover:shadow-[0_0_28px_rgba(168,85,247,0.5)] transition-all transform hover:scale-105 active:scale-95 cursor-pointer ml-1"
+              className="ff-enter-forum-btn ff-tactile-btn flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-extrabold text-[#0b0d12] bg-[#e07a5f] hover:bg-[#f2cc8f] border border-[#f4f1de] shadow-[2px_2px_0px_rgba(4,6,11,0.9)] transition-all cursor-pointer ml-1"
               title="Chuyển đến Diễn đàn F-Forum Q&A"
             >
-              <Compass className="w-4 h-4 text-cyan-200" />
+              <Compass className="w-4 h-4 text-[#0b0d12]" />
               <span>Vào Forum</span>
-              <ArrowRight className="w-3.5 h-3.5 text-purple-200" />
+              <ArrowRight className="w-3.5 h-3.5 text-[#0b0d12]" />
             </button>
           </div>
         </div>
@@ -193,16 +193,16 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
         </div>
 
         {/* Hộp Thư Góp Ý (Redesigned Feedback Form) */}
-        <div className="p-6 sm:p-8 rounded-3xl liquid-glass bg-neutral-950/85 border border-white/20 shadow-2xl backdrop-blur-2xl">
+        <div className="ff-bento-cell !p-6 sm:!p-8 liquid-glass">
           <div className="flex items-center gap-2.5 mb-2">
-            <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-cyan-300">
-              <Send className="w-4 h-4 text-cyan-400" />
+            <div className="w-8 h-8 rounded-xl bg-[#e07a5f]/20 border border-[#e07a5f]/45 flex items-center justify-center text-[#f2cc8f]">
+              <Send className="w-4 h-4 text-[#f2cc8f]" />
             </div>
             <div>
-              <h3 className="font-bold text-sm sm:text-base text-white uppercase tracking-wider">
+              <h3 className="font-bold text-sm sm:text-base text-[#f4f1de] uppercase tracking-wider">
                 HỘP THƯ GÓP Ý & PHẢN HỒI
               </h3>
-              <p className="text-[11px] text-neutral-400">
+              <p className="text-[11px] text-[#9a978e]">
                 Ý kiến đóng góp sẽ được chuyển trực tiếp tới Ban Quản Trị qua biểu mẫu bên dưới.
               </p>
             </div>
@@ -217,7 +217,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label htmlFor="f-1-ho-va-ten-nguoi-gui" className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                <label htmlFor="f-1-ho-va-ten-nguoi-gui" className="block text-xs font-semibold text-[#f4f1de] mb-1.5">
                   1. Họ và tên người gửi <span className="text-red-400">*</span>
                 </label>
                 <input id="f-1-ho-va-ten-nguoi-gui"
@@ -227,12 +227,12 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
                   value={name}
                   onChange={e => setUserNameInput(e.target.value)}
                   placeholder="Ví dụ: Trần Văn Nam"
-                  className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-cyan-400 transition-colors"
+                  className="w-full bg-[#0b0d12] border border-[#f4f1de]/18 rounded-xl px-3.5 py-2.5 text-xs text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f] transition-colors"
                 />
               </div>
 
               <div>
-                <label htmlFor="f-2-email-lien-he" className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                <label htmlFor="f-2-email-lien-he" className="block text-xs font-semibold text-[#f4f1de] mb-1.5">
                   2. Email liên hệ <span className="text-red-400">*</span>
                 </label>
                 <input id="f-2-email-lien-he"
@@ -242,33 +242,33 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
                   value={email}
                   onChange={e => setUserEmailInput(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-cyan-400 transition-colors"
+                  className="w-full bg-[#0b0d12] border border-[#f4f1de]/18 rounded-xl px-3.5 py-2.5 text-xs text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f] transition-colors"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+              <label className="block text-xs font-semibold text-[#f4f1de] mb-1.5">
                 3. Phân loại góp ý <span className="text-red-400">*</span>
               </label>
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value)}
-                className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-400 transition-colors cursor-pointer"
+                className="w-full bg-[#0b0d12] border border-[#f4f1de]/18 rounded-xl px-3.5 py-2.5 text-xs text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f] transition-colors cursor-pointer"
               >
-                <option value="Báo lỗi giao diện" className="bg-neutral-900 text-white">Báo lỗi giao diện</option>
-                <option value="Đề xuất tính năng" className="bg-neutral-900 text-white">Đề xuất tính năng</option>
-                <option value="Khiếu nại nội dung" className="bg-neutral-900 text-white">Khiếu nại nội dung</option>
-                <option value="Góp ý khác" className="bg-neutral-900 text-white">Góp ý khác</option>
+                <option value="Báo lỗi giao diện" className="bg-[#0b0d12] text-[#f4f1de]">Báo lỗi giao diện</option>
+                <option value="Đề xuất tính năng" className="bg-[#0b0d12] text-[#f4f1de]">Đề xuất tính năng</option>
+                <option value="Khiếu nại nội dung" className="bg-[#0b0d12] text-[#f4f1de]">Khiếu nại nội dung</option>
+                <option value="Góp ý khác" className="bg-[#0b0d12] text-[#f4f1de]">Góp ý khác</option>
               </select>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="f-4-noi-dung-chi-tiet-toi-thieu-20" className="text-xs font-semibold text-neutral-300">
+                <label htmlFor="f-4-noi-dung-chi-tiet-toi-thieu-20" className="text-xs font-semibold text-[#f4f1de]">
                   4. Nội dung chi tiết (tối thiểu 20 ký tự) <span className="text-red-400">*</span>
                 </label>
-                <span className="text-[10px] font-mono text-neutral-400">
+                <span className="text-[10px] font-mono text-[#9a978e]">
                   {content.length}/1000 ký tự
                 </span>
               </div>
@@ -279,21 +279,21 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
                 value={content}
                 onChange={e => setContent(e.target.value)}
                 placeholder="Mô tả cụ thể ý kiến đóng góp, vị trí phát sinh lỗi hoặc đề xuất tính năng hữu ích cho diễn đàn..."
-                className="w-full bg-neutral-900 border border-white/15 rounded-xl p-3.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-cyan-400 transition-colors resize-none leading-relaxed"
+                className="w-full bg-[#0b0d12] border border-[#f4f1de]/18 rounded-xl p-3.5 text-xs text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f] transition-colors resize-none leading-relaxed"
               />
             </div>
 
             <div className="flex items-center justify-between pt-2">
-              <span className="text-[11px] text-neutral-400 font-mono">
+              <span className="text-[11px] text-[#9a978e] font-mono">
                 {cooldown > 0 ? `Vui lòng đợi ${cooldown}s để gửi tiếp...` : 'Phản hồi sẽ được xem xét trong 24h'}
               </span>
 
               <button
                 type="submit"
                 disabled={isSubmitting || cooldown > 0}
-                className="bg-white text-neutral-900 font-semibold px-6 py-3 rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-xs"
+                className="ff-tactile-btn bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border border-[#f4f1de] font-extrabold px-6 py-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-xs"
               >
-                <Send className="w-4 h-4 text-neutral-900" />
+                <Send className="w-4 h-4 text-[#0b0d12]" />
                 <span>
                   {isSubmitting ? 'Đang gửi ý kiến...' : 'Gửi ý kiến đóng góp'}
                 </span>

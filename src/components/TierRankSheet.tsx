@@ -303,7 +303,7 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
                           </div>
                           <div className="h-1 rounded-full bg-white/10 overflow-hidden">
                             <div
-                              className="h-full rounded-full bg-gradient-to-r from-sky-400 to-amber-300"
+                              className="h-full rounded-full bg-gradient-to-r from-[#e07a5f] to-[#f2cc8f]"
                               style={{
                                 width: `${Math.min(100, Math.round((b.progress.current / b.progress.target) * 100))}%`,
                               }}
@@ -345,7 +345,7 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
 
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-2.5">
                 <p className="text-[11px] font-bold text-white flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-cyan-300" />
+                  <TrendingUp className="w-3.5 h-3.5 text-[#81b29a]" />
                   Mẹo lên hạng nhanh
                 </p>
                 <ul className="mt-1.5 space-y-1 text-[10.5px] text-neutral-300 leading-snug list-disc pl-4">

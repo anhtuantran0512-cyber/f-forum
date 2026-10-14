@@ -46,7 +46,7 @@ export const LandingPricing: React.FC<LandingPricingProps> = ({ onOpenAuth }) =>
             return (
               <Reveal key={plan.id} y={32} delay={index * 90} className="h-full">
                 <div
-                  className={`ff-glass ff-card ff-plan-card relative flex h-full flex-col rounded-3xl p-6 sm:p-7 ${
+                  className={`ff-glass ff-card ff-plan-card relative flex h-full flex-col rounded-2xl p-6 sm:p-7 ${
                     plan.highlight ? 'ff-plan-card--featured' : ''
                   }`}
                 >
@@ -121,7 +121,7 @@ export const LandingPricing: React.FC<LandingPricingProps> = ({ onOpenAuth }) =>
 
         {/* Dedicated Luxury Donate Card Section */}
         <Reveal y={24} delay={300} className="mt-16">
-          <div className="relative rounded-3xl bg-gradient-to-b from-[#131722]/95 via-[#0e121a]/95 to-[#080b10]/95 border-2 border-amber-400/35 p-6 sm:p-10 shadow-[0_20px_70px_rgba(245,158,11,0.18)] max-w-4xl mx-auto overflow-hidden">
+          <div className="relative rounded-2xl bg-[#151a26]/95 border-[1.5px] border-[#f2cc8f]/45 p-6 sm:p-10 shadow-[4px_4px_0px_rgba(4,6,11,0.9)] max-w-4xl mx-auto overflow-hidden">
             {/* Background Glow */}
             <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 

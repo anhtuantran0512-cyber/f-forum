@@ -203,7 +203,7 @@ export const PerformanceTiersDashboard: React.FC = () => {
           </div>
           <div className="rounded-xl border border-white/8 bg-slate-900/70 p-2.5">
             <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-              <Cpu size={12} className="text-cyan-400" /> CPU & RAM
+              <Cpu size={12} className="text-[#81b29a]" /> CPU & RAM
             </div>
             <div className="mt-1 text-sm font-bold text-white">
               {profile.cores} nhân · ~{profile.memory} GB
@@ -234,7 +234,7 @@ export const PerformanceTiersDashboard: React.FC = () => {
           </div>
           <div className="rounded-xl border border-white/8 bg-slate-900/70 p-2.5">
             <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-              <Eye size={12} className="text-sky-400" /> Ưu tiên cá nhân
+              <Eye size={12} className="text-[#f2cc8f]" /> Ưu tiên cá nhân
             </div>
             <div className="mt-1 text-sm font-bold text-emerald-300">fetchpriority=high</div>
             <div className="text-[11px] text-slate-400">
@@ -259,7 +259,7 @@ export const PerformanceTiersDashboard: React.FC = () => {
               row.tier === 'tier-a'
                 ? 'border-amber-400/35'
                 : row.tier === 'tier-b'
-                  ? 'border-cyan-400/35'
+                  ? 'border-[#81b29a]/40'
                   : 'border-emerald-400/35';
             return (
               <div
@@ -287,7 +287,7 @@ export const PerformanceTiersDashboard: React.FC = () => {
                   </div>
                   <div className="rounded-lg bg-slate-900/80 p-2">
                     <span className="text-[10px] text-slate-400">FID / Phản hồi</span>
-                    <div className="text-sm font-bold text-cyan-300">{row.avgFidMs} ms</div>
+                    <div className="text-sm font-bold text-[#f2cc8f]">{row.avgFidMs} ms</div>
                   </div>
                   <div className="rounded-lg bg-slate-900/80 p-2">
                     <span className="text-[10px] text-slate-400">Điểm nét SSIM</span>
@@ -319,7 +319,7 @@ export const PerformanceTiersDashboard: React.FC = () => {
       {report && (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <div className="rounded-2xl border border-white/10 bg-[#0d1420] p-4">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-300">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#81b29a]">
               <Layers size={14} /> Multi-Layer Cache (Edge + L1 + Redis)
             </div>
             <div className="mt-2.5 flex items-baseline justify-between">
@@ -420,7 +420,7 @@ export const PerformanceTiersDashboard: React.FC = () => {
                     <td className="py-2 font-bold text-amber-300">
                       {exp.ssimScore} <span className="text-[10px] text-slate-400">(≥ {exp.minRequiredSsim})</span>
                     </td>
-                    <td className="py-2 font-semibold text-cyan-300">
+                    <td className="py-2 font-semibold text-[#81b29a]">
                       +{exp.engagementDeltaPercent}%
                     </td>
                     <td className="py-2">

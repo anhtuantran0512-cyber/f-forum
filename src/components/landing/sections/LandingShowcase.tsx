@@ -140,7 +140,7 @@ export const LandingShowcase: React.FC = () => {
                         type="button"
                         onClick={() => scrollToStep(index)}
                         aria-pressed={isActive}
-                        className={`w-full rounded-3xl border p-5 text-left transition-all duration-500 ${
+                        className={`w-full rounded-2xl border p-5 text-left transition-all duration-500 ${
                           isActive
                             ? 'border-amber-400/35 bg-[var(--ff-surface-2)] shadow-[0_20px_60px_rgba(0,0,0,0.35)]'
                             : 'border-[var(--ff-border)] bg-transparent hover:border-[var(--ff-border-strong)]'

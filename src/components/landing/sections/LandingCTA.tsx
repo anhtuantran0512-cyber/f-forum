@@ -82,7 +82,7 @@ export const LandingCTA: React.FC<LandingCTAProps> = ({ onOpenAuth }) => {
                 <label htmlFor="ff-waitlist-email" className="sr-only">
                   Email sinh viên
                 </label>
-                <div className="ff-glass flex flex-col gap-2 rounded-3xl p-2 sm:flex-row sm:items-center sm:rounded-full">
+                <div className="ff-glass flex flex-col gap-2 rounded-2xl p-2 sm:flex-row sm:items-center sm:rounded-full">
                   <span className="hidden items-center pl-3 text-[var(--ff-text-dim)] sm:flex" aria-hidden="true">
                     <Mail className="h-4 w-4" />
                   </span>

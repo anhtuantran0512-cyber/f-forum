@@ -142,16 +142,16 @@ export const StudyCareCoach: React.FC<StudyCareCoachProps> = ({
         aria-hidden="true"
       />
 
-      <div className="relative w-full max-w-md text-center text-white">
+      <div className="relative w-full max-w-md text-center text-[#f4f1de]">
         <div className="relative mx-auto w-40 h-40 mb-6">
-          <span className="ff-eye-rest__ring absolute inset-0 rounded-full border border-cyan-300/30" aria-hidden="true" />
+          <span className="ff-eye-rest__ring absolute inset-0 rounded-full border border-[#81b29a]/40" aria-hidden="true" />
           <span
-            className="ff-eye-rest__breath absolute inset-4 rounded-full bg-gradient-to-br from-cyan-400/25 via-emerald-400/15 to-transparent border border-white/15 flex items-center justify-center"
+            className="ff-eye-rest__breath absolute inset-4 rounded-full bg-gradient-to-br from-[#81b29a]/25 via-[#f2cc8f]/15 to-transparent border border-[#f4f1de]/15 flex items-center justify-center"
             aria-hidden="true"
           />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <Eye className="w-6 h-6 text-cyan-300 mb-1" />
-            <span className="text-3xl font-mono font-bold text-white">{secondsLeft}s</span>
+            <Eye className="w-6 h-6 text-[#81b29a] mb-1" />
+            <span className="text-3xl font-mono font-bold text-[#f4f1de]">{secondsLeft}s</span>
           </div>
         </div>
 

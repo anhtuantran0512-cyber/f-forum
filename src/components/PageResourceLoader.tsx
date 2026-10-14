@@ -222,7 +222,7 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
       aria-label={`Đang tải F-Forum — ${pct}%`}
       style={{
         background:
-          'radial-gradient(100% 70% at 50% -10%, rgba(13,148,136,0.22), transparent 65%), radial-gradient(70% 50% at 85% 100%, rgba(167,139,250,0.14), transparent 60%), radial-gradient(70% 50% at 10% 90%, rgba(245,158,11,0.12), transparent 55%), #0c1218',
+          'radial-gradient(100% 70% at 50% -10%, rgba(224,122,95,0.22), transparent 65%), radial-gradient(70% 50% at 85% 100%, rgba(129,178,154,0.14), transparent 60%), radial-gradient(70% 50% at 10% 90%, rgba(242,204,143,0.12), transparent 55%), #0b0d12',
       }}
     >
       {/* Top Chrome Controls */}

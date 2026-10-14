@@ -629,7 +629,7 @@ export const AdminVerifiedBadge: React.FC<{
         </svg>
       </span>
       <span
-        className={`pointer-events-none absolute left-1/2 -translate-x-1/2 z-50 opacity-0 group-hover:opacity-100 transition-all duration-200 text-xs font-semibold text-white px-2.5 py-1 rounded-md bg-neutral-900/95 border border-cyan-400/40 whitespace-nowrap shadow-xl ${
+        className={`pointer-events-none absolute left-1/2 -translate-x-1/2 z-50 opacity-0 group-hover:opacity-100 transition-all duration-200 text-xs font-semibold text-[#f4f1de] px-2.5 py-1 rounded-md bg-[#0b0d12]/95 border border-[#f2cc8f]/45 whitespace-nowrap shadow-xl ${
           tooltipPosition === 'bottom'
             ? 'top-full mt-2'
             : 'bottom-full mb-2'

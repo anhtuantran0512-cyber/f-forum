@@ -38,7 +38,7 @@ const HighlightCard: React.FC<{ item: (typeof HIGHLIGHTS)[number] }> = ({ item }
     <h3 className="mt-4 text-[14.5px] font-semibold leading-snug text-[var(--ff-text)]">{item.title}</h3>
     <p className="mt-2 flex-1 text-[13px] leading-relaxed text-[var(--ff-text-soft)]">{item.body}</p>
     <figcaption className="mt-5 flex items-center gap-2 border-t border-[var(--ff-border)] pt-4">
-      <span className="rounded-full bg-sky-500/12 px-2.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider ff-ink--blue ring-1 ring-sky-400/25">
+      <span className="rounded-full bg-[#81b29a]/15 px-2.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-[#81b29a] ring-1 ring-[#81b29a]/35">
         {item.tag}
       </span>
       <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--ff-text-dim)]">

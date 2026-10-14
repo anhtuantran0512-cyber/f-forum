@@ -68,7 +68,7 @@ export const StudyPulsePanel: React.FC<StudyPulsePanelProps> = ({
       label: 'Tháng này',
       value: `${(totals.monthMinutes / 60).toFixed(1)} giờ`,
       icon: <TrendingUp className="w-3.5 h-3.5" />,
-      accent: 'text-cyan-300',
+      accent: 'text-[#81b29a]',
     },
     {
       id: 'streak',

@@ -400,10 +400,10 @@ const ThreadCard = React.memo<{
         )}
 
         {showActions && isReplyOpen && (
-          <div className="reply-composer mt-3 p-4 rounded-2xl bg-[#0b111d] border border-cyan-400/30 space-y-3 shadow-lg">
-            <div className="flex items-center justify-between text-xs text-slate-300">
-              <span className="font-bold text-cyan-300">Phản hồi bài viết của {rootThread.authorName.replace(/ \(.*\)/, '')}</span>
-              <span className="font-mono text-slate-400">{replyTextValue.length}/{THREAD_MAX_CHARS} ký tự</span>
+          <div className="reply-composer mt-3 p-4 rounded-xl bg-[#0b0d12] border border-[#f2cc8f]/35 space-y-3 shadow-[3px_3px_0px_rgba(4,6,11,0.85)]">
+            <div className="flex items-center justify-between text-xs text-[#9a978e]">
+              <span className="font-bold text-[#f2cc8f]">Phản hồi bài viết của {rootThread.authorName.replace(/ \(.*\)/, '')}</span>
+              <span className="font-mono text-[#9a978e]">{replyTextValue.length}/{THREAD_MAX_CHARS} ký tự</span>
             </div>
             <textarea
               rows={3}
@@ -417,22 +417,22 @@ const ThreadCard = React.memo<{
                 }
               }}
               placeholder="Viết phản hồi của cậu… (Ctrl + Enter để gửi nhanh)"
-              className="reply-input w-full min-h-[88px] rounded-xl bg-[#070b13] border border-white/15 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+              className="reply-input w-full min-h-[88px] rounded-xl bg-[#151a26] border border-[#f4f1de]/18 px-3.5 py-2.5 text-sm text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f]"
             />
             <div className="reply-composer-foot flex items-center justify-between gap-2 flex-wrap pt-1">
-              {replyError ? <span className="reply-error text-xs text-rose-400">{replyError}</span> : <span className="text-[11px] text-slate-500">Nhấn Ctrl + Enter để đăng nhanh</span>}
+              {replyError ? <span className="reply-error text-xs text-rose-400">{replyError}</span> : <span className="text-[11px] text-[#9a978e]">Nhấn Ctrl + Enter để đăng nhanh</span>}
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => { setIsReplyOpen(false); setReplyError(''); }} className="small-btn subtle px-3.5 py-1.5 rounded-xl text-xs font-semibold">Hủy</button>
-                <button type="button" onClick={submitReply} className="small-btn cyan px-4 py-1.5 rounded-xl text-xs font-bold">Gửi phản hồi</button>
+                <button type="button" onClick={() => { setIsReplyOpen(false); setReplyError(''); }} className="small-btn subtle ff-tactile-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold">Hủy</button>
+                <button type="button" onClick={submitReply} className="small-btn cyan ff-tactile-btn px-4 py-1.5 rounded-xl text-xs font-bold">Gửi phản hồi</button>
               </div>
             </div>
           </div>
         )}
 
         {showActions && isRepostOpen && (
-          <div className="repost-modal mt-3 p-4 sm:p-5 rounded-2xl bg-[#0b111d] border border-amber-400/35 space-y-3.5 shadow-xl">
+          <div className="repost-modal mt-3 p-4 sm:p-5 rounded-xl bg-[#0b0d12] border border-[#f2cc8f]/40 space-y-3.5 shadow-[3px_3px_0px_rgba(4,6,11,0.85)]">
             <div className="repost-modal-head flex items-center justify-between">
-              <span className="repost-modal-title text-sm font-bold text-white">Chia sẻ lại bài viết</span>
+              <span className="repost-modal-title text-sm font-bold text-[#f4f1de]">Chia sẻ lại bài viết</span>
               <button type="button" onClick={() => setIsRepostOpen(false)} className="post-modal-close p-1 rounded-lg hover:bg-white/10" title="Đóng">
                 <X className="w-4 h-4" />
               </button>
@@ -452,14 +452,14 @@ const ThreadCard = React.memo<{
                 value={quoteText}
                 onChange={(e) => setQuoteText(e.target.value)}
                 placeholder="Thêm lời bình của cậu (tùy chọn)…"
-                className="quote-input w-full min-h-[88px] rounded-xl bg-[#070b13] border border-white/15 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                className="quote-input w-full min-h-[88px] rounded-xl bg-[#151a26] border border-[#f4f1de]/18 px-3.5 py-2.5 text-sm text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f]"
               />
             )}
             <div className="repost-modal-foot flex items-center justify-between gap-3 pt-1">
-              <span className="repost-hint text-xs text-slate-400">
+              <span className="repost-hint text-xs text-[#9a978e]">
                 {repostMode === 'simple' ? 'Thread gốc cho vào bảng tin của cậu nguyên vẹn.' : 'Đính kèm lời bình của cậu lên đầu bài viết.'}
               </span>
-              <button type="button" onClick={repostMode === 'simple' ? submitSimpleRepost : submitQuoteRepost} className="small-btn amber px-4 py-2 rounded-xl text-xs font-bold shrink-0">
+              <button type="button" onClick={repostMode === 'simple' ? submitSimpleRepost : submitQuoteRepost} className="small-btn amber ff-tactile-btn px-4 py-2 rounded-xl text-xs font-bold shrink-0">
                 {repostMode === 'simple' ? 'Đăng lại ngay' : 'Đăng lời trích'}
               </button>
             </div>
@@ -479,21 +479,21 @@ const ThreadCard = React.memo<{
             }}
             className="fixed inset-0 z-[130] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-fade-up"
           >
-            <div className="w-full max-w-xl rounded-3xl bg-[#0b111e] border border-rose-500/40 shadow-[0_28px_80px_rgba(0,0,0,0.9)] overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/[0.02]">
+            <div className="modal-container w-full max-w-xl !border-rose-500/45 overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-dashed border-[#f4f1de]/15 bg-[#0b0d12]/60">
                 <div className="flex items-center gap-2.5">
                   <span className="w-9 h-9 rounded-xl bg-rose-500/15 border border-rose-400/35 flex items-center justify-center text-rose-300">
                     <Flag className="w-4 h-4" />
                   </span>
                   <div>
-                    <h3 className="text-base font-extrabold text-white">Báo cáo bài viết vi phạm</h3>
-                    <p className="text-xs text-slate-400">Bài viết của {rootThread.authorName.replace(/ \(.*\)/, '')}</p>
+                    <h3 className="text-base font-extrabold text-[#f4f1de]">Báo cáo bài viết vi phạm</h3>
+                    <p className="text-xs text-[#9a978e]">Bài viết của {rootThread.authorName.replace(/ \(.*\)/, '')}</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => { setIsReportOpen(false); setReportReason(''); }}
-                  className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] text-slate-300 hover:text-white cursor-pointer"
+                  className="p-2 rounded-xl bg-[#0b0d12]/70 hover:bg-[#1e2636] text-[#9a978e] hover:text-[#f4f1de] cursor-pointer"
                   title="Đóng"
                 >
                   <X className="w-4 h-4" />
@@ -501,13 +501,13 @@ const ThreadCard = React.memo<{
               </div>
 
               <div className="p-6 space-y-4">
-                <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-xs text-slate-300 line-clamp-2">
-                  <span className="text-slate-400 font-semibold mr-1.5">Nội dung bài viết:</span>
+                <div className="p-3.5 rounded-xl bg-[#0b0d12]/70 border border-[#f4f1de]/15 text-xs text-[#c7c3b6] line-clamp-2">
+                  <span className="text-[#9a978e] font-semibold mr-1.5">Nội dung bài viết:</span>
                   "{rootThread.content}"
                 </div>
 
                 <div className="space-y-2">
-                  <span className="block text-xs font-bold text-slate-200">Chọn nhanh nhóm vi phạm:</span>
+                  <span className="block text-xs font-bold text-[#f4f1de]">Chọn nhanh nhóm vi phạm:</span>
                   <div className="flex flex-wrap gap-2">
                     {[
                       'Ngôn từ xúc phạm / Gây gổ bạn học',
@@ -522,7 +522,7 @@ const ThreadCard = React.memo<{
                         className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
                           reportReason === preset
                             ? 'bg-rose-500/20 border-rose-400 text-rose-100'
-                            : 'bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-slate-300'
+                            : 'bg-[#0b0d12]/70 hover:bg-[#1e2636] border-[#f4f1de]/15 text-[#c7c3b6]'
                         }`}
                       >
                         {preset}
@@ -533,8 +533,8 @@ const ThreadCard = React.memo<{
 
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
-                    <label className="font-bold text-slate-200">Mô tả chi tiết vi phạm (*):</label>
-                    <span className="font-mono text-slate-400">{reportReason.length}/500</span>
+                    <label className="font-bold text-[#f4f1de]">Mô tả chi tiết vi phạm (*):</label>
+                    <span className="font-mono text-[#9a978e]">{reportReason.length}/500</span>
                   </div>
                   <textarea
                     rows={4}
@@ -542,7 +542,7 @@ const ThreadCard = React.memo<{
                     value={reportReason}
                     onChange={(e) => setReportReason(e.target.value)}
                     placeholder="Mô tả cụ thể vi phạm bạn nhìn thấy để Ban Quản Trị kiểm tra và xử lý..."
-                    className="w-full min-h-[110px] rounded-2xl bg-[#070b13] border border-white/15 px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-400 leading-relaxed resize-y"
+                    className="w-full min-h-[110px] rounded-xl bg-[#0b0d12] border border-[#f4f1de]/18 px-4 py-3 text-sm text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-rose-400 leading-relaxed resize-y"
                   />
                 </div>
 
@@ -1103,8 +1103,8 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
           )}
 
           <div className="thread-composer-actions">
-            <button type="button" onClick={firePickImage} className="icon-btn subtle" title="Đính kèm 1 ảnh (≤20MB)">
-              <ImagePlus className="w-4 h-4 text-cyan-400" />
+            <button type="button" onClick={firePickImage} className="icon-btn subtle ff-tactile-btn" title="Đính kèm 1 ảnh (≤20MB)">
+              <ImagePlus className="w-4 h-4 text-[#f2cc8f]" />
               <span>Đính kèm ảnh</span>
             </button>
             <input

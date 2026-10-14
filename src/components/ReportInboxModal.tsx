@@ -227,7 +227,7 @@ export const ReportInboxModal: React.FC<ReportInboxModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-label="Hộp thư báo cáo vi phạm"
-        className="relative w-full max-w-3xl max-h-[85vh] overflow-hidden rounded-3xl liquid-glass bg-[#0c1218]/95 border border-white/15 shadow-[0_30px_80px_rgba(0,0,0,0.85)] flex flex-col"
+        className="modal-container relative w-full max-w-3xl max-h-[85vh] overflow-hidden liquid-glass flex flex-col"
       >
         {/* Đầu cửa sổ */}
         <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-white/10">
