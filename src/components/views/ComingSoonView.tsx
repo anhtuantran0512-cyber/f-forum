@@ -24,7 +24,7 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
         playsInline
         preload="metadata"
         aria-hidden="true"
-        onError={handleVideoError}
+        onError={(e) => handleVideoError(e, COMING_SOON_VIDEO_URL)}
         onLoadedMetadata={(e) => {
           e.currentTarget.playbackRate = 0.72;
         }}

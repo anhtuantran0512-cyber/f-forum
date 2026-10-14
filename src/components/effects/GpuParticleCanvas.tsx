@@ -152,6 +152,7 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
 
     /* Offload tính toán vật lý sang Web Worker nếu được phép (PHẦN 2.4) */
     let workerAliveCount = scaledCount;
+    let isStepping = false;
     const worker = capabilities.useOffscreenWorker ? createInlineParticleWorker() : null;
     if (worker) {
       const initCopy = new Float32Array(buffer);
@@ -160,6 +161,7 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
         [initCopy.buffer],
       );
       worker.onmessage = (e) => {
+        isStepping = false;
         if (e.data?.type === 'FRAME' && e.data.buffer) {
           buffer = new Float32Array(e.data.buffer);
           if (typeof e.data.alive === 'number') {
@@ -175,12 +177,19 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
 
     const renderFrame = (now: number) => {
       if (!running) return;
+      if (typeof document !== 'undefined' && document.hidden) {
+        rafId = requestAnimationFrame(renderFrame);
+        return;
+      }
       const dtMs = Math.min(48, Math.max(4, now - lastTime));
       lastTime = now;
 
       let aliveCount = workerAliveCount;
       if (worker) {
-        worker.postMessage({ type: 'STEP', dtMs });
+        if (!isStepping) {
+          isStepping = true;
+          worker.postMessage({ type: 'STEP', dtMs });
+        }
       } else {
         aliveCount = stepParticleBuffer(buffer, dtMs, width, height, mode);
       }
@@ -249,6 +258,8 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
       if (worker) worker.terminate();
       if (gl) {
         try {
+          if (glBuffer) gl.deleteBuffer(glBuffer);
+          if (glProgram) gl.deleteProgram(glProgram);
           gl.viewport(0, 0, width, height);
           gl.clearColor(0, 0, 0, 0);
           gl.clear(gl.COLOR_BUFFER_BIT);

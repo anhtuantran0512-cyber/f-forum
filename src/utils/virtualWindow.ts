@@ -12,7 +12,7 @@
  *  - Tương thích liền mạch với cả Window scroll lẫn inner scroll containers (overflow-y: auto).
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { rafThrottle } from './rafThrottle.ts';
 
 export interface VirtualWindowOptions {
@@ -107,15 +107,29 @@ export function useVirtualWindow({
   const totalRows = Math.ceil(totalItems / activeColumns);
   const totalEstimatedHeight = totalRows * itemHeight;
 
+  const cachedScrollContainerRef = useRef<HTMLElement | Window | null>(null);
+  const lastRootElRef = useRef<HTMLElement | null>(null);
+
+  const getTargetScrollContainer = useCallback(() => {
+    const containerEl = containerRef?.current;
+    if (containerEl) return containerEl;
+    const rootEl = rootRef?.current;
+    if (!rootEl) return window;
+    if (rootEl !== lastRootElRef.current || !cachedScrollContainerRef.current) {
+      lastRootElRef.current = rootEl;
+      cachedScrollContainerRef.current = getScrollContainer(rootEl);
+    }
+    return cachedScrollContainerRef.current;
+  }, [containerRef, rootRef]);
+
   const updateRange = useCallback(() => {
     if (disabled || totalItems <= 36 || typeof window === 'undefined') {
       setRange((prev) => (prev.start === 0 && prev.end === totalItems ? prev : { start: 0, end: totalItems }));
       return;
     }
 
-    const containerEl = containerRef?.current;
     const rootEl = rootRef?.current;
-    const scrollTarget = containerEl || (rootEl ? getScrollContainer(rootEl) : null);
+    const scrollTarget = getTargetScrollContainer();
 
     let scrolledPast = 0;
     let viewportHeight = window.innerHeight || 900;
@@ -140,7 +154,10 @@ export function useVirtualWindow({
     } else {
       /* Cuộn theo Window / Document */
       viewportHeight = window.innerHeight || 900;
-      if (rootEl && typeof rootEl.getBoundingClientRect === 'function') {
+      if (rootEl && typeof rootEl.offsetTop === 'number' && rootEl.offsetTop > 0) {
+        const pageScroll = window.scrollY || document.documentElement?.scrollTop || 0;
+        scrolledPast = Math.max(0, pageScroll - rootEl.offsetTop);
+      } else if (rootEl && typeof rootEl.getBoundingClientRect === 'function') {
         const listRect = rootEl.getBoundingClientRect();
         scrolledPast = Math.max(0, -listRect.top);
       } else {
@@ -166,9 +183,20 @@ export function useVirtualWindow({
       if (prev.start === startIndex && prev.end === endIndex) {
         return prev;
       }
+      /* Giảm thiểu re-render liên tục khi cuộn mượt: chỉ re-render nếu bước nhảy vượt ngưỡng hoặc chạm biên */
+      const startDiff = Math.abs(startIndex - prev.start);
+      const endDiff = Math.abs(endIndex - prev.end);
+      if (
+        startDiff < activeColumns * 2 &&
+        endDiff < activeColumns * 2 &&
+        startIndex > 0 &&
+        endIndex < totalItems
+      ) {
+        return prev;
+      }
       return { start: startIndex, end: endIndex };
     });
-  }, [containerRef, rootRef, disabled, totalItems, itemHeight, overscan, activeColumns]);
+  }, [getTargetScrollContainer, rootRef, disabled, totalItems, itemHeight, overscan, activeColumns]);
 
   useEffect(() => {
     if (disabled || typeof window === 'undefined') {
@@ -178,7 +206,7 @@ export function useVirtualWindow({
     const throttledUpdate = rafThrottle(updateRange);
     throttledUpdate();
 
-    const targetContainer = containerRef?.current || (rootRef?.current ? getScrollContainer(rootRef.current) : null);
+    const targetContainer = getTargetScrollContainer();
 
     /* Bắt sự kiện scroll toàn cục với capture: true để xử lý mọi container cuộn bên trong (modal, feed tabs) */
     window.addEventListener('scroll', throttledUpdate, { passive: true, capture: true });
@@ -196,7 +224,7 @@ export function useVirtualWindow({
         (targetContainer as HTMLElement).removeEventListener('scroll', throttledUpdate);
       }
     };
-  }, [containerRef, rootRef, disabled, totalItems, updateRange]);
+  }, [disabled, totalItems, updateRange, getTargetScrollContainer]);
 
   const isItemVisible = useCallback(
     (index: number) => {

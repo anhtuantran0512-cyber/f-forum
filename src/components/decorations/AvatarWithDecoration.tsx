@@ -71,6 +71,17 @@ const AvatarMedia = ({
     } else if (vid.paused) {
       vid.play().catch(() => {});
     }
+    return () => {
+      if (vid) {
+        try {
+          vid.pause();
+          vid.removeAttribute('src');
+          vid.load();
+        } catch {
+          /* ignore */
+        }
+      }
+    };
   }, [isActive, isVideo, reducedMotion]);
 
   if (!isVideoAvatarUrl(safeUrl)) {

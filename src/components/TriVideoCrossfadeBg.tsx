@@ -35,7 +35,10 @@ export const TriVideoCrossfadeBg: React.FC<TriVideoCrossfadeBgProps> = ({
   useEffect(() => {
     const videos = videoRefs.current;
     const current = videos[currentIdx];
-    if (current && current.dataset.ffSuspended !== '1') current.play().catch(() => {});
+    if (current && current.dataset.ffSuspended !== '1') {
+      if (current.readyState < 2) current.load();
+      current.play().catch(() => {});
+    }
     const timer = window.setTimeout(() => {
       videos.forEach((video, idx) => {
         if (video && idx !== currentIdx && !video.paused) video.pause();
@@ -82,7 +85,7 @@ export const TriVideoCrossfadeBg: React.FC<TriVideoCrossfadeBgProps> = ({
           playsInline
           preload={idx === currentIdx ? 'metadata' : 'none'}
           data-ff-idle={idx === currentIdx ? undefined : '1'}
-          onError={handleVideoError}
+          onError={(e) => handleVideoError(e, v.url)}
           onLoadedMetadata={(e) => {
             e.currentTarget.playbackRate = LOW_FPS_PLAYBACK_RATE;
           }}

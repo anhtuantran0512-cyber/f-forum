@@ -57,12 +57,12 @@ export const DecorationMedia = ({
   const activeVideoSrc = blobUrl || targetVideoUrl;
 
   useEffect(() => {
+    const currentVideo = videoRef.current;
     if (!useVideo || !isActiveInViewport) {
       animationBudget.release(instanceId);
-      const vid = videoRef.current;
-      if (vid && !vid.paused) {
+      if (currentVideo && !currentVideo.paused) {
         try {
-          vid.pause();
+          currentVideo.pause();
         } catch {
           /* ignore */
         }
@@ -70,12 +70,20 @@ export const DecorationMedia = ({
       return;
     }
     const granted = animationBudget.acquire(instanceId, isOwnPriority);
-    const vid = videoRef.current;
-    if (vid && (isOwnPriority || granted) && vid.paused) {
-      vid.play().catch(() => {});
+    if (currentVideo && (isOwnPriority || granted) && currentVideo.paused) {
+      currentVideo.play().catch(() => {});
     }
     return () => {
       animationBudget.release(instanceId);
+      if (currentVideo) {
+        try {
+          currentVideo.pause();
+          currentVideo.removeAttribute('src');
+          currentVideo.load();
+        } catch {
+          /* ignore */
+        }
+      }
     };
   }, [useVideo, isActiveInViewport, activeVideoSrc, instanceId, isOwnPriority, tier]);
 

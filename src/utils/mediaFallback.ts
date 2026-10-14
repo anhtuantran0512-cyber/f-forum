@@ -41,10 +41,9 @@ export function handleImageError(
 
 /*
   React cho sự kiện `error` của <source> nổi bọt lên onError của <video> cha.
-  Trước đây một <source> WebM lỗi (403) là đủ để ẩn cả video dù trình duyệt vẫn
-  đang chuyển sang <source> MP4 kế tiếp → nền đen. Chỉ ẩn khi lỗi đến từ chính
-  <video> (đã chọn được nguồn nhưng giải mã/tải hỏng) hoặc từ <source> CUỐI CÙNG
-  (không còn nguồn dự phòng nào).
+  Trước đây một <source> WebM lỗi (403/codec không hỗ trợ) là đủ để ẩn cả video dù trình duyệt vẫn
+  đang chuyển sang <source> MP4 kế tiếp → nền đen. Chỉ coi là lỗi điểm cuối khi nguồn cuối cùng
+  đã thử xong và không còn nguồn thay thế nào.
 */
 export function isTerminalVideoError(video: HTMLVideoElement, origin: EventTarget | null): boolean {
   if (origin === video || !origin) return true;
@@ -52,8 +51,18 @@ export function isTerminalVideoError(video: HTMLVideoElement, origin: EventTarge
   return sources.length === 0 || origin === sources[sources.length - 1];
 }
 
-export function handleVideoError(e: React.SyntheticEvent<HTMLVideoElement>) {
+export function handleVideoError(
+  e: React.SyntheticEvent<HTMLVideoElement>,
+  fallbackSrc?: string
+) {
   const target = e.currentTarget;
+  /* Nếu có nguồn MP4 dự phòng và video chưa chuyển sang MP4 đó, chuyển ngay để không bị màn hình đen */
+  if (fallbackSrc && target.src !== fallbackSrc && !target.currentSrc.endsWith('.mp4')) {
+    target.src = fallbackSrc;
+    target.load();
+    target.play().catch(() => {});
+    return;
+  }
   if (!isTerminalVideoError(target, e.target)) return;
   target.onerror = null;
   target.style.display = 'none';
