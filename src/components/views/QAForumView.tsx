@@ -1494,9 +1494,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     setIsAskModalOpen(true);
                   }
                 }}
-                className="ff-tactile-btn px-4 py-2 rounded-lg text-xs font-extrabold bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border-[1.5px] border-[#f4f1de] transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                className="ff-tactile-btn px-4 py-2 rounded-xl text-xs font-extrabold bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
               >
-                <PlusCircle className="w-4 h-4 text-[#0b0d12]" />
+                <PlusCircle className="w-4 h-4 text-[#e07a5f]" />
                 <span>Đặt câu hỏi</span>
               </button>
             </div>
@@ -2102,9 +2102,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       <span className="text-[11px] font-mono uppercase tracking-wider text-[#f2cc8f] font-bold">
                         01 · THÔNG TIN CƠ BẢN
                       </span>
-                      <span className="text-[11px] text-[#9a978e]">
-                        Phân luồng môn học &amp; chế độ danh tính
-                      </span>
                     </div>
 
                     {/* Hàng 1: 2 Cột đều nhau (Chủ đề môn học + Chế độ Ẩn danh Ghibli) */}
@@ -2112,7 +2109,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       {/* Cột 1: Custom Glass Subject Dropdown */}
                       <div className="relative">
                         <label className="block text-[13.5px] font-medium text-[#f4f1de] mb-2">
-                          Chủ đề môn học / đời sống <span className="text-[#e07a5f]">*</span>
+                          Chủ đề <span className="text-[#e07a5f]">*</span>
                         </label>
 
                         {/* Screen-reader & form compatible select */}
@@ -2153,7 +2150,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                 </span>
                               </div>
                               <span className="text-[11px] text-[#9a978e] block">
-                                Phân luồng: {currentSubjectMeta.groupLabel}
+                                {currentSubjectMeta.groupLabel}
                               </span>
                             </div>
                           </div>
@@ -2166,10 +2163,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         </button>
                       </div>
 
-                      {/* Cột 2: Phân luồng Danh tính (Công khai / Ẩn danh Ghibli Mask) */}
+                      {/* Cột 2: Phân luồng Danh tính (Công khai / Ẩn danh) */}
                       <div>
                         <label className="block text-[13.5px] font-medium text-[#f4f1de] mb-2">
-                          Chế độ hiển thị người hỏi
+                          Chế độ hiển thị
                         </label>
                         <div className="ask2027-field-shell px-3.5 py-2.5 flex items-center justify-between gap-3 min-h-[58px]">
                           <div className="flex items-center gap-2.5 min-w-0">
@@ -2184,10 +2181,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             </div>
                             <div className="min-w-0">
                               <span className="text-[13.5px] font-semibold text-[#f4f1de] block truncate">
-                                {isAnonymous ? 'Ẩn danh (Ghibli Mask)' : 'Công khai học thuật'}
+                                {isAnonymous ? 'Ẩn danh' : 'Công khai'}
                               </span>
                               <span className="text-[11px] text-[#9a978e] block truncate">
-                                {isAnonymous ? previewAlias || 'Pháp sư Tri thức Ghibli' : 'Hiển thị tên & cấp bậc thật'}
+                                {isAnonymous ? previewAlias || 'Biệt danh ẩn danh' : 'Hiển thị tên thật'}
                               </span>
                             </div>
                           </div>
@@ -2277,26 +2274,20 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             </span>
                             <span className="px-2 py-0.5 rounded-md text-[9px] font-mono font-bold bg-[#f2cc8f]/20 text-[#f4f1de] border border-[#f2cc8f]/40 flex items-center gap-1 shrink-0">
                               <Wand2 className="w-3 h-3 text-[#f2cc8f]" />
-                              GHIBLI MASK
+                              Ẩn danh
                             </span>
                           </div>
-                          <p className="text-[11px] text-[#d8d5ce] mt-0.5">
-                            Tên thật &amp; avatar của bạn được bảo mật sau lớp mặt nạ pháp sư.
-                          </p>
                         </div>
                       </div>
                     )}
 
-                    {/* Hàng 2: Tiêu đề câu hỏi (Full width, gap 8px giữa label và input) */}
+                    {/* Hàng 2: Tiêu đề câu hỏi */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <label htmlFor="tieu-de-cau-hoi" className="text-[13.5px] font-medium text-[#f4f1de] flex items-center gap-1.5">
                           <span>Tiêu đề câu hỏi</span>
                           <span className="text-[#e07a5f]">*</span>
                         </label>
-                        <span className="text-[11px] text-[#9a978e]">
-                          Ngắn gọn, nêu đúng trọng tâm bài toán
-                        </span>
                       </div>
                       <div className="ask2027-field-shell flex items-center px-4 py-3 gap-3">
                         <Lightbulb className="w-4 h-4 text-[#f2cc8f] shrink-0" />
@@ -2376,10 +2367,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   <div className="ask2027-card-section">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-[11px] font-mono uppercase tracking-wider text-[#f2cc8f] font-bold">
-                        03 · CÔNG CỤ HỖ TRỢ &amp; HÌNH ẢNH ĐỀ BÀI
-                      </span>
-                      <span className="text-[11px] text-[#9a978e]">
-                        Tùy chọn • Công thức &amp; Sơ đồ minh họa
+                        03 · CÔNG CỤ HỖ TRỢ
                       </span>
                     </div>
 
@@ -2395,7 +2383,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <label className="text-[13.5px] font-medium text-[#f4f1de]">
-                          Đính kèm ảnh đề bài / sơ đồ (Tối đa 6 ảnh · &le; 20MB/ảnh)
+                          Đính kèm ảnh (Tối đa 6 ảnh · &le; 20MB/ảnh)
                         </label>
                         <span className="text-[11px] font-mono text-[#81b29a]">
                           {askImages.length > 0 ? `Đã đính kèm ${askImages.length}/6 ảnh` : 'PNG • JPG • WEBP'}
@@ -2524,9 +2512,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             <span className="text-xs sm:text-[13.5px] font-bold text-[#f4f1de] block">
                               Kéo &amp; thả ảnh vào đây hoặc <span className="text-[#f2cc8f] underline decoration-[#f2cc8f]/50">chọn tệp từ thiết bị</span>
                             </span>
-                            <span className="text-[11.5px] text-[#9a978e] block mt-0.5">
-                              Có thể chọn 1 hoặc nhiều ảnh đề bài, nháp giải tay, hình vẽ minh họa (tối đa 6 ảnh)
-                            </span>
                           </div>
                           <input
                             id="field"
@@ -2626,7 +2611,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     <div className="flex items-center gap-2">
                       <span className="ask2027-xp-pill inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-mono font-bold bg-[#81b29a]/18 text-[#d8f3dc] border border-[#81b29a]/45">
                         <Sparkles className="w-3.5 h-3.5 text-[#81b29a]" />
-                        <span>+50 XP THƯỞNG KHI ĐĂNG BÀI</span>
+                        <span>+50 XP</span>
                       </span>
                     </div>
 
@@ -2644,22 +2629,19 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       <button
                         type="submit"
                         disabled={askCooldown > 0 || isSubmittingAsk}
-                        className="ask2027-submit-btn px-6 py-2.5 rounded-xl font-bold text-xs sm:text-[13.5px] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        className="ff-tactile-btn px-6 py-2.5 rounded-xl font-extrabold text-xs sm:text-[13.5px] bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       >
                         {isSubmittingAsk ? (
                           <>
                             <span className="w-4 h-4 rounded-full border-2 border-[#0b0d12]/30 border-t-[#0b0d12] animate-spin" />
-                            <span>Đang khởi tạo câu hỏi...</span>
+                            <span>Đang gửi...</span>
                           </>
                         ) : askCooldown > 0 ? (
                           <span>Chờ {askCooldown}s...</span>
                         ) : (
                           <>
-                            <Send className="w-3.5 h-3.5" />
-                            <span>Đăng Câu Hỏi</span>
-                            <span className="px-1.5 py-0.5 rounded-md bg-black/25 text-[10px] font-mono text-[#f4f1de] border border-white/15">
-                              +50 XP
-                            </span>
+                            <Send className="w-3.5 h-3.5 text-[#e07a5f]" />
+                            <span>Đăng câu hỏi</span>
                           </>
                         )}
                       </button>
@@ -3027,10 +3009,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               box?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                               box?.focus();
                             }}
-                            className="ff-tactile-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#e07a5f] hover:bg-[#f2cc8f] border-[1.5px] border-[#f4f1de] text-xs font-extrabold text-[#0b0d12] cursor-pointer transition-colors"
+                            className="ff-tactile-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] text-xs font-extrabold text-[#0b0d12] cursor-pointer transition-colors"
                           >
-                            <Send className="w-3.5 h-3.5 text-[#0b0d12]" />
-                            <span>Giải bài ngay (+25 Coin)</span>
+                            <Send className="w-3.5 h-3.5 text-[#e07a5f]" />
+                            <span>Giải bài (+25 Coin)</span>
                           </button>
                         )}
                       </div>
@@ -3372,9 +3354,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           type="button"
                           onClick={() => handleSolutionSubmit(selectedQuestion.id)}
                           disabled={!solutionText.trim() || solCooldown > 0 || isSubmittingSol}
-                          className="ff-tactile-btn px-5 py-2.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] font-extrabold text-xs sm:text-sm border-[1.5px] border-[#f4f1de] inline-flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                          className="ff-tactile-btn px-5 py-2.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] font-extrabold text-xs sm:text-sm border-2 border-[#0b0d12] inline-flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
                         >
-                          <Send className="w-4 h-4 text-[#0b0d12]" />
+                          <Send className="w-4 h-4 text-[#e07a5f]" />
                           <span>
                             {solCooldown > 0
                               ? `Chờ ${solCooldown}s...`

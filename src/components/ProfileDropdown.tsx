@@ -204,8 +204,8 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
           <div className="flex items-center gap-2">
             <TierBadge level={currentUser.level} size={20} showTooltip={false} />
             <div className="flex flex-col">
-              <span className="text-xs font-mono font-bold text-amber-300">
-                {`${tier.name} • Level ${currentUser.level}`}
+              <span className="text-xs font-mono font-bold text-[#f2cc8f]">
+                {`${tier.name} · Lv.${currentUser.level}`}
               </span>
             </div>
           </div>
@@ -227,7 +227,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         <div className="mt-3 space-y-1">
           <div className="flex items-center justify-between text-[11px] font-mono">
             <span className="text-white/60">Coin tích lũy</span>
-            <span className="text-amber-300 font-semibold">
+            <span className="text-[#f2cc8f] font-semibold">
               {currentUser.level >= 150
                 ? `${currentUser.xp.toLocaleString()} / MAX`
                 : `${currentUser.xp.toLocaleString()} / ${nextLevelBaseXP.toLocaleString()} Coin`}
@@ -235,7 +235,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
           </div>
           <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden relative">
             <div
-              className="h-full bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-300 rounded-full transition-all duration-500 relative"
+              className="h-full bg-gradient-to-r from-[#e07a5f] via-[#f2cc8f] to-[#81b29a] rounded-full transition-all duration-500 relative"
               style={{ width: `${progress}%` }}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
@@ -249,13 +249,13 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             onClose();
             onOpenProfile('overview');
           }}
-          className="ff-tactile-btn w-full mt-3 py-2 px-3 rounded-xl text-xs font-bold text-[#f4f1de] hover:text-[#f2cc8f] bg-[#e07a5f]/20 hover:bg-[#e07a5f]/30 border border-[#e07a5f]/45 transition-all flex items-center justify-between group cursor-pointer shadow-sm"
+          className="ff-tactile-btn w-full mt-3 py-2 px-3 rounded-xl text-xs font-extrabold text-[#0b0d12] bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] transition-all flex items-center justify-between group cursor-pointer"
         >
           <div className="flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-[#f2cc8f] group-hover:rotate-12 transition-transform" />
+            <Sparkles className="w-3.5 h-3.5 text-[#e07a5f] group-hover:rotate-12 transition-transform" />
             <span>Hồ sơ</span>
           </div>
-          <ChevronRight className="w-3.5 h-3.5 text-[#f4f1de]/60 group-hover:text-[#f2cc8f] group-hover:translate-x-0.5 transition-all" />
+          <ChevronRight className="w-3.5 h-3.5 text-[#0b0d12]/70 group-hover:text-[#0b0d12] group-hover:translate-x-0.5 transition-all" />
         </button>
 
         {/* Action Buttons: F-Pass Card & Profile Edit */}
@@ -266,9 +266,9 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
               onClose();
               onOpenProfile('card');
             }}
-            className="py-1.5 px-2.5 rounded-xl text-xs font-semibold text-white/90 hover:text-amber-300 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/30 transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+            className="ff-tactile-btn py-1.5 px-2.5 rounded-xl text-xs font-bold text-[#f4f1de] hover:text-[#f2cc8f] bg-[#151a26] hover:bg-[#1e2536] border border-[#f4f1de]/18 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <CreditCard className="w-3.5 h-3.5 text-amber-400" />
+            <CreditCard className="w-3.5 h-3.5 text-[#f2cc8f]" />
             <span>F-Pass</span>
           </button>
 
@@ -278,9 +278,9 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
               onClose();
               onOpenProfile('edit');
             }}
-            className="py-1.5 px-2.5 rounded-xl text-xs font-semibold text-white/90 hover:text-amber-300 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/30 transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+            className="ff-tactile-btn py-1.5 px-2.5 rounded-xl text-xs font-bold text-[#f4f1de] hover:text-[#f2cc8f] bg-[#151a26] hover:bg-[#1e2536] border border-[#f4f1de]/18 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <UserPen className="w-3.5 h-3.5 text-amber-400" />
+            <UserPen className="w-3.5 h-3.5 text-[#f2cc8f]" />
             <span>F-ID</span>
           </button>
         </div>

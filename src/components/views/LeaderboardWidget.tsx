@@ -337,11 +337,10 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
             <Trophy className="w-[18px] h-[18px]" />
           </span>
           <div className="min-w-0 flex-1">
-            <h3 className="ff-board__title">THÀNH VIÊN HĂNG HÁI NHẤT</h3>
+            <h3 className="ff-board__title">BẢNG XẾP HẠNG</h3>
             <p className="ff-board__sub">
-              {metric === 'hours' ? 'Ai học nhiều nhất kỳ này' : 'Ai đóng góp nhiều nhất kỳ này'}
               <span className="ff-board__count">
-                {boardRows.length}/{members.length} thành viên
+                {boardRows.length} thành viên
               </span>
             </p>
           </div>
@@ -411,16 +410,6 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
             </span>
           </div>
         </div>
-
-        {/* Trạng thái khi trường mới chỉ có ít tài khoản thật */}
-        {members.length <= 1 && (
-          <p className="ff-board__micro">
-            <Sparkles className="w-3 h-3" />
-            {members.length === 0
-              ? 'Bảng chỉ tính tài khoản thật — chưa có ai đăng ký. Hãy là người đầu tiên nhé!'
-              : `Bảng chỉ tính tài khoản thật — hiện có ${members.length} người. Mời bạn bè đăng ký để cùng leo hạng!`}
-          </p>
-        )}
 
         {/* Podium */}
         {podium.length > 0 ? (
@@ -583,7 +572,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
         )}
 
         {list.length > 0 && (
-          <p className="ff-board__micro">
+          <p className="sr-only">
             Bảng chỉ gồm tài khoản thật, xếp theo hoạt động thực tế (XP & giờ học).
           </p>
         )}
@@ -669,16 +658,12 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
           <span>Bạn muốn hỏi điều gì?</span>
         </div>
 
-        <p className="text-xs text-[#d8d5ce] leading-relaxed">
-          Kẹt bài tập khó? Đăng câu hỏi kèm ảnh đề bài để cùng giải với mọi người.
-        </p>
-
         <MagneticButton
           variant="gold"
           onClick={onOpenAskModal}
-          className="ff-tactile-btn w-full py-2.5 px-4 rounded-xl !bg-[#e07a5f] hover:!bg-[#f2cc8f] text-[#0b0d12] font-extrabold text-xs border-[1.5px] border-[#f4f1de] cursor-pointer"
+          className="ff-tactile-btn w-full py-2.5 px-4 rounded-xl !bg-[#f4f1de] hover:!bg-[#f2cc8f] text-[#0b0d12] font-extrabold text-xs border-2 border-[#0b0d12] cursor-pointer"
         >
-          <HelpCircle className="w-4 h-4 text-[#0b0d12]" />
+          <HelpCircle className="w-4 h-4 text-[#e07a5f]" />
           <span>Đặt câu hỏi</span>
         </MagneticButton>
       </div>

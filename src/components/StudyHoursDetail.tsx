@@ -84,7 +84,6 @@ export const StudyHoursDetail: React.FC<StudyHoursDetailProps> = ({ sessions, on
         </span>
         <div className="min-w-0 flex-1">
           <h4 className="ff-hours__title">Chi tiết giờ học</h4>
-          <p className="ff-hours__sub">Số liệu thật từ nhật ký Phòng Tập Trung</p>
         </div>
         <span className="ff-hours__chip inline-flex items-center gap-1">
           <Flame className="w-3 h-3 text-rose-300" />
@@ -148,9 +147,6 @@ export const StudyHoursDetail: React.FC<StudyHoursDetailProps> = ({ sessions, on
               </li>
             ))}
           </ul>
-          <p className="ff-hours__note">
-            Nhật ký chỉ ghi tự động từ phiên Pomodoro — nút thùng rác dùng khi phiên bị ghi nhầm.
-          </p>
         </div>
       ) : (
         <div className="ff-hours__empty">

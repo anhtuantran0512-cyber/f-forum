@@ -785,12 +785,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
               {!currentUser ? (
                 <div className="px-4 py-2.5 rounded-xl bg-[#151b28] border border-[#f8f7f4]/12 flex items-center justify-between gap-3">
                   <span className="text-xs text-[#dad7d0]">
-                    Đăng nhập để tham gia thảo luận cùng bạn học trong #{currentChannelObj.name}
+                    Đăng nhập để tham gia thảo luận trong #{currentChannelObj.name}
                   </span>
                   <button
                     type="button"
                     onClick={onOpenLoginModal}
-                    className="px-4 py-1.5 rounded-lg bg-[#81b29a] hover:bg-[#95c4ad] text-[#0b0d12] font-bold text-xs transition-colors cursor-pointer shrink-0"
+                    className="ff-tactile-btn px-4 py-1.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs transition-colors cursor-pointer shrink-0"
                   >
                     Đăng nhập
                   </button>
@@ -804,7 +804,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     maxLength={300}
                     onChange={e => setInputText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder={`Nhắn tin vào #${currentChannelObj.name}... (Enter để gửi)`}
+                    placeholder={`Nhắn tin vào #${currentChannelObj.name}...`}
                     className="message-input-bar flex-1 bg-transparent border-none text-xs sm:text-sm text-[#f8f7f4] placeholder-[#a39f96] focus:outline-none"
                   />
 
@@ -822,12 +822,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     type="button"
                     onClick={handleSend}
                     disabled={!inputText.trim()}
-                    className={`px-3.5 py-2 rounded-lg bg-[#81b29a] hover:bg-[#95c4ad] text-[#0b0d12] font-bold text-xs sm:text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                    className={`ff-tactile-btn px-3.5 py-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs sm:text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer shrink-0 ${
                       cooldown.isCooling ? 'ff-cd-btn is-cooling' : ''
                     }`}
                     title={cooldown.isCooling ? `Còn ${cooldown.secondsLeft}s trước tin tiếp theo` : 'Gửi tin nhắn'}
                   >
-                    <Send className="w-3.5 h-3.5 text-[#0b0d12]" />
+                    <Send className="w-3.5 h-3.5 text-[#e07a5f]" />
                     <span className="hidden sm:inline">Gửi</span>
                   </button>
                 </div>
