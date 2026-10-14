@@ -33,10 +33,10 @@ interface DailyEngagementModalProps {
 
 /* Mẹo hằng ngày — hiển thị dạng chồng thẻ kéo-để-lướt (code_yeucau · stk-02). */
 const TIPS: { id: string; title: string; body: string }[] = [
-  { id: 'answer', title: 'Lời giải chỉn chu', body: 'Hãy trả lời chỉn chu và đầy đủ các bước giải để dễ nhận được xác nhận Đáp Án Chuẩn!' },
-  { id: 'ask', title: 'Hỏi rõ ràng', body: 'Nên đặt câu hỏi một cách rõ ràng và cụ thể để nhận được câu trả lời nhanh nhất.' },
-  { id: 'streak', title: 'Giữ lửa mỗi ngày', body: 'Điểm danh mỗi ngày tích lũy chuỗi streak và mở khóa hộp quà ở mốc 5, 10, 15 ngày.' },
-  { id: 'share', title: 'Chia sẻ để thăng hạng', body: 'Chia sẻ lời giải hay trên sàn hỏi đáp giúp bạn tích lũy Coin và thăng hạng danh hiệu.' },
+  { id: 'answer', title: 'Lời giải chỉn chu', body: 'Trả lời đầy đủ các bước giải để nhận Đáp Án Chuẩn.' },
+  { id: 'ask', title: 'Hỏi rõ ràng', body: 'Đặt câu hỏi cụ thể để nhận lời giải nhanh.' },
+  { id: 'streak', title: 'Giữ lửa mỗi ngày', body: 'Điểm danh đủ mốc 5, 10, 15 ngày để nhận hộp quà.' },
+  { id: 'share', title: 'Chia sẻ để thăng hạng', body: 'Chia sẻ lời giải hay để tích lũy Coin và thăng hạng.' },
 ];
 
 const todayISO = () => dateKeyInTimeZone();
@@ -296,7 +296,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
         onClick={onClose}
       />
 
-      <div className="ff-daily-panel modal-container liquid-glass w-full max-w-xl p-4 sm:p-6 relative z-10 overflow-hidden max-h-[95vh] overflow-y-auto">
+      <div className="ff-daily-panel modal-container liquid-glass w-full max-w-2xl p-4 sm:p-6 relative z-10 overflow-hidden max-h-[95vh] overflow-y-auto">
         <header className="ff-daily-header">
           <div className="ff-daily-header__top">
             <div className="ff-daily-heading">
@@ -305,7 +305,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                 <h2 className="ff-daily-heading__title">Nhịp học mỗi ngày</h2>
               </div>
             </div>
-            <button type="button" onClick={onClose} className="ff-daily-close" aria-label="Đóng">
+            <button type="button" onClick={onClose} className="ff-daily-close ff-tactile-btn" aria-label="Đóng">
               <X className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
@@ -323,7 +323,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
                   aria-pressed={isActive}
-                  className={`ff-daily-tab${isActive ? ' ff-daily-tab--active' : ''}`}
+                  className={`ff-daily-tab ff-tactile-btn${isActive ? ' ff-daily-tab--active' : ''}`}
                 >
                   <Icon size={14} aria-hidden="true" />
                   <span>{tab.label}</span>
@@ -426,8 +426,8 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
         {/* TAB 2: KHO QUÀ */}
         {activeTab === 'gifts' && (
           <div className="space-y-4">
-            <div className="p-3.5 rounded-2xl bg-black/40 border-l-4 border-l-neutral-400 border border-white/10 text-xs text-neutral-300 space-y-1.5">
-              <p className="font-semibold text-white">🎁 Chuỗi 5 · 10 · 15 ngày = 1 hộp quà Coin thật</p>
+            <div className="p-3 rounded-xl bg-[#0b0d12]/80 border border-[#f4f1de]/15 text-xs text-[#d8d5ce]">
+              <p className="font-bold text-[#f4f1de]">Chuỗi 5 · 10 · 15 ngày = 1 hộp quà Coin thật</p>
             </div>
 
             {/* 3 Isometric Gift Boxes */}
@@ -465,14 +465,14 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                   type="button"
                   onClick={() => handleOpenBox('blue')}
                   disabled={boxes.blue <= 0 || openingBox !== null}
-                  className="ff-tactile-btn mt-3 w-full py-1.5 rounded-lg bg-[#81b29a] hover:bg-[#95c4ae] disabled:opacity-40 text-[#0b0d12] text-xs font-bold transition-all cursor-pointer"
+                  className="ff-tactile-btn mt-3 w-full py-1.5 rounded-lg bg-[#81b29a] hover:bg-[#95c4ae] border-2 border-[#0b0d12] disabled:opacity-40 text-[#0b0d12] text-xs font-extrabold transition-all cursor-pointer"
                 >
                   {openingBox === 'blue' ? 'Đang mở...' : 'Mở hộp'}
                 </button>
               </div>
 
               {/* Gold Box */}
-              <div className="rounded-2xl p-3 bg-gradient-to-b from-amber-950/40 to-black/60 border border-amber-500/30 flex flex-col items-center text-center relative group">
+              <div className="rounded-xl p-3 bg-[#0b0d12]/80 border border-[#f2cc8f]/40 flex flex-col items-center text-center relative group">
                 <div className="relative w-16 h-16 flex items-center justify-center mb-2">
                   <svg viewBox="0 0 64 64" className="w-14 h-14 drop-shadow-[0_0_12px_rgba(245,158,11,0.5)]">
                     <defs>
@@ -498,20 +498,20 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                     {boxes.gold}
                   </span>
                 </div>
-                <span className="text-xs font-bold text-white">Hộp Quà Vàng</span>
-                <span className="text-[10px] text-amber-300 font-mono mt-0.5">Sở hữu: {boxes.gold}</span>
+                <span className="text-xs font-bold text-[#f4f1de]">Hộp Quà Vàng</span>
+                <span className="text-[10px] text-[#f2cc8f] font-mono mt-0.5">Sở hữu: {boxes.gold}</span>
                 <button
                   type="button"
                   onClick={() => handleOpenBox('gold')}
                   disabled={boxes.gold <= 0 || openingBox !== null}
-                  className="mt-3 w-full py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-black text-xs font-bold transition-all cursor-pointer"
+                  className="ff-tactile-btn mt-3 w-full py-1.5 rounded-lg bg-[#f2cc8f] hover:bg-[#f4f1de] border-2 border-[#0b0d12] disabled:opacity-40 text-[#0b0d12] text-xs font-extrabold transition-all cursor-pointer"
                 >
                   {openingBox === 'gold' ? 'Đang mở...' : 'Mở hộp'}
                 </button>
               </div>
 
               {/* Red Box */}
-              <div className="rounded-2xl p-3 bg-gradient-to-b from-rose-950/40 to-black/60 border border-rose-500/30 flex flex-col items-center text-center relative group">
+              <div className="rounded-xl p-3 bg-[#0b0d12]/80 border border-[#e07a5f]/40 flex flex-col items-center text-center relative group">
                 <div className="relative w-16 h-16 flex items-center justify-center mb-2">
                   <svg viewBox="0 0 64 64" className="w-14 h-14 drop-shadow-[0_0_12px_rgba(244,63,94,0.5)]">
                     <defs>
@@ -537,13 +537,13 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                     {boxes.red}
                   </span>
                 </div>
-                <span className="text-xs font-bold text-white">Hộp Quà Đỏ</span>
-                <span className="text-[10px] text-rose-300 font-mono mt-0.5">Sở hữu: {boxes.red}</span>
+                <span className="text-xs font-bold text-[#f4f1de]">Hộp Quà Đỏ</span>
+                <span className="text-[10px] text-[#e07a5f] font-mono mt-0.5">Sở hữu: {boxes.red}</span>
                 <button
                   type="button"
                   onClick={() => handleOpenBox('red')}
                   disabled={boxes.red <= 0 || openingBox !== null}
-                  className="mt-3 w-full py-1.5 rounded-lg bg-rose-500 hover:bg-rose-400 disabled:opacity-40 text-white text-xs font-bold transition-all cursor-pointer"
+                  className="ff-tactile-btn mt-3 w-full py-1.5 rounded-lg bg-[#e07a5f] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] disabled:opacity-40 text-[#0b0d12] text-xs font-extrabold transition-all cursor-pointer"
                 >
                   {openingBox === 'red' ? 'Đang mở...' : 'Mở hộp'}
                 </button>
@@ -551,8 +551,8 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
             </div>
 
             {boxReward && (
-              <div className="p-3 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 text-center animate-fade-up">
-                <span className="text-xs font-bold text-emerald-300">🎉 {boxReward}!</span>
+              <div className="p-3 rounded-xl bg-[#81b29a]/20 border border-[#81b29a]/40 text-center animate-fade-up">
+                <span className="text-xs font-bold text-[#d8f3dc]">{boxReward}</span>
               </div>
             )}
           </div>
@@ -631,15 +631,15 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
 
         {/* Modal Footer */}
         <div className="mt-5 pt-3 border-t border-white/10 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-xs font-mono text-amber-300">
+          <div className="flex items-center gap-1.5 text-xs font-mono text-[#f2cc8f]">
             <span>Số dư:</span>
-            <span className="font-bold text-white">{formatCoinBalance(currentUserCoin)} Coin</span>
+            <span className="font-bold text-[#f4f1de]">{formatCoinBalance(currentUserCoin)} Coin</span>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold text-xs transition-colors cursor-pointer"
+            className="ff-tactile-btn px-4 py-1.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs transition-colors cursor-pointer"
           >
             Đóng
           </button>
