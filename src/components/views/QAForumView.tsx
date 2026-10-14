@@ -85,8 +85,6 @@ import {
   toggleSavedQuestion,
 } from '../../utils/savedQuestions';
 import { LeaderboardWidget } from './LeaderboardWidget';
-import { ExamVaultSection } from './ExamVaultSection';
-import { SeasonalHallOfFame } from './SeasonalHallOfFame';
 import { CommentSkeletonList } from '../Skeletons';
 import { postJson } from '../../utils/session';
 import { describeReportResult, settleReportRequest } from '../../utils/reports';
@@ -739,31 +737,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const detailScrollRef = useRef<HTMLDivElement | null>(null);
   const savedListScrollTopRef = useRef<number>(0);
   const prefetchedQuestionIdsRef = useRef<Set<string>>(new Set());
-
-  const [qaWorkspaceMode, setQaWorkspaceMode] = useState<'qa' | 'exam' | 'hall'>('qa');
-  const [stuckCounts, setStuckCounts] = useState<Record<string, number>>(() => {
-    try {
-      const raw = safeStorage.getItem('fforum_qa_stuck_counts_v1');
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
-  });
-  const [isSpoilerHintMode, setIsSpoilerHintMode] = useState(false);
-  const [spoilerRevealedMap, setSpoilerRevealedMap] = useState<Record<string, boolean>>({});
-
-  const handleBumpQuestionStuck = (qId: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setStuckCounts((prev) => {
-      const next = { ...prev, [qId]: (prev[qId] || 0) + 1 };
-      try {
-        safeStorage.setItem('fforum_qa_stuck_counts_v1', JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  };
   const [readingProgress, setReadingProgress] = useState<number>(0);
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
 
@@ -1433,46 +1406,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              {/* 3 Tab Khu Vực Học Thuật 2027: Kho Đề Duyệt | Hỏi Đáp & Cấp Cứu | Bảng Vinh Danh */}
-              <div className="inline-flex items-center p-1 rounded-lg bg-[#090c10] border border-[#1e293b] gap-1">
-                <button
-                  type="button"
-                  onClick={() => setQaWorkspaceMode('exam')}
-                  className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold inline-flex items-center gap-1.5 cursor-pointer transition ${
-                    qaWorkspaceMode === 'exam'
-                      ? 'bg-[#38bdf8]/20 text-[#38bdf8] border border-[#38bdf8]/50'
-                      : 'text-[#94a3b8] hover:text-white'
-                  }`}
-                >
-                  <span className="w-2 h-2 rounded-full bg-[#10b981]" />
-                  <span>Kho Đề Duyệt</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setQaWorkspaceMode('qa')}
-                  className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold inline-flex items-center gap-1.5 cursor-pointer transition tabular-nums ${
-                    qaWorkspaceMode === 'qa'
-                      ? 'bg-[#ff6b2b] text-white'
-                      : 'text-[#94a3b8] hover:text-white'
-                  }`}
-                >
-                  <span>Hỏi Đáp ({questions.filter(q => !q.isSolved).length})</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setQaWorkspaceMode('hall')}
-                  className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold inline-flex items-center gap-1.5 cursor-pointer transition ${
-                    qaWorkspaceMode === 'hall'
-                      ? 'bg-[#f59e0b]/25 text-[#f59e0b] border border-[#f59e0b]/50'
-                      : 'text-[#94a3b8] hover:text-white'
-                  }`}
-                >
-                  <span>Bảng Vinh Danh</span>
-                </button>
-              </div>
-
               {/* Bộ lọc "Đã lưu" */}
               {savedOwnerKey && (
                 <button
@@ -1556,11 +1489,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     setIsAskModalOpen(true);
                   }
                 }}
-                className="ff-2027-squishy-cta px-4 py-2 rounded-lg text-xs font-extrabold border-[1.5px] border-[#f4f1de] transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-                title="Đặt câu hỏi"
+                className="ff-tactile-btn px-4 py-2 rounded-lg text-xs font-extrabold bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border-[1.5px] border-[#f4f1de] transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
               >
-                <PlusCircle className="w-4 h-4 text-white" />
-                <span>+ Hỏi bài ẩn danh (Miễn phí)</span>
+                <PlusCircle className="w-4 h-4 text-[#0b0d12]" />
+                <span>Đặt câu hỏi</span>
               </button>
             </div>
           </div>
@@ -1641,94 +1573,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           </div>
         </div>
 
-        {/* Main Content Area: Exam Vault / Hall of Fame / Questions Feed (Col 8) + Leaderboard (Col 4) */}
-        {qaWorkspaceMode === 'exam' ? (
-          <div className="flex-1 overflow-y-auto pr-1 pb-6 space-y-4">
-            <ExamVaultSection
-              onAskQuestionFromExam={(prefill) => {
-                setQaWorkspaceMode('qa');
-                setNewTitle(prefill.title.slice(0, 150));
-                setNewContent(prefill.content.slice(0, 1500));
-                setIsAnonymous(true);
-                if (!currentUser) {
-                  onOpenLoginModal?.();
-                } else {
-                  setIsAskModalOpen(true);
-                }
-              }}
-            />
-          </div>
-        ) : qaWorkspaceMode === 'hall' ? (
-          <div className="flex-1 overflow-y-auto pr-1 pb-6 space-y-4">
-            <SeasonalHallOfFame
-              users={users}
-              questions={questions}
-              solutions={solutions}
-              onOpenProfile={onOpenProfile}
-            />
-          </div>
-        ) : (
+        {/* Main Content Area: Questions Feed (Col 8) + Leaderboard (Col 4) */}
         <div className={`flex-1 ${isEmbedded ? '' : 'overflow-hidden'} grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0 pb-4`}>
           {/* Left: Questions Feed */}
           <div ref={listScrollRef} className={`lg:col-span-8 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-2.5 pb-6`}>
-          {/* KHU "CẤP CỨU TRƯỚC GIỜ THI" (Top Bounty Row — Neo-Brutalism #3 + Sci-Fi Heat Bar #6 + Squishy #8) */}
-          {questions.length > 0 && (() => {
-            const topUrgentQuestion =
-              questions.find((item) => !item.isSolved) || questions[0];
-            const urgentStuckCount = 24 + (stuckCounts[topUrgentQuestion.id] || 0);
-            const urgentBounty = (topUrgentQuestion.bountyCoin || 20) + (stuckCounts[topUrgentQuestion.id] || 0) * 5;
-            const heatPercent = Math.min(100, Math.round((urgentStuckCount / 40) * 100));
-            return (
-              <div
-                onClick={() => handleOpenQuestionDetail(topUrgentQuestion)}
-                className="ff-2027-brutal-bounty p-4 space-y-2.5 cursor-pointer mb-3"
-              >
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-2.5 py-0.5 rounded bg-[#ff6b2b] text-white text-[11px] font-mono font-extrabold">
-                      🚨 CẤP CỨU TRƯỚC GIỜ THI
-                    </span>
-                    <span className="ff-2027-raw-code">
-                      ID:#{topUrgentQuestion.id.slice(-5).toUpperCase()}
-                    </span>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded bg-[#f59e0b]/20 border border-[#f59e0b]/50 text-[#f59e0b] text-xs font-mono font-extrabold tabular-nums">
-                    Thưởng +{urgentBounty} Coin
-                  </span>
-                </div>
-
-                <h3 className="text-sm sm:text-base font-extrabold text-[#f1f5f9] line-clamp-2">
-                  {topUrgentQuestion.title}
-                </h3>
-
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-[11px] font-mono text-[#94a3b8] tabular-nums">
-                    <span>Nhiệt độ cầu cứu: {urgentStuckCount} học sinh đang bí câu này</span>
-                    <span className="text-[#ff6b2b] font-bold">{heatPercent}%</span>
-                  </div>
-                  <div className="ff-2027-heat-bar">
-                    <div
-                      className="ff-2027-heat-bar__fill"
-                      style={{ transform: `scaleX(${heatPercent / 100})` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={(e) => handleBumpQuestionStuck(topUrgentQuestion.id, e)}
-                    className="ff-2027-squishy-cta px-3 py-1.5 rounded-lg text-xs inline-flex items-center gap-1.5 cursor-pointer tabular-nums"
-                  >
-                    <span>🔥 Em cũng bí câu này (+1) · {urgentStuckCount}</span>
-                  </button>
-                  <span className="text-xs font-mono text-[#10b981] font-bold">
-                    ✓ Thầy/Cô đã xác nhận cách giải (+5 Bounty/lượt)
-                  </span>
-                </div>
-              </div>
-            );
-          })()}
           {!isSynced && filteredQuestions.length === 0 ? (
             <div className="rounded-2xl bg-[#0e1522]/90 border border-white/[0.08] overflow-hidden">
               <CommentSkeletonList rows={4} />
@@ -1767,9 +1615,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             ) : (
               <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-[#9a978e] ff-bento-cell space-y-2">
                 <HelpCircle className="w-8 h-8 text-[#f2cc8f] mb-1" />
-                <p className="text-sm font-bold text-[#f4f1de]">
-                  Chưa có ai hỏi câu này cả. Mở bát hỏi trước đi, mọi người vào cứu liền!
-                </p>
+                <p className="text-sm font-bold text-[#f4f1de]">Chưa có câu hỏi nào</p>
                 <button
                   type="button"
                   onClick={() => {
@@ -1779,10 +1625,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       setIsAskModalOpen(true);
                     }
                   }}
-                  className="ff-2027-squishy-cta mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition-colors cursor-pointer"
+                  className="ff-tactile-btn mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border border-[#f4f1de] text-xs font-extrabold transition-colors cursor-pointer"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
-                  <span>+ Hỏi bài ẩn danh (Miễn phí)</span>
+                  <span>Đặt câu hỏi đầu tiên</span>
                 </button>
               </div>
             )
@@ -2069,15 +1915,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           <span className="text-xs text-[#9a978e] font-mono">· {q.createdAt}</span>
                         </div>
 
-                        <div className="flex items-center gap-2 text-xs font-mono text-[#d8d5ce] shrink-0 flex-wrap">
-                          <button
-                            type="button"
-                            onClick={(e) => handleBumpQuestionStuck(q.id, e)}
-                            className="ff-2027-squishy-cta px-2.5 py-1 rounded-md text-[11px] font-mono inline-flex items-center gap-1 cursor-pointer tabular-nums"
-                            title="Em cũng bí câu này (+5 điểm thưởng)"
-                          >
-                            <span>🔥 Em cũng bí câu này (+{1 + (stuckCounts[q.id] || 0)})</span>
-                          </button>
+                        <div className="flex items-center gap-3 text-xs font-mono text-[#d8d5ce] shrink-0">
                           <span className="inline-flex items-center gap-1" title="Lượt xem">
                             <Eye className="w-3.5 h-3.5 text-[#9a978e]" />
                             <span>{q.views}</span>
@@ -2091,10 +1929,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
                       {/* Đáp án chuẩn tóm tắt (Style 9: Holographic Iridescent Verified Banner) */}
                       {bestSol && (
-                        <div className="ff-2027-holo-card mt-3 px-3.5 py-2 rounded-[6px] flex items-center justify-between gap-2 text-xs text-[#f4f1de]">
+                        <div className="ff-holo-card mt-3 px-3.5 py-2 rounded-[6px] flex items-center justify-between gap-2 text-xs text-[#f4f1de]">
                           <div className="flex items-center gap-2 min-w-0">
-                            <Award className="w-4 h-4 text-[#10b981] shrink-0" />
-                            <span className="font-bold text-[#10b981] shrink-0">✓ Thầy/Cô đã xác nhận cách giải:</span>
+                            <Award className="w-4 h-4 text-[#81b29a] shrink-0" />
+                            <span className="font-bold text-[#d8f3dc] shrink-0">Đáp án chuẩn:</span>
                             <span className="truncate text-[#f4f1de]">{bestSol.content}</span>
                           </div>
                         </div>
@@ -2134,7 +1972,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             />
           </div>
         </div>
-        )}
       </div>
 
       {/* Modal: Đặt Câu Hỏi Học Thuật Mới — Portaled Full-bleed Studio Modal */}
@@ -2516,7 +2353,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         onFocus={() => setIsAskContentFocused(true)}
                         onBlur={() => setIsAskContentFocused(false)}
                         onChange={e => setNewContent(e.target.value)}
-                        placeholder="Chụp ảnh đề bài hoặc dán (Ctrl+V) chỗ bạn đang kẹt vào đây..."
+                        placeholder="Ghi rõ đề bài, dữ kiện đã cho và bước biến đổi đang vướng mắc..."
                         className="w-full min-h-[152px] bg-transparent text-[15px] text-[#f4f1de] placeholder-[#84817a] focus:outline-none resize-y leading-[1.7] ask2027-scrollbar"
                       />
 
@@ -3305,9 +3142,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                   LỜI GIẢI #{solIdx + 1}
                                 </span>
                                 {sol.isBest && (
-                                  <span className="ff-2027-holo-pill inline-flex items-center gap-1.5">
-                                    <Award className="w-3.5 h-3.5 shrink-0" />
-                                    <span>✓ Thầy/Cô đã xác nhận cách giải (+{bestBonusCoin} Coin)</span>
+                                  <span className="px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-400/45 text-emerald-200 text-xs font-extrabold inline-flex items-center gap-1.5">
+                                    <Award className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                                    <span>Đáp án chuẩn (+{bestBonusCoin} Coin)</span>
                                   </span>
                                 )}
                                 {sol.status === 'review' && (
@@ -3322,32 +3159,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               </div>
                             </div>
 
-                            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-2.5">
-                              <div className="flex items-center justify-between gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setSpoilerRevealedMap((prev) => ({
-                                      ...prev,
-                                      [sol.id]: prev[sol.id] === false ? true : false,
-                                    }))
-                                  }
-                                  className="px-2.5 py-1 rounded-md bg-[#81b29a]/15 border border-[#81b29a]/40 text-[11px] font-mono font-bold text-[#81b29a] cursor-pointer"
-                                >
-                                  {spoilerRevealedMap[sol.id] === false
-                                    ? '💡 Bấm để mở Gợi ý Bước 1 & Xem lời giải'
-                                    : '🎯 Đang hiện đầy đủ lời giải (Bấm để thu gọn Spoiler Hint)'}
-                                </button>
-                              </div>
-                              {spoilerRevealedMap[sol.id] === false ? (
-                                <p className="text-xs sm:text-sm text-[#f4f1de]/85 italic">
-                                  Gợi ý Bước 1: {sol.content.slice(0, 110)}... (Bấm nút trên để mở toàn bộ lời giải)
-                                </p>
-                              ) : (
-                                <p className="text-sm sm:text-[15px] text-slate-100 leading-[1.78] whitespace-pre-line">
-                                  {sol.content}
-                                </p>
-                              )}
+                            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+                              <p className="text-sm sm:text-[15px] text-slate-100 leading-[1.78] whitespace-pre-line">
+                                {sol.content}
+                              </p>
                             </div>
 
                             {sol.imageUrl && (
@@ -3426,11 +3241,11 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                 {canConfirmBest && !sol.isBest && (
                                   <button
                                     onClick={() => onMarkBestSolution(selectedQuestion.id, sol.id)}
-                                    className="ff-tactile-btn px-3.5 py-1.5 rounded-lg bg-[#10b981]/22 hover:bg-[#10b981]/35 text-[#d8f3dc] font-bold text-xs border-[1.5px] border-[#10b981]/55 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                                    className="ff-tactile-btn px-3.5 py-1.5 rounded-lg bg-[#81b29a]/22 hover:bg-[#81b29a]/35 text-[#d8f3dc] font-bold text-xs border-[1.5px] border-[#81b29a]/55 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                                     title={`Chọn làm đáp án chuẩn (+${bestBonusCoin} Coin)`}
                                   >
-                                    <Check className="w-3.5 h-3.5 text-[#10b981]" />
-                                    <span>✓ Chuẩn kiến thức (+{bestBonusCoin} Coin)</span>
+                                    <Check className="w-3.5 h-3.5 text-[#81b29a]" />
+                                    <span>Chọn đáp án chuẩn (+{bestBonusCoin} Coin)</span>
                                   </button>
                                 )}
                               </div>
@@ -3499,57 +3314,14 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         </div>
                       )}
 
-                      {/* Công tắc bật/tắt Chế độ Gợi ý từng bước (Spoiler Hint) */}
-                      <div className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-[#090c10] border border-dashed border-[#334155]">
-                        <button
-                          type="button"
-                          onClick={() => setIsSpoilerHintMode((v) => !v)}
-                          className={`px-3 py-1 rounded-md text-xs font-mono font-bold cursor-pointer transition ${
-                            isSpoilerHintMode
-                              ? 'bg-[#81b29a] text-[#090c10]'
-                              : 'bg-[#171e2b] text-[#94a3b8] hover:text-white'
-                          }`}
-                        >
-                          {isSpoilerHintMode
-                            ? '✓ Đang bật Chế độ Gợi ý từng bước (Spoiler Hint)'
-                            : '💡 Bật Chế độ Gợi ý từng bước (Spoiler Hint)'}
-                        </button>
-                        {isSpoilerHintMode && (
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setSolutionText(
-                                  (prev) => `${prev}\n[💡 Bấm để mở Gợi ý Bước 1]: `,
-                                )
-                              }
-                              className="px-2 py-1 rounded bg-[#171e2b] border border-[#81b29a]/40 text-[11px] font-mono text-[#81b29a] cursor-pointer"
-                            >
-                              + 💡 Bấm để mở Gợi ý Bước 1
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setSolutionText(
-                                  (prev) => `${prev}\n[🎯 Xem đáp án cuối]: `,
-                                )
-                              }
-                              className="px-2 py-1 rounded bg-[#171e2b] border border-[#10b981]/40 text-[11px] font-mono text-[#10b981] cursor-pointer"
-                            >
-                              + 🎯 Xem đáp án cuối
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
                       <textarea
                         id="field-2"
                         rows={6}
                         maxLength={1500}
                         value={solutionText}
                         onChange={e => setSolutionText(e.target.value)}
-                        placeholder="Chụp ảnh đề bài hoặc dán (Ctrl+V) chỗ bạn đang kẹt vào đây..."
-                        className="w-full min-h-[150px] bg-[#0b0d12] border-[1.5px] border-dashed border-[#334155] rounded-xl px-4 py-3.5 text-sm sm:text-[15px] text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f] resize-y leading-relaxed"
+                        placeholder="Trình bày rõ các bước biến đổi, công thức hoặc lập luận giải bài của bạn..."
+                        className="w-full min-h-[150px] bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/18 rounded-xl px-4 py-3.5 text-sm sm:text-[15px] text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f] resize-y leading-relaxed"
                       />
 
                       <MathSymbolsBar onInsert={sym => setSolutionText(prev => prev + sym)} />
