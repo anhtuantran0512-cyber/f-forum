@@ -1,6 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useMemo, useState } from 'react';
-import { X, Award, Trophy, Sparkles, Target, CheckCircle2, Lock, TrendingUp } from 'lucide-react';
+import { X, Award, Trophy, Target, CheckCircle2, Lock } from 'lucide-react';
 import { TIER_CONFIGS, getTierForLevel, xpThresholdForLevel } from '../utils/tier';
 import { TITLE_CONFIGS } from '../utils/titles';
 import { TierSvg } from './Badges10Tier';
@@ -234,10 +234,7 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
                           )}
                         </div>
                         <p className="text-[10px] text-neutral-400 font-mono">
-                          {t.minPoints.toLocaleString('vi-VN')} điểm{t.minMedals ? ` · ${t.minMedals} 🏅` : ''} • Lv.{t.minLevel}–{t.maxLevel} • từ {startThreshold.toLocaleString('vi-VN')} XP
-                        </p>
-                        <p className="text-[10px] text-neutral-300/80 italic truncate">
-                          {t.description}
+                          {t.minPoints.toLocaleString('vi-VN')} điểm · Lv.{t.minLevel}–{t.maxLevel} · {startThreshold.toLocaleString('vi-VN')} XP
                         </p>
                       </div>
                     </div>
@@ -262,14 +259,14 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
 
           {tab === 'titles' && (
             <>
-              <p className="signature-section-label">30 danh hiệu · mỗi 5 cấp mở một dấu mốc</p>
+              <p className="signature-section-label">Danh hiệu cấp độ</p>
               <div className="signature-title-grid">
-                {TITLE_CONFIGS.map((title) => <div key={title.id} className={`signature-title ${level >= title.minLevel ? 'is-earned' : 'is-locked'}`} title={`${title.name} · ${title.iconDescription} · cấp ${title.minLevel}`}>
+                {TITLE_CONFIGS.map((title) => <div key={title.id} className={`signature-title ${level >= title.minLevel ? 'is-earned' : 'is-locked'}`} title={`${title.name} · Lv.${title.minLevel}`}>
                   <SignatureEmblem icon={title.icon} rarity={title.rarity} size={38} />
                   <span><strong>{title.name}</strong><small>Lv.{title.minLevel} · {title.rarity === 'common' ? 'Thường' : title.rarity === 'rare' ? 'Hiếm' : title.rarity === 'epic' ? 'Sử thi' : 'Huyền thoại'}</small></span>
                 </div>)}
               </div>
-              <p className="signature-section-label">Huy hiệu hoạt động</p>
+              <p className="signature-section-label">Huy hiệu</p>
               {badges.map((b) => (
                 <div
                   key={b.id}
@@ -290,8 +287,7 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                         )}
                       </div>
-                      <p className="text-[10.5px] text-neutral-300 leading-snug">{b.desc}</p>
-                      <p className="text-[10px] text-neutral-500 mt-0.5">Yêu cầu: {b.requirement}</p>
+                      <p className="text-[10px] text-neutral-400 mt-0.5">Yêu cầu: {b.requirement}</p>
 
                       {!b.earned && b.progress.target > 0 && (
                         <div className="mt-1.5">
@@ -320,14 +316,6 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
 
           {tab === 'requirements' && (
             <>
-              <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-2.5 flex items-start gap-2">
-                <Sparkles className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
-                <p className="text-[11px] text-amber-100 leading-snug">
-                  XP và Coin cộng song song (1 XP = 1 Coin). Cấp độ được tính từ tổng XP:{' '}
-                  <span className="font-mono font-bold">Lv.L = 140·(L−1) + 1.08·(L−1)² XP</span>.
-                </p>
-              </div>
-
               {REQUIREMENT_ROWS.map((r) => (
                 <div
                   key={r.action}
@@ -335,25 +323,12 @@ export const TierRankSheet: React.FC<TierRankSheetProps> = ({
                 >
                   <div className="min-w-0">
                     <p className="text-[11.5px] font-semibold text-white leading-tight">{r.action}</p>
-                    <p className="text-[10px] text-neutral-500">{r.note}</p>
                   </div>
                   <span className="text-[10.5px] font-mono font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-400/25 rounded-full px-2 py-0.5 shrink-0">
                     {r.reward}
                   </span>
                 </div>
               ))}
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-2.5">
-                <p className="text-[11px] font-bold text-white flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-[#81b29a]" />
-                  Mẹo lên hạng nhanh
-                </p>
-                <ul className="mt-1.5 space-y-1 text-[10.5px] text-neutral-300 leading-snug list-disc pl-4">
-                  <li>Mỗi ngày: điểm danh (+25) và một phiên tập trung 25′ (+25 XP).</li>
-                  <li>Trả lời câu hỏi đang mở — được xác nhận Đáp án chuẩn là mốc cộng lớn nhất.</li>
-                  <li>Giữ chuỗi ngày để mở hộp quà mốc 5 · 10 · 15 (30–200 Coin).</li>
-                </ul>
-              </div>
             </>
           )}
         </div>

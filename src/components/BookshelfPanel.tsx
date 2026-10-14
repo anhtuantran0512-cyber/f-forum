@@ -98,7 +98,7 @@ interface BookshelfPanelProps {
   canEdit: boolean;
 }
 
-export const BookshelfPanel: React.FC<BookshelfPanelProps> = ({ ownerKey, ownerName, canEdit }) => {
+export const BookshelfPanel: React.FC<BookshelfPanelProps> = ({ ownerKey, canEdit }) => {
   const [books, setBooks] = useState<ShelfBook[]>(() => readShelf(ownerKey));
   const [isAdding, setIsAdding] = useState(false);
   const [title, setTitle] = useState('');
@@ -189,14 +189,9 @@ export const BookshelfPanel: React.FC<BookshelfPanelProps> = ({ ownerKey, ownerN
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-white font-mono uppercase">Kệ sách</span>
               <span className="text-[10px] font-mono text-amber-300 bg-amber-500/10 border border-amber-400/25 rounded-full px-1.5 py-px">
-                {stats.total} cuốn
+                {stats.total}
               </span>
             </div>
-            <p className="text-[10.5px] text-neutral-400 leading-tight truncate">
-              {canEdit
-                ? 'Ghi lại những cuốn bạn đang đọc để nhớ và quay lại.'
-                : `Kệ sách của ${ownerName || 'thành viên này'}.`}
-            </p>
           </div>
         </div>
 
@@ -207,10 +202,10 @@ export const BookshelfPanel: React.FC<BookshelfPanelProps> = ({ ownerKey, ownerN
               setIsAdding(true);
               setError('');
             }}
-            className="pc-12-btn px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-amber-200 inline-flex items-center gap-1 cursor-pointer"
+            className="pc-12-btn px-2.5 py-1 rounded-xl text-[11px] font-bold text-amber-200 inline-flex items-center gap-1 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            Thêm sách
+            Thêm
           </button>
         )}
         {canEdit && isAdding && (
@@ -316,10 +311,10 @@ export const BookshelfPanel: React.FC<BookshelfPanelProps> = ({ ownerKey, ownerN
               className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-300 text-neutral-950 text-[11.5px] font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-md hover:brightness-105 transition-all"
             >
               <Check className="w-3.5 h-3.5" />
-              Lưu vào kệ
+              Lưu
             </button>
             <span className="text-[10px] text-neutral-500">
-              {stats.total}/{MAX_BOOKS} cuốn
+              {stats.total}/{MAX_BOOKS}
             </span>
           </div>
         </div>
@@ -327,14 +322,9 @@ export const BookshelfPanel: React.FC<BookshelfPanelProps> = ({ ownerKey, ownerN
 
       {/* Danh sách sách */}
       {books.length === 0 ? (
-        <div className="pc-12-well py-5 px-3 text-center">
-          <Bookmark className="w-5 h-5 text-white/25 mx-auto" />
-          <p className="text-[11.5px] text-neutral-300 font-medium mt-1.5">Kệ còn trống</p>
-          <p className="text-[10.5px] text-neutral-500 mt-0.5">
-            {canEdit
-              ? 'Thêm cuốn sách đầu tiên bạn đang đọc — chỉ mất vài giây.'
-              : 'Thành viên này chưa thêm cuốn sách nào.'}
-          </p>
+        <div className="pc-12-well py-4 px-3 text-center">
+          <Bookmark className="w-4 h-4 text-white/25 mx-auto" />
+          <p className="text-[11px] text-neutral-400 mt-1">Trống</p>
         </div>
       ) : (
         <ul className="space-y-2 max-h-[248px] overflow-y-auto pr-1 no-scrollbar">

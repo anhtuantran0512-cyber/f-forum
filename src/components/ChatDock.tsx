@@ -53,13 +53,12 @@ const CHANNELS: {
   id: ChatChannelId;
   name: string;
   shortName: string;
-  desc: string;
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
-  { id: 'hallway', name: 'Kết bạn bốn phương', shortName: 'Kết bạn', desc: 'Giao lưu & kết nối bạn học toàn trường', icon: Users },
-  { id: 'quick-qa', name: 'Hỏi bài nhanh', shortName: 'Hỏi bài', desc: 'Trao đổi nhanh công thức & bài tập ngắn', icon: HelpCircle },
-  { id: 'confessions', name: 'Góc tâm sự', shortName: 'Tâm sự', desc: 'Lắng nghe & chia sẻ chuyện học đường', icon: Heart },
-  { id: 'club-hub', name: 'Hội quán CLB', shortName: 'CLB', desc: 'Điều phối hoạt động giữa các CLB', icon: Shield },
+  { id: 'hallway', name: 'Kết bạn', shortName: 'Kết bạn', icon: Users },
+  { id: 'quick-qa', name: 'Hỏi bài', shortName: 'Hỏi bài', icon: HelpCircle },
+  { id: 'confessions', name: 'Tâm sự', shortName: 'Tâm sự', icon: Heart },
+  { id: 'club-hub', name: 'CLB', shortName: 'CLB', icon: Shield },
 ];
 
 export const ChatDock: React.FC<ChatDockProps> = ({
@@ -412,15 +411,12 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                 </div>
                 <div>
                   <h3 className="font-bold text-xs sm:text-sm text-[#f8f7f4] flex items-center gap-2">
-                    <span>Phòng Chat Nhanh</span>
+                    <span>Chat</span>
                     <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-[#81b29a]/15 text-[#81b29a] text-[9.5px] font-mono font-semibold border border-[#81b29a]/35">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#81b29a]" />
                       {dynamicOnlineCount} online
                     </span>
                   </h3>
-                  <p className="text-[11px] text-[#a39f96] truncate">
-                    {currentChannelObj.desc}
-                  </p>
                 </div>
               </div>
 
@@ -490,10 +486,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2">
                 <MessageSquareDashed className="w-8 h-8 text-[#81b29a]/60" />
                 <p className="text-xs font-medium text-[#dad7d0]">
-                  Chưa có tin nhắn trong #{currentChannelObj.name}
-                </p>
-                <p className="text-[11px] text-[#a39f96]">
-                  Hãy gửi lời chào đầu tiên tới bạn học nhé!
+                  Chưa có tin nhắn
                 </p>
               </div>
             ) : (

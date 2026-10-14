@@ -302,7 +302,6 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
             <div className="ff-daily-heading">
               <span className="ff-daily-mark" aria-hidden="true">F</span>
               <div>
-                <span className="ff-daily-heading__eyebrow">F-FORUM / HOẠT ĐỘNG</span>
                 <h2 className="ff-daily-heading__title">Nhịp học mỗi ngày</h2>
               </div>
             </div>
@@ -355,10 +354,10 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
             <div className="flex items-center justify-between text-xs text-neutral-300">
               <span className="flex items-center gap-1.5 font-semibold text-white">
                 <Calendar className="w-4 h-4 text-amber-400" />
-                Chu kỳ điểm danh 15 ngày
+                Điểm danh 15 ngày
               </span>
               <span className="text-[11px] text-amber-300 font-mono">
-                Chuỗi streak: {streak} ngày 🔥
+                {streak} ngày
               </span>
             </div>
 
@@ -410,12 +409,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
 
             <StreakCountdown streak={streak} claimedToday={hasClaimedToday} />
 
-            <div className="pt-2 flex items-center justify-between">
-              <span className="text-xs text-neutral-400">
-                {hasClaimedToday
-                  ? 'Hôm nay bạn đã điểm danh thành công!'
-                  : 'Bấm điểm danh ngay để nhận +25 Coin.'}
-              </span>
+            <div className="pt-2 flex items-center justify-end">
               <button
                 type="button"
                 onClick={handleClaimAttendance}
@@ -423,7 +417,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                 className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-neutral-950 font-bold text-xs flex items-center gap-1.5 shadow-lg cursor-pointer"
               >
                 <Flame className="w-4 h-4 text-neutral-950" />
-                <span>{isClaimingAttendance ? 'Đang ghi nhận...' : hasClaimedToday ? 'Đã điểm danh' : 'Điểm danh ngay'}</span>
+                <span>{isClaimingAttendance ? '…' : hasClaimedToday ? 'Đã điểm danh' : 'Điểm danh (+25)'}</span>
               </button>
             </div>
           </div>
@@ -571,13 +565,10 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
               !quizStarted ? (
                 <section className="ff-daily-quiz-intro ff-keep-dark" aria-label="Giới thiệu câu hỏi vui">
                   <span className="ff-daily-quiz-intro__orbit" aria-hidden="true"><Sparkles size={27} /></span>
-                  <span className="ff-daily-quiz-intro__eyebrow">THỬ THÁCH MỖI NGÀY · 15 GIÂY</span>
                   <h3>Câu hỏi vui mỗi ngày</h3>
-                  <p>Kiểm tra mức độ thông hiểu của bạn.</p>
                   <button type="button" className="ff-daily-quiz-intro__start" onClick={startQuiz}>
                     <span>Sẵn sàng</span><span aria-hidden="true">↗</span>
                   </button>
-                  <span className="ff-daily-quiz-intro__caption">Đồng hồ chỉ chạy sau khi bạn bấm Sẵn sàng.</span>
                 </section>
               ) : (
               <div className="ff-daily-quiz-question ff-keep-dark" key={rewardDate}>
@@ -616,7 +607,6 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
               </div>
               )
             ) : (
-              /* Kết quả trong ngày (đã bỏ chế độ ôn tập/xem lại dư thừa) */
               <div className="space-y-3">
                 <div
                   className="ff-daily-quiz-result ff-keep-dark"
@@ -626,28 +616,13 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                   <span className="ff-daily-quiz-result__seal" aria-hidden="true">
                     {quizResult?.correct ? <CheckCircle2 size={21} /> : <Sparkles size={21} />}
                   </span>
-                  <p className="ff-daily-quiz-result__eyebrow">Bạn đã trả lời câu hỏi hôm nay</p>
                   <p className="ff-daily-quiz-result__title">
                     {quizResult?.correct
                       ? `Trả lời đúng +${quizResult.reward} Coin`
                       : quizResult
-                        ? 'Rất tiếc chưa chính xác. Hẹn bạn vào ngày mai nhé!'
-                        : 'Hôm nay bạn đã hoàn thành câu hỏi vui.'}
+                        ? 'Chưa chính xác'
+                        : 'Đã hoàn thành'}
                   </p>
-                  <p className="ff-daily-quiz-result__copy">
-                    Câu hỏi vui làm mới mỗi ngày — không cần ôn lại, cứ quay lại vào ngày mai là có câu mới.
-                  </p>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 space-y-1.5 text-xs text-neutral-300">
-                  <p className="font-semibold text-white flex items-center gap-1.5">
-                    <HelpCircle className="w-4 h-4 text-amber-400" />
-                    Luật chơi:
-                  </p>
-                  <p className="text-[11px] text-neutral-400">🟢 Mỗi ngày trả lời câu hỏi vui 1 lần.</p>
-                  <p className="text-[11px] text-neutral-400">🟢 Bạn có 15 giây để đọc và trả lời.</p>
-                  <p className="text-[11px] text-neutral-400">🟢 Trả lời đúng nhận ngẫu nhiên 5–10 Coin.</p>
-                  <p className="text-[11px] text-neutral-400">🟢 Trả lời sai không bị mất gì.</p>
                 </div>
               </div>
             )}

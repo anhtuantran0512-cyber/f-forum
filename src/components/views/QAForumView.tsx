@@ -556,19 +556,19 @@ const SUBJECT_2027_META: Record<
   SubjectTag,
   { emoji: string; title: string; color: string; groupLabel: string }
 > = {
-  toan: { emoji: '', title: 'Toán Học & Giải Tích', color: '#81b29a', groupLabel: 'Học thuật' },
-  ly: { emoji: '', title: 'Vật Lý & Cơ Điện Tử', color: '#81b29a', groupLabel: 'Học thuật' },
-  hoa: { emoji: '', title: 'Hóa Học Phân Tử', color: '#81b29a', groupLabel: 'Học thuật' },
-  sinh: { emoji: '', title: 'Sinh Học & Di Truyền', color: '#81b29a', groupLabel: 'Học thuật' },
-  anh: { emoji: '', title: 'Ngoại Ngữ & IELTS', color: '#f2cc8f', groupLabel: 'Học thuật' },
-  tin: { emoji: '', title: 'Tin Học & Thuật Toán', color: '#a78bfa', groupLabel: 'Học thuật' },
-  van: { emoji: '', title: 'Ngữ Văn & Nghị Luận', color: '#f2cc8f', groupLabel: 'Học thuật' },
-  su: { emoji: '', title: 'Lịch Sử & Địa Lý', color: '#f2cc8f', groupLabel: 'Học thuật' },
-  hotro: { emoji: '', title: 'Hỗ Trợ Học Vụ & CLB', color: '#e07a5f', groupLabel: 'Đời sống' },
-  kinhnghiem: { emoji: '', title: 'Kinh Nghiệm Ôn Thi', color: '#e07a5f', groupLabel: 'Đời sống' },
-  share: { emoji: '', title: 'Chia Sẻ Tài Liệu & Đề', color: '#a78bfa', groupLabel: 'Đời sống' },
-  tamsu: { emoji: '', title: 'Tâm Sự Tuổi Học Trò', color: '#e07a5f', groupLabel: 'Đời sống' },
-  tamly: { emoji: '', title: 'Tâm Lý & Cân Bằng', color: '#e07a5f', groupLabel: 'Đời sống' },
+  toan: { emoji: '', title: 'Toán học', color: '#81b29a', groupLabel: 'Học thuật' },
+  ly: { emoji: '', title: 'Vật lý', color: '#81b29a', groupLabel: 'Học thuật' },
+  hoa: { emoji: '', title: 'Hóa học', color: '#81b29a', groupLabel: 'Học thuật' },
+  sinh: { emoji: '', title: 'Sinh học', color: '#81b29a', groupLabel: 'Học thuật' },
+  anh: { emoji: '', title: 'Tiếng Anh', color: '#f2cc8f', groupLabel: 'Học thuật' },
+  tin: { emoji: '', title: 'Tin học', color: '#a78bfa', groupLabel: 'Học thuật' },
+  van: { emoji: '', title: 'Ngữ văn', color: '#f2cc8f', groupLabel: 'Học thuật' },
+  su: { emoji: '', title: 'Sử - Địa', color: '#f2cc8f', groupLabel: 'Học thuật' },
+  hotro: { emoji: '', title: 'Hỗ trợ', color: '#e07a5f', groupLabel: 'Đời sống' },
+  kinhnghiem: { emoji: '', title: 'Ôn thi', color: '#e07a5f', groupLabel: 'Đời sống' },
+  share: { emoji: '', title: 'Tài liệu', color: '#a78bfa', groupLabel: 'Đời sống' },
+  tamsu: { emoji: '', title: 'Tâm sự', color: '#e07a5f', groupLabel: 'Đời sống' },
+  tamly: { emoji: '', title: 'Tâm lý', color: '#e07a5f', groupLabel: 'Đời sống' },
 };
 
 /* Bản đồ màu sắc 4 nhóm hài hòa theo Color Theory 60-30-10 (Sage · Sand · Terracotta · Iris) */
@@ -1382,28 +1382,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       {/* Main Container */}
       <div className={`relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col ${isEmbedded ? '' : 'overflow-hidden'}`}>
         
-        {/* Top Neo-Brutalist Academic Dispatch Header: Exposed Grid Telemetry + Typography-Led + Tactile Controls */}
+        {/* Top Neo-Brutalist Academic Dispatch Header */}
         <div className="ff-qa-dispatch-board overflow-hidden mb-4 shrink-0 flex flex-col">
-          {/* Style 7: Raw Aesthetic (Monospace + Exposed Grid Telemetry Strip) */}
-          <div className="ff-qa-telemetry-strip">
-            <div className="ff-qa-telemetry-cell">
-              <span>ZONE //</span>
-              <b>01_ACADEMIC_QA</b>
-            </div>
-            <div className="ff-qa-telemetry-cell">
-              <span>DISPLAY_NODES //</span>
-              <b>{String(filteredQuestions.length).padStart(2, '0')} CÂU</b>
-            </div>
-            <div className="ff-qa-telemetry-cell">
-              <span>SOLVED_STATE //</span>
-              <b>{questions.filter(q => q.isSolved).length}/{questions.length} ĐÃ GIẢI</b>
-            </div>
-            <div className="ff-qa-telemetry-cell">
-              <span>BOUNTY_POOL //</span>
-              <b>+{questions.reduce((sum, item) => sum + (item.bountyCoin || 20), 0)} COIN</b>
-            </div>
-          </div>
-
           <div className="p-4 sm:p-5 flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
@@ -1413,10 +1393,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               <div className="min-w-0">
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <h1 className="ff-typo-poster !text-xl sm:!text-2xl text-[#f4f1de]">
-                    Hỏi Đáp Bài Tập
+                    Hỏi đáp
                   </h1>
                   <span className="ff-brutal-index">
-                    {questions.length} câu · {questions.filter(q => q.isSolved).length} đã giải
+                    {questions.length} câu · {questions.filter(q => q.isSolved).length} giải
                   </span>
                 </div>
                 <svg className="w-28 h-2 mt-0.5 ff-organic-squiggle" viewBox="0 0 140 8" aria-hidden="true">
@@ -1493,7 +1473,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             {isActive ? <Check size={12} /> : <span className="w-3" />}
                             {opt.label}
                           </span>
-                          <span className="block text-[10px] text-[#9a978e] pl-5 mt-0.5">{opt.hint}</span>
                         </button>
                       );
                     })}
@@ -1606,17 +1585,14 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             showSavedOnly && mySavedIds.length === 0 ? (
               <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-slate-400 rounded-2xl bg-[#0e1522]/90 border border-white/[0.08] space-y-2">
                 <Bookmark className="w-8 h-8 text-amber-400/70 mb-1" />
-                <p className="text-sm font-semibold text-white">Chưa lưu câu hỏi nào</p>
-                <p className="text-xs text-slate-400 max-w-sm">
-                  Bấm biểu tượng đánh dấu trên thẻ câu hỏi để lưu đọc lại.
-                </p>
+                <p className="text-sm font-semibold text-white">Chưa lưu câu hỏi</p>
                 <button
                   type="button"
                   onClick={() => setShowSavedOnly(false)}
                   className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 border border-white/10 text-xs font-semibold transition-colors cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
-                  <span>Xem tất cả câu hỏi</span>
+                  <span>Xem tất cả</span>
                 </button>
               </div>
             ) : showSavedOnly || searchTerm || selectedTag !== 'all' ? (

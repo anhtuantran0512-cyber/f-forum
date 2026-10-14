@@ -51,55 +51,41 @@ interface ChatViewProps {
 const CHANNELS: {
   id: ChatChannelId;
   name: string;
-  desc: string;
-  topic: string;
   prompts: string[];
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
   {
     id: 'hallway',
-    name: 'Kết bạn bốn phương',
-    desc: 'Giao lưu & kết nối bạn học toàn trường',
-    topic: 'Làm quen, chia sẻ tài liệu học tập và kết nối bạn học các khối lớp',
+    name: 'Kết bạn',
     prompts: [
       'Chào mọi người, mình đang tìm bạn cùng ôn thi học kỳ!',
       'Có bạn nào đang học nhóm môn Toán tối nay không?',
-      'Mọi người chia sẻ kinh nghiệm phân bổ thời gian tự học với nhé!',
     ],
     icon: Users,
   },
   {
     id: 'quick-qa',
-    name: 'Hỏi bài nhanh',
-    desc: 'Trao đổi nhanh công thức & bài tập ngắn',
-    topic: 'Hỏi nhanh đáp gọn các bước biến đổi công thức, định lý và bài tập trên lớp',
+    name: 'Hỏi bài',
     prompts: [
       'Nhờ mọi người gợi ý hướng biến đổi bài toán này với ạ:',
       'Cho mình hỏi công thức tính nhanh phần này:',
-      'Mình đang vướng ở bước suy ra kết quả, ai giải thích giúp mình nhé!',
     ],
     icon: HelpCircle,
   },
   {
     id: 'confessions',
-    name: 'Góc tâm sự',
-    desc: 'Lắng nghe & chia sẻ chuyện học đường',
-    topic: 'Không gian văn minh để sẻ chia áp lực thi cử, động viên nhau tiến bộ',
+    name: 'Tâm sự',
     prompts: [
       'Hôm nay hoàn thành xong đề cương ôn tập, cảm thấy nhẹ nhõm hẳn!',
       'Chúc cả trường một tuần học tập thật tập trung và hiệu quả nhé.',
-      'Mọi người thường làm gì để giữ bình tĩnh trước phòng thi?',
     ],
     icon: Heart,
   },
   {
     id: 'club-hub',
-    name: 'Hội quán CLB',
-    desc: 'Điều phối hoạt động & sự kiện các CLB',
-    topic: 'Trao đổi lịch sinh hoạt, tuyển thành viên và phối hợp sự kiện giữa các CLB',
+    name: 'CLB',
     prompts: [
       'CLB mình tuần này có buổi sinh hoạt chuyên đề, mời các bạn tham gia!',
-      'Ban chủ nhiệm các CLB ơi, mình cùng thống nhất lịch sự kiện tháng này nhé.',
       'Mình muốn tìm hiểu thông tin đăng ký tham gia CLB học thuật.',
     ],
     icon: Shield,
@@ -526,21 +512,13 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 <div className="w-7 h-7 rounded-lg bg-[#81b29a]/15 border border-[#81b29a]/35 flex items-center justify-center">
                   <Hash className="w-3.5 h-3.5 text-[#81b29a]" />
                 </div>
-                <div>
-                  <h2 className="text-xs font-bold text-[#f8f7f4] tracking-wide uppercase">
-                    Phòng Thảo Luận
-                  </h2>
-                  <p className="text-[10px] font-mono text-[#a39f96]">
-                    4 chuyên kênh học tập
-                  </p>
-                </div>
+                <h2 className="text-xs font-bold text-[#f8f7f4] tracking-wide uppercase">
+                  Kênh
+                </h2>
               </div>
             </div>
 
             <div className="p-2.5 space-y-1 flex-1 overflow-y-auto no-scrollbar">
-              <div className="px-2 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-[#a39f96]">
-                Danh sách kênh
-              </div>
               {CHANNELS.map(ch => {
                 const Icon = ch.icon;
                 const isActive = activeChannel === ch.id;
@@ -590,9 +568,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-[#a39f96] truncate mt-0.5">
-                        {ch.desc}
-                      </p>
                     </div>
                   </button>
                 );
@@ -669,24 +644,18 @@ export const ChatView: React.FC<ChatViewProps> = ({
           {/* CỘT GIỮA: Luồng hội thoại & khung soạn tin nhắn */}
           <div className="ff-chat-main-pane">
             
-            {/* Thanh tiêu đề kênh + Tìm kiếm nhanh + Bật/tắt danh bạ */}
             <header className="h-14 px-4 sm:px-5 border-b border-[#f8f7f4]/10 bg-[#0d111a]/90 flex items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-8 h-8 rounded-lg bg-[#81b29a]/15 border border-[#81b29a]/35 flex items-center justify-center shrink-0">
                   <CurrentChannelIcon className="w-4 h-4 text-[#81b29a]" />
                 </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h1 className="font-bold text-sm sm:text-[15px] text-[#f8f7f4] truncate">
-                      #{currentChannelObj.name}
-                    </h1>
-                    <InfoTip label="Nội quy phòng chat" align="start">
-                      Tôn trọng bạn học và thầy cô — trao đổi văn minh, không spam hoặc dùng từ ngữ thiếu chuẩn mực.
-                    </InfoTip>
-                  </div>
-                  <p className="text-[11px] text-[#a39f96] truncate hidden sm:block">
-                    {currentChannelObj.topic}
-                  </p>
+                <div className="min-w-0 flex items-center gap-2">
+                  <h1 className="font-bold text-sm sm:text-[15px] text-[#f8f7f4] truncate">
+                    #{currentChannelObj.name}
+                  </h1>
+                  <InfoTip label="Nội quy phòng chat" align="start">
+                    Trao đổi văn minh, tôn trọng bạn học và thầy cô.
+                  </InfoTip>
                 </div>
               </div>
 
@@ -752,21 +721,13 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   <div className="space-y-1">
                     <h3 className="text-sm font-bold text-[#f8f7f4]">
                       {searchQuery
-                        ? 'Không tìm thấy tin nhắn phù hợp'
-                        : `Mở đầu cuộc trò chuyện tại #${currentChannelObj.name}`}
+                        ? 'Không có kết quả'
+                        : `Chưa có tin nhắn`}
                     </h3>
-                    <p className="text-xs text-[#a39f96] leading-relaxed">
-                      {searchQuery
-                        ? 'Hãy thử từ khóa khác hoặc xóa bộ lọc tìm kiếm.'
-                        : currentChannelObj.topic}
-                    </p>
                   </div>
 
                   {!searchQuery && currentUser && (
                     <div className="w-full space-y-1.5 pt-1">
-                      <span className="text-[10.5px] font-mono uppercase tracking-wider text-[#a39f96] block">
-                        Gợi ý mở lời nhanh:
-                      </span>
                       <div className="flex flex-col gap-1.5">
                         {currentChannelObj.prompts.map((promptText, pIdx) => (
                           <button
@@ -787,26 +748,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 </div>
               ) : (
                 <div className="space-y-0.5">
-                  {/* Banner chào mừng đầu kênh */}
-                  <div className="px-2 pb-4 mb-3 border-b border-[#f8f7f4]/08 flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-[#81b29a]/12 border border-[#81b29a]/30 flex items-center justify-center shrink-0">
-                        <CurrentChannelIcon className="w-4 h-4 text-[#81b29a]" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold text-[#f8f7f4]">
-                          Chào mừng tới #{currentChannelObj.name}
-                        </div>
-                        <div className="text-[11px] text-[#a39f96] truncate">
-                          {currentChannelObj.desc}
-                        </div>
-                      </div>
-                    </div>
-                    <span className="text-[10.5px] font-mono text-[#a39f96] px-2 py-0.5 rounded bg-[#151b28] border border-[#f8f7f4]/08">
-                      {currentMessages.length} tin nhắn
-                    </span>
-                  </div>
-
                   {renderedMessageItems}
                 </div>
               )}
@@ -1096,7 +1037,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-[#a39f96] truncate mt-0.5">{ch.desc}</p>
                     </div>
                   </button>
                 );

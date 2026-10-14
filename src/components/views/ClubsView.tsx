@@ -26,7 +26,6 @@ import type { Club, ClubPost, User, ClubCategory, ChatMessage } from '../../type
 import { DEFAULT_AVATAR, DEFAULT_CLUB_COVER, handleImageError } from '../../utils/mediaFallback';
 import { isMasterAdmin } from '../../config/admin';
 import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
-import { InfoTip } from '../ui/InfoTip';
 import './ClubsView.css';
 
 interface ClubsViewProps {
@@ -332,14 +331,11 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="ff-typo-poster !text-xl sm:!text-2xl text-[#f4f1de]">
-                    Câu Lạc Bộ
+                    Club
                   </h1>
                   <span className="ff-brutal-index">
-                    {approvedClubs.length} CLB hoạt động
+                    {approvedClubs.length} CLB
                   </span>
-                  <InfoTip label="Cách tính danh hiệu CLB xuất sắc" align="start">
-                    Danh hiệu CLB Xuất Sắc Nhất Tháng được tổng hợp tự động dựa trên tần suất đăng bài hoạt động và mức độ thảo luận thực tế của thành viên.
-                  </InfoTip>
                 </div>
                 <svg className="w-24 h-2 mt-0.5 ff-organic-squiggle" viewBox="0 0 120 8" aria-hidden="true">
                   <path d="M2 5 C24 1, 48 8, 72 4 S98 1, 118 5" />
@@ -356,7 +352,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   maxLength={100}
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  placeholder="Tìm tên CLB, sở thích..."
+                  placeholder="Tìm CLB..."
                   className="w-full pl-8 pr-4 py-2 rounded-lg text-xs bg-[#0b0d12]/85 border-[1.5px] border-[#f4f1de]/15 text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f]/60 transition-colors"
                 />
               </div>
@@ -374,7 +370,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   className="ff-tactile-btn px-4 py-2 rounded-lg text-xs font-extrabold bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border-[1.5px] border-[#f4f1de] transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
                 >
                   <PlusCircle className="w-4 h-4 text-[#0b0d12]" />
-                  <span>Đăng ký thành lập CLB</span>
+                  <span>Tạo CLB</span>
                 </button>
               )}
             </div>
@@ -385,25 +381,21 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
             {([
               {
                 cat: 'Công nghệ' as ClubCategory,
-                sub: 'Lập trình & AI',
                 color: '#81b29a',
                 doodle: 'M3 12 L9 6 L15 12 L21 6 M6 18 H18',
               },
               {
                 cat: 'Nghệ thuật' as ClubCategory,
-                sub: 'Âm nhạc & Sáng tạo',
                 color: '#e07a5f',
                 doodle: 'M4 16 C8 6, 16 6, 20 16 M8 13 C10 10, 14 10, 16 13',
               },
               {
                 cat: 'Thể thao' as ClubCategory,
-                sub: 'Vận động & Giải đấu',
                 color: '#f2cc8f',
                 doodle: 'M4 17 L10 9 L14 13 L20 5 M15 5 H20 V10',
               },
               {
                 cat: 'Học thuật' as ClubCategory,
-                sub: 'Nghiên cứu & Ôn luyện',
                 color: '#d8f3dc',
                 doodle: 'M4 7 H20 M4 12 H16 M4 17 H12',
               },
@@ -424,7 +416,6 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                         {count}
                       </span>
                     </div>
-                    <p className="text-[10.5px] text-[#9a978e] truncate mt-0.5">{realm.sub}</p>
                   </div>
                   <svg className="w-6 h-6 shrink-0 opacity-85" viewBox="0 0 24 24" fill="none" stroke={realm.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d={realm.doodle} />
@@ -530,7 +521,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="club-badge-accent ff-holo-badge inline-flex items-center gap-2 px-3 py-1 rounded-md text-[11px] font-bold text-[#f4f1de]">
                       <Trophy className="w-3.5 h-3.5 text-[#f2cc8f]" />
-                      CLB TIÊU BIỂU THÁNG
+                      Tiêu biểu
                     </div>
                     {(() => {
                       const SpotIcon = getCategoryIcon(spotlightClub.category);
@@ -622,7 +613,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   <Sparkles className="w-4 h-4 text-amber-400 absolute -top-1.5 -right-1.5" />
                 </div>
                 <h3 className="text-base font-bold text-white max-w-md">
-                  Chưa có CLB nào — bạn sẽ là người đầu tiên khởi tạo! 🚀
+                  Chưa có CLB.
                 </h3>
                 <button
                   type="button"
@@ -636,7 +627,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-bold text-xs hover:opacity-95 active:scale-95 transition-all cursor-pointer shadow-[0_0_20px_rgba(245,158,11,0.4)]"
                 >
                   <PlusCircle className="w-4 h-4" />
-                  <span>Đăng ký thành lập CLB</span>
+                  <span>Tạo CLB</span>
                 </button>
               </div>
             ) : null}
