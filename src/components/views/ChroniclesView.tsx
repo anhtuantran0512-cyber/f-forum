@@ -99,7 +99,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
           muted
           playsInline
           preload="metadata"
-          onError={handleVideoError}
+          onError={(e) => handleVideoError(e, LIGHT_TUNNEL_VIDEO_URL)}
           onLoadedMetadata={(e) => {
             e.currentTarget.playbackRate = 0.72;
           }}

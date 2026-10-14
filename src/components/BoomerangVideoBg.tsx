@@ -1,7 +1,7 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useRef, useState } from 'react';
 import { LOW_FPS_PLAYBACK_RATE, VIDEO_TARGET_FPS, toWebmVideoUrl } from '../utils/chatVideos';
-import { handleVideoError, isTerminalVideoError } from '../utils/mediaFallback';
+import { handleVideoError } from '../utils/mediaFallback';
 
 const VIDEO_URL =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260611_183632_c311af08-e4b7-458f-81e7-79847a49b3d3.mp4';
@@ -15,7 +15,6 @@ export const BoomerangVideoBg: React.FC = () => {
   useEffect(() => {
     useCanvasRef.current = useCanvas;
   }, [useCanvas]);
-  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -71,7 +70,6 @@ export const BoomerangVideoBg: React.FC = () => {
             frames.push(bitmap);
           }
         } catch {
-          setLoadError(true);
           video.loop = true;
           return;
         }
@@ -198,6 +196,13 @@ export const BoomerangVideoBg: React.FC = () => {
       if (captureAnimId) cancelAnimationFrame(captureAnimId);
       if (loopAnimId) cancelAnimationFrame(loopAnimId);
       frames.forEach(f => f.close?.());
+      try {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      } catch {
+        /* ignore */
+      }
     };
   }, []);
 
@@ -208,14 +213,9 @@ export const BoomerangVideoBg: React.FC = () => {
         autoPlay
         muted
         playsInline
-        preload="metadata"
-        crossOrigin="anonymous"
-        loop={loadError}
-        onError={(e) => {
-          if (!isTerminalVideoError(e.currentTarget, e.target)) return;
-          setLoadError(true);
-          handleVideoError(e);
-        }}
+        preload="auto"
+        loop
+        onError={(e) => handleVideoError(e, VIDEO_URL)}
         className={`w-full h-full object-cover ${WEBM_VIDEO_URL ? '' : 'blur-[3px]'} transition-opacity duration-500 ${
           useCanvas ? 'opacity-0 absolute pointer-events-none' : 'opacity-100'
         }`}
