@@ -88,6 +88,10 @@ test('7. Tích hợp thanh điều hướng Navbar, App shell & HomeView', () =>
   assert.ok(app.includes("currentView === 'exam-vault'"), 'App.tsx must conditionally render ExamVaultView');
   assert.ok(app.includes("ExamVaultView"), 'App.tsx must import ExamVaultView');
   assert.ok(home.includes("onNavigate('exam-vault')"), 'HomeView must link to exam-vault');
+  assert.ok(
+    app.includes('isScrollableView') && app.includes("'exam-vault'"),
+    'App.tsx must include exam-vault in isScrollableView to avoid layout scroll lock',
+  );
 });
 
 test('8. Đèn pin Cú Bông: soi sáng đồng thời cả hai ô mật khẩu', () => {
@@ -154,4 +158,27 @@ test('10. Hướng dẫn giải chi tiết, Phản biện học sinh (Peer Revie
   assert.ok(tsx.includes('handleDiscussInQA'), 'Must support jumping to Q&A');
   assert.ok(tsx.includes('handleShareToClub'), 'Must support sharing to Club');
 });
+
+test('11. Hoàn thiện Kho Đề Thi: Đồng bộ đa tab, Deep link URL, Nháp Q&A & Layout Responsive', () => {
+  const tsx = read('src/components/views/ExamVaultView.tsx');
+
+  /* Multi-tab storage sync */
+  assert.ok(tsx.includes("addEventListener('storage'"), 'Must register storage listener for multi-tab sync');
+
+  /* Deep linking URL parameter parsing */
+  assert.ok(tsx.includes('URLSearchParams'), 'Must parse URL parameters for deep linking');
+  assert.ok(tsx.includes('params.get(\'id\')') || tsx.includes('params.get("id")'), 'Must support ?id= deep link');
+
+  /* Q&A draft integration */
+  assert.ok(tsx.includes('fforum_draft_ask'), 'Must pre-populate fforum_draft_ask when navigating to Q&A');
+
+  /* Multiline peer reviews */
+  assert.ok(tsx.includes('<textarea'), 'Peer review input must support multiline textarea');
+  assert.ok(tsx.includes('whitespace-pre-line'), 'Peer reviews must display with whitespace-pre-line formatting');
+
+  /* Responsive mobile grid in modal */
+  assert.ok(tsx.includes('grid-cols-1 sm:grid-cols-2'), 'Submission modal must use responsive 2-column grid');
+  assert.ok(tsx.includes('grid-cols-1 sm:grid-cols-3'), 'Submission modal must use responsive 3-column grid');
+});
+
 
