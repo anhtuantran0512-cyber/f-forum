@@ -92,11 +92,10 @@ export const PotatoSuggestion: React.FC = () => {
       </span>
       <div className="ff-sys-toast__body">
         <p id="ff-potato-title" className="ff-sys-toast__title">
-          Máy của cậu có vẻ hơi “đuối” nè
+          Tối ưu hiệu năng
         </p>
         <p className="ff-sys-toast__text">
-          Tớ gợi ý bật <strong>Potato Mode</strong>: nền động được thay bằng nền tĩnh nhẹ hơn, còn mọi hiệu ứng nút
-          và hover vẫn giữ nguyên.
+          Bật <strong>Potato Mode</strong> để dùng nền tĩnh mượt hơn.
         </p>
         {assessment.reasons.length > 0 && (
           <ul className="ff-sys-toast__reasons">

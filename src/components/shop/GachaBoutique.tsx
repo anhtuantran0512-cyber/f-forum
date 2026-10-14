@@ -785,7 +785,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                       <button
                         type="button"
                         onClick={() => void onEquip(activePreviewItem, pEquipped ? null : activePreviewItem.id)}
-                        className="px-3 py-1.5 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:brightness-110 transition cursor-pointer shadow-md"
+                        className="ff-tactile-btn px-3.5 py-1.5 rounded-xl text-xs font-extrabold text-[#0b0d12] bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] transition cursor-pointer"
                       >
                         {pEquipped ? 'Gỡ' : 'Đeo'}
                       </button>
@@ -794,9 +794,9 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                         type="button"
                         disabled={!pCanAfford || busy}
                         onClick={() => void buy(activePreviewItem)}
-                        className="px-3 py-1.5 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-amber-500 via-pink-500 to-purple-600 hover:brightness-110 disabled:opacity-40 transition cursor-pointer shadow-md flex items-center gap-1"
+                        className="ff-tactile-btn px-3.5 py-1.5 rounded-xl text-xs font-extrabold text-[#0b0d12] bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] disabled:opacity-40 transition cursor-pointer flex items-center gap-1"
                       >
-                        <Coins size={12} />
+                        <Coins size={12} className="text-[#e07a5f]" />
                         <span>
                           {pCanAfford ? `${pPrice.toLocaleString('vi-VN')}` : `Thiếu ${(pPrice - coin).toLocaleString('vi-VN')}`}
                         </span>
@@ -806,7 +806,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                       <button
                         type="button"
                         onClick={() => setPreviewItemId(null)}
-                        className="p-1.5 rounded-xl text-xs font-semibold text-white/75 bg-white/6 hover:bg-white/12 border border-white/10 transition cursor-pointer"
+                        className="ff-tactile-btn p-1.5 rounded-xl text-xs font-semibold text-white/75 bg-[#0b0d12] hover:bg-white/12 border border-white/15 transition cursor-pointer"
                         title="Hủy xem thử"
                       >
                         <X size={13} />
@@ -929,8 +929,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                     type="button"
                     disabled={!canAffordPool || busy}
                     onClick={() => void handleGachaPull(pid)}
-                    style={{ background: canAffordPool ? pool.accentGradient : undefined }}
-                    className="w-full py-2 px-3 rounded-xl text-xs font-extrabold text-white border border-white/20 shadow-md disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition hover:brightness-110"
+                    className="ff-tactile-btn w-full py-2 px-3 rounded-xl text-xs font-extrabold text-[#0b0d12] bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition"
                   >
                     {canAffordPool ? `Quay (${pool.cost})` : `Thiếu ${pool.cost - coin}`}
                   </button>

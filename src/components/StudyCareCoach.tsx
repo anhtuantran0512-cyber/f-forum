@@ -1,6 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Eye, X, Sparkles, Coffee } from 'lucide-react';
+import { Eye, X, Coffee } from 'lucide-react';
 
 /**
  * Nghỉ mắt 20-20-20 (tính năng ẩn, hữu dụng cho người học nhiều giờ)
@@ -155,7 +155,7 @@ export const StudyCareCoach: React.FC<StudyCareCoachProps> = ({
           </div>
         </div>
 
-        <h2 className="text-lg font-bold tracking-tight">Nghỉ mắt 20-20-20</h2>
+        <h2 className="text-lg font-extrabold uppercase tracking-wider text-[#f4f1de]">Nghỉ mắt 20-20-20</h2>
         <p className="mt-1.5 text-[12.5px] leading-relaxed text-white/70 max-w-sm mx-auto">{tip}</p>
 
         <div className="mt-5 h-1.5 w-56 mx-auto rounded-full bg-white/10 overflow-hidden">
@@ -165,14 +165,14 @@ export const StudyCareCoach: React.FC<StudyCareCoachProps> = ({
           />
         </div>
 
-        <div className="mt-6 flex items-center justify-center gap-2">
+        <div className="mt-6 flex items-center justify-center gap-2.5">
           <button
             type="button"
             onClick={() => finish(false)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-white/10 hover:bg-white/20 border border-white/15 transition-colors cursor-pointer"
+            className="ff-tactile-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#13161f] hover:bg-white/10 border border-white/15 text-[#f4f1de] transition-colors cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
-            Bỏ qua lần này
+            Bỏ qua
           </button>
           <button
             type="button"
@@ -180,17 +180,12 @@ export const StudyCareCoach: React.FC<StudyCareCoachProps> = ({
               finish(false);
               window.dispatchEvent(new CustomEvent('fforum_open_daily'));
             }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/35 text-amber-200 transition-colors cursor-pointer"
+            className="ff-tactile-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-extrabold bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] text-[#0b0d12] transition-colors cursor-pointer"
           >
-            <Coffee className="w-3.5 h-3.5" />
-            Điểm danh luôn
+            <Coffee className="w-3.5 h-3.5 text-[#e07a5f]" />
+            Điểm danh
           </button>
         </div>
-
-        <p className="mt-5 text-[10px] text-white/40 inline-flex items-center gap-1.5">
-          <Sparkles className="w-3 h-3 text-amber-300" />
-          Mẹo này bật/tắt được trong Cài đặt → Trải nghiệm
-        </p>
       </div>
     </div>
   );

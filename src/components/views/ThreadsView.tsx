@@ -449,11 +449,11 @@ const ThreadCard = React.memo<{
                   submitReply();
                 }
               }}
-              placeholder="Viết phản hồi của cậu… (Ctrl + Enter để gửi nhanh)"
+              placeholder="Viết phản hồi..."
               className="reply-input w-full min-h-[88px] rounded-xl bg-[#151a26] border border-[#f4f1de]/18 px-3.5 py-2.5 text-sm text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f]"
             />
             <div className="reply-composer-foot flex items-center justify-between gap-2 flex-wrap pt-1">
-              {replyError ? <span className="reply-error text-xs text-rose-400">{replyError}</span> : <span className="text-[11px] text-[#9a978e]">Nhấn Ctrl + Enter để đăng nhanh</span>}
+              {replyError ? <span className="reply-error text-xs text-rose-400">{replyError}</span> : <span />}
               <div className="flex items-center gap-2">
                 <button type="button" onClick={() => { setIsReplyOpen(false); setReplyError(''); }} className="small-btn subtle ff-tactile-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold">Hủy</button>
                 <button type="button" onClick={submitReply} className="small-btn cyan ff-tactile-btn px-4 py-1.5 rounded-xl text-xs font-bold">Gửi phản hồi</button>
@@ -465,17 +465,17 @@ const ThreadCard = React.memo<{
         {showActions && isRepostOpen && (
           <div className="repost-modal mt-3 p-4 sm:p-5 rounded-xl bg-[#0b0d12] border border-[#f2cc8f]/40 space-y-3.5 shadow-[3px_3px_0px_rgba(4,6,11,0.85)]">
             <div className="repost-modal-head flex items-center justify-between">
-              <span className="repost-modal-title text-sm font-bold text-[#f4f1de]">Chia sẻ lại bài viết</span>
+              <span className="repost-modal-title text-sm font-bold text-[#f4f1de]">Chia sẻ bài viết</span>
               <button type="button" onClick={() => setIsRepostOpen(false)} className="post-modal-close p-1 rounded-lg hover:bg-white/10" title="Đóng">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="repost-type-row grid grid-cols-2 gap-2">
               <button type="button" onClick={() => setRepostMode('simple')} className={`repost-type-btn py-2 px-3 rounded-xl text-xs font-bold ${repostMode === 'simple' ? 'active' : ''}`}>
-                Chia sẻ đơn giản
+                Chia sẻ nhanh
               </button>
               <button type="button" onClick={() => setRepostMode('quote')} className={`repost-type-btn py-2 px-3 rounded-xl text-xs font-bold ${repostMode === 'quote' ? 'active' : ''}`}>
-                Trích dẫn kèm lời bình
+                Trích dẫn
               </button>
             </div>
             {repostMode === 'quote' && (
@@ -484,16 +484,13 @@ const ThreadCard = React.memo<{
                 maxLength={THREAD_MAX_CHARS}
                 value={quoteText}
                 onChange={(e) => setQuoteText(e.target.value)}
-                placeholder="Thêm lời bình của cậu (tùy chọn)…"
+                placeholder="Thêm lời bình..."
                 className="quote-input w-full min-h-[88px] rounded-xl bg-[#151a26] border border-[#f4f1de]/18 px-3.5 py-2.5 text-sm text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f]"
               />
             )}
-            <div className="repost-modal-foot flex items-center justify-between gap-3 pt-1">
-              <span className="repost-hint text-xs text-[#9a978e]">
-                {repostMode === 'simple' ? 'Thread gốc cho vào bảng tin của cậu nguyên vẹn.' : 'Đính kèm lời bình của cậu lên đầu bài viết.'}
-              </span>
+            <div className="repost-modal-foot flex items-center justify-end gap-3 pt-1">
               <button type="button" onClick={repostMode === 'simple' ? submitSimpleRepost : submitQuoteRepost} className="small-btn amber ff-tactile-btn px-4 py-2 rounded-xl text-xs font-bold shrink-0">
-                {repostMode === 'simple' ? 'Đăng lại ngay' : 'Đăng lời trích'}
+                {repostMode === 'simple' ? 'Đăng lại' : 'Đăng trích dẫn'}
               </button>
             </div>
           </div>
@@ -566,7 +563,7 @@ const ThreadCard = React.memo<{
 
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
-                    <label className="font-bold text-[#f4f1de]">Mô tả chi tiết vi phạm (*):</label>
+                    <label className="font-bold text-[#f4f1de]">Mô tả vi phạm (*):</label>
                     <span className="font-mono text-[#9a978e]">{reportReason.length}/500</span>
                   </div>
                   <textarea
@@ -574,31 +571,27 @@ const ThreadCard = React.memo<{
                     maxLength={500}
                     value={reportReason}
                     onChange={(e) => setReportReason(e.target.value)}
-                    placeholder="Mô tả cụ thể vi phạm bạn nhìn thấy để Ban Quản Trị kiểm tra và xử lý..."
+                    placeholder="Mô tả cụ thể vi phạm..."
                     className="w-full min-h-[110px] rounded-xl bg-[#0b0d12] border border-[#f4f1de]/18 px-4 py-3 text-sm text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-rose-400 leading-relaxed resize-y"
                   />
                 </div>
-
-                <p className="text-xs text-slate-400 bg-rose-500/10 border border-rose-500/25 rounded-xl px-3.5 py-2.5">
-                  Bài viết nhận từ 5 báo cáo hợp lệ trong 1 giờ sẽ tự động tạm ẩn khỏi bảng tin để chờ Ban Quản Trị xét duyệt.
-                </p>
               </div>
 
               <div className="flex items-center justify-end gap-2.5 px-6 py-4 border-t border-white/10 bg-white/[0.02]">
                 <button
                   type="button"
                   onClick={() => { setIsReportOpen(false); setReportReason(''); }}
-                  className="px-4 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs font-bold text-slate-300 hover:text-white cursor-pointer"
+                  className="ff-tactile-btn px-4 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs font-bold text-slate-300 hover:text-white cursor-pointer"
                 >
-                  Hủy bỏ
+                  Hủy
                 </button>
                 <button
                   type="button"
                   disabled={!reportReason.trim()}
                   onClick={() => { viewModel.onReport(rootThread.id, reportReason.trim()); setIsReportOpen(false); setReportReason(''); }}
-                  className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white text-xs font-extrabold shadow-lg cursor-pointer"
+                  className="ff-tactile-btn px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white text-xs font-extrabold border border-rose-400/50 cursor-pointer"
                 >
-                  Gửi báo cáo vi phạm
+                  Gửi báo cáo
                 </button>
               </div>
             </div>
@@ -1136,7 +1129,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                 submitThread();
               }
             }}
-            placeholder={currentUser ? 'Cậu đang nghĩ gì thế? Chia sẻ câu chuyện hoặc gắn #chủđề… (Ctrl + Enter để đăng nhanh)' : 'Đăng nhập để tham gia trò chuyện nhé!'}
+            placeholder={currentUser ? 'Chia sẻ câu chuyện hoặc gắn #chủđề...' : 'Đăng nhập để tham gia trò chuyện nhé!'}
             className="thread-composer-input"
             onClick={() => { if (!currentUser) onOpenLoginModal?.(); }}
             readOnly={!currentUser}
@@ -1239,8 +1232,8 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
               <Users className="w-12 h-12 text-neutral-600 mx-auto" />
               <p className="thread-empty-title">
                 {searchQuery || activeTag || feedMode !== 'latest'
-                  ? 'Không tìm thấy bài viết khớp bộ lọc hiện tại.'
-                  : 'Chưa có bài viết nào — hãy mở lời đầu tiên!'}
+                  ? 'Không tìm thấy bài viết.'
+                  : 'Chưa có bài viết.'}
               </p>
             </div>
           ) : (
@@ -1285,8 +1278,8 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
           >
             <div className="flex items-center justify-between gap-3 pb-3 border-b border-dashed border-[#f4f1de]/16">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="ff-holo-badge px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold text-[#d8f3dc]">
-                  Bài viết #{activeReaderThread.id.slice(-5).toUpperCase()}
+                <span className="ff-holo-badge px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider text-[#d8f3dc]">
+                  CHI TIẾT BÀI VIẾT
                 </span>
                 <span className="text-xs font-mono text-[#9a978e]">
                   {formatRelativeTime(activeReaderThread.createdAtMs)}

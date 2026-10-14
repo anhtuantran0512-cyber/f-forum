@@ -73,10 +73,11 @@ export const TrophyShelf: FC<TrophyShelfProps> = ({ inventory, items, equippedId
               <text x="111" y="7" fontSize="17" fontWeight="900">Z</text>
             </g>
           </svg>
-          <p>Rương đang ngủ… Hãy đi học để đánh thức nó!</p>
+          {/* Rương đang ngủ… Hãy đi học để đánh thức nó! */}
+          <p>Chưa có huy hiệu.</p>
           {onOpenShop && (
-            <button type="button" className="tsh-cta pc-12-btn" onClick={onOpenShop}>
-              Ghé Gacha Boutique
+            <button type="button" className="tsh-cta pc-12-btn ff-tactile-btn" onClick={onOpenShop}>
+              Mở Boutique
             </button>
           )}
         </div>
@@ -115,7 +116,7 @@ export const TrophyShelf: FC<TrophyShelfProps> = ({ inventory, items, equippedId
                   <div className="tsh-rpg-tip__head">
                     <span className="tsh-rpg-tip__name">{item.name}</span>
                     <span className="tsh-rpg-tip__rarity">
-                      {RARITY_META[rarity].label} · Vật phẩm danh hiệu
+                      {RARITY_META[rarity].label}
                     </span>
                   </div>
                   <div className="tsh-rpg-tip__divider" />

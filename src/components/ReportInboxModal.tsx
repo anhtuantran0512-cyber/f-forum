@@ -230,15 +230,17 @@ export const ReportInboxModal: React.FC<ReportInboxModalProps> = ({
         className="modal-container relative w-full max-w-3xl max-h-[85vh] overflow-hidden liquid-glass flex flex-col"
       >
         {/* Đầu cửa sổ */}
-        <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-white/10">
+        <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-white/10 bg-[#0b0d12]/60">
           <div className="flex items-center gap-3">
-            <span className="w-11 h-11 rounded-2xl bg-rose-500/15 border border-rose-400/30 flex items-center justify-center">
+            <span className="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-400/35 flex items-center justify-center">
               <ShieldAlert className="w-5 h-5 text-rose-300" />
             </span>
             <div>
-              <h2 className="font-playfair text-xl text-white leading-tight">Hộp Thư Tố Cáo</h2>
-              <p className="text-[11px] text-neutral-400 mt-0.5">
-                {pendingCount > 0 ? `${pendingCount} báo cáo đang chờ xử lý` : 'Không còn báo cáo nào chờ xử lý'}
+              <h2 className="text-base font-extrabold uppercase tracking-wider text-[#f4f1de] leading-tight">
+                Hộp Thư Tố Cáo
+              </h2>
+              <p className="text-[11px] font-mono text-[#9a978e] mt-0.5">
+                {pendingCount > 0 ? `${pendingCount} chờ xử lý` : 'Không có báo cáo chờ'}
               </p>
             </div>
           </div>
@@ -246,7 +248,7 @@ export const ReportInboxModal: React.FC<ReportInboxModalProps> = ({
             <button
               type="button"
               onClick={() => void reload()}
-              className="p-2 rounded-xl border border-white/15 text-neutral-300 hover:bg-white/10 transition-colors"
+              className="ff-tactile-btn p-2 rounded-xl bg-[#0b0d12] border border-white/15 text-neutral-300 hover:text-white transition-colors cursor-pointer"
               aria-label="Tải lại danh sách"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -254,7 +256,7 @@ export const ReportInboxModal: React.FC<ReportInboxModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl border border-white/15 text-neutral-300 hover:bg-white/10 transition-colors"
+              className="ff-tactile-btn p-2 rounded-xl bg-[#0b0d12] border border-white/15 text-neutral-300 hover:text-white transition-colors cursor-pointer"
               aria-label="Đóng"
             >
               <X className="w-4 h-4" />
@@ -269,10 +271,10 @@ export const ReportInboxModal: React.FC<ReportInboxModalProps> = ({
               key={item.key}
               type="button"
               onClick={() => setFilter(item.key)}
-              className={`px-3 py-1.5 rounded-full text-[11px] border transition-colors ${
+              className={`ff-tactile-btn px-3.5 py-1.5 rounded-xl text-xs font-extrabold border transition-colors cursor-pointer ${
                 filter === item.key
-                  ? 'bg-white/15 border-white/30 text-white'
-                  : 'bg-white/5 border-white/10 text-neutral-400 hover:text-white'
+                  ? 'bg-[#f4f1de] border-[#0b0d12] text-[#0b0d12]'
+                  : 'bg-[#0b0d12] border-white/12 text-neutral-300 hover:text-white'
               }`}
             >
               {item.label}
@@ -348,16 +350,16 @@ export const ReportInboxModal: React.FC<ReportInboxModalProps> = ({
                       type="button"
                       disabled={busyId === report.id}
                       onClick={() => void actOn(report, 'RESOLVED')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] bg-emerald-500/15 border border-emerald-400/30 text-emerald-200 hover:bg-emerald-500/25 transition-colors disabled:opacity-50"
+                      className="ff-tactile-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-[#81b29a]/22 border border-[#81b29a]/50 text-[#d8f3dc] hover:bg-[#81b29a]/35 transition-colors disabled:opacity-50 cursor-pointer"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#81b29a]" />
                       Đã xử lý
                     </button>
                     <button
                       type="button"
                       disabled={busyId === report.id}
                       onClick={() => void actOn(report, 'DISMISSED')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] bg-white/5 border border-white/15 text-neutral-300 hover:bg-white/10 transition-colors disabled:opacity-50"
+                      className="ff-tactile-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#0b0d12] border border-white/15 text-neutral-300 hover:text-white transition-colors disabled:opacity-50 cursor-pointer"
                     >
                       <XCircle className="w-3.5 h-3.5" />
                       Bỏ qua
@@ -366,7 +368,7 @@ export const ReportInboxModal: React.FC<ReportInboxModalProps> = ({
                       type="button"
                       disabled={busyId === report.id}
                       onClick={() => void actOn(report, 'delete')}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] bg-rose-500/10 border border-rose-400/25 text-rose-200 hover:bg-rose-500/20 transition-colors disabled:opacity-50"
+                      className="ff-tactile-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-rose-500/15 border border-rose-400/35 text-rose-200 hover:bg-rose-500/25 transition-colors disabled:opacity-50 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       Xoá

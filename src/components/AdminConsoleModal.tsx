@@ -486,11 +486,11 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
               <ShieldAlert className="w-5 h-5" />
             </span>
             <div className="min-w-0">
-              <h2 className="text-base font-bold text-[#f4f1de] truncate">Bảng Điều Khiển Quản Trị</h2>
+              <h2 className="text-base font-extrabold uppercase tracking-wider text-[#f4f1de] truncate">Bảng Điều Khiển</h2>
               <p className="text-[11px] text-[#9a978e] font-mono truncate">
                 {lastLoadedAt
-                  ? `Cập nhật lúc ${new Date(lastLoadedAt).toLocaleTimeString('vi-VN')} · tự làm mới mỗi 20 giây`
-                  : 'Đang tải số liệu vận hành…'}
+                  ? `Cập nhật ${new Date(lastLoadedAt).toLocaleTimeString('vi-VN')}`
+                  : 'Đang tải…'}
               </p>
             </div>
           </div>
@@ -500,7 +500,7 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
               type="button"
               onClick={() => void reload()}
               disabled={isRefreshing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/15 text-neutral-200 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
+              className="ff-tactile-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0b0d12] hover:bg-white/10 border border-white/15 text-neutral-200 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
               title="Tải lại số liệu"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'motion-safe:animate-spin' : ''}`} />
@@ -510,7 +510,7 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Đóng"
-              className="p-2 rounded-xl bg-white/5 hover:bg-rose-500/25 border border-white/15 text-neutral-300 hover:text-rose-300 transition-colors cursor-pointer"
+              className="ff-tactile-btn p-2 rounded-xl bg-[#0b0d12] hover:bg-rose-500/25 border border-white/15 text-neutral-300 hover:text-rose-300 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
