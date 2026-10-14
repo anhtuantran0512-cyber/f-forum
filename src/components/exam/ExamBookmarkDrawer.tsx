@@ -10,6 +10,7 @@ import {
   Printer,
   School,
   Star,
+  HardDrive,
 } from 'lucide-react';
 import type { ExamPaper } from '../../types';
 
@@ -18,6 +19,7 @@ export interface ExamBookmarkDrawerProps {
   onClose: () => void;
   savedExamIds: string[];
   allPapers: ExamPaper[];
+  cachedExamIds?: string[];
   onRemoveBookmark: (examId: string) => void;
   onClearAllBookmarks: () => void;
   onSelectPreview: (paper: ExamPaper) => void;
@@ -30,6 +32,7 @@ export const ExamBookmarkDrawer: React.FC<ExamBookmarkDrawerProps> = ({
   onClose,
   savedExamIds,
   allPapers,
+  cachedExamIds,
   onRemoveBookmark,
   onClearAllBookmarks,
   onSelectPreview,
@@ -91,7 +94,7 @@ export const ExamBookmarkDrawer: React.FC<ExamBookmarkDrawerProps> = ({
                 <h2 id="bookmark-drawer-title" className="text-base font-extrabold text-white flex items-center gap-2">
                   <span>Đề Thi Đã Lưu</span>
                   <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-400 text-[#0b0d12] font-black">
-                    {savedExamIds.length}
+                    {savedPapers.length}
                   </span>
                 </h2>
                 <span className="text-[10px] text-white/50">Kho lưu trữ cá nhân để ôn tập lại sau</span>
@@ -197,6 +200,11 @@ export const ExamBookmarkDrawer: React.FC<ExamBookmarkDrawerProps> = ({
                     <span className="px-1.5 py-0.5 rounded-md text-[10px] text-white/50">
                       {paper.examType}
                     </span>
+                    {cachedExamIds?.includes(paper.id) && (
+                      <span className="px-1.5 py-0.5 rounded-md text-[10px] font-semibold ff-cached-pill flex items-center gap-1">
+                        <HardDrive className="w-2.5 h-2.5" /> Offline
+                      </span>
+                    )}
                   </div>
 
                   <button

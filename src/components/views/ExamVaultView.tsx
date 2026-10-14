@@ -59,6 +59,7 @@ import {
   getCachedExamIds,
   cacheExamOffline,
   removeExamFromOfflineCache,
+  OFFLINE_EXAMS_CACHE_KEY,
 } from '../exam/offlineStorage';
 import './ExamVaultView.css';
 
@@ -769,7 +770,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   const [selectedYear, setSelectedYear] = useState<string>('Tất cả năm');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('Tất cả mức độ');
   const [sortBy, setSortBy] = useState<'newest' | 'downloads' | 'rating'>('newest');
-  const [activeTab, setActiveTab] = useState<'all' | 'syllabus' | 'exams' | 'saved' | 'my_submissions'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'syllabus' | 'exams' | 'saved' | 'cached' | 'my_submissions'>('all');
 
   /* Saved bookmarks */
   const [savedExams, setSavedExams] = useState<string[]>(() => {
@@ -831,7 +832,11 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   /* Đồng bộ thời gian thực đa tab qua storage event */
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (!e.newValue) return;
+      if (!e.newValue) {
+        if (e.key === OFFLINE_EXAMS_CACHE_KEY) setCachedExamIds([]);
+        if (e.key === SAVED_EXAMS_KEY) setSavedExams([]);
+        return;
+      }
       try {
         if (e.key === SAVED_EXAMS_KEY) setSavedExams(JSON.parse(e.newValue));
         if (e.key === SUBMISSIONS_KEY) setSubmissions(JSON.parse(e.newValue));
@@ -839,6 +844,10 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         if (e.key === USER_RATINGS_KEY) setUserRatings(JSON.parse(e.newValue));
         if (e.key === PEER_REVIEWS_KEY) setPeerReviewsMap(JSON.parse(e.newValue));
         if (e.key === EXAM_LIKES_KEY) setLikesOverrides(JSON.parse(e.newValue));
+        if (e.key === OFFLINE_EXAMS_CACHE_KEY) {
+          const ids = JSON.parse(e.newValue);
+          setCachedExamIds(Array.isArray(ids) ? ids : []);
+        }
       } catch {
         /* Bỏ qua lỗi phân tích chuỗi lưu trữ */
       }
@@ -1300,6 +1309,8 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       result = result.filter((p) => p.examType !== 'Đề cương ôn tập');
     } else if (activeTab === 'saved') {
       result = result.filter((p) => savedExams.includes(p.id));
+    } else if (activeTab === 'cached') {
+      result = result.filter((p) => cachedExamIds.includes(p.id));
     } else if (activeTab === 'my_submissions') {
       return submissions;
     }
@@ -1400,32 +1411,59 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     return allPapers.find((p) => p.id === previewExam.id) || previewExam;
   }, [previewExam, allPapers]);
 
-  /* Deep link: tự động mở xem thử đề thi hoặc phòng thi CBT khi URL có query */
+  /* Prevent background scrolling when any modal or drawer is open */
+  const isAnyModalOpen = Boolean(
+    cbtExam || isBookmarkDrawerOpen || printExam || previewExam || isSubmitModalOpen
+  );
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (isAnyModalOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+  }, [isAnyModalOpen]);
+
+  /* Deep link: tự động mở xem thử đề thi hoặc phòng thi CBT khi URL có query (xử lý 1 lần) */
+  const hasHandledDeepLinkRef = React.useRef(false);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (hasHandledDeepLinkRef.current) return;
     try {
       const params = new URLSearchParams(window.location.search);
       const examId = params.get('id') || params.get('exam');
       const cbtId = params.get('cbt') || params.get('practice');
       const showSavedDrawer = params.get('drawer') === 'saved' || params.get('saved') === '1';
 
+      let handled = false;
+
       if (cbtId) {
         const found = allPapers.find((p) => p.id === cbtId);
         if (found) {
-          requestAnimationFrame(() => setCbtExam(found));
-          return;
+          setCbtExam(found);
+          handled = true;
         }
       }
 
       if (showSavedDrawer) {
-        requestAnimationFrame(() => setIsBookmarkDrawerOpen(true));
+        setIsBookmarkDrawerOpen(true);
+        handled = true;
       }
 
-      if (examId) {
+      if (examId && !handled) {
         const found = allPapers.find((p) => p.id === examId);
         if (found) {
-          requestAnimationFrame(() => setPreviewExam(found));
+          setPreviewExam(found);
+          handled = true;
         }
+      }
+
+      if (handled) {
+        hasHandledDeepLinkRef.current = true;
       }
     } catch {
       /* Bỏ qua lỗi đọc query URL */
@@ -1655,6 +1693,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             { id: 'syllabus', label: 'Đề cương ôn tập', count: allPapers.filter((p) => p.examType === 'Đề cương ôn tập').length },
             { id: 'exams', label: 'Đề thi & Kiểm tra', count: allPapers.filter((p) => p.examType !== 'Đề cương ôn tập').length },
             { id: 'saved', label: 'Đề đã lưu', count: savedExams.length },
+            { id: 'cached', label: 'Học ngoại tuyến', count: cachedExamIds.length },
             { id: 'my_submissions', label: 'Đề tôi gửi duyệt', count: submissions.length },
           ].map((tab) => {
             const active = activeTab === tab.id;
@@ -2530,7 +2569,10 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => handleOpenPrint(activePreview)}
+                  onClick={() => {
+                    setPreviewExam(null);
+                    handleOpenPrint(activePreview);
+                  }}
                   className="px-3 py-2 rounded-xl border border-white/15 text-xs font-semibold text-white/90 hover:text-white hover:bg-white/10 cursor-pointer flex items-center gap-1.5 transition-colors"
                   title="In đề thi chuẩn khổ A4 hoặc xuất PDF"
                 >
@@ -2837,6 +2879,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         onClose={() => setIsBookmarkDrawerOpen(false)}
         savedExamIds={savedExams}
         allPapers={allPapers}
+        cachedExamIds={cachedExamIds}
         onRemoveBookmark={handleRemoveBookmark}
         onClearAllBookmarks={handleClearAllBookmarks}
         onSelectPreview={(p) => {
