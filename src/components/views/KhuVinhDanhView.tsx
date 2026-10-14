@@ -1181,27 +1181,59 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 
       {/* Layer 5: Chrome Elements */}
       {/* Header.chrome — Sub-header layer (z-40) cleanly positioned below Global Navbar (z-50) */}
-      <header className="chrome fixed top-[74px] sm:top-[78px] inset-x-0 z-40 flex items-center justify-between py-2 px-[var(--pad)] pointer-events-none">
+      <header className="chrome fixed top-[74px] sm:top-[78px] inset-x-0 z-40 flex items-center justify-between gap-3 py-2 px-[var(--pad)] pointer-events-none">
         <a
           href="#"
           onClick={(e) => {
             e.preventDefault();
             onExit();
           }}
-          className="wordmark font-['Playfair_Display'] text-[clamp(19px,2.1vw,27px)] tracking-[0.005em] text-white no-underline pointer-events-auto cursor-pointer"
+          className="wordmark font-['Playfair_Display'] text-[clamp(18px,2vw,24px)] tracking-[0.005em] text-[#f4f1de] no-underline pointer-events-auto cursor-pointer"
           aria-label="Quay lại F-Forum"
         >
-          BroAmStuck<em className="not-italic">Studio</em>
+          Khu Vinh Danh
         </a>
 
-        {/* Minimalist Top Social Links & Vào Forum Button */}
-        <div className="flex items-center gap-2 pointer-events-auto">
+        {/* Minimalist Top Social Links, Grid Toggle, Admin Trigger & Vào Forum Button */}
+        <div className="flex items-center gap-2 flex-wrap justify-end pointer-events-auto">
+          {/* Grid Toggle Button button#gridBtn */}
+          <button
+            id="gridBtn"
+            className={`gridbtn w-9 h-9 p-2 grid grid-cols-2 gap-1 rounded-xl bg-black/65 hover:bg-black/85 border border-white/15 backdrop-blur-md cursor-pointer transition-colors ${
+              isGridView ? 'is-grid border-[#f2cc8f]/50' : ''
+            }`}
+            onClick={() => setIsGridView(!isGridView)}
+            aria-label="Toggle grid view"
+            title={isGridView ? 'Quay lại quả cầu 3D' : 'Xem dạng lưới phẳng'}
+          >
+            <b className="h-full w-full" />
+            <b className="h-full w-full" />
+            <b className="h-full w-full" />
+            <b className="h-full w-full" />
+          </button>
+
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditBioForm(founderProfile);
+                setAdminModalTab('milestones');
+                setIsEditBioModalOpen(true);
+              }}
+              className="ff-tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f2cc8f] hover:bg-[#f4f1de] text-[#0b0d12] border border-[#0b0d12] text-xs font-extrabold cursor-pointer"
+              title="Quản trị nội dung Vinh Danh"
+            >
+              <Settings className="w-3.5 h-3.5 text-[#0b0d12]" />
+              <span className="hidden sm:inline">Quản trị</span>
+            </button>
+          )}
+
           {/* Facebook Link */}
           <a
             href="https://www.facebook.com/TuanNotTun/"
             target="_blank"
             rel="noopener noreferrer"
-            className="w-8 h-8 rounded-full bg-blue-600/25 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-[0_0_12px_rgba(59,130,246,0.3)] backdrop-blur-md"
+            className="w-8 h-8 rounded-full bg-blue-600/25 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 backdrop-blur-md"
             title="Facebook Admin"
             aria-label="Facebook Admin"
           >
@@ -1215,7 +1247,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             href="https://discord.gg/GMDCnxxJwX"
             target="_blank"
             rel="noopener noreferrer"
-            className="w-8 h-8 rounded-full bg-[#5865F2]/25 hover:bg-[#5865F2]/40 border border-[#5865F2]/50 text-indigo-200 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-[0_0_12px_rgba(88,101,242,0.3)] backdrop-blur-md"
+            className="w-8 h-8 rounded-full bg-[#5865F2]/25 hover:bg-[#5865F2]/40 border border-[#5865F2]/50 text-indigo-200 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 backdrop-blur-md"
             title="Discord F-Forum"
             aria-label="Discord F-Forum"
           >
@@ -1234,43 +1266,43 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 onExit();
               }
             }}
-            className="ff-enter-forum-btn ff-tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold text-[#0b0d12] bg-[#e07a5f] hover:bg-[#f2cc8f] border border-[#f4f1de] shadow-[2px_2px_0px_rgba(4,6,11,0.9)] transition-all cursor-pointer"
+            className="ff-enter-forum-btn ff-tactile-btn flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-extrabold text-[#0b0d12] bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] transition-all cursor-pointer"
             title="Chuyển đến Diễn đàn F-Forum Q&A"
           >
-            <Compass className="w-3.5 h-3.5 text-[#0b0d12]" />
+            <Compass className="w-3.5 h-3.5 text-[#e07a5f]" />
             <span>Vào Forum</span>
             <ArrowRight className="w-3 h-3 text-[#0b0d12]" />
           </button>
-        </div>
 
-        <button
-          id="menuBtn"
-          className={`menu-btn flex flex-col items-end gap-1.5 p-2 pointer-events-auto cursor-pointer ${
-            isMenuOpen ? 'open' : ''
-          }`}
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          aria-expanded={isMenuOpen}
-          aria-label="Toggle menu"
-        >
-          <span className={`menu-label text-[clamp(12px,1.25vw,15px)] text-white tracking-[0.01em] transition-opacity ${
-            isMenuOpen ? 'opacity-0' : 'opacity-100'
-          }`}>
-            Menu
-          </span>
-          <span className="bars relative w-[clamp(42px,4.4vw,62px)] h-[clamp(16px,2vw,22px)] flex items-center">
-            <i className="bar-top absolute left-0 right-0 top-1/2 h-[1px] bg-white block" />
-            <i className="bar-bot absolute left-0 right-0 top-1/2 h-[1px] bg-white block" />
-          </span>
-        </button>
+          <button
+            id="menuBtn"
+            className={`menu-btn flex flex-col items-end gap-1.5 p-2 pointer-events-auto cursor-pointer ${
+              isMenuOpen ? 'open' : ''
+            }`}
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-expanded={isMenuOpen}
+            aria-label="Toggle menu"
+          >
+            <span className={`menu-label text-[clamp(12px,1.25vw,15px)] text-white tracking-[0.01em] transition-opacity ${
+              isMenuOpen ? 'opacity-0' : 'opacity-100'
+            }`}>
+              Menu
+            </span>
+            <span className="bars relative w-[clamp(36px,3.8vw,52px)] h-[clamp(16px,2vw,22px)] flex items-center">
+              <i className="bar-top absolute left-0 right-0 top-1/2 h-[1px] bg-white block" />
+              <i className="bar-bot absolute left-0 right-0 top-1/2 h-[1px] bg-white block" />
+            </span>
+          </button>
+        </div>
       </header>
 
-      {/* Photographer Card .bio */}
+      {/* Photographer Card .bio — positioned above bottom-left QuickNotesDock */}
       <div
-        className={`bio-card bio chrome fixed left-[var(--pad)] bottom-[var(--pad)] z-40 max-w-[min(360px,48vw)] transition-opacity duration-300 ${
+        className={`bio-card bio chrome fixed left-[var(--pad)] bottom-[76px] z-30 max-w-[min(340px,46vw)] p-3.5 rounded-2xl bg-[#0b0d12]/85 border border-white/15 backdrop-blur-md shadow-xl transition-opacity duration-300 ${
           isGridView || activeLitRecord ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
-        <div className="who flex items-center gap-3.5 mb-3">
+        <div className="who flex items-center gap-3 mb-2">
           <div className="relative group shrink-0">
             <img
               src={founderProfile.avatarUrl}
@@ -1278,9 +1310,9 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
               onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
               loading="lazy"
               decoding="async"
-              width={52}
-              height={52}
-              className="bio-avatar w-[52px] h-[52px] rounded-[3px] object-cover grayscale-[0.15] border border-white/20"
+              width={44}
+              height={44}
+              className="bio-avatar w-11 h-11 rounded-full object-cover border border-[#f2cc8f]/50"
             />
             {isSuperAdmin && (
               <button
@@ -1290,7 +1322,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                   setAdminModalTab('bio');
                   setIsEditBioModalOpen(true);
                 }}
-                className="absolute inset-0 bg-black/70 rounded-[3px] opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] font-bold text-amber-300 transition-opacity cursor-pointer"
+                className="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] font-bold text-amber-300 transition-opacity cursor-pointer"
               >
                 Đổi ảnh
               </button>
@@ -1298,15 +1330,15 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-nowrap min-w-0">
-              <b className="font-['Playfair_Display'] text-[18px] text-white font-normal truncate">
+              <b className="font-['Playfair_Display'] text-[16px] text-white font-normal truncate">
                 {founderProfile.name}
               </b>
               <AdminVerifiedBadge size={14} />
             </div>
-            <p className="text-[11px] text-[#8c8783] font-mono mt-0.5">{founderProfile.role}</p>
+            <p className="text-[11px] text-[#f2cc8f] font-mono mt-0.5 truncate">{founderProfile.role}</p>
           </div>
         </div>
-        <p className="bio-p text-[12.5px] leading-[1.62] text-[#f4f2ef]/75 font-light">
+        <p className="bio-p text-[12px] leading-[1.55] text-[#f4f2ef]/80 font-light line-clamp-2">
           {founderProfile.bio}
         </p>
         {isSuperAdmin && (
@@ -1317,17 +1349,17 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
               setAdminModalTab('bio');
               setIsEditBioModalOpen(true);
             }}
-            className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/45 text-amber-200 text-[11px] font-semibold cursor-pointer transition-colors"
+            className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/45 text-amber-200 text-[10.5px] font-semibold cursor-pointer transition-colors"
           >
             <Edit3 className="w-3 h-3" />
-            <span>Sửa Hồ sơ &amp; Ảnh Founder</span>
+            <span>Sửa hồ sơ</span>
           </button>
         )}
       </div>
 
-      {/* Colophon .colophon */}
+      {/* Colophon .colophon — positioned above bottom-right docks */}
       <div
-        className={`colophon-card colophon chrome fixed right-[var(--pad)] bottom-[var(--pad)] z-40 text-[12.5px] text-[#f4f2ef]/70 flex items-center gap-2 transition-opacity duration-300 ${
+        className={`colophon-card colophon chrome fixed right-[var(--pad)] bottom-[76px] z-30 text-[11.5px] text-[#f4f2ef]/65 flex items-center gap-2 transition-opacity duration-300 ${
           isGridView || activeLitRecord ? 'opacity-0' : 'opacity-100'
         }`}
       >
@@ -1346,25 +1378,9 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         )}
       </div>
 
-      {/* Grid Toggle Button button#gridBtn — cleanly stacked above .bio-card */}
-      <button
-        id="gridBtn"
-        className={`gridbtn fixed left-[var(--pad)] bottom-[calc(var(--pad)+210px)] z-40 w-[44px] h-[44px] p-2.5 grid grid-cols-2 gap-1 rounded-lg bg-black/60 border border-white/15 backdrop-blur-md cursor-pointer ${
-          isGridView ? 'is-grid' : ''
-        }`}
-        onClick={() => setIsGridView(!isGridView)}
-        aria-label="Toggle grid view"
-        title={isGridView ? 'Quay lại quả cầu 3D' : 'Xem dạng lưới phẳng'}
-      >
-        <b className="h-full w-full" />
-        <b className="h-full w-full" />
-        <b className="h-full w-full" />
-        <b className="h-full w-full" />
-      </button>
-
       {/* Scroll Cue .cue */}
       <div
-        className={`cue-card cue chrome fixed left-1/2 bottom-[calc(var(--pad)+6px)] -translate-x-1/2 z-54 flex items-center gap-2.5 text-[10px] uppercase tracking-[0.24em] text-[#f4f2ef]/45 whitespace-nowrap pointer-events-none transition-opacity duration-500 ${
+        className={`cue-card cue chrome fixed left-1/2 bottom-[calc(var(--pad)+6px)] -translate-x-1/2 z-30 flex items-center gap-2.5 text-[10px] uppercase tracking-[0.24em] text-[#f4f2ef]/45 whitespace-nowrap pointer-events-none transition-opacity duration-500 ${
           isGridView || activeLitRecord ? 'opacity-0' : 'opacity-100'
         }`}
       >
@@ -1373,24 +1389,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         </s>
         <span>KÉO ĐỂ XOAY QUẢ CẦU 3D</span>
       </div>
-
-      {/* Super Admin Floating Quick Trigger */}
-      {isSuperAdmin && (
-        <div className="fixed right-[var(--pad)] bottom-[calc(var(--pad)+36px)] z-56 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setEditBioForm(founderProfile);
-              setAdminModalTab('milestones');
-              setIsEditBioModalOpen(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-amber-500 hover:bg-amber-400 text-black text-xs font-extrabold shadow-[0_12px_32px_rgba(245,158,11,0.45)] transition-all cursor-pointer"
-          >
-            <Settings className="w-4 h-4 text-black" />
-            <span>Quản Trị Ảnh &amp; Nội Dung Vinh Danh (Admin)</span>
-          </button>
-        </div>
-      )}
 
       {/* Layer 6: #menu (Full-screen Drawer) */}
       <div

@@ -414,9 +414,9 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
                 type="button"
                 onClick={handleClaimAttendance}
                 disabled={hasClaimedToday || isClaimingAttendance}
-                className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-neutral-950 font-bold text-xs flex items-center gap-1.5 shadow-lg cursor-pointer"
+                className="ff-tactile-btn px-5 py-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] disabled:opacity-40 disabled:cursor-not-allowed text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs flex items-center gap-1.5 cursor-pointer"
               >
-                <Flame className="w-4 h-4 text-neutral-950" />
+                <Flame className="w-4 h-4 text-[#e07a5f]" />
                 <span>{isClaimingAttendance ? '…' : hasClaimedToday ? 'Đã điểm danh' : 'Điểm danh (+25)'}</span>
               </button>
             </div>

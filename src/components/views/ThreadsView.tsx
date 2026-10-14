@@ -1222,7 +1222,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
               disabled={!canSubmit}
               className="primary-compose-btn"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-4 h-4 text-[#e07a5f]" />
               Đăng bài
             </button>
           </div>

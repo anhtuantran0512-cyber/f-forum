@@ -543,25 +543,25 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   type="button"
                   onClick={handleSend}
                   disabled={!inputText.trim()}
-                  className={`p-2 rounded-lg bg-[#81b29a] hover:bg-[#95c4ad] text-[#0b0d12] disabled:opacity-40 transition-colors cursor-pointer ${
+                  className={`ff-tactile-btn p-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] disabled:opacity-40 transition-colors cursor-pointer ${
                     cooldown.isCooling ? 'ff-cd-btn is-cooling' : ''
                   }`}
                   title={cooldown.isCooling ? `Còn ${cooldown.secondsLeft}s trước tin tiếp theo` : 'Gửi tin nhắn'}
                   aria-label="Gửi tin nhắn"
                 >
-                  <Send className="w-3.5 h-3.5 text-[#0b0d12]" />
+                  <Send className="w-3.5 h-3.5 text-[#e07a5f]" />
                 </button>
               </div>
             ) : (
               <div className="p-2.5 rounded-xl bg-[#151b28] border border-[#f8f7f4]/12 flex items-center justify-between gap-2">
-                <span className="text-xs text-[#dad7d0]">Đăng nhập để tham gia trò chuyện</span>
+                <span className="text-xs text-[#dad7d0]">Đăng nhập để trò chuyện</span>
                 {onOpenLoginModal && (
                   <button
                     type="button"
                     onClick={onOpenLoginModal}
-                    className="px-3 py-1.5 rounded-lg bg-[#81b29a] hover:bg-[#95c4ad] text-[#0b0d12] font-bold text-xs flex items-center gap-1 cursor-pointer shrink-0"
+                    className="ff-tactile-btn px-3 py-1.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs flex items-center gap-1 cursor-pointer shrink-0"
                   >
-                    <LogIn className="w-3.5 h-3.5" /> Đăng nhập
+                    <LogIn className="w-3.5 h-3.5 text-[#e07a5f]" /> Đăng nhập
                   </button>
                 )}
               </div>

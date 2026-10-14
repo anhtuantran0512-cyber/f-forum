@@ -87,8 +87,8 @@ export const StudyPulsePanel: React.FC<StudyPulsePanelProps> = ({
     >
       <div className="ff-pulse__head">
         <div className="min-w-0">
-          <p className="ff-pulse__eyebrow">Nhịp học tập · dữ liệu thật</p>
-          <h4 className="ff-pulse__title">Tiến độ tuần của bạn</h4>
+          <p className="ff-pulse__eyebrow">Nhịp học tập</p>
+          <h4 className="ff-pulse__title">Tiến độ tuần</h4>
         </div>
         <span className="ff-pulse__badge">
           <i aria-hidden="true" />
@@ -179,7 +179,7 @@ export const StudyPulsePanel: React.FC<StudyPulsePanelProps> = ({
           Vào Phòng Tập Trung để ghi giờ
         </button>
       )}
-      <p className="ff-pulse__hint">
+      <p className="sr-only">
         Giờ học được ghi tự động sau mỗi phiên Pomodoro 25 phút — không cần bấm gì thêm. Dừng sớm vẫn ghi
         số phút thực học (từ 5 phút), nhưng chỉ phiên đủ 25 phút mới có XP.
       </p>

@@ -66,7 +66,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <article className="pc-09 pc-12-shell relative w-full max-w-[340px] rounded-[24px] text-[#f2f3f5] overflow-hidden select-none">
+      <article className="pc-09 pc-12-shell relative w-full max-w-[380px] rounded-[24px] text-[#f4f1de] overflow-hidden select-none">
         {/* Ảnh nền người dùng liền mạch 1 lớp kéo dài rộng từ đỉnh xuống tận đáy thẻ nhanh */}
         <div
           className="absolute inset-0 pointer-events-none z-0 overflow-hidden"
@@ -75,8 +75,8 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
             background:
               user.profileGradient ||
               (isSuperAdmin
-                ? 'linear-gradient(125deg, #f59e0b 0%, #ec4899 50%, #5865f2 100%)'
-                : 'linear-gradient(125deg, #5865f2 0%, #9b59b6 55%, #06b6d4 100%)'),
+                ? 'linear-gradient(125deg, #f2cc8f 0%, #e07a5f 52%, #1b2436 100%)'
+                : 'linear-gradient(125deg, #1b2436 0%, #2a364f 55%, #81b29a 100%)'),
           }}
         >
           <img
@@ -243,7 +243,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
             maxLength={80}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Ghi chú..."
-            className="w-full pc-12-well rounded-lg px-2.5 py-1.5 text-xs text-[#dbdee1] placeholder-[#949ba4] focus:outline-none focus:border-[#5865f2] transition-colors"
+            className="w-full pc-12-well rounded-lg px-2.5 py-1.5 text-xs text-[#f4f1de] placeholder-[#9a978e] focus:outline-none focus:border-[#f2cc8f]/60 transition-colors"
           />
 
           {/* Primary action: escalate to full profile modal */}
@@ -254,9 +254,9 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
                 onClose();
                 onOpenFullProfile(user, 'overview');
               }}
-              className="py-2 px-3 rounded-xl bg-[#5865f2] hover:bg-[#4752c4] text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md"
+              className="ff-tactile-btn py-2 px-3 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] text-xs font-extrabold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
-              <UserIcon className="w-3.5 h-3.5" />
+              <UserIcon className="w-3.5 h-3.5 text-[#e07a5f]" />
               <span>Hồ sơ</span>
             </button>
             <button
@@ -265,9 +265,9 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
                 onClose();
                 onOpenFullProfile(user, 'card');
               }}
-              className="pc-12-btn py-2 px-3 rounded-xl text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="ff-tactile-btn py-2 px-3 rounded-xl bg-[#151a26] hover:bg-[#1e2536] text-[#f4f1de] border-[1.5px] border-[#f4f1de]/20 text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <Sparkles className="w-3.5 h-3.5 text-[#f2cc8f]" />
               <span>F-Pass</span>
             </button>
           </div>

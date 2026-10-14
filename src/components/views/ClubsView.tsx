@@ -367,9 +367,9 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                       setIsCreateModalOpen(true);
                     }
                   }}
-                  className="ff-tactile-btn px-4 py-2 rounded-lg text-xs font-extrabold bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border-[1.5px] border-[#f4f1de] transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                  className="ff-tactile-btn px-4 py-2 rounded-xl text-xs font-extrabold bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
                 >
-                  <PlusCircle className="w-4 h-4 text-[#0b0d12]" />
+                  <PlusCircle className="w-4 h-4 text-[#e07a5f]" />
                   <span>Tạo CLB</span>
                 </button>
               )}

@@ -407,20 +407,20 @@ const FocusSanctuaryInner: React.FC<{
                 onClick={isRunning ? handleStop : () => { void handleStart(); }}
                 disabled={!isRunning && isStarting}
                 aria-busy={!isRunning && isStarting}
-                className={`ff-tactile-btn w-full px-8 py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all border border-[#f4f1de] disabled:opacity-60 ${
+                className={`ff-tactile-btn w-full px-8 py-3.5 rounded-xl font-extrabold text-sm flex items-center justify-center gap-2 transition-all border-2 border-[#0b0d12] disabled:opacity-60 cursor-pointer ${
                   isRunning
-                    ? 'bg-[#f2cc8f] text-[#0b0d12] hover:bg-amber-300'
-                    : 'bg-[#e07a5f] text-[#0b0d12] hover:bg-[#f2cc8f]'
+                    ? 'bg-[#f2cc8f] text-[#0b0d12] hover:bg-[#f4f1de]'
+                    : 'bg-[#f4f1de] text-[#0b0d12] hover:bg-[#f2cc8f]'
                 }`}
               >
                 {isRunning ? (
                   <>
-                    <Pause className="w-4 h-4 fill-current" />
+                    <Pause className="w-4 h-4 fill-current text-[#e07a5f]" />
                     <span>Dừng</span>
                   </>
                 ) : (
                   <>
-                    <Play className="w-4 h-4 fill-current" />
+                    <Play className="w-4 h-4 fill-current text-[#e07a5f]" />
                     <span>{isStarting ? 'Đang mở...' : 'Bắt đầu'}</span>
                   </>
                 )}
