@@ -1,6 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, ArrowUpRight, Compass, HelpCircle } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Compass, HelpCircle, Search, BookOpen, Sparkles } from 'lucide-react';
 import type { DimensionView } from '../../types';
 import { BoomerangVideoBg } from '../BoomerangVideoBg';
 import './HomeHeroTitle.css';
@@ -99,11 +99,41 @@ export const HomeView: React.FC<HomeViewProps> = ({
           Không gian trao đổi bài học, giao lưu câu lạc bộ và kết nối bạn bè.
         </p>
 
+        {/* Thanh tìm kiếm Đề thi & Đề cương: Bấm vào chuyển hướng ngay sang trang riêng */}
+        <div className="animate-fade-up delay-35 mt-5 w-full max-w-md mx-auto">
+          <div
+            onClick={() => onNavigate('exam-vault')}
+            className="group relative cursor-pointer select-none rounded-2xl p-1 bg-white/[0.05] hover:bg-white/[0.09] border border-white/20 hover:border-amber-400/50 shadow-[0_8px_30px_rgba(0,0,0,0.4)] backdrop-blur-xl transition-all duration-300"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onNavigate('exam-vault');
+              }
+            }}
+            aria-label="Tìm kiếm đề thi và đề cương — Mở trang kho đề riêng"
+          >
+            <div className="flex items-center justify-between gap-2.5 px-3.5 py-2">
+              <div className="flex items-center gap-2.5 text-white/70 group-hover:text-white transition-colors flex-1 min-w-0">
+                <Search className="w-4 h-4 text-amber-300 shrink-0 group-hover:scale-110 transition-transform" />
+                <span className="text-xs sm:text-sm text-neutral-300 group-hover:text-white truncate">
+                  Tìm kiếm đề thi, đề cương ôn tập toàn quốc... ↗
+                </span>
+              </div>
+              <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-400/15 border border-amber-400/30 text-[10px] font-mono font-bold text-amber-300 tracking-wider uppercase shrink-0">
+                <Sparkles className="w-3 h-3 text-amber-300" />
+                Kho Đề Thi
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Style 3 + 8: Neo-Brutalist & Tactile Squishy Action Buttons */}
-        <div className="animate-fade-up delay-4 mt-7 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5 w-full sm:w-auto">
+        <div className="animate-fade-up delay-4 mt-6 sm:mt-7 flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
           <button
             onClick={() => onNavigate('clubs')}
-            className="ff-tactile-btn group w-full sm:w-auto rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] px-6 py-3 text-sm font-extrabold text-[#0b0d12] border-2 border-[#0b0d12] inline-flex items-center justify-center gap-2 cursor-pointer"
+            className="ff-tactile-btn group w-full sm:w-auto rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] px-5 py-2.5 sm:px-6 sm:py-3 text-sm font-extrabold text-[#0b0d12] border-2 border-[#0b0d12] inline-flex items-center justify-center gap-2 cursor-pointer"
           >
             <Compass className="w-4 h-4 text-[#e07a5f]" />
             <span>Câu Lạc Bộ</span>
@@ -112,10 +142,18 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
           <button
             onClick={() => onNavigate('qa')}
-            className="ff-tactile-btn w-full sm:w-auto ff-glass-depth-1 rounded-xl px-6 py-3 text-sm font-bold text-[#f4f1de] inline-flex items-center justify-center gap-2 hover:border-[#81b29a]/60 cursor-pointer"
+            className="ff-tactile-btn w-full sm:w-auto ff-glass-depth-1 rounded-xl px-5 py-2.5 sm:px-6 sm:py-3 text-sm font-bold text-[#f4f1de] inline-flex items-center justify-center gap-2 hover:border-[#81b29a]/60 cursor-pointer"
           >
             <HelpCircle className="w-4 h-4 text-[#81b29a]" />
             <span>Hỏi Đáp Bài Tập</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('exam-vault')}
+            className="ff-tactile-btn w-full sm:w-auto rounded-xl bg-gradient-to-r from-amber-500/20 via-amber-400/25 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 border border-amber-400/40 px-5 py-2.5 sm:px-6 sm:py-3 text-sm font-bold text-amber-200 inline-flex items-center justify-center gap-2 cursor-pointer shadow-[0_4px_18px_rgba(245,158,11,0.18)]"
+          >
+            <BookOpen className="w-4 h-4 text-amber-300" />
+            <span>Kho Đề Thi</span>
           </button>
         </div>
 

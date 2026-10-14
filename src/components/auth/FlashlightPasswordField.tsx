@@ -16,6 +16,7 @@
  * quầng sáng chớp nháy (flicker) và bụi sáng bay trong vùng chiếu.
  */
 import {
+  useCallback,
   useEffect,
   useId,
   useRef,
@@ -44,6 +45,7 @@ interface FlashlightPasswordFieldProps {
   invalid?: boolean;
   /** Registration's first password stays a plain masked field; only confirmation has a torch. */
   showTorch?: boolean;
+  mode?: FlashlightMode;
   onFocusChange?: (focused: boolean) => void;
   onModeChange?: (mode: FlashlightMode) => void;
 }
@@ -78,11 +80,18 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
   required = false,
   invalid = false,
   showTorch = true,
+  mode: modeProp,
   onFocusChange,
   onModeChange,
 }) => {
   const hintId = useId();
-  const [mode, setMode] = useState<FlashlightMode>('off');
+  const [internalMode, setInternalMode] = useState<FlashlightMode>('off');
+  const mode = modeProp !== undefined ? modeProp : internalMode;
+  const setMode = useCallback((action: FlashlightMode | ((prev: FlashlightMode) => FlashlightMode)) => {
+    const next = typeof action === 'function' ? action(mode) : action;
+    setInternalMode(next);
+    onModeChange?.(next);
+  }, [mode, onModeChange]);
   const [sticky, setSticky] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -96,7 +105,11 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
   const press = useRef<{ id: number; t: number; x: number; y: number; moved: boolean; wasSticky: boolean } | null>(null);
   const lastTap = useRef(0);
 
-  useEffect(() => { onModeChange?.(mode); }, [mode, onModeChange]);
+  useEffect(() => {
+    if (modeProp === undefined) {
+      onModeChange?.(internalMode);
+    }
+  }, [internalMode, modeProp, onModeChange]);
 
   /* P0: Render On-Demand — chỉ đồng bộ vị trí cuộn ngang của ô nhập khi có sự kiện cuộn/gõ/chọn chữ,
      không chạy vòng lặp requestAnimationFrame vô tận khi người dùng đứng yên. */
@@ -141,18 +154,27 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
   const setSpot = (clientX: number, clientY: number, fromTorch = false) => {
     const box = boxRef.current;
     const torch = torchRef.current;
-    if (!box || !torch) return;
+    if (!box) return;
     const rect = box.getBoundingClientRect();
-    const lamp = torch.getBoundingClientRect();
+    const lamp = torch
+      ? torch.getBoundingClientRect()
+      : {
+          left: rect.right - 40,
+          top: rect.top + (rect.height - 40) / 2,
+          width: 40,
+          height: 40,
+        };
     /* Lấy chính miệng icon làm gốc; con trỏ chỉ đổi hướng, không đổi độ dài tia.
        SVG 22px is centered in the 40px button; its lens is at viewBox x=10/32. */
-    const source = { x: lamp.left + lamp.width / 2 - 11 + 22 * 10 / 32, y: lamp.top + lamp.height / 2 };
+    const source = { x: lamp.left + lamp.width / 2 - 11 + (22 * 10) / 32, y: lamp.top + lamp.height / 2 };
     const target = fromTorch
       ? { x: rect.left + Math.min(rect.width / 2, 100), y: rect.top + rect.height / 2 }
       : { x: clientX, y: clientY };
     lastAim.current = target;
     currentAngle.current = continuousTorchAngle(currentAngle.current, torchAimDegrees(source, target));
-    torch.style.setProperty('--ffl-angle', `${currentAngle.current.toFixed(1)}deg`);
+    if (torch) {
+      torch.style.setProperty('--ffl-angle', `${currentAngle.current.toFixed(1)}deg`);
+    }
     const reach = Math.hypot(window.innerWidth, window.innerHeight) * 2;
     const points = flashlightCone(source, target, reach);
     const polygon = conePolygon(points);

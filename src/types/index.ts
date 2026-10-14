@@ -8,7 +8,47 @@ export type DimensionView =
   | 'chat'
   | 'memory'
   | 'chronicles'
-  | 'coming-soon';
+  | 'coming-soon'
+  | 'exam-vault';
+
+export type ExamType =
+  | 'Đề giữa kỳ 1'
+  | 'Đề giữa kỳ 2'
+  | 'Đề cuối kỳ 1'
+  | 'Đề cuối kỳ 2'
+  | 'Đề 15 phút'
+  | 'Đề cương ôn tập'
+  | 'Khảo sát chất lượng';
+
+export interface ExamPaper {
+  id: string;
+  title: string;
+  subject: string;
+  grade: number; /* 6..12 */
+  examType: ExamType;
+  province: string;
+  school: string;
+  schoolYear: string;
+  format: 'PDF' | 'DOCX';
+  fileSize: string;
+  downloads: number;
+  views: number;
+  likes: number;
+  verified: boolean;
+  hasAnswer: boolean;
+  pageCount: number;
+  duration?: number;
+  uploader: {
+    id?: string;
+    name: string;
+    role?: string;
+  };
+  uploadDate: string;
+  summary: string;
+  sampleQuestions?: string[];
+  status?: 'approved' | 'pending' | 'rejected';
+  rejectionReason?: string;
+}
 
 export type UserRole = 'SUPER_ADMIN' | 'CLUB_LEADER' | 'STUDENT';
 
