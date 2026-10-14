@@ -6176,3 +6176,32 @@ html.light[data-battery-saver="true"] .obsidian-glass {
   opacity: 0.15;
 }
 
+/* 4. P2 & P4 Adaptive Post-Processing & Shadow Budget:
+   Khi FPS < 30 (data-postprocess="off") hoặc FPS < 15 (data-render-mode="low-poly"),
+   tự động tắt các pass làm mờ hậu kỳ (backdrop-filter) và bóng đổ thời gian thực đắt đỏ. */
+[data-postprocess="off"] .liquid-glass,
+[data-render-mode="low-poly"] .liquid-glass {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: rgba(15, 23, 42, 0.96) !important;
+}
+
+[data-postprocess="off"] .obsidian-glass,
+[data-render-mode="low-poly"] .obsidian-glass {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: rgba(10, 16, 26, 0.97) !important;
+}
+
+[data-postprocess="off"] :is(.backdrop-blur-md, .backdrop-blur-lg, .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur-3xl),
+[data-render-mode="low-poly"] :is(.backdrop-blur-sm, .backdrop-blur, .backdrop-blur-md, .backdrop-blur-lg, .backdrop-blur-xl, .backdrop-blur-2xl, .backdrop-blur-3xl) {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html.light[data-postprocess="off"] .liquid-glass,
+html.light[data-render-mode="low-poly"] .liquid-glass {
+  background-color: rgba(248, 250, 252, 0.97) !important;
+}
+
+

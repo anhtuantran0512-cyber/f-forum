@@ -16,6 +16,12 @@
 import React, { useEffect, useRef } from 'react';
 import { useAdaptiveQuality } from '../../utils/adaptiveQuality';
 import {
+  clampPixelRatio,
+  recordRenderFrameMetrics,
+  registerDisposableResource,
+  shouldEnableAntialias,
+} from '../../utils/gpuRenderEngine';
+import {
   PARTICLE_STRIDE,
   createInlineParticleWorker,
   createParticleBuffer,
@@ -66,8 +72,15 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
 
     /* Tỉ lệ hạt theo Device Tier: Tier A = 100%, Tier B = 65%, Tier C = 35% (tối thiểu 12 hạt) */
     const scaledCount = Math.max(12, Math.round(baseCount * capabilities.particleScale));
-    const width = Math.max(240, canvas.clientWidth || window.innerWidth || 800);
-    const height = Math.max(180, canvas.clientHeight || window.innerHeight || 600);
+    /* P0: Giới hạn DPR <= 2 (Tier C giới hạn <= 1.25) để giảm tới 55% tải fragment shader */
+    const effectiveDpr = clampPixelRatio(
+      window.devicePixelRatio || 1,
+      capabilities.tier === 'tier-c' ? 1.25 : 2,
+    );
+    const cssWidth = Math.max(240, canvas.clientWidth || window.innerWidth || 800);
+    const cssHeight = Math.max(180, canvas.clientHeight || window.innerHeight || 600);
+    const width = Math.round(cssWidth * effectiveDpr);
+    const height = Math.round(cssHeight * effectiveDpr);
     canvas.width = width;
     canvas.height = height;
 
@@ -84,7 +97,8 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
     });
 
     /* Khởi tạo WebGL 1 draw call trước (gl.POINTS) để tận dụng GPU phần cứng;
-       nếu trình duyệt/thiết bị không hỗ trợ thì fallback sang Canvas 2D mượt mà. */
+       nếu trình duyệt/thiết bị không hỗ trợ thì fallback sang Canvas 2D mượt mà.
+       P2: Tắt antialias khi DPR >= 2 để tiết kiệm băng thông GPU. */
     let gl: WebGLRenderingContext | null = null;
     let glProgram: WebGLProgram | null = null;
     let glBuffer: WebGLBuffer | null = null;
@@ -93,7 +107,12 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
     let ctx2d: CanvasRenderingContext2D | null = null;
 
     try {
-      gl = canvas.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: false });
+      gl = canvas.getContext('webgl', {
+        alpha: true,
+        antialias: shouldEnableAntialias(effectiveDpr),
+        premultipliedAlpha: false,
+        powerPreference: 'high-performance',
+      });
       if (gl) {
         const vs = gl.createShader(gl.VERTEX_SHADER)!;
         gl.shaderSource(
@@ -146,6 +165,23 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
     if (!gl) {
       ctx2d = canvas.getContext('2d');
     }
+
+    /* P3: Đăng ký giải phóng tài nguyên GPU (.dispose) khi component unmount */
+    const disposeGpu = registerDisposableResource(
+      `particle-canvas-${mode}-${trigger}`,
+      'program',
+      () => {
+        if (gl) {
+          try {
+            if (glBuffer) gl.deleteBuffer(glBuffer);
+            if (glProgram) gl.deleteProgram(glProgram);
+            gl.getExtension('WEBGL_lose_context')?.loseContext();
+          } catch {
+            /* ignore */
+          }
+        }
+      },
+    );
 
     const rgbPalette = palette.map(hexToRgbFloat);
     const vertexData = new Float32Array(scaledCount * 7);
@@ -224,6 +260,7 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
         gl.vertexAttribPointer(aColorLoc, 4, gl.FLOAT, false, 28, 12);
         /* 1 draw call duy nhất cho toàn bộ hệ hạt trên GPU */
         gl.drawArrays(gl.POINTS, 0, count);
+        recordRenderFrameMetrics({ calls: 1, points: count, visibleObjects: count, culledObjects: 0, frameTimeMs: dtMs });
       } else if (ctx2d) {
         ctx2d.clearRect(0, 0, width, height);
         for (let i = 0; i < count; i += 1) {
@@ -256,22 +293,20 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
       running = false;
       if (rafId) cancelAnimationFrame(rafId);
       if (worker) worker.terminate();
-      if (gl) {
-        try {
-          if (glBuffer) gl.deleteBuffer(glBuffer);
-          if (glProgram) gl.deleteProgram(glProgram);
-          gl.viewport(0, 0, width, height);
-          gl.clearColor(0, 0, 0, 0);
-          gl.clear(gl.COLOR_BUFFER_BIT);
-          gl.getExtension('WEBGL_lose_context')?.loseContext();
-        } catch {
-          /* ignore */
-        }
-      }
+      disposeGpu();
       if (ctx2d) ctx2d.clearRect(0, 0, width, height);
       canvas.style.willChange = 'auto';
     };
-  }, [trigger, palette, baseCount, mode, capabilities.particleScale, capabilities.useOffscreenWorker, profile.prefersReducedMotion]);
+  }, [
+    trigger,
+    palette,
+    baseCount,
+    mode,
+    capabilities.tier,
+    capabilities.particleScale,
+    capabilities.useOffscreenWorker,
+    profile.prefersReducedMotion,
+  ]);
 
   return (
     <canvas

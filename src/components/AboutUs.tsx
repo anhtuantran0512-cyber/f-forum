@@ -36,6 +36,12 @@ import { safeStorage } from '../utils/storage';
 import { isMasterAdmin } from '../config/admin';
 import './about/AboutLayouts.css';
 import { rafThrottle } from '../utils/rafThrottle';
+import {
+  SphereCardBatchUpdater,
+  getRendererInfo,
+  recordRenderFrameMetrics,
+  registerDisposableResource,
+} from '../utils/gpuRenderEngine';
 
 export type { MilestoneItem };
 
@@ -254,11 +260,25 @@ export const AboutUs: React.FC<AboutUsProps> = ({
     window.addEventListener('resize', updateEngineDimensionsFrame, { passive: true });
     window.addEventListener('scroll', onPassiveScroll, { passive: true });
 
-    const tick = () => {
-      if (typeof document !== 'undefined' && document.hidden) {
+    const cardBatcher = new SphereCardBatchUpdater(FIBONACCI_POINTS.length);
+    const disposeAboutGeo = registerDisposableResource('aboutus-sphere-geo', 'geometry', () => {
+      cardBatcher.reset();
+    });
+    let lastFrameTs = performance.now();
+
+    const tick = (now = performance.now()) => {
+      if (
+        (typeof document !== 'undefined' && document.hidden) ||
+        viewMode === 'grid' ||
+        Boolean(activeLightboxMilestone) ||
+        isEditorOpen
+      ) {
         animId = requestAnimationFrame(tick);
         return;
       }
+
+      const dtMs = Math.min(64, Math.max(4, now - lastFrameTs));
+      lastFrameTs = now;
       const state = engineState.current;
       const { R } = state;
 
@@ -282,11 +302,11 @@ export const AboutUs: React.FC<AboutUsProps> = ({
       const camZ = state.camZ;
 
       if (worldRef.current) {
-        worldRef.current.style.transform = `translateZ(${camZ}px) rotateY(${sy}deg) rotateX(${sx}deg)`;
+        worldRef.current.style.transform = `translateZ(${camZ.toFixed(1)}px) rotateY(${sy.toFixed(2)}deg) rotateX(${sx.toFixed(2)}deg)`;
       }
 
       if (headlineRef.current) {
-        headlineRef.current.style.transform = `rotateX(${-sx}deg) rotateY(${-sy}deg) translateZ(${R * 0.62}px)`;
+        headlineRef.current.style.transform = `rotateX(${-sx.toFixed(2)}deg) rotateY(${-sy.toFixed(2)}deg) translateZ(${(R * 0.62).toFixed(1)}px)`;
       }
 
       const sxRad = (sx * Math.PI) / 180;
@@ -296,28 +316,43 @@ export const AboutUs: React.FC<AboutUsProps> = ({
       const cosY = Math.cos(syRad);
       const sinY = Math.sin(syRad);
 
+      const lowPolyStep = getRendererInfo().pipeline.qualityMode === 'low-poly' ? 2 : 1;
+      let visibleCount = 0;
+      let culledCount = 0;
+      let domCalls = 0;
+
       FIBONACCI_POINTS.forEach((pt, i) => {
         const cardEl = cardsRef.current[i];
         if (!cardEl) return;
 
         const z1 = -pt.y * sinX + pt.z * cosX;
         const x1 = pt.x;
-
-        const z2 = -x1 * sinY + z1 * cosY;
-
-        const zf = z2;
+        const zf = -x1 * sinY + z1 * cosY;
         const d = Math.max(0, Math.min(0.85, (1 - zf) * 0.45));
 
-        cardEl.style.setProperty('--d', d.toFixed(3));
-        cardEl.style.zIndex = Math.round((zf + 1) * 100).toString();
-        cardEl.style.pointerEvents = zf < -0.2 ? 'none' : 'auto';
+        const res = cardBatcher.updateCard(i, cardEl, zf, d, -0.42, lowPolyStep);
+        if (res.visible) visibleCount += 1;
+        else culledCount += 1;
+        if (res.mutated) domCalls += 1;
+      });
+
+      recordRenderFrameMetrics({
+        calls: domCalls,
+        triangles: visibleCount * 2,
+        visibleObjects: visibleCount,
+        culledObjects: culledCount,
+        frameTimeMs: dtMs,
       });
 
       if (dotRef.current && state.hasFinePointer) {
         const { mousePos, dotPos } = state;
-        dotPos.x += (mousePos.x - dotPos.x) * 0.18;
-        dotPos.y += (mousePos.y - dotPos.y) * 0.18;
-        dotRef.current.style.transform = `translate3d(${dotPos.x}px, ${dotPos.y}px, 0)`;
+        const dx = mousePos.x - dotPos.x;
+        const dy = mousePos.y - dotPos.y;
+        if (Math.abs(dx) > 0.2 || Math.abs(dy) > 0.2) {
+          dotPos.x += dx * 0.18;
+          dotPos.y += dy * 0.18;
+          dotRef.current.style.transform = `translate3d(${dotPos.x.toFixed(1)}px, ${dotPos.y.toFixed(1)}px, 0)`;
+        }
       }
 
       animId = requestAnimationFrame(tick);
@@ -327,10 +362,11 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
     return () => {
       cancelAnimationFrame(animId);
+      disposeAboutGeo();
       window.removeEventListener('scroll', onPassiveScroll);
       { window.removeEventListener('resize', updateEngineDimensionsFrame); updateEngineDimensionsFrame.cancel(); }
     };
-  }, [updateEngineDimensions]);
+  }, [updateEngineDimensions, viewMode, activeLightboxMilestone, isEditorOpen]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;

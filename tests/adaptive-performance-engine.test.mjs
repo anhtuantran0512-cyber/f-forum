@@ -245,3 +245,85 @@ test('Round 4: Proactive LRU Media Cache Eviction & Garbage Collection', async (
   }
 });
 
+/* ========================================================================== */
+/* ROUND 5: P0 -> P4 GPU / 3D / DOM RENDER ENGINE & RENDERER.INFO PROFILER    */
+/* ========================================================================== */
+
+test('Round 5: P0 -> P4 GPU Render Engine (DPR Cap, On-Demand Loop, Batching, Culling, Adaptive FPS < 30 / < 15)', async () => {
+  const engine = await import('../src/utils/gpuRenderEngine.ts');
+
+  /* P0: Giới hạn DPR <= 2 */
+  assert.equal(engine.clampPixelRatio(3.5, 2), 2, 'DPR=3.5 trên màn Retina phải được giới hạn về 2');
+  assert.equal(engine.clampPixelRatio(4, 1.5), 1.5, 'DPR tuân thủ trần tùy chỉnh <= 2');
+  assert.equal(engine.clampPixelRatio(0.5, 2), 1, 'DPR tối thiểu luôn >= 1');
+
+  /* P1: Ngân sách Draw Calls (< 100 Desktop, < 50 Mobile) & Dirty-Checked Sphere Batcher */
+  assert.equal(engine.getDrawCallBudget(false).maxDrawCalls, 100, 'Desktop draw call budget < 100');
+  assert.equal(engine.getDrawCallBudget(true).maxDrawCalls, 50, 'Mobile draw call budget < 50');
+
+  const batcher = new engine.SphereCardBatchUpdater(4);
+  const mockEl = {
+    style: {
+      visibility: '',
+      zIndex: '',
+      pointerEvents: '',
+      props: {},
+      setProperty(k, v) {
+        this.props[k] = v;
+      },
+    },
+  };
+  const firstUpdate = batcher.updateCard(0, mockEl, 0.8, 0.25, -0.42, 1);
+  assert.equal(firstUpdate.visible, true, 'Thẻ ở mặt trước (zf=0.8) phải hiển thị');
+  assert.equal(firstUpdate.mutated, true, 'Lần đầu cập nhật phải ghi DOM');
+
+  const secondSameUpdate = batcher.updateCard(0, mockEl, 0.8, 0.25, -0.42, 1);
+  assert.equal(secondSameUpdate.mutated, false, 'Giá trị không đổi thì Dirty-Checker không được ghi lại DOM');
+
+  const culledBackCard = batcher.updateCard(1, mockEl, -0.75, 0.8, -0.42, 1);
+  assert.equal(culledBackCard.visible, false, 'P4: Thẻ ở bán cầu sau (zf=-0.75 < -0.42) phải bị Frustum/Backface Cull');
+  assert.equal(mockEl.style.visibility, 'hidden', 'Thẻ bị cull phải đặt visibility: hidden');
+
+  /* P2: Tắt Antialias khi DPR >= 2 và giới hạn Post-Processing <= 2 pass (0 pass khi FPS < 30) */
+  assert.equal(engine.shouldEnableAntialias(2), false, 'DPR >= 2 phải tắt MSAA');
+  assert.equal(engine.shouldEnableAntialias(1.5), true, 'DPR < 2 bật MSAA');
+  assert.equal(engine.clampPostProcessingPasses(5, 60), 2, 'Tối đa 2 pass Post-Processing ở 60 FPS');
+  assert.equal(engine.clampPostProcessingPasses(2, 24), 0, 'FPS < 30 tự động tắt toàn bộ Post-Processing');
+
+  /* P3: Nén kích thước Texture <= 2048px, Power-of-Two mipmap & .dispose() lifecycle */
+  const clampedTex = engine.clampTextureDimensions(4096, 2048, 2048);
+  assert.equal(clampedTex.width, 2048, 'Texture 4K phải được hạ xuống tối đa 2048px');
+  assert.equal(clampedTex.height, 1024, 'Giữ nguyên tỉ lệ khung hình khi hạ độ phân giải texture');
+  assert.equal(engine.nearestPowerOfTwo(980), 1024, 'Làm tròn về lũy thừa của 2 (1024) cho mipmap');
+
+  let disposedFlag = false;
+  const disposeTex = engine.registerDisposableResource('test-tex-1', 'texture', () => {
+    disposedFlag = true;
+  });
+  assert.ok(engine.getRendererInfo().memory.textures >= 1, 'renderer.info ghi nhận texture đang cấp phát');
+  disposeTex();
+  assert.equal(disposedFlag, true, 'P3: Hàm .dispose() phải được thực thi khi giải phóng tài nguyên');
+
+  /* P4: Adaptive Quality Governor khi FPS < 30 và FPS < 15 */
+  const dropUnder30 = engine.evaluateAdaptiveQualityStep({
+    fps: 22,
+    currentDpr: 2,
+    nativeDpr: 2,
+    postProcessingEnabled: true,
+    qualityMode: 'high',
+  });
+  assert.equal(dropUnder30.dpr, 1.6, 'FPS < 30 tự động giảm DPR * 0.8 (2.0 -> 1.6)');
+  assert.equal(dropUnder30.postProcessingEnabled, false, 'FPS < 30 tự động tắt Post-Processing');
+
+  const dropUnder15 = engine.evaluateAdaptiveQualityStep({
+    fps: 11,
+    currentDpr: 1.6,
+    nativeDpr: 2,
+    postProcessingEnabled: false,
+    qualityMode: 'balanced',
+  });
+  assert.equal(dropUnder15.qualityMode, 'low-poly', 'FPS < 15 tự động chuyển sang chế độ Low-Poly');
+  assert.equal(dropUnder15.lowPolyStep, 2, 'Chế độ Low-Poly giảm mật độ đối tượng 3D (LOD step = 2)');
+});
+
+

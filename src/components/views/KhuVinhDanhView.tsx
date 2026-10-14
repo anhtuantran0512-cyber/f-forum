@@ -25,6 +25,12 @@ import { DEFAULT_CLUB_COVER, DEFAULT_AVATAR, handleImageError } from '../../util
 import { isMasterAdmin } from '../../config/admin';
 import { rafThrottle } from '../../utils/rafThrottle';
 import { uploadImageToServer } from '../../utils/imagePipeline';
+import {
+  SphereCardBatchUpdater,
+  getRendererInfo,
+  recordRenderFrameMetrics,
+  registerDisposableResource,
+} from '../../utils/gpuRenderEngine';
 
 export interface VinhDanhRecord {
   id: string;
@@ -353,14 +359,41 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     return () => clearTimeout(splashTimer);
   }, []);
 
+  /* P3: Nạp trước thumbnail theo từng lô nhỏ khi rảnh (6 ảnh/lượt) thay vì giải mã đồng loạt 48 ảnh,
+     đồng thời đăng ký .dispose() giải phóng bộ nhớ khi rời trang. */
   useEffect(() => {
-    INITIAL_VINHDANH_RECORDS.forEach((rec) => {
-      const thumb = new Image();
-      thumb.src = `${CDN_BASE}${rec.imgId}_min.webp`;
-      if ('decode' in thumb) {
-        thumb.decode().catch(() => {});
+    const preloadedImages: HTMLImageElement[] = [];
+    let cancelled = false;
+    let cursor = 0;
+
+    const loadBatch = () => {
+      if (cancelled || cursor >= INITIAL_VINHDANH_RECORDS.length) return;
+      const slice = INITIAL_VINHDANH_RECORDS.slice(cursor, cursor + 6);
+      cursor += 6;
+      slice.forEach((rec) => {
+        const thumb = new Image();
+        thumb.decoding = 'async';
+        thumb.src = `${CDN_BASE}${rec.imgId}_min.webp`;
+        preloadedImages.push(thumb);
+      });
+      if (cursor < INITIAL_VINHDANH_RECORDS.length) {
+        window.setTimeout(loadBatch, 90);
       }
+    };
+
+    const timer = window.setTimeout(loadBatch, 180);
+    const disposeTextures = registerDisposableResource('vinhdanh-sphere-thumbs', 'texture', () => {
+      preloadedImages.forEach((img) => {
+        img.src = '';
+      });
+      preloadedImages.length = 0;
     });
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      disposeTextures();
+    };
   }, []);
 
   useEffect(() => {
@@ -532,11 +565,27 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     window.addEventListener('resize', handleResizeFrame, { passive: true });
     window.addEventListener('scroll', onPassiveScroll, { passive: true });
 
-    const tick = () => {
-      if (typeof document !== 'undefined' && document.hidden) {
+    /* P1 + P4: Bộ cập nhật theo lô (dirty-checking) + Back-Hemisphere Culling */
+    const cardBatcher = new SphereCardBatchUpdater(FIBONACCI_POINTS.length);
+    const disposeSphereGeo = registerDisposableResource('vinhdanh-sphere-geo', 'geometry', () => {
+      cardBatcher.reset();
+    });
+    let lastFrameTs = performance.now();
+
+    const tick = (now = performance.now()) => {
+      /* P0: Tạm dừng xử lý 3D hoàn toàn khi tab ẩn, đang mở dạng lưới phẳng, menu hoặc đang xem phim intro */
+      if (
+        (typeof document !== 'undefined' && document.hidden) ||
+        isGridView ||
+        isMenuOpen ||
+        isIntroFilmPlaying
+      ) {
         animId = requestAnimationFrame(tick);
         return;
       }
+
+      const dtMs = Math.min(64, Math.max(4, now - lastFrameTs));
+      lastFrameTs = now;
       const state = engineState.current;
       const { R } = state;
 
@@ -560,12 +609,12 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       const camZ = state.camZ;
 
       if (worldRef.current) {
-        worldRef.current.style.transform = `translateZ(${camZ}px) rotateY(${sy}deg) rotateX(${sx}deg)`;
+        worldRef.current.style.transform = `translateZ(${camZ.toFixed(1)}px) rotateY(${sy.toFixed(2)}deg) rotateX(${sx.toFixed(2)}deg)`;
       }
 
       if (headlineRef.current) {
-        headlineRef.current.style.transform = `rotateX(${-sx}deg) rotateY(${-sy}deg) translateZ(${R * 0.62}px)`;
-        headlineRef.current.style.opacity = Math.max(0, 1 - p * 0.55).toString();
+        headlineRef.current.style.transform = `rotateX(${-sx.toFixed(2)}deg) rotateY(${-sy.toFixed(2)}deg) translateZ(${(R * 0.62).toFixed(1)}px)`;
+        headlineRef.current.style.opacity = Math.max(0, 1 - p * 0.55).toFixed(2);
       }
 
       const sxRad = (sx * Math.PI) / 180;
@@ -574,6 +623,11 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       const sinX = Math.sin(sxRad);
       const cosY = Math.cos(syRad);
       const sinY = Math.sin(syRad);
+
+      const lowPolyStep = getRendererInfo().pipeline.qualityMode === 'low-poly' ? 2 : 1;
+      let visibleCount = 0;
+      let culledCount = 0;
+      let domCalls = 0;
 
       FIBONACCI_POINTS.forEach((pt, i) => {
         const cardEl = cardsRef.current[i];
@@ -591,16 +645,29 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
           dim = Math.min(1, dim + 0.78);
         }
 
-        cardEl.style.setProperty('--d', dim.toFixed(3));
-        cardEl.style.zIndex = Math.round((zf + 1) * 100).toString();
-        cardEl.style.pointerEvents = zf < -0.2 ? 'none' : 'auto';
+        const res = cardBatcher.updateCard(i, cardEl, zf, dim, -0.42, lowPolyStep);
+        if (res.visible) visibleCount += 1;
+        else culledCount += 1;
+        if (res.mutated) domCalls += 1;
+      });
+
+      recordRenderFrameMetrics({
+        calls: domCalls,
+        triangles: visibleCount * 2,
+        visibleObjects: visibleCount,
+        culledObjects: culledCount,
+        frameTimeMs: dtMs,
       });
 
       if (dotRef.current && state.hasFinePointer) {
         const { mousePos, dotPos } = state;
-        dotPos.x += (mousePos.x - dotPos.x) * 0.2;
-        dotPos.y += (mousePos.y - dotPos.y) * 0.2;
-        dotRef.current.style.transform = `translate3d(${dotPos.x}px, ${dotPos.y}px, 0)`;
+        const dx = mousePos.x - dotPos.x;
+        const dy = mousePos.y - dotPos.y;
+        if (Math.abs(dx) > 0.2 || Math.abs(dy) > 0.2) {
+          dotPos.x += dx * 0.2;
+          dotPos.y += dy * 0.2;
+          dotRef.current.style.transform = `translate3d(${dotPos.x.toFixed(1)}px, ${dotPos.y.toFixed(1)}px, 0)`;
+        }
       }
 
       animId = requestAnimationFrame(tick);
@@ -610,10 +677,11 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 
     return () => {
       cancelAnimationFrame(animId);
+      disposeSphereGeo();
       window.removeEventListener('scroll', onPassiveScroll);
       { window.removeEventListener('resize', handleResizeFrame); handleResizeFrame.cancel(); }
     };
-  }, [applyCardLayout, activeLitRecord]);
+  }, [applyCardLayout, activeLitRecord, isGridView, isMenuOpen, isIntroFilmPlaying]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (activeLitRecord) return;

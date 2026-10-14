@@ -98,19 +98,45 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
 
   useEffect(() => { onModeChange?.(mode); }, [mode, onModeChange]);
 
-  /* Đồng bộ vị trí cuộn ngang của ô nhập với 2 lớp chữ (mật khẩu dài hơn bề rộng ô). */
+  /* P0: Render On-Demand — chỉ đồng bộ vị trí cuộn ngang của ô nhập khi có sự kiện cuộn/gõ/chọn chữ,
+     không chạy vòng lặp requestAnimationFrame vô tận khi người dùng đứng yên. */
   useEffect(() => {
     if (mode !== 'beam') return undefined;
+    const input = inputRef.current;
+    const box = boxRef.current;
+    if (!input || !box) return undefined;
+
     let frame = 0;
-    const loop = () => {
-      const box = boxRef.current;
-      const input = inputRef.current;
-      if (box && input) box.style.setProperty('--ffl-scroll', `${input.scrollLeft}px`);
-      frame = window.requestAnimationFrame(loop);
+    let lastScrollLeft = -1;
+
+    const flushScroll = () => {
+      frame = 0;
+      const sl = input.scrollLeft;
+      if (sl !== lastScrollLeft) {
+        lastScrollLeft = sl;
+        box.style.setProperty('--ffl-scroll', `${sl}px`);
+      }
     };
-    frame = window.requestAnimationFrame(loop);
-    return () => window.cancelAnimationFrame(frame);
-  }, [mode]);
+
+    const scheduleSync = () => {
+      if (frame === 0) {
+        frame = window.requestAnimationFrame(flushScroll);
+      }
+    };
+
+    scheduleSync();
+    input.addEventListener('scroll', scheduleSync, { passive: true });
+    input.addEventListener('input', scheduleSync, { passive: true });
+    input.addEventListener('keyup', scheduleSync, { passive: true });
+    input.addEventListener('select', scheduleSync, { passive: true });
+    return () => {
+      if (frame !== 0) window.cancelAnimationFrame(frame);
+      input.removeEventListener('scroll', scheduleSync);
+      input.removeEventListener('input', scheduleSync);
+      input.removeEventListener('keyup', scheduleSync);
+      input.removeEventListener('select', scheduleSync);
+    };
+  }, [mode, value]);
 
   const setSpot = (clientX: number, clientY: number, fromTorch = false) => {
     const box = boxRef.current;
