@@ -361,3 +361,66 @@ html.light .ff-exam-modal {
   background-size: 300% 300%;
   animation: ffExamProgressPulse 3s ease infinite;
 }
+
+/* Slide-over Drawer Animation */
+@keyframes ffSlideLeft {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-left {
+  animation: ffSlideLeft 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Offline & Cache Indicators */
+.ff-cached-pill {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+html.light .ff-cached-pill {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+/* @media print styles for physical exam paper output */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  #ff-printable-exam-paper,
+  #ff-printable-exam-paper * {
+    visibility: visible !important;
+  }
+
+  #ff-printable-exam-paper {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 15mm 15mm 15mm 15mm;
+  }
+}
+

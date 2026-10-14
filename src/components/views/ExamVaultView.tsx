@@ -37,6 +37,10 @@ import {
   ChevronDown,
   ChevronUp,
   Lightbulb,
+  Timer,
+  Printer,
+  HardDrive,
+  WifiOff,
 } from 'lucide-react';
 import type {
   DimensionView,
@@ -48,6 +52,14 @@ import type {
 } from '../../types';
 import { safeStorage } from '../../utils/storage';
 import { playChime } from '../../utils/audio';
+import { CbtPracticeModal } from '../exam/CbtPracticeModal';
+import { ExamBookmarkDrawer } from '../exam/ExamBookmarkDrawer';
+import { ExamPrintExportModal } from '../exam/ExamPrintExportModal';
+import {
+  getCachedExamIds,
+  cacheExamOffline,
+  removeExamFromOfflineCache,
+} from '../exam/offlineStorage';
 import './ExamVaultView.css';
 
 export interface ExamVaultViewProps {
@@ -854,6 +866,89 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  /* Toast Helper */
+  const showToast = useCallback((msg: string) => {
+    setToastMessage(msg);
+    const t = setTimeout(() => setToastMessage(null), 3600);
+    return () => clearTimeout(t);
+  }, []);
+
+  /* Trạng thái tính năng học thuật mới: CBT Practice, Bookmark Drawer, Print Modal, Offline Cache */
+  const [cbtExam, setCbtExam] = useState<ExamPaper | null>(null);
+  const [isBookmarkDrawerOpen, setIsBookmarkDrawerOpen] = useState(false);
+  const [printExam, setPrintExam] = useState<ExamPaper | null>(null);
+  const [cachedExamIds, setCachedExamIds] = useState<string[]>(() => getCachedExamIds());
+  const [isOnline, setIsOnline] = useState<boolean>(() =>
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+
+  /* Lắng nghe trạng thái mạng Online / Offline */
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      showToast('Đã khôi phục kết nối mạng Internet.');
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      showToast('Bạn đang ngoại tuyến. Có thể xem các đề thi đã lưu cache.');
+    };
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [showToast]);
+
+  /* Bật/tắt lưu offline */
+  const handleToggleOfflineCache = useCallback((paper: ExamPaper, event?: React.MouseEvent) => {
+    event?.stopPropagation();
+    const isCached = cachedExamIds.includes(paper.id);
+    if (isCached) {
+      removeExamFromOfflineCache(paper.id);
+      setCachedExamIds((prev) => prev.filter((id) => id !== paper.id));
+      showToast(`Đã xoá đề "${paper.title}" khỏi bộ nhớ ngoại tuyến.`);
+    } else {
+      cacheExamOffline(paper);
+      setCachedExamIds((prev) => [...prev, paper.id]);
+      showToast(`Đã lưu đề "${paper.title}" vào bộ nhớ ngoại tuyến thành công!`);
+      try {
+        playChime();
+      } catch {
+        /* Bỏ qua */
+      }
+    }
+  }, [cachedExamIds, showToast]);
+
+  /* Xoá tất cả đề đã lưu trong Bookmark Drawer */
+  const handleClearAllBookmarks = useCallback(() => {
+    setSavedExams([]);
+    safeStorage.setItem(SAVED_EXAMS_KEY, JSON.stringify([]));
+    showToast('Đã xoá toàn bộ đề thi khỏi danh sách yêu thích.');
+  }, [showToast, setSavedExams]);
+
+  /* Bỏ lưu một đề thi cụ thể */
+  const handleRemoveBookmark = useCallback((examId: string) => {
+    setSavedExams((prev) => {
+      const next = prev.filter((id) => id !== examId);
+      safeStorage.setItem(SAVED_EXAMS_KEY, JSON.stringify(next));
+      showToast('Đã xoá đề thi khỏi mục yêu thích.');
+      return next;
+    });
+  }, [showToast, setSavedExams]);
+
+  /* Khởi động thi thử CBT */
+  const handleStartCBT = useCallback((paper: ExamPaper, event?: React.MouseEvent) => {
+    event?.stopPropagation();
+    setCbtExam(paper);
+  }, []);
+
+  /* Mở modal in ấn & xuất PDF */
+  const handleOpenPrint = useCallback((paper: ExamPaper, event?: React.MouseEvent) => {
+    event?.stopPropagation();
+    setPrintExam(paper);
+  }, []);
+
   /* Preview Modal Interactive Sub-states */
   const [showDetailedSolutions, setShowDetailedSolutions] = useState(false);
   const [expandedSolutionIndices, setExpandedSolutionIndices] = useState<number[]>([]);
@@ -875,13 +970,6 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   const [submitFileSize, setSubmitFileSize] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-
-  /* Toast Helper */
-  const showToast = useCallback((msg: string) => {
-    setToastMessage(msg);
-    const t = setTimeout(() => setToastMessage(null), 3600);
-    return () => clearTimeout(t);
-  }, []);
 
   /* Save/Bookmark toggle */
   const handleToggleBookmark = useCallback((examId: string, event: React.MouseEvent) => {
@@ -1293,13 +1381,16 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (previewExam) setPreviewExam(null);
-        if (isSubmitModalOpen) setIsSubmitModalOpen(false);
+        if (cbtExam) setCbtExam(null);
+        else if (isBookmarkDrawerOpen) setIsBookmarkDrawerOpen(false);
+        else if (printExam) setPrintExam(null);
+        else if (previewExam) setPreviewExam(null);
+        else if (isSubmitModalOpen) setIsSubmitModalOpen(false);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [previewExam, isSubmitModalOpen]);
+  }, [cbtExam, isBookmarkDrawerOpen, printExam, previewExam, isSubmitModalOpen]);
 
   const isStaffOrAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.staffRole === 'MODERATOR' || currentUser?.staffRole === 'TEACHER';
 
@@ -1309,12 +1400,27 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     return allPapers.find((p) => p.id === previewExam.id) || previewExam;
   }, [previewExam, allPapers]);
 
-  /* Deep link: tự động mở xem thử đề thi khi URL có query ?id= hoặc ?exam= */
+  /* Deep link: tự động mở xem thử đề thi hoặc phòng thi CBT khi URL có query */
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
       const params = new URLSearchParams(window.location.search);
       const examId = params.get('id') || params.get('exam');
+      const cbtId = params.get('cbt') || params.get('practice');
+      const showSavedDrawer = params.get('drawer') === 'saved' || params.get('saved') === '1';
+
+      if (cbtId) {
+        const found = allPapers.find((p) => p.id === cbtId);
+        if (found) {
+          requestAnimationFrame(() => setCbtExam(found));
+          return;
+        }
+      }
+
+      if (showSavedDrawer) {
+        requestAnimationFrame(() => setIsBookmarkDrawerOpen(true));
+      }
+
       if (examId) {
         const found = allPapers.find((p) => p.id === examId);
         if (found) {
@@ -1377,6 +1483,30 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           >
             <Users className="w-3.5 h-3.5" />
             <span>Câu Lạc Bộ</span>
+          </button>
+
+          {/* Online / Offline status badge */}
+          {!isOnline && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold" title="Đang ở chế độ ngoại tuyến">
+              <WifiOff className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Ngoại tuyến</span>
+            </div>
+          )}
+
+          {/* Nút Mở Bookmark Drawer (Đề đã lưu) */}
+          <button
+            type="button"
+            onClick={() => setIsBookmarkDrawerOpen(true)}
+            className="relative p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+            aria-label={`Xem danh sách đề đã lưu (${savedExams.length})`}
+            title="Đề thi yêu thích &amp; đã lưu"
+          >
+            <Bookmark className="w-4 h-4 text-amber-400" />
+            {savedExams.length > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-amber-400 text-[#0b0d12] text-[10px] font-black flex items-center justify-center">
+                {savedExams.length}
+              </span>
+            )}
           </button>
 
           {/* Theme Toggle Sun / Moon */}
@@ -1848,10 +1978,30 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                             <Check className="w-2.5 h-2.5" /> Có đáp án
                           </span>
                         )}
+
+                        {cachedExamIds.includes(paper.id) && (
+                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-semibold ff-cached-pill flex items-center gap-1">
+                            <HardDrive className="w-2.5 h-2.5" /> Offline
+                          </span>
+                        )}
                       </div>
 
-                      {/* Top actions: Like and Bookmark */}
+                      {/* Top actions: Like, Offline Cache, Bookmark */}
                       <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleOfflineCache(paper, e)}
+                          className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                            cachedExamIds.includes(paper.id)
+                              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                              : 'bg-white/5 border-white/10 text-white/50 hover:text-white hover:bg-white/10'
+                          }`}
+                          aria-label={cachedExamIds.includes(paper.id) ? 'Xoá khỏi bộ nhớ offline' : 'Lưu học offline'}
+                          title={cachedExamIds.includes(paper.id) ? 'Đã lưu offline' : 'Lưu để học offline'}
+                        >
+                          <HardDrive className="w-3.5 h-3.5" />
+                        </button>
+
                         <button
                           type="button"
                           onClick={(e) => handleToggleLike(paper.id, paper.likes, e)}
@@ -1974,6 +2124,25 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                             Chờ BQT duyệt
                           </span>
                         )}
+
+                        <button
+                          type="button"
+                          onClick={(e) => handleStartCBT(paper, e)}
+                          className="px-2.5 py-1.5 rounded-xl bg-amber-400/15 hover:bg-amber-400/25 text-amber-300 border border-amber-400/30 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Thi thử trực tuyến có bấm giờ &amp; tính điểm"
+                        >
+                          <Timer className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Thi thử</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => handleOpenPrint(paper, e)}
+                          className="p-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white/80 hover:text-white border border-white/10 cursor-pointer transition-colors"
+                          title="Định dạng in A4 &amp; Xuất PDF"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                        </button>
 
                         <button
                           type="button"
@@ -2344,7 +2513,44 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 <span className="text-amber-300 font-semibold">{activePreview.downloads} lượt tải</span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => handleToggleOfflineCache(activePreview)}
+                  className={`px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-colors ${
+                    cachedExamIds.includes(activePreview.id)
+                      ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                      : 'border-white/15 text-white/80 hover:text-white hover:bg-white/10'
+                  }`}
+                  title={cachedExamIds.includes(activePreview.id) ? 'Đã lưu offline' : 'Lưu để học offline'}
+                >
+                  <HardDrive className="w-4 h-4 text-emerald-400" />
+                  <span>{cachedExamIds.includes(activePreview.id) ? 'Đã lưu Offline' : 'Lưu Offline'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleOpenPrint(activePreview)}
+                  className="px-3 py-2 rounded-xl border border-white/15 text-xs font-semibold text-white/90 hover:text-white hover:bg-white/10 cursor-pointer flex items-center gap-1.5 transition-colors"
+                  title="In đề thi chuẩn khổ A4 hoặc xuất PDF"
+                >
+                  <Printer className="w-4 h-4 text-amber-300" />
+                  <span>In Đề / PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPreviewExam(null);
+                    handleStartCBT(activePreview);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 border border-amber-400/40 text-xs font-bold cursor-pointer flex items-center gap-1.5 transition-colors"
+                  title="Vào phòng thi thử trực tuyến có bấm giờ"
+                >
+                  <Timer className="w-4 h-4 text-amber-300" />
+                  <span>Thi Thử CBT</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={(e) => handleToggleBookmark(activePreview.id, e)}
@@ -2611,7 +2817,54 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       )}
 
       {/* ======================================================== */}
-      {/* 7. TOAST NOTIFICATION                                    */}
+      {/* 7. CBT PRACTICE MODE MODAL                               */}
+      {/* ======================================================== */}
+      {cbtExam && (
+        <CbtPracticeModal
+          paper={cbtExam}
+          onClose={() => setCbtExam(null)}
+          onComplete={(res) => {
+            showToast(`Đã hoàn thành bài thi! Điểm số của bạn: ${res.score}/10`);
+          }}
+        />
+      )}
+
+      {/* ======================================================== */}
+      {/* 8. EXAM BOOKMARK / YÊU THÍCH DRAWER                       */}
+      {/* ======================================================== */}
+      <ExamBookmarkDrawer
+        isOpen={isBookmarkDrawerOpen}
+        onClose={() => setIsBookmarkDrawerOpen(false)}
+        savedExamIds={savedExams}
+        allPapers={allPapers}
+        onRemoveBookmark={handleRemoveBookmark}
+        onClearAllBookmarks={handleClearAllBookmarks}
+        onSelectPreview={(p) => {
+          setIsBookmarkDrawerOpen(false);
+          setPreviewExam(p);
+        }}
+        onStartCBT={(p) => {
+          setIsBookmarkDrawerOpen(false);
+          handleStartCBT(p);
+        }}
+        onOpenPrint={(p) => {
+          setIsBookmarkDrawerOpen(false);
+          handleOpenPrint(p);
+        }}
+      />
+
+      {/* ======================================================== */}
+      {/* 9. EXAM PRINT & EXPORT MODAL                             */}
+      {/* ======================================================== */}
+      {printExam && (
+        <ExamPrintExportModal
+          paper={printExam}
+          onClose={() => setPrintExam(null)}
+        />
+      )}
+
+      {/* ======================================================== */}
+      {/* 10. TOAST NOTIFICATION                                   */}
       {/* ======================================================== */}
       {toastMessage && (
         <div className="fixed bottom-6 z-50 px-4 py-2.5 rounded-xl bg-neutral-900/95 border border-amber-400/50 text-amber-200 text-xs font-semibold shadow-[0_12px_36px_rgba(0,0,0,0.65)] backdrop-blur-xl animate-fade-up flex items-center gap-2">
