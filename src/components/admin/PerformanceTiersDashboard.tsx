@@ -145,23 +145,20 @@ export const PerformanceTiersDashboard: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300 border border-amber-400/30">
-                <Zap size={12} /> ADAPTIVE QUALITY ARCHITECTURE
+                <Zap size={12} /> ADAPTIVE QUALITY
               </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300 border border-emerald-400/25">
-                <CheckCircle size={11} /> 100% Feature Parity · SSIM ≥ 0.95
+                <CheckCircle size={11} /> SSIM ≥ 0.95
               </span>
             </div>
             <h3 className="mt-1.5 text-base font-bold text-white">
-              Giám sát Chất lượng & Hiệu năng theo Phân tầng Thiết bị (Tier A / B / C)
+              Hiệu năng theo thiết bị (Tier A / B / C)
             </h3>
-            <p className="text-xs text-slate-400">
-              Không cắt giảm nội dung hay tính năng — tự động điều chỉnh độ phân giải video (4K/HD/SD), mật độ WebGL particle và thứ tự ưu tiên theo phần cứng.
-            </p>
           </div>
 
           <div className="flex items-center gap-2">
             <label className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-slate-900/90 px-3 py-1.5 text-xs text-slate-300">
-              <span>Chế độ máy này:</span>
+              <span>Chế độ:</span>
               <select
                 value={overrideTier}
                 onChange={(e) => setOverrideTier(e.target.value as AdaptiveQualityTier | 'auto')}
@@ -185,7 +182,7 @@ export const PerformanceTiersDashboard: React.FC = () => {
             <button
               type="button"
               onClick={() => void loadReport()}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/10"
+              className="ff-tactile-btn inline-flex items-center gap-1.5 rounded-xl border-2 border-[#0b0d12] bg-[#f4f1de] hover:bg-[#f2cc8f] px-3 py-1.5 text-xs font-extrabold text-[#0b0d12] cursor-pointer"
             >
               <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Làm mới
             </button>
@@ -393,11 +390,8 @@ export const PerformanceTiersDashboard: React.FC = () => {
         <div className="rounded-2xl border border-white/10 bg-[#0d1420] p-4">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-300">
-              <ShieldCheck size={15} /> Kiểm định A/B Testing & Ngưỡng Chất lượng Hình ảnh (SSIM ≥ 0.95)
+              <ShieldCheck size={15} /> Kiểm định chất lượng (SSIM ≥ 0.95)
             </div>
-            <span className="text-[11px] text-slate-400">
-              Chỉ áp dụng tối ưu khi SSIM &gt; 0.95 &amp; không giảm tương tác
-            </span>
           </div>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-left text-xs">

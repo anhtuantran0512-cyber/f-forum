@@ -164,9 +164,8 @@ export const RoleStudio: FC<RoleStudioProps> = ({ caps, currentUserEmail, roles,
         <div>
           <p className="faa-eyebrow">XƯỞNG VAI TRÒ</p>
           <h3>Vai trò & phân quyền</h3>
-          <p>Icon, màu, ký tự riêng — quyền do máy chủ kiểm tra ở từng thao tác.</p>
         </div>
-        <span className="ffr-studio__seal"><ShieldCheck size={14} aria-hidden="true" /> RBAC kiểm tra phía máy chủ</span>
+        <span className="ffr-studio__seal"><ShieldCheck size={14} aria-hidden="true" /> RBAC</span>
       </header>
 
       {(formError || error) && <div className="faa-alert faa-alert--error" role="alert">{formError || error}</div>}
@@ -177,7 +176,7 @@ export const RoleStudio: FC<RoleStudioProps> = ({ caps, currentUserEmail, roles,
           <form className="ffr-card ffr-form" onSubmit={submit} aria-label="Tạo vai trò mới">
             <div className="ffr-card__title">
               <span className="ffr-card__icon"><Plus size={15} aria-hidden="true" /></span>
-              <div><h4>Tạo vai trò mới</h4><p>Điền thông tin — bản xem trước cập nhật ngay.</p></div>
+              <div><h4>Tạo vai trò mới</h4></div>
             </div>
 
             <div className="ffr-templates" role="group" aria-label="Mẫu vai trò nhanh">
@@ -323,7 +322,7 @@ export const RoleStudio: FC<RoleStudioProps> = ({ caps, currentUserEmail, roles,
               </div>
             </div>
 
-            <button type="submit" className="ffr-submit" disabled={!formValid || busy}>
+            <button type="submit" className="ffr-submit ff-tactile-btn" disabled={!formValid || busy}>
               {busy ? <LoaderCircle className="faa-spin" size={15} aria-hidden="true" /> : <Plus size={15} aria-hidden="true" />}
               Tạo vai trò
             </button>
@@ -332,7 +331,6 @@ export const RoleStudio: FC<RoleStudioProps> = ({ caps, currentUserEmail, roles,
           <div className="ffr-card ffr-card--locked">
             <KeyRound size={22} aria-hidden="true" />
             <h4>Chỉ Admin / Super Admin tạo được vai trò</h4>
-            <p>Giáo viên và Moderator có công cụ cấm đăng, cảnh cáo, khoá chat nhưng không được cấp hay tạo vai trò.</p>
           </div>
         )}
 
@@ -340,7 +338,7 @@ export const RoleStudio: FC<RoleStudioProps> = ({ caps, currentUserEmail, roles,
           <section className="ffr-card ffr-matrix" aria-label="Ma trận phân quyền">
             <div className="ffr-card__title">
               <span className="ffr-card__icon"><ShieldCheck size={15} aria-hidden="true" /></span>
-              <div><h4>Ma trận phân quyền</h4><p>Vai trò × quyền — đúng như máy chủ đang áp dụng.</p></div>
+              <div><h4>Ma trận phân quyền</h4></div>
             </div>
             <div className="ffr-matrix__scroll">
               <table>
@@ -380,7 +378,7 @@ export const RoleStudio: FC<RoleStudioProps> = ({ caps, currentUserEmail, roles,
           <section className="ffr-card ffr-list" aria-label="Vai trò tùy chỉnh đã tạo">
             <div className="ffr-card__title">
               <span className="ffr-card__icon"><Wand2 size={15} aria-hidden="true" /></span>
-              <div><h4>Vai trò tùy chỉnh <span className="ffr-count">{roles.length}</span></h4><p>Gán cho thành viên ở tab Thành viên → nút cấp vai trò.</p></div>
+              <div><h4>Vai trò tùy chỉnh <span className="ffr-count">{roles.length}</span></h4></div>
             </div>
             {loading && roles.length === 0 ? (
               <div className="faa-loading"><LoaderCircle className="faa-spin" aria-hidden="true" /> Đang tải vai trò…</div>

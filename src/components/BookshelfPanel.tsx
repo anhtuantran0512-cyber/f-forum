@@ -202,9 +202,9 @@ export const BookshelfPanel: React.FC<BookshelfPanelProps> = ({ ownerKey, canEdi
               setIsAdding(true);
               setError('');
             }}
-            className="pc-12-btn px-2.5 py-1 rounded-xl text-[11px] font-bold text-amber-200 inline-flex items-center gap-1 cursor-pointer"
+            className="pc-12-btn ff-tactile-btn px-2.5 py-1 rounded-xl text-[11px] font-extrabold text-[#0b0d12] bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] inline-flex items-center gap-1 cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-3.5 h-3.5 text-[#e07a5f]" />
             Thêm
           </button>
         )}
@@ -215,7 +215,7 @@ export const BookshelfPanel: React.FC<BookshelfPanelProps> = ({ ownerKey, canEdi
               setIsAdding(false);
               resetForm();
             }}
-            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            className="ff-tactile-btn p-1.5 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-white transition-colors cursor-pointer"
             aria-label="Đóng biểu mẫu thêm sách"
           >
             <X className="w-3.5 h-3.5" />
@@ -308,9 +308,9 @@ export const BookshelfPanel: React.FC<BookshelfPanelProps> = ({ ownerKey, canEdi
             <button
               type="button"
               onClick={handleAdd}
-              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-300 text-neutral-950 text-[11.5px] font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-md hover:brightness-105 transition-all"
+              className="ff-tactile-btn px-3.5 py-1.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] text-[11.5px] font-extrabold inline-flex items-center gap-1.5 cursor-pointer transition-all"
             >
-              <Check className="w-3.5 h-3.5" />
+              <Check className="w-3.5 h-3.5 text-[#e07a5f]" />
               Lưu
             </button>
             <span className="text-[10px] text-neutral-500">

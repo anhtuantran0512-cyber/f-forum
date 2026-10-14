@@ -101,7 +101,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Đóng thẻ"
-            className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-black/45 hover:bg-black/70 border border-white/15 flex items-center justify-center text-white/80 hover:text-white transition-colors cursor-pointer"
+            className="ff-tactile-btn absolute top-2.5 right-2.5 w-7 h-7 rounded-lg bg-[#0b0d12]/80 hover:bg-[#151a26] border border-[#f4f1de]/20 flex items-center justify-center text-[#f4f1de] hover:text-white transition-colors cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>

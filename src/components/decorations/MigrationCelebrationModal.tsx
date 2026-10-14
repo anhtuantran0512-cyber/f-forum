@@ -123,7 +123,7 @@ export const MigrationCelebrationModal: React.FC<MigrationCelebrationModalProps>
     >
       <CelebrationBurst trigger={1} tone={tone} />
       <div className="mcm__panel">
-        <button type="button" className="mcm__close" onClick={onClose} aria-label="Đóng thông báo">
+        <button type="button" className="mcm__close ff-tactile-btn" onClick={onClose} aria-label="Đóng thông báo">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
@@ -155,11 +155,11 @@ export const MigrationCelebrationModal: React.FC<MigrationCelebrationModalProps>
         )}
 
         <div className="mcm__actions">
-          <button type="button" className="mcm__cta" onClick={onExploreBoutique}>
+          <button type="button" className="mcm__cta ff-tactile-btn" onClick={onExploreBoutique}>
             <SparkIcon size={14} />
             Khám phá Boutique
           </button>
-          <button type="button" className="mcm__later" onClick={onClose}>
+          <button type="button" className="mcm__later ff-tactile-btn" onClick={onClose}>
             Để sau
           </button>
         </div>
