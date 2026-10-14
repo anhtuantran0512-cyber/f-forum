@@ -645,180 +645,180 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </div>
       )}
 
-      {currentHeroItem && (
-        <section
-          className="gb-hero-carousel"
-          aria-label={`Trang trí Mythic tiêu điểm: ${currentHeroItem.name}. Bấm để xem trước`}
-          role="button"
-          tabIndex={0}
-          onClick={() => {
-            setPreviewItemId(currentHeroItem.id);
-            inspectItem(currentHeroItem.id);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-stretch">
+        {currentHeroItem && (
+          <section
+            className="gb-hero-carousel"
+            aria-label={`Trang trí Mythic tiêu điểm: ${currentHeroItem.name}. Bấm để xem trước`}
+            role="button"
+            tabIndex={0}
+            onClick={() => {
               setPreviewItemId(currentHeroItem.id);
               inspectItem(currentHeroItem.id);
-            }
-          }}
-        >
-          <div className="gb-hero-carousel__stars" aria-hidden="true" />
-          <div className="gb-hero-carousel__grid">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="gb-mythic-pill">
-                  <span className="rarity-dot mythic" aria-hidden="true" />
-                  MYTHIC
-                </span>
-                <span className="text-[11px] font-mono text-amber-200/90 px-2.5 py-0.5 rounded-full bg-white/8 border border-white/15">
-                  {DECORATION_TYPE_META[currentHeroItem.category === 'Nameplate' ? 'nameplate' : currentHeroItem.category === 'Avatar Aura' ? 'avatar_aura' : 'avatar_frame'].label}
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setPreviewItemId(currentHeroItem.id);
+                inspectItem(currentHeroItem.id);
+              }
+            }}
+          >
+            <div className="gb-hero-carousel__stars" aria-hidden="true" />
+            <div className="gb-hero-carousel__grid w-full">
+              <div className="space-y-1.5 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="gb-mythic-pill">
+                    <span className="rarity-dot mythic" aria-hidden="true" />
+                    MYTHIC
+                  </span>
+                  <span className="text-[10.5px] font-mono text-amber-200/90 px-2 py-0.5 rounded-full bg-white/8 border border-white/15">
+                    {DECORATION_TYPE_META[currentHeroItem.category === 'Nameplate' ? 'nameplate' : currentHeroItem.category === 'Avatar Aura' ? 'avatar_aura' : 'avatar_frame'].label}
+                  </span>
+                </div>
+                <h4 className="text-base font-extrabold text-white tracking-tight truncate">
+                  {currentHeroItem.name}
+                </h4>
+                <div className="flex items-center gap-2 pt-0.5 flex-wrap">
+                  {mythicShowcaseItems.length > 1 && (
+                    <div
+                      className="flex items-center gap-1.5"
+                      role="tablist"
+                      aria-label="Chuyển trang trí Mythic"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      {mythicShowcaseItems.map((mItem, idx) => (
+                        <button
+                          key={mItem.id}
+                          type="button"
+                          onClick={() => setHeroIdx(idx)}
+                          aria-label={`Xem ${mItem.name}`}
+                          className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                            idx === heroIdx % mythicShowcaseItems.length
+                              ? 'w-5 bg-gradient-to-r from-amber-400 to-pink-500'
+                              : 'w-1.5 bg-white/25 hover:bg-white/50'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div
+                onClick={() => {
+                  setPreviewItemId(currentHeroItem.id);
+                  inspectItem(currentHeroItem.id);
+                }}
+                className="flex flex-col items-center justify-center p-2 rounded-xl bg-white/[0.04] border border-white/15 cursor-pointer hover:scale-105 transition-transform shrink-0"
+                title="Xem trước"
+              >
+                <div className="gb-hero__avatar">
+                  <AvatarWithDecoration
+                    avatarUrl={userAvatar || DEFAULT_AVATAR}
+                    decorationAsset={itemToAsset(currentHeroItem)}
+                    size={64}
+                    eager
+                  />
+                </div>
+                <span className="mt-1 text-[10.5px] font-mono font-bold text-amber-300 flex items-center gap-1">
+                  <Coins size={11} /> {effectivePrice(currentHeroItem, now).toLocaleString('vi-VN')}
                 </span>
               </div>
-              <h4 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">
-                {currentHeroItem.name}
-              </h4>
-              <div className="flex items-center gap-3 pt-1 flex-wrap">
-                {mythicShowcaseItems.length > 1 && (
-                  <div
-                    className="flex items-center gap-1.5"
-                    role="tablist"
-                    aria-label="Chuyển trang trí Mythic"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    {mythicShowcaseItems.map((mItem, idx) => (
+            </div>
+          </section>
+        )}
+
+        {activePreviewItem && (() => {
+          const pAsset = itemToAsset(activePreviewItem);
+          const pOwned = inventory.includes(activePreviewItem.id);
+          const pEquipped = !!equippedSlotOf(activePreviewItem);
+          const pWeeklyPrice = effectivePrice(activePreviewItem, now);
+          const pDynDeal = dynamicDiscounts.deals[activePreviewItem.id];
+          const pPrice = pDynDeal ? Math.min(pWeeklyPrice, pDynDeal.discountedPrice) : pWeeklyPrice;
+          const pCanAfford = coin >= pPrice;
+          return (
+            <section
+              className={`gb-discord-preview gb-discord-preview--${decoRarity(activePreviewItem)} !m-0 flex items-center`}
+              aria-label="Diện mạo hiện tại (try-on)"
+            >
+              <div className="w-full flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="relative flex items-center justify-center shrink-0 p-1">
+                    <AvatarWithDecoration
+                      avatarUrl={userAvatar || DEFAULT_AVATAR}
+                      decorationAsset={pAsset.type === 'nameplate' ? null : pAsset}
+                      size={64}
+                      eager
+                      className="gb-discord-preview__avatar"
+                    />
+                  </div>
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="gb-rarity-badge-clean">
+                        <span className="rarity-dot" style={{ background: DECORATION_RARITY_META[decoRarity(activePreviewItem)].color }} aria-hidden="true" />
+                        {DECORATION_RARITY_META[decoRarity(activePreviewItem)].en.toUpperCase()}
+                      </span>
+                      {activePreviewItem.isAnimated && <span className="gb-tag gb-tag--anim">Động</span>}
+                    </div>
+                    {pAsset.type === 'nameplate' ? (
+                      <div className="py-0.5">
+                        <span className="npd-np" style={{ width: 196, height: 36 }}>
+                          <NameplateDisplay asset={pAsset} size={196} animate eager fill className="npd-np__bg" />
+                          <span className="npd-np__text">{userName}</span>
+                        </span>
+                      </div>
+                    ) : (
+                      <strong className="text-sm font-extrabold text-white truncate block">
+                        {userName}
+                      </strong>
+                    )}
+                    <p className="text-xs text-white/80 truncate max-w-[220px]">
+                      <b className="text-white">{activePreviewItem.name}</b>
+                    </p>
+                  </div>
+                </div>
+
+                {!readOnly && (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {pOwned ? (
                       <button
-                        key={mItem.id}
                         type="button"
-                        onClick={() => setHeroIdx(idx)}
-                        aria-label={`Xem ${mItem.name}`}
-                        className={`h-2 rounded-full transition-all cursor-pointer ${
-                          idx === heroIdx % mythicShowcaseItems.length
-                            ? 'w-6 bg-gradient-to-r from-amber-400 to-pink-500'
-                            : 'w-2 bg-white/25 hover:bg-white/50'
-                        }`}
-                      />
-                    ))}
+                        onClick={() => void onEquip(activePreviewItem, pEquipped ? null : activePreviewItem.id)}
+                        className="px-3 py-1.5 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:brightness-110 transition cursor-pointer shadow-md"
+                      >
+                        {pEquipped ? 'Gỡ' : 'Đeo'}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={!pCanAfford || busy}
+                        onClick={() => void buy(activePreviewItem)}
+                        className="px-3 py-1.5 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-amber-500 via-pink-500 to-purple-600 hover:brightness-110 disabled:opacity-40 transition cursor-pointer shadow-md flex items-center gap-1"
+                      >
+                        <Coins size={12} />
+                        <span>
+                          {pCanAfford ? `${pPrice.toLocaleString('vi-VN')}` : `Thiếu ${(pPrice - coin).toLocaleString('vi-VN')}`}
+                        </span>
+                      </button>
+                    )}
+                    {previewItemId && previewItemId !== (equippedSlotOf(activePreviewItem) || '') && (
+                      <button
+                        type="button"
+                        onClick={() => setPreviewItemId(null)}
+                        className="p-1.5 rounded-xl text-xs font-semibold text-white/75 bg-white/6 hover:bg-white/12 border border-white/10 transition cursor-pointer"
+                        title="Hủy xem thử"
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
-            </div>
-
-            <div
-              onClick={() => {
-                setPreviewItemId(currentHeroItem.id);
-                inspectItem(currentHeroItem.id);
-              }}
-              className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/[0.04] border border-white/15 cursor-pointer hover:scale-105 transition-transform"
-              title="Xem trước"
-            >
-              <div className="gb-hero__avatar">
-                <AvatarWithDecoration
-                  avatarUrl={userAvatar || DEFAULT_AVATAR}
-                  decorationAsset={itemToAsset(currentHeroItem)}
-                  size={84}
-                  eager
-                />
-              </div>
-              <span className="mt-1.5 text-[11px] font-mono font-bold text-amber-300 flex items-center gap-1">
-                <Coins size={12} /> {effectivePrice(currentHeroItem, now).toLocaleString('vi-VN')} Coin
-              </span>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {activePreviewItem && (() => {
-        const pAsset = itemToAsset(activePreviewItem);
-        const pOwned = inventory.includes(activePreviewItem.id);
-        const pEquipped = !!equippedSlotOf(activePreviewItem);
-        const pWeeklyPrice = effectivePrice(activePreviewItem, now);
-        const pDynDeal = dynamicDiscounts.deals[activePreviewItem.id];
-        const pPrice = pDynDeal ? Math.min(pWeeklyPrice, pDynDeal.discountedPrice) : pWeeklyPrice;
-        const pCanAfford = coin >= pPrice;
-        return (
-          <section
-            className={`gb-discord-preview gb-discord-preview--${decoRarity(activePreviewItem)}`}
-            aria-label="Diện mạo hiện tại (try-on)"
-          >
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-5">
-                <div className="relative flex items-center justify-center shrink-0">
-                  <AvatarWithDecoration
-                    avatarUrl={userAvatar || DEFAULT_AVATAR}
-                    decorationAsset={pAsset.type === 'nameplate' ? null : pAsset}
-                    size={84}
-                    eager
-                    className="gb-discord-preview__avatar"
-                  />
-                </div>
-                <div className="min-w-0 space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-white/55">
-                      Xem trước
-                    </span>
-                    <span className="gb-rarity-badge-clean">
-                      <span className="rarity-dot" style={{ background: DECORATION_RARITY_META[decoRarity(activePreviewItem)].color }} aria-hidden="true" />
-                      {DECORATION_RARITY_META[decoRarity(activePreviewItem)].en.toUpperCase()}
-                    </span>
-                    {activePreviewItem.isAnimated && <span className="gb-tag gb-tag--anim">Động</span>}
-                  </div>
-                  {pAsset.type === 'nameplate' ? (
-                    <div className="py-0.5">
-                      <span className="npd-np" style={{ width: 240, height: 45 }}>
-                        <NameplateDisplay asset={pAsset} size={240} animate eager fill className="npd-np__bg" />
-                        <span className="npd-np__text">{userName}</span>
-                      </span>
-                    </div>
-                  ) : (
-                    <strong className="text-sm sm:text-base font-extrabold text-white truncate block">
-                      {userName}
-                    </strong>
-                  )}
-                  <p className="text-xs text-white/75 truncate max-w-md">
-                    <b className="text-white">{activePreviewItem.name}</b>
-                  </p>
-                </div>
-              </div>
-
-              {!readOnly && (
-                <div className="flex items-center gap-2 shrink-0">
-                  {pOwned ? (
-                    <button
-                      type="button"
-                      onClick={() => void onEquip(activePreviewItem, pEquipped ? null : activePreviewItem.id)}
-                      className="px-3.5 py-2 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:brightness-110 transition cursor-pointer shadow-md"
-                    >
-                      {pEquipped ? 'Gỡ' : 'Đeo'}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={!pCanAfford || busy}
-                      onClick={() => void buy(activePreviewItem)}
-                      className="px-3.5 py-2 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-amber-500 via-pink-500 to-purple-600 hover:brightness-110 disabled:opacity-40 transition cursor-pointer shadow-md flex items-center gap-1.5"
-                    >
-                      <Coins size={13} />
-                      <span>
-                        {pCanAfford ? `Mua (${pPrice.toLocaleString('vi-VN')})` : `Thiếu ${(pPrice - coin).toLocaleString('vi-VN')}`}
-                      </span>
-                    </button>
-                  )}
-                  {previewItemId && previewItemId !== (equippedSlotOf(activePreviewItem) || '') && (
-                    <button
-                      type="button"
-                      onClick={() => setPreviewItemId(null)}
-                      className="px-3 py-2 rounded-xl text-xs font-semibold text-white/75 bg-white/6 hover:bg-white/12 border border-white/10 transition cursor-pointer"
-                    >
-                      Hủy
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </section>
-        );
-      })()}
+            </section>
+          );
+        })()}
+      </div>
 
       {isGachaOpen && !readOnly && (
         <section className="gb-gacha-deck animate-fade-up" aria-label="Hệ thống quay Gacha và bảo hiểm Pity">
@@ -961,120 +961,104 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </section>
       )}
 
-      <div className="gb-rarity-bar" aria-label="Thông tin đợt giảm giá 6 giờ">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="gb-sale-tag gb-sale-tag--super">Sale 6h</span>
-          <span className="text-xs text-white/80">
-            <b>{dynamicDiscounts.list.length} món</b> (−10% → −90%)
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-xs font-mono text-amber-300">
-          <Clock3 size={13} />
-          <span><b>{formatCountdownHMS(dynamicDiscounts.remainingMs)}</b></span>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-stretch">
+        {dailyDeal ? (
+          <button type="button" className="gb-daily-deal !m-0" onClick={() => inspectItem(dailyDeal.item.id)}>
+            <span className="gb-daily-deal__media !w-14 !h-14">
+              <img
+                src={resolveAssetUrl(dailyDeal.item.previewUrl) ?? dailyDeal.item.previewUrl ?? undefined}
+                alt={`Deal hôm nay: ${dailyDeal.item.name}`}
+                width={56}
+                height={56}
+                loading="eager"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                }}
+              />
+            </span>
+            <span className="gb-daily-deal__body">
+              <span className="gb-daily-deal__kicker">
+                <Tag size={11} aria-hidden="true" /> DEAL{dailyDeal.isSuperSale ? ' · SIÊU SALE' : ''}
+              </span>
+              <span className="gb-daily-deal__name !text-sm">
+                <span className="truncate">{dailyDeal.item.name}</span>
+                <em className="gb-rarity-badge-clean">
+                  <span className="rarity-dot" style={{ background: DECORATION_RARITY_META[decoRarity(dailyDeal.item)].color }} aria-hidden="true" />
+                  {DECORATION_RARITY_META[decoRarity(dailyDeal.item)].en}
+                </em>
+              </span>
+              <span className="gb-daily-deal__price">
+                <s>{dailyDeal.item.price.toLocaleString('vi-VN')}</s>
+                <b>{dailyDeal.price.toLocaleString('vi-VN')} Coin</b>
+                <span className="gb-daily-deal__off">−{dailyDeal.percent}%</span>
+              </span>
+            </span>
+            <span className="gb-daily-deal__timer">
+              <Clock3 size={12} aria-hidden="true" />
+              {formatCountdownHMS(dailyDeal.endsAt - now)}
+            </span>
+          </button>
+        ) : dealItem ? (
+          <button type="button" className="gb-deal !m-0" onClick={() => inspectItem(dealItem.id)}>
+            <span className="gb-deal__icon" aria-hidden="true"><Tag size={14} /></span>
+            <span className="gb-deal__text">
+              <b>−{deal.percent}%</b> · {dealItem.name}
+            </span>
+            <span className="gb-deal__timer"><Clock3 size={12} aria-hidden="true" /> {formatCountdown(deal.endsAt - now)}</span>
+          </button>
+        ) : null}
+
+        <section className="gb-collection !m-0 flex flex-col justify-center" aria-label="Bộ sưu tập của bạn">
+          <div className="gb-collection__head">
+            <b>Bộ sưu tập</b>
+            <span className="gb-collection__count">
+              {collection.owned}/{collection.total} · {collection.percent}%
+            </span>
+          </div>
+          <div className="gb-collection__stack" aria-label="Phân bổ theo độ hiếm (bấm để lọc)">
+            {collection.byRarity.map((row) => (
+              <button
+                key={row.rarity}
+                type="button"
+                className="gb-collection__seg"
+                style={{
+                  width: collection.total ? `${(row.total / collection.total) * 100}%` : '25%',
+                  '--rar-color': DECORATION_RARITY_META[row.rarity].color,
+                } as React.CSSProperties}
+                aria-pressed={rarityFilter === row.rarity}
+                aria-label={`${DECORATION_RARITY_META[row.rarity].label}: đã có ${row.owned}/${row.total} — bấm để lọc`}
+                title={`${DECORATION_RARITY_META[row.rarity].label} ${row.owned}/${row.total} — bấm để lọc`}
+                onClick={() => {
+                  setRarityFilter((cur) => (cur === row.rarity ? 'all' : row.rarity));
+                  saveFilters({ rarity: rarityFilter === row.rarity ? 'all' : row.rarity });
+                  resetPagination();
+                }}
+              >
+                <i aria-hidden="true" style={{ width: row.total ? `${(row.owned / row.total) * 100}%` : '0%' }} />
+              </button>
+            ))}
+          </div>
+          <div className="gb-collection__legend !mb-0" role="group" aria-label="Đếm theo độ hiếm">
+            {collection.byRarity.map((row) => (
+              <button
+                key={row.rarity}
+                type="button"
+                className="gb-collection__lg"
+                style={{ '--rar-color': DECORATION_RARITY_META[row.rarity].color } as React.CSSProperties}
+                aria-pressed={rarityFilter === row.rarity}
+                onClick={() => {
+                  setRarityFilter((cur) => (cur === row.rarity ? 'all' : row.rarity));
+                  saveFilters({ rarity: rarityFilter === row.rarity ? 'all' : row.rarity });
+                  resetPagination();
+                }}
+              >
+                <i aria-hidden="true" />
+                {DECORATION_RARITY_META[row.rarity].label} {row.owned}/{row.total}
+              </button>
+            ))}
+          </div>
+        </section>
       </div>
-
-      {dealItem && (
-        <button type="button" className="gb-deal" onClick={() => inspectItem(dealItem.id)}>
-          <span className="gb-deal__icon" aria-hidden="true"><Tag size={14} /></span>
-          <span className="gb-deal__text">
-            Ưu đãi tuần <b>−{deal.percent}%</b> · {dealItem.name}
-          </span>
-          <span className="gb-deal__timer"><Clock3 size={12} aria-hidden="true" /> còn {formatCountdown(deal.endsAt - now)}</span>
-        </button>
-      )}
-
-      {/* ĐẠI CẬP NHẬT — DEAL HÔM NAY: item chất lượng cao đang sale, xoay theo ngày */}
-      {dailyDeal && (
-        <button type="button" className="gb-daily-deal" onClick={() => inspectItem(dailyDeal.item.id)}>
-          <span className="gb-daily-deal__media">
-            <img
-              src={resolveAssetUrl(dailyDeal.item.previewUrl) ?? dailyDeal.item.previewUrl ?? undefined}
-              alt={`Deal hôm nay: ${dailyDeal.item.name}`}
-              width={72}
-              height={72}
-              loading="eager"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
-              }}
-            />
-          </span>
-          <span className="gb-daily-deal__body">
-            <span className="gb-daily-deal__kicker">
-              <Tag size={11} aria-hidden="true" /> DEAL HÔM NAY{dailyDeal.isSuperSale ? ' · SIÊU SALE' : ''}
-            </span>
-            <span className="gb-daily-deal__name">
-              {dailyDeal.item.name}
-              <em className="gb-rarity-badge-clean">
-                <span className="rarity-dot" style={{ background: DECORATION_RARITY_META[decoRarity(dailyDeal.item)].color }} aria-hidden="true" />
-                {DECORATION_RARITY_META[decoRarity(dailyDeal.item)].en}
-              </em>
-            </span>
-            <span className="gb-daily-deal__price">
-              <s>{dailyDeal.item.price.toLocaleString('vi-VN')}</s>
-              <b>{dailyDeal.price.toLocaleString('vi-VN')} Coin</b>
-              <span className="gb-daily-deal__off">−{dailyDeal.percent}%</span>
-            </span>
-          </span>
-          <span className="gb-daily-deal__timer">
-            <Clock3 size={13} aria-hidden="true" />
-            {formatCountdownHMS(dailyDeal.endsAt - now)}
-          </span>
-        </button>
-      )}
-
-      <section className="gb-collection" aria-label="Bộ sưu tập của bạn">
-        <div className="gb-collection__head">
-          <b>Bộ sưu tập</b>
-          <span className="gb-collection__count">
-            {collection.owned}/{collection.total} · {collection.percent}%
-          </span>
-        </div>
-        {/* 4.3: 1 stacked bar compact (màu = rarity, fill = phần đã sở hữu)
-            + legend 1 dòng — thay cho 4 khối pill chiếm chỗ dọc. */}
-        <div className="gb-collection__stack" aria-label="Phân bổ theo độ hiếm (bấm để lọc)">
-          {collection.byRarity.map((row) => (
-            <button
-              key={row.rarity}
-              type="button"
-              className="gb-collection__seg"
-              style={{
-                width: collection.total ? `${(row.total / collection.total) * 100}%` : '25%',
-                '--rar-color': DECORATION_RARITY_META[row.rarity].color,
-              } as React.CSSProperties}
-              aria-pressed={rarityFilter === row.rarity}
-              aria-label={`${DECORATION_RARITY_META[row.rarity].label}: đã có ${row.owned}/${row.total} — bấm để lọc`}
-              title={`${DECORATION_RARITY_META[row.rarity].label} ${row.owned}/${row.total} — bấm để lọc`}
-              onClick={() => {
-                setRarityFilter((cur) => (cur === row.rarity ? 'all' : row.rarity));
-                saveFilters({ rarity: rarityFilter === row.rarity ? 'all' : row.rarity });
-                resetPagination();
-              }}
-            >
-              <i aria-hidden="true" style={{ width: row.total ? `${(row.owned / row.total) * 100}%` : '0%' }} />
-            </button>
-          ))}
-        </div>
-        <div className="gb-collection__legend" role="group" aria-label="Đếm theo độ hiếm">
-          {collection.byRarity.map((row) => (
-            <button
-              key={row.rarity}
-              type="button"
-              className="gb-collection__lg"
-              style={{ '--rar-color': DECORATION_RARITY_META[row.rarity].color } as React.CSSProperties}
-              aria-pressed={rarityFilter === row.rarity}
-              onClick={() => {
-                setRarityFilter((cur) => (cur === row.rarity ? 'all' : row.rarity));
-                saveFilters({ rarity: rarityFilter === row.rarity ? 'all' : row.rarity });
-                resetPagination();
-              }}
-            >
-              <i aria-hidden="true" />
-              {DECORATION_RARITY_META[row.rarity].label} {row.owned}/{row.total}
-            </button>
-          ))}
-        </div>
-      </section>
 
       {/* Bộ lọc GỘP 1 HÀNG (fix lặp 2 hàng): Loại (dropdown) + Rarity + Sở hữu
           + Chuyển động + Giá — flex-wrap, không chồng chéo. */}
@@ -1260,7 +1244,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                 <div
                   role="button"
                   tabIndex={0}
-                  className={`gb-card gb-card--${legacyRarityClass(rarity)} ${owned ? 'is-owned' : ''}`}
+                  className={`gb-card gb-card--${legacyRarityClass(rarity)} shop-card ${owned ? 'is-owned' : ''}`}
                   aria-describedby={tipId}
                   aria-label={`${item.name}, ${rarityMeta.label}, ${owned ? (equipped ? 'đang đeo' : 'đã sở hữu') : `${price} Coin`}. Mở xem trước`}
                   onMouseEnter={() => {
