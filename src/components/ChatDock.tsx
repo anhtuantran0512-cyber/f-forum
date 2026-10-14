@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -9,7 +9,6 @@ import {
   HelpCircle,
   Heart,
   Shield,
-  Sparkles,
   LogIn,
   Trash2,
   MessageSquareDashed,
@@ -66,30 +65,39 @@ export const ChatDock: React.FC<ChatDockProps> = ({
   onOpenProfile,
   isSynced = true,
 }) => {
-  const resolveChatUser = (email?: string | null, id?: string | null): User | null => {
-    const cleanEmail = email ? email.trim().toLowerCase() : '';
-    if (cleanEmail && users[cleanEmail]) return users[cleanEmail];
-    if (isMasterAdmin(cleanEmail) && users['broamstuck@gmail.com']) {
-      return users['broamstuck@gmail.com'];
+  const usersById = useMemo(() => {
+    const map = new Map<string, User>();
+    for (const u of Object.values(users)) {
+      if (u && u.id) map.set(u.id, u);
     }
-    if (
-      currentUser &&
-      ((cleanEmail && currentUser.email.toLowerCase() === cleanEmail) ||
-        (id && currentUser.id === id) ||
-        ((id === 'admin-master' || id === 'user-admin') && isMasterAdmin(currentUser.email)))
-    ) {
-      return currentUser;
-    }
-    if ((id === 'admin-master' || id === 'user-admin') && users['broamstuck@gmail.com']) {
-      return users['broamstuck@gmail.com'];
-    }
-    if (id) {
-      for (const u of Object.values(users)) {
-        if (u.id === id) return u;
+    return map;
+  }, [users]);
+
+  const resolveChatUser = useCallback(
+    (email?: string | null, id?: string | null): User | null => {
+      const cleanEmail = email ? email.trim().toLowerCase() : '';
+      if (cleanEmail && users[cleanEmail]) return users[cleanEmail];
+      if (isMasterAdmin(cleanEmail) && users['broamstuck@gmail.com']) {
+        return users['broamstuck@gmail.com'];
       }
-    }
-    return null;
-  };
+      if (
+        currentUser &&
+        ((cleanEmail && currentUser.email.toLowerCase() === cleanEmail) ||
+          (id && currentUser.id === id) ||
+          ((id === 'admin-master' || id === 'user-admin') && isMasterAdmin(currentUser.email)))
+      ) {
+        return currentUser;
+      }
+      if ((id === 'admin-master' || id === 'user-admin') && users['broamstuck@gmail.com']) {
+        return users['broamstuck@gmail.com'];
+      }
+      if (id) {
+        return usersById.get(id) || null;
+      }
+      return null;
+    },
+    [users, usersById, currentUser],
+  );
   /* Epic 3 — thu hồi tin nhắn: Super Admin hoặc vai trò tùy chỉnh có quyền edit_content. */
   const adminCaps = useAdminCaps();
   const canRecallMessages = capsHas(adminCaps, 'edit_content');
@@ -159,7 +167,136 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     }
   };
 
-  const currentMessages = messages.filter(m => m.channelId === activeChannel);
+  const currentMessages = useMemo(
+    () => messages.filter(m => m.channelId === activeChannel),
+    [messages, activeChannel],
+  );
+
+  const renderedDockMessages = useMemo(
+    () =>
+      currentMessages.map(msg => {
+        const isMe = currentUser ? msg.authorId === currentUser.id : false;
+        const isSuperAdminMsg = isMasterAdmin(msg.authorEmail);
+        const isSuperAdmin = currentUser ? isMasterAdmin(currentUser.email) : false;
+        const authorDisplayName = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.name : msg.authorName;
+        const authorDisplayAvatar = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.avatar : msg.authorAvatar;
+        const resolvedDockUser = resolveChatUser(
+          isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
+          msg.authorId,
+        );
+
+        return (
+          <div
+            key={msg.id}
+            className={`flex items-start gap-2.5 group/msg ${isMe ? 'flex-row-reverse' : ''}`}
+          >
+            <button
+              type="button"
+              onClick={(e) => {
+                setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
+                if (isMe && currentUser) {
+                  setActiveAuthorCard({
+                    id: currentUser.id,
+                    name: currentUser.name,
+                    avatar: currentUser.avatar,
+                    email: currentUser.email,
+                    level: currentUser.level || 1,
+                  });
+                } else {
+                  setActiveAuthorCard({
+                    id: msg.authorId,
+                    name: authorDisplayName,
+                    avatar: authorDisplayAvatar,
+                    email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
+                    level: isSuperAdminMsg ? 150 : msg.authorLevel,
+                  });
+                }
+              }}
+              className="relative shrink-0 cursor-pointer focus:outline-none"
+              title={`Xem thông tin của ${authorDisplayName}`}
+            >
+              <DecoratedAvatar
+                user={resolvedDockUser}
+                fallbackSrc={authorDisplayAvatar}
+                size={34}
+                animate={isOpen}
+                alt={authorDisplayName}
+                className={`rounded-full shadow-md ${
+                  isSuperAdminMsg ? 'ring-2 ring-amber-400' : 'ring-1 ring-white/20'
+                }`}
+              />
+              <span className="absolute -bottom-1 -right-1 z-[4]">
+                <TierBadge level={isSuperAdminMsg ? 150 : msg.authorLevel} size={15} showTooltip={false} />
+              </span>
+            </button>
+
+            <div className={`max-w-[78%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+              <div className="flex items-center gap-1.5 mb-1.5 text-[11px] text-neutral-400 flex-wrap">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
+                    if (isMe && currentUser) {
+                      setActiveAuthorCard({
+                        id: currentUser.id,
+                        name: currentUser.name,
+                        avatar: currentUser.avatar,
+                        email: currentUser.email,
+                        level: currentUser.level || 1,
+                      });
+                    } else {
+                      setActiveAuthorCard({
+                        id: msg.authorId,
+                        name: authorDisplayName,
+                        avatar: authorDisplayAvatar,
+                        email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
+                        level: isSuperAdminMsg ? 150 : msg.authorLevel,
+                      });
+                    }
+                  }}
+                  className="inline-flex items-center cursor-pointer hover:opacity-95 focus:outline-none"
+                >
+                  <DecoratedName
+                    user={resolvedDockUser}
+                    name={authorDisplayName.replace(/ \(.*\)/, '')}
+                    width={136}
+                    height={26}
+                    animate={isOpen}
+                    showFallbackTag
+                  />
+                </button>
+                {isSuperAdminMsg && <AdminVerifiedBadge size={12} />}
+                <span className="text-[10px] text-neutral-500 font-mono">• {msg.timestamp}</span>
+
+                {/* Thu hồi tin nhắn (Super Admin / quyền edit_content) */}
+                {(isSuperAdmin || canRecallMessages) && (
+                  <button
+                    type="button"
+                    onClick={() => onDeleteMessage?.(msg.id)}
+                    className="opacity-0 group-hover/msg:opacity-100 transition-opacity ml-1.5 px-1.5 py-0.5 text-red-400 hover:text-red-300 rounded bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 cursor-pointer inline-flex items-center gap-1"
+                    title="Thu hồi tin nhắn vi phạm"
+                  >
+                    <Trash2 className="w-2.5 h-2.5" />
+                    <span className="text-[9px]">Thu hồi tin nhắn</span>
+                  </button>
+                )}
+              </div>
+
+              <div
+                className={`px-3.5 py-2 rounded-2xl text-xs leading-relaxed break-words shadow-sm ${
+                  isMe
+                    ? 'bg-amber-500/20 text-white border border-amber-400/30 rounded-tr-none'
+                    : 'bg-white/10 text-neutral-100 rounded-tl-none border border-white/10'
+                }`}
+              >
+                {msg.content}
+              </div>
+            </div>
+          </div>
+        );
+      }),
+    [currentMessages, currentUser, canRecallMessages, resolveChatUser, onDeleteMessage, isOpen],
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -268,136 +405,16 @@ export const ChatDock: React.FC<ChatDockProps> = ({
             </div>
           ) : currentMessages.length === 0 ? (
             /* Authentic Empty State with MessageSquareDashed */
-            <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3 text-neutral-400">
+            <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2.5 text-neutral-400">
               <div className="relative">
-                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-                  <MessageSquareDashed className="w-7 h-7 text-amber-300 animate-pulse" />
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                  <MessageSquareDashed className="w-6 h-6 text-amber-300" />
                 </div>
-                <Sparkles className="w-3.5 h-3.5 text-amber-300 absolute -top-1 -right-1 animate-pulse" />
               </div>
-              <h3 className="text-xs font-semibold text-white font-mono">Chưa có tin nhắn nào trong kênh này</h3>
-              <p className="text-[11px] text-neutral-300 max-w-[260px] leading-relaxed font-light">
-                Chưa có tin nhắn nào trong kênh này. Hãy là người mở đầu cuộc trò chuyện!
-              </p>
+              <h3 className="text-xs font-semibold text-white font-mono">Hãy là người mở đầu cuộc trò chuyện</h3>
             </div>
           ) : (
-            currentMessages.map(msg => {
-              const isMe = currentUser ? msg.authorId === currentUser.id : false;
-              const isSuperAdminMsg = isMasterAdmin(msg.authorEmail);
-              const isSuperAdmin = currentUser ? isMasterAdmin(currentUser.email) : false;
-              const authorDisplayName = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.name : msg.authorName;
-              const authorDisplayAvatar = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.avatar : msg.authorAvatar;
-
-              return (
-                <div
-                  key={msg.id}
-                  className={`flex items-start gap-2.5 group/msg ${isMe ? 'flex-row-reverse' : ''}`}
-                >
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-                      if (isMe && currentUser) {
-                        setActiveAuthorCard({
-                          id: currentUser.id,
-                          name: currentUser.name,
-                          avatar: currentUser.avatar,
-                          email: currentUser.email,
-                          level: currentUser.level || 1,
-                        });
-                      } else {
-                        setActiveAuthorCard({
-                          id: msg.authorId,
-                          name: authorDisplayName,
-                          avatar: authorDisplayAvatar,
-                          email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
-                          level: isSuperAdminMsg ? 150 : msg.authorLevel,
-                        });
-                      }
-                    }}
-                    className="relative shrink-0 cursor-pointer focus:outline-none"
-                    title={`Xem thông tin của ${authorDisplayName}`}
-                  >
-                    <DecoratedAvatar
-                      user={resolveChatUser(isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail, msg.authorId)}
-                      fallbackSrc={authorDisplayAvatar}
-                      size={34}
-                      animate
-                      alt={authorDisplayName}
-                      className={`rounded-full shadow-md ${
-                        isSuperAdminMsg ? 'ring-2 ring-amber-400' : 'ring-1 ring-white/20'
-                      }`}
-                    />
-                    <span className="absolute -bottom-1 -right-1 z-[4]">
-                      <TierBadge level={isSuperAdminMsg ? 150 : msg.authorLevel} size={15} showTooltip={false} />
-                    </span>
-                  </button>
-
-                  <div className={`max-w-[78%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                    <div className="flex items-center gap-1.5 mb-1.5 text-[11px] text-neutral-400 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-                          if (isMe && currentUser) {
-                            setActiveAuthorCard({
-                              id: currentUser.id,
-                              name: currentUser.name,
-                              avatar: currentUser.avatar,
-                              email: currentUser.email,
-                              level: currentUser.level || 1,
-                            });
-                          } else {
-                            setActiveAuthorCard({
-                              id: msg.authorId,
-                              name: authorDisplayName,
-                              avatar: authorDisplayAvatar,
-                              email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
-                              level: isSuperAdminMsg ? 150 : msg.authorLevel,
-                            });
-                          }
-                        }}
-                        className="inline-flex items-center cursor-pointer hover:opacity-95 focus:outline-none"
-                      >
-                        <DecoratedName
-                          user={resolveChatUser(isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail, msg.authorId)}
-                          name={authorDisplayName.replace(/ \(.*\)/, '')}
-                          width={136}
-                          height={26}
-                          animate
-                          showFallbackTag
-                        />
-                      </button>
-                      {isSuperAdminMsg && <AdminVerifiedBadge size={12} />}
-                      <span className="text-[10px] text-neutral-500 font-mono">• {msg.timestamp}</span>
-
-                      {/* Thu hồi tin nhắn (Super Admin / quyền edit_content) */}
-                      {(isSuperAdmin || canRecallMessages) && (
-                        <button
-                          type="button"
-                          onClick={() => onDeleteMessage?.(msg.id)}
-                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity ml-1.5 px-1.5 py-0.5 text-red-400 hover:text-red-300 rounded bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 cursor-pointer inline-flex items-center gap-1"
-                          title="Thu hồi tin nhắn vi phạm"
-                        >
-                          <Trash2 className="w-2.5 h-2.5" />
-                          <span className="text-[9px]">Thu hồi tin nhắn</span>
-                        </button>
-                      )}
-                    </div>
-
-                    <div
-                      className={`px-3.5 py-2 rounded-2xl text-xs leading-relaxed break-words shadow-sm ${
-                        isMe
-                          ? 'bg-amber-500/20 text-white border border-amber-400/30 rounded-tr-none'
-                          : 'bg-white/10 text-neutral-100 rounded-tl-none border border-white/10'
-                      }`}
-                    >
-                      {msg.content}
-                    </div>
-                  </div>
-                </div>
-              );
-            })
+            renderedDockMessages
           )}
           <div ref={messagesEndRef} />
         </div>

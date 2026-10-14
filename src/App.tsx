@@ -965,7 +965,14 @@ export const App: React.FC = () => {
     document.documentElement.classList.remove('potato-mode', 'potator-mode-active');
   }, []);
 
-  const solvedQuestionsCount = questions.filter(q => q.isSolved).length;
+  const solvedQuestionsCount = useMemo(
+    () => questions.reduce((acc, q) => (q.isSolved ? acc + 1 : acc), 0),
+    [questions],
+  );
+  const approvedClubsCount = useMemo(
+    () => clubs.reduce((acc, c) => (c.status === 'APPROVED' ? acc + 1 : acc), 0),
+    [clubs],
+  );
   const isScrollableView =
     currentView === 'memory' || currentView === 'chronicles' || currentView === 'landing';
 
@@ -1080,7 +1087,7 @@ export const App: React.FC = () => {
               onlineCount={onlineUsers.length}
               totalQuestions={questions.length}
               solvedQuestions={solvedQuestionsCount}
-              totalClubs={clubs.filter(c => c.status === 'APPROVED').length}
+              totalClubs={approvedClubsCount}
             />
           )}
 
@@ -1089,13 +1096,13 @@ export const App: React.FC = () => {
               <HomeView
                 onNavigate={handleNavigate}
                 onOpenLanding={() => handleViewChange('landing')}
-                totalClubs={clubs.filter(c => c.status === 'APPROVED').length}
+                totalClubs={approvedClubsCount}
                 totalQuestions={questions.length}
                 solvedQuestionsCount={solvedQuestionsCount}
                 onlineCount={onlineUsers.length}
                 onlineUsersCount={onlineUsers.length}
                 resolvedQuestionsCount={solvedQuestionsCount}
-                totalClubsCount={clubs.filter(c => c.status === 'APPROVED').length}
+                totalClubsCount={approvedClubsCount}
                 chatMessagesTodayCount={chatMessages.length}
                 streakCount={currentUser?.streakCount || 0}
                 onOpenDaily={() => window.dispatchEvent(new CustomEvent('fforum_open_daily'))}

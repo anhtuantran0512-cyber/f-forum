@@ -99,16 +99,22 @@ export const OdometerDigits: React.FC<OdometerDigitsProps> = ({
     const to = safeValue;
     const startedAt = performance.now();
     let raf = 0;
+    let lastFixed = from.toFixed(decimals);
     const step = (now: number) => {
       const t = Math.min(1, (now - startedAt) / duration);
       const eased = 1 - Math.pow(1 - t, 3);
-      setAnimated(from + (to - from) * eased);
+      const nextVal = t === 1 ? to : from + (to - from) * eased;
+      const nextFixed = nextVal.toFixed(decimals);
+      if (nextFixed !== lastFixed || t === 1) {
+        lastFixed = nextFixed;
+        setAnimated(nextVal);
+      }
       if (t < 1) raf = window.requestAnimationFrame(step);
       else fromRef.current = to;
     };
     raf = window.requestAnimationFrame(step);
     return () => window.cancelAnimationFrame(raf);
-  }, [safeValue, countUp]);
+  }, [safeValue, countUp, decimals]);
 
   const shownValue = countUp ? animated : safeValue;
   const fixed = shownValue.toFixed(decimals);

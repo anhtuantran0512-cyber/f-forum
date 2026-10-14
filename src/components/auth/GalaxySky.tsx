@@ -65,7 +65,8 @@ export function GalaxySky({ active }: { active: boolean }) {
     };
     const draw = (time: number) => {
       frame = window.requestAnimationFrame(draw);
-      if (time - lastFrame < 1000 / 30) return; /* cap even on 120Hz displays */
+      const isLowPoly = document.documentElement.dataset.renderMode === 'low-poly';
+      if (isLowPoly && time - lastFrame < 1000 / 30) return;
       lastFrame = time;
       ctx.clearRect(0, 0, width, height);
       currentX += (pointerRef.current.x - currentX) * .09;

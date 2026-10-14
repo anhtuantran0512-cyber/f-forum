@@ -872,21 +872,23 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     }
   };
 
+  const isAskCooling = askCooldown > 0;
   useEffect(() => {
-    if (askCooldown <= 0) return;
+    if (!isAskCooling) return;
     const timer = setInterval(() => {
       setAskCooldown(prev => Math.max(0, prev - 1));
     }, 1000);
     return () => clearInterval(timer);
-  }, [askCooldown]);
+  }, [isAskCooling]);
 
+  const isSolCooling = solCooldown > 0;
   useEffect(() => {
-    if (solCooldown <= 0) return;
+    if (!isSolCooling) return;
     const timer = setInterval(() => {
       setSolCooldown(prev => Math.max(0, prev - 1));
     }, 1000);
     return () => clearInterval(timer);
-  }, [solCooldown]);
+  }, [isSolCooling]);
 
   /**
    * Kênh để nơi khác (bảng lệnh, tìm kiếm toàn cục) bảo diễn đàn mở một câu hỏi

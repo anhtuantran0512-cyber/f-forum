@@ -344,17 +344,6 @@ export const AboutUs: React.FC<AboutUsProps> = ({
         frameTimeMs: dtMs,
       });
 
-      if (dotRef.current && state.hasFinePointer) {
-        const { mousePos, dotPos } = state;
-        const dx = mousePos.x - dotPos.x;
-        const dy = mousePos.y - dotPos.y;
-        if (Math.abs(dx) > 0.2 || Math.abs(dy) > 0.2) {
-          dotPos.x += dx * 0.18;
-          dotPos.y += dy * 0.18;
-          dotRef.current.style.transform = `translate3d(${dotPos.x.toFixed(1)}px, ${dotPos.y.toFixed(1)}px, 0)`;
-        }
-      }
-
       animId = requestAnimationFrame(tick);
     };
 
@@ -703,11 +692,12 @@ export const AboutUs: React.FC<AboutUsProps> = ({
         }
       `}</style>
 
-      {/* Custom smooth cursor #dot lerp */}
+      {/* Custom smooth cursor #dot placeholder (managed by GlobalCursor) */}
       <div
         id="dot"
         ref={dotRef}
-        className="fixed top-0 left-0 w-2.5 h-2.5 rounded-full bg-[#f4f2ef] pointer-events-none z-50 -ml-[5px] -mt-[5px] mix-blend-difference hidden md:block shadow-[0_0_12px_#ffffff]"
+        className="hidden"
+        aria-hidden="true"
       />
 
       {/* Vignette .vig: radial-gradient ellipse 88% 92% */}

@@ -3,7 +3,7 @@
    Respiração public toàn trường, 1 ảnh/thread, 480 ký tự, reply lồng tối đa 3 cấp,
    5 reaction toggle, repost simple/quote, report auto-hide (≥5/1h),
    rate limit 10 thread/giờ (server), Thread of the Day banner (Mascot Cú). */
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Heart, Laugh, Flame, Zap, HandHeart, ImagePlus, Send,
@@ -120,7 +120,7 @@ const resolveThreadUser = (
 };
 
 /* === Card Thread (dùng cho feed + reply lồng + repost-card) === */
-const ThreadCard: React.FC<{
+const ThreadCard = React.memo<{
   thread: Thread;
   allThreads?: Thread[];
   depth?: number;
@@ -145,7 +145,7 @@ const ThreadCard: React.FC<{
     onOpenLightbox?: (url: string) => void;
   };
   showActions?: boolean;
-}> = ({ thread: rootThread, allThreads, depth = 0, currentUser, users, replyText, onReplyTextChange, viewModel, showActions = true }) => {
+}>(({ thread: rootThread, allThreads, depth = 0, currentUser, users, replyText, onReplyTextChange, viewModel, showActions = true }) => {
   const [isReplyOpen, setIsReplyOpen] = useState(false);
   const [repostMode, setRepostMode] = useState<'simple' | 'quote'>('simple');
   const [isRepostOpen, setIsRepostOpen] = useState(false);
@@ -629,7 +629,7 @@ const ThreadCard: React.FC<{
       )}
     </div>
   );
-};
+});
 
 /* Component đệ quy cho reply lồng nhau (tối đa 3 cấp) theo spec Nhiemvu_8 */
 const ThreadReplyNode: React.FC<{
@@ -675,7 +675,6 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
   const [draftImage, setDraftImage] = useState<string | null>(null);
   const [draftImageError, setDraftImageError] = useState('');
   const [remainingChars, setRemainingChars] = useState(THREAD_MAX_CHARS);
-  const [ofTheDay, setOfTheDay] = useState<Thread | null>(null);
   const [feedMode, setFeedMode] = useState<'latest' | 'hot' | 'media' | 'mine' | 'saved'>('latest');
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useInteractionDebounce(searchQuery, 120);
@@ -693,26 +692,14 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const toggleSaveThread = (threadId: string) => {
+  const toggleSaveThread = useCallback((threadId: string) => {
     setSavedIds((prev) => {
       const exists = prev.includes(threadId);
       const next = exists ? prev.filter((id) => id !== threadId) : [threadId, ...prev];
       safeStorage.setItem(SAVED_THREADS_KEY, JSON.stringify(next));
       return next;
     });
-  };
-
-  /* Tải Thread of the Day (cron server tính mỗi giờ, cache 1h) */
-  useEffect(() => {
-    let cancelled = false;
-    void fetch('/api/threads/of-the-day')
-      .then((r) => r.json())
-      .then((data) => {
-        if (!cancelled && data?.success) setOfTheDay(data.thread || null);
-      })
-      .catch(() => { /* offline thì bỏ banner, không chặn feed */ });
-    return () => { cancelled = true; };
-  }, [threads.length]);
+  }, []);
 
   /* Tự động trích xuất chủ đề #hashtag đang thịnh hành trong toàn bộ mạch chuyện */
   const trendingTags = useMemo(() => {
@@ -878,19 +865,24 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
     setRemainingChars(THREAD_MAX_CHARS);
   };
 
-  const viewModel = {
-    onReply: (parentId: string, content: string) => void onReplyThread(parentId, content),
-    onReact: (id: string, type: ThreadReactionType) => void onReact(id, type),
-    onRepost: (id: string, type: 'simple' | 'quote', content?: string) => void onRepost(id, type, content),
-    onReport: (id: string, reason: string) => void onReport(id, reason),
-    onDelete: (id: string) => void onDelete?.(id),
-    onOpenProfile,
-    onOpenLoginModal,
-    onSelectTag: (tag: string) => setActiveTag((prev) => (prev === tag ? null : tag)),
-    onToggleSave: toggleSaveThread,
-    isSaved: (id: string) => savedIds.includes(id),
-    onOpenLightbox: (url: string) => setLightboxImage(url),
-  };
+  const savedSet = useMemo(() => new Set(savedIds), [savedIds]);
+
+  const viewModel = useMemo(
+    () => ({
+      onReply: (parentId: string, content: string) => void onReplyThread(parentId, content),
+      onReact: (id: string, type: ThreadReactionType) => void onReact(id, type),
+      onRepost: (id: string, type: 'simple' | 'quote', content?: string) => void onRepost(id, type, content),
+      onReport: (id: string, reason: string) => void onReport(id, reason),
+      onDelete: (id: string) => void onDelete?.(id),
+      onOpenProfile,
+      onOpenLoginModal,
+      onSelectTag: (tag: string) => setActiveTag((prev) => (prev === tag ? null : tag)),
+      onToggleSave: toggleSaveThread,
+      isSaved: (id: string) => savedSet.has(id),
+      onOpenLightbox: (url: string) => setLightboxImage(url),
+    }),
+    [onReplyThread, onReact, onRepost, onReport, onDelete, onOpenProfile, onOpenLoginModal, toggleSaveThread, savedSet],
+  );
 
   return (
     <section ref={feedScrollRef} className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-y-auto'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8 threads-bg ff-raw-grid-surface`}>
@@ -1020,40 +1012,6 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
           )}
         </header>
 
-        {/* Thread of the Day banner — Mascot Cú */}
-        {ofTheDay && (
-          <div className="totd-banner">
-            <div className="totd-icon-orb" aria-hidden="true">
-              <Flame className="w-5 h-5 text-amber-300" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="totd-head-row">
-                <div className="totd-label">Tâm điểm hôm nay</div>
-                <span className="totd-pill">Đề cử nổi bật</span>
-              </div>
-              <p className="totd-content">{ofTheDay.content}</p>
-              <span className="totd-author inline-flex items-center gap-2 mt-1.5">
-                <DecoratedAvatar
-                  user={resolveThreadUser(users, currentUser, ofTheDay.authorEmail, ofTheDay.authorId)}
-                  fallbackSrc={ofTheDay.authorAvatar || DEFAULT_AVATAR}
-                  size={24}
-                  animate
-                  className="rounded-full"
-                  alt={ofTheDay.authorName}
-                />
-                <DecoratedName
-                  user={resolveThreadUser(users, currentUser, ofTheDay.authorEmail, ofTheDay.authorId)}
-                  name={ofTheDay.authorName.replace(/ \(.*\)/, '')}
-                  width={136}
-                  height={25}
-                  animate
-                  showFallbackTag
-                />
-              </span>
-            </div>
-          </div>
-        )}
-
         {/* Composer — "Cậu đang nghĩ gì thế?" */}
         <div className="thread-composer-card">
           {currentUser && (
@@ -1078,7 +1036,6 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                 priority="high"
                 showFallbackTag
               />
-              <span className="thread-composer-badge">Đăng công khai</span>
             </div>
           )}
           <textarea
@@ -1122,20 +1079,22 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
           )}
           {draftImageError && <p className="image-error">{draftImageError}</p>}
 
-          {/* Gợi ý chủ đề 1 chạm */}
-          <div className="thread-topic-bar">
-            <span className="thread-topic-label">Chủ đề:</span>
-            {QUICK_TOPICS.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => insertTopicTag(tag)}
-                className={`thread-topic-chip ${draftContent.includes(tag) ? 'is-selected' : ''}`}
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
+          {/* Gợi ý chủ đề 1 chạm (chỉ hiện khi người dùng đang gõ bài để không lặp với thanh Xu hướng) */}
+          {draftContent.length > 0 && (
+            <div className="thread-topic-bar">
+              <span className="thread-topic-label">Chủ đề:</span>
+              {QUICK_TOPICS.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => insertTopicTag(tag)}
+                  className={`thread-topic-chip ${draftContent.includes(tag) ? 'is-selected' : ''}`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="thread-composer-actions">
             <button type="button" onClick={firePickImage} className="icon-btn subtle" title="Đính kèm 1 ảnh (≤20MB)">
