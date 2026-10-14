@@ -789,7 +789,7 @@ export function useForumStore() {
             }
             if (data.about) {
               setAboutData(data.about);
-              saveAboutDataLocally(data.about);
+              saveAboutDataLocally(data.about, { broadcast: false });
             }
 
 
@@ -1263,7 +1263,7 @@ export function useForumStore() {
         case 'SYNC_ABOUT': {
           const newAbout = payload as AboutData;
           setAboutData(newAbout);
-          saveAboutDataLocally(newAbout);
+          saveAboutDataLocally(newAbout, { broadcast: false });
           break;
         }
 
@@ -1596,7 +1596,7 @@ export function useForumStore() {
         case 'SYNC_ABOUT': {
           const newAbout = payload as AboutData;
           setAboutData(newAbout);
-          saveAboutDataLocally(newAbout);
+          saveAboutDataLocally(newAbout, { broadcast: false });
           break;
         }
       }
@@ -3593,7 +3593,7 @@ export function useForumStore() {
     }
 
     setAboutData(newAboutData);
-    saveAboutDataLocally(newAboutData);
+    saveAboutDataLocally(newAboutData, { broadcast: false });
 
     try {
       await saveAboutDataToServer(newAboutData, currentUser.email);

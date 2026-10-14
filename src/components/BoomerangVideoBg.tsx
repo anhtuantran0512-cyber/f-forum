@@ -1,6 +1,7 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useRef, useState } from 'react';
 import { LOW_FPS_PLAYBACK_RATE, VIDEO_TARGET_FPS, toWebmVideoUrl } from '../utils/chatVideos';
+import { handleVideoError, isTerminalVideoError } from '../utils/mediaFallback';
 
 const VIDEO_URL =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260611_183632_c311af08-e4b7-458f-81e7-79847a49b3d3.mp4';
@@ -10,6 +11,10 @@ export const BoomerangVideoBg: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [useCanvas, setUseCanvas] = useState(false);
+  const useCanvasRef = useRef(false);
+  useEffect(() => {
+    useCanvasRef.current = useCanvas;
+  }, [useCanvas]);
   const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
@@ -51,7 +56,7 @@ export const BoomerangVideoBg: React.FC = () => {
       if (isCancelled || video.paused || video.ended) return;
 
       const now = performance.now();
-      if (now - lastCaptureTime >= frameInterval && frames.length < 90) {
+      if (now - lastCaptureTime >= frameInterval && frames.length < 45) {
         lastCaptureTime = now;
         try {
           if (video.videoWidth > 0 && video.videoHeight > 0) {
@@ -89,6 +94,7 @@ export const BoomerangVideoBg: React.FC = () => {
     const handleEnded = () => {
       if (frames.length > 5 && ctx && !isCancelled) {
         setUseCanvas(true);
+        video.pause();
         startBoomerangLoop();
       } else {
         video.loop = true;
@@ -142,12 +148,38 @@ export const BoomerangVideoBg: React.FC = () => {
       typeof IntersectionObserver === 'function' && host
         ? new IntersectionObserver(([entry]) => {
             inView = entry ? entry.isIntersecting : true;
-            if (inView) resumeLoop?.();
+            if (inView) {
+              resumeLoop?.();
+              if (!useCanvasRef.current && video.paused) {
+                video.play().catch(() => {});
+              }
+            } else {
+              if (loopAnimId !== null) {
+                cancelAnimationFrame(loopAnimId);
+                loopAnimId = null;
+              }
+              if (!video.paused) {
+                video.pause();
+              }
+            }
           })
         : null;
     if (observer && host) observer.observe(host);
     const onVisibility = () => {
-      if (document.visibilityState === 'visible') resumeLoop?.();
+      if (document.visibilityState === 'visible') {
+        resumeLoop?.();
+        if (!useCanvasRef.current && inView && video.paused) {
+          video.play().catch(() => {});
+        }
+      } else {
+        if (loopAnimId !== null) {
+          cancelAnimationFrame(loopAnimId);
+          loopAnimId = null;
+        }
+        if (!video.paused) {
+          video.pause();
+        }
+      }
     };
     document.addEventListener('visibilitychange', onVisibility);
 
@@ -180,21 +212,22 @@ export const BoomerangVideoBg: React.FC = () => {
         crossOrigin="anonymous"
         loop={loadError}
         onError={(e) => {
+          if (!isTerminalVideoError(e.currentTarget, e.target)) return;
           setLoadError(true);
-          (e.currentTarget as HTMLElement).style.display = 'none';
+          handleVideoError(e);
         }}
-        className={`w-full h-full object-cover blur-[3px] transition-opacity duration-500 ${
+        className={`w-full h-full object-cover ${WEBM_VIDEO_URL ? '' : 'blur-[3px]'} transition-opacity duration-500 ${
           useCanvas ? 'opacity-0 absolute pointer-events-none' : 'opacity-100'
         }`}
       >
-        <source src={WEBM_VIDEO_URL} type="video/webm" />
+        {WEBM_VIDEO_URL ? <source src={WEBM_VIDEO_URL} type="video/webm" /> : null}
         <source src={VIDEO_URL} type="video/mp4" />
       </video>
 
       {/* Ping-pong Canvas (18 FPS + soft blur optimization) */}
       <canvas
         ref={canvasRef}
-        className={`w-full h-full object-cover blur-[3px] transition-opacity duration-500 ${
+        className={`w-full h-full object-cover ${WEBM_VIDEO_URL ? '' : 'blur-[3px]'} transition-opacity duration-500 ${
           useCanvas ? 'opacity-100' : 'opacity-0 absolute pointer-events-none'
         }`}
       />

@@ -76,7 +76,6 @@ export const TriVideoCrossfadeBg: React.FC<TriVideoCrossfadeBgProps> = ({
         <video
           key={v.id}
           ref={bindVideo(idx)}
-          src={v.url}
           autoPlay={idx === currentIdx}
           loop
           muted
@@ -91,7 +90,9 @@ export const TriVideoCrossfadeBg: React.FC<TriVideoCrossfadeBgProps> = ({
             currentIdx === idx ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          <source src={toWebmVideoUrl(v.url)} type="video/webm" />
+          {toWebmVideoUrl(v.url) ? (
+            <source src={toWebmVideoUrl(v.url)!} type="video/webm" />
+          ) : null}
           <source src={v.url} type="video/mp4" />
         </video>
       ))}

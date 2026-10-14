@@ -268,6 +268,13 @@ if (typeof document !== 'undefined') {
   );
 }
 
+/* Định kỳ dọn dẹp các blob media không còn dùng trong phiên dài để giải phóng VRAM */
+if (typeof window !== 'undefined') {
+  window.setInterval(() => {
+    evictInactiveMediaBlobs(15000);
+  }, 12000);
+}
+
 /** Tải asset (webm/webp/png) về blob URL, cache RAM + deduplicate in-flight request. */
 export const loadCachedAsset = async (url: string | null): Promise<string | null> => {
   if (!url) return null;
