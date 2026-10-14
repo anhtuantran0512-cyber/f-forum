@@ -20,6 +20,25 @@ export type ExamType =
   | 'Đề cương ôn tập'
   | 'Khảo sát chất lượng';
 
+export type ExamDifficulty = 'Nhận biết' | 'Thông hiểu' | 'Vận dụng' | 'Vận dụng cao';
+
+export interface ExamSolutionItem {
+  questionNumber: number;
+  question: string;
+  solution: string;
+  keyFormula?: string;
+  tips?: string;
+}
+
+export interface ExamPeerReview {
+  id: string;
+  authorName: string;
+  authorRole: string;
+  rating: number;
+  date: string;
+  content: string;
+}
+
 export interface ExamPaper {
   id: string;
   title: string;
@@ -46,6 +65,11 @@ export interface ExamPaper {
   uploadDate: string;
   summary: string;
   sampleQuestions?: string[];
+  sampleSolutions?: ExamSolutionItem[];
+  difficulty?: ExamDifficulty;
+  rating?: number;
+  ratingCount?: number;
+  peerReviews?: ExamPeerReview[];
   status?: 'approved' | 'pending' | 'rejected';
   rejectionReason?: string;
 }

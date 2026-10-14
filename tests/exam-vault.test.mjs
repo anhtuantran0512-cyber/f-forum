@@ -107,3 +107,51 @@ test('8. Đèn pin Cú Bông: soi sáng đồng thời cả hai ô mật khẩu'
     'Virtual lamp source allows identical beam on field without button',
   );
 });
+
+test('9. Tương tác Kho Đề Thi Vòng 2: Mức độ khó, Đánh giá sao & Bộ đếm tải thực tế', () => {
+  const tsx = read('src/components/views/ExamVaultView.tsx');
+  const css = read('src/components/views/ExamVaultView.css');
+  const types = read('src/types/index.ts');
+
+  /* Difficulty contract */
+  assert.ok(types.includes('export type ExamDifficulty'), 'ExamDifficulty must be defined');
+  ['Nhận biết', 'Thông hiểu', 'Vận dụng', 'Vận dụng cao'].forEach((d) => {
+    assert.ok(types.includes(d), `ExamDifficulty must include ${d}`);
+  });
+  assert.ok(css.includes('.ff-diff-badge--nhan-biet'), 'CSS must define badge for Nhận biết');
+  assert.ok(css.includes('.ff-diff-badge--thong-hieu'), 'CSS must define badge for Thông hiểu');
+  assert.ok(css.includes('.ff-diff-badge--van-dung'), 'CSS must define badge for Vận dụng');
+  assert.ok(css.includes('.ff-diff-badge--van-dung-cao'), 'CSS must define badge for Vận dụng cao');
+
+  /* Real-time download counter */
+  assert.ok(tsx.includes('DOWNLOAD_COUNTS_KEY'), 'Must define DOWNLOAD_COUNTS_KEY');
+  assert.ok(tsx.includes('downloadOverrides'), 'Must track real download overrides');
+
+  /* Rating system */
+  assert.ok(tsx.includes('USER_RATINGS_KEY'), 'Must define USER_RATINGS_KEY');
+  assert.ok(tsx.includes('handleRateExam'), 'Must support rating exams');
+
+  /* Difficulty filter */
+  assert.ok(tsx.includes('selectedDifficulty'), 'Must have difficulty filter state');
+  assert.ok(tsx.includes('DIFFICULTY_OPTIONS'), 'Must define DIFFICULTY_OPTIONS');
+});
+
+test('10. Hướng dẫn giải chi tiết, Phản biện học sinh (Peer Review) & Liên kết Q&A / CLB', () => {
+  const tsx = read('src/components/views/ExamVaultView.tsx');
+  const types = read('src/types/index.ts');
+
+  /* Solution inspection */
+  assert.ok(types.includes('export interface ExamSolutionItem'), 'ExamSolutionItem must be defined');
+  assert.ok(tsx.includes('showDetailedSolutions'), 'Must have detailed solutions toggle');
+  assert.ok(tsx.includes('sampleSolutions'), 'Must render sample solutions');
+
+  /* Peer reviews */
+  assert.ok(types.includes('export interface ExamPeerReview'), 'ExamPeerReview must be defined');
+  assert.ok(tsx.includes('PEER_REVIEWS_KEY'), 'Must define PEER_REVIEWS_KEY');
+  assert.ok(tsx.includes('handleAddPeerReview'), 'Must support submitting peer reviews');
+
+  /* Cross community links */
+  assert.ok(tsx.includes('handleDiscussInQA'), 'Must support jumping to Q&A');
+  assert.ok(tsx.includes('handleShareToClub'), 'Must support sharing to Club');
+});
+
