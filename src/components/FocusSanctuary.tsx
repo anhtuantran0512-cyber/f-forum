@@ -287,7 +287,7 @@ const FocusSanctuaryInner: React.FC<{
                 }`}
               >
                 <Timer className="w-3.5 h-3.5" />
-                <span>Học Tập ({targetMinutes}m)</span>
+                <span>Học ({targetMinutes}m)</span>
               </button>
               <button
                 onClick={() => handleSwitchMode('break')}
@@ -296,7 +296,7 @@ const FocusSanctuaryInner: React.FC<{
                 }`}
               >
                 <Coffee className="w-3.5 h-3.5" />
-                <span>Nghỉ Ngơi (5m)</span>
+                <span>Nghỉ (5m)</span>
               </button>
             </div>
 
@@ -402,7 +402,7 @@ const FocusSanctuaryInner: React.FC<{
               </div>
             )}
 
-            <div className="w-full space-y-3">
+            <div className="w-full">
               <button
                 onClick={isRunning ? handleStop : () => { void handleStart(); }}
                 disabled={!isRunning && isStarting}
@@ -416,19 +416,15 @@ const FocusSanctuaryInner: React.FC<{
                 {isRunning ? (
                   <>
                     <Pause className="w-4 h-4 fill-current" />
-                    <span>DỪNG PHIÊN (ghi phần đã học)</span>
+                    <span>Dừng</span>
                   </>
                 ) : (
                   <>
                     <Play className="w-4 h-4 fill-current" />
-                    <span>{isStarting ? 'ĐANG MỞ PHIÊN...' : 'BẮT ĐẦU TẬP TRUNG'}</span>
+                    <span>{isStarting ? 'Đang mở...' : 'Bắt đầu'}</span>
                   </>
                 )}
               </button>
-
-              <p className="text-[10.5px] text-[#9a978e] text-center leading-relaxed font-mono">
-                Học đủ {targetMinutes} phút sẽ ghi vào nhật ký. {rewardMilestone ? <><b className="text-[#f2cc8f]"> Mốc hiện tại: +{rewardMilestone.reward} Coin</b> · {rewardMilestone.label}.</> : ' Từ 25 phút sẽ mở phần thưởng Coin.'}
-              </p>
             </div>
           </div>
 
@@ -438,12 +434,11 @@ const FocusSanctuaryInner: React.FC<{
               <div className="flex items-center gap-2">
                 <NotebookPen className="w-4 h-4 text-[#f2cc8f]" />
                 <span className="text-xs font-bold text-[#f4f1de] uppercase tracking-wider font-mono">
-                  SỔ TAY NHANH · DÙNG CHUNG VỚI CTRL + I
+                  Sổ tay
                 </span>
               </div>
 
               <div className="flex items-center gap-2.5">
-                {/* Nhiemvu_6 · nút orb: silver chép (→ mauve vẽ dấu ✓) · rose xoá; nhãn trượt sang trái */}
                 <OrbButton
                   size="sm"
                   tone={copied ? 'mauve' : 'silver'}
@@ -451,7 +446,7 @@ const FocusSanctuaryInner: React.FC<{
                   labelSide="left"
                   index={0}
                   label={copied ? 'Đã chép' : 'Sao chép'}
-                  title="Sao chép nội dung"
+                  title="Sao chép"
                   icon={copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   onClick={handleCopyNotes}
                 />
@@ -460,8 +455,8 @@ const FocusSanctuaryInner: React.FC<{
                   tone="rose"
                   labelSide="left"
                   index={1}
-                  label="Xóa ghi chú"
-                  title="Xóa ghi chú"
+                  label="Xóa"
+                  title="Xóa"
                   icon={<Trash2 className="w-4 h-4" />}
                   onClick={handleClearNotes}
                   disabled={!notes}
@@ -474,21 +469,12 @@ const FocusSanctuaryInner: React.FC<{
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 maxLength={5000}
-                placeholder="Ghi chú cho phiên học này…"
+                placeholder="Ghi chú…"
                 className="w-full flex-1 min-h-[160px] bg-[#151a26] border border-[#f4f1de]/15 rounded-xl p-3.5 text-xs text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f] transition-colors resize-none font-mono leading-relaxed"
               />
-              <div className="flex items-center justify-between text-[10px] text-[#9a978e] font-mono pt-2">
-                <span>Tự động lưu vào bộ nhớ trình duyệt</span>
-                <span>{notes.length} ký tự</span>
+              <div className="flex items-center justify-end text-[10px] text-[#9a978e] font-mono pt-2">
+                <span>{notes.length}</span>
               </div>
-            </div>
-
-            <div className="mt-4 p-3 rounded-xl bg-[#151a26] border border-[#f2cc8f]/25 text-xs text-[#d8d5ce] flex items-center gap-2.5">
-              <Sparkles className="w-4 h-4 text-[#f2cc8f] shrink-0" />
-              <span className="text-[11px] leading-relaxed">
-                Giờ học chỉ đến từ phòng này — hoàn thành phiên 25 phút để leo{' '}
-                <b className="text-[#f4f1de]">bảng xếp hạng Giờ học</b> và giữ chuỗi ngày học.
-              </span>
             </div>
           </div>
         </div>

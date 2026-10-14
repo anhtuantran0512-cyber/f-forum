@@ -20,7 +20,6 @@ import {
   Upload,
   ShieldCheck,
   Command,
-  NotebookPen,
   Info,
   LogOut,
 } from 'lucide-react';
@@ -473,9 +472,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </span>
             <div className="min-w-0">
               <h3 className="text-sm font-bold leading-tight">Trung tâm điều khiển</h3>
-              <p className="text-[10px] text-white/55 leading-tight">
-                Giao diện · Trải nghiệm · Dữ liệu học tập
-              </p>
             </div>
           </div>
           <button
@@ -566,9 +562,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         {theme === 'light' ? 'Sáng' : 'Tối'}
                       </span>
                     </div>
-                    <p className="text-[10px] text-white/50 mt-1">
-                      Chuyển giữa Obsidian tối và Pha lê sáng — toàn bộ app đổi theo tức thì.
-                    </p>
                   </div>
 
                   {/* Cartoon Switch */}
@@ -784,8 +777,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <Card className="space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-[11.5px] font-semibold text-white">Neo thanh điều hướng</p>
-                      <p className="text-[10px] text-white/50">Chạm vào một cạnh của khung để đặt vị trí</p>
+                      <p className="text-[11.5px] font-semibold text-white">Vị trí</p>
                     </div>
                     <span className="text-[9.5px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono shrink-0">
                       {DOCK_LABEL[navbarPosition]}
@@ -844,15 +836,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <SwitchRow
                       icon={<MousePointer2 className="w-3.5 h-3.5 text-[#81b29a]" />}
                       title="Chỉ hiện icon"
-                      desc="Thu gọn thành dải icon"
                       on={alwaysCompact}
                       onToggle={() => onToggleAlwaysCompact?.()}
                       color="bg-[#81b29a] shadow-[0_0_8px_rgba(129,178,154,0.5)]"
                     />
                     <SwitchRow
                       icon={<Eye className="w-3.5 h-3.5 text-amber-400" />}
-                      title="Tự ẩn khi rời chuột"
-                      desc="Hiện lại khi tới sát mép"
+                      title="Tự ẩn"
                       on={navbarAutoHide}
                       onToggle={() => onToggleNavbarAutoHide?.()}
                     />
@@ -864,14 +854,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     className="w-full px-3 py-1.5 rounded-xl text-[11px] font-semibold text-white/75 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/35 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <Move className="w-3.5 h-3.5 text-amber-400" />
-                    Xoay vòng vị trí (Trên → Dưới → Trái → Phải)
+                    Đổi vị trí
                   </button>
                 </Card>
               </section>
 
               {/* 5. MOTION & PERFORMANCE */}
               <section>
-                <SectionTitle icon={<Zap className="w-3 h-3 text-amber-300" />}>Chuyển động &amp; hiệu năng</SectionTitle>
+                <SectionTitle icon={<Zap className="w-3 h-3 text-amber-300" />}>Hiệu năng</SectionTitle>
                 <Card className="flex flex-col gap-2">
                   <SwitchRow
                     icon={<Volume2 className="w-3.5 h-3.5 text-amber-400" />}
@@ -886,28 +876,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     onToggle={onToggleReducedMotion}
                     color="bg-[#81b29a] shadow-[0_0_8px_rgba(129,178,154,0.5)]"
                   />
-                  {/* EPIC 2 — Potator Mode bản mới: chỉ thay nền động, giữ 100% animation UI */}
                   <SwitchRow
                     icon={<span className="text-[13px] leading-none" role="img" aria-label="Khoai tây">🥔</span>}
                     title="Potator Mode"
-                    desc="Tắt video nền (trừ Trang chủ), giữ nguyên mọi hiệu ứng"
                     on={potatorMode}
                     onToggle={() => onTogglePotatorMode?.()}
                     color="bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"
                   />
-                  {/* Adaptive Quality Architecture — tự động nhận diện Tier A/B/C */}
                   <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/5 border border-white/5">
                     <div className="min-w-0">
                       <div className="text-[11.5px] font-semibold text-white truncate flex items-center gap-1.5">
-                        <span>Chất lượng Thích ứng ({capabilities.badgeText})</span>
+                        <span>Chất lượng ({capabilities.badgeText})</span>
                         {profile?.batteryLow && (
                           <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                            Tiết kiệm pin (&lt; 20%)
+                            Pin yếu
                           </span>
                         )}
-                      </div>
-                      <div className="text-[10px] text-white/55 truncate">
-                        Tự động chọn Video 4K / HD / SD &amp; mật độ hạt GPU theo máy
                       </div>
                     </div>
                     <select
@@ -926,7 +910,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 {potatorMode && (
                   <Card className="mt-2">
                     <div className="text-[10px] font-semibold uppercase tracking-widest text-white/55 mb-2">
-                      Nền tĩnh thay thế video
+                      Nền tĩnh
                     </div>
                     <GradientSwatchPicker
                       label="Chọn nền tĩnh cho Potator Mode"
@@ -940,13 +924,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* 6. KHÔNG GIAN TẬP TRUNG */}
               <section>
-                <SectionTitle icon={<Volume2 className="w-3 h-3 text-emerald-300" />}>Không gian tập trung</SectionTitle>
+                <SectionTitle icon={<Volume2 className="w-3 h-3 text-emerald-300" />}>Tập trung</SectionTitle>
                 <Card className="space-y-2.5">
 
                   <SwitchRow
                     icon={<Eye className="w-3.5 h-3.5 text-emerald-400" />}
                     title="Nhắc nghỉ mắt 20-20-20"
-                    desc="Cứ 20 phút, nghỉ mắt 20 giây"
                     on={eyeRestEnabled}
                     onToggle={() => onToggleEyeRest?.()}
                     color="bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
@@ -967,7 +950,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       className="px-3 py-2 rounded-xl text-[11px] font-semibold text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/30 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      <span>Nghỉ mắt ngay</span>
+                      <span>Nghỉ mắt</span>
                     </button>
                   </div>
                 </Card>
@@ -975,7 +958,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* 7. PHÍM TẮT ẨN */}
               <section>
-                <SectionTitle icon={<Keyboard className="w-3 h-3 text-violet-300" />}>Phím tắt ẩn</SectionTitle>
+                <SectionTitle icon={<Keyboard className="w-3 h-3 text-violet-300" />}>Phím tắt</SectionTitle>
                 <Card className="space-y-1.5">
                   {SHORTCUTS.map((sc) => (
                     <div key={sc.label} className="flex items-center justify-between gap-2">
@@ -992,10 +975,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </span>
                     </div>
                   ))}
-                  <p className="text-[10px] text-white/45 pt-1 flex items-start gap-1.5">
-                    <Info className="w-3 h-3 mt-0.5 shrink-0 text-amber-300" />
-                    Bảng lệnh (Ctrl + K) gom toàn bộ phân khu và tác vụ — gõ không dấu vẫn tìm được.
-                  </p>
                 </Card>
               </section>
             </>
@@ -1042,10 +1021,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       {dataNotice}
                     </p>
                   )}
-                  <p className="text-[10px] text-white/45 leading-snug flex items-start gap-1.5">
-                    <NotebookPen className="w-3 h-3 mt-0.5 shrink-0 text-amber-300" />
-                    Bản sao lưu gồm ghi chú, điểm danh, cài đặt giao diện và hồ sơ tạm trên máy này.
-                  </p>
                 </Card>
               </section>
 
@@ -1055,7 +1030,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <SectionTitle icon={<LogOut className="w-3 h-3 text-rose-300" />}>Phiên đăng nhập</SectionTitle>
                   {onChangePassword && (
                     <Card className="space-y-2 mb-2">
-                      {/* key theo lần mở: đóng Cài đặt là mật khẩu đã gõ bị xoá khỏi bộ nhớ. */}
                       <PasswordChangeForm
                         key={isOpen ? 'settings-open' : 'settings-closed'}
                         onChangePassword={onChangePassword}
@@ -1064,10 +1038,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </Card>
                   )}
                   <Card className="space-y-2">
-                    <p className="text-[10.5px] text-white/60 leading-snug">
-                      Nghi ngờ tài khoản bị dùng ở máy lạ? Thu hồi mọi phiên — mọi thiết bị (kể cả máy này) phải
-                      đăng nhập lại.
-                    </p>
                     {logoutAllState === 'confirm' || logoutAllState === 'busy' ? (
                       <div className="grid grid-cols-2 gap-2">
                         <button
@@ -1085,7 +1055,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           aria-busy={logoutAllState === 'busy'}
                           className="px-2 py-2 rounded-xl text-[11px] font-bold text-white bg-rose-600 hover:bg-rose-500 border border-rose-400/50 transition-colors cursor-pointer disabled:opacity-60"
                         >
-                          {logoutAllState === 'busy' ? 'Đang thu hồi…' : 'Xác nhận đăng xuất'}
+                          {logoutAllState === 'busy' ? 'Đang thu hồi…' : 'Xác nhận'}
                         </button>
                       </div>
                     ) : (
@@ -1100,8 +1070,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     )}
                     {logoutAllState === 'error' && (
                       <p className="text-[10.5px] text-rose-300" role="alert">
-                        Máy chủ chưa xác nhận thu hồi phiên (mất mạng hoặc phiên đã hết hạn). Phiên trên máy này vẫn
-                        được giữ — hãy thử lại.
+                        Lỗi kết nối. Hãy thử lại.
                       </p>
                     )}
                   </Card>
@@ -1116,23 +1085,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       type="button"
                       onClick={() => setConfirmReset('cache')}
                       className="px-2 py-2 rounded-xl text-[11px] font-semibold text-white/80 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/40 transition-all cursor-pointer"
-                      title="Xóa cache và các tùy chỉnh giao diện đã lưu trên máy này"
                     >
-                      Xóa cache &amp; tùy chỉnh
+                      Xóa cache
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfirmReset('full')}
                       className="px-2 py-2 rounded-xl text-[11px] font-semibold text-red-300 hover:text-red-200 bg-red-500/10 hover:bg-red-500/20 border border-red-500/25 hover:border-red-400/50 transition-all cursor-pointer"
-                      title="Đặt lại toàn bộ dữ liệu cục bộ và đăng xuất"
                     >
-                      Đặt lại toàn bộ
+                      Đặt lại
                     </button>
                   </div>
-                  <p className="text-[10px] text-white/40 leading-snug">
-                    Dữ liệu được lưu trên trình duyệt này. Nội dung đã gửi lên máy chủ (câu hỏi, tin nhắn...) không
-                    bị ảnh hưởng.
-                  </p>
                 </Card>
               </section>
 

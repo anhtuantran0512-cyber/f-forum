@@ -167,10 +167,11 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
             </p>
           </div>
 
-          {/* Custom status / bio */}
-          <p className="text-xs text-[#dbdee1] leading-relaxed pb-2.5 border-b border-white/[0.07]">
-            {user.bio || 'Thành viên học tập tại F-Forum.'}
-          </p>
+          {user.bio && (
+            <p className="text-xs text-[#dbdee1] leading-relaxed pb-2.5 border-b border-white/[0.07]">
+              {user.bio}
+            </p>
+          )}
 
           {/* Activity stats */}
           <div>
@@ -241,7 +242,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
             value={note}
             maxLength={80}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Thêm ghi chú cá nhân..."
+            placeholder="Ghi chú..."
             className="w-full pc-12-well rounded-lg px-2.5 py-1.5 text-xs text-[#dbdee1] placeholder-[#949ba4] focus:outline-none focus:border-[#5865f2] transition-colors"
           />
 
@@ -256,7 +257,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
               className="py-2 px-3 rounded-xl bg-[#5865f2] hover:bg-[#4752c4] text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-md"
             >
               <UserIcon className="w-3.5 h-3.5" />
-              <span>Xem hồ sơ</span>
+              <span>Hồ sơ</span>
             </button>
             <button
               type="button"
@@ -267,7 +268,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
               className="pc-12-btn py-2 px-3 rounded-xl text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Thẻ F-Pass</span>
+              <span>F-Pass</span>
             </button>
           </div>
         </div>

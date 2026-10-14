@@ -33,6 +33,11 @@ import {
   RotateCcw,
   RotateCw,
   FlipHorizontal,
+  User as UserIcon,
+  CreditCard,
+  ShoppingBag,
+  Activity,
+  SlidersHorizontal,
 } from 'lucide-react';
 import type { User, Question, Solution, ShopItem } from '../types';
 import { TierBadge, TierSvg, AdminVerifiedBadge } from './Badges10Tier';
@@ -40,7 +45,6 @@ import { TIER_CONFIGS, getTierForLevel } from '../utils/tier';
 import { HologramStudentCard } from './HologramStudentCard';
 import { PremiumStat } from './PremiumStats';
 import { SignatureEmblem } from './SignatureEmblem';
-import { getTitleForLevel } from '../utils/titles';
 import './ProfileSignature.css';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
 import {
@@ -1006,85 +1010,95 @@ const ProfileModalInner: React.FC<{
         </div>
 
         {/* Navigation Tabs Header */}
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-dashed border-[#f4f1de]/15 mb-3 gap-2.5 shrink-0">
+        <div className="relative z-10 flex items-center justify-between pb-3 border-b border-dashed border-[#f4f1de]/15 mb-3 gap-2.5 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-2.5 h-2.5 rounded-full bg-[#81b29a]" />
             <h2 className="text-sm sm:text-base font-extrabold text-[#f8f7f4] tracking-wide truncate">
-              Hồ sơ / F-Forum
+              {currentUser.name.replace(/ \(.*\)/, '')}
             </h2>
-            <span className="pc-12-pill text-[10px] font-mono px-2.5 py-0.5 text-[#f2cc8f]">
-              Lv.{currentUser.level} • {getTitleForLevel(currentUser.level).name}
+            <span className="pc-12-pill text-[10px] font-mono px-2 py-0.5 text-[#f2cc8f]">
+              Lv.{currentUser.level}
             </span>
           </div>
 
-          <div className="flex items-center justify-between sm:justify-end gap-2 overflow-x-auto no-scrollbar">
+          <div className="flex items-center justify-end gap-1.5 overflow-x-auto no-scrollbar">
             <div className="pc-12-well flex items-center p-1 rounded-xl shrink-0 gap-1">
               <button
                 type="button"
                 onClick={() => setActiveTab('overview')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                title="Hồ sơ"
+                aria-label="Hồ sơ"
+                className={`p-2 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
                   activeTab === 'overview'
                     ? 'bg-[#e07a5f] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
                     : 'text-[#9a978e] hover:text-[#f4f1de]'
                 }`}
               >
-                Hồ sơ
+                <UserIcon className="w-4 h-4" />
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('card')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                title="Thẻ F-Pass"
+                aria-label="Thẻ F-Pass"
+                className={`p-2 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
                   activeTab === 'card'
                     ? 'bg-[#f2cc8f] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
                     : 'text-[#9a978e] hover:text-[#f4f1de]'
                 }`}
               >
-                F-Pass
+                <CreditCard className="w-4 h-4" />
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('shop')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                title="Cửa hàng"
+                aria-label="Cửa hàng"
+                className={`p-2 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
                   activeTab === 'shop'
                     ? 'bg-[#f2cc8f] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
                     : 'text-[#9a978e] hover:text-[#f4f1de]'
                 }`}
               >
-                Boutique
+                <ShoppingBag className="w-4 h-4" />
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('activity')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                title="Hoạt động"
+                aria-label="Hoạt động"
+                className={`p-2 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
                   activeTab === 'activity'
                     ? 'bg-[#f2cc8f] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
                     : 'text-[#9a978e] hover:text-[#f4f1de]'
                 }`}
               >
-                Hoạt động
+                <Activity className="w-4 h-4" />
               </button>
 
               {isOwnProfile && (
                 <button
                   type="button"
                   onClick={() => setActiveTab('edit')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  title="Cài đặt"
+                  aria-label="Cài đặt"
+                  className={`p-2 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
                     activeTab === 'edit'
                       ? 'bg-[#f2cc8f] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
                       : 'text-[#9a978e] hover:text-[#f4f1de]'
                   }`}
                 >
-                  F-ID
+                  <SlidersHorizontal className="w-4 h-4" />
                 </button>
               )}
             </div>
 
             <button
               onClick={onClose}
-              className="pc-12-btn p-1.5 rounded-lg text-[#d8d5ce] hover:text-[#f4f1de] transition-colors cursor-pointer shrink-0"
+              className="pc-12-btn p-2 rounded-lg text-[#d8d5ce] hover:text-[#f4f1de] transition-colors cursor-pointer shrink-0"
               aria-label="Đóng cửa sổ"
             >
               <X className="w-4 h-4" />
@@ -1191,9 +1205,9 @@ const ProfileModalInner: React.FC<{
                         <div />
                       </div>
                       <div className="absolute inset-x-0 top-12 flex justify-center px-3">
-                        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/80 border border-[#f2cc8f]/65 text-[11px] font-bold text-[#f4f1de] shadow-xl backdrop-blur-md">
+                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/80 border border-[#f2cc8f]/65 text-[11px] font-bold text-[#f4f1de] shadow-xl backdrop-blur-md">
                           <Move className="w-3.5 h-3.5 text-[#f2cc8f]" />
-                          <span>Kéo ảnh để đặt lại vị trí · Lăn chuột để phóng to ({Math.round(bannerLayout.zoom * 100)}%)</span>
+                          <span>{Math.round(bannerLayout.zoom * 100)}%</span>
                         </span>
                       </div>
                     </div>
@@ -1202,9 +1216,9 @@ const ProfileModalInner: React.FC<{
                   {equippedItem && (
                     <span
                       className="signature-equipped absolute top-2.5 left-3 z-[7]"
-                      title={`${equippedItem.category}: ${equippedItem.description}`}
+                      title={equippedItem.name}
                     >
-                      <SignatureEmblem icon={equippedItem.iconType} size={20} /> Đang dùng · {equippedItem.name}
+                      <SignatureEmblem icon={equippedItem.iconType} size={20} /> {equippedItem.name}
                     </span>
                   )}
                   {equippedCombo.theme && (
@@ -1212,10 +1226,10 @@ const ProfileModalInner: React.FC<{
                       type="button"
                       onClick={() => isOwnProfile && openShopAtCategory('Theme Focus')}
                       className="absolute bottom-2 right-3 z-[7] inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/55 backdrop-blur-md border border-white/15 text-[10px] font-mono text-white/90 hover:border-purple-400/50 transition cursor-pointer"
-                      title="Bấm để đổi Theme Focus trong Boutique"
+                      title={equippedCombo.theme.name}
                     >
                       <span className={`rarity-dot ${rarityDotClass(rarityOf(equippedCombo.theme))}`} aria-hidden="true" />
-                      <span>Banner: {equippedCombo.theme.name}</span>
+                      <span>{equippedCombo.theme.name}</span>
                     </button>
                   )}
                   {isOwnProfile && (
@@ -1223,10 +1237,10 @@ const ProfileModalInner: React.FC<{
                       <label
                         htmlFor="overview-banner-upload"
                         className="pc-12-btn px-2.5 py-1 rounded-full text-[10px] font-mono text-white/95 hover:text-amber-300 flex items-center gap-1 cursor-pointer backdrop-blur-md bg-black/65 border border-white/15"
-                        title="Tải ảnh bìa mới và căn chỉnh trong khung cắt kiểu Facebook"
+                        title="Ảnh bìa"
                       >
                         <ImageIcon className="w-3 h-3 text-amber-400" />
-                        <span>{mediaBusy === 'banner' ? 'Đang tải…' : 'Đổi ảnh bìa'}</span>
+                        <span>{mediaBusy === 'banner' ? '…' : 'Ảnh bìa'}</span>
                       </label>
                       <input
                         id="overview-banner-upload"
@@ -1239,10 +1253,10 @@ const ProfileModalInner: React.FC<{
                         type="button"
                         onClick={() => openFacebookCropper('banner', effectiveBannerUrl)}
                         className="pc-12-btn px-2.5 py-1 rounded-full text-[10px] font-mono flex items-center gap-1 cursor-pointer backdrop-blur-md bg-black/65 text-amber-200 border border-amber-400/35 hover:text-white"
-                        title="Mở khung cắt & xoay ảnh bìa kiểu Facebook"
+                        title="Cắt ảnh bìa"
                       >
                         <Crop className="w-3 h-3 text-amber-300" />
-                        <span>Cắt ảnh bìa</span>
+                        <span>Cắt</span>
                       </button>
                       <button
                         type="button"
@@ -1255,22 +1269,22 @@ const ProfileModalInner: React.FC<{
                             ? 'bg-[#f2cc8f] text-[#0b0d12] font-bold border-[#f4f1de]'
                             : 'bg-black/65 text-[#f2cc8f] border-[#f2cc8f]/45 hover:text-[#f4f1de]'
                         }`}
-                        title="Đặt lại vị trí ảnh bìa trực tiếp bằng thao tác kéo & lăn chuột kiểu Facebook"
+                        title="Vị trí ảnh bìa"
                       >
                         <Move className="w-3 h-3" />
-                        <span>{isAdjustingBanner ? 'Đóng đặt vị trí' : 'Đặt lại vị trí'}</span>
+                        <span>{isAdjustingBanner ? 'Đóng' : 'Vị trí'}</span>
                       </button>
                     </div>
                   )}
                 </div>
 
-                {/* Thanh đặt lại vị trí & thu phóng kiểu Facebook (Gọn, trực quan, không cuộn trang khi lăn chuột) */}
+                {/* Thanh đặt lại vị trí & thu phóng */}
                 {isOwnProfile && isAdjustingBanner && (
                   <div className="relative z-20 mx-3 sm:mx-5 mt-1 p-3.5 rounded-xl bg-[#0b0d12]/95 border-[1.5px] border-[#f2cc8f]/45 backdrop-blur-xl shadow-2xl space-y-3 animate-fade-up">
                     <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-dashed border-[#f4f1de]/15">
                       <span className="text-[11px] font-bold text-[#f2cc8f] inline-flex items-center gap-1.5">
                         <Move className="w-3.5 h-3.5 text-[#f2cc8f]" />
-                        <span>Đặt lại vị trí ảnh bìa (Kéo ảnh trực tiếp hoặc dùng thanh trượt)</span>
+                        <span>Vị trí ảnh bìa</span>
                       </span>
 
                       <div className="flex items-center gap-1 flex-wrap">
@@ -1302,12 +1316,11 @@ const ProfileModalInner: React.FC<{
                           className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/45 text-amber-200 inline-flex items-center gap-1 cursor-pointer"
                         >
                           <Crop className="w-3 h-3" />
-                          <span>Mở trình cắt &amp; xoay ảnh</span>
+                          <span>Cắt</span>
                         </button>
                       </div>
                     </div>
 
-                    {/* Thanh trượt Zoom chuẩn Facebook (− [════●════] +) + Độ rõ nền dưới */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
                       <div className="flex items-center gap-2 text-neutral-200 bg-white/[0.03] px-3 py-1.5 rounded-xl border border-white/10">
                         <button
@@ -1352,8 +1365,8 @@ const ProfileModalInner: React.FC<{
                       </div>
 
                       <label className="flex items-center gap-2 text-neutral-300 bg-white/[0.03] px-3 py-1.5 rounded-xl border border-white/10">
-                        <span className="shrink-0 w-28 font-mono text-[10.5px]">
-                          Độ rõ nền dưới: {100 - bannerLayout.dim}%
+                        <span className="shrink-0 w-24 font-mono text-[10.5px]">
+                          Độ rõ: {100 - bannerLayout.dim}%
                         </span>
                         <input
                           type="range"
@@ -1368,10 +1381,9 @@ const ProfileModalInner: React.FC<{
                       </label>
                     </div>
 
-                    {/* Kho ảnh nền HD mẫu có sẵn */}
                     <div className="flex items-center justify-between gap-2 flex-wrap pt-1 border-t border-white/10">
                       <span className="text-[10.5px] font-mono text-neutral-400">
-                        Ảnh nền mẫu HD:
+                        Mẫu:
                       </span>
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {BUILTIN_COVER_PRESETS.map((preset) => {
@@ -1386,7 +1398,7 @@ const ProfileModalInner: React.FC<{
                                   ? 'bg-emerald-500/25 border-emerald-400 text-emerald-200'
                                   : 'bg-white/5 hover:bg-white/10 border-white/10 text-neutral-300'
                               }`}
-                              title={preset.subtitle}
+                              title={preset.label}
                             >
                               {preset.label}
                             </button>
@@ -1404,7 +1416,7 @@ const ProfileModalInner: React.FC<{
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/12 border border-white/10 text-[11px] text-neutral-300 cursor-pointer"
                       >
                         <RotateCcw className="w-3 h-3" />
-                        <span>Đặt lại giữa khung</span>
+                        <span>Đặt lại</span>
                       </button>
 
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1421,7 +1433,7 @@ const ProfileModalInner: React.FC<{
                           className="ff-tactile-btn inline-flex items-center gap-1.5 px-4 py-1 rounded-lg bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border border-[#f4f1de] text-[11px] font-extrabold cursor-pointer"
                         >
                           <Check className="w-3.5 h-3.5" />
-                          <span>Lưu thay đổi</span>
+                          <span>Lưu</span>
                         </button>
                       </div>
                     </div>
@@ -1537,10 +1549,10 @@ const ProfileModalInner: React.FC<{
                           <label
                             htmlFor="overview-avatar-upload"
                             className="px-2.5 py-0.5 rounded-full bg-black/55 hover:bg-black/75 border border-white/15 text-[10px] font-semibold text-neutral-200 hover:text-amber-300 inline-flex items-center gap-1 cursor-pointer transition"
-                            title="Tải ảnh đại diện mới và căn khung tròn kiểu Facebook"
+                            title="Đổi ảnh"
                           >
                             <Upload className="w-3 h-3 text-amber-400" />
-                            <span>Đổi ảnh đại diện</span>
+                            <span>Đổi ảnh</span>
                           </label>
                           <input
                             id="overview-avatar-upload"
@@ -1553,15 +1565,15 @@ const ProfileModalInner: React.FC<{
                             type="button"
                             onClick={() => openFacebookCropper('avatar', avatar || currentUser.avatar)}
                             className="px-2.5 py-0.5 rounded-full bg-black/55 hover:bg-black/75 border border-[#f2cc8f]/45 text-[10px] font-semibold text-[#f2cc8f] hover:text-[#f4f1de] inline-flex items-center gap-1 cursor-pointer transition"
-                            title="Mở khung cắt tròn kiểu Facebook cho ảnh đại diện hiện tại"
+                            title="Cắt ảnh"
                           >
                             <Crop className="w-3 h-3 text-[#f2cc8f]" />
-                            <span>Cắt ảnh đại diện</span>
+                            <span>Cắt</span>
                           </button>
                         </div>
                       )}
 
-                      {/* Tên hiển thị tại Hồ Sơ (không gắn nametag trong hồ sơ, nametag dùng ở thanh profile Navbar / Menu / Thẻ tương tác) */}
+                      {/* Tên hiển thị tại Hồ Sơ */}
                       <div className="mt-3 flex flex-col items-center justify-center gap-2 w-full max-w-xl mx-auto">
                         <div className="flex items-center justify-center gap-2 flex-nowrap max-w-full">
                           <h3 className="text-xl sm:text-2xl font-extrabold text-white inline-flex items-center justify-center gap-2 min-w-0 max-w-full mx-auto tracking-tight">
@@ -1572,7 +1584,6 @@ const ProfileModalInner: React.FC<{
                           </h3>
                         </div>
 
-                        {/* Hàng nhãn vai trò & cấp bậc — căn giữa đồng bộ dưới Nametag */}
                         <div className="flex items-center justify-center gap-1.5 flex-wrap">
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-[#81b29a]/18 border border-[#81b29a]/40 text-[#d8f3dc] text-[11px] font-semibold">
                             <UserCheck className="w-3 h-3 text-[#81b29a] shrink-0" />
@@ -1593,7 +1604,6 @@ const ProfileModalInner: React.FC<{
 
                           <span
                             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-500/12 border border-amber-400/25 text-amber-300 text-[11px] font-mono font-bold"
-                            title={Number.isFinite(userCoin) ? undefined : 'Siêu quản trị — Coin vô vùng'}
                           >
                             <span>{formatCoinBalance(userCoin)} Coin</span>
                           </span>
@@ -1606,42 +1616,38 @@ const ProfileModalInner: React.FC<{
                           )}
                         </div>
 
-                        {/* Mô tả cá nhân (Bio) căn giữa */}
-                        <p className="text-xs text-neutral-300 leading-relaxed line-clamp-2 max-w-lg mx-auto text-center">
-                          {currentUser.bio || 'Chưa có mô tả'}
-                        </p>
+                        {currentUser.bio && (
+                          <p className="text-xs text-neutral-300 leading-relaxed line-clamp-2 max-w-lg mx-auto text-center">
+                            {currentUser.bio}
+                          </p>
+                        )}
                       </div>
                     </div>
 
-                    {/* 🎨 Đang trang bị & Tủ đồ nhanh 1 chạm — Cách sử dụng trực quan */}
+                    {/* Đang trang bị & Tủ đồ nhanh */}
                     <div className="pt-2 space-y-2.5" aria-label="Khu vực trang bị đang đeo">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div className="text-[11px] font-bold text-white/85 flex items-center gap-2 flex-wrap">
-                          <span>🎨 Đang trang bị:</span>
+                        <div className="text-[11px] font-bold text-white/85 flex items-center gap-2" title="🎨 Đang trang bị:">
+                          <span>Trang bị</span>
                           <span className="px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/10 text-[10px] font-mono text-neutral-300">
-                            {[userDecorations.nameplate, userDecorations.frame, userDecorations.aura].filter(Boolean).length}/3 slot · Kho đồ:{' '}
-                            {ownedDecorationsBySlot.nameplate.length +
-                              ownedDecorationsBySlot.avatar_frame.length +
-                              ownedDecorationsBySlot.avatar_aura.length}{' '}
-                            món
+                            {[userDecorations.nameplate, userDecorations.frame, userDecorations.aura].filter(Boolean).length}/3
                           </span>
                         </div>
                         {isOwnProfile && (
                           <button
                             type="button"
                             onClick={() => openShopAtCategory(null)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/35 border border-purple-400/40 text-purple-200 text-xs font-bold transition cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-500/20 hover:bg-purple-500/35 border border-purple-400/40 text-purple-200 text-xs font-bold transition cursor-pointer"
                           >
-                            <PaletteIcon className="w-3.5 h-3.5" /> + Mua thêm tại Cửa hàng Boutique
+                            <PaletteIcon className="w-3.5 h-3.5" /> Cửa hàng
                           </button>
                         )}
                       </div>
 
-                      {/* 2 Slot trang bị chính: Bảng tên (Nametag) · Viền Avatar (Khung / Hào Quang — chỉ đeo 1 viền duy nhất) */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {[
                           {
-                            slotLabel: 'Bảng tên (Nametag)',
+                            slotLabel: 'Bảng tên',
                             slot: 'nameplate' as const,
                             filterSlot: 'nameplate' as const,
                             shopCategory: 'Nameplate',
@@ -1649,7 +1655,7 @@ const ProfileModalInner: React.FC<{
                             ownedCount: ownedDecorationsBySlot.nameplate.length,
                           },
                           {
-                            slotLabel: 'Viền Avatar (Khung / Hào quang)',
+                            slotLabel: 'Viền Avatar',
                             slot: (userDecorations.frame ? 'avatar_frame' : 'avatar_aura') as 'avatar_frame' | 'avatar_aura',
                             filterSlot: (userDecorations.aura && !userDecorations.frame ? 'avatar_aura' : 'avatar_frame') as 'avatar_frame' | 'avatar_aura',
                             shopCategory: 'Avatar Frame',
@@ -1682,11 +1688,7 @@ const ProfileModalInner: React.FC<{
                                   setQuickWardrobeSlot(slot.filterSlot);
                                 }}
                                 className="flex items-center gap-2.5 min-w-0 flex-1 text-left cursor-pointer"
-                                title={
-                                  isOwnProfile
-                                    ? `Bấm để xem kho ${slot.slotLabel} đã sở hữu (${slot.ownedCount} món)`
-                                    : slot.item?.name || slot.slotLabel
-                                }
+                                title={slot.item?.name || slot.slotLabel}
                               >
                                 {slot.item?.previewUrl ? (
                                   <img
@@ -1712,12 +1714,12 @@ const ProfileModalInner: React.FC<{
                                     <span>{slot.slotLabel}</span>
                                     {isOwnProfile && (
                                       <span className={isSelected ? 'text-[#f2cc8f] font-bold' : 'text-white/50'}>
-                                        · {slot.ownedCount} món
+                                        · {slot.ownedCount}
                                       </span>
                                     )}
                                   </span>
                                   <strong className="block text-xs font-bold text-white truncate">
-                                    {slot.item ? `Đang dùng: ${slot.item.name}` : 'Chưa trang bị'}
+                                    {slot.item ? slot.item.name : 'Trống'}
                                   </strong>
                                 </span>
                               </button>
@@ -1730,7 +1732,7 @@ const ProfileModalInner: React.FC<{
                                     void handleEquipDecoration(slot.slot, null);
                                   }}
                                   className="px-2 py-1 rounded-lg bg-white/[0.06] hover:bg-red-500/25 border border-white/10 text-[10.5px] font-semibold text-white/70 hover:text-red-300 transition cursor-pointer shrink-0"
-                                  title={`Gỡ ${slot.slotLabel}`}
+                                  title="Gỡ"
                                 >
                                   Gỡ
                                 </button>
@@ -1740,17 +1742,16 @@ const ProfileModalInner: React.FC<{
                         })}
                       </div>
 
-                      {/* Kho Đồ Đã Sở Hữu Gộp Chung (1 bảng duy nhất — lọc Tất cả / Bảng tên / Khung / Hào quang & bấm 1 chạm để trang bị/đổi ngay) */}
                       {isOwnProfile && (
                         <div className="pc-12-well p-3.5 rounded-2xl space-y-3 border border-white/10">
                           <div className="flex items-center justify-between gap-2 flex-wrap">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {(
                                 [
-                                  { id: 'all', label: 'Tất cả đã sở hữu', count: ownedDecorationsBySlot.all.length },
+                                  { id: 'all', label: 'Tất cả', count: ownedDecorationsBySlot.all.length },
                                   { id: 'nameplate', label: 'Bảng tên', count: ownedDecorationsBySlot.nameplate.length },
-                                  { id: 'avatar_frame', label: 'Khung Avatar', count: ownedDecorationsBySlot.avatar_frame.length },
-                                  { id: 'avatar_aura', label: 'Hào Quang', count: ownedDecorationsBySlot.avatar_aura.length },
+                                  { id: 'avatar_frame', label: 'Khung', count: ownedDecorationsBySlot.avatar_frame.length },
+                                  { id: 'avatar_aura', label: 'Hào quang', count: ownedDecorationsBySlot.avatar_aura.length },
                                 ] as const
                               ).map((tab) => (
                                 <button
@@ -1774,8 +1775,8 @@ const ProfileModalInner: React.FC<{
                                 value={wardrobeSearch}
                                 onChange={(e) => setWardrobeSearch(e.target.value)}
                                 maxLength={80}
-                                placeholder="Tìm nhanh trong kho đồ..."
-                                className="bg-black/40 border border-[#f4f1de]/18 rounded-lg px-2.5 py-1 text-xs text-[#f4f1de] placeholder-neutral-500 focus:outline-none focus:border-[#f2cc8f] w-44"
+                                placeholder="Tìm..."
+                                className="bg-black/40 border border-[#f4f1de]/18 rounded-lg px-2.5 py-1 text-xs text-[#f4f1de] placeholder-neutral-500 focus:outline-none focus:border-[#f2cc8f] w-36"
                               />
                             )}
                           </div>
@@ -1789,11 +1790,9 @@ const ProfileModalInner: React.FC<{
 
                             if (filteredList.length === 0) {
                               return (
-                                <div className="py-3 px-3 rounded-xl bg-black/25 border border-white/5 flex items-center justify-between gap-3 flex-wrap">
-                                  <span className="text-xs text-neutral-300">
-                                    {q
-                                      ? `Không tìm thấy vật phẩm nào khớp với "${wardrobeSearch}".`
-                                      : 'Bạn chưa có vật phẩm nào ở mục này trong kho đồ.'}
+                                <div className="py-2.5 px-3 rounded-xl bg-black/25 border border-white/5 flex items-center justify-between gap-3 flex-wrap">
+                                  <span className="text-xs text-neutral-400">
+                                    Trống
                                   </span>
                                   <button
                                     type="button"
@@ -1808,9 +1807,9 @@ const ProfileModalInner: React.FC<{
                                           : null,
                                       )
                                     }
-                                    className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold cursor-pointer transition"
+                                    className="px-3 py-1 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold cursor-pointer transition"
                                   >
-                                    Sắm ngay tại Cửa hàng →
+                                    Cửa hàng →
                                   </button>
                                 </div>
                               );
@@ -1835,8 +1834,8 @@ const ProfileModalInner: React.FC<{
                                     itemSlot === 'nameplate'
                                       ? 'Bảng tên'
                                       : itemSlot === 'avatar_frame'
-                                      ? 'Khung Avatar'
-                                      : 'Hào Quang';
+                                      ? 'Khung'
+                                      : 'Hào quang';
 
                                   if (itemSlot === 'nameplate') {
                                     return (
@@ -1879,7 +1878,7 @@ const ProfileModalInner: React.FC<{
                                                 : 'bg-[#f2cc8f]/20 text-[#f2cc8f] border border-[#f2cc8f]/40'
                                             }`}
                                           >
-                                            {isEquipped ? '✓ Đang dùng' : 'Sử dụng ngay'}
+                                            {isEquipped ? 'Đang dùng' : 'Dùng'}
                                           </span>
                                         </span>
                                       </button>
@@ -1930,7 +1929,7 @@ const ProfileModalInner: React.FC<{
                                               : 'bg-[#f2cc8f]/20 text-[#f2cc8f] border border-[#f2cc8f]/40'
                                           }`}
                                         >
-                                          {isEquipped ? '✓ Đang dùng (Bấm gỡ)' : 'Sử dụng ngay'}
+                                          {isEquipped ? 'Đang dùng' : 'Dùng'}
                                         </span>
                                       </span>
                                     </button>
@@ -1986,26 +1985,25 @@ const ProfileModalInner: React.FC<{
                     </div>
                   </div>
 
-                  {/* Bento thành tích: 6 chỉ số thật (không hiện thanh phụ khi bấm vào). */}
+                  {/* Bento thành tích: 6 chỉ số thật */}
                   <div className="signature-stats-wrap">
-                    <div className="signature-stats-heading"><span>01 / THÀNH TÍCH</span><span>Ghi dấu hành trình học</span></div>
+                    <div className="signature-stats-heading"><span>Thành tích</span></div>
                     <div className="signature-stats-grid">
                       {([
-                        { label: 'Điểm số', value: statsMetrics.xp, icon: <Sparkles size={19} />, detail: 'XP từ hoạt động học tập.', featured: true },
-                        { label: 'Cảm ơn', value: statsMetrics.thanks, icon: <Heart size={19} />, detail: 'Lượt bình chọn hữu ích.' },
-                        { label: 'Hay nhất', value: statsMetrics.bestSolutions, icon: <Award size={19} />, detail: 'Đáp án chuẩn.', featured: true },
-                        { label: '5 Sao', value: statsMetrics.fiveStar, icon: <Star size={19} />, detail: 'Lời giải được đánh giá tối đa.' },
-                        { label: 'Xác thực', value: statsMetrics.verified, icon: <CheckCircle2 size={19} />, detail: 'Lời giải đã xác minh.' },
-                        { label: 'Đã giúp', value: statsMetrics.helped, icon: <Users size={19} />, detail: 'Lượt hỗ trợ bạn học.' },
+                        { label: 'Điểm số', value: statsMetrics.xp, icon: <Sparkles size={19} />, detail: 'XP', featured: true },
+                        { label: 'Cảm ơn', value: statsMetrics.thanks, icon: <Heart size={19} />, detail: 'Cảm ơn' },
+                        { label: 'Hay nhất', value: statsMetrics.bestSolutions, icon: <Award size={19} />, detail: 'Hay nhất', featured: true },
+                        { label: '5 Sao', value: statsMetrics.fiveStar, icon: <Star size={19} />, detail: '5 Sao' },
+                        { label: 'Xác thực', value: statsMetrics.verified, icon: <CheckCircle2 size={19} />, detail: 'Xác thực' },
+                        { label: 'Đã giúp', value: statsMetrics.helped, icon: <Users size={19} />, detail: 'Đã giúp' },
                       ] as const).map((metric) => (
                         <PremiumStat key={metric.label} {...metric} />
                       ))}
                     </div>
                   </div>
 
-                  {/* B. Khối Danh Hiệu & Túi Đồ Ảo (Badges & Chill Box) */}
+                  {/* B. Khối Danh Hiệu & Chill Box */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b border-white/10">
-                    {/* DANH HIỆU — chỉ hiển thị danh hiệu thật sự đạt được, không lộ trước danh hiệu chưa mở khóa */}
                     <div className="pc-12-card p-3.5 space-y-2.5">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5 font-mono">
@@ -2017,36 +2015,32 @@ const ProfileModalInner: React.FC<{
                         </span>
                       </div>
 
-                      {/* Rank hiện tại — bấm vào để mở GUI nhỏ bảng rank/danh hiệu/yêu cầu */}
                       <button
                         type="button"
                         onClick={() => setIsRankSheetOpen(true)}
-                        title="Xem bảng rank, danh hiệu và yêu cầu thăng hạng"
+                        title="Bảng cấp bậc"
                         className="pc-12-well p-2.5 flex items-center gap-2.5 w-full text-left cursor-pointer transition-colors hover:border-amber-400/40"
                       >
                         <TierSvg tierNumber={tier.tierNumber} size={36} />
                         <div className="min-w-0 flex-1">
-                          <div className="text-xs font-bold text-white truncate flex items-center gap-1.5">
-                            <span>{isSuperAdmin ? 'Quản Trị Viên Tối Cao' : `${tier.roman}. ${tier.name}`}</span>
-                            <span className="text-[9.5px] font-normal text-neutral-400 truncate">
-                              · {getTitleForLevel(currentUser.level).name}
-                            </span>
+                          <div className="text-xs font-bold text-white truncate">
+                            {isSuperAdmin ? 'Quản trị' : `${tier.roman}. ${tier.name}`}
                           </div>
                           <div className="text-[10px] text-neutral-400 font-mono truncate">
-                            Cấp {currentUser.level} • {statsMetrics.xp.toLocaleString()} XP • {tier.description}
+                            Lv.{currentUser.level} · {statsMetrics.xp.toLocaleString()} XP
                           </div>
                         </div>
                         <Trophy className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                       </button>
 
-                      {/* 🎋 Hành Trình Tre Việt — 8 Cấp Độ (Măng Non → Lũy Tre Cổ Thụ) */}
+                      {/* Tre Việt — 8 Cấp Độ */}
                       <div className="pc-12-well p-2.5 space-y-2" aria-label="Hành trình 8 cấp độ Tre Việt">
                         <div className="flex items-center justify-between text-[10px]">
                           <span className="font-bold text-emerald-300 uppercase tracking-wider font-mono">
-                            🎋 Hành Trình Tre Việt ({tier.tierNumber}/8)
+                            Tre Việt ({tier.tierNumber}/8)
                           </span>
                           <span className="text-neutral-400 font-mono">
-                            {tier.minPoints.toLocaleString('vi-VN')} điểm{tier.minMedals ? ` · ${tier.minMedals} 🏅` : ''}
+                            {tier.minPoints.toLocaleString('vi-VN')} điểm
                           </span>
                         </div>
                         <div className="grid grid-cols-4 gap-1.5">
@@ -2058,7 +2052,7 @@ const ProfileModalInner: React.FC<{
                                 key={t.tierNumber}
                                 type="button"
                                 onClick={() => setIsRankSheetOpen(true)}
-                                title={`Cấp ${t.tierNumber} (${t.roman}) — ${t.name} (${t.minPoints} điểm${t.minMedals ? ` · ${t.minMedals} 🏅` : ''}): ${t.description}`}
+                                title={`${t.roman}. ${t.name}`}
                                 className={`flex flex-col items-center justify-center p-1.5 rounded-xl border transition cursor-pointer ${
                                   isCurrentTier
                                     ? 'bg-white/[0.09] border-amber-400/60 shadow-[0_0_12px_rgba(251,191,36,0.22)]'
@@ -2077,23 +2071,14 @@ const ProfileModalInner: React.FC<{
                         </div>
                       </div>
 
-                      {earnedBadgesList.length === 0 ? (
-                        <div className="pc-12-well py-3 px-3 text-center">
-                          <p className="text-[11px] text-neutral-300 font-medium">
-                            Đang giữ cấp bậc <strong className="text-amber-300">{tier.titleVi}</strong>
-                          </p>
-                          <p className="text-[10px] text-neutral-400 mt-0.5">
-                            Tham gia giải bài và tích lũy XP để mở khóa các huy hiệu thành tích.
-                          </p>
-                        </div>
-                      ) : (
+                      {earnedBadgesList.length > 0 && (
                         <div className="grid grid-cols-3 gap-1.5 pt-1">
                           {earnedBadgesList.map((b, index) => (
                             <div
                               key={b.id}
                               style={{ '--i': index } as React.CSSProperties}
                               className={`ac-01__card pc-12-well p-2 border text-center flex flex-col items-center justify-center relative ${b.color}`}
-                              title={`${b.name}: ${b.desc}`}
+                              title={b.name}
                             >
                               <span className="text-base flex items-center justify-center">
                                 <b.IconComponent className="w-4 h-4 inline" />
@@ -2112,7 +2097,7 @@ const ProfileModalInner: React.FC<{
                         className="pc-12-btn w-full py-1.5 rounded-xl text-[11px] font-bold text-amber-200 inline-flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <Trophy className="w-3.5 h-3.5" />
-                        Bảng rank · danh hiệu · yêu cầu
+                        Bảng cấp bậc
                       </button>
                     </div>
 
@@ -2127,7 +2112,6 @@ const ProfileModalInner: React.FC<{
                         />
                       )}
 
-                      {/* KỆ SÁCH — kệ sách thật, lưu theo tài khoản */}
                       <BookshelfPanel
                         key={profileKey}
                         ownerKey={profileKey}
@@ -2136,95 +2120,78 @@ const ProfileModalInner: React.FC<{
                       />
                     </div>
                   </div>
-                  {/* C. Khối Biểu Đồ Mạng Nhện (Radar Spider Chart) - CÁC MÔN ĐÃ GIÚP ĐỠ BẠN BÈ */}
+                  {/* C. Khối Biểu Đồ Mạng Nhện (Radar Spider Chart) */}
                   <div className="pb-4 border-b border-white/10 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5 font-mono">
                         <BarChart3 className="w-4 h-4 text-amber-400" />
-                        CÁC MÔN ĐÃ GIÚP ĐỠ BẠN BÈ
+                        Môn học
                       </span>
                       <span className="pc-12-pill px-2.5 py-0.5 text-[10px] text-amber-400 font-mono">
-                        Đã giải: {userSolutions.length} bài
+                        {userSolutions.length} bài
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                      {/* Cột trái: Biểu đồ Radar đa giác 5 đỉnh trục */}
                       <div className="md:col-span-6 flex flex-col items-center justify-center p-3 pc-12-well h-[270px]">
-                        {/* EPIC 5: SVG thuần thay recharts (~300 kB) — cùng màu, cùng tooltip. */}
                         <RadarSpiderChart
                           data={radarAxes}
                           max={100}
                           stroke="#EAB308"
                           fill="rgba(14, 165, 233, 0.25)"
                           dotFill="#06b6d4"
-                          title="Các môn đã giúp đỡ bạn bè"
+                          title="Môn học"
                         />
                       </div>
 
-                      {/* Cột phải: Danh sách môn học chi tiết (100% dữ liệu thật từ câu trả lời của học sinh) */}
                       <div className="md:col-span-6 space-y-2.5">
-                        {/* Khoa Học Tự Nhiên (KHTN) */}
                         <div className="pc-12-well p-2.5 space-y-1">
-                          <span className="text-xs font-bold text-white block">Khoa Học Tự Nhiên (KHTN):</span>
+                          <span className="text-xs font-bold text-white block">KHTN</span>
                           <div className="text-amber-400/90 text-xs font-mono">
-                            Toán Học ({subjectCounts.toan || 0}), Vật Lý ({subjectCounts.ly || 0}), Hóa Học ({subjectCounts.hoa || 0}), Sinh Học ({subjectCounts.sinh || 0})
+                            Toán ({subjectCounts.toan || 0}) · Lý ({subjectCounts.ly || 0}) · Hóa ({subjectCounts.hoa || 0}) · Sinh ({subjectCounts.sinh || 0})
                           </div>
                         </div>
 
-                        {/* Khoa Học Xã Hội (KHXH) */}
                         <div className="pc-12-well p-2.5 space-y-1">
-                          <span className="text-xs font-bold text-white block">Khoa Học Xã Hội (KHXH):</span>
+                          <span className="text-xs font-bold text-white block">KHXH</span>
                           <div className="text-amber-400 text-xs font-mono">
-                            Ngữ Văn ({subjectCounts.van || 0}), Lịch Sử ({subjectCounts.su || 0}), Địa Lý ({subjectCounts.dia || 0})
+                            Văn ({subjectCounts.van || 0}) · Sử ({subjectCounts.su || 0}) · Địa ({subjectCounts.dia || 0})
                           </div>
                         </div>
 
-                        {/* Khoa Học Công Nghệ (KHCN) */}
                         <div className="pc-12-well p-2.5 space-y-1">
-                          <span className="text-xs font-bold text-white block">Khoa Học Công Nghệ (KHCN):</span>
+                          <span className="text-xs font-bold text-white block">KHCN</span>
                           <div className="text-amber-400 text-xs font-mono">
-                            Tin Học ({subjectCounts.tin || 0}), Công Nghệ ({(subjectCounts.congnghe || 0) + (subjectCounts.hotro || 0)})
+                            Tin ({subjectCounts.tin || 0}) · Công nghệ ({(subjectCounts.congnghe || 0) + (subjectCounts.hotro || 0)})
                           </div>
                         </div>
 
-                        {/* Ngoại Ngữ & Nghệ Thuật */}
                         <div className="pc-12-well p-2.5 space-y-1">
-                          <span className="text-xs font-bold text-white block">Ngoại Ngữ &amp; Nghệ Thuật:</span>
+                          <span className="text-xs font-bold text-white block">Ngoại Ngữ &amp; Nghệ Thuật</span>
                           <div className="text-amber-300 text-xs font-mono">
-                            Tiếng Anh ({subjectCounts.anh || 0}), Nghệ Thuật / Chia Sẻ ({(subjectCounts.tamsu || 0) + (subjectCounts.share || 0) + (subjectCounts.kinhnghiem || 0) + (subjectCounts.tamly || 0)})
+                            Anh ({subjectCounts.anh || 0}) · Nghệ thuật ({(subjectCounts.tamsu || 0) + (subjectCounts.share || 0) + (subjectCounts.kinhnghiem || 0) + (subjectCounts.tamly || 0)})
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* D. Thông Tin Hoạt Động & Lịch Sử Câu Trả Lời (100% dữ liệu thật) */}
+                  {/* D. Lịch Sử Câu Hỏi & Trả Lời */}
                   <div className="space-y-3">
-                    {/* Metadata Tài Khoản */}
                     <div className="pc-12-well flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 text-xs">
                       <div className="flex items-center gap-2 flex-wrap text-neutral-300">
-                        <span className="text-neutral-400">Ngày tham gia:</span>
+                        <span className="text-neutral-400">Tham gia:</span>
                         <span className="text-white font-mono font-semibold">{accountJoinedInfo.joinedDateStr}</span>
-                        <span>|</span>
-                        <span className="text-neutral-400">Tuổi F-Forum:</span>
+                        <span>·</span>
                         <span className="text-white font-mono font-semibold">{accountJoinedInfo.ageStr}</span>
-                        <span>|</span>
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab('card')}
-                          className="text-[#38bdf8] hover:underline cursor-pointer"
-                        >
-                          Xem thẻ F-Pass
-                        </button>
                       </div>
 
                       <div className="flex items-center gap-3">
                         <div>
-                          <span className="text-neutral-400">Số câu trả lời: </span>
+                          <span className="text-neutral-400">Trả lời: </span>
                           <span className="text-[#f2cc8f] font-bold font-mono">{statsMetrics.answersCount}</span>
                         </div>
-                        <span>|</span>
+                        <span>·</span>
                         <div>
                           <span className="text-neutral-400">Cảnh báo: </span>
                           <span className="text-emerald-400 font-bold font-mono">0</span>
@@ -2232,7 +2199,6 @@ const ProfileModalInner: React.FC<{
                       </div>
                     </div>
 
-                    {/* Tab chuyển đổi hoạt động: [Câu hỏi] & [Câu trả lời] */}
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -2243,7 +2209,7 @@ const ProfileModalInner: React.FC<{
                             : 'pc-12-btn text-neutral-400 hover:text-white'
                         }`}
                       >
-                        [Câu hỏi] ({userQuestions.length})
+                        Câu hỏi ({userQuestions.length})
                       </button>
 
                       <button
@@ -2255,16 +2221,15 @@ const ProfileModalInner: React.FC<{
                             : 'pc-12-btn text-neutral-400 hover:text-white'
                         }`}
                       >
-                        [Câu trả lời] ({statsMetrics.answersCount})
+                        Trả lời ({statsMetrics.answersCount})
                       </button>
                     </div>
 
-                    {/* Answer Feed / Question Feed */}
                     <div className="space-y-2 max-h-56 overflow-y-auto pr-1 no-scrollbar">
                       {activitySubTab === 'solutions' ? (
                         userSolutions.length === 0 ? (
-                          <div className="pc-12-well py-6 text-center text-xs text-neutral-400 italic">
-                            Chưa có câu trả lời nào. Hãy bắt đầu giúp đỡ bạn bè trên sàn hỏi đáp!
+                          <div className="pc-12-well py-5 text-center text-xs text-neutral-400">
+                            Chưa có câu trả lời.
                           </div>
                         ) : (
                           userSolutions.map((s, idx) => {
@@ -2294,8 +2259,8 @@ const ProfileModalInner: React.FC<{
                           })
                         )
                       ) : userQuestions.length === 0 ? (
-                        <div className="pc-12-well py-6 text-center text-xs text-neutral-400 italic">
-                          Chưa có câu hỏi nào được đặt.
+                        <div className="pc-12-well py-5 text-center text-xs text-neutral-400">
+                          Chưa có câu hỏi.
                         </div>
                       ) : (
                         userQuestions.map((q) => (
@@ -2324,26 +2289,6 @@ const ProfileModalInner: React.FC<{
                 questionsAskedCount={userQuestions.length}
                 solutionsApprovedCount={userSolutions.length}
               />
-
-              {/* Equipped item banner if any */}
-              {userInventory.length > 0 && (
-                <div className="pc-12-card p-3.5 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl pc-12-well flex items-center justify-center p-1">
-                      <Sparkles className="w-5 h-5 text-amber-400" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <span>Huy hiệu trang bị đang hoạt động</span>
-                        <span className="pc-12-pill px-2 py-0.5 text-[9px] font-mono text-amber-300">
-                          Active
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-neutral-400">Hiển thị rực rỡ trên hồ sơ và phòng chat</p>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -2378,23 +2323,22 @@ const ProfileModalInner: React.FC<{
             <div className="space-y-4 ff-tab-panel-enter">
               <div className="pc-12-card p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-neutral-300">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-neutral-400">Ngày tham gia:</span>
+                  <span className="text-neutral-400">Tham gia:</span>
                   <span className="text-white font-mono font-semibold">{accountJoinedInfo.joinedDateStr}</span>
-                  <span>•</span>
-                  <span className="text-neutral-400">Tuổi F-Forum:</span>
+                  <span>·</span>
                   <span className="text-white font-mono font-semibold">{accountJoinedInfo.ageStr}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-neutral-400">Số câu hỏi:</span>
+                    <span className="text-neutral-400">Câu hỏi:</span>
                     <span className="text-amber-300 font-mono font-bold">{userQuestions.length}</span>
                   </div>
-                  <span>•</span>
+                  <span>·</span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-neutral-400">Số câu trả lời:</span>
+                    <span className="text-neutral-400">Trả lời:</span>
                     <span className="text-[#81b29a] font-mono font-bold">{statsMetrics.answersCount}</span>
                   </div>
-                  <span>•</span>
+                  <span>·</span>
                   <div className="flex items-center gap-1.5">
                     <span className="text-neutral-400">Cảnh báo:</span>
                     <span className="text-emerald-400 font-mono font-bold">0</span>
@@ -2405,9 +2349,9 @@ const ProfileModalInner: React.FC<{
               {/* Questions & Solutions Feed */}
               <div className="space-y-2.5">
                 {userQuestions.length === 0 && userSolutions.length === 0 ? (
-                  <div className="pc-12-card py-12 text-center text-neutral-400 space-y-2">
-                    <HelpCircle className="w-8 h-8 text-neutral-500 mx-auto" />
-                    <p className="text-xs">Chưa có hoạt động hỏi đáp nào từ học sinh này.</p>
+                  <div className="pc-12-card py-10 text-center text-neutral-400 space-y-2">
+                    <HelpCircle className="w-7 h-7 text-neutral-500 mx-auto" />
+                    <p className="text-xs">Chưa có hoạt động.</p>
                   </div>
                 ) : (
                   <>
@@ -2415,7 +2359,7 @@ const ProfileModalInner: React.FC<{
                       <div key={q.id} className="pc-12-card p-3.5 space-y-1.5">
                         <div className="flex items-center justify-between gap-2">
                           <span className="pc-12-pill px-2.5 py-0.5 text-amber-300 text-[10px] font-mono font-bold uppercase">
-                            Câu hỏi • #{q.subject}
+                            Câu hỏi · #{q.subject}
                           </span>
                           <span className="text-[10px] text-neutral-400 font-mono">{q.createdAt}</span>
                         </div>
@@ -2429,7 +2373,7 @@ const ProfileModalInner: React.FC<{
                         <div key={s.id} className="pc-12-card p-3.5 space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
                             <span className="pc-12-pill px-2.5 py-0.5 text-[#81b29a] text-[10px] font-mono font-bold">
-                              Lời giải • {parentQ ? parentQ.title : 'Hỏi đáp'}
+                              Lời giải · {parentQ ? parentQ.title : 'Hỏi đáp'}
                             </span>
                             <span className="text-[10px] text-neutral-400 font-mono">{s.createdAt}</span>
                           </div>
@@ -2443,16 +2387,14 @@ const ProfileModalInner: React.FC<{
             </div>
           )}
 
-          {/* TAB 5: Edit Profile Form (Neumorphic 3D Rounded + 15MB Banner Upload) */}
+          {/* TAB 5: Edit Profile Form */}
           {activeTab === 'edit' && isOwnProfile && (
             <form onSubmit={handleSubmit} className="space-y-4 ff-tab-panel-enter">
-              {/* Banner & Avatar Live Preview Card */}
               <div
                 onPointerDown={beginBannerDrag}
                 onWheel={handleBannerWheel}
                 className="pc-12-card relative overflow-hidden"
               >
-                {/* Ảnh nền xem trước liền mạch 1 lớp kéo dài từ đỉnh xuống tận đáy thẻ chỉnh sửa */}
                 <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
                   <GradientSurface gradient={profileGradient} className="absolute inset-0 opacity-80" />
                   <img
@@ -2471,24 +2413,17 @@ const ProfileModalInner: React.FC<{
                   />
                 </div>
 
-                {/* Vùng Đỉnh Trong Suốt Cho Phép Kéo Chuột Đặt Vị Trí & Tải Ảnh Lên */}
                 <div
                   className="relative z-[2] h-44 sm:h-56 overflow-hidden bg-transparent group cursor-grab active:cursor-grabbing select-none"
                 >
                   <div className="absolute inset-0 bg-black/15 group-hover:bg-black/30 transition-colors flex flex-col items-center justify-center gap-2 px-3">
-                    {effectiveBannerUrl && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/70 border border-[#f2cc8f]/45 text-[11px] font-medium text-[#f2cc8f] pointer-events-none">
-                        <Move className="w-3.5 h-3.5 text-[#f2cc8f]" />
-                        <span>Giữ chuột kéo để căn vị trí ảnh nền ({bannerLayout.x}% · {bannerLayout.y}%)</span>
-                      </span>
-                    )}
                     <div className="flex items-center justify-center gap-2 flex-wrap">
                       <label
                         htmlFor="banner-upload"
                         className="pc-12-btn px-3.5 py-1.5 rounded-full text-xs font-bold text-white hover:text-amber-300 flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
                       >
                         <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
-                        <span>{mediaBusy === 'banner' ? 'Đang xử lý ảnh bìa…' : 'Tải ảnh bìa (tối đa 25MB)'}</span>
+                        <span>{mediaBusy === 'banner' ? '…' : 'Ảnh bìa'}</span>
                       </label>
                       {effectiveBannerUrl && (
                         <>
@@ -2497,10 +2432,10 @@ const ProfileModalInner: React.FC<{
                             onClick={() => openFacebookCropper('banner', effectiveBannerUrl)}
                             disabled={mediaBusy === 'banner'}
                             className="pc-12-btn px-3 py-1.5 rounded-full text-xs font-bold text-amber-200 hover:text-amber-100 flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
-                            title="Mở trình cắt & xoay ảnh bìa kiểu Facebook"
+                            title="Cắt ảnh bìa"
                           >
                             <Crop className="w-3.5 h-3.5 text-amber-300" />
-                            <span>Cắt ảnh bìa (Facebook)</span>
+                            <span>Cắt</span>
                           </button>
                           <button
                             type="button"
@@ -2526,13 +2461,12 @@ const ProfileModalInner: React.FC<{
                   </div>
                 </div>
 
-                {/* Thanh điều chỉnh thu phóng & chế độ hiển thị ảnh nền trong tab F-ID */}
                 {effectiveBannerUrl && (
                   <div className="relative z-10 px-4 py-2.5 bg-black/45 border-b border-white/10 flex flex-wrap items-center justify-between gap-3 text-[11px]">
                     <div className="flex items-center gap-2 flex-1 min-w-[200px]">
                       <ZoomOut className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
-                      <span className="font-mono text-[10.5px] text-neutral-300 w-20 shrink-0">
-                        Zoom {Math.round(bannerLayout.zoom * 100)}%
+                      <span className="font-mono text-[10.5px] text-neutral-300 w-16 shrink-0">
+                        {Math.round(bannerLayout.zoom * 100)}%
                       </span>
                       <input
                         type="range"
@@ -2558,7 +2492,7 @@ const ProfileModalInner: React.FC<{
                             : 'bg-white/5 border-white/10 text-neutral-300'
                         }`}
                       >
-                        Phủ kín xuống dưới
+                        Phủ kín
                       </button>
                       <button
                         type="button"
@@ -2582,7 +2516,6 @@ const ProfileModalInner: React.FC<{
                   </div>
                 )}
 
-                {/* Avatar & Horizontal Banner Gradient Picker */}
                 <div className="relative z-10 p-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3.5">
                     <div className="relative group shrink-0 -mt-10">
@@ -2601,7 +2534,7 @@ const ProfileModalInner: React.FC<{
                         className="absolute inset-0 bg-black/65 rounded-2xl flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] text-white font-medium"
                       >
                         <Upload className="w-4 h-4 mb-0.5" />
-                        {mediaBusy === 'avatar' ? 'Đang xử lý…' : 'Đổi ảnh'}
+                        {mediaBusy === 'avatar' ? '…' : 'Đổi ảnh'}
                       </label>
                       <input
                         id="avatar-upload"
@@ -2622,23 +2555,19 @@ const ProfileModalInner: React.FC<{
                       <div className="flex items-center gap-2 mt-0.5">
                         <TierBadge level={currentUser.level} size={18} showTooltip={false} />
                         <span className="text-xs text-amber-300 font-mono font-semibold">
-                          {tier.titleVi} • Lv.{currentUser.level}
+                          {tier.titleVi} · Lv.{currentUser.level}
                         </span>
                       </div>
-                      <p className="text-[10px] text-white/55 mt-0.5 font-mono">
-                        Avatar &lt; 5MB • Ảnh bìa nền &le; 15MB (PNG, JPG, WebP, GIF)
-                      </p>
                     </div>
                   </div>
 
-                  {/* Shared banner gradient swatches */}
                   <div className="space-y-1 min-w-0 w-full sm:w-[300px]">
                     <span className="text-[10px] font-mono text-neutral-400 block">
-                      Bảng màu nền hồ sơ:
+                      Màu nền
                     </span>
                     <div className="pc-12-well p-2 rounded-2xl w-full">
                       <GradientSwatchPicker
-                        label="Bảng màu nền hồ sơ"
+                        label="Màu nền"
                         value={resolveProfileGradientId(profileGradient)}
                         onChange={id => setProfileGradient(getGradient(id).css)}
                       />
@@ -2647,12 +2576,10 @@ const ProfileModalInner: React.FC<{
                 </div>
               </div>
 
-              {/* Form Fields inside 3D Neumorphic Card */}
               <div className="pc-12-card p-4 space-y-3.5">
-                {/* Full Name */}
                 <div>
                   <label htmlFor="ten-hien-thi" className="block text-xs font-semibold text-neutral-300 mb-1">
-                    Tên hiển thị:
+                    Tên
                   </label>
                   <input id="ten-hien-thi"
                     type="text"
@@ -2660,22 +2587,21 @@ const ProfileModalInner: React.FC<{
                     maxLength={50}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full pc-12-well px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 transition-colors"
-                    placeholder="Nhập họ và tên..."
+                    placeholder="Họ và tên..."
                   />
                 </div>
 
-                {/* Bio with live counter */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs font-semibold text-neutral-300">
-                      Tiểu sử cá nhân (Bio):
+                      Tiểu sử
                     </label>
                     <span
                       className={`text-[11px] font-mono ${
                         bio.length >= 95 ? 'text-amber-400 font-bold' : 'text-neutral-400'
                       }`}
                     >
-                      {bio.length}/100 ký tự
+                      {bio.length}/100
                     </span>
                   </div>
                   <textarea
@@ -2685,16 +2611,15 @@ const ProfileModalInner: React.FC<{
                     }}
                     rows={2}
                     maxLength={100}
-                    placeholder="Chia sẻ ngắn về bản thân, sở thích hoặc châm ngôn học tập..."
+                    placeholder="Giới thiệu ngắn..."
                     className="w-full pc-12-well px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 transition-colors resize-none"
                   />
                 </div>
 
-                {/* 3 Columns: Gender, Class, City */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-neutral-300 mb-1">
-                      Giới tính:
+                      Giới tính
                     </label>
                     <select
                       value={gender}
@@ -2703,47 +2628,46 @@ const ProfileModalInner: React.FC<{
                     >
                       <option value="Nam">Nam</option>
                       <option value="Nữ">Nữ</option>
-                      <option value="Khác">Khác / Ẩn</option>
+                      <option value="Khác">Khác</option>
                     </select>
                   </div>
 
                   <div>
                     <label htmlFor="lop-khoa-hoc" className="block text-xs font-semibold text-neutral-300 mb-1">
-                      Lớp / Khoá học:
+                      Lớp
                     </label>
                     <input id="lop-khoa-hoc"
                       type="text"
                       value={className}
                       maxLength={50}
                       onChange={(e) => setClassName(e.target.value)}
-                      placeholder="VD: Lớp 11A1..."
+                      placeholder="VD: 11A1"
                       className="w-full pc-12-well px-3 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400"
                     />
                   </div>
 
                   <div>
                     <label htmlFor="thanh-pho" className="block text-xs font-semibold text-neutral-300 mb-1">
-                      Thành phố:
+                      Thành phố
                     </label>
                     <input id="thanh-pho"
                       type="text"
                       value={city}
                       maxLength={50}
                       onChange={(e) => setCity(e.target.value)}
-                      placeholder="VD: Hà Nội..."
+                      placeholder="VD: Đà Nẵng"
                       className="w-full pc-12-well px-3 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400"
                     />
                   </div>
                 </div>
 
-                {/* Footer Submit */}
                 <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-2.5">
                   <button
                     type="button"
                     onClick={() => setActiveTab('overview')}
                     className="pc-12-btn px-4 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white transition-colors cursor-pointer"
                   >
-                    Quay lại xem hồ sơ
+                    Quay lại
                   </button>
                   <button
                     type="submit"
@@ -2751,7 +2675,7 @@ const ProfileModalInner: React.FC<{
                     className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 hover:opacity-90 active:scale-95 text-neutral-950 font-bold text-xs flex items-center gap-1.5 shadow-[0_4px_16px_rgba(245,158,11,0.4)] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Check className="w-3.5 h-3.5" />
-                    <span>{isSaving ? 'Đang lưu...' : mediaBusy ? 'Đang xử lý ảnh...' : 'Lưu thay đổi F-ID'}</span>
+                    <span>{isSaving ? 'Đang lưu...' : mediaBusy ? '…' : 'Lưu'}</span>
                   </button>
                 </div>
               </div>
@@ -2896,16 +2820,10 @@ const ProfileModalInner: React.FC<{
             onClick={(e) => e.stopPropagation()}
             className="modal-container w-full max-w-2xl overflow-hidden flex flex-col"
           >
-            {/* Header chuẩn Facebook */}
             <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-dashed border-[#f4f1de]/15 bg-[#0b0d12]/60">
-              <div>
-                <h3 className="text-base sm:text-lg font-extrabold text-[#f4f1de]">
-                  {fbCropModal.kind === 'avatar' ? 'Chọn & Cắt Ảnh Đại Diện' : 'Đặt Vị Trí & Cắt Ảnh Bìa'}
-                </h3>
-                <p className="text-xs text-[#9a978e] mt-0.5">
-                  Kéo ảnh trực tiếp trong khung cố định · Lăn chuột hoặc kéo thanh trượt để thu phóng
-                </p>
-              </div>
+              <h3 className="text-base font-extrabold text-[#f4f1de]">
+                {fbCropModal.kind === 'avatar' ? 'Cắt ảnh đại diện' : 'Cắt ảnh bìa'}
+              </h3>
               <button
                 type="button"
                 onClick={() => !isSavingFbCrop && setFbCropModal(null)}
@@ -2958,7 +2876,6 @@ const ProfileModalInner: React.FC<{
                   </div>
                 )}
 
-                {/* Lưới bố cục 3×3 hiện lên khi kéo hoặc luôn hiển thị mờ kiểu Facebook */}
                 <div
                   className={`absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none transition-opacity duration-150 ${
                     isDraggingFbCrop ? 'opacity-70' : 'opacity-25'
@@ -2974,17 +2891,8 @@ const ProfileModalInner: React.FC<{
                   <div className="border-r border-white/45" />
                   <div />
                 </div>
-
-                {/* Nhãn nhắc kéo như trên Facebook */}
-                <div className="absolute bottom-3 inset-x-0 flex justify-center pointer-events-none px-3">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 border border-white/15 text-[11px] font-semibold text-white shadow-lg backdrop-blur-md">
-                    <Move className="w-3.5 h-3.5 text-[#f2cc8f]" />
-                    <span>Kéo để đặt lại vị trí · Lăn chuột để thu phóng</span>
-                  </span>
-                </div>
               </div>
 
-              {/* Thanh trượt Zoom chuẩn Facebook (− [════●════] +) + Xoay 90° & Lật ngang */}
               <div className="w-full max-w-[520px] mt-4 space-y-3">
                 <div className="flex items-center gap-3 px-3.5 py-2 rounded-xl bg-[#151a26] border border-[#f4f1de]/15">
                   <button
@@ -3116,13 +3024,12 @@ const ProfileModalInner: React.FC<{
                     className="px-3 py-1.5 rounded-lg bg-[#151a26] hover:bg-[#f4f1de]/10 border border-[#f4f1de]/15 text-xs font-semibold text-[#d8d5ce] inline-flex items-center gap-1.5 cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Đặt lại giữa khung</span>
+                    <span>Đặt lại</span>
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Footer nút Hủy & Lưu */}
             <div className="px-5 sm:px-6 py-4 border-t border-dashed border-[#f4f1de]/15 bg-[#0b0d12]/60 flex items-center justify-end gap-2.5">
               <button
                 type="button"
@@ -3139,13 +3046,7 @@ const ProfileModalInner: React.FC<{
                 className="ff-tactile-btn px-5 py-2 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border border-[#f4f1de] font-extrabold text-xs sm:text-sm inline-flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
               >
                 <Check className="w-4 h-4" />
-                <span>
-                  {isSavingFbCrop
-                    ? 'Đang lưu ảnh…'
-                    : fbCropModal.kind === 'avatar'
-                      ? 'Lưu ảnh đại diện'
-                      : 'Lưu ảnh bìa'}
-                </span>
+                <span>{isSavingFbCrop ? 'Đang lưu…' : 'Lưu'}</span>
               </button>
             </div>
           </div>

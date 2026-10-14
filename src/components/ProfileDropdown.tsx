@@ -243,7 +243,6 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
           </div>
         </div>
 
-        {/* Full Profile & Badges Link */}
         <button
           type="button"
           onClick={() => {
@@ -254,7 +253,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         >
           <div className="flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5 text-[#f2cc8f] group-hover:rotate-12 transition-transform" />
-            <span>Trang cá nhân</span>
+            <span>Hồ sơ</span>
           </div>
           <ChevronRight className="w-3.5 h-3.5 text-[#f4f1de]/60 group-hover:text-[#f2cc8f] group-hover:translate-x-0.5 transition-all" />
         </button>
@@ -270,7 +269,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             className="py-1.5 px-2.5 rounded-xl text-xs font-semibold text-white/90 hover:text-amber-300 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/30 transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
           >
             <CreditCard className="w-3.5 h-3.5 text-amber-400" />
-            <span>Thẻ F-Pass</span>
+            <span>F-Pass</span>
           </button>
 
           <button
@@ -282,7 +281,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             className="py-1.5 px-2.5 rounded-xl text-xs font-semibold text-white/90 hover:text-amber-300 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/30 transition-all flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
           >
             <UserPen className="w-3.5 h-3.5 text-amber-400" />
-            <span>Cài đặt hồ sơ</span>
+            <span>F-ID</span>
           </button>
         </div>
 
@@ -333,7 +332,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
               <div className="flex items-center gap-2 text-red-400">
                 <Flag className="w-4 h-4 text-red-400" />
-                <h3 className="font-bold text-sm text-white">Tố Cáo Tài Khoản Vi Phạm</h3>
+                <h3 className="font-bold text-sm text-white">Tố cáo</h3>
               </div>
               <button
                 type="button"

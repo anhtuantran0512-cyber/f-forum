@@ -58,7 +58,6 @@ import {
   DECORATION_TYPE_META,
   getCollectionStats,
   getDailyDeal,
-  priceRange,
   resolveAssetUrl,
 } from '../../utils/decorations';
 import { useDecorationCatalog } from '../../utils/decorationStore';
@@ -105,9 +104,9 @@ const PAGE_SIZE = 24;
 
 const TYPE_FILTERS: Array<{ id: TypeFilter; label: string }> = [
   { id: 'all', label: 'Tất cả' },
-  { id: 'Avatar Frame', label: 'Avatar Frame' },
-  { id: 'Avatar Aura', label: 'Avatar Aura' },
-  { id: 'Nameplate', label: 'Nameplate' },
+  { id: 'Avatar Frame', label: 'Khung' },
+  { id: 'Avatar Aura', label: 'Hào quang' },
+  { id: 'Nameplate', label: 'Bảng tên' },
 ];
 
 const decoRarity = (item: ShopItem): 'common' | 'rare' | 'epic' | 'mythic' => item.rarity || 'common';
@@ -367,8 +366,6 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
       .map(([id]) => id),
   ), [ownership]);
 
-  const priceRangeLabel = useMemo(() => priceRange(activeItems), [activeItems]);
-
   const filtered = useMemo(() => {
     const q = debouncedQuery.trim().toLowerCase();
     const list = activeItems.filter((item) => {
@@ -611,8 +608,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         <div className="gb-head__title">
           <span className="gb-head__mark" aria-hidden="true"><Sparkles size={16} /></span>
           <div>
-            <h3>Gacha Boutique</h3>
-            <p>Frame · Aura · Nameplate — F-Coin</p>
+            <h3>Boutique</h3>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -622,11 +618,11 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
               onClick={() => setIsGachaOpen((prev) => !prev)}
               className="px-3 py-1.5 rounded-xl text-xs font-bold text-white border border-purple-400/45 bg-gradient-to-r from-indigo-500/30 via-purple-500/30 to-pink-500/30 hover:brightness-110 transition cursor-pointer flex items-center gap-1.5"
             >
-              <span>🎲 {isGachaOpen ? 'Đóng Triệu Hồi Gacha' : 'Triệu Hồi Gacha (Pity 50/100)'}</span>
+              <span>{isGachaOpen ? 'Đóng Gacha' : 'Gacha'}</span>
             </button>
           )}
           {readOnly ? (
-            <span className="gb-viewonly">Chế độ trưng bày</span>
+            <span className="gb-viewonly">Trưng bày</span>
           ) : (
             <div className="gb-wallet" aria-label={`Số dư ${formatCoinBalance(coin)} Coin`}>
               <Coins size={15} aria-hidden="true" />
@@ -637,21 +633,18 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </div>
       </header>
 
-      {/* Item yêu thích đang sale (flash + tuần) — 1 chạm vào danh sách yêu thích. */}
       {!readOnly && wishOnDealCount > 0 && (
         <button type="button" className="gb-wish-deal" onClick={() => setWishOnly(true)}>
-          <Flame size={11} aria-hidden="true" /> {wishOnDealCount} item yêu thích đang sale — xem ngay
+          <Flame size={11} aria-hidden="true" /> {wishOnDealCount} yêu thích đang giảm giá
         </button>
       )}
 
       {catalogLoading && activeItems.length === 0 && (
         <div className="gb-empty" role="status">
-          <p>Đang tải kho trang trí…</p>
+          <p>Đang tải…</p>
         </div>
       )}
 
-      {/* TOP HERO BANNER — 6 MYTHIC TIÊU ĐIỂM. Bấm BẤT KỲ ĐÂU trên banner
-          → mở CÙNG 1 modal preview chuẩn (gb-inspect) — không có nút riêng. */}
       {currentHeroItem && (
         <section
           className="gb-hero-carousel"
@@ -686,9 +679,6 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                 {currentHeroItem.name}
               </h4>
               <div className="flex items-center gap-3 pt-1 flex-wrap">
-                <span className="gb-hero__hint" aria-hidden="true">
-                  <Sparkles size={13} /> Bấm để xem trước trên avatar
-                </span>
                 {mythicShowcaseItems.length > 1 && (
                   <div
                     className="flex items-center gap-1.5"
@@ -720,7 +710,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                 inspectItem(currentHeroItem.id);
               }}
               className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white/[0.04] border border-white/15 cursor-pointer hover:scale-105 transition-transform"
-              title="Bấm để xem trước trên Avatar"
+              title="Xem trước"
             >
               <div className="gb-hero__avatar">
                 <AvatarWithDecoration
@@ -738,7 +728,6 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </section>
       )}
 
-      {/* DIỆN MẠO HIỆN TẠI — TRY-ON DOCK kiểu Discord Nitro */}
       {activePreviewItem && (() => {
         const pAsset = itemToAsset(activePreviewItem);
         const pOwned = inventory.includes(activePreviewItem.id);
@@ -755,8 +744,6 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-5">
                 <div className="relative flex items-center justify-center shrink-0">
-                  {/* CHUẨN DISCORD: preview shop KHÔNG render nameplate (chỉ có
-                     ở Profile Card đầy đủ) — avatar nhỏ chỉ nhận frame/aura. */}
                   <AvatarWithDecoration
                     avatarUrl={userAvatar || DEFAULT_AVATAR}
                     decorationAsset={pAsset.type === 'nameplate' ? null : pAsset}
@@ -768,7 +755,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                 <div className="min-w-0 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] font-mono uppercase tracking-wider text-white/55">
-                      DIỆN MẠO HIỆN TẠI
+                      Xem trước
                     </span>
                     <span className="gb-rarity-badge-clean">
                       <span className="rarity-dot" style={{ background: DECORATION_RARITY_META[decoRarity(activePreviewItem)].color }} aria-hidden="true" />
@@ -789,7 +776,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                     </strong>
                   )}
                   <p className="text-xs text-white/75 truncate max-w-md">
-                    Đang thử: <b className="text-white">{activePreviewItem.name}</b>
+                    <b className="text-white">{activePreviewItem.name}</b>
                   </p>
                 </div>
               </div>
@@ -802,7 +789,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                       onClick={() => void onEquip(activePreviewItem, pEquipped ? null : activePreviewItem.id)}
                       className="px-3.5 py-2 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:brightness-110 transition cursor-pointer shadow-md"
                     >
-                      {pEquipped ? 'Đang trang bị (Gỡ)' : 'Trang bị ngay'}
+                      {pEquipped ? 'Gỡ' : 'Đeo'}
                     </button>
                   ) : (
                     <button
@@ -813,7 +800,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                     >
                       <Coins size={13} />
                       <span>
-                        {pCanAfford ? `Mua & thử (${pPrice.toLocaleString('vi-VN')}C)` : `Thiếu ${(pPrice - coin).toLocaleString('vi-VN')}C`}
+                        {pCanAfford ? `Mua (${pPrice.toLocaleString('vi-VN')})` : `Thiếu ${(pPrice - coin).toLocaleString('vi-VN')}`}
                       </span>
                     </button>
                   )}
@@ -833,38 +820,30 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         );
       })()}
 
-      {/* GACHA SUMMON SANCTUARY & PITY SYSTEM (50 EPIC+ / 100 MYTHIC) */}
       {isGachaOpen && !readOnly && (
         <section className="gb-gacha-deck animate-fade-up" aria-label="Hệ thống quay Gacha và bảo hiểm Pity">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/10">
-            <div>
-              <h4 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
-                <span>🔮 Điện Triệu Hồi Gacha &amp; Bảo Hiểm Pity</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-500/25 text-purple-200 border border-purple-400/40">
-                  Mythic tối đa ≤ 5%
-                </span>
-              </h4>
-              <p className="text-xs text-white/65 mt-0.5">
-                Mỗi lượt quay trừ Coin đúng giá danh sách của vật phẩm trúng (khoảng giá {priceRangeLabel} Coin).
-                Đảm bảo từ <strong>Epic+ ở lượt 50</strong> và <strong>Mythic 👑 ở lượt 100</strong>.
-              </p>
-            </div>
+            <h4 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+              <span>Gacha</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-500/25 text-purple-200 border border-purple-400/40">
+                Pity 50/100
+              </span>
+            </h4>
             <button
               type="button"
               onClick={() => setShowOddsModal((prev) => !prev)}
               className="ff-tactile-btn px-3 py-1.5 rounded-xl bg-[#0b0d12]/80 hover:bg-[#1e2636] border border-[#f2cc8f]/40 text-xs font-semibold text-[#f2cc8f] cursor-pointer shrink-0"
             >
-              {showOddsModal ? 'Ẩn bảng tỷ lệ %' : '📊 Xem bảng tỷ lệ minh bạch'}
+              {showOddsModal ? 'Ẩn tỷ lệ' : 'Tỷ lệ'}
             </button>
           </div>
 
-          {/* Thanh đếm ngược Pity (Còn X lần nữa đảm bảo ra Epic/Mythic) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 my-3">
             <div className="p-3 rounded-xl bg-white/[0.03] border border-purple-400/25 space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-purple-200">⭐⭐ Bảo hiểm Epic+ (Mốc 50)</span>
+                <span className="font-semibold text-purple-200">Epic+ (50)</span>
                 <span className="font-mono font-bold text-white">
-                  Còn {remainingToEpic} lần nữa đảm bảo ra Epic+
+                  Còn {remainingToEpic}
                 </span>
               </div>
               <div className="gb-pity-bar">
@@ -880,9 +859,9 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
 
             <div className="p-3 rounded-xl bg-white/[0.03] border border-amber-400/30 space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-amber-200">👑✨ Bảo hiểm Mythic (Mốc 100)</span>
+                <span className="font-semibold text-amber-200">Mythic (100)</span>
                 <span className="font-mono font-bold text-amber-300">
-                  Còn {remainingToMythic} lần nữa đảm bảo ra Mythic
+                  Còn {remainingToMythic}
                 </span>
               </div>
               <div className="gb-pity-bar">
@@ -897,23 +876,19 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
             </div>
           </div>
 
-          {/* Bảng tỷ lệ rơi vật phẩm minh bạch */}
           {showOddsModal && (
             <div className="mb-3 p-3.5 rounded-xl bg-[#0b0d12]/90 border border-[#f2cc8f]/40 text-xs space-y-2 animate-fade-up">
-              <div className="font-bold text-[#f2cc8f]">
-                📐 Bảng Tỷ Lệ Rơi Vật Phẩm Chính Thức (Cam kết Mythic không vượt quá 5%):
-              </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 {(['standard', 'epic_focus', 'mythic_hunter'] as GachaPoolId[]).map((pid) => {
                   const p = GACHA_POOLS[pid];
                   return (
                     <div key={pid} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
-                      <div className="font-bold text-white">{p.name} ({p.cost}C)</div>
+                      <div className="font-bold text-white">{p.name} ({p.cost})</div>
                       <div className="text-[11px] text-white/70 font-mono">
-                        • Common: {p.rates.common}% | Rare: {p.rates.rare}%
+                        Common {p.rates.common}% · Rare {p.rates.rare}%
                       </div>
                       <div className="text-[11px] text-purple-300 font-mono font-semibold">
-                        • Epic: {p.rates.epic}% | 👑 Mythic: {p.rates.legendary}%
+                        Epic {p.rates.epic}% · Mythic {p.rates.legendary}%
                       </div>
                     </div>
                   );
@@ -922,7 +897,6 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
             </div>
           )}
 
-          {/* 3 Gói Quay Gacha */}
           <div className="gb-gacha-pools">
             {(['standard', 'epic_focus', 'mythic_hunter'] as GachaPoolId[]).map((pid) => {
               const pool = GACHA_POOLS[pid];
@@ -941,13 +915,12 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                         {pool.badge}
                       </span>
                       <span className="text-xs font-mono font-bold text-amber-300 flex items-center gap-1">
-                        <Coins size={12} /> {pool.cost} Coin
+                        <Coins size={12} /> {pool.cost}
                       </span>
                     </div>
                     <h5 className="text-sm font-extrabold text-white">{pool.name}</h5>
-                    <p className="text-[11px] text-white/65 leading-snug">{pool.subtitle}</p>
                     <div className="text-[10.5px] font-mono text-white/75 pt-1">
-                      Epic: <b className="text-purple-300">{pool.rates.epic}%</b> · Mythic:{' '}
+                      Epic <b className="text-purple-300">{pool.rates.epic}%</b> · Mythic{' '}
                       <b className="text-amber-300">{pool.rates.legendary}%</b>
                     </div>
                   </div>
@@ -959,18 +932,17 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                     style={{ background: canAffordPool ? pool.accentGradient : undefined }}
                     className="w-full py-2 px-3 rounded-xl text-xs font-extrabold text-white border border-white/20 shadow-md disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition hover:brightness-110"
                   >
-                    {canAffordPool ? `Quay 1 Lần (${pool.cost} Coin)` : `Thiếu ${pool.cost - coin} Coin`}
+                    {canAffordPool ? `Quay (${pool.cost})` : `Thiếu ${pool.cost - coin}`}
                   </button>
                 </div>
               );
             })}
           </div>
 
-          {/* Lịch sử quay gần đây */}
           {gachaHistory.length > 0 && (
             <div className="mt-3 pt-3 border-t border-white/10">
               <span className="text-[11px] font-mono uppercase tracking-wider text-white/55 block mb-1.5">
-                Lịch sử triệu hồi gần đây ({pity.totalPulls} lượt):
+                Gần đây ({pity.totalPulls}):
               </span>
               <div className="flex items-center gap-2 overflow-x-auto pb-1">
                 {gachaHistory.map((h) => (
@@ -989,17 +961,16 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </section>
       )}
 
-      {/* THANH ĐẾM NGƯỢC XOAY VÒNG GIẢM GIÁ 6H */}
       <div className="gb-rarity-bar" aria-label="Thông tin đợt giảm giá 6 giờ">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="gb-sale-tag gb-sale-tag--super">🔥 FLASH SALE 6H</span>
+          <span className="gb-sale-tag gb-sale-tag--super">Sale 6h</span>
           <span className="text-xs text-white/80">
-            Đang giảm giá <b>{dynamicDiscounts.list.length} trang trí</b> (10% → 90% OFF)
+            <b>{dynamicDiscounts.list.length} món</b> (−10% → −90%)
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs font-mono text-amber-300">
           <Clock3 size={13} />
-          <span>Reset sau: <b>{formatCountdownHMS(dynamicDiscounts.remainingMs)}</b></span>
+          <span><b>{formatCountdownHMS(dynamicDiscounts.remainingMs)}</b></span>
         </div>
       </div>
 
@@ -1052,10 +1023,9 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </button>
       )}
 
-      {/* ĐẠI CẬP NHẬT — BỘ SƯU TẬP CỦA BẠN: tiến độ 873 item theo độ hiếm */}
       <section className="gb-collection" aria-label="Bộ sưu tập của bạn">
         <div className="gb-collection__head">
-          <b>Bộ sưu tập của bạn</b>
+          <b>Bộ sưu tập</b>
           <span className="gb-collection__count">
             {collection.owned}/{collection.total} · {collection.percent}%
           </span>
@@ -1158,7 +1128,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         </button>
         <span className="gb-filters__divider" aria-hidden="true" />
         <button type="button" aria-pressed={motionFilter === 'animated'} className={motionFilter === 'animated' ? 'is-active' : ''} onClick={() => { setMotionFilter((cur) => (cur === 'animated' ? 'all' : 'animated')); saveFilters({ motion: motionFilter === 'animated' ? 'all' : 'animated' }); resetPagination(); }}>
-          Có animation
+          Động
         </button>
         <button type="button" aria-pressed={motionFilter === 'static'} className={motionFilter === 'static' ? 'is-active' : ''} onClick={() => { setMotionFilter((cur) => (cur === 'static' ? 'all' : 'static')); saveFilters({ motion: motionFilter === 'static' ? 'all' : 'static' }); resetPagination(); }}>
           Tĩnh
@@ -1167,7 +1137,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           type="button"
           aria-pressed={sortMode === 'price-asc'}
           className={sortMode === 'price-asc' ? 'is-active' : ''}
-          title="Sắp xếp giá: thấp → cao (bấm lại về Nổi bật)"
+          title="Giá thấp → cao"
           onClick={() => {
             const next = sortMode === 'price-asc' ? 'featured' : 'price-asc';
             setSortMode(next);
@@ -1181,7 +1151,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           type="button"
           aria-pressed={affordableOnly}
           className={affordableOnly ? 'is-active is-affordable' : ''}
-          title={`Chỉ hiện item giá thực tế ≤ ${formatCoinBalance(coin)} Coin hiện tại của bạn (bấm lại để tắt)`}
+          title={`≤ ${formatCoinBalance(coin)} Coin`}
           onClick={() => { setAffordableOnly((cur) => !cur); saveFilters({ afford: affordableOnly ? '' : '1' }); resetPagination(); }}
         >
           <Coins size={12} aria-hidden="true" /> Tôi mua được ({affordableCount})
@@ -1192,7 +1162,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
             aria-pressed={wishOnly}
             className={wishOnly ? 'is-active is-wished' : ''}
             onClick={() => { setWishOnly((cur) => !cur); resetPagination(); }}
-            title="Chỉ hiện item đã yêu thích"
+            title="Yêu thích"
           >
             <Heart size={11} aria-hidden="true" /> Yêu thích ({wishlist.length})
           </button>
@@ -1206,7 +1176,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
             type="search"
             value={query}
             onChange={(event) => { setQuery(event.target.value); resetPagination(); }}
-            placeholder="Tìm trang trí (tên, chủ đề…)"
+            placeholder="Tìm..."
             aria-label="Tìm trang trí"
           />
         </div>
@@ -1217,9 +1187,9 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           className="gb-searchbar__sort"
         >
           <option value="all">Mọi giá</option>
-          <option value="2500">≤ 2.500 Coin</option>
-          <option value="3500">≤ 3.500 Coin</option>
-          <option value="5000">≤ 5.000 Coin</option>
+          <option value="2500">≤ 2.500</option>
+          <option value="3500">≤ 3.500</option>
+          <option value="5000">≤ 5.000</option>
         </select>
         <select
           value={sortMode}
@@ -1228,18 +1198,18 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           className="gb-searchbar__sort"
         >
           <option value="featured">Nổi bật</option>
-          <option value="price-asc">Giá: thấp → cao</option>
-          <option value="price-desc">Giá: cao → thấp</option>
+          <option value="price-asc">Giá ↑</option>
+          <option value="price-desc">Giá ↓</option>
           <option value="value">Giá trị tốt nhất</option>
           <option value="newest">Mới nhất</option>
         </select>
-        <span className="gb-searchbar__count">{filtered.length} trang trí</span>
+        <span className="gb-searchbar__count">{filtered.length}</span>
         {hasActiveFilters && (
           <button
             type="button"
             className="gb-searchbar__reset"
             onClick={resetAllFilters}
-            title="Xoá mọi bộ lọc (giữ nguyên sắp xếp)"
+            title="Xoá bộ lọc"
           >
             <X size={11} aria-hidden="true" /> Xoá bộ lọc
           </button>
@@ -1251,11 +1221,10 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
           <CuBong mood="sleepy" size={96} decorative />
           {wishOnly && !readOnly && wishlist.length === 0 ? (
             <p>
-              Chưa có item yêu thích nào. Bấm <Heart size={12} aria-hidden="true" /> trên bất kỳ card nào để lưu vào danh
-              sách, sau đó trở lại đây để xem nhanh!
+              Chưa có item yêu thích nào.
             </p>
           ) : (
-            <p>Kệ này còn trống… Cú Bông ngủ gật luôn rồi. Thử bộ lọc khác nhé!</p>
+            <p>Không có vật phẩm.</p>
           )}
         </div>
       ) : (
@@ -1451,10 +1420,6 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
               </button>
               <div className="gb-inspect__stage flex flex-col items-center justify-center p-4">
                 <span className="gb-inspect__halo" aria-hidden="true" />
-                <span className="text-[10px] font-mono uppercase tracking-widest text-white/60 mb-3 z-10">
-                  [AVATAR PREVIEW · 200PX]
-                </span>
-                {/* Xem trên avatar THẬT của user, 200px (quy chuẩn 180–256px — context lớn) */}
                 {asset.type === 'nameplate' ? (
                   <div className="relative flex flex-col items-center justify-center my-2 z-10 gap-3">
                     <AvatarWithDecoration
@@ -1526,7 +1491,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                     </div>
                   )}
                   {readOnly ? (
-                    <p className="gb-inspect__readonly">Chỉ chủ hồ sơ mới mua hoặc đeo được trang trí này.</p>
+                    <p className="gb-inspect__readonly">Chỉ xem.</p>
                   ) : (
                     <div className="flex items-center gap-2 flex-wrap">
                       {owned ? (
@@ -1535,7 +1500,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                           className={`gb-buy gb-buy--equip ${equipped ? 'is-on' : ''}`}
                           onClick={() => void onEquip(inspected, equipped ? null : inspected.id)}
                         >
-                          {equipped ? 'Gỡ trang bị' : 'Trang bị ngay'}
+                          {equipped ? 'Gỡ' : 'Đeo'}
                         </button>
                       ) : (
                         <button
@@ -1549,13 +1514,13 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                             isBuyingThis ? (
                               <>
                                 <Lock size={14} aria-hidden="true" />
-                                <span>Đang khóa &amp; mở hộp…</span>
+                                <span>Đang mở…</span>
                               </>
                             ) : (
-                              'Mua ngay'
+                              'Mua'
                             )
                           ) : (
-                            `Thiếu ${(price - coin).toLocaleString('vi-VN')} Coin`
+                            `Thiếu ${(price - coin).toLocaleString('vi-VN')}`
                           )}
                         </button>
                       )}
@@ -1603,10 +1568,6 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
               >
                 <X size={16} />
               </button>
-              <span className="gb-unbox__vault-pill">
-                <Lock size={11} aria-hidden="true" />
-                <span>VẬT PHẨM ĐÃ KHÓA VÀO TỦ ĐỒ CÁ NHÂN</span>
-              </span>
               <div className="gb-unbox__scene" aria-hidden="true">
                 <span className="gb-unbox__rays" />
                 <span className="gb-unbox__box">
@@ -1632,7 +1593,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                   )}
                 </span>
               </div>
-              <p className="gb-unbox__title" role="status">Đã mở khoá thành công!</p>
+              <p className="gb-unbox__title" role="status">Mở khoá</p>
               <b className="gb-unbox__name">{unboxed.name}</b>
               <span className={`gb-rarity gb-rarity--${unboxRarity}`}>{DECORATION_RARITY_META[rarity].label}</span>
               <div className="gb-unbox__actions">
@@ -1642,9 +1603,9 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                   className="gb-buy gb-buy--equip"
                   onClick={() => { void onEquip(unboxed, unboxed.id); setUnboxed(null); }}
                 >
-                  Đeo ngay
+                  Đeo
                 </button>
-                <button type="button" className="gb-ghost" onClick={() => setUnboxed(null)}>Để sau</button>
+                <button type="button" className="gb-ghost" onClick={() => setUnboxed(null)}>Đóng</button>
               </div>
             </div>
           </div>

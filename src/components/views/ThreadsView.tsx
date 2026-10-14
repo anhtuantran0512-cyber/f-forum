@@ -393,9 +393,6 @@ const ThreadCard = React.memo<{
                   {reactionCounts[type] > 0 && <span className="reaction-count">{reactionCounts[type]}</span>}
                 </button>
               ))}
-              {totalReactionCount === 0 && (
-                <span className="reaction-hint">Thả cảm xúc đầu tiên</span>
-              )}
             </div>
             <div className="thread-cta-group">
               <button type="button" onClick={() => setIsReplyOpen((v) => !v)} className={`action-text-btn ${isReplyOpen ? 'is-active' : ''}`}>
@@ -407,16 +404,16 @@ const ThreadCard = React.memo<{
               </button>
               <button type="button" onClick={() => setIsRepostOpen((v) => !v)} className={`action-text-btn ${isRepostOpen ? 'is-active' : ''}`}>
                 <Repeat2 className="w-4 h-4" />
-                Chia sẻ lại
+                Chia sẻ
               </button>
               {viewModel.onOpenReader && (
                 <button
                   type="button"
                   onClick={() => viewModel.onOpenReader?.(rootThread.id)}
                   className="action-text-btn subtle"
-                  title="Đọc toàn bộ câu chuyện & phản hồi"
+                  title="Đọc chi tiết"
                 >
-                  <span>Đọc chi tiết</span>
+                  <span>Chi tiết</span>
                 </button>
               )}
               <button
@@ -951,18 +948,13 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
   return (
     <section ref={feedScrollRef} className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-y-auto'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8 threads-bg ff-raw-grid-surface`}>
       <div className="relative z-10 w-full max-w-2xl mx-auto flex-1 flex flex-col">
-        {/* Thanh đầu trang Editorial Zine: Masthead + Tiêu đề + Hand-Drawn Squiggle + Thống kê + Tìm kiếm & Bộ lọc */}
         <header className="threads-hero-bar">
-          <div className="thread-zine-masthead">
-            <span>ZINE // ISSUE 2026 · EDITORIAL DIARY</span>
-            <span>LIVE_STREAM · {feedStats.roots} BÀI VIẾT</span>
-          </div>
           <div className="threads-hero-top">
             <div className="threads-hero-brand">
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <h1 className="ff-typo-poster !text-xl sm:!text-2xl text-[#f4f1de]">
-                    Góc Tâm Sự
+                    Thread
                   </h1>
                   <span className="threads-hero-stats ff-raw-meta">
                     <b>{feedStats.roots}</b> bài · <b>{feedStats.replies}</b> phản hồi · <b>{feedStats.reactions}</b> cảm xúc
@@ -981,7 +973,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm bài viết, #chủđề…"
                 className="threads-search-input"
-                aria-label="Tìm kiếm trong Góc Tâm Sự"
+                aria-label="Tìm kiếm"
               />
               {(searchQuery || activeTag) && (
                 <button

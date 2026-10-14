@@ -88,11 +88,10 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
 
   return (
     <div className="w-full max-w-[440px] mx-auto select-none">
-      {/* Top interactive toolbar with 3D Neumorphic Pill controls */}
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="pc-12-pill px-3 py-1 flex items-center gap-1.5 text-[10px] font-mono text-amber-300">
-          <Sparkles className="w-3 h-3 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
-          <span>HOLOGRAM F-PASS 3D</span>
+          <Sparkles className="w-3 h-3 text-amber-400" />
+          <span>F-PASS</span>
         </div>
         <button
           type="button"
@@ -100,7 +99,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
           className="pc-12-btn ff-tactile-btn px-3 py-1 rounded-full flex items-center gap-1.5 text-[10px] font-mono font-bold text-[#f2cc8f] hover:text-[#f4f1de] cursor-pointer"
         >
           <RotateCw className={`w-3 h-3 transition-transform duration-500 ${isFlipped ? 'rotate-180' : ''}`} />
-          <span>{isFlipped ? 'Mặt trước' : 'Lật mặt sau'}</span>
+          <span>{isFlipped ? 'Mặt trước' : 'Mặt sau'}</span>
         </button>
       </div>
 
@@ -109,7 +108,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onClick={triggerCardFlip}
-        title="Di chuột để nghiêng 3D • Nhấp để lật mặt sau Thẻ Học Sinh"
+        title="Lật thẻ"
         className="hologram-card w-full cursor-pointer"
       >
         <div
@@ -163,11 +162,11 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
                   </div>
                 </div>
                 <div>
-                  <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-amber-300/90 font-semibold">
-                    F-FORUM STUDENT ID
+                  <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-amber-300/90 font-semibold">
+                    F-PASS
                   </div>
                   <div className="text-[9px] font-mono text-neutral-400">
-                    VERIFIED ACADEMIC PASS • {isSuperAdmin ? 'FOUNDER' : user.staffRole || user.role}
+                    {isSuperAdmin ? 'ADMIN' : user.staffRole || user.role}
                   </div>
                 </div>
               </div>
@@ -245,24 +244,25 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
                 </div>
 
                 <p className="text-xs text-neutral-400 truncate mb-2 font-mono">
-                  {user.className || 'Học Sinh F-Forum'} • {user.city || 'Việt Nam'}
+                  {user.className || 'Học sinh'} · {user.city || 'Việt Nam'}
                 </p>
 
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider bg-amber-500/15 border border-amber-400/35 text-amber-300">
                   <Sparkles className="w-3 h-3" />
                   <span>
-                    Lv.{user.level} • {isSuperAdmin ? ' Quản Trị Viên Tối Cao' : `${tier.roman}. ${tier.titleVi}`}
+                    Lv.{user.level} · {isSuperAdmin ? 'Quản trị' : `${tier.roman}. ${tier.titleVi}`}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Bio Quote inside 3D Neumorphic Inset Well */}
-            <div className="relative z-10 mb-5 px-3.5 py-2.5 pc-12-well">
-              <p className="text-xs text-neutral-300 italic line-clamp-2 leading-relaxed">
-                &ldquo;{user.bio || 'Chưa cập nhật tiểu sử học thuật.'}&rdquo;
-              </p>
-            </div>
+            {user.bio && (
+              <div className="relative z-10 mb-5 px-3.5 py-2.5 pc-12-well">
+                <p className="text-xs text-neutral-300 italic line-clamp-2 leading-relaxed">
+                  &ldquo;{user.bio}&rdquo;
+                </p>
+              </div>
+            )}
 
             {/* Telemetry Stats Grid (3D Neumorphic Inset Wells) */}
             <div className="relative z-10 grid grid-cols-3 gap-2.5 mb-4">
@@ -316,13 +316,12 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
               <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[9px] font-mono text-neutral-400">
                 <span>ID: #{user.id.toUpperCase().slice(0, 12)}</span>
                 <span className="text-amber-400/90 flex items-center gap-1">
-                  <RotateCw className="w-2.5 h-2.5" /> Nhấp thẻ để lật 3D
+                  <RotateCw className="w-2.5 h-2.5" /> Lật
                 </span>
               </div>
             </div>
           </div>
 
-          {/* ==================== BACK FACE (180 DEG FLIP) ==================== */}
           <div
             className="hologram-inner pc-12-card absolute inset-0 rounded-[28px] p-6 overflow-hidden border border-amber-500/35 flex flex-col justify-between"
             style={{
@@ -330,11 +329,10 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
               transform: 'rotateY(180deg)',
             }}
           >
-            {/* Top Magnetic Strip */}
             <div>
               <div className="-mx-6 -mt-2 mb-4 h-10 bg-gradient-to-r from-neutral-950 via-neutral-800 to-neutral-950 border-y border-white/10 flex items-center justify-between px-6">
-                <span className="text-[9px] font-mono tracking-[0.3em] text-amber-400/80 uppercase">
-                  MAGNETIC SECURITY STRIP • F-PASS
+                <span className="text-[9px] font-mono tracking-[0.2em] text-amber-400/80 uppercase">
+                  F-PASS
                 </span>
                 <span className="text-[9px] font-mono text-emerald-400 flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" /> ACTIVE
@@ -345,43 +343,39 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
                 <div className="flex items-center gap-2">
                   <QrCode className="w-5 h-5 text-amber-400" />
                   <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-300">
-                    Xác Thực Học Sinh F-Forum
+                    F-Pass
                   </span>
                 </div>
                 <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  VERIFIED PASS
+                  VERIFIED
                 </span>
               </div>
             </div>
 
             <div className="my-auto py-3 flex items-center gap-4">
-              {/* Simulated QR Verification Matrix inside 3D Well */}
               <div className="w-24 h-24 rounded-2xl pc-12-well p-2.5 flex flex-col items-center justify-center shrink-0">
                 <QrCode className="w-14 h-14 text-amber-400" />
                 <span className="text-[8px] font-mono text-neutral-400 mt-1">
-                  F-PASS AUTH
+                  F-PASS
                 </span>
               </div>
 
               <div className="space-y-1.5 text-xs flex-1 min-w-0">
                 <div className="text-white font-bold truncate">{user.name}</div>
                 <div className="text-neutral-300 text-[11px] font-mono">
-                  Cấp độ: <span className="text-amber-300 font-bold">Lv.{user.level}</span> ({tier.titleVi})
+                  Cấp: <span className="text-amber-300 font-bold">Lv.{user.level}</span> · {tier.titleVi}
                 </div>
                 <div className="text-neutral-300 text-[11px] font-mono">
-                  Tích lũy: <span className="text-emerald-300 font-bold">{fPoints.toLocaleString()} XP</span> •{' '}
+                  <span className="text-emerald-300 font-bold">{fPoints.toLocaleString()} XP</span> ·{' '}
                   <span className="text-yellow-300 font-bold">{formatCoinBalance(effectiveCoinBalance(user.role, user.coin))} Coin</span>
-                </div>
-                <div className="text-neutral-400 text-[10px] leading-relaxed pt-1">
-                  Thẻ định danh học thuật dùng để tham gia CLB, hỏi đáp tích điểm và mở khóa đặc quyền trên F-Forum.
                 </div>
               </div>
             </div>
 
             <div className="pt-2.5 border-t border-white/10 flex items-center justify-between text-[9px] font-mono text-neutral-400">
-              <span>BẢN QUYỀN © F-FORUM</span>
+              <span>© F-FORUM</span>
               <span className="flex items-center gap-1 text-amber-400">
-                <RotateCw className="w-3 h-3" /> Nhấp để quay lại mặt trước
+                <RotateCw className="w-3 h-3" /> Lật
               </span>
             </div>
           </div>

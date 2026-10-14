@@ -247,7 +247,6 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
                   </span>
                 )}
               </div>
-              <span className="text-[9.5px] text-white/50 block">Trung tâm sự kiện thời gian thực</span>
             </div>
           </div>
 
@@ -299,9 +298,8 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         {/* Notification Feed */}
         <div className="max-h-[340px] overflow-y-auto space-y-2.5 pr-1 no-scrollbar">
           {filtered.length === 0 ? (
-            <div className="py-10 text-center text-xs text-neutral-400 space-y-1">
-              <p>Chưa có thông báo nào trong mục này.</p>
-              <p className="text-[10px] text-neutral-500">Các cập nhật bài giải, coin và hệ thống sẽ xuất hiện tại đây.</p>
+            <div className="py-10 text-center text-xs text-neutral-400">
+              <p>Chưa có thông báo.</p>
             </div>
           ) : (
             filtered.map((n) => (
@@ -356,7 +354,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
           )}
         </div>
 
-        {/* Footer Action: "Xem tất cả" button as in design specification */}
+        {/* Footer Action */}
         <div className="mt-3 pt-2.5 border-t border-dashed border-[#f4f1de]/15 flex items-center justify-between">
           <button
             type="button"
@@ -366,9 +364,8 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
             }}
             className="text-xs text-[#f2cc8f] hover:text-[#f4f1de] font-medium transition-colors cursor-pointer"
           >
-            Xem tất cả thông báo
+            Trang chủ
           </button>
-          <span className="text-[10px] text-white/30 font-mono">F-Forum Live Engine</span>
         </div>
       </div>
     </>
