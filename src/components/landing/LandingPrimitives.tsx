@@ -102,37 +102,37 @@ export const Counter: React.FC<CounterProps> = ({
       });
       return () => cancelAnimationFrame(id);
     }
+    const el = ref.current;
     let raf = 0;
-    let lastStateEmit = 0;
     const start = performance.now();
     const tick = (now: number) => {
       const elapsed = now - start;
       const t = Math.min(1, elapsed / duration);
-      if (t < 1 && now - lastStateEmit < 42) {
-        raf = requestAnimationFrame(tick);
-        return;
-      }
-      lastStateEmit = now;
       const eased = 1 - Math.pow(2, -10 * t);
       const currentVal = value * (t === 1 ? 1 : eased);
-      setDisplay(currentVal);
 
-      if (t < 0.88) {
-        const finalStr = Math.round(value).toString();
-        const scrambled = finalStr
-          .split('')
-          .map((ch, idx) => {
-            const lockProgress = (idx + 1) / finalStr.length;
-            if (t > lockProgress * 0.88) return ch;
-            if (/\d/.test(ch)) {
-              return Math.floor(Math.random() * 10).toString();
-            }
-            return ch;
-          })
-          .join('');
-        setScrambleText(scrambled);
-      } else {
-        setScrambleText(null);
+      if (el) {
+        if (t < 0.88) {
+          const finalStr = Math.round(value).toString();
+          const scrambled = finalStr
+            .split('')
+            .map((ch, idx) => {
+              const lockProgress = (idx + 1) / finalStr.length;
+              if (t > lockProgress * 0.88) return ch;
+              if (/\d/.test(ch)) {
+                return Math.floor(Math.random() * 10).toString();
+              }
+              return ch;
+            })
+            .join('');
+          el.textContent = `${prefix}${scrambled}${suffix}`;
+        } else {
+          const formattedNow = currentVal.toLocaleString('vi-VN', {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals,
+          });
+          el.textContent = `${prefix}${formattedNow}${suffix}`;
+        }
       }
 
       if (t < 1) {
@@ -144,7 +144,7 @@ export const Counter: React.FC<CounterProps> = ({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [inView, value, duration, reduced]);
+  }, [inView, value, duration, reduced, prefix, suffix, decimals, ref]);
 
   const formatted = useMemo(() => {
     if (scrambleText !== null) {
@@ -397,9 +397,9 @@ export const ScrambleText: React.FC<{
       });
       return () => cancelAnimationFrame(id);
     }
+    const el = ref.current;
     const glyphs = 'ABCDEFGHJKLNOPQRSTUVWXYZ0123456789#%&*+~';
     let frame = 0;
-    let lastEmit = 0;
     const startTime = performance.now() + delay;
     const duration = 1200;
 
@@ -409,11 +409,6 @@ export const ScrambleText: React.FC<{
         return;
       }
       const progress = Math.min(1, (now - startTime) / duration);
-      if (progress < 1 && now - lastEmit < 45) {
-        frame = requestAnimationFrame(tick);
-        return;
-      }
-      lastEmit = now;
       const lockedLength = Math.floor(progress * text.length);
 
       const result = text
@@ -425,7 +420,9 @@ export const ScrambleText: React.FC<{
         })
         .join('');
 
-      setDisplayText(result);
+      if (el) {
+        el.textContent = result;
+      }
 
       if (progress < 1) {
         frame = requestAnimationFrame(tick);
@@ -436,7 +433,7 @@ export const ScrambleText: React.FC<{
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [inView, text, delay, reduced]);
+  }, [inView, text, delay, reduced, ref]);
 
   return (
     <span ref={ref} className={className}>

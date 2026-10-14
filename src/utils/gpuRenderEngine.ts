@@ -545,7 +545,7 @@ export interface DemandRenderLoopController {
 }
 
 export interface DemandRenderLoopOptions {
-  /** Giới hạn FPS tối đa (mặc định 60 FPS để tiết kiệm GPU trên màn 120Hz/144Hz). */
+  /** Tùy chọn giới hạn FPS (mặc định 0 = KHÔNG giới hạn FPS, chạy tối đa theo tần số quét màn hình 120Hz/144Hz/240Hz). */
   maxFps?: number;
   /** Tự động chạy số frame khởi tạo ban đầu khi mount. */
   initialFrames?: number;
@@ -553,6 +553,7 @@ export interface DemandRenderLoopOptions {
 
 /**
  * P0: Thay thế vòng lặp requestAnimationFrame vô tận bằng cơ chế Render On-Demand.
+ *  - Không khóa trần FPS (hỗ trợ trọn vẹn màn hình 120Hz/144Hz/240Hz+).
  *  - Khi không có tương tác và quán tính đã hội tụ (renderFn trả về false), vòng lặp TỰ ĐỘNG NGỦ (0% CPU/GPU).
  *  - Khi có sự kiện (pointermove, wheel, scroll, resize, state change), gọi invalidate() để vẽ ngay lập tức.
  */
@@ -560,8 +561,8 @@ export function createDemandRenderLoop(
   renderFn: (now: number, dtMs: number) => boolean,
   options: DemandRenderLoopOptions = {},
 ): DemandRenderLoopController {
-  const maxFps = options.maxFps && options.maxFps > 0 ? options.maxFps : 60;
-  const minFrameInterval = 1000 / (maxFps + 2);
+  const maxFps = options.maxFps && options.maxFps > 0 ? options.maxFps : 0;
+  const minFrameInterval = maxFps > 0 ? 1000 / (maxFps + 2) : 0;
 
   let rafId = 0;
   let remainingFrames = Math.max(0, options.initialFrames ?? 2);
@@ -587,12 +588,12 @@ export function createDemandRenderLoop(
     }
 
     const elapsed = now - lastFrameTime;
-    if (lastFrameTime > 0 && elapsed < minFrameInterval) {
+    if (minFrameInterval > 0 && lastFrameTime > 0 && elapsed < minFrameInterval) {
       scheduleNext();
       return;
     }
 
-    const dtMs = lastFrameTime > 0 ? Math.min(64, Math.max(4, elapsed)) : 16.6;
+    const dtMs = lastFrameTime > 0 ? Math.min(64, Math.max(0.5, elapsed)) : 8.33;
     lastFrameTime = now;
 
     /* Đo FPS thực tế trong cửa sổ 500ms để nuôi bộ điều khiển P4 Adaptive Quality */

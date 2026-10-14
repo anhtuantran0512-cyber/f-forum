@@ -139,24 +139,24 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </button>
         )}
 
-        {/* Style 2 + 3 + 5 + 7 + 8 + 9: Interactive Bento Community Dock (Thay thế chỉ báo cuộn tĩnh) */}
-        <div className="w-full max-w-4xl mt-7 sm:mt-8 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 text-left">
+        {/* Style 2 + 5 + 8 + 9: Interactive Bento Community Dock (Gọn gàng, không lặp thông tin) */}
+        <div className="w-full max-w-3xl mt-7 sm:mt-8 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 text-left">
           <button
             type="button"
             onClick={() => onNavigate('qa')}
             className="ff-bento-cell ff-scifi-accent-bar group cursor-pointer text-left"
           >
-            <div className="flex items-center justify-between gap-2 mb-1.5">
-              <span className="ff-brutal-index">#01 · Q&amp;A</span>
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-[11px] font-mono text-cyan-300 font-semibold">Hỏi đáp</span>
               <span className="ff-holo-badge px-2 py-0.5 rounded-full text-[10px] font-mono font-bold text-cyan-200">
-                +{resolvedQuestionsCount} đã giải
+                {resolvedQuestionsCount} đã giải
               </span>
             </div>
             <p className="text-xs sm:text-sm font-bold text-white ff-kinetic-title ff-kinetic-underline">
               Sàn Hỏi Đáp
             </p>
-            <p className="ff-raw-meta mt-1 truncate">
-              SOLVED_RATE: ACTIVE
+            <p className="text-[11px] text-slate-400 mt-1 truncate">
+              Giải bài &amp; trao đổi kiến thức
             </p>
           </button>
 
@@ -165,8 +165,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
             onClick={() => onNavigate('clubs')}
             className="ff-bento-cell group cursor-pointer text-left"
           >
-            <div className="flex items-center justify-between gap-2 mb-1.5">
-              <span className="ff-brutal-index">#02 · CLUBS</span>
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-[11px] font-mono text-amber-300 font-semibold">Cộng đồng</span>
               <span className="ff-organic-badge !py-0.5 !px-2 !text-[10px] font-mono">
                 {totalClubsCount} CLB
               </span>
@@ -174,8 +174,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <p className="text-xs sm:text-sm font-bold text-white ff-kinetic-title ff-kinetic-underline">
               Quảng Trường CLB
             </p>
-            <p className="ff-raw-meta mt-1 truncate">
-              COMMUNITY_NODES: {totalClubsCount}
+            <p className="text-[11px] text-slate-400 mt-1 truncate">
+              Hoạt động &amp; dự án học sinh
             </p>
           </button>
 
@@ -184,17 +184,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
             onClick={() => onNavigate('threads')}
             className="ff-bento-cell group cursor-pointer text-left"
           >
-            <div className="flex items-center justify-between gap-2 mb-1.5">
-              <span className="ff-brutal-index">#03 · THREADS</span>
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-[11px] font-mono text-violet-300 font-semibold">Tâm sự</span>
               <span className="px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-400/35 text-[10px] font-mono font-semibold text-violet-200">
-                Tâm sự
+                Mới
               </span>
             </div>
             <p className="text-xs sm:text-sm font-bold text-white ff-kinetic-title ff-kinetic-underline">
               Luồng Cảm Xúc
             </p>
-            <p className="ff-raw-meta mt-1 truncate">
-              FEED_STREAM: REALTIME
+            <p className="text-[11px] text-slate-400 mt-1 truncate">
+              Góc chia sẻ mỗi ngày
             </p>
           </button>
 
@@ -203,61 +203,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
             onClick={() => onNavigate('chat')}
             className="ff-bento-cell group cursor-pointer text-left"
           >
-            <div className="flex items-center justify-between gap-2 mb-1.5">
-              <span className="ff-brutal-index">#04 · CHAT</span>
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-[11px] font-mono text-emerald-300 font-semibold">Trực tuyến</span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/35 text-[10px] font-mono font-semibold text-emerald-300">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                {onlineUsersCount} online
+                {onlineUsersCount}
               </span>
             </div>
             <p className="text-xs sm:text-sm font-bold text-white ff-kinetic-title ff-kinetic-underline">
               Phòng Đàm Thoại
             </p>
-            <p className="ff-raw-meta mt-1 truncate">
-              24H_MSG: {chatMessagesTodayCount}
+            <p className="text-[11px] text-slate-400 mt-1 truncate">
+              {chatMessagesTodayCount} thảo luận hôm nay
             </p>
           </button>
-        </div>
-      </div>
-
-      {/* Live Campus Telemetry HUD (Bottom Right Floating Widget) */}
-      <div className="fixed bottom-6 right-6 z-30 hidden md:block">
-        <div className="liquid-glass rounded-2xl p-4 w-[250px] shadow-2xl border border-white/10 transition-transform duration-300 hover:scale-[1.02]">
-          {/* Header Indicator */}
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
-              <span className="text-[10px] font-mono tracking-widest text-emerald-400 uppercase font-semibold">
-                Campus Telemetry
-              </span>
-            </div>
-            <span className="text-[9px] font-mono bg-white/5 px-2 py-0.5 rounded text-white/40 border border-white/10">
-              LIVE
-            </span>
-          </div>
-
-          {/* Metrics Grid */}
-          <div className="space-y-1.5 text-xs font-mono">
-            <div className="flex items-center justify-between text-white/70">
-              <span className="text-white/40">Học sinh online:</span>
-              <span className="font-semibold text-emerald-300">{onlineUsersCount}</span>
-            </div>
-            <div className="flex items-center justify-between text-white/70">
-              <span className="text-white/40">Câu hỏi đã giải:</span>
-              <span className="font-semibold text-amber-300">{resolvedQuestionsCount}</span>
-            </div>
-            <div className="flex items-center justify-between text-white/70">
-              <span className="text-white/40">Tổng CLB đăng ký:</span>
-              <span className="font-semibold text-sky-300">{totalClubsCount}</span>
-            </div>
-            <div className="flex items-center justify-between text-white/70">
-              <span className="text-white/40">Thảo luận 24h:</span>
-              <span className="font-semibold text-purple-300">{chatMessagesTodayCount}</span>
-            </div>
-          </div>
         </div>
       </div>
     </section>

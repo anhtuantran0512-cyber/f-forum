@@ -277,7 +277,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
         return;
       }
 
-      const dtMs = Math.min(64, Math.max(4, now - lastFrameTs));
+      const dtMs = Math.min(64, Math.max(0.5, now - lastFrameTs));
       lastFrameTs = now;
       const state = engineState.current;
       const { R } = state;
@@ -297,16 +297,16 @@ export const AboutUs: React.FC<AboutUsProps> = ({
       const scrollDolly = scrollProg * (R * 0.35);
       state.camZ = Math.max(-R * 0.35, Math.min(R * 0.65, state.wheelCamZ + scrollDolly));
 
-      const sx = state.tilt;
-      const sy = state.spin;
-      const camZ = state.camZ;
+      const sx = Math.round(state.tilt * 100) / 100;
+      const sy = Math.round(state.spin * 100) / 100;
+      const camZ = Math.round(state.camZ * 10) / 10;
 
       if (worldRef.current) {
-        worldRef.current.style.transform = `translateZ(${camZ.toFixed(1)}px) rotateY(${sy.toFixed(2)}deg) rotateX(${sx.toFixed(2)}deg)`;
+        worldRef.current.style.transform = `translateZ(${camZ}px) rotateY(${sy}deg) rotateX(${sx}deg)`;
       }
 
       if (headlineRef.current) {
-        headlineRef.current.style.transform = `rotateX(${-sx.toFixed(2)}deg) rotateY(${-sy.toFixed(2)}deg) translateZ(${(R * 0.62).toFixed(1)}px)`;
+        headlineRef.current.style.transform = `rotateX(${-sx}deg) rotateY(${-sy}deg) translateZ(${Math.round(R * 0.62)}px)`;
       }
 
       const sxRad = (sx * Math.PI) / 180;

@@ -217,7 +217,7 @@ export const GpuParticleCanvas: React.FC<GpuParticleCanvasProps> = ({
         rafId = requestAnimationFrame(renderFrame);
         return;
       }
-      const dtMs = Math.min(48, Math.max(4, now - lastTime));
+      const dtMs = Math.min(48, Math.max(0.5, now - lastTime));
       lastTime = now;
 
       let aliveCount = workerAliveCount;
