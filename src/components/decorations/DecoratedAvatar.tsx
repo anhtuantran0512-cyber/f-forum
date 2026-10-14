@@ -135,7 +135,7 @@ export const DecoratedName = memo(({
   eager = true,
   priority = 'high',
   className,
-  showFallbackTag = false,
+  showFallbackTag: _showFallbackTag = false,
   overrideAsset,
 }: DecoratedNameProps) => {
   const { nameplate } = useUserDecorations(user);
@@ -171,16 +171,12 @@ export const DecoratedName = memo(({
   };
 
   if (!asset) {
-    if (!showFallbackTag) {
-      return <span className={className} title={name}>{name}</span>;
-    }
     return (
       <span
-        className={`npd-np npd-np--default${className ? ` ${className}` : ''}`}
-        style={boxStyle}
+        className={className || 'font-semibold text-[#f8f7f4] truncate'}
         title={name}
       >
-        <span className="npd-np__text" style={textStyle}>{name}</span>
+        {name}
       </span>
     );
   }

@@ -1122,6 +1122,7 @@ export const App: React.FC = () => {
               onCreateClubPost={createClubPost}
               chatMessages={chatMessages}
               onOpenLoginModal={() => handleOpenAuth('login')}
+              onOpenProfile={handleOpenUserProfile}
             />
           )}
 
@@ -1243,6 +1244,12 @@ export const App: React.FC = () => {
           <ChatDock
             isOpen={isChatOpen}
             onClose={() => setIsChatOpen(false)}
+            onOpenFullChat={() => {
+              setIsChatOpen(false);
+              handleViewChange('chat');
+            }}
+            onlineUsers={onlineUsers}
+            onlineCount={onlineUsers.length}
             currentUser={currentUser}
             users={users}
             messages={chatMessages}
@@ -1524,35 +1531,35 @@ export const App: React.FC = () => {
           aria-label="Cảnh báo phiên làm việc sắp hết hạn"
           className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-up"
         >
-          <div className="w-full max-w-md rounded-3xl border border-amber-400/50 bg-[#0D1326] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.9),0_0_32px_rgba(245,158,11,0.25)] space-y-4">
+          <div className="modal-container w-full max-w-md p-6 space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-400/45 flex items-center justify-center text-xl shrink-0">
                 ⏳
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">
+                <h3 className="text-base font-bold text-[#f8f7f4]">
                   Phiên làm việc còn {sessionExpiryWarning.remainingSec}s
                 </h3>
-                <p className="text-xs text-amber-200/85">
+                <p className="text-xs text-[#e9c46a]">
                   Tự động bảo toàn dữ liệu đang nhập (Auto-save Draft)
                 </p>
               </div>
             </div>
-            <p className="text-xs sm:text-sm text-white/75 leading-relaxed">
+            <p className="text-xs sm:text-sm text-[#dad7d0] leading-relaxed">
               Để bảo mật tài khoản, phiên làm việc sắp kết thúc. Bấm <strong>Gia hạn ngay</strong> để tiếp tục làm bài mà không phải đăng nhập lại.
             </p>
             <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={dismissSessionWarning}
-                className="px-4 py-2 rounded-xl bg-white/8 hover:bg-white/15 border border-white/15 text-xs font-semibold text-white/80 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-[#151b28] hover:bg-[#1b2334] border border-[#f8f7f4]/15 text-xs font-semibold text-[#dad7d0] cursor-pointer"
               >
                 Để sau
               </button>
               <button
                 type="button"
                 onClick={() => void extendSessionNow(false)}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-400 to-purple-500 text-white font-bold text-xs shadow-[0_0_20px_rgba(0,245,255,0.35)] hover:brightness-110 cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-[#81b29a] hover:bg-[#95c4ad] text-[#0b0d12] font-bold text-xs shadow-md cursor-pointer"
               >
                 Gia hạn ngay (+30 ngày)
               </button>

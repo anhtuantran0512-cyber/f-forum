@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -15,16 +15,17 @@ import {
   Flag,
   User as UserIcon,
   CheckCircle2,
+  CornerUpLeft,
 } from 'lucide-react';
-import type { ChatChannelId, ChatMessage, User } from '../types';
+import type { ChatChannelId, ChatMessage, User, OnlinePresenceUser } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { useEscapeKey } from '../utils/useEscapeKey';
 import { DEFAULT_AVATAR } from '../utils/mediaFallback';
-import { useChatCooldown } from '../utils/chatCooldown';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../config/admin';
 import { capsHas, useAdminCaps } from '../utils/adminCapabilities';
 import { getTierForLevel } from '../utils/tier';
 import { pushNotification } from '../utils/notifications';
+import { useChatCooldown } from '../utils/chatCooldown';
 import { ChatCooldownBar } from './ChatCooldownBar';
 import { ThinkingBubble } from './ViewTransitionLoader';
 import { postJson } from '../utils/session';
@@ -41,16 +42,24 @@ export interface ChatDockProps {
   onDeleteMessage?: (messageId: string) => void;
   onOpenLoginModal?: () => void;
   onOpenProfile?: (user: { id: string; name: string; avatar: string; email?: string; level?: number }) => void;
+  onOpenFullChat?: () => void;
+  onlineUsers?: OnlinePresenceUser[];
+  onlineCount?: number;
   /** False khi máy chủ chưa đồng bộ xong → hiện bong bóng "đang tải". */
   isSynced?: boolean;
 }
 
-
-const CHANNELS: { id: ChatChannelId; name: string; desc: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'hallway', name: 'Kết bạn bốn phương', desc: 'Làm quen và kết nối bạn học toàn trường', icon: Users },
-  { id: 'quick-qa', name: 'Hỏi bài nhanh', desc: 'Hỏi đáp khẩn cấp, giải bài trong 5 phút', icon: HelpCircle },
-  { id: 'confessions', name: 'Góc tâm sự', desc: 'Áp lực học tập & suy tư tuổi học trò', icon: Heart },
-  { id: 'club-hub', name: 'Hội quán CLB', desc: 'Giao lưu điều phối giữa các Ban Chủ nhiệm', icon: Shield },
+const CHANNELS: {
+  id: ChatChannelId;
+  name: string;
+  shortName: string;
+  desc: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { id: 'hallway', name: 'Kết bạn bốn phương', shortName: 'Kết bạn', desc: 'Giao lưu & kết nối bạn học toàn trường', icon: Users },
+  { id: 'quick-qa', name: 'Hỏi bài nhanh', shortName: 'Hỏi bài', desc: 'Trao đổi nhanh công thức & bài tập ngắn', icon: HelpCircle },
+  { id: 'confessions', name: 'Góc tâm sự', shortName: 'Tâm sự', desc: 'Lắng nghe & chia sẻ chuyện học đường', icon: Heart },
+  { id: 'club-hub', name: 'Hội quán CLB', shortName: 'CLB', desc: 'Điều phối hoạt động giữa các CLB', icon: Shield },
 ];
 
 export const ChatDock: React.FC<ChatDockProps> = ({
@@ -63,12 +72,18 @@ export const ChatDock: React.FC<ChatDockProps> = ({
   onDeleteMessage,
   onOpenLoginModal,
   onOpenProfile,
+  onOpenFullChat,
+  onlineUsers,
+  onlineCount = 1,
   isSynced = true,
 }) => {
+  const dynamicOnlineCount =
+    onlineUsers && onlineUsers.length > 0 ? onlineUsers.length : Math.max(1, onlineCount);
   const usersById = useMemo(() => {
     const map = new Map<string, User>();
-    for (const u of Object.values(users)) {
-      if (u && u.id) map.set(u.id, u);
+    for (const k in users) {
+      const u = users[k];
+      if (u?.id) map.set(u.id, u);
     }
     return map;
   }, [users]);
@@ -98,13 +113,17 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     },
     [users, usersById, currentUser],
   );
+
   /* Epic 3 — thu hồi tin nhắn: Super Admin hoặc vai trò tùy chỉnh có quyền edit_content. */
   const adminCaps = useAdminCaps();
   const canRecallMessages = capsHas(adminCaps, 'edit_content');
   const [activeChannel, setActiveChannel] = useState<ChatChannelId>('hallway');
   const [inputText, setInputText] = useState('');
+  const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string; excerpt: string } | null>(null);
   const cooldown = useChatCooldown();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  useEscapeKey(onClose, isOpen);
 
   const [activeAuthorCard, setActiveAuthorCard] = useState<{
     id: string;
@@ -114,22 +133,12 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     level: number;
   } | null>(null);
   const [authorAnchorPos, setAuthorAnchorPos] = useState<{ x: number; y: number }>({ x: 240, y: 180 });
-
-
-
   const [reportUser, setReportUser] = useState<{ id: string; name: string } | null>(null);
   const [reportReason, setReportReason] = useState<string>('Toxic / Gây war / Xúc phạm bạn học');
-  const [reportDetails, setReportDetails] = useState('');
-  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [reportDetails, setReportDetails] = useState<string>('');
+  const [isSubmittingReport, setIsSubmittingReport] = useState<boolean>(false);
   const [reportSuccessMsg, setReportSuccessMsg] = useState<string | null>(null);
   const [reportErrorMsg, setReportErrorMsg] = useState<string | null>(null);
-
-  /* Hộp thoại tố cáo khai báo aria-modal="true" mà không có đường thoát bằng
-     phím. Chỉ bật khi hộp thoại đang mở để không giành phím Escape của lớp khác. */
-  useEscapeKey(() => {
-    setReportUser(null);
-    setReportSuccessMsg(null);
-  }, Boolean(reportUser));
 
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,7 +146,6 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     setIsSubmittingReport(true);
     setReportErrorMsg(null);
     try {
-      /* EPIC 5: máy chủ bắt buộc đăng nhập và tự lấy danh tính người tố cáo từ phiên. */
       const outcome = describeReportResult(
         await settleReportRequest(
           postJson('/api/reports', {
@@ -172,132 +180,183 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     [messages, activeChannel],
   );
 
+  const openAuthorCardFromEvent = useCallback(
+    (
+      e: React.MouseEvent,
+      payload: { id: string; name: string; avatar: string; email?: string; level: number },
+    ) => {
+      setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
+      setActiveAuthorCard(payload);
+    },
+    [],
+  );
+
   const renderedDockMessages = useMemo(
     () =>
-      currentMessages.map(msg => {
+      currentMessages.map((msg, idx) => {
         const isMe = currentUser ? msg.authorId === currentUser.id : false;
         const isSuperAdminMsg = isMasterAdmin(msg.authorEmail);
         const isSuperAdmin = currentUser ? isMasterAdmin(currentUser.email) : false;
-        const authorDisplayName = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.name : msg.authorName;
+        const authorDisplayName = (isSuperAdminMsg ? MASTER_ADMIN_CONFIG.name : msg.authorName).replace(/ \(.*\)/, '');
         const authorDisplayAvatar = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.avatar : msg.authorAvatar;
         const resolvedDockUser = resolveChatUser(
           isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
           msg.authorId,
         );
+        const prevMsg = idx > 0 ? currentMessages[idx - 1] : null;
+        const isContinuation = Boolean(prevMsg && prevMsg.authorId === msg.authorId);
+
+        const authorPayload =
+          isMe && currentUser
+            ? {
+                id: currentUser.id,
+                name: currentUser.name,
+                avatar: currentUser.avatar,
+                email: currentUser.email,
+                level: currentUser.level || 1,
+              }
+            : {
+                id: msg.authorId,
+                name: authorDisplayName,
+                avatar: authorDisplayAvatar,
+                email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
+                level: isSuperAdminMsg ? 150 : msg.authorLevel || 1,
+              };
 
         return (
           <div
             key={msg.id}
-            className={`flex items-start gap-2.5 group/msg ${isMe ? 'flex-row-reverse' : ''}`}
+            className={`group/msg flex items-start gap-2.5 px-1.5 py-0.5 rounded-lg hover:bg-[#f8f7f4]/[0.02] transition-colors ${
+              isMe ? 'flex-row-reverse' : ''
+            } ${isContinuation ? 'mt-0.5' : 'mt-2.5'}`}
           >
-            <button
-              type="button"
-              onClick={(e) => {
-                setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-                if (isMe && currentUser) {
-                  setActiveAuthorCard({
-                    id: currentUser.id,
-                    name: currentUser.name,
-                    avatar: currentUser.avatar,
-                    email: currentUser.email,
-                    level: currentUser.level || 1,
-                  });
-                } else {
-                  setActiveAuthorCard({
-                    id: msg.authorId,
-                    name: authorDisplayName,
-                    avatar: authorDisplayAvatar,
-                    email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
-                    level: isSuperAdminMsg ? 150 : msg.authorLevel,
-                  });
-                }
-              }}
-              className="relative shrink-0 cursor-pointer focus:outline-none"
-              title={`Xem thông tin của ${authorDisplayName}`}
-            >
-              <DecoratedAvatar
-                user={resolvedDockUser}
-                fallbackSrc={authorDisplayAvatar}
-                size={34}
-                animate={isOpen}
-                alt={authorDisplayName}
-                className={`rounded-full shadow-md ${
-                  isSuperAdminMsg ? 'ring-2 ring-amber-400' : 'ring-1 ring-white/20'
-                }`}
-              />
-              <span className="absolute -bottom-1 -right-1 z-[4]">
-                <TierBadge level={isSuperAdminMsg ? 150 : msg.authorLevel} size={15} showTooltip={false} />
-              </span>
-            </button>
-
-            <div className={`max-w-[78%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-              <div className="flex items-center gap-1.5 mb-1.5 text-[11px] text-neutral-400 flex-wrap">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
-                    if (isMe && currentUser) {
-                      setActiveAuthorCard({
-                        id: currentUser.id,
-                        name: currentUser.name,
-                        avatar: currentUser.avatar,
-                        email: currentUser.email,
-                        level: currentUser.level || 1,
-                      });
-                    } else {
-                      setActiveAuthorCard({
-                        id: msg.authorId,
-                        name: authorDisplayName,
-                        avatar: authorDisplayAvatar,
-                        email: isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
-                        level: isSuperAdminMsg ? 150 : msg.authorLevel,
-                      });
-                    }
-                  }}
-                  className="inline-flex items-center cursor-pointer hover:opacity-95 focus:outline-none"
-                >
-                  <DecoratedName
-                    user={resolvedDockUser}
-                    name={authorDisplayName.replace(/ \(.*\)/, '')}
-                    width={136}
-                    height={26}
-                    animate={isOpen}
-                    showFallbackTag
+            {!isContinuation ? (
+              <button
+                type="button"
+                onClick={e => openAuthorCardFromEvent(e, authorPayload)}
+                className="relative shrink-0 mt-0.5 cursor-pointer focus:outline-none"
+                title={`Xem hồ sơ ${authorDisplayName}`}
+              >
+                <DecoratedAvatar
+                  user={resolvedDockUser}
+                  fallbackSrc={authorDisplayAvatar}
+                  size={32}
+                  animate={isOpen}
+                  alt={authorDisplayName}
+                  className={`rounded-full ${
+                    isSuperAdminMsg
+                      ? 'ring-1 ring-[#e9c46a]/70'
+                      : 'ring-1 ring-[#f8f7f4]/15'
+                  }`}
+                />
+                <span className="absolute -bottom-1 -right-1 z-[4]">
+                  <TierBadge
+                    level={isSuperAdminMsg ? 150 : msg.authorLevel}
+                    size={13}
+                    showTooltip={false}
                   />
-                </button>
-                {isSuperAdminMsg && <AdminVerifiedBadge size={12} />}
-                <span className="text-[10px] text-neutral-500 font-mono">• {msg.timestamp}</span>
+                </span>
+              </button>
+            ) : (
+              <div className="w-8 shrink-0 select-none text-[9px] font-mono text-[#a39f96]/0 group-hover/msg:text-[#a39f96]/70 text-center pt-1.5 transition-colors">
+                {msg.timestamp.slice(0, 5)}
+              </div>
+            )}
 
-                {/* Thu hồi tin nhắn (Super Admin / quyền edit_content) */}
-                {(isSuperAdmin || canRecallMessages) && (
+            <div
+              className={`max-w-[80%] flex flex-col ${
+                isMe ? 'items-end' : 'items-start'
+              }`}
+            >
+              {!isContinuation && (
+                <div
+                  className={`flex items-center gap-1.5 mb-0.5 flex-wrap ${
+                    isMe ? 'justify-end flex-row-reverse' : ''
+                  }`}
+                >
                   <button
                     type="button"
-                    onClick={() => onDeleteMessage?.(msg.id)}
-                    className="opacity-0 group-hover/msg:opacity-100 transition-opacity ml-1.5 px-1.5 py-0.5 text-red-400 hover:text-red-300 rounded bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 cursor-pointer inline-flex items-center gap-1"
-                    title="Thu hồi tin nhắn vi phạm"
+                    onClick={e => openAuthorCardFromEvent(e, authorPayload)}
+                    className="inline-flex items-center gap-1 cursor-pointer hover:underline"
                   >
-                    <Trash2 className="w-2.5 h-2.5" />
-                    <span className="text-[9px]">Thu hồi tin nhắn</span>
+                    <DecoratedName
+                      user={resolvedDockUser}
+                      name={authorDisplayName}
+                      width={124}
+                      height={22}
+                      animate={isOpen}
+                      className={`text-xs font-semibold ${
+                        isSuperAdminMsg
+                          ? 'text-[#e9c46a]'
+                          : isMe
+                          ? 'text-[#81b29a]'
+                          : 'text-[#f8f7f4]'
+                      }`}
+                    />
                   </button>
-                )}
-              </div>
+                  {isSuperAdminMsg ? (
+                    <AdminVerifiedBadge size={11} />
+                  ) : (
+                    <span className="text-[9.5px] font-mono text-[#a39f96]">
+                      Lv.{msg.authorLevel || 1}
+                    </span>
+                  )}
+                  <span className="text-[9.5px] text-[#a39f96] font-mono">
+                    {msg.timestamp}
+                  </span>
+                </div>
+              )}
 
-              <div
-                className={`px-3.5 py-2 text-xs leading-relaxed break-words shadow-sm ${
-                  isMe
-                    ? 'ff-chat-bubble-me'
-                    : isSuperAdminMsg
-                    ? 'ff-chat-bubble-peer ff-chat-bubble-admin'
-                    : 'ff-chat-bubble-peer'
-                }`}
-              >
-                {msg.content}
+              <div className={`flex items-center gap-1.5 ${isMe ? 'flex-row-reverse' : ''}`}>
+                <div
+                  className={`w-fit px-3.5 py-2 text-xs leading-relaxed break-words ${
+                    isMe
+                      ? 'ff-chat-bubble-me'
+                      : isSuperAdminMsg
+                      ? 'ff-chat-bubble-peer ff-chat-bubble-admin'
+                      : 'ff-chat-bubble-peer'
+                  }`}
+                >
+                  {msg.content}
+                </div>
+
+                <div className="opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
+                  {currentUser && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReplyingTo({
+                          id: msg.id,
+                          authorName: authorDisplayName,
+                          excerpt: msg.content.slice(0, 48),
+                        });
+                        inputRef.current?.focus();
+                      }}
+                      className="p-1 rounded-md bg-[#161d2b] hover:bg-[#1f293d] border border-[#f8f7f4]/12 text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
+                      title="Trả lời tin nhắn"
+                    >
+                      <CornerUpLeft className="w-3 h-3" />
+                    </button>
+                  )}
+
+                  {(isSuperAdmin || canRecallMessages) && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteMessage?.(msg.id)}
+                      className="px-1.5 py-0.5 text-rose-300 hover:text-rose-200 rounded bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 cursor-pointer inline-flex items-center gap-1"
+                      title="Thu hồi tin nhắn vi phạm"
+                    >
+                      <Trash2 className="w-2.5 h-2.5" />
+                      <span className="text-[9px]">Thu hồi tin nhắn</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         );
       }),
-    [currentMessages, currentUser, canRecallMessages, resolveChatUser, onDeleteMessage, isOpen],
+    [currentMessages, currentUser, canRecallMessages, resolveChatUser, onDeleteMessage, isOpen, openAuthorCardFromEvent],
   );
 
   useEffect(() => {
@@ -312,10 +371,13 @@ export const ChatDock: React.FC<ChatDockProps> = ({
       cooldown.nudge();
       return;
     }
-    const text = inputText.trim();
-    if (!text) return;
-    onSendMessage(activeChannel, text);
+    const raw = inputText.trim();
+    if (!raw) return;
+    const prefix = replyingTo ? `@${replyingTo.authorName}: ` : '';
+    const finalContent = `${prefix}${raw}`.slice(0, 300);
+    onSendMessage(activeChannel, finalContent);
     setInputText('');
+    setReplyingTo(null);
     cooldown.startCooldown();
   };
 
@@ -323,6 +385,8 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    } else if (e.key === 'Escape' && replyingTo) {
+      setReplyingTo(null);
     }
   };
 
@@ -331,140 +395,189 @@ export const ChatDock: React.FC<ChatDockProps> = ({
   return (
     <>
       <div
-      className={`fixed top-20 bottom-4 right-0 sm:right-4 z-40 w-full sm:w-[450px] md:w-[480px] p-2 sm:p-0 flex flex-col chat-dock-panel ${
-        isOpen
-          ? 'translate-x-0 opacity-100 pointer-events-auto'
-          : 'translate-x-full opacity-0 pointer-events-none'
-      }`}
-    >
-      {/* Editorial Bento Dock Container */}
-      <div className="w-full h-full ff-bento-cell !p-0 flex flex-col overflow-hidden">
-        
-        {/* Dock Header */}
-        <div className="px-4 py-3 border-b border-dashed border-[#f4f1de]/15 flex items-center justify-between bg-[#0b0d12]/80">
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#81b29a]" />
-            <h2 className="text-sm font-extrabold text-[#f4f1de] tracking-wide flex items-center gap-1.5">
-              <span>PHÒNG CHAT NHANH</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#81b29a]/20 text-[#d8f3dc] border border-[#81b29a]/40">
-                LIVE
-              </span>
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="ff-tactile-btn p-1.5 rounded-lg bg-[#151a26] hover:bg-[#f4f1de]/10 border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] transition-colors cursor-pointer"
-            title="Đóng Dock Chat"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Channel Switcher Pills */}
-        <div className="p-2 border-b border-dashed border-[#f4f1de]/12 bg-[#0b0d12]/50">
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-1 bg-[#0b0d12]/80 rounded-xl overflow-x-auto no-scrollbar">
-            {CHANNELS.map(ch => {
-              const Icon = ch.icon;
-              const isActive = activeChannel === ch.id;
-              return (
-                <button
-                  key={ch.id}
-                  type="button"
-                  onClick={() => setActiveChannel(ch.id)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shrink-0 transition-all font-bold border cursor-pointer ${
-                    isActive
-                      ? 'bg-[#e07a5f]/22 text-[#f4f1de] border-[#e07a5f]/55 shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
-                      : 'text-[#b5b2a9] hover:text-[#f4f1de] hover:bg-[#f4f1de]/5 border-transparent'
-                  }`}
-                >
-                  <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#f2cc8f]' : 'text-[#9a978e]'}`} />
-                  <span className="whitespace-nowrap">#{ch.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Active Channel Subheader */}
-        <div className="px-4 py-2 bg-[#0b0d12]/40 border-b border-dashed border-[#f4f1de]/10 flex items-center justify-between text-[11px] text-[#b5b2a9]">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <Hash className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
-            <span className="text-[#f4f1de] font-bold shrink-0">{currentChannelObj.name}</span>
-            <span className="text-[#84817a]">—</span>
-            <span className="truncate">{currentChannelObj.desc}</span>
-          </div>
-          <span className="ff-brutal-index shrink-0 ml-2">{currentMessages.length} tin</span>
-        </div>
-
-        {/* Messages Feed Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3.5" role="log" aria-live="polite" aria-relevant="additions" aria-label="Danh sách tin nhắn">
-          {!isSynced && currentMessages.length === 0 ? (
-            <div className="space-y-3 pt-1" aria-busy="true">
-              <ThinkingBubble phase="Đang kết nối máy chủ F-Forum…" compact />
-              <ThinkingBubble phase={`Đang tải tin nhắn #${currentChannelObj.name}…`} compact />
-            </div>
-          ) : currentMessages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2.5 text-[#b5b2a9]">
-              <div className="w-12 h-12 rounded-xl bg-[#e07a5f]/15 border-[1.5px] border-[#e07a5f]/40 flex items-center justify-center shadow-[3px_3px_0px_rgba(4,6,11,0.9)]">
-                <MessageSquareDashed className="w-6 h-6 text-[#f2cc8f]" />
+        className={`fixed top-20 bottom-4 right-0 sm:right-4 z-40 w-full sm:w-[430px] md:w-[460px] p-2 sm:p-0 flex flex-col chat-dock-panel ${
+          isOpen
+            ? 'translate-x-0 opacity-100 pointer-events-auto'
+            : 'translate-x-full opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="flex-1 bg-[#0e131d] border border-[#f8f7f4]/14 rounded-2xl shadow-[0_24px_60px_rgba(0,0,0,0.68)] flex flex-col overflow-hidden">
+          
+          {/* Thanh tiêu đề & bộ chọn kênh */}
+          <div className="p-3.5 border-b border-[#f8f7f4]/10 bg-[#0b0f17] flex flex-col gap-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#81b29a]/15 border border-[#81b29a]/35 flex items-center justify-center">
+                  <Hash className="w-4 h-4 text-[#81b29a]" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xs sm:text-sm text-[#f8f7f4] flex items-center gap-2">
+                    <span>Phòng Chat Nhanh</span>
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-[#81b29a]/15 text-[#81b29a] text-[9.5px] font-mono font-semibold border border-[#81b29a]/35">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#81b29a]" />
+                      {dynamicOnlineCount} online
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-[#a39f96] truncate">
+                    {currentChannelObj.desc}
+                  </p>
+                </div>
               </div>
-              <h3 className="text-xs font-bold text-[#f4f1de] font-mono">Hãy là người mở đầu cuộc trò chuyện</h3>
+
+              <div className="flex items-center gap-1.5">
+                {onOpenFullChat && (
+                  <button
+                    type="button"
+                    onClick={onOpenFullChat}
+                    className="px-2.5 py-1.5 rounded-lg bg-[#81b29a]/15 hover:bg-[#81b29a]/25 border border-[#81b29a]/35 text-[#81b29a] text-[11px] font-semibold transition-colors cursor-pointer"
+                    title="Mở phòng đàm thoại toàn màn hình"
+                  >
+                    Mở rộng
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Đóng khung chat"
+                  className="p-1.5 rounded-lg bg-[#151b28] border border-[#f8f7f4]/10 text-[#a39f96] hover:text-[#f8f7f4] transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-          ) : (
-            renderedDockMessages
-          )}
-          <div ref={messagesEndRef} />
+
+            {/* Các tab chọn kênh */}
+            <div className="grid grid-cols-2 gap-1.5">
+              {CHANNELS.map(ch => {
+                const Icon = ch.icon;
+                const isActive = activeChannel === ch.id;
+                return (
+                  <button
+                    key={ch.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveChannel(ch.id);
+                      setReplyingTo(null);
+                    }}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors text-left truncate cursor-pointer border ${
+                      isActive
+                        ? 'bg-[#81b29a]/16 text-[#f8f7f4] font-semibold border-[#81b29a]/40'
+                        : 'bg-[#131926] border-[#f8f7f4]/08 text-[#a39f96] hover:text-[#f8f7f4] hover:bg-[#171f2f]'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#81b29a]' : 'text-[#a39f96]'}`} />
+                    <span className="truncate">{ch.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Danh sách tin nhắn */}
+          <div
+            className="flex-1 overflow-y-auto px-3 py-3 bg-[#101520] no-scrollbar"
+            role="log"
+            aria-live="polite"
+            aria-relevant="additions"
+            aria-label="Tin nhắn phòng chat nhanh"
+          >
+            {!isSynced && currentMessages.length === 0 ? (
+              <div className="space-y-2.5 py-3" aria-busy="true">
+                <ThinkingBubble compact phase="Đang kết nối máy chủ F-Forum…" />
+                <ThinkingBubble compact phase="Đang tải hội thoại kênh này…" />
+              </div>
+            ) : currentMessages.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2">
+                <MessageSquareDashed className="w-8 h-8 text-[#81b29a]/60" />
+                <p className="text-xs font-medium text-[#dad7d0]">
+                  Chưa có tin nhắn trong #{currentChannelObj.name}
+                </p>
+                <p className="text-[11px] text-[#a39f96]">
+                  Hãy gửi lời chào đầu tiên tới bạn học nhé!
+                </p>
+              </div>
+            ) : (
+              renderedDockMessages
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <ChatCooldownBar
+            isCooling={cooldown.isCooling}
+            remainingMs={cooldown.remainingMs}
+            nudgeKey={cooldown.nudgeKey}
+            variant="dock"
+          />
+
+          {/* Khung nhập tin nhắn */}
+          <div className="p-3 border-t border-[#f8f7f4]/10 bg-[#0b0f17]">
+            {replyingTo && (
+              <div className="mb-2 px-2.5 py-1 rounded-lg bg-[#151b28] border border-[#81b29a]/35 flex items-center justify-between gap-2 text-[11px]">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <CornerUpLeft className="w-3 h-3 text-[#81b29a] shrink-0" />
+                  <strong className="text-[#f8f7f4] shrink-0">@{replyingTo.authorName}</strong>
+                  <span className="text-[#a39f96] truncate">{replyingTo.excerpt}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReplyingTo(null)}
+                  className="text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer shrink-0"
+                  aria-label="Hủy trả lời"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+
+            {currentUser ? (
+              <div className="ff-chat-composer-shell">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputText}
+                  maxLength={300}
+                  onChange={e => setInputText(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={`Nhắn vào #${currentChannelObj.name}...`}
+                  className="flex-1 bg-transparent border-none text-xs text-[#f8f7f4] placeholder-[#a39f96] focus:outline-none"
+                />
+                {cooldown.isCooling && (
+                  <span className="px-2 py-0.5 rounded bg-[#e9c46a]/15 border border-[#e9c46a]/35 text-[10px] font-mono text-[#e9c46a]">
+                    {cooldown.secondsLeft}s
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={handleSend}
+                  disabled={!inputText.trim()}
+                  className={`p-2 rounded-lg bg-[#81b29a] hover:bg-[#95c4ad] text-[#0b0d12] disabled:opacity-40 transition-colors cursor-pointer ${
+                    cooldown.isCooling ? 'ff-cd-btn is-cooling' : ''
+                  }`}
+                  title={cooldown.isCooling ? `Còn ${cooldown.secondsLeft}s trước tin tiếp theo` : 'Gửi tin nhắn'}
+                  aria-label="Gửi tin nhắn"
+                >
+                  <Send className="w-3.5 h-3.5 text-[#0b0d12]" />
+                </button>
+              </div>
+            ) : (
+              <div className="p-2.5 rounded-xl bg-[#151b28] border border-[#f8f7f4]/12 flex items-center justify-between gap-2">
+                <span className="text-xs text-[#dad7d0]">Đăng nhập để tham gia trò chuyện</span>
+                {onOpenLoginModal && (
+                  <button
+                    type="button"
+                    onClick={onOpenLoginModal}
+                    className="px-3 py-1.5 rounded-lg bg-[#81b29a] hover:bg-[#95c4ad] text-[#0b0d12] font-bold text-xs flex items-center gap-1 cursor-pointer shrink-0"
+                  >
+                    <LogIn className="w-3.5 h-3.5" /> Đăng nhập
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-
-        <ChatCooldownBar
-          isCooling={cooldown.isCooling}
-          remainingMs={cooldown.remainingMs}
-          nudgeKey={cooldown.nudgeKey}
-          variant="dock"
-        />
-
-        {/* Input Bar or Login Prompt */}
-        {!currentUser ? (
-          <div className="p-3 bg-[#0b0d12]/85 border-t border-dashed border-[#f4f1de]/15 flex items-center justify-between gap-3">
-            <span className="text-xs text-[#d8d5ce]">Đăng nhập để gửi tin nhắn</span>
-            <button
-              type="button"
-              onClick={onOpenLoginModal}
-              className="ff-tactile-btn px-3.5 py-1.5 rounded-lg bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border border-[#f4f1de] font-extrabold text-xs transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Đăng nhập</span>
-            </button>
-          </div>
-        ) : (
-          <div className="p-3 bg-[#0b0d12]/85 border-t border-dashed border-[#f4f1de]/15 flex items-center gap-2">
-            <input
-              type="text"
-              value={inputText}
-              maxLength={300}
-              onChange={e => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={`Nhắn vào #${currentChannelObj.name}...`}
-              className="flex-1 bg-[#151a26] border-[1.5px] border-[#f4f1de]/18 rounded-xl px-3.5 py-2.5 text-xs text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f] transition-colors disabled:opacity-50"
-            />
-
-            <button
-              onClick={handleSend}
-              disabled={!inputText.trim() || cooldown.isCooling}
-              className={`ff-tactile-btn relative p-2.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border-[1.5px] border-[#f4f1de] font-extrabold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
-                cooldown.isCooling ? 'ff-cd-btn is-cooling' : ''
-              }`}
-              title={cooldown.isCooling ? `Còn ${cooldown.secondsLeft}s trước tin tiếp theo` : 'Gửi tin nhắn'}
-            >
-              <Send className="w-4 h-4 text-[#0b0d12]" />
-            </button>
-          </div>
-        )}
       </div>
-    </div>
 
-      {/* Compact Floating Author Context Popover — portaled to document.body */}
+      {/* Thẻ thông tin người dùng (Popover) */}
       {activeAuthorCard && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
@@ -480,28 +593,28 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               position: 'fixed',
               left:
                 typeof window !== 'undefined'
-                  ? Math.max(12, Math.min(authorAnchorPos.x - 290, window.innerWidth - 332))
+                  ? Math.max(12, Math.min(authorAnchorPos.x - 160, window.innerWidth - 320))
                   : 24,
               top:
                 typeof window !== 'undefined'
-                  ? Math.max(12, Math.min(authorAnchorPos.y - 20, window.innerHeight - 245))
+                  ? Math.max(12, Math.min(authorAnchorPos.y - 200, window.innerHeight - 230))
                   : 120,
             }}
-            className="pc-12-shell w-[320px] max-w-[calc(100vw-24px)] rounded-2xl p-4 shadow-[0_18px_48px_rgba(0,0,0,0.85)] popover-morph-enter"
+            className="pc-12-shell w-[300px] max-w-[calc(100vw-24px)] rounded-2xl p-4 shadow-2xl popover-morph-enter"
           >
             <button
               type="button"
               onClick={() => setActiveAuthorCard(null)}
-              className="absolute top-2.5 right-2.5 z-[5] p-1 rounded-full text-neutral-300 hover:text-white cursor-pointer"
+              className="absolute top-2.5 right-2.5 z-[5] p-1 rounded-full text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
               aria-label="Đóng"
             >
               <X className="w-3.5 h-3.5" />
             </button>
 
-            <div className="ff-discord-userbar flex items-center gap-3.5 p-3 rounded-xl bg-white/[0.04] border border-white/15 pr-6">
+            <div className="ff-discord-userbar flex items-center gap-3 p-3 rounded-xl bg-[#141a26] border border-[#f8f7f4]/12 pr-6">
               <UserNameplateBg
                 user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
-                width={268}
+                width={250}
                 eager
                 animate
                 priority="high"
@@ -510,14 +623,14 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                 <DecoratedAvatar
                   user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
                   fallbackSrc={activeAuthorCard.avatar || DEFAULT_AVATAR}
-                  size={44}
+                  size={40}
                   eager
                   animate
                   alt={activeAuthorCard.name}
-                  className="rounded-full ring-1 ring-amber-400/60 shadow-md"
+                  className="rounded-full ring-1 ring-[#e9c46a]/50"
                 />
                 <span className="absolute -bottom-1 -right-1 z-[4]">
-                  <TierBadge level={activeAuthorCard.level} size={16} showTooltip={false} />
+                  <TierBadge level={activeAuthorCard.level} size={14} showTooltip={false} />
                 </span>
               </div>
 
@@ -526,20 +639,20 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   <DecoratedName
                     user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
                     name={activeAuthorCard.name.replace(/ \(.*\)/, '')}
-                    width={176}
-                    height={33}
+                    width={150}
+                    height={24}
                     eager
                     animate
                     priority="high"
-                    showFallbackTag
+                    className="text-sm font-bold text-[#f8f7f4] truncate"
                   />
                   {isMasterAdmin(activeAuthorCard.email) && <AdminVerifiedBadge size={12} />}
                 </div>
                 <div className="flex items-center gap-1.5 mt-1">
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-200 border border-amber-400/40 text-[9.5px] font-mono font-bold shadow-sm">
+                  <span className="px-2 py-0.5 rounded-md bg-[#e9c46a]/15 text-[#e9c46a] border border-[#e9c46a]/35 text-[10px] font-mono font-semibold">
                     {getTierForLevel(activeAuthorCard.level).titleVi}
                   </span>
-                  <span className="text-[10px] text-white/85 font-mono drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
+                  <span className="text-[10.5px] text-[#dad7d0] font-mono">
                     Lv.{activeAuthorCard.level}
                   </span>
                 </div>
@@ -553,11 +666,12 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   onClick={() => {
                     const user = activeAuthorCard;
                     setActiveAuthorCard(null);
+                    onClose();
                     onOpenProfile(user);
                   }}
-                  className="pc-12-btn ff-tactile-btn w-full py-2 px-3 rounded-xl text-[#f4f1de] hover:text-[#f2cc8f] text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                  className="pc-12-btn w-full py-2 px-3 rounded-xl text-[#f8f7f4] hover:text-[#e9c46a] text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <UserIcon className="w-3.5 h-3.5 text-[#f2cc8f]" />
+                  <UserIcon className="w-3.5 h-3.5 text-[#81b29a]" />
                   <span>Trang cá nhân</span>
                 </button>
               )}
@@ -569,9 +683,9 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   setActiveAuthorCard(null);
                   setReportUser({ id: user.id, name: user.name });
                 }}
-                className="pc-12-btn w-full py-2 px-3 rounded-xl text-red-200 hover:text-red-100 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                className="pc-12-btn w-full py-2 px-3 rounded-xl text-rose-200 hover:text-rose-100 text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
               >
-                <Flag className="w-3.5 h-3.5 text-red-400" />
+                <Flag className="w-3.5 h-3.5 text-rose-400" />
                 <span>Tố cáo</span>
               </button>
             </div>
@@ -580,7 +694,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
         document.body
       )}
 
-      {/* Modal: Tố cáo tài khoản — portaled to document.body */}
+      {/* Hộp thoại Tố cáo tài khoản */}
       {reportUser && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
@@ -592,13 +706,13 @@ export const ChatDock: React.FC<ChatDockProps> = ({
               setReportSuccessMsg(null);
             }
           }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-up"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-up"
         >
-          <div className="modal-container liquid-glass w-full max-w-md !border-red-500/45 p-6 relative">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
-              <div className="flex items-center gap-2 text-red-400">
-                <Flag className="w-5 h-5 text-red-400" />
-                <h3 className="font-bold text-sm sm:text-base text-white">Tố Cáo Tài Khoản Vi Phạm</h3>
+          <div className="modal-container w-full max-w-md p-6 relative">
+            <div className="flex items-center justify-between pb-3 border-b border-[#f8f7f4]/12 mb-4">
+              <div className="flex items-center gap-2 text-[#d97757]">
+                <Flag className="w-5 h-5 text-[#d97757]" />
+                <h3 className="font-bold text-sm sm:text-base text-[#f8f7f4]">Tố Cáo Tài Khoản Vi Phạm</h3>
               </div>
               <button
                 type="button"
@@ -606,7 +720,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   setReportUser(null);
                   setReportSuccessMsg(null);
                 }}
-                className="p-1 rounded-full text-neutral-400 hover:text-white cursor-pointer"
+                className="p-1.5 rounded-lg bg-[#141a26] border border-[#f8f7f4]/12 text-[#dad7d0] hover:text-[#f8f7f4] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -632,18 +746,18 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                 {reportErrorMsg && (
                   <p role="alert" className="ff-report-error">{reportErrorMsg}</p>
                 )}
-                <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-neutral-300">
-                  Đối tượng tố cáo: <strong className="text-white">{reportUser.name}</strong>
+                <div className="p-2.5 rounded-xl bg-[#141a26] border border-[#f8f7f4]/10 text-xs text-[#dad7d0]">
+                  Đối tượng tố cáo: <strong className="text-[#f8f7f4]">{reportUser.name}</strong>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                  <label className="block text-xs font-semibold text-[#dad7d0] mb-1">
                     Lý do vi phạm (*):
                   </label>
                   <select
                     value={reportReason}
                     onChange={e => setReportReason(e.target.value)}
-                    className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-400 cursor-pointer"
+                    className="w-full bg-[#141a26] border border-[#f8f7f4]/15 rounded-xl px-3 py-2 text-xs text-[#f8f7f4] focus:outline-none focus:border-[#d97757] cursor-pointer"
                   >
                     <option value="Toxic / Gây war / Xúc phạm bạn học">Toxic / Gây war / Xúc phạm bạn học</option>
                     <option value="Spam / Quảng cáo / Lừa đảo">Spam / Quảng cáo / Lừa đảo</option>
@@ -654,41 +768,32 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                 </div>
 
                 <div>
-                  <label htmlFor="chi-tiet-vi-pham" className="block text-xs font-semibold text-neutral-300 mb-1">
+                  <label htmlFor="dock-chi-tiet-vi-pham" className="block text-xs font-semibold text-[#dad7d0] mb-1">
                     Chi tiết vi phạm:
                   </label>
-                  <textarea id="chi-tiet-vi-pham"
-                    value={reportDetails}
-                    onChange={e => setReportDetails(e.target.value)}
+                  <textarea
+                    id="dock-chi-tiet-vi-pham"
                     maxLength={500}
                     rows={3}
+                    value={reportDetails}
+                    onChange={e => setReportDetails(e.target.value)}
                     placeholder="Mô tả cụ thể hành vi hoặc bằng chứng vi phạm..."
-                    className="w-full bg-neutral-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-400 resize-none"
+                    className="w-full bg-[#141a26] border border-[#f8f7f4]/15 rounded-xl px-3 py-2 text-xs text-[#f8f7f4] focus:outline-none focus:border-[#d97757] resize-none"
                   />
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-red-950/30 border border-red-500/20 text-[10px] text-red-300 space-y-1">
-                  <span className="font-bold flex items-center gap-1">
-                    <Shield className="w-3.5 h-3.5 text-red-400" />
-                    Kỷ luật trường học nghiêm ngặt:
-                  </span>
-                  <p>
-                    Báo cáo vi phạm sẽ được chuyển tới Ban Quản Trị để xử lý theo nội quy.
-                  </p>
-                </div>
-
-                <div className="pt-2 flex items-center justify-end gap-2 border-t border-white/10">
+                <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#f8f7f4]/10">
                   <button
                     type="button"
                     onClick={() => setReportUser(null)}
-                    className="px-4 py-2 rounded-xl text-xs text-neutral-400 hover:text-white cursor-pointer"
+                    className="px-4 py-2 rounded-xl text-xs text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
                   >
                     Hủy
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmittingReport}
-                    className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer"
+                    className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer"
                   >
                     {isSubmittingReport ? 'Đang gửi...' : 'Gửi Tố Cáo'}
                   </button>

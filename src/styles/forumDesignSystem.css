@@ -499,62 +499,134 @@ html.light .ff-qa-dispatch-board {
 }
 
 /* ========================================================================== */
-/* KIẾN TRÚC PHÒNG CHAT (Style 4 Glassmorphism + Depth Layering + Style 6)    */
+/* KIẾN TRÚC PHÒNG CHAT THƯ VIỆN SỐ (Unified Split-Pane Academic Workspace)   */
 /* ========================================================================== */
 
-.ff-chat-glass-sidebar {
+.ff-chat-workspace {
   position: relative;
-  border-radius: 1.15rem;
-  background: linear-gradient(170deg, rgba(19, 24, 36, 0.82), rgba(11, 14, 22, 0.9));
-  border: 1px solid rgba(244, 241, 222, 0.16);
+  display: flex;
+  width: 100%;
+  height: 100%;
+  border-radius: 1rem;
+  background: #0e131d;
+  border: 1px solid rgba(248, 247, 244, 0.12);
   box-shadow:
-    0 22px 54px rgba(0, 0, 0, 0.62),
-    inset 0 1px 0 rgba(244, 241, 222, 0.18),
-    inset 0 -1px 0 rgba(129, 178, 154, 0.08);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
+    0 24px 64px -12px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(248, 247, 244, 0.08);
+  overflow: hidden;
 }
 
-.ff-chat-glass-stage {
-  position: relative;
-  border-radius: 1.25rem;
-  background:
-    radial-gradient(120% 70% at 50% 0%, rgba(224, 122, 95, 0.07), transparent 60%),
-    radial-gradient(90% 60% at 85% 100%, rgba(129, 178, 154, 0.07), transparent 60%),
-    linear-gradient(175deg, rgba(16, 20, 30, 0.86), rgba(10, 13, 20, 0.94));
-  border: 1px solid rgba(244, 241, 222, 0.18);
-  box-shadow:
-    0 26px 64px rgba(0, 0, 0, 0.68),
-    inset 0 1px 0 rgba(244, 241, 222, 0.2);
-  backdrop-filter: blur(20px) saturate(145%);
-  -webkit-backdrop-filter: blur(20px) saturate(145%);
+.ff-chat-sidebar-pane {
+  display: flex;
+  flex-direction: column;
+  background: #0b0f17;
+  border-right: 1px solid rgba(248, 247, 244, 0.09);
 }
 
-.ff-chat-telemetry-bar {
+.ff-chat-main-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-width: 0;
+  background: #101520;
+}
+
+.ff-chat-roster-pane {
+  display: flex;
+  flex-direction: column;
+  background: #0b0f17;
+  border-left: 1px solid rgba(248, 247, 244, 0.09);
+}
+
+.ff-chat-channel-btn {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 6px 14px;
-  background: rgba(8, 10, 15, 0.68);
-  border-bottom: 1px solid rgba(244, 241, 222, 0.1);
-  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  font-size: 10px;
-  color: #9a978e;
-  letter-spacing: 0.04em;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: 0.65rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #a39f96;
+  text-align: left;
+  transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease;
 }
 
-.ff-chat-floating-composer {
-  margin: 0 12px 12px;
-  padding: 10px 12px;
-  border-radius: 1rem;
-  background: rgba(14, 18, 27, 0.88);
-  border: 1.5px solid rgba(244, 241, 222, 0.18);
-  box-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.55),
-    inset 0 1px 0 rgba(244, 241, 222, 0.14);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+.ff-chat-channel-btn:hover {
+  background: rgba(248, 247, 244, 0.045);
+  color: #f8f7f4;
+}
+
+.ff-chat-channel-btn.is-active {
+  background: rgba(129, 178, 154, 0.12);
+  border-color: rgba(129, 178, 154, 0.32);
+  color: #f8f7f4;
+}
+
+.ff-chat-channel-btn.is-active::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: #81b29a;
+}
+
+.ff-chat-composer-shell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 14px;
+  border-radius: 0.85rem;
+  background: #151b28;
+  border: 1px solid rgba(248, 247, 244, 0.14);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.ff-chat-composer-shell:focus-within {
+  border-color: rgba(129, 178, 154, 0.65);
+  box-shadow: 0 0 0 2px rgba(129, 178, 154, 0.15);
+}
+
+html.light .ff-chat-workspace {
+  background: #ffffff !important;
+  border-color: rgba(28, 25, 23, 0.14) !important;
+  box-shadow: 0 18px 44px -12px rgba(15, 23, 42, 0.14) !important;
+}
+
+html.light .ff-chat-sidebar-pane,
+html.light .ff-chat-roster-pane {
+  background: #f8f6f0 !important;
+  border-color: rgba(28, 25, 23, 0.1) !important;
+}
+
+html.light .ff-chat-main-pane {
+  background: #fffdf9 !important;
+}
+
+html.light .ff-chat-channel-btn {
+  color: #57534e !important;
+}
+
+html.light .ff-chat-channel-btn:hover {
+  background: rgba(28, 25, 23, 0.05) !important;
+  color: #1c1917 !important;
+}
+
+html.light .ff-chat-channel-btn.is-active {
+  background: rgba(129, 178, 154, 0.2) !important;
+  border-color: rgba(129, 178, 154, 0.45) !important;
+  color: #1c1917 !important;
+}
+
+html.light .ff-chat-composer-shell {
+  background: #f8f6f0 !important;
+  border-color: rgba(28, 25, 23, 0.18) !important;
+  box-shadow: none !important;
 }
 
 /* ========================================================================== */
@@ -644,38 +716,39 @@ html.light .ff-qa-dispatch-board {
 }
 
 .ff-chat-bubble-me {
-  border-radius: 0.85rem 0.85rem 0.2rem 0.85rem !important;
-  background: linear-gradient(135deg, rgba(224, 122, 95, 0.28), rgba(242, 204, 143, 0.18)) !important;
-  border: 1.5px solid rgba(224, 122, 95, 0.48) !important;
-  color: #f4f1de !important;
-  box-shadow: 2.5px 2.5px 0px rgba(4, 6, 11, 0.85) !important;
+  border-radius: 1rem 1rem 0.25rem 1rem !important;
+  background: #1b2e2b !important;
+  border: 1px solid rgba(129, 178, 154, 0.42) !important;
+  color: #f8f7f4 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22) !important;
 }
 
 .ff-chat-bubble-peer {
-  border-radius: 0.85rem 0.85rem 0.85rem 0.2rem !important;
-  background: rgba(22, 27, 39, 0.94) !important;
-  border: 1.5px solid rgba(244, 241, 222, 0.14) !important;
-  color: #f4f1de !important;
-  box-shadow: 2.5px 2.5px 0px rgba(4, 6, 11, 0.85) !important;
+  border-radius: 1rem 1rem 1rem 0.25rem !important;
+  background: #161d2b !important;
+  border: 1px solid rgba(248, 247, 244, 0.11) !important;
+  color: #f8f7f4 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22) !important;
 }
 
 .ff-chat-bubble-admin {
-  background: linear-gradient(135deg, rgba(242, 204, 143, 0.2), rgba(129, 178, 154, 0.16)) !important;
-  border: 1.5px solid rgba(242, 204, 143, 0.5) !important;
+  background: #19202e !important;
+  border: 1px solid rgba(233, 196, 106, 0.38) !important;
+  border-left: 3px solid #e9c46a !important;
 }
 
 html.light .ff-chat-bubble-me {
-  background: linear-gradient(135deg, rgba(224, 122, 95, 0.22), rgba(242, 204, 143, 0.25)) !important;
-  border-color: rgba(224, 122, 95, 0.45) !important;
+  background: #e6f2ec !important;
+  border-color: rgba(129, 178, 154, 0.55) !important;
   color: #1c1917 !important;
-  box-shadow: 2px 2px 0px rgba(28, 25, 23, 0.15) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
 }
 
 html.light .ff-chat-bubble-peer {
-  background: #fffdf8 !important;
-  border-color: rgba(28, 25, 23, 0.18) !important;
+  background: #f5f3ec !important;
+  border-color: rgba(28, 25, 23, 0.14) !important;
   color: #1c1917 !important;
-  box-shadow: 2px 2px 0px rgba(28, 25, 23, 0.12) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
 }
 
 /* ========================================================================== */
