@@ -57,7 +57,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
         {/* Style 1 + 5: Typography-Led Hero with Alternating Phrases */}
         <div className="relative min-h-[180px] sm:min-h-[230px] flex items-center justify-center w-full">
           <h1
-            className={`ff-typo-hero text-4xl sm:text-6xl text-[#f8f7f4] font-normal tracking-tight text-center leading-tight max-w-4xl flex items-center justify-center ${
+            className={`ff-typo-hero text-4xl sm:text-6xl text-[#f8f7f4] font-normal tracking-tight text-center leading-tight max-w-4xl flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1 ${
               headlinePhase === 0
                 ? 'opacity-100 pointer-events-auto'
                 : 'opacity-0 pointer-events-none absolute inset-0'

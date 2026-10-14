@@ -1508,15 +1508,6 @@ const ProfileModalInner: React.FC<{
                               </span>
                               {isSuperAdmin && <AdminVerifiedBadge size={18} />}
                             </h3>
-                            {userDecorations.nameplate && (
-                              <DecoratedName
-                                user={currentUser}
-                                name={currentUser.name.replace(/ \(.*\)/, '')}
-                                width={176}
-                                height={32}
-                                animate
-                              />
-                            )}
                           </div>
 
                           <div className="flex items-center gap-1.5 flex-wrap">

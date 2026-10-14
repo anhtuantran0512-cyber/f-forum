@@ -126,7 +126,7 @@ interface DecoratedNameProps {
 }
 
 export const DecoratedName = memo(({
-  user,
+  user: _user,
   name,
   width = 240,
   maxWidth = 340,
@@ -138,36 +138,32 @@ export const DecoratedName = memo(({
   showFallbackTag: _showFallbackTag = false,
   overrideAsset,
 }: DecoratedNameProps) => {
-  const { nameplate } = useUserDecorations(user);
-  const asset = overrideAsset !== undefined ? overrideAsset : shopItemToAsset(nameplate);
-  const height = customHeight ?? Math.max(24, Math.round((width * 84) / 448));
+  const asset = overrideAsset !== undefined ? overrideAsset : null;
+  const height = customHeight ?? Math.max(28, Math.round((width * 84) / 448));
   const len = name.trim().length;
   const charPx = height <= 28 ? 7.6 : height <= 34 ? 8.3 : 9.0;
-  const adaptiveWidth = Math.max(width, Math.min(maxWidth, Math.ceil(len * charPx + 28)));
+  const adaptiveWidth = Math.max(width, Math.min(maxWidth, Math.ceil(len * charPx + 24)));
   const fontSize =
     len > 28
-      ? '10px'
-      : len > 24
       ? '10.5px'
-      : len > 18
-      ? '11px'
-      : height <= 30
+      : len > 22
       ? '11.5px'
-      : height <= 35
-      ? '12.5px'
+      : height <= 30
+      ? '12px'
+      : height <= 36
+      ? '13px'
       : undefined;
   const letterSpacing = len > 24 ? '-0.015em' : undefined;
   const textStyle: React.CSSProperties | undefined =
     fontSize || letterSpacing ? { fontSize, letterSpacing } : undefined;
-  const horizontalPad = len > 18 ? '8px' : height <= 30 ? '10px' : height <= 35 ? '12px' : undefined;
   const boxStyle: React.CSSProperties = {
     minWidth: 0,
     width: adaptiveWidth,
     maxWidth: '100%',
     height,
     aspectRatio: 'auto',
-    paddingLeft: horizontalPad,
-    paddingRight: horizontalPad,
+    paddingLeft: '8px',
+    paddingRight: '8px',
   };
 
   if (!asset) {
@@ -180,11 +176,6 @@ export const DecoratedName = memo(({
       </span>
     );
   }
-  /*
-   * CHUẨN DISCORD: container inline-flex căn giữa theo cả 2 trục, tự mở rộng
-   * bề ngang theo độ dài tên (tới tối đa khung chứa) để tên dài không bị cắt "..."
-   * trong phòng chat.
-   */
   return (
     <span
       className={`npd-np${className ? ` ${className}` : ''}`}

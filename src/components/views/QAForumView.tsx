@@ -733,7 +733,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   }, [selectedQuestion]);
 
   /* Phase 4.1 & 4.7 — Reading Progress Bar + Scroll Restoration + Hover Prefetch */
-  const listScrollRef = useRef<HTMLDivElement | null>(null);
+  const listScrollRef = useRef<HTMLElement | null>(null);
   const detailScrollRef = useRef<HTMLDivElement | null>(null);
   const savedListScrollTopRef = useRef<number>(0);
   const prefetchedQuestionIdsRef = useRef<Set<string>>(new Set());
@@ -1370,8 +1370,14 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   };
 
   return (
-    <section className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-22 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-6 px-4 sm:px-6 lg:px-8`}>
-      
+    <section
+      ref={listScrollRef}
+      className={`relative w-full ${
+        isEmbedded
+          ? 'min-h-screen'
+          : 'h-[100dvh] md:h-screen overflow-y-auto'
+      } flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+16px)] md:pb-10 px-4 sm:px-6 lg:px-8`}
+    >
       {/* Nền phong cách Forum Hiện Đại: Tối ưu triệt để dung lượng và GPU, không dùng video nền trong sảnh Hỏi đáp */}
       <div className="ff-qa-bg ff-raw-grid-surface absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0b0d12] via-[#10141d] to-[#0b0d12]" />
@@ -1380,10 +1386,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       </div>
 
       {/* Main Container */}
-      <div className={`relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col ${isEmbedded ? '' : 'overflow-hidden'}`}>
-        
+      <div className="relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col">
         {/* Top Neo-Brutalist Academic Dispatch Header */}
-        <div className="ff-qa-dispatch-board overflow-hidden mb-4 shrink-0 flex flex-col">
+        <div className="ff-qa-dispatch-board relative z-20 mb-5 shrink-0 flex flex-col">
           <div className="p-4 sm:p-5 flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
@@ -1450,7 +1455,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 {isSortMenuOpen && (
                   <div
                     role="menu"
-                    className="absolute right-0 top-full mt-1.5 w-56 rounded-xl ff-glass-depth-2 p-1.5 z-40 space-y-0.5 animate-fade-up"
+                    className="absolute right-0 top-full mt-1.5 w-56 rounded-xl ff-glass-depth-2 p-1.5 z-50 space-y-0.5 animate-fade-up"
                   >
                     {QUESTION_SORT_OPTIONS.map(opt => {
                       const isActive = opt.id === sortMode;
@@ -1497,9 +1502,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             </div>
           </div>
 
-          {/* Search, Status & Subject Filter Row */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-2 border-t border-dashed border-[#f4f1de]/10">
-            <div className="relative sm:w-64 md:w-72 shrink-0">
+          {/* Row 2: Search Input + Status Filter Tabs */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2.5 border-t border-dashed border-[#f4f1de]/10">
+            <div className="relative flex-1 sm:max-w-sm">
               <Search className="w-3.5 h-3.5 text-[#9a978e] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
@@ -1546,37 +1551,37 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 );
               })}
             </div>
+          </div>
 
-            {/* Subject Tags Scrollable Strip (Neo-Brutalist Tags) */}
-            <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none min-w-0 flex-1">
-              <Filter className="w-3.5 h-3.5 text-[#9a978e] shrink-0 mr-0.5" />
-              {SUBJECTS.map(subj => {
-                const isActive = selectedTag === subj.tag;
-                return (
-                  <button
-                    key={subj.tag}
-                    onClick={() => setSelectedTag(subj.tag)}
-                    className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold whitespace-nowrap border-[1.5px] transition-colors cursor-pointer inline-flex items-center gap-1 ${
-                      isActive
-                        ? subj.tag === 'all'
-                          ? 'bg-[#f2cc8f]/22 text-[#f4f1de] border-[#f2cc8f]/55 shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
-                          : `${getSubjectBadgeStyle(subj.tag)} shadow-[2px_2px_0px_rgba(4,6,11,0.9)]`
-                        : 'bg-[#f4f1de]/[0.03] text-[#b5b2a9] hover:bg-[#f4f1de]/[0.08] hover:text-[#f4f1de] border-[#f4f1de]/12'
-                    }`}
-                  >
-                    <span>{subj.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+          {/* Row 3: Full-Width Subject Tags Strip */}
+          <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-dashed border-[#f4f1de]/10">
+            <Filter className="w-3.5 h-3.5 text-[#9a978e] shrink-0 mr-0.5" />
+            {SUBJECTS.map(subj => {
+              const isActive = selectedTag === subj.tag;
+              return (
+                <button
+                  key={subj.tag}
+                  onClick={() => setSelectedTag(subj.tag)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold whitespace-nowrap border-[1.5px] transition-colors cursor-pointer inline-flex items-center gap-1 ${
+                    isActive
+                      ? subj.tag === 'all'
+                        ? 'bg-[#f2cc8f]/22 text-[#f4f1de] border-[#f2cc8f]/55 shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
+                        : `${getSubjectBadgeStyle(subj.tag)} shadow-[2px_2px_0px_rgba(4,6,11,0.9)]`
+                      : 'bg-[#f4f1de]/[0.03] text-[#b5b2a9] hover:bg-[#f4f1de]/[0.08] hover:text-[#f4f1de] border-[#f4f1de]/12'
+                  }`}
+                >
+                  <span>{subj.label}</span>
+                </button>
+              );
+            })}
           </div>
           </div>
         </div>
 
         {/* Main Content Area: Questions Feed (Col 8) + Leaderboard (Col 4) */}
-        <div className={`flex-1 ${isEmbedded ? '' : 'overflow-hidden'} grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0 pb-4`}>
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0 pb-6 items-start">
           {/* Left: Questions Feed */}
-          <div ref={listScrollRef} className={`lg:col-span-8 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-2.5 pb-6`}>
+          <div className="lg:col-span-8 space-y-2.5 pb-6">
           {!isSynced && filteredQuestions.length === 0 ? (
             <div className="rounded-2xl bg-[#0e1522]/90 border border-white/[0.08] overflow-hidden">
               <CommentSkeletonList rows={4} />
@@ -1953,7 +1958,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           </div>
 
           {/* Right Sidebar: Leaderboard */}
-          <div className={`lg:col-span-4 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-4 pb-6`}>
+          <div className="lg:col-span-4 lg:sticky lg:top-24 space-y-4 pb-6">
             <LeaderboardWidget
               currentUser={currentUser}
               users={users}
@@ -2040,11 +2045,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   </div>
                   <div className="min-w-0">
                     <h3 className="font-bold text-lg sm:text-[22px] leading-tight tracking-tight ask2027-title-gradient truncate">
-                      Đặt Câu Hỏi Học Thuật Mới
+                      Đặt câu hỏi
                     </h3>
-                    <p className="text-[12.5px] text-white/65 mt-0.5 truncate">
-                      Không gian thảo luận học thuật thông minh • Tự động lưu nháp &amp; gợi ý người giải bài
-                    </p>
                   </div>
                 </div>
 

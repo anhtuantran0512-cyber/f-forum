@@ -597,12 +597,12 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
   return (
     <div
-      className={`khu-vinh-danh-scope ff-keep-dark relative w-full bg-[#000000] text-[#f4f2ef] select-none ${
+      className={`khu-vinh-danh-scope ff-keep-dark relative w-full flex flex-col bg-[#000000] text-[#f4f2ef] select-none ${
         isFullscreenStage
           ? 'fixed inset-0 z-50 h-screen w-screen overflow-hidden'
           : isEmbedded
-          ? 'h-[750px] sm:h-[820px] rounded-2xl border border-[#f4f1de]/18 shadow-2xl overflow-hidden'
-          : 'h-[780px] sm:h-[860px] rounded-2xl border border-[#f4f1de]/18 shadow-2xl overflow-hidden'
+          ? 'min-h-[760px] sm:min-h-[820px] rounded-2xl border border-[#f4f1de]/18 shadow-2xl overflow-hidden'
+          : 'min-h-[780px] sm:min-h-[860px] rounded-2xl border border-[#f4f1de]/18 shadow-2xl overflow-hidden'
       } ${viewMode === 'grid' ? '!h-auto !min-h-0 !overflow-visible' : ''} ${className}`}
       style={{
         fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
@@ -709,202 +709,178 @@ export const AboutUs: React.FC<AboutUsProps> = ({
         }}
       />
 
-      {/* Top Floating Utility Bar (Social Links, Vào Forum, View Mode Toggle & Fullscreen Switcher) */}
-      <div className="absolute top-[var(--pad)] right-[var(--pad)] z-30 flex items-center gap-2 flex-wrap justify-end">
-        {/* Facebook Link */}
-        <a
-          href="https://www.facebook.com/TuanNotTun/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-8 h-8 rounded-full bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-[0_0_12px_rgba(59,130,246,0.3)] backdrop-blur-md"
-          title="Facebook Admin"
-          aria-label="Facebook Admin"
-        >
-          <svg className="w-3.5 h-3.5 fill-[#1877F2]" viewBox="0 0 24 24">
-            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-          </svg>
-        </a>
+      {/* Unified Top Header Bar: Founder Bio (.bio) Left · Social & View Mode Controls Right (Zero Overlap) */}
+      <div className="relative z-30 shrink-0 flex flex-col lg:flex-row lg:items-center justify-between gap-3 px-4 sm:px-6 py-3.5 border-b border-white/10 bg-[#07090e]/90 backdrop-blur-xl">
+        {/* Founder Bio Card (.bio) */}
+        <div className="bio min-w-0 flex-1 max-w-2xl pointer-events-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              {/* Avatar with blue tick sweep and admin trigger */}
+              <div className="relative shrink-0 group/avatar">
+                <img
+                  src={aboutData.founder.avatarUrl}
+                  alt={aboutData.founder.name}
+                  onError={e => handleImageError(e, DEFAULT_AVATAR)}
+                  loading="lazy"
+                  decoding="async"
+                  width={48}
+                  height={48}
+                  className="bio-avatar w-11 h-11 rounded-full object-cover border border-[#f2cc8f]/60 shadow-lg"
+                />
+                {isSuperAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAvatarInputUrl(aboutData.founder.avatarUrl);
+                      setIsAvatarPromptOpen(true);
+                    }}
+                    className="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center text-[#f2cc8f] transition-opacity cursor-pointer"
+                    title="Thay đổi ảnh đại diện Admin"
+                  >
+                    <Camera className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
 
-        {/* Discord Link */}
-        <a
-          href="https://discord.gg/GMDCnxxJwX"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-8 h-8 rounded-full bg-[#5865F2]/20 hover:bg-[#5865F2]/40 border border-[#5865F2]/50 text-indigo-200 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-[0_0_12px_rgba(88,101,242,0.3)] backdrop-blur-md"
-          title="Discord F-Forum"
-          aria-label="Discord F-Forum"
-        >
-          <svg className="w-3.5 h-3.5 fill-[#5865F2]" viewBox="0 0 24 24">
-            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-          </svg>
-        </a>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h2 className="text-xs sm:text-sm font-bold text-white tracking-wide truncate">
+                    {aboutData.founder.name}
+                  </h2>
+                  <AdminVerifiedBadge size={15} />
+                  {isSuperAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenQuickField('name')}
+                      className="text-[10px] text-amber-400 hover:text-amber-300 ml-1 cursor-pointer"
+                      title="Sửa tên Admin"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
 
-        {/* Vào Forum Button */}
-        <button
-          type="button"
-          onClick={() => {
-            if (onNavigate) {
-              onNavigate('qa');
-            } else if (typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('fforum_navigate', { detail: 'qa' }));
-            }
-          }}
-          className="ff-enter-forum-btn ff-tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold text-[#0b0d12] bg-[#e07a5f] hover:bg-[#f2cc8f] border border-[#f4f1de] shadow-[2px_2px_0px_rgba(4,6,11,0.9)] transition-all cursor-pointer"
-          title="Chuyển đến Diễn đàn F-Forum Q&A"
-        >
-          <Compass className="w-3.5 h-3.5 text-[#0b0d12]" />
-          <span>Vào Forum</span>
-          <ArrowRight className="w-3 h-3 text-[#0b0d12]" />
-        </button>
-
-        <div className="flex items-center rounded-full bg-black/60 border border-white/20 p-1 backdrop-blur-md">
-          <button
-            type="button"
-            onClick={() => setViewMode('sphere')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono transition-all cursor-pointer ${
-              viewMode === 'sphere'
-                ? 'bg-white/20 text-[#f4f2ef] font-semibold border border-white/30 shadow-sm'
-                : 'text-[#8c8783] hover:text-[#f4f2ef]'
-            }`}
-            title="Chế độ 3D Fibonacci Sphere"
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Quả Cầu 3D</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('grid')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono transition-all cursor-pointer ${
-              viewMode === 'grid'
-                ? 'bg-white/20 text-[#f4f2ef] font-semibold border border-white/30 shadow-sm'
-                : 'text-[#8c8783] hover:text-[#f4f2ef]'
-            }`}
-            title="Chế độ danh sách lưới phẳng (Bento Grid)"
-          >
-            <LayoutGrid className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Lưới Phẳng</span>
-          </button>
+                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  <p className="text-[11px] font-mono text-[#f2cc8f] truncate flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
+                    <span>{aboutData.founder.role}</span>
+                  </p>
+                  {isSuperAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenQuickField('role')}
+                      className="text-[10px] text-[#f2cc8f] hover:text-[#f4f1de] cursor-pointer"
+                      title="Sửa chức danh"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                    </button>
+                  )}
+                  <span className="text-white/25">•</span>
+                  <span className="text-[11px] text-neutral-300 italic truncate max-w-xs">
+                    &ldquo;{aboutData.founder.bio}&rdquo;
+                  </span>
+                  {isSuperAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenQuickField('bio')}
+                      className="text-[10px] text-amber-300/80 hover:text-amber-300 inline-flex items-center gap-1 cursor-pointer"
+                      title="Sửa tiểu sử"
+                    >
+                      <Edit3 className="w-2.5 h-2.5" />
+                      <span>Sửa</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setIsFullscreenStage(!isFullscreenStage)}
-          className="p-2 rounded-full bg-black/60 hover:bg-black/90 border border-white/20 text-[#8c8783] hover:text-[#f4f2ef] backdrop-blur-md transition-all cursor-pointer"
-          title={isFullscreenStage ? 'Thu nhỏ hiển thị' : 'Mở rộng toàn màn hình 3D'}
-        >
-          {isFullscreenStage ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-        </button>
-      </div>
+        {/* Right Controls: Social Links, Vào Forum, View Mode Toggle & Fullscreen Switcher */}
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
+          {/* Facebook Link */}
+          <a
+            href="https://www.facebook.com/TuanNotTun/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-8 h-8 rounded-full bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 backdrop-blur-md"
+            title="Facebook Admin"
+            aria-label="Facebook Admin"
+          >
+            <svg className="w-3.5 h-3.5 fill-[#1877F2]" viewBox="0 0 24 24">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+            </svg>
+          </a>
 
-      {/* Founder Bio Card (.bio) at top-left */}
-      <div className="bio absolute top-[var(--pad)] left-[var(--pad)] z-20 max-w-[340px] pointer-events-auto">
-        <div className="obsidian-glass rounded-2xl p-3 sm:p-4 border border-white/15 shadow-2xl backdrop-blur-xl space-y-2.5">
-          <div className="flex items-center gap-3">
-            {/* Avatar with blue tick sweep and admin trigger */}
-            <div className="relative shrink-0 group/avatar">
-              <img
-                src={aboutData.founder.avatarUrl}
-                alt={aboutData.founder.name}
-                onError={e => handleImageError(e, DEFAULT_AVATAR)}
-                loading="lazy"
-                decoding="async"
-                width={56}
-                height={56}
-                className="bio-avatar w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover border border-[#f2cc8f]/60 shadow-lg"
-              />
-              {isSuperAdmin && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAvatarInputUrl(aboutData.founder.avatarUrl);
-                    setIsAvatarPromptOpen(true);
-                  }}
-                  className="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center text-[#f2cc8f] transition-opacity cursor-pointer"
-                  title="Thay đổi ảnh đại diện Admin"
-                >
-                  <Camera className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+          {/* Discord Link */}
+          <a
+            href="https://discord.gg/GMDCnxxJwX"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-8 h-8 rounded-full bg-[#5865F2]/20 hover:bg-[#5865F2]/40 border border-[#5865F2]/50 text-indigo-200 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 backdrop-blur-md"
+            title="Discord F-Forum"
+            aria-label="Discord F-Forum"
+          >
+            <svg className="w-3.5 h-3.5 fill-[#5865F2]" viewBox="0 0 24 24">
+              <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+            </svg>
+          </a>
 
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h2 className="text-xs sm:text-sm font-bold text-white tracking-wide truncate">
-                  {aboutData.founder.name}
-                </h2>
-                {/* Facebook Blue Verified Tick sweep */}
-                <AdminVerifiedBadge size={16} />
-                {isSuperAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => handleOpenQuickField('name')}
-                    className="text-[10px] text-amber-400 hover:text-amber-300 ml-1 cursor-pointer"
-                    title="Sửa tên Admin"
-                  >
-                    <Edit3 className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
+          {/* Vào Forum Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (onNavigate) {
+                onNavigate('qa');
+              } else if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('fforum_navigate', { detail: 'qa' }));
+              }
+            }}
+            className="ff-enter-forum-btn ff-tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-extrabold text-[#0b0d12] bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] transition-all cursor-pointer"
+            title="Chuyển đến Diễn đàn F-Forum Q&A"
+          >
+            <Compass className="w-3.5 h-3.5 text-[#e07a5f]" />
+            <span>Vào Forum</span>
+            <ArrowRight className="w-3 h-3 text-[#0b0d12]" />
+          </button>
 
-              <div className="flex items-center gap-1 mt-0.5">
-                <p className="text-[11px] font-mono text-[#f2cc8f] truncate flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
-                  <span>{aboutData.founder.role}</span>
-                </p>
-                {isSuperAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => handleOpenQuickField('role')}
-                    className="text-[10px] text-[#f2cc8f] hover:text-[#f4f1de] cursor-pointer"
-                    title="Sửa chức danh"
-                  >
-                    <Edit3 className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Description */}
-          <div className="relative group/bio">
-            <p className="text-[11px] sm:text-xs text-neutral-300 italic font-sans leading-relaxed line-clamp-3">
-              &ldquo;{aboutData.founder.bio}&rdquo;
-            </p>
-            {isSuperAdmin && (
-              <button
-                type="button"
-                onClick={() => handleOpenQuickField('bio')}
-                className="text-[10px] text-amber-300/80 hover:text-amber-300 mt-1 inline-flex items-center gap-1 cursor-pointer"
-                title="Sửa tiểu sử"
-              >
-                <Edit3 className="w-2.5 h-2.5" />
-                <span>Sửa tuyên ngôn</span>
-              </button>
-            )}
-          </div>
-
-          {/* Minimalist Founder links */}
-          <div className="flex items-center gap-3 pt-1 border-t border-white/10 text-[10px] font-mono text-neutral-400">
-            <a
-              href="https://www.facebook.com/TuanNotTun/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-blue-400 transition-colors"
+          <div className="flex items-center rounded-full bg-black/60 border border-white/20 p-1 backdrop-blur-md">
+            <button
+              type="button"
+              onClick={() => setViewMode('sphere')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono transition-all cursor-pointer ${
+                viewMode === 'sphere'
+                  ? 'bg-white/20 text-[#f4f2ef] font-semibold border border-white/30 shadow-sm'
+                  : 'text-[#8c8783] hover:text-[#f4f2ef]'
+              }`}
+              title="Chế độ 3D Fibonacci Sphere"
             >
-              Facebook
-            </a>
-            <span>•</span>
-            <a
-              href="https://discord.gg/GMDCnxxJwX"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-indigo-400 transition-colors"
+              <Globe className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Quả Cầu 3D</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono transition-all cursor-pointer ${
+                viewMode === 'grid'
+                  ? 'bg-white/20 text-[#f4f2ef] font-semibold border border-white/30 shadow-sm'
+                  : 'text-[#8c8783] hover:text-[#f4f2ef]'
+              }`}
+              title="Chế độ danh sách lưới phẳng (Bento Grid)"
             >
-              Discord
-            </a>
-            <span>•</span>
-            <span className="text-[#f2cc8f] truncate">F-Forum Founder</span>
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Lưới Phẳng</span>
+            </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setIsFullscreenStage(!isFullscreenStage)}
+            className="p-2 rounded-full bg-black/60 hover:bg-black/90 border border-white/20 text-[#8c8783] hover:text-[#f4f2ef] backdrop-blur-md transition-all cursor-pointer"
+            title={isFullscreenStage ? 'Thu nhỏ hiển thị' : 'Mở rộng toàn màn hình 3D'}
+          >
+            {isFullscreenStage ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
         </div>
       </div>
 
@@ -919,7 +895,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
         onPointerCancel={handlePointerUp}
         onWheel={handleWheel}
         className={`${
-          isFullscreenStage ? 'fixed inset-0 z-50' : 'absolute inset-0 z-10'
+          isFullscreenStage ? 'fixed inset-0 z-50' : 'relative flex-1 min-h-[680px] sm:min-h-[740px] z-10'
         } overflow-hidden perspective-[var(--persp)] cursor-grab active:cursor-grabbing ${
           viewMode === 'grid' ? '!hidden' : ''
         }`}
@@ -1005,7 +981,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
 
       {/* Flat Bento Grid View Alternative */}
       {viewMode === 'grid' && (
-        <div className="relative z-10 w-full max-w-6xl mx-auto px-4 py-24 sm:py-28 space-y-8 animate-fade-up">
+        <div className="relative z-10 w-full max-w-6xl mx-auto px-4 py-8 sm:py-10 space-y-8 animate-fade-up">
           {/* Hero: lời kể bên trái + collage 5 ô bất đối xứng từ chính các cột mốc (code_yeucau · tcg-12) */}
           <div className={`ff-collage-hero border-b border-white/10 pb-8 ${collageMilestones.length < 5 ? 'is-solo' : ''}`}>
             <div className="ff-collage-hero__copy space-y-3">
