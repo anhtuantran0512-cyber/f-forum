@@ -305,8 +305,8 @@ export const PageResourceLoader: React.FC<PageResourceLoaderProps> = ({
             {/* Progress bar with real % */}
             <div className="w-full space-y-1.5">
               <div className="flex items-center justify-between text-[11px] font-mono">
-                <span className="text-teal-300 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping" />
+                <span className="text-[#81b29a] flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#81b29a]" />
                   {pct < 100 ? 'Đang tải tài nguyên' : 'Sẵn sàng ✓'}
                 </span>
                 <span className="ff-aurora-text font-bold text-sm tabular-nums">{pct}%</span>

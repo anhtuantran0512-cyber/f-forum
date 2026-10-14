@@ -1398,9 +1398,9 @@ export const App: React.FC = () => {
               {toastMessage.type === 'error' ? (
                 <AlertCircle className="w-5 h-5 text-rose-400" />
               ) : toastMessage.type === 'level' ? (
-                <Trophy className="w-5 h-5 text-amber-400 animate-bounce" />
+                <Trophy className="w-5 h-5 text-amber-400" />
               ) : toastMessage.type === 'xp' ? (
-                <Sparkles className="w-5 h-5 text-cyan-400 animate-spin" />
+                <Sparkles className="w-5 h-5 text-amber-300" />
               ) : toastMessage.type === 'success' ? (
                 <CheckCircle className="w-5 h-5 text-emerald-400" />
               ) : (

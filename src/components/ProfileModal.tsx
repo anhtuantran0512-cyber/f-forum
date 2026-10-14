@@ -1008,8 +1008,8 @@ const ProfileModalInner: React.FC<{
         {/* Navigation Tabs Header */}
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-dashed border-[#f4f1de]/15 mb-3 gap-2.5 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#e07a5f] shadow-[0_0_8px_#e07a5f] animate-pulse" />
-            <h2 className="text-sm sm:text-base font-extrabold text-[#f4f1de] tracking-wide truncate">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#81b29a]" />
+            <h2 className="text-sm sm:text-base font-extrabold text-[#f8f7f4] tracking-wide truncate">
               Hồ sơ / F-Forum
             </h2>
             <span className="pc-12-pill text-[10px] font-mono px-2.5 py-0.5 text-[#f2cc8f]">

@@ -123,7 +123,7 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
         >
           {/* Pulse shockwave ring on flip */}
           {pulseWave && (
-            <div className="pointer-events-none absolute -inset-2 rounded-[32px] border-2 border-amber-400/60 animate-ping z-30" />
+            <div className="pointer-events-none absolute -inset-2 rounded-[32px] border-2 border-amber-400/60 z-30" />
           )}
 
           {/* ==================== FRONT FACE ==================== */}
@@ -136,17 +136,14 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
               className="pointer-events-none absolute inset-0 transition-opacity duration-300 z-20"
               style={{
                 opacity: glare.opacity,
-                background: `radial-gradient(circle at ${glare.x}% ${glare.y}%, rgba(255, 255, 255, 0.45) 0%, rgba(251, 191, 36, 0.22) 28%, rgba(224, 122, 95, 0.14) 52%, transparent 72%)`,
+                background: `radial-gradient(circle at ${glare.x}% ${glare.y}%, rgba(255, 255, 255, 0.35) 0%, rgba(233, 196, 106, 0.16) 32%, transparent 72%)`,
                 mixBlendMode: 'overlay',
               }}
             />
 
-            {/* Animated Prismatic Foil Diagonal Sweep */}
-            <div className="pointer-events-none absolute -inset-full w-[220%] h-[220%] bg-gradient-to-tr from-transparent via-white/10 to-transparent animate-sheen z-10" />
-
             {/* Subtle Laser Scan Line */}
             <div
-              className="pointer-events-none absolute inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400/50 to-transparent z-10 animate-pulse"
+              className="pointer-events-none absolute inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-amber-400/30 to-transparent z-10"
               style={{ top: `${Math.max(12, Math.min(88, glare.y))}%` }}
             />
 

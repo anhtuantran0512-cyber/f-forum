@@ -2018,21 +2018,20 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             className="ask2027-backdrop fixed inset-0 z-[130] flex items-center justify-center p-0 sm:p-5 animate-fade-up"
           >
             <div className="modal-container ask2027-modal w-full h-full sm:h-auto sm:max-w-[860px] rounded-none sm:rounded-[28px] relative">
-              {/* Background Mesh Gradient & Floating Particles Layer */}
+              {/* Background Mesh Gradient Layer (Calm Academic Library) */}
               <div className="ask2027-mesh-layer" aria-hidden="true">
                 <div className="ask2027-mesh-blob-cyan" />
                 <div className="ask2027-mesh-blob-purple" />
-                <div className="ask2027-particles" />
               </div>
 
-              {/* STICKY HEADER — 3D Animated Gradient Icon + Cyan→Purple Title + Circular Glass Close + Scroll Shadow */}
+              {/* STICKY HEADER — Clean Academic Library Seal & High-Contrast Title */}
               <div
                 className={`flex items-center justify-between px-5 sm:px-8 pt-5 pb-4 border-b border-white/10 shrink-0 transition-shadow duration-200 z-20 ${
                   isAskModalScrolled ? 'bg-[#0A0E1A]/95 shadow-[0_14px_32px_rgba(0,0,0,0.75)]' : ''
                 }`}
               >
                 <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-11 h-11 rounded-2xl bg-white/[0.06] border border-white/15 flex items-center justify-center shrink-0 shadow-[inset_0_1px_1px_rgba(255,255,255,0.22),0_0_24px_rgba(0,245,255,0.25)]">
+                  <div className="w-11 h-11 rounded-xl bg-[#81b29a]/15 border border-[#81b29a]/40 flex items-center justify-center shrink-0">
                     <svg
                       viewBox="0 0 36 36"
                       className="w-6 h-6 ask2027-orb-icon"
@@ -2040,20 +2039,19 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     >
                       <defs>
                         <linearGradient id="ask2027PrismGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#00F5FF" />
-                          <stop offset="52%" stopColor="#7B61FF" />
-                          <stop offset="100%" stopColor="#B14EFF" />
+                          <stop offset="0%" stopColor="#81b29a" />
+                          <stop offset="100%" stopColor="#e9c46a" />
                         </linearGradient>
                         <radialGradient id="ask2027CoreGlow" cx="35%" cy="30%" r="65%">
-                          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.95" />
-                          <stop offset="45%" stopColor="#00F5FF" stopOpacity="0.85" />
-                          <stop offset="100%" stopColor="#B14EFF" stopOpacity="0.9" />
+                          <stop offset="0%" stopColor="#f8f7f4" stopOpacity="0.95" />
+                          <stop offset="55%" stopColor="#e9c46a" stopOpacity="0.85" />
+                          <stop offset="100%" stopColor="#81b29a" stopOpacity="0.9" />
                         </radialGradient>
                       </defs>
                       <polygon
                         points="18,2 31,11 26,30 10,30 5,11"
                         fill="url(#ask2027PrismGrad)"
-                        fillOpacity="0.28"
+                        fillOpacity="0.22"
                         stroke="url(#ask2027PrismGrad)"
                         strokeWidth="1.6"
                       />
@@ -2061,7 +2059,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         d="M18 4 L22.2 13.8 L32 18 L22.2 22.2 L18 32 L13.8 22.2 L4 18 L13.8 13.8 Z"
                         fill="url(#ask2027CoreGlow)"
                       />
-                      <circle cx="18" cy="18" r="3.2" fill="#FFFFFF" />
+                      <circle cx="18" cy="18" r="3.2" fill="#f8f7f4" />
                     </svg>
                   </div>
                   <div className="min-w-0">
