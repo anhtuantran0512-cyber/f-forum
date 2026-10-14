@@ -518,7 +518,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                           isMe ? 'items-end' : 'items-start'
                         }`}
                       >
-                        <div className="flex items-center gap-1.5 mb-1.5 text-[11px] text-neutral-400 flex-wrap">
+                        <div className={`flex items-center gap-1.5 mb-1.5 text-[11px] text-neutral-400 flex-wrap ${isMe ? 'justify-end flex-row-reverse' : ''}`}>
                           <button
                             type="button"
                             onClick={(e) => {
@@ -572,7 +572,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         </div>
 
                         <div
-                          className={`px-4 py-2.5 text-xs sm:text-sm leading-relaxed break-words shadow-md ${
+                          className={`w-fit px-4 py-2.5 text-xs sm:text-sm leading-relaxed break-words shadow-md ${
                             isMe
                               ? 'ff-chat-bubble-me'
                               : isSuperAdminMsg

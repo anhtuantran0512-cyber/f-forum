@@ -575,11 +575,13 @@ const SUBJECT_2027_META: Record<
 const getSubjectBadgeStyle = (subjectTag: string): string => {
   switch (subjectTag) {
     case 'toan':
-    case 'ly':
       return 'bg-cyan-500/15 text-cyan-200 border-cyan-400/35';
+    case 'ly':
+      return 'bg-sky-500/15 text-sky-200 border-sky-400/35';
     case 'hoa':
-    case 'sinh':
       return 'bg-emerald-500/15 text-emerald-200 border-emerald-400/35';
+    case 'sinh':
+      return 'bg-green-500/15 text-green-200 border-green-400/35';
     case 'anh':
       return 'bg-pink-500/15 text-pink-200 border-pink-400/35';
     case 'tin':
@@ -591,11 +593,13 @@ const getSubjectBadgeStyle = (subjectTag: string): string => {
     case 'hotro':
       return 'bg-teal-500/15 text-teal-200 border-teal-400/35';
     case 'kinhnghiem':
-    case 'tamsu':
-    case 'tamly':
       return 'bg-purple-500/15 text-purple-200 border-purple-400/35';
     case 'share':
       return 'bg-blue-500/15 text-blue-200 border-blue-400/35';
+    case 'tamsu':
+      return 'bg-fuchsia-500/15 text-fuchsia-200 border-fuchsia-400/35';
+    case 'tamly':
+      return 'bg-rose-500/15 text-rose-200 border-rose-400/35';
     default:
       return 'bg-slate-500/15 text-slate-200 border-slate-400/30';
   }
@@ -1525,19 +1529,23 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               {SUBJECTS.map(subj => {
                 const isActive = selectedTag === subj.tag;
                 const isAcademic = subj.group === 'academic';
+                const meta = subj.tag !== 'all' ? SUBJECT_2027_META[subj.tag as SubjectTag] : null;
                 return (
                   <button
                     key={subj.tag}
                     onClick={() => setSelectedTag(subj.tag)}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-mono whitespace-nowrap transition-colors cursor-pointer ${
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-mono whitespace-nowrap transition-colors cursor-pointer inline-flex items-center gap-1 ${
                       isActive
-                        ? 'bg-cyan-500/20 text-cyan-200 font-semibold border border-cyan-400/45'
+                        ? subj.tag === 'all'
+                          ? 'bg-cyan-500/20 text-cyan-200 font-semibold border border-cyan-400/45'
+                          : `${getSubjectBadgeStyle(subj.tag)} font-semibold shadow-xs`
                         : isAcademic
                         ? 'bg-white/[0.03] text-slate-300 hover:bg-white/[0.08] hover:text-white border border-white/[0.07]'
                         : 'bg-indigo-500/[0.07] text-indigo-200/90 hover:bg-indigo-500/15 border border-indigo-400/20'
                     }`}
                   >
-                    {subj.label}
+                    {meta?.emoji && <span>{meta.emoji}</span>}
+                    <span>{subj.label}</span>
                   </button>
                 );
               })}
@@ -1681,6 +1689,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   <div className="flex items-center justify-between gap-2.5 mb-3">
                     <div className="flex items-center gap-2 flex-wrap min-w-0">
                       <span className={`px-2.5 py-1 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 border shadow-xs ${getSubjectBadgeStyle(q.subject)}`}>
+                        {SUBJECT_2027_META[q.subject as SubjectTag]?.emoji && (
+                          <span>{SUBJECT_2027_META[q.subject as SubjectTag].emoji}</span>
+                        )}
                         <span>{subjectLabel}</span>
                         <span className="font-mono text-[10.5px] opacity-80">#{q.subject}</span>
                       </span>
@@ -2756,9 +2767,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 <span className="h-5 w-px bg-white/12 hidden sm:block" aria-hidden="true" />
 
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
-                  <span className="px-3 py-1 rounded-xl text-xs font-semibold bg-cyan-500/15 text-cyan-200 border border-cyan-400/30 inline-flex items-center gap-1.5">
+                  <span className={`px-3 py-1 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 border shadow-xs ${getSubjectBadgeStyle(selectedQuestion.subject)}`}>
+                    {SUBJECT_2027_META[selectedQuestion.subject as SubjectTag]?.emoji && (
+                      <span>{SUBJECT_2027_META[selectedQuestion.subject as SubjectTag].emoji}</span>
+                    )}
                     <span>{detailSubjectLabel}</span>
-                    <span className="font-mono text-[11px] text-cyan-300/80">#{selectedQuestion.subject}</span>
+                    <span className="font-mono text-[11px] opacity-80">#{selectedQuestion.subject}</span>
                   </span>
 
                   {selectedQuestion.isSolved ? (
