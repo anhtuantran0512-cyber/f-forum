@@ -1127,7 +1127,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       {/* Layer 4: #grid — fixed inset-0 z-20 flat archive */}
       <div
         id="grid"
-        className={`fixed inset-0 z-20 overflow-y-auto bg-black transition-opacity duration-500 pt-[calc(var(--pad)*3.4)] px-[var(--pad)] pb-[calc(var(--pad)*4)] ${
+        className={`fixed inset-0 z-20 overflow-y-auto bg-black transition-opacity duration-500 pt-24 px-[var(--pad)] pb-24 ${
           isGridView ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
       >
@@ -1180,8 +1180,8 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       </div>
 
       {/* Layer 5: Chrome Elements */}
-      {/* Header.chrome — Sub-header layer (z-40) cleanly positioned below Global Navbar (z-50) */}
-      <header className="chrome fixed top-[74px] sm:top-[78px] inset-x-0 z-40 flex items-center justify-between gap-3 py-2 px-[var(--pad)] pointer-events-none">
+      {/* Header.chrome — Anchored cleanly at top-0 since Global Navbar is hidden in Khu Vinh Danh */}
+      <header className="chrome fixed top-0 inset-x-0 z-40 flex items-center justify-between gap-3 py-3.5 px-[var(--pad)] bg-gradient-to-b from-black/85 via-black/40 to-transparent pointer-events-none">
         <a
           href="#"
           onClick={(e) => {
@@ -1296,9 +1296,9 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         </div>
       </header>
 
-      {/* Photographer Card .bio — positioned above bottom-left QuickNotesDock */}
+      {/* Photographer Card .bio — anchored cleanly at bottom-left */}
       <div
-        className={`bio-card bio chrome fixed left-[var(--pad)] bottom-[76px] z-30 max-w-[min(340px,46vw)] p-3.5 rounded-2xl bg-[#0b0d12]/85 border border-white/15 backdrop-blur-md shadow-xl transition-opacity duration-300 ${
+        className={`bio-card bio chrome fixed left-[var(--pad)] bottom-6 z-30 max-w-[min(340px,46vw)] p-3.5 rounded-2xl bg-[#0b0d12]/85 border border-white/15 backdrop-blur-md shadow-xl transition-opacity duration-300 ${
           isGridView || activeLitRecord ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       >
@@ -1357,9 +1357,9 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         )}
       </div>
 
-      {/* Colophon .colophon — positioned above bottom-right docks */}
+      {/* Colophon .colophon — anchored cleanly at bottom-right */}
       <div
-        className={`colophon-card colophon chrome fixed right-[var(--pad)] bottom-[76px] z-30 text-[11.5px] text-[#f4f2ef]/65 flex items-center gap-2 transition-opacity duration-300 ${
+        className={`colophon-card colophon chrome fixed right-[var(--pad)] bottom-6 z-30 text-[11.5px] text-[#f4f2ef]/65 flex items-center gap-2 transition-opacity duration-300 ${
           isGridView || activeLitRecord ? 'opacity-0' : 'opacity-100'
         }`}
       >

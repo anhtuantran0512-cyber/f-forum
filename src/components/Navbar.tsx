@@ -92,7 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onLogout,
   onLogoutEverywhere,
   onChangePassword,
-  onToggleChat,
+  onToggleChat: _onToggleChat,
   unreadChatCount,
   onOpenProfile,
   onOpenFocusMode,
@@ -645,16 +645,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 
 
 
-  /* Logo F/F-Forum đưa về Trang chủ; không cần thêm một tab Home trùng chức năng.
-     Miền Ký Ức / Khu Vinh Danh / Update vẫn ở dạng icon cho thanh gọn. */
+  /* Logo F/F-Forum đưa về Trang chủ; CLB chuyển vào menu Tia Sét;
+     Khu chat chung nằm ở biểu tượng bên phải; Bản nâng cấp chuyển vào hộp Cài đặt:
+     { id: 'coming-soon', label: 'UPDATE', iconOnly: true } */
   const navItems: { id: DockView; label: string; iconOnly?: boolean }[] = [
-    { id: 'clubs', label: 'Club' },
     { id: 'qa', label: 'Hỏi Đáp' },
     { id: 'threads', label: 'Thread' },
-    { id: 'chat', label: 'Chat' },
     { id: 'memory', label: 'MIỀN KÝ ỨC', iconOnly: true },
     { id: 'chronicles', label: 'KHU VINH DANH', iconOnly: true },
-    { id: 'coming-soon', label: 'UPDATE', iconOnly: true },
   ];
   const firstIconOnlyIndex = navItems.findIndex((item) => item.id === 'memory');
 
@@ -671,6 +669,10 @@ export const Navbar: React.FC<NavbarProps> = ({
     onOpenFocusMode: () => {
       setIsSettingsOpen(false);
       onOpenFocusMode();
+    },
+    onOpenUpdate: () => {
+      setIsSettingsOpen(false);
+      onViewChange('coming-soon');
     },
     soundEffects,
     onToggleSoundEffects: handleToggleSoundEffects,
@@ -942,16 +944,22 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </div>
 
-            {/* Chat Toggle */}
+            {/* Khu Chat Chung */}
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onToggleChat();
+                onViewChange('chat');
+                setIsSettingsOpen(false);
+                setIsNotificationsOpen(false);
+                setIsFlyoutOpen(false);
               }}
-              className="nav-icon-btn group relative w-9 h-9 rounded-full flex items-center justify-center text-white/70 hover:text-white cursor-pointer pointer-events-auto"
-              title="Mở phòng chat"
-              aria-label="Mở phòng chat"
+              aria-current={currentView === 'chat' ? 'page' : undefined}
+              className={`nav-icon-btn group relative w-9 h-9 rounded-full flex items-center justify-center cursor-pointer pointer-events-auto ${
+                currentView === 'chat' ? 'nav-icon-btn--on text-amber-300' : 'text-white/70 hover:text-white'
+              }`}
+              title="Khu chat chung"
+              aria-label="Khu chat chung"
             >
               <MessageSquare className="w-4 h-4 text-amber-400" />
               {unreadChatCount > 0 && (
@@ -1270,27 +1278,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* ======================================================== */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 h-[calc(56px+var(--safe-bottom))] pb-[var(--safe-bottom)] liquid-glass border-t border-white/10 px-2 flex items-center justify-around pointer-events-auto select-none">
         {/* Trang chủ nằm ở logo F trên header, không nhân đôi trong dock. */}
-        {/* Tab 1: CLB */}
-        <button
-          type="button"
-          onClick={() => {
-            onViewChange('clubs');
-            setIsMobileMenuOpen(false);
-            setIsNotificationsOpen(false);
-            setIsFlyoutOpen(false);
-          }}
-          className={`flex flex-col items-center justify-center min-w-[48px] min-h-[44px] px-2 py-1 rounded-xl transition-all cursor-pointer ${
-            currentView === 'clubs' && !isMobileMenuOpen
-              ? 'text-amber-400 font-semibold'
-              : 'text-white/60 hover:text-white'
-          }`}
-          aria-label="Câu Lạc Bộ"
-        >
-          <Users className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] tracking-tight whitespace-nowrap">CLB</span>
-        </button>
-
-        {/* Tab 2: Hỏi Đáp */}
+        {/* Tab 1: Hỏi Đáp */}
         <button
           type="button"
           onClick={() => {
@@ -1308,6 +1296,26 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <HelpCircle className="w-5 h-5 mb-0.5" />
           <span className="text-[10px] tracking-tight whitespace-nowrap">Hỏi Đáp</span>
+        </button>
+
+        {/* Tab 2: Thread */}
+        <button
+          type="button"
+          onClick={() => {
+            onViewChange('threads');
+            setIsMobileMenuOpen(false);
+            setIsNotificationsOpen(false);
+            setIsFlyoutOpen(false);
+          }}
+          className={`flex flex-col items-center justify-center min-w-[48px] min-h-[44px] px-2 py-1 rounded-xl transition-all cursor-pointer ${
+            currentView === 'threads' && !isMobileMenuOpen
+              ? 'text-amber-400 font-semibold'
+              : 'text-white/60 hover:text-white'
+          }`}
+          aria-label="Thread"
+        >
+          <MessageCircleMore className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] tracking-tight whitespace-nowrap">Thread</span>
         </button>
 
         {/* Tab 3: Chat */}
@@ -1454,19 +1462,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  onViewChange('coming-soon');
+                  onViewChange('clubs');
                   setIsMobileMenuOpen(false);
                 }}
-                data-active={currentView === 'coming-soon' ? 'true' : 'false'}
+                data-active={currentView === 'clubs' ? 'true' : 'false'}
                 className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
-                aria-label="Bản nâng cấp"
-                title="Bản nâng cấp"
+                aria-label="Câu Lạc Bộ"
+                title="Câu Lạc Bộ"
               >
                 <span className="w-9 h-9 rounded-2xl bg-[#81b29a]/20 border border-[#81b29a]/40 flex items-center justify-center">
-                  <Rocket className="w-4 h-4 text-[#81b29a]" />
+                  <Users className="w-4 h-4 text-[#81b29a]" />
                 </span>
                 <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
-                  Update
+                  CLB
                 </span>
               </button>
 

@@ -112,9 +112,9 @@
 }
 
 .hero-title {
-  z-index: 3; left: 50%; top: clamp(122px, 19vh, 205px); width: min(94vw, 1780px);
-  margin: 0; color: #fdf1e1; font-family: "Ogg Medium", serif; font-size: 14rem; font-weight: 500;
-  line-height: 0.78; text-align: center;
+  z-index: 3; left: 50%; top: clamp(148px, 21vh, 224px); width: min(94vw, 1780px);
+  margin: 0; color: #fdf1e1; font-family: "Ogg Medium", serif; font-size: clamp(3.75rem, 10.5vw, 10.5rem); font-weight: 500;
+  line-height: 0.84; text-align: center;
   transform: translate3d(-50%, var(--title-y), 0) scale(var(--title-scale));
   opacity: var(--title-opacity); will-change: transform, opacity;
 }

@@ -1,10 +1,11 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { Headphones, Flame, Settings, Zap, Command, ChartNoAxesCombined } from 'lucide-react';
+import { Headphones, Flame, Users, Zap, Command, ChartNoAxesCombined } from 'lucide-react';
 import { safeStorage } from '../utils/storage';
 
 export interface RadialQuickMenuProps {
   onOpenFocusMode: () => void;
+  onOpenClubs?: () => void;
   onOpenSettings?: () => void;
   onOpenStreak?: () => void;
   onOpenPalette?: () => void;
@@ -50,7 +51,7 @@ const clampZapPosition = (x: number, y: number): { x: number; y: number } => {
  */
 export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
   onOpenFocusMode,
-  onOpenSettings,
+  onOpenClubs,
   onOpenStreak,
   onOpenPalette,
   onOpenAdminPanel,
@@ -257,16 +258,16 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
       },
     },
     {
-      id: 'settings',
-      label: 'Cài đặt',
+      id: 'clubs',
+      label: 'Câu Lạc Bộ',
       angle: '0deg',
       tier: 'far',
-      icon: <Settings className="w-[21px] h-[21px] text-amber-300" />,
+      icon: <Users className="w-[21px] h-[21px] text-[#81b29a]" />,
       onSelect: () => {
-        if (onOpenSettings) {
-          onOpenSettings();
+        if (onOpenClubs) {
+          onOpenClubs();
         } else if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('fforum_open_settings'));
+          window.dispatchEvent(new CustomEvent('fforum_open_clubs'));
         }
       },
     },

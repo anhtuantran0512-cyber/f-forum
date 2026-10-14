@@ -17,11 +17,11 @@
 .ff-collage {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-auto-rows: 62px;
-  gap: 0.6rem;
+  grid-auto-rows: 74px;
+  gap: 0.75rem;
 }
 @media (max-width: 640px) {
-  .ff-collage { grid-auto-rows: 42px; gap: 0.45rem; }
+  .ff-collage { grid-auto-rows: 52px; gap: 0.5rem; }
 }
 .ff-collage__tile--1 { grid-column: 1 / span 4; grid-row: 1 / span 4; }
 .ff-collage__tile--2 { grid-column: 5 / span 2; grid-row: 1 / span 2; }
@@ -90,17 +90,18 @@
 }
 
 /* ==========================================================================
-   code_yeucau · masonry — lưới cột mốc theo cột: thẻ dọc 3:4 và ngang 16:9
-   xếp khít nhau thay vì để khoảng trống như lưới đều.
+   code_yeucau · masonry — lưới cột mốc đồng nhất, không đè cắt khi nghiêng 3D
    ========================================================================== */
-.ff-masonry { columns: 1; column-gap: 1rem; }
-@media (min-width: 640px) { .ff-masonry { columns: 2; } }
-@media (min-width: 768px) { .ff-masonry { columns: 3; } }
-@media (min-width: 1024px) { .ff-masonry { columns: 4; } }
+.ff-masonry {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
+  gap: 1.25rem;
+}
 .ff-masonry > * {
-  display: block;
-  margin-bottom: 1rem;
+  display: flex;
+  margin-bottom: 0;
   break-inside: avoid;
+  min-width: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -53,7 +53,6 @@ import type {
 } from '../../types';
 import { TierBadge, AdminVerifiedBadge } from '../Badges10Tier';
 import { getTierForLevel } from '../../utils/tier';
-import { ForumPostModeration } from '../ForumPost';
 import {
   generateGhibliAlias,
   getRandomGhibliMask,
@@ -1714,12 +1713,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           </span>
 
                           {q.isSolved ? (
-                            <span className="ff-holo-badge inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] text-xs font-bold text-[#d8f3dc]">
+                            <span className="sm:hidden ff-holo-badge inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] text-xs font-bold text-[#d8f3dc]">
                               <CheckCircle2 className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
                               <span>Đã giải</span>
                             </span>
                           ) : (
-                            <span className="ff-organic-badge !py-0.5 !px-2.5 !rounded-[5px] inline-flex items-center gap-1.5">
+                            <span className="sm:hidden ff-organic-badge !py-0.5 !px-2.5 !rounded-[5px] inline-flex items-center gap-1.5">
                               <Clock className="w-3.5 h-3.5 text-[#e07a5f] shrink-0" />
                               <span>Chờ giải</span>
                             </span>
@@ -1730,14 +1729,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             <span>+{q.bountyCoin || 20} Coin</span>
                           </span>
 
-                          <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded-[4px] bg-[#0b0d12]/70 border border-[#f4f1de]/12 text-[10px] font-mono text-[#9a978e]">
-                            ID:{q.id.slice(-5).toUpperCase()}
-                          </span>
-
                           {attachedImages.length > 0 && (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] bg-[#81b29a]/15 border-[1.5px] border-[#81b29a]/40 text-xs font-semibold text-[#d8f3dc]">
                               <ImageIcon className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
-                              <span>Đính kèm {attachedImages.length} ảnh</span>
+                              <span>{attachedImages.length} ảnh</span>
                             </span>
                           )}
                         </div>
@@ -1927,7 +1922,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           </span>
                           <span className="ff-tactile-btn inline-flex items-center gap-1.5 px-3 py-1 rounded-[5px] bg-[#81b29a]/18 group-hover:bg-[#81b29a]/30 border-[1.5px] border-[#81b29a]/50 text-[#f4f1de] font-bold transition-colors">
                             <MessageSquare className="w-3.5 h-3.5 text-[#81b29a]" />
-                            <span>{qSolutions.length}/3 lời giải →</span>
+                            <span>{bestSol ? 'Xem lời giải →' : 'Giải bài →'}</span>
                           </span>
                         </div>
                       </div>
@@ -1944,13 +1939,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       )}
                     </div>
                   </div>
-
-                  <ForumPostModeration
-                    postId={q.id}
-                    onDeletePost={handleAdminDeletePost}
-                    onEditPost={handleAdminEditPost}
-                    isSuperAdmin={canEditContent}
-                  />
                 </div>
               );
             })
@@ -3026,13 +3014,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         onOpenLoginModal={onOpenLoginModal}
                         users={users}
                       />
-
-                      <ForumPostModeration
-                        postId={selectedQuestion.id}
-                        onDeletePost={handleAdminDeletePost}
-                        onEditPost={handleAdminEditPost}
-                        isSuperAdmin={canEditContent}
-                      />
                     </div>
                   </div>
 
@@ -3040,22 +3021,19 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   <div className="answer-section-label">
                     <span className="inline-flex items-center gap-2 text-base font-extrabold text-[#f4f1de]">
                       <MessageSquare className="w-4 h-4 text-[#81b29a]" />
-                      <span>Lời giải từ cộng đồng ({activeSolutions.length}/3)</span>
+                      <span>Lời giải ({activeSolutions.length}/3)</span>
                     </span>
                     <span className="ff-brutal-index">
-                      {remainingSlots > 0 ? `Còn ${remainingSlots} vị trí trả lời` : 'Đã đủ 3/3 lời giải'}
+                      {remainingSlots > 0 ? `Còn ${remainingSlots} vị trí` : 'Đủ 3/3 lời giải'}
                     </span>
                   </div>
 
                   {/* Danh sách lời giải */}
                   <div className="space-y-4">
                     {activeSolutions.length === 0 ? (
-                      <div className="ff-bento-cell py-8 px-6 text-center space-y-2">
+                      <div className="ff-bento-cell py-8 px-6 text-center">
                         <p className="text-[#f4f1de] text-sm font-bold">
-                          Chưa có lời giải nào cho câu hỏi này.
-                        </p>
-                        <p className="text-[#9a978e] text-xs">
-                          Gửi lời giải đầu tiên ở bên dưới để nhận +25 Coin, +25 XP và thưởng Đáp án chuẩn (+{bestBonusCoin} Coin).
+                          Chưa có lời giải.
                         </p>
                       </div>
                     ) : (

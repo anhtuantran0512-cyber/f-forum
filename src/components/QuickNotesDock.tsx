@@ -103,7 +103,7 @@ export const QuickNotesDock: React.FC<QuickNotesDockProps> = ({ isOpen, onClose,
     textareaRef.current?.focus();
   };
 
-  const savedLabel = savedAt ? 'Đã lưu' : 'Tự động lưu khi bạn gõ';
+  const savedLabel = savedAt ? 'Đã lưu' : 'Tự lưu';
 
   if (!isOpen) return null;
 
@@ -122,9 +122,9 @@ export const QuickNotesDock: React.FC<QuickNotesDockProps> = ({ isOpen, onClose,
             <span className="w-8 h-8 rounded-lg bg-[#81b29a]/20 border-[1.5px] border-[#81b29a]/50 flex items-center justify-center shrink-0 shadow-[2px_2px_0px_rgba(4,6,11,0.9)]">
               <NotebookPen className="w-4 h-4 text-[#81b29a]" />
             </span>
-            <div className="min-w-0">
+            <div className="min-w-0 flex items-center gap-2">
               <p className="text-[13px] font-extrabold leading-tight text-[#f4f1de]">Sổ tay nhanh</p>
-              <p className="text-[10px] text-[#9a978e] truncate">{savedLabel} · dùng chung với Focus Sanctuary</p>
+              <span className="text-[10px] font-mono text-[#9a978e]">{savedLabel}</span>
             </div>
           </div>
           <button
@@ -157,7 +157,7 @@ export const QuickNotesDock: React.FC<QuickNotesDockProps> = ({ isOpen, onClose,
             value={notes}
             maxLength={5000}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Ghi nhanh công thức, deadline, ý tưởng bài tập… Nội dung được lưu ngay trên trình duyệt này."
+            placeholder="Ghi nhanh công thức, ý tưởng..."
             className="ff-scroll w-full h-[150px] sm:h-[190px] resize-none rounded-xl bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/18 focus:border-[#f2cc8f] p-3 text-xs leading-relaxed text-[#f4f1de] placeholder-[#84817a] focus:outline-none transition-colors font-mono"
           />
 

@@ -1,7 +1,7 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Edit3, Upload, X, Settings, RotateCcw, Image as ImageIcon } from 'lucide-react';
+import { Edit3, Upload, X, RotateCcw, Image as ImageIcon } from 'lucide-react';
 import './MemoryRealm.css';
 import { rafThrottle } from '../utils/rafThrottle';
 import type { User } from '../types';
@@ -571,7 +571,7 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
               href="#cinema"
               onClick={(e) => scrollToScrubPoint(e, 0)}
             >
-              F-Forum • Miền ký ức
+              Miền Ký Ức
             </a>
             <nav className="site-nav" aria-label="Main menu">
               <a href="#cinema" onClick={(e) => scrollToScrubPoint(e, 0)}>
@@ -654,10 +654,10 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                           setAdminTab('sights');
                           setIsAdminModalOpen(true);
                         }}
-                        className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-[11px] font-extrabold flex items-center gap-1 shadow-lg cursor-pointer transition-all"
+                        className="absolute bottom-3 right-3 z-20 px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-[11px] font-extrabold flex items-center gap-1 shadow-lg cursor-pointer transition-all"
                       >
                         <Edit3 className="w-3 h-3" />
-                        <span>Thay ảnh &amp; Sửa</span>
+                        <span>Sửa</span>
                       </button>
                     )}
                     <span className="sight-kicker">
@@ -797,7 +797,7 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
         <section className="story-panel story-panel-bazaar" id="bazaar" aria-label="Old town details">
           <h2>{language === 'VIE' ? cmsData.bazaarTitleVie : cmsData.bazaarTitleEng}</h2>
           <p>{language === 'VIE' ? cmsData.bazaarBodyVie : cmsData.bazaarBodyEng}</p>
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center justify-center gap-3 flex-wrap">
             <button className="note-button" onClick={scrollToChronicles}>
               <span aria-hidden="true">↗</span>
               <span>{language === 'VIE' ? cmsData.bazaarButtonVie : cmsData.bazaarButtonEng}</span>
@@ -812,24 +812,11 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                 className="pointer-events-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-500/25 hover:bg-amber-500/40 border border-amber-400/50 text-amber-200 text-xs font-bold cursor-pointer transition-all"
               >
                 <Edit3 className="w-3.5 h-3.5" />
-                <span>Sửa Nội Dung Góc Quán</span>
+                <span>Sửa</span>
               </button>
             )}
           </div>
         </section>
-
-        {isSuperAdmin && (
-          <div className="fixed right-6 bottom-6 z-[95]">
-            <button
-              type="button"
-              onClick={() => setIsAdminModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-amber-500 hover:bg-amber-400 text-black text-xs sm:text-sm font-extrabold shadow-[0_12px_36px_rgba(245,158,11,0.5)] cursor-pointer transition-all"
-            >
-              <Settings className="w-4 h-4 text-black" />
-              <span>Quản Trị Ảnh &amp; Nội Dung Khu Kỷ Niệm (Admin)</span>
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Portaled Admin Studio Modal for MemoryRealm */}

@@ -552,18 +552,6 @@ export const App: React.FC = () => {
     return () => window.clearTimeout(timer);
   }, [isResourceLoading]);
 
-  /* useCallback với deps rỗng: chỉ dùng setter từ useState nên địa chỉ ổn định,
-     nhờ đó paletteCommands (useMemo phụ thuộc nó) không tính lại mỗi lần render. */
-  const handleToggleChat = useCallback(() => {
-    setIsChatOpen(prev => {
-      const next = !prev;
-      if (next) {
-        setUnreadChatCount(0);
-      }
-      return next;
-    });
-  }, [setIsChatOpen, setUnreadChatCount]);
-
   /* Chuyển phân khu kèm màn hình chờ cho các trang nặng */
   const beginTransition = useCallback(
     (v: DimensionView) => {
@@ -599,6 +587,13 @@ export const App: React.FC = () => {
     },
     [currentView, setCurrentView, beginTransition],
   );
+
+  /* Chuyển thẳng vào Khu chat chung thay vì mở hộp chat nhỏ */
+  const handleToggleChat = useCallback(() => {
+    setIsChatOpen(false);
+    setUnreadChatCount(0);
+    handleViewChange('chat');
+  }, [setIsChatOpen, setUnreadChatCount, handleViewChange]);
 
   const handleViewReady = useCallback((view: DimensionView) => {
     setReadyView(view);
@@ -636,13 +631,16 @@ export const App: React.FC = () => {
   useEffect(() => {
     const openPalette = () => setIsPaletteOpen(true);
     const openNotes = () => setIsNotesOpen((prev) => !prev);
+    const openClubs = () => handleViewChange('clubs');
     window.addEventListener('fforum_open_palette', openPalette);
     window.addEventListener('fforum_open_notes', openNotes);
+    window.addEventListener('fforum_open_clubs', openClubs);
     return () => {
       window.removeEventListener('fforum_open_palette', openPalette);
       window.removeEventListener('fforum_open_notes', openNotes);
+      window.removeEventListener('fforum_open_clubs', openClubs);
     };
-  }, []);
+  }, [handleViewChange]);
 
   const toggleEyeRest = useCallback(() => {
     setEyeRestEnabled((prev) => {
@@ -661,15 +659,15 @@ export const App: React.FC = () => {
 
   const paletteCommands: PaletteCommand[] = React.useMemo(() => {
     const views: { id: DimensionView; label: string; hint: string; icon: React.ReactNode; keywords: string }[] = [
-      { id: 'home', label: 'Trang chủ', hint: 'Bảng tin tổng hợp & thống kê', icon: <Home className="w-4 h-4" />, keywords: 'home bang tin' },
-      { id: 'clubs', label: 'Câu lạc bộ', hint: 'CLB, sự kiện & bài đăng nhóm', icon: <Users className="w-4 h-4" />, keywords: 'clb club' },
-      { id: 'qa', label: 'Hỏi đáp', hint: 'Sàn hỏi bài theo môn học', icon: <HelpCircle className="w-4 h-4" />, keywords: 'hoi bai qa' },
-      { id: 'threads', label: 'Thread', hint: 'Luồng cảm xúc tức thì — đăng không cần duyệt', icon: <MessageCircleMore className="w-4 h-4" />, keywords: 'thread luong cam xuc' },
-      { id: 'chat', label: 'Phòng chat', hint: 'Trò chuyện thời gian thực', icon: <MessageSquare className="w-4 h-4" />, keywords: 'chat tin nhan' },
-      { id: 'memory', label: 'Miền ký ức', hint: 'Chuyến cuộn phim thanh xuân', icon: <Compass className="w-4 h-4" />, keywords: 'ky uc memory' },
-      { id: 'chronicles', label: 'Khu vinh danh', hint: 'Quả cầu 3D & cột mốc', icon: <Award className="w-4 h-4" />, keywords: 'vinh danh' },
-      { id: 'coming-soon', label: 'Bản nâng cấp', hint: 'Những gì đang được phát triển', icon: <Rocket className="w-4 h-4" />, keywords: 'update' },
-      { id: 'landing', label: 'Giới thiệu F-Forum', hint: 'Trang marketing & bảng giá', icon: <Sparkles className="w-4 h-4" />, keywords: 'gioi thieu landing' },
+      { id: 'home', label: 'Trang chủ', hint: '', icon: <Home className="w-4 h-4" />, keywords: 'home bang tin' },
+      { id: 'clubs', label: 'Câu lạc bộ', hint: '', icon: <Users className="w-4 h-4" />, keywords: 'clb club' },
+      { id: 'qa', label: 'Hỏi đáp', hint: '', icon: <HelpCircle className="w-4 h-4" />, keywords: 'hoi bai qa' },
+      { id: 'threads', label: 'Thread', hint: '', icon: <MessageCircleMore className="w-4 h-4" />, keywords: 'thread luong cam xuc' },
+      { id: 'chat', label: 'Khu chat chung', hint: '', icon: <MessageSquare className="w-4 h-4" />, keywords: 'chat tin nhan' },
+      { id: 'memory', label: 'Miền ký ức', hint: '', icon: <Compass className="w-4 h-4" />, keywords: 'ky uc memory' },
+      { id: 'chronicles', label: 'Khu vinh danh', hint: '', icon: <Award className="w-4 h-4" />, keywords: 'vinh danh' },
+      { id: 'coming-soon', label: 'Bản nâng cấp', hint: '', icon: <Rocket className="w-4 h-4" />, keywords: 'update' },
+      { id: 'landing', label: 'Giới thiệu', hint: '', icon: <Sparkles className="w-4 h-4" />, keywords: 'gioi thieu landing' },
     ];
 
     const viewCommands: PaletteCommand[] = views.map((v) => ({
@@ -685,8 +683,8 @@ export const App: React.FC = () => {
     const actionCommands: PaletteCommand[] = [
       {
         id: 'act-shortcuts',
-        label: 'Xem bảng phím tắt',
-        hint: 'Bốn tổ hợp phím đang có trong app',
+        label: 'Phím tắt',
+        hint: '',
         group: 'Tác vụ',
         icon: <CommandIcon className="w-4 h-4" />,
         shortcut: '⌘/',
@@ -696,7 +694,7 @@ export const App: React.FC = () => {
       {
         id: 'act-palette-shortcut',
         label: 'Bảng lệnh nhanh',
-        hint: 'Đang mở — gõ để lọc mọi tác vụ',
+        hint: '',
         group: 'Tác vụ',
         icon: <CommandIcon className="w-4 h-4" />,
         shortcut: '⌘K',
@@ -706,7 +704,7 @@ export const App: React.FC = () => {
       {
         id: 'act-notes',
         label: 'Sổ tay nhanh',
-        hint: 'Ghi chú dùng chung với Focus Sanctuary',
+        hint: '',
         group: 'Tác vụ',
         icon: <NotebookPen className="w-4 h-4" />,
         shortcut: '⌘I',
@@ -715,8 +713,8 @@ export const App: React.FC = () => {
       },
       {
         id: 'act-focus',
-        label: 'Vào không gian tập trung',
-        hint: 'Pomodoro 25 phút · Không gian tập trung',
+        label: 'Phòng tập trung',
+        hint: '',
         group: 'Không gian',
         icon: <Headphones className="w-4 h-4" />,
         shortcut: '⌘⇧F',
@@ -725,8 +723,8 @@ export const App: React.FC = () => {
       },
       {
         id: 'act-attendance',
-        label: 'Điểm danh & mở kho quà',
-        hint: 'Giữ chuỗi ngày, nhận Coin',
+        label: 'Điểm danh',
+        hint: '',
         group: 'Không gian',
         icon: <Flame className="w-4 h-4" />,
         keywords: 'diem danh streak hop qua',
@@ -734,17 +732,17 @@ export const App: React.FC = () => {
       },
       {
         id: 'act-chat',
-        label: 'Bật / tắt khung chat nhanh',
-        hint: 'Chat Dock trượt bên phải',
+        label: 'Mở Khu chat chung',
+        hint: '',
         group: 'Không gian',
         icon: <MessageSquare className="w-4 h-4" />,
-        keywords: 'chat dock',
+        keywords: 'chat dock khu chat chung',
         run: handleToggleChat,
       },
       {
         id: 'act-eye-rest',
         label: eyeRestEnabled ? 'Tắt nhắc nghỉ mắt 20-20-20' : 'Bật nhắc nghỉ mắt 20-20-20',
-        hint: eyeRestEnabled ? 'Đang bật — cứ 20 phút nhắc một lần' : 'Bảo vệ mắt khi học lâu trên màn hình',
+        hint: '',
         group: 'Không gian',
         icon: <Eye className="w-4 h-4" />,
         keywords: 'nghi mat eye rest 20-20-20',
@@ -752,8 +750,8 @@ export const App: React.FC = () => {
       },
       {
         id: 'act-eye-rest-now',
-        label: 'Nghỉ mắt ngay (20 giây)',
-        hint: 'Mở lớp phủ thư giãn mắt tức thì',
+        label: 'Nghỉ mắt 20 giây',
+        hint: '',
         group: 'Không gian',
         icon: <Eye className="w-4 h-4" />,
         keywords: 'nghi mat ngay thu gian',
@@ -762,7 +760,7 @@ export const App: React.FC = () => {
       {
         id: 'act-saved-questions',
         label: 'Câu hỏi đã lưu',
-        hint: 'Mở danh sách câu hỏi bạn đã đánh dấu để đọc lại',
+        hint: '',
         group: 'Diễn đàn',
         icon: <HelpCircle className="w-4 h-4" />,
         keywords: 'cau hoi da luu bookmark luu danh dau saved',
@@ -775,8 +773,8 @@ export const App: React.FC = () => {
       },
       {
         id: 'act-theme',
-        label: 'Đổi chế độ Sáng / Tối',
-        hint: 'Chuyển nhanh giao diện Obsidian ↔ Pha lê',
+        label: 'Đổi giao diện Sáng / Tối',
+        hint: '',
         group: 'Giao diện',
         icon: <Palette className="w-4 h-4" />,
         shortcut: '⌘⇧L',
@@ -785,8 +783,8 @@ export const App: React.FC = () => {
       },
       {
         id: 'act-settings',
-        label: 'Mở trung tâm điều khiển',
-        hint: 'Giao diện, trải nghiệm & dữ liệu',
+        label: 'Cài đặt',
+        hint: '',
         group: 'Giao diện',
         icon: <SettingsIcon className="w-4 h-4" />,
         keywords: 'cai dat setting',
@@ -794,19 +792,12 @@ export const App: React.FC = () => {
       },
     ];
 
-    /*
-      Lệnh "Trang cá nhân" chỉ có khi đã đăng nhập. Trước đây mảng lệnh tác vụ
-      được đẩy thêm phần tử bằng phương thức push — nhưng React Compiler coi việc
-      gọi hàm trên một giá trị đang dựng trong lúc render là "truyền ref vào hàm",
-      và cả component bị bỏ tối ưu. Dựng bằng spread có điều kiện thì mảng chỉ
-      được tạo một lần, không đột biến, và cảnh báo biến mất.
-    */
     const accountCommands: PaletteCommand[] = currentUser
       ? [
           {
             id: 'act-profile',
-            label: 'Trang cá nhân của tôi',
-            hint: `${currentUser.name} · Cấp ${currentUser.level}`,
+            label: 'Hồ sơ cá nhân',
+            hint: `Lv.${currentUser.level}`,
             group: 'Tài khoản',
             icon: <UserIcon className="w-4 h-4" />,
             keywords: 'profile ho so ca nhan',
@@ -1228,6 +1219,7 @@ export const App: React.FC = () => {
       {currentView !== 'landing' && currentView !== 'chronicles' && !isChatOpen && !(currentView === 'qa' && isQADetailOpen) && (
         <RadialQuickMenu
           onOpenFocusMode={() => setIsFocusModeOpen(true)}
+          onOpenClubs={() => handleViewChange('clubs')}
           onOpenStreak={() => window.dispatchEvent(new CustomEvent('fforum_open_daily'))}
           onOpenPalette={() => setIsPaletteOpen(true)}
           adminAccess={canOpenAdminPanel}

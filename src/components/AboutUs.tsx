@@ -996,7 +996,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                 {aboutData.subtitle}
               </p>
               <p className="text-[11px] font-mono text-[#8c8783]">
-                {aboutData.milestones.length} cột mốc · chạm vào ảnh để mở chi tiết
+                {aboutData.milestones.length} cột mốc
               </p>
             </div>
             {collageMilestones.length >= 5 && (

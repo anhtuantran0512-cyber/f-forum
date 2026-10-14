@@ -23,34 +23,32 @@ interface ShortcutRow {
 
 const GROUPS: { title: string; rows: ShortcutRow[] }[] = [
   {
-    title: 'Điều hướng & tìm kiếm',
+    title: 'Điều hướng',
     rows: [
       {
         keys: [MOD, 'K'],
-        label: 'Mở bảng lệnh & tìm kiếm toàn cục',
+        label: 'Bảng lệnh & tìm kiếm',
         icon: <Search className="w-4 h-4" />,
-        note: 'Tìm câu hỏi, câu lạc bộ, thành viên',
       },
       {
         keys: [MOD, '/'],
-        label: 'Mở bảng phím tắt này',
+        label: 'Phím tắt',
         icon: <CommandIcon className="w-4 h-4" />,
       },
-      { keys: ['Esc'], label: 'Đóng hộp thoại đang mở', icon: <X className="w-4 h-4" /> },
+      { keys: ['Esc'], label: 'Đóng hộp thoại', icon: <X className="w-4 h-4" /> },
     ],
   },
   {
-    title: 'Công cụ học tập',
+    title: 'Học tập',
     rows: [
       {
         keys: [MOD, 'I'],
-        label: 'Bật / tắt sổ tay nhanh',
+        label: 'Sổ tay nhanh',
         icon: <NotebookPen className="w-4 h-4" />,
-        note: 'Không hoạt động khi đang gõ trong ô nhập',
       },
       {
         keys: [MOD, 'Shift', 'F'],
-        label: 'Vào không gian tập trung',
+        label: 'Phòng tập trung',
         icon: <Timer className="w-4 h-4" />,
       },
     ],
@@ -60,17 +58,17 @@ const GROUPS: { title: string; rows: ShortcutRow[] }[] = [
     rows: [
       {
         keys: [MOD, 'Shift', 'L'],
-        label: 'Đổi chế độ Sáng / Tối',
+        label: 'Đổi Sáng / Tối',
         icon: <Contrast className="w-4 h-4" />,
       },
     ],
   },
   {
-    title: 'Trong bảng lệnh',
+    title: 'Bảng lệnh',
     rows: [
-      { keys: ['↑', '↓'], label: 'Di chuyển giữa các kết quả', icon: <ArrowUp className="w-4 h-4" /> },
-      { keys: ['Enter'], label: 'Chạy lệnh / mở kết quả đang chọn', icon: <CornerDownLeft className="w-4 h-4" /> },
-      { keys: ['Esc'], label: 'Đóng bảng lệnh', icon: <X className="w-4 h-4" /> },
+      { keys: ['↑', '↓'], label: 'Di chuyển', icon: <ArrowUp className="w-4 h-4" /> },
+      { keys: ['Enter'], label: 'Chọn', icon: <CornerDownLeft className="w-4 h-4" /> },
+      { keys: ['Esc'], label: 'Đóng', icon: <X className="w-4 h-4" /> },
     ],
   },
 ];
@@ -106,50 +104,44 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
         onClick={onClose}
       />
 
-      <div className="ff-shortcuts relative w-full max-w-[560px] max-h-[86vh] overflow-y-auto rounded-[26px] border border-white/15 bg-[#0b1017]/96 shadow-[0_50px_140px_rgba(0,0,0,0.85)] backdrop-blur-2xl">
-        <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/10 bg-[#0b1017]/95 px-5 py-4 backdrop-blur-xl">
+      <div className="ff-shortcuts modal-container relative w-full max-w-[520px] max-h-[86vh] overflow-y-auto">
+        <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/10 bg-[#0d111a]/95 px-5 py-3.5 backdrop-blur-xl">
           <div>
-            <h2 className="text-sm font-extrabold tracking-tight text-white">Phím tắt</h2>
-            <p className="mt-0.5 text-[11px] text-neutral-400">
-              {isMac ? 'Dùng phím ⌘ trên macOS' : 'Dùng phím Ctrl trên Windows/Linux'}
-            </p>
+            <h2 className="text-sm font-extrabold tracking-tight text-[#f4f1de]">Phím tắt</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Đóng"
-            className="shrink-0 rounded-xl border border-white/15 p-2 text-neutral-300 transition hover:bg-white/10 hover:text-white cursor-pointer"
+            className="ff-tactile-btn shrink-0 rounded-xl border border-white/15 p-2 text-neutral-300 transition hover:bg-white/10 hover:text-white cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
         </header>
 
-        <div className="space-y-5 px-5 py-4">
+        <div className="space-y-4 px-5 py-4">
           {GROUPS.map((group) => (
             <section key={group.title}>
-              <h3 className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.14em] text-amber-300/90">
+              <h3 className="mb-2 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#f2cc8f]">
                 {group.title}
               </h3>
               <ul className="space-y-1.5">
                 {group.rows.map((row) => (
                   <li
                     key={row.label}
-                    className="flex items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.03] px-3 py-2.5"
+                    className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2"
                   >
-                    <span className="shrink-0 text-amber-300/80">{row.icon}</span>
+                    <span className="shrink-0 text-[#f2cc8f]">{row.icon}</span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[12.5px] font-semibold text-white/90">
+                      <span className="block truncate text-[12.5px] font-semibold text-[#f4f1de]">
                         {row.label}
                       </span>
-                      {row.note && (
-                        <span className="mt-0.5 block text-[10.5px] text-neutral-400">{row.note}</span>
-                      )}
                     </span>
                     <span className="flex shrink-0 items-center gap-1">
                       {row.keys.map((key) => (
                         <kbd
                           key={key}
-                          className="ff-shortcuts__key min-w-[24px] rounded-lg border border-white/20 bg-white/[0.07] px-1.5 py-1 text-center text-[10.5px] font-bold text-white/85 shadow-[0_1px_0_rgba(255,255,255,0.12)_inset]"
+                          className="ff-shortcuts__key min-w-[24px] rounded-lg border border-white/20 bg-[#0b0d12] px-1.5 py-1 text-center text-[10.5px] font-bold text-[#f4f1de] shadow-[0_1px_0_rgba(255,255,255,0.12)_inset]"
                         >
                           {key}
                         </kbd>
@@ -168,9 +160,9 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
                 onClose();
                 onOpenPalette();
               }}
-              className="w-full rounded-2xl border border-amber-300/30 bg-gradient-to-r from-amber-400/15 to-yellow-200/5 px-4 py-3 text-[12.5px] font-bold text-amber-200 transition hover:from-amber-400/25 hover:to-yellow-200/10 cursor-pointer"
+              className="ff-tactile-btn w-full rounded-xl border-2 border-[#0b0d12] bg-[#f4f1de] hover:bg-[#f2cc8f] px-4 py-2.5 text-xs font-extrabold text-[#0b0d12] transition cursor-pointer"
             >
-              Mở bảng lệnh &amp; tìm kiếm ngay
+              Mở Bảng lệnh
             </button>
           )}
         </div>
