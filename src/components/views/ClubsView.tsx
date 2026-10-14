@@ -326,9 +326,6 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
               <h1 className="ff-typo-poster !text-xl sm:!text-2xl text-white">
                 Quảng Trường Câu Lạc Bộ
               </h1>
-              <span className="ff-brutal-index">
-                {approvedClubs.length} CLB HOẠT ĐỘNG
-              </span>
               <InfoTip label="Cách tính danh hiệu CLB xuất sắc" align="start">
                 Danh hiệu CLB Xuất Sắc Nhất Tháng được tổng hợp tự động dựa trên tần suất đăng bài hoạt động và mức độ thảo luận thực tế của thành viên.
               </InfoTip>
@@ -590,7 +587,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     </span>
                   </div>
 
-                  {/* Card Content: tên + slogan + số thành viên + 2 nút ('Tham gia' / 'Xem →') */}
+                  {/* Card Content: tên + slogan + chủ nhiệm + 2 nút ('Tham gia' / 'Xem →') */}
                   <div className="ff-media-card__content">
                     <div>
                       <h3 className="font-bold text-sm text-white group-hover:text-amber-300 transition-colors line-clamp-1 ff-kinetic-title ff-kinetic-underline">
@@ -601,10 +598,6 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                           "{club.slogan}"
                         </p>
                       )}
-                      <div className="flex items-center gap-2 text-[11px] text-neutral-400 font-mono mt-1.5">
-                        <Users className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                        <span>{club.membersCount} thành viên</span>
-                      </div>
                       <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 mt-2 pt-2 border-t border-white/[0.06]">
                         <span className="text-neutral-400">Chủ nhiệm:</span>
                         <DecoratedAvatar

@@ -1400,12 +1400,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 <h1 className="ff-typo-poster !text-lg sm:!text-2xl text-white tracking-tight">
                   Hỏi đáp
                 </h1>
-                <span className="ff-brutal-index">
+                <span className="px-2.5 py-0.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[11px] font-mono text-slate-300">
                   {questions.length} câu hỏi · {questions.filter(q => q.isSolved).length} đã giải
-                </span>
-                <span className="ff-holo-badge hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold text-cyan-100">
-                  <Sparkles className="w-3 h-3 text-amber-300" />
-                  Tỷ lệ giải: {questions.length > 0 ? Math.round((questions.filter(q => q.isSolved).length / questions.length) * 100) : 100}%
                 </span>
               </div>
             </div>
@@ -1665,7 +1661,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               const qSolutions = solutionsByQuestionId.get(q.id) || EMPTY_QA_SOLUTIONS;
               const bestSol = qSolutions.find(s => s.isBest);
               const subjectLabel = SUBJECTS.find(s => s.tag === q.subject)?.label || q.subject;
-              const remainingCardSlots = Math.max(0, 3 - qSolutions.length);
               const attachedImages = getQuestionAttachedImages(q);
 
               return (
@@ -1689,19 +1684,14 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     q.isSolved ? 'is-solved' : 'is-unsolved'
                   }`}
                 >
-                  {/* Hàng 1: Nhãn môn học (Neo-Brutalism), Trạng thái (Holographic), Tiền thưởng & Công cụ */}
+                  {/* Hàng 1: Nhãn môn học, Trạng thái, Tiền thưởng, Số ảnh đính kèm & Công cụ */}
                   <div className="flex items-center justify-between gap-2.5 mb-3">
                     <div className="flex items-center gap-2 flex-wrap min-w-0">
-                      <span className="ff-brutal-index">
-                        #{String(qIndex + 1).padStart(2, '0')}
-                      </span>
-
                       <span className={`ff-brutal-tag ${getSubjectBadgeStyle(q.subject)}`}>
                         {SUBJECT_2027_META[q.subject as SubjectTag]?.emoji && (
                           <span>{SUBJECT_2027_META[q.subject as SubjectTag].emoji}</span>
                         )}
                         <span>{subjectLabel}</span>
-                        <span className="font-mono text-[10.5px] opacity-80">#{q.subject}</span>
                       </span>
 
                       {q.isSolved ? (
@@ -1712,7 +1702,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       ) : (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-500/15 border border-cyan-400/35 text-xs font-semibold text-cyan-200 shadow-xs">
                           <Clock className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
-                          <span>Chờ giải · Còn {remainingCardSlots} chỗ</span>
+                          <span>Chờ giải</span>
                         </span>
                       )}
 
@@ -1836,12 +1826,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     <p className="ff-typo-measure text-[13.5px] sm:text-sm text-slate-300 line-clamp-3 leading-relaxed">
                       {q.content}
                     </p>
-                    {attachedImages.length > 0 && (
-                      <div className="pt-1 flex items-center gap-1.5 text-xs text-sky-300/95 font-medium">
-                        <ImageIcon className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                        <span>Đính kèm {attachedImages.length} ảnh minh họa · Nhấn vào câu hỏi để xem đầy đủ</span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Hàng 3: Tác giả & Nút mở trang câu hỏi rộng rãi kiểu Hoidap247 */}
