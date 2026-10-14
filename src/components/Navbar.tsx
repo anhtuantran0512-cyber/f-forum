@@ -1046,13 +1046,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <DecoratedName
                       user={currentUser}
                       name={currentUser.name.replace(/ \(.*\)/, '')}
-                      width={168}
-                      height={32}
+                      width={136}
+                      height={28}
                       eager
                       animate
                       priority="high"
                       showFallbackTag
-                      className="min-w-0 shrink"
+                      className="text-xs font-bold text-[#f4f1de] truncate max-w-[136px] min-w-0 shrink"
                     />
                     {isSuperAdmin && (
                       <AdminVerifiedBadge size={13} tooltipPosition="bottom" />

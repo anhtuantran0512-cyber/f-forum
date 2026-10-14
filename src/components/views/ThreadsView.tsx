@@ -947,7 +947,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
 
   return (
     <section ref={feedScrollRef} className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-y-auto'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8 threads-bg ff-raw-grid-surface`}>
-      <div className="relative z-10 w-full max-w-2xl mx-auto flex-1 flex flex-col">
+      <div className="relative z-10 w-full max-w-4xl mx-auto flex-1 flex flex-col">
         <header className="threads-hero-bar">
           <div className="threads-hero-top">
             <div className="threads-hero-brand">
@@ -1286,7 +1286,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
             <div className="flex items-center justify-between gap-3 pb-3 border-b border-dashed border-[#f4f1de]/16">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="ff-holo-badge px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold text-[#d8f3dc]">
-                  ZINE READER // #{activeReaderThread.id.slice(-5).toUpperCase()}
+                  Bài viết #{activeReaderThread.id.slice(-5).toUpperCase()}
                 </span>
                 <span className="text-xs font-mono text-[#9a978e]">
                   {formatRelativeTime(activeReaderThread.createdAtMs)}

@@ -523,6 +523,12 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
+.thread-card:hover,
+.thread-card:focus-within {
+  content-visibility: visible;
+  z-index: 20;
+}
+
 .thread-card.is-featured {
   border-left-color: #81b29a;
   border-color: rgba(129, 178, 154, 0.42);

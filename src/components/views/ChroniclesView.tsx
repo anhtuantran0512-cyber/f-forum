@@ -3,8 +3,6 @@ import React, { useState, useEffect } from 'react';
 import {
   BookOpen,
   Send,
-  Compass,
-  ArrowRight,
 } from 'lucide-react';
 import { handleVideoError } from '../../utils/mediaFallback';
 import { LIGHT_TUNNEL_VIDEO_URL, toWebmVideoUrl } from '../../utils/chatVideos';
@@ -118,69 +116,11 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
       <div className="relative z-10 w-full max-w-5xl mx-auto flex-1 flex flex-col space-y-8 pb-16">
         
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-dashed border-[#f4f1de]/15 shrink-0">
-          <div>
-            <h1 className="ff-typo-poster !text-xl sm:!text-2xl text-[#f4f1de] flex items-center gap-2 flex-wrap">
-              <BookOpen className="w-6 h-6 text-[#f2cc8f]" />
-              <span>Khu Vinh Danh & Biên Niên Sử F-Forum</span>
-              <span className="ff-brutal-tag bg-[#e07a5f]/20 border-[#e07a5f]/50 text-[#f2cc8f]">
-                KHU VINH DANH • CHRONICLES
-              </span>
-            </h1>
-            <p className="text-xs text-[#9a978e] mt-1">
-              Không gian tôn vinh tri thức, nhà sáng lập Trần Văn Anh Tuấn, BroAmStuck Studio và 21 cột mốc lịch sử F-Forum.
-            </p>
-          </div>
-
-          {/* Minimalist Social Icons */}
-          <div className="flex items-center gap-2.5">
-            {/* Facebook Minimalist Icon */}
-            <a
-              href="https://www.facebook.com/TuanNotTun/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-10 h-10 rounded-xl liquid-glass bg-blue-600/20 hover:bg-blue-600/35 border border-blue-500/40 text-blue-300 hover:text-white flex items-center justify-center transition-all shadow-[0_0_15px_rgba(59,130,246,0.25)] hover:scale-105 active:scale-95"
-              title="Facebook Admin"
-              aria-label="Facebook Admin"
-            >
-              <svg className="w-5 h-5 fill-[#1877F2]" viewBox="0 0 24 24">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-              </svg>
-            </a>
-
-            {/* Discord Minimalist Icon with subtle void aura */}
-            <a
-              href="https://discord.gg/GMDCnxxJwX"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="relative w-10 h-10 rounded-xl liquid-glass bg-[#5865F2]/20 hover:bg-[#5865F2]/35 border border-[#5865F2]/50 text-indigo-200 hover:text-white flex items-center justify-center transition-all void-discord-glow hover:scale-105 active:scale-95 group overflow-hidden"
-              title="Discord F-Forum"
-              aria-label="Discord F-Forum"
-            >
-              <div className="absolute inset-0 pointer-events-none animate-meteor-orbit flex items-center justify-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#f2cc8f] shadow-[0_0_8px_#f2cc8f]" />
-              </div>
-              <svg className="w-5 h-5 fill-[#5865F2] group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
-                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-              </svg>
-            </a>
-
-            {/* Vào Forum Button */}
-            <button
-              type="button"
-              onClick={() => {
-                if (typeof window !== 'undefined') {
-                  window.dispatchEvent(new CustomEvent('fforum_navigate', { detail: 'qa' }));
-                }
-              }}
-              className="ff-enter-forum-btn ff-tactile-btn flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-extrabold text-[#0b0d12] bg-[#e07a5f] hover:bg-[#f2cc8f] border border-[#f4f1de] shadow-[2px_2px_0px_rgba(4,6,11,0.9)] transition-all cursor-pointer ml-1"
-              title="Chuyển đến Diễn đàn F-Forum Q&A"
-            >
-              <Compass className="w-4 h-4 text-[#0b0d12]" />
-              <span>Vào Forum</span>
-              <ArrowRight className="w-3.5 h-3.5 text-[#0b0d12]" />
-            </button>
-          </div>
+        <div className="flex items-center justify-between gap-4 pb-3 border-b border-dashed border-[#f4f1de]/15 shrink-0">
+          <h1 className="ff-typo-poster !text-xl sm:!text-2xl text-[#f4f1de] flex items-center gap-2.5 flex-wrap">
+            <BookOpen className="w-5 h-5 text-[#f2cc8f]" />
+            <span>Về Chúng Tôi</span>
+          </h1>
         </div>
 
         {/* 3D Cinematic "Khu Vinh Danh" (Founder Spotlight & Milestones Archive) */}
@@ -194,17 +134,35 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
 
         {/* Hộp Thư Góp Ý (Redesigned Feedback Form) */}
         <div className="ff-bento-cell !p-6 sm:!p-8 liquid-glass">
-          <div className="flex items-center gap-2.5 mb-2">
-            <div className="w-8 h-8 rounded-xl bg-[#e07a5f]/20 border border-[#e07a5f]/45 flex items-center justify-center text-[#f2cc8f]">
-              <Send className="w-4 h-4 text-[#f2cc8f]" />
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-[#e07a5f]/20 border border-[#e07a5f]/45 flex items-center justify-center text-[#f2cc8f]">
+                <Send className="w-4 h-4 text-[#f2cc8f]" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm sm:text-base text-[#f4f1de]">
+                  Góp ý &amp; Phản hồi
+                </h3>
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold text-sm sm:text-base text-[#f4f1de] uppercase tracking-wider">
-                HỘP THƯ GÓP Ý & PHẢN HỒI
-              </h3>
-              <p className="text-[11px] text-[#9a978e]">
-                Ý kiến đóng góp sẽ được chuyển trực tiếp tới Ban Quản Trị qua biểu mẫu bên dưới.
-              </p>
+
+            <div className="flex items-center gap-2 text-xs font-mono text-[#9a978e]">
+              <a
+                href="https://www.facebook.com/TuanNotTun/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[#d8d5ce] hover:text-white transition-colors"
+              >
+                Facebook
+              </a>
+              <a
+                href="https://discord.gg/GMDCnxxJwX"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[#d8d5ce] hover:text-white transition-colors"
+              >
+                Discord
+              </a>
             </div>
           </div>
 

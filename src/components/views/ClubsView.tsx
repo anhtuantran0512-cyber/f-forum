@@ -310,7 +310,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   const handleMouseLeave = () => {};
 
   return (
-    <section className={`club-plaza-page relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-[var(--navbar-height)] pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-6 px-4 sm:px-8`}>
+    <section className={`club-plaza-page relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-y-auto'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-[var(--navbar-height)] pb-[calc(56px+var(--safe-bottom)+16px)] md:pb-10 px-4 sm:px-8`}>
       {/* Nền phong cách Forum Hiện Đại: Tối ưu triệt để dung lượng và GPU, không dùng video nền trong sảnh CLB */}
       <div className="ff-clubs-bg ff-raw-grid-surface absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0b0d12] via-[#10141d] to-[#080a0f]" />
@@ -319,7 +319,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
       </div>
 
       {/* Main Container */}
-      <div className={`relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col pt-3 ${isEmbedded ? '' : 'overflow-hidden'}`}>
+      <div className="relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col pt-3">
         
         {/* Top Editorial Bento Header & Category Filter */}
         <div className="ff-bento-cell !p-4 sm:!p-5 mb-5 shrink-0 flex flex-col gap-3">
@@ -376,57 +376,8 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
             </div>
           </div>
 
-          {/* Style 2 Bento Grid + Style 10 Organic Hand-Drawn Realm Showcase */}
-          <div className="ff-club-realm-grid pt-1">
-            {([
-              {
-                cat: 'Công nghệ' as ClubCategory,
-                color: '#81b29a',
-                doodle: 'M3 12 L9 6 L15 12 L21 6 M6 18 H18',
-              },
-              {
-                cat: 'Nghệ thuật' as ClubCategory,
-                color: '#e07a5f',
-                doodle: 'M4 16 C8 6, 16 6, 20 16 M8 13 C10 10, 14 10, 16 13',
-              },
-              {
-                cat: 'Thể thao' as ClubCategory,
-                color: '#f2cc8f',
-                doodle: 'M4 17 L10 9 L14 13 L20 5 M15 5 H20 V10',
-              },
-              {
-                cat: 'Học thuật' as ClubCategory,
-                color: '#d8f3dc',
-                doodle: 'M4 7 H20 M4 12 H16 M4 17 H12',
-              },
-            ]).map((realm) => {
-              const count = approvedClubs.filter(c => c.category === realm.cat).length;
-              const isSelected = selectedCategory === realm.cat;
-              return (
-                <button
-                  key={realm.cat}
-                  type="button"
-                  onClick={() => setSelectedCategory(isSelected ? 'Tất cả' : realm.cat)}
-                  className={`ff-club-realm-card ${isSelected ? 'is-active' : ''}`}
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-extrabold text-[#f4f1de] truncate">{realm.cat}</span>
-                      <span className="px-1.5 py-0.2 rounded bg-[#0b0d12]/80 border border-[#f4f1de]/15 text-[10px] font-mono font-bold text-[#f2cc8f]">
-                        {count}
-                      </span>
-                    </div>
-                  </div>
-                  <svg className="w-6 h-6 shrink-0 opacity-85" viewBox="0 0 24 24" fill="none" stroke={realm.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d={realm.doodle} />
-                  </svg>
-                </button>
-              );
-            })}
-          </div>
-
           {/* Filter by category: Neo-Brutalist Tags */}
-          <div className="flex items-center gap-2 overflow-x-auto pt-2 border-t border-dashed border-[#f4f1de]/10 pb-0.5 scrollbar-none">
+          <div className="flex items-center gap-2 flex-wrap pt-2.5 border-t border-dashed border-[#f4f1de]/10">
             <Filter className="w-3.5 h-3.5 text-[#9a978e] shrink-0 mr-0.5" />
             <span className="text-xs text-[#9a978e] font-mono font-bold mr-1 shrink-0">Nhóm:</span>
             {CATEGORIES.map(cat => {
@@ -436,7 +387,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold border-[1.5px] whitespace-nowrap transition-colors focus:outline-none cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold border-[1.5px] whitespace-nowrap transition-colors focus:outline-none cursor-pointer ${
                     isActive
                       ? 'bg-[#f2cc8f] text-[#0b0d12] border-[#f4f1de] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
                       : 'bg-[#f4f1de]/[0.04] text-[#d8d5ce] hover:bg-[#f4f1de]/[0.1] border-[#f4f1de]/14'
@@ -500,8 +451,8 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
           </div>
         )}
 
-        {/* Bento 3D Tilt Grid Container (Scrollable when standalone) */}
-        <div className={`flex-1 ${isEmbedded ? '' : 'overflow-y-auto pr-1'} space-y-4 pb-12`}>
+        {/* Bento Grid Container */}
+        <div className="flex-1 space-y-5 pb-12">
           
           {/* Fix 3: Banner "CLB xuất sắc" CHỈ hiện khi có dữ liệu thật */}
           {spotlightClub ? (
@@ -949,9 +900,9 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
               </div>
 
               <div className="space-y-4 text-xs sm:text-sm text-[#d8d5ce]">
-                {/* Founding Manifesto */}
+                {/* Giới thiệu & Tôn chỉ */}
                 <div className="p-4 rounded-xl bg-[#0b0d12]/80 border-[1.5px] border-[#f4f1de]/14 space-y-1.5">
-                  <span className="font-bold text-[#f4f1de] block">Tuyên Ngôn Sáng Lập &amp; Tôn Chỉ (Founding Manifesto):</span>
+                  <span className="font-bold text-[#f4f1de] block">Giới thiệu &amp; Tôn chỉ:</span>
                   <p className="italic text-[#f2cc8f]">"{selectedClub.slogan}"</p>
                   <p className="text-[#d8d5ce] leading-relaxed pt-1">{selectedClub.purpose}</p>
                 </div>
@@ -959,7 +910,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                 {/* Member Roster */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div className="p-4 rounded-xl bg-[#0b0d12]/80 border-[1.5px] border-[#f4f1de]/14">
-                    <span className="font-bold text-[#f4f1de] block mb-2">Chủ nhiệm &amp; Trưởng ban:</span>
+                    <span className="font-bold text-[#f4f1de] block mb-2">Chủ nhiệm:</span>
                     <button
                       type="button"
                       onClick={() => {
@@ -988,11 +939,10 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                         animate
                         showFallbackTag
                       />
-                      <span className="text-[11px] text-[#9a978e] font-mono">(Trưởng CLB)</span>
                     </button>
                   </div>
                   <div className="p-4 rounded-xl bg-[#0b0d12]/80 border-[1.5px] border-[#f4f1de]/14">
-                    <span className="font-bold text-[#f4f1de] block mb-2">Hội đồng Sáng Lập (Founding Roster):</span>
+                    <span className="font-bold text-[#f4f1de] block mb-2">Thành viên sáng lập:</span>
                     <div className="flex flex-wrap gap-1.5 mt-1">
                       {selectedClub.foundingMembers && selectedClub.foundingMembers.length > 0 ? (
                         selectedClub.foundingMembers.map((m, idx) => (
