@@ -185,17 +185,41 @@ function getLanIp() {
   return null;
 }
 
+const GIST_GATEWAY_ID = process.env.FFORUM_GATEWAY_GIST_ID || 'b23f4e5e3e79210717f61e1a85dcf437';
+const PERMANENT_GATEWAY_URL = process.env.FFORUM_PERMANENT_URL || 'https://anhtuantran0512-cyber.github.io/f-forum/';
+
+/* Synchronize dynamic tunnel URL to permanent GitHub Gateway */
+function syncGatewayGist(targetUrl) {
+  if (!GIST_GATEWAY_ID) return;
+  try {
+    const payload = JSON.stringify({
+      url: targetUrl || null,
+      updatedAt: Date.now(),
+    });
+    const proc = spawn('gh', ['api', '-X', 'PATCH', `/gists/${GIST_GATEWAY_ID}`, '-F', `files[server.json][content]=${payload}`], {
+      stdio: 'ignore',
+      detached: false,
+    });
+    proc.unref();
+  } catch {
+    /* bỏ qua nếu gh cli chưa cài hoặc mất kết nối */
+  }
+}
+
 /* Format and print terminal status banner */
-function printStatusBanner(publicUrl) {
+function printStatusBanner(publicUrl, permanentUrl = PERMANENT_GATEWAY_URL) {
   const lanIp = getLanIp();
   console.log('\n' + '='.repeat(68));
   console.log('🚀 F-FORUM ĐANG CHẠY HOSTING CÔNG KHAI (PRODUCTION PREVIEW)');
-  console.log(`⚡ LINK TRUY CẬP (INTERNET) : ${publicUrl}`);
-  if (lanIp) {
-    console.log(`📱 MẠNG NỘI BỘ (LAN/WI-FI)  : http://${lanIp}:${PORT}`);
+  if (permanentUrl) {
+    console.log(`⭐ TÊN MIỀN CỐ ĐỊNH (1 LINK DUY NHẤT) : ${permanentUrl}`);
   }
-  console.log(`💻 MÁY CHỦ NỘI BỘ (LOCAL)   : ${LOCAL_HOST_URL}`);
-  console.log('📡 Bất kỳ ai mở link Cloudflare trên đều có thể vào web bình thường!');
+  console.log(`⚡ LINK TỰ ĐỘNG CLOUDFLARE             : ${publicUrl}`);
+  if (lanIp) {
+    console.log(`📱 MẠNG NỘI BỘ (LAN/WI-FI)            : http://${lanIp}:${PORT}`);
+  }
+  console.log(`💻 MÁY CHỦ NỘI BỘ (LOCAL)             : ${LOCAL_HOST_URL}`);
+  console.log('📡 Bất kỳ ai mở link trên đều có thể vào web bình thường!');
   console.log('='.repeat(68) + '\n');
 }
 
@@ -222,12 +246,15 @@ function cleanup(exitCode = 0) {
 
   console.log('\n🛑 Shutting down fforum_broamstuck_studio deployment pipeline...');
 
-/* Stop the public tunnel before shutting down the production preview. */
+  /* Reset gateway status so visitors see offline state */
+  syncGatewayGist(null);
+
+  /* Stop the public tunnel before shutting down the production preview. */
   killProcessGroup(cfProcess, 'SIGTERM');
   if (buildProcess) killProcessGroup(buildProcess, 'SIGTERM');
   if (isSpawnedPreview && previewProcess) killProcessGroup(previewProcess, 'SIGTERM');
 
-/* Forceful cleanup after grace period to avoid lingering child processes. */
+  /* Forceful cleanup after grace period to avoid lingering child processes. */
   setTimeout(() => {
     killProcessGroup(cfProcess, 'SIGKILL');
     if (buildProcess) killProcessGroup(buildProcess, 'SIGKILL');
@@ -349,6 +376,16 @@ function resolveCloudflaredPath() {
 function getCloudflaredRunner() {
   const resolvedPath = resolveCloudflaredPath();
   const customPath = process.env.CLOUDFLARED_BIN || resolvedPath || '';
+  const token = process.env.CLOUDFLARE_TUNNEL_TOKEN;
+
+  if (token) {
+    if (customPath && fs.existsSync(customPath)) {
+      return { cmd: customPath, prefixArgs: ['tunnel', 'run', '--token', token] };
+    }
+    const runner = getNodeRunner('untun');
+    return { cmd: runner.cmd, prefixArgs: [...runner.prefixArgs, 'tunnel', 'run', '--token', token] };
+  }
+
   if (customPath && fs.existsSync(customPath)) {
     return { cmd: customPath, prefixArgs: ['tunnel', '--url', `http://127.0.0.1:${PORT}`] };
   }
@@ -373,6 +410,17 @@ function startCloudflareTunnel() {
         UNTUN_ACCEPT_CLOUDFLARE_NOTICE: '1',
       },
     });
+
+    if (process.env.CLOUDFLARE_TUNNEL_TOKEN) {
+      /* Khi chạy Named Tunnel với token, Cloudflare kết nối thẳng domain cố định đã cấu hình */
+      const targetDomain = process.env.CLOUDFLARE_CUSTOM_DOMAIN || PERMANENT_GATEWAY_URL;
+      setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          resolve({ success: true, url: targetDomain });
+        }
+      }, 1500);
+    }
 
     const timeout = setTimeout(() => {
       if (!resolved) {
@@ -441,8 +489,9 @@ async function main() {
       throw new Error('Unable to establish the Cloudflare public tunnel.');
     }
 
-/* 3. Print the public URL */
-    printStatusBanner(cfResult.url);
+/* 3. Synchronize public URL to permanent gateway and print status banner */
+    syncGatewayGist(cfResult.url);
+    printStatusBanner(cfResult.url, PERMANENT_GATEWAY_URL);
     console.log('🟢 Deployment active. Press Ctrl + C to stop all services.\n');
   } catch (err) {
     console.error('\n❌ Deployment failed:', err.message);
