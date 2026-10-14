@@ -239,7 +239,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
   }, [aboutData.milestones]);
 
   useEffect(() => {
-    let animId: number;
+    let animId = 0;
 
     const checkFinePointer = () => {
       engineState.current.hasFinePointer = window.matchMedia('(pointer: fine)').matches;
@@ -265,17 +265,13 @@ export const AboutUs: React.FC<AboutUsProps> = ({
       cardBatcher.reset();
     });
     let lastFrameTs = performance.now();
+    const shouldRunAnimation = () =>
+      !document.hidden && viewMode !== 'grid' && !activeLightboxMilestone && !isEditorOpen;
+    let scheduleTick = () => {};
 
-    const tick = (now = performance.now()) => {
-      if (
-        (typeof document !== 'undefined' && document.hidden) ||
-        viewMode === 'grid' ||
-        Boolean(activeLightboxMilestone) ||
-        isEditorOpen
-      ) {
-        animId = requestAnimationFrame(tick);
-        return;
-      }
+    const tick = (now: number) => {
+      animId = 0;
+      if (!shouldRunAnimation()) return;
 
       const dtMs = Math.min(64, Math.max(0.5, now - lastFrameTs));
       lastFrameTs = now;
@@ -344,13 +340,30 @@ export const AboutUs: React.FC<AboutUsProps> = ({
         frameTimeMs: dtMs,
       });
 
+      scheduleTick();
+    };
+
+    scheduleTick = () => {
+      if (animId || !shouldRunAnimation()) return;
       animId = requestAnimationFrame(tick);
     };
 
-    animId = requestAnimationFrame(tick);
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        if (animId) cancelAnimationFrame(animId);
+        animId = 0;
+        return;
+      }
+      lastFrameTs = performance.now();
+      scheduleTick();
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    scheduleTick();
 
     return () => {
-      cancelAnimationFrame(animId);
+      if (animId) cancelAnimationFrame(animId);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       disposeAboutGeo();
       window.removeEventListener('scroll', onPassiveScroll);
       { window.removeEventListener('resize', updateEngineDimensionsFrame); updateEngineDimensionsFrame.cancel(); }

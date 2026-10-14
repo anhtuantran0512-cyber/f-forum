@@ -535,7 +535,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
   }, [records]);
 
   useEffect(() => {
-    let animId: number;
+    let animId = 0;
 
     const checkFinePointer = () => {
       engineState.current.hasFinePointer = window.matchMedia('(pointer: fine)').matches;
@@ -571,18 +571,13 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       cardBatcher.reset();
     });
     let lastFrameTs = performance.now();
+    const shouldRunAnimation = () =>
+      !document.hidden && !isGridView && !isMenuOpen && !isIntroFilmPlaying;
+    let scheduleTick = () => {};
 
-    const tick = (now = performance.now()) => {
-      /* P0: Tạm dừng xử lý 3D hoàn toàn khi tab ẩn, đang mở dạng lưới phẳng, menu hoặc đang xem phim intro */
-      if (
-        (typeof document !== 'undefined' && document.hidden) ||
-        isGridView ||
-        isMenuOpen ||
-        isIntroFilmPlaying
-      ) {
-        animId = requestAnimationFrame(tick);
-        return;
-      }
+    const tick = (now: number) => {
+      animId = 0;
+      if (!shouldRunAnimation()) return;
 
       const dtMs = Math.min(64, Math.max(4, now - lastFrameTs));
       lastFrameTs = now;
@@ -670,13 +665,30 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         }
       }
 
+      scheduleTick();
+    };
+
+    scheduleTick = () => {
+      if (animId || !shouldRunAnimation()) return;
       animId = requestAnimationFrame(tick);
     };
 
-    animId = requestAnimationFrame(tick);
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        if (animId) cancelAnimationFrame(animId);
+        animId = 0;
+        return;
+      }
+      lastFrameTs = performance.now();
+      scheduleTick();
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    scheduleTick();
 
     return () => {
-      cancelAnimationFrame(animId);
+      if (animId) cancelAnimationFrame(animId);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       disposeSphereGeo();
       window.removeEventListener('scroll', onPassiveScroll);
       { window.removeEventListener('resize', handleResizeFrame); handleResizeFrame.cancel(); }

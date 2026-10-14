@@ -35,6 +35,17 @@ const REACTIONS: { type: ThreadReactionType; label: string; icon: React.FC<{ cla
 
 const QUICK_TOPICS = ['#HọcTập', '#TâmSựĐêm', '#TìmĐồngĐội', '#ChiaSẻ', '#GócChill'] as const;
 
+interface ThreadIndexes {
+  byId: ReadonlyMap<string, Thread>;
+  repliesByParent: ReadonlyMap<string, Thread[]>;
+  reactionCountById: ReadonlyMap<string, number>;
+  rootCount: number;
+  replyCount: number;
+  totalReactions: number;
+}
+
+const EMPTY_THREAD_REPLIES: Thread[] = [];
+
 const renderContentWithHashtags = (
   text: string,
   onSelectTag?: (tag: string) => void,
@@ -93,6 +104,7 @@ const resolveThreadUser = (
   currentUser: User | null,
   email?: string | null,
   id?: string | null,
+  usersById?: ReadonlyMap<string, User>,
 ): User | null => {
   const cleanEmail = email ? email.trim().toLowerCase() : '';
   if (users) {
@@ -103,7 +115,10 @@ const resolveThreadUser = (
     if ((id === 'admin-master' || id === 'user-admin') && users['broamstuck@gmail.com']) {
       return users['broamstuck@gmail.com'];
     }
-    if (id) {
+    if (id && usersById) {
+      const matched = usersById.get(id);
+      if (matched) return matched;
+    } else if (id) {
       for (const u of Object.values(users)) {
         if (u.id === id) return u;
       }
@@ -122,10 +137,11 @@ const resolveThreadUser = (
 /* === Card Thread (dùng cho feed + reply lồng + repost-card) === */
 const ThreadCard = React.memo<{
   thread: Thread;
-  allThreads?: Thread[];
+  indexes: ThreadIndexes;
   depth?: number;
   currentUser: User | null;
   users?: Record<string, User>;
+  usersById: ReadonlyMap<string, User>;
   replyingTo?: Thread | null;
   onCancelReply?: () => void;
   replyText?: string;
@@ -146,7 +162,7 @@ const ThreadCard = React.memo<{
     onOpenReader?: (id: string) => void;
   };
   showActions?: boolean;
-}>(({ thread: rootThread, allThreads, depth = 0, currentUser, users, replyText, onReplyTextChange, viewModel, showActions = true }) => {
+}>(({ thread: rootThread, indexes, depth = 0, currentUser, users, usersById, replyText, onReplyTextChange, viewModel, showActions = true }) => {
   const [isReplyOpen, setIsReplyOpen] = useState(false);
   const [repostMode, setRepostMode] = useState<'simple' | 'quote'>('simple');
   const [isRepostOpen, setIsRepostOpen] = useState(false);
@@ -161,19 +177,15 @@ const ThreadCard = React.memo<{
   const isSuperAdmin = isMasterAdmin(currentUser?.email);
   const isAuthor = currentUser ? rootThread.authorId === currentUser.id || rootThread.authorEmail === currentUser.email : false;
 
-  /* Quoted thread nếu đây là quote repost */
-  const quotedThread = useMemo(() => {
-    if (!rootThread.repostOfId) return null;
-    return allThreads?.find((t) => t.id === rootThread.repostOfId) || null;
-  }, [rootThread.repostOfId, allThreads]);
+  const quotedThread = useMemo(
+    () => (rootThread.repostOfId ? indexes.byId.get(rootThread.repostOfId) || null : null),
+    [rootThread.repostOfId, indexes],
+  );
 
-  /* Các phản hồi lồng của thread này */
-  const childReplies = useMemo(() => {
-    if (!allThreads) return [];
-    return allThreads
-      .filter((t) => t.parentThreadId === rootThread.id)
-      .sort((a, b) => a.createdAtMs - b.createdAtMs);
-  }, [allThreads, rootThread.id]);
+  const childReplies = useMemo(
+    () => indexes.repliesByParent.get(rootThread.id) || EMPTY_THREAD_REPLIES,
+    [indexes, rootThread.id],
+  );
 
   const [isRepliesExpanded, setIsRepliesExpanded] = useState(false);
 
@@ -246,7 +258,7 @@ const ThreadCard = React.memo<{
             title="Xem hồ sơ"
           >
             <DecoratedAvatar
-              user={resolveThreadUser(users, currentUser, rootThread.authorEmail, rootThread.authorId)}
+              user={resolveThreadUser(users, currentUser, rootThread.authorEmail, rootThread.authorId, usersById)}
               fallbackSrc={rootThread.authorAvatar || DEFAULT_AVATAR}
               size={38}
               animate
@@ -257,7 +269,7 @@ const ThreadCard = React.memo<{
               <div className="author-line">
                 <span className="author-name inline-flex items-center">
                   <DecoratedName
-                    user={resolveThreadUser(users, currentUser, rootThread.authorEmail, rootThread.authorId)}
+                    user={resolveThreadUser(users, currentUser, rootThread.authorEmail, rootThread.authorId, usersById)}
                     name={rootThread.authorName.replace(/ \(.*\)/, '')}
                     width={142}
                     height={27}
@@ -338,7 +350,7 @@ const ThreadCard = React.memo<{
           <div className="repost-quote-box">
             <div className="repost-quote-header">
               <DecoratedAvatar
-                user={resolveThreadUser(users, currentUser, quotedThread.authorEmail, quotedThread.authorId)}
+                user={resolveThreadUser(users, currentUser, quotedThread.authorEmail, quotedThread.authorId, usersById)}
                 fallbackSrc={quotedThread.authorAvatar || DEFAULT_AVATAR}
                 size={24}
                 animate
@@ -347,7 +359,7 @@ const ThreadCard = React.memo<{
               />
               <span className="repost-quote-name inline-flex items-center">
                 <DecoratedName
-                  user={resolveThreadUser(users, currentUser, quotedThread.authorEmail, quotedThread.authorId)}
+                  user={resolveThreadUser(users, currentUser, quotedThread.authorEmail, quotedThread.authorId, usersById)}
                   name={quotedThread.authorName.replace(/ \(.*\)/, '')}
                   width={126}
                   height={24}
@@ -607,9 +619,10 @@ const ThreadCard = React.memo<{
             <ThreadReplyNode
               key={reply.id}
               reply={reply}
-              allThreads={allThreads || []}
+              indexes={indexes}
               currentUser={currentUser}
               users={users}
+              usersById={usersById}
               viewModel={viewModel}
               depth={depth + 1}
             />
@@ -642,9 +655,10 @@ const ThreadCard = React.memo<{
               <ThreadCard
                 key={reply.id}
                 thread={reply}
-                allThreads={allThreads}
+                indexes={indexes}
                 currentUser={currentUser}
                 users={users}
+                usersById={usersById}
                 viewModel={viewModel}
                 depth={depth}
                 showActions={true}
@@ -660,19 +674,21 @@ const ThreadCard = React.memo<{
 /* Component đệ quy cho reply lồng nhau (tối đa 3 cấp) theo spec Nhiemvu_8 */
 const ThreadReplyNode: React.FC<{
   reply: Thread;
-  allThreads: Thread[];
+  indexes: ThreadIndexes;
   currentUser: User | null;
   users?: Record<string, User>;
+  usersById: ReadonlyMap<string, User>;
   viewModel: any;
   depth: number;
-}> = ({ reply, allThreads, currentUser, users, viewModel, depth }) => {
+}> = ({ reply, indexes, currentUser, users, usersById, viewModel, depth }) => {
   return (
     <div className="reply-node" style={{ marginLeft: Math.min(depth, 3) * 16 }}>
       <ThreadCard
         thread={reply}
-        allThreads={allThreads}
+        indexes={indexes}
         currentUser={currentUser}
         users={users}
+        usersById={usersById}
         viewModel={viewModel}
         depth={depth}
         showActions={true}
@@ -728,6 +744,40 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
     });
   }, []);
 
+  const threadIndexes = useMemo<ThreadIndexes>(() => {
+    const byId = new Map<string, Thread>();
+    const repliesByParent = new Map<string, Thread[]>();
+    const reactionCountById = new Map<string, number>();
+    let rootCount = 0;
+    let replyCount = 0;
+    let totalReactions = 0;
+
+    for (const thread of Array.isArray(threads) ? threads : []) {
+      byId.set(thread.id, thread);
+      const reactionCount = Object.values(thread.reactions || {}).reduce((sum, types) => sum + types.length, 0);
+      reactionCountById.set(thread.id, reactionCount);
+      totalReactions += reactionCount;
+
+      if (thread.parentThreadId) {
+        replyCount += 1;
+        const replies = repliesByParent.get(thread.parentThreadId);
+        if (replies) replies.push(thread);
+        else repliesByParent.set(thread.parentThreadId, [thread]);
+      } else {
+        rootCount += 1;
+      }
+    }
+
+    repliesByParent.forEach((replies) => replies.sort((a, b) => a.createdAtMs - b.createdAtMs));
+    return { byId, repliesByParent, reactionCountById, rootCount, replyCount, totalReactions };
+  }, [threads]);
+
+  const usersById = useMemo(() => {
+    const byId = new Map<string, User>();
+    Object.values(users || {}).forEach((user) => byId.set(user.id, user));
+    return byId;
+  }, [users]);
+
   /* Tự động trích xuất chủ đề #hashtag đang thịnh hành trong toàn bộ mạch chuyện */
   const trendingTags = useMemo(() => {
     const counts = new Map<string, number>();
@@ -750,12 +800,6 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
   /* Feed: thread gốc không phải reply + repost xếp cùng dòng thời gian + lọc/tìm kiếm thông minh */
   const visibleThreads = useMemo(() => {
     if (!Array.isArray(threads)) return [];
-    const replyCountByParent = new Map<string, number>();
-    for (const t of threads) {
-      if (t.parentThreadId) {
-        replyCountByParent.set(t.parentThreadId, (replyCountByParent.get(t.parentThreadId) || 0) + 1);
-      }
-    }
     const q = debouncedSearchQuery.trim().toLowerCase();
     const tagLower = activeTag ? activeTag.toLowerCase() : null;
     const savedSet = new Set(savedIds);
@@ -782,17 +826,16 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
 
     if (feedMode === 'hot') {
       return [...roots].sort((a, b) => {
-        const score = (item: Thread) => {
-          const rx = Object.values(item.reactions || {}).reduce((s, arr) => s + arr.length, 0);
-          const rep = replyCountByParent.get(item.id) || 0;
-          return rx * 2 + rep * 3;
-        };
-        const diff = score(b) - score(a);
+        const scoreA = (threadIndexes.reactionCountById.get(a.id) || 0) * 2
+          + (threadIndexes.repliesByParent.get(a.id)?.length || 0) * 3;
+        const scoreB = (threadIndexes.reactionCountById.get(b.id) || 0) * 2
+          + (threadIndexes.repliesByParent.get(b.id)?.length || 0) * 3;
+        const diff = scoreB - scoreA;
         return diff !== 0 ? diff : b.createdAtMs - a.createdAtMs;
       });
     }
     return [...roots].sort((a, b) => b.createdAtMs - a.createdAtMs);
-  }, [threads, feedMode, debouncedSearchQuery, activeTag, currentUser, savedIds]);
+  }, [threads, threadIndexes, feedMode, debouncedSearchQuery, activeTag, currentUser, savedIds]);
 
   const feedScrollRef = useRef<HTMLElement | null>(null);
 
@@ -804,18 +847,11 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
     containerRef: isEmbedded ? undefined : feedScrollRef,
   });
 
-  const feedStats = useMemo(() => {
-    if (!Array.isArray(threads)) return { roots: 0, replies: 0, reactions: 0 };
-    let roots = 0;
-    let replies = 0;
-    let reactions = 0;
-    for (const t of threads) {
-      if (t.parentThreadId) replies += 1;
-      else roots += 1;
-      reactions += Object.values(t.reactions || {}).reduce((s, arr) => s + arr.length, 0);
-    }
-    return { roots, replies, reactions };
-  }, [threads]);
+  const feedStats = useMemo(() => ({
+    roots: threadIndexes.rootCount,
+    replies: threadIndexes.replyCount,
+    reactions: threadIndexes.totalReactions,
+  }), [threadIndexes]);
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setDraftContent(e.target.value);
@@ -895,25 +931,22 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
   const savedSet = useMemo(() => new Set(savedIds), [savedIds]);
 
   const featuredThread = useMemo(() => {
-    if (!Array.isArray(threads)) return null;
-    const roots = threads.filter((t) => !t.parentThreadId);
-    if (roots.length === 0) return null;
-    const replyMap = new Map<string, number>();
-    for (const t of threads) {
-      if (t.parentThreadId) {
-        replyMap.set(t.parentThreadId, (replyMap.get(t.parentThreadId) || 0) + 1);
+    let featured: Thread | null = null;
+    let featuredScore = -1;
+    for (const thread of Array.isArray(threads) ? threads : []) {
+      if (thread.parentThreadId) continue;
+      const score = (threadIndexes.reactionCountById.get(thread.id) || 0) * 2
+        + (threadIndexes.repliesByParent.get(thread.id)?.length || 0) * 3;
+      if (
+        score > featuredScore ||
+        (score === featuredScore && (!featured || thread.createdAtMs > featured.createdAtMs))
+      ) {
+        featured = thread;
+        featuredScore = score;
       }
     }
-    return [...roots].sort((a, b) => {
-      const score = (item: Thread) => {
-        const rx = Object.values(item.reactions || {}).reduce((s, arr) => s + arr.length, 0);
-        const rep = replyMap.get(item.id) || 0;
-        return rx * 2 + rep * 3;
-      };
-      const diff = score(b) - score(a);
-      return diff !== 0 ? diff : b.createdAtMs - a.createdAtMs;
-    })[0] || null;
-  }, [threads]);
+    return featured;
+  }, [threads, threadIndexes]);
 
   const activeReaderThread = useMemo(
     () => (activeReaderThreadId ? threads.find((t) => t.id === activeReaderThreadId) || null : null),
@@ -1252,10 +1285,11 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                 <ThreadCard
                   key={t.id}
                   thread={t}
-                  allThreads={threads}
+                  indexes={threadIndexes}
                   depth={0}
                   currentUser={currentUser}
                   users={users}
+                  usersById={usersById}
                   viewModel={viewModel}
                 />
               );
@@ -1297,10 +1331,11 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
 
             <ThreadCard
               thread={activeReaderThread}
-              allThreads={threads}
+              indexes={threadIndexes}
               depth={0}
               currentUser={currentUser}
               users={users}
+              usersById={usersById}
               viewModel={{
                 ...viewModel,
                 onOpenReader: undefined,
