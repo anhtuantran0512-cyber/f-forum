@@ -17,6 +17,10 @@ import {
   FileText,
   Filter,
   Upload,
+  Cpu,
+  Palette,
+  Activity,
+  BookOpen,
 } from 'lucide-react';
 import type { Club, ClubPost, User, ClubCategory, ChatMessage } from '../../types';
 import { DEFAULT_AVATAR, DEFAULT_CLUB_COVER, handleImageError } from '../../utils/mediaFallback';
@@ -54,6 +58,36 @@ const CATEGORIES: ('Tất cả' | ClubCategory)[] = [
   'Thể thao',
   'Học thuật',
 ];
+
+const getCategoryBadgeClass = (category?: ClubCategory): string => {
+  switch (category) {
+    case 'Công nghệ':
+      return 'bg-cyan-500/25 text-cyan-200 border-cyan-400/40';
+    case 'Nghệ thuật':
+      return 'bg-purple-500/25 text-purple-200 border-purple-400/40';
+    case 'Thể thao':
+      return 'bg-emerald-500/25 text-emerald-200 border-emerald-400/40';
+    case 'Học thuật':
+      return 'bg-amber-500/25 text-amber-200 border-amber-400/40';
+    default:
+      return 'bg-neutral-800/90 text-neutral-200 border-white/20';
+  }
+};
+
+const getCategoryIcon = (category: 'Tất cả' | ClubCategory) => {
+  switch (category) {
+    case 'Công nghệ':
+      return Cpu;
+    case 'Nghệ thuật':
+      return Palette;
+    case 'Thể thao':
+      return Activity;
+    case 'Học thuật':
+      return BookOpen;
+    default:
+      return Sparkles;
+  }
+};
 
 export const ClubsView: React.FC<ClubsViewProps> = ({
   currentUser,
@@ -337,17 +371,19 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
             <span className="text-xs text-neutral-400 font-semibold mr-1 shrink-0">Chuyên mục:</span>
             {CATEGORIES.map(cat => {
               const isActive = selectedCategory === cat;
+              const CatIcon = getCategoryIcon(cat);
               return (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all focus:outline-none cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all focus:outline-none cursor-pointer ${
                     isActive
                       ? 'bg-amber-400 text-black font-bold shadow-[0_0_12px_rgba(251,191,36,0.6)]'
                       : 'bg-white/5 text-neutral-300 hover:bg-white/15 border border-white/10'
                   }`}
                 >
-                  {cat}
+                  <CatIcon className={`w-3.5 h-3.5 ${isActive ? 'text-black' : 'text-neutral-400'}`} />
+                  <span>{cat}</span>
                 </button>
               );
             })}
@@ -534,33 +570,59 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     <span className="absolute bottom-2 left-2 text-[10px] font-mono bg-black/70 px-2 py-0.5 rounded text-neutral-200 border border-white/10">
                       {club.membersCount} thành viên
                     </span>
-                    <span className="absolute top-2 right-2 text-[10px] font-mono font-bold bg-amber-500/90 text-black px-2 py-0.5 rounded-md shadow">
+                    <span className={`absolute top-2 right-2 text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-md shadow border ${getCategoryBadgeClass(club.category)}`}>
                       {club.category}
                     </span>
                   </div>
 
-                  {/* Card Content: tên + số thành viên + 2 nút ('Tham gia' / 'Xem →'), KHÔNG mô tả dài */}
+                  {/* Card Content: tên + slogan + số thành viên + 2 nút ('Tham gia' / 'Xem →') */}
                   <div className="ff-media-card__content">
                     <div>
                       <h3 className="font-bold text-sm text-white group-hover:text-amber-300 transition-colors line-clamp-1">
                         {club.name}
                       </h3>
+                      {club.slogan && (
+                        <p className="text-[11.5px] text-amber-200/80 italic line-clamp-1 mt-0.5 font-sans">
+                          "{club.slogan}"
+                        </p>
+                      )}
                       <div className="flex items-center gap-2 text-[11px] text-neutral-400 font-mono mt-1.5">
                         <Users className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                         <span>{club.membersCount} thành viên</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[11px] text-neutral-400 mt-2 pt-2 border-t border-white/[0.06]">
+                        <span className="text-neutral-400">Chủ nhiệm:</span>
+                        <DecoratedAvatar
+                          user={resolveClubUser(club.leaderId, club.leaderName)}
+                          fallbackSrc={DEFAULT_AVATAR}
+                          size={18}
+                          animate
+                        />
+                        <DecoratedName
+                          user={resolveClubUser(club.leaderId, club.leaderName)}
+                          name={club.leaderName.replace(/ \(.*\)/, '')}
+                          width={112}
+                          height={22}
+                          animate
+                          showFallbackTag
+                        />
                       </div>
                     </div>
 
                     <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
                       <button
                         onClick={() => setApplicationSubmitted(club.id)}
-                        className="flex-1 py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold border border-amber-500/30 transition-colors cursor-pointer"
+                        className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
+                          applicationSubmitted === club.id
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40'
+                            : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/30'
+                        }`}
                       >
                         {applicationSubmitted === club.id ? '✓ Đã tham gia' : 'Tham gia'}
                       </button>
                       <button
                         onClick={() => setSelectedClub(club)}
-                        className="flex-1 py-1.5 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors cursor-pointer"
+                        className="flex-1 py-1.5 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium border border-white/10 transition-colors cursor-pointer"
                       >
                         Xem →
                       </button>

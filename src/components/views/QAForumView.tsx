@@ -571,6 +571,36 @@ const SUBJECT_2027_META: Record<
   tamly: { emoji: '🧠', title: 'Tâm Lý & Cân Bằng', color: '#F43F5E', groupLabel: 'Đời sống' },
 };
 
+/* Bản đồ màu sắc chuyên mục theo Color Theory cao cấp */
+const getSubjectBadgeStyle = (subjectTag: string): string => {
+  switch (subjectTag) {
+    case 'toan':
+    case 'ly':
+      return 'bg-cyan-500/15 text-cyan-200 border-cyan-400/35';
+    case 'hoa':
+    case 'sinh':
+      return 'bg-emerald-500/15 text-emerald-200 border-emerald-400/35';
+    case 'anh':
+      return 'bg-pink-500/15 text-pink-200 border-pink-400/35';
+    case 'tin':
+      return 'bg-indigo-500/15 text-indigo-200 border-indigo-400/35';
+    case 'van':
+      return 'bg-amber-500/15 text-amber-200 border-amber-400/35';
+    case 'su':
+      return 'bg-orange-500/15 text-orange-200 border-orange-400/35';
+    case 'hotro':
+      return 'bg-teal-500/15 text-teal-200 border-teal-400/35';
+    case 'kinhnghiem':
+    case 'tamsu':
+    case 'tamly':
+      return 'bg-purple-500/15 text-purple-200 border-purple-400/35';
+    case 'share':
+      return 'bg-blue-500/15 text-blue-200 border-blue-400/35';
+    default:
+      return 'bg-slate-500/15 text-slate-200 border-slate-400/30';
+  }
+};
+
 function getQuestionAttachedImages(q?: Question | null): string[] {
   if (!q) return [];
   const out: string[] = [];
@@ -1650,19 +1680,19 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   {/* Hàng 1: Nhãn môn học, Trạng thái, Tiền thưởng, Số ảnh đính kèm & Công cụ */}
                   <div className="flex items-center justify-between gap-2.5 mb-3">
                     <div className="flex items-center gap-2 flex-wrap min-w-0">
-                      <span className="px-2.5 py-1 rounded-xl text-xs font-semibold bg-cyan-500/15 text-cyan-200 border border-cyan-400/30 inline-flex items-center gap-1.5">
+                      <span className={`px-2.5 py-1 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 border shadow-xs ${getSubjectBadgeStyle(q.subject)}`}>
                         <span>{subjectLabel}</span>
-                        <span className="font-mono text-[10.5px] text-cyan-300/80">#{q.subject}</span>
+                        <span className="font-mono text-[10.5px] opacity-80">#{q.subject}</span>
                       </span>
 
                       {q.isSolved ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-400/35 text-xs font-semibold text-emerald-200">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-400/35 text-xs font-semibold text-emerald-200 shadow-xs">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                           <span>Đã giải</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/12 border border-amber-400/25 text-xs font-medium text-amber-200">
-                          <Clock className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-500/15 border border-cyan-400/35 text-xs font-semibold text-cyan-200 shadow-xs">
+                          <Clock className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
                           <span>Chờ giải · Còn {remainingCardSlots} chỗ</span>
                         </span>
                       )}

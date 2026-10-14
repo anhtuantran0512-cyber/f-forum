@@ -7,17 +7,38 @@
 .ff-media-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 1rem;
+  gap: 1.125rem;
 }
 @media (min-width: 768px) {
   .ff-media-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .ff-media-card {
   container: ff-media / inline-size;
+  position: relative;
+  border-radius: 1.25rem;
+  background: linear-gradient(165deg, rgba(14, 21, 35, 0.94), rgba(9, 14, 25, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease, box-shadow 0.22s ease;
+  overflow: hidden;
+}
+.ff-media-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(245, 158, 11, 0.42);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45), 0 0 24px rgba(245, 158, 11, 0.12);
 }
 .ff-media-card__layout {
   display: grid;
   height: 100%;
+}
+.ff-media-card__cover {
+  position: relative;
+  width: 100%;
+  height: 9.5rem;
+  border-radius: 0.875rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 0.75rem;
 }
 .ff-media-card__content {
   display: flex;
@@ -28,11 +49,26 @@
 @container ff-media (min-width: 420px) {
   .ff-media-card__layout {
     grid-template-columns: minmax(150px, 40%) minmax(0, 1fr);
-    gap: 1rem;
+    gap: 1.125rem;
   }
   .ff-media-card__cover {
     height: 100%;
     min-height: 9.5rem;
     margin-bottom: 0;
   }
+}
+
+/* Light mode crystalline adaptation */
+html.light .ff-media-card {
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.98), rgba(246, 248, 252, 0.99)) !important;
+  border: 1px solid rgba(15, 23, 42, 0.09) !important;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+}
+html.light .ff-media-card:hover {
+  background: linear-gradient(165deg, rgba(255, 255, 255, 1), rgba(250, 252, 255, 1)) !important;
+  border-color: rgba(245, 158, 11, 0.5) !important;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08), 0 0 20px rgba(245, 158, 11, 0.12) !important;
+}
+html.light .ff-media-card__cover {
+  border-color: rgba(15, 23, 42, 0.08) !important;
 }

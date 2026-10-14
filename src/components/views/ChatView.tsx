@@ -572,10 +572,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         </div>
 
                         <div
-                          className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm leading-relaxed break-words shadow-md ${
+                          className={`px-4 py-2.5 text-xs sm:text-sm leading-relaxed break-words shadow-md ${
                             isMe
-                              ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-black font-medium rounded-tr-none shadow-[0_2px_12px_rgba(249,115,22,0.3)]'
-                              : 'liquid-glass bg-white/10 text-neutral-100 rounded-tl-none border border-white/15'
+                              ? 'ff-chat-bubble-me'
+                              : isSuperAdminMsg
+                              ? 'ff-chat-bubble-peer ff-chat-bubble-admin'
+                              : 'ff-chat-bubble-peer'
                           }`}
                         >
                           {msg.content}
@@ -627,7 +629,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
                 <button
                   onClick={handleSend}
-                  disabled={!inputText.trim() || cooldown.isCooling}
+                  disabled={!inputText.trim()}
                   className={`relative p-2.5 sm:px-4 sm:py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-black font-bold text-xs sm:text-sm hover:opacity-95 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_2px_12px_rgba(249,115,22,0.4)] flex items-center gap-1.5 cursor-pointer ${
                     cooldown.isCooling ? 'ff-cd-btn is-cooling' : ''
                   }`}
