@@ -49,20 +49,10 @@ import type {
   ExamPaper,
   ExamType,
   ExamDifficulty,
-  ExamPeerReview,
 } from '../../types';
 import { safeStorage } from '../../utils/storage';
 import { playChime } from '../../utils/audio';
-import {
-  EXAM_LIKES_KEY,
-  examLikeCount,
-  examLikersOf,
-  isExamLikedBy,
-  parseExamLikes,
-  serializeExamLikes,
-  toggleExamLike,
-  type ExamLikesMap,
-} from '../../utils/examLikes';
+import type { ExamInteractionMap, ExamInteractionSnapshot } from '../../utils/examSubmissionApi';
 import {
   examAttachmentFormat,
   formatExamFileSize,
@@ -73,9 +63,13 @@ import {
 } from '../../utils/examAttachments';
 import {
   downloadExamAttachment,
+  fetchExamInteractions,
   fetchExamSubmissions,
+  rateExamPaper,
   reviewExamSubmission,
+  setExamLike,
   submitExamPaper,
+  submitExamReview,
 } from '../../utils/examSubmissionApi';
 import { CbtPracticeModal } from '../exam/CbtPracticeModal';
 import { ExamBookmarkDrawer } from '../exam/ExamBookmarkDrawer';
@@ -93,9 +87,6 @@ export interface ExamVaultViewProps {
 
 const SAVED_EXAMS_KEY = 'fforum_saved_exams';
 const SUBMISSIONS_KEY = 'fforum_exam_submissions';
-const DOWNLOAD_COUNTS_KEY = 'fforum_exam_download_counts';
-const USER_RATINGS_KEY = 'fforum_exam_user_ratings';
-const PEER_REVIEWS_KEY = 'fforum_exam_peer_reviews';
 const EMPTY_EXAM_SUBMISSIONS: ExamPaper[] = [];
 
 /* Danh sách đề thi & đề cương mẫu chuẩn cấu trúc các trường THPT / THCS hàng đầu */
@@ -110,17 +101,9 @@ const SEED_EXAMS: ExamPaper[] = [
     school: 'THPT Chuyên Hà Nội - Amsterdam',
     schoolYear: '2026-2027',
     format: 'PDF',
-    fileSize: '2.4 MB',
-    downloads: 1420,
-    views: 3890,
-    likes: 412,
     verified: true,
     hasAnswer: true,
-    pageCount: 8,
-    duration: 90,
     difficulty: 'Vận dụng cao',
-    rating: 4.9,
-    ratingCount: 168,
     uploader: { name: 'Ban Chuyên Môn Toán Amser', role: 'Ban Biên Tập' },
     uploadDate: '12/10/2026',
     summary: 'Đề chuẩn cấu trúc ma trận mới nhất Bộ GD&ĐT gồm 40 câu trắc nghiệm nhiều lựa chọn, 4 câu đúng sai và 6 câu trả lời ngắn kèm lời giải chi tiết từng bước.',
@@ -152,24 +135,6 @@ const SEED_EXAMS: ExamPaper[] = [
         tips: 'Đọc kỹ điều kiện ràng buộc công suất tối đa của nhà máy để không chọn nghiệm ngoài miền khả thi.',
       },
     ],
-    peerReviews: [
-      {
-        id: 'rev-01',
-        authorName: 'Nguyễn Minh Quân (Chuyên Sư Phạm)',
-        authorRole: 'Thành viên Tinh Anh',
-        rating: 5,
-        date: '13/10/2026',
-        content: 'Đề phân hoá rất rõ nét ở 6 câu trả lời ngắn. Phần hình toạ độ Oxyz câu 2 đòi hỏi tính toán chuẩn xác ma trận phân số.',
-      },
-      {
-        id: 'rev-02',
-        authorName: 'Trần Thu Hà (Ams 12 Toán 1)',
-        authorRole: 'Ban Học Tập',
-        rating: 5,
-        date: '14/10/2026',
-        content: 'Đề bám sát cấu trúc ma trận mới 2026-2027 của Bộ GD&ĐT, rất thích hợp cho các bạn muốn nhắm mục tiêu 9+.',
-      },
-    ],
     status: 'approved',
   },
   {
@@ -182,17 +147,9 @@ const SEED_EXAMS: ExamPaper[] = [
     school: 'THPT Chu Văn An (Hà Nội)',
     schoolYear: '2026-2027',
     format: 'PDF',
-    fileSize: '3.1 MB',
-    downloads: 1850,
-    views: 4520,
-    likes: 567,
     verified: true,
     hasAnswer: true,
-    pageCount: 16,
-    duration: 60,
     difficulty: 'Vận dụng',
-    rating: 4.8,
-    ratingCount: 142,
     uploader: { name: 'CLB Vật Lý CVA', role: 'Học Sinh Chuyên' },
     uploadDate: '08/10/2026',
     summary: 'Tổng hợp lý thuyết trọng tâm, sơ đồ tư duy Mindmap, hệ thống bài tập phân mức độ từ thông hiểu đến vận dụng cao có giải chi tiết.',
@@ -217,16 +174,6 @@ const SEED_EXAMS: ExamPaper[] = [
         tips: 'Phân biệt lực đàn hồi (hướng về vị trí lò xo không biến dạng) và lực kéo về (hướng về vị trí cân bằng O).',
       },
     ],
-    peerReviews: [
-      {
-        id: 'rev-03',
-        authorName: 'Lê Hoàng Dương (Chuyên Sư Phạm)',
-        authorRole: 'Thành viên Tinh Anh',
-        rating: 5,
-        date: '10/10/2026',
-        content: 'Sơ đồ tư duy con lắc lò xo và đồ thị năng lượng rất trực quan, cứu cánh cho bài kiểm tra 1 tiết!',
-      },
-    ],
     status: 'approved',
   },
   {
@@ -239,17 +186,9 @@ const SEED_EXAMS: ExamPaper[] = [
     school: 'THPT Chuyên Phan Bội Châu (Nghệ An)',
     schoolYear: '2026-2027',
     format: 'PDF',
-    fileSize: '1.9 MB',
-    downloads: 980,
-    views: 2950,
-    likes: 345,
     verified: true,
     hasAnswer: true,
-    pageCount: 6,
-    duration: 50,
     difficulty: 'Vận dụng cao',
-    rating: 4.9,
-    ratingCount: 95,
     uploader: { name: 'Thầy Hoàng Nam', role: 'Giáo Viên' },
     uploadDate: '05/10/2026',
     summary: 'Đề phân hoá rõ nét, rèn luyện kỹ năng xử lý bảng số liệu Ester - Lipit, Amino acid và Polyme thế hệ mới.',
@@ -266,16 +205,6 @@ const SEED_EXAMS: ExamPaper[] = [
         tips: 'Luôn kiểm tra tỷ lệ số mol NaOH và muối để bảo toàn gốc axit béo.',
       },
     ],
-    peerReviews: [
-      {
-        id: 'rev-04',
-        authorName: 'Đặng Quốc Bảo (K52 Phan Bội Châu)',
-        authorRole: 'Học Sinh Chuyên Hoá',
-        rating: 5,
-        date: '07/10/2026',
-        content: 'Bài toán điện phân câu 24 có đồ thị số mol electron trao đổi cực kỳ mẫu mực cho đề thi THPT Quốc gia.',
-      },
-    ],
     status: 'approved',
   },
   {
@@ -288,17 +217,9 @@ const SEED_EXAMS: ExamPaper[] = [
     school: 'THPT Chuyên Lê Hồng Phong (TP.HCM)',
     schoolYear: '2025-2026',
     format: 'DOCX',
-    fileSize: '1.2 MB',
-    downloads: 1210,
-    views: 3100,
-    likes: 290,
     verified: true,
     hasAnswer: true,
-    pageCount: 7,
-    duration: 60,
     difficulty: 'Thông hiểu',
-    rating: 4.7,
-    ratingCount: 110,
     uploader: { name: 'English Excellence Club', role: 'CLB Học Sinh' },
     uploadDate: '28/09/2026',
     summary: 'Bao gồm phần phát âm, ngữ pháp trong ngữ cảnh thực tế, đoạn văn đọc hiểu chủ đề Trí tuệ nhân tạo & Môi trường bền vững.',
@@ -316,16 +237,6 @@ const SEED_EXAMS: ExamPaper[] = [
         tips: 'Count syllables from the end to quickly verify primary stress position.',
       },
     ],
-    peerReviews: [
-      {
-        id: 'rev-05',
-        authorName: 'Mai Anh (Lê Hồng Phong D1)',
-        authorRole: 'CLB Tiếng Anh',
-        rating: 5,
-        date: '02/10/2026',
-        content: 'Bài đọc hiểu chủ đề Trí tuệ nhân tạo dùng nhiều từ vựng C1/IELTS rất sát với xu hướng thi cử hiện đại.',
-      },
-    ],
     status: 'approved',
   },
   {
@@ -338,17 +249,9 @@ const SEED_EXAMS: ExamPaper[] = [
     school: 'THPT Chuyên Lam Sơn (Thanh Hóa)',
     schoolYear: '2026-2027',
     format: 'PDF',
-    fileSize: '820 KB',
-    downloads: 740,
-    views: 1980,
-    likes: 180,
     verified: true,
     hasAnswer: true,
-    pageCount: 3,
-    duration: 15,
     difficulty: 'Vận dụng cao',
-    rating: 4.8,
-    ratingCount: 84,
     uploader: { name: 'LamSon Math Geek', role: 'Học Sinh' },
     uploadDate: '01/10/2026',
     summary: 'Bộ 10 câu hỏi trắc nghiệm rèn tư duy giải nhanh đồ thị hàm số chứa trị tuyệt đối f(|x|) và |f(x)| có mẹo giải casio và bản chất.',
@@ -365,16 +268,6 @@ const SEED_EXAMS: ExamPaper[] = [
         tips: 'Công thức N = a + b chỉ áp dụng khi các nghiệm của u(x) = 0 không trùng với các điểm cực trị.',
       },
     ],
-    peerReviews: [
-      {
-        id: 'rev-06',
-        authorName: 'Hoàng Văn Thái (Chuyên Lam Sơn)',
-        authorRole: 'Học Sinh',
-        rating: 5,
-        date: '04/10/2026',
-        content: 'Đề 15 phút nhưng cực kỳ chất lượng, giúp thông não dạng bài biến đổi đồ thị trị tuyệt đối.',
-      },
-    ],
     status: 'approved',
   },
   {
@@ -387,17 +280,9 @@ const SEED_EXAMS: ExamPaper[] = [
     school: 'THPT Kim Liên',
     schoolYear: '2026-2027',
     format: 'DOCX',
-    fileSize: '1.5 MB',
-    downloads: 1630,
-    views: 4120,
-    likes: 489,
     verified: true,
     hasAnswer: true,
-    pageCount: 12,
-    duration: 90,
     difficulty: 'Thông hiểu',
-    rating: 4.6,
-    ratingCount: 125,
     uploader: { name: 'Văn Học Trẻ Kim Liên', role: 'Ban Học Tập' },
     uploadDate: '20/09/2026',
     summary: 'Dàn ý mẫu nghị luận 600 chữ về lối sống bản lĩnh của Gen Z, phân tích hình tượng nghệ thuật và các biện pháp tu từ trọng điểm.',
@@ -414,16 +299,6 @@ const SEED_EXAMS: ExamPaper[] = [
         tips: 'Lấy dẫn chứng thực tế gắn liền với khoa học công nghệ hoặc thế hệ trẻ thay vì các tấm gương đã quá cũ.',
       },
     ],
-    peerReviews: [
-      {
-        id: 'rev-07',
-        authorName: 'Đỗ Hà My (Kim Liên 11A1)',
-        authorRole: 'Học Sinh',
-        rating: 5,
-        date: '25/09/2026',
-        content: 'Dàn ý nghị luận xã hội viết rất hiện đại, có hệ thống luận điểm và dẫn chứng đắt giá.',
-      },
-    ],
     status: 'approved',
   },
   {
@@ -436,17 +311,9 @@ const SEED_EXAMS: ExamPaper[] = [
     school: 'THPT Chuyên Lê Quý Đôn (Đà Nẵng)',
     schoolYear: '2026-2027',
     format: 'PDF',
-    fileSize: '1.8 MB',
-    downloads: 620,
-    views: 1840,
-    likes: 195,
     verified: true,
     hasAnswer: true,
-    pageCount: 6,
-    duration: 50,
     difficulty: 'Vận dụng cao',
-    rating: 4.8,
-    ratingCount: 78,
     uploader: { name: 'Thảo Vy Sinh Học', role: 'Học Sinh' },
     uploadDate: '25/09/2026',
     summary: 'Bao gồm các bài tập tính toán số nucleotit, chuỗi mARN, dịch mã và các bài toán phả hệ di truyền người mức độ vận dụng.',
@@ -463,16 +330,6 @@ const SEED_EXAMS: ExamPaper[] = [
         tips: 'Đổi đúng đơn vị: 1 nm = 10 Angstrom; 1 micromet = 10000 Angstrom.',
       },
     ],
-    peerReviews: [
-      {
-        id: 'rev-08',
-        authorName: 'Nguyễn Tiến Đạt (Lê Quý Đôn)',
-        authorRole: 'Học Sinh',
-        rating: 5,
-        date: '29/09/2026',
-        content: 'Bài phả hệ câu 32 chia trường hợp rất chặt chẽ, đáp án giải thích từng thế hệ rõ ràng.',
-      },
-    ],
     status: 'approved',
   },
   {
@@ -485,17 +342,9 @@ const SEED_EXAMS: ExamPaper[] = [
     school: 'THPT Chuyên Lê Hồng Phong (Nam Định)',
     schoolYear: '2026-2027',
     format: 'PDF',
-    fileSize: '1.1 MB',
-    downloads: 510,
-    views: 1420,
-    likes: 140,
     verified: true,
     hasAnswer: true,
-    pageCount: 5,
-    duration: 45,
     difficulty: 'Thông hiểu',
-    rating: 4.7,
-    ratingCount: 62,
     uploader: { name: 'Sử Học Đất Thành Nam', role: 'CLB Lịch Sử' },
     uploadDate: '18/09/2026',
     summary: '40 câu trắc nghiệm chuẩn cấu trúc ma trận mới: Trật tự hai cực Ianta, Chiến tranh lạnh, xu thế hoà hoãn Đông - Tây và phong trào giải phóng dân tộc.',
@@ -512,16 +361,6 @@ const SEED_EXAMS: ExamPaper[] = [
         tips: 'Ghi nhớ mốc thời gian: Hội nghị Ianta họp từ ngày 4 đến ngày 11 tháng 2 năm 1945 tại Liên Xô.',
       },
     ],
-    peerReviews: [
-      {
-        id: 'rev-09',
-        authorName: 'Vũ Thị Minh (LHP Nam Định)',
-        authorRole: 'CLB Sử',
-        rating: 5,
-        date: '22/09/2026',
-        content: 'Các câu hỏi so sánh trật tự hai cực Ianta với hệ thống Vécxai - Oasinhtơn rất sâu sắc.',
-      },
-    ],
     status: 'approved',
   },
   {
@@ -534,17 +373,9 @@ const SEED_EXAMS: ExamPaper[] = [
     school: 'THCS Giảng Võ (Hà Nội)',
     schoolYear: '2026-2027',
     format: 'PDF',
-    fileSize: '2.1 MB',
-    downloads: 2150,
-    views: 5200,
-    likes: 720,
     verified: true,
     hasAnswer: true,
-    pageCount: 6,
-    duration: 120,
     difficulty: 'Vận dụng cao',
-    rating: 5.0,
-    ratingCount: 230,
     uploader: { name: 'Thầy Vũ Quang', role: 'Giáo Viên' },
     uploadDate: '10/10/2026',
     summary: 'Đề thi thử vào lớp 10 theo format Sở GD&ĐT Hà Nội, có bài hình 3 ý nâng cao và câu bất đẳng thức phân loại điểm 10.',
@@ -569,16 +400,6 @@ const SEED_EXAMS: ExamPaper[] = [
         tips: 'Kỹ thuật Cauchy ngược dấu là chìa khoá vàng cho các bài toán phân thức chứa mẫu 1 + biến bình phương.',
       },
     ],
-    peerReviews: [
-      {
-        id: 'rev-10',
-        authorName: 'Phạm Đức Anh (Học sinh lớp 9 Giảng Võ)',
-        authorRole: 'Học Sinh',
-        rating: 5,
-        date: '12/10/2026',
-        content: 'Câu bất đẳng thức câu 5 dùng Cauchy ngược dấu giải cực đẹp mắt! Em đã áp dụng làm được bài kiểm tra thử.',
-      },
-    ],
     status: 'approved',
   },
   {
@@ -591,17 +412,9 @@ const SEED_EXAMS: ExamPaper[] = [
     school: 'THPT Lương Thế Vinh',
     schoolYear: '2026-2027',
     format: 'PDF',
-    fileSize: '2.7 MB',
-    downloads: 870,
-    views: 2410,
-    likes: 310,
     verified: true,
     hasAnswer: true,
-    pageCount: 14,
-    duration: 45,
     difficulty: 'Vận dụng',
-    rating: 4.9,
-    ratingCount: 88,
     uploader: { name: 'CodeMasters F-Forum', role: 'BQT F-Forum' },
     uploadDate: '14/10/2026',
     summary: 'Lập trình Python và C++: Mảng 2 chiều, xâu ký tự, danh sách liên kết, bài toán quy hoạch động kinh điển có mã nguồn mẫu.',
@@ -616,16 +429,6 @@ const SEED_EXAMS: ExamPaper[] = [
         solution: 'Chọn phần tử chốt (pivot) là phần tử cuối mảng. Dùng con trỏ i theo dõi ranh giới các phần tử nhỏ hơn chốt. Duyệt j từ đầu đến áp chốt, nếu arr[j] < pivot thì hoán đổi arr[i] và arr[j]. Sau đó đặt chốt vào vị trí i+1 và đệ quy hai nửa trái phải. Độ phức tạp trung bình O(n log n), xấu nhất O(n^2) khi mảng đã có thứ tự.',
         keyFormula: 'T(n) = 2T(n/2) + O(n) => T(n) = O(n log n) theo Định lý Master.',
         tips: 'Để tránh trường hợp xấu nhất O(n^2), nên chọn pivot ngẫu nhiên (Randomized QuickSort).',
-      },
-    ],
-    peerReviews: [
-      {
-        id: 'rev-11',
-        authorName: 'Trần Tuấn Kiệt (CLB Lập Trình LTV)',
-        authorRole: 'Thành viên Tinh Anh',
-        rating: 5,
-        date: '14/10/2026',
-        content: 'Mã nguồn C++ và Python trình bày chuẩn PSR, có chú thích chi tiết từng biến đếm.',
       },
     ],
     status: 'approved',
@@ -777,7 +580,6 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   onOpenProfile,
   initialSearchQuery = '',
 }) => {
-  const likeViewerKey = currentUser?.id || currentUser?.email || 'anonymous';
   const parallaxRef = useRef<HTMLDivElement>(null);
   const modalPortalRoot = typeof document !== 'undefined' ? document.body : null;
 
@@ -852,7 +654,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   const [selectedSchool, setSelectedSchool] = useState<string>('Tất cả trường');
   const [selectedYear, setSelectedYear] = useState<string>('Tất cả năm');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('Tất cả mức độ');
-  const [sortBy, setSortBy] = useState<'newest' | 'downloads' | 'rating'>('newest');
+  const [sortBy, setSortBy] = useState<'newest' | 'likes' | 'rating'>('newest');
   const [activeTab, setActiveTab] = useState<'all' | 'syllabus' | 'exams' | 'saved' | 'cached' | 'my_submissions'>('all');
   const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false);
 
@@ -880,38 +682,19 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   const currentSubmissions = submissionsOwnerKey === submissionStorageKey ? submissions : EMPTY_EXAM_SUBMISSIONS;
   const [publicSubmissions, setPublicSubmissions] = useState<ExamPaper[]>([]);
 
-  /* Real-time Persistent Overrides */
-  const [downloadOverrides, setDownloadOverrides] = useState<Record<string, number>>(() => {
-    try {
-      const raw = safeStorage.getItem(DOWNLOAD_COUNTS_KEY);
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
-  });
-
-  const [examLikes, setExamLikes] = useState<ExamLikesMap>(() =>
-    parseExamLikes(safeStorage.getItem(EXAM_LIKES_KEY)),
-  );
-  const examLikesRef = useRef(examLikes);
-
-  const [userRatings, setUserRatings] = useState<Record<string, number>>(() => {
-    try {
-      const raw = safeStorage.getItem(USER_RATINGS_KEY);
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
-  });
-
-  const [peerReviewsMap, setPeerReviewsMap] = useState<Record<string, ExamPeerReview[]>>(() => {
-    try {
-      const raw = safeStorage.getItem(PEER_REVIEWS_KEY);
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
-  });
+  /* Real community metrics come from authenticated, server-persisted interactions. */
+  const [examInteractions, setExamInteractions] = useState<ExamInteractionMap>({});
+  const [interactionReadyKey, setInteractionReadyKey] = useState('');
+  const [interactionFailedKey, setInteractionFailedKey] = useState('');
+  const [pendingInteractionIds, setPendingInteractionIds] = useState<string[]>([]);
+  const interactionRequestIdsRef = useRef(new Set<string>());
+  const reviewRequestIdsRef = useRef(new Set<string>());
+  const interactionScopeKey = currentUser?.email?.trim().toLowerCase() || 'anonymous';
+  const interactionPaperIdsKey = useMemo(() => Array.from(new Set([
+    ...SEED_EXAMS.map((paper) => paper.id),
+    ...publicSubmissions.filter((paper) => paper.status === 'approved').map((paper) => paper.id),
+    ...currentSubmissions.filter((paper) => paper.status === 'approved').map((paper) => paper.id),
+  ])).sort().join('|'), [publicSubmissions, currentSubmissions]);
 
   /* Trạng thái tính năng học thuật mới: CBT Practice, Bookmark Drawer, Print Modal, Offline Cache */
   const [cbtExam, setCbtExam] = useState<ExamPaper | null>(null);
@@ -922,7 +705,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     typeof navigator !== 'undefined' ? navigator.onLine : true
   );
 
-  /* Đồng bộ thời gian thực đa tab qua storage event */
+  /* Chỉ bookmarks, offline cache và submissions cần đồng bộ đa tab. */
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (!e.newValue) {
@@ -932,10 +715,6 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           setSubmissions([]);
           setSubmissionsOwnerKey(submissionStorageKey);
         }
-        if (e.key === EXAM_LIKES_KEY) {
-          examLikesRef.current = {};
-          setExamLikes({});
-        }
         return;
       }
       try {
@@ -943,14 +722,6 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         if (e.key === submissionStorageKey) {
           setSubmissions(JSON.parse(e.newValue));
           setSubmissionsOwnerKey(submissionStorageKey);
-        }
-        if (e.key === DOWNLOAD_COUNTS_KEY) setDownloadOverrides(JSON.parse(e.newValue));
-        if (e.key === USER_RATINGS_KEY) setUserRatings(JSON.parse(e.newValue));
-        if (e.key === PEER_REVIEWS_KEY) setPeerReviewsMap(JSON.parse(e.newValue));
-        if (e.key === EXAM_LIKES_KEY) {
-          const nextLikes = parseExamLikes(e.newValue);
-          examLikesRef.current = nextLikes;
-          setExamLikes(nextLikes);
         }
         if (e.key === OFFLINE_EXAMS_CACHE_KEY) {
           const ids = JSON.parse(e.newValue);
@@ -981,6 +752,25 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       isCurrent = false;
     };
   }, [submissionStorageKey, currentUser?.email, currentUser?.id, currentUser?.role, currentUser?.staffRole]);
+
+  useEffect(() => {
+    let isCurrent = true;
+    fetchExamInteractions()
+      .then((interactions) => {
+        if (!isCurrent) return;
+        setExamInteractions(interactions);
+        setInteractionFailedKey('');
+        setInteractionReadyKey(interactionScopeKey);
+      })
+      .catch(() => {
+        if (!isCurrent) return;
+        setExamInteractions({});
+        setInteractionFailedKey(interactionScopeKey);
+      });
+    return () => {
+      isCurrent = false;
+    };
+  }, [interactionScopeKey, interactionPaperIdsKey, currentUser?.id]);
 
   /* Modals */
   const [previewExam, setPreviewExam] = useState<ExamPaper | null>(() => {
@@ -1115,96 +905,103 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     });
   }, [showToast, setSavedExams]);
 
-  /* Heart / Like toggle: one persisted like per viewer, not one per click. */
-  const handleToggleLike = useCallback((examId: string, event: React.MouseEvent) => {
+  const askForCommunityLogin = useCallback(() => {
+    if (onOpenLoginModal) onOpenLoginModal();
+    else showToast('Đăng nhập để tham gia hoạt động cộng đồng.');
+  }, [onOpenLoginModal, showToast]);
+
+  const saveInteractionSnapshot = useCallback((paperId: string, snapshot: ExamInteractionSnapshot) => {
+    setExamInteractions((previous) => ({ ...previous, [paperId]: snapshot }));
+  }, []);
+
+  const handleToggleLike = useCallback(async (paperId: string, event: React.MouseEvent) => {
     event.stopPropagation();
-    const nextLikes = toggleExamLike(examLikesRef.current, examId, likeViewerKey);
-    examLikesRef.current = nextLikes;
-    setExamLikes(nextLikes);
-    safeStorage.setItem(EXAM_LIKES_KEY, serializeExamLikes(nextLikes));
-
-    showToast(
-      isExamLikedBy(nextLikes, examId, likeViewerKey)
-        ? 'Cảm ơn bạn đã yêu thích tài liệu này!'
-        : 'Đã bỏ yêu thích tài liệu này.',
-    );
-    try {
-      playChime();
-    } catch {
-      /* Bỏ qua âm thanh */
+    if (!currentUser?.id && !currentUser?.email) {
+      askForCommunityLogin();
+      return;
     }
-  }, [likeViewerKey, showToast]);
+    if (interactionReadyKey !== interactionScopeKey || interactionFailedKey === interactionScopeKey) {
+      showToast('Hoạt động cộng đồng hiện chưa khả dụng.');
+      return;
+    }
+    if (interactionRequestIdsRef.current.has(paperId)) return;
+    interactionRequestIdsRef.current.add(paperId);
+    setPendingInteractionIds((previous) => previous.includes(paperId) ? previous : [...previous, paperId]);
+    const currentLike = examInteractions[paperId]?.likedByUser ?? false;
+    try {
+      const snapshot = await setExamLike(paperId, !currentLike);
+      saveInteractionSnapshot(paperId, snapshot);
+      showToast(snapshot.likedByUser ? 'Đã thêm vào yêu thích cộng đồng.' : 'Đã bỏ yêu thích.');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Không thể cập nhật lượt yêu thích.');
+    } finally {
+      interactionRequestIdsRef.current.delete(paperId);
+      setPendingInteractionIds((previous) => previous.filter((id) => id !== paperId));
+    }
+  }, [currentUser?.id, currentUser?.email, askForCommunityLogin, interactionReadyKey, interactionScopeKey, interactionFailedKey, examInteractions, saveInteractionSnapshot, showToast]);
 
-  /* Open the actual print-to-PDF flow instead of simulating a download. */
+  /* Open the actual print-to-PDF flow; the browser print action is not a download metric. */
   const handleDownload = useCallback((exam: ExamPaper, event?: React.MouseEvent) => {
     event?.stopPropagation();
     setPrintExam(exam);
   }, []);
 
-  const handleRecordPdfExport = useCallback((exam: ExamPaper) => {
-    setDownloadOverrides((prev) => {
-      const currentCount = prev[exam.id] ?? exam.downloads;
-      const next = { ...prev, [exam.id]: currentCount + 1 };
-      safeStorage.setItem(DOWNLOAD_COUNTS_KEY, JSON.stringify(next));
-      return next;
-    });
-    showToast('Trong hộp thoại in, chọn “Lưu dưới dạng PDF” để tải tệp.');
-  }, [showToast]);
-
-  /* User Rating Handler */
-  const handleRateExam = useCallback((examId: string, stars: number) => {
-    setUserRatings((prev) => {
-      const next = { ...prev, [examId]: stars };
-      safeStorage.setItem(USER_RATINGS_KEY, JSON.stringify(next));
-      showToast(`Đã ghi nhận đánh giá ${stars} sao cho tài liệu này!`);
-      try {
-        playChime();
-      } catch {
-        /* Bỏ qua */
-      }
-      return next;
-    });
-  }, [showToast, setUserRatings]);
-
-  /* Peer Review Submission */
-  const handleAddPeerReview = useCallback((examId: string, e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newReviewText.trim()) return;
-
-    const newRev: ExamPeerReview = {
-      id: `rev-${Date.now()}`,
-      authorName: currentUser?.name || 'Học sinh F-Forum',
-      authorRole:
-        currentUser?.role === 'SUPER_ADMIN'
-          ? 'Ban Quản Trị'
-          : currentUser?.role === 'CLUB_LEADER'
-          ? 'Chủ Nhiệm CLB'
-          : 'Học Sinh',
-      rating: newReviewRating,
-      date: 'Vừa xong',
-      content: newReviewText.trim(),
-    };
-
-    setPeerReviewsMap((prev) => {
-      const existing = prev[examId] || [];
-      const updated = [newRev, ...existing];
-      const nextMap = { ...prev, [examId]: updated };
-      safeStorage.setItem(PEER_REVIEWS_KEY, JSON.stringify(nextMap));
-      return nextMap;
-    });
-
-    /* Ghi nhận đánh giá sao trực tiếp vào bài thi */
-    handleRateExam(examId, newReviewRating);
-
-    setNewReviewText('');
-    setNewReviewRating(5);
-    showToast('Đã đăng nhận xét đề thi thành công! Nhận ngay +10 XP học tập.');
-    try {
-      playChime();
-    } catch {
-      /* Bỏ qua */
+  /* User rating is stored once per account on the server. */
+  const handleRateExam = useCallback(async (paperId: string, stars: number) => {
+    if (!currentUser?.id && !currentUser?.email) {
+      askForCommunityLogin();
+      return;
     }
-  }, [newReviewText, newReviewRating, currentUser, handleRateExam, setPeerReviewsMap, setNewReviewText, setNewReviewRating, showToast]);
+    if (interactionReadyKey !== interactionScopeKey || interactionFailedKey === interactionScopeKey) {
+      showToast('Hoạt động cộng đồng hiện chưa khả dụng.');
+      return;
+    }
+    if (interactionRequestIdsRef.current.has(paperId)) return;
+    interactionRequestIdsRef.current.add(paperId);
+    setPendingInteractionIds((previous) => previous.includes(paperId) ? previous : [...previous, paperId]);
+    try {
+      const snapshot = await rateExamPaper(paperId, stars);
+      saveInteractionSnapshot(paperId, snapshot);
+      showToast(`Đã ghi nhận ${stars} sao của bạn.`);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Không thể lưu đánh giá.');
+    } finally {
+      interactionRequestIdsRef.current.delete(paperId);
+      setPendingInteractionIds((previous) => previous.filter((id) => id !== paperId));
+    }
+  }, [currentUser?.id, currentUser?.email, askForCommunityLogin, interactionReadyKey, interactionScopeKey, interactionFailedKey, saveInteractionSnapshot, showToast]);
+
+  /* A synchronous ref guard blocks double-clicks before React can disable the form. */
+  const handleAddPeerReview = useCallback(async (paperId: string, e: React.FormEvent) => {
+    e.preventDefault();
+    const content = newReviewText.trim();
+    if (!content) return;
+    if (!currentUser?.id && !currentUser?.email) {
+      askForCommunityLogin();
+      return;
+    }
+    if (interactionReadyKey !== interactionScopeKey || interactionFailedKey === interactionScopeKey) {
+      showToast('Hoạt động cộng đồng hiện chưa khả dụng.');
+      return;
+    }
+    if (reviewRequestIdsRef.current.has(paperId) || interactionRequestIdsRef.current.has(paperId)) return;
+    reviewRequestIdsRef.current.add(paperId);
+    interactionRequestIdsRef.current.add(paperId);
+    setPendingInteractionIds((previous) => previous.includes(paperId) ? previous : [...previous, paperId]);
+    try {
+      const snapshot = await submitExamReview(paperId, content, newReviewRating);
+      saveInteractionSnapshot(paperId, snapshot);
+      setNewReviewText('');
+      setNewReviewRating(5);
+      showToast('Nhận xét đã được gửi. Cảm ơn bạn đã chia sẻ!');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Không thể gửi nhận xét.');
+    } finally {
+      reviewRequestIdsRef.current.delete(paperId);
+      interactionRequestIdsRef.current.delete(paperId);
+      setPendingInteractionIds((previous) => previous.filter((id) => id !== paperId));
+    }
+  }, [newReviewText, newReviewRating, currentUser?.id, currentUser?.email, askForCommunityLogin, interactionReadyKey, interactionScopeKey, interactionFailedKey, saveInteractionSnapshot, showToast]);
 
   /* Solution Index Accordion Toggle */
   const toggleSolutionIndex = useCallback((idx: number) => {
@@ -1375,41 +1172,27 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     }
   }, [showToast]);
 
-  /* Combine Seed Exams + Verified Submissions with Overrides */
+  /* Combine public papers with server-backed community data only. */
   const allPapers = useMemo(() => {
     const approvedSubmissionMap = new Map<string, ExamPaper>();
-    publicSubmissions.forEach((submission) => approvedSubmissionMap.set(submission.id, submission));
-    currentSubmissions
-      .filter((submission) => submission.status === 'approved')
+    publicSubmissions.filter((submission) => submission.status === 'approved')
+      .forEach((submission) => approvedSubmissionMap.set(submission.id, submission));
+    currentSubmissions.filter((submission) => submission.status === 'approved')
       .forEach((submission) => approvedSubmissionMap.set(submission.id, submission));
     const combined = [...approvedSubmissionMap.values(), ...SEED_EXAMS];
+    const interactionDataReady = interactionReadyKey === interactionScopeKey && interactionFailedKey !== interactionScopeKey;
 
-    return combined.map((p) => {
-      const dl = downloadOverrides[p.id] ?? p.downloads;
-      const lk = examLikeCount(p.likes, examLikersOf(examLikes, p.id));
-      const userRating = userRatings[p.id];
-      const extraReviews = peerReviewsMap[p.id] || [];
-      const baseReviews = p.peerReviews || [];
-      const allRevs = [...extraReviews, ...baseReviews];
-
-      /* Calculate effective rating */
-      const baseCount = Number.isFinite(p.ratingCount) ? Math.max(0, p.ratingCount ?? 0) : 0;
-      const baseRating = baseCount > 0 && Number.isFinite(p.rating) ? p.rating ?? 0 : 0;
-      const effectiveRatingCount = baseCount + (userRating ? 1 : 0);
-      const effectiveRating = effectiveRatingCount > 0
-        ? Number(((baseRating * baseCount + (userRating ?? 0)) / effectiveRatingCount).toFixed(1))
-        : undefined;
-
+    return combined.map((paper) => {
+      const interaction = interactionDataReady ? examInteractions[paper.id] : undefined;
       return {
-        ...p,
-        downloads: dl,
-        likes: lk,
-        rating: effectiveRating,
-        ratingCount: effectiveRatingCount,
-        peerReviews: allRevs,
+        ...paper,
+        likes: interaction?.likeCount,
+        rating: interaction?.averageRating ?? undefined,
+        ratingCount: interaction?.ratingCount,
+        peerReviews: interaction?.reviews,
       };
     });
-  }, [currentSubmissions, publicSubmissions, downloadOverrides, examLikes, userRatings, peerReviewsMap]);
+  }, [currentSubmissions, publicSubmissions, examInteractions, interactionReadyKey, interactionScopeKey, interactionFailedKey]);
 
   /* Filter & Search Pipeline */
   const filteredPapers = useMemo(() => {
@@ -1478,10 +1261,10 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     }
 
     /* Sorting */
-    if (sortBy === 'downloads') {
-      result.sort((a, b) => b.downloads - a.downloads);
+    if (sortBy === 'likes') {
+      result.sort((a, b) => (b.likes ?? -1) - (a.likes ?? -1));
     } else if (sortBy === 'rating') {
-      result.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+      result.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
     }
 
     return result;
@@ -1524,6 +1307,17 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     if (!previewExam) return null;
     return allPapers.find((p) => p.id === previewExam.id) || previewExam;
   }, [previewExam, allPapers]);
+  const activePreviewIsPublic = Boolean(activePreview && (!activePreview.status || activePreview.status === 'approved'));
+  const activePreviewInteraction = activePreviewIsPublic && interactionReadyKey === interactionScopeKey && interactionFailedKey !== interactionScopeKey
+    ? examInteractions[activePreview!.id]
+    : undefined;
+  const activePreviewInteractionReady = Boolean(activePreviewInteraction);
+  const activePreviewInteractionUnavailable = Boolean(
+    activePreviewIsPublic && (
+      interactionFailedKey === interactionScopeKey ||
+      (interactionReadyKey === interactionScopeKey && !activePreviewInteraction)
+    ),
+  );
 
   /* Prevent background scrolling when any modal or drawer is open */
   const isAnyModalOpen = Boolean(
@@ -1999,8 +1793,8 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
               className="w-full min-w-0 ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
             >
               <option value="newest">Mới nhất</option>
-              <option value="downloads">Tải nhiều nhất</option>
-              <option value="rating">Yêu thích nhất</option>
+              <option value="likes">Được yêu thích</option>
+              <option value="rating">Đánh giá cao</option>
             </select>
           </div>
           </div>
@@ -2118,7 +1912,17 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
             {filteredPapers.map((paper) => {
               const isSaved = savedExams.includes(paper.id);
-              const isLiked = isExamLikedBy(examLikes, paper.id, likeViewerKey);
+              const isPublicPaper = !paper.status || paper.status === 'approved';
+              const interactionData = isPublicPaper && interactionReadyKey === interactionScopeKey && interactionFailedKey !== interactionScopeKey
+                ? examInteractions[paper.id]
+                : undefined;
+              const interactionLoaded = Boolean(interactionData);
+              const interactionUnavailable = isPublicPaper && (
+                interactionFailedKey === interactionScopeKey ||
+                (interactionReadyKey === interactionScopeKey && !interactionData)
+              );
+              const isLiked = interactionData?.likedByUser ?? false;
+              const isInteractionPending = pendingInteractionIds.includes(paper.id);
               const isPending = paper.status === 'pending';
               const cardTitle = getCompactPaperTitle(paper);
 
@@ -2186,23 +1990,27 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                         )}
                       </div>
 
-                      {/* Top actions: Like and Bookmark */}
+                      {/* Community actions are shown only for publicly available papers. */}
                       <div className="ff-exam-card-top-actions ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1">
-                        <button
-                          type="button"
-                          onClick={(e) => handleToggleLike(paper.id, e)}
-                          className={`ff-tactile-btn inline-flex min-h-9 items-center gap-1 rounded-lg border px-2 transition-colors cursor-pointer text-[11px] ${
-                            isLiked
-                              ? 'border-rose-400/35 bg-rose-500/15 text-rose-300 hover:bg-rose-500/25'
-                              : 'border-white/10 bg-white/5 text-white/50 hover:bg-rose-500/20 hover:text-rose-400'
-                          }`}
-                          aria-label={isLiked ? 'Bỏ yêu thích đề thi' : 'Yêu thích đề thi'}
-                          aria-pressed={isLiked}
-                          title={isLiked ? 'Bỏ yêu thích' : 'Yêu thích'}
-                        >
-                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-rose-400 text-rose-400' : ''}`} />
-                          <span className="text-[10px] font-mono">{paper.likes}</span>
-                        </button>
+                        {isPublicPaper && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleToggleLike(paper.id, e)}
+                            disabled={!interactionLoaded || isInteractionPending}
+                            className={`ff-tactile-btn inline-flex min-h-9 items-center gap-1 rounded-lg border px-2 transition-colors cursor-pointer text-[11px] disabled:cursor-not-allowed disabled:opacity-60 ${
+                              isLiked
+                                ? 'border-rose-400/35 bg-rose-500/15 text-rose-300 hover:bg-rose-500/25'
+                                : 'border-white/10 bg-white/5 text-white/60 hover:bg-rose-500/20 hover:text-rose-300'
+                            }`}
+                            aria-label={interactionLoaded ? (isLiked ? 'Bỏ yêu thích đề thi' : 'Yêu thích đề thi') : interactionUnavailable ? 'Lượt yêu thích chưa khả dụng' : 'Đang tải lượt yêu thích'}
+                            aria-pressed={isLiked}
+                            aria-busy={isInteractionPending}
+                            title={interactionLoaded ? (isLiked ? 'Bỏ yêu thích' : 'Yêu thích') : interactionUnavailable ? 'Lượt yêu thích hiện chưa khả dụng' : 'Đang tải hoạt động cộng đồng'}
+                          >
+                            <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-rose-400 text-rose-400' : ''}`} />
+                            <span className="text-[10px] font-mono">{interactionLoaded ? interactionData?.likeCount ?? 0 : '—'}</span>
+                          </button>
+                        )}
 
                         <button
                           type="button"
@@ -2250,23 +2058,26 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                   {/* Bottom metrics and Action Buttons */}
                   <div>
                     <div className="space-y-3 border-t border-white/10 pt-3">
-                      {/* Metric pills */}
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/50">
-                        <span className="flex items-center gap-1 text-amber-300/90 font-medium">
-                          <Download className="w-3 h-3 text-amber-400" /> {paper.downloads}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Eye className="w-3 h-3" /> {paper.views}
-                        </span>
-                        {paper.rating && (
-                          <span className="flex items-center gap-0.5 text-amber-300 font-semibold">
+                      {/* Verifiable metadata only; no fabricated view or download counters. */}
+                      <div className="flex min-h-4 flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/55">
+                        {paper.attachments?.length ? (
+                          <span className="flex items-center gap-1">
+                            <FileText className="w-3 h-3" /> {paper.attachments.length} tệp gốc
+                          </span>
+                        ) : paper.pageCount && paper.pageCount > 0 ? (
+                          <span className="flex items-center gap-1">
+                            <FileText className="w-3 h-3" /> {paper.pageCount} trang
+                          </span>
+                        ) : null}
+                        {isPublicPaper && interactionLoaded && (interactionData?.ratingCount ?? 0) > 0 && (
+                          <span className="flex items-center gap-1 text-amber-300 font-semibold">
                             <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                            <span>{paper.rating}</span>
+                            {interactionData?.averageRating?.toFixed(1)} · {interactionData?.ratingCount} đánh giá
                           </span>
                         )}
-                        <span className="flex items-center gap-1">
-                          <FileText className="w-3 h-3" /> {paper.attachments?.length ? `${paper.attachments.length} tệp` : `${paper.pageCount} tr`}
-                        </span>
+                        {interactionUnavailable && (
+                          <span className="text-white/40">Hoạt động cộng đồng chưa khả dụng</span>
+                        )}
                       </div>
 
                       {/* Action buttons */}
@@ -2417,7 +2228,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             </h2>
 
             {/* Metadata list */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/10 text-xs mb-4">
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${activePreview.duration ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/10 text-xs mb-4`}>
               <div>
                 <span className="text-white/45 block text-[10px] uppercase font-mono">Đơn vị phát hành</span>
                 <span className="font-semibold text-amber-200">{activePreview.school}</span>
@@ -2430,53 +2241,65 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 <span className="text-white/45 block text-[10px] uppercase font-mono">Năm học</span>
                 <span className="font-semibold text-white">{activePreview.schoolYear}</span>
               </div>
-              <div>
-                <span className="text-white/45 block text-[10px] uppercase font-mono">Thời gian làm bài</span>
-                <span className="font-semibold text-white">
-                  {activePreview.duration ? `${activePreview.duration} phút` : 'Chưa cập nhật'}
-                </span>
-              </div>
-            </div>
-
-            {/* Interactive Rating Pod */}
-            <div className="p-3.5 rounded-xl bg-amber-400/5 border border-amber-400/20 mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-1">
-                  <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
-                  <span className="text-lg font-extrabold text-amber-300">
-                    {activePreview.rating !== undefined ? activePreview.rating.toFixed(1) : '—'}
-                  </span>
-                  <span className="text-xs text-white/50">/ 5.0</span>
+              {activePreview.duration && (
+                <div>
+                  <span className="text-white/45 block text-[10px] uppercase font-mono">Thời gian làm bài</span>
+                  <span className="font-semibold text-white">{activePreview.duration} phút</span>
                 </div>
-                <span className="text-xs text-white/60">({activePreview.ratingCount ?? 0} lượt đánh giá)</span>
-              </div>
-
-              {/* Interactive Star Voting */}
-              <div className="flex flex-wrap items-center gap-1 text-xs">
-                <span className="text-white/60 mr-1">Đánh giá của bạn:</span>
-                {[1, 2, 3, 4, 5].map((star) => {
-                  const currentRating = userRatings[activePreview.id] ?? 0;
-                  const isFilled = (hoverRating || currentRating) >= star;
-                  return (
-                    <button
-                      key={star}
-                      type="button"
-                      onMouseEnter={() => setHoverRating(star)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      onClick={() => handleRateExam(activePreview.id, star)}
-                      className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg cursor-pointer transition-transform hover:scale-110 focus:outline-none"
-                      aria-label={`Đánh giá ${star} sao`}
-                    >
-                      <Star
-                        className={`w-4 h-4 ${
-                          isFilled ? 'fill-amber-400 text-amber-400' : 'text-white/30'
-                        }`}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
+              )}
             </div>
+
+            {activePreviewIsPublic && (
+              <section className="ff-exam-community-summary mb-4" aria-label="Hoạt động cộng đồng">
+                <div className="ff-exam-community-summary__copy">
+                  <span className="ff-exam-community-summary__eyebrow"><Heart className="h-3.5 w-3.5" /> Cộng đồng học tập</span>
+                  <div className="ff-exam-community-summary__rating">
+                    <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
+                    {activePreviewInteractionReady && (activePreviewInteraction?.ratingCount ?? 0) > 0 ? (
+                      <>
+                        <strong>{activePreviewInteraction?.averageRating?.toFixed(1)}</strong>
+                        <span>{activePreviewInteraction?.ratingCount} đánh giá</span>
+                      </>
+                    ) : activePreviewInteractionReady ? (
+                      <span>Chưa có đánh giá</span>
+                    ) : activePreviewInteractionUnavailable ? (
+                      <span>Thống kê cộng đồng chưa khả dụng</span>
+                    ) : (
+                      <span>Đang tải hoạt động cộng đồng…</span>
+                    )}
+                  </div>
+                </div>
+
+                {activePreviewInteractionReady && (
+                  <div className="ff-exam-community-summary__vote">
+                    <span className="text-xs text-white/65">
+                      {currentUser ? 'Đánh giá tài liệu này' : 'Đăng nhập để đánh giá'}
+                    </span>
+                    <div className="flex items-center gap-0.5" role="group" aria-label="Đánh giá từ 1 đến 5 sao">
+                      {[1, 2, 3, 4, 5].map((star) => {
+                        const currentRating = activePreviewInteraction?.userRating ?? 0;
+                        const isFilled = (hoverRating || currentRating) >= star;
+                        return (
+                          <button
+                            key={star}
+                            type="button"
+                            onMouseEnter={() => setHoverRating(star)}
+                            onMouseLeave={() => setHoverRating(0)}
+                            onClick={() => handleRateExam(activePreview.id, star)}
+                            disabled={pendingInteractionIds.includes(activePreview.id)}
+                            className="ff-tactile-btn inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg cursor-pointer transition-transform hover:scale-110 focus:outline-none disabled:cursor-wait disabled:opacity-50"
+                            aria-label={`Đánh giá ${star} sao`}
+                            aria-pressed={currentRating === star}
+                          >
+                            <Star className={`h-4 w-4 ${isFilled ? 'fill-amber-400 text-amber-400' : 'text-white/30'}`} />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
 
             {/* Summary */}
             <div className="mb-4">
@@ -2495,7 +2318,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                     <FileCheck className="h-4 w-4 text-[#81b29a]" /> Tệp đề gốc
                   </h4>
                   <span className="text-[10px] text-white/50">
-                    {activePreview.attachments.length} tệp · {activePreview.fileSize}
+                    {activePreview.attachments.length} tệp{activePreview.fileSize ? ` · ${activePreview.fileSize}` : ''}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -2617,89 +2440,105 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
               )}
             </div>
 
-            {/* Peer Reviews & Community Discussion Hub */}
-            <div className="mb-5 p-4 rounded-xl bg-white/[0.02] border border-white/10">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <h4 className="flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-amber-300/80">
-                  <MessageSquare className="w-3.5 h-3.5" /> Nhận xét
-                </h4>
-                <span className="text-[11px] text-white/50">
-                  {activePreview.peerReviews?.length ?? 0} nhận xét
-                </span>
-              </div>
-
-              {/* Form submit review */}
-              <form onSubmit={(e) => handleAddPeerReview(activePreview.id, e)} className="mb-4">
-                <div className="mb-2 flex flex-wrap items-center gap-1">
-                  <span className="mr-1 text-[11px] text-white/60">Đánh giá:</span>
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setNewReviewRating(s)}
-                      className="inline-flex min-h-8 min-w-8 items-center justify-center rounded-lg cursor-pointer"
-                      aria-label={`Đánh giá ${s} sao`}
-                    >
-                      <Star
-                        className={`w-3.5 h-3.5 ${
-                          newReviewRating >= s ? 'fill-amber-400 text-amber-400' : 'text-white/20'
-                        }`}
-                      />
-                    </button>
-                  ))}
+            {activePreviewIsPublic && (
+              <section className="ff-exam-reviews mb-5" aria-labelledby="exam-reviews-heading">
+                <div className="ff-exam-reviews__header">
+                  <div>
+                    <span className="ff-exam-reviews__eyebrow">Góc chia sẻ</span>
+                    <h4 id="exam-reviews-heading"><MessageSquare className="h-4 w-4" /> Nhận xét của học sinh</h4>
+                  </div>
+                  <span className="ff-exam-reviews__count">
+                    {activePreviewInteractionReady ? `${activePreviewInteraction?.reviews.length ?? 0} nhận xét` : '—'}
+                  </span>
                 </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                  <textarea
-                    rows={2}
-                    maxLength={1000}
-                    value={newReviewText}
-                    onChange={(e) => setNewReviewText(e.target.value)}
-                    placeholder="Viết nhận xét..."
-                    className="w-full ff-exam-input rounded-xl px-3 py-2 text-xs placeholder-white/40 focus:outline-none resize-none"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!newReviewText.trim()}
-                    className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1 rounded-xl bg-amber-400 px-4 py-2 text-xs font-bold text-[#0b0d12] hover:bg-amber-300 cursor-pointer disabled:opacity-40 transition-colors"
-                  >
-                    <Send className="w-3 h-3" /> Gửi
-                  </button>
-                </div>
-              </form>
 
-              {/* Reviews list */}
-              {activePreview.peerReviews && activePreview.peerReviews.length > 0 ? (
-                <div className="space-y-2.5 max-h-60 overflow-y-auto no-scrollbar pr-1">
-                  {activePreview.peerReviews.map((rev) => (
-                    <div key={rev.id} className="p-3 rounded-lg bg-white/[0.03] border border-white/5 text-xs">
-                      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-1">
-                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <span className="break-words font-semibold text-amber-200">{rev.authorName}</span>
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/10 text-white/70">
-                            {rev.authorRole}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-white/40">{rev.date}</span>
-                          <div className="flex items-center">
-                            {[...Array(rev.rating)].map((_, i) => (
-                              <Star key={i} className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                            ))}
-                          </div>
-                        </div>
+                {activePreviewInteractionReady ? (
+                  <>
+                    {!currentUser ? (
+                      <div className="ff-exam-review-signin">
+                        <span>Chia sẻ nhận xét hữu ích với cộng đồng.</span>
+                        <button type="button" onClick={askForCommunityLogin} className="ff-tactile-btn">Đăng nhập để nhận xét</button>
                       </div>
-                      <p className="text-white/80 leading-relaxed text-xs whitespace-pre-line break-words">{rev.content}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-white/40 text-center py-2">
-                  Chưa có nhận xét.
-                </p>
-              )}
-            </div>
+                    ) : activePreviewInteraction?.hasReviewed ? (
+                      <p className="ff-exam-review-status">Bạn đã gửi nhận xét cho đề thi này. Cảm ơn bạn đã đóng góp!</p>
+                    ) : (
+                      <form onSubmit={(e) => handleAddPeerReview(activePreview.id, e)} className="ff-exam-review-form">
+                        <div className="ff-exam-review-form__rating">
+                          <span>Đánh giá:</span>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              onClick={() => setNewReviewRating(star)}
+                              disabled={pendingInteractionIds.includes(activePreview.id)}
+                              className="ff-tactile-btn inline-flex min-h-8 min-w-8 items-center justify-center rounded-lg cursor-pointer disabled:opacity-50"
+                              aria-label={`Đánh giá ${star} sao`}
+                              aria-pressed={newReviewRating === star}
+                            >
+                              <Star className={`h-3.5 w-3.5 ${newReviewRating >= star ? 'fill-amber-400 text-amber-400' : 'text-white/25'}`} />
+                            </button>
+                          ))}
+                        </div>
+                        <div className="ff-exam-review-form__row">
+                          <textarea
+                            rows={2}
+                            maxLength={1_000}
+                            value={newReviewText}
+                            onChange={(e) => setNewReviewText(e.target.value)}
+                            placeholder="Chia sẻ độ khó, đáp án hoặc kinh nghiệm ôn tập…"
+                            className="ff-exam-input"
+                            disabled={pendingInteractionIds.includes(activePreview.id)}
+                          />
+                          <button
+                            type="submit"
+                            disabled={!newReviewText.trim() || pendingInteractionIds.includes(activePreview.id)}
+                            className="ff-tactile-btn ff-exam-review-submit"
+                          >
+                            <Send className="h-3.5 w-3.5" />
+                            {pendingInteractionIds.includes(activePreview.id) ? 'Đang gửi…' : 'Gửi nhận xét'}
+                          </button>
+                        </div>
+                        <p className="ff-exam-review-hint">Mỗi tài khoản có thể gửi một nhận xét cho mỗi đề.</p>
+                      </form>
+                    )}
 
-            {/* Cross-Community Links */}
+                    {activePreviewInteraction?.reviews.length ? (
+                      <div className="ff-exam-review-list">
+                        {activePreviewInteraction.reviews.map((review) => (
+                          <article key={review.id} className="ff-exam-review-item">
+                            <div className="ff-exam-review-item__meta">
+                              <div className="min-w-0">
+                                <strong>{review.authorName}</strong>
+                                <span>{review.authorRole}</span>
+                              </div>
+                              <div className="ff-exam-review-item__date">
+                                <span>{review.date}</span>
+                                <span className="inline-flex items-center" aria-label={`${review.rating} sao`}>
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <Star key={star} className={`h-3 w-3 ${star <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-white/15'}`} />
+                                  ))}
+                                </span>
+                              </div>
+                            </div>
+                            <p>{review.content}</p>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="ff-exam-review-empty">Chưa có nhận xét. Hãy là người đầu tiên chia sẻ kinh nghiệm.</p>
+                    )}
+                  </>
+                ) : (
+                  <p className="ff-exam-review-empty">
+                    {activePreviewInteractionUnavailable
+                      ? 'Hoạt động cộng đồng hiện chưa khả dụng.'
+                      : 'Đang tải nhận xét…'}
+                  </p>
+                )}
+              </section>
+            )}
+
+            {activePreviewIsPublic && (
             <div className="p-3 rounded-xl bg-white/[0.02] border border-white/10 mb-5 flex items-center justify-between flex-wrap gap-2 text-xs">
               <span className="flex items-center gap-1.5 text-white/60">
                 <HelpCircle className="w-4 h-4 text-cyan-400 shrink-0" />
@@ -2722,15 +2561,14 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 </button>
               </div>
             </div>
+            )}
 
             {/* Actions footer */}
             <div className="flex items-center justify-between pt-3 border-t border-white/10 flex-wrap gap-2">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/50">
-                <span>Dung lượng: {activePreview.fileSize}</span>
-                <span>•</span>
-                <span>{activePreview.attachments?.length ? `${activePreview.attachments.length} tệp gốc` : `${activePreview.pageCount} trang`}</span>
-                <span>•</span>
-                <span className="text-amber-300 font-semibold">{activePreview.downloads} lượt tải</span>
+                {activePreview.attachments?.length ? <span>{activePreview.attachments.length} tệp gốc</span> : null}
+                {activePreview.fileSize ? <span>Dung lượng: {activePreview.fileSize}</span> : null}
+                {activePreview.pageCount && activePreview.pageCount > 0 ? <span>{activePreview.pageCount} trang</span> : null}
               </div>
 
               <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
@@ -3096,7 +2934,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         <ExamPrintExportModal
           paper={printExam}
           onClose={() => setPrintExam(null)}
-          onPrint={() => handleRecordPdfExport(printExam)}
+          onPrint={() => showToast('Trong hộp thoại in, chọn “Lưu dưới dạng PDF” để lưu tệp.')}
         />
       )}
 

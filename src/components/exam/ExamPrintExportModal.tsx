@@ -187,7 +187,9 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
                     <div className="w-full min-w-0 text-center leading-tight sm:flex-1">
                       <div className="font-bold text-sm uppercase">KIỂM TRA {paper.examType.toUpperCase()}</div>
                       <div className="font-bold text-xs uppercase">MÔN: {paper.subject.toUpperCase()} — KHỐI {paper.grade}</div>
-                      <div className="text-[10px] text-slate-600 mt-0.5">Thời gian làm bài: {paper.duration || 60} phút (không kể thời gian phát đề)</div>
+                      {paper.duration && (
+                        <div className="text-[10px] text-slate-600 mt-0.5">Thời gian làm bài: {paper.duration} phút (không kể thời gian phát đề)</div>
+                      )}
                     </div>
                   </div>
 

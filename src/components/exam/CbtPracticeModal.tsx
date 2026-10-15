@@ -226,6 +226,11 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
                 <span className="text-[10px] font-mono uppercase tracking-wider text-amber-300 font-bold px-2 py-0.5 rounded-md bg-amber-400/10 border border-amber-400/20">
                   CBT Practice Mode
                 </span>
+                {!paper.duration && (
+                  <span className="text-[10px] text-white/45" title="Bộ đếm luyện tập mặc định; không phải thời lượng đề gốc.">
+                    Bộ đếm mặc định · 45 phút
+                  </span>
+                )}
                 <span className="text-xs text-white/50">{paper.subject} · Lớp {paper.grade}</span>
               </div>
               <h1 id="cbt-modal-title" className="max-w-full break-words text-sm sm:text-base font-extrabold text-white">

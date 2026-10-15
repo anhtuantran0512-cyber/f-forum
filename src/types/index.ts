@@ -39,6 +39,18 @@ export interface ExamPeerReview {
   content: string;
 }
 
+export interface ExamInteractionSnapshot {
+  likeCount: number;
+  likedByUser: boolean;
+  averageRating: number | null;
+  ratingCount: number;
+  userRating: number | null;
+  hasReviewed: boolean;
+  reviews: ExamPeerReview[];
+}
+
+export type ExamInteractionMap = Record<string, ExamInteractionSnapshot>;
+
 export interface ExamCBTOption {
   id: 'A' | 'B' | 'C' | 'D';
   text: string;
@@ -98,14 +110,14 @@ export interface ExamPaper {
   school: string;
   schoolYear: string;
   format: ExamPaperFormat;
-  fileSize: string;
+  fileSize?: string;
   attachments?: ExamAttachment[];
-  downloads: number;
-  views: number;
-  likes: number;
+  downloads?: number;
+  views?: number;
+  likes?: number;
   verified: boolean;
   hasAnswer: boolean;
-  pageCount: number;
+  pageCount?: number;
   duration?: number;
   uploader: {
     id?: string;

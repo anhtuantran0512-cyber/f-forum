@@ -139,6 +139,14 @@ test('Exam Vault upload persists and securely serves image, PDF, DOCX/DOC, and M
     assert.deepEqual(submission.attachments.map((file) => file.format), files.map((file) => file.format));
     assert.ok(submission.attachments.every((file) => file.id && file.size > 0));
 
+    const publicInteractionsBeforeApproval = await get(app.baseUrl, '/api/exam-interactions');
+    assert.equal(publicInteractionsBeforeApproval.response.status, 200);
+    assert.equal(publicInteractionsBeforeApproval.data.interactions['ex-01'].likeCount, 0, 'empty metrics are actual server state, not seeded community counts');
+    assert.equal(publicInteractionsBeforeApproval.data.interactions['ex-01'].averageRating, null);
+    assert.equal(publicInteractionsBeforeApproval.data.interactions[submission.id], undefined, 'pending-paper activity must not be disclosed');
+    const pendingLike = await post(app.baseUrl, `/api/exam-interactions/${submission.id}/like`, { liked: true }, studentToken);
+    assert.equal(pendingLike.response.status, 404, 'pending submissions cannot receive community interactions');
+
     const ownList = await get(app.baseUrl, '/api/exam-submissions', studentToken);
     assert.equal(ownList.response.status, 200);
     assert.equal(ownList.data.submissions.length, 1);
@@ -191,6 +199,53 @@ test('Exam Vault upload persists and securely serves image, PDF, DOCX/DOC, and M
     assert.equal(publicFile.status, 200, 'approved files can be shared publicly');
     assert.deepEqual(Buffer.from(await publicFile.arrayBuffer()), files[1].bytes);
 
+    const anonymousLike = await post(app.baseUrl, '/api/exam-interactions/ex-01/like', { liked: true });
+    assert.equal(anonymousLike.response.status, 401, 'community actions require an authenticated account');
+    const firstLike = await post(app.baseUrl, '/api/exam-interactions/ex-01/like', { liked: true }, studentToken);
+    assert.equal(firstLike.response.status, 200);
+    assert.equal(firstLike.data.interaction.likeCount, 1);
+    const repeatedLike = await post(app.baseUrl, '/api/exam-interactions/ex-01/like', { liked: true }, studentToken);
+    assert.equal(repeatedLike.data.interaction.likeCount, 1, 'repeated like requests from one account are idempotent');
+    const secondAccountLike = await post(app.baseUrl, '/api/exam-interactions/ex-01/like', { liked: true }, otherToken);
+    assert.equal(secondAccountLike.data.interaction.likeCount, 2, 'likes are unique per account, not per click');
+    const removeFirstLike = await post(app.baseUrl, '/api/exam-interactions/ex-01/like', { liked: false }, studentToken);
+    assert.equal(removeFirstLike.data.interaction.likeCount, 1);
+    await post(app.baseUrl, '/api/exam-interactions/ex-01/like', { liked: true }, studentToken);
+
+    const firstRating = await post(app.baseUrl, '/api/exam-interactions/ex-01/rating', { rating: 2 }, studentToken);
+    assert.equal(firstRating.response.status, 200);
+    const updatedRating = await post(app.baseUrl, '/api/exam-interactions/ex-01/rating', { rating: 5 }, studentToken);
+    assert.equal(updatedRating.data.interaction.ratingCount, 1, 'changing a rating updates one account slot');
+    assert.equal(updatedRating.data.interaction.averageRating, 5);
+    const otherRating = await post(app.baseUrl, '/api/exam-interactions/ex-01/rating', { rating: 3 }, otherToken);
+    assert.equal(otherRating.data.interaction.ratingCount, 2);
+    assert.equal(otherRating.data.interaction.averageRating, 4);
+
+    const firstReview = await post(app.baseUrl, '/api/exam-interactions/ex-01/reviews', {
+      content: 'Lời giải rõ ràng, trình bày dễ theo dõi.',
+      rating: 4,
+      authorName: 'Danh tính giả do client gửi',
+    }, studentToken);
+    assert.equal(firstReview.response.status, 200, JSON.stringify(firstReview.data));
+    assert.equal(firstReview.data.interaction.hasReviewed, true);
+    assert.equal(firstReview.data.interaction.reviews[0].authorName, 'Học sinh thử nghiệm', 'review name comes from authenticated server profile');
+    assert.equal(firstReview.data.interaction.ratingCount, 2);
+    assert.equal(firstReview.data.interaction.averageRating, 3.5, 'review rating updates the same account rating instead of adding a second vote');
+    const duplicateReview = await post(app.baseUrl, '/api/exam-interactions/ex-01/reviews', {
+      content: 'Gửi nhận xét lần hai.', rating: 5,
+    }, studentToken);
+    assert.equal(duplicateReview.response.status, 409, 'one account can submit only one review per paper');
+    const secondReview = await post(app.baseUrl, '/api/exam-interactions/ex-01/reviews', {
+      content: 'Đề phù hợp để ôn tập.', rating: 5,
+    }, otherToken);
+    assert.equal(secondReview.response.status, 200);
+    assert.equal(secondReview.data.interaction.reviews.length, 2);
+    assert.equal(secondReview.data.interaction.averageRating, 4.5);
+
+    const approvedPaperLike = await post(app.baseUrl, `/api/exam-interactions/${submission.id}/like`, { liked: true }, studentToken);
+    assert.equal(approvedPaperLike.response.status, 200, 'an approved submission becomes eligible for community activity');
+    assert.equal(approvedPaperLike.data.interaction.likeCount, 1);
+
     flushPendingSave();
     await app.close();
     app = await createTestServer();
@@ -199,6 +254,9 @@ test('Exam Vault upload persists and securely serves image, PDF, DOCX/DOC, and M
     assert.equal(persisted.data.submissions[0].status, 'approved', 'review state must survive a server restart');
     const dataFile = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'forum-data.json'), 'utf8'));
     assert.equal(dataFile.examSubmissions[0].attachments.length, files.length);
+    assert.equal(dataFile.examInteractions['ex-01'].likes.length, 2, 'account-level likes persist through restart');
+    assert.equal(dataFile.examInteractions['ex-01'].reviews.length, 2, 'community reviews persist through restart');
+    assert.equal(dataFile.examInteractions[submission.id].likes.length, 1, 'approved-submission interactions persist through restart');
     assert.ok(!JSON.stringify(dataFile.examSubmissions).includes('dataUrl'), 'only attachment metadata is kept in the JSON store');
   } finally {
     await app.close();
