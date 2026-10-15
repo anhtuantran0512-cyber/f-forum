@@ -1070,12 +1070,20 @@ export const App: React.FC = () => {
       )}
 
       {/* Main Dimension View Routing (Single-Viewport Multi-View Architecture) */}
-      <main className={`content-layer relative z-[1] w-full ${currentView === 'memory' || currentView === 'chronicles' ? 'min-h-[116vh]' : 'h-full'}`}>
+      <main
+        className={`content-layer relative z-[1] w-full ${
+          currentView === 'memory' || currentView === 'chronicles'
+            ? 'min-h-[116vh]'
+            : isScrollableView
+              ? 'min-h-screen'
+              : 'h-full'
+        }`}
+      >
         <Suspense fallback={<ViewLoadingFallback />}>
           {/* Bọc theo key để mỗi lần đổi phân khu chạy lại hoạt ảnh trượt */}
           <div
             key={currentView}
-            className={`w-full h-full ${
+            className={`w-full ${isScrollableView ? 'min-h-screen' : 'h-full'} ${
               slideDir === 'up' ? 'ff-view-slide-up' : slideDir === 'down' ? 'ff-view-slide-down' : ''
             }`}
           >

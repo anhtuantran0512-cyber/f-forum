@@ -1,11 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 
-/* ==========================================================================
-   ExamVaultView.css — Giao diện Kho Đề Thi & Đề Cương Số Hoá 2027
-   Thiết kế Crystalline Liquid Glass + Bento Grid + Typography uốn lượn nghệ thuật.
-   Không đụng hàng, đạt chuẩn tương phản sáng/tối WCAG AA, 60 FPS mượt mà.
-   ========================================================================== */
-
 .ff-exam-vault {
   position: relative;
   width: 100%;
@@ -71,7 +65,7 @@ html.light .ff-exam-filter-label {
   letter-spacing: 0.005em;
 }
 
-/* Top bar sticky capsule */
+/* Header surface */
 .ff-exam-header-bar {
   background: rgba(14, 17, 24, 0.9);
   border-color: rgba(233, 196, 106, 0.16);
@@ -112,6 +106,7 @@ html.light .ff-exam-hero-search {
 }
 
 .ff-exam-card:hover {
+  z-index: 2;
   transform: translateY(-2px);
   border-color: rgba(233, 196, 106, 0.36);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25), 3px 3px 0 rgba(4, 6, 11, 0.78), inset 0 1px 0 rgba(248, 247, 244, 0.1);
@@ -410,9 +405,9 @@ html.light .ff-exam-eyebrow {
 .ff-exam-title {
   color: #f4f1de;
   font-family: "Playfair Display", Georgia, serif;
-  font-size: clamp(2rem, 4vw, 3.35rem);
+  font-size: clamp(1.65rem, 3vw, 2.6rem);
   font-weight: 700;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.035em;
   line-height: 1.08;
   text-wrap: balance;
 }
@@ -527,6 +522,48 @@ html.light .ff-exam-result-count {
   border-color: rgba(180, 83, 53, 0.2);
   background: rgba(217, 119, 87, 0.08);
   color: #713b2a;
+}
+
+.ff-exam-results-heading {
+  color: #f4f1de;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(1rem, 1.8vw, 1.25rem);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+html.light .ff-exam-results-heading {
+  color: #29241e;
+}
+
+.ff-exam-pending-badge {
+  background: rgba(233, 196, 106, 0.12);
+  border-color: rgba(233, 196, 106, 0.3);
+  color: #f2cc8f;
+}
+
+html.light .ff-exam-pending-badge {
+  background: rgba(233, 196, 106, 0.18);
+  border-color: rgba(160, 117, 38, 0.28);
+  color: #77551f;
+}
+
+.ff-exam-card-actions > button {
+  min-width: 0;
+}
+
+html.light .ff-exam-vault .ff-tactile-btn {
+  box-shadow:
+    0 2px 5px rgba(28, 25, 23, 0.08),
+    1px 1px 0 rgba(28, 25, 23, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+html.light .ff-exam-vault .ff-tactile-btn:hover:not(:disabled) {
+  box-shadow:
+    0 4px 10px rgba(28, 25, 23, 0.11),
+    1.5px 1.5px 0 rgba(28, 25, 23, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 .ff-exam-card-title {

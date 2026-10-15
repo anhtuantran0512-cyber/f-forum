@@ -340,11 +340,15 @@ test('16. QA dùng cuộn toàn trang, nền cố định và thẻ ảo giữ �
   const examCss = read('src/components/views/ExamVaultView.css');
 
   assert.ok(app.includes("currentView === 'qa' ||"), 'QA phải dùng cùng mô hình cuộn toàn trang với Kho Đề');
+  assert.ok(app.includes('isScrollableView ? \'min-h-screen\' : \'h-full\''), 'Trang cuộn không bị khóa trong khung cao cố định');
   assert.ok(app.includes('              isEmbedded\n'), 'QA route phải bỏ cuộn lồng bên trong');
   assert.ok(qa.includes('ff-qa-bg ff-raw-grid-surface fixed'), 'Nền QA phải đứng yên khi cuộn');
   assert.ok(qa.includes('questionHeightCacheRef'), 'Thẻ ảo phải giữ chiều cao đã đo để tránh nhảy trang');
   assert.ok(qa.includes('window.scrollTo({ top: savedListScrollTopRef.current'), 'Đóng chi tiết phải khôi phục vị trí cuộn');
   assert.ok(exam.includes('aria-expanded={isAdvancedFiltersOpen}'), 'Bộ lọc phụ phải có trạng thái truy cập được');
+  assert.ok(!exam.includes('sticky top-0 z-40'), 'Header Kho Đề không được che nội dung khi cuộn');
+  assert.ok(exam.includes('activeTab === \'syllabus\' ?'), 'Đầu trang phải nhận diện rõ chế độ đề cương');
+  assert.ok(exam.includes('ff-exam-card-actions grid grid-cols-2 gap-2 sm:grid-cols-4'), 'Nút thao tác đề phải nằm trong lưới responsive');
   assert.ok(exam.includes('getCompactPaperTitle'), 'Thẻ đề phải rút gọn tiêu đề lặp');
   assert.ok(examCss.includes('.ff-exam-filter-panel'), 'Bộ lọc dùng một bề mặt thống nhất');
 });
