@@ -3,6 +3,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import {
+  EXAM_LIKES_KEY,
+  examLikeCount,
+  examLikersOf,
+  isExamLikedBy,
+  parseExamLikes,
+  serializeExamLikes,
+  setExamLike,
+  toggleExamLike,
+} from '../src/utils/examLikes.ts';
 
 const read = (rel) => fs.readFileSync(path.resolve(rel), 'utf8');
 
@@ -242,7 +252,40 @@ test('12. Interactive CBT Practice Mode: Ngân hàng câu hỏi, chọn A/B/C/D,
   assert.ok(distinctAnswers.size > 1, 'Fallback question generator must diversify answers across options (not always A)');
 });
 
-test('13. Exam Bookmarking / Yêu Thích Drawer: Quản lý đề đã lưu, lọc tìm kiếm & thi thử trực tiếp', () => {
+test('12a. Tim đề thi: mỗi người chỉ được tính một lượt, lưu bền vững và bỏ tim đúng cách', () => {
+  const examId = 'ex-01';
+  const viewer = 'student@fpt.edu.vn';
+  const baseLikes = 412;
+
+  assert.equal(EXAM_LIKES_KEY, 'fforum_exam_likes_v1', 'Use a new map key so old spammed numeric overrides are ignored');
+  assert.deepEqual(parseExamLikes('{"ex-01":9000}'), {}, 'Legacy numeric counters must not inflate the new count');
+  assert.deepEqual(
+    parseExamLikes('{"ex-01":["Student@FPT.EDU.VN","student@fpt.edu.vn",null,4]}'),
+    { 'ex-01': [viewer] },
+    'Stored likes must be normalized, deduplicated, and stripped of malformed viewers',
+  );
+
+  let likes = {};
+  likes = toggleExamLike(likes, examId, viewer);
+  assert.equal(isExamLikedBy(likes, examId, viewer), true, 'First click marks the paper as liked');
+  assert.equal(examLikeCount(baseLikes, examLikersOf(likes, examId)), baseLikes + 1, 'One viewer contributes exactly one like');
+
+  const repeatedSet = setExamLike(likes, examId, viewer.toUpperCase(), true);
+  assert.equal(repeatedSet, likes, 'Setting the same viewer to liked again is an idempotent no-op');
+  assert.equal(examLikeCount(baseLikes, examLikersOf(repeatedSet, examId)), baseLikes + 1, 'Repeated events cannot accumulate the count');
+  assert.deepEqual(parseExamLikes(serializeExamLikes(likes)), likes, 'The unique like state survives storage round-trips');
+
+  likes = toggleExamLike(likes, examId, viewer);
+  assert.equal(isExamLikedBy(likes, examId, viewer), false, 'Second click removes the viewer like');
+  assert.equal(examLikeCount(baseLikes, examLikersOf(likes, examId)), baseLikes, 'Unlike restores the original count');
+
+  const vault = read('src/components/views/ExamVaultView.tsx');
+  assert.ok(vault.includes('aria-pressed={isLiked}'), 'Heart state must be announced accessibly');
+  assert.ok(vault.includes('safeStorage.setItem(EXAM_LIKES_KEY, serializeExamLikes(nextLikes))'), 'Like toggles must persist through safeStorage');
+  assert.ok(!vault.includes('likesOverrides'), 'Likes must no longer be stored as unbounded numeric overrides');
+});
+
+test('13. Exam Bookmarking / Yêu Thích Drawer: quản lý đề đã lưu, tìm nhanh & in tài liệu', () => {
   const drawer = read('src/components/exam/ExamBookmarkDrawer.tsx');
   const vault = read('src/components/views/ExamVaultView.tsx');
 
@@ -252,10 +295,13 @@ test('13. Exam Bookmarking / Yêu Thích Drawer: Quản lý đề đã lưu, l�
   assert.ok(vault.includes('handleClearAllBookmarks'), 'ExamVaultView must provide clear all bookmarks action');
   assert.ok(vault.includes('handleRemoveBookmark'), 'ExamVaultView must provide remove single bookmark action');
   assert.ok(vault.includes('cachedExamIds={cachedExamIds}'), 'ExamVaultView must pass cachedExamIds to drawer');
+  assert.ok(!vault.includes('Thi thử'), 'Exam cards and preview must not expose a Thi thử CTA');
+  assert.ok(!vault.includes('Lưu Offline'), 'Exam cards and preview must not expose an Offline save CTA');
 
-  /* Drawer UI components */
-  assert.ok(drawer.includes('onStartCBT'), 'Drawer must support launching CBT practice directly');
-  assert.ok(drawer.includes('onSelectPreview'), 'Drawer must support quick preview');
+  /* Drawer UI keeps relevant actions but removes CBT CTA as requested */
+  assert.ok(!drawer.includes('onStartCBT'), 'Drawer must not expose a Thi thử launch action');
+  assert.ok(!drawer.includes('Thi thử CBT'), 'Drawer must not render a Thi thử button');
+  assert.ok(vault.includes('onSelectPreview'), 'Vault must keep quick preview in the saved drawer');
   assert.ok(drawer.includes('onOpenPrint'), 'Drawer must support print modal trigger');
   assert.ok(drawer.includes('filteredSavedPapers'), 'Drawer must support search and filtering within saved list');
   assert.ok(drawer.includes('animate-slide-left'), 'Drawer must use silky smooth 60 FPS slide-left animation');
@@ -276,7 +322,8 @@ test('14. Offline / Cache Indicators & Export / Print Formatting Options for Stu
 
   /* Offline UI Indicators & Multi-tab Storage Sync */
   assert.ok(vaultTsx.includes('cachedExamIds'), 'Must track cachedExamIds state in Vault');
-  assert.ok(vaultTsx.includes('handleToggleOfflineCache'), 'Must handle offline cache toggling');
+  assert.ok(!vaultTsx.includes('handleToggleOfflineCache'), 'The Offline action button and toggle handler must be removed');
+  assert.ok(!vaultTsx.includes('Lưu Offline'), 'The preview modal must not expose an Offline save button');
   assert.ok(vaultTsx.includes('isOnline'), 'Must monitor online/offline network status');
   assert.ok(vaultTsx.includes('OFFLINE_EXAMS_CACHE_KEY'), 'Must synchronize OFFLINE_EXAMS_CACHE_KEY across tabs');
   assert.ok(vaultTsx.includes("activeTab === 'cached'"), 'Must support filtering to offline cached exams');
@@ -308,6 +355,7 @@ test('15. Kỷ luật mã nguồn tuyệt đối: Zero // Comments, Bản quyề
     'src/components/exam/CbtPracticeModal.tsx',
     'src/components/exam/ExamBookmarkDrawer.tsx',
     'src/components/exam/ExamPrintExportModal.tsx',
+    'src/utils/examLikes.ts',
   ];
 
   files.forEach((file) => {
@@ -348,7 +396,7 @@ test('16. QA dùng cuộn toàn trang, nền cố định và thẻ ảo giữ �
   assert.ok(exam.includes('aria-expanded={isAdvancedFiltersOpen}'), 'Bộ lọc phụ phải có trạng thái truy cập được');
   assert.ok(!exam.includes('sticky top-0 z-40'), 'Header Kho Đề không được che nội dung khi cuộn');
   assert.ok(exam.includes('activeTab === \'syllabus\' ?'), 'Đầu trang phải nhận diện rõ chế độ đề cương');
-  assert.ok(exam.includes('ff-exam-card-actions grid grid-cols-2 gap-2 sm:grid-cols-4'), 'Nút thao tác đề phải nằm trong lưới responsive');
+  assert.ok(exam.includes('ff-exam-card-actions grid grid-cols-2 gap-2 sm:grid-cols-3'), 'Nút thao tác đề phải nằm trong lưới gọn responsive');
   assert.ok(exam.includes('getCompactPaperTitle'), 'Thẻ đề phải rút gọn tiêu đề lặp');
   assert.ok(examCss.includes('.ff-exam-filter-panel'), 'Bộ lọc dùng một bề mặt thống nhất');
 });

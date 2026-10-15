@@ -5,7 +5,6 @@ import {
   Bookmark,
   Search,
   Trash2,
-  Timer,
   Eye,
   Printer,
   School,
@@ -23,7 +22,6 @@ export interface ExamBookmarkDrawerProps {
   onRemoveBookmark: (examId: string) => void;
   onClearAllBookmarks: () => void;
   onSelectPreview: (paper: ExamPaper) => void;
-  onStartCBT: (paper: ExamPaper) => void;
   onOpenPrint: (paper: ExamPaper) => void;
 }
 
@@ -36,7 +34,6 @@ export const ExamBookmarkDrawer: React.FC<ExamBookmarkDrawerProps> = ({
   onRemoveBookmark,
   onClearAllBookmarks,
   onSelectPreview,
-  onStartCBT,
   onOpenPrint,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -263,13 +260,6 @@ export const ExamBookmarkDrawer: React.FC<ExamBookmarkDrawerProps> = ({
                       title="Tuỳ chọn in ấn &amp; PDF"
                     >
                       <Printer className="w-3 h-3" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onStartCBT(paper)}
-                      className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-amber-400 px-2.5 py-1 text-[11px] font-extrabold text-[#0b0d12] hover:bg-amber-300 cursor-pointer transition-colors"
-                    >
-                      <Timer className="w-3 h-3" /> Thi thử CBT
                     </button>
                   </div>
                 </div>
