@@ -79,7 +79,11 @@ test('Threads UI: warm light theme, mobile filters, motion preference, and acces
   const threadsCss = read('src/components/views/ThreadsView.css');
 
   assert.match(threadsView, /aria-pressed=\{myReactions\.includes\(type\)\}/, 'Reaction toggles expose their selected state');
-  assert.match(threadsView, /threads-hero-caption/, 'The thread page explains its community purpose');
+  assert.match(threadsView, /thread-room-caption/, 'The redesigned thread page explains its community purpose');
+  assert.match(threadsView, /thread-room-grid/, 'The editorial writing rail and feed have a dedicated layout');
+  assert.ok(threadsView.includes('const matches = thread.content.match(/#[\\p{L}\\p{N}_]+/gu);'), 'Topic counts come from hashtags in loaded thread content');
+  assert.doesNotMatch(threadsView, /const trendingTags\s*[:=]\s*\[/, 'Topic trends are not seeded with fabricated counts');
+  assert.match(threadsView, /QUICK_TOPICS\.map\(\(tag\) => \(\{ tag \}\)\)/, 'Fallback topics are suggestions without fake counts');
   assert.match(threadsView, /thread-reader-panel/, 'The expanded thread reader has a themeable surface');
   assert.match(threadsCss, /html\.light \.threads-bg/, 'Threads has a dedicated warm light-mode palette');
   assert.match(threadsCss, /html\.light \.threads-bg \.thread-card/, 'Thread cards remain readable in light mode');

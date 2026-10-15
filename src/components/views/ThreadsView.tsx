@@ -7,9 +7,9 @@ import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Heart, Laugh, Flame, Zap, HandHeart, ImagePlus, Send,
-  Repeat2, Flag, Trash2, MessageSquareQuote, X, Users,
+  Repeat2, Flag, Trash2, MessageSquareQuote, X,
   Search, Hash, Image as ImageIcon, Clock, TrendingUp,
-  Bookmark, ZoomIn,
+  Bookmark, ZoomIn, BookOpen, PenLine, Sparkles,
 } from 'lucide-react';
 import type { Thread, ThreadReactionType, User } from '../../types';
 import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
@@ -78,6 +78,23 @@ const formatRelativeTime = (ms: number): string => {
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} phút trước`;
   if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} giờ trước`;
   return `${Math.floor(diff / 86_400_000)} ngày trước`;
+};
+
+const threadBranchMatches = (
+  rootId: string,
+  repliesByParent: ReadonlyMap<string, Thread[]>,
+  matches: (thread: Thread) => boolean,
+): boolean => {
+  const pending = [...(repliesByParent.get(rootId) || [])];
+  const visited = new Set([rootId]);
+  while (pending.length > 0) {
+    const reply = pending.pop()!;
+    if (visited.has(reply.id)) continue;
+    visited.add(reply.id);
+    if (matches(reply)) return true;
+    pending.push(...(repliesByParent.get(reply.id) || []));
+  }
+  return false;
 };
 
 /* Tách các chuỗi data:image => URL upload; để an toàn dùng cùng quy tắc gửi ảnh ≤20MB như QA view. */
@@ -521,9 +538,9 @@ const ThreadCard = React.memo<{
                 setReportReason('');
               }
             }}
-            className="fixed inset-0 z-[130] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-fade-up"
+            className="thread-report-backdrop fixed inset-0 z-[130] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-fade-up"
           >
-            <div className="modal-container w-full max-w-xl !border-rose-500/45 overflow-hidden">
+            <div className="thread-report-dialog modal-container w-full max-w-xl !border-rose-500/45 overflow-hidden">
               <div className="flex items-center justify-between px-6 py-4 border-b border-dashed border-[#f4f1de]/15 bg-[#0b0d12]/60">
                 <div className="flex items-center gap-2.5">
                   <span className="w-9 h-9 rounded-xl bg-rose-500/15 border border-rose-400/35 flex items-center justify-center text-rose-300">
@@ -780,30 +797,36 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
     return byId;
   }, [users]);
 
-  /* Tự động trích xuất chủ đề #hashtag đang thịnh hành trong toàn bộ mạch chuyện */
-  const trendingTags = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const tag of QUICK_TOPICS) counts.set(tag, 0);
+  /* Tính chủ đề từ hashtag thực sự xuất hiện trong các bài viết đã tải. */
+  const trendingTags = useMemo<[string, number][]>(() => {
+    const counts = new Map<string, { tag: string; count: number }>();
     if (Array.isArray(threads)) {
-      for (const t of threads) {
-        if (!t.content) continue;
-        const matches = t.content.match(/#[\p{L}\p{N}_]+/gu);
+      for (const thread of threads) {
+        if (!thread.content) continue;
+        const matches = thread.content.match(/#[\p{L}\p{N}_]+/gu);
         if (!matches) continue;
-        for (const m of matches) {
-          counts.set(m, (counts.get(m) || 0) + 1);
+        for (const tag of matches) {
+          const key = tag.toLocaleLowerCase('vi-VN');
+          const entry = counts.get(key);
+          if (entry) entry.count += 1;
+          else counts.set(key, { tag, count: 1 });
         }
       }
     }
-    return Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6);
+    return Array.from(counts.values())
+      .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag, 'vi'))
+      .slice(0, 6)
+      .map(({ tag, count }) => [tag, count]);
   }, [threads]);
+  const topicTags: { tag: string; count?: number }[] = trendingTags.length > 0
+    ? trendingTags.map(([tag, count]) => ({ tag, count }))
+    : QUICK_TOPICS.map((tag) => ({ tag }));
 
   /* Feed: thread gốc không phải reply + repost xếp cùng dòng thời gian + lọc/tìm kiếm thông minh */
   const visibleThreads = useMemo(() => {
     if (!Array.isArray(threads)) return [];
-    const q = debouncedSearchQuery.trim().toLowerCase();
-    const tagLower = activeTag ? activeTag.toLowerCase() : null;
+    const q = debouncedSearchQuery.trim().toLocaleLowerCase('vi-VN');
+    const tagLower = activeTag ? activeTag.toLocaleLowerCase('vi-VN') : null;
     const savedSet = new Set(savedIds);
     const roots = threads.filter((t) => {
       if (t.parentThreadId) return false;
@@ -817,11 +840,28 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
       ) {
         return false;
       }
-      if (tagLower && !t.content.toLowerCase().includes(tagLower)) return false;
+      if (
+        tagLower &&
+        !t.content.toLocaleLowerCase('vi-VN').includes(tagLower) &&
+        !threadBranchMatches(t.id, threadIndexes.repliesByParent, (reply) =>
+          reply.content.toLocaleLowerCase('vi-VN').includes(tagLower),
+        )
+      ) {
+        return false;
+      }
       if (q) {
-        const hitContent = t.content.toLowerCase().includes(q);
-        const hitAuthor = t.authorName.toLowerCase().includes(q);
-        if (!hitContent && !hitAuthor) return false;
+        const hitContent = t.content.toLocaleLowerCase('vi-VN').includes(q);
+        const hitAuthor = t.authorName.toLocaleLowerCase('vi-VN').includes(q);
+        if (
+          !hitContent &&
+          !hitAuthor &&
+          !threadBranchMatches(t.id, threadIndexes.repliesByParent, (reply) =>
+            reply.content.toLocaleLowerCase('vi-VN').includes(q)
+            || reply.authorName.toLocaleLowerCase('vi-VN').includes(q),
+          )
+        ) {
+          return false;
+        }
       }
       return true;
     });
@@ -964,7 +1004,9 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
       onDelete: (id: string) => void onDelete?.(id),
       onOpenProfile,
       onOpenLoginModal,
-      onSelectTag: (tag: string) => setActiveTag((prev) => (prev === tag ? null : tag)),
+      onSelectTag: (tag: string) => setActiveTag((prev) => (
+        prev?.toLocaleLowerCase('vi-VN') === tag.toLocaleLowerCase('vi-VN') ? null : tag
+      )),
       onToggleSave: toggleSaveThread,
       isSaved: (id: string) => savedSet.has(id),
       onOpenLightbox: (url: string) => setLightboxImage(url),
@@ -975,329 +1017,384 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
 
   return (
     <section ref={feedScrollRef} className={`relative w-full ${isEmbedded ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-y-auto'} flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+12px)] md:pb-8 px-4 sm:px-8 threads-bg ff-raw-grid-surface`}>
-      <div className="relative z-10 w-full max-w-4xl mx-auto flex-1 flex flex-col">
-        <header className="threads-hero-bar">
-          <div className="threads-hero-top">
-            <div className="threads-hero-brand">
-              <div>
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="ff-typo-poster !text-xl sm:!text-2xl text-[#f4f1de]">
-                    Thread
-                  </h1>
-                  <span className="threads-hero-stats ff-raw-meta">
-                    <b>{feedStats.roots}</b> bài · <b>{feedStats.replies}</b> phản hồi · <b>{feedStats.reactions}</b> cảm xúc
-                  </span>
-                </div>
-                <svg className="w-24 h-2 mt-0.5 ff-organic-squiggle" viewBox="0 0 120 8" aria-hidden="true">
-                  <path d="M2 5 C24 1, 48 8, 72 4 S98 1, 118 5" />
-                </svg>
-                <p className="threads-hero-caption">Chia sẻ một ý nghĩ, tìm thêm góc nhìn mới.</p>
+      <div className="thread-room-shell relative z-10 w-full max-w-6xl mx-auto flex-1 flex flex-col">
+        <header className="thread-room-header">
+          <div className="thread-room-top">
+            <div className="thread-room-brand">
+              <div className="thread-room-emblem" aria-hidden="true">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <div className="thread-room-title-block">
+                <span className="thread-room-kicker">F·FORUM / SỔ CHUNG</span>
+                <h1 className="thread-room-title">Mạch <em>chuyện</em></h1>
+                <p className="thread-room-caption">Viết một điều nhỏ — để cuộc trò chuyện tự tìm đường.</p>
               </div>
             </div>
-            <div className="threads-search-box">
-              <Search className="w-3.5 h-3.5 text-[#9a978e] shrink-0" />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm bài viết, #chủđề…"
-                className="threads-search-input"
-                aria-label="Tìm kiếm"
-              />
-              {(searchQuery || activeTag) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setActiveTag(null);
-                  }}
-                  className="threads-search-clear"
-                  title="Xóa tìm kiếm"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
+
+            <div className="thread-room-tools">
+              <div className="thread-room-metrics" aria-label="Số liệu từ các bài viết đã tải">
+                <span><b>{isSynced ? feedStats.roots : '—'}</b><small>bài</small></span>
+                <span><b>{isSynced ? feedStats.replies : '—'}</b><small>phản hồi</small></span>
+                <span><b>{isSynced ? feedStats.reactions : '—'}</b><small>cảm xúc</small></span>
+              </div>
+              <div className="threads-search-box">
+                <Search className="w-4 h-4 text-[#9a978e] shrink-0" />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Tìm bài viết, #chủđề…"
+                  className="threads-search-input"
+                  aria-label="Tìm kiếm mạch chuyện"
+                />
+                {(searchQuery || activeTag) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setActiveTag(null);
+                    }}
+                    className="threads-search-clear"
+                    title="Xóa tìm kiếm"
+                    aria-label="Xóa từ khóa tìm kiếm"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="threads-filter-bar">
-            <div className="threads-filter-tabs" role="tablist" aria-label="Bộ lọc mạch chuyện">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={feedMode === 'latest'}
-                onClick={() => setFeedMode('latest')}
-                className={`threads-filter-pill ${feedMode === 'latest' ? 'is-active' : ''}`}
-              >
-                <Clock className="w-3.5 h-3.5" />
-                Mới nhất
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={feedMode === 'hot'}
-                onClick={() => setFeedMode('hot')}
-                className={`threads-filter-pill ${feedMode === 'hot' ? 'is-active' : ''}`}
-              >
-                <TrendingUp className="w-3.5 h-3.5" />
-                Sôi nổi
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={feedMode === 'media'}
-                onClick={() => setFeedMode('media')}
-                className={`threads-filter-pill ${feedMode === 'media' ? 'is-active' : ''}`}
-              >
-                <ImageIcon className="w-3.5 h-3.5" />
-                Có ảnh
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={feedMode === 'saved'}
-                onClick={() => setFeedMode('saved')}
-                className={`threads-filter-pill ${feedMode === 'saved' ? 'is-active' : ''}`}
-              >
-                <Bookmark className="w-3.5 h-3.5" />
-                Đã lưu{savedIds.length > 0 ? ` (${savedIds.length})` : ''}
-              </button>
-              {currentUser && (
+          <div className="thread-room-controls">
+            <div className="threads-filter-bar">
+              <div className="threads-filter-tabs" role="tablist" aria-label="Bộ lọc mạch chuyện">
                 <button
                   type="button"
                   role="tab"
-                  aria-selected={feedMode === 'mine'}
-                  onClick={() => setFeedMode('mine')}
-                  className={`threads-filter-pill ${feedMode === 'mine' ? 'is-active' : ''}`}
+                  aria-selected={feedMode === 'latest'}
+                  onClick={() => setFeedMode('latest')}
+                  className={`threads-filter-pill ${feedMode === 'latest' ? 'is-active' : ''}`}
                 >
-                  Của tôi
+                  <Clock className="w-3.5 h-3.5" />
+                  Mới nhất
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={feedMode === 'hot'}
+                  onClick={() => setFeedMode('hot')}
+                  className={`threads-filter-pill ${feedMode === 'hot' ? 'is-active' : ''}`}
+                >
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  Sôi nổi
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={feedMode === 'media'}
+                  onClick={() => setFeedMode('media')}
+                  className={`threads-filter-pill ${feedMode === 'media' ? 'is-active' : ''}`}
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  Có ảnh
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={feedMode === 'saved'}
+                  onClick={() => setFeedMode('saved')}
+                  className={`threads-filter-pill ${feedMode === 'saved' ? 'is-active' : ''}`}
+                >
+                  <Bookmark className="w-3.5 h-3.5" />
+                  Đã lưu{savedIds.length > 0 ? ` (${savedIds.length})` : ''}
+                </button>
+                {currentUser && (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={feedMode === 'mine'}
+                    onClick={() => setFeedMode('mine')}
+                    className={`threads-filter-pill ${feedMode === 'mine' ? 'is-active' : ''}`}
+                  >
+                    Của tôi
+                  </button>
+                )}
+              </div>
+
+              {activeTag && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTag(null)}
+                  className="threads-active-tag-chip"
+                  title="Bỏ lọc chủ đề"
+                >
+                  <Hash className="w-3 h-3" />
+                  <span>{activeTag.replace(/^#/, '')}</span>
+                  <X className="w-3 h-3 opacity-70" />
                 </button>
               )}
             </div>
-
-            {activeTag && (
-              <button
-                type="button"
-                onClick={() => setActiveTag(null)}
-                className="threads-active-tag-chip"
-                title="Bỏ lọc chủ đề"
-              >
-                <Hash className="w-3 h-3" />
-                <span>{activeTag.replace(/^#/, '')}</span>
-                <X className="w-3 h-3 opacity-70" />
-              </button>
-            )}
           </div>
-
-          {trendingTags.length > 0 && (
-            <div className="threads-trending-strip">
-              <span className="threads-trending-label">Xu hướng:</span>
-              {trendingTags.map(([tag, count]) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => setActiveTag((prev) => (prev === tag ? null : tag))}
-                  className={`threads-trending-chip ${activeTag === tag ? 'is-active' : ''}`}
-                >
-                  <span>{tag}</span>
-                  {count > 0 && <span className="threads-trending-count">{count}</span>}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {featuredThread && (
-            <button
-              type="button"
-              onClick={() => setActiveReaderThreadId(featuredThread.id)}
-              className="thread-featured-spotlight"
-              title="Đọc bài viết tâm điểm"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="thread-featured-badge ff-holo-badge px-2 py-0.5 rounded-md text-[10px] font-bold text-[#d8f3dc] shrink-0">
-                  ✦ ĐÁNG ĐỌC
-                </span>
-                <span className="thread-featured-copy text-xs font-bold text-[#f4f1de] truncate">
-                  {featuredThread.authorName.replace(/ \(.*\)/, '')}: “{featuredThread.content.slice(0, 72)}{featuredThread.content.length > 72 ? '…' : ''}”
-                </span>
-              </div>
-              <span className="thread-featured-open text-[11px] font-mono font-bold text-[#f2cc8f] shrink-0">
-                Mở đọc →
-              </span>
-            </button>
-          )}
         </header>
 
-        {/* Composer — "Cậu đang nghĩ gì thế?" */}
-        <div className="thread-composer-card">
-          {currentUser && (
-            <div className="thread-composer-head">
-              <DecoratedAvatar
-                user={currentUser}
-                fallbackSrc={currentUser.avatar || DEFAULT_AVATAR}
-                size={36}
-                animate
-                eager
-                priority="high"
-                className="rounded-full"
-                alt={currentUser.name}
+        <div className="thread-room-grid">
+          <aside className="thread-room-rail" aria-label="Góc viết và chủ đề cộng đồng">
+            <div className="thread-composer-card">
+              <div className="thread-composer-intro">
+                <span className="thread-composer-stamp" aria-hidden="true"><PenLine className="w-4 h-4" /></span>
+                <div>
+                  <span className="thread-composer-kicker">MỞ MỘT MẠCH CHUYỆN</span>
+                  <h2 className="thread-composer-title">Viết vài dòng</h2>
+                </div>
+              </div>
+              {currentUser && (
+                <div className="thread-composer-head">
+                  <DecoratedAvatar
+                    user={currentUser}
+                    fallbackSrc={currentUser.avatar || DEFAULT_AVATAR}
+                    size={36}
+                    animate
+                    eager
+                    priority="high"
+                    className="rounded-full"
+                    alt={currentUser.name}
+                  />
+                  <DecoratedName
+                    user={currentUser}
+                    name={currentUser.name.replace(/ \(.*\)/, '')}
+                    width={142}
+                    height={26}
+                    animate
+                    eager
+                    priority="high"
+                    showFallbackTag
+                  />
+                </div>
+              )}
+              <textarea
+                rows={3}
+                maxLength={THREAD_MAX_CHARS}
+                value={draftContent}
+                onChange={handleContentChange}
+                onKeyDown={(e) => {
+                  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && canSubmit) {
+                    e.preventDefault();
+                    submitThread();
+                  }
+                }}
+                placeholder={currentUser ? 'Một điều cậu đang nghĩ…' : 'Đăng nhập để viết dòng đầu tiên.'}
+                className="thread-composer-input"
+                onClick={() => { if (!currentUser) onOpenLoginModal?.(); }}
+                readOnly={!currentUser}
               />
-              <DecoratedName
-                user={currentUser}
-                name={currentUser.name.replace(/ \(.*\)/, '')}
-                width={142}
-                height={26}
-                animate
-                eager
-                priority="high"
-                showFallbackTag
-              />
-            </div>
-          )}
-          <textarea
-            rows={3}
-            maxLength={THREAD_MAX_CHARS}
-            value={draftContent}
-            onChange={handleContentChange}
-            onKeyDown={(e) => {
-              if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && canSubmit) {
-                e.preventDefault();
-                submitThread();
-              }
-            }}
-            placeholder={currentUser ? 'Chia sẻ câu chuyện hoặc gắn #chủđề...' : 'Đăng nhập để tham gia trò chuyện nhé!'}
-            className="thread-composer-input"
-            onClick={() => { if (!currentUser) onOpenLoginModal?.(); }}
-            readOnly={!currentUser}
-          />
-          {draftImage && (
-            <div className="draft-image-preview">
-              <img src={draftImage} alt="Xem trước ảnh" loading="lazy" decoding="async" className="draft-image" />
-              <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={firePickImage}
-                  className="px-2.5 py-1.5 rounded-lg bg-slate-950/90 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-400/50 text-xs font-extrabold transition-colors cursor-pointer"
-                >
-                  Đổi ảnh
+              {draftImage && (
+                <div className="draft-image-preview">
+                  <img src={draftImage} alt="Xem trước ảnh" loading="lazy" decoding="async" className="draft-image" />
+                  <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={firePickImage}
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-950/90 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-400/50 text-xs font-extrabold transition-colors cursor-pointer"
+                    >
+                      Đổi ảnh
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelDraftImage}
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-950/90 hover:bg-rose-500/80 text-rose-300 hover:text-white border border-rose-400/40 text-xs font-extrabold flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Gỡ ảnh"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Gỡ</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+              {draftImageError && <p className="image-error">{draftImageError}</p>}
+
+              {/* Gợi ý chủ đề 1 chạm (chỉ hiện khi người dùng đang gõ bài để không lặp với thanh Xu hướng) */}
+              {draftContent.length > 0 && (
+                <div className="thread-topic-bar">
+                  <span className="thread-topic-label">Chủ đề:</span>
+                  {QUICK_TOPICS.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => insertTopicTag(tag)}
+                      className={`thread-topic-chip ${draftContent.includes(tag) ? 'is-selected' : ''}`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="thread-composer-actions">
+                <button type="button" onClick={firePickImage} className="icon-btn subtle ff-tactile-btn" title="Đính kèm 1 ảnh (≤20MB)">
+                  <ImagePlus className="w-4 h-4 text-[#f2cc8f]" />
+                  <span>Đính kèm ảnh</span>
                 </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChosen}
+                  className="hidden"
+                  tabIndex={-1}
+                />
+                <div className="char-counter-wrap">
+                  <svg className="char-ring" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+                    <circle cx="11" cy="11" r="9" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2.2" />
+                    <circle
+                      cx="11"
+                      cy="11"
+                      r="9"
+                      fill="none"
+                      stroke={remainingChars < 20 ? '#f87171' : remainingChars < 80 ? '#fbbf24' : '#81b29a'}
+                      strokeWidth="2.2"
+                      strokeDasharray={ringCircumference}
+                      strokeDashoffset={ringOffset}
+                      strokeLinecap="round"
+                      transform="rotate(-90 11 11)"
+                    />
+                  </svg>
+                  <span className={`char-counter ${remainingChars < 20 ? 'char-warning' : ''}`}>
+                    {remainingChars}
+                  </span>
+                </div>
                 <button
                   type="button"
-                  onClick={cancelDraftImage}
-                  className="px-2.5 py-1.5 rounded-lg bg-slate-950/90 hover:bg-rose-500/80 text-rose-300 hover:text-white border border-rose-400/40 text-xs font-extrabold flex items-center gap-1 transition-colors cursor-pointer"
-                  title="Gỡ ảnh"
+                  onClick={submitThread}
+                  disabled={!canSubmit}
+                  className="primary-compose-btn"
                 >
-                  <X className="w-3.5 h-3.5" />
-                  <span>Gỡ</span>
+                  <Send className="w-4 h-4 text-[#e07a5f]" />
+                  Gửi vào mạch
                 </button>
               </div>
             </div>
-          )}
-          {draftImageError && <p className="image-error">{draftImageError}</p>}
 
-          {/* Gợi ý chủ đề 1 chạm (chỉ hiện khi người dùng đang gõ bài để không lặp với thanh Xu hướng) */}
-          {draftContent.length > 0 && (
-            <div className="thread-topic-bar">
-              <span className="thread-topic-label">Chủ đề:</span>
-              {QUICK_TOPICS.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => insertTopicTag(tag)}
-                  className={`thread-topic-chip ${draftContent.includes(tag) ? 'is-selected' : ''}`}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-          )}
+            <section className="thread-topic-panel" aria-labelledby="thread-topic-heading">
+              <div className="thread-topic-panel-head">
+                <div>
+                  <span className="thread-panel-kicker">
+                    {trendingTags.length > 0 ? 'TỪ MẠCH CHUYỆN ĐANG CÓ' : 'GỢI Ý ĐỂ BẮT ĐẦU'}
+                  </span>
+                  <h2 id="thread-topic-heading" className="thread-topic-panel-title">
+                    {trendingTags.length > 0 ? 'Chủ đề được nhắc' : 'Chủ đề để mở lời'}
+                  </h2>
+                </div>
+                <Hash className="thread-topic-panel-icon" aria-hidden="true" />
+              </div>
+              <div className="thread-topic-list">
+                {topicTags.map(({ tag, count }) => {
+                  const normalizedTag = tag.toLocaleLowerCase('vi-VN');
+                  const isActive = activeTag?.toLocaleLowerCase('vi-VN') === normalizedTag;
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => setActiveTag((prev) => (
+                        prev?.toLocaleLowerCase('vi-VN') === normalizedTag ? null : tag
+                      ))}
+                      className={`thread-topic-tag ${isActive ? 'is-active' : ''}`}
+                      aria-pressed={isActive}
+                    >
+                      <span>{tag}</span>
+                      {count !== undefined && count > 0 && (
+                        <span className="thread-topic-count" title={`${count} lượt nhắc`} aria-label={`${count} lượt nhắc`}>
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="thread-topic-note">
+                {trendingTags.length > 0
+                  ? 'Chạm vào một chủ đề để tìm những bài viết liên quan.'
+                  : 'Chọn một gợi ý — hoặc viết hashtag của riêng cậu.'}
+              </p>
+            </section>
 
-          <div className="thread-composer-actions">
-            <button type="button" onClick={firePickImage} className="icon-btn subtle ff-tactile-btn" title="Đính kèm 1 ảnh (≤20MB)">
-              <ImagePlus className="w-4 h-4 text-[#f2cc8f]" />
-              <span>Đính kèm ảnh</span>
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageChosen}
-              className="hidden"
-              tabIndex={-1}
-            />
-            <div className="char-counter-wrap">
-              <svg className="char-ring" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
-                <circle cx="11" cy="11" r="9" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2.2" />
-                <circle
-                  cx="11"
-                  cy="11"
-                  r="9"
-                  fill="none"
-                  stroke={remainingChars < 20 ? '#f87171' : remainingChars < 80 ? '#fbbf24' : '#81b29a'}
-                  strokeWidth="2.2"
-                  strokeDasharray={ringCircumference}
-                  strokeDashoffset={ringOffset}
-                  strokeLinecap="round"
-                  transform="rotate(-90 11 11)"
-                />
-              </svg>
-              <span className={`char-counter ${remainingChars < 20 ? 'char-warning' : ''}`}>
-                {remainingChars}
+            {featuredThread && (
+              <button
+                type="button"
+                onClick={() => setActiveReaderThreadId(featuredThread.id)}
+                className="thread-featured-spotlight"
+                aria-label={`Mở bài viết của ${featuredThread.authorName}`}
+              >
+                <span className="thread-featured-kicker"><Sparkles className="w-3.5 h-3.5" /> MỘT GÓC ĐÁNG ĐỌC</span>
+                <span className="thread-featured-copy">
+                  “{featuredThread.content.slice(0, 96)}{featuredThread.content.length > 96 ? '…' : ''}”
+                </span>
+                <span className="thread-featured-byline">
+                  {featuredThread.authorName} · {formatRelativeTime(featuredThread.createdAtMs)}
+                </span>
+                <span className="thread-featured-open">Mở câu chuyện <span aria-hidden="true">↗</span></span>
+              </button>
+            )}
+          </aside>
+
+          <main className="thread-feed-column" aria-label="Bài viết trong mạch chuyện">
+            <div className="thread-feed-heading">
+              <div>
+                <span className="thread-feed-kicker">
+                  {feedMode === 'latest' ? 'MẠCH MỚI' : feedMode === 'hot' ? 'ĐANG SÔI NỔI' : feedMode === 'media' ? 'CÓ HÌNH ẢNH' : feedMode === 'saved' ? 'SỔ ĐÃ LƯU' : 'GÓC CỦA BẠN'}
+                </span>
+                <h2 className="thread-feed-title">
+                  {feedMode === 'latest' ? 'Đang được viết tiếp' : feedMode === 'hot' ? 'Đang được quan tâm' : feedMode === 'media' ? 'Chuyện qua khung hình' : feedMode === 'saved' ? 'Để dành đọc sau' : 'Những dòng của bạn'}
+                </h2>
+              </div>
+              <span className="thread-feed-count" aria-live="polite">
+                <b>{isSynced ? visibleThreads.length : '—'}</b>
+                <span>{isSynced ? 'bài đang hiện' : 'đang tải'}</span>
               </span>
             </div>
-            <button
-              type="button"
-              onClick={submitThread}
-              disabled={!canSubmit}
-              className="primary-compose-btn"
-            >
-              <Send className="w-4 h-4 text-[#e07a5f]" />
-              Đăng bài
-            </button>
-          </div>
-        </div>
 
-        {/* Feed */}
-        <div className="thread-feed">
-          {!isSynced ? (
-            <div className="thread-feed-skeleton" aria-busy="true">
-              <p className="skeleton-note">Đang tải các thread từ máy chủ…</p>
+            {/* Feed */}
+            <div className="thread-feed">
+              {!isSynced ? (
+                <div className="thread-feed-skeleton" aria-busy="true">
+                  <p className="skeleton-note">Đang tải các thread từ máy chủ…</p>
+                </div>
+              ) : visibleThreads.length === 0 ? (
+                <div className="thread-empty">
+                  <BookOpen className="thread-empty-icon" aria-hidden="true" />
+                  <p className="thread-empty-title">
+                    {searchQuery || activeTag || feedMode !== 'latest'
+                      ? 'Không tìm thấy bài viết phù hợp.'
+                      : 'Góc này còn trống. Mở đầu bằng một câu chuyện nhé.'}
+                  </p>
+                </div>
+              ) : (
+                visibleThreads.map((t, tIndex) => {
+                  if (!isThreadVisible(tIndex)) {
+                    return (
+                      <div
+                        key={t.id}
+                        className="thread-card thread-card--virtual-stub"
+                        style={{ minHeight: '160px', height: '160px', contain: 'strict' }}
+                        aria-hidden="true"
+                      />
+                    );
+                  }
+                  return (
+                    <ThreadCard
+                      key={t.id}
+                      thread={t}
+                      indexes={threadIndexes}
+                      depth={0}
+                      currentUser={currentUser}
+                      users={users}
+                      usersById={usersById}
+                      viewModel={viewModel}
+                    />
+                  );
+                })
+              )}
             </div>
-          ) : visibleThreads.length === 0 ? (
-            <div className="thread-empty">
-              <Users className="w-12 h-12 text-neutral-600 mx-auto" />
-              <p className="thread-empty-title">
-                {searchQuery || activeTag || feedMode !== 'latest'
-                  ? 'Không tìm thấy bài viết.'
-                  : 'Chưa có bài viết.'}
-              </p>
-            </div>
-          ) : (
-            visibleThreads.map((t, tIndex) => {
-              if (!isThreadVisible(tIndex)) {
-                return (
-                  <div
-                    key={t.id}
-                    className="thread-card thread-card--virtual-stub"
-                    style={{ minHeight: '140px', height: '140px', contain: 'strict' }}
-                    aria-hidden="true"
-                  />
-                );
-              }
-              return (
-                <ThreadCard
-                  key={t.id}
-                  thread={t}
-                  indexes={threadIndexes}
-                  depth={0}
-                  currentUser={currentUser}
-                  users={users}
-                  usersById={usersById}
-                  viewModel={viewModel}
-                />
-              );
-            })
-          )}
+          </main>
         </div>
       </div>
 
