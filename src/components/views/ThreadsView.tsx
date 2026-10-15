@@ -399,6 +399,8 @@ const ThreadCard = React.memo<{
                   type="button"
                   onClick={() => viewModel.onReact(rootThread.id, type)}
                   className={`reaction-btn ${myReactions.includes(type) ? 'reacted' : ''}`}
+                  aria-label={`${label}${myReactions.includes(type) ? ' (đã chọn)' : ''}`}
+                  aria-pressed={myReactions.includes(type)}
                   title={label}
                 >
                   <Icon className="w-4 h-4" />
@@ -989,6 +991,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                 <svg className="w-24 h-2 mt-0.5 ff-organic-squiggle" viewBox="0 0 120 8" aria-hidden="true">
                   <path d="M2 5 C24 1, 48 8, 72 4 S98 1, 118 5" />
                 </svg>
+                <p className="threads-hero-caption">Chia sẻ một ý nghĩ, tìm thêm góc nhìn mới.</p>
               </div>
             </div>
             <div className="threads-search-box">
@@ -1111,14 +1114,14 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
               title="Đọc bài viết tâm điểm"
             >
               <div className="flex items-center gap-2 min-w-0">
-                <span className="ff-holo-badge px-2 py-0.5 rounded-md text-[10px] font-bold text-[#d8f3dc] shrink-0">
+                <span className="thread-featured-badge ff-holo-badge px-2 py-0.5 rounded-md text-[10px] font-bold text-[#d8f3dc] shrink-0">
                   ✦ ĐÁNG ĐỌC
                 </span>
-                <span className="text-xs font-bold text-[#f4f1de] truncate">
+                <span className="thread-featured-copy text-xs font-bold text-[#f4f1de] truncate">
                   {featuredThread.authorName.replace(/ \(.*\)/, '')}: “{featuredThread.content.slice(0, 72)}{featuredThread.content.length > 72 ? '…' : ''}”
                 </span>
               </div>
-              <span className="text-[11px] font-mono font-bold text-[#f2cc8f] shrink-0">
+              <span className="thread-featured-open text-[11px] font-mono font-bold text-[#f2cc8f] shrink-0">
                 Mở đọc →
               </span>
             </button>
@@ -1307,7 +1310,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
           aria-label="Chi tiết bài viết"
         >
           <div
-            className="w-full max-w-2xl max-h-[88dvh] overflow-y-auto rounded-2xl bg-[#111520] border-[1.5px] border-[#f4f1de]/22 shadow-[6px_6px_0px_#04060a] p-5 sm:p-6 space-y-4"
+            className="thread-reader-panel w-full max-w-2xl max-h-[88dvh] overflow-y-auto rounded-2xl bg-[#111520] border-[1.5px] border-[#f4f1de]/22 shadow-[6px_6px_0px_#04060a] p-5 sm:p-6 space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-3 pb-3 border-b border-dashed border-[#f4f1de]/16">

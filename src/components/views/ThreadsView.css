@@ -1224,3 +1224,402 @@
     max-width: 100%;
   }
 }
+
+/* Final polish: softer depth, clearer hierarchy, and a complete light theme. */
+.threads-hero-bar {
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  border-color: rgba(244, 241, 222, 0.13);
+  background: linear-gradient(155deg, rgba(25, 30, 40, 0.96), rgba(15, 19, 28, 0.96));
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(244, 241, 222, 0.08);
+}
+
+.threads-hero-caption {
+  margin-top: 4px;
+  color: #a8a49c;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.threads-search-box {
+  min-height: 40px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(244, 241, 222, 0.04);
+}
+
+.threads-filter-pill,
+.threads-trending-chip,
+.threads-active-tag-chip {
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(244, 241, 222, 0.04);
+}
+
+.thread-featured-spotlight {
+  min-height: 46px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(244, 241, 222, 0.06);
+}
+
+.thread-featured-copy {
+  min-width: 0;
+  line-height: 1.5;
+}
+
+.thread-featured-open {
+  white-space: nowrap;
+}
+
+.thread-composer-card {
+  padding: 20px;
+  border-radius: 20px;
+  border-width: 1px;
+  background: linear-gradient(155deg, rgba(25, 30, 40, 0.97), rgba(15, 19, 28, 0.98));
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(244, 241, 222, 0.08);
+}
+
+.thread-composer-input {
+  min-height: 104px;
+  border-radius: 14px;
+  background: rgba(11, 13, 18, 0.62);
+}
+
+.icon-btn,
+.action-text-btn,
+.repost-type-btn,
+.small-btn {
+  border-radius: 11px;
+  box-shadow: 0 3px 9px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(244, 241, 222, 0.04);
+}
+
+.primary-compose-btn {
+  border-radius: 13px;
+  background: linear-gradient(135deg, #f4f1de, #f2cc8f);
+  box-shadow: 0 5px 14px rgba(4, 6, 11, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.thread-card {
+  padding: 19px 21px;
+  border-radius: 18px;
+  border-width: 1px;
+  border-left-width: 3px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(244, 241, 222, 0.06);
+}
+
+.thread-card:hover {
+  transform: translate3d(0, -2px, 0);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(248, 247, 244, 0.1);
+}
+
+.thread-image-wrap,
+.repost-quote-box,
+.reply-composer,
+.repost-modal {
+  border-radius: 14px;
+}
+
+.thread-image {
+  max-height: 420px;
+}
+
+.reaction-btn {
+  border-radius: 10px;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(244, 241, 222, 0.04);
+}
+
+.threads-bg :is(button, a, input, textarea):focus-visible,
+.thread-reader-panel :is(button, a, input, textarea):focus-visible {
+  outline: 2px solid #f2cc8f;
+  outline-offset: 3px;
+}
+
+html.light .threads-bg {
+  background-color: #f8f5ec;
+  background-image:
+    radial-gradient(960px 440px at 88% -6%, rgba(217, 119, 87, 0.09), transparent 62%),
+    radial-gradient(880px 400px at 8% 96%, rgba(129, 178, 154, 0.12), transparent 62%),
+    radial-gradient(720px 360px at 50% 35%, rgba(233, 196, 106, 0.1), transparent 65%),
+    linear-gradient(to right, rgba(28, 25, 23, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(28, 25, 23, 0.025) 1px, transparent 1px);
+  background-size: auto, auto, auto, 36px 36px, 36px 36px;
+  color: #1c1917;
+}
+
+html.light .threads-bg .threads-hero-bar,
+html.light .threads-bg .thread-composer-card,
+html.light .threads-bg .thread-card {
+  background: linear-gradient(155deg, rgba(255, 253, 248, 0.96), rgba(248, 245, 236, 0.94));
+  border-color: rgba(120, 83, 49, 0.17);
+  box-shadow: 0 12px 30px rgba(41, 37, 36, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+html.light .threads-bg .thread-card {
+  border-left: 3px solid #d97757;
+}
+
+html.light .threads-bg .thread-card.is-featured {
+  border-color: rgba(72, 112, 89, 0.28);
+  border-left-color: #5c8a70;
+}
+
+html.light .threads-bg .thread-card:hover {
+  border-color: rgba(217, 119, 87, 0.38);
+  border-left-color: #d97757;
+  box-shadow: 0 16px 34px rgba(41, 37, 36, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+html.light .threads-bg .thread-card.is-featured:hover {
+  border-left-color: #5c8a70;
+}
+
+html.light .threads-bg .threads-hero-bar {
+  background: linear-gradient(155deg, rgba(255, 253, 248, 0.98), rgba(248, 245, 236, 0.96));
+}
+
+html.light .threads-bg .threads-hero-bar .ff-typo-poster,
+html.light .threads-bg .threads-hero-stats b,
+html.light .threads-bg .thread-content,
+html.light .threads-bg .thread-editorial-lead,
+html.light .threads-bg .author-name,
+html.light .threads-bg .repost-quote-name {
+  color: #292524;
+}
+
+html.light .threads-bg .threads-hero-stats,
+html.light .threads-bg .threads-hero-caption,
+html.light .threads-bg .threads-trending-label,
+html.light .threads-bg .thread-zine-masthead,
+html.light .threads-bg .author-time,
+html.light .threads-bg .author-level,
+html.light .threads-bg .repost-quote-level,
+html.light .threads-bg .repost-quote-time,
+html.light .threads-bg .repost-hint,
+html.light .threads-bg .char-count,
+html.light .threads-bg .skeleton-note {
+  color: #6b6258;
+}
+
+html.light .threads-bg .threads-search-box,
+html.light .threads-bg .thread-composer-input,
+html.light .threads-bg .reply-composer,
+html.light .threads-bg .reply-input,
+html.light .threads-bg .repost-modal,
+html.light .threads-bg .quote-input,
+html.light .threads-bg .repost-quote-box {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(120, 83, 49, 0.18);
+  color: #292524;
+}
+
+html.light .threads-bg .threads-search-input,
+html.light .threads-bg .thread-composer-input,
+html.light .threads-bg .reply-input,
+html.light .threads-bg .quote-input {
+  color: #292524;
+}
+
+html.light .threads-bg :is(.threads-search-input, .thread-composer-input, .reply-input, .quote-input)::placeholder {
+  color: #8a7d70;
+}
+
+html.light .threads-bg .threads-filter-bar,
+html.light .threads-bg .thread-composer-head,
+html.light .threads-bg .thread-composer-actions,
+html.light .threads-bg .thread-actions,
+html.light .threads-bg .thread-zine-masthead {
+  border-color: rgba(120, 83, 49, 0.16);
+}
+
+html.light .threads-bg .threads-filter-pill,
+html.light .threads-bg .threads-trending-chip,
+html.light .threads-bg .threads-search-clear,
+html.light .threads-bg .thread-topic-chip,
+html.light .threads-bg .reaction-btn,
+html.light .threads-bg .action-text-btn,
+html.light .threads-bg .repost-type-btn,
+html.light .threads-bg .icon-btn,
+html.light .threads-bg .small-btn.subtle {
+  background: rgba(255, 255, 255, 0.74);
+  border-color: rgba(120, 83, 49, 0.17);
+  color: #57534e;
+  box-shadow: 0 2px 7px rgba(41, 37, 36, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+html.light .threads-bg .threads-filter-pill:hover,
+html.light .threads-bg .threads-trending-chip:hover,
+html.light .threads-bg .thread-topic-chip:hover,
+html.light .threads-bg .reaction-btn:hover,
+html.light .threads-bg .action-text-btn:hover,
+html.light .threads-bg .action-text-btn.is-active {
+  background: rgba(129, 178, 154, 0.16);
+  border-color: rgba(83, 130, 103, 0.32);
+  color: #292524;
+}
+
+html.light .threads-bg .threads-filter-pill.is-active,
+html.light .threads-bg .threads-trending-chip.is-active,
+html.light .threads-bg .thread-topic-chip.is-selected {
+  background: rgba(217, 119, 87, 0.14);
+  border-color: rgba(185, 92, 61, 0.38);
+  color: #7c2d12;
+}
+
+html.light .threads-bg .threads-active-tag-chip,
+html.light .threads-bg .threads-trending-count,
+html.light .threads-bg .thread-hashtag-pill,
+html.light .threads-bg .thread-reply-pill {
+  background: rgba(129, 178, 154, 0.16);
+  border-color: rgba(72, 112, 89, 0.28);
+  color: #28583e;
+}
+
+html.light .threads-bg .thread-featured-spotlight {
+  background: linear-gradient(135deg, rgba(129, 178, 154, 0.13), rgba(233, 196, 106, 0.16));
+  border-color: rgba(72, 112, 89, 0.3);
+  box-shadow: 0 8px 18px rgba(41, 37, 36, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+html.light .threads-bg .thread-featured-badge {
+  color: #28583e;
+}
+
+html.light .threads-bg .thread-featured-copy {
+  color: #292524;
+}
+
+html.light .threads-bg .thread-featured-open {
+  color: #8a3f27;
+}
+
+html.light .threads-bg .thread-empty {
+  background: rgba(255, 253, 248, 0.78);
+  border-color: rgba(120, 83, 49, 0.24);
+  color: #6b6258;
+}
+
+html.light .threads-bg .thread-empty-title,
+html.light .threads-bg .reaction-hint,
+html.light .threads-bg .repost-quote-content,
+html.light .threads-bg .repost-modal-title {
+  color: #44403c;
+}
+
+html.light .threads-bg .thread-hashtag-pill:hover,
+html.light .threads-bg .threads-search-clear:hover {
+  color: #1c1917;
+}
+
+html.light .threads-bg .reaction-btn.reacted,
+html.light .threads-bg .action-text-btn.is-saved {
+  background: rgba(217, 119, 87, 0.16);
+  border-color: rgba(185, 92, 61, 0.4);
+  color: #7c2d12;
+}
+
+html.light .threads-bg .repost-type-btn.active {
+  background: rgba(217, 119, 87, 0.14);
+  border-color: rgba(185, 92, 61, 0.38);
+  color: #7c2d12;
+}
+
+html.light .threads-bg .thread-image-wrap {
+  background: #eee9df;
+  border-color: rgba(120, 83, 49, 0.18);
+}
+
+html.light .threads-bg .thread-reader-panel {
+  background: #fffdf8;
+  border-color: rgba(120, 83, 49, 0.2);
+  box-shadow: 0 22px 60px rgba(41, 37, 36, 0.2);
+}
+
+html.light .threads-bg .thread-reader-panel > div:first-child {
+  border-bottom-color: rgba(120, 83, 49, 0.18);
+}
+
+html.light .threads-bg .thread-reader-panel button.ff-tactile-btn {
+  background: #f8f5ec;
+  border-color: rgba(120, 83, 49, 0.2);
+  color: #44403c;
+}
+
+html.light .threads-bg .thread-reader-panel .thread-card {
+  background: #fffdf8;
+}
+
+html.reduce-motion .threads-bg *,
+html.reduce-motion .threads-bg *::before,
+html.reduce-motion .threads-bg *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .threads-bg *,
+  .threads-bg *::before,
+  .threads-bg *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .threads-hero-bar {
+    padding: 15px;
+    border-radius: 16px;
+  }
+
+  .threads-hero-top {
+    align-items: stretch;
+  }
+
+  .threads-search-box {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+
+  .threads-filter-tabs {
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 2px 2px 7px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .threads-filter-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .threads-filter-pill {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .thread-composer-card {
+    padding: 15px;
+  }
+
+  .thread-card {
+    padding: 15px;
+    border-radius: 16px;
+  }
+
+  .thread-composer-actions {
+    flex-wrap: wrap;
+  }
+
+  .thread-cta-group {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .thread-featured-spotlight {
+    align-items: flex-start;
+  }
+}

@@ -74,6 +74,20 @@ test('Round 1: Virtual Windowing & Node Recycling Architecture', async () => {
   assert.match(threadsCss, /\.thread-card--virtual-stub[\s\S]*?contain:\s*strict/, 'ThreadsView CSS có class recycled stub với contain: strict');
 });
 
+test('Threads UI: warm light theme, mobile filters, motion preference, and accessible reactions', () => {
+  const threadsView = read('src/components/views/ThreadsView.tsx');
+  const threadsCss = read('src/components/views/ThreadsView.css');
+
+  assert.match(threadsView, /aria-pressed=\{myReactions\.includes\(type\)\}/, 'Reaction toggles expose their selected state');
+  assert.match(threadsView, /threads-hero-caption/, 'The thread page explains its community purpose');
+  assert.match(threadsView, /thread-reader-panel/, 'The expanded thread reader has a themeable surface');
+  assert.match(threadsCss, /html\.light \.threads-bg/, 'Threads has a dedicated warm light-mode palette');
+  assert.match(threadsCss, /html\.light \.threads-bg \.thread-card/, 'Thread cards remain readable in light mode');
+  assert.match(threadsCss, /@media \(prefers-reduced-motion: reduce\)/, 'Threads respects the operating-system motion preference');
+  assert.match(threadsCss, /\.threads-filter-tabs[\s\S]{0,180}overflow-x: auto/, 'Mobile filters scroll without clipping');
+  assert.match(threadsCss, /:focus-visible/, 'Keyboard users receive a visible focus indicator');
+});
+
 /* ========================================================================== */
 /* ROUND 2: ADAPTIVE RAF SCHEDULER & 0MS INTERACTION PRIORITY                 */
 /* ========================================================================== */
