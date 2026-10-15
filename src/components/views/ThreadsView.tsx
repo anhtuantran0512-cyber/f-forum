@@ -3,7 +3,7 @@
    Respiração public toàn trường, 1 ảnh/thread, 480 ký tự, reply lồng tối đa 3 cấp,
    5 reaction toggle, repost simple/quote, report auto-hide (≥5/1h),
    rate limit 10 thread/giờ (server), Thread of the Day banner (Mascot Cú). */
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Heart, Laugh, Flame, Zap, HandHeart, ImagePlus, Send,
@@ -753,6 +753,10 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
     }
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const readerCloseButtonRef = useRef<HTMLButtonElement>(null);
+  const lightboxCloseButtonRef = useRef<HTMLButtonElement>(null);
+  const readerReturnFocusRef = useRef<HTMLElement | null>(null);
+  const lightboxReturnFocusRef = useRef<HTMLElement | null>(null);
 
   const toggleSaveThread = useCallback((threadId: string) => {
     setSavedIds((prev) => {
@@ -895,6 +899,23 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
     reactions: threadIndexes.totalReactions,
   }), [threadIndexes]);
 
+  const feedHeading = activeTag
+    ? { kicker: 'CHỦ ĐỀ ĐANG LỌC', title: `Mạch ${activeTag}` }
+    : debouncedSearchQuery.trim()
+      ? {
+        kicker: 'KẾT QUẢ TÌM KIẾM',
+        title: `Quanh “${debouncedSearchQuery.trim().slice(0, 32)}${debouncedSearchQuery.trim().length > 32 ? '…' : ''}”`,
+      }
+      : feedMode === 'latest'
+        ? { kicker: 'MẠCH MỚI', title: 'Đang được viết tiếp' }
+        : feedMode === 'hot'
+          ? { kicker: 'ĐANG SÔI NỔI', title: 'Đang được quan tâm' }
+          : feedMode === 'media'
+            ? { kicker: 'CÓ HÌNH ẢNH', title: 'Chuyện qua khung hình' }
+            : feedMode === 'saved'
+              ? { kicker: 'SỔ ĐÃ LƯU', title: 'Để dành đọc sau' }
+              : { kicker: 'GÓC CỦA BẠN', title: 'Những dòng của bạn' };
+
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setDraftContent(e.target.value);
     setRemainingChars(THREAD_MAX_CHARS - e.target.value.length);
@@ -995,6 +1016,49 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
     [threads, activeReaderThreadId],
   );
 
+  const openThreadReader = useCallback((id: string) => {
+    const active = document.activeElement;
+    readerReturnFocusRef.current = active instanceof HTMLElement ? active : null;
+    setActiveReaderThreadId(id);
+  }, []);
+
+  const openThreadImage = useCallback((url: string) => {
+    const active = document.activeElement;
+    lightboxReturnFocusRef.current = active instanceof HTMLElement ? active : null;
+    setLightboxImage(url);
+  }, []);
+
+  useEffect(() => {
+    if (lightboxImage) {
+      lightboxCloseButtonRef.current?.focus();
+      return;
+    }
+    if (activeReaderThread) {
+      const returnFromLightbox = lightboxReturnFocusRef.current;
+      if (returnFromLightbox?.isConnected) returnFromLightbox.focus();
+      else readerCloseButtonRef.current?.focus();
+      lightboxReturnFocusRef.current = null;
+      return;
+    }
+
+    const returnTarget = [lightboxReturnFocusRef.current, readerReturnFocusRef.current]
+      .find((element): element is HTMLElement => Boolean(element?.isConnected));
+    returnTarget?.focus();
+    lightboxReturnFocusRef.current = null;
+    readerReturnFocusRef.current = null;
+  }, [activeReaderThread, lightboxImage]);
+
+  useEffect(() => {
+    if (!activeReaderThread && !lightboxImage) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (lightboxImage) setLightboxImage(null);
+      else setActiveReaderThreadId(null);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [activeReaderThread, lightboxImage]);
+
   const viewModel = useMemo(
     () => ({
       onReply: (parentId: string, content: string) => void onReplyThread(parentId, content),
@@ -1009,10 +1073,10 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
       )),
       onToggleSave: toggleSaveThread,
       isSaved: (id: string) => savedSet.has(id),
-      onOpenLightbox: (url: string) => setLightboxImage(url),
-      onOpenReader: (id: string) => setActiveReaderThreadId(id),
+      onOpenLightbox: openThreadImage,
+      onOpenReader: openThreadReader,
     }),
-    [onReplyThread, onReact, onRepost, onReport, onDelete, onOpenProfile, onOpenLoginModal, toggleSaveThread, savedSet],
+    [onReplyThread, onReact, onRepost, onReport, onDelete, onOpenProfile, onOpenLoginModal, toggleSaveThread, savedSet, openThreadImage, openThreadReader],
   );
 
   return (
@@ -1320,7 +1384,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
             {featuredThread && (
               <button
                 type="button"
-                onClick={() => setActiveReaderThreadId(featuredThread.id)}
+                onClick={() => openThreadReader(featuredThread.id)}
                 className="thread-featured-spotlight"
                 aria-label={`Mở bài viết của ${featuredThread.authorName}`}
               >
@@ -1339,12 +1403,8 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
           <main className="thread-feed-column" aria-label="Bài viết trong mạch chuyện">
             <div className="thread-feed-heading">
               <div>
-                <span className="thread-feed-kicker">
-                  {feedMode === 'latest' ? 'MẠCH MỚI' : feedMode === 'hot' ? 'ĐANG SÔI NỔI' : feedMode === 'media' ? 'CÓ HÌNH ẢNH' : feedMode === 'saved' ? 'SỔ ĐÃ LƯU' : 'GÓC CỦA BẠN'}
-                </span>
-                <h2 className="thread-feed-title">
-                  {feedMode === 'latest' ? 'Đang được viết tiếp' : feedMode === 'hot' ? 'Đang được quan tâm' : feedMode === 'media' ? 'Chuyện qua khung hình' : feedMode === 'saved' ? 'Để dành đọc sau' : 'Những dòng của bạn'}
-                </h2>
+                <span className="thread-feed-kicker">{feedHeading.kicker}</span>
+                <h2 className="thread-feed-title">{feedHeading.title}</h2>
               </div>
               <span className="thread-feed-count" aria-live="polite">
                 <b>{isSynced ? visibleThreads.length : '—'}</b>
@@ -1420,8 +1480,10 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                 </span>
               </div>
               <button
+                ref={readerCloseButtonRef}
                 type="button"
                 onClick={() => setActiveReaderThreadId(null)}
+                aria-label="Đóng cửa sổ chi tiết bài viết"
                 className="ff-tactile-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-xs font-bold text-[#f4f1de] hover:border-[#f2cc8f]/50 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
@@ -1454,10 +1516,12 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
           aria-label="Xem ảnh phóng to"
         >
           <button
+            ref={lightboxCloseButtonRef}
             type="button"
             onClick={() => setLightboxImage(null)}
             className="thread-lightbox-close"
             title="Đóng ảnh"
+            aria-label="Đóng ảnh phóng to"
           >
             <X className="w-5 h-5" />
           </button>

@@ -85,6 +85,10 @@ test('Threads UI: warm light theme, mobile filters, motion preference, and acces
   assert.doesNotMatch(threadsView, /const trendingTags\s*[:=]\s*\[/, 'Topic trends are not seeded with fabricated counts');
   assert.match(threadsView, /QUICK_TOPICS\.map\(\(tag\) => \(\{ tag \}\)\)/, 'Fallback topics are suggestions without fake counts');
   assert.match(threadsView, /thread-reader-panel/, 'The expanded thread reader has a themeable surface');
+  assert.match(threadsView, /const feedHeading = activeTag/, 'The feed heading reflects the selected topic or search context');
+  assert.match(threadsView, /event\.key !== 'Escape'/, 'Reader and lightbox can be dismissed with Escape');
+  assert.match(threadsView, /readerCloseButtonRef\.current\?\.focus\(\)/, 'Opening the reader moves focus into the dialog');
+  assert.match(threadsView, /lightboxReturnFocusRef/, 'Closing the lightbox restores focus to its opener');
   assert.match(threadsCss, /html\.light \.threads-bg/, 'Threads has a dedicated warm light-mode palette');
   assert.match(threadsCss, /html\.light \.threads-bg \.thread-card/, 'Thread cards remain readable in light mode');
   assert.match(threadsCss, /@media \(prefers-reduced-motion: reduce\)/, 'Threads respects the operating-system motion preference');

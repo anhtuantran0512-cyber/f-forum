@@ -146,7 +146,16 @@ test('6. Bảng xếp hạng giờ học — GUI mới, giữ nguyên hợp đ�
     'Board must not expose any manual study-minute logging path',
   );
   assert.ok(board.includes('estimated'), 'Estimated hours must be flagged in the UI');
+  assert.ok(
+    board.includes('myPeriodIsEstimated') && board.includes('ff-board__estimate-note')
+      && board.includes("title=\"Ước tính từ XP; chưa có phiên học thật trong kỳ\""),
+    'Estimated hours must be disclosed for the personal total and podium, not only the lower rows',
+  );
+  assert.ok(board.includes('role="region"') && board.includes('cuộn để xem'), 'The lower rank list must be labeled and keyboard-scrollable');
 
+  const boardCss = read('src/components/views/LeaderboardWidget.css');
+  assert.ok(boardCss.includes('.ff-board__source-note') && boardCss.includes('mask-image: none'), 'Methodology and a fully visible scroll end must be styled');
+  assert.ok(boardCss.includes('html.light .ff-board') && boardCss.includes('@media (prefers-reduced-motion: reduce)'), 'The board must keep light-mode and reduced-motion variants');
   assert.ok(css.includes('.ff-board {') && css.includes('.ff-board__switch-btn.is-active'), 'New board shell must be styled');
   assert.ok(css.includes('.ff-podium__slot--1') && css.includes('@keyframes ffCrownBob'), 'Podium must be styled with a bobbing crown');
   assert.ok(css.includes('.ff-row--you'), 'The current user row must be highlighted');

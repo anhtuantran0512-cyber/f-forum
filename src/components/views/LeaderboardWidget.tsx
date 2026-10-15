@@ -7,6 +7,7 @@ import { MagneticButton } from '../MagneticButton';
 import { OdometerDigits } from '../OdometerDigits';
 import { StudyPulsePanel } from '../StudyPulsePanel';
 import { StudyHoursDetail } from '../StudyHoursDetail';
+import './LeaderboardWidget.css';
 import {
   buildStudyLeaderboard,
   computeStudyTotals,
@@ -308,7 +309,14 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
   const meEntry = members.find((m) => m.key === currentUserKey);
   const maxValue = members.length > 0 ? Math.max(members[0].points, members[0].minutes) : 1;
 
-  const myPeriodMinutes = currentUser ? periodMinutes(totals, period) : periodMinutes(totals, period);
+  const myPeriodMinutes = periodMinutes(totals, period);
+  const myPeriodIsEstimated = metric === 'hours'
+    && Boolean(meEntry?.estimated ?? (currentUser && currentUser.xp > 0 && periodMinutes(rawTotals, period) === 0));
+  const scoreMethod = metric === 'hours'
+    ? 'Số phiên thật được ưu tiên; dấu ≈ là ước tính từ XP.'
+    : period === 'all'
+      ? 'Xếp hạng toàn thời gian dựa trên XP tích lũy của tài khoản thật.'
+      : 'Điểm kỳ gồm XP tích lũy, chuỗi học và hoạt động Hỏi đáp, lời giải, trò chuyện.';
 
   const formatValue = (m: LeaderboardMember) =>
     metric === 'hours' ? `${(m.minutes / 60).toFixed(1)} giờ` : `${m.points.toLocaleString()} điểm`;
@@ -336,17 +344,18 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
           <span className="ff-board__crest" aria-hidden="true">
             <Trophy className="w-[18px] h-[18px]" />
           </span>
-          <div className="min-w-0 flex-1">
-            <h3 className="ff-board__title">BẢNG XẾP HẠNG</h3>
-            <p className="ff-board__sub">
-              <span className="ff-board__count">
-                {boardRows.length} thành viên
-              </span>
-            </p>
+          <div className="ff-board__heading-copy">
+            <span className="ff-board__eyebrow"><i aria-hidden="true" /> SỔ THÀNH TÍCH</span>
+            <h3 className="ff-board__title">Bảng xếp hạng</h3>
+            <p className="ff-board__sub">{METRIC_LABELS[metric]} <span aria-hidden="true">·</span> {PERIOD_LABELS[period]}</p>
           </div>
-          {meEntry && (
-            <span className="ff-board__you-badge">#{meEntry.rank}</span>
-          )}
+          <div className="ff-board__head-meta">
+            <span className="ff-board__count" aria-label={`${members.length} thành viên đang xếp hạng`}>
+              <b>{members.length}</b>
+              <small>thành viên</small>
+            </span>
+            {meEntry && <span className="ff-board__you-badge" aria-label={`Vị trí của bạn: hạng ${meEntry.rank}`}>#{meEntry.rank}</span>}
+          </div>
         </div>
 
         {/* Metric switch */}
@@ -380,40 +389,60 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
             </button>
           ))}
         </div>
+        <p className="ff-board__source-note">
+          <span aria-hidden="true">↳</span> {scoreMethod}
+        </p>
 
-        {/* Tổng của bạn bằng đồng hồ cơ */}
-        <div className="ff-board__total">
-          <div className="min-w-0">
+        {/* Tổng cá nhân: giờ ước tính luôn được ghi rõ, tài khoản khách không nhận số 0 giả. */}
+        <div className={`ff-board__total ${myPeriodIsEstimated ? 'is-estimated' : ''}`} role="group" aria-label="Thành tích cá nhân trong kỳ">
+          <div className="ff-board__total-copy">
             <p className="ff-board__total-label">
-              {metric === 'hours' ? `Giờ học của bạn · ${PERIOD_LABELS[period]}` : `Điểm của bạn · ${PERIOD_LABELS[period]}`}
+              {currentUser
+                ? metric === 'hours' ? `Giờ học của bạn · ${PERIOD_LABELS[period]}` : `Điểm của bạn · ${PERIOD_LABELS[period]}`
+                : `Thành tích cá nhân · ${PERIOD_LABELS[period]}`}
             </p>
-            <OdometerDigits
-              value={metric === 'hours' ? myPeriodMinutes / 60 : meEntry?.points ?? 0}
-              decimals={metric === 'hours' ? 1 : 0}
-              unit={metric === 'hours' ? 'giờ' : 'điểm'}
-              size="md"
-              ariaLabel={
-                metric === 'hours'
-                  ? `${(myPeriodMinutes / 60).toFixed(1)} giờ học`
-                  : `${meEntry?.points ?? 0} điểm`
-              }
-            />
+            {currentUser ? (
+              <>
+                {myPeriodIsEstimated && (
+                  <span className="ff-board__estimate-note" title="Chưa có phiên học được ghi trong kỳ này; số giờ được quy đổi từ XP tích lũy.">
+                    ≈ Ước tính từ XP · chưa có phiên thật trong kỳ
+                  </span>
+                )}
+                <OdometerDigits
+                  value={metric === 'hours' ? myPeriodMinutes / 60 : meEntry?.points ?? 0}
+                  decimals={metric === 'hours' ? 1 : 0}
+                  unit={metric === 'hours' ? 'giờ' : 'điểm'}
+                  size="md"
+                  ariaLabel={
+                    metric === 'hours'
+                      ? `${myPeriodIsEstimated ? 'Ước tính ' : ''}${(myPeriodMinutes / 60).toFixed(1)} giờ học`
+                      : `${meEntry?.points ?? 0} điểm`
+                  }
+                />
+              </>
+            ) : (
+              <span className="ff-board__login-note">Đăng nhập để xem thành tích của bạn.</span>
+            )}
           </div>
-          <div className="ff-board__total-side">
-            <span className="ff-board__total-chip inline-flex items-center gap-1">
-              <Flame className="w-3 h-3 text-rose-300" />
-              {totals.streakDays} ngày liên tiếp
-            </span>
-            <span className="ff-board__total-chip inline-flex items-center gap-1">
-              <Clock className="w-3 h-3 text-[#81b29a]" />
-              Hôm nay {totals.todayMinutes}′
-            </span>
-          </div>
+          {currentUser ? (
+            <div className="ff-board__total-side">
+              <span className="ff-board__total-chip inline-flex items-center gap-1">
+                <Flame className="w-3 h-3" />
+                {totals.streakDays} ngày liên tiếp
+              </span>
+              <span className="ff-board__total-chip inline-flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                Hôm nay {totals.todayMinutes}′
+              </span>
+            </div>
+          ) : (
+            <span className="ff-board__total-stamp" aria-hidden="true">HỌC · HỎI · CHIA SẺ</span>
+          )}
         </div>
 
         {/* Podium */}
         {podium.length > 0 ? (
-          <div className="ff-podium" aria-label="Ba vị trí dẫn đầu">
+          <div className="ff-podium" role="group" aria-label="Ba vị trí dẫn đầu">
             {[1, 0, 2].map((slot) => {
               const m = podium[slot];
               if (!m) return <span key={`empty-${slot}`} className="ff-podium__empty" aria-hidden="true" />;
@@ -425,7 +454,9 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                   onClick={() => openProfile(m)}
                   className={`ff-podium__slot ff-podium__slot--${place} group`}
                   title={`Xem hồ sơ của ${m.name}`}
+                  aria-label={`Hạng ${place}: ${m.name}, ${metric === 'hours' && m.estimated ? 'ước tính ' : ''}${formatValue(m)}`}
                 >
+                  <span className="ff-podium__place" aria-hidden="true">HẠNG {place}</span>
                   <span className="ff-podium__medal" aria-hidden="true">
                     {RANK_MEDAL[slot]}
                   </span>
@@ -454,7 +485,12 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                       showFallbackTag
                     />
                   </span>
-                  <span className="ff-podium__value font-mono">{formatValue(m)}</span>
+                  <span className="ff-podium__value font-mono">
+                    {metric === 'hours' && m.estimated && (
+                      <span className="ff-row__est" title="Ước tính từ XP; chưa có phiên học thật trong kỳ">≈</span>
+                    )}
+                    {formatValue(m)}
+                  </span>
                   <span className="ff-podium__plinth" aria-hidden="true">
                     <i style={{ height: `${place === 1 ? 58 : place === 2 ? 40 : 30}px` }} />
                   </span>
@@ -476,7 +512,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
 
         {/* Thang rank: bậc 4 & 5 nối tiếp bục 1-2-3 */}
         {ladderSteps.length > 0 && (
-          <div className="ff-ladder" aria-label="Các bậc tiếp theo của thang rank">
+          <div className="ff-ladder" role="group" aria-label="Các bậc tiếp theo của thang hạng">
             {ladderSteps.map((m, i) => (
               <button
                 key={m.key}
@@ -521,54 +557,69 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
           </div>
         )}
 
-        {/* Danh sách các hạng tiếp theo — cuộn trong khung để trang không dài */}
+        {/* Danh sách cuộn có nhãn và bàn phím; không che mờ/cắt dòng cuối. */}
         {list.length > 0 && (
-          <div className="ff-board__scroll">
-          <ol className="ff-board__list">
-            {list.map((m) => (
-              <li key={m.key}>
-                <button
-                  type="button"
-                  onClick={() => openProfile(m)}
-                  className={`ff-row ${m.isYou ? 'ff-row--you' : ''}`}
-                  title={`Xem hồ sơ của ${m.name}`}
-                >
-                  <span className="ff-row__rank font-mono">{m.rank}</span>
-                  {/* Nhiệm vụ 10 — 30px + trang trí đồng bộ. */}
-                  <DecoratedAvatar
-                    user={ownerOf(m)}
-                    fallbackSrc={m.avatar}
-                    size={30}
-                    alt={m.name}
-                    className="ff-row__avatar"
-                  />
-                  <span className="ff-row__body">
-                    <span className="ff-row__name flex items-center gap-1.5">
-                      <DecoratedName
+          <>
+            <div className="ff-board__list-heading">
+              <span>HẠNG {list[0].rank}–{list[list.length - 1].rank}</span>
+              <span>{list.length} thành viên · cuộn để xem</span>
+            </div>
+            <div
+              className="ff-board__scroll"
+              role="region"
+              tabIndex={0}
+              aria-label={`Danh sách xếp hạng từ vị trí ${list[0].rank} đến ${list[list.length - 1].rank}`}
+            >
+              <ol className="ff-board__list">
+                {list.map((m) => (
+                  <li key={m.key}>
+                    <button
+                      type="button"
+                      onClick={() => openProfile(m)}
+                      className={`ff-row ${m.isYou ? 'ff-row--you' : ''}`}
+                      title={`Xem hồ sơ của ${m.name}`}
+                      aria-label={`Hạng ${m.rank}: ${m.name}, ${metric === 'hours' && m.estimated ? 'ước tính ' : ''}${formatValue(m)}`}
+                    >
+                      <span className="ff-row__rank font-mono">{m.rank}</span>
+                      {/* Nhiệm vụ 10 — 30px + trang trí đồng bộ. */}
+                      <DecoratedAvatar
                         user={ownerOf(m)}
-                        name={m.name.replace(/ \(.*\)/, '')}
-                        width={136}
-                        height={26}
-                        animate
-                        showFallbackTag
+                        fallbackSrc={m.avatar}
+                        size={30}
+                        alt={m.name}
+                        className="ff-row__avatar"
                       />
-                      {m.isYou && <em className="ff-row__you">Bạn</em>}
-                    </span>
-                    <span className="ff-row__track" aria-hidden="true">
-                      <i style={{ width: `${progressOf(m)}%` }} />
-                    </span>
-                  </span>
-                  <span className="ff-row__value font-mono">
-                    {metric === 'hours' && m.estimated && (
-                      <span className="ff-row__est" title="Quy đổi từ XP tích luỹ của tài khoản này">≈</span>
-                    )}
-                    {formatValue(m)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ol>
-          </div>
+                      <span className="ff-row__body">
+                        <span className="ff-row__name flex items-center gap-1.5">
+                          <DecoratedName
+                            user={ownerOf(m)}
+                            name={m.name.replace(/ \(.*\)/, '')}
+                            width={136}
+                            height={26}
+                            animate
+                            showFallbackTag
+                          />
+                          {m.isYou && <em className="ff-row__you">Bạn</em>}
+                        </span>
+                        <span className="ff-row__track" aria-hidden="true">
+                          <i style={{ width: `${progressOf(m)}%` }} />
+                        </span>
+                      </span>
+                      <span className="ff-row__value font-mono">
+                        {metric === 'hours' && m.estimated && (
+                          <span className="ff-row__est" title="Ước tính từ XP; chưa có phiên học thật trong kỳ">≈</span>
+                        )}
+                        {formatValue(m)}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            {members.length > MAX_BOARD_ROWS && (
+              <p className="ff-board__micro">Đang hiển thị {MAX_BOARD_ROWS} trong {members.length} thành viên.</p>
+            )}
+          </>
         )}
 
         {list.length > 0 && (
@@ -651,19 +702,19 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
         <StudyHoursDetail sessions={mySessions} onOpenFocusMode={onOpenFocusMode} />
       )}
 
-      {/* Ask CTA (Bento + Neo-Brutalist + Tactile Squishy) */}
-      <div className="ff-bento-cell !p-4 flex flex-col items-start gap-2.5 relative overflow-hidden">
-        <div className="flex items-center gap-1.5 text-[#f2cc8f] font-bold text-xs font-sans">
-          <Sparkles className="w-3.5 h-3.5 text-[#e07a5f]" />
+      {/* Ask CTA shares the board's paper, ink, and tactile button language. */}
+      <div className="ff-bento-cell ff-board-ask !p-4 flex flex-col items-start gap-2.5 relative overflow-hidden">
+        <div className="ff-board-ask__eyebrow flex items-center gap-1.5 font-bold text-xs font-sans">
+          <Sparkles className="w-3.5 h-3.5" />
           <span>Bạn muốn hỏi điều gì?</span>
         </div>
 
         <MagneticButton
           variant="gold"
           onClick={onOpenAskModal}
-          className="ff-tactile-btn w-full py-2.5 px-4 rounded-xl !bg-[#f4f1de] hover:!bg-[#f2cc8f] text-[#0b0d12] font-extrabold text-xs border-2 border-[#0b0d12] cursor-pointer"
+          className="ff-tactile-btn ff-board-ask__button w-full py-2.5 px-4 rounded-xl text-[#0b0d12] font-extrabold text-xs border-2 cursor-pointer"
         >
-          <HelpCircle className="w-4 h-4 text-[#e07a5f]" />
+          <HelpCircle className="w-4 h-4" />
           <span>Đặt câu hỏi</span>
         </MagneticButton>
       </div>
