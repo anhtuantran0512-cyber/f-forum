@@ -106,6 +106,12 @@ test('Dedicated exam reader embeds PDF attachments inline and toggles its own th
     assert.ok(document.documentElement.classList.contains('light'));
     assert.equal(window.localStorage.getItem('fforum_theme'), 'light');
 
+    window.localStorage.setItem('fforum_theme', 'dark');
+    await act(async () => {
+      window.dispatchEvent(new window.StorageEvent('storage', { key: 'fforum_theme', newValue: 'dark' }));
+    });
+    assert.ok(document.documentElement.classList.contains('dark'), 'a theme change in another tab is synchronized');
+
     const backButton = [...document.querySelectorAll('button')].find((button) => button.textContent.includes('Kho đề thi'));
     assert.ok(backButton, 'reader provides a clear return action');
     await act(async () => {

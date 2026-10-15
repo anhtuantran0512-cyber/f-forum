@@ -29,7 +29,7 @@ import { useUserDecorations, preloadDecorations } from '../utils/decorationStore
 import { NotificationsModal } from './NotificationsModal';
 import { SettingsModal } from './SettingsModal';
 import { safeStorage } from '../utils/storage';
-import { toggleThemeMode } from '../utils/theme';
+import { getThemeMode, toggleThemeMode } from '../utils/theme';
 import { resolveGodrayId, resolvePotatorId } from '../utils/gradients';
 import { DailyEngagementModal } from './DailyEngagementModal';
 import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
@@ -513,6 +513,15 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
     /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [theme]);
+
+  useEffect(() => {
+    const onThemeSync = (event: Event) => {
+      const mode = (event as CustomEvent<{ theme?: string }>).detail?.theme;
+      setTheme(mode === 'light' || mode === 'dark' ? mode : getThemeMode());
+    };
+    window.addEventListener('fforum_theme_sync', onThemeSync);
+    return () => window.removeEventListener('fforum_theme_sync', onThemeSync);
+  }, []);
 
   const handleToggleSoundEffects = () => {
     setSoundEffects((prev) => {
