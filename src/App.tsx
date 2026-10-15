@@ -971,7 +971,11 @@ export const App: React.FC = () => {
     [clubs],
   );
   const isScrollableView =
-    currentView === 'memory' || currentView === 'chronicles' || currentView === 'landing' || currentView === 'exam-vault';
+    currentView === 'qa' ||
+    currentView === 'memory' ||
+    currentView === 'chronicles' ||
+    currentView === 'landing' ||
+    currentView === 'exam-vault';
 
   const activeGodray = GODRAY_PRESETS.find(p => p.id === godrayPreset) || GODRAY_PRESETS[0];
 
@@ -1126,6 +1130,7 @@ export const App: React.FC = () => {
           {currentView === 'qa' && (
             <QAForumView
               currentUser={currentUser}
+              isEmbedded
               questions={questions}
               solutions={solutions}
               comments={comments}

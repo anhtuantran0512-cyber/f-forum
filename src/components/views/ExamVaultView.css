@@ -11,40 +11,48 @@
   width: 100%;
   min-height: 100vh;
   padding-bottom: calc(96px + var(--safe-bottom, 0px));
+  color: #f4f1de;
+  background:
+    radial-gradient(ellipse at 14% 4%, rgba(217, 119, 87, 0.09), transparent 32rem),
+    radial-gradient(ellipse at 88% 18%, rgba(129, 178, 154, 0.07), transparent 36rem),
+    linear-gradient(180deg, #0b0d12 0%, #11151d 48%, #0b0d12 100%);
 }
 
 html.light .ff-exam-vault {
-  background: var(--lv-page, #eef2f8);
-  color: var(--lv-ink, #101827);
+  background:
+    radial-gradient(ellipse at 12% 4%, rgba(217, 119, 87, 0.09), transparent 32rem),
+    radial-gradient(ellipse at 88% 18%, rgba(129, 178, 154, 0.11), transparent 36rem),
+    linear-gradient(180deg, #fbfaf5 0%, #f8f5ec 52%, #f4f0e6 100%);
+  color: #1c1917;
 }
 
 /* Form controls for both themes */
 .ff-exam-select,
 .ff-exam-input {
-  background: #0e1420;
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  transition: all 0.2s ease;
+  background: rgba(18, 22, 32, 0.94);
+  color: #f4f1de;
+  border: 1px solid rgba(244, 241, 222, 0.16);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
 }
 
 .ff-exam-select:focus,
 .ff-exam-input:focus {
-  border-color: rgba(251, 191, 36, 0.7);
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+  border-color: rgba(233, 196, 106, 0.72);
+  box-shadow: 0 0 0 3px rgba(233, 196, 106, 0.16);
 }
 
 html.light .ff-exam-select,
 html.light .ff-exam-input {
-  background: #ffffff;
-  color: #0f172a;
-  border: 1px solid rgba(15, 23, 42, 0.16);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  background: rgba(255, 253, 248, 0.95);
+  color: #1c1917;
+  border: 1px solid rgba(28, 25, 23, 0.16);
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.05);
 }
 
 html.light .ff-exam-select:focus,
 html.light .ff-exam-input:focus {
-  border-color: #d97706;
-  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
+  border-color: #b45335;
+  box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.16);
 }
 
 html.light .ff-exam-select option {
@@ -53,93 +61,71 @@ html.light .ff-exam-select option {
 }
 
 html.light .ff-exam-filter-label {
-  color: #475569;
+  color: #686258;
 }
 
-/* Calligraphic flourish: Chữ viết nét uốn lượn nghệ thuật (thay cho all-caps thô cứng) */
 .ff-calligraphic-flourish {
-  font-family: 'Playfair Display', 'Cormorant Garamond', 'Times New Roman', Georgia, serif;
+  font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
   font-style: italic;
   font-weight: 600;
-  letter-spacing: 0.015em;
+  letter-spacing: 0.005em;
 }
 
 /* Top bar sticky capsule */
 .ff-exam-header-bar {
-  background: linear-gradient(180deg, rgba(13, 18, 28, 0.88), rgba(8, 11, 18, 0.94));
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  box-shadow:
-    0 20px 48px rgba(0, 0, 0, 0.55),
-    0 1px 0 rgba(255, 255, 255, 0.12) inset;
-  backdrop-filter: blur(20px) saturate(1.7);
-  -webkit-backdrop-filter: blur(20px) saturate(1.7);
+  background: rgba(14, 17, 24, 0.9);
+  border-color: rgba(233, 196, 106, 0.16);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(248, 247, 244, 0.08);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
 }
 
 html.light .ff-exam-header-bar {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(241, 245, 249, 0.82));
-  border: 1px solid rgba(15, 23, 42, 0.10);
-  box-shadow:
-    0 18px 44px rgba(15, 23, 42, 0.10),
-    0 1px 0 rgba(255, 255, 255, 0.85) inset;
+  background: rgba(250, 248, 241, 0.92);
+  border-color: rgba(28, 25, 23, 0.12);
+  box-shadow: 0 8px 24px rgba(28, 25, 23, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 /* Hero Search Pod */
 .ff-exam-hero-search {
-  background: radial-gradient(120% 120% at 50% 0%, rgba(30, 41, 59, 0.45) 0%, rgba(15, 23, 42, 0.65) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow:
-    0 24px 60px -12px rgba(0, 0, 0, 0.6),
-    0 0 40px -10px rgba(56, 189, 248, 0.15),
-    0 1px 0 rgba(255, 255, 255, 0.15) inset;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: linear-gradient(145deg, rgba(24, 29, 40, 0.94), rgba(14, 17, 24, 0.92));
+  border: 1px solid rgba(233, 196, 106, 0.24);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(248, 247, 244, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 html.light .ff-exam-hero-search {
-  background: radial-gradient(120% 120% at 50% 0%, rgba(255, 255, 255, 0.95) 0%, rgba(241, 245, 249, 0.90) 100%);
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  box-shadow:
-    0 20px 48px -10px rgba(15, 23, 42, 0.12),
-    0 0 35px -8px rgba(14, 165, 233, 0.15),
-    0 1px 0 rgba(255, 255, 255, 0.95) inset;
+  background: linear-gradient(145deg, rgba(255, 253, 248, 0.98), rgba(247, 244, 236, 0.94));
+  border-color: rgba(28, 25, 23, 0.14);
+  box-shadow: 0 10px 28px rgba(28, 25, 23, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 /* Exam Card */
 .ff-exam-card {
-  background: linear-gradient(165deg, rgba(20, 27, 40, 0.72) 0%, rgba(11, 15, 25, 0.82) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0 14px 34px -8px rgba(0, 0, 0, 0.5),
-    0 1px 0 rgba(255, 255, 255, 0.08) inset;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease, border-color 0.28s ease;
+  min-width: 0;
+  min-height: 100%;
+  background: linear-gradient(155deg, rgba(23, 28, 39, 0.96), rgba(15, 19, 28, 0.98));
+  border: 1px solid rgba(244, 241, 222, 0.14);
+  box-shadow: 3px 3px 0 rgba(4, 6, 11, 0.78), inset 0 1px 0 rgba(248, 247, 244, 0.08);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .ff-exam-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(251, 191, 36, 0.32);
-  box-shadow:
-    0 22px 50px -10px rgba(0, 0, 0, 0.65),
-    0 0 25px -4px rgba(251, 191, 36, 0.12),
-    0 1px 0 rgba(255, 255, 255, 0.18) inset;
+  transform: translateY(-2px);
+  border-color: rgba(233, 196, 106, 0.36);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25), 3px 3px 0 rgba(4, 6, 11, 0.78), inset 0 1px 0 rgba(248, 247, 244, 0.1);
 }
 
 html.light .ff-exam-card {
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.92) 0%, rgba(248, 250, 252, 0.86) 100%);
-  border: 1px solid rgba(15, 23, 42, 0.09);
-  box-shadow:
-    0 12px 30px -8px rgba(15, 23, 42, 0.09),
-    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+  background: linear-gradient(155deg, rgba(255, 253, 248, 0.98), rgba(248, 245, 236, 0.96));
+  border-color: rgba(28, 25, 23, 0.16);
+  box-shadow: 3px 3px 0 rgba(28, 25, 23, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 html.light .ff-exam-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(180, 83, 9, 0.35);
-  box-shadow:
-    0 20px 44px -8px rgba(15, 23, 42, 0.16),
-    0 0 25px -4px rgba(245, 158, 11, 0.15),
-    0 1px 0 rgba(255, 255, 255, 1) inset;
+  border-color: rgba(180, 83, 53, 0.4);
+  box-shadow: 0 12px 28px rgba(28, 25, 23, 0.1), 3px 3px 0 rgba(28, 25, 23, 0.12), inset 0 1px 0 #fff;
 }
 
 /* Filter pills */
@@ -173,159 +159,93 @@ html.light .ff-filter-pill.is-active {
 }
 
 /* Subject tags color harmony */
-.ff-sub-badge--toan {
-  background: rgba(56, 189, 248, 0.15);
-  color: #7dd3fc;
-  border-color: rgba(56, 189, 248, 0.35);
-}
-html.light .ff-sub-badge--toan {
-  background: rgba(14, 165, 233, 0.12);
-  color: #0369a1;
-  border-color: rgba(14, 165, 233, 0.35);
-}
-
-.ff-sub-badge--ly {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fde68a;
-  border-color: rgba(245, 158, 11, 0.35);
-}
-html.light .ff-sub-badge--ly {
-  background: rgba(217, 119, 6, 0.12);
-  color: #b45309;
-  border-color: rgba(217, 119, 6, 0.35);
-}
-
-.ff-sub-badge--hoa {
-  background: rgba(168, 85, 247, 0.15);
-  color: #e9d5ff;
-  border-color: rgba(168, 85, 247, 0.35);
-}
-html.light .ff-sub-badge--hoa {
-  background: rgba(147, 51, 234, 0.12);
-  color: #7e22ce;
-  border-color: rgba(147, 51, 234, 0.35);
-}
-
-.ff-sub-badge--sinh {
-  background: rgba(34, 197, 94, 0.15);
-  color: #bbf7d0;
-  border-color: rgba(34, 197, 94, 0.35);
-}
-html.light .ff-sub-badge--sinh {
-  background: rgba(22, 163, 74, 0.12);
-  color: #15803d;
-  border-color: rgba(22, 163, 74, 0.35);
-}
-
-.ff-sub-badge--van {
-  background: rgba(244, 63, 94, 0.15);
-  color: #fecdd3;
-  border-color: rgba(244, 63, 94, 0.35);
-}
-html.light .ff-sub-badge--van {
-  background: rgba(225, 29, 72, 0.12);
-  color: #be123c;
-  border-color: rgba(225, 29, 72, 0.35);
-}
-
-.ff-sub-badge--anh {
-  background: rgba(20, 184, 166, 0.15);
-  color: #99f6e4;
-  border-color: rgba(20, 184, 166, 0.35);
-}
-html.light .ff-sub-badge--anh {
-  background: rgba(13, 148, 136, 0.12);
-  color: #0f766e;
-  border-color: rgba(13, 148, 136, 0.35);
-}
-
-.ff-sub-badge--su {
-  background: rgba(249, 115, 22, 0.15);
-  color: #fed7aa;
-  border-color: rgba(249, 115, 22, 0.35);
-}
-html.light .ff-sub-badge--su {
-  background: rgba(234, 88, 12, 0.12);
-  color: #c2410c;
-  border-color: rgba(234, 88, 12, 0.35);
-}
-
-.ff-sub-badge--dia {
-  background: rgba(16, 185, 129, 0.15);
-  color: #a7f3d0;
-  border-color: rgba(16, 185, 129, 0.35);
-}
-html.light .ff-sub-badge--dia {
-  background: rgba(5, 150, 105, 0.12);
-  color: #047857;
-  border-color: rgba(5, 150, 105, 0.35);
-}
-
+.ff-sub-badge--toan,
+.ff-sub-badge--sinh,
+.ff-sub-badge--anh,
+.ff-sub-badge--dia,
 .ff-sub-badge--tin {
-  background: rgba(99, 102, 241, 0.15);
-  color: #c7d2fe;
-  border-color: rgba(99, 102, 241, 0.35);
-}
-html.light .ff-sub-badge--tin {
-  background: rgba(79, 70, 229, 0.12);
-  color: #4338ca;
-  border-color: rgba(79, 70, 229, 0.35);
+  background: rgba(129, 178, 154, 0.16);
+  color: #d8f3dc;
+  border-color: rgba(129, 178, 154, 0.4);
 }
 
-.ff-sub-badge--gdcd {
-  background: rgba(234, 179, 8, 0.15);
-  color: #fef08a;
-  border-color: rgba(234, 179, 8, 0.35);
+html.light .ff-sub-badge--toan,
+html.light .ff-sub-badge--sinh,
+html.light .ff-sub-badge--anh,
+html.light .ff-sub-badge--dia,
+html.light .ff-sub-badge--tin {
+  background: rgba(129, 178, 154, 0.2);
+  color: #365845;
+  border-color: rgba(76, 123, 95, 0.34);
 }
+
+.ff-sub-badge--ly,
+.ff-sub-badge--su,
+.ff-sub-badge--gdcd {
+  background: rgba(233, 196, 106, 0.15);
+  color: #f2cc8f;
+  border-color: rgba(233, 196, 106, 0.4);
+}
+
+html.light .ff-sub-badge--ly,
+html.light .ff-sub-badge--su,
 html.light .ff-sub-badge--gdcd {
-  background: rgba(202, 138, 4, 0.12);
-  color: #a16207;
-  border-color: rgba(202, 138, 4, 0.35);
+  background: rgba(233, 196, 106, 0.22);
+  color: #77551f;
+  border-color: rgba(160, 117, 38, 0.35);
+}
+
+.ff-sub-badge--hoa,
+.ff-sub-badge--van {
+  background: rgba(217, 119, 87, 0.16);
+  color: #f1b8a4;
+  border-color: rgba(217, 119, 87, 0.4);
+}
+
+html.light .ff-sub-badge--hoa,
+html.light .ff-sub-badge--van {
+  background: rgba(217, 119, 87, 0.16);
+  color: #8b422f;
+  border-color: rgba(180, 83, 53, 0.32);
 }
 
 /* Difficulty badges color harmony */
-.ff-diff-badge--nhan-biet {
-  background: rgba(16, 185, 129, 0.15);
-  color: #6ee7b7;
-  border-color: rgba(16, 185, 129, 0.35);
-}
-html.light .ff-diff-badge--nhan-biet {
-  background: rgba(16, 185, 129, 0.12);
-  color: #047857;
-  border-color: rgba(16, 185, 129, 0.35);
+.ff-diff-badge--nhan-biet,
+.ff-diff-badge--thong-hieu {
+  background: rgba(129, 178, 154, 0.16);
+  color: #d8f3dc;
+  border-color: rgba(129, 178, 154, 0.4);
 }
 
-.ff-diff-badge--thong-hieu {
-  background: rgba(14, 165, 233, 0.15);
-  color: #7dd3fc;
-  border-color: rgba(14, 165, 233, 0.35);
-}
+html.light .ff-diff-badge--nhan-biet,
 html.light .ff-diff-badge--thong-hieu {
-  background: rgba(14, 165, 233, 0.12);
-  color: #0369a1;
-  border-color: rgba(14, 165, 233, 0.35);
+  background: rgba(129, 178, 154, 0.2);
+  color: #365845;
+  border-color: rgba(76, 123, 95, 0.34);
 }
 
 .ff-diff-badge--van-dung {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fde68a;
-  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(233, 196, 106, 0.15);
+  color: #f2cc8f;
+  border-color: rgba(233, 196, 106, 0.4);
 }
+
 html.light .ff-diff-badge--van-dung {
-  background: rgba(217, 119, 6, 0.12);
-  color: #b45309;
-  border-color: rgba(217, 119, 6, 0.35);
+  background: rgba(233, 196, 106, 0.22);
+  color: #77551f;
+  border-color: rgba(160, 117, 38, 0.35);
 }
 
 .ff-diff-badge--van-dung-cao {
-  background: rgba(244, 63, 94, 0.15);
-  color: #fecdd3;
-  border-color: rgba(244, 63, 94, 0.35);
+  background: rgba(217, 119, 87, 0.16);
+  color: #f1b8a4;
+  border-color: rgba(217, 119, 87, 0.4);
 }
+
 html.light .ff-diff-badge--van-dung-cao {
-  background: rgba(225, 29, 72, 0.12);
-  color: #be123c;
-  border-color: rgba(225, 29, 72, 0.35);
+  background: rgba(217, 119, 87, 0.16);
+  color: #8b422f;
+  border-color: rgba(180, 83, 53, 0.32);
 }
 
 /* Modal Surface */
@@ -357,8 +277,8 @@ html.light .ff-exam-modal {
 }
 
 .ff-exam-progress-bar {
-  background: linear-gradient(90deg, #f59e0b, #e11d48, #3b82f6, #10b981);
-  background-size: 300% 300%;
+  background: linear-gradient(90deg, #81b29a, #e9c46a, #d97757);
+  background-size: 200% 100%;
   animation: ffExamProgressPulse 3s ease infinite;
 }
 
@@ -466,3 +386,195 @@ html.light .ff-cached-pill {
 }
 
 
+
+
+.ff-exam-eyebrow {
+  border: 1px solid rgba(233, 196, 106, 0.28);
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  background: rgba(233, 196, 106, 0.08);
+  color: #e9c46a;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+html.light .ff-exam-eyebrow {
+  border-color: rgba(180, 83, 53, 0.22);
+  background: rgba(217, 119, 87, 0.08);
+  color: #8b422f;
+}
+
+.ff-exam-title {
+  color: #f4f1de;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(2rem, 4vw, 3.35rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.ff-exam-title .ff-calligraphic-flourish {
+  color: #e9c46a;
+  font-size: 1.08em;
+  font-weight: 600;
+}
+
+html.light .ff-exam-title {
+  color: #1c1917;
+}
+
+html.light .ff-exam-title .ff-calligraphic-flourish {
+  color: #9a553a;
+}
+
+.ff-exam-filter-panel {
+  border: 1px solid rgba(244, 241, 222, 0.14);
+  border-radius: 1.25rem;
+  background: rgba(17, 21, 30, 0.78);
+  box-shadow: 3px 3px 0 rgba(4, 6, 11, 0.48), inset 0 1px 0 rgba(248, 247, 244, 0.06);
+}
+
+html.light .ff-exam-filter-panel {
+  border-color: rgba(28, 25, 23, 0.12);
+  background: rgba(255, 253, 248, 0.78);
+  box-shadow: 3px 3px 0 rgba(28, 25, 23, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.ff-exam-filter-toggle {
+  border-color: rgba(233, 196, 106, 0.26);
+  background: rgba(233, 196, 106, 0.08);
+  color: #e9c46a;
+}
+
+.ff-exam-filter-toggle:hover,
+.ff-exam-filter-toggle.is-active {
+  border-color: rgba(233, 196, 106, 0.52);
+  background: rgba(233, 196, 106, 0.16);
+  color: #f4f1de;
+}
+
+html.light .ff-exam-filter-toggle {
+  border-color: rgba(180, 83, 53, 0.24);
+  background: rgba(217, 119, 87, 0.07);
+  color: #8b422f;
+}
+
+html.light .ff-exam-filter-toggle:hover,
+html.light .ff-exam-filter-toggle.is-active {
+  border-color: rgba(180, 83, 53, 0.4);
+  background: rgba(217, 119, 87, 0.13);
+  color: #713b2a;
+}
+
+.ff-exam-filter-count {
+  display: inline-flex;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #e9c46a;
+  color: #17150f;
+  font-size: 0.65rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ff-exam-advanced-filters {
+  border-top: 1px solid rgba(244, 241, 222, 0.1);
+  padding-top: 0.85rem;
+}
+
+html.light .ff-exam-advanced-filters {
+  border-color: rgba(28, 25, 23, 0.1);
+}
+
+.ff-exam-quick-search {
+  scrollbar-width: none;
+}
+
+.ff-exam-quick-search::-webkit-scrollbar {
+  display: none;
+}
+
+.ff-exam-active-filters {
+  border-top: 1px solid rgba(244, 241, 222, 0.1);
+  padding-top: 0.75rem;
+}
+
+html.light .ff-exam-active-filters {
+  border-color: rgba(28, 25, 23, 0.1);
+}
+
+.ff-exam-result-count {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  border: 1px solid rgba(233, 196, 106, 0.25);
+  border-radius: 999px;
+  padding: 0.25rem 0.8rem;
+  background: rgba(233, 196, 106, 0.08);
+  color: #f2cc8f;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+html.light .ff-exam-result-count {
+  border-color: rgba(180, 83, 53, 0.2);
+  background: rgba(217, 119, 87, 0.08);
+  color: #713b2a;
+}
+
+.ff-exam-card-title {
+  font-family: "Playfair Display", Georgia, serif;
+  letter-spacing: -0.018em;
+  text-wrap: pretty;
+}
+
+html.light .ff-exam-card-title {
+  color: #29241e;
+}
+
+.ff-exam-card:focus-visible {
+  outline: none;
+  border-color: #e9c46a;
+  box-shadow: 0 0 0 3px rgba(233, 196, 106, 0.4), 3px 3px 0 rgba(4, 6, 11, 0.62);
+}
+
+html.light .ff-exam-card:focus-visible {
+  border-color: #9a553a;
+  box-shadow: 0 0 0 3px rgba(154, 85, 58, 0.24), 3px 3px 0 rgba(28, 25, 23, 0.12);
+}
+
+.ff-exam-vault :is(button, select, input):focus-visible {
+  outline: 2px solid rgba(233, 196, 106, 0.86);
+  outline-offset: 2px;
+}
+
+html.light .ff-exam-vault :is(button, select, input):focus-visible {
+  outline-color: rgba(154, 85, 58, 0.8);
+}
+
+@media (max-width: 640px) {
+  .ff-exam-filter-panel {
+    border-radius: 1rem;
+  }
+
+  .ff-exam-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-exam-card,
+  .ff-exam-filter-toggle,
+  .ff-exam-quick-search button {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

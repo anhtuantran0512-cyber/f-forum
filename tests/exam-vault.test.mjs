@@ -211,7 +211,7 @@ test('12. Interactive CBT Practice Mode: Ngân hàng câu hỏi, chọn A/B/C/D,
   assert.ok(cbtModal.includes('ring-2 ring-amber-400'), 'Must highlight active question button in review mode palette');
 
   /* Functional verification using node import */
-  const { getExamCBTQuestions, SEED_CBT_QUESTIONS } = await import('../src/components/exam/cbtData.ts');
+  const { getExamCBTQuestions } = await import('../src/components/exam/cbtData.ts');
   const mockPaper = {
     id: 'ex-01',
     title: 'Đề thi Toán 12',
@@ -333,5 +333,18 @@ test('15. Kỷ luật mã nguồn tuyệt đối: Zero // Comments, Bản quyề
   });
 });
 
+test('16. QA dùng cuộn toàn trang, nền cố định và thẻ ảo giữ đúng chiều cao', () => {
+  const app = read('src/App.tsx');
+  const qa = read('src/components/views/QAForumView.tsx');
+  const exam = read('src/components/views/ExamVaultView.tsx');
+  const examCss = read('src/components/views/ExamVaultView.css');
 
-
+  assert.ok(app.includes("currentView === 'qa' ||"), 'QA phải dùng cùng mô hình cuộn toàn trang với Kho Đề');
+  assert.ok(app.includes('              isEmbedded\n'), 'QA route phải bỏ cuộn lồng bên trong');
+  assert.ok(qa.includes('ff-qa-bg ff-raw-grid-surface fixed'), 'Nền QA phải đứng yên khi cuộn');
+  assert.ok(qa.includes('questionHeightCacheRef'), 'Thẻ ảo phải giữ chiều cao đã đo để tránh nhảy trang');
+  assert.ok(qa.includes('window.scrollTo({ top: savedListScrollTopRef.current'), 'Đóng chi tiết phải khôi phục vị trí cuộn');
+  assert.ok(exam.includes('aria-expanded={isAdvancedFiltersOpen}'), 'Bộ lọc phụ phải có trạng thái truy cập được');
+  assert.ok(exam.includes('getCompactPaperTitle'), 'Thẻ đề phải rút gọn tiêu đề lặp');
+  assert.ok(examCss.includes('.ff-exam-filter-panel'), 'Bộ lọc dùng một bề mặt thống nhất');
+});
