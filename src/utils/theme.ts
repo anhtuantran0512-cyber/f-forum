@@ -27,3 +27,14 @@ export const setThemeMode = (mode: ThemeMode): ThemeMode => {
 
 export const toggleThemeMode = (): ThemeMode =>
   setThemeMode(getThemeMode() === 'dark' ? 'light' : 'dark');
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event: StorageEvent) => {
+    if (event.key !== 'fforum_theme' || (event.newValue !== 'light' && event.newValue !== 'dark')) return;
+    const mode = event.newValue as ThemeMode;
+    document.documentElement.classList.toggle('light', mode === 'light');
+    document.documentElement.classList.toggle('dark', mode === 'dark');
+    document.documentElement.style.colorScheme = mode;
+    window.dispatchEvent(new CustomEvent('fforum_theme_sync', { detail: { theme: mode } }));
+  });
+}
