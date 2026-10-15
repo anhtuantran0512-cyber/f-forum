@@ -131,6 +131,12 @@ interface ProfileModalProps {
 
 type TabType = 'overview' | 'card' | 'stats' | 'shop' | 'activity' | 'edit';
 
+const profileActivityTimestamp = (createdAt?: string, createdAtMs?: number): number => {
+  if (typeof createdAtMs === 'number' && Number.isFinite(createdAtMs)) return createdAtMs;
+  const parsed = Date.parse(createdAt || '');
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 interface SystemBadge {
   id: string;
   name: string;
@@ -284,7 +290,11 @@ const ProfileModalInner: React.FC<{
   solutions = [],
   shopOwnership,
 }) => {
-  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+  const isSuperAdmin = isMasterAdmin(currentUser.email) || currentUser.role === 'SUPER_ADMIN';
+  const isOwnProfile = !viewerUser || viewerUser.id === currentUser.id;
+  const [requestedTab, setRequestedTab] = useState<TabType>(initialTab);
+  const activeTab = !isOwnProfile && requestedTab === 'edit' ? 'overview' : requestedTab;
+  const setActiveTab = setRequestedTab;
 
   /* Hộp thoại này khai báo aria-modal="true" nhưng trước đây không có đường
      thoát bằng phím: screen reader coi phần còn lại của trang là không tồn tại,
@@ -326,9 +336,6 @@ const ProfileModalInner: React.FC<{
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [reportSuccess, setReportSuccess] = useState<string | null>(null);
   const [reportErrorMsg, setReportErrorMsg] = useState<string | null>(null);
-
-  const isSuperAdmin = isMasterAdmin(currentUser.email) || currentUser.role === 'SUPER_ADMIN';
-  const isOwnProfile = !viewerUser || viewerUser.id === currentUser.id;
 
   /* GUI nhỏ "Bảng rank · danh hiệu · yêu cầu" mở từ khối Danh hiệu */
   const [isRankSheetOpen, setIsRankSheetOpen] = useState(false);
@@ -478,6 +485,22 @@ const ProfileModalInner: React.FC<{
     () => solutions.filter((s) => s.authorId === currentUser.id),
     [solutions, currentUser.id]
   );
+  const profileActivity = useMemo(() => [
+    ...userQuestions.map((question) => ({
+      id: `question:${question.id}`,
+      kind: 'question' as const,
+      createdAt: question.createdAt,
+      timestamp: profileActivityTimestamp(question.createdAt, question.createdAtMs),
+      question,
+    })),
+    ...userSolutions.map((solution) => ({
+      id: `solution:${solution.id}`,
+      kind: 'solution' as const,
+      createdAt: solution.createdAt,
+      timestamp: profileActivityTimestamp(solution.createdAt, solution.createdAtMs),
+      solution,
+    })),
+  ].sort((a, b) => b.timestamp - a.timestamp), [userQuestions, userSolutions]);
 
   /* Per-subject real solution counts (0 when user hasn't answered any) */
   const subjectCounts = useMemo(() => {
@@ -973,7 +996,7 @@ const ProfileModalInner: React.FC<{
       className="fixed inset-0 z-[80] flex items-center justify-center p-2 sm:p-4 bg-black/45 backdrop-blur-md animate-fade-up"
       role="dialog"
       aria-modal="true"
-      aria-label={`Hồ sơ cá nhân của ${currentUser.name}`}
+      aria-labelledby="profile-modal-title"
     >
       {/* Translucent Backdrop — lets the outside campus scene softly shine through */}
       <button
@@ -985,95 +1008,130 @@ const ProfileModalInner: React.FC<{
       />
 
       {/* Main Card Container — Spacious max-w-5xl Academic Shell */}
-      <div className={`pc-12-shell ff-keep-dark signature-profile ${equippedItem?.category === 'Khung avatar' ? 'signature-profile--frame' : equippedItem?.category === 'Hiệu ứng' ? 'signature-profile--effect' : ''} w-full max-w-5xl rounded-[26px] p-4 sm:p-6 relative z-10 overflow-hidden max-h-[94vh] flex flex-col`}>
-        {/* Navigation Tabs Header */}
-        <div className="relative z-10 flex items-center justify-between pb-3 border-b border-dashed border-[#f4f1de]/15 mb-3 gap-2.5 shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#81b29a]" />
-            <h2 className="text-sm sm:text-base font-extrabold text-[#f8f7f4] tracking-wide truncate">
-              {currentUser.name.replace(/ \(.*\)/, '')}
-            </h2>
-            <span className="pc-12-pill text-[10px] font-mono px-2 py-0.5 text-[#f2cc8f]">
+      <div className={`pc-12-shell ff-keep-dark signature-profile profile-modal-shell ${equippedItem?.category === 'Khung avatar' ? 'signature-profile--frame' : equippedItem?.category === 'Hiệu ứng' ? 'signature-profile--effect' : ''} w-full max-w-5xl rounded-[26px] p-4 sm:p-6 relative z-10 overflow-hidden max-h-[94vh] flex flex-col`}>
+        {/* Navigation tabs: labeled so profile areas are discoverable beyond their icons. */}
+        <div className="profile-modal-header relative z-10 flex items-center justify-between pb-3 border-b border-dashed border-[#f4f1de]/15 mb-3 gap-2.5 shrink-0">
+          <div className="profile-modal-identity flex items-center gap-2 min-w-0">
+            <span className="profile-modal-status-dot w-2.5 h-2.5 rounded-full bg-[#81b29a]" aria-hidden="true" />
+            <div className="min-w-0">
+              <span className="profile-modal-kicker">F·FORUM / HỒ SƠ HỌC TẬP</span>
+              <h2 id="profile-modal-title" className="profile-modal-name text-sm sm:text-base font-extrabold text-[#f8f7f4] tracking-wide truncate">
+                {currentUser.name.replace(/ \(.*\)/, '')}
+              </h2>
+            </div>
+            <span className="profile-modal-level pc-12-pill text-[10px] font-mono px-2 py-0.5 text-[#f2cc8f]">
               Lv.{currentUser.level}
             </span>
           </div>
 
-          <div className="flex items-center justify-end gap-1.5 overflow-x-auto no-scrollbar">
-            <div className="pc-12-well flex items-center p-1 rounded-xl shrink-0 gap-1">
+          <div className="profile-modal-actions flex items-center justify-end gap-1.5 overflow-x-auto no-scrollbar">
+            <div
+              className="profile-modal-tabs pc-12-well flex items-center p-1 rounded-xl shrink-0 gap-1"
+              role="tablist"
+              aria-label="Các mục hồ sơ"
+              onKeyDown={(event) => {
+                if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+                const currentTarget = event.target instanceof HTMLElement
+                  ? event.target.closest<HTMLButtonElement>('[role="tab"]')
+                  : null;
+                if (!currentTarget) return;
+                const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+                const currentIndex = tabs.indexOf(currentTarget);
+                if (currentIndex < 0 || tabs.length === 0) return;
+                event.preventDefault();
+                const nextIndex = event.key === 'Home'
+                  ? 0
+                  : event.key === 'End'
+                    ? tabs.length - 1
+                    : (currentIndex + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+                tabs[nextIndex].focus();
+                tabs[nextIndex].click();
+              }}
+            >
               <button
+                id="profile-tab-overview"
                 type="button"
+                role="tab"
+                aria-controls="profile-tab-panel"
+                aria-selected={activeTab === 'overview'}
+                tabIndex={activeTab === 'overview' ? 0 : -1}
                 onClick={() => setActiveTab('overview')}
                 title="Hồ sơ"
-                aria-label="Hồ sơ"
-                className={`p-2 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
-                  activeTab === 'overview'
-                    ? 'bg-[#e07a5f] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
-                    : 'text-[#9a978e] hover:text-[#f4f1de]'
-                }`}
+                className="profile-modal-tab"
               >
-                <UserIcon className="w-4 h-4" />
+                <UserIcon className="w-4 h-4" aria-hidden="true" /><span>Hồ sơ</span>
               </button>
-
               <button
+                id="profile-tab-stats"
                 type="button"
+                role="tab"
+                aria-controls="profile-tab-panel"
+                aria-selected={activeTab === 'stats'}
+                tabIndex={activeTab === 'stats' ? 0 : -1}
+                onClick={() => setActiveTab('stats')}
+                title="Thành tích"
+                className="profile-modal-tab"
+              >
+                <BarChart3 className="w-4 h-4" aria-hidden="true" /><span>Thành tích</span>
+              </button>
+              <button
+                id="profile-tab-card"
+                type="button"
+                role="tab"
+                aria-controls="profile-tab-panel"
+                aria-selected={activeTab === 'card'}
+                tabIndex={activeTab === 'card' ? 0 : -1}
                 onClick={() => setActiveTab('card')}
                 title="Thẻ F-Pass"
-                aria-label="Thẻ F-Pass"
-                className={`p-2 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
-                  activeTab === 'card'
-                    ? 'bg-[#f2cc8f] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
-                    : 'text-[#9a978e] hover:text-[#f4f1de]'
-                }`}
+                className="profile-modal-tab"
               >
-                <CreditCard className="w-4 h-4" />
+                <CreditCard className="w-4 h-4" aria-hidden="true" /><span>F-Pass</span>
               </button>
-
               <button
+                id="profile-tab-shop"
                 type="button"
+                role="tab"
+                aria-controls="profile-tab-panel"
+                aria-selected={activeTab === 'shop'}
+                tabIndex={activeTab === 'shop' ? 0 : -1}
                 onClick={() => setActiveTab('shop')}
                 title="Cửa hàng"
-                aria-label="Cửa hàng"
-                className={`p-2 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
-                  activeTab === 'shop'
-                    ? 'bg-[#f2cc8f] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
-                    : 'text-[#9a978e] hover:text-[#f4f1de]'
-                }`}
+                className="profile-modal-tab"
               >
-                <ShoppingBag className="w-4 h-4" />
+                <ShoppingBag className="w-4 h-4" aria-hidden="true" /><span>Cửa hàng</span>
               </button>
-
               <button
+                id="profile-tab-activity"
                 type="button"
+                role="tab"
+                aria-controls="profile-tab-panel"
+                aria-selected={activeTab === 'activity'}
+                tabIndex={activeTab === 'activity' ? 0 : -1}
                 onClick={() => setActiveTab('activity')}
                 title="Hoạt động"
-                aria-label="Hoạt động"
-                className={`p-2 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
-                  activeTab === 'activity'
-                    ? 'bg-[#f2cc8f] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
-                    : 'text-[#9a978e] hover:text-[#f4f1de]'
-                }`}
+                className="profile-modal-tab"
               >
-                <Activity className="w-4 h-4" />
+                <Activity className="w-4 h-4" aria-hidden="true" /><span>Hoạt động</span>
               </button>
-
               {isOwnProfile && (
                 <button
+                  id="profile-tab-edit"
                   type="button"
+                  role="tab"
+                  aria-controls="profile-tab-panel"
+                  aria-selected={activeTab === 'edit'}
+                  tabIndex={activeTab === 'edit' ? 0 : -1}
                   onClick={() => setActiveTab('edit')}
                   title="Cài đặt"
-                  aria-label="Cài đặt"
-                  className={`p-2 rounded-lg transition-all cursor-pointer flex items-center justify-center ${
-                    activeTab === 'edit'
-                      ? 'bg-[#f2cc8f] text-[#0b0d12] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
-                      : 'text-[#9a978e] hover:text-[#f4f1de]'
-                  }`}
+                  className="profile-modal-tab"
                 >
-                  <SlidersHorizontal className="w-4 h-4" />
+                  <SlidersHorizontal className="w-4 h-4" aria-hidden="true" /><span>Cài đặt</span>
                 </button>
               )}
             </div>
 
             <button
+              type="button"
               onClick={onClose}
               className="pc-12-btn p-2 rounded-lg text-[#d8d5ce] hover:text-[#f4f1de] transition-colors cursor-pointer shrink-0"
               aria-label="Đóng cửa sổ"
@@ -1084,7 +1142,7 @@ const ProfileModalInner: React.FC<{
         </div>
 
         {errorMsg && (
-          <div className="relative z-10 mb-3 p-2.5 rounded-xl bg-red-950/50 border border-red-500/30 text-xs text-red-300 flex items-center gap-2 shrink-0">
+          <div role="alert" className="profile-modal-error relative z-10 mb-3 p-2.5 rounded-xl bg-red-950/50 border border-red-500/30 text-xs text-red-300 flex items-center gap-2 shrink-0">
             <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
             <span>{errorMsg}</span>
           </div>
@@ -1092,8 +1150,13 @@ const ProfileModalInner: React.FC<{
 
         {/* Tab Content Container — khoá cuộn trang tuyệt đối khi đang kéo/lăn chuột chỉnh ảnh */}
         <div
+          id="profile-tab-panel"
+          role="tabpanel"
+          aria-labelledby={`profile-tab-${activeTab}`}
+          aria-busy={isBooting}
+          tabIndex={0}
           data-profile-scroll-container="true"
-          className={`relative z-10 flex-1 ${
+          className={`profile-modal-content relative z-10 flex-1 ${
             isAdjustingBanner || Boolean(fbCropModal)
               ? 'overflow-y-hidden overscroll-contain'
               : 'overflow-y-auto'
@@ -2178,7 +2241,97 @@ const ProfileModalInner: React.FC<{
             </div>
           )}
 
-          {/* TAB 2: 3D Hologram Student Card */}
+          {activeTab === 'stats' && (
+            <div className="profile-statistics space-y-4 ff-tab-panel-enter">
+              <section className="pc-12-card profile-statistics-hero p-4 sm:p-5">
+                <div className="profile-statistics-heading">
+                  <div>
+                    <span className="profile-modal-kicker">SỔ THEO DÕI / HỎI ĐÁP</span>
+                    <h3>Hành trình học tập</h3>
+                    <p>Các chỉ số lấy từ hoạt động và hồ sơ đang có.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('activity')}
+                    className="pc-12-btn profile-statistics-link"
+                  >
+                    <Activity className="w-4 h-4" aria-hidden="true" />
+                    <span>Xem hoạt động</span>
+                  </button>
+                </div>
+
+                <div className="signature-stats-wrap mt-5">
+                  <div className="signature-stats-heading">
+                    <span>Thành tích</span>
+                    <span>Hồ sơ hiện tại</span>
+                  </div>
+                  <div className="signature-stats-grid">
+                    {([
+                      { label: 'Điểm số', value: statsMetrics.xp, icon: <Sparkles size={19} />, detail: 'XP', featured: true },
+                      { label: 'Cảm ơn', value: statsMetrics.thanks, icon: <Heart size={19} />, detail: 'Cảm ơn' },
+                      { label: 'Hay nhất', value: statsMetrics.bestSolutions, icon: <Award size={19} />, detail: 'Đáp án được chọn', featured: true },
+                      { label: '5 Sao', value: statsMetrics.fiveStar, icon: <Star size={19} />, detail: '5 Sao' },
+                      { label: 'Xác thực', value: statsMetrics.verified, icon: <CheckCircle2 size={19} />, detail: 'Xác thực' },
+                      { label: 'Đã giúp', value: statsMetrics.helped, icon: <Users size={19} />, detail: 'Đã giúp' },
+                    ] as const).map((metric) => (
+                      <PremiumStat key={metric.label} {...metric} />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="profile-statistics-totals" role="group" aria-label="Tổng hoạt động hỏi đáp">
+                  <span><strong>{userQuestions.length}</strong> câu hỏi đã đăng</span>
+                  <span><strong>{statsMetrics.answersCount}</strong> lời giải đã gửi</span>
+                  <span><strong>{statsMetrics.bestSolutions}</strong> đáp án hay nhất</span>
+                </div>
+              </section>
+
+              <section className="pc-12-card profile-subject-panel p-4 sm:p-5">
+                <div className="profile-statistics-heading">
+                  <div>
+                    <span className="profile-modal-kicker">BẢN ĐỒ MÔN HỌC</span>
+                    <h3>Nhịp học theo nhóm</h3>
+                    <p>Biểu đồ quy đổi tương đối từ câu hỏi và lời giải, không phải điểm số. Các số bên cạnh là lời giải đã gửi.</p>
+                  </div>
+                </div>
+                <div className="profile-subject-layout">
+                  <div className="profile-subject-chart">
+                    {userQuestions.length + userSolutions.length > 0 ? (
+                      <RadarSpiderChart
+                        data={radarAxes}
+                        max={100}
+                        stroke="#EAB308"
+                        fill="rgba(129, 178, 154, 0.25)"
+                        dotFill="#e07a5f"
+                        title="Hoạt động theo nhóm môn học"
+                      />
+                    ) : (
+                      <div className="profile-statistics-empty">
+                        <BarChart3 className="w-7 h-7" aria-hidden="true" />
+                        <span>Chưa có hoạt động để lập bản đồ.</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="profile-subject-counts">
+                    {[
+                      { label: 'Khoa học tự nhiên', detail: `Toán ${subjectCounts.toan || 0} · Lý ${subjectCounts.ly || 0} · Hóa ${subjectCounts.hoa || 0} · Sinh ${subjectCounts.sinh || 0}` },
+                      { label: 'Khoa học xã hội', detail: `Văn ${subjectCounts.van || 0} · Sử ${subjectCounts.su || 0} · Địa ${subjectCounts.dia || 0} · GDCD ${subjectCounts.gdcd || 0}` },
+                      { label: 'Công nghệ', detail: `Tin ${subjectCounts.tin || 0} · Công nghệ ${(subjectCounts.congnghe || 0) + (subjectCounts.hotro || 0)}` },
+                      { label: 'Ngoại ngữ', detail: `Tiếng Anh ${subjectCounts.anh || 0}` },
+                      { label: 'Đời sống & nghệ thuật', detail: `Tâm sự ${(subjectCounts.tamsu || 0) + (subjectCounts.tamly || 0)} · Chia sẻ ${(subjectCounts.share || 0) + (subjectCounts.kinhnghiem || 0)}` },
+                    ].map((group) => (
+                      <div className="profile-subject-count" key={group.label}>
+                        <strong>{group.label}</strong>
+                        <span>Lời giải: {group.detail}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* TAB 3: 3D Hologram Student Card */}
           {activeTab === 'card' && (
             <div className="space-y-4 ff-tab-panel-enter">
               <HologramStudentCard
@@ -2218,67 +2371,51 @@ const ProfileModalInner: React.FC<{
           {/* TAB 4: Activity History (Questions & Solutions) */}
           {activeTab === 'activity' && (
             <div className="space-y-4 ff-tab-panel-enter">
-              <div className="pc-12-card p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-neutral-300">
+              <div className="pc-12-card profile-activity-summary p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-neutral-300">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-neutral-400">Tham gia:</span>
-                  <span className="text-white font-mono font-semibold">{accountJoinedInfo.joinedDateStr}</span>
-                  <span>·</span>
-                  <span className="text-white font-mono font-semibold">{accountJoinedInfo.ageStr}</span>
+                  <span className="text-neutral-400">Tham gia</span>
+                  <strong className="text-white font-mono">{accountJoinedInfo.joinedDateStr}</strong>
+                  <span aria-hidden="true">·</span>
+                  <span className="text-white font-mono">{accountJoinedInfo.ageStr}</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-neutral-400">Câu hỏi:</span>
-                    <span className="text-amber-300 font-mono font-bold">{userQuestions.length}</span>
-                  </div>
-                  <span>·</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-neutral-400">Trả lời:</span>
-                    <span className="text-[#81b29a] font-mono font-bold">{statsMetrics.answersCount}</span>
-                  </div>
-                  <span>·</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-neutral-400">Cảnh báo:</span>
-                    <span className="text-emerald-400 font-mono font-bold">0</span>
-                  </div>
+                <div className="profile-activity-metrics">
+                  <span><b>{userQuestions.length}</b> câu hỏi</span>
+                  <span><b>{statsMetrics.answersCount}</b> lời giải</span>
+                  <span><b>{statsMetrics.bestSolutions}</b> đáp án hay nhất</span>
                 </div>
               </div>
 
-              {/* Questions & Solutions Feed */}
-              <div className="space-y-2.5">
-                {userQuestions.length === 0 && userSolutions.length === 0 ? (
-                  <div className="pc-12-card py-10 text-center text-neutral-400 space-y-2">
-                    <HelpCircle className="w-7 h-7 text-neutral-500 mx-auto" />
-                    <p className="text-xs">Chưa có hoạt động.</p>
+              {/* Real question and solution events, in one newest-first timeline. */}
+              <div className="profile-activity-feed" aria-label="Dòng thời gian hỏi đáp">
+                {profileActivity.length === 0 ? (
+                  <div className="pc-12-card profile-activity-empty py-10 text-center text-neutral-400 space-y-2" role="status">
+                    <HelpCircle className="w-7 h-7 text-neutral-500 mx-auto" aria-hidden="true" />
+                    <p className="text-xs">Chưa có hoạt động hỏi đáp.</p>
                   </div>
                 ) : (
-                  <>
-                    {userQuestions.map((q) => (
-                      <div key={q.id} className="pc-12-card p-3.5 space-y-1.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="pc-12-pill px-2.5 py-0.5 text-amber-300 text-[10px] font-mono font-bold uppercase">
-                            Câu hỏi · #{q.subject}
-                          </span>
-                          <span className="text-[10px] text-neutral-400 font-mono">{q.createdAt}</span>
-                        </div>
-                        <h4 className="text-xs sm:text-sm font-bold text-white line-clamp-2">{q.title}</h4>
-                        <p className="text-xs text-neutral-300 line-clamp-2">{q.content}</p>
+                  profileActivity.map((entry) => entry.kind === 'question' ? (
+                    <article key={entry.id} className="pc-12-card profile-activity-item profile-activity-item--question p-3.5 space-y-1.5">
+                      <div className="profile-activity-item-head">
+                        <span className="pc-12-pill profile-activity-kind profile-activity-kind--question">Câu hỏi · #{entry.question.subject}</span>
+                        <time className="profile-activity-time" dateTime={entry.question.createdAt}>{entry.createdAt}</time>
                       </div>
-                    ))}
-                    {userSolutions.map((s) => {
-                      const parentQ = questions.find((q) => q.id === s.questionId);
-                      return (
-                        <div key={s.id} className="pc-12-card p-3.5 space-y-1.5">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="pc-12-pill px-2.5 py-0.5 text-[#81b29a] text-[10px] font-mono font-bold">
-                              Lời giải · {parentQ ? parentQ.title : 'Hỏi đáp'}
-                            </span>
-                            <span className="text-[10px] text-neutral-400 font-mono">{s.createdAt}</span>
-                          </div>
-                          <p className="text-xs text-neutral-200 line-clamp-2">{s.content}</p>
+                      <h4>{entry.question.title}</h4>
+                      <p>{entry.question.content}</p>
+                    </article>
+                  ) : (() => {
+                    const parentQuestion = questions.find((question) => question.id === entry.solution.questionId);
+                    return (
+                      <article key={entry.id} className="pc-12-card profile-activity-item profile-activity-item--solution p-3.5 space-y-1.5">
+                        <div className="profile-activity-item-head">
+                          <span className="pc-12-pill profile-activity-kind profile-activity-kind--solution">Lời giải</span>
+                          <time className="profile-activity-time" dateTime={entry.solution.createdAt}>{entry.createdAt}</time>
                         </div>
-                      );
-                    })}
-                  </>
+                        {parentQuestion && <h4 className="profile-activity-parent">Trả lời: {parentQuestion.title}</h4>}
+                        <p>{entry.solution.content}</p>
+                        {entry.solution.isBest && <span className="profile-activity-best"><CheckCircle2 size={13} aria-hidden="true" /> Đáp án hay nhất</span>}
+                      </article>
+                    );
+                  })())
                 )}
               </div>
             </div>

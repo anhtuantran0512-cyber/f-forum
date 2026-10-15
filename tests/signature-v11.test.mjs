@@ -45,3 +45,22 @@ test('Đăng xuất trực tiếp; hoạt cảnh cũ đã xoá hoàn toàn', () 
   }
   assert.equal(fs.existsSync('src/components/auth/SessionDoor.tsx'), false);
 });
+
+test('Profile workbench: named keyboard tabs, real stats, chronological activity, responsive views', () => {
+  const profile = read('src/components/ProfileModal.tsx');
+  const css = read('src/components/ProfileSignature.css');
+  assert.match(profile, /role="tablist"/);
+  assert.match(profile, /role="tab"[\s\S]*?aria-selected=\{activeTab === 'stats'\}/);
+  assert.match(profile, /event\.key === 'ArrowRight'/);
+  assert.match(profile, /activeTab === 'stats' &&/);
+  assert.match(profile, /id="profile-tab-panel"[\s\S]*?role="tabpanel"/);
+  assert.match(profile, /profileActivityTimestamp\(question\.createdAt, question\.createdAtMs\)/);
+  assert.match(profile, /\.sort\(\(a, b\) => b\.timestamp - a\.timestamp\)/);
+  assert.match(profile, /statsMetrics\.bestSolutions/);
+  assert.match(profile, /Chưa có hoạt động hỏi đáp/);
+  assert.doesNotMatch(profile, /Cảnh báo:[\s\S]{0,80}>0</, 'không khẳng định không có cảnh báo khi dữ liệu không được cung cấp');
+  assert.match(css, /\.profile-modal-tab\[aria-selected='true'\]/);
+  assert.match(css, /\.profile-activity-feed/);
+  assert.match(css, /max-width: 760px/);
+  assert.match(css, /prefers-reduced-motion: reduce/);
+});

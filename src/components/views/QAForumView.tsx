@@ -88,6 +88,7 @@ import { postJson } from '../../utils/session';
 import { describeReportResult, settleReportRequest } from '../../utils/reports';
 import { ShareRow } from '../ui/ShareRow';
 import { buildQuestionShareUrl, readSharedQuestionId, stripSharedQuestionParam } from '../../utils/shareLinks';
+import './QAForumView.css';
 
 type MathSymbolCategory = 'all' | 'greek' | 'calculus' | 'logic' | 'geometry';
 
@@ -1404,7 +1405,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   return (
     <section
       ref={listScrollRef}
-      className={`relative w-full ${
+      aria-labelledby="qa-forum-title"
+      className={`ff-qa-room relative w-full ${
         isEmbedded
           ? 'min-h-screen overflow-visible'
           : 'h-[100dvh] md:h-screen overflow-y-auto'
@@ -1428,16 +1430,20 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="ff-typo-poster !text-xl sm:!text-2xl text-[#f4f1de]">
+                  <h1 id="qa-forum-title" className="ff-typo-poster ff-qa-page-title !text-xl sm:!text-2xl text-[#f4f1de]">
                     Hỏi đáp
                   </h1>
-                  <span className="ff-brutal-index">
+                  <span
+                    className="ff-brutal-index"
+                    aria-label={`${questions.length} câu hỏi, ${questions.filter(q => q.isSolved).length} đã có lời giải chuẩn`}
+                  >
                     {questions.length} câu · {questions.filter(q => q.isSolved).length} giải
                   </span>
                 </div>
                 <svg className="w-28 h-2 mt-0.5 ff-organic-squiggle" viewBox="0 0 140 8" aria-hidden="true">
                   <path d="M2 5 C28 1, 56 8, 84 4 S118 1, 138 5" />
                 </svg>
+                <p className="ff-qa-subtitle">Mỗi câu hỏi mở ra một cách hiểu mới.</p>
               </div>
             </div>
 
@@ -1535,10 +1541,11 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
           {/* Row 2: Search Input + Status Filter Tabs */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2.5 border-t border-dashed border-[#f4f1de]/10">
-            <div className="relative flex-1 sm:max-w-sm">
-              <Search className="w-3.5 h-3.5 text-[#9a978e] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <div className="relative flex-1 sm:max-w-sm ff-qa-search">
+              <Search className="w-3.5 h-3.5 text-[#9a978e] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
               <input
-                type="text"
+                type="search"
+                aria-label="Tìm câu hỏi theo từ khóa"
                 maxLength={100}
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
@@ -1558,7 +1565,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             </div>
 
             {/* Status Filter Tabs */}
-            <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+            <div className="ff-qa-status-filters flex items-center gap-1.5 shrink-0 flex-wrap" role="group" aria-label="Lọc câu hỏi theo trạng thái">
               {([
                 { id: 'all', label: 'Tất cả' },
                 { id: 'unsolved', label: 'Chờ giải' },
@@ -1571,7 +1578,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     key={tab.id}
                     type="button"
                     onClick={() => setStatusFilter(tab.id)}
-                    className={`px-2.5 py-1.5 rounded-md text-xs font-bold border-[1.5px] transition-colors cursor-pointer ${
+                    aria-pressed={active}
+                    className={`ff-qa-filter-chip px-2.5 py-1.5 rounded-md text-xs font-bold border-[1.5px] transition-colors cursor-pointer ${
                       active
                         ? 'bg-[#e07a5f]/22 border-[#e07a5f]/55 text-[#f4f1de] shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
                         : 'bg-[#f4f1de]/[0.04] hover:bg-[#f4f1de]/[0.09] border-[#f4f1de]/12 text-[#b5b2a9] hover:text-[#f4f1de]'
@@ -1585,15 +1593,17 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           </div>
 
           {/* Row 3: Full-Width Subject Tags Strip */}
-          <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-dashed border-[#f4f1de]/10">
-            <Filter className="w-3.5 h-3.5 text-[#9a978e] shrink-0 mr-0.5" />
+          <div className="ff-qa-subject-filters flex items-center gap-1.5 flex-wrap pt-2 border-t border-dashed border-[#f4f1de]/10" role="group" aria-label="Lọc câu hỏi theo môn học">
+            <Filter className="w-3.5 h-3.5 text-[#9a978e] shrink-0 mr-0.5" aria-hidden="true" />
             {SUBJECTS.map(subj => {
               const isActive = selectedTag === subj.tag;
               return (
                 <button
                   key={subj.tag}
+                  type="button"
                   onClick={() => setSelectedTag(subj.tag)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold whitespace-nowrap border-[1.5px] transition-colors cursor-pointer inline-flex items-center gap-1 ${
+                  aria-pressed={isActive}
+                  className={`ff-qa-subject-chip px-2.5 py-1 rounded-md text-xs font-mono font-bold whitespace-nowrap border-[1.5px] transition-colors cursor-pointer inline-flex items-center gap-1 ${
                     isActive
                       ? subj.tag === 'all'
                         ? 'bg-[#f2cc8f]/22 text-[#f4f1de] border-[#f2cc8f]/55 shadow-[2px_2px_0px_rgba(4,6,11,0.9)]'
@@ -1612,7 +1622,15 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         {/* Main Content Area: Questions Feed (Col 8) + Leaderboard (Col 4) */}
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0 pb-6 items-start">
           {/* Left: Questions Feed */}
-          <div ref={questionFeedRef} className="lg:col-span-8 space-y-2.5 pb-6">
+          <div ref={questionFeedRef} className="ff-qa-feed lg:col-span-8 space-y-2.5 pb-6">
+          {(isSynced || filteredQuestions.length > 0) && (
+            <div className="ff-qa-feed-summary" role="status" aria-live="polite" aria-atomic="true">
+              <span className="ff-qa-feed-label">BẢNG CÂU HỎI</span>
+              <span className="ff-qa-feed-count">
+                {filteredQuestions.length} câu phù hợp
+              </span>
+            </div>
+          )}
           {!isSynced && filteredQuestions.length === 0 ? (
             <div className="rounded-2xl bg-[#0e1522]/90 border border-white/[0.08] overflow-hidden">
               <CommentSkeletonList rows={4} />
@@ -2730,7 +2748,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           <div
             role="region"
             aria-label="Trang chi tiết câu hỏi"
-            className="fixed inset-0 z-[75] w-screen h-[100dvh] overflow-hidden bg-[#0b0d12] ff-raw-grid-surface animate-fade-up flex flex-col"
+            className="ff-qa-detail fixed inset-0 z-[75] w-screen h-[100dvh] overflow-hidden bg-[#0b0d12] ff-raw-grid-surface animate-fade-up flex flex-col"
           >
             {/* Thanh tiến trình đọc 2px trên cùng */}
             <div

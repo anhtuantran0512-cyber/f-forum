@@ -130,3 +130,17 @@ test('Đèn pin: chỉ một nút ở ô nhập lại, hướng SVG quay theo ti
   assert.ok(Math.abs(continuousTorchAngle(179, -179) - 179) < 5);
   assert.ok(Math.abs(continuousTorchAngle(-179, 179) + 179) < 5);
 });
+
+test('Auth polish: clear flow label, warm theme, touch-sized fields and registration stacking on phones', () => {
+  const auth = read('src/components/AuthModal.tsx');
+  const css = read('src/components/auth/AuthExperience.css');
+  assert.match(auth, /className="auth-head__eyebrow"/);
+  assert.match(auth, /CỔNG THƯ VIỆN F·FORUM/);
+  assert.match(auth, /MỞ THẺ THÀNH VIÊN/);
+  assert.match(css, /\.auth-card:not\(\.auth-card--welcome\)/);
+  assert.match(css, /\.auth-head__eyebrow/);
+  assert.match(css, /min-height: 48px/);
+  assert.match(css, /@media \(max-width: 520px\)[\s\S]*?\.auth-row \{\s*grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(css, /html\.light \.auth-card:not\(\.auth-card--welcome\)/);
+  assert.match(css, /prefers-reduced-motion: reduce/);
+});
