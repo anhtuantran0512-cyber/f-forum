@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useDraftAutosave } from '../../utils/useDraftAutosave';
 import { useVirtualWindow } from '../../utils/virtualWindow';
@@ -732,8 +732,40 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
   /* Phase 4.1 & 4.7 — Reading Progress Bar + Scroll Restoration + Hover Prefetch */
   const listScrollRef = useRef<HTMLElement | null>(null);
+  const questionFeedRef = useRef<HTMLDivElement | null>(null);
   const detailScrollRef = useRef<HTMLDivElement | null>(null);
   const savedListScrollTopRef = useRef<number>(0);
+  const [questionHeights, setQuestionHeights] = useState(() => new Map<string, number>());
+  const questionHeightCacheRef = useRef(new Map<string, number>());
+  const questionCardObserversRef = useRef(new Map<string, ResizeObserver>());
+  const setQuestionCardRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    const questionId = node.dataset.questionId;
+    if (!questionId) return;
+    const updateHeight = () => {
+      const measuredHeight = Math.ceil(node.getBoundingClientRect().height);
+      if (measuredHeight <= 0 || questionHeightCacheRef.current.get(questionId) === measuredHeight) return;
+      questionHeightCacheRef.current.set(questionId, measuredHeight);
+      setQuestionHeights((current) => {
+        if (current.get(questionId) === measuredHeight) return current;
+        const next = new Map(current);
+        next.set(questionId, measuredHeight);
+        return next;
+      });
+    };
+    updateHeight();
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(updateHeight);
+      observer.observe(node);
+      questionCardObserversRef.current.set(questionId, observer);
+      return () => {
+        observer.disconnect();
+        if (questionCardObserversRef.current.get(questionId) === observer) {
+          questionCardObserversRef.current.delete(questionId);
+        }
+      };
+    }
+  }, []);
   const prefetchedQuestionIdsRef = useRef<Set<string>>(new Set());
   const [readingProgress, setReadingProgress] = useState<number>(0);
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
@@ -749,7 +781,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
   const handleOpenQuestionDetail = (q: Question) => {
     if (listScrollRef.current) {
-      savedListScrollTopRef.current = listScrollRef.current.scrollTop;
+      savedListScrollTopRef.current = isEmbedded ? window.scrollY : listScrollRef.current.scrollTop;
     }
     setReadingProgress(0);
     setSelectedQuestion(q);
@@ -758,7 +790,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const handleCloseQuestionDetail = () => {
     setSelectedQuestion(null);
     window.requestAnimationFrame(() => {
-      if (listScrollRef.current) {
+      if (isEmbedded) {
+        window.scrollTo({ top: savedListScrollTopRef.current, left: 0, behavior: 'instant' });
+      } else if (listScrollRef.current) {
         listScrollRef.current.scrollTop = savedListScrollTopRef.current;
       }
     });
@@ -1293,10 +1327,11 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
   const { isItemVisible: isQuestionVisible } = useVirtualWindow({
     totalItems: filteredQuestions.length,
-    itemHeight: 180,
+    itemHeight: 280,
     columns: 1,
     overscan: 6,
     containerRef: isEmbedded ? undefined : listScrollRef,
+    rootRef: questionFeedRef,
   });
 
   const handleAskSubmit = (e: React.FormEvent) => {
@@ -1371,12 +1406,11 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       ref={listScrollRef}
       className={`relative w-full ${
         isEmbedded
-          ? 'min-h-screen'
+          ? 'min-h-screen overflow-visible'
           : 'h-[100dvh] md:h-screen overflow-y-auto'
       } flex flex-col pt-[calc(54px+var(--safe-top)+12px)] md:pt-24 pb-[calc(56px+var(--safe-bottom)+16px)] md:pb-10 px-4 sm:px-6 lg:px-8`}
     >
-      {/* Nền phong cách Forum Hiện Đại: Tối ưu triệt để dung lượng và GPU, không dùng video nền trong sảnh Hỏi đáp */}
-      <div className="ff-qa-bg ff-raw-grid-surface absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
+      <div className="ff-qa-bg ff-raw-grid-surface fixed inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0b0d12] via-[#10141d] to-[#0b0d12]" />
         <div className="absolute top-[-15%] left-[20%] w-[600px] h-[600px] rounded-full bg-[#e07a5f]/[0.035] blur-[140px]" />
         <div className="absolute bottom-[-10%] right-[10%] w-[650px] h-[650px] rounded-full bg-[#81b29a]/[0.03] blur-[150px]" />
@@ -1578,7 +1612,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         {/* Main Content Area: Questions Feed (Col 8) + Leaderboard (Col 4) */}
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0 pb-6 items-start">
           {/* Left: Questions Feed */}
-          <div className="lg:col-span-8 space-y-2.5 pb-6">
+          <div ref={questionFeedRef} className="lg:col-span-8 space-y-2.5 pb-6">
           {!isSynced && filteredQuestions.length === 0 ? (
             <div className="rounded-2xl bg-[#0e1522]/90 border border-white/[0.08] overflow-hidden">
               <CommentSkeletonList rows={4} />
@@ -1640,8 +1674,14 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 return (
                   <div
                     key={q.id}
-                    className="ff-virtual-card ff-virtual-card--recycled rounded-xl border border-[#f4f1de]/10 bg-[#151a26]/40"
-                    style={{ minHeight: '160px', height: '160px', contain: 'strict' }}
+                    className="ff-virtual-card ff-virtual-card--recycled"
+                    style={{
+                      height: `${questionHeights.get(q.id) ?? 280}px`,
+                      contain: 'strict',
+                      opacity: 0,
+                      background: 'transparent',
+                      border: 0,
+                    }}
                     aria-hidden="true"
                   />
                 );
@@ -1668,6 +1708,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     }
                   }}
                   aria-label={`Xem chi tiết câu hỏi: ${q.title}`}
+                  data-question-id={q.id}
+                  ref={setQuestionCardRef}
                   className={`ff-virtual-card ff-qa-card cursor-pointer p-4 sm:p-5 group ${
                     q.isSolved ? 'is-solved' : 'is-unsolved'
                   }`}

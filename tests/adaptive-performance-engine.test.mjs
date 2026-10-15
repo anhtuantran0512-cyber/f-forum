@@ -106,10 +106,7 @@ test('Round 2: Adaptive RAF Scheduler, Task Priorities & 0ms Latency', async () 
   assert.equal(sched.isUserInteracting(), true, 'isUserInteracting phải trả về true ngay sau khi user tương tác');
 
   /* 4. Kiểm tra runWhenIdle có thể chạy và có hàm huỷ */
-  let idleRan = false;
-  const cancelIdle = sched.runWhenIdle(() => {
-    idleRan = true;
-  }, 50);
+  const cancelIdle = sched.runWhenIdle(() => {}, 50);
   assert.equal(typeof cancelIdle, 'function', 'runWhenIdle trả về hàm huỷ');
 
   /* 5. Kiểm tra isScrollActive trả về boolean an toàn */
@@ -187,14 +184,14 @@ test('Round 4: Proactive LRU Media Cache Eviction & Garbage Collection', async (
   const origRevoke = globalThis.URL.revokeObjectURL;
 
   let counter = 0;
-  globalThis.URL.createObjectURL = (blob) => `blob:http://localhost/test-${++counter}`;
+  globalThis.URL.createObjectURL = () => `blob:http://localhost/test-${++counter}`;
   globalThis.URL.revokeObjectURL = (url) => {
     revokedUrls.push(url);
   };
 
   /* Mock fetch để trả về dummy blob */
   const origFetch = globalThis.fetch;
-  globalThis.fetch = async (url) => ({
+  globalThis.fetch = async () => ({
     ok: true,
     blob: async () => ({ size: 1024, type: 'video/webm' }),
   });

@@ -453,6 +453,8 @@ html.light .ff-raw-grid-surface {
 
 .ff-qa-card {
   position: relative;
+  content-visibility: visible;
+  contain-intrinsic-size: none;
   border-radius: 6px !important;
   background: linear-gradient(165deg, rgba(21, 26, 38, 0.97), rgba(13, 17, 26, 0.99)) !important;
   border: 2px solid rgba(244, 241, 222, 0.22) !important;
