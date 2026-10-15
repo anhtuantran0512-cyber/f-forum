@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   Search,
   BookOpen,
@@ -37,7 +37,6 @@ import {
   ChevronDown,
   ChevronUp,
   Lightbulb,
-  Timer,
   Printer,
   HardDrive,
   WifiOff,
@@ -53,15 +52,20 @@ import type {
 } from '../../types';
 import { safeStorage } from '../../utils/storage';
 import { playChime } from '../../utils/audio';
+import {
+  EXAM_LIKES_KEY,
+  examLikeCount,
+  examLikersOf,
+  isExamLikedBy,
+  parseExamLikes,
+  serializeExamLikes,
+  toggleExamLike,
+  type ExamLikesMap,
+} from '../../utils/examLikes';
 import { CbtPracticeModal } from '../exam/CbtPracticeModal';
 import { ExamBookmarkDrawer } from '../exam/ExamBookmarkDrawer';
 import { ExamPrintExportModal } from '../exam/ExamPrintExportModal';
-import {
-  getCachedExamIds,
-  cacheExamOffline,
-  removeExamFromOfflineCache,
-  OFFLINE_EXAMS_CACHE_KEY,
-} from '../exam/offlineStorage';
+import { getCachedExamIds, OFFLINE_EXAMS_CACHE_KEY } from '../exam/offlineStorage';
 import './ExamVaultView.css';
 
 export interface ExamVaultViewProps {
@@ -77,7 +81,6 @@ const SUBMISSIONS_KEY = 'fforum_exam_submissions';
 const DOWNLOAD_COUNTS_KEY = 'fforum_exam_download_counts';
 const USER_RATINGS_KEY = 'fforum_exam_user_ratings';
 const PEER_REVIEWS_KEY = 'fforum_exam_peer_reviews';
-const EXAM_LIKES_KEY = 'fforum_exam_likes';
 
 /* Danh sách đề thi & đề cương mẫu chuẩn cấu trúc các trường THPT / THCS hàng đầu */
 const SEED_EXAMS: ExamPaper[] = [
@@ -758,6 +761,8 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   onOpenProfile,
   initialSearchQuery = '',
 }) => {
+  const likeViewerKey = currentUser?.id || currentUser?.email || 'anonymous';
+
   /* Theme tracking */
   const [isLightMode, setIsLightMode] = useState<boolean>(() => {
     if (typeof document === 'undefined') return false;
@@ -820,14 +825,10 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     }
   });
 
-  const [likesOverrides, setLikesOverrides] = useState<Record<string, number>>(() => {
-    try {
-      const raw = safeStorage.getItem(EXAM_LIKES_KEY);
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
-  });
+  const [examLikes, setExamLikes] = useState<ExamLikesMap>(() =>
+    parseExamLikes(safeStorage.getItem(EXAM_LIKES_KEY)),
+  );
+  const examLikesRef = useRef(examLikes);
 
   const [userRatings, setUserRatings] = useState<Record<string, number>>(() => {
     try {
@@ -862,6 +863,10 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       if (!e.newValue) {
         if (e.key === OFFLINE_EXAMS_CACHE_KEY) setCachedExamIds([]);
         if (e.key === SAVED_EXAMS_KEY) setSavedExams([]);
+        if (e.key === EXAM_LIKES_KEY) {
+          examLikesRef.current = {};
+          setExamLikes({});
+        }
         return;
       }
       try {
@@ -870,7 +875,11 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         if (e.key === DOWNLOAD_COUNTS_KEY) setDownloadOverrides(JSON.parse(e.newValue));
         if (e.key === USER_RATINGS_KEY) setUserRatings(JSON.parse(e.newValue));
         if (e.key === PEER_REVIEWS_KEY) setPeerReviewsMap(JSON.parse(e.newValue));
-        if (e.key === EXAM_LIKES_KEY) setLikesOverrides(JSON.parse(e.newValue));
+        if (e.key === EXAM_LIKES_KEY) {
+          const nextLikes = parseExamLikes(e.newValue);
+          examLikesRef.current = nextLikes;
+          setExamLikes(nextLikes);
+        }
         if (e.key === OFFLINE_EXAMS_CACHE_KEY) {
           const ids = JSON.parse(e.newValue);
           setCachedExamIds(Array.isArray(ids) ? ids : []);
@@ -927,26 +936,6 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     };
   }, [showToast]);
 
-  /* Bật/tắt lưu offline */
-  const handleToggleOfflineCache = useCallback((paper: ExamPaper, event?: React.MouseEvent) => {
-    event?.stopPropagation();
-    const isCached = cachedExamIds.includes(paper.id);
-    if (isCached) {
-      removeExamFromOfflineCache(paper.id);
-      setCachedExamIds((prev) => prev.filter((id) => id !== paper.id));
-      showToast(`Đã xoá đề "${paper.title}" khỏi bộ nhớ ngoại tuyến.`);
-    } else {
-      cacheExamOffline(paper);
-      setCachedExamIds((prev) => [...prev, paper.id]);
-      showToast(`Đã lưu đề "${paper.title}" vào bộ nhớ ngoại tuyến thành công!`);
-      try {
-        playChime();
-      } catch {
-        /* Bỏ qua */
-      }
-    }
-  }, [cachedExamIds, showToast, setCachedExamIds]);
-
   /* Xoá tất cả đề đã lưu trong Bookmark Drawer */
   const handleClearAllBookmarks = useCallback(() => {
     setSavedExams([]);
@@ -963,12 +952,6 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       return next;
     });
   }, [showToast, setSavedExams]);
-
-  /* Khởi động thi thử CBT */
-  const handleStartCBT = useCallback((paper: ExamPaper, event?: React.MouseEvent) => {
-    event?.stopPropagation();
-    setCbtExam(paper);
-  }, []);
 
   /* Mở modal in ấn & xuất PDF */
   const handleOpenPrint = useCallback((paper: ExamPaper, event?: React.MouseEvent) => {
@@ -1015,22 +998,25 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     });
   }, [showToast, setSavedExams]);
 
-  /* Heart / Like toggle */
-  const handleToggleLike = useCallback((examId: string, baseLikes: number, event: React.MouseEvent) => {
+  /* Heart / Like toggle: one persisted like per viewer, not one per click. */
+  const handleToggleLike = useCallback((examId: string, event: React.MouseEvent) => {
     event.stopPropagation();
-    setLikesOverrides((prev) => {
-      const current = prev[examId] ?? baseLikes;
-      const next = { ...prev, [examId]: current + 1 };
-      safeStorage.setItem(EXAM_LIKES_KEY, JSON.stringify(next));
-      showToast('Cảm ơn bạn đã yêu thích tài liệu này!');
-      try {
-        playChime();
-      } catch {
-        /* Bỏ qua âm thanh */
-      }
-      return next;
-    });
-  }, [showToast, setLikesOverrides]);
+    const nextLikes = toggleExamLike(examLikesRef.current, examId, likeViewerKey);
+    examLikesRef.current = nextLikes;
+    setExamLikes(nextLikes);
+    safeStorage.setItem(EXAM_LIKES_KEY, serializeExamLikes(nextLikes));
+
+    showToast(
+      isExamLikedBy(nextLikes, examId, likeViewerKey)
+        ? 'Cảm ơn bạn đã yêu thích tài liệu này!'
+        : 'Đã bỏ yêu thích tài liệu này.',
+    );
+    try {
+      playChime();
+    } catch {
+      /* Bỏ qua âm thanh */
+    }
+  }, [likeViewerKey, showToast]);
 
   /* Simulated Download with Real-Time Counter Increment */
   const handleDownload = useCallback((exam: ExamPaper, event?: React.MouseEvent) => {
@@ -1291,7 +1277,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
     return combined.map((p) => {
       const dl = downloadOverrides[p.id] ?? p.downloads;
-      const lk = likesOverrides[p.id] ?? p.likes;
+      const lk = examLikeCount(p.likes, examLikersOf(examLikes, p.id));
       const userRating = userRatings[p.id];
       const extraReviews = peerReviewsMap[p.id] || [];
       const baseReviews = p.peerReviews || [];
@@ -1314,7 +1300,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         peerReviews: allRevs,
       };
     });
-  }, [submissions, downloadOverrides, likesOverrides, userRatings, peerReviewsMap]);
+  }, [submissions, downloadOverrides, examLikes, userRatings, peerReviewsMap]);
 
   /* Filter & Search Pipeline */
   const filteredPapers = useMemo(() => {
@@ -2023,6 +2009,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
             {filteredPapers.map((paper) => {
               const isSaved = savedExams.includes(paper.id);
+              const isLiked = isExamLikedBy(examLikes, paper.id, likeViewerKey);
               const isDownloading = downloadingId === paper.id;
               const isPending = paper.status === 'pending';
               const cardTitle = getCompactPaperTitle(paper);
@@ -2090,30 +2077,21 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                         )}
                       </div>
 
-                      {/* Top actions: Like, Offline Cache, Bookmark */}
+                      {/* Top actions: Like and Bookmark */}
                       <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1">
                         <button
                           type="button"
-                          onClick={(e) => handleToggleOfflineCache(paper, e)}
-                          className={`ff-tactile-btn inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border transition-colors cursor-pointer ${
-                            cachedExamIds.includes(paper.id)
-                              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                              : 'bg-white/5 border-white/10 text-white/50 hover:text-white hover:bg-white/10'
+                          onClick={(e) => handleToggleLike(paper.id, e)}
+                          className={`ff-tactile-btn inline-flex min-h-9 items-center gap-1 rounded-lg border px-2 transition-colors cursor-pointer text-[11px] ${
+                            isLiked
+                              ? 'border-rose-400/35 bg-rose-500/15 text-rose-300 hover:bg-rose-500/25'
+                              : 'border-white/10 bg-white/5 text-white/50 hover:bg-rose-500/20 hover:text-rose-400'
                           }`}
-                          aria-label={cachedExamIds.includes(paper.id) ? 'Xoá khỏi bộ nhớ offline' : 'Lưu học offline'}
-                          title={cachedExamIds.includes(paper.id) ? 'Đã lưu offline' : 'Lưu để học offline'}
+                          aria-label={isLiked ? 'Bỏ yêu thích đề thi' : 'Yêu thích đề thi'}
+                          aria-pressed={isLiked}
+                          title={isLiked ? 'Bỏ yêu thích' : 'Yêu thích'}
                         >
-                          <HardDrive className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => handleToggleLike(paper.id, paper.likes, e)}
-                          className="ff-tactile-btn inline-flex min-h-9 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 hover:bg-rose-500/20 hover:text-rose-400 text-white/50 transition-colors cursor-pointer text-[11px]"
-                          aria-label="Yêu thích đề thi"
-                          title="Yêu thích"
-                        >
-                          <Heart className="w-3.5 h-3.5" />
+                          <Heart className={`w-3.5 h-3.5 ${isLiked ? 'fill-rose-400 text-rose-400' : ''}`} />
                           <span className="text-[10px] font-mono">{paper.likes}</span>
                         </button>
 
@@ -2205,7 +2183,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                         </span>
                       )}
 
-                      <div className="ff-exam-card-actions grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      <div className="ff-exam-card-actions grid grid-cols-2 gap-2 sm:grid-cols-3">
                         {/* Admin approval actions if pending */}
                         {isPending && isStaffOrAdmin && (
                           <>
@@ -2227,16 +2205,6 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                             </button>
                           </>
                         )}
-
-                        <button
-                          type="button"
-                          onClick={(e) => handleStartCBT(paper, e)}
-                          className="ff-tactile-btn inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-amber-400/30 bg-amber-400/15 px-2 py-1.5 text-xs font-bold text-amber-300 transition-colors hover:bg-amber-400/25"
-                          title="Thi thử trực tuyến có bấm giờ &amp; tính điểm"
-                        >
-                          <Timer className="w-3.5 h-3.5" />
-                          <span>Thi thử</span>
-                        </button>
 
                         <button
                           type="button"
@@ -2620,20 +2588,6 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
               <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => handleToggleOfflineCache(activePreview)}
-                  className={`px-3 py-2 rounded-xl border text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition-colors ${
-                    cachedExamIds.includes(activePreview.id)
-                      ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                      : 'border-white/15 text-white/80 hover:text-white hover:bg-white/10'
-                  }`}
-                  title={cachedExamIds.includes(activePreview.id) ? 'Đã lưu offline' : 'Lưu để học offline'}
-                >
-                  <HardDrive className="w-4 h-4 text-emerald-400" />
-                  <span>{cachedExamIds.includes(activePreview.id) ? 'Đã lưu Offline' : 'Lưu Offline'}</span>
-                </button>
-
-                <button
-                  type="button"
                   onClick={() => {
                     setPreviewExam(null);
                     handleOpenPrint(activePreview);
@@ -2643,19 +2597,6 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 >
                   <Printer className="w-4 h-4 text-amber-300" />
                   <span>In Đề / PDF</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPreviewExam(null);
-                    handleStartCBT(activePreview);
-                  }}
-                  className="px-3.5 py-2 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 border border-amber-400/40 text-xs font-bold cursor-pointer flex items-center gap-1.5 transition-colors"
-                  title="Vào phòng thi thử trực tuyến có bấm giờ"
-                >
-                  <Timer className="w-4 h-4 text-amber-300" />
-                  <span>Thi Thử CBT</span>
                 </button>
 
                 <button
@@ -2947,10 +2888,6 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         onSelectPreview={(p) => {
           setIsBookmarkDrawerOpen(false);
           setPreviewExam(p);
-        }}
-        onStartCBT={(p) => {
-          setIsBookmarkDrawerOpen(false);
-          handleStartCBT(p);
         }}
         onOpenPrint={(p) => {
           setIsBookmarkDrawerOpen(false);
