@@ -70,6 +70,7 @@ const ThreadsView = lazyWithRetry(() => import('./components/views/ThreadsView')
 const KhuVinhDanhView = lazyWithRetry(() => import('./components/views/KhuVinhDanhView').then(m => ({ default: m.KhuVinhDanhView })));
 const ComingSoonView = lazyWithRetry(() => import('./components/views/ComingSoonView').then(m => ({ default: m.ComingSoonView })));
 const ExamVaultView = lazyWithRetry(() => import('./components/views/ExamVaultView').then(m => ({ default: m.ExamVaultView })));
+const ExamPaperViewerView = lazyWithRetry(() => import('./components/views/ExamPaperViewerView').then(m => ({ default: m.ExamPaperViewerView })));
 const MemoryRealm = lazyWithRetry(() => import('./components/MemoryRealm').then(m => ({ default: m.MemoryRealm })));
 const ChatDock = lazyWithRetry(() => import('./components/ChatDock').then(m => ({ default: m.ChatDock })));
 const ProfileModal = lazyWithRetry(() => import('./components/ProfileModal').then(m => ({ default: m.ProfileModal })));
@@ -130,6 +131,7 @@ const VIEW_ORDER: DimensionView[] = [
   'chronicles',
   'coming-soon',
   'exam-vault',
+  'exam-viewer',
 ];
 
 /* Phân khu cần màn hình chờ (CodeFronts la-09 vinyl / la-05 dots).
@@ -975,7 +977,8 @@ export const App: React.FC = () => {
     currentView === 'memory' ||
     currentView === 'chronicles' ||
     currentView === 'landing' ||
-    currentView === 'exam-vault';
+    currentView === 'exam-vault' ||
+    currentView === 'exam-viewer';
 
   const activeGodray = GODRAY_PRESETS.find(p => p.id === godrayPreset) || GODRAY_PRESETS[0];
 
@@ -1016,7 +1019,7 @@ export const App: React.FC = () => {
   return (      <AuthProvider currentUser={currentUser}>
       <AnalyticsTracker accountKey={currentUser?.email || undefined} view={currentView} />
       {/* Global Radiant Cursor (Active across entire app on pointer devices) */}
-      <GlobalCursor />
+      {currentView !== 'exam-viewer' && <GlobalCursor />}
       
       <div
         className={`relative isolate w-full ${
@@ -1046,7 +1049,7 @@ export const App: React.FC = () => {
       
       {/* Floating Global Navbar Dock — ẩn khi đang ở giao diện chi tiết câu hỏi Hỏi đáp hoặc Khu Đề Thi riêng biệt */}
       {currentView !== 'chronicles' && (
-        currentView === 'landing' || currentView === 'exam-vault' || (currentView === 'qa' && isQADetailOpen) ? null : (
+        currentView === 'landing' || currentView === 'exam-vault' || currentView === 'exam-viewer' || (currentView === 'qa' && isQADetailOpen) ? null : (
         <Navbar
           currentView={currentView}
           onViewChange={handleViewChange}
@@ -1231,6 +1234,20 @@ export const App: React.FC = () => {
               onOpenProfile={(u) => handleOpenProfile('overview', u)}
             />
           )}
+
+          {currentView === 'exam-viewer' && (
+            <ExamPaperViewerView
+              currentUser={currentUser}
+              onOpenLoginModal={() => handleOpenAuth('login')}
+              onBack={() => {
+                const url = new URL(window.location.href);
+                url.search = '';
+                url.searchParams.set('view', 'exam-vault');
+                window.history.replaceState(null, '', `${url.pathname}${url.search}`);
+                handleViewChange('exam-vault');
+              }}
+            />
+          )}
           </div>
         </Suspense>
       </main>
@@ -1244,7 +1261,7 @@ export const App: React.FC = () => {
       />
 
       {/* Radial quick actions (ccm-02 sin()/cos() fan at bottom-left below Streak) */}
-      {currentView !== 'landing' && currentView !== 'chronicles' && !isChatOpen && !(currentView === 'qa' && isQADetailOpen) && (
+      {currentView !== 'landing' && currentView !== 'chronicles' && currentView !== 'exam-viewer' && !isChatOpen && !(currentView === 'qa' && isQADetailOpen) && (
         <RadialQuickMenu
           onOpenFocusMode={() => setIsFocusModeOpen(true)}
           onOpenClubs={() => handleViewChange('clubs')}
@@ -1397,7 +1414,7 @@ export const App: React.FC = () => {
         )}
 
         {/* Nút cuộn về đầu trang, viền là vòng tiến trình đọc bài. */}
-        <ScrollToTopDock navbarAtBottom={navbarAtBottom} />
+        {currentView !== 'exam-viewer' && <ScrollToTopDock navbarAtBottom={navbarAtBottom} />}
 
         {isNotesOpen && (
         <QuickNotesDock
@@ -1408,7 +1425,7 @@ export const App: React.FC = () => {
         )}
 
         <StudyCareCoach
-          enabled={eyeRestEnabled}
+          enabled={eyeRestEnabled && currentView !== 'exam-viewer'}
           onToast={(title, subtitle) => setToastMessage({ title, subtitle, type: 'success' })}
         />
       </Suspense>

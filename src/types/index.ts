@@ -9,7 +9,8 @@ export type DimensionView =
   | 'memory'
   | 'chronicles'
   | 'coming-soon'
-  | 'exam-vault';
+  | 'exam-vault'
+  | 'exam-viewer';
 
 export type ExamType =
   | 'Đề giữa kỳ 1'

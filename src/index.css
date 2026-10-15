@@ -27,29 +27,132 @@
 
   /* Design System Tokens — Nhiemvu_9 (Phase 1–5) */
   --navbar-height: 76px;
-  --bg-base: #0a0f14;
-  --surface-base: #0d131a;
-  --surface-elevated: #121a24;
-  --surface-overlay: #182330;
-  --surface-active: rgba(251, 191, 36, 0.14);
-  --border-subtle: rgba(255, 255, 255, 0.09);
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --accent-gold: #fbbf24;
-  --success-glow: #10b981;
+  --bg-base: #0b0d12;
+  --surface-base: #11151d;
+  --surface-elevated: #161b27;
+  --surface-overlay: #1d2430;
+  --surface-active: rgba(242, 204, 143, 0.14);
+  --border-subtle: rgba(244, 241, 222, 0.13);
+  --text-primary: #f4f1de;
+  --text-secondary: #b5b2a9;
+  --accent-gold: #f2cc8f;
+  --accent-terracotta: #e07a5f;
+  --accent-sage: #81b29a;
+  --success-glow: #81b29a;
+  --ff-ui-radius-card: 1rem;
+  --ff-ui-radius-control: 0.75rem;
+  --ff-ui-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ff-ui-focus: rgba(242, 204, 143, 0.78);
+  --ff-ui-card-shadow: 3px 3px 0 rgba(4, 6, 11, 0.68), inset 0 1px 0 rgba(244, 241, 222, 0.055);
+  --ff-ui-card-hover-shadow: 0 12px 28px rgba(0, 0, 0, 0.23), 3px 3px 0 rgba(4, 6, 11, 0.58), inset 0 1px 0 rgba(244, 241, 222, 0.07);
+  color-scheme: dark;
 }
 
 html.light {
-  --bg-base: #eef2f8;
-  --surface-base: #f8fafc;
-  --surface-elevated: #ffffff;
-  --surface-overlay: #ffffff;
-  --surface-active: rgba(245, 158, 11, 0.14);
-  --border-subtle: rgba(15, 23, 42, 0.12);
-  --text-primary: #101827;
-  --text-secondary: #475569;
-  --accent-gold: #92400e;
-  --success-glow: #059669;
+  --bg-base: #f6f3eb;
+  --surface-base: #fffdf8;
+  --surface-elevated: #fffefa;
+  --surface-overlay: #f1ede3;
+  --surface-active: rgba(224, 122, 95, 0.12);
+  --border-subtle: rgba(41, 37, 32, 0.12);
+  --text-primary: #211f1b;
+  --text-secondary: #68635b;
+  --accent-gold: #8b6427;
+  --accent-terracotta: #b45335;
+  --accent-sage: #387a5d;
+  --success-glow: #15803d;
+  --ff-ui-focus: rgba(180, 83, 53, 0.72);
+  --ff-ui-card-shadow: 3px 3px 0 rgba(41, 37, 32, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --ff-ui-card-hover-shadow: 0 12px 26px rgba(41, 37, 32, 0.1), 3px 3px 0 rgba(41, 37, 32, 0.12), inset 0 1px 0 #fff;
+  color-scheme: light;
+}
+
+/* Shared warm-academic UI foundation: editorial surfaces, tactile controls and clear keyboard focus. */
+.ff-app-shell {
+  min-width: 0;
+  width: 100%;
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.ff-app-shell :is(h1, h2, h3) {
+  text-wrap: balance;
+}
+
+.ff-app-shell button {
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.ff-app-shell :is(button, a).ff-tactile-btn {
+  border-radius: var(--ff-ui-radius-control);
+  transition-timing-function: var(--ff-ui-ease);
+}
+
+.ff-app-shell button.ff-tactile-btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.985);
+}
+
+.ff-app-shell :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--ff-ui-focus);
+  outline-offset: 3px;
+}
+
+.ff-app-shell button > svg {
+  flex: 0 0 auto;
+}
+
+.ff-app-shell svg.lucide {
+  stroke-width: 1.85;
+}
+
+.ff-app-shell :is(main, section, article, aside, form) {
+  min-width: 0;
+}
+
+.ff-app-shell :is(input, select, textarea) {
+  max-width: 100%;
+  accent-color: var(--accent-terracotta);
+}
+
+.ff-app-shell :is(.ff-media-card, .ff-exam-card, .thread-card, .question-card, .answer-card) {
+  border-radius: var(--ff-ui-radius-card);
+  box-shadow: var(--ff-ui-card-shadow);
+}
+
+.ff-app-shell :is(.ff-media-card, .ff-exam-card, .thread-card, .question-card, .answer-card):hover {
+  box-shadow: var(--ff-ui-card-hover-shadow);
+}
+
+.ff-ui-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--ff-ui-radius-card);
+  background: var(--surface-elevated);
+  box-shadow: var(--ff-ui-card-shadow);
+}
+
+.ff-ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 40px;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--ff-ui-radius-control);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 750;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 160ms var(--ff-ui-ease), background-color 160ms ease, border-color 160ms ease;
+}
+
+.ff-ui-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 /* Phase 1.1: Q&A Modal Container — Fixed Header/Footer & Scrollable Body */
@@ -137,12 +240,12 @@ html.light {
 
 /* Phase 4: Q&A Detail Visual Hierarchy & Media Layout */
 .question-card {
-  background: linear-gradient(160deg, rgba(16, 24, 38, 0.96), rgba(11, 17, 28, 0.98));
+  background: linear-gradient(160deg, var(--surface-elevated), var(--surface-base));
   border-radius: 24px;
   padding: 26px 28px;
   margin-bottom: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(244, 241, 222, 0.055);
 }
 .answer-section-label {
   display: flex;
@@ -157,13 +260,13 @@ html.light {
   border-bottom: 1px solid var(--border-subtle);
 }
 .answer-card {
-  background: linear-gradient(160deg, rgba(17, 26, 42, 0.94), rgba(12, 18, 30, 0.96));
+  background: linear-gradient(160deg, var(--surface-elevated), var(--surface-base));
   border-radius: 22px;
   padding: 22px 26px;
   margin-bottom: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-left: 4px solid rgba(56, 189, 248, 0.35);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  border-left: 4px solid color-mix(in srgb, var(--accent-sage) 45%, transparent);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(244, 241, 222, 0.04);
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 .answer-card:hover {

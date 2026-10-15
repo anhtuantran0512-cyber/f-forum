@@ -4271,6 +4271,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     }
 
     const examSubmissionPath = url.split('?')[0];
+    const examSubmissionParams = new URL(url, 'http://fforum.local').searchParams;
     const publicExamInteractionIds = () => [
       ...SEED_EXAM_INTERACTION_PAPER_IDS,
       ...(store.examSubmissions || [])
@@ -4583,10 +4584,12 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       }
       const fallbackName = attachment.name.replace(/[^\x20-\x7e]|["\\]/g, '_');
       const encodedName = encodeURIComponent(attachment.name).replace(/[!'()*]/g, (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`);
+      const inlineRequested = examSubmissionParams.get('inline') === '1';
+      const mayDisplayInline = inlineRequested && ['PDF', 'IMAGE', 'MD'].includes(attachment.format);
       res.statusCode = 200;
       res.setHeader('Content-Type', attachment.mimeType);
       res.setHeader('Content-Length', stats.size);
-      res.setHeader('Content-Disposition', `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodedName}`);
+      res.setHeader('Content-Disposition', `${mayDisplayInline ? 'inline' : 'attachment'}; filename="${fallbackName}"; filename*=UTF-8''${encodedName}`);
       res.setHeader('Cache-Control', 'private, no-store');
       res.setHeader('X-Content-Type-Options', 'nosniff');
       if (method === 'HEAD') {

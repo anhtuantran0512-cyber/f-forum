@@ -94,6 +94,11 @@ test('Exam Vault uses server-backed community actions and blocks a duplicate rev
   window.requestAnimationFrame = (callback) => window.setTimeout(callback, 0);
   window.cancelAnimationFrame = (id) => window.clearTimeout(id);
   window.scrollTo = () => {};
+  const openedUrls = [];
+  window.open = (url, target, features) => {
+    openedUrls.push({ url: String(url), target, features });
+    return null;
+  };
   let printCalls = 0;
   window.print = () => { printCalls += 1; };
   globalThis.fetch = async (input, init = {}) => {
@@ -174,14 +179,39 @@ test('Exam Vault uses server-backed community actions and blocks a duplicate rev
     assert.equal(document.querySelector('[role="dialog"]'), null, 'liking must not open the card preview');
     assert.doesNotMatch(firstCard.textContent, /\b\d+ lượt tải|\b\d+ lượt xem/, 'unavailable counters are not fabricated');
 
-    const previewButton = [...firstCard.querySelectorAll('button')]
-      .find((button) => button.textContent.includes('Xem thử'));
-    assert.ok(previewButton, 'the preview action should render');
+    const themeButton = document.querySelector('button[aria-label="Chuyển sang chế độ sáng"]');
+    assert.ok(themeButton, 'the Exam Vault should expose a working theme control without the Navbar');
     await act(async () => {
-      previewButton.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+      themeButton.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    });
+    assert.ok(document.documentElement.classList.contains('light'), 'the standalone Exam Vault toggle applies light mode directly');
+    assert.equal(window.localStorage.getItem('fforum_theme'), 'light', 'the theme preference is persisted');
+    const returnToDarkButton = document.querySelector('button[aria-label="Chuyển sang chế độ tối"]');
+    await act(async () => {
+      returnToDarkButton.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    });
+    assert.ok(document.documentElement.classList.contains('dark'), 'the theme toggle also restores dark mode');
+
+    const readerLink = [...firstCard.querySelectorAll('a')]
+      .find((link) => link.textContent.includes('Đọc đề'));
+    assert.ok(readerLink, 'the dedicated reader action should render');
+    assert.equal(readerLink.target, '_blank', 'the reader opens separately from the vault');
+    assert.match(readerLink.href, /view=exam-viewer.*paper=ex-01/);
+    await act(async () => {
+      firstCard.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    });
+    assert.equal(openedUrls.length, 1, 'selecting an exam card opens a separate reader page');
+    assert.match(openedUrls[0].url, /view=exam-viewer.*paper=ex-01/);
+    assert.equal(openedUrls[0].target, '_blank');
+
+    const detailsButton = [...firstCard.querySelectorAll('button')]
+      .find((button) => button.textContent.includes('Chi tiết'));
+    assert.ok(detailsButton, 'the separate details action should keep the full review and discussion panel available');
+    await act(async () => {
+      detailsButton.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
     });
     const dialog = document.querySelector('[role="dialog"]');
-    assert.ok(dialog, 'preview click should open its dialog');
+    assert.ok(dialog, 'details click should open the full community and discussion panel');
     const reviewTextarea = dialog.querySelector('textarea[placeholder*="Chia sẻ"]');
     assert.ok(reviewTextarea, 'public preview should render the server-backed review form');
     const reactPropsKey = Object.keys(reviewTextarea).find((key) => key.startsWith('__reactProps$'));

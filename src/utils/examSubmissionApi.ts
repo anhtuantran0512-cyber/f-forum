@@ -95,13 +95,22 @@ export const reviewExamSubmission = async (
   return data.submission as ExamPaper;
 };
 
+export const examAttachmentUrl = (
+  submissionId: string,
+  attachment: Pick<ExamAttachment, 'id'>,
+  inline = false,
+): string => {
+  if (!attachment.id) throw new Error('Không tìm thấy mã tệp đính kèm.');
+  const base = `/api/exam-submissions/${encodeURIComponent(submissionId)}/attachments/${encodeURIComponent(attachment.id)}`;
+  return inline ? `${base}?inline=1` : base;
+};
+
 export const downloadExamAttachment = async (
   submissionId: string,
   attachment: ExamAttachment,
 ): Promise<void> => {
-  if (!attachment.id) throw new Error('Không tìm thấy mã tệp đính kèm.');
   const response = await fetch(
-    `/api/exam-submissions/${encodeURIComponent(submissionId)}/attachments/${encodeURIComponent(attachment.id)}`,
+    examAttachmentUrl(submissionId, attachment),
     { headers: authHeaders(), credentials: 'same-origin', cache: 'no-store' },
   );
   if (!response.ok) {
