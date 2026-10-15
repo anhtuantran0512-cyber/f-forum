@@ -733,6 +733,10 @@ html.light .threads-bg {
   border-bottom: 1px solid var(--thread-line);
 }
 
+.thread-feed-heading > div {
+  min-width: 0;
+}
+
 .thread-feed-kicker {
   color: var(--thread-sage);
   font-size: 9px;
@@ -746,6 +750,7 @@ html.light .threads-bg {
   font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 1.12;
+  overflow-wrap: anywhere;
 }
 
 .thread-feed-count {
@@ -1848,7 +1853,17 @@ html.reduce-motion .thread-report-dialog *::after {
   }
 
   .thread-feed-heading {
-    align-items: center;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .thread-feed-heading > div {
+    flex: 1 1 170px;
+  }
+
+  .thread-feed-count {
+    margin-left: auto;
   }
 
   .thread-feed-count span {
