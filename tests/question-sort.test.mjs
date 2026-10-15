@@ -99,6 +99,22 @@ test('Sắp xếp 8. Chế độ lạ / dữ liệu cũ trong storage rơi về 
   assert.equal(DEFAULT_QUESTION_SORT, 'newest');
 });
 
+test('Q&A field-notes interface: accessible filters, real result count, light and reduced-motion states', () => {
+  const source = read('src/components/views/QAForumView.tsx');
+  const css = read('src/components/views/QAForumView.css');
+  assert.match(source, /import '\.\/QAForumView\.css'/);
+  assert.match(source, /aria-label="Tìm câu hỏi theo từ khóa"/);
+  assert.match(source, /aria-pressed=\{active\}/);
+  assert.match(source, /aria-pressed=\{isActive\}/);
+  assert.match(source, /role="status" aria-live="polite" aria-atomic="true"/);
+  assert.match(source, /\{filteredQuestions\.length\} câu phù hợp/);
+  assert.match(source, /ff-qa-detail fixed inset-0/);
+  assert.match(css, /html\.light \.ff-qa-room \.ff-qa-card/);
+  assert.match(css, /html\.light \.ff-qa-detail/);
+  assert.match(css, /prefers-reduced-motion: reduce/);
+  assert.match(css, /max-width: 760px/);
+});
+
 test('Sắp xếp 9. sortQuestions tự chuẩn hoá chế độ lạ, không ném lỗi', () => {
   const list = [q('a', { createdAtMs: 100 }), q('b', { createdAtMs: 300 })];
   assert.deepEqual(

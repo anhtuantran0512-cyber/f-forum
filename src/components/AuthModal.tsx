@@ -607,7 +607,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         <section ref={panelRef} className="auth-panel" inert={introOpen} aria-hidden={introOpen}>
           <header className="auth-head">
-            <div>
+            <div className="auth-head__copy">
+              <span className="auth-head__eyebrow">
+                {fallbackProvider ? 'LIÊN KẾT TÀI KHOẢN' : activeTab === 'login' ? 'CỔNG THƯ VIỆN F·FORUM' : 'MỞ THẺ THÀNH VIÊN'}
+              </span>
               <h2 id="auth-title">
                 {fallbackProvider
                   ? `Liên kết ${fallbackProvider === 'google' ? 'Google' : 'Facebook'}`
