@@ -337,7 +337,7 @@ test('Navbar, bảng phối màu và typography trang chủ giữ phân cấp r�
   const title = read('src/components/views/HomeHeroTitle.css');
   assert.doesNotMatch(nav, /\{ id: 'home', label:/, 'desktop has no duplicate Home tab');
   assert.doesNotMatch(nav, /aria-label="Trang Chủ"/, 'mobile dock has no duplicate Home button');
-  assert.match(nav, /type DockView = Exclude<DimensionView, 'landing' \| 'home'>/);
+  assert.match(nav, /type DockView = Exclude<DimensionView, 'landing' \| 'home' \| 'exam-viewer'>/);
   assert.match(nav, /\{ id: 'qa', label: 'Hỏi Đáp' \}/);
   assert.match(settings, /<GradientSwatchPicker/, 'gradient picker uses the shared palette');
   assert.match(settings, /label="Bảng chọn Gradient"/);

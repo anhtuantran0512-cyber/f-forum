@@ -171,6 +171,21 @@ test('Exam Vault upload persists and securely serves image, PDF, DOCX/DOC, and M
       assert.match(response.headers.get('content-disposition') || '', /attachment/);
     }
 
+    const inlinePdf = await fetch(
+      `${app.baseUrl}/api/exam-submissions/${submission.id}/attachments/${submission.attachments[1].id}?inline=1`,
+      { headers: { Authorization: `Bearer ${studentToken}` } },
+    );
+    assert.equal(inlinePdf.status, 200);
+    assert.match(inlinePdf.headers.get('content-type') || '', /application\/pdf/);
+    assert.match(inlinePdf.headers.get('content-disposition') || '', /^inline;/, 'PDFs must be embeddable in the exam reader');
+    assert.deepEqual(Buffer.from(await inlinePdf.arrayBuffer()), files[1].bytes);
+
+    const inlineWord = await fetch(
+      `${app.baseUrl}/api/exam-submissions/${submission.id}/attachments/${submission.attachments[2].id}?inline=1`,
+      { headers: { Authorization: `Bearer ${studentToken}` } },
+    );
+    assert.match(inlineWord.headers.get('content-disposition') || '', /^attachment;/, 'Word files remain downloads rather than being served as active inline content');
+
     const unprivilegedReview = await post(
       app.baseUrl,
       `/api/exam-submissions/${submission.id}/review`,
@@ -198,6 +213,11 @@ test('Exam Vault upload persists and securely serves image, PDF, DOCX/DOC, and M
     );
     assert.equal(publicFile.status, 200, 'approved files can be shared publicly');
     assert.deepEqual(Buffer.from(await publicFile.arrayBuffer()), files[1].bytes);
+    const publicInlineFile = await fetch(
+      `${app.baseUrl}/api/exam-submissions/${submission.id}/attachments/${submission.attachments[1].id}?inline=1`,
+    );
+    assert.equal(publicInlineFile.status, 200);
+    assert.match(publicInlineFile.headers.get('content-disposition') || '', /^inline;/, 'approved PDFs are readable in the browser without a bearer header');
 
     const anonymousLike = await post(app.baseUrl, '/api/exam-interactions/ex-01/like', { liked: true });
     assert.equal(anonymousLike.response.status, 401, 'community actions require an authenticated account');

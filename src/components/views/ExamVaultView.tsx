@@ -43,6 +43,7 @@ import {
   WifiOff,
   SlidersHorizontal,
 } from 'lucide-react';
+import { SEED_EXAMS } from '../exam/seedExamPapers';
 import type {
   DimensionView,
   User,
@@ -51,6 +52,7 @@ import type {
   ExamDifficulty,
 } from '../../types';
 import { safeStorage } from '../../utils/storage';
+import { toggleThemeMode } from '../../utils/theme';
 import { playChime } from '../../utils/audio';
 import type { ExamInteractionMap, ExamInteractionSnapshot } from '../../utils/examSubmissionApi';
 import {
@@ -89,352 +91,21 @@ const SAVED_EXAMS_KEY = 'fforum_saved_exams';
 const SUBMISSIONS_KEY = 'fforum_exam_submissions';
 const EMPTY_EXAM_SUBMISSIONS: ExamPaper[] = [];
 
-/* Danh sách đề thi & đề cương mẫu chuẩn cấu trúc các trường THPT / THCS hàng đầu */
-const SEED_EXAMS: ExamPaper[] = [
-  {
-    id: 'ex-01',
-    title: 'Đề thi Giữa học kỳ 1 Toán 12 — Chuyên đề Khảo sát hàm số & Tọa độ không gian',
-    subject: 'Toán học',
-    grade: 12,
-    examType: 'Đề giữa kỳ 1',
-    province: 'Hà Nội',
-    school: 'THPT Chuyên Hà Nội - Amsterdam',
-    schoolYear: '2026-2027',
-    format: 'PDF',
-    verified: true,
-    hasAnswer: true,
-    difficulty: 'Vận dụng cao',
-    uploader: { name: 'Ban Chuyên Môn Toán Amser', role: 'Ban Biên Tập' },
-    uploadDate: '12/10/2026',
-    summary: 'Đề chuẩn cấu trúc ma trận mới nhất Bộ GD&ĐT gồm 40 câu trắc nghiệm nhiều lựa chọn, 4 câu đúng sai và 6 câu trả lời ngắn kèm lời giải chi tiết từng bước.',
-    sampleQuestions: [
-      'Câu 1: Cho hàm số y = f(x) có bảng biến thiên với f\'(x) đổi dấu từ âm sang dương tại x = 2 và f(2) = -3. Tìm toạ độ điểm cực tiểu của đồ thị hàm số.',
-      'Câu 2: Trong không gian Oxyz, tìm toạ độ hình chiếu vuông góc của điểm M(2; -1; 3) trên mặt phẳng (P): x + 2y - 2z + 4 = 0.',
-      'Câu 3: Một doanh nghiệp sản xuất muốn tối ưu hoá chi phí vận hành theo hàm chi phí bậc ba C(x). Xác định số sản phẩm cần xuất xưởng để lợi nhuận tối đa.',
-    ],
-    sampleSolutions: [
-      {
-        questionNumber: 1,
-        question: 'Cho hàm số y = f(x) có bảng biến thiên với f\'(x) đổi dấu từ âm sang dương tại x = 2 và f(2) = -3. Tìm toạ độ điểm cực tiểu của đồ thị hàm số.',
-        solution: 'Do đạo hàm f\'(x) đổi dấu từ âm sang dương qua điểm x = 2 nên x = 2 là điểm cực tiểu của hàm số, với giá trị cực tiểu là y_CT = f(2) = -3. Do đó, điểm cực tiểu của đồ thị hàm số có toạ độ là (2; -3).',
-        keyFormula: 'f\'(x_0) = 0 và f\'(x) đổi dấu từ (-) sang (+) khi qua x_0 => x_0 là điểm cực tiểu.',
-        tips: 'Phân biệt rõ: "điểm cực tiểu của hàm số" là giá trị của x, còn "điểm cực tiểu của đồ thị" là cặp toạ độ (x; y).',
-      },
-      {
-        questionNumber: 2,
-        question: 'Trong không gian Oxyz, tìm toạ độ hình chiếu vuông góc của điểm M(2; -1; 3) trên mặt phẳng (P): x + 2y - 2z + 4 = 0.',
-        solution: 'Mặt phẳng (P) có véctơ pháp tuyến n = (1; 2; -2). Đường thẳng d đi qua M và vuông góc với (P) có phương trình tham số: x = 2 + t, y = -1 + 2t, z = 3 - 2t. Thay vào phương trình (P): (2 + t) + 2(-1 + 2t) - 2(3 - 2t) + 4 = 0 <=> 9t - 2 = 0 <=> t = 2/9. Thay t vào phương trình đường thẳng d ta được toạ độ hình chiếu H(20/9; -5/9; 23/9).',
-        keyFormula: 'd qua M(x_0, y_0, z_0) vuông góc (P): Ax + By + Cz + D = 0 nhận n=(A, B, C) làm VTCP.',
-        tips: 'Kiểm tra lại bằng cách thay toạ độ điểm H vừa tìm vào phương trình mặt phẳng (P) để đảm bảo vế trái bằng 0.',
-      },
-      {
-        questionNumber: 3,
-        question: 'Một doanh nghiệp sản xuất muốn tối ưu hoá chi phí vận hành theo hàm chi phí bậc ba C(x). Xác định số sản phẩm cần xuất xưởng để lợi nhuận tối đa.',
-        solution: 'Lợi nhuận được tính bằng doanh thu trừ chi phí: P(x) = R(x) - C(x) = p*x - C(x). Lấy đạo hàm cấp 1: P\'(x) = R\'(x) - C\'(x) = 0 để tìm điểm dừng kinh tế (doanh thu cận biên bằng chi phí cận biên). Khảo sát dấu P\'(x) trên miền x > 0 xác nhận giá trị cực đại toàn cục.',
-        keyFormula: 'Doanh thu cận biên MR = Chi phí cận biên MC <=> R\'(x) = C\'(x).',
-        tips: 'Đọc kỹ điều kiện ràng buộc công suất tối đa của nhà máy để không chọn nghiệm ngoài miền khả thi.',
-      },
-    ],
-    status: 'approved',
-  },
-  {
-    id: 'ex-02',
-    title: 'Đề cương ôn tập Học kỳ 1 Vật lý 11 — Toàn bộ Chuyên đề Dao động cơ & Sóng cơ học',
-    subject: 'Vật lý',
-    grade: 11,
-    examType: 'Đề cương ôn tập',
-    province: 'Hà Nội',
-    school: 'THPT Chu Văn An (Hà Nội)',
-    schoolYear: '2026-2027',
-    format: 'PDF',
-    verified: true,
-    hasAnswer: true,
-    difficulty: 'Vận dụng',
-    uploader: { name: 'CLB Vật Lý CVA', role: 'Học Sinh Chuyên' },
-    uploadDate: '08/10/2026',
-    summary: 'Tổng hợp lý thuyết trọng tâm, sơ đồ tư duy Mindmap, hệ thống bài tập phân mức độ từ thông hiểu đến vận dụng cao có giải chi tiết.',
-    sampleQuestions: [
-      'Chuyên đề 1: Phương trình dao động điều hoà, mối liên hệ giữa li độ x, vận tốc v và gia tốc a theo thời gian t.',
-      'Chuyên đề 2: Con lắc lò xo treo thẳng đứng: điều kiện để lực đàn hồi triệt tiêu và năng lượng dao động điều hoà bảo toàn.',
-      'Chuyên đề 3: Giao thoa sóng cơ trên mặt nước với hai nguồn kết hợp đồng pha: xác định số điểm dao động với biên độ cực đại trên đoạn thẳng nối hai nguồn.',
-    ],
-    sampleSolutions: [
-      {
-        questionNumber: 1,
-        question: 'Phương trình dao động điều hoà, mối liên hệ giữa li độ x, vận tốc v và gia tốc a theo thời gian t.',
-        solution: 'Li độ x = A*cos(omega*t + phi). Vận tốc v = x\' = -omega*A*sin(omega*t + phi), sớm pha pi/2 so với li độ. Gia tốc a = v\' = -omega^2*x, ngược pha (sớm pha pi) so với li độ. Hệ thức độc lập: x^2 + v^2/omega^2 = A^2 và a^2/omega^4 + v^2/omega^2 = A^2.',
-        keyFormula: 'x^2 + v^2 / omega^2 = A^2 và a = -omega^2 * x.',
-        tips: 'Vẽ vòng tròn lượng giác đa trục (x nằm ngang hướng sang phải, v thẳng đứng hướng xuống, a nằm ngang hướng sang trái) để xác định pha cực nhanh.',
-      },
-      {
-        questionNumber: 2,
-        question: 'Con lắc lò xo treo thẳng đứng: điều kiện để lực đàn hồi triệt tiêu và năng lượng dao động điều hoà bảo toàn.',
-        solution: 'Độ biến dạng ở VTCB: delta_l_0 = m*g / k. Lực đàn hồi triệt tiêu khi lò xo không biến dạng, tức là li độ x = -delta_l_0. Điều kiện để lực đàn hồi bằng 0 trong quá trình dao động là biên độ A >= delta_l_0.',
-        keyFormula: 'delta_l_0 = m*g / k; F_dh = k * |delta_l_0 + x|.',
-        tips: 'Phân biệt lực đàn hồi (hướng về vị trí lò xo không biến dạng) và lực kéo về (hướng về vị trí cân bằng O).',
-      },
-    ],
-    status: 'approved',
-  },
-  {
-    id: 'ex-03',
-    title: 'Đề thi Khảo sát chất lượng Đợt 1 Hoá học 12 — Liên trường THPT Chuyên',
-    subject: 'Hoá học',
-    grade: 12,
-    examType: 'Khảo sát chất lượng',
-    province: 'Nghệ An',
-    school: 'THPT Chuyên Phan Bội Châu (Nghệ An)',
-    schoolYear: '2026-2027',
-    format: 'PDF',
-    verified: true,
-    hasAnswer: true,
-    difficulty: 'Vận dụng cao',
-    uploader: { name: 'Thầy Hoàng Nam', role: 'Giáo Viên' },
-    uploadDate: '05/10/2026',
-    summary: 'Đề phân hoá rõ nét, rèn luyện kỹ năng xử lý bảng số liệu Ester - Lipit, Amino acid và Polyme thế hệ mới.',
-    sampleQuestions: [
-      'Câu 12: Thuỷ phân hoàn toàn m gam triglyxerit X trong dung dịch NaOH đun nóng, thu được glixerol và hỗn hợp hai muối natri stearat và natri panmitat.',
-      'Câu 24: Thực nghiệm điện phân dung dịch chứa Cu(NO3)2 và NaCl bằng dòng điện không đổi với điện cực trơ, màng ngăn xốp.',
-    ],
-    sampleSolutions: [
-      {
-        questionNumber: 1,
-        question: 'Thuỷ phân hoàn toàn m gam triglyxerit X trong dung dịch NaOH đun nóng, thu được glixerol và hỗn hợp hai muối natri stearat và natri panmitat.',
-        solution: 'Áp dụng định luật bảo toàn khối lượng và phương pháp đồng đẳng hoá hoặc quy đổi: Quy đổi chất béo X thành (HCOO)3C3H5, CH2 và H2 (nếu chưa no). Từ tỷ lệ số mol muối panmitat (C15H31COONa) và stearat (C17H35COONa) suy ra cấu tạo chính xác của triglyxerit X.',
-        keyFormula: 'm_chatbeo + m_NaOH = m_muoi + m_glixerol với n_NaOH = 3 * n_glixerol.',
-        tips: 'Luôn kiểm tra tỷ lệ số mol NaOH và muối để bảo toàn gốc axit béo.',
-      },
-    ],
-    status: 'approved',
-  },
-  {
-    id: 'ex-04',
-    title: 'Đề thi Cuối học kỳ 1 Tiếng Anh 10 — Format Đổi Mới Cấu Trúc Đọc Hiểu & Nghe',
-    subject: 'Tiếng Anh',
-    grade: 10,
-    examType: 'Đề cuối kỳ 1',
-    province: 'TP. Hồ Chí Minh',
-    school: 'THPT Chuyên Lê Hồng Phong (TP.HCM)',
-    schoolYear: '2025-2026',
-    format: 'DOCX',
-    verified: true,
-    hasAnswer: true,
-    difficulty: 'Thông hiểu',
-    uploader: { name: 'English Excellence Club', role: 'CLB Học Sinh' },
-    uploadDate: '28/09/2026',
-    summary: 'Bao gồm phần phát âm, ngữ pháp trong ngữ cảnh thực tế, đoạn văn đọc hiểu chủ đề Trí tuệ nhân tạo & Môi trường bền vững.',
-    sampleQuestions: [
-      'Part 1: Phonetics and Word Stress patterns with multi-syllable academic nouns.',
-      'Part 2: Cloze Reading Test on ecological restoration and technological innovations.',
-      'Part 3: Sentence transformation maintaining synonymous meaning with inversion structure.',
-    ],
-    sampleSolutions: [
-      {
-        questionNumber: 1,
-        question: 'Part 1: Stress pattern: differentiate words with suffix -tion, -ic, -ical.',
-        solution: 'Words ending in -ic and -tion have primary stress placed on the penultimate syllable (immediately before the suffix): eco\'nomic, inno\'vation, sustaina\'bility.',
-        keyFormula: 'Suffix rule: -tion, -sion, -ic => Stress on syllable directly preceding suffix.',
-        tips: 'Count syllables from the end to quickly verify primary stress position.',
-      },
-    ],
-    status: 'approved',
-  },
-  {
-    id: 'ex-05',
-    title: 'Đề kiểm tra 15 phút Giải tích 12 — Cực trị hàm số chứa dấu giá trị tuyệt đối',
-    subject: 'Toán học',
-    grade: 12,
-    examType: 'Đề 15 phút',
-    province: 'Thanh Hoá',
-    school: 'THPT Chuyên Lam Sơn (Thanh Hóa)',
-    schoolYear: '2026-2027',
-    format: 'PDF',
-    verified: true,
-    hasAnswer: true,
-    difficulty: 'Vận dụng cao',
-    uploader: { name: 'LamSon Math Geek', role: 'Học Sinh' },
-    uploadDate: '01/10/2026',
-    summary: 'Bộ 10 câu hỏi trắc nghiệm rèn tư duy giải nhanh đồ thị hàm số chứa trị tuyệt đối f(|x|) và |f(x)| có mẹo giải casio và bản chất.',
-    sampleQuestions: [
-      'Câu 1: Tìm số điểm cực trị của hàm số y = |x^3 - 3x^2 + 2|.',
-      'Câu 2: Cho hàm số f(x) có đạo hàm liên tục trên R. Tìm tham số m để hàm số g(x) = f(|x - m|) có đúng 5 điểm cực trị.',
-    ],
-    sampleSolutions: [
-      {
-        questionNumber: 1,
-        question: 'Tìm số điểm cực trị của hàm số y = |x^3 - 3x^2 + 2|.',
-        solution: 'Xét hàm số u(x) = x^3 - 3x^2 + 2. Đạo hàm u\'(x) = 3x^2 - 6x = 0 <=> x = 0 hoặc x = 2 (2 điểm cực trị). Phương trình u(x) = 0 có 3 nghiệm phân biệt. Số điểm cực trị của hàm y = |u(x)| bằng số điểm cực trị của u(x) cộng số nghiệm đơn của u(x)=0: N = 2 + 3 = 5 điểm cực trị.',
-        keyFormula: 'Số cực trị của y = |u(x)| bằng a + b (với a là số cực trị của u, b là số nghiệm đơn của u(x) = 0).',
-        tips: 'Công thức N = a + b chỉ áp dụng khi các nghiệm của u(x) = 0 không trùng với các điểm cực trị.',
-      },
-    ],
-    status: 'approved',
-  },
-  {
-    id: 'ex-06',
-    title: 'Đề cương ôn tập Giữa kỳ 1 Ngữ văn 11 — Nghị luận xã hội & Đọc hiểu Thơ Hiện Đại',
-    subject: 'Ngữ văn',
-    grade: 11,
-    examType: 'Đề cương ôn tập',
-    province: 'Hà Nội',
-    school: 'THPT Kim Liên',
-    schoolYear: '2026-2027',
-    format: 'DOCX',
-    verified: true,
-    hasAnswer: true,
-    difficulty: 'Thông hiểu',
-    uploader: { name: 'Văn Học Trẻ Kim Liên', role: 'Ban Học Tập' },
-    uploadDate: '20/09/2026',
-    summary: 'Dàn ý mẫu nghị luận 600 chữ về lối sống bản lĩnh của Gen Z, phân tích hình tượng nghệ thuật và các biện pháp tu từ trọng điểm.',
-    sampleQuestions: [
-      'Phần Đọc hiểu: Ngữ liệu ngoài sách giáo khoa bàn về lòng tự trọng và văn hoá ứng xử không gian mạng.',
-      'Phần Làm văn: Viết bài văn nghị luận xã hội khoảng 600 chữ bàn về ý nghĩa của việc dám bước ra khỏi vùng an toàn.',
-    ],
-    sampleSolutions: [
-      {
-        questionNumber: 1,
-        question: 'Dàn ý phần Làm văn: Ý nghĩa của việc dám bước ra khỏi vùng an toàn trong kỷ nguyên số.',
-        solution: 'Mở bài: Dẫn dắt nhận định về giới hạn của sự an toàn và bản lĩnh đương đầu thử thách. Thân bài: Giải thích "vùng an toàn" là trạng thái thoải mái tâm lý không có sự tiến bộ; Phân tích lợi ích (khai phóng tiềm năng, tích luỹ kinh nghiệm phục hồi resilient, thích ứng với biến động AI); Chứng minh bằng tấm gương khởi nghiệp trẻ; Bác bỏ tư tưởng an phận thụ động; Bài học nhận thức và hành động cá nhân.',
-        keyFormula: 'Cấu trúc bài văn NLXH 600 chữ: Giải thích (10%) -> Bàn luận & Dẫn chứng (60%) -> Phản đề (15%) -> Bài học (15%).',
-        tips: 'Lấy dẫn chứng thực tế gắn liền với khoa học công nghệ hoặc thế hệ trẻ thay vì các tấm gương đã quá cũ.',
-      },
-    ],
-    status: 'approved',
-  },
-  {
-    id: 'ex-07',
-    title: 'Đề thi Giữa học kỳ 1 Sinh học 12 — Di truyền học phân tử & Quy luật di truyền Mendel',
-    subject: 'Sinh học',
-    grade: 12,
-    examType: 'Đề giữa kỳ 1',
-    province: 'Đà Nẵng',
-    school: 'THPT Chuyên Lê Quý Đôn (Đà Nẵng)',
-    schoolYear: '2026-2027',
-    format: 'PDF',
-    verified: true,
-    hasAnswer: true,
-    difficulty: 'Vận dụng cao',
-    uploader: { name: 'Thảo Vy Sinh Học', role: 'Học Sinh' },
-    uploadDate: '25/09/2026',
-    summary: 'Bao gồm các bài tập tính toán số nucleotit, chuỗi mARN, dịch mã và các bài toán phả hệ di truyền người mức độ vận dụng.',
-    sampleQuestions: [
-      'Câu 18: Một gen ở sinh vật nhân sơ có chiều dài 4080 Angstrom và có hiệu số giữa A với loại nucleotit khác là 20%.',
-      'Câu 32: Cho sơ đồ phả hệ phản ánh sự di truyền của hai bệnh P và Q ở người do hai cặp gen phân ly độc lập quy định.',
-    ],
-    sampleSolutions: [
-      {
-        questionNumber: 1,
-        question: 'Tính số lượng từng loại nucleotit của gen có chiều dài L = 4080 A và %A - %G = 20%.',
-        solution: 'Tổng số nucleotit của gen: N = (2 * L) / 3.4 = (2 * 4080) / 3.4 = 2400 nu. Theo nguyên tắc bổ sung: %A + %G = 50% và %A - %G = 20% => %A = %T = 35%; %G = %X = 15%. Số lượng từng loại: A = T = 2400 * 35% = 840 nu; G = X = 2400 * 15% = 360 nu.',
-        keyFormula: 'N = 2L / 3.4; %A + %G = 50%; A = T, G = X.',
-        tips: 'Đổi đúng đơn vị: 1 nm = 10 Angstrom; 1 micromet = 10000 Angstrom.',
-      },
-    ],
-    status: 'approved',
-  },
-  {
-    id: 'ex-08',
-    title: 'Đề thi Giữa kỳ 1 Lịch sử 12 — Quan hệ quốc tế trong nửa sau thế kỷ XX',
-    subject: 'Lịch sử',
-    grade: 12,
-    examType: 'Đề giữa kỳ 1',
-    province: 'Nam Định',
-    school: 'THPT Chuyên Lê Hồng Phong (Nam Định)',
-    schoolYear: '2026-2027',
-    format: 'PDF',
-    verified: true,
-    hasAnswer: true,
-    difficulty: 'Thông hiểu',
-    uploader: { name: 'Sử Học Đất Thành Nam', role: 'CLB Lịch Sử' },
-    uploadDate: '18/09/2026',
-    summary: '40 câu trắc nghiệm chuẩn cấu trúc ma trận mới: Trật tự hai cực Ianta, Chiến tranh lạnh, xu thế hoà hoãn Đông - Tây và phong trào giải phóng dân tộc.',
-    sampleQuestions: [
-      'Câu 1: Hội nghị Ianta (tháng 2/1945) đã đưa ra quyết định nào sau đây ảnh hưởng trực tiếp đến việc phân chia khu vực ảnh hưởng ở châu Á?',
-      'Câu 15: Xu thế toàn cầu hoá được khởi xướng từ đầu những năm 80 của thế kỷ XX đã tạo ra thời cơ và thách thức gì cho các nước đang phát triển?',
-    ],
-    sampleSolutions: [
-      {
-        questionNumber: 1,
-        question: 'Quyết định của Hội nghị Ianta ảnh hưởng trực tiếp đến phân chia ảnh hưởng ở châu Á.',
-        solution: 'Tại Hội nghị Ianta, ba cường quốc Liên Xô, Mỹ, Anh thống nhất: Liên Xô tham chiến chống Nhật tại châu Á; trả lại cho Liên Xô miền Nam đảo Xakhalin; quốc tế hoá cảng Đại Liên; khôi phục quyền lợi của Nga ở đường sắt Trung Đông; bán đảo Triều Tiên bị chia cắt lấy vĩ tuyến 38 làm ranh giới tạm thời.',
-        keyFormula: 'Từ khoá Ianta: Phân chia phạm vi ảnh hưởng giữa Mỹ và Liên Xô, bán đảo Triều Tiên vĩ tuyến 38.',
-        tips: 'Ghi nhớ mốc thời gian: Hội nghị Ianta họp từ ngày 4 đến ngày 11 tháng 2 năm 1945 tại Liên Xô.',
-      },
-    ],
-    status: 'approved',
-  },
-  {
-    id: 'ex-09',
-    title: 'Đề thi Khảo sát Toán 9 vào 10 — Chuyên đề Hình học Đường tròn & Bất đẳng thức',
-    subject: 'Toán học',
-    grade: 9,
-    examType: 'Khảo sát chất lượng',
-    province: 'Hà Nội',
-    school: 'THCS Giảng Võ (Hà Nội)',
-    schoolYear: '2026-2027',
-    format: 'PDF',
-    verified: true,
-    hasAnswer: true,
-    difficulty: 'Vận dụng cao',
-    uploader: { name: 'Thầy Vũ Quang', role: 'Giáo Viên' },
-    uploadDate: '10/10/2026',
-    summary: 'Đề thi thử vào lớp 10 theo format Sở GD&ĐT Hà Nội, có bài hình 3 ý nâng cao và câu bất đẳng thức phân loại điểm 10.',
-    sampleQuestions: [
-      'Bài 1: Cho biểu thức P. Rút gọn biểu thức và tìm x nguyên để P nhận giá trị nguyên lớn nhất.',
-      'Bài 4: Cho đường tròn (O; R) và điểm A nằm ngoài đường tròn. Kẻ hai tiếp tuyến AB, AC và cát tuyến ADE.',
-      'Bài 5: Cho các số thực dương a, b, c thỏa mãn ab + bc + ca = 3. Tìm giá trị nhỏ nhất của biểu thức P = 1 / (1 + a^2) + 1 / (1 + b^2) + 1 / (1 + c^2).',
-    ],
-    sampleSolutions: [
-      {
-        questionNumber: 1,
-        question: 'Rút gọn biểu thức và tìm x nguyên để P nhận giá trị nguyên lớn nhất.',
-        solution: 'Tìm điều kiện xác định x >= 0, x != 4, x != 9. Quy đồng mẫu thức chung (sqrt(x) - 2)(sqrt(x) - 3), thu gọn tử thức thành A = 2*sqrt(x) / (sqrt(x) - 3). Để P nguyên khi x nguyên, tách P = 2 + 6 / (sqrt(x) - 3), từ đó xét các ước số nguyên của 6.',
-        keyFormula: 'Phương pháp chia đa thức tách phần nguyên: P(x) = Q(x) + r / mẫu.',
-        tips: 'Sau khi tìm được x nguyên, luôn đối chiếu lại với điều kiện xác định ban đầu.',
-      },
-      {
-        questionNumber: 3,
-        question: 'Tìm GTNN của P với a, b, c dương và ab + bc + ca = 3.',
-        solution: 'Áp dụng bất đẳng thức Cauchy-Schwarz dạng Engel hoặc kỹ thuật thêm bớt bất đẳng thức AM-GM: 1 / (1 + a^2) = 1 - a^2 / (1 + a^2) >= 1 - a^2 / (2a) = 1 - a/2. Cộng ba bất đẳng thức lại ta được P >= 3 - (a+b+c)/2. Do (a+b+c)^2 >= 3(ab+bc+ca) = 9 => a+b+c >= 3. Dấu bằng xảy ra khi a = b = c = 1, khi đó P = 3/2.',
-        keyFormula: 'Bất đẳng thức AM-GM đảo ngược: 1 / (1 + x^2) >= 1 - x/2 với x > 0.',
-        tips: 'Kỹ thuật Cauchy ngược dấu là chìa khoá vàng cho các bài toán phân thức chứa mẫu 1 + biến bình phương.',
-      },
-    ],
-    status: 'approved',
-  },
-  {
-    id: 'ex-10',
-    title: 'Đề cương ôn tập Tin học 11 — Lập trình cấu trúc dữ liệu & Thuật toán đệ quy',
-    subject: 'Tin học',
-    grade: 11,
-    examType: 'Đề cương ôn tập',
-    province: 'Hà Nội',
-    school: 'THPT Lương Thế Vinh',
-    schoolYear: '2026-2027',
-    format: 'PDF',
-    verified: true,
-    hasAnswer: true,
-    difficulty: 'Vận dụng',
-    uploader: { name: 'CodeMasters F-Forum', role: 'BQT F-Forum' },
-    uploadDate: '14/10/2026',
-    summary: 'Lập trình Python và C++: Mảng 2 chiều, xâu ký tự, danh sách liên kết, bài toán quy hoạch động kinh điển có mã nguồn mẫu.',
-    sampleQuestions: [
-      'Chương 1: Xử lý tệp trong Python và tối ưu hoá bộ nhớ khi đọc file lớn bằng generator yield.',
-      'Chương 2: Cài đặt thuật toán sắp xếp nhanh QuickSort và phân tích độ phức tạp thời gian O(n log n).',
-    ],
-    sampleSolutions: [
-      {
-        questionNumber: 1,
-        question: 'Cài đặt thuật toán QuickSort phân đoạn Lomuto và phân tích độ phức tạp.',
-        solution: 'Chọn phần tử chốt (pivot) là phần tử cuối mảng. Dùng con trỏ i theo dõi ranh giới các phần tử nhỏ hơn chốt. Duyệt j từ đầu đến áp chốt, nếu arr[j] < pivot thì hoán đổi arr[i] và arr[j]. Sau đó đặt chốt vào vị trí i+1 và đệ quy hai nửa trái phải. Độ phức tạp trung bình O(n log n), xấu nhất O(n^2) khi mảng đã có thứ tự.',
-        keyFormula: 'T(n) = 2T(n/2) + O(n) => T(n) = O(n log n) theo Định lý Master.',
-        tips: 'Để tránh trường hợp xấu nhất O(n^2), nên chọn pivot ngẫu nhiên (Randomized QuickSort).',
-      },
-    ],
-    status: 'approved',
-  },
-];
+const getExamViewerUrl = (paperId: string): string => {
+  if (typeof window === 'undefined') return `/?view=exam-viewer&paper=${encodeURIComponent(paperId)}`;
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('view', 'exam-viewer');
+  url.searchParams.set('paper', paperId);
+  return `${url.pathname}${url.search}`;
+};
 
+const openExamViewer = (paperId: string): void => {
+  window.open(getExamViewerUrl(paperId), '_blank', 'noopener,noreferrer');
+};
+
+/* Danh sách đề thi & đề cương mẫu chuẩn cấu trúc các trường THPT / THCS hàng đầu */
 const GRADE_OPTIONS = [
   { value: 0, label: 'Tất cả lớp' },
   { value: 12, label: 'Lớp 12' },
@@ -638,7 +309,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   }, []);
 
   const handleToggleTheme = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('fforum_toggle_theme'));
+    toggleThemeMode();
   }, []);
 
   const submissionStorageKey = currentUser?.email
@@ -1033,7 +704,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
   /* Share to Study Club */
   const handleShareToClub = useCallback((exam: ExamPaper) => {
-    const url = `${window.location.origin}/exam-vault?id=${exam.id}`;
+    const url = `${window.location.origin}${getExamViewerUrl(exam.id)}`;
     if (navigator?.clipboard?.writeText) {
       navigator.clipboard.writeText(url).catch(() => {});
     }
@@ -1930,17 +1601,15 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 <article
                   key={paper.id}
                   tabIndex={0}
-                  aria-label={`Xem trước: ${paper.title}`}
+                  aria-label={`Mở trang đọc: ${paper.title}`}
                   onClick={(event) => {
                     if ((event.target as HTMLElement).closest('button, a, input, select, textarea')) return;
-                    setPreviewExam(paper);
-                    setShowDetailedSolutions(false);
+                    openExamViewer(paper.id);
                   }}
                   onKeyDown={(e) => {
                     if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
                     e.preventDefault();
-                    setPreviewExam(paper);
-                    setShowDetailedSolutions(false);
+                    openExamViewer(paper.id);
                   }}
                   className={`ff-exam-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between cursor-pointer relative overflow-visible group ${
                     isPending ? 'border-amber-400/40 bg-amber-950/20' : ''
@@ -2087,7 +1756,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                         </span>
                       )}
 
-                      <div className="ff-exam-card-actions grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      <div className="ff-exam-card-actions grid grid-cols-2 gap-2 sm:grid-cols-4">
                         {/* Admin approval actions if pending */}
                         {isPending && isStaffOrAdmin && (
                           <>
@@ -2123,17 +1792,29 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                           </button>
                         )}
 
+                        <a
+                          href={getExamViewerUrl(paper.id)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(event) => event.stopPropagation()}
+                          className="ff-tactile-btn inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.06] px-2 py-1.5 text-xs font-semibold text-white no-underline transition-colors hover:bg-white/[0.12]"
+                          aria-label={`Mở trang đọc đề: ${paper.title}`}
+                        >
+                          <Eye className="w-3.5 h-3.5 text-amber-300" />
+                          <span>Đọc đề</span>
+                        </a>
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
+                          onClick={(event) => {
+                            event.stopPropagation();
                             setPreviewExam(paper);
                             setShowDetailedSolutions(false);
                           }}
                           className="ff-tactile-btn inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.06] px-2 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/[0.12]"
+                          aria-label={`Mở chi tiết và nhận xét: ${paper.title}`}
                         >
-                          <Eye className="w-3.5 h-3.5 text-amber-300" />
-                          <span>Xem thử</span>
+                          <MessageSquare className="w-3.5 h-3.5 text-[#81b29a]" />
+                          <span>Chi tiết</span>
                         </button>
 
                         {paper.attachments && paper.attachments.length > 0 ? (
@@ -2919,7 +2600,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         onClearAllBookmarks={handleClearAllBookmarks}
         onSelectPreview={(p) => {
           setIsBookmarkDrawerOpen(false);
-          setPreviewExam(p);
+          openExamViewer(p.id);
         }}
         onOpenPrint={(p) => {
           setIsBookmarkDrawerOpen(false);

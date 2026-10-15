@@ -106,7 +106,8 @@ test('6. Tương tác nhanh: xem trước, xuất PDF thật và lưu đề', ()
 
   assert.ok(tsx.includes('previewExam'), 'Must support previewing exam paper');
   assert.ok(tsx.includes('onClick={(e) => handleToggleLike(paper.id, e)}'), 'Like button must call the anti-spam toggle handler');
-  assert.ok(tsx.includes('setPreviewExam(paper)') && tsx.includes('<span>Xem thử</span>'), 'Preview button must open the selected exam');
+  assert.ok(tsx.includes('openExamViewer(paper.id)') && tsx.includes('<span>Đọc đề</span>'), 'Selecting or previewing a paper must open its dedicated reader page');
+  assert.ok(tsx.includes('target="_blank"') && tsx.includes('view=exam-viewer'), 'Reader links must open in a separate tab and include the paper route');
   assert.ok(tsx.includes('handleDownload(paper, e)') && tsx.includes('<span>Xuất PDF</span>'), 'PDF button must open the export flow');
   assert.ok(tsx.includes("closest('button, a, input, select, textarea')"), 'Card clicks must not swallow action-button clicks');
   assert.ok(tsx.includes('onPrint={() => showToast('), 'PDF export may confirm the print action without inventing download metrics');
@@ -123,6 +124,11 @@ test('7. Tích hợp thanh điều hướng Navbar, App shell & HomeView', () =>
 
   assert.ok(navbar.includes("'exam-vault'"), 'Navbar must have exam-vault dock item');
   assert.ok(app.includes("currentView === 'exam-vault'"), 'App.tsx must conditionally render ExamVaultView');
+  assert.ok(app.includes("currentView === 'exam-viewer'"), 'App.tsx must mount the separate exam reader route');
+  assert.ok(app.includes('ExamPaperViewerView'), 'App.tsx must import the exam reader');
+  const store = read('src/store/forumStore.ts');
+  assert.ok(store.includes("requestedView === 'exam-viewer'"), 'Deep links must initialize directly into the dedicated reader');
+  assert.ok(app.includes("'exam-viewer'"), 'The standalone reader must use the app shell route');
   assert.ok(app.includes("ExamVaultView"), 'App.tsx must import ExamVaultView');
   assert.ok(home.includes("onNavigate('exam-vault')"), 'HomeView must link to exam-vault');
   assert.ok(
@@ -173,9 +179,12 @@ test('9. Tương tác Kho Đề Thi: mức độ khó và dữ liệu cộng đ�
   assert.ok(server.includes('examInteractionLimiter') && server.includes('examReviewLimiter'), 'Server must rate-limit account interaction requests');
   assert.ok(!tsx.includes('DOWNLOAD_COUNTS_KEY') && !tsx.includes('USER_RATINGS_KEY') && !tsx.includes('PEER_REVIEWS_KEY'), 'Community values must not be persisted as local client metrics');
   assert.ok(!tsx.includes('paper.downloads') && !tsx.includes('paper.views'), 'Cards must not show unavailable download/view counters');
-  const seedStart = tsx.indexOf('const SEED_EXAMS: ExamPaper[] = [');
-  const seedEnd = tsx.indexOf('const PROVINCE_OPTIONS', seedStart);
-  assert.doesNotMatch(tsx.slice(seedStart, seedEnd), /\n\s+(?:fileSize|downloads|views|likes|pageCount|duration|rating|ratingCount|peerReviews):/, 'Seed papers must not carry fabricated engagement or availability metrics');
+  const seedData = read('src/components/exam/seedExamPapers.ts');
+  const seedStart = seedData.indexOf('export const SEED_EXAMS: ExamPaper[] = [');
+  assert.doesNotMatch(seedData.slice(seedStart), /\n\s+(?:fileSize|downloads|views|likes|pageCount|duration|rating|ratingCount|peerReviews):/, 'Seed papers must not carry fabricated engagement or availability metrics');
+  const viewer = read('src/components/views/ExamPaperViewerView.tsx');
+  assert.ok(viewer.includes("format === 'PDF' ?") && viewer.includes('examAttachmentUrl(activePaperId, selectedAttachment, true)'), 'Uploaded PDFs must be rendered inline in the dedicated reader');
+  assert.ok(viewer.includes('format === \'DOCX\'') || viewer.includes('DOCX'), 'Word attachments must have a clear viewing/download path');
   const paperConverter = server.slice(server.indexOf('function examSubmissionToPaper'), server.indexOf('/** Miền email', server.indexOf('function examSubmissionToPaper')));
   assert.doesNotMatch(paperConverter, /(?:downloads|views|likes|pageCount):\s*0/, 'Server must not assign placeholder counters to submitted papers');
   assert.ok(tsx.includes('handleRateExam'), 'Must support authenticated rating actions');
@@ -419,7 +428,7 @@ test('16. QA dùng cuộn toàn trang, nền cố định và thẻ ảo giữ �
   assert.ok(exam.includes('aria-expanded={isAdvancedFiltersOpen}'), 'Bộ lọc phụ phải có trạng thái truy cập được');
   assert.ok(!exam.includes('sticky top-0 z-40'), 'Header Kho Đề không được che nội dung khi cuộn');
   assert.ok(exam.includes('activeTab === \'syllabus\' ?'), 'Đầu trang phải nhận diện rõ chế độ đề cương');
-  assert.ok(exam.includes('ff-exam-card-actions grid grid-cols-2 gap-2 sm:grid-cols-3'), 'Nút thao tác đề phải nằm trong lưới gọn responsive');
+  assert.ok(exam.includes('ff-exam-card-actions grid grid-cols-2 gap-2 sm:grid-cols-4'), 'Nút thao tác đề phải nằm trong lưới gọn responsive');
   assert.ok(exam.includes('getCompactPaperTitle'), 'Thẻ đề phải rút gọn tiêu đề lặp');
   assert.ok(examCss.includes('.ff-exam-filter-panel'), 'Bộ lọc dùng một bề mặt thống nhất');
   assert.ok(exam.includes('pointermove') && examCss.includes('.ff-exam-vault::before'), 'Kho Đề phải có parallax nền tinh tế');

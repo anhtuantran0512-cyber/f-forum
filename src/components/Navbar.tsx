@@ -29,6 +29,7 @@ import { useUserDecorations, preloadDecorations } from '../utils/decorationStore
 import { NotificationsModal } from './NotificationsModal';
 import { SettingsModal } from './SettingsModal';
 import { safeStorage } from '../utils/storage';
+import { toggleThemeMode } from '../utils/theme';
 import { resolveGodrayId, resolvePotatorId } from '../utils/gradients';
 import { DailyEngagementModal } from './DailyEngagementModal';
 import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
@@ -60,7 +61,7 @@ export interface NavbarProps {
   onToggleEyeRest?: () => void;
 }
 
-type DockView = Exclude<DimensionView, 'landing' | 'home'>;const NAV_ICONS: Record<DockView, React.ReactNode> = {
+type DockView = Exclude<DimensionView, 'landing' | 'home' | 'exam-viewer'>;const NAV_ICONS: Record<DockView, React.ReactNode> = {
   clubs: <Users size={16} className="text-[#81b29a]" />,
   qa: <HelpCircle size={16} className="text-[#e07a5f]" />,
   threads: <MessageCircleMore size={16} className="text-[#f2cc8f]" />,
@@ -497,16 +498,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, [theme, reducedMotion, glassBlur, fontSize, potatorMode, potatorBg]);
 
   const handleToggleTheme = () => {
-    const nextTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(nextTheme);
-    safeStorage.setItem('fforum_theme', nextTheme);
-    if (nextTheme === 'light') {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.classList.add('light');
-    } else {
-      document.documentElement.classList.remove('light');
-      document.documentElement.classList.add('dark');
-    }
+    setTheme(toggleThemeMode());
   };
 
   /* Cho phép Bảng lệnh (⌘K) và các phím tắt đổi theme từ bên ngoài Navbar */
