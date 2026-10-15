@@ -13,6 +13,11 @@ import {
   setExamLike,
   toggleExamLike,
 } from '../src/utils/examLikes.ts';
+import {
+  examAttachmentFormat,
+  formatExamFileSize,
+  isSupportedExamAttachment,
+} from '../src/utils/examAttachments.ts';
 
 const read = (rel) => fs.readFileSync(path.resolve(rel), 'utf8');
 
@@ -68,23 +73,55 @@ test('4. Bộ lọc đa chiều: Khối lớp (6..12), Loại đề, Môn học,
   });
 });
 
-test('5. Quy trình đóng góp đề thi & duyệt đề: upload modal, lưu storage, duyệt/từ chối', () => {
+test('5. Quy trình đóng góp đề thi & duyệt đề: tải tệp lên máy chủ và lưu trạng thái chờ duyệt', () => {
   const tsx = read('src/components/views/ExamVaultView.tsx');
+  const api = read('src/utils/examSubmissionApi.ts');
+  const server = read('server/forumServer.ts');
 
   assert.ok(tsx.includes('SUBMISSIONS_KEY'), 'Must define submissions storage key');
   assert.ok(tsx.includes('fforum_exam_submissions'), 'Must use persistent storage key fforum_exam_submissions');
   assert.ok(tsx.includes('isSubmitModalOpen'), 'Must have upload submission modal state');
-  assert.ok(tsx.includes("status: 'pending'"), 'Student submissions start with pending status');
+  assert.ok(tsx.includes('.jpg,.jpeg,.png,.webp,.gif,.avif'), 'Submission must accept common image formats');
+  assert.ok(tsx.includes('.pdf,.docx,.doc,.md,.markdown'), 'Submission must accept PDF, DOC/DOCX, and Markdown');
+  assert.ok(tsx.includes('multiple'), 'Students must be able to attach multiple pages/files');
+  assert.ok(api.includes('submitExamPaper') && api.includes('dataUrl: await readFileAsDataUrl(file)'), 'Selected file bytes must be uploaded, not only stored as metadata');
+  assert.ok(server.includes("examSubmissionPath === '/api/exam-submissions'"), 'Server must persist exam submissions');
+  assert.ok(server.includes('storeExamSubmissionAttachments'), 'Server must validate and store attachment bytes');
+  assert.ok(server.includes('examSubmissionAttachmentPath'), 'Server must serve stored attachments through an authorized route');
+  assert.ok(tsx.includes('submissionStorageKey'), 'Submission status cache must be scoped to the signed-in account');
+  assert.ok(server.includes("status: 'pending'"), 'Server submissions start in a pending review state');
   assert.ok(tsx.includes('handleApproveSubmission'), 'Admin must have approve action');
   assert.ok(tsx.includes('handleRejectSubmission'), 'Admin must have reject action');
 });
 
-test('6. Tương tác nhanh: Xem thử (preview) & Tải xuống (download progress) & Lưu đề (bookmark)', () => {
+test('5a. Định dạng tệp đề: ảnh, PDF, DOCX/DOC và Markdown được phân loại chính xác', () => {
+  const cases = [
+    [{ name: 'scan.webp', type: 'image/webp' }, 'IMAGE'],
+    [{ name: 'semester.pdf', type: 'application/pdf' }, 'PDF'],
+    [{ name: 'answer.docx', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }, 'DOCX'],
+    [{ name: 'notes.md', type: 'text/plain' }, 'MD'],
+  ];
+
+  cases.forEach(([file, expected]) => {
+    assert.equal(isSupportedExamAttachment(file), true, `${file.name} must be accepted`);
+    assert.equal(examAttachmentFormat(file), expected, `${file.name} must be classified correctly`);
+  });
+  assert.equal(isSupportedExamAttachment({ name: 'payload.exe', type: 'application/octet-stream' }), false);
+  assert.equal(formatExamFileSize(1024 * 1024), '1.0 MB');
+});
+
+test('6. Tương tác nhanh: xem trước, xuất PDF thật và lưu đề', () => {
   const tsx = read('src/components/views/ExamVaultView.tsx');
+  const printModal = read('src/components/exam/ExamPrintExportModal.tsx');
 
   assert.ok(tsx.includes('previewExam'), 'Must support previewing exam paper');
-  assert.ok(tsx.includes('downloadingId'), 'Must track active downloading item');
-  assert.ok(tsx.includes('downloadProgress'), 'Must show download progress animation');
+  assert.ok(tsx.includes('onClick={(e) => handleToggleLike(paper.id, e)}'), 'Like button must call the anti-spam toggle handler');
+  assert.ok(tsx.includes('setPreviewExam(paper)') && tsx.includes('<span>Xem thử</span>'), 'Preview button must open the selected exam');
+  assert.ok(tsx.includes('handleDownload(paper, e)') && tsx.includes('<span>Xuất PDF</span>'), 'PDF button must open the export flow');
+  assert.ok(tsx.includes("closest('button, a, input, select, textarea')"), 'Card clicks must not swallow action-button clicks');
+  assert.ok(tsx.includes('onPrint={() => handleRecordPdfExport(printExam)}'), 'PDF export must record the completed print-to-PDF action');
+  assert.ok(printModal.includes('window.print()'), 'Export must open the browser print dialog so Save as PDF works');
+  assert.ok(!tsx.includes('downloadProgress'), 'Do not fake a download with a progress-only animation');
   assert.ok(tsx.includes('handleToggleBookmark'), 'Must support bookmarking / saving exam papers');
   assert.ok(tsx.includes('SAVED_EXAMS_KEY'), 'Must define saved exams storage key');
 });
@@ -329,6 +366,8 @@ test('14. Offline / Cache Indicators & Export / Print Formatting Options for Stu
   assert.ok(vaultTsx.includes("activeTab === 'cached'"), 'Must support filtering to offline cached exams');
   assert.ok(vaultTsx.includes('hasHandledDeepLinkRef'), 'Must prevent deep link repeated trigger loop');
   assert.ok(vaultTsx.includes('document.body.style.overflow'), 'Must lock body scroll during modal open to avoid layout shift');
+  assert.ok(vaultTsx.includes('createPortal') && printModal.includes('createPortal'), 'Dialogs must render at the document root to avoid route clipping');
+  assert.ok(vaultCss.includes('.ff-exam-dialog-panel') && vaultCss.includes('100dvh'), 'All dialog panels must stay within the dynamic viewport');
   assert.ok(vaultCss.includes('.ff-cached-pill'), 'CSS must define .ff-cached-pill styles');
 
   /* Print and Export Options Modal */
@@ -356,6 +395,8 @@ test('15. Kỷ luật mã nguồn tuyệt đối: Zero // Comments, Bản quyề
     'src/components/exam/ExamBookmarkDrawer.tsx',
     'src/components/exam/ExamPrintExportModal.tsx',
     'src/utils/examLikes.ts',
+    'src/utils/examAttachments.ts',
+    'src/utils/examSubmissionApi.ts',
   ];
 
   files.forEach((file) => {
@@ -399,4 +440,6 @@ test('16. QA dùng cuộn toàn trang, nền cố định và thẻ ảo giữ �
   assert.ok(exam.includes('ff-exam-card-actions grid grid-cols-2 gap-2 sm:grid-cols-3'), 'Nút thao tác đề phải nằm trong lưới gọn responsive');
   assert.ok(exam.includes('getCompactPaperTitle'), 'Thẻ đề phải rút gọn tiêu đề lặp');
   assert.ok(examCss.includes('.ff-exam-filter-panel'), 'Bộ lọc dùng một bề mặt thống nhất');
+  assert.ok(exam.includes('pointermove') && examCss.includes('.ff-exam-vault::before'), 'Kho Đề phải có parallax nền tinh tế');
+  assert.ok(examCss.includes('prefers-reduced-motion: reduce'), 'Parallax phải tắt khi người dùng giảm chuyển động');
 });

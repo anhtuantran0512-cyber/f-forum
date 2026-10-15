@@ -1,5 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Timer,
@@ -198,14 +199,20 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
   const answeredCount = Object.keys(answers).length;
   const isUrgent = secondsLeft < 300; /* Dưới 5 phút báo động */
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="cbt-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xl animate-fade-in select-none"
+      className="ff-exam-dialog-overlay z-[100] bg-black/85 backdrop-blur-xl animate-fade-in select-none"
+      onClick={onClose}
     >
-      <div className="ff-exam-modal w-full max-w-5xl rounded-3xl p-4 sm:p-6 max-h-[96vh] flex flex-col justify-between overflow-hidden relative shadow-[0_25px_80px_rgba(0,0,0,0.85)]">
+      <div
+        className="ff-exam-modal ff-exam-dialog-panel w-full max-w-5xl min-h-0 rounded-3xl p-4 sm:p-6 flex flex-col overflow-hidden relative shadow-[0_25px_80px_rgba(0,0,0,0.85)]"
+        onClick={(event) => event.stopPropagation()}
+      >
         {/* ======================================================== */}
         {/* 1. TOP BAR: Title, Timer, Status Badges, Close Button    */}
         {/* ======================================================== */}
@@ -678,7 +685,8 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 
