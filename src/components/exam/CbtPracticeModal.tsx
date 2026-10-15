@@ -210,24 +210,24 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
         {/* 1. TOP BAR: Title, Timer, Status Badges, Close Button    */}
         {/* ======================================================== */}
         <header className="flex items-center justify-between pb-3 border-b border-white/10 flex-wrap gap-2 shrink-0">
-          <div className="flex items-center gap-2.5">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
             <div className="p-2 rounded-xl bg-amber-400/20 text-amber-300 border border-amber-400/30">
               <Timer className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-amber-300 font-bold px-2 py-0.5 rounded-md bg-amber-400/10 border border-amber-400/20">
                   CBT Practice Mode
                 </span>
                 <span className="text-xs text-white/50">{paper.subject} · Lớp {paper.grade}</span>
               </div>
-              <h1 id="cbt-modal-title" className="text-sm sm:text-base font-extrabold text-white truncate max-w-md sm:max-w-xl">
+              <h1 id="cbt-modal-title" className="max-w-full break-words text-sm sm:text-base font-extrabold text-white">
                 {paper.title}
               </h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
             {/* Countdown Timer Capsule */}
             {!isSubmitted ? (
               <div
@@ -242,7 +242,7 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsTimerPaused(!isTimerPaused)}
-                  className="p-1 rounded hover:bg-white/10 text-white/60 hover:text-white cursor-pointer ml-1"
+                  className="ml-1 inline-flex min-h-8 min-w-8 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white cursor-pointer"
                   aria-label={isTimerPaused ? 'Tiếp tục đếm giờ' : 'Tạm dừng đếm giờ'}
                   title={isTimerPaused ? 'Tiếp tục' : 'Tạm dừng'}
                 >
@@ -259,7 +259,7 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
+              className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white cursor-pointer transition-colors"
               aria-label="Đóng phòng thi"
             >
               <X className="w-5 h-5" />
@@ -270,21 +270,21 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
         {/* ======================================================== */}
         {/* 2. BODY CONTENT: Exam Questions OR Score Analysis        */}
         {/* ======================================================== */}
-        <div className="flex-1 overflow-y-auto no-scrollbar py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar py-4">
           {!isSubmitted || showReviewMode ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               {/* Left Column (8 cols): Active Question Card */}
               <div className="lg:col-span-8 flex flex-col justify-between">
                 {currentQ && (
-                  <div className="p-4 sm:p-6 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between min-h-[380px]">
-                    <div>
+                  <div className="p-4 sm:p-6 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between min-h-[320px] sm:min-h-[380px]">
+                    <div className="min-w-0">
                       {/* Question meta badges */}
-                      <div className="flex items-center justify-between gap-2 mb-3">
-                        <div className="flex items-center gap-2">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
                           <span className="px-2.5 py-1 rounded-lg bg-amber-400 text-[#0b0d12] text-xs font-extrabold">
                             Câu {currentQ.number} / {totalQuestions}
                           </span>
-                          <span className="px-2.5 py-1 rounded-lg bg-white/10 text-white/80 text-[11px] font-medium border border-white/15">
+                          <span className="min-w-0 max-w-full break-words rounded-lg border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/80">
                             {currentQ.topic}
                           </span>
                           <span className="px-2 py-0.5 rounded-lg bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold">
@@ -296,7 +296,7 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
                           <button
                             type="button"
                             onClick={() => handleToggleFlag(currentQ.number)}
-                            className={`p-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors ${
+                            className={`ml-auto inline-flex min-h-9 shrink-0 items-center gap-1 rounded-lg border p-2 text-xs font-semibold cursor-pointer transition-colors ${
                               flagged.includes(currentQ.number)
                                 ? 'bg-purple-500/20 border-purple-500/40 text-purple-300'
                                 : 'bg-white/5 border-white/10 text-white/50 hover:text-white'
@@ -310,7 +310,7 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
                       </div>
 
                       {/* Question Text */}
-                      <h2 className="text-sm sm:text-base font-semibold text-white leading-relaxed mb-6 select-text">
+                      <h2 className="mb-6 break-words text-sm sm:text-base font-semibold leading-relaxed text-white select-text">
                         {currentQ.question}
                       </h2>
 
@@ -357,7 +357,7 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
                               >
                                 {opt.id}
                               </span>
-                              <span className="text-xs sm:text-sm leading-relaxed pt-0.5 select-text">
+                              <span className="min-w-0 break-words text-xs sm:text-sm leading-relaxed pt-0.5 select-text">
                                 {opt.text}
                               </span>
                             </button>
@@ -387,7 +387,7 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
                     </div>
 
                     {/* Bottom Question Controls */}
-                    <div className="flex items-center justify-between pt-4 mt-4 border-t border-white/10">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-4 mt-4 border-t border-white/10">
                       <button
                         type="button"
                         disabled={currentIndex === 0}
@@ -622,7 +622,7 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
                     <RotateCcw className="w-4 h-4" /> Làm lại đề này
                   </button>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-end gap-2">
                     <button
                       type="button"
                       onClick={() => setShowReviewMode(true)}
@@ -649,7 +649,7 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
         {/* ======================================================== */}
         {showConfirmSubmit && (
           <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-            <div className="p-6 rounded-2xl bg-neutral-900 border border-amber-400/40 max-w-md w-full text-center space-y-4">
+            <div className="w-full max-w-md space-y-4 rounded-2xl border border-amber-400/40 bg-neutral-900 p-4 text-center sm:p-6">
               <div className="w-12 h-12 rounded-full bg-amber-400/20 text-amber-400 flex items-center justify-center mx-auto">
                 <AlertCircle className="w-6 h-6" />
               </div>
@@ -658,7 +658,7 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
                 Bạn đã trả lời <strong className="text-amber-300">{answeredCount}</strong> trên tổng số{' '}
                 <strong className="text-white">{totalQuestions}</strong> câu ({totalQuestions - answeredCount} câu chưa chọn). Bạn có chắc chắn muốn nộp bài ngay bây giờ?
               </p>
-              <div className="flex items-center justify-center gap-3 pt-2">
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowConfirmSubmit(false)}

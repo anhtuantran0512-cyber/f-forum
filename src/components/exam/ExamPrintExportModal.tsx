@@ -39,29 +39,24 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
       aria-labelledby="print-modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md animate-fade-in select-none"
     >
-      <div className="ff-exam-modal w-full max-w-4xl rounded-3xl p-5 sm:p-7 max-h-[94vh] flex flex-col justify-between overflow-hidden relative shadow-[0_25px_80px_rgba(0,0,0,0.85)]">
+      <div className="ff-exam-modal w-full max-w-4xl rounded-3xl p-4 sm:p-7 max-h-[94vh] min-h-0 flex flex-col justify-between overflow-hidden relative shadow-[0_25px_80px_rgba(0,0,0,0.85)]">
         {/* ======================================================== */}
         {/* 1. MODAL HEADER                                          */}
         {/* ======================================================== */}
-        <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-amber-400/20 text-amber-300 border border-amber-400/30">
+        <div className="flex items-center justify-between gap-3 pb-3 border-b border-white/10 shrink-0">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
+            <div className="shrink-0 rounded-xl border border-amber-400/30 bg-amber-400/20 p-2 text-amber-300">
               <Printer className="w-5 h-5" />
             </div>
-            <div>
-              <h2 id="print-modal-title" className="text-base font-extrabold text-white">
-                Tuỳ Chọn Định Dạng In &amp; Xuất Bản Đề Thi
-              </h2>
-              <span className="text-xs text-white/50">
-                Chuẩn hoá khổ giấy A4 cho học sinh và giáo viên làm bài trực tiếp
-              </span>
-            </div>
+            <h2 id="print-modal-title" className="min-w-0 text-sm font-extrabold leading-tight text-white sm:text-base">
+              In &amp; xuất đề thi
+            </h2>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 cursor-pointer"
+            className="inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white cursor-pointer"
             aria-label="Đóng bảng tuỳ chọn in"
           >
             <X className="w-5 h-5" />
@@ -71,7 +66,7 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
         {/* ======================================================== */}
         {/* 2. BODY: CONFIGURATION & LIVE PAPER PREVIEW               */}
         {/* ======================================================== */}
-        <div className="flex-1 overflow-y-auto no-scrollbar py-4 space-y-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar py-4 space-y-4">
           {/* Controls Bar */}
           <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
             {/* Columns selector */}
@@ -169,14 +164,14 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
               {/* Official Academic Header */}
               {includeStudentHeader && (
                 <div className="border-b-2 border-slate-800 pb-3">
-                  <div className="flex items-start justify-between gap-4 text-xs font-serif">
-                    <div className="text-center font-bold leading-tight">
+                  <div className="flex flex-col items-center justify-between gap-3 text-xs font-serif sm:flex-row sm:items-start sm:gap-4">
+                    <div className="w-full min-w-0 text-center font-bold leading-tight sm:flex-1">
                       <div>SỞ GIÁO DỤC VÀ ĐÀO TẠO</div>
-                      <div className="uppercase underline decoration-1 underline-offset-2">{paper.school}</div>
+                      <div className="break-words uppercase underline decoration-1 underline-offset-2">{paper.school}</div>
                       <div className="text-[10px] font-normal text-slate-600 mt-1">Năm học: {paper.schoolYear}</div>
                     </div>
 
-                    <div className="text-center leading-tight">
+                    <div className="w-full min-w-0 text-center leading-tight sm:flex-1">
                       <div className="font-bold text-sm uppercase">KIỂM TRA {paper.examType.toUpperCase()}</div>
                       <div className="font-bold text-xs uppercase">MÔN: {paper.subject.toUpperCase()} — KHỐI {paper.grade}</div>
                       <div className="text-[10px] text-slate-600 mt-0.5">Thời gian làm bài: {paper.duration || 60} phút (không kể thời gian phát đề)</div>
@@ -184,17 +179,20 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
                   </div>
 
                   {/* Student Info & Score Box */}
-                  <div className="grid grid-cols-12 gap-2 mt-3 pt-2 border-t border-slate-300 text-xs">
-                    <div className="col-span-8 space-y-1">
-                      <div>Họ và tên thí sinh: ........................................................................................</div>
-                      <div className="flex gap-4">
-                        <span>Lớp: ........................</span>
-                        <span>Số báo danh: ........................</span>
-                        <span>Phòng thi: ...........</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 mt-3 pt-2 border-t border-slate-300 text-xs">
+                    <div className="min-w-0 space-y-1 sm:col-span-8">
+                      <div className="flex min-w-0 items-end gap-2">
+                        <span className="shrink-0">Họ và tên:</span>
+                        <span className="min-w-0 flex-1 border-b border-dotted border-slate-500" aria-hidden="true">&nbsp;</span>
+                      </div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        <span className="inline-flex items-end gap-1 whitespace-nowrap">Lớp:<span className="w-16 border-b border-dotted border-slate-500" aria-hidden="true">&nbsp;</span></span>
+                        <span className="inline-flex items-end gap-1 whitespace-nowrap">Số báo danh:<span className="w-20 border-b border-dotted border-slate-500" aria-hidden="true">&nbsp;</span></span>
+                        <span className="inline-flex items-end gap-1 whitespace-nowrap">Phòng thi:<span className="w-14 border-b border-dotted border-slate-500" aria-hidden="true">&nbsp;</span></span>
                       </div>
                     </div>
 
-                    <div className="col-span-4 border-2 border-slate-800 rounded p-1 text-center flex flex-col justify-between">
+                    <div className="flex w-32 flex-col justify-between justify-self-end rounded border-2 border-slate-800 p-1 text-center sm:col-span-4 sm:w-auto sm:justify-self-auto">
                       <div className="font-bold text-[10px] uppercase border-b border-slate-300 pb-0.5">
                         Điểm số &amp; Lời phê
                       </div>
@@ -218,7 +216,7 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
                       <span>Câu {q.number}: </span>
                       <span className="font-normal">{q.question}</span>
                     </p>
-                    <div className="grid grid-cols-2 gap-1 text-slate-800 text-xs pl-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-slate-800 text-xs pl-2">
                       {q.options.map((opt) => (
                         <div key={opt.id}>
                           <strong className="font-bold">{opt.id}.</strong> {opt.text}
@@ -269,9 +267,9 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
               )}
 
               {/* Footer Watermark */}
-              <div className="pt-3 border-t border-slate-300 text-[10px] text-slate-500 flex items-center justify-between">
-                <span>Bản quyền trí tuệ thuộc về BroAmStuck — F-Forum 2027</span>
-                <span>Học sinh tải và in trực tiếp từ f-forum.edu.vn</span>
+              <div className="pt-3 border-t border-slate-300 text-[10px] text-slate-500 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <span>Bản quyền BroAmStuck — F-Forum 2027</span>
+                <span>f-forum.edu.vn</span>
               </div>
             </div>
           </div>
@@ -280,12 +278,8 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
         {/* ======================================================== */}
         {/* 3. MODAL FOOTER                                          */}
         {/* ======================================================== */}
-        <div className="pt-3 border-t border-white/10 flex items-center justify-between shrink-0 flex-wrap gap-2">
-          <span className="text-xs text-white/50">
-            Khuyên dùng: Chọn <strong>2 cột</strong> và khổ giấy <strong>A4</strong> trong cài đặt in để tối ưu trang giấy.
-          </span>
-
-          <div className="flex items-center gap-2">
+        <div className="pt-3 border-t border-white/10 flex items-center justify-end shrink-0 flex-wrap gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
