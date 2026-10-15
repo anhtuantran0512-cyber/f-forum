@@ -1,5 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Bookmark,
@@ -64,19 +65,19 @@ export const ExamBookmarkDrawer: React.FC<ExamBookmarkDrawerProps> = ({
     return ['Tất cả', ...Array.from(set)];
   }, [savedPapers]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="bookmark-drawer-title"
-      className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm animate-fade-in select-none"
+      className="ff-exam-dialog-overlay ff-exam-drawer-overlay z-[100] bg-black/70 backdrop-blur-sm animate-fade-in select-none"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md h-full min-h-0 ff-exam-modal flex flex-col justify-between p-4 sm:p-6 shadow-[-20px_0_60px_rgba(0,0,0,0.85)] border-l border-white/15 animate-slide-left"
-        onClick={(e) => e.stopPropagation()}
+        className="ff-exam-modal ff-exam-dialog-panel w-full max-w-md h-[100dvh] min-h-0 flex flex-col justify-between p-4 sm:p-6 shadow-[-20px_0_60px_rgba(0,0,0,0.85)] border-l border-white/15 animate-slide-left"
+        onClick={(event) => event.stopPropagation()}
       >
         {/* ======================================================== */}
         {/* 1. DRAWER HEADER                                         */}
@@ -100,7 +101,7 @@ export const ExamBookmarkDrawer: React.FC<ExamBookmarkDrawerProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white cursor-pointer"
+              className="ff-tactile-btn ff-exam-icon-button inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white cursor-pointer"
               aria-label="Đóng ngăn kéo"
             >
               <X className="w-5 h-5" />
@@ -256,7 +257,8 @@ export const ExamBookmarkDrawer: React.FC<ExamBookmarkDrawerProps> = ({
                     <button
                       type="button"
                       onClick={() => onOpenPrint(paper)}
-                      className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white cursor-pointer"
+                      className="ff-tactile-btn ff-exam-icon-button inline-flex min-h-10 min-w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white cursor-pointer"
+                      aria-label={`In hoặc xuất PDF: ${paper.title}`}
                       title="Tuỳ chọn in ấn &amp; PDF"
                     >
                       <Printer className="w-3 h-3" />
@@ -286,7 +288,8 @@ export const ExamBookmarkDrawer: React.FC<ExamBookmarkDrawerProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

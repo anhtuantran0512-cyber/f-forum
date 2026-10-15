@@ -1,5 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Printer,
@@ -14,11 +15,13 @@ import { getExamCBTQuestions } from './cbtData';
 export interface ExamPrintExportModalProps {
   paper: ExamPaper;
   onClose: () => void;
+  onPrint?: () => void;
 }
 
 export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
   paper,
   onClose,
+  onPrint,
 }) => {
   const [columns, setColumns] = useState<1 | 2>(2);
   const [fontSize, setFontSize] = useState<'sm' | 'md' | 'lg'>('md');
@@ -27,19 +30,25 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
 
   const cbtQuestions = getExamCBTQuestions(paper);
 
-  /* Xử lý gọi in trang */
   const handlePrint = () => {
+    onPrint?.();
     window.print();
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="print-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md animate-fade-in select-none"
+      className="ff-exam-dialog-overlay z-[100] bg-black/80 backdrop-blur-md animate-fade-in select-none"
+      onClick={onClose}
     >
-      <div className="ff-exam-modal w-full max-w-4xl rounded-3xl p-4 sm:p-7 max-h-[94vh] min-h-0 flex flex-col justify-between overflow-hidden relative shadow-[0_25px_80px_rgba(0,0,0,0.85)]">
+      <div
+        className="ff-exam-modal ff-exam-dialog-panel ff-exam-print-panel w-full max-w-4xl min-h-0 rounded-3xl p-4 sm:p-7 flex flex-col overflow-hidden relative shadow-[0_25px_80px_rgba(0,0,0,0.85)]"
+        onClick={(event) => event.stopPropagation()}
+      >
         {/* ======================================================== */}
         {/* 1. MODAL HEADER                                          */}
         {/* ======================================================== */}
@@ -56,7 +65,7 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white cursor-pointer"
+            className="ff-tactile-btn ff-exam-icon-button inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white cursor-pointer"
             aria-label="Đóng bảng tuỳ chọn in"
           >
             <X className="w-5 h-5" />
@@ -78,7 +87,7 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setColumns(1)}
-                  className={`flex-1 py-1.5 rounded-lg border text-center font-bold cursor-pointer transition-colors ${
+                  className={`ff-tactile-btn flex-1 py-1.5 rounded-lg border text-center font-bold cursor-pointer transition-colors ${
                     columns === 1
                       ? 'bg-amber-400 text-[#0b0d12] border-amber-400'
                       : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
@@ -89,7 +98,7 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setColumns(2)}
-                  className={`flex-1 py-1.5 rounded-lg border text-center font-bold cursor-pointer transition-colors ${
+                  className={`ff-tactile-btn flex-1 py-1.5 rounded-lg border text-center font-bold cursor-pointer transition-colors ${
                     columns === 2
                       ? 'bg-amber-400 text-[#0b0d12] border-amber-400'
                       : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
@@ -111,7 +120,7 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
                     key={sz}
                     type="button"
                     onClick={() => setFontSize(sz)}
-                    className={`flex-1 py-1.5 rounded-lg border text-center font-bold uppercase cursor-pointer transition-colors ${
+                    className={`ff-tactile-btn flex-1 py-1.5 rounded-lg border text-center font-bold uppercase cursor-pointer transition-colors ${
                       fontSize === sz
                         ? 'bg-amber-400 text-[#0b0d12] border-amber-400'
                         : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
@@ -147,7 +156,7 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
               <button
                 type="button"
                 onClick={() => setIncludeStudentHeader(!includeStudentHeader)}
-                className={`w-full py-1.5 rounded-lg border text-center font-bold cursor-pointer transition-colors ${
+                className={`ff-tactile-btn w-full py-1.5 rounded-lg border text-center font-bold cursor-pointer transition-colors ${
                   includeStudentHeader
                     ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
                     : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
@@ -156,6 +165,10 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
                 {includeStudentHeader ? 'Có khung tên học sinh & điểm' : 'Không kèm khung'}
               </button>
             </div>
+          </div>
+
+          <div className="rounded-xl border border-[#81b29a]/30 bg-[#81b29a]/[0.08] px-3 py-2 text-[11px] leading-relaxed text-white/65">
+            Bản xem trước bên dưới được tạo sẵn để in; chọn “In / Lưu thành PDF” rồi chọn “Lưu dưới dạng PDF” trong hộp thoại trình duyệt.
           </div>
 
           {/* Paper Live Preview Container (Will be targeted by @media print) */}
@@ -278,27 +291,31 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
         {/* ======================================================== */}
         {/* 3. MODAL FOOTER                                          */}
         {/* ======================================================== */}
-        <div className="pt-3 border-t border-white/10 flex items-center justify-end shrink-0 flex-wrap gap-2">
+        <div className="flex shrink-0 flex-col gap-2 border-t border-white/10 pt-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="max-w-xl text-[11px] leading-relaxed text-white/55">
+            Trong hộp thoại trình duyệt, chọn “Lưu dưới dạng PDF” để tải tệp về máy.
+          </p>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold cursor-pointer"
+              className="ff-tactile-btn inline-flex min-h-10 items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/75 hover:bg-white/[0.08] hover:text-white cursor-pointer"
             >
               Đóng
             </button>
             <button
               type="button"
               onClick={handlePrint}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-[#0b0d12] text-xs font-extrabold flex items-center gap-1.5 shadow-[0_4px_16px_rgba(245,158,11,0.35)] cursor-pointer"
+              className="ff-tactile-btn inline-flex min-h-10 items-center gap-1.5 rounded-xl border-2 border-[#0b0d12] bg-[#f4f1de] px-5 py-2 text-xs font-extrabold text-[#0b0d12] hover:bg-[#f2cc8f] cursor-pointer"
             >
-              <Printer className="w-4 h-4" />
-              <span>In Ngay / Xuất PDF</span>
+              <Printer className="w-4 h-4 text-[#e07a5f]" />
+              <span>In / Lưu thành PDF</span>
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

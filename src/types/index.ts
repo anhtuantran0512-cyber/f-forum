@@ -78,6 +78,16 @@ export interface ExamPrintOptions {
   customWatermark: string;
 }
 
+export type ExamPaperFormat = 'PDF' | 'DOCX' | 'DOC' | 'MD' | 'IMAGE';
+
+export interface ExamAttachment {
+  id: string;
+  name: string;
+  size: number;
+  mimeType: string;
+  format: ExamPaperFormat;
+}
+
 export interface ExamPaper {
   id: string;
   title: string;
@@ -87,8 +97,9 @@ export interface ExamPaper {
   province: string;
   school: string;
   schoolYear: string;
-  format: 'PDF' | 'DOCX';
+  format: ExamPaperFormat;
   fileSize: string;
+  attachments?: ExamAttachment[];
   downloads: number;
   views: number;
   likes: number;

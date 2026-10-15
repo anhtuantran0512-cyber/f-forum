@@ -1,7 +1,7 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import fs from 'node:fs';
 import path from 'node:path';
-import { randomInt } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { effectivePrice, getDynamicDiscounts } from '../src/utils/shopData.ts';
 import {
   isKnownInventoryId,
@@ -84,6 +84,19 @@ import {
 import { decideSocialAccess } from './socialAuth.ts';
 import { applyCorsHeaders, requestIsHttps } from './securityHeaders.ts';
 import { handleMediaRequest, processUploadedImage, MediaUploadError, type MediaKind } from './mediaPipeline.ts';
+import {
+  examSubmissionAttachmentPath,
+  isExamSubmissionUuid,
+  MAX_EXAM_ATTACHMENT_BYTES,
+  MAX_EXAM_SUBMISSION_BYTES,
+  MAX_EXAM_SUBMISSION_FILES,
+  removeExamSubmissionFiles,
+  removeExamSubmissionTemporaryDirectories,
+  storeExamSubmissionAttachments,
+  ExamSubmissionFileError,
+  type StoredExamAttachment,
+} from './examSubmissionStorage.ts';
+import type { ExamPaper, ExamPaperFormat } from '../src/types/index.ts';
 import {
   buildAnalyticsReport,
   createEmptyAnalytics,
@@ -250,6 +263,27 @@ export function customRolePermissionsOf(user: UserRecord | undefined): CustomRol
   return role ? [...role.permissions] : [];
 }
 
+export interface ExamSubmissionRecord {
+  id: string;
+  ownerEmail: string;
+  uploaderId: string;
+  uploaderName: string;
+  uploaderRole: string;
+  title: string;
+  subject: string;
+  grade: number;
+  examType: string;
+  province: string;
+  school: string;
+  schoolYear: string;
+  difficulty: string;
+  notes: string;
+  attachments: StoredExamAttachment[];
+  status: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string;
+  createdAt: string;
+}
+
 export interface ForumDataStore {
   users: Record<string, UserRecord>;
   passwords: Record<string, string>;
@@ -259,6 +293,7 @@ export interface ForumDataStore {
   solutions: any[];
   chatMessages: any[];
   feedbacks: any[];
+  examSubmissions?: ExamSubmissionRecord[];
   reports?: any[];
   about?: any;
   /** Áp chế theo email: cấm / khoá gửi tin, có thời hạn. Xem server/moderation.ts. */
@@ -381,6 +416,7 @@ let store: ForumDataStore = {
   solutions: [],
   chatMessages: [],
   feedbacks: [],
+  examSubmissions: [],
   threads: [],
   threadReports: [],
   comments: [],
@@ -429,6 +465,127 @@ let store: ForumDataStore = {
     ],
   },
 };
+
+const EXAM_SUBMISSION_LIMIT = 500;
+const EXAM_SUBMISSION_FORMATS = new Set<ExamPaperFormat>(['PDF', 'DOCX', 'DOC', 'MD', 'IMAGE']);
+const EXAM_SUBMISSION_FILE_MIME: Record<string, string> = {
+  avif: 'image/avif',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  gif: 'image/gif',
+  jpeg: 'image/jpeg',
+  jpg: 'image/jpeg',
+  markdown: 'text/markdown; charset=utf-8',
+  md: 'text/markdown; charset=utf-8',
+  pdf: 'application/pdf',
+  png: 'image/png',
+  webp: 'image/webp',
+};
+
+function sanitizeExamSubmissions(raw: unknown): ExamSubmissionRecord[] {
+  if (!Array.isArray(raw)) return [];
+  const records: ExamSubmissionRecord[] = [];
+  const seenIds = new Set<string>();
+  for (const value of raw.slice(0, EXAM_SUBMISSION_LIMIT)) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+    const item = value as Record<string, any>;
+    if (!isExamSubmissionUuid(item.id) || seenIds.has(item.id)) continue;
+    const ownerEmail = typeof item.ownerEmail === 'string' ? item.ownerEmail.trim().toLowerCase().slice(0, 254) : '';
+    const title = sanitizePlainText(item.title, 160);
+    if (!ownerEmail.includes('@') || !title) continue;
+    const rawAttachments = Array.isArray(item.attachments) ? item.attachments.slice(0, MAX_EXAM_SUBMISSION_FILES) : [];
+    const attachments: StoredExamAttachment[] = [];
+    let totalBytes = 0;
+    for (const attachment of rawAttachments) {
+      if (!attachment || typeof attachment !== 'object' || !isExamSubmissionUuid(attachment.id)) continue;
+      const storageExt = typeof attachment.storageExt === 'string' ? attachment.storageExt.toLowerCase() : '';
+      const format = attachment.format as ExamPaperFormat;
+      const name = sanitizePlainText(attachment.name, 140);
+      const size = Number(attachment.size);
+      if (!EXAM_SUBMISSION_FILE_MIME[storageExt] || !EXAM_SUBMISSION_FORMATS.has(format) || !name || !Number.isSafeInteger(size) || size < 1 || size > MAX_EXAM_ATTACHMENT_BYTES) continue;
+      const extensionFormat: ExamPaperFormat = ['avif', 'gif', 'jpeg', 'jpg', 'png', 'webp'].includes(storageExt)
+        ? 'IMAGE'
+        : storageExt === 'pdf' ? 'PDF'
+          : storageExt === 'docx' ? 'DOCX'
+            : storageExt === 'doc' ? 'DOC'
+              : 'MD';
+      if (format !== extensionFormat) continue;
+      totalBytes += size;
+      attachments.push({
+        id: attachment.id,
+        name,
+        size,
+        mimeType: EXAM_SUBMISSION_FILE_MIME[storageExt],
+        format,
+        storageExt,
+      });
+    }
+    if (attachments.length === 0 || totalBytes > MAX_EXAM_SUBMISSION_BYTES) continue;
+    const createdAtValue = typeof item.createdAt === 'string' && Number.isFinite(Date.parse(item.createdAt))
+      ? new Date(item.createdAt).toISOString()
+      : new Date(0).toISOString();
+    const status = item.status === 'approved' || item.status === 'rejected' ? item.status : 'pending';
+    records.push({
+      id: item.id,
+      ownerEmail,
+      uploaderId: sanitizePlainText(item.uploaderId, 120),
+      uploaderName: sanitizePlainText(item.uploaderName, MAX_NAME_LENGTH) || 'Học sinh F-Forum',
+      uploaderRole: sanitizePlainText(item.uploaderRole, 40) || 'STUDENT',
+      title,
+      subject: sanitizePlainText(item.subject, 60) || 'Khác',
+      grade: Number.isInteger(item.grade) && item.grade >= 6 && item.grade <= 12 ? item.grade : 12,
+      examType: sanitizePlainText(item.examType, 80) || 'Đề cương ôn tập',
+      province: sanitizePlainText(item.province, 80) || 'Toàn quốc',
+      school: sanitizePlainText(item.school, 120) || 'Trường THPT',
+      schoolYear: sanitizePlainText(item.schoolYear, 20) || 'Chưa rõ',
+      difficulty: sanitizePlainText(item.difficulty, 40) || 'Thông hiểu',
+      notes: sanitizePlainText(item.notes, 2000, true),
+      attachments,
+      status,
+      ...(status === 'rejected' ? { rejectionReason: sanitizePlainText(item.rejectionReason, 300) } : {}),
+      createdAt: createdAtValue,
+    });
+    seenIds.add(item.id);
+  }
+  return records;
+}
+
+const formatExamSubmissionSize = (bytes: number): string => bytes < 1024 * 1024
+  ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+  : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
+function examSubmissionToPaper(record: ExamSubmissionRecord, includePrivateNotes = true): ExamPaper {
+  const attachments = record.attachments.map(({ storageExt: _storageExt, ...attachment }) => attachment);
+  return {
+    id: record.id,
+    title: record.title,
+    subject: record.subject,
+    grade: record.grade,
+    examType: record.examType as ExamPaper['examType'],
+    province: record.province,
+    school: record.school,
+    schoolYear: record.schoolYear,
+    format: attachments[0]?.format || 'PDF',
+    fileSize: formatExamSubmissionSize(attachments.reduce((total, attachment) => total + attachment.size, 0)),
+    attachments,
+    downloads: 0,
+    views: 0,
+    likes: 0,
+    verified: record.status === 'approved',
+    hasAnswer: false,
+    pageCount: 0,
+    difficulty: record.difficulty as ExamPaper['difficulty'],
+    uploader: { id: record.uploaderId, name: record.uploaderName, role: record.uploaderRole },
+    uploadDate: new Date(record.createdAt).toLocaleDateString('vi-VN'),
+    summary: includePrivateNotes && record.notes
+      ? record.notes
+      : record.status === 'approved'
+        ? 'Tài liệu được cộng đồng đóng góp và đã qua kiểm duyệt.'
+        : 'Tài liệu học sinh đóng góp, đang được Ban Quản Trị kiểm duyệt.',
+    status: record.status,
+    ...(includePrivateNotes && record.rejectionReason ? { rejectionReason: record.rejectionReason } : {}),
+  };
+}
 
 /** Miền email của lớp tài khoản mô phỏng đã bị xoá — chặn vĩnh viễn ở tầng server */
 const RETIRED_VIRTUAL_DOMAIN = '@sv.f-forum.vn';
@@ -788,6 +945,7 @@ function loadStoreFromDisk() {
             ? parsed.chatMessages.filter((msg: any) => msg && typeof msg === 'object' && !isBotOrSmokeEmail(String(msg.authorEmail || ''), msg.authorName))
             : [],
           feedbacks: Array.isArray(parsed.feedbacks) ? parsed.feedbacks : [],
+          examSubmissions: sanitizeExamSubmissions(parsed.examSubmissions),
           /* LỖI MẤT DỮ LIỆU: bản cũ dựng lại store mà bỏ quên `reports`, nên mọi
              báo cáo vi phạm đã ghi xuống đĩa bị vứt đi mỗi lần khởi động lại. */
           reports: Array.isArray(parsed.reports) ? parsed.reports : store.reports || [],
@@ -1020,6 +1178,7 @@ const reportAccountLimiter = new SlidingWindowRateLimiter(REPORT_WINDOW_MS, 6);
 const reportIpLimiter = new SlidingWindowRateLimiter(REPORT_WINDOW_MS, 20);
 /* Epic 5 — tải ảnh đại diện / ảnh bìa (xử lý bằng sharp, tốn CPU). */
 const uploadLimiter = new SlidingWindowRateLimiter(10 * 60 * 1000, 20);
+const examSubmissionLimiter = new SlidingWindowRateLimiter(60 * 60 * 1000, 8);
 
 /**
   Chỉ dành cho bộ kiểm thử.
@@ -1040,6 +1199,7 @@ export function resetRateLimitersForTest() {
   reportAccountLimiter.reset();
   reportIpLimiter.reset();
   uploadLimiter.reset();
+  examSubmissionLimiter.reset();
   presenceLimiter.reset();
   analyticsLimiter.reset();
 }
@@ -1597,6 +1757,9 @@ function revokeAllSessionsOf(email: string, reason: SessionRevocationReason): nu
 
 export function setupForumServer(httpServer: any, middlewares: any) {
   loadStoreFromDisk();
+  void removeExamSubmissionTemporaryDirectories().catch((error) => {
+    console.error('[Forum Server] Không dọn được tệp tải lên tạm:', error);
+  });
   installShutdownFlush();
 
   /* Epic 5: token phát hành trước mốc "đăng xuất mọi thiết bị" của tài khoản bị từ chối. */
@@ -4087,6 +4250,217 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
         handleApiError(res, err);
+      }
+      return;
+    }
+
+    const examSubmissionPath = url.split('?')[0];
+
+    if (method === 'GET' && examSubmissionPath === '/api/exam-submissions') {
+      const session = authenticatedUser(req);
+      const staff = session ? requireModerationStaff(req, {}) : null;
+      const allRecords = store.examSubmissions || [];
+      const records = allRecords.filter((submission) =>
+        staff || submission.ownerEmail === session?.claims.email,
+      );
+      const approvedRecords = allRecords
+        .filter((submission) => submission.status === 'approved')
+        .map((submission) => examSubmissionToPaper(submission, false));
+      sendJson(res, 200, {
+        success: true,
+        submissions: records.map((submission) => examSubmissionToPaper(submission)),
+        approvedSubmissions: approvedRecords,
+      });
+      return;
+    }
+
+    if (method === 'POST' && examSubmissionPath === '/api/exam-submissions') {
+      try {
+        const body = await parseJsonBody(req);
+        const session = authenticatedUser(req, body);
+        if (!session) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để gửi đề thi.' });
+          return;
+        }
+        const postingGate = checkCanPost(session.claims.email, 'content');
+        if (!postingGate.ok) {
+          sendJson(res, postingGate.status, { success: false, message: postingGate.message });
+          return;
+        }
+        const throttle = examSubmissionLimiter.check(`exam-submission:${session.claims.email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'gửi đề thi');
+          return;
+        }
+
+        const title = sanitizePlainText(body?.title, 160);
+        const subject = sanitizePlainText(body?.subject, 60);
+        const grade = Number(body?.grade);
+        const examType = sanitizePlainText(body?.examType, 80);
+        const province = sanitizePlainText(body?.province, 80);
+        const school = sanitizePlainText(body?.school, 120) || 'Trường THPT';
+        const schoolYear = sanitizePlainText(body?.schoolYear, 20);
+        const difficulty = sanitizePlainText(body?.difficulty, 40);
+        const notes = sanitizePlainText(body?.notes, 2000, true);
+        const allowedSubjects = new Set(['Toán học', 'Vật lý', 'Hoá học', 'Sinh học', 'Ngữ văn', 'Tiếng Anh', 'Lịch sử', 'Địa lý', 'Tin học', 'GDCD']);
+        const allowedExamTypes = new Set(['Đề giữa kỳ 1', 'Đề giữa kỳ 2', 'Đề cuối kỳ 1', 'Đề cuối kỳ 2', 'Đề 15 phút', 'Đề cương ôn tập', 'Khảo sát chất lượng']);
+        const allowedDifficulties = new Set(['Nhận biết', 'Thông hiểu', 'Vận dụng', 'Vận dụng cao']);
+        if (!title || !allowedSubjects.has(subject) || !Number.isInteger(grade) || grade < 6 || grade > 12 ||
+            !allowedExamTypes.has(examType) || !province || !schoolYear || !/^\d{4}-\d{4}$/.test(schoolYear) ||
+            !allowedDifficulties.has(difficulty)) {
+          sendJson(res, 400, { success: false, message: 'Thông tin đề thi chưa hợp lệ. Vui lòng kiểm tra lại biểu mẫu.' });
+          return;
+        }
+        if (!Array.isArray(body?.attachments) || body.attachments.length < 1 || body.attachments.length > MAX_EXAM_SUBMISSION_FILES) {
+          sendJson(res, 400, { success: false, message: `Đính kèm từ 1 đến ${MAX_EXAM_SUBMISSION_FILES} tệp.` });
+          return;
+        }
+
+        const submissionId = randomUUID();
+        const attachments = await storeExamSubmissionAttachments(submissionId, body.attachments);
+        const record: ExamSubmissionRecord = {
+          id: submissionId,
+          ownerEmail: session.claims.email,
+          uploaderId: session.user.id,
+          uploaderName: sanitizePlainText(session.user.name, MAX_NAME_LENGTH) || 'Học sinh F-Forum',
+          uploaderRole: session.user.role,
+          title,
+          subject,
+          grade,
+          examType,
+          province,
+          school,
+          schoolYear,
+          difficulty,
+          notes,
+          attachments,
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+        };
+        const previousRecords = store.examSubmissions || [];
+        const nextRecords = [record, ...previousRecords].slice(0, EXAM_SUBMISSION_LIMIT);
+        const nextIds = new Set(nextRecords.map((submission) => submission.id));
+        const evicted = previousRecords.filter((submission) => !nextIds.has(submission.id));
+        store.examSubmissions = nextRecords;
+        if (!flushStoreToDisk()) {
+          store.examSubmissions = previousRecords;
+          await removeExamSubmissionFiles(submissionId);
+          sendJson(res, 500, { success: false, message: 'Không thể lưu hồ sơ đề thi. Vui lòng thử lại.' });
+          return;
+        }
+        await Promise.all(evicted.map((submission) => removeExamSubmissionFiles(submission.id).catch(() => undefined)));
+        sendJson(res, 201, { success: true, submission: examSubmissionToPaper(record) });
+      } catch (err: any) {
+        if (err instanceof ExamSubmissionFileError) {
+          sendJson(res, err.status, { success: false, message: err.message });
+          return;
+        }
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    const submissionReviewMatch = examSubmissionPath.match(/^\/api\/exam-submissions\/([0-9a-f-]{36})\/review$/i);
+    if (method === 'POST' && submissionReviewMatch) {
+      try {
+        const body = await parseJsonBody(req);
+        const actor = requireModerationStaff(req, body);
+        if (!actor) {
+          sendJson(res, 403, { success: false, message: 'Bạn không có quyền duyệt đề thi.' });
+          return;
+        }
+        const submissionId = submissionReviewMatch[1];
+        if (!isExamSubmissionUuid(submissionId)) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy hồ sơ đề thi.' });
+          return;
+        }
+        const existing = (store.examSubmissions || []).find((submission) => submission.id === submissionId);
+        if (!existing) {
+          sendJson(res, 404, { success: false, message: 'Không tìm thấy hồ sơ đề thi.' });
+          return;
+        }
+        const status = body?.status === 'approved' || body?.status === 'rejected' ? body.status : null;
+        if (!status) {
+          sendJson(res, 400, { success: false, message: 'Trạng thái duyệt không hợp lệ.' });
+          return;
+        }
+        if (existing.status !== 'pending') {
+          sendJson(res, 409, { success: false, message: 'Hồ sơ này đã được xét duyệt trước đó.' });
+          return;
+        }
+        const updatedRecord: ExamSubmissionRecord = {
+          ...existing,
+          status,
+          ...(status === 'rejected'
+            ? { rejectionReason: sanitizePlainText(body?.rejectionReason, 300) || 'Không đạt yêu cầu kiểm duyệt.' }
+            : {}),
+        };
+        const previousRecords = store.examSubmissions || [];
+        store.examSubmissions = previousRecords.map((submission) => submission.id === submissionId ? updatedRecord : submission);
+        if (!flushStoreToDisk()) {
+          store.examSubmissions = previousRecords;
+          sendJson(res, 500, { success: false, message: 'Không thể lưu kết quả duyệt. Vui lòng thử lại.' });
+          return;
+        }
+        pushAuditLog({
+          action: `exam-submission:${status}`,
+          targetEmail: existing.ownerEmail,
+          reason: `${status === 'approved' ? 'Đã duyệt' : 'Đã từ chối'}: ${existing.title}`,
+          by: actor.claims.email,
+        });
+        persistStoreToDisk();
+        sendJson(res, 200, { success: true, submission: examSubmissionToPaper(updatedRecord) });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    const submissionAttachmentMatch = examSubmissionPath.match(/^\/api\/exam-submissions\/([0-9a-f-]{36})\/attachments\/([0-9a-f-]{36})$/i);
+    if ((method === 'GET' || method === 'HEAD') && submissionAttachmentMatch) {
+      const submissionId = submissionAttachmentMatch[1];
+      const attachmentId = submissionAttachmentMatch[2];
+      if (!isExamSubmissionUuid(submissionId) || !isExamSubmissionUuid(attachmentId)) {
+        sendJson(res, 404, { success: false, message: 'Không tìm thấy tệp đính kèm.' });
+        return;
+      }
+      const submission = (store.examSubmissions || []).find((item) => item.id === submissionId);
+      const attachment = submission?.attachments.find((item) => item.id === attachmentId);
+      if (!submission || !attachment) {
+        sendJson(res, 404, { success: false, message: 'Không tìm thấy tệp đính kèm.' });
+        return;
+      }
+      const session = authenticatedUser(req);
+      const staff = session ? requireModerationStaff(req, {}) : null;
+      const mayRead = submission.status === 'approved' || session?.claims.email === submission.ownerEmail || Boolean(staff);
+      if (!mayRead) {
+        sendJson(res, 404, { success: false, message: 'Không tìm thấy tệp đính kèm.' });
+        return;
+      }
+      const filePath = examSubmissionAttachmentPath(submissionId, attachment);
+      if (!filePath) {
+        sendJson(res, 404, { success: false, message: 'Không tìm thấy tệp đính kèm.' });
+        return;
+      }
+      let stats: fs.Stats;
+      try {
+        stats = await fs.promises.stat(filePath);
+      } catch {
+        sendJson(res, 404, { success: false, message: 'Tệp đã bị xoá hoặc không còn khả dụng.' });
+        return;
+      }
+      const fallbackName = attachment.name.replace(/[^\x20-\x7e]|["\\]/g, '_');
+      const encodedName = encodeURIComponent(attachment.name).replace(/[!'()*]/g, (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`);
+      res.statusCode = 200;
+      res.setHeader('Content-Type', attachment.mimeType);
+      res.setHeader('Content-Length', stats.size);
+      res.setHeader('Content-Disposition', `attachment; filename="${fallbackName}"; filename*=UTF-8''${encodedName}`);
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      if (method === 'HEAD') {
+        res.end();
+      } else {
+        fs.createReadStream(filePath).on('error', () => res.destroy()).pipe(res);
       }
       return;
     }

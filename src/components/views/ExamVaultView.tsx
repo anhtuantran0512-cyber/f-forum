@@ -1,5 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Search,
   BookOpen,
@@ -62,6 +63,20 @@ import {
   toggleExamLike,
   type ExamLikesMap,
 } from '../../utils/examLikes';
+import {
+  examAttachmentFormat,
+  formatExamFileSize,
+  isSupportedExamAttachment,
+  MAX_EXAM_ATTACHMENT_BYTES,
+  MAX_EXAM_SUBMISSION_BYTES,
+  MAX_EXAM_SUBMISSION_FILES,
+} from '../../utils/examAttachments';
+import {
+  downloadExamAttachment,
+  fetchExamSubmissions,
+  reviewExamSubmission,
+  submitExamPaper,
+} from '../../utils/examSubmissionApi';
 import { CbtPracticeModal } from '../exam/CbtPracticeModal';
 import { ExamBookmarkDrawer } from '../exam/ExamBookmarkDrawer';
 import { ExamPrintExportModal } from '../exam/ExamPrintExportModal';
@@ -81,6 +96,7 @@ const SUBMISSIONS_KEY = 'fforum_exam_submissions';
 const DOWNLOAD_COUNTS_KEY = 'fforum_exam_download_counts';
 const USER_RATINGS_KEY = 'fforum_exam_user_ratings';
 const PEER_REVIEWS_KEY = 'fforum_exam_peer_reviews';
+const EMPTY_EXAM_SUBMISSIONS: ExamPaper[] = [];
 
 /* Danh sách đề thi & đề cương mẫu chuẩn cấu trúc các trường THPT / THCS hàng đầu */
 const SEED_EXAMS: ExamPaper[] = [
@@ -762,6 +778,8 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   initialSearchQuery = '',
 }) => {
   const likeViewerKey = currentUser?.id || currentUser?.email || 'anonymous';
+  const parallaxRef = useRef<HTMLDivElement>(null);
+  const modalPortalRoot = typeof document !== 'undefined' ? document.body : null;
 
   /* Theme tracking */
   const [isLightMode, setIsLightMode] = useState<boolean>(() => {
@@ -778,9 +796,52 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const root = parallaxRef.current;
+    const supportsParallax = window.matchMedia('(pointer: fine)').matches;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!root || !supportsParallax || prefersReducedMotion) return;
+
+    let frame = 0;
+    let x = 0;
+    let y = 0;
+    const commitParallax = () => {
+      frame = 0;
+      root.style.setProperty('--ff-exam-parallax-a-x', `${(-x * 0.45).toFixed(2)}px`);
+      root.style.setProperty('--ff-exam-parallax-a-y', `${(-y * 0.45).toFixed(2)}px`);
+      root.style.setProperty('--ff-exam-parallax-b-x', `${(x * 0.8).toFixed(2)}px`);
+      root.style.setProperty('--ff-exam-parallax-b-y', `${(y * 0.8).toFixed(2)}px`);
+    };
+    const scheduleCommit = () => {
+      if (!frame) frame = window.requestAnimationFrame(commitParallax);
+    };
+    const handlePointerMove = (event: PointerEvent) => {
+      x = (event.clientX / Math.max(1, window.innerWidth) - 0.5) * 22;
+      y = (event.clientY / Math.max(1, window.innerHeight) - 0.5) * 16;
+      scheduleCommit();
+    };
+    const handlePointerLeave = () => {
+      x = 0;
+      y = 0;
+      scheduleCommit();
+    };
+
+    root.addEventListener('pointermove', handlePointerMove, { passive: true });
+    root.addEventListener('pointerleave', handlePointerLeave, { passive: true });
+    return () => {
+      root.removeEventListener('pointermove', handlePointerMove);
+      root.removeEventListener('pointerleave', handlePointerLeave);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
   const handleToggleTheme = useCallback(() => {
     window.dispatchEvent(new CustomEvent('fforum_toggle_theme'));
   }, []);
+
+  const submissionStorageKey = currentUser?.email
+    ? `${SUBMISSIONS_KEY}:${currentUser.email.toLowerCase()}`
+    : SUBMISSIONS_KEY;
 
   /* Search & Filter States */
   const [searchTerm, setSearchTerm] = useState(initialSearchQuery);
@@ -807,13 +868,17 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
   /* User Submissions */
   const [submissions, setSubmissions] = useState<ExamPaper[]>(() => {
+    if (!currentUser?.email) return [];
     try {
-      const raw = safeStorage.getItem(SUBMISSIONS_KEY);
+      const raw = safeStorage.getItem(`${SUBMISSIONS_KEY}:${currentUser.email.toLowerCase()}`);
       return raw ? JSON.parse(raw) : [];
     } catch {
       return [];
     }
   });
+  const [submissionsOwnerKey, setSubmissionsOwnerKey] = useState(submissionStorageKey);
+  const currentSubmissions = submissionsOwnerKey === submissionStorageKey ? submissions : EMPTY_EXAM_SUBMISSIONS;
+  const [publicSubmissions, setPublicSubmissions] = useState<ExamPaper[]>([]);
 
   /* Real-time Persistent Overrides */
   const [downloadOverrides, setDownloadOverrides] = useState<Record<string, number>>(() => {
@@ -863,6 +928,10 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       if (!e.newValue) {
         if (e.key === OFFLINE_EXAMS_CACHE_KEY) setCachedExamIds([]);
         if (e.key === SAVED_EXAMS_KEY) setSavedExams([]);
+        if (e.key === submissionStorageKey) {
+          setSubmissions([]);
+          setSubmissionsOwnerKey(submissionStorageKey);
+        }
         if (e.key === EXAM_LIKES_KEY) {
           examLikesRef.current = {};
           setExamLikes({});
@@ -871,7 +940,10 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       }
       try {
         if (e.key === SAVED_EXAMS_KEY) setSavedExams(JSON.parse(e.newValue));
-        if (e.key === SUBMISSIONS_KEY) setSubmissions(JSON.parse(e.newValue));
+        if (e.key === submissionStorageKey) {
+          setSubmissions(JSON.parse(e.newValue));
+          setSubmissionsOwnerKey(submissionStorageKey);
+        }
         if (e.key === DOWNLOAD_COUNTS_KEY) setDownloadOverrides(JSON.parse(e.newValue));
         if (e.key === USER_RATINGS_KEY) setUserRatings(JSON.parse(e.newValue));
         if (e.key === PEER_REVIEWS_KEY) setPeerReviewsMap(JSON.parse(e.newValue));
@@ -890,7 +962,25 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, [submissionStorageKey]);
+
+  useEffect(() => {
+    let isCurrent = true;
+    fetchExamSubmissions()
+      .then((collection) => {
+        if (!isCurrent) return;
+        setSubmissions(collection.submissions);
+        setSubmissionsOwnerKey(submissionStorageKey);
+        setPublicSubmissions(collection.approvedSubmissions);
+        if (currentUser?.email) {
+          safeStorage.setItem(submissionStorageKey, JSON.stringify(collection.submissions));
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      isCurrent = false;
+    };
+  }, [submissionStorageKey, currentUser?.email, currentUser?.id, currentUser?.role, currentUser?.staffRole]);
 
   /* Modals */
   const [previewExam, setPreviewExam] = useState<ExamPaper | null>(() => {
@@ -907,8 +997,6 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     return null;
   });
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [downloadProgress, setDownloadProgress] = useState(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   /* Toast Helper */
@@ -976,10 +1064,39 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   const [submitYear, setSubmitYear] = useState('2026-2027');
   const [submitDifficulty, setSubmitDifficulty] = useState<ExamDifficulty>('Vận dụng');
   const [submitNotes, setSubmitNotes] = useState('');
-  const [submitFileName, setSubmitFileName] = useState('');
-  const [submitFileSize, setSubmitFileSize] = useState('');
+  const [submitFiles, setSubmitFiles] = useState<File[]>([]);
+  const submitFileSize = formatExamFileSize(submitFiles.reduce((total, file) => total + file.size, 0));
   const [isUploading, setIsUploading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const submitInFlightRef = useRef(false);
+
+  const handleAddSubmitFiles = (files: File[]) => {
+    if (files.length === 0) return;
+    const unsupported = files.filter((file) => !isSupportedExamAttachment(file));
+    if (unsupported.length > 0) {
+      setSubmitError('Chỉ nhận ảnh JPG, PNG, WebP, GIF, AVIF, PDF, DOC/DOCX và Markdown (.md).');
+      return;
+    }
+    if (files.some((file) => file.size <= 0 || file.size > MAX_EXAM_ATTACHMENT_BYTES)) {
+      setSubmitError('Mỗi tệp phải nhỏ hơn 10 MB và không được để trống.');
+      return;
+    }
+
+    const existingKeys = new Set(submitFiles.map((file) => `${file.name}:${file.size}:${file.lastModified}`));
+    const additions = files.filter((file) => !existingKeys.has(`${file.name}:${file.size}:${file.lastModified}`));
+    if (submitFiles.length + additions.length > MAX_EXAM_SUBMISSION_FILES) {
+      setSubmitError(`Mỗi lần gửi tối đa ${MAX_EXAM_SUBMISSION_FILES} tệp. Hãy gộp tài liệu hoặc bỏ bớt tệp rồi thử lại.`);
+      return;
+    }
+    const totalBytes = [...submitFiles, ...additions].reduce((total, file) => total + file.size, 0);
+    if (totalBytes > MAX_EXAM_SUBMISSION_BYTES) {
+      setSubmitError('Tổng dung lượng đính kèm tối đa 18 MB.');
+      return;
+    }
+
+    setSubmitFiles((current) => [...current, ...additions]);
+    setSubmitError(null);
+  };
 
   /* Save/Bookmark toggle */
   const handleToggleBookmark = useCallback((examId: string, event: React.MouseEvent) => {
@@ -1018,43 +1135,21 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     }
   }, [likeViewerKey, showToast]);
 
-  /* Simulated Download with Real-Time Counter Increment */
+  /* Open the actual print-to-PDF flow instead of simulating a download. */
   const handleDownload = useCallback((exam: ExamPaper, event?: React.MouseEvent) => {
     event?.stopPropagation();
-    if (downloadingId) return;
-    setDownloadingId(exam.id);
-    setDownloadProgress(10);
-    try {
-      playChime();
-    } catch {
-      /* Bỏ qua âm thanh nếu trình duyệt chặn */
-    }
+    setPrintExam(exam);
+  }, []);
 
-    let progress = 10;
-    const interval = setInterval(() => {
-      progress += Math.floor(Math.random() * 25) + 15;
-      if (progress >= 100) {
-        clearInterval(interval);
-        setDownloadProgress(100);
-        setTimeout(() => {
-          setDownloadingId(null);
-          setDownloadProgress(0);
-
-          /* Cập nhật và lưu lượt tải thực tế */
-          setDownloadOverrides((prev) => {
-            const currentCount = prev[exam.id] ?? exam.downloads;
-            const next = { ...prev, [exam.id]: currentCount + 1 };
-            safeStorage.setItem(DOWNLOAD_COUNTS_KEY, JSON.stringify(next));
-            return next;
-          });
-
-          showToast(`Tải xuống hoàn tất: ${exam.title} (${exam.fileSize})`);
-        }, 400);
-      } else {
-        setDownloadProgress(progress);
-      }
-    }, 120);
-  }, [downloadingId, setDownloadingId, setDownloadProgress, setDownloadOverrides, showToast]);
+  const handleRecordPdfExport = useCallback((exam: ExamPaper) => {
+    setDownloadOverrides((prev) => {
+      const currentCount = prev[exam.id] ?? exam.downloads;
+      const next = { ...prev, [exam.id]: currentCount + 1 };
+      safeStorage.setItem(DOWNLOAD_COUNTS_KEY, JSON.stringify(next));
+      return next;
+    });
+    showToast('Trong hộp thoại in, chọn “Lưu dưới dạng PDF” để tải tệp.');
+  }, [showToast]);
 
   /* User Rating Handler */
   const handleRateExam = useCallback((examId: string, stars: number) => {
@@ -1157,21 +1252,28 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   }, [onNavigate, showToast]);
 
   /* Handle Student Submission */
-  const handleSubmitExam = useCallback((e: React.FormEvent) => {
+  const handleSubmitExam = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitInFlightRef.current) return;
     if (!submitTitle.trim()) {
       setSubmitError('Vui lòng nhập tên đề thi hoặc đề cương.');
       return;
     }
-    if (!submitFileName) {
-      setSubmitError('Vui lòng đính kèm tệp đề thi (PDF hoặc Word).');
+    if (submitFiles.length === 0) {
+      setSubmitError('Vui lòng đính kèm ít nhất một tệp ảnh, PDF, DOC/DOCX hoặc Markdown.');
+      return;
+    }
+    if (!currentUser?.email) {
+      setSubmitError('Vui lòng đăng nhập để gửi đề thi.');
+      onOpenLoginModal?.();
       return;
     }
 
+    submitInFlightRef.current = true;
     setIsUploading(true);
-    setTimeout(() => {
-      const newSubmission: ExamPaper = {
-        id: `sub-${Date.now()}`,
+    setSubmitError(null);
+    try {
+      const newSubmission = await submitExamPaper({
         title: submitTitle.trim(),
         subject: submitSubject,
         grade: submitGrade,
@@ -1179,55 +1281,35 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         province: submitProvince,
         school: submitSchool.trim() || 'Trường THPT',
         schoolYear: submitYear,
-        format: submitFileName.toLowerCase().endsWith('.docx') ? 'DOCX' : 'PDF',
-        fileSize: submitFileSize || '1.8 MB',
-        downloads: 0,
-        views: 1,
-        likes: 0,
-        verified: false,
-        hasAnswer: true,
-        pageCount: 8,
-        duration: 90,
         difficulty: submitDifficulty,
-        rating: 5.0,
-        ratingCount: 1,
-        uploader: {
-          id: currentUser?.id || 'guest',
-          name: currentUser?.name || 'Học sinh F-Forum',
-          role: currentUser?.role || 'Học Sinh',
-        },
-        uploadDate: 'Hôm nay',
-        summary: submitNotes.trim() || 'Tài liệu do học sinh đóng góp gửi tới Ban Quản Trị.',
-        sampleQuestions: [
-          'Câu hỏi mẫu: Đang được Ban Chuyên Môn số hoá và kiểm duyệt đáp án chi tiết.',
-        ],
-        status: 'pending',
-      };
-
-      setSubmissions((prev) => {
-        const updated = [newSubmission, ...prev];
-        safeStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(updated));
+        notes: submitNotes.trim(),
+        files: submitFiles,
+      });
+      setSubmissionsOwnerKey(submissionStorageKey);
+      setSubmissions((previous) => {
+        const updated = [newSubmission, ...previous.filter((submission) => submission.id !== newSubmission.id)];
+        safeStorage.setItem(submissionStorageKey, JSON.stringify(updated));
         return updated;
       });
-
-      setIsUploading(false);
       setIsSubmitModalOpen(false);
       setSubmitTitle('');
       setSubmitNotes('');
-      setSubmitFileName('');
-      setSubmitFileSize('');
+      setSubmitFiles([]);
       setSubmitError(null);
-
-      showToast('Đã gửi đề thi thành công! Ban Quản Trị sẽ xét duyệt và thông báo sớm nhất.');
+      showToast('Đã tải tệp và gửi đề thi đến hàng chờ kiểm duyệt.');
       try {
         playChime();
       } catch {
-        /* Bỏ qua */
+        /* Bỏ qua âm thanh */
       }
-    }, 600);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Không thể gửi đề thi. Vui lòng thử lại.');
+    } finally {
+      submitInFlightRef.current = false;
+      setIsUploading(false);
+    }
   }, [
     submitTitle,
-    submitFileName,
     submitSubject,
     submitGrade,
     submitExamType,
@@ -1235,45 +1317,72 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     submitSchool,
     submitYear,
     submitDifficulty,
-    submitFileSize,
-    currentUser,
+    submitFiles,
+    currentUser?.email,
     submitNotes,
-    setSubmissions,
-    setIsUploading,
-    setIsSubmitModalOpen,
-    setSubmitTitle,
-    setSubmitNotes,
-    setSubmitFileName,
-    setSubmitFileSize,
-    setSubmitError,
+    submissionStorageKey,
+    onOpenLoginModal,
     showToast,
   ]);
 
   /* Admin Approval / Rejection */
-  const handleApproveSubmission = useCallback((examId: string, event: React.MouseEvent) => {
+  const handleApproveSubmission = useCallback(async (examId: string, event: React.MouseEvent) => {
     event.stopPropagation();
-    setSubmissions((prev) => {
-      const updated = prev.map((item) => (item.id === examId ? { ...item, status: 'approved' as const, verified: true } : item));
-      safeStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(updated));
+    try {
+      const approvedSubmission = await reviewExamSubmission(examId, 'approved');
+      setSubmissionsOwnerKey(submissionStorageKey);
+      setSubmissions((previous) => {
+        const updated = previous.map((item) => item.id === examId ? approvedSubmission : item);
+        safeStorage.setItem(submissionStorageKey, JSON.stringify(updated));
+        return updated;
+      });
+      setPublicSubmissions((previous) => [
+        approvedSubmission,
+        ...previous.filter((item) => item.id !== examId),
+      ]);
       showToast('Đã duyệt đề thi thành công! Đề đã được đưa vào kho công khai.');
-      return updated;
-    });
-  }, [showToast, setSubmissions]);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Không thể duyệt đề thi.');
+    }
+  }, [showToast, submissionStorageKey]);
 
-  const handleRejectSubmission = useCallback((examId: string, event: React.MouseEvent) => {
+  const handleRejectSubmission = useCallback(async (examId: string, event: React.MouseEvent) => {
     event.stopPropagation();
-    setSubmissions((prev) => {
-      const updated = prev.map((item) => (item.id === examId ? { ...item, status: 'rejected' as const } : item));
-      safeStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(updated));
+    try {
+      const rejectedSubmission = await reviewExamSubmission(examId, 'rejected');
+      setSubmissionsOwnerKey(submissionStorageKey);
+      setSubmissions((previous) => {
+        const updated = previous.map((item) => item.id === examId ? rejectedSubmission : item);
+        safeStorage.setItem(submissionStorageKey, JSON.stringify(updated));
+        return updated;
+      });
       showToast('Đã từ chối duyệt đề thi.');
-      return updated;
-    });
-  }, [showToast, setSubmissions]);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Không thể từ chối đề thi.');
+    }
+  }, [showToast, submissionStorageKey]);
+
+  const handleDownloadExamAttachment = useCallback(async (
+    submissionId: string,
+    attachment: NonNullable<ExamPaper['attachments']>[number],
+    event?: React.MouseEvent,
+  ) => {
+    event?.stopPropagation();
+    try {
+      await downloadExamAttachment(submissionId, attachment);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Không thể tải tệp đính kèm.');
+    }
+  }, [showToast]);
 
   /* Combine Seed Exams + Verified Submissions with Overrides */
   const allPapers = useMemo(() => {
-    const approvedSubmissions = submissions.filter((s) => s.status === 'approved');
-    const combined = [...approvedSubmissions, ...SEED_EXAMS];
+    const approvedSubmissionMap = new Map<string, ExamPaper>();
+    publicSubmissions.forEach((submission) => approvedSubmissionMap.set(submission.id, submission));
+    currentSubmissions
+      .filter((submission) => submission.status === 'approved')
+      .forEach((submission) => approvedSubmissionMap.set(submission.id, submission));
+    const combined = [...approvedSubmissionMap.values(), ...SEED_EXAMS];
 
     return combined.map((p) => {
       const dl = downloadOverrides[p.id] ?? p.downloads;
@@ -1284,12 +1393,12 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       const allRevs = [...extraReviews, ...baseReviews];
 
       /* Calculate effective rating */
-      const baseRating = p.rating ?? 4.8;
-      const baseCount = p.ratingCount ?? 50;
+      const baseCount = Number.isFinite(p.ratingCount) ? Math.max(0, p.ratingCount ?? 0) : 0;
+      const baseRating = baseCount > 0 && Number.isFinite(p.rating) ? p.rating ?? 0 : 0;
       const effectiveRatingCount = baseCount + (userRating ? 1 : 0);
-      const effectiveRating = userRating
-        ? Number(((baseRating * baseCount + userRating) / effectiveRatingCount).toFixed(1))
-        : baseRating;
+      const effectiveRating = effectiveRatingCount > 0
+        ? Number(((baseRating * baseCount + (userRating ?? 0)) / effectiveRatingCount).toFixed(1))
+        : undefined;
 
       return {
         ...p,
@@ -1300,7 +1409,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         peerReviews: allRevs,
       };
     });
-  }, [submissions, downloadOverrides, examLikes, userRatings, peerReviewsMap]);
+  }, [currentSubmissions, publicSubmissions, downloadOverrides, examLikes, userRatings, peerReviewsMap]);
 
   /* Filter & Search Pipeline */
   const filteredPapers = useMemo(() => {
@@ -1316,7 +1425,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     } else if (activeTab === 'cached') {
       result = result.filter((p) => cachedExamIds.includes(p.id));
     } else if (activeTab === 'my_submissions') {
-      return submissions;
+      return currentSubmissions;
     }
 
     /* Keyword Search */
@@ -1389,7 +1498,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     selectedYear,
     sortBy,
     savedExams,
-    submissions,
+    currentSubmissions,
     cachedExamIds,
   ]);
 
@@ -1548,7 +1657,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           <button
             type="button"
             onClick={() => setIsBookmarkDrawerOpen(true)}
-            className="ff-tactile-btn relative hidden min-h-9 min-w-9 items-center justify-center rounded-xl text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer sm:inline-flex"
+            className="ff-tactile-btn ff-exam-icon-button relative hidden min-h-9 min-w-9 items-center justify-center rounded-xl text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer sm:inline-flex"
             aria-label={`Xem danh sách đề đã lưu (${savedExams.length})`}
             title="Đề thi yêu thích &amp; đã lưu"
           >
@@ -1564,7 +1673,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           <button
             type="button"
             onClick={handleToggleTheme}
-            className="ff-tactile-btn inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center rounded-xl text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+            className="ff-tactile-btn ff-exam-icon-button inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center rounded-xl text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
             aria-label={isLightMode ? 'Chuyển sang chế độ tối' : 'Chuyển sang chế độ sáng'}
             title={isLightMode ? 'Chuyển sang chế độ tối' : 'Chuyển sang chế độ sáng'}
           >
@@ -1581,11 +1690,11 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 setIsSubmitModalOpen(true);
               }
             }}
-            className="ff-tactile-btn inline-flex h-9 w-9 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-2 text-xs font-extrabold text-[#0b0d12] shadow-[0_4px_16px_rgba(245,158,11,0.35)] transition-all duration-200 hover:from-amber-400 hover:to-amber-500 sm:h-10 sm:w-auto sm:px-4"
+            className="ff-tactile-btn inline-flex h-9 w-9 shrink-0 items-center justify-center gap-1.5 rounded-xl border-2 border-[#0b0d12] bg-[#f4f1de] px-2 text-xs font-extrabold text-[#0b0d12] transition-all duration-200 hover:bg-[#f2cc8f] sm:h-10 sm:w-auto sm:px-4"
             aria-label="Đóng góp đề cương để xét duyệt"
             title="Gửi đề cương"
           >
-            <Upload className="h-4 w-4 shrink-0" />
+            <Upload className="h-4 w-4 shrink-0 text-[#e07a5f]" />
             <span className="hidden sm:inline">Gửi đề</span>
           </button>
 
@@ -1663,7 +1772,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setSearchTerm('')}
-                  className="ff-tactile-btn mr-1 inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center rounded-lg text-white/55 hover:text-white"
+                  className="ff-tactile-btn ff-exam-icon-button mr-1 inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center rounded-lg text-white/55 hover:text-white"
                   aria-label="Xoá tìm kiếm"
                 >
                   <X className="h-4 w-4" />
@@ -1702,7 +1811,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             { id: 'exams', label: 'Đề thi', count: allPapers.filter((p) => p.examType !== 'Đề cương ôn tập').length },
             { id: 'saved', label: 'Đã lưu', count: savedExams.length },
             { id: 'cached', label: 'Ngoại tuyến', count: cachedExamIds.length },
-            { id: 'my_submissions', label: 'Bản gửi duyệt', count: submissions.length },
+            { id: 'my_submissions', label: 'Bản gửi duyệt', count: currentSubmissions.length },
           ].map((tab) => {
             const active = activeTab === tab.id;
             return (
@@ -2000,7 +2109,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 if (!currentUser && onOpenLoginModal) onOpenLoginModal();
                 else setIsSubmitModalOpen(true);
               }}
-              className="min-h-10 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0b0d12] text-xs font-bold transition-colors cursor-pointer"
+              className="ff-tactile-btn min-h-10 px-4 py-2 rounded-xl border-2 border-[#0b0d12] bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] text-xs font-extrabold transition-colors cursor-pointer"
             >
               Gửi đề thi
             </button>
@@ -2010,7 +2119,6 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             {filteredPapers.map((paper) => {
               const isSaved = savedExams.includes(paper.id);
               const isLiked = isExamLikedBy(examLikes, paper.id, likeViewerKey);
-              const isDownloading = downloadingId === paper.id;
               const isPending = paper.status === 'pending';
               const cardTitle = getCompactPaperTitle(paper);
 
@@ -2019,7 +2127,8 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                   key={paper.id}
                   tabIndex={0}
                   aria-label={`Xem trước: ${paper.title}`}
-                  onClick={() => {
+                  onClick={(event) => {
+                    if ((event.target as HTMLElement).closest('button, a, input, select, textarea')) return;
                     setPreviewExam(paper);
                     setShowDetailedSolutions(false);
                   }}
@@ -2078,7 +2187,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                       </div>
 
                       {/* Top actions: Like and Bookmark */}
-                      <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1">
+                      <div className="ff-exam-card-top-actions ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1">
                         <button
                           type="button"
                           onClick={(e) => handleToggleLike(paper.id, e)}
@@ -2098,7 +2207,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                         <button
                           type="button"
                           onClick={(e) => handleToggleBookmark(paper.id, e)}
-                          className={`ff-tactile-btn inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border transition-colors cursor-pointer ${
+                          className={`ff-tactile-btn ff-exam-icon-button inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border transition-colors cursor-pointer ${
                             isSaved
                               ? 'bg-amber-400 text-[#0b0d12] border-amber-400'
                               : 'bg-white/5 border-white/10 text-white/50 hover:text-white hover:bg-white/10'
@@ -2140,22 +2249,6 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
                   {/* Bottom metrics and Action Buttons */}
                   <div>
-                    {/* Downloading progress bar if active */}
-                    {isDownloading && (
-                      <div className="w-full mb-3">
-                        <div className="flex items-center justify-between text-[10px] text-amber-300 mb-1">
-                          <span>Đang tải xuống...</span>
-                          <span>{downloadProgress}%</span>
-                        </div>
-                        <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                          <div
-                            className="h-full ff-exam-progress-bar rounded-full transition-all duration-150"
-                            style={{ width: `${downloadProgress}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-
                     <div className="space-y-3 border-t border-white/10 pt-3">
                       {/* Metric pills */}
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/50">
@@ -2172,7 +2265,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                           </span>
                         )}
                         <span className="flex items-center gap-1">
-                          <FileText className="w-3 h-3" /> {paper.pageCount} tr
+                          <FileText className="w-3 h-3" /> {paper.attachments?.length ? `${paper.attachments.length} tệp` : `${paper.pageCount} tr`}
                         </span>
                       </div>
 
@@ -2206,16 +2299,18 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                           </>
                         )}
 
-                        <button
-                          type="button"
-                          onClick={(e) => handleOpenPrint(paper, e)}
-                          className="ff-tactile-btn inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.06] px-2 text-xs font-semibold text-white/80 transition-colors hover:bg-white/[0.12] hover:text-white"
-                          aria-label="In hoặc xuất PDF"
-                          title="Định dạng in A4 &amp; Xuất PDF"
-                        >
-                          <Printer className="w-3.5 h-3.5" />
-                          <span>In</span>
-                        </button>
+                        {!paper.attachments?.length && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleOpenPrint(paper, e)}
+                            className="ff-tactile-btn inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-[#81b29a]/45 bg-[#81b29a]/[0.12] px-2 text-xs font-bold text-[#d8f3dc] transition-colors hover:bg-[#81b29a]/[0.22]"
+                            aria-label="In hoặc xuất PDF"
+                            title="Định dạng in A4 &amp; Xuất PDF"
+                          >
+                            <Printer className="w-3.5 h-3.5 text-[#81b29a]" />
+                            <span>In</span>
+                          </button>
+                        )}
 
                         <button
                           type="button"
@@ -2230,15 +2325,29 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                           <span>Xem thử</span>
                         </button>
 
-                        <button
-                          type="button"
-                          disabled={isDownloading}
-                          onClick={(e) => handleDownload(paper, e)}
-                          className="ff-tactile-btn inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-amber-400 px-2 py-1.5 text-xs font-bold text-[#0b0d12] transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          <span>Tải {paper.format}</span>
-                        </button>
+                        {paper.attachments && paper.attachments.length > 0 ? (
+                          <button
+                            type="button"
+                            onClick={(event) => handleDownloadExamAttachment(paper.id, paper.attachments![0], event)}
+                            className="ff-tactile-btn inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-[#0b0d12] bg-[#f4f1de] px-2 py-1.5 text-xs font-extrabold text-[#0b0d12] transition-colors hover:bg-[#f2cc8f]"
+                            aria-label={`Tải tệp gốc ${paper.attachments[0].name}`}
+                            title="Tải trực tiếp tệp đề gốc"
+                          >
+                            <Download className="w-3.5 h-3.5 text-[#e07a5f]" />
+                            <span>Tải tệp gốc</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => handleDownload(paper, e)}
+                            className="ff-tactile-btn inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-[#0b0d12] bg-[#f4f1de] px-2 py-1.5 text-xs font-extrabold text-[#0b0d12] transition-colors hover:bg-[#f2cc8f]"
+                            aria-label={`Xuất ${paper.title} thành PDF`}
+                            title="Mở bản xem trước để in hoặc lưu thành PDF"
+                          >
+                            <Download className="w-3.5 h-3.5 text-[#e07a5f]" />
+                            <span>Xuất PDF</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -2252,23 +2361,23 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       {/* ======================================================== */}
       {/* 5. PREVIEW MODAL                                         */}
       {/* ======================================================== */}
-      {activePreview && (
+      {activePreview && modalPortalRoot && createPortal(
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="preview-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in"
+          className="ff-exam-dialog-overlay z-[100] bg-black/75 backdrop-blur-md animate-fade-in"
           onClick={() => setPreviewExam(null)}
         >
           <div
-            className="ff-exam-modal w-full max-w-3xl rounded-2xl p-5 sm:p-7 max-h-[92vh] overflow-y-auto no-scrollbar relative"
-            onClick={(e) => e.stopPropagation()}
+            className="ff-exam-modal ff-exam-dialog-panel w-full max-w-3xl rounded-2xl p-5 sm:p-7 overflow-y-auto no-scrollbar relative"
+            onClick={(event) => event.stopPropagation()}
           >
             {/* Close Button */}
             <button
               type="button"
               onClick={() => setPreviewExam(null)}
-              className="absolute right-3 top-3 inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white cursor-pointer"
+              className="ff-tactile-btn ff-exam-icon-button absolute right-3 top-3 inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white cursor-pointer"
               aria-label="Đóng xem trước"
             >
               <X className="w-5 h-5" />
@@ -2323,7 +2432,9 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
               </div>
               <div>
                 <span className="text-white/45 block text-[10px] uppercase font-mono">Thời gian làm bài</span>
-                <span className="font-semibold text-white">{activePreview.duration} phút</span>
+                <span className="font-semibold text-white">
+                  {activePreview.duration ? `${activePreview.duration} phút` : 'Chưa cập nhật'}
+                </span>
               </div>
             </div>
 
@@ -2332,10 +2443,12 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
               <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-1">
                   <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
-                  <span className="text-lg font-extrabold text-amber-300">{activePreview.rating ?? 4.8}</span>
+                  <span className="text-lg font-extrabold text-amber-300">
+                    {activePreview.rating !== undefined ? activePreview.rating.toFixed(1) : '—'}
+                  </span>
                   <span className="text-xs text-white/50">/ 5.0</span>
                 </div>
-                <span className="text-xs text-white/60">({activePreview.ratingCount ?? 50} lượt đánh giá)</span>
+                <span className="text-xs text-white/60">({activePreview.ratingCount ?? 0} lượt đánh giá)</span>
               </div>
 
               {/* Interactive Star Voting */}
@@ -2374,6 +2487,41 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 {activePreview.summary}
               </p>
             </div>
+
+            {activePreview.attachments && activePreview.attachments.length > 0 && (
+              <section className="mb-4 rounded-2xl border border-[#81b29a]/25 bg-[#81b29a]/[0.06] p-3.5">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <h4 className="flex items-center gap-2 text-xs font-extrabold text-[#d8f3dc]">
+                    <FileCheck className="h-4 w-4 text-[#81b29a]" /> Tệp đề gốc
+                  </h4>
+                  <span className="text-[10px] text-white/50">
+                    {activePreview.attachments.length} tệp · {activePreview.fileSize}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {activePreview.attachments.map((attachment) => (
+                    <button
+                      key={attachment.id}
+                      type="button"
+                      onClick={(event) => handleDownloadExamAttachment(activePreview.id, attachment, event)}
+                      className="ff-tactile-btn flex min-h-12 min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left transition-colors hover:border-[#81b29a]/40 hover:bg-[#81b29a]/[0.1]"
+                      aria-label={`Tải tệp ${attachment.name}`}
+                    >
+                      <Download className="h-4 w-4 shrink-0 text-[#81b29a]" />
+                      <span className="min-w-0 flex-1 truncate text-xs font-semibold text-white/85">{attachment.name}</span>
+                      <span className="shrink-0 text-[10px] text-white/45">
+                        {attachment.format} · {formatExamFileSize(attachment.size)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {activePreview.status === 'pending' && (
+                  <p className="mt-2 text-[10px] leading-relaxed text-white/45">
+                    Tệp đang chờ duyệt và chỉ bạn cùng nhóm kiểm duyệt mới tải được.
+                  </p>
+                )}
+              </section>
+            )}
 
             {/* Sample Questions & Detailed Solutions Section */}
             <div className="mb-5">
@@ -2561,14 +2709,14 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 <button
                   type="button"
                   onClick={() => handleDiscussInQA(activePreview)}
-                  className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/15 px-3 py-1.5 font-semibold text-cyan-300 hover:bg-cyan-500/25 cursor-pointer transition-colors"
+                  className="ff-tactile-btn inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-[#e07a5f]/40 bg-[#e07a5f]/[0.12] px-3 py-1.5 font-bold text-[#ffc6b1] hover:bg-[#e07a5f]/[0.22] cursor-pointer transition-colors"
                 >
                   <MessageSquare className="w-3.5 h-3.5" /> Hỏi trong Q&amp;A
                 </button>
                 <button
                   type="button"
                   onClick={() => handleShareToClub(activePreview)}
-                  className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-amber-400/30 bg-amber-400/15 px-3 py-1.5 font-semibold text-amber-300 hover:bg-amber-400/25 cursor-pointer transition-colors"
+                  className="ff-tactile-btn inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-[#81b29a]/40 bg-[#81b29a]/[0.12] px-3 py-1.5 font-bold text-[#d8f3dc] hover:bg-[#81b29a]/[0.22] cursor-pointer transition-colors"
                 >
                   <Users className="w-3.5 h-3.5" /> Mời CLB học tập
                 </button>
@@ -2580,67 +2728,86 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/50">
                 <span>Dung lượng: {activePreview.fileSize}</span>
                 <span>•</span>
-                <span>{activePreview.pageCount} trang</span>
+                <span>{activePreview.attachments?.length ? `${activePreview.attachments.length} tệp gốc` : `${activePreview.pageCount} trang`}</span>
                 <span>•</span>
                 <span className="text-amber-300 font-semibold">{activePreview.downloads} lượt tải</span>
               </div>
 
               <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPreviewExam(null);
-                    handleOpenPrint(activePreview);
-                  }}
-                  className="px-3 py-2 rounded-xl border border-white/15 text-xs font-semibold text-white/90 hover:text-white hover:bg-white/10 cursor-pointer flex items-center gap-1.5 transition-colors"
-                  title="In đề thi chuẩn khổ A4 hoặc xuất PDF"
-                >
-                  <Printer className="w-4 h-4 text-amber-300" />
-                  <span>In Đề / PDF</span>
-                </button>
+                {!activePreview.attachments?.length && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewExam(null);
+                      handleOpenPrint(activePreview);
+                    }}
+                    className="ff-tactile-btn inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-[#81b29a]/45 bg-[#81b29a]/[0.12] px-3 py-2 text-xs font-bold text-[#d8f3dc] hover:bg-[#81b29a]/[0.22] cursor-pointer transition-colors"
+                    title="In đề thi chuẩn khổ A4 hoặc xuất PDF"
+                  >
+                    <Printer className="w-4 h-4 text-[#81b29a]" />
+                    <span>In Đề / PDF</span>
+                  </button>
+                )}
 
                 <button
                   type="button"
                   onClick={(e) => handleToggleBookmark(activePreview.id, e)}
-                  className="px-3 py-2 rounded-xl border border-white/15 text-xs font-semibold text-white hover:bg-white/10 cursor-pointer flex items-center gap-1.5"
+                  className="ff-tactile-btn inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/[0.08] cursor-pointer"
                 >
                   <Bookmark className="w-4 h-4" />
                   <span>{savedExams.includes(activePreview.id) ? 'Đã lưu' : 'Lưu vào kho'}</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleDownload(activePreview)}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-[#0b0d12] text-xs font-extrabold cursor-pointer flex items-center gap-1.5 shadow-[0_4px_16px_rgba(245,158,11,0.3)]"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Tải Đầy Đủ {activePreview.format}</span>
-                </button>
+                {activePreview.attachments && activePreview.attachments.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={(event) => handleDownloadExamAttachment(activePreview.id, activePreview.attachments![0], event)}
+                    className="ff-tactile-btn inline-flex min-h-10 items-center gap-1.5 rounded-xl border-2 border-[#0b0d12] bg-[#f4f1de] px-4 py-2 text-xs font-extrabold text-[#0b0d12] transition-colors hover:bg-[#f2cc8f]"
+                    title="Tải tệp đề gốc"
+                  >
+                    <Download className="w-4 h-4 text-[#e07a5f]" />
+                    <span>Tải tệp gốc</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      setPreviewExam(null);
+                      handleDownload(activePreview, e);
+                    }}
+                    className="ff-tactile-btn inline-flex min-h-10 items-center gap-1.5 rounded-xl border-2 border-[#0b0d12] bg-[#f4f1de] px-4 py-2 text-xs font-extrabold text-[#0b0d12] transition-colors hover:bg-[#f2cc8f]"
+                    title="Mở hộp thoại in để lưu đề thành PDF"
+                  >
+                    <Download className="w-4 h-4 text-[#e07a5f]" />
+                    <span>Xuất PDF</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        modalPortalRoot,
       )}
 
       {/* ======================================================== */}
       {/* 6. STUDENT SUBMISSION MODAL                              */}
       {/* ======================================================== */}
-      {isSubmitModalOpen && (
+      {isSubmitModalOpen && modalPortalRoot && createPortal(
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="submit-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in"
+          className="ff-exam-dialog-overlay z-[100] bg-black/75 backdrop-blur-md animate-fade-in"
           onClick={() => setIsSubmitModalOpen(false)}
         >
           <div
-            className="ff-exam-modal w-full max-w-xl rounded-2xl p-5 sm:p-6 max-h-[90vh] overflow-y-auto no-scrollbar relative"
-            onClick={(e) => e.stopPropagation()}
+            className="ff-exam-modal ff-exam-dialog-panel w-full max-w-xl rounded-2xl p-5 sm:p-6 overflow-y-auto no-scrollbar relative"
+            onClick={(event) => event.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setIsSubmitModalOpen(false)}
-              className="absolute right-3 top-3 inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white cursor-pointer"
+              className="ff-tactile-btn ff-exam-icon-button absolute right-3 top-3 inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white cursor-pointer"
               aria-label="Đóng cửa sổ"
             >
               <X className="w-5 h-5" />
@@ -2789,42 +2956,68 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
               {/* File Attachment Dropzone */}
               <div>
-                <label className="block ff-exam-filter-label text-white/70 font-semibold mb-1">
-                  Tệp đính kèm (PDF, DOCX, Ảnh) <span className="text-amber-400">*</span>
+                <label className="mb-1 block ff-exam-filter-label text-white/70 font-semibold">
+                  Tệp đính kèm <span className="text-[#e07a5f]">*</span>
                 </label>
-                <div className="w-full p-4 rounded-xl border-2 border-dashed border-white/20 hover:border-amber-400/50 bg-white/[0.02] flex flex-col items-center justify-center text-center cursor-pointer relative">
+                {submitFiles.length > 0 && (
+                  <ul className="mb-2 space-y-1.5" aria-label="Tệp đã chọn">
+                    {submitFiles.map((file, index) => (
+                      <li
+                        key={`${file.name}-${file.size}-${file.lastModified}`}
+                        className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-2"
+                      >
+                        <FileCheck className="h-4 w-4 shrink-0 text-[#81b29a]" />
+                        <span className="min-w-0 flex-1 break-all text-xs font-semibold text-white/85">{file.name}</span>
+                        <span className="shrink-0 rounded-md border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-bold text-white/55">
+                          {examAttachmentFormat(file)}
+                        </span>
+                        <span className="shrink-0 text-[10px] text-white/50">{formatExamFileSize(file.size)}</span>
+                        <button
+                          type="button"
+                          onClick={() => setSubmitFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))}
+                          className="ff-tactile-btn ff-exam-icon-button inline-flex h-8 w-8 min-h-8 min-w-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-white/50 hover:bg-rose-500/15 hover:text-rose-200"
+                          aria-label={`Bỏ tệp ${file.name}`}
+                          title="Bỏ tệp này"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <label
+                  className="group flex min-h-24 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/20 bg-white/[0.02] p-4 text-center transition-colors hover:border-[#e07a5f]/70 hover:bg-[#e07a5f]/[0.06]"
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    handleAddSubmitFiles(Array.from(event.dataTransfer.files));
+                  }}
+                >
                   <input
                     type="file"
-                    accept=".pdf,.docx,.doc,.zip,.jpg,.png"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setSubmitFileName(file.name);
-                        const mb = (file.size / (1024 * 1024)).toFixed(1);
-                        setSubmitFileSize(`${mb} MB`);
-                        setSubmitError(null);
-                      }
+                    multiple
+                    accept=".jpg,.jpeg,.png,.webp,.gif,.avif,image/jpeg,image/png,image/webp,image/gif,image/avif,.pdf,.docx,.doc,.md,.markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown"
+                    onChange={(event) => {
+                      handleAddSubmitFiles(Array.from(event.currentTarget.files || []));
+                      event.currentTarget.value = '';
                     }}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    className="sr-only"
+                    aria-label="Chọn ảnh, PDF, Word hoặc Markdown"
                   />
-                  {submitFileName ? (
-                    <div className="flex max-w-full min-w-0 items-center gap-2 text-amber-300 font-semibold">
-                      <FileCheck className="w-5 h-5 shrink-0 text-emerald-400" />
-                      <span className="min-w-0 break-all">{submitFileName}</span>
-                      <span className="shrink-0 text-[10px] text-white/50">({submitFileSize})</span>
-                    </div>
-                  ) : (
-                    <>
-                      <Upload className="w-6 h-6 text-white/40 mb-1" />
-                      <span className="text-xs font-semibold text-white/80">
-                        Bấm để chọn tệp hoặc kéo thả vào đây
-                      </span>
-                      <span className="text-[10px] text-white/40 mt-0.5">
-                        Hỗ trợ PDF, Word, ZIP hoặc ảnh.
-                      </span>
-                    </>
+                  <Upload className="mb-1 h-6 w-6 text-[#e07a5f] transition-transform group-hover:-translate-y-0.5" />
+                  <span className="text-xs font-extrabold text-white/85">
+                    {submitFiles.length ? 'Thêm tệp khác' : 'Chọn hoặc kéo thả tệp vào đây'}
+                  </span>
+                  <span className="mt-1 text-[10px] text-white/50">
+                    Ảnh JPG/PNG/WebP/GIF/AVIF, PDF, DOC/DOCX hoặc Markdown (.md). Tối đa 12 tệp · 10 MB/tệp · 18 MB tổng.
+                  </span>
+                  {submitFiles.length > 0 && (
+                    <span className="mt-1 text-[10px] font-semibold text-[#81b29a]">
+                      {submitFiles.length} tệp đã chọn · {submitFileSize} tổng cộng
+                    </span>
                   )}
-                </div>
+                </label>
               </div>
 
               {/* Notes */}
@@ -2844,21 +3037,22 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsSubmitModalOpen(false)}
-                  className="inline-flex min-h-9 items-center justify-center rounded-xl border border-white/15 px-4 py-2 font-semibold text-white/70 hover:text-white hover:bg-white/5 cursor-pointer"
+                  className="ff-tactile-btn inline-flex min-h-10 items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2 font-semibold text-white/75 hover:text-white hover:bg-white/[0.08] cursor-pointer"
                 >
                   Huỷ
                 </button>
                 <button
                   type="submit"
                   disabled={isUploading}
-                  className="inline-flex min-h-9 items-center justify-center rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 px-5 py-2 font-extrabold text-[#0b0d12] shadow-[0_4px_16px_rgba(245,158,11,0.3)] hover:from-amber-300 hover:to-amber-400 cursor-pointer disabled:opacity-50"
+                  className="ff-tactile-btn inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border-2 border-[#0b0d12] bg-[#f4f1de] px-5 py-2 font-extrabold text-[#0b0d12] hover:bg-[#f2cc8f] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isUploading ? 'Đang gửi...' : 'Gửi để duyệt'}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        modalPortalRoot,
       )}
 
       {/* ======================================================== */}
@@ -2902,6 +3096,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         <ExamPrintExportModal
           paper={printExam}
           onClose={() => setPrintExam(null)}
+          onPrint={() => handleRecordPdfExport(printExam)}
         />
       )}
 
