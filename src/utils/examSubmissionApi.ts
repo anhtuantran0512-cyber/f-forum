@@ -1,6 +1,8 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import type { ExamAttachment, ExamPaper } from '../types';
+import type { ExamAttachment, ExamInteractionMap, ExamInteractionSnapshot, ExamPaper } from '../types';
 import { authHeaders } from './session';
+
+export type { ExamInteractionMap, ExamInteractionSnapshot } from '../types';
 
 export interface ExamSubmissionCollection {
   submissions: ExamPaper[];
@@ -117,3 +119,42 @@ export const downloadExamAttachment = async (
   link.remove();
   window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
 };
+
+export const fetchExamInteractions = async (): Promise<ExamInteractionMap> => {
+  const response = await fetch('/api/exam-interactions', {
+    headers: authHeaders(),
+    credentials: 'same-origin',
+    cache: 'no-store',
+  });
+  const data = await responseData(response);
+  return data.interactions && typeof data.interactions === 'object'
+    ? data.interactions as ExamInteractionMap
+    : {};
+};
+
+const postExamInteraction = async (
+  paperId: string,
+  action: 'like' | 'rating' | 'reviews',
+  payload: Record<string, unknown>,
+): Promise<ExamInteractionSnapshot> => {
+  const response = await fetch(`/api/exam-interactions/${encodeURIComponent(paperId)}/${action}`, {
+    method: 'POST',
+    headers: authHeaders(),
+    credentials: 'same-origin',
+    body: JSON.stringify(payload),
+  });
+  const data = await responseData(response);
+  return data.interaction as ExamInteractionSnapshot;
+};
+
+export const setExamLike = (paperId: string, liked: boolean): Promise<ExamInteractionSnapshot> =>
+  postExamInteraction(paperId, 'like', { liked });
+
+export const rateExamPaper = (paperId: string, rating: number): Promise<ExamInteractionSnapshot> =>
+  postExamInteraction(paperId, 'rating', { rating });
+
+export const submitExamReview = (
+  paperId: string,
+  content: string,
+  rating: number,
+): Promise<ExamInteractionSnapshot> => postExamInteraction(paperId, 'reviews', { content, rating });

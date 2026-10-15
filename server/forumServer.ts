@@ -98,6 +98,19 @@ import {
 } from './examSubmissionStorage.ts';
 import type { ExamPaper, ExamPaperFormat } from '../src/types/index.ts';
 import {
+  addExamPaperReview,
+  buildExamInteractionSnapshots,
+  ensureExamPaperInteraction,
+  isValidExamInteractionPaperId,
+  isValidExamInteractionUserId,
+  sanitizeExamInteractions,
+  SEED_EXAM_INTERACTION_PAPER_IDS,
+  setExamPaperLike,
+  setExamPaperRating,
+  type ExamInteractionReviewRecord,
+  type ExamInteractionsStore,
+} from './examInteractions.ts';
+import {
   buildAnalyticsReport,
   createEmptyAnalytics,
   recordAnalyticsActivity,
@@ -294,6 +307,7 @@ export interface ForumDataStore {
   chatMessages: any[];
   feedbacks: any[];
   examSubmissions?: ExamSubmissionRecord[];
+  examInteractions?: ExamInteractionsStore;
   reports?: any[];
   about?: any;
   /** Áp chế theo email: cấm / khoá gửi tin, có thời hạn. Xem server/moderation.ts. */
@@ -417,6 +431,7 @@ let store: ForumDataStore = {
   chatMessages: [],
   feedbacks: [],
   examSubmissions: [],
+  examInteractions: {},
   threads: [],
   threadReports: [],
   comments: [],
@@ -568,12 +583,8 @@ function examSubmissionToPaper(record: ExamSubmissionRecord, includePrivateNotes
     format: attachments[0]?.format || 'PDF',
     fileSize: formatExamSubmissionSize(attachments.reduce((total, attachment) => total + attachment.size, 0)),
     attachments,
-    downloads: 0,
-    views: 0,
-    likes: 0,
     verified: record.status === 'approved',
     hasAnswer: false,
-    pageCount: 0,
     difficulty: record.difficulty as ExamPaper['difficulty'],
     uploader: { id: record.uploaderId, name: record.uploaderName, role: record.uploaderRole },
     uploadDate: new Date(record.createdAt).toLocaleDateString('vi-VN'),
@@ -946,6 +957,7 @@ function loadStoreFromDisk() {
             : [],
           feedbacks: Array.isArray(parsed.feedbacks) ? parsed.feedbacks : [],
           examSubmissions: sanitizeExamSubmissions(parsed.examSubmissions),
+          examInteractions: sanitizeExamInteractions(parsed.examInteractions),
           /* LỖI MẤT DỮ LIỆU: bản cũ dựng lại store mà bỏ quên `reports`, nên mọi
              báo cáo vi phạm đã ghi xuống đĩa bị vứt đi mỗi lần khởi động lại. */
           reports: Array.isArray(parsed.reports) ? parsed.reports : store.reports || [],
@@ -1179,6 +1191,8 @@ const reportIpLimiter = new SlidingWindowRateLimiter(REPORT_WINDOW_MS, 20);
 /* Epic 5 — tải ảnh đại diện / ảnh bìa (xử lý bằng sharp, tốn CPU). */
 const uploadLimiter = new SlidingWindowRateLimiter(10 * 60 * 1000, 20);
 const examSubmissionLimiter = new SlidingWindowRateLimiter(60 * 60 * 1000, 8);
+const examInteractionLimiter = new SlidingWindowRateLimiter(60 * 1000, 60);
+const examReviewLimiter = new SlidingWindowRateLimiter(60 * 60 * 1000, 8);
 
 /**
   Chỉ dành cho bộ kiểm thử.
@@ -1200,6 +1214,8 @@ export function resetRateLimitersForTest() {
   reportIpLimiter.reset();
   uploadLimiter.reset();
   examSubmissionLimiter.reset();
+  examInteractionLimiter.reset();
+  examReviewLimiter.reset();
   presenceLimiter.reset();
   analyticsLimiter.reset();
 }
@@ -4255,6 +4271,122 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     }
 
     const examSubmissionPath = url.split('?')[0];
+    const publicExamInteractionIds = () => [
+      ...SEED_EXAM_INTERACTION_PAPER_IDS,
+      ...(store.examSubmissions || [])
+        .filter((submission) => submission.status === 'approved')
+        .map((submission) => submission.id),
+    ];
+
+    if (method === 'GET' && examSubmissionPath === '/api/exam-interactions') {
+      const session = authenticatedUser(req);
+      sendJson(res, 200, {
+        success: true,
+        interactions: buildExamInteractionSnapshots(
+          store.examInteractions || {},
+          publicExamInteractionIds(),
+          session?.user.id,
+        ),
+      });
+      return;
+    }
+
+    const examInteractionMatch = examSubmissionPath.match(/^\/api\/exam-interactions\/([a-z0-9-]{1,80})\/(like|rating|reviews)$/i);
+    if (method === 'POST' && examInteractionMatch) {
+      try {
+        const body = await parseJsonBody(req);
+        const session = authenticatedUser(req, body);
+        if (!session) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để tham gia cộng đồng.' });
+          return;
+        }
+        const interactionGate = checkCanPost(session.claims.email, 'content');
+        if (!interactionGate.ok) {
+          sendJson(res, interactionGate.status, { success: false, message: interactionGate.message });
+          return;
+        }
+        const throttle = examInteractionLimiter.check(`exam-interaction:${session.claims.email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'tương tác cộng đồng');
+          return;
+        }
+
+        const paperId = examInteractionMatch[1];
+        const action = examInteractionMatch[2].toLowerCase();
+        if (!isValidExamInteractionPaperId(paperId) || !publicExamInteractionIds().includes(paperId)) {
+          sendJson(res, 404, { success: false, message: 'Chỉ có thể tương tác với đề thi đang công khai.' });
+          return;
+        }
+
+        if (action === 'reviews') {
+          const reviewThrottle = examReviewLimiter.check(`exam-review:${session.claims.email}`);
+          if (!reviewThrottle.allowed) {
+            sendRateLimited(res, reviewThrottle.retryAfterMs, 'gửi nhận xét');
+            return;
+          }
+        }
+
+        const userId = sanitizePlainText(session.user.id, 120);
+        if (!isValidExamInteractionUserId(userId)) {
+          sendJson(res, 401, { success: false, message: 'Không xác định được tài khoản hiện tại.' });
+          return;
+        }
+        const previousInteractions = store.examInteractions || {};
+        const nextInteractions = sanitizeExamInteractions(previousInteractions);
+        const record = ensureExamPaperInteraction(nextInteractions, paperId);
+
+        if (action === 'like') {
+          if (typeof body?.liked !== 'boolean') {
+            sendJson(res, 400, { success: false, message: 'Trạng thái yêu thích không hợp lệ.' });
+            return;
+          }
+          setExamPaperLike(record, userId, body.liked);
+        } else if (action === 'rating') {
+          const rating = Number(body?.rating);
+          if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+            sendJson(res, 400, { success: false, message: 'Đánh giá cần từ 1 đến 5 sao.' });
+            return;
+          }
+          setExamPaperRating(record, userId, rating);
+        } else {
+          const content = sanitizePlainText(body?.content, 1_000, true).trim();
+          const rating = Number(body?.rating);
+          if (content.length < 3 || !Number.isInteger(rating) || rating < 1 || rating > 5) {
+            sendJson(res, 400, { success: false, message: 'Nhận xét cần ít nhất 3 ký tự và đánh giá từ 1 đến 5 sao.' });
+            return;
+          }
+          const review: ExamInteractionReviewRecord = {
+            id: randomUUID(),
+            authorId: userId,
+            authorName: sanitizePlainText(session.user.name, MAX_NAME_LENGTH) || 'Học sinh F-Forum',
+            authorRole: session.user.role === 'SUPER_ADMIN'
+              ? 'Ban Quản Trị'
+              : session.user.staffRole
+                ? 'Cộng tác viên'
+                : 'Học sinh',
+            rating,
+            content,
+            createdAt: new Date().toISOString(),
+          };
+          if (!addExamPaperReview(record, review)) {
+            sendJson(res, 409, { success: false, message: 'Bạn đã gửi nhận xét cho đề thi này rồi.' });
+            return;
+          }
+        }
+
+        store.examInteractions = nextInteractions;
+        if (!flushStoreToDisk()) {
+          store.examInteractions = previousInteractions;
+          sendJson(res, 500, { success: false, message: 'Không thể lưu hoạt động cộng đồng. Vui lòng thử lại.' });
+          return;
+        }
+        const interaction = buildExamInteractionSnapshots(nextInteractions, [paperId], userId)[paperId];
+        sendJson(res, 200, { success: true, interaction });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
 
     if (method === 'GET' && examSubmissionPath === '/api/exam-submissions') {
       const session = authenticatedUser(req);

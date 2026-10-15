@@ -4,16 +4,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  EXAM_LIKES_KEY,
-  examLikeCount,
-  examLikersOf,
-  isExamLikedBy,
-  parseExamLikes,
-  serializeExamLikes,
-  setExamLike,
-  toggleExamLike,
-} from '../src/utils/examLikes.ts';
-import {
   examAttachmentFormat,
   formatExamFileSize,
   isSupportedExamAttachment,
@@ -119,7 +109,7 @@ test('6. Tương tác nhanh: xem trước, xuất PDF thật và lưu đề', ()
   assert.ok(tsx.includes('setPreviewExam(paper)') && tsx.includes('<span>Xem thử</span>'), 'Preview button must open the selected exam');
   assert.ok(tsx.includes('handleDownload(paper, e)') && tsx.includes('<span>Xuất PDF</span>'), 'PDF button must open the export flow');
   assert.ok(tsx.includes("closest('button, a, input, select, textarea')"), 'Card clicks must not swallow action-button clicks');
-  assert.ok(tsx.includes('onPrint={() => handleRecordPdfExport(printExam)}'), 'PDF export must record the completed print-to-PDF action');
+  assert.ok(tsx.includes('onPrint={() => showToast('), 'PDF export may confirm the print action without inventing download metrics');
   assert.ok(printModal.includes('window.print()'), 'Export must open the browser print dialog so Save as PDF works');
   assert.ok(!tsx.includes('downloadProgress'), 'Do not fake a download with a progress-only animation');
   assert.ok(tsx.includes('handleToggleBookmark'), 'Must support bookmarking / saving exam papers');
@@ -159,7 +149,7 @@ test('8. Đèn pin Cú Bông: soi sáng đồng thời cả hai ô mật khẩu'
   );
 });
 
-test('9. Tương tác Kho Đề Thi Vòng 2: Mức độ khó, Đánh giá sao & Bộ đếm tải thực tế', () => {
+test('9. Tương tác Kho Đề Thi: mức độ khó và dữ liệu cộng đồng có nguồn máy chủ', () => {
   const tsx = read('src/components/views/ExamVaultView.tsx');
   const css = read('src/components/views/ExamVaultView.css');
   const types = read('src/types/index.ts');
@@ -174,13 +164,21 @@ test('9. Tương tác Kho Đề Thi Vòng 2: Mức độ khó, Đánh giá sao &
   assert.ok(css.includes('.ff-diff-badge--van-dung'), 'CSS must define badge for Vận dụng');
   assert.ok(css.includes('.ff-diff-badge--van-dung-cao'), 'CSS must define badge for Vận dụng cao');
 
-  /* Real-time download counter */
-  assert.ok(tsx.includes('DOWNLOAD_COUNTS_KEY'), 'Must define DOWNLOAD_COUNTS_KEY');
-  assert.ok(tsx.includes('downloadOverrides'), 'Must track real download overrides');
-
-  /* Rating system */
-  assert.ok(tsx.includes('USER_RATINGS_KEY'), 'Must define USER_RATINGS_KEY');
-  assert.ok(tsx.includes('handleRateExam'), 'Must support rating exams');
+  /* Community interaction APIs */
+  const api = read('src/utils/examSubmissionApi.ts');
+  const server = read('server/forumServer.ts');
+  assert.ok(api.includes('fetchExamInteractions') && api.includes('setExamLike'), 'Community data and likes must use API calls');
+  assert.ok(api.includes('rateExamPaper') && api.includes('submitExamReview'), 'Ratings and reviews must use API calls');
+  assert.ok(server.includes("'/api/exam-interactions'"), 'Server must expose a public snapshot for public papers');
+  assert.ok(server.includes('examInteractionLimiter') && server.includes('examReviewLimiter'), 'Server must rate-limit account interaction requests');
+  assert.ok(!tsx.includes('DOWNLOAD_COUNTS_KEY') && !tsx.includes('USER_RATINGS_KEY') && !tsx.includes('PEER_REVIEWS_KEY'), 'Community values must not be persisted as local client metrics');
+  assert.ok(!tsx.includes('paper.downloads') && !tsx.includes('paper.views'), 'Cards must not show unavailable download/view counters');
+  const seedStart = tsx.indexOf('const SEED_EXAMS: ExamPaper[] = [');
+  const seedEnd = tsx.indexOf('const PROVINCE_OPTIONS', seedStart);
+  assert.doesNotMatch(tsx.slice(seedStart, seedEnd), /\n\s+(?:fileSize|downloads|views|likes|pageCount|duration|rating|ratingCount|peerReviews):/, 'Seed papers must not carry fabricated engagement or availability metrics');
+  const paperConverter = server.slice(server.indexOf('function examSubmissionToPaper'), server.indexOf('/** Miền email', server.indexOf('function examSubmissionToPaper')));
+  assert.doesNotMatch(paperConverter, /(?:downloads|views|likes|pageCount):\s*0/, 'Server must not assign placeholder counters to submitted papers');
+  assert.ok(tsx.includes('handleRateExam'), 'Must support authenticated rating actions');
 
   /* Difficulty filter */
   assert.ok(tsx.includes('selectedDifficulty'), 'Must have difficulty filter state');
@@ -198,7 +196,7 @@ test('10. Hướng dẫn giải chi tiết, Phản biện học sinh (Peer Revie
 
   /* Peer reviews */
   assert.ok(types.includes('export interface ExamPeerReview'), 'ExamPeerReview must be defined');
-  assert.ok(tsx.includes('PEER_REVIEWS_KEY'), 'Must define PEER_REVIEWS_KEY');
+  assert.ok(tsx.includes('submitExamReview'), 'Review submissions must call the server API');
   assert.ok(tsx.includes('handleAddPeerReview'), 'Must support submitting peer reviews');
 
   /* Cross community links */
@@ -221,7 +219,7 @@ test('11. Hoàn thiện Kho Đề Thi: Đồng bộ đa tab, Deep link URL, Nhá
 
   /* Multiline peer reviews */
   assert.ok(tsx.includes('<textarea'), 'Peer review input must support multiline textarea');
-  assert.ok(tsx.includes('whitespace-pre-line'), 'Peer reviews must display with whitespace-pre-line formatting');
+  assert.ok(read('src/components/views/ExamVaultView.css').includes('white-space: pre-line'), 'Peer reviews must preserve multiline formatting');
 
   /* Responsive mobile grid in modal */
   assert.ok(tsx.includes('grid-cols-1 sm:grid-cols-2'), 'Submission modal must use responsive 2-column grid');
@@ -289,37 +287,19 @@ test('12. Interactive CBT Practice Mode: Ngân hàng câu hỏi, chọn A/B/C/D,
   assert.ok(distinctAnswers.size > 1, 'Fallback question generator must diversify answers across options (not always A)');
 });
 
-test('12a. Tim đề thi: mỗi người chỉ được tính một lượt, lưu bền vững và bỏ tim đúng cách', () => {
-  const examId = 'ex-01';
-  const viewer = 'student@fpt.edu.vn';
-  const baseLikes = 412;
-
-  assert.equal(EXAM_LIKES_KEY, 'fforum_exam_likes_v1', 'Use a new map key so old spammed numeric overrides are ignored');
-  assert.deepEqual(parseExamLikes('{"ex-01":9000}'), {}, 'Legacy numeric counters must not inflate the new count');
-  assert.deepEqual(
-    parseExamLikes('{"ex-01":["Student@FPT.EDU.VN","student@fpt.edu.vn",null,4]}'),
-    { 'ex-01': [viewer] },
-    'Stored likes must be normalized, deduplicated, and stripped of malformed viewers',
-  );
-
-  let likes = {};
-  likes = toggleExamLike(likes, examId, viewer);
-  assert.equal(isExamLikedBy(likes, examId, viewer), true, 'First click marks the paper as liked');
-  assert.equal(examLikeCount(baseLikes, examLikersOf(likes, examId)), baseLikes + 1, 'One viewer contributes exactly one like');
-
-  const repeatedSet = setExamLike(likes, examId, viewer.toUpperCase(), true);
-  assert.equal(repeatedSet, likes, 'Setting the same viewer to liked again is an idempotent no-op');
-  assert.equal(examLikeCount(baseLikes, examLikersOf(repeatedSet, examId)), baseLikes + 1, 'Repeated events cannot accumulate the count');
-  assert.deepEqual(parseExamLikes(serializeExamLikes(likes)), likes, 'The unique like state survives storage round-trips');
-
-  likes = toggleExamLike(likes, examId, viewer);
-  assert.equal(isExamLikedBy(likes, examId, viewer), false, 'Second click removes the viewer like');
-  assert.equal(examLikeCount(baseLikes, examLikersOf(likes, examId)), baseLikes, 'Unlike restores the original count');
-
+test('12a. Likes, ratings và reviews không thể bị tăng giả bằng localStorage', () => {
   const vault = read('src/components/views/ExamVaultView.tsx');
+  const api = read('src/utils/examSubmissionApi.ts');
+  const server = read('server/examInteractions.ts');
   assert.ok(vault.includes('aria-pressed={isLiked}'), 'Heart state must be announced accessibly');
-  assert.ok(vault.includes('safeStorage.setItem(EXAM_LIKES_KEY, serializeExamLikes(nextLikes))'), 'Like toggles must persist through safeStorage');
-  assert.ok(!vault.includes('likesOverrides'), 'Likes must no longer be stored as unbounded numeric overrides');
+  assert.ok(vault.includes('setExamLike(paperId, !currentLike)'), 'Like state must be changed by a server request');
+  assert.ok(vault.includes('pendingInteractionIds'), 'Community controls must reflect pending network activity');
+  assert.ok(vault.includes('reviewRequestIdsRef.current.has(paperId)'), 'A synchronous guard must stop duplicate review requests while pending');
+  assert.ok(api.includes("'/api/exam-interactions'"), 'Client must fetch authoritative community snapshots');
+  assert.ok(server.includes('new Set(record.likes).size'), 'Like count must be deduplicated by account');
+  assert.ok(server.includes('record.ratings[review.authorId] = review.rating'), 'A review can replace only that account’s single rating');
+  assert.ok(!vault.includes("addEventListener('storage'") || !vault.slice(vault.indexOf("addEventListener('storage'")).includes('EXAM_LIKES_KEY'), 'Community metrics must not sync through localStorage events');
+  assert.ok(!vault.includes('likesOverrides'), 'Like counts must not be stored as unbounded numeric overrides');
 });
 
 test('13. Exam Bookmarking / Yêu Thích Drawer: quản lý đề đã lưu, tìm nhanh & in tài liệu', () => {
@@ -377,6 +357,8 @@ test('14. Offline / Cache Indicators & Export / Print Formatting Options for Stu
   assert.ok(printModal.includes('fontSize'), 'Must support font size adjustments');
   assert.ok(printModal.includes('includeSolutions'), 'Must support hiding/showing answers and solutions');
   assert.ok(printModal.includes('includeStudentHeader'), 'Must support official student header & score box');
+  assert.ok(!printModal.includes('paper.duration || 60'), 'Print preview must not invent a 60-minute limit when source metadata is absent');
+  assert.ok(read('src/components/exam/CbtPracticeModal.tsx').includes('Bộ đếm mặc định · 45 phút'), 'A practice-only timer default must be clearly distinguished from original paper metadata');
 
   /* Printable CSS styling */
   assert.ok(vaultCss.includes('@media print'), 'CSS must include @media print stylesheet rules');
@@ -394,9 +376,9 @@ test('15. Kỷ luật mã nguồn tuyệt đối: Zero // Comments, Bản quyề
     'src/components/exam/CbtPracticeModal.tsx',
     'src/components/exam/ExamBookmarkDrawer.tsx',
     'src/components/exam/ExamPrintExportModal.tsx',
-    'src/utils/examLikes.ts',
     'src/utils/examAttachments.ts',
     'src/utils/examSubmissionApi.ts',
+    'server/examInteractions.ts',
   ];
 
   files.forEach((file) => {
