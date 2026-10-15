@@ -1476,12 +1476,12 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       {/* ======================================================== */}
       {/* 1. TOP HEADER BAR: Back to Home + Brand Logo + Actions  */}
       {/* ======================================================== */}
-      <header className="sticky top-0 z-40 w-full px-4 sm:px-8 py-3.5 ff-exam-header-bar flex items-center justify-between border-b">
+      <header className="sticky top-0 z-40 w-full px-3 sm:px-8 py-3.5 ff-exam-header-bar flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-b">
         {/* Top-left: Icon f-forum quay về trang chủ */}
         <button
           type="button"
           onClick={() => onNavigate('home')}
-          className="ff-exam-brand group flex items-center gap-2.5 cursor-pointer select-none bg-transparent border-none p-1.5 rounded-xl hover:bg-white/[0.06] transition-colors"
+          className="ff-exam-brand group flex shrink-0 items-center gap-2.5 cursor-pointer select-none bg-transparent border-none p-1.5 rounded-xl hover:bg-white/[0.06] transition-colors"
           aria-label="Về trang chủ F-Forum"
           title="Về trang chủ F-Forum"
         >
@@ -1501,11 +1501,11 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         {/* Center Badge: Kho Đề Thi Số Hoá 2027 */}
         <div className="hidden md:flex items-center gap-2 px-3.5 py-1 rounded-full border border-amber-400/25 bg-amber-400/10 text-amber-200 text-xs font-medium">
           <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-          <span className="ff-calligraphic-flourish text-[13px]">Kho Tàng Đề Thi &amp; Đề Cương Số Hoá</span>
+          <span className="ff-calligraphic-flourish text-[13px]">Kho đề thi</span>
         </div>
 
         {/* Top-right Actions */}
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-1.5 sm:gap-2">
           {/* Quick nav links */}
           <button
             type="button"
@@ -1536,7 +1536,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           <button
             type="button"
             onClick={() => setIsBookmarkDrawerOpen(true)}
-            className="relative p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+            className="relative inline-flex min-h-9 min-w-9 items-center justify-center rounded-xl text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
             aria-label={`Xem danh sách đề đã lưu (${savedExams.length})`}
             title="Đề thi yêu thích &amp; đã lưu"
           >
@@ -1552,7 +1552,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           <button
             type="button"
             onClick={handleToggleTheme}
-            className="p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-xl text-white/80 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
             aria-label={isLightMode ? 'Chuyển sang chế độ tối' : 'Chuyển sang chế độ sáng'}
             title={isLightMode ? 'Chuyển sang chế độ tối' : 'Chuyển sang chế độ sáng'}
           >
@@ -1569,7 +1569,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 setIsSubmitModalOpen(true);
               }
             }}
-            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-[#0b0d12] text-xs sm:text-sm font-extrabold shadow-[0_4px_16px_rgba(245,158,11,0.35)] transition-all duration-200 cursor-pointer"
+            className="flex min-h-9 items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-[#0b0d12] text-xs sm:text-sm font-extrabold shadow-[0_4px_16px_rgba(245,158,11,0.35)] transition-all duration-200 cursor-pointer"
             aria-label="Đóng góp đề cương để xét duyệt"
           >
             <Upload className="w-4 h-4 shrink-0" />
@@ -1599,11 +1599,11 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             <button
               type="button"
               onClick={onOpenLoginModal}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-white text-xs font-semibold border border-white/15 transition-colors cursor-pointer"
+              className="inline-flex min-h-9 min-w-9 items-center justify-center gap-1 rounded-xl border border-white/15 bg-white/[0.08] px-2 py-1.5 text-white text-xs font-semibold hover:bg-white/[0.15] transition-colors cursor-pointer sm:px-3"
               aria-label="Đăng nhập"
             >
               <LogIn className="w-3.5 h-3.5" />
-              <span>Đăng nhập</span>
+              <span className="hidden sm:inline">Đăng nhập</span>
             </button>
           ) : null}
         </div>
@@ -1613,19 +1613,19 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       {/* 2. HERO SEARCH CONTAINER                                 */}
       {/* ======================================================== */}
       <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-8 pb-4 text-center">
-        <div className="mb-3 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/25 text-cyan-300 text-xs font-semibold">
+        <div className="mb-3 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-400/25 text-amber-200 text-xs font-semibold">
           <GraduationCap className="w-3.5 h-3.5" />
-          <span>Hệ thống chia sẻ đề thi toàn quốc cho học sinh</span>
+          <span>Đề thi THCS &amp; THPT</span>
         </div>
 
         <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white mb-2 leading-tight">
-          Tra Cứu Đề Thi &amp; Đề Cương{' '}
+          Tra cứu đề thi{' '}
           <span className="ff-calligraphic-flourish text-amber-300 text-[115%]">
-            Chuẩn Cấu Trúc
+            &amp; đề cương
           </span>
         </h1>
         <p className="text-xs sm:text-sm text-neutral-300 max-w-2xl mx-auto mb-6">
-          Kho đề thi giữa kỳ, cuối kỳ, 15 phút và đề cương ôn tập có đáp án chi tiết từ các trường THPT Chuyên và Sở GD&amp;ĐT trên toàn quốc.
+          Tìm theo môn học, khối lớp hoặc trường.
         </p>
 
         {/* Thanh tìm kiếm phong cách Liquid Glass Pod */}
@@ -1636,26 +1636,20 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Nhập tên đề thi, trường (Amsterdam, Chu Văn An), môn học, chuyên đề..."
-              className="w-full bg-transparent px-3 py-2 text-sm sm:text-base text-white placeholder-white/45 focus:outline-none"
+              placeholder="Tìm tên đề, môn học hoặc trường..."
+              className="w-full min-w-0 bg-transparent px-3 py-2 text-sm sm:text-base text-white placeholder-white/45 focus:outline-none"
               aria-label="Tìm kiếm đề thi"
             />
             {searchTerm && (
               <button
                 type="button"
                 onClick={() => setSearchTerm('')}
-                className="p-1.5 rounded-lg text-white/50 hover:text-white mr-2 cursor-pointer"
+                className="mr-1 inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg text-white/50 hover:text-white cursor-pointer"
                 aria-label="Xoá tìm kiếm"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
-            <button
-              type="button"
-              className="hidden sm:inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0b0d12] text-xs font-bold shrink-0 cursor-pointer transition-colors"
-            >
-              <span>Tìm kiếm</span>
-            </button>
           </div>
 
           {/* Quick search tags */}
@@ -1664,17 +1658,17 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
               <Sparkles className="w-3 h-3 text-amber-300" /> Gợi ý nhanh:
             </span>
             {[
-              'Toán 12 Giữa kỳ 1',
-              'Vật lý 11 Chu Văn An',
-              'Hoá học Chuyên Phan Bội Châu',
-              'Đề cương Ngữ văn 11',
-              'Khảo sát Toán 9',
+              'Toán 12',
+              'Vật lý 11',
+              'Hoá học 12',
+              'Ngữ văn 11',
+              'Toán 9',
             ].map((tag) => (
               <button
                 key={tag}
                 type="button"
                 onClick={() => setSearchTerm(tag)}
-                className="text-[11px] px-2.5 py-0.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-amber-200/90 border border-white/10 transition-colors cursor-pointer"
+                className="min-h-8 rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[11px] text-amber-200/90 hover:bg-white/[0.12] transition-colors cursor-pointer"
               >
                 {tag}
               </button>
@@ -1728,7 +1722,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             <select
               value={selectedGrade}
               onChange={(e) => setSelectedGrade(Number(e.target.value))}
-              className="ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
+              className="w-full min-w-0 ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
             >
               {GRADE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -1746,7 +1740,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             <select
               value={selectedExamType}
               onChange={(e) => setSelectedExamType(e.target.value)}
-              className="ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
+              className="w-full min-w-0 ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
             >
               {EXAM_TYPE_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
@@ -1764,7 +1758,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             <select
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
-              className="ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
+              className="w-full min-w-0 ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
             >
               {SUBJECT_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
@@ -1782,7 +1776,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             <select
               value={selectedDifficulty}
               onChange={(e) => setSelectedDifficulty(e.target.value)}
-              className="ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
+              className="w-full min-w-0 ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
             >
               {DIFFICULTY_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
@@ -1800,7 +1794,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             <select
               value={selectedProvince}
               onChange={(e) => setSelectedProvince(e.target.value)}
-              className="ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
+              className="w-full min-w-0 ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
             >
               {PROVINCE_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
@@ -1818,7 +1812,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             <select
               value={selectedSchool}
               onChange={(e) => setSelectedSchool(e.target.value)}
-              className="ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer truncate"
+              className="w-full min-w-0 ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer truncate"
             >
               {SCHOOL_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
@@ -1836,7 +1830,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
-              className="ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
+              className="w-full min-w-0 ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
             >
               {YEAR_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>
@@ -1854,7 +1848,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              className="ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
+              className="w-full min-w-0 ff-exam-select text-xs rounded-xl px-2.5 py-2 focus:outline-none cursor-pointer"
             >
               <option value="newest">Mới nhất</option>
               <option value="downloads">Tải nhiều nhất</option>
@@ -1872,48 +1866,54 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           selectedSchool !== 'Tất cả trường' ||
           selectedYear !== 'Tất cả năm' ||
           searchTerm) && (
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="text-[11px] text-white/50">Đang lọc:</span>
             {selectedGrade > 0 && (
-              <span className="px-2 py-0.5 rounded-md bg-amber-400/15 border border-amber-400/30 text-amber-300 text-xs flex items-center gap-1">
+              <span className="flex items-center gap-1 rounded-md border border-amber-400/30 bg-amber-400/15 py-0.5 pl-2 text-xs text-amber-300">
                 Lớp {selectedGrade}
-                <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedGrade(0)} />
+                <button type="button" onClick={() => setSelectedGrade(0)} className="inline-flex min-h-8 min-w-8 items-center justify-center rounded text-amber-300 hover:bg-amber-400/15" aria-label="Bỏ lọc khối lớp"><X className="h-3 w-3" /></button>
               </span>
             )}
             {selectedExamType !== 'Tất cả loại' && (
-              <span className="px-2 py-0.5 rounded-md bg-amber-400/15 border border-amber-400/30 text-amber-300 text-xs flex items-center gap-1">
+              <span className="flex items-center gap-1 rounded-md border border-amber-400/30 bg-amber-400/15 py-0.5 pl-2 text-xs text-amber-300">
                 {selectedExamType}
-                <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedExamType('Tất cả loại')} />
+                <button type="button" onClick={() => setSelectedExamType('Tất cả loại')} className="inline-flex min-h-8 min-w-8 items-center justify-center rounded text-amber-300 hover:bg-amber-400/15" aria-label="Bỏ lọc loại đề"><X className="h-3 w-3" /></button>
               </span>
             )}
             {selectedSubject !== 'Tất cả môn' && (
-              <span className="px-2 py-0.5 rounded-md bg-amber-400/15 border border-amber-400/30 text-amber-300 text-xs flex items-center gap-1">
+              <span className="flex items-center gap-1 rounded-md border border-amber-400/30 bg-amber-400/15 py-0.5 pl-2 text-xs text-amber-300">
                 {selectedSubject}
-                <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedSubject('Tất cả môn')} />
+                <button type="button" onClick={() => setSelectedSubject('Tất cả môn')} className="inline-flex min-h-8 min-w-8 items-center justify-center rounded text-amber-300 hover:bg-amber-400/15" aria-label="Bỏ lọc môn học"><X className="h-3 w-3" /></button>
               </span>
             )}
             {selectedDifficulty !== 'Tất cả mức độ' && (
-              <span className="px-2 py-0.5 rounded-md bg-amber-400/15 border border-amber-400/30 text-amber-300 text-xs flex items-center gap-1">
-                Mức độ: {selectedDifficulty}
-                <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedDifficulty('Tất cả mức độ')} />
+              <span className="flex items-center gap-1 rounded-md border border-amber-400/30 bg-amber-400/15 py-0.5 pl-2 text-xs text-amber-300">
+                {selectedDifficulty}
+                <button type="button" onClick={() => setSelectedDifficulty('Tất cả mức độ')} className="inline-flex min-h-8 min-w-8 items-center justify-center rounded text-amber-300 hover:bg-amber-400/15" aria-label="Bỏ lọc mức độ"><X className="h-3 w-3" /></button>
               </span>
             )}
             {selectedProvince !== 'Toàn quốc' && (
-              <span className="px-2 py-0.5 rounded-md bg-amber-400/15 border border-amber-400/30 text-amber-300 text-xs flex items-center gap-1">
+              <span className="flex items-center gap-1 rounded-md border border-amber-400/30 bg-amber-400/15 py-0.5 pl-2 text-xs text-amber-300">
                 {selectedProvince}
-                <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedProvince('Toàn quốc')} />
+                <button type="button" onClick={() => setSelectedProvince('Toàn quốc')} className="inline-flex min-h-8 min-w-8 items-center justify-center rounded text-amber-300 hover:bg-amber-400/15" aria-label="Bỏ lọc tỉnh thành"><X className="h-3 w-3" /></button>
               </span>
             )}
             {selectedSchool !== 'Tất cả trường' && (
-              <span className="px-2 py-0.5 rounded-md bg-amber-400/15 border border-amber-400/30 text-amber-300 text-xs flex items-center gap-1">
-                {selectedSchool}
-                <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedSchool('Tất cả trường')} />
+              <span className="flex items-center gap-1 rounded-md border border-amber-400/30 bg-amber-400/15 py-0.5 pl-2 text-xs text-amber-300">
+                <span className="max-w-40 truncate">{selectedSchool}</span>
+                <button type="button" onClick={() => setSelectedSchool('Tất cả trường')} className="inline-flex min-h-8 min-w-8 shrink-0 items-center justify-center rounded text-amber-300 hover:bg-amber-400/15" aria-label="Bỏ lọc trường học"><X className="h-3 w-3" /></button>
               </span>
             )}
             {selectedYear !== 'Tất cả năm' && (
-              <span className="px-2 py-0.5 rounded-md bg-amber-400/15 border border-amber-400/30 text-amber-300 text-xs flex items-center gap-1">
+              <span className="flex items-center gap-1 rounded-md border border-amber-400/30 bg-amber-400/15 py-0.5 pl-2 text-xs text-amber-300">
                 {selectedYear}
-                <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedYear('Tất cả năm')} />
+                <button type="button" onClick={() => setSelectedYear('Tất cả năm')} className="inline-flex min-h-8 min-w-8 items-center justify-center rounded text-amber-300 hover:bg-amber-400/15" aria-label="Bỏ lọc năm học"><X className="h-3 w-3" /></button>
+              </span>
+            )}
+            {searchTerm && (
+              <span className="flex max-w-full items-center gap-1 rounded-md border border-amber-400/30 bg-amber-400/15 py-0.5 pl-2 text-xs text-amber-300">
+                <span className="max-w-40 truncate">{searchTerm}</span>
+                <button type="button" onClick={() => setSearchTerm('')} className="inline-flex min-h-8 min-w-8 shrink-0 items-center justify-center rounded text-amber-300 hover:bg-amber-400/15" aria-label="Bỏ từ khoá tìm kiếm"><X className="h-3 w-3" /></button>
               </span>
             )}
             <button
@@ -1928,7 +1928,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 setSelectedYear('Tất cả năm');
                 setSearchTerm('');
               }}
-              className="text-xs text-amber-400 hover:underline ml-1 cursor-pointer"
+              className="inline-flex min-h-8 items-center text-xs text-amber-400 hover:underline ml-1 cursor-pointer"
             >
               Xoá tất cả bộ lọc
             </button>
@@ -1940,28 +1940,28 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       {/* 4. MAIN EXAM CARDS GRID                                 */}
       {/* ======================================================== */}
       <main className="w-full max-w-5xl mx-auto px-4 sm:px-6 my-2">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
           <span className="text-xs text-white/70">
-            Tìm thấy <strong className="text-amber-300">{filteredPapers.length}</strong> tài liệu phù hợp
-          </span>
-          <span className="text-[11px] font-mono text-white/40">
-            Cập nhật liên tục · Kiểm duyệt chất lượng
+            {filteredPapers.length} tài liệu
           </span>
         </div>
 
         {filteredPapers.length === 0 ? (
-          <div className="w-full p-12 text-center rounded-2xl border border-white/10 bg-white/[0.02] flex flex-col items-center">
+          <div className="w-full rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center flex flex-col items-center sm:p-12">
             <BookOpen className="w-12 h-12 text-white/20 mb-3" />
             <h3 className="text-base font-bold text-white mb-1">Không tìm thấy đề thi phù hợp</h3>
             <p className="text-xs text-neutral-400 max-w-md mb-4">
-              Hãy thử chọn bớt bộ lọc hoặc gõ từ khoá khác. Bạn cũng có thể đóng góp đề thi của trường bạn để làm phong phú kho tài liệu nhé!
+              Thử đổi từ khoá hoặc bộ lọc.
             </p>
             <button
               type="button"
-              onClick={() => setIsSubmitModalOpen(true)}
-              className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0b0d12] text-xs font-bold transition-colors cursor-pointer"
+              onClick={() => {
+                if (!currentUser && onOpenLoginModal) onOpenLoginModal();
+                else setIsSubmitModalOpen(true);
+              }}
+              className="min-h-10 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0b0d12] text-xs font-bold transition-colors cursor-pointer"
             >
-              Đóng góp đề cương ngay
+              Gửi đề thi
             </button>
           </div>
         ) : (
@@ -1984,8 +1984,8 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 >
                   {/* Top tags row */}
                   <div>
-                    <div className="flex items-center justify-between gap-2 mb-2.5">
-                      <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
                         {/* Môn học badge */}
                         <span className={`px-2.5 py-0.5 rounded-lg text-xs font-bold border ${getSubjectBadgeStyle(paper.subject)}`}>
                           {paper.subject}
@@ -2027,11 +2027,11 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                       </div>
 
                       {/* Top actions: Like, Offline Cache, Bookmark */}
-                      <div className="flex items-center gap-1">
+                      <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1">
                         <button
                           type="button"
                           onClick={(e) => handleToggleOfflineCache(paper, e)}
-                          className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                          className={`inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border transition-colors cursor-pointer ${
                             cachedExamIds.includes(paper.id)
                               ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
                               : 'bg-white/5 border-white/10 text-white/50 hover:text-white hover:bg-white/10'
@@ -2045,7 +2045,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                         <button
                           type="button"
                           onClick={(e) => handleToggleLike(paper.id, paper.likes, e)}
-                          className="p-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-rose-500/20 hover:text-rose-400 text-white/50 transition-colors cursor-pointer flex items-center gap-1 text-[11px]"
+                          className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 hover:bg-rose-500/20 hover:text-rose-400 text-white/50 transition-colors cursor-pointer text-[11px]"
                           aria-label="Yêu thích đề thi"
                           title="Yêu thích"
                         >
@@ -2056,7 +2056,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                         <button
                           type="button"
                           onClick={(e) => handleToggleBookmark(paper.id, e)}
-                          className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                          className={`inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border transition-colors cursor-pointer ${
                             isSaved
                               ? 'bg-amber-400 text-[#0b0d12] border-amber-400'
                               : 'bg-white/5 border-white/10 text-white/50 hover:text-white hover:bg-white/10'
@@ -2116,7 +2116,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
                     <div className="flex items-center justify-between pt-2.5 border-t border-white/10 flex-wrap gap-2">
                       {/* Metric pills */}
-                      <div className="flex items-center gap-3 text-[11px] text-white/50">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/50">
                         <span className="flex items-center gap-1 text-amber-300/90 font-medium">
                           <Download className="w-3 h-3 text-amber-400" /> {paper.downloads}
                         </span>
@@ -2135,14 +2135,14 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                       </div>
 
                       {/* Action buttons */}
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex max-w-full flex-wrap items-center justify-end gap-1.5">
                         {/* Admin approval actions if pending */}
                         {isPending && isStaffOrAdmin && (
                           <>
                             <button
                               type="button"
                               onClick={(e) => handleApproveSubmission(paper.id, e)}
-                              className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold flex items-center gap-1 cursor-pointer"
+                              className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1 text-xs font-bold text-white hover:bg-emerald-400 cursor-pointer"
                               title="Duyệt đăng đề thi"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5" /> Duyệt
@@ -2150,7 +2150,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                             <button
                               type="button"
                               onClick={(e) => handleRejectSubmission(paper.id, e)}
-                              className="px-2.5 py-1 rounded-lg bg-rose-500 hover:bg-rose-400 text-white text-xs font-bold flex items-center gap-1 cursor-pointer"
+                              className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-rose-500 px-2.5 py-1 text-xs font-bold text-white hover:bg-rose-400 cursor-pointer"
                               title="Từ chối đề thi"
                             >
                               <X className="w-3.5 h-3.5" /> Từ chối
@@ -2168,7 +2168,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                         <button
                           type="button"
                           onClick={(e) => handleStartCBT(paper, e)}
-                          className="px-2.5 py-1.5 rounded-xl bg-amber-400/15 hover:bg-amber-400/25 text-amber-300 border border-amber-400/30 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          className="inline-flex min-h-9 items-center gap-1 rounded-xl border border-amber-400/30 bg-amber-400/15 px-2.5 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-400/25 cursor-pointer transition-colors"
                           title="Thi thử trực tuyến có bấm giờ &amp; tính điểm"
                         >
                           <Timer className="w-3.5 h-3.5" />
@@ -2178,7 +2178,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                         <button
                           type="button"
                           onClick={(e) => handleOpenPrint(paper, e)}
-                          className="p-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white/80 hover:text-white border border-white/10 cursor-pointer transition-colors"
+                          className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-white/80 hover:bg-white/[0.12] hover:text-white cursor-pointer transition-colors"
                           title="Định dạng in A4 &amp; Xuất PDF"
                         >
                           <Printer className="w-3.5 h-3.5" />
@@ -2191,7 +2191,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                             setPreviewExam(paper);
                             setShowDetailedSolutions(false);
                           }}
-                          className="px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white text-xs font-semibold flex items-center gap-1 border border-white/10 cursor-pointer transition-colors"
+                          className="inline-flex min-h-9 items-center gap-1 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/[0.12] cursor-pointer transition-colors"
                         >
                           <Eye className="w-3.5 h-3.5 text-amber-300" />
                           <span>Xem thử</span>
@@ -2201,7 +2201,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                           type="button"
                           disabled={isDownloading}
                           onClick={(e) => handleDownload(paper, e)}
-                          className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0b0d12] text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                          className="inline-flex min-h-9 items-center gap-1 rounded-xl bg-amber-400 px-3 py-1.5 text-xs font-bold text-[#0b0d12] hover:bg-amber-300 transition-colors cursor-pointer disabled:opacity-50"
                         >
                           <Download className="w-3.5 h-3.5" />
                           <span>Tải {paper.format}</span>
@@ -2235,14 +2235,14 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             <button
               type="button"
               onClick={() => setPreviewExam(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-xl text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 cursor-pointer"
+              className="absolute right-3 top-3 inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white cursor-pointer"
               aria-label="Đóng xem trước"
             >
               <X className="w-5 h-5" />
             </button>
 
             {/* Header badges */}
-            <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <div className="mb-3 flex flex-wrap items-center gap-2 pr-10">
               <span className={`px-2.5 py-0.5 rounded-lg text-xs font-bold border ${getSubjectBadgeStyle(activePreview.subject)}`}>
                 {activePreview.subject}
               </span>
@@ -2275,7 +2275,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             </h2>
 
             {/* Metadata list */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/10 text-xs mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/10 text-xs mb-4">
               <div>
                 <span className="text-white/45 block text-[10px] uppercase font-mono">Đơn vị phát hành</span>
                 <span className="font-semibold text-amber-200">{activePreview.school}</span>
@@ -2296,7 +2296,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
             {/* Interactive Rating Pod */}
             <div className="p-3.5 rounded-xl bg-amber-400/5 border border-amber-400/20 mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-1">
                   <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
                   <span className="text-lg font-extrabold text-amber-300">{activePreview.rating ?? 4.8}</span>
@@ -2306,7 +2306,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
               </div>
 
               {/* Interactive Star Voting */}
-              <div className="flex items-center gap-1 text-xs">
+              <div className="flex flex-wrap items-center gap-1 text-xs">
                 <span className="text-white/60 mr-1">Đánh giá của bạn:</span>
                 {[1, 2, 3, 4, 5].map((star) => {
                   const currentRating = userRatings[activePreview.id] ?? 0;
@@ -2318,7 +2318,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                       onMouseEnter={() => setHoverRating(star)}
                       onMouseLeave={() => setHoverRating(0)}
                       onClick={() => handleRateExam(activePreview.id, star)}
-                      className="p-1 cursor-pointer transition-transform hover:scale-125 focus:outline-none"
+                      className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg cursor-pointer transition-transform hover:scale-110 focus:outline-none"
                       aria-label={`Đánh giá ${star} sao`}
                     >
                       <Star
@@ -2335,7 +2335,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             {/* Summary */}
             <div className="mb-4">
               <h4 className="text-xs font-mono uppercase tracking-wider text-amber-300/80 mb-1">
-                Tóm tắt cấu trúc ma trận đề:
+                Tóm tắt
               </h4>
               <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed bg-white/[0.02] p-3 rounded-xl border border-white/5">
                 {activePreview.summary}
@@ -2344,23 +2344,23 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
             {/* Sample Questions & Detailed Solutions Section */}
             <div className="mb-5">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-mono uppercase tracking-wider text-amber-300/80">
-                  Câu hỏi tiêu biểu &amp; Hướng dẫn giải:
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <h4 className="min-w-0 flex-1 text-xs font-mono uppercase tracking-wider text-amber-300/80">
+                  Câu hỏi mẫu
                 </h4>
                 {activePreview.sampleSolutions && activePreview.sampleSolutions.length > 0 && (
                   <button
                     type="button"
                     onClick={() => setShowDetailedSolutions(!showDetailedSolutions)}
-                    className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-amber-400/15 hover:bg-amber-400/25 text-amber-300 border border-amber-400/30 flex items-center gap-1.5 cursor-pointer transition-colors"
+                    className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-400/15 px-2.5 py-1 text-xs font-semibold text-amber-300 hover:bg-amber-400/25 cursor-pointer transition-colors"
                   >
                     {showDetailedSolutions ? (
                       <>
-                        <EyeOff className="w-3.5 h-3.5" /> Thu gọn lời giải
+                        <EyeOff className="w-3.5 h-3.5" /> Ẩn lời giải
                       </>
                     ) : (
                       <>
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Xem lời giải chi tiết ({activePreview.sampleSolutions.length} câu)
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Lời giải ({activePreview.sampleSolutions.length})
                       </>
                     )}
                   </button>
@@ -2377,24 +2377,22 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                         key={idx}
                         className="rounded-xl border border-amber-400/25 bg-neutral-900/80 p-3.5 transition-all duration-200"
                       >
-                        <div
-                          className="flex items-start justify-between gap-2 cursor-pointer"
+                        <button
+                          type="button"
                           onClick={() => toggleSolutionIndex(idx)}
+                          aria-expanded={isExpanded}
+                          className="flex w-full items-start justify-between gap-2 text-left"
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded-md bg-amber-400 text-[#0b0d12] text-[10px] font-bold">
+                          <span className="flex min-w-0 items-start gap-2">
+                            <span className="shrink-0 rounded-md bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-[#0b0d12]">
                               Câu {sol.questionNumber}
                             </span>
-                            <span className="text-xs font-bold text-white">{sol.question}</span>
-                          </div>
-                          <button
-                            type="button"
-                            className="p-1 text-white/50 hover:text-white"
-                            aria-label={isExpanded ? 'Thu gọn' : 'Mở rộng'}
-                          >
+                            <span className="min-w-0 break-words text-xs font-bold text-white">{sol.question}</span>
+                          </span>
+                          <span className="shrink-0 rounded-lg p-1 text-white/50" aria-hidden="true">
                             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                          </button>
-                        </div>
+                          </span>
+                        </button>
 
                         {/* Expanded details */}
                         {isExpanded && (
@@ -2407,14 +2405,14 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                             {sol.keyFormula && (
                               <div className="p-2 rounded-lg bg-cyan-950/30 border border-cyan-400/20 text-cyan-200 font-mono text-[11px] flex items-center gap-2">
                                 <Sparkles className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                                <span><strong>Công thức trọng tâm:</strong> {sol.keyFormula}</span>
+                                <span className="min-w-0 break-words"><strong>Công thức trọng tâm:</strong> {sol.keyFormula}</span>
                               </div>
                             )}
 
                             {sol.tips && (
                               <div className="p-2 rounded-lg bg-amber-950/30 border border-amber-400/20 text-amber-200 text-[11px] flex items-center gap-2">
                                 <Lightbulb className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                                <span><strong>Mẹo phòng thi:</strong> {sol.tips}</span>
+                                <span className="min-w-0 break-words"><strong>Mẹo phòng thi:</strong> {sol.tips}</span>
                               </div>
                             )}
                           </div>
@@ -2440,9 +2438,9 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
             {/* Peer Reviews & Community Discussion Hub */}
             <div className="mb-5 p-4 rounded-xl bg-white/[0.02] border border-white/10">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-xs font-mono uppercase tracking-wider text-amber-300/80 flex items-center gap-1.5">
-                  <MessageSquare className="w-3.5 h-3.5" /> Phản biện &amp; Nhận xét của học sinh:
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h4 className="flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-amber-300/80">
+                  <MessageSquare className="w-3.5 h-3.5" /> Nhận xét
                 </h4>
                 <span className="text-[11px] text-white/50">
                   {activePreview.peerReviews?.length ?? 0} nhận xét
@@ -2451,14 +2449,15 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
               {/* Form submit review */}
               <form onSubmit={(e) => handleAddPeerReview(activePreview.id, e)} className="mb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[11px] text-white/60">Đánh giá sao:</span>
+                <div className="mb-2 flex flex-wrap items-center gap-1">
+                  <span className="mr-1 text-[11px] text-white/60">Đánh giá:</span>
                   {[1, 2, 3, 4, 5].map((s) => (
                     <button
                       key={s}
                       type="button"
                       onClick={() => setNewReviewRating(s)}
-                      className="p-0.5 cursor-pointer"
+                      className="inline-flex min-h-8 min-w-8 items-center justify-center rounded-lg cursor-pointer"
+                      aria-label={`Đánh giá ${s} sao`}
                     >
                       <Star
                         className={`w-3.5 h-3.5 ${
@@ -2474,13 +2473,13 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                     maxLength={1000}
                     value={newReviewText}
                     onChange={(e) => setNewReviewText(e.target.value)}
-                    placeholder="Viết nhận xét hoặc chia sẻ mẹo làm đề này (+10 XP)..."
+                    placeholder="Viết nhận xét..."
                     className="w-full ff-exam-input rounded-xl px-3 py-2 text-xs placeholder-white/40 focus:outline-none resize-none"
                   />
                   <button
                     type="submit"
                     disabled={!newReviewText.trim()}
-                    className="px-4 py-2 sm:py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0b0d12] text-xs font-bold shrink-0 flex items-center justify-center gap-1 cursor-pointer disabled:opacity-40 transition-colors"
+                    className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1 rounded-xl bg-amber-400 px-4 py-2 text-xs font-bold text-[#0b0d12] hover:bg-amber-300 cursor-pointer disabled:opacity-40 transition-colors"
                   >
                     <Send className="w-3 h-3" /> Gửi
                   </button>
@@ -2492,9 +2491,9 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 <div className="space-y-2.5 max-h-60 overflow-y-auto no-scrollbar pr-1">
                   {activePreview.peerReviews.map((rev) => (
                     <div key={rev.id} className="p-3 rounded-lg bg-white/[0.03] border border-white/5 text-xs">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-amber-200">{rev.authorName}</span>
+                      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-1">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <span className="break-words font-semibold text-amber-200">{rev.authorName}</span>
                           <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/10 text-white/70">
                             {rev.authorRole}
                           </span>
@@ -2514,29 +2513,29 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 </div>
               ) : (
                 <p className="text-xs text-white/40 text-center py-2">
-                  Chưa có nhận xét nào. Hãy là người đầu tiên đóng góp ý kiến nhé!
+                  Chưa có nhận xét.
                 </p>
               )}
             </div>
 
             {/* Cross-Community Links */}
             <div className="p-3 rounded-xl bg-white/[0.02] border border-white/10 mb-5 flex items-center justify-between flex-wrap gap-2 text-xs">
-              <span className="text-white/60 flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5 text-white/60">
                 <HelpCircle className="w-4 h-4 text-cyan-400 shrink-0" />
-                Cần bạn bè cùng trao đổi hoặc giải bài tập trong đề này?
+                Trao đổi về đề này:
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex max-w-full flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => handleDiscussInQA(activePreview)}
-                  className="px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 font-semibold cursor-pointer flex items-center gap-1.5 transition-colors"
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/15 px-3 py-1.5 font-semibold text-cyan-300 hover:bg-cyan-500/25 cursor-pointer transition-colors"
                 >
                   <MessageSquare className="w-3.5 h-3.5" /> Hỏi trong Q&amp;A
                 </button>
                 <button
                   type="button"
                   onClick={() => handleShareToClub(activePreview)}
-                  className="px-3 py-1.5 rounded-xl bg-amber-400/15 hover:bg-amber-400/25 text-amber-300 border border-amber-400/30 font-semibold cursor-pointer flex items-center gap-1.5 transition-colors"
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-amber-400/30 bg-amber-400/15 px-3 py-1.5 font-semibold text-amber-300 hover:bg-amber-400/25 cursor-pointer transition-colors"
                 >
                   <Users className="w-3.5 h-3.5" /> Mời CLB học tập
                 </button>
@@ -2545,7 +2544,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
             {/* Actions footer */}
             <div className="flex items-center justify-between pt-3 border-t border-white/10 flex-wrap gap-2">
-              <div className="flex items-center gap-3 text-xs text-white/50">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/50">
                 <span>Dung lượng: {activePreview.fileSize}</span>
                 <span>•</span>
                 <span>{activePreview.pageCount} trang</span>
@@ -2553,7 +2552,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 <span className="text-amber-300 font-semibold">{activePreview.downloads} lượt tải</span>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => handleToggleOfflineCache(activePreview)}
@@ -2635,21 +2634,18 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             <button
               type="button"
               onClick={() => setIsSubmitModalOpen(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-xl text-neutral-400 hover:text-white bg-white/5 hover:bg-white/10 cursor-pointer"
+              className="absolute right-3 top-3 inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white cursor-pointer"
               aria-label="Đóng cửa sổ"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="mb-4">
-              <span className="text-[11px] font-mono text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1 mb-1">
-                <Sparkles className="w-3.5 h-3.5" /> Chia sẻ tri thức
-              </span>
+            <div className="mb-4 pr-10">
               <h2 id="submit-title" className="text-lg sm:text-xl font-bold text-white">
-                Đóng Góp Đề Thi &amp; Đề Cương
+                Gửi đề thi / đề cương
               </h2>
               <p className="text-xs text-neutral-300 mt-1">
-                Gửi file đề thi hoặc đề cương của trường bạn để Ban Quản Trị xét duyệt và đăng tải. Học sinh sẽ nhận ngay +50 XP khi tài liệu được duyệt!
+                Gửi tài liệu để BQT kiểm duyệt và chia sẻ.
               </p>
             </div>
 
@@ -2806,10 +2802,10 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                     className="absolute inset-0 opacity-0 cursor-pointer"
                   />
                   {submitFileName ? (
-                    <div className="flex items-center gap-2 text-amber-300 font-semibold">
-                      <FileCheck className="w-5 h-5 text-emerald-400" />
-                      <span>{submitFileName}</span>
-                      <span className="text-[10px] text-white/50">({submitFileSize})</span>
+                    <div className="flex max-w-full min-w-0 items-center gap-2 text-amber-300 font-semibold">
+                      <FileCheck className="w-5 h-5 shrink-0 text-emerald-400" />
+                      <span className="min-w-0 break-all">{submitFileName}</span>
+                      <span className="shrink-0 text-[10px] text-white/50">({submitFileSize})</span>
                     </div>
                   ) : (
                     <>
@@ -2818,7 +2814,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                         Bấm để chọn tệp hoặc kéo thả vào đây
                       </span>
                       <span className="text-[10px] text-white/40 mt-0.5">
-                        Hỗ trợ định dạng PDF, Word (DOCX) hoặc ZIP · Tối đa 25 MB
+                        Hỗ trợ PDF, Word, ZIP hoặc ảnh.
                       </span>
                     </>
                   )}
@@ -2838,20 +2834,20 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
               </div>
 
               {/* Submit CTA */}
-              <div className="pt-2 flex items-center justify-end gap-2">
+              <div className="pt-2 flex flex-wrap items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsSubmitModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:text-white hover:bg-white/5 font-semibold cursor-pointer"
+                  className="inline-flex min-h-9 items-center justify-center rounded-xl border border-white/15 px-4 py-2 font-semibold text-white/70 hover:text-white hover:bg-white/5 cursor-pointer"
                 >
                   Huỷ
                 </button>
                 <button
                   type="submit"
                   disabled={isUploading}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-[#0b0d12] font-extrabold cursor-pointer shadow-[0_4px_16px_rgba(245,158,11,0.3)] disabled:opacity-50"
+                  className="inline-flex min-h-9 items-center justify-center rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 px-5 py-2 font-extrabold text-[#0b0d12] shadow-[0_4px_16px_rgba(245,158,11,0.3)] hover:from-amber-300 hover:to-amber-400 cursor-pointer disabled:opacity-50"
                 >
-                  {isUploading ? 'Đang gửi lên...' : 'Gửi đề cương cho BQT'}
+                  {isUploading ? 'Đang gửi...' : 'Gửi để duyệt'}
                 </button>
               </div>
             </form>
@@ -2911,9 +2907,9 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       {/* 10. TOAST NOTIFICATION                                   */}
       {/* ======================================================== */}
       {toastMessage && (
-        <div className="fixed bottom-6 z-50 px-4 py-2.5 rounded-xl bg-neutral-900/95 border border-amber-400/50 text-amber-200 text-xs font-semibold shadow-[0_12px_36px_rgba(0,0,0,0.65)] backdrop-blur-xl animate-fade-up flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-          <span>{toastMessage}</span>
+        <div className="fixed bottom-6 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-xl border border-amber-400/50 bg-neutral-900/95 px-4 py-2.5 text-xs font-semibold text-amber-200 shadow-[0_12px_36px_rgba(0,0,0,0.65)] backdrop-blur-xl animate-fade-up">
+          <Sparkles className="w-4 h-4 shrink-0 text-amber-400" />
+          <span className="break-words">{toastMessage}</span>
         </div>
       )}
     </div>
