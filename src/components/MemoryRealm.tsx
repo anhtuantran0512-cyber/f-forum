@@ -745,6 +745,9 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
         </div>
 
         <section className="intro-copy" aria-label="Mostar overview">
+          <div className="mb-2">
+            <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[9px]">Học · Hỏi · Chia sẻ</span>
+          </div>
           <p>{language === 'VIE' ? cmsData.introCopyVie : cmsData.introCopyEng}</p>
           <div className="hero-tags" aria-label="Mostar highlights">
             {(language === 'VIE' ? cmsData.heroTagsVie : cmsData.heroTagsEng).map((tag, i) => (

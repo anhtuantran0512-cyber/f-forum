@@ -512,9 +512,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 <div className="w-7 h-7 rounded-lg bg-[#81b29a]/15 border border-[#81b29a]/35 flex items-center justify-center">
                   <Hash className="w-3.5 h-3.5 text-[#81b29a]" />
                 </div>
-                <h2 className="text-xs font-bold text-[#f8f7f4] tracking-wide uppercase">
-                  Kênh
-                </h2>
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-xs font-bold text-[#f8f7f4] tracking-wide">
+                    <span className="ff-swash-cap text-xs">K</span>ênh đàm thoại
+                  </h2>
+                  <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">
+                    Học · Hỏi · Chia sẻ
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -720,10 +725,19 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   </div>
                   <div className="space-y-1">
                     <h3 className="text-sm font-bold text-[#f8f7f4]">
-                      {searchQuery
-                        ? 'Không có kết quả'
-                        : `Chưa có tin nhắn`}
+                      {searchQuery ? (
+                        'Không có kết quả'
+                      ) : (
+                        <span>
+                          <span className="ff-swash-cap text-base mr-0.5">G</span>óc học chung luôn rộng mở
+                        </span>
+                      )}
                     </h3>
+                    {!searchQuery && (
+                      <p className="text-xs text-[#a39f96]">
+                        Hãy gửi một lời chào hoặc mở đầu câu hỏi để cùng bạn bè trao đổi bài học nhé!
+                      </p>
+                    )}
                   </div>
 
                   {!searchQuery && currentUser && (

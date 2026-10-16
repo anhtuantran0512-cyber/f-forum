@@ -1014,10 +1014,17 @@ const ProfileModalInner: React.FC<{
           <div className="profile-modal-identity flex items-center gap-2 min-w-0">
             <span className="profile-modal-status-dot w-2.5 h-2.5 rounded-full bg-[#81b29a]" aria-hidden="true" />
             <div className="min-w-0">
-              <span className="profile-modal-kicker">F·FORUM / HỒ SƠ HỌC TẬP</span>
-              <h2 id="profile-modal-title" className="profile-modal-name text-sm sm:text-base font-extrabold text-[#f8f7f4] tracking-wide truncate">
-                {currentUser.name.replace(/ \(.*\)/, '')}
-              </h2>
+              <span className="profile-modal-kicker flex items-center gap-1">
+                <span className="ff-swash-cap text-xs">F</span>·FORUM / SỔ TAY HỌC THUẬT
+              </span>
+              <div className="flex items-center gap-2">
+                <h2 id="profile-modal-title" className="profile-modal-name text-sm sm:text-base font-extrabold text-[#f8f7f4] tracking-wide truncate">
+                  {currentUser.name.replace(/ \(.*\)/, '')}
+                </h2>
+                <span className="ff-atelier-ribbon !py-0.5 !px-2 !text-[9px] hidden sm:inline-flex">
+                  Học · Hỏi · Chia sẻ
+                </span>
+              </div>
             </div>
             <span className="profile-modal-level pc-12-pill text-[10px] font-mono px-2 py-0.5 text-[#f2cc8f]">
               Lv.{currentUser.level}

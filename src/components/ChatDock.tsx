@@ -410,11 +410,16 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   <Hash className="w-4 h-4 text-[#81b29a]" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-xs sm:text-sm text-[#f8f7f4] flex items-center gap-2">
-                    <span>Chat</span>
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-[#81b29a]/15 text-[#81b29a] text-[9.5px] font-mono font-semibold border border-[#81b29a]/35">
+                  <h3 className="font-bold text-xs sm:text-sm text-[#f8f7f4] flex items-center gap-1.5">
+                    <span>
+                      <span className="ff-swash-cap text-xs mr-0.5">F</span>·Chat
+                    </span>
+                    <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px]">
+                      Học · Hỏi · Chia sẻ
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-[#81b29a]/15 text-[#81b29a] text-[9px] font-mono font-semibold border border-[#81b29a]/35">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#81b29a]" />
-                      {dynamicOnlineCount} online
+                      {dynamicOnlineCount}
                     </span>
                   </h3>
                 </div>
@@ -483,10 +488,13 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                 <ThinkingBubble compact phase="Đang tải hội thoại kênh này…" />
               </div>
             ) : currentMessages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-2">
+              <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-1.5">
                 <MessageSquareDashed className="w-8 h-8 text-[#81b29a]/60" />
-                <p className="text-xs font-medium text-[#dad7d0]">
-                  Chưa có tin nhắn
+                <p className="text-xs font-semibold text-[#f4f1de]">
+                  <span className="ff-swash-cap text-sm mr-0.5">G</span>óc học chung đang đợi bạn
+                </p>
+                <p className="text-[11px] text-[#a39f96]">
+                  Gửi lời chào hoặc câu hỏi để cùng bạn bè trao đổi nhé!
                 </p>
               </div>
             ) : (

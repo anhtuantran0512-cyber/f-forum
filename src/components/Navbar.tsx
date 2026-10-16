@@ -848,7 +848,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Chữ F-Forum: gradient vàng tĩnh + vệt sáng lướt, đọc rõ không bị loè */}
             <span className="ff-nav-brand-text nav-brand-text">
-              <span className="ff-nav-brand-title">F-Forum</span>
+              <span className="ff-nav-brand-title">
+                <span className="ff-swash-cap text-base">F</span>-Forum
+              </span>
             </span>
           </button>
 
@@ -1157,7 +1159,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
           <span className="font-['Playfair_Display'] italic font-bold text-lg tracking-wide bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent whitespace-nowrap">
-            F-Forum
+            <span className="ff-swash-cap text-base">F</span>-Forum
           </span>
         </button>
 

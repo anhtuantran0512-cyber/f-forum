@@ -533,12 +533,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       : torchMode === 'reveal' || focusField === 'password' ? 'shy'
         : focusField ? 'attentive' : 'idle');
   const bubble = mascotFlash === 'sad' ? 'Hic, chưa đúng rồi… Thử lại nha, tớ tin cậu!'
-      : torchMode === 'beam' ? 'Ơ kìa… soi đèn pin à? Tớ thấy hết rồi nha 👀'
-        : torchMode === 'reveal' ? 'Hiện hết luôn hả? Tớ nhắm mắt đây! 🙈'
-          : focusField === 'password' ? 'Tớ không nhìn đâu… thật mà! 🙈'
-            : focusField === 'email' ? (typingValue.includes('@') ? 'Ghi nhớ rồi nè ✍️' : 'Email của cậu là gì nhỉ?')
-              : focusField === 'name' ? 'Tên cậu đẹp ghê! Để tớ ghi lại ✍️'
-                : activeTab === 'register' ? 'Làm quen nhé! Tớ là Cú Bông 🦉' : 'Tớ là Cú Bông! Vào học tiếp thôi?';
+      : torchMode === 'beam' ? 'Ơ kìa… soi đèn pin à? Tớ thấy hết rồi nha!'
+        : torchMode === 'reveal' ? 'Hiện hết luôn hả? Tớ nhắm mắt đây!'
+          : focusField === 'password' ? 'Tớ không nhìn đâu… thật mà!'
+            : focusField === 'email' ? (typingValue.includes('@') ? 'Ghi nhớ rồi nè!' : 'Email của cậu là gì nhỉ?')
+              : focusField === 'name' ? 'Tên cậu đẹp ghê! Để tớ ghi lại nhé!'
+                : activeTab === 'register' ? 'Làm quen nhé! Tớ là Cú Bông.' : 'Tớ là Cú Bông! Vào học tiếp thôi?';
 
   const lightsOut = torchMode === 'beam';
 
@@ -594,7 +594,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </button> : <CuBong mood={mood} lookX={lookX} size={150} className="auth-mascot" decorative />}
           {introOpen && <button ref={boardRef} type="button" className="auth-welcome-board" onClick={() => openForm()}
             aria-label={`Cú Bông mời ${activeTab === 'login' ? 'đăng nhập' : 'đăng ký'}. Mở biểu mẫu`}>
-            <span className="auth-welcome-board__eyebrow">LỜI MỜI TỪ CÚ BÔNG</span>
+            <span className="auth-welcome-board__eyebrow inline-flex items-center justify-center gap-1.5">
+              <span>LỜI MỜI TỪ CÚ BÔNG</span>
+              <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px]">Học · Hỏi · Chia sẻ</span>
+            </span>
             <strong>{activeTab === 'login' ? 'ĐĂNG NHẬP' : 'ĐĂNG KÝ'}</strong>
             <span className="auth-welcome-board__action">Chạm để bước vào <span aria-hidden="true">↗</span></span>
           </button>}
@@ -609,7 +612,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <header className="auth-head">
             <div className="auth-head__copy">
               <span className="auth-head__eyebrow">
-                {fallbackProvider ? 'LIÊN KẾT TÀI KHOẢN' : activeTab === 'login' ? 'CỔNG THƯ VIỆN F·FORUM' : 'MỞ THẺ THÀNH VIÊN'}
+                <span className="inline-flex items-center gap-1.5">
+                  <span>{fallbackProvider ? 'LIÊN KẾT TÀI KHOẢN' : activeTab === 'login' ? 'CỔNG THƯ VIỆN F·FORUM' : 'MỞ THẺ THÀNH VIÊN'}</span>
+                  <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">Học · Hỏi · Chia sẻ</span>
+                </span>
               </span>
               <h2 id="auth-title">
                 {fallbackProvider

@@ -236,10 +236,12 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
                 F
               </div>
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-xs tracking-wider uppercase text-white font-mono">
-                  THÔNG BÁO
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-bold text-xs tracking-wider uppercase text-white font-mono flex items-center gap-1">
+                  <span className="ff-swash-cap text-xs">T</span>HÔNG BÁO
+                </span>
+                <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px]">
+                  Học · Hỏi · Chia sẻ
                 </span>
                 {unreadCount > 0 && (
                   <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30 font-semibold font-mono">
@@ -247,7 +249,6 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
                   </span>
                 )}
               </div>
-            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -299,7 +300,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         <div className="max-h-[340px] overflow-y-auto space-y-2.5 pr-1 no-scrollbar">
           {filtered.length === 0 ? (
             <div className="py-10 text-center text-xs text-neutral-400">
-              <p>Chưa có thông báo.</p>
+              <p>Chưa có thông báo mới. Chúc bạn một ngày học tập thật hiệu quả!</p>
             </div>
           ) : (
             filtered.map((n) => (

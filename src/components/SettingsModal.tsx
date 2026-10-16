@@ -474,7 +474,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <Settings className="w-4 h-4 text-amber-300" />
             </span>
             <div className="min-w-0">
-              <h3 className="text-sm font-bold leading-tight">Trung tâm điều khiển</h3>
+              <h3 className="text-sm font-bold leading-tight flex items-center gap-1.5">
+                <span>Trung tâm điều khiển</span>
+                <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px]">
+                  Học · Hỏi · Chia sẻ
+                </span>
+              </h3>
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
@@ -893,7 +898,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     color="bg-[#81b29a] shadow-[0_0_8px_rgba(129,178,154,0.5)]"
                   />
                   <SwitchRow
-                    icon={<span className="text-[13px] leading-none" role="img" aria-label="Khoai tây">🥔</span>}
+                    icon={
+                      <svg className="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M12 2a9 9 0 0 0-9 9c0 4 3 8 7 10 1.5.7 3.5.7 5 0 4-2 7-6 7-10a9 9 0 0 0-10-9z" />
+                        <circle cx="10" cy="9" r="1" fill="currentColor" />
+                        <circle cx="14" cy="13" r="1" fill="currentColor" />
+                      </svg>
+                    }
                     title="Potator Mode"
                     on={potatorMode}
                     onToggle={() => onTogglePotatorMode?.()}
