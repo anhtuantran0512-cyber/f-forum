@@ -804,7 +804,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     saveAboutDataToServer({
       ...currentAbout,
       headline: nextHeadlineWords.join(' '),
-      subtitle: 'Khu Vinh Danh • 3D Fibonacci Sphere Chronicles & System Archive',
+      subtitle: 'Khu Vinh Danh • Học · Hỏi · Chia sẻ — Kỷ vật & Lưu bút học đường',
       headlineWords: nextHeadlineWords,
       colophon: nextColophon,
       introFilmUrl: nextIntroFilmUrl,
@@ -1200,10 +1200,15 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             e.preventDefault();
             onExit();
           }}
-          className="wordmark font-['Playfair_Display'] text-[clamp(18px,2vw,24px)] tracking-[0.005em] text-[#f4f1de] no-underline pointer-events-auto cursor-pointer"
+          className="wordmark font-['Playfair_Display'] text-[clamp(18px,2vw,24px)] tracking-[0.005em] text-[#f4f1de] no-underline pointer-events-auto cursor-pointer flex items-center gap-2"
           aria-label="Quay lại F-Forum"
         >
-          Khu Vinh Danh
+          <span>
+            <span className="ff-swash-cap text-2xl">K</span>hu Vinh Danh
+          </span>
+          <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px] hidden sm:inline-flex">
+            Học · Hỏi · Chia sẻ
+          </span>
         </a>
 
         {/* Minimalist Top Social Links, Grid Toggle, Admin Trigger & Vào Forum Button */}
@@ -1216,7 +1221,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             }`}
             onClick={() => setIsGridView(!isGridView)}
             aria-label="Toggle grid view"
-            title={isGridView ? 'Quay lại quả cầu 3D' : 'Xem dạng lưới phẳng'}
+            title={isGridView ? 'Quay lại không gian kỷ niệm 3D' : 'Xem dạng danh sách phẳng'}
           >
             <b className="h-full w-full" />
             <b className="h-full w-full" />
