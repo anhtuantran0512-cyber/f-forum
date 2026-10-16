@@ -377,13 +377,19 @@ export const ExamPaperViewerView: React.FC<ExamPaperViewerViewProps> = ({
   if (!paper) {
     return (
       <div className="ff-paper-viewer ff-paper-viewer--empty">
-        <div className="ff-paper-empty-card">
+        <div className="ff-paper-empty-card space-y-3">
           <div className="ff-paper-empty-icon"><AlertCircle size={24} /></div>
-          <h1>Không thể mở đề thi</h1>
-          <p>{loadError || 'Liên kết có thể đã hết hạn hoặc đề chưa được công khai.'}</p>
-          <button type="button" className="ff-ui-button ff-ui-button--primary" onClick={onBack}>
-            <ArrowLeft size={16} /> Quay lại Kho đề
-          </button>
+          <h1 className="flex items-center justify-center gap-1.5 text-base sm:text-lg font-bold text-[#f4f1de]">
+            <span className="ff-swash-cap text-base">K</span>hông thể mở đề thi
+          </h1>
+          <p className="text-xs text-[#a39f96] leading-relaxed max-w-sm mx-auto">
+            {loadError || 'Liên kết có thể đã hết hạn hoặc đề chưa được công khai.'}
+          </p>
+          <div className="pt-2">
+            <button type="button" className="ff-ui-button ff-ui-button--primary" onClick={onBack}>
+              <ArrowLeft size={16} /> Quay lại Kho đề thi
+            </button>
+          </div>
         </div>
       </div>
     );

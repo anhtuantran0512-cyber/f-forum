@@ -1836,9 +1836,12 @@ const ProfileModalInner: React.FC<{
 
                             if (filteredList.length === 0) {
                               return (
-                                <div className="py-2.5 px-3 rounded-xl bg-black/25 border border-white/5 flex items-center justify-between gap-3 flex-wrap">
-                                  <span className="text-xs text-neutral-400">
-                                    Trống
+                                <div className="py-3 px-4 rounded-xl bg-black/30 border border-white/10 flex items-center justify-between gap-3 flex-wrap">
+                                  <span className="text-xs text-[#a39f96] flex items-center gap-1.5">
+                                    <Sparkles className="w-3.5 h-3.5 text-[#f2cc8f]" />
+                                    <span>
+                                      <span className="ff-swash-cap text-xs">C</span>hưa có vật phẩm ở ngăn này
+                                    </span>
                                   </span>
                                   <button
                                     type="button"
@@ -2395,9 +2398,16 @@ const ProfileModalInner: React.FC<{
               {/* Real question and solution events, in one newest-first timeline. */}
               <div className="profile-activity-feed" aria-label="Dòng thời gian hỏi đáp">
                 {profileActivity.length === 0 ? (
-                  <div className="pc-12-card profile-activity-empty py-10 text-center text-neutral-400 space-y-2" role="status">
-                    <HelpCircle className="w-7 h-7 text-neutral-500 mx-auto" aria-hidden="true" />
-                    <p className="text-xs">Chưa có hoạt động hỏi đáp.</p>
+                  <div className="pc-12-card profile-activity-empty py-10 px-4 text-center text-neutral-400 space-y-2.5" role="status">
+                    <div className="w-12 h-12 rounded-2xl bg-[#f2cc8f]/10 border border-[#f2cc8f]/25 flex items-center justify-center text-[#f2cc8f] mx-auto shadow-[2px_2px_0px_rgba(4,6,11,0.6)]">
+                      <HelpCircle className="w-6 h-6" aria-hidden="true" />
+                    </div>
+                    <p className="text-xs font-bold text-[#f4f1de]">
+                      Chưa có hoạt động hỏi đáp.
+                    </p>
+                    <p className="text-[11px] text-[#a39f96] max-w-sm mx-auto leading-relaxed">
+                      "Học hỏi bắt đầu từ câu hỏi đầu tiên." Hãy gửi thắc mắc hoặc lời giải để cùng bạn bè ghi dấu mốc học thuật nhé!
+                    </p>
                   </div>
                 ) : (
                   profileActivity.map((entry) => entry.kind === 'question' ? (
