@@ -1,13 +1,17 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowRight, BookOpenCheck, Check, ChevronDown, MousePointerClick, Play } from 'lucide-react';
-import { AppWindowMock } from '../LandingMocks';
+import type { DimensionView, User } from '../../../types';
 import { AuroraBackdrop, MagneticButton, Reveal, ScrambleText } from '../LandingPrimitives';
+import { LandingHomePreview } from '../LandingHomePreview';
 import { scrollToSection, usePrefersReducedMotion } from '../useLandingMotion';
 import { HERO_TRUST } from '../landingContent';
 
 interface LandingHeroProps {
+  currentUser: User | null;
   onOpenAuth: () => void;
+  onOpenLogin: () => void;
+  onNavigate: (view: DimensionView) => void;
 }
 
 /** Floating "scroll to explore" affordance, visible while the hero owns the viewport. */
@@ -36,34 +40,16 @@ const ScrollToExplore: React.FC<{ visible: boolean }> = ({ visible }) => (
   </div>
 );
 
-export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
+export const LandingHero: React.FC<LandingHeroProps> = ({ currentUser, onOpenAuth, onOpenLogin, onNavigate }) => {
   const reduced = usePrefersReducedMotion();
   const sectionRef = useRef<HTMLElement | null>(null);
-  const shellRef = useRef<HTMLDivElement | null>(null);
-  const reducedRef = useRef(false);
   const [showScrollCue, setShowScrollCue] = useState(true);
-
-  useEffect(() => {
-    reducedRef.current = reduced;
-    if (reduced && shellRef.current) {
-      shellRef.current.style.transform = '';
-      shellRef.current.style.opacity = '1';
-    }
-  }, [reduced]);
 
   useEffect(() => {
     let frame = 0;
     const update = () => {
       frame = 0;
-      const y = window.scrollY;
-      const viewport = window.innerHeight;
-      const progress = Math.min(1, Math.max(0, y / (viewport * 0.85)));
-      const shell = shellRef.current;
-      if (shell && !reducedRef.current) {
-        shell.style.transform = `translate3d(0, ${(progress * -26).toFixed(2)}px, 0)`;
-        shell.style.opacity = (1 - progress * 0.25).toFixed(3);
-      }
-      setShowScrollCue(y < viewport * 0.55);
+      setShowScrollCue(window.scrollY < window.innerHeight * 0.55);
     };
     const onScroll = () => {
       if (frame) return;
@@ -95,94 +81,96 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
       id="top"
       ref={sectionRef}
       onMouseMove={handlePointer}
-      className="relative isolate flex w-full flex-col items-center overflow-hidden px-4 pb-16 pt-28 sm:px-6 sm:pt-32 lg:pb-24 lg:pt-36"
+      className="relative isolate flex w-full flex-col justify-center overflow-hidden px-4 pb-12 pt-28 sm:px-6 sm:pt-32 lg:min-h-[calc(100svh-2rem)] lg:pb-16 lg:pt-32"
       aria-label="Giới thiệu F-Forum"
     >
       <AuroraBackdrop variant="amber" />
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
         <div className="ff-grid absolute inset-0" />
+        <div className="ff-landing-hero-light absolute inset-0" />
         <div
-          className="absolute inset-0 opacity-70 transition-opacity duration-500"
+          className="absolute inset-0 opacity-75 transition-opacity duration-500"
           style={{
             background:
-              'radial-gradient(520px circle at var(--hero-x, 50%) var(--hero-y, 30%), rgba(251,191,36,0.10), transparent 70%)',
+              'radial-gradient(540px circle at var(--hero-x, 50%) var(--hero-y, 30%), rgba(251,191,36,0.12), transparent 72%)',
           }}
         />
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-[var(--ff-bg)]" />
       </div>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center text-center">
-        <Reveal y={14}>
-          <span className="ff-chip gap-2 px-4 py-2">
-            <BookOpenCheck className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
-            <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[var(--ff-text-soft)]">
-              Diễn đàn học thuật · Sinh viên FPT
+      <div className="relative z-10 mx-auto flex w-full max-w-[1240px] flex-col items-center">
+        <div className="mx-auto flex w-full max-w-4xl flex-col items-center text-center">
+          <Reveal y={14}>
+            <span className="ff-chip gap-2 px-4 py-2">
+              <BookOpenCheck className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
+              <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[var(--ff-text-soft)]">
+                Diễn đàn học thuật · Sinh viên FPT
+              </span>
             </span>
-          </span>
-        </Reveal>
+          </Reveal>
 
-        <Reveal y={26} delay={80}>
-          <h1 className="ff-display mt-7 text-[2.35rem] leading-[1.06] sm:text-6xl lg:text-[4.25rem]">
-            <span className="block text-[var(--ff-text)]">Điều còn vướng,</span>
-            <span className="ff-gradient-text ff-gradient-pan mt-1 block">
-              <ScrambleText text="cùng tìm cách hiểu." delay={300} />
-            </span>
-          </h1>
-        </Reveal>
+          <Reveal y={26} delay={80}>
+            <h1 className="ff-display ff-balance mt-7 text-[2.35rem] leading-[1.06] sm:text-6xl lg:text-[3.8rem] xl:text-[4.25rem]">
+              <span className="block text-[var(--ff-text)]">Điều còn vướng,</span>
+              <span className="ff-gradient-text ff-gradient-pan mt-1 block">
+                <ScrambleText text="cùng tìm cách hiểu." delay={300} />
+              </span>
+            </h1>
+          </Reveal>
 
-        <Reveal y={24} delay={170}>
-          <p className="ff-balance mx-auto mt-6 max-w-2xl text-[15px] leading-relaxed text-[var(--ff-text-soft)] sm:text-lg">
-            F-Forum là diễn đàn học thuật cho sinh viên FPT: hỏi theo môn học, chia sẻ cách giải và cùng lưu lại học liệu.
-            Không hứa học thay bạn — chỉ tạo chỗ để cuộc trao đổi bắt đầu.
-          </p>
-        </Reveal>
+          <Reveal y={24} delay={170}>
+            <p className="ff-balance mt-6 max-w-2xl text-[15px] leading-relaxed text-[var(--ff-text-soft)] sm:text-lg">
+              F-Forum là nơi sinh viên FPT hỏi theo môn học, trao đổi cách giải và lưu học liệu. Không học thay bạn —
+              chỉ mở ra một chỗ để cùng tìm hiểu.
+            </p>
+          </Reveal>
 
-        <Reveal y={22} delay={250} className="w-full">
-          <div className="mt-9 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
-            <MagneticButton size="lg" onClick={onOpenAuth} className="w-full sm:w-auto">
-              <BookOpenCheck className="h-4 w-4" />
-              Đặt câu hỏi
-              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-            </MagneticButton>
+          <Reveal y={22} delay={250} className="w-full">
+            <div className="mt-8 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
+              <MagneticButton size="lg" onClick={onOpenAuth} className="w-full sm:w-auto">
+                <BookOpenCheck className="h-4 w-4" />
+                {currentUser ? 'Vào diễn đàn' : 'Đặt câu hỏi'}
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+              </MagneticButton>
 
-            <MagneticButton
-              size="lg"
-              variant="ghost"
-              className="w-full sm:w-auto"
-              onClick={() => scrollToSection('kham-pha')}
-            >
-              <Play className="h-4 w-4 text-amber-400" />
-              Xem ví dụ trao đổi
-            </MagneticButton>
-          </div>
-        </Reveal>
+              <MagneticButton
+                size="lg"
+                variant="ghost"
+                className="w-full sm:w-auto"
+                onClick={() => scrollToSection('kham-pha')}
+              >
+                <Play className="h-4 w-4 text-amber-400" />
+                Xem F-Forum
+              </MagneticButton>
+            </div>
+          </Reveal>
 
-        <Reveal y={18} delay={330}>
-          <ul className="mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-            {HERO_TRUST.map((item) => (
-              <li key={item} className="flex items-center gap-1.5 text-[12.5px] text-[var(--ff-text-dim)]">
-                <Check className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
-                {item}
-              </li>
-            ))}
-          </ul>
+          <Reveal y={18} delay={330}>
+            <ul className="mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+              {HERO_TRUST.map((item) => (
+                <li key={item} className="flex items-center gap-1.5 text-[12.5px] text-[var(--ff-text-dim)]">
+                  <Check className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+        </div>
+
+        <Reveal variant="scale" y={24} delay={140} className="relative z-10 mx-auto mt-12 w-full max-w-[1200px]">
+          <LandingHomePreview
+            currentUser={currentUser}
+            onNavigate={onNavigate}
+            onOpenLogin={onOpenLogin}
+          />
         </Reveal>
       </div>
 
-      <div
-        ref={shellRef}
-        className="relative z-10 mx-auto mt-14 w-full max-w-5xl will-change-transform sm:mt-16"
-      >
-        <Reveal variant="scale" y={40} delay={120}>
-          <AppWindowMock />
-        </Reveal>
-      </div>
-
-      <div className="relative z-10 mt-10 hidden items-center gap-2 text-[11px] font-mono uppercase tracking-[0.22em] text-[var(--ff-text-dim)] lg:flex">
+      <div className="relative z-10 mx-auto mt-8 hidden items-center gap-2 text-[11px] font-mono uppercase tracking-[0.22em] text-[var(--ff-text-dim)] lg:flex">
         <span className="h-[1px] w-10 bg-gradient-to-r from-transparent to-[var(--ff-border-strong)]" />
-        <ChevronDown className="ff-chevron-1 h-3.5 w-3.5" />
+        <ChevronDown className="ff-chevron-1 h-3.5 w-3.5" aria-hidden="true" />
         Cuộn để khám phá
-        <ChevronDown className="ff-chevron-2 h-3.5 w-3.5" />
+        <ChevronDown className="ff-chevron-2 h-3.5 w-3.5" aria-hidden="true" />
         <span className="h-[1px] w-10 bg-gradient-to-l from-transparent to-[var(--ff-border-strong)]" />
       </div>
 

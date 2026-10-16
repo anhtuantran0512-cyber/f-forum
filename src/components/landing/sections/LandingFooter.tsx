@@ -27,19 +27,18 @@ const LINK_GROUPS: { title: string; links: { label: string; section?: string; hr
   {
     title: 'F-Forum',
     links: [
-      { label: 'Tính năng', section: 'tinh-nang' },
-      { label: 'Xem ví dụ', section: 'kham-pha' },
-      { label: 'Nguyên tắc cùng học', section: 'loi-ich' },
+      { label: 'Giao diện thật', section: 'top' },
+      { label: 'Khám phá', section: 'kham-pha' },
       { label: 'Chi phí', section: 'bang-gia' },
+      { label: 'Hỏi đáp', section: 'faq' },
     ],
   },
   {
     title: 'Học tập',
     links: [
-      { label: 'Hỏi đáp', section: 'kham-pha' },
-      { label: 'Kho đề & học liệu', section: 'kham-pha' },
+      { label: 'Hỏi đáp theo môn', section: 'kham-pha' },
       { label: 'Câu lạc bộ', section: 'kham-pha' },
-      { label: 'Cách đặt câu hỏi', section: 'nang-luc' },
+      { label: 'Kho đề & học liệu', section: 'kham-pha' },
     ],
   },
   {
@@ -55,7 +54,7 @@ const LINK_GROUPS: { title: string; links: { label: string; section?: string; hr
 
 export const LandingFooter: React.FC<LandingFooterProps> = ({ currentUser, onEnterApp, onOpenAuth }) => {
   return (
-    <footer className="relative w-full border-t border-[var(--ff-border)] bg-[var(--ff-bg-soft)]">
+    <footer className="relative z-10 w-full border-t border-[var(--ff-border)] bg-[var(--ff-bg-soft)]">
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,2fr)]">
           {/* Brand */}

@@ -328,13 +328,14 @@ test('6. Vòng 11 — tài khoản ảo bị xoá vĩnh viễn, hồ sơ ngườ
   );
   assert.ok(!board.includes('...COHORT'), 'Board must not merge any virtual list');
 
-  /* 6.6 Trang giới thiệu không dựng nhân vật hay số liệu cộng đồng mô phỏng */
-  const mocks = fs.readFileSync('src/components/landing/LandingMocks.tsx', 'utf8');
+  /* 6.6 Landing uses the actual product UI, not a fabricated student mockup */
+  const preview = fs.readFileSync('src/components/landing/LandingHomePreview.tsx', 'utf8');
   const content = fs.readFileSync('src/components/landing/landingContent.ts', 'utf8');
-  assert.ok(!mocks.includes('Minh Anh') && !mocks.includes('Nguyễn Khánh Linh'), 'Landing mocks must not name virtual students');
+  assert.ok(preview.includes('<HomeView') && preview.includes('<Navbar'), 'Landing preview must reuse real app components');
+  assert.ok(!preview.includes('Minh Anh') && !preview.includes('Nguyễn Khánh Linh'), 'Landing preview must not name virtual students');
   assert.ok(!content.includes('TESTIMONIALS') && !content.includes('HIGHLIGHTS'), 'Landing copy must not contain a fake testimonial list');
-  assert.ok(content.includes('export const QUESTION_GUIDE'), 'Landing should guide students to ask clear academic questions');
-  assert.ok(content.includes('export const FEATURES'), 'Landing feature cards should describe available product areas');
+  assert.ok(content.includes('export const QUESTION_GUIDE'), 'Academic question guidance remains available in the shared copy source');
+  assert.ok(content.includes('export const FEATURES'), 'Feature descriptions remain available in the shared copy source');
 
   /* 6.7 Đổi hồ sơ ở bất kỳ đâu → mọi nội dung đã đăng cũng đổi theo */
   assert.ok(

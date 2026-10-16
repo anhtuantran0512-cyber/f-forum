@@ -13,14 +13,9 @@ test('1. Landing page composes the complete conversion structure', () => {
   const requiredSections = [
     'LandingNav',
     'LandingHero',
-    'LandingProof',
-    'LandingFeatures',
     'LandingShowcase',
-    'LandingBenefits',
-    'LandingHighlights',
     'LandingPricing',
     'LandingFAQ',
-    'LandingCTA',
     'LandingFooter',
   ];
 
@@ -30,6 +25,7 @@ test('1. Landing page composes the complete conversion structure', () => {
       `LandingPage must render <${section} /> to keep the landing structure complete`,
     );
   });
+  assert.doesNotMatch(page, /<Landing(?:Proof|Features|Benefits|Highlights|CTA)\b/, 'the landing should replace long copy blocks with the live product demo');
 
   assert.ok(page.includes('ff-landing'), 'Landing root must carry the .ff-landing theme scope');
   assert.ok(
@@ -161,27 +157,32 @@ test('6. Landing avoids fabricated proof, simulated metrics, and placeholder cop
     .map((file) => read(`${LANDING_DIR}/sections/${file}`))
     .concat([
       read(`${LANDING_DIR}/LandingNav.tsx`),
-      read(`${LANDING_DIR}/LandingMocks.tsx`),
+      read(`${LANDING_DIR}/LandingHomePreview.tsx`),
       read(`${LANDING_DIR}/LandingPage.tsx`),
       read(`${LANDING_DIR}/landingContent.ts`),
       read('index.html'),
     ])
     .join('\n');
   const hero = read(`${LANDING_DIR}/sections/LandingHero.tsx`);
-  const proof = read(`${LANDING_DIR}/sections/LandingProof.tsx`);
-  const mocks = read(`${LANDING_DIR}/LandingMocks.tsx`);
-  const cta = read(`${LANDING_DIR}/sections/LandingCTA.tsx`);
+  const preview = read(`${LANDING_DIR}/LandingHomePreview.tsx`);
+  const showcase = read(`${LANDING_DIR}/sections/LandingShowcase.tsx`);
 
   ['Lorem ipsum', 'TODO', 'FIXME', 'số liệu giả', '100% Người thật & Tương tác thật', 'HIGHLIGHTS', 'TRUST_PILLARS'].forEach((banned) => {
     assert.ok(!files.includes(banned), `Landing copy must not contain "${banned}"`);
   });
 
   assert.doesNotMatch(hero, /onlineCount|totalQuestions|solvedQuestions|totalClubs|AVATARS|<Star/);
-  assert.doesNotMatch(proof, /Counter|onlineCount|totalQuestions|solvedQuestions|totalClubs/);
-  assert.match(proof, /F-Forum không dùng những con số đó/);
-  assert.match(mocks, /Nội dung minh họa/);
-  assert.doesNotMatch(mocks, /lượt xem|lượt thích|\bXP\b|\bCoin\b|đang online|[0-9][0-9,.]+\s*(lượt|thành viên|XP|Coin|cấp độ|kênh)/i);
-  assert.doesNotMatch(cta, /waitlist|setTimeout|đã ghi danh|Loader2/i, 'CTA must not simulate an unconnected signup form');
+  assert.match(preview, /<Navbar[\s\S]*?<HomeView/, 'the preview should reuse the live app navigation and home screen');
+  assert.match(preview, /Bản xem trước dùng trực tiếp/);
+  assert.match(preview, /aria-hidden="true"[\s\S]*?\binert\b/, 'scaled screen controls stay decorative; real navigation is available below');
+  assert.doesNotMatch(preview, /lượt xem|lượt thích|\bXP\b|\bCoin\b|đang online|[0-9][0-9,.]+\s*(lượt|thành viên|XP|Coin|cấp độ|kênh)/i);
+  assert.match(showcase, /onNavigate\(id\)/, 'demo shortcuts must open actual app views');
+  assert.doesNotMatch(showcase, /số người|lượt xem|lượt thích|\bXP\b|\bCoin\b/i);
+  const landingCss = read(`${LANDING_DIR}/landing.css`);
+  assert.match(preview, /window\.innerWidth[\s\S]*?window\.innerHeight[\s\S]*?stage\.clientWidth \/ width/, 'the inner preview uses the real viewport and responsive breakpoints');
+  assert.match(landingCss, /@media \(max-width: 639px\)[\s\S]*?\.ff-home-demo__chrome/, 'the browser frame stays compact on phones');
+  assert.match(landingCss, /ff-home-demo__shell::before[\s\S]*?ffDemoGlow/, 'the preview frame gets a soft animated glow');
+  assert.doesNotMatch(read(`${LANDING_DIR}/LandingPage.tsx`), /LandingProof|LandingFeatures|LandingBenefits|LandingHighlights|LandingCTA/);
   assert.match(read('index.html'), /Diễn đàn học thuật cho sinh viên FPT/, 'SEO and social metadata should use the grounded positioning');
   assert.doesNotMatch(read('index.html'), /\bXP\b|trong vài phút|tỏa sáng cùng nhau/i, 'social previews must not retain the old hype copy');
   assert.doesNotMatch(read('src/App.tsx').split("currentView === 'landing'")[1]?.split("currentView === 'home'")[0] ?? '', /onlineCount|totalQuestions|solvedQuestions|totalClubs/);
@@ -232,12 +233,12 @@ test('Design: pricing uses theme-aware foregrounds, unique anchors, and accessib
   assert.doesNotMatch(planPart, /Kích Hoạt Miễn Phí|Sắp ra mắt/, 'unreleased access must not be promoted');
   assert.match(pricing, /aria-expanded=\{showDonateBox\}/, 'voluntary support disclosure must expose its state');
   assert.match(read(`${LANDING_DIR}/landing.css`), /\.ff-plan-card__action \{ min-height: 44px; \}/);
-  assert.match(read(`${LANDING_DIR}/LandingNav.tsx`), /\{ id: 'nang-luc', label: 'Cách hỏi tốt' \}/);
-  const guide = read(`${LANDING_DIR}/sections/LandingHighlights.tsx`);
-  const features = read(`${LANDING_DIR}/sections/LandingFeatures.tsx`);
-  assert.match(guide, /id="nang-luc"/);
-  assert.doesNotMatch(guide, /id="tinh-nang"/, 'question guide must not shadow the feature anchor');
-  assert.match(features, /id="tinh-nang"/);
+  const nav = read(`${LANDING_DIR}/LandingNav.tsx`);
+  const showcase = read(`${LANDING_DIR}/sections/LandingShowcase.tsx`);
+  assert.match(nav, /\{ id: 'kham-pha', label: 'Khám phá' \}/);
+  assert.match(nav, /\{ id: 'bang-gia', label: 'Chi phí' \}/);
+  assert.match(showcase, /id="kham-pha"/);
+  assert.doesNotMatch(nav, /loi-ich|nang-luc|tinh-nang/, 'trimmed navigation must not link to removed copy sections');
   assert.match(read('src/components/views/QAForumView.tsx'), /w-11 h-11 rounded-lg bg-neutral-900/);
 });
 

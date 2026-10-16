@@ -1097,6 +1097,7 @@ export const App: React.FC = () => {
               onOpenAuth={() => handleOpenAuth('register')}
               onOpenLogin={() => handleOpenAuth('login')}
               onEnterApp={() => handleViewChange('home')}
+              onNavigate={handleNavigate}
             />
           )}
 

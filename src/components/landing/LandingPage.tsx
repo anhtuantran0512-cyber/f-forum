@@ -1,18 +1,13 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect } from 'react';
-import type { User } from '../../types';
+import type { DimensionView, User } from '../../types';
 import { safeStorage } from '../../utils/storage';
 import { BackToTop } from './LandingPrimitives';
 import { LandingNav } from './LandingNav';
 import { LandingHero } from './sections/LandingHero';
-import { LandingProof } from './sections/LandingProof';
-import { LandingFeatures } from './sections/LandingFeatures';
 import { LandingShowcase } from './sections/LandingShowcase';
-import { LandingBenefits } from './sections/LandingBenefits';
-import { LandingHighlights } from './sections/LandingHighlights';
 import { LandingPricing } from './sections/LandingPricing';
 import { LandingFAQ } from './sections/LandingFAQ';
-import { LandingCTA } from './sections/LandingCTA';
 import { LandingFooter } from './sections/LandingFooter';
 
 export interface LandingPageProps {
@@ -20,10 +15,17 @@ export interface LandingPageProps {
   onOpenAuth: () => void;
   onOpenLogin: () => void;
   onEnterApp: () => void;
+  onNavigate: (view: DimensionView) => void;
 }
 
 /** Academic landing page with practical product examples and no usage counters. */
-export const LandingPage: React.FC<LandingPageProps> = ({ currentUser, onOpenAuth, onOpenLogin, onEnterApp }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({
+  currentUser,
+  onOpenAuth,
+  onOpenLogin,
+  onEnterApp,
+  onNavigate,
+}) => {
   const handleStart = currentUser ? onEnterApp : onOpenAuth;
 
   useEffect(() => {
@@ -38,16 +40,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ currentUser, onOpenAut
 
       <LandingNav currentUser={currentUser} onOpenLogin={onOpenLogin} onOpenRegister={onOpenAuth} onEnterApp={onEnterApp} />
 
-      <main id="ff-main" tabIndex={-1} className="relative w-full outline-none">
-        <LandingHero onOpenAuth={handleStart} />
-        <LandingProof />
-        <LandingFeatures />
-        <LandingShowcase />
-        <LandingBenefits onOpenAuth={handleStart} />
-        <LandingHighlights onOpenAuth={handleStart} />
+      <main id="ff-main" tabIndex={-1} className="relative z-10 w-full outline-none">
+        <LandingHero
+          currentUser={currentUser}
+          onOpenAuth={handleStart}
+          onOpenLogin={onOpenLogin}
+          onNavigate={onNavigate}
+        />
+        <LandingShowcase onNavigate={onNavigate} />
         <LandingPricing onOpenAuth={handleStart} />
         <LandingFAQ onOpenAuth={handleStart} />
-        <LandingCTA onOpenAuth={handleStart} />
       </main>
 
       <LandingFooter currentUser={currentUser} onEnterApp={onEnterApp} onOpenAuth={onOpenAuth} />

@@ -9,9 +9,9 @@ interface HomeViewProps {
   onNavigate: (view: DimensionView) => void;
   /** Opens the marketing landing page (optional: falls back to hidden). */
   onOpenLanding?: () => void;
-  totalClubs: number;
+  totalClubs?: number;
   totalQuestions?: number;
-  solvedQuestionsCount: number;
+  solvedQuestionsCount?: number;
   onlineCount?: number;
   onlineUsersCount?: number;
   resolvedQuestionsCount?: number;
