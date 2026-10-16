@@ -240,9 +240,6 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
                 <span className="font-bold text-xs tracking-wider uppercase text-white font-mono flex items-center gap-1">
                   <span className="ff-swash-cap text-xs">T</span>HÔNG BÁO
                 </span>
-                <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px]">
-                  Học · Hỏi · Chia sẻ
-                </span>
                 {unreadCount > 0 && (
                   <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30 font-semibold font-mono">
                     {unreadCount} mới

@@ -516,9 +516,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   <h2 className="text-xs font-bold text-[#f8f7f4] tracking-wide">
                     <span className="ff-swash-cap text-xs">K</span>ênh đàm thoại
                   </h2>
-                  <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">
-                    Học · Hỏi · Chia sẻ
-                  </span>
                 </div>
               </div>
             </div>

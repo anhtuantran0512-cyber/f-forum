@@ -1313,6 +1313,7 @@ export const App: React.FC = () => {
         {/* User Profile (F-ID Settings Modal) */}
         {isProfileModalOpen && (targetProfileUser || currentUser) && (
           <ProfileModal
+            key={(targetProfileUser || currentUser)?.id || 'own-profile'}
             isOpen={isProfileModalOpen}
             onClose={() => {
               setIsProfileModalOpen(false);

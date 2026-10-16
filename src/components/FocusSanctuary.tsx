@@ -213,9 +213,7 @@ const FocusSanctuaryInner: React.FC<{
                 <h2 className="ff-typo-poster !text-base sm:!text-lg text-[#f4f1de] tracking-wide flex items-center gap-1">
                   <span className="ff-swash-cap text-lg">P</span>HÒNG TẬP TRUNG
                 </h2>
-                <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">
-                  Học · Hỏi · Chia sẻ
-                </span>
+                <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">Chậm mà chắc.</span>
                 <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-[#f2cc8f]/20 text-[#f2cc8f] border border-[#f2cc8f]/40">
                   {targetMinutes} / {FOCUS_BREAK_MINUTES} MIN
                 </span>

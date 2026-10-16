@@ -1,0 +1,164 @@
+/* Shared, compact Facebook-style reaction picker for Threads and Q&A. */
+.ff-reaction-picker {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  z-index: 4;
+}
+
+.ff-reaction-trigger {
+  display: inline-flex;
+  min-height: 35px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: #a7b1a4;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease;
+}
+
+.ff-reaction-trigger:hover,
+.ff-reaction-picker.is-open .ff-reaction-trigger,
+.ff-reaction-trigger:focus-visible {
+  border-color: rgba(232, 201, 133, 0.24);
+  background: rgba(239, 234, 218, 0.07);
+  color: #f0d99d;
+}
+
+.ff-reaction-trigger__icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+
+.ff-reaction-trigger__label {
+  font-variant-numeric: tabular-nums;
+}
+
+.ff-reaction-popover {
+  position: absolute;
+  z-index: 60;
+  left: 0;
+  bottom: calc(100% + 8px);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 6px;
+  border: 1px solid rgba(244, 241, 222, 0.16);
+  border-radius: 999px;
+  background: linear-gradient(145deg, rgba(31, 39, 33, 0.98), rgba(14, 19, 16, 0.98));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  white-space: nowrap;
+}
+
+.ff-reaction-option {
+  position: relative;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: #f4f1de;
+  cursor: pointer;
+  transition: transform 130ms ease, background-color 130ms ease, border-color 130ms ease;
+}
+
+.ff-reaction-option:hover,
+.ff-reaction-option:focus-visible {
+  z-index: 1;
+  transform: translateY(-3px) scale(1.12);
+  border-color: rgba(242, 204, 143, 0.5);
+  background: rgba(242, 204, 143, 0.14);
+  outline: none;
+}
+
+.ff-reaction-option.is-selected {
+  border-color: rgba(216, 121, 96, 0.48);
+  background: rgba(216, 121, 96, 0.16);
+}
+
+.ff-reaction-option__emoji {
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.ff-reaction-option__count {
+  position: absolute;
+  right: -2px;
+  bottom: -1px;
+  min-width: 15px;
+  padding: 1px 3px;
+  border: 1px solid rgba(244, 241, 222, 0.14);
+  border-radius: 999px;
+  background: #19231d;
+  color: #f2cc8f;
+  font: 700 8px/1.2 'Geist Mono Variable', ui-monospace, monospace;
+  text-align: center;
+}
+
+html.light .ff-reaction-trigger {
+  color: #687164;
+}
+
+html.light .ff-reaction-trigger:hover,
+html.light .ff-reaction-picker.is-open .ff-reaction-trigger,
+html.light .ff-reaction-trigger:focus-visible {
+  border-color: rgba(85, 123, 96, 0.22);
+  background: rgba(85, 123, 96, 0.09);
+  color: #416247;
+}
+
+html.light .ff-reaction-popover {
+  border-color: rgba(75, 64, 45, 0.15);
+  background: linear-gradient(145deg, rgba(255, 253, 248, 0.98), rgba(244, 239, 228, 0.98));
+  box-shadow: 0 12px 28px rgba(68, 52, 28, 0.2), inset 0 1px 0 #fff;
+}
+
+html.light .ff-reaction-option.is-selected {
+  border-color: rgba(170, 86, 63, 0.38);
+  background: rgba(216, 121, 96, 0.13);
+}
+
+html.light .ff-reaction-option__count {
+  border-color: rgba(75, 64, 45, 0.13);
+  background: #fffdf8;
+  color: #806238;
+}
+
+@media (max-width: 420px) {
+  .ff-reaction-popover {
+    gap: 1px;
+    padding: 5px;
+  }
+
+  .ff-reaction-option {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-reaction-trigger,
+  .ff-reaction-option {
+    transition: none !important;
+  }
+
+  .ff-reaction-option:hover,
+  .ff-reaction-option:focus-visible {
+    transform: none !important;
+  }
+}

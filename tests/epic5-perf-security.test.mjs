@@ -566,7 +566,8 @@ test('16. Client: unsharp mask làm nét cạnh nhưng giữ nguyên vùng phẳ
   const pipeline = read('src/utils/imagePipeline.ts');
   assert.ok(pipeline.includes("imageSmoothingQuality = 'high'"), 'làm mịn chất lượng cao');
   assert.ok(pipeline.includes("canvas.toDataURL('image/jpeg', 0.9)"), 'xuất JPEG 0.9 như yêu cầu');
-  assert.ok(read('src/components/ProfileModal.tsx').includes('uploadProcessedImage(kind'), 'hồ sơ tải ảnh qua pipeline máy chủ');
+  const profile = read('src/components/ProfileModal.tsx');
+  assert.ok(profile.includes('prepareImageForUpload(file') && profile.includes("uploadProcessedImage('avatar'") && profile.includes("uploadProcessedImage('banner'"), 'hồ sơ xử lý ảnh và tải avatar/cover qua pipeline máy chủ');
 });
 
 /* -------------------------------------------------------------------------- */

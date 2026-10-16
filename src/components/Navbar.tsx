@@ -31,6 +31,7 @@ import { SettingsModal } from './SettingsModal';
 import { safeStorage } from '../utils/storage';
 import { getThemeMode, toggleThemeMode } from '../utils/theme';
 import { resolveGodrayId, resolvePotatorId } from '../utils/gradients';
+import { resolveDarkGradientId } from '../utils/darkGradients';
 import { DailyEngagementModal } from './DailyEngagementModal';
 import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
 import { ScrollProgressRail } from './ScrollProgressRail';
@@ -125,6 +126,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     return (safeStorage.getItem('fforum_theme') as 'dark' | 'light') || 'dark';
   });
+  const [fabulousMode, setFabulousMode] = useState(() => safeStorage.getItem('fforum_fabulous_mode') === 'true');
+  const [darkGradient, setDarkGradient] = useState(() => resolveDarkGradientId(safeStorage.getItem('fforum_dark_gradient')));
   const [soundEffects, setSoundEffects] = useState(() => {
     return safeStorage.getItem('fforum_sfx') !== 'false';
   });
@@ -506,7 +509,11 @@ export const Navbar: React.FC<NavbarProps> = ({
     /* EPIC 2 — Potator Mode: bật/tắt lớp nền tĩnh + chọn preset nền */
     document.documentElement.classList.toggle('potator-mode', potatorMode);
     document.documentElement.dataset.potatorBg = potatorBg;
-  }, [theme, reducedMotion, glassBlur, fontSize, potatorMode, potatorBg]);
+
+    /* Fabulous and dark-page palette are independent of light/dark and Potator. */
+    document.documentElement.classList.toggle('fabulous-mode', fabulousMode);
+    document.documentElement.dataset.darkGradient = darkGradient;
+  }, [theme, reducedMotion, glassBlur, fontSize, potatorMode, potatorBg, fabulousMode, darkGradient]);
 
   const handleToggleTheme = () => {
     setTheme(toggleThemeMode());
@@ -533,6 +540,39 @@ export const Navbar: React.FC<NavbarProps> = ({
     window.addEventListener('fforum_theme_sync', onThemeSync);
     return () => window.removeEventListener('fforum_theme_sync', onThemeSync);
   }, []);
+
+  useEffect(() => {
+    const syncAppearance = () => {
+      setFabulousMode(safeStorage.getItem('fforum_fabulous_mode') === 'true');
+      setDarkGradient(resolveDarkGradientId(safeStorage.getItem('fforum_dark_gradient')));
+    };
+    window.addEventListener('fforum_fabulous_sync', syncAppearance);
+    window.addEventListener('fforum_dark_gradient_sync', syncAppearance);
+    window.addEventListener('storage', syncAppearance);
+    return () => {
+      window.removeEventListener('fforum_fabulous_sync', syncAppearance);
+      window.removeEventListener('fforum_dark_gradient_sync', syncAppearance);
+      window.removeEventListener('storage', syncAppearance);
+    };
+  }, []);
+
+  const handleToggleFabulousMode = () => {
+    setFabulousMode((previous) => {
+      const next = !previous;
+      safeStorage.setItem('fforum_fabulous_mode', String(next));
+      document.documentElement.classList.toggle('fabulous-mode', next);
+      window.dispatchEvent(new CustomEvent('fforum_fabulous_sync', { detail: { enabled: next } }));
+      return next;
+    });
+  };
+
+  const handleSelectDarkGradient = (preset: string) => {
+    const next = resolveDarkGradientId(preset);
+    setDarkGradient(next);
+    safeStorage.setItem('fforum_dark_gradient', next);
+    document.documentElement.dataset.darkGradient = next;
+    window.dispatchEvent(new CustomEvent('fforum_dark_gradient_sync', { detail: { gradient: next } }));
+  };
 
   const handleToggleSoundEffects = () => {
     setSoundEffects((prev) => {
@@ -682,6 +722,10 @@ export const Navbar: React.FC<NavbarProps> = ({
     onClose: () => setIsSettingsOpen(false),
     theme,
     onToggleTheme: handleToggleTheme,
+    fabulousMode,
+    onToggleFabulousMode: handleToggleFabulousMode,
+    darkGradient,
+    onSelectDarkGradient: handleSelectDarkGradient,
     onOpenFocusMode: () => {
       setIsSettingsOpen(false);
       onOpenFocusMode();

@@ -198,7 +198,7 @@ export const PRICING_PLANS: {
       'Câu lạc bộ học thuật và Sổ chung mỗi ngày',
       'Góc tập trung Pomodoro và nhạc nền tự chọn',
     ],
-    footnote: 'Học · Hỏi · Chia sẻ — bạn có thể tra cứu tài liệu ngay hoặc tạo tài khoản để lưu bài và thảo luận.',
+    footnote: 'Tra cứu tự do; tạo tài khoản để lưu bài và tham gia thảo luận.',
   },
 ];
 

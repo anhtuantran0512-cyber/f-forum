@@ -429,3 +429,124 @@ html.reduce-motion .ff-qa-detail * {
   animation: none !important;
   transition: none !important;
 }
+
+/* Spacious article rhythm for the dedicated question + solution reader. */
+.ff-qa-detail-layout {
+  gap: clamp(20px, 2.6vw, 38px) !important;
+}
+
+.ff-qa-detail .ff-qa-main-column {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: clamp(20px, 2vw, 28px);
+}
+
+.ff-qa-detail .question-card {
+  min-width: 0;
+  margin-bottom: 0 !important;
+  padding: clamp(20px, 2.5vw, 34px) !important;
+  overflow: visible;
+}
+
+.ff-qa-detail .question-text h1 {
+  max-width: 34ch;
+  margin-bottom: clamp(16px, 2vw, 22px) !important;
+  overflow-wrap: anywhere;
+}
+
+.ff-qa-detail .ff-qa-question-copy,
+.ff-qa-detail .ff-qa-answer-copy {
+  border-radius: 14px !important;
+}
+
+.ff-qa-detail .ff-qa-prose {
+  max-width: 78ch;
+  margin-inline: auto;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.ff-qa-detail .ff-qa-question-copy {
+  padding: clamp(16px, 2.2vw, 24px) !important;
+  margin-bottom: clamp(16px, 2vw, 22px) !important;
+}
+
+.ff-qa-detail .answer-section-label {
+  margin: 0;
+  padding-bottom: 14px;
+}
+
+.ff-qa-detail .ff-qa-answers {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 1.8vw, 22px);
+}
+
+.ff-qa-detail .ff-qa-answers > :not(:first-child) {
+  margin-top: 0 !important;
+}
+
+.ff-qa-detail .answer-card {
+  min-width: 0;
+  margin-bottom: 0 !important;
+  padding: clamp(18px, 2.2vw, 28px) !important;
+}
+
+.ff-qa-detail .ff-qa-answer-header {
+  align-items: flex-start;
+}
+
+.ff-qa-detail .ff-qa-answer-header > button {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ff-qa-detail .ff-qa-answer-header .font-mono {
+  white-space: nowrap;
+}
+
+.ff-qa-detail .ff-qa-answer-copy {
+  padding: clamp(16px, 2vw, 24px) !important;
+}
+
+.qa-reaction-row {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+}
+
+@media (max-width: 760px) {
+  .ff-qa-detail-layout {
+    gap: 22px !important;
+  }
+
+  .ff-qa-detail .ff-qa-main-column {
+    gap: 20px;
+  }
+
+  .ff-qa-detail .ff-qa-answers {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .ff-qa-detail .question-card {
+    padding: 18px 15px !important;
+  }
+
+  .ff-qa-detail .ff-qa-answer-header {
+    justify-content: flex-start;
+  }
+
+  .ff-qa-detail .ff-qa-answer-header > div:last-child {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .ff-qa-detail .question-text > div:first-child > span {
+    margin-inline: auto;
+    text-align: center;
+  }
+}

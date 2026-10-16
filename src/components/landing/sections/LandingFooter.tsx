@@ -68,9 +68,6 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ currentUser, onEnt
               <span className="ff-brand-serif bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-xl text-transparent">
                 F-Forum
               </span>
-              <span className="ff-atelier-ribbon !text-[10px] !py-0.5 !px-2.5">
-                Học · Hỏi · Chia sẻ
-              </span>
             </div>
             <p className="mt-5 max-w-sm text-[13.5px] leading-relaxed text-[var(--ff-text-soft)]">
               Diễn đàn học thuật cho học sinh và sinh viên — nơi câu hỏi, lời giải có lập luận và học liệu được lưu giữ

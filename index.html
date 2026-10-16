@@ -5,11 +5,20 @@
     <script>
       (function() {
         try {
+          var root = document.documentElement;
           var t = localStorage.getItem('fforum_theme');
           if (t === 'light') {
-            document.documentElement.classList.remove('dark');
-            document.documentElement.classList.add('light');
+            root.classList.remove('dark');
+            root.classList.add('light');
+          } else if (t === 'dark') {
+            root.classList.remove('light');
+            root.classList.add('dark');
           }
+          root.classList.toggle('fabulous-mode', localStorage.getItem('fforum_fabulous_mode') === 'true');
+          var gradient = localStorage.getItem('fforum_dark_gradient');
+          root.dataset.darkGradient = ['obsidian', 'midnight', 'forest', 'plum', 'ember'].indexOf(gradient) >= 0
+            ? gradient
+            : 'obsidian';
         } catch (e) {}
       })();
     </script>

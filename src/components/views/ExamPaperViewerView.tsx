@@ -463,7 +463,7 @@ export const ExamPaperViewerView: React.FC<ExamPaperViewerViewProps> = ({
               <span className="ff-paper-viewer__tag">{paper.examType}</span>
               {paper.verified && <span className="ff-paper-viewer__verified"><ShieldCheck size={14} /> Đã kiểm duyệt</span>}
               {isAttachmentPending && <span className="ff-paper-viewer__pending">Đang chờ duyệt</span>}
-              <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">Học · Hỏi · Chia sẻ</span>
+              <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">Đọc kỹ, nhớ lâu.</span>
             </div>
             <div className="ff-paper-viewer__intro-actions">
               {isPublicPaper && (

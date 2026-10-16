@@ -838,6 +838,7 @@ html.light .threads-bg {
 .author-button {
   display: flex;
   min-width: 0;
+  flex: 1 1 auto;
   align-items: center;
   gap: 11px;
   padding: 0;
@@ -872,9 +873,20 @@ html.light .threads-bg {
 }
 
 .author-name {
+  max-width: 142px;
+  overflow: hidden;
   color: var(--thread-copy);
   font-size: 12px;
   font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.author-time,
+.repost-quote-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .author-level,
@@ -920,6 +932,7 @@ html.light .threads-bg {
 }
 
 .thread-editorial-lead {
+  max-width: 58ch;
   margin: 0 0 8px;
   color: var(--thread-copy);
   font-family: 'Playfair Display', Georgia, serif;
@@ -930,6 +943,7 @@ html.light .threads-bg {
 }
 
 .thread-content {
+  max-width: 78ch;
   margin: 0;
   color: #d4d9ce;
   font-size: 13px;
@@ -1069,7 +1083,6 @@ html.light .threads-bg {
   flex-wrap: wrap;
 }
 
-.reaction-btn,
 .action-text-btn {
   display: inline-flex;
   min-height: 34px;
@@ -1087,7 +1100,6 @@ html.light .threads-bg {
   transition: color 140ms ease, background 140ms ease, border-color 140ms ease, transform 140ms ease;
 }
 
-.reaction-btn:hover,
 .action-text-btn:hover,
 .action-text-btn.is-active {
   border-color: var(--thread-line);
@@ -1095,22 +1107,12 @@ html.light .threads-bg {
   color: var(--thread-copy);
 }
 
-.reaction-btn:active,
 .action-text-btn:active {
   transform: scale(0.96);
 }
 
-.reaction-btn.reacted {
-  border-color: rgba(216, 121, 96, 0.36);
-  background: rgba(216, 121, 96, 0.14);
-  color: #f1b29b;
-}
-
-.reaction-count {
-  color: inherit;
-  font-family: 'Geist Mono Variable', ui-monospace, monospace;
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
+.thread-reactions .ff-reaction-picker {
+  z-index: 4;
 }
 
 .thread-reply-pill {
@@ -1595,12 +1597,10 @@ html.light .threads-bg .repost-quote-box {
   border-color: rgba(45, 54, 43, 0.13);
 }
 
-html.light .threads-bg .reaction-btn,
 html.light .threads-bg .action-text-btn {
   color: #687164;
 }
 
-html.light .threads-bg .reaction-btn:hover,
 html.light .threads-bg .action-text-btn:hover,
 html.light .threads-bg .action-text-btn.is-active {
   border-color: rgba(85, 123, 96, 0.2);
@@ -1608,7 +1608,6 @@ html.light .threads-bg .action-text-btn.is-active {
   color: #30372f;
 }
 
-html.light .threads-bg .reaction-btn.reacted,
 html.light .threads-bg .action-text-btn.is-saved {
   border-color: rgba(170, 86, 63, 0.28);
   background: rgba(216, 121, 96, 0.11);

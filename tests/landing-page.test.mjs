@@ -173,7 +173,7 @@ test('6. Landing avoids fabricated proof, simulated metrics, and placeholder cop
 
   assert.doesNotMatch(hero, /onlineCount|totalQuestions|solvedQuestions|totalClubs|AVATARS|<Star/);
   assert.match(preview, /<Navbar[\s\S]*?<HomeView/, 'the preview should reuse the live app navigation and home screen');
-  assert.match(preview, /Bản xem trước dùng trực tiếp/);
+  assert.match(preview, /Bản xem trước thu nhỏ của trang chủ đang vận hành/);
   assert.match(preview, /aria-hidden="true"[\s\S]*?\binert\b/, 'scaled screen controls stay decorative; real navigation is available below');
   assert.doesNotMatch(preview, /lượt xem|lượt thích|\bXP\b|\bCoin\b|đang online|[0-9][0-9,.]+\s*(lượt|thành viên|XP|Coin|cấp độ|kênh)/i);
   assert.match(showcase, /onNavigate\(id\)/, 'demo shortcuts must open actual app views');
@@ -250,7 +250,7 @@ test('Design: Vietnamese mono glyphs are self-hosted rather than blocked by CSP'
   assert.match(read('src/components/views/ComingSoonView.tsx'), /Sắp ra mắt/);
 });
 
-test('7. Campus Atelier & Calligraphic Swash typography + "Học · Hỏi · Chia sẻ" ethos without developer meta-notes', () => {
+test('7. Campus Atelier & Calligraphic Swash typography with varied copy and no developer meta-notes', () => {
   const designSystem = read('src/styles/forumDesignSystem.css');
   const heroTitleCss = read('src/components/views/HomeHeroTitle.css');
   const homeView = read('src/components/views/HomeView.tsx');
@@ -292,14 +292,17 @@ test('7. Campus Atelier & Calligraphic Swash typography + "Học · Hỏi · Chi
     );
   }
 
-  /* "Học · Hỏi · Chia sẻ" ethos present in Leaderboard, Home, Landing, and Forum views */
-  assert.match(leaderboard, /Học · Hỏi · Chia sẻ/);
+  /* Copy varies by destination instead of repeating a one-size-fits-all slogan. */
+  assert.match(leaderboard, /Học chăm, hỏi kỹ, chia sẻ lời giải tường tận/);
   assert.match(leaderboard, /ff-board__ethos/);
-  assert.match(homeView, /Học · Hỏi · Chia sẻ/);
+  assert.match(homeView, /aria-label="Ba nhịp Học, Hỏi, Chia sẻ"/);
   assert.match(homeView, /ff-atelier-card/);
-  assert.match(landingHero, /Học · Hỏi · Chia sẻ/);
+  assert.match(landingHero, /Cộng đồng học thuật · Tri thức lớn từ đối thoại nhỏ/);
   assert.match(landingShowcase, /QUESTION_GUIDE/);
-  assert.match(landingFooter, /Học · Hỏi · Chia sẻ/);
+  assert.match(landingFooter, /Học thuật · Cộng đồng · Tài liệu/);
+  assert.doesNotMatch(homeView, /Học · Hỏi · Chia sẻ/);
+  assert.doesNotMatch(landingHero, /Học · Hỏi · Chia sẻ/);
+  assert.doesNotMatch(landingFooter, /Học · Hỏi · Chia sẻ/);
 
   /* Developer meta-notes / dry formula notes removed */
   const combinedCopy = [

@@ -33,7 +33,7 @@ export const LandingShowcase: React.FC<LandingShowcaseProps> = ({ onNavigate }) 
       <Reveal y={16}>
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <span className="ff-eyebrow">Học · Hỏi · Chia sẻ</span>
+            <span className="ff-eyebrow">Học hỏi · Trao đổi</span>
             <h2 className="ff-display ff-balance mt-3 text-2xl text-[var(--ff-text)] sm:text-3xl">
               <span className="ff-swash-cap">B</span>a nhịp tự học gắn kết trên cùng một mặt bàn.
             </h2>

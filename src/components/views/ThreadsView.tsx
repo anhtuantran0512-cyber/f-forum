@@ -6,7 +6,7 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Heart, Laugh, Flame, Zap, HandHeart, ImagePlus, Send,
+  Flame, ImagePlus, Send,
   Repeat2, Flag, Trash2, MessageSquareQuote, X,
   Search, Hash, Image as ImageIcon, Clock, TrendingUp,
   Bookmark, ZoomIn, BookOpen, PenLine, Sparkles,
@@ -18,19 +18,20 @@ import { safeStorage } from '../../utils/storage';
 import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
 import { useVirtualWindow } from '../../utils/virtualWindow';
 import { useInteractionDebounce } from '../../utils/interactionScheduler';
+import { ReactionPicker } from '../ui/ReactionPicker';
 import './ThreadsView.css';
 
 const SAVED_THREADS_KEY = 'fforum_saved_threads_v1';
 
 /* Giới hạn spec Final Lock */
 const THREAD_MAX_CHARS = 480;
-/* Bản ghi mặt cười/cảm xúc theo spec: love / haha / fire / wow / support */
-const REACTIONS: { type: ThreadReactionType; label: string; icon: React.FC<{ className?: string }> }[] = [
-  { type: 'love', label: 'Thương', icon: Heart },
-  { type: 'haha', label: 'Haha', icon: Laugh },
-  { type: 'fire', label: 'Bùng', icon: Flame },
-  { type: 'wow', label: 'Wow', icon: Zap },
-  { type: 'support', label: 'Ủng hộ', icon: HandHeart },
+/* Phản ứng phổ biến, mở từ một nút duy nhất theo kiểu Facebook. */
+const REACTIONS: { type: ThreadReactionType; label: string; emoji: string }[] = [
+  { type: 'love', label: 'Thương', emoji: '❤️' },
+  { type: 'haha', label: 'Haha', emoji: '😂' },
+  { type: 'fire', label: 'Bùng', emoji: '🔥' },
+  { type: 'wow', label: 'Wow', emoji: '😮' },
+  { type: 'support', label: 'Ủng hộ', emoji: '🙌' },
 ];
 
 const QUICK_TOPICS = ['#HọcTập', '#TâmSựĐêm', '#TìmĐồngĐội', '#ChiaSẻ', '#GócChill'] as const;
@@ -413,20 +414,16 @@ const ThreadCard = React.memo<{
         {showActions && (
           <div className="thread-actions">
             <div className="thread-reactions">
-              {REACTIONS.map(({ type, label, icon: Icon }) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => viewModel.onReact(rootThread.id, type)}
-                  className={`reaction-btn ${myReactions.includes(type) ? 'reacted' : ''}`}
-                  aria-label={`${label}${myReactions.includes(type) ? ' (đã chọn)' : ''}`}
-                  aria-pressed={myReactions.includes(type)}
-                  title={label}
-                >
-                  <Icon className="w-4 h-4" />
-                  {reactionCounts[type] > 0 && <span className="reaction-count">{reactionCounts[type]}</span>}
-                </button>
-              ))}
+              <ReactionPicker
+                options={REACTIONS}
+                counts={reactionCounts}
+                selected={myReactions}
+                label="Bày tỏ cảm xúc"
+                onReact={(type) => {
+                  if (!currentUser) viewModel.onOpenLoginModal?.();
+                  else viewModel.onReact(rootThread.id, type);
+                }}
+              />
             </div>
             <div className="thread-cta-group">
               <button type="button" onClick={() => setIsReplyOpen((v) => !v)} className={`action-text-btn ${isReplyOpen ? 'is-active' : ''}`}>
@@ -1094,7 +1091,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
               <div className="thread-room-title-block">
                 <span className="thread-room-kicker inline-flex items-center gap-1.5">
                   <span>F·FORUM / SỔ CHUNG</span>
-                  <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">Học · Hỏi · Chia sẻ</span>
+                  <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">Góp một lời, mở một góc nhìn.</span>
                 </span>
                 <h1 className="thread-room-title">
                   <span className="ff-swash-cap">M</span>ạch <em>chuyện</em>

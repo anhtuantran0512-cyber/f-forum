@@ -80,7 +80,7 @@ export interface AboutData {
 
 export const DEFAULT_ABOUT_DATA: AboutData = {
   headline: 'BroAmStuck Studio • Trần Văn Anh Tuấn',
-  subtitle: 'Khu Vinh Danh • Học · Hỏi · Chia sẻ — Kỷ vật & Lưu bút học đường',
+  subtitle: 'Khu Vinh Danh • Kỷ vật & lưu bút học đường',
   founder: {
     name: 'Trần Văn Anh Tuấn',
     role: 'Admin F-Forum • Owner BroAmStuck Studio',
@@ -128,7 +128,7 @@ export const DEFAULT_ABOUT_DATA: AboutData = {
     {
       id: 'ms-5',
       title: 'Hỏi Đáp Học Thuật',
-      category: 'Học · Hỏi · Chia sẻ',
+      category: 'Hỏi Đáp Học Thuật',
       place: 'Góc Học Tập Mở',
       imageUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260922_194350_28d92c80-de66-41cb-911e-b3b44aebe1f5.png',
       notes: 'Nơi bạn tự do hỏi bài tập khó, cùng nhau trao đổi phương pháp và tiến bộ mỗi ngày.',

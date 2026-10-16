@@ -284,6 +284,7 @@ export interface Question {
   subject: SubjectTag;
   content: string;
   authorId: string;
+  authorEmail?: string;
   authorName: string;
   authorAvatar: string;
   isAnonymous: boolean;

@@ -414,9 +414,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                     <span>
                       <span className="ff-swash-cap text-xs mr-0.5">F</span>·Chat
                     </span>
-                    <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px]">
-                      Học · Hỏi · Chia sẻ
-                    </span>
+                    <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px]">Chút chuyện, thêm thân tình.</span>
                     <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-[#81b29a]/15 text-[#81b29a] text-[9px] font-mono font-semibold border border-[#81b29a]/35">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#81b29a]" />
                       {dynamicOnlineCount}
