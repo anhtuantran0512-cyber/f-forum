@@ -400,7 +400,7 @@ export const ExamPaperViewerView: React.FC<ExamPaperViewerViewProps> = ({
             <span>Kho đề thi</span>
           </button>
           <span className="ff-paper-viewer__divider" aria-hidden="true">/</span>
-          <span className="ff-paper-viewer__brand-label"><BookOpen size={16} /> F-Forum Học tập</span>
+          <span className="ff-paper-viewer__brand-label flex items-center gap-1.5"><BookOpen size={16} /> <span><span className="ff-swash-cap text-sm">F</span>-Forum Học tập</span></span>
         </div>
         <div className="ff-paper-viewer__top-actions">
           <button

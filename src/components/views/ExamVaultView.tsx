@@ -1215,6 +1215,18 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 <>
                   <span className="ff-swash-cap">Đ</span>ề thi <span className="ff-calligraphic-flourish">theo môn</span>
                 </>
+              ) : activeTab === 'saved' ? (
+                <>
+                  <span className="ff-swash-cap">Đ</span>ề thi <span className="ff-calligraphic-flourish">đã lưu</span>
+                </>
+              ) : activeTab === 'cached' ? (
+                <>
+                  <span className="ff-swash-cap">K</span>ho lưu <span className="ff-calligraphic-flourish">ngoại tuyến</span>
+                </>
+              ) : activeTab === 'my_submissions' ? (
+                <>
+                  <span className="ff-swash-cap">B</span>ài đóng góp <span className="ff-calligraphic-flourish">của bạn</span>
+                </>
               ) : (
                 <>
                   <span className="ff-swash-cap">Đ</span>ề thi <span className="ff-calligraphic-flourish">&amp; đề cương</span>
@@ -1565,9 +1577,11 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         {filteredPapers.length === 0 ? (
           <div className="w-full rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center flex flex-col items-center sm:p-12">
             <BookOpen className="w-12 h-12 text-white/20 mb-3" />
-            <h3 className="text-base font-bold text-white mb-1">Không tìm thấy đề thi phù hợp</h3>
-            <p className="text-xs text-neutral-400 max-w-md mb-4">
-              Thử đổi từ khoá hoặc bộ lọc.
+            <h3 className="text-base font-bold text-[#f4f1de] mb-1">
+              <span className="ff-swash-cap text-base">C</span>hưa tìm thấy tài liệu phù hợp
+            </h3>
+            <p className="text-xs text-[#a39f96] max-w-md mb-4">
+              Hãy thử điều chỉnh từ khoá hoặc khối lớp. Nếu cậu có tài liệu hay, hãy chia sẻ cùng các bạn nhé!
             </p>
             <button
               type="button"
@@ -2334,11 +2348,12 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             </button>
 
             <div className="mb-4 pr-10">
-              <h2 id="submit-title" className="text-lg sm:text-xl font-bold text-white">
-                Gửi đề thi / đề cương
+              <h2 id="submit-title" className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                <span className="ff-swash-cap text-lg">G</span>ửi đề thi / đề cương
+                <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px]">Học · Hỏi · Chia sẻ</span>
               </h2>
-              <p className="text-xs text-neutral-300 mt-1">
-                Gửi tài liệu để BQT kiểm duyệt và chia sẻ.
+              <p className="text-xs text-[#a39f96] mt-1">
+                Gửi tài liệu để Ban Quản Trị kiểm duyệt và chia sẻ tới cộng đồng học sinh toàn trường.
               </p>
             </div>
 

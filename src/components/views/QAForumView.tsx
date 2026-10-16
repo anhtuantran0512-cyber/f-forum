@@ -1672,7 +1672,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             ) : (
               <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-[#9a978e] ff-bento-cell space-y-2">
                 <HelpCircle className="w-8 h-8 text-[#f2cc8f] mb-1" />
-                <p className="text-sm font-bold text-[#f4f1de]">Chưa có câu hỏi nào</p>
+                <p className="text-sm font-bold text-[#f4f1de]">
+                  <span className="ff-swash-cap text-base">C</span>hưa có câu hỏi nào
+                </p>
+                <p className="text-xs text-[#a39f96] max-w-sm">
+                  Cậu đang băn khoăn bài tập nào không? Hãy mở đầu bằng câu hỏi đầu tiên để cùng thảo luận nhé!
+                </p>
                 <button
                   type="button"
                   onClick={() => {
@@ -2092,10 +2097,13 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       <circle cx="18" cy="18" r="3.2" fill="#f8f7f4" />
                     </svg>
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex items-center gap-2">
                     <h3 className="font-bold text-lg sm:text-[22px] leading-tight tracking-tight ask2027-title-gradient truncate">
-                      Đặt câu hỏi
+                      <span className="ff-swash-cap text-xl">Đ</span>ặt câu hỏi
                     </h3>
+                    <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px] hidden sm:inline-flex">
+                      Học · Hỏi · Chia sẻ
+                    </span>
                   </div>
                 </div>
 
@@ -2774,10 +2782,15 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   title="Quay lại danh sách câu hỏi"
                 >
                   <ArrowLeft className="w-4 h-4 text-[#f2cc8f]" />
-                  <span>Diễn đàn Hỏi đáp</span>
+                  <span>
+                    <span className="ff-swash-cap text-xs">D</span>iễn đàn Hỏi đáp
+                  </span>
                 </button>
 
                 <span className="h-5 w-px bg-[#f4f1de]/15 hidden sm:block" aria-hidden="true" />
+                <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px] hidden md:inline-flex">
+                  Học · Hỏi · Chia sẻ
+                </span>
 
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
                   <span className={`ff-brutal-tag ${getSubjectBadgeStyle(selectedQuestion.subject)}`}>
@@ -3081,9 +3094,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   {/* Danh sách lời giải */}
                   <div className="space-y-4">
                     {activeSolutions.length === 0 ? (
-                      <div className="ff-bento-cell py-8 px-6 text-center">
+                      <div className="ff-bento-cell py-8 px-6 text-center space-y-1">
                         <p className="text-[#f4f1de] text-sm font-bold">
-                          Chưa có lời giải.
+                          <span className="ff-swash-cap text-base">C</span>hưa có lời giải nào được gửi
+                        </p>
+                        <p className="text-xs text-[#a39f96]">
+                          Cậu nắm rõ cách giải bài này chứ? Hãy viết lời giải để hỗ trợ bạn bè nhé!
                         </p>
                       </div>
                     ) : (
@@ -3288,7 +3304,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     <div className="ff-bento-cell !p-5 sm:!p-6 space-y-4">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <label htmlFor="field-2" className="text-sm sm:text-base font-extrabold text-[#f4f1de] flex items-center gap-2">
-                          <span>Viết lời giải của bạn</span>
+                          <span>
+                            <span className="ff-swash-cap text-base">V</span>iết lời giải của bạn
+                          </span>
                         </label>
                         <div className="flex items-center gap-2">
                           {solDraftRestoredAt && (

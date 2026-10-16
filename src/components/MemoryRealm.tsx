@@ -567,11 +567,16 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
 
           <header className="site-header" aria-label="Primary navigation">
             <a
-              className="site-logo"
+              className="site-logo flex items-center gap-2"
               href="#cinema"
               onClick={(e) => scrollToScrubPoint(e, 0)}
             >
-              Miền Ký Ức
+              <span>
+                <span className="ff-swash-cap text-base">M</span>iền Ký Ức
+              </span>
+              <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px] hidden sm:inline-flex">
+                Học · Hỏi · Chia sẻ
+              </span>
             </a>
             <nav className="site-nav" aria-label="Main menu">
               <a href="#cinema" onClick={(e) => scrollToScrubPoint(e, 0)}>

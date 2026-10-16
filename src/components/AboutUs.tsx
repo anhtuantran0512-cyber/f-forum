@@ -866,7 +866,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                   ? 'bg-[#f4f1de] text-[#0b0d12] border-[#0b0d12]'
                   : 'text-[#8c8783] hover:text-[#f4f2ef] border-transparent'
               }`}
-              title="Chế độ 3D Fibonacci Sphere"
+              title="Chế độ không gian kỷ niệm 3D"
             >
               <Globe className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">3D</span>
@@ -879,7 +879,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                   ? 'bg-[#f4f1de] text-[#0b0d12] border-[#0b0d12]'
                   : 'text-[#8c8783] hover:text-[#f4f2ef] border-transparent'
               }`}
-              title="Chế độ danh sách lưới phẳng (Bento Grid)"
+              title="Chế độ danh sách kỷ niệm"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Lưới</span>
