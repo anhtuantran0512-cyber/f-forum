@@ -77,8 +77,11 @@ test('Round 1: Virtual Windowing & Node Recycling Architecture', async () => {
 test('Threads UI: warm light theme, mobile filters, motion preference, and accessible reactions', () => {
   const threadsView = read('src/components/views/ThreadsView.tsx');
   const threadsCss = read('src/components/views/ThreadsView.css');
+  const reactionPicker = read('src/components/ui/ReactionPicker.tsx');
 
-  assert.match(threadsView, /aria-pressed=\{myReactions\.includes\(type\)\}/, 'Reaction toggles expose their selected state');
+  assert.match(threadsView, /<ReactionPicker/);
+  assert.match(reactionPicker, /aria-pressed=\{active\}/, 'Reaction toggles expose their selected state');
+  assert.match(reactionPicker, /<Smile aria-hidden="true"/, 'The reaction row is replaced by one emoji picker trigger');
   assert.match(threadsView, /thread-room-caption/, 'The redesigned thread page explains its community purpose');
   assert.match(threadsView, /thread-room-grid/, 'The editorial writing rail and feed have a dedicated layout');
   assert.ok(threadsView.includes('const matches = thread.content.match(/#[\\p{L}\\p{N}_]+/gu);'), 'Topic counts come from hashtags in loaded thread content');

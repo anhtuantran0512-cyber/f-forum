@@ -105,7 +105,7 @@ test('ExamFlashcardModal renders interactive 3D flip card, tracks mastery and ha
 
     /* 2. Top bar title & ribbon */
     assert.ok(modal.textContent.includes('Thẻ Ghi Nhớ & Ôn Tập Nhanh'));
-    assert.ok(modal.textContent.includes('Học · Hỏi · Chia sẻ'));
+    assert.ok(modal.textContent.includes('Ôn từng thẻ, nhớ sâu hơn.'), 'flashcards use concise, task-specific Vietnamese copy');
 
     /* 3. Flip card inner */
     const cardInner = modal.querySelector('.ff-flashcard-inner');

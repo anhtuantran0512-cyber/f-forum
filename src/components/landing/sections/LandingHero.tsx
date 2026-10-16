@@ -104,7 +104,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ currentUser, onOpenAut
             <span className="ff-chip gap-2 px-4 py-2">
               <BookOpenCheck className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
               <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[var(--ff-text-soft)]">
-                Diễn đàn học thuật · Học · Hỏi · Chia sẻ
+                Cộng đồng học thuật · Tri thức lớn từ đối thoại nhỏ
               </span>
             </span>
           </Reveal>

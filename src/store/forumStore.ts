@@ -2280,8 +2280,16 @@ export function useForumStore() {
     };
   });
 
-  const updateProfile = async (updates: Partial<User>) => {
-    if (!currentUser) return;
+  const updateProfile = async (updates: Partial<User>, expectedOwnerId: string): Promise<boolean> => {
+    if (!currentUser) return false;
+    if (!expectedOwnerId || expectedOwnerId !== currentUser.id) {
+      setToastMessage({
+        title: 'Không lưu được hồ sơ',
+        subtitle: 'Hồ sơ không thuộc tài khoản đang đăng nhập.',
+        type: 'error',
+      });
+      return false;
+    }
     const emailKey = currentUser.email.toLowerCase();
 
     const previousUser = currentUser;
@@ -2316,7 +2324,7 @@ export function useForumStore() {
         subtitle: profileOutcome.message,
         type: 'error',
       });
-      return;
+      return false;
     }
 
     const savedUser = (profileOutcome.data?.user || updated) as User;
@@ -2341,6 +2349,7 @@ export function useForumStore() {
       subtitle: 'Thông tin mới đã được cập nhật toàn hệ thống F-Forum.',
       type: 'success',
     });
+    return true;
   };
 
   const createClub = async (clubData: {
@@ -3414,8 +3423,18 @@ export function useForumStore() {
     reasonCode?: ModerationReasonCode,
     reasonNote?: string,
   ): Promise<boolean> => {
-    if (!currentUser || !canEditContentNow(currentUser.email)) {
-      alert('Chỉ Super Admin hoặc vai trò có quyền sửa nội dung mới được xóa bài viết!');
+    if (!currentUser) return false;
+    const targetQuestion = questions.find((question) => question.id === questionId);
+    const questionAuthorId = targetQuestion?.authorId?.trim();
+    const viewerId = currentUser.id?.trim();
+    const isOwner = Boolean(targetQuestion && (
+      viewerId && questionAuthorId
+        ? viewerId === questionAuthorId
+        : targetQuestion.authorEmail?.trim().toLowerCase() === currentUser.email.trim().toLowerCase()
+    ));
+    const isModerator = canEditContentNow(currentUser.email);
+    if (!isOwner && !isModerator) {
+      setToastMessage({ title: 'Không có quyền', subtitle: 'Chỉ tác giả hoặc người có quyền kiểm duyệt mới được xóa câu hỏi.', type: 'error' });
       return false;
     }
 
@@ -3427,10 +3446,10 @@ export function useForumStore() {
     setQuestions(prev => prev.filter(q => q.id !== questionId));
     setSolutions(prev => prev.filter(s => s.questionId !== questionId));
 
+    const isModerationAction = isModerator && !isOwner;
     const outcome = await runServerAction('/api/questions/delete', {
       questionId,
-      reasonCode: reasonCode || 'rule_violation',
-      reasonNote,
+      ...(isModerationAction ? { reasonCode: reasonCode || 'rule_violation', reasonNote } : {}),
     });
     if (!outcome.ok) {
       setQuestions(prevQuestions);
@@ -3454,8 +3473,8 @@ export function useForumStore() {
 
     playChime('send');
     setToastMessage({
-      title: 'Đã xóa bài viết vi phạm',
-      subtitle: 'Nội dung và nhật ký kiểm duyệt đã được lưu lại.',
+      title: isOwner ? 'Đã xóa câu hỏi của bạn' : 'Đã xóa bài viết vi phạm',
+      subtitle: isOwner ? 'Câu hỏi và các lời giải đã được gỡ.' : 'Nội dung và nhật ký kiểm duyệt đã được lưu lại.',
       type: 'success',
     });
     return true;
@@ -3465,8 +3484,18 @@ export function useForumStore() {
     questionId: string,
     updates: { title?: string; content?: string; subject?: SubjectTag }
   ): Promise<boolean> => {
-    if (!currentUser || !canEditContentNow(currentUser.email)) {
-      alert('Chỉ Super Admin hoặc vai trò có quyền sửa nội dung mới được sửa bài viết!');
+    if (!currentUser) return false;
+    const targetQuestion = questions.find((question) => question.id === questionId);
+    const questionAuthorId = targetQuestion?.authorId?.trim();
+    const viewerId = currentUser.id?.trim();
+    const isOwner = Boolean(targetQuestion && (
+      viewerId && questionAuthorId
+        ? viewerId === questionAuthorId
+        : targetQuestion.authorEmail?.trim().toLowerCase() === currentUser.email.trim().toLowerCase()
+    ));
+    const isModerator = canEditContentNow(currentUser.email);
+    if (!isOwner && !isModerator) {
+      setToastMessage({ title: 'Không có quyền', subtitle: 'Chỉ tác giả hoặc người có quyền kiểm duyệt mới được sửa câu hỏi.', type: 'error' });
       return false;
     }
 

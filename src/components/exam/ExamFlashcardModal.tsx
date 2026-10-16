@@ -184,9 +184,7 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
                 <h3 className="ff-typo-poster !text-base sm:!text-lg text-[#f4f1de]">
                   <span className="ff-swash-cap text-base">T</span>hẻ Ghi Nhớ &amp; Ôn Tập Nhanh
                 </h3>
-                <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">
-                  Học · Hỏi · Chia sẻ
-                </span>
+                <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">Ôn từng thẻ, nhớ sâu hơn.</span>
               </div>
               <p className="text-xs text-[#9a978e] truncate max-w-md mt-0.5">
                 {paper.title} · Môn {paper.subject} Lớp {paper.grade}

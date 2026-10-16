@@ -30,19 +30,20 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
         muted
         playsInline
         preload="metadata"
+        poster="/assets/video/coming-soon-poster.webp"
         aria-hidden="true"
         onError={(e) => handleVideoError(e, COMING_SOON_VIDEO_URL)}
         onLoadedMetadata={(e) => {
           e.currentTarget.playbackRate = 0.72;
         }}
-        className={`ff-video-bg fixed inset-0 w-full h-full object-cover scale-[1.04] opacity-40 ${webmUrl ? '' : 'blur-[3px]'} z-0 pointer-events-none`}
+        className={`ff-video-bg ff-coming-soon-video fixed inset-0 w-full h-full object-cover scale-[1.02] opacity-60 ${webmUrl ? '' : 'blur-[2px]'} z-0 pointer-events-none`}
       >
         {webmUrl ? <source src={webmUrl} type="video/webm" /> : null}
         <source src={COMING_SOON_VIDEO_URL} type="video/mp4" />
       </video>
 
-      <div className="fixed inset-0 bg-[#070b14]/70 z-0 pointer-events-none" />
-      <div className="fixed inset-0 bg-gradient-to-t from-[#050811] via-transparent to-[#050811]/85 z-0 pointer-events-none" />
+      <div className="fixed inset-0 bg-[#070b14]/44 z-0 pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-to-t from-[#050811]/88 via-[#050811]/[0.04] to-[#050811]/72 z-0 pointer-events-none" />
 
       <div className="h-20 shrink-0" />
 
@@ -68,12 +69,12 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
                 key={mod.id}
                 className="p-4 rounded-2xl bg-[#13161f]/90 border-[1.5px] border-[#f4f1de]/16 shadow-[3px_3px_0px_rgba(4,6,11,0.9)] flex items-center justify-between gap-3"
               >
-                <div>
+                <div className="min-w-0">
                   <span className="text-[10px] font-mono font-bold text-[#f2cc8f]">#{mod.code}</span>
-                  <h3 className="text-xs sm:text-sm font-extrabold tracking-wider uppercase text-[#f4f1de] mt-0.5">
+                  <h3 className="truncate whitespace-nowrap text-xs sm:text-sm font-extrabold tracking-wider uppercase text-[#f4f1de] mt-0.5">
                     {mod.title}
                   </h3>
-                  <span className="text-[10.5px] font-mono text-[#81b29a]">{mod.status}</span>
+                  <span className="block truncate whitespace-nowrap text-[10.5px] font-mono text-[#81b29a]">{mod.status}</span>
                 </div>
                 <span className="w-9 h-9 rounded-xl bg-[#f4f1de]/[0.06] border border-[#f4f1de]/15 flex items-center justify-center shrink-0">
                   <Icon className="w-4 h-4 text-[#f2cc8f]" />

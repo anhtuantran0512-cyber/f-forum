@@ -35,8 +35,6 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
-  ThumbsUp,
-  Heart,
 } from 'lucide-react';
 import type {
   Question,
@@ -87,6 +85,7 @@ import { CommentSkeletonList } from '../Skeletons';
 import { postJson } from '../../utils/session';
 import { describeReportResult, settleReportRequest } from '../../utils/reports';
 import { ShareRow } from '../ui/ShareRow';
+import { ReactionPicker } from '../ui/ReactionPicker';
 import { buildQuestionShareUrl, readSharedQuestionId, stripSharedQuestionParam } from '../../utils/shareLinks';
 import './QAForumView.css';
 
@@ -290,6 +289,8 @@ const MathSymbolsBar: React.FC<{
   );
 };
 
+const BQT_REMINDER_TEXT = '[CẢNH BÁO TỪ BQT: Bài viết cần tuân thủ văn hóa ứng xử và quy định của diễn đàn F-Forum]';
+
 const MODERATION_REASON_OPTIONS: { code: ModerationReasonCode; label: string }[] = [
   { code: 'inappropriate', label: 'Nội dung không phù hợp' },
   { code: 'spam', label: 'Spam / Quảng cáo' },
@@ -301,11 +302,11 @@ const MODERATION_REASON_OPTIONS: { code: ModerationReasonCode; label: string }[]
 const QUICK_REACTION_META: {
   type: QAReactionType;
   label: string;
-  Icon: React.ComponentType<{ className?: string }>;
+  emoji: string;
 }[] = [
-  { type: 'helpful', label: 'Hữu ích', Icon: ThumbsUp },
-  { type: 'mindblown', label: 'Sáng tạo', Icon: Sparkles },
-  { type: 'thanks', label: 'Cảm ơn', Icon: Heart },
+  { type: 'helpful', label: 'Hữu ích', emoji: '👍' },
+  { type: 'mindblown', label: 'Sáng tạo', emoji: '🤯' },
+  { type: 'thanks', label: 'Cảm ơn', emoji: '🙏' },
 ];
 
 const QuickReactionRow: React.FC<{
@@ -314,30 +315,26 @@ const QuickReactionRow: React.FC<{
   onReact?: (type: QAReactionType) => void;
 }> = ({ reactions, currentUserEmail, onReact }) => {
   const userKey = currentUserEmail?.toLowerCase() || '';
+  const counts = QUICK_REACTION_META.reduce<Partial<Record<QAReactionType, number>>>(
+    (result, item) => {
+      result[item.type] = reactions?.[item.type]?.length || 0;
+      return result;
+    },
+    {},
+  );
+  const selected = QUICK_REACTION_META
+    .filter(item => Boolean(userKey && reactions?.[item.type]?.includes(userKey)))
+    .map(item => item.type);
+
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
-      {QUICK_REACTION_META.map((item) => {
-        const list = reactions?.[item.type] || [];
-        const count = list.length;
-        const active = Boolean(userKey && list.includes(userKey));
-        const IconComp = item.Icon;
-        return (
-          <button
-            key={item.type}
-            type="button"
-            onClick={() => onReact?.(item.type)}
-            className={`ff-tactile-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border-[1.5px] transition-colors cursor-pointer ${
-              active
-                ? 'bg-[#e07a5f]/22 border-[#e07a5f]/55 text-[#f4f1de]'
-                : 'bg-[#f4f1de]/[0.04] hover:bg-[#f4f1de]/[0.09] border-[#f4f1de]/14 text-[#d8d5ce] hover:text-[#f4f1de]'
-            }`}
-          >
-            <IconComp className="w-3.5 h-3.5 shrink-0" />
-            <span>{item.label}</span>
-            {count > 0 && <span className="font-mono text-[10px] font-bold ml-0.5 text-[#f2cc8f]">{count}</span>}
-          </button>
-        );
-      })}
+    <div className="qa-reaction-row">
+      <ReactionPicker
+        options={QUICK_REACTION_META}
+        counts={counts}
+        selected={selected}
+        label="Bày tỏ cảm xúc"
+        onReact={type => onReact?.(type)}
+      />
     </div>
   );
 };
@@ -518,9 +515,9 @@ interface QAForumViewProps {
   onReactQuestion?: (questionId: string, reactionType: QAReactionType) => void;
   onReactSolution?: (solutionId: string, reactionType: QAReactionType) => void;
   onMarkBestSolution: (questionId: string, solutionId: string) => void;
-  onDeleteQuestion?: (questionId: string, reasonCode?: ModerationReasonCode, reasonNote?: string) => void;
-  onEditQuestion?: (questionId: string, updates: { title?: string; content?: string; subject?: SubjectTag }) => void;
-  onDeleteSolution?: (solutionId: string, reasonCode?: ModerationReasonCode, reasonNote?: string) => void;
+  onDeleteQuestion?: (questionId: string, reasonCode?: ModerationReasonCode, reasonNote?: string) => Promise<boolean> | void;
+  onEditQuestion?: (questionId: string, updates: { title?: string; content?: string; subject?: SubjectTag }) => Promise<boolean> | void;
+  onDeleteSolution?: (solutionId: string, reasonCode?: ModerationReasonCode, reasonNote?: string) => Promise<boolean> | void;
   onOpenLoginModal?: () => void;
   onOpenProfile?: (user?: { id: string; name: string; avatar: string; email?: string; level?: number }) => void;
   isEmbedded?: boolean;
@@ -823,7 +820,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [editTitle, setEditTitle] = useState('');
   const [editSubject, setEditSubject] = useState<SubjectTag>('toan');
   const [editContent, setEditContent] = useState('');
+  const [includeBQTReminder, setIncludeBQTReminder] = useState(false);
+  const [isSavingQuestionEdit, setIsSavingQuestionEdit] = useState(false);
+  const [isDeletingQuestion, setIsDeletingQuestion] = useState(false);
+  const [isDeletingSolution, setIsDeletingSolution] = useState(false);
   const [openMenuQuestionId, setOpenMenuQuestionId] = useState<string | null>(null);
+  const isDeletePending = questionToDelete ? isDeletingQuestion : isDeletingSolution;
 
   /* CŨ: so sánh email đã lowercase với chuỗi có chữ hoa → luôn false, Super Admin mất
      toàn bộ nút quản trị bài viết. MỚI: isMasterAdmin() không phân biệt hoa thường. */
@@ -831,68 +833,98 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   /* Epic 3 — sửa/xoá nội dung: Super Admin hoặc vai trò tùy chỉnh có quyền edit_content. */
   const adminCaps = useAdminCaps();
   const canEditContent = isSuperAdmin || capsHas(adminCaps, 'edit_content');
+  const isQuestionOwner = (question: Question | null | undefined) => {
+    if (!currentUser || !question) return false;
+    if (currentUser.id && question.authorId) return String(currentUser.id) === String(question.authorId);
+    return question.authorEmail?.trim().toLowerCase() === currentUser.email.trim().toLowerCase();
+  };
+  const canManageQuestion = (question: Question | null | undefined) =>
+    canEditContent || isQuestionOwner(question);
 
   const handleAdminDeletePost = (questionId: string) => {
     const q = questions.find(item => item.id === questionId);
-    if (q) {
+    if (q && canManageQuestion(q)) {
       setDeleteReasonCode('rule_violation');
       setDeleteReasonNote('');
       setQuestionToDelete(q);
     }
   };
 
-  const handleConfirmDelete = () => {
-    if (!deleteReasonCode) return;
-    if (questionToDelete && onDeleteQuestion) {
-      onDeleteQuestion(questionToDelete.id, deleteReasonCode, deleteReasonNote.trim().slice(0, 200) || undefined);
-      if (selectedQuestion?.id === questionToDelete.id) {
-        setSelectedQuestion(null);
-      }
+  const handleConfirmDelete = async () => {
+    if (!questionToDelete || !onDeleteQuestion || !canManageQuestion(questionToDelete) || isDeletingQuestion) return;
+    const requiresReason = canEditContent && !isQuestionOwner(questionToDelete);
+    if (requiresReason && !deleteReasonCode) return;
+    setIsDeletingQuestion(true);
+    try {
+      const deleted = await onDeleteQuestion(
+        questionToDelete.id,
+        requiresReason ? deleteReasonCode : undefined,
+        requiresReason ? deleteReasonNote.trim().slice(0, 200) || undefined : undefined,
+      );
+      if (deleted === false) return;
+      if (selectedQuestion?.id === questionToDelete.id) setSelectedQuestion(null);
       setQuestionToDelete(null);
       setDeleteReasonNote('');
+    } finally {
+      setIsDeletingQuestion(false);
     }
   };
 
-  const handleConfirmDeleteSolution = () => {
-    if (!deleteReasonCode) return;
-    if (solutionToDelete && onDeleteSolution) {
-      onDeleteSolution(solutionToDelete.id, deleteReasonCode, deleteReasonNote.trim().slice(0, 200) || undefined);
+  const handleConfirmDeleteSolution = async () => {
+    if (!deleteReasonCode || !solutionToDelete || !onDeleteSolution || isDeletingSolution) return;
+    setIsDeletingSolution(true);
+    try {
+      const deleted = await onDeleteSolution(
+        solutionToDelete.id,
+        deleteReasonCode,
+        deleteReasonNote.trim().slice(0, 200) || undefined,
+      );
+      if (deleted === false) return;
       setSolutionToDelete(null);
       setDeleteReasonNote('');
+    } finally {
+      setIsDeletingSolution(false);
     }
   };
 
   const handleAdminEditPost = (questionId: string) => {
     const q = questions.find(item => item.id === questionId);
-    if (q) {
+    if (q && canManageQuestion(q)) {
       setQuestionToEdit(q);
       setEditTitle(q.title);
       setEditSubject(q.subject);
       setEditContent(q.content);
+      setIncludeBQTReminder(false);
     }
   };
 
-  const handleConfirmEdit = (e: React.FormEvent) => {
+  const handleConfirmEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (questionToEdit && onEditQuestion) {
-      onEditQuestion(questionToEdit.id, {
+    if (!questionToEdit || !onEditQuestion || !canManageQuestion(questionToEdit) || isSavingQuestionEdit) return;
+    setIsSavingQuestionEdit(true);
+    const plainContent = editContent.trim().slice(0, 1500);
+    const mayAddBqtReminder = canEditContent && !isQuestionOwner(questionToEdit) && includeBQTReminder;
+    const reminder = mayAddBqtReminder && !plainContent.includes(BQT_REMINDER_TEXT)
+      ? `${plainContent.slice(0, Math.max(0, 1500 - BQT_REMINDER_TEXT.length - 2)).trimEnd()}\n\n${BQT_REMINDER_TEXT}`
+      : plainContent;
+    try {
+      const saved = await onEditQuestion(questionToEdit.id, {
         title: editTitle.trim(),
         subject: editSubject,
-        content: editContent.trim(),
+        content: reminder,
       });
+      if (saved === false) return;
       if (selectedQuestion?.id === questionToEdit.id) {
-        setSelectedQuestion(prev =>
-          prev
-            ? {
-                ...prev,
-                title: editTitle.trim(),
-                subject: editSubject,
-                content: editContent.trim(),
-              }
-            : null
-        );
+        setSelectedQuestion((previous) => previous
+          ? { ...previous, title: editTitle.trim(), subject: editSubject, content: reminder }
+          : null);
       }
       setQuestionToEdit(null);
+      setIncludeBQTReminder(false);
+    } catch {
+      return;
+    } finally {
+      setIsSavingQuestionEdit(false);
     }
   };
 
@@ -1440,7 +1472,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     {questions.length} câu · {questions.filter(q => q.isSolved).length} giải
                   </span>
                   <span className="ff-atelier-ribbon hidden sm:inline-flex !py-0.5 !px-2.5 !text-[10px]">
-                    Học · Hỏi · Chia sẻ
+                    Hỏi cho tỏ, học cho thông.
                   </span>
                 </div>
                 <svg className="w-28 h-2 mt-0.5 ff-organic-squiggle" viewBox="0 0 140 8" aria-hidden="true">
@@ -1864,7 +1896,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             <Flag size={14} />
                           </button>
 
-                          {canEditContent && (
+                          {canManageQuestion(q) && (
                             <div className="relative">
                               <button
                                 type="button"
@@ -2112,7 +2144,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       <span className="ff-swash-cap text-xl">Đ</span>ặt câu hỏi
                     </h3>
                     <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px] hidden sm:inline-flex">
-                      Học · Hỏi · Chia sẻ
+                      Nêu rõ điều mình vướng.
                     </span>
                   </div>
                 </div>
@@ -2799,7 +2831,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
                 <span className="h-5 w-px bg-[#f4f1de]/15 hidden sm:block" aria-hidden="true" />
                 <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px] hidden md:inline-flex">
-                  Học · Hỏi · Chia sẻ
                 </span>
 
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
@@ -2880,7 +2911,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   <span className="hidden md:inline">Báo cáo</span>
                 </button>
 
-                {canEditContent && (
+                {canManageQuestion(selectedQuestion) && (
                   <>
                     <button
                       type="button"
@@ -2911,9 +2942,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               onScroll={handleDetailScroll}
               className="flex-1 overflow-y-auto min-h-0"
             >
-              <div className="max-w-[1380px] w-full mx-auto px-4 sm:px-8 lg:px-12 py-6 sm:py-8 grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
+              <div className="ff-qa-detail-layout max-w-[1380px] w-full mx-auto px-4 sm:px-8 lg:px-12 py-6 sm:py-8 grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
                 {/* CỘT CHÍNH (8/12) */}
-                <div className="lg:col-span-8 min-w-0 space-y-6">
+                <div className="ff-qa-main-column lg:col-span-8 min-w-0 space-y-6">
                   {/* Khối câu hỏi chính */}
                   <div className="question-card">
                     <div className="question-text min-w-0">
@@ -2998,8 +3029,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         {selectedQuestion.title}
                       </h1>
 
-                      <div className="p-4 sm:p-5 rounded-xl bg-[#0b0d12]/80 border border-[#f4f1de]/14 mb-4">
-                        <p className="text-sm sm:text-base text-[#f4f1de] leading-[1.8] whitespace-pre-line">
+                      <div className="ff-qa-question-copy p-4 sm:p-5 rounded-xl bg-[#0b0d12]/80 border border-[#f4f1de]/14 mb-4">
+                        <p className="ff-qa-prose text-sm sm:text-base text-[#f4f1de] leading-[1.8] whitespace-pre-line">
                           {selectedQuestion.content}
                         </p>
                       </div>
@@ -3102,7 +3133,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   </div>
 
                   {/* Danh sách lời giải */}
-                  <div className="space-y-4">
+                  <div className="ff-qa-answers space-y-4">
                     {activeSolutions.length === 0 ? (
                       <div className="ff-bento-cell py-8 px-6 text-center space-y-1">
                         <p className="text-[#f4f1de] text-sm font-bold">
@@ -3125,7 +3156,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             key={sol.id}
                             className={`answer-card ${sol.isBest ? 'verified' : ''}`}
                           >
-                            <div className="flex items-center justify-between mb-3 pb-3 border-b border-white/[0.08] flex-wrap gap-2">
+                            <div className="ff-qa-answer-header flex items-center justify-between mb-3 pb-3 border-b border-white/[0.08] flex-wrap gap-2">
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -3197,8 +3228,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               </div>
                             </div>
 
-                            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
-                              <p className="text-sm sm:text-[15px] text-slate-100 leading-[1.78] whitespace-pre-line">
+                            <div className="ff-qa-answer-copy p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+                              <p className="ff-qa-prose text-sm sm:text-[15px] text-slate-100 leading-[1.78] whitespace-pre-line">
                                 {sol.content}
                               </p>
                             </div>
@@ -3563,14 +3594,15 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         document.body
       )}
 
-      {/* Phase 4.6 Modal: Xác nhận xóa bài viết / lời giải có lý do bắt buộc (Admin / Moderator) — rộng rãi & portaled */}
-      {canEditContent && (questionToDelete || solutionToDelete) && typeof document !== 'undefined' && createPortal(
+      {/* Owner removes their own question directly; moderation deletes require a reason and an audit log. */}
+      {(canEditContent && (questionToDelete || solutionToDelete) || Boolean(questionToDelete && isQuestionOwner(questionToDelete))) && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-modal="true"
           aria-label={questionToDelete ? 'Xác nhận xóa câu hỏi' : 'Xác nhận xóa lời giải'}
+          aria-busy={isDeletePending}
           onClick={(e) => {
-            if (e.target === e.currentTarget) {
+            if (!isDeletePending && e.target === e.currentTarget) {
               setQuestionToDelete(null);
               setSolutionToDelete(null);
               setDeleteReasonNote('');
@@ -3597,7 +3629,8 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   setSolutionToDelete(null);
                   setDeleteReasonNote('');
                 }}
-                className="ff-tactile-btn p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
+                disabled={isDeletePending}
+                className="ff-tactile-btn p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Đóng"
               >
                 <X className="w-4 h-4" />
@@ -3617,6 +3650,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 )}
               </div>
 
+              {canEditContent && (!questionToDelete || !isQuestionOwner(questionToDelete)) && (
               <div className="space-y-2.5">
                 <span className="block text-xs sm:text-sm font-bold text-[#f4f1de]">
                   Lý do (*):
@@ -3636,6 +3670,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         name="moderation-reason-code"
                         value={opt.code}
                         checked={deleteReasonCode === opt.code}
+                        disabled={isDeletePending}
                         onChange={() => setDeleteReasonCode(opt.code)}
                         className="accent-rose-500"
                       />
@@ -3644,7 +3679,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   ))}
                 </div>
               </div>
+              )}
 
+              {canEditContent && (!questionToDelete || !isQuestionOwner(questionToDelete)) && (
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs sm:text-sm font-bold text-[#f4f1de]">
@@ -3656,11 +3693,13 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   type="text"
                   maxLength={200}
                   value={deleteReasonNote}
+                  disabled={isDeletePending}
                   onChange={e => setDeleteReasonNote(e.target.value)}
                   placeholder="Ghi chú thêm (nếu có)..."
                   className="w-full bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-rose-400"
                 />
               </div>
+              )}
             </div>
 
             <div className="modal-footer px-6 sm:px-8 py-4 bg-[#0b0d12]/60 flex items-center justify-end gap-3">
@@ -3671,16 +3710,18 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   setSolutionToDelete(null);
                   setDeleteReasonNote('');
                 }}
-                className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#0b0d12] hover:bg-[#f4f1de]/10 border border-[#f4f1de]/18 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-[#f4f1de] transition-colors cursor-pointer"
+                disabled={isDeletePending}
+                className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#0b0d12] hover:bg-[#f4f1de]/10 border border-[#f4f1de]/18 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-[#f4f1de] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Hủy
               </button>
               <button
                 type="button"
+                disabled={isDeletePending}
                 onClick={questionToDelete ? handleConfirmDelete : handleConfirmDeleteSolution}
-                className="ff-tactile-btn px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs sm:text-sm transition-all cursor-pointer"
+                className="ff-tactile-btn px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs sm:text-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait"
               >
-                Xóa
+                {isDeletePending ? 'Đang xóa…' : 'Xóa'}
               </button>
             </div>
           </div>
@@ -3689,13 +3730,13 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
       )}
 
       {/* Modal: Chỉnh sửa bài viết & nội dung Q&A — Rộng rãi (max-w-2xl), có thanh ký hiệu toán học & portaled */}
-      {canEditContent && questionToEdit && typeof document !== 'undefined' && createPortal(
+      {(canEditContent || isQuestionOwner(questionToEdit)) && questionToEdit && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-modal="true"
           aria-label="Chỉnh sửa câu hỏi"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setQuestionToEdit(null);
+            if (!isSavingQuestionEdit && e.target === e.currentTarget) setQuestionToEdit(null);
           }}
           className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-fade-up"
         >
@@ -3712,19 +3753,21 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               <button
                 type="button"
                 onClick={() => setQuestionToEdit(null)}
-                className="ff-tactile-btn p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
+                disabled={isSavingQuestionEdit}
+                className="ff-tactile-btn p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Đóng"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleConfirmEdit} className="flex flex-col flex-1 min-h-0">
+            <form onSubmit={handleConfirmEdit} aria-busy={isSavingQuestionEdit} className="flex flex-col flex-1 min-h-0">
               <div className="modal-body px-6 sm:px-8 py-6 space-y-5">
                 <div>
                   <label className="block text-xs sm:text-sm font-bold text-[#f4f1de] mb-2">Môn học / Chuyên mục (*):</label>
                   <select
                     value={editSubject}
+                    disabled={isSavingQuestionEdit}
                     onChange={e => setEditSubject(e.target.value as SubjectTag)}
                     className="w-full bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f] font-semibold"
                   >
@@ -3749,6 +3792,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     required
                     maxLength={150}
                     value={editTitle}
+                    disabled={isSavingQuestionEdit}
                     onChange={e => setEditTitle(e.target.value)}
                     className="w-full bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm sm:text-[15px] text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
                   />
@@ -3759,20 +3803,20 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     <label className="text-xs sm:text-sm font-bold text-[#f4f1de]">Nội dung chi tiết (*):</label>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-mono text-[#9a978e]">{editContent.length}/1500</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const warning = '\n\n[CẢNH BÁO TỪ BQT: Bài viết cần tuân thủ văn hóa ứng xử và quy định của diễn đàn F-Forum]';
-                          if (!editContent.includes(warning.trim())) {
-                            setEditContent(prev => (prev + warning).slice(0, 1500));
-                          }
-                        }}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-lg bg-rose-500/15 text-rose-200 hover:bg-rose-500/25 border border-rose-400/35 transition-colors cursor-pointer"
-                        title="Gắn cảnh báo vi phạm nội quy"
-                      >
-                        <AlertTriangle size={12} />
-                        <span>Chèn nhắc nhở nội quy</span>
-                      </button>
+                      {canEditContent && !isQuestionOwner(questionToEdit) && (
+                        <label className="inline-flex items-center gap-2 rounded-lg border border-rose-400/30 bg-rose-500/10 px-2.5 py-1.5 text-xs font-semibold text-rose-100 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={includeBQTReminder}
+                            disabled={isSavingQuestionEdit}
+                            onChange={e => setIncludeBQTReminder(e.target.checked)}
+                            aria-label="Thêm nhắc nhở từ BQT vào nội dung"
+                            className="accent-rose-400"
+                          />
+                          <AlertTriangle size={12} aria-hidden="true" />
+                          <span>BQT nhắc nhở</span>
+                        </label>
+                      )}
                     </div>
                   </div>
                   <textarea
@@ -3780,6 +3824,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     rows={7}
                     maxLength={1500}
                     value={editContent}
+                    disabled={isSavingQuestionEdit}
                     onChange={e => setEditContent(e.target.value)}
                     className="w-full min-h-[180px] bg-[#0b0d12] border-[1.5px] border-[#f4f1de]/20 rounded-xl px-4 py-3.5 text-sm sm:text-[15px] text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f] leading-relaxed resize-y"
                   />
@@ -3794,15 +3839,17 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setQuestionToEdit(null)}
-                  className="px-4 py-2.5 rounded-xl bg-[#0b0d12] hover:bg-[#f4f1de]/10 border border-[#f4f1de]/18 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
+                  disabled={isSavingQuestionEdit}
+                  className="px-4 py-2.5 rounded-xl bg-[#0b0d12] hover:bg-[#f4f1de]/10 border border-[#f4f1de]/18 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Hủy bỏ
                 </button>
                 <button
                   type="submit"
-                  className="ff-tactile-btn px-6 py-2.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border border-[#f4f1de] font-extrabold text-xs sm:text-sm cursor-pointer"
+                  disabled={isSavingQuestionEdit}
+                  className="ff-tactile-btn px-6 py-2.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border border-[#f4f1de] font-extrabold text-xs sm:text-sm cursor-pointer disabled:opacity-60 disabled:cursor-wait"
                 >
-                  Lưu thay đổi bài viết
+                  {isSavingQuestionEdit ? 'Đang lưu…' : 'Lưu thay đổi bài viết'}
                 </button>
               </div>
             </form>

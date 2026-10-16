@@ -85,7 +85,7 @@ const INITIAL_VINHDANH_RECORDS: VinhDanhRecord[] = [
     id: 'vd-4',
     imgId: 'hf_20260922_194349_e588abd3-1bfa-4918-894f-05632cc51ccc',
     title: 'Sàn Hỏi Đáp Thân Thiện',
-    place: 'Học · Hỏi · Chia sẻ',
+    place: 'Góc học tập mở',
     note: 'Nơi bạn tự do hỏi bài tập khó, cùng nhau trao đổi phương pháp và tiến bộ mỗi ngày.',
   },
   {
@@ -804,7 +804,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     saveAboutDataToServer({
       ...currentAbout,
       headline: nextHeadlineWords.join(' '),
-      subtitle: 'Khu Vinh Danh • Học · Hỏi · Chia sẻ — Kỷ vật & Lưu bút học đường',
+      subtitle: 'Khu Vinh Danh • Kỷ vật & lưu bút học đường',
       headlineWords: nextHeadlineWords,
       colophon: nextColophon,
       introFilmUrl: nextIntroFilmUrl,
@@ -1205,9 +1205,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         >
           <span>
             <span className="ff-swash-cap text-2xl">K</span>hu Vinh Danh
-          </span>
-          <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px] hidden sm:inline-flex">
-            Học · Hỏi · Chia sẻ
           </span>
         </a>
 

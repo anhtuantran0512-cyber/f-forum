@@ -57,15 +57,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
             type="button"
             onClick={() => setHeadlinePhase((prev) => (prev === 0 ? 1 : 0))}
             className="ff-atelier-ribbon backdrop-blur-md hover:border-[#f2cc8f] transition-colors cursor-pointer"
-            title="Đổi nhịp đề từ trang chủ"
-            aria-label="Đổi nhịp đề từ: Học · Hỏi · Chia sẻ"
+            title="Chạm để đổi câu nhắc"
+            aria-label={`Đổi câu nhắc: ${headlinePhase === 0 ? 'Học thầy không tày học bạn' : 'Có công mài sắt, có ngày nên kim'}`}
           >
-            <span className="ff-swash-cap !text-sm">H</span>
-            <span>ọc · </span>
-            <span className="ff-swash-cap !text-sm">H</span>
-            <span>ỏi · </span>
-            <span className="ff-swash-cap !text-sm">C</span>
-            <span>hia sẻ</span>
+            {headlinePhase === 0 ? 'Học thầy không tày học bạn' : 'Có công mài sắt, có ngày nên kim'}
           </button>
         </div>
 

@@ -1656,6 +1656,30 @@ function requireContentEditor(req: IncomingMessage, body: any): SessionClaims | 
   return customRolePermissionsOf(store.users[claims.email]).includes('edit_content') ? claims : null;
 }
 
+function questionOwnedBySession(question: any, claims: SessionClaims | null): boolean {
+  if (!question || !claims?.email) return false;
+  const email = claims.email.trim().toLowerCase();
+  const accountId = store.users[email]?.id;
+  const authorId = question.authorId ? String(question.authorId) : '';
+  /* Stable account IDs take precedence when both sides have one. Legacy records
+     without an ID retain normalized-email ownership as a safe compatibility path. */
+  if (accountId && authorId) return authorId === String(accountId);
+  return String(question.authorEmail || '').trim().toLowerCase() === email;
+}
+
+function authorizeQuestionMutation(
+  req: IncomingMessage,
+  body: any,
+  question: any,
+): { claims: SessionClaims; isOwner: boolean; isModerator: boolean } | null {
+  const claims = authorizeRequest(req, null, body?.token || body?.adminToken || null);
+  const isOwner = questionOwnedBySession(question, claims);
+  const moderatorClaims = requireContentEditor(req, body);
+  if (isOwner && claims) return { claims, isOwner: true, isModerator: Boolean(moderatorClaims) };
+  if (moderatorClaims) return { claims: moderatorClaims, isOwner: false, isModerator: true };
+  return null;
+}
+
 /** Super Admin hoặc vai trò tùy chỉnh có quyền give_role — dùng cho cấp vai trò (mục 3.1/3.5). */
 function requireRoleGrantor(req: IncomingMessage, body: any): AdminActor | null {
   const claims = authorizeRequest(req, null, body?.adminToken || body?.token || null);
@@ -2455,9 +2479,11 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               const { questionId } = payload || {};
               if (!questionId) break;
               const owned = store.questions.find(q => q.id === questionId);
-              const mayDelete = isWsSuperAdmin(ws) ||
-                Boolean(session && owned && owned.authorEmail &&
-                  String(owned.authorEmail).toLowerCase() === session.email);
+              const wsUser = session ? store.users[session.email] : undefined;
+              const mayModerate = isWsSuperAdmin(ws) || Boolean(
+                session && customRolePermissionsOf(wsUser).includes('edit_content'),
+              );
+              const mayDelete = mayModerate || questionOwnedBySession(owned, session);
               if (!mayDelete) {
                 ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
                 break;
@@ -2471,15 +2497,18 @@ export function setupForumServer(httpServer: any, middlewares: any) {
             case 'EDIT_QUESTION': {
               const { questionId, updates } = payload || {};
               if (!questionId || !updates) break;
-              if (!isWsSuperAdmin(ws)) {
+              const target = store.questions.find(q => q.id === questionId);
+              const wsUser = session ? store.users[session.email] : undefined;
+              const mayModerate = isWsSuperAdmin(ws) || Boolean(
+                session && customRolePermissionsOf(wsUser).includes('edit_content'),
+              );
+              if (!questionOwnedBySession(target, session) && !mayModerate) {
                 ws.send(JSON.stringify({ type: 'FORBIDDEN', payload: { action: type } }));
                 break;
               }
-              /* Cùng một bộ lọc như đường HTTP: không ghi đè được authorEmail
-                 hay bountyCoin qua cửa sửa bài. */
+              /* Chỉ sửa trường nội dung; tác giả, thưởng và quyền vẫn do máy chủ quản lý. */
               const safeWsUpdates = sanitizeQuestionUpdates(updates);
-              if (!safeWsUpdates) break;
-              if (!store.questions.some(q => q.id === questionId)) break;
+              if (!safeWsUpdates || !target) break;
               store.questions = store.questions.map(q =>
                 q.id === questionId ? { ...q, ...safeWsUpdates } : q
               );
@@ -5162,9 +5191,9 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
-        /* Phải là CHÍNH CHỦ (hoặc Super Admin) mới được sửa bản ghi này. */
+        /* Chỉ chính chủ được sửa hồ sơ; quyền quản trị không cho phép mạo danh chủ tài khoản. */
         const claims = authorizeRequest(req, null, body.token);
-        if (!claims || (claims.email !== email && !isMasterAdminEmail(claims.email))) {
+        if (!claims || claims.email !== email) {
           sendJson(res, 401, {
             success: false,
             message: 'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại!',
@@ -6708,39 +6737,38 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/questions/delete') {
       try {
         const body = await parseJsonBody(req);
-        /* `adminEmail` trong body là do client tự khai — phải kèm token hợp lệ
-           của đúng tài khoản Super Admin, nếu không ai cũng giả được admin. */
-        if (!requireContentEditor(req, body)) {
-          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin hoặc vai trò có quyền sửa nội dung mới được xóa bài viết!' });
-          return;
-        }
         const { questionId } = body;
         if (!questionId) {
           sendJson(res, 400, { success: false, message: 'Thiếu questionId' });
           return;
         }
-        if (body.requireReason && !body.reasonCode) {
+        const targetQuestion = store.questions.find(q => q.id === questionId);
+        const authorization = authorizeQuestionMutation(req, body, targetQuestion);
+        if (!authorization) {
+          sendJson(res, 403, { success: false, message: 'Chỉ tác giả hoặc người có quyền kiểm duyệt mới được xóa bài viết!' });
+          return;
+        }
+        const isModerationAction = authorization.isModerator && !authorization.isOwner;
+        if (isModerationAction && body.requireReason && !body.reasonCode) {
           sendJson(res, 400, { ok: false, success: false, code: 'REASON_REQUIRED', message: 'Bắt buộc chọn lý do xóa' });
           return;
         }
-        const targetQuestion = store.questions.find(q => q.id === questionId);
-        const reasonCode = ['inappropriate', 'spam', 'wrong_knowledge', 'rule_violation', 'other'].includes(String(body.reasonCode || ''))
+        const reasonCode = isModerationAction && ['inappropriate', 'spam', 'wrong_knowledge', 'rule_violation', 'other'].includes(String(body.reasonCode || ''))
           ? String(body.reasonCode)
-          : 'rule_violation';
-        const reasonNote = typeof body.reasonNote === 'string' && body.reasonNote.trim()
+          : isModerationAction ? 'rule_violation' : undefined;
+        const reasonNote = isModerationAction && typeof body.reasonNote === 'string' && body.reasonNote.trim()
           ? body.reasonNote.trim().slice(0, 200)
           : undefined;
-        const claims = authorizeRequest(req, null, body.token);
-        if (targetQuestion) {
+        if (targetQuestion && isModerationAction) {
           if (!Array.isArray(store.moderationLogs)) store.moderationLogs = [];
           const logEntry = {
             id: randomId('modlog'),
-            moderatorId: claims?.email || String(body.adminEmail || 'admin').toLowerCase(),
-            moderatorEmail: claims?.email || String(body.adminEmail || 'admin').toLowerCase(),
+            moderatorId: authorization.claims.email,
+            moderatorEmail: authorization.claims.email,
             targetType: 'question' as const,
             targetId: String(questionId),
             targetSnapshot: JSON.stringify(targetQuestion),
-            reasonCode,
+            reasonCode: reasonCode || 'rule_violation',
             reasonNote,
             createdAt: new Date().toISOString(),
             createdAtMs: Date.now(),
@@ -6751,7 +6779,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
             authorEmail: (targetQuestion as any).authorEmail,
             targetType: 'question',
             targetId: String(questionId),
-            reasonCode,
+            reasonCode: reasonCode || 'rule_violation',
             reasonNote,
           });
         }
@@ -6759,7 +6787,10 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         store.solutions = store.solutions.filter(s => s.questionId !== questionId);
         persistStoreToDisk();
         broadcastServerEvent('DELETE_QUESTION', { questionId, reasonCode, reasonNote });
-        sendJson(res, 200, { success: true, message: 'Đã xóa bài viết thành công' });
+        sendJson(res, 200, {
+          success: true,
+          message: authorization.isOwner ? 'Đã xóa câu hỏi của bạn' : 'Đã xóa bài viết thành công',
+        });
       } catch (err: any) {
         sendJson(res, 500, { success: false, message: err.message });
       }
@@ -6769,15 +6800,15 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/questions/edit') {
       try {
         const body = await parseJsonBody(req);
-        /* `adminEmail` trong body là do client tự khai — phải kèm token hợp lệ
-           của đúng tài khoản Super Admin, nếu không ai cũng giả được admin. */
-        if (!requireContentEditor(req, body)) {
-          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin hoặc vai trò có quyền sửa nội dung mới được sửa bài viết!' });
-          return;
-        }
         const { questionId, updates } = body;
         if (!questionId || !updates) {
           sendJson(res, 400, { success: false, message: 'Thiếu thông tin cập nhật' });
+          return;
+        }
+        const targetQuestion = store.questions.find(q => q.id === questionId);
+        const authorization = authorizeQuestionMutation(req, body, targetQuestion);
+        if (!authorization) {
+          sendJson(res, 403, { success: false, message: 'Chỉ tác giả hoặc người có quyền kiểm duyệt mới được sửa bài viết!' });
           return;
         }
         const safeUpdates = sanitizeQuestionUpdates(updates);
@@ -6788,7 +6819,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           });
           return;
         }
-        if (!store.questions.some(q => q.id === questionId)) {
+        if (!targetQuestion) {
           sendJson(res, 404, { success: false, message: 'Câu hỏi này không còn tồn tại.' });
           return;
         }
@@ -6798,7 +6829,11 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         persistStoreToDisk();
         broadcastServerEvent('EDIT_QUESTION', { questionId, updates: safeUpdates });
         const updatedQ = store.questions.find(q => q.id === questionId);
-        sendJson(res, 200, { success: true, message: 'Đã cập nhật bài viết thành công', question: updatedQ });
+        sendJson(res, 200, {
+          success: true,
+          message: 'Đã cập nhật bài viết thành công',
+          question: updatedQ,
+        });
       } catch (err: any) {
         sendJson(res, 500, { success: false, message: err.message });
       }

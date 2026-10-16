@@ -985,14 +985,31 @@ test('13. /api/users/update: chính chủ chỉ sửa hồ sơ; role và tài ng
     const other = await register(env.baseUrl, 'Người Khác', 'profile.other@example.com', 'mat-khau-khac-123');
     const crossAccount = await post(env.baseUrl, '/api/users/update', {
       email: 'profile.edit@example.com',
-      updates: { name: 'Bị Sửa Lậu' },
+      updates: {
+        name: 'Bị Sửa Lậu',
+        avatar: '/assets/covers/cover-aurora-bamboo.svg',
+        bannerUrl: '/assets/covers/cover-cyber-campus.svg',
+      },
     }, other.token);
-    assert.equal(crossAccount.status, 401, 'Token của người khác không sửa được hồ sơ này');
+    assert.equal(crossAccount.status, 401, 'Token của người khác không sửa được tên, avatar hoặc ảnh bìa');
+
+    const adminLogin = await post(env.baseUrl, '/api/auth/login', {
+      email: 'BroAmStuck@gmail.com',
+      password: TEST_ADMIN_PASSWORD,
+    });
+    assert.equal(adminLogin.status, 200, 'Super Admin đăng nhập được trong test');
+    const adminCrossAccount = await post(env.baseUrl, '/api/users/update', {
+      email: 'profile.edit@example.com',
+      updates: { avatar: '/assets/covers/cover-aurora-bamboo.svg', bannerUrl: '/assets/covers/cover-cyber-campus.svg' },
+    }, adminLogin.data.token);
+    assert.equal(adminCrossAccount.status, 401, 'Ngay cả Super Admin cũng không thể mạo danh chủ hồ sơ');
 
     const selfUpdate = await post(env.baseUrl, '/api/users/update', {
       email: 'profile.edit@example.com',
       updates: {
         name: 'Tên Mới Chính Chủ',
+        avatar: '/assets/covers/cover-aurora-bamboo.svg',
+        bannerUrl: '/assets/covers/cover-cyber-campus.svg',
         role: 'SUPER_ADMIN',
         id: 'user-gia-mao',
         city: 'Đà Nẵng',
@@ -1009,6 +1026,8 @@ test('13. /api/users/update: chính chủ chỉ sửa hồ sơ; role và tài ng
     }, account.token);
     assert.equal(selfUpdate.status, 200);
     assert.equal(selfUpdate.data.user.name, 'Tên Mới Chính Chủ', 'Sửa hồ sơ của mình vẫn hoạt động');
+    assert.equal(selfUpdate.data.user.avatar, '/assets/covers/cover-aurora-bamboo.svg', 'Chủ tài khoản tự đổi avatar');
+    assert.equal(selfUpdate.data.user.bannerUrl, '/assets/covers/cover-cyber-campus.svg', 'Chủ tài khoản tự đổi ảnh bìa');
     assert.equal(selfUpdate.data.user.city, 'Đà Nẵng');
     assert.equal(selfUpdate.data.user.role, 'STUDENT', 'role không được ghi đè từ client');
     assert.equal(selfUpdate.data.user.id, account.user.id, 'id không được ghi đè từ client');
@@ -2139,7 +2158,48 @@ test('34. Sửa câu hỏi: không ghi đè được authorEmail / bountyCoin (m
   }
 });
 
-test('35. Sửa câu hỏi qua WS: cùng một bộ lọc trường như đường HTTP', async () => {
+test('35. Tác giả chỉ sửa/xóa câu hỏi của mình qua HTTP; người khác bị từ chối', async () => {
+  const env = await createTestServer();
+  try {
+    const owner = await register(env.baseUrl, 'Chủ Câu Hỏi', 'qa.owner@example.com', 'mat-khau-owner-123');
+    const other = await register(env.baseUrl, 'Người Khác', 'qa.other@example.com', 'mat-khau-other-123');
+    const created = await post(env.baseUrl, '/api/questions', {
+      title: 'Câu hỏi của chủ',
+      content: 'Nội dung ban đầu.',
+      authorEmail: owner.user.email,
+      bountyCoin: 20,
+    }, owner.token);
+    assert.equal(created.status, 200, `tạo câu hỏi: ${JSON.stringify(created.data)}`);
+    const questionId = created.data.question.id;
+
+    const ownerEdit = await post(env.baseUrl, '/api/questions/edit', {
+      questionId,
+      updates: { title: 'Tiêu đề của chính chủ', content: 'Bản sửa của chính chủ.', authorEmail: other.user.email },
+    }, owner.token);
+    assert.equal(ownerEdit.status, 200, 'Tác giả sửa được câu hỏi của mình');
+    assert.equal(ownerEdit.data.question.title, 'Tiêu đề của chính chủ');
+    assert.equal(ownerEdit.data.question.authorEmail, owner.user.email, 'Tác giả không thể đổi chủ bài');
+
+    const crossEdit = await post(env.baseUrl, '/api/questions/edit', {
+      questionId,
+      updates: { title: 'Sửa chéo tài khoản' },
+    }, other.token);
+    assert.equal(crossEdit.status, 403, 'Tài khoản khác không sửa được câu hỏi');
+
+    const crossDelete = await post(env.baseUrl, '/api/questions/delete', { questionId }, other.token);
+    assert.equal(crossDelete.status, 403, 'Tài khoản khác không xóa được câu hỏi');
+
+    const ownerDelete = await post(env.baseUrl, '/api/questions/delete', { questionId }, owner.token);
+    assert.equal(ownerDelete.status, 200, `Tác giả xóa được câu hỏi của mình: ${JSON.stringify(ownerDelete.data)}`);
+    assert.match(ownerDelete.data.message, /câu hỏi của bạn/i);
+    const sync = await get(env.baseUrl, '/api/sync');
+    assert.equal(sync.data.data.questions.some((question) => question.id === questionId), false);
+  } finally {
+    await env.close();
+  }
+});
+
+test('36. Sửa câu hỏi qua WS: cùng một bộ lọc trường như đường HTTP và chủ bài được phép', async () => {
   const env = await createTestServer();
   const adminLogin = await post(env.baseUrl, '/api/auth/login', {
     email: 'BroAmStuck@gmail.com',
@@ -2172,14 +2232,31 @@ test('35. Sửa câu hỏi qua WS: cùng một bộ lọc trường như đườ
     assert.equal(q.authorEmail, 'chu-bai-ws@example.com', 'authorEmail không đổi được qua WS');
     assert.equal(q.bountyCoin, 40, `bountyCoin không thổi được qua WS, thực tế = ${q.bountyCoin}`);
 
-    /* Học sinh không sửa được qua WS. */
-    const student = await connectWs(env.wsUrl, owner.token);
+    const ownerSocket = await connectWs(env.wsUrl, owner.token);
     try {
-      student.send('EDIT_QUESTION', { questionId, updates: { title: 'Học sinh sửa qua WS' } });
-      const forbidden = await student.waitFor('FORBIDDEN');
-      assert.equal(forbidden.payload.action, 'EDIT_QUESTION');
+      ownerSocket.send('EDIT_QUESTION', { questionId, updates: { title: 'Chủ tự sửa qua WS' } });
+      await sleep(250);
+      const ownerSync = await get(env.baseUrl, '/api/sync');
+      const ownerUpdated = ownerSync.data.data.questions.find((x) => x.id === questionId);
+      assert.equal(ownerUpdated.title, 'Chủ tự sửa qua WS', 'Tác giả được sửa bài của mình qua WS');
+
+      const other = await register(env.baseUrl, 'Người Khác WS', 'nguoi-khac-ws@example.com', 'mat-khau-khac-ws-123');
+      const otherSocket = await connectWs(env.wsUrl, other.token);
+      try {
+        otherSocket.send('EDIT_QUESTION', { questionId, updates: { title: 'Sửa chéo qua WS' } });
+        const forbidden = await otherSocket.waitFor('FORBIDDEN');
+        assert.equal(forbidden.payload.action, 'EDIT_QUESTION');
+      } finally {
+        otherSocket.ws.close();
+      }
+
+      ownerSocket.send('DELETE_QUESTION', { questionId });
+      const deletedEvent = await ownerSocket.waitFor('DELETE_QUESTION');
+      assert.equal(deletedEvent.payload.questionId, questionId, 'Tác giả được xóa bài của mình qua WS');
+      const afterDeleteSync = await get(env.baseUrl, '/api/sync');
+      assert.equal(afterDeleteSync.data.data.questions.some((x) => x.id === questionId), false);
     } finally {
-      student.ws.close();
+      ownerSocket.ws.close();
     }
   } finally {
     admin.ws.close();
@@ -2187,7 +2264,7 @@ test('35. Sửa câu hỏi qua WS: cùng một bộ lọc trường như đườ
   }
 });
 
-test('36. Trần kết nối và giới hạn khung WebSocket', async () => {
+test('37. Trần kết nối và giới hạn khung WebSocket', async () => {
   const env = await createTestServer();
   try {
     /* Khung WS phải bị giới hạn — mặc định của thư viện `ws` là 100 MiB. */
@@ -2218,7 +2295,7 @@ test('36. Trần kết nối và giới hạn khung WebSocket', async () => {
   }
 });
 
-test('37. Thao tác ghi dữ liệu phải đọc kết quả máy chủ, không nuốt lỗi', () => {
+test('38. Thao tác ghi dữ liệu phải đọc kết quả máy chủ, không nuốt lỗi', () => {
   const store = fs.readFileSync(path.resolve('src/store/forumStore.ts'), 'utf8');
 
   assert.ok(
@@ -2303,7 +2380,7 @@ test('37. Thao tác ghi dữ liệu phải đọc kết quả máy chủ, không
   );
 });
 
-test('38. Ẩn danh: giữ bí danh mà vẫn không cho mạo danh người khác', async () => {
+test('39. Ẩn danh: giữ bí danh mà vẫn không cho mạo danh người khác', async () => {
   const env = await createTestServer();
   try {
     const asker = await register(env.baseUrl, 'Tên Thật Của Tôi', 'an-danh@example.com', 'mat-khau-an-12345');
@@ -2352,7 +2429,7 @@ test('38. Ẩn danh: giữ bí danh mà vẫn không cho mạo danh người kh�
   }
 });
 
-test('39. WS nối lại phải đóng kênh SSE dự phòng — không xử lý sự kiện hai lần', () => {
+test('40. WS nối lại phải đóng kênh SSE dự phòng — không xử lý sự kiện hai lần', () => {
   const store = fs.readFileSync(path.resolve('src/store/forumStore.ts'), 'utf8');
 
   const onOpenAt = store.indexOf('ws.onopen = () =>');
@@ -2386,7 +2463,7 @@ test('39. WS nối lại phải đóng kênh SSE dự phòng — không xử lý
   );
 });
 
-test('40. Tin chat phát lại không được đếm chưa đọc lần hai, và phải đọc ref người dùng', () => {
+test('41. Tin chat phát lại không được đếm chưa đọc lần hai, và phải đọc ref người dùng', () => {
   const store = fs.readFileSync(path.resolve('src/store/forumStore.ts'), 'utf8');
 
   /*
@@ -2433,7 +2510,7 @@ test('40. Tin chat phát lại không được đếm chưa đọc lần hai, v�
   );
 });
 
-test('41. Bản ghi người dùng kiểu cũ thiếu trường không làm sập luồng duyệt CLB', async () => {
+test('42. Bản ghi người dùng kiểu cũ thiếu trường không làm sập luồng duyệt CLB', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fforum-legacy-'));
   process.env.FFORUM_DATA_DIR = dir;
 
@@ -2533,7 +2610,7 @@ test('41. Bản ghi người dùng kiểu cũ thiếu trường không làm sậ
   }
 });
 
-test('42. fPoints không bị cộng đôi khi thiếu trường (thứ tự xp/fPoints)', async () => {
+test('43. fPoints không bị cộng đôi khi thiếu trường (thứ tự xp/fPoints)', async () => {
   const env = await createTestServer();
   try {
     /*
@@ -2594,7 +2671,7 @@ test('42. fPoints không bị cộng đôi khi thiếu trường (thứ tự xp/
   }
 });
 
-test('43. Tắt tiến trình phải ghi nốt thay đổi đang chờ — không mất lần ghi cuối', () => {
+test('44. Tắt tiến trình phải ghi nốt thay đổi đang chờ — không mất lần ghi cuối', () => {
   const server = fs.readFileSync(path.resolve('server/forumServer.ts'), 'utf8');
 
   /*
@@ -2641,7 +2718,7 @@ test('43. Tắt tiến trình phải ghi nốt thay đổi đang chờ — khôn
   );
 });
 
-test('44. Ghi atomic và giữ lại tệp dữ liệu hỏng thay vì ghi đè mất', async () => {
+test('45. Ghi atomic và giữ lại tệp dữ liệu hỏng thay vì ghi đè mất', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fforum-atomic-'));
   process.env.FFORUM_DATA_DIR = dir;
 
@@ -2683,7 +2760,7 @@ test('44. Ghi atomic và giữ lại tệp dữ liệu hỏng thay vì ghi đè 
   }
 });
 
-test('45. Ghi xuống đĩa phải atomic (ghi tệp tạm rồi rename)', () => {
+test('46. Ghi xuống đĩa phải atomic (ghi tệp tạm rồi rename)', () => {
   const server = fs.readFileSync(path.resolve('server/forumServer.ts'), 'utf8');
   const flushAt = server.indexOf('function flushStoreToDisk()');
   assert.ok(flushAt > 0, 'phải có flushStoreToDisk');
@@ -2705,7 +2782,7 @@ test('45. Ghi xuống đĩa phải atomic (ghi tệp tạm rồi rename)', () =>
   );
 });
 
-test('46. REJECT_CLUB qua WS phải validate như bản HTTP và rút quyền chủ nhiệm', async () => {
+test('47. REJECT_CLUB qua WS phải validate như bản HTTP và rút quyền chủ nhiệm', async () => {
   /* Limiter ở cấp module nên dùng chung cả tiến trình; đặt lại để không va trần
      giới hạn đăng ký 30 lượt/10 phút do các test trước đó đã dùng hết. */
   (await import('../server/forumServer.ts')).resetRateLimitersForTest();
@@ -2769,7 +2846,7 @@ test('46. REJECT_CLUB qua WS phải validate như bản HTTP và rút quyền ch
   }
 });
 
-test('47. Không vượt được rate limit bằng cách giả header X-Forwarded-For', async () => {
+test('48. Không vượt được rate limit bằng cách giả header X-Forwarded-For', async () => {
   const env = await createTestServer();
   try {
     (await import('../server/forumServer.ts')).resetRateLimitersForTest();
@@ -2804,7 +2881,7 @@ test('47. Không vượt được rate limit bằng cách giả header X-Forward
   }
 });
 
-test('48. clientIpOf chỉ tin X-Forwarded-For khi khai báo đứng sau proxy', async () => {
+test('49. clientIpOf chỉ tin X-Forwarded-For khi khai báo đứng sau proxy', async () => {
   const { clientIpOf } = await import('../server/authGuard.ts');
   const reqWith = (xff) => ({ headers: { 'x-forwarded-for': xff }, socket: { remoteAddress: '203.0.113.7' } });
 
@@ -2825,7 +2902,7 @@ test('48. clientIpOf chỉ tin X-Forwarded-For khi khai báo đứng sau proxy',
   }
 });
 
-test('49. Nạp lại module server không được cộng dồn listener tín hiệu tắt', () => {
+test('50. Nạp lại module server không được cộng dồn listener tín hiệu tắt', () => {
   const server = fs.readFileSync(path.resolve('server/forumServer.ts'), 'utf8');
 
   /*
@@ -2859,7 +2936,7 @@ test('49. Nạp lại module server không được cộng dồn listener tín h
   );
 });
 
-test('50. Không phát được "tin ma" qua id chat đã tồn tại', async () => {
+test('51. Không phát được "tin ma" qua id chat đã tồn tại', async () => {
   const env = await createTestServer();
   try {
     (await import('../server/forumServer.ts')).resetRateLimitersForTest();
@@ -2911,7 +2988,7 @@ test('50. Không phát được "tin ma" qua id chat đã tồn tại', async ()
   }
 });
 
-test('51. MARK_BEST_SOLUTION qua WS chỉ phát questionId và solutionId', async () => {
+test('52. MARK_BEST_SOLUTION qua WS chỉ phát questionId và solutionId', async () => {
   const env = await createTestServer();
   try {
     const asker = await register(env.baseUrl, 'Người Hỏi 51', 'hoi51@example.com', 'mat-khau-hoi51-12345');
@@ -2951,7 +3028,7 @@ test('51. MARK_BEST_SOLUTION qua WS chỉ phát questionId và solutionId', asyn
   }
 });
 
-test('52. REJECT_CLUB qua HTTP cũng phải rút quyền chủ nhiệm như nhánh WS', async () => {
+test('53. REJECT_CLUB qua HTTP cũng phải rút quyền chủ nhiệm như nhánh WS', async () => {
   const env = await createTestServer();
   try {
     (await import('../server/forumServer.ts')).resetRateLimitersForTest();
@@ -3005,7 +3082,7 @@ test('52. REJECT_CLUB qua HTTP cũng phải rút quyền chủ nhiệm như nhá
   }
 });
 
-test('53. Ghi qua WebSocket cũng bị giới hạn tốc độ như HTTP', async () => {
+test('54. Ghi qua WebSocket cũng bị giới hạn tốc độ như HTTP', async () => {
   const env = await createTestServer();
   try {
     (await import('../server/forumServer.ts')).resetRateLimitersForTest();

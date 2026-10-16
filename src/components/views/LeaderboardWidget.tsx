@@ -315,7 +315,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
   const scoreMethod = metric === 'hours'
     ? 'Mỗi phiên tự học trọn vẹn là một bậc tiến bền bỉ — học sâu từ sự tĩnh tâm.'
     : period === 'all'
-      ? 'Học · Hỏi · Chia sẻ — hành trình bồi đắp tri thức qua từng bài giải và cuộc thảo luận.'
+      ? 'Điểm ghi nhận những đóng góp học thuật hữu ích trong diễn đàn.'
       : 'Học chăm, hỏi kỹ, chia sẻ lời giải tường tận — cùng nhau tiến bộ mỗi kỳ.';
 
   const formatValue = (m: LeaderboardMember) =>
@@ -345,7 +345,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
             <Trophy className="w-[18px] h-[18px]" />
           </span>
           <div className="ff-board__heading-copy">
-            <span className="ff-board__eyebrow"><i aria-hidden="true" /> SỔ VÀNG · HỌC · HỎI · CHIA SẺ</span>
+            <span className="ff-board__eyebrow"><i aria-hidden="true" /> SỔ VÀNG · ĐÓNG GÓP CỘNG ĐỒNG</span>
             <h3 className="ff-board__title" aria-label="Bảng xếp hạng">
               <span className="ff-swash-cap">B</span>ảng xếp hạng
             </h3>
@@ -360,8 +360,8 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
           </div>
         </div>
 
-        {/* Dải tinh thần Học · Hỏi · Chia sẻ */}
-        <div className="ff-board__ethos" aria-label="Tinh thần Học, Hỏi, Chia sẻ">
+        {/* Dải nhắc về thói quen học tập tốt */}
+        <div className="ff-board__ethos" aria-label="Thói quen học tập tốt">
           <span className="ff-board__ethos-pill">
             <b className="ff-swash-cap">H</b>ọc bền bỉ
           </span>

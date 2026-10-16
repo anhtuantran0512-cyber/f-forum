@@ -181,6 +181,16 @@ test('Cú Bông → form → đăng nhập/đăng ký: click nhanh không kẹt,
     await React.act(async () => confirmTorch.dispatchEvent(new window.MouseEvent('pointerdown',
       { bubbles: true, cancelable: true, clientX: 20, clientY: 20 })));
     await React.act(nextFrame);
+    const firstPasswordBox = document.querySelector('#field-5').closest('.ffl').querySelector('.ffl__box');
+    const confirmPasswordBox = document.querySelector('#field-6').closest('.ffl').querySelector('.ffl__box');
+    assert.equal(document.querySelectorAll('.ffl__torch').length, 1, 'only the real confirmation-field torch is rendered');
+    assert.equal(document.querySelectorAll('.ffl__viewport-beam').length, 1, 'one viewport beam, not a second glow source');
+    assert.ok(firstPasswordBox.style.getPropertyValue('--ffl-cone'), 'the first password is illuminated by the shared beam');
+    assert.equal(
+      firstPasswordBox.style.getPropertyValue('--ffl-cone'),
+      confirmPasswordBox.style.getPropertyValue('--ffl-cone'),
+      'both fields use the same polygon from the actual flashlight lens',
+    );
     const initialAngle = confirmTorch.style.getPropertyValue('--ffl-angle');
     await React.act(async () => window.dispatchEvent(new window.MouseEvent('pointermove',
       { bubbles: true, clientX: 120, clientY: 200 })));

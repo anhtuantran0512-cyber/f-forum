@@ -3,17 +3,12 @@
  * Ô mật khẩu "Đèn pin soi mật khẩu" (Epic 5 · Nhiemvu_4 Task 3.1 · Nhiemvu_5 Phase D).
  *
  *  - Mặc định: •••••, đèn tắt.
- *  - NHẤN GIỮ đèn pin rồi RÊ lên ô (chuột hoặc ngón tay): nón sáng chạy theo con trỏ,
- *    CHỈ ký tự nằm trong vùng sáng hiện chữ thật; ngoài vùng sáng vẫn là chấm.
- *    Thả tay → đèn tắt (fade nhanh).
- *  - CHẠM NHANH đèn pin: bật "đèn treo" — vùng sáng đi theo chuột trên ô; chạm lần nữa để tắt.
- *  - ♿ Fallback bắt buộc: NHẤN ĐÚP đèn pin, hoặc GIỮ PHÍM CÁCH (Space) khi đang chọn
- *    nút đèn → hiện toàn bộ mật khẩu; Enter để bật/tắt. Không ép phải dùng chuột.
+ *  - Một chiếc đèn thật ở ô xác nhận phát tia qua cả hai ô mật khẩu đăng ký.
+ *  - Giữ và rê để ngắm; chạm nhanh bật/tắt; nhấn đúp hoặc Space/Enter để hiện chữ.
  *
- * Kỹ thuật: 2 lớp chữ cùng font monospace trùng khít từng ô ký tự — lớp chấm và lớp
- * chữ thật — được cắt lộ bằng `mask-image: radial-gradient(...)` theo toạ độ con trỏ
- * (biến CSS cập nhật trực tiếp, không re-render khi rê). Thêm lớp bóng tối có "lỗ sáng",
- * quầng sáng chớp nháy (flicker) và bụi sáng bay trong vùng chiếu.
+ * Kỹ thuật: hai lớp chữ trùng font — chấm và mật khẩu thật — dùng cùng một đa giác
+ * đèn pin. Lớp tia toàn màn hình và mặt nạ của cả hai ô lấy gốc từ đúng thấu kính,
+ * không tạo đèn ảo hay ánh sáng phụ.
  */
 import {
   useCallback,
@@ -27,11 +22,26 @@ import {
   type PointerEvent,
 } from 'react';
 import { playFlashlightClick } from '../../utils/audio';
-import { flashlightCone, conePolygon, torchAimDegrees, continuousTorchAngle } from '../../utils/flashlightCone';
+import {
+  flashlightCone,
+  conePolygon,
+  torchAimDegrees,
+  continuousTorchAngle,
+  type Point,
+} from '../../utils/flashlightCone';
 import { createPortal } from 'react-dom';
 import './AuthExperience.css';
 
 export type FlashlightMode = 'off' | 'beam' | 'reveal';
+
+const SHARED_BEAM_EVENT = 'fforum:password-beam';
+interface SharedBeamDetail {
+  points: Point[];
+  source: Point;
+  target: Point;
+}
+
+let latestSharedBeam: SharedBeamDetail | null = null;
 
 interface FlashlightPasswordFieldProps {
   id: string;
@@ -151,47 +161,53 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
     };
   }, [mode, value]);
 
-  const setSpot = (clientX: number, clientY: number, fromTorch = false) => {
+  const applyBeamToBox = useCallback((box: HTMLDivElement, beam: SharedBeamDetail) => {
+    const rect = box.getBoundingClientRect();
+    box.style.setProperty('--ffl-cone', conePolygon(beam.points, { x: rect.left, y: rect.top }));
+    box.style.setProperty('--ffl-tx', `${beam.source.x - rect.left}px`);
+    box.style.setProperty('--ffl-ty', `${beam.source.y - rect.top}px`);
+    box.style.setProperty('--ffl-x', `${beam.target.x - rect.left}px`);
+    box.style.setProperty('--ffl-y', `${beam.target.y - rect.top}px`);
+  }, []);
+
+  const setSpot = useCallback((clientX: number, clientY: number, fromTorch = false) => {
+    /* The confirmation field is the sole lamp owner. A sibling field consumes
+       this beam; it must never invent a virtual lamp at its own edge. */
     const box = boxRef.current;
     const torch = torchRef.current;
-    if (!box) return;
+    if (!showTorch || !box || !torch) return;
+
     const rect = box.getBoundingClientRect();
-    const lamp = torch
-      ? torch.getBoundingClientRect()
-      : {
-          left: rect.right - 40,
-          top: rect.top + (rect.height - 40) / 2,
-          width: 40,
-          height: 40,
-        };
-    /* Lấy chính miệng icon làm gốc; con trỏ chỉ đổi hướng, không đổi độ dài tia.
-       SVG 22px is centered in the 40px button; its lens is at viewBox x=10/32. */
-    const source = { x: lamp.left + lamp.width / 2 - 11 + (22 * 10) / 32, y: lamp.top + lamp.height / 2 };
+    const lamp = torch.getBoundingClientRect();
+    /* The beam starts at the SVG lens, not the button center or pointer. */
+    const source = {
+      x: lamp.left + lamp.width / 2 - 11 + (22 * 10) / 32,
+      y: lamp.top + lamp.height / 2,
+    };
     const target = fromTorch
       ? { x: rect.left + Math.min(rect.width / 2, 100), y: rect.top + rect.height / 2 }
       : { x: clientX, y: clientY };
     lastAim.current = target;
     currentAngle.current = continuousTorchAngle(currentAngle.current, torchAimDegrees(source, target));
-    if (torch) {
-      torch.style.setProperty('--ffl-angle', `${currentAngle.current.toFixed(1)}deg`);
-    }
+    torch.style.setProperty('--ffl-angle', `${currentAngle.current.toFixed(1)}deg`);
+
     const reach = Math.hypot(window.innerWidth, window.innerHeight) * 2;
-    const points = flashlightCone(source, target, reach);
-    const polygon = conePolygon(points);
+    const beam: SharedBeamDetail = { source, target, points: flashlightCone(source, target, reach) };
+    latestSharedBeam = beam;
+    applyBeamToBox(box, beam);
+
     if (beamRef.current) {
-      beamRef.current.style.clipPath = polygon;
+      beamRef.current.style.clipPath = conePolygon(beam.points);
       beamRef.current.style.setProperty('--ffl-x', `${source.x}px`);
       beamRef.current.style.setProperty('--ffl-y', `${source.y}px`);
+      beamRef.current.style.setProperty('--ffl-angle', `${currentAngle.current.toFixed(1)}deg`);
     }
-    box.style.setProperty('--ffl-cone', conePolygon(points, { x: rect.left, y: rect.top }));
-    box.style.setProperty('--ffl-tx', `${source.x - rect.left}px`);
-    box.style.setProperty('--ffl-ty', `${source.y - rect.top}px`);
-    box.style.setProperty('--ffl-x', `${target.x - rect.left}px`);
-    box.style.setProperty('--ffl-y', `${target.y - rect.top}px`);
-  };
+    /* Both password masks receive the same absolute cone from this one torch. */
+    window.dispatchEvent(new window.CustomEvent<SharedBeamDetail>(SHARED_BEAM_EVENT, { detail: beam }));
+  }, [showTorch, applyBeamToBox]);
 
   /* Gộp mọi pointermove vào tối đa một lần đo layout/vẽ nón sáng mỗi frame. */
-  const queueSpot = (x: number, y: number) => {
+  const queueSpot = useCallback((x: number, y: number) => {
     queuedAim.current = { x, y };
     if (aimFrame.current !== null) return;
     aimFrame.current = window.requestAnimationFrame(() => {
@@ -199,15 +215,34 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
       const aim = queuedAim.current;
       if (aim) setSpot(aim.x, aim.y);
     });
-  };
+  }, [setSpot]);
 
-  /* Khi đèn đã bật, chuột có thể đi BẤT KỲ đâu trong viewport, kể cả ngoài modal. */
+  /* One physical torch owns the beam. Registration's first password field only
+     paints the shared cone supplied by the confirmation field. */
   useEffect(() => {
+    const box = boxRef.current;
     if (mode !== 'beam') {
-      currentAngle.current = 0;
-      torchRef.current?.style.removeProperty('--ffl-angle');
+      if (showTorch) {
+        latestSharedBeam = null;
+        currentAngle.current = 0;
+        torchRef.current?.style.removeProperty('--ffl-angle');
+      } else {
+        box?.style.removeProperty('--ffl-cone');
+      }
       return undefined;
     }
+
+    if (!showTorch) {
+      if (!box) return undefined;
+      const onSharedBeam = (event: Event) => {
+        const beam = (event as CustomEvent<SharedBeamDetail>).detail;
+        if (beam) applyBeamToBox(box, beam);
+      };
+      window.addEventListener(SHARED_BEAM_EVENT, onSharedBeam);
+      if (latestSharedBeam) applyBeamToBox(box, latestSharedBeam);
+      return () => window.removeEventListener(SHARED_BEAM_EVENT, onSharedBeam);
+    }
+
     const onMove = (event: globalThis.PointerEvent) => queueSpot(event.clientX, event.clientY);
     const onResize = () => {
       if (lastAim.current) queueSpot(lastAim.current.x, lastAim.current.y);
@@ -216,9 +251,10 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
     window.addEventListener('pointermove', onMove, { passive: true });
     window.addEventListener('resize', onResize);
     window.addEventListener('scroll', onResize, true);
-    /* Soi sáng ngay lập tức từ khung hình đầu tiên (cả ô mật khẩu 1 và 2 đều sáng cùng lúc) */
+    /* Begin at the real lens; the cone crosses both adjacent password fields. */
     setSpot(0, 0, true);
     return () => {
+      latestSharedBeam = null;
       if (aimFrame.current !== null) window.cancelAnimationFrame(aimFrame.current);
       aimFrame.current = null;
       queuedAim.current = null;
@@ -226,7 +262,7 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
       window.removeEventListener('resize', onResize);
       window.removeEventListener('scroll', onResize, true);
     };
-  }, [mode]);
+  }, [mode, showTorch, setSpot, queueSpot, applyBeamToBox]);
 
   const turnOff = (withSound = true) => {
     setSticky(false);
@@ -352,7 +388,6 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
 
         {showLayers && (
           <div className="ffl__layers" aria-hidden="true">
-            <span className="ffl__cone" />
             <span className="ffl__mask ffl__mask--dots">
               <span className="ffl__text">
                 {chars.map((_, index) => <span key={index} className="ffl__dot">•</span>)}
@@ -360,11 +395,6 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
             </span>
             <span className="ffl__mask ffl__mask--real">
               <span className="ffl__text">{value}</span>
-            </span>
-            <span className="ffl__dark" />
-            <span className="ffl__glow" />
-            <span className="ffl__dust">
-              {Array.from({ length: 7 }, (_, dust) => <i key={dust} className={`ffl__mote ffl__mote--${dust}`} />)}
             </span>
           </div>
         )}
@@ -387,7 +417,7 @@ export const FlashlightPasswordField: FC<FlashlightPasswordFieldProps> = ({
         >
           <TorchIcon on={mode !== 'off'} />
         </button>}
-        {showTorch && <span className="ffl__hint" id={hintId}>Giữ &amp; rê để soi mọi nơi · Space / nhấn đúp để xem hết</span>}
+        {showTorch && <span className="ffl__hint" id={hintId}>Giữ để soi · chạm bật/tắt · Space để hiện</span>}
       </div>
       <span className="sr-only" aria-live="polite">
         {mode === 'reveal' ? 'Đang hiện toàn bộ mật khẩu.' : mode === 'beam' ? 'Đèn pin đang bật.' : ''}

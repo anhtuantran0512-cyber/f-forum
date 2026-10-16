@@ -11,7 +11,7 @@ import path from 'node:path';
 
 const read = (rel) => fs.readFileSync(path.resolve(rel), 'utf8');
 
-test('Epic 5 · Đèn pin: 2 lớp chữ cắt lộ bằng nón đèn theo hướng con trỏ, flicker, bụi sáng, nón sáng', () => {
+test('Epic 5 · Đèn pin: một thấu kính thật chiếu chung hai ô, không tạo nguồn sáng ảo', () => {
   const field = read('src/components/auth/FlashlightPasswordField.tsx');
   const css = read('src/components/auth/AuthExperience.css');
   assert.match(field, /className="ffl__mask ffl__mask--dots"/, 'lớp chấm');
@@ -19,9 +19,11 @@ test('Epic 5 · Đèn pin: 2 lớp chữ cắt lộ bằng nón đèn theo hư�
   assert.match(css, /\.ffl__mask--real \{[\s\S]*?clip-path: var\(--ffl-cone/, 'chữ thật chỉ hiện trong nón');
   assert.match(field, /flashlightCone\(source, target, reach\)/, 'nón bắt nguồn ở đèn, mở rộng tới mép màn hình');
   assert.match(css, /\.ffl__dot \{ display: inline-block; width: 1ch; margin-right: var\(--ffl-ls\);/, 'chấm trùng khít từng ô ký tự');
-  assert.match(css, /@keyframes fflFlicker/, 'ánh sáng rung nhẹ như đèn pin thật');
-  assert.match(css, /@keyframes fflMote/, 'bụi sáng bay trong vùng sáng');
-  assert.match(css, /\.ffl__viewport-beam \{[\s\S]*?filter: blur\(8px\)/, 'viền sáng mềm và phủ toàn màn hình');
+  assert.match(field, /if \(!showTorch \|\| !box \|\| !torch\) return;/, 'chỉ instance có đèn thật mới được phát tia');
+  assert.match(field, /SHARED_BEAM_EVENT/, 'ô đầu nhận tia chung từ ô xác nhận');
+  assert.doesNotMatch(css, /\.ffl__(?:glow|mote)|fflFlicker|fflMote/, 'không còn quầng/bụi tạo cảm giác có đèn phụ');
+  assert.match(css, /\.ffl__viewport-beam \{[\s\S]*?clip-path: var\(--ffl-cone/, 'tia sáng toàn màn hình bị giới hạn đúng trong nón phát từ đèn pin');
+  assert.doesNotMatch(css, /rgba\(255,231,171,\.035\)/, 'không phủ một lớp sáng riêng lên toàn màn hình');
   assert.match(field, /box\.style\.setProperty\('--ffl-x'/, 'cập nhật toạ độ bằng biến CSS (không re-render khi rê)');
   assert.match(field, /setPointerCapture\(event\.pointerId\)/, 'giữ-rê bằng chuột lẫn ngón tay');
   assert.match(css, /touch-action: none/, 'không cuộn trang khi kéo đèn trên cảm ứng');

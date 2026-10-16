@@ -338,7 +338,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     {approvedClubs.length} CLB
                   </span>
                   <span className="ff-atelier-ribbon hidden sm:inline-flex !py-0.5 !px-2.5 !text-[10px]">
-                    Học · Hỏi · Chia sẻ
+                    Ba cây chụm lại nên hòn núi cao.
                   </span>
                 </div>
                 <svg className="w-24 h-2 mt-0.5 ff-organic-squiggle" viewBox="0 0 120 8" aria-hidden="true">
@@ -718,7 +718,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     <h3 className="font-extrabold text-base sm:text-lg text-[#f4f1de] flex items-center gap-2 flex-wrap">
                       <span className="ff-swash-cap text-base">T</span>hành lập Câu Lạc Bộ
                       <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">
-                        Học · Hỏi · Chia sẻ
+                        Cùng góp sức, cùng trưởng thành.
                       </span>
                     </h3>
                     <p className="text-xs text-[#9a978e] mt-0.5">Xây dựng không gian học tập và kết nối chuyên môn.</p>
@@ -905,7 +905,6 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="ff-typo-poster !text-lg sm:!text-2xl text-[#f4f1de]">{selectedClub.name}</h3>
                     <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">
-                      Học · Hỏi · Chia sẻ
                     </span>
                   </div>
                   <p className="text-xs sm:text-sm text-[#f2cc8f] italic mt-0.5">"{selectedClub.slogan}"</p>

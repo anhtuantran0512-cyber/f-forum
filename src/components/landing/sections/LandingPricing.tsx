@@ -31,7 +31,7 @@ export const LandingPricing: React.FC<LandingPricingProps> = ({ onOpenAuth }) =>
     >
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHeading
-          eyebrow="Chi phí & tiếp cận · Học · Hỏi · Chia sẻ"
+          eyebrow="Chi phí & tiếp cận"
           title={
             <>
               <span className="ff-swash-cap">M</span>ở cửa tự do cho việc học và trao đổi học thuật.

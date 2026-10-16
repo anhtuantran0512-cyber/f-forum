@@ -30,50 +30,29 @@
 }
 .ffl__text { display: inline-block; transform: translateX(calc(-1 * var(--ffl-scroll))); }
 .ffl__dot { display: inline-block; width: 1ch; margin-right: var(--ffl-ls); text-align: center; letter-spacing: 0; color: #64748b; }
-/* Chùm sáng và chữ dùng cùng đa giác; tia vượt viewport nhưng chỉ khi giao ô mới lộ chữ. */
+/* Both password masks are cut by the exact same polygon emitted by the real torch. */
 .ffl__mask--dots { color: #8390a5; }
 .ffl__mask--real {
-  color: #fff8df; text-shadow: 0 0 8px rgba(253, 230, 138, .65);
-  background: #090e18; clip-path: var(--ffl-cone, polygon(0 0, 0 0, 0 0));
+  color: #fff8df;
+  text-shadow: 0 0 7px rgba(253, 230, 138, .58);
+  background: #090e18;
+  clip-path: var(--ffl-cone, polygon(0 0, 0 0, 0 0));
 }
-.ffl__dark { display: none; }
-.ffl__glow, .ffl__cone { position: absolute; inset: 0; pointer-events: none; clip-path: var(--ffl-cone, polygon(0 0, 0 0, 0 0)); }
-.ffl__glow { background: linear-gradient(100deg, rgba(255,224,143,.15), rgba(255,240,195,.02)); filter: blur(3px); animation: fflFlicker 2.8s linear infinite; }
-.ffl__cone { background: rgba(255,221,153,.05); }
 .ffl__viewport-beam {
-  position: fixed; inset: 0; z-index: 55; pointer-events: none;
-  background: radial-gradient(ellipse 90% 90% at var(--ffl-x, 70%) var(--ffl-y, 40%), rgba(255,244,207,.15), transparent 74%), rgba(255,231,171,.035);
-  box-shadow: inset 0 0 90px rgba(255,218,153,.04);
-  filter: blur(8px); animation: fflIn .24s ease both;
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  pointer-events: none;
+  clip-path: var(--ffl-cone, polygon(0 0, 0 0, 0 0));
+  background: radial-gradient(
+    ellipse 80% 68% at var(--ffl-x, 70%) var(--ffl-y, 40%),
+    rgba(255, 244, 207, .17),
+    rgba(255, 231, 171, .06) 36%,
+    transparent 76%
+  );
+  animation: fflIn .2s ease both;
 }
-.ffl__dust { position: absolute; inset: 0; }
-.ffl__mote {
-  position: absolute; left: var(--ffl-x); top: var(--ffl-y); width: 2px; height: 2px; border-radius: 50%;
-  background: #fff7d6; box-shadow: 0 0 4px rgba(255, 247, 214, 0.9); opacity: 0;
-  animation: fflMote 2.6s ease-in-out infinite;
-}
-.ffl__mote--0 { --mx: -18px; --my: -8px; animation-delay: 0s; }
-.ffl__mote--1 { --mx: 10px; --my: -12px; animation-delay: 0.35s; }
-.ffl__mote--2 { --mx: -6px; --my: 9px; animation-delay: 0.7s; }
-.ffl__mote--3 { --mx: 20px; --my: 4px; animation-delay: 1.05s; }
-.ffl__mote--4 { --mx: -24px; --my: 6px; animation-delay: 1.4s; }
-.ffl__mote--5 { --mx: 4px; --my: -2px; animation-delay: 1.75s; }
-.ffl__mote--6 { --mx: 14px; --my: 12px; animation-delay: 2.1s; }
 @keyframes fflIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes fflFlicker {
-  0%, 100% { opacity: 1; }
-  5% { opacity: 0.8; }
-  7% { opacity: 1; }
-  38% { opacity: 0.92; }
-  40% { opacity: 1; }
-  66% { opacity: 0.86; }
-  68% { opacity: 1; }
-}
-@keyframes fflMote {
-  0% { transform: translate(var(--mx), var(--my)); opacity: 0; }
-  35% { opacity: 0.9; }
-  100% { transform: translate(calc(var(--mx) + 7px), calc(var(--my) - 12px)); opacity: 0; }
-}
 
 .ffl__torch {
   position: absolute; top: 50%; right: 6px; z-index: 2; display: grid; place-items: center; width: 40px; height: 38px;
@@ -365,13 +344,12 @@ html.light .ffl__torch { background: linear-gradient(145deg, #ffffff, #eef2f7); 
 
 @media (prefers-reduced-motion: reduce) {
   .auth-overlay, .auth-card, .auth-form, .auth-bubble, .auth-alert, .auth-cloud, .auth-star, .auth-firefly,
-  .ffl__glow, .ffl__cone, .ffl__mote, .ffl__dark, .ffl__torch-rays, .auth-dots i { animation: none !important; }
+  .ffl__viewport-beam, .ffl__torch-rays, .auth-dots i { animation: none !important; }
   .auth-tabs__indicator { transition: none; }
 }
 html.reduce-motion .auth-overlay, html.reduce-motion .auth-card, html.reduce-motion .auth-form, html.reduce-motion .auth-bubble,
 html.reduce-motion .auth-alert, html.reduce-motion .auth-cloud, html.reduce-motion .auth-star, html.reduce-motion .auth-firefly,
-html.reduce-motion .ffl__glow, html.reduce-motion .ffl__cone, html.reduce-motion .ffl__mote, html.reduce-motion .ffl__dark,
-html.reduce-motion .ffl__torch-rays, html.reduce-motion .auth-dots i { animation: none !important; }
+html.reduce-motion .ffl__viewport-beam, html.reduce-motion .ffl__torch-rays, html.reduce-motion .auth-dots i { animation: none !important; }
 
 /* Đêm sâu: lớp trời chuyển opacity thay vì thay DOM đột ngột khi bật đèn. */
 .auth-night-sky { position: absolute; inset: 0; opacity: 0; pointer-events: none; background: radial-gradient(ellipse at 73% 19%, #303e65 0%, #141f38 38%, #090f22 80%); transition: opacity .7s cubic-bezier(.2,.65,.3,1); }

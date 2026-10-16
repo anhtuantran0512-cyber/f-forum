@@ -596,7 +596,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             aria-label={`Cú Bông mời ${activeTab === 'login' ? 'đăng nhập' : 'đăng ký'}. Mở biểu mẫu`}>
             <span className="auth-welcome-board__eyebrow inline-flex items-center justify-center gap-1.5">
               <span>LỜI MỜI TỪ CÚ BÔNG</span>
-              <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px]">Học · Hỏi · Chia sẻ</span>
             </span>
             <strong>{activeTab === 'login' ? 'ĐĂNG NHẬP' : 'ĐĂNG KÝ'}</strong>
             <span className="auth-welcome-board__action">Chạm để bước vào <span aria-hidden="true">↗</span></span>
@@ -614,7 +613,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <span className="auth-head__eyebrow">
                 <span className="inline-flex items-center gap-1.5">
                   <span>{fallbackProvider ? 'LIÊN KẾT TÀI KHOẢN' : activeTab === 'login' ? 'CỔNG THƯ VIỆN F·FORUM' : 'MỞ THẺ THÀNH VIÊN'}</span>
-                  <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">Học · Hỏi · Chia sẻ</span>
                 </span>
               </span>
               <h2 id="auth-title">

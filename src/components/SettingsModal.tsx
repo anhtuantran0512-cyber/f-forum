@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { GODRAY_PRESETS } from '../utils/godrays';
 import { resolveGodrayId, resolvePotatorId } from '../utils/gradients';
+import { DARK_GRADIENT_PRESETS, resolveDarkGradientId } from '../utils/darkGradients';
 import { GradientSwatchPicker } from './GradientSwatchPicker';
 import { safeStorage } from '../utils/storage';
 import { AUTH_TOKEN_KEY, clearAuthToken, requestServerLogout } from '../utils/session';
@@ -45,6 +46,10 @@ export interface SettingsModalProps {
   passwordManagedByServer?: boolean;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
+  fabulousMode?: boolean;
+  onToggleFabulousMode?: () => void;
+  darkGradient?: string;
+  onSelectDarkGradient?: (preset: string) => void;
 
   onOpenFocusMode: () => void;
   onOpenUpdate?: () => void;
@@ -167,6 +172,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   passwordManagedByServer = false,
   theme,
   onToggleTheme,
+  fabulousMode = false,
+  onToggleFabulousMode,
+  darkGradient = 'obsidian',
+  onSelectDarkGradient,
 
   onOpenFocusMode,
   onOpenUpdate,
@@ -479,9 +488,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <span className="ff-swash-cap text-xs font-serif italic">§</span>
                   <span>Trung tâm điều khiển</span>
                 </span>
-                <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px]">
-                  Học · Hỏi · Chia sẻ
-                </span>
               </h3>
             </div>
           </div>
@@ -722,6 +728,42 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </button>
                 </Card>
               </section>
+
+              <section aria-label="Fabulous">
+                <Card>
+                  <SwitchRow
+                    icon={<Sparkles className="w-3.5 h-3.5 text-violet-300" />}
+                    title="Fabulous"
+                    on={fabulousMode}
+                    onToggle={() => onToggleFabulousMode?.()}
+                    color="bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.55)]"
+                  />
+                </Card>
+              </section>
+
+              {theme === 'dark' && (
+                <section>
+                  <SectionTitle icon={<Palette className="w-3 h-3 text-[#f2cc8f]" />}>Nền tối</SectionTitle>
+                  <Card>
+                    <div className="dark-gradient-picker" role="group" aria-label="Chọn gradient nền tối">
+                      {DARK_GRADIENT_PRESETS.map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          className="dark-gradient-option"
+                          aria-label={`Gradient ${preset.label}`}
+                          aria-pressed={resolveDarkGradientId(darkGradient) === preset.id}
+                          title={preset.label}
+                          onClick={() => onSelectDarkGradient?.(preset.id)}
+                        >
+                          <span className="dark-gradient-option__swatch" style={{ background: preset.gradient }} aria-hidden="true" />
+                          <span className="dark-gradient-option__label">{preset.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </Card>
+                </section>
+              )}
 
               {/* Shared color-theory swatches; hover preview stays inside the picker. */}
               <section>

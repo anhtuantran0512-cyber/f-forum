@@ -96,9 +96,7 @@ export const ExamBookmarkDrawer: React.FC<ExamBookmarkDrawerProps> = ({
                   <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-400 text-[#0b0d12] font-black">
                     {savedPapers.length}
                   </span>
-                  <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px] hidden sm:inline-flex">
-                    Học · Hỏi · Chia sẻ
-                  </span>
+                  <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px] hidden sm:inline-flex">Ghim để ôn lại.</span>
                 </h2>
               </div>
             </div>

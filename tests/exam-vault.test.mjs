@@ -150,8 +150,12 @@ test('8. Đèn pin Cú Bông: soi sáng đồng thời cả hai ô mật khẩu'
     'FlashlightPasswordField must accept mode prop',
   );
   assert.ok(
-    flashlight.includes('virtual lamp') || flashlight.includes('rect.right - 40'),
-    'Virtual lamp source allows identical beam on field without button',
+    flashlight.includes('SHARED_BEAM_EVENT') && flashlight.includes('latestSharedBeam'),
+    'The first registration field must receive the real confirmation-field beam',
+  );
+  assert.ok(
+    !flashlight.includes('rect.right - 40'),
+    'A field without a button must never invent a second virtual torch',
   );
 });
 
