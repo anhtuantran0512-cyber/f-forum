@@ -13,10 +13,8 @@ export interface LandingNavProps {
 }
 
 const NAV_LINKS: { id: string; label: string }[] = [
-  { id: 'tinh-nang', label: 'Tính năng' },
+  { id: 'top', label: 'Trang chủ' },
   { id: 'kham-pha', label: 'Khám phá' },
-  { id: 'loi-ich', label: 'Nguyên tắc' },
-  { id: 'nang-luc', label: 'Cách hỏi tốt' },
   { id: 'bang-gia', label: 'Chi phí' },
   { id: 'faq', label: 'Hỏi đáp' },
 ];
