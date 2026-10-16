@@ -1,44 +1,28 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import type { LucideIcon } from 'lucide-react';
 import {
-  BadgeCheck,
-  Command,
-  BellRing,
   BookOpenCheck,
-  Bot,
   Compass,
-  Flame,
-  Gauge,
-  GraduationCap,
+  FileText,
   Headphones,
   HelpCircle,
-  Lock,
+  Lightbulb,
   MessagesSquare,
-  Moon,
+  Paperclip,
   ShieldCheck,
-  Sparkles,
-  Target,
-  Trophy,
   Users,
-  Zap,
 } from 'lucide-react';
 
-/* ==========================================================================
-   Landing copy — single source of truth so the marketing surface stays
-   consistent and easy to iterate on.
-   ========================================================================== */
+/*
+ * Landing copy stays focused on academic use. Avoid live totals, simulated
+ * community proof, response-time promises, and features that are not available.
+ */
 
-export interface LandingStat {
-  id: string;
-  value: number;
-  decimals?: number;
-  suffix?: string;
-  prefix?: string;
-  label: string;
-  hint: string;
-}
-
-export const HERO_TRUST = ['Miễn phí 100% cho sinh viên', 'Không quảng cáo', 'Bảo mật dữ liệu học tập'];
+export const HERO_TRUST = [
+  'Tập trung vào học thuật',
+  'Có thể dùng bút danh',
+  'Tính năng cốt lõi hiện miễn phí',
+];
 
 export const FEATURES: {
   id: string;
@@ -51,69 +35,49 @@ export const FEATURES: {
 }[] = [
   {
     id: 'qa',
-    title: 'Sàn hỏi đáp tri thức',
+    title: 'Hỏi đáp theo môn học',
     description:
-      'Đặt câu hỏi theo môn học, nhận lời giải từ bạn bè và giảng viên trong vài phút. Lời giải hay nhất được bình chọn và ghim ngay đầu câu hỏi.',
+      'Mô tả điều đang vướng, thêm bối cảnh và cùng người học khác trao đổi. Những lời giải hữu ích có thể được nhận diện mà không biến lượt thích thành thước đo thành tích.',
     icon: HelpCircle,
     accent: 'amber',
     span: 'lg',
-    bullets: ['13 chủ đề: Toán, Lý, Hóa, Anh, Tin…', 'Chế độ hỏi ẩn danh an toàn', 'Bình chọn “Lời giải hay nhất”'],
+    bullets: ['Gắn câu hỏi với môn học', 'Dùng bút danh khi phù hợp', 'Giữ lời giải ngay dưới câu hỏi'],
   },
   {
-    id: 'clubs',
-    title: 'Câu lạc bộ & sự kiện',
+    id: 'materials',
+    title: 'Kho đề và học liệu',
     description:
-      'Hơn 4 nhóm ngành: Công nghệ, Nghệ thuật, Thể thao, Học thuật. Đăng ký tham gia, đăng bài cho CLB và theo dõi hoạt động trong một nơi duy nhất.',
-    icon: Users,
+      'Chia sẻ ảnh, PDF, DOCX hoặc Markdown. PDF có thể xem ngay trong trình duyệt; hãy kiểm tra môn học, nguồn và quyền chia sẻ của tài liệu.',
+    icon: FileText,
     accent: 'sky',
     span: 'md',
   },
   {
-    id: 'chat',
-    title: 'Phòng chat thời gian thực',
+    id: 'clubs',
+    title: 'Câu lạc bộ & nhóm học',
     description:
-      '4 kênh riêng biệt: Hành lang, Hỏi nhanh, Tâm sự, CLB Hub. Tin nhắn đồng bộ tức thì giữa các tab và thiết bị, có danh sách bạn đang online.',
-    icon: MessagesSquare,
+      'Tìm không gian theo môn học hoặc mối quan tâm, theo dõi bài đăng và tiếp tục trao đổi cùng những người có chung chủ đề.',
+    icon: Users,
     accent: 'violet',
     span: 'md',
   },
   {
-    id: 'xp',
-    title: 'Coin, chuỗi ngày & 8 danh hiệu học sinh',
+    id: 'chat',
+    title: 'Trao đổi khi cần',
     description:
-      'Mỗi câu trả lời hữu ích, mỗi buổi học tập trung đều được ghi nhận. Hệ thống cấp độ và 8 danh hiệu vinh danh biến việc học thành hành trình có thưởng.',
-    icon: Trophy,
+      'Phòng chat phù hợp cho câu hỏi ngắn và trao đổi nhanh. Với lời giải cần lập luận hoặc muốn tìm lại sau này, hãy dùng khu vực hỏi đáp.',
+    icon: MessagesSquare,
     accent: 'amber',
     span: 'md',
   },
   {
     id: 'focus',
-    title: 'Focus Sanctuary',
+    title: 'Góc tập trung',
     description:
-      'Pomodoro tích hợp cùng âm thanh môi trường tổng hợp 432Hz (mưa, sóng biển, thư viện) — không tải tệp nặng, không làm gián đoạn dòng tập trung.',
+      'Đồng hồ Pomodoro và âm thanh nền là công cụ tùy chọn để tự sắp xếp buổi học — không phải lời hứa về năng suất hay kết quả.',
     icon: Headphones,
     accent: 'emerald',
     span: 'md',
-  },
-  {
-    id: 'command',
-    title: 'Bảng lệnh & tiện ích ẩn',
-    description:
-      'Nhấn ⌘/Ctrl + K để mở bảng lệnh nhanh, ⌘/Ctrl + I để ghi chú tức thì ở bất kỳ phân khu nào, kèm nhắc nghỉ mắt 20-20-20 khi học lâu.',
-    icon: Command,
-    accent: 'violet',
-    span: 'md',
-    bullets: ['Bảng lệnh ⌘K không rời bàn phím', 'Sổ tay nhanh dùng chung với Focus', 'Nhắc nghỉ mắt 20-20-20'],
-  },
-  {
-    id: 'memory',
-    title: 'Miền Ký Ức & Khu Vinh Danh',
-    description:
-      'Kể lại thanh xuân bằng chuyến cuộn phim 3700px và quả cầu ký ức 3D Fibonacci — nơi những khoảnh khắc đẹp nhất của tập thể được lưu giữ mãi mãi.',
-    icon: Sparkles,
-    accent: 'violet',
-    span: 'lg',
-    bullets: ['Kể chuyện thị sai nhiều lớp', 'Quả cầu ảnh 3D tương tác 360°', 'Bảng vinh danh thành tích'],
   },
 ];
 
@@ -127,30 +91,30 @@ export const SHOWCASE_STEPS: {
 }[] = [
   {
     id: 'ask',
-    eyebrow: 'Bước 01',
-    title: 'Hỏi đúng người, đúng môn',
+    eyebrow: 'Hỏi',
+    title: 'Bắt đầu từ điều còn vướng',
     description:
-      'Đăng câu hỏi kèm chủ đề môn học, hoặc ẩn danh khi bạn cần sự riêng tư. Cộng đồng và Ban Quản Trị cùng kiểm duyệt để mọi câu trả lời đều đáng tin.',
+      'Nêu môn học, bối cảnh và phần bạn chưa hiểu. Nếu muốn, bạn có thể dùng bút danh thay vì hiển thị tên công khai.',
     icon: BookOpenCheck,
-    points: ['Gắn thẻ môn học & mức độ khó', 'Ẩn danh với bút danh Ghibli', 'Thông báo khi có lời giải mới'],
+    points: ['Gắn chủ đề môn học', 'Nói rõ điều đã thử', 'Dùng bút danh khi phù hợp'],
   },
   {
     id: 'belong',
-    eyebrow: 'Bước 02',
-    title: 'Tìm câu lạc bộ của riêng bạn',
+    eyebrow: 'Trao đổi',
+    title: 'Cùng học quanh một chủ đề',
     description:
-      'Từ lập trình, truyền thông đến bóng rổ và học thuật — mỗi câu lạc bộ có không gian đăng bài, thành viên và lịch hoạt động riêng.',
+      'Câu lạc bộ tạo không gian cho những mối quan tâm chung. Bài đăng và thảo luận nằm cạnh nhau để người học tiếp tục trao đổi đúng ngữ cảnh.',
     icon: Compass,
-    points: ['Đăng ký thành lập CLB mới', 'Bảng tin & slogan riêng', 'Duyệt minh bạch trong 24h'],
+    points: ['Tìm câu lạc bộ phù hợp', 'Theo dõi bài đăng liên quan', 'Giữ trao đổi đúng chủ đề'],
   },
   {
-    id: 'grow',
-    eyebrow: 'Bước 03',
-    title: 'Học tập trung, ghi dấu thành tích',
+    id: 'materials',
+    eyebrow: 'Học liệu',
+    title: 'Lưu tài liệu để xem lại',
     description:
-      'Bật Focus Sanctuary để học sâu, tích Coin mỗi ngày và leo bảng vinh danh. Hồ sơ năng lực của bạn được xây dựng theo cách tự nhiên nhất.',
-    icon: Target,
-    points: ['Pomodoro + âm thanh tập trung', 'Chuỗi ngày & phần thưởng Coin', '8 danh hiệu học sinh vinh danh'],
+      'Kho đề nhận nhiều định dạng tài liệu học tập; PDF có thể mở ngay trong trình duyệt. Tệp do thành viên chia sẻ nên hãy tự kiểm tra nguồn và thông tin môn học.',
+    icon: FileText,
+    points: ['Ảnh, PDF, DOCX và Markdown', 'Xem PDF trong trình duyệt', 'Chia sẻ tài liệu có quyền đăng'],
   },
 ];
 
@@ -159,115 +123,57 @@ export const BENEFITS: {
   title: string;
   description: string;
   icon: LucideIcon;
-  stat: string;
-  statLabel: string;
 }[] = [
   {
-    id: 'speed',
-    title: 'Trả lời nhanh hơn, ghi nhớ sâu hơn',
+    id: 'context',
+    title: 'Bối cảnh trước, lời giải sau',
     description:
-      'Câu hỏi được phân loại theo môn học và ngữ cảnh, giúp người trả lời tìm thấy đúng chủ đề. Lời giải hay nhất luôn nằm ở đầu để bạn không mất thời gian đọc lại.',
-    icon: Zap,
-    stat: '13',
-    statLabel: 'chủ đề học thuật',
+      'Một câu hỏi có môn học, đề bài và chỗ đang mắc thường dễ được trao đổi đúng trọng tâm hơn một dòng chỉ xin đáp án.',
+    icon: HelpCircle,
   },
   {
-    id: 'community',
-    title: 'Không còn học một mình',
+    id: 'reasoning',
+    title: 'Cách nghĩ quan trọng như kết quả',
     description:
-      'Nhóm học, kênh chat và câu lạc bộ giúp bạn tìm được những người cùng mục tiêu. Hoạt động cộng đồng còn giúp hồ sơ của bạn nổi bật hơn.',
-    icon: Users,
-    stat: '4',
-    statLabel: 'kênh kết nối',
+      'Chia sẻ các bước lập luận giúp người hỏi hiểu vì sao một cách làm có thể đúng — và khi nào nó không còn phù hợp.',
+    icon: Lightbulb,
   },
   {
-    id: 'discipline',
-    title: 'Kỷ luật học tập được tự động hoá',
+    id: 'verification',
+    title: 'Đối chiếu, đừng tin tuyệt đối',
     description:
-      'Chuỗi ngày, nhắc nhở và âm thanh tập trung sinh học giúp bạn duy trì động lực. Mỗi phiên học đều được ghi nhận thành XP và cấp độ.',
-    icon: Gauge,
-    stat: '150',
-    statLabel: 'cấp độ ghi nhận',
-  },
-  {
-    id: 'trust',
-    title: 'Môi trường an toàn, kiểm duyệt rõ ràng',
-    description:
-      'Ban Quản Trị duyệt nội dung, xử lý báo cáo và minh bạch tiêu chí. Dữ liệu học tập của bạn thuộc về bạn, và bạn có thể đăng xuất hay xoá dữ liệu bất cứ lúc nào.',
+      'Nội dung do cộng đồng đóng góp không thay thế giáo trình hay giảng viên. Hãy kiểm tra lời giải với tài liệu của môn học.',
     icon: ShieldCheck,
-    stat: '24h',
-    statLabel: 'thời gian kiểm duyệt',
   },
 ];
 
-/**
- * Khối "Năng lực hệ thống" trên trang giới thiệu.
- * Trước đây chỗ này là 6 lời chứng thực của những sinh viên mô phỏng (kèm bậc
- * danh hiệu ảo) — đã bị xoá cùng toàn bộ tài khoản ảo ở vòng 11. Nay mỗi thẻ
- * mô tả đúng một tính năng đang chạy thật trong ứng dụng.
- */
-export const HIGHLIGHTS: {
+export const QUESTION_GUIDE: {
   id: string;
   tag: string;
   title: string;
   body: string;
-  icon: 'qa' | 'chat' | 'rank' | 'focus' | 'clubs' | 'memory';
-  from: string;
-  to: string;
+  icon: LucideIcon;
 }[] = [
   {
-    id: 'h1',
-    tag: 'Hỏi đáp',
-    title: 'Câu hỏi ẩn danh, lời giải chọn lọc',
-    body: 'Đăng câu hỏi dưới bút danh, nhận lời giải chi tiết và bình chọn “Lời giải hay nhất” để đáp án đúng luôn nằm trên cùng.',
-    icon: 'qa',
-    from: '#fbbf24',
-    to: '#f97316',
+    id: 'context',
+    tag: 'Bối cảnh',
+    title: 'Nêu môn học và đề bài',
+    body: 'Cho người đọc biết bạn đang học phần nào và đề bài yêu cầu gì. Chỉ trích dẫn phần cần thiết.',
+    icon: BookOpenCheck,
   },
   {
-    id: 'h2',
-    tag: 'Phòng chat',
-    title: 'Kênh chung và kênh riêng cho CLB',
-    body: 'Tin nhắn thời gian thực, đồng bộ tức thời giữa các tab và mọi người trong trường, kèm bộ đếm chờ chống spam.',
-    icon: 'chat',
-    from: '#38bdf8',
-    to: '#818cf8',
+    id: 'stuck',
+    tag: 'Điểm mắc',
+    title: 'Chỉ ra điều chưa thông',
+    body: 'Nói bạn đã thử cách nào, vướng ở bước nào, hoặc muốn người khác kiểm tra giả định nào.',
+    icon: HelpCircle,
   },
   {
-    id: 'h3',
-    tag: 'Danh hiệu',
-    title: '8 bậc danh hiệu tính từ dữ liệu thật',
-    body: 'XP chỉ đến từ câu hỏi, câu trả lời, lời giải hay nhất và phiên học thật — huy hiệu tự tiến bậc, không có tài khoản ảo trên bảng.',
-    icon: 'rank',
-    from: '#34d399',
-    to: '#22d3ee',
-  },
-  {
-    id: 'h4',
-    tag: 'Tập trung',
-    title: 'Focus Sanctuary 432Hz và nhật ký giờ học',
-    body: 'Pomodoro kèm âm thanh thư giãn; mỗi phiên hoàn thành được ghi thẳng vào nhật ký giờ học theo ngày, tuần, tháng.',
-    icon: 'focus',
-    from: '#a855f7',
-    to: '#6366f1',
-  },
-  {
-    id: 'h5',
-    tag: 'Câu lạc bộ',
-    title: 'CLB có duyệt, có lý do phản hồi',
-    body: 'Tạo CLB, đăng bài trong kênh riêng và để Ban Quản Trị duyệt minh bạch — hồ sơ năng lực dày lên theo hoạt động thật.',
-    icon: 'clubs',
-    from: '#f472b6',
-    to: '#a855f7',
-  },
-  {
-    id: 'h6',
-    tag: 'Ký ức',
-    title: 'Khu Vinh Danh lưu lại cột mốc học đường',
-    body: 'Mỗi mùa học để lại một quả cầu ký ức: ảnh, cột mốc và những con số thật của cả trường trong học kỳ đó.',
-    icon: 'memory',
-    from: '#fbbf24',
-    to: '#ec4899',
+    id: 'source',
+    tag: 'Tài liệu',
+    title: 'Đính kèm đúng phần liên quan',
+    body: 'Thêm ảnh hoặc tài liệu khi cần, nêu nguồn và tránh chia sẻ thông tin cá nhân hay tệp không được phép đăng.',
+    icon: Paperclip,
   },
 ];
 
@@ -282,94 +188,49 @@ export const PRICING_PLANS: {
 }[] = [
   {
     id: 'student',
-    name: 'Sinh viên',
-    tagline: 'Dành cho mọi sinh viên, trọn đời miễn phí.',
+    name: 'F-Forum',
+    tagline: 'Các tính năng học tập cốt lõi hiện mở miễn phí cho sinh viên.',
     highlight: true,
+    badge: 'ĐANG MỞ',
     features: [
-      'Hỏi đáp không giới hạn theo môn học',
-      'Tham gia tất cả câu lạc bộ công khai',
-      '4 kênh chat thời gian thực',
-      'Focus Sanctuary & âm thanh 432Hz',
-      'Hệ thống Coin, chuỗi ngày, 8 danh hiệu',
-      'Miền Ký Ức & Khu Vinh Danh',
+      'Hỏi đáp và thảo luận theo môn học',
+      'Kho đề: chia sẻ ảnh, PDF, DOCX và Markdown',
+      'Câu lạc bộ và phòng trao đổi',
+      'Công cụ tập trung tùy chọn',
     ],
-    footnote: 'Không quảng cáo, không phí ẩn.',
-  },
-  {
-    id: 'pro',
-    name: 'Pro Học tập',
-    tagline: 'Các công cụ học sâu đang được phát triển, chưa mở đăng ký.',
-    badge: 'Sắp ra mắt',
-    features: [
-      'Tất cả quyền lợi gói Sinh viên',
-      'Bảng lệnh ⌘K, Sổ tay nhanh & nhắc nghỉ mắt 20-20-20',
-      'Thống kê tiến độ học tập theo tuần',
-      'Chế độ thi đua nhóm & bảng xếp hạng riêng',
-      'Huy hiệu Pro & khung hồ sơ đặc biệt',
-      'Hỗ trợ ưu tiên từ Ban Quản Trị',
-    ],
-    footnote: 'Thông tin về các tiện ích này sẽ được cập nhật khi sẵn sàng.',
-  },
-  {
-    id: 'org',
-    name: 'Khoa & Câu lạc bộ',
-    tagline: 'Không gian điều hành cho tổ chức sinh viên.',
-    features: [
-      'Tất cả quyền lợi gói Pro cho thành viên',
-      'Trang quản trị câu lạc bộ & thành viên',
-      'Thống kê tương tác và báo cáo học kỳ',
-      'Đồng hành triển khai sự kiện cùng F-Forum',
-      'Phân quyền nhiều quản trị viên',
-    ],
-    footnote: 'Miễn phí cho các câu lạc bộ chính thức của trường.',
+    footnote: 'Thông tin ở đây mô tả những gì đang mở, không phải tính năng tương lai.',
   },
 ];
 
 export const FAQ_ITEMS: { id: string; question: string; answer: string }[] = [
   {
     id: 'f1',
-    question: 'F-Forum có thật sự miễn phí không?',
+    question: 'F-Forum hiện có miễn phí không?',
     answer:
-      'Có. Toàn bộ tính năng học tập cốt lõi — hỏi đáp, câu lạc bộ, phòng chat, Coin và Focus Sanctuary — miễn phí trọn đời cho sinh viên. Gói Pro chỉ là lớp tiện ích bổ sung đang trong giai đoạn thử nghiệm và bạn không cần dùng nó để học tốt hơn.',
+      'Các tính năng học tập cốt lõi hiện đang mở miễn phí cho sinh viên. Trang này chỉ mô tả điều kiện hiện tại; hãy xem thông báo trong ứng dụng nếu có cập nhật.',
   },
   {
     id: 'f2',
-    question: 'Làm sao để bắt đầu sử dụng?',
+    question: 'Tôi có thể chia sẻ những định dạng tài liệu nào?',
     answer:
-      'Bạn đăng nhập bằng tài khoản Google hoặc email trong khoảng 30 giây, chọn môn học quan tâm, rồi đặt câu hỏi đầu tiên hoặc tham gia một câu lạc bộ. Không cần thẻ, không cần xác minh phức tạp.',
+      'Kho đề nhận hình ảnh, PDF, DOC/DOCX và Markdown. PDF có thể xem trong trình duyệt; trước khi chia sẻ, hãy kiểm tra nguồn và quyền sử dụng tài liệu.',
   },
   {
     id: 'f3',
-    question: 'Câu hỏi ẩn danh có thật sự an toàn?',
+    question: 'Ẩn danh có nghĩa là không ai biết tôi là ai không?',
     answer:
-      'Có. Khi bật chế độ ẩn danh, nội dung hiển thị dưới bút danh do hệ thống sinh ra và danh tính của bạn không xuất hiện với người khác. Ban Quản Trị vẫn có thể hỗ trợ riêng khi cần thiết.',
+      'Bút danh thay đổi cách câu hỏi hiển thị với thành viên khác; đây không phải công cụ bảo vệ thông tin nhạy cảm. Đừng đăng email, mã sinh viên hay dữ liệu cá nhân trong nội dung hoặc tệp đính kèm.',
   },
   {
     id: 'f4',
-    question: 'Hệ thống điểm Coin và danh hiệu hoạt động thế nào?',
+    question: 'Tôi có thể tin mọi lời giải trên diễn đàn không?',
     answer:
-      'Mỗi hoạt động có ích — trả lời được bình chọn, hoàn thành phiên học tập trung, duy trì chuỗi ngày — đều cộng Coin. Coin tích luỹ giúp nâng hạng và mở khoá 8 danh hiệu vinh danh hiển thị trên hồ sơ của bạn.',
+      'Không nên mặc định như vậy. Câu trả lời do thành viên đóng góp và có thể thiếu hoặc sai; hãy dùng chúng để tham khảo, rồi đối chiếu với giáo trình, đề cương hoặc giảng viên.',
   },
   {
     id: 'f5',
-    question: 'Tôi có thể lập câu lạc bộ riêng trên F-Forum?',
+    question: 'Tôi nên làm gì nếu thấy nội dung không phù hợp?',
     answer:
-      'Có. Bạn gửi đề xuất câu lạc bộ kèm mục tiêu, thành viên sáng lập và slogan. Ban Quản Trị phản hồi trong vòng 24 giờ; nếu chưa đạt, bạn nhận lý do cụ thể để chỉnh sửa.',
+      'Dùng công cụ báo cáo có sẵn trong ứng dụng hoặc liên hệ nhóm quản trị qua thông tin ở cuối trang. Thời gian phản hồi có thể thay đổi; đừng gửi dữ liệu nhạy cảm qua kênh công khai.',
   },
-  {
-    id: 'f6',
-    question: 'Dữ liệu của tôi được xử lý ra sao?',
-    answer:
-      'Nền tảng chỉ lưu những dữ liệu cần cho hoạt động học tập như tên hiển thị, email, Coin và nội dung bạn đăng. Bạn có thể đăng xuất, xoá bài viết hoặc yêu cầu xoá dữ liệu bất cứ lúc nào từ phần cài đặt hồ sơ.',
-  },
-];
-
-export const TRUST_PILLARS: { icon: LucideIcon; label: string }[] = [
-  { icon: BadgeCheck, label: 'Kiểm duyệt nội dung' },
-  { icon: Lock, label: 'Riêng tư dữ liệu học tập' },
-  { icon: BellRing, label: 'Không quảng cáo' },
-  { icon: Moon, label: 'Dark mode chống mỏi mắt' },
-  { icon: Bot, label: 'Presence & gợi ý thông minh' },
-  { icon: Flame, label: 'Chuỗi ngày học tập' },
-  { icon: GraduationCap, label: 'Thiết kế cho sinh viên' },
 ];

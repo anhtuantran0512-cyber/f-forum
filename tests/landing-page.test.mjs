@@ -97,18 +97,16 @@ test('4. Pricing, FAQ and copy data stay in one iterable source', () => {
   const content = read(`${LANDING_DIR}/landingContent.ts`);
   const pricing = read(`${LANDING_DIR}/sections/LandingPricing.tsx`);
 
-  ['FEATURES', 'SHOWCASE_STEPS', 'BENEFITS', 'HIGHLIGHTS', 'PRICING_PLANS', 'FAQ_ITEMS'].forEach((exportName) => {
+  ['FEATURES', 'SHOWCASE_STEPS', 'BENEFITS', 'QUESTION_GUIDE', 'PRICING_PLANS', 'FAQ_ITEMS'].forEach((exportName) => {
     assert.ok(content.includes(`export const ${exportName}`), `${exportName} must be exported from landingContent`);
   });
 
-  assert.doesNotMatch(pricing, /Theo năm · −20%|cycle === 'monthly'/, 'no meaningless discount switch on free membership');
-  assert.match(pricing, /Đang phát triển/, 'unfinished tier is labelled, not sold');
-  assert.doesNotMatch(content, /monthly: 49000|yearly: 470000/, 'unpublished prices must not contradict free membership');
-  assert.match(content, /id: 'student',[\s\S]*?highlight: true,[\s\S]*?id: 'pro'/, 'feature the available student tier, not the unfinished one');
-  assert.ok(
-    pricing.includes('Miễn phí trọn đời cho sinh viên') || content.includes('Không quảng cáo, không phí ẩn.'),
-    'Free-forever student promise must be visible in the pricing section',
-  );
+  assert.doesNotMatch(pricing, /Theo năm · −20%|cycle === 'monthly'/, 'no meaningless discount switch on free access');
+  assert.doesNotMatch(pricing, /Đang phát triển|Kích Hoạt Miễn Phí/, 'unreleased tiers must not be presented as available');
+  assert.doesNotMatch(content, /monthly: 49000|yearly: 470000|id: 'pro'|id: 'org'/, 'do not invent prices or future tiers');
+  assert.match(content, /id: 'student',[\s\S]*?highlight: true/, 'the current student access is the only published option');
+  assert.match(content, /Các tính năng học tập cốt lõi hiện mở miễn phí cho sinh viên/);
+  assert.match(pricing, /Không cần thẻ thanh toán/, 'access terms must be stated without lifetime guarantees');
 });
 
 test('5. App integration: landing is the first-run route and wheel navigation is fully removed', () => {
@@ -129,7 +127,11 @@ test('5. App integration: landing is the first-run route and wheel navigation is
   );
   assert.ok(
     app.includes("onOpenAuth={() => handleOpenAuth('register')}"),
-    'Landing CTAs must open the auth dialog on the register tab',
+    'Landing registration CTAs must open the auth dialog on the register tab',
+  );
+  assert.ok(
+    app.includes("onOpenLogin={() => handleOpenAuth('login')}"),
+    'Landing login navigation must open the login tab, not the register tab',
   );
   // Logo F đưa thẳng về Home; Giới thiệu vẫn còn trong menu Khám phá.
   assert.ok(!navbar.includes("{ id: 'landing', label: 'GIỚI THIỆU' }"));
@@ -153,17 +155,36 @@ test('5. App integration: landing is the first-run route and wheel navigation is
   );
 });
 
-test('6. No fabricated social proof or placeholder copy in the landing surface', () => {
+test('6. Landing avoids fabricated proof, simulated metrics, and placeholder copy', () => {
   const files = fs
     .readdirSync(path.resolve(`${LANDING_DIR}/sections`))
     .map((file) => read(`${LANDING_DIR}/sections/${file}`))
-    .concat([read(`${LANDING_DIR}/LandingNav.tsx`), read(`${LANDING_DIR}/LandingMocks.tsx`), read('src/components/landing/landingContent.ts')])
+    .concat([
+      read(`${LANDING_DIR}/LandingNav.tsx`),
+      read(`${LANDING_DIR}/LandingMocks.tsx`),
+      read(`${LANDING_DIR}/LandingPage.tsx`),
+      read(`${LANDING_DIR}/landingContent.ts`),
+      read('index.html'),
+    ])
     .join('\n');
+  const hero = read(`${LANDING_DIR}/sections/LandingHero.tsx`);
+  const proof = read(`${LANDING_DIR}/sections/LandingProof.tsx`);
+  const mocks = read(`${LANDING_DIR}/LandingMocks.tsx`);
+  const cta = read(`${LANDING_DIR}/sections/LandingCTA.tsx`);
 
-  ['Lorem ipsum', 'TODO', 'FIXME', 'số liệu giả', '100% Người thật & Tương tác thật'].forEach((banned) => {
+  ['Lorem ipsum', 'TODO', 'FIXME', 'số liệu giả', '100% Người thật & Tương tác thật', 'HIGHLIGHTS', 'TRUST_PILLARS'].forEach((banned) => {
     assert.ok(!files.includes(banned), `Landing copy must not contain "${banned}"`);
   });
 
+  assert.doesNotMatch(hero, /onlineCount|totalQuestions|solvedQuestions|totalClubs|AVATARS|<Star/);
+  assert.doesNotMatch(proof, /Counter|onlineCount|totalQuestions|solvedQuestions|totalClubs/);
+  assert.match(proof, /F-Forum không dùng những con số đó/);
+  assert.match(mocks, /Nội dung minh họa/);
+  assert.doesNotMatch(mocks, /lượt xem|lượt thích|\bXP\b|\bCoin\b|đang online|[0-9][0-9,.]+\s*(lượt|thành viên|XP|Coin|cấp độ|kênh)/i);
+  assert.doesNotMatch(cta, /waitlist|setTimeout|đã ghi danh|Loader2/i, 'CTA must not simulate an unconnected signup form');
+  assert.match(read('index.html'), /Diễn đàn học thuật cho sinh viên FPT/, 'SEO and social metadata should use the grounded positioning');
+  assert.doesNotMatch(read('index.html'), /\bXP\b|trong vài phút|tỏa sáng cùng nhau/i, 'social previews must not retain the old hype copy');
+  assert.doesNotMatch(read('src/App.tsx').split("currentView === 'landing'")[1]?.split("currentView === 'home'")[0] ?? '', /onlineCount|totalQuestions|solvedQuestions|totalClubs/);
   assert.ok(!/>undefined</.test(files), 'Landing must not render literal undefined values');
 });
 
@@ -203,18 +224,19 @@ test('Design: role-based inks and light gradient stops remain readable in both t
 
 test('Design: pricing uses theme-aware foregrounds, unique anchors, and accessible touch targets', () => {
   const pricing = read(`${LANDING_DIR}/sections/LandingPricing.tsx`);
-  const planPart = pricing.split('{/* Dedicated Luxury Donate Card Section */}')[0];
+  const planPart = pricing.split('aria-controls={showDonateBox ?')[0];
   assert.match(planPart, /ff-plan-card--featured/);
   assert.match(planPart, /text-\[var\(--ff-text\)\]/);
   assert.doesNotMatch(planPart, /text-white/, 'light tiers must not have white type on milky surfaces');
-  assert.match(planPart, /ff-btn-ghost/, 'available tiers use the theme-aware action');
-  assert.doesNotMatch(planPart, /Kích Hoạt Miễn Phí/, 'registration must not pretend to activate a future tier');
+  assert.match(planPart, /ff-btn-primary/, 'available access has a real action');
+  assert.doesNotMatch(planPart, /Kích Hoạt Miễn Phí|Sắp ra mắt/, 'unreleased access must not be promoted');
+  assert.match(pricing, /aria-expanded=\{showDonateBox\}/, 'voluntary support disclosure must expose its state');
   assert.match(read(`${LANDING_DIR}/landing.css`), /\.ff-plan-card__action \{ min-height: 44px; \}/);
-  assert.match(read(`${LANDING_DIR}/LandingNav.tsx`), /\{ id: 'nang-luc', label: 'Năng lực' \}/);
-  const highlights = read(`${LANDING_DIR}/sections/LandingHighlights.tsx`);
+  assert.match(read(`${LANDING_DIR}/LandingNav.tsx`), /\{ id: 'nang-luc', label: 'Cách hỏi tốt' \}/);
+  const guide = read(`${LANDING_DIR}/sections/LandingHighlights.tsx`);
   const features = read(`${LANDING_DIR}/sections/LandingFeatures.tsx`);
-  assert.match(highlights, /id="nang-luc"/);
-  assert.doesNotMatch(highlights, /id="tinh-nang"/, 'Năng lực must not shadow Tính năng anchor');
+  assert.match(guide, /id="nang-luc"/);
+  assert.doesNotMatch(guide, /id="tinh-nang"/, 'question guide must not shadow the feature anchor');
   assert.match(features, /id="tinh-nang"/);
   assert.match(read('src/components/views/QAForumView.tsx'), /w-11 h-11 rounded-lg bg-neutral-900/);
 });

@@ -1,6 +1,7 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
-import { ArrowUpRight, Heart, Mail, ShieldCheck } from 'lucide-react';
+import { ArrowUpRight, Mail, ShieldCheck } from 'lucide-react';
+import type { User } from '../../../types';
 import { scrollToSection } from '../useLandingMotion';
 
 /** Inline brand marks (lucide no longer ships third-party logo icons). */
@@ -17,41 +18,42 @@ const GithubMark: React.FC<{ className?: string }> = ({ className }) => (
 );
 
 interface LandingFooterProps {
+  currentUser: User | null;
   onEnterApp: () => void;
   onOpenAuth: () => void;
 }
 
 const LINK_GROUPS: { title: string; links: { label: string; section?: string; href?: string }[] }[] = [
   {
-    title: 'Sản phẩm',
+    title: 'F-Forum',
     links: [
       { label: 'Tính năng', section: 'tinh-nang' },
-      { label: 'Khám phá 3 bước', section: 'kham-pha' },
-      { label: 'Lợi ích', section: 'loi-ich' },
-      { label: 'Bảng giá', section: 'bang-gia' },
+      { label: 'Xem ví dụ', section: 'kham-pha' },
+      { label: 'Nguyên tắc cùng học', section: 'loi-ich' },
+      { label: 'Chi phí', section: 'bang-gia' },
     ],
   },
   {
-    title: 'Cộng đồng',
+    title: 'Học tập',
     links: [
-      { label: 'Sàn hỏi đáp', section: 'kham-pha' },
+      { label: 'Hỏi đáp', section: 'kham-pha' },
+      { label: 'Kho đề & học liệu', section: 'kham-pha' },
       { label: 'Câu lạc bộ', section: 'kham-pha' },
-      { label: 'Năng lực hệ thống', section: 'nang-luc' },
-      { label: 'Khu vinh danh', section: 'kham-pha' },
+      { label: 'Cách đặt câu hỏi', section: 'nang-luc' },
     ],
   },
   {
     title: 'Hỗ trợ',
     links: [
       { label: 'Câu hỏi thường gặp', section: 'faq' },
-      { label: 'Gửi góp ý', section: 'faq' },
-      { label: 'Chính sách dữ liệu', section: 'faq' },
+      { label: 'Báo cáo nội dung', section: 'faq' },
+      { label: 'Bút danh', section: 'faq' },
       { label: 'Liên hệ Ban Quản Trị', href: 'https://www.facebook.com/TuanNotTun/' },
     ],
   },
 ];
 
-export const LandingFooter: React.FC<LandingFooterProps> = ({ onEnterApp, onOpenAuth }) => {
+export const LandingFooter: React.FC<LandingFooterProps> = ({ currentUser, onEnterApp, onOpenAuth }) => {
   return (
     <footer className="relative w-full border-t border-[var(--ff-border)] bg-[var(--ff-bg-soft)]">
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
@@ -69,8 +71,8 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ onEnterApp, onOpen
               </span>
             </div>
             <p className="mt-5 max-w-sm text-[13.5px] leading-relaxed text-[var(--ff-text-soft)]">
-              Không gian số của sinh viên FPT: hỏi đáp bài học, câu lạc bộ, phòng chat thời gian thực và công cụ
-              học tập trung — tất cả miễn phí, được xây dựng bởi chính sinh viên.
+              Diễn đàn học thuật cho sinh viên FPT — nơi câu hỏi, học liệu và các cuộc trao đổi được giữ trong cùng một
+              không gian.
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-2">
@@ -78,9 +80,11 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ onEnterApp, onOpen
                 Vào diễn đàn
                 <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
               </button>
-              <button type="button" onClick={onOpenAuth} className="ff-btn ff-btn-ghost px-5 py-2.5 text-[13px]">
-                Đăng nhập
-              </button>
+              {!currentUser && (
+                <button type="button" onClick={onOpenAuth} className="ff-btn ff-btn-ghost px-5 py-2.5 text-[13px]">
+                  Tạo tài khoản
+                </button>
+              )}
             </div>
 
             <div className="mt-6 flex items-center gap-3">
@@ -152,28 +156,12 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ onEnterApp, onOpen
         {/* Bottom bar */}
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-[var(--ff-border)] pt-6 sm:flex-row">
           <p className="text-center text-[12px] text-[var(--ff-text-dim)] sm:text-left">
-            © {new Date().getFullYear()} F-Forum · Dự án nền tảng sinh viên FPT. Được xây dựng với{' '}
-            <Heart className="inline h-3 w-3 -translate-y-[1px] text-rose-400" aria-label="tình yêu" /> bởi sinh
-            viên, cho sinh viên.
+            © {new Date().getFullYear()} F-Forum · Diễn đàn học thuật cho sinh viên FPT.
           </p>
-          <div className="flex items-center gap-3">
-            <p className="flex items-center gap-1.5 text-[12px] text-[var(--ff-text-dim)]">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
-              Bản 2.0 · Liquid Glass 2026
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('fforum_toggle_donate_box'));
-                scrollToSection('bang-gia');
-              }}
-              aria-label="Mở góc ủng hộ F-Forum"
-              title="Mở góc ủng hộ F-Forum"
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-amber-400/40 bg-[var(--ff-bg)] text-[11px] font-extrabold text-amber-400 opacity-45 hover:opacity-90 transition-opacity cursor-pointer"
-            >
-              F
-            </button>
-          </div>
+          <p className="flex items-center gap-1.5 text-[12px] text-[var(--ff-text-dim)]">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
+            Học thuật · Cộng đồng · Tài liệu
+          </p>
         </div>
       </div>
     </footer>

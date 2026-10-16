@@ -1,37 +1,19 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 import {
-  Bell,
-  Compass,
-  GraduationCap,
-  Heart,
+  BookOpen,
+  BookOpenCheck,
+  Bookmark,
+  FileText,
   HelpCircle,
   Home,
   MessageSquare,
+  Paperclip,
   Search,
-  Sparkles,
-  Trophy,
   Users,
 } from 'lucide-react';
 
-/* ==========================================================================
-   Lightweight in-browser product mocks (no image payload, fully responsive)
-   ========================================================================== */
-
-const Monogram: React.FC<{ label: string; from: string; to: string; size?: string }> = ({
-  label,
-  from,
-  to,
-  size = 'h-8 w-8 text-[11px]',
-}) => (
-  <span
-    aria-hidden="true"
-    className={`inline-flex shrink-0 items-center justify-center rounded-full font-bold text-black/80 ${size}`}
-    style={{ backgroundImage: `linear-gradient(135deg, ${from}, ${to})` }}
-  >
-    {label}
-  </span>
-);
+/* Lightweight illustrative product surfaces; all sample content is labelled. */
 
 const MockSidebarItem: React.FC<{
   icon: React.ReactNode;
@@ -50,46 +32,39 @@ const MockSidebarItem: React.FC<{
   </div>
 );
 
-/**
- * The hero product mock: a glass "browser window" rendering the F-Forum Q&A
- * surface, with floating chat + level-up cards to convey depth.
- */
+const ExampleLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <span className="rounded-full border border-amber-400/25 bg-amber-500/10 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-amber-300">
+    {children}
+  </span>
+);
+
+/** The hero uses an illustrative Q&A view, not live community content. */
 export const AppWindowMock: React.FC = () => (
   <div className="relative w-full">
-    {/* Ambient glow behind the window */}
     <div
       aria-hidden="true"
       className="absolute -inset-10 rounded-[48px] opacity-70 blur-3xl"
       style={{
         background:
-          'radial-gradient(60% 55% at 30% 25%, rgba(251,191,36,0.28), transparent 65%), radial-gradient(50% 50% at 75% 70%, rgba(34,211,238,0.22), transparent 68%)',
+          'radial-gradient(60% 55% at 30% 25%, rgba(251,191,36,0.26), transparent 65%), radial-gradient(50% 50% at 75% 70%, rgba(129,178,154,0.18), transparent 68%)',
       }}
     />
 
     <div className="ff-glass ff-card relative overflow-hidden rounded-[24px] p-2 shadow-2xl sm:rounded-[28px] sm:p-3">
-      {/* Browser chrome */}
       <div className="mb-2 flex items-center gap-2 px-2 pt-1">
-        <span className="h-2.5 w-2.5 rounded-full bg-rose-400/80" />
-        <span className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
-        <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
+        <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-rose-400/80" />
+        <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
+        <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
         <div className="mx-auto hidden max-w-[280px] flex-1 items-center gap-2 rounded-full border border-[var(--ff-border)] bg-[var(--ff-surface)] px-3 py-1 sm:flex">
           <Search className="h-3 w-3 text-[var(--ff-text-dim)]" />
-          <span className="truncate font-mono text-[10px] text-[var(--ff-text-dim)]">
-            f-forum.edu.vn/hoi-dap
-          </span>
+          <span className="truncate font-mono text-[10px] text-[var(--ff-text-dim)]">F-Forum / Hỏi đáp</span>
         </div>
-        <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 sm:ml-0">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="ff-ping-ring absolute inline-flex h-full w-full rounded-full bg-emerald-400" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
-          </span>
-          <span className="font-mono text-[9px] font-semibold tracking-widest text-emerald-300">LIVE</span>
+        <span className="ml-auto sm:ml-0">
+          <ExampleLabel>Nội dung minh họa</ExampleLabel>
         </span>
       </div>
 
-      {/* App shell */}
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-[132px_1fr]">
-        {/* Left rail */}
         <div className="hidden flex-col gap-1 rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface)]/60 p-2 sm:flex">
           <div className="mb-1 flex items-center gap-2 px-1 py-1">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-tr from-amber-500 to-yellow-200 text-[11px] font-bold text-black">
@@ -99,83 +74,54 @@ export const AppWindowMock: React.FC = () => (
           </div>
           <MockSidebarItem icon={<Home />} label="Trang chủ" />
           <MockSidebarItem icon={<HelpCircle />} label="Hỏi đáp" active />
+          <MockSidebarItem icon={<BookOpen />} label="Kho đề" />
           <MockSidebarItem icon={<Users />} label="Câu lạc bộ" />
-          <MockSidebarItem icon={<MessageSquare />} label="Phòng chat" />
-          <MockSidebarItem icon={<Compass />} label="Khám phá" />
-          <div className="mt-1 rounded-xl border border-[var(--ff-border)] bg-[var(--ff-surface-2)] p-2">
-            <div className="flex items-center gap-1.5">
-              <Trophy className="h-3 w-3 text-amber-400" />
-              <span className="font-mono text-[9px] font-semibold tracking-wider text-amber-300">
-                LEVEL 12
-              </span>
-            </div>
-            <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-[var(--ff-border-strong)]">
-              <div className="h-full w-[68%] rounded-full bg-gradient-to-r from-amber-300 to-amber-500" />
-            </div>
-            <p className="mt-1.5 text-[9px] text-[var(--ff-text-dim)]">820 / 1.200 XP</p>
+          <MockSidebarItem icon={<Bookmark />} label="Đã lưu" />
+          <div className="mt-1 rounded-xl border border-[var(--ff-border)] bg-[var(--ff-surface-2)] p-2.5">
+            <BookOpenCheck className="h-4 w-4 text-amber-400" aria-hidden="true" />
+            <p className="mt-2 text-[10px] font-semibold text-[var(--ff-text)]">Cùng học, cùng kiểm tra</p>
+            <p className="mt-1 text-[9px] leading-relaxed text-[var(--ff-text-dim)]">
+              Trao đổi là điểm bắt đầu; hãy đối chiếu với tài liệu môn học.
+            </p>
           </div>
         </div>
 
-        {/* Main surface */}
         <div className="relative min-h-[316px] rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface)] p-3 sm:min-h-[352px]">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
               <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold text-amber-300 ring-1 ring-amber-400/25">
-                #toán
-              </span>
-              <span className="rounded-full bg-[#81b29a]/15 px-2.5 py-1 text-[10px] font-semibold text-[#81b29a] ring-1 ring-[#81b29a]/35">
                 #tin-học
               </span>
-              <span className="hidden rounded-full bg-[var(--ff-surface)] px-2.5 py-1 text-[10px] text-[var(--ff-text-dim)] ring-1 ring-[var(--ff-border)] sm:inline-flex">
-                Đã giải
+              <span className="rounded-full bg-[#81b29a]/15 px-2.5 py-1 text-[10px] font-semibold text-[#81b29a] ring-1 ring-[#81b29a]/35">
+                #cấu-trúc-dữ-liệu
               </span>
             </div>
-            <Bell className="h-3.5 w-3.5 text-[var(--ff-text-dim)]" />
+            <ExampleLabel>Câu hỏi mẫu</ExampleLabel>
           </div>
 
           <div className="mt-3 rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface-2)] p-3">
-            <div className="flex items-center gap-2">
-              <Monogram label="GB" from="#fbbf24" to="#f97316" />
-              <div className="min-w-0">
-                <p className="flex items-center gap-1 text-[11px] font-semibold text-[var(--ff-text)]">
-                  Bút danh Ghibli
-                  <span className="rounded-full bg-[#81b29a]/15 px-1.5 py-0.5 text-[8.5px] font-semibold uppercase tracking-wide text-[#81b29a] ring-1 ring-[#81b29a]/35">
-                    Ẩn danh
-                  </span>
-                </p>
-                <p className="font-mono text-[9px] text-[var(--ff-text-dim)]">2 phút trước · 46 lượt xem</p>
-              </div>
-            </div>
-            <p className="mt-2.5 text-[13px] font-semibold leading-snug text-[var(--ff-text)]">
-              Làm sao để tối ưu thuật toán tìm kiếm nhị phân cho mảng 10⁶ phần tử?
+            <p className="text-[13px] font-semibold leading-snug text-[var(--ff-text)]">
+              Vì sao tìm kiếm nhị phân cần dữ liệu đã được sắp xếp?
             </p>
-            <p className="mt-1.5 line-clamp-2 text-[11px] leading-relaxed text-[var(--ff-text-soft)]">
-              Mình đang làm bài tập lớn môn Cấu trúc dữ liệu, thầy yêu cầu tối ưu bộ nhớ đệm khi truy vấn
-              liên tục…
+            <p className="mt-2 text-[11px] leading-relaxed text-[var(--ff-text-soft)]">
+              Mình hiểu mỗi bước có thể bỏ qua một nửa dãy, nhưng chưa rõ điều gì cho phép chọn đúng nửa cần giữ lại.
             </p>
           </div>
 
           <div className="mt-2 rounded-2xl border border-emerald-400/25 bg-emerald-400/[0.07] p-3">
-            <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
-                <Sparkles className="h-3 w-3" /> Lời giải hay nhất
-              </span>
-              <span className="inline-flex items-center gap-1 font-mono text-[10px] text-[var(--ff-text-dim)]">
-                <Heart className="h-3 w-3 text-rose-400" /> 128
-              </span>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+              <BookOpenCheck className="h-3.5 w-3.5" aria-hidden="true" />
+              Một cách giải thích
             </div>
-            <div className="mt-2 flex items-start gap-2">
-              <Monogram label="KB" from="#34d399" to="#22d3ee" size="h-6 w-6 text-[9px]" />
-              <p className="text-[11px] leading-relaxed text-[var(--ff-text-soft)]">
-                Dùng tìm kiếm nhị phân trên mảng đã sắp xếp kèm bộ nhớ đệm <span className="font-mono text-[10px] text-emerald-300">O(log n)</span> —
-                mình gửi kèm snippet và giải thích từng bước nhé.
-              </p>
-            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-[var(--ff-text-soft)]">
+              Thứ tự cho biết giá trị cần tìm nằm về phía nào sau mỗi lần so sánh. Nếu dãy chưa sắp xếp, loại bỏ một nửa
+              có thể đồng nghĩa với bỏ luôn đáp án.
+            </p>
           </div>
 
           <div className="mt-2 flex items-center gap-2 rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface-2)] px-3 py-2">
-            <Monogram label="+" from="#94a3b8" to="#475569" size="h-5 w-5 text-[10px]" />
-            <span className="flex-1 text-[11px] text-[var(--ff-text-dim)]">Viết câu trả lời của bạn…</span>
+            <MessageSquare className="h-4 w-4 shrink-0 text-[var(--ff-text-dim)]" aria-hidden="true" />
+            <span className="flex-1 text-[11px] text-[var(--ff-text-dim)]">Thêm một cách giải thích…</span>
             <span className="rounded-full bg-gradient-to-r from-amber-300 to-amber-500 px-2.5 py-1 text-[10px] font-bold text-black">
               Gửi
             </span>
@@ -184,182 +130,135 @@ export const AppWindowMock: React.FC = () => (
       </div>
     </div>
 
-    {/* Floating card — live chat */}
-    <div className="ff-glass ff-float absolute -left-3 bottom-10 hidden w-[196px] rounded-2xl p-3 lg:block">
-      <div className="flex items-center gap-1.5">
-        <MessageSquare className="h-3 w-3 text-amber-400" />
-        <span className="font-mono text-[9px] font-semibold tracking-widest text-[var(--ff-text-dim)]">
-          #HÀNH-LANG
-        </span>
-      </div>
-      <div className="mt-2 space-y-1.5">
-        <div className="flex items-center gap-1.5">
-          <Monogram label="TN" from="#f472b6" to="#a855f7" size="h-5 w-5 text-[9px]" />
-          <span className="rounded-xl rounded-bl-sm bg-[var(--ff-surface-2)] px-2 py-1 text-[10px] text-[var(--ff-text-soft)]">
-            Ai rủ đi học nhóm không?
-          </span>
-        </div>
-        <div className="flex items-center justify-end gap-1.5">
-          <span className="rounded-xl rounded-br-sm bg-amber-500/20 px-2 py-1 text-[10px] text-amber-200">
-            Có mình! 19h nhé 🔥
-          </span>
-        </div>
+    <div className="ff-glass absolute -left-3 bottom-8 hidden w-[208px] rounded-2xl p-3 lg:block">
+      <div className="flex items-start gap-2">
+        <BookOpenCheck className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" aria-hidden="true" />
+        <p className="text-[11px] leading-relaxed text-[var(--ff-text-soft)]">
+          Một lời giải tốt cho thấy <span className="font-semibold text-[var(--ff-text)]">vì sao</span>, không chỉ nêu đáp án.
+        </p>
       </div>
     </div>
 
-    {/* Floating card — XP reward */}
-    <div className="ff-glass ff-float-delayed absolute -right-4 top-16 hidden w-[176px] rounded-2xl p-3 lg:block">
+    <div className="ff-glass absolute -right-3 top-16 hidden max-w-[176px] rounded-2xl p-3 lg:block">
       <div className="flex items-center gap-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-amber-400 to-yellow-200 text-[13px] font-bold text-black">
-          <Trophy className="h-4 w-4" />
-        </span>
-        <div>
-          <p className="text-[11px] font-bold text-[var(--ff-text)]">Lời giải hay nhất!</p>
-          <p className="font-mono text-[9px] text-[var(--ff-text-dim)]">+100 XP · +50% Coin</p>
-        </div>
+        <Paperclip className="h-4 w-4 text-[#81b29a]" aria-hidden="true" />
+        <p className="text-[10px] leading-relaxed text-[var(--ff-text-soft)]">Đính kèm đề bài khi cần thêm ngữ cảnh.</p>
       </div>
     </div>
   </div>
 );
 
-/* ==========================================================================
-   Showcase step mocks
-   ========================================================================== */
-
+/* Illustrative showcase surfaces. None of the rows below represent live records. */
 export const QAMock: React.FC = () => (
   <div className="ff-glass ff-card h-full rounded-[22px] p-4">
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center justify-between gap-2">
       <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold text-amber-300 ring-1 ring-amber-400/25">
-        <HelpCircle className="h-3 w-3" /> Sàn hỏi đáp
+        <HelpCircle className="h-3 w-3" aria-hidden="true" /> Hỏi đáp theo môn
       </span>
-      <span className="font-mono text-[10px] text-[var(--ff-text-dim)]">13 chủ đề · 4 môn học</span>
+      <ExampleLabel>Ví dụ minh họa</ExampleLabel>
     </div>
     <div className="mt-3 space-y-2">
       {[
-        { tag: 'Toán', title: 'Chứng minh bất đẳng thức Cauchy bằng quy nạp?', meta: '3 lời giải · 12 phút', from: '#fbbf24', to: '#f97316', label: 'HN' },
-        { tag: 'Anh văn', title: 'Mẹo nhớ 200 từ vựng IELTS trong 2 tuần?', meta: 'Lời giải hay nhất · 1 giờ', from: '#38bdf8', to: '#818cf8', label: 'TL' },
-        { tag: 'Tin học', title: 'Node.js hay Python cho đồ án web học kỳ này?', meta: 'Đang tranh luận · 24 phút', from: '#34d399', to: '#22d3ee', label: 'QA' },
+        { tag: 'Tin học', title: 'Vì sao tìm kiếm nhị phân cần dữ liệu có thứ tự?' },
+        { tag: 'Toán', title: 'Khi nào nên dùng quy nạp để chứng minh?' },
+        { tag: 'Kỹ năng học', title: 'Làm sao phân biệt luận điểm và dẫn chứng?' },
       ].map((row) => (
-        <div
-          key={row.title}
-          className="flex items-start gap-3 rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface-2)] p-3"
-        >
-          <Monogram label={row.label} from={row.from} to={row.to} size="h-7 w-7 text-[10px]" />
-          <div className="min-w-0">
-            <p className="truncate text-[12px] font-semibold text-[var(--ff-text)]">{row.title}</p>
-            <p className="mt-0.5 font-mono text-[9.5px] text-[var(--ff-text-dim)]">
-              #{row.tag} · {row.meta}
-            </p>
-          </div>
-        </div>
+        <article key={row.title} className="rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface-2)] p-3">
+          <p className="text-[12px] font-semibold leading-snug text-[var(--ff-text)]">{row.title}</p>
+          <p className="mt-1 font-mono text-[9.5px] text-[var(--ff-text-dim)]">#{row.tag}</p>
+        </article>
       ))}
     </div>
-    <div className="mt-3 flex items-center gap-2 rounded-2xl border border-dashed border-[var(--ff-border-strong)] px-3 py-2 text-[11px] text-[var(--ff-text-dim)]">
-      <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-      Hỏi ẩn danh với bút danh Ghibli nếu bạn ngại ngùng
+    <div className="mt-3 flex items-start gap-2 rounded-2xl border border-dashed border-[var(--ff-border-strong)] px-3 py-2 text-[11px] leading-relaxed text-[var(--ff-text-dim)]">
+      <BookOpenCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" aria-hidden="true" />
+      Nêu điều bạn đã thử để cuộc trao đổi đi đúng chỗ đang vướng.
     </div>
   </div>
 );
 
 export const ClubsMock: React.FC = () => (
   <div className="ff-glass ff-card h-full rounded-[22px] p-4">
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center justify-between gap-2">
       <span className="inline-flex items-center gap-1.5 rounded-full bg-[#81b29a]/15 px-2.5 py-1 text-[10px] font-semibold text-[#81b29a] ring-1 ring-[#81b29a]/35">
-        <Users className="h-3 w-3" /> Câu lạc bộ
+        <Users className="h-3 w-3" aria-hidden="true" /> Câu lạc bộ & nhóm học
       </span>
-      <span className="font-mono text-[10px] text-[var(--ff-text-dim)]">Công nghệ · Nghệ thuật · Thể thao</span>
+      <ExampleLabel>Ví dụ minh họa</ExampleLabel>
     </div>
     <div className="mt-3 grid grid-cols-2 gap-2">
       {[
-        { name: 'CLB Lập trình', members: '128 thành viên', from: '#fbbf24', to: '#f97316' },
-        { name: 'CLB Truyền thông', members: '96 thành viên', from: '#f472b6', to: '#a855f7' },
-        { name: 'CLB Bóng rổ', members: '74 thành viên', from: '#38bdf8', to: '#22d3ee' },
-        { name: 'CLB Học thuật', members: '152 thành viên', from: '#34d399', to: '#4ade80' },
+        { name: 'Cùng học Cấu trúc dữ liệu', note: 'Chia sẻ cách giải', from: '#fbbf24', to: '#f97316' },
+        { name: 'Nhóm ôn tiếng Anh', note: 'Trao đổi học liệu', from: '#f472b6', to: '#a855f7' },
+        { name: 'CLB Học thuật', note: 'Thảo luận liên môn', from: '#38bdf8', to: '#22d3ee' },
+        { name: 'Góc thiết kế', note: 'Nhận góp ý bài tập', from: '#34d399', to: '#4ade80' },
       ].map((club) => (
-        <div
-          key={club.name}
-          className="overflow-hidden rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface-2)]"
-        >
+        <article key={club.name} className="overflow-hidden rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface-2)]">
           <div
-            className="h-14 w-full"
+            className="h-12 w-full"
             style={{ backgroundImage: `linear-gradient(135deg, ${club.from}33, ${club.to}55)` }}
+            aria-hidden="true"
           />
           <div className="p-2.5">
-            <p className="truncate text-[11.5px] font-semibold text-[var(--ff-text)]">{club.name}</p>
-            <p className="mt-0.5 font-mono text-[9px] text-[var(--ff-text-dim)]">{club.members}</p>
-            <span className="mt-2 inline-flex items-center rounded-full bg-[var(--ff-surface)] px-2 py-0.5 text-[9px] font-semibold text-[var(--ff-text-soft)] ring-1 ring-[var(--ff-border)]">
-              Tham gia
-            </span>
+            <p className="line-clamp-2 min-h-[2.25rem] text-[11px] font-semibold leading-snug text-[var(--ff-text)]">{club.name}</p>
+            <p className="mt-1 text-[9px] text-[var(--ff-text-dim)]">{club.note}</p>
           </div>
-        </div>
+        </article>
       ))}
     </div>
     <div className="mt-3 flex items-center gap-2 rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface-2)] p-3">
-      <GraduationCap className="h-4 w-4 shrink-0 text-amber-400" />
-      <p className="text-[11px] text-[var(--ff-text-soft)]">
-        Ban Quản Trị duyệt câu lạc bộ trong 24h — minh bạch, có phản hồi lý do.
+      <Users className="h-4 w-4 shrink-0 text-amber-400" aria-hidden="true" />
+      <p className="text-[11px] leading-relaxed text-[var(--ff-text-soft)]">
+        Giữ bài viết và thảo luận bên cạnh chủ đề chung của nhóm.
       </p>
     </div>
   </div>
 );
 
-export const ArenaMock: React.FC = () => (
+export const LibraryMock: React.FC = () => (
   <div className="ff-glass ff-card h-full rounded-[22px] p-4">
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center justify-between gap-2">
       <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-500/15 px-2.5 py-1 text-[10px] font-semibold text-violet-300 ring-1 ring-violet-400/25">
-        <Trophy className="h-3 w-3" /> Đấu trường tri thức
+        <BookOpen className="h-3 w-3" aria-hidden="true" /> Kho đề & học liệu
       </span>
-      <span className="font-mono text-[10px] text-[var(--ff-text-dim)]">8 danh hiệu · 150 cấp độ</span>
+      <ExampleLabel>Ví dụ minh họa</ExampleLabel>
     </div>
 
-    <div className="mt-3 space-y-1.5">
-      {[
-        { rank: '01', name: 'Trần Văn Anh Tuấn', xp: '45.000 XP', badge: 'Chuyên Gia', from: '#fbbf24', to: '#f97316', label: 'TA' },
-      ].map((row) => (
-        <div
-          key={row.rank}
-          className="flex items-center gap-2.5 rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface-2)] p-2.5"
-        >
-          <span className="font-mono text-[11px] font-bold text-amber-300">{row.rank}</span>
-          <Monogram label={row.label} from={row.from} to={row.to} size="h-7 w-7 text-[10px]" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[11.5px] font-semibold text-[var(--ff-text)]">{row.name}</p>
-            <p className="font-mono text-[9px] text-[var(--ff-text-dim)]">{row.badge}</p>
+    <div className="mt-3 grid gap-3 sm:grid-cols-[0.9fr_1.1fr]">
+      <div className="space-y-2">
+        {[
+          { name: 'Ôn tập Cấu trúc dữ liệu', format: 'PDF' },
+          { name: 'Đề cương học phần', format: 'DOCX' },
+          { name: 'Ghi chú thuật toán', format: 'Markdown' },
+          { name: 'Ảnh đề bài', format: 'Hình ảnh' },
+        ].map((file) => (
+          <div key={file.name} className="flex items-center gap-2 rounded-xl border border-[var(--ff-border)] bg-[var(--ff-surface-2)] p-2.5">
+            <FileText className="h-4 w-4 shrink-0 text-amber-400" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[10.5px] font-semibold text-[var(--ff-text)]">{file.name}</p>
+              <p className="mt-0.5 font-mono text-[9px] text-[var(--ff-text-dim)]">{file.format}</p>
+            </div>
           </div>
-          <span className="font-mono text-[10px] font-semibold text-[var(--ff-text-soft)]">{row.xp}</span>
-        </div>
-      ))}
+        ))}
+      </div>
 
-      {/* Bảng chỉ gồm tài khoản thật — dòng của bạn xuất hiện sau khi đăng ký */}
-      <div className="flex items-center gap-2.5 rounded-2xl border border-dashed border-[var(--ff-border-strong)] bg-transparent p-2.5">
-        <span className="font-mono text-[11px] font-bold text-[var(--ff-text-dim)]">--</span>
-        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-[var(--ff-border-strong)] font-mono text-[10px] text-[var(--ff-text-dim)]">
-          ?
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[11.5px] font-semibold text-[var(--ff-text-soft)]">Vị trí của bạn</p>
-          <p className="font-mono text-[9px] text-[var(--ff-text-dim)]">Đăng ký bằng email thật để ghi tên lên bảng</p>
+      <div className="rounded-xl border border-[var(--ff-border)] bg-[var(--ff-surface-2)] p-3">
+        <div className="flex items-center gap-2 border-b border-[var(--ff-border)] pb-2">
+          <FileText className="h-4 w-4 text-rose-300" aria-hidden="true" />
+          <span className="text-[10px] font-semibold text-[var(--ff-text)]">Bản xem tài liệu</span>
+          <span className="ml-auto font-mono text-[9px] text-[var(--ff-text-dim)]">PDF</span>
+        </div>
+        <div className="mt-3 rounded-lg border border-[var(--ff-border)] bg-[var(--ff-bg-soft)] p-3">
+          <p className="font-mono text-[9px] font-bold tracking-[0.12em] text-amber-300">CẤU TRÚC DỮ LIỆU</p>
+          <p className="mt-2 text-[11px] font-semibold text-[var(--ff-text)]">Tìm kiếm nhị phân</p>
+          <p className="mt-2 text-[9.5px] leading-relaxed text-[var(--ff-text-dim)]">
+            Tìm hiểu điều kiện áp dụng, cách thu hẹp miền tìm kiếm và trường hợp cần kiểm tra lại giả định.
+          </p>
         </div>
       </div>
     </div>
 
-    <div className="mt-3 grid grid-cols-3 gap-2">
-      {[
-        { icon: <Compass className="h-3.5 w-3.5" />, label: 'Giờ học', value: '42' },
-        { icon: <Trophy className="h-3.5 w-3.5" />, label: 'Huy hiệu', value: '08' },
-        { icon: <Sparkles className="h-3.5 w-3.5" />, label: 'Điểm F', value: '640' },
-      ].map((stat) => (
-        <div
-          key={stat.label}
-          className="rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface-2)] p-2 text-center"
-        >
-          <span className="mx-auto flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/15 text-amber-300">
-            {stat.icon}
-          </span>
-          <p className="mt-1 text-[13px] font-bold text-[var(--ff-text)]">{stat.value}</p>
-          <p className="font-mono text-[8.5px] text-[var(--ff-text-dim)]">{stat.label}</p>
-        </div>
-      ))}
+    <div className="mt-3 flex items-start gap-2 rounded-2xl border border-dashed border-[var(--ff-border-strong)] px-3 py-2 text-[11px] leading-relaxed text-[var(--ff-text-dim)]">
+      <Paperclip className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" aria-hidden="true" />
+      PDF có thể xem trong trình duyệt; các tệp khác được mở theo định dạng tương ứng.
     </div>
   </div>
 );

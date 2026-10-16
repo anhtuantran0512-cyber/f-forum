@@ -71,7 +71,7 @@ test('Clean Data & Zero Mocks: No seed bots, mock personas or fake metrics', () 
 
 test('Branding and HTML Metadata strictly F-Forum', () => {
   const indexHtml = fs.readFileSync('index.html', 'utf8');
-  assert.ok(indexHtml.includes('<title>F-Forum</title>'), 'HTML title must be F-Forum');
+  assert.match(indexHtml, /<title>F-Forum — Diễn đàn học thuật cho sinh viên FPT<\/title>/, 'HTML title must keep F-Forum branding and academic positioning');
   assert.ok(indexHtml.includes('<meta name="application-name" content="F-Forum" />'), 'application-name must be F-Forum');
   assert.ok(!indexHtml.includes('fforum_broamstuck_studio'), 'No internal studio tags in HTML title');
 });

@@ -6,9 +6,6 @@ import { useInView, usePrefersReducedMotion, useScrollProgress } from './useLand
 /* ==========================================================================
    Motion primitives
    ========================================================================== */
-/* ==========================================================================
-   Motion primitives
-   ========================================================================== */
 
 interface RevealProps {
   children: React.ReactNode;
@@ -67,101 +64,6 @@ export const Reveal: React.FC<RevealProps> = ({
     >
       {children}
     </Tag>
-  );
-};
-
-interface CounterProps {
-  value: number;
-  duration?: number;
-  decimals?: number;
-  prefix?: string;
-  suffix?: string;
-  className?: string;
-}
-
-/** Animated number that counts up with digit scramble animation before settling. */
-export const Counter: React.FC<CounterProps> = ({
-  value,
-  duration = 1600,
-  decimals = 0,
-  prefix = '',
-  suffix = '',
-  className = '',
-}) => {
-  const { ref, inView } = useInView<HTMLSpanElement>({ threshold: 0.4 });
-  const reduced = usePrefersReducedMotion();
-  const [display, setDisplay] = useState(0);
-  const [scrambleText, setScrambleText] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!inView) return;
-    if (reduced) {
-      const id = requestAnimationFrame(() => {
-        setDisplay(value);
-        setScrambleText(null);
-      });
-      return () => cancelAnimationFrame(id);
-    }
-    const el = ref.current;
-    let raf = 0;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const elapsed = now - start;
-      const t = Math.min(1, elapsed / duration);
-      const eased = 1 - Math.pow(2, -10 * t);
-      const currentVal = value * (t === 1 ? 1 : eased);
-
-      if (el) {
-        if (t < 0.88) {
-          const finalStr = Math.round(value).toString();
-          const scrambled = finalStr
-            .split('')
-            .map((ch, idx) => {
-              const lockProgress = (idx + 1) / finalStr.length;
-              if (t > lockProgress * 0.88) return ch;
-              if (/\d/.test(ch)) {
-                return Math.floor(Math.random() * 10).toString();
-              }
-              return ch;
-            })
-            .join('');
-          el.textContent = `${prefix}${scrambled}${suffix}`;
-        } else {
-          const formattedNow = currentVal.toLocaleString('vi-VN', {
-            minimumFractionDigits: decimals,
-            maximumFractionDigits: decimals,
-          });
-          el.textContent = `${prefix}${formattedNow}${suffix}`;
-        }
-      }
-
-      if (t < 1) {
-        raf = requestAnimationFrame(tick);
-      } else {
-        setDisplay(value);
-        setScrambleText(null);
-      }
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [inView, value, duration, reduced, prefix, suffix, decimals, ref]);
-
-  const formatted = useMemo(() => {
-    if (scrambleText !== null) {
-      return scrambleText;
-    }
-    return display.toLocaleString('vi-VN', {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    });
-  }, [display, decimals, scrambleText]);
-
-  return (
-    <span ref={ref} className={className}>
-      {prefix}
-      {formatted}
-      {suffix}
-    </span>
   );
 };
 
@@ -292,32 +194,6 @@ export const MagneticButton: React.FC<{
     </button>
   );
 };
-
-/**
- * Infinite horizontal marquee. The children are rendered twice (the second copy
- * is aria-hidden) and each half translates by its own width, which keeps the
- * loop seamless whatever the viewport width is.
- */
-export const Marquee: React.FC<{
-  children: React.ReactNode;
-  duration?: number;
-  reverse?: boolean;
-  className?: string;
-  /** Classes applied to each half — use it to size the individual items. */
-  itemClassName?: string;
-}> = ({ children, duration = 46, reverse = false, className = '', itemClassName = '' }) => (
-  <div className={`ff-marquee-host ff-fade-x relative flex overflow-hidden ${className}`}>
-    <div
-      className={`ff-marquee ${reverse ? 'ff-marquee-reverse' : ''}`}
-      style={{ '--ff-marquee-duration': `${duration}s` } as React.CSSProperties}
-    >
-      <div className={`ff-marquee-half gap-4 ${itemClassName}`}>{children}</div>
-      <div className={`ff-marquee-half gap-4 ${itemClassName}`} aria-hidden="true">
-        {children}
-      </div>
-    </div>
-  </div>
-);
 
 /** Soft animated gradient orbs used as ambient section backdrops. */
 export const AuroraBackdrop: React.FC<{

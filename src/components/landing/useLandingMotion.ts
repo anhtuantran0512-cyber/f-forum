@@ -25,7 +25,7 @@ export function usePrefersReducedMotion(): boolean {
 }
 
 /**
- * A single IntersectionObserver is shared by every reveal/counter on the page,
+ * A single IntersectionObserver is shared by reveal and text-animation elements,
  * keyed by its options. Building ~200 observers for one landing page is wasteful;
  * this keeps it at one or two regardless of how much content we add.
  */

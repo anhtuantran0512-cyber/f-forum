@@ -19,7 +19,7 @@ export const LandingFAQ: React.FC<LandingFAQProps> = ({ onOpenAuth }) => {
         <SectionHeading
           eyebrow="Hỏi đáp"
           title="Câu hỏi thường gặp"
-          description="Nếu vẫn còn điều chưa rõ, Ban Quản Trị luôn có mặt trong phòng chat để trả lời bạn trực tiếp."
+          description="Những điều thực tế về chi phí, học liệu, bút danh và giới hạn của câu trả lời trên diễn đàn."
         />
 
         <div className="mt-14 grid gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.65fr)]">
@@ -89,18 +89,18 @@ export const LandingFAQ: React.FC<LandingFAQProps> = ({ onOpenAuth }) => {
                 <HelpCircle className="ff-ink--amber h-5 w-5" aria-hidden="true" />
               </span>
               <h3 className="mt-5 text-[17px] font-semibold tracking-tight text-[var(--ff-text)]">
-                Vẫn còn thắc mắc?
+                Phát hiện nội dung sai?
               </h3>
               <p className="mt-2.5 flex-1 text-[13.5px] leading-relaxed text-[var(--ff-text-soft)]">
-                Đặt câu hỏi trực tiếp trong sàn hỏi đáp hoặc gửi góp ý cho Ban Quản Trị. Chúng tôi phản hồi
-                trong vòng 24 giờ làm việc — kể cả những câu khó.
+                Dùng công cụ báo cáo trong ứng dụng để nhóm quản trị xem xét. Câu trả lời có thể sai hoặc thiếu — hãy
+                đối chiếu với tài liệu môn học thay vì chờ một bảo đảm tuyệt đối.
               </p>
               <button type="button" onClick={onOpenAuth} className="ff-btn ff-btn-primary group mt-6 w-full px-6 py-3.5 text-sm">
-                Tham gia miễn phí
+                Mở diễn đàn
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </button>
               <p className="mt-3 text-center text-[11.5px] text-[var(--ff-text-dim)]">
-                Thiết lập trong 30 giây · Không cần thẻ
+                Thời gian phản hồi có thể thay đổi.
               </p>
             </div>
           </Reveal>

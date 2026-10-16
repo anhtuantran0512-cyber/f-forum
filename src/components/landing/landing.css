@@ -389,16 +389,6 @@ html.light .ff-plan-card--featured { box-shadow: 0 18px 44px rgba(15, 23, 42, .0
   pointer-events: none;
 }
 
-@keyframes ffPingRing {
-  0% { transform: scale(0.85); opacity: 0.7; }
-  70% { transform: scale(2.1); opacity: 0; }
-  100% { transform: scale(2.1); opacity: 0; }
-}
-
-.ff-ping-ring {
-  animation: ffPingRing 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
 @keyframes ffGradientPan {
   0% { transform: translate3d(0, 0, 0); }
   50% { transform: translate3d(0, 0, 0); }
@@ -462,47 +452,6 @@ html.light .ff-plan-card--featured { box-shadow: 0 18px 44px rgba(15, 23, 42, .0
 .ff-reveal-scale {
   --ff-reveal-y: 8px;
   --ff-reveal-scale: 0.985;
-}
-
-/* --------------------------------------------------------------------------
-   Marquee (testimonials, logo strip)
-   -------------------------------------------------------------------------- */
-.ff-marquee {
-  display: flex;
-  width: 100%;
-}
-
-/*
- * Each half fills at least the viewport width and overflows when the content is
- * wider. Both halves translate by exactly their own width, so the loop stays
- * seamless on any screen size (no empty gap on ultra-wide displays).
- */
-.ff-marquee-half {
-  display: flex;
-  flex: 0 0 auto;
-  min-width: 100%;
-  align-items: stretch;
-  padding-right: 1rem;
-  animation: ffMarqueeHalf var(--ff-marquee-duration, 46s) linear infinite;
-  will-change: transform;
-}
-
-.ff-marquee-reverse .ff-marquee-half {
-  animation-direction: reverse;
-}
-
-.ff-marquee-host:hover .ff-marquee-half {
-  animation-play-state: paused;
-}
-
-@keyframes ffMarqueeHalf {
-  from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(-100%, 0, 0); }
-}
-
-.ff-fade-x {
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 9%, #000 91%, transparent);
-  mask-image: linear-gradient(to right, transparent, #000 9%, #000 91%, transparent);
 }
 
 /* --------------------------------------------------------------------------
@@ -572,9 +521,7 @@ html.light .ff-plan-card--featured { box-shadow: 0 18px 44px rgba(15, 23, 42, .0
   .ff-shimmer::after,
   .ff-scroll-dot,
   .ff-chevron-1,
-  .ff-chevron-2,
-  .ff-marquee-half,
-  .ff-ping-ring {
+  .ff-chevron-2 {
     animation: none !important;
   }
   .ff-btn:hover,
@@ -597,7 +544,6 @@ html.reduce-motion .ff-float-slow,
 html.reduce-motion .ff-spin-slow,
 html.reduce-motion .ff-grid,
 html.reduce-motion .ff-gradient-pan,
-html.reduce-motion .ff-marquee-half,
 html.reduce-motion .ff-scroll-dot,
 html.reduce-motion .ff-chevron-1,
 html.reduce-motion .ff-chevron-2 {

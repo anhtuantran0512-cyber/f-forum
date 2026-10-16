@@ -1,6 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowRight, LogIn, Menu, Sparkles, X } from 'lucide-react';
+import { ArrowRight, BookOpenCheck, LogIn, Menu, X } from 'lucide-react';
 import type { User } from '../../types';
 import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
 import { scrollToSection } from './useLandingMotion';
@@ -8,19 +8,20 @@ import { scrollToSection } from './useLandingMotion';
 export interface LandingNavProps {
   currentUser: User | null;
   onOpenLogin: () => void;
+  onOpenRegister: () => void;
   onEnterApp: () => void;
 }
 
 const NAV_LINKS: { id: string; label: string }[] = [
   { id: 'tinh-nang', label: 'Tính năng' },
   { id: 'kham-pha', label: 'Khám phá' },
-  { id: 'loi-ich', label: 'Lợi ích' },
-  { id: 'nang-luc', label: 'Năng lực' },
-  { id: 'bang-gia', label: 'Bảng giá' },
+  { id: 'loi-ich', label: 'Nguyên tắc' },
+  { id: 'nang-luc', label: 'Cách hỏi tốt' },
+  { id: 'bang-gia', label: 'Chi phí' },
   { id: 'faq', label: 'Hỏi đáp' },
 ];
 
-export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin, onEnterApp }) => {
+export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin, onOpenRegister, onEnterApp }) => {
   const [scrolled, setScrolled] = useState(false);
   const progressBarRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -127,7 +128,6 @@ export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin
             <span className="flex h-full w-full items-center justify-center rounded-full bg-[var(--ff-bg)] text-sm font-bold text-amber-400">
               F
             </span>
-            <span className="ff-ping-ring absolute inset-0 rounded-full border border-amber-400/40" />
           </span>
           <span className="ff-brand-serif whitespace-nowrap bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-xl text-transparent">
             F-Forum
@@ -192,8 +192,8 @@ export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin
               >
                 <LogIn className="h-4 w-4" /> Đăng nhập
               </button>
-              <button type="button" onClick={onOpenLogin} className="ff-btn ff-btn-primary px-5 py-2.5 text-sm">
-                <Sparkles className="h-4 w-4" /> Tham gia miễn phí
+              <button type="button" onClick={onOpenRegister} className="ff-btn ff-btn-primary px-5 py-2.5 text-sm">
+                <BookOpenCheck className="h-4 w-4" /> Tạo tài khoản
               </button>
             </>
           )}
@@ -259,11 +259,11 @@ export const LandingNav: React.FC<LandingNavProps> = ({ currentUser, onOpenLogin
                   type="button"
                   onClick={() => {
                     setMenuOpen(false);
-                    onOpenLogin();
+                    onOpenRegister();
                   }}
                   className="ff-btn ff-btn-primary w-full px-5 py-3.5 text-sm"
                 >
-                  <Sparkles className="h-4 w-4" /> Tham gia miễn phí
+                  <BookOpenCheck className="h-4 w-4" /> Tạo tài khoản
                 </button>
                 <button
                   type="button"

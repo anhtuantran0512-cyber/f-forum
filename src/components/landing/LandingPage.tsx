@@ -18,29 +18,14 @@ import { LandingFooter } from './sections/LandingFooter';
 export interface LandingPageProps {
   currentUser: User | null;
   onOpenAuth: () => void;
+  onOpenLogin: () => void;
   onEnterApp: () => void;
-  onlineCount: number;
-  totalQuestions: number;
-  solvedQuestions: number;
-  totalClubs: number;
 }
 
-/**
- * F-Forum marketing landing page.
- *
- * Fully self-contained: sticky navbar with reading progress, hero with
- * scroll-to-explore cue, animated social proof, bento features, a scroll-scrubbed
- * product tour, benefits, highlights, pricing, FAQ, closing CTA and footer.
- */
-export const LandingPage: React.FC<LandingPageProps> = ({
-  currentUser,
-  onOpenAuth,
-  onEnterApp,
-  onlineCount,
-  totalQuestions,
-  solvedQuestions,
-  totalClubs,
-}) => {
+/** Academic landing page with practical product examples and no usage counters. */
+export const LandingPage: React.FC<LandingPageProps> = ({ currentUser, onOpenAuth, onOpenLogin, onEnterApp }) => {
+  const handleStart = currentUser ? onEnterApp : onOpenAuth;
+
   useEffect(() => {
     safeStorage.setItem('fforum_landing_seen', 'true');
   }, []);
@@ -51,31 +36,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         Chuyển đến nội dung chính
       </a>
 
-      <LandingNav currentUser={currentUser} onOpenLogin={onOpenAuth} onEnterApp={onEnterApp} />
+      <LandingNav currentUser={currentUser} onOpenLogin={onOpenLogin} onOpenRegister={onOpenAuth} onEnterApp={onEnterApp} />
 
       <main id="ff-main" tabIndex={-1} className="relative w-full outline-none">
-        <LandingHero
-          onOpenAuth={onOpenAuth}
-          onlineCount={onlineCount}
-          totalClubs={totalClubs}
-          totalQuestions={totalQuestions}
-        />
-        <LandingProof
-          onlineCount={onlineCount}
-          totalQuestions={totalQuestions}
-          solvedQuestions={solvedQuestions}
-          totalClubs={totalClubs}
-        />
+        <LandingHero onOpenAuth={handleStart} />
+        <LandingProof />
         <LandingFeatures />
         <LandingShowcase />
-        <LandingBenefits onOpenAuth={onOpenAuth} />
-        <LandingHighlights />
-        <LandingPricing onOpenAuth={onOpenAuth} />
-        <LandingFAQ onOpenAuth={onOpenAuth} />
-        <LandingCTA onOpenAuth={onOpenAuth} />
+        <LandingBenefits onOpenAuth={handleStart} />
+        <LandingHighlights onOpenAuth={handleStart} />
+        <LandingPricing onOpenAuth={handleStart} />
+        <LandingFAQ onOpenAuth={handleStart} />
+        <LandingCTA onOpenAuth={handleStart} />
       </main>
 
-      <LandingFooter onEnterApp={onEnterApp} onOpenAuth={onOpenAuth} />
+      <LandingFooter currentUser={currentUser} onEnterApp={onEnterApp} onOpenAuth={onOpenAuth} />
       <BackToTop />
     </div>
   );

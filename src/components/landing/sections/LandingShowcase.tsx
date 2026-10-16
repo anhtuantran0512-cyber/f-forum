@@ -1,11 +1,11 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, MousePointerClick } from 'lucide-react';
-import { ArenaMock, ClubsMock, QAMock } from '../LandingMocks';
+import { ClubsMock, LibraryMock, QAMock } from '../LandingMocks';
 import { Reveal } from '../LandingPrimitives';
 import { SHOWCASE_STEPS } from '../landingContent';
 
-const MOCKS = [<QAMock key="qa" />, <ClubsMock key="clubs" />, <ArenaMock key="arena" />];
+const MOCKS = [<QAMock key="qa" />, <ClubsMock key="clubs" />, <LibraryMock key="materials" />];
 
 /**
  * "Scroll to explore" product tour.
@@ -77,18 +77,18 @@ export const LandingShowcase: React.FC = () => {
           <Reveal y={18}>
             <span className="ff-eyebrow inline-flex items-center gap-2">
               <span className="h-[1px] w-6 bg-current opacity-60" aria-hidden="true" />
-              Hành trình 3 bước
+              Một vòng học tập
             </span>
           </Reveal>
           <Reveal y={24} delay={80}>
             <h2 className="ff-display ff-balance mt-4 text-3xl sm:text-4xl md:text-[2.75rem]">
-              Cuộn để khám phá F-Forum
+              Từ câu hỏi, đến trao đổi, rồi học liệu.
             </h2>
           </Reveal>
           <Reveal y={22} delay={160}>
             <p className="mt-5 text-base leading-relaxed text-[var(--ff-text-soft)]">
-              Từ câu hỏi đầu tiên đến tấm huy hiệu đầu tiên — mỗi bước đều được thiết kế để bạn tiến xa hơn
-              một chút so với hôm qua.
+              Ba lát cắt của một diễn đàn học thuật: diễn đạt điều chưa rõ, tiếp tục suy nghĩ cùng người khác, và lưu
+              lại tài liệu để tự đối chiếu.
             </p>
           </Reveal>
         </div>
