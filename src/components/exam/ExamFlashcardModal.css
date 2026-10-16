@@ -8,9 +8,17 @@
   position: relative;
   width: 100%;
   min-height: 380px;
+  height: 400px;
   transform-style: preserve-3d;
   transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
+  touch-action: manipulation;
+}
+
+@media (min-width: 640px) {
+  .ff-flashcard-inner {
+    height: 430px;
+  }
 }
 
 .ff-flashcard-inner.is-flipped {

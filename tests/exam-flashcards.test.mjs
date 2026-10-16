@@ -153,3 +153,98 @@ test('ExamFlashcardModal renders interactive 3D flip card, tracks mastery and ha
     }
   }
 });
+
+test('ExamFlashcardModal handles empty filter states and completion view with scholastic encouragement', async () => {
+  const dom = new JSDOM('<!doctype html><html class="dark"><body><div id="root"></div></body></html>', {
+    url: 'http://localhost/exam-vault',
+    pretendToBeVisual: true,
+  });
+  const { window } = dom;
+
+  Object.assign(globalThis, {
+    window,
+    document: window.document,
+    HTMLElement: window.HTMLElement,
+    MutationObserver: window.MutationObserver,
+    CustomEvent: window.CustomEvent,
+    IS_REACT_ACT_ENVIRONMENT: true,
+  });
+
+  window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
+  window.requestAnimationFrame = (cb) => window.setTimeout(cb, 0);
+  window.cancelAnimationFrame = (id) => window.clearTimeout(id);
+
+  let vite;
+  let root;
+
+  const mockPaper = {
+    id: 'ex-02',
+    title: 'Đề kiểm tra Hóa học 12',
+    subject: 'Hoá học',
+    grade: 12,
+    examType: 'Đề giữa kỳ 1',
+    province: 'Hải Phòng',
+    school: 'THPT Ngô Quyền',
+    schoolYear: '2026-2027',
+    format: 'PDF',
+    verified: true,
+    hasAnswer: true,
+  };
+
+  try {
+    vite = await createServer({
+      configFile: false,
+      root: process.cwd(),
+      plugins: [reactPlugin()],
+      server: { middlewareMode: true },
+    });
+
+    const { ExamFlashcardModal } = await vite.ssrLoadModule('/src/components/exam/ExamFlashcardModal.tsx');
+    root = createRoot(document.querySelector('#root'));
+
+    await act(async () => {
+      root.render(
+        React.createElement(ExamFlashcardModal, {
+          paper: mockPaper,
+          isOpen: true,
+          onClose: () => {},
+        })
+      );
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
+
+    const modal = document.querySelector('[role="dialog"][aria-label="Thẻ ghi nhớ & Ôn tập nhanh"]');
+    assert.ok(modal);
+
+    /* Filter to "Cần ôn lại" when reviewIds is empty */
+    const reviewFilterBtn = [...modal.querySelectorAll('button')].find((b) => b.textContent?.includes('Cần ôn lại'));
+    assert.ok(reviewFilterBtn, 'review filter button must exist');
+
+    await act(async () => {
+      reviewFilterBtn.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    /* Check that empty state with scholastic encouragement renders */
+    assert.ok(modal.textContent?.includes('Bạn không còn câu hỏi nào cần ôn lại'), 'must render scholastic empty message');
+
+    /* Click reset to all button */
+    const resetAllBtn = [...modal.querySelectorAll('button')].find((b) => b.textContent?.includes('Xem tất cả câu hỏi'));
+    assert.ok(resetAllBtn, 'reset all button must exist in empty state');
+
+    await act(async () => {
+      resetAllBtn.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    assert.ok(modal.querySelector('.ff-flashcard-inner'), 'flashcard restored after resetting filter');
+
+  } finally {
+    if (root) {
+      await act(async () => root.unmount());
+    }
+    if (vite) {
+      await vite.close();
+    }
+  }
+});

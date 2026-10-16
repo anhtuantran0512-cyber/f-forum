@@ -125,6 +125,18 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
 
       if (e.key === 'Escape') {
         onClose();
+      } else if (isCompletedView) {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          if (reviewIds.size > 0) {
+            setFilterMode('review');
+          } else {
+            setFilterMode('all');
+          }
+          setRawIndex(0);
+          setFlippedCardId(null);
+          setIsCompletedView(false);
+        }
       } else if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
         handleToggleFlip();
@@ -145,7 +157,7 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, handleToggleFlip, handleNext, handlePrev, handleMarkMastered, handleMarkReview]);
+  }, [isOpen, onClose, isCompletedView, reviewIds.size, handleToggleFlip, handleNext, handlePrev, handleMarkMastered, handleMarkReview]);
 
   if (!isOpen || typeof document === 'undefined') return null;
 
@@ -537,16 +549,61 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
             </p>
           </div>
         ) : (
-          <div className="p-8 text-center text-xs text-[#9a978e] rounded-xl bg-[#0b0d12]/60 border border-[#f4f1de]/10">
-            Không có câu hỏi nào trong danh mục lọc này.
-            <div className="mt-2">
+          <div className="p-8 sm:p-12 text-center rounded-2xl bg-[#0b0d12]/75 border-[1.5px] border-[#f4f1de]/15 shadow-[3px_3px_0px_rgba(4,6,11,0.85)] flex flex-col items-center justify-center space-y-3.5">
+            <div className="w-14 h-14 rounded-2xl bg-[#81b29a]/15 border border-[#81b29a]/35 flex items-center justify-center text-[#81b29a] shadow-[2px_2px_0px_rgba(4,6,11,0.8)]">
+              {filterMode === 'review' ? (
+                <CheckCircle2 className="w-7 h-7 text-[#81b29a]" />
+              ) : filterMode === 'mastered' ? (
+                <Lightbulb className="w-7 h-7 text-[#f2cc8f]" />
+              ) : (
+                <Sparkles className="w-7 h-7 text-[#f2cc8f]" />
+              )}
+            </div>
+            <div>
+              <h4 className="text-sm sm:text-base font-extrabold text-[#f4f1de]">
+                <span className="ff-swash-cap text-base">
+                  {filterMode === 'review' ? 'X' : filterMode === 'mastered' ? 'C' : 'K'}
+                </span>
+                {filterMode === 'review'
+                  ? 'uất sắc! Bạn không còn câu hỏi nào cần ôn lại'
+                  : filterMode === 'mastered'
+                  ? 'hưa có câu hỏi nào được đánh dấu đã thuộc'
+                  : 'hông có câu hỏi nào trong danh mục lọc này'}
+              </h4>
+              <p className="text-xs text-[#a39f96] max-w-md mt-1 leading-relaxed">
+                {filterMode === 'review'
+                  ? 'Toàn bộ các nội dung quan trọng đã được bạn làm chủ. Hãy thử sức ngay với bài thi trắc nghiệm tính giờ để củng cố phản xạ!'
+                  : filterMode === 'mastered'
+                  ? 'Mỗi lần lật thẻ là một bước khắc sâu kiến thức. Hãy bấm vào thẻ và chọn "Đã nắm vững" khi ghi nhớ nhé!'
+                  : 'Hãy quay lại chế độ hiển thị toàn bộ đề để tiếp tục hành trình ôn luyện chủ động.'}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setFilterMode('all')}
-                className="ff-tactile-btn px-3 py-1.5 rounded-lg bg-[#f4f1de] text-[#0b0d12] font-bold text-xs cursor-pointer"
+                onClick={() => {
+                  setFilterMode('all');
+                  setRawIndex(0);
+                  setFlippedCardId(null);
+                  setIsCompletedView(false);
+                }}
+                className="ff-tactile-btn px-4 py-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] text-xs font-extrabold cursor-pointer"
               >
-                Xem tất cả câu hỏi
+                Xem tất cả câu hỏi ({totalCount})
               </button>
+              {filterMode === 'review' && onOpenCbt && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenCbt();
+                  }}
+                  className="ff-tactile-btn px-4 py-2 rounded-xl bg-[#81b29a] hover:bg-[#95c4ae] text-[#0b0d12] border-2 border-[#0b0d12] text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Timer className="w-3.5 h-3.5" />
+                  <span>Vào thi thử CBT</span>
+                </button>
+              )}
             </div>
           </div>
         )}

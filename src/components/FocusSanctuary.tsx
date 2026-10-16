@@ -435,9 +435,11 @@ const FocusSanctuaryInner: React.FC<{
           <div className="lg:col-span-5 flex flex-col p-5 rounded-xl bg-[#0b0d12]/80 border-[1.5px] border-[#f4f1de]/14">
             <div className="flex items-center justify-between pb-3 border-b border-dashed border-[#f4f1de]/15 mb-3 shrink-0">
               <div className="flex items-center gap-2">
-                <NotebookPen className="w-4 h-4 text-[#f2cc8f]" />
-                <span className="text-xs font-bold text-[#f4f1de] uppercase tracking-wider font-mono">
-                  Sổ tay
+                <div className="w-6 h-6 rounded-lg bg-[#f2cc8f]/15 border border-[#f2cc8f]/30 flex items-center justify-center text-[#f2cc8f]">
+                  <NotebookPen className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-xs font-bold text-[#f4f1de] uppercase tracking-wider font-mono flex items-center gap-1">
+                  <span className="ff-swash-cap text-xs">S</span>ổ tay tập trung
                 </span>
               </div>
 
@@ -472,11 +474,14 @@ const FocusSanctuaryInner: React.FC<{
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 maxLength={5000}
-                placeholder="Ghi chú…"
+                placeholder="Ghi chép công thức then chốt, ý tưởng cốt lõi hoặc câu hỏi cần đào sâu sau phiên học…"
                 className="w-full flex-1 min-h-[160px] bg-[#151a26] border border-[#f4f1de]/15 rounded-xl p-3.5 text-xs text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f] transition-colors resize-none font-mono leading-relaxed"
               />
-              <div className="flex items-center justify-end text-[10px] text-[#9a978e] font-mono pt-2">
-                <span>{notes.length}</span>
+              <div className="flex items-center justify-between text-[10px] text-[#9a978e] font-mono pt-2">
+                <span className="text-[10px] text-[#a39f96] truncate mr-2">
+                  Chủ động ghi chép · Khắc sâu tri thức
+                </span>
+                <span className="shrink-0">{notes.length} / 5000 ký tự</span>
               </div>
             </div>
           </div>
