@@ -21,6 +21,7 @@ import {
   Palette,
   Activity,
   BookOpen,
+  RotateCcw,
 } from 'lucide-react';
 import type { Club, ClubPost, User, ClubCategory, ChatMessage } from '../../types';
 import { DEFAULT_AVATAR, DEFAULT_CLUB_COVER, handleImageError } from '../../utils/mediaFallback';
@@ -563,29 +564,46 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
           {/* Regular Club Cards Grid — Thẻ ngang 2 cột (code_yeucau · tcl-14) */}
           <div className="ff-media-grid">
             {approvedClubs.length === 0 ? (
-              /* Fix 3: Gộp thành 1 Empty State DUY NHẤT khi chưa có CLB nào (Illustration + 1 câu + 1 nút, giữa màn hình) */
-              <div className="col-span-full flex flex-col items-center justify-center text-center py-20 space-y-4">
-                <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-amber-500/10 border border-amber-500/25">
-                  <Users className="w-10 h-10 text-amber-300" />
-                  <Sparkles className="w-4 h-4 text-amber-400 absolute -top-1.5 -right-1.5" />
+              <div className="col-span-full flex flex-col items-center justify-center text-center py-16 px-4 space-y-3 ff-bento-cell">
+                <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#f2cc8f]/15 border border-[#f2cc8f]/35 shadow-[2px_2px_0px_rgba(4,6,11,0.85)]">
+                  <Users className="w-8 h-8 text-[#f2cc8f]" />
+                  <Sparkles className="w-4 h-4 text-[#e07a5f] absolute -top-1 -right-1" />
                 </div>
-                <h3 className="text-base font-bold text-white max-w-md">
-                  Chưa có CLB.
+                <h3 className="text-base font-bold text-[#f4f1de] max-w-md">
+                  <span className="ff-swash-cap text-base">C</span>hưa có câu lạc bộ phù hợp
                 </h3>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!currentUser) {
-                      onOpenLoginModal?.();
-                    } else {
-                      setIsCreateModalOpen(true);
-                    }
-                  }}
-                  className="ff-tactile-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs transition-all cursor-pointer"
-                >
-                  <PlusCircle className="w-4 h-4 text-[#e07a5f]" />
-                  <span>Tạo CLB</span>
-                </button>
+                <p className="text-xs text-[#a39f96] max-w-md leading-relaxed">
+                  Mỗi nhóm học là một xưởng tri thức nhỏ. Hãy thử điều chỉnh từ khoá tìm kiếm hoặc trở thành người đầu tiên thành lập câu lạc bộ để kết nối bạn bè cùng chí hướng!
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                  {(searchTerm || selectedCategory !== 'Tất cả') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchTerm('');
+                        setSelectedCategory('Tất cả');
+                      }}
+                      className="ff-tactile-btn inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0b0d12] hover:bg-white/10 text-[#f4f1de] border border-[#f4f1de]/20 text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 text-[#f2cc8f]" />
+                      <span>Xóa bộ lọc</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!currentUser) {
+                        onOpenLoginModal?.();
+                      } else {
+                        setIsCreateModalOpen(true);
+                      }
+                    }}
+                    className="ff-tactile-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs transition-all cursor-pointer"
+                  >
+                    <PlusCircle className="w-4 h-4 text-[#e07a5f]" />
+                    <span>Tạo CLB</span>
+                  </button>
+                </div>
               </div>
             ) : null}
             {regularClubs.map(club => (
@@ -697,7 +715,13 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     <Sparkles className="w-5 h-5 text-[#f2cc8f]" />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-base sm:text-lg text-[#f4f1de]">Tạo CLB</h3>
+                    <h3 className="font-extrabold text-base sm:text-lg text-[#f4f1de] flex items-center gap-2 flex-wrap">
+                      <span className="ff-swash-cap text-base">T</span>hành lập Câu Lạc Bộ
+                      <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">
+                        Học · Hỏi · Chia sẻ
+                      </span>
+                    </h3>
+                    <p className="text-xs text-[#9a978e] mt-0.5">Xây dựng không gian học tập và kết nối chuyên môn.</p>
                   </div>
                 </div>
                 <button
@@ -878,7 +902,12 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
             <div className="modal-container w-full max-w-3xl p-6 sm:p-8 relative max-h-[92vh] overflow-y-auto">
               <div className="flex items-center justify-between pb-4 border-b border-dashed border-[#f4f1de]/15 mb-4">
                 <div>
-                  <h3 className="ff-typo-poster !text-lg sm:!text-2xl text-[#f4f1de]">{selectedClub.name}</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="ff-typo-poster !text-lg sm:!text-2xl text-[#f4f1de]">{selectedClub.name}</h3>
+                    <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">
+                      Học · Hỏi · Chia sẻ
+                    </span>
+                  </div>
                   <p className="text-xs sm:text-sm text-[#f2cc8f] italic mt-0.5">"{selectedClub.slogan}"</p>
                 </div>
                 <button
@@ -1025,7 +1054,11 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   {/* Posts List */}
                   <div className="space-y-2.5">
                     {clubPosts.filter(p => p.clubId === selectedClub.id).length === 0 ? (
-                      <p className="text-[#9a978e] text-center py-5">Chưa có thông báo nào được đăng.</p>
+                      <div className="text-center py-8 px-4 rounded-xl bg-[#0b0d12]/50 border border-dashed border-[#f4f1de]/10">
+                        <p className="text-xs text-[#a39f96]">
+                          Chưa có bài viết hay thông báo mới. Các thành viên câu lạc bộ hãy cùng nhau thảo luận và chia sẻ kiến thức nhé!
+                        </p>
+                      </div>
                     ) : (
                       clubPosts
                         .filter(p => p.clubId === selectedClub.id)

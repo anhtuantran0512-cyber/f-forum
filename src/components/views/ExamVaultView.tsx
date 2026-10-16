@@ -74,6 +74,7 @@ import {
   submitExamReview,
 } from '../../utils/examSubmissionApi';
 import { CbtPracticeModal } from '../exam/CbtPracticeModal';
+import { ExamFlashcardModal } from '../exam/ExamFlashcardModal';
 import { ExamBookmarkDrawer } from '../exam/ExamBookmarkDrawer';
 import { ExamPrintExportModal } from '../exam/ExamPrintExportModal';
 import { getCachedExamIds, OFFLINE_EXAMS_CACHE_KEY } from '../exam/offlineStorage';
@@ -367,8 +368,9 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     ...currentSubmissions.filter((paper) => paper.status === 'approved').map((paper) => paper.id),
   ])).sort().join('|'), [publicSubmissions, currentSubmissions]);
 
-  /* Trạng thái tính năng học thuật mới: CBT Practice, Bookmark Drawer, Print Modal, Offline Cache */
+  /* Trạng thái tính năng học thuật mới: CBT Practice, Flashcard Revision, Bookmark Drawer, Print Modal, Offline Cache */
   const [cbtExam, setCbtExam] = useState<ExamPaper | null>(null);
+  const [flashcardExam, setFlashcardExam] = useState<ExamPaper | null>(null);
   const [isBookmarkDrawerOpen, setIsBookmarkDrawerOpen] = useState(false);
   const [printExam, setPrintExam] = useState<ExamPaper | null>(null);
   const [cachedExamIds, setCachedExamIds] = useState<string[]>(() => getCachedExamIds());
@@ -960,7 +962,8 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (cbtExam) setCbtExam(null);
+        if (flashcardExam) setFlashcardExam(null);
+        else if (cbtExam) setCbtExam(null);
         else if (isBookmarkDrawerOpen) setIsBookmarkDrawerOpen(false);
         else if (printExam) setPrintExam(null);
         else if (previewExam) setPreviewExam(null);
@@ -969,7 +972,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [cbtExam, isBookmarkDrawerOpen, printExam, previewExam, isSubmitModalOpen]);
+  }, [flashcardExam, cbtExam, isBookmarkDrawerOpen, printExam, previewExam, isSubmitModalOpen]);
 
   const isStaffOrAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.staffRole === 'MODERATOR' || currentUser?.staffRole === 'TEACHER';
 
@@ -992,7 +995,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
   /* Prevent background scrolling when any modal or drawer is open */
   const isAnyModalOpen = Boolean(
-    cbtExam || isBookmarkDrawerOpen || printExam || previewExam || isSubmitModalOpen
+    flashcardExam || cbtExam || isBookmarkDrawerOpen || printExam || previewExam || isSubmitModalOpen
   );
 
   useEffect(() => {
@@ -1389,6 +1392,30 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
         </div>
 
+        {/* Quick Subject Focus Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-2 mt-2 border-t border-dashed border-white/10">
+          <span className="text-[11px] font-mono text-white/55 shrink-0 mr-1 flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-[#f2cc8f]" /> Môn trọng tâm:
+          </span>
+          {['Tất cả môn', 'Toán học', 'Vật lý', 'Hoá học', 'Sinh học', 'Ngữ văn', 'Tiếng Anh', 'Tin học'].map((subj) => {
+            const isSel = selectedSubject === subj;
+            return (
+              <button
+                key={subj}
+                type="button"
+                onClick={() => setSelectedSubject(subj)}
+                className={`ff-tactile-btn px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-colors cursor-pointer border ${
+                  isSel
+                    ? 'bg-[#f4f1de] text-[#0b0d12] border-[#0b0d12]'
+                    : 'bg-white/5 text-[#d8d5ce] hover:bg-white/10 border-white/10'
+                }`}
+              >
+                {subj}
+              </button>
+            );
+          })}
+        </div>
+
         <div className="mt-2 flex justify-end">
           <button
             type="button"
@@ -1575,24 +1602,44 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         </div>
 
         {filteredPapers.length === 0 ? (
-          <div className="w-full rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center flex flex-col items-center sm:p-12">
-            <BookOpen className="w-12 h-12 text-white/20 mb-3" />
-            <h3 className="text-base font-bold text-[#f4f1de] mb-1">
+          <div className="w-full rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center flex flex-col items-center sm:p-12 space-y-3">
+            <div className="w-16 h-16 rounded-2xl bg-[#f2cc8f]/15 border border-[#f2cc8f]/35 flex items-center justify-center text-[#f2cc8f] shadow-[2px_2px_0px_rgba(4,6,11,0.8)]">
+              <BookOpen className="w-8 h-8" />
+            </div>
+            <h3 className="text-base font-bold text-[#f4f1de]">
               <span className="ff-swash-cap text-base">C</span>hưa tìm thấy tài liệu phù hợp
             </h3>
-            <p className="text-xs text-[#a39f96] max-w-md mb-4">
-              Hãy thử điều chỉnh từ khoá hoặc khối lớp. Nếu cậu có tài liệu hay, hãy chia sẻ cùng các bạn nhé!
+            <p className="text-xs text-[#a39f96] max-w-md leading-relaxed">
+              "Hiếu học là cội nguồn của mọi thành tựu." Hãy thử điều chỉnh bộ lọc môn học, khối lớp hoặc gửi đề thi của trường bạn để cùng xây dựng kho tri thức chung nhé!
             </p>
-            <button
-              type="button"
-              onClick={() => {
-                if (!currentUser && onOpenLoginModal) onOpenLoginModal();
-                else setIsSubmitModalOpen(true);
-              }}
-              className="ff-tactile-btn min-h-10 px-4 py-2 rounded-xl border-2 border-[#0b0d12] bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] text-xs font-extrabold transition-colors cursor-pointer"
-            >
-              Gửi đề thi
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedGrade(0);
+                  setSelectedExamType('Tất cả loại');
+                  setSelectedSubject('Tất cả môn');
+                  setSelectedDifficulty('Tất cả độ khó');
+                  setSelectedProvince('Toàn quốc');
+                  setSelectedSchool('Tất cả trường');
+                  setSearchTerm('');
+                  setActiveTab('all');
+                }}
+                className="ff-tactile-btn min-h-10 px-4 py-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white text-xs font-bold transition-colors cursor-pointer"
+              >
+                Xoá bộ lọc
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!currentUser && onOpenLoginModal) onOpenLoginModal();
+                  else setIsSubmitModalOpen(true);
+                }}
+                className="ff-tactile-btn min-h-10 px-4 py-2 rounded-xl border-2 border-[#0b0d12] bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] text-xs font-extrabold transition-colors cursor-pointer"
+              >
+                Gửi đề thi
+              </button>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
@@ -1771,7 +1818,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                         </span>
                       )}
 
-                      <div className="ff-exam-card-actions grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      <div className="ff-exam-card-actions grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-5">
                         {/* Admin approval actions if pending */}
                         {isPending && isStaffOrAdmin && (
                           <>
@@ -1806,6 +1853,20 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                             <span>In</span>
                           </button>
                         )}
+
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setFlashcardExam(paper);
+                          }}
+                          className="ff-tactile-btn inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-amber-400/35 bg-amber-400/[0.12] px-2 py-1.5 text-xs font-bold text-amber-200 transition-colors hover:bg-amber-400/[0.22]"
+                          aria-label={`Ôn tập nhanh với flashcard: ${paper.title}`}
+                          title="Mở bộ thẻ ghi nhớ và ôn tập nhanh"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Ôn nhanh</span>
+                        </button>
 
                         <a
                           href={getExamViewerUrl(paper.id)}
@@ -2285,6 +2346,21 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
                 <button
                   type="button"
+                  onClick={() => {
+                    const p = activePreview;
+                    setPreviewExam(null);
+                    setFlashcardExam(p);
+                  }}
+                  className="ff-tactile-btn inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-amber-400/40 bg-amber-400/[0.14] px-3 py-2 text-xs font-bold text-amber-200 hover:bg-amber-400/[0.24] cursor-pointer transition-colors"
+                  title="Mở bộ thẻ ghi nhớ ôn tập nhanh cho đề này"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>Ôn thẻ nhớ</span>
+                </button>
+
+
+                <button
+                  type="button"
                   onClick={(e) => handleToggleBookmark(activePreview.id, e)}
                   className="ff-tactile-btn inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/[0.08] cursor-pointer"
                 >
@@ -2599,6 +2675,22 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           onClose={() => setCbtExam(null)}
           onComplete={(res) => {
             showToast(`Đã hoàn thành bài thi! Điểm số của bạn: ${res.score}/10`);
+          }}
+        />
+      )}
+
+      {/* ======================================================== */}
+      {/* 7b. INTERACTIVE FLASHCARD / QUICK REVISION MODAL         */}
+      {/* ======================================================== */}
+      {flashcardExam && (
+        <ExamFlashcardModal
+          paper={flashcardExam}
+          isOpen={Boolean(flashcardExam)}
+          onClose={() => setFlashcardExam(null)}
+          onOpenCbt={() => {
+            const p = flashcardExam;
+            setFlashcardExam(null);
+            setCbtExam(p);
           }}
         />
       )}
