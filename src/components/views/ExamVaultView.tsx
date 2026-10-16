@@ -1203,20 +1203,20 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           <div className="text-center md:text-left">
             <div className="ff-exam-eyebrow mb-1.5 hidden items-center gap-2 sm:inline-flex">
               <GraduationCap className="w-3.5 h-3.5" />
-              <span>THƯ VIỆN HỌC TẬP</span>
+              <span>THƯ VIỆN HỌC TẬP · HỌC · HỎI · CHIA SẺ</span>
             </div>
             <h1 className="ff-exam-title">
               {activeTab === 'syllabus' ? (
                 <>
-                  Đề cương <span className="ff-calligraphic-flourish">ôn tập</span>
+                  <span className="ff-swash-cap">Đ</span>ề cương <span className="ff-calligraphic-flourish">ôn tập</span>
                 </>
               ) : activeTab === 'exams' ? (
                 <>
-                  Đề thi <span className="ff-calligraphic-flourish">theo môn</span>
+                  <span className="ff-swash-cap">Đ</span>ề thi <span className="ff-calligraphic-flourish">theo môn</span>
                 </>
               ) : (
                 <>
-                  Đề thi <span className="ff-calligraphic-flourish">&amp; đề cương</span>
+                  <span className="ff-swash-cap">Đ</span>ề thi <span className="ff-calligraphic-flourish">&amp; đề cương</span>
                 </>
               )}
             </h1>

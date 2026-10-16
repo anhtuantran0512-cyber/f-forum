@@ -188,17 +188,17 @@ export const PRICING_PLANS: {
 }[] = [
   {
     id: 'student',
-    name: 'F-Forum',
+    name: 'F-Forum · Không gian Học thuật',
     tagline: 'Các tính năng học tập cốt lõi hiện mở miễn phí cho sinh viên.',
     highlight: true,
-    badge: 'ĐANG MỞ',
+    badge: 'HỌC · HỎI · CHIA SẺ',
     features: [
-      'Hỏi đáp và thảo luận theo môn học',
-      'Kho đề: chia sẻ ảnh, PDF, DOCX và Markdown',
-      'Câu lạc bộ và phòng trao đổi',
-      'Công cụ tập trung tùy chọn',
+      'Hỏi đáp và phản biện từng bước theo môn học',
+      'Kho đề: tra cứu và chia sẻ ảnh, PDF, DOCX, Markdown',
+      'Câu lạc bộ học thuật và Sổ chung mỗi ngày',
+      'Góc tập trung Pomodoro và nhạc nền tự chọn',
     ],
-    footnote: 'Thông tin ở đây mô tả những gì đang mở, không phải tính năng tương lai.',
+    footnote: 'Học · Hỏi · Chia sẻ — bạn có thể tra cứu tài liệu ngay hoặc tạo tài khoản để lưu bài và thảo luận.',
   },
 ];
 
@@ -207,30 +207,31 @@ export const FAQ_ITEMS: { id: string; question: string; answer: string }[] = [
     id: 'f1',
     question: 'F-Forum hiện có miễn phí không?',
     answer:
-      'Các tính năng học tập cốt lõi hiện đang mở miễn phí cho sinh viên. Trang này chỉ mô tả điều kiện hiện tại; hãy xem thông báo trong ứng dụng nếu có cập nhật.',
+      'Các tính năng học tập cốt lõi hiện đang mở miễn phí cho sinh viên. Bạn có thể tra cứu đề thi, đặt câu hỏi theo môn và tham gia câu lạc bộ ngay sau khi tạo tài khoản.',
   },
   {
     id: 'f2',
     question: 'Tôi có thể chia sẻ những định dạng tài liệu nào?',
     answer:
-      'Kho đề nhận hình ảnh, PDF, DOC/DOCX và Markdown. PDF có thể xem trong trình duyệt; trước khi chia sẻ, hãy kiểm tra nguồn và quyền sử dụng tài liệu.',
+      'Kho đề nhận hình ảnh, PDF, DOC/DOCX và Markdown. PDF có thể xem ngay trong trình duyệt; trước khi chia sẻ, hãy kiểm tra rõ nguồn gốc và quyền sử dụng tài liệu.',
   },
   {
     id: 'f3',
-    question: 'Ẩn danh có nghĩa là không ai biết tôi là ai không?',
+    question: 'Khi nào tôi nên dùng bút danh lúc đặt câu hỏi?',
     answer:
-      'Bút danh thay đổi cách câu hỏi hiển thị với thành viên khác; đây không phải công cụ bảo vệ thông tin nhạy cảm. Đừng đăng email, mã sinh viên hay dữ liệu cá nhân trong nội dung hoặc tệp đính kèm.',
+      'Bút danh giúp những bạn còn ngại ngùng tự tin hỏi lại từ phần kiến thức căn bản. Lưu ý không đăng email, mã học sinh hay dữ liệu cá nhân trong nội dung câu hỏi hoặc tệp đính kèm.',
   },
   {
     id: 'f4',
-    question: 'Tôi có thể tin mọi lời giải trên diễn đàn không?',
+    question: 'Làm sao để kiểm chứng độ chính xác của lời giải trên diễn đàn?',
     answer:
-      'Không nên mặc định như vậy. Câu trả lời do thành viên đóng góp và có thể thiếu hoặc sai; hãy dùng chúng để tham khảo, rồi đối chiếu với giáo trình, đề cương hoặc giảng viên.',
+      'Mọi lời giải đều khuyến khích trình bày rõ các bước lập luận để thầy cô và bạn học cùng phản biện. Hãy luôn đối chiếu lại với giáo trình chính khóa và hướng dẫn của giảng viên.',
   },
   {
     id: 'f5',
-    question: 'Tôi nên làm gì nếu thấy nội dung không phù hợp?',
+    question: 'Tôi nên làm gì nếu phát hiện bài giải sai hoặc nội dung lệch chuẩn?',
     answer:
-      'Dùng công cụ báo cáo có sẵn trong ứng dụng hoặc liên hệ nhóm quản trị qua thông tin ở cuối trang. Thời gian phản hồi có thể thay đổi; đừng gửi dữ liệu nhạy cảm qua kênh công khai.',
+      'Bạn có thể phản biện trực tiếp dưới lời giải hoặc dùng nút báo cáo trong ứng dụng để nhóm quản trị rà soát. Tinh thần chung của diễn đàn là trao đổi thẳng thắn, tôn trọng lý lẽ.',
   },
 ];
+

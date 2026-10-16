@@ -313,10 +313,10 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
   const myPeriodIsEstimated = metric === 'hours'
     && Boolean(meEntry?.estimated ?? (currentUser && currentUser.xp > 0 && periodMinutes(rawTotals, period) === 0));
   const scoreMethod = metric === 'hours'
-    ? 'Số phiên thật được ưu tiên; dấu ≈ là ước tính từ XP.'
+    ? 'Mỗi phiên tự học trọn vẹn là một bậc tiến bền bỉ — học sâu từ sự tĩnh tâm.'
     : period === 'all'
-      ? 'Xếp hạng toàn thời gian dựa trên XP tích lũy của tài khoản thật.'
-      : 'Điểm kỳ gồm XP tích lũy, chuỗi học và hoạt động Hỏi đáp, lời giải, trò chuyện.';
+      ? 'Học · Hỏi · Chia sẻ — hành trình bồi đắp tri thức qua từng bài giải và cuộc thảo luận.'
+      : 'Học chăm, hỏi kỹ, chia sẻ lời giải tường tận — cùng nhau tiến bộ mỗi kỳ.';
 
   const formatValue = (m: LeaderboardMember) =>
     metric === 'hours' ? `${(m.minutes / 60).toFixed(1)} giờ` : `${m.points.toLocaleString()} điểm`;
@@ -345,8 +345,10 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
             <Trophy className="w-[18px] h-[18px]" />
           </span>
           <div className="ff-board__heading-copy">
-            <span className="ff-board__eyebrow"><i aria-hidden="true" /> SỔ THÀNH TÍCH</span>
-            <h3 className="ff-board__title">Bảng xếp hạng</h3>
+            <span className="ff-board__eyebrow"><i aria-hidden="true" /> SỔ VÀNG · HỌC · HỎI · CHIA SẺ</span>
+            <h3 className="ff-board__title" aria-label="Bảng xếp hạng">
+              <span className="ff-swash-cap">B</span>ảng xếp hạng
+            </h3>
             <p className="ff-board__sub">{METRIC_LABELS[metric]} <span aria-hidden="true">·</span> {PERIOD_LABELS[period]}</p>
           </div>
           <div className="ff-board__head-meta">
@@ -356,6 +358,21 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
             </span>
             {meEntry && <span className="ff-board__you-badge" aria-label={`Vị trí của bạn: hạng ${meEntry.rank}`}>#{meEntry.rank}</span>}
           </div>
+        </div>
+
+        {/* Dải tinh thần Học · Hỏi · Chia sẻ */}
+        <div className="ff-board__ethos" aria-label="Tinh thần Học, Hỏi, Chia sẻ">
+          <span className="ff-board__ethos-pill">
+            <b className="ff-swash-cap">H</b>ọc bền bỉ
+          </span>
+          <span className="ff-board__ethos-dot" aria-hidden="true">·</span>
+          <span className="ff-board__ethos-pill">
+            <b className="ff-swash-cap">H</b>ỏi rõ ý
+          </span>
+          <span className="ff-board__ethos-dot" aria-hidden="true">·</span>
+          <span className="ff-board__ethos-pill">
+            <b className="ff-swash-cap">C</b>hia sẻ thật
+          </span>
         </div>
 
         {/* Metric switch */}
@@ -708,6 +725,9 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
           <Sparkles className="w-3.5 h-3.5" />
           <span>Bạn muốn hỏi điều gì?</span>
         </div>
+        <p className="text-[11px] text-[#b8b4a8] leading-relaxed">
+          Nêu rõ đề bài và bước lập luận đang vướng để bạn học cùng tháo gỡ.
+        </p>
 
         <MagneticButton
           variant="gold"

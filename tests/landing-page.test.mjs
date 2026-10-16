@@ -249,3 +249,77 @@ test('Design: Vietnamese mono glyphs are self-hosted rather than blocked by CSP'
   assert.ok(JSON.parse(read('package.json')).dependencies['@fontsource-variable/geist-mono']);
   assert.match(read('src/components/views/ComingSoonView.tsx'), /Sắp ra mắt/);
 });
+
+test('7. Campus Atelier & Calligraphic Swash typography + "Học · Hỏi · Chia sẻ" ethos without developer meta-notes', () => {
+  const designSystem = read('src/styles/forumDesignSystem.css');
+  const heroTitleCss = read('src/components/views/HomeHeroTitle.css');
+  const homeView = read('src/components/views/HomeView.tsx');
+  const leaderboard = read('src/components/views/LeaderboardWidget.tsx');
+  const landingHero = read(`${LANDING_DIR}/sections/LandingHero.tsx`);
+  const landingShowcase = read(`${LANDING_DIR}/sections/LandingShowcase.tsx`);
+  const landingPricing = read(`${LANDING_DIR}/sections/LandingPricing.tsx`);
+  const landingFooter = read(`${LANDING_DIR}/sections/LandingFooter.tsx`);
+  const landingPreview = read(`${LANDING_DIR}/LandingHomePreview.tsx`);
+  const qaView = read('src/components/views/QAForumView.tsx');
+  const threadsView = read('src/components/views/ThreadsView.tsx');
+  const clubsView = read('src/components/views/ClubsView.tsx');
+  const examVaultView = read('src/components/views/ExamVaultView.tsx');
+
+  /* Calligraphic Swash & Campus Atelier primitives and low-end / reduced-motion safety */
+  assert.match(designSystem, /\.ff-swash-cap\b/);
+  assert.match(designSystem, /\.ff-atelier-ribbon\b/);
+  assert.match(designSystem, /\.ff-atelier-card\b/);
+  assert.match(designSystem, /html\.potator-mode\s+\.ff-swash-cap/);
+  assert.match(heroTitleCss, /\.home-hero-calligraphy\b/);
+  assert.match(heroTitleCss, /\.home-hero-title__swash\b/);
+  assert.match(heroTitleCss, /html\.potator-mode\s+\.home-hero-calligraphy__curl/);
+
+  /* Flowing calligraphic capitals applied across Home, Leaderboard, Landing, and Forum views */
+  for (const [name, source] of [
+    ['HomeView', homeView],
+    ['LeaderboardWidget', leaderboard],
+    ['LandingHero', landingHero],
+    ['LandingShowcase', landingShowcase],
+    ['LandingPricing', landingPricing],
+    ['QAForumView', qaView],
+    ['ThreadsView', threadsView],
+    ['ClubsView', clubsView],
+    ['ExamVaultView', examVaultView],
+  ]) {
+    assert.ok(
+      source.includes('ff-swash-cap') || source.includes('home-hero-calligraphy'),
+      `${name} must use calligraphic swash capitals`,
+    );
+  }
+
+  /* "Học · Hỏi · Chia sẻ" ethos present in Leaderboard, Home, Landing, and Forum views */
+  assert.match(leaderboard, /Học · Hỏi · Chia sẻ/);
+  assert.match(leaderboard, /ff-board__ethos/);
+  assert.match(homeView, /Học · Hỏi · Chia sẻ/);
+  assert.match(homeView, /ff-atelier-card/);
+  assert.match(landingHero, /Học · Hỏi · Chia sẻ/);
+  assert.match(landingShowcase, /QUESTION_GUIDE/);
+  assert.match(landingFooter, /Học · Hỏi · Chia sẻ/);
+
+  /* Developer meta-notes / dry formula notes removed */
+  const combinedCopy = [
+    leaderboard,
+    landingPreview,
+    landingHero,
+    landingShowcase,
+    landingPricing,
+    landingFooter,
+  ].join('\n');
+
+  [
+    'không phải mockup vẽ lại',
+    'không phải một bản demo tách rời',
+    'Từ bản xem trước đến trang thật',
+    'Những gì chưa phát hành không được kể như quyền lợi sẵn có',
+    'Thông tin ở đây mô tả những gì đang mở, không phải tính năng tương lai',
+    'Lượt hữu ích × 10 + bình luận × 3',
+  ].forEach((devNote) => {
+    assert.ok(!combinedCopy.includes(devNote), `Must not contain developer meta-note: "${devNote}"`);
+  });
+});
+

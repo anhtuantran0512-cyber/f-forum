@@ -27,7 +27,7 @@ const LINK_GROUPS: { title: string; links: { label: string; section?: string; hr
   {
     title: 'F-Forum',
     links: [
-      { label: 'Giao diện thật', section: 'top' },
+      { label: 'Bàn học chung', section: 'top' },
       { label: 'Khám phá', section: 'kham-pha' },
       { label: 'Chi phí', section: 'bang-gia' },
       { label: 'Hỏi đáp', section: 'faq' },
@@ -59,7 +59,7 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ currentUser, onEnt
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,2fr)]">
           {/* Brand */}
           <div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 flex-wrap">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-amber-500 to-yellow-200 p-[1.5px]">
                 <span className="flex h-full w-full items-center justify-center rounded-full bg-[var(--ff-bg)] text-sm font-bold text-amber-400">
                   F
@@ -68,10 +68,13 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ currentUser, onEnt
               <span className="ff-brand-serif bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-xl text-transparent">
                 F-Forum
               </span>
+              <span className="ff-atelier-ribbon !text-[10px] !py-0.5 !px-2.5">
+                Học · Hỏi · Chia sẻ
+              </span>
             </div>
             <p className="mt-5 max-w-sm text-[13.5px] leading-relaxed text-[var(--ff-text-soft)]">
-              Diễn đàn học thuật cho sinh viên FPT — nơi câu hỏi, học liệu và các cuộc trao đổi được giữ trong cùng một
-              không gian.
+              Diễn đàn học thuật cho học sinh và sinh viên — nơi câu hỏi, lời giải có lập luận và học liệu được lưu giữ
+              trong cùng một không gian.
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-2">

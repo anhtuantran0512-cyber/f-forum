@@ -1431,7 +1431,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
               <div className="min-w-0">
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <h1 id="qa-forum-title" className="ff-typo-poster ff-qa-page-title !text-xl sm:!text-2xl text-[#f4f1de]">
-                    Hỏi đáp
+                    <span className="ff-swash-cap">H</span>ỏi đáp <em className="font-['Cormorant_Garamond',Georgia,serif] italic font-semibold text-[#f2cc8f]">học thuật</em>
                   </h1>
                   <span
                     className="ff-brutal-index"
@@ -1439,11 +1439,14 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   >
                     {questions.length} câu · {questions.filter(q => q.isSolved).length} giải
                   </span>
+                  <span className="ff-atelier-ribbon hidden sm:inline-flex !py-0.5 !px-2.5 !text-[10px]">
+                    Học · Hỏi · Chia sẻ
+                  </span>
                 </div>
                 <svg className="w-28 h-2 mt-0.5 ff-organic-squiggle" viewBox="0 0 140 8" aria-hidden="true">
                   <path d="M2 5 C28 1, 56 8, 84 4 S118 1, 138 5" />
                 </svg>
-                <p className="ff-qa-subtitle">Mỗi câu hỏi mở ra một cách hiểu mới.</p>
+                <p className="ff-qa-subtitle">Đặt câu hỏi rõ bản chất, đối chiếu lập luận và cùng nhau tháo gỡ từng bước.</p>
               </div>
             </div>
 

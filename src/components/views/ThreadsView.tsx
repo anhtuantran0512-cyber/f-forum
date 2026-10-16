@@ -1089,9 +1089,11 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                 <BookOpen className="w-5 h-5" />
               </div>
               <div className="thread-room-title-block">
-                <span className="thread-room-kicker">F·FORUM / SỔ CHUNG</span>
-                <h1 className="thread-room-title">Mạch <em>chuyện</em></h1>
-                <p className="thread-room-caption">Viết một điều nhỏ — để cuộc trò chuyện tự tìm đường.</p>
+                <span className="thread-room-kicker">F·FORUM / SỔ CHUNG · HỌC · HỎI · CHIA SẺ</span>
+                <h1 className="thread-room-title">
+                  <span className="ff-swash-cap">M</span>ạch <em>chuyện</em>
+                </h1>
+                <p className="thread-room-caption">Ghi lại một góc nhìn học tập hay điều đang suy ngẫm — để cuộc trò chuyện tự tìm đường.</p>
               </div>
             </div>
 
