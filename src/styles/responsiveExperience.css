@@ -1,0 +1,511 @@
+/*
+ * F-Forum responsive continuum
+ * ---------------------------------------------------------------
+ * Layout shifts are based on available space, not a desktop page
+ * squeezed into a phone. The warm paper / sage / brass language and
+ * tactile controls stay consistent while density and navigation adapt.
+ */
+:root {
+  --ff-responsive-gutter: clamp(16px, 3vw, 40px);
+  --ff-mobile-header-height: calc(54px + var(--safe-top, 0px));
+  --ff-mobile-dock-height: calc(56px + var(--safe-bottom, 0px));
+  --ff-touch-target: 44px;
+}
+
+html {
+  scroll-padding-top: calc(var(--navbar-height, 76px) + 12px);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body,
+#root {
+  width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+}
+
+.ff-app-shell {
+  --ff-responsive-gutter: clamp(16px, 3vw, 40px);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.ff-app-shell :is(main, .content-layer, .content-layer > div, section, article, form, aside) {
+  min-width: 0;
+}
+
+.ff-app-shell :is(.ff-qa-room, .threads-bg, .club-plaza-page) {
+  padding-inline: max(var(--ff-responsive-gutter), env(safe-area-inset-left, 0px)) max(var(--ff-responsive-gutter), env(safe-area-inset-right, 0px));
+}
+
+.ff-app-shell .ff-exam-vault :is(.ff-exam-header-bar, .ff-exam-hero, .ff-exam-filter-panel) {
+  padding-inline: var(--ff-responsive-gutter);
+}
+
+.ff-app-shell :is(img, video, iframe, canvas, svg) {
+  max-width: 100%;
+}
+
+.ff-app-shell :is(p, h1, h2, h3, h4, label) {
+  overflow-wrap: anywhere;
+}
+
+.ff-app-shell :is(input, select, textarea) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ff-app-shell :is(.overflow-x-auto, [data-horizontal-scroll='true']) {
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* Keep the mobile chrome recognisable, but make its surfaces calmer and clearer. */
+.ff-mobile-header,
+.ff-mobile-dock {
+  isolation: isolate;
+  background:
+    linear-gradient(180deg, rgba(25, 31, 41, 0.96), rgba(11, 15, 22, 0.96));
+  border-color: rgba(244, 241, 222, 0.12) !important;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  backdrop-filter: blur(18px) saturate(1.25);
+}
+
+.ff-mobile-header {
+  padding-inline: max(14px, env(safe-area-inset-left, 0px)) max(14px, env(safe-area-inset-right, 0px)) !important;
+}
+
+.ff-mobile-header > button:first-child,
+.ff-mobile-header [data-settings-trigger],
+.ff-mobile-header [data-notif-trigger],
+.ff-mobile-header .ff-discord-userbar,
+.ff-mobile-header .ff-mobile-login-btn {
+  min-height: var(--ff-touch-target);
+}
+
+.ff-mobile-header [data-settings-trigger],
+.ff-mobile-header [data-notif-trigger] {
+  min-width: var(--ff-touch-target);
+  display: grid;
+  place-items: center;
+}
+
+.ff-mobile-header::after {
+  position: absolute;
+  inset-inline: 16px;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(129, 178, 154, 0.28), rgba(242, 204, 143, 0.52), transparent);
+  content: '';
+  pointer-events: none;
+}
+
+.ff-mobile-context {
+  display: none;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  margin-inline: auto;
+  padding: 7px 11px;
+  border: 1px solid rgba(242, 204, 143, 0.22);
+  border-radius: 999px;
+  background: rgba(242, 204, 143, 0.07);
+  color: #e9c46a;
+  font: 700 10px/1 'Geist Mono Variable', ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ff-mobile-context__dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+  background: #81b29a;
+  box-shadow: 0 0 0 3px rgba(129, 178, 154, 0.12), 0 0 12px rgba(129, 178, 154, 0.42);
+}
+
+.ff-mobile-dock {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+  justify-content: initial !important;
+  gap: 4px;
+  padding-inline: max(8px, env(safe-area-inset-left, 0px)) max(8px, env(safe-area-inset-right, 0px)) !important;
+}
+
+@media (min-width: 768px) {
+  .ff-mobile-dock {
+    display: none !important;
+  }
+}
+
+.ff-mobile-dock > button {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-width: 0 !important;
+  min-height: var(--ff-touch-target);
+  align-items: center;
+  justify-content: center;
+  padding-inline: 4px !important;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  overflow: hidden;
+  isolation: isolate;
+  transition: color 180ms ease, transform 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ff-mobile-dock > button::before {
+  position: absolute;
+  z-index: -1;
+  inset: 3px 5px;
+  border: 1px solid rgba(242, 204, 143, 0.3);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(242, 204, 143, 0.16), rgba(129, 178, 154, 0.08));
+  content: '';
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ff-mobile-dock > button[aria-current='page']::before,
+.ff-mobile-dock > button[aria-expanded='true']::before,
+.ff-mobile-dock > button[data-active='true']::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.ff-mobile-dock > button[aria-current='page'],
+.ff-mobile-dock > button[aria-expanded='true'],
+.ff-mobile-dock > button[data-active='true'] {
+  border-color: rgba(242, 204, 143, 0.12);
+  color: #f2cc8f !important;
+}
+
+.ff-mobile-dock > button > * {
+  position: relative;
+  z-index: 1;
+}
+
+.ff-mobile-dock > button > span:last-child {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+html.light .ff-mobile-header.liquid-glass,
+html.light .ff-mobile-dock.liquid-glass {
+  background: linear-gradient(180deg, rgba(255, 253, 248, 0.96), rgba(243, 239, 229, 0.96));
+  border-color: rgba(62, 53, 39, 0.14) !important;
+  box-shadow: 0 8px 24px rgba(62, 53, 39, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+html.light .ff-mobile-context {
+  border-color: rgba(139, 100, 39, 0.22);
+  background: rgba(139, 100, 39, 0.07);
+  color: #805b25;
+}
+
+html.light .ff-mobile-dock > button::before {
+  border-color: rgba(139, 100, 39, 0.28);
+  background: linear-gradient(145deg, rgba(233, 196, 106, 0.24), rgba(129, 178, 154, 0.12));
+}
+
+/* Tablet / compact-laptop: use the full canvas without forcing desktop density. */
+@media (min-width: 768px) and (max-width: 1100px) {
+  .ff-app-shell {
+    --ff-responsive-gutter: clamp(18px, 3vw, 30px);
+  }
+
+  .dock-pos-top .ff-nav-capsule,
+  .dock-pos-bottom .ff-nav-capsule {
+    width: calc(100% - 28px) !important;
+    max-width: 1080px;
+    padding-inline: 12px !important;
+    gap: 6px !important;
+  }
+
+  .dock-pos-top .ff-nav-brand,
+  .dock-pos-bottom .ff-nav-brand {
+    gap: 7px;
+  }
+
+  .dock-pos-top .ff-nav-logo,
+  .dock-pos-bottom .ff-nav-logo {
+    width: 31px;
+    height: 31px;
+  }
+
+  .dock-pos-top .nav-tab-btn,
+  .dock-pos-bottom .nav-tab-btn {
+    padding-inline: 8px !important;
+  }
+
+  .dock-pos-top .nav-actions-divider,
+  .dock-pos-bottom .nav-actions-divider {
+    margin-inline: 2px;
+  }
+}
+
+/* Large workspaces: preserve a readable measure instead of stretching copy edge-to-edge. */
+@media (min-width: 1440px) {
+  .ff-app-shell .content-layer {
+    --ff-responsive-gutter: clamp(32px, 3vw, 56px);
+  }
+}
+
+/* Phones and narrow windows. These rules intentionally complement, rather than
+   replace, each feature's own responsive layout. */
+@media (max-width: 767px) {
+  :root {
+    --ff-responsive-gutter: 16px;
+  }
+
+  .ff-app-shell {
+    --ff-responsive-gutter: 16px;
+  }
+
+  /* Chat already reserves the phone header and dock on its section; do not
+     subtract the desktop navbar a second time from its inner workspace. */
+  .ff-view-chat .page-content-wrapper {
+    height: auto !important;
+    min-height: 0;
+    padding-inline: var(--ff-responsive-gutter);
+  }
+
+  .ff-app-shell :is(.ff-qa-room, .threads-bg, .club-plaza-page) {
+    padding-inline: max(14px, env(safe-area-inset-left, 0px)) max(14px, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  .ff-app-shell :is(.ff-qa-room, .threads-bg, .club-plaza-page) > :is(.relative.z-10, .thread-room-shell) {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* The home hero becomes a scrollable, safe-area-aware cover on short phones. */
+  .ff-app-shell.ff-view-home {
+    height: 100dvh !important;
+    min-height: 100svh;
+    overflow: hidden;
+  }
+
+  .ff-view-home .content-layer,
+  .ff-view-home .content-layer > div {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .ff-view-home .content-layer section {
+    height: 100dvh !important;
+    min-height: 100svh;
+    justify-content: flex-start;
+    overflow-x: clip;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    padding: calc(var(--ff-mobile-header-height) + 10px) 0 calc(var(--ff-mobile-dock-height) + 10px);
+    scrollbar-width: none;
+  }
+
+  .ff-view-home .content-layer section::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ff-view-home .content-layer section > .relative.z-10 {
+    margin-block: auto;
+    padding-top: 8px !important;
+    padding-bottom: 8px;
+  }
+
+  .ff-view-home .content-layer section > .relative.z-10 > p {
+    max-width: 34ch;
+  }
+
+  /* Mobile controls are thumb-friendly and never trigger iOS input zoom. */
+  .ff-app-shell :is(input[type='text'], input[type='search'], input[type='email'], input[type='password'], input[type='number'], input[type='url'], select, textarea) {
+    font-size: 16px !important;
+  }
+
+  .ff-app-shell :is(textarea) {
+    min-height: 96px;
+  }
+
+  /* Small screens need compact, scrollable dialogs with visible safe-area padding. */
+  .ff-app-shell [role='dialog'] {
+    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 20px);
+    overscroll-behavior: contain;
+  }
+
+  .ff-app-shell .modal-container {
+    max-height: calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 20px);
+    border-radius: 20px;
+  }
+
+  .ff-app-shell .modal-body {
+    padding: 16px;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ff-app-shell .modal-footer {
+    padding: 12px 16px calc(12px + var(--safe-bottom, 0px));
+  }
+
+  .ff-app-shell :is(.ff-exam-dialog-panel, .ff-exam-modal) {
+    width: min(100%, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+  }
+
+  /* Lists and toolbars retain their own scroll lane instead of widening the page. */
+  .ff-app-shell :is(.ff-qa-subject-filters, .threads-filter-bar, .ff-exam-quick-search, .profile-modal-tabs, .ff-paper-viewer__top-actions) {
+    min-width: 0;
+    max-width: 100%;
+    overscroll-behavior-x: contain;
+  }
+
+  .ff-app-shell :is(.ff-qa-room, .threads-bg, .club-plaza-page) :is(h1, h2, h3) {
+    text-wrap: balance;
+  }
+
+  .ff-app-shell :is(.ff-qa-card, .ff-media-card, .thread-card, .ff-exam-card, .question-card, .answer-card) {
+    scroll-margin-block: 76px;
+  }
+
+  .ff-app-shell :is(.ff-qa-card, .ff-media-card, .thread-card, .ff-exam-card):hover {
+    transform: none;
+  }
+
+  .ff-app-shell :is(.ff-qa-room, .threads-bg, .club-plaza-page) {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(233, 196, 106, 0.3) transparent;
+  }
+}
+
+@media (min-width: 560px) and (max-width: 767px) {
+  .ff-mobile-context {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 480px) {
+  .ff-app-shell {
+    --ff-responsive-gutter: 14px;
+  }
+
+  .ff-mobile-header {
+    padding-inline: max(12px, env(safe-area-inset-left, 0px)) max(12px, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  .ff-mobile-header > div:last-child {
+    gap: 4px;
+  }
+
+  .ff-mobile-dock {
+    gap: 2px;
+    padding-inline: max(5px, env(safe-area-inset-left, 0px)) max(5px, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  .ff-mobile-dock > button {
+    border-radius: 12px;
+    padding-inline: 2px !important;
+  }
+
+  .ff-mobile-dock > button::before {
+    inset-inline: 3px;
+    border-radius: 10px;
+  }
+
+  .ff-mobile-dock > button > span:last-child {
+    font-size: 9px;
+    letter-spacing: 0;
+  }
+
+  .ff-app-shell :is(.ff-qa-room, .threads-bg, .club-plaza-page) {
+    padding-inline: max(12px, env(safe-area-inset-left, 0px)) max(12px, env(safe-area-inset-right, 0px)) !important;
+  }
+
+  .ff-app-shell .ff-qa-room .ff-qa-card,
+  .ff-app-shell .thread-room-header,
+  .ff-app-shell .ff-media-card {
+    border-radius: 16px 6px 16px 6px;
+  }
+
+  .ff-app-shell .ff-exam-community-summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ff-app-shell .ff-paper-pdf-frame {
+    height: min(68dvh, 760px);
+    min-height: min(420px, 54dvh);
+  }
+}
+
+@media (max-width: 380px) {
+  .ff-mobile-header .ff-mobile-user-name {
+    display: none !important;
+  }
+
+  .ff-mobile-header .ff-discord-userbar {
+    gap: 0 !important;
+    padding-inline: 5px !important;
+  }
+
+  .ff-mobile-header .ff-discord-userbar > svg:last-child {
+    display: none;
+  }
+
+  .ff-mobile-dock > button > span:last-child {
+    font-size: 8.5px;
+  }
+
+  .ff-view-home .content-layer section > .relative.z-10 > div:first-child {
+    margin-bottom: 12px;
+  }
+}
+
+@media (max-height: 680px) and (max-width: 767px) {
+  .ff-view-home .content-layer section {
+    padding-top: calc(var(--ff-mobile-header-height) + 4px);
+    padding-bottom: calc(var(--ff-mobile-dock-height) + 6px);
+  }
+
+  .ff-view-home .content-layer section > .relative.z-10 > div:nth-child(2) {
+    min-height: 132px;
+  }
+
+  .ff-view-home .content-layer section > .relative.z-10 > p {
+    margin-top: 10px;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .ff-app-shell :is(button, a, [role='button']) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .ff-app-shell :is(.ff-tactile-btn, .ff-ui-button):active:not(:disabled) {
+    transform: translateY(1px) scale(0.985);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-mobile-dock > button,
+  .ff-mobile-dock > button::before {
+    transition: none !important;
+  }
+}

@@ -87,6 +87,17 @@ type DockView = Exclude<DimensionView, 'landing' | 'home' | 'exam-viewer'>;const
   'exam-vault': <BookOpen size={16} className="text-cyan-400" />,
 };
 
+const MOBILE_VIEW_LABELS: Partial<Record<DimensionView, string>> = {
+  home: 'Trang chủ',
+  clubs: 'Câu lạc bộ',
+  qa: 'Hỏi đáp',
+  threads: 'Sổ chung',
+  chat: 'Trò chuyện',
+  memory: 'Miền ký ức',
+  chronicles: 'Vinh danh',
+  'coming-soon': 'Cập nhật',
+};
+
 export const Navbar: React.FC<NavbarProps> = ({
   currentView,
   onViewChange,
@@ -659,6 +670,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'chronicles', label: 'KHU VINH DANH', iconOnly: true },
   ];
   const firstIconOnlyIndex = navItems.findIndex((item) => item.id === 'memory');
+  const mobileContextLabel = MOBILE_VIEW_LABELS[currentView];
 
   const sharedSettingsProps = {
     isOpen: isSettingsOpen,
@@ -1127,7 +1139,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* ======================================================== */}
       {/* 2. MOBILE TOP HEADER BAR (Viewports < 768px)             */}
       {/* ======================================================== */}
-      <header className="md:hidden fixed top-0 inset-x-0 z-40 h-[calc(54px+var(--safe-top))] pt-[var(--safe-top)] liquid-glass border-b border-white/10 px-4 flex items-center justify-between pointer-events-auto select-none">
+      <header className="ff-mobile-header md:hidden fixed top-0 inset-x-0 z-40 h-[calc(54px+var(--safe-top))] pt-[var(--safe-top)] liquid-glass border-b border-white/10 px-4 flex items-center justify-between pointer-events-auto select-none">
         {/* Left: Brand Logo */}
         <button
           type="button"
@@ -1148,6 +1160,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             F-Forum
           </span>
         </button>
+
+        {mobileContextLabel && (
+          <div className="ff-mobile-context" aria-hidden="true">
+            <span className="ff-mobile-context__dot" />
+            <span>{mobileContextLabel}</span>
+          </div>
+        )}
 
         {/* Right: Settings button + Notification Bell button + User Avatar pill */}
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -1215,7 +1234,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={onOpenLoginModal}
-              className="bg-white text-neutral-900 px-3 py-1 rounded-full text-xs font-semibold hover:bg-neutral-200 transition-colors shadow-md cursor-pointer whitespace-nowrap"
+              className="ff-mobile-login-btn bg-white text-neutral-900 px-3 py-1 rounded-full text-xs font-semibold hover:bg-neutral-200 transition-colors shadow-md cursor-pointer whitespace-nowrap"
             >
               Đăng nhập
             </button>
@@ -1244,7 +1263,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="relative z-[2] shrink-0">
                   <DecoratedAvatar user={currentUser} fallbackSrc={currentUser.avatar} size={24} eager animate className="rounded-full ring-1 ring-amber-400/60" alt={currentUser.name} />
                 </span>
-                <span className="relative z-[2] flex items-center">
+                <span className="ff-mobile-user-name relative z-[2] flex items-center">
                   <DecoratedName
                     user={currentUser}
                     name={currentUser.name.replace(/ \(.*\)/, '')}
@@ -1280,7 +1299,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* ======================================================== */}
       {/* 3. MOBILE BOTTOM NAVIGATION DOCK (Viewports < 768px)     */}
       {/* ======================================================== */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 h-[calc(56px+var(--safe-bottom))] pb-[var(--safe-bottom)] liquid-glass border-t border-white/10 px-2 flex items-center justify-around pointer-events-auto select-none">
+      <nav aria-label="Điều hướng nhanh trên di động" className="ff-mobile-dock md:hidden fixed bottom-0 inset-x-0 z-40 h-[calc(56px+var(--safe-bottom))] pb-[var(--safe-bottom)] liquid-glass border-t border-white/10 px-2 flex items-center justify-around pointer-events-auto select-none">
         {/* Trang chủ nằm ở logo F trên header, không nhân đôi trong dock. */}
         {/* Tab 1: Hỏi Đáp */}
         <button
@@ -1297,6 +1316,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               : 'text-[#f4f1de]/60 hover:text-[#f4f1de]'
           }`}
           aria-label="Hỏi Đáp"
+          aria-current={currentView === 'qa' ? 'page' : undefined}
         >
           <HelpCircle className="w-5 h-5 mb-0.5" />
           <span className="text-[10px] tracking-tight whitespace-nowrap">Hỏi Đáp</span>
@@ -1317,6 +1337,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               : 'text-white/60 hover:text-white'
           }`}
           aria-label="Thread"
+          aria-current={currentView === 'threads' ? 'page' : undefined}
         >
           <MessageCircleMore className="w-5 h-5 mb-0.5" />
           <span className="text-[10px] tracking-tight whitespace-nowrap">Thread</span>
@@ -1337,6 +1358,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               : 'text-white/60 hover:text-white'
           }`}
           aria-label="Phòng Chat"
+          aria-current={currentView === 'chat' ? 'page' : undefined}
         >
           <div className="relative">
             <MessageSquare className="w-5 h-5 mb-0.5" />
@@ -1361,6 +1383,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               : 'text-white/60 hover:text-white'
           }`}
           aria-label="Khám Phá"
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="ff-mobile-explore-menu"
+          data-active={currentView === 'landing' || currentView === 'memory' || currentView === 'chronicles' || currentView === 'coming-soon' ? 'true' : 'false'}
         >
           <Compass
             className={`w-5 h-5 mb-0.5 transition-transform duration-200 ${
@@ -1384,6 +1409,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={() => setIsMobileMenuOpen(false)}
           />
           <div
+            id="ff-mobile-explore-menu"
             role="dialog"
             aria-modal="true"
             aria-label="Menu khám phá"
