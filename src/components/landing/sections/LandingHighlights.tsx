@@ -1,117 +1,72 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
-import {
-  BookOpen,
-  GraduationCap,
-  Headphones,
-  MessageSquare,
-  Sparkles,
-  Trophy,
-  Users,
-} from 'lucide-react';
-import { Marquee, Reveal, SectionHeading } from '../LandingPrimitives';
-import { HIGHLIGHTS } from '../landingContent';
+import { ArrowRight, ShieldCheck } from 'lucide-react';
+import { Reveal, SectionHeading } from '../LandingPrimitives';
+import { QUESTION_GUIDE } from '../landingContent';
 
-const HIGHLIGHT_ICONS: Record<(typeof HIGHLIGHTS)[number]['icon'], React.ReactNode> = {
-  qa: <GraduationCap className="h-5 w-5" aria-hidden="true" />,
-  chat: <MessageSquare className="h-5 w-5" aria-hidden="true" />,
-  rank: <Trophy className="h-5 w-5" aria-hidden="true" />,
-  focus: <Headphones className="h-5 w-5" aria-hidden="true" />,
-  clubs: <Users className="h-5 w-5" aria-hidden="true" />,
-  memory: <BookOpen className="h-5 w-5" aria-hidden="true" />,
-};
+interface LandingHighlightsProps {
+  onOpenAuth: () => void;
+}
 
-/**
- * Khối năng lực hệ thống (thay cho khối "đánh giá" của nhân vật mô phỏng).
- * Mỗi thẻ nói về một tính năng có thật, kèm nhãn "Đang chạy thật" để người xem
- * biết đây là năng lực của sản phẩm chứ không phải lời chứng thực của ai đó.
- */
-const HighlightCard: React.FC<{ item: (typeof HIGHLIGHTS)[number] }> = ({ item }) => (
-  <figure className="ff-glass ff-card flex h-full min-w-[290px] flex-1 flex-col p-5">
-    <span
-      className="inline-flex h-11 w-11 items-center justify-center rounded-2xl text-black/80"
-      style={{ backgroundImage: `linear-gradient(135deg, ${item.from}, ${item.to})` }}
-      aria-hidden="true"
-    >
-      {HIGHLIGHT_ICONS[item.icon]}
-    </span>
-    <h3 className="mt-4 text-[14.5px] font-semibold leading-snug text-[var(--ff-text)]">{item.title}</h3>
-    <p className="mt-2 flex-1 text-[13px] leading-relaxed text-[var(--ff-text-soft)]">{item.body}</p>
-    <figcaption className="mt-5 flex items-center gap-2 border-t border-[var(--ff-border)] pt-4">
-      <span className="rounded-full bg-[#81b29a]/15 px-2.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider text-[#81b29a] ring-1 ring-[#81b29a]/35">
-        {item.tag}
-      </span>
-      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--ff-text-dim)]">
-        <Sparkles className="h-3 w-3 text-emerald-400" aria-hidden="true" />
-        Đang chạy thật
-      </span>
-    </figcaption>
-  </figure>
-);
+export const LandingHighlights: React.FC<LandingHighlightsProps> = ({ onOpenAuth }) => (
+  <section id="nang-luc" aria-label="Gợi ý đặt câu hỏi rõ ràng" className="relative w-full py-20 sm:py-28">
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      <div
+        className="ff-aurora ff-aurora-anim"
+        style={{
+          width: '460px',
+          height: '460px',
+          bottom: '4%',
+          right: '-10%',
+          background: 'radial-gradient(circle at 50% 50%, rgba(251,191,36,0.22), transparent 66%)',
+        }}
+      />
+    </div>
 
-export const LandingHighlights: React.FC = () => {
-  const firstRow = HIGHLIGHTS.slice(0, 3);
-  const secondRow = HIGHLIGHTS.slice(3);
+    <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
+      <SectionHeading
+        eyebrow="Gợi ý đặt câu hỏi"
+        title="Không cần viết dài. Chỉ cần đủ ngữ cảnh."
+        description="Một vài chi tiết cụ thể giúp người khác hiểu đúng điều bạn muốn làm rõ — và giúp bạn tự sắp xếp lại cách nghĩ."
+      />
 
-  return (
-    <section id="nang-luc" aria-label="Năng lực hệ thống" className="relative w-full py-20 sm:py-28">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div
-          className="ff-aurora ff-aurora-anim"
-          style={{
-            width: '520px',
-            height: '520px',
-            bottom: '4%',
-            right: '-10%',
-            background: 'radial-gradient(circle at 50% 50%, rgba(167,139,250,0.3), transparent 66%)',
-          }}
-        />
+      <div className="mt-12 grid gap-4 md:grid-cols-3">
+        {QUESTION_GUIDE.map((item, index) => {
+          const Icon = item.icon;
+          return (
+            <Reveal key={item.id} y={26} delay={index * 80}>
+              <article className="ff-glass ff-card flex h-full flex-col p-5 sm:p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="ff-eyebrow">{item.tag}</span>
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/12 ring-1 ring-amber-400/25">
+                    <Icon className="h-4 w-4 text-amber-300" aria-hidden="true" />
+                  </span>
+                </div>
+                <h3 className="mt-5 text-[17px] font-semibold tracking-tight text-[var(--ff-text)]">{item.title}</h3>
+                <p className="mt-2.5 flex-1 text-[13.5px] leading-relaxed text-[var(--ff-text-soft)]">{item.body}</p>
+              </article>
+            </Reveal>
+          );
+        })}
       </div>
 
-      <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
-        <SectionHeading
-          eyebrow="Năng lực hệ thống"
-          title="F-Forum làm được gì cho việc học của bạn"
-          description="Sáu năng lực dưới đây đều đang chạy thật trong ứng dụng — bạn có thể mở và dùng ngay sau khi đăng ký."
-        />
-      </div>
-
-      <div className="relative mt-14 space-y-5">
-        <Reveal y={26}>
-          <Marquee duration={52} itemClassName="[&>*]:min-w-[290px]">
-            {firstRow.map((item) => (
-              <HighlightCard key={item.id} item={item} />
-            ))}
-          </Marquee>
-        </Reveal>
-        <Reveal y={26} delay={90}>
-          <Marquee duration={62} reverse itemClassName="[&>*]:min-w-[290px]">
-            {secondRow.map((item) => (
-              <HighlightCard key={item.id} item={item} />
-            ))}
-          </Marquee>
-        </Reveal>
-      </div>
-
-      {/* Tuyên ngôn của người sáng lập (người thật, tài khoản thật) */}
-      <div className="relative mx-auto mt-14 max-w-4xl px-4 sm:px-6">
-        <Reveal variant="scale" y={26}>
-          <div className="ff-glass ff-card relative overflow-hidden p-7 text-center sm:p-10">
-            <Sparkles className="mx-auto h-8 w-8 text-amber-400/80" aria-hidden="true" />
-            <blockquote className="ff-brand-serif mt-5 text-[24px] leading-snug text-[var(--ff-text)] sm:text-[30px]">
-              “Mỗi câu hỏi của học sinh đều xứng đáng có một người trả lời tử tế — F-Forum được xây chỉ để làm đúng việc đó.”
-            </blockquote>
-            <figcaption className="mt-6 flex flex-col items-center gap-1">
-              <span className="text-[13.5px] font-semibold text-[var(--ff-text)]">Trần Văn Anh Tuấn</span>
-              <span className="text-[12px] text-[var(--ff-text-dim)]">
-                Sáng lập &amp; Quản trị F-Forum · Tuyên ngôn của người sáng lập
-              </span>
-            </figcaption>
+      <Reveal y={18} delay={120}>
+        <div className="mt-5 flex flex-col gap-4 rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface)] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" aria-hidden="true" />
+            <p className="max-w-3xl text-[12.5px] leading-relaxed text-[var(--ff-text-dim)]">
+              Bút danh không thay thế việc bảo vệ dữ liệu cá nhân. Trước khi đăng, hãy kiểm tra ảnh và tệp đính kèm để
+              chắc chắn không lộ thông tin riêng tư.
+            </p>
           </div>
-        </Reveal>
-      </div>
-    </section>
-  );
-};
+          <button type="button" onClick={onOpenAuth} className="ff-btn ff-btn-ghost group shrink-0 px-5 py-3 text-sm">
+            Thử đặt câu hỏi
+            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+          </button>
+        </div>
+      </Reveal>
+    </div>
+  </section>
+);
 
 export default LandingHighlights;

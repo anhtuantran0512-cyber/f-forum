@@ -1095,11 +1095,8 @@ export const App: React.FC = () => {
             <LandingPage
               currentUser={currentUser}
               onOpenAuth={() => handleOpenAuth('register')}
+              onOpenLogin={() => handleOpenAuth('login')}
               onEnterApp={() => handleViewChange('home')}
-              onlineCount={onlineUsers.length}
-              totalQuestions={questions.length}
-              solvedQuestions={solvedQuestionsCount}
-              totalClubs={approvedClubsCount}
             />
           )}
 

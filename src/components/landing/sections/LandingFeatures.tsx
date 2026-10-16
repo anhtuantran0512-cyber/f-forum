@@ -31,10 +31,8 @@ const ACCENTS: Record<string, { text: string; bg: string; ring: string; glow: st
   },
 };
 
-const spanClass = (feature: { id: string; span: 'lg' | 'md' }) => {
-  if (feature.id === 'memory') return 'md:col-span-6';
-  return feature.span === 'lg' ? 'md:col-span-4' : 'md:col-span-2';
-};
+const spanClass = (feature: { span: 'lg' | 'md' }) =>
+  feature.span === 'lg' ? 'md:col-span-4' : 'md:col-span-2';
 
 export const LandingFeatures: React.FC = () => (
   <section id="tinh-nang" aria-label="Tính năng nổi bật" className="relative w-full py-20 sm:py-28">
@@ -53,14 +51,14 @@ export const LandingFeatures: React.FC = () => (
 
     <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
       <SectionHeading
-        eyebrow="Tính năng"
+        eyebrow="Công cụ học tập"
         title={
           <>
-            Mọi thứ cho một học kỳ bứt phá,
-            <br className="hidden sm:block" /> gói gọn trong một nền tảng
+            Mỗi công cụ có một việc,
+            <br className="hidden sm:block" /> và việc đó là hỗ trợ học tập.
           </>
         }
-        description="Bảy phân khu được thiết kế để bạn hỏi nhanh hơn, học sâu hơn và thuộc về một cộng đồng thật sự."
+        description="Hỏi đáp, học liệu và trao đổi cùng nằm trong một không gian — không cần biến việc học thành cuộc đua."
       />
 
       <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-6">

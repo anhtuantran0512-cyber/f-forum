@@ -328,12 +328,13 @@ test('6. Vòng 11 — tài khoản ảo bị xoá vĩnh viễn, hồ sơ ngườ
   );
   assert.ok(!board.includes('...COHORT'), 'Board must not merge any virtual list');
 
-  /* 6.6 Trang giới thiệu cũng không còn nhân vật mô phỏng */
+  /* 6.6 Trang giới thiệu không dựng nhân vật hay số liệu cộng đồng mô phỏng */
   const mocks = fs.readFileSync('src/components/landing/LandingMocks.tsx', 'utf8');
   const content = fs.readFileSync('src/components/landing/landingContent.ts', 'utf8');
   assert.ok(!mocks.includes('Minh Anh') && !mocks.includes('Nguyễn Khánh Linh'), 'Landing mocks must not name virtual students');
-  assert.ok(!content.includes('TESTIMONIALS'), 'The fake testimonial list must be replaced by real feature highlights');
-  assert.ok(content.includes('export const HIGHLIGHTS'), 'Feature highlights must describe real system capabilities');
+  assert.ok(!content.includes('TESTIMONIALS') && !content.includes('HIGHLIGHTS'), 'Landing copy must not contain a fake testimonial list');
+  assert.ok(content.includes('export const QUESTION_GUIDE'), 'Landing should guide students to ask clear academic questions');
+  assert.ok(content.includes('export const FEATURES'), 'Landing feature cards should describe available product areas');
 
   /* 6.7 Đổi hồ sơ ở bất kỳ đâu → mọi nội dung đã đăng cũng đổi theo */
   assert.ok(

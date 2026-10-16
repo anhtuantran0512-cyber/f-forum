@@ -1,6 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowRight, Check, ChevronDown, MousePointerClick, Play, Sparkles, Star } from 'lucide-react';
+import { ArrowRight, BookOpenCheck, Check, ChevronDown, MousePointerClick, Play } from 'lucide-react';
 import { AppWindowMock } from '../LandingMocks';
 import { AuroraBackdrop, MagneticButton, Reveal, ScrambleText } from '../LandingPrimitives';
 import { scrollToSection, usePrefersReducedMotion } from '../useLandingMotion';
@@ -8,9 +8,6 @@ import { HERO_TRUST } from '../landingContent';
 
 interface LandingHeroProps {
   onOpenAuth: () => void;
-  onlineCount: number;
-  totalClubs: number;
-  totalQuestions: number;
 }
 
 /** Floating "scroll to explore" affordance, visible while the hero owns the viewport. */
@@ -39,20 +36,7 @@ const ScrollToExplore: React.FC<{ visible: boolean }> = ({ visible }) => (
   </div>
 );
 
-const AVATARS = [
-  { label: 'MA', from: '#fbbf24', to: '#f97316' },
-  { label: 'KL', from: '#38bdf8', to: '#818cf8' },
-  { label: 'MQ', from: '#34d399', to: '#22d3ee' },
-  { label: 'TT', from: '#f472b6', to: '#a855f7' },
-  { label: 'HN', from: '#94a3b8', to: '#64748b' },
-];
-
-export const LandingHero: React.FC<LandingHeroProps> = ({
-  onOpenAuth,
-  onlineCount,
-  totalClubs,
-  totalQuestions,
-}) => {
+export const LandingHero: React.FC<LandingHeroProps> = ({ onOpenAuth }) => {
   const reduced = usePrefersReducedMotion();
   const sectionRef = useRef<HTMLElement | null>(null);
   const shellRef = useRef<HTMLDivElement | null>(null);
@@ -114,8 +98,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
       className="relative isolate flex w-full flex-col items-center overflow-hidden px-4 pb-16 pt-28 sm:px-6 sm:pt-32 lg:pb-24 lg:pt-36"
       aria-label="Giới thiệu F-Forum"
     >
-      {/* ---------- Ambient backdrop ---------- */}
-      <AuroraBackdrop variant="mixed" />
+      <AuroraBackdrop variant="amber" />
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
         <div className="ff-grid absolute inset-0" />
         <div
@@ -129,45 +112,36 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
       </div>
 
       <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center text-center">
-        {/* Eyebrow */}
         <Reveal y={14}>
-          <span className="ff-chip px-4 py-2">
-            <span className="relative flex h-2 w-2">
-              <span className="ff-ping-ring absolute inline-flex h-full w-full rounded-full bg-amber-400" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
-            </span>
+          <span className="ff-chip gap-2 px-4 py-2">
+            <BookOpenCheck className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
             <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[var(--ff-text-soft)]">
-              Nền tảng học tập &amp; cộng đồng sinh viên FPT
+              Diễn đàn học thuật · Sinh viên FPT
             </span>
           </span>
         </Reveal>
 
-        {/* Headline */}
         <Reveal y={26} delay={80}>
           <h1 className="ff-display mt-7 text-[2.35rem] leading-[1.06] sm:text-6xl lg:text-[4.25rem]">
-            <span className="block text-[var(--ff-text)]">Nơi tri thức sinh viên</span>
+            <span className="block text-[var(--ff-text)]">Điều còn vướng,</span>
             <span className="ff-gradient-text ff-gradient-pan mt-1 block">
-              <ScrambleText text="tỏa sáng cùng nhau." delay={300} />
+              <ScrambleText text="cùng tìm cách hiểu." delay={300} />
             </span>
           </h1>
         </Reveal>
 
-        {/* Subheadline */}
         <Reveal y={24} delay={170}>
           <p className="ff-balance mx-auto mt-6 max-w-2xl text-[15px] leading-relaxed text-[var(--ff-text-soft)] sm:text-lg">
-            F-Forum gom <strong className="font-semibold text-[var(--ff-text)]">hỏi đáp bài học</strong>,{' '}
-            <strong className="font-semibold text-[var(--ff-text)]">câu lạc bộ</strong>,{' '}
-            <strong className="font-semibold text-[var(--ff-text)]">phòng chat thời gian thực</strong> và công cụ
-            học tập trung vào một không gian số duy nhất — nhanh, đẹp và miễn phí cho mọi sinh viên.
+            F-Forum là diễn đàn học thuật cho sinh viên FPT: hỏi theo môn học, chia sẻ cách giải và cùng lưu lại học liệu.
+            Không hứa học thay bạn — chỉ tạo chỗ để cuộc trao đổi bắt đầu.
           </p>
         </Reveal>
 
-        {/* Calls to action */}
         <Reveal y={22} delay={250} className="w-full">
           <div className="mt-9 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
             <MagneticButton size="lg" onClick={onOpenAuth} className="w-full sm:w-auto">
-              <Sparkles className="h-4 w-4" />
-              Tham gia miễn phí
+              <BookOpenCheck className="h-4 w-4" />
+              Đặt câu hỏi
               <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
             </MagneticButton>
 
@@ -178,12 +152,11 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
               onClick={() => scrollToSection('kham-pha')}
             >
               <Play className="h-4 w-4 text-amber-400" />
-              Xem F-Forum hoạt động
+              Xem ví dụ trao đổi
             </MagneticButton>
           </div>
         </Reveal>
 
-        {/* Trust bullets */}
         <Reveal y={18} delay={330}>
           <ul className="mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             {HERO_TRUST.map((item) => (
@@ -194,42 +167,8 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
             ))}
           </ul>
         </Reveal>
-
-        {/* Live social proof */}
-        <Reveal y={18} delay={400}>
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:gap-5">
-            <div className="flex items-center -space-x-2.5">
-              {AVATARS.map((avatar) => (
-                <span
-                  key={avatar.label}
-                  aria-hidden="true"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[11px] font-bold text-black/80 ring-2 ring-[var(--ff-bg)]"
-                  style={{ backgroundImage: `linear-gradient(135deg, ${avatar.from}, ${avatar.to})` }}
-                >
-                  {avatar.label}
-                </span>
-              ))}
-              <span className="inline-flex h-9 items-center rounded-full bg-[var(--ff-surface-2)] px-3 text-[11px] font-semibold text-[var(--ff-text-soft)] ring-2 ring-[var(--ff-bg)]">
-                +{Math.max(onlineCount, 1).toLocaleString('vi-VN')}
-              </span>
-            </div>
-
-            <div className="text-left">
-              <div className="flex items-center justify-center gap-0.5 sm:justify-start" aria-hidden="true">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <Star key={index} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-              <p className="mt-1 text-[12.5px] text-[var(--ff-text-soft)]">
-                <span className="font-semibold text-[var(--ff-text)]">{Math.max(onlineCount, 1)} sinh viên</span> đang
-                online · {totalClubs} câu lạc bộ · {totalQuestions} câu hỏi
-              </p>
-            </div>
-          </div>
-        </Reveal>
       </div>
 
-      {/* ---------- Product mock with scroll parallax ---------- */}
       <div
         ref={shellRef}
         className="relative z-10 mx-auto mt-14 w-full max-w-5xl will-change-transform sm:mt-16"
@@ -239,7 +178,6 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
         </Reveal>
       </div>
 
-      {/* Scroll hint directly under the mock */}
       <div className="relative z-10 mt-10 hidden items-center gap-2 text-[11px] font-mono uppercase tracking-[0.22em] text-[var(--ff-text-dim)] lg:flex">
         <span className="h-[1px] w-10 bg-gradient-to-r from-transparent to-[var(--ff-border-strong)]" />
         <ChevronDown className="ff-chevron-1 h-3.5 w-3.5" />
