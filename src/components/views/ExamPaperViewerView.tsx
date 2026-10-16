@@ -17,11 +17,13 @@ import {
   Printer,
   School,
   ShieldCheck,
+  Sparkles,
   Star,
   Sun,
 } from 'lucide-react';
 import type { ExamAttachment, ExamPaper, User } from '../../types';
 import { SEED_EXAMS } from '../exam/seedExamPapers';
+import { ExamFlashcardModal } from '../exam/ExamFlashcardModal';
 import { safeStorage } from '../../utils/storage';
 import { toggleThemeMode } from '../../utils/theme';
 import { authHeaders } from '../../utils/session';
@@ -102,6 +104,7 @@ export const ExamPaperViewerView: React.FC<ExamPaperViewerViewProps> = ({
   const [pendingAction, setPendingAction] = useState<'like' | 'rating' | 'review' | 'download' | null>(null);
   const [toast, setToast] = useState('');
   const [savedPaperIds, setSavedPaperIds] = useState<string[]>(readSavedExamIds);
+  const [isFlashcardOpen, setIsFlashcardOpen] = useState(false);
   const requestLockRef = useRef(false);
   const toastTimerRef = useRef<number | null>(null);
 
@@ -415,6 +418,15 @@ export const ExamPaperViewerView: React.FC<ExamPaperViewerViewProps> = ({
           <button
             type="button"
             className="ff-ui-button ff-ui-button--secondary ff-ui-button--icon"
+            onClick={() => setIsFlashcardOpen(true)}
+            aria-label="Mở thẻ ghi nhớ ôn tập nhanh"
+            title="Thẻ ghi nhớ & Ôn tập nhanh"
+          >
+            <Sparkles size={17} />
+          </button>
+          <button
+            type="button"
+            className="ff-ui-button ff-ui-button--secondary ff-ui-button--icon"
             onClick={handleToggleBookmark}
             aria-pressed={isSaved}
             aria-label={isSaved ? 'Bỏ lưu đề thi' : 'Lưu đề thi'}
@@ -686,6 +698,14 @@ export const ExamPaperViewerView: React.FC<ExamPaperViewerViewProps> = ({
       </div>
 
       {toast && <div className="ff-paper-viewer__toast" role="status" aria-live="polite">{toast}</div>}
+
+      {isFlashcardOpen && paper && (
+        <ExamFlashcardModal
+          paper={paper}
+          isOpen={isFlashcardOpen}
+          onClose={() => setIsFlashcardOpen(false)}
+        />
+      )}
     </div>
   );
 };

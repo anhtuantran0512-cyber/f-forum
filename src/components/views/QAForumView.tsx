@@ -1640,22 +1640,32 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             </div>
           ) : filteredQuestions.length === 0 ? (
             showSavedOnly && mySavedIds.length === 0 ? (
-              <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-slate-400 rounded-2xl bg-[#0e1522]/90 border border-white/[0.08] space-y-2">
-                <Bookmark className="w-8 h-8 text-amber-400/70 mb-1" />
-                <p className="text-sm font-semibold text-white">Chưa lưu câu hỏi</p>
+              <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-[#9a978e] ff-bento-cell space-y-2">
+                <Bookmark className="w-8 h-8 text-[#f2cc8f] mb-1" />
+                <p className="text-sm font-bold text-[#f4f1de]">
+                  <span className="ff-swash-cap text-base">C</span>hưa lưu câu hỏi nào
+                </p>
+                <p className="text-xs text-[#a39f96] max-w-sm">
+                  Đánh dấu các bài toán hoặc thảo luận hay để dễ dàng xem lại khi ôn tập bạn nhé.
+                </p>
                 <button
                   type="button"
                   onClick={() => setShowSavedOnly(false)}
-                  className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 border border-white/10 text-xs font-semibold transition-colors cursor-pointer"
+                  className="ff-tactile-btn mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border border-[#f4f1de] text-xs font-extrabold transition-colors cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
-                  <span>Xem tất cả</span>
+                  <span>Xem tất cả câu hỏi</span>
                 </button>
               </div>
             ) : showSavedOnly || searchTerm || selectedTag !== 'all' ? (
               <div className="h-56 flex flex-col items-center justify-center text-center p-6 text-[#9a978e] ff-bento-cell space-y-2">
                 <Search className="w-8 h-8 text-[#f2cc8f] mb-1" />
-                <p className="text-sm font-bold text-[#f4f1de]">Không có câu hỏi khớp bộ lọc</p>
+                <p className="text-sm font-bold text-[#f4f1de]">
+                  <span className="ff-swash-cap text-base">K</span>hông có câu hỏi khớp bộ lọc
+                </p>
+                <p className="text-xs text-[#a39f96] max-w-sm">
+                  Thử tìm kiếm với từ khoá khác hoặc xoá bộ lọc để khám phá toàn bộ giảng đường.
+                </p>
                 <button
                   type="button"
                   onClick={() => {

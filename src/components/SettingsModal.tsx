@@ -475,7 +475,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </span>
             <div className="min-w-0">
               <h3 className="text-sm font-bold leading-tight flex items-center gap-1.5">
-                <span>Trung tâm điều khiển</span>
+                <span className="flex items-center gap-1">
+                  <span className="ff-swash-cap text-xs font-serif italic">§</span>
+                  <span>Trung tâm điều khiển</span>
+                </span>
                 <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px]">
                   Học · Hỏi · Chia sẻ
                 </span>

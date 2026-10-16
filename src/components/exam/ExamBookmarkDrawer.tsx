@@ -89,10 +89,15 @@ export const ExamBookmarkDrawer: React.FC<ExamBookmarkDrawerProps> = ({
                 <Bookmark className="w-4 h-4 fill-amber-400" />
               </div>
               <div className="min-w-0">
-                <h2 id="bookmark-drawer-title" className="flex items-center gap-2 text-base font-extrabold text-white">
-                  <span>Đề đã lưu</span>
+                <h2 id="bookmark-drawer-title" className="flex items-center gap-2 text-base font-extrabold text-white flex-wrap">
+                  <span>
+                    <span className="ff-swash-cap text-base">Đ</span>ề đã lưu
+                  </span>
                   <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-400 text-[#0b0d12] font-black">
                     {savedPapers.length}
+                  </span>
+                  <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px] hidden sm:inline-flex">
+                    Học · Hỏi · Chia sẻ
                   </span>
                 </h2>
               </div>
@@ -164,14 +169,16 @@ export const ExamBookmarkDrawer: React.FC<ExamBookmarkDrawerProps> = ({
               <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/30">
                 <Bookmark className="w-7 h-7" />
               </div>
-              <h3 className="text-sm font-bold text-white">Chưa có đề thi nào được lưu</h3>
-              <p className="text-xs text-white/50 leading-relaxed max-w-xs">
-                Các đề đã lưu sẽ xuất hiện ở đây.
+              <h3 className="text-sm font-bold text-white">
+                <span className="ff-swash-cap text-sm">C</span>hưa có đề thi nào được lưu
+              </h3>
+              <p className="text-xs text-white/60 leading-relaxed max-w-xs">
+                Gặp đề thi hay hoặc cần ôn tập lại? Hãy bấm biểu tượng Bookmark trên thẻ đề thi để lưu lại ôn luyện bất cứ lúc nào nhé!
               </p>
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0b0d12] text-xs font-bold transition-colors cursor-pointer mt-2"
+                className="ff-tactile-btn px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0b0d12] text-xs font-bold transition-colors cursor-pointer mt-2"
               >
                 Xem kho đề
               </button>
