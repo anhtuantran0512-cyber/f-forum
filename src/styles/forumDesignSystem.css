@@ -1018,3 +1018,170 @@ button:not(:disabled):active {
     transform: none !important;
   }
 }
+
+/* ========================================================================== */
+/* STYLE 11: CAMPUS ATELIER & CHỮ HOA UỐN LƯỢN (Calligraphic Swash & Zine)    */
+/* Pha trộn thứ 3 cùng Warm Editorial + Soft Neo-Brutalism: phóng khoáng,     */
+/* giàu chất sổ tay học trò, chữ hoa uốn lượn thanh thoát, 60fps nhẹ GPU.     */
+/* ========================================================================== */
+
+.ff-swash-cap {
+  display: inline-block;
+  font-family: 'Cormorant Garamond', 'Playfair Display', 'Instrument Serif', Georgia, serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 1.24em;
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+  padding-right: 0.04em;
+  color: #f6d58e;
+  background: linear-gradient(135deg, #fff8e7 0%, #f2cc8f 48%, #e07a5f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  transform-origin: bottom center;
+  animation: ffSwashFloat 5.6s ease-in-out infinite;
+}
+
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .ff-swash-cap {
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+html.light .ff-swash-cap {
+  color: #92400e;
+  background: linear-gradient(135deg, #78350f 0%, #b45309 52%, #9a3412 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.ff-calligraphic-word {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.ff-swash-flourish {
+  display: inline-block;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.82;
+  pointer-events: none;
+}
+
+@keyframes ffSwashFloat {
+  0%, 100% {
+    transform: translateY(0) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateY(-0.045em) rotate(1.5deg);
+  }
+}
+
+/* Dải ruy-băng triết lý "Học · Hỏi · Chia sẻ" kiểu tem sổ tay học thuật */
+.ff-atelier-ribbon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.28rem 0.72rem;
+  border-radius: 10px 4px 10px 4px;
+  border: 1px dashed rgba(242, 204, 143, 0.44);
+  background: linear-gradient(125deg, rgba(242, 204, 143, 0.14), rgba(129, 178, 154, 0.1));
+  color: #f4f1de;
+  font-family: var(--ff-font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  box-shadow: 2px 2px 0 rgba(4, 6, 11, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+html.light .ff-atelier-ribbon {
+  border-color: rgba(146, 64, 14, 0.36);
+  background: linear-gradient(125deg, rgba(251, 191, 36, 0.16), rgba(129, 178, 154, 0.14));
+  color: #1c1917;
+  box-shadow: 2px 2px 0 rgba(28, 25, 23, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Thẻ bàn học chung (Campus Atelier Study Card) */
+.ff-atelier-card {
+  position: relative;
+  text-align: left;
+  border-radius: 16px 5px 16px 5px;
+  border: 1px solid rgba(244, 241, 222, 0.18);
+  background:
+    linear-gradient(160deg, rgba(22, 27, 38, 0.84) 0%, rgba(13, 17, 25, 0.9) 100%);
+  box-shadow:
+    3px 3px 0 rgba(4, 6, 11, 0.78),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition:
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    background-color 0.22s ease;
+}
+
+.ff-atelier-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 14px;
+  width: 24px;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(90deg, #e07a5f, #f2cc8f, #81b29a);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.ff-atelier-card:hover {
+  transform: translate3d(0, -2px, 0);
+  border-color: rgba(242, 204, 143, 0.48);
+  box-shadow:
+    0 12px 26px -10px rgba(0, 0, 0, 0.55),
+    4px 4px 0 rgba(4, 6, 11, 0.88),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+html.light .ff-atelier-card {
+  background: linear-gradient(160deg, rgba(255, 253, 248, 0.94), rgba(248, 244, 234, 0.96));
+  border-color: rgba(28, 25, 23, 0.18);
+  box-shadow:
+    3px 3px 0 rgba(28, 25, 23, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+html.light .ff-atelier-card:hover {
+  border-color: rgba(180, 83, 9, 0.45);
+  box-shadow:
+    0 12px 24px -10px rgba(28, 25, 23, 0.14),
+    4px 4px 0 rgba(28, 25, 23, 0.2),
+    inset 0 1px 0 #ffffff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-swash-cap {
+    animation: none !important;
+    transform: none !important;
+  }
+  .ff-atelier-card:hover {
+    transform: none !important;
+  }
+}
+
+html.reduce-motion .ff-swash-cap,
+html.potator-mode .ff-swash-cap {
+  animation: none !important;
+  transform: none !important;
+}
+

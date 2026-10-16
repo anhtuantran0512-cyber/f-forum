@@ -104,24 +104,29 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ currentUser, onOpenAut
             <span className="ff-chip gap-2 px-4 py-2">
               <BookOpenCheck className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
               <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[var(--ff-text-soft)]">
-                Diễn đàn học thuật · Sinh viên FPT
+                Diễn đàn học thuật · Học · Hỏi · Chia sẻ
               </span>
             </span>
           </Reveal>
 
           <Reveal y={26} delay={80}>
             <h1 className="ff-display ff-balance mt-7 text-[2.35rem] leading-[1.06] sm:text-6xl lg:text-[3.8rem] xl:text-[4.25rem]">
-              <span className="block text-[var(--ff-text)]">Điều còn vướng,</span>
-              <span className="ff-gradient-text ff-gradient-pan mt-1 block">
+              <span className="block text-[var(--ff-text)]">
+                <span className="ff-swash-cap">Đ</span>iều còn vướng,
+              </span>
+              <span className="ff-gradient-text ff-gradient-pan mt-1 inline-flex flex-col items-center">
                 <ScrambleText text="cùng tìm cách hiểu." delay={300} />
+                <svg className="mt-1 h-3 w-48 sm:w-64 text-amber-300/75 ff-swash-flourish" viewBox="0 0 240 16" preserveAspectRatio="none" aria-hidden="true">
+                  <path d="M2 11 C46 1, 92 16, 142 7 S204 1, 238 10" />
+                </svg>
               </span>
             </h1>
           </Reveal>
 
           <Reveal y={24} delay={170}>
             <p className="ff-balance mt-6 max-w-2xl text-[15px] leading-relaxed text-[var(--ff-text-soft)] sm:text-lg">
-              F-Forum là nơi sinh viên FPT hỏi theo môn học, trao đổi cách giải và lưu học liệu. Không học thay bạn —
-              chỉ mở ra một chỗ để cùng tìm hiểu.
+              F-Forum là không gian để học sinh, sinh viên và thầy cô cùng mổ xẻ bài tập theo từng bước lập luận, đối
+              chiếu học liệu và rèn tư duy phản biện. Không giải bài hộ — chỉ mở ra một bàn học để cùng hiểu rõ bản chất.
             </p>
           </Reveal>
 

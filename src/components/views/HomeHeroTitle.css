@@ -12,10 +12,27 @@
   color: #fff;
 }
 .home-hero-title__top {
-  display: block;
-  font: 500 clamp(19px, 3.1vw, 36px)/1.1 Georgia, serif;
-  letter-spacing: .045em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 1.4vw, 16px);
+  font: 500 italic clamp(20px, 3.2vw, 38px)/1.12 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  letter-spacing: .04em;
+  color: #f8f3e3;
   text-shadow: 0 3px 24px rgba(0, 0, 0, .7);
+}
+.home-hero-title__swash {
+  width: clamp(24px, 3.6vw, 42px);
+  height: clamp(12px, 1.8vw, 20px);
+  fill: none;
+  stroke: #f2cc8f;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  opacity: .82;
+  flex-shrink: 0;
+}
+.home-hero-title__swash--right {
+  transform: scaleX(-1);
 }
 .home-hero-title__focus {
   position: relative;
@@ -27,7 +44,7 @@
   /* Use the browser's Vietnamese-capable UI font stack, not Georgia/Times:
      their fallback italic glyphs can split dấu from the base letters. */
   font-family: system-ui, "Segoe UI", "Noto Sans", Arial, sans-serif;
-  font-size: clamp(43px, 7.2vw, 88px);
+  font-size: clamp(42px, 6.8vw, 84px);
   font-style: italic;
   font-weight: 750;
   line-height: 1.22;
@@ -77,8 +94,8 @@
   align-items: center;
   justify-content: center;
   gap: clamp(9px, 2vw, 20px);
-  font: 600 clamp(15px, 2.5vw, 27px)/1.15 Georgia, serif;
-  letter-spacing: .035em;
+  font: 600 clamp(15px, 2.4vw, 26px)/1.15 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  letter-spacing: .04em;
   text-shadow: 0 3px 20px rgba(0, 0, 0, .72);
 }
 .home-hero-title__bottom i {
@@ -89,6 +106,35 @@
   background: linear-gradient(90deg, transparent, #96dafa);
 }
 .home-hero-title__bottom i:last-child { transform: rotate(180deg); }
+
+/* Calligraphic brand lockup for Headline 0 */
+.home-hero-calligraphy {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0 0.08em 0.14em;
+}
+
+.home-hero-calligraphy__curl {
+  position: absolute;
+  left: 4%;
+  bottom: -0.02em;
+  width: 92%;
+  height: 0.2em;
+  overflow: visible;
+  fill: none;
+  stroke: #f2cc8f;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  opacity: 0.85;
+  filter: drop-shadow(0 2px 8px rgba(233, 196, 106, 0.45));
+  pointer-events: none;
+}
+
 @media (max-width: 380px) {
   .home-hero-title__focus { font-size: clamp(38px, 11vw, 46px); }
   .home-hero-title__bottom { letter-spacing: 0; }
@@ -100,3 +146,5 @@ html.reduce-motion .home-hero-title__word,
 html.reduce-motion .home-hero-title__wave path,
 html.potator-mode .home-hero-title__word,
 html.potator-mode .home-hero-title__wave path { animation: none; }
+html.potator-mode .home-hero-calligraphy__curl { filter: none; }
+

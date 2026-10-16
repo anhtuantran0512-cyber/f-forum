@@ -88,7 +88,16 @@ export const SectionHeading: React.FC<{
       </span>
     </Reveal>
     <Reveal y={24} delay={90}>
-      <h2 className="ff-display ff-balance mt-4 text-3xl sm:text-4xl md:text-[2.75rem]">{title}</h2>
+      <h2 className="ff-display ff-balance mt-4 text-3xl sm:text-4xl md:text-[2.75rem]">
+        {typeof title === 'string' && title.length > 1 ? (
+          <>
+            <span className="ff-swash-cap">{title.slice(0, 1)}</span>
+            {title.slice(1)}
+          </>
+        ) : (
+          title
+        )}
+      </h2>
     </Reveal>
     {description && (
       <Reveal y={22} delay={170}>

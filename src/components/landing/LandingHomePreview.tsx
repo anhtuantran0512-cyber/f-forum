@@ -68,7 +68,7 @@ export const LandingHomePreview: React.FC<LandingHomePreviewProps> = ({ currentU
             </div>
             <span className="ff-home-demo__address">F-Forum <span aria-hidden="true">/</span> Trang chủ</span>
             <span className="ff-home-demo__badge">
-              <span aria-hidden="true" /> Giao diện thật
+              <span aria-hidden="true" /> Học · Hỏi · Chia sẻ
             </span>
           </div>
 
@@ -107,7 +107,7 @@ export const LandingHomePreview: React.FC<LandingHomePreviewProps> = ({ currentU
         </div>
       </div>
       <figcaption className="ff-home-demo__caption">
-        Bản xem trước dùng trực tiếp thanh điều hướng và giao diện Trang chủ đang chạy — không phải mockup vẽ lại.
+        Bản xem trước dùng trực tiếp không gian học tập F-Forum — nơi nhịp Học · Hỏi · Chia sẻ bắt đầu ngay từ bàn học chính.
       </figcaption>
     </figure>
   );

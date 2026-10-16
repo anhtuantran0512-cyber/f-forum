@@ -31,9 +31,13 @@ export const LandingPricing: React.FC<LandingPricingProps> = ({ onOpenAuth }) =>
     >
       <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHeading
-          eyebrow="Chi phí"
-          title="Dễ bắt đầu. Rõ ràng về những gì đang mở."
-          description="Các tính năng học tập cốt lõi hiện miễn phí cho sinh viên. Những gì chưa phát hành không được kể như quyền lợi sẵn có."
+          eyebrow="Chi phí & tiếp cận · Học · Hỏi · Chia sẻ"
+          title={
+            <>
+              <span className="ff-swash-cap">M</span>ở cửa tự do cho việc học và trao đổi học thuật.
+            </>
+          }
+          description="Các tính năng học tập cốt lõi hiện mở miễn phí cho học sinh, sinh viên. Bạn có thể đọc bài, tra cứu đề thi hoặc tạo tài khoản để cùng thảo luận."
         />
 
         <Reveal y={18} delay={120}>
@@ -126,11 +130,11 @@ export const LandingPricing: React.FC<LandingPricingProps> = ({ onOpenAuth }) =>
                 </div>
 
                 <div>
-                  <p className="ff-eyebrow">Góp sức cho dự án</p>
-                  <h3 className="ff-display mt-3 text-2xl text-[var(--ff-text)]">Ủng hộ không mở khóa quyền lợi.</h3>
+                  <p className="ff-eyebrow">Góp sức duy trì</p>
+                  <h3 className="ff-display mt-3 text-2xl text-[var(--ff-text)]">Đồng hành tự nguyện cùng không gian học thuật.</h3>
                   <p className="mt-3 text-[13px] leading-relaxed text-[var(--ff-text-soft)]">
-                    Nếu F-Forum hữu ích với việc học của bạn, có thể gửi một khoản ủng hộ tùy tâm. Đây là đóng góp tự
-                    nguyện, không ảnh hưởng đến nội dung, câu trả lời hay quyền sử dụng diễn đàn.
+                    Nếu F-Forum hữu ích với việc học của bạn, bạn có thể gửi một khoản đóng góp tùy tâm để phụ giúp chi
+                    phí máy chủ. Mọi thành viên đều bình đẳng trong quyền truy cập và thảo luận học thuật.
                   </p>
 
                   <div className="mt-5 rounded-2xl border border-[var(--ff-border)] bg-[var(--ff-surface)] p-4 font-mono text-[12px]">

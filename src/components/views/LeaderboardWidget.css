@@ -1488,3 +1488,38 @@ html.light .ff-board-ask__copy {
   animation: none !important;
   transition-duration: 0.01ms !important;
 }
+
+.ff-board__ethos {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding: 6px 10px;
+  border: 1px dashed rgba(232, 201, 133, 0.28);
+  border-radius: 10px 4px 10px 4px;
+  background: linear-gradient(125deg, rgba(232, 201, 133, 0.08), rgba(142, 182, 154, 0.06));
+}
+
+.ff-board__ethos-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1.5px;
+  color: var(--fb-ink);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.ff-board__ethos-dot {
+  color: var(--fb-gold);
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+html.light .ff-board__ethos {
+  border-color: rgba(146, 64, 14, 0.24);
+  background: linear-gradient(125deg, rgba(251, 191, 36, 0.1), rgba(129, 178, 154, 0.08));
+}
+

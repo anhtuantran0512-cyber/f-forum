@@ -331,15 +331,21 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="ff-typo-poster !text-xl sm:!text-2xl text-[#f4f1de]">
-                    Club
+                    <span className="ff-swash-cap">C</span>âu lạc bộ <em className="font-['Cormorant_Garamond',Georgia,serif] italic font-semibold text-[#f2cc8f]">Club</em>
                   </h1>
                   <span className="ff-brutal-index">
                     {approvedClubs.length} CLB
+                  </span>
+                  <span className="ff-atelier-ribbon hidden sm:inline-flex !py-0.5 !px-2.5 !text-[10px]">
+                    Học · Hỏi · Chia sẻ
                   </span>
                 </div>
                 <svg className="w-24 h-2 mt-0.5 ff-organic-squiggle" viewBox="0 0 120 8" aria-hidden="true">
                   <path d="M2 5 C24 1, 48 8, 72 4 S98 1, 118 5" />
                 </svg>
+                <p className="text-xs text-[#b5b2a9] mt-1">
+                  Không gian sinh hoạt chuyên đề, rèn luyện kỹ năng và đồng hành cùng những người chung chí hướng.
+                </p>
               </div>
             </div>
 
