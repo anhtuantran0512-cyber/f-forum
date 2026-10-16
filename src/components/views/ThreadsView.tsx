@@ -300,9 +300,12 @@ const ThreadCard = React.memo<{
                     ✦ Nổi bật
                   </span>
                 )}
-                {/* Streak badge — 🔥{n} bằng chữ chỉ khi > 0 */}
+                {/* Streak badge — Flame icon + {n} */}
                 {typeof currentUser?.streakCount === 'number' && currentUser.streakCount > 0 && rootThread.authorEmail === currentUser.email && (
-                  <span className="streak-badge">🔥 {currentUser.streakCount}</span>
+                  <span className="streak-badge inline-flex items-center gap-1">
+                    <Flame className="w-3 h-3 text-amber-400 fill-amber-400" />
+                    <span>{currentUser.streakCount}</span>
+                  </span>
                 )}
                 <span className="author-level">Lv.{rootThread.authorLevel}</span>
               </div>
@@ -1089,7 +1092,10 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                 <BookOpen className="w-5 h-5" />
               </div>
               <div className="thread-room-title-block">
-                <span className="thread-room-kicker">F·FORUM / SỔ CHUNG · HỌC · HỎI · CHIA SẺ</span>
+                <span className="thread-room-kicker inline-flex items-center gap-1.5">
+                  <span>F·FORUM / SỔ CHUNG</span>
+                  <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">Học · Hỏi · Chia sẻ</span>
+                </span>
                 <h1 className="thread-room-title">
                   <span className="ff-swash-cap">M</span>ạch <em>chuyện</em>
                 </h1>

@@ -42,7 +42,7 @@ export const StudyCareCoach: React.FC<StudyCareCoachProps> = ({
       setIsResting(false);
       setSecondsLeft(EYE_REST_SECONDS);
       if (announce) {
-        onToast?.('Mắt đã được nghỉ 20 giây 👁️', 'Quay lại bài học với một tinh thần tỉnh táo hơn nhé!');
+        onToast?.('Mắt đã được nghỉ 20 giây', 'Quay lại bài học với một tinh thần tỉnh táo hơn nhé!');
       }
     },
     [onToast],

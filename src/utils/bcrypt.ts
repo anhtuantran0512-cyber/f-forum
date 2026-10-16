@@ -66,7 +66,7 @@ export async function hashPassword(password: string, rounds: number = BCRYPT_ROU
     return hash;
   } catch {
     /* Fallback: dùng SHA-256 + salt (không bằng bcrypt nhưng vẫn bảo vệ được) */
-    console.warn('⚠️ Bcrypt không có sẵn, đang dùng fallback hash (SHA-256 + salt)');
+    console.warn('[bcrypt] Không có sẵn thư viện, đang dùng fallback hash (SHA-256 + salt)');
     const salt = await generateSalt(rounds);
     const hash = await simpleHash(password, salt);
     return `${BCRYPT_PREFIX}${rounds.toString(10).padStart(2, '0')}${salt}${hash}`;
@@ -86,7 +86,7 @@ export async function verifyPassword(
     return result;
   } catch {
     /* Fallback: sử dụng logic tương tự hash */
-    console.warn('⚠️ Bcrypt không có sẵn, đang dùng fallback verify');
+    console.warn('[bcrypt] Không có sẵn thư viện, đang dùng fallback verify');
     
     /* Parse hash để lấy salt và original hash */
     const salt = hashedPassword.slice(6, 38);

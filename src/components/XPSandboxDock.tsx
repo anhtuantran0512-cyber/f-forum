@@ -79,7 +79,7 @@ export const XPSandboxDock: React.FC<XPSandboxDockProps> = ({
           {/* 8 Cấp Độ Tre Việt Preview */}
           <div className="space-y-1">
             <span className="text-[9.5px] font-mono uppercase tracking-wider text-emerald-300/85 block">
-              🎋 8 Cấp Độ Tre Việt:
+              8 Cấp Độ Tre Việt:
             </span>
             <div className="grid grid-cols-4 gap-1">
               {TIER_CONFIGS.map((t) => {

@@ -3001,7 +3001,7 @@ export function useForumStore() {
       safeStorage.setItem('fforum_threads', JSON.stringify(threads));
     }
     if (outcome.data?.user) applyServerUser(outcome.data.user as User);
-    setToastMessage({ title: 'Đã đăng thread!', subtitle: 'Nội dung của cậu đang ở đầu feed 👍', type: 'success' });
+    setToastMessage({ title: 'Đã đăng thread!', subtitle: 'Nội dung của cậu đang ở đầu feed.', type: 'success' });
   };
 
   const replyThread = async (parentId: string, content: string) => {
@@ -3070,7 +3070,7 @@ export function useForumStore() {
       token: getAuthToken(),
     });
     setToastMessage({
-      title: outcome.ok ? 'Đã nhận báo cáo 🙏' : 'Không gửi được báo cáo',
+      title: outcome.ok ? 'Đã nhận báo cáo' : 'Không gửi được báo cáo',
       subtitle: outcome.message,
       type: outcome.ok ? 'success' : 'error',
     });

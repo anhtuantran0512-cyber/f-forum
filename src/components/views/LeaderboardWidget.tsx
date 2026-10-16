@@ -210,8 +210,8 @@ const buildHoursMembers = (
     estimated: m.estimated,
   }));
 
-const RANK_MEDAL = ['🥇', '🥈', '🥉'];
-/** Số thành viên tối đa hiển thị trên bảng */
+const RANK_MEDAL_COLORS = ['text-amber-400', 'text-slate-300', 'text-amber-700'];
+/* Số thành viên tối đa hiển thị trên bảng */
 const MAX_BOARD_ROWS = 100;
 
 export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
@@ -475,7 +475,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                 >
                   <span className="ff-podium__place" aria-hidden="true">HẠNG {place}</span>
                   <span className="ff-podium__medal" aria-hidden="true">
-                    {RANK_MEDAL[slot]}
+                    <Medal className={`w-4 h-4 inline ${RANK_MEDAL_COLORS[slot] || 'text-amber-400'}`} />
                   </span>
                   <span className="ff-podium__avatar-wrap">
                     {/* Nhiệm vụ 10 — 58/46px + trang trí Discord (animation tắt). */}

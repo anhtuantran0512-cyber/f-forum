@@ -543,7 +543,7 @@ export const GACHA_POOLS: Record<GachaPoolId, GachaPoolConfig> = {
     name: 'Mythic Hunter Pull',
     subtitle: 'Gói đại sứ tối thượng • Tỷ lệ Mythic chạm ngưỡng 4% (Tối đa ≤ 5%)',
     cost: 850,
-    badge: 'SĂN MYTHIC 👑',
+    badge: 'SĂN MYTHIC',
     accentGradient: 'linear-gradient(135deg, #F59E0B 0%, #EC4899 50%, #8B5CF6 100%)',
     rates: {
       common: 26,

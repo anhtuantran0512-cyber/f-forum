@@ -1203,7 +1203,8 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           <div className="text-center md:text-left">
             <div className="ff-exam-eyebrow mb-1.5 hidden items-center gap-2 sm:inline-flex">
               <GraduationCap className="w-3.5 h-3.5" />
-              <span>THƯ VIỆN HỌC TẬP · HỌC · HỎI · CHIA SẺ</span>
+              <span>THƯ VIỆN HỌC TẬP</span>
+              <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">Học · Hỏi · Chia sẻ</span>
             </div>
             <h1 className="ff-exam-title">
               {activeTab === 'syllabus' ? (
