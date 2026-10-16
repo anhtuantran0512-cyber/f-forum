@@ -143,7 +143,7 @@ const pruneOwnerFiles = (dir: string, owner: string, keepHashes: Set<string>): v
 /* Xử lý ảnh                                                                   */
 /* -------------------------------------------------------------------------- */
 
-type SharpFactory = typeof import('sharp');
+type SharpFactory = typeof import('sharp').default;
 let sharpLoader: Promise<SharpFactory | null> | null = null;
 
 /** Nạp sharp một lần; thiếu binary native thì trả null để dùng chế độ dự phòng. */
