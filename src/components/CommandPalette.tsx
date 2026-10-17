@@ -171,7 +171,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
         role="dialog"
         aria-modal="true"
         aria-label="Bảng lệnh nhanh F-Forum"
-        className="ff-palette modal-container relative w-full max-w-[620px] overflow-hidden text-[#f4f1de]"
+        className="ff-palette modal-container liquid-glass relative w-full max-w-[620px] overflow-hidden text-[#f4f1de]"
       >
         {/* Warm Editorial header strip */}
         <div className="h-[3px] w-full bg-gradient-to-r from-[#e07a5f] via-[#f2cc8f] to-[#81b29a]" aria-hidden="true" />
