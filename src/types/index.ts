@@ -363,6 +363,8 @@ export interface ChatMessage {
   authorAvatar: string;
   authorLevel: number;
   content: string;
+  /** User IDs validated by the server for real-time @mention delivery. */
+  mentionIds?: string[];
   timestamp: string;
   timestampMs?: number;
   senderId?: string;

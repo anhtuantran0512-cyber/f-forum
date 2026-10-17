@@ -1062,6 +1062,43 @@ export function useForumStore() {
           playChime('send');
           break;
         }
+        case 'CHAT_MENTION': {
+          const mention = payload as {
+            recipientId?: string;
+            messageId?: string;
+            channelId?: string;
+            authorName?: string;
+            excerpt?: string;
+            at?: number;
+          };
+          const me = currentUserRef.current;
+          if (!me || mention?.recipientId !== me.id || !mention.messageId) break;
+          const channelNames: Record<string, string> = {
+            hallway: 'Kết bạn',
+            'quick-qa': 'Hỏi bài',
+            confessions: 'Tâm sự',
+            'club-hub': 'CLB',
+          };
+          const authorName = String(mention.authorName || 'Một thành viên').slice(0, 120);
+          const excerpt = String(mention.excerpt || '').trim().slice(0, 160);
+          const notificationBody = `#${channelNames[mention.channelId || ''] || 'Trò chuyện'}${excerpt ? ` · “${excerpt}”` : ''}`;
+          pushNotification({
+            id: `chat-mention-${String(mention.messageId).slice(0, 120)}`,
+            type: 'chat',
+            category: 'chat',
+            title: `${authorName} đã nhắc đến bạn`,
+            body: notificationBody,
+            time: mention.at ? new Date(mention.at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : undefined,
+            targetView: 'chat',
+          });
+          setToastMessage({
+            title: `${authorName} đã nhắc đến bạn trong chat`,
+            subtitle: notificationBody,
+            type: 'info',
+          });
+          playChime('send');
+          break;
+        }
         case 'NEW_CHAT_MESSAGE': {
           const newMsg = payload as ChatMessage;
           if (!newMsg || !newMsg.id) break;
@@ -3221,8 +3258,8 @@ export function useForumStore() {
     });
   };
 
-  const sendChatMessage = async (channelId: ChatChannelId, content: string) => {
-    if (!currentUser) return;
+  const sendChatMessage = async (channelId: ChatChannelId, content: string, requestedMentionIds: string[] = []): Promise<boolean> => {
+    if (!currentUser) return false;
 
     const messageId =
       typeof crypto !== 'undefined' && crypto.randomUUID
@@ -3238,6 +3275,7 @@ export function useForumStore() {
       authorAvatar: currentUser.avatar,
       authorLevel: currentUser.level,
       content,
+      mentionIds: [...new Set(requestedMentionIds.filter((id) => typeof id === 'string').map((id) => id.trim()).filter(Boolean))].slice(0, 10),
       senderId: CURRENT_TAB_ID,
       timestamp: new Date().toLocaleTimeString('vi-VN', {
         hour: '2-digit',
@@ -3246,36 +3284,40 @@ export function useForumStore() {
       timestampMs: Date.now(),
     };
 
-    const prevChat = chatMessages;
-    setChatMessages(prev => {
-      if (prev.some(m => m.id === newMsg.id)) return prev;
-      const next = [...prev, newMsg];
+    setChatMessages((previous) => {
+      if (previous.some((message) => message.id === newMsg.id)) return previous;
+      const next = [...previous, newMsg];
       return next.length > MAX_CLIENT_CHAT_MESSAGES ? next.slice(-MAX_CLIENT_CHAT_MESSAGES) : next;
     });
 
-    /* Gửi kèm token để máy chủ gắn đúng cấp bậc từ bản ghi thật. Thất bại thì rút
-       tin nhắn khỏi màn hình — để lại một tin "đã gửi" không có thật là tệ hơn. */
+    /* Server-authoritative role, mention IDs and fan-out are returned by /api/chat. */
     const chatOutcome = await runServerAction('/api/chat', newMsg);
     if (!chatOutcome.ok) {
-      setChatMessages(prevChat);
+      setChatMessages((previous) => previous.filter((message) => message.id !== newMsg.id));
       setToastMessage({
         title: 'Không gửi được tin nhắn',
         subtitle: chatOutcome.message,
         type: 'error',
       });
-      return;
+      return false;
     }
+
+    const serverMessage = chatOutcome.data?.message && typeof chatOutcome.data.message === 'object'
+      ? { ...newMsg, ...chatOutcome.data.message, senderId: CURRENT_TAB_ID }
+      : newMsg;
+    setChatMessages((previous) => previous.map((message) => message.id === newMsg.id ? serverMessage : message));
 
     try {
       syncBroadcastChannel?.postMessage({
         type: 'NEW_CHAT_MESSAGE',
-        payload: newMsg,
+        payload: serverMessage,
       });
     } catch {
       /* ignore */
     }
 
     playChime('send');
+    return true;
   };
 
   const submitFeedback = async (data: {

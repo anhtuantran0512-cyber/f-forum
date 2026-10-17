@@ -30,10 +30,10 @@ export interface ChartPoint {
 export type ChartTone = 'cyan' | 'violet' | 'mint' | 'amber';
 
 const TONES: Record<ChartTone, { from: string; to: string; glow: string }> = {
-  cyan: { from: '#22d3ee', to: '#818cf8', glow: 'rgba(34, 211, 238, 0.55)' },
-  violet: { from: '#a78bfa', to: '#f472b6', glow: 'rgba(167, 139, 250, 0.55)' },
-  mint: { from: '#34d399', to: '#22d3ee', glow: 'rgba(52, 211, 153, 0.55)' },
-  amber: { from: '#fbbf24', to: '#fb7185', glow: 'rgba(251, 191, 36, 0.5)' },
+  cyan: { from: '#f2cc8f', to: '#81b29a', glow: 'rgba(242, 204, 143, 0.42)' },
+  violet: { from: '#d7ae91', to: '#c8b890', glow: 'rgba(215, 174, 145, 0.38)' },
+  mint: { from: '#81b29a', to: '#b7c99c', glow: 'rgba(129, 178, 154, 0.4)' },
+  amber: { from: '#e7bd77', to: '#e07a5f', glow: 'rgba(231, 189, 119, 0.4)' },
 };
 
 const prefersReducedMotion = (): boolean => {
@@ -398,8 +398,8 @@ export const RetentionGauge: FC<RetentionGaugeProps> = ({ ratio, caption }) => {
       <svg viewBox="0 0 120 68" aria-hidden="true" focusable="false">
         <defs>
           <linearGradient id={`ffc-gauge-${uid}`} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#34d399" />
-            <stop offset="100%" stopColor="#22d3ee" />
+            <stop offset="0%" stopColor="#81b29a" />
+            <stop offset="100%" stopColor="#f2cc8f" />
           </linearGradient>
         </defs>
         <path d="M10,62 A50,50 0 0 1 110,62" className="ffc-gauge__track" pathLength={100} />

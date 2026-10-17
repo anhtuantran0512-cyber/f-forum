@@ -1405,6 +1405,107 @@ const MAX_WS_FRAME_BYTES = 256 * 1024;
 /** Giữ lại N phần tử MỚI NHẤT (mảng chat/feedback được push thêm vào cuối). */
 const capTail = <T,>(list: T[], max: number): T[] => (list.length > max ? list.slice(list.length - max) : list);
 
+const CHAT_CHANNEL_IDS = new Set(['hallway', 'quick-qa', 'confessions', 'club-hub']);
+const MAX_CHAT_MENTIONS = 10;
+const escapeChatMentionName = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Only accept a selected ID when that real account's name is visibly mentioned. */
+function sanitizeChatMentionIds(content: string, requestedIds: unknown, authorEmail: string, authorId: string): string[] {
+  if (!Array.isArray(requestedIds)) return [];
+  const accountsById = new Map<string, UserRecord>();
+  for (const account of Object.values(store.users || {})) {
+    if (account?.id && account.email) accountsById.set(String(account.id), account);
+  }
+
+  const seenIds = new Set<string>();
+  const seenEmails = new Set<string>();
+  const valid: string[] = [];
+  for (const rawId of requestedIds.slice(0, 40)) {
+    if (typeof rawId !== 'string') continue;
+    const id = rawId.trim().slice(0, 120);
+    if (!id || seenIds.has(id)) continue;
+    seenIds.add(id);
+    const account = accountsById.get(id);
+    if (!account) continue;
+    const email = String(account.email || '').trim().toLowerCase();
+    const name = sanitizePlainText(account.name, MAX_NAME_LENGTH).replace(/\s+/g, ' ').trim();
+    if (!email || !name || email === authorEmail || account.id === authorId || /[@\r\n]/.test(name)) continue;
+    const namePattern = name.split(/\s+/).map(escapeChatMentionName).join('\\s+');
+    const mentionPattern = new RegExp(`(^|[\\s([{,;:])@${namePattern}(?=$|[\\s.,!?;:)\\]}…])`, 'iu');
+    if (!mentionPattern.test(content) || seenEmails.has(email)) continue;
+    seenEmails.add(email);
+    valid.push(String(account.id));
+    if (valid.length >= MAX_CHAT_MENTIONS) break;
+  }
+  return valid;
+}
+
+function notifyChatMentionRecipients(message: {
+  id: string;
+  channelId: string;
+  authorId: string;
+  authorEmail: string;
+  authorName: string;
+  content: string;
+  mentionIds?: string[];
+}): void {
+  for (const mentionId of message.mentionIds || []) {
+    const recipient = Object.values(store.users || {}).find((account) => account?.id === mentionId);
+    const email = String(recipient?.email || '').trim().toLowerCase();
+    if (!email || email === message.authorEmail || recipient?.id === message.authorId) continue;
+    notifyUserSockets(email, 'CHAT_MENTION', {
+      recipientId: mentionId,
+      messageId: message.id,
+      channelId: message.channelId,
+      authorId: message.authorId,
+      authorName: message.authorName,
+      excerpt: message.content.slice(0, 160),
+      at: Date.now(),
+    });
+  }
+}
+
+function buildServerChatMessage(payload: any, authorEmail: string): {
+  id: string;
+  channelId: string;
+  authorId: string;
+  authorName: string;
+  authorEmail: string;
+  authorAvatar: string;
+  authorLevel: number;
+  content: string;
+  mentionIds: string[];
+  senderId: string;
+  timestamp: string;
+} | null {
+  const content = sanitizePlainText(payload?.content, MAX_CHAT_CONTENT, true).trim();
+  const channelId = String(payload?.channelId || '').trim();
+  if (!content || content.length > MAX_CHAT_CONTENT || !CHAT_CHANNEL_IDS.has(channelId)) return null;
+  const account = authorEmail ? store.users[authorEmail] : undefined;
+  const authorId = account?.id || randomId('guest');
+  const authorName = account?.name
+    ? sanitizePlainText(account.name, MAX_NAME_LENGTH).trim() || 'Học sinh F-Forum'
+    : sanitizePlainText(payload?.authorName, MAX_NAME_LENGTH).trim() || 'Khách';
+  const messageId = typeof payload?.id === 'string' && payload.id.trim()
+    ? payload.id.trim().slice(0, 120)
+    : randomId('msg');
+  const message = {
+    id: messageId,
+    channelId,
+    authorId,
+    authorName,
+    authorEmail: account ? String(account.email || authorEmail).trim().toLowerCase() : '',
+    authorAvatar: account?.avatar ? String(account.avatar).slice(0, 4000) : safeAvatarUrl(payload?.authorAvatar),
+    authorLevel: account?.level ?? 1,
+    content,
+    mentionIds: [] as string[],
+    senderId: sanitizePlainText(payload?.senderId, MAX_NAME_LENGTH),
+    timestamp: sanitizePlainText(payload?.timestamp, 40).trim() || new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+  };
+  message.mentionIds = sanitizeChatMentionIds(content, payload?.mentionIds, message.authorEmail, authorId);
+  return message;
+}
+
 export class PayloadTooLargeError extends Error {
   constructor() {
     super('Payload too large');
@@ -2033,30 +2134,26 @@ export function setupForumServer(httpServer: any, middlewares: any) {
               break;
             }
             case 'NEW_CHAT_MESSAGE': {
-              if (payload && payload.content) {
-                if (!store.chatMessages.some(m => m.id === payload.id)) {
-                  /* Cùng một luật như đường HTTP: cắt nội dung và giữ trần kho. */
-                  const relayed = {
-                    ...payload,
-                    content: String(payload.content).slice(0, MAX_CHAT_CONTENT),
-                  };
-                  store.chatMessages = capTail([...store.chatMessages, relayed], MAX_CHAT_MESSAGES);
-                  recordAnalyticsActivity(getAnalyticsStore(), 'messages', String(relayed.authorEmail || session?.email || '') || undefined);
-                  persistStoreToDisk();
-                  broadcastServerEvent('NEW_CHAT_MESSAGE', relayed);
-                  break;
-                }
-                /*
-                  Tin đã có trong kho (client gửi lại, hoặc hai kênh cùng đưa về).
-                  Bản cũ phát ngược NGUYÊN payload client cho mọi người: chỉ cần lấy
-                  một id có sẵn kèm nội dung tuỳ ý là đẩy được một tin MA lên màn
-                  hình tất cả client mà tin đó không hề nằm trong store — reload là
-                  biến mất, và không bị giới hạn độ dài hay lọc gì cả.
-                  Nay phát lại đúng bản đã lưu.
-                */
-                const existing = store.chatMessages.find(m => m.id === payload.id);
-                if (existing) broadcastServerEvent('NEW_CHAT_MESSAGE', existing);
+              const authorEmail = sessionOf(ws)?.email || '';
+              const message = buildServerChatMessage(payload, authorEmail);
+              if (!message) {
+                ws.send(JSON.stringify({
+                  type: 'FORBIDDEN',
+                  payload: { action: type, reason: 'Tin nhắn hoặc kênh không hợp lệ.' },
+                }));
+                break;
               }
+              const existing = store.chatMessages.find((item) => item.id === message.id);
+              if (existing) {
+                /* A retry may only relay the authoritative stored message. */
+                broadcastServerEvent('NEW_CHAT_MESSAGE', existing);
+                break;
+              }
+              store.chatMessages = capTail([...store.chatMessages, message], MAX_CHAT_MESSAGES);
+              recordAnalyticsActivity(getAnalyticsStore(), 'messages', message.authorEmail || undefined);
+              persistStoreToDisk();
+              broadcastServerEvent('NEW_CHAT_MESSAGE', message);
+              notifyChatMentionRecipients(message);
               break;
             }
             case 'PRESENCE_PING': {
@@ -2809,8 +2906,13 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       try {
         const body = await parseJsonBody(req);
         const content = String(body.content ?? '').trim();
-        if (!content || !body.channelId) {
+        const channelId = String(body.channelId ?? '').trim();
+        if (!content || !channelId) {
           sendJson(res, 400, { success: false, message: 'Nội dung tin nhắn không được để trống' });
+          return;
+        }
+        if (!CHAT_CHANNEL_IDS.has(channelId)) {
+          sendJson(res, 400, { success: false, message: 'Kênh trò chuyện không hợp lệ.' });
           return;
         }
         if (content.length > MAX_CHAT_CONTENT) {
@@ -2845,8 +2947,6 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để gửi tin bằng tài khoản này.' });
           return;
         }
-        const knownAuthor = authorEmail ? store.users[authorEmail] : undefined;
-
         /* Quản lý người dùng: khoá gửi tin áp riêng cho chat, cấm thì chặn hết. */
         const chatGate = checkCanPost(authorEmail, 'chat');
         if (!chatGate.ok) {
@@ -2854,29 +2954,21 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
-        const msg = {
-          id: body.id || randomId('msg'),
-          channelId: String(body.channelId).slice(0, 60),
-          authorId: String(body.authorId || 'guest').slice(0, MAX_NAME_LENGTH),
-          authorName: String(knownAuthor?.name || body.authorName || 'Học sinh').slice(0, MAX_NAME_LENGTH),
-          authorEmail,
-          authorAvatar: knownAuthor?.avatar ? String(knownAuthor.avatar).slice(0, 4000) : safeAvatarUrl(body.authorAvatar),
-          /* Cấp bậc lấy từ bản ghi thật — client tự khai thì ai cũng tự phong cấp 150. */
-          authorLevel: knownAuthor?.level ?? 1,
-          content: content.slice(0, MAX_CHAT_CONTENT),
-          senderId: String(body.senderId || '').slice(0, MAX_NAME_LENGTH),
-          timestamp: body.timestamp || new Date().toLocaleTimeString('vi-VN', {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-        };
-
-        if (!store.chatMessages.some(m => m.id === msg.id)) {
-          store.chatMessages = capTail([...store.chatMessages, msg], MAX_CHAT_MESSAGES);
-          recordAnalyticsActivity(getAnalyticsStore(), 'messages', authorEmail || undefined);
-          persistStoreToDisk();
+        const msg = buildServerChatMessage(body, authorEmail);
+        if (!msg) {
+          sendJson(res, 400, { success: false, message: 'Tin nhắn hoặc kênh không hợp lệ.' });
+          return;
         }
+        const existing = store.chatMessages.find((message) => message.id === msg.id);
+        if (existing) {
+          sendJson(res, 200, { success: true, message: existing });
+          return;
+        }
+        store.chatMessages = capTail([...store.chatMessages, msg], MAX_CHAT_MESSAGES);
+        recordAnalyticsActivity(getAnalyticsStore(), 'messages', msg.authorEmail || undefined);
+        persistStoreToDisk();
         broadcastServerEvent('NEW_CHAT_MESSAGE', msg);
+        notifyChatMentionRecipients(msg);
         sendJson(res, 200, { success: true, message: msg });
       } catch (err: any) {
         sendJson(res, 500, { success: false, message: err.message });

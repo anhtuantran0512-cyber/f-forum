@@ -16,6 +16,7 @@ import {
   User as UserIcon,
   CheckCircle2,
   CornerUpLeft,
+  LoaderCircle,
 } from 'lucide-react';
 import type { ChatChannelId, ChatMessage, User, OnlinePresenceUser } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
@@ -26,7 +27,10 @@ import { capsHas, useAdminCaps } from '../utils/adminCapabilities';
 import { getTierForLevel } from '../utils/tier';
 import { pushNotification } from '../utils/notifications';
 import { useChatCooldown } from '../utils/chatCooldown';
-import { ChatCooldownBar } from './ChatCooldownBar';
+import { useChatMentionComposer } from '../utils/chatMentions';
+import { ChatMentionPicker } from './chat/ChatMentionPicker';
+import { ChatMessageContent } from './chat/ChatMessageContent';
+import { ChatRoleIcon } from './chat/ChatRoleIcon';
 import { ThinkingBubble } from './ViewTransitionLoader';
 import { postJson } from '../utils/session';
 import { describeReportResult, settleReportRequest } from '../utils/reports';
@@ -38,7 +42,7 @@ export interface ChatDockProps {
   currentUser: User | null;
   users?: Record<string, User>;
   messages: ChatMessage[];
-  onSendMessage: (channelId: ChatChannelId, content: string) => void;
+  onSendMessage: (channelId: ChatChannelId, content: string, mentionIds?: string[]) => void | boolean | Promise<void | boolean>;
   onDeleteMessage?: (messageId: string) => void;
   onOpenLoginModal?: () => void;
   onOpenProfile?: (user: { id: string; name: string; avatar: string; email?: string; level?: number }) => void;
@@ -118,10 +122,29 @@ export const ChatDock: React.FC<ChatDockProps> = ({
   const canRecallMessages = capsHas(adminCaps, 'edit_content');
   const [activeChannel, setActiveChannel] = useState<ChatChannelId>('hallway');
   const [inputText, setInputText] = useState('');
-  const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string; excerpt: string } | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{ id: string; authorId: string; authorName: string; excerpt: string } | null>(null);
   const cooldown = useChatCooldown();
+  const [isSending, setIsSending] = useState(false);
+  const [sendStatus, setSendStatus] = useState('');
+  const sendStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const mentionComposer = useChatMentionComposer({
+    inputText,
+    setInputText,
+    users,
+    onlineUsers,
+    currentUser,
+    inputRef,
+  });
+  const announceSendStatus = useCallback((status: string, durationMs = 1300) => {
+    setSendStatus(status);
+    if (sendStatusTimerRef.current) window.clearTimeout(sendStatusTimerRef.current);
+    sendStatusTimerRef.current = window.setTimeout(() => setSendStatus(''), durationMs);
+  }, []);
+  useEffect(() => () => {
+    if (sendStatusTimerRef.current) window.clearTimeout(sendStatusTimerRef.current);
+  }, []);
   useEscapeKey(onClose, isOpen);
 
   const [activeAuthorCard, setActiveAuthorCard] = useState<{
@@ -293,9 +316,8 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                       }`}
                     />
                   </button>
-                  {isSuperAdminMsg ? (
-                    <AdminVerifiedBadge size={11} />
-                  ) : (
+                  <ChatRoleIcon user={resolvedDockUser} isSuperAdmin={isSuperAdminMsg} size={12} />
+                  {!isSuperAdminMsg && (
                     <span className="text-[9.5px] font-mono text-[#a39f96]">
                       Lv.{msg.authorLevel || 1}
                     </span>
@@ -316,7 +338,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                       : 'ff-chat-bubble-peer'
                   }`}
                 >
-                  {msg.content}
+                  <ChatMessageContent message={msg} users={users} currentUser={currentUser} />
                 </div>
 
                 <div className="opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
@@ -326,6 +348,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                       onClick={() => {
                         setReplyingTo({
                           id: msg.id,
+                          authorId: msg.authorId,
                           authorName: authorDisplayName,
                           excerpt: msg.content.slice(0, 48),
                         });
@@ -355,7 +378,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
           </div>
         );
       }),
-    [currentMessages, currentUser, canRecallMessages, resolveChatUser, onDeleteMessage, isOpen, openAuthorCardFromEvent],
+    [currentMessages, currentUser, users, canRecallMessages, resolveChatUser, onDeleteMessage, isOpen, openAuthorCardFromEvent],
   );
 
   useEffect(() => {
@@ -364,27 +387,48 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     }
   }, [messages, activeChannel, isOpen]);
 
-  const handleSend = () => {
-    if (!currentUser) return;
+  const handleSend = async () => {
+    if (!currentUser || isSending) return;
     if (cooldown.isCooling) {
       cooldown.nudge();
+      announceSendStatus('Chờ một nhịp ngắn nhé');
       return;
     }
     const raw = inputText.trim();
     if (!raw) return;
     const prefix = replyingTo ? `@${replyingTo.authorName}: ` : '';
     const finalContent = `${prefix}${raw}`.slice(0, 300);
-    onSendMessage(activeChannel, finalContent);
-    setInputText('');
-    setReplyingTo(null);
+    setIsSending(true);
+    setSendStatus('Đang gửi…');
     cooldown.startCooldown();
+    try {
+      const mentionIds = [...new Set([
+        ...mentionComposer.mentionedUserIds,
+        ...(replyingTo?.authorId ? [replyingTo.authorId] : []),
+      ])];
+      const outcome = await onSendMessage(activeChannel, finalContent, mentionIds);
+      if (outcome === false) {
+        announceSendStatus('Chưa gửi được · bản nháp đã giữ lại', 2200);
+        return;
+      }
+      setInputText('');
+      setReplyingTo(null);
+      mentionComposer.reset();
+      if (inputRef.current) inputRef.current.style.height = 'auto';
+      announceSendStatus('Đã gửi');
+    } catch {
+      announceSendStatus('Chưa gửi được · bản nháp đã giữ lại', 2200);
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    } else if (e.key === 'Escape' && replyingTo) {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (mentionComposer.handleKeyDown(event)) return;
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      void handleSend();
+    } else if (event.key === 'Escape' && replyingTo) {
       setReplyingTo(null);
     }
   };
@@ -501,13 +545,6 @@ export const ChatDock: React.FC<ChatDockProps> = ({
             <div ref={messagesEndRef} />
           </div>
 
-          <ChatCooldownBar
-            isCooling={cooldown.isCooling}
-            remainingMs={cooldown.remainingMs}
-            nudgeKey={cooldown.nudgeKey}
-            variant="dock"
-          />
-
           {/* Khung nhập tin nhắn */}
           <div className="p-3 border-t border-[#f8f7f4]/10 bg-[#0b0f17]">
             {replyingTo && (
@@ -529,34 +566,54 @@ export const ChatDock: React.FC<ChatDockProps> = ({
             )}
 
             {currentUser ? (
-              <div className="ff-chat-composer-shell">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={inputText}
-                  maxLength={300}
-                  onChange={e => setInputText(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={`Nhắn vào #${currentChannelObj.name}...`}
-                  className="flex-1 bg-transparent border-none text-xs text-[#f8f7f4] placeholder-[#a39f96] focus:outline-none"
+              <div className="ff-chat-composer-wrap ff-chat-composer-wrap--dock">
+                <ChatMentionPicker
+                  id="ff-chat-mention-options-dock"
+                  open={mentionComposer.isOpen}
+                  suggestions={mentionComposer.suggestions}
+                  activeIndex={mentionComposer.activeIndex}
+                  onSelect={mentionComposer.selectMention}
+                  onHighlight={mentionComposer.setActiveIndex}
                 />
-                {cooldown.isCooling && (
-                  <span className="px-2 py-0.5 rounded bg-[#e9c46a]/15 border border-[#e9c46a]/35 text-[10px] font-mono text-[#e9c46a]">
-                    {cooldown.secondsLeft}s
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={handleSend}
-                  disabled={!inputText.trim()}
-                  className={`ff-tactile-btn p-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] disabled:opacity-40 transition-colors cursor-pointer ${
-                    cooldown.isCooling ? 'ff-cd-btn is-cooling' : ''
-                  }`}
-                  title={cooldown.isCooling ? `Còn ${cooldown.secondsLeft}s trước tin tiếp theo` : 'Gửi tin nhắn'}
-                  aria-label="Gửi tin nhắn"
-                >
-                  <Send className="w-3.5 h-3.5 text-[#e07a5f]" />
-                </button>
+                <div className="ff-chat-composer-shell" data-cooling={cooldown.isCooling ? 'true' : undefined}>
+                  <textarea
+                    ref={inputRef}
+                    rows={1}
+                    value={inputText}
+                    maxLength={300}
+                    onChange={(event) => {
+                      mentionComposer.handleChange(event);
+                      event.currentTarget.style.height = 'auto';
+                      event.currentTarget.style.height = `${Math.min(event.currentTarget.scrollHeight, 96)}px`;
+                    }}
+                    onSelect={mentionComposer.handleCaretChange}
+                    onKeyDown={handleKeyDown}
+                    placeholder={`Nhắn vào #${currentChannelObj.name}...`}
+                    aria-label={`Tin nhắn trong kênh ${currentChannelObj.name}`}
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded={mentionComposer.isOpen}
+                    aria-controls={mentionComposer.isOpen ? 'ff-chat-mention-options-dock' : undefined}
+                    aria-activedescendant={mentionComposer.isOpen ? `ff-chat-mention-options-dock-option-${mentionComposer.activeIndex}` : undefined}
+                    className="ff-chat-message-input flex-1 bg-transparent border-none text-xs text-[#f8f7f4] placeholder-[#a39f96] focus:outline-none"
+                  />
+                  <span className="ff-chat-send-status" role="status" aria-live="polite">{sendStatus}</span>
+                  <button
+                    type="button"
+                    onClick={() => void handleSend()}
+                    disabled={!inputText.trim() || isSending}
+                    aria-busy={isSending}
+                    className={`ff-tactile-btn ff-chat-send-button p-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] disabled:opacity-40 transition-colors cursor-pointer ${cooldown.isCooling ? 'is-cooling' : ''}`}
+                    title={cooldown.isCooling ? 'Đã gửi gần đây · chờ một nhịp ngắn' : 'Gửi tin nhắn'}
+                    aria-label="Gửi tin nhắn"
+                  >
+                    {isSending ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5 text-[#e07a5f]" />}
+                  </button>
+                </div>
+                <div className="ff-chat-composer-hint ff-chat-composer-hint--dock">
+                  <span><b>@</b> để nhắc</span>
+                  <span>Enter gửi · Shift + Enter xuống dòng</span>
+                </div>
               </div>
             ) : (
               <div className="p-2.5 rounded-xl bg-[#151b28] border border-[#f8f7f4]/12 flex items-center justify-between gap-2">
