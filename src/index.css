@@ -6683,3 +6683,41 @@ html.light .ff-view-home .ff-glass-depth-1 {
     display: none;
   }
 }
+
+/* ---------------------------------------------------------------
+   Chat (Đợt 3): composer gọn trên mobile, hàng tin có lề thở, nút
+   hành động dạng ghost trên thiết bị cảm ứng, chữ thương hiệu navbar
+   sáng đọc rõ trên kính kem.
+   --------------------------------------------------------------- */
+@media (max-width: 767px) {
+  .ff-app-shell .ff-chat-message-input {
+    min-height: 34px !important;
+    max-height: 112px;
+  }
+  .ff-app-shell .ff-chat-message-row {
+    padding-inline: 10px !important;
+  }
+}
+@media (hover: none) {
+  .ff-app-shell .ff-chat-message-actions {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+  html.light .ff-app-shell .ff-chat-message-actions button {
+    color: #6b6459;
+  }
+  html.light .ff-app-shell .ff-chat-message-actions button.text-rose-300 {
+    color: #be123c;
+  }
+}
+html.light .ff-nav-capsule .ff-nav-brand-title {
+  background-image: linear-gradient(96deg, #92400e 0%, #b45309 45%, #a16207 62%, #78350f 100%) !important;
+}
+
+/* Bubble tin nhắn của mình: san hô đậm hơn để chữ trắng đạt tương phản AA
+   trên cả hai chế độ; giữ nguyên sắc terracotta của thương hiệu. */
+html.light .ff-chat-main-pane .ff-chat-bubble-me,
+html.dark .ff-chat-main-pane .ff-chat-bubble-me {
+  background: linear-gradient(135deg, #b95439 0%, #9c4630 100%) !important;
+}
