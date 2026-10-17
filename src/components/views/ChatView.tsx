@@ -38,7 +38,7 @@ import { pushNotification } from '../../utils/notifications';
 import { ThinkingBubble } from '../ViewTransitionLoader';
 import { postJson } from '../../utils/session';
 import { describeReportResult, settleReportRequest } from '../../utils/reports';
-import { DecoratedAvatar, DecoratedName, UserNameplateBg } from '../decorations/DecoratedAvatar';
+import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
 
 interface ChatViewProps {
   currentUser: User | null;
@@ -667,13 +667,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   className="ff-discord-userbar w-full p-2.5 rounded-2xl bg-gradient-to-r from-[#131924] to-[#101520] hover:from-[#172030] hover:to-[#131a28] border border-[#f8f7f4]/12 flex items-center gap-3 text-left transition-all duration-150 cursor-pointer shadow-sm hover:shadow-md"
                   title="Xem trang cá nhân"
                 >
-                  <UserNameplateBg
-                    user={currentUser}
-                    width={230}
-                    eager
-                    animate
-                    priority="high"
-                  />
                   <div className="relative z-[2] shrink-0">
                     <DecoratedAvatar
                       user={currentUser}
@@ -691,9 +684,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     <DecoratedName
                       user={currentUser}
                       name={currentUser.name.replace(/ \(.*\)/, '')}
-                      showNameplate={false}
                       width={140}
-                      height={24}
+                      height={22}
                       eager
                       animate
                       priority="high"
@@ -1337,13 +1329,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
             </button>
 
             <div className="ff-discord-userbar flex items-center gap-3 p-3 rounded-xl bg-[#141a26] border border-[#f8f7f4]/12 pr-6">
-              <UserNameplateBg
-                user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
-                width={260}
-                eager
-                animate
-                priority="high"
-              />
               <div className="relative z-[2] shrink-0">
                 <DecoratedAvatar
                   user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
@@ -1364,9 +1349,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   <DecoratedName
                     user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
                     name={activeAuthorCard.name.replace(/ \(.*\)/, '')}
-                    showNameplate={false}
                     width={160}
-                    height={26}
+                    height={22}
                     eager
                     animate
                     priority="high"

@@ -36,7 +36,7 @@ import { ChatRoleIcon } from './chat/ChatRoleIcon';
 import { ThinkingBubble } from './ViewTransitionLoader';
 import { postJson } from '../utils/session';
 import { describeReportResult, settleReportRequest } from '../utils/reports';
-import { DecoratedAvatar, DecoratedName, UserNameplateBg } from './decorations/DecoratedAvatar';
+import { DecoratedAvatar, DecoratedName } from './decorations/DecoratedAvatar';
 
 export interface ChatDockProps {
   isOpen: boolean;
@@ -676,13 +676,6 @@ export const ChatDock: React.FC<ChatDockProps> = ({
             </button>
 
             <div className="ff-discord-userbar flex items-center gap-3 p-3 rounded-xl bg-[#141a26] border border-[#f8f7f4]/12 pr-6">
-              <UserNameplateBg
-                user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
-                width={250}
-                eager
-                animate
-                priority="high"
-              />
               <div className="relative z-[2] shrink-0">
                 <DecoratedAvatar
                   user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
@@ -703,9 +696,8 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   <DecoratedName
                     user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
                     name={activeAuthorCard.name.replace(/ \(.*\)/, '')}
-                    showNameplate={false}
                     width={150}
-                    height={24}
+                    height={22}
                     eager
                     animate
                     priority="high"

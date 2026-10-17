@@ -7,7 +7,7 @@ import type { User, ShopItem } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { useUserDecorations } from '../utils/decorationStore';
 import { AvatarWithDecoration } from './decorations/AvatarWithDecoration';
-import { DecoratedName, UserNameplateBg } from './decorations/DecoratedAvatar';
+import { DecoratedName } from './decorations/DecoratedAvatar';
 import { useProfileProximityEffect } from './decorations/useDecorationMedia';
 import { RoleMark } from './RoleMark';
 import { getTierForLevel } from '../utils/tier';
@@ -148,13 +148,6 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       <div className="flex flex-col">
         {/* Avatar + Info */}
         <div className="ff-discord-userbar flex items-center gap-3.5 p-3.5 rounded-2xl bg-white/[0.04] border border-white/15">
-          <UserNameplateBg
-            user={currentUser}
-            width={308}
-            eager
-            animate={profileProximity.isActive}
-            priority="high"
-          />
           <div className="relative z-[2] shrink-0">
             {/* Nhiệm vụ 10 — 44px; có khung/hào quang Discord → avatar tròn + trang trí thật.
                 Truyền CẢ HAI slot (khung + hào quang) — không gộp 1. */}
@@ -189,13 +182,11 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
               <DecoratedName
                 user={currentUser}
                 name={currentUser.name.replace(/ \(.*\)/, '')}
-                showNameplate={false}
                 width={168}
-                height={34}
+                height={22}
                 eager
                 animate={profileProximity.isActive}
                 priority="high"
-                showFallbackTag
                 className="min-w-0 shrink"
               />
               {isSuperAdmin && (
