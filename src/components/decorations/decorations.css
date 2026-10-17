@@ -152,6 +152,11 @@
   line-height: 1.25;
   font-weight: 700;
 }
+/* Tag nameplate: tên luôn nằm trên vùng tối của tác phẩm, hoa chỉ thoáng hiện
+   ở cuối bảng — chống lóa trên mọi nền tối/sáng, không phóng to bảng tên. */
+.npd-np.npd-np--tag::after {
+  background: linear-gradient(90deg, rgba(6, 10, 18, 0.7) 0%, rgba(6, 10, 18, 0.54) 54%, rgba(6, 10, 18, 0.38) 100%);
+}
 .npd-name {
   line-height: 1.25;
   vertical-align: middle;

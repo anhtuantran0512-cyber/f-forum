@@ -26,7 +26,7 @@ import type { DimensionView, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { playChime } from '../utils/audio';
 import { ProfileDropdown } from './ProfileDropdown';
-import { DecoratedAvatar, DecoratedName, UserNameplateBg } from './decorations/DecoratedAvatar';
+import { DecoratedAvatar, DecoratedName } from './decorations/DecoratedAvatar';
 import { RoleMark } from './RoleMark';
 import { NotificationsModal } from './NotificationsModal';
 import { SettingsModal } from './SettingsModal';
@@ -1067,15 +1067,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   title="Tài khoản"
                   aria-label="Tài khoản cá nhân"
                 >
-                  {/* Discord Nameplate nền trong thanh profile người dùng ở Navbar */}
-                  <UserNameplateBg
-                    user={currentUser}
-                    width={240}
-                    eager
-                    animate
-                    priority="high"
-                  />
-
                   {/* Avatar with status ring — Nhiệm vụ 10: + khung/hào quang Discord (32px, eager, không bị cắt). */}
                   <div className="relative z-[2] shrink-0">
                     <DecoratedAvatar user={currentUser} fallbackSrc={currentUser.avatar} size={32} eager animate priority="high" className="rounded-full ring-1 ring-amber-400/60 shadow-sm" alt={currentUser.name} />
@@ -1092,14 +1083,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <DecoratedName
                       user={currentUser}
                       name={currentUser.name.replace(/ \(.*\)/, '')}
-                      showNameplate={false}
                       width={136}
-                      height={28}
+                      height={22}
                       eager
                       animate
                       priority="high"
-                      showFallbackTag
-                      className="text-xs font-bold text-[#f4f1de] truncate max-w-[136px] min-w-0 shrink"
+                      className="ff-nav-username text-xs font-bold truncate max-w-[136px] min-w-0 shrink"
                     />
                     {isSuperAdmin && (
                       <AdminVerifiedBadge size={13} tooltipPosition="bottom" />
@@ -1273,16 +1262,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setIsNotificationsOpen(false);
                   setIsSettingsOpen(false);
                 }}
-                className="ff-discord-userbar flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full bg-white/5 border border-white/15 hover:border-amber-400/40 transition-colors cursor-pointer pointer-events-auto"
+                className="nav-profile-trigger ff-discord-userbar flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full bg-white/5 border border-white/15 hover:border-amber-400/40 transition-colors cursor-pointer pointer-events-auto"
                 aria-label="Tài khoản cá nhân"
               >
-                <UserNameplateBg
-                  user={currentUser}
-                  width={160}
-                  eager
-                  animate
-                  priority="high"
-                />
                 {/* Nhiệm vụ 10 — 24px + trang trí Discord (eager). */}
                 <span className="relative z-[2] shrink-0">
                   <DecoratedAvatar user={currentUser} fallbackSrc={currentUser.avatar} size={24} eager animate className="rounded-full ring-1 ring-amber-400/60" alt={currentUser.name} />
@@ -1291,13 +1273,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <DecoratedName
                     user={currentUser}
                     name={currentUser.name.replace(/ \(.*\)/, '')}
-                    showNameplate={false}
                     width={124}
-                    height={24}
+                    height={22}
                     eager
                     animate
                     priority="high"
-                    showFallbackTag
+                    className="ff-nav-username text-xs font-bold"
                   />
                   <RoleMark user={currentUser} isSuperAdmin={isSuperAdmin} size={10} />
                 </span>

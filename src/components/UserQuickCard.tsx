@@ -9,7 +9,7 @@ import { DEFAULT_AVATAR } from '../utils/mediaFallback';
 import { effectiveCoinBalance, formatCoinBalance } from '../utils/coinDisplay';
 import { PremiumMark } from './PremiumMark';
 import { isMasterAdmin } from '../config/admin';
-import { DecoratedAvatar, DecoratedName, UserNameplateBg } from './decorations/DecoratedAvatar';
+import { DecoratedAvatar, DecoratedName } from './decorations/DecoratedAvatar';
 import { useProfileProximityEffect } from './decorations/useDecorationMedia';
 import { parseBannerUrl, bannerImageStyle, DEFAULT_PROFILE_BANNER_URL } from '../utils/bannerLayout';
 import { RoleMark } from './RoleMark';
@@ -154,24 +154,15 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
         >
           {/* Identity — Discord Nameplate Bar + Tag trên tên */}
           <div className="ff-discord-userbar relative rounded-xl p-2.5 border border-white/10">
-            <UserNameplateBg
-              user={user}
-              width={296}
-              eager
-              animate={profileProximity.isActive}
-              priority="high"
-            />
             <div className="relative z-[2] flex items-center gap-1.5 flex-nowrap min-w-0">
               <DecoratedName
                 user={user}
                 name={user.name.replace(/ \(.*\)/, '')}
-                showNameplate={false}
                 width={186}
-                height={38}
+                height={22}
                 eager
                 animate={profileProximity.isActive}
                 priority="high"
-                showFallbackTag
                 className="min-w-0 shrink"
               />
               {isSuperAdmin && <AdminVerifiedBadge size={15} />}

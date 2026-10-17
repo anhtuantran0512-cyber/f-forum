@@ -58,7 +58,7 @@ import {
   getRandomGhibliMask,
 } from '../../utils/ghibliMasks';
 import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
-import { DecoratedAvatar, DecoratedName, UserNameplateBg } from '../decorations/DecoratedAvatar';
+import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
 import { RoleMark } from '../RoleMark';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
 import { capsHas, useAdminCaps } from '../../utils/adminCapabilities';
@@ -4175,13 +4175,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             </button>
 
             <div className="ff-discord-userbar flex items-center gap-3.5 p-3 rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15 pr-6">
-              <UserNameplateBg
-                user={findDecorationOwner(users, activeAuthorPopover.email, activeAuthorPopover.id)}
-                width={268}
-                eager
-                animate
-                priority="high"
-              />
               <div className="relative z-[2] shrink-0">
                 {/* Nhiệm vụ 10 — 44px + trang trí Discord (nếu tác giả có trang bị). */}
                 <DecoratedAvatar
@@ -4204,12 +4197,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     user={findDecorationOwner(users, activeAuthorPopover.email, activeAuthorPopover.id)}
                     name={activeAuthorPopover.name.replace(/ \(.*\)/, '')}
                     width={176}
-                    height={33}
+                    height={22}
                     eager
                     animate
                     priority="high"
-                    showNameplate={false}
-                    showFallbackTag
                   />
                   <RoleMark
                     user={findDecorationOwner(users, activeAuthorPopover.email, activeAuthorPopover.id)}

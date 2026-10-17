@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Trophy, ArrowRight, HelpCircle, Sparkles, Medal, Clock, Crown, Minus, Flame } from 'lucide-react';
 import type { User, Question, Solution, ChatMessage } from '../../types';
-import { DecoratedAvatar, DecoratedName, UserNameplateBg } from '../decorations/DecoratedAvatar';
+import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
 import { MagneticButton } from '../MagneticButton';
 import { OdometerDigits } from '../OdometerDigits';
 import { StudyPulsePanel } from '../StudyPulsePanel';
@@ -658,13 +658,6 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
             onClick={() => openProfile(meEntry)}
             className="ff-board__me ff-discord-userbar"
           >
-            <UserNameplateBg
-              user={currentUser}
-              width={280}
-              eager
-              animate
-              priority="high"
-            />
             <span className="relative z-[2] ff-board__me-rank font-mono">#{meEntry.rank}</span>
             <span className="relative z-[2] shrink-0">
               <DecoratedAvatar
@@ -681,13 +674,11 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
               <DecoratedName
                 user={currentUser}
                 name={currentUser.name.replace(/ \(.*\)/, '')}
-                showNameplate={false}
                 width={144}
-                height={27}
+                height={22}
                 eager
                 animate
                 priority="high"
-                showFallbackTag
               />
             </span>
             <span className="relative z-[2] ff-board__me-value font-mono">{formatValue(meEntry)}</span>
