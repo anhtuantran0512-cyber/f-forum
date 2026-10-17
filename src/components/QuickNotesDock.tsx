@@ -113,7 +113,7 @@ export const QuickNotesDock: React.FC<QuickNotesDockProps> = ({ isOpen, onClose,
         role="dialog"
         aria-modal="false"
         aria-label="Sổ tay nhanh"
-        className="ff-notes-panel modal-container relative overflow-hidden text-[#f4f1de]"
+        className="ff-notes-panel modal-container liquid-glass relative overflow-hidden text-[#f4f1de]"
       >
         <div className="h-[3px] w-full bg-gradient-to-r from-[#81b29a] via-[#f2cc8f] to-[#e07a5f]" aria-hidden="true" />
 
