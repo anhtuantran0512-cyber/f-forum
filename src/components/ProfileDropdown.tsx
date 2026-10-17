@@ -140,7 +140,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       onBlurCapture={profileProximity.onBlurCapture}
       onTouchStart={profileProximity.onTouchStart}
       className={`ff-profile-surface z-[70] bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] popover-morph-enter select-none pointer-events-auto overflow-y-auto no-scrollbar ${
-        !anchorRef || !pop.ready ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] max-w-[calc(100vw-28px)]' : ''
+        !anchorRef || !pop.ready ? 'absolute top-[calc(100%+8px)] right-0 w-[340px] max-w-[calc(100vw-28px)] max-h-[calc(100dvh-var(--safe-top,0px)-134px)]' : ''
       }`}
       style={anchorRef ? pop.style : undefined}
     >
@@ -202,16 +202,16 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         </div>
 
         {/* Rank & Level Badge */}
-        <div className="mt-3 flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10">
+        <div className="ff-profile-rank mt-3 flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10">
           <div className="flex items-center gap-2">
             <TierBadge level={currentUser.level} size={20} showTooltip={false} />
             <div className="flex flex-col">
-              <span className="text-xs font-mono font-bold text-[#f2cc8f]">
+              <span className="ff-profile-tier-name text-xs font-mono font-bold text-[#f2cc8f]">
                 {`${tier.name} · Lv.${currentUser.level}`}
               </span>
             </div>
           </div>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/25 font-semibold flex items-center gap-1">
+          <span className="ff-profile-role-chip text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/25 font-semibold flex items-center gap-1">
             <RoleMark user={currentUser} size={10} />
             {currentUser.role === 'SUPER_ADMIN'
               ? 'ADMIN'
@@ -229,13 +229,13 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
         <div className="mt-3 space-y-1">
           <div className="flex items-center justify-between text-[11px] font-mono">
             <span className="text-white/60">Coin tích lũy</span>
-            <span className="text-[#f2cc8f] font-semibold">
+            <span className="ff-profile-coin-value text-[#f2cc8f] font-semibold">
               {currentUser.level >= 150
                 ? `${currentUser.xp.toLocaleString()} / MAX`
                 : `${currentUser.xp.toLocaleString()} / ${nextLevelBaseXP.toLocaleString()} Coin`}
             </span>
           </div>
-          <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden relative">
+          <div className="ff-profile-progress h-1.5 w-full bg-white/10 rounded-full overflow-hidden relative">
             <div
               className="h-full bg-gradient-to-r from-[#e07a5f] via-[#f2cc8f] to-[#81b29a] rounded-full transition-all duration-500 relative"
               style={{ width: `${progress}%` }}
@@ -293,14 +293,14 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
           onClick={() => {
             setIsReportModalOpen(true);
           }}
-          className="w-full mt-2 py-1.5 px-3 rounded-xl text-xs font-medium text-amber-300/90 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/25 hover:border-amber-400/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+          className="ff-profile-report w-full mt-2 py-1.5 px-3 rounded-xl text-xs font-medium text-amber-300/90 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/25 hover:border-amber-400/40 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
         >
           <Flag className="w-3.5 h-3.5 text-amber-400" />
           <span>Tố cáo</span>
         </button>
 
         {/* Divider */}
-        <div className="h-[1px] w-full bg-white/10 my-3" />
+        <div className="ff-profile-divider h-[1px] w-full bg-white/10 my-3" />
 
         {/* Clean Logout Button */}
         <button
@@ -309,7 +309,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             onClose();
             onLogout();
           }}
-          className="w-full py-2 px-3 rounded-xl text-xs font-semibold text-red-300 hover:text-red-200 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+          className="ff-profile-logout w-full py-2 px-3 rounded-xl text-xs font-semibold text-red-300 hover:text-red-200 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
         >
           <LogOut className="w-3.5 h-3.5 text-red-400" />
           <span>Đăng xuất</span>
