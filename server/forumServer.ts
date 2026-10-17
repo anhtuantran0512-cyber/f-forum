@@ -7406,13 +7406,32 @@ export async function handleForumApiRequest(req: IncomingMessage, res: ServerRes
     }
   }
 
-  /* Chuẩn hoá đường dẫn nếu Vercel chuyển tiếp dạng rút gọn hoặc media */
-  const originalUrl = req.url || '';
+  /* Chuẩn hoá đường dẫn nếu Vercel chuyển tiếp dạng rewrite, query path hoặc header */
+  const rawUrl = req.url || '';
+  let effectivePath = rawUrl;
+
+  try {
+    const parsed = new URL(rawUrl, 'http://localhost');
+    const forwardedPath = req.headers['x-matched-path'] || req.headers['x-forwarded-uri'];
+    if (parsed.searchParams.has('path')) {
+      const p = parsed.searchParams.get('path') || '';
+      parsed.searchParams.delete('path');
+      const remainingQuery = parsed.searchParams.toString();
+      effectivePath = `/api/${p.replace(/^\/+/, '')}${remainingQuery ? `?${remainingQuery}` : ''}`;
+    } else if (typeof forwardedPath === 'string' && forwardedPath.startsWith('/api/')) {
+      effectivePath = forwardedPath;
+    }
+  } catch {
+    /* Bỏ qua lỗi phân tích URL */
+  }
+
   const method = req.method || 'GET';
-  if ((method === 'GET' || method === 'HEAD') && originalUrl.startsWith('/api/media/')) {
-    req.url = originalUrl.slice(4);
-  } else if (!originalUrl.startsWith('/api') && !originalUrl.startsWith('/media/')) {
-    req.url = `/api${originalUrl.startsWith('/') ? '' : '/'}${originalUrl}`;
+  if ((method === 'GET' || method === 'HEAD') && effectivePath.startsWith('/api/media/')) {
+    req.url = effectivePath.slice(4);
+  } else if (!effectivePath.startsWith('/api') && !effectivePath.startsWith('/media/')) {
+    req.url = `/api${effectivePath.startsWith('/') ? '' : '/'}${effectivePath}`;
+  } else {
+    req.url = effectivePath;
   }
 
   return new Promise<void>((resolve) => {
