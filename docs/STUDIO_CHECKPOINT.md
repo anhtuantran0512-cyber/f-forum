@@ -6,23 +6,29 @@
 ## 📌 THÔNG TIN PHIÊN LÀM VIỆC
 - **Dự án**: F-Forum (`arena/62613a87-f-forum`)
 - **Thư mục làm việc**: `/home/broamstuck/f-forum`
-- **Thời gian Checkpoint**: 2026-10-18T00:52:00+07:00
-- **Trạng thái Git**: Nhánh `arena/62613a87-f-forum` (PR #18 mở trên GitHub, đồng bộ `main` & `f-forum-broamstuck-v2.5`).
+- **Thời gian Checkpoint**: 2026-10-18T02:05:00+07:00
+- **Trạng thái Git**: Nhánh `arena/62613a87-f-forum` (PR #18 mở trên GitHub, đồng bộ `main` & `f-forum-broamstuck-v2.5` tại commit `b68bdcb`).
 - **Tình trạng Kiểm thử**: 472/472 tests passed | Build thành công 100% | 0 Lint errors/warnings (`oxlint` + `tsc -b`).
+- **Production URL**: `https://f-forum.vercel.app`
 
 ---
 
 ## 🎯 YÊU CẦU GỐC TỪ SẾP (100% RAW SCOPE)
-1. "thu thập đề thì thì nhớ tìm những nguồn có kiểm chứng và đáp án do các thầy cô giải các kiểu nữa nh, nhớ có file đề, đáp án hợp lý"
-2. "/broamstuck-studio làm lại hoàn toàn giao diện chat đi, xấu quá"
+1. "fix lỗi đăng nhập unexpexted tọken 'T' the page c'... is not valid json"
+2. "- tránh các lỗi phát sinh tương tự"
+3. "- fix thẳng lên vercel"
 
 ---
 
 ## ✅ CÁC HẠNG MỤC ĐÃ HOÀN THÀNH & NGHIỆM THU (COMPLETED MILESTONES)
-1. **Làm Sạch Dữ Liệu Đề Thi Trên Vercel & Supabase Cloud Storage**:
-   - Dọn sạch `examSubmissions: []` và `examInteractions: {}` trên `data/forum-data.json`.
-   - Đồng bộ thành công lên bucket Supabase Cloud Storage `fforum-data/forum-data.json` (ID: `408e5fad-7640-45ce-890a-aa5a59b1a7b5`).
-2. **Bộ 10 Đề Thi Thực Tế, Chính Thức 100% (`seedExamPapers.ts`)**:
+1. **Khắc Phục Gốc Rễ Định Tuyến Vercel Serverless Multi-Segment (`vercel.json`)**:
+   - Thêm quy tắc rewrite bao quát `{"source": "/api/(.*)", "destination": "/api/[...path]?path=$1"}` giúp mọi endpoint như `/api/auth/login`, `/api/auth/register`, `/api/auth/social` không bị rơi vào fallback 404 của Vercel Gateway.
+2. **Chuẩn Hoá URL & Query Parameter (`server/forumServer.ts`)**:
+   - Tự động phân tích `path` query param và header `x-matched-path` / `x-forwarded-uri` để chuyển tiếp nguyên vẹn tới Express middleware, luôn trả về JSON hợp lệ ngay cả khi gặp lỗi.
+3. **Phòng Vệ Bóc Tách JSON Phía Client (`src/store/forumStore.ts`)**:
+   - Áp dụng `res.text()` và `JSON.parse` bọc an toàn trong `try/catch` ở `loginWithPassword`, `registerWithPassword`, và `loginSocial`, triệt tiêu hoàn toàn `SyntaxError: Unexpected token 'T'`.
+4. **Triển Khai & Kiểm Chứng Trực Tiếp Trên Vercel Production**:
+   - Triển khai thành công lên `https://f-forum.vercel.app` và kiểm chứng qua `curl` trực tiếp: endpoint `/api/auth/login` và `/api/sync` trả về chuẩn HTTP 200/400 JSON.
    - Tích hợp 10 đề thi chính thức từ Bộ GD&ĐT, Chuyên KHTN, Chuyên Sư Phạm, ĐHQG Hà Nội HSA, ĐHQG TP.HCM APT, Sở GD&ĐT Hà Nội.
    - Mỗi đề đều có nguồn kiểm chứng, câu hỏi mẫu, đáp án và phương pháp giải chi tiết, công thức then chốt (`keyFormula`) và lời khuyên thầy cô (`tips`).
    - Đã kiểm tra 472/472 tests pass, build thành công, đồng bộ lên 3 nhánh `arena/62613a87-f-forum`, `main`, `f-forum-broamstuck-v2.5` (`27023b8`).
