@@ -185,86 +185,23 @@ test('Round 3: Zero-Overhead Glassmorphism & GPU Composite Layers', () => {
 });
 
 /* ========================================================================== */
-/* ROUND 4: PROACTIVE LRU MEDIA CACHE EVICTION & MEMORY GC                    */
+/* ROUND 4: NATIVE VIDEO STREAMING & VIEWPORT-BOUNDED MEDIA WORK              */
 /* ========================================================================== */
 
-test('Round 4: Proactive LRU Media Cache Eviction & Garbage Collection', async () => {
-  const store = await import('../src/utils/decorationStore.ts');
-  assert.ok(store.loadCachedAsset, 'loadCachedAsset phải được export');
-  assert.ok(store.evictInactiveMediaBlobs, 'evictInactiveMediaBlobs phải được export');
-  assert.ok(store.clearMediaCache, 'clearMediaCache phải được export');
-  assert.ok(store.getMediaCacheStats, 'getMediaCacheStats phải được export');
-  assert.ok(store.setMediaCacheLimit, 'setMediaCacheLimit phải được export');
-  assert.ok(store.registerMediaReference, 'registerMediaReference phải được export');
-  assert.ok(store.unregisterMediaReference, 'unregisterMediaReference phải được export');
+test('Round 4: Decoration videos stream natively without whole-file Blob allocation', () => {
+  const media = fs.readFileSync('src/components/decorations/DecorationMedia.tsx', 'utf8');
+  const avatar = fs.readFileSync('src/components/decorations/AvatarWithDecoration.tsx', 'utf8');
+  const store = fs.readFileSync('src/utils/decorationStore.ts', 'utf8');
+  const navbar = fs.readFileSync('src/components/Navbar.tsx', 'utf8');
 
-  /* 1. Thiết lập giới hạn cache LRU cho bài test */
-  store.setMediaCacheLimit(3);
-  let stats = store.getMediaCacheStats();
-  assert.equal(stats.limit, 3, 'Giới hạn LRU cache phải được cập nhật');
-
-  /* 2. Mock URL.createObjectURL và URL.revokeObjectURL */
-  const revokedUrls = [];
-  const origCreate = globalThis.URL.createObjectURL;
-  const origRevoke = globalThis.URL.revokeObjectURL;
-
-  let counter = 0;
-  globalThis.URL.createObjectURL = () => `blob:http://localhost/test-${++counter}`;
-  globalThis.URL.revokeObjectURL = (url) => {
-    revokedUrls.push(url);
-  };
-
-  /* Mock fetch để trả về dummy blob */
-  const origFetch = globalThis.fetch;
-  globalThis.fetch = async () => ({
-    ok: true,
-    blob: async () => ({ size: 1024, type: 'video/webm' }),
-  });
-
-  try {
-    /* Nạp 3 asset vào cache */
-    const u1 = await store.loadCachedAsset('/assets/decorations/item1.webm');
-    const u2 = await store.loadCachedAsset('/assets/decorations/item2.webm');
-    const u3 = await store.loadCachedAsset('/assets/decorations/item3.webm');
-
-    assert.ok(u1 && u1.startsWith('blob:'), 'Asset 1 phải tạo object URL');
-    assert.ok(u2 && u2.startsWith('blob:'), 'Asset 2 phải tạo object URL');
-    assert.ok(u3 && u3.startsWith('blob:'), 'Asset 3 phải tạo object URL');
-
-    stats = store.getMediaCacheStats();
-    assert.equal(stats.totalEntries, 3, 'Tổng số mục nạp là 3');
-
-    /* Đăng ký reference cho item2 và item3 (đang active trong UI) */
-    store.registerMediaReference('/assets/decorations/item2.webm');
-    store.registerMediaReference('/assets/decorations/item3.webm');
-
-    stats = store.getMediaCacheStats();
-    assert.equal(stats.activeEntries, 2, 'Có 2 mục đang active');
-
-    /* Nạp mục thứ 4 -> vượt quá limit=3 -> item1 (inactive và cũ nhất) phải bị thu hồi ngay */
-    const u4 = await store.loadCachedAsset('/assets/decorations/item4.webm');
-    assert.ok(u4, 'Asset 4 nạp thành công');
-    assert.ok(revokedUrls.includes(u1), 'Mục inactive cũ nhất (u1) phải bị URL.revokeObjectURL giải phóng RAM');
-
-    /* Bảo vệ tài nguyên đang active: item2 và item3 KHÔNG bị thu hồi */
-    assert.equal(revokedUrls.includes(u2), false, 'Asset 2 đang active không được phép bị thu hồi');
-    assert.equal(revokedUrls.includes(u3), false, 'Asset 3 đang active không được phép bị thu hồi');
-
-    /* Unregister item2 -> evictInactiveMediaBlobs giải phóng mục khi không còn ai dùng */
-    store.unregisterMediaReference('/assets/decorations/item2.webm');
-    const evicted = store.evictInactiveMediaBlobs(0);
-    assert.ok(evicted >= 1, 'evictInactiveMediaBlobs phải giải phóng ít nhất 1 mục');
-    assert.ok(revokedUrls.includes(u2), 'u2 sau khi unregister về 0 refCount phải bị giải phóng bộ nhớ');
-
-    /* Dọn sạch cache */
-    store.clearMediaCache(true);
-    stats = store.getMediaCacheStats();
-    assert.equal(stats.totalEntries, 0, 'Toàn bộ cache được dọn dẹp sạch sẽ');
-  } finally {
-    globalThis.URL.createObjectURL = origCreate;
-    globalThis.URL.revokeObjectURL = origRevoke;
-    globalThis.fetch = origFetch;
-  }
+  assert.ok(media.includes('useActiveInViewport(hostRef, baseCanAnimate)'), 'decoration waits until near/in viewport');
+  assert.ok(media.includes("preload={isOwnPriority ? 'metadata' : 'none'}"), 'other users’ video does not eagerly preload');
+  assert.ok(media.includes('resolveDecorationVideoSource'), 'video uses the encoded catalog URL');
+  assert.ok(media.includes('retryState'), 'transient native-media errors can be retried');
+  assert.doesNotMatch(media, /useCachedAsset|URL\.createObjectURL|fetch\(|<source/);
+  assert.doesNotMatch(store, /loadCachedAsset|useCachedAsset|blobCache|setInterval\(/);
+  assert.ok(avatar.includes("preload={!isActive ? 'none' : reducedMotion ? 'metadata' : priority === 'high' ? 'metadata' : 'none'}"));
+  assert.doesNotMatch(navbar, /preloadDecorations/);
 });
 
 /* ========================================================================== */

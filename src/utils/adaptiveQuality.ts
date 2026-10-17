@@ -1,22 +1,9 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
- * KIẾN TRÚC "FULL QUALITY + FULL PERFORMANCE" (ADAPTIVE QUALITY ARCHITECTURE)
- *
- * Triết lý cốt lõi:
- *  "Không cắt giảm NỘI DUNG — chỉ thay đổi CÁCH THỨC và THỜI ĐIỂM giao nội dung đó,
- *   tùy theo khả năng thiết bị của từng user."
- *
- * Phân tầng 3 Tier (không phải bật/tắt nhị phân):
- *  - TIER A (High-end): RAM ≥ 8GB, GPU rời/mạnh, mạng 4G/WiFi ổn định, không bật Save-Data
- *      → Full animation, video decoration 4K, particle WebGL 100%, shadow/blur cao cấp, preload aggressive
- *  - TIER B (Mid-range): RAM 4–8GB, GPU trung bình
- *      → Animation giữ nguyên bằng CSS transform/opacity thuần (GPU compositor),
- *        particle Canvas/WebGL 65%, video decoration HD
- *  - TIER C (Low-end): RAM < 4GB, GPU yếu, hoặc mạng chậm (2g/3g) / Save-Data bật
- *      → Vẫn hiển thị ĐẦY ĐỦ decoration/hiệu ứng (SD video / APNG tối ưu),
- *        ưu tiên tuyệt đối animation của CHÍNH USER trước (fetchpriority="high"),
- *        giới hạn số animation đồng thời của người khác ở mức an toàn (vượt ngưỡng thì
- *        hiển thị 1 khung hình tĩnh CHẤT LƯỢNG CAO trích từ animation — không bao giờ mất tính năng).
+ * Client-side quality hints and utilities. Device hints are optional and can be
+ * coarsened or missing; balanced is used until enough signals are available.
+ * Tier-specific settings currently control effects/particle budgets, not video
+ * resolution variants. No FPS benchmark or synthetic RUM sample is generated.
  */
 
 import { createContext, useContext } from 'react';
@@ -24,51 +11,35 @@ import {
   type DeviceTier,
   SOFTWARE_RENDERER,
   WEAK_GPU,
-  measureFps,
   readWebglRenderer,
 } from './deviceTier.ts';
 import { safeStorage } from './storage.ts';
 
 export type AdaptiveQualityTier = 'tier-a' | 'tier-b' | 'tier-c';
-export type VideoQualityLevel = '4k' | 'hd' | 'sd';
 export type EffectiveConnectionType = '4g' | '3g' | '2g' | 'slow-2g' | 'wifi' | 'unknown';
 
 export interface GPUCapability {
-  /** 3 = High-end (RTX/Radeon RX/Apple M-series/Adreno 7xx), 2 = Mid-range, 1 = Low-end/Software */
+  /** Heuristic renderer family tier; not a measured GPU benchmark. */
   tier: 1 | 2 | 3;
   renderer: string;
   webgl: boolean;
   webgl2: boolean;
   isSoftware: boolean;
-  estimatedFps?: number;
 }
 
 export interface DeviceProfile {
-  /** GB RAM ước tính (navigator.deviceMemory || 4) */
-  memory: number;
-  /** Số core CPU logic (navigator.hardwareConcurrency || 4) */
-  cores: number;
-  /** Loại kết nối mạng ('4g' | '3g' | '2g' | 'slow-2g') */
+  memory: number | null;
+  cores: number | null;
   connection: EffectiveConnectionType;
-  /** Băng thông ước tính (Mbps) */
-  downlinkMbps: number;
-  /** Độ trễ mạng ước tính (ms) */
-  rttMs: number;
-  /** User bật chế độ tiết kiệm dữ liệu (Data Saver) */
-  saveData: boolean;
-  /** Thông tin năng lực GPU */
+  downlinkMbps: number | null;
+  rttMs: number | null;
+  saveData: boolean | null;
   gpu: GPUCapability;
-  /** Tổng số điểm ảnh màn hình (window.screen.width * window.screen.height) */
-  screenSize: number;
-  /** Tỉ lệ điểm ảnh vật lý */
-  devicePixelRatio: number;
-  /** Hệ điều hành hoặc người dùng bật giảm chuyển động */
-  prefersReducedMotion: boolean;
-  /** Trạng thái pin yếu (< 20% và đang xả pin) để tự động hạ mức tiêu thụ */
+  screenSize: number | null;
+  devicePixelRatio: number | null;
+  prefersReducedMotion: boolean | null;
   batteryLow?: boolean;
-  /** Mức pin hiện tại (0.0 .. 1.0) nếu trình duyệt hỗ trợ */
   batteryLevel?: number;
-  /** Đang cắm sạc pin */
   batteryCharging?: boolean;
 }
 
@@ -77,20 +48,9 @@ export interface TierCapabilities {
   legacyTier: DeviceTier;
   label: string;
   badgeText: string;
-  /** Độ phân giải video decoration mục tiêu ('4k' | 'hd' | 'sd') */
-  videoQuality: VideoQualityLevel;
-  /** Tỉ lệ hạt particle trên Canvas/WebGL (1.0 = 100%, 0.65 = 65%, 0.35 = 35%) */
   particleScale: number;
-  /** Số lượng video/animation trang trí của NGƯỜI KHÁC chạy đồng thời tối đa trong viewport */
   maxConcurrentOtherAnimations: number;
-  /** Chính sách tải trước tài nguyên */
-  preloadStrategy: 'aggressive' | 'viewport' | 'self-priority';
-  /** Mức hiệu ứng đổ bóng / làm mờ kính */
-  shadowBlurMode: 'ultra' | 'gpu-balanced' | 'compositor-safe';
-  /** Sử dụng OffscreenCanvas + Web Worker cho tính toán vật lý particle */
   useOffscreenWorker: boolean;
-  /** Dùng định dạng nhẹ (SD WebM / APNG / HQ Keyframe) cho thiết bị yếu khi vượt ngân sách */
-  useLightweightFallbackWhenCrowded: boolean;
 }
 
 export interface AdaptiveQualityAssessment {
@@ -106,47 +66,24 @@ export const HIGH_END_GPU =
 
 export const ADAPTIVE_TIER_OVERRIDE_KEY = 'fforum_adaptive_tier_override_v1';
 
-/** Phát hiện GPU Tier (1..3) kết hợp WebGL/WebGL2 renderer + FPS thực tế. */
-export const detectGPUTier = async (sampleFpsMs = 240): Promise<GPUCapability> => {
+/** Classify exposed GPU hints without running an FPS benchmark. */
+export const detectGPUTier = async (): Promise<GPUCapability> => {
   const base = readWebglRenderer();
-  let webgl2 = false;
-  if (typeof document !== 'undefined') {
-    try {
-      const c = document.createElement('canvas');
-      const gl2 = c.getContext('webgl2') as WebGL2RenderingContext | null;
-      if (gl2) {
-        webgl2 = true;
-        gl2.getExtension('WEBGL_lose_context')?.loseContext();
-      }
-    } catch {
-      webgl2 = false;
-    }
-  }
   const renderer = base.renderer || '';
-  const isSoftware = !base.webgl || SOFTWARE_RENDERER.test(renderer);
-  const fps = sampleFpsMs > 0 ? await measureFps(sampleFpsMs) : undefined;
+  const webgl2 = base.webgl2;
+  const isSoftware = SOFTWARE_RENDERER.test(renderer);
 
-  if (isSoftware) {
-    return { tier: 1, renderer, webgl: base.webgl, webgl2, isSoftware: true, estimatedFps: fps };
+  if (!base.webgl || isSoftware || WEAK_GPU.test(renderer)) {
+    return { tier: 1, renderer, webgl: base.webgl, webgl2, isSoftware };
   }
-  if (WEAK_GPU.test(renderer) || (typeof fps === 'number' && fps > 0 && fps < 34)) {
-    return { tier: 1, renderer, webgl: base.webgl, webgl2, isSoftware: false, estimatedFps: fps };
+  if (HIGH_END_GPU.test(renderer)) {
+    return { tier: 3, renderer, webgl: base.webgl, webgl2, isSoftware: false };
   }
-  if (HIGH_END_GPU.test(renderer) || (typeof fps === 'number' && fps >= 55 && webgl2)) {
-    return { tier: 3, renderer, webgl: base.webgl, webgl2, isSoftware: false, estimatedFps: fps };
-  }
-  return {
-    tier: webgl2 || !renderer ? 2 : 1,
-    renderer,
-    webgl: base.webgl,
-    webgl2,
-    isSoftware: false,
-    estimatedFps: fps,
-  };
+  return { tier: 2, renderer, webgl: base.webgl, webgl2, isSoftware: false };
 };
 
-/** Thu thập toàn bộ hồ sơ thiết bị & mạng khi khởi động (thuần/an toàn SSR). */
-export const collectDeviceProfile = async (sampleFpsMs = 240): Promise<DeviceProfile> => {
+/** Read available browser/device hints; unsupported fields remain null/unknown. */
+export const collectDeviceProfile = async (): Promise<DeviceProfile> => {
   const nav = (typeof navigator !== 'undefined' ? navigator : {}) as Navigator & {
     deviceMemory?: number;
     connection?: {
@@ -157,205 +94,234 @@ export const collectDeviceProfile = async (sampleFpsMs = 240): Promise<DevicePro
     };
   };
   const win = typeof window !== 'undefined' ? window : undefined;
-  const gpu = await detectGPUTier(sampleFpsMs);
-  const rawConn = String(nav.connection?.effectiveType || '4g').toLowerCase();
+  const gpu = await detectGPUTier();
+  const rawConn = String(nav.connection?.effectiveType || '').toLowerCase();
   const connection: EffectiveConnectionType =
     rawConn === '4g' || rawConn === '3g' || rawConn === '2g' || rawConn === 'slow-2g' || rawConn === 'wifi'
       ? rawConn
-      : '4g';
-
-  const memory =
-    typeof nav.deviceMemory === 'number' && nav.deviceMemory > 0 ? nav.deviceMemory : 4;
-  const cores =
-    typeof nav.hardwareConcurrency === 'number' && nav.hardwareConcurrency > 0
-      ? nav.hardwareConcurrency
-      : 4;
-  const screenW = win?.screen?.width || 1920;
-  const screenH = win?.screen?.height || 1080;
-  const prefersReducedMotion = Boolean(
-    win?.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches,
-  );
-
-  let batteryLow = false;
-  let batteryLevel: number | undefined;
-  let batteryCharging: boolean | undefined;
-  const navAny = nav as any;
-  if (typeof navAny !== 'undefined' && typeof navAny.getBattery === 'function') {
-    try {
-      const b = await navAny.getBattery();
-      if (b && typeof b.level === 'number') {
-        batteryLevel = b.level;
-        batteryCharging = Boolean(b.charging);
-        if (!b.charging && b.level < 0.20) {
-          batteryLow = true;
-        }
-      }
-    } catch {
-      /* Bỏ qua nếu trình duyệt không hỗ trợ hoặc chặn quyền Battery API */
-    }
-  }
+      : 'unknown';
+  const memory = typeof nav.deviceMemory === 'number' && nav.deviceMemory > 0 ? nav.deviceMemory : null;
+  const cores = typeof nav.hardwareConcurrency === 'number' && nav.hardwareConcurrency > 0
+    ? nav.hardwareConcurrency
+    : null;
+  const screenWidth = Number(win?.screen?.width);
+  const screenHeight = Number(win?.screen?.height);
+  const screenSize = Number.isFinite(screenWidth) && screenWidth > 0 && Number.isFinite(screenHeight) && screenHeight > 0
+    ? screenWidth * screenHeight
+    : null;
+  const dpr = Number(win?.devicePixelRatio);
+  const motionQuery = typeof win?.matchMedia === 'function'
+    ? win.matchMedia('(prefers-reduced-motion: reduce)')
+    : null;
+  const prefersReducedMotion = motionQuery ? motionQuery.matches : null;
+  const downlink = nav.connection?.downlink;
+  const rtt = nav.connection?.rtt;
+  const saveData = nav.connection?.saveData;
 
   return {
     memory,
     cores,
     connection,
-    downlinkMbps: typeof nav.connection?.downlink === 'number' ? nav.connection.downlink : 10,
-    rttMs: typeof nav.connection?.rtt === 'number' ? nav.connection.rtt : 50,
-    saveData: Boolean(nav.connection?.saveData),
+    downlinkMbps: typeof downlink === 'number' && Number.isFinite(downlink) && downlink > 0 ? downlink : null,
+    rttMs: typeof rtt === 'number' && Number.isFinite(rtt) && rtt >= 0 ? rtt : null,
+    saveData: typeof saveData === 'boolean' ? saveData : null,
     gpu,
-    screenSize: screenW * screenH,
-    devicePixelRatio: win?.devicePixelRatio || 1,
+    screenSize,
+    devicePixelRatio: Number.isFinite(dpr) && dpr > 0 ? dpr : null,
     prefersReducedMotion,
-    batteryLow,
-    batteryLevel,
-    batteryCharging,
   };
 };
 
-/** Bản đồ năng lực chi tiết cho từng Tier A / B / C. */
+/** Tier affects currently implemented particle and concurrent-decoration budgets only. */
 export const getCapabilitiesForTier = (tier: AdaptiveQualityTier): TierCapabilities => {
   switch (tier) {
     case 'tier-a':
       return {
         tier: 'tier-a',
         legacyTier: 'high',
-        label: 'Tier A · Siêu cấp (4K / Full GPU)',
-        badgeText: 'TIER A · 4K ULTRA',
-        videoQuality: '4k',
-        particleScale: 1.0,
+        label: 'Tier A · Hiệu ứng đầy đủ',
+        badgeText: 'TIER A · FULL EFFECTS',
+        particleScale: 1,
         maxConcurrentOtherAnimations: 48,
-        preloadStrategy: 'aggressive',
-        shadowBlurMode: 'ultra',
         useOffscreenWorker: true,
-        useLightweightFallbackWhenCrowded: false,
       };
     case 'tier-b':
       return {
         tier: 'tier-b',
         legacyTier: 'mid',
-        label: 'Tier B · Cân bằng (HD / GPU Compositor)',
-        badgeText: 'TIER B · HD GPU',
-        videoQuality: 'hd',
+        label: 'Tier B · Cân bằng',
+        badgeText: 'TIER B · BALANCED',
         particleScale: 0.65,
         maxConcurrentOtherAnimations: 18,
-        preloadStrategy: 'viewport',
-        shadowBlurMode: 'gpu-balanced',
         useOffscreenWorker: true,
-        useLightweightFallbackWhenCrowded: true,
       };
     case 'tier-c':
     default:
       return {
         tier: 'tier-c',
         legacyTier: 'low',
-        label: 'Tier C · Thích ứng thông minh (SD / Ưu tiên cá nhân)',
-        badgeText: 'TIER C · SMART SD',
-        videoQuality: 'sd',
+        label: 'Tier C · Tiết kiệm tài nguyên',
+        badgeText: 'TIER C · SAVER',
         particleScale: 0.35,
         maxConcurrentOtherAnimations: 6,
-        preloadStrategy: 'self-priority',
-        shadowBlurMode: 'compositor-safe',
         useOffscreenWorker: true,
-        useLightweightFallbackWhenCrowded: true,
       };
   }
 };
 
-/**
- * Phân loại thiết bị thành 3 Tier A / B / C theo đúng đặc tả:
- *  - TIER A: RAM ≥ 8GB, GPU tốt (tier >= 2, không yếu), mạng 4G/WiFi ổn định, không bật Save-Data
- *  - TIER C: RAM < 4GB, hoặc GPU yếu/software (tier === 1), hoặc mạng 2G/3G, hoặc Save-Data bật
- *  - TIER B: Các cấu hình tầm trung (RAM 4–8GB, GPU trung bình)
- */
+/** Missing hints never count as high-end; balanced is the conservative fallback. */
 export const classifyDeviceProfile = (profile: DeviceProfile): AdaptiveQualityAssessment => {
   const reasons: string[] = [];
   const slowNetwork =
     profile.connection === '2g' ||
     profile.connection === 'slow-2g' ||
     profile.connection === '3g' ||
-    (profile.downlinkMbps > 0 && profile.downlinkMbps < 1.5);
+    (profile.downlinkMbps !== null && profile.downlinkMbps > 0 && profile.downlinkMbps < 1.5);
+  const lowMemory = profile.memory !== null && profile.memory < 4;
+  const lowCores = profile.cores !== null && profile.cores <= 2;
+  const saveData = profile.saveData === true;
+  const batteryLow = profile.batteryLow === true;
 
-  if (profile.memory < 4) reasons.push(`RAM thiết bị ~${profile.memory}GB (< 4GB)`);
-  if (profile.cores <= 2) reasons.push(`CPU ${profile.cores} luồng xử lý`);
+  if (lowMemory) reasons.push(`Trình duyệt báo bộ nhớ thiết bị khoảng ${profile.memory} GB (< 4 GB)`);
+  if (lowCores) reasons.push(`Trình duyệt báo ${profile.cores} luồng CPU logic`);
   if (profile.gpu.tier === 1) {
-    reasons.push(
-      profile.gpu.isSoftware
-        ? 'Trình duyệt đang render phần mềm (Software WebGL)'
-        : 'GPU di động/tích hợp tiết kiệm điện',
-    );
+    reasons.push(!profile.gpu.webgl
+      ? 'Không tạo được WebGL context'
+      : profile.gpu.isSoftware
+        ? 'Renderer báo đang dùng đồ hoạ phần mềm'
+        : 'Tên renderer thuộc nhóm GPU tài nguyên thấp');
   }
-  if (profile.saveData) reasons.push('Đang bật chế độ Tiết kiệm dữ liệu (Save-Data)');
-  if (profile.batteryLow) reasons.push('Pin yếu (< 20% đang xả pin) — tự động chuyển sang chế độ tiết kiệm năng lượng');
-  if (slowNetwork) reasons.push(`Kết nối mạng ${profile.connection.toUpperCase()} băng thông thấp`);
+  if (saveData) reasons.push('Đang bật chế độ tiết kiệm dữ liệu (Save-Data)');
+  if (batteryLow) reasons.push('Pin yếu (< 20% khi đang xả pin, theo Battery API)');
+  if (slowNetwork) reasons.push(`Gợi ý kết nối ${profile.connection.toUpperCase()} hoặc downlink thấp`);
 
   let tier: AdaptiveQualityTier;
-  if (
-    profile.memory < 4 ||
-    profile.cores <= 2 ||
-    profile.gpu.tier === 1 ||
-    profile.saveData ||
-    profile.batteryLow ||
-    slowNetwork
-  ) {
+  if (lowMemory || lowCores || profile.gpu.tier === 1 || saveData || batteryLow || slowNetwork) {
     tier = 'tier-c';
-  } else if (
-    profile.memory >= 8 &&
-    profile.cores >= 6 &&
-    (profile.gpu.tier === 3 || (profile.gpu.tier === 2 && (profile.gpu.estimatedFps ?? 60) >= 55)) &&
-    (profile.connection === '4g' || profile.connection === 'wifi') &&
-    !profile.saveData
-  ) {
-    tier = 'tier-a';
-    reasons.push(`RAM ${profile.memory}GB, ${profile.cores} nhân, GPU tăng tốc phần cứng tốt`);
   } else {
-    tier = 'tier-b';
-    reasons.push(`Cấu hình tầm trung (RAM ${profile.memory}GB, ${profile.cores} nhân, GPU Tier ${profile.gpu.tier})`);
+    const highEndEvidence =
+      profile.memory !== null && profile.memory >= 8 &&
+      profile.cores !== null && profile.cores >= 6 &&
+      profile.gpu.tier === 3 &&
+      (profile.connection === '4g' || profile.connection === 'wifi') &&
+      profile.saveData === false;
+    if (highEndEvidence) {
+      tier = 'tier-a';
+      reasons.push('Available browser hints meet the configured high-resource thresholds');
+    } else {
+      tier = 'tier-b';
+      const missing: string[] = [];
+      if (profile.memory === null) missing.push('device memory');
+      if (profile.cores === null) missing.push('CPU count');
+      if (profile.connection === 'unknown') missing.push('connection type');
+      if (profile.saveData === null) missing.push('Save-Data preference');
+      reasons.push(missing.length
+        ? `Balanced fallback; unavailable browser hints: ${missing.join(', ')}`
+        : 'Available browser hints indicate a balanced configuration');
+    }
   }
 
   const capabilities = getCapabilitiesForTier(tier);
-  return {
-    tier,
-    legacyTier: capabilities.legacyTier,
-    profile,
-    capabilities,
-    reasons,
-  };
+  return { tier, legacyTier: capabilities.legacyTier, profile, capabilities, reasons };
 };
 
-/* ========================================================================== */
-/* CONCURRENT ANIMATION SCHEDULER (Ưu tiên chính user, giới hạn an toàn Tier C) */
-/* ========================================================================== */
-
+/* Concurrent budget for media animations; the app uses this for viewport content. */
 class AnimationBudgetScheduler {
   private activeOtherIds = new Set<string>();
   private activeOwnIds = new Set<string>();
+  private waitingOtherIds = new Set<string>();
+  private listeners = new Map<string, Set<() => void>>();
   private maxOther = 18;
 
-  setMaxConcurrentOther(limit: number): void {
-    this.maxOther = Math.max(1, limit);
+  subscribe = (id: string, listener: () => void): (() => void) => {
+    let subscribers = this.listeners.get(id);
+    if (!subscribers) {
+      subscribers = new Set();
+      this.listeners.set(id, subscribers);
+    }
+    subscribers.add(listener);
+    return () => {
+      subscribers?.delete(listener);
+      if (subscribers?.size === 0 && this.listeners.get(id) === subscribers) this.listeners.delete(id);
+    };
+  };
+
+  private notify(ids: Iterable<string>): void {
+    for (const id of new Set(ids)) {
+      this.listeners.get(id)?.forEach((listener) => listener());
+    }
   }
 
-  /**
-   * Đăng ký slot chạy animation trang trí:
-   *  - Trang trí của CHÍNH USER (isOwnUser = true) LUÔN LUÔN được cấp phép chạy 100% ở mọi Tier.
-   *  - Trang trí của user khác được cấp phép nếu chưa vượt ngân sách concurrent của Tier hiện tại.
-   */
+  hasSlot(id: string): boolean {
+    return this.activeOwnIds.has(id) || this.activeOtherIds.has(id);
+  }
+
+  private promoteWaiting(): string[] {
+    const promoted: string[] = [];
+    while (this.activeOtherIds.size < this.maxOther && this.waitingOtherIds.size > 0) {
+      const nextId = this.waitingOtherIds.values().next().value as string | undefined;
+      if (!nextId) break;
+      this.waitingOtherIds.delete(nextId);
+      this.activeOtherIds.add(nextId);
+      promoted.push(nextId);
+    }
+    return promoted;
+  }
+
+  setMaxConcurrentOther(limit: number): void {
+    const next = Math.max(1, Math.floor(limit));
+    if (next === this.maxOther) return;
+    this.maxOther = next;
+    const changedIds = new Set<string>();
+    while (this.activeOtherIds.size > this.maxOther) {
+      const oldestId = this.activeOtherIds.values().next().value as string | undefined;
+      if (!oldestId) break;
+      this.activeOtherIds.delete(oldestId);
+      this.waitingOtherIds.add(oldestId);
+      changedIds.add(oldestId);
+    }
+    this.promoteWaiting().forEach((id) => changedIds.add(id));
+    this.notify(changedIds);
+  }
+
   acquire(id: string, isOwnUser: boolean): boolean {
     if (isOwnUser) {
+      const waitingChanged = this.waitingOtherIds.delete(id);
+      const otherChanged = this.activeOtherIds.delete(id);
+      const wasActive = this.activeOwnIds.has(id);
       this.activeOwnIds.add(id);
+      const changedIds = this.promoteWaiting();
+      if (!wasActive || waitingChanged || otherChanged) changedIds.push(id);
+      this.notify(changedIds);
       return true;
     }
-    if (this.activeOtherIds.has(id)) return true;
+    const ownChanged = this.activeOwnIds.delete(id);
+    const changedIds = this.promoteWaiting();
+    if (this.activeOtherIds.has(id)) {
+      if (ownChanged) changedIds.push(id);
+      this.notify(changedIds);
+      return true;
+    }
     if (this.activeOtherIds.size < this.maxOther) {
+      this.waitingOtherIds.delete(id);
       this.activeOtherIds.add(id);
+      changedIds.push(id);
+      this.notify(changedIds);
       return true;
     }
+    this.waitingOtherIds.add(id);
+    if (ownChanged) changedIds.push(id);
+    this.notify(changedIds);
     return false;
   }
 
   release(id: string): void {
-    this.activeOwnIds.delete(id);
-    this.activeOtherIds.delete(id);
+    const ownChanged = this.activeOwnIds.delete(id);
+    const otherChanged = this.activeOtherIds.delete(id);
+    this.waitingOtherIds.delete(id);
+    const changedIds = this.promoteWaiting();
+    if (ownChanged || otherChanged) changedIds.push(id);
+    this.notify(changedIds);
   }
 
   getStats(): { ownActive: number; otherActive: number; maxOther: number } {
@@ -367,30 +333,22 @@ class AnimationBudgetScheduler {
   }
 
   resetForTest(): void {
+    const changedIds = [...this.activeOwnIds, ...this.activeOtherIds];
     this.activeOwnIds.clear();
     this.activeOtherIds.clear();
+    this.waitingOtherIds.clear();
     this.maxOther = 18;
+    this.notify(changedIds);
   }
 }
 
 export const animationBudget = new AnimationBudgetScheduler();
 
-/* ========================================================================== */
-/* GPU COMPOSITOR HELPERS — will-change có chủ đích                           */
-/* ========================================================================== */
-
-/**
- * Chỉ bật `will-change: transform, opacity` khi phần tử bắt đầu animate
- * và tự động gỡ (`will-change: auto`) ngay khi animation kết thúc để giải phóng VRAM.
- */
+/** Add and remove compositor hints only around actual transitions/animations. */
 export const attachTransientWillChange = (element: HTMLElement | null): (() => void) => {
   if (!element) return () => {};
-  const promote = () => {
-    element.style.willChange = 'transform, opacity';
-  };
-  const release = () => {
-    element.style.willChange = 'auto';
-  };
+  const promote = () => { element.style.willChange = 'transform, opacity'; };
+  const release = () => { element.style.willChange = 'auto'; };
   element.addEventListener('animationstart', promote, { passive: true });
   element.addEventListener('transitionstart', promote, { passive: true });
   element.addEventListener('animationend', release, { passive: true });
@@ -408,16 +366,11 @@ export const attachTransientWillChange = (element: HTMLElement | null): (() => v
   };
 };
 
-/* ========================================================================== */
-/* PHẦN 6: ĐO LƯỜNG CHẤT LƯỢNG HÌNH ẢNH (SSIM ≥ 0.95) & A/B TESTING           */
-/* ========================================================================== */
-
 export const MIN_ACCEPTABLE_SSIM = 0.95;
 
 /**
- * Tính chỉ số tương đồng cấu trúc SSIM (Structural Similarity Index, 0..1)
- * giữa ảnh gốc và ảnh sau tối ưu (RGBA Uint8Array / Uint8ClampedArray).
- * SSIM > 0.95 nghĩa là mắt thường không thể phân biệt sự khác biệt.
+ * Compute SSIM (0..1) for two RGBA image buffers. The selected threshold is a
+ * heuristic; it does not prove that differences are imperceptible.
  */
 export const computeSSIM = (
   referenceRgba: Uint8Array | Uint8ClampedArray,
@@ -439,15 +392,8 @@ export const computeSSIM = (
 
   for (let i = 0; i < totalPixels; i += 1) {
     const idx = i * 4;
-    /* Độ chói cảm nhận chuẩn ITU-R BT.601 */
-    const y1 =
-      0.299 * referenceRgba[idx] +
-      0.587 * referenceRgba[idx + 1] +
-      0.114 * referenceRgba[idx + 2];
-    const y2 =
-      0.299 * candidateRgba[idx] +
-      0.587 * candidateRgba[idx + 1] +
-      0.114 * candidateRgba[idx + 2];
+    const y1 = 0.299 * referenceRgba[idx] + 0.587 * referenceRgba[idx + 1] + 0.114 * referenceRgba[idx + 2];
+    const y2 = 0.299 * candidateRgba[idx] + 0.587 * candidateRgba[idx + 1] + 0.114 * candidateRgba[idx + 2];
     lumX[i] = y1;
     lumY[i] = y2;
     sumX += y1;
@@ -456,7 +402,6 @@ export const computeSSIM = (
 
   const meanX = sumX / totalPixels;
   const meanY = sumY / totalPixels;
-
   let varX = 0;
   let varY = 0;
   let covXY = 0;
@@ -479,9 +424,7 @@ export const computeSSIM = (
   return Math.max(0, Math.min(1, numerator / denominator));
 };
 
-/**
- * Perceptual Hash (aHash 64-bit) trên lưới 8×8 độ chói để so sánh nhanh độ tương đồng thị giác.
- */
+/** Perceptual hash (aHash, 64-bit) over an 8×8 grid. */
 export const computePerceptualHash = (rgba: Uint8Array | Uint8ClampedArray, width: number, height: number): string => {
   if (width <= 0 || height <= 0 || rgba.length < 4) return '0000000000000000';
   const grid = new Float32Array(64);
@@ -498,13 +441,9 @@ export const computePerceptualHash = (rgba: Uint8Array | Uint8ClampedArray, widt
   }
   const avg = sum / 64;
   let bits = '';
-  for (let i = 0; i < 64; i += 1) {
-    bits += grid[i] >= avg ? '1' : '0';
-  }
+  for (let i = 0; i < 64; i += 1) bits += grid[i] >= avg ? '1' : '0';
   let hex = '';
-  for (let i = 0; i < 64; i += 4) {
-    hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
-  }
+  for (let i = 0; i < 64; i += 4) hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
   return hex;
 };
 
@@ -527,39 +466,23 @@ export interface OptimizationDecision {
   reason: string;
 }
 
-/**
- * Đánh giá A/B Testing trước khi áp dụng tối ưu hoá:
- * Chỉ cho phép merge khi:
- *  1. SSIM ≥ 0.95 (mắt thường không phân biệt được sự suy giảm chất lượng)
- *  2. Hiệu năng tăng đáng kể (LCP giảm ≥ 8% hoặc FPS tăng ≥ 10% hoặc RAM giảm ≥ 10%)
- *  3. Tương tác người dùng (engagementRate) không suy giảm quá 2%.
- */
+/** Pure threshold helper for caller-supplied numbers; it does not run experiments. */
 export const evaluateOptimizationABTest = (
   baseline: OptimizationExperimentMetrics,
   candidate: OptimizationExperimentMetrics,
   minSsim = MIN_ACCEPTABLE_SSIM,
 ): OptimizationDecision => {
   const ssimPassed = candidate.ssim >= minSsim;
-  const lcpGainPercent =
-    baseline.lcpMs > 0 ? ((baseline.lcpMs - candidate.lcpMs) / baseline.lcpMs) * 100 : 0;
-  const fpsGainPercent =
-    baseline.fps > 0 ? ((candidate.fps - baseline.fps) / baseline.fps) * 100 : 0;
-  const memSavedPercent =
-    baseline.memoryMb > 0 ? ((baseline.memoryMb - candidate.memoryMb) / baseline.memoryMb) * 100 : 0;
-
+  const lcpGainPercent = baseline.lcpMs > 0 ? ((baseline.lcpMs - candidate.lcpMs) / baseline.lcpMs) * 100 : 0;
+  const fpsGainPercent = baseline.fps > 0 ? ((candidate.fps - baseline.fps) / baseline.fps) * 100 : 0;
+  const memSavedPercent = baseline.memoryMb > 0 ? ((baseline.memoryMb - candidate.memoryMb) / baseline.memoryMb) * 100 : 0;
   const performanceImproved = lcpGainPercent >= 8 || fpsGainPercent >= 10 || memSavedPercent >= 10;
   const engagementRetained = candidate.engagementRate >= baseline.engagementRate * 0.98;
   const approved = ssimPassed && performanceImproved && engagementRetained;
-
-  let reason = 'Đạt chuẩn Full Quality + Full Performance (SSIM ≥ 0.95 & hiệu năng cải thiện rõ rệt).';
-  if (!ssimPassed) {
-    reason = `Từ chối: Điểm chất lượng hình ảnh SSIM (${candidate.ssim.toFixed(3)}) thấp hơn ngưỡng ${minSsim}.`;
-  } else if (!performanceImproved) {
-    reason = 'Từ chối: Mức cải thiện hiệu năng (LCP/FPS/Memory) chưa đủ đáng kể.';
-  } else if (!engagementRetained) {
-    reason = 'Từ chối: Tỉ lệ tương tác người dùng bị sụt giảm.';
-  }
-
+  let reason = 'Input values meet this utility’s configured thresholds.';
+  if (!ssimPassed) reason = `Rejected: supplied SSIM (${candidate.ssim.toFixed(3)}) is below ${minSsim}.`;
+  else if (!performanceImproved) reason = 'Rejected: supplied performance deltas do not meet the configured threshold.';
+  else if (!engagementRetained) reason = 'Rejected: supplied engagement value is below the configured tolerance.';
   return {
     approved,
     ssimPassed,
@@ -571,25 +494,6 @@ export const evaluateOptimizationABTest = (
   };
 };
 
-/* ========================================================================== */
-/* REAL USER MONITORING (RUM) THEO DEVICE TIER                                */
-/* ========================================================================== */
-
-export interface RumTierSample {
-  tier: AdaptiveQualityTier;
-  lcpMs: number;
-  fidMs: number;
-  fps: number;
-  memoryMb: number;
-  videoQuality: VideoQualityLevel;
-  gpuTier: 1 | 2 | 3;
-  gpuRenderer: string;
-  saveData: boolean;
-  connection: EffectiveConnectionType;
-  ssimScore: number;
-  activeAnimations: number;
-}
-
 export const readSavedTierOverride = (): AdaptiveQualityTier | 'auto' => {
   const raw = safeStorage.getItem(ADAPTIVE_TIER_OVERRIDE_KEY);
   if (raw === 'tier-a' || raw === 'tier-b' || raw === 'tier-c') return raw;
@@ -597,11 +501,8 @@ export const readSavedTierOverride = (): AdaptiveQualityTier | 'auto' => {
 };
 
 export const saveTierOverride = (tier: AdaptiveQualityTier | 'auto'): void => {
-  if (tier === 'auto') {
-    safeStorage.removeItem(ADAPTIVE_TIER_OVERRIDE_KEY);
-  } else {
-    safeStorage.setItem(ADAPTIVE_TIER_OVERRIDE_KEY, tier);
-  }
+  if (tier === 'auto') safeStorage.removeItem(ADAPTIVE_TIER_OVERRIDE_KEY);
+  else safeStorage.setItem(ADAPTIVE_TIER_OVERRIDE_KEY, tier);
 };
 
 export interface AdaptiveQualityContextValue {
@@ -617,42 +518,30 @@ export interface AdaptiveQualityContextValue {
 }
 
 export const DEFAULT_DEVICE_PROFILE: DeviceProfile = {
-  memory: 8,
-  cores: 8,
-  connection: '4g',
-  downlinkMbps: 20,
-  rttMs: 35,
-  saveData: false,
-  gpu: {
-    tier: 3,
-    renderer: 'Hardware WebGL2 Compositor',
-    webgl: true,
-    webgl2: true,
-    isSoftware: false,
-    estimatedFps: 60,
-  },
-  screenSize: 1920 * 1080,
-  devicePixelRatio: 1,
-  prefersReducedMotion: false,
-  batteryLow: false,
+  memory: null,
+  cores: null,
+  connection: 'unknown',
+  downlinkMbps: null,
+  rttMs: null,
+  saveData: null,
+  gpu: { tier: 2, renderer: '', webgl: false, webgl2: false, isSoftware: false },
+  screenSize: null,
+  devicePixelRatio: null,
+  prefersReducedMotion: null,
 };
 
 export const DEFAULT_ADAPTIVE_CONTEXT: AdaptiveQualityContextValue = {
-  tier: 'tier-a',
-  detectedTier: 'tier-a',
+  tier: 'tier-b',
+  detectedTier: 'tier-b',
   overrideTier: 'auto',
   setOverrideTier: () => {},
   profile: DEFAULT_DEVICE_PROFILE,
-  capabilities: getCapabilitiesForTier('tier-a'),
+  capabilities: getCapabilitiesForTier('tier-b'),
   reasons: [],
   isReady: false,
   isBatterySaverActive: false,
 };
 
-export const AdaptiveQualityContext = createContext<AdaptiveQualityContextValue>(
-  DEFAULT_ADAPTIVE_CONTEXT,
-);
+export const AdaptiveQualityContext = createContext<AdaptiveQualityContextValue>(DEFAULT_ADAPTIVE_CONTEXT);
 
-export const useAdaptiveQuality = (): AdaptiveQualityContextValue =>
-  useContext(AdaptiveQualityContext);
-
+export const useAdaptiveQuality = (): AdaptiveQualityContextValue => useContext(AdaptiveQualityContext);

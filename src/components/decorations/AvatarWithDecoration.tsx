@@ -1,9 +1,7 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 /*
  * Nhiệm vụ 10 — avatar + trang trí Discord (khung / hào quang / bảng tên).
- *  - Bản động: thẻ video autoplay / loop / muted / playsInline (blob URL từ cache RAM);
- *    người dùng bật prefers-reduced-motion hoặc trình duyệt không có VP9 alpha
- *    (Safari/iOS) → tự động về ảnh tĩnh fallback.
+ *  - Bản động dùng native video URL; reduced motion pauses playback, browsers without VP9 alpha use the still asset.
  *  - Đeo ĐƯỢC CẢ HAI: hào quang nằm SAU ảnh (z1), khung nằm TRÊN ảnh (z3);
  *    cả hai overflow visible (cánh, tia sáng… không bị cắt).
  *  - Lazy load qua IntersectionObserver (eager=true bỏ qua — navbar).
@@ -27,13 +25,7 @@ export interface DecorationAssetRef {
   isAnimated?: boolean;
 }
 
-/* Ảnh đại diện CHÍNH CỦA USER có thể là video động (webm/mp4). Trước đây luôn
-   render bằng thẻ ảnh tĩnh → avatar động bị "chết" thành ảnh lỗi/hình tĩnh ngay
-   khi đeo trang trí (vì mọi context đều đi qua component này). Nay:
-   - bình thường: thẻ video (autoplay loop muted playsInline) giữ nguyên chuyển động;
-   - prefers-reduced-motion: chỉ lấy khung hình đầu (preload metadata, KHÔNG
-     autoplay) — theo đúng phép "giảm chuyển động được quyền tắt ảnh động";
-   - video lỗi → tự về ảnh tĩnh fallback (không để avatar biến mất). */
+/* Avatar video uses native browser streaming, pauses when offscreen, and respects reduced motion. */
 const AVATAR_VIDEO_EXT = /\.(webm|mp4|m4v|ogv)(\?|#|$)/i;
 
 const isVideoAvatarUrl = (url: string): boolean => AVATAR_VIDEO_EXT.test(url);
@@ -50,11 +42,13 @@ const AvatarMedia = ({
   priority: 'high' | 'low';
 }) => {
   const reducedMotion = useReducedMotion();
-  const [videoFailed, setVideoFailed] = useState(false);
+  const [failedVideoUrl, setFailedVideoUrl] = useState<string | null>(null);
   const avatarVideoRef = useRef<HTMLVideoElement | null>(null);
   const safeUrl = url || DEFAULT_AVATAR;
+  const videoFailed = failedVideoUrl === safeUrl;
   const isVideo = isVideoAvatarUrl(safeUrl) && !videoFailed;
-  const isActive = useActiveInViewport(avatarVideoRef, isVideo && !reducedMotion);
+  const inViewport = useActiveInViewport(avatarVideoRef, isVideo);
+  const isActive = eager || inViewport;
 
   useEffect(() => {
     if (!isVideo || reducedMotion) return;
@@ -123,10 +117,9 @@ const AvatarMedia = ({
       aria-label={alt}
       muted
       playsInline
-      preload={reducedMotion ? 'metadata' : 'auto'}
-      autoPlay={!reducedMotion}
-      loop={!reducedMotion}
-      onError={() => setVideoFailed(true)}
+          preload={!isActive ? 'none' : reducedMotion ? 'metadata' : priority === 'high' ? 'metadata' : 'none'}
+          loop={!reducedMotion}
+      onError={() => setFailedVideoUrl(safeUrl)}
     />
   );
 };

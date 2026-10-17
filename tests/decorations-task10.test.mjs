@@ -801,16 +801,15 @@ test('10.18 Đợt #6: trang trí không làm mất ảnh động, không mất 
   /* 1) Avatar động (webm/mp4) của user: render <video>, reduced-motion chỉ
      giữ khung hình đầu (preload metadata, không autoplay), lỗi → DEFAULT_AVATAR. */
   assert.match(awd, /AVATAR_VIDEO_EXT = .*webm.*mp4.*ogv/, 'nhận diện avatar video động');
-  assert.match(awd, /autoPlay=\{!reducedMotion\}/, 'giảm chuyển động → không autoplay');
-  assert.match(awd, /preload=\{reducedMotion \? 'metadata' : 'auto'\}/, 'giảm chuyển động → chỉ khung đầu');
-  assert.match(awd, /setVideoFailed\(true\)/, 'video lỗi có fallback');
+  assert.match(awd, /if \(!isVideo \|\| reducedMotion\) return/, 'giảm chuyển động → không autoplay');
+  assert.match(awd, /preload=\{!isActive \? 'none' : reducedMotion \? 'metadata'/, 'offscreen avatar không preload; reduced-motion chỉ lấy metadata');
+  assert.match(awd, /setFailedVideoUrl\(safeUrl\)/, 'video lỗi có fallback theo URL');
   assert.match(awd, /src=\{DEFAULT_AVATAR\}/, 'fallback = avatar mặc định, không mất avatar');
 
-  /* 2) Webm trang trí tải lỗi KHÔNG được cache "null vĩnh viễn" (biến icon
-     động thành ảnh tĩnh hết phiên) — tự retry tối đa 3 lần. */
-  assert.match(store, /failCountRef/, 'đếm số lần tải lỗi');
-  assert.match(store, /fails <= 3/, 'tự retry tối đa 3 lần');
-  assert.match(store, /if \(objectUrl\) \{[\s\S]{0,120}setCache/, 'chỉ cache thành công');
+  /* Native media streaming leaves caching/range requests to the browser. */
+  assert.match(store, /supportsWebmAlpha/);
+  assert.match(store, /useDecorationCatalog/);
+  assert.doesNotMatch(store, /loadCachedAsset|failCountRef|objectUrl|blobCache|URL\.createObjectURL/);
 
   /* 3) KHUNG + HÀO QUANG là 2 slot độc lập — mọi context truyền CẢ HAI
      (trước đây gộp 1 → mất hào quang khi đeo đủ 2). */

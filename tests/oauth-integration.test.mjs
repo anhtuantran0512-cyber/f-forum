@@ -48,12 +48,16 @@ function createTestServer() {
   });
 }
 
-test('1. Dual OAuth Codebase Inspection: SDK Initializer in main.tsx & AuthModal integration', () => {
+test('1. OAuth SDKs load on demand from the authentication flow', () => {
   const mainCode = fs.readFileSync('src/main.tsx', 'utf8');
-  assert.ok(mainCode.includes('initFacebookSdk'), 'main.tsx must define initFacebookSdk');
-  assert.ok(mainCode.includes('fbAsyncInit'), 'main.tsx must declare fbAsyncInit');
-  assert.ok(mainCode.includes('connect.facebook.net/vi_VN/sdk.js'), 'main.tsx must load Facebook SDK');
-  assert.ok(mainCode.includes('accounts.google.com/gsi/client'), 'main.tsx must load Google Identity Services SDK');
+  assert.doesNotMatch(mainCode, /initFacebookSdk|initGoogleSdk|connect\.facebook\.net|accounts\.google\.com\/gsi\/client/);
+  const oauthCode = fs.readFileSync('src/utils/oauth.ts', 'utf8');
+  assert.ok(oauthCode.includes('initFacebookSdk'), 'Facebook SDK loader stays available on demand');
+  assert.ok(oauthCode.includes('initGoogleSdk'), 'Google SDK loader stays available on demand');
+  assert.ok(oauthCode.includes('connect.facebook.net/vi_VN/sdk.js'));
+  assert.ok(oauthCode.includes('accounts.google.com/gsi/client'));
+  assert.ok(oauthCode.includes('await initGoogleSdk()'));
+  assert.ok(oauthCode.includes('await initFacebookSdk()'));
 
   const authModalCode = fs.readFileSync('src/components/AuthModal.tsx', 'utf8');
   assert.ok(authModalCode.includes('handleGoogleAuth'), 'AuthModal must handle Google OAuth 2.0');

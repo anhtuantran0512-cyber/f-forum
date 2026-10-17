@@ -958,7 +958,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/5 border border-white/5">
                     <div className="min-w-0">
                       <div className="text-[11.5px] font-semibold text-white truncate flex items-center gap-1.5">
-                        <span>Chất lượng ({capabilities.badgeText})</span>
+                        <span>Mức hiệu ứng ({capabilities.badgeText})</span>
                         {profile?.batteryLow && (
                           <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                             Pin yếu
@@ -973,9 +973,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       className="rounded-lg border border-white/15 bg-black/50 px-2 py-1 text-[10.5px] font-bold text-amber-300 focus:outline-none"
                     >
                       <option value="auto">Tự động ({detectedTier.toUpperCase()})</option>
-                      <option value="tier-a">Tier A · 4K</option>
-                      <option value="tier-b">Tier B · HD</option>
-                      <option value="tier-c">Tier C · SD</option>
+                      <option value="tier-a">Tier A · Hiệu ứng đầy đủ</option>
+                      <option value="tier-b">Tier B · Cân bằng</option>
+                      <option value="tier-c">Tier C · Tiết kiệm</option>
                     </select>
                   </div>
                 </Card>

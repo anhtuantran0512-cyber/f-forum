@@ -249,8 +249,12 @@ test('Exam Vault uses server-backed community actions and blocks a duplicate rev
     assert.ok(exportButton, 'the PDF export action should render for a paper without an attachment');
     await act(async () => {
       exportButton.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+      const deadline = Date.now() + 2000;
+      while (!document.querySelector('[role="dialog"]') && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
     });
-    assert.ok(document.querySelector('[role="dialog"]'), 'export click should open the print/export dialog');
+    assert.ok(document.querySelector('[role="dialog"]'), 'export click should open the lazy-loaded print/export dialog');
     assert.match(document.body.textContent, /Lưu dưới dạng PDF/, 'export dialog should explain PDF saving');
 
     const printButton = [...document.querySelectorAll('[role="dialog"] button')]

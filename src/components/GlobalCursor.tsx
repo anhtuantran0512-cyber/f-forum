@@ -1,79 +1,73 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useRef } from 'react';
+import { useReducedMotion } from './decorations/useDecorationMedia';
 
 export const GlobalCursor: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const isFinePointer = window.matchMedia('(pointer: fine)').matches;
-    const isHoverCapable = window.matchMedia('(hover: hover)').matches;
-    if (!isFinePointer || !isHoverCapable) return;
+    if (typeof window === 'undefined' || reducedMotion) return;
+    if (typeof window.matchMedia === 'function') {
+      if (!window.matchMedia('(pointer: fine)').matches || !window.matchMedia('(hover: hover)').matches) return;
+    }
 
-    let animId = 0;
-    let mouseX = -100;
-    let mouseY = -100;
+    let frame = 0;
+    let x = -100;
+    let y = -100;
     let visible = false;
-    let lastOpacity = '0';
+    const container = containerRef.current;
+    if (!container) return;
 
     const flush = () => {
-      animId = 0;
-      const container = containerRef.current;
-      if (!container) return;
-
-      if (visible) {
-        if (lastOpacity !== '1') {
-          container.style.opacity = '1';
-          lastOpacity = '1';
-        }
-        container.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0)`;
-      } else if (lastOpacity !== '0') {
+      frame = 0;
+      if (!visible || document.visibilityState !== 'visible') {
         container.style.opacity = '0';
-        lastOpacity = '0';
+        return;
       }
+      container.style.opacity = '1';
+      container.style.transform = `translate3d(${x}px, ${y}px, 0)`;
     };
-
-    const scheduleFlush = () => {
-      if (animId === 0) {
-        animId = requestAnimationFrame(flush);
-      }
+    const schedule = () => {
+      if (frame === 0) frame = window.requestAnimationFrame(flush);
     };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
+    const onPointerMove = (event: PointerEvent) => {
+      if (event.pointerType === 'touch') return;
+      x = event.clientX;
+      y = event.clientY;
       visible = true;
-      scheduleFlush();
+      schedule();
     };
-
-    const handleMouseLeave = () => {
+    const onPointerLeave = () => {
       visible = false;
-      scheduleFlush();
+      schedule();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') visible = false;
+      schedule();
     };
 
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    document.addEventListener('mouseleave', handleMouseLeave);
-
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    document.addEventListener('pointerleave', onPointerLeave, { passive: true });
+    document.addEventListener('visibilitychange', onVisibility, { passive: true });
     return () => {
-      if (animId !== 0) cancelAnimationFrame(animId);
-      window.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseleave', handleMouseLeave);
+      if (frame !== 0) window.cancelAnimationFrame(frame);
+      window.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerleave', onPointerLeave);
+      document.removeEventListener('visibilitychange', onVisibility);
+      container.style.willChange = 'auto';
     };
-  }, []);
+  }, [reducedMotion]);
 
   return (
     <div
       ref={containerRef}
       aria-hidden="true"
-      className="fixed top-0 left-0 pointer-events-none z-[99999] opacity-0 transition-opacity duration-200 hidden md:block"
-      style={{ willChange: 'transform' }}
+      className="ff-global-cursor fixed top-0 left-0 pointer-events-none z-[99999] opacity-0 transition-opacity duration-200 hidden md:block"
     >
       <div
         className="absolute -top-4 -left-4 w-8 h-8 rounded-full pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(circle, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 55%, transparent 72%)',
-        }}
+        style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 55%, transparent 72%)' }}
       />
     </div>
   );
