@@ -167,8 +167,8 @@ test('Epic 4 · Clay 2.0 đồng bộ: cùng công thức 3 lớp cho mọi bề
   assert.match(section, /\.pc-12-card \{\n  border-radius: 28px;/, 'bo góc lớn');
   assert.match(section, /0 22px 40px -20px rgba\(0, 0, 0, 0\.88\),\n    inset 0 -14px 24px -16px rgba\(0, 0, 0, 0\.78\),\n    inset 0 14px 22px -14px rgba\(255, 255, 255, 0\.11\);/,
     'bóng ngoài + bóng tối phía xa + highlight phía sáng');
-  assert.match(section, /html\.light \.pc-12-card \{\n  background: linear-gradient\(155deg, #fffdf8, #f3f0fb\);/, 'pastel nhất quán ở chế độ sáng');
-  assert.match(section, /html\.light \.pc-12-stat \{/, 'ô số liệu có bản sáng');
+  assert.match(section, /html\.light \.pc-12-card[^{]*\{\n  background: linear-gradient\(155deg, #fffdf8, #f3f0fb\);/, 'pastel nhất quán ở chế độ sáng');
+  assert.match(section, /html\.light \.pc-12-stat[^{]*\{/, 'ô số liệu có bản sáng');
   assert.match(clay, /className=\{`pc-12-stat text-center/, 'ClayStat dùng class clay chung');
   assert.match(clay, /className=\{`pc-12-card relative overflow-hidden/, 'ClaymorphismCard dùng class clay chung');
   assert.ok(!clay.includes("boxShadow: `"), 'không còn inline shadow lệch tông');

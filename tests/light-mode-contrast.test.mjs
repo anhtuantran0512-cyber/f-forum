@@ -244,6 +244,6 @@ test('Trang nội dung ở chế độ sáng: ẩn video tối, nền kính sữ
 test('Không còn chữ #64748b (3.9–4.2:1) trong các rule chữ sáng đang dùng', () => {
   assert.match(ruleBody('html.light .popover-morph-enter .text-white\\/60 {'), /color: #526075/);
   assert.match(css, /html\.light \.ff-row__est \{ color: #526075; \}/);
-  assert.match(css, /html\.light \.pc-12-stat__label \{ color: #526075; \}/);
+  assert.match(css, /html\.light \.pc-12-stat__label[^{]*\{ color: #526075; \}/);
   assert.ok(contrast('#64748b', PAGE) < AA && contrast('#526075', PAGE) >= AA, 'Lý do thay màu');
 });

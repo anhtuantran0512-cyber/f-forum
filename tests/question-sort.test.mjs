@@ -108,7 +108,7 @@ test('Q&A field-notes interface: accessible filters, real result count, light an
   assert.match(source, /aria-pressed=\{isActive\}/);
   assert.match(source, /role="status" aria-live="polite" aria-atomic="true"/);
   assert.match(source, /\{filteredQuestions\.length\} câu phù hợp/);
-  assert.match(source, /ff-qa-detail fixed inset-0/);
+  assert.match(source, /ff-qa-detail[^"]*fixed inset-0/);
   assert.match(css, /html\.light \.ff-qa-room \.ff-qa-card/);
   assert.match(css, /html\.light \.ff-qa-detail/);
   assert.match(css, /prefers-reduced-motion: reduce/);
