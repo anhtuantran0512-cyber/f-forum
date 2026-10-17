@@ -1374,7 +1374,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         const isBuyingThis = busy || buyingItemId === inspected.id;
         const inspectNode = (
           <div
-            className="gb-inspect"
+            className="gb-inspect ff-keep-dark"
             role="dialog"
             aria-modal="true"
             aria-labelledby={`gb-inspect-title-${uid}`}
@@ -1531,7 +1531,7 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
         const unboxedAsset = itemToAsset(unboxed);
         const unboxNode = (
           <div
-            className={`gb-unbox gb-unbox--${unboxRarity} ${rarity === 'mythic' ? 'gb-unbox--mythic-shake' : ''}`}
+            className={`gb-unbox ff-keep-dark gb-unbox--${unboxRarity} ${rarity === 'mythic' ? 'gb-unbox--mythic-shake' : ''}`}
             role="dialog"
             aria-modal="true"
             aria-label={`Đã mở khoá ${unboxed.name}`}
