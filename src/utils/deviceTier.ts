@@ -7,8 +7,7 @@
  *    nghĩa là trình duyệt đang vẽ bằng CPU (không có tăng tốc phần cứng) — dấu hiệu
  *    mạnh nhất. Không tạo được WebGL cũng là dấu hiệu mạnh.
  *  - CPU: navigator.hardwareConcurrency; RAM: navigator.deviceMemory (Chromium).
- *  - FPS đo thật trong ~1 giây lúc trang rảnh.
- *  - Chế độ tiết kiệm dữ liệu (Save-Data).
+ *  - Chế độ tiết kiệm dữ liệu (Save-Data). Không chạy FPS benchmark nền.
  * Máy mạnh không bị đụng tới: chỉ khi tổng điểm "yếu" vượt ngưỡng mới hiện gợi ý.
  */
 
@@ -20,7 +19,6 @@ export interface DeviceSignals {
   renderer?: string;
   webgl: boolean;
   saveData: boolean;
-  fps?: number;
 }
 
 export interface TierAssessment {
@@ -75,15 +73,6 @@ export const scoreDeviceSignals = (signals: DeviceSignals): TierAssessment => {
     }
   }
 
-  if (typeof signals.fps === 'number' && signals.fps > 0) {
-    if (signals.fps < 30) {
-      score += 2;
-      reasons.push(`Đo được khoảng ${Math.round(signals.fps)} khung hình/giây`);
-    } else if (signals.fps < 45) {
-      score += 1;
-    }
-  }
-
   if (signals.saveData) {
     score += 1;
     reasons.push('Đang bật chế độ tiết kiệm dữ liệu');
@@ -93,64 +82,46 @@ export const scoreDeviceSignals = (signals: DeviceSignals): TierAssessment => {
   return { tier, score, reasons, signals };
 };
 
-/** Tên GPU qua WebGL (giải phóng context ngay sau khi đọc). */
-export const readWebglRenderer = (): { webgl: boolean; renderer?: string } => {
-  if (typeof document === 'undefined') return { webgl: true };
+/** Probe one WebGL context, prefer WebGL2, and release it immediately. */
+export const readWebglRenderer = (): { webgl: boolean; webgl2: boolean; renderer?: string } => {
+  if (typeof document === 'undefined') return { webgl: false, webgl2: false };
   try {
     const canvas = document.createElement('canvas');
+    const gl2 = canvas.getContext('webgl2') as WebGL2RenderingContext | null;
+    if (gl2) {
+      const debug = gl2.getExtension('WEBGL_debug_renderer_info');
+      const renderer = String(
+        (debug ? gl2.getParameter(debug.UNMASKED_RENDERER_WEBGL) : null) || gl2.getParameter(gl2.RENDERER) || '',
+      );
+      gl2.getExtension('WEBGL_lose_context')?.loseContext();
+      return { webgl: true, webgl2: true, renderer };
+    }
     const gl = (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
-    if (!gl) return { webgl: false };
+    if (!gl) return { webgl: false, webgl2: false };
     const debug = gl.getExtension('WEBGL_debug_renderer_info');
     const renderer = String(
       (debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : null) || gl.getParameter(gl.RENDERER) || '',
     );
     gl.getExtension('WEBGL_lose_context')?.loseContext();
-    return { webgl: true, renderer };
+    return { webgl: true, webgl2: false, renderer };
   } catch {
-    return { webgl: true };
+    return { webgl: false, webgl2: false };
   }
 };
 
-/** Đo FPS thật bằng requestAnimationFrame (chỉ khi tab đang hiện). */
-export const measureFps = (durationMs = 1000): Promise<number | undefined> =>
-  new Promise((resolve) => {
-    if (typeof window === 'undefined' || typeof requestAnimationFrame !== 'function' || document.hidden) {
-      resolve(undefined);
-      return;
-    }
-    let frames = 0;
-    let start = 0;
-    const tick = (now: number) => {
-      if (!start) start = now;
-      frames += 1;
-      if (document.hidden) {
-        resolve(undefined);
-        return;
-      }
-      if (now - start >= durationMs) {
-        resolve((frames * 1000) / (now - start));
-        return;
-      }
-      requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  });
-
-/** Gom mọi tín hiệu và chấm điểm. */
+/** Collect available passive browser hints; no background FPS benchmark runs. */
 export const assessDeviceTier = async (): Promise<TierAssessment> => {
   const nav = (typeof navigator !== 'undefined' ? navigator : {}) as Navigator & {
     deviceMemory?: number;
     connection?: { saveData?: boolean };
   };
   const gpu = readWebglRenderer();
-  const fps = await measureFps(1000);
   return scoreDeviceSignals({
     cores: typeof nav.hardwareConcurrency === 'number' ? nav.hardwareConcurrency : undefined,
     memoryGb: typeof nav.deviceMemory === 'number' ? nav.deviceMemory : undefined,
     renderer: gpu.renderer,
     webgl: gpu.webgl,
     saveData: Boolean(nav.connection?.saveData),
-    fps,
   });
 };
 

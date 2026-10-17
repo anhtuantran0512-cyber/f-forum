@@ -25,7 +25,6 @@ import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { playChime } from '../utils/audio';
 import { ProfileDropdown } from './ProfileDropdown';
 import { DecoratedAvatar, DecoratedName, UserNameplateBg } from './decorations/DecoratedAvatar';
-import { useUserDecorations, preloadDecorations } from '../utils/decorationStore';
 import { NotificationsModal } from './NotificationsModal';
 import { SettingsModal } from './SettingsModal';
 import { safeStorage } from '../utils/storage';
@@ -597,18 +596,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const isSuperAdmin = isMasterAdmin(currentUser?.email);
 
-  /* Nhiệm vụ 10 — preload asset trang trí của chính user để avatar & tag navbar hiện ngay. */
-  const navDecorations = useUserDecorations(currentUser);
-  useEffect(() => {
-    preloadDecorations([
-      navDecorations.frame?.fullAssetUrl,
-      navDecorations.frame?.animatedAssetUrl,
-      navDecorations.aura?.fullAssetUrl,
-      navDecorations.aura?.animatedAssetUrl,
-      navDecorations.nameplate?.fullAssetUrl,
-      navDecorations.nameplate?.animatedAssetUrl,
-    ]);
-  }, [navDecorations.frame, navDecorations.aura, navDecorations.nameplate]);
 
   useEffect(() => {
     if (!isFlyoutOpen) return;

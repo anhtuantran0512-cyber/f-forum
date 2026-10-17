@@ -1185,3 +1185,9 @@ html.potator-mode .ff-swash-cap {
   transform: none !important;
 }
 
+html.reduce-motion .ff-global-cursor,
+html.potator-mode .ff-global-cursor,
+html.fabulous-mode .ff-global-cursor {
+  display: none !important;
+}
+

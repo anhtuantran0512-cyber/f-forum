@@ -1,16 +1,8 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-/*
- * Nhiệm vụ 10 & Kiến trúc Adaptive Quality — media layer dùng chung cho khung/hào quang/bảng tên:
- *  - Multi-quality Video Decoration (4K / HD / SD) giống YouTube Adaptive Bitrate.
- *  - Priority Hints (fetchPriority="high" cho trang trí của chính user, "low" cho user khác).
- *  - Concurrent Animation Scheduler: ở Tier C, ưu tiên tuyệt đối animation của chính user trước,
- *    giới hạn số animation đồng thời của người khác ở mức an toàn (vượt ngưỡng thì hiển thị
- *    frame tĩnh chất lượng cao fullAssetUrl — không bao giờ cắt bỏ tính năng hay làm mất icon).
- *  - onError của thẻ video → tự chuyển về ảnh tĩnh (file hỏng, trình duyệt kén).
- */
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { buildAdaptiveVideoSources, resolveAssetUrl } from '../../utils/decorations';
-import { supportsWebmAlpha, useCachedAsset } from '../../utils/decorationStore';
+/* Shared native media layer for avatar frames, auras, and nameplates. */
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
+import { resolveAssetUrl, resolveDecorationVideoSource } from '../../utils/decorations';
+import { supportsWebmAlpha } from '../../utils/decorationStore';
 import { animationBudget, useAdaptiveQuality } from '../../utils/adaptiveQuality';
 import { useActiveInViewport, useReducedMotion } from './useDecorationMedia';
 import type { DecorationAssetRef } from './AvatarWithDecoration';
@@ -23,122 +15,109 @@ export const DecorationMedia = ({
   priority = 'auto',
 }: {
   asset: DecorationAssetRef;
-  /** false = placeholder rỗng (chưa vào viewport / không được phép phát). */
   enabled: boolean;
   className?: string;
   animate?: boolean;
-  /** 'high' = trang trí của chính user (luôn ưu tiên tải và chạy animation trước). */
   priority?: 'high' | 'low' | 'auto';
 }) => {
   const instanceId = useId();
+  const hostRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reducedMotion = useReducedMotion();
-  const { tier, capabilities } = useAdaptiveQuality();
+  const { tier } = useAdaptiveQuality();
   const isOwnPriority = priority === 'high';
-  const fetchPriorityAttr: 'high' | 'low' | 'auto' =
-    priority === 'high' ? 'high' : priority === 'low' ? 'low' : 'auto';
-
-  const animated = !!asset.isAnimated && !!asset.animatedAssetUrl;
+  const fetchPriorityAttr: 'high' | 'low' | 'auto' = priority === 'high' ? 'high' : priority === 'low' ? 'low' : 'auto';
+  const animated = Boolean(asset.isAnimated && asset.animatedAssetUrl);
   const baseCanAnimate = animated && enabled && animate && !reducedMotion && supportsWebmAlpha();
-  const withinBudget = useMemo(
-    () => (baseCanAnimate ? animationBudget.acquire(instanceId, isOwnPriority) : true),
-    [baseCanAnimate, instanceId, isOwnPriority],
-  );
+  const isActiveInViewport = useActiveInViewport(hostRef, baseCanAnimate);
+  const sourceKey = asset.animatedAssetUrl || null;
+  const [retryState, setRetryState] = useState(() => ({ source: sourceKey, count: 0, failed: false }));
+  const currentRetry = retryState.source === sourceKey
+    ? retryState
+    : { source: sourceKey, count: 0, failed: false };
+  const subscribeBudget = useCallback((listener: () => void) => animationBudget.subscribe(instanceId, listener), [instanceId]);
+  const getBudgetSnapshot = useCallback(() => animationBudget.hasSlot(instanceId), [instanceId]);
+  const withinBudget = useSyncExternalStore(subscribeBudget, getBudgetSnapshot, () => false);
 
-  const [videoFailed, setVideoFailed] = useState(false);
-  const useVideo = baseCanAnimate && (isOwnPriority || withinBudget) && !videoFailed;
-  const isActiveInViewport = useActiveInViewport(videoRef, useVideo);
+  useEffect(() => () => {
+    if (retryTimerRef.current !== null) clearTimeout(retryTimerRef.current);
+  }, [sourceKey]);
 
-  const adaptiveSet = useVideo
-    ? buildAdaptiveVideoSources(asset.animatedAssetUrl, tier)
-    : null;
-  const targetVideoUrl = adaptiveSet?.primaryUrl || (asset.animatedAssetUrl ? resolveAssetUrl(asset.animatedAssetUrl) : null);
-  const [blobUrl] = useCachedAsset(targetVideoUrl, Boolean(useVideo && targetVideoUrl));
-  const activeVideoSrc = blobUrl || targetVideoUrl;
+  const handleVideoError = () => {
+    if (currentRetry.count >= 2) {
+      setRetryState({ source: sourceKey, count: currentRetry.count, failed: true });
+      return;
+    }
+    const nextCount = currentRetry.count + 1;
+    if (retryTimerRef.current !== null) clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = setTimeout(() => {
+      retryTimerRef.current = null;
+      setRetryState((latest) => latest.source === sourceKey
+        ? { ...latest, count: Math.max(latest.count, nextCount) }
+        : { source: sourceKey, count: nextCount, failed: false });
+    }, nextCount * 800);
+  };
+
+  useEffect(() => {
+    if (baseCanAnimate && isActiveInViewport) animationBudget.acquire(instanceId, isOwnPriority);
+    else animationBudget.release(instanceId);
+    return () => animationBudget.release(instanceId);
+  }, [baseCanAnimate, isActiveInViewport, instanceId, isOwnPriority, tier]);
+
+  const useVideo = baseCanAnimate && isActiveInViewport && (isOwnPriority || withinBudget) && !currentRetry.failed;
+  const videoSource = useVideo ? resolveDecorationVideoSource(asset.animatedAssetUrl) : null;
+  const stillUrl = asset.fullAssetUrl ? resolveAssetUrl(asset.fullAssetUrl) : null;
+  const objectFit = className?.split(/\s+/).includes('npd__media') ? 'cover' : 'contain';
 
   useEffect(() => {
     const currentVideo = videoRef.current;
-    if (!useVideo || !isActiveInViewport) {
-      animationBudget.release(instanceId);
-      if (currentVideo && !currentVideo.paused) {
-        try {
-          currentVideo.pause();
-        } catch {
-          /* ignore */
-        }
-      }
+    if (!useVideo || !isActiveInViewport || !currentVideo) {
+      if (currentVideo && !currentVideo.paused) currentVideo.pause();
       return;
     }
-    const granted = animationBudget.acquire(instanceId, isOwnPriority);
-    if (currentVideo && (isOwnPriority || granted) && currentVideo.paused) {
-      currentVideo.play().catch(() => {});
-    }
+    if ((isOwnPriority || withinBudget) && currentVideo.paused) currentVideo.play().catch(() => {});
     return () => {
-      animationBudget.release(instanceId);
-      if (currentVideo) {
-        try {
-          currentVideo.pause();
-          currentVideo.removeAttribute('src');
-          currentVideo.load();
-        } catch {
-          /* ignore */
-        }
+      try {
+        currentVideo.pause();
+        currentVideo.removeAttribute('src');
+        currentVideo.load();
+      } catch {
+        /* ignore */
       }
     };
-  }, [useVideo, isActiveInViewport, activeVideoSrc, instanceId, isOwnPriority, tier]);
+  }, [useVideo, isActiveInViewport, videoSource?.src, isOwnPriority, withinBudget]);
 
-  if (!enabled) {
-    return <div className={className} aria-hidden="true" />;
-  }
-  const stillUrl = asset.fullAssetUrl ? resolveAssetUrl(asset.fullAssetUrl) : null;
+  if (!enabled) return <div className={className} aria-hidden="true" />;
+  const showStill = Boolean(stillUrl && (!baseCanAnimate || isActiveInViewport));
 
-  const handleVideoLoadedData = (e: React.SyntheticEvent<HTMLVideoElement>) => {
-    if (isActiveInViewport && e.currentTarget.paused) {
-      e.currentTarget.play().catch(() => {});
-    }
-  };
-  const handleVideoError = () => setVideoFailed(true);
-
-  if (useVideo && activeVideoSrc) {
-    return (
-      <video
-        ref={videoRef}
-        className={className}
-        src={activeVideoSrc}
-        poster={stillUrl || undefined}
-        data-quality={capabilities.videoQuality}
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload={isOwnPriority ? 'auto' : 'metadata'}
-        aria-hidden="true"
-        style={{ width: '100%', height: '100%' }}
-        onError={handleVideoError}
-        onLoadedData={handleVideoLoadedData}
-      >
-        {adaptiveSet?.sources.map((source) => (
-          <source
-            key={source.quality}
-            src={source.src}
-            media={source.media}
-            type={source.type}
-          />
-        ))}
-      </video>
-    );
-  }
-  if (!stillUrl) return null;
   return (
-    <img
-      className={className}
-      src={stillUrl}
-      alt=""
-      aria-hidden="true"
-      decoding="async"
-      loading={isOwnPriority ? 'eager' : 'lazy'}
-      fetchPriority={fetchPriorityAttr}
-      style={{ width: '100%', height: '100%' }}
-    />
+    <div ref={hostRef} className={className} aria-hidden="true" style={{ width: '100%', height: '100%', display: 'block' }}>
+      {useVideo && videoSource ? (
+        <video
+          key={currentRetry.count}
+          ref={videoRef}
+          className="awd__deco-media"
+          src={videoSource.src}
+          poster={stillUrl || undefined}
+          loop
+          muted
+          playsInline
+          preload={isOwnPriority ? 'metadata' : 'none'}
+          style={{ width: '100%', height: '100%', objectFit, display: 'block' }}
+          onError={handleVideoError}
+        />
+      ) : showStill ? (
+        <img
+          className="awd__deco-media"
+          src={stillUrl!}
+          alt=""
+          decoding="async"
+          loading={isOwnPriority ? 'eager' : 'lazy'}
+          fetchPriority={fetchPriorityAttr}
+          style={{ width: '100%', height: '100%', objectFit, display: 'block' }}
+        />
+      ) : null}
+    </div>
   );
 };

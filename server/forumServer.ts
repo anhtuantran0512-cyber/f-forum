@@ -15,10 +15,10 @@ import type { EquippedDecorations } from '../src/types/index.ts';
 import { moderateAnswer, type ModerationVerdict } from './answerModeration.ts';
 import {
   adaptivePerfMonitor,
+  localDataAccess,
   multiLayerCache,
-  readWriteDataPlane,
-  respondWithEdgeCache,
-  serviceAndQueue,
+  processLocalTasks,
+  respondWithCacheHeaders,
 } from './adaptiveScale.ts';
 import { dateKeyInTimeZone } from '../shared/dailyTrivia.ts';
 import { GHIBLI_MASKS, getRandomGhibliMask } from '../src/utils/ghibliMasks.ts';
@@ -5063,14 +5063,14 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         }
         if (!infiniteCoins) actor.user.coin = balance - chargePrice;
         actor.user.inventory = [...inventory, itemId];
-        serviceAndQueue.runInShopGachaService(() => {
-          readWriteDataPlane.executeWrite(
+        processLocalTasks.runShopHandler(() => {
+          localDataAccess.executeWrite(
             multiLayerCache,
             [`profile:${actor.user.email}`, 'leaderboard:top'],
             () => persistStoreToDisk(),
           );
         });
-        serviceAndQueue.enqueueTask(
+        processLocalTasks.enqueueTask(
           'gacha.pull',
           { email: actor.user.email, itemId: item.id, price: chargePrice },
           (p) => ({ rewarded: true, ...p }),
@@ -5140,8 +5140,8 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           /* Giữ tương thích client cũ: { itemId: '' } → gỡ badge. */
           actor.user.equippedBadge = '';
         }
-        serviceAndQueue.runInShopGachaService(() => {
-          readWriteDataPlane.executeWrite(
+        processLocalTasks.runShopHandler(() => {
+          localDataAccess.executeWrite(
             multiLayerCache,
             [`profile:${actor.user.email}`],
             () => persistStoreToDisk(),
@@ -5310,14 +5310,14 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       try {
         const body = (await parseJsonBody(req)) || {};
         const recordedTier = adaptivePerfMonitor.recordSample(body);
-        sendJson(res, 200, { success: true, tier: recordedTier });
+        sendJson(res, 200, { success: true, accepted: recordedTier !== null, tier: recordedTier });
       } catch (err: any) {
         handleApiError(res, err);
       }
       return;
     }
 
-    /** PHẦN 4 & 6 — Dashboard giám sát Hiệu năng Đa tầng (Tier A/B/C), Cache, Read Replica & Queue. */
+    /** Process-local adaptive report: observed browser RUM and counters from selected wrappers. */
     if (method === 'GET' && url.split('?')[0] === '/api/admin/performance-tiers') {
       const claims = authorizeRequest(req, null, null);
       const viewer = claims ? store.users[claims.email] : undefined;
@@ -5338,26 +5338,26 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         generatedAt: new Date().toISOString(),
         tiers: adaptivePerfMonitor.getTierReport(),
         cache: multiLayerCache.getStats(),
-        dataPlane: readWriteDataPlane.getStats(),
-        services: serviceAndQueue.getStats(),
-        abQualityExperiments: adaptivePerfMonitor.getABQualityExperiments(),
+        dataAccess: localDataAccess.getStats(),
+        processLocal: processLocalTasks.getStats(),
+        abQualityExperiments: [],
       });
       return;
     }
 
-    /** PHẦN 4.1 & 4.2 — Edge-cached Shop Catalog & Leaderboard snapshot (ETag + Stale-While-Revalidate). */
+    /** Public shop-catalog response with application cache headers and an in-process ETag check. */
     if (method === 'GET' && url.split('?')[0] === '/api/edge/catalog') {
       try {
         const cached = await multiLayerCache.getOrLoad(
           'shop:catalog',
           () =>
-            readWriteDataPlane.executeRead(() => ({
+            localDataAccess.executeRead(() => ({
               count: getActiveDecorationItems().length,
               discounts: getDynamicDiscounts(Date.now(), getActiveDecorationItems()),
             })).result,
           { ttlMs: 60_000, tags: ['shop:catalog'] },
         );
-        if (respondWithEdgeCache(req, res, cached.etag, 60, 300)) return;
+        if (respondWithCacheHeaders(req, res, cached.etag, 60, 300)) return;
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.setHeader('X-Cache-Layer', cached.layer);

@@ -1,108 +1,92 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-/**
- * OUTPUT 6 — Dashboard theo dõi Performance by Device Tier (Tier A / B / C),
- * Multi-layer Caching, Read Replicas, Microservice Queue & A/B Visual Quality (SSIM ≥ 0.95).
- */
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Activity,
-  CheckCircle,
+  AlertCircle,
   Cpu,
   Database,
-  Eye,
   Gauge,
   Layers,
   RefreshCw,
   Server,
-  ShieldCheck,
   Sparkles,
   Wifi,
   Zap,
 } from 'lucide-react';
 import { useAdaptiveQuality, type AdaptiveQualityTier } from '../../utils/adaptiveQuality';
 import { authHeaders } from '../../utils/session';
+import './PerformanceTiersDashboard.css';
 
+interface MetricSummary {
+  samples: number;
+  average: number | null;
+}
 interface TierMetricRow {
   tier: AdaptiveQualityTier;
   label: string;
-  samples: number;
-  avgLcpMs: number;
-  avgFidMs: number;
-  avgFps: number;
-  avgMemoryMb: number;
-  avgSsim: number;
-  videoResolution: string;
-  particleEngine: string;
-  featureParityPercent: number;
+  reports: number;
+  metrics: {
+    lcpMs: MetricSummary;
+    firstInputDelayMs: MetricSummary;
+    jsHeapMb: MetricSummary;
+    activeAnimations: MetricSummary;
+  };
 }
-
 interface PerformanceTiersReport {
   generatedAt: string;
   tiers: Record<AdaptiveQualityTier, TierMetricRow>;
   cache: {
     l1Hits: number;
     l2Hits: number;
-    edge304Hits: number;
+    conditional304Hits: number;
     misses: number;
     invalidations: number;
     totalKeys: number;
-    hitRatePercent: number;
-    redisBackend: string;
+    hitRatePercent: number | null;
+    backend: 'in-process-memory';
   };
-  dataPlane: {
-    primaryWrites: number;
-    replicaReads: number;
-    readWriteRatio: string;
-    shardCount: number;
-    pool: {
-      maxConnections: number;
-      activeConnections: number;
-      idleConnections: number;
-      waitingRequests: number;
-      totalAcquired: number;
-    };
-    replicas: Array<{
-      id: string;
-      region: string;
-      readsHandled: number;
-      activeConnections: number;
-      healthy: boolean;
-    }>;
+  dataAccess: {
+    readOperations: number;
+    writeOperations: number;
+    totalOperations: number;
+    activeOperations: number;
   };
-  services: {
-    microservices: {
-      shopGacha: {
-        status: string;
-        bulkheadLimit: number;
-        activeWorkers: number;
-        totalRequests: number;
-        isolatedFromForumCore: boolean;
-      };
-      forumCore: {
-        status: string;
-        totalRequests: number;
-      };
-    };
-    messageQueue: {
+  processLocal: {
+    shopHandlerCalls: number;
+    taskScheduler: {
       engine: string;
+      durability: string;
       completedJobs: number;
+      failedJobs: number;
       pendingJobs: number;
+      droppedJobs: number;
     };
   };
-  abQualityExperiments: Array<{
-    id: string;
-    name: string;
-    baselineLcpMs: number;
-    optimizedLcpMs: number;
-    ssimScore: number;
-    minRequiredSsim: number;
-    engagementDeltaPercent: number;
-    status: string;
-  }>;
+  abQualityExperiments: Array<{ id: string; name: string; status: string }>;
 }
 
+const formatMetric = (metric: MetricSummary, unit: string, digits = 0): string => {
+  if (metric.average === null) return 'Chưa có mẫu';
+  return `${metric.average.toLocaleString('vi-VN', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  })} ${unit}`;
+};
+const sampleCount = (metric: MetricSummary): string =>
+  `${metric.samples.toLocaleString('vi-VN')} mẫu đo`;
+const readHint = (value: number | null, unit = ''): string =>
+  value === null ? 'Không được trình duyệt cung cấp' : `${value.toLocaleString('vi-VN')}${unit}`;
+
+const MetricCard = ({ label, value, detail }: { label: string; value: string; detail: string }) => (
+  <div className="ff-performance-metric">
+    <div className="ff-performance-muted text-[11px]">{label}</div>
+    <div className="ff-performance-title mt-1 text-base font-bold">{value}</div>
+    <div className="ff-performance-muted mt-0.5 text-[10px]">{detail}</div>
+  </div>
+);
+
 export const PerformanceTiersDashboard: React.FC = () => {
-  const { tier, detectedTier, overrideTier, setOverrideTier, profile, capabilities } =
+  const { tier, detectedTier, overrideTier, setOverrideTier, profile, capabilities, reasons, isReady } =
     useAdaptiveQuality();
   const [report, setReport] = useState<PerformanceTiersReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,324 +95,197 @@ export const PerformanceTiersDashboard: React.FC = () => {
   const loadReport = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/performance-tiers', { headers: authHeaders() });
-      const data = await res.json().catch(() => null);
-      if (res.status !== 200 || !data?.success) {
-        setError(data?.message || `Không tải được dữ liệu hiệu năng (HTTP ${res.status}).`);
+      const response = await fetch('/api/admin/performance-tiers', { headers: authHeaders() });
+      const data = await response.json().catch(() => null);
+      if (response.status !== 200 || !data?.success) {
+        setError(data?.message || `Không tải được báo cáo (HTTP ${response.status}).`);
         return;
       }
       setReport(data as PerformanceTiersReport);
       setError(null);
     } catch {
-      setError('Không kết nối được máy chủ để tải dữ liệu hiệu năng đa tầng.');
+      setError('Không kết nối được máy chủ để tải báo cáo.');
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void loadReport();
-    }, 0);
+    const timer = window.setTimeout(() => void loadReport(), 0);
     return () => window.clearTimeout(timer);
   }, [loadReport]);
 
-  const tierList: TierMetricRow[] = report
+  const tierRows = report
     ? [report.tiers['tier-a'], report.tiers['tier-b'], report.tiers['tier-c']]
     : [];
 
   return (
-    <div className="space-y-4 p-1 text-slate-100">
-      {/* Header & Thiết bị hiện tại */}
-      <div className="rounded-2xl border border-white/10 bg-[#0d1420] p-4 shadow-lg">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-300 border border-amber-400/30">
+    <div className="ff-performance-dashboard space-y-4 p-1">
+      <section className="ff-performance-panel rounded-2xl p-4 sm:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="ff-performance-chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold">
                 <Zap size={12} /> ADAPTIVE QUALITY
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300 border border-emerald-400/25">
-                <CheckCircle size={11} /> SSIM ≥ 0.95
-              </span>
+              <span className="ff-performance-muted text-[11px]">Prototype · browser hints, not a capacity guarantee</span>
             </div>
-            <h3 className="mt-1.5 text-base font-bold text-white">
-              Hiệu năng theo thiết bị (Tier A / B / C)
-            </h3>
+            <h3 className="ff-performance-title mt-2 text-lg font-bold sm:text-xl">Hiệu năng, có số đo mới nói</h3>
+            <p className="ff-performance-muted mt-1 max-w-3xl text-xs leading-relaxed">
+              Tier điều khiển ngân sách hiệu ứng và hạt. Trình duyệt có thể giấu hoặc làm tròn tín hiệu; thiếu dữ liệu sẽ hiện rõ, không tự đoán.
+            </p>
           </div>
-
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-slate-900/90 px-3 py-1.5 text-xs text-slate-300">
-              <span>Chế độ:</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="ff-performance-control inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs">
+              <span>Mức hiệu ứng</span>
               <select
                 value={overrideTier}
-                onChange={(e) => setOverrideTier(e.target.value as AdaptiveQualityTier | 'auto')}
-                className="bg-transparent font-bold text-amber-300 focus:outline-none"
-                aria-label="Chọn phân tầng chất lượng thiết bị"
+                onChange={(event) => setOverrideTier(event.target.value as AdaptiveQualityTier | 'auto')}
+                aria-label="Chọn mức hiệu ứng thích ứng"
+                className="ff-performance-select rounded-lg px-2 py-1 font-bold"
               >
-                <option value="auto" className="bg-slate-900 text-white">
-                  Tự động ({detectedTier.toUpperCase()})
-                </option>
-                <option value="tier-a" className="bg-slate-900 text-white">
-                  Tier A · 4K Ultra
-                </option>
-                <option value="tier-b" className="bg-slate-900 text-white">
-                  Tier B · HD GPU
-                </option>
-                <option value="tier-c" className="bg-slate-900 text-white">
-                  Tier C · Smart SD
-                </option>
+                <option value="auto">Tự động · {detectedTier.toUpperCase()}</option>
+                <option value="tier-a">Đầy đủ</option>
+                <option value="tier-b">Cân bằng</option>
+                <option value="tier-c">Tiết kiệm</option>
               </select>
             </label>
             <button
               type="button"
               onClick={() => void loadReport()}
-              className="ff-tactile-btn inline-flex items-center gap-1.5 rounded-xl border-2 border-[#0b0d12] bg-[#f4f1de] hover:bg-[#f2cc8f] px-3 py-1.5 text-xs font-extrabold text-[#0b0d12] cursor-pointer"
+              className="ff-performance-button inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold"
+              aria-label="Làm mới báo cáo hiệu năng"
             >
-              <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Làm mới
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Làm mới
             </button>
           </div>
         </div>
 
-        {/* Tín hiệu phần cứng trực tiếp của thiết bị đang mở */}
-        <div className="mt-3.5 grid grid-cols-2 gap-2.5 sm:grid-cols-5">
-          <div className="rounded-xl border border-white/8 bg-slate-900/70 p-2.5">
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-              <Sparkles size={12} className="text-amber-400" /> Tier đang chạy
-            </div>
-            <div className="mt-1 text-sm font-bold text-amber-300">{capabilities.badgeText}</div>
-            <div className="text-[11px] text-slate-400">Video: {capabilities.videoQuality.toUpperCase()}</div>
+        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="ff-performance-subpanel rounded-xl p-3">
+            <div className="ff-performance-muted flex items-center gap-2 text-[11px]"><Sparkles size={13} /> Tier đang chạy</div>
+            <div className="ff-performance-title mt-1 text-sm font-bold">{capabilities.badgeText}</div>
+            <div className="ff-performance-muted mt-1 text-[10px]">{isReady ? `Được suy ra: ${reasons.join(' · ') || 'cấu hình mặc định cân bằng'}` : 'Đang đọc tín hiệu thiết bị'}</div>
           </div>
-          <div className="rounded-xl border border-white/8 bg-slate-900/70 p-2.5">
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-              <Cpu size={12} className="text-[#81b29a]" /> CPU & RAM
+          <div className="ff-performance-subpanel rounded-xl p-3">
+            <div className="ff-performance-muted flex items-center gap-2 text-[11px]"><Cpu size={13} /> CPU & bộ nhớ</div>
+            <div className="ff-performance-title mt-1 text-sm font-bold">
+              {isReady ? `${readHint(profile.cores)} nhân · ${readHint(profile.memory, ' GB')}` : 'Đang đọc'}
             </div>
-            <div className="mt-1 text-sm font-bold text-white">
-              {profile.cores} nhân · ~{profile.memory} GB
-            </div>
-            <div className="text-[11px] text-slate-400">
-              Particle: {Math.round(capabilities.particleScale * 100)}% (WebGL)
-            </div>
+            <div className="ff-performance-muted mt-1 text-[10px]">deviceMemory là tín hiệu thô, không phải RAM khả dụng.</div>
           </div>
-          <div className="rounded-xl border border-white/8 bg-slate-900/70 p-2.5">
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-              <Gauge size={12} className="text-violet-400" /> GPU Renderer
+          <div className="ff-performance-subpanel rounded-xl p-3">
+            <div className="ff-performance-muted flex items-center gap-2 text-[11px]"><Gauge size={13} /> GPU & hiệu ứng</div>
+            <div className="ff-performance-title mt-1 truncate text-sm font-bold" title={profile.gpu.renderer || undefined}>
+              {!isReady ? 'Đang kiểm tra' : profile.gpu.renderer || 'Tên GPU không được cung cấp'}
             </div>
-            <div className="mt-1 truncate text-xs font-bold text-white" title={profile.gpu.renderer}>
-              Tier {profile.gpu.tier} · {profile.gpu.webgl2 ? 'WebGL2' : 'WebGL'}
-            </div>
-            <div className="truncate text-[10px] text-slate-400">{profile.gpu.renderer || 'Hardware GPU'}</div>
-          </div>
-          <div className="rounded-xl border border-white/8 bg-slate-900/70 p-2.5">
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-              <Wifi size={12} className="text-emerald-400" /> Kết nối mạng
-            </div>
-            <div className="mt-1 text-sm font-bold text-white">
-              {profile.connection.toUpperCase()} · {profile.downlinkMbps} Mbps
-            </div>
-            <div className="text-[11px] text-slate-400">
-              Save-Data: {profile.saveData ? 'Đang bật' : 'Tắt'}
+            <div className="ff-performance-muted mt-1 text-[10px]">
+              {isReady ? `WebGL${profile.gpu.webgl2 ? '2' : profile.gpu.webgl ? '' : ' · không khả dụng'} · particle ×${capabilities.particleScale}` : 'Chờ kiểm tra'}
             </div>
           </div>
-          <div className="rounded-xl border border-white/8 bg-slate-900/70 p-2.5">
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-              <Eye size={12} className="text-[#f2cc8f]" /> Ưu tiên cá nhân
+          <div className="ff-performance-subpanel rounded-xl p-3">
+            <div className="ff-performance-muted flex items-center gap-2 text-[11px]"><Wifi size={13} /> Kết nối</div>
+            <div className="ff-performance-title mt-1 text-sm font-bold">
+              {!isReady ? 'Đang đọc' : `${profile.connection.toUpperCase()} · ${readHint(profile.downlinkMbps, ' Mbps')}`}
             </div>
-            <div className="mt-1 text-sm font-bold text-emerald-300">fetchpriority=high</div>
-            <div className="text-[11px] text-slate-400">
-              Tối đa {capabilities.maxConcurrentOtherAnimations} video phụ
+            <div className="ff-performance-muted mt-1 text-[10px]">
+              Save-Data: {!isReady || profile.saveData === null ? 'không rõ' : profile.saveData ? 'bật' : 'tắt'} · giảm chuyển động: {!isReady || profile.prefersReducedMotion === null ? 'không rõ' : profile.prefersReducedMotion ? 'bật' : 'tắt'}
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {error && (
-        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-200">
-          {error}
+        <div className="ff-performance-warning flex items-start gap-2 rounded-xl p-3 text-xs" role="alert">
+          <AlertCircle size={15} className="mt-0.5 shrink-0" /> {error}
         </div>
       )}
 
-      {/* 3 cột Real User Monitoring theo Tier A / B / C */}
-      {tierList.length > 0 && (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          {tierList.map((row) => {
-            const isCurrent = row.tier === tier;
-            const borderCls =
-              row.tier === 'tier-a'
-                ? 'border-amber-400/35'
-                : row.tier === 'tier-b'
-                  ? 'border-[#81b29a]/40'
-                  : 'border-emerald-400/35';
-            return (
-              <div
-                key={row.tier}
-                className={`rounded-2xl border bg-[#0e1624] p-4 ${borderCls} ${isCurrent ? 'ring-1 ring-amber-400/50' : ''}`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-extrabold uppercase tracking-wider text-amber-300">
-                    {row.tier.toUpperCase()}
-                  </span>
-                  <span className="rounded-full bg-white/8 px-2 py-0.5 text-[11px] font-semibold text-slate-300">
-                    {row.samples} mẫu RUM
-                  </span>
-                </div>
-                <h4 className="mt-1 text-sm font-bold text-white">{row.label}</h4>
-
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                  <div className="rounded-lg bg-slate-900/80 p-2">
-                    <span className="text-[10px] text-slate-400">LCP trung bình</span>
-                    <div className="text-sm font-bold text-white">{row.avgLcpMs} ms</div>
-                  </div>
-                  <div className="rounded-lg bg-slate-900/80 p-2">
-                    <span className="text-[10px] text-slate-400">FPS thực tế</span>
-                    <div className="text-sm font-bold text-emerald-300">{row.avgFps} FPS</div>
-                  </div>
-                  <div className="rounded-lg bg-slate-900/80 p-2">
-                    <span className="text-[10px] text-slate-400">FID / Phản hồi</span>
-                    <div className="text-sm font-bold text-[#f2cc8f]">{row.avgFidMs} ms</div>
-                  </div>
-                  <div className="rounded-lg bg-slate-900/80 p-2">
-                    <span className="text-[10px] text-slate-400">Điểm nét SSIM</span>
-                    <div className="text-sm font-bold text-amber-300">{row.avgSsim}</div>
-                  </div>
-                </div>
-
-                <div className="mt-3 space-y-1 border-t border-white/8 pt-2.5 text-[11px] text-slate-300">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Luồng Video:</span>
-                    <b className="text-white">{row.videoResolution}</b>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Hệ hạt GPU:</span>
-                    <b className="text-white">{row.particleEngine}</b>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Đầy đủ tính năng:</span>
-                    <b className="text-emerald-300">{row.featureParityPercent}% (Không cắt bớt)</b>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      <section className="ff-performance-panel rounded-2xl p-4 sm:p-5">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h4 className="ff-performance-title flex items-center gap-2 text-sm font-bold"><Activity size={15} /> Real-user observations</h4>
+            <p className="ff-performance-muted mt-1 text-[11px]">Trung bình theo mẫu đã gửi, không phải percentile hay benchmark lab.</p>
+          </div>
+          {report && <time className="ff-performance-muted text-[10px]" dateTime={report.generatedAt}>Cập nhật {new Date(report.generatedAt).toLocaleString('vi-VN')}</time>}
         </div>
-      )}
+        {loading && !report ? (
+          <div className="ff-performance-muted mt-4 rounded-xl p-5 text-center text-sm">Đang tải số liệu…</div>
+        ) : tierRows.length === 0 ? (
+          <div className="ff-performance-muted mt-4 rounded-xl p-5 text-center text-sm">Chưa có dữ liệu để hiển thị.</div>
+        ) : (
+          <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
+            {tierRows.map((row) => (
+              <article key={row.tier} className={`ff-performance-tier rounded-xl p-3 ${row.tier === tier ? 'is-current' : ''}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h5 className="ff-performance-title text-sm font-bold">{row.label}</h5>
+                    <p className="ff-performance-muted mt-0.5 text-[10px]">{row.reports.toLocaleString('vi-VN')} báo cáo có ít nhất một số đo · tier do client chọn</p>
+                  </div>
+                  <span className="ff-performance-tier-tag rounded-full px-2 py-0.5 text-[10px] font-bold">{row.tier.toUpperCase()}</span>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <MetricCard label="Largest Contentful Paint · mean" value={formatMetric(row.metrics.lcpMs, 'ms')} detail={sampleCount(row.metrics.lcpMs)} />
+                  <MetricCard label="First input delay · mean" value={formatMetric(row.metrics.firstInputDelayMs, 'ms')} detail={sampleCount(row.metrics.firstInputDelayMs)} />
+                  <MetricCard label="JS heap · Chromium" value={formatMetric(row.metrics.jsHeapMb, 'MB', 1)} detail={sampleCount(row.metrics.jsHeapMb)} />
+                  <MetricCard label="Active decoration slots" value={formatMetric(row.metrics.activeAnimations, 'slots', 1)} detail={sampleCount(row.metrics.activeAnimations)} />
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+        <p className="ff-performance-muted mt-3 text-[10px] leading-relaxed">
+          Mẫu ẩn danh do client gửi, không gắn tài khoản; số client gửi chưa được xác minh độc lập và chỉ nằm trong tiến trình máy chủ hiện tại.
+        </p>
+      </section>
 
-      {/* Multi-layer Caching + Read Replicas + Microservice Queue */}
       {report && (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <div className="rounded-2xl border border-white/10 bg-[#0d1420] p-4">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#81b29a]">
-              <Layers size={14} /> Multi-Layer Cache (Edge + L1 + Redis)
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+          <section className="ff-performance-panel rounded-2xl p-4">
+            <h4 className="ff-performance-title flex items-center gap-2 text-xs font-bold"><Layers size={14} /> Application cache</h4>
+            <p className="ff-performance-muted mt-1 text-[10px]">Hai Map trong cùng tiến trình Node; không có client Redis.</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <MetricCard label="L1 hits" value={String(report.cache.l1Hits)} detail="Map bộ nhớ thứ nhất" />
+              <MetricCard label="L2-memory hits" value={String(report.cache.l2Hits)} detail="Map bộ nhớ thứ hai" />
+              <MetricCard label="Conditional 304" value={String(report.cache.conditional304Hits)} detail="Phản hồi của ứng dụng" />
+              <MetricCard label="Hit rate · lookup" value={report.cache.hitRatePercent === null ? 'Chưa có mẫu' : `${report.cache.hitRatePercent}%`} detail={`${report.cache.misses} misses`} />
             </div>
-            <div className="mt-2.5 flex items-baseline justify-between">
-              <span className="text-2xl font-extrabold text-white">{report.cache.hitRatePercent}%</span>
-              <span className="text-xs text-emerald-300">Tỉ lệ trúng Cache</span>
+          </section>
+          <section className="ff-performance-panel rounded-2xl p-4">
+            <h4 className="ff-performance-title flex items-center gap-2 text-xs font-bold"><Database size={14} /> Selected store wrappers</h4>
+            <p className="ff-performance-muted mt-1 text-[10px]">Đếm thao tác đọc/ghi đi qua wrapper; không có replica hay physical sharding.</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <MetricCard label="Reads" value={String(report.dataAccess.readOperations)} detail="Các route được bọc" />
+              <MetricCard label="Writes" value={String(report.dataAccess.writeOperations)} detail="Các route được bọc" />
+              <MetricCard label="Operations" value={String(report.dataAccess.totalOperations)} detail={`${report.dataAccess.activeOperations} đang chạy`} />
+              <MetricCard label="Invalidations" value={String(report.cache.invalidations)} detail={`${report.cache.totalKeys} khóa L1 hiện còn`} />
             </div>
-            <div className="mt-2.5 space-y-1 text-xs text-slate-300">
-              <div className="flex justify-between">
-                <span className="text-slate-400">L1 RAM / L2 Redis Hits:</span>
-                <b>{report.cache.l1Hits} / {report.cache.l2Hits}</b>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Edge 304 Not Modified:</span>
-                <b>{report.cache.edge304Hits}</b>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Smart Key Invalidations:</span>
-                <b className="text-amber-300">{report.cache.invalidations} (Chỉ xoá key đổi)</b>
-              </div>
+          </section>
+          <section className="ff-performance-panel rounded-2xl p-4">
+            <h4 className="ff-performance-title flex items-center gap-2 text-xs font-bold"><Server size={14} /> Process-local tasks</h4>
+            <p className="ff-performance-muted mt-1 text-[10px]">Callback bằng setImmediate; volatile, không độc lập với tiến trình.</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <MetricCard label="Shop handler calls" value={String(report.processLocal.shopHandlerCalls)} detail="Trong process hiện tại" />
+              <MetricCard label="Completed / failed" value={`${report.processLocal.taskScheduler.completedJobs} / ${report.processLocal.taskScheduler.failedJobs}`} detail="Tác vụ chạy trong process" />
+              <MetricCard label="Pending" value={String(report.processLocal.taskScheduler.pendingJobs)} detail="Hàng đợi volatile" />
+              <MetricCard label="Dropped from memory" value={String(report.processLocal.taskScheduler.droppedJobs)} detail="Bị loại khi Map quá giới hạn" />
             </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-[#0d1420] p-4">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-violet-300">
-              <Database size={14} /> Read Replicas & Sharding
-            </div>
-            <div className="mt-2.5 text-sm font-bold text-white">{report.dataPlane.readWriteRatio}</div>
-            <div className="mt-2 space-y-1 text-xs text-slate-300">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Horizontal Shards:</span>
-                <b>{report.dataPlane.shardCount} phân mảnh (user_id)</b>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Connection Pool:</span>
-                <b>{report.dataPlane.pool.activeConnections}/{report.dataPlane.pool.maxConnections} kết nối</b>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400"> Cụm Read Replicas:</span>
-                <b className="text-emerald-300">{report.dataPlane.replicas.length} node Online</b>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-[#0d1420] p-4">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-300">
-              <Server size={14} /> Microservices & Message Queue
-            </div>
-            <div className="mt-2.5 text-sm font-bold text-emerald-300">
-              Shop/Gacha tách biệt khỏi Forum Core
-            </div>
-            <div className="mt-2 space-y-1 text-xs text-slate-300">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Shop/Gacha Bulkhead:</span>
-                <b>{report.services.microservices.shopGacha.activeWorkers}/{report.services.microservices.shopGacha.bulkheadLimit} luồng</b>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Async Queue Engine:</span>
-                <b>{report.services.messageQueue.engine.split(' ')[0]}</b>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Tác vụ hoàn tất qua WS:</span>
-                <b>{report.services.messageQueue.completedJobs} jobs</b>
-              </div>
-            </div>
-          </div>
+          </section>
         </div>
       )}
 
-      {/* A/B Testing Visual Quality Gate (SSIM >= 0.95) */}
-      {report && report.abQualityExperiments.length > 0 && (
-        <div className="rounded-2xl border border-white/10 bg-[#0d1420] p-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-300">
-              <ShieldCheck size={15} /> Kiểm định chất lượng (SSIM ≥ 0.95)
-            </div>
-          </div>
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-white/10 text-[11px] text-slate-400">
-                  <th className="pb-2 font-semibold">Hạng mục tối ưu</th>
-                  <th className="pb-2 font-semibold">LCP Trước → Sau</th>
-                  <th className="pb-2 font-semibold">Điểm SSIM</th>
-                  <th className="pb-2 font-semibold">Tương tác</th>
-                  <th className="pb-2 font-semibold">Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/6">
-                {report.abQualityExperiments.map((exp) => (
-                  <tr key={exp.id}>
-                    <td className="py-2 font-semibold text-white">{exp.name}</td>
-                    <td className="py-2 text-slate-300">
-                      {exp.baselineLcpMs}ms → <b className="text-emerald-300">{exp.optimizedLcpMs}ms</b>
-                    </td>
-                    <td className="py-2 font-bold text-amber-300">
-                      {exp.ssimScore} <span className="text-[10px] text-slate-400">(≥ {exp.minRequiredSsim})</span>
-                    </td>
-                    <td className="py-2 font-semibold text-[#81b29a]">
-                      +{exp.engagementDeltaPercent}%
-                    </td>
-                    <td className="py-2">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
-                        <Activity size={10} /> {exp.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <section className="ff-performance-panel rounded-2xl p-4 sm:p-5">
+        <h4 className="ff-performance-title flex items-center gap-2 text-sm font-bold"><Activity size={15} /> Quality experiments</h4>
+        {report?.abQualityExperiments.length ? (
+          <ul className="mt-2 space-y-1 text-xs">{report.abQualityExperiments.map((experiment) => <li key={experiment.id}>{experiment.name} · {experiment.status}</li>)}</ul>
+        ) : (
+          <p className="ff-performance-muted mt-1 text-xs">Chưa có thử nghiệm A/B được xác minh. Tiện ích SSIM/threshold trong mã không đồng nghĩa thử nghiệm đã chạy.</p>
+        )}
+        <div className="ff-performance-muted mt-3 flex items-start gap-2 rounded-xl p-3 text-[10px] leading-relaxed">
+          <AlertCircle size={13} className="mt-0.5 shrink-0" />
+          Không có Redis, database replicas/shards, dịch vụ tách tiến trình hay durable queue trong triển khai này. Báo cáo mô tả prototype một tiến trình; không chứng minh năng lực tải production.
         </div>
-      )}
+      </section>
     </div>
   );
 };

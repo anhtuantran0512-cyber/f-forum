@@ -1,0 +1,109 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
+.ff-performance-dashboard {
+  --ff-performance-ink: #f8f7f4;
+  --ff-performance-muted: #a39f96;
+  --ff-performance-panel: rgba(21, 26, 38, 0.92);
+  --ff-performance-subpanel: rgba(11, 13, 18, 0.52);
+  --ff-performance-line: rgba(248, 247, 244, 0.13);
+  --ff-performance-sand: #e9c46a;
+  color: var(--ff-performance-ink);
+}
+
+.ff-performance-panel {
+  color: var(--ff-performance-ink);
+  border: 1px solid var(--ff-performance-line);
+  background: var(--ff-performance-panel);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12), inset 0 1px rgba(255, 255, 255, 0.035);
+}
+
+.ff-performance-subpanel,
+.ff-performance-metric {
+  min-width: 0;
+  border: 1px solid var(--ff-performance-line);
+  background: var(--ff-performance-subpanel);
+}
+
+.ff-performance-title { color: var(--ff-performance-ink); }
+.ff-performance-muted { color: var(--ff-performance-muted); }
+
+.ff-performance-chip {
+  color: #f2cc8f;
+  border: 1px solid rgba(233, 196, 106, 0.35);
+  background: rgba(233, 196, 106, 0.1);
+}
+
+.ff-performance-control {
+  color: var(--ff-performance-ink);
+  border: 1px solid var(--ff-performance-line);
+  background: var(--ff-performance-subpanel);
+}
+
+.ff-performance-select {
+  color: var(--ff-performance-ink);
+  border: 1px solid var(--ff-performance-line);
+  background: var(--ff-performance-panel);
+  color-scheme: dark;
+}
+
+.ff-performance-select option {
+  color: #f8f7f4;
+  background: #151a26;
+}
+
+.ff-performance-button {
+  color: #211b10;
+  border: 1px solid rgba(154, 93, 30, 0.38);
+  background: #e9c46a;
+  transition: transform 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+  box-shadow: 0 2px 0 rgba(95, 62, 20, 0.5);
+}
+.ff-performance-button:hover { background: #f2cc8f; transform: translateY(-1px); }
+.ff-performance-button:active { transform: translateY(1px); box-shadow: none; }
+.ff-performance-button:focus-visible,
+.ff-performance-select:focus-visible {
+  outline: 2px solid #d97757;
+  outline-offset: 2px;
+}
+
+.ff-performance-tier {
+  border: 1px solid var(--ff-performance-line);
+  background: var(--ff-performance-subpanel);
+}
+.ff-performance-tier.is-current { border-color: rgba(217, 119, 87, 0.75); box-shadow: inset 0 0 0 1px rgba(217, 119, 87, 0.16); }
+.ff-performance-tier-tag { color: #81b29a; background: rgba(129, 178, 154, 0.12); }
+.ff-performance-warning { color: #7b2f1b; border: 1px solid rgba(217, 119, 87, 0.4); background: rgba(217, 119, 87, 0.12); }
+
+html.light .ff-performance-dashboard {
+  --ff-performance-ink: #1c1917;
+  --ff-performance-muted: #625b52;
+  --ff-performance-panel: rgba(255, 253, 248, 0.96);
+  --ff-performance-subpanel: rgba(240, 236, 225, 0.72);
+  --ff-performance-line: rgba(75, 63, 48, 0.16);
+}
+
+html.light .ff-performance-chip,
+html.light .ff-performance-tier-tag {
+  color: #426957;
+  border-color: rgba(66, 105, 87, 0.24);
+  background: rgba(129, 178, 154, 0.19);
+}
+html.light .ff-performance-control { background: rgba(240, 236, 225, 0.82); }
+html.light .ff-performance-select { color-scheme: light; }
+html.light .ff-performance-select option { color: #1c1917; background: #fffdf8; }
+html.light .ff-performance-warning { color: #792f1c; }
+
+html.dark.fabulous-mode .ff-performance-panel,
+html.light.fabulous-mode .ff-performance-panel {
+  border-color: rgba(129, 178, 154, 0.26);
+  backdrop-filter: blur(min(var(--glass-blur, 14px), 18px)) saturate(1.15);
+  -webkit-backdrop-filter: blur(min(var(--glass-blur, 14px), 18px)) saturate(1.15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-performance-button { transition: none; }
+}
+
+@media (max-width: 480px) {
+  .ff-performance-dashboard { font-size: 0.95rem; }
+  .ff-performance-control { width: 100%; justify-content: space-between; }
+}

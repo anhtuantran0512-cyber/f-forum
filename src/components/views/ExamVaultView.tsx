@@ -1,5 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { Suspense, lazy, useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Search,
@@ -73,10 +73,10 @@ import {
   submitExamPaper,
   submitExamReview,
 } from '../../utils/examSubmissionApi';
-import { CbtPracticeModal } from '../exam/CbtPracticeModal';
-import { ExamFlashcardModal } from '../exam/ExamFlashcardModal';
-import { ExamBookmarkDrawer } from '../exam/ExamBookmarkDrawer';
-import { ExamPrintExportModal } from '../exam/ExamPrintExportModal';
+const CbtPracticeModal = lazy(() => import('../exam/CbtPracticeModal').then((module) => ({ default: module.CbtPracticeModal })));
+const ExamFlashcardModal = lazy(() => import('../exam/ExamFlashcardModal').then((module) => ({ default: module.ExamFlashcardModal })));
+const ExamBookmarkDrawer = lazy(() => import('../exam/ExamBookmarkDrawer').then((module) => ({ default: module.ExamBookmarkDrawer })));
+const ExamPrintExportModal = lazy(() => import('../exam/ExamPrintExportModal').then((module) => ({ default: module.ExamPrintExportModal })));
 import { getCachedExamIds, OFFLINE_EXAMS_CACHE_KEY } from '../exam/offlineStorage';
 import './ExamVaultView.css';
 
@@ -2666,6 +2666,14 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         modalPortalRoot,
       )}
 
+      <Suspense fallback={(
+        <div className="fixed inset-0 z-[110] grid place-items-center bg-[#0b0d12]/65 p-4 backdrop-blur-sm" role="status" aria-live="polite">
+          <div className="ff-tactile-panel flex items-center gap-3 rounded-2xl border border-amber-300/20 bg-neutral-950/95 px-4 py-3 text-sm text-amber-100 shadow-2xl">
+            <Sparkles className="h-4 w-4 animate-pulse text-amber-300" aria-hidden="true" />
+            <span>Đang mở công cụ học tập…</span>
+          </div>
+        </div>
+      )}>
       {/* ======================================================== */}
       {/* 7. CBT PRACTICE MODE MODAL                               */}
       {/* ======================================================== */}
@@ -2698,23 +2706,25 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       {/* ======================================================== */}
       {/* 8. EXAM BOOKMARK / YÊU THÍCH DRAWER                       */}
       {/* ======================================================== */}
-      <ExamBookmarkDrawer
-        isOpen={isBookmarkDrawerOpen}
-        onClose={() => setIsBookmarkDrawerOpen(false)}
-        savedExamIds={savedExams}
-        allPapers={allPapers}
-        cachedExamIds={cachedExamIds}
-        onRemoveBookmark={handleRemoveBookmark}
-        onClearAllBookmarks={handleClearAllBookmarks}
-        onSelectPreview={(p) => {
-          setIsBookmarkDrawerOpen(false);
-          openExamViewer(p.id);
-        }}
-        onOpenPrint={(p) => {
-          setIsBookmarkDrawerOpen(false);
-          handleOpenPrint(p);
-        }}
-      />
+      {isBookmarkDrawerOpen && (
+        <ExamBookmarkDrawer
+          isOpen
+          onClose={() => setIsBookmarkDrawerOpen(false)}
+          savedExamIds={savedExams}
+          allPapers={allPapers}
+          cachedExamIds={cachedExamIds}
+          onRemoveBookmark={handleRemoveBookmark}
+          onClearAllBookmarks={handleClearAllBookmarks}
+          onSelectPreview={(p) => {
+            setIsBookmarkDrawerOpen(false);
+            openExamViewer(p.id);
+          }}
+          onOpenPrint={(p) => {
+            setIsBookmarkDrawerOpen(false);
+            handleOpenPrint(p);
+          }}
+        />
+      )}
 
       {/* ======================================================== */}
       {/* 9. EXAM PRINT & EXPORT MODAL                             */}
@@ -2726,6 +2736,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           onPrint={() => showToast('Trong hộp thoại in, chọn “Lưu dưới dạng PDF” để lưu tệp.')}
         />
       )}
+      </Suspense>
 
       {/* ======================================================== */}
       {/* 10. TOAST NOTIFICATION                                   */}

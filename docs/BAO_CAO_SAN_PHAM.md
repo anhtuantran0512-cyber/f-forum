@@ -12,7 +12,7 @@
   - Học sinh THCS/THPT cần môi trường hỏi đáp bài tập, ôn luyện và tự học tập trung.
   - Ban chủ nhiệm các Câu lạc bộ học thuật & ngoại khóa trong nhà trường.
   - Giáo viên cố vấn và Ban quản trị nhà trường trong công tác theo dõi, định hướng phong trào tự học.
-- **Giá trị cốt lõi**: Chuẩn hóa việc trao đổi tri thức học đường, kết hợp cơ chế trò chơi hóa (Gamification) mang bản sắc văn hóa Việt Nam (*Hệ thống 8 bậc danh hiệu Tre Việt*) và công cụ tự học tập trung (Pomodoro) trên một kiến trúc kỹ thuật tối ưu, bảo mật và miễn phí 100% cho học sinh.
+- **Giá trị cốt lõi**: Chuẩn hóa việc trao đổi tri thức học đường, kết hợp trò chơi hóa mang bản sắc văn hóa Việt Nam (*8 bậc Tre Việt*) và công cụ Pomodoro. Đây là nguyên mẫu web phục vụ đánh giá và thử nghiệm; báo cáo kiểm thử trong repo không đồng nghĩa hệ thống đã được chứng minh ở quy mô triển khai cho toàn trường hoặc quy mô lớn.
 
 ---
 
@@ -38,12 +38,12 @@ Trong bối cảnh chuyển đổi số giáo dục, học sinh có nhu cầu r�
 | **Động lực học tập (Gamification)** | Không có | Điểm số đơn điệu | **Hệ thống 8 bậc "Tre Việt" (150 cấp), XP, Coin, Nhiệm vụ ngày, Chuỗi ngày học** |
 | **Không gian tự học (Pomodoro)** | Không có | Không có | **Tích hợp đồng hồ Pomodoro, thống kê giờ tự học tuần & âm thanh tập trung** |
 | **Kiểm duyệt nội dung & An toàn** | Thủ công hoàn toàn | Nhiều câu trả lời rác / quảng cáo | **Kiểm duyệt liên quan đề bài phía máy chủ + Hệ thống báo cáo Quản trị viên** |
-| **Tối ưu thiết bị cấu hình thấp** | Tốn bộ nhớ khi nhiều ảnh/video | Nặng do kịch bản quảng cáo | **Kiến trúc Đồ họa Thích ứng 3 cấp độ (Tier A/B/C), tự dừng hiệu ứng khi khuất** |
+| **Phản hồi theo thiết bị** | Tuỳ nền tảng | Tuỳ nền tảng | **Heuristic Tier A/B/C điều chỉnh ngân sách hạt/hoạt ảnh trang trí; một số video tạm dừng ngoài viewport. Chưa có benchmark đa thiết bị.** |
 
 ### 3. Mục tiêu nghiên cứu và xây dựng sản phẩm
 - **Về mặt học thuật**: Xây dựng không gian hỏi - đáp có cấu trúc chặt chẽ cho 9 môn học phổ thông, hỗ trợ tự động lưu nháp lời giải và vinh danh *Lời giải hay nhất*.
 - **Về mặt rèn luyện kỹ năng**: Hình thành thói quen tự học mỗi ngày thông qua phòng học Pomodoro, hệ thống Nhiệm vụ hằng ngày (Daily Quests) và Chuỗi ngày học tập (Fire Streak).
-- **Về mặt kỹ thuật**: Thiết kế hệ thống Full-stack TypeScript hiện đại, bảo mật cao, đạt chuẩn kiểm thử tự động và vận hành mượt mà trên mọi thiết bị của học sinh.
+- **Về mặt kỹ thuật**: Xây dựng ứng dụng full-stack TypeScript có kiểm thử hồi quy, các kiểm soát bảo mật cụ thể và bố cục đáp ứng. Chưa có đánh giá độc lập về bảo mật hoặc xác nhận hiệu năng trên mọi thiết bị.
 
 ---
 
@@ -63,7 +63,7 @@ F-Forum được thiết kế theo mô hình **Client – Server kết hợp tru
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                 TẦNG BẢO MẬT & KIỂM DUYỆT (SECURITY TIER)                  │
 │  AuthGuard (HttpOnly Cookie + Bearer) · Rate Limiter · Input/URL Sanitizer │
-│  CSP Middleware · Anti-CSWSH Origin Check · Relevance AI Content Filter    │
+│  CSP Middleware · Anti-CSWSH Origin Check · Moderation (heuristic / optional AI) │
 └──────────────────────────────────────┬─────────────────────────────────────┘
                                        │
                                        ▼
@@ -76,7 +76,7 @@ F-Forum được thiết kế theo mô hình **Client – Server kết hợp tru
                                        ▼
 ┌────────────────────────────────────────────────────────────────────────────┐
 │               TẦNG LƯU TRỮ & ĐỒNG BỘ (PERSISTENCE & CACHE TIER)            │
-│  Multi-Layer Cache (Smart Invalidation) + Atomic JSON/File Store + Backup  │
+│  Atomic local JSON store + bounded, process-local in-memory Maps            │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -91,9 +91,9 @@ F-Forum được thiết kế theo mô hình **Client – Server kết hợp tru
 | **Biểu tượng & Phông chữ** | **Lucide React & Geist Mono** | `^1.48.0` | Bộ biểu tượng vector đồng nhất và phông chữ kỹ thuật hỗ trợ hiển thị số liệu, cấp bậc và công thức rõ nét. |
 | **Công cụ Đóng gói** | **Vite** | `^8.3.0` | Máy chủ phát triển tốc độ cao (HMR) và đóng gói phân mảnh mã nguồn (Code-splitting) tối ưu dung lượng tải trang. |
 | **Máy chủ & Thời gian thực** | **Node.js HTTP + `ws`** | `^8.22.0` | Xử lý toàn bộ REST API nghiệp vụ và duy trì kênh truyền sự kiện thời gian thực qua WebSocket. |
-| **Xử lý Hình ảnh** | **Sharp + HTML5 Canvas** | `^0.34.5` | Xóa siêu dữ liệu nhạy cảm (EXIF), làm nét cạnh (Unsharp Mask) và xuất 3 kích cỡ ảnh (`thumb`, `medium`, `original`) chuẩn `.webp`. |
+| **Xử lý Hình ảnh** | **Sharp + HTML5 Canvas** | `^0.35.5` | Loại bỏ EXIF, tạo các biến thể ảnh WebP (`thumb`, `medium`, `original`) và hỗ trợ xử lý phía trình duyệt. |
 | **Mã hóa & Xác thực** | **Node `crypto.scrypt` + `bcryptjs`** | `^3.0.3` | Băm mật khẩu một chiều kèm muối ngẫu nhiên, ký xác thực token phiên và bảo vệ mật khẩu Super Admin bằng biến môi trường. |
-| **Kiểm tra Chất lượng** | **Oxlint & Node Test Runner** | `^1.81.0` | Phân tích tĩnh 237 tệp mã nguồn trong `< 1 giây` và thực thi hơn 30 bộ kiểm thử tích hợp tự động. |
+| **Kiểm tra Chất lượng** | **Oxlint & Node Test Runner** | `^1.81.0` | Phân tích tĩnh mã nguồn và chạy bộ kiểm thử hồi quy của repo; thời gian phụ thuộc môi trường. |
 
 ### 3. Cấu trúc tổ chức mã nguồn dự án
 
@@ -132,9 +132,9 @@ Hệ thống quản lý 7 nhóm thực thể chính với cấu trúc chặt ch�
 7. **`ReportRecord` (Báo cáo vi phạm)**: Lưu thông tin tố cáo ẩn danh người gửi đối với người dùng thường (`id`, `targetUserId`, `targetUserName`, `reason`, `details`, `status`, `createdAt`).
 
 ### 5. Các giải pháp kỹ thuật chuyên sâu trong sản phẩm
-1. **Kiến trúc Chất lượng Đồ họa Thích ứng 3 Cấp độ (3-Tier Adaptive Quality Engine)**:
-   - Tự động phân tích phần cứng thiết bị (số luồng CPU, dung lượng RAM, bộ giải mã WebM Alpha và tùy chọn hệ điều hành) để xếp thiết bị vào **Tier A (Cao)**, **Tier B (Trung bình)** hoặc **Tier C (Tiết kiệm)**.
-   - Quản lý ngân sách hoạt ảnh đồng thời (ưu tiên tuyệt đối cho ảnh đại diện của chính người dùng đang đăng nhập) và tự động tạm dừng giải mã video khi phần tử cuộn ra khỏi màn hình (`IntersectionObserver`).
+1. **Heuristic ngân sách hiệu ứng theo tín hiệu thiết bị (Tier A/B/C)**:
+   - Dùng các gợi ý trình duyệt sẵn có như `deviceMemory`, `hardwareConcurrency`, WebGL renderer, loại kết nối, Save-Data và tuỳ chọn giảm chuyển động. API có thể bị trình duyệt ẩn hoặc làm tròn; thiếu bằng chứng dùng Tier B cân bằng. Đây không phải benchmark GPU/FPS và không phân loại bộ giải mã video.
+   - Các tier hiện điều chỉnh mật độ hạt và ngân sách hoạt ảnh trang trí của người khác; hoạt ảnh của chính người dùng được ưu tiên. Một số video native được tải gần viewport và tạm dừng khi ra khỏi vùng nhìn thấy. Không có các bản video 4K/HD/SD riêng theo tier.
 2. **Đường ống Xử lý Ảnh Kép (Client + Server Image Pipeline)**:
    - **Phía trình duyệt**: Áp dụng bộ lọc làm nét cạnh có ngưỡng (`Unsharp Mask` chỉ làm nét chữ viết/công thức trên ảnh chụp vở, giữ nguyên vùng phẳng để không làm nhiễu ảnh) và công cụ cắt bố cục lưới 3×3 trực quan.
    - **Phía máy chủ**: Thư viện `Sharp` tự động tước bỏ toàn bộ siêu dữ liệu EXIF (bảo vệ quyền riêng tư vị trí của học sinh) và sinh 3 bản ảnh `.webp` (`thumb`, `medium`, `original`) với tiêu đề `Cache-Control: public, max-age=31536000, immutable`.
@@ -206,15 +206,27 @@ Hệ thống quản lý 7 nhóm thực thể chính với cấu trúc chặt ch�
 
 ## V. KẾT QUẢ KIỂM THỬ VÀ ĐÁNH GIÁ CHẤT LƯỢNG KỸ THUẬT
 
-Sản phẩm được kiểm chứng tự động qua 3 lớp kiểm tra chất lượng nghiêm ngặt:
+Tại lần kiểm tra mã nguồn ngày 17-10-2026, các lệnh hồi quy trong repo cho kết quả sau:
 
-| Hạng mục kiểm tra | Công cụ thực thi | Phạm vi kiểm tra | Kết quả đạt được |
-| :--- | :--- | :--- | :--- |
-| **Kiểm tra kiểu tĩnh** | `npx tsc -b --noEmit` | Toàn bộ tệp `.ts` và `.tsx` (Frontend & Backend) | **Đạt 100% (0 lỗi biên dịch)** |
-| **Phân tích tĩnh mã nguồn** | `npx oxlint` | 237 tệp mã nguồn với 116 quy tắc kiểm tra | **0 lỗi (Errors), 0 cảnh báo (Warnings)** |
-| **Kiểm thử tích hợp & Bảo mật** | `node --test tests/*.test.mjs` | Hơn 30 bộ kiểm thử chuyên sâu (79+ kịch bản con) | **100% kịch bản vượt qua (Pass)** |
-| **Kiểm tra độ tương phản Sáng/Tối** | `generate-light-adapter.mjs` + Test | Đồng bộ chủ đề Dark Mode & Pastel Light Mode | **Đạt chuẩn hiển thị & độ tương phản** |
-| **Kiểm toán hiệu năng CSS GPU** | `adaptive-quality-architecture.test.mjs` | Quét toàn bộ `@keyframes` trong `src/**/*.css` | **0 hoạt ảnh gây Layout Reflow** |
+| Hạng mục kiểm tra | Lệnh | Kết quả ghi nhận |
+| :--- | :--- | :--- |
+| **TypeScript + production build** | `npm run build` | Thành công (`tsc -b` và Vite build) |
+| **Phân tích tĩnh** | `npm run lint` | 0 lỗi, 0 cảnh báo trong lần chạy này |
+| **Kiểm thử hồi quy** | `npm test` | 437/437 test pass trong lần chạy này |
+| **Kiểm toán dependency** | `npm audit --audit-level=low` | 0 vulnerability được npm audit báo cáo tại thời điểm kiểm tra |
+| **Light adapter** | `node scripts/generate-light-adapter.mjs --check` | Generated CSS khớp với class hiện có |
+
+Đây là kết quả của bộ kiểm tra tự động trong repo, không phải chứng nhận bảo mật, kiểm thử tải production hay xác nhận trải nghiệm trên mọi mẫu thiết bị. Kiểm thử CSS xác minh các `@keyframes` hiện có không animate một số thuộc tính gây layout reflow; điều đó không chứng minh toàn bộ UI đạt một FPS cụ thể.
+
+### Phạm vi triển khai và giới hạn cần nêu khi đánh giá
+
+- Backend dùng một tiến trình Node và một kho JSON cục bộ theo cấu hình triển khai. Cache, RUM và callback task trong `server/adaptiveScale.ts` đều nằm trong bộ nhớ của tiến trình; trạng thái của chúng mất khi tiến trình khởi động lại. Không có Redis, cơ sở dữ liệu quan hệ, read replica, physical sharding, durable queue hoặc các microservice độc lập trong đường chạy được mô tả ở đây.
+- Cache headers/ETag do ứng dụng trả về không chứng minh đã có CDN. Hệ thống không có kết quả kiểm thử tải đa nút hoặc SLO được đo trên môi trường production.
+- Bảng hiệu năng nhận mẫu do client gửi, gộp trung bình trong bộ nhớ tiến trình và không xác minh độc lập tier hoặc nội dung mẫu. Chỉ hiển thị những trường trình duyệt quan sát được; đây không phải telemetry đại diện toàn bộ người dùng.
+- Bộ kiểm duyệt câu trả lời dùng heuristic xác định khi không cấu hình khoá nhà cung cấp AI; tích hợp AI là tuỳ chọn và không thay thế giáo viên duyệt nội dung.
+- Tiện ích SSIM/A-B trong mã không đồng nghĩa đã chạy thí nghiệm. Không có số đo FPS/SSIM production hay kết quả A/B được xác minh trong báo cáo này.
+
+Xem [`ADAPTIVE_QUALITY_ARCHITECTURE.md`](ADAPTIVE_QUALITY_ARCHITECTURE.md) để biết mô tả chi tiết về tín hiệu trình duyệt, mẫu RUM và các giới hạn kiến trúc.
 
 ---
 
@@ -226,24 +238,24 @@ Sản phẩm được kiểm chứng tự động qua 3 lớp kiểm tra chất 
 
 ### 2. Các lệnh vận hành chính
 ```bash
-# 1. Cài đặt các gói phụ thuộc
-npm install
+# 1. Cài đặt chính xác theo lockfile
+npm ci
 
-# 2. Khởi chạy máy chủ phát triển (Frontend + Backend + WebSocket trên cổng 5173)
+# 2. Khởi chạy máy chủ phát triển (client + server plugin + WebSocket)
 npm run dev
 
-# 3. Sinh tự động bộ chuyển đổi giao diện Sáng (Light Mode Adapter)
+# 3. Sinh bộ chuyển đổi giao diện Sáng khi class trong src/ thay đổi
 npm run gen:light
 
-# 4. Kiểm tra lỗi mã nguồn và kiểu dữ liệu
+# 4. Kiểm tra mã và chạy toàn bộ regression suite
 npm run lint
-npx tsc -b --noEmit
-
-# 5. Chạy bộ kiểm thử tự động toàn diện
 npm test
 
-# 6. Đóng gói bản phát hành chính thức (Production Build)
+# 5. Tạo production build (bao gồm kiểm tra TypeScript)
 npm run build
+
+# 6. Kiểm tra dependency advisories
+npm audit --audit-level=low
 ```
 
 ---

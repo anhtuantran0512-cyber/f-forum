@@ -143,7 +143,9 @@ test('2. CSP phủ ĐỦ mọi nguồn ngoài mà index.html và SDK đăng nh�
   const csp = buildContentSecurityPolicy({ mode: 'preview', host: 'fforum.example', frameAncestors: "'self'" });
   const directive = (name) => csp.split('; ').find((d) => d.startsWith(`${name} `)) || '';
   const html = read('index.html');
+  const oauth = read('src/utils/oauth.ts');
   const main = read('src/main.tsx');
+  assert.doesNotMatch(main, /connect\.facebook\.net|accounts\.google\.com\/gsi\/client/);
 
   for (const m of html.matchAll(/<link[^>]+href="(https:\/\/[^"]+)"[^>]*rel="stylesheet"|<link[^>]+rel="stylesheet"[^>]+href="(https:\/\/[^"]+)"/g)) {
     const origin = new URL(m[1] || m[2]).origin;
@@ -154,8 +156,8 @@ test('2. CSP phủ ĐỦ mọi nguồn ngoài mà index.html và SDK đăng nh�
     assert.ok(directive('font-src').includes(origin) || directive('img-src').includes('https:'), `font/img-src thiếu ${origin}`);
   }
   assert.ok(directive('font-src').includes('https://fonts.gstatic.com'), 'font Google');
-  assert.ok(main.includes('connect.facebook.net') && directive('script-src').includes('https://connect.facebook.net'), 'SDK Facebook');
-  assert.ok(main.includes('accounts.google.com/gsi/client') && directive('script-src').includes('https://accounts.google.com'), 'SDK Google');
+  assert.ok(oauth.includes('connect.facebook.net') && directive('script-src').includes('https://connect.facebook.net'), 'SDK Facebook on demand');
+  assert.ok(oauth.includes('accounts.google.com/gsi/client') && directive('script-src').includes('https://accounts.google.com'), 'SDK Google on demand');
 
   /* Mọi video trong mã nguồn đều đến từ host được phép ở media-src. */
   const srcFiles = fs.readdirSync('src', { recursive: true }).filter((f) => /\.(tsx?|css)$/.test(f));
@@ -575,10 +577,10 @@ test('16. Client: unsharp mask làm nét cạnh nhưng giữ nguyên vùng phẳ
 /* -------------------------------------------------------------------------- */
 
 test('17. Chấm điểm thiết bị: máy vẽ bằng CPU + 2 luồng → gợi ý; máy mạnh không bao giờ bị làm phiền', () => {
-  const weak = scoreDeviceSignals({ webgl: true, renderer: 'ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)))', cores: 2, memoryGb: 2, saveData: false, fps: 24 });
+  const weak = scoreDeviceSignals({ webgl: true, renderer: 'ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)))', cores: 2, memoryGb: 2, saveData: false });
   assert.equal(weak.tier, 'low');
   assert.ok(weak.reasons.some((r) => r.includes('CPU')), 'nêu lý do dễ hiểu');
-  const strong = scoreDeviceSignals({ webgl: true, renderer: 'ANGLE (NVIDIA GeForce RTX 4070)', cores: 16, memoryGb: 8, saveData: false, fps: 144 });
+  const strong = scoreDeviceSignals({ webgl: true, renderer: 'ANGLE (NVIDIA GeForce RTX 4070)', cores: 16, memoryGb: 8, saveData: false });
   assert.equal(strong.tier, 'high');
   assert.equal(scoreDeviceSignals({ webgl: false, saveData: false, cores: 8 }).tier, 'mid', 'thiếu WebGL đơn lẻ chưa đủ kết luận máy yếu');
 
@@ -613,7 +615,8 @@ test('19. Lazy-load: video nền chỉ giải mã khi cần, canvas dừng khi k
   assert.ok(tri.includes("data-ff-idle={idx === currentIdx ? undefined : '1'}"), 'video chờ lượt được đánh dấu');
   assert.ok(read('src/App.tsx').includes("if (v.dataset.ffIdle === '1') return;"), 'App không đánh thức video chờ lượt');
   const boomerang = read('src/components/BoomerangVideoBg.tsx');
-  assert.ok(boomerang.includes('new IntersectionObserver') && boomerang.includes('isActive()'), 'canvas 30fps dừng khi khuất / tab ẩn');
+  assert.ok(boomerang.includes('useActiveInViewport') && boomerang.includes('videoInViewport'), 'video nền chỉ được gắn nguồn gần viewport');
+  assert.ok(boomerang.includes('!reducedMotion && !saveData'), 'video nền tôn trọng reduced-motion và Save-Data');
 
   const eager = new Set(['Navbar.tsx', 'LandingNav.tsx', 'ViewTransitionLoader.tsx']);
   const files = fs.readdirSync('src', { recursive: true }).filter((f) => f.endsWith('.tsx'));
