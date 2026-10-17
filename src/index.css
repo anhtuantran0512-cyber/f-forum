@@ -6721,3 +6721,62 @@ html.light .ff-chat-main-pane .ff-chat-bubble-me,
 html.dark .ff-chat-main-pane .ff-chat-bubble-me {
   background: linear-gradient(135deg, #b95439 0%, #9c4630 100%) !important;
 }
+
+/* ---------------------------------------------------------------
+   Flyout tài khoản (Đợt 3) — chế độ sáng: nền giấy gần đục để nội
+   dung trang không xuyên qua; email, cấp bậc, coin, tố cáo và đăng
+   xuất đều đủ tương phản trên nền sáng.
+   --------------------------------------------------------------- */
+html.light .ff-profile-surface {
+  background-color: #fdf9f2 !important;
+  border-color: rgba(28, 25, 23, 0.14) !important;
+  box-shadow: 0 18px 48px rgba(60, 48, 30, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  color: #1c1917 !important;
+}
+html.light .ff-profile-surface .ff-discord-userbar {
+  background: rgba(255, 255, 255, 0.66) !important;
+  border-color: rgba(28, 25, 23, 0.12) !important;
+}
+html.light .ff-profile-surface .ff-profile-rank {
+  background: rgba(255, 255, 255, 0.6) !important;
+  border-color: rgba(28, 25, 23, 0.1) !important;
+}
+html.light .ff-profile-surface .ff-profile-tier-name {
+  color: #92400e !important;
+}
+html.light .ff-profile-surface .ff-profile-role-chip {
+  background: rgba(245, 158, 11, 0.14) !important;
+  border-color: rgba(180, 83, 9, 0.32) !important;
+  color: #92400e !important;
+}
+html.light .ff-profile-surface .ff-profile-coin-value {
+  color: #92400e !important;
+}
+html.light .ff-profile-surface .ff-profile-progress {
+  background: rgba(28, 25, 23, 0.12) !important;
+}
+html.light .ff-profile-surface .ff-profile-divider {
+  background: rgba(28, 25, 23, 0.12) !important;
+}
+html.light .ff-profile-surface .ff-profile-report {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(180, 83, 9, 0.32) !important;
+  color: #92400e !important;
+}
+html.light .ff-profile-surface .ff-profile-logout {
+  background: rgba(220, 38, 38, 0.08) !important;
+  border-color: rgba(185, 28, 28, 0.26) !important;
+  color: #b91c1c !important;
+}
+html.light .ff-profile-surface .text-white\/75 {
+  color: #57534e !important;
+  text-shadow: none !important;
+}
+html.light .ff-profile-surface .text-white\/60 {
+  color: #6b6459 !important;
+}
+
+/* Flyout tài khoản — nền tối đặc hoàn toàn để chữ trang chủ không xuyên qua. */
+html.dark .ff-profile-surface {
+  background-color: #0c1218 !important;
+}
