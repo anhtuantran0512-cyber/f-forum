@@ -27,6 +27,33 @@ const DEFAULT_HINTS = [
   'Chuẩn bị xong — mời bạn vào',
 ];
 
+export const RouteConsole: React.FC<{ targetLabel?: string; signal: string }> = ({ targetLabel, signal }) => (
+  <div className="la-09__console" aria-hidden="true">
+    <div className="la-09__console-head">
+      <span className="la-09__console-leds"><i /><i /><i /></span>
+      <span className="la-09__console-name">F-FORUM / ROUTE CONSOLE</span>
+      <span className="la-09__console-live">LIVE</span>
+    </div>
+    <div className="la-09__console-body">
+      <p className="la-09__console-line">
+        <span className="la-09__console-prompt">$</span>
+        <span className="la-09__console-key">route.open</span>
+        <strong>“{targetLabel || 'phân khu'}”</strong>
+      </p>
+      <p className="la-09__console-line">
+        <span className="la-09__console-prompt">›</span>
+        <span className="la-09__console-key">signal</span>
+        <span className="la-09__console-value">{signal}</span>
+      </p>
+      <p className="la-09__console-note">
+        <span className="la-09__console-prompt">✦</span>
+        <span>Khung hình tiếp theo đang được dựng</span>
+        <i className="la-09__console-cursor" />
+      </p>
+    </div>
+  </div>
+);
+
 export const ViewTransitionLoader: React.FC<ViewTransitionLoaderProps> = ({
   visible,
   targetLabel,
@@ -35,6 +62,8 @@ export const ViewTransitionLoader: React.FC<ViewTransitionLoaderProps> = ({
   onSkip,
 }) => {
   const [hintIndex, setHintIndex] = useState(0);
+  const safeHints = hints.length > 0 ? hints : DEFAULT_HINTS;
+  const currentHint = safeHints[hintIndex % safeHints.length];
 
   /* Bấm chuột hoặc Esc là thoát màn chờ ngay — không bao giờ kẹt ở màn hình này */
   useEffect(() => {
@@ -76,42 +105,46 @@ export const ViewTransitionLoader: React.FC<ViewTransitionLoaderProps> = ({
         }}
       />
 
-      <section
-        className="la-09__card"
-        role="status"
-        aria-live="polite"
-        aria-label={`Đang tải ${targetLabel || 'phân khu'}`}
-      >
-        <div className="la-09__deck" aria-hidden="true">
-          <span className="la-09__disc">
-            <span className="la-09__label" />
-            <span className="la-09__spindle" />
-          </span>
-          <span className="la-09__gloss" />
-          <span className="la-09__arm">
-            <i className="la-09__post" />
-            <i className="la-09__head" />
-          </span>
-        </div>
+      <div className="la-09__stage">
+        <section
+          className="la-09__card"
+          role="status"
+          aria-live="polite"
+          aria-label={`Đang tải ${targetLabel || 'phân khu'}`}
+        >
+          <div className="la-09__deck" aria-hidden="true">
+            <span className="la-09__disc">
+              <span className="la-09__label" />
+              <span className="la-09__spindle" />
+            </span>
+            <span className="la-09__gloss" />
+            <span className="la-09__arm">
+              <i className="la-09__post" />
+              <i className="la-09__head" />
+            </span>
+          </div>
 
-        <div className="la-09__copy">
-          <p className="la-09__title inline-flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-300" />
-            {targetLabel ? `Đang mở ${targetLabel}` : 'Đang tải phân khu'}
+          <div className="la-09__copy">
+            <p className="la-09__title inline-flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              {targetLabel ? `Đang mở ${targetLabel}` : 'Đang tải phân khu'}
+            </p>
+            <p className="la-09__state">{currentHint}</p>
+          </div>
+
+          <p className="la-09__eq" aria-hidden="true">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <i key={i} style={{ ['--i' as string]: i } as React.CSSProperties} />
+            ))}
           </p>
-          <p className="la-09__state">{hints[hintIndex % hints.length]}</p>
-        </div>
 
-        <p className="la-09__eq" aria-hidden="true">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <i key={i} style={{ ['--i' as string]: i } as React.CSSProperties} />
-          ))}
-        </p>
+          <div className="la-09__bar" aria-hidden="true">
+            <span className="la-09__bar-fill" />
+          </div>
+        </section>
 
-        <div className="la-09__bar" aria-hidden="true">
-          <span className="la-09__bar-fill" />
-        </div>
-      </section>
+        <RouteConsole targetLabel={targetLabel} signal={currentHint} />
+      </div>
     </div>
   );
 };

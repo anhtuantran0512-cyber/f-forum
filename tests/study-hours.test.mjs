@@ -46,8 +46,9 @@ test('2. Đồng hồ cơ Odometer — lăn tới giá trị thật, không quay
   assert.ok(!/infinite/.test(odo), 'Odometer must not spin forever — it shows real numbers');
 });
 
-test('3. Màn hình chờ chuyển phân khu (la-09 vinyl) — đúng tỉ lệ, bỏ nút demo', () => {
+test('3. Màn hình chờ chuyển phân khu (la-09 vinyl) — lớn hơn, console đích-aware, bỏ nút demo', () => {
   const loader = read('src/components/ViewTransitionLoader.tsx');
+  const app = read('src/App.tsx');
   const css = read('src/index.css');
 
   assert.ok(loader.includes("variant = 'vinyl'"), 'Vinyl must be the default loader variant');
@@ -55,6 +56,10 @@ test('3. Màn hình chờ chuyển phân khu (la-09 vinyl) — đúng tỉ lệ,
   assert.ok(loader.includes('la-09__arm') && loader.includes('la-09__post') && loader.includes('la-09__head'), 'Tonearm must be present');
   assert.ok(loader.includes('la-09__eq') && loader.includes('length: 12'), 'Equalizer must have 12 bars');
   assert.ok(loader.includes('la-09__bar') && loader.includes('la-09__bar-fill'), 'Progress bar must exist');
+  assert.ok(loader.includes('la-09__console') && loader.includes('F-FORUM / ROUTE CONSOLE'), 'A destination-aware creative console must sit below the loader card');
+  assert.ok(loader.includes('route.open') && loader.includes('currentHint'), 'Console output must reflect the selected destination and current state, not fabricated metrics');
+  assert.ok(loader.includes('<RouteConsole targetLabel={targetLabel} signal={currentHint} />'), 'Transition screen must show the shared console below the loader');
+  assert.ok(app.includes('la-08__view-stack') && app.includes('RouteConsole targetLabel={targetLabel}'), 'Lazy-section fallback must also be slightly larger and include the console');
   assert.ok(loader.includes('1100'), 'Status hint must rotate every 1100ms');
   assert.ok(loader.includes('Đang mở ${targetLabel}') || loader.includes('Đang mở '), 'Loader must name the destination tab');
   assert.ok(!loader.includes('la-09__chrome'), 'Demo-only chrome (theme/done buttons) must be removed');
@@ -63,6 +68,10 @@ test('3. Màn hình chờ chuyển phân khu (la-09 vinyl) — đúng tỉ lệ,
   assert.ok(css.includes('.la-09__disc') && css.includes('@keyframes laVinylSpin'), 'Vinyl must actually spin in CSS');
   assert.ok(css.includes('.la-09__bar-fill') && css.includes('@keyframes laBarRun'), 'Loader progress bar must animate');
   assert.ok(css.includes('.la-09--dots .la-09__deck { display: none; }'), 'Dots variant must drop the deck');
+  assert.ok(css.includes('width: min(392px, calc(100vw - 40px))'), 'Loader stage should be modestly larger without overflowing narrow screens');
+  assert.ok(css.includes('.la-09__console {') && css.includes('html.light .la-09__console'), 'Creative console must have matching dark and light styles');
+  assert.ok(css.includes('.la-09__console-cursor'), 'Console cursor needs a visible animation');
+  assert.ok(css.includes('@media (max-height: 560px)'), 'Short screens must compact the loading stack instead of clipping it');
 });
 
 test('4. Bong bóng "đang tải" trong phòng chat (la-05)', () => {
