@@ -163,6 +163,18 @@ test('3b. Optional browser RUM omits unsupported values and never invents a tier
   assert.doesNotMatch(dashboard, /featureParityPercent|avgFps|avgSsim|Read Replicas & Sharding|Microservices & Message Queue|4K|4k/);
 });
 
+test('3ba. Telemetry shows the server-tracked visitor total without claiming verified people', () => {
+  const dashboard = read('src/components/admin/PerformanceTiersDashboard.tsx');
+  assert.match(dashboard, /fetch\('\/api\/admin\/analytics\?range=years'/);
+  assert.match(dashboard, /totals\?\.uniqueVisitors/);
+  assert.match(dashboard, /registeredVisitors/);
+  assert.match(dashboard, /anonymousBrowsers/);
+  assert.match(dashboard, /Tổng người truy cập/);
+  assert.match(dashboard, /không phải số người thật đã xác minh/);
+  assert.match(dashboard, /visitorLoading \? '…' : '—'/);
+  assert.doesNotMatch(dashboard, /Prototype · browser hints, not a capacity guarantee/);
+});
+
 test('3c. RUM aggregation accepts only finite observed fields and has no seeded buckets', () => {
   const monitor = new AdaptivePerformanceMonitor();
   let report = monitor.getTierReport();
