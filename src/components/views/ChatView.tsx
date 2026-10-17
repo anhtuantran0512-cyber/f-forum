@@ -57,12 +57,14 @@ interface ChatViewProps {
 const CHANNELS: {
   id: ChatChannelId;
   name: string;
+  subtitle: string;
   prompts: string[];
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
   {
     id: 'hallway',
     name: 'Kết bạn',
+    subtitle: 'Giao lưu & học nhóm',
     prompts: [
       'Chào mọi người, mình đang tìm bạn cùng ôn thi học kỳ!',
       'Có bạn nào đang học nhóm môn Toán tối nay không?',
@@ -72,6 +74,7 @@ const CHANNELS: {
   {
     id: 'quick-qa',
     name: 'Hỏi bài',
+    subtitle: 'Hỏi đáp bài tập nhanh',
     prompts: [
       'Nhờ mọi người gợi ý hướng biến đổi bài toán này với ạ:',
       'Cho mình hỏi công thức tính nhanh phần này:',
@@ -81,6 +84,7 @@ const CHANNELS: {
   {
     id: 'confessions',
     name: 'Tâm sự',
+    subtitle: 'Góc chia sẻ & động lực',
     prompts: [
       'Hôm nay hoàn thành xong đề cương ôn tập, cảm thấy nhẹ nhõm hẳn!',
       'Chúc cả trường một tuần học tập thật tập trung và hiệu quả nhé.',
@@ -90,6 +94,7 @@ const CHANNELS: {
   {
     id: 'club-hub',
     name: 'CLB',
+    subtitle: 'Hoạt động phong trào',
     prompts: [
       'CLB mình tuần này có buổi sinh hoạt chuyên đề, mời các bạn tham gia!',
       'Mình muốn tìm hiểu thông tin đăng ký tham gia CLB học thuật.',
@@ -310,28 +315,28 @@ export const ChatView: React.FC<ChatViewProps> = ({
         return (
           <div
             key={msg.id}
-            className={`ff-chat-message-row group/msg flex items-start gap-3 px-2 py-1 rounded-xl hover:bg-[#f8f7f4]/[0.02] transition-colors ${
+            className={`ff-chat-message-row group/msg flex items-start gap-3 px-3 sm:px-4 py-1.5 rounded-2xl hover:bg-white/[0.025] transition-all duration-150 ${
               isMe ? 'ff-chat-message-row--mine flex-row-reverse' : ''
-            } ${isContinuation ? 'mt-0.5' : 'mt-3'}`}
+            } ${isContinuation ? 'mt-0.5' : 'mt-3.5'}`}
           >
             {/* Cột Avatar hoặc khoảng đệm căn lề khi gộp tin nhắn liên tiếp */}
             {!isContinuation ? (
               <button
                 type="button"
                 onClick={(e) => openAuthorCardFromEvent(e, authorPayload)}
-                className="ff-chat-message-avatar relative shrink-0 mt-0.5 cursor-pointer focus:outline-none"
+                className="ff-chat-message-avatar relative shrink-0 mt-0.5 cursor-pointer focus:outline-none transition-transform hover:scale-105"
                 title={`Xem thông tin ${authorDisplayName}`}
               >
                 <DecoratedAvatar
                   user={resolvedMsgUser}
                   fallbackSrc={authorDisplayAvatar}
-                  size={36}
+                  size={38}
                   animate
                   alt={authorDisplayName}
                   className={`rounded-full ${
                     isSuperAdminMsg
-                      ? 'ring-1 ring-[#e9c46a]/70'
-                      : 'ring-1 ring-[#f8f7f4]/15'
+                      ? 'ring-2 ring-[#e9c46a] shadow-[0_0_14px_rgba(233,196,106,0.35)]'
+                      : 'ring-1 ring-[#f8f7f4]/18 shadow-sm'
                   }`}
                 />
                 <span className="absolute -bottom-1 -right-1 z-[4]">
@@ -356,7 +361,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
             >
               {!isContinuation && (
                 <div
-                  className={`ff-chat-message-meta flex items-center gap-2 mb-1 text-xs flex-wrap ${
+                  className={`ff-chat-message-meta flex items-center gap-2 mb-1.5 text-xs flex-wrap ${
                     isMe ? 'ff-chat-message-meta--mine justify-end flex-row-reverse' : ''
                   }`}
                 >
@@ -372,7 +377,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       height={24}
                       animate
                       showFallbackTag
-                      className={`text-[13px] font-semibold ${
+                      className={`text-[13px] font-bold ${
                         isSuperAdminMsg
                           ? 'text-[#e9c46a]'
                           : isMe
@@ -383,21 +388,25 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   </button>
 
                   <ChatRoleIcon user={resolvedMsgUser} isSuperAdmin={isSuperAdminMsg} />
-                  {!isSuperAdminMsg && (
-                    <span className="text-[10px] font-mono text-[#a39f96] px-1.5 py-0.2 rounded bg-[#f8f7f4]/[0.04] border border-[#f8f7f4]/[0.07]">
+                  {isSuperAdminMsg ? (
+                    <span className="px-2 py-0.5 rounded-md bg-[#e9c46a]/15 text-[#e9c46a] border border-[#e9c46a]/35 text-[10px] font-mono font-bold tracking-wide">
+                      Ban Giám Hiệu
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-mono text-[#a39f96] px-1.5 py-0.2 rounded-md bg-[#f8f7f4]/[0.05] border border-[#f8f7f4]/[0.08]">
                       Lv.{msg.authorLevel || 1}
                     </span>
                   )}
 
-                  <span className="text-[10.5px] text-[#a39f96] font-mono">
+                  <span className="text-[10.5px] text-[#8e8a82] font-mono">
                     {msg.timestamp}
                   </span>
                 </div>
               )}
 
-              <div className={`ff-chat-message-content flex items-center gap-2 ${isMe ? 'ff-chat-message-content--mine flex-row-reverse' : ''}`}>
+              <div className={`ff-chat-message-content flex items-center gap-2.5 ${isMe ? 'ff-chat-message-content--mine flex-row-reverse' : ''}`}>
                 <div
-                  className={`ff-chat-message-bubble w-fit px-3.5 py-2 text-[13.5px] leading-relaxed break-words ${
+                  className={`ff-chat-message-bubble w-fit px-4 py-2.5 text-[13.5px] leading-relaxed break-words transition-all duration-150 ${
                     isMe
                       ? 'ff-chat-bubble-me'
                       : isSuperAdminMsg
@@ -409,7 +418,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 </div>
 
                 {/* Cụm nút tương tác nhanh khi rê chuột: Trả lời & Thu hồi */}
-                <div className="ff-chat-message-actions opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
+                <div className="ff-chat-message-actions opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100 transition-all duration-150 flex items-center gap-1 shrink-0 bg-[#151c2a]/90 backdrop-blur-md px-1.5 py-1 rounded-xl border border-[#f8f7f4]/12 shadow-md">
                   {currentUser && (
                     <button
                       type="button"
@@ -422,7 +431,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         });
                         inputRef.current?.focus();
                       }}
-                      className="ff-icon-button ff-chat-action-button rounded-lg bg-[#161d2b] hover:bg-[#1f293d] border border-[#f8f7f4]/12 text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
+                      className="ff-icon-button ff-chat-action-button rounded-lg hover:bg-white/10 text-[#a39f96] hover:text-[#f8f7f4] transition-colors cursor-pointer"
                       title="Trả lời tin nhắn này"
                       aria-label="Trả lời tin nhắn"
                     >
@@ -434,7 +443,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     <button
                       type="button"
                       onClick={() => onDeleteMessage?.(msg.id)}
-                      className="ff-icon-button ff-chat-action-button rounded-lg text-rose-300 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 cursor-pointer"
+                      className="ff-icon-button ff-chat-action-button rounded-lg text-rose-300 hover:text-rose-200 hover:bg-rose-500/20 transition-colors cursor-pointer"
                       title="Thu hồi tin nhắn vi phạm"
                       aria-label="Thu hồi tin nhắn"
                     >
@@ -510,9 +519,16 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
   return (
     <section className="ff-chat-view relative w-full h-[100dvh] md:h-screen overflow-hidden flex flex-col pt-[calc(54px+var(--safe-top))] pb-[calc(56px+var(--safe-bottom))] md:pt-[var(--navbar-height)] md:pb-0">
-      {/* Nền Thư Viện Số Học Thuật: Tĩnh, sạch sẽ, độ tương phản cao */}
-      <div className="ff-chat-bg ff-raw-grid-surface absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0b0d12] via-[#0e121a] to-[#090b10]" />
+      {/* Nền Học Thuật Đa Tầng: Tĩnh, thanh lịch, êm dịu thị giác */}
+      <div className="ff-chat-bg absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <div className="absolute inset-0 bg-[#090d14]" />
+        <div
+          className="absolute inset-0 opacity-40"
+          style={{
+            backgroundImage:
+              'radial-gradient(ellipse 65% 45% at 50% -10%, rgba(129, 178, 154, 0.14), transparent 60%), radial-gradient(circle at 100% 100%, rgba(224, 122, 95, 0.08), transparent 45%)',
+          }}
+        />
       </div>
 
       {/* Khung chính */}
@@ -520,11 +536,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
         className="page-content-wrapper relative z-10 w-full max-w-7xl mx-auto flex-1 min-h-0 flex flex-col overflow-hidden px-2 sm:px-6 py-2 md:py-4"
       >
         {/* Thanh điều hướng rút gọn trên Mobile (< 768px) */}
-        <div className="md:hidden flex items-center justify-between p-2 mb-2 rounded-xl bg-[#0e131d] border border-[#f8f7f4]/12 shrink-0">
+        <div className="md:hidden flex items-center justify-between p-2 mb-2 rounded-2xl bg-[#0e131d]/90 backdrop-blur-md border border-[#f8f7f4]/12 shadow-sm shrink-0">
           <button
             type="button"
             onClick={() => setIsChannelDrawerOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#81b29a]/15 border border-[#81b29a]/35 text-[#f8f7f4] text-xs font-semibold cursor-pointer max-w-[54%]"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#81b29a]/18 border border-[#81b29a]/35 text-[#f8f7f4] text-xs font-semibold cursor-pointer max-w-[54%] shadow-sm"
             aria-label="Chọn chuyên kênh đàm thoại"
           >
             <Hash className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
@@ -539,34 +555,38 @@ export const ChatView: React.FC<ChatViewProps> = ({
           <button
             type="button"
             onClick={() => setIsMembersDrawerOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#161d2b] border border-[#f8f7f4]/12 text-[#dad7d0] text-xs font-mono font-semibold cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#141b28] border border-[#f8f7f4]/12 text-[#dad7d0] text-xs font-mono font-semibold cursor-pointer shadow-sm"
             aria-label="Xem thành viên trực tuyến"
           >
-            <span className="w-2 h-2 rounded-full bg-[#81b29a] shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)] shrink-0" />
             <span>{dynamicOnlineCount}</span>
             <Users className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
           </button>
         </div>
 
         {/* Khung Không Gian Làm Việc Hợp Nhất 3 Cột (Unified Split-Pane Academic Workspace) */}
-        <div className="ff-chat-workspace flex-1 min-h-0">
+        <div className="ff-chat-workspace flex-1 min-h-0 flex border border-[#f8f7f4]/15 rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl backdrop-blur-xl">
           
           {/* CỘT TRÁI: Danh mục kênh thảo luận & Hồ sơ cá nhân */}
-          <aside className="hidden md:flex w-[256px] lg:w-[272px] shrink-0 ff-chat-sidebar-pane">
+          <aside className="hidden md:flex w-[260px] lg:w-[280px] shrink-0 ff-chat-sidebar-pane flex-col border-r border-[#f8f7f4]/10 bg-[#0c111a]/95">
             <div className="h-14 px-4 border-b border-[#f8f7f4]/10 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[#81b29a]/15 border border-[#81b29a]/35 flex items-center justify-center">
-                  <Hash className="w-3.5 h-3.5 text-[#81b29a]" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#81b29a]/25 to-[#81b29a]/10 border border-[#81b29a]/35 flex items-center justify-center shadow-sm">
+                  <Hash className="w-4 h-4 text-[#81b29a]" />
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <h2 className="text-xs font-bold text-[#f8f7f4] tracking-wide">
-                    <span className="ff-swash-cap text-xs">K</span>ênh đàm thoại
+                <div>
+                  <h2 className="text-xs font-bold text-[#f8f7f4] tracking-wide flex items-center gap-1.5">
+                    <span className="ff-swash-cap text-sm">K</span>ênh đàm thoại
                   </h2>
+                  <span className="text-[10px] text-[#a39f96] font-mono block">Phòng học F-Forum</span>
                 </div>
               </div>
+              <span className="px-2 py-0.5 rounded-full text-[9.5px] font-mono font-semibold bg-[#81b29a]/15 text-[#81b29a] border border-[#81b29a]/30">
+                4 kênh
+              </span>
             </div>
 
-            <div className="p-2.5 space-y-1 flex-1 overflow-y-auto no-scrollbar">
+            <div className="p-3 space-y-1.5 flex-1 overflow-y-auto no-scrollbar">
               {CHANNELS.map(ch => {
                 const Icon = ch.icon;
                 const isActive = activeChannel === ch.id;
@@ -581,15 +601,20 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       setSearchQuery('');
                       setReplyingTo(null);
                     }}
-                    className={`channel-item ff-chat-channel-btn cursor-pointer ${
-                      isActive ? 'active is-active' : ''
+                    className={`channel-item ff-chat-channel-btn relative w-full p-2.5 rounded-xl transition-all duration-150 flex items-center gap-3 text-left cursor-pointer group ${
+                      isActive
+                        ? 'active is-active bg-gradient-to-r from-[#81b29a]/22 via-[#81b29a]/12 to-transparent border border-[#81b29a]/40 shadow-sm'
+                        : 'hover:bg-white/[0.04] border border-transparent'
                     }`}
                   >
+                    {isActive && (
+                      <span className="absolute left-1 top-2.5 bottom-2.5 w-1 rounded-full bg-[#81b29a] shadow-[0_0_8px_rgba(129,178,154,0.6)]" />
+                    )}
                     <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-200 ${
                         isActive
-                          ? 'bg-[#81b29a]/20 text-[#81b29a] border-[#81b29a]/40'
-                          : 'bg-[#141a26] text-[#a39f96] border-[#f8f7f4]/08'
+                          ? 'bg-[#81b29a]/25 text-[#81b29a] border-[#81b29a]/50 shadow-[0_0_12px_rgba(129,178,154,0.25)]'
+                          : 'bg-[#131924] text-[#a39f96] border-[#f8f7f4]/08 group-hover:text-[#f8f7f4] group-hover:border-[#f8f7f4]/15'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -599,23 +624,26 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       <div className="flex items-center justify-between gap-1.5">
                         <span
                           className={`text-[13px] truncate ${
-                            isActive ? 'font-bold text-[#f8f7f4]' : 'font-medium text-[#dad7d0]'
+                            isActive ? 'font-bold text-[#f8f7f4]' : 'font-medium text-[#dad7d0] group-hover:text-[#f8f7f4]'
                           }`}
                         >
                           {ch.name}
                         </span>
                         {count > 0 && (
                           <span
-                            className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold shrink-0 ${
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold shrink-0 transition-colors ${
                               isActive
-                                ? 'bg-[#81b29a]/25 text-[#f8f7f4]'
-                                : 'bg-[#141a26] text-[#a39f96]'
+                                ? 'bg-[#81b29a] text-[#0b0f16] shadow-sm'
+                                : 'bg-[#151c28] text-[#a39f96] border border-[#f8f7f4]/10 group-hover:text-[#f8f7f4]'
                             }`}
                           >
                             {count}
                           </span>
                         )}
                       </div>
+                      <span className="text-[10.5px] text-[#8e8a82] truncate block mt-0.5">
+                        {ch.subtitle}
+                      </span>
                     </div>
                   </button>
                 );
@@ -623,7 +651,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
             </div>
 
             {/* Thanh thông tin tài khoản đang đăng nhập */}
-            <div className="p-2.5 border-t border-[#f8f7f4]/10 bg-[#090c13]">
+            <div className="p-3 border-t border-[#f8f7f4]/10 bg-[#090d14]/90">
               {currentUser ? (
                 <button
                   type="button"
@@ -636,7 +664,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       level: currentUser.level || 1,
                     })
                   }
-                  className="ff-discord-userbar w-full p-2 rounded-xl bg-[#121723] hover:bg-[#171e2d] border border-[#f8f7f4]/10 flex items-center gap-2.5 text-left transition-colors cursor-pointer"
+                  className="ff-discord-userbar w-full p-2.5 rounded-2xl bg-gradient-to-r from-[#131924] to-[#101520] hover:from-[#172030] hover:to-[#131a28] border border-[#f8f7f4]/12 flex items-center gap-3 text-left transition-all duration-150 cursor-pointer shadow-sm hover:shadow-md"
                   title="Xem trang cá nhân"
                 >
                   <UserNameplateBg
@@ -650,13 +678,13 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     <DecoratedAvatar
                       user={currentUser}
                       fallbackSrc={currentUser.avatar || DEFAULT_AVATAR}
-                      size={34}
+                      size={36}
                       eager
                       animate
                       alt={currentUser.name}
-                      className="rounded-full ring-1 ring-[#f8f7f4]/20"
+                      className="rounded-full ring-2 ring-[#81b29a]/40"
                     />
-                    <span className="absolute bottom-0 right-0 z-[4] w-2.5 h-2.5 rounded-full bg-[#81b29a] border-2 border-[#090c13]" />
+                    <span className="absolute bottom-0 right-0 z-[4] w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#090d14] shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
                   </div>
                   <div className="relative z-[2] min-w-0 flex-1">
                     <div className="ff-chat-userbar-name-row flex items-center gap-1.5 min-w-0">
@@ -673,18 +701,24 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     />
                     <ChatRoleIcon user={currentUser} size={11} />
                     </div>
-                    <div className="text-[10.5px] text-[#81b29a] font-mono truncate">
-                      Trực tuyến · Lv.{currentUser.level || 1}
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      <span className="text-[10px] text-[#81b29a] font-mono font-semibold truncate">
+                        Trực tuyến · Lv.{currentUser.level || 1}
+                      </span>
                     </div>
                   </div>
                 </button>
               ) : (
-                <div className="p-2 rounded-xl bg-[#121723] border border-[#f8f7f4]/10 flex items-center justify-between gap-2">
-                  <span className="text-xs text-[#a39f96] truncate">Chế độ Khách</span>
+                <div className="p-3 rounded-2xl bg-[#121824] border border-[#f8f7f4]/10 flex items-center justify-between gap-2.5">
+                  <div>
+                    <span className="text-xs font-semibold text-[#f8f7f4] block">Khách tham quan</span>
+                    <span className="text-[10.5px] text-[#a39f96]">Đăng nhập để đàm thoại</span>
+                  </div>
                   <button
                     type="button"
                     onClick={onOpenLoginModal}
-                    className="px-3 py-1.5 rounded-lg bg-[#81b29a] hover:bg-[#95c4ad] text-[#0b0d12] text-xs font-bold cursor-pointer shrink-0"
+                    className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#81b29a] to-[#6fa38b] hover:from-[#95c4ad] hover:to-[#81b29a] text-[#090d14] text-xs font-bold transition-all shadow-sm cursor-pointer shrink-0"
                   >
                     Đăng nhập
                   </button>
@@ -694,26 +728,30 @@ export const ChatView: React.FC<ChatViewProps> = ({
           </aside>
 
           {/* CỘT GIỮA: Luồng hội thoại & khung soạn tin nhắn */}
-          <div className="ff-chat-main-pane">
+          <div className="ff-chat-main-pane flex-1 min-h-0 flex flex-col bg-[#0f1520]">
             
-            <header className="h-14 px-4 sm:px-5 border-b border-[#f8f7f4]/10 bg-[#0d111a]/90 flex items-center justify-between gap-3 shrink-0">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-[#81b29a]/15 border border-[#81b29a]/35 flex items-center justify-center shrink-0">
+            <header className="h-14 px-4 sm:px-6 border-b border-[#f8f7f4]/10 bg-[#0d121c]/90 backdrop-blur-xl flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#81b29a]/25 to-[#81b29a]/10 border border-[#81b29a]/40 flex items-center justify-center shrink-0 shadow-sm">
                   <CurrentChannelIcon className="w-4 h-4 text-[#81b29a]" />
                 </div>
-                <div className="min-w-0 flex items-center gap-2">
-                  <h1 className="font-bold text-sm sm:text-[15px] text-[#f8f7f4] truncate">
-                    #{currentChannelObj.name}
+                <div className="min-w-0 flex items-center gap-2.5 flex-wrap">
+                  <h1 className="font-extrabold text-sm sm:text-base text-[#f8f7f4] tracking-tight truncate flex items-center gap-1">
+                    <span className="text-[#81b29a] font-mono">#</span>
+                    <span>{currentChannelObj.name}</span>
                   </h1>
+                  <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-mono text-[#a39f96] bg-[#141b28] border border-[#f8f7f4]/08">
+                    {currentChannelObj.subtitle}
+                  </span>
                   <InfoTip label="Nội quy phòng chat" align="start">
                     Trao đổi văn minh, tôn trọng bạn học và thầy cô.
                   </InfoTip>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2.5 shrink-0">
                 <div className="relative hidden sm:flex items-center">
-                  <Search className="w-3.5 h-3.5 text-[#a39f96] absolute left-2.5 pointer-events-none" />
+                  <Search className="w-3.5 h-3.5 text-[#a39f96] absolute left-3 pointer-events-none" />
                   <input
                     type="text"
                     maxLength={80}
@@ -721,13 +759,13 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder="Tìm trong kênh..."
                     aria-label="Tìm tin nhắn trong kênh"
-                    className="w-40 lg:w-48 pl-8 pr-6 py-1.5 rounded-lg bg-[#151b28] border border-[#f8f7f4]/12 text-xs text-[#f8f7f4] placeholder-[#a39f96] focus:outline-none focus:border-[#81b29a]/60 transition-colors"
+                    className="w-40 lg:w-52 pl-8 pr-7 py-1.5 rounded-xl bg-[#131924]/80 border border-[#f8f7f4]/12 text-xs text-[#f8f7f4] placeholder-[#8e8a82] focus:outline-none focus:border-[#81b29a]/70 focus:w-56 transition-all duration-200"
                   />
                   {searchQuery && (
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
-                      className="ff-icon-button ff-chat-search-clear absolute right-1 text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
+                      className="ff-icon-button ff-chat-search-clear absolute right-1.5 text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
                       aria-label="Xóa từ khóa tìm kiếm"
                     >
                       <X className="w-3 h-3" />
@@ -738,22 +776,23 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsDesktopRosterVisible(v => !v)}
-                  className={`hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer ${
+                  className={`hidden lg:inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
                     isDesktopRosterVisible
-                      ? 'bg-[#81b29a]/15 border-[#81b29a]/35 text-[#f8f7f4]'
-                      : 'bg-[#151b28] border-[#f8f7f4]/12 text-[#a39f96] hover:text-[#f8f7f4]'
+                      ? 'bg-[#81b29a]/18 border-[#81b29a]/45 text-[#f8f7f4] shadow-sm'
+                      : 'bg-[#131924] border-[#f8f7f4]/12 text-[#a39f96] hover:text-[#f8f7f4]'
                   }`}
-                  title="Ẩn/hiện danh sách thành viên"
+                  title="Ẩn/hiện danh sách thành viên trực tuyến"
                 >
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
                   <PanelRight className="w-3.5 h-3.5 text-[#81b29a]" />
-                  <span className="font-mono">{dynamicOnlineCount}</span>
+                  <span className="font-mono text-xs">{dynamicOnlineCount}</span>
                 </button>
               </div>
             </header>
 
             {/* Khu vực hiển thị tin nhắn */}
             <div
-              className="ff-chat-message-stream flex-1 overflow-y-auto px-3 sm:px-5 py-4 min-h-0"
+              className="ff-chat-message-stream flex-1 overflow-y-auto px-3 sm:px-6 py-4 min-h-0"
               role="log"
               aria-live="polite"
               aria-relevant="additions"
@@ -767,13 +806,13 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 </div>
               ) : currentMessages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-6 max-w-md mx-auto space-y-4">
-                  <div className="w-12 h-12 rounded-2xl bg-[#81b29a]/12 border border-[#81b29a]/30 flex items-center justify-center">
-                    <MessageSquareDashed className="w-6 h-6 text-[#81b29a]" />
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#81b29a]/20 to-[#81b29a]/05 border border-[#81b29a]/35 flex items-center justify-center shadow-md">
+                    <MessageSquareDashed className="w-7 h-7 text-[#81b29a]" />
                   </div>
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-bold text-[#f8f7f4]">
+                  <div className="space-y-1.5">
+                    <h3 className="text-sm sm:text-base font-bold text-[#f8f7f4]">
                       {searchQuery ? (
-                        'Không có kết quả'
+                        'Không có kết quả tìm kiếm'
                       ) : (
                         <span>
                           <span className="ff-swash-cap text-base mr-0.5">G</span>óc học chung luôn rộng mở
@@ -781,15 +820,15 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       )}
                     </h3>
                     {!searchQuery && (
-                      <p className="text-xs text-[#a39f96]">
+                      <p className="text-xs text-[#a39f96] leading-relaxed">
                         Hãy gửi một lời chào hoặc mở đầu câu hỏi để cùng bạn bè trao đổi bài học nhé!
                       </p>
                     )}
                   </div>
 
                   {!searchQuery && currentUser && (
-                    <div className="w-full space-y-1.5 pt-1">
-                      <div className="flex flex-col gap-1.5">
+                    <div className="w-full space-y-2 pt-2">
+                      <div className="flex flex-col gap-2">
                         {currentChannelObj.prompts.map((promptText, pIdx) => (
                           <button
                             key={pIdx}
@@ -798,7 +837,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                               setInputText(promptText);
                               inputRef.current?.focus();
                             }}
-                            className="px-3 py-2 rounded-xl bg-[#151b28] hover:bg-[#1b2334] border border-[#f8f7f4]/10 hover:border-[#81b29a]/40 text-xs text-[#dad7d0] hover:text-[#f8f7f4] text-left transition-colors cursor-pointer"
+                            className="px-3.5 py-2.5 rounded-xl bg-[#141b28] hover:bg-[#182232] border border-[#f8f7f4]/10 hover:border-[#81b29a]/40 text-xs text-[#dad7d0] hover:text-[#f8f7f4] text-left transition-all duration-150 cursor-pointer shadow-sm hover:shadow"
                           >
                             “{promptText}”
                           </button>
@@ -816,19 +855,21 @@ export const ChatView: React.FC<ChatViewProps> = ({
             </div>
 
             {/* Khung nhập tin nhắn ở đáy */}
-            <div className="ff-chat-composer-area px-3 sm:px-5 py-3 bg-[#0c1018] border-t border-[#f8f7f4]/10 shrink-0">
+            <div className="ff-chat-composer-area px-3 sm:px-6 py-3.5 bg-gradient-to-t from-[#090d14] via-[#0c111a] to-transparent border-t border-[#f8f7f4]/10 shrink-0">
               {replyingTo && (
-                <div className="ff-chat-reply-preview mb-2 px-3 py-1.5 rounded-lg bg-[#151b28] border border-[#81b29a]/35 flex items-center justify-between gap-2 text-xs">
+                <div className="ff-chat-reply-preview mb-2.5 px-3.5 py-2 rounded-xl bg-[#141b28]/95 backdrop-blur-md border border-[#81b29a]/40 shadow-sm flex items-center justify-between gap-2.5 text-xs">
                   <div className="ff-chat-reply-preview__copy flex items-center gap-2 min-w-0">
-                    <CornerUpLeft className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
-                    <span className="ff-chat-reply-preview__label text-[#a39f96] shrink-0">Đang trả lời</span>
-                    <strong className="ff-chat-reply-preview__author text-[#f8f7f4] shrink-0">@{replyingTo.authorName}</strong>
+                    <div className="w-5 h-5 rounded-md bg-[#81b29a]/20 flex items-center justify-center shrink-0">
+                      <CornerUpLeft className="w-3.5 h-3.5 text-[#81b29a]" />
+                    </div>
+                    <span className="ff-chat-reply-preview__label text-[#a39f96] shrink-0 font-medium">Đang trả lời</span>
+                    <strong className="ff-chat-reply-preview__author text-[#f8f7f4] shrink-0 font-bold">@{replyingTo.authorName}</strong>
                     <span className="ff-chat-reply-preview__excerpt text-[#a39f96] truncate">“{replyingTo.excerpt}”</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setReplyingTo(null)}
-                    className="ff-icon-button ff-chat-reply-preview__close text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer shrink-0"
+                    className="ff-icon-button ff-chat-reply-preview__close rounded-lg text-[#a39f96] hover:text-[#f8f7f4] hover:bg-white/10 transition-colors cursor-pointer shrink-0"
                     aria-label="Hủy trả lời"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -837,14 +878,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
               )}
 
               {!currentUser ? (
-                <div className="px-4 py-2.5 rounded-xl bg-[#151b28] border border-[#f8f7f4]/12 flex items-center justify-between gap-3">
-                  <span className="text-xs text-[#dad7d0]">
+                <div className="px-5 py-3 rounded-2xl bg-gradient-to-r from-[#141b28] to-[#101622] border border-[#f8f7f4]/15 shadow-sm flex items-center justify-between gap-3">
+                  <span className="text-xs sm:text-[13px] text-[#dad7d0] font-medium">
                     Đăng nhập để tham gia thảo luận trong #{currentChannelObj.name}
                   </span>
                   <button
                     type="button"
                     onClick={onOpenLoginModal}
-                    className="ff-tactile-btn px-4 py-1.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs transition-colors cursor-pointer shrink-0"
+                    className="ff-tactile-btn px-5 py-2 rounded-xl bg-gradient-to-r from-[#f4f1de] to-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs transition-all shadow-sm hover:shadow cursor-pointer shrink-0"
                   >
                     Đăng nhập
                   </button>
@@ -880,7 +921,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       aria-expanded={mentionComposer.isOpen}
                       aria-controls={mentionComposer.isOpen ? 'ff-chat-mention-options-view' : undefined}
                       aria-activedescendant={mentionComposer.isOpen ? `ff-chat-mention-options-view-option-${mentionComposer.activeIndex}` : undefined}
-                      className="ff-chat-message-input message-input-bar flex-1 bg-transparent border-none text-xs sm:text-sm text-[#f8f7f4] placeholder-[#a39f96] focus:outline-none"
+                      className="ff-chat-message-input message-input-bar flex-1 bg-transparent border-none text-xs sm:text-sm text-[#f8f7f4] placeholder-[#8e8a82] focus:outline-none"
                     />
 
                     <div className="ff-chat-composer-meta">
@@ -893,7 +934,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       disabled={!inputText.trim() || isSending}
                       aria-busy={isSending}
                       aria-label="Gửi tin nhắn"
-                      className={`ff-tactile-btn ff-chat-send-button px-3.5 py-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs sm:text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                      className={`ff-tactile-btn ff-chat-send-button px-4 py-2 rounded-xl bg-gradient-to-r from-[#f4f1de] to-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs sm:text-sm transition-all shadow-sm hover:shadow disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer shrink-0 ${
                         cooldown.isCooling ? 'is-cooling' : ''
                       }`}
                       title={cooldown.isCooling ? 'Đã gửi gần đây · chờ một nhịp ngắn' : 'Gửi tin nhắn'}
@@ -903,7 +944,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     </button>
                   </div>
                   </div>
-                  <div className="ff-chat-composer-hint">
+                  <div className="ff-chat-composer-hint flex items-center justify-between text-[11px] text-[#8e8a82] mt-1.5 px-1 font-mono">
                     <span><b>@</b> để nhắc thành viên</span>
                     <span>Enter gửi · Shift + Enter xuống dòng</span>
                   </div>
@@ -914,13 +955,13 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
           {/* CỘT PHẢI: Danh bạ thành viên trực tuyến */}
           {isDesktopRosterVisible && (
-            <aside className="hidden lg:flex w-[248px] xl:w-[264px] shrink-0 ff-chat-roster-pane">
+            <aside className="hidden lg:flex w-[250px] xl:w-[270px] shrink-0 ff-chat-roster-pane flex-col border-l border-[#f8f7f4]/10 bg-[#0c111a]/95">
               <div className="h-14 px-4 border-b border-[#f8f7f4]/10 flex items-center justify-between shrink-0">
-                <span className="text-xs font-bold text-[#f8f7f4] uppercase tracking-wide">
-                  Thành Viên
+                <span className="text-xs font-bold text-[#f8f7f4] tracking-wide flex items-center gap-1.5">
+                  <span className="ff-swash-cap text-sm">T</span>hành viên
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#81b29a]/15 border border-[#81b29a]/35 text-[10.5px] font-mono font-semibold text-[#81b29a]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#81b29a]" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#81b29a]/15 border border-[#81b29a]/35 text-[10.5px] font-mono font-semibold text-[#81b29a]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
                   {dynamicOnlineCount} trực tuyến
                 </span>
               </div>
@@ -944,20 +985,20 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         coin: 99999,
                       })
                     }
-                    className="w-full text-left p-2.5 rounded-xl bg-[#141a26] hover:bg-[#192130] border border-[#e9c46a]/30 transition-colors cursor-pointer flex items-center gap-2.5"
+                    className="w-full text-left p-2.5 rounded-2xl bg-gradient-to-br from-[#182130] to-[#131a28] hover:from-[#1d293d] hover:to-[#172032] border border-[#e9c46a]/35 transition-all duration-150 cursor-pointer flex items-center gap-3 shadow-sm hover:shadow-md"
                     title={`Xem hồ sơ ${MASTER_ADMIN_CONFIG.name}`}
                   >
                     <div className="relative shrink-0">
                       <DecoratedAvatar
                         user={resolveChatUser(MASTER_ADMIN_CONFIG.email, 'user-admin')}
                         fallbackSrc={MASTER_ADMIN_CONFIG.avatar}
-                        size={36}
+                        size={38}
                         animate
                         alt={MASTER_ADMIN_CONFIG.name}
-                        className="rounded-full ring-1 ring-[#e9c46a]/60"
+                        className="rounded-full ring-2 ring-[#e9c46a]/80 shadow-[0_0_12px_rgba(233,196,106,0.3)]"
                       />
                       <span
-                        className={`absolute bottom-0 right-0 z-[4] w-2.5 h-2.5 rounded-full border-2 border-[#141a26] ${
+                        className={`absolute bottom-0 right-0 z-[4] w-2.5 h-2.5 rounded-full border-2 border-[#141a26] shadow-sm ${
                           isMasterAdminOnline ? 'bg-emerald-400' : 'bg-[#81b29a]'
                         }`}
                       />
@@ -974,7 +1015,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         />
                         <ChatRoleIcon user={resolveChatUser(MASTER_ADMIN_CONFIG.email, 'user-admin')} isSuperAdmin={true} size={12} />
                       </div>
-                      <span className="text-[10.5px] text-[#a39f96] font-mono block truncate">Trực tuyến · Lv.150</span>
+                      <span className="text-[10px] text-[#e9c46a] font-mono block truncate mt-0.5">Trực tuyến · Lv.150</span>
                     </div>
                   </button>
                 </div>
@@ -1009,18 +1050,18 @@ export const ChatView: React.FC<ChatViewProps> = ({
                                 level: user.level || 1,
                               })
                             }
-                            className="w-full p-2 rounded-lg hover:bg-[#f8f7f4]/[0.04] transition-colors flex items-center gap-2.5 text-left cursor-pointer"
+                            className="w-full p-2.5 rounded-xl hover:bg-white/[0.04] transition-all duration-150 flex items-center gap-3 text-left cursor-pointer group"
                           >
                             <div className="relative shrink-0">
                               <DecoratedAvatar
                                 user={resolvedStudent}
                                 fallbackSrc={user.avatar || DEFAULT_AVATAR}
-                                size={32}
+                                size={34}
                                 animate
                                 alt={cleanName}
-                                className="rounded-full ring-1 ring-[#f8f7f4]/15"
+                                className="rounded-full ring-1 ring-[#f8f7f4]/15 group-hover:ring-[#81b29a]/40 transition-colors"
                               />
-                              <span className="absolute bottom-0 right-0 z-[4] w-2 h-2 rounded-full bg-[#81b29a] border border-[#0b0f17]" />
+                              <span className="absolute bottom-0 right-0 z-[4] w-2 h-2 rounded-full bg-emerald-400 border border-[#0b0f17] shadow-[0_0_4px_rgba(52,211,153,0.8)]" />
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5 min-w-0">
@@ -1030,11 +1071,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
                                   width={128}
                                   height={22}
                                   animate
-                                  className="text-xs font-medium text-[#f8f7f4] truncate block"
+                                  className="text-xs font-semibold text-[#f8f7f4] group-hover:text-[#81b29a] transition-colors truncate block"
                                 />
                                 <ChatRoleIcon user={resolvedStudent} />
                               </div>
-                              <div className="flex items-center gap-1.5 text-[10px] text-[#a39f96] font-mono">
+                              <div className="flex items-center gap-1.5 text-[10px] text-[#a39f96] font-mono mt-0.5">
                                 <span className="text-[#dad7d0] truncate">{tier.name}</span>
                                 <span>· Lv.{user.level || 1}</span>
                               </div>
