@@ -93,7 +93,9 @@ export const decodeImageDataUrl = (value: unknown, maxBytes: number): { buffer: 
 export const mediaRoot = (): string => {
   const dataDir = process.env.FFORUM_DATA_DIR
     ? path.resolve(process.env.FFORUM_DATA_DIR)
-    : path.resolve(process.cwd(), 'data');
+    : process.env.VERCEL
+      ? '/tmp/fforum-data'
+      : path.resolve(process.cwd(), 'data');
   return path.join(dataDir, 'media');
 };
 
@@ -308,7 +310,8 @@ export const processUploadedImage = async ({ kind, ownerEmail, dataUrl, keepUrls
  * đường nào đi ra ngoài thư mục media (path traversal).
  */
 export const handleMediaRequest = (req: IncomingMessage, res: ServerResponse): boolean => {
-  const pathname = (req.url || '').split('?')[0];
+  const rawPath = (req.url || '').split('?')[0];
+  const pathname = rawPath.startsWith('/api/media/') ? rawPath.slice(4) : rawPath;
   const match = MEDIA_FILE.exec(pathname);
   const notFound = () => {
     res.statusCode = 404;
