@@ -29,8 +29,10 @@ import {
   Coins,
   Bookmark,
   BookmarkCheck,
+  Brain,
   ArrowUpDown,
   ArrowLeft,
+  ArrowRight,
   Lightbulb,
   ChevronDown,
   ChevronUp,
@@ -87,7 +89,10 @@ import { describeReportResult, settleReportRequest } from '../../utils/reports';
 import { ShareRow } from '../ui/ShareRow';
 import { ReactionPicker } from '../ui/ReactionPicker';
 import { buildQuestionShareUrl, readSharedQuestionId, stripSharedQuestionParam } from '../../utils/shareLinks';
+import { buildRecallEntry, buildSavedRecallDeck, type RecallEntry } from '../../utils/qaRecall';
 import './QAForumView.css';
+
+const QuestionRecallStudio = React.lazy(() => import('./QuestionRecallStudio'));
 
 type MathSymbolCategory = 'all' | 'greek' | 'calculus' | 'logic' | 'geometry';
 
@@ -683,6 +688,11 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useInteractionDebounce(searchTerm, 120);
   const [isAskModalOpen, setIsAskModalOpen] = useState(false);
+  const [recallEntries, setRecallEntries] = useState<RecallEntry[] | null>(null);
+  const startRecallSession = useCallback((entries: RecallEntry[]) => {
+    if (entries.length > 0) setRecallEntries(entries);
+  }, []);
+  const closeRecallSession = useCallback(() => setRecallEntries(null), []);
   /* Liên kết chia sẻ ?q=<id> mở thẳng câu hỏi (nếu dữ liệu đã có sẵn khi vào trang) */
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(() => {
     const sharedId = typeof window !== 'undefined' ? readSharedQuestionId(window.location.search) : null;
@@ -1330,6 +1340,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     }
     return map;
   }, [solutions]);
+  const savedRecallDeck = useMemo(
+    () => buildSavedRecallDeck(questions, solutions, mySavedIds),
+    [questions, solutions, mySavedIds],
+  );
 
   const filteredQuestions = useMemo(() => {
     const matched = questions.filter(q => {
@@ -1503,6 +1517,19 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       {mySavedIds.length}
                     </span>
                   )}
+                </button>
+              )}
+              {savedRecallDeck.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => startRecallSession(savedRecallDeck)}
+                  className="ff-tactile-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#81b29a]/14 hover:bg-[#81b29a]/23 border-[1.5px] border-[#81b29a]/45 text-xs font-extrabold text-[#d8f3dc] transition-colors cursor-pointer"
+                  title="Thử nhớ các câu hỏi đã lưu, rồi mở từng phần của lời giải cộng đồng"
+                  aria-label={`Luyện nhớ ${savedRecallDeck.length} câu hỏi đã lưu có lời giải tốt nhất`}
+                >
+                  <Brain className="w-3.5 h-3.5 text-[#81b29a]" />
+                  <span>Luyện nhớ</span>
+                  <span className="px-1.5 py-0.2 rounded bg-[#81b29a]/20 text-[10px] font-mono">{savedRecallDeck.length}</span>
                 </button>
               )}
 
@@ -2748,6 +2775,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         const activeSolutions = solutions
           .filter(s => s.questionId === selectedQuestion.id && s.status !== 'deleted')
           .sort((a, b) => (b.isBest ? 1 : 0) - (a.isBest ? 1 : 0));
+        const recallEntry = buildRecallEntry(selectedQuestion, activeSolutions);
         const remainingSlots = Math.max(0, 3 - activeSolutions.length);
         const isAnswerLimitReached = activeSolutions.length >= 3;
         const detailImages = getQuestionAttachedImages(selectedQuestion);
@@ -3077,6 +3105,28 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               </div>
                             ))}
                           </div>
+                        </div>
+                      )}
+
+                      {recallEntry && (
+                        <div className="my-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-[#81b29a]/35 bg-[#81b29a]/[0.07] px-4 py-3.5">
+                          <div className="flex items-start gap-3 min-w-0">
+                            <Brain className="w-4 h-4 mt-0.5 text-[#81b29a] shrink-0" aria-hidden="true" />
+                            <div className="min-w-0">
+                              <p className="text-sm font-extrabold text-[#f4f1de]">Thử nhớ trước khi xem</p>
+                              <p className="mt-0.5 text-xs text-[#a39f96] leading-relaxed">
+                                Tự thử, rồi mở từng phần lời giải thành viên. Bản nháp chỉ nằm trong phiên này.
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => startRecallSession([recallEntry])}
+                            className="ff-tactile-btn inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-lg bg-[#81b29a] hover:bg-[#a6ceb5] text-[#0b1710] border border-[#d8f3dc]/65 text-xs font-extrabold transition-colors cursor-pointer shrink-0"
+                          >
+                            <span>Bắt đầu luyện nhớ</span>
+                            <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+                          </button>
                         </div>
                       )}
 
@@ -4111,6 +4161,33 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           </div>
         </div>,
         document.body
+      )}
+
+      {recallEntries && typeof document !== 'undefined' && createPortal(
+        <React.Suspense
+          fallback={(
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Đang mở phòng luyện nhớ"
+              className="fixed inset-0 z-[145] flex items-center justify-center bg-black/80 p-5 text-[#f4f1de]"
+            >
+              <div className="rounded-xl border border-[#f2cc8f]/35 bg-[#111710] px-5 py-4 text-center shadow-2xl">
+                <p className="text-sm font-bold">Đang mở phòng luyện nhớ…</p>
+                <button
+                  type="button"
+                  onClick={closeRecallSession}
+                  className="mt-3 rounded-lg border border-[#f4f1de]/20 px-3 py-1.5 text-xs font-bold text-[#d8d5ce] hover:bg-white/10"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          )}
+        >
+          <QuestionRecallStudio entries={recallEntries} onClose={closeRecallSession} />
+        </React.Suspense>,
+        document.body,
       )}
     </section>
   );
