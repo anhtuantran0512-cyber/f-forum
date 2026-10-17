@@ -729,66 +729,114 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </Card>
               </section>
 
-              <section aria-label="Fabulous">
-                <Card>
-                  <SwitchRow
-                    icon={<Sparkles className="w-3.5 h-3.5 text-violet-300" />}
-                    title="Fabulous"
-                    on={fabulousMode}
-                    onToggle={() => onToggleFabulousMode?.()}
-                    color="bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.55)]"
-                  />
-                </Card>
-              </section>
-
-              {theme === 'dark' && (
-                <section>
-                  <SectionTitle icon={<Palette className="w-3 h-3 text-[#f2cc8f]" />}>Nền tối</SectionTitle>
-                  <Card>
-                    <div className="dark-gradient-picker" role="group" aria-label="Chọn gradient nền tối">
-                      {DARK_GRADIENT_PRESETS.map((preset) => (
-                        <button
-                          key={preset.id}
-                          type="button"
-                          className="dark-gradient-option"
-                          aria-label={`Gradient ${preset.label}`}
-                          aria-pressed={resolveDarkGradientId(darkGradient) === preset.id}
-                          title={preset.label}
-                          onClick={() => onSelectDarkGradient?.(preset.id)}
-                        >
-                          <span className="dark-gradient-option__swatch" style={{ background: preset.gradient }} aria-hidden="true" />
-                          <span className="dark-gradient-option__label">{preset.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </Card>
-                </section>
-              )}
-
-              {/* Shared color-theory swatches; hover preview stays inside the picker. */}
-              <section>
-                <SectionTitle icon={<Zap className="w-3 h-3 text-fuchsia-300" />}>Chọn giao diện nền</SectionTitle>
-                <Card className="space-y-3">
-                  <GradientSwatchPicker
-                    label="Bảng chọn Gradient"
-                    value={resolveGodrayId(godrayPreset)}
-                    onChange={id => onSelectGodray?.(id)}
-                  />
-                  <div className="flex items-center gap-2 pt-1">
-                    <span className="text-[10px] font-semibold text-white/70 shrink-0">Độ rực</span>
-                    <input type="range" min={20} max={100} value={godrayIntensity}
-                      onChange={(e) => onChangeGodrayIntensity?.(parseInt(e.target.value, 10))}
-                      aria-label="Độ rực gradient" className="ff-range w-full"
-                      style={{ background: `linear-gradient(90deg, ${activePreset.accent} ${godrayIntensity}%, rgba(255,255,255,0.16) ${godrayIntensity}%)` }}
+              {/* 2. CHẾ ĐỘ TRẢI NGHIỆM: FABULOUS & POTATOR CẠNH NHAU */}
+              <section aria-label="Chế độ hiệu ứng">
+                <SectionTitle icon={<Sparkles className="w-3 h-3 text-violet-300" />}>Chế độ hiệu ứng &amp; hiệu năng</SectionTitle>
+                <div className="grid grid-cols-2 gap-2">
+                  <Card className="!p-2.5">
+                    <SwitchRow
+                      icon={<Sparkles className="w-3.5 h-3.5 text-violet-300" />}
+                      title="Fabulous"
+                      on={fabulousMode}
+                      onToggle={() => onToggleFabulousMode?.()}
+                      color="bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.55)]"
                     />
-                    <span className="text-[10px] font-mono text-amber-300 shrink-0 w-8 text-right">{godrayIntensity}%</span>
+                  </Card>
+                  <Card className="!p-2.5">
+                    <SwitchRow
+                      icon={
+                        <svg className="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M12 2a9 9 0 0 0-9 9c0 4 3 8 7 10 1.5.7 3.5.7 5 0 4-2 7-6 7-10a9 9 0 0 0-10-9z" />
+                          <circle cx="10" cy="9" r="1" fill="currentColor" />
+                          <circle cx="14" cy="13" r="1" fill="currentColor" />
+                        </svg>
+                      }
+                      title="Potator Mode"
+                      on={potatorMode}
+                      onToggle={() => onTogglePotatorMode?.()}
+                      color="bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"
+                    />
+                  </Card>
+                </div>
+              </section>
+
+              {/* 3. CẤU HÌNH NỀN HỢP NHẤT (Gộp Nền tối + Chọn giao diện nền + Nền tĩnh) */}
+              <section aria-label="Cấu hình nền">
+                <SectionTitle icon={<Palette className="w-3 h-3 text-[#f2cc8f]" />}>Cấu hình nền</SectionTitle>
+                <Card className="space-y-3.5">
+                  <div className="flex items-center justify-between gap-2 pb-2 border-b border-white/10">
+                    <span className="text-[11px] font-semibold text-white/85">Chế độ nền đang dùng</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold bg-white/10 text-amber-300 border border-amber-400/25">
+                      {potatorMode
+                        ? 'Nền tĩnh · Potator'
+                        : fabulousMode
+                        ? 'Video & Cực quang · Fabulous'
+                        : theme === 'dark'
+                        ? 'Chuyển sắc tối'
+                        : 'Chuyển sắc sáng'}
+                    </span>
                   </div>
+
+                  {theme === 'dark' && (
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] font-semibold text-white/70">Sắc thái nền tối</div>
+                      <div className="dark-gradient-picker" role="group" aria-label="Chọn gradient nền tối">
+                        {DARK_GRADIENT_PRESETS.map((preset) => (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            className="dark-gradient-option"
+                            aria-label={`Gradient ${preset.label}`}
+                            aria-pressed={resolveDarkGradientId(darkGradient) === preset.id}
+                            title={preset.label}
+                            onClick={() => onSelectDarkGradient?.(preset.id)}
+                          >
+                            <span className="dark-gradient-option__swatch" style={{ background: preset.gradient }} aria-hidden="true" />
+                            <span className="dark-gradient-option__label">{preset.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {potatorMode ? (
+                    <div className="space-y-1.5">
+                      <GradientSwatchPicker
+                        label="Bảng chọn Gradient"
+                        value={resolvePotatorId(potatorBg)}
+                        onChange={id => onSelectPotatorBg?.(id)}
+                        includeDarkMetal
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      <GradientSwatchPicker
+                        label="Bảng chọn Gradient"
+                        value={resolveGodrayId(godrayPreset)}
+                        onChange={id => onSelectGodray?.(id)}
+                      />
+                      <div className="flex items-center gap-2 pt-0.5">
+                        <span className="text-[10px] font-semibold text-white/70 shrink-0">Độ rực</span>
+                        <input
+                          type="range"
+                          min={20}
+                          max={100}
+                          value={godrayIntensity}
+                          onChange={(e) => onChangeGodrayIntensity?.(parseInt(e.target.value, 10))}
+                          aria-label="Độ rực gradient"
+                          className="ff-range w-full"
+                          style={{ background: `linear-gradient(90deg, ${activePreset.accent} ${godrayIntensity}%, rgba(255,255,255,0.16) ${godrayIntensity}%)` }}
+                        />
+                        <span className="text-[10px] font-mono text-amber-300 shrink-0 w-8 text-right">{godrayIntensity}%</span>
+                      </div>
+                    </div>
+                  )}
                 </Card>
               </section>
 
-              {/* 3. HIỂN THỊ */}
+              {/* 4. HIỂN THỊ & KÍNH MỜ */}
               <section>
-                <SectionTitle icon={<Sparkles className="w-3 h-3 text-[#f2cc8f]" />}>Hiển thị &amp; kính mờ</SectionTitle>
+                <SectionTitle icon={<Sparkles className="w-3 h-3 text-[#f2cc8f]" />}>Chữ &amp; độ trong kính</SectionTitle>
                 <Card className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2 justify-center">
                     <span className="text-[10px] font-semibold text-white/70">Cỡ chữ hệ thống</span>
@@ -927,8 +975,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* 5. MOTION & PERFORMANCE */}
               <section>
-                <SectionTitle icon={<Zap className="w-3 h-3 text-amber-300" />}>Hiệu năng</SectionTitle>
+                <SectionTitle icon={<Zap className="w-3 h-3 text-amber-300" />}>Chuyển động &amp; âm thanh</SectionTitle>
                 <Card className="flex flex-col gap-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <SwitchRow
+                      icon={<Sparkles className="w-3.5 h-3.5 text-violet-300" />}
+                      title="Fabulous"
+                      on={fabulousMode}
+                      onToggle={() => onToggleFabulousMode?.()}
+                      color="bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.55)]"
+                    />
+                    <SwitchRow
+                      icon={
+                        <svg className="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M12 2a9 9 0 0 0-9 9c0 4 3 8 7 10 1.5.7 3.5.7 5 0 4-2 7-6 7-10a9 9 0 0 0-10-9z" />
+                          <circle cx="10" cy="9" r="1" fill="currentColor" />
+                          <circle cx="14" cy="13" r="1" fill="currentColor" />
+                        </svg>
+                      }
+                      title="Potator Mode"
+                      on={potatorMode}
+                      onToggle={() => onTogglePotatorMode?.()}
+                      color="bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"
+                    />
+                  </div>
                   <SwitchRow
                     icon={<Volume2 className="w-3.5 h-3.5 text-amber-400" />}
                     title="Hiệu ứng âm thanh"
@@ -941,19 +1011,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     on={reducedMotion}
                     onToggle={onToggleReducedMotion}
                     color="bg-[#81b29a] shadow-[0_0_8px_rgba(129,178,154,0.5)]"
-                  />
-                  <SwitchRow
-                    icon={
-                      <svg className="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M12 2a9 9 0 0 0-9 9c0 4 3 8 7 10 1.5.7 3.5.7 5 0 4-2 7-6 7-10a9 9 0 0 0-10-9z" />
-                        <circle cx="10" cy="9" r="1" fill="currentColor" />
-                        <circle cx="14" cy="13" r="1" fill="currentColor" />
-                      </svg>
-                    }
-                    title="Potator Mode"
-                    on={potatorMode}
-                    onToggle={() => onTogglePotatorMode?.()}
-                    color="bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"
                   />
                   <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/5 border border-white/5">
                     <div className="min-w-0">
@@ -979,19 +1036,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </select>
                   </div>
                 </Card>
-                {potatorMode && (
-                  <Card className="mt-2">
-                    <div className="text-[10px] font-semibold uppercase tracking-widest text-white/55 mb-2">
-                      Nền tĩnh
-                    </div>
-                    <GradientSwatchPicker
-                      label="Chọn nền tĩnh cho Potator Mode"
-                      value={resolvePotatorId(potatorBg)}
-                      onChange={id => onSelectPotatorBg?.(id)}
-                      includeDarkMetal
-                    />
-                  </Card>
-                )}
               </section>
 
               {/* 6. KHÔNG GIAN TẬP TRUNG */}

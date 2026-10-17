@@ -141,3 +141,93 @@ export const useActiveInViewport = (
 
   return enabled && inViewport && tabVisible;
 };
+
+export interface ProfileProximityBindings<T extends HTMLElement = HTMLDivElement> {
+  ref: React.RefObject<T | null>;
+  isActive: boolean;
+  dataProfileActive: 'true' | 'false';
+  onPointerEnter: () => void;
+  onPointerLeave: () => void;
+  onFocusCapture: () => void;
+  onBlurCapture: (event: React.FocusEvent<T>) => void;
+  onTouchStart: () => void;
+}
+
+/**
+ * Keep profile effects in their calm normal state by default, and wake them up
+ * when the pointer approaches within proximityPx, hovers directly, or focus enters.
+ */
+export const useProfileProximityEffect = <T extends HTMLElement = HTMLDivElement>(
+  enabled = true,
+  proximityPx = 88,
+): ProfileProximityBindings<T> => {
+  const ref = useRef<T | null>(null);
+  const reducedMotion = useReducedMotion();
+  const [pointerNear, setPointerNear] = useState(false);
+  const [focusedWithin, setFocusedWithin] = useState(false);
+
+  useEffect(() => {
+    if (!enabled || reducedMotion) {
+      setPointerNear(false);
+      return;
+    }
+    if (typeof window === 'undefined') return;
+
+    let rafId = 0;
+    const checkProximity = (clientX: number, clientY: number) => {
+      const node = ref.current;
+      if (!node || typeof node.getBoundingClientRect !== 'function') return;
+      const rect = node.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) return;
+      const dx = Math.max(rect.left - clientX, 0, clientX - rect.right);
+      const dy = Math.max(rect.top - clientY, 0, clientY - rect.bottom);
+      const isNear = Math.hypot(dx, dy) <= proximityPx;
+      setPointerNear((prev) => (prev === isNear ? prev : isNear));
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (rafId) return;
+      const { clientX, clientY } = event;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0;
+        checkProximity(clientX, clientY);
+      });
+    };
+
+    const onWindowBlur = () => setPointerNear(false);
+
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('blur', onWindowBlur);
+    return () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('blur', onWindowBlur);
+    };
+  }, [enabled, proximityPx, reducedMotion]);
+
+  const isActive = enabled && !reducedMotion && (pointerNear || focusedWithin);
+
+  return {
+    ref,
+    isActive,
+    dataProfileActive: isActive ? 'true' : 'false',
+    onPointerEnter: () => {
+      if (enabled && !reducedMotion) setPointerNear(true);
+    },
+    onPointerLeave: () => {
+      setPointerNear(false);
+    },
+    onFocusCapture: () => {
+      if (enabled && !reducedMotion) setFocusedWithin(true);
+    },
+    onBlurCapture: (event: React.FocusEvent<T>) => {
+      const nextTarget = event.relatedTarget as Node | null;
+      if (!nextTarget || !event.currentTarget.contains(nextTarget)) {
+        setFocusedWithin(false);
+      }
+    },
+    onTouchStart: () => {
+      if (enabled && !reducedMotion) setPointerNear(true);
+    },
+  };
+};

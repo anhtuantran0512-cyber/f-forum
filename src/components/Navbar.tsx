@@ -1,10 +1,12 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { Fragment, useState, useRef, useEffect, useCallback } from 'react';
 import {
-  MessageSquare,
-  MessageCircleMore,
   X,
   ChevronDown,
+} from 'lucide-react';
+import {
+  MessageSquare,
+  MessageCircleMore,
   Bell,
   Users,
   HelpCircle,
@@ -19,7 +21,7 @@ import {
   Command,
   Timer,
   BookOpen,
-} from 'lucide-react';
+} from './ui/CozyGhibliIcons';
 import type { DimensionView, User } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { playChime } from '../utils/audio';
@@ -62,28 +64,14 @@ export interface NavbarProps {
   onToggleEyeRest?: () => void;
 }
 
-type DockView = Exclude<DimensionView, 'landing' | 'home' | 'exam-viewer'>;const NAV_ICONS: Record<DockView, React.ReactNode> = {
+type DockView = Exclude<DimensionView, 'landing' | 'home' | 'exam-viewer'>;
+const NAV_ICONS: Record<DockView, React.ReactNode> = {
   clubs: <Users size={16} className="text-[#81b29a]" />,
   qa: <HelpCircle size={16} className="text-[#e07a5f]" />,
   threads: <MessageCircleMore size={16} className="text-[#f2cc8f]" />,
-  chat: <MessageSquare size={16} className="text-orange-400" />, 
-  memory: (
-    <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 ff-nav-tab-icon text-pink-300">
-      <rect x="3" y="3" width="18" height="18" rx="4" />
-      <path d="M3 15l5-5c.9-.9 2.3-.9 3.2 0l6.8 6.8" />
-      <path d="M14 14.5l1.5-1.5c.8-.8 2.2-.8 3 0L21 15.5" />
-      <circle cx="8" cy="8" r="1.5" />
-    </svg>
-  ),
-  chronicles: (
-    <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 ff-nav-tab-icon text-amber-300">
-      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-      <path d="M4 22h16" />
-      <path d="M10 14.66V17c0 .55-.45 1-1 1H8v4h8v-4h-1c-.55 0-1-.45-1-1v-2.34" />
-      <path d="M6 4h12a1 1 0 0 1 1 1v4c0 3.87-3.13 7-7 7s-7-3.13-7-7V5a1 1 0 0 1 1-1z" />
-    </svg>
-  ),
+  chat: <MessageSquare size={16} className="text-orange-400" />,
+  memory: <Film size={17} className="shrink-0 ff-nav-tab-icon text-pink-300" />,
+  chronicles: <Trophy size={17} className="shrink-0 ff-nav-tab-icon text-amber-300" />,
   'coming-soon': <Rocket size={16} className="text-yellow-400" />,
   'exam-vault': <BookOpen size={16} className="text-cyan-400" />,
 };

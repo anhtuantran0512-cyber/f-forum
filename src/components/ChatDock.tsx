@@ -3,12 +3,6 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom';
 import {
   X,
-  Send,
-  Hash,
-  Users,
-  HelpCircle,
-  Heart,
-  Shield,
   LogIn,
   Trash2,
   MessageSquareDashed,
@@ -18,6 +12,14 @@ import {
   CornerUpLeft,
   LoaderCircle,
 } from 'lucide-react';
+import {
+  Send,
+  Hash,
+  Users,
+  HelpCircle,
+  Heart,
+  Shield,
+} from './ui/CozyGhibliIcons';
 import type { ChatChannelId, ChatMessage, User, OnlinePresenceUser } from '../types';
 import { TierBadge } from './Badges10Tier';
 import { useEscapeKey } from '../utils/useEscapeKey';
@@ -366,11 +368,12 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                     <button
                       type="button"
                       onClick={() => onDeleteMessage?.(msg.id)}
-                      className="px-1.5 py-0.5 text-rose-300 hover:text-rose-200 rounded bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 cursor-pointer inline-flex items-center gap-1"
+                      className="ff-icon-button ff-chat-action-button rounded-md text-rose-300 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 cursor-pointer"
                       title="Thu hồi tin nhắn vi phạm"
+                      aria-label="Thu hồi tin nhắn"
                     >
-                      <Trash2 className="w-2.5 h-2.5" />
-                      <span className="text-[9px]">Thu hồi tin nhắn</span>
+                      <Trash2 className="w-3 h-3" />
+                      <span className="sr-only">Thu hồi tin nhắn</span>
                     </button>
                   )}
                 </div>
@@ -455,12 +458,11 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   <Hash className="w-4 h-4 text-[#81b29a]" />
                 </div>
                 <div>
-                  <h3 className="ff-chat-dock-title font-bold text-xs sm:text-sm text-[#f8f7f4] flex items-center gap-1.5">
+                  <h3 className="ff-chat-dock-title font-bold text-xs sm:text-sm text-[#f8f7f4] flex items-center gap-2">
                     <span>
                       <span className="ff-swash-cap text-xs mr-0.5">F</span>·Chat
                     </span>
-                    <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px]">Chút chuyện, thêm thân tình.</span>
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-[#81b29a]/15 text-[#81b29a] text-[9px] font-mono font-semibold border border-[#81b29a]/35">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#81b29a]/15 text-[#81b29a] text-[9.5px] font-mono font-semibold border border-[#81b29a]/35" title="Thành viên trực tuyến">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#81b29a]" />
                       {dynamicOnlineCount}
                     </span>

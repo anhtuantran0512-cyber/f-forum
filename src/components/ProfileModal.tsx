@@ -58,6 +58,7 @@ import { GachaBoutique } from './shop/GachaBoutique';
 import { TrophyShelf } from './shop/TrophyShelf';
 import { AvatarWithDecoration, type DecorationAssetRef } from './decorations/AvatarWithDecoration';
 import { DecoratedName } from './decorations/DecoratedAvatar';
+import { useProfileProximityEffect } from './decorations/useDecorationMedia';
 import { RoleMark } from './RoleMark';
 import { useDecorationCatalog, useUserDecorations } from '../utils/decorationStore';
 import { DECORATION_RARITY_META, resolveAssetUrl } from '../utils/decorations';
@@ -932,6 +933,8 @@ const ProfileModalInner: React.FC<{
     }));
   }, [currentUser.level, userSolutions]);
 
+  const profileProximity = useProfileProximityEffect<HTMLDivElement>(true, 96);
+
   return (
     <div
       className="fixed inset-0 z-[80] flex items-center justify-center p-2 sm:p-4 bg-black/45 backdrop-blur-md animate-fade-up"
@@ -949,7 +952,11 @@ const ProfileModalInner: React.FC<{
       />
 
       {/* Main Card Container — Spacious max-w-5xl Academic Shell */}
-      <div className={`pc-12-shell ff-keep-dark signature-profile profile-modal-shell ${equippedItem?.category === 'Khung avatar' ? 'signature-profile--frame' : equippedItem?.category === 'Hiệu ứng' ? 'signature-profile--effect' : ''} w-full max-w-5xl rounded-[26px] p-4 sm:p-6 relative z-10 overflow-hidden max-h-[94vh] flex flex-col`}>
+      <div
+        data-profile-active={profileProximity.dataProfileActive}
+        onPointerLeave={profileProximity.onPointerLeave}
+        className={`pc-12-shell ff-keep-dark signature-profile profile-modal-shell ff-profile-surface ${equippedItem?.category === 'Khung avatar' ? 'signature-profile--frame' : equippedItem?.category === 'Hiệu ứng' ? 'signature-profile--effect' : ''} w-full max-w-5xl rounded-[26px] p-4 sm:p-6 relative z-10 overflow-hidden max-h-[94vh] flex flex-col`}
+      >
         {/* Navigation tabs: labeled so profile areas are discoverable beyond their icons. */}
         <div className="profile-modal-header relative z-10 flex items-center justify-between pb-3 border-b border-dashed border-[#f4f1de]/15 mb-3 gap-2.5 shrink-0">
           <div className="profile-modal-identity flex items-center gap-2 min-w-0">
@@ -1131,7 +1138,16 @@ const ProfileModalInner: React.FC<{
 
           {!isBooting && activeTab === 'overview' && (
             <div className="space-y-4 ff-tab-panel-enter">
-              <div className="pc-12-card relative overflow-hidden profile-overview-cover">
+              <div
+                ref={profileProximity.ref}
+                data-profile-active={profileProximity.dataProfileActive}
+                onPointerEnter={profileProximity.onPointerEnter}
+                onPointerLeave={profileProximity.onPointerLeave}
+                onFocusCapture={profileProximity.onFocusCapture}
+                onBlurCapture={profileProximity.onBlurCapture}
+                onTouchStart={profileProximity.onTouchStart}
+                className="pc-12-card relative overflow-hidden profile-overview-cover ff-profile-surface"
+              >
                 <div className="relative h-36 sm:h-44 overflow-hidden border-b border-white/10">
                   <GradientSurface gradient={effectiveBannerGradient} className="absolute inset-0" />
                   <img
@@ -1168,6 +1184,7 @@ const ProfileModalInner: React.FC<{
                                 auraAsset={decoAuraAsset}
                                 size={112}
                                 eager
+                                animate={profileProximity.isActive}
                                 priority="high"
                                 className="ff-profile__avatar"
                               />

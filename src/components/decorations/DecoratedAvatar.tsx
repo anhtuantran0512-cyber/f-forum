@@ -151,54 +151,46 @@ export const DecoratedName = memo(({
     : showNameplate
       ? shopItemToAsset(nameplate)
       : null;
-  const shouldShowPlate = Boolean(asset) || (showNameplate && showFallbackTag);
-  const height = customHeight ?? Math.max(28, Math.round((width * 84) / 448));
-  const len = name.trim().length;
-  const charPx = height <= 28 ? 7.6 : height <= 34 ? 8.3 : 9.0;
-  const adaptiveWidth = Math.max(width, Math.min(maxWidth, Math.ceil(len * charPx + 24)));
-  const fontSize =
-    len > 28
-      ? '10.5px'
-      : len > 22
-      ? '11.5px'
-      : height <= 30
-      ? '12px'
-      : height <= 36
-      ? '13px'
-      : undefined;
-  const letterSpacing = len > 24 ? '-0.015em' : undefined;
-  const textStyle: React.CSSProperties | undefined =
-    fontSize || letterSpacing ? { fontSize, letterSpacing } : undefined;
-  const boxStyle: React.CSSProperties = {
-    minWidth: 0,
-    width: adaptiveWidth,
-    maxWidth: '100%',
-    height,
-    aspectRatio: 'auto',
-    paddingLeft: '8px',
-    paddingRight: '8px',
-  };
-
-  if (!shouldShowPlate) {
+  if (!asset && !overrideAsset) {
+    void showFallbackTag;
     return (
       <span
-        className={className || 'font-semibold text-[#f8f7f4] truncate'}
+        className={`npd-name inline-flex items-center max-w-full truncate ${className || 'font-semibold text-[#f8f7f4]'}`}
         title={name}
       >
         {name}
       </span>
     );
   }
+  const height = customHeight ?? Math.max(20, Math.min(26, Math.round((width * 84) / 448)));
+  const len = name.trim().length;
+  const charPx = height <= 22 ? 6.6 : 7.2;
+  const tagMaxW = Math.min(maxWidth, Math.max(108, Math.min(width, Math.ceil(len * charPx + 20))));
+  const fontSize =
+    len > 26
+      ? '10.5px'
+      : len > 20
+      ? '11px'
+      : height <= 24
+      ? '11.5px'
+      : '12px';
+  const letterSpacing = len > 24 ? '-0.015em' : undefined;
+  const textStyle: React.CSSProperties | undefined =
+    fontSize || letterSpacing ? { fontSize, letterSpacing } : undefined;
+  const boxStyle: React.CSSProperties = {
+    '--npd-tag-max-w': `${tagMaxW}px`,
+  } as React.CSSProperties;
+
   return (
     <span
-      className={`npd-np${asset ? '' : ' npd-np--default'}${className ? ` ${className}` : ''}`}
+      className={`npd-np npd-np--tag${asset ? '' : ' npd-np--default'}${className ? ` ${className}` : ''}`}
       style={boxStyle}
       title={name}
     >
       {asset && (
         <NameplateDisplay
           asset={asset}
-          size={adaptiveWidth}
+          size={tagMaxW}
           animate={animate}
           eager={eager}
           priority={priority}
