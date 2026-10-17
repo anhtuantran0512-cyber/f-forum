@@ -77,7 +77,6 @@ export const resolveUserDecorations = (
     const id = user.equippedDecorations?.[slot];
     if (id && owned.has(id) && isDecorationId(id)) out[slot] = id;
   }
-  if (out.avatar_frame && out.avatar_aura) out.avatar_aura = null;
   void pool;
   return out;
 };
@@ -88,7 +87,7 @@ export const useUserDecorations = (user: Pick<User, 'inventory' | 'equippedDecor
   return useMemo(() => {
     const slots = resolveUserDecorations(user, items);
     const frame = slots.avatar_frame ? byId.get(slots.avatar_frame) || null : null;
-    const aura = !frame && slots.avatar_aura ? byId.get(slots.avatar_aura) || null : null;
+    const aura = slots.avatar_aura ? byId.get(slots.avatar_aura) || null : null;
     return {
       slots,
       frame,

@@ -35,7 +35,7 @@ const TEACHER_PERMISSIONS: readonly CommunityPermission[] = [
   ...STUDENT_PERMISSIONS, 'create_forum_post', 'publish_exam', 'review_exam_submission', 'pin_qa_solution', 'moderate',
 ];
 const MODERATOR_PERMISSIONS: readonly CommunityPermission[] = [
-  ...STUDENT_PERMISSIONS, 'publish_exam', 'review_exam_submission', 'moderate',
+  ...STUDENT_PERMISSIONS, 'create_forum_post', 'publish_exam', 'review_exam_submission', 'moderate',
 ];
 const SUPER_ADMIN_PERMISSIONS: readonly CommunityPermission[] = [
   ...TEACHER_PERMISSIONS,
@@ -65,7 +65,7 @@ export const COMMUNITY_ROLE_MATRIX: readonly CommunityRoleRow[] = [
   {
     id: 'MODERATOR',
     label: 'Moderator',
-    summary: 'Kiểm duyệt và duyệt hồ sơ đề; không mặc định có quyền đăng bài gốc.',
+    summary: 'Có thể đăng bài gốc, kiểm duyệt và duyệt hồ sơ đề trong phạm vi được cấp.',
     permissions: MODERATOR_PERMISSIONS,
   },
   {

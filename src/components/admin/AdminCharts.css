@@ -91,8 +91,8 @@
 .ffc-area__tip em.is-down { color: #fda4af; }
 
 @keyframes ffcTipIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateX(var(--ffc-tip-shift, -50%)) translateY(6px); }
+  to { opacity: 1; transform: translateX(var(--ffc-tip-shift, -50%)) translateY(0); }
 }
 
 .ffc-area__live {

@@ -27,6 +27,7 @@ import type { Club, ClubPost, User, ClubCategory, ChatMessage } from '../../type
 import { DEFAULT_AVATAR, DEFAULT_CLUB_COVER, handleImageError } from '../../utils/mediaFallback';
 import { isMasterAdmin } from '../../config/admin';
 import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
+import { RoleMark } from '../RoleMark';
 import './ClubsView.css';
 
 interface ClubsViewProps {
@@ -536,6 +537,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                         animate
                         showFallbackTag
                       />
+                      <RoleMark user={resolveClubUser(spotlightClub.leaderId, spotlightClub.leaderName)} size={11} />
                     </button>
                   </div>
                 </div>
@@ -674,6 +676,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                           animate
                           showFallbackTag
                         />
+                        <RoleMark user={resolveClubUser(club.leaderId, club.leaderName)} size={11} />
                       </button>
                     </div>
 
@@ -971,6 +974,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                         animate
                         showFallbackTag
                       />
+                      <RoleMark user={resolveClubUser(selectedClub.leaderId, selectedClub.leaderName)} size={11} />
                     </button>
                   </div>
                   <div className="p-4 rounded-xl bg-[#0b0d12]/80 border-[1.5px] border-[#f4f1de]/14">
@@ -1084,6 +1088,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                                 animate
                                 showFallbackTag
                               />
+                              <RoleMark user={resolveClubUser(post.authorId, post.authorName)} size={10} />
                             </div>
                           </div>
                         ))

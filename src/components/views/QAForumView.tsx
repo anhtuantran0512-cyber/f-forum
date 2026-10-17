@@ -51,7 +51,7 @@ import type {
   QAReactions,
   ModerationReasonCode,
 } from '../../types';
-import { TierBadge, AdminVerifiedBadge } from '../Badges10Tier';
+import { TierBadge } from '../Badges10Tier';
 import { getTierForLevel } from '../../utils/tier';
 import {
   generateGhibliAlias,
@@ -59,6 +59,7 @@ import {
 } from '../../utils/ghibliMasks';
 import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
 import { DecoratedAvatar, DecoratedName, UserNameplateBg } from '../decorations/DecoratedAvatar';
+import { RoleMark } from '../RoleMark';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
 import { capsHas, useAdminCaps } from '../../utils/adminCapabilities';
 import { canPinQASolution } from '../../utils/communityRoles';
@@ -479,6 +480,7 @@ const CommentThread: React.FC<{
                       animate
                       showFallbackTag
                     />
+                    <RoleMark user={c.authorEmail ? findDecorationOwner(users, c.authorEmail, c.authorId) : null} size={10} />
                     <span className="text-[10px] text-[#9a978e] font-mono">· {c.createdAt}</span>
                   </div>
                   <p className="text-[#f4f1de] text-xs mt-0.5 break-words leading-relaxed">{c.content}</p>
@@ -2141,6 +2143,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                 showFallbackTag
                               />
                             )}
+                            {!q.isAnonymous && <RoleMark user={findDecorationOwner(users, undefined, q.authorId)} size={10} />}
                             {q.isAnonymous && (
                               <span className="px-1.5 py-0.5 rounded-[4px] bg-[#e07a5f]/18 border border-[#e07a5f]/40 text-[10px] text-[#f2cc8f] font-mono font-bold shrink-0">
                                 Ẩn danh
@@ -3135,6 +3138,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                   showFallbackTag
                                 />
                               )}
+                              {!selectedQuestion.isAnonymous && <RoleMark user={findDecorationOwner(users, undefined, selectedQuestion.authorId)} size={11} />}
                               {selectedQuestion.isAnonymous && (
                                 <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-indigo-500/15 text-indigo-200 border border-indigo-400/25 inline-flex items-center gap-1 shrink-0">
                                   <Wand2 className="w-3 h-3 text-indigo-300" />
@@ -3347,7 +3351,11 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                     animate
                                     showFallbackTag
                                   />
-                                  {isSuperAdminSolver && <AdminVerifiedBadge size={13} />}
+                                  <RoleMark
+                                    user={findDecorationOwner(users, isSuperAdminSolver ? MASTER_ADMIN_CONFIG.email : sol.authorEmail, sol.authorId)}
+                                    isSuperAdmin={isSuperAdminSolver}
+                                    size={11}
+                                  />
                                   <span className="px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/10 text-[10.5px] text-slate-300 font-mono">
                                     Lv.{sol.authorLevel}
                                   </span>
@@ -4208,9 +4216,14 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     eager
                     animate
                     priority="high"
+                    showNameplate={false}
                     showFallbackTag
                   />
-                  {isMasterAdmin(activeAuthorPopover.email) && <AdminVerifiedBadge size={12} />}
+                  <RoleMark
+                    user={findDecorationOwner(users, activeAuthorPopover.email, activeAuthorPopover.id)}
+                    isSuperAdmin={isMasterAdmin(activeAuthorPopover.email)}
+                    size={11}
+                  />
                 </div>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className="px-2 py-0.5 rounded-full bg-[#f2cc8f]/25 text-[#f2cc8f] border border-[#f2cc8f]/40 text-[9.5px] font-mono font-bold shadow-sm">

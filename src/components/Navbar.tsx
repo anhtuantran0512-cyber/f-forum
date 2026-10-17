@@ -25,6 +25,7 @@ import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { playChime } from '../utils/audio';
 import { ProfileDropdown } from './ProfileDropdown';
 import { DecoratedAvatar, DecoratedName, UserNameplateBg } from './decorations/DecoratedAvatar';
+import { RoleMark } from './RoleMark';
 import { NotificationsModal } from './NotificationsModal';
 import { SettingsModal } from './SettingsModal';
 import { safeStorage } from '../utils/storage';
@@ -1103,6 +1104,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <DecoratedName
                       user={currentUser}
                       name={currentUser.name.replace(/ \(.*\)/, '')}
+                      showNameplate={false}
                       width={136}
                       height={28}
                       eager
@@ -1114,6 +1116,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {isSuperAdmin && (
                       <AdminVerifiedBadge size={13} tooltipPosition="bottom" />
                     )}
+                    <RoleMark user={currentUser} isSuperAdmin={isSuperAdmin} size={10} />
                   </div>
 
                   <ChevronDown
@@ -1300,6 +1303,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <DecoratedName
                     user={currentUser}
                     name={currentUser.name.replace(/ \(.*\)/, '')}
+                    showNameplate={false}
                     width={124}
                     height={24}
                     eager
@@ -1307,6 +1311,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     priority="high"
                     showFallbackTag
                   />
+                  <RoleMark user={currentUser} isSuperAdmin={isSuperAdmin} size={10} />
                 </span>
                 <ChevronDown
                   className={`relative z-[2] w-3 h-3 text-neutral-300 transition-transform ${

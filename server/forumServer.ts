@@ -6031,7 +6031,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
         if (!canCreateForumPost(author)) {
-          sendJson(res, 403, { success: false, message: 'Học sinh có thể bình luận, thả reaction và đặt câu hỏi hỏi đáp; bài gốc diễn đàn dành cho Giáo viên và Trưởng CLB.' });
+          sendJson(res, 403, { success: false, message: 'Học sinh có thể bình luận, thả reaction và đặt câu hỏi hỏi đáp; bài gốc diễn đàn dành cho Giáo viên, Moderator và Trưởng CLB.' });
           return;
         }
         const gate = checkCanPost(claims.email, 'content');
@@ -6188,7 +6188,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
         if (!canCreateForumPost(author)) {
-          sendJson(res, 403, { success: false, message: 'Quyền chia sẻ thành bài gốc thuộc về Giáo viên và Trưởng CLB.' });
+          sendJson(res, 403, { success: false, message: 'Quyền chia sẻ thành bài gốc thuộc về Giáo viên, Moderator và Trưởng CLB.' });
           return;
         }
         const gate = checkCanPost(claims.email, 'content');

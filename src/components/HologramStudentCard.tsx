@@ -20,6 +20,7 @@ import { effectiveCoinBalance, formatCoinBalance } from '../utils/coinDisplay';
 import { PremiumMark } from './PremiumMark';
 import { isMasterAdmin } from '../config/admin';
 import { DecoratedAvatar } from './decorations/DecoratedAvatar';
+import { RoleMark } from './RoleMark';
 import { useUserDecorations } from '../utils/decorationStore';
 import './shop/Boutique.css';
 
@@ -165,7 +166,8 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
                   <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-amber-300/90 font-semibold">
                     F-PASS
                   </div>
-                  <div className="text-[9px] font-mono text-neutral-400">
+                  <div className="flex items-center gap-1 text-[9px] font-mono text-neutral-400">
+                    <RoleMark user={user} isSuperAdmin={isSuperAdmin} size={10} />
                     {isSuperAdmin
                       ? 'SUPER ADMIN'
                       : user.staffRole === 'TEACHER'

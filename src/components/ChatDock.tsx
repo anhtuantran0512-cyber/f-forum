@@ -19,7 +19,7 @@ import {
   LoaderCircle,
 } from 'lucide-react';
 import type { ChatChannelId, ChatMessage, User, OnlinePresenceUser } from '../types';
-import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
+import { TierBadge } from './Badges10Tier';
 import { useEscapeKey } from '../utils/useEscapeKey';
 import { DEFAULT_AVATAR } from '../utils/mediaFallback';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../config/admin';
@@ -248,15 +248,15 @@ export const ChatDock: React.FC<ChatDockProps> = ({
         return (
           <div
             key={msg.id}
-            className={`group/msg flex items-start gap-2.5 px-1.5 py-0.5 rounded-lg hover:bg-[#f8f7f4]/[0.02] transition-colors ${
-              isMe ? 'flex-row-reverse' : ''
+            className={`ff-chat-message-row group/msg flex items-start gap-2.5 px-1.5 py-0.5 rounded-lg hover:bg-[#f8f7f4]/[0.02] transition-colors ${
+              isMe ? 'ff-chat-message-row--mine flex-row-reverse' : ''
             } ${isContinuation ? 'mt-0.5' : 'mt-2.5'}`}
           >
             {!isContinuation ? (
               <button
                 type="button"
                 onClick={e => openAuthorCardFromEvent(e, authorPayload)}
-                className="relative shrink-0 mt-0.5 cursor-pointer focus:outline-none"
+                className="ff-chat-message-avatar relative shrink-0 mt-0.5 cursor-pointer focus:outline-none"
                 title={`Xem hồ sơ ${authorDisplayName}`}
               >
                 <DecoratedAvatar
@@ -280,26 +280,26 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                 </span>
               </button>
             ) : (
-              <div className="w-8 shrink-0 select-none text-[9px] font-mono text-[#a39f96]/0 group-hover/msg:text-[#a39f96]/70 text-center pt-1.5 transition-colors">
+              <div className="ff-chat-message-avatar ff-chat-message-avatar--continuation w-8 shrink-0 select-none text-[9px] font-mono text-[#a39f96]/0 group-hover/msg:text-[#a39f96]/70 text-center pt-1.5 transition-colors">
                 {msg.timestamp.slice(0, 5)}
               </div>
             )}
 
             <div
-              className={`max-w-[80%] flex flex-col ${
+              className={`ff-chat-message-body max-w-[80%] flex flex-col ${
                 isMe ? 'items-end' : 'items-start'
               }`}
             >
               {!isContinuation && (
                 <div
-                  className={`flex items-center gap-1.5 mb-0.5 flex-wrap ${
-                    isMe ? 'justify-end flex-row-reverse' : ''
+                  className={`ff-chat-message-meta flex items-center gap-1.5 mb-0.5 flex-wrap ${
+                    isMe ? 'ff-chat-message-meta--mine justify-end flex-row-reverse' : ''
                   }`}
                 >
                   <button
                     type="button"
                     onClick={e => openAuthorCardFromEvent(e, authorPayload)}
-                    className="inline-flex items-center gap-1 cursor-pointer hover:underline"
+                    className="ff-chat-message-author inline-flex items-center gap-1 cursor-pointer hover:underline"
                   >
                     <DecoratedName
                       user={resolvedDockUser}
@@ -307,6 +307,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                       width={124}
                       height={22}
                       animate={isOpen}
+                      showFallbackTag
                       className={`text-xs font-semibold ${
                         isSuperAdminMsg
                           ? 'text-[#e9c46a]'
@@ -328,9 +329,9 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                 </div>
               )}
 
-              <div className={`flex items-center gap-1.5 ${isMe ? 'flex-row-reverse' : ''}`}>
+              <div className={`ff-chat-message-content flex items-center gap-1.5 ${isMe ? 'ff-chat-message-content--mine flex-row-reverse' : ''}`}>
                 <div
-                  className={`w-fit px-3.5 py-2 text-xs leading-relaxed break-words ${
+                  className={`ff-chat-message-bubble w-fit px-3.5 py-2 text-xs leading-relaxed break-words ${
                     isMe
                       ? 'ff-chat-bubble-me'
                       : isSuperAdminMsg
@@ -341,7 +342,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   <ChatMessageContent message={msg} users={users} currentUser={currentUser} />
                 </div>
 
-                <div className="opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
+                <div className="ff-chat-message-actions opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
                   {currentUser && (
                     <button
                       type="button"
@@ -354,7 +355,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                         });
                         inputRef.current?.focus();
                       }}
-                      className="p-1 rounded-md bg-[#161d2b] hover:bg-[#1f293d] border border-[#f8f7f4]/12 text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
+                      className="ff-icon-button ff-chat-action-button rounded-md bg-[#161d2b] hover:bg-[#1f293d] border border-[#f8f7f4]/12 text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
                       title="Trả lời tin nhắn"
                     >
                       <CornerUpLeft className="w-3 h-3" />
@@ -444,17 +445,17 @@ export const ChatDock: React.FC<ChatDockProps> = ({
             : 'translate-x-full opacity-0 pointer-events-none'
         }`}
       >
-        <div className="flex-1 bg-[#0e131d] border border-[#f8f7f4]/14 rounded-2xl shadow-[0_24px_60px_rgba(0,0,0,0.68)] flex flex-col overflow-hidden">
+        <div className="ff-chat-dock-shell flex-1 bg-[#0e131d] border border-[#f8f7f4]/14 rounded-2xl shadow-[0_24px_60px_rgba(0,0,0,0.68)] flex flex-col overflow-hidden">
           
           {/* Thanh tiêu đề & bộ chọn kênh */}
-          <div className="p-3.5 border-b border-[#f8f7f4]/10 bg-[#0b0f17] flex flex-col gap-2.5">
+          <div className="ff-chat-dock-header p-3.5 border-b border-[#f8f7f4]/10 bg-[#0b0f17] flex flex-col gap-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-[#81b29a]/15 border border-[#81b29a]/35 flex items-center justify-center">
                   <Hash className="w-4 h-4 text-[#81b29a]" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-xs sm:text-sm text-[#f8f7f4] flex items-center gap-1.5">
+                  <h3 className="ff-chat-dock-title font-bold text-xs sm:text-sm text-[#f8f7f4] flex items-center gap-1.5">
                     <span>
                       <span className="ff-swash-cap text-xs mr-0.5">F</span>·Chat
                     </span>
@@ -482,7 +483,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   type="button"
                   onClick={onClose}
                   aria-label="Đóng khung chat"
-                  className="p-1.5 rounded-lg bg-[#151b28] border border-[#f8f7f4]/10 text-[#a39f96] hover:text-[#f8f7f4] transition-colors cursor-pointer"
+                  className="ff-icon-button ff-chat-close-button p-1.5 rounded-lg bg-[#151b28] border border-[#f8f7f4]/10 text-[#a39f96] hover:text-[#f8f7f4] transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -502,7 +503,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                       setActiveChannel(ch.id);
                       setReplyingTo(null);
                     }}
-                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors text-left truncate cursor-pointer border ${
+                    className={`ff-chat-dock-channel-btn flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors text-left truncate cursor-pointer border ${
                       isActive
                         ? 'bg-[#81b29a]/16 text-[#f8f7f4] font-semibold border-[#81b29a]/40'
                         : 'bg-[#131926] border-[#f8f7f4]/08 text-[#a39f96] hover:text-[#f8f7f4] hover:bg-[#171f2f]'
@@ -518,7 +519,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
 
           {/* Danh sách tin nhắn */}
           <div
-            className="flex-1 overflow-y-auto px-3 py-3 bg-[#101520] no-scrollbar"
+            className="ff-chat-dock-stream flex-1 overflow-y-auto px-3 py-3 bg-[#101520] no-scrollbar"
             role="log"
             aria-live="polite"
             aria-relevant="additions"
@@ -546,18 +547,18 @@ export const ChatDock: React.FC<ChatDockProps> = ({
           </div>
 
           {/* Khung nhập tin nhắn */}
-          <div className="p-3 border-t border-[#f8f7f4]/10 bg-[#0b0f17]">
+          <div className="ff-chat-dock-composer p-3 border-t border-[#f8f7f4]/10 bg-[#0b0f17]">
             {replyingTo && (
-              <div className="mb-2 px-2.5 py-1 rounded-lg bg-[#151b28] border border-[#81b29a]/35 flex items-center justify-between gap-2 text-[11px]">
-                <div className="flex items-center gap-1.5 min-w-0">
+              <div className="ff-chat-reply-preview mb-2 px-2.5 py-1 rounded-lg bg-[#151b28] border border-[#81b29a]/35 flex items-center justify-between gap-2 text-[11px]">
+                <div className="ff-chat-reply-preview__copy flex items-center gap-1.5 min-w-0">
                   <CornerUpLeft className="w-3 h-3 text-[#81b29a] shrink-0" />
-                  <strong className="text-[#f8f7f4] shrink-0">@{replyingTo.authorName}</strong>
-                  <span className="text-[#a39f96] truncate">{replyingTo.excerpt}</span>
+                  <strong className="ff-chat-reply-preview__author text-[#f8f7f4] shrink-0">@{replyingTo.authorName}</strong>
+                  <span className="ff-chat-reply-preview__excerpt text-[#a39f96] truncate">{replyingTo.excerpt}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setReplyingTo(null)}
-                  className="text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer shrink-0"
+                  className="ff-icon-button ff-chat-reply-preview__close text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer shrink-0"
                   aria-label="Hủy trả lời"
                 >
                   <X className="w-3 h-3" />
@@ -567,6 +568,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
 
             {currentUser ? (
               <div className="ff-chat-composer-wrap ff-chat-composer-wrap--dock">
+                <div className="ff-chat-composer-input-row">
                 <ChatMentionPicker
                   id="ff-chat-mention-options-dock"
                   open={mentionComposer.isOpen}
@@ -597,18 +599,22 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                     aria-activedescendant={mentionComposer.isOpen ? `ff-chat-mention-options-dock-option-${mentionComposer.activeIndex}` : undefined}
                     className="ff-chat-message-input flex-1 bg-transparent border-none text-xs text-[#f8f7f4] placeholder-[#a39f96] focus:outline-none"
                   />
-                  <span className="ff-chat-send-status" role="status" aria-live="polite">{sendStatus}</span>
+                  <div className="ff-chat-composer-meta">
+                    <span className="ff-chat-character-count">{inputText.length}/300</span>
+                    <span className="ff-chat-send-status" role="status" aria-live="polite">{sendStatus}</span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => void handleSend()}
                     disabled={!inputText.trim() || isSending}
                     aria-busy={isSending}
-                    className={`ff-tactile-btn ff-chat-send-button p-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] disabled:opacity-40 transition-colors cursor-pointer ${cooldown.isCooling ? 'is-cooling' : ''}`}
+                    className={`ff-tactile-btn ff-chat-send-button ff-chat-send-button--icon p-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] disabled:opacity-40 transition-colors cursor-pointer ${cooldown.isCooling ? 'is-cooling' : ''}`}
                     title={cooldown.isCooling ? 'Đã gửi gần đây · chờ một nhịp ngắn' : 'Gửi tin nhắn'}
                     aria-label="Gửi tin nhắn"
                   >
                     {isSending ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5 text-[#e07a5f]" />}
                   </button>
+                </div>
                 </div>
                 <div className="ff-chat-composer-hint ff-chat-composer-hint--dock">
                   <span><b>@</b> để nhắc</span>
@@ -695,6 +701,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   <DecoratedName
                     user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
                     name={activeAuthorCard.name.replace(/ \(.*\)/, '')}
+                    showNameplate={false}
                     width={150}
                     height={24}
                     eager
@@ -702,7 +709,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                     priority="high"
                     className="text-sm font-bold text-[#f8f7f4] truncate"
                   />
-                  {isMasterAdmin(activeAuthorCard.email) && <AdminVerifiedBadge size={12} />}
+                  <ChatRoleIcon user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)} isSuperAdmin={isMasterAdmin(activeAuthorCard.email)} size={12} />
                 </div>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className="px-2 py-0.5 rounded-md bg-[#e9c46a]/15 text-[#e9c46a] border border-[#e9c46a]/35 text-[10px] font-mono font-semibold">
@@ -776,7 +783,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   setReportUser(null);
                   setReportSuccessMsg(null);
                 }}
-                className="p-1.5 rounded-lg bg-[#141a26] border border-[#f8f7f4]/12 text-[#dad7d0] hover:text-[#f8f7f4] cursor-pointer"
+                className="ff-icon-button ff-chat-close-button p-1.5 rounded-lg bg-[#141a26] border border-[#f8f7f4]/12 text-[#dad7d0] hover:text-[#f8f7f4] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

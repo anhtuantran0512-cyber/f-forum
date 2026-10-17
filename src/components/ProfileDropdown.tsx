@@ -1,12 +1,13 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useRef, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CreditCard, UserPen, Award, LogOut, Sparkles, ChevronRight, Flag, X, Shield, CheckCircle2 } from 'lucide-react';
+import { CreditCard, UserPen, LogOut, Sparkles, ChevronRight, Flag, X, Shield, CheckCircle2 } from 'lucide-react';
 import type { User, ShopItem } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { useUserDecorations } from '../utils/decorationStore';
 import { AvatarWithDecoration } from './decorations/AvatarWithDecoration';
 import { DecoratedName, UserNameplateBg } from './decorations/DecoratedAvatar';
+import { RoleMark } from './RoleMark';
 import { getTierForLevel } from '../utils/tier';
 import { getXPForLevel } from '../store/forumStore';
 import { DEFAULT_AVATAR, handleImageError } from '../utils/mediaFallback';
@@ -179,6 +180,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
               <DecoratedName
                 user={currentUser}
                 name={currentUser.name.replace(/ \(.*\)/, '')}
+                showNameplate={false}
                 width={168}
                 height={34}
                 eager
@@ -210,7 +212,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             </div>
           </div>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/25 font-semibold flex items-center gap-1">
-            <Award className="w-3 h-3 text-amber-400" />
+            <RoleMark user={currentUser} size={10} />
             {currentUser.role === 'SUPER_ADMIN'
               ? 'ADMIN'
               : currentUser.staffRole === 'MODERATOR'
