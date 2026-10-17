@@ -545,13 +545,18 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, []);
 
   const handleToggleFabulousMode = () => {
-    setFabulousMode((previous) => {
-      const next = !previous;
-      safeStorage.setItem('fforum_fabulous_mode', String(next));
-      document.documentElement.classList.toggle('fabulous-mode', next);
-      window.dispatchEvent(new CustomEvent('fforum_fabulous_sync', { detail: { enabled: next } }));
-      return next;
-    });
+    const next = !fabulousMode;
+    setFabulousMode(next);
+    safeStorage.setItem('fforum_fabulous_mode', String(next));
+    document.documentElement.classList.toggle('fabulous-mode', next);
+    window.dispatchEvent(new CustomEvent('fforum_fabulous_sync', { detail: { enabled: next } }));
+    /* Fabulous và Potator loại trừ nhau: bật cái này thì tắt hẳn cái kia (state, storage, class, sync). */
+    if (next && potatorMode) {
+      setPotatorMode(false);
+      safeStorage.setItem('fforum_potator_mode', 'false');
+      document.documentElement.classList.remove('potator-mode');
+      window.dispatchEvent(new CustomEvent('fforum_potator_sync', { detail: { mode: false } }));
+    }
   };
 
   const handleSelectDarkGradient = (preset: string) => {
@@ -742,13 +747,18 @@ export const Navbar: React.FC<NavbarProps> = ({
     /* EPIC 2 — Potator Mode (bản mới) */
     potatorMode,
     onTogglePotatorMode: () => {
-      setPotatorMode((prev) => {
-        const next = !prev;
-        safeStorage.setItem('fforum_potator_mode', String(next));
-        document.documentElement.classList.toggle('potator-mode', next);
-        window.dispatchEvent(new CustomEvent('fforum_potator_sync', { detail: { mode: next } }));
-        return next;
-      });
+      const next = !potatorMode;
+      setPotatorMode(next);
+      safeStorage.setItem('fforum_potator_mode', String(next));
+      document.documentElement.classList.toggle('potator-mode', next);
+      window.dispatchEvent(new CustomEvent('fforum_potator_sync', { detail: { mode: next } }));
+      /* Loại trừ lẫn nhau với Fabulous (state, storage, class, sync). */
+      if (next && fabulousMode) {
+        setFabulousMode(false);
+        safeStorage.setItem('fforum_fabulous_mode', 'false');
+        document.documentElement.classList.remove('fabulous-mode');
+        window.dispatchEvent(new CustomEvent('fforum_fabulous_sync', { detail: { enabled: false } }));
+      }
     },
     potatorBg,
     onSelectPotatorBg: (preset: string) => {
