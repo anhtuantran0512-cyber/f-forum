@@ -1,9 +1,10 @@
 /* A quieter, editorial shell for the three daily rituals. Deliberately scoped. */
 .ff-daily-panel.liquid-glass {
   background:
-    radial-gradient(90% 48% at 8% -18%, rgba(67, 124, 168, .16), transparent 80%),
-    linear-gradient(160deg, rgba(20, 29, 43, .98), rgba(10, 15, 25, .98));
-  border-color: rgba(160, 183, 210, .19);
+    radial-gradient(90% 48% at 8% -18%, rgba(242, 204, 143, .12), transparent 80%),
+    radial-gradient(70% 58% at 95% 105%, rgba(129, 178, 154, .08), transparent 72%),
+    linear-gradient(160deg, rgba(31, 28, 22, .98), rgba(15, 14, 11, .98));
+  border-color: rgba(224, 207, 174, .2);
   box-shadow: 0 26px 72px rgba(0, 0, 0, .65), inset 0 1px 0 rgba(255, 255, 255, .07);
   scrollbar-color: rgba(148, 163, 184, .3) transparent;
   scrollbar-width: thin;
@@ -34,7 +35,7 @@
 }
 .ff-daily-heading__eyebrow {
   display: block;
-  color: #89bcd0;
+  color: #d3b878;
   font: 700 9px/1.4 ui-monospace, monospace;
   letter-spacing: .16em;
 }
@@ -84,9 +85,9 @@
 .ff-daily-tab > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ff-daily-tab:hover { color: #f8fafc; background: rgba(255, 255, 255, .055); }
 .ff-daily-tab--active {
-  color: #f7fafc;
-  background: rgba(120, 149, 178, .14);
-  border-color: rgba(187, 210, 234, .14);
+  color: #fff8e9;
+  background: rgba(242, 204, 143, .09);
+  border-color: rgba(242, 204, 143, .2);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
 }
 .ff-daily-tab--active > svg { color: #f0c77d; }
@@ -98,10 +99,10 @@
   right: 34%;
   height: 2px;
   border-radius: 2px;
-  background: linear-gradient(90deg, #f4c77d, #7dd3fc);
+  background: linear-gradient(90deg, #f2cc8f, #81b29a);
 }
 .ff-daily-tab:focus-visible,
-.ff-daily-close:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; z-index: 1; }
+.ff-daily-close:focus-visible { outline: 2px solid #f2cc8f; outline-offset: 2px; z-index: 1; }
 .ff-daily-attendance {
   display: grid;
   gap: 15px;
@@ -219,14 +220,15 @@
 }
 html.light [role='dialog'] .ff-daily-panel.liquid-glass {
   background:
-    radial-gradient(90% 48% at 8% -18%, rgba(56, 152, 193, .13), transparent 80%),
-    linear-gradient(160deg, rgba(251, 253, 255, .98), rgba(237, 243, 249, .98));
-  border-color: rgba(31, 52, 74, .18);
-  box-shadow: 0 26px 64px rgba(15, 23, 42, .24), inset 0 1px 0 white;
+    radial-gradient(90% 48% at 8% -18%, rgba(242, 204, 143, .2), transparent 80%),
+    radial-gradient(70% 58% at 95% 105%, rgba(129, 178, 154, .12), transparent 72%),
+    linear-gradient(160deg, rgba(255, 253, 248, .99), rgba(244, 239, 229, .99));
+  border-color: rgba(133, 99, 49, .2);
+  box-shadow: 0 26px 64px rgba(44, 35, 22, .2), inset 0 1px 0 white;
 }
 html.light .ff-daily-header { border-bottom-color: rgba(31, 52, 74, .13); }
 html.light .ff-daily-mark { color: #935916; background: rgba(180, 108, 20, .06); border-color: rgba(160, 98, 20, .25); }
-html.light .ff-daily-heading__eyebrow { color: #276276; }
+html.light .ff-daily-heading__eyebrow { color: #80571f; }
 html.light .ff-daily-heading__title { color: #152235; }
 html.light .ff-daily-close { color: #334155; border-color: rgba(31, 52, 74, .17); background: rgba(255, 255, 255, .64); }
 html.light .ff-daily-close:hover { color: #0f172a; background: #fff; }
@@ -235,8 +237,6 @@ html.light .ff-daily-tab { color: #475569; }
 html.light .ff-daily-tab:hover { color: #101827; background: rgba(255, 255, 255, .55); }
 html.light .ff-daily-tab--active { color: #152235; border-color: rgba(31, 52, 74, .15); background: #fff; box-shadow: 0 2px 9px rgba(15, 23, 42, .06); }
 html.light .ff-daily-tab--active > svg { color: #986017; }
-html.light .ff-daily-day--active { color: #78350f; background: #fff6e7; border-color: rgba(161, 98, 7, .48); box-shadow: 0 4px 12px rgba(146, 64, 14, .08); }
-html.light .ff-daily-day--active::after { background: #a16207; box-shadow: none; }
 html.light .ff-daily-attendance { color: #332b20; }
 html.light .ff-daily-attendance__intro { border-color: rgba(143, 104, 47, .17); background: linear-gradient(120deg, rgba(242, 204, 143, .16), rgba(129, 178, 154, .1) 60%, rgba(255, 255, 255, .72)); }
 html.light .ff-daily-attendance__eyebrow { color: #8a6128; }
