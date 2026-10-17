@@ -865,3 +865,32 @@ html.light .faa-warning-list b { color: #785a2d; }
 html.light .faa-warning-list span { color: #5e503b; }
 html.light .faa-warning-list small { color: #7b705d; }
 html.light .faa-premium-section { border-color: rgba(131, 88, 68, .16); background: linear-gradient(145deg, rgba(215, 174, 145, .1), rgba(242, 204, 143, .08)); }
+
+/* Keep the interactive chart above neighboring dashboard tiles; otherwise their
+   stacking contexts and the card's old overflow clip could cover its tooltip. */
+.faa-tile--chart {
+  overflow: visible;
+  z-index: 2;
+}
+.faa-tile--chart:hover,
+.faa-tile--chart:focus-within {
+  z-index: 8;
+}
+.faa-tile--chart .ffc-area,
+.faa-tile--chart .ffc-area__plot {
+  position: relative;
+  z-index: 1;
+}
+.faa-tile--chart .ffc-area__tip {
+  z-index: 12;
+}
+
+/* The member detail drawer is a second layer inside the insights shell. */
+.faa-detail-backdrop {
+  z-index: 30;
+  isolation: isolate;
+}
+.faa-detail {
+  position: relative;
+  z-index: 1;
+}

@@ -681,6 +681,7 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
               <DecoratedName
                 user={currentUser}
                 name={currentUser.name.replace(/ \(.*\)/, '')}
+                showNameplate={false}
                 width={144}
                 height={27}
                 eager

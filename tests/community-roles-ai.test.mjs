@@ -124,6 +124,7 @@ test('Community role matrix separates forum posts, Q&A, exam publication, review
   assert.equal(canCreateForumPost({ role: 'STUDENT' }), false);
   assert.equal(canCreateForumPost({ role: 'CLUB_LEADER' }), true);
   assert.equal(canCreateForumPost({ role: 'STUDENT', staffRole: 'TEACHER' }), true);
+  assert.equal(canCreateForumPost({ role: 'STUDENT', staffRole: 'MODERATOR' }), true);
   assert.equal(canPinQASolution({ role: 'STUDENT', staffRole: 'TEACHER' }), true);
   assert.equal(canPinQASolution({ role: 'STUDENT', staffRole: 'MODERATOR' }), false);
   assert.equal(canPublishExam({ role: 'STUDENT', staffRole: 'TEACHER' }), true);
@@ -251,6 +252,7 @@ test('HTTP permissions, teacher pinning, exam publication, and private AI config
     const admin = await loginAdmin(activeServer.baseUrl);
     const student = await register(activeServer.baseUrl, 'Học sinh mặc định', 'community-student@example.vn');
     const teacher = await register(activeServer.baseUrl, 'Giáo viên thử', 'community-teacher@example.vn');
+    const moderator = await register(activeServer.baseUrl, 'Moderator thử', 'community-moderator@example.vn');
     const clubLeader = await register(activeServer.baseUrl, 'Trưởng CLB thử', 'community-club@example.vn');
 
     const studentPost = await post(activeServer.baseUrl, '/api/threads', {
@@ -300,12 +302,31 @@ test('HTTP permissions, teacher pinning, exam publication, and private AI config
     }, admin.token);
     assert.equal(teacherRole.response.status, 200, JSON.stringify(teacherRole.data));
 
+    const moderatorRole = await post(activeServer.baseUrl, '/api/admin/role', {
+      email: moderator.email,
+      staffRole: 'MODERATOR',
+      reason: 'Cấp quyền Moderator cho kiểm thử.',
+      token: admin.token,
+    }, admin.token);
+    assert.equal(moderatorRole.response.status, 200, JSON.stringify(moderatorRole.data));
+
     const teacherThread = await post(activeServer.baseUrl, '/api/threads', {
       content: 'Bài chia sẻ của giáo viên.',
       token: teacher.token,
     }, teacher.token);
     assert.equal(teacherThread.response.status, 200, JSON.stringify(teacherThread.data));
     const threadId = teacherThread.data.thread.id;
+
+    const moderatorThread = await post(activeServer.baseUrl, '/api/threads', {
+      content: 'Bài chia sẻ của Moderator.',
+      token: moderator.token,
+    }, moderator.token);
+    assert.equal(moderatorThread.response.status, 200, JSON.stringify(moderatorThread.data));
+    const moderatorRepost = await post(activeServer.baseUrl, `/api/threads/${threadId}/repost`, {
+      type: 'simple',
+      token: moderator.token,
+    }, moderator.token);
+    assert.equal(moderatorRepost.response.status, 200, JSON.stringify(moderatorRepost.data));
 
     const studentReply = await post(activeServer.baseUrl, `/api/threads/${threadId}/reply`, {
       authorEmail: student.email,

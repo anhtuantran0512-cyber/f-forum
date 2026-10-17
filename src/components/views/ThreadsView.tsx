@@ -16,6 +16,7 @@ import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
 import { isMasterAdmin } from '../../config/admin';
 import { safeStorage } from '../../utils/storage';
 import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
+import { RoleMark } from '../RoleMark';
 import { useVirtualWindow } from '../../utils/virtualWindow';
 import { useInteractionDebounce } from '../../utils/interactionScheduler';
 import { ReactionPicker } from '../ui/ReactionPicker';
@@ -296,6 +297,7 @@ const ThreadCard = React.memo<{
                     showFallbackTag
                   />
                 </span>
+                <RoleMark user={resolveThreadUser(users, currentUser, rootThread.authorEmail, rootThread.authorId, usersById)} size={11} />
                 {rootThread.authorLevel >= 150 && isSuperAdmin && <span className="author-level-badge">ADMIN</span>}
                 {isFeaturedCard && (
                   <span className="ff-holo-badge inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-[#d8f3dc]">
@@ -389,6 +391,7 @@ const ThreadCard = React.memo<{
                   showFallbackTag
                 />
               </span>
+              <RoleMark user={resolveThreadUser(users, currentUser, quotedThread.authorEmail, quotedThread.authorId, usersById)} size={10} />
               <span className="repost-quote-level">Lv.{quotedThread.authorLevel}</span>
               <span className="repost-quote-time">{formatRelativeTime(quotedThread.createdAtMs)}</span>
             </div>
@@ -1242,6 +1245,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                     priority="high"
                     showFallbackTag
                   />
+                  <RoleMark user={currentUser} size={11} />
                 </div>
               )}
               <textarea
@@ -1355,7 +1359,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                     <h2 className="thread-composer-title">Bài gốc diễn đàn</h2>
                   </div>
                 </div>
-                <p>Học sinh vẫn có thể phản hồi, thả reaction và đặt câu hỏi ở Hỏi đáp. Bài gốc trong mạch chuyện dành cho Giáo viên và Trưởng CLB.</p>
+                <p>Học sinh vẫn có thể phản hồi, thả reaction và đặt câu hỏi ở Hỏi đáp. Bài gốc trong mạch chuyện dành cho Giáo viên, Moderator và Trưởng CLB.</p>
                 {!currentUser && (
                   <button type="button" onClick={onOpenLoginModal} className="thread-role-note__login ff-tactile-btn">
                     Đăng nhập để tham gia

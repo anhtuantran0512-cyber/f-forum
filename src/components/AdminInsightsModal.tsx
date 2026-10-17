@@ -17,7 +17,6 @@ import {
   Database,
   Eye,
   Filter,
-  GraduationCap,
   LoaderCircle,
   KeyRound,
   MessageSquare,
@@ -50,6 +49,7 @@ import { QUICK_DURATIONS } from './admin/adminConstants';
 import { RoleStudio, type CustomRoleRow } from './admin/RoleStudio';
 import { PerformanceTiersDashboard } from './admin/PerformanceTiersDashboard';
 import { AiProviderStudio } from './admin/AiProviderStudio';
+import { RoleMark } from './RoleMark';
 import './AdminInsightsModal.css';
 import './admin/AdminStudio.css';
 
@@ -756,7 +756,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
             )}
             {!isSuperAdmin && (caps.customRoleDef
               ? <CustomRoleBadge name={caps.customRoleDef.name} icon={caps.customRoleDef.icon} color={caps.customRoleDef.color} specialChar={caps.customRoleDef.specialChar} size="md" />
-              : <span className="faa-permission"><ShieldCheck size={13} /> {ROLE_LABELS[caps.staffRole || currentUser.staffRole || ''] || 'Nhân sự'}</span>)}
+              : <span className="faa-permission"><RoleMark user={currentUser} size={10} /> {ROLE_LABELS[caps.staffRole || currentUser.staffRole || ''] || 'Nhân sự'}</span>)}
           </div>
         </nav>
 
@@ -1073,7 +1073,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                           </div>
                           <div className="faa-member-badges ct-03__cell">
                             <span className={`faa-role-pill faa-role-pill--${member.role.toLowerCase()}`}>
-                              {member.role === 'TEACHER' ? <GraduationCap size={12} /> : member.role === 'SUPER_ADMIN' ? <ShieldCheck size={12} /> : member.role === 'MODERATOR' ? <Shield size={12} /> : null}
+                              <RoleMark user={{ role: member.role }} size={10} />
                               {ROLE_LABELS[member.role] || member.role}
                             </span>
                             {member.customRoleDef && (
@@ -1086,6 +1086,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                             )}
                             {member.staffRole && (
                               <span className={`faa-role-pill faa-role-pill--${member.userRole.toLowerCase()}`}>
+                                <RoleMark user={{ role: member.userRole, staffRole: member.staffRole }} size={10} />
                                 {ROLE_LABELS[member.userRole] || member.userRole}
                               </span>
                             )}
@@ -1218,7 +1219,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                       <h4>{selectedMember.name}</h4>
                       <p>{selectedMember.email}</p>
                       <div className="faa-member-badges">
-                        <span className="faa-role-pill">{ROLE_LABELS[selectedMember.role] || selectedMember.role}</span>
+                        <span className="faa-role-pill"><RoleMark user={{ role: selectedMember.role, staffRole: selectedMember.staffRole }} size={10} />{ROLE_LABELS[selectedMember.role] || selectedMember.role}</span>
                         {selectedMember.premium.active && <PremiumMark user={{ premiumUntil: selectedMember.premium.until ?? undefined }} />}
                       </div>
                     </div>

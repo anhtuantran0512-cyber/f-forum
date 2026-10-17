@@ -16,7 +16,6 @@ import {
   Heart,
   Star,
   Users,
-  UserCheck,
   Crown,
   Trophy,
   GraduationCap,
@@ -59,6 +58,7 @@ import { GachaBoutique } from './shop/GachaBoutique';
 import { TrophyShelf } from './shop/TrophyShelf';
 import { AvatarWithDecoration, type DecorationAssetRef } from './decorations/AvatarWithDecoration';
 import { DecoratedName } from './decorations/DecoratedAvatar';
+import { RoleMark } from './RoleMark';
 import { useDecorationCatalog, useUserDecorations } from '../utils/decorationStore';
 import { DECORATION_RARITY_META, resolveAssetUrl } from '../utils/decorations';
 import { pushNotification } from '../utils/notifications';
@@ -1217,7 +1217,7 @@ const ProfileModalInner: React.FC<{
 
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-[#81b29a]/18 border border-[#81b29a]/40 text-[#d8f3dc] text-[11px] font-semibold">
-                              <UserCheck className="w-3 h-3 text-[#81b29a] shrink-0" />
+                              <RoleMark user={currentUser} size={10} />
                               <span>
                                 {currentUser.role === 'SUPER_ADMIN'
                                   ? 'Super Admin'

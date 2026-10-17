@@ -21,7 +21,7 @@ import {
   LoaderCircle,
 } from 'lucide-react';
 import type { ChatChannelId, ChatMessage, User, OnlinePresenceUser } from '../../types';
-import { TierBadge, AdminVerifiedBadge } from '../Badges10Tier';
+import { TierBadge } from '../Badges10Tier';
 import { ChatMentionPicker } from '../chat/ChatMentionPicker';
 import { ChatMessageContent } from '../chat/ChatMessageContent';
 import { ChatRoleIcon } from '../chat/ChatRoleIcon';
@@ -308,8 +308,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
         return (
           <div
             key={msg.id}
-            className={`group/msg flex items-start gap-3 px-2 py-1 rounded-xl hover:bg-[#f8f7f4]/[0.02] transition-colors ${
-              isMe ? 'flex-row-reverse' : ''
+            className={`ff-chat-message-row group/msg flex items-start gap-3 px-2 py-1 rounded-xl hover:bg-[#f8f7f4]/[0.02] transition-colors ${
+              isMe ? 'ff-chat-message-row--mine flex-row-reverse' : ''
             } ${isContinuation ? 'mt-0.5' : 'mt-3'}`}
           >
             {/* Cột Avatar hoặc khoảng đệm căn lề khi gộp tin nhắn liên tiếp */}
@@ -317,7 +317,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               <button
                 type="button"
                 onClick={(e) => openAuthorCardFromEvent(e, authorPayload)}
-                className="relative shrink-0 mt-0.5 cursor-pointer focus:outline-none"
+                className="ff-chat-message-avatar relative shrink-0 mt-0.5 cursor-pointer focus:outline-none"
                 title={`Xem thông tin ${authorDisplayName}`}
               >
                 <DecoratedAvatar
@@ -341,27 +341,27 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 </span>
               </button>
             ) : (
-              <div className="w-9 shrink-0 select-none text-[9.5px] font-mono text-[#a39f96]/0 group-hover/msg:text-[#a39f96]/70 text-center pt-2 transition-colors">
+              <div className="ff-chat-message-avatar ff-chat-message-avatar--continuation w-9 shrink-0 select-none text-[9.5px] font-mono text-[#a39f96]/0 group-hover/msg:text-[#a39f96]/70 text-center pt-2 transition-colors">
                 {msg.timestamp.slice(0, 5)}
               </div>
             )}
 
             {/* Nội dung tin nhắn */}
             <div
-              className={`max-w-[82%] sm:max-w-[74%] flex flex-col ${
+              className={`ff-chat-message-body max-w-[82%] sm:max-w-[74%] flex flex-col ${
                 isMe ? 'items-end' : 'items-start'
               }`}
             >
               {!isContinuation && (
                 <div
-                  className={`flex items-center gap-2 mb-1 text-xs flex-wrap ${
-                    isMe ? 'justify-end flex-row-reverse' : ''
+                  className={`ff-chat-message-meta flex items-center gap-2 mb-1 text-xs flex-wrap ${
+                    isMe ? 'ff-chat-message-meta--mine justify-end flex-row-reverse' : ''
                   }`}
                 >
                   <button
                     type="button"
                     onClick={(e) => openAuthorCardFromEvent(e, authorPayload)}
-                    className="inline-flex items-center gap-1.5 cursor-pointer hover:underline text-left"
+                    className="ff-chat-message-author inline-flex items-center gap-1.5 cursor-pointer hover:underline text-left"
                   >
                     <DecoratedName
                       user={resolvedMsgUser}
@@ -369,6 +369,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       width={132}
                       height={24}
                       animate
+                      showFallbackTag
                       className={`text-[13px] font-semibold ${
                         isSuperAdminMsg
                           ? 'text-[#e9c46a]'
@@ -392,9 +393,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 </div>
               )}
 
-              <div className={`flex items-center gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
+              <div className={`ff-chat-message-content flex items-center gap-2 ${isMe ? 'ff-chat-message-content--mine flex-row-reverse' : ''}`}>
                 <div
-                  className={`w-fit px-3.5 py-2 text-[13.5px] leading-relaxed break-words ${
+                  className={`ff-chat-message-bubble w-fit px-3.5 py-2 text-[13.5px] leading-relaxed break-words ${
                     isMe
                       ? 'ff-chat-bubble-me'
                       : isSuperAdminMsg
@@ -406,7 +407,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 </div>
 
                 {/* Cụm nút tương tác nhanh khi rê chuột: Trả lời & Thu hồi */}
-                <div className="opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
+                <div className="ff-chat-message-actions opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
                   {currentUser && (
                     <button
                       type="button"
@@ -419,7 +420,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         });
                         inputRef.current?.focus();
                       }}
-                      className="p-1.5 rounded-lg bg-[#161d2b] hover:bg-[#1f293d] border border-[#f8f7f4]/12 text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
+                      className="ff-icon-button ff-chat-action-button rounded-lg bg-[#161d2b] hover:bg-[#1f293d] border border-[#f8f7f4]/12 text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
                       title="Trả lời tin nhắn này"
                       aria-label="Trả lời tin nhắn"
                     >
@@ -513,8 +514,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
       {/* Khung chính */}
       <div
-        className="page-content-wrapper relative z-10 w-full max-w-7xl mx-auto flex-1 flex flex-col overflow-hidden px-2 sm:px-6 py-2 md:py-4"
-        style={{ height: 'calc(100vh - var(--navbar-height))' }}
+        className="page-content-wrapper relative z-10 w-full max-w-7xl mx-auto flex-1 min-h-0 flex flex-col overflow-hidden px-2 sm:px-6 py-2 md:py-4"
       >
         {/* Thanh điều hướng rút gọn trên Mobile (< 768px) */}
         <div className="md:hidden flex items-center justify-between p-2 mb-2 rounded-xl bg-[#0e131d] border border-[#f8f7f4]/12 shrink-0">
@@ -656,16 +656,20 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     <span className="absolute bottom-0 right-0 z-[4] w-2.5 h-2.5 rounded-full bg-[#81b29a] border-2 border-[#090c13]" />
                   </div>
                   <div className="relative z-[2] min-w-0 flex-1">
+                    <div className="ff-chat-userbar-name-row flex items-center gap-1.5 min-w-0">
                     <DecoratedName
                       user={currentUser}
                       name={currentUser.name.replace(/ \(.*\)/, '')}
+                      showNameplate={false}
                       width={140}
                       height={24}
                       eager
                       animate
                       priority="high"
-                      className="text-xs font-bold text-[#f8f7f4] truncate block"
+                      className="text-xs font-bold text-[#f8f7f4] truncate min-w-0 flex-1"
                     />
+                    <ChatRoleIcon user={currentUser} size={11} />
+                    </div>
                     <div className="text-[10.5px] text-[#81b29a] font-mono truncate">
                       Trực tuyến · Lv.{currentUser.level || 1}
                     </div>
@@ -720,7 +724,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-2 text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
+                      className="ff-icon-button ff-chat-search-clear absolute right-1 text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
                       aria-label="Xóa từ khóa tìm kiếm"
                     >
                       <X className="w-3 h-3" />
@@ -746,7 +750,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
             {/* Khu vực hiển thị tin nhắn */}
             <div
-              className="flex-1 overflow-y-auto px-3 sm:px-5 py-4 min-h-0"
+              className="ff-chat-message-stream flex-1 overflow-y-auto px-3 sm:px-5 py-4 min-h-0"
               role="log"
               aria-live="polite"
               aria-relevant="additions"
@@ -811,17 +815,17 @@ export const ChatView: React.FC<ChatViewProps> = ({
             {/* Khung nhập tin nhắn ở đáy */}
             <div className="ff-chat-composer-area px-3 sm:px-5 py-3 bg-[#0c1018] border-t border-[#f8f7f4]/10 shrink-0">
               {replyingTo && (
-                <div className="mb-2 px-3 py-1.5 rounded-lg bg-[#151b28] border border-[#81b29a]/35 flex items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2 min-w-0">
+                <div className="ff-chat-reply-preview mb-2 px-3 py-1.5 rounded-lg bg-[#151b28] border border-[#81b29a]/35 flex items-center justify-between gap-2 text-xs">
+                  <div className="ff-chat-reply-preview__copy flex items-center gap-2 min-w-0">
                     <CornerUpLeft className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
-                    <span className="text-[#a39f96] shrink-0">Đang trả lời</span>
-                    <strong className="text-[#f8f7f4] shrink-0">@{replyingTo.authorName}</strong>
-                    <span className="text-[#a39f96] truncate">“{replyingTo.excerpt}”</span>
+                    <span className="ff-chat-reply-preview__label text-[#a39f96] shrink-0">Đang trả lời</span>
+                    <strong className="ff-chat-reply-preview__author text-[#f8f7f4] shrink-0">@{replyingTo.authorName}</strong>
+                    <span className="ff-chat-reply-preview__excerpt text-[#a39f96] truncate">“{replyingTo.excerpt}”</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setReplyingTo(null)}
-                    className="p-0.5 text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer shrink-0"
+                    className="ff-icon-button ff-chat-reply-preview__close text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer shrink-0"
                     aria-label="Hủy trả lời"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -844,6 +848,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 </div>
               ) : (
                 <div className="ff-chat-composer-wrap">
+                  <div className="ff-chat-composer-input-row">
                   <ChatMentionPicker
                     id="ff-chat-mention-options-view"
                     open={mentionComposer.isOpen}
@@ -875,15 +880,16 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       className="ff-chat-message-input message-input-bar flex-1 bg-transparent border-none text-xs sm:text-sm text-[#f8f7f4] placeholder-[#a39f96] focus:outline-none"
                     />
 
-                    <span className="hidden sm:inline text-[10.5px] font-mono text-[#a39f96] shrink-0">
-                      {inputText.length}/300
-                    </span>
-                    <span className="ff-chat-send-status" role="status" aria-live="polite">{sendStatus}</span>
+                    <div className="ff-chat-composer-meta">
+                      <span className="ff-chat-character-count">{inputText.length}/300</span>
+                      <span className="ff-chat-send-status" role="status" aria-live="polite">{sendStatus}</span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => void handleSend()}
                       disabled={!inputText.trim() || isSending}
                       aria-busy={isSending}
+                      aria-label="Gửi tin nhắn"
                       className={`ff-tactile-btn ff-chat-send-button px-3.5 py-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs sm:text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer shrink-0 ${
                         cooldown.isCooling ? 'is-cooling' : ''
                       }`}
@@ -892,6 +898,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       {isSending ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5 text-[#e07a5f]" />}
                       <span className="hidden sm:inline">Gửi</span>
                     </button>
+                  </div>
                   </div>
                   <div className="ff-chat-composer-hint">
                     <span><b>@</b> để nhắc thành viên</span>
@@ -1065,7 +1072,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIsChannelDrawerOpen(false)}
-                className="p-1.5 rounded-lg bg-[#151b28] border border-[#f8f7f4]/12 text-[#dad7d0] hover:text-[#f8f7f4] cursor-pointer"
+                className="ff-icon-button ff-chat-close-button p-1.5 rounded-lg bg-[#151b28] border border-[#f8f7f4]/12 text-[#dad7d0] hover:text-[#f8f7f4] cursor-pointer"
                 aria-label="Đóng bảng chọn kênh"
               >
                 <X className="w-4 h-4" />
@@ -1137,7 +1144,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIsMembersDrawerOpen(false)}
-                className="p-1.5 rounded-lg bg-[#151b28] border border-[#f8f7f4]/12 text-[#dad7d0] hover:text-[#f8f7f4] cursor-pointer"
+                className="ff-icon-button ff-chat-close-button p-1.5 rounded-lg bg-[#151b28] border border-[#f8f7f4]/12 text-[#dad7d0] hover:text-[#f8f7f4] cursor-pointer"
                 aria-label="Đóng bảng thành viên"
               >
                 <X className="w-4 h-4" />
@@ -1279,7 +1286,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
             <button
               type="button"
               onClick={() => setActiveAuthorCard(null)}
-              className="absolute top-2.5 right-2.5 z-[5] p-1 rounded-full text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
+              className="ff-icon-button ff-chat-close-button absolute top-2.5 right-2.5 z-[5] rounded-full text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
               aria-label="Đóng"
             >
               <X className="w-3.5 h-3.5" />
@@ -1313,6 +1320,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   <DecoratedName
                     user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)}
                     name={activeAuthorCard.name.replace(/ \(.*\)/, '')}
+                    showNameplate={false}
                     width={160}
                     height={26}
                     eager
@@ -1320,7 +1328,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     priority="high"
                     className="text-sm font-bold text-[#f8f7f4] truncate"
                   />
-                  {isMasterAdmin(activeAuthorCard.email) && <AdminVerifiedBadge size={12} />}
+                  <ChatRoleIcon user={resolveChatUser(activeAuthorCard.email, activeAuthorCard.id)} isSuperAdmin={isMasterAdmin(activeAuthorCard.email)} size={12} />
                 </div>
                 <div className="flex items-center gap-1.5 mt-1">
                   <span className="px-2 py-0.5 rounded-md bg-[#e9c46a]/15 text-[#e9c46a] border border-[#e9c46a]/35 text-[10px] font-mono font-semibold">
@@ -1393,7 +1401,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   setReportUser(null);
                   setReportSuccessMsg(null);
                 }}
-                className="p-1.5 rounded-lg bg-[#141a26] border border-[#f8f7f4]/12 text-[#dad7d0] hover:text-[#f8f7f4] cursor-pointer"
+                className="ff-icon-button ff-chat-close-button p-1.5 rounded-lg bg-[#141a26] border border-[#f8f7f4]/12 text-[#dad7d0] hover:text-[#f8f7f4] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

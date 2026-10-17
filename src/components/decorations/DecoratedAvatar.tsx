@@ -14,7 +14,11 @@ import { NameplateDisplay } from './NameplateDisplay';
 
 const shopItemToAsset = (item: ShopItem | null | undefined): DecorationAssetRef | null => {
   if (!item) return null;
-  const type: DecorationType = item.category === 'Nameplate' ? 'nameplate' : item.category === 'Avatar Aura' ? 'Avatar Aura' === item.category ? 'avatar_aura' : 'avatar_frame' : 'avatar_frame';
+  const type: DecorationType = item.category === 'Nameplate'
+    ? 'nameplate'
+    : item.category === 'Avatar Aura'
+      ? 'avatar_aura'
+      : 'avatar_frame';
   return {
     type,
     id: item.id,
@@ -119,14 +123,16 @@ interface DecoratedNameProps {
   eager?: boolean;
   priority?: 'high' | 'low';
   className?: string;
-  /** Khi chưa gắn nameplate từ shop, vẫn hiển thị khung nametag mặc định để tên luôn căn giữa trên bảng tên. */
+  /** Tắt bảng tên ở nơi đã có UserNameplateBg phủ toàn thanh. */
+  showNameplate?: boolean;
+  /** Khi chưa gắn nameplate từ shop, vẫn hiển thị khung nametag mặc định. */
   showFallbackTag?: boolean;
   /** Cho phép truyền trực tiếp asset để xem trước/đổi nhanh trên Trang cá nhân hoặc Boutique. */
   overrideAsset?: DecorationAssetRef | null;
 }
 
 export const DecoratedName = memo(({
-  user: _user,
+  user,
   name,
   width = 240,
   maxWidth = 340,
@@ -135,10 +141,17 @@ export const DecoratedName = memo(({
   eager = true,
   priority = 'high',
   className,
-  showFallbackTag: _showFallbackTag = false,
+  showNameplate = true,
+  showFallbackTag = false,
   overrideAsset,
 }: DecoratedNameProps) => {
-  const asset = overrideAsset !== undefined ? overrideAsset : null;
+  const { nameplate } = useUserDecorations(user);
+  const asset = overrideAsset !== undefined
+    ? overrideAsset
+    : showNameplate
+      ? shopItemToAsset(nameplate)
+      : null;
+  const shouldShowPlate = Boolean(asset) || (showNameplate && showFallbackTag);
   const height = customHeight ?? Math.max(28, Math.round((width * 84) / 448));
   const len = name.trim().length;
   const charPx = height <= 28 ? 7.6 : height <= 34 ? 8.3 : 9.0;
@@ -166,7 +179,7 @@ export const DecoratedName = memo(({
     paddingRight: '8px',
   };
 
-  if (!asset) {
+  if (!shouldShowPlate) {
     return (
       <span
         className={className || 'font-semibold text-[#f8f7f4] truncate'}
@@ -178,19 +191,21 @@ export const DecoratedName = memo(({
   }
   return (
     <span
-      className={`npd-np${className ? ` ${className}` : ''}`}
+      className={`npd-np${asset ? '' : ' npd-np--default'}${className ? ` ${className}` : ''}`}
       style={boxStyle}
       title={name}
     >
-      <NameplateDisplay
-        asset={asset}
-        size={adaptiveWidth}
-        animate={animate}
-        eager={eager}
-        priority={priority}
-        fill
-        className="npd-np__bg"
-      />
+      {asset && (
+        <NameplateDisplay
+          asset={asset}
+          size={adaptiveWidth}
+          animate={animate}
+          eager={eager}
+          priority={priority}
+          fill
+          className="npd-np__bg"
+        />
+      )}
       <span className="npd-np__text" style={textStyle}>{name}</span>
     </span>
   );

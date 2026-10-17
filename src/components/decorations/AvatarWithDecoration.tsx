@@ -167,8 +167,8 @@ export const AvatarWithDecoration = memo(({
   const enabled = eager || inView;
   const effectivePriority: 'high' | 'low' = priority || (eager ? 'high' : 'low');
   const frame = frameAsset || (decorationAsset && decorationAsset.type !== 'avatar_aura' ? decorationAsset : null) || null;
-  /* Chỉ cho phép hiển thị tối đa 1 viền Avatar (Khung hoặc Hào quang) tại một thời điểm. */
-  const aura = !frame ? (auraAsset || (decorationAsset && decorationAsset.type === 'avatar_aura' ? decorationAsset : null) || null) : null;
+  /* Khung và hào quang là hai slot độc lập: aura nằm sau ảnh, frame phủ phía trên. */
+  const aura = auraAsset || (decorationAsset && decorationAsset.type === 'avatar_aura' ? decorationAsset : null) || null;
   const frameRef = eager ? undefined : inViewRef;
   const isAnimating = enabled && animate && Boolean(frame?.isAnimated || aura?.isAnimated);
   /* Safe zone: dịch + scale từng slot theo config của asset (mặc định không đổi). */

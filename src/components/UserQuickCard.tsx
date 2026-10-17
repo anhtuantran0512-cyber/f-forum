@@ -10,6 +10,7 @@ import { PremiumMark } from './PremiumMark';
 import { isMasterAdmin } from '../config/admin';
 import { DecoratedAvatar, DecoratedName, UserNameplateBg } from './decorations/DecoratedAvatar';
 import { parseBannerUrl, bannerImageStyle, DEFAULT_PROFILE_BANNER_URL } from '../utils/bannerLayout';
+import { RoleMark } from './RoleMark';
 
 export interface UserQuickCardProps {
   user: User | null;
@@ -151,6 +152,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
               <DecoratedName
                 user={user}
                 name={user.name.replace(/ \(.*\)/, '')}
+                showNameplate={false}
                 width={186}
                 height={38}
                 eager
@@ -214,7 +216,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
                 {tier.titleVi}
               </span>
               <span className="pc-12-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-semibold text-[#dbdee1]">
-                <span className="w-2 h-2 rounded-full bg-[#81b29a]" />
+                <RoleMark user={user} size={10} />
                 {user.role === 'SUPER_ADMIN'
                   ? 'Super Admin'
                   : user.role === 'CLUB_LEADER'
@@ -223,7 +225,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
               </span>
               {user.staffRole && (
                 <span className="pc-12-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-semibold text-[#dbdee1]">
-                  <span className={`w-2 h-2 rounded-full ${user.staffRole === 'TEACHER' ? 'bg-[#f2cc8f]' : 'bg-violet-400'}`} />
+                  <RoleMark user={{ staffRole: user.staffRole }} size={10} />
                   {user.staffRole === 'TEACHER' ? 'Giáo viên' : 'Moderator'}
                 </span>
               )}
