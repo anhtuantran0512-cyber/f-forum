@@ -1097,7 +1097,6 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
               <div className="thread-room-title-block">
                 <span className="thread-room-kicker inline-flex items-center gap-1.5">
                   <span>F·FORUM / SỔ CHUNG</span>
-                  <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">Góp một lời, mở một góc nhìn.</span>
                 </span>
                 <h1 className="thread-room-title">
                   <span className="ff-swash-cap">M</span>ạch <em>chuyện</em>

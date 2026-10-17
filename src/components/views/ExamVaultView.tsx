@@ -1212,7 +1212,6 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             <div className="ff-exam-eyebrow mb-1.5 hidden items-center gap-2 sm:inline-flex">
               <GraduationCap className="w-3.5 h-3.5" />
               <span>THƯ VIỆN HỌC TẬP</span>
-              <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px]">Ôn đều, tiến bộ bền.</span>
             </div>
             <h1 className="ff-exam-title">
               {activeTab === 'syllabus' ? (
@@ -2431,7 +2430,6 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             <div className="mb-4 pr-10">
               <h2 id="submit-title" className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
                 <span className="ff-swash-cap text-lg">G</span>ửi đề thi / đề cương
-                <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px]">Góp đề hay, cùng tiến bộ.</span>
               </h2>
               <p className="text-xs text-[#a39f96] mt-1">
                 Gửi tài liệu để Ban Quản Trị kiểm duyệt và chia sẻ tới cộng đồng học sinh toàn trường.

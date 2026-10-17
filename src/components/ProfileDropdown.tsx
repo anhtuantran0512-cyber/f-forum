@@ -1,7 +1,8 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useRef, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CreditCard, UserPen, LogOut, Sparkles, ChevronRight, Flag, X, Shield, CheckCircle2 } from 'lucide-react';
+import { CreditCard, LogOut, ChevronRight, Flag, X, Shield, CheckCircle2 } from 'lucide-react';
+import { NotebookPen as GhibliQuillIcon, Sparkles as GhibliSparkleIcon } from './ui/CozyGhibliIcons';
 import type { User, ShopItem } from '../types';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { useUserDecorations } from '../utils/decorationStore';
@@ -38,7 +39,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   anchorRef,
 }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const profileProximity = useProfileProximityEffect<HTMLDivElement>(isOpen, 76);
+  const profileProximity = useProfileProximityEffect<HTMLDivElement>(dropdownRef, isOpen, 76);
   const pop = usePopoverPosition(isOpen, anchorRef, dockPosition, 340, 540);
 
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -129,10 +130,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
 
   return (
     <div
-      ref={(node) => {
-        dropdownRef.current = node;
-        profileProximity.ref.current = node;
-      }}
+      ref={dropdownRef}
       role="menu"
       aria-label="Menu tài khoản"
       data-profile-active={profileProximity.dataProfileActive}
@@ -265,7 +263,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
           className="ff-tactile-btn w-full mt-3 py-2 px-3 rounded-xl text-xs font-extrabold text-[#0b0d12] bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] transition-all flex items-center justify-between group cursor-pointer"
         >
           <div className="flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-[#e07a5f] group-hover:rotate-12 transition-transform" />
+            <GhibliSparkleIcon className="w-3.5 h-3.5 text-[#e07a5f] group-hover:rotate-12 transition-transform" />
             <span>Hồ sơ</span>
           </div>
           <ChevronRight className="w-3.5 h-3.5 text-[#0b0d12]/70 group-hover:text-[#0b0d12] group-hover:translate-x-0.5 transition-all" />
@@ -293,7 +291,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             }}
             className="ff-tactile-btn py-1.5 px-2.5 rounded-xl text-xs font-bold text-[#f4f1de] hover:text-[#f2cc8f] bg-[#151a26] hover:bg-[#1e2536] border border-[#f4f1de]/18 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            <UserPen className="w-3.5 h-3.5 text-[#f2cc8f]" />
+            <GhibliQuillIcon className="w-3.5 h-3.5 text-[#f2cc8f]" />
             <span>F-ID</span>
           </button>
         </div>

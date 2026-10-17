@@ -1,6 +1,7 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useEffect, useState } from 'react';
-import { Award, Coins, Flame, HelpCircle, CheckCircle2, Sparkles, User as UserIcon, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Award, Coins, Flame, HelpCircle, CheckCircle2, User as UserIcon, X } from 'lucide-react';
+import { Sparkles as GhibliSparkleIcon } from './ui/CozyGhibliIcons';
 import type { User, Question, Solution } from '../types';
 import { getTierForLevel } from '../utils/tier';
 import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
@@ -35,7 +36,8 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
   solutions = [],
 }) => {
   const [note, setNote] = useState('');
-  const profileProximity = useProfileProximityEffect<HTMLElement>(isOpen && Boolean(user), 84);
+  const cardRef = useRef<HTMLElement>(null);
+  const profileProximity = useProfileProximityEffect<HTMLElement>(cardRef, isOpen && Boolean(user), 84);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -70,7 +72,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
       }}
     >
       <article
-        ref={profileProximity.ref}
+        ref={cardRef}
         data-profile-active={profileProximity.dataProfileActive}
         onPointerEnter={profileProximity.onPointerEnter}
         onPointerLeave={profileProximity.onPointerLeave}
@@ -141,7 +143,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
           <div className="pc-12-well absolute right-4 top-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/45 backdrop-blur-md">
             <TierBadge level={user.level} size={16} showTooltip={false} />
             {isSuperAdmin && <AdminVerifiedBadge size={14} />}
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <GhibliSparkleIcon className="w-3.5 h-3.5 text-amber-400" />
           </div>
         </div>
 
@@ -286,7 +288,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
               }}
               className="ff-tactile-btn py-2 px-3 rounded-xl bg-[#151a26] hover:bg-[#1e2536] text-[#f4f1de] border-[1.5px] border-[#f4f1de]/20 text-xs font-bold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5 text-[#f2cc8f]" />
+              <GhibliSparkleIcon className="w-3.5 h-3.5 text-[#f2cc8f]" />
               <span>F-Pass</span>
             </button>
           </div>
