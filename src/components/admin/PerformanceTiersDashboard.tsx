@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Server,
   Sparkles,
+  Users,
   Wifi,
   Zap,
 } from 'lucide-react';
@@ -64,6 +65,12 @@ interface PerformanceTiersReport {
   };
   abQualityExperiments: Array<{ id: string; name: string; status: string }>;
 }
+interface VisitorSummary {
+  trackingStartedAt: string;
+  uniqueVisitors: number;
+  registeredVisitors: number;
+  anonymousBrowsers: number;
+}
 
 const formatMetric = (metric: MetricSummary, unit: string, digits = 0): string => {
   if (metric.average === null) return 'Chưa có mẫu';
@@ -74,6 +81,8 @@ const formatMetric = (metric: MetricSummary, unit: string, digits = 0): string =
 };
 const sampleCount = (metric: MetricSummary): string =>
   `${metric.samples.toLocaleString('vi-VN')} mẫu đo`;
+const isNonNegativeInteger = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 const readHint = (value: number | null, unit = ''): string =>
   value === null ? 'Không được trình duyệt cung cấp' : `${value.toLocaleString('vi-VN')}${unit}`;
 
@@ -91,6 +100,9 @@ export const PerformanceTiersDashboard: React.FC = () => {
   const [report, setReport] = useState<PerformanceTiersReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [visitorSummary, setVisitorSummary] = useState<VisitorSummary | null>(null);
+  const [visitorLoading, setVisitorLoading] = useState(true);
+  const [visitorError, setVisitorError] = useState<string | null>(null);
 
   const loadReport = useCallback(async () => {
     setLoading(true);
@@ -110,14 +122,65 @@ export const PerformanceTiersDashboard: React.FC = () => {
     }
   }, []);
 
+  const loadVisitorSummary = useCallback(async () => {
+    setVisitorLoading(true);
+    try {
+      const response = await fetch('/api/admin/analytics?range=years', { headers: authHeaders() });
+      const data = await response.json().catch(() => null);
+      const analytics = data?.analytics;
+      const totals = analytics?.totals;
+      const uniqueVisitors: unknown = totals?.uniqueVisitors;
+      const registeredVisitors: unknown = totals?.registeredVisitors;
+      const anonymousBrowsers: unknown = totals?.anonymousBrowsers;
+
+      if (response.status !== 200 || !data?.success) {
+        setVisitorSummary(null);
+        setVisitorError(data?.message || `Không tải được tổng truy cập (HTTP ${response.status}).`);
+        return;
+      }
+      if (
+        !isNonNegativeInteger(uniqueVisitors)
+        || !isNonNegativeInteger(registeredVisitors)
+        || !isNonNegativeInteger(anonymousBrowsers)
+      ) {
+        setVisitorSummary(null);
+        setVisitorError('Máy chủ chưa cung cấp số liệu truy cập hợp lệ.');
+        return;
+      }
+
+      setVisitorSummary({
+        trackingStartedAt: String(analytics.trackingStartedAt || ''),
+        uniqueVisitors,
+        registeredVisitors,
+        anonymousBrowsers,
+      });
+      setVisitorError(null);
+    } catch {
+      setVisitorSummary(null);
+      setVisitorError('Không kết nối được máy chủ để tải tổng truy cập.');
+    } finally {
+      setVisitorLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const timer = window.setTimeout(() => void loadReport(), 0);
+    const timer = window.setTimeout(() => {
+      void loadReport();
+      void loadVisitorSummary();
+    }, 0);
     return () => window.clearTimeout(timer);
-  }, [loadReport]);
+  }, [loadReport, loadVisitorSummary]);
 
   const tierRows = report
     ? [report.tiers['tier-a'], report.tiers['tier-b'], report.tiers['tier-c']]
     : [];
+  const visitorSince = visitorSummary?.trackingStartedAt
+    ? new Date(visitorSummary.trackingStartedAt).toLocaleDateString('vi-VN')
+    : 'khi bắt đầu theo dõi';
+  const visitorDisclosure = 'Đếm theo tài khoản và ID trình duyệt khách; không phải số người thật đã xác minh.';
+  const visitorInfo = visitorSummary
+    ? `Từ ${visitorSince}. ${visitorDisclosure}`
+    : visitorError || 'Đang tải số liệu người truy cập.';
 
   return (
     <div className="ff-performance-dashboard space-y-4 p-1">
@@ -128,12 +191,24 @@ export const PerformanceTiersDashboard: React.FC = () => {
               <span className="ff-performance-chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold">
                 <Zap size={12} /> ADAPTIVE QUALITY
               </span>
-              <span className="ff-performance-muted text-[11px]">Prototype · browser hints, not a capacity guarantee</span>
+              <div
+                className="ff-performance-visitor-total"
+                role="group"
+                title={visitorInfo}
+                aria-label={visitorSummary
+                  ? `Tổng người truy cập duy nhất: ${visitorSummary.uniqueVisitors.toLocaleString('vi-VN')}. Từ ${visitorSince}. ${visitorDisclosure}`
+                  : visitorInfo}
+              >
+                <Users size={13} aria-hidden="true" />
+                <span>Tổng người truy cập</span>
+                <strong aria-live="polite">
+                  {visitorSummary
+                    ? visitorSummary.uniqueVisitors.toLocaleString('vi-VN')
+                    : visitorLoading ? '…' : '—'}
+                </strong>
+              </div>
             </div>
             <h3 className="ff-performance-title mt-2 text-lg font-bold sm:text-xl">Hiệu năng, có số đo mới nói</h3>
-            <p className="ff-performance-muted mt-1 max-w-3xl text-xs leading-relaxed">
-              Tier điều khiển ngân sách hiệu ứng và hạt. Trình duyệt có thể giấu hoặc làm tròn tín hiệu; thiếu dữ liệu sẽ hiện rõ, không tự đoán.
-            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <label className="ff-performance-control inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs">
@@ -152,11 +227,14 @@ export const PerformanceTiersDashboard: React.FC = () => {
             </label>
             <button
               type="button"
-              onClick={() => void loadReport()}
+              onClick={() => {
+                void loadReport();
+                void loadVisitorSummary();
+              }}
               className="ff-performance-button inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold"
-              aria-label="Làm mới báo cáo hiệu năng"
+              aria-label="Làm mới báo cáo hiệu năng và tổng truy cập"
             >
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Làm mới
+              <RefreshCw size={14} className={loading || visitorLoading ? 'animate-spin' : ''} /> Làm mới
             </button>
           </div>
         </div>

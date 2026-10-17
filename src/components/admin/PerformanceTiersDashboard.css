@@ -32,6 +32,26 @@
   background: rgba(233, 196, 106, 0.1);
 }
 
+.ff-performance-visitor-total {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 28px;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid rgba(129, 178, 154, 0.28);
+  border-radius: 999px;
+  color: var(--ff-performance-ink);
+  background: rgba(129, 178, 154, 0.09);
+  font-size: 0.6875rem;
+  white-space: nowrap;
+}
+.ff-performance-visitor-total svg { color: #81b29a; }
+.ff-performance-visitor-total strong {
+  color: var(--ff-performance-sand);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
 .ff-performance-control {
   color: var(--ff-performance-ink);
   border: 1px solid var(--ff-performance-line);
@@ -91,6 +111,11 @@ html.light .ff-performance-control { background: rgba(240, 236, 225, 0.82); }
 html.light .ff-performance-select { color-scheme: light; }
 html.light .ff-performance-select option { color: #1c1917; background: #fffdf8; }
 html.light .ff-performance-warning { color: #792f1c; }
+html.light .ff-performance-visitor-total {
+  border-color: rgba(66, 105, 87, 0.25);
+  background: rgba(129, 178, 154, 0.16);
+}
+html.light .ff-performance-visitor-total strong { color: #80581d; }
 
 html.dark.fabulous-mode .ff-performance-panel,
 html.light.fabulous-mode .ff-performance-panel {
