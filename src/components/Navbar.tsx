@@ -1169,7 +1169,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               F
             </div>
           </div>
-          <span className="font-['Playfair_Display'] italic font-bold text-lg tracking-wide bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent whitespace-nowrap">
+          <span className="ff-mobile-brand-word font-['Playfair_Display'] italic font-bold text-lg tracking-wide bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent whitespace-nowrap">
             <span className="ff-swash-cap text-base">F</span>-Forum
           </span>
         </button>
