@@ -1898,16 +1898,28 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                         </button>
 
                         {paper.attachments && paper.attachments.length > 0 ? (
-                          <button
-                            type="button"
-                            onClick={(event) => handleDownloadExamAttachment(paper.id, paper.attachments![0], event)}
-                            className="ff-tactile-btn inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-[#0b0d12] bg-[#f4f1de] px-2 py-1.5 text-xs font-extrabold text-[#0b0d12] transition-colors hover:bg-[#f2cc8f]"
-                            aria-label={`Tải tệp gốc ${paper.attachments[0].name}`}
-                            title="Tải trực tiếp tệp đề gốc"
-                          >
-                            <Download className="w-3.5 h-3.5 text-[#e07a5f]" />
-                            <span>Tải tệp gốc</span>
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={(event) => handleDownloadExamAttachment(paper.id, paper.attachments![0], event)}
+                              className="ff-tactile-btn inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-white/[0.08] px-2 py-1.5 text-xs font-bold text-white hover:bg-white/[0.14] transition-colors"
+                              aria-label={`Tải tệp gốc ${paper.attachments[0].name}`}
+                              title="Tải trực tiếp tệp đề gốc"
+                            >
+                              <Download className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Tải tệp gốc</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => handleDownload(paper, e)}
+                              className="ff-tactile-btn inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border-2 border-[#0b0d12] bg-[#f4f1de] px-2 py-1.5 text-xs font-extrabold text-[#0b0d12] transition-colors hover:bg-[#f2cc8f]"
+                              aria-label={`Xuất ${paper.title} thành PDF`}
+                              title="Mở bản xem trước để in hoặc lưu thành PDF"
+                            >
+                              <Printer className="w-3.5 h-3.5 text-[#e07a5f]" />
+                              <span>Xuất PDF</span>
+                            </button>
+                          </>
                         ) : (
                           <button
                             type="button"
@@ -2192,7 +2204,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                   {activePreview.sampleQuestions && activePreview.sampleQuestions.map((q, idx) => (
                     <div
                       key={idx}
-                      className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs text-neutral-200 font-mono leading-relaxed"
+                      className="p-3.5 rounded-xl bg-black/40 border border-white/10 text-xs sm:text-sm text-neutral-200 font-sans leading-relaxed selection:bg-amber-400/30"
                     >
                       {q}
                     </div>
@@ -2370,6 +2382,20 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 >
                   <Bookmark className="w-4 h-4" />
                   <span>{savedExams.includes(activePreview.id) ? 'Đã lưu' : 'Lưu vào kho'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = activePreview.id;
+                    setPreviewExam(null);
+                    openExamViewer(id);
+                  }}
+                  className="ff-tactile-btn inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-sky-400/40 bg-sky-400/[0.14] px-3.5 py-2 text-xs font-bold text-sky-200 hover:bg-sky-400/[0.24] cursor-pointer transition-colors"
+                  title="Mở toàn màn hình xem bản PDF đề thi giấy thật"
+                >
+                  <BookOpen className="w-4 h-4 text-sky-400" />
+                  <span>Đọc bản PDF</span>
                 </button>
 
                 {activePreview.attachments && activePreview.attachments.length > 0 ? (

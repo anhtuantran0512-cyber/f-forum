@@ -171,7 +171,9 @@ export const ExamPaperViewerView: React.FC<ExamPaperViewerViewProps> = ({
       return '';
     }
   }, [activePaperId, selectedAttachment]);
-  const attachmentInlineUrl = isPrivatePaper && (selectedAttachment?.format === 'PDF' || selectedAttachment?.format === 'IMAGE')
+  const attachmentInlineUrl = selectedAttachment?.url
+    ? selectedAttachment.url
+    : isPrivatePaper && (selectedAttachment?.format === 'PDF' || selectedAttachment?.format === 'IMAGE')
     ? privateAttachmentUrl
     : attachmentRequestUrl;
 
@@ -560,9 +562,35 @@ export const ExamPaperViewerView: React.FC<ExamPaperViewerViewProps> = ({
                   ) : null}
                 </div>
               ) : format === 'PDF' ? (
-                attachmentInlineUrl
-                  ? <iframe className="ff-paper-pdf-frame" src={attachmentInlineUrl} title={`Đọc đề thi: ${selectedAttachment.name}`} />
-                  : <div className="ff-paper-docx-fallback"><LoaderCircle size={20} className="animate-spin" /><p>{loadError || 'Đang tải tệp PDF…'}</p></div>
+                attachmentInlineUrl ? (
+                  <div className="ff-paper-pdf-container">
+                    <iframe className="ff-paper-pdf-frame" src={attachmentInlineUrl} title={`Đọc đề thi: ${selectedAttachment.name}`} />
+                    {paper.sampleSolutions?.length ? (
+                      <div className="ff-paper-sample ff-paper-solutions-below">
+                        <div className="ff-paper-solutions">
+                          <button type="button" className="ff-paper-solutions__toggle" onClick={() => setIsSolutionsOpen((open) => !open)} aria-expanded={isSolutionsOpen}>
+                            {isSolutionsOpen ? 'Ẩn lời giải & ma trận kiến thức' : `Xem hướng dẫn giải chi tiết & mẹo phòng thi (${paper.sampleSolutions.length})`}
+                          </button>
+                          {isSolutionsOpen && (
+                            <div className="ff-paper-solutions__list">
+                              {paper.sampleSolutions.map((solution) => (
+                                <article key={`${paper.id}-solution-${solution.questionNumber}`} className="ff-paper-solution">
+                                  <h3>Câu {solution.questionNumber}</h3>
+                                  <p className="ff-paper-solution__question">{solution.question}</p>
+                                  <p>{solution.solution}</p>
+                                  {solution.keyFormula && <p className="ff-paper-solution__formula">✦ Công thức then chốt: {solution.keyFormula}</p>}
+                                  {solution.tips && <p className="ff-paper-solution__tip">✦ Mẹo phòng thi: {solution.tips}</p>}
+                                </article>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="ff-paper-docx-fallback"><LoaderCircle size={20} className="animate-spin" /><p>{loadError || 'Đang tải tệp PDF…'}</p></div>
+                )
               ) : format === 'IMAGE' ? (
                 attachmentInlineUrl
                   ? <a className="ff-paper-image-frame" href={attachmentInlineUrl} target="_blank" rel="noreferrer" aria-label={`Mở ảnh ${selectedAttachment.name} ở kích thước đầy đủ`}>

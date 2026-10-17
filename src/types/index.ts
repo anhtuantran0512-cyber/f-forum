@@ -99,6 +99,7 @@ export interface ExamAttachment {
   size: number;
   mimeType: string;
   format: ExamPaperFormat;
+  url?: string;
 }
 
 export interface ExamPaper {

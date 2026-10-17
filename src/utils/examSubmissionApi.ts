@@ -97,9 +97,10 @@ export const reviewExamSubmission = async (
 
 export const examAttachmentUrl = (
   submissionId: string,
-  attachment: Pick<ExamAttachment, 'id'>,
+  attachment: Pick<ExamAttachment, 'id'> & { url?: string },
   inline = false,
 ): string => {
+  if (attachment.url) return attachment.url;
   if (!attachment.id) throw new Error('Không tìm thấy mã tệp đính kèm.');
   const base = `/api/exam-submissions/${encodeURIComponent(submissionId)}/attachments/${encodeURIComponent(attachment.id)}`;
   return inline ? `${base}?inline=1` : base;
@@ -109,6 +110,17 @@ export const downloadExamAttachment = async (
   submissionId: string,
   attachment: ExamAttachment,
 ): Promise<void> => {
+  if (attachment.url) {
+    const link = document.createElement('a');
+    link.href = attachment.url;
+    link.download = attachment.name;
+    link.hidden = true;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    return;
+  }
+
   const response = await fetch(
     examAttachmentUrl(submissionId, attachment),
     { headers: authHeaders(), credentials: 'same-origin', cache: 'no-store' },
