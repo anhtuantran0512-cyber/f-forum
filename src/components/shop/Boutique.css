@@ -538,36 +538,34 @@
 }
 
 /* ------------------------------ Light mode ------------------------------ */
-html.light .gb-head__title p,
-html.light .gb-card__tip em { color: #475569; }
-html.light .gb-wallet { color: #92400e; background: linear-gradient(145deg, #fffbeb, #fef3c7); border-color: rgba(217, 119, 6, 0.3); box-shadow: 0 12px 22px -14px rgba(146, 64, 14, 0.35), inset 0 -6px 10px -8px rgba(146, 64, 14, 0.25), inset 0 6px 10px -7px #ffffff; }
-html.light .gb-wallet span { color: #b45309; }
-html.light .gb-filters button { color: #475569; background: linear-gradient(145deg, #ffffff, #f1f5f9); border-color: rgba(148, 163, 184, 0.25); box-shadow: 0 8px 16px -12px rgba(100, 116, 139, 0.5), inset 0 5px 8px -6px #ffffff; }
-html.light .gb-filters button:hover { color: #0f172a; }
-html.light .gb-card,
-html.light .tsh-tile {
+html.light .gb-head__title p:not(:where(.signature-profile, .signature-profile *)), html.light .gb-card__tip em:not(:where(.signature-profile, .signature-profile *)) { color: #475569; }
+html.light .gb-wallet:not(:where(.signature-profile, .signature-profile *)) { color: #92400e; background: linear-gradient(145deg, #fffbeb, #fef3c7); border-color: rgba(217, 119, 6, 0.3); box-shadow: 0 12px 22px -14px rgba(146, 64, 14, 0.35), inset 0 -6px 10px -8px rgba(146, 64, 14, 0.25), inset 0 6px 10px -7px #ffffff; }
+html.light .gb-wallet span:not(:where(.signature-profile, .signature-profile *)) { color: #b45309; }
+html.light .gb-filters button:not(:where(.signature-profile, .signature-profile *)) { color: #475569; background: linear-gradient(145deg, #ffffff, #f1f5f9); border-color: rgba(148, 163, 184, 0.25); box-shadow: 0 8px 16px -12px rgba(100, 116, 139, 0.5), inset 0 5px 8px -6px #ffffff; }
+html.light .gb-filters button:hover:not(:where(.signature-profile, .signature-profile *)) { color: #0f172a; }
+html.light .gb-card:not(:where(.signature-profile, .signature-profile *)), html.light .tsh-tile:not(:where(.signature-profile, .signature-profile *)) {
   color: #0f172a;
   background: linear-gradient(160deg, color-mix(in srgb, var(--c1) 16%, #ffffff), #f1f5f9);
   border-color: color-mix(in srgb, var(--c1) 40%, rgba(148, 163, 184, 0.25));
   box-shadow: 0 18px 30px -18px rgba(100, 116, 139, 0.55), inset 0 -10px 18px -12px rgba(100, 116, 139, 0.28), inset 0 10px 16px -10px #ffffff;
 }
-html.light .gb-card--common, html.light .tsh-tile--common { --c1: #94a3b8; }
-html.light .gb-card--legendary, html.light .tsh-tile--legendary { --c1: #f59e0b; }
-html.light .gb-card__name, html.light .tsh-tile__name { color: #0f172a; }
-html.light .gb-card__price { color: #b45309; }
-html.light .gb-card__tip { background: rgba(255, 255, 255, 0.78); border-color: rgba(148, 163, 184, 0.3); box-shadow: 0 14px 30px -16px rgba(100, 116, 139, 0.6); }
-html.light .gb-card__tip b { color: #0f172a; }
-html.light .gb-card__tip span { color: #b45309; }
-html.light .gb-inspect__panel { color: #0f172a; background: linear-gradient(160deg, color-mix(in srgb, var(--c1) 12%, #ffffff), #f8fafc); box-shadow: 0 50px 100px -40px rgba(15, 23, 42, 0.45), inset 0 14px 22px -16px #ffffff, inset 0 -16px 26px -18px rgba(100, 116, 139, 0.3); }
-html.light .gb-inspect__info > p { color: #475569; }
-html.light .gb-inspect__stage { background: radial-gradient(80% 70% at 50% 40%, color-mix(in srgb, var(--c1) 24%, transparent), transparent 70%), rgba(226, 232, 240, 0.6); }
-html.light .gb-inspect__chip { background: #ffffff; border-color: rgba(148, 163, 184, 0.3); }
-html.light .gb-inspect__price { color: #b45309; }
-html.light .gb-inspect__close { color: #334155; background: rgba(15, 23, 42, 0.05); }
-html.light .gb-ghost { color: #334155; border-color: rgba(100, 116, 139, 0.35); }
-html.light .tsh-head__title { color: #0f172a; }
-html.light .tsh-dot { color: #334155; }
-html.light .tsh-empty p { color: #334155; }
+html.light .gb-card--common:not(:where(.signature-profile, .signature-profile *)), html.light .tsh-tile--common:not(:where(.signature-profile, .signature-profile *)) { --c1: #94a3b8; }
+html.light .gb-card--legendary:not(:where(.signature-profile, .signature-profile *)), html.light .tsh-tile--legendary:not(:where(.signature-profile, .signature-profile *)) { --c1: #f59e0b; }
+html.light .gb-card__name:not(:where(.signature-profile, .signature-profile *)), html.light .tsh-tile__name:not(:where(.signature-profile, .signature-profile *)) { color: #0f172a; }
+html.light .gb-card__price:not(:where(.signature-profile, .signature-profile *)) { color: #b45309; }
+html.light .gb-card__tip:not(:where(.signature-profile, .signature-profile *)) { background: rgba(255, 255, 255, 0.78); border-color: rgba(148, 163, 184, 0.3); box-shadow: 0 14px 30px -16px rgba(100, 116, 139, 0.6); }
+html.light .gb-card__tip b:not(:where(.signature-profile, .signature-profile *)) { color: #0f172a; }
+html.light .gb-card__tip span:not(:where(.signature-profile, .signature-profile *)) { color: #b45309; }
+html.light .gb-inspect__panel:not(:where(.signature-profile, .signature-profile *)):not(:where(.ff-keep-dark, .ff-keep-dark *)) { color: #0f172a; background: linear-gradient(160deg, color-mix(in srgb, var(--c1) 12%, #ffffff), #f8fafc); box-shadow: 0 50px 100px -40px rgba(15, 23, 42, 0.45), inset 0 14px 22px -16px #ffffff, inset 0 -16px 26px -18px rgba(100, 116, 139, 0.3); }
+html.light .gb-inspect__info > p:not(:where(.signature-profile, .signature-profile *)):not(:where(.ff-keep-dark, .ff-keep-dark *)) { color: #475569; }
+html.light .gb-inspect__stage:not(:where(.signature-profile, .signature-profile *)):not(:where(.ff-keep-dark, .ff-keep-dark *)) { background: radial-gradient(80% 70% at 50% 40%, color-mix(in srgb, var(--c1) 24%, transparent), transparent 70%), rgba(226, 232, 240, 0.6); }
+html.light .gb-inspect__chip:not(:where(.signature-profile, .signature-profile *)):not(:where(.ff-keep-dark, .ff-keep-dark *)) { background: #ffffff; border-color: rgba(148, 163, 184, 0.3); }
+html.light .gb-inspect__price:not(:where(.signature-profile, .signature-profile *)):not(:where(.ff-keep-dark, .ff-keep-dark *)) { color: #b45309; }
+html.light .gb-inspect__close:not(:where(.signature-profile, .signature-profile *)):not(:where(.ff-keep-dark, .ff-keep-dark *)) { color: #334155; background: rgba(15, 23, 42, 0.05); }
+html.light .gb-ghost:not(:where(.signature-profile, .signature-profile *)):not(:where(.ff-keep-dark, .ff-keep-dark *)) { color: #334155; border-color: rgba(100, 116, 139, 0.35); }
+html.light .tsh-head__title:not(:where(.signature-profile, .signature-profile *)) { color: #0f172a; }
+html.light .tsh-dot:not(:where(.signature-profile, .signature-profile *)) { color: #334155; }
+html.light .tsh-empty p:not(:where(.signature-profile, .signature-profile *)) { color: #334155; }
 
 /* --------------------------- Giảm chuyển động --------------------------- */
 @media (prefers-reduced-motion: reduce) {
@@ -589,8 +587,8 @@ html.reduce-motion .gb-unbox .gb-rarity, html.reduce-motion .gb-unbox__actions {
 /* Chế độ trưng bày (xem hồ sơ người khác) */
 .gb-viewonly { padding: 7px 12px; border-radius: 999px; color: #c3cfdb; background: rgba(255, 255, 255, 0.05); border: 1px dashed rgba(255, 255, 255, 0.18); font-size: 10.5px; font-weight: 700; }
 .gb-inspect__readonly { margin: 0; color: #9fb0c2; font-size: 11.5px; font-style: italic; }
-html.light .gb-viewonly { color: #475569; border-color: rgba(100, 116, 139, 0.35); background: rgba(255, 255, 255, 0.7); }
-html.light .gb-inspect__readonly { color: #475569; }
+html.light .gb-viewonly:not(:where(.signature-profile, .signature-profile *)) { color: #475569; border-color: rgba(100, 116, 139, 0.35); background: rgba(255, 255, 255, 0.7); }
+html.light .gb-inspect__readonly:not(:where(.signature-profile, .signature-profile *)):not(:where(.ff-keep-dark, .ff-keep-dark *)) { color: #475569; }
 /* Signature boutique: collection shelf, not plastic rarity machine. */
 .gb-root { --gb-legend-ring: linear-gradient(125deg,#c1aa83,#e5d2a6,#7f745f); }
 .gb-card--common,.gb-card--rare,.gb-card--epic,.gb-card--legendary { --c1:#c4c9cb; --c2:#d7b679; --glow:rgba(215,182,121,.16); }
@@ -614,7 +612,7 @@ html.light .gb-inspect__readonly { color: #475569; }
 .gb-inspect__avatar { background:#445464; color:#f1e8d7; }
 .gb-inspect__orbit,.gb-inspect__halo,.gb-unbox__rays { display:none !important; }
 .gb-unbox__name { font-family:Georgia,serif; font-weight:500; }
-html.light .gb-inspect__panel { background:#fbf8f1; box-shadow:0 35px 80px rgba(20,28,38,.24); }
+html.light .gb-inspect__panel:not(:where(.signature-profile, .signature-profile *)):not(:where(.ff-keep-dark, .ff-keep-dark *)) { background:#fbf8f1; box-shadow:0 35px 80px rgba(20,28,38,.24); }
 html.light .signature-profile .gb-card__name { color:#f3ede2; }
 html.light .signature-profile .gb-card__price { color:#dfc086; }
 html.light .signature-profile .gb-card { color:#f3ede2; }
@@ -689,16 +687,15 @@ html.light .signature-profile .gb-card { color:#f3ede2; }
   line-height: 1.35;
   color: #a1a1aa;
 }
-html.light .tsh-rpg-tip {
+html.light .tsh-rpg-tip:not(:where(.signature-profile, .signature-profile *)) {
   background: linear-gradient(160deg, color-mix(in srgb, var(--rpg, #38bdf8) 14%, #ffffff) 0%, #f8fafc 75%);
   color: #0f172a;
   box-shadow: 0 16px 32px -12px rgba(15, 23, 42, 0.25);
 }
-html.light .tsh-rpg-tip__rarity,
-html.light .tsh-rpg-tip__lore {
+html.light .tsh-rpg-tip__rarity:not(:where(.signature-profile, .signature-profile *)), html.light .tsh-rpg-tip__lore:not(:where(.signature-profile, .signature-profile *)) {
   color: #475569;
 }
-html.light .tsh-rpg-tip__stat {
+html.light .tsh-rpg-tip__stat:not(:where(.signature-profile, .signature-profile *)) {
   color: #1e293b;
 }
 
@@ -1292,21 +1289,21 @@ html.light .tsh-rpg-tip__stat {
 }
 
 /* Light mode adaptations for Discord-style Boutique */
-html.light .shop-item-icon {
+html.light .shop-item-icon:not(:where(.signature-profile, .signature-profile *)) {
   background: rgba(15, 23, 42, 0.04);
   border-color: rgba(15, 23, 42, 0.09);
 }
-html.light .gb-card__cat-corner {
+html.light .gb-card__cat-corner:not(:where(.signature-profile, .signature-profile *)) {
   color: #475569;
   background: rgba(255, 255, 255, 0.85);
   border-color: rgba(15, 23, 42, 0.12);
 }
-html.light .gb-card__cat-corner:hover {
+html.light .gb-card__cat-corner:hover:not(:where(.signature-profile, .signature-profile *)) {
   color: #0f172a;
   background: #ffffff;
   border-color: rgba(15, 23, 42, 0.25);
 }
-html.light .gb-card__desc-one-line {
+html.light .gb-card__desc-one-line:not(:where(.signature-profile, .signature-profile *)) {
   color: #64748b;
 }
 
