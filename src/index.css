@@ -6648,3 +6648,38 @@ html.light[data-postprocess="off"] .liquid-glass,
 html.light[data-render-mode="low-poly"] .liquid-glass {
   border-color: rgba(35, 32, 26, 0.1) !important;
 }
+
+/* ---------------------------------------------------------------
+   Home chế độ sáng — giữ nền điện ảnh (video campus), chỉ chỉnh các
+   bề mặt "ghi chú giấy" cho đủ tương phản đọc: hero kem, thẻ atelier
+   chữ mực, nút kính mờ chữ mực. Chế độ tối không đổi.
+   --------------------------------------------------------------- */
+html.light .ff-view-home .ff-typo-hero {
+  color: #f8f7f4 !important;
+}
+html.light .ff-view-home .ff-atelier-card {
+  color: #1c1917 !important;
+}
+html.light .ff-view-home .ff-atelier-card .text-\[\#f4f1de\] {
+  color: #1c1917 !important;
+}
+html.light .ff-view-home .ff-atelier-card .text-\[\#c7c3b8\] {
+  color: #57534e !important;
+}
+html.light .ff-view-home .ff-atelier-card .text-\[\#f2cc8f\] {
+  color: #b45309 !important;
+}
+html.light .ff-view-home .ff-glass-depth-1 {
+  color: #1c1917 !important;
+}
+
+/* ---------------------------------------------------------------
+   Header mobile — chống cắt nametag/huy hiệu ở màn hẹp (Đợt 1):
+   ẩn chữ thương hiệu khi thiếu chỗ (huy hiệu F vẫn giữ), nhường trọn
+   chỗ cho nametag 124px. Chevron/nameplate ở ≤380px đã có luật cũ.
+   --------------------------------------------------------------- */
+@media (max-width: 459px) {
+  .ff-mobile-header .ff-mobile-brand-word {
+    display: none;
+  }
+}
