@@ -18,17 +18,21 @@ import {
   Search,
   CornerUpLeft,
   PanelRight,
+  LoaderCircle,
 } from 'lucide-react';
 import type { ChatChannelId, ChatMessage, User, OnlinePresenceUser } from '../../types';
 import { TierBadge, AdminVerifiedBadge } from '../Badges10Tier';
+import { ChatMentionPicker } from '../chat/ChatMentionPicker';
+import { ChatMessageContent } from '../chat/ChatMessageContent';
+import { ChatRoleIcon } from '../chat/ChatRoleIcon';
 import { DEFAULT_AVATAR } from '../../utils/mediaFallback';
 import { useChatCooldown } from '../../utils/chatCooldown';
+import { useChatMentionComposer } from '../../utils/chatMentions';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
 import { capsHas, useAdminCaps } from '../../utils/adminCapabilities';
 import { InfoTip } from '../ui/InfoTip';
 import { getTierForLevel } from '../../utils/tier';
 import { pushNotification } from '../../utils/notifications';
-import { ChatCooldownBar } from '../ChatCooldownBar';
 import { ThinkingBubble } from '../ViewTransitionLoader';
 import { postJson } from '../../utils/session';
 import { describeReportResult, settleReportRequest } from '../../utils/reports';
@@ -38,7 +42,7 @@ interface ChatViewProps {
   currentUser: User | null;
   users?: Record<string, User>;
   messages: ChatMessage[];
-  onSendMessage: (channelId: ChatChannelId, content: string) => void;
+  onSendMessage: (channelId: ChatChannelId, content: string, mentionIds?: string[]) => void | boolean | Promise<void | boolean>;
   onDeleteMessage?: (messageId: string) => void;
   onlineUsers?: OnlinePresenceUser[];
   onlineCount?: number;
@@ -147,11 +151,32 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const [isMembersDrawerOpen, setIsMembersDrawerOpen] = useState(false);
   const [isDesktopRosterVisible, setIsDesktopRosterVisible] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [replyingTo, setReplyingTo] = useState<{ id: string; authorName: string; excerpt: string } | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{ id: string; authorId: string; authorName: string; excerpt: string } | null>(null);
   const [inputText, setInputText] = useState('');
   const cooldown = useChatCooldown();
+  const [isSending, setIsSending] = useState(false);
+  const [sendStatus, setSendStatus] = useState('');
+  const sendStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const mentionComposer = useChatMentionComposer({
+    inputText,
+    setInputText,
+    users,
+    onlineUsers,
+    currentUser,
+    inputRef,
+  });
+
+  const announceSendStatus = useCallback((status: string, durationMs = 1300) => {
+    setSendStatus(status);
+    if (sendStatusTimerRef.current) window.clearTimeout(sendStatusTimerRef.current);
+    sendStatusTimerRef.current = window.setTimeout(() => setSendStatus(''), durationMs);
+  }, []);
+
+  useEffect(() => () => {
+    if (sendStatusTimerRef.current) window.clearTimeout(sendStatusTimerRef.current);
+  }, []);
 
   const [activeAuthorCard, setActiveAuthorCard] = useState<{
     id: string;
@@ -354,12 +379,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     />
                   </button>
 
-                  {isSuperAdminMsg ? (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-[#e9c46a]/15 border border-[#e9c46a]/40 text-[10px] font-mono font-semibold text-[#e9c46a]">
-                      <AdminVerifiedBadge size={11} />
-                      <span>Quản trị</span>
-                    </span>
-                  ) : (
+                  <ChatRoleIcon user={resolvedMsgUser} isSuperAdmin={isSuperAdminMsg} />
+                  {!isSuperAdminMsg && (
                     <span className="text-[10px] font-mono text-[#a39f96] px-1.5 py-0.2 rounded bg-[#f8f7f4]/[0.04] border border-[#f8f7f4]/[0.07]">
                       Lv.{msg.authorLevel || 1}
                     </span>
@@ -381,7 +402,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       : 'ff-chat-bubble-peer'
                   }`}
                 >
-                  {msg.content}
+                  <ChatMessageContent message={msg} users={users} currentUser={currentUser} />
                 </div>
 
                 {/* Cụm nút tương tác nhanh khi rê chuột: Trả lời & Thu hồi */}
@@ -392,6 +413,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       onClick={() => {
                         setReplyingTo({
                           id: msg.id,
+                          authorId: msg.authorId,
                           authorName: authorDisplayName,
                           excerpt: msg.content.slice(0, 64),
                         });
@@ -422,7 +444,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
           </div>
         );
       }),
-    [currentMessages, currentUser, canRecallMessages, resolveChatUser, onDeleteMessage, openAuthorCardFromEvent],
+    [currentMessages, currentUser, users, canRecallMessages, resolveChatUser, onDeleteMessage, openAuthorCardFromEvent],
   );
 
   const prevChannelRef = useRef<ChatChannelId>(activeChannel);
@@ -432,26 +454,47 @@ export const ChatView: React.FC<ChatViewProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: channelChanged ? 'auto' : 'smooth' });
   }, [currentMessages.length, activeChannel]);
 
-  const handleSend = () => {
-    if (!currentUser) return;
+  const handleSend = async () => {
+    if (!currentUser || isSending) return;
     if (cooldown.isCooling) {
       cooldown.nudge();
+      announceSendStatus('Chờ một nhịp ngắn nhé');
       return;
     }
     const raw = inputText.trim();
     if (!raw) return;
     const prefix = replyingTo ? `@${replyingTo.authorName}: ` : '';
     const finalContent = `${prefix}${raw}`.slice(0, 300);
-    onSendMessage(activeChannel, finalContent);
-    setInputText('');
-    setReplyingTo(null);
+    setIsSending(true);
+    setSendStatus('Đang gửi…');
     cooldown.startCooldown();
+    try {
+      const mentionIds = [...new Set([
+        ...mentionComposer.mentionedUserIds,
+        ...(replyingTo?.authorId ? [replyingTo.authorId] : []),
+      ])];
+      const outcome = await onSendMessage(activeChannel, finalContent, mentionIds);
+      if (outcome === false) {
+        announceSendStatus('Chưa gửi được · bản nháp đã giữ lại', 2200);
+        return;
+      }
+      setInputText('');
+      setReplyingTo(null);
+      mentionComposer.reset();
+      if (inputRef.current) inputRef.current.style.height = 'auto';
+      announceSendStatus('Đã gửi');
+    } catch {
+      announceSendStatus('Chưa gửi được · bản nháp đã giữ lại', 2200);
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (mentionComposer.handleKeyDown(e)) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      void handleSend();
     } else if (e.key === 'Escape' && replyingTo) {
       setReplyingTo(null);
     }
@@ -462,7 +505,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const CurrentChannelIcon = currentChannelObj.icon;
 
   return (
-    <section className="relative w-full h-[100dvh] md:h-screen overflow-hidden flex flex-col pt-[calc(54px+var(--safe-top))] pb-[calc(56px+var(--safe-bottom))] md:pt-[var(--navbar-height)] md:pb-0">
+    <section className="ff-chat-view relative w-full h-[100dvh] md:h-screen overflow-hidden flex flex-col pt-[calc(54px+var(--safe-top))] pb-[calc(56px+var(--safe-bottom))] md:pt-[var(--navbar-height)] md:pb-0">
       {/* Nền Thư Viện Số Học Thuật: Tĩnh, sạch sẽ, độ tương phản cao */}
       <div className="ff-chat-bg ff-raw-grid-surface absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0b0d12] via-[#0e121a] to-[#090b10]" />
@@ -765,15 +808,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
               <div ref={messagesEndRef} />
             </div>
 
-            <ChatCooldownBar
-              isCooling={cooldown.isCooling}
-              remainingMs={cooldown.remainingMs}
-              nudgeKey={cooldown.nudgeKey}
-              variant="view"
-            />
-
             {/* Khung nhập tin nhắn ở đáy */}
-            <div className="px-3 sm:px-5 py-3 bg-[#0c1018] border-t border-[#f8f7f4]/10 shrink-0">
+            <div className="ff-chat-composer-area px-3 sm:px-5 py-3 bg-[#0c1018] border-t border-[#f8f7f4]/10 shrink-0">
               {replyingTo && (
                 <div className="mb-2 px-3 py-1.5 rounded-lg bg-[#151b28] border border-[#81b29a]/35 flex items-center justify-between gap-2 text-xs">
                   <div className="flex items-center gap-2 min-w-0">
@@ -807,40 +843,60 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   </button>
                 </div>
               ) : (
-                <div className="ff-chat-composer-shell">
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={inputText}
-                    maxLength={300}
-                    onChange={e => setInputText(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder={`Nhắn tin vào #${currentChannelObj.name}...`}
-                    className="message-input-bar flex-1 bg-transparent border-none text-xs sm:text-sm text-[#f8f7f4] placeholder-[#a39f96] focus:outline-none"
+                <div className="ff-chat-composer-wrap">
+                  <ChatMentionPicker
+                    id="ff-chat-mention-options-view"
+                    open={mentionComposer.isOpen}
+                    suggestions={mentionComposer.suggestions}
+                    activeIndex={mentionComposer.activeIndex}
+                    onSelect={mentionComposer.selectMention}
+                    onHighlight={mentionComposer.setActiveIndex}
                   />
+                  <div className="ff-chat-composer-shell" data-cooling={cooldown.isCooling ? 'true' : undefined}>
+                    <textarea
+                      ref={inputRef}
+                      rows={1}
+                      value={inputText}
+                      maxLength={300}
+                      onChange={(event) => {
+                        mentionComposer.handleChange(event);
+                        event.currentTarget.style.height = 'auto';
+                        event.currentTarget.style.height = `${Math.min(event.currentTarget.scrollHeight, 120)}px`;
+                      }}
+                      onSelect={mentionComposer.handleCaretChange}
+                      onKeyDown={handleKeyDown}
+                      placeholder={`Nhắn tin vào #${currentChannelObj.name}...`}
+                      aria-label={`Tin nhắn trong kênh ${currentChannelObj.name}`}
+                      role="combobox"
+                      aria-autocomplete="list"
+                      aria-expanded={mentionComposer.isOpen}
+                      aria-controls={mentionComposer.isOpen ? 'ff-chat-mention-options-view' : undefined}
+                      aria-activedescendant={mentionComposer.isOpen ? `ff-chat-mention-options-view-option-${mentionComposer.activeIndex}` : undefined}
+                      className="ff-chat-message-input message-input-bar flex-1 bg-transparent border-none text-xs sm:text-sm text-[#f8f7f4] placeholder-[#a39f96] focus:outline-none"
+                    />
 
-                  <span className="hidden sm:inline text-[10.5px] font-mono text-[#a39f96] shrink-0">
-                    {inputText.length}/300
-                  </span>
-
-                  {cooldown.isCooling && (
-                    <span className="px-2 py-1 rounded-md bg-[#e9c46a]/15 border border-[#e9c46a]/35 text-[11px] font-mono text-[#e9c46a] shrink-0">
-                      {cooldown.secondsLeft}s
+                    <span className="hidden sm:inline text-[10.5px] font-mono text-[#a39f96] shrink-0">
+                      {inputText.length}/300
                     </span>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={handleSend}
-                    disabled={!inputText.trim()}
-                    className={`ff-tactile-btn px-3.5 py-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs sm:text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                      cooldown.isCooling ? 'ff-cd-btn is-cooling' : ''
-                    }`}
-                    title={cooldown.isCooling ? `Còn ${cooldown.secondsLeft}s trước tin tiếp theo` : 'Gửi tin nhắn'}
-                  >
-                    <Send className="w-3.5 h-3.5 text-[#e07a5f]" />
-                    <span className="hidden sm:inline">Gửi</span>
-                  </button>
+                    <span className="ff-chat-send-status" role="status" aria-live="polite">{sendStatus}</span>
+                    <button
+                      type="button"
+                      onClick={() => void handleSend()}
+                      disabled={!inputText.trim() || isSending}
+                      aria-busy={isSending}
+                      className={`ff-tactile-btn ff-chat-send-button px-3.5 py-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs sm:text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                        cooldown.isCooling ? 'is-cooling' : ''
+                      }`}
+                      title={cooldown.isCooling ? 'Đã gửi gần đây · chờ một nhịp ngắn' : 'Gửi tin nhắn'}
+                    >
+                      {isSending ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5 text-[#e07a5f]" />}
+                      <span className="hidden sm:inline">Gửi</span>
+                    </button>
+                  </div>
+                  <div className="ff-chat-composer-hint">
+                    <span><b>@</b> để nhắc thành viên</span>
+                    <span>Enter gửi · Shift + Enter xuống dòng</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -906,11 +962,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                           animate
                           className="text-xs font-bold text-[#f8f7f4] truncate"
                         />
-                        <AdminVerifiedBadge size={12} />
+                        <ChatRoleIcon user={resolveChatUser(MASTER_ADMIN_CONFIG.email, 'user-admin')} isSuperAdmin={true} size={12} />
                       </div>
-                      <span className="text-[10.5px] text-[#e9c46a] font-mono block truncate">
-                        {MASTER_ADMIN_CONFIG.role}
-                      </span>
+                      <span className="text-[10.5px] text-[#a39f96] font-mono block truncate">Trực tuyến · Lv.150</span>
                     </div>
                   </button>
                 </div>
@@ -959,14 +1013,17 @@ export const ChatView: React.FC<ChatViewProps> = ({
                               <span className="absolute bottom-0 right-0 z-[4] w-2 h-2 rounded-full bg-[#81b29a] border border-[#0b0f17]" />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <DecoratedName
-                                user={resolvedStudent}
-                                name={cleanName}
-                                width={128}
-                                height={22}
-                                animate
-                                className="text-xs font-medium text-[#f8f7f4] truncate block"
-                              />
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <DecoratedName
+                                  user={resolvedStudent}
+                                  name={cleanName}
+                                  width={128}
+                                  height={22}
+                                  animate
+                                  className="text-xs font-medium text-[#f8f7f4] truncate block"
+                                />
+                                <ChatRoleIcon user={resolvedStudent} />
+                              </div>
                               <div className="flex items-center gap-1.5 text-[10px] text-[#a39f96] font-mono">
                                 <span className="text-[#dad7d0] truncate">{tier.name}</span>
                                 <span>· Lv.{user.level || 1}</span>
@@ -1124,11 +1181,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                       animate
                       className="text-xs font-bold text-[#f8f7f4] truncate"
                     />
-                    <AdminVerifiedBadge size={12} />
+                    <ChatRoleIcon user={resolveChatUser(MASTER_ADMIN_CONFIG.email, 'user-admin')} isSuperAdmin={true} size={12} />
                   </div>
-                  <span className="text-[10px] text-[#e9c46a] font-mono block truncate">
-                    {MASTER_ADMIN_CONFIG.role}
-                  </span>
+                  <span className="text-[10px] text-[#a39f96] font-mono block truncate">Trực tuyến · Lv.150</span>
                 </div>
               </button>
             </div>
@@ -1172,14 +1227,17 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         className="rounded-full ring-1 ring-[#f8f7f4]/15"
                       />
                       <div className="min-w-0 flex-1">
-                        <DecoratedName
-                          user={resolvedStudent}
-                          name={cleanName}
-                          width={128}
-                          height={22}
-                          animate
-                          className="text-xs font-medium text-[#f8f7f4] truncate block"
-                        />
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <DecoratedName
+                            user={resolvedStudent}
+                            name={cleanName}
+                            width={128}
+                            height={22}
+                            animate
+                            className="text-xs font-medium text-[#f8f7f4] truncate block"
+                          />
+                          <ChatRoleIcon user={resolvedStudent} />
+                        </div>
                         <div className="text-[10px] text-[#a39f96] font-mono">
                           {tier.name} · Lv.{user.level || 1}
                         </div>

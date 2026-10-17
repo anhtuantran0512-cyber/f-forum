@@ -48,12 +48,14 @@ function createTestServer() {
   });
 }
 
-test('1. Real-Time Multi-Device WebSocket Sync: Client A message immediately received by Client B', async () => {
+test('1. Real-Time WebSocket Sync: peers receive the message and unverified identity fields are discarded', async () => {
   const testEnv = await createTestServer();
+  const clients = [];
 
   try {
     const clientA = new WebSocket(testEnv.wsUrl);
     const clientB = new WebSocket(testEnv.wsUrl);
+    clients.push(clientA, clientB);
 
     await Promise.all([
       new Promise((res) => clientA.on('open', res)),
@@ -95,11 +97,12 @@ test('1. Real-Time Multi-Device WebSocket Sync: Client A message immediately rec
 
     assert.equal(receivedMessagesByB.length, 1, 'Client B must have received 1 real-time message');
     assert.equal(receivedMessagesByB[0].content, testMessage.content);
-    assert.equal(receivedMessagesByB[0].authorEmail, 'clone@test.local');
-
-    clientA.close();
-    clientB.close();
+    assert.notEqual(receivedMessagesByB[0].authorId, testMessage.authorId, 'unauthenticated clients cannot choose another account ID');
+    assert.equal(receivedMessagesByB[0].authorEmail, '', 'unauthenticated clients cannot claim an account email');
   } finally {
+    for (const client of clients) {
+      if (client.readyState !== WebSocket.CLOSED) client.terminate();
+    }
     await testEnv.close();
   }
 });

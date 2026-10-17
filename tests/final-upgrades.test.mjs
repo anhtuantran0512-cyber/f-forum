@@ -393,7 +393,7 @@ test('WebSocket: "đăng xuất mọi thiết bị" gỡ danh tính socket đang
 
     // Đối chứng: trước khi thu hồi, socket đã AUTH gửi chat được.
     const beforeId = `chat-before-${Date.now()}`;
-    deviceA.send('NEW_CHAT_MESSAGE', { id: beforeId, content: 'trước khi thu hồi', authorEmail: email });
+    deviceA.send('NEW_CHAT_MESSAGE', { id: beforeId, channelId: 'hallway', content: 'trước khi thu hồi', authorEmail: email });
     await deviceA.nextWhere((m) => m.type === 'NEW_CHAT_MESSAGE' && m.payload?.id === beforeId, 'tin đối chứng');
 
     // Thiết bị B đăng xuất mọi nơi.
@@ -410,7 +410,7 @@ test('WebSocket: "đăng xuất mọi thiết bị" gỡ danh tính socket đang
     await assert.rejects(bystander.next('SESSION_REVOKED', 250), /Hết giờ/, 'socket khách/người khác không nhận');
 
     // Socket cũ mất quyền ngay, không đợi kết nối lại.
-    deviceA.send('NEW_CHAT_MESSAGE', { id: `chat-after-${Date.now()}`, content: 'sau khi thu hồi', authorEmail: email });
+    deviceA.send('NEW_CHAT_MESSAGE', { id: `chat-after-${Date.now()}`, channelId: 'hallway', content: 'sau khi thu hồi', authorEmail: email });
     const denied = await deviceA.next('FORBIDDEN');
     assert.equal(denied.payload.action, 'NEW_CHAT_MESSAGE');
 

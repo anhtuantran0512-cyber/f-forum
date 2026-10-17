@@ -103,7 +103,7 @@ test('Câu hỏi: chỉ chạy sau Sẵn sàng, đồng hồ tiến theo thời 
     assert.match(document.querySelector('.ff-daily-heading__title').textContent, /Nhịp học mỗi ngày/);
     assert.equal(document.querySelectorAll('.ff-daily-tab').length, 3);
     assert.equal(buttonWith('Điểm danh').getAttribute('aria-pressed'), 'true');
-    assert.ok(document.querySelector('.ff-daily-day--active'), 'current day has a visible marker');
+    assert.ok(document.querySelector('.ff-daily-day.is-current'), 'current day has a visible marker');
     await React.act(async () => buttonWith('Câu hỏi vui').click());
     assert.equal(buttonWith('Câu hỏi vui').getAttribute('aria-pressed'), 'true');
     assert.equal(buttonWith('Điểm danh').getAttribute('aria-pressed'), 'false');

@@ -653,3 +653,215 @@
 @container (max-width: 650px) {
   .faa-bento.cdl-01__board { --faa-unit: 116px; gap: 8px; }
 }
+
+/* Campus Atelier palette: warm paper, ink, sage and brass, scoped to admin. */
+.faa-backdrop {
+  --faa-bg: #15130f;
+  --faa-card: rgba(35, 30, 23, .9);
+  --faa-card-strong: rgba(45, 39, 30, .96);
+  --faa-edge: rgba(224, 207, 174, .16);
+  --faa-ink: #f1eadc;
+  --faa-muted: #a99f8d;
+  --faa-cyan: #f2cc8f;
+  --faa-mint: #a8c9ae;
+}
+.faa-backdrop :is(button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid #f2cc8f;
+  outline-offset: 2px;
+}
+.faa-shell {
+  border-color: rgba(242, 204, 143, .23);
+  background:
+    radial-gradient(100% 70% at 88% -10%, rgba(242, 204, 143, .09), transparent 64%),
+    radial-gradient(70% 60% at -12% 110%, rgba(129, 178, 154, .09), transparent 60%),
+    linear-gradient(160deg, #1b1914, #100f0c);
+}
+.faa-topbar { background: linear-gradient(90deg, rgba(242, 204, 143, .08), transparent 48%, rgba(129, 178, 154, .06)); }
+.faa-mark { border-color: rgba(242, 204, 143, .35); color: #f2cc8f; background: linear-gradient(145deg, rgba(242, 204, 143, .17), rgba(129, 178, 154, .09)); box-shadow: 0 0 24px rgba(242, 204, 143, .08), inset 0 1px rgba(255, 255, 255, .1); }
+.faa-brand__copy h2 { color: #f7f0e3; }
+.faa-live { color: #bad6bf; border-color: rgba(129, 178, 154, .24); background: rgba(129, 178, 154, .08); }
+.faa-live i, .faa-live-dot { background: #9fc6a6; box-shadow: 0 0 10px rgba(129, 178, 154, .45); }
+.faa-button:hover:not(:disabled), .faa-icon-button:hover { color: #fff8e9; border-color: rgba(242, 204, 143, .43); background: rgba(242, 204, 143, .1); }
+.faa-button--member { color: #c6dec9; border-color: rgba(129, 178, 154, .25); background: rgba(129, 178, 154, .09); }
+.faa-tabs { border-bottom-color: rgba(224, 207, 174, .12); background: rgba(7, 6, 4, .22); }
+.faa-tabs button:hover, .faa-range button:hover, .faa-role-filters button:hover { color: #fff3db; }
+.faa-tabs button.is-active, .faa-range button.is-active, .faa-role-filters button.is-active { color: #f5dcae; border-color: rgba(242, 204, 143, .24); background: rgba(242, 204, 143, .1); }
+.faa-range, .faa-role-filters button { border-color: rgba(224, 207, 174, .14); }
+.faa-eyebrow { color: #b5a88f; }
+.faa-period-note, .faa-members-heading p:not(.faa-eyebrow) { color: #958a77; }
+.faa-range { background: rgba(7, 6, 4, .32); }
+.faa-tile { background: linear-gradient(150deg, rgba(48, 41, 31, .78), rgba(26, 23, 18, .9)); }
+.faa-tile:hover { border-color: rgba(242, 204, 143, .38); }
+.faa-tile--hero { background: radial-gradient(90% 80% at 100% 100%, rgba(129, 178, 154, .15), transparent 70%), linear-gradient(150deg, rgba(48, 51, 38, .93), rgba(28, 26, 20, .96)); border-color: rgba(242, 204, 143, .22); }
+.faa-cyan { color: #f2cc8f; border-color: rgba(242, 204, 143, .25); background-color: rgba(242, 204, 143, .08); }
+.faa-mint { color: #a8c9ae; border-color: rgba(129, 178, 154, .25); background-color: rgba(129, 178, 154, .08); }
+.faa-violet { color: #d7ae91; border-color: rgba(215, 174, 145, .25); background-color: rgba(215, 174, 145, .08); }
+.faa-amber, .faa-gold { color: #f0c687; border-color: rgba(240, 198, 135, .25); background-color: rgba(240, 198, 135, .08); }
+.faa-blue { color: #adc7b0; border-color: rgba(129, 178, 154, .25); background-color: rgba(129, 178, 154, .08); }
+.faa-hero-number, .faa-metric-value { color: #fff7e8; }
+.faa-tile__hint { color: #b7ac98; }
+.faa-tile__caption, .faa-tile--metric .faa-tile__caption { color: #a19683; }
+.faa-breakdown { color: #c5b9a4; }
+.faa-dot--cyan { background: #f2cc8f; box-shadow: 0 0 9px rgba(242, 204, 143, .42); }
+.faa-dot--purple { background: #d7ae91; box-shadow: 0 0 9px rgba(215, 174, 145, .34); }
+.faa-dot--mint { background: #a8c9ae; box-shadow: 0 0 9px rgba(168, 201, 174, .34); }
+.faa-hero-wave i { background: linear-gradient(180deg, rgba(129, 178, 154, .22), transparent); }
+.faa-chart-head h3 { color: #f0e7d7; }
+.faa-chart-head p, .faa-chart__col small, .faa-chart-empty { color: #958a78; }
+.faa-chart-select select, .faa-form-field select { color: #eadfcb; border-color: rgba(224, 207, 174, .2); background: #211e17; }
+.faa-chart { border-bottom-color: rgba(224, 207, 174, .2); }
+.faa-chart__bar { background: linear-gradient(180deg, #f2cc8f, rgba(242, 204, 143, .19)); box-shadow: 0 0 14px rgba(242, 204, 143, .09); }
+.faa-chart__col:nth-child(3n) .faa-chart__bar { background: linear-gradient(180deg, #a8c9ae, rgba(129, 178, 154, .19)); }
+.faa-chart-legend { color: #a99f8d; }
+.faa-chart-legend b { color: #eadfce; }
+.faa-activity-row { color: #c2b8a7; }
+.faa-activity-row__icon { color: #d9c097; border-color: rgba(242, 204, 143, .15); background: rgba(242, 204, 143, .055); }
+.faa-activity-row b { color: #f3ead9; }
+.faa-top-list__name b { color: #ece2d1; }
+.faa-top-list__name small, .faa-top-list__rank { color: #9b907d; }
+.faa-top-list__time { color: #b8d0b7; }
+.faa-privacy-note, .faa-permission-note { color: #9e9585; }
+.faa-privacy-note svg, .faa-permission-note svg, .faa-permission { color: #a8c9ae; }
+.faa-search, .faa-range { border-color: rgba(224, 207, 174, .17); }
+.faa-search { color: #aa9e88; background: rgba(8, 7, 5, .35); }
+.faa-search:focus-within { border-color: rgba(242, 204, 143, .4); box-shadow: 0 0 0 3px rgba(242, 204, 143, .055); }
+.faa-search input { color: #f0e7d7; }
+.faa-member-table { border-color: rgba(224, 207, 174, .16); background: rgba(9, 8, 6, .23); }
+.faa-member-head { border-bottom-color: rgba(224, 207, 174, .15); color: #a69b86; background: #27231b; }
+.faa-member-row { border-bottom-color: rgba(224, 207, 174, .09); }
+.faa-member-row:hover { background: rgba(242, 204, 143, .045); }
+.faa-member-name b { color: #eee5d7; }
+.faa-member-name span { color: #b2a894; }
+.faa-member-name small, .faa-member-metrics small { color: #958a78; }
+.faa-member-metrics { color: #c0b5a2; }
+.faa-member-metrics span svg { color: #b9c9ad; }
+.faa-empty b { color: #e5dccd; }
+.faa-pagination { color: #a49a89; }
+.faa-pagination button { border-color: rgba(224, 207, 174, .17); color: #e1d4bf; background: rgba(255, 255, 255, .04); }
+.faa-detail { border-left-color: rgba(242, 204, 143, .22); background: linear-gradient(160deg, #252118, #17140f); }
+.faa-detail__head { border-bottom-color: rgba(224, 207, 174, .14); }
+.faa-detail__head h3 { color: #f3eadb; }
+.faa-profile-card { border-color: rgba(242, 204, 143, .18); background: linear-gradient(145deg, rgba(54, 49, 36, .84), rgba(28, 25, 19, .92)); }
+.faa-profile-card__identity h4 { color: #f0e7d7; }
+.faa-profile-card__identity p { color: #b1a48f; }
+.faa-profile-card__stats span { border-color: rgba(224, 207, 174, .11); background: rgba(8, 7, 5, .18); }
+.faa-profile-card__stats b { color: #e2d4b9; }
+.faa-detail-section { border-color: rgba(224, 207, 174, .14); background: rgba(255, 255, 255, .027); }
+.faa-detail-section > h4 { color: #e4d9c6; }
+.faa-detail-section > h4 svg { color: #d6bb8d; }
+.faa-bio, .faa-form-field { color: #c0b5a2; }
+.faa-profile-fields span { background: rgba(8, 7, 5, .24); }
+.faa-profile-fields small, .faa-explainer, .faa-current-reason, .faa-premium-until { color: #9e9380; }
+.faa-profile-fields b { color: #dfd3c0; }
+.faa-form-field select, .faa-form-field textarea, .faa-form-field input { border-color: rgba(224, 207, 174, .16); color: #eee5d7; background: rgba(8, 7, 5, .36); }
+.faa-form-field select:focus, .faa-form-field textarea:focus, .faa-form-field input:focus { border-color: rgba(242, 204, 143, .42); box-shadow: 0 0 0 3px rgba(242, 204, 143, .055); }
+.faa-action-button { border-color: rgba(224, 207, 174, .17); color: #e7ddcb; background: rgba(255, 255, 255, .04); }
+.faa-action-button--accent { color: #ead09c; border-color: rgba(242, 204, 143, .25); background: rgba(242, 204, 143, .08); }
+.faa-protected, .faa-protected svg { color: #f2cc8f; }
+.faa-warning-list li { border-color: rgba(242, 204, 143, .15); background: rgba(242, 204, 143, .035); }
+.faa-warning-list b { color: #e0c28e; }
+.faa-warning-list span { color: #d7c8ae; }
+.faa-premium-section { border-color: rgba(215, 174, 145, .18); background: linear-gradient(145deg, rgba(215, 174, 145, .05), rgba(242, 204, 143, .025)); }
+
+html.light .faa-backdrop { --faa-bg: #f6f1e7; --faa-card: rgba(255, 253, 248, .92); --faa-card-strong: #fffdf8; --faa-edge: rgba(95, 76, 48, .16); --faa-ink: #30291f; --faa-muted: #786e5e; --faa-cyan: #8a6128; --faa-mint: #477657; color: var(--faa-ink); }
+html.light .faa-backdrop__dismiss { background: rgba(32, 27, 19, .48); }
+html.light .faa-shell { border-color: rgba(133, 99, 49, .25); background: radial-gradient(100% 70% at 88% -10%, rgba(242, 204, 143, .2), transparent 64%), radial-gradient(70% 60% at -12% 110%, rgba(129, 178, 154, .12), transparent 60%), linear-gradient(160deg, #fffdf8, #f4efe5); box-shadow: 0 32px 90px rgba(36, 28, 17, .27), inset 0 1px white; }
+html.light .faa-topbar { border-bottom-color: rgba(95, 76, 48, .14); background: linear-gradient(90deg, rgba(242, 204, 143, .22), transparent 48%, rgba(129, 178, 154, .12)); }
+html.light .faa-mark { border-color: rgba(133, 99, 49, .28); color: #795522; background: linear-gradient(145deg, rgba(242, 204, 143, .33), rgba(129, 178, 154, .16)); box-shadow: inset 0 1px white; }
+html.light .faa-brand__copy h2, html.light .faa-members-heading h3 { color: #30291f; }
+html.light .faa-brand__copy p { color: #756b5c; }
+html.light .faa-live { color: #3c694c; border-color: rgba(71, 118, 86, .22); background: rgba(129, 178, 154, .13); }
+html.light .faa-live i, html.light .faa-live-dot { background: #4d8a5f; box-shadow: none; }
+html.light .faa-button, html.light .faa-icon-button { color: #493f31; border-color: rgba(95, 76, 48, .16); background: rgba(255, 255, 255, .62); }
+html.light .faa-button:hover:not(:disabled), html.light .faa-icon-button:hover { color: #3b2a15; border-color: rgba(150, 105, 42, .35); background: rgba(242, 204, 143, .2); }
+html.light .faa-button--member { color: #3f654b; border-color: rgba(71, 118, 86, .22); background: rgba(129, 178, 154, .13); }
+html.light .faa-tabs { border-bottom-color: rgba(95, 76, 48, .14); background: rgba(230, 221, 204, .32); }
+html.light .faa-tabs button { color: #766b5a; }
+html.light .faa-tabs button:hover { color: #3d3122; background: rgba(255, 255, 255, .66); }
+html.light .faa-tabs button.is-active, html.light .faa-range button.is-active, html.light .faa-role-filters button.is-active { color: #785623; border-color: rgba(150, 105, 42, .22); background: rgba(242, 204, 143, .25); }
+html.light .faa-tabs button > span { color: #675a45; background: rgba(105, 87, 58, .09); }
+html.light .faa-updated, html.light .faa-period-note, html.light .faa-members-heading p:not(.faa-eyebrow) { color: #756b5c; }
+html.light .faa-permission, html.light .faa-privacy-note svg, html.light .faa-permission-note svg { color: #477657; }
+html.light .faa-content { scrollbar-color: rgba(95, 76, 48, .25) transparent; }
+html.light .faa-eyebrow { color: #796d59; }
+html.light .faa-range { border-color: rgba(95, 76, 48, .16); background: rgba(231, 223, 208, .55); }
+html.light .faa-range button, html.light .faa-role-filters button { color: #706553; }
+html.light .faa-range button:hover, html.light .faa-role-filters button:hover { color: #463522; background: rgba(255, 255, 255, .72); }
+html.light .faa-role-filters button { border-color: rgba(95, 76, 48, .12); background: rgba(255, 255, 255, .48); }
+.faa-backdrop .faa-role-pill--super_admin { color: #f2cc8f; border-color: rgba(242, 204, 143, .24); background: rgba(242, 204, 143, .08); }
+.faa-backdrop .faa-role-pill--moderator { color: #d7ae91; border-color: rgba(215, 174, 145, .23); background: rgba(215, 174, 145, .08); }
+.faa-backdrop .faa-role-pill--teacher { color: #b9d3bd; border-color: rgba(129, 178, 154, .22); background: rgba(129, 178, 154, .08); }
+.faa-backdrop .faa-role-pill--club_leader { color: #c6cda5; border-color: rgba(174, 184, 130, .22); background: rgba(174, 184, 130, .08); }
+html.light .faa-backdrop .faa-role-pill--super_admin { color: #795522; border-color: rgba(139, 97, 40, .2); background: rgba(242, 204, 143, .2); }
+html.light .faa-backdrop .faa-role-pill--moderator { color: #835844; border-color: rgba(131, 88, 68, .18); background: rgba(215, 174, 145, .18); }
+html.light .faa-backdrop .faa-role-pill--teacher { color: #38644c; border-color: rgba(71, 118, 86, .18); background: rgba(129, 178, 154, .17); }
+html.light .faa-backdrop .faa-role-pill--club_leader { color: #536039; border-color: rgba(106, 121, 66, .2); background: rgba(174, 184, 130, .2); }
+html.light .faa-tile { border-color: rgba(95, 76, 48, .14); background: linear-gradient(150deg, rgba(255, 253, 248, .95), rgba(244, 239, 229, .96)); box-shadow: inset 0 1px white, 0 3px 12px rgba(67, 52, 29, .035); }
+html.light .faa-tile:hover { border-color: rgba(150, 105, 42, .3); }
+html.light .faa-tile--hero { border-color: rgba(145, 110, 62, .24); background: radial-gradient(90% 80% at 100% 100%, rgba(129, 178, 154, .18), transparent 70%), linear-gradient(150deg, #f3ead6, #fffaf0); }
+html.light .faa-tile__hint, html.light .faa-breakdown { color: #655b4c; }
+html.light .faa-hero-number, html.light .faa-metric-value { color: #342d22; }
+html.light .faa-tile__caption, html.light .faa-tile--metric .faa-tile__caption { color: #776c5b; }
+html.light .faa-cyan { color: #805a25; border-color: rgba(139, 97, 40, .2); background-color: rgba(242, 204, 143, .2); }
+html.light .faa-mint { color: #42694d; border-color: rgba(71, 118, 86, .19); background-color: rgba(129, 178, 154, .17); }
+html.light .faa-violet { color: #835844; border-color: rgba(131, 88, 68, .18); background-color: rgba(215, 174, 145, .17); }
+html.light .faa-amber, html.light .faa-gold { color: #805a25; border-color: rgba(139, 97, 40, .19); background-color: rgba(242, 204, 143, .19); }
+html.light .faa-blue { color: #42694d; border-color: rgba(71, 118, 86, .18); background-color: rgba(129, 178, 154, .15); }
+html.light .faa-dot--cyan { background: #ac762e; box-shadow: none; }
+html.light .faa-dot--purple { background: #a46a50; box-shadow: none; }
+html.light .faa-dot--mint { background: #568565; box-shadow: none; }
+html.light .faa-hero-wave i { background: linear-gradient(180deg, rgba(129, 178, 154, .2), transparent); }
+html.light .faa-chart-head h3 { color: #342d22; }
+html.light .faa-chart-head p, html.light .faa-chart__col small, html.light .faa-chart-empty, html.light .faa-chart-legend { color: #786e5e; }
+html.light .faa-chart-select select, html.light .faa-form-field select { color: #443a2b; border-color: rgba(95, 76, 48, .17); background-color: #fffdf8; }
+html.light .faa-chart { border-bottom-color: rgba(95, 76, 48, .17); background: linear-gradient(180deg, rgba(122, 95, 57, .035), transparent); }
+html.light .faa-chart__bar { background: linear-gradient(180deg, #a87939, rgba(242, 204, 143, .48)); box-shadow: none; }
+html.light .faa-chart__col:nth-child(3n) .faa-chart__bar { background: linear-gradient(180deg, #548065, rgba(129, 178, 154, .4)); }
+html.light .faa-chart-legend b { color: #443a2b; }
+html.light .faa-activity-row { color: #655b4c; }
+html.light .faa-activity-row__icon { color: #8b682f; border-color: rgba(139, 97, 40, .16); background: rgba(242, 204, 143, .15); }
+html.light .faa-activity-row b { color: #3e3528; }
+html.light .faa-top-list__name b { color: #433a2c; }
+html.light .faa-top-list__name small, html.light .faa-top-list__rank { color: #7d725f; }
+html.light .faa-top-list__time { color: #477657; }
+html.light .faa-privacy-note, html.light .faa-permission-note { color: #716757; }
+html.light .faa-search { border-color: rgba(95, 76, 48, .17); color: #827763; background: rgba(255, 255, 255, .69); }
+html.light .faa-search:focus-within { border-color: rgba(150, 105, 42, .38); box-shadow: 0 0 0 3px rgba(150, 105, 42, .07); }
+html.light .faa-search input { color: #342d22; }
+html.light .faa-search input::placeholder { color: #887d6b; }
+html.light .faa-member-table { border-color: rgba(95, 76, 48, .16); background: rgba(255, 253, 248, .58); }
+html.light .faa-member-head { border-bottom-color: rgba(95, 76, 48, .14); color: #756b5c; background: #eee7d9; }
+html.light .faa-member-row { border-bottom-color: rgba(95, 76, 48, .1); }
+html.light .faa-member-row:hover { background: rgba(242, 204, 143, .13); }
+html.light .faa-member-name b { color: #3c3327; }
+html.light .faa-member-name span { color: #716757; }
+html.light .faa-member-name small, html.light .faa-member-metrics small { color: #807563; }
+html.light .faa-member-metrics { color: #51483a; }
+html.light .faa-member-metrics span svg { color: #52745b; }
+html.light .faa-empty b { color: #433a2c; }
+html.light .faa-pagination { color: #736957; }
+html.light .faa-pagination button { border-color: rgba(95, 76, 48, .17); color: #544936; background: rgba(255, 255, 255, .69); }
+html.light .faa-detail-backdrop { background: rgba(48, 39, 24, .35); }
+html.light .faa-detail { border-left-color: rgba(133, 99, 49, .22); background: linear-gradient(160deg, #fffdf8, #f3ede1); box-shadow: -16px 0 55px rgba(36, 28, 17, .18); }
+html.light .faa-detail__head { border-bottom-color: rgba(95, 76, 48, .14); }
+html.light .faa-detail__head h3, html.light .faa-profile-card__identity h4 { color: #342d22; }
+html.light .faa-profile-card { border-color: rgba(133, 99, 49, .18); background: linear-gradient(145deg, rgba(255, 250, 239, .94), rgba(246, 241, 231, .96)); }
+html.light .faa-profile-card__identity p { color: #756b5c; }
+html.light .faa-profile-card__stats span { border-color: rgba(95, 76, 48, .12); background: rgba(255, 255, 255, .63); }
+html.light .faa-profile-card__stats b { color: #514332; }
+html.light .faa-detail-section { border-color: rgba(95, 76, 48, .13); background: rgba(255, 255, 255, .52); }
+html.light .faa-detail-section > h4 { color: #483d2c; }
+html.light .faa-detail-section > h4 svg { color: #8a6128; }
+html.light .faa-bio, html.light .faa-form-field { color: #625847; }
+html.light .faa-profile-fields span { background: rgba(231, 223, 208, .42); }
+html.light .faa-profile-fields small, html.light .faa-explainer, html.light .faa-current-reason, html.light .faa-premium-until { color: #776b57; }
+html.light .faa-profile-fields b { color: #493e2d; }
+html.light .faa-form-field select, html.light .faa-form-field textarea, html.light .faa-form-field input { border-color: rgba(95, 76, 48, .17); color: #342d22; background: rgba(255, 255, 255, .8); }
+html.light .faa-form-field select:focus, html.light .faa-form-field textarea:focus, html.light .faa-form-field input:focus { border-color: rgba(150, 105, 42, .4); box-shadow: 0 0 0 3px rgba(150, 105, 42, .07); }
+html.light .faa-action-button { border-color: rgba(95, 76, 48, .16); color: #493f31; background: rgba(255, 255, 255, .65); }
+html.light .faa-action-button--accent { color: #765623; border-color: rgba(150, 105, 42, .22); background: rgba(242, 204, 143, .2); }
+html.light .faa-warning-list li { border-color: rgba(139, 97, 40, .15); background: rgba(242, 204, 143, .1); }
+html.light .faa-warning-list b { color: #785a2d; }
+html.light .faa-warning-list span { color: #5e503b; }
+html.light .faa-warning-list small { color: #7b705d; }
+html.light .faa-premium-section { border-color: rgba(131, 88, 68, .16); background: linear-gradient(145deg, rgba(215, 174, 145, .1), rgba(242, 204, 143, .08)); }

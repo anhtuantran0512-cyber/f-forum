@@ -918,9 +918,9 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
                         ariaLabel="Báo cáo vi phạm theo trạng thái"
                         centerCaption="Tổng báo cáo"
                         segments={[
-                          { key: 'pending', label: 'Mới · chờ xử lý', value: analytics.extras?.reportsByStatus.pending ?? 0, color: '#fbbf24' },
-                          { key: 'resolved', label: 'Đã xử lý', value: analytics.extras?.reportsByStatus.resolved ?? 0, color: '#34d399' },
-                          { key: 'dismissed', label: 'Đã bỏ qua', value: analytics.extras?.reportsByStatus.dismissed ?? 0, color: '#94a3b8' },
+                          { key: 'pending', label: 'Mới · chờ xử lý', value: analytics.extras?.reportsByStatus.pending ?? 0, color: '#f2cc8f' },
+                          { key: 'resolved', label: 'Đã xử lý', value: analytics.extras?.reportsByStatus.resolved ?? 0, color: '#81b29a' },
+                          { key: 'dismissed', label: 'Đã bỏ qua', value: analytics.extras?.reportsByStatus.dismissed ?? 0, color: '#a99f8d' },
                         ]}
                       />
                     </article>

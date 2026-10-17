@@ -225,3 +225,35 @@ html.reduce-motion .ffc-area__dot,
 html.reduce-motion .ffc-area__tip,
 html.reduce-motion .ffc-donut__arc,
 html.reduce-motion .ffc-gauge__value { transition: none; }
+
+.faa-backdrop .ffc-area__tip { border-color: color-mix(in srgb, var(--ffc-from) 30%, rgba(242, 204, 143, .16)); background: linear-gradient(160deg, rgba(42, 36, 27, .97), rgba(24, 21, 16, .98)); }
+.faa-backdrop .ffc-area__tip small, .faa-backdrop .ffc-donut__center small, .faa-backdrop .ffc-gauge__label small { color: #b0a58f; }
+.faa-backdrop .ffc-area__tip b, .faa-backdrop .ffc-donut__center b, .faa-backdrop .ffc-gauge__label b { color: #f5ecdd; }
+.faa-backdrop .ffc-area__tip em.is-up { color: #a8c9ae; }
+.faa-backdrop .ffc-area__tip em.is-down { color: #e6a596; }
+.faa-backdrop .ffc-area__peak { color: #fff1d5; background: color-mix(in srgb, var(--ffc-from) 18%, rgba(24, 21, 16, .9)); }
+.faa-backdrop .ffc-area__xlabels span.is-active { color: #f2cc8f; }
+.faa-backdrop .ffc-donut__legend { color: #d3c8b5; }
+.faa-backdrop .ffc-donut__legend li.is-focus, .faa-backdrop .ffc-donut__legend li:hover { background: rgba(242, 204, 143, .055); }
+.faa-backdrop .ffc-donut__legend b { color: #f2e8d7; }
+.faa-backdrop .ffc-donut__legend small { color: #a79b86; }
+.faa-backdrop .ffc-gauge__value { filter: drop-shadow(0 0 6px rgba(129, 178, 154, .42)); }
+
+html.light .faa-backdrop .ffc-area__plot { background: linear-gradient(180deg, rgba(127, 94, 48, .035), transparent 60%); }
+html.light .faa-backdrop .ffc-area__grid { stroke: rgba(87, 70, 43, .14); }
+html.light .faa-backdrop .ffc-area__baseline { stroke: rgba(87, 70, 43, .24); }
+html.light .faa-backdrop .ffc-area__ylabel, html.light .faa-backdrop .ffc-area__xlabels span, html.light .faa-backdrop .ffc-area__empty { color: #766b59; }
+html.light .faa-backdrop .ffc-area__dot { background: #fffdf8; }
+html.light .faa-backdrop .ffc-area__tip { border-color: rgba(108, 81, 43, .19); background: linear-gradient(160deg, rgba(255, 253, 248, .98), rgba(243, 237, 225, .99)); box-shadow: 0 14px 34px rgba(57, 43, 23, .16), 0 0 16px -10px var(--ffc-glow), inset 0 1px white; }
+html.light .faa-backdrop .ffc-area__tip small, html.light .faa-backdrop .ffc-donut__center small, html.light .faa-backdrop .ffc-gauge__label small { color: #786d5a; }
+html.light .faa-backdrop .ffc-area__tip b, html.light .faa-backdrop .ffc-donut__center b, html.light .faa-backdrop .ffc-gauge__label b { color: #342d22; }
+html.light .faa-backdrop .ffc-area__tip em.is-up { color: #477657; }
+html.light .faa-backdrop .ffc-area__tip em.is-down { color: #a2493d; }
+html.light .faa-backdrop .ffc-area__peak { color: #49371e; background: color-mix(in srgb, var(--ffc-from) 18%, rgba(255, 253, 248, .96)); }
+html.light .faa-backdrop .ffc-area__xlabels span.is-active { color: #81591f; }
+html.light .faa-backdrop .ffc-donut__track, html.light .faa-backdrop .ffc-gauge__track { stroke: rgba(87, 70, 43, .14); }
+html.light .faa-backdrop .ffc-donut__legend { color: #51483a; }
+html.light .faa-backdrop .ffc-donut__legend li.is-focus, html.light .faa-backdrop .ffc-donut__legend li:hover { background: rgba(164, 120, 55, .09); }
+html.light .faa-backdrop .ffc-donut__legend b { color: #342d22; }
+html.light .faa-backdrop .ffc-donut__legend small { color: #786d5a; }
+html.light .faa-backdrop .ffc-gauge__value { filter: drop-shadow(0 0 5px rgba(71, 118, 86, .26)); }

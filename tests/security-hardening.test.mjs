@@ -1518,7 +1518,7 @@ test('24. Kho tin nhắn/góp ý/báo cáo có trần — không phình vô hạ
   assert.ok(server.includes('MAX_REPORTS'), 'Kho báo cáo phải có trần');
 
   /* Mỗi kho phải thực sự được cắt khi thêm mới, không chỉ khai báo hằng số. */
-  assert.ok(server.includes('capTail([...store.chatMessages, msg], MAX_CHAT_MESSAGES)'), 'chatMessages phải được cắt');
+  assert.ok(server.includes('capTail([...store.chatMessages, message], MAX_CHAT_MESSAGES)'), 'chatMessages phải được cắt');
   assert.ok(server.includes('capTail([...store.feedbacks, submission], MAX_FEEDBACKS)'), 'feedbacks phải được cắt');
   assert.ok(server.includes('capTail([...store.reports, reportSubmission], MAX_REPORTS)'), 'reports phải được cắt');
   assert.ok(!/store\.chatMessages\.push\(/.test(server), 'Không push thẳng vào kho tin nhắn nữa');

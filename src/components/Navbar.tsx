@@ -1643,9 +1643,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Streak giờ nằm TRONG menu tia sét (RadialQuickMenu) — không còn ngọn lửa nổi bên ngoài */}
       <DailyEngagementModal
+        key={currentUser?.email || 'guest'}
         isOpen={isDailyModalOpen}
         onClose={() => setIsDailyModalOpen(false)}
         isAuthenticated={Boolean(currentUser)}
+        currentUserEmail={currentUser?.email}
         currentUserCoin={effectiveCoinBalance(currentUser?.role, currentUser?.coin)}
         onOpenLogin={onOpenLoginModal}
         onLoadRewardStatus={onLoadDailyRewardStatus}

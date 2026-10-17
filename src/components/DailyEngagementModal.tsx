@@ -20,11 +20,13 @@ import './engagement/DailyQuiz.css';
 import './engagement/DailyEngagementModal.css';
 import { dailyTriviaForDate, dateKeyInTimeZone, shiftDateKey } from '../../shared/dailyTrivia';
 import type { DailyRewardAction, DailyRewardActionResult, DailyRewardStatus } from '../types/rewards';
+import { ATTENDANCE_BOX_MILESTONES, getAttendanceCycleProgress } from '../utils/dailyAttendance';
 
 interface DailyEngagementModalProps {
   isOpen: boolean;
   onClose: () => void;
   isAuthenticated: boolean;
+  currentUserEmail?: string;
   currentUserCoin?: number;
   onOpenLogin?: () => void;
   onLoadRewardStatus?: () => Promise<{ ok: boolean; status?: DailyRewardStatus; message?: string }>;
@@ -54,12 +56,13 @@ const computeStreak = (log: string[], today = todayISO()): number => {
   return streak;
 };
 
-const loadAttendanceLog = (): string[] => {
+const loadAttendanceLog = (key: string | null): string[] => {
+  if (!key) return [];
   try {
-    const saved = safeStorage.getItem('fforum_attendance_log');
+    const saved = safeStorage.getItem(key);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) return parsed.filter((d) => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d));
+      if (Array.isArray(parsed)) return parsed.filter((day) => typeof day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(day));
     }
   } catch {
     /* ignore */
@@ -67,30 +70,43 @@ const loadAttendanceLog = (): string[] => {
   return [];
 };
 
+const loadBoxes = (key: string | null): { blue: number; gold: number; red: number } => {
+  if (!key) return { blue: 0, gold: 0, red: 0 };
+  try {
+    const saved = safeStorage.getItem(key);
+    const parsed = saved ? JSON.parse(saved) : null;
+    const count = (value: unknown) => Number.isFinite(Number(value)) ? Math.max(0, Math.min(10_000, Math.floor(Number(value)))) : 0;
+    return parsed && typeof parsed === 'object'
+      ? { blue: count(parsed.blue), gold: count(parsed.gold), red: count(parsed.red) }
+      : { blue: 0, gold: 0, red: 0 };
+  } catch {
+    return { blue: 0, gold: 0, red: 0 };
+  }
+};
+
 export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
   isOpen,
   onClose,
   isAuthenticated,
+  currentUserEmail,
   currentUserCoin = 0,
   onOpenLogin,
   onLoadRewardStatus,
   onClaimReward,
 }) => {
+  const storagePrefix = currentUserEmail?.trim()
+    ? `fforum_daily_${encodeURIComponent(currentUserEmail.trim().toLowerCase())}`
+    : null;
+  const attendanceStorageKey = storagePrefix ? `${storagePrefix}_attendance` : null;
+  const boxesStorageKey = storagePrefix ? `${storagePrefix}_boxes` : null;
+  const quizStorageKey = storagePrefix ? `${storagePrefix}_quiz` : null;
   const [activeTab, setActiveTab] = useState<'attendance' | 'gifts' | 'quiz'>('attendance');
   const [rewardDate, setRewardDate] = useState(todayISO());
   const rewardDateRef = useRef(rewardDate);
-  const [attendanceLog, setAttendanceLog] = useState<string[]>(loadAttendanceLog);
-  const [boxes, setBoxes] = useState<{ blue: number; gold: number; red: number }>(() => {
-    try {
-      const saved = safeStorage.getItem('fforum_mystery_boxes');
-      if (saved) return JSON.parse(saved);
-    } catch {
-      /* ignore */
-    }
-    return { blue: 0, gold: 0, red: 0 };
-  });
+  const [attendanceLog, setAttendanceLog] = useState<string[]>(() => loadAttendanceLog(attendanceStorageKey));
+  const [boxes, setBoxes] = useState<{ blue: number; gold: number; red: number }>(() => loadBoxes(boxesStorageKey));
   const [quizAnswered, setQuizAnswered] = useState<boolean>(() =>
-    safeStorage.getItem('fforum_last_quiz_date') === todayISO(),
+    Boolean(quizStorageKey && safeStorage.getItem(quizStorageKey) === todayISO()),
   );
   const [quizTimer, setQuizTimer] = useState<number>(QUIZ_DURATION_SECONDS);
   const [quizStarted, setQuizStarted] = useState(false);
@@ -102,11 +118,17 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
   const [openingBox, setOpeningBox] = useState<string | null>(null);
   const [boxReward, setBoxReward] = useState<string | null>(null);
   const [isClaimingAttendance, setIsClaimingAttendance] = useState(false);
+  const [hasLoadedRewardStatus, setHasLoadedRewardStatus] = useState(false);
   const [actionError, setActionError] = useState('');
+  const isStatusLoading = Boolean(isOpen && isAuthenticated && onLoadRewardStatus && !hasLoadedRewardStatus);
 
   const streak = useMemo(() => computeStreak(attendanceLog, rewardDate), [attendanceLog, rewardDate]);
   const hasClaimedToday = attendanceLog.includes(rewardDate);
-  const cycleDay = Math.max(1, Math.min(15, streak === 0 && !hasClaimedToday ? 1 : streak));
+  const cycleProgress = useMemo(
+    () => getAttendanceCycleProgress(streak, hasClaimedToday),
+    [streak, hasClaimedToday],
+  );
+  const cycleDay = cycleProgress.cycleDay;
   const dailyTrivia = useMemo(() => dailyTriviaForDate(rewardDate), [rewardDate]);
 
   const applyRewardStatus = useCallback((status: DailyRewardStatus): void => {
@@ -125,10 +147,10 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
     setAttendanceLog(status.attendanceDates);
     setBoxes(status.boxes);
     setQuizAnswered(status.quizAnswered);
-    safeStorage.setItem('fforum_attendance_log', JSON.stringify(status.attendanceDates));
-    safeStorage.setItem('fforum_mystery_boxes', JSON.stringify(status.boxes));
-    safeStorage.setItem('fforum_last_quiz_date', status.quizAnswered ? date : '');
-  }, []);
+    if (attendanceStorageKey) safeStorage.setItem(attendanceStorageKey, JSON.stringify(status.attendanceDates));
+    if (boxesStorageKey) safeStorage.setItem(boxesStorageKey, JSON.stringify(status.boxes));
+    if (quizStorageKey) safeStorage.setItem(quizStorageKey, status.quizAnswered ? date : '');
+  }, [attendanceStorageKey, boxesStorageKey, quizStorageKey]);
 
   const performClaim = useCallback(async (action: DailyRewardAction): Promise<DailyRewardActionResult> => {
     if (!isAuthenticated) {
@@ -153,7 +175,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
   useEffect(() => {
     if (!isOpen || !isAuthenticated || !onLoadRewardStatus) return;
     let active = true;
-    onLoadRewardStatus().then((result) => {
+    void onLoadRewardStatus().then((result) => {
       if (!active) return;
       if (result.ok && result.status) {
         applyRewardStatus(result.status);
@@ -161,8 +183,11 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
       } else if (result.message) {
         setActionError(result.message);
       }
+      setHasLoadedRewardStatus(true);
     }).catch(() => {
-      if (active) setActionError('Không kết nối được máy chủ để tải trạng thái phần thưởng.');
+      if (!active) return;
+      setActionError('Không kết nối được máy chủ để tải trạng thái phần thưởng.');
+      setHasLoadedRewardStatus(true);
     });
     return () => { active = false; };
   }, [isOpen, isAuthenticated, onLoadRewardStatus, applyRewardStatus]);
@@ -182,7 +207,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
         setQuizTimer(QUIZ_DURATION_SECONDS);
         setSelectedOption(null);
         setQuizResult(null);
-        setQuizAnswered(safeStorage.getItem('fforum_last_quiz_date') === currentIso);
+        setQuizAnswered(Boolean(quizStorageKey && safeStorage.getItem(quizStorageKey) === currentIso));
         if (isAuthenticated && onLoadRewardStatus) {
           void onLoadRewardStatus().then((result) => {
             if (result.ok && result.status) applyRewardStatus(result.status);
@@ -199,7 +224,7 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
       window.clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [isOpen, isAuthenticated, onLoadRewardStatus, applyRewardStatus]);
+  }, [isOpen, isAuthenticated, onLoadRewardStatus, applyRewardStatus, quizStorageKey]);
 
   const startQuiz = () => {
     if (quizAnswered || quizStarted) return;
@@ -235,8 +260,8 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
     const reward = Math.max(0, Number(result.reward) || 0);
     setQuizResult({ correct, reward });
     setQuizAnswered(true);
-    safeStorage.setItem('fforum_last_quiz_date', result.status?.date || rewardDate);
-  }, [quizStarted, quizAnswered, performClaim, rewardDate, isAuthenticated]);
+    if (quizStorageKey) safeStorage.setItem(quizStorageKey, result.status?.date || rewardDate);
+  }, [quizStarted, quizAnswered, performClaim, rewardDate, isAuthenticated, quizStorageKey]);
 
   useEffect(() => {
     if (!isOpen || activeTab !== 'quiz' || !quizStarted || quizAnswered || selectedOption !== null) return;
@@ -350,77 +375,98 @@ export const DailyEngagementModal: React.FC<DailyEngagementModalProps> = ({
 
         {/* TAB 1: ĐIỂM DANH */}
         {activeTab === 'attendance' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between text-xs text-neutral-300">
-              <span className="flex items-center gap-1.5 font-semibold text-white">
-                <Calendar className="w-4 h-4 text-amber-400" />
-                Điểm danh 15 ngày
-              </span>
-              <span className="text-[11px] text-amber-300 font-mono">
-                {streak} ngày
-              </span>
+          <section className="ff-daily-attendance" aria-labelledby="ff-daily-attendance-title" aria-busy={isStatusLoading || isClaimingAttendance}>
+            <div className="ff-daily-attendance__intro">
+              <div className="ff-daily-attendance__title-group">
+                <span className="ff-daily-attendance__eyebrow"><Calendar size={13} aria-hidden="true" /> Điểm danh</span>
+                <h3 id="ff-daily-attendance-title">Giữ nhịp học mỗi ngày</h3>
+                <p>{hasClaimedToday ? 'Hôm nay đã được ghi nhận trên tài khoản của bạn.' : 'Một lần mỗi ngày · chu kỳ quà lặp lại sau mỗi 15 ngày liên tiếp.'}</p>
+              </div>
+              <div className="ff-daily-attendance__streak" aria-label={`Chuỗi ${streak} ngày`}>
+                <Flame size={17} aria-hidden="true" />
+                <span><strong>{streak}</strong><small>ngày liên tiếp</small></span>
+              </div>
             </div>
 
-            {/* 3 rows x 5 cols grid */}
-            <div className="grid grid-cols-5 gap-2.5 sm:gap-3">
-              {Array.from({ length: 15 }, (_, i) => i + 1).map((day) => {
-                const isAttended = day <= streak;
-                const isActive = day === cycleDay && !hasClaimedToday;
-                const isMilestone = day === 5 || day === 10 || day === 15;
+            <div className="ff-daily-cycle-heading">
+              <span className="ff-daily-cycle-heading__round">Vòng {cycleProgress.cycleNumber}</span>
+              <strong>Ngày {cycleDay} <span>/ 15</span></strong>
+              <span className="ff-daily-cycle-heading__state">
+                {isStatusLoading ? 'Đang xác nhận dữ liệu…' : hasClaimedToday ? 'Đã hoàn thành hôm nay' : `${cycleProgress.completedDays}/15 ngày hoàn thành`}
+              </span>
+            </div>
+            <div
+              className="ff-daily-cycle-progress"
+              role="progressbar"
+              aria-label={`Tiến độ chu kỳ ${cycleProgress.completedDays} trên 15 ngày`}
+              aria-valuemin={0}
+              aria-valuemax={15}
+              aria-valuenow={cycleProgress.completedDays}
+              aria-valuetext={`${cycleProgress.completedDays} trong 15 ngày đã hoàn thành`}
+            >
+              <span style={{ width: `${(cycleProgress.completedDays / 15) * 100}%` }} />
+            </div>
 
+            <ol className="ff-daily-attendance-track" aria-label={`Chu kỳ điểm danh số ${cycleProgress.cycleNumber}`}>
+              {Array.from({ length: 15 }, (_, index) => index + 1).map((day) => {
+                const isAttended = day <= cycleProgress.completedDays;
+                const isCurrent = day === cycleDay;
+                const milestoneIndex = (ATTENDANCE_BOX_MILESTONES as readonly number[]).indexOf(day);
+                const boxName = day === 5 ? 'xanh' : day === 10 ? 'vàng' : 'đỏ';
+                const dayState = isAttended ? 'đã điểm danh' : isCurrent ? (hasClaimedToday ? 'đã điểm danh hôm nay' : 'hôm nay') : 'chưa điểm danh';
                 return (
-                  <div
+                  <li
                     key={day}
-                    className={`ff-daily-day aspect-square rounded-2xl p-2 flex flex-col items-center justify-between relative transition-all ${
-                      isActive
-                        ? 'ff-daily-day--active'
-                        : isAttended
-                        ? 'bg-emerald-500/20 border border-emerald-400/40 text-emerald-300'
-                        : 'bg-white/5 border border-white/10 text-neutral-400'
-                    }`}
+                    className={`ff-daily-day${isAttended ? ' is-attended' : ''}${isCurrent ? ' is-current' : ''}${milestoneIndex >= 0 ? ' is-milestone' : ''}`}
+                    aria-current={isCurrent ? 'step' : undefined}
+                    aria-label={`Ngày ${day}: ${dayState}${milestoneIndex >= 0 ? ` · mốc nhận hộp ${boxName}` : ''}`}
                   >
-                    <span className="text-[10px] uppercase font-mono opacity-60">Ngày</span>
-                    <span className="text-base sm:text-lg font-extrabold text-white">{day}</span>
-
-                    {isMilestone && (
-                      <div
-                        className="absolute bottom-1 right-1 p-0.5 rounded-full"
-                        title={`Hộp quà mốc ${day} ngày`}
-                      >
-                        <Gift
-                          className={`w-3.5 h-3.5 ${
-                            day === 5
-                              ? 'text-[#81b29a]'
-                              : day === 10
-                              ? 'text-amber-400'
-                              : 'text-rose-400'
-                          }`}
-                        />
-                      </div>
+                    <span className="ff-daily-day__label">Ngày</span>
+                    <strong>{String(day).padStart(2, '0')}</strong>
+                    <span className="ff-daily-day__state">
+                      {isAttended ? <CheckCircle2 size={12} aria-hidden="true" /> : isCurrent && hasClaimedToday ? <CheckCircle2 size={12} aria-hidden="true" /> : null}
+                      {isAttended ? 'Xong' : isCurrent ? (hasClaimedToday ? 'Xong' : 'Hôm nay') : 'Chờ'}
+                    </span>
+                    {milestoneIndex >= 0 && (
+                      <span className={`ff-daily-day__gift ff-daily-day__gift--${day}`} title={`Mốc ${day} ngày · hộp quà ${boxName}`}>
+                        <Gift size={12} aria-hidden="true" />
+                      </span>
                     )}
+                  </li>
+                );
+              })}
+            </ol>
 
-                    {isAttended && !isMilestone && (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    )}
-                  </div>
+            <div className="ff-daily-milestones" aria-label="Mốc hộp quà trong chu kỳ">
+              {ATTENDANCE_BOX_MILESTONES.map((day) => {
+                const reached = cycleProgress.completedDays >= day;
+                const boxName = day === 5 ? 'Hộp xanh' : day === 10 ? 'Hộp vàng' : 'Hộp đỏ';
+                return (
+                  <span key={day} className={`ff-daily-milestone${reached ? ' is-reached' : ''}`}>
+                    <Gift size={13} aria-hidden="true" />
+                    <span><b>{day} ngày</b><small>{boxName}</small></span>
+                    {reached && <CheckCircle2 size={12} aria-label="Đã đạt mốc" />}
+                  </span>
                 );
               })}
             </div>
 
             <StreakCountdown streak={streak} claimedToday={hasClaimedToday} />
 
-            <div className="pt-2 flex items-center justify-end">
+            <div className="ff-daily-attendance__actions">
+              <p><b>+25 Coin</b><span>mỗi lần điểm danh</span></p>
               <button
                 type="button"
                 onClick={handleClaimAttendance}
-                disabled={hasClaimedToday || isClaimingAttendance}
-                className="ff-tactile-btn px-5 py-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] disabled:opacity-40 disabled:cursor-not-allowed text-[#0b0d12] border-2 border-[#0b0d12] font-extrabold text-xs flex items-center gap-1.5 cursor-pointer"
+                disabled={hasClaimedToday || isClaimingAttendance || isStatusLoading}
+                aria-busy={isClaimingAttendance}
+                className="ff-tactile-btn ff-daily-attendance__claim"
               >
-                <Flame className="w-4 h-4 text-[#e07a5f]" />
-                <span>{isClaimingAttendance ? '…' : hasClaimedToday ? 'Đã điểm danh' : 'Điểm danh (+25)'}</span>
+                <Flame size={16} aria-hidden="true" />
+                <span>{isStatusLoading ? 'Đang đồng bộ…' : isClaimingAttendance ? 'Đang ghi nhận…' : hasClaimedToday ? 'Đã điểm danh' : 'Điểm danh hôm nay'}</span>
               </button>
             </div>
-          </div>
+          </section>
         )}
 
         {/* TAB 2: KHO QUÀ */}
