@@ -2727,7 +2727,7 @@ html.light .nav-tab-btn--active .ff-nav-tab-icon {
     -8px -8px 28px rgba(255, 255, 255, 0.03),
     inset 0 1px 1px rgba(255, 255, 255, 0.14);
 }
-html.light .pc-12-shell {
+html.light .pc-12-shell:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   --pc12-bg: rgba(255, 255, 255, 0.85);
   --pc12-surface: rgba(255, 255, 255, 0.9);
   --pc12-hi: rgba(255, 255, 255, 1);
@@ -2739,7 +2739,7 @@ html.light .pc-12-shell {
     inset 0 1px 1px rgba(255, 255, 255, 1);
 }
 
-html.light .pc-12-card {
+html.light .pc-12-card:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.85));
   border: 1px solid rgba(255, 255, 255, 1);
   box-shadow:
@@ -2747,7 +2747,7 @@ html.light .pc-12-card {
     -6px -6px 16px rgba(255, 255, 255, 1),
     inset 0 1px 1px rgba(255, 255, 255, 1);
 }
-html.light .pc-12-card:hover {
+html.light .pc-12-card:hover:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   border-color: rgba(245, 158, 11, 0.4);
   box-shadow:
     10px 10px 26px rgba(210, 218, 230, 0.6),
@@ -2755,21 +2755,21 @@ html.light .pc-12-card:hover {
     inset 0 1px 1px rgba(255, 255, 255, 1);
 }
 
-html.light .pc-12-well {
+html.light .pc-12-well:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   background: rgba(241, 245, 249, 0.75);
   border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow:
     inset 4px 4px 9px rgba(210, 218, 230, 0.5),
     inset -3px -3px 8px rgba(255, 255, 255, 1);
 }
-html.light .pc-12-well:hover {
+html.light .pc-12-well:hover:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   border-color: rgba(245, 158, 11, 0.4);
   box-shadow:
     inset 2px 2px 6px rgba(210, 218, 230, 0.4),
     0 6px 16px rgba(210, 218, 230, 0.4);
 }
 
-html.light .pc-12-pill {
+html.light .pc-12-pill:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
   border: 1px solid rgba(255, 255, 255, 1);
   box-shadow:
@@ -2777,11 +2777,11 @@ html.light .pc-12-pill {
     -2px -2px 6px rgba(255, 255, 255, 1);
   color: #101827;
 }
-html.light .pc-12-pill:hover {
+html.light .pc-12-pill:hover:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   border-color: rgba(245, 158, 11, 0.5);
 }
 
-html.light .pc-12-btn {
+html.light .pc-12-btn:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   background: linear-gradient(145deg, rgba(255, 255, 255, 1), rgba(248, 250, 252, 0.9));
   border: 1px solid rgba(255, 255, 255, 1);
   box-shadow:
@@ -2789,13 +2789,13 @@ html.light .pc-12-btn {
     -3px -3px 8px rgba(255, 255, 255, 1);
   color: #101827;
 }
-html.light .pc-12-btn:hover {
+html.light .pc-12-btn:hover:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   border-color: rgba(245, 158, 11, 0.5);
   color: #101827;
 }
-html.light .pc-12-btn:active,
-html.light .pc-12-btn[aria-pressed="true"],
-html.light .pc-12-btn-active {
+html.light .pc-12-btn:active:not(:where(.ff-keep-dark, .ff-keep-dark *)),
+html.light .pc-12-btn[aria-pressed="true"]:not(:where(.ff-keep-dark, .ff-keep-dark *)),
+html.light .pc-12-btn-active:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   box-shadow:
     inset 3px 3px 8px rgba(210, 218, 230, 0.6),
     inset -2px -2px 6px rgba(255, 255, 255, 1);
@@ -2810,24 +2810,24 @@ html.light .popover-morph-enter {
   box-shadow: 0 20px 48px rgba(100, 116, 139, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.95) !important;
 }
 
-html.light .pc-12-shell .text-white,
+html.light .pc-12-shell .text-white:not(:where(.ff-keep-dark, .ff-keep-dark *)),
 html.light .popover-morph-enter .text-white {
   color: #1e293b;
 }
-html.light .pc-12-shell .text-neutral-200,
-html.light .pc-12-shell .text-neutral-300,
+html.light .pc-12-shell .text-neutral-200:not(:where(.ff-keep-dark, .ff-keep-dark *)),
+html.light .pc-12-shell .text-neutral-300:not(:where(.ff-keep-dark, .ff-keep-dark *)),
 html.light .popover-morph-enter .text-neutral-200,
 html.light .popover-morph-enter .text-neutral-300 {
   color: #334155;
 }
-html.light .pc-12-shell .text-neutral-400,
+html.light .pc-12-shell .text-neutral-400:not(:where(.ff-keep-dark, .ff-keep-dark *)),
 html.light .popover-morph-enter .text-neutral-400,
 html.light .popover-morph-enter .text-white\/50,
 html.light .popover-morph-enter .text-white\/60 {
   color: #526075; /* #64748b cũ chỉ 3.9–4.2:1 trên nền ngả xám — trượt AA */
 }
-html.light .pc-12-shell .bg-white\/5,
-html.light .pc-12-shell .bg-white\/10,
+html.light .pc-12-shell .bg-white\/5:not(:where(.ff-keep-dark, .ff-keep-dark *)),
+html.light .pc-12-shell .bg-white\/10:not(:where(.ff-keep-dark, .ff-keep-dark *)),
 html.light .popover-morph-enter .bg-white\/5,
 html.light .popover-morph-enter .bg-white\/10 {
   background-color: rgba(230, 236, 246, 0.65);
@@ -5957,7 +5957,7 @@ html.light.potator-mode .ff-nav-capsule .nav-tab-btn:hover {
 .pc-12-stat__label { margin-top: 6px; color: #8b9aaa; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
 
 /* ----- Chế độ sáng: pastel kem → oải hương, bóng tím nhạt nhất quán ----- */
-html.light .pc-12-card {
+html.light .pc-12-card:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   background: linear-gradient(155deg, #fffdf8, #f3f0fb);
   border: 1px solid rgba(255, 255, 255, 0.95);
   box-shadow:
@@ -5965,22 +5965,22 @@ html.light .pc-12-card {
     inset 0 -14px 24px -16px rgba(140, 125, 190, 0.28),
     inset 0 14px 22px -12px #ffffff;
 }
-html.light .pc-12-card:hover {
+html.light .pc-12-card:hover:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   border-color: rgba(245, 158, 11, 0.35);
   box-shadow:
     0 26px 46px -22px rgba(112, 100, 160, 0.5),
     inset 0 -14px 24px -16px rgba(140, 125, 190, 0.3),
     inset 0 16px 24px -12px #ffffff;
 }
-html.light .pc-12-well {
+html.light .pc-12-well:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   background: rgba(236, 232, 248, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow:
     inset 0 10px 18px -12px rgba(140, 125, 190, 0.38),
     inset 0 -8px 14px -10px #ffffff;
 }
-html.light .pc-12-pill,
-html.light .pc-12-btn {
+html.light .pc-12-pill:not(:where(.ff-keep-dark, .ff-keep-dark *)),
+html.light .pc-12-btn:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   background: linear-gradient(155deg, #ffffff, #f4f1fc);
   border: 1px solid rgba(255, 255, 255, 0.95);
   box-shadow:
@@ -5988,12 +5988,12 @@ html.light .pc-12-btn {
     inset 0 -6px 10px -8px rgba(140, 125, 190, 0.24),
     inset 0 6px 10px -6px #ffffff;
 }
-html.light .pc-12-btn:active,
-html.light .pc-12-btn[aria-pressed="true"],
-html.light .pc-12-btn-active {
+html.light .pc-12-btn:active:not(:where(.ff-keep-dark, .ff-keep-dark *)),
+html.light .pc-12-btn[aria-pressed="true"]:not(:where(.ff-keep-dark, .ff-keep-dark *)),
+html.light .pc-12-btn-active:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   box-shadow: inset 0 8px 14px -8px rgba(140, 125, 190, 0.4), inset 0 -4px 8px -6px #ffffff;
 }
-html.light .pc-12-stat {
+html.light .pc-12-stat:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   background: linear-gradient(155deg, color-mix(in srgb, var(--stat-accent) 10%, #ffffff), #f3f0fb);
   border-color: color-mix(in srgb, var(--stat-accent) 22%, rgba(255, 255, 255, 0.9));
   box-shadow:
@@ -6001,8 +6001,8 @@ html.light .pc-12-stat {
     inset 0 -10px 18px -12px rgba(140, 125, 190, 0.26),
     inset 0 10px 16px -10px #ffffff;
 }
-html.light .pc-12-stat__value { color: color-mix(in srgb, var(--stat-accent) 78%, #1e1b4b); }
-html.light .pc-12-stat__label { color: #526075; }
+html.light .pc-12-stat__value:not(:where(.ff-keep-dark, .ff-keep-dark *)) { color: color-mix(in srgb, var(--stat-accent) 78%, #1e1b4b); }
+html.light .pc-12-stat__label:not(:where(.ff-keep-dark, .ff-keep-dark *)) { color: #526075; }
 @media (prefers-reduced-motion: reduce) {
   .pc-12-card--lift:hover, .pc-12-stat:hover { transform: none; }
 }
@@ -6018,7 +6018,7 @@ html.reduce-motion .pc-12-stat:hover { transform: none; }
     inset 0 8px 12px -8px rgba(255, 255, 255, 0.14);
   transition: box-shadow 0.3s ease, transform 0.38s cubic-bezier(0.34, 1.45, 0.5, 1);
 }
-html.light .pc-12-avatar {
+html.light .pc-12-avatar:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   background: linear-gradient(155deg, #ffffff, #f1edfb);
   border-color: rgba(255, 255, 255, 0.95);
   box-shadow: 0 14px 26px -18px rgba(112, 100, 160, 0.45), inset 0 -8px 14px -10px rgba(140, 125, 190, 0.26), inset 0 8px 12px -8px #ffffff;
@@ -6042,7 +6042,7 @@ html:not(.light) {
   color: color-mix(in srgb, var(--stat-accent) 84%, #e2e8f0);
   filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.38));
 }
-html.light .pc-12-stat__value {
+html.light .pc-12-stat__value:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
   filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.75));
 }
 
@@ -6727,57 +6727,57 @@ html.dark .ff-chat-main-pane .ff-chat-bubble-me {
    dung trang không xuyên qua; email, cấp bậc, coin, tố cáo và đăng
    xuất đều đủ tương phản trên nền sáng.
    --------------------------------------------------------------- */
-html.light .ff-profile-surface {
+html.light .ff-profile-flyout {
   background-color: #fdf9f2 !important;
   border-color: rgba(28, 25, 23, 0.14) !important;
   box-shadow: 0 18px 48px rgba(60, 48, 30, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
   color: #1c1917 !important;
 }
-html.light .ff-profile-surface .ff-discord-userbar {
+html.light .ff-profile-flyout .ff-discord-userbar {
   background: rgba(255, 255, 255, 0.66) !important;
   border-color: rgba(28, 25, 23, 0.12) !important;
 }
-html.light .ff-profile-surface .ff-profile-rank {
+html.light .ff-profile-flyout .ff-profile-rank {
   background: rgba(255, 255, 255, 0.6) !important;
   border-color: rgba(28, 25, 23, 0.1) !important;
 }
-html.light .ff-profile-surface .ff-profile-tier-name {
+html.light .ff-profile-flyout .ff-profile-tier-name {
   color: #92400e !important;
 }
-html.light .ff-profile-surface .ff-profile-role-chip {
+html.light .ff-profile-flyout .ff-profile-role-chip {
   background: rgba(245, 158, 11, 0.14) !important;
   border-color: rgba(180, 83, 9, 0.32) !important;
   color: #92400e !important;
 }
-html.light .ff-profile-surface .ff-profile-coin-value {
+html.light .ff-profile-flyout .ff-profile-coin-value {
   color: #92400e !important;
 }
-html.light .ff-profile-surface .ff-profile-progress {
+html.light .ff-profile-flyout .ff-profile-progress {
   background: rgba(28, 25, 23, 0.12) !important;
 }
-html.light .ff-profile-surface .ff-profile-divider {
+html.light .ff-profile-flyout .ff-profile-divider {
   background: rgba(28, 25, 23, 0.12) !important;
 }
-html.light .ff-profile-surface .ff-profile-report {
+html.light .ff-profile-flyout .ff-profile-report {
   background: rgba(245, 158, 11, 0.12) !important;
   border-color: rgba(180, 83, 9, 0.32) !important;
   color: #92400e !important;
 }
-html.light .ff-profile-surface .ff-profile-logout {
+html.light .ff-profile-flyout .ff-profile-logout {
   background: rgba(220, 38, 38, 0.08) !important;
   border-color: rgba(185, 28, 28, 0.26) !important;
   color: #b91c1c !important;
 }
-html.light .ff-profile-surface .text-white\/75 {
+html.light .ff-profile-flyout .text-white\/75 {
   color: #57534e !important;
   text-shadow: none !important;
 }
-html.light .ff-profile-surface .text-white\/60 {
+html.light .ff-profile-flyout .text-white\/60 {
   color: #6b6459 !important;
 }
 
 /* Flyout tài khoản — nền tối đặc hoàn toàn để chữ trang chủ không xuyên qua. */
-html.dark .ff-profile-surface {
+html.dark .ff-profile-flyout {
   background-color: #0c1218 !important;
 }
 

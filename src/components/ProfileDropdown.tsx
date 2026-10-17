@@ -139,7 +139,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
       onFocusCapture={profileProximity.onFocusCapture}
       onBlurCapture={profileProximity.onBlurCapture}
       onTouchStart={profileProximity.onTouchStart}
-      className={`ff-profile-surface z-[70] bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] popover-morph-enter select-none pointer-events-auto overflow-y-auto no-scrollbar ${
+      className={`ff-profile-surface ff-profile-flyout z-[70] bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] popover-morph-enter select-none pointer-events-auto overflow-y-auto no-scrollbar ${
         !anchorRef || !pop.ready ? 'absolute top-[calc(100%+8px)] right-0 w-[340px] max-w-[calc(100vw-28px)] max-h-[calc(100dvh-var(--safe-top,0px)-134px)]' : ''
       }`}
       style={anchorRef ? pop.style : undefined}

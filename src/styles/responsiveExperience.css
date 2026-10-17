@@ -343,8 +343,10 @@ html.light .ff-mobile-dock > button::before {
     min-height: 96px;
   }
 
-  /* Small screens need compact, scrollable dialogs with visible safe-area padding. */
-  .ff-app-shell [role='dialog'] {
+  /* Small screens need compact, scrollable dialogs with visible safe-area padding.
+     Overlay toàn màn hình (bản thân thẻ có lớp inset-0) được miễn trừ, nếu không
+     nó bị co còn 100vw-24px và neo lệch về góc trên-trái. */
+  .ff-app-shell [role='dialog']:not([class*='inset-0']) {
     max-width: calc(100vw - 24px);
     max-height: calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 20px);
     overscroll-behavior: contain;
