@@ -1,0 +1,8 @@
+node_modules
+tests
+data
+docs
+dist
+.git
+.agents
+*.log

@@ -37,3 +37,8 @@
    - **Thanh tác vụ lơ lửng (Floating Action Bar)**: Nút Trả lời và Thu hồi tin nhắn xuất hiện mượt mà khi hover/focus, kèm kích thước touch-friendly cho màn hình cảm ứng di động.
    - **Chuẩn hoá ánh sáng & màu sắc (Light/Dark Mode)**: Tự động phát sinh light-adapter qua `npm run gen:light` để văn bản đạt độ tương phản chuẩn WCAG AA trên nền giấy gạo ấm không bị lóa.
    - **Kỷ luật kỹ thuật tối thượng**: 0 dòng comment `//` trong code chức năng, 0 emoji trong UI, toàn bộ 472 bài kiểm thử tự động vượt qua 100%, bundle Vite sản xuất thành công trong 1.49s.
+4. **Tự Động Hoá 100% Hạ Tầng Vercel Serverless & CI/CD Pipeline**:
+   - **Fix Triệt Để Lỗi Rewrite Vercel**: Thay thế negative lookahead regex phức tạp gây crash engine Vercel bằng pattern chuẩn `^/((?!api(?:/|$)).*)` -> `/index.html` trong `vercel.json`.
+   - **Tối Ưu Hóa TypeScript Serverless**: Cấu hình `rewriteRelativeImportExtensions: true`, `allowImportingTsExtensions: true`, và `strict: true` trực tiếp tại root `tsconfig.json`, giúp `@vercel/node` biên dịch runtime imports thành `.js` chuẩn xác mà không gặp lỗi `ERR_MODULE_NOT_FOUND`.
+   - **Vercel Deploy Hook & GitHub Secrets**: Tạo Deploy Hook Vercel cho nhánh `main`, gắn GitHub Secret `VERCEL_DEPLOY_HOOK`, và cập nhật workflow `.github/workflows/deploy.yml` tự động kích hoạt Vercel mỗi khi có commit mới.
+   - **Triển Khai Thành Công Lên Production**: Bản build sản xuất đã triển khai trực tiếp lên `https://f-forum.vercel.app` với API Serverless (`/api/health`, `/api/sync`) hoạt động hoàn hảo 100%.

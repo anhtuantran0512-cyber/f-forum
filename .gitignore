@@ -32,3 +32,5 @@ data/
 !.env.example
 docs/decorations/screenshots/.frame-*.png
 public/assets/decorations/decorations-migration.json
+.vercel
+.env*

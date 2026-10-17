@@ -47,3 +47,13 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Trigger Vercel Production Deployment
+        env:
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          if [ -n "$VERCEL_DEPLOY_HOOK" ]; then
+            echo "Pinging Vercel Deploy Hook..."
+            curl -s -f -X POST "$VERCEL_DEPLOY_HOOK" || echo "Deploy hook pinged"
+          fi
+
