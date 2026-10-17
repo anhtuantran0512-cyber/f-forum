@@ -41,7 +41,7 @@ import { CommandPalette, type PaletteCommand } from './components/CommandPalette
 import { searchCorpus, type SearchHit } from './utils/globalSearch';
 import { QuickNotesDock } from './components/QuickNotesDock';
 import { StudyCareCoach } from './components/StudyCareCoach';
-import { ViewTransitionLoader } from './components/ViewTransitionLoader';
+import { RouteConsole, ViewTransitionLoader } from './components/ViewTransitionLoader';
 import { FocusSessionWatcher } from './components/FocusSessionWatcher';
 import { AuthProvider } from './context/AuthContext';
 import { GODRAY_PRESETS } from './utils/godrays';
@@ -80,41 +80,44 @@ const ReportInboxModal = lazyWithRetry(() => import('./components/ReportInboxMod
 const AdminConsoleModal = lazyWithRetry(() => import('./components/AdminConsoleModal').then(m => ({ default: m.AdminConsoleModal })));
 const RoleBadge = lazyWithRetry(() => import('./components/RoleBadge').then(m => ({ default: m.RoleBadge })));
 
-const ViewLoadingFallback = () => (
-  <div className="w-full h-full min-h-[50vh] flex items-center justify-center" aria-busy="true" aria-label="Đang tải giao diện">
+const ViewLoadingFallback: React.FC<{ targetLabel?: string }> = ({ targetLabel }) => (
+  <div className="w-full h-full min-h-[50vh] flex items-center justify-center" aria-busy="true" aria-label={`Đang tải ${targetLabel || 'giao diện'}`}>
     <div className="la-08" data-state="loading">
-      <section className="la-08__card">
-        <div className="la-08__cal">
-          <div className="la-08__cal-top"><i /><i /></div>
-          <ul className="la-08__grid">
-            {Array.from({ length: 15 }).map((_, i) => (
-              <li
-                key={i}
-                className={`la-08__day ${i === 8 ? 'la-08__day--sel' : ''}`}
-                style={{ '--i': i } as React.CSSProperties}
-              >
-                {i + 1}
-              </li>
-            ))}
-          </ul>
-          <svg className="la-08__seal" viewBox="0 0 32 32">
-            <circle className="la-08__ring" cx="16" cy="16" r="14" />
-            <path className="la-08__check" d="M10 16l4 4 8-8" />
-          </svg>
-        </div>
+      <div className="la-08__view-stack">
+        <section className="la-08__card la-08__view-card">
+          <div className="la-08__cal">
+            <div className="la-08__cal-top"><i /><i /></div>
+            <ul className="la-08__grid">
+              {Array.from({ length: 15 }).map((_, i) => (
+                <li
+                  key={i}
+                  className={`la-08__day ${i === 8 ? 'la-08__day--sel' : ''}`}
+                  style={{ '--i': i } as React.CSSProperties}
+                >
+                  {i + 1}
+                </li>
+              ))}
+            </ul>
+            <svg className="la-08__seal" viewBox="0 0 32 32">
+              <circle className="la-08__ring" cx="16" cy="16" r="14" />
+              <path className="la-08__check" d="M10 16l4 4 8-8" />
+            </svg>
+          </div>
 
-        <div className="la-08__copy">
-          <p className="la-08__title text-white font-bold text-sm mb-1">Đang tải phân khu</p>
-          <p className="la-08__state text-neutral-400 text-xs">Máy quét đang đồng bộ...</p>
-        </div>
+          <div className="la-08__copy">
+            <p className="la-08__title text-white font-bold text-sm mb-1">Đang tải phân khu</p>
+            <p className="la-08__state text-neutral-400 text-xs">Máy quét đang đồng bộ...</p>
+          </div>
 
-        <div className="la-08__vitals">
-          <svg className="la-08__ecg-wrap" viewBox="0 0 100 24">
-            <polyline className="la-08__base" points="0,12 100,12" />
-            <polyline className="la-08__ecg" points="0,12 30,12 35,4 43,20 48,12 100,12" />
-          </svg>
-        </div>
-      </section>
+          <div className="la-08__vitals">
+            <svg className="la-08__ecg-wrap" viewBox="0 0 100 24">
+              <polyline className="la-08__base" points="0,12 100,12" />
+              <polyline className="la-08__ecg" points="0,12 30,12 35,4 43,20 48,12 100,12" />
+            </svg>
+          </div>
+        </section>
+        <RouteConsole targetLabel={targetLabel} signal="Đang dựng giao diện phân khu" />
+      </div>
     </div>
   </div>
 );
@@ -1083,7 +1086,7 @@ export const App: React.FC = () => {
               : 'h-full'
         }`}
       >
-        <Suspense fallback={<ViewLoadingFallback />}>
+        <Suspense fallback={<ViewLoadingFallback targetLabel={VIEW_LOADERS[currentView]?.label || 'phân khu'} />}>
           {/* Bọc theo key để mỗi lần đổi phân khu chạy lại hoạt ảnh trượt */}
           <div
             key={currentView}
