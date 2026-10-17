@@ -158,7 +158,14 @@ test('AI adapters encrypt keys, speak their declared protocol, and never fetch a
   }, 1, null).code, 'VAULT_UNAVAILABLE');
 
   const image = dataUrl('image/png', Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
-  const question = { id: 'q-ai-test', title: 'Giải phương trình', subject: 'Toán', content: 'Giải phương trình x² = 4.', images: [image] };
+  const question = {
+    id: 'q-ai-test',
+    title: 'Giải phương trình',
+    subject: 'Toán',
+    content: 'Giải phương trình x² = 4.',
+    images: [image],
+    learnerAttempt: 'Em đã thử chuyển vế nhưng chưa hiểu vì sao có hai nghiệm.',
+  };
   const variants = [
     { protocol: 'openai-compatible', baseUrl: 'https://api.openai.com/v1', reply: { choices: [{ message: { content: 'Gợi ý từng bước; hãy tự kiểm tra.' } }] } },
     { protocol: 'anthropic', baseUrl: 'https://api.anthropic.com/v1', reply: { content: [{ type: 'text', text: 'Gợi ý từng bước; hãy tự kiểm tra.' }] } },
@@ -180,14 +187,33 @@ test('AI adapters encrypt keys, speak their declared protocol, and never fetch a
       assert.equal(result.ok, true, JSON.stringify(result));
       assert.equal(result.suggestion.imageCount, 1);
       assert.equal(result.suggestion.answer, 'Gợi ý từng bước; hãy tự kiểm tra.');
+      assert.equal(result.suggestion.mode, 'hint', 'the safe default is one progressive hint');
+      assert.equal(result.suggestion.hintLevel, 1);
     }
+
+    const hintProvider = configuredProvider('openai-compatible', 'https://api.openai.com/v1');
+    const solutionResult = await aiAssistant.generateAISuggestion([hintProvider], question, 1700000000000, 'solution');
+    assert.equal(solutionResult.ok, true, JSON.stringify(solutionResult));
+    assert.equal(solutionResult.suggestion.mode, 'solution');
+    const hintResult = await aiAssistant.generateAISuggestion([hintProvider], question, 1700000000000, 'hint', 2);
+    assert.equal(hintResult.ok, true, JSON.stringify(hintResult));
+    assert.equal(hintResult.suggestion.mode, 'hint');
+    assert.equal(hintResult.suggestion.hintLevel, 2);
 
     const openAiCall = calls.find((call) => call.url.endsWith('/chat/completions'));
     assert.equal(openAiCall.init.redirect, 'error', 'provider redirects must not be followed with API-key headers');
     assert.equal(openAiCall.init.headers.Authorization, `Bearer ${plaintext}`);
     assert.match(openAiCall.body.messages[0].content, /gợi ý tham khảo/i);
     assert.match(openAiCall.body.messages[0].content, /không tự bịa/i);
+    assert.match(openAiCall.body.messages[1].content[0].text, /Em đã thử chuyển vế/);
     assert.ok(openAiCall.body.messages[1].content.some((part) => part.type === 'image_url' && part.image_url.url.startsWith('data:image/png;base64,')));
+    const solutionCall = calls.find((call) => call.url.endsWith('/chat/completions') && call.body.messages[0].content.includes('Chế độ lời giải'));
+    assert.ok(solutionCall, 'worked solution must use its dedicated system prompt');
+    const hintCall = calls.filter((call) => call.url.endsWith('/chat/completions')).at(-1);
+    assert.match(hintCall.body.messages[0].content, /Chế độ gợi mở/);
+    assert.match(hintCall.body.messages[0].content, /Nấc 2/);
+    assert.match(hintCall.body.messages[0].content, /Không trình bày lời giải đầy đủ/);
+    assert.match(hintCall.body.messages[1].content[0].text, /gợi ý ở nấc 2\/3/);
 
     const anthropicCall = calls.find((call) => call.url.endsWith('/messages'));
     assert.equal(anthropicCall.init.headers['x-api-key'], plaintext);
@@ -437,15 +463,42 @@ test('HTTP permissions, teacher pinning, exam publication, and private AI config
       return nativeFetch(url, init);
     };
     try {
-      const aiSuggestion = await post(activeServer.baseUrl, `/api/questions/${studentQuestion.data.question.id}/ai-suggestion`, {}, student.token);
+      const privateLearnerAttempt = 'Em nghi x = 2 nhung chua biet kiem tra nghiem am';
+      const aiSuggestion = await post(activeServer.baseUrl, `/api/questions/${studentQuestion.data.question.id}/ai-suggestion`, {
+        mode: 'hint',
+        hintLevel: 1,
+        learnerAttempt: privateLearnerAttempt,
+      }, student.token);
       assert.equal(aiSuggestion.response.status, 200, JSON.stringify(aiSuggestion.data));
       assert.equal(aiSuggestion.data.suggestion.providerName, 'Provider kiểm thử');
       assert.equal(aiSuggestion.data.suggestion.imageCount, 1);
+      assert.equal(aiSuggestion.data.suggestion.mode, 'hint');
+      assert.equal(aiSuggestion.data.suggestion.hintLevel, 1);
       assert.match(aiSuggestion.data.suggestion.answer, /Gợi ý tham khảo/);
       assert.equal(providerRequests.length, 1);
       assert.equal(providerRequests[0].init.headers.Authorization, `Bearer ${apiKey}`);
       assert.match(providerRequests[0].body.messages[1].content[0].text, /x² = 4/);
+      assert.match(providerRequests[0].body.messages[1].content[0].text, /Em nghi x = 2/);
+      assert.equal(JSON.stringify(aiSuggestion.data).includes(privateLearnerAttempt), false, 'the temporary learner note is not returned in the response');
+      assert.equal(fs.readFileSync(dataFile, 'utf8').includes(privateLearnerAttempt), false, 'the temporary learner note is not persisted with the question');
+      assert.match(providerRequests[0].body.messages[0].content, /Chế độ gợi mở/);
       assert.ok(providerRequests[0].body.messages[1].content.some((part) => part.type === 'image_url'));
+
+      const aiWorkedSolution = await post(activeServer.baseUrl, `/api/questions/${studentQuestion.data.question.id}/ai-suggestion`, {
+        mode: 'solution',
+      }, student.token);
+      assert.equal(aiWorkedSolution.response.status, 200, JSON.stringify(aiWorkedSolution.data));
+      assert.equal(aiWorkedSolution.data.suggestion.mode, 'solution');
+      assert.match(providerRequests[1].body.messages[0].content, /Chế độ lời giải/);
+      assert.equal(providerRequests.length, 2);
+
+      const boundedHint = await post(activeServer.baseUrl, `/api/questions/${studentQuestion.data.question.id}/ai-suggestion`, {
+        mode: 'hint',
+        hintLevel: 99,
+      }, student.token);
+      assert.equal(boundedHint.response.status, 200, JSON.stringify(boundedHint.data));
+      assert.equal(boundedHint.data.suggestion.hintLevel, 3, 'server clamps the hint ladder at three steps');
+      assert.match(providerRequests[2].body.messages[1].content[0].text, /nấc 3\/3/);
 
       const remoteQuestion = await post(activeServer.baseUrl, '/api/questions', {
         id: 'community-qa-remote-image',
@@ -460,7 +513,7 @@ test('HTTP permissions, teacher pinning, exam publication, and private AI config
       const remoteAi = await post(activeServer.baseUrl, `/api/questions/${remoteQuestion.data.question.id}/ai-suggestion`, {}, student.token);
       assert.equal(remoteAi.response.status, 422);
       assert.match(remoteAi.data.message, /URL bên ngoài/);
-      assert.equal(providerRequests.length, 1, 'remote image URLs must not be fetched or forwarded to a provider');
+      assert.equal(providerRequests.length, 3, 'remote image URLs must not be fetched or forwarded to a provider');
     } finally {
       globalThis.fetch = nativeFetch;
     }

@@ -2947,13 +2947,16 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           ...(Array.isArray(question.images) ? question.images : []),
           ...(typeof question.imageUrl === 'string' ? [question.imageUrl] : []),
         ].filter((image): image is string => typeof image === 'string' && Boolean(image.trim()))));
+        const mode = body.mode === 'solution' ? 'solution' : 'hint';
+        const hintLevel = Math.max(1, Math.min(3, Math.floor(Number(body.hintLevel) || 1)));
         const result = await generateAISuggestion(store.aiProviders || [], {
           id: String(question.id || ''),
           title: String(question.title || ''),
           subject: String(question.subject || ''),
           content: String(question.content || ''),
           images,
-        });
+          learnerAttempt: typeof body.learnerAttempt === 'string' ? body.learnerAttempt.slice(0, 600) : '',
+        }, Date.now(), mode, hintLevel);
         if (!result.ok) {
           sendJson(res, result.status, { success: false, message: result.message });
           return;

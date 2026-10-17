@@ -306,11 +306,15 @@ const MODERATION_REASON_OPTIONS: { code: ModerationReasonCode; label: string }[]
   { code: 'other', label: 'Lý do khác' },
 ];
 
+type QAAISuggestionMode = 'hint' | 'solution';
+
 interface QAAISuggestion {
   answer: string;
   model: string;
   providerName: string;
   imageCount: number;
+  mode: QAAISuggestionMode;
+  hintLevel: number;
   generatedAt: string;
 }
 
@@ -721,24 +725,30 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     const sharedId = typeof window !== 'undefined' ? readSharedQuestionId(window.location.search) : null;
     return sharedId ? questions.find(item => item.id === sharedId) ?? null : null;
   });
+  const [aiLearnerAttemptDraft, setAiLearnerAttemptDraft] = useState({ key: '', value: '' });
   const [aiAssistantState, setAiAssistantState] = useState<{
     questionId: string;
-    suggestion: QAAISuggestion | null;
+    hints: QAAISuggestion[];
+    solution: QAAISuggestion | null;
     error: string;
     loading: boolean;
-  }>({ questionId: '', suggestion: null, error: '', loading: false });
+    loadingMode: QAAISuggestionMode | null;
+  }>({ questionId: '', hints: [], solution: null, error: '', loading: false, loadingMode: null });
   const aiQuestionId = selectedQuestion?.id || '';
+  const aiAttemptKey = aiQuestionId ? `${currentUser?.id || 'guest'}:${aiQuestionId}` : '';
+  const aiLearnerAttempt = aiLearnerAttemptDraft.key === aiAttemptKey ? aiLearnerAttemptDraft.value : '';
   const activeAiState = aiAssistantState.questionId === aiQuestionId
     ? aiAssistantState
-    : { questionId: aiQuestionId, suggestion: null, error: '', loading: false };
-  const aiSuggestion = activeAiState.suggestion;
+    : { questionId: aiQuestionId, hints: [], solution: null, error: '', loading: false, loadingMode: null };
   const aiSuggestionError = activeAiState.error;
   const isAiSuggestionLoading = activeAiState.loading;
+  const nextAiHintLevel = Math.min(3, activeAiState.hints.length + 1);
+  const hasAllAiHints = activeAiState.hints.length >= 3;
   const aiRequestSequenceRef = useRef(0);
   useEffect(() => {
     aiRequestSequenceRef.current += 1;
   }, [selectedQuestion?.id]);
-  const requestAiSuggestion = useCallback(async () => {
+  const requestAiSuggestion = useCallback(async (mode: QAAISuggestionMode, hintLevel = 1) => {
     if (!selectedQuestion) return;
     if (!currentUser) {
       onOpenLoginModal?.();
@@ -746,34 +756,48 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     }
     const questionId = selectedQuestion.id;
     const requestSequence = ++aiRequestSequenceRef.current;
-    setAiAssistantState({ questionId, suggestion: null, error: '', loading: true });
+    setAiAssistantState((current) => ({
+      questionId,
+      hints: current.questionId === questionId ? current.hints : [],
+      solution: mode === 'hint' ? null : current.questionId === questionId ? current.solution : null,
+      error: '',
+      loading: true,
+      loadingMode: mode,
+    }));
     try {
       const { status, data } = await postJson(
         `/api/questions/${encodeURIComponent(questionId)}/ai-suggestion`,
-        {},
+        { mode, hintLevel, learnerAttempt: aiLearnerAttempt.trim().slice(0, 600) },
       );
       if (requestSequence !== aiRequestSequenceRef.current) return;
       if (status < 200 || status >= 300 || !data?.success || !data?.suggestion?.answer) {
         setAiAssistantState((current) => current.questionId === questionId
-          ? { ...current, error: String(data?.message || 'Chưa tạo được gợi ý. Hãy thử lại sau.'), loading: false }
+          ? { ...current, error: String(data?.message || 'Chưa tạo được gợi ý. Hãy thử lại sau.'), loading: false, loadingMode: null }
           : current);
         return;
       }
-      setAiAssistantState((current) => current.questionId === questionId
-        ? { ...current, suggestion: data.suggestion as QAAISuggestion, error: '', loading: false }
-        : current);
+      const suggestion = data.suggestion as QAAISuggestion;
+      setAiAssistantState((current) => {
+        if (current.questionId !== questionId) return current;
+        if (mode === 'solution') {
+          return { ...current, solution: suggestion, error: '', loading: false, loadingMode: null };
+        }
+        const hints = [...current.hints.filter((hint) => hint.hintLevel !== hintLevel), suggestion]
+          .sort((a, b) => a.hintLevel - b.hintLevel);
+        return { ...current, hints, solution: null, error: '', loading: false, loadingMode: null };
+      });
     } catch {
       if (requestSequence === aiRequestSequenceRef.current) {
         setAiAssistantState((current) => current.questionId === questionId
-          ? { ...current, error: 'Không kết nối được dịch vụ AI. Câu hỏi của bạn vẫn được giữ nguyên.', loading: false }
+          ? { ...current, error: 'Không kết nối được dịch vụ AI. Câu hỏi của bạn vẫn được giữ nguyên.', loading: false, loadingMode: null }
           : current);
       }
     } finally {
       setAiAssistantState((current) => current.questionId === questionId
-        ? { ...current, loading: false }
+        ? { ...current, loading: false, loadingMode: null }
         : current);
     }
-  }, [currentUser, onOpenLoginModal, selectedQuestion]);
+  }, [aiLearnerAttempt, currentUser, onOpenLoginModal, selectedQuestion]);
   /* Đồng bộ selectedQuestion mỗi khi danh sách questions cập nhật (ảnh đính kèm, lượt thích, đáp án chuẩn, chỉnh sửa) */
   if (selectedQuestion) {
     const latest = questions.find(item => item.id === selectedQuestion.id);
@@ -3623,7 +3647,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     </div>
                   </div>
 
-                  <section className="ff-bento-cell !p-5 space-y-3.5 border border-[#f2cc8f]/25" aria-label="Trợ lý AI gợi ý lời giải">
+                  <section className="ff-bento-cell !p-5 space-y-3.5 border border-[#f2cc8f]/25" aria-label="Gia sư AI gợi mở từng nấc">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h4 className="text-sm font-extrabold text-[#f4f1de] flex items-center gap-2">
@@ -3639,17 +3663,59 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       </span>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => { void requestAiSuggestion(); }}
-                      disabled={isAiSuggestionLoading}
-                      className="ff-tactile-btn inline-flex w-full items-center justify-center gap-2 rounded-xl border-[1.5px] border-[#0b0d12] bg-[#f2cc8f] px-4 py-2.5 text-xs font-extrabold text-[#0b0d12] transition-colors hover:bg-[#f4f1de] disabled:cursor-wait disabled:opacity-60"
-                    >
-                      {isAiSuggestionLoading
-                        ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#0b0d12]/25 border-t-[#0b0d12]" aria-hidden="true" />
-                        : <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />}
-                      <span>{isAiSuggestionLoading ? 'Đang đọc đề…' : aiSuggestion ? 'Tạo gợi ý mới' : 'Xin gợi ý lời giải'}</span>
-                    </button>
+                    <p className="text-[11px] leading-relaxed text-[#bdb5a5]">
+                      Hãy thử gợi mở theo 3 nấc trước. Chỉ mở lời giải khi bạn tự chọn; AI vẫn có thể sai hoặc lỡ tiết lộ đáp án.
+                    </p>
+                    <label htmlFor="qa-ai-attempt" className="block space-y-1.5">
+                      <span className="block text-[11px] font-bold text-[#f4f1de]">Em đã thử đến đâu? <span className="font-normal text-[#9a978e]">(không bắt buộc)</span></span>
+                      <textarea
+                        id="qa-ai-attempt"
+                        rows={3}
+                        maxLength={600}
+                        value={aiLearnerAttempt}
+                        onChange={(event) => setAiLearnerAttemptDraft({
+                          key: aiAttemptKey,
+                          value: event.target.value,
+                        })}
+                        placeholder="Ghi bước em đã làm hoặc chỗ đang mắc…"
+                        className="w-full resize-y rounded-xl border border-[#f4f1de]/15 bg-[#0b0d12]/75 px-3 py-2 text-xs leading-relaxed text-[#f4f1de] placeholder:text-[#77746d] focus:border-[#f2cc8f]/60 focus:outline-none"
+                      />
+                      <span className="block text-[10px] text-[#9a978e]">Chỉ gửi khi bấm nút, không lưu vào bài hỏi. {aiLearnerAttempt.length}/600</span>
+                    </label>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => { void requestAiSuggestion('hint', nextAiHintLevel); }}
+                        disabled={isAiSuggestionLoading || hasAllAiHints}
+                        className="ff-tactile-btn inline-flex w-full items-center justify-center gap-2 rounded-xl border-[1.5px] border-[#0b0d12] bg-[#f2cc8f] px-3 py-2.5 text-xs font-extrabold text-[#0b0d12] transition-colors hover:bg-[#f4f1de] disabled:cursor-not-allowed disabled:opacity-55"
+                      >
+                        {isAiSuggestionLoading && activeAiState.loadingMode === 'hint'
+                          ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#0b0d12]/25 border-t-[#0b0d12]" aria-hidden="true" />
+                          : <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />}
+                        <span>{isAiSuggestionLoading && activeAiState.loadingMode === 'hint'
+                          ? 'Đang tìm gợi mở…'
+                          : hasAllAiHints
+                            ? 'Đã đủ 3 nấc'
+                            : activeAiState.hints.length === 0
+                              ? 'Gợi ý nấc 1 / 3'
+                              : `Gợi ý tiếp · nấc ${nextAiHintLevel} / 3`}</span>
+                      </button>
+                      {activeAiState.hints.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => { void requestAiSuggestion('solution'); }}
+                          disabled={isAiSuggestionLoading}
+                          className="ff-tactile-btn inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#81b29a]/35 bg-[#81b29a]/10 px-3 py-2.5 text-xs font-bold text-[#d8f3dc] transition-colors hover:bg-[#81b29a]/20 disabled:cursor-wait disabled:opacity-55"
+                        >
+                          {isAiSuggestionLoading && activeAiState.loadingMode === 'solution'
+                            ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#d8f3dc]/25 border-t-[#d8f3dc]" aria-hidden="true" />
+                            : <Lightbulb className="h-3.5 w-3.5" aria-hidden="true" />}
+                          <span>{isAiSuggestionLoading && activeAiState.loadingMode === 'solution'
+                            ? 'Đang đối chiếu lời giải…'
+                            : activeAiState.solution ? 'Tạo lại lời giải' : 'Mình đã thử · xem lời giải'}</span>
+                        </button>
+                      )}
+                    </div>
 
                     {aiSuggestionError && (
                       <p role="status" className="rounded-lg border border-[#e07a5f]/30 bg-[#e07a5f]/10 px-3 py-2 text-xs leading-relaxed text-[#ffd7c8]">
@@ -3657,27 +3723,42 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       </p>
                     )}
 
-                    {aiSuggestion && (
-                      <div className="space-y-2 rounded-xl border border-[#81b29a]/30 bg-[#81b29a]/[0.07] p-3.5">
+                    {activeAiState.hints.map((hint) => (
+                      <div key={`hint-${hint.hintLevel}`} className="space-y-2 rounded-xl border border-[#81b29a]/30 bg-[#81b29a]/[0.07] p-3.5">
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-mono text-[#b9d7c4]">
-                          <span>{aiSuggestion.providerName}</span>
+                          <span className="font-bold uppercase tracking-wide">Gợi ý {hint.hintLevel} / 3</span>
                           <span aria-hidden="true">·</span>
-                          <span>{aiSuggestion.model}</span>
-                          {aiSuggestion.imageCount > 0 && (
-                            <span>· đã gửi {aiSuggestion.imageCount} ảnh</span>
-                          )}
+                          <span>{hint.providerName} · {hint.model}</span>
+                          {hint.imageCount > 0 && <span>· đã gửi {hint.imageCount} ảnh</span>}
+                        </div>
+                        <div className="max-h-[min(32vh,20rem)] overflow-y-auto pr-1 text-xs leading-[1.8] text-[#f4f1de] whitespace-pre-wrap break-words">
+                          {hint.answer}
+                        </div>
+                      </div>
+                    ))}
+
+                    {activeAiState.solution && (
+                      <div className="space-y-2 rounded-xl border border-[#f2cc8f]/35 bg-[#f2cc8f]/[0.07] p-3.5">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-mono text-[#e8d7af]">
+                          <span className="font-bold uppercase tracking-wide">Lời giải tham khảo</span>
+                          <span aria-hidden="true">·</span>
+                          <span>{activeAiState.solution.providerName} · {activeAiState.solution.model}</span>
+                          {activeAiState.solution.imageCount > 0 && <span>· đã gửi {activeAiState.solution.imageCount} ảnh</span>}
                         </div>
                         <div className="max-h-[min(48vh,28rem)] overflow-y-auto pr-1 text-xs leading-[1.8] text-[#f4f1de] whitespace-pre-wrap break-words">
-                          {aiSuggestion.answer}
+                          {activeAiState.solution.answer}
                         </div>
-                        <p className="border-t border-[#81b29a]/20 pt-2 text-[10px] leading-relaxed text-[#b9d7c4]">
-                          Có thể sai hoặc thiếu dữ kiện. Hãy tự kiểm tra từng bước và hỏi giáo viên khi chưa chắc.
-                        </p>
                       </div>
                     )}
 
+                    {(activeAiState.hints.length > 0 || activeAiState.solution) && (
+                      <p className="border-t border-[#81b29a]/20 pt-2 text-[10px] leading-relaxed text-[#b9d7c4]">
+                        Chỉ là gợi ý do AI tạo, có thể sai hoặc thiếu dữ kiện. Tự kiểm tra và hỏi giáo viên khi chưa chắc.
+                      </p>
+                    )}
+
                     <p className="text-[10px] leading-relaxed text-[#9a978e]">
-                      Chỉ khi bấm nút, nội dung câu hỏi và ảnh tải trực tiếp được mới gửi tới provider do quản trị viên cấu hình (tối đa 4 ảnh, 6 MiB; không tải URL ngoài). Tránh đưa thông tin cá nhân vào đề.
+                      Mỗi nấc là một lượt gọi API. Khi bấm, câu hỏi, phần em tự ghi và ảnh tải trực tiếp được sẽ gửi tới provider do quản trị viên cấu hình (tối đa 4 ảnh, 6 MiB; không tải URL ngoài). Không đưa thông tin cá nhân vào.
                     </p>
                   </section>
 
