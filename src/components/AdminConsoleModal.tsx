@@ -748,7 +748,7 @@ export const AdminConsoleModal: React.FC<AdminConsoleModalProps> = ({
                               <div className="flex flex-wrap items-center gap-1.5">
                                 <span className="text-xs font-semibold text-neutral-100 truncate">{user.name}</span>
                                 <span className="px-1.5 py-0.5 rounded bg-white/5 text-[9px] text-neutral-500">
-                                  {user.role === 'CLUB_LEADER' ? 'Chủ nhiệm CLB' : user.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Học sinh'} · Cấp {user.level}
+                                  {user.role === 'CLUB_LEADER' ? 'Trưởng CLB' : user.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Học sinh'} · Cấp {user.level}
                                 </span>
                                 {banned && (
                                   <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-400/25 text-[9px] font-semibold text-rose-300">

@@ -19,6 +19,7 @@ import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
 import { useVirtualWindow } from '../../utils/virtualWindow';
 import { useInteractionDebounce } from '../../utils/interactionScheduler';
 import { ReactionPicker } from '../ui/ReactionPicker';
+import { canCreateForumPost } from '../../utils/communityRoles';
 import './ThreadsView.css';
 
 const SAVED_THREADS_KEY = 'fforum_saved_threads_v1';
@@ -433,10 +434,12 @@ const ThreadCard = React.memo<{
                   <span className="thread-reply-pill">{childReplies.length}</span>
                 )}
               </button>
-              <button type="button" onClick={() => setIsRepostOpen((v) => !v)} className={`action-text-btn ${isRepostOpen ? 'is-active' : ''}`}>
-                <Repeat2 className="w-4 h-4" />
-                Chia sẻ
-              </button>
+              {canCreateForumPost(currentUser) && (
+                <button type="button" onClick={() => setIsRepostOpen((v) => !v)} className={`action-text-btn ${isRepostOpen ? 'is-active' : ''}`}>
+                  <Repeat2 className="w-4 h-4" />
+                  Chia sẻ
+                </button>
+              )}
               {viewModel.onOpenReader && (
                 <button
                   type="button"
@@ -1208,6 +1211,7 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
 
         <div className="thread-room-grid">
           <aside className="thread-room-rail" aria-label="Góc viết và chủ đề cộng đồng">
+            {canCreateForumPost(currentUser) ? (
             <div className="thread-composer-card">
               <div className="thread-composer-intro">
                 <span className="thread-composer-stamp" aria-hidden="true"><PenLine className="w-4 h-4" /></span>
@@ -1342,6 +1346,23 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                 </button>
               </div>
             </div>
+            ) : (
+              <section className="thread-role-note" aria-label="Quyền đăng bài diễn đàn">
+                <div className="thread-composer-intro">
+                  <span className="thread-composer-stamp" aria-hidden="true"><PenLine className="w-4 h-4" /></span>
+                  <div>
+                    <span className="thread-composer-kicker">GÓC CỘNG ĐỒNG</span>
+                    <h2 className="thread-composer-title">Bài gốc diễn đàn</h2>
+                  </div>
+                </div>
+                <p>Học sinh vẫn có thể phản hồi, thả reaction và đặt câu hỏi ở Hỏi đáp. Bài gốc trong mạch chuyện dành cho Giáo viên và Trưởng CLB.</p>
+                {!currentUser && (
+                  <button type="button" onClick={onOpenLoginModal} className="thread-role-note__login ff-tactile-btn">
+                    Đăng nhập để tham gia
+                  </button>
+                )}
+              </section>
+            )}
 
             <section className="thread-topic-panel" aria-labelledby="thread-topic-heading">
               <div className="thread-topic-panel-head">

@@ -211,6 +211,7 @@ export const App: React.FC = () => {
     solutions,
     comments,
     addComment,
+    reactComment,
     reactQuestion,
     reactSolution,
     threads,
@@ -1148,6 +1149,7 @@ export const App: React.FC = () => {
               solutionRejection={solutionRejection}
               onDismissSolutionRejection={() => setSolutionRejection(null)}
               onAddComment={addComment}
+              onReactComment={reactComment}
               onReactQuestion={reactQuestion}
               onReactSolution={reactSolution}
               onMarkBestSolution={markBestSolution}

@@ -1220,10 +1220,14 @@ const ProfileModalInner: React.FC<{
                               <UserCheck className="w-3 h-3 text-[#81b29a] shrink-0" />
                               <span>
                                 {currentUser.role === 'SUPER_ADMIN'
-                                  ? 'Quản trị'
-                                  : currentUser.role === 'CLUB_LEADER'
-                                  ? 'Chủ nhiệm CLB'
-                                  : 'Học sinh'}
+                                  ? 'Super Admin'
+                                  : currentUser.staffRole === 'TEACHER'
+                                    ? 'Giáo viên'
+                                    : currentUser.staffRole === 'MODERATOR'
+                                      ? 'Moderator'
+                                      : currentUser.role === 'CLUB_LEADER'
+                                        ? 'Trưởng CLB'
+                                        : 'Học sinh'}
                               </span>
                             </span>
 

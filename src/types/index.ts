@@ -254,6 +254,7 @@ export interface QAComment {
   commentableType: QACommentableType;
   commentableId: string;
   status: 'active' | 'hidden';
+  reactions?: QAReactions;
   createdAt: string;
   createdAtMs: number;
 }
@@ -294,6 +295,9 @@ export interface Question {
   createdAtMs?: number;
   isSolved: boolean;
   bestSolutionId?: string;
+  /** Ghim bằng reaction; độc lập với đáp án chuẩn/thưởng. */
+  teacherPinnedSolutionId?: string;
+  teacherPinnedByRole?: 'TEACHER' | 'SUPER_ADMIN';
   views: number;
   bountyCoin?: number;
   imageUrl?: string;

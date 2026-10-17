@@ -218,8 +218,8 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
               : currentUser.staffRole === 'TEACHER'
               ? 'GIÁO VIÊN'
               : currentUser.role === 'CLUB_LEADER'
-              ? 'LEADER'
-              : 'STUDENT'}
+              ? 'TRƯỞNG CLB'
+              : 'HỌC SINH'}
           </span>
         </div>
 

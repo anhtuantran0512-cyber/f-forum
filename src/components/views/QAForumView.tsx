@@ -12,6 +12,7 @@ import {
   Eye,
   MessageSquare,
   Award,
+  Pin,
   Sparkles,
   Send,
   EyeOff,
@@ -60,6 +61,7 @@ import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
 import { DecoratedAvatar, DecoratedName, UserNameplateBg } from '../decorations/DecoratedAvatar';
 import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
 import { capsHas, useAdminCaps } from '../../utils/adminCapabilities';
+import { canPinQASolution } from '../../utils/communityRoles';
 import { pushNotification } from '../../utils/notifications';
 import { safeStorage } from '../../utils/storage';
 import { effectiveCoinBalance, formatCoinBalance } from '../../utils/coinDisplay';
@@ -304,6 +306,14 @@ const MODERATION_REASON_OPTIONS: { code: ModerationReasonCode; label: string }[]
   { code: 'other', label: 'Lý do khác' },
 ];
 
+interface QAAISuggestion {
+  answer: string;
+  model: string;
+  providerName: string;
+  imageCount: number;
+  generatedAt: string;
+}
+
 const QUICK_REACTION_META: {
   type: QAReactionType;
   label: string;
@@ -391,10 +401,11 @@ const CommentThread: React.FC<{
   comments: QAComment[];
   currentUser: User | null;
   onSubmitComment?: (commentableType: QACommentableType, commentableId: string, content: string) => void | Promise<boolean>;
+  onReactComment?: (commentId: string, reactionType: QAReactionType) => void;
   onOpenLoginModal?: () => void;
   /** Nhiệm vụ 10 — sổ đăng ký user (/api/sync) để resolve trang trí của tác giả. */
   users?: Record<string, User>;
-}> = ({ commentableType, commentableId, comments, currentUser, onSubmitComment, onOpenLoginModal, users }) => {
+}> = ({ commentableType, commentableId, comments, currentUser, onSubmitComment, onReactComment, onOpenLoginModal, users }) => {
   const [expanded, setExpanded] = useState(false);
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -467,6 +478,16 @@ const CommentThread: React.FC<{
                     <span className="text-[10px] text-[#9a978e] font-mono">· {c.createdAt}</span>
                   </div>
                   <p className="text-[#f4f1de] text-xs mt-0.5 break-words leading-relaxed">{c.content}</p>
+                  <div className="mt-1.5">
+                    <QuickReactionRow
+                      reactions={c.reactions}
+                      currentUserEmail={currentUser?.email}
+                      onReact={(type) => {
+                        if (!currentUser) onOpenLoginModal?.();
+                        else onReactComment?.(c.id, type);
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             ))
@@ -517,6 +538,7 @@ interface QAForumViewProps {
   solutionRejection?: { questionId: string; feedback: string; reason: string; at: number } | null;
   onDismissSolutionRejection?: () => void;
   onAddComment?: (commentableType: QACommentableType, commentableId: string, content: string) => void | Promise<boolean>;
+  onReactComment?: (commentId: string, reactionType: QAReactionType) => void;
   onReactQuestion?: (questionId: string, reactionType: QAReactionType) => void;
   onReactSolution?: (solutionId: string, reactionType: QAReactionType) => void;
   onMarkBestSolution: (questionId: string, solutionId: string) => void;
@@ -668,6 +690,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
   solutionRejection = null,
   onDismissSolutionRejection,
   onAddComment,
+  onReactComment,
   onReactQuestion,
   onReactSolution,
   onMarkBestSolution,
@@ -698,6 +721,59 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     const sharedId = typeof window !== 'undefined' ? readSharedQuestionId(window.location.search) : null;
     return sharedId ? questions.find(item => item.id === sharedId) ?? null : null;
   });
+  const [aiAssistantState, setAiAssistantState] = useState<{
+    questionId: string;
+    suggestion: QAAISuggestion | null;
+    error: string;
+    loading: boolean;
+  }>({ questionId: '', suggestion: null, error: '', loading: false });
+  const aiQuestionId = selectedQuestion?.id || '';
+  const activeAiState = aiAssistantState.questionId === aiQuestionId
+    ? aiAssistantState
+    : { questionId: aiQuestionId, suggestion: null, error: '', loading: false };
+  const aiSuggestion = activeAiState.suggestion;
+  const aiSuggestionError = activeAiState.error;
+  const isAiSuggestionLoading = activeAiState.loading;
+  const aiRequestSequenceRef = useRef(0);
+  useEffect(() => {
+    aiRequestSequenceRef.current += 1;
+  }, [selectedQuestion?.id]);
+  const requestAiSuggestion = useCallback(async () => {
+    if (!selectedQuestion) return;
+    if (!currentUser) {
+      onOpenLoginModal?.();
+      return;
+    }
+    const questionId = selectedQuestion.id;
+    const requestSequence = ++aiRequestSequenceRef.current;
+    setAiAssistantState({ questionId, suggestion: null, error: '', loading: true });
+    try {
+      const { status, data } = await postJson(
+        `/api/questions/${encodeURIComponent(questionId)}/ai-suggestion`,
+        {},
+      );
+      if (requestSequence !== aiRequestSequenceRef.current) return;
+      if (status < 200 || status >= 300 || !data?.success || !data?.suggestion?.answer) {
+        setAiAssistantState((current) => current.questionId === questionId
+          ? { ...current, error: String(data?.message || 'Chưa tạo được gợi ý. Hãy thử lại sau.'), loading: false }
+          : current);
+        return;
+      }
+      setAiAssistantState((current) => current.questionId === questionId
+        ? { ...current, suggestion: data.suggestion as QAAISuggestion, error: '', loading: false }
+        : current);
+    } catch {
+      if (requestSequence === aiRequestSequenceRef.current) {
+        setAiAssistantState((current) => current.questionId === questionId
+          ? { ...current, error: 'Không kết nối được dịch vụ AI. Câu hỏi của bạn vẫn được giữ nguyên.', loading: false }
+          : current);
+      }
+    } finally {
+      setAiAssistantState((current) => current.questionId === questionId
+        ? { ...current, loading: false }
+        : current);
+    }
+  }, [currentUser, onOpenLoginModal, selectedQuestion]);
   /* Đồng bộ selectedQuestion mỗi khi danh sách questions cập nhật (ảnh đính kèm, lượt thích, đáp án chuẩn, chỉnh sửa) */
   if (selectedQuestion) {
     const latest = questions.find(item => item.id === selectedQuestion.id);
@@ -3165,6 +3241,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         comments={comments}
                         currentUser={currentUser}
                         onSubmitComment={onAddComment}
+                        onReactComment={onReactComment}
                         onOpenLoginModal={onOpenLoginModal}
                         users={users}
                       />
@@ -3266,6 +3343,15 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                     <span>Đáp án chuẩn (+{bestBonusCoin} Coin)</span>
                                   </span>
                                 )}
+                                {selectedQuestion.teacherPinnedSolutionId === sol.id && (
+                                  <span
+                                    className="px-2.5 py-1 rounded-lg bg-[#f2cc8f]/14 border border-[#f2cc8f]/40 text-[#f2cc8f] text-[11px] font-bold inline-flex items-center gap-1.5"
+                                    title="Ghim bằng reaction; không thay đổi đáp án chuẩn hay phần thưởng."
+                                  >
+                                    <Pin className="w-3 h-3" aria-hidden="true" />
+                                    <span>{selectedQuestion.teacherPinnedByRole === 'SUPER_ADMIN' ? 'BQT ghim' : 'Giáo viên ghim'}</span>
+                                  </span>
+                                )}
                                 {sol.status === 'review' && (
                                   <span
                                     className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-400/35 text-amber-200 text-[11px] font-semibold inline-flex items-center gap-1"
@@ -3309,17 +3395,24 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             )}
 
                             <div className="mt-3.5 pt-3 border-t border-white/[0.08] flex items-center justify-between flex-wrap gap-2.5">
-                              <QuickReactionRow
-                                reactions={sol.reactions}
-                                currentUserEmail={currentUser?.email}
-                                onReact={type => {
-                                  if (!currentUser) {
-                                    onOpenLoginModal?.();
-                                  } else {
-                                    onReactSolution?.(sol.id, type);
-                                  }
-                                }}
-                              />
+                              <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                <QuickReactionRow
+                                  reactions={sol.reactions}
+                                  currentUserEmail={currentUser?.email}
+                                  onReact={type => {
+                                    if (!currentUser) {
+                                      onOpenLoginModal?.();
+                                    } else {
+                                      onReactSolution?.(sol.id, type);
+                                    }
+                                  }}
+                                />
+                                {canPinQASolution(currentUser) && (
+                                  <span className="text-[10px] text-[#c5bba6]">
+                                    Reaction sẽ ghim / bỏ ghim lời giải.
+                                  </span>
+                                )}
+                              </div>
 
                               <div className="flex items-center gap-2 flex-wrap">
                                 <button
@@ -3376,6 +3469,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               comments={comments}
                               currentUser={currentUser}
                               onSubmitComment={onAddComment}
+                              onReactComment={onReactComment}
                               onOpenLoginModal={onOpenLoginModal}
                               users={users}
                             />
@@ -3528,6 +3622,64 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       <strong className="font-mono text-[#f4f1de]">{activeSolutions.length}/3 lời giải</strong>
                     </div>
                   </div>
+
+                  <section className="ff-bento-cell !p-5 space-y-3.5 border border-[#f2cc8f]/25" aria-label="Trợ lý AI gợi ý lời giải">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-extrabold text-[#f4f1de] flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-[#f2cc8f] shrink-0" aria-hidden="true" />
+                          <span>Gia sư AI</span>
+                        </h4>
+                        <p className="mt-1 text-[11px] text-[#bdb5a5] leading-relaxed">
+                          Gợi ý tham khảo, không phải đáp án đã xác minh.
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full border border-[#f2cc8f]/30 bg-[#f2cc8f]/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#f2cc8f]">
+                        AI
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => { void requestAiSuggestion(); }}
+                      disabled={isAiSuggestionLoading}
+                      className="ff-tactile-btn inline-flex w-full items-center justify-center gap-2 rounded-xl border-[1.5px] border-[#0b0d12] bg-[#f2cc8f] px-4 py-2.5 text-xs font-extrabold text-[#0b0d12] transition-colors hover:bg-[#f4f1de] disabled:cursor-wait disabled:opacity-60"
+                    >
+                      {isAiSuggestionLoading
+                        ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#0b0d12]/25 border-t-[#0b0d12]" aria-hidden="true" />
+                        : <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />}
+                      <span>{isAiSuggestionLoading ? 'Đang đọc đề…' : aiSuggestion ? 'Tạo gợi ý mới' : 'Xin gợi ý lời giải'}</span>
+                    </button>
+
+                    {aiSuggestionError && (
+                      <p role="status" className="rounded-lg border border-[#e07a5f]/30 bg-[#e07a5f]/10 px-3 py-2 text-xs leading-relaxed text-[#ffd7c8]">
+                        {aiSuggestionError}
+                      </p>
+                    )}
+
+                    {aiSuggestion && (
+                      <div className="space-y-2 rounded-xl border border-[#81b29a]/30 bg-[#81b29a]/[0.07] p-3.5">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-mono text-[#b9d7c4]">
+                          <span>{aiSuggestion.providerName}</span>
+                          <span aria-hidden="true">·</span>
+                          <span>{aiSuggestion.model}</span>
+                          {aiSuggestion.imageCount > 0 && (
+                            <span>· đã gửi {aiSuggestion.imageCount} ảnh</span>
+                          )}
+                        </div>
+                        <div className="max-h-[min(48vh,28rem)] overflow-y-auto pr-1 text-xs leading-[1.8] text-[#f4f1de] whitespace-pre-wrap break-words">
+                          {aiSuggestion.answer}
+                        </div>
+                        <p className="border-t border-[#81b29a]/20 pt-2 text-[10px] leading-relaxed text-[#b9d7c4]">
+                          Có thể sai hoặc thiếu dữ kiện. Hãy tự kiểm tra từng bước và hỏi giáo viên khi chưa chắc.
+                        </p>
+                      </div>
+                    )}
+
+                    <p className="text-[10px] leading-relaxed text-[#9a978e]">
+                      Chỉ khi bấm nút, nội dung câu hỏi và ảnh tải trực tiếp được mới gửi tới provider do quản trị viên cấu hình (tối đa 4 ảnh, 6 MiB; không tải URL ngoài). Tránh đưa thông tin cá nhân vào đề.
+                    </p>
+                  </section>
 
                   <div className="ff-bento-cell !p-5 space-y-3">
                     <h4 className="text-sm font-extrabold text-[#f4f1de] flex items-center gap-2">

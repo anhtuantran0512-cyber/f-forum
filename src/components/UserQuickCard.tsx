@@ -216,11 +216,17 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
               <span className="pc-12-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-semibold text-[#dbdee1]">
                 <span className="w-2 h-2 rounded-full bg-[#81b29a]" />
                 {user.role === 'SUPER_ADMIN'
-                  ? 'Quản trị'
+                  ? 'Super Admin'
                   : user.role === 'CLUB_LEADER'
-                  ? 'Chủ nhiệm CLB'
+                  ? 'Trưởng CLB'
                   : 'Học sinh'}
               </span>
+              {user.staffRole && (
+                <span className="pc-12-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] font-semibold text-[#dbdee1]">
+                  <span className={`w-2 h-2 rounded-full ${user.staffRole === 'TEACHER' ? 'bg-[#f2cc8f]' : 'bg-violet-400'}`} />
+                  {user.staffRole === 'TEACHER' ? 'Giáo viên' : 'Moderator'}
+                </span>
+              )}
               {(user.streakCount || 0) > 0 && (
                 <span className="pc-12-pill inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-semibold text-orange-300">
                   <Flame className="w-3 h-3 text-orange-400" />
