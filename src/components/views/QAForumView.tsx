@@ -2221,7 +2221,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
             }}
             className="ask2027-backdrop fixed inset-0 z-[130] flex items-center justify-center p-0 sm:p-5 animate-fade-up"
           >
-            <div className="modal-container ask2027-modal w-full h-full sm:h-auto sm:max-w-[860px] rounded-none sm:rounded-[28px] relative">
+            <div className="modal-container ask2027-modal ff-light-adapt w-full h-full sm:h-auto sm:max-w-[860px] rounded-none sm:rounded-[28px] relative">
               {/* Background Mesh Gradient Layer (Calm Academic Library) */}
               <div className="ask2027-mesh-layer" aria-hidden="true">
                 <div className="ask2027-mesh-blob-cyan" />
@@ -2926,7 +2926,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           <div
             role="region"
             aria-label="Trang chi tiết câu hỏi"
-            className="ff-qa-detail fixed inset-0 z-[75] w-screen h-[100dvh] overflow-hidden bg-[#0b0d12] ff-raw-grid-surface animate-fade-up flex flex-col"
+            className="ff-qa-detail ff-light-adapt fixed inset-0 z-[75] w-screen h-[100dvh] overflow-hidden bg-[#0b0d12] ff-raw-grid-surface animate-fade-up flex flex-col"
           >
             {/* Thanh tiến trình đọc 2px trên cùng */}
             <div
