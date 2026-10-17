@@ -6491,4 +6491,160 @@ html.light[data-render-mode="low-poly"] .liquid-glass {
   background-color: rgba(248, 250, 252, 0.97) !important;
 }
 
+/* ============================================================================
 
+/* ============================================================================
+   Nhiemvu_12 · Đợt 1 — Biến thể SÁNG cho modal "Đặt câu hỏi" (ask2027).
+   Hệ ask2027 được chốt trong forumDesignSystem.css (brutalist tối, !important,
+   nạp SAU index.css) nên block này dùng html.light + !important, đặt ở cuối
+   index.css (sau khối generated) để thắng fds (specificity thấp hơn) và thắng
+   adapter khi đồng hạng (cùng file, đứng sau). Chế độ tối không đổi.
+   ============================================================================ */
+html.light .ask2027-modal {
+  background: linear-gradient(165deg, #fffdf8 0%, #fbf7ee 55%, #f4ecdc 100%) !important;
+  border-color: rgba(75, 64, 45, 0.18) !important;
+  box-shadow:
+    0 24px 60px -24px rgba(68, 52, 28, 0.32),
+    0 8px 22px rgba(55, 43, 27, 0.1),
+    inset 0 1px 0 #ffffff !important;
+  color: #302c24 !important;
+}
+html.light .ask2027-backdrop {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(224, 122, 95, 0.1), transparent 46%),
+    radial-gradient(circle at 82% 82%, rgba(129, 178, 154, 0.12), transparent 48%),
+    rgba(38, 32, 22, 0.46) !important;
+}
+html.light .ask2027-mesh-blob-cyan {
+  background: radial-gradient(circle, rgba(233, 196, 106, 0.2) 0%, transparent 70%) !important;
+}
+html.light .ask2027-mesh-blob-purple {
+  background: radial-gradient(circle, rgba(129, 178, 154, 0.2) 0%, transparent 70%) !important;
+}
+html.light .ask2027-title-gradient {
+  background: linear-gradient(92deg, #3b2f1d 0%, #b45309 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+html.light .ask2027-card-section {
+  background: rgba(255, 255, 255, 0.55) !important;
+  border-color: rgba(75, 64, 45, 0.15) !important;
+  box-shadow:
+    0 10px 26px -18px rgba(68, 52, 28, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+html.light .ask2027-section-divider {
+  background: rgba(75, 64, 45, 0.14) !important;
+}
+html.light .ask2027-field-shell {
+  background: #fffdf8 !important;
+  border-color: rgba(75, 64, 45, 0.2) !important;
+  box-shadow: inset 0 2px 4px rgba(120, 100, 66, 0.15) !important;
+}
+html.light .ask2027-field-shell:hover {
+  border-color: rgba(224, 122, 95, 0.55) !important;
+  background: #ffffff !important;
+}
+html.light .ask2027-field-shell:focus-within {
+  border-color: rgba(224, 122, 95, 0.62) !important;
+  background: #ffffff !important;
+  box-shadow:
+    0 0 0 2px rgba(224, 122, 95, 0.16),
+    inset 0 2px 4px rgba(120, 100, 66, 0.1) !important;
+}
+html.light .ask2027-close-btn {
+  background: rgba(255, 255, 255, 0.72) !important;
+  border-color: rgba(75, 64, 45, 0.18) !important;
+  box-shadow: inset 0 1px 0 #ffffff, 0 6px 16px rgba(68, 52, 28, 0.16) !important;
+  color: #57503f !important;
+}
+html.light .ask2027-close-btn:hover {
+  background: rgba(224, 122, 95, 0.14) !important;
+  border-color: rgba(224, 122, 95, 0.55) !important;
+  box-shadow: 0 10px 22px rgba(224, 122, 95, 0.2), inset 0 1px 0 #ffffff !important;
+  color: #8a4a12 !important;
+}
+html.light .ask2027-submit-btn {
+  color: #2b1d10 !important;
+  border-color: #fdfaf2 !important;
+  box-shadow: 3px 3px 0px rgba(120, 100, 66, 0.35) !important;
+}
+html.light .ask2027-submit-btn:hover:not(:disabled) {
+  box-shadow: 4px 4px 0px rgba(120, 100, 66, 0.4) !important;
+}
+html.light .ask2027-submit-btn:active:not(:disabled) {
+  box-shadow: 1px 1px 0px rgba(120, 100, 66, 0.4) !important;
+}
+html.light .ask2027-ghost-btn {
+  background: rgba(60, 48, 28, 0.06) !important;
+  border-color: rgba(75, 64, 45, 0.18) !important;
+  color: #57503f !important;
+  box-shadow: 2px 2px 0px rgba(120, 100, 66, 0.25) !important;
+}
+html.light .ask2027-ghost-btn:hover {
+  background: rgba(60, 48, 28, 0.1) !important;
+  border-color: rgba(224, 122, 95, 0.5) !important;
+  color: #302c24 !important;
+}
+html.light .ask2027-sym-btn {
+  background: #fffdf8 !important;
+  border-color: rgba(75, 64, 45, 0.16) !important;
+  color: #3a3226 !important;
+  box-shadow: 2px 2px 0px rgba(120, 100, 66, 0.25) !important;
+}
+html.light .ask2027-sym-btn:hover,
+html.light .ask2027-sym-btn:focus-visible {
+  border-color: rgba(224, 122, 95, 0.6) !important;
+  background: rgba(224, 122, 95, 0.14) !important;
+  color: #8a4a12 !important;
+  box-shadow: 3px 3px 0px rgba(120, 100, 66, 0.3) !important;
+}
+html.light .ask2027-sym-tooltip {
+  background: linear-gradient(135deg, #fffdf8 0%, #f7f3e9 100%) !important;
+  border-color: rgba(224, 122, 95, 0.5) !important;
+  box-shadow: 0 8px 20px rgba(68, 52, 28, 0.28) !important;
+  color: #302c24 !important;
+}
+html.light .ask2027-scrollbar::-webkit-scrollbar-track {
+  background: rgba(75, 64, 45, 0.07) !important;
+}
+html.light .ask2027-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #d8a45a, #a9772e) !important;
+}
+html.light .ask2027-dropzone {
+  background:
+    radial-gradient(80% 90% at 50% 0%, rgba(224, 122, 95, 0.08), transparent 70%),
+    rgba(255, 255, 255, 0.5) !important;
+  border-color: rgba(224, 122, 95, 0.42) !important;
+}
+html.light .ask2027-dropzone:hover,
+html.light .ask2027-dropzone.is-dragging {
+  border-color: #d96f52 !important;
+  background:
+    radial-gradient(85% 95% at 50% 50%, rgba(224, 122, 95, 0.14), rgba(129, 178, 154, 0.1)),
+    rgba(255, 255, 255, 0.6) !important;
+  box-shadow:
+    0 0 24px rgba(224, 122, 95, 0.2),
+    inset 0 0 18px rgba(129, 178, 154, 0.12) !important;
+}
+html.light .ask2027-coin-badge {
+  background: linear-gradient(135deg, rgba(233, 196, 106, 0.3) 0%, rgba(224, 122, 95, 0.24) 100%) !important;
+  border-color: rgba(176, 130, 40, 0.5) !important;
+  box-shadow: 0 4px 14px rgba(176, 130, 40, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Fallback hiệu năng chế độ sáng: bù .obsidian-glass khi tắt blur (mọi nguồn fallback) */
+html.light[data-quality-tier="tier-c"] .obsidian-glass,
+html.light[data-battery-saver="true"] .obsidian-glass,
+html.light[data-postprocess="off"] .obsidian-glass,
+html.light[data-render-mode="low-poly"] .obsidian-glass {
+  background-color: rgba(241, 245, 249, 0.98) !important;
+  border-color: rgba(35, 32, 26, 0.1) !important;
+}
+
+/* Bù viền sáng cho .liquid-glass ở postprocess/low-poly (đã có nền kem, thiếu viền) */
+html.light[data-postprocess="off"] .liquid-glass,
+html.light[data-render-mode="low-poly"] .liquid-glass {
+  border-color: rgba(35, 32, 26, 0.1) !important;
+}
