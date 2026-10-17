@@ -1300,6 +1300,7 @@ button:not(:disabled):active {
   font-size: 1.24em;
   line-height: 0.92;
   letter-spacing: -0.02em;
+  text-transform: none;
   padding-right: 0.04em;
   color: #f6d58e;
   background: linear-gradient(135deg, #fff8e7 0%, #f2cc8f 48%, #e07a5f 100%);
@@ -1322,6 +1323,13 @@ html.light .ff-swash-cap {
   background-clip: text;
 }
 
+html.light :is(.ff-keep-dark, .signature-profile) .ff-swash-cap {
+  color: #f6d58e;
+  background: linear-gradient(135deg, #fff8e7 0%, #f2cc8f 48%, #e07a5f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
 .ff-calligraphic-word {
   position: relative;
   display: inline-flex;
@@ -1330,6 +1338,7 @@ html.light .ff-swash-cap {
   font-style: italic;
   font-weight: 700;
   letter-spacing: 0.01em;
+  text-transform: none;
 }
 
 .ff-swash-flourish {

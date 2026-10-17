@@ -6,7 +6,6 @@ import {
   Volume2,
 
   Timer,
-  Sparkles,
   Zap,
   Move,
   Trash2,
@@ -24,6 +23,7 @@ import {
   LogOut,
   Rocket,
 } from 'lucide-react';
+import { Sparkles as GhibliSparkleIcon } from './ui/CozyGhibliIcons';
 import { GODRAY_PRESETS } from '../utils/godrays';
 import { resolveGodrayId, resolvePotatorId } from '../utils/gradients';
 import { DARK_GRADIENT_PRESETS, resolveDarkGradientId } from '../utils/darkGradients';
@@ -583,7 +583,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <>
               {/* 1. THEME */}
               <section>
-                <SectionTitle icon={<Sparkles className="w-3 h-3 text-amber-300" />}>Theme</SectionTitle>
+                <SectionTitle icon={<GhibliSparkleIcon className="w-3 h-3 text-amber-300" />}>Theme</SectionTitle>
                 <Card className="flex items-center justify-between gap-3 group">
                   <div className="flex-1 min-w-0 pr-1">
                     <div className="flex items-center gap-1.5">
@@ -731,11 +731,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* 2. CHẾ ĐỘ TRẢI NGHIỆM: FABULOUS & POTATOR CẠNH NHAU */}
               <section aria-label="Chế độ hiệu ứng">
-                <SectionTitle icon={<Sparkles className="w-3 h-3 text-violet-300" />}>Chế độ hiệu ứng &amp; hiệu năng</SectionTitle>
+                <SectionTitle icon={<GhibliSparkleIcon className="w-3 h-3 text-violet-300" />}>Chế độ hiệu ứng &amp; hiệu năng</SectionTitle>
                 <div className="grid grid-cols-2 gap-2">
                   <Card className="!p-2.5">
                     <SwitchRow
-                      icon={<Sparkles className="w-3.5 h-3.5 text-violet-300" />}
+                      icon={<GhibliSparkleIcon className="w-3.5 h-3.5 text-violet-300" />}
                       title="Fabulous"
                       on={fabulousMode}
                       onToggle={() => onToggleFabulousMode?.()}
@@ -836,7 +836,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* 4. HIỂN THỊ & KÍNH MỜ */}
               <section>
-                <SectionTitle icon={<Sparkles className="w-3 h-3 text-[#f2cc8f]" />}>Chữ &amp; độ trong kính</SectionTitle>
+                <SectionTitle icon={<GhibliSparkleIcon className="w-3 h-3 text-[#f2cc8f]" />}>Chữ &amp; độ trong kính</SectionTitle>
                 <Card className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2 justify-center">
                     <span className="text-[10px] font-semibold text-white/70">Cỡ chữ hệ thống</span>
@@ -977,28 +977,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <section>
                 <SectionTitle icon={<Zap className="w-3 h-3 text-amber-300" />}>Chuyển động &amp; âm thanh</SectionTitle>
                 <Card className="flex flex-col gap-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <SwitchRow
-                      icon={<Sparkles className="w-3.5 h-3.5 text-violet-300" />}
-                      title="Fabulous"
-                      on={fabulousMode}
-                      onToggle={() => onToggleFabulousMode?.()}
-                      color="bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.55)]"
-                    />
-                    <SwitchRow
-                      icon={
-                        <svg className="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M12 2a9 9 0 0 0-9 9c0 4 3 8 7 10 1.5.7 3.5.7 5 0 4-2 7-6 7-10a9 9 0 0 0-10-9z" />
-                          <circle cx="10" cy="9" r="1" fill="currentColor" />
-                          <circle cx="14" cy="13" r="1" fill="currentColor" />
-                        </svg>
-                      }
-                      title="Potator Mode"
-                      on={potatorMode}
-                      onToggle={() => onTogglePotatorMode?.()}
-                      color="bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"
-                    />
-                  </div>
                   <SwitchRow
                     icon={<Volume2 className="w-3.5 h-3.5 text-amber-400" />}
                     title="Hiệu ứng âm thanh"

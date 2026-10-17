@@ -933,7 +933,12 @@ const ProfileModalInner: React.FC<{
     }));
   }, [currentUser.level, userSolutions]);
 
-  const profileProximity = useProfileProximityEffect<HTMLDivElement>(true, 96);
+  const overviewCoverRef = useRef<HTMLDivElement>(null);
+  const profileProximity = useProfileProximityEffect<HTMLDivElement>(
+    overviewCoverRef,
+    !isBooting && activeTab === 'overview',
+    96,
+  );
 
   return (
     <div
@@ -963,7 +968,7 @@ const ProfileModalInner: React.FC<{
             <span className="profile-modal-status-dot w-2.5 h-2.5 rounded-full bg-[#81b29a]" aria-hidden="true" />
             <div className="min-w-0">
               <span className="profile-modal-kicker flex items-center gap-1">
-                <span className="ff-swash-cap text-xs">F</span>·FORUM / SỔ TAY HỌC THUẬT
+                <span className="ff-swash-cap text-xs">Hồ sơ</span> thành viên
               </span>
               <div className="flex items-center gap-2">
                 <h2 id="profile-modal-title" className="profile-modal-name text-sm sm:text-base font-extrabold text-[#f8f7f4] tracking-wide truncate">
@@ -1139,7 +1144,7 @@ const ProfileModalInner: React.FC<{
           {!isBooting && activeTab === 'overview' && (
             <div className="space-y-4 ff-tab-panel-enter">
               <div
-                ref={profileProximity.ref}
+                ref={overviewCoverRef}
                 data-profile-active={profileProximity.dataProfileActive}
                 onPointerEnter={profileProximity.onPointerEnter}
                 onPointerLeave={profileProximity.onPointerLeave}

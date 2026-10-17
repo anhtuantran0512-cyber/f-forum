@@ -1587,9 +1587,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   >
                     {questions.length} câu · {questions.filter(q => q.isSolved).length} giải
                   </span>
-                  <span className="ff-atelier-ribbon hidden sm:inline-flex !py-0.5 !px-2.5 !text-[10px]">
-                    Hỏi cho tỏ, học cho thông.
-                  </span>
                 </div>
                 <svg className="w-28 h-2 mt-0.5 ff-organic-squiggle" viewBox="0 0 140 8" aria-hidden="true">
                   <path d="M2 5 C28 1, 56 8, 84 4 S118 1, 138 5" />
@@ -2273,9 +2270,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     <h3 className="font-bold text-lg sm:text-[22px] leading-tight tracking-tight ask2027-title-gradient truncate">
                       <span className="ff-swash-cap text-xl">Đ</span>ặt câu hỏi
                     </h3>
-                    <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8.5px] hidden sm:inline-flex">
-                      Nêu rõ điều mình vướng.
-                    </span>
                   </div>
                 </div>
 
@@ -2961,8 +2955,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 </button>
 
                 <span className="h-5 w-px bg-[#f4f1de]/15 hidden sm:block" aria-hidden="true" />
-                <span className="ff-atelier-ribbon !py-0.2 !px-1.5 !text-[8px] hidden md:inline-flex">
-                </span>
 
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
                   <span className={`ff-brutal-tag ${getSubjectBadgeStyle(selectedQuestion.subject)}`}>

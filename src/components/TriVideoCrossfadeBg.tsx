@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { handleVideoError } from '../utils/mediaFallback';
 import { LOW_FPS_PLAYBACK_RATE, TRI_CHAT_VIDEOS, toWebmVideoUrl } from '../utils/chatVideos';
+import { useReducedMotion } from './decorations/useDecorationMedia';
 
 /** Thời lượng pha mờ dần giữa hai video (khớp duration-[1400ms] bên dưới). */
 const FADE_MS = 1400;
@@ -20,6 +21,7 @@ export const TriVideoCrossfadeBg: React.FC<TriVideoCrossfadeBgProps> = ({
   const [internalIdx, setInternalIdx] = useState(0);
   const isControlled = controlledIdx !== undefined;
   const currentIdx = isControlled ? controlledIdx : internalIdx;
+  const reducedMotion = useReducedMotion();
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
   const bindVideo = (idx: number) => (el: HTMLVideoElement | null) => {
     videoRefs.current[idx] = el;
@@ -34,6 +36,12 @@ export const TriVideoCrossfadeBg: React.FC<TriVideoCrossfadeBgProps> = ({
   */
   useEffect(() => {
     const videos = videoRefs.current;
+    if (reducedMotion) {
+      videos.forEach((video) => {
+        if (video && !video.paused) video.pause();
+      });
+      return;
+    }
     const current = videos[currentIdx];
     if (current && current.dataset.ffSuspended !== '1') {
       if (current.readyState < 2) current.load();
@@ -45,9 +53,10 @@ export const TriVideoCrossfadeBg: React.FC<TriVideoCrossfadeBgProps> = ({
       });
     }, FADE_MS + 200);
     return () => window.clearTimeout(timer);
-  }, [currentIdx]);
+  }, [currentIdx, reducedMotion]);
 
   useEffect(() => {
+    if (reducedMotion) return;
     const onVisibility = () => {
       const current = videoRefs.current[currentIdx];
       if (!current) return;
@@ -71,34 +80,37 @@ export const TriVideoCrossfadeBg: React.FC<TriVideoCrossfadeBgProps> = ({
       clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [currentIdx, isControlled, onIdxChange, cycleIntervalMs]);
+  }, [currentIdx, isControlled, onIdxChange, cycleIntervalMs, reducedMotion]);
 
   return (
     <div className="ff-video-bg z-0 absolute inset-0 pointer-events-none overflow-hidden select-none">
-      {TRI_CHAT_VIDEOS.map((v, idx) => (
-        <video
-          key={v.id}
-          ref={bindVideo(idx)}
-          autoPlay={idx === currentIdx}
-          loop
-          muted
-          playsInline
-          preload={idx === currentIdx ? 'metadata' : 'none'}
-          data-ff-idle={idx === currentIdx ? undefined : '1'}
-          onError={(e) => handleVideoError(e, v.url)}
-          onLoadedMetadata={(e) => {
-            e.currentTarget.playbackRate = LOW_FPS_PLAYBACK_RATE;
-          }}
-          className={`absolute inset-0 w-full h-full object-cover scale-[1.04] blur-[3px] transition-opacity duration-[1400ms] ease-in-out ${
-            currentIdx === idx ? 'opacity-100' : 'opacity-0'
-          }`}
-        >
-          {toWebmVideoUrl(v.url) ? (
-            <source src={toWebmVideoUrl(v.url)!} type="video/webm" />
-          ) : null}
-          <source src={v.url} type="video/mp4" />
-        </video>
-      ))}
+      {TRI_CHAT_VIDEOS.map((v, idx) => {
+        const webmUrl = toWebmVideoUrl(v.url);
+        return (
+          <video
+            key={v.id}
+            ref={bindVideo(idx)}
+            autoPlay={idx === currentIdx}
+            loop
+            muted
+            playsInline
+            preload={idx === currentIdx ? 'metadata' : 'none'}
+            data-ff-idle={idx === currentIdx ? undefined : '1'}
+            onError={(e) => handleVideoError(e, v.url)}
+            onLoadedMetadata={(e) => {
+              e.currentTarget.playbackRate = LOW_FPS_PLAYBACK_RATE;
+            }}
+            className={`absolute inset-0 w-full h-full object-cover scale-[1.04] ${webmUrl ? '' : 'blur-[3px]'} transition-opacity duration-[1400ms] ease-in-out ${
+              currentIdx === idx ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            {webmUrl ? (
+              <source src={webmUrl} type="video/webm" />
+            ) : null}
+            <source src={v.url} type="video/mp4" />
+          </video>
+        );
+      })}
       {/* Semi-transparent dark wash allowing video to shine through */}
       <div className="absolute inset-0 bg-black/50" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/60" />

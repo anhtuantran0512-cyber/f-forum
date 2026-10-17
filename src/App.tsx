@@ -58,6 +58,7 @@ import { SecurityNoticeToast } from './components/ConsoleBlocker';
 import { PotatoSuggestion } from './components/system/PotatoSuggestion';
 import { installDelighters } from './utils/delighters';
 import { useConsoleProtection, useDevToolsDetection, useRightClickBlock } from './security/devtoolsGuard';
+import { useReducedMotion } from './components/decorations/useDecorationMedia';
 import { rafThrottle } from './utils/rafThrottle';
 
 const AdminInsightsModal = lazyWithRetry(() => import('./components/AdminInsightsModal').then(m => ({ default: m.AdminInsightsModal })));
@@ -399,6 +400,8 @@ export const App: React.FC = () => {
     observer.observe(root, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
   }, []);
+
+  const reducedMotion = useReducedMotion();
 
   /* Tạm dừng các video nền (đã bị CSS ẩn) khi Potator Mode bật ở trang không
      phải Trang chủ — và phát lại khi tắt / về Trang chủ. Phim intro một lần ở
@@ -1052,9 +1055,14 @@ export const App: React.FC = () => {
         <div className="layer-base-color" aria-hidden="true" />
         <div className="layer-gradient-aura" aria-hidden="true">
           <div className="aura-blob aura-blob-1" />
-          {fabulousMode && !potatorMode ? (
+          {fabulousMode && !potatorMode && !reducedMotion ? (
             <div className="ff-fabulous-stage" aria-hidden="true">
-              {currentView !== 'home' && currentView !== 'landing' && !isLightTheme ? (
+              {currentView !== 'home' &&
+              currentView !== 'landing' &&
+              currentView !== 'coming-soon' &&
+              currentView !== 'memory' &&
+              currentView !== 'chronicles' &&
+              !isLightTheme ? (
                 <Suspense fallback={null}>
                   <TriVideoCrossfadeBg cycleIntervalMs={14000} />
                 </Suspense>
