@@ -220,7 +220,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({
         aria-modal="true"
         aria-label="Trung tâm thông báo"
         className={`z-[70] modal-container liquid-glass p-4 pointer-events-auto select-none popover-morph-enter ${
-          !anchorRef || !pop.ready ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] max-w-[calc(100vw-28px)]' : ''
+          !anchorRef || !pop.ready ? 'fixed top-[calc(54px+var(--safe-top,0px)+8px)] left-3 right-3 w-auto max-w-none max-h-[calc(100dvh-var(--safe-top,0px)-134px)]' : ''
         }`}
         style={anchorRef ? pop.style : undefined}
         onClick={(e) => {
