@@ -7,6 +7,7 @@ import { TierBadge, AdminVerifiedBadge } from './Badges10Tier';
 import { useUserDecorations } from '../utils/decorationStore';
 import { AvatarWithDecoration } from './decorations/AvatarWithDecoration';
 import { DecoratedName, UserNameplateBg } from './decorations/DecoratedAvatar';
+import { useProfileProximityEffect } from './decorations/useDecorationMedia';
 import { RoleMark } from './RoleMark';
 import { getTierForLevel } from '../utils/tier';
 import { getXPForLevel } from '../store/forumStore';
@@ -37,6 +38,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
   anchorRef,
 }) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const profileProximity = useProfileProximityEffect<HTMLDivElement>(isOpen, 76);
   const pop = usePopoverPosition(isOpen, anchorRef, dockPosition, 340, 540);
 
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -127,10 +129,19 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
 
   return (
     <div
-      ref={dropdownRef}
+      ref={(node) => {
+        dropdownRef.current = node;
+        profileProximity.ref.current = node;
+      }}
       role="menu"
       aria-label="Menu tài khoản"
-      className={`z-[70] bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] popover-morph-enter select-none pointer-events-auto overflow-y-auto no-scrollbar ${
+      data-profile-active={profileProximity.dataProfileActive}
+      onPointerEnter={profileProximity.onPointerEnter}
+      onPointerLeave={profileProximity.onPointerLeave}
+      onFocusCapture={profileProximity.onFocusCapture}
+      onBlurCapture={profileProximity.onBlurCapture}
+      onTouchStart={profileProximity.onTouchStart}
+      className={`ff-profile-surface z-[70] bg-[#0c1218]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] popover-morph-enter select-none pointer-events-auto overflow-y-auto no-scrollbar ${
         !anchorRef || !pop.ready ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] max-w-[calc(100vw-28px)]' : ''
       }`}
       style={anchorRef ? pop.style : undefined}
@@ -143,7 +154,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
             user={currentUser}
             width={308}
             eager
-            animate
+            animate={profileProximity.isActive}
             priority="high"
           />
           <div className="relative z-[2] shrink-0">
@@ -156,7 +167,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
                 auraAsset={dropdownAuraAsset}
                 size={44}
                 eager
-                animate
+                animate={profileProximity.isActive}
                 className="rounded-full ring-2 ring-amber-400/50 shadow-md"
                 alt={currentUser.name}
               />
@@ -184,7 +195,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({
                 width={168}
                 height={34}
                 eager
-                animate
+                animate={profileProximity.isActive}
                 priority="high"
                 showFallbackTag
                 className="min-w-0 shrink"

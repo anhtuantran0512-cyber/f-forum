@@ -2,12 +2,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Send,
-  Hash,
-  Users,
-  HelpCircle,
-  Heart,
-  Shield,
   Trash2,
   MessageSquareDashed,
   X,
@@ -20,6 +14,14 @@ import {
   PanelRight,
   LoaderCircle,
 } from 'lucide-react';
+import {
+  Send,
+  Hash,
+  Users,
+  HelpCircle,
+  Heart,
+  Shield,
+} from '../ui/CozyGhibliIcons';
 import type { ChatChannelId, ChatMessage, User, OnlinePresenceUser } from '../../types';
 import { TierBadge } from '../Badges10Tier';
 import { ChatMentionPicker } from '../chat/ChatMentionPicker';
@@ -432,11 +434,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     <button
                       type="button"
                       onClick={() => onDeleteMessage?.(msg.id)}
-                      className="px-2 py-1 text-rose-300 hover:text-rose-200 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 cursor-pointer inline-flex items-center gap-1"
+                      className="ff-icon-button ff-chat-action-button rounded-lg text-rose-300 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 cursor-pointer"
                       title="Thu hồi tin nhắn vi phạm"
+                      aria-label="Thu hồi tin nhắn"
                     >
-                      <Trash2 className="w-3 h-3" />
-                      <span className="text-[10px] font-medium">Thu hồi tin nhắn</span>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span className="sr-only">Thu hồi tin nhắn</span>
                     </button>
                   )}
                 </div>

@@ -14,10 +14,15 @@ export const COMING_SOON_VIDEO_URL = `${CDN}hf_20260314_131748_f2ca2a28-fed7-44c
   .mp4→.webm như trước đây chỉ sinh request hỏng và, qua onError nổi bọt của
   <source>, làm ẩn luôn video → màn hình đen. MP4 gốc vẫn giữ làm nguồn dự phòng.
 */
+const WATER_WAVE_VIDEO_URL = `${CDN}hf_20260629_030107_874273ea-684a-4e90-bb96-8fdfde48d53d.mp4`;
+const GRIDWAVE_VIDEO_URL = `${CDN}hf_20260629_032424_3c9c2a9d-807b-4482-80e6-dd6d9dfd4545.mp4`;
+
 const LOCAL_WEBM: Record<string, string> = {
   [HOME_HERO_VIDEO_URL]: '/assets/video/home-hero.webm',
   [LIGHT_TUNNEL_VIDEO_URL]: '/assets/video/light-tunnel.webm',
   [COMING_SOON_VIDEO_URL]: '/assets/video/coming-soon.webm',
+  [WATER_WAVE_VIDEO_URL]: '/assets/video/light-tunnel.webm',
+  [GRIDWAVE_VIDEO_URL]: '/assets/video/home-hero.webm',
 };
 
 export const toWebmVideoUrl = (url: string): string | null => LOCAL_WEBM[url] ?? null;
@@ -28,17 +33,17 @@ export const isPreBlurredSource = (currentSrc: string): boolean => currentSrc.en
 export const TRI_CHAT_VIDEOS = [
   {
     id: 0,
-    label: '01 / WATER WAVE',
-    url: `${CDN}hf_20260629_030107_874273ea-684a-4e90-bb96-8fdfde48d53d.mp4`,
+    label: '01 / LIGHT TUNNEL',
+    url: LIGHT_TUNNEL_VIDEO_URL,
   },
   {
     id: 1,
-    label: '02 / GRIDWAVE',
-    url: `${CDN}hf_20260629_032424_3c9c2a9d-807b-4482-80e6-dd6d9dfd4545.mp4`,
+    label: '02 / WATER WAVE',
+    url: WATER_WAVE_VIDEO_URL,
   },
   {
     id: 2,
-    label: '03 / LIGHT TUNNEL',
-    url: LIGHT_TUNNEL_VIDEO_URL,
+    label: '03 / GRIDWAVE',
+    url: GRIDWAVE_VIDEO_URL,
   },
 ];

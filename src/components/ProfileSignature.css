@@ -997,3 +997,34 @@ html.reduce-motion .profile-cover-preset,
 html.reduce-motion .profile-gender-choice {
   transition: none;
 }
+
+.ff-profile-surface[data-profile-active="false"] :is(
+  .mythic-particle,
+  .signature-emblem,
+  .discord-admin-name,
+  .avd-layer--anim,
+  .npd-layer--anim,
+  .ff-discord-np-layer__media
+) {
+  animation-play-state: paused !important;
+}
+
+.ff-profile-surface[data-profile-active="false"] .mythic-particle {
+  opacity: 0.28;
+  transition: opacity 280ms ease;
+}
+
+.ff-profile-surface[data-profile-active="true"] .mythic-particle {
+  opacity: 1;
+  transition: opacity 280ms ease;
+}
+
+.profile-overview-cover.ff-profile-surface {
+  transition: border-color 260ms ease, box-shadow 260ms ease;
+}
+
+.profile-overview-cover.ff-profile-surface[data-profile-active="true"],
+article.ff-profile-surface[data-profile-active="true"] {
+  border-color: rgba(242, 204, 143, 0.34) !important;
+  box-shadow: 0 22px 54px -18px rgba(0, 0, 0, 0.72), 0 0 28px rgba(242, 204, 143, 0.12), inset 0 1px 0 rgba(255, 250, 234, 0.14) !important;
+}

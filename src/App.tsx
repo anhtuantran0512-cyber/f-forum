@@ -79,6 +79,7 @@ const AuthModal = lazyWithRetry(() => import('./components/AuthModal').then(m =>
 const ReportInboxModal = lazyWithRetry(() => import('./components/ReportInboxModal').then(m => ({ default: m.ReportInboxModal })));
 const AdminConsoleModal = lazyWithRetry(() => import('./components/AdminConsoleModal').then(m => ({ default: m.AdminConsoleModal })));
 const RoleBadge = lazyWithRetry(() => import('./components/RoleBadge').then(m => ({ default: m.RoleBadge })));
+const TriVideoCrossfadeBg = lazyWithRetry(() => import('./components/TriVideoCrossfadeBg').then(m => ({ default: m.TriVideoCrossfadeBg })));
 
 const ViewLoadingFallback: React.FC<{ targetLabel?: string }> = ({ targetLabel }) => (
   <div className="w-full h-full min-h-[50vh] flex items-center justify-center" aria-busy="true" aria-label={`Đang tải ${targetLabel || 'giao diện'}`}>
@@ -367,6 +368,23 @@ export const App: React.FC = () => {
     };
     window.addEventListener('fforum_potator_sync', handlePotatorSync);
     return () => window.removeEventListener('fforum_potator_sync', handlePotatorSync);
+  }, []);
+
+  const [fabulousMode, setFabulousMode] = useState<boolean>(() => {
+    return safeStorage.getItem('fforum_fabulous_mode') === 'true';
+  });
+
+  useEffect(() => {
+    const handleFabulousSync = (e: Event) => {
+      const detail = (e as CustomEvent<{ enabled?: boolean }>).detail;
+      if (typeof detail?.enabled === 'boolean') {
+        setFabulousMode(detail.enabled);
+      } else {
+        setFabulousMode(safeStorage.getItem('fforum_fabulous_mode') === 'true');
+      }
+    };
+    window.addEventListener('fforum_fabulous_sync', handleFabulousSync);
+    return () => window.removeEventListener('fforum_fabulous_sync', handleFabulousSync);
   }, []);
 
   /* Light Mode: Navbar bật/tắt class `light` trên <html>. Theo dõi để tạm dừng các
@@ -1034,6 +1052,18 @@ export const App: React.FC = () => {
         <div className="layer-base-color" aria-hidden="true" />
         <div className="layer-gradient-aura" aria-hidden="true">
           <div className="aura-blob aura-blob-1" />
+          {fabulousMode && !potatorMode ? (
+            <div className="ff-fabulous-stage" aria-hidden="true">
+              {currentView !== 'home' && currentView !== 'landing' && !isLightTheme ? (
+                <Suspense fallback={null}>
+                  <TriVideoCrossfadeBg cycleIntervalMs={14000} />
+                </Suspense>
+              ) : null}
+              <div className="ff-fabulous-aurora" />
+              <div className="ff-fabulous-beam" />
+              <div className="ff-fabulous-prism" />
+            </div>
+          ) : null}
           {/* EPIC 2 — Potator Mode: lớp nền tĩnh theo preset (CSS chỉ hiện ở trang không phải Trang chủ) */}
           {potatorMode ? (
             <GradientSurface gradient={getGradient(potatorBg).css} className="ff-potator-bg" />

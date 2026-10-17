@@ -9,6 +9,7 @@ import { effectiveCoinBalance, formatCoinBalance } from '../utils/coinDisplay';
 import { PremiumMark } from './PremiumMark';
 import { isMasterAdmin } from '../config/admin';
 import { DecoratedAvatar, DecoratedName, UserNameplateBg } from './decorations/DecoratedAvatar';
+import { useProfileProximityEffect } from './decorations/useDecorationMedia';
 import { parseBannerUrl, bannerImageStyle, DEFAULT_PROFILE_BANNER_URL } from '../utils/bannerLayout';
 import { RoleMark } from './RoleMark';
 
@@ -34,6 +35,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
   solutions = [],
 }) => {
   const [note, setNote] = useState('');
+  const profileProximity = useProfileProximityEffect<HTMLElement>(isOpen && Boolean(user), 84);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -67,7 +69,16 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <article className="pc-09 pc-12-shell relative w-full max-w-[380px] rounded-[24px] text-[#f4f1de] overflow-hidden select-none">
+      <article
+        ref={profileProximity.ref}
+        data-profile-active={profileProximity.dataProfileActive}
+        onPointerEnter={profileProximity.onPointerEnter}
+        onPointerLeave={profileProximity.onPointerLeave}
+        onFocusCapture={profileProximity.onFocusCapture}
+        onBlurCapture={profileProximity.onBlurCapture}
+        onTouchStart={profileProximity.onTouchStart}
+        className="pc-09 pc-12-shell ff-profile-surface relative w-full max-w-[380px] rounded-[24px] text-[#f4f1de] overflow-hidden select-none"
+      >
         {/* Ảnh nền người dùng liền mạch 1 lớp kéo dài rộng từ đỉnh xuống tận đáy thẻ nhanh */}
         <div
           className="absolute inset-0 pointer-events-none z-0 overflow-hidden"
@@ -116,7 +127,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
               fallbackSrc={user.avatar || DEFAULT_AVATAR}
               size={68}
               eager
-              animate
+              animate={profileProximity.isActive}
               alt={user.name}
               className="rounded-full"
             />
@@ -145,7 +156,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
               user={user}
               width={296}
               eager
-              animate
+              animate={profileProximity.isActive}
               priority="high"
             />
             <div className="relative z-[2] flex items-center gap-1.5 flex-nowrap min-w-0">
@@ -156,7 +167,7 @@ export const UserQuickCard: React.FC<UserQuickCardProps> = ({
                 width={186}
                 height={38}
                 eager
-                animate
+                animate={profileProximity.isActive}
                 priority="high"
                 showFallbackTag
                 className="min-w-0 shrink"
