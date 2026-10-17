@@ -387,16 +387,18 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     />
                   </button>
 
-                  <ChatRoleIcon user={resolvedMsgUser} isSuperAdmin={isSuperAdminMsg} />
-                  {isSuperAdminMsg ? (
-                    <span className="px-2 py-0.5 rounded-md bg-[#e9c46a]/15 text-[#e9c46a] border border-[#e9c46a]/35 text-[10px] font-mono font-bold tracking-wide">
-                      Ban Giám Hiệu
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-mono text-[#a39f96] px-1.5 py-0.2 rounded-md bg-[#f8f7f4]/[0.05] border border-[#f8f7f4]/[0.08]">
-                      Lv.{msg.authorLevel || 1}
-                    </span>
-                  )}
+                  <span className={`${isMe ? 'hidden sm:inline-flex' : 'inline-flex'} items-center gap-2`}>
+                    <ChatRoleIcon user={resolvedMsgUser} isSuperAdmin={isSuperAdminMsg} />
+                    {isSuperAdminMsg ? (
+                      <span className="px-2 py-0.5 rounded-md bg-[#e9c46a]/15 text-[#e9c46a] border border-[#e9c46a]/35 text-[10px] font-mono font-bold tracking-wide">
+                        Ban Giám Hiệu
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-mono text-[#a39f96] px-1.5 py-0.2 rounded-md bg-[#f8f7f4]/[0.05] border border-[#f8f7f4]/[0.08]">
+                        Lv.{msg.authorLevel || 1}
+                      </span>
+                    )}
+                  </span>
 
                   <span className="text-[10.5px] text-[#8e8a82] font-mono">
                     {msg.timestamp}
@@ -551,6 +553,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
           <span className="text-[11px] font-mono text-[#a39f96]">
             {currentMessages.length} tin
           </span>
+
+          <InfoTip label="Nội quy phòng chat" align="start">
+            Trao đổi văn minh, tôn trọng bạn học và thầy cô.
+          </InfoTip>
 
           <button
             type="button"
@@ -722,7 +728,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
           {/* CỘT GIỮA: Luồng hội thoại & khung soạn tin nhắn */}
           <div className="ff-chat-main-pane flex-1 min-h-0 flex flex-col bg-[#0f1520]">
             
-            <header className="h-14 px-4 sm:px-6 border-b border-[#f8f7f4]/10 bg-[#0d121c]/90 backdrop-blur-xl flex items-center justify-between gap-3 shrink-0">
+            <header className="hidden md:flex h-14 px-4 sm:px-6 border-b border-[#f8f7f4]/10 bg-[#0d121c]/90 backdrop-blur-xl items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#81b29a]/25 to-[#81b29a]/10 border border-[#81b29a]/40 flex items-center justify-center shrink-0 shadow-sm">
                   <CurrentChannelIcon className="w-4 h-4 text-[#81b29a]" />
