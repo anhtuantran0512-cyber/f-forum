@@ -19,6 +19,7 @@ import {
   Filter,
   GraduationCap,
   LoaderCircle,
+  KeyRound,
   MessageSquare,
   MessageSquareOff,
   MoreHorizontal,
@@ -48,6 +49,7 @@ import { MemberQuickAction, type ActionResult, type QuickActionKind, type RoleCh
 import { QUICK_DURATIONS } from './admin/adminConstants';
 import { RoleStudio, type CustomRoleRow } from './admin/RoleStudio';
 import { PerformanceTiersDashboard } from './admin/PerformanceTiersDashboard';
+import { AiProviderStudio } from './admin/AiProviderStudio';
 import './AdminInsightsModal.css';
 import './admin/AdminStudio.css';
 
@@ -199,7 +201,7 @@ const ROLE_OPTIONS: Array<{ value: 'ALL' | AdminMemberRole; label: string }> = [
   { value: 'SUPER_ADMIN', label: 'Super Admin' },
   { value: 'MODERATOR', label: 'Moderator' },
   { value: 'TEACHER', label: 'Giáo viên' },
-  { value: 'CLUB_LEADER', label: 'Chủ nhiệm CLB' },
+  { value: 'CLUB_LEADER', label: 'Trưởng CLB' },
   { value: 'STUDENT', label: 'Thành viên' },
   { value: 'PREMIUM', label: 'Premium' },
 ];
@@ -242,7 +244,7 @@ const ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: 'Super Admin',
   MODERATOR: 'Moderator',
   TEACHER: 'Giáo viên',
-  CLUB_LEADER: 'Chủ nhiệm CLB',
+  CLUB_LEADER: 'Trưởng CLB',
   STUDENT: 'Thành viên',
 };
 
@@ -284,7 +286,7 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
   const canAssignRoles = capsHas(caps, 'give_role');
   const canModerate = caps.isSuperAdmin || Boolean(caps.staffRole)
     || (['ban', 'warn', 'mute', 'give_role'] as AdminPermission[]).some((permission) => capsHas(caps, permission));
-  const [tab, setTab] = useState<'overview' | 'members' | 'roles' | 'performance'>(canSeeAnalytics ? 'overview' : 'members');
+  const [tab, setTab] = useState<'overview' | 'members' | 'roles' | 'performance' | 'ai'>(canSeeAnalytics ? 'overview' : 'members');
   const [range, setRange] = useState<AdminInsightsRange>('7d');
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
@@ -419,12 +421,15 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
 
   /* Quyền có thể đổi khi đang mở (vd. vừa bị thu hồi vai trò) → không để kẹt ở tab không còn quyền. */
   useEffect(() => {
-    if ((tab === 'overview' && !canSeeAnalytics) || (tab === 'roles' && !canAssignRoles)) {
-      const timer = window.setTimeout(() => setTab(canModerate ? 'members' : 'overview'), 0);
+    if ((tab === 'overview' && !canSeeAnalytics)
+      || (tab === 'roles' && !canAssignRoles)
+      || (tab === 'ai' && !isSuperAdmin)) {
+      const fallback = canModerate ? 'members' : canSeeAnalytics ? 'overview' : 'members';
+      const timer = window.setTimeout(() => setTab(fallback), 0);
       return () => window.clearTimeout(timer);
     }
     return undefined;
-  }, [canAssignRoles, canModerate, canSeeAnalytics, tab]);
+  }, [canAssignRoles, canModerate, canSeeAnalytics, isSuperAdmin, tab]);
 
   /* Danh sách vai trò tùy chỉnh — cho tab Vai trò và bộ chọn "Cấp vai trò". */
   useEffect(() => {
@@ -738,6 +743,11 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
           {canSeeAnalytics && (
             <button type="button" className={tab === 'performance' ? 'is-active' : ''} onClick={() => setTab('performance')}>
               <Sparkles size={15} /> Hiệu năng
+            </button>
+          )}
+          {isSuperAdmin && (
+            <button type="button" className={tab === 'ai' ? 'is-active' : ''} onClick={() => setTab('ai')}>
+              <KeyRound size={15} /> AI &amp; keys
             </button>
           )}
           <div className="faa-tabs__right">
@@ -1179,6 +1189,10 @@ export const AdminInsightsModal: FC<AdminInsightsModalProps> = ({
 
           {tab === 'performance' && canSeeAnalytics && (
             <PerformanceTiersDashboard />
+          )}
+
+          {tab === 'ai' && isSuperAdmin && (
+            <AiProviderStudio />
           )}
         </div>
 

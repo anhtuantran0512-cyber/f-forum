@@ -166,6 +166,8 @@ Máy chủ không tin dữ liệu client gửi lên. Toàn bộ tầng xác th�
 - **Tiền Coin**: kiểm tra số dư khi treo thưởng, thưởng đáp án chuẩn chỉ phát một lần.
 - **Chặn brute-force**: cửa sổ trượt theo IP + email, trả `429` kèm `Retry-After`.
 - **Đăng nhập Google/Facebook**: máy chủ tự kiểm chứng access token với nhà cung cấp.
+- **Q&A AI**: API key provider chỉ cấu hình ở tab **AI & keys** của Super Admin; máy chủ mã hoá bằng AES-256-GCM. Cần đặt `FFORUM_AI_VAULT_KEY` (64 ký tự hex ngẫu nhiên) trong secret manager, giữ ổn định qua lần triển khai và không commit. Adapter OpenAI-compatible, Anthropic, Gemini dùng định dạng request riêng; không mặc định mọi model hỗ trợ ảnh. Lời giải AI chỉ là gợi ý, có thể sai hoặc từ chối khi thiếu dữ kiện.
+- **Vai trò cộng đồng**: Học sinh mặc định có thể đặt câu hỏi, gửi lời giải, bình luận và thả reaction; bài gốc diễn đàn dành cho Giáo viên, Trưởng CLB và quản trị viên được uỷ quyền. Giáo viên cùng nhân sự kiểm duyệt được cấp quyền duyệt hồ sơ/xuất bản đề; ghim Q&A bằng reaction tách biệt khỏi đáp án chuẩn và tiền thưởng.
 
 Chi tiết từng lỗ hổng đã tìm thấy và cách vá: **[docs/SECURITY.md](docs/SECURITY.md)**.
 

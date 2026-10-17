@@ -1156,8 +1156,32 @@ export function useForumStore() {
           break;
         }
         case 'REACT_SOLUTION': {
-          const { targetId, reactions } = payload as { targetId: string; reactions: any };
+          const { targetId, reactions, questionId, teacherPinnedSolutionId, teacherPinnedByRole } = payload as {
+            targetId: string;
+            reactions: any;
+            questionId?: string;
+            teacherPinnedSolutionId?: string | null;
+            teacherPinnedByRole?: 'TEACHER' | 'SUPER_ADMIN' | null;
+          };
           setSolutions(prev => prev.map(s => (s.id === targetId ? { ...s, reactions } : s)));
+          if (questionId) {
+            setQuestions(prev => prev.map(q => q.id === questionId
+              ? {
+                  ...q,
+                  teacherPinnedSolutionId: teacherPinnedSolutionId || undefined,
+                  teacherPinnedByRole: teacherPinnedByRole || undefined,
+                }
+              : q));
+          }
+          break;
+        }
+        case 'REACT_COMMENT': {
+          const { commentId, reactions } = payload as { commentId: string; reactions: any };
+          setComments(prev => {
+            const next = prev.map(comment => comment.id === commentId ? { ...comment, reactions } : comment);
+            safeStorage.setItem('fforum_comments', JSON.stringify(next));
+            return next;
+          });
           break;
         }
         case 'MODERATION_DELETE': {
@@ -1261,7 +1285,14 @@ export function useForumStore() {
         case 'DELETE_SOLUTION': {
           const { solutionId } = payload as { solutionId: string };
           setSolutions(prev => prev.filter(s => s.id !== solutionId));
-          setQuestions(prev => prev.map(q => q.bestSolutionId === solutionId ? { ...q, isSolved: false, bestSolutionId: undefined } : q));
+          setQuestions(prev => prev.map(q => {
+            if (q.bestSolutionId !== solutionId && q.teacherPinnedSolutionId !== solutionId) return q;
+            return {
+              ...q,
+              ...(q.bestSolutionId === solutionId ? { isSolved: false, bestSolutionId: undefined } : {}),
+              ...(q.teacherPinnedSolutionId === solutionId ? { teacherPinnedSolutionId: undefined, teacherPinnedByRole: undefined } : {}),
+            };
+          }));
           break;
         }
         case 'DELETE_CHAT_MESSAGE': {
@@ -3350,6 +3381,58 @@ export function useForumStore() {
     return true;
   };
 
+  const reactComment = async (commentId: string, reactionType: QAReactionType): Promise<void> => {
+    if (!currentUser) {
+      setToastMessage({
+        title: 'Chưa đăng nhập',
+        subtitle: 'Vui lòng đăng nhập để thả cảm xúc!',
+        type: 'error',
+      });
+      return;
+    }
+    const original = comments.find((comment) => comment.id === commentId);
+    const previousReactions = original?.reactions;
+    const userKey = currentUser.email.toLowerCase();
+    setComments((prev) => {
+      const next = prev.map((comment) => {
+        if (comment.id !== commentId) return comment;
+        const reactions = { ...(comment.reactions || {}) };
+        const list = Array.isArray(reactions[reactionType]) ? [...(reactions[reactionType] || [])] : [];
+        reactions[reactionType] = list.includes(userKey)
+          ? list.filter((email) => email !== userKey)
+          : [...list, userKey];
+        return { ...comment, reactions };
+      });
+      safeStorage.setItem('fforum_comments', JSON.stringify(next));
+      return next;
+    });
+    const outcome = await runServerAction('/api/comments/react', {
+      commentId,
+      reactionType,
+      token: getAuthToken(),
+    });
+    if (!outcome.ok) {
+      setComments((prev) => {
+        const next = prev.map((comment) => comment.id === commentId
+          ? { ...comment, reactions: previousReactions }
+          : comment);
+        safeStorage.setItem('fforum_comments', JSON.stringify(next));
+        return next;
+      });
+      setToastMessage({ title: 'Không thả được reaction', subtitle: outcome.message, type: 'error' });
+      return;
+    }
+    if (outcome.data?.reactions) {
+      setComments((prev) => {
+        const next = prev.map((comment) => comment.id === commentId
+          ? { ...comment, reactions: outcome.data.reactions }
+          : comment);
+        safeStorage.setItem('fforum_comments', JSON.stringify(next));
+        return next;
+      });
+    }
+  };
+
   const reactQuestion = async (questionId: string, reactionType: QAReactionType): Promise<void> => {
     if (!currentUser) {
       setToastMessage({
@@ -3359,6 +3442,7 @@ export function useForumStore() {
       });
       return;
     }
+    const originalReactions = questions.find((question) => question.id === questionId)?.reactions;
     const userKey = currentUser.email.toLowerCase();
     setQuestions((prev) =>
       prev.map((q) => {
@@ -3381,6 +3465,9 @@ export function useForumStore() {
       setQuestions((prev) =>
         prev.map((q) => (q.id === questionId ? { ...q, reactions: outcome.data.reactions } : q)),
       );
+    } else if (!outcome.ok) {
+      setQuestions((prev) => prev.map((q) => q.id === questionId ? { ...q, reactions: originalReactions } : q));
+      setToastMessage({ title: 'Không thả được reaction', subtitle: outcome.message, type: 'error' });
     }
   };
 
@@ -3393,6 +3480,7 @@ export function useForumStore() {
       });
       return;
     }
+    const originalReactions = solutions.find((solution) => solution.id === solutionId)?.reactions;
     const userKey = currentUser.email.toLowerCase();
     setSolutions((prev) =>
       prev.map((s) => {
@@ -3415,6 +3503,21 @@ export function useForumStore() {
       setSolutions((prev) =>
         prev.map((s) => (s.id === solutionId ? { ...s, reactions: outcome.data.reactions } : s)),
       );
+      const questionId = String(outcome.data?.questionId || '');
+      if (questionId) {
+        setQuestions((prev) => prev.map((question) => question.id === questionId
+          ? {
+              ...question,
+              teacherPinnedSolutionId: outcome.data.teacherPinnedSolutionId || undefined,
+              teacherPinnedByRole: outcome.data.teacherPinnedByRole || undefined,
+            }
+          : question));
+      }
+    } else if (!outcome.ok) {
+      setSolutions((prev) => prev.map((solution) => solution.id === solutionId
+        ? { ...solution, reactions: originalReactions }
+        : solution));
+      setToastMessage({ title: 'Không thả được reaction', subtitle: outcome.message, type: 'error' });
     }
   };
 
@@ -3688,6 +3791,7 @@ export function useForumStore() {
     solutions,
     comments,
     addComment,
+    reactComment,
     reactQuestion,
     reactSolution,
     threads,

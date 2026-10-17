@@ -99,10 +99,10 @@ export const MemberQuickAction: FC<MemberQuickActionProps> = ({
   };
 
   const roleOptions: Array<{ value: RoleChoice; label: string; hint: string; node?: ReactNode }> = [
-    { value: 'NONE', label: 'Thành viên thường', hint: 'Thu hồi mọi vai trò quản trị', node: <UserRound size={14} aria-hidden="true" /> },
+    { value: 'NONE', label: 'Học sinh / thành viên', hint: 'Mặc định · hỏi đáp, bình luận, reaction', node: <UserRound size={14} aria-hidden="true" /> },
     ...(allowStaffRoles ? [
-      { value: 'TEACHER' as RoleChoice, label: 'Giáo viên', hint: 'Cấm đăng · cảnh cáo · khoá chat', node: <GraduationCap size={14} aria-hidden="true" /> },
-      { value: 'MODERATOR' as RoleChoice, label: 'Moderator', hint: 'Cấm đăng · cảnh cáo · khoá chat', node: <Shield size={14} aria-hidden="true" /> },
+      { value: 'TEACHER' as RoleChoice, label: 'Giáo viên', hint: 'Duyệt đề · đăng diễn đàn · ghim Q&A bằng reaction · kiểm duyệt', node: <GraduationCap size={14} aria-hidden="true" /> },
+      { value: 'MODERATOR' as RoleChoice, label: 'Moderator', hint: 'Cấm đăng · cảnh cáo · khoá chat · duyệt đề', node: <Shield size={14} aria-hidden="true" /> },
     ] : []),
     ...roles.map((role) => ({
       value: `custom:${role.id}` as RoleChoice,

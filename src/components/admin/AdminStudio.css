@@ -213,6 +213,17 @@
 }
 .ffr-matrix__builtin::before { content: ''; width: 7px; height: 7px; border-radius: 999px; background: var(--ffr-color); box-shadow: 0 0 8px var(--ffr-color); }
 
+.ffr-community-matrix { margin-top: 14px; border-color: rgba(242, 204, 143, 0.22); }
+.ffr-community-matrix .ffr-card__icon { color: #f2cc8f; border-color: rgba(242, 204, 143, 0.24); background: rgba(242, 204, 143, 0.08); }
+.ffr-community-matrix table { min-width: 790px; }
+.ffr-community-matrix thead th { color: #b79d70; background: #211d17; }
+.ffr-community-matrix tbody tr:hover { background: rgba(242, 204, 143, 0.045); }
+.ffr-community-role { display: grid; gap: 4px; }
+.ffr-community-role b { color: #e8dfcd; font-size: 10px; }
+.ffr-community-role small { width: max-content; padding: 2px 6px; border-radius: 999px; color: #f2cc8f; background: rgba(242, 204, 143, 0.1); font-size: 8px; font-weight: 800; }
+.ffr-community-matrix__subtitle { margin: 3px 0 0; color: #8895a3; font-size: 9.5px; line-height: 1.45; }
+.ffr-community-matrix__note { margin: 11px 0 0; padding: 10px 11px; border-left: 2px solid rgba(242, 204, 143, 0.52); border-radius: 0 9px 9px 0; color: #a99f8e; background: rgba(242, 204, 143, 0.045); font-size: 9.5px; line-height: 1.65; }
+
 .ffr-list__items { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .ffr-list__items li {
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) auto; align-items: center; gap: 10px;

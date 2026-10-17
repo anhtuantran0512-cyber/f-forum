@@ -14,6 +14,7 @@ import { ADMIN_PERMISSIONS, PERMISSION_META, type AdminPermission, type CustomRo
 import type { AdminCapabilities } from '../../utils/adminCapabilities';
 import { CustomRoleBadge } from './CustomRoleBadge';
 import { ROLE_ICON_OPTIONS, safeRoleColor } from './adminConstants';
+import { COMMUNITY_ROLE_MATRIX, COMMUNITY_PERMISSION_META, type CommunityPermission } from '../../utils/communityRoles';
 import './AdminStudio.css';
 
 export interface CustomRoleRow extends CustomRoleDef {
@@ -419,6 +420,67 @@ export const RoleStudio: FC<RoleStudioProps> = ({ caps, currentUserEmail, roles,
           </section>
         </div>
       </div>
+
+      <section className="ffr-card ffr-matrix ffr-community-matrix" aria-label="Ma trận quyền cộng đồng">
+        <div className="ffr-card__title">
+          <span className="ffr-card__icon"><ShieldCheck size={15} aria-hidden="true" /></span>
+          <div>
+            <h4>Quyền cộng đồng</h4>
+            <p className="ffr-community-matrix__subtitle">Tách biệt với quyền quản trị RBAC ở ma trận phía trên.</p>
+          </div>
+        </div>
+        <div className="ffr-matrix__scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Vai trò</th>
+                <th scope="col" title="Đặt câu hỏi và gửi lời giải trong khu Hỏi đáp">Hỏi / giải Q&amp;A</th>
+                <th scope="col" title={COMMUNITY_PERMISSION_META.comment_react.label}>Bình luận / reaction</th>
+                <th scope="col" title={COMMUNITY_PERMISSION_META.create_forum_post.label}>Bài gốc diễn đàn</th>
+                <th scope="col" title={COMMUNITY_PERMISSION_META.publish_exam.label}>Xuất bản đề</th>
+                <th scope="col" title={COMMUNITY_PERMISSION_META.review_exam_submission.label}>Duyệt đề</th>
+                <th scope="col" title={COMMUNITY_PERMISSION_META.pin_qa_solution.label}>Ghim lời giải</th>
+                <th scope="col" title={COMMUNITY_PERMISSION_META.moderate.label}>Kiểm duyệt</th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMMUNITY_ROLE_MATRIX.map((row) => {
+                const has = (permission: CommunityPermission) => row.permissions.includes(permission);
+                const questionAndAnswer = has('ask_qa') && has('answer_qa');
+                const cells = [
+                  questionAndAnswer,
+                  has('comment_react'),
+                  has('create_forum_post'),
+                  has('publish_exam'),
+                  has('review_exam_submission'),
+                  has('pin_qa_solution'),
+                  has('moderate'),
+                ];
+                return (
+                  <tr key={row.id}>
+                    <th scope="row">
+                      <span className="ffr-community-role">
+                        <b>{row.label}</b>
+                        {row.default && <small>Mặc định</small>}
+                      </span>
+                    </th>
+                    {cells.map((allowed, index) => (
+                      <td key={`${row.id}-${index}`} className={allowed ? 'is-yes' : 'is-no'}>
+                        {allowed
+                          ? <Check size={13} aria-label="Có" />
+                          : <Minus size={12} aria-label="Không" />}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="ffr-community-matrix__note">
+          Học sinh vẫn có thể gửi đề vào hàng chờ; chỉ Giáo viên / nhân sự có quyền duyệt mới xuất bản lên kho. Bài gốc diễn đàn khác với câu hỏi và lời giải Q&amp;A. Giáo viên ghim lời giải bằng reaction — không thay đổi đáp án chuẩn hay phần thưởng.
+        </p>
+      </section>
     </div>
   );
 };

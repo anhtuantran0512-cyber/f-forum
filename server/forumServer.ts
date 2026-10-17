@@ -14,6 +14,21 @@ import { isDecorationId, sanitizeEquippedDecorations } from '../src/utils/decora
 import type { EquippedDecorations } from '../src/types/index.ts';
 import { moderateAnswer, type ModerationVerdict } from './answerModeration.ts';
 import {
+  generateAISuggestion,
+  isAiVaultConfigured,
+  publicAIProvider,
+  sanitizeAIProviderRecords,
+  saveAIProvider,
+  type AIProviderInput,
+  type AIProviderRecord,
+} from './aiAssistant.ts';
+import {
+  canCreateForumPost,
+  canPinQASolution,
+  canPublishExam,
+  canReviewExamSubmission,
+} from '../src/utils/communityRoles.ts';
+import {
   adaptivePerfMonitor,
   localDataAccess,
   multiLayerCache,
@@ -340,6 +355,8 @@ export interface ForumDataStore {
   userNotices?: UserNoticeRecord[];
   /** Nhiệm vụ 10 — marker migration đã áp (id → thời điểm ms), chống chạy 2 lần. */
   migrations?: Record<string, number>;
+  /** Provider/model Q&A AI; API keys chỉ được lưu dưới dạng AES-256-GCM ciphertext. */
+  aiProviders?: AIProviderRecord[];
 }
 
 
@@ -438,6 +455,7 @@ let store: ForumDataStore = {
   moderationLogs: [],
   userNotices: [],
   migrations: {},
+  aiProviders: [],
   analytics: createEmptyAnalytics(),
   adminWarnings: [],
   dailyRewards: {},
@@ -972,6 +990,7 @@ function loadStoreFromDisk() {
           /* Epic 3 — vai trò tùy chỉnh. PHẢI liệt kê ở đây (xem cảnh báo ở trên):
              thiếu dòng này thì mọi role biến mất sau mỗi lần khởi động lại. */
           customRoles: sanitizeCustomRoles(parsed.customRoles),
+          aiProviders: sanitizeAIProviderRecords(parsed.aiProviders),
           dailyRewards: sanitizeDailyRewardProfiles(parsed.dailyRewards, new Set(Object.keys(cleanUsers))),
           focusRewardSessions: sanitizeFocusRewardSessions(
             parsed.focusRewardSessions,
@@ -1193,6 +1212,8 @@ const uploadLimiter = new SlidingWindowRateLimiter(10 * 60 * 1000, 20);
 const examSubmissionLimiter = new SlidingWindowRateLimiter(60 * 60 * 1000, 8);
 const examInteractionLimiter = new SlidingWindowRateLimiter(60 * 1000, 60);
 const examReviewLimiter = new SlidingWindowRateLimiter(60 * 60 * 1000, 8);
+const aiTutorAccountLimiter = new SlidingWindowRateLimiter(15 * 60 * 1000, 8);
+const aiTutorIpLimiter = new SlidingWindowRateLimiter(15 * 60 * 1000, 24);
 
 /**
   Chỉ dành cho bộ kiểm thử.
@@ -1216,6 +1237,8 @@ export function resetRateLimitersForTest() {
   examSubmissionLimiter.reset();
   examInteractionLimiter.reset();
   examReviewLimiter.reset();
+  aiTutorAccountLimiter.reset();
+  aiTutorIpLimiter.reset();
   presenceLimiter.reset();
   analyticsLimiter.reset();
 }
@@ -2528,9 +2551,14 @@ export function setupForumServer(httpServer: any, middlewares: any) {
                 break;
               }
               store.solutions = store.solutions.filter(s => s.id !== solutionId);
-              store.questions = store.questions.map(q =>
-                q.bestSolutionId === solutionId ? { ...q, isSolved: false, bestSolutionId: undefined } : q
-              );
+              store.questions = store.questions.map(q => {
+                if (q.bestSolutionId !== solutionId && q.teacherPinnedSolutionId !== solutionId) return q;
+                return {
+                  ...q,
+                  ...(q.bestSolutionId === solutionId ? { isSolved: false, bestSolutionId: undefined } : {}),
+                  ...(q.teacherPinnedSolutionId === solutionId ? { teacherPinnedSolutionId: undefined, teacherPinnedByRole: undefined } : {}),
+                };
+              });
               persistStoreToDisk();
               broadcastServerEvent('DELETE_SOLUTION', { solutionId });
               break;
@@ -2880,6 +2908,59 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         sendJson(res, 200, { success: true });
       } catch (err: any) {
         sendJson(res, 500, { success: false, message: err.message });
+      }
+      return;
+    }
+
+    const aiQuestionMatch = url.split('?')[0].match(/^\/api\/questions\/([^/]+)\/ai-suggestion$/);
+    if (method === 'POST' && aiQuestionMatch) {
+      try {
+        const body = (await parseJsonBody(req)) || {};
+        const actor = authenticatedUser(req, body);
+        if (!actor) {
+          sendJson(res, 401, { success: false, message: 'Đăng nhập để dùng gợi ý AI.' });
+          return;
+        }
+        const postingGate = checkCanPost(actor.claims.email, 'content');
+        if (!postingGate.ok) {
+          sendJson(res, postingGate.status, { success: false, message: postingGate.message });
+          return;
+        }
+        const accountThrottle = aiTutorAccountLimiter.check(`ai-tutor:${actor.claims.email}`);
+        if (!accountThrottle.allowed) {
+          sendRateLimited(res, accountThrottle.retryAfterMs, 'dùng trợ lý AI');
+          return;
+        }
+        const ipThrottle = aiTutorIpLimiter.check(`ai-tutor-ip:${clientIpOf(req)}`);
+        if (!ipThrottle.allowed) {
+          sendRateLimited(res, ipThrottle.retryAfterMs, 'dùng trợ lý AI');
+          return;
+        }
+        let questionId = '';
+        try { questionId = decodeURIComponent(aiQuestionMatch[1]).slice(0, 120); } catch { /* invalid URL escape */ }
+        const question = store.questions.find((item) => item.id === questionId && item.status !== 'deleted');
+        if (!question) {
+          sendJson(res, 404, { success: false, message: 'Câu hỏi không tồn tại hoặc đã bị gỡ.' });
+          return;
+        }
+        const images = Array.from(new Set([
+          ...(Array.isArray(question.images) ? question.images : []),
+          ...(typeof question.imageUrl === 'string' ? [question.imageUrl] : []),
+        ].filter((image): image is string => typeof image === 'string' && Boolean(image.trim()))));
+        const result = await generateAISuggestion(store.aiProviders || [], {
+          id: String(question.id || ''),
+          title: String(question.title || ''),
+          subject: String(question.subject || ''),
+          content: String(question.content || ''),
+          images,
+        });
+        if (!result.ok) {
+          sendJson(res, result.status, { success: false, message: result.message });
+          return;
+        }
+        sendJson(res, 200, { success: true, suggestion: result.suggestion });
+      } catch (err: any) {
+        handleApiError(res, err);
       }
       return;
     }
@@ -3251,31 +3332,42 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         }
 
         const claims = authorizeRequest(req, null, body.token);
-        const authorEmail = claims?.email || String(body.authorEmail || '').trim().toLowerCase();
-        const author = authorEmail ? store.users[authorEmail] : undefined;
-
-        if (!claims && !author) {
+        const author = claims ? store.users[claims.email] : undefined;
+        if (!claims || !author) {
           sendJson(res, 401, { ok: false, success: false, message: 'Vui lòng đăng nhập để bình luận.' });
           return;
         }
 
-        const commentGate = checkCanPost(claims?.email || authorEmail, 'content');
+        const commentGate = checkCanPost(claims.email, 'content');
         if (!commentGate.ok) {
           sendJson(res, commentGate.status, { ok: false, success: false, message: commentGate.message });
+          return;
+        }
+        const targetExists = commentableType === 'question'
+          ? store.questions.some((item) => item.id === commentableId && item.status !== 'deleted')
+          : store.solutions.some((item) => item.id === commentableId && item.status !== 'deleted');
+        if (!targetExists) {
+          sendJson(res, 404, { ok: false, success: false, message: 'Nội dung cần bình luận không còn tồn tại.' });
+          return;
+        }
+        const commentThrottle = writeLimiter.check(`qa-comment:${claims.email}`);
+        if (!commentThrottle.allowed) {
+          sendRateLimited(res, commentThrottle.retryAfterMs, 'gửi bình luận');
           return;
         }
 
         const newComment = {
           id: typeof body.id === 'string' && body.id.trim() ? body.id.trim().slice(0, 80) : randomId('cmt'),
-          authorId: String(author?.id ?? body.authorId ?? 'student').slice(0, MAX_NAME_LENGTH),
-          authorName: String(author?.name ?? body.authorName ?? 'Học sinh').slice(0, MAX_NAME_LENGTH),
-          authorEmail: author?.email || authorEmail,
-          authorAvatar: author?.avatar ? String(author.avatar).slice(0, 4000) : safeAvatarUrl(body.authorAvatar),
-          authorLevel: author?.level ?? 1,
+          authorId: String(author.id).slice(0, MAX_NAME_LENGTH),
+          authorName: String(author.name).slice(0, MAX_NAME_LENGTH),
+          authorEmail: author.email,
+          authorAvatar: author.avatar ? String(author.avatar).slice(0, 4000) : DEFAULT_AVATAR,
+          authorLevel: author.level ?? 1,
           content: content.slice(0, 300),
           commentableType: commentableType as 'question' | 'answer',
           commentableId: commentableId.slice(0, 120),
           status: 'active' as const,
+          reactions: {},
           createdAt: 'Vừa xong',
           createdAtMs: Date.now(),
         };
@@ -3285,6 +3377,53 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         persistStoreToDisk();
         broadcastServerEvent('NEW_COMMENT', newComment);
         sendJson(res, 200, { ok: true, success: true, comment: newComment });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
+    if (method === 'POST' && url.split('?')[0] === '/api/comments/react') {
+      try {
+        const body = (await parseJsonBody(req)) || {};
+        const commentId = String(body.commentId || body.targetId || '').trim();
+        const reactionType = String(body.reactionType || body.type || '').trim();
+        if (!commentId || !['helpful', 'mindblown', 'thanks'].includes(reactionType)) {
+          sendJson(res, 400, { success: false, message: 'Bình luận hoặc reaction không hợp lệ.' });
+          return;
+        }
+        const claims = authorizeRequest(req, null, body.token);
+        const actor = claims ? store.users[claims.email] : undefined;
+        if (!claims || !actor) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để thả cảm xúc.' });
+          return;
+        }
+        const gate = checkCanPost(claims.email, 'content');
+        if (!gate.ok) {
+          sendJson(res, gate.status, { success: false, message: gate.message });
+          return;
+        }
+        const throttle = writeLimiter.check(`qa-comment-reaction:${claims.email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'thả reaction');
+          return;
+        }
+        const comment = (store.comments || []).find((item: any) => item.id === commentId && item.status !== 'hidden');
+        if (!comment) {
+          sendJson(res, 404, { success: false, message: 'Bình luận không còn tồn tại.' });
+          return;
+        }
+        const reactions: Record<string, string[]> = comment.reactions && typeof comment.reactions === 'object'
+          ? { ...comment.reactions }
+          : {};
+        const current = Array.isArray(reactions[reactionType]) ? [...reactions[reactionType]] : [];
+        reactions[reactionType] = current.includes(claims.email)
+          ? current.filter((email) => email !== claims.email)
+          : [...current, claims.email];
+        comment.reactions = reactions;
+        persistStoreToDisk();
+        broadcastServerEvent('REACT_COMMENT', { commentId, reactions });
+        sendJson(res, 200, { success: true, commentId, reactions });
       } catch (err: any) {
         handleApiError(res, err);
       }
@@ -3302,9 +3441,14 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
         const claims = authorizeRequest(req, null, body.token);
-        const userKey = claims?.email || String(body.authorEmail || body.userId || '').trim().toLowerCase();
-        if (!userKey) {
+        const actor = claims ? store.users[claims.email] : undefined;
+        if (!claims || !actor) {
           sendJson(res, 401, { ok: false, success: false, message: 'Vui lòng đăng nhập để thả cảm xúc.' });
+          return;
+        }
+        const throttle = writeLimiter.check(`qa-reaction:${claims.email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'thả cảm xúc');
           return;
         }
 
@@ -3316,6 +3460,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           return;
         }
 
+        const userKey = claims.email;
         const reactions: Record<string, string[]> =
           target.reactions && typeof target.reactions === 'object' ? { ...target.reactions } : {};
         const currentList = Array.isArray(reactions[reactionType]) ? [...reactions[reactionType]] : [];
@@ -3325,12 +3470,34 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           reactions[reactionType] = [...currentList, userKey];
         }
         target.reactions = reactions;
+
+        let question: any = null;
+        if (!isQuestionTarget) {
+          question = store.questions.find((item) => item.id === target.questionId);
+          if (question && canPinQASolution(actor)) {
+            const hasTeacherReaction = Object.values(reactions).some((entries) =>
+              Array.isArray(entries) && entries.includes(userKey),
+            );
+            if (hasTeacherReaction) {
+              question.teacherPinnedSolutionId = target.id;
+              question.teacherPinnedByRole = actor.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'TEACHER';
+            } else if (question.teacherPinnedSolutionId === target.id) {
+              delete question.teacherPinnedSolutionId;
+              delete question.teacherPinnedByRole;
+            }
+          }
+        }
+        const teacherPinnedSolutionId = question?.teacherPinnedSolutionId || null;
         persistStoreToDisk();
-        broadcastServerEvent(isQuestionTarget ? 'REACT_QUESTION' : 'REACT_SOLUTION', {
+        const eventPayload = {
           targetId,
           reactions,
-        });
-        sendJson(res, 200, { ok: true, success: true, targetId, reactions });
+          questionId: question?.id,
+          teacherPinnedSolutionId,
+          teacherPinnedByRole: question?.teacherPinnedByRole || null,
+        };
+        broadcastServerEvent(isQuestionTarget ? 'REACT_QUESTION' : 'REACT_SOLUTION', eventPayload);
+        sendJson(res, 200, { ok: true, success: true, ...eventPayload });
       } catch (err: any) {
         handleApiError(res, err);
       }
@@ -4546,6 +4713,18 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           sendJson(res, 400, { success: false, message: 'Trạng thái duyệt không hợp lệ.' });
           return;
         }
+        const customExamModeration = actor.viaCustomRole
+          && actor.permissions.some((permission) => CUSTOM_ROLE_MODERATION_PERMISSIONS.includes(permission));
+        const builtInExamReview = !actor.viaCustomRole && canReviewExamSubmission(actor.user);
+        if (!builtInExamReview && !customExamModeration) {
+          sendJson(res, 403, { success: false, message: 'Vai trò này không có quyền duyệt hồ sơ đề thi.' });
+          return;
+        }
+        const moderatorReview = (!actor.viaCustomRole && actor.role === 'MODERATOR') || customExamModeration;
+        if (status === 'approved' && !canPublishExam(actor.user) && !moderatorReview) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Giáo viên, Moderator hoặc Super Admin mới có thể đưa đề lên kho.' });
+          return;
+        }
         if (existing.status !== 'pending') {
           sendJson(res, 409, { success: false, message: 'Hồ sơ này đã được xét duyệt trước đó.' });
           return;
@@ -5278,6 +5457,90 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
+    /** Q&A AI provider secrets are private to the Super Admin and encrypted at rest. */
+    const aiProviderApiPath = url.split('?')[0];
+    if (method === 'GET' && aiProviderApiPath === '/api/admin/ai/providers') {
+      if (!requireSuperAdmin(req, {})) {
+        sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới được xem cấu hình AI.' });
+        return;
+      }
+      const providers = sanitizeAIProviderRecords(store.aiProviders);
+      sendJson(res, 200, {
+        success: true,
+        providers: providers.map(publicAIProvider),
+        vaultConfigured: isAiVaultConfigured(),
+      });
+      return;
+    }
+
+    if (method === 'POST' && aiProviderApiPath === '/api/admin/ai/providers') {
+      try {
+        const body = (await parseJsonBody(req)) || {};
+        const actor = requireSuperAdmin(req, body);
+        if (!actor) {
+          sendJson(res, 403, { success: false, message: 'Chỉ Super Admin mới được chỉnh cấu hình AI.' });
+          return;
+        }
+        const throttle = writeLimiter.check(`ai-provider:${actor.email}`);
+        if (!throttle.allowed) {
+          sendRateLimited(res, throttle.retryAfterMs, 'cập nhật cấu hình AI');
+          return;
+        }
+        const previousProviders = sanitizeAIProviderRecords(store.aiProviders);
+        if (body.action === 'delete') {
+          const providerId = String(body.providerId || '').trim();
+          if (!providerId) {
+            sendJson(res, 400, { success: false, message: 'Thiếu mã cấu hình provider.' });
+            return;
+          }
+          const nextProviders = previousProviders.filter((provider) => provider.id !== providerId);
+          if (nextProviders.length === previousProviders.length) {
+            sendJson(res, 404, { success: false, message: 'Không tìm thấy cấu hình provider.' });
+            return;
+          }
+          if (!nextProviders.some((provider) => provider.enabled && provider.isDefault)) {
+            const fallback = nextProviders.find((provider) => provider.enabled);
+            if (fallback) fallback.isDefault = true;
+          }
+          store.aiProviders = nextProviders;
+          pushAuditLog({ action: 'ai:provider-delete', providerId, by: actor.email });
+        } else {
+          const input = body as AIProviderInput;
+          const result = saveAIProvider(previousProviders, input);
+          if (!result.ok) {
+            const status = result.code === 'VAULT_UNAVAILABLE' ? 503
+              : result.code === 'NOT_FOUND' ? 404
+                : result.code === 'LIMIT_REACHED' ? 409 : 400;
+            sendJson(res, status, { success: false, message: result.message, code: result.code });
+            return;
+          }
+          store.aiProviders = result.providers;
+          pushAuditLog({
+            action: 'ai:provider-save',
+            providerId: result.record.id,
+            providerName: result.record.name,
+            protocol: result.record.protocol,
+            model: result.record.model,
+            by: actor.email,
+          });
+        }
+        if (!flushStoreToDisk()) {
+          store.aiProviders = previousProviders;
+          sendJson(res, 500, { success: false, message: 'Không lưu được cấu hình AI. Thử lại sau.' });
+          return;
+        }
+        const providers = sanitizeAIProviderRecords(store.aiProviders);
+        sendJson(res, 200, {
+          success: true,
+          providers: providers.map(publicAIProvider),
+          vaultConfigured: isAiVaultConfigured(),
+        });
+      } catch (err: any) {
+        handleApiError(res, err);
+      }
+      return;
+    }
+
     /**
      * SỐ LIỆU NGƯỜI DÙNG — chỉ Super Admin.
      * Lượt khách là trình duyệt cài ID ngẫu nhiên; tài khoản đăng nhập được gộp
@@ -5666,15 +5929,14 @@ export function setupForumServer(httpServer: any, middlewares: any) {
     if (method === 'POST' && url === '/api/threads') {
       try {
         const body = await parseJsonBody(req);
-        const authorEmail = String(body.authorEmail || '').trim().toLowerCase();
-        const author = authorEmail ? store.users[authorEmail] : undefined;
-        if (!author) {
-          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để đăng thread!' });
+        const claims = authorizeRequest(req, null, body.token);
+        const author = claims ? store.users[claims.email] : undefined;
+        if (!claims || !author) {
+          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để đăng bài diễn đàn!' });
           return;
         }
-        const claims = authorizeRequest(req, authorEmail, body.token);
-        if (!claims) {
-          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập lại!' });
+        if (!canCreateForumPost(author)) {
+          sendJson(res, 403, { success: false, message: 'Học sinh có thể bình luận, thả reaction và đặt câu hỏi hỏi đáp; bài gốc diễn đàn dành cho Giáo viên và Trưởng CLB.' });
           return;
         }
         const gate = checkCanPost(claims.email, 'content');
@@ -5824,15 +6086,19 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           sendJson(res, 404, { success: false, message: 'Thread gốc không còn tồn tại.' });
           return;
         }
-        const authorEmail = String(body.authorEmail || '').trim().toLowerCase();
-        const author = authorEmail ? store.users[authorEmail] : undefined;
-        if (!author) {
+        const claims = authorizeRequest(req, null, body.token);
+        const author = claims ? store.users[claims.email] : undefined;
+        if (!claims || !author) {
           sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập để chia sẻ lại!' });
           return;
         }
-        const claims = authorizeRequest(req, authorEmail, body.token);
-        if (!claims) {
-          sendJson(res, 401, { success: false, message: 'Vui lòng đăng nhập lại!' });
+        if (!canCreateForumPost(author)) {
+          sendJson(res, 403, { success: false, message: 'Quyền chia sẻ thành bài gốc thuộc về Giáo viên và Trưởng CLB.' });
+          return;
+        }
+        const gate = checkCanPost(claims.email, 'content');
+        if (!gate.ok) {
+          sendJson(res, gate.status, { success: false, message: gate.message });
           return;
         }
         const type = body.type === 'quote' ? 'quote' : 'simple';
@@ -6891,9 +7157,14 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           });
         }
         store.solutions = store.solutions.filter(s => s.id !== solutionId);
-        store.questions = store.questions.map(q =>
-          q.bestSolutionId === solutionId ? { ...q, isSolved: false, bestSolutionId: undefined } : q
-        );
+        store.questions = store.questions.map(q => {
+          if (q.bestSolutionId !== solutionId && q.teacherPinnedSolutionId !== solutionId) return q;
+          return {
+            ...q,
+            ...(q.bestSolutionId === solutionId ? { isSolved: false, bestSolutionId: undefined } : {}),
+            ...(q.teacherPinnedSolutionId === solutionId ? { teacherPinnedSolutionId: undefined, teacherPinnedByRole: undefined } : {}),
+          };
+        });
         persistStoreToDisk();
         broadcastServerEvent('DELETE_SOLUTION', { solutionId, reasonCode, reasonNote });
         sendJson(res, 200, { success: true, message: 'Đã xóa phản hồi thành công' });

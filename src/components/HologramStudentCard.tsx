@@ -166,7 +166,15 @@ export const HologramStudentCard: React.FC<HologramStudentCardProps> = ({
                     F-PASS
                   </div>
                   <div className="text-[9px] font-mono text-neutral-400">
-                    {isSuperAdmin ? 'ADMIN' : user.staffRole || user.role}
+                    {isSuperAdmin
+                      ? 'SUPER ADMIN'
+                      : user.staffRole === 'TEACHER'
+                        ? 'GIÁO VIÊN'
+                        : user.staffRole === 'MODERATOR'
+                          ? 'MODERATOR'
+                          : user.role === 'CLUB_LEADER'
+                            ? 'TRƯỞNG CLB'
+                            : 'HỌC SINH'}
                   </div>
                 </div>
               </div>

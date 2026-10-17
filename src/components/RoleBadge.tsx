@@ -47,7 +47,7 @@ export const RoleBadge: FC<RoleBadgeProps> = ({
     } else if (staffRole === 'MODERATOR') {
       setTooltip('Moderator · Kiểm duyệt nội dung');
     } else if (staffRole === 'TEACHER') {
-      setTooltip('Giáo viên · Quản lý học tập');
+      setTooltip('Giáo viên · duyệt đề · đăng bài diễn đàn · ghim lời giải bằng reaction');
     } else {
       setTooltip('Thành viên');
     }

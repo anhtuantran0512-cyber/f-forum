@@ -54,6 +54,7 @@ import type {
 import { safeStorage } from '../../utils/storage';
 import { toggleThemeMode } from '../../utils/theme';
 import { playChime } from '../../utils/audio';
+import { capsHas, useAdminCaps } from '../../utils/adminCapabilities';
 import type { ExamInteractionMap, ExamInteractionSnapshot } from '../../utils/examSubmissionApi';
 import {
   examAttachmentFormat,
@@ -974,7 +975,11 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     return () => window.removeEventListener('keydown', onKey);
   }, [flashcardExam, cbtExam, isBookmarkDrawerOpen, printExam, previewExam, isSubmitModalOpen]);
 
-  const isStaffOrAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.staffRole === 'MODERATOR' || currentUser?.staffRole === 'TEACHER';
+  const adminCaps = useAdminCaps();
+  const isStaffOrAdmin = currentUser?.role === 'SUPER_ADMIN'
+    || currentUser?.staffRole === 'MODERATOR'
+    || currentUser?.staffRole === 'TEACHER'
+    || (adminCaps.ready && (capsHas(adminCaps, 'ban') || capsHas(adminCaps, 'warn') || capsHas(adminCaps, 'mute')));
 
   /* Active Preview Exam with Latest Reactive Overrides */
   const activePreview = useMemo(() => {
