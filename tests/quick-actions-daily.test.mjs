@@ -91,8 +91,6 @@ test('Câu hỏi: chỉ chạy sau Sẵn sàng, đồng hồ tiến theo thời 
   Date.now = () => now;
   try {
     const { DailyEngagementModal } = await vite.ssrLoadModule('/src/components/DailyEngagementModal.tsx');
-    const { safeStorage } = await vite.ssrLoadModule('/src/utils/storage.ts');
-    safeStorage.removeItem('fforum_last_quiz_date');
     const claims = [];
     let shouldFail = true;
     const props = { isOpen: true, onClose() {}, isAuthenticated: true,
