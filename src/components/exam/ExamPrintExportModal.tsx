@@ -295,7 +295,7 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
         {/* ======================================================== */}
         <div className="flex shrink-0 flex-col gap-2 border-t border-white/10 pt-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-xl text-[11px] leading-relaxed text-white/55">
-            Trong hộp thoại trình duyệt, chọn “Lưu dưới dạng PDF” để tải tệp về máy.
+            Trong hộp thoại in, chọn “Lưu dưới dạng PDF” để tải tệp về máy.
           </p>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <button

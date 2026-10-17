@@ -396,6 +396,12 @@ html.light .ff-paper-document__canvas {
   background: #e8e5dc;
 }
 
+.ff-paper-pdf-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
 .ff-paper-pdf-frame {
   display: block;
   width: 100%;
@@ -403,6 +409,12 @@ html.light .ff-paper-document__canvas {
   min-height: 600px;
   border: 0;
   background: #fff;
+}
+
+.ff-paper-solutions-below {
+  border-top: 1px solid var(--paper-border);
+  background: var(--paper-surface);
+  border-radius: 0 0 1rem 1rem;
 }
 
 .ff-paper-image-frame {

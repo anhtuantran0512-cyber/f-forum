@@ -10,7 +10,7 @@
  * form dự phòng khi môi trường chưa cấu hình OAuth.
  */
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { X, LogIn, UserPlus, AlertCircle, CheckCircle, RotateCcw, Shield } from 'lucide-react';
+import { X, LogIn, UserPlus, AlertCircle, CheckCircle, RotateCcw } from 'lucide-react';
 import type { User } from '../types';
 import {
   isGoogleConfigured,
@@ -739,20 +739,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     onFocusChange={(focused) => setFocusField(focused ? 'password' : null)}
                     onModeChange={handleTorchChange}
                   />
-                  <div className="flex items-center justify-between text-xs text-amber-500/80 mt-1 mb-2 px-1">
-                    <button
-                      type="button"
-                      className="hover:underline opacity-80 hover:opacity-100 transition-opacity inline-flex items-center gap-1.5 cursor-pointer text-left"
-                      onClick={() => {
-                        setLoginEmail('BroAmStuck@gmail.com');
-                        setLoginPassword('12345678');
-                        setErrorMsg(null);
-                      }}
-                    >
-                      <Shield className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                      <span>Tài khoản Quản trị viên (BroAmStuck)</span>
-                    </button>
-                  </div>
                   <button type="submit" disabled={isSubmitting} className="auth-submit"
                     aria-label={isSubmitting ? 'Đang xác thực' : 'Đăng nhập'}
                     onMouseEnter={() => setHoveredSubmit('login')} onMouseLeave={() => setHoveredSubmit(null)}
