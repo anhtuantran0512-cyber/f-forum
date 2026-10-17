@@ -2000,9 +2000,21 @@ export function useForumStore() {
       body: JSON.stringify({ name: trimmedName, email: normalizedEmail, password }),
     });
 
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      throw new Error(data.message || 'Đăng ký tài khoản thất bại');
+    const rawText = await res.text();
+    let data: any = null;
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      throw new Error(
+        res.status === 404
+          ? 'Cổng đăng ký chưa sẵn sàng hoặc không tìm thấy đường dẫn trên máy chủ (404).'
+          : res.status >= 500
+          ? `Máy chủ đang bảo trì hoặc gặp sự cố (${res.status}). Vui lòng thử lại sau ít phút.`
+          : 'Phản hồi từ máy chủ không đúng định dạng JSON.'
+      );
+    }
+    if (!res.ok || !data || !data.success) {
+      throw new Error((data && data.message) || 'Đăng ký tài khoản thất bại');
     }
 
     const user = data.user as User;
@@ -2050,9 +2062,21 @@ export function useForumStore() {
       body: JSON.stringify({ email: normalizedEmail, password }),
     });
 
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      throw new Error(data.message || 'Đăng nhập thất bại');
+    const rawText = await res.text();
+    let data: any = null;
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      throw new Error(
+        res.status === 404
+          ? 'Cổng đăng nhập chưa sẵn sàng hoặc không tìm thấy đường dẫn trên máy chủ (404).'
+          : res.status >= 500
+          ? `Máy chủ đang bảo trì hoặc gặp sự cố (${res.status}). Vui lòng thử lại sau ít phút.`
+          : 'Phản hồi từ máy chủ không đúng định dạng JSON.'
+      );
+    }
+    if (!res.ok || !data || !data.success) {
+      throw new Error((data && data.message) || 'Đăng nhập thất bại');
     }
 
     const user = data.user as User;
@@ -2114,9 +2138,21 @@ export function useForumStore() {
         }),
       });
 
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.message || 'Đăng nhập mạng xã hội thất bại');
+      const rawText = await res.text();
+      let json: any = null;
+      try {
+        json = JSON.parse(rawText);
+      } catch {
+        throw new Error(
+          res.status === 404
+            ? 'Cổng đăng nhập mạng xã hội chưa sẵn sàng hoặc không tìm thấy đường dẫn trên máy chủ (404).'
+            : res.status >= 500
+            ? `Máy chủ đang bảo trì hoặc gặp sự cố (${res.status}). Vui lòng thử lại sau ít phút.`
+            : 'Phản hồi từ máy chủ không đúng định dạng JSON.'
+        );
+      }
+      if (!res.ok || !json || !json.success) {
+        throw new Error((json && json.message) || 'Đăng nhập mạng xã hội thất bại');
       }
       result = json;
     } catch (err: any) {
