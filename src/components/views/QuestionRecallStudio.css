@@ -177,6 +177,313 @@
   font-weight: 650;
 }
 
+.ff-recall-deck-builder {
+  overflow: hidden;
+  border: 1px solid var(--recall-line);
+  border-radius: 15px 6px 15px 6px;
+  background: rgba(9, 14, 10, 0.34);
+}
+
+.ff-recall-deck-overview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 19px;
+  border-bottom: 1px solid var(--recall-line);
+}
+
+.ff-recall-deck-overview .ff-recall-kicker {
+  color: var(--recall-sage);
+}
+
+.ff-recall-deck-overview h3 {
+  margin: 0;
+  color: var(--recall-ink);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.ff-recall-deck-overview p:last-child {
+  margin: 5px 0 0;
+  color: var(--recall-muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.ff-recall-deck-overview-counts {
+  display: flex;
+  min-width: 61px;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  border: 1px solid rgba(129, 178, 154, 0.26);
+  border-radius: 10px 4px 10px 4px;
+  background: rgba(129, 178, 154, 0.08);
+}
+
+.ff-recall-deck-overview-counts strong {
+  color: var(--recall-sage);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.ff-recall-deck-overview-counts span {
+  margin-top: 4px;
+  color: var(--recall-muted);
+  font-size: 8px;
+}
+
+.ff-recall-deck-filters {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--recall-line);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.ff-recall-search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 40px;
+  padding: 0 11px;
+  border: 1px solid var(--recall-line);
+  border-radius: 9px;
+  background: var(--recall-inset);
+  color: var(--recall-muted);
+}
+
+.ff-recall-search:focus-within {
+  border-color: rgba(233, 196, 106, 0.62);
+  box-shadow: 0 0 0 3px rgba(233, 196, 106, 0.1);
+}
+
+.ff-recall-search svg {
+  flex: 0 0 auto;
+  color: var(--recall-brass);
+}
+
+.ff-recall-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--recall-ink);
+  font: inherit;
+  font-size: 11px;
+}
+
+.ff-recall-search input::placeholder {
+  color: var(--recall-muted);
+  opacity: 0.8;
+}
+
+.ff-recall-subject-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 1px 1px 5px;
+  scrollbar-color: rgba(233, 196, 106, 0.28) transparent;
+  scrollbar-width: thin;
+}
+
+.ff-recall-subject-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border: 1px solid var(--recall-line);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--recall-muted);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ff-recall-subject-tabs button[aria-pressed='true'] {
+  border-color: rgba(233, 196, 106, 0.5);
+  background: rgba(233, 196, 106, 0.12);
+  color: var(--recall-ink);
+}
+
+.ff-recall-subject-tabs small {
+  color: var(--recall-brass);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 8px;
+}
+
+.ff-recall-deck-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--recall-line);
+}
+
+.ff-recall-deck-actions > span {
+  color: var(--recall-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+}
+
+.ff-recall-deck-actions > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.ff-recall-deck-text-action {
+  padding: 3px 0;
+  border: 0;
+  background: transparent;
+  color: var(--recall-brass);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.ff-recall-deck-text-action:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ff-recall-deck-text-action:disabled {
+  color: var(--recall-muted);
+  opacity: 0.48;
+  cursor: default;
+}
+
+.ff-recall-deck-list {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+}
+
+.ff-recall-deck-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--recall-line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--recall-copy);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.ff-recall-deck-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(233, 196, 106, 0.4);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.ff-recall-deck-card.is-selected {
+  border-color: rgba(129, 178, 154, 0.44);
+  background: rgba(129, 178, 154, 0.065);
+}
+
+.ff-recall-deck-check {
+  display: inline-grid;
+  width: 21px;
+  height: 21px;
+  flex: 0 0 auto;
+  place-items: center;
+  margin-top: 2px;
+  border: 1px solid var(--recall-line);
+  border-radius: 6px;
+  background: var(--recall-inset);
+  color: var(--recall-sage);
+}
+
+.ff-recall-deck-card.is-selected .ff-recall-deck-check {
+  border-color: rgba(129, 178, 154, 0.56);
+  background: rgba(129, 178, 154, 0.16);
+}
+
+.ff-recall-deck-card-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 5px;
+}
+
+.ff-recall-deck-card-meta,
+.ff-recall-deck-card-footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 9px;
+}
+
+.ff-recall-deck-card-meta > span:last-child {
+  color: var(--recall-sage);
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.ff-recall-deck-card-copy > strong {
+  color: var(--recall-ink);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.ff-recall-deck-excerpt {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--recall-muted);
+  font-size: 10px;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.ff-recall-deck-card-footer {
+  justify-content: space-between;
+  color: var(--recall-muted);
+  font-size: 8px;
+}
+
+.ff-recall-deck-image-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--recall-brass);
+}
+
+.ff-recall-empty-state {
+  margin: 12px;
+  padding: 24px 16px;
+  border: 1px dashed var(--recall-line);
+  border-radius: 9px;
+  color: var(--recall-muted);
+  font-size: 11px;
+  line-height: 1.6;
+  text-align: center;
+}
+
 .ff-recall-question-meta {
   display: flex;
   align-items: center;
@@ -371,6 +678,13 @@
 .ff-recall-primary:hover {
   transform: translateY(-1px);
   background: #f2d48b;
+}
+
+.ff-recall-primary:disabled {
+  opacity: 0.48;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .ff-recall-secondary {
@@ -716,6 +1030,36 @@
   gap: 7px;
 }
 
+.ff-recall-deck-footer {
+  gap: 12px;
+}
+
+.ff-recall-selection-total {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.ff-recall-selection-total strong {
+  color: var(--recall-brass);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 17px;
+}
+
+.ff-recall-selection-total span {
+  color: var(--recall-muted);
+  font-size: 9px;
+}
+
+.ff-recall-deck-footer-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .ff-recall-footer-dot {
   width: 7px;
   height: 7px;
@@ -760,8 +1104,29 @@ html.light .ff-recall-subject {
 
 html.light .ff-recall-question,
 html.light .ff-recall-attempt,
-html.light .ff-recall-summary {
+html.light .ff-recall-summary,
+html.light .ff-recall-deck-builder {
   background: linear-gradient(150deg, rgba(255, 255, 255, 0.86), rgba(243, 237, 224, 0.72));
+}
+
+html.light .ff-recall-deck-filters {
+  background: rgba(255, 255, 255, 0.42);
+}
+
+html.light .ff-recall-deck-card {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+html.light .ff-recall-deck-card.is-selected {
+  background: rgba(129, 178, 154, 0.12);
+}
+
+html.light .ff-recall-subject-tabs button {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+html.light .ff-recall-subject-tabs button[aria-pressed='true'] {
+  background: rgba(233, 196, 106, 0.2);
 }
 
 html.light .ff-recall-answer {
@@ -802,8 +1167,13 @@ html.fabulous-mode .ff-recall-studio {
 
 html.fabulous-mode .ff-recall-question,
 html.fabulous-mode .ff-recall-attempt,
-html.fabulous-mode .ff-recall-summary {
+html.fabulous-mode .ff-recall-summary,
+html.fabulous-mode .ff-recall-deck-builder {
   background: color-mix(in srgb, var(--recall-raised) 62%, transparent);
+}
+
+html.fabulous-mode .ff-recall-deck-card {
+  background: color-mix(in srgb, var(--recall-raised) 38%, transparent);
 }
 
 @media (max-width: 620px) {
@@ -820,6 +1190,44 @@ html.fabulous-mode .ff-recall-summary {
   .ff-recall-header,
   .ff-recall-footer {
     padding-inline: 15px;
+  }
+
+  .ff-recall-deck-overview {
+    padding: 15px;
+  }
+
+  .ff-recall-deck-filters {
+    padding: 12px 12px 10px;
+  }
+
+  .ff-recall-deck-actions {
+    align-items: flex-start;
+    padding-inline: 12px;
+  }
+
+  .ff-recall-deck-actions > span {
+    width: 100%;
+  }
+
+  .ff-recall-deck-actions > div {
+    gap: 8px;
+  }
+
+  .ff-recall-deck-list {
+    padding: 9px;
+  }
+
+  .ff-recall-deck-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ff-recall-deck-footer-actions {
+    justify-content: stretch;
+  }
+
+  .ff-recall-deck-footer-actions > button {
+    flex: 1;
   }
 
   .ff-recall-heading {

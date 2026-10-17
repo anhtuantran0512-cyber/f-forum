@@ -5,8 +5,10 @@ import {
   Brain,
   Check,
   Eye,
+  Image as ImageIcon,
   Lightbulb,
   RotateCcw,
+  Search,
   ShieldCheck,
   X,
 } from 'lucide-react';
@@ -21,7 +23,7 @@ interface QuestionRecallStudioProps {
 }
 
 type RecallAssessment = 'solved' | 'understood' | 'revisit';
-type StudioPhase = 'recall' | 'answer' | 'summary';
+type StudioPhase = 'select' | 'recall' | 'answer' | 'summary';
 
 const SUBJECT_LABELS: Record<SubjectTag, string> = {
   toan: 'Toán học',
@@ -44,6 +46,9 @@ const getQuestionImages = (entry: RecallEntry): string[] => {
   if (entry.question.imageUrl) images.unshift(entry.question.imageUrl);
   return Array.from(new Set(images.map((image) => image.trim()).filter(Boolean)));
 };
+
+const normalizeDeckSearch = (value: string): string =>
+  value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase();
 
 const ASSESSMENTS: {
   value: RecallAssessment;
@@ -72,14 +77,21 @@ const ASSESSMENTS: {
 ];
 
 export default function QuestionRecallStudio({ entries, onClose }: QuestionRecallStudioProps) {
-  const [sessionEntries] = useState(entries);
-  const [activeEntries, setActiveEntries] = useState(entries);
+  const startsWithDeckBuilder = entries.length > 1;
+  const [candidateEntries] = useState(entries);
+  const [sessionEntries, setSessionEntries] = useState<RecallEntry[]>(startsWithDeckBuilder ? [] : entries);
+  const [activeEntries, setActiveEntries] = useState<RecallEntry[]>(startsWithDeckBuilder ? [] : entries);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [phase, setPhase] = useState<StudioPhase>('recall');
+  const [phase, setPhase] = useState<StudioPhase>(startsWithDeckBuilder ? 'select' : 'recall');
   const [revealedCount, setRevealedCount] = useState(0);
   const [attemptDraft, setAttemptDraft] = useState('');
   const [assessments, setAssessments] = useState<Record<string, RecallAssessment>>({});
   const [isReviewRound, setIsReviewRound] = useState(false);
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<Set<string>>(
+    () => new Set(entries.map((entry) => entry.question.id)),
+  );
+  const [subjectFilter, setSubjectFilter] = useState<SubjectTag | 'all'>('all');
+  const [deckSearch, setDeckSearch] = useState('');
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -92,6 +104,29 @@ export default function QuestionRecallStudio({ entries, onClose }: QuestionRecal
     () => (currentEntry ? getQuestionImages(currentEntry) : []),
     [currentEntry],
   );
+  const filteredCandidateEntries = useMemo(() => {
+    const normalizedSearch = normalizeDeckSearch(deckSearch.trim());
+    return candidateEntries.filter(({ question }) => {
+      const matchesSubject = subjectFilter === 'all' || question.subject === subjectFilter;
+      const searchableText = normalizeDeckSearch(
+        `${question.title} ${question.content} ${SUBJECT_LABELS[question.subject]}`,
+      );
+      return matchesSubject && (!normalizedSearch || searchableText.includes(normalizedSearch));
+    });
+  }, [candidateEntries, deckSearch, subjectFilter]);
+  const subjectOptions = useMemo(() => {
+    const counts = new Map<SubjectTag, number>();
+    for (const entry of candidateEntries) {
+      counts.set(entry.question.subject, (counts.get(entry.question.subject) ?? 0) + 1);
+    }
+    return Array.from(counts.entries()).sort((a, b) =>
+      SUBJECT_LABELS[a[0]].localeCompare(SUBJECT_LABELS[b[0]], 'vi'),
+    );
+  }, [candidateEntries]);
+  const selectedEntries = useMemo(
+    () => candidateEntries.filter((entry) => selectedQuestionIds.has(entry.question.id)),
+    [candidateEntries, selectedQuestionIds],
+  );
   const reviewEntries = sessionEntries.filter(
     (entry) => assessments[entry.question.id] === 'revisit',
   );
@@ -99,6 +134,34 @@ export default function QuestionRecallStudio({ entries, onClose }: QuestionRecal
     solved: sessionEntries.filter((entry) => assessments[entry.question.id] === 'solved').length,
     understood: sessionEntries.filter((entry) => assessments[entry.question.id] === 'understood').length,
     revisit: reviewEntries.length,
+  };
+
+  const toggleQuestionSelection = (questionId: string) => {
+    setSelectedQuestionIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(questionId)) next.delete(questionId);
+      else next.add(questionId);
+      return next;
+    });
+  };
+
+  const selectEveryCandidate = () => {
+    setSelectedQuestionIds(new Set(candidateEntries.map((entry) => entry.question.id)));
+  };
+
+  const selectOnlyFilteredCandidates = () => {
+    setSelectedQuestionIds(new Set(filteredCandidateEntries.map((entry) => entry.question.id)));
+  };
+
+  const startSelectedSession = () => {
+    if (selectedEntries.length === 0) return;
+    setSessionEntries(selectedEntries);
+    setActiveEntries(selectedEntries);
+    setCurrentIndex(0);
+    setAttemptDraft('');
+    setRevealedCount(0);
+    setIsReviewRound(false);
+    setPhase('recall');
   };
 
   useEffect(() => {
@@ -217,22 +280,32 @@ export default function QuestionRecallStudio({ entries, onClose }: QuestionRecal
           <div className="ff-recall-heading">
             <div>
               <p className="ff-recall-kicker">
-                {phase === 'summary'
-                  ? 'GHI NHẬN CỦA BẠN'
-                  : phase === 'answer'
-                    ? 'ĐỐI CHIẾU LỜI GIẢI'
-                    : isReviewRound
-                      ? 'LƯỢT XEM LẠI'
-                      : 'THỬ NHỚ TRƯỚC'}
+                {phase === 'select'
+                  ? 'SOẠN BỘ ÔN TẬP'
+                  : phase === 'summary'
+                    ? 'GHI NHẬN CỦA BẠN'
+                    : phase === 'answer'
+                      ? 'ĐỐI CHIẾU LỜI GIẢI'
+                      : isReviewRound
+                        ? 'LƯỢT XEM LẠI'
+                        : 'THỬ NHỚ TRƯỚC'}
               </p>
-              <h2 id="ff-recall-title">{phase === 'summary' ? 'Một vòng học có chủ đích' : 'Phòng luyện nhớ'}</h2>
+              <h2 id="ff-recall-title">
+                {phase === 'select'
+                  ? 'Chọn câu cho lượt ôn'
+                  : phase === 'summary'
+                    ? 'Một vòng học có chủ đích'
+                    : 'Phòng luyện nhớ'}
+              </h2>
               <p id="ff-recall-description">
-                {phase === 'summary'
-                  ? 'Kết quả chỉ phản ánh lựa chọn của bạn trong phiên này.'
-                  : 'Tự thử trước, rồi mở dần lời giải thật từ cộng đồng.'}
+                {phase === 'select'
+                  ? `${candidateEntries.length} câu đã lưu có lời giải phù hợp. Lựa chọn chỉ áp dụng cho phiên này.`
+                  : phase === 'summary'
+                    ? 'Kết quả chỉ phản ánh lựa chọn của bạn trong phiên này.'
+                    : 'Tự thử trước, rồi mở dần lời giải thật từ cộng đồng.'}
               </p>
             </div>
-            {phase !== 'summary' && (
+            {phase !== 'summary' && phase !== 'select' && (
               <div className="ff-recall-progress" aria-live="polite" aria-atomic="true">
                 <span>{currentIndex + 1}</span>
                 <span aria-hidden="true">/</span>
@@ -242,7 +315,131 @@ export default function QuestionRecallStudio({ entries, onClose }: QuestionRecal
             )}
           </div>
 
-          {phase !== 'summary' && currentEntry && (
+          {phase === 'select' && (
+            <section className="ff-recall-deck-builder" aria-labelledby="ff-recall-deck-title">
+              <div className="ff-recall-deck-overview">
+                <div>
+                  <p className="ff-recall-kicker">BỘ NGUỒN CỦA BẠN</p>
+                  <h3 id="ff-recall-deck-title">Chọn nội dung muốn ôn</h3>
+                  <p>Câu mới lưu xếp trước; mỗi câu có lời giải cộng đồng được đánh dấu tốt nhất.</p>
+                </div>
+                <div className="ff-recall-deck-overview-counts" aria-label={`${candidateEntries.length} câu hỏi, ${subjectOptions.length} môn học`}>
+                  <strong>{candidateEntries.length}</strong>
+                  <span>{subjectOptions.length} môn</span>
+                </div>
+              </div>
+
+              <div className="ff-recall-deck-filters">
+                <label className="ff-recall-search" htmlFor="ff-recall-deck-search">
+                  <Search size={16} aria-hidden="true" />
+                  <input
+                    id="ff-recall-deck-search"
+                    type="search"
+                    value={deckSearch}
+                    maxLength={100}
+                    onChange={(event) => setDeckSearch(event.target.value)}
+                    placeholder="Tìm trong tiêu đề hoặc đề bài…"
+                  />
+                </label>
+                <div className="ff-recall-subject-tabs" role="group" aria-label="Lọc bộ ôn theo môn">
+                  <button
+                    type="button"
+                    aria-pressed={subjectFilter === 'all'}
+                    onClick={() => setSubjectFilter('all')}
+                  >
+                    <span>Tất cả</span><small>{candidateEntries.length}</small>
+                  </button>
+                  {subjectOptions.map(([subject, count]) => (
+                    <button
+                      type="button"
+                      key={subject}
+                      aria-pressed={subjectFilter === subject}
+                      onClick={() => setSubjectFilter(subject)}
+                    >
+                      <span>{SUBJECT_LABELS[subject]}</span><small>{count}</small>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="ff-recall-deck-actions">
+                <span>{filteredCandidateEntries.length} đang hiển thị · {selectedEntries.length} đã chọn</span>
+                <div>
+                  <button
+                    type="button"
+                    className="ff-recall-deck-text-action"
+                    onClick={selectEveryCandidate}
+                    disabled={selectedEntries.length === candidateEntries.length}
+                  >
+                    Chọn cả bộ
+                  </button>
+                  <button
+                    type="button"
+                    className="ff-recall-deck-text-action"
+                    onClick={selectOnlyFilteredCandidates}
+                    disabled={filteredCandidateEntries.length === 0}
+                  >
+                    Chỉ chọn kết quả
+                  </button>
+                  <button
+                    type="button"
+                    className="ff-recall-deck-text-action"
+                    onClick={() => setSelectedQuestionIds(new Set<string>())}
+                    disabled={selectedEntries.length === 0}
+                  >
+                    Bỏ chọn
+                  </button>
+                </div>
+              </div>
+
+              {filteredCandidateEntries.length > 0 ? (
+                <div className="ff-recall-deck-list" role="group" aria-label="Câu hỏi trong bộ ôn">
+                  {filteredCandidateEntries.map((entry) => {
+                    const questionId = entry.question.id;
+                    const isSelected = selectedQuestionIds.has(questionId);
+                    const imageCount = getQuestionImages(entry).length;
+                    const excerpt = entry.question.content?.trim().replace(/\s+/g, ' ');
+                    return (
+                      <button
+                        type="button"
+                        key={questionId}
+                        className={`ff-recall-deck-card ${isSelected ? 'is-selected' : ''}`}
+                        aria-pressed={isSelected}
+                        aria-label={`${isSelected ? 'Bỏ chọn' : 'Chọn'} câu hỏi: ${entry.question.title}`}
+                        onClick={() => toggleQuestionSelection(questionId)}
+                      >
+                        <span className="ff-recall-deck-check" aria-hidden="true">
+                          {isSelected && <Check size={15} />}
+                        </span>
+                        <span className="ff-recall-deck-card-copy">
+                          <span className="ff-recall-deck-card-meta">
+                            <span className="ff-recall-subject">{SUBJECT_LABELS[entry.question.subject]}</span>
+                            <span>Lời giải được chọn</span>
+                          </span>
+                          <strong>{entry.question.title}</strong>
+                          {excerpt && <span className="ff-recall-deck-excerpt">{excerpt}</span>}
+                          <span className="ff-recall-deck-card-footer">
+                            <span>Lời giải từ {entry.solution.authorName || 'thành viên'}</span>
+                            {imageCount > 0 && (
+                              <span className="ff-recall-deck-image-count">
+                                <ImageIcon size={13} aria-hidden="true" /> {imageCount} ảnh
+                              </span>
+                            )}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="ff-recall-empty-state" role="status">
+                  Không tìm thấy câu hỏi phù hợp. Thử đổi từ khóa hoặc môn học.
+                </div>
+              )}
+            </section>
+          )}
+
+          {phase !== 'summary' && phase !== 'select' && currentEntry && (
             <>
               <div className="ff-recall-question-meta">
                 <span className="ff-recall-subject">{SUBJECT_LABELS[currentEntry.question.subject]}</span>
@@ -424,9 +621,29 @@ export default function QuestionRecallStudio({ entries, onClose }: QuestionRecal
           )}
         </main>
 
-        {phase !== 'summary' && currentEntry && (
+        {phase === 'select' && (
+          <footer className="ff-recall-footer ff-recall-deck-footer">
+            <div className="ff-recall-selection-total" aria-live="polite" aria-atomic="true">
+              <strong>{selectedEntries.length}</strong>
+              <span>/ {candidateEntries.length} câu được chọn · không lưu bộ chọn này</span>
+            </div>
+            <div className="ff-recall-deck-footer-actions">
+              <button type="button" className="ff-recall-secondary" onClick={onClose}>Đóng</button>
+              <button
+                type="button"
+                className="ff-recall-primary"
+                onClick={startSelectedSession}
+                disabled={selectedEntries.length === 0}
+              >
+                <span>{selectedEntries.length > 0 ? `Bắt đầu ${selectedEntries.length} câu` : 'Chọn câu để luyện'}</span>
+                <ArrowRight size={16} aria-hidden="true" />
+              </button>
+            </div>
+          </footer>
+        )}
+        {phase !== 'summary' && phase !== 'select' && currentEntry && (
           <footer className="ff-recall-footer">
-                <span><span className="ff-recall-footer-dot" aria-hidden="true" /> Nguồn: lời giải cộng đồng</span>
+            <span><span className="ff-recall-footer-dot" aria-hidden="true" /> Nguồn: lời giải cộng đồng</span>
             <span>{isReviewRound ? 'Lượt ôn lại' : `${sessionEntries.length} câu trong phiên`}</span>
           </footer>
         )}

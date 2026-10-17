@@ -97,7 +97,7 @@ test('QA recall 2. Một câu chỉ đủ điều kiện khi có lời giải g�
   assert.equal(buildRecallEntry(makeQuestion('blank', { title: ' ' }), [imageOnly]), null);
 });
 
-test('QA recall 3. Lời giải được mở theo đoạn do thành viên xuống dòng, giữ nguyên phần chữ và ảnh', () => {
+test('QA recall 3. Lời giải mở tuần tự theo dòng gốc, giữ nguyên chữ và ảnh', () => {
   const solution = makeSolution('s-1', 'q-1', {
     content: 'Bước đầu: lập phương trình.\nDòng tiếp theo giữ nguyên.\n\nThay số vào biểu thức.',
     imageUrl: 'https://example.invalid/solution.png',
@@ -125,6 +125,10 @@ test('QA recall 4. Giao diện mở lời giải cộng đồng sau lượt th�
   assert.match(view, /Bắt đầu luyện nhớ/);
   assert.match(view, /React\.lazy\(\(\) => import\('\.\/QuestionRecallStudio'\)\)/);
   assert.match(studio, /Tôi đã thử — mở lời giải/);
+  assert.match(studio, /SOẠN BỘ ÔN TẬP/);
+  assert.match(studio, /Chỉ chọn kết quả/);
+  assert.match(studio, /aria-pressed={isSelected}/);
+  assert.match(studio, /không lưu bộ chọn này/);
   assert.match(studio, /splitRecallSolution\(currentEntry\.solution\)/);
   assert.match(studio, /được đánh dấu tốt nhất/i);
   assert.match(studio, /không sinh hay diễn giải lại nội dung trong phiên này/);
@@ -134,5 +138,7 @@ test('QA recall 4. Giao diện mở lời giải cộng đồng sau lượt th�
   assert.doesNotMatch(studio, /localStorage|sessionStorage|sendBeacon|postJson|fetch\(/);
   assert.match(css, /html\.light \.ff-recall-backdrop/);
   assert.match(css, /html\.fabulous-mode \.ff-recall-studio/);
+  assert.match(css, /\.ff-recall-deck-builder/);
+  assert.match(css, /\.ff-recall-deck-card\.is-selected/);
   assert.match(css, /prefers-reduced-motion/);
 });
