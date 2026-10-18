@@ -273,12 +273,14 @@ export const RadialQuickMenu: React.FC<RadialQuickMenuProps> = ({
     },
   ];
 
+  /* Trên di động, nút Tia Sét nằm trên thanh dock dưới cùng (56px + vùng an toàn) để không đè mục điều hướng. */
+  const mobileDockClear = 'bottom-[calc(72px+var(--safe-bottom))]';
   const posClass =
     navPos === 'bottom'
       ? 'bottom-24 left-4 md:bottom-24 md:left-5'
       : navPos === 'left'
-      ? 'bottom-4 left-24 md:bottom-5 md:left-24'
-      : 'bottom-4 left-4 md:bottom-5 md:left-5';
+      ? `${mobileDockClear} left-24 md:bottom-5 md:left-24`
+      : `${mobileDockClear} left-4 md:bottom-5 md:left-5`;
 
   const viewportW = typeof window !== 'undefined' ? window.innerWidth : 1280;
   const openRight = !customPos || customPos.x <= viewportW / 2;
