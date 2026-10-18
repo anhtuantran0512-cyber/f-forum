@@ -32,7 +32,7 @@ html.light .threads-bg {
   --thread-line: rgba(45, 54, 43, 0.14);
   --thread-accent: #aa563f;
   --thread-sage: #557b60;
-  --thread-gold: #a77b34;
+  --thread-gold: #8a672f;
   --thread-shadow: 0 16px 38px rgba(48, 44, 35, 0.09);
   background:
     radial-gradient(ellipse 54rem 34rem at 96% 1%, rgba(142, 182, 154, 0.16), transparent 68%),
@@ -1529,6 +1529,27 @@ html.light .threads-bg .author-level,
 html.light .threads-bg .repost-quote-level,
 html.light .threads-bg .repost-quote-time {
   color: #6d7568;
+}
+
+/* Huy hiệu ADMIN (nền vàng chữ kem), huy hiệu streak và biểu tượng nút
+   đăng bài — giữ đủ tương phản khi vàng --thread-gold tối lại ở chế độ sáng. */
+html.light .threads-bg .author-level-badge {
+  color: #fdf9f2;
+}
+
+html.light .threads-bg .streak-badge {
+  color: #8a442f;
+}
+
+html.light .threads-bg .streak-badge svg {
+  color: #b45309;
+  fill: #b45309;
+}
+
+html.light .threads-bg .primary-compose-btn svg {
+  /* Nút giữ nền xanh đậm ở cả hai chế độ; icon phải giữ vàng như bản tối
+     thay vì bị lớp chuyển sáng đổi sang đỏ đậm (1.2:1 trên nền xanh). */
+  color: #e8c985 !important;
 }
 
 html.light .threads-bg .thread-topic-tag {
