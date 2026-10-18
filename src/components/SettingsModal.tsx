@@ -800,14 +800,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   )}
 
                   {potatorMode ? (
-                    <div className="space-y-1.5">
-                      <GradientSwatchPicker
-                        label="Bảng chọn Gradient"
-                        value={resolvePotatorId(potatorBg)}
-                        onChange={id => onSelectPotatorBg?.(id)}
-                        includeDarkMetal
-                      />
-                    </div>
+                    theme === 'dark' ? (
+                      <div className="space-y-1.5">
+                        <GradientSwatchPicker
+                          label="Bảng chọn Gradient"
+                          value={resolvePotatorId(potatorBg)}
+                          onChange={id => onSelectPotatorBg?.(id)}
+                          includeDarkMetal
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-[10px] leading-relaxed text-white/65">
+                        Chế độ sáng dùng nền kính sữa cho Potator. Bảng chọn gradient áp dụng ở chế độ tối.
+                      </p>
+                    )
                   ) : (
                     <div className="space-y-2.5">
                       <GradientSwatchPicker

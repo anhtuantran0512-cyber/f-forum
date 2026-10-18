@@ -159,8 +159,12 @@ test('4. Settings Menu Options: Potator Mode, SFX, and Reduced Motion', () => {
     'Settings must offer selectable static-background presets for Potator Mode'
   );
   assert.ok(
-    cssContent.includes('html.potator-mode .ff-app-shell:not(.ff-view-home) .ff-video-bg'),
-    'Potator Mode must hide background videos on every view EXCEPT home'
+    cssContent.includes('html.potator-mode .ff-app-shell .ff-video-bg'),
+    'Potator Mode must hide background videos on EVERY view (including home)'
+  );
+  assert.ok(
+    cssContent.includes('html.potator-mode .ff-app-shell .ff-potator-bg'),
+    'Potator Mode must show the static background layer on EVERY view (including home)'
   );
   assert.ok(
     fs.readFileSync(path.resolve('src/utils/gradients.ts'), 'utf8').includes("id: '10'") &&
@@ -209,9 +213,15 @@ test('4b. Potator Mode wiring: persistence keys + App layer + video pause', () =
     appContent.includes("fforum_potator_sync") && appContent.includes('ff-potator-bg'),
     'App must listen for potator sync and render the static background layer'
   );
+  const boomerangContent = fs.readFileSync(path.resolve('src/components/BoomerangVideoBg.tsx'), 'utf8');
   assert.ok(
     appContent.includes("v.pause()") && appContent.includes('ff-video-bg video'),
-    'App must pause background videos while Potator Mode is on (except home)'
+    'App must pause background videos while Potator Mode is on (including home)'
+  );
+  assert.ok(
+    boomerangContent.includes('!saveData && !potatorMode') &&
+    boomerangContent.includes("classList.contains('potator-mode')"),
+    'Home background video must not load or decode while Potator Mode is on'
   );
   assert.ok(
     cssContent.includes('html.potator-mode .liquid-glass') &&

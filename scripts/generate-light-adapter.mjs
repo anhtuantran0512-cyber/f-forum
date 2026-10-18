@@ -300,15 +300,21 @@ export function buildLightAdapterCss(tokens = collectTokens()) {
   /* Nền trang: kính sữa "liquid" thay cho nền đen + video tối. */
   out.push(`html.light ${VIEW_SHELL} { background: var(--lv-page) !important; color: var(--lv-ink); }`);
   out.push(`${viewSel('.ff-video-bg')} { display: none !important; }`);
-  out.push(`${viewSel('.ff-potator-bg')} {
-  display: block;
-  background:
+  const POTATOR_LIGHT_BG = `background:
     radial-gradient(900px 520px at 8% -8%, rgba(255, 214, 165, 0.55), transparent 62%),
     radial-gradient(820px 480px at 100% 0%, rgba(167, 139, 250, 0.32), transparent 62%),
     radial-gradient(900px 520px at 50% 110%, rgba(125, 211, 252, 0.28), transparent 62%),
-    linear-gradient(180deg, #f7f8fc 0%, var(--lv-page) 100%);
+    linear-gradient(180deg, #f7f8fc 0%, var(--lv-page) 100%);`;
+  out.push(`${viewSel('.ff-potator-bg')} {
+  display: block;
+  ${POTATOR_LIGHT_BG}
 }`);
   out.push(`${viewSel('.ff-potator-bg::before')}, ${viewSel('.ff-potator-bg::after')} { display: none; }`);
+  /* Preset gradient tối (span inline của GradientSurface) không được phủ lên nền
+     kính sữa ở chế độ sáng của các trang nội dung — nếu không, chữ ink tối ngoài
+     thẻ sẽ chìm vào nền tối. Trang chủ & Ký ức giữ preset: "trải nghiệm điện ảnh"
+     với chữ kem trên nền tối. */
+  out.push(`${viewSel('.ff-potator-bg .gradient-surface__image')} { display: none; }`);
   /* Nền gốc tối phủ kín màn hình của một trang (vd. Sắp ra mắt bg-[#001428])
      nhường chỗ cho nền sáng của shell thay vì thành một tấm trắng đục che gradient. */
   const rootDark = [...tokens]

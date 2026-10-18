@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { LOW_FPS_PLAYBACK_RATE, toWebmVideoUrl } from '../utils/chatVideos';
 import { handleVideoError } from '../utils/mediaFallback';
+import { safeStorage } from '../utils/storage';
 import { useActiveInViewport, useInViewOnce, useReducedMotion } from './decorations/useDecorationMedia';
 
 const VIDEO_URL = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260611_183632_c311af08-e4b7-458f-81e7-79847a49b3d3.mp4';
@@ -13,13 +14,26 @@ export const BoomerangVideoBg: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [hostRef, nearViewport] = useInViewOnce<HTMLDivElement>();
   const reducedMotion = useReducedMotion();
+  /* Potator Mode (nền tĩnh) đọc thẳng từ <html class="potator-mode"> + localStorage
+     để video không bắt đầu nạp trong lúc chờ Navbar áp class. */
+  const [potatorMode, setPotatorMode] = useState(() => {
+    if (typeof document === 'undefined') return false;
+    return document.documentElement.classList.contains('potator-mode')
+      || safeStorage.getItem('fforum_potator_mode') === 'true';
+  });
+  useEffect(() => {
+    const root = document.documentElement;
+    const observer = new MutationObserver(() => setPotatorMode(root.classList.contains('potator-mode')));
+    observer.observe(root, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
   const [saveData, setSaveData] = useState(() => {
     const connection = (typeof navigator !== 'undefined'
       ? (navigator as Navigator & { connection?: NetworkInformationLike }).connection
       : undefined);
     return connection?.saveData === true;
   });
-  const mayLoadVideo = nearViewport && !reducedMotion && !saveData;
+  const mayLoadVideo = nearViewport && !reducedMotion && !saveData && !potatorMode;
   const videoInViewport = useActiveInViewport(videoRef, mayLoadVideo);
 
   useEffect(() => {

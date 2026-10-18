@@ -5806,8 +5806,9 @@ body.no-context-menu {
    Không có rule "animation: none" toàn cục ở đây — cố tình.
    ================================================================ */
 
-/* --- 2.1 Ẩn video nền ở MỌI trang TRỪ trang chủ (home giữ video) --- */
-html.potator-mode .ff-app-shell:not(.ff-view-home) .ff-video-bg {
+/* --- 2.1 Ẩn video nền ở MỌI trang, kể cả Trang chủ (Potato = nền tĩnh toàn cục).
+   Trang chủ giữ nguyên khối hero chữ/nghệ thuật, chỉ thay lớp video bằng nền tĩnh. --- */
+html.potator-mode .ff-app-shell .ff-video-bg {
   display: none !important;
 }
 /* Riêng trang Coming Soon có nền đục ở root — để lộ lớp nền tĩnh bên dưới */
@@ -5824,7 +5825,7 @@ html.potator-mode .ff-app-shell:not(.ff-view-home) .bg-\[\#001428\] {
   pointer-events: none;
   overflow: hidden;
 }
-html.potator-mode .ff-app-shell:not(.ff-view-home) .ff-potator-bg {
+html.potator-mode .ff-app-shell .ff-potator-bg {
   display: block;
 }
 /* --- 2.3 Giao diện tối giản: giảm độ nặng GPU nhưng KHÔNG tắt chuyển động --- */
@@ -6286,6 +6287,7 @@ html.light .ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-v
     linear-gradient(180deg, #f7f8fc 0%, var(--lv-page) 100%);
 }
 html.light .ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) .ff-potator-bg::before, html.light .ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) .ff-potator-bg::after { display: none; }
+html.light .ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) .ff-potator-bg .gradient-surface__image { display: none; }
 html.light .ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) :is(.min-h-screen, .h-screen):is(.bg-\[\#000000\], .bg-\[\#04070d\], .bg-\[\#050505\], .bg-\[\#070b14\], .bg-\[\#090d14\], .bg-\[\#0a0a0a\], .bg-\[\#0a0f14\], .bg-\[\#0b0b0b\], .bg-\[\#0b0d12\], .bg-\[\#0b0f17\], .bg-\[\#0b1018\], .bg-\[\#0d1420\], .bg-\[\#0e131d\], .bg-\[\#0f1520\], .bg-\[\#101520\], .bg-\[\#111520\], .bg-\[\#111710\], .bg-\[\#121824\], .bg-\[\#13161f\], .bg-\[\#131924\], .bg-\[\#131926\], .bg-\[\#131b24\], .bg-\[\#141a26\], .bg-\[\#141b28\], .bg-\[\#151a26\], .bg-\[\#151b28\], .bg-\[\#151c28\], .bg-\[\#161d2b\], .bg-black, .bg-neutral-950) { background-color: transparent !important; }
 html.light .ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) .pointer-events-none.inset-0:is([class*="from-black"], [class*="via-black"], [class*="bg-black/"]):empty:not(:has(> img, > video, > picture) > *) { display: none; }
 html.light :is(.text-\[\#b8b4a8\], .text-\[\#b9d7c4\], .text-\[\#bdb5a5\], .text-\[\#c5bba6\], .text-\[\#c7c3b6\], .text-\[\#c7c3b8\], .text-\[\#d8d5ce\], .text-\[\#d8f3dc\], .text-\[\#dad7d0\], .text-\[\#dbdee1\], .text-\[\#ede9fe\], .text-\[\#f4f1de\], .text-\[\#f4f1de\]\/85, .text-\[\#f4f2ef\], .text-\[\#f4f2ef\]\/80, .text-\[\#f4f2ef\]\/90, .text-\[\#f8f7f4\], .text-\[\#fff4d9\], .text-neutral-100, .text-slate-100, .text-white, .text-white\/80, .text-white\/85, .text-white\/90, .text-white\/95) { --lv-c: var(--lv-ink); }
