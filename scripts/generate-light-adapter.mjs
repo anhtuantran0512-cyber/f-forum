@@ -19,7 +19,7 @@
  *   • tấm phủ modal (fixed inset-0 …) và lớp phủ hover trên ảnh — vẫn tối như iOS/Material;
  *   • ảnh/video có lớp phủ tối (chữ trắng trên ảnh vẫn là chữ trắng);
  *   • nút/nhãn màu đặc và gradient màu (chữ trắng trên nền cam vẫn trắng);
- *   • bảng quản trị tối, overlay Boutique, Auth, và mọi thứ gắn .ff-keep-dark.
+ *   • bảng quản trị tối, overlay Boutique, thẻ holo (.ff-holo-card), Auth, và mọi thứ gắn .ff-keep-dark.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -71,7 +71,9 @@ const MEDIA = ':has(> img, > video, > picture)';
 const MEDIA_SCRIM = `${MEDIA}:has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"])`;
 /* Lớp phủ hover tối trên ảnh/avatar (inset-0 + opacity-0 + bg-black) giữ chữ sáng bên trong. */
 const HOVER_SCRIM = '.inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])';
-const ZONES = `:is(.faa-backdrop, .gb-inspect, .gb-unbox, .auth-overlay, .ff-keep-dark, ${MEDIA_SCRIM}, ${HOVER_SCRIM})`;
+/* Thẻ holo (.ff-holo-card: banner "Đáp án chuẩn" ở Hỏi đáp, banner "CLB xuất sắc") là
+   bề mặt tối thiết kế sẵn — chữ kem bên trong không được đổi sang mực sáng. */
+const ZONES = `:is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, ${MEDIA_SCRIM}, ${HOVER_SCRIM})`;
 const NOT_ZONE = `:not(${ZONES}, ${ZONES} *)`;
 const NOT_MEDIA_CHILD = `:not(${MEDIA} > *)`;
 /* Tấm phủ modal (fixed inset-0 / inset-0 có backdrop-blur) và lớp phủ hover GIỮ TỐI ở chế độ sáng —

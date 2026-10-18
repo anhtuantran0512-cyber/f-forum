@@ -362,6 +362,21 @@ html.light .ff-raw-grid-surface {
     inset 0 1px 0 rgba(248, 247, 244, 0.1);
 }
 
+/* Thẻ holo luôn là bề mặt tối (banner "Đáp án chuẩn" ở Hỏi đáp, banner
+   "CLB xuất sắc" ở Câu lạc bộ). Trong chế độ sáng, khôi phục bộ token
+   chữ kem/vàng phiên bản tối bên trong để mực đậm không lật lên nền tối. */
+html.light .ff-holo-card {
+  --ff-ds-ink-primary: #f8f7f4;
+  --ff-ds-ink-secondary: #dad7d0;
+  --ff-ds-ink-muted: #a39f96;
+  --ff-ds-text-primary: #f8f7f4;
+  --ff-ds-text-secondary: #dad7d0;
+  --ff-ds-text-muted: #a39f96;
+  --ff-ds-brutal-border: rgba(248, 247, 244, 0.16);
+  --ff-ds-brutal-shadow-sm: 1.5px 1.5px 0px rgba(4, 6, 11, 0.72);
+  --accent-gold: #f2cc8f;
+}
+
 /* ========================================================================== */
 /* 10. ORGANIC + HAND-DRAWN ACCENTS (Nét vẽ tay thủ công, ấm áp, gần gũi)     */
 /* ========================================================================== */
