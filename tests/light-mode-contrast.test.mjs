@@ -232,6 +232,9 @@ test('Trang nội dung ở chế độ sáng: ẩn video tối, nền kính sữ
   const block = css.slice(css.indexOf(START_MARKER), css.indexOf(END_MARKER));
   assert.ok(/\.ff-video-bg \{ display: none !important; \}/.test(block), 'Video nền tối bị ẩn');
   assert.ok(/\.ff-potator-bg \{\n  display: block;\n  background:\n    radial-gradient\(/.test(block), 'Nền trang là gradient "liquid", không phải giấy phẳng');
+  const spanHideRule = block.split('\n').find((line) => line.includes('.ff-potator-bg .gradient-surface__image')) || '';
+  assert.ok(spanHideRule.includes('.ff-view-qa'), 'Preset tối bị ẩn khỏi nền kính sữa của các trang nội dung sáng');
+  assert.ok(!spanHideRule.includes('.ff-view-home') && !spanHideRule.includes('.ff-view-memory'), 'Trang chủ & Ký ức giữ nền tối "điện ảnh" khi bật Potator');
   assert.ok(block.includes('.pointer-events-none.inset-0:is([class*="from-black"]'), 'Lớp phủ tối trang trí bị ẩn');
 
   assert.ok(app.includes('new MutationObserver(') && app.includes("attributeFilter: ['class']"), 'App theo dõi class light trên <html>');

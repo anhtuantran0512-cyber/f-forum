@@ -403,18 +403,18 @@ export const App: React.FC = () => {
 
   const reducedMotion = useReducedMotion();
 
-  /* Tạm dừng các video nền (đã bị CSS ẩn) khi Potator Mode bật ở trang không
-     phải Trang chủ — và phát lại khi tắt / về Trang chủ. Phim intro một lần ở
-     Khu Vinh Danh KHÔNG nằm trong wrapper .ff-video-bg nên không bị đụng tới. */
+  /* Tạm dừng các video nền (đã bị CSS ẩn) khi Potator Mode bật — Potato thay video
+     nền bằng nền tĩnh ở MỌI trang, kể cả Trang chủ — và phát lại khi tắt. Phim
+     intro một lần ở Khu Vinh Danh KHÔNG nằm trong wrapper .ff-video-bg nên không
+     bị đụng tới. */
   useEffect(() => {
     const videos = document.querySelectorAll<HTMLVideoElement>(
       '.ff-app-shell .ff-video-bg video, .ff-app-shell video.ff-video-bg'
     );
     videos.forEach((v) => {
-      const inHome = !!v.closest('.ff-view-home');
       /* Các trang mà lớp chuyển đổi sáng thay video bằng nền kính sữa (khớp LIGHT_VIEWS) */
       const hiddenByLight = isLightTheme && !!v.closest(LIGHT_ADAPTED_VIEW_SELECTOR);
-      if ((potatorMode && !inHome) || hiddenByLight) {
+      if (potatorMode || hiddenByLight) {
         /* EPIC 5: đánh dấu để các nền tự quản (TriVideoCrossfadeBg) không phát lại video đang bị ẩn. */
         v.dataset.ffSuspended = '1';
         v.pause();
