@@ -1,6 +1,6 @@
 # Loop State — F-Forum
 
-Last run: 2026-10-19 (phiên người dùng — vòng nâng cấp theo kế hoạch: icon 8 bậc đã deploy (`e2c4523`), nâng phụ thuộc (`7534565`), self-host font Ogg + dọn lint (`30a3ed6`))
+Last run: 2026-10-19 tối (Đợt 6 tinh chỉnh UI/UX từ audit trực quan — `b57891c` deploy sống: tên tác giả hết lộ email · nhãn "Potato" hết cắt chữ · nút "Tải tệp gốc" 1 dòng · cỡ chữ tên dài; test 475/475, verifier độc lập PASS)
 
 ## High Priority (loop is acting or waiting on human)
 
@@ -12,12 +12,13 @@ Last run: 2026-10-19 (phiên người dùng — vòng nâng cấp theo kế ho�
 
 ## Branch Convention (19/10)
 
-- Nhánh làm việc: `f-forum_v1` (từ `f-forum-broamstuck-v2.5`), `f-forum_v2` (từ `fix_4`), `f-forum_v3` (từ `arena/62613a87-f-forum`), `f-forum_v4` (nâng phụ thuộc), `f-forum_v5` (font self-host + lint). `main` là nhánh phát hành.
+- Nhánh làm việc: `f-forum_v1` (từ `f-forum-broamstuck-v2.5`), `f-forum_v2` (từ `fix_4`), `f-forum_v3` (từ `arena/62613a87-f-forum`), `f-forum_v4` (nâng phụ thuộc), `f-forum_v5` (font self-host + lint), `f-forum_v6` (Đợt 6 tinh chỉnh UI). `main` là nhánh phát hành.
 - Mỗi lần sửa đổi chỉ sửa đúng **một nhánh**, rồi push nhánh đó + FF lên `main`; không sửa song song nhiều nhánh.
 
 ## Watch List
 
 - ✅ **Nâng cấp phụ thuộc nhỏ (19/10, `7534565`)**: react/react-dom 19.3.1 · @vitejs/plugin-react 6.1.2 · jsdom 30.1.3 · oxlint 1.88 · lucide-react 1.59 · @types/node 24.19.2 — test 475/475, 0 lỗ hổng npm.
+- ✅ **Đợt 6 tinh chỉnh UI (19/10 tối, `b57891c`)**: QAForumView hết lộ email tác giả (`EMAIL_SHAPED` + `pickDisplayName`, fallback "Thành viên F-Forum") + subtitle mới · SettingsModal "Potato" hết cắt chữ · ExamVaultView nút "Tải tệp gốc" 1 dòng + chip header đề 150px · DecoratedName ngưỡng cỡ chữ tên dài. Test 475/475 · tsc sạch · oxlint 0 · verifier độc lập PASS · deploy sống: `index-C1dHM0j4.js`/`index-oZOaESnk.css`, chunk `QAForumView-DCcxrNRn.js` chứa chuỗi mới, CSS có `max-width:150px` + `10.5px`.
 - **42 vị trí `: any`** trong src — dọn dần từng cụm, mỗi lượt 1 file, không refactor lan rộng. (Phân bố: forumStore 19 · oauth 7 · AuthModal 5 · reports 3 · session 2 · backgroundSyncQueue 2 · imagePipeline 1 · ThreadsView 1)
 - **Dev-only**: POST `/api/analytics/track` trả 400 trên vite dev (thiếu route — prod OK). Có thể thêm middleware dev trong `vite.config.ts` cho sạch log; chưa cần.
 - ✅ **Font Ogg self-host (19/10, `30a3ed6`)**: woff2 67KB về `public/fonts/`, bỏ hotlink CloudFront (index.html @font-face + preload, MemoryRealm.css), dọn CSP `fonts` origin thừa; CSP `'self'` đã có sẵn.
@@ -31,6 +32,8 @@ Last run: 2026-10-19 (phiên người dùng — vòng nâng cấp theo kế ho�
 - CI 6/6 xanh · 0 issue · 0 PR mở · test 475/475 · tsc 0 · oxlint 0 (1.88, `src` sạch — 2 cảnh báo purity cũ đã sửa) · light-adapter khớp.
 - Bundle gzip: CSS 93KB / JS 128KB — khỏe, không hành động.
 - 19/10 chiều: vòng nâng cấp theo kế hoạch — icon 8 bậc (`e2c4523`, prod đã đổi asset `index-CuHKhWZB.css`, class `ff-rank-aura/leaf/rays/sway` xác nhận sống) · deps (`7534565`) · font self-host + lint sạch (`30a3ed6`).
+- 19/10 tối: Đợt 6 tinh chỉnh UI `b57891c` — audit ảnh before/after → sửa đúng 4 điểm xác nhận bằng ảnh cận cảnh; các nghi vấn khác (gạch chân pill "Học bền bỉ", "Bảng xếp hạng", swatch nền tràn mép, podium ellipsis ~128px) kiểm 3× zoom → KHÔNG phải lỗi, giữ nguyên.
 
 ---
+
 Run log: xem `loop-run-log.md`

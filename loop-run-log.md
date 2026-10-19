@@ -76,3 +76,17 @@ Append one entry per run. Prune entries older than 30 days.
   "notes": "Vong nang cap theo ke hoach. (1) Icon 8 bac hoa hinh: commit e2c4523 tren f-forum_v3, FF main, Vercel prod doi asset (index-CuHKhWZB.css chua ff-rank-aura/leaf/rays/sway) — deploy song. (2) Nang phu thuoc 7534565 tren f-forum_v4: react 19.3.1, lucide 1.59, @types/node 24.19.2, plugin-react 6.1.2, jsdom 30.1.3, oxlint 1.88; test 475/475, 0 lo hong. (3) Font Ogg self-host + don lint 30a3ed6 tren f-forum_v5: woff2 67KB ve public/fonts, bo hotlink CloudFront + CSP origin thua, sua 2 canh bao purity (LandingFooter CURRENT_YEAR, forumStore todayIsoDate); oxlint src 0 warning. (4) Dong bo ten 4 phien (EduNext/F-Forum/ThayTung.com.vn/Studio) vao SESSION_COORDINATION/PHOIHOP/STATUS/STUDIO_SYNC/AGENTS.md. Tham chieu motionsite.ai + codefronts.com da thu thap (/tmp/opencode/references-notes.md)."
 }
 ```
+
+```json
+{
+  "run_id": "2026-10-19T22:45:00+07:00",
+  "pattern": "human-attended",
+  "duration_s": 5400,
+  "items_found": 4,
+  "actions_taken": 4,
+  "escalations": 0,
+  "tokens_estimate": 175000,
+  "outcome": "fixed",
+  "notes": "Dot 6 tinh chinh UI tu audit truc quan (nhanh f-forum_v6, commit b57891c, FF main a62f2fb..b57891c). QAForumView: EMAIL_SHAPED + pickDisplayName — ten tac gia khong lo email (the cau hoi, modal chi tiet, comment, solverName, popover loi giai, sidebar 'Tich cuc mon'; fallback 'Thanh vien F-Forum') + subtitle 'Hoi ro ban chat — giai tuong tan tung buoc'. SettingsModal: nhan 'Potato' het cat chu (+badge 'Nen tinh · Potato', mo ta doi theo). ExamVaultView: 'Tai tep goc' whitespace-nowrap (2 cho), chip ten header de thi 100->150px. DecoratedName: nguong co chu ten dai (>24 -> 10.5px, >17 -> 11px). Cap nhat assertion 2 test theo nhan moi (settings-theme, fabulous-theme). Kiem dinh: test 475/475, tsc sach, oxlint src 0, light-adapter khop, verifier doc lap PASS. Deploy song: index-C1dHM0j4.js + index-oZOaESnk.css; chunk QAForumView-DCcxrNRn.js (161876B) chua ca 2 chuoi moi; CSS chua max-width:150px + 10.5px; main bundle chua nhan Potato. Luu y: /tmp/opencode bi don (tmpfs) — playwright cai lai duoc, anh audit cu mat; build local lech hash nho so voi prod (env build khac, noi dung nguon khop)."
+}
+```
