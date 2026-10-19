@@ -42,4 +42,8 @@
    - Đã push Git: `arena/62613a87-f-forum` + `main` + `f-forum-broamstuck-v2.5` tại `e1c2b85`.
    - Ghi nhận báo cáo tại `Documents/BroAmStuck Studio/feedback/feedback_72.md`.
 9. **Sự cố đĩa hệ thống (ghi nhận)**: ổ `/` chạm 97% (100G/109G) làm `npx` báo ENOSPC; đã dọn an toàn cache tái tạo được (`~/.npm/_npx`, npm cache, `~/.cache/chromium`) → giải phóng ~4GB (còn 7.3G trống). Thủ phạm chính là dữ liệu người dùng (`~/Downloads` 17G, `~/.var` flatpak 22G) — **không đụng tới**; kiến nghị Sếp dọn thêm khi rảnh.
+10. **Loop Engineering — vòng lặp tự trị daily-triage (chu kỳ đầu hoàn tất)**:
+    - Scaffold `loop init --tool opencode`: Loop Ready **100/100 (L2)**; ràng buộc studio thành binding (`loop-constraints.md`), hướng dẫn agent (`AGENTS.md`, `LOOP.md`, `STATE.md`, `loop-budget.md`, `loop-run-log.md`, `docs/safety.md`, `skills/loop-*`, `opencode.json`).
+    - Chu kỳ đầu: triage toàn diện (CI 6/6 xanh, 0 issue, 0 PR, test 474/474, tsc 0, oxlint 0, adapter khớp, 0 `//`/TODO/`dangerouslySetInnerHTML`/`@ts-ignore`) → phát hiện & fix **og:image 10.4MB ngoài CDN → tự host 113KB** (`27eae18`); verifier độc lập APPROVE (kiểm pixel-level).
+    - Escalate STATE.md High Priority: avatar admin 10.4MB (đụng server — chờ Sếp), nội dung og-cover (chờ Sếp).
 8. **Đo hiệu năng trung thực (kèm cảnh báo)**: máy đo headless software-rendering — Fabulous BẬT trên Hỏi Đáp ~144ms/khung vs TẮT ~54ms (bộ đo này); Trang chủ video vs tĩnh: chênh lệch dưới ngưỡng đo. KHÔNG đại diện GPU thật — chỉ dùng so sánh tương đối.
