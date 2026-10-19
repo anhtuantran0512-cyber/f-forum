@@ -1,6 +1,6 @@
 # Loop State — F-Forum
 
-Last run: 2026-10-19 (phiên người dùng — MÃ HOÁ định danh Super Admin theo yêu cầu Chủ tịch; verifier độc lập APPROVE; chờ commit/push)
+Last run: 2026-10-19 (phiên người dùng — hoàn tất mã hoá định danh Super Admin, đã deploy; đổi tên nhánh làm việc sang `f-forum_v1..v3`)
 
 ## High Priority (loop is acting or waiting on human)
 
@@ -9,6 +9,11 @@ Last run: 2026-10-19 (phiên người dùng — MÃ HOÁ định danh Super Admi
   - Đề xuất: tạo bản 256×256 (~20–50KB) tự host; cập nhật 3 chỗ server + 2 chỗ src + CSP (`server/securityHeaders.ts`) + test ghim `epic5-perf-security.test.mjs:170`.
   - **CẦN SẾP DUYỆT** (đụng server + thay hình đại diện hiển thị — không tự làm).
 - [ ] **Nội dung og:cover có đúng brand không?** — fix kỹ thuật xong (tự host + tối ưu 113KB, giữ nguyên nội dung ảnh gốc). Nếu muốn og-cover đúng chất F-Forum: chỉ cần thay file `public/assets/brand/og-cover.jpg` (1200×630) — quyết định của Sếp.
+
+## Branch Convention (19/10)
+
+- Nhánh làm việc: `f-forum_v1` (từ `f-forum-broamstuck-v2.5`), `f-forum_v2` (từ `fix_4`), `f-forum_v3` (từ `arena/62613a87-f-forum` — nhánh hiện tại). `main` là nhánh phát hành.
+- Mỗi lần sửa đổi chỉ sửa đúng **một nhánh**, rồi push nhánh đó + FF lên `main`; không sửa song song nhiều nhánh.
 
 ## Watch List
 

@@ -5,7 +5,8 @@
 ## Push & Merge
 
 - Không tự merge PR; không mở PR mới trừ khi được lệnh.
-- Push FF-only (arena/main/v2.5) được phép khi có người trong phiên; loop nền chỉ báo cáo.
+- Push FF-only được phép khi có người trong phiên; loop nền chỉ báo cáo.
+- Mỗi lần sửa đổi chỉ sửa đúng **một nhánh** `f-forum_vN`, rồi push nhánh đó + FF lên `main`. `main` là nhánh phát hành.
 - Không đóng issue/PR nào.
 
 ## Paths (cấm đụng)
