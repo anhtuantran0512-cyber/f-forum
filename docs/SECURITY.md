@@ -36,7 +36,7 @@ curl -X POST /api/auth/login  -d '{"email":"nannhan@gmail.com","password":"bat-k
 
 **Mức độ:** Cao · **Vị trí:** `data/forum-data.json`
 
-Toàn bộ mật khẩu được ghi thẳng ra đĩa (`"admin123"`). Ai đọc được tệp dữ liệu là
+Toàn bộ mật khẩu được ghi thẳng ra đĩa (nguyên văn). Ai đọc được tệp dữ liệu là
 đọc được mọi mật khẩu.
 
 **Đã vá:** băm `scrypt` (N=16384, r=8, p=1, 32 byte, salt 16 byte) dạng
@@ -82,7 +82,7 @@ Endpoint nhận `email` **do client tự khai** và cấp tài khoản tương �
 khoản Super Admin — mà không hề kiểm chứng với Google/Facebook.
 
 ```bash
-curl -X POST /api/auth/social -d '{"provider":"google","email":"BroAmStuck@gmail.com"}'
+curl -X POST /api/auth/social -d '{"provider":"google","email":"<email-super-admin>"}'
 # => 200 { user: { role: "SUPER_ADMIN", level: 150 }, token: "f_token_..." }  ← TRƯỚC KHI VÁ
 ```
 
@@ -101,7 +101,7 @@ thành công; tài khoản thường vẫn đăng nhập được ở chế đ�
 
 ```js
 // TRƯỚC
-if (adminEmail !== 'BroAmStuck@gmail.com') return 403;
+if (adminEmail !== '<email-super-admin>') return 403;
 ```
 
 `adminEmail` nằm trong body — ai cũng gõ được chuỗi đó. Tương tự,
@@ -352,7 +352,7 @@ Server nhận `body.user` rồi `broadcastServerEvent('PRESENCE_PING', body.user
 // trên màn hình của MỌI người đang kết nối:
 fetch('/api/presence', { method: 'POST', headers: {'Content-Type':'application/json'},
   body: JSON.stringify({ user: { id: 'x', name: 'Admin Rởm',
-    email: 'BroAmStuck@gmail.com', role: 'SUPER_ADMIN' } }) });
+    email: '<email-super-admin>', role: 'SUPER_ADMIN' } }) });
 ```
 
 `ChatView` tính `isMasterAdminOnline` từ `onlineUsers.some(u => isMasterAdmin(u.email))`,
@@ -1241,7 +1241,7 @@ Kiểm thử: `tests/final-upgrades.test.mjs` (server thật, WebSocket thật; 
 | Mốc thu hồi bị lộ | `sessionsRevokedAt` nằm trong bản ghi user — `/api/sync` phát cho cả khách | Chuyển sang `store.sessionRevocations` (chỉ máy chủ đọc); dữ liệu cũ được chuyển khi khởi động để token đã thu hồi không sống lại |
 | Thiết bị offline lúc bị thu hồi | Nối lại → `AUTH_ERROR` bị client bỏ qua → giao diện "đăng nhập ảo", mọi lệnh ghi lỗi | `src/utils/sessionWatch.ts` hỏi lại `GET /api/auth/session` khi tab hiện lại, có mạng lại, định kỳ 5 phút, khi `AUTH_ERROR` hoặc API trả 401. Chỉ 401 thật mới dọn phiên (lỗi mạng/5xx thì không) |
 | Đổi mật khẩu | Không tồn tại — tài khoản bị lộ không lấy lại được | `POST /api/auth/password`: cần phiên + mật khẩu hiện tại, chung bộ đếm chống dò với đăng nhập (429), mặc định thu hồi mọi thiết bị khác, cấp phiên mới cho máy này, ghi nhật ký `auth:password`. Super Admin bị từ chối (mật khẩu do secret quản lý) |
-| Xoay secret Super Admin | Đổi `FFORUM_ADMIN_PASSWORD` (hoặc gỡ mật khẩu mẫu `admin123`) không đụng tới phiên cũ → kẻ đã đăng nhập giữ quyền tới 30 ngày | Khi khởi động phát hiện xoay/gỡ → thu hồi mọi phiên Super Admin cũ + nhật ký `auth:admin-secret` |
+| Xoay secret Super Admin | Đổi `FFORUM_ADMIN_PASSWORD` (hoặc gỡ mật khẩu mẫu từng công khai) không đụng tới phiên cũ → kẻ đã đăng nhập giữ quyền tới 30 ngày | Khi khởi động phát hiện xoay/gỡ → thu hồi mọi phiên Super Admin cũ + nhật ký `auth:admin-secret` |
 | Đăng xuất ở một tab | Các tab khác vẫn hiện "đã đăng nhập" dù token chung đã bị xoá | Tab khác nhận `USER_LOGOUT` → kết thúc phiên ngay; khi đổi mật khẩu, các tab cùng trình duyệt phối hợp qua `SESSION_ROTATING/ROTATED` để không tự đăng xuất phiên mới |
 
 Giới hạn còn lại: kênh dự phòng SSE không gắn danh tính nên không nhận
