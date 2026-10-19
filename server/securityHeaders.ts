@@ -28,8 +28,8 @@ export const CSP_ORIGINS = {
   scripts: ['https://accounts.google.com', 'https://apis.google.com', 'https://connect.facebook.net'],
   /** Google Fonts CSS, font Garet (onlinewebfonts), nút GIS. */
   styles: ['https://fonts.googleapis.com', 'https://db.onlinewebfonts.com', 'https://accounts.google.com'],
-  /** Tệp font: Google, onlinewebfonts, font Ogg trên CloudFront. */
-  fonts: ['https://fonts.gstatic.com', 'https://db.onlinewebfonts.com', 'https://dcym8fthxf5uu.cloudfront.net'],
+  /** Tệp font: Google, onlinewebfonts; font Ogg đã tự host tại /fonts. */
+  fonts: ['https://fonts.gstatic.com', 'https://db.onlinewebfonts.com'],
   /** Video nền và phim giới thiệu. */
   media: ['https://d8j0ntlcm91z4.cloudfront.net'],
   /** XHR của OAuth: userinfo Google, Graph API Facebook. */
