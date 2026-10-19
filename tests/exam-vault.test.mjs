@@ -438,3 +438,54 @@ test('16. QA dùng cuộn toàn trang, nền cố định và thẻ ảo giữ �
   assert.ok(exam.includes('pointermove') && examCss.includes('.ff-exam-vault::before'), 'Kho Đề phải có parallax nền tinh tế');
   assert.ok(examCss.includes('prefers-reduced-motion: reduce'), 'Parallax phải tắt khi người dùng giảm chuyển động');
 });
+
+test('17. Đề chính thức THPT 2026 & góc học tập: tệp thật, số liệu khớp, nguồn công khai', () => {
+  const seed = read('src/components/exam/seedExamPapers.ts');
+  const resources = read('src/components/exam/learningResources.ts');
+  const exam = read('src/components/views/ExamVaultView.tsx');
+
+  const official2026 = [
+    { id: 'ex-11', file: 'public/exams/de-thi-chinh-thuc-thpt-2026-toan.pdf', size: 1949763 },
+    { id: 'ex-12', file: 'public/exams/de-thi-chinh-thuc-thpt-2026-ngu-van.pdf', size: 128078 },
+    { id: 'ex-13', file: 'public/exams/de-thi-chinh-thuc-thpt-2026-tieng-anh.pdf', size: 130903 },
+    { id: 'ex-14', file: 'public/exams/de-thi-chinh-thuc-thpt-2026-vat-li.pdf', size: 205989 },
+    { id: 'ex-15', file: 'public/exams/de-thi-chinh-thuc-thpt-2026-hoa-hoc.pdf', size: 333687 },
+    { id: 'ex-16', file: 'public/exams/de-thi-chinh-thuc-thpt-2026-sinh-hoc.pdf', size: 611519 },
+  ];
+
+  official2026.forEach((paper) => {
+    const anchor = seed.indexOf(`id: '${paper.id}'`);
+    assert.ok(anchor >= 0, `${paper.id} must exist in the seed bank`);
+    const nextAnchor = seed.indexOf("\n    id: '", anchor + 1);
+    const entry = seed.slice(anchor, nextAnchor === -1 ? undefined : nextAnchor);
+    const absolute = path.resolve(paper.file);
+    assert.ok(fs.existsSync(absolute), `${paper.file} must be committed`);
+    const buffer = fs.readFileSync(absolute);
+    assert.equal(buffer.subarray(0, 5).toString('latin1'), '%PDF-', `${paper.file} must be a real PDF`);
+    assert.equal(buffer.length, paper.size, `${paper.file} size must match the seed metadata`);
+    assert.ok(entry.includes(`size: ${paper.size}`), `${paper.id} attachment size must match the file`);
+    assert.ok(entry.includes(`url: '/${paper.file.replace('public/', '')}'`), `${paper.id} attachment URL must point to the file`);
+  });
+
+  ['Toán học', 'Ngữ văn', 'Tiếng Anh', 'Vật lí', 'Hóa học', 'Sinh học'].forEach((subject) => {
+    assert.ok(
+      seed.includes(`Đề thi chính thức Kỳ thi Tốt nghiệp THPT 2026 môn ${subject}`),
+      `Official 2026 ${subject} paper must be present`,
+    );
+  });
+  assert.ok(seed.includes("uploadDate: '11/06/2026'"), 'Math and Literature papers must carry the official exam date');
+  assert.ok(seed.includes("uploadDate: '12/06/2026'"), 'Foreign language, Physics, Chemistry and Biology papers must carry the official exam date');
+
+  const urls = [...resources.matchAll(/url: '(https:\/\/[^']+)'/g)].map((match) => match[1]);
+  assert.ok(urls.length >= 7, 'Must curate at least 7 public learning resources');
+  urls.forEach((url) => assert.ok(url.startsWith('https://'), `Resource URL must use https: ${url}`));
+  assert.equal(new Set(urls).size, urls.length, 'Resource URLs must be unique');
+  ['video', 'document', 'official'].forEach((kind) => {
+    assert.ok(resources.includes(`kind: '${kind}'`), `Learning resources must include kind ${kind}`);
+  });
+  assert.ok(resources.includes('youtube.com/@vumaiphuong'), 'Verified English channel must be curated');
+  assert.ok(resources.includes('youtube.com/@vukhacngoc'), 'Verified Chemistry channel must be curated');
+  assert.ok(exam.includes("from '../exam/learningResources'"), 'Exam vault must import the curated resources');
+  assert.ok(exam.includes('aria-label="Tài liệu và bài giảng chọn lọc"'), 'Exam vault must render the learning resources section');
+  assert.ok(exam.includes('rel="noopener noreferrer"'), 'External resource links must be safe');
+});

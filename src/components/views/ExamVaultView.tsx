@@ -42,8 +42,12 @@ import {
   HardDrive,
   WifiOff,
   SlidersHorizontal,
+  Clapperboard,
+  BadgeCheck,
+  ExternalLink,
 } from 'lucide-react';
 import { SEED_EXAMS } from '../exam/seedExamPapers';
+import { LEARNING_RESOURCES } from '../exam/learningResources';
 import type {
   DimensionView,
   User,
@@ -243,6 +247,7 @@ const getCompactPaperTitle = (paper: ExamPaper): string => {
   title = title.replace(new RegExp(` ${paper.grade}(?= *[—–-]| *$)`, 'i'), '');
   title = title.replace(/ *[—–-] */, ' · ').replace(/  +/g, ' ').trim();
   title = title.replace(/^[ ·]+|[ ·]+$/g, '');
+  if (title) title = title.charAt(0).toUpperCase() + title.slice(1);
   return title || paper.title;
 };
 
@@ -1677,6 +1682,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                     e.preventDefault();
                     openExamViewer(paper.id);
                   }}
+                  data-exam-id={paper.id}
                   className={`ff-exam-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between cursor-pointer relative overflow-visible group ${
                     isPending ? 'border-amber-400/40 bg-amber-950/20' : ''
                   }`}
@@ -1940,6 +1946,44 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             })}
           </div>
         )}
+      </section>
+
+      {/* ======================================================== */}
+      {/* 4b. LEARNING RESOURCES: VIDEO & TÀI LIỆU CHỌN LỌC        */}
+      {/* ======================================================== */}
+      <section aria-label="Tài liệu và bài giảng chọn lọc" className="w-full max-w-6xl mx-auto px-4 sm:px-6 my-6">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-amber-400/90">Góc học tập</p>
+            <h2 className="mt-1 text-lg font-bold text-white sm:text-xl">Tài liệu &amp; bài giảng chọn lọc</h2>
+          </div>
+          <p className="max-w-md text-xs text-white/55">Nguồn công khai, kiểm tra trước khi đưa vào kho; bấm để mở tab mới.</p>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {LEARNING_RESOURCES.map((res) => (
+            <a
+              key={res.id}
+              href={res.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex flex-col gap-2 rounded-2xl border border-white/12 bg-white/[0.055] p-4 transition-colors hover:border-amber-300/40 hover:bg-white/[0.09]"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/70">
+                  {res.kind === 'video' ? <Clapperboard className="h-3 w-3" /> : res.kind === 'official' ? <BadgeCheck className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                  {res.kind === 'video' ? 'Video' : res.kind === 'official' ? 'Chính thức' : 'Tài liệu'}
+                </span>
+                <span className="text-[10px] font-semibold text-amber-300/80">{res.subject}</span>
+              </div>
+              <h3 className="text-sm font-bold leading-snug text-white">{res.title}</h3>
+              <p className="text-xs leading-relaxed text-white/60">{res.description}</p>
+              <span className="mt-auto inline-flex items-center gap-1 text-[11px] font-semibold text-amber-300/85 group-hover:text-amber-200">
+                {res.provider}
+                <ExternalLink className="h-3 w-3" />
+              </span>
+            </a>
+          ))}
+        </div>
       </section>
 
       {/* ======================================================== */}

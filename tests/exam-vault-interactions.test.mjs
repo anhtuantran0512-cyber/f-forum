@@ -164,8 +164,8 @@ test('Exam Vault uses server-backed community actions and blocks a duplicate rev
     })));
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
 
-    const firstCard = document.querySelector('.ff-exam-card');
-    assert.ok(firstCard, 'the first exam card should render');
+    const firstCard = document.querySelector('.ff-exam-card[data-exam-id="ex-01"]');
+    assert.ok(firstCard, 'the ex-01 exam card should render');
     const likeButton = firstCard.querySelector('button[aria-label^="Yêu thích"]');
     assert.ok(likeButton, 'the community like control should render for a public paper');
     assert.equal(Number(likeButton.textContent.trim()), 2, 'the displayed count comes from the server snapshot');
