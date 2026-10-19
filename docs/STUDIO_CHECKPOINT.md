@@ -7,7 +7,7 @@
 - **Dự án**: F-Forum (`arena/62613a87-f-forum`)
 - **Thư mục làm việc**: `/home/broamstuck/f-forum`
 - **Thời gian Checkpoint**: 2026-10-19 (sau khi deploy Đợt 4 + Đợt 5 Nhiệm vụ 12)
-- **Trạng thái Git**: Nhánh `arena/62613a87-f-forum` (PR #18 vẫn mở), đã đồng bộ `main` tại commit `e53e0b4`.
+- **Trạng thái Git**: Nhánh `arena/62613a87-f-forum` — **PR #18 đã được tài khoản Sếp merge ngày 17/10 (trước phiên này, không còn PR mở)**; đã đồng bộ `main` + `f-forum-broamstuck-v2.5` tại commit `e1c2b85` (tài liệu, trên nền mã `e53e0b4`).
 - **Tình trạng Kiểm thử**: 474/474 tests passed | light-adapter `--check` khớp | 0 lỗi `tsc -b` | 0 lỗi oxlint trong `src/`.
 - **Production URL**: `https://f-forum.vercel.app` (đã xác thực bundle mới sống trên prod).
 
@@ -38,7 +38,8 @@
 6. **Đợt 5 — Hồi quy toàn ma trận**: 12/12 cấu hình SẠCH (sáng/tối × desktop/mobile × Chuẩn/Potator/Fabulous), 6 phân khu/lượt (home, landing, Hỏi Đáp, Thread, Ký ức, Vinh Danh, Kho Đề Thi): 0 tràn ngang, 0 lỗi trang, trạng thái video/sân khấu/nền đúng thiết kế; ảnh soi mắt xác nhận tương phản tốt.
 7. **Kiểm Thử & Đẩy Trực Tiếp Lên Vercel Production**:
    - `npm test`: 474/474 pass · `npx tsc -b`: 0 lỗi · light-adapter `--check` khớp.
-   - `vercel build --prod` + `vercel deploy --prebuilt --prod`: aliased `https://f-forum.vercel.app`; xác thực sống: bundle JS chứa class nút Tia Sét mới, HTML prod hết Figtree, endpoint `/api/analytics/track` trả JSON validate đúng (lỗi 400 ở dev là do dev server thiếu route — prod đủ route).
-   - Đã push Git: `arena/62613a87-f-forum` + `main` tại `e53e0b4`.
+   - `vercel build --prod` + `vercel deploy --prebuilt --prod`: aliased `https://f-forum.vercel.app`; xác thực sống: bundle JS chứa class nút Tia Sét mới, HTML prod hết Figtree, endpoint `/api/analytics/track` trả JSON validate đúng (lỗi 400 ở dev là do dev server thiếu route — prod đủ route). Sau đó tích hợp Git của Vercel tự build bản production mới `q0rvom3ej` từ `main` (e1c2b85) — đã xác minh lại trên alias: bundle mới + hết Figtree + route API đúng.
+   - Đã push Git: `arena/62613a87-f-forum` + `main` + `f-forum-broamstuck-v2.5` tại `e1c2b85`.
    - Ghi nhận báo cáo tại `Documents/BroAmStuck Studio/feedback/feedback_72.md`.
+9. **Sự cố đĩa hệ thống (ghi nhận)**: ổ `/` chạm 97% (100G/109G) làm `npx` báo ENOSPC; đã dọn an toàn cache tái tạo được (`~/.npm/_npx`, npm cache, `~/.cache/chromium`) → giải phóng ~4GB (còn 7.3G trống). Thủ phạm chính là dữ liệu người dùng (`~/Downloads` 17G, `~/.var` flatpak 22G) — **không đụng tới**; kiến nghị Sếp dọn thêm khi rảnh.
 8. **Đo hiệu năng trung thực (kèm cảnh báo)**: máy đo headless software-rendering — Fabulous BẬT trên Hỏi Đáp ~144ms/khung vs TẮT ~54ms (bộ đo này); Trang chủ video vs tĩnh: chênh lệch dưới ngưỡng đo. KHÔNG đại diện GPU thật — chỉ dùng so sánh tương đối.
