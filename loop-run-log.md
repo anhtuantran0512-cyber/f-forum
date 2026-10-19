@@ -90,3 +90,17 @@ Append one entry per run. Prune entries older than 30 days.
   "notes": "Dot 6 tinh chinh UI tu audit truc quan (nhanh f-forum_v6, commit b57891c, FF main a62f2fb..b57891c). QAForumView: EMAIL_SHAPED + pickDisplayName — ten tac gia khong lo email (the cau hoi, modal chi tiet, comment, solverName, popover loi giai, sidebar 'Tich cuc mon'; fallback 'Thanh vien F-Forum') + subtitle 'Hoi ro ban chat — giai tuong tan tung buoc'. SettingsModal: nhan 'Potato' het cat chu (+badge 'Nen tinh · Potato', mo ta doi theo). ExamVaultView: 'Tai tep goc' whitespace-nowrap (2 cho), chip ten header de thi 100->150px. DecoratedName: nguong co chu ten dai (>24 -> 10.5px, >17 -> 11px). Cap nhat assertion 2 test theo nhan moi (settings-theme, fabulous-theme). Kiem dinh: test 475/475, tsc sach, oxlint src 0, light-adapter khop, verifier doc lap PASS. Deploy song: index-C1dHM0j4.js + index-oZOaESnk.css; chunk QAForumView-DCcxrNRn.js (161876B) chua ca 2 chuoi moi; CSS chua max-width:150px + 10.5px; main bundle chua nhan Potato. Luu y: /tmp/opencode bi don (tmpfs) — playwright cai lai duoc, anh audit cu mat; build local lech hash nho so voi prod (env build khac, noi dung nguon khop)."
 }
 ```
+
+```json
+{
+  "run_id": "2026-10-20T01:10:00+07:00",
+  "pattern": "human-attended",
+  "duration_s": 7200,
+  "items_found": 3,
+  "actions_taken": 3,
+  "escalations": 0,
+  "tokens_estimate": 260000,
+  "outcome": "fixed",
+  "notes": "Dot 7 mo rong kho de (nhanh f-forum_v7, commit 02feaf4, FF main a550bbb..02feaf4). (1) 6 de chinh thuc THPT 2026 co nguon xac minh: Toan ma 0101 (toanmath, cat con 4 trang de goc scan 1.949.763B sau khi verifier phat hien phan loi giai do AI soan — bo di, ghi chu minh bach trong summary), Ngu van / Tieng Anh 1127 / Vat li 0230 / Hoa hoc 0344 / Sinh hoc 0430 (thuvienhoclieu DOCX -> mammoth + Playwright A4, co text layer, kem loi giai). Sap xep ex-11..ex-16 len DAU mang de hoc sinh thay ngay. Moi de co 1-3 cau hoi mau + loi giai mau (cong thuc + meo) do ban chuyen mon soan, dung dap an chinh thuc. (2) Goc hoc tap moi src/components/exam/learningResources.ts + section aria-label 'Tai lieu va bai giang chon loc' cuoi kho de (7 nguon: vumaiphuong, vukhacngoc, toanmath, thuvienhoclieu, moet, hsa, thinangluc.vnuhcm — chi giu kenh xac minh duoc ten/mon; loai @nguyenquocchi/@phamquoctoan/@dangviethung vi khong xac minh). (3) Tinh chinh: getCompactPaperTitle viet hoa chu dau, them data-exam-id cho the de test nham dung ex-01 thay vi 'the dau tien' (khong noi long assertion). Test moi so 17 (PDF that: magic %PDF-, size khop TUNG entry, URL dung file; resources https/duy nhat/du kind). Kiem dinh: test 476/476, tsc sach, oxlint src 0, light-adapter khop (da chay lai gen:light), verifier doc lap PASS 2 vong. Deploy song: index-DEvS5s0G.js + chunk examSubmissionApi-Bc90BFcA.js (Mã đề 0101 / THPT 2026 / 1949763) + ExamVaultView-mPyDmTDy.js ('bai giang chon loc', vumaiphuong); 6 PDF prod tra 200 dung size; prod UI 16 the — 6 the dau 2026, goc hoc tap 7 link, 0 loi trang; anh /tmp/opencode/ui-audit/v7-prod-grid.png. Luu y: dev server nen giu cong WS 24678 lam fail test interactions — da dung truoc khi test; pkill -f 'vite' tu khop chinh no (dung pattern [v]ite)."
+}
+```
