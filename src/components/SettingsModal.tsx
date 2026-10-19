@@ -751,7 +751,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           <circle cx="14" cy="13" r="1" fill="currentColor" />
                         </svg>
                       }
-                      title="Potator Mode"
+                      title="Potato"
                       on={potatorMode}
                       onToggle={() => onTogglePotatorMode?.()}
                       color="bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"
@@ -768,7 +768,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <span className="text-[11px] font-semibold text-white/85">Chế độ nền đang dùng</span>
                     <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold bg-white/10 text-amber-300 border border-amber-400/25">
                       {potatorMode
-                        ? 'Nền tĩnh · Potator'
+                        ? 'Nền tĩnh · Potato'
                         : fabulousMode
                         ? 'Video & Cực quang · Fabulous'
                         : theme === 'dark'
@@ -811,7 +811,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </div>
                     ) : (
                       <p className="text-[10px] leading-relaxed text-white/65">
-                        Chế độ sáng dùng nền kính sữa cho Potator. Bảng chọn gradient áp dụng ở chế độ tối.
+                        Chế độ sáng dùng nền kính sữa cho Potato. Bảng chọn gradient áp dụng ở chế độ tối.
                       </p>
                     )
                   ) : (

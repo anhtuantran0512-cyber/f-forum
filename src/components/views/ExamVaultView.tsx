@@ -1185,7 +1185,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 loading="lazy"
                 className="w-6 h-6 rounded-lg object-cover ring-1 ring-amber-400/40"
               />
-              <span className="hidden sm:inline text-xs font-semibold text-white/90 max-w-[100px] truncate">
+              <span className="hidden sm:inline text-xs font-semibold text-white/90 max-w-[150px] truncate">
                 {currentUser.name}
               </span>
             </button>
@@ -1902,7 +1902,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                             <button
                               type="button"
                               onClick={(event) => handleDownloadExamAttachment(paper.id, paper.attachments![0], event)}
-                              className="ff-tactile-btn inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-white/[0.08] px-2 py-1.5 text-xs font-bold text-white hover:bg-white/[0.14] transition-colors"
+                              className="ff-tactile-btn inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-white/20 bg-white/[0.08] px-2 py-1.5 text-xs font-bold text-white hover:bg-white/[0.14] transition-colors"
                               aria-label={`Tải tệp gốc ${paper.attachments[0].name}`}
                               title="Tải trực tiếp tệp đề gốc"
                             >
@@ -2402,7 +2402,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                   <button
                     type="button"
                     onClick={(event) => handleDownloadExamAttachment(activePreview.id, activePreview.attachments![0], event)}
-                    className="ff-tactile-btn inline-flex min-h-10 items-center gap-1.5 rounded-xl border-2 border-[#0b0d12] bg-[#f4f1de] px-4 py-2 text-xs font-extrabold text-[#0b0d12] transition-colors hover:bg-[#f2cc8f]"
+                    className="ff-tactile-btn inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-[#0b0d12] bg-[#f4f1de] px-4 py-2 text-xs font-extrabold text-[#0b0d12] transition-colors hover:bg-[#f2cc8f]"
                     title="Tải tệp đề gốc"
                   >
                     <Download className="w-4 h-4 text-[#e07a5f]" />

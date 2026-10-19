@@ -149,7 +149,7 @@ test('4. Settings Menu Options: Potator Mode, SFX, and Reduced Motion', () => {
      gradient tĩnh, giữ nguyên 100% animation UI). Bản cũ đã xóa, bản mới phải
      có đủ: toggle trong Settings + bảng swatch dùng chung + class html.potator-mode. */
   assert.ok(
-    settingsModalContent.includes('Potator Mode') &&
+    settingsModalContent.includes('title="Potato"') &&
     settingsModalContent.includes('onTogglePotatorMode'),
     'Settings must include the new Potator Mode toggle'
   );
