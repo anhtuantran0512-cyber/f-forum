@@ -69,7 +69,7 @@ test('Nhiemvu 12: compact nametags, CozyGhibliIcons, unified background settings
     'Fabulous & Potator Mode must only appear in one unified control group, not scattered across multiple tabs',
   );
   assert.equal(
-    (settings.match(/title="Potator Mode"/g) || []).length,
+    (settings.match(/title="Potato"/g) || []).length,
     1,
     'Potator Mode must only appear once alongside Fabulous',
   );

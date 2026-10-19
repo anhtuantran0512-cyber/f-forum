@@ -167,9 +167,9 @@ export const DecoratedName = memo(({
   const charPx = height <= 22 ? 6.6 : 7.2;
   const tagMaxW = Math.min(maxWidth, Math.max(108, Math.min(width, Math.ceil(len * charPx + 20))));
   const fontSize =
-    len > 26
+    len > 24
       ? '10.5px'
-      : len > 20
+      : len > 17
       ? '11px'
       : height <= 24
       ? '11.5px'

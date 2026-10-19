@@ -400,6 +400,28 @@ const findDecorationOwner = (
   return null;
 };
 
+/* Chuỗi có dạng email (dữ liệu cũ lưu email làm tên) — tuyệt đối không hiển thị thô. */
+const EMAIL_SHAPED = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/* Tên hiển thị chuẩn: ưu tiên tên thật, kế đến tên trong sổ đăng ký, cuối cùng mới
+   tách phần trước @ thành nhãn đọc được — không bao giờ lộ email trên thẻ công khai. */
+const pickDisplayName = (rawName: string | null | undefined, owner?: User | null): string => {
+  const clean = (rawName || '').replace(/ \(.*\)/, '').trim();
+  if (clean && !EMAIL_SHAPED.test(clean)) return clean;
+  const ownerName = (owner?.name || '').replace(/ \(.*\)/, '').trim();
+  if (ownerName && !EMAIL_SHAPED.test(ownerName)) return ownerName;
+  if (clean) {
+    const label = clean
+      .split('@')[0]
+      .split(/[._-]+/)
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    if (label) return label;
+  }
+  return 'Thành viên F-Forum';
+};
+
 const CommentThread: React.FC<{
   commentableType: QACommentableType;
   commentableId: string;
@@ -474,7 +496,7 @@ const CommentThread: React.FC<{
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <DecoratedName
                       user={c.authorEmail ? findDecorationOwner(users, c.authorEmail, c.authorId) : null}
-                      name={c.authorName.replace(/ \(.*\)/, '')}
+                      name={pickDisplayName(c.authorName, c.authorEmail ? findDecorationOwner(users, c.authorEmail, c.authorId) : null)}
                       width={136}
                       height={26}
                       animate
@@ -1591,7 +1613,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 <svg className="w-28 h-2 mt-0.5 ff-organic-squiggle" viewBox="0 0 140 8" aria-hidden="true">
                   <path d="M2 5 C28 1, 56 8, 84 4 S118 1, 138 5" />
                 </svg>
-                <p className="ff-qa-subtitle">Đặt câu hỏi rõ bản chất, đối chiếu lập luận và cùng nhau tháo gỡ từng bước.</p>
+                <p className="ff-qa-subtitle">Hỏi rõ bản chất — giải tường tận từng bước.</p>
               </div>
             </div>
 
@@ -2089,11 +2111,11 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               e.stopPropagation();
                               setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
                               if (!q.isAnonymous) {
-                                const existing = Object.values(users).find(u => u.id === q.authorId) ||
-                                  (currentUser && currentUser.id === q.authorId ? currentUser : null);
+                                const existing = Object.values(users).find(u => u.id === q.authorId || (q.authorEmail && u.email?.toLowerCase() === q.authorEmail.toLowerCase())) ||
+                                  (currentUser && (currentUser.id === q.authorId || (q.authorEmail && currentUser.email?.toLowerCase() === q.authorEmail.toLowerCase())) ? currentUser : null);
                                 setActiveAuthorPopover({
                                   id: q.authorId,
-                                  name: existing?.name || q.authorName,
+                                  name: pickDisplayName(q.authorName, existing),
                                   avatar: existing?.avatar || q.authorAvatar,
                                   email: existing?.email,
                                   level: existing?.level || 1,
@@ -2118,11 +2140,11 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             ) : (
                               <span className="shrink-0">
                                 <DecoratedAvatar
-                                  user={findDecorationOwner(users, undefined, q.authorId)}
+                                  user={findDecorationOwner(users, q.authorEmail, q.authorId)}
                                   fallbackSrc={q.authorAvatar}
                                   size={28}
                                   animate
-                                  alt={q.authorName}
+                                  alt={pickDisplayName(q.authorName, findDecorationOwner(users, q.authorEmail, q.authorId))}
                                 />
                               </span>
                             )}
@@ -2132,15 +2154,15 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               </span>
                             ) : (
                               <DecoratedName
-                                user={findDecorationOwner(users, undefined, q.authorId)}
-                                name={q.authorName.replace(/ \(.*\)/, '')}
+                                user={findDecorationOwner(users, q.authorEmail, q.authorId)}
+                                name={pickDisplayName(q.authorName, findDecorationOwner(users, q.authorEmail, q.authorId))}
                                 width={136}
                                 height={26}
                                 animate
                                 showFallbackTag
                               />
                             )}
-                            {!q.isAnonymous && <RoleMark user={findDecorationOwner(users, undefined, q.authorId)} size={10} />}
+                            {!q.isAnonymous && <RoleMark user={findDecorationOwner(users, q.authorEmail, q.authorId)} size={10} />}
                             {q.isAnonymous && (
                               <span className="px-1.5 py-0.5 rounded-[4px] bg-[#e07a5f]/18 border border-[#e07a5f]/40 text-[10px] text-[#f2cc8f] font-mono font-bold shrink-0">
                                 Ẩn danh
@@ -2905,7 +2927,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
           if (s.status === 'deleted' || !subjectQuestionIds.has(s.questionId)) continue;
           const prev = solverStatsMap.get(s.authorId) || {
             id: s.authorId,
-            name: s.authorName,
+            name: pickDisplayName(s.authorName, findDecorationOwner(users, s.authorEmail, s.authorId)),
             avatar: s.authorAvatar,
             count: 0,
             verified: 0,
@@ -3077,11 +3099,11 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           onClick={(e) => {
                             setAuthorAnchorPos({ x: e.clientX, y: e.clientY });
                             if (!selectedQuestion.isAnonymous) {
-                              const existing = Object.values(users).find(u => u.id === selectedQuestion.authorId) ||
-                                (currentUser && currentUser.id === selectedQuestion.authorId ? currentUser : null);
+                              const existing = Object.values(users).find(u => u.id === selectedQuestion.authorId || (selectedQuestion.authorEmail && u.email?.toLowerCase() === selectedQuestion.authorEmail.toLowerCase())) ||
+                                (currentUser && (currentUser.id === selectedQuestion.authorId || (selectedQuestion.authorEmail && currentUser.email?.toLowerCase() === selectedQuestion.authorEmail.toLowerCase())) ? currentUser : null);
                               setActiveAuthorPopover({
                                 id: selectedQuestion.authorId,
-                                name: existing?.name || selectedQuestion.authorName,
+                                name: pickDisplayName(selectedQuestion.authorName, existing),
                                 avatar: existing?.avatar || selectedQuestion.authorAvatar,
                                 email: existing?.email,
                                 level: existing?.level || 1,
@@ -3106,11 +3128,11 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           ) : (
                             <span className="shrink-0">
                               <DecoratedAvatar
-                                user={findDecorationOwner(users, undefined, selectedQuestion.authorId)}
+                                user={findDecorationOwner(users, selectedQuestion.authorEmail, selectedQuestion.authorId)}
                                 fallbackSrc={selectedQuestion.authorAvatar}
                                 size={38}
                                 animate
-                                alt={selectedQuestion.authorName}
+                                alt={pickDisplayName(selectedQuestion.authorName, findDecorationOwner(users, selectedQuestion.authorEmail, selectedQuestion.authorId))}
                               />
                             </span>
                           )}
@@ -3122,15 +3144,15 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                 </span>
                               ) : (
                                 <DecoratedName
-                                  user={findDecorationOwner(users, undefined, selectedQuestion.authorId)}
-                                  name={selectedQuestion.authorName.replace(/ \(.*\)/, '')}
+                                  user={findDecorationOwner(users, selectedQuestion.authorEmail, selectedQuestion.authorId)}
+                                  name={pickDisplayName(selectedQuestion.authorName, findDecorationOwner(users, selectedQuestion.authorEmail, selectedQuestion.authorId))}
                                   width={154}
                                   height={28}
                                   animate
                                   showFallbackTag
                                 />
                               )}
-                              {!selectedQuestion.isAnonymous && <RoleMark user={findDecorationOwner(users, undefined, selectedQuestion.authorId)} size={11} />}
+                              {!selectedQuestion.isAnonymous && <RoleMark user={findDecorationOwner(users, selectedQuestion.authorEmail, selectedQuestion.authorId)} size={11} />}
                               {selectedQuestion.isAnonymous && (
                                 <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-indigo-500/15 text-indigo-200 border border-indigo-400/25 inline-flex items-center gap-1 shrink-0">
                                   <Wand2 className="w-3 h-3 text-indigo-300" />
@@ -3293,7 +3315,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     ) : (
                       activeSolutions.map((sol, solIdx) => {
                         const isSuperAdminSolver = isMasterAdmin(sol.authorEmail);
-                        const solverName = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.name : sol.authorName;
+                        const solverName = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.name : pickDisplayName(sol.authorName, findDecorationOwner(users, sol.authorEmail, sol.authorId));
                         const solverAvatar = isSuperAdminSolver ? MASTER_ADMIN_CONFIG.avatar : sol.authorAvatar;
                         const canConfirmBest =
                           isSuperAdmin || currentUser?.id === selectedQuestion.authorId;
@@ -3312,7 +3334,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                     (currentUser && (currentUser.id === sol.authorId || (sol.authorEmail && currentUser.email?.toLowerCase() === sol.authorEmail.toLowerCase())) ? currentUser : null);
                                   setActiveAuthorPopover({
                                     id: sol.authorId,
-                                    name: isSuperAdminSolver ? MASTER_ADMIN_CONFIG.name : (existing?.name || solverName),
+                                    name: isSuperAdminSolver ? MASTER_ADMIN_CONFIG.name : pickDisplayName(sol.authorName, existing),
                                     avatar: isSuperAdminSolver ? MASTER_ADMIN_CONFIG.avatar : (existing?.avatar || solverAvatar),
                                     email: sol.authorEmail || existing?.email,
                                     level: isSuperAdminSolver ? 150 : (existing?.level || sol.authorLevel),
