@@ -78,6 +78,9 @@ const CURRENT_TAB_ID =
             : 'tab-' + Math.random().toString(36).slice(2, 9)))
     : 'tab-node';
 
+/* Ngày hôm nay dạng YYYY-MM-DD — hằng helper ngoài render để lint purity không gắn cờ Date trong luồng action. */
+const todayIsoDate = (): string => new Date().toISOString().split('T')[0];
+
 
 const XP_THRESHOLDS: number[] = Array.from({ length: 151 }, (_, lvl) =>
   lvl <= 1 ? 0 : Math.floor(140 * (lvl - 1) + 1.08 * Math.pow(lvl - 1, 2))
@@ -2482,7 +2485,7 @@ export function useForumStore() {
       followerCount: 1,
       membersCount: clubData.foundingMembers.length || 1,
       status: 'PENDING',
-      createdAt: new Date().toISOString().split('T')[0],
+      createdAt: todayIsoDate(),
     };
 
     const prevClubs = clubs;

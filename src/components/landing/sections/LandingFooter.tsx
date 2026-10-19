@@ -5,6 +5,9 @@ import { MASTER_ADMIN_EMAIL } from '../../../../shared/identityStrings.ts';
 import type { User } from '../../../types';
 import { scrollToSection } from '../useLandingMotion';
 
+/* Năm hiện tại — hằng module-scope để không gọi Date trong render. */
+const CURRENT_YEAR = new Date().getFullYear();
+
 /** Inline brand marks (lucide no longer ships third-party logo icons). */
 const FacebookMark: React.FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
@@ -156,7 +159,7 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ currentUser, onEnt
         {/* Bottom bar */}
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-[var(--ff-border)] pt-6 sm:flex-row">
           <p className="text-center text-[12px] text-[var(--ff-text-dim)] sm:text-left">
-            © {new Date().getFullYear()} F-Forum · Diễn đàn học thuật cho sinh viên FPT.
+            © {CURRENT_YEAR} F-Forum · Diễn đàn học thuật cho sinh viên FPT.
           </p>
           <p className="flex items-center gap-1.5 text-[12px] text-[var(--ff-text-dim)]">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
