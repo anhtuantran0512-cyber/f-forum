@@ -4,6 +4,7 @@ Last run: 2026-10-19 (L1 triage + 1 fix L2 đã kiểm bởi verifier — APPROV
 
 ## High Priority (loop is acting or waiting on human)
 
+- [ ] **KHẨN — Lộ thông tin đăng nhập Super Admin trong repo public (19/10)**: `server/authGuard.ts` + `server/forumServer.ts` chứa email `BroAmStuck@gmail.com` và nhánh bootstrap chấp nhận mật khẩu literal `12345678` (dòng ~423); repo đang public → bất kỳ ai đọc mã đều biết cặp đăng nhập admin trên production. Đề xuất (cần Sếp quyết, không tự sửa vì đụng server + yêu cầu "login phải giữ nguyên"): (a) đổi mật khẩu admin thật và bỏ nhánh literal; (b) chuyển repo sang **private**; hoặc (c) chấp nhận rủi ro (demo). Nếu từng commit secret thật → phải rotate, không chỉ xoá file.
 - [ ] **Avatar admin 10.4MB trên CDN ngoài** — `server/forumServer.ts` (dòng 434/3822/4211) + `src/config/admin.ts` + `src/store/adminStore.ts` dùng PNG 2048×2048 ~10.4MB từ `d8j0ntlcm91z4.cloudfront.net` làm avatar tài khoản admin; ai thấy avatar này đều phải tải 10.4MB.
   - Đề xuất: tạo bản 256×256 (~20–50KB) tự host; cập nhật 3 chỗ server + 2 chỗ src + CSP (`server/securityHeaders.ts`) + test ghim `epic5-perf-security.test.mjs:170`.
   - **CẦN SẾP DUYỆT** (đụng server + thay hình đại diện hiển thị — không tự làm).

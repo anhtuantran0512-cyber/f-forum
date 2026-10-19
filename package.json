@@ -1,7 +1,14 @@
 {
   "name": "f-forum",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.5.0",
+  "description": "Diễn đàn học tập cho học sinh, sinh viên — hỏi đáp, câu lạc bộ, chat thời gian thực, kho đề thi và trang trí hồ sơ.",
+  "license": "UNLICENSED",
+  "homepage": "https://f-forum.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anhtuantran0512-cyber/f-forum.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
