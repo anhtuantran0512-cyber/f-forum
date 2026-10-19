@@ -48,3 +48,6 @@ public/assets/decorations/decorations-migration.json
 cosmetics/avatar_border/*.zip
 cosmetics/nameplate.zip
 .freebuff/
+
+# Tài liệu nội bộ studio (không thuộc repo F-Forum)
+docs/ai_collab_hub/

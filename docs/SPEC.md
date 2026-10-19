@@ -1,7 +1,7 @@
 # 📘 SPEC.md — BẢN ĐẶC TẢ CHÍNH F-FORUM (phiên bản 1.0)
-*Tư liệu tách ra từ `code_yeucau.md` gốc (3787 dòng) — code demo material đã tách sang `CODE_DEMO/`
-chỉ dùng khi cần. File `code_yeucau.md` gốc vẫn giữ nguyên như bản backup. Tài liệu này là bản
-CHÍNH THỨC mới thay thế cho file code_yeucau.md dạng raw-paste, giảm 70% số token cho mọi lần nạp context.*
+*Tư liệu tách ra từ bản đặc tả gốc (3.787 dòng) — code demo material nằm trong `docs/code-demo/`,
+chỉ dùng khi cần. Tài liệu này là bản CHÍNH THỨC, thay cho bản raw-paste cũ (giảm ~70% token
+mỗi lần nạp context).*
 
 ---
 
@@ -29,7 +29,7 @@ Phong cách: Liquid Glass, Bento Grid, Claymorphism/Clay, Masonry, Godray gradie
 - Background layers: `radial-gradient` nền + `backdrop-blur-[20px] backdrop-saturate-[1.7]` cho glass.
 
 ## 4. BỘ DEMO CODE THAM KHẢO — CodeFronts (MIT) 🎨
-Chi tiết từng demo → đọc file tương ứng trong `CODE_DEMO/`:
+Chi tiết từng demo → đọc file tương ứng trong `docs/code-demo/`:
 
 | Slug | Mô tả |
 |---|---|
@@ -53,18 +53,18 @@ Chi tiết từng demo → đọc file tương ứng trong `CODE_DEMO/`:
 ---
 
 ## 5. TÍNH NĂNG PHÂN CÔNG (mỗi mục → dùng demo nào)
-- **Navbar liquid + sét linkload, glass nav hover glow** → `CODE_DEMO/potator-glass-nav.md`
-- **Thẻ bài tài nguyên (栏目 học tập) depth parallax 4-layer** → `CODE_DEMO/resource-card-depth.md`
-- **Tooltip danh hiệu rarity-tinted RPS (Xanh → tím → đỏ...)** → `CODE_DEMO/icon-rpg-tooltip.md`
-- **Setting modal nền bối cảnh thay** → `CODE_DEMO/clay-shadow-recipe.md` + `clay-radius-scale.md`
-- **Trang giới thiệu hero: photo collage** → `CODE_DEMO/hero-photo-collage.md`
-- **Thẻ bài swipe trong "Mẹo hằng ngày"** → `CODE_DEMO/swipe-card-drag.md`
-- **Widget streak lửa + countdown flip clock** → `CODE_DEMO/streak-countdown.md` + `flip-clock.md`
-- **Dòng bài feed & Q&A dạng masonry 3 cột** → `CODE_DEMO/masonry-feed.md` + `masonry-dashboard.md`
-- **Hàng chia sẻ social 44×44** → `CODE_DEMO/social-share-buttons.md`
-- **GUI Admin tổng quan** → `CODE_DEMO/admin-data-grid.md`
-- **Popover chọn sức khoẻ / hành động nhanh** → `CODE_DEMO/popover-entry-exit.md`
-- **Badge thông báo má violetan clip-path khoét hốc** → `CODE_DEMO/notification-badge.md`
+- **Navbar liquid + sét linkload, glass nav hover glow** → `docs/code-demo/potator-glass-nav.md`
+- **Thẻ bài tài nguyên (栏目 học tập) depth parallax 4-layer** → `docs/code-demo/resource-card-depth.md`
+- **Tooltip danh hiệu rarity-tinted RPS (Xanh → tím → đỏ...)** → `docs/code-demo/icon-rpg-tooltip.md`
+- **Setting modal nền bối cảnh thay** → `docs/code-demo/clay-shadow-recipe.md` + `clay-radius-scale.md`
+- **Trang giới thiệu hero: photo collage** → `docs/code-demo/hero-photo-collage.md`
+- **Thẻ bài swipe trong "Mẹo hằng ngày"** → `docs/code-demo/swipe-card-drag.md`
+- **Widget streak lửa + countdown flip clock** → `docs/code-demo/streak-countdown.md` + `flip-clock.md`
+- **Dòng bài feed & Q&A dạng masonry 3 cột** → `docs/code-demo/masonry-feed.md` + `masonry-dashboard.md`
+- **Hàng chia sẻ social 44×44** → `docs/code-demo/social-share-buttons.md`
+- **GUI Admin tổng quan** → `docs/code-demo/admin-data-grid.md`
+- **Popover chọn sức khoẻ / hành động nhanh** → `docs/code-demo/popover-entry-exit.md`
+- **Badge thông báo má violetan clip-path khoét hốc** → `docs/code-demo/notification-badge.md`
 
 ## 6. RELEASE & KIẾN HÀNH
 Mỗi feature ship phải: (1) test PASS, (2) `audit_secrets.py` PASS, (3) HITL-2 được duyệt,
