@@ -1,10 +1,10 @@
 # Loop State — F-Forum
 
-Last run: 2026-10-19 (L1 triage + 1 fix L2 đã kiểm bởi verifier — APPROVE)
+Last run: 2026-10-19 (phiên người dùng — MÃ HOÁ định danh Super Admin theo yêu cầu Chủ tịch; verifier độc lập APPROVE; chờ commit/push)
 
 ## High Priority (loop is acting or waiting on human)
 
-- [ ] **KHẨN — Lộ thông tin đăng nhập Super Admin trong repo public (19/10)**: `server/authGuard.ts` + `server/forumServer.ts` chứa email `BroAmStuck@gmail.com` và nhánh bootstrap chấp nhận mật khẩu literal `12345678` (dòng ~423); repo đang public → bất kỳ ai đọc mã đều biết cặp đăng nhập admin trên production. Đề xuất (cần Sếp quyết, không tự sửa vì đụng server + yêu cầu "login phải giữ nguyên"): (a) đổi mật khẩu admin thật và bỏ nhánh literal; (b) chuyển repo sang **private**; hoặc (c) chấp nhận rủi ro (demo). Nếu từng commit secret thật → phải rotate, không chỉ xoá file.
+- [ ] **Lộ thông tin đăng nhập Super Admin trong repo public (19/10) — ĐÃ XỬ LÝ, chờ Sếp nghiệm thu**: theo yêu cầu "mã hoá" của Sếp, toàn bộ nguyên văn đã gỡ khỏi mã nguồn: email Super Admin + mật khẩu mẫu cũ gom vào `shared/identityStrings.ts` (dạng che giấu charCode, giải lúc chạy); nhánh bootstrap so khớp bằng **băm một chiều scrypt** (`verifyPassword` + `DEFAULT_MASTER_ADMIN_PASSWORD_HASH`) thay vì literal; login bằng mật khẩu mặc định cũ giữ nguyên hành vi. Test `admin-credential-secrecy` mở rộng quét cả server/shared/scripts/tests. **Còn lại (Sếp quyết)**: (a) lịch sử git vẫn chứa nguyên văn cũ → xoá hẳn phải rewrite history (phối hợp Antigravity) hoặc chuyển repo **private** — khuyến nghị private; (b) cân nhắc rotate mật khẩu admin khi thuận tiện (mật khẩu mặc định cũ ai từng đọc repo trước 19/10 đều biết).
 - [ ] **Avatar admin 10.4MB trên CDN ngoài** — `server/forumServer.ts` (dòng 434/3822/4211) + `src/config/admin.ts` + `src/store/adminStore.ts` dùng PNG 2048×2048 ~10.4MB từ `d8j0ntlcm91z4.cloudfront.net` làm avatar tài khoản admin; ai thấy avatar này đều phải tải 10.4MB.
   - Đề xuất: tạo bản 256×256 (~20–50KB) tự host; cập nhật 3 chỗ server + 2 chỗ src + CSP (`server/securityHeaders.ts`) + test ghim `epic5-perf-security.test.mjs:170`.
   - **CẦN SẾP DUYỆT** (đụng server + thay hình đại diện hiển thị — không tự làm).
