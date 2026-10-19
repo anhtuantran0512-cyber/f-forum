@@ -1,4 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
+import { MASTER_ADMIN_EMAIL, MASTER_ADMIN_EMAIL_LOWER, RETIRED_ADMIN_PASSWORD } from '../shared/identityStrings.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -12,20 +13,20 @@ process.env.FFORUM_ADMIN_PASSWORD = 'too-short';
 
 /* Mô phỏng một bản dữ liệu cũ: hash mật khẩu công khai từng có trong mã. */
 const { hashPassword } = await import('../server/authGuard.ts');
-const adminEmail = 'broamstuck@gmail.com';
+const adminEmail = MASTER_ADMIN_EMAIL_LOWER;
 fs.writeFileSync(path.join(DATA_DIR, 'forum-data.json'), JSON.stringify({
   users: {
     [adminEmail]: {
       id: 'user-admin',
       name: 'Trần Văn Anh Tuấn',
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
       role: 'SUPER_ADMIN',
       level: 150,
       xp: 45000,
       scopedClubIds: [],
     },
   },
-  passwords: { [adminEmail]: hashPassword('admin123') },
+  passwords: { [adminEmail]: hashPassword(RETIRED_ADMIN_PASSWORD) },
 }));
 
 const { setupForumServer, flushPendingSave } = await import('../server/forumServer.ts');
@@ -71,7 +72,7 @@ test('Bootstrap production: thu hồi credential mẫu, yêu cầu secret mạnh
   let saved;
   const firstServer = await createTestServer();
   try {
-    assert.equal((await login(firstServer.baseUrl, 'admin123')).status, 400,
+    assert.equal((await login(firstServer.baseUrl, RETIRED_ADMIN_PASSWORD)).status, 400,
       'credential từng công khai phải bị vô hiệu hoá');
     assert.equal((await login(firstServer.baseUrl, 'too-short')).status, 400,
       'secret bootstrap ngắn hơn 12 ký tự không được chấp nhận');

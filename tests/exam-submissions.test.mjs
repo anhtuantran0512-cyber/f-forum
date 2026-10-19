@@ -1,3 +1,4 @@
+import { MASTER_ADMIN_EMAIL_LOWER } from '../shared/identityStrings.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
@@ -74,7 +75,7 @@ const register = async (baseUrl, name, email) => {
 
 const loginAdmin = async (baseUrl) => {
   const result = await post(baseUrl, '/api/auth/login', {
-    email: 'broamstuck@gmail.com',
+    email: MASTER_ADMIN_EMAIL_LOWER,
     password: ADMIN_PASSWORD,
   });
   assert.equal(result.response.status, 200, JSON.stringify(result.data));

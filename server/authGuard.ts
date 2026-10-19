@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { IncomingMessage } from 'node:http';
+import { MASTER_ADMIN_EMAIL } from '../shared/identityStrings.ts';
 
 /* ==========================================================================
    authGuard — tầng xác thực & toàn vẹn dữ liệu của máy chủ F-Forum
@@ -17,7 +18,8 @@ import type { IncomingMessage } from 'node:http';
    Tệp này gom toàn bộ phép kiểm tra vào một nơi, thuần và test được.
    ========================================================================== */
 
-export const MASTER_ADMIN_EMAIL = 'BroAmStuck@gmail.com';
+/* Chuỗi gốc được che giấu trong `shared/identityStrings.ts` — xem ghi chú tại đó. */
+export { MASTER_ADMIN_EMAIL };
 
 export const isMasterAdminEmail = (email?: string | null): boolean =>
   String(email || '').trim().toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase();

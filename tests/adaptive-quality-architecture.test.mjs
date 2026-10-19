@@ -1,4 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
+import { MASTER_ADMIN_EMAIL_LOWER } from '../shared/identityStrings.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
@@ -296,7 +297,7 @@ test('6. SSIM utilities, RUM endpoint, and admin report expose only observed sam
     const login = await fetch(`${baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'broamstuck@gmail.com', password: TEST_ADMIN_PASSWORD }),
+      body: JSON.stringify({ email: MASTER_ADMIN_EMAIL_LOWER, password: TEST_ADMIN_PASSWORD }),
     });
     const loginData = await login.json();
     assert.equal(login.status, 200);

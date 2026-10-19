@@ -60,7 +60,7 @@ import {
 import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
 import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
 import { RoleMark } from '../RoleMark';
-import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
+import { MASTER_ADMIN_CONFIG, MASTER_ADMIN_EMAIL_LOWER, isMasterAdmin } from '../../config/admin';
 import { capsHas, useAdminCaps } from '../../utils/adminCapabilities';
 import { canPinQASolution } from '../../utils/communityRoles';
 import { pushNotification } from '../../utils/notifications';
@@ -387,12 +387,12 @@ const findDecorationOwner = (
     const clean = authorEmail.trim().toLowerCase();
     const byEmail = users[clean];
     if (byEmail) return byEmail;
-    if (isMasterAdmin(clean) && users['broamstuck@gmail.com']) {
-      return users['broamstuck@gmail.com'];
+    if (isMasterAdmin(clean) && users[MASTER_ADMIN_EMAIL_LOWER]) {
+      return users[MASTER_ADMIN_EMAIL_LOWER];
     }
   }
-  if ((authorId === 'admin-master' || authorId === 'user-admin') && users['broamstuck@gmail.com']) {
-    return users['broamstuck@gmail.com'];
+  if ((authorId === 'admin-master' || authorId === 'user-admin') && users[MASTER_ADMIN_EMAIL_LOWER]) {
+    return users[MASTER_ADMIN_EMAIL_LOWER];
   }
   if (authorId) {
     return getQaUsersById(users).get(authorId) || null;

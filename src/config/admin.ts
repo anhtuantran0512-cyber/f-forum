@@ -1,4 +1,10 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
+import { MASTER_ADMIN_EMAIL, MASTER_ADMIN_EMAIL_LOWER } from '../../shared/identityStrings.ts';
+
+/* Chuỗi gốc được che giấu trong `shared/identityStrings.ts`; đây là trạm phát
+   chuẩn cho toàn bộ client — không file nào được viết lại nguyên văn. */
+export { MASTER_ADMIN_EMAIL, MASTER_ADMIN_EMAIL_LOWER };
+
 export interface MasterAdminConfig {
   name: string;
   email: string;
@@ -14,7 +20,7 @@ export interface MasterAdminConfig {
 
 export const MASTER_ADMIN_CONFIG: MasterAdminConfig = {
   name: 'Trần Văn Anh Tuấn',
-  email: 'BroAmStuck@gmail.com',
+  email: MASTER_ADMIN_EMAIL,
   role: 'Admin F-Forum • Owner BroAmStuck Studio',
   avatar:
     'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c.png',

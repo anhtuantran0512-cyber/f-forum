@@ -18,6 +18,7 @@
  *  AM.6  E2E WS: lời giải lạc đề qua socket → SOLUTION_REJECTED, on-topic →
  *        NEW_SOLUTION phát ra bình thường.
  */
+import { MASTER_ADMIN_EMAIL } from '../shared/identityStrings.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
@@ -306,7 +307,7 @@ test('AM.5 E2E: full luồng ACCEPT / REJECT / REVIEW / hàng chờ Admin', asyn
     const uB = await register(env.baseUrl, 'Người Trả', 'amod-answerer@test.local', 'pass12345');
     const uC = await register(env.baseUrl, 'Người Xem', 'amod-observer@test.local', 'pass12345');
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
       password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200, `admin login: ${JSON.stringify(adminLogin.data)}`);

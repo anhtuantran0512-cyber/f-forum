@@ -36,6 +36,7 @@ import {
   respondWithCacheHeaders,
 } from './adaptiveScale.ts';
 import { dateKeyInTimeZone } from '../shared/dailyTrivia.ts';
+import { MASTER_ADMIN_EMAIL_LOWER, RETIRED_ADMIN_PASSWORD } from '../shared/identityStrings.ts';
 import { GHIBLI_MASKS, getRandomGhibliMask } from '../src/utils/ghibliMasks.ts';
 import {
   claimDailyAttendance,
@@ -410,6 +411,8 @@ const dataDir = (): string =>
       : path.resolve(process.cwd(), 'data');
 const dataFilePath = (): string => path.join(dataDir(), 'forum-data.json');
 const ADMIN_BOOTSTRAP_PASSWORD_MIN_LENGTH = 12;
+/* Băm scrypt một chiều của mật khẩu mặc định khi chưa cấu hình secret —
+   nguyên văn chủ đích không lưu trong mã nguồn. */
 const DEFAULT_MASTER_ADMIN_PASSWORD_HASH =
   'scrypt$5279c74445965ad6ad7943f01d8dae4d$e3807bd797dd825d64eebe2f9d0e78170dc4b1967911740a3d275fed7a7b1f4f';
 
@@ -420,17 +423,21 @@ const DEFAULT_MASTER_ADMIN_PASSWORD_HASH =
  */
 const configuredAdminBootstrapPassword = (): string | null => {
   const password = String(process.env.FFORUM_ADMIN_PASSWORD || '').trim();
-  return password === '12345678' || password.length >= ADMIN_BOOTSTRAP_PASSWORD_MIN_LENGTH
+  /* Secret trùng mật khẩu mặc định cũ vẫn được chấp nhận, nhưng kiểm bằng băm
+     một chiều (verifyPassword) thay vì so sánh nguyên văn trong mã nguồn. */
+  const isLegacyDefault =
+    password.length > 0 && verifyPassword(password, DEFAULT_MASTER_ADMIN_PASSWORD_HASH).ok;
+  return isLegacyDefault || password.length >= ADMIN_BOOTSTRAP_PASSWORD_MIN_LENGTH
     ? password
     : null;
 };
 
 let store: ForumDataStore = {
   users: {
-    'broamstuck@gmail.com': {
+    [MASTER_ADMIN_EMAIL_LOWER]: {
       id: 'user-admin',
       name: 'Trần Văn Anh Tuấn',
-      email: 'broamstuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL_LOWER,
       avatar: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c.png',
       role: 'SUPER_ADMIN',
       level: 150,
@@ -474,7 +481,7 @@ let store: ForumDataStore = {
       role: 'Admin F-Forum • Owner BroAmStuck Studio',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&h=600&fit=crop&crop=faces',
       bio: 'Xây dựng F-Forum từ những dòng code đầu tiên với mong muốn tạo nên một không gian số bình đẳng, nơi học sinh tự do kết nối tri thức, chia sẻ câu lạc bộ và lưu giữ ký ức tuổi học trò mà không bị rào cản bởi phán xét hay công nghệ phức tạp.',
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
     },
     milestones: [
       {
@@ -1292,7 +1299,7 @@ const startedAtMs = Date.now();
 function retirePublicAdminPassword(): boolean {
   const stored = store.passwords[MASTER_ADMIN_EMAIL.toLowerCase()];
   if (typeof stored !== 'string' || !stored) return false;
-  if (!verifyPassword('admin123', stored).ok) return false;
+  if (!verifyPassword(RETIRED_ADMIN_PASSWORD, stored).ok) return false;
 
   delete store.passwords[MASTER_ADMIN_EMAIL.toLowerCase()];
   persistStoreToDisk();
@@ -3818,7 +3825,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           ? {
               id: 'user-admin',
               name: name || 'Trần Văn Anh Tuấn',
-              email: 'BroAmStuck@gmail.com',
+              email: MASTER_ADMIN_EMAIL,
               avatar: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c.png',
               role: 'SUPER_ADMIN',
               level: 150,

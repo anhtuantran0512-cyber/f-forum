@@ -1,4 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
+import { MASTER_ADMIN_EMAIL } from '../shared/identityStrings.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
@@ -92,7 +93,7 @@ const register = async (baseUrl, name, email, password) => {
 };
 
 const adminLogin = async (baseUrl) => {
-  const out = await post(baseUrl, '/api/auth/login', { email: 'BroAmStuck@gmail.com', password: TEST_ADMIN_PASSWORD });
+  const out = await post(baseUrl, '/api/auth/login', { email: MASTER_ADMIN_EMAIL, password: TEST_ADMIN_PASSWORD });
   assert.equal(out.status, 200, `admin login: ${JSON.stringify(out.data)}`);
   return out.data;
 };

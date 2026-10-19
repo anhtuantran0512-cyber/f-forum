@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import type { Thread, ThreadReactionType, User } from '../../types';
 import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
-import { isMasterAdmin } from '../../config/admin';
+import { MASTER_ADMIN_EMAIL_LOWER, isMasterAdmin } from '../../config/admin';
 import { safeStorage } from '../../utils/storage';
 import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
 import { RoleMark } from '../RoleMark';
@@ -129,11 +129,11 @@ const resolveThreadUser = (
   const cleanEmail = email ? email.trim().toLowerCase() : '';
   if (users) {
     if (cleanEmail && users[cleanEmail]) return users[cleanEmail];
-    if (isMasterAdmin(cleanEmail) && users['broamstuck@gmail.com']) {
-      return users['broamstuck@gmail.com'];
+    if (isMasterAdmin(cleanEmail) && users[MASTER_ADMIN_EMAIL_LOWER]) {
+      return users[MASTER_ADMIN_EMAIL_LOWER];
     }
-    if ((id === 'admin-master' || id === 'user-admin') && users['broamstuck@gmail.com']) {
-      return users['broamstuck@gmail.com'];
+    if ((id === 'admin-master' || id === 'user-admin') && users[MASTER_ADMIN_EMAIL_LOWER]) {
+      return users[MASTER_ADMIN_EMAIL_LOWER];
     }
     if (id && usersById) {
       const matched = usersById.get(id);

@@ -1,4 +1,5 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
+import { MASTER_ADMIN_EMAIL } from '../../shared/identityStrings.ts';
 import { safeStorage } from '../utils/storage';
 import { authHeaders } from '../utils/session';
 
@@ -86,7 +87,7 @@ export const DEFAULT_ABOUT_DATA: AboutData = {
     role: 'Admin F-Forum • Owner BroAmStuck Studio',
     avatarUrl: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c.png',
     bio: 'Đồng hành cùng F-Forum từ những ngày đầu. Không gian kết nối chân thành, tôn vinh tri thức và lưu giữ ký ức học trò.',
-    email: 'BroAmStuck@gmail.com',
+    email: MASTER_ADMIN_EMAIL,
   },
   milestones: [
     {
