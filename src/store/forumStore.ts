@@ -54,7 +54,7 @@ import {
   saveAboutDataLocally,
   saveAboutDataToServer,
 } from './adminStore';
-import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../config/admin';
+import { MASTER_ADMIN_CONFIG, MASTER_ADMIN_EMAIL, isMasterAdmin } from '../config/admin';
 import { capsHas, getAdminCaps } from '../utils/adminCapabilities';
 
 /** Epic 3 — sửa/xoá nội dung: Super Admin hoặc vai trò tùy chỉnh có quyền edit_content.
@@ -2182,7 +2182,7 @@ export function useForumStore() {
             ...(existing || {}),
             id: existing?.id || 'user-admin',
             name: trimmedName || existing?.name || MASTER_ADMIN_CONFIG.name,
-            email: 'BroAmStuck@gmail.com',
+            email: MASTER_ADMIN_EMAIL,
             avatar: data.avatar || existing?.avatar || MASTER_ADMIN_CONFIG.avatar,
             role: 'SUPER_ADMIN',
             level: 150,

@@ -75,9 +75,9 @@ test('3. Invariants & Preserved Systems Integrity', () => {
   const appContent = fs.readFileSync(path.resolve('src/App.tsx'), 'utf8');
   const homeContent = fs.readFileSync(path.resolve('src/components/views/HomeView.tsx'), 'utf8');
 
-  // Super Admin guard isolation — so khớp KHÔNG phân biệt hoa thường (record có thể
-  // lưu email dạng chữ thường; so sánh chính xác với 'BroAmStuck@...' từng làm
-  // Super Admin mất các nút quản trị).
+  /* Super Admin guard isolation — so khớp KHÔNG phân biệt hoa thường (record có thể
+     lưu email dạng chữ thường; so sánh chính xác với chuỗi có chữ hoa từng làm
+     Super Admin mất các nút quản trị). */
   assert.ok(
     appContent.includes("isMasterAdmin(currentUser?.email) && !isReportInboxOpen && !isAdminConsoleOpen"),
     'App.tsx must strictly preserve Super Admin guard (case-insensitive, gộp 1 lối vào)'

@@ -30,7 +30,7 @@ import { ChatRoleIcon } from '../chat/ChatRoleIcon';
 import { DEFAULT_AVATAR } from '../../utils/mediaFallback';
 import { useChatCooldown } from '../../utils/chatCooldown';
 import { useChatMentionComposer } from '../../utils/chatMentions';
-import { MASTER_ADMIN_CONFIG, isMasterAdmin } from '../../config/admin';
+import { MASTER_ADMIN_CONFIG, MASTER_ADMIN_EMAIL_LOWER, isMasterAdmin } from '../../config/admin';
 import { capsHas, useAdminCaps } from '../../utils/adminCapabilities';
 import { InfoTip } from '../ui/InfoTip';
 import { getTierForLevel } from '../../utils/tier';
@@ -128,8 +128,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
     (email?: string | null, id?: string | null): User | null => {
       const cleanEmail = email ? email.trim().toLowerCase() : '';
       if (cleanEmail && users[cleanEmail]) return users[cleanEmail];
-      if (isMasterAdmin(cleanEmail) && users['broamstuck@gmail.com']) {
-        return users['broamstuck@gmail.com'];
+      if (isMasterAdmin(cleanEmail) && users[MASTER_ADMIN_EMAIL_LOWER]) {
+        return users[MASTER_ADMIN_EMAIL_LOWER];
       }
       if (
         currentUser &&
@@ -139,8 +139,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
       ) {
         return currentUser;
       }
-      if ((id === 'admin-master' || id === 'user-admin') && users['broamstuck@gmail.com']) {
-        return users['broamstuck@gmail.com'];
+      if ((id === 'admin-master' || id === 'user-admin') && users[MASTER_ADMIN_EMAIL_LOWER]) {
+        return users[MASTER_ADMIN_EMAIL_LOWER];
       }
       if (id) {
         return usersById.get(id) || null;

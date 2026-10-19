@@ -1,6 +1,7 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 import { ArrowUpRight, Mail, ShieldCheck } from 'lucide-react';
+import { MASTER_ADMIN_EMAIL } from '../../../../shared/identityStrings.ts';
 import type { User } from '../../../types';
 import { scrollToSection } from '../useLandingMotion';
 
@@ -106,7 +107,7 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ currentUser, onEnt
                 <GithubMark className="h-4 w-4" />
               </a>
               <a
-                href="mailto:BroAmStuck@gmail.com"
+                href={`mailto:${MASTER_ADMIN_EMAIL}`}
                 aria-label="Gửi email cho Ban Quản Trị"
                 className="ff-btn ff-btn-ghost h-9 w-9 !p-0"
               >

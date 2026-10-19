@@ -22,7 +22,7 @@ import {
   type AboutData,
 } from '../../store/adminStore';
 import { DEFAULT_CLUB_COVER, DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
-import { isMasterAdmin } from '../../config/admin';
+import { MASTER_ADMIN_EMAIL, isMasterAdmin } from '../../config/admin';
 import { rafThrottle } from '../../utils/rafThrottle';
 import { uploadImageToServer } from '../../utils/imagePipeline';
 import {
@@ -813,7 +813,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         role: updatedFounder.role,
         avatarUrl: updatedFounder.avatarUrl,
         bio: updatedFounder.bio,
-        email: 'BroAmStuck@gmail.com',
+        email: MASTER_ADMIN_EMAIL,
       },
       milestones,
     }, currentUser.email).catch(() => {});

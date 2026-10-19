@@ -10,6 +10,8 @@
  *   Teacher / Mod         → ban / warn / mute, KHÔNG được give role
  */
 
+import { MASTER_ADMIN_EMAIL_LOWER } from '../../shared/identityStrings.ts';
+
 export type AdminPermission = 'ban' | 'warn' | 'mute' | 'give_role' | 'edit_content' | 'view_analytics';
 
 export const ADMIN_PERMISSIONS: readonly AdminPermission[] = [
@@ -37,7 +39,7 @@ export interface AdminActorLike {
   customRoleDef?: CustomRoleDef | null;
 }
 
-export const SUPER_ADMIN_EMAIL = 'broamstuck@gmail.com';
+export const SUPER_ADMIN_EMAIL = MASTER_ADMIN_EMAIL_LOWER;
 
 export function isSuperAdminUser(user: AdminActorLike | null | undefined): boolean {
   if (!user) return false;

@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import type { Club, ClubPost, User, ClubCategory, ChatMessage } from '../../types';
 import { DEFAULT_AVATAR, DEFAULT_CLUB_COVER, handleImageError } from '../../utils/mediaFallback';
-import { isMasterAdmin } from '../../config/admin';
+import { MASTER_ADMIN_EMAIL_LOWER, isMasterAdmin } from '../../config/admin';
 import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
 import { RoleMark } from '../RoleMark';
 import './ClubsView.css';
@@ -120,8 +120,8 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   const resolveClubUser = useCallback(
     (id?: string | null, name?: string | null): User | null => {
       if (id) {
-        if ((id === 'admin-master' || id === 'user-admin') && users['broamstuck@gmail.com']) {
-          return users['broamstuck@gmail.com'];
+        if ((id === 'admin-master' || id === 'user-admin') && users[MASTER_ADMIN_EMAIL_LOWER]) {
+          return users[MASTER_ADMIN_EMAIL_LOWER];
         }
         const foundById = clubUsersLookup.byId.get(id);
         if (foundById) return foundById;

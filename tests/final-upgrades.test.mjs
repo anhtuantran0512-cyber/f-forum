@@ -3,6 +3,7 @@
  * của code_yeucau.md, 5 vòng tự nâng cấp (R1–R5) và "Đăng xuất mọi thiết bị".
  * Hàm thuần được nạp và chạy thật; phần giao diện kiểm bằng nội dung mã nguồn.
  */
+import { MASTER_ADMIN_EMAIL } from '../shared/identityStrings.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
@@ -296,7 +297,7 @@ test('Máy chủ: đăng nhập/khôi phục phiên trả trạng thái khoá th
     const reg = await call(env.baseUrl, 'POST', '/api/auth/register', { name: 'Học sinh thử', email, password: 'mat-khau-test-123' });
     assert.equal(reg.status, 200, JSON.stringify(reg.data));
 
-    const admin = await call(env.baseUrl, 'POST', '/api/auth/login', { email: 'BroAmStuck@gmail.com', password: TEST_ADMIN_PASSWORD });
+    const admin = await call(env.baseUrl, 'POST', '/api/auth/login', { email: MASTER_ADMIN_EMAIL, password: TEST_ADMIN_PASSWORD });
     assert.equal(admin.status, 200);
 
     const fresh = await call(env.baseUrl, 'POST', '/api/auth/login', { email, password: 'mat-khau-test-123' });
@@ -656,11 +657,11 @@ test('Đổi mật khẩu: kiểm mật khẩu cũ, thu hồi thiết bị khác
     assert.equal((await session(relogin.data.token)).status, 200, 'thiết bị khác vẫn giữ phiên');
 
     // Super Admin: mật khẩu do secret máy chủ quản lý
-    const admin = await call(env.baseUrl, 'POST', '/api/auth/login', { email: 'BroAmStuck@gmail.com', password: TEST_ADMIN_PASSWORD });
+    const admin = await call(env.baseUrl, 'POST', '/api/auth/login', { email: MASTER_ADMIN_EMAIL, password: TEST_ADMIN_PASSWORD });
     const adminChange = await change({ currentPassword: TEST_ADMIN_PASSWORD, newPassword: 'mat-khau-admin-moi-1' }, admin.data.token);
     assert.equal(adminChange.status, 400);
     assert.match(adminChange.data.message, /FFORUM_ADMIN_PASSWORD/);
-    assert.equal((await call(env.baseUrl, 'POST', '/api/auth/login', { email: 'BroAmStuck@gmail.com', password: TEST_ADMIN_PASSWORD })).status, 200);
+    assert.equal((await call(env.baseUrl, 'POST', '/api/auth/login', { email: MASTER_ADMIN_EMAIL, password: TEST_ADMIN_PASSWORD })).status, 200);
 
     // Nhập sai mật khẩu hiện tại dùng chung bộ đếm chống dò với đăng nhập (25 lần / tài khoản)
     let limited = null;
@@ -680,7 +681,7 @@ test('Xoay secret Super Admin khi khởi động → thu hồi mọi phiên admi
   let env = await createTestServer();
   let oldToken;
   try {
-    const admin = await call(env.baseUrl, 'POST', '/api/auth/login', { email: 'BroAmStuck@gmail.com', password: TEST_ADMIN_PASSWORD });
+    const admin = await call(env.baseUrl, 'POST', '/api/auth/login', { email: MASTER_ADMIN_EMAIL, password: TEST_ADMIN_PASSWORD });
     assert.equal(admin.status, 200);
     oldToken = admin.data.token;
   } finally {
@@ -694,7 +695,7 @@ test('Xoay secret Super Admin khi khởi động → thu hồi mọi phiên admi
     env = await createTestServer(); // khởi động lại với secret mới
     try {
       assert.equal((await call(env.baseUrl, 'GET', '/api/auth/session', undefined, oldToken)).status, 401, 'phiên phát bằng mật khẩu cũ bị thu hồi');
-      const fresh = await call(env.baseUrl, 'POST', '/api/auth/login', { email: 'BroAmStuck@gmail.com', password: ROTATED });
+      const fresh = await call(env.baseUrl, 'POST', '/api/auth/login', { email: MASTER_ADMIN_EMAIL, password: ROTATED });
       assert.equal(fresh.status, 200);
       assert.equal((await call(env.baseUrl, 'GET', '/api/auth/session', undefined, fresh.data.token)).status, 200);
       const audit = await call(env.baseUrl, 'GET', '/api/admin/audit?limit=20', undefined, fresh.data.token);

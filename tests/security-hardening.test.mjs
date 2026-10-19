@@ -1,3 +1,4 @@
+import { MASTER_ADMIN_EMAIL, MASTER_ADMIN_EMAIL_LOWER } from '../shared/identityStrings.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
@@ -174,10 +175,11 @@ test('1. Mật khẩu được băm scrypt — không thể đọc ngược, sai
   assert.equal(verifyPassword('bat-ky', '').ok, false, 'Bản ghi mật khẩu rỗng = từ chối');
 
   /* Tương thích ngược: dữ liệu plaintext cũ vẫn đăng nhập được và được báo cần băm lại. */
-  const legacy = verifyPassword('admin123', 'admin123');
+  const legacyPlain = 'mat-khau-cu-plaintext';
+  const legacy = verifyPassword(legacyPlain, legacyPlain);
   assert.equal(legacy.ok, true, 'Mật khẩu plaintext cũ vẫn khớp');
   assert.equal(legacy.needsRehash, true, 'Bản ghi plaintext phải được đánh dấu để băm lại');
-  assert.equal(verifyPassword('khac', 'admin123').ok, false, 'Plaintext sai vẫn trượt');
+  assert.equal(verifyPassword('khac', legacyPlain).ok, false, 'Plaintext sai vẫn trượt');
   assert.equal(verifyPassword('x'.repeat(1025), record).ok, false, 'đầu vào quá dài bị từ chối trước khi chạy scrypt');
   assert.equal(
     verifyPassword('x', `scrypt$${'00'.repeat(16)}$${'ab'.repeat(100000)}`).ok,
@@ -199,7 +201,7 @@ test('2. Token phiên có chữ ký HMAC — sửa một ký tự là vô hiệu
   /* Giả mạo: đổi nội dung nhưng giữ chữ ký cũ. */
   const [, bodyPart, sigPart] = token.match(/^f_token_([^.]+)\.(.+)$/) || [];
   const forgedBody = Buffer.from(
-    JSON.stringify({ email: 'BroAmStuck@gmail.com', role: 'SUPER_ADMIN', iat: Date.now(), exp: Date.now() + 99999 }),
+    JSON.stringify({ email: MASTER_ADMIN_EMAIL, role: 'SUPER_ADMIN', iat: Date.now(), exp: Date.now() + 99999 }),
     'utf8',
   ).toString('base64url');
   assert.equal(verifySessionToken(`f_token_${forgedBody}.${sigPart}`), null, 'Đổi nội dung phải mất hiệu lực');
@@ -406,13 +408,13 @@ test('8. WS AUTH hợp lệ: sửa được hồ sơ của chính mình nhưng K
     assert.equal(saved.coin, 100, 'coin là tài nguyên server-owned, không thể sửa qua SYNC_USER');
 
     /* Token của người này không dùng để sửa hồ sơ người khác được. */
-    client.send('SYNC_USER', { email: 'BroAmStuck@gmail.com', name: 'Bị Chiếm' });
+    client.send('SYNC_USER', { email: MASTER_ADMIN_EMAIL, name: 'Bị Chiếm' });
     const denied = await client.waitFor('FORBIDDEN');
     assert.equal(denied.payload.action, 'SYNC_USER');
 
     await sleep(150);
     const after = await get(env.baseUrl, '/api/sync');
-    assert.equal(after.data.data.users['broamstuck@gmail.com'].name, 'Trần Văn Anh Tuấn');
+    assert.equal(after.data.data.users[MASTER_ADMIN_EMAIL_LOWER].name, 'Trần Văn Anh Tuấn');
     } finally {
       client.ws.close();
     }
@@ -852,7 +854,7 @@ test('11. LỖ HỔNG SOCIAL: không thể tự khai email admin để lấy quy
     const takeover = await post(env.baseUrl, '/api/auth/social', {
       provider: 'facebook',
       name: 'Kẻ Giả Mạo',
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
     });
     assert.equal(takeover.status, 403, 'Khai email admin mà không xác minh được thì phải bị chặn');
     assert.equal(takeover.data.token, undefined, 'Không được cấp token quản trị');
@@ -862,7 +864,7 @@ test('11. LỖ HỔNG SOCIAL: không thể tự khai email admin để lấy quy
     const uppercase = await post(env.baseUrl, '/api/auth/social', {
       provider: 'google',
       name: 'Kẻ Giả Mạo',
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
     });
     assert.equal(uppercase.status, 403, 'Email viết hoa vẫn bị chặn');
 
@@ -870,20 +872,20 @@ test('11. LỖ HỔNG SOCIAL: không thể tự khai email admin để lấy quy
     const withFakeToken = await post(env.baseUrl, '/api/auth/social', {
       provider: 'google',
       name: 'Kẻ Giả Mạo',
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
       accessToken: 'ya29.gia-mao-khong-co-that',
     });
     assert.equal(withFakeToken.status, 403, 'Access token không xác minh được vẫn bị chặn');
 
     /* Khi nhà cung cấp xác nhận đúng email đó → mới được vào. */
     const restore = setProviderLookupForTest('google', async (accessToken) =>
-      accessToken === 'ya29.token-that' ? { email: 'BroAmStuck@gmail.com' } : null,
+      accessToken === 'ya29.token-that' ? { email: MASTER_ADMIN_EMAIL } : null,
     );
     try {
       const verified = await post(env.baseUrl, '/api/auth/social', {
         provider: 'google',
         name: 'Trần Anh Tuấn',
-        email: 'BroAmStuck@gmail.com',
+        email: MASTER_ADMIN_EMAIL,
         accessToken: 'ya29.token-that',
       });
       assert.equal(verified.status, 200, 'Xác minh thành công thì đăng nhập được');
@@ -899,7 +901,7 @@ test('11. LỖ HỔNG SOCIAL: không thể tự khai email admin để lấy quy
       const mismatch = await post(env.baseUrl, '/api/auth/social', {
         provider: 'google',
         name: 'Kẻ Giả Mạo',
-        email: 'BroAmStuck@gmail.com',
+        email: MASTER_ADMIN_EMAIL,
         accessToken: 'ya29.token-that',
       });
       assert.equal(mismatch.status, 403, 'Email nhà cung cấp trả về phải khớp email khai báo');
@@ -920,27 +922,27 @@ test('12. API quản trị: chỉ adminEmail trong body là chưa đủ — ph�
 
     /* Trước khi vá: chỉ cần gõ đúng chuỗi email admin là ghi đè được. */
     const spoofed = await post(env.baseUrl, '/api/admin/about', {
-      adminEmail: 'BroAmStuck@gmail.com',
+      adminEmail: MASTER_ADMIN_EMAIL,
       aboutData: { ...initial, headline: 'Bị Chiếm Quyền' },
     });
     assert.equal(spoofed.status, 403, 'Khai adminEmail mà không có token phải bị chặn');
 
     const student = await register(env.baseUrl, 'Học Sinh', 'admin.probe@example.com', 'mat-khau-probe-1');
     const studentAttempt = await post(env.baseUrl, '/api/admin/about', {
-      adminEmail: 'BroAmStuck@gmail.com',
+      adminEmail: MASTER_ADMIN_EMAIL,
       aboutData: { ...initial, headline: 'Học Sinh Leo Quyền' },
     }, student.token);
     assert.equal(studentAttempt.status, 403, 'Token của học sinh không mở được cổng admin');
 
     /* Admin thật: đăng nhập bằng mật khẩu để lấy token hợp lệ. */
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
       password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200, `admin login: ${JSON.stringify(adminLogin.data)}`);
 
     const legit = await post(env.baseUrl, '/api/admin/about', {
-      adminEmail: 'BroAmStuck@gmail.com',
+      adminEmail: MASTER_ADMIN_EMAIL,
       aboutData: { ...initial, headline: 'Cập Nhật Hợp Lệ Từ Admin' },
     }, adminLogin.data.token);
     assert.equal(legit.status, 200, 'Admin có token hợp lệ vẫn cập nhật được');
@@ -957,13 +959,13 @@ test('12. API quản trị: chỉ adminEmail trong body là chưa đủ — ph�
 
     const noTokenDelete = await post(env.baseUrl, '/api/questions/delete', {
       questionId: question.data.question.id,
-      adminEmail: 'BroAmStuck@gmail.com',
+      adminEmail: MASTER_ADMIN_EMAIL,
     });
     assert.equal(noTokenDelete.status, 403, 'Xóa bài mà không có token phải bị chặn');
 
     const withTokenDelete = await post(env.baseUrl, '/api/questions/delete', {
       questionId: question.data.question.id,
-      adminEmail: 'BroAmStuck@gmail.com',
+      adminEmail: MASTER_ADMIN_EMAIL,
     }, adminLogin.data.token);
     assert.equal(withTokenDelete.status, 200, 'Admin có token thì xóa được');
   } finally {
@@ -994,7 +996,7 @@ test('13. /api/users/update: chính chủ chỉ sửa hồ sơ; role và tài ng
     assert.equal(crossAccount.status, 401, 'Token của người khác không sửa được tên, avatar hoặc ảnh bìa');
 
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
       password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200, 'Super Admin đăng nhập được trong test');
@@ -1299,7 +1301,7 @@ test('21. Khu Vinh Danh: payload một phần phải GỘP, không được xoá
     assert.ok(Array.isArray(before.milestones) && before.milestones.length > 0, 'Tài liệu gốc phải có milestones');
 
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
       password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200);
@@ -1307,7 +1309,7 @@ test('21. Khu Vinh Danh: payload một phần phải GỘP, không được xoá
     /* Gửi lên CHỈ một trường — đây chính là payload từng xoá sạch tài liệu
        rồi ghi xuống đĩa, làm hỏng dữ liệu cho mọi lần khởi động sau. */
     const partial = await post(env.baseUrl, '/api/admin/about', {
-      adminEmail: 'BroAmStuck@gmail.com',
+      adminEmail: MASTER_ADMIN_EMAIL,
       aboutData: { headline: 'Chỉ Đổi Tiêu Đề' },
     }, adminLogin.data.token);
     assert.equal(partial.status, 200);
@@ -1318,7 +1320,7 @@ test('21. Khu Vinh Danh: payload một phần phải GỘP, không được xoá
 
     /* Payload cố tình null hoá hai khối lõi cũng không phá được tài liệu. */
     const hostile = await post(env.baseUrl, '/api/admin/about', {
-      adminEmail: 'BroAmStuck@gmail.com',
+      adminEmail: MASTER_ADMIN_EMAIL,
       aboutData: { headline: 'Phá Dữ Liệu', founder: null, milestones: [] },
     }, adminLogin.data.token);
     assert.equal(hostile.status, 200);
@@ -1383,7 +1385,7 @@ test('22. Tố cáo vi phạm: không mất khi khởi động lại, chỉ admi
     assert.equal(forbidden.status, 403, 'Hộp thư tố cáo phải khoá với người lạ');
 
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
       password: TEST_ADMIN_PASSWORD,
     });
     const adminToken = adminLogin.data.token;
@@ -1429,7 +1431,7 @@ test('22. Tố cáo vi phạm: không mất khi khởi động lại, chỉ admi
   env = await createTestServer();
   try {
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
       password: TEST_ADMIN_PASSWORD,
     });
     const after = await fetch(`${env.baseUrl}/api/admin/reports`, {
@@ -1536,12 +1538,12 @@ test('25. Câu lạc bộ: bốn endpoint từng trả 404 nay lưu thật và k
     const spoofed = await post(env.baseUrl, '/api/clubs', {
       name: 'CLB Mạo Danh',
       purpose: 'Mượn danh admin',
-      leaderEmail: 'BroAmStuck@gmail.com',
+      leaderEmail: MASTER_ADMIN_EMAIL,
     }, attacker.token);
     assert.equal(spoofed.status, 200);
     assert.notEqual(
       spoofed.data.club.leaderName,
-      'BroAmStuck@gmail.com',
+      MASTER_ADMIN_EMAIL,
       'Người sáng lập phải lấy từ phiên đăng nhập, không từ body tự khai'
     );
 
@@ -1568,13 +1570,13 @@ test('25. Câu lạc bộ: bốn endpoint từng trả 404 nay lưu thật và k
     /* Không có token thì cũng không duyệt được. */
     const anonApprove = await post(env.baseUrl, '/api/clubs/approve', {
       clubId,
-      adminEmail: 'BroAmStuck@gmail.com',
+      adminEmail: MASTER_ADMIN_EMAIL,
     });
     assert.equal(anonApprove.status, 403, 'Khai adminEmail không mở được quyền duyệt');
 
     /* Admin thật duyệt được, và chủ nhiệm được thăng cấp + XP. */
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
       password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200, `admin login: ${JSON.stringify(adminLogin.data)}`);
@@ -1644,7 +1646,7 @@ test('26. Luồng từ chối CLB: ghi lý do và không cho học sinh đụng 
     assert.equal(missing.status, 400, 'Thiếu mã CLB phải báo 400');
 
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
       password: TEST_ADMIN_PASSWORD,
     });
     const rejected = await post(env.baseUrl, '/api/clubs/reject', {
@@ -1680,7 +1682,7 @@ test('27. Presence: không mạo danh được email/role qua gói ping tự kha
       payload: {
         id: 'ke-gia-danh',
         name: 'Admin Rởm',
-        email: 'BroAmStuck@gmail.com',
+        email: MASTER_ADMIN_EMAIL,
         role: 'SUPER_ADMIN',
         level: 150,
       },
@@ -1705,7 +1707,7 @@ test('27. Presence: không mạo danh được email/role qua gói ping tự kha
       payload: {
         id: 'chinh-chu',
         name: 'Tôi là admin',
-        email: 'BroAmStuck@gmail.com',
+        email: MASTER_ADMIN_EMAIL,
         role: 'SUPER_ADMIN',
       },
     }));
@@ -1736,7 +1738,7 @@ test('28. Presence qua HTTP: lọc trường, chặn thiếu id, và chặn floo
       user: {
         id: 'ping-http',
         name: 'Khai man tên',
-        email: 'BroAmStuck@gmail.com',
+        email: MASTER_ADMIN_EMAIL,
         role: 'SUPER_ADMIN',
       },
     }, student.token);
@@ -2100,7 +2102,7 @@ test('34. Sửa câu hỏi: không ghi đè được authorEmail / bountyCoin (m
     const questionId = asked.data.question.id;
 
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
       password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200);
@@ -2202,7 +2204,7 @@ test('35. Tác giả chỉ sửa/xóa câu hỏi của mình qua HTTP; người 
 test('36. Sửa câu hỏi qua WS: cùng một bộ lọc trường như đường HTTP và chủ bài được phép', async () => {
   const env = await createTestServer();
   const adminLogin = await post(env.baseUrl, '/api/auth/login', {
-    email: 'BroAmStuck@gmail.com',
+    email: MASTER_ADMIN_EMAIL,
     password: TEST_ADMIN_PASSWORD,
   });
   const admin = await connectWs(env.wsUrl, adminLogin.data.token);
@@ -2220,7 +2222,7 @@ test('36. Sửa câu hỏi qua WS: cùng một bộ lọc trường như đườ
       questionId,
       updates: {
         title: 'Sửa qua WS',
-        authorEmail: 'BroAmStuck@gmail.com',
+        authorEmail: MASTER_ADMIN_EMAIL,
         bountyCoin: 999999,
       },
     });
@@ -2557,7 +2559,7 @@ test('42. Bản ghi người dùng kiểu cũ thiếu trường không làm sậ
     assert.equal(legacy.xp, 400, 'xp gốc phải giữ nguyên');
 
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
       password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200, `admin login: ${JSON.stringify(adminLogin.data)}`);
@@ -2790,7 +2792,7 @@ test('47. REJECT_CLUB qua WS phải validate như bản HTTP và rút quyền ch
   try {
     /* Quyền duyệt/từ chối CLB chỉ thuộc tài khoản Super Admin thật. */
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
       password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200, `admin login: ${JSON.stringify(adminLogin.data)}`);
@@ -3013,7 +3015,7 @@ test('52. MARK_BEST_SOLUTION qua WS chỉ phát questionId và solutionId', asyn
     askerWs.send('MARK_BEST_SOLUTION', {
       questionId: asked.data.question.id,
       solutionId: solved.data.solution.id,
-      adminEmail: 'BroAmStuck@gmail.com',
+      adminEmail: MASTER_ADMIN_EMAIL,
       ghiChuBiMat: 'trường thừa do client tự bịa',
     });
     const msg = await askerWs.waitFor('MARK_BEST_SOLUTION');
@@ -3034,7 +3036,7 @@ test('53. REJECT_CLUB qua HTTP cũng phải rút quyền chủ nhiệm như nhá
     (await import('../server/forumServer.ts')).resetRateLimitersForTest();
 
     const adminLogin = await post(env.baseUrl, '/api/auth/login', {
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
       password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(adminLogin.status, 200, `admin login: ${JSON.stringify(adminLogin.data)}`);
@@ -3159,7 +3161,7 @@ test('Bảo mật 54. /api/admin/overview chỉ Super Admin đọc được, kh�
 
     /* 4. Super Admin → 200 với đầy đủ các khối số liệu. */
     const admin = await post(env.baseUrl, '/api/auth/login', {
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
       password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(admin.status, 200, 'đăng nhập super admin phải thành công');
@@ -3215,7 +3217,7 @@ test('Bảo mật 55. Cấm người dùng chặn ở CẢ HTTP lẫn WebSocket,
     (await import('../server/forumServer.ts')).resetRateLimitersForTest();
 
     const admin = await post(env.baseUrl, '/api/auth/login', {
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
       password: TEST_ADMIN_PASSWORD,
     });
     const target = await register(env.baseUrl, 'Người Bị Cấm', `cam55.${Date.now()}@example.com`, 'mat-khau-bi-cam-123');
@@ -3225,13 +3227,13 @@ test('Bảo mật 55. Cấm người dùng chặn ở CẢ HTTP lẫn WebSocket,
     const q = await post(env.baseUrl, '/api/questions', {
       title: 'Câu hỏi nền cho test cấm',
       content: 'Dùng làm nền để kiểm thử việc chặn ở cả hai transport.',
-      authorEmail: 'BroAmStuck@gmail.com',
+      authorEmail: MASTER_ADMIN_EMAIL,
     }, admin.data.token);
     const club = await post(env.baseUrl, '/api/clubs', {
       name: `CLB Nền Test Cấm ${Date.now()}`,
       slogan: 'Test',
       purpose: 'Mục đích đủ dài để hợp lệ khi kiểm thử.',
-      leaderEmail: 'BroAmStuck@gmail.com',
+      leaderEmail: MASTER_ADMIN_EMAIL,
     }, admin.data.token);
     await post(env.baseUrl, '/api/clubs/approve', { clubId: club.data.club.id }, admin.data.token);
 
@@ -3348,7 +3350,7 @@ test('Bảo mật 56. Tra cứu và áp chế người dùng chỉ admin, dữ l
     (await import('../server/forumServer.ts')).resetRateLimitersForTest();
 
     const admin = await post(env.baseUrl, '/api/auth/login', {
-      email: 'BroAmStuck@gmail.com',
+      email: MASTER_ADMIN_EMAIL,
       password: TEST_ADMIN_PASSWORD,
     });
     assert.equal(admin.status, 200);
@@ -3410,7 +3412,7 @@ test('Bảo mật 56. Tra cứu và áp chế người dùng chỉ admin, dữ l
       'học sinh không được đọc nhật ký');
 
     /* Tự khoá Super Admin / người dùng không tồn tại / thời hạn rác đều bị chặn. */
-    const self = await moderate({ action: 'ban', email: 'BroAmStuck@gmail.com', durationMinutes: 0, reason: 'Tự khoá' });
+    const self = await moderate({ action: 'ban', email: MASTER_ADMIN_EMAIL, durationMinutes: 0, reason: 'Tự khoá' });
     assert.equal(self.status, 400, 'không cho tự khoá Super Admin');
     const missing = await moderate({ action: 'ban', email: 'khong-co@example.com', durationMinutes: 60, reason: 'Không tồn tại' });
     assert.equal(missing.status, 404, 'email không tồn tại phải bị từ chối');
@@ -3468,7 +3470,7 @@ test('Bảo mật 56. Tra cứu và áp chế người dùng chỉ admin, dữ l
     assert.equal(audit.status, 200);
     assert.equal(audit.data.auditLog.length, 1, 'limit phải có hiệu lực');
     assert.ok(audit.data.total >= 1);
-    assert.equal(audit.data.auditLog[0].by, 'broamstuck@gmail.com');
+    assert.equal(audit.data.auditLog[0].by, MASTER_ADMIN_EMAIL_LOWER);
 
     /* Khởi động lại server trên cùng thư mục: áp chế + audit không được mất. */
     await env.close();

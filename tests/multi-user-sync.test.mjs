@@ -1,3 +1,4 @@
+import { MASTER_ADMIN_EMAIL_LOWER } from '../shared/identityStrings.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
@@ -185,16 +186,16 @@ test('2. Authentication Logic: Login rejects non-existent users; Register requir
   }
 });
 
-test('3. Super Admin Isolation: ONLY BroAmStuck@gmail.com receives SUPER_ADMIN role', async () => {
+test('3. Super Admin Isolation: ONLY the master admin email receives SUPER_ADMIN role', async () => {
   const testEnv = await createTestServer();
 
   try {
     const syncRes = await fetch(`${testEnv.baseUrl}/api/sync`);
     const syncData = await syncRes.json();
-    const adminUser = syncData.data.users['broamstuck@gmail.com'];
+    const adminUser = syncData.data.users[MASTER_ADMIN_EMAIL_LOWER];
 
     assert.ok(adminUser, 'Admin user must exist in registry');
-    assert.equal(adminUser.role, 'SUPER_ADMIN', 'BroAmStuck@gmail.com must have SUPER_ADMIN role');
+    assert.equal(adminUser.role, 'SUPER_ADMIN', 'master admin must have SUPER_ADMIN role');
     assert.equal(adminUser.name, 'Trần Văn Anh Tuấn');
 
     // Check that LoginModal source has NO "Đăng nhập Super Admin" shortcut button

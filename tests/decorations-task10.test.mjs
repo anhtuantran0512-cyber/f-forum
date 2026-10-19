@@ -12,6 +12,7 @@
  * Kỹ thuật: server A register → flush → inject inventory + notices vào file data
  * trên disk → server B (setupForumServer gọi loadStoreFromDisk) đăng nhập lại.
  */
+import { MASTER_ADMIN_EMAIL_LOWER } from '../shared/identityStrings.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -763,7 +764,7 @@ test('10.17 Đợt #6: Super Admin mua item đắt nhất không cần Coin, s�
   process.env.FFORUM_ADMIN_PASSWORD = adminPw;
   const a = await boot();
   try {
-    const login = await post(a.baseUrl, '/api/auth/login', { email: 'broamstuck@gmail.com', password: adminPw });
+    const login = await post(a.baseUrl, '/api/auth/login', { email: MASTER_ADMIN_EMAIL_LOWER, password: adminPw });
     assert.equal(login.status, 200, JSON.stringify(login.data));
     assert.equal(login.data.user.role, 'SUPER_ADMIN', 'email chủ → role SUPER_ADMIN');
     const token = login.data.token;

@@ -5,6 +5,7 @@
  * chống leo thang quyền, quyền cụ thể (warn/ban/edit_content/view_analytics),
  * mốc cấm 3 ngày, lọc trạng thái, số liệu dashboard bổ sung — và các bất biến giao diện.
  */
+import { MASTER_ADMIN_EMAIL } from '../shared/identityStrings.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -85,7 +86,7 @@ test('Epic 3 RBAC: vai trò tùy chỉnh, cấp vai trò, chống leo thang & qu
   const env = await createTestServer();
   try {
     resetRateLimitersForTest();
-    const adminLogin = await post(env.baseUrl, '/api/auth/login', { email: 'BroAmStuck@gmail.com', password: TEST_ADMIN_PASSWORD });
+    const adminLogin = await post(env.baseUrl, '/api/auth/login', { email: MASTER_ADMIN_EMAIL, password: TEST_ADMIN_PASSWORD });
     assert.equal(adminLogin.status, 200, JSON.stringify(adminLogin.data));
     const superToken = adminLogin.data.token;
 
@@ -173,7 +174,7 @@ test('Epic 3 RBAC: vai trò tùy chỉnh, cấp vai trò, chống leo thang & qu
       'không đụng được Admin khác');
     assert.equal((await post(env.baseUrl, '/api/admin/role', { email: coordinator.user.email, customRole: warnRole.data.role.id }, coordinator.token)).status, 400,
       'không tự đổi vai trò của mình');
-    assert.equal((await post(env.baseUrl, '/api/admin/role', { email: 'BroAmStuck@gmail.com', staffRole: 'MODERATOR' }, adminUser.token)).status, 400,
+    assert.equal((await post(env.baseUrl, '/api/admin/role', { email: MASTER_ADMIN_EMAIL, staffRole: 'MODERATOR' }, adminUser.token)).status, 400,
       'Super Admin luôn được bảo vệ');
     assert.equal((await del(env.baseUrl, `/api/admin/roles?id=${encodeURIComponent(editorRole.id)}`, coordinator.token)).status, 403,
       'Admin chỉ xoá role do chính mình tạo');
@@ -244,7 +245,7 @@ test('Epic 3 RBAC: vai trò tùy chỉnh và lượt gán còn nguyên sau khi m
   let env = await createTestServer();
   try {
     resetRateLimitersForTest();
-    const superToken = (await post(env.baseUrl, '/api/auth/login', { email: 'BroAmStuck@gmail.com', password: TEST_ADMIN_PASSWORD })).data.token;
+    const superToken = (await post(env.baseUrl, '/api/auth/login', { email: MASTER_ADMIN_EMAIL, password: TEST_ADMIN_PASSWORD })).data.token;
     const member = await register(env.baseUrl, 'ben-vung');
     const target = await register(env.baseUrl, 'doi-tuong');
     const created = await post(env.baseUrl, '/api/admin/roles', { name: 'Bền vững', icon: 'gem', color: '#6366f1', specialChar: '❖', permissions: ['warn'] }, superToken);
@@ -271,12 +272,12 @@ test('Epic 3 RBAC: vai trò tùy chỉnh và lượt gán còn nguyên sau khi m
 });
 
 test('Epic 3 RBAC: ma trận quyền phía client khớp cây quyền spec 3.1', () => {
-  const superUser = { email: 'BroAmStuck@gmail.com', role: 'SUPER_ADMIN' };
+  const superUser = { email: MASTER_ADMIN_EMAIL, role: 'SUPER_ADMIN' };
   const teacher = { email: 'gv@example.test', role: 'STUDENT', staffRole: 'TEACHER' };
   const admin = { email: 'ad@example.test', role: 'STUDENT', customRoleDef: { id: 'r1', name: 'Admin', icon: 'crown', color: '#f59e0b', specialChar: '', permissions: ['give_role', 'ban', 'warn', 'mute'] } };
   const student = { email: 'hs@example.test', role: 'STUDENT' };
 
-  assert.equal(rbac.isSuperAdminUser({ email: 'broamstuck@GMAIL.com' }), true, 'không phân biệt hoa thường');
+  assert.equal(rbac.isSuperAdminUser({ email: MASTER_ADMIN_EMAIL.toUpperCase() }), true, 'không phân biệt hoa thường');
   assert.equal(rbac.canGiveRole(superUser), true);
   assert.equal(rbac.canCreateRole(superUser), true);
   assert.equal(rbac.canGiveRole(admin), true, 'Admin thấy Give Role');
@@ -360,10 +361,12 @@ test('Super Admin hồi quy: so khớp email không phân biệt hoa thường, 
   const find = (re) => files.filter(([, content]) => re.test(content)).map(([full]) => path.relative(process.cwd(), full));
 
   /* So sánh trực tiếp email với chuỗi Super Admin (bất kể hoa thường) — record có thể lưu
-     'broamstuck@…' hoặc 'BroAmStuck@…'; chỉ isMasterAdmin() mới đúng ở mọi trường hợp. */
-  assert.deepEqual(find(/[A-Za-z_.]*email\??\s*(===|!==)\s*['"]broamstuck@gmail\.com['"]/i), [],
+     ở dạng chữ thường hoặc chữ hoa; chỉ isMasterAdmin() mới đúng ở mọi trường hợp.
+     Mẫu chuỗi ghép tại chỗ để tệp test không chứa nguyên văn email quản trị. */
+  const masterEmailPattern = MASTER_ADMIN_EMAIL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  assert.deepEqual(find(new RegExp("[A-Za-z_.]*email\\??\\s*(===|!==)\\s*['\"]" + masterEmailPattern + "['\"]", 'i')), [],
     'Dùng isMasterAdmin() thay cho so sánh email trực tiếp');
-  assert.deepEqual(find(/toLowerCase\(\)\s*(===|!==)\s*'BroAmStuck@gmail\.com'/), [],
+  assert.deepEqual(find(new RegExp("toLowerCase\\(\\)\\s*(===|!==)\\s*'" + masterEmailPattern + "'")), [],
     'Không so sánh email đã lowercase với chuỗi có chữ hoa (luôn false)');
   /* Cửa hậu cũ: so khớp mật khẩu hardcode ở client rồi tự tạo phiên Super Admin giả. */
   assert.deepEqual(find(/password\s*===\s*['"]/), [], 'Không được so khớp mật khẩu hardcode trong client (Yeucau.md §16)');
