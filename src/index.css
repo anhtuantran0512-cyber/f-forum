@@ -6071,69 +6071,91 @@ html.light .pc-12-stat__value:not(:where(.ff-keep-dark, .ff-keep-dark *)) {
 /* Cấp 1-3: Măng/tre non đung đưa nhẹ như gió thoảng */
 @keyframes sway-soft {
   0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(0.8deg); }
+  50% { transform: rotate(0.9deg); }
 }
-.badge-tier-1-3 path:nth-child(2),
-.badge-tier-1-3 path:nth-child(3) {
+.badge-tier-1-3 .ff-rank-sway {
   animation: sway-soft 3s ease-in-out infinite;
-  transform-origin: bottom center;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+.badge-tier-1-3 .ff-rank-sway--alt {
+  animation-delay: 0.45s;
 }
 
 /* Cấp 4-5: Lá tre lay động rõ hơn, như gió nhẹ qua tán */
 @keyframes leaf-rustle {
   0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-0.5px) rotate(1.5deg); }
+  50% { transform: translateY(-0.6px) rotate(2deg); }
 }
-.badge-tier-4-5 path:nth-child(n+5) {
-  animation: leaf-rustle 2.2s ease-in-out infinite;
+.badge-tier-4-5 .ff-rank-leaf {
+  animation: leaf-rustle 2.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 100% 50%;
+}
+.badge-tier-4-5 .ff-rank-leaf:nth-of-type(2n) {
+  animation-delay: 0.5s;
+}
+.badge-tier-4-5 .ff-rank-sway {
+  animation: sway-soft 3.1s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
 }
 
 /* Cấp 6: Các thân tre đung đưa lệch pha nhau (tự nhiên hơn) */
-.badge-tier-6 path:nth-child(2),
-.badge-tier-6 path:nth-child(3) {
+.badge-tier-6 .ff-rank-sway {
   animation: sway-soft 3.5s ease-in-out infinite;
-  transform-origin: bottom center;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
 }
-.badge-tier-6 path:nth-child(5),
-.badge-tier-6 path:nth-child(7) {
+.badge-tier-6 .ff-rank-sway--alt {
   animation: sway-soft 3.2s ease-in-out infinite reverse;
-  transform-origin: bottom center;
+}
+.badge-tier-6 .ff-rank-leaf {
+  animation: leaf-rustle 2.7s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 100% 50%;
+}
+.badge-tier-6 .ff-rank-leaf:nth-of-type(2n) {
+  animation-delay: 0.6s;
 }
 
 /* Cấp 7: Hào quang mờ "thở" nhẹ */
 @keyframes aura-breathe {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.55; }
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
 }
-.badge-tier-7 circle[opacity="0.4"] {
+.badge-tier-7 .ff-rank-aura {
   animation: aura-breathe 3s ease-in-out infinite;
 }
+.badge-tier-7 .ff-rank-sway {
+  animation: sway-soft 3.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+.badge-tier-7 .ff-rank-sway--alt {
+  animation-direction: reverse;
+}
 
-/* Cấp 8: Tia sáng xoay chậm quanh viền + toàn bộ tre lay động sống động */
+/* Cấp 8: Tia sáng hoàng kim xoay chậm quanh viền + cả lũy tre lay động sống động */
 @keyframes rotate-rays {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-.badge-tier-8 g,
-.badge-tier-8 g.ff-rank-rays {
-  animation: rotate-rays 15s linear infinite;
+.badge-tier-8 .ff-rank-rays {
+  animation: rotate-rays 16s linear infinite;
+  transform-box: view-box;
   transform-origin: 30px 30px;
 }
-.badge-tier-8 path:nth-child(3),
-.badge-tier-8 path:nth-child(4) {
+.badge-tier-8 .ff-rank-sway {
   animation: sway-soft 4s ease-in-out infinite;
-  transform-origin: bottom center;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
 }
-.badge-tier-8 path:nth-child(6),
-.badge-tier-8 path:nth-child(7) {
-  animation: sway-soft 3.7s ease-in-out infinite;
-  transform-origin: bottom center;
+.badge-tier-8 .ff-rank-sway--alt {
+  animation-duration: 3.6s;
+  animation-direction: reverse;
 }
-.badge-tier-8 path:nth-child(9),
-.badge-tier-8 path:nth-child(11) {
-  animation: sway-soft 3.3s ease-in-out infinite reverse;
-  transform-origin: bottom center;
-}
+
 
 /* Chế độ sáng cho các phân khu nội dung: ẩn nền gradient tối tĩnh, nhường chỗ cho nền kính lỏng (liquid) đa sắc của shell */
 html.light :is(.ff-chat-bg, .ff-clubs-bg, .ff-qa-bg) {

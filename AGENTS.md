@@ -27,3 +27,8 @@ Các quy tắc này được opencode nạp trước khi làm việc trong repo 
 - Nhánh làm việc đặt tên `f-forum_vN` (`f-forum_v1`, `f-forum_v2`, …); `main` là nhánh phát hành.
 - Mỗi lần sửa đổi chỉ sửa **đúng 1 nhánh**, rồi push nhánh đó + FF lên `main` khi có người trong phiên; Vercel tự build production; xác minh sống sau push.
 - Loop chạy nền không tự push — chỉ ghi báo cáo vào STATE.md.
+
+## Phiên chat & điều phối (4 chat: EduNext · F-Forum · ThayTung.com.vn · Studio)
+
+- Chỉ phiên **F-Forum** được sửa/commit/push repo này; các chat khác read-only (bản đồ làn: `~/Documents/BroAmStuck Studio/ai_collab_hub/STUDIO_SYNC.md` §8).
+- Camofox là hạ tầng dùng chung (chat EduNext phụ trách): trước khi dùng đọc §6 — engine đã cài sẵn, KHÔNG tải/cài lại.
