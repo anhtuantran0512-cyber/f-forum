@@ -34,3 +34,17 @@ docs/decorations/screenshots/.frame-*.png
 public/assets/decorations/decorations-migration.json
 .vercel
 .env*
+
+# Tài liệu nội bộ & tệp nặng — giữ local, không đưa lên GitHub
+/Nhiemvu*.md
+/nhiemvu_2.md
+/nhiemvuchinh.md
+/Yeucau.md
+/code_yeucau.md*
+/SPEC.md
+/bento_transform.py
+/diff.patch
+/nameplate.zip
+cosmetics/avatar_border/*.zip
+cosmetics/nameplate.zip
+.freebuff/
