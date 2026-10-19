@@ -3,39 +3,41 @@ import React, { useId, useMemo } from 'react';
 import { TIER_CONFIGS, getTierForLevel } from '../utils/tier';
 
 /* ==========================================================================
-   🎋 "TRE VIỆT" — HỆ THỐNG ICON RANK 8 BẬC (Từ Măng Non Đến Lũy Tre Cổ Thụ)
+   "TRE VIỆT" — BỘ ICON RANK 8 BẬC PHONG CÁCH CARTOON
    --------------------------------------------------------------------------
-   Logic tiến hóa:
-     1. Măng Non (#4ADE80)         — Mầm măng vừa nhú khỏi đất, còn bọc bẹ
-     2. Măng Vươn (#4ADE80)        — Măng cao hơn, bẹ bắt đầu hé, lộ chút lá non
-     3. Tre Non (#4ADE80)          — Thành thân tre mảnh đầu tiên, 2 đốt, vài lá nhỏ
-     4. Tre Vươn Mình (#38BDF8)    — Cao hơn, 3 đốt, 2 tầng lá
-     5. Tre Trưởng Thành (#38BDF8) — 4 đốt, tán lá 3 tầng tỏa rộng
-     6. Bụi Tre (#A78BFA)          — 2 thân tre mọc cùng bụi, lá rậm 2 bên
-     7. Lũy Tre Làng (#C084FC)     — 3 thân, lá rậm rạp, hào quang mờ bao bọc
-     8. Lũy Tre Cổ Thụ (#FBBF24)   — 3 thân cao nhất, vàng kim, hào quang tia sáng rực
+   Ngôn ngữ tạo hình: sticker huy hiệu tròn, viền mực dày, màu phẳng nhiều lớp,
+   nhân vật măng/tre có mắt, miệng và má hồng. Không dùng emoji trong hình.
+   Tiến hóa: Măng Non → Măng Vươn → Tre Non → Tre Vươn Mình → Tre Trưởng Thành
+             → Bụi Tre → Lũy Tre Làng → Lũy Tre Cổ Thụ.
    ========================================================================== */
 
 const LIGHT: Record<number, string> = {
-  1: '#86efac',
-  2: '#86efac',
-  3: '#86efac',
-  4: '#7dd3fc',
-  5: '#7dd3fc',
-  6: '#c4b5fd',
-  7: '#e9d5ff',
-  8: '#fde68a',
+  1: '#d9fbe5',
+  2: '#d9fbe5',
+  3: '#d9fbe5',
+  4: '#d9f3ff',
+  5: '#d9f3ff',
+  6: '#ede9fe',
+  7: '#f3e8ff',
+  8: '#fef3c7',
 };
 
-const DARK_BG: Record<number, string> = {
-  1: '#071a12',
-  2: '#071f15',
-  3: '#082419',
-  4: '#071c29',
-  5: '#082233',
-  6: '#16112b',
-  7: '#1d1033',
-  8: '#261a05',
+interface RankPalette {
+  deep: string;
+  ink: string;
+  plate: string;
+  blush: string;
+}
+
+const PALETTE: Record<number, RankPalette> = {
+  1: { deep: '#15803d', ink: '#08251a', plate: '#071f16', blush: '#fb7185' },
+  2: { deep: '#15803d', ink: '#08251a', plate: '#071f16', blush: '#fb7185' },
+  3: { deep: '#0f766e', ink: '#062a24', plate: '#071f1c', blush: '#fb7185' },
+  4: { deep: '#0369a1', ink: '#062636', plate: '#061b27', blush: '#fda4af' },
+  5: { deep: '#0e7490', ink: '#052a33', plate: '#051e26', blush: '#fda4af' },
+  6: { deep: '#6d28d9', ink: '#1b1038', plate: '#120b27', blush: '#f0abfc' },
+  7: { deep: '#7e22ce', ink: '#23103b', plate: '#170a29', blush: '#f0abfc' },
+  8: { deep: '#b45309', ink: '#3a2203', plate: '#241703', blush: '#fdba74' },
 };
 
 const tierAnimClass = (tier: number): string => {
@@ -51,18 +53,20 @@ interface MedallionProps {
   size?: number;
   color: string;
   light: string;
-  /** Trang trí thêm cho bậc cao */
   ornate?: 'plain' | 'ring' | 'diamond';
-  /** Biểu tượng bên trong, nhận tiền tố id riêng của huy hiệu này */
   render: (prefix: string) => React.ReactNode;
 }
 
+const gemPoint = (angle: number, radius: number): { x: number; y: number } => {
+  const rad = ((angle - 90) * Math.PI) / 180;
+  return { x: 30 + Math.cos(rad) * radius, y: 30 + Math.sin(rad) * radius };
+};
+
 const Medallion: React.FC<MedallionProps> = ({ tier, size = 28, color, light, ornate = 'plain', render }) => {
-  /* useId cho mỗi instance một id duy nhất; lọc ký tự lạ để url(#…) an toàn trên mọi trình duyệt */
   const rawId = useId();
   const uid = useMemo(() => `ffr${tier}-${rawId.replace(/[^a-zA-Z0-9]/g, '')}`, [tier, rawId]);
   const g = (name: string) => `${uid}-${name}`;
-  const darkCore = DARK_BG[tier] || '#0a0f1a';
+  const pal = PALETTE[tier] || PALETTE[1];
 
   return (
     <svg
@@ -78,456 +82,530 @@ const Medallion: React.FC<MedallionProps> = ({ tier, size = 28, color, light, or
       <defs>
         <linearGradient id={g('glyph')} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor={light} />
-          <stop offset="55%" stopColor={color} />
+          <stop offset="52%" stopColor={color} />
           <stop offset="100%" stopColor={light} />
         </linearGradient>
-        <linearGradient id={g('stem')} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor={color} />
-          <stop offset="45%" stopColor={light} />
-          <stop offset="100%" stopColor={color} />
+        <linearGradient id={g('rim')} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={light} />
+          <stop offset="36%" stopColor={color} />
+          <stop offset="100%" stopColor={pal.deep} />
         </linearGradient>
-        <linearGradient id={g('leaf')} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor={light} stopOpacity="0.96" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.72" />
+        <radialGradient id={g('bg')} cx="50%" cy="34%" r="70%">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="52%" stopColor={pal.plate} stopOpacity="1" />
+          <stop offset="100%" stopColor="#04070c" stopOpacity="1" />
+        </radialGradient>
+        <linearGradient id={g('body')} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor={light} stopOpacity="0.55" />
+          <stop offset="34%" stopColor={color} stopOpacity="0" />
+          <stop offset="76%" stopColor={pal.deep} stopOpacity="0.34" />
+          <stop offset="100%" stopColor={pal.ink} stopOpacity="0.3" />
         </linearGradient>
-        <radialGradient id={g('bg')} cx="50%" cy="38%" r="65%">
-          <stop offset="0%" stopColor={color} stopOpacity="0.24" />
-          <stop offset="58%" stopColor={darkCore} stopOpacity="0.95" />
-          <stop offset="100%" stopColor="#050811" stopOpacity="0.98" />
-        </radialGradient>
-        <radialGradient id={g('halo')} cx="50%" cy="42%" r="48%">
-          <stop offset="0%" stopColor={light} stopOpacity="0.42" />
-          <stop offset="65%" stopColor={color} stopOpacity="0.12" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </radialGradient>
       </defs>
 
-      {/* Lớp nền ngọc bích / huy chương đa tầng */}
-      <circle cx="30" cy="30" r="27.5" fill={`url(#${g('bg')})`} />
-      <circle cx="30" cy="27" r="21" fill={`url(#${g('halo')})`} />
+      {/* Huy hiệu tròn: vành ngoài dày + mặt trong tối để nhân vật nổi khối */}
+      <circle cx="30" cy="30" r="27.6" fill={`url(#${g('rim')})`} stroke={pal.ink} strokeWidth="1.7" />
+      <circle cx="30" cy="30" r="24.6" fill={`url(#${g('bg')})`} stroke={pal.ink} strokeWidth="1" />
+      <circle cx="30" cy="30" r="25.3" stroke={light} strokeWidth="0.55" opacity="0.5" />
 
-      {/* Khung viền trang trí tiến hóa theo bậc (plain → ring → diamond) */}
       {ornate === 'plain' && (
         <>
-          <circle cx="30" cy="30" r="24.6" stroke={color} strokeWidth="0.65" strokeDasharray="2.5 2.5" opacity="0.42" />
-          <circle cx="30" cy="4.2" r="1.1" fill={light} opacity="0.75" />
-          <circle cx="30" cy="55.8" r="1.1" fill={color} opacity="0.55" />
+          <circle cx="30" cy="30" r="23.2" stroke={light} strokeWidth="0.6" strokeDasharray="1.6 2.6" opacity="0.34" />
+          {[0, 90, 180, 270].map((angle) => {
+            const pt = gemPoint(angle, 26.4);
+            return <circle key={angle} cx={pt.x} cy={pt.y} r="1" fill={light} opacity="0.85" />;
+          })}
         </>
       )}
+
       {ornate === 'ring' && (
         <>
-          <circle cx="30" cy="30" r="24.8" stroke={`url(#${g('glyph')})`} strokeWidth="0.9" opacity="0.55" />
-          <circle cx="30" cy="30" r="22.8" stroke={light} strokeWidth="0.55" strokeDasharray="3 2" opacity="0.38" />
-          <polygon points="30,1.8 31.8,4.6 30,6.4 28.2,4.6" fill={light} opacity="0.9" />
-          <polygon points="30,58.2 31.8,55.4 30,53.6 28.2,55.4" fill={color} opacity="0.8" />
-          <polygon points="1.8,30 4.6,28.2 6.4,30 4.6,31.8" fill={color} opacity="0.8" />
-          <polygon points="58.2,30 55.4,28.2 53.6,30 55.4,31.8" fill={light} opacity="0.85" />
+          <circle cx="30" cy="30" r="25.1" stroke={pal.ink} strokeWidth="1.5" opacity="0.55" />
+          <circle cx="30" cy="30" r="23.1" stroke={light} strokeWidth="0.7" strokeDasharray="3 2" opacity="0.42" />
+          {[0, 90, 180, 270].map((angle) => {
+            const pt = gemPoint(angle, 26);
+            return (
+              <polygon
+                key={angle}
+                points={`${pt.x},${pt.y - 2.3} ${pt.x + 1.7},${pt.y} ${pt.x},${pt.y + 2.3} ${pt.x - 1.7},${pt.y}`}
+                fill={light}
+                stroke={pal.ink}
+                strokeWidth="0.55"
+              />
+            );
+          })}
         </>
       )}
+
       {ornate === 'diamond' && (
         <>
-          <circle cx="30" cy="30" r="25.2" stroke={`url(#${g('glyph')})`} strokeWidth="1.1" opacity="0.68" />
-          <circle cx="30" cy="30" r="23.1" stroke={light} strokeWidth="0.65" strokeDasharray="1.8 1.8" opacity="0.48" />
-          <polygon points="30,1.2 32.3,4.8 30,7.2 27.7,4.8" fill={light} />
-          <polygon points="30,58.8 32.3,55.2 30,52.8 27.7,55.2" fill={light} opacity="0.9" />
-          <polygon points="1.2,30 4.8,27.7 7.2,30 4.8,32.3" fill={light} opacity="0.9" />
-          <polygon points="58.8,30 55.2,27.7 52.8,30 55.2,32.3" fill={light} />
-          <circle cx="10.5" cy="10.5" r="1.35" fill={light} opacity="0.85" />
-          <circle cx="49.5" cy="10.5" r="1.35" fill={light} opacity="0.85" />
-          <circle cx="10.5" cy="49.5" r="1.35" fill={color} opacity="0.85" />
-          <circle cx="49.5" cy="49.5" r="1.35" fill={color} opacity="0.85" />
+          <circle cx="30" cy="30" r="25.2" stroke={pal.ink} strokeWidth="1.6" opacity="0.6" />
+          <circle cx="30" cy="30" r="23" stroke={light} strokeWidth="0.75" strokeDasharray="2 2" opacity="0.5" />
+          {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => {
+            const pt = gemPoint(angle, 26);
+            const big = angle % 90 === 0;
+            return (
+              <polygon
+                key={angle}
+                points={`${pt.x},${pt.y - (big ? 2.7 : 2)} ${pt.x + (big ? 1.9 : 1.5)},${pt.y} ${pt.x},${pt.y + (big ? 2.7 : 2)} ${pt.x - (big ? 1.9 : 1.5)},${pt.y}`}
+                fill={light}
+                stroke={pal.ink}
+                strokeWidth="0.6"
+              />
+            );
+          })}
+          <circle cx="30" cy="30" r="22.2" stroke={light} strokeWidth="0.45" opacity="0.22" />
         </>
       )}
 
       {render(uid)}
 
-      {/* Vệt phản quang kính cong phía trên mặt huy hiệu */}
-      <path
-        d="M 13 13.5 A 22 22 0 0 1 47 13.5"
-        stroke={light}
-        strokeWidth="0.9"
-        strokeLinecap="round"
-        opacity="0.32"
-      />
+      {/* Vệt sáng cong trên mặt huy hiệu tạo cảm giác sticker bóng */}
+      <path d="M12.2 14.6 A 21.8 21.8 0 0 1 30 6.8" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" opacity="0.22" />
+      <path d="M47.6 46.2 A 19.6 19.6 0 0 1 37.6 51.8" stroke={pal.ink} strokeWidth="2" strokeLinecap="round" opacity="0.16" />
     </svg>
   );
 };
 
-/* ── Biểu tượng từng bậc (8 cấp độ Tre Việt chi tiết cao, viewBox 0 0 60 60) ── */
+/* ── Nguyên liệu tạo hình dùng chung ─────────────────────────────────────── */
 
-/* Cấp 1 — MĂNG NON (0 điểm) 🟢: Mầm măng bụ bẫm nhú khỏi gò đất ẩm, bẹ măng đan chéo & giọt sương mai */
-const GlyphSprout = ({ c, l, p }: { c: string; l: string; p: string }) => (
-  <>
-    <circle cx="30" cy="30" r="27" fill="none" stroke={`url(#${p}-glyph)`} strokeWidth="1.9" />
-    {/* Gò đất ẩm 2 lớp */}
-    <path d="M15 44 Q30 40.5 45 44 Q30 47.5 15 44 Z" fill={c} fillOpacity="0.18" />
-    <path d="M16 43.5 Q30 46 44 43.5" stroke={`url(#${p}-glyph)`} strokeWidth="1.7" strokeLinecap="round" />
-    <path d="M21 46.2 Q30 47.8 39 46.2" stroke={c} strokeWidth="1" strokeLinecap="round" opacity="0.55" />
-    {/* Thân măng non hình búp mập có tô chuyển sắc */}
-    <path
-      d="M30 16.5 C26.2 23 23.2 33 23.5 43.2 Q30 45.2 36.5 43.2 C36.8 33 33.8 23 30 16.5 Z"
-      fill={`url(#${p}-leaf)`}
-      stroke={`url(#${p}-glyph)`}
-      strokeWidth="1.75"
-      strokeLinejoin="round"
-    />
-    {/* Bẹ măng ôm chéo đa tầng */}
-    <path d="M24.2 39.5 Q30 35.5 35.8 39" stroke={l} strokeWidth="1.25" fill="none" strokeLinecap="round" />
-    <path d="M24.8 33.8 Q30 29.8 35.2 33.5" stroke={l} strokeWidth="1.2" fill="none" strokeLinecap="round" />
-    <path d="M26.5 27.5 Q30 24.8 33.5 27.5" stroke={l} strokeWidth="1.15" fill="none" strokeLinecap="round" />
-    {/* Sống sáng dọc búp măng */}
-    <path d="M29.2 20.5 Q28 29 28.4 38" stroke="#ffffff" strokeWidth="0.9" strokeLinecap="round" opacity="0.45" />
-    {/* Hai mầm cỏ nhỏ bên gốc & giọt sương đỉnh măng */}
-    <path d="M22.5 43 Q19.5 39.5 17.5 41" stroke={l} strokeWidth="1.2" fill="none" strokeLinecap="round" />
-    <path d="M37.5 43 Q40.5 39.5 42.5 41" stroke={l} strokeWidth="1.2" fill="none" strokeLinecap="round" />
-    <circle cx="30" cy="14" r="1.4" fill={l} />
-    <circle cx="24" cy="21" r="0.8" fill={l} opacity="0.7" />
-  </>
+interface LeafProps {
+  x: number;
+  y: number;
+  rot?: number;
+  flip?: 1 | -1;
+  scale?: number;
+  c: string;
+  l: string;
+  ink: string;
+}
+
+const RankLeaf: React.FC<LeafProps> = ({ x, y, rot = 0, flip = 1, scale = 1, c, l, ink }) => (
+  <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${flip * scale} ${scale})`}>
+    <g className="ff-rank-leaf">
+      <path
+        d="M0 0C-4.4-5-11.6-5.8-16-1.4C-11 3-4.2 3.4 0 0Z"
+        fill={c}
+        stroke={ink}
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+      <path d="M-1.4-0.5C-5.4-3.2-10.4-3.6-14.2-1.8C-10.2-0.6-5.4 0.2-1.4-0.5Z" fill={l} opacity="0.4" />
+      <path
+        d="M-1.6-0.2C-6-1.4-10.4-1.2-13.6-0.2"
+        stroke={l}
+        strokeWidth="0.8"
+        strokeLinecap="round"
+        opacity="0.9"
+      />
+      <path d="M-0.6 0.2C-4.4 1.2-8 1.4-11.4 1" stroke={ink} strokeWidth="0.5" strokeLinecap="round" opacity="0.35" />
+    </g>
+  </g>
 );
 
-/* Cấp 2 — MĂNG VƯƠN (100 điểm) 🟢: Măng vươn cao, bẹ tách mở, 2 phiến lá non đầu tiên bung cánh */
-const GlyphTwinLeaves = ({ c, l, p }: { c: string; l: string; p: string }) => (
-  <>
-    <circle cx="30" cy="30" r="27" fill="none" stroke={`url(#${p}-glyph)`} strokeWidth="1.9" />
-    {/* Gò đất & sương sớm */}
-    <path d="M14 44.5 Q30 41 46 44.5 Q30 48 14 44.5 Z" fill={c} fillOpacity="0.18" />
-    <path d="M16 44 Q30 46.8 44 44" stroke={`url(#${p}-glyph)`} strokeWidth="1.7" strokeLinecap="round" />
-    {/* Hai phiến lá non hé mở hai bên đỉnh măng (có thịt lá + gân lá) */}
+interface FaceProps {
+  x: number;
+  y: number;
+  ink: string;
+  blush: string;
+  mood?: 'smile' | 'grin';
+}
+
+const RankFace: React.FC<FaceProps> = ({ x, y, ink, blush, mood = 'smile' }) => (
+  <g className="ff-rank-face">
+    <ellipse cx={x - 2.6} cy={y} rx="1.55" ry="2.05" fill={ink} />
+    <ellipse cx={x + 2.6} cy={y} rx="1.55" ry="2.05" fill={ink} />
+    <circle cx={x - 3.1} cy={y - 0.7} r="0.48" fill="#ffffff" />
+    <circle cx={x + 2.1} cy={y - 0.7} r="0.48" fill="#ffffff" />
     <path
-      d="M29.5 21 C24 17 17.5 16.5 14.5 20.5 C18.5 22.8 24.5 23.2 29.5 21 Z"
-      fill={`url(#${p}-leaf)`}
-      stroke={l}
-      strokeWidth="1.15"
-      strokeLinejoin="round"
+      d={
+        mood === 'grin'
+          ? `M${x - 2.3} ${y + 3.2} Q${x} ${y + 5.7} ${x + 2.3} ${y + 3.2}`
+          : `M${x - 2} ${y + 3.3} Q${x} ${y + 5} ${x + 2} ${y + 3.3}`
+      }
+      stroke={ink}
+      strokeWidth="1.1"
+      strokeLinecap="round"
+      fill="none"
     />
-    <path
-      d="M30.5 18.5 C36 14 42.5 13.5 45.5 17.5 C41.5 20 35.5 20.8 30.5 18.5 Z"
-      fill={`url(#${p}-leaf)`}
-      stroke={l}
-      strokeWidth="1.15"
-      strokeLinejoin="round"
-    />
-    {/* Thân măng vươn cao */}
-    <path
-      d="M30 11.5 C26 19.5 23 31.5 23 43.8 Q30 46 37 43.8 C37 31.5 34 19.5 30 11.5 Z"
-      fill={`url(#${p}-leaf)`}
-      stroke={`url(#${p}-glyph)`}
-      strokeWidth="1.8"
-      strokeLinejoin="round"
-    />
-    {/* Các tầng bẹ măng đan chéo */}
-    <path d="M23.8 39.5 Q30 35 36.2 39.5" stroke={l} strokeWidth="1.25" fill="none" strokeLinecap="round" />
-    <path d="M24.6 33.2 Q30 28.8 35.4 33.2" stroke={l} strokeWidth="1.2" fill="none" strokeLinecap="round" />
-    <path d="M25.8 26.8 Q30 23 34.2 26.8" stroke={l} strokeWidth="1.15" fill="none" strokeLinecap="round" />
-    <path d="M27.3 20.5 Q30 18 32.7 20.5" stroke={l} strokeWidth="1.1" fill="none" strokeLinecap="round" />
-    {/* Chồi lá búp trên đỉnh & đom đóm lục bảo */}
-    <path d="M30 11.8 Q28 7.8 25.5 6.8" stroke={l} strokeWidth="1.35" fill="none" strokeLinecap="round" />
-    <path d="M30 11.8 Q32.5 8.2 34.8 7.5" stroke={l} strokeWidth="1.2" fill="none" strokeLinecap="round" />
-    <circle cx="20" cy="13.5" r="1.1" fill={l} opacity="0.85" />
-    <circle cx="41" cy="11" r="0.9" fill={l} opacity="0.7" />
-  </>
+    <ellipse cx={x - 5.2} cy={y + 2.4} rx="1.8" ry="1" fill={blush} opacity="0.55" />
+    <ellipse cx={x + 5.2} cy={y + 2.4} rx="1.8" ry="1" fill={blush} opacity="0.55" />
+  </g>
 );
 
-/* Cấp 3 — TRE NON (250 điểm) 🟢: Thân tre non 3 lóng rõ đốt, chồi măng phụ & 4 phiến lá sắc nét */
-const GlyphTriLeaf = ({ c, l, p }: { c: string; l: string; p: string }) => (
-  <>
-    <circle cx="30" cy="30" r="27" fill="none" stroke={`url(#${p}-glyph)`} strokeWidth="1.9" />
-    {/* Thảm cỏ & mặt đất */}
-    <path d="M15 46 Q30 43 45 46 Q30 49 15 46 Z" fill={c} fillOpacity="0.18" />
-    <path d="M16 45.5 Q30 48 44 45.5" stroke={`url(#${p}-glyph)`} strokeWidth="1.6" strokeLinecap="round" />
-    {/* Phiến lá tre non có thịt lá (trái & phải) */}
-    <path
-      d="M28 24 C21.5 20.5 14.5 21 11.5 25 C16.5 26.8 23 26.2 28 24 Z"
-      fill={`url(#${p}-leaf)`}
-      stroke={l}
-      strokeWidth="1.1"
-    />
-    <path
-      d="M28.5 14.5 C22 10.2 15.5 10.5 12.5 14.2 C17.5 16.2 23.5 16 28.5 14.5 Z"
-      fill={`url(#${p}-leaf)`}
-      stroke={l}
-      strokeWidth="1.1"
-    />
-    <path
-      d="M31 18.5 C37.5 14.5 44 15 47.5 19 C42.5 21 36 20.5 31 18.5 Z"
-      fill={`url(#${p}-leaf)`}
-      stroke={l}
-      strokeWidth="1.1"
-    />
-    <path
-      d="M30.5 11 C36 7.5 41.5 8 44.5 11.2 C40 13 35 12.6 30.5 11 Z"
-      fill={`url(#${p}-leaf)`}
-      stroke={l}
-      strokeWidth="1.05"
-    />
-    {/* Thân tre non có độ dày lóng (culm) */}
-    <path
-      d="M27.4 45.5 Q26.6 27 28.2 8.5 L31.2 8.5 Q29.8 27 31 45.5 Z"
-      fill={`url(#${p}-stem)`}
-      stroke={c}
-      strokeWidth="1.1"
-      strokeLinejoin="round"
-    />
-    {/* Đốt tre đôi (double-node rings) tạo cảm giác chân thật */}
-    <path d="M25.2 35.5 L32.8 35.1 M25.4 36.8 L32.6 36.4" stroke={l} strokeWidth="1.25" strokeLinecap="round" />
-    <path d="M25.5 24.5 L32.5 24.1 M25.7 25.7 L32.3 25.3" stroke={l} strokeWidth="1.25" strokeLinecap="round" />
-    <path d="M26.2 14.5 L32.2 14.2" stroke={l} strokeWidth="1.2" strokeLinecap="round" />
-    {/* Mầm măng nhỏ mọc kèm dưới gốc */}
-    <path d="M34.5 45.5 L33 39.5 L36.8 45.5 Z" fill={l} opacity="0.85" />
-  </>
-);
+interface CulmProps {
+  x: number;
+  top: number;
+  bottom: number;
+  width: number;
+  nodes: number[];
+  c: string;
+  l: string;
+  deep: string;
+  ink: string;
+  alt?: boolean;
+  children?: React.ReactNode;
+}
 
-/* Cấp 4 — TRE VƯƠN MÌNH (500 điểm · 5 🏅) 🔵: Thân tre xanh lam vươn cao, 4 đốt rõ nét, 2 tầng tán lá dày */
-const GlyphPrism = ({ c, l, p }: { c: string; l: string; p: string }) => (
-  <>
-    <circle cx="30" cy="30" r="27" fill="none" stroke={`url(#${p}-glyph)`} strokeWidth="1.95" />
-    {/* Vòng cung gió / trăng khuyết mờ phía sau */}
-    <circle cx="30" cy="27" r="17.5" stroke={c} strokeWidth="0.75" strokeDasharray="4 3" opacity="0.35" />
-    <path d="M15 46.8 Q30 43.8 45 46.8 Q30 49.5 15 46.8 Z" fill={c} fillOpacity="0.2" />
-    <path d="M16 46.2 Q30 48.8 44 46.2" stroke={`url(#${p}-glyph)`} strokeWidth="1.65" strokeLinecap="round" />
-    {/* Tán lá tầng dưới & tầng trên (6 phiến lá thon nhọn có gân sáng) */}
-    <path d="M27.5 28 C20 24.5 13 25.5 9.5 29.8 C15.5 31.2 22.5 30.2 27.5 28 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.1" />
-    <path d="M30.5 30 C38 26.5 44.5 27.5 48.5 31.5 C42.5 33 35.5 32 30.5 30 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.1" />
-    <path d="M27.5 18.5 C19.5 14 12.5 14.8 9 19.2 C15 21 22 20.4 27.5 18.5 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.15" />
-    <path d="M30.5 20.5 C38.5 16.2 45.5 17 49 21.5 C43 23.2 36 22.4 30.5 20.5 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.15" />
-    <path d="M28.2 10.5 C22 6 16 6.5 13 10 C18 11.8 23.5 11.6 28.2 10.5 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.05" />
-    <path d="M30.2 9.5 C36.5 5.2 42 5.8 45.5 9.2 C40.5 11 35 10.8 30.2 9.5 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.05" />
-    {/* Thân tre chính */}
-    <path
-      d="M27.2 46.2 Q25.6 26 27.8 6.5 L31.2 6.5 Q29.2 26 31 46.2 Z"
-      fill={`url(#${p}-stem)`}
-      stroke={c}
-      strokeWidth="1.15"
-      strokeLinejoin="round"
-    />
-    {/* 4 đốt tre đôi nổi khối */}
-    <path d="M24.8 38 L32.8 37.5 M25 39.2 L32.6 38.7" stroke={l} strokeWidth="1.25" strokeLinecap="round" />
-    <path d="M24.8 28.2 L32.4 27.7 M25 29.4 L32.2 28.9" stroke={l} strokeWidth="1.25" strokeLinecap="round" />
-    <path d="M25.2 18.5 L32.2 18.1 M25.4 19.6 L32 19.2" stroke={l} strokeWidth="1.2" strokeLinecap="round" />
-    <path d="M26 10.2 L32 9.8" stroke={l} strokeWidth="1.15" strokeLinecap="round" />
-    {/* Hai búp măng nhỏ dưới chân */}
-    <path d="M22.5 46.2 L24.2 39.8 L26 46.2 Z" fill={l} opacity="0.85" />
-    <path d="M33.2 46.2 L34.8 40.8 L36.6 46.2 Z" fill={c} opacity="0.85" />
-  </>
-);
+const Culm: React.FC<CulmProps> = ({ x, top, bottom, width, nodes, c, l, deep, ink, alt = false, children }) => {
+  const left = x - width / 2;
+  const height = bottom - top;
+  return (
+    <g className={alt ? 'ff-rank-sway ff-rank-sway--alt' : 'ff-rank-sway'}>
+      <rect x={left} y={top} width={width} height={height} rx={width / 2} fill={c} stroke={ink} strokeWidth="1.55" />
+      <rect
+        x={left + width * 0.18}
+        y={top + 2.2}
+        width={Math.max(1.2, width * 0.17)}
+        height={Math.max(2, height - 4.4)}
+        rx={width * 0.08}
+        fill={l}
+        opacity="0.5"
+      />
+      <rect
+        x={left + width * 0.71}
+        y={top + 2.4}
+        width={Math.max(1, width * 0.15)}
+        height={Math.max(2, height - 4.8)}
+        rx={width * 0.07}
+        fill={deep}
+        opacity="0.5"
+      />
+      {nodes.map((y) => (
+        <g key={y}>
+          <rect x={left - 0.5} y={y - 0.9} width={width + 1} height="1.8" rx="0.9" fill={l} stroke={ink} strokeWidth="0.5" />
+          <path d={`M${left + 0.4} ${y + 1.7} Q${x} ${y + 2.3} ${left + width - 0.4} ${y + 1.7}`} stroke={deep} strokeWidth="0.7" fill="none" opacity="0.6" />
+        </g>
+      ))}
+      {children}
+    </g>
+  );
+};
 
-/* Cấp 5 — TRE TRƯỞNG THÀNH (1000 điểm · 10 🏅) 🔵: Thân tre vững chãi, tán lá 3 tầng + ngôi sao tri thức trên đỉnh */
-const GlyphStar = ({ c, l, p }: { c: string; l: string; p: string }) => (
-  <>
-    <circle cx="30" cy="30" r="27" fill="none" stroke={`url(#${p}-glyph)`} strokeWidth="2" />
-    {/* Vòng hào quang nội tâm */}
-    <circle cx="30" cy="25" r="18.5" stroke={l} strokeWidth="0.8" opacity="0.32" />
-    <path d="M14 47.5 Q30 44.2 46 47.5 Q30 50.2 14 47.5 Z" fill={c} fillOpacity="0.22" />
-    <path d="M15 47 Q30 49.5 45 47" stroke={`url(#${p}-glyph)`} strokeWidth="1.75" strokeLinecap="round" />
-    {/* Tán lá 3 tầng (8 phiến lá dày dặn đối xứng) */}
-    <path d="M27.2 31 C18.5 27 11 28 7.5 32.5 C14 34.2 21.5 33.2 27.2 31 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.1" />
-    <path d="M30.8 32.5 C39.5 28.5 46.5 29.5 50.5 34 C44 35.8 36.5 34.8 30.8 32.5 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.1" />
-    <path d="M27 21.5 C18 16.8 10.5 17.5 7 22.2 C13.5 24.2 21 23.5 27 21.5 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.15" />
-    <path d="M30.8 23 C39.5 18.2 47 19 51 23.8 C44.5 25.8 37 25 30.8 23 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.15" />
-    <path d="M27.5 13 C20 8.2 13.5 8.8 10 12.8 C15.8 14.8 22.2 14.5 27.5 13 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.1" />
-    <path d="M30.5 14 C38 9.2 44.5 9.8 48 13.8 C42.2 15.8 35.8 15.5 30.5 14 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.1" />
-    <path d="M28.5 7.8 C23.5 4 18.5 4.5 16 7.5 C20.5 9 25 8.8 28.5 7.8 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1" />
-    <path d="M30.5 7.8 C35.5 4 40.5 4.5 43 7.5 C38.5 9 34 8.8 30.5 7.8 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1" />
-    {/* Thân tre trưởng thành */}
+const Soil: React.FC<{ y: number; ink: string }> = ({ y, ink }) => (
+  <g>
     <path
-      d="M26.8 47 Q25 25.5 27.6 5.5 L31.4 5.5 Q29.2 25.5 31.2 47 Z"
-      fill={`url(#${p}-stem)`}
-      stroke={c}
+      d={`M15 ${y} Q19 ${y - 4.4} 30 ${y - 4.8} Q41 ${y - 4.4} 45 ${y} Q38 ${y + 3.6} 30 ${y + 3.8} Q22 ${y + 3.6} 15 ${y}Z`}
+      fill="#6b4423"
+      stroke={ink}
       strokeWidth="1.2"
       strokeLinejoin="round"
     />
-    {/* 4 đốt tre đôi sắc nét */}
-    <path d="M24.2 38.8 L33 38.3 M24.4 40 L32.8 39.5" stroke={l} strokeWidth="1.3" strokeLinecap="round" />
-    <path d="M24.4 29.2 L32.6 28.7 M24.6 30.4 L32.4 29.9" stroke={l} strokeWidth="1.3" strokeLinecap="round" />
-    <path d="M24.8 19.6 L32.4 19.1 M25 20.7 L32.2 20.2" stroke={l} strokeWidth="1.25" strokeLinecap="round" />
-    <path d="M25.6 10.8 L32.2 10.4" stroke={l} strokeWidth="1.2" strokeLinecap="round" />
-    {/* Ngôi sao 4 cánh lấp lánh trên đỉnh ngọn */}
-    <path d="M29.5 1.8 L30.6 4.4 L33.2 5.5 L30.6 6.6 L29.5 9.2 L28.4 6.6 L25.8 5.5 L28.4 4.4 Z" fill="#ffffff" opacity="0.92" />
-  </>
+    <path d={`M19 ${y - 1.2} Q24 ${y - 3.2} 30 ${y - 3.4}`} stroke="#d6a46a" strokeWidth="0.9" strokeLinecap="round" fill="none" opacity="0.55" />
+    <path d={`M25 ${y + 1.4} Q30 ${y + 3} 35 ${y + 1.2}`} stroke="#2f1c0c" strokeWidth="0.7" strokeLinecap="round" fill="none" opacity="0.4" />
+  </g>
 );
 
-/* Cấp 6 — BỤI TRE (2000 điểm · 20 🏅) 🟣: Khóm tre đôi + măng non quây quần, tán lá tím huyền ảo */
-const GlyphWheat = ({ c, l, p }: { c: string; l: string; p: string }) => (
-  <>
-    <circle cx="30" cy="30" r="27" fill="none" stroke={`url(#${p}-glyph)`} strokeWidth="2" />
-    {/* Vầng sáng khóm tre */}
-    <circle cx="30" cy="26" r="19" stroke={l} strokeWidth="0.85" opacity="0.35" />
-    <path d="M13 48 Q30 44.5 47 48 Q30 51 13 48 Z" fill={c} fillOpacity="0.24" />
-    <path d="M14 47.5 Q30 50 46 47.5" stroke={`url(#${p}-glyph)`} strokeWidth="1.8" strokeLinecap="round" />
-    {/* Tán lá rậm 2 bên khóm tre (8 phiến lá có thịt lá) */}
-    <path d="M23.5 27 C15.5 23 8.5 24 5.5 28.2 C11.5 30 18.2 29.2 23.5 27 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.1" />
-    <path d="M23.5 17.5 C15 12.8 8 13.8 5 18.2 C11 20.2 18 19.5 23.5 17.5 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.15" />
-    <path d="M24.5 9.5 C18 5 12 5.5 9 9.2 C14.2 11 19.8 10.8 24.5 9.5 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.05" />
-    <path d="M36.5 29 C44 25.5 50.5 26.5 54 30.5 C48.2 32.2 41.8 31.2 36.5 29 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.1" />
-    <path d="M36.5 19.5 C44.5 15.2 51 16.2 54.5 20.5 C48.5 22.2 42 21.5 36.5 19.5 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.15" />
-    <path d="M35.5 12 C42 7.8 48 8.5 51 12 C46 13.8 40.5 13.5 35.5 12 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.05" />
-    {/* Lá đan giữa 2 thân */}
-    <path d="M26.5 14 C30.5 10.5 34.5 10.8 37 13.8 C33.5 15.2 29.8 15.2 26.5 14 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1" />
-    {/* Thân chính bên trái */}
-    <path
-      d="M22.8 47.5 Q20.5 25 23.8 5 L27.4 5 Q24.5 25 26.8 47.5 Z"
-      fill={`url(#${p}-stem)`}
-      stroke={c}
-      strokeWidth="1.15"
-      strokeLinejoin="round"
-    />
-    <path d="M20.5 37.8 L28 37.3 M20.7 39 L27.8 38.5" stroke={l} strokeWidth="1.25" strokeLinecap="round" />
-    <path d="M20.8 27.2 L27.6 26.7 M21 28.4 L27.4 27.9" stroke={l} strokeWidth="1.25" strokeLinecap="round" />
-    <path d="M21.5 16.5 L27.6 16.1" stroke={l} strokeWidth="1.2" strokeLinecap="round" />
-    {/* Thân phụ bên phải */}
-    <path
-      d="M33.2 47.5 Q36.2 28 33.4 10.5 L36.6 10.5 Q39.2 28 36.8 47.5 Z"
-      fill={`url(#${p}-stem)`}
-      stroke={c}
-      strokeWidth="1.1"
-      strokeLinejoin="round"
-    />
-    <path d="M32.2 39.2 L38.8 38.8 M32.4 40.3 L38.6 39.9" stroke={l} strokeWidth="1.15" strokeLinecap="round" />
-    <path d="M32.6 29.2 L38.8 28.8 M32.8 30.3 L38.6 29.9" stroke={l} strokeWidth="1.15" strokeLinecap="round" />
-    <path d="M32.4 19.5 L38.2 19.1" stroke={l} strokeWidth="1.1" strokeLinecap="round" />
-    {/* Búp măng mọc giữa khóm */}
-    <path d="M28.2 47.5 L30 38.5 L31.8 47.5 Z" fill={l} stroke={c} strokeWidth="0.9" />
-    <circle cx="30" cy="21" r="1.1" fill={l} opacity="0.9" />
-    <circle cx="16" cy="11" r="0.9" fill={l} opacity="0.75" />
-    <circle cx="44" cy="15" r="0.9" fill={l} opacity="0.75" />
-  </>
+const Sparkle: React.FC<{ x: number; y: number; r?: number; p: string }> = ({ x, y, r = 3, p }) => (
+  <path
+    d={`M${x} ${y - r} L${x + r * 0.28} ${y - r * 0.28} L${x + r} ${y} L${x + r * 0.28} ${y + r * 0.28} L${x} ${y + r} L${x - r * 0.28} ${y + r * 0.28} L${x - r} ${y} L${x - r * 0.28} ${y - r * 0.28}Z`}
+    fill={`url(#${p}-glyph)`}
+    opacity="0.95"
+  />
 );
 
-/* Cấp 7 — LŨY TRE LÀNG (4000 điểm · 35 🏅) 🟣✨: 3 thân tre uy nghi, vầng trăng hào quang mờ & tán lá rậm rạp */
-const GlyphTorch = ({ c, l, p }: { c: string; l: string; p: string }) => (
-  <>
-    <circle cx="30" cy="30" r="27" fill="none" stroke={`url(#${p}-glyph)`} strokeWidth="2.1" />
-    {/* Hào quang mờ (giữ nguyên circle[opacity="0.4"] cho animation aura-breathe) */}
-    <circle cx="30" cy="28" r="20" stroke={c} strokeWidth="1.1" fill={c} fillOpacity="0.08" opacity="0.4" />
-    <circle cx="30" cy="24" r="14.5" stroke={l} strokeWidth="0.75" strokeDasharray="3 2" opacity="0.45" />
-    {/* Gò đất lũy tre làng */}
-    <path d="M12 48.5 Q30 44.8 48 48.5 Q30 51.8 12 48.5 Z" fill={c} fillOpacity="0.26" />
-    <path d="M13 48 Q30 50.8 47 48" stroke={`url(#${p}-glyph)`} strokeWidth="1.85" strokeLinecap="round" />
-    {/* Tán lá lũy tre 3 tầng dày đặc */}
-    <path d="M19 25 C11.5 21 5.5 22 3 26 C8.5 27.8 14.5 27 19 25 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.05" />
-    <path d="M19.5 15 C12 10.5 6 11.2 3.5 15.2 C9 17.2 15 16.6 19.5 15 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.1" />
-    <path d="M41 26 C48.5 22 54.5 23 57 27 C51.5 28.8 45.5 28 41 26 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.05" />
-    <path d="M40.5 16 C48 11.5 54 12.2 56.5 16.2 C51 18.2 45 17.6 40.5 16 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.1" />
-    <path d="M28.5 9.5 C21 4.5 14.5 5 11.5 9 C17 11 23.2 10.8 28.5 9.5 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.1" />
-    <path d="M31.5 9.5 C39 4.5 45.5 5 48.5 9 C43 11 36.8 10.8 31.5 9.5 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.1" />
-    <path d="M28.5 18.5 C22.5 15 17 15.5 14.5 18.8 C19.2 20.2 24.2 20 28.5 18.5 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1" />
-    <path d="M31.5 18.5 C37.5 15 43 15.5 45.5 18.8 C40.8 20.2 35.8 20 31.5 18.5 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1" />
-    {/* Thân trái */}
-    <path d="M18.2 48 Q15.5 28 19.2 9.5 L22.2 9.5 Q18.8 28 21.4 48 Z" fill={`url(#${p}-stem)`} stroke={c} strokeWidth="1.05" />
-    <path d="M16.2 38.2 L22.6 37.8 M16.8 27.5 L22.4 27.1 M17.5 17.5 L22.6 17.2" stroke={l} strokeWidth="1.15" strokeLinecap="round" />
-    {/* Thân giữa (trụ cột cao nhất) */}
-    <path d="M28 48.2 Q26.2 24 28.5 3.2 L31.8 3.2 Q29.8 24 31.8 48.2 Z" fill={`url(#${p}-stem)`} stroke={c} strokeWidth="1.2" />
-    <path d="M25.5 37 L33.5 36.5 M25.7 38.2 L33.3 37.7" stroke={l} strokeWidth="1.3" strokeLinecap="round" />
-    <path d="M25.8 25.5 L33.2 25 M26 26.7 L33 26.2" stroke={l} strokeWidth="1.3" strokeLinecap="round" />
-    <path d="M26.4 14.5 L33 14.1" stroke={l} strokeWidth="1.25" strokeLinecap="round" />
-    {/* Thân phải */}
-    <path d="M38.6 48 Q41.5 29 38.2 11 L41.2 11 Q44.5 29 41.8 48 Z" fill={`url(#${p}-stem)`} stroke={c} strokeWidth="1.05" />
-    <path d="M37.4 39.2 L43.8 38.8 M37.8 28.5 L43.6 28.1 M37.5 18.5 L42.8 18.2" stroke={l} strokeWidth="1.15" strokeLinecap="round" />
-    {/* Hai mầm măng phụ & đốm sáng linh khí */}
-    <path d="M23.5 48.2 L25 40.5 L26.6 48.2 Z" fill={l} opacity="0.9" />
-    <path d="M33.4 48.2 L35 41.2 L36.5 48.2 Z" fill={l} opacity="0.9" />
-    <circle cx="13" cy="8.5" r="1" fill="#ffffff" opacity="0.85" />
-    <circle cx="47" cy="9.5" r="1" fill="#ffffff" opacity="0.85" />
-  </>
-);
+interface GlyphProps {
+  p: string;
+  c: string;
+  l: string;
+  deep: string;
+  ink: string;
+}
 
-/* Cấp 8 — LŨY TRE CỔ THỤ (8000 điểm · 50 🏅) 🟡✨: Hoàng Kim Trúc Hóa Rồng — hào quang mặt trời xoay & 3 thân cổ thụ */
-const GlyphCrystal = ({ c, l, p }: { c: string; l: string; p: string }) => (
+/* ── Cấp 1 — Măng Non ────────────────────────────────────────────────────── */
+
+const GlyphSprout: React.FC<GlyphProps> = ({ c, l, deep, ink, p }) => (
   <>
-    <circle cx="30" cy="30" r="27" fill="none" stroke={`url(#${p}-glyph)`} strokeWidth="2.2" />
-    {/* Tia sáng hoàng kim xoay quanh viền (.badge-tier-8 g xoay 360 độ) */}
-    <g className="ff-rank-rays" stroke={l} strokeWidth="1.35" strokeLinecap="round">
-      <line x1="30" y1="1.8" x2="30" y2="6.2" />
-      <line x1="30" y1="53.8" x2="30" y2="58.2" />
-      <line x1="1.8" y1="30" x2="6.2" y2="30" />
-      <line x1="53.8" y1="30" x2="58.2" y2="30" />
-      <line x1="9.8" y1="9.8" x2="13.2" y2="13.2" />
-      <line x1="46.8" y1="46.8" x2="50.2" y2="50.2" />
-      <line x1="50.2" y1="9.8" x2="46.8" y2="13.2" />
-      <line x1="13.2" y1="46.8" x2="9.8" y2="50.2" />
-      <line x1="19.5" y1="3.8" x2="21" y2="7.2" opacity="0.75" />
-      <line x1="40.5" y1="3.8" x2="39" y2="7.2" opacity="0.75" />
-      <line x1="3.8" y1="19.5" x2="7.2" y2="21" opacity="0.75" />
-      <line x1="56.2" y1="19.5" x2="52.8" y2="21" opacity="0.75" />
+    <Soil y={45} ink={ink} />
+    <g className="ff-rank-sway">
+      <path
+        d="M30 15.2C25.2 20.2 22.8 30.4 23.4 43.2Q30 46.4 36.6 43.2C37.2 30.4 34.8 20.2 30 15.2Z"
+        fill={c}
+        stroke={ink}
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M30 15.2C33.2 21 34.8 30 34.2 43.1Q32.2 44.6 30 44.8Z"
+        fill={deep}
+        opacity="0.32"
+      />
+      <path d="M24.6 38.8Q30 35.4 35.4 38.8" stroke={l} strokeWidth="1.35" strokeLinecap="round" fill="none" />
+      <path d="M25.2 32.4Q30 28.8 34.8 32.2" stroke={l} strokeWidth="1.2" strokeLinecap="round" fill="none" />
+      <path d="M26.4 26.2Q30 23.4 33.6 26.2" stroke={l} strokeWidth="1.1" strokeLinecap="round" fill="none" />
+      <path d="M29 18.8Q28 27 28.4 37.6" stroke="#ffffff" strokeWidth="0.9" strokeLinecap="round" opacity="0.4" />
+      <RankFace x={30} y={33.4} ink={ink} blush={PALETTE[1].blush} />
     </g>
-    {/* Nhật nguyệt kim hoàn phía sau lũy tre cổ thụ */}
-    <circle cx="30" cy="24" r="16.5" fill={c} fillOpacity="0.12" stroke={l} strokeWidth="1" opacity="0.65" />
-    <circle cx="30" cy="24" r="11.5" stroke="#ffffff" strokeWidth="0.7" strokeDasharray="2.5 2" opacity="0.55" />
-    {/* Gò đất long mạch vàng kim */}
-    <path d="M11 49.2 Q30 45 49 49.2 Q30 52.8 11 49.2 Z" fill={c} fillOpacity="0.32" />
-    <path d="M12 48.8 Q30 51.8 48 48.8" stroke={`url(#${p}-glyph)`} strokeWidth="2" strokeLinecap="round" />
-    {/* Tán lá hoàng kim rậm rạp 4 tầng (10 phiến lá có thịt lá + ánh kim) */}
-    <path d="M18.5 27 C10.5 23 4.5 24 2 28.2 C7.8 30 14 29.2 18.5 27 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.1" />
-    <path d="M19 16.5 C11 11.8 4.8 12.6 2.2 16.8 C8 18.8 14.2 18.2 19 16.5 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.15" />
-    <path d="M41.5 27 C49.5 23 55.5 24 58 28.2 C52.2 30 46 29.2 41.5 27 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.1" />
-    <path d="M41 16.5 C49 11.8 55.2 12.6 57.8 16.8 C52 18.8 45.8 18.2 41 16.5 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.15" />
-    <path d="M28.2 8.8 C20.2 3.5 13.2 4.2 10 8.5 C16 10.5 22.8 10.2 28.2 8.8 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.15" />
-    <path d="M31.8 8.8 C39.8 3.5 46.8 4.2 50 8.5 C44 10.5 37.2 10.2 31.8 8.8 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.15" />
-    <path d="M28.2 18.5 C21.8 14.5 16 15.2 13.2 18.8 C18.2 20.4 23.8 20 28.2 18.5 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.05" />
-    <path d="M31.8 18.5 C38.2 14.5 44 15.2 46.8 18.8 C41.8 20.4 36.2 20 31.8 18.5 Z" fill={`url(#${p}-leaf)`} stroke={l} strokeWidth="1.05" />
-    {/* Thân cổ thụ trái */}
-    <path d="M17.5 49 Q14.5 28 18.5 9 L21.8 9 Q18 28 21 49 Z" fill={`url(#${p}-stem)`} stroke={c} strokeWidth="1.15" />
-    <path d="M15.4 38.8 L22.2 38.3 M16 27.5 L22 27.1 M16.8 17 L22.2 16.6" stroke={l} strokeWidth="1.25" strokeLinecap="round" />
-    {/* Thân cổ thụ giữa (Long Trúc chí tôn) */}
-    <path d="M27.6 49.2 Q25.6 23.5 28.2 2.2 L32 2.2 Q29.8 23.5 32.2 49.2 Z" fill={`url(#${p}-stem)`} stroke={c} strokeWidth="1.3" />
-    <path d="M24.8 37.8 L34 37.2 M25 39.1 L33.8 38.5" stroke="#ffffff" strokeWidth="1.35" strokeLinecap="round" opacity="0.9" />
-    <path d="M25.2 25.5 L33.6 25 M25.4 26.8 L33.4 26.3" stroke="#ffffff" strokeWidth="1.35" strokeLinecap="round" opacity="0.9" />
-    <path d="M26 13.5 L33.2 13.1 M26.2 14.7 L33 14.3" stroke={l} strokeWidth="1.3" strokeLinecap="round" />
-    {/* Thân cổ thụ phải */}
-    <path d="M39 49 Q42 28 38.2 9.5 L41.5 9.5 Q45.5 28 42.5 49 Z" fill={`url(#${p}-stem)`} stroke={c} strokeWidth="1.15" />
-    <path d="M37.8 39.2 L44.6 38.7 M38 28 L44 27.6 M37.8 17.5 L43.2 17.1" stroke={l} strokeWidth="1.25" strokeLinecap="round" />
-    {/* Hai búp măng kim bảo & sao sáng đỉnh Long Trúc */}
-    <path d="M22.8 49.2 L24.6 40.5 L26.4 49.2 Z" fill={l} stroke={c} strokeWidth="0.9" />
-    <path d="M33.6 49.2 L35.4 40.5 L37.2 49.2 Z" fill={l} stroke={c} strokeWidth="0.9" />
-    <polygon points="30,0.4 31.2,3.2 34,4.2 31.2,5.2 30,8 28.8,5.2 26,4.2 28.8,3.2" fill="#ffffff" />
+    <RankLeaf x={24.4} y={27.6} rot={-24} scale={0.82} c={c} l={l} ink={ink} />
+    <RankLeaf x={35.6} y={24.4} rot={-18} flip={-1} scale={0.9} c={c} l={l} ink={ink} />
+    <path d="M23.2 44.2Q20.2 40.4 17.8 41.6" stroke={ink} strokeWidth="1.3" strokeLinecap="round" fill="none" />
+    <path d="M36.8 44.2Q39.8 40.6 42.2 41.8" stroke={ink} strokeWidth="1.3" strokeLinecap="round" fill="none" />
+    <ellipse cx="30" cy="12.4" rx="1.9" ry="2.4" fill={l} stroke={ink} strokeWidth="0.9" />
+    <circle cx="29.4" cy="11.8" r="0.55" fill="#ffffff" opacity="0.9" />
+    <Sparkle x={42.6} y={17.2} r={2.2} p={p} />
   </>
 );
+
+/* ── Cấp 2 — Măng Vươn ───────────────────────────────────────────────────── */
+
+const GlyphTwinLeaves: React.FC<GlyphProps> = ({ c, l, deep, ink, p }) => (
+  <>
+    <Soil y={45.4} ink={ink} />
+    <RankLeaf x={30} y={18.6} rot={-38} scale={1.12} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={18.6} rot={-38} flip={-1} scale={1.12} c={c} l={l} ink={ink} />
+    <g className="ff-rank-sway">
+      <path
+        d="M30 10.6C26.4 16.6 24.6 28 24.8 43.4Q30 46.2 35.2 43.4C35.4 28 33.6 16.6 30 10.6Z"
+        fill={c}
+        stroke={ink}
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path d="M30 10.6C33.2 17 34.6 28 34.2 43.3Q32.2 44.8 30 45Z" fill={deep} opacity="0.3" />
+      <path d="M24.8 40.4Q30 36.8 35.2 40.4" stroke={l} strokeWidth="1.35" strokeLinecap="round" fill="none" />
+      <path d="M25.2 34Q30 30.4 34.8 34" stroke={l} strokeWidth="1.25" strokeLinecap="round" fill="none" />
+      <path d="M25.8 27.6Q30 24.4 34.2 27.6" stroke={l} strokeWidth="1.15" strokeLinecap="round" fill="none" />
+      <path d="M26.8 21.4Q30 18.8 33.2 21.4" stroke={l} strokeWidth="1.05" strokeLinecap="round" fill="none" />
+      <RankFace x={30} y={31.6} ink={ink} blush={PALETTE[2].blush} mood="grin" />
+    </g>
+    <RankLeaf x={26.2} y={36.4} rot={12} scale={0.7} c={c} l={l} ink={ink} />
+    <path d="M22.4 44.6Q19.8 40.8 17.4 42" stroke={ink} strokeWidth="1.25" strokeLinecap="round" fill="none" />
+    <path d="M37.6 44.6Q40.2 41 42.6 42.2" stroke={ink} strokeWidth="1.25" strokeLinecap="round" fill="none" />
+    <Sparkle x={45} y={22} r={2.4} p={p} />
+    <Sparkle x={14.6} y={30} r={1.7} p={p} />
+  </>
+);
+
+/* ── Cấp 3 — Tre Non ─────────────────────────────────────────────────────── */
+
+const GlyphTriLeaf: React.FC<GlyphProps> = ({ c, l, deep, ink, p }) => (
+  <>
+    <Soil y={46} ink={ink} />
+    <RankLeaf x={30} y={13.8} rot={-38} scale={0.98} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={13.8} rot={-38} flip={-1} scale={0.98} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={18.2} rot={-12} scale={0.86} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={18.2} rot={-12} flip={-1} scale={0.86} c={c} l={l} ink={ink} />
+    <Culm x={30} top={12.4} bottom={46} width={8} nodes={[21.4, 30.4, 39.4]} c={c} l={l} deep={deep} ink={ink}>
+      <RankFace x={30} y={26} ink={ink} blush={PALETTE[3].blush} />
+    </Culm>
+    <RankLeaf x={23.4} y={36} rot={18} scale={0.68} c={c} l={l} ink={ink} />
+    <path d="M36.6 46Q38.4 40.4 41 44.8Z" fill={l} stroke={ink} strokeWidth="0.9" strokeLinejoin="round" />
+    <path d="M23.4 44.8Q21.6 41.4 19.8 43.4" stroke={ink} strokeWidth="1.1" strokeLinecap="round" fill="none" />
+    <Sparkle x={44.6} y={36.4} r={2} p={p} />
+  </>
+);
+
+/* ── Cấp 4 — Tre Vươn Mình ───────────────────────────────────────────────── */
+
+const GlyphPrism: React.FC<GlyphProps> = ({ c, l, deep, ink, p }) => (
+  <>
+    <path d="M12 34Q7.6 28 9.2 21.6" stroke={l} strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.6" />
+    <path d="M9.4 40.4Q5.8 35.6 6.6 30.2" stroke={l} strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.45" />
+    <Soil y={46.4} ink={ink} />
+    <RankLeaf x={30} y={11.8} rot={-30} scale={1.08} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={11.8} rot={-30} flip={-1} scale={1.08} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={16.8} rot={-4} scale={1} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={16.8} rot={-4} flip={-1} scale={1} c={c} l={l} ink={ink} />
+    <Culm x={30} top={9.4} bottom={46.4} width={9} nodes={[19, 29.4, 39.4]} c={c} l={l} deep={deep} ink={ink}>
+      <RankFace x={30} y={24.4} ink={ink} blush={PALETTE[4].blush} mood="grin" />
+    </Culm>
+    <Culm x={38} top={27} bottom={38.6} width={4.6} nodes={[33]} c={c} l={l} deep={deep} ink={ink} alt>
+      <RankLeaf x={40} y={27.6} rot={-28} flip={-1} scale={0.78} c={c} l={l} ink={ink} />
+    </Culm>
+    <path d="M22.6 45.4Q20.6 41.6 18.6 43.2" stroke={ink} strokeWidth="1.15" strokeLinecap="round" fill="none" />
+    <Sparkle x={14} y={14.8} r={2.3} p={p} />
+    <Sparkle x={46.4} y={40.6} r={1.7} p={p} />
+  </>
+);
+
+/* ── Cấp 5 — Tre Trưởng Thành ────────────────────────────────────────────── */
+
+const GlyphStar: React.FC<GlyphProps> = ({ c, l, deep, ink, p }) => (
+  <>
+    <g opacity="0.5">
+      <path d="M11.6 37.4Q6.4 31.4 8.2 23.6" stroke={l} strokeWidth="1.1" strokeLinecap="round" fill="none" />
+      <path d="M48.4 37.4Q53.6 31.4 51.8 23.6" stroke={l} strokeWidth="1.1" strokeLinecap="round" fill="none" />
+    </g>
+    <Soil y={46.6} ink={ink} />
+    <RankLeaf x={30} y={10} rot={-40} scale={1.02} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={10} rot={-40} flip={-1} scale={1.02} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={14.8} rot={-14} scale={0.98} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={14.8} rot={-14} flip={-1} scale={0.98} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={20.8} rot={4} scale={0.9} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={20.8} rot={4} flip={-1} scale={0.9} c={c} l={l} ink={ink} />
+    <Culm x={30} top={8.6} bottom={46.6} width={10} nodes={[17.2, 25.6, 34.2, 42.2]} c={c} l={l} deep={deep} ink={ink}>
+      <RankFace x={30} y={21.6} ink={ink} blush={PALETTE[5].blush} />
+    </Culm>
+    <Sparkle x={30} y={5.2} r={2.8} p={p} />
+    <Sparkle x={15.2} y={25.2} r={1.8} p={p} />
+    <Sparkle x={45} y={31.6} r={2} p={p} />
+    <path d="M21 46Q19.2 42.2 17.2 43.8" stroke={ink} strokeWidth="1.1" strokeLinecap="round" fill="none" />
+    <path d="M39 46Q40.8 42.4 42.8 44" stroke={ink} strokeWidth="1.1" strokeLinecap="round" fill="none" />
+  </>
+);
+
+/* ── Cấp 6 — Bụi Tre ─────────────────────────────────────────────────────── */
+
+const GlyphWheat: React.FC<GlyphProps> = ({ c, l, deep, ink, p }) => (
+  <>
+    <Soil y={46.8} ink={ink} />
+    <RankLeaf x={27} y={13.4} rot={-34} scale={1} c={c} l={l} ink={ink} />
+    <RankLeaf x={27} y={13.4} rot={-34} flip={-1} scale={0.92} c={c} l={l} ink={ink} />
+    <RankLeaf x={27} y={18.6} rot={-4} scale={0.94} c={c} l={l} ink={ink} />
+    <RankLeaf x={38} y={26.4} rot={-22} flip={-1} scale={0.9} c={c} l={l} ink={ink} />
+    <RankLeaf x={38} y={31.2} rot={6} flip={-1} scale={0.82} c={c} l={l} ink={ink} />
+    <RankLeaf x={27} y={23} rot={-8} scale={0.84} c={c} l={l} ink={ink} />
+    <RankLeaf x={24} y={25.6} rot={14} scale={0.78} c={c} l={l} ink={ink} />
+    <Culm x={26.4} top={11.6} bottom={46.8} width={8.6} nodes={[20, 29.4, 38.8]} c={c} l={l} deep={deep} ink={ink}>
+      <RankFace x={26.4} y={34} ink={ink} blush={PALETTE[6].blush} />
+    </Culm>
+    <Culm x={38.4} top={24.4} bottom={46.8} width={6.8} nodes={[32, 40]} c={c} l={l} deep={deep} ink={ink} alt />
+    <ellipse cx="38.4" cy="36.8" rx="0.75" ry="1.05" fill={ink} />
+    <ellipse cx="41.2" cy="36.8" rx="0.75" ry="1.05" fill={ink} />
+    <path d="M38.6 39.2Q39.8 40.2 41 39.2" stroke={ink} strokeWidth="0.85" strokeLinecap="round" fill="none" />
+    <circle cx="14.6" cy="17.4" r="1.3" fill={l} opacity="0.95" />
+    <circle cx="16.4" cy="12.8" r="0.7" fill={l} opacity="0.8" />
+    <circle cx="45.8" cy="14" r="1" fill={l} opacity="0.9" />
+    <Sparkle x={43.4} y={22.2} r={1.7} p={p} />
+  </>
+);
+
+/* ── Cấp 7 — Lũy Tre Làng ────────────────────────────────────────────────── */
+
+const GlyphTorch: React.FC<GlyphProps> = ({ c, l, deep, ink, p }) => (
+  <>
+    <g className="ff-rank-aura">
+      <circle cx="30" cy="27.6" r="20" fill={c} opacity="0.08" />
+      <circle cx="30" cy="27.6" r="20" stroke={l} strokeWidth="0.8" opacity="0.35" />
+    </g>
+    <path
+      d="M38 11A14.6 14.6 0 1 0 38 41A11.8 11.8 0 1 1 38 11Z"
+      fill={l}
+      opacity="0.22"
+      stroke={l}
+      strokeWidth="0.75"
+      strokeOpacity="0.55"
+    />
+    <Soil y={47.2} ink={ink} />
+    <RankLeaf x={30} y={8.4} rot={-42} scale={0.98} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={8.4} rot={-42} flip={-1} scale={0.98} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={13.2} rot={-16} scale={0.94} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={13.2} rot={-16} flip={-1} scale={0.94} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={19} rot={0} scale={0.88} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={19} rot={0} flip={-1} scale={0.88} c={c} l={l} ink={ink} />
+    <Culm x={20.4} top={18.4} bottom={47.2} width={6.4} nodes={[27.4, 36.6, 44]} c={c} l={l} deep={deep} ink={ink} alt>
+      <RankLeaf x={20.4} y={19} rot={-52} scale={0.72} c={c} l={l} ink={ink} />
+    </Culm>
+    <Culm x={39.6} top={20.4} bottom={47.2} width={6.4} nodes={[29, 37.8, 44.4]} c={c} l={l} deep={deep} ink={ink} alt>
+      <RankLeaf x={39.6} y={21} rot={-52} flip={-1} scale={0.72} c={c} l={l} ink={ink} />
+    </Culm>
+    <Culm x={30} top={6.8} bottom={47.2} width={9} nodes={[15.4, 24.4, 33.6, 42.4]} c={c} l={l} deep={deep} ink={ink}>
+      <RankFace x={30} y={29} ink={ink} blush={PALETTE[7].blush} mood="grin" />
+    </Culm>
+    <Sparkle x={30} y={4.2} r={2.4} p={p} />
+    <Sparkle x={14} y={33} r={1.7} p={p} />
+    <Sparkle x={46} y={34.4} r={1.7} p={p} />
+  </>
+);
+
+/* ── Cấp 8 — Lũy Tre Cổ Thụ ─────────────────────────────────────────────── */
+
+const GlyphCrystal: React.FC<GlyphProps> = ({ c, l, deep, ink, p }) => (
+  <>
+    <g className="ff-rank-rays" stroke={l} strokeWidth="1.1" strokeLinecap="round" opacity="0.8">
+      <line x1="30" y1="3.6" x2="30" y2="7.4" />
+      <line x1="30" y1="52.6" x2="30" y2="56.4" />
+      <line x1="3.6" y1="30" x2="7.4" y2="30" />
+      <line x1="52.6" y1="30" x2="56.4" y2="30" />
+      <line x1="11.4" y1="11.4" x2="14.2" y2="14.2" />
+      <line x1="45.8" y1="45.8" x2="48.6" y2="48.6" />
+      <line x1="48.6" y1="11.4" x2="45.8" y2="14.2" />
+      <line x1="14.2" y1="45.8" x2="11.4" y2="48.6" />
+      <line x1="20" y1="5" x2="21.2" y2="8.4" opacity="0.7" />
+      <line x1="40" y1="5" x2="38.8" y2="8.4" opacity="0.7" />
+      <line x1="5" y1="20" x2="8.4" y2="21.2" opacity="0.7" />
+      <line x1="55" y1="20" x2="51.6" y2="21.2" opacity="0.7" />
+      <line x1="5" y1="40" x2="8.4" y2="38.8" opacity="0.7" />
+      <line x1="55" y1="40" x2="51.6" y2="38.8" opacity="0.7" />
+      <line x1="20" y1="55" x2="21.2" y2="51.6" opacity="0.7" />
+      <line x1="40" y1="55" x2="38.8" y2="51.6" opacity="0.7" />
+    </g>
+    <circle cx="30" cy="25.4" r="16.4" fill={c} opacity="0.34" stroke={`url(#${p}-glyph)`} strokeWidth="1" />
+    <circle cx="30" cy="25.4" r="11.6" stroke={l} strokeWidth="0.55" strokeDasharray="2.4 2" opacity="0.6" />
+    <Soil y={47.4} ink={ink} />
+    <RankLeaf x={30} y={7.6} rot={-44} scale={1} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={7.6} rot={-44} flip={-1} scale={1} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={12.4} rot={-18} scale={0.96} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={12.4} rot={-18} flip={-1} scale={0.96} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={18.2} rot={-2} scale={0.9} c={c} l={l} ink={ink} />
+    <RankLeaf x={30} y={18.2} rot={-2} flip={-1} scale={0.9} c={c} l={l} ink={ink} />
+    <Culm x={19} top={17.2} bottom={47.4} width={6.4} nodes={[26.4, 35.6, 43.4]} c={c} l={l} deep={deep} ink={ink} alt>
+      <RankLeaf x={19} y={18} rot={-56} scale={0.7} c={c} l={l} ink={ink} />
+    </Culm>
+    <Culm x={41} top={19.2} bottom={47.4} width={6.4} nodes={[28, 37, 43.8]} c={c} l={l} deep={deep} ink={ink} alt>
+      <RankLeaf x={41} y={20} rot={-56} flip={-1} scale={0.7} c={c} l={l} ink={ink} />
+    </Culm>
+    <Culm x={30} top={5.6} bottom={47.4} width={9.2} nodes={[14.4, 23.6, 32.8, 41.6]} c={c} l={l} deep={deep} ink={ink}>
+      <RankFace x={30} y={28.2} ink={ink} blush={PALETTE[8].blush} mood="grin" />
+    </Culm>
+    <path d="M27 7.2Q23.4 4.2 19.6 5.6" stroke={l} strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.85" />
+    <path d="M33 7.2Q36.6 4.2 40.4 5.6" stroke={l} strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.85" />
+    <circle cx="13.2" cy="15.6" r="1" fill={l} opacity="0.9" />
+    <circle cx="46.8" cy="17.2" r="1" fill={l} opacity="0.9" />
+    <circle cx="15.6" cy="42.6" r="0.8" fill={l} opacity="0.8" />
+    <Sparkle x={30} y={2.6} r={2.6} p={p} />
+    <Sparkle x={13.4} y={26.6} r={1.8} p={p} />
+    <Sparkle x={46.6} y={27.4} r={1.8} p={p} />
+  </>
+);
+
+/* ── Xuất bộ icon ────────────────────────────────────────────────────────── */
 
 export const Tier1HocSinh = ({ size = 28 }: { size?: number }) => (
   <Medallion tier={1} size={size} color={TIER_CONFIGS[0].badgeColor} light={LIGHT[1]} ornate="plain"
-    render={(p: string) => <GlyphSprout p={p} c={TIER_CONFIGS[0].badgeColor} l={LIGHT[1]} />}
+    render={(p: string) => <GlyphSprout p={p} c={TIER_CONFIGS[0].badgeColor} l={LIGHT[1]} deep={PALETTE[1].deep} ink={PALETTE[1].ink} />}
   />
 );
 
 export const Tier2HocSinhGioi = ({ size = 28 }: { size?: number }) => (
   <Medallion tier={2} size={size} color={TIER_CONFIGS[1].badgeColor} light={LIGHT[2]} ornate="plain"
-    render={(p: string) => <GlyphTwinLeaves p={p} c={TIER_CONFIGS[1].badgeColor} l={LIGHT[2]} />}
+    render={(p: string) => <GlyphTwinLeaves p={p} c={TIER_CONFIGS[1].badgeColor} l={LIGHT[2]} deep={PALETTE[2].deep} ink={PALETTE[2].ink} />}
   />
 );
 
 export const Tier3HocSinhXuatSac = ({ size = 28 }: { size?: number }) => (
   <Medallion tier={3} size={size} color={TIER_CONFIGS[2].badgeColor} light={LIGHT[3]} ornate="plain"
-    render={(p: string) => <GlyphTriLeaf p={p} c={TIER_CONFIGS[2].badgeColor} l={LIGHT[3]} />}
+    render={(p: string) => <GlyphTriLeaf p={p} c={TIER_CONFIGS[2].badgeColor} l={LIGHT[3]} deep={PALETTE[3].deep} ink={PALETTE[3].ink} />}
   />
 );
 
 export const Tier4ThongThai = ({ size = 28 }: { size?: number }) => (
-  <Medallion tier={4} size={size} color={TIER_CONFIGS[3].badgeColor} light={LIGHT[4]} ornate="plain"
-    render={(p: string) => <GlyphPrism p={p} c={TIER_CONFIGS[3].badgeColor} l={LIGHT[4]} />}
+  <Medallion tier={4} size={size} color={TIER_CONFIGS[3].badgeColor} light={LIGHT[4]} ornate="ring"
+    render={(p: string) => <GlyphPrism p={p} c={TIER_CONFIGS[3].badgeColor} l={LIGHT[4]} deep={PALETTE[4].deep} ink={PALETTE[4].ink} />}
   />
 );
 
 export const Tier5TaiNang = ({ size = 28 }: { size?: number }) => (
   <Medallion tier={5} size={size} color={TIER_CONFIGS[4].badgeColor} light={LIGHT[5]} ornate="ring"
-    render={(p: string) => <GlyphStar p={p} c={TIER_CONFIGS[4].badgeColor} l={LIGHT[5]} />}
+    render={(p: string) => <GlyphStar p={p} c={TIER_CONFIGS[4].badgeColor} l={LIGHT[5]} deep={PALETTE[5].deep} ink={PALETTE[5].ink} />}
   />
 );
 
 export const Tier6ThienTai = ({ size = 28 }: { size?: number }) => (
-  <Medallion tier={6} size={size} color={TIER_CONFIGS[5].badgeColor} light={LIGHT[6]} ornate="ring"
-    render={(p: string) => <GlyphWheat p={p} c={TIER_CONFIGS[5].badgeColor} l={LIGHT[6]} />}
+  <Medallion tier={6} size={size} color={TIER_CONFIGS[5].badgeColor} light={LIGHT[6]} ornate="diamond"
+    render={(p: string) => <GlyphWheat p={p} c={TIER_CONFIGS[5].badgeColor} l={LIGHT[6]} deep={PALETTE[6].deep} ink={PALETTE[6].ink} />}
   />
 );
 
 export const Tier7BacThay = ({ size = 28 }: { size?: number }) => (
   <Medallion tier={7} size={size} color={TIER_CONFIGS[6].badgeColor} light={LIGHT[7]} ornate="diamond"
-    render={(p: string) => <GlyphTorch p={p} c={TIER_CONFIGS[6].badgeColor} l={LIGHT[7]} />}
+    render={(p: string) => <GlyphTorch p={p} c={TIER_CONFIGS[6].badgeColor} l={LIGHT[7]} deep={PALETTE[7].deep} ink={PALETTE[7].ink} />}
   />
 );
 
 export const Tier8ChuyenGia = ({ size = 28 }: { size?: number }) => (
   <Medallion tier={8} size={size} color={TIER_CONFIGS[7].badgeColor} light={LIGHT[8]} ornate="diamond"
-    render={(p: string) => <GlyphCrystal p={p} c={TIER_CONFIGS[7].badgeColor} l={LIGHT[8]} />}
+    render={(p: string) => <GlyphCrystal p={p} c={TIER_CONFIGS[7].badgeColor} l={LIGHT[8]} deep={PALETTE[8].deep} ink={PALETTE[8].ink} />}
   />
 );
 
