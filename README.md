@@ -1,4 +1,6 @@
-# F-Forum — Diễn Đàn Học Sinh & Sinh Viên
+# F-Forum
+
+**Diễn đàn học tập cho học sinh, sinh viên** — đặt câu hỏi, chia sẻ lời giải, sinh hoạt câu lạc bộ và lưu lại kỷ niệm học đường.
 
 <div align="center">
 
@@ -6,295 +8,119 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript_5-007ACC?style=flat&logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite_6-646CFF?style=flat&logo=vite&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS_v4-38B2AC?style=flat&logo=tailwind-css&logoColor=white)
-![License](https://img.shields.io/badge/Bản_quyền-BroAmStuck-amber?style=flat)
 
-**Nền tảng diễn đàn trao đổi học tập, kết nối câu lạc bộ và chia sẻ tài liệu dành cho học sinh - sinh viên.**
-
-[Cài đặt & Chạy](#-cài-đặt--khởi-chạy) • [Chức năng Chính](#-chức-năng-chính) • [Công nghệ Sử dụng](#-công-nghệ-sử-dụng) • [Bản quyền](#-bản-quyền-trí-tuệ)
+[Website](https://f-forum.vercel.app) · [Đặc tả](docs/SPEC.md) · [Bảo mật](docs/SECURITY.md) · [Thiết kế](docs/UI_UX_10_STYLE_ARCHITECTURE.md)
 
 </div>
 
 ---
 
-## 📖 Giới thiệu
+## Giới thiệu
 
-**F-Forum** là diễn đàn trực tuyến hỗ trợ học tập và sinh hoạt cộng đồng dành cho học sinh, sinh viên. Dự án cung cấp không gian để các bạn đặt câu hỏi bài tập, trao đổi kiến thức, sinh hoạt câu lạc bộ, nhắn tin trao đổi trực tiếp và lưu giữ các kỷ niệm học đường.
+F-Forum gom việc học và sinh hoạt cộng đồng vào một chỗ: hỏi đáp theo môn, chat thời gian thực, câu lạc bộ, kho đề thi, điểm danh và trang trí hồ sơ. Giao diện kính mờ, chạy tốt trên máy tính lẫn điện thoại, có chế độ sáng/tối và các tùy chọn tiết kiệm tài nguyên.
 
-Hệ thống được thiết kế theo giao diện kính mờ hiện đại, hỗ trợ đầy đủ cả máy tính (Desktop) và điện thoại di động (Mobile).
+## Tính năng
 
----
+**Học tập**
+- Hỏi đáp theo môn (Toán, Lý, Hóa, Văn, Anh, Tin...) với công cụ soạn ký hiệu toán, đính kèm ảnh và thưởng Coin cho câu trả lời hay.
+- Lưu câu hỏi, sắp xếp theo mới nhất / thưởng cao / sôi nổi / chưa giải, tự lưu bản nháp khi đang soạn.
+- Kho đề thi có đề chính thức, trình xem PDF, flashcard và nộp bài.
 
-## ✨ Chức năng Chính
+**Cộng đồng**
+- Chat thời gian thực, nhắc tên, reaction và tố cáo vi phạm.
+- Câu lạc bộ: gửi hồ sơ thành lập, duyệt thành viên, đăng hoạt động.
+- Miền Ký Ức, Khu Vinh Danh và bảng xếp hạng.
 
-### 1. Diễn đàn Hỏi Đáp Học Tập (Q&A)
-- Đăng câu hỏi theo các môn học: Toán học, Vật lý, Hóa học, Ngữ văn, Tiếng Anh, Tin học...
-- Hỗ trợ công cụ soạn thảo với bảng 38 ký hiệu toán học phổ biến (`√`, `π`, `∑`, `∫`, `≤`, `≥`, `α`, `β`...).
-- Cho phép đính kèm hình ảnh tài liệu bài tập (hỗ trợ tệp dung lượng tối đa 20MB và tự động tối ưu hóa).
-- Cơ chế tiền thưởng Coin: Người hỏi có thể đặt mức thưởng từ 10 đến 100 Coin để khuyến khích câu trả lời nhanh và chất lượng.
-- Người giải đáp được chọn "Đáp Án Chuẩn" sẽ nhận 50% tiền thưởng cược cộng thêm 100 Coin danh dự.
-- **Lưu câu hỏi để xem lại**: mỗi thẻ câu hỏi có nút đánh dấu; danh sách lưu riêng theo
-  từng người dùng (không lẫn giữa các tài khoản dùng chung một trình duyệt) và được
-  lọc nhanh bằng nút **Đã lưu** trên thanh môn học, kèm số lượng đang lưu. Câu hỏi đã
-  bị xoá sẽ tự động được dọn khỏi danh sách. Toàn bộ phép tính nằm trong
-  `src/utils/savedQuestions.ts` — module thuần tuý, idempotent (bấm lặp không tạo bản
-  ghi trùng), có trần 200 mục, và được kiểm thử trực tiếp bằng node (17 bài).
-- **Sắp xếp diễn đàn**: bốn chế độ — *Mới nhất*, *Thưởng cao*, *Sôi nổi* (nhiều lời
-  giải nhất) và *Chưa có lời giải*. Lựa chọn được nhớ giữa các phiên. Toàn bộ phép
-  so sánh nằm trong `src/utils/questionSort.ts` — module thuần tuý, không sửa mảng
-  gốc, thứ tự ổn định (cùng điểm thì phá hoà theo thời điểm rồi tới id nên danh
-  sách không "nhảy chỗ" giữa các lần render), chịu được dữ liệu cũ thiếu
-  `createdAtMs`, và được kiểm thử bằng node (15 bài).
-- **Tự lưu bản nháp khi đang soạn câu hỏi**: gõ dở mà reload trang, bấm nhầm nút đóng
-  hay trình duyệt sập thì nội dung vẫn còn; mở lại sẽ thấy banner "Đã khôi phục bản
-  nháp" kèm thời điểm lưu và nút bỏ nháp.
+**Động lực học**
+- Điểm danh 15 ngày, câu hỏi vui mỗi ngày và chuỗi streak.
+- 8 cấp bậc học đường theo Coin.
+- Boutique trang trí: khung avatar, hiệu ứng, bảng tên; gacha, mua lẻ, tủ đồ và wishlist.
 
-### 2. Câu Lạc Bộ & Hoạt Động Ngoại Khóa
-- Danh sách các câu lạc bộ học thuật, thể thao, nghệ thuật và tình nguyện.
-- **Nộp hồ sơ thành lập CLB** — học sinh đăng nhập gửi hồ sơ, hồ sơ luôn ở trạng
-  thái *Chờ duyệt* cho tới khi Ban Quản Trị chấp thuận. Chủ nhiệm được thăng cấp
-  `CLUB_LEADER` kèm 250 XP và gắn CLB vào phạm vi quản lý của mình.
-- **Duyệt / từ chối hồ sơ** trong trang quản trị, kèm lý do từ chối ghi lại trên
-  hồ sơ để người nộp biết cần bổ sung gì.
-- Đăng bài thông báo lịch sinh hoạt, tuyển thành viên và hình ảnh hoạt động.
-- Thành viên có thể theo dõi và tham gia câu lạc bộ yêu thích.
-- Toàn bộ hồ sơ và bài viết CLB **lưu trên máy chủ**, nên dữ liệu hiện ra giống
-  nhau trên mọi thiết bị và không mất khi xoá bộ nhớ đệm trình duyệt.
+**Trải nghiệm**
+- Kính mờ, sáng/tối, thanh điều hướng 4 vị trí, bảng lệnh nhanh (`Ctrl/⌘ + K`), sổ tay nhanh, Focus Mode và nhắc nghỉ mắt.
+- Chế độ tiết kiệm tài nguyên (Potator) và hiệu ứng Fabulous — tùy chọn, mặc định tắt.
 
-### 3. Phòng Chat Trực Tuyến (Live Chat)
-- Trò chuyện và thảo luận bài học trực tiếp theo thời gian thực (Real-time).
-- Cửa sổ chat dạng dock thu gọn hoặc toàn màn hình, hỗ trợ hiển thị danh sách người dùng đang trực tuyến.
-- Nhấp vào tên hoặc ảnh đại diện để xem nhanh hồ sơ cá nhân của người chat.
+**Quản trị**
+- Bảng điều khiển, duyệt CLB, xử lý tố cáo, phân quyền Giáo viên/Moderator và nhật ký kiểm duyệt.
+- Insights Bento về truy cập và hoạt động cộng đồng.
 
-### 4. Điểm Danh & Câu Hỏi Vui Hàng Ngày
-- **Điểm danh 15 ngày**: Đăng nhập mỗi ngày để nhận Coin tích lũy. Hoàn thành các mốc ngày 5, 10, 15 để nhận thêm hộp quà.
-- **Kho quà**: Mở các hộp quà ảo để nhận vật phẩm lưu niệm và điểm thưởng.
-- **Câu hỏi vui (Trivia Quiz)**: Mỗi ngày có một câu đố kiến thức ngắn trong 15 giây. Trả lời đúng được thưởng Coin ngay trong ngày (không cần chế độ ôn lại — hôm sau đã có câu mới).
-- **Ngọn lửa Streak** nằm trong menu tia sét ở góc dưới bên trái, hiển thị số ngày điểm danh liên tiếp.
+## Công nghệ
 
-### 5. Boutique Trang Trí (Gacha Boutique)
-- Sử dụng điểm Coin tích lũy được từ việc giải bài tập và điểm danh để mở 3 gói gacha hoặc mua riêng 873 trang trí (khung avatar / hiệu ứng / bảng tên) chia 4 bậc hiếm: Thường, Hiếm, Épic, Huyền Thoại.
-- Ưu đãi: khung flash sale 6 giờ + ưu đãi chủ nhật + "Deal hôm nay" (item nổi bật, đổi theo ngày, giá luôn khớp máy chủ).
-- Quản lý tủ đồ: lọc theo loại/độ hiếm/chuyển động/sắp xếp (bộ lọc tự nhớ), lọc Đã có/Chưa có, dòng độ hiếm bấm được, danh sách yêu thích (wishlist) lưu trên máy chủ.
-- Các vật phẩm đã sở hữu có thể trang bị trực tiếp lên trang cá nhân.
+React 19 · TypeScript · Vite 6 · Tailwind CSS v4 · WebSocket · Node.js Test Runner · Oxlint · Vercel Functions
 
-### 6. Lớp Tiện Ích Ẩn (Premium Layer)
-- **Bảng lệnh nhanh (⌘/Ctrl + K)**: Gõ không dấu để tìm và nhảy tới mọi phân khu, hoặc chạy tác vụ (đổi theme, điểm danh, mở Focus, bật/tắt chat, nghỉ mắt...).
-- **Sổ tay nhanh (⌘/Ctrl + I)**: Ghi chú tức thì ở bất kỳ phân khu nào, tự động lưu và dùng chung một cuốn sổ với Focus Sanctuary. Có mẫu nhanh cho hạn chót, ý tưởng và công thức.
-- **Nhắc nghỉ mắt 20-20-20**: Cứ 20 phút hiện lớp phủ thư giãn 20 giây với vòng thở dịu mắt (bật/tắt trong Cài đặt → Trải nghiệm).
-- **Sao lưu & khôi phục**: Xuất/nhập toàn bộ dữ liệu học tập trên trình duyệt thành một tệp JSON trong Cài đặt → Hệ thống.
-- **Phím tắt**: ⌘/Ctrl + K (bảng lệnh), ⌘/Ctrl + I (sổ tay), ⌘/Ctrl + Shift + L (theme), ⌘/Ctrl + Shift + F (Focus Mode).
+## Cài đặt
 
-### 7. Trung Tâm Điều Khiển (Cài đặt)
-- Ba nhóm tab cao cấp: **Giao diện** (theme, gradient không gian dạng tile, cỡ chữ, độ mờ kính), **Trải nghiệm** (mockup chọn vị trí navbar bằng cách chạm vào cạnh khung, tự ẩn, chế độ chỉ hiện icon, âm thanh, chuyển động, không gian tập trung, phím tắt) và **Hệ thống** (sao lưu, xóa cache, đặt lại dữ liệu).
-
-### 8. Hồ Sơ Cá Nhân & Báo Cáo Vi Phạm
-- Hiển thị 6 chỉ số hoạt động: Tổng Coin, Lượt cảm ơn, Câu trả lời hay nhất, Đánh giá 5 sao, Xác thực và Số người đã giúp đỡ.
-- Biểu đồ mạng nhện (Radar Chart) thể hiện thế mạnh giải bài theo 6 nhóm môn học.
-- Nút **Tố Cáo Tài Khoản**: Cho phép người dùng báo cáo các hành vi vi phạm (spam, quấy rối, ngôn từ độc hại) về ban quản trị để xử lý kịp thời.
-
-### 9. Bảng Điều Khiển & Kiểm Duyệt Dành Cho Ban Quản Trị
-- **Bảng Điều Khiển Quản Trị** (nút *Điều khiển*, chỉ Super Admin): một màn hình
-  gom hàng chờ cần xử lý (tố cáo, hồ sơ CLB chờ duyệt), sức khoẻ diễn đàn (tỉ lệ
-  đã giải, câu hỏi chưa ai trả lời, Coin đang treo), cộng đồng, máy chủ/tệp dữ
-  liệu, trạng thái các bộ giới hạn tần suất và danh sách bị tố cáo nhiều nhất.
-  Tự làm mới mỗi 20 giây; đóng bằng Escape.
-- **Insights Bento** trong menu tia sét: Super Admin xem tổng lượt truy cập duy
-  nhất, thời gian tab đang hiển thị, tin nhắn và hoạt động cộng đồng; biểu đồ
-  theo 24 giờ / 7 ngày / 30 ngày / 12 tháng / năm. Thành viên và khách chưa
-  đăng nhập được tách rõ. Mã khách là mã first-party ngẫu nhiên trong trình
-  duyệt; cùng một người dùng khách rồi đăng nhập có thể xuất hiện ở cả hai nhóm,
-  và mã khách có thể được tính lại khi xoá dữ liệu trình duyệt. Vì vậy đây không
-  phải số người thật đã xác minh. Dữ liệu được lưu ở máy chủ.
-- **Danh bạ thành viên**: tìm kiếm không dấu theo tên/email/mã/lớp, lọc theo
-  vai trò, có phân trang và chỉ số hoạt động. Super Admin xem hồ sơ chi tiết;
-  Giáo viên/Moderator chỉ nhận thông tin tối thiểu cần cho kiểm duyệt.
-- **Phân quyền nhân sự**: chỉ Super Admin được cấp/gỡ vai trò Giáo viên hoặc
-  Moderator; không thể tạo thêm Super Admin từ giao diện. Giáo viên và Moderator
-  được cảnh cáo có nội dung, *cấm đăng* (chặn chat, câu hỏi, lời giải và bài CLB
-  nhưng vẫn cho đăng nhập/xem) hoặc *khoá chat* riêng trong 15 phút / 1 giờ /
-  1 ngày / 7 ngày / vĩnh viễn. Nhân sự không thể tự kiểm duyệt hay xử lý nhân sự
-  khác; tài khoản Super Admin luôn được bảo vệ. Mỗi quyết định cần lý do và được
-  ghi vào nhật ký.
-- **F-Forum Premium** được Super Admin cấp thủ công theo 30 ngày / 90 ngày /
-  365 ngày / vĩnh viễn; huy hiệu hiển thị trên hồ sơ. Đây chưa phải tích hợp
-  thanh toán, không tự gia hạn và không thu phí.
-- **Nhật ký kiểm duyệt**: tối đa 300 mục, lưu bền vững qua lần khởi động lại;
-  chỉ Super Admin được đọc. Mọi đường ghi (HTTP và WebSocket) đều kiểm tra áp
-  chế ở máy chủ.
-- Nút **Tố Cáo Tài Khoản** ở hồ sơ, phòng chat và sàn Q&A gửi báo cáo về máy chủ.
-- **Hộp thư tố cáo** liệt kê báo cáo kèm huy hiệu số vụ chờ xử lý, cho phép đánh
-  dấu *Đã xử lý*, *Bỏ qua* hoặc *Xoá* kèm ghi chú.
-- Báo cáo được lưu bền vững (không mất khi khởi động lại), tố cáo trùng tự gộp,
-  và Super Admin đang trực nhận thông báo ngay khi có vụ mới.
-- API kiểm tra quyền theo phiên và hồ sơ hiện hành trên máy chủ; không tin vai
-  trò client tự khai. Quyền xem thống kê, danh bạ, cấp vai trò và Premium được
-  tách riêng theo cấp bậc.
-
-### 10. Hệ Thống 8 Cấp Bậc Học Đường
-Hệ thống cấp bậc được đặt tên gần gũi với học sinh theo tiến trình tích lũy Coin:
-1. 🌱 **Học Sinh** (0 Coin)
-2. 🌿 **Học Sinh Giỏi** (150 Coin)
-3. ☘️ **Học Sinh Xuất Sắc** (400 Coin)
-4. 🍃 **Thông Thái** (800 Coin)
-5. ⭐ **Tài Năng** (1,500 Coin)
-6. 🌾 **Thiên Tài** (3,000 Coin)
-7. 👑 **Bậc Thầy** (6,000 Coin)
-8. 🔮 **Chuyên Gia** (12,000 Coin)
-
-### 11. Giao Diện & Tùy Chọn Hiển Thị
-- Hỗ trợ cả 2 chế độ: Giao diện Sáng (Light Mode) và Giao diện Tối (Dark Mode).
-- **Thanh điều hướng linh hoạt**: Có thể đặt ở 4 vị trí: Trên cùng, Dưới cùng, Cạnh trái hoặc Cạnh phải màn hình.
-- **Nút F (logo) là lối vào trang Giới thiệu** — không còn tab chữ "GIỚI THIỆU" cho thanh gọn hơn.
-- **Miền Ký Ức · Khu Vinh Danh · Update luôn ở dạng icon** (có vạch phân cách và tooltip khi rê chuột), kể cả khi thanh đang mở rộng.
-- Nhịp thu nhỏ / phóng to thanh điều hướng được kéo dài (0.78s) với đường cong êm, panel Cài đặt lướt theo thay vì nhảy từng nấc.
-- Các cửa sổ thông báo, cài đặt và tài khoản tự động điều chỉnh hướng mở tương ứng để không bị che khuất; panel Cài đặt có hoạt ảnh mở/đóng mềm mại kèm lớp phủ mờ dần.
-- Tính năng tự động ẩn thanh điều hướng sau khoảng 1.2 giây khi không di chuột để tăng diện tích hiển thị nội dung.
-- Tích hợp âm thanh nền nhẹ nhàng hỗ trợ tập trung học tập (Ambient Audio) và hẹn giờ học tập (Focus Mode).
-
----
-
-## 🔐 Bảo Mật & Toàn Vẹn Dữ Liệu
-
-Máy chủ không tin dữ liệu client gửi lên. Toàn bộ tầng xác thực nằm ở
-`server/authGuard.ts` và `server/socialAuth.ts`:
-
-- **Mật khẩu**: băm `scrypt` + salt, so khớp thời gian cố định, tự nâng cấp bản ghi plaintext cũ.
-- **Mật khẩu quản trị**: không có credential mặc định trong mã nguồn. Cài mới cần đặt `FFORUM_ADMIN_PASSWORD` dài ít nhất 16 ký tự hoặc cấu hình OAuth phía máy chủ đã xác minh; mật khẩu mẫu cũ tự bị vô hiệu hoá.
-- **Phiên đăng nhập**: token ký `HMAC-SHA256`, hạn 30 ngày, gửi qua `Authorization: Bearer`.
-- **WebSocket**: bắt tay `AUTH` trước khi được đụng tới dữ liệu nhạy cảm.
-- **Hồ sơ & quyền**: `role` / `staffRole` / `id` / `email`, Premium và phạm vi CLB do server sở hữu; `level` luôn tính lại từ `xp`.
-- **Tiền Coin**: kiểm tra số dư khi treo thưởng, thưởng đáp án chuẩn chỉ phát một lần.
-- **Chặn brute-force**: cửa sổ trượt theo IP + email, trả `429` kèm `Retry-After`.
-- **Đăng nhập Google/Facebook**: máy chủ tự kiểm chứng access token với nhà cung cấp.
-- **Q&A AI**: API key provider chỉ cấu hình ở tab **AI & keys** của Super Admin; máy chủ mã hoá bằng AES-256-GCM. Cần đặt `FFORUM_AI_VAULT_KEY` (64 ký tự hex ngẫu nhiên) trong secret manager, giữ ổn định qua lần triển khai và không commit. Adapter OpenAI-compatible, Anthropic, Gemini dùng định dạng request riêng; không mặc định mọi model hỗ trợ ảnh. Trong giao diện Q&A, học sinh có thể ghi bước mình đã thử (chỉ lưu tạm trong giao diện, gửi đến provider khi bấm gọi), nhận tối đa 3 nấc gợi mở rồi tự chọn xem lời giải đầy đủ; đây là thiết kế khuyến khích tự học, không phải cơ chế chống gian lận vì API vẫn nhận yêu cầu lời giải trực tiếp. AI có thể sai, lộ đáp án ngoài ý muốn hoặc từ chối khi thiếu dữ kiện.
-- **Vai trò cộng đồng**: Học sinh mặc định có thể đặt câu hỏi, gửi lời giải, bình luận và thả reaction; bài gốc diễn đàn dành cho Giáo viên, Trưởng CLB và quản trị viên được uỷ quyền. Giáo viên cùng nhân sự kiểm duyệt được cấp quyền duyệt hồ sơ/xuất bản đề; ghim Q&A bằng reaction tách biệt khỏi đáp án chuẩn và tiền thưởng.
-
-Chi tiết từng lỗ hổng đã tìm thấy và cách vá: **[docs/SECURITY.md](docs/SECURITY.md)**.
+Yêu cầu **Node.js 18+**.
 
 ```bash
-# 60 bài kiểm thử bảo mật, chạy trên máy chủ thật qua HTTP/WebSocket
-node --test tests/security-hardening.test.mjs
-```
-
----
-
-## 🛠️ Công Nghệ Sử Dụng
-
-- **Frontend**: React 19, TypeScript
-- **Styling**: Tailwind CSS v4, hiệu ứng kính mờ (Liquid Glass)
-- **Công cụ xây dựng**: Vite 6
-- **Thời gian thực**: WebSocket, BroadcastChannel API
-- **Âm thanh**: Web Audio API
-- **Biểu tượng**: Lucide React và icon SVG tự thiết kế
-- **Kiểm thử & Chất lượng mã nguồn**: Node.js Test Runner, Oxlint
-
----
-
-## 🚀 Cài Đặt & Khởi Chạy
-
-### Yêu cầu hệ thống
-- Đã cài đặt **Node.js** (phiên bản 18 trở lên).
-- Trình quản lý gói: `npm` (hoặc `yarn`, `pnpm`).
-
-### Các bước thực hiện
-
-```bash
-# 1. Tải mã nguồn về máy
 git clone https://github.com/anhtuantran0512-cyber/f-forum.git
-
-# 2. Đi vào thư mục dự án
 cd f-forum
-
-# 3. Cài đặt các thư viện cần thiết
 npm install
-
-# 4. Chạy dự án ở môi trường phát triển
+cp .env.example .env
 npm run dev
 ```
 
-Trước khi đăng nhập Super Admin bằng mật khẩu, hãy đặt `FFORUM_ADMIN_PASSWORD`
-(tối thiểu 16 ký tự, chỉ lưu trong secret manager hoặc `.env` không commit) hoặc
-cấu hình OAuth server đã xác minh. Không còn tài khoản/mật khẩu mặc định. Khi vận
-hành thật, gắn `FFORUM_DATA_DIR` vào ổ lưu bền vững và bật HTTPS; không dùng
-`npm run public` làm máy chủ production.
+Mở `http://localhost:5173`.
 
-Sau khi chạy lệnh, mở trình duyệt web và truy cập địa chỉ: `http://localhost:5173`
+> Không có tài khoản quản trị mặc định. Trước khi đăng nhập Super Admin, đặt `FFORUM_ADMIN_PASSWORD` (tối thiểu 16 ký tự) trong `.env` hoặc secret manager.
 
-### Chạy kiểm thử & Đóng gói sản phẩm
+### Lệnh thường dùng
+
+| Lệnh | Việc |
+| --- | --- |
+| `npm run dev` | Chạy dev server |
+| `npm run build` | Build production (`tsc -b` + Vite) |
+| `npm test` | Chạy bộ kiểm thử |
+| `npm run lint` | Quét lỗi bằng Oxlint |
+| `npm run public` | Hosting công khai nhanh — không dùng cho production |
+
+## Kiểm thử & chất lượng
 
 ```bash
-# Kiểm tra lỗi cú pháp với Oxlint
-npx oxlint
-
-# Chạy toàn bộ 225 bài kiểm thử tự động
 npm test
-
-# Biên dịch mã nguồn cho môi trường sản xuất
-npm run build
+npx tsc -b
+npm run lint
+node scripts/generate-light-adapter.mjs --check
 ```
 
----
+Bộ kiểm thử chạy trên Node Test Runner, phủ giao diện, luồng nghiệp vụ, bảo mật, responsive và các trạng thái theme.
 
-## 📁 Cấu Trúc Thư Mục
+## Cấu trúc
 
 ```text
-f-forum/
-├── .vscode/                # Cấu hình tối ưu VSCode (File nesting, Tasks, Extensions)
-├── docs/                   # Tài liệu thiết kế, đặc tả & bảo mật hệ thống
-│   ├── PROFILE_SPEC_AND_PROMPT.md  # Đặc tả hồ sơ người dùng & hiệu ứng UI/UX
-│   ├── WORKFLOW_ARENA.md   # Quy trình đồng bộ mã nguồn & GitHub
-│   ├── LANDING-UPGRADE.md  # Tài liệu nâng cấp Landing Page
-│   └── SECURITY.md         # Báo cáo kiểm định an ninh & phòng thủ
-├── public/                 # Tệp tĩnh (ảnh minh hoạ, âm thanh, icon)
-├── scripts/                # Kịch bản vận hành máy chủ (start-public.mjs)
-├── server/                 # Mã nguồn máy chủ WebSocket & API phụ trợ
-│   ├── analytics.ts        # Thu thập & xử lý thông số Insights Bento (.cdl-01)
-│   ├── authGuard.ts        # Băm mật khẩu, token HMAC, rate limit, lọc payload
-│   ├── economy.ts          # Quản lý giao dịch Coin & phần thưởng Q&A
-│   ├── forumServer.ts      # Định tuyến API + WebSocket thời gian thực
-│   ├── moderation.ts       # Quy trình kiểm duyệt, cảnh cáo, mute & ban
-│   └── socialAuth.ts       # Kiểm chứng đăng nhập Google / Facebook
-├── shared/                 # Định nghĩa dữ liệu dùng chung Client & Server
-├── src/                    # Mã nguồn ứng dụng giao diện (React + Vite)
-│   ├── components/         # Các thành phần giao diện (Navbar, Modal, Bento...)
-│   │   ├── landing/        # Trang giới thiệu (Landing Page)
-│   │   └── views/          # Các phân khu chính: Q&A, Chat, CLB, Vinh danh...
-│   ├── config/             # Cấu hình quản trị & quyền hạn
-│   ├── context/            # AuthContext — tài khoản người dùng
-│   ├── store/              # Quản lý trạng thái ứng dụng (forumStore)
-│   ├── types/              # Định nghĩa kiểu TypeScript
-│   ├── utils/              # Các hàm tiện ích (âm thanh, thông báo, lưu trữ)
-│   ├── App.tsx             # Thành phần gốc điều hướng giao diện
-│   ├── index.css           # Cấu hình Tailwind CSS & hiệu ứng kính mờ
-│   └── main.tsx            # Điểm khởi động ứng dụng
-├── tests/                  # Bộ bài kiểm thử tự động (225 bài test bảo mật & logic)
-├── package.json            # Thông tin dự án và danh sách thư viện
-├── tsconfig.json           # Cấu hình TypeScript dự án
-└── vite.config.ts          # Cấu hình trình xây dựng Vite
+src/        Giao diện React (components, views, store, utils)
+server/     API + WebSocket (auth, moderation, economy, analytics)
+shared/     Kiểu dữ liệu dùng chung client & server
+public/     Tài nguyên tĩnh (trang trí, video, âm thanh)
+api/        Vercel serverless entry
+tests/      Bộ kiểm thử tự động
+docs/       Đặc tả, bảo mật, thiết kế và tài liệu kỹ thuật
+scripts/    Công cụ build và xử lý tài nguyên
 ```
 
----
+## Triển khai
 
-## 💻 Trải Nghiệm Mở Mã Nguồn Trên VSCode
+- **Production**: Vercel — cấu hình trong `vercel.json`, serverless functions trong `api/`. Push lên `main` là bản mới được build và phát hành.
+- **GitHub Pages**: workflow trong `.github/workflows/`.
+- **Dữ liệu**: trỏ `FFORUM_DATA_DIR` vào ổ lưu bền vững và chạy sau HTTPS.
 
-Mã nguồn đã được thiết lập sẵn bộ cấu hình không gian làm việc chuyên nghiệp trong thư mục `.vscode/`:
+## Bảo mật
 
-- **File Nesting (Gọn Gàng & Chống Rối)**:
-  - Tự động gom các tệp cấu hình phụ vào dưới tệp chính (ví dụ: `package-lock.json` nằm gọn dưới `package.json`, các tệp `tsconfig.*.json` nằm dưới `tsconfig.json`).
-  - Tự động ẩn các thư mục rác khỏi danh sách tìm kiếm (`dist/`, `data/`, `node_modules/`), giúp tìm kiếm tệp (`Ctrl + P`) và tìm nội dung (`Ctrl + Shift + F`) luôn nhanh và chính xác nhất.
-- **Tiện ích Khuyến Nghị (Extensions)**:
-  - Dự án tự động gợi ý các tiện ích tốt nhất khi mở: Tailwind CSS IntelliSense, Oxlint, Prettier, Material Icon Theme.
-- **Tác Vụ 1-Chạm (VSCode Tasks)**:
-  - Nhấn `Ctrl + Shift + B` hoặc mở menu **Terminal → Run Task** để chạy nhanh:
-    - *F-Forum: Khởi chạy Dev Server* (`npm run dev`)
-    - *F-Forum: Chạy toàn bộ 225 bài Test* (`npm test`)
-    - *F-Forum: Quét lỗi cú pháp Oxlint* (`npm run lint`)
-    - *F-Forum: Khởi chạy Hosting Công Khai* (`npm run public`)
+- Mật khẩu băm `scrypt` + salt; phiên đăng nhập ký `HMAC-SHA256`.
+- Máy chủ xác thực quyền và dữ liệu nhạy cảm; không tin vai trò do client khai.
+- Giới hạn tần suất chống brute-force; WebSocket phải xác thực trước khi truy cập dữ liệu.
+- Đăng nhập Google/Facebook được kiểm chứng token phía máy chủ.
 
----
+Chi tiết: [docs/SECURITY.md](docs/SECURITY.md).
 
-## ⚖️ Bản Quyền Trí Tuệ
+## Tài liệu
 
-**Bản quyền trí tuệ thuộc về BroAmStuck.**  
-Toàn bộ mã nguồn, thiết kế giao diện và ý tưởng hệ thống được bảo hộ và phát triển bởi BroAmStuck.
+- [docs/SPEC.md](docs/SPEC.md) — đặc tả hệ thống
+- [docs/SECURITY.md](docs/SECURITY.md) — kiểm định an ninh
+- [docs/BRAND_GUIDELINE.md](docs/BRAND_GUIDELINE.md) — nhận diện thương hiệu
+- [docs/UI_UX_10_STYLE_ARCHITECTURE.md](docs/UI_UX_10_STYLE_ARCHITECTURE.md) — kiến trúc giao diện
+- [docs/decorations/README.md](docs/decorations/README.md) — pipeline tài nguyên trang trí
 
+## Bản quyền
+
+**Bản quyền trí tuệ thuộc về BroAmStuck.** Vui lòng không sao chép, phân phối lại hoặc dùng cho mục đích thương mại khi chưa có sự đồng ý bằng văn bản.
