@@ -6,40 +6,39 @@
 ## 📌 THÔNG TIN PHIÊN LÀM VIỆC
 - **Dự án**: F-Forum (`arena/62613a87-f-forum`)
 - **Thư mục làm việc**: `/home/broamstuck/f-forum`
-- **Thời gian Checkpoint**: 2026-10-18T02:35:00+07:00
-- **Trạng thái Git**: Nhánh `arena/62613a87-f-forum` (PR #18 mở trên GitHub, đồng bộ `main` & `f-forum-broamstuck-v2.5` tại commit `9e87f11`).
-- **Tình trạng Kiểm thử**: 472/472 tests passed | Build thành công 100% | 0 Lint errors/warnings (`oxlint` + `tsc -b`).
-- **Production URL**: `https://f-forum.vercel.app`
+- **Thời gian Checkpoint**: 2026-10-19 (sau khi deploy Đợt 4 + Đợt 5 Nhiệm vụ 12)
+- **Trạng thái Git**: Nhánh `arena/62613a87-f-forum` (PR #18 vẫn mở), đã đồng bộ `main` tại commit `e53e0b4`.
+- **Tình trạng Kiểm thử**: 474/474 tests passed | light-adapter `--check` khớp | 0 lỗi `tsc -b` | 0 lỗi oxlint trong `src/`.
+- **Production URL**: `https://f-forum.vercel.app` (đã xác thực bundle mới sống trên prod).
 
 ---
 
 ## 🎯 YÊU CẦU GỐC TỪ SẾP (100% RAW SCOPE)
-1. "các đề bị lỗi ký tự, tôi cần đề dạng file pdf, giấy thật cơ, đề phải có nguồn đúng và chuẩn 100% cho các ban giám khảo khó tính"
-2. "- fix xong update lại lê vercel"
+1. "đảm bảo 100% gui,ui,ux, toàn bộ theo kế hoạch thiết kế" (Nhiệm vụ 12 — 5 đợt đại tu, vòng lặp tự phản biện).
+2. Tự vòng lặp nâng cấp UI/perf/quality; chốt cuối không còn lỗi giao diện mới/nghiêm trọng.
+3. Giữ đăng nhập admin `BroAmStuck@gmail.com` hoạt động; giao diện đăng nhập không lộ tài khoản admin.
+4. Giữ PR #18 mở; không xoá tính năng để giấu lỗi; không tuyên bố "đã test/mượt" khi chưa đo.
 
 ---
 
 ## ✅ CÁC HẠNG MỤC ĐÃ HOÀN THÀNH & NGHIỆM THU (COMPLETED MILESTONES)
-1. **Khắc Phục Toàn Diện Ký Tự & Công Thức Toán Học Bị Biến Dạng**:
-   - Chuyển đổi toàn bộ ký hiệu ASCII thô ráp (`a*sqrt(3)`, `m2`, `lim_{x -> -1^+} y = -oo`, `font-mono`) sang chuẩn ký hiệu toán học Unicode sắc nét ($\sqrt{3}$, $a^2$, $\vec{n}$, $\pm\infty$, $\Delta l_0$, $\lambda$, $\varphi$, $m^2$, $\frac{a}{b}$) trên cả 10 đề thi chính thống.
-2. **Số Hoá & Phát Hành 10 Đề Thi Thật Dạng PDF Vector In Ấn Tuyệt Đối**:
-   - Tạo bộ sinh đề thi vector giáo dục quốc gia `scripts/generate_official_exam_pdfs.py` (Chromium Headless print-to-pdf) tại thư mục `public/exams/`:
-     * Đề thi chính thức THPT Quốc Gia môn Toán (Mã 101) & môn Ngữ Văn & môn Tiếng Anh (Mã 401).
-     * Đề thi tham khảo THPT 2025 cấu trúc mới (Toán học).
-     * Đề thi thử Chuyên KHTN môn Vật Lý & Chuyên Sư Phạm môn Hoá Học.
-     * Đề thi Đánh Giá Năng Lực HSA (ĐHQG Hà Nội) & APT (ĐHQG TP.HCM).
-     * Đề thi Tuyển sinh Lớp 10 Toán (Sở GD&ĐT Hà Nội).
-     * Đề thi HSG Quốc Gia THPT môn Tin Học.
-   - Đầy đủ tiêu đề Bộ/Sở/Đại học, khung số báo danh, con dấu đỏ "ĐÃ ĐỐI SOÁT CHUẨN 100%", typography Times New Roman/Noto Serif và đáp án giải chi tiết.
-3. **Trình Đọc PDF Trực Quan & Trải Nghiệm Người Dùng**:
-   - Tích hợp nhúng tài liệu PDF trong `ExamPaperViewerView.tsx` qua `<iframe>` toàn màn hình với thanh công cụ học thuật.
-   - Bổ sung khay lời giải chi tiết và công thức trọng tâm từ thầy cô bên dưới tài liệu PDF.
-   - Thẻ đề thi trong `ExamVaultView.tsx` cung cấp song song nút "Tải tệp gốc" (mở/tải PDF trực tiếp) và nút "Xuất PDF".
-4. **Kiểm Thử & Đẩy Trực Tiếp Lên Vercel Production**:
-   - `npm test`: 472/472 tests pass.
-   - `npx oxlint src`: 0 warnings, 0 errors.
-   - `npx tsc -b`: 0 errors.
-   - `vercel deploy --prebuilt --prod`: Đã triển khai và aliased tới `https://f-forum.vercel.app`.
-   - Xác thực endpoint PDF: `HTTP/2 200` với `content-type: application/pdf`.
-   - Đã đồng bộ Git tới `arena/62613a87-f-forum`, `main`, và `f-forum-broamstuck-v2.5` (`9e87f11`).
-   - Ghi nhận báo cáo tại `Documents/BroAmStuck Studio/feedback/feedback_71.md`.
+1. **Potato toàn cục (tối ưu tài nguyên thật)** — commit `159cca4`:
+   - Video nền tắt ở MỌI phân khu kể cả Trang chủ (thay đổi hành vi có chủ đích so với ghim cũ "home giữ video" — đã báo cáo để Sếp veto); nền tĩnh của Potator hiển thị mọi trang.
+   - Chế độ sáng: 6 trang nội dung (CLB/Hỏi Đáp/Thread/Chat/Vinh Danh/Bản nâng cấp) dùng nền "kính sữa" (span gradient ẩn, nền gốc sáng) — sửa lỗi tương phản chữ kem trên nền sáng; Trang chủ & Miền Ký Ức giữ nền tối điện ảnh.
+   - Bảng chọn gradient Potator trong Cài đặt chỉ áp dụng chế độ tối (kèm ghi chú).
+   - Bằng chứng mạng: bật Potator → gỡ hẳn phần tử video, 0 request video mới (probe60).
+2. **Fabulous khôi phục & đúng điều kiện** — xác thực runtime đợt này:
+   - Chỉ bật mới tải: Fabulous TẮT → 0 request video của nó trong 3.5s (bằng chứng mạng probe60/61b).
+   - Tối + trang nội dung: sân khấu 3 video, 1 video đang phát; chế độ sáng: lớp trang trí không video; reduced-motion: không dựng sân khấu; mutex Fabulous↔Potator hai chiều.
+3. **Hiệu ứng profile có điều kiện** — xác thực runtime (probe60b):
+   - Chỉ 1 marker `[data-profile-active]` toàn trang khi mở hồ sơ; trỏ vào vùng bìa → `"true"`, rời ra → `"false"`; listener pointermove chỉ gắn khi khung bìa trong tầm nhìn + rAF tiết chế; tôn trọng reduced-motion.
+4. **Dọn font tải về không dùng** — commit `4bf1c04`: bỏ Helvetica (stylesheet ngoài không dùng) + Figtree khỏi Google Fonts và token; giữ đủ dấu tiếng Việt (đã soi ảnh).
+5. **FIX nút Tia Sét đè dock mobile (phát hiện trong Đợt 5)** — commit `e53e0b4`:
+   - Mặc định cũ `bottom-4` khiến quả cầu che mục "Hỏi Đáp" của dock dưới; nâng lên `calc(72px + safe-area)` trên mobile, desktop giữ nguyên (đo hình học: không còn giao nhau, khe 16px).
+6. **Đợt 5 — Hồi quy toàn ma trận**: 12/12 cấu hình SẠCH (sáng/tối × desktop/mobile × Chuẩn/Potator/Fabulous), 6 phân khu/lượt (home, landing, Hỏi Đáp, Thread, Ký ức, Vinh Danh, Kho Đề Thi): 0 tràn ngang, 0 lỗi trang, trạng thái video/sân khấu/nền đúng thiết kế; ảnh soi mắt xác nhận tương phản tốt.
+7. **Kiểm Thử & Đẩy Trực Tiếp Lên Vercel Production**:
+   - `npm test`: 474/474 pass · `npx tsc -b`: 0 lỗi · light-adapter `--check` khớp.
+   - `vercel build --prod` + `vercel deploy --prebuilt --prod`: aliased `https://f-forum.vercel.app`; xác thực sống: bundle JS chứa class nút Tia Sét mới, HTML prod hết Figtree, endpoint `/api/analytics/track` trả JSON validate đúng (lỗi 400 ở dev là do dev server thiếu route — prod đủ route).
+   - Đã push Git: `arena/62613a87-f-forum` + `main` tại `e53e0b4`.
+   - Ghi nhận báo cáo tại `Documents/BroAmStuck Studio/feedback/feedback_72.md`.
+8. **Đo hiệu năng trung thực (kèm cảnh báo)**: máy đo headless software-rendering — Fabulous BẬT trên Hỏi Đáp ~144ms/khung vs TẮT ~54ms (bộ đo này); Trang chủ video vs tĩnh: chênh lệch dưới ngưỡng đo. KHÔNG đại diện GPU thật — chỉ dùng so sánh tương đối.
