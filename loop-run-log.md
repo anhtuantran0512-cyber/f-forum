@@ -104,3 +104,31 @@ Append one entry per run. Prune entries older than 30 days.
   "notes": "Dot 7 mo rong kho de (nhanh f-forum_v7, commit 02feaf4, FF main a550bbb..02feaf4). (1) 6 de chinh thuc THPT 2026 co nguon xac minh: Toan ma 0101 (toanmath, cat con 4 trang de goc scan 1.949.763B sau khi verifier phat hien phan loi giai do AI soan — bo di, ghi chu minh bach trong summary), Ngu van / Tieng Anh 1127 / Vat li 0230 / Hoa hoc 0344 / Sinh hoc 0430 (thuvienhoclieu DOCX -> mammoth + Playwright A4, co text layer, kem loi giai). Sap xep ex-11..ex-16 len DAU mang de hoc sinh thay ngay. Moi de co 1-3 cau hoi mau + loi giai mau (cong thuc + meo) do ban chuyen mon soan, dung dap an chinh thuc. (2) Goc hoc tap moi src/components/exam/learningResources.ts + section aria-label 'Tai lieu va bai giang chon loc' cuoi kho de (7 nguon: vumaiphuong, vukhacngoc, toanmath, thuvienhoclieu, moet, hsa, thinangluc.vnuhcm — chi giu kenh xac minh duoc ten/mon; loai @nguyenquocchi/@phamquoctoan/@dangviethung vi khong xac minh). (3) Tinh chinh: getCompactPaperTitle viet hoa chu dau, them data-exam-id cho the de test nham dung ex-01 thay vi 'the dau tien' (khong noi long assertion). Test moi so 17 (PDF that: magic %PDF-, size khop TUNG entry, URL dung file; resources https/duy nhat/du kind). Kiem dinh: test 476/476, tsc sach, oxlint src 0, light-adapter khop (da chay lai gen:light), verifier doc lap PASS 2 vong. Deploy song: index-DEvS5s0G.js + chunk examSubmissionApi-Bc90BFcA.js (Mã đề 0101 / THPT 2026 / 1949763) + ExamVaultView-mPyDmTDy.js ('bai giang chon loc', vumaiphuong); 6 PDF prod tra 200 dung size; prod UI 16 the — 6 the dau 2026, goc hoc tap 7 link, 0 loi trang; anh /tmp/opencode/ui-audit/v7-prod-grid.png. Luu y: dev server nen giu cong WS 24678 lam fail test interactions — da dung truoc khi test; pkill -f 'vite' tu khop chinh no (dung pattern [v]ite)."
 }
 ```
+
+```json
+{
+  "run_id": "2026-10-20T12:05:00+07:00",
+  "pattern": "human-attended",
+  "duration_s": 3600,
+  "items_found": 2,
+  "actions_taken": 2,
+  "escalations": 0,
+  "tokens_estimate": 120000,
+  "outcome": "fixed",
+  "notes": "Dot 8 hotfix (nhanh f-forum_v8, commit c11294e, FF main). Chan seed ghi de Supabase khi hydrate loi: hydrateStoreFromSupabaseCloud timeout 5s + retry 30s, co supabaseHydrationUsable chi cho ghi cloud khi hydrate thanh cong; test 23. Kiem dinh 478/478, tsc 0, oxlint 0, light-adapter khop. Deploy dpl_Hf3AQ3tJiSnAaxa861QiCB6VE394 READY; /api/sync 200 (4 user/21 milestone, avatar /assets/brand/admin-avatar.jpg), avatar 200 32424B, og-cover 200 95525B, login 200, session 200; proof chat write/delete cloud 496971 -> 499027B nhung van 4 user/21 milestone. Nguyen nhan hydrate that bai truoc do chua ro; warn logs da live."
+}
+```
+
+```json
+{
+  "run_id": "2026-10-20T18:55:00+07:00",
+  "pattern": "human-attended",
+  "duration_s": 10800,
+  "items_found": 2,
+  "actions_taken": 2,
+  "escalations": 0,
+  "tokens_estimate": 220000,
+  "outcome": "fixed",
+  "notes": "Dot 9 dai tu giao dien chat (nhanh f-forum_v9, commit 79691a9, FF main c11294e..79691a9; deploy dpl_2HELvBfSX2BmDVofqheVKqcZY5tA READY, alias f-forum.vercel.app). Nhom tin cung tac gia <=5 phut tinh tu dau cum qua chatTimeline.ts (getChatGroupStarts; timestamp loi/qua ngay mo cum moi; test 5/6 phut, chain 10:00-10:04-10:08, doi tac gia/kenh, timestampMs qua ngay). Menu tac vu dung chung ChatMessageActions: portal position:fixed, tu lat tren/duoi + kep viewport, dong khi scroll/click ngoai/focus roi, chan Escape dong ca ChatDock, Arrow/Home/End/Tab + tra focus; mobile giu trigger 24px tren moi hang. Chat mobile full-bleed 0px (workspace x0 w390), composer toi, an FAB quick-action + XP dock, nut doi kenh 32px; header an subtitle/InfoTip <xl + search w-36 nen 768-1024 khong vo; ten tac gia lay ten ho so, bo Lv chip/nameplate. Light mode chat + tab dock mobile du tuong phan, danger recall do. Kiem dinh 479/479 test, tsc 0, oxlint src 0, light-adapter khop; verifier doc lap PASS 2 vong (vong 1 bat 13 diem, 7 muc phai sua: mobile continuation actions, menu clipping, Escape propagation, grouping chain, test yeu...). Bang chung song: index-Bf4yAJtk.css co .ff-chat-actions-menu{position:fixed;min-width:176px} + .ff-chat-mobile-channel{32px}; chunk chatTimeline-DcPaCXzO.js co 'Thao tac tin nhan'/'Thu hoi tin nhan'; prod do menu 176x78 (desktop x839 y642; mobile top602 left124 right300/390), 10/10 continuation actions hien, quick FAB false, 1024 header khong tran; /api/sync 4 user/21 milestone, login 200, session 200. ChatDock la legacy khong con mo (chat icon luon vao ChatView) nhung da cap nhat component chung."
+}
+```

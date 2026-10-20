@@ -1,6 +1,6 @@
 # Loop State — F-Forum
 
-Last run: 2026-10-20 (Đợt 8 — Sếp duyệt a/c/d/e: (a) bật env Supabase trên Vercel + nén store 6,69MB → 497KB; (c) avatar admin tự host 32KB thay PNG 10,4MB; (e) og-cover mới đúng brand; (d) `f-forum_v2` đóng KHÔNG gộp (12 conflict, giữ nguyên nhánh lưu trữ); kèm sửa gốc lỗi tự đăng xuất do thiếu `FFORUM_SESSION_SECRET`; test 477/477, verifier độc lập PASS trước deploy)
+Last run: 2026-10-20 (Đợt 8 hotfix + Đợt 9 — chat redesign: nhóm tin 5 phút, menu tác vụ portal, mobile toàn màn hình, composer tối, tên hồ sơ; hotfix chặn seed ghi đè Supabase khi hydrate lỗi; 479/479 test · tsc 0 · oxlint src 0 · light-adapter khớp · verifier độc lập PASS 2 vòng · deploy sống `79691a9`)
 
 ## High Priority (loop is acting or waiting on human)
 
@@ -9,11 +9,12 @@ Last run: 2026-10-20 (Đợt 8 — Sếp duyệt a/c/d/e: (a) bật env Supabase
 - [x] **og-cover đúng brand — ĐÃ XỬ LÝ (Đợt 8, Sếp duyệt e)**: bỏ ảnh stock người lạ, thay thiết kế 1200×630 JPEG 95KB (hexagon F-Forum + tagline "Hỏi rõ bản chất, giải tường tận từng bước."); og:image/twitter:image thêm `?v=2` bust cache.
 - [x] **Supabase — ĐÃ NỐI ENV (Đợt 8, Sếp duyệt a)**: đã set `SUPABASE_SERVICE_ROLE_KEY` · `VITE_SUPABASE_URL` · `VITE_SUPABASE_ANON_KEY` trên Vercel (production+preview+development); store Supabase nén 6.692.048 → 496.971 bytes (ảnh founder data-URL 6,2MB → avatar tự host — né giới hạn 4,5MB của Vercel Functions); dữ liệu 4 user + 21 milestone giữ nguyên; backup tại `~/.local/share/fforum-backups/2026-10-20/`.
 - [x] **Lỗi phiên hết hạn tự đăng xuất — ĐÃ SỬA GỐC (Đợt 8)**: nguyên nhân duy nhất: thiếu `FFORUM_SESSION_SECRET` trên Vercel → mỗi cold start sinh khoá HMAC mới → token cũ bị 401 → client tự dọn phiên. Đã tạo khoá 64-hex cố định, set Vercel 3 target (backup 600 ngoài repo, không vào mã nguồn). Lưu ý: đổi khoá = một đợt đăng nhập lại 1 lần; sau đó phiên bền qua cold start/redeploy.
-- [ ] **Chờ deploy xác minh Đợt 8 (đang làm cuối lượt)**: `/api/sync` < 1MB + hydrate 4 user + avatar/founder mới; token ký bằng khoá mới bền qua nhiều instance; 2 asset trả 200 đúng size; đóng mục v2 (không gộp) đã ghi log.
+- [x] **Đợt 8 deploy xác minh — XONG 20/10**: `/api/sync` 200 (4 user + 21 milestone, founder avatar `/assets/brand/admin-avatar.jpg`); avatar 200 · 32.424B; og-cover 200 · 95.525B; login 200 + `/api/auth/session` 200; hydrate lỗi không ghi seed đè cloud (test 23); deploy `dpl_Hf3AQ3tJiSnAaxa861QiCB6VE394` READY. Ghi chú: object Supabase từng đo 499.027B sau proof chat write/delete, vẫn 4 user/21 milestone.
+- [x] **Đợt 9 — đại tu giao diện chat (20/10, `79691a9`, nhánh `f-forum_v9` → FF main)**: gộp tin cùng tác giả ≤5 phút **tính từ đầu cụm** (timestamp không đọc được/qua ngày mới mở cụm; test 5/6 phút, chuỗi 10:00→10:04→10:08, đổi tác giả/kênh, timestamp lỗi); menu tác vụ dùng chung `ChatMessageActions` render portal `position:fixed`, tự lật trên/dưới + kẹp viewport, đóng khi scroll/click ngoài/focus rời, chặn Escape đóng cả ChatDock, Arrow/Home/End/Tab + trả focus; mobile giữ trigger 24px trên **mọi** hàng (kể cả continuation); chat mobile full-bleed `x=0 w=390`, composer tối, ẩn FAB quick-action + XP dock, nút đổi kênh 32px; header ẩn subtitle/InfoTip < xl + search `w-36` nên 768–1024 không vỡ; tên tác giả lấy tên hồ sơ (không lộ email), bỏ Lv chip/nameplate theo yêu cầu "plain names"; light mode chat + tab dock mobile đủ tương phản, "Thu hồi tin nhắn" giữ đỏ. **Bằng chứng sống**: `index-Bf4yAJtk.css` có `.ff-chat-actions-menu{...position:fixed;min-width:176px}` + `.ff-chat-mobile-channel{...32px}`, shared chunk `chatTimeline-DcPaCXzO.js` có "Thao tác tin nhắn"/"Thu hồi tin nhắn"; đo prod: menu 176×78 (desktop x839 y642; mobile top602 left124 right300/390), 10/10 continuation actions hiện, quick FAB `false`, 1024 header không tràn. ChatDock là đường dẫn legacy không còn mở (chat icon luôn vào ChatView) nhưng vẫn được cập nhật dùng component chung.
 
 ## Branch Convention (19/10)
 
-- Nhánh làm việc: `f-forum_v1` (từ `f-forum-broamstuck-v2.5`), `f-forum_v2` (từ `fix_4`), `f-forum_v3` (từ `arena/62613a87-f-forum`), `f-forum_v4` (nâng phụ thuộc), `f-forum_v5` (font self-host + lint), `f-forum_v6` (Đợt 6 tinh chỉnh UI), `f-forum_v7` (Đợt 7: 6 đề chính thức THPT 2026 + Góc học tập). `main` là nhánh phát hành.
+- Nhánh làm việc: `f-forum_v1` (từ `f-forum-broamstuck-v2.5`), `f-forum_v2` (từ `fix_4`), `f-forum_v3` (từ `arena/62613a87-f-forum`), `f-forum_v4` (nâng phụ thuộc), `f-forum_v5` (font self-host + lint), `f-forum_v6` (Đợt 6 tinh chỉnh UI), `f-forum_v7` (Đợt 7: 6 đề chính thức THPT 2026 + Góc học tập), `f-forum_v8` (Đợt 8 + hotfix hydrate), `f-forum_v9` (Đợt 9: đại tu chat). `main` là nhánh phát hành.
 - Mỗi lần sửa đổi chỉ sửa đúng **một nhánh**, rồi push nhánh đó + FF lên `main`; không sửa song song nhiều nhánh.
 
 ## Watch List
@@ -31,7 +32,7 @@ Last run: 2026-10-20 (Đợt 8 — Sếp duyệt a/c/d/e: (a) bật env Supabase
 - `target="_blank"`: 11/11 đều có `rel` trong 2 dòng kế ✓
 - `<img>` thiếu alt: 69 ảnh — "1 cảnh báo" là comment trong code (false positive) ✓
 - `dangerouslySetInnerHTML`: 0 · `@ts-ignore`: 0 · catch rỗng: 0 · comment `//` trong src: 0 ✓
-- CI 6/6 xanh · 0 issue · 0 PR mở · test 475/475 · tsc 0 · oxlint 0 (1.88, `src` sạch — 2 cảnh báo purity cũ đã sửa) · light-adapter khớp.
+- CI 6/6 xanh · 0 issue · 0 PR mở · test 479/479 · tsc 0 · oxlint 0 (1.88, `src` sạch — 2 cảnh báo purity cũ đã sửa) · light-adapter khớp.
 - Bundle gzip: CSS 93KB / JS 128KB — khỏe, không hành động.
 - 19/10 chiều: vòng nâng cấp theo kế hoạch — icon 8 bậc (`e2c4523`, prod đã đổi asset `index-CuHKhWZB.css`, class `ff-rank-aura/leaf/rays/sway` xác nhận sống) · deps (`7534565`) · font self-host + lint sạch (`30a3ed6`).
 - 19/10 tối: Đợt 6 tinh chỉnh UI `b57891c` — audit ảnh before/after → sửa đúng 4 điểm xác nhận bằng ảnh cận cảnh; các nghi vấn khác (gạch chân pill "Học bền bỉ", "Bảng xếp hạng", swatch nền tràn mép, podium ellipsis ~128px) kiểm 3× zoom → KHÔNG phải lỗi, giữ nguyên.
