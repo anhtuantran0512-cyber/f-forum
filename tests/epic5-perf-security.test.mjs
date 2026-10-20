@@ -686,3 +686,45 @@ test('21. Form tố cáo báo lỗi THẬT (không còn báo "đã tiếp nhận
     assert.ok(src.includes('setReportErrorMsg(outcome.message)'), `${f}: hiện lỗi thật`);
   }
 });
+
+test('22. Ảnh thương hiệu: avatar admin tự host nhẹ & og-cover 1200×630 đúng chuẩn', async () => {
+  const avatarPath = 'public/assets/brand/admin-avatar.jpg';
+  const coverPath = 'public/assets/brand/og-cover.jpg';
+  assert.ok(fs.existsSync(avatarPath), 'avatar admin phải tồn tại trong public/assets/brand');
+  assert.ok(fs.existsSync(coverPath), 'og-cover phải tồn tại');
+
+  const avatarBytes = fs.statSync(avatarPath).size;
+  assert.ok(avatarBytes < 100 * 1024, `avatar admin phải nhẹ (<100KB), hiện ${avatarBytes}B`);
+  const avatarMeta = await sharp(avatarPath).metadata();
+  assert.equal(avatarMeta.format, 'jpeg', 'avatar admin phải là JPEG');
+  assert.equal(avatarMeta.width, 512, 'avatar admin rộng 512px');
+  assert.equal(avatarMeta.height, 512, 'avatar admin cao 512px');
+
+  const coverMeta = await sharp(coverPath).metadata();
+  assert.equal(coverMeta.format, 'jpeg', 'og-cover phải là JPEG');
+  assert.equal(coverMeta.width, 1200, 'og-cover rộng 1200px');
+  assert.equal(coverMeta.height, 630, 'og-cover cao 630px');
+  assert.ok(fs.statSync(coverPath).size < 200 * 1024, 'og-cover phải nhẹ (<200KB)');
+
+  const adminConfig = fs.readFileSync('src/config/admin.ts', 'utf8');
+  const adminStore = fs.readFileSync('src/store/adminStore.ts', 'utf8');
+  const server = fs.readFileSync('server/forumServer.ts', 'utf8');
+  assert.ok(adminConfig.includes("ADMIN_AVATAR_URL = '/assets/brand/admin-avatar.jpg'"), 'avatar chuẩn phải tự host');
+  assert.ok(adminStore.includes('ADMIN_AVATAR_URL'), 'adminStore phải dùng avatar tự host');
+  assert.equal(
+    (server.match(/'\/assets\/brand\/admin-avatar\.jpg'/g) || []).length,
+    3,
+    'server seeds phải dùng avatar mới ở cả 3 chỗ',
+  );
+  assert.ok(!server.includes('hf_20260922_194417_a455843c'), 'server không còn trỏ avatar CDN cũ');
+
+  const forumStore = fs.readFileSync('src/store/forumStore.ts', 'utf8');
+  assert.ok(
+    forumStore.includes('isLegacyAdminAvatar(u.avatar) ? { ...u, avatar: ADMIN_AVATAR_URL }'),
+    'sổ đăng ký cache phải thay avatar CDN cũ bằng avatar tự host',
+  );
+  assert.ok(
+    forumStore.includes('if (isLegacyAdminAvatar(fresh.avatar)) fresh.avatar = ADMIN_AVATAR_URL;'),
+    'khôi phục phiên phải thay avatar CDN cũ bằng avatar tự host',
+  );
+});

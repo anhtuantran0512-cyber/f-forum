@@ -18,12 +18,20 @@ export interface MasterAdminConfig {
   rank: string;
 }
 
+/* Ảnh đại diện Super Admin: tự host, đã tối ưu (512×512, ~32KB) — thay cho
+   PNG 2048×2048 ~10,4MB trên CDN ngoài (ai xem cũng phải tải cả chục MB). */
+export const ADMIN_AVATAR_URL = '/assets/brand/admin-avatar.jpg';
+export const LEGACY_ADMIN_AVATAR_MARKER = 'hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c';
+export const isLegacyAdminAvatar = (value?: string | null): boolean =>
+  typeof value === 'string' && value.includes(LEGACY_ADMIN_AVATAR_MARKER);
+export const normalizeAdminAvatar = (value?: string | null): string =>
+  typeof value === 'string' && value && !isLegacyAdminAvatar(value) ? value : ADMIN_AVATAR_URL;
+
 export const MASTER_ADMIN_CONFIG: MasterAdminConfig = {
   name: 'Trần Văn Anh Tuấn',
   email: MASTER_ADMIN_EMAIL,
   role: 'Admin F-Forum • Owner BroAmStuck Studio',
-  avatar:
-    'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c.png',
+  avatar: ADMIN_AVATAR_URL,
   verifiedBadge: true,
   facebookUrl: 'https://facebook.com/tran.anh.tuan',
   level: 150,

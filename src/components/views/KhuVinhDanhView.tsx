@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import type { User, DimensionView } from '../../types';
 import { AdminVerifiedBadge } from '../Badges10Tier';
+import { ADMIN_AVATAR_URL, isLegacyAdminAvatar, normalizeAdminAvatar } from '../../config/admin';
 import { safeStorage } from '../../utils/storage';
 import {
   getSavedAboutData,
@@ -207,6 +208,7 @@ const INITIAL_VINHDANH_RECORDS: VinhDanhRecord[] = [
     title: 'Người Giữ Ngọn Lửa',
     place: 'F-Forum Admin',
     note: 'Trần Văn Anh Tuấn — Sáng lập & đồng hành cùng học sinh trường ta.',
+    customImgUrl: ADMIN_AVATAR_URL,
   },
 ];
 
@@ -253,9 +255,11 @@ function normalizeVinhDanhRecords(raw: unknown): VinhDanhRecord[] {
       ? item.imageUrl.trim()
       : undefined;
     const defaultPng = `${CDN_BASE}${fallback.imgId}.png`;
+    const recordImgId = typeof item.imgId === 'string' && item.imgId.trim() ? item.imgId.trim() : fallback.imgId;
+    const legacyAdminImg = isLegacyAdminAvatar(rawImgUrl) || (!rawImgUrl && recordImgId === FOUNDER_AVATAR_ID);
     return {
       id: fallback.id,
-      imgId: typeof item.imgId === 'string' && item.imgId.trim() ? item.imgId.trim() : fallback.imgId,
+      imgId: recordImgId,
       title: typeof item.title === 'string' && item.title.trim() ? item.title : fallback.title,
       place:
         typeof item.place === 'string' && item.place.trim()
@@ -269,7 +273,11 @@ function normalizeVinhDanhRecords(raw: unknown): VinhDanhRecord[] {
           : typeof item.notes === 'string' && item.notes.trim()
           ? item.notes
           : fallback.note,
-      customImgUrl: rawImgUrl && rawImgUrl !== defaultPng ? rawImgUrl : undefined,
+      customImgUrl: legacyAdminImg
+        ? ADMIN_AVATAR_URL
+        : rawImgUrl && rawImgUrl !== defaultPng
+        ? rawImgUrl
+        : undefined,
       isTall: typeof item.isTall === 'boolean' ? item.isTall : Boolean(fallback.isTall),
     };
   });
@@ -277,6 +285,11 @@ function normalizeVinhDanhRecords(raw: unknown): VinhDanhRecord[] {
 
 const DEFAULT_HEADLINE_WORDS = ['BroAmStuck', 'Studio', '•', 'Trần', 'Tuấn'];
 const DEFAULT_COLOPHON = 'BroAmStuck Studio • 2026';
+
+/* vd-21 mặc định dùng avatar admin mới: ẩn nút "khôi phục" khi đang đúng ảnh đó,
+   chỉ hiện lại khi admin đã đặt ảnh khác — tránh quay về asset CDN 10,4MB. */
+const canRestoreRecordImage = (record: { imgId: string; customImgUrl?: string }): boolean =>
+  Boolean(record.customImgUrl) && !(record.imgId === FOUNDER_AVATAR_ID && record.customImgUrl === ADMIN_AVATAR_URL);
 
 export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
   onExit,
@@ -290,7 +303,12 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed?.name) return parsed as FounderProfileState;
+        if (parsed?.name) {
+          return {
+            ...(parsed as FounderProfileState),
+            avatarUrl: normalizeAdminAvatar(parsed.avatarUrl),
+          };
+        }
       } catch {
         /* ignore */
       }
@@ -298,7 +316,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     return {
       name: 'Trần Văn Anh Tuấn',
       role: 'Admin F-Forum • Owner BroAmStuck Studio',
-      avatarUrl: `${CDN_BASE}${FOUNDER_AVATAR_ID}.png`,
+      avatarUrl: ADMIN_AVATAR_URL,
       bio: 'Xây dựng F-Forum từ những dòng code đầu tiên. Không gian kết nối thực, dữ liệu thực, tôn vinh tri thức học đường và lưu giữ biên niên sử tuổi học trò.',
     };
   });
@@ -420,7 +438,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         const nextFounder: FounderProfileState = {
           name: payload.founder.name || 'Trần Văn Anh Tuấn',
           role: payload.founder.role || 'Admin F-Forum • Owner BroAmStuck Studio',
-          avatarUrl: payload.founder.avatarUrl || `${CDN_BASE}${FOUNDER_AVATAR_ID}.png`,
+          avatarUrl: normalizeAdminAvatar(payload.founder.avatarUrl),
           bio: payload.founder.bio || '',
         };
         setFounderProfile(nextFounder);
@@ -1612,10 +1630,15 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             <div className="rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15 p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs sm:text-sm font-bold text-[#f2cc8f]">Hình ảnh cột mốc hiện tại</span>
-                {editingRecord.customImgUrl && (
+                {canRestoreRecordImage(editingRecord) && (
                   <button
                     type="button"
-                    onClick={() => setEditingRecord({ ...editingRecord, customImgUrl: undefined })}
+                    onClick={() =>
+                      setEditingRecord({
+                        ...editingRecord,
+                        customImgUrl: editingRecord.imgId === FOUNDER_AVATAR_ID ? ADMIN_AVATAR_URL : undefined,
+                      })
+                    }
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-[#d8d5ce] cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
@@ -1932,13 +1955,18 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                       <span className="text-xs sm:text-sm font-bold text-[#f2cc8f]">
                         Ảnh Cột mốc #{adminSelectedMilestoneIdx + 1}: {records[adminSelectedMilestoneIdx].title}
                       </span>
-                      {records[adminSelectedMilestoneIdx].customImgUrl && (
+                      {canRestoreRecordImage(records[adminSelectedMilestoneIdx]) && (
                         <button
                           type="button"
                           onClick={() =>
                             setRecords((prev) =>
                               prev.map((r, i) =>
-                                i === adminSelectedMilestoneIdx ? { ...r, customImgUrl: undefined } : r,
+                                i === adminSelectedMilestoneIdx
+                                  ? {
+                                      ...r,
+                                      customImgUrl: r.imgId === FOUNDER_AVATAR_ID ? ADMIN_AVATAR_URL : undefined,
+                                    }
+                                  : r,
                               ),
                             )
                           }

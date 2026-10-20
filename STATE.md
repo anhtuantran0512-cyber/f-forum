@@ -1,14 +1,15 @@
 # Loop State — F-Forum
 
-Last run: 2026-10-19 tối (Đợt 6 tinh chỉnh UI/UX từ audit trực quan — `b57891c` deploy sống: tên tác giả hết lộ email · nhãn "Potato" hết cắt chữ · nút "Tải tệp gốc" 1 dòng · cỡ chữ tên dài; test 475/475, verifier độc lập PASS)
+Last run: 2026-10-20 (Đợt 8 — Sếp duyệt a/c/d/e: (a) bật env Supabase trên Vercel + nén store 6,69MB → 497KB; (c) avatar admin tự host 32KB thay PNG 10,4MB; (e) og-cover mới đúng brand; (d) `f-forum_v2` đóng KHÔNG gộp (12 conflict, giữ nguyên nhánh lưu trữ); kèm sửa gốc lỗi tự đăng xuất do thiếu `FFORUM_SESSION_SECRET`; test 477/477, verifier độc lập PASS trước deploy)
 
 ## High Priority (loop is acting or waiting on human)
 
-- [ ] **Lộ thông tin đăng nhập Super Admin trong repo public (19/10) — ĐÃ XỬ LÝ, chờ Sếp nghiệm thu**: theo yêu cầu "mã hoá" của Sếp, toàn bộ nguyên văn đã gỡ khỏi mã nguồn: email Super Admin + mật khẩu mẫu cũ gom vào `shared/identityStrings.ts` (dạng che giấu charCode, giải lúc chạy); nhánh bootstrap so khớp bằng **băm một chiều scrypt** (`verifyPassword` + `DEFAULT_MASTER_ADMIN_PASSWORD_HASH`) thay vì literal; login bằng mật khẩu mặc định cũ giữ nguyên hành vi. Test `admin-credential-secrecy` mở rộng quét cả server/shared/scripts/tests. **Còn lại (Sếp quyết)**: (a) lịch sử git vẫn chứa nguyên văn cũ → xoá hẳn phải rewrite history (phối hợp Antigravity) hoặc chuyển repo **private** — khuyến nghị private; (b) cân nhắc rotate mật khẩu admin khi thuận tiện (mật khẩu mặc định cũ ai từng đọc repo trước 19/10 đều biết).
-- [ ] **Avatar admin 10.4MB trên CDN ngoài** — `server/forumServer.ts` (dòng 434/3822/4211) + `src/config/admin.ts` + `src/store/adminStore.ts` dùng PNG 2048×2048 ~10.4MB từ `d8j0ntlcm91z4.cloudfront.net` làm avatar tài khoản admin; ai thấy avatar này đều phải tải 10.4MB.
-  - Đề xuất: tạo bản 256×256 (~20–50KB) tự host; cập nhật 3 chỗ server + 2 chỗ src + CSP (`server/securityHeaders.ts`) + test ghim `epic5-perf-security.test.mjs:170`.
-  - **CẦN SẾP DUYỆT** (đụng server + thay hình đại diện hiển thị — không tự làm).
-- [ ] **Nội dung og:cover có đúng brand không?** — fix kỹ thuật xong (tự host + tối ưu 113KB, giữ nguyên nội dung ảnh gốc). Nếu muốn og-cover đúng chất F-Forum: chỉ cần thay file `public/assets/brand/og-cover.jpg` (1200×630) — quyết định của Sếp.
+- [ ] **Lộ thông tin đăng nhập Super Admin trong repo public (19/10) — ĐÃ XỬ LÝ MÃ HOÁ; Sếp chốt 20/10: GIỮ REPO PUBLIC** (không cần private/rewrite lịch sử). Việc còn lại (khuyến nghị, chờ Sếp): rotate mật khẩu admin khi thuận tiện — mật khẩu mặc định cũ ai từng đọc repo trước 19/10 đều biết.
+- [x] **Avatar admin 10.4MB — ĐÃ XỬ LÝ (Đợt 8, Sếp duyệt c)**: avatar tự host `public/assets/brand/admin-avatar.jpg` (512×512 JPEG ~32KB, cắt từ ảnh Sếp đưa) thay PNG CloudFront 10.9MB; thay đủ 3 seed server + src/config + adminStore + KhuVinhDanh (founder + vd-21) + cache registry/phiên; có migration dữ liệu cũ (localStorage, store Supabase) và test 22 chặn hồi quy. Ghi chú: có đụng `server/forumServer.ts` đúng 3 literal avatar theo phê duyệt trực tiếp của Sếp (mục c).
+- [x] **og-cover đúng brand — ĐÃ XỬ LÝ (Đợt 8, Sếp duyệt e)**: bỏ ảnh stock người lạ, thay thiết kế 1200×630 JPEG 95KB (hexagon F-Forum + tagline "Hỏi rõ bản chất, giải tường tận từng bước."); og:image/twitter:image thêm `?v=2` bust cache.
+- [x] **Supabase — ĐÃ NỐI ENV (Đợt 8, Sếp duyệt a)**: đã set `SUPABASE_SERVICE_ROLE_KEY` · `VITE_SUPABASE_URL` · `VITE_SUPABASE_ANON_KEY` trên Vercel (production+preview+development); store Supabase nén 6.692.048 → 496.971 bytes (ảnh founder data-URL 6,2MB → avatar tự host — né giới hạn 4,5MB của Vercel Functions); dữ liệu 4 user + 21 milestone giữ nguyên; backup tại `~/.local/share/fforum-backups/2026-10-20/`.
+- [x] **Lỗi phiên hết hạn tự đăng xuất — ĐÃ SỬA GỐC (Đợt 8)**: nguyên nhân duy nhất: thiếu `FFORUM_SESSION_SECRET` trên Vercel → mỗi cold start sinh khoá HMAC mới → token cũ bị 401 → client tự dọn phiên. Đã tạo khoá 64-hex cố định, set Vercel 3 target (backup 600 ngoài repo, không vào mã nguồn). Lưu ý: đổi khoá = một đợt đăng nhập lại 1 lần; sau đó phiên bền qua cold start/redeploy.
+- [ ] **Chờ deploy xác minh Đợt 8 (đang làm cuối lượt)**: `/api/sync` < 1MB + hydrate 4 user + avatar/founder mới; token ký bằng khoá mới bền qua nhiều instance; 2 asset trả 200 đúng size; đóng mục v2 (không gộp) đã ghi log.
 
 ## Branch Convention (19/10)
 
