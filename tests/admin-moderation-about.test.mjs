@@ -99,12 +99,14 @@ test('1. Static Architecture & Security Audit: Khu Vinh Danh & Super Admin Moder
   const qaForumPath = path.resolve('src/components/views/QAForumView.tsx');
   const chatViewPath = path.resolve('src/components/views/ChatView.tsx');
   const chatDockPath = path.resolve('src/components/ChatDock.tsx');
+  const chatActionsPath = path.resolve('src/components/chat/ChatMessageActions.tsx');
 
   const aboutUsContent = fs.readFileSync(aboutUsPath, 'utf8');
   const chroniclesContent = fs.readFileSync(chroniclesPath, 'utf8');
   const qaForumContent = fs.readFileSync(qaForumPath, 'utf8');
   const chatViewContent = fs.readFileSync(chatViewPath, 'utf8');
   const chatDockContent = fs.readFileSync(chatDockPath, 'utf8');
+  const chatActionsContent = fs.readFileSync(chatActionsPath, 'utf8');
 
   assert.ok(
     chroniclesContent.includes('<AboutUs'),
@@ -162,13 +164,24 @@ test('1. Static Architecture & Security Audit: Khu Vinh Danh & Super Admin Moder
   );
 
   // Non-Admin Isolation in ChatView & ChatDock: Recall / Delete message
-  assert.ok(
-    chatViewContent.includes('isSuperAdmin') && chatViewContent.includes('Thu hồi tin nhắn'),
-    'ChatView must protect message recall with isSuperAdmin check'
+  assert.match(
+    chatViewContent,
+    /canDelete=\{Boolean\(isSuperAdmin \|\| canRecallMessages\)\}/,
+    'ChatView must gate recall on isSuperAdmin/canRecallMessages'
+  );
+  assert.match(
+    chatDockContent,
+    /canDelete=\{Boolean\(isSuperAdmin \|\| canRecallMessages\)\}/,
+    'ChatDock must gate recall on isSuperAdmin/canRecallMessages'
+  );
+  assert.match(
+    chatActionsContent,
+    /\{canDelete && \(/,
+    'Shared message actions must only render the recall item behind canDelete'
   );
   assert.ok(
-    chatDockContent.includes('isSuperAdmin') && chatDockContent.includes('Thu hồi tin nhắn'),
-    'ChatDock must protect message recall with isSuperAdmin check'
+    chatActionsContent.includes('Thu hồi tin nhắn'),
+    'Shared message actions must contain the recall label'
   );
 
   // Verify Milestone place field rendered in AboutUs Lightbox
