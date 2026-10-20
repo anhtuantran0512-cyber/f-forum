@@ -54,7 +54,7 @@ import {
   saveAboutDataLocally,
   saveAboutDataToServer,
 } from './adminStore';
-import { MASTER_ADMIN_CONFIG, MASTER_ADMIN_EMAIL, isMasterAdmin } from '../config/admin';
+import { ADMIN_AVATAR_URL, isLegacyAdminAvatar, MASTER_ADMIN_CONFIG, MASTER_ADMIN_EMAIL, isMasterAdmin } from '../config/admin';
 import { capsHas, getAdminCaps } from '../utils/adminCapabilities';
 
 /** Epic 3 — sửa/xoá nội dung: Super Admin hoặc vai trò tùy chỉnh có quyền edit_content.
@@ -146,7 +146,8 @@ export function sanitizeUsersRegistry(input: unknown): Record<string, User> {
     if (/^(smoke\d*-|bot[-@_])/i.test(email) || email.endsWith('@bot.local') || email.endsWith('@mock.local')) return;
     if (/^(smoke(\s*\d+)?\s+[ab]|bot\b)/i.test(String(u.name || '').trim())) return;
     if (!u.id || !u.name) return;
-    out[email] = u.coin === undefined ? { ...u, email, coin: welcomeCoinFor(email) } : { ...u, email };
+    const safeUser = isLegacyAdminAvatar(u.avatar) ? { ...u, avatar: ADMIN_AVATAR_URL } : u;
+    out[email] = safeUser.coin === undefined ? { ...safeUser, email, coin: welcomeCoinFor(email) } : { ...safeUser, email };
   });
   return out;
 }
@@ -849,6 +850,7 @@ export function useForumStore() {
                         setAuthToken(sessionJson.token);
                       }
                       const fresh = sessionJson.user as User;
+                      if (isLegacyAdminAvatar(fresh.avatar)) fresh.avatar = ADMIN_AVATAR_URL;
                       safeStorage.setItem('fforum_current_user_email', fresh.email.toLowerCase());
                       setCurrentUser(fresh);
                       announceRestoredLock(sessionJson.moderation);
@@ -866,6 +868,7 @@ export function useForumStore() {
               const probed = await probeCookieSession();
               if (probed && isMounted) {
                 const fresh = probed.user as User;
+                if (isLegacyAdminAvatar(fresh.avatar)) fresh.avatar = ADMIN_AVATAR_URL;
                 safeStorage.setItem('fforum_current_user_email', fresh.email.toLowerCase());
                 setCurrentUser(fresh);
                 announceRestoredLock(probed.moderation);
@@ -2180,13 +2183,17 @@ export function useForumStore() {
 
       const isSuperAdmin = isMasterAdmin(normalizedEmail);
       const existing = users[normalizedEmail];
+      const resolvedAdminAvatar =
+        [data.avatar, existing?.avatar, MASTER_ADMIN_CONFIG.avatar].find(
+          (candidate) => typeof candidate === 'string' && candidate && !isLegacyAdminAvatar(candidate),
+        ) || ADMIN_AVATAR_URL;
       const localUser: User = isSuperAdmin
         ? {
             ...(existing || {}),
             id: existing?.id || 'user-admin',
             name: trimmedName || existing?.name || MASTER_ADMIN_CONFIG.name,
             email: MASTER_ADMIN_EMAIL,
-            avatar: data.avatar || existing?.avatar || MASTER_ADMIN_CONFIG.avatar,
+            avatar: resolvedAdminAvatar,
             role: 'SUPER_ADMIN',
             level: 150,
             xp: Math.max(existing?.xp || 0, 45000),
