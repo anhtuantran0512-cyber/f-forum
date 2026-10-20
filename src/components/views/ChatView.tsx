@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Trash2,
   MessageSquareDashed,
   X,
   ChevronDown,
@@ -26,7 +25,9 @@ import type { ChatChannelId, ChatMessage, User, OnlinePresenceUser } from '../..
 import { TierBadge } from '../Badges10Tier';
 import { ChatMentionPicker } from '../chat/ChatMentionPicker';
 import { ChatMessageContent } from '../chat/ChatMessageContent';
+import { ChatMessageActions } from '../chat/ChatMessageActions';
 import { ChatRoleIcon } from '../chat/ChatRoleIcon';
+import { getChatGroupStarts } from '../../utils/chatTimeline';
 import { DEFAULT_AVATAR } from '../../utils/mediaFallback';
 import { useChatCooldown } from '../../utils/chatCooldown';
 import { useChatMentionComposer } from '../../utils/chatMentions';
@@ -175,6 +176,15 @@ export const ChatView: React.FC<ChatViewProps> = ({
     inputRef,
   });
 
+  /*
+    Trang chat là màn hình làm việc toàn chiều cao trên điện thoại. Đánh dấu
+    body để các nút nổi toàn cục (XP, ghi chú) nhường chỗ cho khung soạn tin.
+  */
+  useEffect(() => {
+    document.body.classList.add('ff-chat-open');
+    return () => document.body.classList.remove('ff-chat-open');
+  }, []);
+
   const announceSendStatus = useCallback((status: string, durationMs = 1300) => {
     setSendStatus(status);
     if (sendStatusTimerRef.current) window.clearTimeout(sendStatusTimerRef.current);
@@ -281,19 +291,23 @@ export const ChatView: React.FC<ChatViewProps> = ({
   );
 
   const renderedMessageItems = useMemo(
-    () =>
-      currentMessages.map((msg, idx) => {
+    () => {
+      const groupStarts = getChatGroupStarts(currentMessages);
+      return currentMessages.map((msg, idx) => {
         const isMe = currentUser ? msg.authorId === currentUser.id : false;
         const isSuperAdminMsg = isMasterAdmin(msg.authorEmail);
         const isSuperAdmin = currentUser ? isMasterAdmin(currentUser.email) : false;
-        const authorDisplayName = (isSuperAdminMsg ? MASTER_ADMIN_CONFIG.name : msg.authorName).replace(/ \(.*\)/, '');
+        const rawAuthorName = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.name : String(msg.authorName || '');
         const authorDisplayAvatar = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.avatar : msg.authorAvatar;
         const resolvedMsgUser = resolveChatUser(
           isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
           msg.authorId,
         );
-        const prevMsg = idx > 0 ? currentMessages[idx - 1] : null;
-        const isContinuation = Boolean(prevMsg && prevMsg.authorId === msg.authorId);
+        const authorDisplayName = (
+          resolvedMsgUser?.name?.trim() ||
+          (rawAuthorName.includes('@') ? rawAuthorName.split('@')[0] : rawAuthorName)
+        ).replace(/ \(.*\)/, '');
+        const isContinuation = !groupStarts[idx];
 
         const authorPayload =
           isMe && currentUser
@@ -315,42 +329,40 @@ export const ChatView: React.FC<ChatViewProps> = ({
         return (
           <div
             key={msg.id}
-            className={`ff-chat-message-row group/msg flex items-start gap-3 px-3 sm:px-4 py-1.5 rounded-2xl hover:bg-white/[0.025] transition-all duration-150 ${
+            className={`ff-chat-message-row group/msg flex items-start gap-3 px-3 sm:px-4 py-1.5 rounded-2xl transition-all duration-150 ${
               isMe ? 'ff-chat-message-row--mine flex-row-reverse' : ''
-            } ${isContinuation ? 'mt-0.5' : 'mt-3.5'}`}
+            } ${isContinuation ? 'ff-chat-message-row--continuation' : 'ff-chat-message-row--group-start'}`}
           >
-            {/* Cột Avatar hoặc khoảng đệm căn lề khi gộp tin nhắn liên tiếp */}
+            {/* Avatar chỉ xuất hiện ở đầu cụm; tin nối tiếp giữ khoảng đệm để thẳng cột */}
             {!isContinuation ? (
               <button
                 type="button"
                 onClick={(e) => openAuthorCardFromEvent(e, authorPayload)}
-                className="ff-chat-message-avatar relative shrink-0 mt-0.5 cursor-pointer focus:outline-none transition-transform hover:scale-105"
+                className="ff-chat-message-avatar relative shrink-0 cursor-pointer focus:outline-none transition-transform hover:scale-105"
                 title={`Xem thông tin ${authorDisplayName}`}
               >
                 <DecoratedAvatar
                   user={resolvedMsgUser}
                   fallbackSrc={authorDisplayAvatar}
-                  size={38}
+                  size={36}
                   animate
                   alt={authorDisplayName}
                   className={`rounded-full ${
                     isSuperAdminMsg
-                      ? 'ring-2 ring-[#e9c46a] shadow-[0_0_14px_rgba(233,196,106,0.35)]'
-                      : 'ring-1 ring-[#f8f7f4]/18 shadow-sm'
+                      ? 'ring-2 ring-[#e9c46a]'
+                      : 'ring-1 ring-[#f8f7f4]/16'
                   }`}
                 />
                 <span className="absolute -bottom-1 -right-1 z-[4]">
                   <TierBadge
                     level={isSuperAdminMsg ? 150 : msg.authorLevel}
-                    size={14}
+                    size={13}
                     showTooltip={false}
                   />
                 </span>
               </button>
             ) : (
-              <div className="ff-chat-message-avatar ff-chat-message-avatar--continuation w-9 shrink-0 select-none text-[9.5px] font-mono text-[#a39f96]/0 group-hover/msg:text-[#a39f96]/70 text-center pt-2 transition-colors">
-                {msg.timestamp.slice(0, 5)}
-              </div>
+              <div className="ff-chat-message-avatar ff-chat-message-avatar--spacer" aria-hidden="true" />
             )}
 
             {/* Nội dung tin nhắn */}
@@ -361,8 +373,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
             >
               {!isContinuation && (
                 <div
-                  className={`ff-chat-message-meta flex items-center gap-2 mb-1.5 text-xs flex-wrap ${
-                    isMe ? 'ff-chat-message-meta--mine justify-end flex-row-reverse' : ''
+                  className={`ff-chat-message-meta flex items-center gap-2 mb-1.5 ${
+                    isMe ? 'ff-chat-message-meta--mine justify-end' : ''
                   }`}
                 >
                   <button
@@ -370,43 +382,34 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     onClick={(e) => openAuthorCardFromEvent(e, authorPayload)}
                     className="ff-chat-message-author inline-flex items-center gap-1.5 cursor-pointer hover:underline text-left"
                   >
-                    <DecoratedName
-                      user={resolvedMsgUser}
-                      name={authorDisplayName}
-                      width={132}
-                      height={24}
-                      animate
-                      showFallbackTag
-                      className={`text-[13px] font-bold ${
+                    <span
+                      className={`ff-chat-message-author-name text-[13px] font-bold ${
                         isSuperAdminMsg
                           ? 'text-[#e9c46a]'
                           : isMe
-                          ? 'text-[#81b29a]'
-                          : 'text-[#f8f7f4]'
+                          ? 'text-[#9cc4ae]'
+                          : 'text-[#f4f1e8]'
                       }`}
-                    />
+                    >
+                      {authorDisplayName}
+                    </span>
                   </button>
 
-                  <span className={`${isMe ? 'hidden sm:inline-flex' : 'inline-flex'} items-center gap-2`}>
-                    <ChatRoleIcon user={resolvedMsgUser} isSuperAdmin={isSuperAdminMsg} />
-                    {isSuperAdminMsg ? (
-                      <span className="px-2 py-0.5 rounded-md bg-[#e9c46a]/15 text-[#e9c46a] border border-[#e9c46a]/35 text-[10px] font-mono font-bold tracking-wide">
-                        Ban Giám Hiệu
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-mono text-[#a39f96] px-1.5 py-0.2 rounded-md bg-[#f8f7f4]/[0.05] border border-[#f8f7f4]/[0.08]">
-                        Lv.{msg.authorLevel || 1}
-                      </span>
-                    )}
-                  </span>
+                  <ChatRoleIcon user={resolvedMsgUser} isSuperAdmin={isSuperAdminMsg} size={12} />
 
-                  <span className="text-[10.5px] text-[#8e8a82] font-mono">
+                  {isSuperAdminMsg && (
+                    <span className="ff-chat-role-text px-2 py-0.5 rounded-md bg-[#e9c46a]/12 text-[#e9c46a] border border-[#e9c46a]/28 text-[10px] font-mono font-bold tracking-wide">
+                      Ban Giám Hiệu
+                    </span>
+                  )}
+
+                  <span className="ff-chat-message-time text-[10.5px] text-[#928d82] font-mono">
                     {msg.timestamp}
                   </span>
                 </div>
               )}
 
-              <div className={`ff-chat-message-content flex items-center gap-2.5 ${isMe ? 'ff-chat-message-content--mine flex-row-reverse' : ''}`}>
+              <div className={`ff-chat-message-content flex items-center gap-2 ${isMe ? 'ff-chat-message-content--mine flex-row-reverse' : ''}`}>
                 <div
                   className={`ff-chat-message-bubble w-fit px-4 py-2.5 text-[13.5px] leading-relaxed break-words transition-all duration-150 ${
                     isMe
@@ -419,46 +422,27 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   <ChatMessageContent message={msg} users={users} currentUser={currentUser} />
                 </div>
 
-                {/* Cụm nút tương tác nhanh khi rê chuột: Trả lời & Thu hồi */}
-                <div className="ff-chat-message-actions opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100 transition-all duration-150 flex items-center gap-1 shrink-0 bg-[#151c2a]/90 backdrop-blur-md px-1.5 py-1 rounded-xl border border-[#f8f7f4]/12 shadow-md">
-                  {currentUser && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setReplyingTo({
-                          id: msg.id,
-                          authorId: msg.authorId,
-                          authorName: authorDisplayName,
-                          excerpt: msg.content.slice(0, 64),
-                        });
-                        inputRef.current?.focus();
-                      }}
-                      className="ff-icon-button ff-chat-action-button rounded-lg hover:bg-white/10 text-[#a39f96] hover:text-[#f8f7f4] transition-colors cursor-pointer"
-                      title="Trả lời tin nhắn này"
-                      aria-label="Trả lời tin nhắn"
-                    >
-                      <CornerUpLeft className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-
-                  {(isSuperAdmin || canRecallMessages) && (
-                    <button
-                      type="button"
-                      onClick={() => onDeleteMessage?.(msg.id)}
-                      className="ff-icon-button ff-chat-action-button rounded-lg text-rose-300 hover:text-rose-200 hover:bg-rose-500/20 transition-colors cursor-pointer"
-                      title="Thu hồi tin nhắn vi phạm"
-                      aria-label="Thu hồi tin nhắn"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span className="sr-only">Thu hồi tin nhắn</span>
-                    </button>
-                  )}
-                </div>
+                <ChatMessageActions
+                  canReply={Boolean(currentUser)}
+                  canDelete={Boolean(isSuperAdmin || canRecallMessages)}
+                  align={isMe ? 'end' : 'start'}
+                  onReply={() => {
+                    setReplyingTo({
+                      id: msg.id,
+                      authorId: msg.authorId,
+                      authorName: authorDisplayName,
+                      excerpt: msg.content.slice(0, 64),
+                    });
+                    inputRef.current?.focus();
+                  }}
+                  onDelete={() => onDeleteMessage?.(msg.id)}
+                />
               </div>
             </div>
           </div>
         );
-      }),
+      });
+    },
     [currentMessages, currentUser, users, canRecallMessages, resolveChatUser, onDeleteMessage, openAuthorCardFromEvent],
   );
 
@@ -537,39 +521,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
       <div
         className="page-content-wrapper relative z-10 w-full max-w-7xl mx-auto flex-1 min-h-0 flex flex-col overflow-hidden px-2 sm:px-6 py-2 md:py-4"
       >
-        {/* Thanh điều hướng rút gọn trên Mobile (< 768px) */}
-        <div className="md:hidden flex items-center justify-between p-2 mb-2 rounded-2xl bg-[#0e131d]/90 backdrop-blur-md border border-[#f8f7f4]/12 shadow-sm shrink-0">
-          <button
-            type="button"
-            onClick={() => setIsChannelDrawerOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#81b29a]/18 border border-[#81b29a]/35 text-[#f8f7f4] text-xs font-semibold cursor-pointer max-w-[54%] shadow-sm"
-            aria-label="Chọn chuyên kênh đàm thoại"
-          >
-            <Hash className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
-            <span className="truncate">{currentChannelObj.name}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-[#a39f96] shrink-0" />
-          </button>
-
-          <span className="text-[11px] font-mono text-[#a39f96]">
-            {currentMessages.length} tin
-          </span>
-
-          <InfoTip label="Nội quy phòng chat" align="start">
-            Trao đổi văn minh, tôn trọng bạn học và thầy cô.
-          </InfoTip>
-
-          <button
-            type="button"
-            onClick={() => setIsMembersDrawerOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#141b28] border border-[#f8f7f4]/12 text-[#dad7d0] text-xs font-mono font-semibold cursor-pointer shadow-sm"
-            aria-label="Xem thành viên trực tuyến"
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)] shrink-0" />
-            <span>{dynamicOnlineCount}</span>
-            <Users className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
-          </button>
-        </div>
-
         {/* Khung Không Gian Làm Việc Hợp Nhất 3 Cột (Unified Split-Pane Academic Workspace) */}
         <div className="ff-chat-workspace flex-1 min-h-0 flex border border-[#f8f7f4]/15 rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl backdrop-blur-xl">
           
@@ -728,22 +679,35 @@ export const ChatView: React.FC<ChatViewProps> = ({
           {/* CỘT GIỮA: Luồng hội thoại & khung soạn tin nhắn */}
           <div className="ff-chat-main-pane flex-1 min-h-0 flex flex-col bg-[#0f1520]">
             
-            <header className="hidden md:flex h-14 px-4 sm:px-6 border-b border-[#f8f7f4]/10 bg-[#0d121c]/90 backdrop-blur-xl items-center justify-between gap-3 shrink-0">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#81b29a]/25 to-[#81b29a]/10 border border-[#81b29a]/40 flex items-center justify-center shrink-0 shadow-sm">
+            <header className="flex h-14 px-3 sm:px-6 border-b border-[#f8f7f4]/10 bg-[#0d121c]/90 backdrop-blur-xl items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="hidden sm:flex w-9 h-9 rounded-xl bg-gradient-to-br from-[#81b29a]/25 to-[#81b29a]/10 border border-[#81b29a]/40 items-center justify-center shrink-0 shadow-sm">
                   <CurrentChannelIcon className="w-4 h-4 text-[#81b29a]" />
                 </div>
-                <div className="min-w-0 flex items-center gap-2.5 flex-wrap">
-                  <h1 className="font-extrabold text-sm sm:text-base text-[#f8f7f4] tracking-tight truncate flex items-center gap-1">
+                <div className="min-w-0 flex items-center gap-2">
+                  <h1 className="font-extrabold text-sm sm:text-base text-[#f8f7f4] tracking-tight truncate flex items-center gap-1 min-w-0">
                     <span className="text-[#81b29a] font-mono">#</span>
-                    <span>{currentChannelObj.name}</span>
+                    <span className="truncate">{currentChannelObj.name}</span>
                   </h1>
-                  <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-mono text-[#a39f96] bg-[#141b28] border border-[#f8f7f4]/08">
+                  <button
+                    type="button"
+                    onClick={() => setIsChannelDrawerOpen(true)}
+                    className="ff-chat-mobile-channel inline-grid place-items-center md:hidden rounded-lg text-[#a8a294] hover:text-[#f8f7f4] hover:bg-white/8 cursor-pointer shrink-0"
+                    aria-label="Đổi kênh đàm thoại"
+                    aria-haspopup="dialog"
+                    aria-expanded={isChannelDrawerOpen}
+                    title="Đổi kênh"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                  <span className="hidden xl:inline-block whitespace-nowrap px-2 py-0.5 rounded-full text-[10px] font-mono text-[#a39f96] bg-[#141b28] border border-[#f8f7f4]/08">
                     {currentChannelObj.subtitle}
                   </span>
-                  <InfoTip label="Nội quy phòng chat" align="start">
-                    Trao đổi văn minh, tôn trọng bạn học và thầy cô.
-                  </InfoTip>
+                  <span className="hidden xl:inline-flex">
+                    <InfoTip label="Nội quy phòng chat" align="start">
+                      Trao đổi văn minh, tôn trọng bạn học và thầy cô.
+                    </InfoTip>
+                  </span>
                 </div>
               </div>
 
@@ -757,7 +721,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder="Tìm trong kênh..."
                     aria-label="Tìm tin nhắn trong kênh"
-                    className="w-40 lg:w-52 pl-8 pr-7 py-1.5 rounded-xl bg-[#131924]/80 border border-[#f8f7f4]/12 text-xs text-[#f8f7f4] placeholder-[#8e8a82] focus:outline-none focus:border-[#81b29a]/70 focus:w-56 transition-all duration-200"
+                    className="w-36 xl:w-52 pl-8 pr-7 py-1.5 rounded-xl bg-[#131924]/80 border border-[#f8f7f4]/12 text-xs text-[#f8f7f4] placeholder-[#8e8a82] focus:outline-none focus:border-[#81b29a]/70 focus:w-40 xl:focus:w-56 transition-all duration-200"
                   />
                   {searchQuery && (
                     <button
@@ -784,6 +748,17 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
                   <PanelRight className="w-3.5 h-3.5 text-[#81b29a]" />
                   <span className="font-mono text-xs">{dynamicOnlineCount}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsMembersDrawerOpen(true)}
+                  className="ff-chat-mobile-members inline-flex md:hidden items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#141b28] border border-[#f8f7f4]/12 text-[#dad7d0] text-[11px] font-mono font-semibold cursor-pointer"
+                  aria-label="Xem thành viên trực tuyến"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                  <span>{dynamicOnlineCount}</span>
+                  <Users className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
                 </button>
               </div>
             </header>
@@ -956,7 +931,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
             <aside className="hidden lg:flex w-[250px] xl:w-[270px] shrink-0 ff-chat-roster-pane flex-col border-l border-[#f8f7f4]/10 bg-[#0c111a]/95">
               <div className="h-14 px-4 border-b border-[#f8f7f4]/10 flex items-center justify-between shrink-0">
                 <span className="text-xs font-bold text-[#f8f7f4] tracking-wide flex items-center gap-1.5">
-                  <span className="ff-swash-cap text-sm">T</span>hành viên
+                  <span>Thành viên</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#81b29a]/15 border border-[#81b29a]/35 text-[10.5px] font-mono font-semibold text-[#81b29a]">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />

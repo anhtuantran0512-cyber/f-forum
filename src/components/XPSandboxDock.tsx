@@ -52,7 +52,7 @@ export const XPSandboxDock: React.FC<XPSandboxDockProps> = ({
       : Math.min(100, Math.max(0, Math.round(((xp - currentLevelBaseXP) / range) * 100)));
 
   return (
-    <div ref={containerRef} className="fixed bottom-4 left-4 z-40 select-none">
+    <div ref={containerRef} className="xp-sandbox-dock fixed bottom-4 left-4 z-40 select-none">
       {/* Expanded XP Booster Panel (Upward Expansion) */}
       {isExpanded && (
         <div className="modal-container absolute bottom-[calc(100%+10px)] left-0 w-72 liquid-glass backdrop-blur-2xl p-4 animate-fade-up space-y-3">

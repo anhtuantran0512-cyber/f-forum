@@ -225,6 +225,13 @@ html.light .ff-mobile-dock > button::before {
   background: linear-gradient(145deg, rgba(233, 196, 106, 0.24), rgba(129, 178, 154, 0.12));
 }
 
+html.light .ff-mobile-dock > button[aria-current='page'],
+html.light .ff-mobile-dock > button[aria-expanded='true'],
+html.light .ff-mobile-dock > button[data-active='true'] {
+  border-color: rgba(139, 100, 39, 0.24);
+  color: #8a5a12 !important;
+}
+
 /* Tablet / compact-laptop: use the full canvas without forcing desktop density. */
 @media (min-width: 768px) and (max-width: 1100px) {
   .ff-app-shell {
@@ -284,7 +291,7 @@ html.light .ff-mobile-dock > button::before {
   .ff-view-chat .page-content-wrapper {
     height: auto !important;
     min-height: 0;
-    padding-inline: var(--ff-responsive-gutter);
+    padding-inline: 0;
   }
 
   .ff-app-shell :is(.ff-qa-room, .threads-bg, .club-plaza-page) {

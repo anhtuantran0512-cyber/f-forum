@@ -4,7 +4,6 @@ import { createPortal } from 'react-dom';
 import {
   X,
   LogIn,
-  Trash2,
   MessageSquareDashed,
   Flag,
   User as UserIcon,
@@ -32,7 +31,9 @@ import { useChatCooldown } from '../utils/chatCooldown';
 import { useChatMentionComposer } from '../utils/chatMentions';
 import { ChatMentionPicker } from './chat/ChatMentionPicker';
 import { ChatMessageContent } from './chat/ChatMessageContent';
+import { ChatMessageActions } from './chat/ChatMessageActions';
 import { ChatRoleIcon } from './chat/ChatRoleIcon';
+import { getChatGroupStarts } from '../utils/chatTimeline';
 import { ThinkingBubble } from './ViewTransitionLoader';
 import { postJson } from '../utils/session';
 import { describeReportResult, settleReportRequest } from '../utils/reports';
@@ -216,19 +217,23 @@ export const ChatDock: React.FC<ChatDockProps> = ({
   );
 
   const renderedDockMessages = useMemo(
-    () =>
-      currentMessages.map((msg, idx) => {
+    () => {
+      const groupStarts = getChatGroupStarts(currentMessages);
+      return currentMessages.map((msg, idx) => {
         const isMe = currentUser ? msg.authorId === currentUser.id : false;
         const isSuperAdminMsg = isMasterAdmin(msg.authorEmail);
         const isSuperAdmin = currentUser ? isMasterAdmin(currentUser.email) : false;
-        const authorDisplayName = (isSuperAdminMsg ? MASTER_ADMIN_CONFIG.name : msg.authorName).replace(/ \(.*\)/, '');
+        const rawAuthorName = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.name : String(msg.authorName || '');
         const authorDisplayAvatar = isSuperAdminMsg ? MASTER_ADMIN_CONFIG.avatar : msg.authorAvatar;
         const resolvedDockUser = resolveChatUser(
           isSuperAdminMsg ? MASTER_ADMIN_CONFIG.email : msg.authorEmail,
           msg.authorId,
         );
-        const prevMsg = idx > 0 ? currentMessages[idx - 1] : null;
-        const isContinuation = Boolean(prevMsg && prevMsg.authorId === msg.authorId);
+        const authorDisplayName = (
+          resolvedDockUser?.name?.trim() ||
+          (rawAuthorName.includes('@') ? rawAuthorName.split('@')[0] : rawAuthorName)
+        ).replace(/ \(.*\)/, '');
+        const isContinuation = !groupStarts[idx];
 
         const authorPayload =
           isMe && currentUser
@@ -250,15 +255,15 @@ export const ChatDock: React.FC<ChatDockProps> = ({
         return (
           <div
             key={msg.id}
-            className={`ff-chat-message-row group/msg flex items-start gap-2.5 px-1.5 py-0.5 rounded-lg hover:bg-[#f8f7f4]/[0.02] transition-colors ${
+            className={`ff-chat-message-row ff-chat-dock-message-row group/msg flex items-start gap-2.5 px-1.5 py-0.5 rounded-lg transition-colors ${
               isMe ? 'ff-chat-message-row--mine flex-row-reverse' : ''
-            } ${isContinuation ? 'mt-0.5' : 'mt-2.5'}`}
+            } ${isContinuation ? 'ff-chat-message-row--continuation' : 'ff-chat-message-row--group-start'}`}
           >
             {!isContinuation ? (
               <button
                 type="button"
                 onClick={e => openAuthorCardFromEvent(e, authorPayload)}
-                className="ff-chat-message-avatar relative shrink-0 mt-0.5 cursor-pointer focus:outline-none"
+                className="ff-chat-message-avatar relative shrink-0 cursor-pointer focus:outline-none"
                 title={`Xem hồ sơ ${authorDisplayName}`}
               >
                 <DecoratedAvatar
@@ -276,15 +281,13 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                 <span className="absolute -bottom-1 -right-1 z-[4]">
                   <TierBadge
                     level={isSuperAdminMsg ? 150 : msg.authorLevel}
-                    size={13}
+                    size={12}
                     showTooltip={false}
                   />
                 </span>
               </button>
             ) : (
-              <div className="ff-chat-message-avatar ff-chat-message-avatar--continuation w-8 shrink-0 select-none text-[9px] font-mono text-[#a39f96]/0 group-hover/msg:text-[#a39f96]/70 text-center pt-1.5 transition-colors">
-                {msg.timestamp.slice(0, 5)}
-              </div>
+              <div className="ff-chat-message-avatar ff-chat-message-avatar--spacer" aria-hidden="true" />
             )}
 
             <div
@@ -294,8 +297,8 @@ export const ChatDock: React.FC<ChatDockProps> = ({
             >
               {!isContinuation && (
                 <div
-                  className={`ff-chat-message-meta flex items-center gap-1.5 mb-0.5 flex-wrap ${
-                    isMe ? 'ff-chat-message-meta--mine justify-end flex-row-reverse' : ''
+                  className={`ff-chat-message-meta flex items-center gap-1.5 mb-0.5 ${
+                    isMe ? 'ff-chat-message-meta--mine justify-end' : ''
                   }`}
                 >
                   <button
@@ -303,29 +306,25 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                     onClick={e => openAuthorCardFromEvent(e, authorPayload)}
                     className="ff-chat-message-author inline-flex items-center gap-1 cursor-pointer hover:underline"
                   >
-                    <DecoratedName
-                      user={resolvedDockUser}
-                      name={authorDisplayName}
-                      width={124}
-                      height={22}
-                      animate={isOpen}
-                      showFallbackTag
-                      className={`text-xs font-semibold ${
+                    <span
+                      className={`ff-chat-message-author-name text-xs font-semibold ${
                         isSuperAdminMsg
                           ? 'text-[#e9c46a]'
                           : isMe
-                          ? 'text-[#81b29a]'
-                          : 'text-[#f8f7f4]'
+                          ? 'text-[#9cc4ae]'
+                          : 'text-[#f4f1e8]'
                       }`}
-                    />
+                    >
+                      {authorDisplayName}
+                    </span>
                   </button>
-                  <ChatRoleIcon user={resolvedDockUser} isSuperAdmin={isSuperAdminMsg} size={12} />
-                  {!isSuperAdminMsg && (
-                    <span className="text-[9.5px] font-mono text-[#a39f96]">
-                      Lv.{msg.authorLevel || 1}
+                  <ChatRoleIcon user={resolvedDockUser} isSuperAdmin={isSuperAdminMsg} size={11} />
+                  {isSuperAdminMsg && (
+                    <span className="ff-chat-role-text text-[9px] font-mono font-bold text-[#e9c46a]" title="Ban Giám Hiệu">
+                      BGH
                     </span>
                   )}
-                  <span className="text-[9.5px] text-[#a39f96] font-mono">
+                  <span className="ff-chat-message-time text-[9.5px] text-[#928d82] font-mono">
                     {msg.timestamp}
                   </span>
                 </div>
@@ -344,44 +343,27 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   <ChatMessageContent message={msg} users={users} currentUser={currentUser} />
                 </div>
 
-                <div className="ff-chat-message-actions opacity-0 group-hover/msg:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-1 shrink-0">
-                  {currentUser && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setReplyingTo({
-                          id: msg.id,
-                          authorId: msg.authorId,
-                          authorName: authorDisplayName,
-                          excerpt: msg.content.slice(0, 48),
-                        });
-                        inputRef.current?.focus();
-                      }}
-                      className="ff-icon-button ff-chat-action-button rounded-md bg-[#161d2b] hover:bg-[#1f293d] border border-[#f8f7f4]/12 text-[#a39f96] hover:text-[#f8f7f4] cursor-pointer"
-                      title="Trả lời tin nhắn"
-                    >
-                      <CornerUpLeft className="w-3 h-3" />
-                    </button>
-                  )}
-
-                  {(isSuperAdmin || canRecallMessages) && (
-                    <button
-                      type="button"
-                      onClick={() => onDeleteMessage?.(msg.id)}
-                      className="ff-icon-button ff-chat-action-button rounded-md text-rose-300 hover:text-rose-200 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 cursor-pointer"
-                      title="Thu hồi tin nhắn vi phạm"
-                      aria-label="Thu hồi tin nhắn"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                      <span className="sr-only">Thu hồi tin nhắn</span>
-                    </button>
-                  )}
-                </div>
+                <ChatMessageActions
+                  canReply={Boolean(currentUser)}
+                  canDelete={Boolean(isSuperAdmin || canRecallMessages)}
+                  align={isMe ? 'end' : 'start'}
+                  onReply={() => {
+                    setReplyingTo({
+                      id: msg.id,
+                      authorId: msg.authorId,
+                      authorName: authorDisplayName,
+                      excerpt: msg.content.slice(0, 48),
+                    });
+                    inputRef.current?.focus();
+                  }}
+                  onDelete={() => onDeleteMessage?.(msg.id)}
+                />
               </div>
             </div>
           </div>
         );
-      }),
+      });
+    },
     [currentMessages, currentUser, users, canRecallMessages, resolveChatUser, onDeleteMessage, isOpen, openAuthorCardFromEvent],
   );
 

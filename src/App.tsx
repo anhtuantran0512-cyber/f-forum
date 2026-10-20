@@ -1302,7 +1302,7 @@ export const App: React.FC = () => {
       />
 
       {/* Radial quick actions (ccm-02 sin()/cos() fan at bottom-left below Streak) */}
-      {currentView !== 'landing' && currentView !== 'chronicles' && currentView !== 'exam-viewer' && !isChatOpen && !(currentView === 'qa' && isQADetailOpen) && (
+      {currentView !== 'landing' && currentView !== 'chronicles' && currentView !== 'exam-viewer' && currentView !== 'chat' && !isChatOpen && !(currentView === 'qa' && isQADetailOpen) && (
         <RadialQuickMenu
           onOpenFocusMode={() => setIsFocusModeOpen(true)}
           onOpenClubs={() => handleViewChange('clubs')}
