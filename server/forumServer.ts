@@ -1075,6 +1075,12 @@ async function syncStoreToSupabaseCloud(): Promise<void> {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://zmswatzslnkeekwnlvqh.supabase.co';
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   if (!supabaseKey) return;
+  /* Trên serverless: chỉ ghi cloud khi đã hydrate THÀNH CÔNG. Nếu hydrate lỗi
+     (mạng/5xx/khoá sai), ghi seed lên sẽ xoá mất dữ liệu thật của cộng đồng. */
+  if (process.env.VERCEL && !supabaseHydrationUsable) {
+    console.warn('[Forum Server] Bỏ qua ghi Supabase: chưa hydrate thành công — không ghi đè dữ liệu cloud bằng seed.');
+    return;
+  }
   try {
     const content = JSON.stringify(store);
     await fetch(`${supabaseUrl}/storage/v1/object/fforum-data/forum-data.json`, {
@@ -1967,6 +1973,9 @@ function revokeAllSessionsOf(email: string, reason: SessionRevocationReason): nu
 let cachedForumMiddleware: ((req: IncomingMessage, res: ServerResponse, next: () => void) => Promise<void>) | null = null;
 let serverSetupDone = false;
 let supabaseHydrated = false;
+let supabaseHydrationUsable = false;
+let supabaseHydrationInFlight: Promise<void> | null = null;
+let supabaseHydrationRetryAt = 0;
 
 export function setupForumServer(httpServer: any, middlewares: any) {
   loadStoreFromDisk();
@@ -7376,6 +7385,65 @@ export function setupForumServer(httpServer: any, middlewares: any) {
 }
 
 /**
+ * Nạp dữ liệu cloud một lần cho mỗi instance serverless.
+ *
+ * Chỉ đánh dấu `supabaseHydrated` khi đã biết chắc trạng thái cloud: tải được
+ * object, object chưa tồn tại, hoặc không cấu hình khoá. Lỗi mạng/5xx thì giữ
+ * cờ false để lần gọi sau thử lại; trong lúc đó `syncStoreToSupabaseCloud` bị
+ * chặn, tránh việc seed 1 user ghi đè dữ liệu thật của cộng đồng.
+ */
+async function hydrateStoreFromSupabaseCloud(): Promise<void> {
+  if (supabaseHydrated) return;
+  if (supabaseHydrationInFlight) return supabaseHydrationInFlight;
+  if (Date.now() < supabaseHydrationRetryAt) return;
+
+  supabaseHydrationInFlight = (async () => {
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://zmswatzslnkeekwnlvqh.supabase.co';
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    if (!supabaseKey) {
+      supabaseHydrated = true;
+      return;
+    }
+    try {
+      const cloudRes = await fetch(`${supabaseUrl}/storage/v1/object/fforum-data/forum-data.json`, {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+        },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (cloudRes.ok) {
+        const cloudData = (await cloudRes.json()) as any;
+        if (cloudData && typeof cloudData === 'object' && cloudData.users) {
+          const target = dataFilePath();
+          const dir = path.dirname(target);
+          if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+          fs.writeFileSync(target, JSON.stringify(cloudData, null, 2), 'utf8');
+          loadStoreFromDisk();
+        }
+        supabaseHydrated = true;
+        supabaseHydrationUsable = true;
+        return;
+      }
+      if (cloudRes.status === 400 || cloudRes.status === 404) {
+        /* Cloud chưa có object: cho phép lần ghi đầu tiên tạo dữ liệu. */
+        supabaseHydrated = true;
+        supabaseHydrationUsable = true;
+        return;
+      }
+      console.warn(`[Forum Server] Nạp Supabase thất bại (HTTP ${cloudRes.status}) — giữ dữ liệu tạm và chặn ghi cloud.`);
+      supabaseHydrationRetryAt = Date.now() + 30_000;
+    } catch (err) {
+      console.warn('[Forum Server] Nạp Supabase lỗi:', err instanceof Error ? err.message : err);
+      supabaseHydrationRetryAt = Date.now() + 30_000;
+    } finally {
+      supabaseHydrationInFlight = null;
+    }
+  })();
+  return supabaseHydrationInFlight;
+}
+
+/**
  * Trình xử lý API độc lập phục vụ môi trường Serverless trên Vercel hoặc Edge Adapter.
  * Tự động nạp bộ nhớ, đồng bộ Supabase và định tuyến an toàn không phụ thuộc máy chủ cục bộ.
  */
@@ -7385,33 +7453,7 @@ export async function handleForumApiRequest(req: IncomingMessage, res: ServerRes
     serverSetupDone = true;
   }
 
-  if (!supabaseHydrated) {
-    supabaseHydrated = true;
-    try {
-      const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://zmswatzslnkeekwnlvqh.supabase.co';
-      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-      if (supabaseKey) {
-        const cloudRes = await fetch(`${supabaseUrl}/storage/v1/object/fforum-data/forum-data.json`, {
-          headers: {
-            apikey: supabaseKey,
-            Authorization: `Bearer ${supabaseKey}`,
-          },
-        });
-        if (cloudRes.ok) {
-          const cloudData = (await cloudRes.json()) as any;
-          if (cloudData && typeof cloudData === 'object' && cloudData.users) {
-            const target = dataFilePath();
-            const dir = path.dirname(target);
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            fs.writeFileSync(target, JSON.stringify(cloudData, null, 2), 'utf8');
-            loadStoreFromDisk();
-          }
-        }
-      }
-    } catch {
-      /* Bỏ qua nếu không kết nối được Supabase, giữ dữ liệu hạt giống ban đầu */
-    }
-  }
+  if (!supabaseHydrated) await hydrateStoreFromSupabaseCloud();
 
   /* Chuẩn hoá đường dẫn nếu Vercel chuyển tiếp dạng rewrite, query path hoặc header */
   const rawUrl = req.url || '';

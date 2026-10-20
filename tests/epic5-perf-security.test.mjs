@@ -728,3 +728,19 @@ test('22. Ảnh thương hiệu: avatar admin tự host nhẹ & og-cover 1200×6
     'khôi phục phiên phải thay avatar CDN cũ bằng avatar tự host',
   );
 });
+
+test('23. Hydrate Supabase: lỗi tạm thời không được ghi đè cloud bằng seed', () => {
+  const server = fs.readFileSync('server/forumServer.ts', 'utf8');
+  assert.ok(server.includes('async function hydrateStoreFromSupabaseCloud'), 'hydrate phải tách hàm riêng có retry');
+  assert.ok(server.includes('supabaseHydrationUsable'), 'phải có cờ đánh dấu hydrate thành công');
+  assert.ok(
+    server.includes('process.env.VERCEL && !supabaseHydrationUsable'),
+    'serverless phải chặn ghi cloud khi chưa hydrate xong',
+  );
+  assert.ok(server.includes('không ghi đè dữ liệu cloud bằng seed'), 'cảnh báo phải nói rõ nguy cơ ghi đè');
+  assert.ok(server.includes('AbortSignal.timeout(5000)'), 'hydrate phải có timeout để không treo request');
+  assert.ok(
+    server.includes('cloudRes.status === 400 || cloudRes.status === 404'),
+    'cloud chưa có object vẫn phải cho phép ghi lần đầu',
+  );
+});
