@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { safeStorage } from './storage';
 
 export type SpiritSpecies = 'koi' | 'owl' | 'nautilus';
@@ -14,6 +13,7 @@ export interface SpiritSettings {
 }
 
 const STORAGE_KEY = 'ff_scholar_spirit_settings';
+export const LIFETIME_FOCUS_KEY = 'ff_lifetime_focus_minutes';
 
 const DEFAULT_SETTINGS: SpiritSettings = {
   enabled: true,
@@ -46,7 +46,28 @@ export function saveSpiritSettings(settings: SpiritSettings): void {
   try {
     safeStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     window.dispatchEvent(new CustomEvent('ff_spirit_settings_changed', { detail: settings }));
+  } catch {}
+}
+
+export function getLifetimeFocusMinutes(): number {
+  try {
+    const raw = safeStorage.getItem(LIFETIME_FOCUS_KEY);
+    if (!raw) return 0;
+    const val = parseInt(raw, 10);
+    return isNaN(val) || val < 0 ? 0 : val;
   } catch {
-    /* Safe ignore */
+    return 0;
+  }
+}
+
+export function addLifetimeFocusMinutes(minutes: number): number {
+  try {
+    const current = getLifetimeFocusMinutes();
+    const updated = current + Math.max(0, Math.round(minutes));
+    safeStorage.setItem(LIFETIME_FOCUS_KEY, updated.toString());
+    window.dispatchEvent(new CustomEvent('ff_lifetime_focus_changed', { detail: { minutes: updated } }));
+    return updated;
+  } catch {
+    return 0;
   }
 }

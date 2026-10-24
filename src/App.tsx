@@ -38,7 +38,8 @@ import {
   BookOpen,
 } from 'lucide-react';
 import type { DimensionView, User } from './types';
-import { CommandPalette, type PaletteCommand } from './components/CommandPalette';
+import { CommandPaletteModal as CommandPalette, type PaletteCommand } from './components/CommandPaletteModal';
+import { readFocusSession, requestFocusStop, startFocusSession } from './utils/focusSession';
 import { searchCorpus, type SearchHit } from './utils/globalSearch';
 import { QuickNotesDock } from './components/QuickNotesDock';
 import { StudyCareCoach } from './components/StudyCareCoach';
@@ -384,8 +385,10 @@ export const App: React.FC = () => {
   useEffect(() => {
     const onOpenMemorial = () => setIsMemorialModalOpen(true);
     const onOpenCheckIn = () => setIsCheckInModalOpen(true);
+
     window.addEventListener('fforum_open_memorial_wall', onOpenMemorial);
     window.addEventListener('fforum_open_daily_checkin', onOpenCheckIn);
+
     return () => {
       window.removeEventListener('fforum_open_memorial_wall', onOpenMemorial);
       window.removeEventListener('fforum_open_daily_checkin', onOpenCheckIn);
@@ -636,6 +639,25 @@ export const App: React.FC = () => {
     },
     [currentView, setCurrentView, beginTransition],
   );
+
+  useEffect(() => {
+    const onNavExam = () => handleViewChange('exam-vault');
+    const onNavQa = () => handleViewChange('qa');
+    const onNavThreads = () => handleViewChange('threads');
+    const onOpenFocus = () => setIsFocusModeOpen(true);
+
+    window.addEventListener('fforum_nav_exam', onNavExam);
+    window.addEventListener('fforum_nav_qa', onNavQa);
+    window.addEventListener('fforum_nav_threads', onNavThreads);
+    window.addEventListener('fforum_open_focus', onOpenFocus);
+
+    return () => {
+      window.removeEventListener('fforum_nav_exam', onNavExam);
+      window.removeEventListener('fforum_nav_qa', onNavQa);
+      window.removeEventListener('fforum_nav_threads', onNavThreads);
+      window.removeEventListener('fforum_open_focus', onOpenFocus);
+    };
+  }, [handleViewChange]);
 
   /* Chuyển thẳng vào Khu chat chung thay vì mở hộp chat nhỏ */
   const handleToggleChat = useCallback(() => {
@@ -963,16 +985,42 @@ export const App: React.FC = () => {
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
+      const isTyping = isTypingTarget(e.target);
       const mod = e.ctrlKey || e.metaKey;
+
+      if (!mod && !isTyping) {
+        const k = e.key.toLowerCase();
+        if (k === 'd') {
+          e.preventDefault();
+          setIsCheckInModalOpen(true);
+          return;
+        }
+        if (k === 'm') {
+          e.preventDefault();
+          setIsMemorialModalOpen(true);
+          return;
+        }
+        if (k === 'p') {
+          e.preventDefault();
+          const curSession = readFocusSession();
+          if (curSession) {
+            requestFocusStop();
+          } else {
+            startFocusSession('work', currentUser?.email, null, 25);
+          }
+          return;
+        }
+      }
+
       if (!mod) return;
 
-      if (e.key.toLowerCase() === 'k') {
+      if (e.key.toLowerCase() === 'k' || e.key.toLowerCase() === 'e') {
         e.preventDefault();
         setIsPaletteOpen((prev) => !prev);
         return;
       }
       if (e.key.toLowerCase() === 'i' && !e.shiftKey) {
-        if (isTypingTarget(e.target)) return;
+        if (isTyping) return;
         e.preventDefault();
         setIsNotesOpen((prev) => !prev);
         return;
@@ -987,8 +1035,6 @@ export const App: React.FC = () => {
         setIsFocusModeOpen(true);
         return;
       }
-      /* Ctrl/Cmd + / mở bảng phím tắt — quy ước quen thuộc, và là cách duy nhất
-         để người dùng biết bốn tổ hợp phím còn lại tồn tại. */
       if (e.key === '/' || e.key === '?') {
         e.preventDefault();
         setIsShortcutsOpen((prev) => !prev);

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   X,
   Play,
@@ -13,19 +13,23 @@ import {
   Volume2,
   VolumeX,
   CloudRain,
-  Moon,
-  Music,
   Compass,
   Maximize2,
   Target,
   RefreshCw,
   Sparkles,
+  Sliders,
+  Disc,
+  Bell,
+  BookOpen,
+  Clock,
 } from 'lucide-react';
 import { CircularProgressRing } from './CircularProgressRing';
 import { CelebrationBurst } from './CelebrationBurst';
 import { OrbButton } from './ui/OrbButton';
 import { safeStorage } from '../utils/storage';
 import { computeStudyTotals, formatDuration, readStudySessions, sessionsForOwner } from '../utils/studyLog';
+import { getLifetimeFocusMinutes, addLifetimeFocusMinutes } from '../utils/spiritStorage';
 import {
   FOCUS_BREAK_MINUTES,
   FOCUS_CREDITED_EVENT,
@@ -52,8 +56,6 @@ interface FocusSanctuaryProps {
   equippedItemId?: string;
 }
 
-type AmbientTrack = 'rain' | 'lofi' | 'night';
-
 const MACHI_MART_3D_URL = 'https://01a16606-3f4a-7e46-a701-0c5f36bb2e5c.arena.site/?embed=true';
 
 const FocusSanctuaryInner: React.FC<{
@@ -75,20 +77,36 @@ const FocusSanctuaryInner: React.FC<{
   const [copied, setCopied] = useState(false);
   const [studyTick, setStudyTick] = useState(0);
 
-  const [ambientTrack, setAmbientTrack] = useState<AmbientTrack>('rain');
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
-  const [audioVolume, setAudioVolume] = useState(0.4);
-  const audioVolumeRef = useRef(audioVolume);
-  useEffect(() => {
-    audioVolumeRef.current = audioVolume;
-  }, [audioVolume]);
+  const [isMasterMuted, setIsMasterMuted] = useState(false);
+  const [masterVolume, setMasterVolume] = useState(0.7);
+  const [volRain, setVolRain] = useState(0.65);
+  const [volVinyl, setVolVinyl] = useState(0.45);
+  const [volChime, setVolChime] = useState(0.35);
+  const [volPage, setVolPage] = useState(0.30);
+  const [isMixerExpanded, setIsMixerExpanded] = useState(false);
+  const [lifetimeMinutes, setLifetimeMinutes] = useState(() => getLifetimeFocusMinutes());
+
   const [isNotesCollapsed, setIsNotesCollapsed] = useState(false);
   const [interactive3D, setInteractive3D] = useState(true);
 
-  const audioNodesRef = useRef<{
-    gainNode: GainNode | null;
-    sourceNodes: (AudioNode | number)[] | null;
-  }>({ gainNode: null, sourceNodes: null });
+  const audioEngineRef = useRef<{
+    ctx: AudioContext | null;
+    masterGain: GainNode | null;
+    rainGain: GainNode | null;
+    vinylGain: GainNode | null;
+    chimeGain: GainNode | null;
+    pageGain: GainNode | null;
+    cleanups: (() => void)[];
+  }>({
+    ctx: null,
+    masterGain: null,
+    rainGain: null,
+    vinylGain: null,
+    chimeGain: null,
+    pageGain: null,
+    cleanups: [],
+  });
 
   useEffect(() => {
     safeStorage.setItem('fforum_focus_scratchpad', notes);
@@ -102,6 +120,15 @@ const FocusSanctuaryInner: React.FC<{
   }, []);
 
   useEffect(() => {
+    const onLifetimeSync = (e: Event) => {
+      const mins = (e as CustomEvent<{ minutes?: number }>).detail?.minutes;
+      if (typeof mins === 'number') setLifetimeMinutes(mins);
+    };
+    window.addEventListener('ff_lifetime_focus_changed', onLifetimeSync);
+    return () => window.removeEventListener('ff_lifetime_focus_changed', onLifetimeSync);
+  }, []);
+
+  useEffect(() => {
     const onCredited = (event: Event) => {
       const detail = (event as CustomEvent<{ minutes: number }>).detail;
       const minutes = detail?.minutes || FOCUS_WORK_MINUTES;
@@ -112,6 +139,8 @@ const FocusSanctuaryInner: React.FC<{
         setBurstTick((n) => n + 1);
         setBurstHeadline(`Mốc ${minutes} phút · +${minutes} Coin`);
       }
+      const updatedLifetime = addLifetimeFocusMinutes(minutes);
+      setLifetimeMinutes(updatedLifetime);
       window.setTimeout(() => setFlash(null), 9000);
     };
     window.addEventListener(FOCUS_CREDITED_EVENT, onCredited);
@@ -148,121 +177,252 @@ const FocusSanctuaryInner: React.FC<{
 
   const milestoneActive = targetMinutes >= FOCUS_REWARD_MINIMUM_MINUTES && flash !== null;
 
-  const stopCurrentAudio = () => {
-    try {
-      if (audioNodesRef.current.gainNode) {
-        audioNodesRef.current.gainNode.gain.setValueAtTime(0, 0);
-      }
-      if (audioNodesRef.current.sourceNodes) {
-        audioNodesRef.current.sourceNodes.forEach((node) => {
-          if (typeof node === 'number') {
-            window.clearInterval(node);
-          } else if ('stop' in node && typeof (node as AudioScheduledSourceNode).stop === 'function') {
-            try {
-              (node as AudioScheduledSourceNode).stop();
-            } catch {}
-          }
-        });
-      }
-    } catch {}
-    audioNodesRef.current = { gainNode: null, sourceNodes: null };
-  };
+  const stopCurrentAudio = useCallback(() => {
+    const engine = audioEngineRef.current;
+    engine.cleanups.forEach((fn) => {
+      try {
+        fn();
+      } catch {}
+    });
+    if (engine.masterGain && engine.ctx) {
+      try {
+        engine.masterGain.gain.setValueAtTime(0, engine.ctx.currentTime);
+      } catch {}
+    }
+    audioEngineRef.current = {
+      ctx: null,
+      masterGain: null,
+      rainGain: null,
+      vinylGain: null,
+      chimeGain: null,
+      pageGain: null,
+      cleanups: [],
+    };
+  }, []);
 
-  const startAmbientAudio = (track: AmbientTrack, vol: number) => {
+  const startAmbientAudio = useCallback(() => {
     stopCurrentAudio();
     const ctx = getAudioContext();
     if (!ctx) return;
 
     try {
-      const masterGain = ctx.createGain();
-      masterGain.gain.setValueAtTime(vol * 0.35, ctx.currentTime);
-      masterGain.connect(ctx.destination);
-      audioNodesRef.current.gainNode = masterGain;
-
-      if (track === 'rain') {
-        const bufferSize = ctx.sampleRate * 2;
-        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        let b0 = 0,
-          b1 = 0,
-          b2 = 0,
-          b3 = 0,
-          b4 = 0,
-          b5 = 0,
-          b6 = 0;
-        for (let i = 0; i < bufferSize; i++) {
-          const white = Math.random() * 2 - 1;
-          b0 = 0.99886 * b0 + white * 0.0555179;
-          b1 = 0.99332 * b1 + white * 0.0750759;
-          b2 = 0.969 * b2 + white * 0.153852;
-          b3 = 0.8665 * b3 + white * 0.3104856;
-          b4 = 0.55 * b4 + white * 0.5329522;
-          b5 = -0.7616 * b5 - white * 0.016898;
-          output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
-          b6 = white * 0.115926;
-        }
-
-        const whiteNoise = ctx.createBufferSource();
-        whiteNoise.buffer = noiseBuffer;
-        whiteNoise.loop = true;
-
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(850, ctx.currentTime);
-
-        whiteNoise.connect(filter);
-        filter.connect(masterGain);
-        whiteNoise.start();
-
-        audioNodesRef.current.sourceNodes = [whiteNoise];
-      } else if (track === 'lofi') {
-        const chordFreqs = [220, 261.63, 329.63, 392.0];
-        const oscList: AudioNode[] = [];
-        chordFreqs.forEach((freq, idx) => {
-          const osc = ctx.createOscillator();
-          const oscGain = ctx.createGain();
-          osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
-          osc.frequency.setValueAtTime(freq, ctx.currentTime);
-          oscGain.gain.setValueAtTime(0.04, ctx.currentTime);
-          osc.connect(oscGain);
-          oscGain.connect(masterGain);
-          osc.start();
-          oscList.push(osc);
-        });
-        audioNodesRef.current.sourceNodes = oscList;
-      } else {
-        const osc = ctx.createOscillator();
-        const oscGain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(65.41, ctx.currentTime);
-        oscGain.gain.setValueAtTime(0.08, ctx.currentTime);
-        osc.connect(oscGain);
-        oscGain.connect(masterGain);
-        osc.start();
-        audioNodesRef.current.sourceNodes = [osc];
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
       }
+
+      const masterGain = ctx.createGain();
+      const rainGain = ctx.createGain();
+      const vinylGain = ctx.createGain();
+      const chimeGain = ctx.createGain();
+      const pageGain = ctx.createGain();
+
+      masterGain.gain.setValueAtTime(isMasterMuted ? 0 : masterVolume * 0.4, ctx.currentTime);
+      rainGain.gain.setValueAtTime(volRain * 0.45, ctx.currentTime);
+      vinylGain.gain.setValueAtTime(volVinyl * 0.35, ctx.currentTime);
+      chimeGain.gain.setValueAtTime(volChime * 0.35, ctx.currentTime);
+      pageGain.gain.setValueAtTime(volPage * 0.4, ctx.currentTime);
+
+      rainGain.connect(masterGain);
+      vinylGain.connect(masterGain);
+      chimeGain.connect(masterGain);
+      pageGain.connect(masterGain);
+      masterGain.connect(ctx.destination);
+
+      const cleanups: (() => void)[] = [];
+
+      const rainBufSize = ctx.sampleRate * 2;
+      const rainBuffer = ctx.createBuffer(1, rainBufSize, ctx.sampleRate);
+      const rData = rainBuffer.getChannelData(0);
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      for (let i = 0; i < rainBufSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.969 * b2 + white * 0.153852;
+        b3 = 0.8665 * b3 + white * 0.3104856;
+        b4 = 0.55 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.016898;
+        rData[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+        b6 = white * 0.115926;
+      }
+      const rainSrc = ctx.createBufferSource();
+      rainSrc.buffer = rainBuffer;
+      rainSrc.loop = true;
+      const rainFilter = ctx.createBiquadFilter();
+      rainFilter.type = 'lowpass';
+      rainFilter.frequency.setValueAtTime(820, ctx.currentTime);
+      rainSrc.connect(rainFilter);
+      rainFilter.connect(rainGain);
+      rainSrc.start();
+      cleanups.push(() => {
+        try { rainSrc.stop(); } catch {}
+      });
+
+      const dropTimer = window.setInterval(() => {
+        if (Math.random() > 0.45) return;
+        try {
+          const osc = ctx.createOscillator();
+          const dGain = ctx.createGain();
+          osc.type = 'sine';
+          const freq = 900 + Math.random() * 500;
+          osc.frequency.setValueAtTime(freq, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(freq * 0.6, ctx.currentTime + 0.035);
+          dGain.gain.setValueAtTime(0.04, ctx.currentTime);
+          dGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.035);
+          osc.connect(dGain);
+          dGain.connect(rainGain);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.04);
+        } catch {}
+      }, 240);
+      cleanups.push(() => window.clearInterval(dropTimer));
+
+      const rumbleOsc = ctx.createOscillator();
+      const rumbleGain = ctx.createGain();
+      rumbleOsc.type = 'sine';
+      rumbleOsc.frequency.setValueAtTime(55, ctx.currentTime);
+      rumbleGain.gain.setValueAtTime(0.025, ctx.currentTime);
+      rumbleOsc.connect(rumbleGain);
+      rumbleGain.connect(vinylGain);
+      rumbleOsc.start();
+      cleanups.push(() => {
+        try { rumbleOsc.stop(); } catch {}
+      });
+
+      const vinylBufSize = ctx.sampleRate * 2;
+      const vinylBuffer = ctx.createBuffer(1, vinylBufSize, ctx.sampleRate);
+      const vData = vinylBuffer.getChannelData(0);
+      for (let i = 0; i < vinylBufSize; i++) {
+        const isPop = Math.random() < 0.0018;
+        vData[i] = isPop ? (Math.random() * 2 - 1) * 0.38 : (Math.random() * 2 - 1) * 0.012;
+      }
+      const vinylSrc = ctx.createBufferSource();
+      vinylSrc.buffer = vinylBuffer;
+      vinylSrc.loop = true;
+      const vinylFilter = ctx.createBiquadFilter();
+      vinylFilter.type = 'bandpass';
+      vinylFilter.frequency.setValueAtTime(2600, ctx.currentTime);
+      vinylFilter.Q.setValueAtTime(2.2, ctx.currentTime);
+      vinylSrc.connect(vinylFilter);
+      vinylFilter.connect(vinylGain);
+      vinylSrc.start();
+      cleanups.push(() => {
+        try { vinylSrc.stop(); } catch {}
+      });
+
+      const chimeTimer = window.setInterval(() => {
+        if (Math.random() > 0.65) return;
+        try {
+          const notes = [784, 880, 1046.5, 1174.7, 1318.5, 1568];
+          const n1 = notes[Math.floor(Math.random() * notes.length)];
+          const n2 = notes[Math.floor(Math.random() * notes.length)];
+          [n1, n2].forEach((baseFreq, i) => {
+            const delay = i * 0.12;
+            const cOsc = ctx.createOscillator();
+            const cGain = ctx.createGain();
+            cOsc.type = 'sine';
+            cOsc.frequency.setValueAtTime(baseFreq, ctx.currentTime + delay);
+            cGain.gain.setValueAtTime(0.0001, ctx.currentTime + delay);
+            cGain.gain.exponentialRampToValueAtTime(0.06, ctx.currentTime + delay + 0.008);
+            cGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + 3.0);
+            cOsc.connect(cGain);
+            cGain.connect(chimeGain);
+            cOsc.start(ctx.currentTime + delay);
+            cOsc.stop(ctx.currentTime + delay + 3.1);
+
+            const overtone = ctx.createOscillator();
+            const oGain = ctx.createGain();
+            overtone.type = 'sine';
+            overtone.frequency.setValueAtTime(baseFreq * 2.76, ctx.currentTime + delay);
+            oGain.gain.setValueAtTime(0.0001, ctx.currentTime + delay);
+            oGain.gain.exponentialRampToValueAtTime(0.02, ctx.currentTime + delay + 0.008);
+            oGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + 1.8);
+            overtone.connect(oGain);
+            oGain.connect(chimeGain);
+            overtone.start(ctx.currentTime + delay);
+            overtone.stop(ctx.currentTime + delay + 1.9);
+          });
+        } catch {}
+      }, 4200);
+      cleanups.push(() => window.clearInterval(chimeTimer));
+
+      const pageTimer = window.setInterval(() => {
+        if (Math.random() > 0.55) return;
+        try {
+          const dur = 0.22;
+          const pBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+          const pData = pBuf.getChannelData(0);
+          for (let i = 0; i < pData.length; i++) {
+            pData[i] = (Math.random() * 2 - 1) * 0.18;
+          }
+          const pSrc = ctx.createBufferSource();
+          pSrc.buffer = pBuf;
+          const pHigh = ctx.createBiquadFilter();
+          pHigh.type = 'highpass';
+          pHigh.frequency.setValueAtTime(1400, ctx.currentTime);
+          const pLow = ctx.createBiquadFilter();
+          pLow.type = 'lowpass';
+          pLow.frequency.setValueAtTime(4500, ctx.currentTime);
+          const pGain = ctx.createGain();
+          pGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+          pGain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 0.06);
+          pGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+          pSrc.connect(pHigh);
+          pHigh.connect(pLow);
+          pLow.connect(pGain);
+          pGain.connect(pageGain);
+          pSrc.start();
+        } catch {}
+      }, 8500);
+      cleanups.push(() => window.clearInterval(pageTimer));
+
+      audioEngineRef.current = {
+        ctx,
+        masterGain,
+        rainGain,
+        vinylGain,
+        chimeGain,
+        pageGain,
+        cleanups,
+      };
     } catch {}
-  };
+  }, [stopCurrentAudio, isMasterMuted, masterVolume, volRain, volVinyl, volChime, volPage]);
 
   useEffect(() => {
     if (isAudioPlaying) {
-      startAmbientAudio(ambientTrack, audioVolumeRef.current);
+      startAmbientAudio();
     } else {
       stopCurrentAudio();
     }
     return () => {
       stopCurrentAudio();
     };
-  }, [isAudioPlaying, ambientTrack]);
+  }, [isAudioPlaying, startAmbientAudio, stopCurrentAudio]);
 
   useEffect(() => {
-    if (audioNodesRef.current.gainNode) {
-      const ctx = getAudioContext();
-      if (ctx) {
-        audioNodesRef.current.gainNode.gain.setValueAtTime(audioVolume * 0.35, ctx.currentTime);
+    const engine = audioEngineRef.current;
+    if (!engine.ctx) return;
+    try {
+      if (engine.masterGain) {
+        engine.masterGain.gain.setValueAtTime(
+          isMasterMuted ? 0 : masterVolume * 0.4,
+          engine.ctx.currentTime
+        );
       }
-    }
-  }, [audioVolume]);
+      if (engine.rainGain) {
+        engine.rainGain.gain.setValueAtTime(volRain * 0.45, engine.ctx.currentTime);
+      }
+      if (engine.vinylGain) {
+        engine.vinylGain.gain.setValueAtTime(volVinyl * 0.35, engine.ctx.currentTime);
+      }
+      if (engine.chimeGain) {
+        engine.chimeGain.gain.setValueAtTime(volChime * 0.35, engine.ctx.currentTime);
+      }
+      if (engine.pageGain) {
+        engine.pageGain.gain.setValueAtTime(volPage * 0.4, engine.ctx.currentTime);
+      }
+    } catch {}
+  }, [masterVolume, isMasterMuted, volRain, volVinyl, volChime, volPage]);
 
   const handleStart = async () => {
     if (isStarting) return;
@@ -657,92 +817,158 @@ const FocusSanctuaryInner: React.FC<{
       </aside>
 
       <footer
-        className="floating-glass-bottom absolute bottom-4 inset-x-4 sm:inset-x-8 z-30 flex items-center justify-between px-5 py-3 rounded-2xl backdrop-blur-xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.6)]"
+        className="floating-glass-bottom absolute bottom-3 sm:bottom-4 inset-x-3 sm:inset-x-8 z-30 flex flex-col gap-2.5 p-3 sm:px-5 sm:py-3 rounded-2xl backdrop-blur-xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.6)]"
         style={{
-          background: 'rgba(9, 12, 18, 0.68)',
-          border: '1px solid rgba(148, 163, 184, 0.15)',
+          background: 'rgba(9, 12, 18, 0.78)',
+          border: '1px solid rgba(148, 163, 184, 0.18)',
         }}
       >
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setIsAudioPlaying(!isAudioPlaying)}
-            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer border ${
-              isAudioPlaying
-                ? 'bg-amber-500 text-black border-amber-400 font-bold shadow-md'
-                : 'bg-white/5 text-white/60 border-white/10 hover:text-white'
-            }`}
-            title={isAudioPlaying ? 'Tắt âm thanh môi trường' : 'Bật âm thanh môi trường'}
-          >
-            {isAudioPlaying ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-          </button>
-
-          <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
             <button
               type="button"
-              onClick={() => {
-                setAmbientTrack('rain');
-                if (!isAudioPlaying) setIsAudioPlaying(true);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border ${
-                ambientTrack === 'rain' && isAudioPlaying
+              onClick={() => setIsAudioPlaying(!isAudioPlaying)}
+              className={`btn-feastables px-3.5 py-1.5 rounded-xl flex items-center gap-2 font-black text-xs cursor-pointer border transition-all ${
+                isAudioPlaying
+                  ? 'bg-amber-400 text-[#2B2331] border-[#2B2331] shadow-[2px_2px_0px_#2B2331]'
+                  : 'bg-white/10 text-white/80 border-white/20 hover:text-white'
+              }`}
+            >
+              {isAudioPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+              <span>{isAudioPlaying ? 'Dừng phát' : 'Phát lofi'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsMasterMuted(!isMasterMuted)}
+              className={`btn-feastables p-2 rounded-xl flex items-center justify-center cursor-pointer border transition-all ${
+                isMasterMuted
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-400/40'
+                  : 'bg-white/10 text-white/80 border-white/20 hover:text-white'
+              }`}
+              title={isMasterMuted ? 'Bật lại âm thanh' : 'Tắt tiếng tổng (Mute)'}
+            >
+              {isMasterMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsMixerExpanded(!isMixerExpanded)}
+              className={`btn-feastables px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-bold cursor-pointer border transition-all ${
+                isMixerExpanded
                   ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50 shadow-sm'
-                  : 'bg-white/5 text-white/60 border-white/10 hover:text-white'
+                  : 'bg-white/10 text-white/70 border-white/20 hover:text-white'
               }`}
             >
-              <CloudRain className="w-3.5 h-3.5" />
-              <span>Tiếng mưa rào</span>
+              <Sliders className="w-3.5 h-3.5" />
+              <span>Mixer 4 Kênh</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setAmbientTrack('lofi');
-                if (!isAudioPlaying) setIsAudioPlaying(true);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all border ${
-                ambientTrack === 'lofi' && isAudioPlaying
-                  ? 'bg-purple-500/20 text-purple-300 border-purple-400/50 shadow-sm'
-                  : 'bg-white/5 text-white/60 border-white/10 hover:text-white'
-              }`}
-            >
-              <Music className="w-3.5 h-3.5" />
-              <span>Lofi Chill</span>
-            </button>
+            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-400/15 border border-amber-400/40 text-amber-300 text-xs font-bold">
+              <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+              <span>Đồng hồ trọn đời: {formatDuration(lifetimeMinutes)}</span>
+            </div>
+          </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setAmbientTrack('night');
-                if (!isAudioPlaying) setIsAudioPlaying(true);
+          <div className="flex items-center gap-2.5">
+            <span className="hidden md:inline text-[11px] font-mono font-bold text-white/60">
+              Tổng: {Math.round((isMasterMuted ? 0 : masterVolume) * 100)}%
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={isMasterMuted ? 0 : masterVolume}
+              onChange={(e) => {
+                setMasterVolume(parseFloat(e.target.value));
+                if (isMasterMuted) setIsMasterMuted(false);
               }}
-              className={`hidden sm:flex px-3 py-1.5 rounded-xl text-xs font-semibold items-center gap-1.5 transition-all border ${
-                ambientTrack === 'night' && isAudioPlaying
-                  ? 'bg-indigo-500/20 text-indigo-300 border-indigo-400/50 shadow-sm'
-                  : 'bg-white/5 text-white/60 border-white/10 hover:text-white'
-              }`}
-            >
-              <Moon className="w-3.5 h-3.5" />
-              <span>Đêm khuya tĩnh lặng</span>
-            </button>
+              className="w-20 sm:w-28 h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-400"
+              aria-label="Điều chỉnh âm lượng tổng"
+            />
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="hidden md:inline text-[11px] font-mono text-white/50">
-            Âm lượng: {Math.round(audioVolume * 100)}%
-          </span>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={audioVolume}
-            onChange={(e) => setAudioVolume(parseFloat(e.target.value))}
-            className="w-20 sm:w-28 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-400"
-            aria-label="Điều chỉnh âm lượng âm thanh môi trường"
-          />
-        </div>
+        {isMixerExpanded && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 border-t border-white/10 animate-fade-in text-xs">
+            <div className="card-hard p-2 rounded-xl bg-black/40 border border-white/10 flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-cyan-300 font-bold">
+                <span className="flex items-center gap-1">
+                  <CloudRain className="w-3.5 h-3.5" /> Mưa Mái Hiên
+                </span>
+                <span className="font-mono text-[10px]">{Math.round(volRain * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={volRain}
+                onChange={(e) => setVolRain(parseFloat(e.target.value))}
+                className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                aria-label="Âm lượng mưa mái hiên"
+              />
+            </div>
+
+            <div className="card-hard p-2 rounded-xl bg-black/40 border border-white/10 flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-amber-300 font-bold">
+                <span className="flex items-center gap-1">
+                  <Disc className="w-3.5 h-3.5" /> Lofi Vinyl
+                </span>
+                <span className="font-mono text-[10px]">{Math.round(volVinyl * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={volVinyl}
+                onChange={(e) => setVolVinyl(parseFloat(e.target.value))}
+                className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                aria-label="Âm lượng lofi vinyl"
+              />
+            </div>
+
+            <div className="card-hard p-2 rounded-xl bg-black/40 border border-white/10 flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-purple-300 font-bold">
+                <span className="flex items-center gap-1">
+                  <Bell className="w-3.5 h-3.5" /> Chuông Gió Cổ
+                </span>
+                <span className="font-mono text-[10px]">{Math.round(volChime * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={volChime}
+                onChange={(e) => setVolChime(parseFloat(e.target.value))}
+                className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-purple-400"
+                aria-label="Âm lượng chuông gió"
+              />
+            </div>
+
+            <div className="card-hard p-2 rounded-xl bg-black/40 border border-white/10 flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-emerald-300 font-bold">
+                <span className="flex items-center gap-1">
+                  <BookOpen className="w-3.5 h-3.5" /> Lật Trang Sách
+                </span>
+                <span className="font-mono text-[10px]">{Math.round(volPage * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={volPage}
+                onChange={(e) => setVolPage(parseFloat(e.target.value))}
+                className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+                aria-label="Âm lượng lật trang sách"
+              />
+            </div>
+          </div>
+        )}
       </footer>
     </div>
   );

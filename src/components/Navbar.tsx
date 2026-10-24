@@ -503,13 +503,19 @@ export const Navbar: React.FC<NavbarProps> = ({
     document.documentElement.dataset.darkGradient = darkGradient;
   }, [theme, reducedMotion, glassBlur, fontSize, potatorMode, potatorBg, fabulousMode, darkGradient]);
 
-  const handleToggleTheme = () => {
-    setTheme(toggleThemeMode());
+  const handleToggleTheme = (e?: React.MouseEvent | MouseEvent | { clientX?: number; clientY?: number }) => {
+    const coords = e && typeof e.clientX === 'number' && typeof e.clientY === 'number'
+      ? { clientX: e.clientX, clientY: e.clientY }
+      : undefined;
+    setTheme(toggleThemeMode(coords));
   };
 
   /* Cho phép Bảng lệnh (⌘K) và các phím tắt đổi theme từ bên ngoài Navbar */
   useEffect(() => {
-    const onToggleTheme = () => handleToggleTheme();
+    const onToggleTheme = (e: Event) => {
+      const detail = (e as CustomEvent<{ clientX?: number; clientY?: number }>).detail;
+      handleToggleTheme(detail);
+    };
     const onOpenDaily = () => setIsDailyModalOpen(true);
     window.addEventListener('fforum_toggle_theme', onToggleTheme);
     window.addEventListener('fforum_open_daily', onOpenDaily);
@@ -517,8 +523,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       window.removeEventListener('fforum_toggle_theme', onToggleTheme);
       window.removeEventListener('fforum_open_daily', onOpenDaily);
     };
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [theme]);
+  }, []);
 
   useEffect(() => {
     const onThemeSync = (event: Event) => {
@@ -840,7 +845,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             cancelMorphLoading();
           }}
           aria-busy={isMorphBusy}
-          className={`ff-nav-capsule fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full pointer-events-auto px-4 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 shadow-2xl ${
+          className={`ff-nav-capsule card-hard fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full pointer-events-auto px-4 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 shadow-2xl ${
             isMorphBusy ? 'ff-nav-capsule--busy' : ''
           }`}
           aria-label="Điều hướng chính"
