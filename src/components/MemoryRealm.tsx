@@ -1,7 +1,19 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Edit3, Upload, X, RotateCcw, Image as ImageIcon } from 'lucide-react';
+import {
+  Edit3,
+  Upload,
+  X,
+  RotateCcw,
+  Image as ImageIcon,
+  Sparkles,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Lightbulb,
+  Flame,
+} from 'lucide-react';
 import './MemoryRealm.css';
 import { rafThrottle } from '../utils/rafThrottle';
 import type { User } from '../types';
@@ -84,6 +96,88 @@ const ORIGINAL_SIGHTS_DATA: LocalizedSightCard[] = [
     pin: ICON2,
   },
 ];
+
+interface RealmFlashcard {
+  id: string;
+  deck: string;
+  question: string;
+  answer: string;
+  keyFormula?: string;
+  topic: string;
+  difficulty: 'Cơ bản' | 'Vận dụng' | 'Vận dụng cao';
+}
+
+const REALM_FLASHCARD_DECKS: Record<string, { title: string; cards: RealmFlashcard[] }> = {
+  math: {
+    title: 'Toán 12: Đạo hàm & Khảo sát hàm số',
+    cards: [
+      {
+        id: 'mr-m-1',
+        deck: 'math',
+        question: 'Điều kiện cần và đủ để hàm số y = f(x) có đạo hàm trên (a; b) đồng biến trên (a; b)?',
+        answer: 'f\'(x) >= 0 với mọi x thuộc (a; b) và đẳng thức f\'(x) = 0 chỉ xảy ra tại hữu hạn điểm.',
+        keyFormula: "f'(x) \\ge 0, \\forall x \\in (a; b)",
+        topic: 'Đơn điệu',
+        difficulty: 'Cơ bản',
+      },
+      {
+        id: 'mr-m-2',
+        deck: 'math',
+        question: 'Quy tắc tìm cực trị hàm số bằng đạo hàm cấp 2 (Dấu hiệu 2)?',
+        answer: "Nếu f'(x_0) = 0 và f''(x_0) > 0 thì x_0 là điểm cực tiểu. Nếu f'(x_0) = 0 và f''(x_0) < 0 thì x_0 là điểm cực đại.",
+        keyFormula: "f'(x_0) = 0, f''(x_0) \\gtrless 0",
+        topic: 'Cực trị',
+        difficulty: 'Vận dụng',
+      },
+      {
+        id: 'mr-m-3',
+        deck: 'math',
+        question: 'Công thức tính khoảng cách từ điểm M(x_0, y_0, z_0) đến mặt phẳng (P): Ax + By + Cz + D = 0?',
+        answer: 'd(M, (P)) = |Ax_0 + By_0 + Cz_0 + D| / sqrt(A^2 + B^2 + C^2)',
+        keyFormula: "d(M, (P)) = \\frac{|Ax_0 + By_0 + Cz_0 + D|}{\\sqrt{A^2 + B^2 + C^2}}",
+        topic: 'Hình học Oxyz',
+        difficulty: 'Cơ bản',
+      },
+    ],
+  },
+  physics: {
+    title: 'Vật lý 12: Dao động cơ & Sóng cơ',
+    cards: [
+      {
+        id: 'mr-p-1',
+        deck: 'physics',
+        question: 'Mối liên hệ về pha giữa li độ x, vận tốc v và gia tốc a trong dao động điều hòa?',
+        answer: 'Vận tốc sớm pha pi/2 so với li độ. Gia tốc sớm pha pi/2 so với vận tốc (ngược pha so với li độ).',
+        keyFormula: "v \\perp x, a \\text{ ngược pha } x",
+        topic: 'Dao động điều hòa',
+        difficulty: 'Cơ bản',
+      },
+      {
+        id: 'mr-p-2',
+        deck: 'physics',
+        question: 'Công thức tần số góc của con lắc lò xo và con lắc đơn?',
+        answer: 'Con lắc lò xo: omega = sqrt(k/m). Con lắc đơn: omega = sqrt(g/l).',
+        keyFormula: "\\omega = \\sqrt{\\frac{k}{m}}, \\omega = \\sqrt{\\frac{g}{l}}",
+        topic: 'Con lắc',
+        difficulty: 'Vận dụng',
+      },
+    ],
+  },
+  chemistry: {
+    title: 'Hóa học 12: Este & Lipit',
+    cards: [
+      {
+        id: 'mr-c-1',
+        deck: 'chemistry',
+        question: 'Phản ứng xà phòng hóa este là phản ứng một chiều hay thuận nghịch? Viết phương trình tổng quát?',
+        answer: 'Phản ứng xà phòng hóa (thủy phân este trong môi trường kiềm) là phản ứng một chiều: RCOOR\' + NaOH -> RCOONa + R\'OH (đun nóng).',
+        keyFormula: "\\text{RCOOR}' + \\text{NaOH} \\xrightarrow{t^o} \\text{RCOONa} + \\text{R}'\\text{OH}",
+        topic: 'Este - Lipit',
+        difficulty: 'Cơ bản',
+      },
+    ],
+  },
+};
 
 const DEFAULT_MEMORY_CMS: Required<MemoryRealmCMSData> = {
   heroTitleVie: 'KÝ ỨC',
@@ -206,6 +300,17 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
   const [adminTab, setAdminTab] = useState<'sights' | 'copy' | 'layers'>('sights');
   const [selectedSightIdx, setSelectedSightIdx] = useState(0);
   const [isUploadingImg, setIsUploadingImg] = useState(false);
+
+  const [realmMode, setRealmMode] = useState<'panorama' | 'srs'>('panorama');
+  const [selectedDeckKey, setSelectedDeckKey] = useState<string>('math');
+  const [srsIndex, setSrsIndex] = useState(0);
+  const [isSrsFlipped, setIsSrsFlipped] = useState(false);
+  const [masteredSrsIds, setMasteredSrsIds] = useState<Set<string>>(() => new Set());
+  const [reviewSrsIds, setReviewSrsIds] = useState<Set<string>>(() => new Set());
+
+  const activeDeck = REALM_FLASHCARD_DECKS[selectedDeckKey] || REALM_FLASHCARD_DECKS.math;
+  const activeDeckCards = activeDeck.cards;
+  const currentSrsCard = activeDeckCards[srsIndex] || activeDeckCards[0];
 
   useEffect(() => {
     let cancelled = false;
@@ -590,6 +695,18 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
               </a>
             </nav>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setRealmMode((prev) => (prev === 'panorama' ? 'srs' : 'panorama'));
+                  setIsSrsFlipped(false);
+                }}
+                className="ff-tactile-btn px-3 py-1.5 rounded-full bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shadow-md"
+                title={realmMode === 'panorama' ? 'Chuyển sang Vương Quốc Trí Nhớ SRS Flashcard' : 'Quay lại toàn cảnh'}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#e07a5f]" />
+                <span>{realmMode === 'panorama' ? 'Trí Nhớ SRS' : 'Toàn Cảnh'}</span>
+              </button>
               {isSuperAdmin && (
                 <button
                   type="button"
@@ -613,6 +730,229 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
               </button>
             </div>
           </header>
+
+          {realmMode === 'srs' && (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center p-4 sm:p-8 bg-[#090d14]/95 backdrop-blur-xl overflow-y-auto animate-fade-in">
+              <div className="w-full max-w-2xl flex flex-col space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-dashed border-white/15 gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-[#f2cc8f]/18 border-[1.5px] border-[#f2cc8f]/40 flex items-center justify-center text-[#f2cc8f] shadow-sm">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-base sm:text-lg font-bold text-[#f4f1de] flex items-center gap-2">
+                        <span className="ff-swash-cap text-base">V</span>ương Quốc Trí Nhớ Flashcard SRS
+                      </h2>
+                      <p className="text-xs text-[#9a978e]">Ôn tập lặp lại ngắt quãng để khắc sâu tri thức dài hạn</p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setRealmMode('panorama')}
+                    className="ff-tactile-btn p-2 rounded-xl bg-[#111722] hover:bg-white/10 border border-white/15 text-[#d8d5ce] cursor-pointer"
+                    title="Quay lại toàn cảnh"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+                  {Object.entries(REALM_FLASHCARD_DECKS).map(([k, d]) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => {
+                        setSelectedDeckKey(k);
+                        setSrsIndex(0);
+                        setIsSrsFlipped(false);
+                      }}
+                      className={`ff-tactile-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border shrink-0 ${
+                        selectedDeckKey === k
+                          ? 'bg-[#f4f1de] text-[#0b0d12] border-[#0b0d12]'
+                          : 'bg-[#111722] text-[#9a978e] border-white/10 hover:text-white'
+                      }`}
+                    >
+                      {d.title.split(':')[0]}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-[#111722] border border-white/10 text-xs font-mono flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/35 text-amber-300 font-bold">
+                      <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                      <span>Chuỗi 7 ngày</span>
+                    </span>
+                    <span className="text-[#81b29a]">
+                      Tỷ lệ nhớ: <strong className="text-white">88%</strong>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[#e07a5f]">
+                      Cần ôn: <strong className="text-[#ffc6b1]">{reviewSrsIds.size}</strong>
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[#9a978e]">Đã thuộc:</span>
+                      <strong className="text-[#f2cc8f]">{masteredSrsIds.size}/{activeDeckCards.length}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className="ff-flashcard-perspective cursor-pointer select-none"
+                  onClick={() => setIsSrsFlipped(!isSrsFlipped)}
+                >
+                  <div className={`ff-flashcard-inner ${isSrsFlipped ? 'is-flipped' : ''}`}>
+                    <div className="ff-flashcard-face ff-flashcard-front card-hard p-6 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold bg-[#f2cc8f]/20 text-[#f2cc8f] border border-[#f2cc8f]/35">
+                              Thẻ {srsIndex + 1} / {activeDeckCards.length}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-white/10 text-[#d8d5ce]">
+                              {currentSrsCard.topic}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#81b29a]/20 text-[#d8f3dc]">
+                              {currentSrsCard.difficulty}
+                            </span>
+                          </div>
+                        </div>
+                        <h3 className="text-base sm:text-lg font-bold text-[#f4f1de] leading-relaxed mt-4">
+                          {currentSrsCard.question}
+                        </h3>
+                      </div>
+                      <div className="pt-4 border-t border-dashed border-white/10 flex items-center justify-between text-xs text-[#9a978e]">
+                        <span className="flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-[#f2cc8f]" />
+                          Bấm thẻ để lật đáp án
+                        </span>
+                        <span className="font-mono text-[11px]">Mặt trước</span>
+                      </div>
+                    </div>
+
+                    <div className="ff-flashcard-face ff-flashcard-back card-hard p-6 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <span className="px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/35 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Giải nghĩa chuẩn
+                          </span>
+                          <span className="font-mono text-[11px] text-[#f2cc8f]">Mặt sau</span>
+                        </div>
+                        {currentSrsCard.keyFormula && (
+                          <div className="p-3 rounded-xl bg-[#f2cc8f]/10 border border-[#f2cc8f]/35 text-[#f2cc8f] text-xs font-mono mb-3 flex items-start gap-2">
+                            <Lightbulb className="w-4 h-4 text-[#f2cc8f] shrink-0 mt-0.5" />
+                            <div>
+                              <strong className="block text-[10px] uppercase tracking-wider mb-0.5">Công thức then chốt:</strong>
+                              <span>{currentSrsCard.keyFormula}</span>
+                            </div>
+                          </div>
+                        )}
+                        <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 text-xs sm:text-sm text-[#f4f1de] leading-relaxed">
+                          <p className="text-[#dad7d0]">{currentSrsCard.answer}</p>
+                        </div>
+                      </div>
+                      <div className="pt-4 border-t border-dashed border-white/10 flex items-center justify-between text-xs text-[#9a978e]">
+                        <span className="flex items-center gap-1.5">
+                          <RotateCcw className="w-3.5 h-3.5 text-[#81b29a]" />
+                          Bấm lại để xem câu hỏi
+                        </span>
+                        <span className="font-mono text-[11px]">Đã giải nghĩa</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSrsFlipped(false);
+                        setSrsIndex((prev) => Math.max(0, prev - 1));
+                      }}
+                      disabled={srsIndex === 0}
+                      className="ff-tactile-btn flex-1 sm:flex-initial px-3 py-2 rounded-xl bg-[#111722] hover:bg-white/10 disabled:opacity-40 text-[#f4f1de] border border-white/15 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>Trước</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsSrsFlipped(!isSrsFlipped)}
+                      className="ff-tactile-btn flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-[#f2cc8f]/20 hover:bg-[#f2cc8f]/30 text-[#f2cc8f] border border-[#f2cc8f]/40 text-xs font-extrabold flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>{isSrsFlipped ? 'Xem câu hỏi' : 'Lật đáp án'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSrsFlipped(false);
+                        setSrsIndex((prev) => Math.min(activeDeckCards.length - 1, prev + 1));
+                      }}
+                      disabled={srsIndex >= activeDeckCards.length - 1}
+                      className="ff-tactile-btn flex-1 sm:flex-initial px-3 py-2 rounded-xl bg-[#111722] hover:bg-white/10 disabled:opacity-40 text-[#f4f1de] border border-white/15 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <span>Sau</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReviewSrsIds((prev) => new Set(prev).add(currentSrsCard.id));
+                        setIsSrsFlipped(false);
+                        setSrsIndex((prev) => (prev < activeDeckCards.length - 1 ? prev + 1 : 0));
+                      }}
+                      className="ff-tactile-pop btn-feastables flex-1 sm:flex-initial px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 border border-rose-500/50 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Lại</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReviewSrsIds((prev) => new Set(prev).add(currentSrsCard.id));
+                        setIsSrsFlipped(false);
+                        setSrsIndex((prev) => (prev < activeDeckCards.length - 1 ? prev + 1 : 0));
+                      }}
+                      className="ff-tactile-pop btn-feastables flex-1 sm:flex-initial px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 border border-amber-500/50 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <span>Khó</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMasteredSrsIds((prev) => new Set(prev).add(currentSrsCard.id));
+                        setIsSrsFlipped(false);
+                        setSrsIndex((prev) => (prev < activeDeckCards.length - 1 ? prev + 1 : 0));
+                      }}
+                      className="ff-tactile-pop btn-feastables flex-1 sm:flex-initial px-3 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/35 text-sky-300 border border-sky-500/50 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <span>Tốt</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMasteredSrsIds((prev) => new Set(prev).add(currentSrsCard.id));
+                        setIsSrsFlipped(false);
+                        setSrsIndex((prev) => (prev < activeDeckCards.length - 1 ? prev + 1 : 0));
+                      }}
+                      className="ff-tactile-pop btn-feastables flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-[#81b29a] hover:bg-[#95c4ae] text-[#0b0d12] border-2 border-[#0b0d12] text-xs font-extrabold flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Dễ</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="back-stack">
             <img

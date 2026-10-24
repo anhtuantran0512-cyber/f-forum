@@ -10,6 +10,9 @@ import {
   CheckCircle2,
   CornerUpLeft,
   LoaderCircle,
+  Calculator,
+  Timer,
+  AlertCircle,
 } from 'lucide-react';
 import {
   Send,
@@ -67,6 +70,88 @@ const CHANNELS: {
   { id: 'confessions', name: 'Tâm sự', shortName: 'Tâm sự', icon: Heart },
   { id: 'club-hub', name: 'CLB', shortName: 'CLB', icon: Shield },
 ];
+
+const STUDY_MATH_FORMULAS = [
+  { label: 'Tích phân', code: '$$\\int_{a}^{b} f(x)dx$$' },
+  { label: 'Đạo hàm', code: "$$f'(x) = \\lim_{\\Delta x \\to 0} \\frac{f(x+\\Delta x)-f(x)}{\\Delta x}$$" },
+  { label: 'Bậc hai Delta', code: '$$\\Delta = b^2 - 4ac$$' },
+  { label: 'Giới hạn', code: '$$\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1$$' },
+  { label: 'Hệ thức Euler', code: '$$e^{i\\pi} + 1 = 0$$' },
+  { label: 'Tổng Sigma', code: '$$\\sum_{i=1}^{n} x_i$$' },
+];
+
+interface FloatingStudyActionsProps {
+  onInsertText: (snippet: string) => void;
+}
+
+const FloatingStudyActions: React.FC<FloatingStudyActionsProps> = ({ onInsertText }) => {
+  const [isMathOpen, setIsMathOpen] = useState(false);
+
+  return (
+    <div className="ff-study-actions-bar flex items-center gap-1.5 mb-2 overflow-x-auto no-scrollbar py-0.5">
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setIsMathOpen(!isMathOpen)}
+          className="ff-tactile-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#81b29a]/15 hover:bg-[#81b29a]/25 text-[#81b29a] border border-[#81b29a]/35 text-[10.5px] font-bold cursor-pointer transition-colors shrink-0"
+          title="Chèn nhanh công thức Toán học chuẩn LaTeX"
+        >
+          <Calculator className="w-3 h-3" />
+          <span>Toán</span>
+        </button>
+
+        {isMathOpen && (
+          <div className="absolute bottom-full mb-1.5 left-0 z-30 w-52 rounded-xl bg-[#141b28] border border-[#81b29a]/40 p-1.5 shadow-xl space-y-1">
+            <div className="px-2 py-1 text-[9.5px] font-mono font-bold text-[#81b29a] uppercase border-b border-white/10 flex items-center justify-between">
+              <span>Công thức thường gặp</span>
+              <button
+                type="button"
+                onClick={() => setIsMathOpen(false)}
+                className="text-[#9a978e] hover:text-white"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+            {STUDY_MATH_FORMULAS.map((f, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => {
+                  onInsertText(f.code);
+                  setIsMathOpen(false);
+                }}
+                className="w-full text-left px-2 py-1 rounded-lg text-xs text-[#dad7d0] hover:text-white hover:bg-[#81b29a]/20 flex items-center justify-between cursor-pointer"
+              >
+                <span>{f.label}</span>
+                <span className="text-[9.5px] font-mono text-[#81b29a] truncate max-w-[80px]">{f.code}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onInsertText('[Pomodoro 25p] Mời các bạn cùng tham gia phiên học tập trung 25 phút ngay bây giờ!')}
+        className="ff-tactile-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#f2cc8f]/15 hover:bg-[#f2cc8f]/25 text-[#f2cc8f] border border-[#f2cc8f]/35 text-[10.5px] font-bold cursor-pointer transition-colors shrink-0"
+        title="Mời bạn bè cùng học Pomodoro 25 phút"
+      >
+        <Timer className="w-3 h-3" />
+        <span>Pomodoro 25p</span>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onInsertText('[SOS Cứu trợ bài tập] Bài này mình đang vướng, nhờ các bạn hỗ trợ với ạ: ')}
+        className="ff-tactile-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#e07a5f]/15 hover:bg-[#e07a5f]/25 text-[#ffc6b1] border border-[#e07a5f]/40 text-[10.5px] font-bold cursor-pointer transition-colors shrink-0"
+        title="Gắn thẻ cứu trợ bài tập SOS khẩn cấp"
+      >
+        <AlertCircle className="w-3 h-3 text-[#e07a5f]" />
+        <span>SOS</span>
+      </button>
+    </div>
+  );
+};
 
 export const ChatDock: React.FC<ChatDockProps> = ({
   isOpen,
@@ -419,18 +504,26 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     }
   };
 
+  const handleInsertStudySnippet = useCallback((snippet: string) => {
+    setInputText((prev) => {
+      const combined = prev ? `${prev} ${snippet}` : snippet;
+      return combined.slice(0, 300);
+    });
+    inputRef.current?.focus();
+  }, []);
+
   const currentChannelObj = CHANNELS.find(c => c.id === activeChannel) || CHANNELS[0];
 
   return (
     <>
       <div
-        className={`fixed top-20 bottom-4 right-0 sm:right-4 z-40 w-full sm:w-[430px] md:w-[460px] p-2 sm:p-0 flex flex-col chat-dock-panel ${
+        className={`fixed inset-0 sm:inset-auto sm:top-20 sm:bottom-4 sm:right-4 z-40 w-full sm:w-[430px] md:w-[460px] p-0 sm:p-0 flex flex-col chat-dock-panel ${
           isOpen
             ? 'translate-x-0 opacity-100 pointer-events-auto'
             : 'translate-x-full opacity-0 pointer-events-none'
         }`}
       >
-        <div className="ff-chat-dock-shell flex-1 bg-[#0e131d] border border-[#f8f7f4]/14 rounded-2xl shadow-[0_24px_60px_rgba(0,0,0,0.68)] flex flex-col overflow-hidden">
+        <div className="ff-chat-dock-shell flex-1 bg-[#0e131d] border-0 sm:border border-[#f8f7f4]/14 rounded-none sm:rounded-2xl shadow-none sm:shadow-[0_24px_60px_rgba(0,0,0,0.68)] flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom,0px)]">
           
           {/* Thanh tiêu đề & bộ chọn kênh */}
           <div className="ff-chat-dock-header p-3.5 border-b border-[#f8f7f4]/10 bg-[#0b0f17] flex flex-col gap-2.5">
@@ -552,6 +645,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
 
             {currentUser ? (
               <div className="ff-chat-composer-wrap ff-chat-composer-wrap--dock">
+                <FloatingStudyActions onInsertText={handleInsertStudySnippet} />
                 <div className="ff-chat-composer-input-row">
                 <ChatMentionPicker
                   id="ff-chat-mention-options-dock"

@@ -12,6 +12,7 @@ import {
   Timer,
   Check,
   Lightbulb,
+  Flame,
 } from 'lucide-react';
 import type { ExamPaper, ExamCBTQuestion } from '../../types';
 import { getExamCBTQuestions } from './cbtData';
@@ -170,7 +171,7 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="liquid-glass modal-container w-full max-w-2xl rounded-2xl p-4 sm:p-6 relative flex flex-col max-h-[94vh] overflow-y-auto"
+        className="liquid-glass modal-container card-hard w-full max-w-2xl rounded-2xl p-4 sm:p-6 relative flex flex-col max-h-[94vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header Bar */}
@@ -271,11 +272,21 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
             </button>
           </div>
 
-          <div className="flex items-center gap-2 font-mono text-xs text-[#d8d5ce]">
-            <span>Đã nắm vững:</span>
-            <span className="font-extrabold text-[#f2cc8f]">
-              {masteredCount}/{totalCount}
+          <div className="flex items-center gap-3 font-mono text-xs text-[#d8d5ce] flex-wrap justify-end">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/35 text-amber-300 text-[11px] font-bold">
+              <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+              <span>Chuỗi 7 ngày</span>
             </span>
+            <span className="inline-flex items-center gap-1 text-[11px] text-[#81b29a]">
+              <span>Tỷ lệ nhớ:</span>
+              <strong className="font-bold text-[#f4f1de]">{Math.round((masteredCount / Math.max(1, totalCount)) * 100)}%</strong>
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span>Đã nắm vững:</span>
+              <span className="font-extrabold text-[#f2cc8f]">
+                {masteredCount}/{totalCount}
+              </span>
+            </div>
             <div className="w-24 h-2 bg-[#0b0d12] rounded-full overflow-hidden border border-[#f4f1de]/12">
               <div
                 className="h-full bg-gradient-to-r from-[#81b29a] to-[#f2cc8f] transition-all duration-300"
@@ -377,7 +388,7 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
             >
               <div className={`ff-flashcard-inner ${isFlipped ? 'is-flipped' : ''}`}>
                 {/* Mặt trước của Thẻ (Front: Câu hỏi, chuyên đề, độ khó) */}
-                <div className="ff-flashcard-face ff-flashcard-front p-5 sm:p-7">
+                <div className="ff-flashcard-face ff-flashcard-front card-hard p-5 sm:p-7">
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -438,7 +449,7 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
                 </div>
 
                 {/* Mặt sau của Thẻ (Back: Đáp án chuẩn, công thức, giải thích) */}
-                <div className="ff-flashcard-face ff-flashcard-back p-5 sm:p-7">
+                <div className="ff-flashcard-face ff-flashcard-back card-hard p-5 sm:p-7">
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-2">
@@ -519,25 +530,40 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
                 </button>
               </div>
 
-              {/* Assessment Buttons */}
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end flex-wrap">
                 <button
                   type="button"
                   onClick={handleMarkReview}
-                  className="ff-tactile-btn flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-[#e07a5f]/20 hover:bg-[#e07a5f]/35 text-[#ffc6b1] border border-[#e07a5f]/50 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="ff-tactile-pop btn-feastables flex-1 sm:flex-initial px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 border border-rose-500/50 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
                   title="Đánh dấu cần xem lại (Phím ↓)"
                 >
-                  <RotateCcw className="w-3.5 h-3.5 text-[#e07a5f]" />
-                  <span>Cần ôn lại</span>
+                  <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Lại</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleMarkReview}
+                  className="ff-tactile-pop btn-feastables flex-1 sm:flex-initial px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/35 text-amber-300 border border-amber-500/50 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                  title="Đánh dấu mức độ Khó"
+                >
+                  <span>Khó</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleMarkMastered}
-                  className="ff-tactile-btn flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-[#81b29a] hover:bg-[#95c4ae] text-[#0b0d12] border-2 border-[#0b0d12] text-xs font-extrabold flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="ff-tactile-pop btn-feastables flex-1 sm:flex-initial px-3 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/35 text-sky-300 border border-sky-500/50 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                  title="Đánh dấu mức độ Tốt"
+                >
+                  <span>Tốt</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleMarkMastered}
+                  className="ff-tactile-pop btn-feastables flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-[#81b29a] hover:bg-[#95c4ae] text-[#0b0d12] border-2 border-[#0b0d12] text-xs font-extrabold flex items-center justify-center gap-1.5 cursor-pointer"
                   title="Đánh dấu đã thuộc (Phím ↑)"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Đã nắm vững</span>
+                  <span>Dễ</span>
                 </button>
               </div>
             </div>

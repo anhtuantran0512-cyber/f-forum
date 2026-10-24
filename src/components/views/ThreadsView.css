@@ -1092,32 +1092,65 @@ html.light .threads-bg {
   flex-wrap: wrap;
 }
 
+.thread-card.card-hard {
+  border-radius: 16px;
+  border: 1.5px solid var(--thread-line);
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.45);
+}
+
+html.light .threads-bg .thread-card.card-hard {
+  border-color: rgba(45, 54, 43, 0.16);
+  box-shadow: 4px 4px 0px rgba(41, 37, 32, 0.14);
+}
+
+.thread-solution-box {
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
 .action-text-btn {
   display: inline-flex;
   min-height: 34px;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 6px 9px;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  background: transparent;
+  padding: 6px 11px;
+  border: 1.5px solid var(--thread-line);
+  border-radius: 12px;
+  background: rgba(239, 234, 218, 0.04);
   color: var(--thread-muted);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 650;
   cursor: pointer;
-  transition: color 140ms ease, background 140ms ease, border-color 140ms ease, transform 140ms ease;
+  box-shadow: 0 3px 0 var(--ff-btn-shadow, rgba(4, 6, 11, 0.85));
+  transition: transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.1s ease, color 140ms ease, background 140ms ease;
+  user-select: none;
 }
 
 .action-text-btn:hover,
 .action-text-btn.is-active {
-  border-color: var(--thread-line);
-  background: rgba(239, 234, 218, 0.06);
+  border-color: rgba(142, 182, 154, 0.35);
+  background: rgba(239, 234, 218, 0.08);
   color: var(--thread-copy);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 var(--ff-btn-shadow, rgba(4, 6, 11, 0.85));
 }
 
 .action-text-btn:active {
-  transform: scale(0.96);
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--ff-btn-shadow, rgba(4, 6, 11, 0.85));
+}
+
+.thread-reactions .ff-reaction-picker-trigger {
+  box-shadow: 0 3px 0 var(--ff-btn-shadow, rgba(4, 6, 11, 0.85));
+  transition: transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.1s ease;
+}
+.thread-reactions .ff-reaction-picker-trigger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 var(--ff-btn-shadow, rgba(4, 6, 11, 0.85));
+}
+.thread-reactions .ff-reaction-picker-trigger:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--ff-btn-shadow, rgba(4, 6, 11, 0.85));
 }
 
 .thread-reactions .ff-reaction-picker {

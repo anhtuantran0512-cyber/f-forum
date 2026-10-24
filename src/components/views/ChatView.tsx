@@ -12,6 +12,9 @@ import {
   CornerUpLeft,
   PanelRight,
   LoaderCircle,
+  Calculator,
+  Timer,
+  AlertCircle,
 } from 'lucide-react';
 import {
   Send,
@@ -103,6 +106,88 @@ const CHANNELS: {
     icon: Shield,
   },
 ];
+
+const STUDY_MATH_FORMULAS = [
+  { label: 'Tích phân', code: '$$\\int_{a}^{b} f(x)dx$$' },
+  { label: 'Đạo hàm', code: "$$f'(x) = \\lim_{\\Delta x \\to 0} \\frac{f(x+\\Delta x)-f(x)}{\\Delta x}$$" },
+  { label: 'Bậc hai Delta', code: '$$\\Delta = b^2 - 4ac$$' },
+  { label: 'Giới hạn', code: '$$\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1$$' },
+  { label: 'Hệ thức Euler', code: '$$e^{i\\pi} + 1 = 0$$' },
+  { label: 'Tổng Sigma', code: '$$\\sum_{i=1}^{n} x_i$$' },
+];
+
+interface FloatingStudyActionsProps {
+  onInsertText: (snippet: string) => void;
+}
+
+const FloatingStudyActions: React.FC<FloatingStudyActionsProps> = ({ onInsertText }) => {
+  const [isMathOpen, setIsMathOpen] = useState(false);
+
+  return (
+    <div className="ff-study-actions-bar flex items-center gap-1.5 mb-2 overflow-x-auto no-scrollbar py-0.5">
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setIsMathOpen(!isMathOpen)}
+          className="ff-tactile-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#81b29a]/15 hover:bg-[#81b29a]/25 text-[#81b29a] border border-[#81b29a]/35 text-[11px] font-bold cursor-pointer transition-colors shrink-0"
+          title="Chèn nhanh công thức Toán học chuẩn LaTeX"
+        >
+          <Calculator className="w-3.5 h-3.5" />
+          <span>Công thức Toán</span>
+        </button>
+
+        {isMathOpen && (
+          <div className="absolute bottom-full mb-1.5 left-0 z-30 w-56 rounded-xl bg-[#141b28] border border-[#81b29a]/40 p-1.5 shadow-xl space-y-1">
+            <div className="px-2 py-1 text-[10px] font-mono font-bold text-[#81b29a] uppercase border-b border-white/10 flex items-center justify-between">
+              <span>Công thức thường gặp</span>
+              <button
+                type="button"
+                onClick={() => setIsMathOpen(false)}
+                className="text-[#9a978e] hover:text-white"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+            {STUDY_MATH_FORMULAS.map((f, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => {
+                  onInsertText(f.code);
+                  setIsMathOpen(false);
+                }}
+                className="w-full text-left px-2 py-1.5 rounded-lg text-xs text-[#dad7d0] hover:text-white hover:bg-[#81b29a]/20 flex items-center justify-between cursor-pointer"
+              >
+                <span>{f.label}</span>
+                <span className="text-[10px] font-mono text-[#81b29a] truncate max-w-[90px]">{f.code}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onInsertText('[Pomodoro 25p] Mời các bạn cùng tham gia phiên học tập trung 25 phút ngay bây giờ!')}
+        className="ff-tactile-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#f2cc8f]/15 hover:bg-[#f2cc8f]/25 text-[#f2cc8f] border border-[#f2cc8f]/35 text-[11px] font-bold cursor-pointer transition-colors shrink-0"
+        title="Mời bạn bè cùng học Pomodoro 25 phút"
+      >
+        <Timer className="w-3.5 h-3.5" />
+        <span>Mời học Pomodoro 25p</span>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onInsertText('[SOS Cứu trợ bài tập] Bài này mình đang vướng, nhờ các bạn hỗ trợ với ạ: ')}
+        className="ff-tactile-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#e07a5f]/15 hover:bg-[#e07a5f]/25 text-[#ffc6b1] border border-[#e07a5f]/40 text-[11px] font-bold cursor-pointer transition-colors shrink-0"
+        title="Gắn thẻ cứu trợ bài tập SOS khẩn cấp"
+      >
+        <AlertCircle className="w-3.5 h-3.5 text-[#e07a5f]" />
+        <span>Cứu trợ SOS</span>
+      </button>
+    </div>
+  );
+};
 
 export const ChatView: React.FC<ChatViewProps> = ({
   currentUser,
@@ -499,6 +584,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
     }
   };
 
+  const handleInsertStudySnippet = useCallback((snippet: string) => {
+    setInputText((prev) => {
+      const combined = prev ? `${prev} ${snippet}` : snippet;
+      return combined.slice(0, 300);
+    });
+    inputRef.current?.focus();
+  }, []);
+
   const currentChannelObj =
     CHANNELS.find(c => c.id === activeChannel) || CHANNELS[0];
   const CurrentChannelIcon = currentChannelObj.icon;
@@ -865,6 +958,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 </div>
               ) : (
                 <div className="ff-chat-composer-wrap">
+                  <FloatingStudyActions onInsertText={handleInsertStudySnippet} />
                   <div className="ff-chat-composer-input-row">
                   <ChatMentionPicker
                     id="ff-chat-mention-options-view"
