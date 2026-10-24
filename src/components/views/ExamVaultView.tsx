@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import {
   Search,
   BookOpen,
+  Share2,
   FileText,
   Download,
   Eye,
@@ -82,6 +83,7 @@ const CbtPracticeModal = lazy(() => import('../exam/CbtPracticeModal').then((mod
 const ExamFlashcardModal = lazy(() => import('../exam/ExamFlashcardModal').then((module) => ({ default: module.ExamFlashcardModal })));
 const ExamBookmarkDrawer = lazy(() => import('../exam/ExamBookmarkDrawer').then((module) => ({ default: module.ExamBookmarkDrawer })));
 const ExamPrintExportModal = lazy(() => import('../exam/ExamPrintExportModal').then((module) => ({ default: module.ExamPrintExportModal })));
+const KnowledgeNetworkModal = lazy(() => import('../exam/KnowledgeNetworkModal').then((module) => ({ default: module.KnowledgeNetworkModal })));
 import { getCachedExamIds, OFFLINE_EXAMS_CACHE_KEY } from '../exam/offlineStorage';
 import './ExamVaultView.css';
 
@@ -466,6 +468,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     return null;
   });
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [isKnowledgeGraphOpen, setIsKnowledgeGraphOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   /* Toast Helper */
@@ -974,11 +977,12 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         else if (printExam) setPrintExam(null);
         else if (previewExam) setPreviewExam(null);
         else if (isSubmitModalOpen) setIsSubmitModalOpen(false);
+        else if (isKnowledgeGraphOpen) setIsKnowledgeGraphOpen(false);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [flashcardExam, cbtExam, isBookmarkDrawerOpen, printExam, previewExam, isSubmitModalOpen]);
+  }, [flashcardExam, cbtExam, isBookmarkDrawerOpen, printExam, previewExam, isSubmitModalOpen, isKnowledgeGraphOpen]);
 
   const adminCaps = useAdminCaps();
   const isStaffOrAdmin = currentUser?.role === 'SUPER_ADMIN'
@@ -1005,7 +1009,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
   /* Prevent background scrolling when any modal or drawer is open */
   const isAnyModalOpen = Boolean(
-    flashcardExam || cbtExam || isBookmarkDrawerOpen || printExam || previewExam || isSubmitModalOpen
+    flashcardExam || cbtExam || isBookmarkDrawerOpen || printExam || previewExam || isSubmitModalOpen || isKnowledgeGraphOpen
   );
 
   useEffect(() => {
@@ -1121,6 +1125,18 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           >
             <Users className="w-3.5 h-3.5" />
             <span>Câu Lạc Bộ</span>
+          </button>
+
+          {/* Nút Mạng Lưới Tri Thức */}
+          <button
+            type="button"
+            onClick={() => setIsKnowledgeGraphOpen(true)}
+            className="ff-tactile-btn inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-cyan-400/40 bg-cyan-500/15 px-3 text-xs font-bold text-cyan-300 hover:bg-cyan-500/25 transition-all cursor-pointer"
+            aria-label="Mở Bản đồ Mạng lưới Tri thức Liên môn"
+            title="Bản đồ Mạng lưới Tri thức Liên môn"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Mạng Lưới Tri Thức</span>
           </button>
 
           {/* Online / Offline status badge */}
@@ -2807,6 +2823,17 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           paper={printExam}
           onClose={() => setPrintExam(null)}
           onPrint={() => showToast('Trong hộp thoại in, chọn “Lưu dưới dạng PDF” để lưu tệp.')}
+        />
+      )}
+
+      {isKnowledgeGraphOpen && (
+        <KnowledgeNetworkModal
+          isOpen={isKnowledgeGraphOpen}
+          onClose={() => setIsKnowledgeGraphOpen(false)}
+          onFilterTopic={(topic, subject) => {
+            setSelectedSubject(subject);
+            setSearchTerm(topic);
+          }}
         />
       )}
       </Suspense>

@@ -41,6 +41,7 @@ export const toggleThemeWithCircularReveal = (
 
   const isReducedMotion =
     typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   if (!doc.startViewTransition || isReducedMotion) {

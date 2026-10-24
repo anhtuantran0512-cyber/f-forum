@@ -13,12 +13,19 @@ import {
   ChevronRight,
   Lightbulb,
   Flame,
+  WifiOff,
 } from 'lucide-react';
 import './MemoryRealm.css';
 import { rafThrottle } from '../utils/rafThrottle';
 import type { User } from '../types';
 import { isMasterAdmin } from '../config/admin';
 import { safeStorage } from '../utils/storage';
+import { playChime } from '../utils/audio';
+import {
+  saveOfflineFlashcardProgress,
+  loadOfflineFlashcardProgress,
+  OFFLINE_BADGE_LABEL,
+} from '../utils/offlineStudyCache';
 import {
   getSavedAboutData,
   fetchAboutDataFromServer,
@@ -307,10 +314,96 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
   const [isSrsFlipped, setIsSrsFlipped] = useState(false);
   const [masteredSrsIds, setMasteredSrsIds] = useState<Set<string>>(() => new Set());
   const [reviewSrsIds, setReviewSrsIds] = useState<Set<string>>(() => new Set());
+  const [isOnline, setIsOnline] = useState(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  const [srsTouchStartX, setSrsTouchStartX] = useState<number | null>(null);
+  const [srsSwipeOffset, setSrsSwipeOffset] = useState<number>(0);
+  const [isSrsSwiping, setIsSrsSwiping] = useState<boolean>(false);
 
   const activeDeck = REALM_FLASHCARD_DECKS[selectedDeckKey] || REALM_FLASHCARD_DECKS.math;
   const activeDeckCards = activeDeck.cards;
   const currentSrsCard = activeDeckCards[srsIndex] || activeDeckCards[0];
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    const saved = loadOfflineFlashcardProgress(`realm_${selectedDeckKey}`);
+    if (saved) {
+      if (typeof saved.cardIndex === 'number' && saved.cardIndex < activeDeckCards.length) {
+        setSrsIndex(saved.cardIndex);
+      }
+      if (Array.isArray(saved.masteredIds)) {
+        setMasteredSrsIds(new Set(saved.masteredIds));
+      }
+      if (Array.isArray(saved.reviewIds)) {
+        setReviewSrsIds(new Set(saved.reviewIds));
+      }
+    }
+  }, [selectedDeckKey, activeDeckCards.length]);
+
+  useEffect(() => {
+    saveOfflineFlashcardProgress(
+      `realm_${selectedDeckKey}`,
+      srsIndex,
+      Array.from(masteredSrsIds),
+      Array.from(reviewSrsIds)
+    );
+  }, [selectedDeckKey, srsIndex, masteredSrsIds, reviewSrsIds]);
+
+  const handleSrsTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setSrsTouchStartX(e.touches[0].clientX);
+      setIsSrsSwiping(true);
+    }
+  };
+
+  const handleSrsTouchMove = (e: React.TouchEvent) => {
+    if (srsTouchStartX === null || !isSrsSwiping) return;
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - srsTouchStartX;
+    setSrsSwipeOffset(diff);
+  };
+
+  const handleSrsTouchEnd = () => {
+    if (srsTouchStartX === null) return;
+    if (srsSwipeOffset > 75) {
+      if (currentSrsCard) {
+        setMasteredSrsIds((prev) => new Set([...prev, currentSrsCard.id]));
+        setReviewSrsIds((prev) => {
+          const next = new Set(prev);
+          next.delete(currentSrsCard.id);
+          return next;
+        });
+        playChime('success');
+        setIsSrsFlipped(false);
+        setSrsIndex((prev) => (prev < activeDeckCards.length - 1 ? prev + 1 : 0));
+      }
+    } else if (srsSwipeOffset < -75) {
+      if (currentSrsCard) {
+        setReviewSrsIds((prev) => new Set([...prev, currentSrsCard.id]));
+        setMasteredSrsIds((prev) => {
+          const next = new Set(prev);
+          next.delete(currentSrsCard.id);
+          return next;
+        });
+        playChime('xp');
+        setIsSrsFlipped(false);
+        setSrsIndex((prev) => (prev < activeDeckCards.length - 1 ? prev + 1 : 0));
+      }
+    }
+    setSrsTouchStartX(null);
+    setSrsSwipeOffset(0);
+    setIsSrsSwiping(false);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -747,14 +840,22 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setRealmMode('panorama')}
-                    className="ff-tactile-btn p-2 rounded-xl bg-[#111722] hover:bg-white/10 border border-white/15 text-[#d8d5ce] cursor-pointer"
-                    title="Quay lại toàn cảnh"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {!isOnline && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-bold">
+                        <WifiOff className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">{OFFLINE_BADGE_LABEL}</span>
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setRealmMode('panorama')}
+                      className="ff-tactile-btn p-2 rounded-xl bg-[#111722] hover:bg-white/10 border border-white/15 text-[#d8d5ce] cursor-pointer"
+                      title="Quay lại toàn cảnh"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
@@ -800,9 +901,28 @@ export const MemoryRealm: React.FC<MemoryRealmProps> = ({ onNavigateSection, cur
                 </div>
 
                 <div
-                  className="ff-flashcard-perspective cursor-pointer select-none"
+                  className="ff-flashcard-perspective relative cursor-pointer select-none touch-pan-y"
                   onClick={() => setIsSrsFlipped(!isSrsFlipped)}
+                  onTouchStart={handleSrsTouchStart}
+                  onTouchMove={handleSrsTouchMove}
+                  onTouchEnd={handleSrsTouchEnd}
+                  style={{
+                    transform: srsSwipeOffset ? `translateX(${srsSwipeOffset}px) rotate(${srsSwipeOffset * 0.07}deg)` : undefined,
+                    transition: isSrsSwiping ? 'none' : 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)',
+                  }}
                 >
+                  {srsSwipeOffset > 35 && (
+                    <div className="absolute top-4 right-4 z-40 px-3 py-1.5 rounded-xl bg-emerald-500 text-white font-black text-xs shadow-lg border border-white/40 flex items-center gap-1.5 select-none animate-pulse">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>ĐÃ THUỘC (VUỐT PHẢI)</span>
+                    </div>
+                  )}
+                  {srsSwipeOffset < -35 && (
+                    <div className="absolute top-4 left-4 z-40 px-3 py-1.5 rounded-xl bg-rose-500 text-white font-black text-xs shadow-lg border border-white/40 flex items-center gap-1.5 select-none animate-pulse">
+                      <RotateCcw className="w-4 h-4" />
+                      <span>CẦN ÔN LẠI (VUỐT TRÁI)</span>
+                    </div>
+                  )}
                   <div className={`ff-flashcard-inner ${isSrsFlipped ? 'is-flipped' : ''}`}>
                     <div className="ff-flashcard-face ff-flashcard-front card-hard p-6 flex flex-col justify-between">
                       <div>

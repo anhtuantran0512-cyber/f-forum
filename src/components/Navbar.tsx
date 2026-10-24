@@ -845,7 +845,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             cancelMorphLoading();
           }}
           aria-busy={isMorphBusy}
-          className={`ff-nav-capsule card-hard fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full pointer-events-auto px-4 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 shadow-2xl ${
+          className={`ff-nav-capsule fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full card-hard pointer-events-auto px-4 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 shadow-2xl ${
             isMorphBusy ? 'ff-nav-capsule--busy' : ''
           }`}
           aria-label="Điều hướng chính"

@@ -13,10 +13,16 @@ import {
   Check,
   Lightbulb,
   Flame,
+  WifiOff,
 } from 'lucide-react';
 import type { ExamPaper, ExamCBTQuestion } from '../../types';
 import { getExamCBTQuestions } from './cbtData';
 import { playChime } from '../../utils/audio';
+import {
+  saveOfflineFlashcardProgress,
+  loadOfflineFlashcardProgress,
+  OFFLINE_BADGE_LABEL,
+} from '../../utils/offlineStudyCache';
 import './ExamFlashcardModal.css';
 
 export interface ExamFlashcardModalProps {
@@ -41,6 +47,37 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
   const [rawIndex, setRawIndex] = useState(0);
   const [flippedCardId, setFlippedCardId] = useState<string | null>(null);
   const [isCompletedView, setIsCompletedView] = useState(false);
+  const [isOnline, setIsOnline] = useState(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [swipeOffset, setSwipeOffset] = useState<number>(0);
+  const [isSwiping, setIsSwiping] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    const saved = loadOfflineFlashcardProgress(`paper_${paper.id}`);
+    if (saved) {
+      if (typeof saved.cardIndex === 'number' && saved.cardIndex < allQuestions.length) {
+        setRawIndex(saved.cardIndex);
+      }
+      if (Array.isArray(saved.masteredIds)) {
+        setMasteredIds(new Set(saved.masteredIds));
+      }
+      if (Array.isArray(saved.reviewIds)) {
+        setReviewIds(new Set(saved.reviewIds));
+      }
+    }
+  }, [paper.id, allQuestions.length]);
 
   /* Danh sách câu hỏi sau khi áp dụng bộ lọc trạng thái */
   const activeQuestions = useMemo(() => {
@@ -116,6 +153,41 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
     playChime('xp');
     handleNext();
   }, [currentQuestion, handleNext]);
+
+  useEffect(() => {
+    saveOfflineFlashcardProgress(
+      `paper_${paper.id}`,
+      currentIndex,
+      Array.from(masteredIds),
+      Array.from(reviewIds)
+    );
+  }, [paper.id, currentIndex, masteredIds, reviewIds]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setTouchStartX(e.touches[0].clientX);
+      setIsSwiping(true);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX === null || !isSwiping) return;
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - touchStartX;
+    setSwipeOffset(diff);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX === null) return;
+    if (swipeOffset > 75) {
+      handleMarkMastered();
+    } else if (swipeOffset < -75) {
+      handleMarkReview();
+    }
+    setTouchStartX(null);
+    setSwipeOffset(0);
+    setIsSwiping(false);
+  };
 
   /* Bắt phím tắt trợ năng cho việc ôn tập siêu tốc */
   useEffect(() => {
@@ -194,6 +266,12 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {!isOnline && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-bold">
+                <WifiOff className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{OFFLINE_BADGE_LABEL}</span>
+              </span>
+            )}
             {onOpenCbt && (
               <button
                 type="button"
@@ -374,8 +452,15 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
           <div className="flex-1 flex flex-col space-y-4">
             {/* 3D Flashcard Container */}
             <div
-              className="ff-flashcard-perspective cursor-pointer select-none"
+              className="ff-flashcard-perspective relative cursor-pointer select-none touch-pan-y"
               onClick={handleToggleFlip}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              style={{
+                transform: swipeOffset ? `translateX(${swipeOffset}px) rotate(${swipeOffset * 0.07}deg)` : undefined,
+                transition: isSwiping ? 'none' : 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)',
+              }}
               role="button"
               tabIndex={0}
               aria-label={isFlipped ? 'Mặt sau thẻ ghi nhớ, bấm để lật lại' : 'Mặt trước thẻ ghi nhớ, bấm để xem đáp án'}
@@ -386,6 +471,18 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
                 }
               }}
             >
+              {swipeOffset > 35 && (
+                <div className="absolute top-4 right-4 z-40 px-3 py-1.5 rounded-xl bg-emerald-500 text-white font-black text-xs shadow-lg border border-white/40 flex items-center gap-1.5 select-none animate-pulse">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>ĐÃ THUỘC (VUỐT PHẢI)</span>
+                </div>
+              )}
+              {swipeOffset < -35 && (
+                <div className="absolute top-4 left-4 z-40 px-3 py-1.5 rounded-xl bg-rose-500 text-white font-black text-xs shadow-lg border border-white/40 flex items-center gap-1.5 select-none animate-pulse">
+                  <RotateCcw className="w-4 h-4" />
+                  <span>CẦN ÔN LẠI (VUỐT TRÁI)</span>
+                </div>
+              )}
               <div className={`ff-flashcard-inner ${isFlipped ? 'is-flipped' : ''}`}>
                 {/* Mặt trước của Thẻ (Front: Câu hỏi, chuyên đề, độ khó) */}
                 <div className="ff-flashcard-face ff-flashcard-front card-hard p-5 sm:p-7">
