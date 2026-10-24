@@ -2937,16 +2937,73 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       return;
     }
 
+    if (method === 'GET' && url.startsWith('/api/public')) {
+      const publicUsers: Record<string, any> = {};
+      for (const [key, rawUser] of Object.entries(store.users || {})) {
+        if (!rawUser || typeof rawUser !== 'object') continue;
+        const u: any = rawUser;
+        const publicId = String(u.id || key);
+        publicUsers[publicId] = {
+          id: publicId,
+          publicId,
+          name: u.name,
+          avatar: u.avatar,
+          role: u.role,
+          bio: u.bio || '',
+          xp: Number(u.xp || 0),
+          coin: Number(u.coin || 0),
+          grade: u.grade || '12',
+          school: u.school || '',
+          equippedAvatarDecoration: u.equippedAvatarDecoration || null,
+          equippedNameplate: u.equippedNameplate || null,
+          equippedEffect: u.equippedEffect || null,
+          equippedBadge: u.equippedBadge || null,
+        };
+      }
+      sendJson(res, 200, {
+        success: true,
+        data: {
+          users: publicUsers,
+          clubs: store.clubs,
+        },
+      });
+      return;
+    }
+
     if (method === 'GET' && url.startsWith('/api/sync')) {
-      /* AI Moderation v1.0 — lời giải status "review" CHỈ hiện với tác giả
-         (để thấy trạng thái "Chờ xem xét") và nhân sự kiểm duyệt (để xem
-         hàng chờ); người khác không nhận nội dung đang chờ duyệt. */
       const syncClaims = authorizeRequest(req, null, null);
       const syncEmailLower = syncClaims ? String(syncClaims.email).toLowerCase() : '';
       const isSyncStaff = Boolean(requireModerationStaff(req, {}));
+      const stripEmailQuery = url.includes('stripPii=1');
+      const sanitizedUsers: Record<string, any> = {};
+      for (const [userKey, rawUser] of Object.entries(store.users || {})) {
+        if (!rawUser || typeof rawUser !== 'object') continue;
+        const copy: Record<string, any> = { ...(rawUser as Record<string, any>) };
+        delete copy.password;
+        delete copy.passwordHash;
+        delete copy.phone;
+        delete copy.phoneNumber;
+        delete copy.ip;
+        delete copy.sessionsRevokedAt;
+        delete copy.token;
+        delete copy.secret;
+        delete copy.resetToken;
+        delete copy.privateNotes;
+        copy.publicId = String(copy.id || userKey);
+        if (stripEmailQuery && String(userKey).toLowerCase() !== syncEmailLower && !isSyncStaff) {
+          delete copy.email;
+        }
+        sanitizedUsers[userKey] = copy;
+      }
+      const sanitizedFeedbacks = (store.feedbacks || []).map((f: any) => {
+        if (!f || typeof f !== 'object') return f;
+        if (isSyncStaff) return f;
+        const fCopy = { ...f };
+        delete fCopy.email;
+        delete fCopy.phone;
+        return fCopy;
+      });
       const visibleSolutions = store.solutions.filter((s: any) => {
-        /* Lời giải đã bị xoá (gồm Admin từ chối hàng chờ) không phát ra nữa —
-           client trước đây tự lọc, giờ lọc luôn ở nguồn để payload gọn. */
         if (!s || s.status === 'deleted') return false;
         if (s.status !== 'review') return true;
         const authorMatch = s.authorEmail && String(s.authorEmail).toLowerCase() === syncEmailLower;
@@ -2955,16 +3012,14 @@ export function setupForumServer(httpServer: any, middlewares: any) {
       sendJson(res, 200, {
         success: true,
         data: {
-          users: store.users,
+          users: sanitizedUsers,
           clubs: store.clubs,
           clubPosts: store.clubPosts,
           questions: store.questions,
           solutions: visibleSolutions,
           comments: (store.comments || []).filter((c: any) => c && c.status !== 'hidden'),
           chatMessages: store.chatMessages,
-          feedbacks: store.feedbacks,
-          /* Thread System v1.0 — chỉ trả thread public (active) cho client;
-             under_review/hidden chỉ Admin nhìn qua panel riêng. */
+          feedbacks: sanitizedFeedbacks,
           threads: (store.threads || []).filter((t) => t.status === 'active'),
           about: store.about,
         },

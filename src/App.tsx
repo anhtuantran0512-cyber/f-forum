@@ -9,6 +9,7 @@ import { ScrollToTopDock } from './components/ScrollToTopDock';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { MigrationCelebrationModal } from './components/decorations/MigrationCelebrationModal';
 import { CelebrationBurst } from './components/CelebrationBurst';
+import { ScholarSpiritBridge } from './components/mascot/ScholarSpiritBridge';
 import { HomeView } from './components/views/HomeView';
 import { GlobalCursor } from './components/GlobalCursor';
 import {
@@ -1656,6 +1657,9 @@ export const App: React.FC = () => {
         tone="gold"
         headline={decoEquipBurst.tick > 0 ? `Đã trang bị: ${decoEquipBurst.name}` : undefined}
       />
+
+      {/* Linh Thú Học Thuật 2.5D Độc Bản v5.0 */}
+      <ScholarSpiritBridge />
 
       {/* CodeFronts .la-08 Healthcare Appointment & Resource Loading Animation */}
       {isResourceLoading && (

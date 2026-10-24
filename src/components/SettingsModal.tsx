@@ -33,6 +33,7 @@ import { AUTH_TOKEN_KEY, clearAuthToken, requestServerLogout } from '../utils/se
 import { usePopoverPosition, type DockPosition } from '../utils/popover';
 import { PasswordChangeForm } from './settings/PasswordChangeForm';
 import { useAdaptiveQuality, type AdaptiveQualityTier } from '../utils/adaptiveQuality';
+import { loadSpiritSettings, saveSpiritSettings, type SpiritSpecies, type SpiritSkin, type SpiritSettings } from '../utils/spiritStorage';
 
 export interface SettingsModalProps {
   isOpen: boolean;
@@ -217,6 +218,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [resetDone, setResetDone] = useState<string | null>(null);
   const [dataNotice, setDataNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [spiritSettings, setSpiritSettings] = useState<SpiritSettings>(loadSpiritSettings);
+
+  const updateSpirit = (patch: Partial<SpiritSettings>) => {
+    setSpiritSettings((prev) => {
+      const next = { ...prev, ...patch };
+      saveSpiritSettings(next);
+      return next;
+    });
+  };
 
   const activePreset = useMemo(
     () => GODRAY_PRESETS.find((p) => p.id === resolveGodrayId(godrayPreset)) || GODRAY_PRESETS[0],
@@ -883,6 +893,132 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <span className="text-[10px] font-mono text-[#f2cc8f] shrink-0 w-6 text-right">{glassBlur}px</span>
                     </div>
                   </div>
+                </Card>
+              </section>
+
+              {/* 3B. LINH THÚ HỌC THUẬT 2.5D */}
+              <section>
+                <SectionTitle icon={<GhibliSparkleIcon className="w-3 h-3 text-amber-300" />}>Linh Thú Học Thuật 2.5D</SectionTitle>
+                <Card className="space-y-4">
+                  {/* Bật / Tắt */}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 pr-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-semibold text-white tracking-wide">Linh vật bám theo chuột</span>
+                        <span className="text-[10px] py-0.5 rounded-md font-mono font-medium bg-amber-500/15 text-amber-300 border border-amber-400/30 px-1.5">
+                          {spiritSettings.enabled ? 'Đang bật' : 'Đang ẩn'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-white/50 mt-0.5 leading-snug">
+                        Lý Ngư Vọng Nguyệt, Cú Tuyết Athena 2.5D tự động nhận diện 38 ngày lễ Việt Nam & Sinh nhật
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={spiritSettings.enabled}
+                      onClick={() => updateSpirit({ enabled: !spiritSettings.enabled })}
+                      className={`relative w-11 h-6 rounded-full transition-colors duration-200 cursor-pointer shrink-0 border border-white/10 ${
+                        spiritSettings.enabled ? 'bg-amber-500' : 'bg-neutral-800'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block w-4 h-4 rounded-full bg-white shadow-md transform transition-transform duration-200 mt-1 ml-1 ${
+                          spiritSettings.enabled ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {spiritSettings.enabled && (
+                    <div className="pt-2 border-t border-white/10 space-y-3">
+                      {/* Chọn loài */}
+                      <div>
+                        <p className="text-[11px] font-semibold text-white/80 mb-2">Chọn loài linh thú</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { id: 'koi' as SpiritSpecies, label: 'Cá Chép Koi', icon: '◈' },
+                            { id: 'owl' as SpiritSpecies, label: 'Cú Tuyết', icon: '✦' },
+                            { id: 'nautilus' as SpiritSpecies, label: 'Ốc Anh Vũ', icon: '◎' },
+                          ].map((item) => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => updateSpirit({ species: item.id })}
+                              className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                                spiritSettings.species === item.id
+                                  ? 'bg-amber-500/20 border-amber-400/60 text-amber-200 shadow-sm'
+                                  : 'bg-black/30 border-white/10 text-white/70 hover:border-white/20'
+                              }`}
+                            >
+                              <div className="text-sm">{item.icon}</div>
+                              <div className="text-[11px] font-bold mt-0.5 truncate">{item.label}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Chọn bảng màu / Skin */}
+                      <div>
+                        <p className="text-[11px] font-semibold text-white/80 mb-2">Bảng màu (Skin)</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                          {[
+                            { id: 'kintsugi' as SpiritSkin, label: 'Bạch Ngọc Kintsugi', desc: 'Vàng 24K' },
+                            { id: 'sumi' as SpiritSkin, label: 'Thuỷ Mặc Chu Sa', desc: 'Mực tàu & ấn' },
+                            { id: 'solar' as SpiritSkin, label: 'Kim Ô Hoả', desc: 'Trạng nguyên' },
+                            { id: 'astral' as SpiritSkin, label: 'Tinh Hà', desc: 'Nguyệt quang' },
+                            { id: 'jade' as SpiritSkin, label: 'Thanh Ngọc', desc: 'Cổ viện' },
+                          ].map((sk) => (
+                            <button
+                              key={sk.id}
+                              type="button"
+                              onClick={() => updateSpirit({ skin: sk.id })}
+                              className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                                spiritSettings.skin === sk.id
+                                  ? 'bg-amber-500/20 border-amber-400/60 text-amber-200 shadow-sm'
+                                  : 'bg-black/30 border-white/10 text-white/70 hover:border-white/20'
+                              }`}
+                            >
+                              <div className="text-[11px] font-bold truncate">{sk.label}</div>
+                              <div className="text-[9.5px] text-white/40">{sk.desc}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Tùy chọn hiển thị & Tương tác */}
+                      <div className="pt-2 border-t border-white/5 flex flex-wrap items-center justify-between gap-2">
+                        <label className="flex items-center gap-2 cursor-pointer text-[11px] text-white/70">
+                          <input
+                            type="checkbox"
+                            checked={spiritSettings.showLotus}
+                            onChange={(e) => updateSpirit({ showLotus: e.target.checked })}
+                            className="rounded border-white/20 accent-amber-500 cursor-pointer"
+                          />
+                          <span>Lá sen mặt hồ</span>
+                        </label>
+
+                        <label className="flex items-center gap-2 cursor-pointer text-[11px] text-white/70">
+                          <input
+                            type="checkbox"
+                            checked={spiritSettings.showCard}
+                            onChange={(e) => updateSpirit({ showCard: e.target.checked })}
+                            className="rounded border-white/20 accent-amber-500 cursor-pointer"
+                          />
+                          <span>Thẻ thơ đại lễ</span>
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => window.__astralDragonCfg?.triggerPulse?.()}
+                          className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 text-[10.5px] font-semibold transition cursor-pointer"
+                        >
+                          Long Ngâm
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </Card>
               </section>
             </>

@@ -1,0 +1,33 @@
+/* Thẻ thơ chúc mừng độc bản F-Forum v5.0 */
+.fforum-poetic-card {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 45;
+  max-width: 375px;
+  background: rgba(11, 17, 30, 0.88);
+  border: 1px solid rgba(251, 191, 36, 0.38);
+  border-radius: 16px;
+  padding: 13px 16px;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.55);
+  pointer-events: auto;
+  transition: all 0.35s ease;
+}
+
+html[data-theme="light"] .fforum-poetic-card {
+  background: rgba(255, 252, 245, 0.94);
+  border-color: rgba(180, 83, 9, 0.35);
+  box-shadow: 0 16px 36px rgba(30, 25, 15, 0.14);
+}
+
+.fforum-poetic-card.hidden-card {
+  opacity: 0;
+  transform: translateY(14px);
+  pointer-events: none;
+}
+
+.serif-poem {
+  font-family: 'Playfair Display', Georgia, serif;
+}
