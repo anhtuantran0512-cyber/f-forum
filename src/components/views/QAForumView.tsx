@@ -1741,7 +1741,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     setIsAskModalOpen(true);
                   }
                 }}
-                className="ff-tactile-btn px-4 py-2 rounded-xl text-xs font-extrabold bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                className="btn-feastables ff-tactile-pop px-4 py-2 rounded-xl text-xs font-extrabold bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
               >
                 <PlusCircle className="w-4 h-4 text-[#e07a5f]" />
                 <span>Đặt câu hỏi</span>
@@ -2921,7 +2921,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       <button
                         type="submit"
                         disabled={askCooldown > 0 || isSubmittingAsk}
-                        className="ff-tactile-btn px-6 py-2.5 rounded-xl font-extrabold text-xs sm:text-[13.5px] bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        className="btn-feastables ff-tactile-pop px-6 py-2.5 rounded-xl font-extrabold text-xs sm:text-[13.5px] bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       >
                         {isSubmittingAsk ? (
                           <>

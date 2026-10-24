@@ -138,7 +138,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ currentUser, onOpenAut
 
             <Reveal y={22} delay={250} className="w-full">
               <div className="mt-8 flex w-full flex-col items-start gap-4 sm:flex-row sm:items-center">
-                <MagneticButton size="lg" onClick={onOpenAuth} className="w-full sm:w-auto shadow-[0_10px_30px_rgba(245,158,11,0.25)]">
+                <MagneticButton size="lg" onClick={onOpenAuth} className="btn-feastables ff-tactile-pop w-full sm:w-auto shadow-[0_10px_30px_rgba(245,158,11,0.25)]">
                   <BookOpenCheck className="h-4 w-4" />
                   {currentUser ? 'Vào bàn học F-Forum' : 'Đặt câu hỏi ngay'}
                   <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
