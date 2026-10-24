@@ -1984,7 +1984,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   aria-label={`Xem chi tiết câu hỏi: ${q.title}`}
                   data-question-id={q.id}
                   ref={setQuestionCardRef}
-                  className={`ff-virtual-card ff-qa-card cursor-pointer p-4 sm:p-5 group ${
+                  className={`ff-virtual-card ff-qa-card card-hard cursor-pointer p-4 sm:p-5 group ${
                     q.isSolved ? 'is-solved' : 'is-unsolved'
                   }`}
                 >
@@ -2650,6 +2650,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         placeholder="Ghi rõ đề bài, dữ kiện đã cho và bước biến đổi đang vướng mắc..."
                         className="w-full min-h-[152px] bg-transparent text-[15px] text-[#f4f1de] placeholder-[#84817a] focus:outline-none resize-y leading-[1.7] ask2027-scrollbar"
                       />
+                      <div className="flex items-center justify-between text-xs font-mono text-[#9a978e] pt-2 border-t border-dashed border-[#f4f1de]/10">
+                        <span>{newContent.length}/1500 ký tự</span>
+                        <span className={newContent.trim().split(/\s+/).filter(Boolean).length >= 50 ? 'text-emerald-400 font-bold' : 'text-[#f2cc8f]'}>
+                          {newContent.trim() ? newContent.trim().split(/\s+/).filter(Boolean).length : 0} / 150 từ khuyến nghị
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -3001,6 +3007,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         const detailSubjectLabel =
           SUBJECTS.find(s => s.tag === selectedQuestion.subject)?.label || selectedQuestion.subject;
         const bestBonusCoin = Math.floor((selectedQuestion.bountyCoin || 20) * 0.5) + 100;
+        const askerRefundCoin = Math.floor((selectedQuestion.bountyCoin || 20) * 0.2);
 
         const detailPageNode = (
           <div
@@ -3149,7 +3156,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 {/* CỘT CHÍNH (8/12) */}
                 <div className="ff-qa-main-column lg:col-span-8 min-w-0 space-y-6">
                   {/* Khối câu hỏi chính */}
-                  <div className="question-card">
+                  <div className="question-card card-hard">
                     <div className="question-text min-w-0">
                       <div className="flex items-center justify-between gap-3 pb-4 mb-4 border-b border-white/10 flex-wrap">
                         <button
@@ -3381,7 +3388,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         return (
                           <div
                             key={sol.id}
-                            className={`answer-card ${sol.isBest ? 'verified' : ''}`}
+                            className={`answer-card card-hard ${sol.isBest ? 'verified' : ''}`}
                           >
                             <div className="ff-qa-answer-header flex items-center justify-between mb-3 pb-3 border-b border-white/[0.08] flex-wrap gap-2">
                               <button
@@ -3557,11 +3564,11 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                 {canConfirmBest && !sol.isBest && (
                                   <button
                                     onClick={() => onMarkBestSolution(selectedQuestion.id, sol.id)}
-                                    className="ff-tactile-btn px-3.5 py-1.5 rounded-lg bg-[#81b29a]/22 hover:bg-[#81b29a]/35 text-[#d8f3dc] font-bold text-xs border-[1.5px] border-[#81b29a]/55 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
-                                    title={`Chọn làm đáp án chuẩn (+${bestBonusCoin} Coin)`}
+                                    className="ff-tactile-btn px-3.5 py-1.5 rounded-lg bg-[#81b29a]/22 hover:bg-[#81b29a]/35 text-[#d8f3dc] font-bold text-xs border-[1.5px] border-[#81b29a]/55 transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_#04060a]"
+                                    title={`Chọn làm lời giải hay nhất (Hoàn lại 20% = +${askerRefundCoin} Coin cho bạn, thưởng 50% = +${bestBonusCoin} Coin cho tác giả)`}
                                   >
                                     <Check className="w-3.5 h-3.5 text-[#81b29a]" />
-                                    <span>Chọn đáp án chuẩn (+{bestBonusCoin} Coin)</span>
+                                    <span>Chọn lời giải hay nhất (+{bestBonusCoin} Coin)</span>
                                   </button>
                                 )}
                               </div>
@@ -3677,8 +3684,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               />
                             </label>
                           )}
-                          <span className="text-xs font-mono text-[#9a978e]">
-                            {solutionText.length}/1500 ký tự
+                          <span className="text-xs font-mono text-[#9a978e] flex items-center gap-1.5 flex-wrap">
+                            <span>{solutionText.length}/1500 ký tự</span>
+                            <span>·</span>
+                            <span className={solutionText.trim().split(/\s+/).filter(Boolean).length >= 50 ? 'text-emerald-400 font-bold' : 'text-[#f2cc8f]'}>
+                              {solutionText.trim() ? solutionText.trim().split(/\s+/).filter(Boolean).length : 0} / 150 từ khuyến nghị
+                            </span>
                           </span>
                           {solImageError && (
                             <span className="text-xs text-rose-400">{solImageError}</span>
@@ -3713,12 +3724,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     </h4>
                     <div className="grid grid-cols-2 gap-2.5 text-xs">
                       <div className="p-3 rounded-xl bg-[#0b0d12]/75 border border-[#f4f1de]/12">
-                        <span className="text-[#9a978e] block text-[11px]">Thưởng trả lời</span>
-                        <strong className="text-[#81b29a] font-mono text-sm mt-0.5 block">+25 Coin · +25 XP</strong>
+                        <span className="text-[#9a978e] block text-[11px]">Hoàn trả người hỏi</span>
+                        <strong className="text-[#81b29a] font-mono text-sm mt-0.5 block">+{askerRefundCoin} Coin (20%)</strong>
                       </div>
                       <div className="p-3 rounded-xl bg-[#0b0d12]/75 border border-[#f4f1de]/12">
-                        <span className="text-[#9a978e] block text-[11px]">Thưởng Đáp án chuẩn</span>
-                        <strong className="text-[#f2cc8f] font-mono text-sm mt-0.5 block">+{bestBonusCoin} Coin</strong>
+                        <span className="text-[#9a978e] block text-[11px]">Thưởng Lời giải hay nhất</span>
+                        <strong className="text-[#f2cc8f] font-mono text-sm mt-0.5 block">+{bestBonusCoin} Coin (50%)</strong>
                       </div>
                     </div>
                     <div className="flex items-center justify-between text-xs text-[#d8d5ce] pt-2 border-t border-dashed border-[#f4f1de]/12">

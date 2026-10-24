@@ -214,6 +214,38 @@
   box-shadow: 0 16px 42px -26px rgba(0, 0, 0, 0.82), inset 0 1px 0 rgba(255, 250, 234, 0.08) !important;
 }
 
+.ff-qa-card.card-hard,
+.ff-qa-detail .question-card.card-hard,
+.ff-qa-detail .answer-card.card-hard {
+  border-radius: 16px !important;
+  border: 1.5px solid var(--border-subtle, rgba(244, 241, 222, 0.16)) !important;
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.45) !important;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.ff-qa-card.card-hard:hover {
+  transform: translateY(-2px);
+  box-shadow: 5px 5px 0px rgba(0, 0, 0, 0.5) !important;
+}
+
+.ff-qa-detail .answer-card .ff-tactile-btn,
+.ff-qa-detail .question-card .ff-tactile-btn {
+  box-shadow: 0 3px 0 var(--ff-btn-shadow, rgba(4, 6, 11, 0.85));
+  transition: transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.1s ease;
+}
+
+.ff-qa-detail .answer-card .ff-tactile-btn:hover,
+.ff-qa-detail .question-card .ff-tactile-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 var(--ff-btn-shadow, rgba(4, 6, 11, 0.85));
+}
+
+.ff-qa-detail .answer-card .ff-tactile-btn:active,
+.ff-qa-detail .question-card .ff-tactile-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--ff-btn-shadow, rgba(4, 6, 11, 0.85));
+}
+
 .ff-qa-detail .question-text h1,
 .ff-qa-detail .question-text h2,
 .ff-qa-detail .answer-card h3 {

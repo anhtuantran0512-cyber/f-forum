@@ -80,6 +80,8 @@ const FocusSanctuary = lazyWithRetry(() => import('./components/FocusSanctuary')
 const AuthModal = lazyWithRetry(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const ReportInboxModal = lazyWithRetry(() => import('./components/ReportInboxModal').then(m => ({ default: m.ReportInboxModal })));
 const AdminConsoleModal = lazyWithRetry(() => import('./components/AdminConsoleModal').then(m => ({ default: m.AdminConsoleModal })));
+const MemorialWallModal = lazyWithRetry(() => import('./components/MemorialWallModal').then(m => ({ default: m.MemorialWallModal })));
+const DailyCheckInModal = lazyWithRetry(() => import('./components/DailyCheckInModal').then(m => ({ default: m.DailyCheckInModal })));
 const RoleBadge = lazyWithRetry(() => import('./components/RoleBadge').then(m => ({ default: m.RoleBadge })));
 const TriVideoCrossfadeBg = lazyWithRetry(() => import('./components/TriVideoCrossfadeBg').then(m => ({ default: m.TriVideoCrossfadeBg })));
 
@@ -375,6 +377,20 @@ export const App: React.FC = () => {
   const [fabulousMode, setFabulousMode] = useState<boolean>(() => {
     return safeStorage.getItem('fforum_fabulous_mode') === 'true';
   });
+
+  const [isMemorialModalOpen, setIsMemorialModalOpen] = useState(false);
+  const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
+
+  useEffect(() => {
+    const onOpenMemorial = () => setIsMemorialModalOpen(true);
+    const onOpenCheckIn = () => setIsCheckInModalOpen(true);
+    window.addEventListener('fforum_open_memorial_wall', onOpenMemorial);
+    window.addEventListener('fforum_open_daily_checkin', onOpenCheckIn);
+    return () => {
+      window.removeEventListener('fforum_open_memorial_wall', onOpenMemorial);
+      window.removeEventListener('fforum_open_daily_checkin', onOpenCheckIn);
+    };
+  }, []);
 
   useEffect(() => {
     const handleFabulousSync = (e: Event) => {
@@ -763,6 +779,24 @@ export const App: React.FC = () => {
         icon: <Flame className="w-4 h-4" />,
         keywords: 'diem danh streak hop qua',
         run: () => window.dispatchEvent(new CustomEvent('fforum_open_daily')),
+      },
+      {
+        id: 'act-memorial-wall',
+        label: 'Lưu bút mùa thi & Lời chúc sĩ tử',
+        hint: '',
+        group: 'Không gian',
+        icon: <Compass className="w-4 h-4 text-rose-400" />,
+        keywords: 'luu but mua thi si tu loi chuc origami',
+        run: () => setIsMemorialModalOpen(true),
+      },
+      {
+        id: 'act-checkin-2027',
+        label: 'Chuỗi ngày & Điểm danh học tập 2027',
+        hint: '',
+        group: 'Không gian',
+        icon: <Flame className="w-4 h-4 text-amber-400" />,
+        keywords: 'diem danh streak chuoi ngay do vui so cai',
+        run: () => setIsCheckInModalOpen(true),
       },
       {
         id: 'act-chat',
@@ -1563,6 +1597,23 @@ export const App: React.FC = () => {
               setIsAdminConsoleOpen(false);
               handleViewChange('clubs');
             }}
+          />
+        )}
+        {isMemorialModalOpen && (
+          <MemorialWallModal
+            isOpen={isMemorialModalOpen}
+            onClose={() => setIsMemorialModalOpen(false)}
+            currentUser={currentUser}
+            onOpenLoginModal={() => handleOpenAuth('login')}
+          />
+        )}
+        {isCheckInModalOpen && (
+          <DailyCheckInModal
+            isOpen={isCheckInModalOpen}
+            onClose={() => setIsCheckInModalOpen(false)}
+            currentUser={currentUser}
+            onOpenLoginModal={() => handleOpenAuth('login')}
+            onClaimDailyReward={claimDailyReward}
           />
         )}
       </Suspense>
