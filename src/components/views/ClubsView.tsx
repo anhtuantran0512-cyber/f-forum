@@ -22,6 +22,9 @@ import {
   Activity,
   BookOpen,
   RotateCcw,
+  Globe,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import type { Club, ClubPost, User, ClubCategory, ChatMessage } from '../../types';
 import { DEFAULT_AVATAR, DEFAULT_CLUB_COVER, handleImageError } from '../../utils/mediaFallback';
@@ -52,6 +55,24 @@ interface ClubsViewProps {
   onOpenProfile?: (user?: { id: string; name: string; avatar: string; email?: string; level?: number }) => void;
   isEmbedded?: boolean;
 }
+
+const SOLAR_SYSTEM_3D_URL = 'https://01a14731-4761-7a04-909a-fb3cd69dff26.arena.site/?embed=true';
+
+const DEFAULT_ASTRONOMY_CLUB: Club = {
+  id: 'club-astronomy-physics',
+  name: 'CLB Thiên văn & Vật lý vũ trụ',
+  slogan: 'Ngắm nhìn vì sao · Giải mã cấu trúc và quy luật chuyển động thiên thể',
+  coverImage: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&h=600&fit=crop',
+  category: 'Học thuật',
+  foundingMembers: ['GS. Thiên Văn', 'Trần Thùy Linh', 'Nguyễn Minh Khôi'],
+  purpose: 'Nghiên cứu cơ học thiên thể, vật lý vũ trụ, quan sát bầu trời đêm và thực nghiệm mô phỏng chuyển động 3D các hành tinh trong Hệ Mặt Trời.',
+  status: 'APPROVED',
+  leaderId: 'astronomy-lead',
+  leaderName: 'Chủ nhiệm CLB Thiên văn',
+  followerCount: 185,
+  membersCount: 320,
+  createdAt: '2026-09-01',
+};
 
 const CATEGORIES: ('Tất cả' | ClubCategory)[] = [
   'Tất cả',
@@ -137,6 +158,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   );
   const [selectedCategory, setSelectedCategory] = useState<'Tất cả' | ClubCategory>('Tất cả');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSolarStationExpanded, setIsSolarStationExpanded] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [rejectPromptClubId, setRejectPromptClubId] = useState<string | null>(null);
@@ -181,7 +203,10 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
 
   const approvedClubs = useMemo(() => {
     const q = searchTerm.toLowerCase();
-    return clubs.filter(
+    const sourceClubs = clubs.some(c => c.name.includes('Thiên văn') || c.id === DEFAULT_ASTRONOMY_CLUB.id)
+      ? clubs
+      : [DEFAULT_ASTRONOMY_CLUB, ...clubs];
+    return sourceClubs.filter(
       c =>
         c.status === 'APPROVED' &&
         (selectedCategory === 'Tất cả' || c.category === selectedCategory) &&
@@ -458,8 +483,90 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
 
         {/* Bento Grid Container */}
         <div className="flex-1 space-y-5 pb-12">
-          
-          {/* Fix 3: Banner "CLB xuất sắc" CHỈ hiện khi có dữ liệu thật */}
+          {(selectedCategory === 'Tất cả' || selectedCategory === 'Học thuật') && (
+            <div
+              className="ff-astronomy-station rounded-2xl p-5 sm:p-6 backdrop-blur-xl border border-white/10 shadow-[0_16px_50px_rgba(0,0,0,0.6)] overflow-hidden transition-all duration-300"
+              style={{
+                background: 'linear-gradient(135deg, rgba(13, 20, 36, 0.88) 0%, rgba(9, 12, 18, 0.95) 100%)',
+                border: '1px solid rgba(148, 163, 184, 0.18)',
+              }}
+            >
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center text-indigo-300 shadow-md">
+                    <Globe className="w-6 h-6 animate-pulse" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-2.5 py-0.5 rounded-md text-[10.5px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-400/40">
+                        TRẠM KHÁM PHÁ THIÊN VĂN 3D
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-amber-500/15 text-amber-300 border border-amber-400/30">
+                        CLB Thiên văn &amp; Vật lý vũ trụ
+                      </span>
+                    </div>
+                    <h2 className="text-base sm:text-xl font-bold text-white mt-1">
+                      Mô Phỏng Tương Tác Hệ Mặt Trời 3D Thời Gian Thực
+                    </h2>
+                    <p className="text-xs text-slate-300 mt-0.5">
+                      Không gian thực nghiệm số dành cho thành viên CLB Thiên văn &amp; Vật lý vũ trụ và sinh viên F-Forum.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const astro = approvedClubs.find(c => c.name.includes('Thiên văn')) || DEFAULT_ASTRONOMY_CLUB;
+                      setSelectedClub(astro);
+                    }}
+                    className="ff-tactile-btn px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-md"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Vào phòng CLB</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsSolarStationExpanded(!isSolarStationExpanded)}
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 transition-colors cursor-pointer"
+                    title={isSolarStationExpanded ? 'Thu nhỏ trạm thiên văn' : 'Mở rộng trạm thiên văn'}
+                  >
+                    {isSolarStationExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {isSolarStationExpanded && (
+                <div className="mt-4 space-y-3 animate-fade-in">
+                  <div
+                    className="relative w-full h-[440px] sm:h-[520px] rounded-xl overflow-hidden bg-black border border-white/10 shadow-2xl"
+                    style={{ boxShadow: '0 0 30px rgba(99, 102, 241, 0.15)' }}
+                  >
+                    <iframe
+                      src={SOLAR_SYSTEM_3D_URL}
+                      title="Trạm Khám Phá Thiên Văn 3D - CLB Thiên văn & Vật lý vũ trụ"
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; camera; encrypted-media; gyroscope; picture-in-picture"
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 pt-2 text-[11px] font-mono text-slate-300 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-white/50">Điểm quan sát:</span>
+                      <span className="px-2 py-0.5 rounded bg-black/40 border border-white/10 text-amber-300">Mặt Trời</span>
+                      <span className="px-2 py-0.5 rounded bg-black/40 border border-white/10 text-emerald-300">Trái Đất</span>
+                      <span className="px-2 py-0.5 rounded bg-black/40 border border-white/10 text-rose-300">Sao Hỏa</span>
+                      <span className="px-2 py-0.5 rounded bg-black/40 border border-white/10 text-indigo-300">Sao Mộc</span>
+                    </div>
+                    <span className="text-slate-400">Cuộn chuột để zoom · Giữ chuột trái để xoay góc nhìn 3D</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           {spotlightClub ? (
             <div
               onMouseMove={handleMouseMove}
@@ -933,6 +1040,29 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   <p className="italic text-[#f2cc8f]">"{selectedClub.slogan}"</p>
                   <p className="text-[#d8d5ce] leading-relaxed pt-1">{selectedClub.purpose}</p>
                 </div>
+
+                {(selectedClub.name.includes('Thiên văn') || selectedClub.name.includes('Vật lý vũ trụ')) && (
+                  <div className="p-4 rounded-xl bg-[#0b0d12]/90 border-[1.5px] border-indigo-400/35 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-indigo-400" />
+                        <span className="font-bold text-[#f4f1de] text-xs sm:text-sm">Trạm Tương Tác Hệ Mặt Trời 3D</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-400/30">
+                        Khám phá trực quan
+                      </span>
+                    </div>
+                    <div className="relative w-full h-64 sm:h-80 rounded-xl overflow-hidden bg-black border border-white/10">
+                      <iframe
+                        src={SOLAR_SYSTEM_3D_URL}
+                        title="Khám phá Hệ Mặt Trời 3D - CLB Thiên văn & Vật lý vũ trụ"
+                        className="w-full h-full border-0"
+                        allow="accelerometer; autoplay; camera; encrypted-media; gyroscope; picture-in-picture"
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Member Roster */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">

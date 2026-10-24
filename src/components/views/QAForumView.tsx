@@ -586,15 +586,42 @@ interface QAForumViewProps {
   onDetailOpenChange?: (open: boolean) => void;
 }
 
+const formatRelativeTime = (timeStrOrMs: string | number | undefined): string => {
+  if (!timeStrOrMs) return 'vừa xong';
+  let ms: number;
+  if (typeof timeStrOrMs === 'number') {
+    ms = timeStrOrMs;
+  } else {
+    const parsed = Date.parse(timeStrOrMs);
+    if (!Number.isNaN(parsed)) {
+      ms = parsed;
+    } else {
+      const match = timeStrOrMs.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})\s*(\d{1,2})?:?(\d{1,2})?/);
+      if (match) {
+        const [, y, m, d, h, min] = match;
+        ms = new Date(Number(y), Number(m) - 1, Number(d), Number(h || 0), Number(min || 0)).getTime();
+      } else {
+        return timeStrOrMs;
+      }
+    }
+  }
+  const diff = Math.max(0, Date.now() - ms);
+  if (diff < 60_000) return 'vừa xong';
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} phút trước`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} giờ trước`;
+  if (diff < 604_800_000) return `${Math.floor(diff / 86_400_000)} ngày trước`;
+  return `${Math.floor(diff / 86_400_000)} ngày trước`;
+};
+
 const SUBJECTS: { tag: SubjectTag | 'all'; label: string; group: 'academic' | 'life' }[] = [
-  { tag: 'all', label: 'Tất cả', group: 'academic' },
-  { tag: 'toan', label: 'Toán học', group: 'academic' },
-  { tag: 'ly', label: 'Vật lý', group: 'academic' },
-  { tag: 'hoa', label: 'Hóa học', group: 'academic' },
-  { tag: 'sinh', label: 'Sinh học', group: 'academic' },
-  { tag: 'anh', label: 'Tiếng Anh', group: 'academic' },
+  { tag: 'all', label: 'Tất cả môn', group: 'academic' },
+  { tag: 'toan', label: 'Toán', group: 'academic' },
+  { tag: 'ly', label: 'Lý', group: 'academic' },
+  { tag: 'hoa', label: 'Hóa', group: 'academic' },
+  { tag: 'sinh', label: 'Sinh', group: 'academic' },
   { tag: 'tin', label: 'Tin học', group: 'academic' },
   { tag: 'van', label: 'Ngữ văn', group: 'academic' },
+  { tag: 'anh', label: 'Tiếng Anh', group: 'academic' },
   { tag: 'su', label: 'Sử - Địa', group: 'academic' },
   { tag: 'hotro', label: 'Hỗ trợ', group: 'life' },
   { tag: 'kinhnghiem', label: 'Ôn thi', group: 'life' },
@@ -1806,6 +1833,37 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0 pb-6 items-start">
           {/* Left: Questions Feed */}
           <div ref={questionFeedRef} className="ff-qa-feed lg:col-span-8 space-y-2.5 pb-6">
+            <div
+              className="p-3.5 sm:p-4 rounded-xl backdrop-blur-md border border-white/10 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs mb-1"
+              style={{
+                background: 'linear-gradient(135deg, rgba(16, 24, 39, 0.75) 0%, rgba(9, 12, 18, 0.85) 100%)',
+                border: '1px solid rgba(148, 163, 184, 0.16)',
+              }}
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-amber-400 shrink-0">
+                  <Award className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-white text-[12.5px]">Cơ Chế Danh Dự &amp; Thẩm Định Thủ Khoa</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                      Chống Spam 24/7
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 mt-0.5">
+                    Lời giải có tâm, lập luận từng bước được thưởng Bounty Points và xác thực danh hiệu Thủ khoa F-Forum.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[10.5px] font-mono text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-400/25">
+                  Môn trọng tâm: Toán, Lý, Hóa, Sinh, Tin, Văn
+                </span>
+              </div>
+            </div>
+
           {(isSynced || filteredQuestions.length > 0) && (
             <div className="ff-qa-feed-summary" role="status" aria-live="polite" aria-atomic="true">
               <span className="ff-qa-feed-label">BẢNG CÂU HỎI</span>
@@ -1968,22 +2026,22 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             <span>{subjectLabel}</span>
                           </span>
 
-                          {q.isSolved ? (
-                            <span className="sm:hidden ff-holo-badge inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] text-xs font-bold text-[#d8f3dc]">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[5px] bg-[#f2cc8f]/18 border border-[#f2cc8f]/45 text-xs font-mono font-bold text-[#f2cc8f] shadow-sm">
+                            <Coins className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
+                            <span>+{q.bountyCoin || 50} Bounty Points</span>
+                          </span>
+
+                          {q.isSolved || bestSol ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] text-xs font-bold bg-[#81b29a]/20 text-[#d8f3dc] border border-[#81b29a]/50 shadow-sm">
                               <CheckCircle2 className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
-                              <span>Đã giải</span>
+                              <span>Đã kiểm chứng bởi Thủ khoa</span>
                             </span>
                           ) : (
-                            <span className="sm:hidden ff-organic-badge !py-0.5 !px-2.5 !rounded-[5px] inline-flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] text-xs font-semibold bg-[#e07a5f]/15 text-[#f2cc8f] border border-[#e07a5f]/30">
                               <Clock className="w-3.5 h-3.5 text-[#e07a5f] shrink-0" />
-                              <span>Chờ giải</span>
+                              <span>Chờ Thủ khoa giải</span>
                             </span>
                           )}
-
-                          <span className="sm:hidden inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[5px] bg-[#f2cc8f]/15 border-[1.5px] border-[#f2cc8f]/40 text-xs font-mono font-bold text-[#f2cc8f] shadow-[2px_2px_0px_rgba(4,6,11,0.85)]">
-                            <Coins className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
-                            <span>+{q.bountyCoin || 20} Coin</span>
-                          </span>
 
                           {attachedImages.length > 0 && (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] bg-[#81b29a]/15 border-[1.5px] border-[#81b29a]/40 text-xs font-semibold text-[#d8f3dc]">
@@ -2169,7 +2227,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               </span>
                             )}
                           </button>
-                          <span className="text-xs text-[#9a978e] font-mono">· {q.createdAt}</span>
+                          <span className="text-xs text-[#9a978e] font-mono">· {formatRelativeTime(q.createdAt)}</span>
                         </div>
 
                         <div className="flex items-center gap-3 text-xs font-mono text-[#d8d5ce] shrink-0">
@@ -3161,7 +3219,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               )}
                             </div>
                             <span className="text-[11px] font-mono text-slate-400 block mt-0.5">
-                              Đăng lúc {selectedQuestion.createdAt} · {selectedQuestion.views} lượt xem
+                              Đăng lúc {selectedQuestion.createdAt} ({formatRelativeTime(selectedQuestion.createdAt)}) · {selectedQuestion.views} lượt xem
                             </span>
                           </div>
                         </button>

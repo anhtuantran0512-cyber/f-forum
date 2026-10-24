@@ -1,9 +1,8 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowRight, BookOpenCheck, Check, ChevronDown, MousePointerClick, Play } from 'lucide-react';
+import { ArrowRight, BookOpenCheck, Check, ChevronDown, MousePointerClick, Play, Sparkles, LogIn } from 'lucide-react';
 import type { DimensionView, User } from '../../../types';
-import { AuroraBackdrop, MagneticButton, Reveal, ScrambleText } from '../LandingPrimitives';
-import { LandingHomePreview } from '../LandingHomePreview';
+import { AuroraBackdrop, MagneticButton, Reveal } from '../LandingPrimitives';
+import { HardwareShowcase } from '../../HardwareShowcase';
 import { scrollToSection, usePrefersReducedMotion } from '../useLandingMotion';
 import { HERO_TRUST } from '../landingContent';
 
@@ -14,7 +13,6 @@ interface LandingHeroProps {
   onNavigate: (view: DimensionView) => void;
 }
 
-/** Floating "scroll to explore" affordance, visible while the hero owns the viewport. */
 const ScrollToExplore: React.FC<{ visible: boolean }> = ({ visible }) => (
   <div
     aria-hidden={!visible}
@@ -81,102 +79,129 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ currentUser, onOpenAut
       id="top"
       ref={sectionRef}
       onMouseMove={handlePointer}
-      className="relative isolate flex w-full flex-col justify-center overflow-hidden px-4 pb-12 pt-28 sm:px-6 sm:pt-32 lg:min-h-[calc(100svh-2rem)] lg:pb-16 lg:pt-32"
+      className="relative isolate flex w-full flex-col justify-center overflow-hidden px-4 pb-16 pt-28 sm:px-8 sm:pt-36 lg:min-h-[calc(100svh-1rem)] lg:pb-24 lg:pt-36"
       aria-label="Giới thiệu F-Forum"
     >
       <AuroraBackdrop variant="amber" />
       <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-        <div className="ff-grid absolute inset-0" />
+        <div className="ff-grid absolute inset-0 opacity-40" />
         <div className="ff-landing-hero-light absolute inset-0" />
         <div
-          className="absolute inset-0 opacity-75 transition-opacity duration-500"
+          className="absolute inset-0 opacity-70 transition-opacity duration-500"
           style={{
             background:
-              'radial-gradient(540px circle at var(--hero-x, 50%) var(--hero-y, 30%), rgba(251,191,36,0.12), transparent 72%)',
+              'radial-gradient(640px circle at var(--hero-x, 50%) var(--hero-y, 30%), rgba(251,191,36,0.14), transparent 75%)',
           }}
         />
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-[var(--ff-bg)]" />
+        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-b from-transparent to-[var(--ff-bg)]" />
       </div>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-[1240px] flex-col items-center">
-        <div className="mx-auto flex w-full max-w-4xl flex-col items-center text-center">
-          <Reveal y={14}>
-            <span className="ff-chip gap-2 px-4 py-2">
-              <BookOpenCheck className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
-              <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[var(--ff-text-soft)]">
-                Cộng đồng học thuật · Tri thức lớn từ đối thoại nhỏ
-              </span>
-            </span>
-          </Reveal>
-
-          <Reveal y={26} delay={80}>
-            <h1 className="ff-display ff-balance mt-7 text-[2.35rem] leading-[1.06] sm:text-6xl lg:text-[3.8rem] xl:text-[4.25rem]">
-              <span className="block text-[var(--ff-text)]">
-                <span className="ff-swash-cap">Đ</span>iều còn vướng,
-              </span>
-              <span className="ff-gradient-text ff-gradient-pan mt-1 inline-flex flex-col items-center">
-                <ScrambleText text="cùng tìm cách hiểu." delay={300} />
-                <svg className="mt-1 h-3 w-48 sm:w-64 text-amber-300/75 ff-swash-flourish" viewBox="0 0 240 16" preserveAspectRatio="none" aria-hidden="true">
-                  <path d="M2 11 C46 1, 92 16, 142 7 S204 1, 238 10" />
-                </svg>
-              </span>
-            </h1>
-          </Reveal>
-
-          <Reveal y={24} delay={170}>
-            <p className="ff-balance mt-6 max-w-2xl text-[15px] leading-relaxed text-[var(--ff-text-soft)] sm:text-lg">
-              F-Forum là không gian để học sinh, sinh viên và thầy cô cùng mổ xẻ bài tập theo từng bước lập luận, đối
-              chiếu học liệu và rèn tư duy phản biện. Không giải bài hộ — chỉ mở ra một bàn học để cùng hiểu rõ bản chất.
-            </p>
-          </Reveal>
-
-          <Reveal y={22} delay={250} className="w-full">
-            <div className="mt-8 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
-              <MagneticButton size="lg" onClick={onOpenAuth} className="w-full sm:w-auto">
-                <BookOpenCheck className="h-4 w-4" />
-                {currentUser ? 'Vào diễn đàn' : 'Đặt câu hỏi'}
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
-              </MagneticButton>
-
-              <MagneticButton
-                size="lg"
-                variant="ghost"
-                className="w-full sm:w-auto"
-                onClick={() => scrollToSection('kham-pha')}
+      <div className="relative z-10 mx-auto flex w-full max-w-[1360px] flex-col items-center">
+        <div className="grid w-full grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
+          <div className="flex flex-col items-start text-left lg:col-span-7">
+            <Reveal y={14}>
+              <div
+                className="inline-flex items-center gap-2.5 rounded-full px-4 py-2 text-[11px] font-mono font-bold tracking-[0.16em] uppercase text-amber-300 backdrop-blur-md"
+                style={{
+                  background: 'rgba(245, 158, 11, 0.08)',
+                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                }}
               >
-                <Play className="h-4 w-4 text-amber-400" />
-                Xem F-Forum
-              </MagneticButton>
-            </div>
-          </Reveal>
+                <Sparkles className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
+                <span>Cộng đồng học thuật · Tri thức lớn từ đối thoại nhỏ</span>
+              </div>
+            </Reveal>
 
-          <Reveal y={18} delay={330}>
-            <ul className="mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-              {HERO_TRUST.map((item) => (
-                <li key={item} className="flex items-center gap-1.5 text-[12.5px] text-[var(--ff-text-dim)]">
-                  <Check className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </Reveal>
+            <Reveal y={26} delay={80}>
+              <h1 className="ff-display mt-8 text-[2.75rem] leading-[1.05] tracking-tight sm:text-6xl lg:text-[4.15rem] text-[var(--ff-text)]">
+                <span className="block font-serif italic text-amber-200/90 font-normal">
+                  <span className="ff-swash-cap">K</span>hai phóng tư duy,
+                </span>
+                <span className="mt-2 block font-sans font-extrabold text-white">
+                  chạm sâu bản chất tri thức.
+                </span>
+              </h1>
+            </Reveal>
+
+            <Reveal y={24} delay={170}>
+              <p
+                className="mt-6 max-w-xl text-[15.5px] leading-relaxed text-slate-300 sm:text-[17px] p-5 rounded-2xl backdrop-blur-lg"
+                style={{
+                  background: 'rgba(15, 23, 42, 0.45)',
+                  border: '1px solid rgba(148, 163, 184, 0.15)',
+                }}
+              >
+                Không giải bài hộ, không tạo thói quen thụ động. F-Forum 2027 mang đến giao diện 2.5D phi đối xứng chuẩn mực,
+                nơi học sinh - sinh viên cùng mổ xẻ bài toán hóc búa, cọ xát phòng thi CBT và khám phá vũ trụ khoa học chân thực.
+              </p>
+            </Reveal>
+
+            <Reveal y={22} delay={250} className="w-full">
+              <div className="mt-8 flex w-full flex-col items-start gap-4 sm:flex-row sm:items-center">
+                <MagneticButton size="lg" onClick={onOpenAuth} className="w-full sm:w-auto shadow-[0_10px_30px_rgba(245,158,11,0.25)]">
+                  <BookOpenCheck className="h-4 w-4" />
+                  {currentUser ? 'Vào bàn học F-Forum' : 'Đặt câu hỏi ngay'}
+                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                </MagneticButton>
+
+                {!currentUser && (
+                  <MagneticButton
+                    size="lg"
+                    variant="ghost"
+                    className="w-full sm:w-auto backdrop-blur-md"
+                    onClick={onOpenLogin}
+                  >
+                    <LogIn className="h-4 w-4 text-emerald-400" />
+                    Đăng nhập tài khoản
+                  </MagneticButton>
+                )}
+
+                <MagneticButton
+                  size="lg"
+                  variant="ghost"
+                  className="w-full sm:w-auto backdrop-blur-md"
+                  onClick={() => scrollToSection('kham-pha')}
+                >
+                  <Play className="h-4 w-4 text-amber-400" />
+                  Khám phá phân khu
+                </MagneticButton>
+              </div>
+            </Reveal>
+
+            <Reveal y={18} delay={330}>
+              <div
+                className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 p-4 rounded-xl backdrop-blur-sm"
+                style={{
+                  background: 'rgba(2, 6, 23, 0.4)',
+                  border: '1px solid rgba(148, 163, 184, 0.12)',
+                }}
+              >
+                {HERO_TRUST.map((item) => (
+                  <div key={item} className="flex items-center gap-2 text-[12.5px] text-slate-300">
+                    <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" aria-hidden="true" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </Reveal>
+          </div>
+
+          <div className="flex w-full items-center justify-center lg:col-span-5">
+            <Reveal variant="scale" y={20} delay={140} className="w-full flex justify-center">
+              <div className="relative group perspective-[1200px]">
+                <HardwareShowcase onNavigate={onNavigate} />
+              </div>
+            </Reveal>
+          </div>
         </div>
-
-        <Reveal variant="scale" y={24} delay={140} className="relative z-10 mx-auto mt-12 w-full max-w-[1200px]">
-          <LandingHomePreview
-            currentUser={currentUser}
-            onNavigate={onNavigate}
-            onOpenLogin={onOpenLogin}
-          />
-        </Reveal>
       </div>
 
-      <div className="relative z-10 mx-auto mt-8 hidden items-center gap-2 text-[11px] font-mono uppercase tracking-[0.22em] text-[var(--ff-text-dim)] lg:flex">
-        <span className="h-[1px] w-10 bg-gradient-to-r from-transparent to-[var(--ff-border-strong)]" />
-        <ChevronDown className="ff-chevron-1 h-3.5 w-3.5" aria-hidden="true" />
-        Cuộn để khám phá
-        <ChevronDown className="ff-chevron-2 h-3.5 w-3.5" aria-hidden="true" />
-        <span className="h-[1px] w-10 bg-gradient-to-l from-transparent to-[var(--ff-border-strong)]" />
+      <div className="relative z-10 mx-auto mt-14 hidden items-center gap-2 text-[11px] font-mono uppercase tracking-[0.22em] text-[var(--ff-text-dim)] lg:flex">
+        <span className="h-[1px] w-12 bg-gradient-to-r from-transparent to-[var(--ff-border-strong)]" />
+        <ChevronDown className="ff-chevron-1 h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
+        Cuộn để trải nghiệm toàn cảnh
+        <ChevronDown className="ff-chevron-2 h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
+        <span className="h-[1px] w-12 bg-gradient-to-l from-transparent to-[var(--ff-border-strong)]" />
       </div>
 
       <ScrollToExplore visible={showScrollCue} />
